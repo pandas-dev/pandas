@@ -222,6 +222,10 @@ def add_nans(panel):
         for j, col in enumerate(dm.columns):
             dm[col][:i + j] = np.NaN
 
+class TestSubDict(dict):
+    def __init__(self, *args, **kwargs):
+        dict.__init__(self, *args, **kwargs)
+
 
 # Dependency checks.  Copied this from Nipy/Nipype (Copyright of
 # respective developers, license: BSD-3)

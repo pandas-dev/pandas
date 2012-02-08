@@ -1,10 +1,10 @@
 # pylint: disable-msg=E1101,W0612
 
+from cStringIO import StringIO
 from datetime import datetime, timedelta
 import os
 import operator
 import unittest
-import cStringIO as StringIO
 
 import nose
 
@@ -14,7 +14,10 @@ import numpy.ma as ma
 
 from pandas import Index, Series, TimeSeries, DataFrame, isnull, notnull
 from pandas.core.index import MultiIndex
+
 import pandas.core.datetools as datetools
+import pandas.core.nanops as nanops
+
 from pandas.util import py3compat
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
@@ -146,6 +149,19 @@ class CheckNameIntegration(object):
         result = self.ts.to_sparse()
         self.assertEquals(result.name, self.ts.name)
 
+class TestNanops(unittest.TestCase):
+
+    def test_comparisons(self):
+        left = np.random.randn(10)
+        right = np.random.randn(10)
+        left[:3] = np.nan
+
+        result = nanops.nangt(left, right)
+        expected = (left > right).astype('O')
+        expected[:3] = np.nan
+
+        assert_almost_equal(result, expected)
+
 class SafeForSparse(object):
     pass
 
@@ -237,6 +253,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = Series(d, index=['b', 'c', 'd', 'a'])
         expected = Series([1, 2, nan, 0], index=['b', 'c', 'd', 'a'])
         assert_series_equal(result, expected)
+
+    def test_constructor_subclass_dict(self):
+        data = tm.TestSubDict((x, 10.0 * x) for x in xrange(10))
+        series = Series(data)
+        refseries = Series(dict(data.iteritems()))
+        assert_series_equal(refseries, series)
 
     def test_constructor_list_of_tuples(self):
         data = [(1, 1), (2, 2), (2, 3)]
@@ -749,6 +771,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.series[5:7] = np.NaN
         str(self.series)
 
+        # with Nones
+        ots = self.ts.astype('O')
+        ots[::2] = None
+        repr(ots)
+
         # tuple name, e.g. from hierarchical index
         self.series.name = ('foo', 'bar', 'baz')
         repr(self.series)
@@ -756,79 +783,6 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         biggie = Series(tm.randn(1000), index=np.arange(1000),
                         name=('foo', 'bar', 'baz'))
         repr(biggie)
-
-    def test_repr_unicode(self):
-        s = Series([u'\u03c3'] * 10)
-        repr(s)
-
-    def test_to_string(self):
-        from cStringIO import StringIO
-        buf = StringIO()
-
-        s = self.ts.to_string()
-
-        retval = self.ts.to_string(buf=buf)
-        self.assert_(retval is None)
-        self.assertEqual(buf.getvalue().strip(), s)
-
-        # pass float_format
-        format = '%.4f'.__mod__
-        result = self.ts.to_string(float_format=format)
-        result = [x.split()[1] for x in result.split('\n')]
-        expected = [format(x) for x in self.ts]
-        self.assertEqual(result, expected)
-
-        # empty string
-        result = self.ts[:0].to_string()
-        self.assertEqual(result, '')
-
-        result = self.ts[:0].to_string(length=0)
-        self.assertEqual(result, '')
-
-        # name and length
-        cp = self.ts.copy()
-        cp.name = 'foo'
-        result = cp.to_string(length=True, name=True)
-        last_line = result.split('\n')[-1].strip()
-        self.assertEqual(last_line, "Name: foo, Length: %d" % len(cp))
-
-    def test_to_string_mixed(self):
-        s = Series(['foo', np.nan, -1.23, 4.56])
-        result = s.to_string()
-        expected = ('0    foo\n'
-                    '1    NaN\n'
-                    '2   -1.23\n'
-                    '3    4.56')
-        self.assertEqual(result, expected)
-
-        # but don't count NAs as floats
-        s = Series(['foo', np.nan, 'bar', 'baz'])
-        result = s.to_string()
-        expected = ('0    foo\n'
-                    '1    NaN\n'
-                    '2    bar\n'
-                    '3    baz')
-        self.assertEqual(result, expected)
-
-        s = Series(['foo', 5, 'bar', 'baz'])
-        result = s.to_string()
-        expected = ('0    foo\n'
-                    '1    5\n'
-                    '2    bar\n'
-                    '3    baz')
-        self.assertEqual(result, expected)
-
-    def test_to_string_float_na_spacing(self):
-        s = Series([0., 1.5678, 2., -3., 4.])
-        s[::2] = np.nan
-
-        result = s.to_string()
-        expected = ('0    NaN\n'
-                    '1    1.568\n'
-                    '2    NaN\n'
-                    '3   -3.000\n'
-                    '4    NaN')
-        self.assertEqual(result, expected)
 
     def test_iter(self):
         for i, val in enumerate(self.series):
@@ -1114,6 +1068,24 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     #     selector = -0.5 <= self.ts <= 0.5
     #     expected = (self.ts >= -0.5) & (self.ts <= 0.5)
     #     assert_series_equal(selector, expected)
+
+    def test_operators_na_handling(self):
+        from decimal import Decimal
+        from datetime import date
+        s = Series([Decimal('1.3'), Decimal('2.3')],
+                   index=[date(2012,1,1), date(2012,1,2)])
+
+        result = s + s.shift(1)
+        self.assert_(isnull(result[0]))
+
+        s = Series(['foo', 'bar', 'baz', np.nan])
+        result = 'prefix_' + s
+        expected = Series(['prefix_foo', 'prefix_bar', 'prefix_baz', np.nan])
+        assert_series_equal(result, expected)
+
+        result = s + '_suffix'
+        expected = Series(['foo_suffix', 'bar_suffix', 'baz_suffix', np.nan])
+        assert_series_equal(result, expected)
 
     def test_idxmin(self):
         # test idxmin
@@ -1408,6 +1380,41 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series([])
         assert_series_equal(hist, expected)
 
+    def test_unique(self):
+        # 714 also, dtype=float
+        s = Series([1.2345] * 100)
+        s[::2] = np.nan
+        result = s.unique()
+        self.assert_(len(result) == 2)
+
+        s = Series([1.2345] * 100, dtype='f4')
+        s[::2] = np.nan
+        result = s.unique()
+        self.assert_(len(result) == 2)
+
+        # NAs in object arrays #714
+        s = Series(['foo'] * 100, dtype='O')
+        s[::2] = np.nan
+        result = s.unique()
+        self.assert_(len(result) == 2)
+
+        # integers
+        s = Series(np.random.randint(0, 100, size=100))
+        result = np.sort(s.unique())
+        expected = np.unique(s.values)
+        self.assert_(np.array_equal(result, expected))
+
+        s = Series(np.random.randint(0, 100, size=100).astype(np.int32))
+        result = np.sort(s.unique())
+        expected = np.unique(s.values)
+        self.assert_(np.array_equal(result, expected))
+
+        # test string arrays for coverage
+        strings = np.tile(np.array([tm.rands(10) for _ in xrange(10)]), 10)
+        result = np.sort(nanops.unique1d(strings))
+        expected = np.unique(strings)
+        self.assert_(np.array_equal(result, expected))
+
     def test_sort(self):
         ts = self.ts.copy()
         ts.sort()
@@ -1508,6 +1515,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_almost_equal(arr, self.ts.values)
 
         os.remove('_foo')
+
+    def test_to_csv_stringio(self):
+        buf = StringIO()
+        self.ts.to_csv(buf, index=False)
+        buf.seek(0)
+        arr = np.loadtxt(buf)
+        assert_almost_equal(arr, self.ts.values)
 
     def test_to_dict(self):
         self.assert_(np.array_equal(Series(self.ts.to_dict()), self.ts))

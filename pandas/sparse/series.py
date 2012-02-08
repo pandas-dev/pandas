@@ -263,6 +263,20 @@ to sparse
         new_index = Index(self.index.view(ndarray)[key])
         return self._constructor(dataSlice, index=new_index, name=self.name)
 
+    def abs(self):
+        """
+        Return an object with absolute value taken. Only applicable to objects
+        that are all numeric
+
+        Returns
+        -------
+        abs: type of caller
+        """
+        res_sp_values = np.abs(self.sp_values)
+        return SparseSeries(res_sp_values, index=self.index,
+                            sparse_index=self.sp_index,
+                            fill_value=self.fill_value)
+
     def get(self, label, default=None):
         """
         Returns value occupying requested label, default to specified
@@ -442,13 +456,16 @@ to sparse
         sparse_series.name = self.name
         return sparse_series
 
-    def valid(self):
+    def dropna(self):
         """
-        Analogous to Series.valid
+        Analogous to Series.dropna. If fill_value=NaN, returns a dense Series
         """
         # TODO: make more efficient
         dense_valid = self.to_dense().valid()
-        return dense_valid.to_sparse(fill_value=self.fill_value)
+        if isnull(self.fill_value):
+            return dense_valid
+        else:
+            return dense_valid.to_sparse(fill_value=self.fill_value)
 
     def shift(self, periods, offset=None, timeRule=None):
         """

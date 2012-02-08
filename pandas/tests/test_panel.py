@@ -5,6 +5,7 @@ from datetime import datetime
 import os
 import operator
 import unittest
+import nose
 
 import numpy as np
 
@@ -16,6 +17,7 @@ from pandas.core.series import remove_na
 import pandas.core.common as com
 import pandas.core.panel as panelmod
 from pandas.util import py3compat
+from pandas.io.parsers import (ExcelFile, ExcelWriter)
 
 from pandas.util.testing import (assert_panel_equal,
                                  assert_frame_equal,
@@ -321,6 +323,21 @@ class SafeForSparse(object):
                     result = self.panel.get_value(item, mjr, mnr)
                     expected = self.panel[item][mnr][mjr]
                     assert_almost_equal(result, expected)
+
+    def test_abs(self):
+        result = self.panel.abs()
+        expected = np.abs(self.panel)
+        self.assert_panel_equal(result, expected)
+
+        df = self.panel['ItemA']
+        result = df.abs()
+        expected = np.abs(df)
+        assert_frame_equal(result, expected)
+
+        s = df['A']
+        result = s.abs()
+        expected = np.abs(s)
+        assert_series_equal(result, expected)
 
 class CheckIndexing(object):
 
@@ -964,6 +981,29 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         # test a function that doesn't aggregate
         f2 = lambda x: np.zeros((2,2))
         self.assertRaises(Exception, group_agg, values, bounds, f2)
+
+    def test_from_frame_level1_unsorted(self):
+        tuples = [('MSFT', 3), ('MSFT', 2), ('AAPL', 2),
+                  ('AAPL', 1), ('MSFT', 1)]
+        midx = MultiIndex.from_tuples(tuples)
+        df = DataFrame(np.random.rand(5,4), index=midx)
+        p = df.to_panel()
+        assert_frame_equal(p.minor_xs(2), df.ix[:,2].sort_index())
+
+    def test_to_excel(self):
+        try:
+            import xlwt
+            import xlrd
+            import openpyxl
+        except ImportError:
+            raise nose.SkipTest
+
+        path = '__tmp__.xlsx'
+        self.panel.to_excel(path)
+        reader = ExcelFile(path)
+        for item, df in self.panel.iteritems():
+            recdf = reader.parse(str(item),index_col=0)
+            assert_frame_equal(df, recdf)
 
 class TestLongPanel(unittest.TestCase):
     """

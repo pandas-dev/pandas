@@ -8,16 +8,21 @@ import os
 import sys
 import unittest
 
+import nose
+
 from numpy import random, nan
 from numpy.random import randn
 import numpy as np
 import numpy.ma as ma
 
+import pandas as pan
 import pandas.core.common as com
+import pandas.core.format as fmt
 import pandas.core.datetools as datetools
 from pandas.core.index import NULL_INDEX
 from pandas.core.api import (DataFrame, Index, Series, notnull, isnull,
                              MultiIndex)
+from pandas.io.parsers import (ExcelFile, ExcelWriter)
 
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
@@ -345,6 +350,12 @@ class CheckIndexing(object):
         expected = Series([np.nan, np.nan, 42, 42], index=df.index)
         self.assert_(df['z'] is not foo)
         assert_series_equal(df['z'], expected)
+
+    def test_setitem_None(self):
+        # GH #766
+        self.frame[None] = self.frame['A']
+        assert_series_equal(self.frame[None], self.frame['A'])
+        repr(self.frame)
 
     def test_delitem_corner(self):
         f = self.frame.copy()
@@ -1214,6 +1225,29 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         frame = DataFrame({'A' : [], 'B' : []}, columns=['A', 'B'])
         self.assert_(frame.index is NULL_INDEX)
 
+    def test_constructor_subclass_dict(self):
+        # Test for passing dict subclass to constructor
+        data = {'col1': tm.TestSubDict((x, 10.0 * x) for x in xrange(10)),
+                'col2': tm.TestSubDict((x, 20.0 * x) for x in xrange(10))}
+        df = DataFrame(data)
+        refdf = DataFrame(dict((col, dict(val.iteritems())) for col, val in data.iteritems()))
+        assert_frame_equal(refdf, df)
+
+        data = tm.TestSubDict(data.iteritems())
+        df = DataFrame(data)
+        assert_frame_equal(refdf, df)
+
+        # try with defaultdict
+        from collections import defaultdict
+        data = {}
+        self.frame['B'][:10] = np.nan
+        for k, v in self.frame.iterkv():
+            dct = defaultdict(dict)
+            dct.update(v.to_dict())
+            data[k] = dct
+        frame = DataFrame(data)
+        assert_frame_equal(self.frame.sort_index(), frame)
+
     def test_constructor_dict_block(self):
         expected = [[4., 3., 2., 1.]]
         df = DataFrame({'d' : [4.],'c' : [3.],'b' : [2.],'a' : [1.]},
@@ -1786,265 +1820,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                                index=np.arange(50))
         foo = repr(unsortable)
 
-        com.set_printoptions(precision=3, column_space=10)
+        fmt.set_printoptions(precision=3, column_space=10)
         repr(self.frame)
 
-        com.set_printoptions(max_rows=10, max_columns=2)
+        fmt.set_printoptions(max_rows=10, max_columns=2)
         repr(self.frame)
-        com.reset_printoptions()
-
-    def test_repr_embedded_ndarray(self):
-        arr = np.empty(10, dtype=[('err', object)])
-        for i in range(len(arr)):
-            arr['err'][i] = np.random.randn(i)
-
-        df = DataFrame(arr)
-        repr(df['err'])
-        repr(df)
-        df.to_string()
-
-    def test_eng_float_formatter(self):
-        self.frame.ix[5] = 0
-
-        com.set_eng_float_format()
-
-        repr(self.frame)
-
-        com.set_eng_float_format(use_eng_prefix=True)
-
-        repr(self.frame)
-
-        com.set_eng_float_format(accuracy=0)
-
-        repr(self.frame)
-
-        com.reset_printoptions()
-
-    def test_repr_tuples(self):
-        buf = StringIO()
-
-        df = DataFrame({'tups' : zip(range(10), range(10))})
-        repr(df)
-        df.to_string(col_space=10, buf=buf)
-
-    def test_to_string_repr_unicode(self):
-        buf = StringIO()
-
-        unicode_values = [u'\u03c3'] * 10
-        unicode_values = np.array(unicode_values, dtype=object)
-        df = DataFrame({'unicode' : unicode_values})
-        df.to_string(col_space=10, buf=buf)
-
-        # it works!
-        repr(df)
-
-    def test_to_string_unicode_columns(self):
-        df = DataFrame({u'\u03c3' : np.arange(10.)})
-
-        buf = StringIO()
-        df.to_string(buf=buf)
-        buf.getvalue()
-
-        buf = StringIO()
-        df.info(buf=buf)
-        buf.getvalue()
-
-    def test_to_string_unicode_two(self):
-        dm = DataFrame({u'c/\u03c3': []})
-        buf = StringIO()
-        dm.to_string(buf)
-
-    def test_to_string_with_formatters_unicode(self):
-        df = DataFrame({u'c/\u03c3':[1,2,3]})
-        result = df.to_string(formatters={u'c/\u03c3': lambda x: '%s' % x})
-        self.assertEqual(result, u'  c/\u03c3\n0 1  \n1 2  \n2 3  ')
-
-    def test_to_string_buffer_all_unicode(self):
-        buf = StringIO()
-
-        empty = DataFrame({u'c/\u03c3':Series()})
-        nonempty = DataFrame({u'c/\u03c3':Series([1,2,3])})
-
-        print >>buf, empty
-        print >>buf, nonempty
-
-        # this should work
-        buf.getvalue()
-
-    def test_unicode_problem_decoding_as_ascii(self):
-        dm = DataFrame({u'c/\u03c3': Series({'test':np.NaN})})
-        unicode(dm.to_string())
+        fmt.reset_printoptions()
 
     def test_head_tail(self):
         assert_frame_equal(self.frame.head(), self.frame[:5])
         assert_frame_equal(self.frame.tail(), self.frame[-5:])
-
-    def test_repr_corner(self):
-        # representing infs poses no problems
-        df = DataFrame({'foo' : np.inf * np.empty(10)})
-        foo = repr(df)
-
-    def test_to_string(self):
-        from pandas import read_table
-        import re
-
-        # big mixed
-        biggie = DataFrame({'A' : randn(200),
-                            'B' : tm.makeStringIndex(200)},
-                            index=range(200))
-
-        biggie['A'][:20] = nan
-        biggie['B'][:20] = nan
-        s = biggie.to_string()
-
-        buf = StringIO()
-        retval = biggie.to_string(buf=buf)
-        self.assert_(retval is None)
-        self.assertEqual(buf.getvalue(), s)
-
-        self.assert_(isinstance(s, basestring))
-
-        # print in right order
-        result = biggie.to_string(columns=['B', 'A'], col_space=17,
-                                  float_format='%.6f'.__mod__)
-        lines = result.split('\n')
-        header = lines[0].strip().split()
-        joined = '\n'.join([re.sub('\s+', ' ', x).strip() for x in lines[1:]])
-        recons = read_table(StringIO(joined), names=header, sep=' ')
-        assert_series_equal(recons['B'], biggie['B'])
-        self.assertEqual(recons['A'].count(), biggie['A'].count())
-        self.assert_((np.abs(recons['A'].dropna() -
-                             biggie['A'].dropna()) < 0.1).all())
-
-        # expected = ['B', 'A']
-        # self.assertEqual(header, expected)
-
-        result = biggie.to_string(columns=['A'], col_space=17)
-        header = result.split('\n')[0].strip().split()
-        expected = ['A']
-        self.assertEqual(header, expected)
-
-        biggie.to_string(columns=['B', 'A'],
-                         formatters={'A' : lambda x: '%.1f' % x})
-
-        biggie.to_string(columns=['B', 'A'], float_format=str)
-        biggie.to_string(columns=['B', 'A'], col_space=12,
-                         float_format=str)
-
-        frame = DataFrame(index=np.arange(200))
-        frame.to_string()
-
-    def test_to_string_no_header(self):
-        df = DataFrame({'x' : [1, 2, 3],
-                        'y' : [4, 5, 6]})
-
-        df_s = df.to_string(header=False)
-        expected = "0  1  4\n1  2  5\n2  3  6"
-
-        assert(df_s == expected)
-
-    def test_to_string_no_index(self):
-        df = DataFrame({'x' : [1, 2, 3],
-                        'y' : [4, 5, 6]})
-
-        df_s = df.to_string(index=False)
-        expected = " x  y\n 1  4\n 2  5\n 3  6"
-
-        assert(df_s == expected)
-
-    def test_to_string_float_formatting(self):
-        com.reset_printoptions()
-        com.set_printoptions(precision=6, column_space=12)
-
-        df = DataFrame({'x' : [0, 0.25, 3456.000, 12e+45, 1.64e+6,
-                               1.7e+8, 1.253456, np.pi, -1e6]})
-
-        df_s = df.to_string()
-
-        # Python 2.5 just wants me to be sad. And debian 32-bit
-        #sys.version_info[0] == 2 and sys.version_info[1] < 6:
-        if '%.4g' % 1.7e8 == '1.7e+008':
-            expected = ('   x        \n0  0.0000000\n1  0.2500000\n'
-                        '2  3456.0000\n3  1.20e+046\n4  1.64e+006\n'
-                        '5  1.70e+008\n6  1.2534560\n7  3.1415927\n'
-                        '8 -1.00e+006')
-        else:
-            expected = ('   x       \n0  0.000000\n1  0.250000\n'
-                        '2  3456.000\n3  1.20e+46\n4  1.64e+06\n'
-                        '5  1.70e+08\n6  1.253456\n7  3.141593\n'
-                        '8 -1.00e+06')
-        assert(df_s == expected)
-
-        df = DataFrame({'x' : [3234, 0.253]})
-        df_s = df.to_string()
-
-        expected = '   x    \n0  3234.\n1  0.253'
-        assert(df_s == expected)
-
-        com.reset_printoptions()
-        self.assertEqual(com.print_config.precision, 4)
-
-        df = DataFrame({'x': [1e9, 0.2512]})
-        df_s = df.to_string()
-        if sys.version_info[0] == 2 and sys.version_info[1] < 6:
-            expected = '   x     \n0  1e+009\n1  0.2512'
-        else:
-            expected = '   x     \n0  1.e+09\n1  0.2512'
-        assert(df_s == expected)
-
-    def test_to_string_right_justify_cols(self):
-        com.reset_printoptions()
-        df = DataFrame({'x' : [3234, 0.253]})
-        df_s = df.to_string(justify='right')
-        expected = '       x\n0  3234.\n1  0.253'
-        assert(df_s == expected)
-
-    def test_to_string_format_na(self):
-        com.reset_printoptions()
-        df = DataFrame({'A' : [np.nan, -1, -2.1234, 3, 4],
-                        'B' : [np.nan, 'foo', 'foooo', 'fooooo', 'bar']})
-        result = df.to_string()
-
-        expected = ('   A     B     \n'
-                    '0  NaN   NaN   \n'
-                    '1 -1.000 foo   \n'
-                    '2 -2.123 foooo \n'
-                    '3  3.000 fooooo\n'
-                    '4  4.000 bar   ')
-        self.assertEqual(result, expected)
-
-    def test_to_html(self):
-        # big mixed
-        biggie = DataFrame({'A' : randn(200),
-                            'B' : tm.makeStringIndex(200)},
-                            index=range(200))
-
-        biggie['A'][:20] = nan
-        biggie['B'][:20] = nan
-        s = biggie.to_html()
-
-        buf = StringIO()
-        retval = biggie.to_html(buf=buf)
-        self.assert_(retval is None)
-        self.assertEqual(buf.getvalue(), s)
-
-        self.assert_(isinstance(s, basestring))
-
-        biggie.to_html(columns=['B', 'A'], col_space=17)
-        biggie.to_html(columns=['B', 'A'],
-                       formatters={'A' : lambda x: '%.1f' % x})
-
-        biggie.to_html(columns=['B', 'A'], float_format=str)
-        biggie.to_html(columns=['B', 'A'], col_space=12,
-                       float_format=str)
-
-        frame = DataFrame(index=np.arange(200))
-        frame.to_html()
-
-    def test_to_html_with_no_bold(self):
-        x = DataFrame({'x': randn(5)})
-        ashtml = x.to_html(bold_rows=False)
-        assert('<strong>' not in ashtml)
 
     def test_insert(self):
         df = DataFrame(np.random.randn(5, 3), index=np.arange(5),
@@ -2469,26 +2254,185 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         os.remove(path)
 
     def test_to_csv_bug(self):
-        from pandas import read_csv
         path = '__tmp__.csv'
         f1 = StringIO('a,1.0\nb,2.0')
         df = DataFrame.from_csv(f1,header=None)
         newdf = DataFrame({'t': df[df.columns[0]]})
         newdf.to_csv(path)
 
-        recons = read_csv(path, index_col=0)
+        recons = pan.read_csv(path, index_col=0)
         assert_frame_equal(recons, newdf)
 
         os.remove(path)
 
     def test_to_csv_unicode(self):
-        from pandas import read_csv
         path = '__tmp__.csv'
         df = DataFrame({u'c/\u03c3':[1,2,3]})
         df.to_csv(path, encoding='UTF-8')
-        df2 = read_csv(path, index_col=0, encoding='UTF-8')
+        df2 = pan.read_csv(path, index_col=0, encoding='UTF-8')
         assert_frame_equal(df, df2)
+
+        df.to_csv(path, encoding='UTF-8', index=False)
+        df2 = pan.read_csv(path, index_col=None, encoding='UTF-8')
+        assert_frame_equal(df, df2)
+
         os.remove(path)
+
+    def test_to_csv_stringio(self):
+        buf = StringIO()
+        self.frame.to_csv(buf)
+        buf.seek(0)
+        recons = pan.read_csv(buf, index_col=0)
+        assert_frame_equal(recons, self.frame)
+
+    def test_to_excel_from_excel(self):
+        try:
+            import xlwt
+            import xlrd
+            import openpyxl
+        except ImportError:
+            raise nose.SkipTest
+
+        for ext in ['xls', 'xlsx']:
+            path = '__tmp__.' + ext
+
+            self.frame['A'][:5] = nan
+
+            self.frame.to_excel(path,'test1')
+            self.frame.to_excel(path,'test1', cols=['A', 'B'])
+            self.frame.to_excel(path,'test1', header=False)
+            self.frame.to_excel(path,'test1', index=False)
+
+            # test roundtrip
+            self.frame.to_excel(path,'test1')
+            reader = ExcelFile(path)
+            recons = reader.parse('test1', index_col=0)
+            assert_frame_equal(self.frame, recons)
+
+            self.frame.to_excel(path,'test1', index=False)
+            reader = ExcelFile(path)
+            recons = reader.parse('test1', index_col=None)
+            recons.index = self.frame.index
+            assert_frame_equal(self.frame, recons)
+
+            self.frame.to_excel(path,'test1')
+            reader = ExcelFile(path)
+            recons = reader.parse('test1', index_col=0, skiprows=[1])
+            assert_frame_equal(self.frame.ix[1:], recons)
+
+            self.frame.to_excel(path,'test1',na_rep='NA')
+            reader = ExcelFile(path)
+            recons = reader.parse('test1', index_col=0, na_values=['NA'])
+            assert_frame_equal(self.frame, recons)
+
+            self.mixed_frame.to_excel(path,'test1')
+            reader = ExcelFile(path)
+            recons = reader.parse('test1', index_col=0)
+            assert_frame_equal(self.mixed_frame, recons)
+
+            self.tsframe.to_excel(path, 'test1')
+            reader = ExcelFile(path)
+            recons = reader.parse('test1')
+            assert_frame_equal(self.tsframe, recons)
+
+            #Test np.int64
+            frame = DataFrame(np.random.randn(10,2))
+            frame.to_excel(path,'test1')
+            reader = ExcelFile(path)
+            recons = reader.parse('test1')
+            assert_frame_equal(frame, recons)
+
+            # Test writing to separate sheets
+            writer = ExcelWriter(path)
+            self.frame.to_excel(writer,'test1')
+            self.tsframe.to_excel(writer,'test2')
+            writer.save()
+            reader = ExcelFile(path)
+            recons = reader.parse('test1',index_col=0)
+            assert_frame_equal(self.frame, recons)
+            recons = reader.parse('test2',index_col=0)
+            assert_frame_equal(self.tsframe, recons)
+
+            os.remove(path)
+
+        # datetime.date, not sure what to test here exactly
+        path = '__tmp__.xls'
+        tsf = self.tsframe.copy()
+        tsf.index = [x.date() for x in self.tsframe.index]
+        tsf.to_excel(path, 'test1')
+        reader = ExcelFile(path)
+        recons = reader.parse('test1')
+        assert_frame_equal(self.tsframe, recons)
+        os.remove(path)
+
+    def test_to_excel_multiindex(self):
+        try:
+            import xlwt
+            import xlrd
+            import openpyxl
+        except ImportError:
+            raise nose.SkipTest
+
+        for ext in ['xls', 'xlsx']:
+            path = '__tmp__.' + ext
+
+            frame = self.frame
+            old_index = frame.index
+            arrays = np.arange(len(old_index)*2).reshape(2,-1)
+            new_index = MultiIndex.from_arrays(arrays,
+                                               names=['first', 'second'])
+            frame.index = new_index
+            frame.to_excel(path, 'test1', header=False)
+            frame.to_excel(path, 'test1', cols=['A', 'B'])
+
+            # round trip
+            frame.to_excel(path, 'test1')
+            reader = ExcelFile(path)
+            df = reader.parse('test1', index_col=[0,1], parse_dates=False)
+            assert_frame_equal(frame, df)
+            self.assertEqual(frame.index.names, df.index.names)
+            self.frame.index = old_index # needed if setUP becomes a classmethod
+
+            # try multiindex with dates
+            tsframe = self.tsframe
+            old_index = tsframe.index
+            new_index = [old_index, np.arange(len(old_index))]
+            tsframe.index = MultiIndex.from_arrays(new_index)
+
+            tsframe.to_excel(path, 'test1', index_label = ['time','foo'])
+            reader = ExcelFile(path)
+            recons = reader.parse('test1', index_col=[0,1])
+            assert_frame_equal(tsframe, recons)
+
+            # infer index
+            tsframe.to_excel(path, 'test1')
+            reader = ExcelFile(path)
+            recons = reader.parse('test1')
+            assert_frame_equal(tsframe, recons)
+
+            # no index
+            tsframe.index.names = ['first', 'second']
+            tsframe.to_excel(path, 'test1')
+            reader = ExcelFile(path)
+            recons = reader.parse('test1')
+            assert_almost_equal(tsframe.values,
+                                recons.ix[:, tsframe.columns].values)
+            self.assertEqual(len(tsframe.columns) + 2, len(recons.columns))
+
+            tsframe.index.names = [None, None]
+
+            # no index
+            tsframe.to_excel(path, 'test1', index=False)
+            reader = ExcelFile(path)
+            recons = reader.parse('test1', index_col=None)
+            assert_almost_equal(recons.values, self.tsframe.values)
+            self.tsframe.index = old_index # needed if setUP becomes classmethod
+
+            # write a big DataFrame
+            df = DataFrame(np.random.randn(1005, 1))
+            df.to_excel(path, 'test1')
+
+            os.remove(path)
 
     def test_info(self):
         io = StringIO()
@@ -2828,6 +2772,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = df2.drop_duplicates(take_last=True)
         expected = df2.drop_duplicates(['A', 'B'], take_last=True)
         assert_frame_equal(result, expected)
+
+    def test_drop_col_still_multiindex(self):
+        arrays = [[  'a',   'b',   'c',    'top'],
+                  [  '',    '',    '',     'OD' ],
+                  [  '',    '',    '',     'wx' ]]
+
+        tuples = zip(*arrays)
+        tuples.sort()
+        index = MultiIndex.from_tuples(tuples)
+
+        df = DataFrame(randn(3,4), columns=index)
+        del df[('a','','')]
+        assert(isinstance(df.columns, MultiIndex))
 
     def test_fillna(self):
         self.tsframe['A'][:5] = nan
@@ -3793,8 +3750,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                          'd' : [None, None, None],
                          'e' : [3.14, 0.577, 2.773]})
 
-        self.assertEquals(df._get_numeric_columns(), ['a', 'e'])
-        # self.assertEquals(df._get_object_columns(), ['c', 'd'])
+        self.assert_(np.array_equal(df._get_numeric_data().columns,
+                                    ['a', 'e']))
 
     def test_get_numeric_data(self):
         df = DataFrame({'a' : 1., 'b' : 2, 'c' : 'foo'},
@@ -4155,6 +4112,43 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_almost_equal(ranks0.values, exp0)
         assert_almost_equal(ranks1.values, exp1)
 
+    def test_rank2(self):
+        from datetime import datetime
+
+        df = DataFrame([['b','c','a'],['a','c','b']])
+        expected = DataFrame([[2.0, 3.0, 1.0], [1, 3, 2]])
+        result = df.rank(1, numeric_only=False)
+        assert_frame_equal(result, expected)
+
+        expected = DataFrame([[2.0, 1.5, 1.0], [1, 1.5, 2]])
+        result = df.rank(0, numeric_only=False)
+        assert_frame_equal(result, expected)
+
+        df = DataFrame([['b',np.nan,'a'],['a','c','b']])
+        expected = DataFrame([[2.0, nan, 1.0], [1.0, 3.0, 2.0]])
+        result = df.rank(1, numeric_only=False)
+        assert_frame_equal(result, expected)
+
+        expected = DataFrame([[2.0, nan, 1.0], [1.0, 1.0, 2.0]])
+        result = df.rank(0, numeric_only=False)
+        assert_frame_equal(result, expected)
+
+        # f7u12, this does not work without extensive workaround
+        data = [[datetime(2001, 1, 5), nan, datetime(2001, 1, 2)],
+                [datetime(2000, 1, 2), datetime(2000, 1, 3),
+                 datetime(2000, 1, 1)]]
+        df = DataFrame(data)
+        expected = DataFrame([[2., nan, 1.],
+                              [2., 3., 1.]])
+        result = df.rank(1, numeric_only=False)
+        assert_frame_equal(result, expected)
+
+        # mixed-type frames
+        self.mixed_frame['foo'] = datetime.now()
+        result = self.mixed_frame.rank(1)
+        expected = self.mixed_frame.rank(1, numeric_only=True)
+        assert_frame_equal(result, expected)
+
     def test_describe(self):
         desc = self.tsframe.describe()
         desc = self.mixed_frame.describe()
@@ -4358,6 +4352,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.frame.columns.name = 'columns'
         resetted = self.frame.reset_index()
         self.assertEqual(resetted.columns.name, 'columns')
+
+    def test_reset_index_right_dtype(self):
+        time = np.arange(0.0, 10, np.sqrt(2)/2)
+        s1 = Series((9.81 * time ** 2) /2,
+                    index=Index(time, name='time'),
+                    name='speed')
+        df = DataFrame(s1)
+
+        resetted = s1.reset_index()
+        self.assert_(resetted['time'].dtype == np.float64)
+
+        resetted = df.reset_index()
+        self.assert_(resetted['time'].dtype == np.float64)
 
     #----------------------------------------------------------------------
     # Tests to cope with refactored internals

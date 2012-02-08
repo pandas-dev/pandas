@@ -100,10 +100,6 @@ class SparseDataFrame(DataFrame):
     def _data(self):
         return _SparseMockBlockManager(self)
 
-    def _get_numeric_columns(self):
-        # everything is necessarily float64
-        return self.columns
-
     def _consolidate_inplace(self):
         # do nothing when DataFrame calls this method
         pass
@@ -220,6 +216,9 @@ class SparseDataFrame(DataFrame):
         """
         data = dict((k, v.to_dense()) for k, v in self.iteritems())
         return DataFrame(data, index=self.index)
+
+    def astype(self, dtype):
+        raise NotImplementedError
 
     def copy(self, deep=True):
         """
@@ -589,7 +588,8 @@ class SparseDataFrame(DataFrame):
         f = ('%s' + ('%s' % suffix)).__mod__
         return self.rename(columns=f)
 
-    def _join_compat(self, other, on=None, how='left', lsuffix='', rsuffix=''):
+    def _join_compat(self, other, on=None, how='left', lsuffix='', rsuffix='',
+                     sort=False):
         if on is not None:
             raise NotImplementedError
         else:

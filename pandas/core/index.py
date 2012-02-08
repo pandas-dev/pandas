@@ -5,8 +5,6 @@ from itertools import izip
 
 import numpy as np
 
-from pandas.core.common import (adjoin as _adjoin, _stringify, _try_sort,
-                                _is_bool_indexer, _asarray_tuplesafe)
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 import pandas._tseries as lib
@@ -68,7 +66,7 @@ class Index(np.ndarray):
                              'of some kind, %s was passed' % repr(data))
         else:
             # other iterable of some kind
-            subarr = _asarray_tuplesafe(data, dtype=object)
+            subarr = com._asarray_tuplesafe(data, dtype=object)
 
         if lib.is_integer_array(subarr) and dtype is None:
             return Int64Index(subarr.astype('i8'), name=name)
@@ -223,7 +221,7 @@ class Index(np.ndarray):
         if np.isscalar(key):
             return arr_idx[key]
         else:
-            if _is_bool_indexer(key):
+            if com._is_bool_indexer(key):
                 key = np.asarray(key)
 
             result = arr_idx[key]
@@ -261,22 +259,30 @@ class Index(np.ndarray):
         """
         Render a string representation of the Index
         """
-        result = []
+        from pandas.core.format import format_array
 
+        header = []
         if name:
-            result.append(str(self.name) if self.name is not None else '')
+            header.append(str(self.name) if self.name is not None else '')
 
         if self.is_all_dates:
             zero_time = time(0, 0)
+            result = []
             for dt in self:
                 if dt.time() != zero_time or dt.tzinfo is not None:
-                    return result + ['%s' % x for x in self]
+                    return header + ['%s' % x for x in self]
                 result.append(dt.strftime("%Y-%m-%d"))
-            return result
+            return header + result
 
-        result.extend(_stringify(x) for x in self)
+        values = self.values
+        if values.dtype == np.object_:
+            values = lib.maybe_convert_objects(values)
 
-        return result
+        if values.dtype == np.object_:
+            result = [com._stringify(x) for x in values]
+        else:
+            result = _trim_front(format_array(values, None, justify='left'))
+        return header + result
 
     def equals(self, other):
         """
@@ -580,6 +586,22 @@ class Index(np.ndarray):
 
     def map(self, mapper):
         return self._arrmap(self.values, mapper)
+
+    def isin(self, values):
+        """
+        Compute boolean array of whether each index value is found in the passed
+        set of values
+
+        Parameters
+        ----------
+        values : set or sequence of values
+
+        Returns
+        -------
+        is_contained : ndarray (boolean dtype)
+        """
+        value_set = set(values)
+        return lib.ismember(self, value_set)
 
     def _get_method(self, method):
         if method:
@@ -1095,6 +1117,20 @@ class MultiIndex(Index):
     def dtype(self):
         return np.dtype('O')
 
+    @property
+    def _constructor(self):
+        return MultiIndex.from_tuples
+
+    @staticmethod
+    def _from_elements(values, labels=None, levels=None, names=None,
+                       sortorder=None):
+        index = values.view(MultiIndex)
+        index.levels = levels
+        index.labels = labels
+        index.names  = names
+        index.sortorder = sortorder
+        return index
+
     def _get_level_number(self, level):
         try:
             count = self.names.count(level)
@@ -1221,7 +1257,7 @@ class MultiIndex(Index):
             result_levels = _sparsify(result_levels)
 
         if adjoin:
-            return _adjoin(space, *result_levels).split('\n')
+            return com.adjoin(space, *result_levels).split('\n')
         else:
             return result_levels
 
@@ -1334,7 +1370,7 @@ class MultiIndex(Index):
             return tuple(lev[lab[key]]
                          for lev, lab in zip(self.levels, self.labels))
         else:
-            if _is_bool_indexer(key):
+            if com._is_bool_indexer(key):
                 key = np.asarray(key)
                 sortorder = self.sortorder
             else:
@@ -1398,7 +1434,7 @@ class MultiIndex(Index):
         """
         try:
             if not isinstance(labels, np.ndarray):
-                labels = _asarray_tuplesafe(labels)
+                labels = com._asarray_tuplesafe(labels)
             indexer = self.get_indexer(labels)
             mask = indexer == -1
             if mask.any():
@@ -1488,12 +1524,7 @@ class MultiIndex(Index):
         ----------
         """
         order = [self._get_level_number(i) for i in order]
-        try:
-            assert(set(order) == set(range(self.nlevels)))
-        except AssertionError:
-            raise Exception('New order must be permutation of range(%d)' %
-                            self.nlevels)
-
+        assert(len(order) == self.nlevels)
         new_levels = [self.levels[i] for i in order]
         new_labels = [self.labels[i] for i in order]
         new_names = [self.names[i] for i in order]
@@ -1506,7 +1537,8 @@ class MultiIndex(Index):
 
     def sortlevel(self, level=0, ascending=True):
         """
-        Sort MultiIndex lexicographically by requested level
+        Sort MultiIndex at the requested level. The result will respect the
+        original ordering of the associated factor at that level.
 
         Parameters
         ----------
@@ -1519,21 +1551,30 @@ class MultiIndex(Index):
         -------
         sorted_index : MultiIndex
         """
-        # TODO: check if lexsorted when level=0
+        from pandas.core.frame import _indexer_from_factorized
 
         labels = list(self.labels)
+
         level = self._get_level_number(level)
         primary = labels.pop(level)
 
-        # Lexsort starts from END
-        indexer = np.lexsort(tuple(labels[::-1]) + (primary,))
+        shape = list(self.levshape)
+        primshp = shape.pop(level)
 
+        indexer = _indexer_from_factorized((primary,) + tuple(labels),
+                                           (primshp,) + tuple(shape),
+                                           compress=False)
         if not ascending:
             indexer = indexer[::-1]
 
         new_labels = [lab.take(indexer) for lab in self.labels]
-        new_index = MultiIndex(levels=self.levels, labels=new_labels,
-                               names=self.names, sortorder=level)
+
+
+        new_index = MultiIndex._from_elements(self.values.take(indexer),
+                                              labels=new_labels,
+                                              levels=self.levels,
+                                              names=self.names,
+                                              sortorder=level)
 
         return new_index, indexer
 
@@ -2131,13 +2172,22 @@ def _union_indexes(indexes):
     else:
         return Index(lib.fast_unique_multiple_list(indexes))
 
+def _trim_front(strings):
+    """
+    Trims zeros and decimal points
+    """
+    trimmed = strings
+    while len(strings) > 0 and all([x[0] == ' ' for x in trimmed]):
+        trimmed = [x[1:] for x in trimmed]
+    return trimmed
 
 def _sanitize_and_check(indexes):
     kinds = list(set([type(index) for index in indexes]))
 
     if list in kinds:
         if len(kinds) > 1:
-            indexes = [Index(_try_sort(x)) if not isinstance(x, Index) else x
+            indexes = [Index(com._try_sort(x))
+                       if not isinstance(x, Index) else x
                        for x in indexes]
             kinds.remove(list)
         else:

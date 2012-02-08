@@ -977,6 +977,13 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         self.assert_(unstacked['E', 1].dtype == np.object_)
         self.assert_(unstacked['F', 1].dtype == np.float64)
 
+    def test_getitem_lowerdim_corner(self):
+        self.assertRaises(KeyError, self.frame.ix.__getitem__,
+                          (('bar', 'three'), 'B'))
+
+        self.assertRaises(KeyError, self.frame.ix.__setitem__,
+                          (('bar', 'three'), 'B'), 0)
+
     #----------------------------------------------------------------------
     # AMBIGUOUS CASES!
 
@@ -1007,6 +1014,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         expected = ft.xs('B')['foo']
         assert_series_equal(result, expected)
 
+    #----------------------------------------------------------------------
+
     def test_to_html(self):
         self.ymd.columns.name = 'foo'
         self.ymd.to_html()
@@ -1027,6 +1036,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         expected.index = expected.index.droplevel(0)
         assert_series_equal(result, expected)
         assert_series_equal(result2, expected)
+
+        self.assertRaises(KeyError, series.__getitem__, (('foo', 'bar', 0), 2))
 
         result = frame.ix[('foo', 'bar', 0)]
         result2 = frame.xs(('foo', 'bar', 0))

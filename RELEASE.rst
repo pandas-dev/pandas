@@ -85,6 +85,12 @@ pandas 0.7.0
   - Add new ``value_range`` function to return min/max of a dataframe (GH #288)
   - Add ``drop`` parameter to ``reset_index`` method of ``DataFrame`` and added
     method to ``Series`` as well (GH #699)
+  - Add ``isin`` method to Index objects, works just like ``Series.isin`` (GH
+    #657)
+  - Implement array interface on Panel so that ufuncs work (re: #740)
+  - Add ``sort`` option to ``DataFrame.join`` (GH #731)
+  - Improved handling of NAs (propagation) in binary operations with
+    dtype=object arrays (GH #737)
 
 **API Changes**
 
@@ -169,6 +175,9 @@ pandas 0.7.0
   - Add option to Series.to_csv to omit the index (PR #684)
   - Add ``delimiter`` as an alternative to ``sep`` in ``read_csv`` and other
     parsing functions
+  - Substantially improved performance of groupby on DataFrames with many
+    columns by aggregating blocks of columns all at once (GH #745)
+  - Can pass a file handle or StringIO to Series/DataFrame.to_csv (GH #765)
 
 **Bug fixes**
 
@@ -249,6 +258,11 @@ pandas 0.7.0
   - Raise Exception in DateRange when offset with n=0 is passed (GH #683)
   - Fix get/set inconsistency with .ix property and integer location but
     non-integer index (GH #707)
+  - Use right dropna function for SparseSeries. Return dense Series for NA fill
+    value (GH #730)
+  - Fix Index.format bug causing incorrectly string-formatted Series with
+    datetime indexes (# 758)
+  - Fix errors caused by object dtype arrays passed to ols (GH #759)
 
 Thanks
 ------

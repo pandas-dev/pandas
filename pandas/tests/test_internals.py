@@ -4,7 +4,7 @@ import unittest
 
 import numpy as np
 
-from pandas import Index, DataFrame
+from pandas import Index, MultiIndex, DataFrame
 from pandas.core.internals import *
 import pandas.core.internals as internals
 
@@ -320,8 +320,18 @@ class TestBlockManager(unittest.TestCase):
         _check_cols(self.mgr, reindexed, ['c', 'a', 'd'])
 
     def test_xs(self):
-        pass
+        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+                                   ['one', 'two', 'three']],
+                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                           names=['first', 'second'])
 
+        self.mgr.set_axis(1, index)
+
+        result = self.mgr.xs('bar', axis=1)
+        expected = self.mgr.get_slice(slice(3, 5), axis=1)
+
+        assert_frame_equal(DataFrame(result), DataFrame(expected))
 
 if __name__ == '__main__':
     # unittest.main()

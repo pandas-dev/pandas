@@ -152,6 +152,8 @@ cdef class SeriesGrouper:
 
                 if i == n - 1 or lab != labels[i + 1]:
                     if lab == -1:
+                        islider.advance(group_size)
+                        vslider.advance(group_size)
                         group_size = 0
                         continue
 

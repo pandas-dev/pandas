@@ -293,6 +293,21 @@ class TestIndex(unittest.TestCase):
         formatted = dates.format(name=True)
         self.assert_(formatted[0] == 'something')
 
+    def test_format_datetime_with_time(self):
+        t = Index([datetime(2012, 2, 7), datetime(2012, 2, 7, 23)])
+
+        result = t.format()
+        expected = ['2012-02-07 00:00:00', '2012-02-07 23:00:00']
+        self.assert_(len(result) == 2)
+        self.assertEquals(result, expected)
+
+    def test_format_none(self):
+        values = ['a', 'b', 'c', None]
+
+        idx = Index(values)
+        idx.format()
+        self.assert_(idx[3] is None)
+
     def test_take(self):
         indexer = [4, 3, 0, 2]
         result = self.dateIndex.take(indexer)
@@ -387,6 +402,20 @@ class TestIndex(unittest.TestCase):
 
         self.dateIndex.set_value(values, date, 10)
         self.assertEquals(values[67], 10)
+
+    def test_isin(self):
+        values = ['foo', 'bar']
+
+        idx = Index(['qux', 'baz', 'foo', 'bar'])
+        result = idx.isin(values)
+        expected = np.array([False, False, True, True])
+        self.assert_(np.array_equal(result, expected))
+
+        # empty, return dtype bool
+        idx = Index([])
+        result = idx.isin(values)
+        self.assert_(len(result) == 0)
+        self.assert_(result.dtype == np.bool_)
 
 class TestInt64Index(unittest.TestCase):
 
@@ -700,6 +729,8 @@ class TestMultiIndex(unittest.TestCase):
         self.assertEqual(self.index._get_level_number(0), 1)
         self.assertRaises(Exception, self.index._get_level_number, 2)
 
+        self.assertRaises(Exception, self.index._get_level_number, 'fourth')
+
     def test_from_arrays(self):
         arrays = []
         for lev, lab in zip(self.index.levels, self.index.labels):
@@ -728,6 +759,11 @@ class TestMultiIndex(unittest.TestCase):
         result = self.index.get_level_values('first')
         expected = self.index.get_level_values(0)
         self.assert_(np.array_equal(result, expected))
+
+    def test_reorder_levels(self):
+        # this blows up
+        self.assertRaises(Exception, self.index.reorder_levels,
+                          [2, 1, 0])
 
     def test_nlevels(self):
         self.assertEquals(self.index.nlevels, 2)
@@ -1185,6 +1221,28 @@ class TestMultiIndex(unittest.TestCase):
 
         sorted_idx, _ = index.sortlevel(1, ascending=False)
         self.assert_(sorted_idx.equals(expected[::-1]))
+
+    def test_sortlevel_deterministic(self):
+        tuples = [('bar', 'one'), ('foo', 'two'), ('qux', 'two'),
+                  ('foo', 'one'), ('baz', 'two'), ('qux', 'one')]
+
+        index = MultiIndex.from_tuples(tuples)
+
+        sorted_idx, _ = index.sortlevel(0)
+        expected = MultiIndex.from_tuples(sorted(tuples))
+        self.assert_(sorted_idx.equals(expected))
+
+        sorted_idx, _ = index.sortlevel(0, ascending=False)
+        self.assert_(sorted_idx.equals(expected[::-1]))
+
+        sorted_idx, _ = index.sortlevel(1)
+        by1 = sorted(tuples, key=lambda x: (x[1], x[0]))
+        expected = MultiIndex.from_tuples(by1)
+        self.assert_(sorted_idx.equals(expected))
+
+        sorted_idx, _ = index.sortlevel(1, ascending=False)
+        self.assert_(sorted_idx.equals(expected[::-1]))
+
 
     def test_dims(self):
         pass

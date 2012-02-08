@@ -17,7 +17,7 @@ from numpy.testing import assert_equal
 from pandas import Series, DataFrame, DateRange, Panel
 from pandas.core.datetools import BDay
 import pandas.core.datetools as datetools
-import pandas.util.testing as testing
+import pandas.util.testing as tm
 
 import pandas.sparse.frame as spf
 
@@ -560,7 +560,7 @@ class TestSparseSeries(TestCase,
         series.fill_value = 2
         _compare_all(series)
 
-    def test_valid(self):
+    def test_dropna(self):
         sp = SparseSeries([0, 0, 0, nan, nan, 5, 6],
                           fill_value=0)
 
@@ -569,6 +569,11 @@ class TestSparseSeries(TestCase,
                             sp.to_dense().valid().values)
         self.assert_(sp_valid.index.equals(sp.to_dense().valid().index))
         self.assertEquals(len(sp_valid.sp_values), 2)
+
+        result = self.bseries.dropna()
+        expected = self.bseries.to_dense().dropna()
+        self.assert_(not isinstance(result, SparseSeries))
+        tm.assert_series_equal(result, expected)
 
     def test_homogenize(self):
         def _check_matches(indices, expected):
@@ -789,7 +794,7 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         self.assert_(isinstance(sdf, SparseDataFrame))
         self.assert_(np.isnan(sdf.default_fill_value))
         self.assert_(isinstance(sdf['A'].sp_index, BlockIndex))
-        testing.assert_frame_equal(sdf.to_dense(), df)
+        tm.assert_frame_equal(sdf.to_dense(), df)
 
         sdf = df.to_sparse(kind='integer')
         self.assert_(isinstance(sdf['A'].sp_index, IntIndex))
@@ -798,7 +803,7 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
                         'B' : [1, 2, 0, 0, 0]}, dtype=float)
         sdf = df.to_sparse(fill_value=0)
         self.assertEquals(sdf.default_fill_value, 0)
-        testing.assert_frame_equal(sdf.to_dense(), df)
+        tm.assert_frame_equal(sdf.to_dense(), df)
 
     def test_sparse_to_dense(self):
         pass

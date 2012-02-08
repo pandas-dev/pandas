@@ -221,107 +221,166 @@ def groupsort_indexer(ndarray[int32_t] index, Py_ssize_t ngroups):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_add(ndarray[float64_t] out,
+def group_add(ndarray[float64_t, ndim=2] out,
               ndarray[int32_t] counts,
-              ndarray[float64_t] values,
+              ndarray[float64_t, ndim=2] values,
               ndarray[int32_t] labels):
+    '''
+    Only aggregates on axis=0
+    '''
     cdef:
-        Py_ssize_t i, lab
+        Py_ssize_t i, j, N, K, lab
         float64_t val, count
-        ndarray[float64_t] sumx, nobs
+        ndarray[float64_t, ndim=2] sumx, nobs
 
     nobs = np.zeros_like(out)
     sumx = np.zeros_like(out)
 
-    for i in range(len(values)):
-        lab = labels[i]
-        if lab < 0:
-            continue
+    N, K = (<object> values).shape
 
-        counts[lab] += 1
-        val = values[i]
+    if K > 1:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
 
-        # not nan
-        if val == val:
-            nobs[lab] += 1
-            sumx[lab] += val
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[lab, j] += 1
+                    sumx[lab, j] += val
+    else:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            val = values[i, 0]
+
+            # not nan
+            if val == val:
+                nobs[lab, 0] += 1
+                sumx[lab, 0] += val
 
     for i in range(len(counts)):
-        if nobs[i] == 0:
-            out[i] = nan
-        else:
-            out[i] = sumx[i]
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = sumx[i, j]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_mean(ndarray[float64_t] out,
+def group_mean(ndarray[float64_t, ndim=2] out,
                ndarray[int32_t] counts,
-               ndarray[float64_t] values,
+               ndarray[float64_t, ndim=2] values,
                ndarray[int32_t] labels):
     cdef:
-        Py_ssize_t i, lab
+        Py_ssize_t i, j, N, K, lab
         float64_t val, count
-        ndarray[float64_t] sumx, nobs
+        ndarray[float64_t, ndim=2] sumx, nobs
 
     nobs = np.zeros_like(out)
     sumx = np.zeros_like(out)
 
-    for i in range(len(values)):
-        lab = labels[i]
-        if lab < 0:
-            continue
+    N, K = (<object> values).shape
 
-        val = values[i]
-        counts[lab] += 1
+    if K > 1:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
 
-        # not nan
-        if val == val:
-            nobs[lab] += 1
-            sumx[lab] += val
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
+                # not nan
+                if val == val:
+                    nobs[lab, j] += 1
+                    sumx[lab, j] += val
+    else:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            val = values[i, 0]
+            # not nan
+            if val == val:
+                nobs[lab, 0] += 1
+                sumx[lab, 0] += val
 
     for i in range(len(counts)):
-        count = nobs[i]
-        if count == 0:
-            out[i] = nan
-        else:
-            out[i] = sumx[i] / count
+        for j in range(K):
+            count = nobs[i, j]
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = sumx[i, j] / count
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_var(ndarray[float64_t] out,
+def group_var(ndarray[float64_t, ndim=2] out,
               ndarray[int32_t] counts,
-              ndarray[float64_t] values,
+              ndarray[float64_t, ndim=2] values,
               ndarray[int32_t] labels):
     cdef:
-        Py_ssize_t i, lab
+        Py_ssize_t i, j, N, K, lab
         float64_t val, ct
-        ndarray[float64_t] nobs, sumx, sumxx
+        ndarray[float64_t, ndim=2] nobs, sumx, sumxx
 
     nobs = np.zeros_like(out)
     sumx = np.zeros_like(out)
     sumxx = np.zeros_like(out)
 
-    for i in range(len(values)):
-        lab = <Py_ssize_t> labels[i]
-        if lab < 0:
-            continue
+    N, K = (<object> values).shape
 
-        val = values[i]
-        counts[lab] += 1
+    if K > 1:
+        for i in range(N):
 
-        # not nan
-        if val == val:
-            nobs[lab] += 1
-            sumx[lab] += val
-            sumxx[lab] += val * val
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[lab, j] += 1
+                    sumx[lab, j] += val
+                    sumxx[lab, j] += val * val
+    else:
+        for i in range(N):
+
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            val = values[i, 0]
+            # not nan
+            if val == val:
+                nobs[lab, 0] += 1
+                sumx[lab, 0] += val
+                sumxx[lab, 0] += val * val
+
 
     for i in range(len(counts)):
-        ct = nobs[i]
-        if ct < 2:
-            out[i] = nan
-        else:
-            out[i] = ((ct * sumxx[i] - sumx[i] * sumx[i]) /
-                      (ct * ct - ct))
+        for j in range(K):
+            ct = nobs[i, j]
+            if ct < 2:
+                out[i, j] = nan
+            else:
+                out[i, j] = ((ct * sumxx[i, j] - sumx[i, j] * sumx[i, j]) /
+                             (ct * ct - ct))
 
 def group_count(ndarray[int32_t] values, Py_ssize_t size):
     cdef:

@@ -3,6 +3,7 @@ cimport numpy as cnp
 cimport cpython
 
 cnp.import_array()
+cnp.import_ufunc()
 
 cimport util
 

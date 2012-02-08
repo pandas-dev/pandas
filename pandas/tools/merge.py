@@ -15,7 +15,6 @@ from pandas.core.internals import (IntBlock, BoolBlock, BlockManager,
 from pandas.util.decorators import cache_readonly, Appender, Substitution
 
 from pandas.sparse.frame import SparseDataFrame
-from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 
 import pandas._tseries as lib
@@ -57,12 +56,8 @@ class _MergeOperation(object):
         self.left_on = com._maybe_make_list(left_on)
         self.right_on = com._maybe_make_list(right_on)
 
-        self.drop_keys = False # set this later...kludge
-
         self.copy = copy
-
         self.suffixes = suffixes
-
         self.sort = sort
 
         self.left_index = left_index
@@ -92,19 +87,43 @@ class _MergeOperation(object):
         return result
 
     def _maybe_add_join_keys(self, result, left_indexer, right_indexer):
-        if not self.drop_keys:
-            # do nothing, already found in one of the DataFrames
-            return
-
         # insert group keys
-        for i, name in enumerate(self.join_names):
-            # a faster way?
-            key_col = com.take_1d(self.left_join_keys[i], left_indexer)
-            na_indexer = (left_indexer == -1).nonzero()[0]
-            right_na_indexer = right_indexer.take(na_indexer)
-            key_col.put(na_indexer, com.take_1d(self.right_join_keys[i],
-                                                right_na_indexer))
-            result.insert(i, name, key_col)
+
+        keys = zip(self.join_names, self.left_on, self.right_on)
+        for i, (name, lname, rname) in enumerate(keys):
+            if not _should_fill(lname, rname):
+                continue
+
+            if name in result:
+                key_col = result[name]
+
+                if name in self.left and left_indexer is not None:
+                    na_indexer = (left_indexer == -1).nonzero()[0]
+                    if len(na_indexer) == 0:
+                        continue
+
+                    right_na_indexer = right_indexer.take(na_indexer)
+                    key_col.put(na_indexer, com.take_1d(self.right_join_keys[i],
+                                                        right_na_indexer))
+                elif name in self.right and right_indexer is not None:
+                    na_indexer = (right_indexer == -1).nonzero()[0]
+                    if len(na_indexer) == 0:
+                        continue
+
+                    left_na_indexer = left_indexer.take(na_indexer)
+                    key_col.put(na_indexer, com.take_1d(self.left_join_keys[i],
+                                                        left_na_indexer))
+            elif left_indexer is not None:
+                if name is None:
+                    name = 'key_%d' % i
+
+                # a faster way?
+                key_col = com.take_1d(self.left_join_keys[i], left_indexer)
+                na_indexer = (left_indexer == -1).nonzero()[0]
+                right_na_indexer = right_indexer.take(na_indexer)
+                key_col.put(na_indexer, com.take_1d(self.right_join_keys[i],
+                                                    right_na_indexer))
+                result.insert(i, name, key_col)
 
     def _get_join_info(self):
         left_ax = self.left._data.axes[self.axis]
@@ -113,29 +132,14 @@ class _MergeOperation(object):
             join_index, left_indexer, right_indexer = \
                 left_ax.join(right_ax, how=self.how, return_indexers=True)
         elif self.right_index and self.how == 'left':
-            join_index = left_ax
-            left_indexer = None
-
-            if len(self.left_join_keys) > 1:
-                assert(isinstance(right_ax, MultiIndex) and
-                       len(self.left_join_keys) == right_ax.nlevels)
-
-                right_indexer = _get_multiindex_indexer(self.left_join_keys,
-                                                        right_ax, sort=False)
-            else:
-                right_indexer = right_ax.get_indexer(self.left_join_keys[0])
+            join_index, left_indexer, right_indexer = \
+                _left_join_on_index(left_ax, right_ax, self.left_join_keys,
+                                    sort=self.sort)
 
         elif self.left_index and self.how == 'right':
-            join_index = right_ax
-            right_indexer = None
-
-            if len(self.right_join_keys) > 1:
-                assert(isinstance(left_ax, MultiIndex) and
-                       len(self.right_join_keys) == left_ax.nlevels)
-                left_indexer = _get_multiindex_indexer(self.right_join_keys,
-                                                       left_ax, sort=False)
-            else:
-                left_indexer = left_ax.get_indexer(self.right_join_keys[0])
+            join_index, right_indexer, left_indexer = \
+                _left_join_on_index(right_ax, left_ax, self.right_join_keys,
+                                    sort=self.sort)
         else:
             # max groups = largest possible number of distinct groups
             left_key, right_key, max_groups = self._get_group_keys()
@@ -160,17 +164,8 @@ class _MergeOperation(object):
         """
         ldata, rdata = self.left._data, self.right._data
         lsuf, rsuf = self.suffixes
-        exclude_names = set(x for x in self.join_names if x is not None)
-        if self.left_on is not None:
-            exclude_names -= set(c.name if hasattr(c, 'name') else c
-                                 for c in self.left_on)
-        if self.right_on is not None:
-            exclude_names -= set(c.name if hasattr(c, 'name') else c
-                                 for c in self.right_on)
         ldata, rdata = ldata._maybe_rename_join(rdata, lsuf, rsuf,
-                                                exclude=exclude_names,
                                                 copydata=False)
-
         return ldata, rdata
 
     def _get_merge_keys(self):
@@ -187,14 +182,78 @@ class _MergeOperation(object):
         -------
         left_keys, right_keys
         """
-        # Hm, any way to make this logic less complicated??
-        join_names = []
+        self._validate_specification()
 
+        left_keys = []
+        right_keys = []
+        join_names = []
+        right_drop = []
+        left, right = self.left, self.right
+
+        is_lkey = lambda x: isinstance(x, np.ndarray) and len(x) == len(left)
+        is_rkey = lambda x: isinstance(x, np.ndarray) and len(x) == len(right)
+
+        # ugh, spaghetti re #733
+        if _any(self.left_on) and _any(self.right_on):
+            for lk, rk in zip(self.left_on, self.right_on):
+                if is_lkey(lk):
+                    left_keys.append(lk)
+                    if is_rkey(rk):
+                        right_keys.append(rk)
+                        join_names.append(None)  # what to do?
+                    else:
+                        right_keys.append(right[rk].values)
+                        join_names.append(rk)
+                else:
+                    if not is_rkey(rk):
+                        right_keys.append(right[rk].values)
+                        if lk == rk:
+                            right_drop.append(rk)
+                    else:
+                        right_keys.append(rk)
+                    left_keys.append(left[lk].values)
+                    join_names.append(lk)
+        elif _any(self.left_on):
+            for k in self.left_on:
+                if is_lkey(k):
+                    left_keys.append(k)
+                    join_names.append(None)
+                else:
+                    left_keys.append(left[k].values)
+                    join_names.append(k)
+            if isinstance(self.right.index, MultiIndex):
+                right_keys = [lev.values.take(lab)
+                              for lev, lab in zip(self.right.index.levels,
+                                                  self.right.index.labels)]
+            else:
+                right_keys = [self.right.index.values]
+        elif _any(self.right_on):
+            for k in self.right_on:
+                if is_rkey(k):
+                    right_keys.append(k)
+                    join_names.append(None)
+                else:
+                    right_keys.append(right[k].values)
+                    join_names.append(k)
+            if isinstance(self.left.index, MultiIndex):
+                left_keys = [lev.values.take(lab)
+                             for lev, lab in zip(self.left.index.levels,
+                                                 self.left.index.labels)]
+            else:
+                left_keys = [self.left.index.values]
+
+        if right_drop:
+            self.right = self.right.drop(right_drop, axis=1)
+
+        return left_keys, right_keys, join_names
+
+    def _validate_specification(self):
+        # Hm, any way to make this logic less complicated??
         if (self.on is None and self.left_on is None
             and self.right_on is None):
 
             if self.left_index and self.right_index:
-                pass
+                self.left_on, self.right_on = (), ()
             elif self.left_index:
                 if self.right_on is None:
                     raise Exception('Must pass right_on or right_index=True')
@@ -205,29 +264,22 @@ class _MergeOperation(object):
                 # use the common columns
                 common_cols = self.left.columns.intersection(self.right.columns)
                 self.left_on = self.right_on = common_cols
-                self.drop_keys = True
-
         elif self.on is not None:
             if self.left_on is not None or self.right_on is not None:
                 raise Exception('Can only pass on OR left_on and '
                                 'right_on')
             self.left_on = self.right_on = self.on
-            self.drop_keys = True
-
-        # this is a touch kludgy, but accomplishes the goal
-        left_keys = None
-        if self.left_on is not None:
-            self.left, left_keys, left_names = \
-                _get_keys(self.left, self.left_on, drop=self.drop_keys)
-            join_names = left_names
-
-        right_keys = None
-        if self.right_on is not None:
-            self.right, right_keys, right_names = \
-                _get_keys(self.right, self.right_on, drop=self.drop_keys)
-            join_names = right_names
-
-        return left_keys, right_keys, join_names
+        elif self.left_on is not None:
+            n = len(self.left_on)
+            if self.right_index:
+                assert(len(self.left_on) == self.right.index.nlevels)
+                self.right_on = [None] * n
+        elif self.right_on is not None:
+            n = len(self.right_on)
+            if self.left_index:
+                assert(len(self.right_on) == self.left.index.nlevels)
+                self.left_on = [None] * n
+        assert(len(self.right_on) == len(self.left_on))
 
     def _get_group_keys(self):
         """
@@ -239,25 +291,8 @@ class _MergeOperation(object):
         -------
 
         """
-        if self.left_index:
-            if isinstance(self.left.index, MultiIndex):
-                left_keys = [lev.values.take(lab)
-                             for lev, lab in zip(self.left.index.levels,
-                                                 self.left.index.labels)]
-            else:
-                left_keys = [self.left.index.values]
-        else:
-            left_keys = self.left_join_keys
-
-        if self.right_index:
-            if isinstance(self.right.index, MultiIndex):
-                right_keys = [lev.values.take(lab)
-                              for lev, lab in zip(self.right.index.levels,
-                                                  self.right.index.labels)]
-            else:
-                right_keys = [self.right.index.values]
-        else:
-            right_keys = self.right_join_keys
+        left_keys = self.left_join_keys
+        right_keys = self.right_join_keys
 
         assert(len(left_keys) == len(right_keys))
 
@@ -287,32 +322,7 @@ class _MergeOperation(object):
                              sort=self.sort)
         return left_group_key, right_group_key, max_groups
 
-def _get_keys(frame, on, drop=False):
-    to_drop = []
-    keys = []
-    names = []
-    for k in on:
-        if isinstance(k, np.ndarray) and len(k) == len(frame):
-            keys.append(k)
-            names.append(None) # super kludge-tastic
-        else:
-            to_drop.append(k)
-            keys.append(frame[k].values)
-            names.append(k)
-
-
-    if drop:
-        frame = frame.copy()
-        for k in to_drop:
-            del frame[k]
-
-        # this is a bit too expensive...
-        # frame = frame.drop(to_drop, axis=1)
-
-    return frame, keys, names
-
-
-def _get_multiindex_indexer(join_keys, index, sort=True):
+def _get_multiindex_indexer(join_keys, index, sort=False):
     shape = []
     labels = []
     for level, key in zip(index.levels, join_keys):
@@ -320,8 +330,8 @@ def _get_multiindex_indexer(join_keys, index, sort=True):
         labels.append(rlab)
         shape.append(count)
 
-    left_group_key = get_group_index(labels, shape) #.astype('i4')
-    right_group_key = get_group_index(index.labels, shape) #.astype('i4')
+    left_group_key = get_group_index(labels, shape)
+    right_group_key = get_group_index(index.labels, shape)
 
     left_group_key, right_group_key, max_groups = \
         _factorize_int64(left_group_key, right_group_key,
@@ -332,16 +342,46 @@ def _get_multiindex_indexer(join_keys, index, sort=True):
                             right_group_key.astype('i4'),
                             max_groups, sort=False)
 
-    return right_indexer
+    return left_indexer, right_indexer
 
-    # after refactorizing, I don't think reordering is necessary
+def _get_single_indexer(join_key, index, sort=False):
+    left_key, right_key, count = _factorize_objects(join_key, index, sort=sort)
 
-    # NOW! reorder
-    #right_indexer.take(left_indexer.argsort())
+    left_indexer, right_indexer = \
+        lib.left_outer_join(left_key.astype('i4'), right_key.astype('i4'),
+                            count, sort=sort)
+
+    return left_indexer, right_indexer
 
 def _right_outer_join(x, y, max_groups):
     right_indexer, left_indexer = lib.left_outer_join(y, x, max_groups)
     return left_indexer, right_indexer
+
+def _left_join_on_index(left_ax, right_ax, join_keys, sort=False):
+    join_index = left_ax
+    left_indexer = None
+
+    if len(join_keys) > 1:
+        assert(isinstance(right_ax, MultiIndex) and
+               len(join_keys) == right_ax.nlevels)
+
+        left_tmp, right_indexer = \
+            _get_multiindex_indexer(join_keys, right_ax,
+                                    sort=sort)
+        if sort:
+            left_indexer = left_tmp
+            join_index = left_ax.take(left_indexer)
+    else:
+        jkey = join_keys[0]
+        if sort:
+            left_indexer, right_indexer = \
+                _get_single_indexer(jkey, right_ax, sort=sort)
+            join_index = left_ax.take(left_indexer)
+        else:
+            right_indexer = right_ax.get_indexer(jkey)
+
+    return join_index, left_indexer, right_indexer
+
 
 _join_functions = {
     'inner' : lib.inner_join,
@@ -976,6 +1016,11 @@ def _consensus_name_attr(objs):
             return None
     return name
 
+def _should_fill(lname, rname):
+    if not isinstance(lname, basestring) or not isinstance(rname, basestring):
+        return True
+    return lname == rname
+
 def _all_indexes_same(indexes):
     first = indexes[0]
     for index in indexes[1:]:
@@ -983,3 +1028,5 @@ def _all_indexes_same(indexes):
             return False
     return True
 
+def _any(x):
+    return x is not None and len(x) > 0 and any([y is not None for y in x])

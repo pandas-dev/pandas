@@ -25,22 +25,12 @@ os.environ['PYTHONPATH'] = '..'
 
 SPHINX_BUILD = 'sphinxbuild'
 
-def sf():
-    'push a copy to the sf'
-    os.system('cd build/html; rsync -avz . wesmckinn,pandas@web.sf.net'
-              ':/home/groups/p/pa/pandas/htdocs/ -essh --cvs-exclude')
-
-def upload_dev():
-    'push a copy to the pydata dev directory'
+def upload():
+    'push a copy to the site'
     os.system('cd build/html; rsync -avz . pandas@pandas.pydata.org'
-              ':/usr/share/nginx/pandas/pandas-docs/dev/ -essh')
+              ':/usr/share/nginx/pandas/pandas-docs/vbench/ -essh')
 
-def upload_stable():
-    'push a copy to the pydata dev directory'
-    os.system('cd build/html; rsync -avz . pandas@pandas.pydata.org'
-              ':/usr/share/nginx/pandas/pandas-docs/stable/ -essh')
-
-def sfpdf():
+def uploadpdf():
     'push a copy to the sf site'
     os.system('cd build/latex; scp pandas.pdf wesmckinn,pandas@web.sf.net'
               ':/home/groups/p/pa/pandas/htdocs/')
@@ -94,12 +84,10 @@ def all():
 
 funcd = {
     'html'     : html,
-    'upload_dev' : upload_dev,
-    'upload_stable' : upload_stable,
     'latex'    : latex,
     'clean'    : clean,
-    'sf'       : sf,
-    'sfpdf'    : sfpdf,
+    'upload'       : upload,
+    'uploadpdf'    : uploadpdf,
     'all'      : all,
     }
 

@@ -382,8 +382,24 @@ class BlockManager(object):
         """
         Return True if more than one block with the same dtype
         """
-        dtypes = [blk.dtype for blk in self.blocks]
+        dtypes = [blk.dtype.type for blk in self.blocks]
         return len(dtypes) == len(set(dtypes))
+
+    def get_numeric_data(self, copy=False):
+        num_blocks = [b for b in self.blocks
+                      if isinstance(b, (IntBlock, FloatBlock))]
+
+        indexer = np.sort(np.concatenate([b.ref_locs for b in num_blocks]))
+        new_items = self.items.take(indexer)
+
+        new_blocks = []
+        for b in num_blocks:
+            b = b.copy(deep=False)
+            b.ref_items = new_items
+            new_blocks.append(b)
+        new_axes = list(self.axes)
+        new_axes[0] = new_items
+        return BlockManager(new_blocks, new_axes, do_integrity_check=False)
 
     def get_slice(self, slobj, axis=0):
         new_axes = list(self.axes)
@@ -583,7 +599,9 @@ class BlockManager(object):
     def delete(self, item):
         i, _ = self._find_block(item)
         loc = self.items.get_loc(item)
-        new_items = Index(np.delete(np.asarray(self.items), loc))
+
+        new_items = self.items._constructor(
+                np.delete(np.asarray(self.items), loc))
 
         self._delete_from_block(i, item)
         self.set_items_norename(new_items)
@@ -802,12 +820,8 @@ class BlockManager(object):
 
         return BlockManager(consolidated, new_axes)
 
-    def _maybe_rename_join(self, other, lsuffix, rsuffix, exclude=None,
-                           copydata=True):
+    def _maybe_rename_join(self, other, lsuffix, rsuffix, copydata=True):
         to_rename = self.items.intersection(other.items)
-        if exclude is not None and len(exclude) > 0:
-            to_rename = to_rename - exclude
-
         if len(to_rename) > 0:
             if not lsuffix and not rsuffix:
                 raise Exception('columns overlap: %s' % to_rename)
@@ -822,7 +836,6 @@ class BlockManager(object):
                     return '%s%s' % (x, rsuffix)
                 return x
 
-            # XXX: COPIES DATA!
             this = self.rename_items(lrenamer, copydata=copydata)
             other = other.rename_items(rrenamer, copydata=copydata)
         else:

@@ -6,7 +6,7 @@ from numpy import nan
 
 from pandas.core.daterange import DateRange
 from pandas.core.index import Index, MultiIndex
-from pandas.core.common import rands, groupby
+from pandas.core.common import rands
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import GroupByError
 from pandas.core.series import Series
@@ -15,7 +15,6 @@ from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
 from pandas.core.panel import Panel
 from pandas.tools.merge import concat
 from collections import defaultdict
-import pandas._tseries as lib
 import pandas.core.datetools as dt
 import numpy as np
 
@@ -152,6 +151,30 @@ class TestGroupBy(unittest.TestCase):
         result = grouped.agg(np.mean)
         expected = grouped.mean()
         assert_frame_equal(result, expected)
+
+    def test_agg_datetimes_mixed(self):
+        data = [[1, '2012-01-01', 1.0],
+                [2, '2012-01-02', 2.0],
+                [3, None, 3.0]]
+
+        df1 = DataFrame({'key': [x[0] for x in data],
+                         'date': [x[1] for x in data],
+                         'value': [x[2] for x in data]})
+
+        data = [[row[0], datetime.strptime(row[1], '%Y-%m-%d').date()
+                if row[1] else None, row[2]] for row in data]
+
+        df2 = DataFrame({'key': [x[0] for x in data],
+                         'date': [x[1] for x in data],
+                         'value': [x[2] for x in data]})
+
+        df1['weights'] = df1['value']/df1['value'].sum()
+        gb1 = df1.groupby('date').aggregate(np.sum)
+
+        df2['weights'] = df1['value']/df1['value'].sum()
+        gb2 = df2.groupby('date').aggregate(np.sum)
+
+        assert(len(gb1) == len(gb2))
 
     def test_agg_must_agg(self):
         grouped = self.df.groupby('A')['C']
@@ -900,6 +923,18 @@ class TestGroupBy(unittest.TestCase):
                            'b': ['foo', 'bar'] * 25})
         self.assertRaises(GroupByError, frame.groupby('a')['b'].mean)
 
+        frame = DataFrame({'a': np.random.randint(0, 5, 50),
+                           'b': ['foo', 'bar'] * 25})
+        self.assertRaises(GroupByError, frame[['b']].groupby(frame['a']).mean)
+
+    def test_wrap_aggregated_output_multindex(self):
+        df = self.mframe.T
+        df['baz', 'two'] = 'peekaboo'
+
+        keys = [np.array([0, 0, 1]), np.array([0, 0, 1])]
+        agged = df.groupby(keys).agg(np.mean)
+        self.assert_(isinstance(agged.columns, MultiIndex))
+
     def test_grouping_attrs(self):
         deleveled = self.mframe.reset_index()
         grouped = deleveled.groupby(['first', 'second'])
@@ -1348,6 +1383,21 @@ class TestGroupBy(unittest.TestCase):
         agged = grouped.agg(np.mean)
         self.assert_(np.array_equal(agged.minor_axis, [0, 1]))
 
+    def test_numpy_groupby(self):
+        from pandas.core.groupby import numpy_groupby
+
+        data = np.random.randn(100, 100)
+        labels = np.random.randint(0, 10, size=100)
+
+        df = DataFrame(data)
+
+        result = df.groupby(labels).sum().values
+        expected = numpy_groupby(data, labels)
+        assert_almost_equal(result, expected)
+
+        result = df.groupby(labels, axis=1).sum().values
+        expected = numpy_groupby(data, labels, axis=1)
+        assert_almost_equal(result, expected)
 
 def test_decons():
     from pandas.core.groupby import decons_group_index, get_group_index

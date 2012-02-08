@@ -23,11 +23,10 @@ JOIN_TYPES = ['inner', 'outer', 'left', 'right']
 
 def get_test_data(ngroups=NGROUPS, n=N):
     unique_groups = range(ngroups)
-    arr = np.asarray(np.tile(unique_groups, n // ngroups), dtype=object)
+    arr = np.asarray(np.tile(unique_groups, n // ngroups))
 
     if len(arr) < n:
-        arr = np.asarray(list(arr) + unique_groups[:n - len(arr)],
-                         dtype=object)
+        arr = np.asarray(list(arr) + unique_groups[:n - len(arr)])
 
     random.shuffle(arr)
     return arr
@@ -36,10 +35,10 @@ class TestMerge(unittest.TestCase):
 
     def setUp(self):
         # aggregate multiple columns
-        self.df = DataFrame({'key1' : get_test_data(),
-                             'key2' : get_test_data(),
-                             'data1' : np.random.randn(N),
-                             'data2' : np.random.randn(N)})
+        self.df = DataFrame({'key1': get_test_data(),
+                             'key2': get_test_data(),
+                             'data1': np.random.randn(N),
+                             'data2': np.random.randn(N)})
 
         # exclude a couple keys for fun
         self.df = self.df[self.df['key2'] > 1]
@@ -47,18 +46,18 @@ class TestMerge(unittest.TestCase):
         self.df2 = DataFrame({'key1'  : get_test_data(n=N//5),
                               'key2'  : get_test_data(ngroups=NGROUPS//2,
                                                       n=N//5),
-                              'value' : np.random.randn(N // 5)})
+                              'value': np.random.randn(N // 5)})
 
         index, data = tm.getMixedTypeDict()
         self.target = DataFrame(data, index=index)
 
         # Join on string value
-        self.source = DataFrame({'MergedA' : data['A'], 'MergedD' : data['D']},
+        self.source = DataFrame({'MergedA': data['A'], 'MergedD': data['D']},
                                 index=data['C'])
 
-        self.left = DataFrame({'key' : ['a', 'b', 'c', 'd', 'e', 'e', 'a'],
-                          'v1' : np.random.randn(7)})
-        self.right = DataFrame({'v2' : np.random.randn(4)},
+        self.left = DataFrame({'key': ['a', 'b', 'c', 'd', 'e', 'e', 'a'],
+                          'v1': np.random.randn(7)})
+        self.right = DataFrame({'v2': np.random.randn(4)},
                            index=['d', 'b', 'c', 'a'])
 
     def test_cython_left_outer_join(self):
@@ -135,9 +134,6 @@ class TestMerge(unittest.TestCase):
         self.assert_(np.array_equal(ls, exp_ls))
         self.assert_(np.array_equal(rs, exp_rs))
 
-    def test_cython_full_outer_join(self):
-        pass
-
     def test_left_outer_join(self):
         joined_key2 = merge(self.df, self.df2, on='key2')
         _check_join(self.df, self.df2, joined_key2, ['key2'], how='left')
@@ -181,7 +177,6 @@ class TestMerge(unittest.TestCase):
         joined = merge(self.df, self.df2,
                        left_on='key2', right_on='key1',
                        suffixes=['.foo', '.bar'])
-
         self.assert_('key1.foo' in joined)
         self.assert_('key2.bar' in joined)
 
@@ -199,11 +194,11 @@ class TestMerge(unittest.TestCase):
         self.assert_(np.array_equal(merged['MergedD'], target['D']))
 
         # join with duplicates (fix regression from DataFrame/Matrix merge)
-        df = DataFrame({'key' : ['a', 'a', 'b', 'b', 'c']})
-        df2 = DataFrame({'value' : [0, 1, 2]}, index=['a', 'b', 'c'])
+        df = DataFrame({'key': ['a', 'a', 'b', 'b', 'c']})
+        df2 = DataFrame({'value': [0, 1, 2]}, index=['a', 'b', 'c'])
         joined = df.join(df2, on='key')
-        expected = DataFrame({'key' : ['a', 'a', 'b', 'b', 'c'],
-                              'value' : [0, 0, 1, 1, 2]})
+        expected = DataFrame({'key': ['a', 'a', 'b', 'b', 'c'],
+                              'value': [0, 0, 1, 1, 2]})
         assert_frame_equal(joined, expected)
 
         # Test when some are missing
@@ -247,8 +242,8 @@ class TestMerge(unittest.TestCase):
         self.assertEqual(len(merged2), 0)
 
     def test_join_on_inner(self):
-        df = DataFrame({'key' : ['a', 'a', 'd', 'b', 'b', 'c']})
-        df2 = DataFrame({'value' : [0, 1]}, index=['a', 'b'])
+        df = DataFrame({'key': ['a', 'a', 'd', 'b', 'b', 'c']})
+        df2 = DataFrame({'value': [0, 1]}, index=['a', 'b'])
 
         joined = df.join(df2, on='key', how='inner')
 
@@ -259,8 +254,8 @@ class TestMerge(unittest.TestCase):
         self.assert_(joined.index.equals(expected.index))
 
     def test_join_on_singlekey_list(self):
-        df = DataFrame({'key' : ['a', 'a', 'b', 'b', 'c']})
-        df2 = DataFrame({'value' : [0, 1, 2]}, index=['a', 'b', 'c'])
+        df = DataFrame({'key': ['a', 'a', 'b', 'b', 'c']})
+        df2 = DataFrame({'value': [0, 1, 2]}, index=['a', 'b', 'c'])
 
         # corner cases
         joined = df.join(df2, on=['key'])
@@ -279,18 +274,18 @@ class TestMerge(unittest.TestCase):
         ds = Series([2], index=[1], name='b')
         result = df.join(ds, on='a')
         expected = DataFrame({'a' : [1, 1],
-                              'b' : [2, 2]}, index=df.index)
+                              'b': [2, 2]}, index=df.index)
         tm.assert_frame_equal(result, expected)
 
     def test_join_index_mixed(self):
 
-        df1 = DataFrame({'A' : 1., 'B' : 2, 'C' : 'foo', 'D' : True},
+        df1 = DataFrame({'A': 1., 'B': 2, 'C': 'foo', 'D': True},
                         index=np.arange(10),
                         columns=['A', 'B', 'C', 'D'])
         self.assert_(df1['B'].dtype == np.int64)
         self.assert_(df1['D'].dtype == np.bool_)
 
-        df2 = DataFrame({'A' : 1., 'B' : 2, 'C' : 'foo', 'D' : True},
+        df2 = DataFrame({'A': 1., 'B': 2, 'C': 'foo', 'D': True},
                         index=np.arange(0, 10, 2),
                         columns=['A', 'B', 'C', 'D'])
 
@@ -331,7 +326,7 @@ class TestMerge(unittest.TestCase):
         a = DataFrame(randn(30,2), columns=['a','b'])
         c = Series(randn(30))
         a['c'] = c
-        d = DataFrame(randn(30,1), columns=['d'])
+        d = DataFrame(randn(30,1), columns=['q'])
 
         # it works!
         a.join(d)
@@ -377,8 +372,8 @@ class TestMerge(unittest.TestCase):
                'three', 'one']
 
         data = np.random.randn(len(key1))
-        data = DataFrame({'key1' : key1, 'key2' : key2,
-                         'data' : data})
+        data = DataFrame({'key1': key1, 'key2': key2,
+                         'data': data})
 
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
@@ -418,21 +413,27 @@ class TestMerge(unittest.TestCase):
         assert_frame_equal(joined, expected)
 
     def test_merge_index_singlekey_right_vs_left(self):
-        left = DataFrame({'key' : ['a', 'b', 'c', 'd', 'e', 'e', 'a'],
-                          'v1' : np.random.randn(7)})
-        right = DataFrame({'v2' : np.random.randn(4)},
+        left = DataFrame({'key': ['a', 'b', 'c', 'd', 'e', 'e', 'a'],
+                          'v1': np.random.randn(7)})
+        right = DataFrame({'v2': np.random.randn(4)},
                            index=['d', 'b', 'c', 'a'])
 
         merged1 = merge(left, right, left_on='key',
-                        right_index=True, how='left')
+                        right_index=True, how='left', sort=False)
         merged2 = merge(right, left, right_on='key',
-                        left_index=True, how='right')
+                        left_index=True, how='right', sort=False)
+        assert_frame_equal(merged1, merged2.ix[:, merged1.columns])
+
+        merged1 = merge(left, right, left_on='key',
+                        right_index=True, how='left', sort=True)
+        merged2 = merge(right, left, right_on='key',
+                        left_index=True, how='right', sort=True)
         assert_frame_equal(merged1, merged2.ix[:, merged1.columns])
 
     def test_merge_index_singlekey_inner(self):
-        left = DataFrame({'key' : ['a', 'b', 'c', 'd', 'e', 'e', 'a'],
-                          'v1' : np.random.randn(7)})
-        right = DataFrame({'v2' : np.random.randn(4)},
+        left = DataFrame({'key': ['a', 'b', 'c', 'd', 'e', 'e', 'a'],
+                          'v1': np.random.randn(7)})
+        right = DataFrame({'v2': np.random.randn(4)},
                            index=['d', 'b', 'c', 'a'])
 
         # inner join
@@ -455,6 +456,9 @@ class TestMerge(unittest.TestCase):
         self.assertRaises(Exception, merge, self.left, self.left,
                           left_on='key', on='key')
 
+        self.assertRaises(Exception, merge, self.df, self.df2,
+                          left_on=['key1'], right_on=['key1', 'key2'])
+
     def test_merge_overlap(self):
         merged = merge(self.left, self.left, on='key')
         exp_len = (self.left['key'].value_counts() ** 2).sum()
@@ -463,9 +467,9 @@ class TestMerge(unittest.TestCase):
         self.assert_('v1.y' in merged)
 
     def test_merge_different_column_key_names(self):
-        left = DataFrame({'lkey' : ['foo', 'bar', 'baz', 'foo'],
-                          'value' : [1, 2, 3, 4]})
-        right = DataFrame({'rkey' : ['foo', 'bar', 'qux', 'foo'],
+        left = DataFrame({'lkey': ['foo', 'bar', 'baz', 'foo'],
+                          'value': [1, 2, 3, 4]})
+        right = DataFrame({'rkey': ['foo', 'bar', 'qux', 'foo'],
                            'value' : [5, 6, 7, 8]})
 
         merged = left.merge(right, left_on='lkey', right_on='rkey',
@@ -490,6 +494,70 @@ class TestMerge(unittest.TestCase):
 
         merged['d'] = 'peekaboo'
         self.assert_((right['d'] == 'peekaboo').all())
+
+    def test_join_sort(self):
+        left = DataFrame({'key' : ['foo', 'bar', 'baz', 'foo'],
+                          'value' : [1, 2, 3, 4]})
+        right = DataFrame({'value2' : ['a', 'b', 'c']},
+                          index=['bar', 'baz', 'foo'])
+
+        joined = left.join(right, on='key', sort=True)
+        expected = DataFrame({'key' : ['bar', 'baz', 'foo', 'foo'],
+                              'value' : [2, 3, 1, 4],
+                              'value2' : ['a', 'b', 'c', 'c']},
+                             index=[1, 2, 0, 3])
+        assert_frame_equal(joined, expected)
+
+        # smoke test
+        joined = left.join(right, on='key', sort=False)
+        self.assert_(np.array_equal(joined.index, range(4)))
+
+    def test_intelligently_handle_join_key(self):
+        # #733, be a bit more 1337 about not returning unconsolidated DataFrame
+
+        left = DataFrame({'key' : [1, 1, 2, 2, 3],
+                          'value' : range(5)}, columns=['value', 'key'])
+        right = DataFrame({'key' : [1, 1, 2, 3, 4, 5],
+                           'rvalue' : range(6)})
+
+        joined = merge(left, right, on='key', how='outer')
+        expected = DataFrame({'key' : [1, 1, 1, 1, 2, 2, 3, 4, 5.],
+                              'value' : np.array([0, 0, 1, 1, 2, 3, 4,
+                                                  np.nan, np.nan]),
+                              'rvalue' : np.array([0, 1, 0, 1, 2, 2, 3, 4, 5])},
+                             columns=['value', 'key', 'rvalue'])
+        assert_frame_equal(joined, expected)
+
+        self.assert_(joined._data.is_consolidated())
+
+    def test_handle_join_key_pass_array(self):
+        left = DataFrame({'key' : [1, 1, 2, 2, 3],
+                          'value' : range(5)}, columns=['value', 'key'])
+        right = DataFrame({'rvalue' : range(6)})
+        key = np.array([1, 1, 2, 3, 4, 5])
+
+        merged = merge(left, right, left_on='key', right_on=key, how='outer')
+        merged2 = merge(right, left, left_on=key, right_on='key', how='outer')
+
+        assert_series_equal(merged['key'], merged2['key'])
+        self.assert_(merged['key'].notnull().all())
+        self.assert_(merged2['key'].notnull().all())
+
+        left = DataFrame({'value' : range(5)}, columns=['value'])
+        right = DataFrame({'rvalue' : range(6)})
+        lkey = np.array([1, 1, 2, 2, 3])
+        rkey = np.array([1, 1, 2, 3, 4, 5])
+
+        merged = merge(left, right, left_on=lkey, right_on=rkey, how='outer')
+        self.assert_(np.array_equal(merged['key_0'],
+                                    np.array([1, 1, 1, 1, 2, 2, 3, 4, 5])))
+
+        left = DataFrame({'value': range(3)})
+        right = DataFrame({'rvalue' : range(6)})
+
+        key = np.array([0, 1, 1, 2, 2, 3])
+        merged = merge(left, right, left_index=True, right_on=key, how='outer')
+        self.assert_(np.array_equal(merged['key_0'], key))
 
 class TestMergeMulti(unittest.TestCase):
 

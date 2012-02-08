@@ -266,6 +266,22 @@ def test_arrmap():
     result = lib.arrmap_object(values, lambda x: x in ['foo', 'bar'])
     assert(result.dtype == np.bool_)
 
+def test_series_grouper():
+    from pandas import Series
+    obj = Series(np.random.randn(10))
+    dummy = obj[:0]
+
+    labels = np.array([-1, -1, -1, 0, 0, 0, 1, 1, 1, 1], dtype='i4')
+
+    grouper = lib.SeriesGrouper(obj, np.mean, labels, 2, dummy)
+    result, counts = grouper.get_result()
+
+    expected = np.array([obj[3:6].mean(), obj[6:].mean()])
+    assert_almost_equal(result, expected)
+
+    exp_counts = np.array([3, 4], dtype=np.int32)
+    assert_almost_equal(counts, exp_counts)
+
 class TestTypeInference(unittest.TestCase):
 
     def test_length_zero(self):

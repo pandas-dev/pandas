@@ -6,9 +6,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 # pylint: disable=W0703,W0622,W0613,W0201
 
 from itertools import izip
-import csv
 import operator
-import types
 from distutils.version import LooseVersion
 
 from numpy import nan, ndarray
@@ -19,7 +17,6 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _default_index, _maybe_upcast,
                                 _asarray_tuplesafe)
 from pandas.core.daterange import DateRange
-from pandas.core.format import SeriesFormatter
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index)
 from pandas.core.indexing import _SeriesIndexer
@@ -27,6 +24,7 @@ from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
 import pandas.core.common as com
 import pandas.core.datetools as datetools
+import pandas.core.format as fmt
 import pandas.core.generic as generic
 import pandas.core.nanops as nanops
 import pandas._tseries as lib
@@ -45,18 +43,33 @@ def _arith_method(op, name):
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
+    def na_op(x, y):
+        try:
+            result = op(x, y)
+        except TypeError:
+            if isinstance(y, np.ndarray):
+                mask = notnull(x) & notnull(y)
+                result = np.empty(len(x), dtype=x.dtype)
+                result[mask] = op(x[mask], y[mask])
+            else:
+                mask = notnull(x)
+                result = np.empty(len(x), dtype=x.dtype)
+                result[mask] = op(x[mask], y)
+
+        return result
+
     def wrapper(self, other):
         from pandas.core.frame import DataFrame
 
         if isinstance(other, Series):
             if self.index.equals(other.index):
                 name = _maybe_match_name(self, other)
-                return Series(op(self.values, other.values), index=self.index,
-                              name=name)
+                return Series(na_op(self.values, other.values),
+                              index=self.index, name=name)
 
             this_reindexed, other_reindexed = self.align(other, join='outer',
                                                          copy=False)
-            arr = op(this_reindexed.values, other_reindexed.values)
+            arr = na_op(this_reindexed.values, other_reindexed.values)
 
             name = _maybe_match_name(self, other)
             return Series(arr, index=this_reindexed.index, name=name)
@@ -64,8 +77,8 @@ def _arith_method(op, name):
             return NotImplemented
         else:
             # scalars
-            return Series(op(self.values, other), index=self.index,
-                          name=self.name)
+            return Series(na_op(self.values, other),
+                          index=self.index, name=self.name)
     return wrapper
 
 def _radd_compat(left, right):
@@ -351,13 +364,9 @@ copy : boolean, default False
         if not isinstance(self.index, MultiIndex):
             raise ValueError('Can only tuple-index with a MultiIndex')
 
+        # If key is contained, would have returned by now
         indexer, new_index = self.index.get_loc_level(key)
-
-        if com.is_integer(indexer):
-            return self.values[indexer]
-        else:
-            return Series(self.values[indexer], index=new_index,
-                          name=self.name)
+        return Series(self.values[indexer], index=new_index, name=self.name)
 
     def _get_values(self, indexer):
         try:
@@ -570,8 +579,8 @@ copy : boolean, default False
     def __repr__(self):
         """Clean string representation of a Series"""
         width, height = get_terminal_size()
-        max_rows = (height if com.print_config.max_rows == 0
-                    else com.print_config.max_rows)
+        max_rows = (height if fmt.print_config.max_rows == 0
+                    else fmt.print_config.max_rows)
         if len(self.index) > max_rows:
             result = self._tidy_repr(min(30, max_rows - 4))
         elif len(self.index) > 0:
@@ -597,6 +606,28 @@ copy : boolean, default False
 
     def to_string(self, buf=None, na_rep='NaN', float_format=None,
                   nanRep=None, length=False, name=False):
+        """
+        Render a string representation of the Series
+
+        Parameters
+        ----------
+        buf : StringIO-like, optional
+            buffer to write to
+        na_rep : string, optional
+            string representation of NAN to use, default 'NaN'
+        float_format : one-parameter function, optional
+            formatter function to apply to columns' elements if they are floats
+            default None
+        length : boolean, default False
+            Add the Series length
+        name : boolean, default False
+            Add the Series name (which may be None)
+
+        Returns
+        -------
+        formatted : string (if not buffer passed)
+        """
+
         if nanRep is not None:  # pragma: no cover
             import warnings
             warnings.warn("nanRep is deprecated, use na_rep",
@@ -612,9 +643,9 @@ copy : boolean, default False
 
     def _get_repr(self, name=False, print_header=False, length=True,
                   na_rep='NaN', float_format=None):
-        formatter = SeriesFormatter(self, name=name, header=print_header,
-                                    length=length, na_rep=na_rep,
-                                    float_format=float_format)
+        formatter = fmt.SeriesFormatter(self, name=name, header=print_header,
+                                        length=length, na_rep=na_rep,
+                                        float_format=float_format)
         return formatter.to_string()
 
     def __str__(self):
@@ -627,10 +658,7 @@ copy : boolean, default False
         """
         Lazily iterate over (index, value) tuples
         """
-        if index:
-            return izip(iter(self.index), iter(self))
-        else:
-            return izip(iter(self))
+        return izip(iter(self.index), iter(self))
 
     iterkv = iteritems
     if py3compat.PY3:  # pragma: no cover
@@ -813,17 +841,7 @@ copy : boolean, default False
         -------
         uniques : ndarray
         """
-        values = self.values
-        if issubclass(values.dtype.type, np.floating):
-            table = lib.Float64HashTable(len(values))
-            uniques = np.array(table.unique(values), dtype='f8')
-        else:
-            if not values.dtype == np.object_:
-                values = values.astype('O')
-            table = lib.PyObjectHashTable(len(values))
-            uniques = lib.list_to_object_array(table.unique(values))
-            uniques = lib.maybe_convert_objects(uniques)
-        return uniques
+        return nanops.unique1d(self.values)
 
     def nunique(self):
         """
@@ -1878,7 +1896,6 @@ copy : boolean, default False
         """
         value_set = set(values)
         result = lib.ismember(self, value_set)
-        # return self.map(value_set.__contains__)
         return Series(result, self.index, name=self.name)
 
 #-------------------------------------------------------------------------------
@@ -2039,7 +2056,7 @@ copy : boolean, default False
         from pandas.core.frame import DataFrame
         df = DataFrame(self)
         df.to_csv(path, index=index, sep=sep, na_rep=na_rep, header=header,
-                  index_label=index_label,mode=mode, nanRep=nanRep,
+                  index_label=index_label, mode=mode, nanRep=nanRep,
                   encoding=encoding)
 
     def dropna(self):
@@ -2052,7 +2069,7 @@ copy : boolean, default False
         """
         return remove_na(self)
 
-    valid = dropna
+    valid = lambda self: self.dropna()
 
     isnull = isnull
     notnull = notnull
