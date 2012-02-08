@@ -944,7 +944,7 @@ class DataFrame(NDFrame):
             warnings.warn("nanRep is deprecated, use na_rep",
                           FutureWarning)
             na_rep = nanRep
-        
+
         self._helper_csvexcel(csvout, na_rep=na_rep, cols=cols, header=header,
                          index=index, index_label=index_label, encoding=encoding)
         f.close()
@@ -952,12 +952,12 @@ class DataFrame(NDFrame):
     def to_excel(self, excel_writer, sheet_name = 'sheet1', na_rep='', cols=None, header=True,
                  index=True, index_label=None):
         """
-        Write DataFrame to a excel sheet 
+        Write DataFrame to a excel sheet
 
         Parameters
         ----------
         excel_writer : string or ExcelWriter object
-            File path or existing ExcelWriter 
+            File path or existing ExcelWriter
         sheet_name : string, default 'sheet1'
             Name of sheet which will contain DataFrame
         na_rep : string, default ''
@@ -972,7 +972,7 @@ class DataFrame(NDFrame):
             Column label for index column(s) if desired. If None is given, and
             `header` and `index` are True, then the index names are used. A
             sequence should be given if the DataFrame uses MultiIndex.
-        
+
         Notes
         -----
         If passing an existing ExcelWriter object, then the sheet will be added
@@ -994,7 +994,7 @@ class DataFrame(NDFrame):
         if need_save:
             excel_writer.save()
 
-    @Appender(docstring_to_string, indents=1)
+    @Appender(fmt.docstring_to_string, indents=1)
     def to_string(self, buf=None, columns=None, col_space=None, colSpace=None,
                   header=True, index=True, na_rep='NaN', formatters=None,
                   float_format=None, sparsify=True, nanRep=None,
