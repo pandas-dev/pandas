@@ -284,6 +284,39 @@ calling ``to_string`` if you wish:
 
 Note that ``pivot_table`` is also available as an instance method on DataFrame.
 
+Cross tabulations
+~~~~~~~~~~~~~~~~~
+
+Use the ``crosstab`` function to compute a cross-tabulation of two (or more)
+factors. By default ``crosstab`` computes a frequency table of the factors
+unless an array of values and an aggregation function are passed.
+
+It takes a number of arguments
+
+- ``rows``: array-like, values to group by in the rows
+- ``cols``: array-like, values to group by in the columns
+- ``values``: array-like, optional, array of values to aggregate according to
+  the factors
+- ``aggfunc``: function, optional, If no values array is passed, computes a
+  frequency table
+- ``rownames``: sequence, default None, must match number of row arrays passed
+- ``colnames``: sequence, default None, if passed, must match number of column
+  arrays passed
+- ``margins``: boolean, default False, Add row/column margins (subtotals)
+
+Any Series passed will have their name attributes used unless row or column
+names for the cross-tabulation are specified
+
+For example:
+
+.. ipython:: python
+
+    foo, bar, dull, shiny, one, two = 'foo', 'bar', 'dull', 'shiny', 'one', 'two'
+    a = np.array([foo, foo, bar, bar, foo, foo], dtype=object)
+    b = np.array([one, one, two, one, two, one], dtype=object)
+    c = np.array([dull, dull, shiny, dull, dull, shiny], dtype=object)
+    crosstab(a, [b, c], rownames=['a'], colnames=['b', 'c'])
+
 .. _reshaping.pivot.margins:
 
 Adding margins (partial aggregates)

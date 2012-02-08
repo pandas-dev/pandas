@@ -140,6 +140,7 @@ label, respectively.
    panel.major_xs(date)
    panel.minor_xs('A')
 
+
 Slicing ranges
 ~~~~~~~~~~~~~~
 
@@ -473,6 +474,12 @@ operators:
    a & b
    a - b
 
+``isin`` method of Index objects
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+One additional operation is the ``isin`` method that works analogously to the
+``Series.isin`` method found :ref:`here <indexing.boolean>`.
+
 .. _indexing.hierarchical:
 
 Hierarchical indexing (MultiIndex)
@@ -642,6 +649,18 @@ The code for implementing ``.ix`` makes every attempt to "do the right thing"
 but as you use it you may uncover corner cases or unintuitive behavior. If you
 do find something like this, do not hesitate to report the issue or ask on the
 mailing list.
+
+.. _indexing.xs:
+
+Cross-section with hierarchical index
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``xs`` method of ``DataFrame`` additionally takes a level argument to make
+selecting data at a particular level of a MultiIndex easier.
+
+.. ipython:: python
+
+    df.xs('one', level='second')
 
 .. _indexing.advanced_reindex:
 

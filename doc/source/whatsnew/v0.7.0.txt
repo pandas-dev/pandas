@@ -97,6 +97,15 @@ New features
 - Added ``encoding`` argument to ``read_csv``, ``read_table``, ``to_csv`` and
   ``from_csv`` for non-ascii text (GH717_)
 
+- :ref:`Added <basics.stats>` ``abs`` method to pandas objects 
+
+- :ref:`Added <reshaping.pivot>` ``crosstab`` function for easily computing frequency tables
+
+- :ref:`Added <indexing.set_ops>` ``isin`` method to index objects
+
+- :ref:`Added <indexing.xs>` ``level`` argument to ``xs`` method of DataFrame.
+
+
 API Changes to integer indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
