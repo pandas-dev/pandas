@@ -2268,218 +2268,113 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         os.remove(path)
 
     def test_to_excel_from_excel(self):
-        path = '__tmp__.xls'
+        for ext in ['xls', 'xlsx']:
+            path = '__tmp__.' + ext
 
-        self.frame['A'][:5] = nan
+            self.frame['A'][:5] = nan
 
-        self.frame.to_excel(path,'test1')
-        self.frame.to_excel(path,'test1', cols=['A', 'B'])
-        self.frame.to_excel(path,'test1', header=False)
-        self.frame.to_excel(path,'test1', index=False)
+            self.frame.to_excel(path,'test1')
+            self.frame.to_excel(path,'test1', cols=['A', 'B'])
+            self.frame.to_excel(path,'test1', header=False)
+            self.frame.to_excel(path,'test1', index=False)
 
-        # test roundtrip
-        self.frame.to_excel(path,'test1')
-        reader = ExcelFile(path)
-        recons = reader.parse('test1',index_col=0)
-        assert_frame_equal(self.frame, recons)
+            # test roundtrip
+            self.frame.to_excel(path,'test1')
+            reader = ExcelFile(path)
+            recons = reader.parse('test1',index_col=0)
+            assert_frame_equal(self.frame, recons)
+            
+            self.frame.to_excel(path,'test1', index=False)
+            reader = ExcelFile(path)
+            recons = reader.parse('test1',index_col=None)
+            recons.index = self.frame.index
+            assert_frame_equal(self.frame, recons)
 
-        self.frame.to_excel(path,'test1', index=False)
-        reader = ExcelFile(path)
-        recons = reader.parse('test1',index_col=None)
-        recons.index = self.frame.index
-        assert_frame_equal(self.frame, recons)
+            self.frame.to_excel(path,'test1')
+            reader = ExcelFile(path)
+            recons = reader.parse('test1',index_col=0,skiprows=[1])
+            assert_frame_equal(self.frame.ix[1:], recons)
 
-        self.frame.to_excel(path,'test1')
-        reader = ExcelFile(path)
-        recons = reader.parse('test1',index_col=0,skiprows=[1])
-        assert_frame_equal(self.frame.ix[1:], recons)
+            self.frame.to_excel(path,'test1',na_rep='NA')
+            reader = ExcelFile(path)
+            recons = reader.parse('test1',index_col=0,na_values=['NA'])
+            assert_frame_equal(self.frame, recons)
+            
+            self.mixed_frame.to_excel(path,'test1')
+            reader = ExcelFile(path)
+            recons = reader.parse('test1',index_col=0)
+            assert_frame_equal(self.mixed_frame, recons)
 
-        self.frame.to_excel(path,'test1',na_rep='NA')
-        reader = ExcelFile(path)
-        recons = reader.parse('test1',index_col=0,na_values=['NA'])
-        assert_frame_equal(self.frame, recons)
-        
-        self.mixed_frame.to_excel(path,'test1')
-        reader = ExcelFile(path)
-        recons = reader.parse('test1',index_col=0)
-        assert_frame_equal(self.mixed_frame, recons)
+            self.tsframe.to_excel(path,'test1')
+            reader = ExcelFile(path)
+            recons = reader.parse('test1',index_col=0)
+            assert_frame_equal(self.tsframe, recons)
 
-        self.tsframe.to_excel(path,'test1')
-        reader = ExcelFile(path)
-        recons = reader.parse('test1',index_col=0)
-        assert_frame_equal(self.tsframe, recons)
+            #Test np.int64
+            frame = DataFrame(np.random.randn(10,2))
+            frame.to_excel(path,'test1')
+            reader = ExcelFile(path)
+            recons = reader.parse('test1',index_col=0)
+            assert_frame_equal(frame, recons)
 
-        #Test np.int64
-        frame = DataFrame(np.random.randn(10,2))
-        frame.to_excel(path,'test1')
-        reader = ExcelFile(path)
-        recons = reader.parse('test1',index_col=0)
-        assert_frame_equal(frame, recons)
+            # Test writing to separate sheets
+            writer = ExcelWriter(path)
+            self.frame.to_excel(writer,'test1')
+            self.tsframe.to_excel(writer,'test2')
+            writer.save()
+            reader = ExcelFile(path)
+            recons = reader.parse('test1',index_col=0)
+            assert_frame_equal(self.frame, recons)
+            recons = reader.parse('test2',index_col=0)
+            assert_frame_equal(self.tsframe, recons)
 
-        # Test writing to separate sheets
-        writer = ExcelWriter(path)
-        self.frame.to_excel(writer,'test1')
-        self.tsframe.to_excel(writer,'test2')
-        writer.save()
-        reader = ExcelFile(path)
-        recons = reader.parse('test1',index_col=0)
-        assert_frame_equal(self.frame, recons)
-        recons = reader.parse('test2',index_col=0)
-        assert_frame_equal(self.tsframe, recons)
-
-        os.remove(path)
+            os.remove(path)
 
     def test_to_excel_multiindex(self):
-        path = '__tmp__.xls'
+        for ext in ['xls', 'xlsx']:
+            path = '__tmp__.' + ext
 
-        frame = self.frame
-        old_index = frame.index
-        arrays = np.arange(len(old_index)*2).reshape(2,-1)
-        new_index = MultiIndex.from_arrays(arrays, names=['first', 'second'])
-        frame.index = new_index
-        frame.to_excel(path, 'test1', header=False)
-        frame.to_excel(path, 'test1', cols=['A', 'B'])
+            frame = self.frame
+            old_index = frame.index
+            arrays = np.arange(len(old_index)*2).reshape(2,-1)
+            new_index = MultiIndex.from_arrays(arrays, names=['first', 'second'])
+            frame.index = new_index
+            frame.to_excel(path, 'test1', header=False)
+            frame.to_excel(path, 'test1', cols=['A', 'B'])
 
-        # round trip
-        frame.to_excel(path, 'test1')
-        reader = ExcelFile(path)
-        df = reader.parse('test1', index_col=[0,1], parse_dates=False)
-        assert_frame_equal(frame, df)
-        self.assertEqual(frame.index.names, df.index.names)
-        self.frame.index = old_index # needed if setUP becomes a classmethod
+            # round trip
+            frame.to_excel(path, 'test1')
+            reader = ExcelFile(path)
+            df = reader.parse('test1', index_col=[0,1], parse_dates=False)
+            assert_frame_equal(frame, df)
+            self.assertEqual(frame.index.names, df.index.names)
+            self.frame.index = old_index # needed if setUP becomes a classmethod
 
-        # try multiindex with dates
-        tsframe = self.tsframe
-        old_index = tsframe.index
-        new_index = [old_index, np.arange(len(old_index))]
-        tsframe.index = MultiIndex.from_arrays(new_index)
+            # try multiindex with dates
+            tsframe = self.tsframe
+            old_index = tsframe.index
+            new_index = [old_index, np.arange(len(old_index))]
+            tsframe.index = MultiIndex.from_arrays(new_index)
 
-        tsframe.to_excel(path, 'test1', index_label = ['time','foo'])
-        reader = ExcelFile(path)
-        recons = reader.parse('test1', index_col=[0,1])
-        assert_frame_equal(tsframe, recons)
+            tsframe.to_excel(path, 'test1', index_label = ['time','foo'])
+            reader = ExcelFile(path)
+            recons = reader.parse('test1', index_col=[0,1])
+            assert_frame_equal(tsframe, recons)
 
-        # do not load index
-        tsframe.to_excel(path, 'test1')
-        reader = ExcelFile(path)
-        recons = reader.parse('test1', index_col=None)
-        np.testing.assert_equal(len(recons.columns), len(tsframe.columns) + 2)
+            # do not load index
+            tsframe.to_excel(path, 'test1')
+            reader = ExcelFile(path)
+            recons = reader.parse('test1', index_col=None)
+            np.testing.assert_equal(len(recons.columns), len(tsframe.columns) + 2)
 
-        # no index
-        tsframe.to_excel(path, 'test1', index=False)
-        reader = ExcelFile(path)
-        recons = reader.parse('test1', index_col=None)
-        assert_almost_equal(recons.values, self.tsframe.values)
-        self.tsframe.index = old_index # needed if setUP becomes classmethod
+            # no index
+            tsframe.to_excel(path, 'test1', index=False)
+            reader = ExcelFile(path)
+            recons = reader.parse('test1', index_col=None)
+            assert_almost_equal(recons.values, self.tsframe.values)
+            self.tsframe.index = old_index # needed if setUP becomes classmethod
 
-        os.remove(path)
-
-    def test_to_excel2007_from_excel2007(self):
-        path = '__tmp__.xlsx'
-
-        self.frame['A'][:5] = nan
-
-        self.frame.to_excel(path,'test1')
-        self.frame.to_excel(path,'test1', cols=['A', 'B'])
-        self.frame.to_excel(path,'test1', header=False)
-        self.frame.to_excel(path,'test1', index=False)
-
-        # test roundtrip
-        self.frame.to_excel(path,'test1')
-        reader = ExcelFile(path)
-        recons = reader.parse('test1',index_col=0)
-        assert_frame_equal(self.frame, recons)
-        
-        self.frame.to_excel(path,'test1', index=False)
-        reader = ExcelFile(path)
-        recons = reader.parse('test1',index_col=None)
-        recons.index = self.frame.index
-        assert_frame_equal(self.frame, recons)
-
-        self.frame.to_excel(path,'test1')
-        reader = ExcelFile(path)
-        recons = reader.parse('test1',index_col=0,skiprows=[1])
-        assert_frame_equal(self.frame.ix[1:], recons)
-
-        self.frame.to_excel(path,'test1',na_rep='NA')
-        reader = ExcelFile(path)
-        recons = reader.parse('test1',index_col=0,na_values=['NA'])
-        assert_frame_equal(self.frame, recons)
-        
-        self.mixed_frame.to_excel(path,'test1')
-        reader = ExcelFile(path)
-        recons = reader.parse('test1',index_col=0)
-        assert_frame_equal(self.mixed_frame, recons)
-
-        self.tsframe.to_excel(path,'test1')
-        reader = ExcelFile(path)
-        recons = reader.parse('test1',index_col=0)
-        assert_frame_equal(self.tsframe, recons)
-
-        #Test np.int64
-        frame = DataFrame(np.random.randn(10,2))
-        frame.to_excel(path,'test1')
-        reader = ExcelFile(path)
-        recons = reader.parse('test1',index_col=0)
-        assert_frame_equal(frame, recons)
-
-        # Test writing to separate sheets
-        writer = ExcelWriter(path)
-        self.frame.to_excel(writer,'test1')
-        self.tsframe.to_excel(writer,'test2')
-        writer.save()
-        reader = ExcelFile(path)
-        recons = reader.parse('test1',index_col=0)
-        assert_frame_equal(self.frame, recons)
-        recons = reader.parse('test2',index_col=0)
-        assert_frame_equal(self.tsframe, recons)
-
-        os.remove(path)
-
-    def test_to_excel2007_multiindex(self):
-        path = '__tmp__.xlsx'
-
-        frame = self.frame
-        old_index = frame.index
-        arrays = np.arange(len(old_index)*2).reshape(2,-1)
-        new_index = MultiIndex.from_arrays(arrays, names=['first', 'second'])
-        frame.index = new_index
-        frame.to_excel(path, 'test1', header=False)
-        frame.to_excel(path, 'test1', cols=['A', 'B'])
-
-        # round trip
-        frame.to_excel(path, 'test1')
-        reader = ExcelFile(path)
-        df = reader.parse('test1', index_col=[0,1], parse_dates=False)
-        assert_frame_equal(frame, df)
-        self.assertEqual(frame.index.names, df.index.names)
-        self.frame.index = old_index # needed if setUP becomes a classmethod
-
-        # try multiindex with dates
-        tsframe = self.tsframe
-        old_index = tsframe.index
-        new_index = [old_index, np.arange(len(old_index))]
-        tsframe.index = MultiIndex.from_arrays(new_index)
-
-        tsframe.to_excel(path, 'test1', index_label = ['time','foo'])
-        reader = ExcelFile(path)
-        recons = reader.parse('test1', index_col=[0,1])
-        assert_frame_equal(tsframe, recons)
-
-        # do not load index
-        tsframe.to_excel(path, 'test1')
-        reader = ExcelFile(path)
-        recons = reader.parse('test1', index_col=None)
-        np.testing.assert_equal(len(recons.columns), len(tsframe.columns) + 2)
-
-        # no index
-        tsframe.to_excel(path, 'test1', index=False)
-        reader = ExcelFile(path)
-        recons = reader.parse('test1', index_col=None)
-        assert_almost_equal(recons.values, self.tsframe.values)
-        self.tsframe.index = old_index # needed if setUP becomes classmethod
-
-        os.remove(path)
+            os.remove(path)
 
     def test_info(self):
         io = StringIO()
