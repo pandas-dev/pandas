@@ -37,7 +37,11 @@ def _dt_unbox(key):
 
 def _dt_unbox_array(arr):
     unboxer = np.frompyfunc(_dt_unbox, 1, 1)
-    return unboxer(arr).astype('M8[us]')
+    return unboxer(arr)
+
+def _dt_box_array(arr):
+    boxer = np.frompyfunc(lib.Timestamp, 1, 1)
+    return boxer(arr)
 
 _box_cache = dict()
 def _dt_box(key):

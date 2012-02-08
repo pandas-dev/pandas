@@ -8,7 +8,8 @@ import numpy as np
 from pandas.core.common import (adjoin as _adjoin, _stringify, _try_sort,
                                 _is_bool_indexer, _asarray_tuplesafe,
                                 is_iterator)
-from pandas.core.datetools import _dt_box, _dt_unbox, _dt_unbox_array
+from pandas.core.datetools import (_dt_box, _dt_unbox,
+                                   _dt_box_array, _dt_unbox_array)
 from pandas.util.decorators import cache_readonly
 import pandas._tseries as lib
 import pandas._engines as _gin
@@ -1064,7 +1065,7 @@ class DatetimeIndex(Int64Index):
 
         conforms = False
 
-        if not data:
+        if data is None:
             if start and freq and n and n > 0:
                 # generate timestamps via offsets
                 starts = [start]
@@ -1191,7 +1192,8 @@ class DatetimeIndex(Int64Index):
         return lib.fast_field_accessor(self.values.view('i8'), 'us')
 
     def __iter__(self):
-        return iter(_dt_unbox_array(self.values))
+        return iter(_dt_box_array(self.values.view('i8')))
+        #return iter(self.values.astype('O'))
 
     def searchsorted(self, key, side='left'):
         """

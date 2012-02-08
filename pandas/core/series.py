@@ -2010,9 +2010,6 @@ copy : boolean, default False
 
             if index > 0:
                 asOfDate = candidates[index - 1]
-                if (isinstance(asOfDate, lib.Timestamp) and 
-                    self.index.dtype != 'M8[us]'):
-                    asOfDate = asOfDate.to_datetime()
             else:
                 return nan
 
