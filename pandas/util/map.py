@@ -62,7 +62,7 @@ def auto_map(arr, f, otherargs, n_results=1, required='all'):
 
 def mapwrap(f, n_results_default=1, required='all'):
     @wraps(f)
-    def wrapped(arr, *otherargs, n_results=None):
+    def wrapped(arr, n_results=None, *otherargs):
         n_results = n_results or n_results_default
         return auto_map(arr, f, otherargs, n_results, required)
     
