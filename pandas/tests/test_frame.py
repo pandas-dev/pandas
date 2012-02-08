@@ -2273,6 +2273,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         os.remove(path)
 
     def test_to_excel_from_excel(self):
+        try:
+            import xlwt
+            import xlrd
+            import openpyxl
+        except ImportError:
+            raise nose.SkipTest
+
         for ext in ['xls', 'xlsx']:
             path = '__tmp__.' + ext
 
@@ -2346,6 +2353,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         os.remove(path)
 
     def test_to_excel_multiindex(self):
+        try:
+            import xlwt
+            import xlrd
+            import openpyxl
+        except ImportError:
+            raise nose.SkipTest
+
         for ext in ['xls', 'xlsx']:
             path = '__tmp__.' + ext
 
