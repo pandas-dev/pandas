@@ -177,6 +177,7 @@ pandas 0.7.0
     parsing functions
   - Substantially improved performance of groupby on DataFrames with many
     columns by aggregating blocks of columns all at once (GH #745)
+  - Can pass a file handle or StringIO to Series/DataFrame.to_csv (GH #765)
 
 **Bug fixes**
 
