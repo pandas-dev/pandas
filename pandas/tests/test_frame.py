@@ -2283,6 +2283,27 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         recons = reader.parse('test1',index_col=0)
         assert_frame_equal(self.frame, recons)
 
+        self.frame.to_excel(path,'test1', index=False)
+        reader = ExcelFile(path)
+        recons = reader.parse('test1',index_col=None)
+        recons.index = self.frame.index
+        assert_frame_equal(self.frame, recons)
+
+        self.frame.to_excel(path,'test1')
+        reader = ExcelFile(path)
+        recons = reader.parse('test1',index_col=0,skiprows=[1])
+        assert_frame_equal(self.frame.ix[1:], recons)
+
+        self.frame.to_excel(path,'test1',na_rep='NA')
+        reader = ExcelFile(path)
+        recons = reader.parse('test1',index_col=0,na_values=['NA'])
+        assert_frame_equal(self.frame, recons)
+        
+        self.mixed_frame.to_excel(path,'test1')
+        reader = ExcelFile(path)
+        recons = reader.parse('test1',index_col=0)
+        assert_frame_equal(self.mixed_frame, recons)
+
         self.tsframe.to_excel(path,'test1')
         reader = ExcelFile(path)
         recons = reader.parse('test1',index_col=0)
@@ -2368,6 +2389,27 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         reader = ExcelFile(path)
         recons = reader.parse('test1',index_col=0)
         assert_frame_equal(self.frame, recons)
+        
+        self.frame.to_excel(path,'test1', index=False)
+        reader = ExcelFile(path)
+        recons = reader.parse('test1',index_col=None)
+        recons.index = self.frame.index
+        assert_frame_equal(self.frame, recons)
+
+        self.frame.to_excel(path,'test1')
+        reader = ExcelFile(path)
+        recons = reader.parse('test1',index_col=0,skiprows=[1])
+        assert_frame_equal(self.frame.ix[1:], recons)
+
+        self.frame.to_excel(path,'test1',na_rep='NA')
+        reader = ExcelFile(path)
+        recons = reader.parse('test1',index_col=0,na_values=['NA'])
+        assert_frame_equal(self.frame, recons)
+        
+        self.mixed_frame.to_excel(path,'test1')
+        reader = ExcelFile(path)
+        recons = reader.parse('test1',index_col=0)
+        assert_frame_equal(self.mixed_frame, recons)
 
         self.tsframe.to_excel(path,'test1')
         reader = ExcelFile(path)
