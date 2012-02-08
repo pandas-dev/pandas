@@ -543,6 +543,12 @@ class TestMerge(unittest.TestCase):
         self.assert_(merged['key'].notnull().all())
         self.assert_(merged2['key'].notnull().all())
 
+        left = DataFrame({'value' : range(5)}, columns=['value', 'key'])
+        right = DataFrame({'rvalue' : range(6)})
+        lkey = np.array([1, 1, 2, 2, 3])
+        rkey = np.array([1, 1, 2, 3, 4, 5])
+
+
 class TestMergeMulti(unittest.TestCase):
 
     def setUp(self):

@@ -259,7 +259,7 @@ class TextParser(object):
         if sep is None or len(sep) == 1:
             sniff_sep = True
             # default dialect
-            dia = csv.excel
+            dia = csv.excel()
             if sep is not None:
                 sniff_sep = False
                 dia.delimiter = sep
@@ -477,10 +477,7 @@ class TextParser(object):
         for col, f in self.converters.iteritems():
             if isinstance(col, int) and col not in self.columns:
                 col = self.columns[col]
-            result = lib.map_infer(data[col], f)
-            if issubclass(result.dtype.type, (basestring, unicode)):
-                result = result.astype('O')
-            data[col] = result
+            data[col] = lib.map_infer(data[col], f)
 
         data = _convert_to_ndarrays(data, self.na_values, self.verbose)
 
@@ -620,8 +617,14 @@ class ExcelFile(object):
               chunksize=None):
         sheet = self.book.get_sheet_by_name(name=sheetname)
         data = []
-        for row in sheet.iter_rows(): # it brings a new method: iter_rows()
+
+        # it brings a new method: iter_rows()
+        for row in sheet.iter_rows():
             data.append([cell.internal_value for cell in row])
+
+        if header is not None:
+            data[header] = _trim_excel_header(data[header])
+
         parser = TextParser(data, header=header, index_col=index_col,
                             na_values=na_values,
                             parse_dates=parse_dates,
@@ -630,7 +633,7 @@ class ExcelFile(object):
                             chunksize=chunksize)
 
         return parser.get_chunk()
-        
+
     def _parse_xls(self, sheetname, header=0, skiprows=None, index_col=None,
               parse_dates=False, date_parser=None, na_values=None,
               chunksize=None):
@@ -654,6 +657,9 @@ class ExcelFile(object):
                 row.append(value)
             data.append(row)
 
+        if header is not None:
+            data[header] = _trim_excel_header(data[header])
+
         parser = TextParser(data, header=header, index_col=index_col,
                             na_values=na_values,
                             parse_dates=parse_dates,
@@ -663,9 +669,15 @@ class ExcelFile(object):
 
         return parser.get_chunk()
 
+def _trim_excel_header(row):
+    # trim header row so auto-index inference works
+    while len(row) > 0 and row[0] == '':
+        row = row[1:]
+    return row
+
 class ExcelWriter(object):
     """
-    Class for writing DataFrame objects into excel sheets, uses xlwt for xls, 
+    Class for writing DataFrame objects into excel sheets, uses xlwt for xls,
     openpyxl for xlsx.  See DataFrame.to_excel for typical usage.
 
     Parameters
@@ -701,14 +713,15 @@ class ExcelWriter(object):
         Parameters
         ----------
         row : list
-            Row of data to save to Excel sheet 
+            Row of data to save to Excel sheet
         sheet_name : string, default None
             Name of Excel sheet, if None, then use self.cur_sheet
         """
         if sheet_name is None:
             sheet_name = self.cur_sheet
-        if sheet_name is None:
-            raise Exception('Must pass explicit sheet_name or set cur_sheet property')
+        if sheet_name is None:  # pragma: no cover
+            raise Exception('Must pass explicit sheet_name or set '
+                            'cur_sheet property')
         if self.use_xlsx:
             self._writerow_xlsx(row, sheet_name)
         else:
@@ -720,13 +733,13 @@ class ExcelWriter(object):
         else:
             sheet = self.book.add_sheet(sheet_name)
             row_idx = 0
-        sheetrow = sheet.row(row_idx) 
+        sheetrow = sheet.row(row_idx)
         for i, val in enumerate(row):
             if isinstance(val, (datetime.datetime, datetime.date)):
                 if isinstance(val, datetime.datetime):
-                    sheetrow.write(i,val,self.fm_datetime)
+                    sheetrow.write(i,val, self.fm_datetime)
                 else:
-                    sheetrow.write(i,val,self.fm_date)
+                    sheetrow.write(i,val, self.fm_date)
             elif isinstance(val, np.int64):
                 sheetrow.write(i,int(val))
             else:
@@ -744,6 +757,7 @@ class ExcelWriter(object):
             sheet.title = sheet_name
             row_idx = 0
 
-        sheet.append([int(val) if isinstance(val, np.int64) else val for val in row])
+        sheet.append([int(val) if isinstance(val, np.int64) else val
+                      for val in row])
         row_idx += 1
         self.sheets[sheet_name] = (sheet, row_idx)

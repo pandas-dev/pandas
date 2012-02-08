@@ -287,6 +287,27 @@ baz|7|8|9
         data2 = read_csv(StringIO(text), index_col=0, delimiter='|')
         assert_frame_equal(data, data2)
 
+        text = """ignore this
+ignore this too
+index|A|B|C
+foo|1|2|3
+bar|4|5|6
+baz|7|8|9
+"""
+        data3 = read_csv(StringIO(text), index_col=0, sep=None, skiprows=2)
+        assert_frame_equal(data, data3)
+
+        text = u"""ignore this
+ignore this too
+index|A|B|C
+foo|1|2|3
+bar|4|5|6
+baz|7|8|9
+""".encode('utf-8')
+        data4 = read_csv(StringIO(text), index_col=0, sep=None, skiprows=2,
+                         encoding='utf-8')
+        assert_frame_equal(data, data4)
+
     def test_read_nrows(self):
         df = read_csv(StringIO(self.data1), nrows=3)
         expected = read_csv(StringIO(self.data1))[:3]

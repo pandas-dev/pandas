@@ -1,3 +1,5 @@
+from __future__ import with_statement
+
 """
 DataFrame
 ---------
@@ -853,12 +855,12 @@ class DataFrame(NDFrame):
                         index_label = []
                         for i, name in enumerate(self.index.names):
                             if name is None:
-                                name = 'level_%d' % i
+                                name = '' # 'level_%d' % i
                             index_label.append(name)
                     else:
                         index_label = self.index.name
                         if index_label is None:
-                            index_label = ['index']
+                            index_label = ['']
                         else:
                             index_label = [index_label]
                 elif not isinstance(index_label, (list, tuple, np.ndarray)):
@@ -917,8 +919,8 @@ class DataFrame(NDFrame):
         ----------
         path : string
             File path
-        nanRep : string, default ''
-            Missing data rep'n
+        na_rep : string, default ''
+            Missing data representation
         cols : sequence, optional
             Columns to write
         header : boolean, default True
@@ -936,18 +938,17 @@ class DataFrame(NDFrame):
             a string representing the encoding to use if the contents are
             non-ascii, for python versions prior to 3
         """
-        f = open(path, mode)
-        csvout = csv.writer(f, lineterminator='\n', delimiter=sep)
-
         if nanRep is not None:  # pragma: no cover
             import warnings
             warnings.warn("nanRep is deprecated, use na_rep",
                           FutureWarning)
             na_rep = nanRep
 
-        self._helper_csvexcel(csvout, na_rep=na_rep, cols=cols, header=header,
-                         index=index, index_label=index_label, encoding=encoding)
-        f.close()
+        with open(path, mode) as f:
+            csvout = csv.writer(f, lineterminator='\n', delimiter=sep)
+            self._helper_csvexcel(csvout, na_rep=na_rep, cols=cols,
+                                  header=header, index=index,
+                                  index_label=index_label, encoding=encoding)
 
     def to_excel(self, excel_writer, sheet_name = 'sheet1', na_rep='', cols=None, header=True,
                  index=True, index_label=None):
