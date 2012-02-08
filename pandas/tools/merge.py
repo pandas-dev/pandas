@@ -56,12 +56,8 @@ class _MergeOperation(object):
         self.left_on = com._maybe_make_list(left_on)
         self.right_on = com._maybe_make_list(right_on)
 
-        self.drop_keys = False # set this later...kludge
-
         self.copy = copy
-
         self.suffixes = suffixes
-
         self.sort = sort
 
         self.left_index = left_index
@@ -91,26 +87,33 @@ class _MergeOperation(object):
         return result
 
     def _maybe_add_join_keys(self, result, left_indexer, right_indexer):
-        if not self.drop_keys:
-            # do nothing, already found in one of the DataFrames
-            return
-
         # insert group keys
-        for i, name in enumerate(self.join_names):
+
+        keys = zip(self.join_names, self.left_on, self.right_on)
+        for i, (name, lname, rname) in enumerate(keys):
+            if not _should_fill(lname, rname):
+                continue
+
             if name in result:
                 key_col = result[name]
 
-                if name in self.left:
+                if name in self.left and left_indexer is not None:
                     na_indexer = (left_indexer == -1).nonzero()[0]
+                    if len(na_indexer) == 0:
+                        continue
+
                     right_na_indexer = right_indexer.take(na_indexer)
                     key_col.put(na_indexer, com.take_1d(self.right_join_keys[i],
                                                         right_na_indexer))
-                else:
+                elif name in self.right and right_indexer is not None:
                     na_indexer = (right_indexer == -1).nonzero()[0]
-                    left_na_indexer = right_indexer.take(na_indexer)
+                    if len(na_indexer) == 0:
+                        continue
+
+                    left_na_indexer = left_indexer.take(na_indexer)
                     key_col.put(na_indexer, com.take_1d(self.left_join_keys[i],
                                                         left_na_indexer))
-            else:
+            elif left_indexer is not None:
                 # a faster way?
                 key_col = com.take_1d(self.left_join_keys[i], left_indexer)
                 na_indexer = (left_indexer == -1).nonzero()[0]
@@ -181,30 +184,41 @@ class _MergeOperation(object):
             and self.right_on is None):
 
             if self.left_index and self.right_index:
-                pass
+                self.left_on, self.right_on = (), ()
             elif self.left_index:
                 if self.right_on is None:
                     raise Exception('Must pass right_on or right_index=True')
+                self.left_on = [None] * self.left.index.nlevels
             elif self.right_index:
                 if self.left_on is None:
                     raise Exception('Must pass left_on or left_index=True')
+                self.right_on = [None] * self.right.index.nlevels
             else:
                 # use the common columns
                 common_cols = self.left.columns.intersection(self.right.columns)
                 self.left_on = self.right_on = common_cols
-                self.drop_keys = True
-
         elif self.on is not None:
             if self.left_on is not None or self.right_on is not None:
                 raise Exception('Can only pass on OR left_on and '
                                 'right_on')
             self.left_on = self.right_on = self.on
-            self.drop_keys = True
+        elif self.left_on is not None:
+            n = len(self.left_on)
+            if self.right_index:
+                self.right_on = [None] * n
+            else:
+                assert(len(self.right_on) == n)
+        elif self.right_on is not None:
+            n = len(self.right_on)
+            if self.left_index:
+                self.left_on = [None] * n
+            else:
+                assert(len(self.left_on) == n)
 
         left_keys = []
         right_keys = []
         join_names = []
-        left_drop, right_drop = [], []
+        right_drop = []
         left, right = self.left, self.right
 
         is_lkey = lambda x: isinstance(x, np.ndarray) and len(x) == len(left)
@@ -249,8 +263,6 @@ class _MergeOperation(object):
 
         if right_drop:
             self.right = self.right.drop(right_drop, axis=1)
-        if left_drop:
-            self.left = self.left.drop(left_drop, axis=1)
 
         return left_keys, right_keys, join_names
 
@@ -1006,6 +1018,11 @@ def _consensus_name_attr(objs):
             return None
     return name
 
+def _should_fill(lname, rname):
+    if not isinstance(lname, basestring) or not isinstance(rname, basestring):
+        return True
+    return lname == rname
+
 def _all_indexes_same(indexes):
     first = indexes[0]
     for index in indexes[1:]:
@@ -1014,4 +1031,4 @@ def _all_indexes_same(indexes):
     return True
 
 def _any(x):
-    return x is not None and len(x) > 0
+    return x is not None and len(x) > 0 and any([y is not None for y in x])

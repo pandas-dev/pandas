@@ -561,15 +561,11 @@ class TestEngFormatter(unittest.TestCase):
         self.assertEqual(result, u' 0.000')
 
 
-# class TestFloatArrayFormatter(unittest.TestCase):
+class TestFloatArrayFormatter(unittest.TestCase):
 
-#     def test_trim_zeros(self):
-#         values = np.array([1.5, 2.5, 3.5])
-#         fmt = FloatArrayFormatter(values)
-
-#         result = fmt.get_result()
-#         pass
-
+    def test_misc(self):
+        obj = fmt.FloatArrayFormatter(np.array([], dtype=np.float64))
+        result = obj.get_result()
 
 if __name__ == '__main__':
     import nose

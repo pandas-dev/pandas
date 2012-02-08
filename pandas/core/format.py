@@ -401,7 +401,7 @@ class DataFrameFormatter(object):
 
 
 def format_array(values, formatter, float_format=None, na_rep='NaN',
-                 digits=None, space=None):
+                 digits=None, space=None, justify='right'):
     if com.is_float_dtype(values.dtype):
         fmt_klass = FloatArrayFormatter
     elif com.is_integer_dtype(values.dtype):
@@ -420,7 +420,8 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
 
     fmt_obj = fmt_klass(values, digits, na_rep=na_rep,
                         float_format=float_format,
-                        formatter=formatter, space=space)
+                        formatter=formatter, space=space,
+                        justify=justify)
 
     return fmt_obj.get_result()
 
@@ -496,7 +497,11 @@ class FloatArrayFormatter(GenericArrayFormatter):
             fmt_str = '%% .%df' % (self.digits - 1)
             fmt_values = self._format_with(fmt_str)
 
-            maxlen = max(len(x) for x in fmt_values)
+            if len(fmt_values) > 0:
+                maxlen = max(len(x) for x in fmt_values)
+            else:
+                maxlen =0
+
             too_long = maxlen > self.digits + 5
 
             # this is pretty arbitrary for now
@@ -506,7 +511,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
                 fmt_str = '%% .%de' % (self.digits - 1)
                 fmt_values = self._format_with(fmt_str)
 
-        return _make_fixed_width(fmt_values)
+        return _make_fixed_width(fmt_values, self.justify)
 
 
 class IntArrayFormatter(GenericArrayFormatter):

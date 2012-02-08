@@ -47,18 +47,14 @@ def _arith_method(op, name):
         try:
             result = op(x, y)
         except TypeError:
-            if isinstance(x, np.ndarray) and isinstance(y, np.ndarray):
+            if isinstance(y, np.ndarray):
                 mask = notnull(x) & notnull(y)
                 result = np.empty(len(x), dtype=x.dtype)
                 result[mask] = op(x[mask], y[mask])
-            elif isinstance(x, np.ndarray):
+            else:
                 mask = notnull(x)
                 result = np.empty(len(x), dtype=x.dtype)
                 result[mask] = op(x[mask], y)
-            else:
-                mask = notnull(y)
-                result = np.empty(len(y), dtype=y.dtype)
-                result[mask] = op(x, y[mask])
 
         return result
 

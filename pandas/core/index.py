@@ -281,7 +281,7 @@ class Index(np.ndarray):
         if values.dtype == np.object_:
             result = [com._stringify(x) for x in values]
         else:
-            result = _trim_front(format_array(values, None))
+            result = _trim_front(format_array(values, None, justify='left'))
         return header + result
 
     def equals(self, other):

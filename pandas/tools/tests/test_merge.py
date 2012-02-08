@@ -530,6 +530,19 @@ class TestMerge(unittest.TestCase):
 
         self.assert_(joined._data.is_consolidated())
 
+    def test_handle_join_key_pass_array(self):
+        left = DataFrame({'key' : [1, 1, 2, 2, 3],
+                          'value' : range(5)}, columns=['value', 'key'])
+        right = DataFrame({'rvalue' : range(6)})
+        key = np.array([1, 1, 2, 3, 4, 5])
+
+        merged = merge(left, right, left_on='key', right_on=key, how='outer')
+        merged2 = merge(right, left, left_on=key, right_on='key', how='outer')
+
+        assert_series_equal(merged['key'], merged2['key'])
+        self.assert_(merged['key'].notnull().all())
+        self.assert_(merged2['key'].notnull().all())
+
 class TestMergeMulti(unittest.TestCase):
 
     def setUp(self):
