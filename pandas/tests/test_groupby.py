@@ -931,7 +931,8 @@ class TestGroupBy(unittest.TestCase):
         df = self.mframe.T
         df['baz', 'two'] = 'peekaboo'
 
-        agged = df.groupby([0, 0, 1]).agg(np.mean)
+        keys = [np.array([0, 0, 1]), np.array([0, 0, 1])]
+        agged = df.groupby(keys).agg(np.mean)
         self.assert_(isinstance(agged.columns, MultiIndex))
 
     def test_grouping_attrs(self):
@@ -1382,6 +1383,21 @@ class TestGroupBy(unittest.TestCase):
         agged = grouped.agg(np.mean)
         self.assert_(np.array_equal(agged.minor_axis, [0, 1]))
 
+    def test_numpy_groupby(self):
+        from pandas.core.groupby import numpy_groupby
+
+        data = np.random.randn(100, 100)
+        labels = np.random.randint(0, 10, size=100)
+
+        df = DataFrame(data)
+
+        result = df.groupby(labels).sum().values
+        expected = numpy_groupby(data, labels)
+        assert_almost_equal(result, expected)
+
+        result = df.groupby(labels, axis=1).sum().values
+        expected = numpy_groupby(data, labels, axis=1)
+        assert_almost_equal(result, expected)
 
 def test_decons():
     from pandas.core.groupby import decons_group_index, get_group_index
