@@ -302,7 +302,21 @@ class NDFrame(PandasObject):
         """
         Delete item
         """
-        self._data.delete(key)
+        deleted = False
+        if key not in self.columns:
+            # If column labels are tuples, allow shorthand to delete
+            # all columns whose first len(key) elements match key:
+            if not isinstance(key,tuple):
+                key = (key,)
+            for col in self.columns:
+                if isinstance(col,tuple) and col[:len(key)] == key:
+                    del self[col]
+                    deleted = True
+        if not deleted:
+            # If the above loop ran and didn't delete anything because
+            # there was no match, this call should raise the appropriate
+            # exception:
+            self._data.delete(key)
 
         try:
             del self._item_cache[key]
