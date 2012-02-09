@@ -301,6 +301,8 @@ pandas 0.7.0
   - Allow subclasses of dicts in DataFrame constructor, with tests
   - Fix problem whereby set_index destroys column multiindex (GH #764)
   - Hack around bug in generating DateRange from naive DateOffset (GH #770)
+  - Fix bug in DateRange.intersection causing incorrect results with some
+    overlapping ranges (GH #771)
 
 Thanks
 ------

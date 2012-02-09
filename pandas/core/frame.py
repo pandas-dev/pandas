@@ -843,7 +843,7 @@ class DataFrame(NDFrame):
     to_wide = deprecate('to_wide', to_panel)
 
     def _helper_csvexcel(self, writer, na_rep=None, cols=None, header=True,
-                         index=True, index_label=None, encoding=None):
+                         index=True, index_label=None):
         if cols is None:
             cols = self.columns
 
@@ -938,12 +938,12 @@ class DataFrame(NDFrame):
         try:
             if encoding is not None:
                 csvout = com.UnicodeWriter(f, lineterminator='\n',
-                                           delimiter=sep)
+                                           delimiter=sep, encoding=encoding)
             else:
                 csvout = csv.writer(f, lineterminator='\n', delimiter=sep)
             self._helper_csvexcel(csvout, na_rep=na_rep, cols=cols,
                                   header=header, index=index,
-                                  index_label=index_label, encoding=encoding)
+                                  index_label=index_label)
         finally:
             if close:
                 f.close()
@@ -990,7 +990,7 @@ class DataFrame(NDFrame):
         excel_writer.cur_sheet = sheet_name
         self._helper_csvexcel(excel_writer, na_rep=na_rep, cols=cols,
                               header=header, index=index,
-                              index_label=index_label, encoding=None)
+                              index_label=index_label)
         if need_save:
             excel_writer.save()
 
