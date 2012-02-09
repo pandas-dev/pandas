@@ -408,25 +408,15 @@ class SparseDataFrame(DataFrame):
     # Arithmetic-related methods
 
     def _combine_frame(self, other, func, fill_value=None, level=None):
-        new_index = self.index.union(other.index)
-        new_columns = self.columns.union(other.columns)
+        this, other = self.align(other, join='outer', level=level,
+                                 copy=False)
+        new_index, new_columns = this.index, this.columns
 
         if fill_value is not None or level is not None:
             raise NotImplementedError
 
-        this = self
-        if self.index is not new_index:
-            this = self.reindex(new_index)
-            other = other.reindex(new_index)
-
         if not self and not other:
             return SparseDataFrame(index=new_index)
-
-        if not other:
-            return self * nan
-
-        if not self:
-            return other * nan
 
         new_data = {}
         for col in new_columns:
@@ -535,7 +525,10 @@ class SparseDataFrame(DataFrame):
         for col in columns:
             if col not in self:
                 continue
-            new_arrays[col] = com.take_1d(self[col].values, row_indexer)
+            if row_indexer is not None:
+                new_arrays[col] = com.take_1d(self[col].values, row_indexer)
+            else:
+                new_arrays[col] = self[col]
 
         return self._constructor(new_arrays, index=index, columns=columns)
 
