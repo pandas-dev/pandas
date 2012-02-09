@@ -9,10 +9,11 @@ class TestFamaMacBeth(BaseTest):
         # self.checkFamaMacBethExtended('rolling', self.panel_x, self.panel_y,
         #                               nw_lags_beta=2)
 
-        df = DataFrame(np.random.randn(50, 10))
-        x = dict((k, df) for k in 'abcdefg')
+        # df = DataFrame(np.random.randn(50, 10))
+        x = dict((k, DataFrame(np.random.randn(50, 10))) for k in 'abcdefg')
         x = Panel.from_dict(x)
-        y = df + DataFrame(0.01 * np.random.randn(50, 10))
+        y = (DataFrame(np.random.randn(50, 10)) +
+             DataFrame(0.01 * np.random.randn(50, 10)))
         self.checkFamaMacBethExtended('rolling', x, y, nw_lags_beta=2)
         self.checkFamaMacBethExtended('expanding', x, y, nw_lags_beta=2)
 
@@ -40,7 +41,6 @@ class TestFamaMacBeth(BaseTest):
             y2 = y.truncate(start, end)
 
             reference = fama_macbeth(y=y2, x=x2, **kwds)
-
             assert_almost_equal(reference._stats, result._stats[:, i])
 
         static = fama_macbeth(y=y2, x=x2, **kwds)
