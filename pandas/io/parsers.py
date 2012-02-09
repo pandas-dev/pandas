@@ -97,9 +97,9 @@ def read_csv(filepath_or_buffer, sep=',', header=0, index_col=None, names=None,
     else:
         try:
             # universal newline mode
-            f = open(filepath_or_buffer, 'U')
+            f = com._get_handle(filepath_or_buffer, 'U', encoding=encoding)
         except Exception: # pragma: no cover
-            f = open(filepath_or_buffer, 'r')
+            f = com._get_handle(filepath_or_buffer, 'r', encoding=encoding)
 
     if delimiter is not None:
         sep = delimiter

@@ -626,6 +626,13 @@ class UTF8Recoder:
     def next(self):
         return self.reader.next().encode("utf-8")
 
+def _get_handle(path, mode, encoding=None):
+    if py3compat.PY3:  # pragma: no cover
+        f = open(path, mode, encoding=encoding)
+    else:
+        f = open(path, mode)
+    return f
+
 if py3compat.PY3:  # pragma: no cover
     def UnicodeReader(f, dialect=csv.excel, encoding="utf-8", **kwds):
         # ignore encoding
