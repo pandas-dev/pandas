@@ -84,15 +84,15 @@ class _NDFrameIndexer(object):
                 raise IndexingError('setting on mixed-type frames only '
                                     'allowed with scalar values')
 
-            plane_indexer = indexer[:het_axis] + indexer[het_axis+1:]
+            plane_indexer = indexer[:het_axis] + indexer[het_axis + 1:]
             item_labels = self.obj._get_axis(het_axis)
             for item in item_labels[het_idx]:
                 data = self.obj[item]
                 data.values[plane_indexer] = value
         else:
-           if isinstance(indexer, tuple):
-               indexer = _maybe_convert_ix(*indexer)
-           self.obj.values[indexer] = value
+            if isinstance(indexer, tuple):
+                indexer = _maybe_convert_ix(*indexer)
+            self.obj.values[indexer] = value
 
     def _getitem_tuple(self, tup):
         try:
@@ -139,10 +139,10 @@ class _NDFrameIndexer(object):
 
                 # might have been a MultiIndex
                 if section.ndim == self.ndim:
-                    new_key = tup[:i] + (_NS,) + tup[i+1:]
+                    new_key = tup[:i] + (_NS,) + tup[i + 1:]
                     # new_key = tup[:i] + tup[i+1:]
                 else:
-                    new_key = tup[:i] + tup[i+1:]
+                    new_key = tup[:i] + tup[i + 1:]
 
                     # unfortunately need an odious kludge here because of
                     # DataFrame transposing convention
@@ -195,7 +195,7 @@ class _NDFrameIndexer(object):
 
         if com._is_bool_indexer(key):
             key = _check_bool_indexer(labels, key)
-            return self.obj.reindex(**{axis_name : labels[np.asarray(key)]})
+            return self.obj.reindex(**{axis_name: labels[np.asarray(key)]})
         else:
             if isinstance(key, Index):
                 # want Index objects to pass through untouched
@@ -206,7 +206,7 @@ class _NDFrameIndexer(object):
             if _is_integer_dtype(keyarr) and not _is_integer_index(labels):
                 keyarr = labels.take(keyarr)
 
-            return self.obj.reindex(**{axis_name : keyarr})
+            return self.obj.reindex(**{axis_name: keyarr})
 
     def _convert_to_indexer(self, obj, axis=0):
         """
@@ -315,6 +315,7 @@ class _NDFrameIndexer(object):
 
         return self._slice(slicer, axis=axis)
 
+
 def _is_index_slice(obj):
     def _is_valid_index(x):
         return com.is_integer(x) or com.is_float(x) and np.allclose(x, int(x))
@@ -325,6 +326,7 @@ def _is_index_slice(obj):
     both_none = obj.start is None and obj.stop is None
 
     return not both_none and (_crit(obj.start) and _crit(obj.stop))
+
 
 class _SeriesIndexer(_NDFrameIndexer):
     """
@@ -354,6 +356,7 @@ class _SeriesIndexer(_NDFrameIndexer):
     def _setitem_with_indexer(self, indexer, value):
         self.obj._set_values(indexer, value)
 
+
 def _check_bool_indexer(ax, key):
     # boolean indexing, need to check that the data are aligned, otherwise
     # disallowed
@@ -370,9 +373,11 @@ def _check_bool_indexer(ax, key):
 
     return result
 
+
 def _is_series(obj):
     from pandas.core.series import Series
     return isinstance(obj, Series)
+
 
 def _maybe_convert_ix(*args):
     """
@@ -388,27 +393,34 @@ def _maybe_convert_ix(*args):
     else:
         return args
 
+
 def _is_null_slice(obj):
     return (isinstance(obj, slice) and obj.start is None and
             obj.stop is None and obj.step is None)
 
+
 def _is_integer_dtype(arr):
     return issubclass(arr.dtype.type, np.integer)
 
+
 def _is_integer_index(index):
     return index.inferred_type == 'integer'
+
 
 def _is_label_like(key):
     # select a label or row
     return not isinstance(key, slice) and not _is_list_like(key)
 
+
 def _is_list_like(obj):
     return np.iterable(obj) and not isinstance(obj, basestring)
+
 
 def _need_slice(obj):
     return (obj.start is not None or
             obj.stop is not None or
             (obj.step is not None and obj.step != 1))
+
 
 def _maybe_droplevels(index, key):
     # drop levels
@@ -419,4 +431,3 @@ def _maybe_droplevels(index, key):
         index = index.droplevel(0)
 
     return index
-
