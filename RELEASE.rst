@@ -20,12 +20,12 @@ Where to get it
 
 * Source code: http://github.com/pydata/pandas
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
-* Documentation: http://pandas.sourceforge.net
+* Documentation: http://pandas.pydata.org
 
 pandas 0.7.0
 ============
 
-**Release date:** NOT YET RELEASED
+**Release date:** 2/9/2012
 
 **New features / modules**
 
@@ -187,6 +187,9 @@ pandas 0.7.0
   - Prototypes for some vectorized string functions
   - Add float64 hash table to solve the Series.unique problem with NAs (GH #714)
   - Memoize objects when reading from file to reduce memory footprint
+  - Can get and set a column of a DataFrame with hierarchical columns
+    containing "empty" ('') lower levels without passing the empty levels (PR
+    #768)
 
 **Bug fixes**
 
@@ -301,6 +304,7 @@ pandas 0.7.0
 Thanks
 ------
 - Craig Austin
+- Chris Billington
 - Marius Cobzarenco
 - Mario Gamboa-Cavazos
 - Hans-Martin Gaudecker

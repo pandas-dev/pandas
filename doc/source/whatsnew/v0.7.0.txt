@@ -1,6 +1,6 @@
 .. _whatsnew_0700:
 
-v.0.7.0 (Not Yet Released)
+v.0.7.0 (February 9, 2012)
 --------------------------
 
 New features

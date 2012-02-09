@@ -354,6 +354,15 @@ class TestDateRange(unittest.TestCase):
         self.assertRaises(ValueError, DateRange, '1/1/2000', '1/1/2001',
                           offset=datetools.MonthEnd(0))
 
+    def test_range_bug(self):
+        # GH #770
+        offset = datetools.DateOffset(months=3)
+        result = DateRange("2011-1-1", "2012-1-31", offset=offset)
+
+        start = datetime(2011, 1, 1)
+        exp_values = [start + i * offset for i in range(5)]
+        self.assert_(np.array_equal(result, exp_values))
+
 def _skip_if_no_pytz():
     try:
         import pytz
