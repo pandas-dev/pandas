@@ -932,7 +932,10 @@ class DataFrame(NDFrame):
             f = path_or_buf
             close = False
         else:
-            f = open(path_or_buf, mode)
+            if py3compat.PY3:  # pragma: no cover
+                f = open(path_or_buf, mode, encoding=encoding)
+            else:
+                f = open(path_or_buf, mode)
             close = True
 
         try:
