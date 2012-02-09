@@ -864,6 +864,9 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
                 _compare_to_dense(s, frame, s,
                                   frame.to_dense(), op)
 
+        # it works!
+        result = self.frame + self.frame.ix[:, ['A', 'B']]
+
     def test_op_corners(self):
         empty = self.empty + self.empty
         self.assert_(not empty)
@@ -1125,6 +1128,11 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         reindexed = self.frame.reindex(self.frame.index)
         reindexed['G'] = reindexed['A']
         self.assert_('G' not in self.frame)
+
+    def test_take(self):
+        result = self.frame.take([1, 0, 2], axis=1)
+        expected = self.frame.reindex(columns=['B', 'A', 'C'])
+        assert_sp_frame_equal(result, expected)
 
     def test_density(self):
         df = SparseDataFrame({'A' : [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
