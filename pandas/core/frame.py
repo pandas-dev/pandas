@@ -4080,18 +4080,6 @@ def _to_sdict(data, columns):
     else:  # pragma: no cover
         raise TypeError('No logic to handle %s type' % type(data[0]))
 
-def _list_to_sdict(data, columns):
-    if len(data) > 0 and isinstance(data[0], tuple):
-        content = list(lib.to_object_array_tuples(data).T)
-    elif len(data) > 0:
-        # list of lists
-        content = list(lib.to_object_array(data).T)
-    else:
-        if columns is None:
-            columns = []
-        return {}, columns
-    return _convert_object_array(content, columns)
-
 def _list_of_series_to_sdict(data, columns):
     from pandas.core.index import _get_combined_index
 
