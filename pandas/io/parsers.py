@@ -669,6 +669,14 @@ class ExcelFile(object):
 
         return parser.get_chunk()
 
+    @property
+    def sheet_names(self):
+        if self.use_xlsx:
+            return self.book.get_sheet_names()
+        else:
+            return self.book.sheet_names()
+
+
 def _trim_excel_header(row):
     # trim header row so auto-index inference works
     while len(row) > 0 and row[0] == '':
