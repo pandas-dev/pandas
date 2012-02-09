@@ -300,6 +300,7 @@ pandas 0.7.0
   - Fix #1.QNAN0' float bug on 2.6/win64
   - Allow subclasses of dicts in DataFrame constructor, with tests
   - Fix problem whereby set_index destroys column multiindex (GH #764)
+  - Hack around bug in generating DateRange from naive DateOffset (GH #770)
 
 Thanks
 ------
