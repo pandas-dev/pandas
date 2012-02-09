@@ -1083,6 +1083,86 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         expected = self.ymd.reindex(s.index[5:])
         assert_frame_equal(result, expected)
 
+    def test_mixed_depth_get(self):
+        arrays = [[  'a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
+                  [   '',  'OD',  'OD', 'result1',   'result2',  'result1'],
+                  [   '',  'wx',  'wy',        '',          '',         '']]
+
+        tuples = zip(*arrays)
+        tuples.sort()
+        index = MultiIndex.from_tuples(tuples)
+        df = DataFrame(randn(4,6),columns = index)
+            
+        result = df['a']
+        expected = df['a','','']
+        assert_series_equal(result, expected)
+        self.assertEquals(result.name, 'a')
+        
+        result = df['routine1','result1']
+        expected = df['routine1','result1','']
+        assert_series_equal(result, expected)
+        self.assertEquals(result.name, ('routine1', 'result1'))
+
+    def test_mixed_depth_insert(self):  
+        arrays = [[  'a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
+                  [   '',  'OD',  'OD', 'result1',   'result2',  'result1'],
+                  [   '',  'wx',  'wy',        '',          '',         '']]
+
+        tuples = zip(*arrays)
+        tuples.sort()
+        index = MultiIndex.from_tuples(tuples)
+        df = DataFrame(randn(4,6),columns = index)     
+
+        result = df.copy()
+        expected = df.copy()
+        result['b'] = [1,2,3,4]
+        expected['b','',''] = [1,2,3,4]
+        assert_frame_equal(result, expected)
+ 
+    def test_mixed_depth_drop(self):  
+        arrays = [[  'a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
+                  [   '',  'OD',  'OD', 'result1',   'result2',  'result1'],
+                  [   '',  'wx',  'wy',        '',          '',         '']]
+
+        tuples = zip(*arrays)
+        tuples.sort()
+        index = MultiIndex.from_tuples(tuples)
+        df = DataFrame(randn(4,6),columns = index)     
+
+        result = df.drop('a',axis=1)
+        expected = df.drop([('a','','')],axis=1)
+        assert_frame_equal(expected, result)
+        
+        result = df.drop(['top'],axis=1)
+        expected = df.drop([('top','OD','wx')], axis=1)
+        expected = expected.drop([('top','OD','wy')], axis=1)
+        assert_frame_equal(expected, result)
+               
+    def test_mixed_depth_pop(self):  
+        arrays = [[  'a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
+                  [   '',  'OD',  'OD', 'result1',   'result2',  'result1'],
+                  [   '',  'wx',  'wy',        '',          '',         '']]
+
+        tuples = zip(*arrays)
+        tuples.sort()
+        index = MultiIndex.from_tuples(tuples)
+        df = DataFrame(randn(4,6),columns = index)     
+
+        df1 = df.copy()
+        df2 = df.copy()
+        result = df1.pop('a')
+        expected = df2.pop(('a','',''))
+        assert_series_equal(expected, result)
+        assert_frame_equal(df1, df2)
+        self.assertEquals(result.name,'a')
+        
+        expected = df1['top']
+        df1 = df1.drop(['top'],axis=1)
+        result = df2.pop('top')
+        assert_frame_equal(expected, result)
+        assert_frame_equal(df1, df2)
+            
+        
 if __name__ == '__main__':
 
     # unittest.main()
