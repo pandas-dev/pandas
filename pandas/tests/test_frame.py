@@ -2352,6 +2352,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             assert_frame_equal(self.frame, recons)
             recons = reader.parse('test2',index_col=0)
             assert_frame_equal(self.tsframe, recons)
+            np.testing.assert_equal(2, len(reader.sheet_names))
+            np.testing.assert_equal('test1', reader.sheet_names[0])
+            np.testing.assert_equal('test2', reader.sheet_names[1])
+
 
             os.remove(path)
 
