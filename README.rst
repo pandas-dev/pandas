@@ -91,7 +91,7 @@ On Windows, you will need to install MinGW and execute::
     python setup.py build --compiler=mingw32
     python setup.py install
 
-See http://pandas.sourceforge.net/ for more information.
+See http://pandas.pydata.org/ for more information.
 
 License
 =======
@@ -101,7 +101,7 @@ BSD
 Documentation
 =============
 
-The official documentation is hosted on SourceForge: http://pandas.sourceforge.net/
+The official documentation is hosted on PyData.org: http://pandas.pydata.org/
 
 The Sphinx documentation should provide a good starting point for learning how
 to use the library. Expect the docs to continue to expand as time goes on.
@@ -124,4 +124,3 @@ the pystatsmodels mailing list / Google group, where
 http://groups.google.com/group/pystatsmodels
 
   .. _NumPy: http://numpy.scipy.org/
-  .. _downloaded there: https://github.com/pydata/pandas/archives/master
