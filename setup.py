@@ -147,10 +147,9 @@ Windows binaries built against NumPy 1.6.1
 
 DISTNAME = 'pandas'
 LICENSE = 'BSD'
-AUTHOR = "The pandas Development Team"
-MAINTAINER = "Wes McKinney"
-MAINTAINER_EMAIL = "wesmckinn@gmail.com"
-URL = "http://pandas.sourceforge.net"
+AUTHOR = "The PyData Development Team"
+EMAIL = "pystatsmodels@googlegroups.com"
+URL = "http://pandas.pydata.org"
 DOWNLOAD_URL = ''
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',
@@ -167,9 +166,9 @@ CLASSIFIERS = [
 MAJOR = 0
 MINOR = 7
 MICRO = 0
-ISRELEASED = False
+ISRELEASED = True
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
-QUALIFIER = 'rc1'
+QUALIFIER = ''
 
 FULLVERSION = VERSION
 if not ISRELEASED:
@@ -373,7 +372,7 @@ if not ISRELEASED:
 write_version_py()
 setup(name=DISTNAME,
       version=FULLVERSION,
-      maintainer=MAINTAINER,
+      maintainer=AUTHOR,
       packages=['pandas',
                 'pandas.core',
                 'pandas.io',
@@ -395,7 +394,7 @@ setup(name=DISTNAME,
                     'pandas.tests' : ['data/*.pickle']
                     },
       ext_modules=extensions,
-      maintainer_email=MAINTAINER_EMAIL,
+      maintainer_email=EMAIL,
       description=DESCRIPTION,
       license=LICENSE,
       cmdclass = cmdclass,

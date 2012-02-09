@@ -35,10 +35,20 @@ def upload_dev():
     os.system('cd build/html; rsync -avz . pandas@pandas.pydata.org'
               ':/usr/share/nginx/pandas/pandas-docs/dev/ -essh')
 
+def upload_dev_pdf():
+    'push a copy to the pydata dev directory'
+    os.system('cd build/latex; scp pandas.pdf pandas@pandas.pydata.org'
+              ':/usr/share/nginx/pandas/pandas-docs/dev/')
+
 def upload_stable():
     'push a copy to the pydata dev directory'
     os.system('cd build/html; rsync -avz . pandas@pandas.pydata.org'
               ':/usr/share/nginx/pandas/pandas-docs/stable/ -essh')
+
+def upload_stable_pdf():
+    'push a copy to the pydata dev directory'
+    os.system('cd build/latex; scp pandas.pdf pandas@pandas.pydata.org'
+              ':/usr/share/nginx/pandas/pandas-docs/stable/')
 
 def sfpdf():
     'push a copy to the sf site'
@@ -96,6 +106,8 @@ funcd = {
     'html'     : html,
     'upload_dev' : upload_dev,
     'upload_stable' : upload_stable,
+    'upload_dev_pdf' : upload_dev_pdf,
+    'upload_stable_pdf' : upload_stable_pdf,
     'latex'    : latex,
     'clean'    : clean,
     'sf'       : sf,

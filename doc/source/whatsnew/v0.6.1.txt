@@ -43,12 +43,6 @@ Performance improvements
 - Optimize scalar value lookups in the general case by 25% or more in Series
   and DataFrame
 
-.. image:: vbench/figures/series_getitem_scalar.png
-   :width: 6in
-
-.. image:: vbench/figures/datamatrix_getitem_scalar.png
-   :width: 6in
-
 - Fix performance regression in cross-sectional count in DataFrame, affecting
   DataFrame.dropna speed
 - Column deletion in DataFrame copies no data (computes views on blocks) (GH
