@@ -228,8 +228,8 @@ class DataFrame(NDFrame):
     _het_axis = 1
 
     _AXIS_NUMBERS = {
-        'index' : 0,
-        'columns' : 1
+        'index': 0,
+        'columns': 1
     }
 
     _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
@@ -246,8 +246,8 @@ class DataFrame(NDFrame):
         data : numpy ndarray (structured or homogeneous), dict, or DataFrame
             Dict can contain Series, arrays, constants, or list-like objects
         index : Index or array-like
-            Index to use for resulting frame. Will default to np.arange(n) if no
-            indexing information part of input data and no index provided
+            Index to use for resulting frame. Will default to np.arange(n) if
+            no indexing information part of input data and no index provided
         columns : Index or array-like
             Will default to np.arange(n) if not column labels provided
         dtype : dtype, default None
@@ -257,7 +257,7 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> d = {'col1' : ts1, 'col2' : ts2}
+        >>> d = {'col1': ts1, 'col2': ts2}
         >>> df = DataFrame(data=d, index=index)
         >>> df2 = DataFrame(np.random.randn(10, 5))
         >>> df3 = DataFrame(np.random.randn(10, 5),
@@ -535,7 +535,8 @@ class DataFrame(NDFrame):
     # Python 2 division methods
     if not py3compat.PY3:
         __div__ = _arith_method(operator.div, '__div__', default_axis=None)
-        __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__', default_axis=None)
+        __rdiv__ = _arith_method(lambda x, y: y / x, '__rdiv__',
+                                 default_axis=None)
 
     def __neg__(self):
         arr = operator.neg(self.values)
@@ -842,7 +843,7 @@ class DataFrame(NDFrame):
     to_wide = deprecate('to_wide', to_panel)
 
     def _helper_csvexcel(self, writer, na_rep=None, cols=None, header=True,
-                         index=True, index_label=None, encoding=None):
+                         index=True, index_label=None):
         if cols is None:
             cols = self.columns
 
@@ -855,7 +856,7 @@ class DataFrame(NDFrame):
                         index_label = []
                         for i, name in enumerate(self.index.names):
                             if name is None:
-                                name = '' # 'level_%d' % i
+                                name = ''
                             index_label.append(name)
                     else:
                         index_label = self.index.name
@@ -867,23 +868,12 @@ class DataFrame(NDFrame):
                     # given a string for a DF with Index
                     index_label = [index_label]
 
-                if encoding is not None:
-                    encoded_labels = [csv_encode(val, encoding=encoding)
-                                      for val in index_label]
-                    encoded_cols = [csv_encode(val, encoding=encoding)
-                                    for val in cols]
-                else:
-                    encoded_labels = list(index_label)
-                    encoded_cols = list(cols)
+                encoded_labels = list(index_label)
+                encoded_cols = list(cols)
 
                 writer.writerow(encoded_labels + encoded_cols)
             else:
-                if encoding is not None:
-                    encoded_cols = [csv_encode(val, encoding=encoding)
-                                    for val in cols]
-                else:
-                    encoded_cols = list(cols)
-
+                encoded_cols = list(cols)
                 writer.writerow(encoded_cols)
 
         nlevels = getattr(self.index, 'nlevels', 1)
@@ -892,7 +882,7 @@ class DataFrame(NDFrame):
             if index:
                 if nlevels == 1:
                     row_fields = [idx]
-                else: # handle MultiIndex
+                else:  # handle MultiIndex
                     row_fields = list(idx)
             for i, col in enumerate(cols):
                 val = series[col].get(idx)
@@ -901,13 +891,7 @@ class DataFrame(NDFrame):
 
                 row_fields.append(val)
 
-            if encoding is not None:
-                encoded_rows = [csv_encode(val, encoding=encoding)
-                                for val in row_fields]
-            else:
-                encoded_rows = list(row_fields)
-
-            writer.writerow(encoded_rows)
+            writer.writerow(row_fields)
 
     def to_csv(self, path_or_buf, sep=",", na_rep='', cols=None,
                header=True, index=True, index_label=None, mode='w',
@@ -948,20 +932,27 @@ class DataFrame(NDFrame):
             f = path_or_buf
             close = False
         else:
-            f = open(path_or_buf, mode)
+            if py3compat.PY3:  # pragma: no cover
+                f = open(path_or_buf, mode, encoding=encoding)
+            else:
+                f = open(path_or_buf, mode)
             close = True
 
         try:
-            csvout = csv.writer(f, lineterminator='\n', delimiter=sep)
+            if encoding is not None:
+                csvout = com.UnicodeWriter(f, lineterminator='\n',
+                                           delimiter=sep, encoding=encoding)
+            else:
+                csvout = csv.writer(f, lineterminator='\n', delimiter=sep)
             self._helper_csvexcel(csvout, na_rep=na_rep, cols=cols,
                                   header=header, index=index,
-                                  index_label=index_label, encoding=encoding)
+                                  index_label=index_label)
         finally:
             if close:
                 f.close()
 
-    def to_excel(self, excel_writer, sheet_name = 'sheet1', na_rep='', cols=None, header=True,
-                 index=True, index_label=None):
+    def to_excel(self, excel_writer, sheet_name='sheet1', na_rep='',
+                 cols=None, header=True, index=True, index_label=None):
         """
         Write DataFrame to a excel sheet
 
@@ -987,8 +978,8 @@ class DataFrame(NDFrame):
         Notes
         -----
         If passing an existing ExcelWriter object, then the sheet will be added
-        to the existing workbook.  This can be used to save different DataFrames
-        to one workbook
+        to the existing workbook.  This can be used to save different
+        DataFrames to one workbook
         >>> writer = ExcelWriter('output.xlsx')
         >>> df1.to_excel(writer,'sheet1')
         >>> df2.to_excel(writer,'sheet2')
@@ -1000,8 +991,9 @@ class DataFrame(NDFrame):
             excel_writer = ExcelWriter(excel_writer)
             need_save = True
         excel_writer.cur_sheet = sheet_name
-        self._helper_csvexcel(excel_writer, na_rep=na_rep, cols=cols, header=header,
-                              index=index, index_label=index_label, encoding=None)
+        self._helper_csvexcel(excel_writer, na_rep=na_rep, cols=cols,
+                              header=header, index=index,
+                              index_label=index_label)
         if need_save:
             excel_writer.save()
 
@@ -1427,6 +1419,11 @@ class DataFrame(NDFrame):
                 new_values = self.values[:, loc]
                 result = DataFrame(new_values, index=self.index,
                                    columns=result_columns)
+            if len(result.columns) == 1:
+                top = result.columns[0]
+                if (type(top) == str and top == '' or
+                        type(top) == tuple and top[0] == ''):
+                    result = Series(result[''], index=self.index, name=key)
             return result
         else:
             return self._get_item_cache(key)
@@ -1657,8 +1654,8 @@ class DataFrame(NDFrame):
 
     def align(self, other, join='outer', axis=None, level=None, copy=True):
         """
-        Align two DataFrame object on their index and columns with the specified
-        join method for each axis Index
+        Align two DataFrame object on their index and columns with the
+        specified join method for each axis Index
 
         Parameters
         ----------
@@ -2084,7 +2081,7 @@ class DataFrame(NDFrame):
         agg_obj = self
         if subset is not None:
             agg_axis_name = self._get_axis_name(agg_axis)
-            agg_obj = self.reindex(**{agg_axis_name : subset})
+            agg_obj = self.reindex(**{agg_axis_name: subset})
 
         count = agg_obj.count(axis=agg_axis)
 
@@ -2102,7 +2099,7 @@ class DataFrame(NDFrame):
 
         labels = self._get_axis(axis)
         new_labels = labels[mask]
-        return self.reindex(**{axis_name : new_labels})
+        return self.reindex(**{axis_name: new_labels})
 
     def drop_duplicates(self, cols=None, take_last=False):
         """
@@ -2280,7 +2277,8 @@ class DataFrame(NDFrame):
         -------
         type of caller (new object)
         """
-        if not isinstance(self._get_axis(axis), MultiIndex):  # pragma: no cover
+        if not isinstance(self._get_axis(axis),
+                          MultiIndex):  # pragma: no cover
             raise Exception('Can only reorder levels on a hierarchical axis.')
 
         result = self.copy()
@@ -2751,7 +2749,8 @@ class DataFrame(NDFrame):
         if isinstance(freq, datetools.DateOffset):
             dateRange = DateRange(self.index[0], self.index[-1], offset=freq)
         else:
-            dateRange = DateRange(self.index[0], self.index[-1], time_rule=freq)
+            dateRange = DateRange(self.index[0], self.index[-1],
+                                  time_rule=freq)
 
         return self.reindex(dateRange, method=method)
 
@@ -2864,8 +2863,8 @@ class DataFrame(NDFrame):
 
         Notes
         -----
-        Function passed should not have side effects. If the result is a Series,
-        it should have the same index
+        Function passed should not have side effects. If the result is a
+        Series, it should have the same index
 
         Returns
         -------
@@ -3038,7 +3037,8 @@ class DataFrame(NDFrame):
             if isinstance(other, dict):
                 other = Series(other)
             if other.name is None and not ignore_index:
-                raise Exception('Can only append a Series if ignore_index=True')
+                raise Exception('Can only append a Series if '
+                                'ignore_index=True')
 
             index = None if other.name is None else [other.name]
             other = other.reindex(self.columns, copy=False)
@@ -3114,7 +3114,7 @@ class DataFrame(NDFrame):
 
         if isinstance(other, Series):
             assert(other.name is not None)
-            other = DataFrame({other.name : other})
+            other = DataFrame({other.name: other})
 
         if isinstance(other, DataFrame):
             return merge(self, other, left_on=on, how=how,
@@ -3343,7 +3343,8 @@ class DataFrame(NDFrame):
         if axis == 1:
             frame = frame.T
 
-        mask = notnull(frame.values).view(np.uint8) # python 2.5
+        # python 2.5
+        mask = notnull(frame.values).view(np.uint8)
 
         level_index = frame.index.levels[level]
         counts = lib.count_level_2d(mask, frame.index.labels[level],
@@ -3687,8 +3688,8 @@ class DataFrame(NDFrame):
         """
         import pandas.tools.plotting as plots
         import matplotlib.pyplot as plt
-        ax = plots.boxplot(self, column=column, by=by, ax=ax, fontsize=fontsize,
-                           grid=grid, rot=rot, **kwds)
+        ax = plots.boxplot(self, column=column, by=by, ax=ax,
+                           fontsize=fontsize, grid=grid, rot=rot, **kwds)
         plt.draw_if_interactive()
         return ax
 
@@ -3791,7 +3792,7 @@ class DataFrame(NDFrame):
                        bottom=np.zeros(N), linewidth=1, **kwds)
                 ax.set_title(col)
             else:
-                rects.append(ax.bar(xinds + i * 0.5/K, y, 0.5/K,
+                rects.append(ax.bar(xinds + i * 0.5 / K, y, 0.5 / K,
                                     bottom=np.zeros(N), label=col,
                                     color=colors[i % len(colors)], **kwds))
                 labels.append(col)
@@ -3907,7 +3908,7 @@ def group_agg(values, bounds, f):
         else:
             right_bound = bounds[i + 1]
 
-        result[i] = f(values[left_bound : right_bound])
+        result[i] = f(values[left_bound:right_bound])
 
     return result
 
@@ -4027,6 +4028,7 @@ def _rec_to_dict(arr):
 
     return columns, sdict
 
+
 def _list_to_sdict(data, columns):
     if len(data) > 0 and isinstance(data[0], tuple):
         content = list(lib.to_object_array_tuples(data).T)
@@ -4039,6 +4041,7 @@ def _list_to_sdict(data, columns):
         return {}, columns
     return _convert_object_array(content, columns)
 
+
 def _list_of_dict_to_sdict(data, columns):
     if columns is None:
         gen = (x.keys() for x in data)
@@ -4046,6 +4049,7 @@ def _list_of_dict_to_sdict(data, columns):
 
     content = list(lib.dicts_to_array(data, list(columns)).T)
     return _convert_object_array(content, columns)
+
 
 def _convert_object_array(content, columns):
     if columns is None:
@@ -4058,6 +4062,7 @@ def _convert_object_array(content, columns):
     sdict = dict((c, lib.maybe_convert_objects(vals))
                  for c, vals in zip(columns, content))
     return sdict, columns
+
 
 def _homogenize(data, index, columns, dtype=None):
     from pandas.core.series import _sanitize_array
@@ -4104,8 +4109,10 @@ def _homogenize(data, index, columns, dtype=None):
 
     return homogenized
 
+
 def _put_str(s, space):
     return ('%s' % s)[:space].ljust(space)
+
 
 def _is_sequence(x):
     try:
@@ -4114,6 +4121,7 @@ def _is_sequence(x):
         return True
     except Exception:
         return False
+
 
 def install_ipython_completers():  # pragma: no cover
     """Register the DataFrame type with IPython's tab completion machinery, so
@@ -4125,6 +4133,7 @@ def install_ipython_completers():  # pragma: no cover
         return prev_completions + [c for c in obj.columns \
                     if isinstance(c, basestring) and py3compat.isidentifier(c)]
 
+
 # Importing IPython brings in about 200 modules, so we want to avoid it unless
 # we're in IPython (when those modules are loaded anyway).
 if "IPython" in sys.modules:  # pragma: no cover
@@ -4132,6 +4141,7 @@ if "IPython" in sys.modules:  # pragma: no cover
         install_ipython_completers()
     except Exception:
         pass
+
 
 def _indexer_from_factorized(labels, shape, compress=True):
     from pandas.core.groupby import get_group_index, _compress_group_index
@@ -4149,6 +4159,7 @@ def _indexer_from_factorized(labels, shape, compress=True):
 
     return indexer
 
+
 def _lexsort_indexer(keys):
     labels = []
     shape = []
@@ -4162,6 +4173,7 @@ def _lexsort_indexer(keys):
         labels.append(ids)
         shape.append(len(rizer.uniques))
     return _indexer_from_factorized(labels, shape)
+
 
 if __name__ == '__main__':
     import nose

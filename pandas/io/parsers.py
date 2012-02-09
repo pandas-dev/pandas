@@ -604,13 +604,17 @@ class ExcelFile(object):
         parsed : DataFrame
         """
         if self.use_xlsx:
-            return self._parse_xlsx(sheetname, header=header, skiprows=skiprows, index_col=index_col,
-              parse_dates=parse_dates, date_parser=date_parser, na_values=na_values,
-              chunksize=chunksize)
+            return self._parse_xlsx(sheetname, header=header,
+                                    skiprows=skiprows, index_col=index_col,
+                                    parse_dates=parse_dates,
+                                    date_parser=date_parser,
+                                    na_values=na_values, chunksize=chunksize)
         else:
-            return self._parse_xls(sheetname, header=header, skiprows=skiprows, index_col=index_col,
-              parse_dates=parse_dates, date_parser=date_parser, na_values=na_values,
-              chunksize=chunksize)
+            return self._parse_xls(sheetname, header=header, skiprows=skiprows,
+                                   index_col=index_col,
+                                   parse_dates=parse_dates,
+                                   date_parser=date_parser,
+                                   na_values=na_values, chunksize=chunksize)
 
     def _parse_xlsx(self, sheetname, header=0, skiprows=None, index_col=None,
               parse_dates=False, date_parser=None, na_values=None,
@@ -668,6 +672,14 @@ class ExcelFile(object):
                             chunksize=chunksize)
 
         return parser.get_chunk()
+
+    @property
+    def sheet_names(self):
+        if self.use_xlsx:
+            return self.book.get_sheet_names()
+        else:
+            return self.book.sheet_names()
+
 
 def _trim_excel_header(row):
     # trim header row so auto-index inference works

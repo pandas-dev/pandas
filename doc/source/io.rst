@@ -95,6 +95,7 @@ data into a DataFrame object. They can take a number of arguments:
     columns, where keys are either integers or column labels
   - ``encoding``: a string representing the encoding to use if the contents are
     non-ascii, for python versions prior to 3 
+  - ``verbose`` : show number of NA values inserted in non-numeric columns
 
 .. ipython:: python
    :suppress:

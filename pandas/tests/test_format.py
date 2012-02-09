@@ -216,7 +216,9 @@ class TestDataFrameFormatting(unittest.TestCase):
 
         df = DataFrame({'x': [1e9, 0.2512]})
         df_s = df.to_string()
-        if sys.version_info[0] == 2 and sys.version_info[1] < 6:
+        # Python 2.5 just wants me to be sad. And debian 32-bit
+        #sys.version_info[0] == 2 and sys.version_info[1] < 6:
+        if '%.4g' % 1.7e8 == '1.7e+008':
             expected = ('               x\n'
                         '0  1.000000e+009\n'
                         '1  2.512000e-001')

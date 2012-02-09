@@ -228,6 +228,13 @@ class TestDateRange(unittest.TestCase):
         expected = Index([])
         self.assert_(the_int.equals(expected))
 
+    def test_intersection_bug(self):
+        # GH #771
+        a = DateRange('11/30/2011','12/31/2011')
+        b = DateRange('12/10/2011','12/20/2011')
+        result = a.intersection(b)
+        self.assert_(result.equals(b))
+
     def test_with_tzinfo(self):
         _skip_if_no_pytz()
         tz = pytz.timezone('US/Central')
@@ -353,6 +360,15 @@ class TestDateRange(unittest.TestCase):
     def test_error_with_zero_monthends(self):
         self.assertRaises(ValueError, DateRange, '1/1/2000', '1/1/2001',
                           offset=datetools.MonthEnd(0))
+
+    def test_range_bug(self):
+        # GH #770
+        offset = datetools.DateOffset(months=3)
+        result = DateRange("2011-1-1", "2012-1-31", offset=offset)
+
+        start = datetime(2011, 1, 1)
+        exp_values = [start + i * offset for i in range(5)]
+        self.assert_(np.array_equal(result, exp_values))
 
 def _skip_if_no_pytz():
     try:

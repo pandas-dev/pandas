@@ -8,7 +8,7 @@ common_setup = """from pandas_vb_common import *
 # nanops
 
 setup = common_setup + """
-s = Series(np.random.randn(100000))
+s = Series(np.random.randn(100000), index=np.arange(100000))
 s[::2] = np.nan
 """
 

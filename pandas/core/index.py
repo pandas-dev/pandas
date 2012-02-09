@@ -12,6 +12,7 @@ import pandas._engines as _gin
 
 __all__ = ['Index']
 
+
 def _indexOp(opname):
     """
     Wrapper function for Series arithmetic operations, to avoid
@@ -22,8 +23,10 @@ def _indexOp(opname):
         return func(other)
     return wrapper
 
+
 class InvalidIndexError(Exception):
     pass
+
 
 class Index(np.ndarray):
     """
@@ -213,7 +216,7 @@ class Index(np.ndarray):
 
     def __setitem__(self, key, value):
         """Disable the setting of values."""
-        raise Exception(str(self.__class__) + ' object is immutable' )
+        raise Exception(str(self.__class__) + ' object is immutable')
 
     def __getitem__(self, key):
         """Override numpy.ndarray's __getitem__ method to work as desired"""
@@ -307,7 +310,7 @@ class Index(np.ndarray):
         if label not in self:
             loc = self.searchsorted(label, side='left')
             if loc > 0:
-                return self[loc-1]
+                return self[loc - 1]
             else:
                 return np.nan
 
@@ -589,8 +592,8 @@ class Index(np.ndarray):
 
     def isin(self, values):
         """
-        Compute boolean array of whether each index value is found in the passed
-        set of values
+        Compute boolean array of whether each index value is found in the
+        passed set of values
 
         Parameters
         ----------
@@ -608,8 +611,8 @@ class Index(np.ndarray):
             method = method.lower()
 
         aliases = {
-            'ffill' : 'pad',
-            'bfill' : 'backfill'
+            'ffill': 'pad',
+            'bfill': 'backfill'
         }
         return aliases.get(method, method)
 
@@ -914,7 +917,7 @@ class Int64Index(Index):
             # other iterable of some kind
             if not isinstance(data, (list, tuple)):
                 data = list(data)
-            data= np.asarray(data)
+            data = np.asarray(data)
 
         if issubclass(data.dtype.type, basestring):
             raise TypeError('String dtype not supported, you may need '
@@ -925,8 +928,8 @@ class Int64Index(Index):
             subarr = np.array(data, dtype=np.int64, copy=copy)
             if len(data) > 0:
                 if (subarr != data).any():
-                    raise TypeError('Unsafe NumPy casting, you must explicitly '
-                                    'cast')
+                    raise TypeError('Unsafe NumPy casting, you must '
+                                    'explicitly cast')
 
         subarr = subarr.view(cls)
         subarr.name = name
@@ -966,6 +969,7 @@ class Int64Index(Index):
     def _wrap_joined_index(self, joined, other):
         name = self.name if self.name == other.name else None
         return Int64Index(joined, name=name)
+
 
 class DateIndex(Index):
     pass
@@ -1019,6 +1023,7 @@ class Factor(np.ndarray):
         else:
             return np.ndarray.__getitem__(self, key)
 
+
 def unique_with_labels(values):
     rizer = lib.Factorizer(len(values))
     labels, _ = rizer.factorize(values, sort=False)
@@ -1035,6 +1040,7 @@ def unique_with_labels(values):
 
     return uniques, labels
 
+
 def unique_int64(values):
     if values.dtype != np.int64:
         values = values.astype('i8')
@@ -1043,9 +1049,11 @@ def unique_int64(values):
     uniques = table.unique(values)
     return uniques
 
+
 class MultiIndex(Index):
     """
-    Implements multi-level, a.k.a. hierarchical, index object for pandas objects
+    Implements multi-level, a.k.a. hierarchical, index object for pandas
+    objects
 
     Parameters
     ----------
@@ -1294,7 +1302,8 @@ class MultiIndex(Index):
         ----------
         arrays : list / sequence
         sortorder : int or None
-            Level of sortedness (must be lexicographically sorted by that level)
+            Level of sortedness (must be lexicographically sorted by that
+            level)
 
         Returns
         -------
@@ -1319,7 +1328,8 @@ class MultiIndex(Index):
         ----------
         tuples : array-like
         sortorder : int or None
-            Level of sortedness (must be lexicographically sorted by that level)
+            Level of sortedness (must be lexicographically sorted by that
+            level)
 
         Returns
         -------
@@ -1568,7 +1578,6 @@ class MultiIndex(Index):
             indexer = indexer[::-1]
 
         new_labels = [lab.take(indexer) for lab in self.labels]
-
 
         new_index = MultiIndex._from_elements(self.values.take(indexer),
                                               labels=new_labels,
@@ -1980,8 +1989,8 @@ class MultiIndex(Index):
         other_tuples = other.values
         uniq_tuples = sorted(set(self_tuples) & set(other_tuples))
         if len(uniq_tuples) == 0:
-            return MultiIndex(levels=[[]]*self.nlevels,
-                              labels=[[]]*self.nlevels,
+            return MultiIndex(levels=[[]] * self.nlevels,
+                              labels=[[]] * self.nlevels,
                               names=result_names)
         else:
             return MultiIndex.from_arrays(zip(*uniq_tuples), sortorder=0,
@@ -2000,15 +2009,15 @@ class MultiIndex(Index):
         result_names = self.names if self.names == other.names else None
 
         if self.equals(other):
-            return MultiIndex(levels=[[]]*self.nlevels,
-                              labels=[[]]*self.nlevels,
+            return MultiIndex(levels=[[]] * self.nlevels,
+                              labels=[[]] * self.nlevels,
                               names=result_names)
 
         difference = sorted(set(self.values) - set(other.values))
 
         if len(difference) == 0:
-            return MultiIndex(levels=[[]]*self.nlevels,
-                              labels=[[]]*self.nlevels,
+            return MultiIndex(levels=[[]] * self.nlevels,
+                              labels=[[]] * self.nlevels,
                               names=result_names)
         else:
             return MultiIndex.from_tuples(difference, sortorder=0,
@@ -2071,6 +2080,7 @@ class MultiIndex(Index):
     get_major_bounds = slice_locs
 
     __bounds = None
+
     @property
     def _bounds(self):
         """
@@ -2083,14 +2093,15 @@ class MultiIndex(Index):
 
         return self.__bounds
 
-
     def _wrap_joined_index(self, joined, other):
         names = self.names if self.names == other.names else None
         return MultiIndex.from_tuples(joined, names=names)
 
+
 # For utility purposes
 
 NULL_INDEX = Index([])
+
 
 def _sparsify(label_list):
     pivoted = zip(*label_list)
@@ -2117,6 +2128,7 @@ def _sparsify(label_list):
 
     return zip(*result)
 
+
 def _ensure_index(index_like):
     if isinstance(index_like, Index):
         return index_like
@@ -2127,8 +2139,8 @@ def _validate_join_method(method):
     if method not in ['left', 'right', 'inner', 'outer']:
         raise Exception('do not recognize join method %s' % method)
 
-# TODO: handle index names!
 
+# TODO: handle index names!
 def _get_combined_index(indexes, intersect=False):
     indexes = _get_distinct_indexes(indexes)
     if len(indexes) == 0:
@@ -2140,8 +2152,9 @@ def _get_combined_index(indexes, intersect=False):
         for other in indexes[1:]:
             index = index.intersection(other)
         return index
-    union =  _union_indexes(indexes)
+    union = _union_indexes(indexes)
     return _ensure_index(union)
+
 
 def _get_distinct_indexes(indexes):
     return dict((id(x), x) for x in indexes).values()
@@ -2172,6 +2185,7 @@ def _union_indexes(indexes):
     else:
         return Index(lib.fast_unique_multiple_list(indexes))
 
+
 def _trim_front(strings):
     """
     Trims zeros and decimal points
@@ -2180,6 +2194,7 @@ def _trim_front(strings):
     while len(strings) > 0 and all([x[0] == ' ' for x in trimmed]):
         trimmed = [x[1:] for x in trimmed]
     return trimmed
+
 
 def _sanitize_and_check(indexes):
     kinds = list(set([type(index) for index in indexes]))
@@ -2192,7 +2207,6 @@ def _sanitize_and_check(indexes):
             kinds.remove(list)
         else:
             return indexes, 'list'
-
 
     if len(kinds) > 1 or Index not in kinds:
         return indexes, 'special'

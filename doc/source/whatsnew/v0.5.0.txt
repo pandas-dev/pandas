@@ -39,22 +39,22 @@ Performance Enhancements
 - VBENCH Significantly sped up conversion of nested dict into DataFrame (GH212_)
 - VBENCH Significantly speed up DataFrame ``__repr__`` and ``count`` on large mixed-type DataFrame objects
 
-.. _GH214: https://github.com/wesm/pandas/issues/214
-.. _GH248: https://github.com/wesm/pandas/issues/248
-.. _GH253: https://github.com/wesm/pandas/issues/253
-.. _GH261: https://github.com/wesm/pandas/issues/261
-.. _GH234: https://github.com/wesm/pandas/issues/234
-.. _GH243: https://github.com/wesm/pandas/issues/243
-.. _GH223: https://github.com/wesm/pandas/issues/223
-.. _PR244: https://github.com/wesm/pandas/pull/244
-.. _PR233: https://github.com/wesm/pandas/pull/233
-.. _GH230: https://github.com/wesm/pandas/issues/230
-.. _PR241: https://github.com/wesm/pandas/pull/241
-.. _GH242: https://github.com/wesm/pandas/issues/242
-.. _GH212: https://github.com/wesm/pandas/issues/212
-.. _GH211: https://github.com/wesm/pandas/issues/211
-.. _GH215: https://github.com/wesm/pandas/issues/215
-.. _GH213: https://github.com/wesm/pandas/issues/213
-.. _ENH61: https://github.com/wesm/pandas/commit/6141961
-.. _PR334: https://github.com/wesm/pandas/pull/334
-.. _ENH5c: https://github.com/wesm/pandas/commit/5ca6ff5d822ee4ddef1ec0d87b6d83d8b4bbd3eb
+.. _GH214: https://github.com/pydata/pandas/issues/214
+.. _GH248: https://github.com/pydata/pandas/issues/248
+.. _GH253: https://github.com/pydata/pandas/issues/253
+.. _GH261: https://github.com/pydata/pandas/issues/261
+.. _GH234: https://github.com/pydata/pandas/issues/234
+.. _GH243: https://github.com/pydata/pandas/issues/243
+.. _GH223: https://github.com/pydata/pandas/issues/223
+.. _PR244: https://github.com/pydata/pandas/pull/244
+.. _PR233: https://github.com/pydata/pandas/pull/233
+.. _GH230: https://github.com/pydata/pandas/issues/230
+.. _PR241: https://github.com/pydata/pandas/pull/241
+.. _GH242: https://github.com/pydata/pandas/issues/242
+.. _GH212: https://github.com/pydata/pandas/issues/212
+.. _GH211: https://github.com/pydata/pandas/issues/211
+.. _GH215: https://github.com/pydata/pandas/issues/215
+.. _GH213: https://github.com/pydata/pandas/issues/213
+.. _ENH61: https://github.com/pydata/pandas/commit/6141961
+.. _PR334: https://github.com/pydata/pandas/pull/334
+.. _ENH5c: https://github.com/pydata/pandas/commit/5ca6ff5d822ee4ddef1ec0d87b6d83d8b4bbd3eb
