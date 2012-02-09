@@ -291,7 +291,7 @@ class NDFrame(PandasObject):
         self._item_cache.clear()
 
     def _set_item(self, key, value):
-        if isinstance(self.columns, MultiIndex):
+        if hasattr(self,'columns') and isinstance(self.columns, MultiIndex):
             # Pad the key with empty strings if lower levels of the key
             # aren't specified:
             if not isinstance(key, tuple):
@@ -310,7 +310,9 @@ class NDFrame(PandasObject):
         Delete item
         """
         deleted = False
-        if isinstance(self.columns, MultiIndex) and key not in self.columns:
+        if (hasattr(self,'columns') and 
+                isinstance(self.columns, MultiIndex)
+                and key not in self.columns):
             # Allow shorthand to delete all columns whose first len(key)
             # elements match key:
             if not isinstance(key,tuple):
