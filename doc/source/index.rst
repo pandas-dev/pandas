@@ -12,7 +12,7 @@ pandas: powerful Python data analysis toolkit
 
 **Installers:** http://pypi.python.org/pypi/pandas
 
-**Code Repository:** http://github.com/wesm/pandas
+**Code Repository:** http://github.com/pydata/pandas
 
 **Mailing List:** http://groups.google.com/group/pystatsmodels
 

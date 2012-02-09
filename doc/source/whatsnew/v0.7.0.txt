@@ -97,7 +97,7 @@ New features
 - Added ``encoding`` argument to ``read_csv``, ``read_table``, ``to_csv`` and
   ``from_csv`` for non-ascii text (GH717_)
 
-- :ref:`Added <basics.stats>` ``abs`` method to pandas objects 
+- :ref:`Added <basics.stats>` ``abs`` method to pandas objects
 
 - :ref:`Added <reshaping.pivot>` ``crosstab`` function for easily computing frequency tables
 
@@ -283,39 +283,39 @@ similar operation to the above but using a Python function:
 - Ported skiplist data structure to C to speed up ``rolling_median`` by about
   5-10x in most typical use cases (GH374_)
 
-.. _GH115: https://github.com/wesm/pandas/issues/115
-.. _GH166: https://github.com/wesm/pandas/issues/166
-.. _GH220: https://github.com/wesm/pandas/issues/220
-.. _GH288: https://github.com/wesm/pandas/issues/288
-.. _GH249: https://github.com/wesm/pandas/issues/249
-.. _GH267: https://github.com/wesm/pandas/issues/267
-.. _GH273: https://github.com/wesm/pandas/issues/273
-.. _GH316: https://github.com/wesm/pandas/issues/316
-.. _GH338: https://github.com/wesm/pandas/issues/338
-.. _GH342: https://github.com/wesm/pandas/issues/342
-.. _GH374: https://github.com/wesm/pandas/issues/374
-.. _GH439: https://github.com/wesm/pandas/issues/439
-.. _GH468: https://github.com/wesm/pandas/issues/468
-.. _GH476: https://github.com/wesm/pandas/issues/476
-.. _GH479: https://github.com/wesm/pandas/issues/479
-.. _GH489: https://github.com/wesm/pandas/issues/489
-.. _GH492: https://github.com/wesm/pandas/issues/492
-.. _GH496: https://github.com/wesm/pandas/issues/496
-.. _GH497: https://github.com/wesm/pandas/issues/497
-.. _GH498: https://github.com/wesm/pandas/issues/498
-.. _GH526: https://github.com/wesm/pandas/issues/526
-.. _GH536: https://github.com/wesm/pandas/issues/536
-.. _GH542: https://github.com/wesm/pandas/issues/542
-.. _GH545: https://github.com/wesm/pandas/issues/545
-.. _GH554: https://github.com/wesm/pandas/issues/554
-.. _GH595: https://github.com/wesm/pandas/issues/595
-.. _GH647: https://github.com/wesm/pandas/issues/647
-.. _GH699: https://github.com/wesm/pandas/issues/699
-.. _GH717: https://github.com/wesm/pandas/issues/717
-.. _GH93: https://github.com/wesm/pandas/issues/93
-.. _GH93: https://github.com/wesm/pandas/issues/93
-.. _PR521: https://github.com/wesm/pandas/pull/521
-.. _PR534: https://github.com/wesm/pandas/pull/534
-.. _PR552: https://github.com/wesm/pandas/pull/552
-.. _PR554: https://github.com/wesm/pandas/pull/554
-.. _PR563: https://github.com/wesm/pandas/pull/563
+.. _GH115: https://github.com/pydata/pandas/issues/115
+.. _GH166: https://github.com/pydata/pandas/issues/166
+.. _GH220: https://github.com/pydata/pandas/issues/220
+.. _GH288: https://github.com/pydata/pandas/issues/288
+.. _GH249: https://github.com/pydata/pandas/issues/249
+.. _GH267: https://github.com/pydata/pandas/issues/267
+.. _GH273: https://github.com/pydata/pandas/issues/273
+.. _GH316: https://github.com/pydata/pandas/issues/316
+.. _GH338: https://github.com/pydata/pandas/issues/338
+.. _GH342: https://github.com/pydata/pandas/issues/342
+.. _GH374: https://github.com/pydata/pandas/issues/374
+.. _GH439: https://github.com/pydata/pandas/issues/439
+.. _GH468: https://github.com/pydata/pandas/issues/468
+.. _GH476: https://github.com/pydata/pandas/issues/476
+.. _GH479: https://github.com/pydata/pandas/issues/479
+.. _GH489: https://github.com/pydata/pandas/issues/489
+.. _GH492: https://github.com/pydata/pandas/issues/492
+.. _GH496: https://github.com/pydata/pandas/issues/496
+.. _GH497: https://github.com/pydata/pandas/issues/497
+.. _GH498: https://github.com/pydata/pandas/issues/498
+.. _GH526: https://github.com/pydata/pandas/issues/526
+.. _GH536: https://github.com/pydata/pandas/issues/536
+.. _GH542: https://github.com/pydata/pandas/issues/542
+.. _GH545: https://github.com/pydata/pandas/issues/545
+.. _GH554: https://github.com/pydata/pandas/issues/554
+.. _GH595: https://github.com/pydata/pandas/issues/595
+.. _GH647: https://github.com/pydata/pandas/issues/647
+.. _GH699: https://github.com/pydata/pandas/issues/699
+.. _GH717: https://github.com/pydata/pandas/issues/717
+.. _GH93: https://github.com/pydata/pandas/issues/93
+.. _GH93: https://github.com/pydata/pandas/issues/93
+.. _PR521: https://github.com/pydata/pandas/pull/521
+.. _PR534: https://github.com/pydata/pandas/pull/534
+.. _PR552: https://github.com/pydata/pandas/pull/552
+.. _PR554: https://github.com/pydata/pandas/pull/554
+.. _PR563: https://github.com/pydata/pandas/pull/563

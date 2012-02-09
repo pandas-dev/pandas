@@ -47,7 +47,7 @@ Here are just a few of the things that pandas does well:
 Where to get it
 ===============
 
-The source code is currently hosted on GitHub at: http://github.com/wesm/pandas
+The source code is currently hosted on GitHub at: http://github.com/pydata/pandas
 
 Binary installers for the latest released version are available at the Python
 package index::
@@ -124,4 +124,4 @@ the pystatsmodels mailing list / Google group, where
 http://groups.google.com/group/pystatsmodels
 
   .. _NumPy: http://numpy.scipy.org/
-  .. _downloaded there: https://github.com/wesm/pandas/archives/master
+  .. _downloaded there: https://github.com/pydata/pandas/archives/master

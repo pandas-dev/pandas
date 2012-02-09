@@ -3,7 +3,7 @@ Release Notes
 =============
 
 This is the list of changes to pandas between each release. For full details,
-see the commit logs at http://github.com/wesm/pandas
+see the commit logs at http://github.com/pydata/pandas
 
 What is it
 ----------
@@ -18,7 +18,7 @@ analysis / manipulation tool available in any language.
 Where to get it
 ---------------
 
-* Source code: http://github.com/wesm/pandas
+* Source code: http://github.com/pydata/pandas
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.sourceforge.net
 

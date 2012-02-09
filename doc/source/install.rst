@@ -8,7 +8,7 @@ Installation
 
 You have the option to install an `official release
 <http://pypi.python.org/pypi/pandas>`__ or to build the `development version
-<http://github.com/wesm/pandas>`__. If you choose to install from source and
+<http://github.com/pydata/pandas>`__. If you choose to install from source and
 are running Windows, you will have to ensure that you have a compatible C
 compiler (MinGW or Visual Studio) installed. `How-to install MinGW on Windows
 <http://docs.cython.org/src/tutorial/appendix.html>`__
@@ -63,12 +63,12 @@ Installing from source
    files. I recommend installing the latest Cython via ``easy_install -U
    Cython``
 
-The source code is hosted at http://github.com/wesm/pandas, it can be checked
+The source code is hosted at http://github.com/pydata/pandas, it can be checked
 out using git and compiled / installed like so:
 
 ::
 
-  git clone git://github.com/wesm/pandas.git
+  git clone git://github.com/pydata/pandas.git
   cd pandas
   python setup.py install
 

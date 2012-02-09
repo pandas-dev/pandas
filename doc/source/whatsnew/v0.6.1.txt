@@ -54,15 +54,15 @@ Performance improvements
 - Column deletion in DataFrame copies no data (computes views on blocks) (GH
   #158)
 
-.. _GH114: https://github.com/wesm/pandas/issues/114
-.. _GH189: https://github.com/wesm/pandas/issues/302
-.. _GH302: https://github.com/wesm/pandas/issues/302
-.. _GH428: https://github.com/wesm/pandas/issues/428
-.. _GH437: https://github.com/wesm/pandas/issues/437
-.. _GH438: https://github.com/wesm/pandas/issues/438
-.. _GH444: https://github.com/wesm/pandas/issues/444
-.. _GH461: https://github.com/wesm/pandas/issues/461
-.. _GH463: https://github.com/wesm/pandas/issues/463
-.. _PR435: https://github.com/wesm/pandas/pull/435
-.. _PR453: https://github.com/wesm/pandas/pull/453
-.. _PR482: https://github.com/wesm/pandas/pull/482
+.. _GH114: https://github.com/pydata/pandas/issues/114
+.. _GH189: https://github.com/pydata/pandas/issues/302
+.. _GH302: https://github.com/pydata/pandas/issues/302
+.. _GH428: https://github.com/pydata/pandas/issues/428
+.. _GH437: https://github.com/pydata/pandas/issues/437
+.. _GH438: https://github.com/pydata/pandas/issues/438
+.. _GH444: https://github.com/pydata/pandas/issues/444
+.. _GH461: https://github.com/pydata/pandas/issues/461
+.. _GH463: https://github.com/pydata/pandas/issues/463
+.. _PR435: https://github.com/pydata/pandas/pull/435
+.. _PR453: https://github.com/pydata/pandas/pull/453
+.. _PR482: https://github.com/pydata/pandas/pull/482
