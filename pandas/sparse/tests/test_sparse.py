@@ -872,10 +872,10 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         self.assert_(not empty)
 
         foo = self.frame + self.empty
-        assert_sp_frame_equal(foo, self.frame * np.nan)
+        assert_frame_equal(foo, self.frame * np.nan)
 
         foo = self.empty + self.frame
-        assert_sp_frame_equal(foo, self.frame * np.nan)
+        assert_frame_equal(foo, self.frame * np.nan)
 
     def test_scalar_ops(self):
         pass
