@@ -1,3 +1,9 @@
+try:
+    from io import BytesIO
+except ImportError:  # pragma: no cover
+    # Python < 2.6
+    from cStringIO import StringIO as BytesIO
+
 from cStringIO import StringIO
 from datetime import datetime
 import csv
@@ -304,7 +310,7 @@ foo|1|2|3
 bar|4|5|6
 baz|7|8|9
 """.encode('utf-8')
-        data4 = read_csv(StringIO(text), index_col=0, sep=None, skiprows=2,
+        data4 = read_csv(BytesIO(text), index_col=0, sep=None, skiprows=2,
                          encoding='utf-8')
         assert_frame_equal(data, data4)
 
