@@ -372,13 +372,13 @@ class DateRange(Index):
         else:
             left, right = other, self
 
-        left_end = left[-1]
-        right_start = right[0]
+        end = min(left[-1], right[-1])
+        start = right[0]
 
-        if left_end < right_start:
+        if end < start:
             return Index([])
         else:
-            lslice = slice(*left.slice_locs(right_start, None))
+            lslice = slice(*left.slice_locs(start, end))
             left_chunk = left.values[lslice]
             return self._view_like(left_chunk)
 

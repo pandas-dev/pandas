@@ -13,6 +13,8 @@ except ImportError:  # pragma: no cover
     from cStringIO import StringIO as BytesIO
 import itertools
 
+from cStringIO import StringIO
+
 from numpy.lib.format import read_array, write_array
 import numpy as np
 
@@ -628,6 +630,9 @@ if py3compat.PY3:  # pragma: no cover
     def UnicodeReader(f, dialect=csv.excel, encoding="utf-8", **kwds):
         # ignore encoding
         return csv.reader(f, dialect=csv.excel, **kwds)
+
+    def UnicodeWriter(f, dialect=csv.excel, encoding="utf-8", **kwds):
+        return csv.writer(f, dialect=csv.excel, **kwds)
 else:
     class UnicodeReader:
         """
@@ -648,3 +653,33 @@ else:
 
         def __iter__(self):  # pragma: no cover
             return self
+
+    class UnicodeWriter:
+        """
+        A CSV writer which will write rows to CSV file "f",
+        which is encoded in the given encoding.
+        """
+
+        def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
+            # Redirect output to a queue
+            self.queue = StringIO()
+            self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
+            self.stream = f
+            self.encoder = codecs.getincrementalencoder(encoding)()
+
+        def writerow(self, row):
+            row = [x if isinstance(x, basestring) else str(x) for x in row]
+            self.writer.writerow([s.encode("utf-8") for s in row])
+            # Fetch UTF-8 output from the queue ...
+            data = self.queue.getvalue()
+            data = data.decode("utf-8")
+            # ... and reencode it into the target encoding
+            data = self.encoder.encode(data)
+            # write to the target stream
+            self.stream.write(data)
+            # empty queue
+            self.queue.truncate(0)
+
+        def writerows(self, rows):
+            for row in rows:
+                self.writerow(row)

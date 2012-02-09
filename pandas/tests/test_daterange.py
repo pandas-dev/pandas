@@ -228,6 +228,13 @@ class TestDateRange(unittest.TestCase):
         expected = Index([])
         self.assert_(the_int.equals(expected))
 
+    def test_intersection_bug(self):
+        # GH #771
+        a = DateRange('11/30/2011','12/31/2011')
+        b = DateRange('12/10/2011','12/20/2011')
+        result = a.intersection(b)
+        self.assert_(result.equals(b))
+
     def test_with_tzinfo(self):
         _skip_if_no_pytz()
         tz = pytz.timezone('US/Central')

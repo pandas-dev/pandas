@@ -868,23 +868,12 @@ class DataFrame(NDFrame):
                     # given a string for a DF with Index
                     index_label = [index_label]
 
-                if encoding is not None:
-                    encoded_labels = [csv_encode(val, encoding=encoding)
-                                      for val in index_label]
-                    encoded_cols = [csv_encode(val, encoding=encoding)
-                                    for val in cols]
-                else:
-                    encoded_labels = list(index_label)
-                    encoded_cols = list(cols)
+                encoded_labels = list(index_label)
+                encoded_cols = list(cols)
 
                 writer.writerow(encoded_labels + encoded_cols)
             else:
-                if encoding is not None:
-                    encoded_cols = [csv_encode(val, encoding=encoding)
-                                    for val in cols]
-                else:
-                    encoded_cols = list(cols)
-
+                encoded_cols = list(cols)
                 writer.writerow(encoded_cols)
 
         nlevels = getattr(self.index, 'nlevels', 1)
@@ -902,13 +891,7 @@ class DataFrame(NDFrame):
 
                 row_fields.append(val)
 
-            if encoding is not None:
-                encoded_rows = [csv_encode(val, encoding=encoding)
-                                for val in row_fields]
-            else:
-                encoded_rows = list(row_fields)
-
-            writer.writerow(encoded_rows)
+            writer.writerow(row_fields)
 
     def to_csv(self, path_or_buf, sep=",", na_rep='', cols=None,
                header=True, index=True, index_label=None, mode='w',
@@ -953,7 +936,11 @@ class DataFrame(NDFrame):
             close = True
 
         try:
-            csvout = csv.writer(f, lineterminator='\n', delimiter=sep)
+            if encoding is not None:
+                csvout = com.UnicodeWriter(f, lineterminator='\n',
+                                           delimiter=sep)
+            else:
+                csvout = csv.writer(f, lineterminator='\n', delimiter=sep)
             self._helper_csvexcel(csvout, na_rep=na_rep, cols=cols,
                                   header=header, index=index,
                                   index_label=index_label, encoding=encoding)
