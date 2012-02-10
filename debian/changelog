@@ -9,6 +9,7 @@ pandas (0.7.0-1) unstable; urgency=low
   * Build only for requested versions (not all supported) of Python
   * Do nothing for build operation, rely on overloaded install
     (to avoid undesired re-cythonization on elderly Ubuntus)
+  * Adjusted url in watch due to migration of repository under pydata organization
 
  -- Yaroslav Halchenko <debian@onerussian.com>  Mon, 16 Jan 2012 19:31:50 -0500
 
