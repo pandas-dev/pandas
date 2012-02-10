@@ -4,7 +4,7 @@ import numpy as np
 from numpy cimport int32_t, int64_t, import_array, ndarray
 from cpython cimport *
 
-from libc.stdlib cimport malloc, free
+from libc.stdlib cimport malloc, free, abs
 from libc.math cimport floor
 
 # this is our datetime.pxd
@@ -216,58 +216,76 @@ cdef conversion_factor(time_res res1, time_res res2):
 # Logic to generate ranges
 # -----------------------------------------------------------------------------
 
+cdef inline int64_t weekend_adjustment(int64_t dow, int bkwd):
+    if dow > 4:                         # sat or sun?
+        if bkwd:                        # roll back 1 or 2 days
+            return (4 - dow)
+        else:                           # roll forward 2 or 1 days
+            return (7 - dow)
+    return 0
+
 def generate_annual_range(object start, Py_ssize_t periods, int64_t dayoffset=0,
                           int64_t biz=0):
     """
     Generate yearly timestamps beginning with start time. Apply dayoffset to
-    each timestamp, which allows you to for instance generate month ends with
-    -1. If biz is 1, we choose the next business day if offset >= 0, else prev
-    business day if < 0.
+    each timestamp, which allows you to for instance generate month ends. If
+    biz > 0, we choose the next business day; previous if < 0.
     """
     cdef:
-        Py_ssize_t i, m, d, y, ly, w
-        int64_t us_in_day
+        Py_ssize_t i, ly, dow
+        int64_t us_in_day, adj, days, y
         ndarray[int64_t] dtindex
         _TSObject ts
+        npy_datetimestruct dts
 
     ts = convert_to_tsobject(start)
-
     us_in_day = conversion_factor(r_microsecond, r_day)
-
     dtindex = np.empty(periods, np.int64)
 
     dayoffset *= us_in_day
 
+    # applies offset to first element, propogates through array
     dtindex[0] = ts.value + dayoffset
-    m = ts.dtval.month
-    d = ts.dtval.day
-    y = ts.dtval.year
-    ly = m >= 3
-    w = 0
-    # weekday logic needs fixing
+    PyArray_DatetimeToDatetimeStruct(dtindex[0], NPY_FR_us, &dts)
+    dow = dayofweek(dts.year, dts.month, dts.day)
+
+    # need bday adjustment?
+    if biz != 0:
+        adj = weekend_adjustment(dow, biz < 0)
+        dtindex[0] += adj * us_in_day
+    else:
+        adj = 0
+
+    # do we count days in year in y or y+1? ignore offset!
+    ly = ts.dtval.month > 2 or (ts.dtval.month == 2 and ts.dtval.day == 29)
+    y  = ts.dtval.year
+
     for i in range(1, periods):
-        dtindex[i] = -w + dtindex[i-1] + (365 + is_leapyear(y + ly)) * us_in_day
+        days = 365 + is_leapyear(y + ly)
+        # reverse prior b-day adjustment
+        dtindex[i] = dtindex[i-1] + (days - adj) * us_in_day
         y += 1
+        # apply new b-day adjustment
         if biz != 0:
-            w = dayofweek(y,m,d)
-            if w > 4:
-                if dayoffset < 0:
-                    w = (w-7) * us_in_day
-                else:
-                    w = (7-w) * us_in_day
-            else:
-                w = 0
-            dtindex[i] += w
+            dow = (dow + days) % 7
+            adj = weekend_adjustment(dow, biz < 0)
+            dtindex[i] += adj * us_in_day
 
     return dtindex.view(np.datetime64)
 
 def generate_quarterly_range(object start, Py_ssize_t periods, int64_t dayoffset=0,
                              int64_t biz=0):
+    """
+    Generate quarterly timestamps beginning with start time. Apply dayoffset to
+    each timestamp, which allows you to for instance generate month ends. If
+    biz > 0, we choose the next business day; previous if < 0.
+    """
     cdef:
         Py_ssize_t i, m1, m2, m3, y1, y2, y3, l1, l2, l3
-        int64_t us_in_day
+        int64_t us_in_day, days, dow, adj
         ndarray[int64_t] dtindex
         _TSObject ts
+        npy_datetimestruct dts
 
     ts = convert_to_tsobject(start)
 
@@ -277,7 +295,19 @@ def generate_quarterly_range(object start, Py_ssize_t periods, int64_t dayoffset
 
     dayoffset *= us_in_day
 
+    # applies offset to first element, propogates through array
     dtindex[0] = ts.value + dayoffset
+    PyArray_DatetimeToDatetimeStruct(dtindex[0], NPY_FR_us, &dts)
+    dow = dayofweek(dts.year, dts.month, dts.day)
+
+    # need bday adjustment?
+    if biz != 0:
+        adj = weekend_adjustment(dow, biz < 0)
+        dtindex[0] += adj * us_in_day
+    else:
+        adj = 0
+
+    # for day counting. ignore offset
     m1 = ts.dtval.month - 1
     m2 = m1 + 1
     m3 = m2 + 1
@@ -298,18 +328,126 @@ def generate_quarterly_range(object start, Py_ssize_t periods, int64_t dayoffset
             y1 += 1
             l1 = is_leapyear(y1)
 
-        dtindex[i] = (dtindex[i-1] +
-                      us_in_day * (_days_per_month_table[l1][m1] +
-                                   _days_per_month_table[l2][m2] +
-                                   _days_per_month_table[l3][m3]))
+        days = (_days_per_month_table[l1][m1] + _days_per_month_table[l2][m2] +
+                _days_per_month_table[l3][m3])
+
+        # reverse prev b-day adjustment
+        dtindex[i] = dtindex[i-1] + us_in_day * (days - adj)
+
         m1 += 3
         m2 += 3
         m3 += 3
 
+        # apply new b-day adjustment
+        if biz != 0:
+            dow = (dow + days) % 7
+            adj = weekend_adjustment(dow, biz < 0)
+            dtindex[i] += adj * us_in_day
+
     return dtindex.view(np.datetime64)
 
-def generate_daily_range(object start, Py_ssize_t periods, int64_t biz=0):
-    pass
+def generate_monthly_range(object start, Py_ssize_t periods, int64_t dayoffset=0,
+                           int64_t biz=0):
+    """
+    Generate monthly timestamps beginning with start time. Apply dayoffset to
+    each timestamp, which allows you to for instance generate month ends. If
+    biz > 0, we choose the next business day; previous if < 0.
+    """
+    cdef:
+        Py_ssize_t i, m, y, ly
+        int64_t us_in_day, days, dow, adj
+        ndarray[int64_t] dtindex
+        _TSObject ts
+        npy_datetimestruct dts
+
+    ts = convert_to_tsobject(start)
+
+    us_in_day = conversion_factor(r_microsecond, r_day)
+
+    dtindex = np.empty(periods, np.int64)
+
+    dayoffset *= us_in_day
+
+    # applies offset to first element, propogates through array
+    dtindex[0] = ts.value + dayoffset
+    PyArray_DatetimeToDatetimeStruct(dtindex[0], NPY_FR_us, &dts)
+    dow = dayofweek(dts.year, dts.month, dts.day)
+
+    # need bday adjustment?
+    if biz != 0:
+        adj = weekend_adjustment(dow, biz < 0)
+        dtindex[0] += adj * us_in_day
+    else:
+        adj = 0
+
+    # for day counting. ignore offset
+    m = ts.dtval.month - 1
+    y = ts.dtval.year
+    ly = is_leapyear(y)
+
+    for i in range(1, periods):
+        if m >= 12:
+            m -= 12
+            y += 1
+            ly = is_leapyear(y)
+
+        days = _days_per_month_table[ly][m]
+
+        # reverse prev b-day adjustment
+        dtindex[i] = dtindex[i-1] + us_in_day * (days - adj)
+
+        m += 1
+
+        # apply new b-day adjustment
+        if biz != 0:
+            dow = (dow + days) % 7
+            adj = weekend_adjustment(dow, biz < 0)
+            dtindex[i] += adj * us_in_day
+
+    return dtindex.view(np.datetime64)
+
+def generate_daily_range(object start, Py_ssize_t periods,
+                         int64_t biz=0, int64_t stride=1):
+    """
+    Generate daily timestamps beginning with start time. If biz != 0, we choose
+    the next business day. Stride, to construct weekly timestamps.
+    """
+    cdef:
+        Py_ssize_t i
+        int64_t us_in_day, dow, adj
+        ndarray[int64_t] dtindex
+        _TSObject ts
+        npy_datetimestruct dts
+
+    ts = convert_to_tsobject(start)
+
+    us_in_day = conversion_factor(r_microsecond, r_day)
+
+    dtindex = np.empty(periods, np.int64)
+
+    # applies offset to first element, propogates through array
+    dtindex[0] = ts.value
+    dow = dayofweek(ts.dtval.year, ts.dtval.month, ts.dtval.day)
+
+    # need bday adjustment?
+    if biz != 0:
+        adj = weekend_adjustment(dow, 0)
+        if adj != 0:
+            dtindex[0] += adj * us_in_day
+            dow = 0
+
+    # generate weekdays
+    for i in range(1, periods):
+        dtindex[i] = dtindex[i-1] + (stride * us_in_day)
+        if biz != 0:
+            dow += stride
+            dow %= 7
+            # skip sat., sun.
+            if dow >= 5:
+                dtindex[i] += 2 * us_in_day
+                dow = 0
+
+    return dtindex.view(np.datetime64)
 
 
 # The following is derived from relativedelta.py in dateutil package
