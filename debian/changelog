@@ -1,6 +1,6 @@
-pandas (0.7.0~rc1+git205-g8610be5-1) UNRELEASED; urgency=low
+pandas (0.7.0-1) unstable; urgency=low
 
-  * Testing fresh upstream snapshot prior release
+  * New upstream release
   * Updated pre-cythoned .c files for older Debian/Ubuntu releases.
     Added a stamp file with upstream version to assure up-to-dateness
     of the generated files
