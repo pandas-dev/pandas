@@ -8,8 +8,8 @@ import numpy as np
 from pandas.core.common import (adjoin as _adjoin, _stringify, _try_sort,
                                 _is_bool_indexer, _asarray_tuplesafe,
                                 is_iterator)
-from pandas.core.datetools import (_dt_box, _dt_unbox,
-                                   _dt_box_array, _dt_unbox_array)
+from pandas.core.datetools import (_dt_box, _dt_unbox, _dt_box_array,
+                                  _dt_unbox_array)
 from pandas.util.decorators import cache_readonly
 import pandas._tseries as lib
 import pandas._engines as _gin
@@ -99,10 +99,6 @@ class Index(np.ndarray):
     def astype(self, dtype):
         return Index(self.values.astype(dtype), name=self.name,
                      dtype=dtype)
-
-    @property
-    def year(self):
-        return lib.fast_field_accessor2(self.values, 'Y')
 
     @property
     def dtype(self):
@@ -1033,6 +1029,9 @@ def _dt_index_op(opname):
             return func(other)
     return wrapper
 
+# TODO: there is too much view/M8us stuff going on. better to just
+# have as integer internals probably
+
 class DatetimeIndex(Int64Index):
 
     _is_monotonic  = _wrap_i8_function(lib.is_monotonic_int64)
@@ -1060,38 +1059,28 @@ class DatetimeIndex(Int64Index):
     __sub__ = _dt_index_op('__sub__')
 
     def __new__(cls, data=None,
-                start=None, end=None, freq=None, n=None,
+                freq=None, start=None, end=None, n=None,
                 dtype=None, copy=False, name=None):
 
-        conforms = False
-
         if data is None:
-            if start and freq and n and n > 0:
-                # generate timestamps via offsets
-                starts = [start]
-                idx = start
-                for i in range(n-1):
-                    idx += freq
-                    starts.append(_dt_unbox(idx))
-                data = np.array(starts, dtype='M8[us]')
-                conforms = True
-            elif start and freq and end:
-                starts = [start]
-                idx = start
-                while idx <= end:
-                    idx += freq
-                    starts.append(_dt_unbox(idx))
-                data = np.array(starts, dtype='M8[us]')
-                conforms = True
-            else:
-                raise ValueError("Must pass array of times or "
-                                 "start, freq, and end/n keywords.")
+            if freq is None:
+                raise ValueError("No data, must supply freq")
+            if start is None:
+                raise ValueError("No data, must supply start")
+            if end is None and n is None:
+                raise ValueError("No data, must supply end or n")
+
+            cached, first, last = lib._get_freq(freq, start, end, n)
+            dti = cls._construct_from_cache(name, freq, cached, first, last+1)
+            return dti
+
+        # TODO: check if data conforms to freq
 
         if not isinstance(data, np.ndarray):
             if np.isscalar(data):
                 raise ValueError('DatetimeIndex() must be called with a '
-                                 'collection of some kind, %s was passed'
-                                 % repr(data))
+                                'collection of some kind, %s was passed'
+                                % repr(data))
 
             # other iterable of some kind
             if not isinstance(data, (list, tuple)):
@@ -1120,17 +1109,38 @@ class DatetimeIndex(Int64Index):
                                     'explicitly cast')
 
         subarr = subarr.view(cls)
+        subarr.freq = None
         subarr.name = name
-        subarr.freq = freq
-
-        if freq is not None and not conforms:
-            conforming = subarr.map(freq.onOffset).astype(np.bool)
-            if not conforming.all():
-                bad = np.arange(len(subarr))[~conforming]
-                raise ValueError("Non-conforming DatetimeIndex, has invalid "
-                                            "value at positions %s" % bad)
 
         return subarr
+
+    @classmethod
+    def _construct_from_cache(cls, name, freq, cache, first, last):
+        if first < 0:
+            raise ValueError('Fell outside freq cache (first)')
+
+        if last > len(cache):
+            raise ValueError('Fell outside freq cache (last)')
+
+        subarr = cache[first:last]
+
+        newdti = subarr.view(cls)
+
+        newdti.cache = cache
+        newdti.name = name
+        newdti.freq = freq
+
+        newdti.first = first
+        newdti.last = last
+
+        return newdti
+
+    def shift(self, n=1):
+        if self.freq is None:
+            raise ValueError("Cannot shift, frequency of index is empty")
+
+        return self._construct_from_cache(self.name, self.freq, self.cache,
+                                          self.first+n, self.last+n)
 
     def __getitem__(self, key):
         """Override numpy.ndarray's __getitem__ method to work as desired"""
@@ -1138,7 +1148,13 @@ class DatetimeIndex(Int64Index):
         if np.isscalar(key):
             if type(key) == datetime:
                 key = _dt_unbox(key)
-            return _dt_box(arr_idx[key])
+            val = arr_idx[key]
+            if self.freq:
+                # suffer another cache lookup? how to avoid?
+                return _dt_box(val, self.freq, 
+                               self.first + self._engine.get_loc(val))
+            else:
+                return _dt_box(val)
         else:
             if _is_bool_indexer(key):
                 key = np.asarray(key)

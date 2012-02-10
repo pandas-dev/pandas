@@ -10,6 +10,8 @@ from pandas.core.daterange import DateRange, generate_range
 import pandas.core.daterange as daterange
 import pandas.util.testing as tm
 
+import pandas._tseries as lib
+
 try:
     import pytz
 except ImportError:
@@ -350,6 +352,108 @@ class TestDateRange(unittest.TestCase):
 
         result = rng1.union(rng2)
         self.assert_(type(result) == DateRange)
+
+class TestDatetimePyx(unittest.TestCase):
+
+    def test_gen_ann_range(self):
+        rng = lib.generate_annual_range(datetime(2002,1,1), periods=12,
+                dayoffset=0, biz=0)
+
+        self.assert_(len(rng) == 12)
+
+        for i, t in enumerate(rng):
+            t = lib.Timestamp(t)
+            self.assert_(t.day == 1)
+            self.assert_(t.month == 1)
+            self.assert_(t.year == 2002 + i)
+
+        rng = lib.generate_annual_range(datetime(2002,1,1), periods=12,
+                dayoffset=-1, biz=0)
+
+        for i, t in enumerate(rng):
+            t = lib.Timestamp(t)
+            self.assert_(t.day == 31)
+            self.assert_(t.month == 12)
+            self.assert_(t.year == 2001 + i)
+
+        rng = lib.generate_annual_range(datetime(2002,1,1), periods=12,
+                dayoffset=0, biz=-1)
+
+        for i, t in enumerate(rng):
+            t = lib.Timestamp(t)
+            self.assert_(t.weekday() < 5)
+
+        rng = lib.generate_annual_range(datetime(2002,1,1), periods=12,
+                dayoffset=0, biz=1)
+
+        for i, t in enumerate(rng):
+            t = lib.Timestamp(t)
+            self.assert_(t.weekday() < 5)
+
+    def test_gen_mth_range(self):
+        rng = lib.generate_monthly_range(datetime(2002,1,1), periods=12,
+                dayoffset=0, biz=0)
+
+        self.assert_(len(rng) == 12)
+
+        for i, t in enumerate(rng):
+            t = lib.Timestamp(t)
+            self.assert_(t.day == 1)
+            self.assert_(t.month == 1 + i)
+            self.assert_(t.year == 2002)
+
+        rng = lib.generate_monthly_range(datetime(2002,1,1), periods=12,
+                dayoffset=-1, biz=0)
+
+        for i, t in enumerate(rng):
+            t = lib.Timestamp(t)
+            self.assert_(t.day >= 28)
+            self.assert_(t.month == (12 if i == 0 else i))
+            self.assert_(t.year == 2001 + (i != 0))
+
+        rng = lib.generate_monthly_range(datetime(2002,1,1), periods=12,
+                dayoffset=0, biz=-1)
+
+        for i, t in enumerate(rng):
+            t = lib.Timestamp(t)
+            self.assert_(t.weekday() < 5)
+
+        rng = lib.generate_monthly_range(datetime(2002,1,1), periods=12,
+                dayoffset=0, biz=1)
+
+        for i, t in enumerate(rng):
+            t = lib.Timestamp(t)
+            self.assert_(t.weekday() < 5)
+
+        for i in (-2, -1, 1, 2):
+            for j in (-1, 0, 1):
+                rng1 = lib.generate_annual_range(datetime(2002,1,1),
+                        periods=12, dayoffset=i, biz=j)
+                rng2 = lib.generate_monthly_range(datetime(2002,1,1),
+                        periods=12, dayoffset=i, biz=j, stride=12)
+                self.assert_((rng1 == rng2).all())
+
+    def test_gen_dly_range(self):
+        rng = lib.generate_daily_range(datetime(2002,1,1), periods=365, biz=0)
+        self.assert_(len(rng) == 365)
+
+        ts = lib.Timestamp(rng[-1])
+        self.assert_(ts.day == 31)
+        self.assert_(ts.month == 12)
+        self.assert_(ts.year == 2002)
+
+        rng = lib.generate_daily_range(datetime(2004,1,1), periods=366, biz=0)
+        self.assert_(len(rng) == 366)
+
+        ts = lib.Timestamp(rng[-1])
+        self.assert_(ts.day == 31)
+        self.assert_(ts.month == 12)
+        self.assert_(ts.year == 2004)
+
+        rng = lib.generate_daily_range(datetime(2002,1,1), periods=365, biz=1)
+        for i, t in enumerate(rng):
+            t = lib.Timestamp(t)
+            self.assert_(t.weekday() < 5)
 
 if tm.PERFORM_DATETIME64_TESTS:
     class TestDatetime64Range(TestDateRange):

@@ -5,6 +5,8 @@ import sys
 import numpy as np
 import pandas._tseries as lib
 
+from pandas._tseries import Timestamp
+
 try:
     import dateutil
     from dateutil import parser
@@ -43,14 +45,15 @@ def _dt_box_array(arr):
     return boxer(arr)
 
 _box_cache = dict()
-def _dt_box(key):
+def _dt_box(key, freq, offset):
     '''
     Box datetime64 to Timestamp
     '''
     try:
         return _box_cache[key]
     except KeyError:
-        _box_cache[key] = lib.Timestamp(key.view('i8'))
+        _box_cache[key] = lib.Timestamp(key.view('i8'), 
+                                        freq=freq, offset=offset)
         return _box_cache[key]
 
 #dtdtype = [('Y', '>i4'), # year
@@ -276,6 +279,32 @@ class DateOffset(object):
         a = lib.Timestamp(someDate) 
         b = lib.Timestamp(((someDate + self) - self))
         return a == b
+
+
+class BDay2():
+    def __init__(self, n=1):
+        if 'BDay' not in _timestamp_cache:
+            per = lib.count_daily_range(_CACHE_START, _CACHE_END, biz=1)
+            rng = lib.generate_daily_range(_CACHE_START, per + 1, biz=1) 
+            _timestamp_cache['BDay'] = rng
+
+        self.rng = _timestamp_cache['BDay']
+        self.n = n
+
+    def apply(self, other):
+        other = Timestamp(other)
+
+        absn = abs(self.n) 
+        if (other.value < self.rng[absn] or
+            other.value > self.rng[-absn-1]):
+            raise NotImplementedError("Out of range: needs fix")
+
+        idx = self.rng.searchsorted(other.value,
+                                    'left' if self.n > 0 else 'right')
+
+        return Timestamp(self.rng[idx + self.n])
+
+
 
 
 class BDay(DateOffset, CacheableOffset):
