@@ -690,6 +690,27 @@ def _get_freq(freq, start, end=None, n=None):
 
     return (rng, first, last)
 
+def conformity_check(ndarray[int64_t] data, object freq):
+    cdef:
+        Py_ssize_t p, i
+        int64_t first, last
+
+    if len(data) == 0:
+        return None
+
+    rng, first, last = _get_freq(freq, data[0], n=len(data))
+
+    i = 0
+    p = first
+    while i < len(data):
+        if rng[p] != data[i]:
+            return data[i]
+        i += 1
+        p += 1
+
+    return None
+
+
 # The following is derived from relativedelta.py in dateutil package
 # ------------------------------------------------------------------------------
 # Copyright (c) 2003-2010  Gustavo Niemeyer <gustavo@niemeyer.net>

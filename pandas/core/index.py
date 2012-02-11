@@ -1073,6 +1073,14 @@ class DatetimeIndex(Int64Index):
             cached, first, last = lib._get_freq(freq, start, end, n)
             dti = cls._construct_from_cache(name, freq, cached, first, last+1)
             return dti
+        else:
+            # hmm prob want to move this to bottom after data
+            # is constructed
+            if freq is not None:
+                failure = lib.conformity_check(data.view('i8'), freq)
+                if failure is not None:
+                    raise ValueError("%s does not satisfy %s"
+                                     % (np.datetime64(failure), freq))
 
         # TODO: check if data conforms to freq
 
@@ -1151,7 +1159,7 @@ class DatetimeIndex(Int64Index):
             val = arr_idx[key]
             if self.freq:
                 # suffer another cache lookup? how to avoid?
-                return _dt_box(val, self.freq, 
+                return _dt_box(val, self.freq,
                                self.first + self._engine.get_loc(val))
             else:
                 return _dt_box(val)

@@ -45,14 +45,14 @@ def _dt_box_array(arr):
     return boxer(arr)
 
 _box_cache = dict()
-def _dt_box(key, freq, offset):
+def _dt_box(key, freq=None, offset=-1):
     '''
     Box datetime64 to Timestamp
     '''
     try:
         return _box_cache[key]
     except KeyError:
-        _box_cache[key] = lib.Timestamp(key.view('i8'), 
+        _box_cache[key] = lib.Timestamp(key.view('i8'),
                                         freq=freq, offset=offset)
         return _box_cache[key]
 
