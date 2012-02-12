@@ -303,11 +303,19 @@ class GroupBy(object):
 
     def std(self):
         """
-        Compute mean of groups, excluding missing values
+        Compute standard deviation of groups, excluding missing values
 
         For multiple groupings, the result index will be a MultiIndex
         """
         return self._cython_agg_general('std')
+
+    def var(self):
+        """
+        Compute variance of groups, excluding missing values
+
+        For multiple groupings, the result index will be a MultiIndex
+        """
+        return self._cython_agg_general('var')
 
     def size(self):
         """
@@ -595,6 +603,9 @@ class Grouping(object):
                 self._group_index = level_index
                 self.grouper = level_values
         else:
+            if isinstance(self.grouper, (list, tuple)):
+                self.grouper = com._asarray_tuplesafe(self.grouper)
+
             # no level passed
             if not isinstance(self.grouper, np.ndarray):
                 self.grouper = self.index.map(self.grouper)
@@ -1038,7 +1049,7 @@ class DataFrameGroupBy(GroupBy):
             for col, func in arg.iteritems():
                 colg = SeriesGroupBy(obj[col], column=col,
                                      groupings=self.groupings)
-                result[col] = colg.agg(func)
+                result[col] = colg.aggregate(func)
 
             result = DataFrame(result)
         elif isinstance(arg, list):

@@ -72,3 +72,22 @@ groupby_frame_singlekey_integer = \
     Benchmark('df.groupby(labels).sum()', setup,
               start_date=datetime(2011, 8, 1), logy=True)
 
+#----------------------------------------------------------------------
+# group with different functions per column
+
+setup = common_setup + """
+fac1 = np.array(['A', 'B', 'C'], dtype='O')
+fac2 = np.array(['one', 'two'], dtype='O')
+
+df = DataFrame({'key1': fac1.take(np.random.randint(0, 3, size=100000)),
+                'key2': fac2.take(np.random.randint(0, 2, size=100000)),
+                'value1' : np.random.randn(100000),
+                'value2' : np.random.randn(100000),
+                'value3' : np.random.randn(100000)})
+"""
+
+groupby_multi_different_functions = \
+    Benchmark("""df.groupby(['key1', 'key2']).agg({'value1' : 'mean',
+                                                   'value2' : 'var',
+                                                   'value3' : 'sum'})""",
+              setup, start_date=datetime(2011, 9, 1))
