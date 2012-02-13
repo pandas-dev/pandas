@@ -462,6 +462,9 @@ class DataFrame(NDFrame):
                 return com.console_encode(value)
         return com.console_encode(buf.getvalue())
 
+    def _repr_html_(self):
+        return self.to_html()
+
     def __iter__(self):
         """
         Iterate over columns of the frame.
