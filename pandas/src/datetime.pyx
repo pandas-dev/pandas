@@ -249,6 +249,8 @@ cdef inline int64_t weekend_adjustment(int64_t dow, int bkwd):
 cdef:
     int64_t us_in_day = conversion_factor(r_microsecond, r_day)
 
+# TODO: refactor count/generate logic, too much code duplication
+
 def generate_annual_range(object start, Py_ssize_t periods, int64_t dayoffset=0,
                           int64_t biz=0):
     """
@@ -332,7 +334,8 @@ def generate_monthly_range(object start, Py_ssize_t periods, int64_t dayoffset=0
         ndarray[int64_t] dtindex
         _TSObject ts
 
-    assert(stride > 0, "Stride must be positive")
+    if stride <= 0:
+        raise ValueError("Stride must be positive")
 
     ts = convert_to_tsobject(start)
 
@@ -365,8 +368,8 @@ def generate_monthly_range(object start, Py_ssize_t periods, int64_t dayoffset=0
         for j in range(0, stride):
             if m >= 12:
                 m -= 12
-            y += 1
-            ly = is_leapyear(y)
+                y += 1
+                ly = is_leapyear(y)
             days += _days_per_month_table[ly][m]
             m += 1
 
@@ -377,6 +380,72 @@ def generate_monthly_range(object start, Py_ssize_t periods, int64_t dayoffset=0
             dow = (dow + days) % 7
             adj = weekend_adjustment(dow, biz < 0)
             dtindex[i] += adj * us_in_day
+
+    return dtindex # .view(np.datetime64)
+
+def generate_relativemonthly_range(object start, Py_ssize_t periods,
+                                   int64_t week=0, int64_t day=0):
+    """
+    Generate relative monthly timestamps using the month & year of provided
+    start time. For example, fridays of the third week of each month (week=3,
+    day=4); or, thursdays of the last week of each month (week=-1, day=3).
+
+    Parameters
+    ----------
+    start : timestamp-like
+    periods : int
+    week : int
+    day : int, 0 to 6
+
+    Returns
+    -------
+    Array of datetime64
+    """
+    cdef:
+        Py_ssize_t i, m, y, ly
+        int64_t days, adj, dow
+        ndarray[int64_t] dtindex
+        _TSObject ts
+
+    if day < 0 or day > 6:
+        raise ValueError("Day offset must be 0 to 6")
+
+    ts = convert_to_tsobject(start)
+
+    dtindex = np.empty(periods, np.int64)
+
+    # rewind to beginning of month
+    dtindex[0] = ts.value - (ts.dtval.day - 1) * us_in_day
+
+    # apply adjustment: week of month, plus to particular day of week
+    dow = dayofweek(ts.dtval.year, ts.dtval.month, 1)
+    adj = (week * 7) + (day - dow) % 7
+    dtindex[0] += adj * us_in_day
+
+    # for day counting
+    m = ts.dtval.month - 1
+    y = ts.dtval.year
+    ly = is_leapyear(y)
+
+    for i in range(1, periods):
+        # reverse prev adjustment
+        dtindex[i] = dtindex[i-1] - adj * us_in_day
+
+        if m >= 12:
+            m -= 12
+            y += 1
+            ly = is_leapyear(y)
+
+        # move to next month start
+        days = _days_per_month_table[ly][m]
+        dtindex[i] += days * us_in_day
+
+        # apply new adjustment
+        dow = (dow + days) % 7
+        adj = (week * 7) + (day - dow) % 7
+        dtindex[i] += adj * us_in_day
+
+        m += 1
 
     return dtindex # .view(np.datetime64)
 
@@ -404,7 +473,8 @@ def generate_daily_range(object start, Py_ssize_t periods, int64_t stride=1,
         ndarray[int64_t] dtindex
         _TSObject ts
 
-    assert(stride > 0, "Stride must be positive")
+    if stride <= 0:
+        raise ValueError("Stride must be positive")
 
     ts = convert_to_tsobject(start)
 
@@ -520,7 +590,8 @@ def count_monthly_range(object start, object end, int64_t dayoffset=0,
         int64_t i=0, t, days, dow, adj
         _TSObject s, e
 
-    assert(stride > 0, "Stride must be positive")
+    if stride <= 0:
+        raise ValueError("Stride must be positive")
 
     s = convert_to_tsobject(start)
     e = convert_to_tsobject(end)
@@ -568,6 +639,71 @@ def count_monthly_range(object start, object end, int64_t dayoffset=0,
 
     return i
 
+def count_relativemonthly_range(object start, object end,
+                                int64_t week=0, int64_t day=0):
+    """
+    Count relative monthly timestamps using the month & year of start time.
+    For example, friday in the third week of each month (week=3, day=4); or,
+    thursday of last week of each month (week=-1, day=3).
+
+    Parameters
+    ----------
+    start : timestamp-like
+    end : timestamp-like
+    week : int
+    day : int, 0 to 6
+
+    Returns
+    -------
+    Array of datetime64
+    """
+    cdef:
+        Py_ssize_t i=0, m, y, ly
+        int64_t days, adj, dow, t
+        _TSObject s, e
+
+    if day < 0 or day > 6:
+        raise ValueError("Day offset must be 0 to 6")
+
+    s = convert_to_tsobject(start)
+    e = convert_to_tsobject(end)
+
+    # rewind to beginning of month
+    t = s.value - (s.dtval.day - 1) * us_in_day
+
+    # apply adjustment: week of month, plus to particular day of week
+    dow = dayofweek(s.dtval.year, s.dtval.month, 1)
+    adj = (week * 7) + (day - dow) % 7
+    t += adj * us_in_day
+
+    # for day counting
+    m = s.dtval.month - 1
+    y = s.dtval.year
+    ly = is_leapyear(y)
+
+    while t < e.value:
+        i += 1
+        # reverse prev adjustment
+        t = t - adj * us_in_day
+
+        if m >= 12:
+            m -= 12
+            y += 1
+            ly = is_leapyear(y)
+
+        # move to next month start
+        days = _days_per_month_table[ly][m]
+        t += days * us_in_day
+
+        # apply new adjustment
+        dow = (dow + days) % 7
+        adj = (week * 7) + (day - dow) % 7
+        t += adj * us_in_day
+
+        m += 1
+
+    return i
+
 def count_daily_range(object start, object end, stride=1, int64_t biz=0):
     """
     Count number of periods from first conforming date on or after start,
@@ -588,7 +724,8 @@ def count_daily_range(object start, object end, stride=1, int64_t biz=0):
         int64_t i=0, t, dow, adj
         _TSObject s, e
 
-    assert(stride > 0, "Stride must be positive")
+    if stride <= 0:
+        raise ValueError("Stride must be positive")
 
     s = convert_to_tsobject(start)
     e = convert_to_tsobject(end)
@@ -626,25 +763,34 @@ def count_daily_range(object start, object end, stride=1, int64_t biz=0):
 # Here's some frequency caching logic
 # ----------------------------------------------------------------------------------
 
-_CACHE_START = Timestamp(datetime(1950, 1, 1))
-_CACHE_END   = Timestamp(datetime(2030, 1, 1))
+# daily 1850-2050 takes up 73049 x 8bytes / 2**20bytes => 0.56Mb of cache. seems ok
+
+_CACHE_START = Timestamp(datetime(1850, 1, 1))
+_CACHE_END   = Timestamp(datetime(2050, 1, 1))
 
 _fcache = {}
 
 def _get_freq(freq, start, end=None, n=None):
-    # TODO: need some logic to auto-(re)size cache
+    """
+    Retrieve from cache (or generate, first time through) an array of times
+    that correspond to the frequency we care about.
+    """
+
+    # TODO: need some logic to auto-(re)size cache?
 
     if freq not in _fcache:
         #  generate range to cache
         if freq == 'WEEKDAY':
             per = count_daily_range(_CACHE_START, _CACHE_END, biz=1)
-            rng = generate_daily_range(_CACHE_START, per + 1, biz=1)
+            rng = generate_daily_range(_CACHE_START, per, biz=1)
         elif freq == 'DAILY':
             per = count_daily_range(_CACHE_START, _CACHE_END, biz=0)
-            rng = generate_daily_range(_CACHE_START, per + 1, biz=0)
+            rng = generate_daily_range(_CACHE_START, per, biz=0)
         elif freq == 'EOM':
-            per = count_monthly_range(_CACHE_START, _CACHE_END, dayoffset=-1, biz=-1)
-            rng = generate_monthly_range(_CACHE_START, per + 1, dayoffset=-1, biz=-1)
+            per = count_monthly_range(_CACHE_START, _CACHE_END, dayoffset=-1,
+                                      biz=-1)
+            rng = generate_monthly_range(_CACHE_START, per, dayoffset=-1,
+                                         biz=-1)
         elif freq.startswith('W@'):
             begin = _CACHE_START
             offset = _CACHE_START.weekday()
@@ -663,7 +809,69 @@ def _get_freq(freq, start, end=None, n=None):
             begin += timedelta(days=offset)
 
             per = count_daily_range(begin, _CACHE_END, stride=7, biz=1)
-            rng = generate_daily_range(begin, per + 1, stride=7, biz=1)
+            rng = generate_daily_range(begin, per, stride=7, biz=1)
+        elif freq.startswith('Q@'):
+            begin = _CACHE_START
+            if freq.endswith('JAN'):
+                begin += Delta(months=1)
+            elif freq.endswith('FEB'):
+                begin += Delta(months=2)
+            elif freq.endswith('MAR'):
+                begin += Delta(months=3)
+            else:
+                raise ValueError('Bad quarter month %s' % freq)
+
+            per = count_monthly_range(begin, _CACHE_END, dayoffset=-1,
+                                      stride=3, biz=-1)
+            rng = generate_monthly_range(begin, per, dayoffset=-1,
+                                         stride=3, biz=-1)
+        elif freq.startswith('A@'):
+            begin = _CACHE_START
+            if freq.endswith('JAN'):
+                begin += Delta(months=1)
+            elif freq.endswith('FEB'):
+                begin += Delta(months=2)
+            elif freq.endswith('MAR'):
+                begin += Delta(months=3)
+            elif freq.endswith('APR'):
+                begin += Delta(months=4)
+            elif freq.endswith('MAY'):
+                begin += Delta(months=5)
+            elif freq.endswith('JUN'):
+                begin += Delta(months=6)
+            elif freq.endswith('JUL'):
+                begin += Delta(months=7)
+            elif freq.endswith('AUG'):
+                begin += Delta(months=8)
+            elif freq.endswith('SEP'):
+                begin += Delta(months=9)
+            elif freq.endswith('OCT'):
+                begin += Delta(months=10)
+            elif freq.endswith('NOV'):
+                begin += Delta(months=11)
+            elif freq.endswith('DEC'):
+                pass
+            else:
+                raise ValueError('Bad annual month %s' % freq)
+
+            per = count_annual_range(begin, _CACHE_END, dayoffset=-1, biz=-1)
+            rng = generate_annual_range(begin, per, dayoffset=-1, biz=-1)
+        elif freq.startswith('WOM@'):
+            begin = _CACHE_START
+            offset = freq.split('@')[1]
+            dlist = ['MON', 'TUE', 'WED', 'THU', 'FRI']
+            week = int(offset[:-3])
+            dow = offset[-3:]
+            if dow not in dlist:
+                raise ValueError('Bad weekday in %s' % freq)
+            dow = dlist.index(dow)
+
+            per = count_relativemonthly_range(begin, _CACHE_END,
+                                              week=week, day=dow)
+
+            rng = generate_relativemonthly_range(begin, per,
+                                                 week=week, day=dow)
+
         else:
             raise ValueError('Supplied frequency %s not implemented' % freq)
 
@@ -1365,6 +1573,4 @@ def monthrange(int64_t year, int64_t month):
     return (dayofweek(year, month, 1), days)
 
 cdef inline int64_t ts_dayofweek(_TSObject ts):
-    cdef npy_datetimestruct dts
-    PyArray_DatetimeToDatetimeStruct(ts.value, NPY_FR_us, &dts)
-    return dayofweek(dts.year, dts.month, dts.day)
+    return dayofweek(ts.dtval.year, ts.dtval.month, ts.dtval.day)

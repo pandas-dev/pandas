@@ -321,22 +321,6 @@ class Index(np.ndarray):
     def sort(self, *args, **kwargs):
         raise Exception('Cannot sort an Index object')
 
-    def shift(self, periods, offset):
-        """
-        Shift Index containing datetime objects by input number of periods and
-        DateOffset
-
-        Returns
-        -------
-        shifted : Index
-        """
-        if periods == 0:
-            # OK because immutable
-            return self
-
-        offset = periods * offset
-        return Index([idx + offset for idx in self])
-
     def argsort(self, *args, **kwargs):
         """
         See docstring for ndarray.argsort
@@ -1073,16 +1057,6 @@ class DatetimeIndex(Int64Index):
             cached, first, last = lib._get_freq(freq, start, end, n)
             dti = cls._construct_from_cache(name, freq, cached, first, last+1)
             return dti
-        else:
-            # hmm prob want to move this to bottom after data
-            # is constructed
-            if freq is not None:
-                failure = lib.conformity_check(data.view('i8'), freq)
-                if failure is not None:
-                    raise ValueError("%s does not satisfy %s"
-                                     % (np.datetime64(failure), freq))
-
-        # TODO: check if data conforms to freq
 
         if not isinstance(data, np.ndarray):
             if np.isscalar(data):
@@ -1115,6 +1089,12 @@ class DatetimeIndex(Int64Index):
                 if (type(test) == bool and test == True) or test.any():
                     raise TypeError('Unsafe NumPy casting, you must '
                                     'explicitly cast')
+
+        if freq is not None:
+            failure = lib.conformity_check(subarr.view('i8'), freq)
+            if failure is not None:
+                raise ValueError("%s does not satisfy frequency %s"
+                                  % (np.datetime64(failure), freq))
 
         subarr = subarr.view(cls)
         subarr.freq = None
@@ -1158,6 +1138,7 @@ class DatetimeIndex(Int64Index):
                 key = _dt_unbox(key)
             val = arr_idx[key]
             if self.freq:
+                print self.freq
                 # suffer another cache lookup? how to avoid?
                 return _dt_box(val, self.freq,
                                self.first + self._engine.get_loc(val))
