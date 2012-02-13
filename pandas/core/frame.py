@@ -463,7 +463,14 @@ class DataFrame(NDFrame):
         return com.console_encode(buf.getvalue())
 
     def _repr_html_(self):
-        return self.to_html()
+        if len(self.index) <= 1000 and len(self.columns)<= 20:
+            return ('<div style="max-height:1000px;'
+                    'max-width:1500px;overflow:auto;">' +
+                    self.to_html() + '</div>')
+        else:
+            buf = StringIO()
+            self.info(buf=buf, verbose=self._verbose_info)
+            return '<pre>' + com.console_encode(buf.getvalue()) + '</pre>'
 
     def __iter__(self):
         """
