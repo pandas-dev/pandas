@@ -296,6 +296,9 @@ class TestDataFrameFormatting(unittest.TestCase):
         ashtml = x.to_html(bold_rows=False)
         assert('<strong>' not in ashtml)
 
+    def test_repr_html(self):
+        self.frame._repr_html_()
+
 
 class TestSeriesFormatting(unittest.TestCase):
 
