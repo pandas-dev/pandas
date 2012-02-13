@@ -3553,12 +3553,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(sorted_df, expected)
 
         # check for now
-        sorted_df = frame.sort(column='A')
+        sorted_df = frame.sort(columns='A')
         expected = frame.sort_index(by='A')
         assert_frame_equal(sorted_df, expected)
 
-        sorted_df = frame.sort(column='A', ascending=False)
+        sorted_df = frame.sort(columns='A', ascending=False)
         expected = frame.sort_index(by='A', ascending=False)
+        assert_frame_equal(sorted_df, expected)
+
+        sorted_df = frame.sort(columns=['A', 'B'], ascending=False)
+        expected = frame.sort_index(by=['A', 'B'], ascending=False)
         assert_frame_equal(sorted_df, expected)
 
     def test_sort_index_multicolumn(self):

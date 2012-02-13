@@ -2159,7 +2159,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Sorting
 
-    def sort(self, columns=None, axis=0, ascending=True):
+    def sort(self, columns=None, column=None, axis=0, ascending=True):
         """
         Sort DataFrame either by labels (along either axis) or by the values in
         column(s)
@@ -2178,6 +2178,10 @@ class DataFrame(NDFrame):
         -------
         sorted : DataFrame
         """
+        if column is not None:
+            import warnings
+            warnings.warn("column is deprecated, use columns", FutureWarning)
+            columns = column
         return self.sort_index(by=columns, axis=axis, ascending=ascending)
 
     def sort_index(self, axis=0, by=None, ascending=True):
