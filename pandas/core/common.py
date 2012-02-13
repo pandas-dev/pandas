@@ -502,7 +502,10 @@ def _asarray_tuplesafe(values, dtype=None):
 
 def _stringify(col):
     # unicode workaround
-    return unicode(col)
+    try:
+        return unicode(col)
+    except UnicodeError:
+        return console_encode(col)
 
 def _maybe_make_list(obj):
     if obj is not None and not isinstance(obj, (tuple, list)):

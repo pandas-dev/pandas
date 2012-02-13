@@ -83,6 +83,11 @@ class TestDataFrameFormatting(unittest.TestCase):
         buf = StringIO()
         dm.to_string(buf)
 
+    def test_to_string_unicode_three(self):
+        dm = DataFrame(['\xc2'])
+        buf = StringIO()
+        dm.to_string(buf)
+
     def test_to_string_with_formatters_unicode(self):
         df = DataFrame({u'c/\u03c3':[1,2,3]})
         result = df.to_string(formatters={u'c/\u03c3': lambda x: '%s' % x})
