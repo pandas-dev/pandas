@@ -2159,10 +2159,10 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Sorting
 
-    def sort(self, column=None, axis=0, ascending=True):
+    def sort(self, columns=None, axis=0, ascending=True):
         """
         Sort DataFrame either by labels (along either axis) or by the values in
-        a column
+        column(s)
 
         Parameters
         ----------
@@ -2178,7 +2178,7 @@ class DataFrame(NDFrame):
         -------
         sorted : DataFrame
         """
-        return self.sort_index(by=column, axis=axis, ascending=ascending)
+        return self.sort_index(by=columns, axis=axis, ascending=ascending)
 
     def sort_index(self, axis=0, by=None, ascending=True):
         """
