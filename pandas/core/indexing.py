@@ -315,10 +315,13 @@ class _NDFrameIndexer(object):
 
         return self._slice(slicer, axis=axis)
 
+# 32-bit floating point machine epsilon
+_eps = np.finfo('f4').eps
 
 def _is_index_slice(obj):
     def _is_valid_index(x):
-        return com.is_integer(x) or com.is_float(x) and np.allclose(x, int(x))
+        return (com.is_integer(x) or com.is_float(x)
+                and np.allclose(x, int(x), rtol=_eps, atol=0))
 
     def _crit(v):
         return v is None or _is_valid_index(v)
