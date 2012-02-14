@@ -430,6 +430,7 @@ Serialization / IO / Conversion
    DataFrame.from_csv
    DataFrame.from_records
    DataFrame.to_csv
+   DataFrame.to_excel
    DataFrame.to_dict
    DataFrame.to_records
    DataFrame.to_sparse

@@ -323,7 +323,7 @@ of the DataFrame as an html table. The function arguments are as in the method
 ``to_string`` described above.
 
 
-Excel 2003 files
+Excel files
 ----------------
 
 The ``ExcelFile`` class can read an Excel 2003 file using the ``xlrd`` Python
@@ -340,6 +340,35 @@ additional arguments as the parsers above:
 .. code-block:: python
 
    xls.parse('Sheet1', index_col=None, na_values=['NA'])
+
+To read sheets from an Excel 2007 file, you can pass a filename with a ``.xlsx``
+extension, in which case the ``openpyxl`` module will be used to read the file.
+
+To write a DataFrame object to a sheet of an Excel file, you can use the
+``to_excel`` instance method.  The arguments are largely the same as ``to_csv``
+described above, the first argument being the name of the excel file, and the
+optional second argument the name of the sheet to which the DataFrame should be
+written.  For example:
+
+.. code-block:: python
+
+   df.to_excel('path_to_file.xlsx', sheet_name='sheet1')
+
+Files with a ``.xls`` extension will be written using ``xlwt`` and those with
+a ``.xlsx`` extension will be written using ``openpyxl``.
+The Panel class also has a ``to_excel`` instance method,
+which writes each DataFrame in the Panel to a separate sheet.
+
+In order to write separate DataFrames to separate sheets in a single Excel file,
+one can use the ExcelWriter class, as in the following example:
+
+.. code-block:: python
+
+   writer = ExcelWriter('path_to_file.xlsx')
+   df1.to_excel(writer, sheet_name='sheet1')
+   df2.to_excel(writer, sheet_name='sheet2')
+   writer.save()
+
 
 HDF5 (PyTables)
 ---------------

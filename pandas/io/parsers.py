@@ -557,8 +557,9 @@ def _convert_types(values, na_values):
 
 class ExcelFile(object):
     """
-    Class for parsing tabular .xls sheets into DataFrame objects, uses xlrd. See
-    ExcelFile.parse for more documentation
+    Class for parsing tabular excel sheets into DataFrame objects.
+    Uses xlrd for parsing .xls files or openpyxl for .xlsx files.
+    See ExcelFile.parse for more documentation
 
     Parameters
     ----------
