@@ -3431,7 +3431,7 @@ class DataFrame(NDFrame):
         return self._reduce(nanops.nanmedian, axis=axis, skipna=skipna,
                             numeric_only=None)
 
-    @Substitution(name='median absolute deviation', shortname='mad',
+    @Substitution(name='mean absolute deviation', shortname='mad',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
     def mad(self, axis=0, skipna=True, level=None):
