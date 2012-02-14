@@ -66,24 +66,28 @@ cdef class _Timestamp(datetime):
     cdef:
         int64_t value       # numpy int64
         object freq         # frequency reference
-        int64_t offset      # offset into frequency cache
 
     def __add__(self, other):
-        if (is_integer_object(other) or PyInt_Check(other) or
-            PyLong_Check(other)):
-            if self.freq is None or self.offset == -1:
+        cdef:
+            int64_t idx
+            ndarray[int64_t] buf
+            DatetimeCache dtcache
+
+        if is_integer_object(other):
+            if self.freq is None:
                 msg = ("Cannot add integral value to Timestamp "
                        "without both freq and offset.")
                 raise ValueError(msg)
             else:
-                cached = _fcache[self.freq]
-                return Timestamp(cached[self.offset + other])
+                dtcache = _tcaches[self.freq]
+                buf = dtcache.get_cache()
+                idx = dtcache.lookup(self.value)
+                return Timestamp(buf[idx + other])
         else:
             return super(_Timestamp, self).__add__(other)
 
     def __sub__(self, other):
-        if (is_integer_object(other) or PyInt_Check(other) or
-            PyLong_Check(other)):
+        if is_integer_object(other):
             return self.__add__(-other)
         else:
             return super(_Timestamp, self).__sub__(other)
@@ -132,7 +136,7 @@ cdef convert_to_tsobject(object ts):
                             dts.day, dts.hour,
                             dts.min, dts.sec, dts.us)
     # this is cheap
-    elif is_integer_object(ts) or PyInt_Check(ts) or PyLong_Check(ts):
+    elif is_integer_object(ts): # or PyInt_Check(ts) or PyLong_Check(ts):
         retval.value = ts
         PyArray_DatetimeToDatetimeStruct(retval.value, NPY_FR_us, &dts)
         retval.dtval = <object>PyDateTime_FromDateAndTime(
@@ -246,675 +250,530 @@ cdef inline int64_t weekend_adjustment(int64_t dow, int bkwd):
             return (7 - dow)
     return 0
 
-cdef:
-    int64_t us_in_day = conversion_factor(r_microsecond, r_day)
+cdef int64_t us_in_day = conversion_factor(r_microsecond, r_day)
 
-# TODO: refactor count/generate logic, too much code duplication
-
-def generate_annual_range(object start, Py_ssize_t periods, int64_t dayoffset=0,
-                          int64_t biz=0):
+cdef class _Offset:
     """
-    Generate annual timestamps beginning with start time, and apply dayoffset to
+    This class is used to generate timestamps from a provided start time,
+    maintaining state between each call to generate().
+    """
+    cpdef int64_t generate(self):
+        pass
+
+    cpdef reset(self, object start=None):
+        pass
+
+cdef class YearOffset(_Offset):
+    """
+    Generate annual timestamps from provided start time; apply dayoffset to
     each timestamp. If biz > 0, we choose the next business day at each time;
     previous if < 0.
 
     Parameters
     ----------
-    start : timestamp-like
-    periods : int
     dayoffset : int
-    biz : boolean
-
-    Returns
-    -------
-    Array of datetime64
+    biz : int
     """
     cdef:
-        Py_ssize_t i, ly
-        int64_t adj, days, y, dow
-        ndarray[int64_t] dtindex
-        _TSObject ts
+        int64_t t, adj, dow, y, ly
+        object start
+        int64_t dayoffset, biz
 
-    ts = convert_to_tsobject(start)
-    dtindex = np.empty(periods, np.int64)
+    def __init__(self, int64_t dayoffset=0, int64_t biz=0):
+        self.dayoffset = dayoffset
+        self.biz = biz
 
-    dayoffset *= us_in_day
+    cpdef reset(self, object start=None):
+        cdef:
+            _TSObject ts
 
-    # apply offset to first element, propogates through array
-    dtindex[0] = ts.value + dayoffset
-    dow = ts_dayofweek(ts)
+        if start is not None:
+            self.start = start
 
-    # need bday adjustment?
-    if biz != 0:
-        adj = weekend_adjustment(dow, biz < 0)
-    else:
-        adj = 0
+        ts = convert_to_tsobject(self.start)
 
-    dtindex[0] += adj * us_in_day
+        self.t = ts.value + (self.dayoffset * us_in_day)
+        self.y = ts.dtval.year
 
-    # do we count days in year in y or y+1? ignore offset!
-    ly = ts.dtval.month > 2 or (ts.dtval.month == 2 and ts.dtval.day == 29)
-    y  = ts.dtval.year
+        self.ly = (ts.dtval.month > 2
+                   or (ts.dtval.month == 2 and ts.dtval.day == 29))
 
-    for i in range(1, periods):
-        days = 365 + is_leapyear(y + ly)
-        # reverse prior b-day adjustment
-        dtindex[i] = dtindex[i-1] + (days - adj) * us_in_day
-        y += 1
-        # apply new b-day adjustment
-        if biz != 0:
-            dow = (dow + days) % 7
-            adj = weekend_adjustment(dow, biz < 0)
-            dtindex[i] += adj * us_in_day
+        if self.biz != 0:
+            self.dow = (ts_dayofweek(ts) + self.dayoffset) % 7
+            self.adj = weekend_adjustment(self.dow, self.biz < 0)
+        else:
+            self.adj = 0
 
-    return dtindex # .view(np.datetime64)
+    cpdef int64_t generate(self):
+        cdef:
+            int64_t tmp, days
 
-def generate_monthly_range(object start, Py_ssize_t periods, int64_t dayoffset=0,
-                           int64_t stride=1, int64_t biz=0):
+        tmp = self.t + self.adj * us_in_day
+
+        days = 365 + is_leapyear(self.y + self.ly)
+
+        self.t += days * us_in_day
+        self.y += 1
+
+        if self.biz != 0:
+            self.dow = (self.dow + days) % 7
+            self.adj = weekend_adjustment(self.dow, self.biz < 0)
+
+        return tmp
+
+cdef class MonthOffset(_Offset):
     """
-    Generate monthly timestamps beginning with start time, and apply dayoffset to
-    each timestamp. Stride, to construct strided timestamps (eg quarterly). If
-    biz > 0, we choose the next business day at each time; previous if < 0.
+    Generate monthly timestamps from provided start time, and apply dayoffset
+    to each timestamp.  Stride to construct strided timestamps (eg quarterly).
+    If biz > 0, we choose the next business day at each time; previous if < 0.
 
     Parameters
     ----------
-    start : timestamp-like
-    periods : int
     dayoffset : int
     stride : int, > 0
-    biz : boolean
-
-    Returns
-    -------
-    Array of datetime64
+    biz : int
     """
     cdef:
-        Py_ssize_t i, j, m, y, ly
-        int64_t days, dow, adj
-        ndarray[int64_t] dtindex
-        _TSObject ts
+        Py_ssize_t stride, ly, m
+        int64_t t, y, dow, adj, biz, dayoffset
+        object start
 
-    if stride <= 0:
-        raise ValueError("Stride must be positive")
+    def __init__(self, int64_t dayoffset=0, Py_ssize_t stride=1,
+                 int64_t biz=0):
+        self.dayoffset = dayoffset
+        self.stride = stride
+        self.biz = biz
 
-    ts = convert_to_tsobject(start)
+    cpdef reset(self, object start=None):
+        cdef:
+            _TSObject ts
 
-    dtindex = np.empty(periods, np.int64)
+        if start is not None:
+            self.start = start
 
-    dayoffset *= us_in_day
+        if self.stride <= 0:
+            raise ValueError("Stride must be positive")
 
-    # applies offset to first element, propogates through array
-    dtindex[0] = ts.value + dayoffset
-    dow = ts_dayofweek(ts)
+        ts = convert_to_tsobject(self.start)
 
-    # need bday adjustment?
-    if biz != 0:
-        adj = weekend_adjustment(dow, biz < 0)
-    else:
-        adj = 0
+        self.t = ts.value + (self.dayoffset * us_in_day)
 
-    dtindex[0] += adj * us_in_day
+        # for day counting
+        self.m  = ts.dtval.month - 1
+        self.y  = ts.dtval.year
+        self.ly = is_leapyear(self.y)
 
-    # for day counting. ignore offset
-    m = ts.dtval.month - 1
-    y = ts.dtval.year
-    ly = is_leapyear(y)
+        if self.biz != 0:
+            self.dow = (ts_dayofweek(ts) + self.dayoffset) % 7
+            self.adj = weekend_adjustment(self.dow, self.biz < 0)
+        else:
+            self.adj = 0
 
-    for i in range(1, periods):
-        # reverse prev b-day adjustment
-        dtindex[i] = dtindex[i-1] - adj * us_in_day
+    cpdef int64_t generate(self):
+        cdef:
+            int64_t tmp, days
+            Py_ssize_t j
+
+        tmp = self.t + self.adj * us_in_day
 
         days = 0
-        for j in range(0, stride):
-            if m >= 12:
-                m -= 12
-                y += 1
-                ly = is_leapyear(y)
-            days += _days_per_month_table[ly][m]
-            m += 1
+        for j in range(0, self.stride):
+            if self.m >= 12:
+                self.m -= 12
+                self.y += 1
+                self.ly = is_leapyear(self.y)
+            days += _days_per_month_table[self.ly][self.m]
+            self.m += 1
 
-        dtindex[i] += days * us_in_day
+        self.t += days * us_in_day
 
-        # apply new b-day adjustment
-        if biz != 0:
-            dow = (dow + days) % 7
-            adj = weekend_adjustment(dow, biz < 0)
-            dtindex[i] += adj * us_in_day
+        if self.biz != 0:
+            self.dow = (self.dow + days) % 7
+            self.adj = weekend_adjustment(self.dow, self.biz < 0)
 
-    return dtindex # .view(np.datetime64)
+        return tmp
 
-def generate_relativemonthly_range(object start, Py_ssize_t periods,
-                                   int64_t week=0, int64_t day=0):
+cdef class DayOfMonthOffset(_Offset):
     """
-    Generate relative monthly timestamps using the month & year of provided
-    start time. For example, fridays of the third week of each month (week=3,
-    day=4); or, thursdays of the last week of each month (week=-1, day=3).
+    Generate relative monthly timestamps from month & year of provided start
+    time. For example, fridays of the third week of each month (week=3, day=4);
+    or, thursdays of the last week of each month (week=-1, day=3).
 
     Parameters
     ----------
-    start : timestamp-like
-    periods : int
     week : int
     day : int, 0 to 6
-
-    Returns
-    -------
-    Array of datetime64
     """
     cdef:
-        Py_ssize_t i, m, y, ly
-        int64_t days, adj, dow
-        ndarray[int64_t] dtindex
-        _TSObject ts
+        Py_ssize_t stride, ly, m
+        int64_t t, y, dow, adj, day, week
+        object start
 
-    if day < 0 or day > 6:
-        raise ValueError("Day offset must be 0 to 6")
+    def __init__(self, int64_t week=0, int64_t day=0):
+        self.week = week
+        self.day = day
 
-    ts = convert_to_tsobject(start)
+    cpdef reset(self, object start=None):
+        cdef:
+            _TSObject ts
 
-    dtindex = np.empty(periods, np.int64)
+        if start is not None:
+            self.start = start
 
-    # rewind to beginning of month
-    dtindex[0] = ts.value - (ts.dtval.day - 1) * us_in_day
+        if self.day < 0 or self.day > 6:
+            raise ValueError("Day offset must be 0 to 6")
 
-    # apply adjustment: week of month, plus to particular day of week
-    dow = dayofweek(ts.dtval.year, ts.dtval.month, 1)
-    adj = (week * 7) + (day - dow) % 7
-    dtindex[0] += adj * us_in_day
+        ts = convert_to_tsobject(self.start)
 
-    # for day counting
-    m = ts.dtval.month - 1
-    y = ts.dtval.year
-    ly = is_leapyear(y)
+        # rewind to beginning of month
+        self.t = ts.value - (ts.dtval.day - 1) * us_in_day
 
-    for i in range(1, periods):
-        # reverse prev adjustment
-        dtindex[i] = dtindex[i-1] - adj * us_in_day
+        # adjustment: week of month, plus to particular day of week
+        self.dow = dayofweek(ts.dtval.year, ts.dtval.month, 1)
+        self.adj = (self.week * 7) + (self.day - self.dow) % 7
 
-        if m >= 12:
-            m -= 12
-            y += 1
-            ly = is_leapyear(y)
+        # for day counting
+        self.m = ts.dtval.month - 1
+        self.y = ts.dtval.year
+        self.ly = is_leapyear(self.y)
 
-        # move to next month start
-        days = _days_per_month_table[ly][m]
-        dtindex[i] += days * us_in_day
+    cpdef int64_t generate(self):
+        cdef:
+            int64_t tmp, days
 
-        # apply new adjustment
-        dow = (dow + days) % 7
-        adj = (week * 7) + (day - dow) % 7
-        dtindex[i] += adj * us_in_day
+        tmp = self.t + self.adj * us_in_day
 
-        m += 1
+        # advance state
+        days = _days_per_month_table[self.ly][self.m]
+        self.dow = (self.dow + days) % 7
+        self.m += 1
+        if self.m >= 12:
+            self.m -= 12
+            self.y += 1
+            self.ly = is_leapyear(self.y)
 
-    return dtindex # .view(np.datetime64)
+        self.t += days * us_in_day
 
-def generate_daily_range(object start, Py_ssize_t periods, int64_t stride=1,
-                         int64_t biz=0):
+        self.adj = (self.week * 7) + (self.day - self.dow) % 7
+
+        return tmp
+
+cdef class DayOffset(_Offset):
     """
-    Generate daily timestamps beginning with start time. If biz != 0, we skip
-    weekends. Stride, to construct weekly timestamps.
-
+    Generate daily timestamps beginning with first valid time >= start time. If
+    biz != 0, we skip weekends. Stride, to construct weekly timestamps.
 
     Parameters
     ----------
-    start : timestamp-like
-    periods : int
     stride : int, > 0
     biz : boolean
+    """
+    cdef:
+        Py_ssize_t stride
+        int64_t t, adj, dow, biz
+        object start
 
-    Returns
-    -------
-    Array of datetime64
+    def __init__(self, int64_t stride=1, int64_t biz=0):
+        self.stride = stride
+        self.biz = biz
+
+    cpdef reset(self, object start=None):
+        cdef:
+            _TSObject ts
+
+        if start is not None:
+            self.start = start
+
+        if self.stride <= 0:
+            raise ValueError("Stride must be positive")
+
+        ts = convert_to_tsobject(self.start)
+
+        self.t = ts.value
+
+        if self.biz != 0:
+            self.dow = ts_dayofweek(ts)
+            self.adj = weekend_adjustment(self.dow, 0)
+        else:
+            self.adj = 0
+
+    cpdef int64_t generate(self):
+        cdef:
+            int64_t tmp
+
+        tmp = self.t + self.adj * us_in_day
+
+        self.t += (self.stride * us_in_day)
+
+        if self.biz != 0:
+            self.dow += self.stride
+            self.dow %= 7
+            self.adj = weekend_adjustment(self.dow, 0)
+
+        return tmp
+
+cdef ndarray[int64_t] _generate_range(_Offset offset, Py_ssize_t periods):
+    """
+    Generate timestamps according to offset.
     """
     cdef:
         Py_ssize_t i
-        int64_t dow, adj
         ndarray[int64_t] dtindex
-        _TSObject ts
-
-    if stride <= 0:
-        raise ValueError("Stride must be positive")
-
-    ts = convert_to_tsobject(start)
 
     dtindex = np.empty(periods, np.int64)
+    for i in range(periods):
+        dtindex[i] = offset.generate()
+    return dtindex
 
-    dtindex[0] = ts.value
-    dow = ts_dayofweek(ts)
-
-    # need bday adjustment?
-    if biz != 0:
-        adj = weekend_adjustment(dow, 0)
-        if adj != 0:
-            dow = 0
-    else:
-        adj = 0
-
-    dtindex[0] += adj * us_in_day
-
-    # generate weekdays
-    for i in range(1, periods):
-        dtindex[i] = dtindex[i-1] + (stride * us_in_day)
-        if biz != 0:
-            dow += stride
-            dow %= 7
-            # skip sat., sun.
-            if dow == 5:
-                dtindex[i] += 2 * us_in_day
-                dow = 0
-            elif dow == 6:
-                dtindex[i] += us_in_day
-                dow = 0
-
-    return dtindex #.view(np.datetime64)
-
-# counting logic, helps working with ranges as above
-
-def count_annual_range(object start, object end, int64_t dayoffset=0,
-                       int64_t biz=0):
+cdef int64_t _count_range(_Offset offset, object end):
     """
-    Count number of periods from first conforming date on or after start,
-    up to but not including end.
-
-    Parameters
-    ----------
-    start : timestamp-like
-    end : timestamp-like
-    dayoffset : int
-    biz : boolean
-
-    Returns
-    -------
-    int
+    Count timestamps in range according to offset up to (but not including)
+    end time.
     """
     cdef:
-        int64_t i=0, ly, adj, days, y, dow
-        _TSObject s, e
+        Py_ssize_t i=0
+        _TSObject e
 
-    s = convert_to_tsobject(start)
     e = convert_to_tsobject(end)
-
-    dayoffset *= us_in_day
-
-    # apply offset to first element, propogates through array
-    t = s.value + dayoffset
-    dow = ts_dayofweek(s)
-
-    # need bday adjustment?
-    if biz != 0:
-        adj = weekend_adjustment(dow, biz < 0)
-    else:
-        adj = 0
-
-    t += adj * us_in_day
-
-    # do we count days in year in y or y+1? ignore offset!
-    ly = s.dtval.month > 2 or (s.dtval.month == 2 and s.dtval.day == 29)
-    y  = s.dtval.year
-
-    while t < e.value:
+    while offset.generate() < e.value:
         i += 1
-        days = 365 + is_leapyear(y + ly)
-        # reverse prior b-day adjustment
-        t = t + (days - adj) * us_in_day
-        y += 1
-        # apply new b-day adjustment
-        if biz != 0:
-            dow = (dow + days) % 7
-            adj = weekend_adjustment(dow, biz < 0)
-            t += adj * us_in_day
-
-    return i
-
-def count_monthly_range(object start, object end, int64_t dayoffset=0,
-                        int64_t stride=1, int64_t biz=0):
-    """
-    Count number of periods from first conforming date on or after start,
-    up to but not including end.
-
-    Parameters
-    ----------
-    start : timestamp-like
-    end : timestamp-like
-    dayoffset : int
-    stride : int, > 0
-    biz : boolean
-
-    Returns
-    -------
-    int
-    """
-    cdef:
-        Py_ssize_t j, m, y, ly
-        int64_t i=0, t, days, dow, adj
-        _TSObject s, e
-
-    if stride <= 0:
-        raise ValueError("Stride must be positive")
-
-    s = convert_to_tsobject(start)
-    e = convert_to_tsobject(end)
-
-    dayoffset *= us_in_day
-
-    # applies offset to first element, propogates through array
-    t = s.value + dayoffset
-    dow = ts_dayofweek(s)
-
-    # need bday adjustment?
-    if biz != 0:
-        adj = weekend_adjustment(dow, biz < 0)
-    else:
-        adj = 0
-
-    t += adj * us_in_day
-
-    # for day counting
-    m = s.dtval.month - 1
-    y = s.dtval.year
-    ly = is_leapyear(y)
-
-    while t < e.value:
-        i += 1
-        # reverse prev b-day adjustment
-        t = t - adj * us_in_day
-
-        days = 0
-        for j in range(0, stride):
-            if m >= 12:
-                m -= 12
-            y += 1
-            ly = is_leapyear(y)
-            days += _days_per_month_table[ly][m]
-            m += 1
-
-        t += days * us_in_day
-
-        # apply new b-day adjustment
-        if biz != 0:
-            dow = (dow + days) % 7
-            adj = weekend_adjustment(dow, biz < 0)
-            t += adj * us_in_day
-
-    return i
-
-def count_relativemonthly_range(object start, object end,
-                                int64_t week=0, int64_t day=0):
-    """
-    Count relative monthly timestamps using the month & year of start time.
-    For example, friday in the third week of each month (week=3, day=4); or,
-    thursday of last week of each month (week=-1, day=3).
-
-    Parameters
-    ----------
-    start : timestamp-like
-    end : timestamp-like
-    week : int
-    day : int, 0 to 6
-
-    Returns
-    -------
-    Array of datetime64
-    """
-    cdef:
-        Py_ssize_t i=0, m, y, ly
-        int64_t days, adj, dow, t
-        _TSObject s, e
-
-    if day < 0 or day > 6:
-        raise ValueError("Day offset must be 0 to 6")
-
-    s = convert_to_tsobject(start)
-    e = convert_to_tsobject(end)
-
-    # rewind to beginning of month
-    t = s.value - (s.dtval.day - 1) * us_in_day
-
-    # apply adjustment: week of month, plus to particular day of week
-    dow = dayofweek(s.dtval.year, s.dtval.month, 1)
-    adj = (week * 7) + (day - dow) % 7
-    t += adj * us_in_day
-
-    # for day counting
-    m = s.dtval.month - 1
-    y = s.dtval.year
-    ly = is_leapyear(y)
-
-    while t < e.value:
-        i += 1
-        # reverse prev adjustment
-        t = t - adj * us_in_day
-
-        if m >= 12:
-            m -= 12
-            y += 1
-            ly = is_leapyear(y)
-
-        # move to next month start
-        days = _days_per_month_table[ly][m]
-        t += days * us_in_day
-
-        # apply new adjustment
-        dow = (dow + days) % 7
-        adj = (week * 7) + (day - dow) % 7
-        t += adj * us_in_day
-
-        m += 1
-
-    return i
-
-def count_daily_range(object start, object end, stride=1, int64_t biz=0):
-    """
-    Count number of periods from first conforming date on or after start,
-    up to but not including end.
-
-    Parameters
-    ----------
-    start : timestamp-like
-    end : timestamp-like
-    stride : int, > 0
-    biz : boolean
-
-    Returns
-    -------
-    int
-    """
-    cdef:
-        int64_t i=0, t, dow, adj
-        _TSObject s, e
-
-    if stride <= 0:
-        raise ValueError("Stride must be positive")
-
-    s = convert_to_tsobject(start)
-    e = convert_to_tsobject(end)
-
-    t = s.value
-    dow = ts_dayofweek(s)
-
-    # need bday adjustment?
-    if biz != 0:
-        adj = weekend_adjustment(dow, 0)
-        if adj != 0:
-            dow = 0
-    else:
-        adj = 0
-
-    t += adj * us_in_day
-
-    # generate weekdays
-    while t < e.value:
-        i += 1
-        t = t + (stride * us_in_day)
-        if biz != 0:
-            dow += stride
-            dow %= 7
-            # skip sat., sun.
-            if dow == 5:
-                t += 2 * us_in_day
-                dow = 0
-            elif dow == 6:
-                t += us_in_day
-                dow = 0
-
     return i
 
 # Here's some frequency caching logic
 # ----------------------------------------------------------------------------------
 
+# cache size...
 # daily 1850-2050 takes up 73049 x 8bytes / 2**20bytes => 0.56Mb of cache. seems ok
+# double this at least, for indexer
 
-_CACHE_START = Timestamp(datetime(1850, 1, 1))
-_CACHE_END   = Timestamp(datetime(2050, 1, 1))
-
-_fcache = {}
-
-def _get_freq(freq, start, end=None, n=None):
+cdef class DatetimeCache:
     """
-    Retrieve from cache (or generate, first time through) an array of times
-    that correspond to the frequency we care about.
+    Holds a contiguous array of datetimes according to some offset rule, along
+    with a int64=>Py_ssize_t hashtable to discover offsets in that array quickly.
     """
+    cdef:
+        object start
+        object end
+        object cache
+        object periods
 
-    # TODO: need some logic to auto-(re)size cache?
+        _Offset generator
+        Int64HashTable indexer
+        object is_dirty
 
-    if freq not in _fcache:
-        #  generate range to cache
+    def __init__(self, _Offset generator,
+                 object start, object end=None, object periods=None):
+        """
+        Note, prefer periods argument over end for generating range.
+        """
+
+        self.generator = generator
+        self.start = start
+        self.end = end
+        self.cache = None
+        self.periods = periods
+        self.is_dirty = True
+
+    cpdef rebuild(self):
+        cdef:
+            int64_t periods
+            Py_ssize_t i
+            ndarray[int64_t] buf
+
+        if self.periods is not None:
+            periods = self.periods
+            if self.cache is not None and periods < len(self.cache):
+                periods = len(self.cache)
+        else:
+            periods = self.count()
+
+        self.generator.reset(self.start)
+        buf = _generate_range(self.generator, periods)
+
+        if self.end is None:
+            self.end = buf[-1]
+
+        self.cache = buf
+
+        self.indexer = Int64HashTable(size_hint=periods)
+        for i in range(periods):
+            self.indexer.set_item(buf[i], i)
+
+        self.is_dirty = False
+
+    cpdef set_start(self, object start):
+        self.start = start
+        self.is_dirty = True
+
+    cpdef set_end(self, object end):
+        self.end = end
+        self.is_dirty = True
+
+    cpdef set_periods(self, object periods):
+        self.periods = periods
+        self.is_dirty = True
+
+    cpdef Py_ssize_t count(self):
+        if not self.is_dirty:
+            return len(self.cache)
+
+        self.generator.reset(self.start)
+        return _count_range(self.generator, self.end)
+
+    cpdef lookup(self, object tslike):
+        cdef:
+            _TSObject ts
+
+        ts = convert_to_tsobject(tslike)
+        return self.indexer.get_item(ts.value)
+
+    cpdef get_cache(self):
+        return self.cache
+
+_DEFAULT_BEGIN = Timestamp(datetime(1850, 1, 1))
+_DEFAULT_END = Timestamp(datetime(2050, 1, 1))
+_tcaches = {}
+
+_months = {
+    'JAN' : 1,
+    'FEB' : 2,
+    'MAR' : 3,
+    'APR' : 4,
+    'MAY' : 5,
+    'JUN' : 6,
+    'JUL' : 7,
+    'AUG' : 8,
+    'SEP' : 9,
+    'OCT' : 10,
+    'NOV' : 11,
+    'DEC' : 12
+}
+
+_quarters = {
+    'JAN' : 1,
+    'FEB' : 2,
+    'MAR' : 3
+}
+
+_weekdays = {
+    'MON' : 0,
+    'TUE' : 1,
+    'WED' : 2,
+    'THU' : 3,
+    'FRI' : 4
+}
+
+def get_dtcache_freq(freq, start=None, end=None, n=None):
+    """
+    Retrieve from cache (or generate, first time through) times that correspond
+    to the frequency we care about.
+
+    If we fall off end of cache, we generate more cache.
+    """
+    cdef:
+        DatetimeCache tc
+
+    if start is not None:
+        start = Timestamp(start)
+        first = start
+    else:
+        first = _DEFAULT_BEGIN
+
+    if end is not None:
+        end = Timestamp(end)
+        last = end
+    else:
+        last = _DEFAULT_END
+
+    if first.value > _DEFAULT_BEGIN.value:
+        first = _DEFAULT_BEGIN
+
+    if last.value < _DEFAULT_END.value:
+        last = _DEFAULT_END
+
+    if freq not in _tcaches:
         if freq == 'WEEKDAY':
-            per = count_daily_range(_CACHE_START, _CACHE_END, biz=1)
-            rng = generate_daily_range(_CACHE_START, per, biz=1)
+            offset = DayOffset(stride=1, biz=1)
+
         elif freq == 'DAILY':
-            per = count_daily_range(_CACHE_START, _CACHE_END, biz=0)
-            rng = generate_daily_range(_CACHE_START, per, biz=0)
+            offset = DayOffset(stride=1, biz=0)
+
         elif freq == 'EOM':
-            per = count_monthly_range(_CACHE_START, _CACHE_END, dayoffset=-1,
-                                      biz=-1)
-            rng = generate_monthly_range(_CACHE_START, per, dayoffset=-1,
-                                         biz=-1)
+            offset = MonthOffset(dayoffset=-1, biz=-1)
+
         elif freq.startswith('W@'):
-            begin = _CACHE_START
-            offset = _CACHE_START.weekday()
-            if freq.endswith('MON'):
-                offset = (0 - offset) % 7
-            elif freq.endswith('TUE'):
-                offset = (1 - offset) % 7
-            elif freq.endswith('WED'):
-                offset = (2 - offset) % 7
-            elif freq.endswith('THU'):
-                offset = (3 - offset) % 7
-            elif freq.endswith('FRI'):
-                offset = (4 - offset) % 7
-            else:
+            wkd = first.weekday()
+            dow = freq[-3:]
+            if dow not in _weekdays:
                 raise ValueError('Bad weekday %s' % freq)
-            begin += timedelta(days=offset)
+            first += timedelta(days=(_weekdays[dow] - wkd) % 7)
+            offset = DayOffset(stride=7, biz=1)
 
-            per = count_daily_range(begin, _CACHE_END, stride=7, biz=1)
-            rng = generate_daily_range(begin, per, stride=7, biz=1)
         elif freq.startswith('Q@'):
-            begin = _CACHE_START
-            if freq.endswith('JAN'):
-                begin += Delta(months=1)
-            elif freq.endswith('FEB'):
-                begin += Delta(months=2)
-            elif freq.endswith('MAR'):
-                begin += Delta(months=3)
-            else:
-                raise ValueError('Bad quarter month %s' % freq)
+            mo = freq[-3:]
+            if mo not in _quarters:
+                raise ValueError('Bad month quarter %s' % freq)
+            first += Delta(months=_quarters[mo])
+            offset = MonthOffset(dayoffset=-1, stride=3, biz=-1)
 
-            per = count_monthly_range(begin, _CACHE_END, dayoffset=-1,
-                                      stride=3, biz=-1)
-            rng = generate_monthly_range(begin, per, dayoffset=-1,
-                                         stride=3, biz=-1)
         elif freq.startswith('A@'):
-            begin = _CACHE_START
-            if freq.endswith('JAN'):
-                begin += Delta(months=1)
-            elif freq.endswith('FEB'):
-                begin += Delta(months=2)
-            elif freq.endswith('MAR'):
-                begin += Delta(months=3)
-            elif freq.endswith('APR'):
-                begin += Delta(months=4)
-            elif freq.endswith('MAY'):
-                begin += Delta(months=5)
-            elif freq.endswith('JUN'):
-                begin += Delta(months=6)
-            elif freq.endswith('JUL'):
-                begin += Delta(months=7)
-            elif freq.endswith('AUG'):
-                begin += Delta(months=8)
-            elif freq.endswith('SEP'):
-                begin += Delta(months=9)
-            elif freq.endswith('OCT'):
-                begin += Delta(months=10)
-            elif freq.endswith('NOV'):
-                begin += Delta(months=11)
-            elif freq.endswith('DEC'):
-                pass
-            else:
-                raise ValueError('Bad annual month %s' % freq)
+            mo = freq[-3:]
+            if mo not in _months:
+                raise ValueError('Bad annual month in %s' % freq)
+            if _months[mo] < 12:
+                first += Delta(months=_months[mo])
+            offset = YearOffset(dayoffset=-1, biz=-1)
 
-            per = count_annual_range(begin, _CACHE_END, dayoffset=-1, biz=-1)
-            rng = generate_annual_range(begin, per, dayoffset=-1, biz=-1)
         elif freq.startswith('WOM@'):
-            begin = _CACHE_START
             offset = freq.split('@')[1]
-            dlist = ['MON', 'TUE', 'WED', 'THU', 'FRI']
             week = int(offset[:-3])
             dow = offset[-3:]
-            if dow not in dlist:
+            if dow not in _weekdays:
                 raise ValueError('Bad weekday in %s' % freq)
-            dow = dlist.index(dow)
-
-            per = count_relativemonthly_range(begin, _CACHE_END,
-                                              week=week, day=dow)
-
-            rng = generate_relativemonthly_range(begin, per,
-                                                 week=week, day=dow)
+            offset = DayOfMonthOffset(week=week, day=_weekdays[dow])
 
         else:
             raise ValueError('Supplied frequency %s not implemented' % freq)
 
-        # cache range
-        _fcache[freq] = rng
+        first = Timestamp(first)
 
-    rng = _fcache[freq]
-    start = Timestamp(start)
+        _tcaches[freq] = DatetimeCache(offset, first, last)
 
-    if start.value < rng[0]:
-        raise ValueError('Fell off cache, expand timestamp cache')
+    tc = _tcaches[freq]
 
-    first = rng.searchsorted(start.value)
+    if first.value < tc.start.value:
+        tc.set_start(first)
+
+    if last.value > tc.end.value:
+        tc.set_end(last)
+
+    if tc.is_dirty:
+        tc.rebuild()
 
     if n is not None:
-        if n >= len(rng):
-            raise ValueError('Fell off cache, expand timestamp cache')
-        last = first + n - 1
-    else:
-        endval = Timestamp(end).value
-        if endval > rng[-1]:
-            raise ValueError('Fell off cache, expand timestamp cache')
-        last = rng.searchsorted(endval)
+        idx = tc.lookup(start.value)
+        if idx + n > tc.count():
+            tc.set_periods(idx + n)
+            tc.rebuild()
 
-    return (rng, first, last)
+    return tc
 
 def conformity_check(ndarray[int64_t] data, object freq):
     cdef:
-        Py_ssize_t p, i
-        int64_t first, last
+        Py_ssize_t i
 
     if len(data) == 0:
         return None
 
-    rng, first, last = _get_freq(freq, data[0], n=len(data))
+    cache = get_dtcache_freq(freq, data[0], n=len(data))
 
     i = 0
-    p = first
     while i < len(data):
-        if rng[p] != data[i]:
+        try:
+            cache.lookup(data[i])
+        except KeyError:
             return data[i]
         i += 1
-        p += 1
 
     return None
 
@@ -1471,15 +1330,11 @@ cdef class Delta:
 
 def pydt_to_i8(object pydt):
     '''
-    Convert from python datetime object to int64 representation compatible with
-    numpy datetime64; converts to UTC
+    Convert to int64 representation compatible with numpy datetime64; converts
+    to UTC
     '''
     cdef:
         _TSObject ts
-
-    if (not PyDateTime_Check(pydt) and
-        not isinstance(pydt, Timestamp)):
-        raise ValueError("Expected a timestamp, received a %s" % type(pydt))
 
     ts = convert_to_tsobject(pydt)
 
@@ -1490,7 +1345,6 @@ def i8_to_pydt(int64_t i8, object tzinfo = None):
     Inverse of pydt_to_i8
     '''
     return Timestamp(i8)
-
 
 # Accessors
 # ------------------------------------------------------------------------------

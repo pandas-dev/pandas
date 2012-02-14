@@ -25,36 +25,32 @@ import calendar
 #-------------------------------------------------------------------------------
 # Boxing and unboxing
 
-_unbox_cache = dict()
+def _dt_box(key, freq=None, offset=-1):
+    '''
+    timestamp-like (int64, python datetime, etc.) => Timestamp
+    '''
+    return lib.Timestamp(key, freq=freq, offset=offset)
+
 def _dt_unbox(key):
     '''
-    Unbox Timestamp to datetime64
+    Timestamp-like => dt64
     '''
-    try:
-        return _unbox_cache[key]
-    except KeyError:
-        _unbox_cache[key] = np.datetime64(lib.pydt_to_i8(key))
-        return _unbox_cache[key]
+    return np.datetime64(lib.pydt_to_i8(key))
 
 def _dt_unbox_array(arr):
+    if arr is None:
+        return arr
+
     unboxer = np.frompyfunc(_dt_unbox, 1, 1)
     return unboxer(arr)
 
-def _dt_box_array(arr):
-    boxer = np.frompyfunc(lib.Timestamp, 1, 1)
-    return boxer(arr)
+def _dt_box_array(arr, freq=None, offset=-1):
+    if arr is None:
+        return arr
 
-_box_cache = dict()
-def _dt_box(key, freq=None, offset=-1):
-    '''
-    Box datetime64 to Timestamp
-    '''
-    try:
-        return _box_cache[key]
-    except KeyError:
-        _box_cache[key] = lib.Timestamp(key.view('i8'),
-                                        freq=freq, offset=offset)
-        return _box_cache[key]
+    boxfunc = lambda x: _dt_box(x, freq=freq, offset=offset)
+    boxer = np.frompyfunc(boxfunc, 1, 1)
+    return boxer(arr)
 
 #-------------------------------------------------------------------------------
 # Miscellaneous date functions

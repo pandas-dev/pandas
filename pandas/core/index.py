@@ -60,14 +60,16 @@ class Index(np.ndarray):
     _backfill = lib.backfill_object
 
     name = None
+    asi8 = None
 
     def __new__(cls, data, dtype=None, copy=False, name=None):
         if isinstance(data, np.ndarray):
-            if dtype is None and issubclass(data.dtype.type, np.datetime64):
-                return DatetimeIndex(data, copy=copy, name=name)
+            if dtype is None:
+                if issubclass(data.dtype.type, np.datetime64):
+                    return DatetimeIndex(data, copy=copy, name=name)
 
-            if dtype is None and issubclass(data.dtype.type, np.integer):
-                return Int64Index(data, copy=copy, name=name)
+                if issubclass(data.dtype.type, np.integer):
+                    return Int64Index(data, copy=copy, name=name)
 
             subarr = np.array(data, dtype=object, copy=copy)
         elif np.isscalar(data):
@@ -78,16 +80,13 @@ class Index(np.ndarray):
             subarr = _asarray_tuplesafe(data, dtype=object)
 
         if dtype is None:
-            if (lib.is_datetime_array(subarr) or 
-                lib.is_datetime64_array(subarr)):
-                return DatetimeIndex(subarr.astype('M8[us]'), name=name)
+            if (lib.is_datetime_array(subarr)
+                or lib.is_datetime64_array(subarr)
+                or lib.is_timestamp_array(subarr)):
+                return DatetimeIndex(subarr, copy=copy, name=name)
 
-            elif lib.is_timestamp_array(subarr):
-                return DatetimeIndex(_dt_unbox_array(subarr).astype('M8[us]'), 
-                                    name=name)
-
-        if lib.is_integer_array(subarr) and dtype is None:
-            return Int64Index(subarr.astype('i8'), name=name)
+            if lib.is_integer_array(subarr):
+                return Int64Index(subarr.astype('i8'), name=name)
 
         subarr = subarr.view(cls)
         subarr.name = name
@@ -944,7 +943,7 @@ class Int64Index(Index):
         name = self.name if self.name == other.name else None
         return Int64Index(joined, name=name)
 
-# -------- some conversion functions for datetime <--> datetime64
+# -------- some conversion wrapper functions
 
 def _as_i8(arg):
     if isinstance(arg, np.ndarray):
@@ -959,16 +958,10 @@ def _wrap_i8_function(f):
         return f(*view_args, **kwargs)
     return wrapper
 
-def _dt_index_box(arg):
-    if isinstance(arg, np.ndarray):
-        return arg.astype('O')
-    else:
-        return arg
-
 def _wrap_dt_function(f):
     @staticmethod
     def wrapper(*args, **kwargs):
-        view_args = [_dt_index_box(arg) for arg in args]
+        view_args = [_dt_box_array(arg) for arg in args]
         return f(*view_args, **kwargs)
     return wrapper
 
@@ -989,7 +982,7 @@ def _join_i8_wrapper(joinf, with_indexers=True):
 
 def _dt_index_cmp(opname):
     """
-    Wrap comparison operations to unbox a datetime to a datetime64.
+    Wrap comparison operations to unbox datetime-like to a datetime64.
     """
     def wrapper(self, other):
         if isinstance(other, datetime):
@@ -1002,7 +995,7 @@ def _dt_index_cmp(opname):
 
 def _dt_index_op(opname):
     """
-    Wrap arithmetic operations to unbox a datetime to a datetime64.
+    Wrap arithmetic operations to unbox a timedelta to a timedelta64.
     """
     def wrapper(self, other):
         if isinstance(other, timedelta):
@@ -1012,9 +1005,6 @@ def _dt_index_op(opname):
             func = getattr(super(DatetimeIndex, self), opname)
             return func(other)
     return wrapper
-
-# TODO: there is too much view/M8us stuff going on. better to just
-# have as integer internals probably
 
 class DatetimeIndex(Int64Index):
 
@@ -1054,8 +1044,21 @@ class DatetimeIndex(Int64Index):
             if end is None and n is None:
                 raise ValueError("No data, must supply end or n")
 
-            cached, first, last = lib._get_freq(freq, start, end, n)
-            dti = cls._construct_from_cache(name, freq, cached, first, last+1)
+            dtcache = lib.get_dtcache_freq(freq, start, end, n)
+            buf = dtcache.get_cache()
+            try:
+                first = dtcache.lookup(start)
+                if n is not None:
+                    dti = cls._construct_from_cache(name, freq, buf,
+                                                    first, first + n)
+                else:
+                    last = dtcache.lookup(end)
+                    dti = cls._construct_from_cache(name, freq, buf,
+                                                    first, last + 1)
+            except KeyError, e:
+                raise ValueError("Non-conforming time: %s"
+                                 % np.datetime64(e.message))
+
             return dti
 
         if not isinstance(data, np.ndarray):
@@ -1084,21 +1087,16 @@ class DatetimeIndex(Int64Index):
             subarr = np.array(data, dtype='M8[us]', copy=copy)
         else:
             subarr = np.array(data, dtype='M8[us]', copy=copy)
-            if len(data) > 0:
-                test = (subarr != data)
-                if (type(test) == bool and test == True) or test.any():
-                    raise TypeError('Unsafe NumPy casting, you must '
-                                    'explicitly cast')
-
-        if freq is not None:
-            failure = lib.conformity_check(subarr.view('i8'), freq)
-            if failure is not None:
-                raise ValueError("%s does not satisfy frequency %s"
-                                  % (np.datetime64(failure), freq))
 
         subarr = subarr.view(cls)
         subarr.freq = None
         subarr.name = name
+
+        if freq is not None:
+            failure = lib.conformity_check(subarr.asi8, freq)
+            if failure is not None:
+                raise ValueError("%s does not satisfy frequency %s"
+                                  % (np.datetime64(failure), freq))
 
         return subarr
 
@@ -1123,6 +1121,11 @@ class DatetimeIndex(Int64Index):
 
         return newdti
 
+    @property
+    def asi8(self):
+        # to do: cache me?
+        return self.values.view('i8')
+
     def shift(self, n=1):
         if self.freq is None:
             raise ValueError("Cannot shift, frequency of index is empty")
@@ -1138,7 +1141,6 @@ class DatetimeIndex(Int64Index):
                 key = _dt_unbox(key)
             val = arr_idx[key]
             if self.freq:
-                print self.freq
                 # suffer another cache lookup? how to avoid?
                 return _dt_box(val, self.freq,
                                self.first + self._engine.get_loc(val))
@@ -1170,46 +1172,46 @@ class DatetimeIndex(Int64Index):
 
     @property
     def year(self):
-        return lib.fast_field_accessor(self.values.view('i8'), 'Y')
+        return lib.fast_field_accessor(self.asi8, 'Y')
 
     @property
     def month(self):
-        return lib.fast_field_accessor(self.values.view('i8'), 'M')
+        return lib.fast_field_accessor(self.asi8, 'M')
 
     @property
     def day(self):
-        return lib.fast_field_accessor(self.values.view('i8'), 'D')
+        return lib.fast_field_accessor(self.asi8, 'D')
 
     @property
     def hour(self):
-        return lib.fast_field_accessor(self.values.view('i8'), 'h')
+        return lib.fast_field_accessor(self.asi8, 'h')
 
     @property
     def minute(self):
-        return lib.fast_field_accessor(self.values.view('i8'), 'm')
+        return lib.fast_field_accessor(self.asi8, 'm')
 
     @property
     def second(self):
-        return lib.fast_field_accessor(self.values.view('i8'), 's')
+        return lib.fast_field_accessor(self.asi8, 's')
 
     @property
     def microsecond(self):
-        return lib.fast_field_accessor(self.values.view('i8'), 'us')
+        return lib.fast_field_accessor(self.asi8, 'us')
 
     def __iter__(self):
-        return iter(_dt_box_array(self.values.view('i8')))
-        #return iter(self.values.astype('O'))
+        asi8 = self.asi8
+        if hasattr(self, 'freq') and self.freq is not None:
+            zeroloc = self.first + self._engine.get_loc(asi8[0])
+            return iter(_dt_box_array(asi8, self.freq, zeroloc))
+        else:
+            return iter(_dt_box_array(asi8))
 
     def searchsorted(self, key, side='left'):
-        """
-        Workaround numpy coredump in searchsorted
-        """
-        if isinstance(key, (datetime, lib.Timestamp)):
-            key = _dt_unbox(lib.Timestamp(key))
-        elif isinstance(key, np.ndarray):
+        if isinstance(key, np.ndarray):
             key = np.array(key, dtype='M8[us]', copy=False)
-        elif not isinstance(key, np.datetime64):
-            raise TypeError("Key %s is unrecognized type" % key)
+        else:
+            key = _dt_unbox(key)
+
         return self.values.searchsorted(key, side=side)
 
     def is_type_compatible(self, typ):
@@ -1239,9 +1241,8 @@ class DatetimeIndex(Int64Index):
 
     @cache_readonly
     def _engine(self):
-        view = self.view('i8', type=np.ndarray)
         mapping = lib.map_indices_int64
-        return _gin.DictIndexEngineDatetime(view, mapping)
+        return _gin.DictIndexEngineDatetime(self.asi8, mapping)
 
     def equals(self, other):
         """
@@ -1250,18 +1251,13 @@ class DatetimeIndex(Int64Index):
         if self is other:
             return True
 
-        if other.inferred_type == 'datetime64':
-            other = other.view('i8', type=np.ndarray)
-        elif other.inferred_type == 'datetime':
-            # TODO: faster conversion from datetime object to datetime64?
-            other = np.array(other, dtype='M8[us]', copy=False)
-            other = other.view('i8', type=np.ndarray)
-        elif len(other) == 0 and len(self) == 0 and other.dtype == object:
-            # fun corner case
-            return True
+        if other.inferred_type != 'datetime64':
+            try:
+                other = DatetimeIndex(other)
+            except:
+                return False
 
-        selfi8 = self.view('i8', type=np.ndarray)
-        return np.array_equal(selfi8, other)
+        return np.array_equal(self.asi8, other.asi8)
 
     def insert(self, loc, item):
         """

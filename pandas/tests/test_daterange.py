@@ -355,105 +355,162 @@ class TestDateRange(unittest.TestCase):
 
 class TestDatetimePyx(unittest.TestCase):
 
-    def test_gen_ann_range(self):
-        rng = lib.generate_annual_range(datetime(2002,1,1), periods=12,
-                dayoffset=0, biz=0)
+    def test_yearoffset(self):
+        do  = lib.YearOffset(dayoffset=0, biz=0)
+        rng = lib.DatetimeCache(do, start=datetime(2002,1,1), periods=12)
+        rng.rebuild()
+        buf = rng.get_cache()
 
-        self.assert_(len(rng) == 12)
+        self.assert_(len(buf) == 12)
 
-        for i, t in enumerate(rng):
+        for i, t in enumerate(buf):
             t = lib.Timestamp(t)
             self.assert_(t.day == 1)
             self.assert_(t.month == 1)
             self.assert_(t.year == 2002 + i)
 
-        rng = lib.generate_annual_range(datetime(2002,1,1), periods=12,
-                dayoffset=-1, biz=0)
+        do  = lib.YearOffset(dayoffset=-1, biz=0)
+        rng = lib.DatetimeCache(do, start=datetime(2002,1,1), periods=12)
+        rng.rebuild()
+        buf = rng.get_cache()
 
-        for i, t in enumerate(rng):
+        for i, t in enumerate(buf):
             t = lib.Timestamp(t)
             self.assert_(t.day == 31)
             self.assert_(t.month == 12)
             self.assert_(t.year == 2001 + i)
 
-        rng = lib.generate_annual_range(datetime(2002,1,1), periods=12,
-                dayoffset=0, biz=-1)
+        do  = lib.YearOffset(dayoffset=-1, biz=-1)
+        rng = lib.DatetimeCache(do, start=datetime(2002,1,1), periods=12)
+        rng.rebuild()
+        buf = rng.get_cache()
 
-        for i, t in enumerate(rng):
+        for i, t in enumerate(buf):
             t = lib.Timestamp(t)
             self.assert_(t.weekday() < 5)
 
-        rng = lib.generate_annual_range(datetime(2002,1,1), periods=12,
-                dayoffset=0, biz=1)
+        do  = lib.YearOffset(dayoffset=0, biz=1)
+        rng = lib.DatetimeCache(do, start=datetime(2002,1,1), periods=12)
+        rng.rebuild()
+        buf = rng.get_cache()
 
-        for i, t in enumerate(rng):
+        for i, t in enumerate(buf):
             t = lib.Timestamp(t)
             self.assert_(t.weekday() < 5)
 
-    def test_gen_mth_range(self):
-        rng = lib.generate_monthly_range(datetime(2002,1,1), periods=12,
-                dayoffset=0, biz=0)
+    def test_monthoffset(self):
+        do  = lib.MonthOffset(dayoffset=0, biz=0)
+        rng = lib.DatetimeCache(do, start=datetime(2002,1,1), periods=12)
+        rng.rebuild()
+        buf = rng.get_cache()
 
-        self.assert_(len(rng) == 12)
+        self.assert_(len(buf) == 12)
 
-        for i, t in enumerate(rng):
+        for i, t in enumerate(buf):
             t = lib.Timestamp(t)
             self.assert_(t.day == 1)
             self.assert_(t.month == 1 + i)
             self.assert_(t.year == 2002)
 
-        rng = lib.generate_monthly_range(datetime(2002,1,1), periods=12,
-                dayoffset=-1, biz=0)
+        do  = lib.MonthOffset(dayoffset=-1, biz=0)
+        rng = lib.DatetimeCache(do, start=datetime(2002,1,1), periods=12)
+        rng.rebuild()
+        buf = rng.get_cache()
 
-        for i, t in enumerate(rng):
+        for i, t in enumerate(buf):
             t = lib.Timestamp(t)
             self.assert_(t.day >= 28)
             self.assert_(t.month == (12 if i == 0 else i))
             self.assert_(t.year == 2001 + (i != 0))
 
-        rng = lib.generate_monthly_range(datetime(2002,1,1), periods=12,
-                dayoffset=0, biz=-1)
+        do  = lib.MonthOffset(dayoffset=0, biz=-1)
+        rng = lib.DatetimeCache(do, start=datetime(2002,1,1), periods=12)
+        rng.rebuild()
+        buf = rng.get_cache()
 
-        for i, t in enumerate(rng):
+        for i, t in enumerate(buf):
             t = lib.Timestamp(t)
             self.assert_(t.weekday() < 5)
 
-        rng = lib.generate_monthly_range(datetime(2002,1,1), periods=12,
-                dayoffset=0, biz=1)
+        do  = lib.MonthOffset(dayoffset=0, biz=1)
+        rng = lib.DatetimeCache(do, start=datetime(2002,1,1), periods=12)
+        rng.rebuild()
+        buf = rng.get_cache()
 
-        for i, t in enumerate(rng):
+        for i, t in enumerate(buf):
             t = lib.Timestamp(t)
             self.assert_(t.weekday() < 5)
 
         for i in (-2, -1, 1, 2):
             for j in (-1, 0, 1):
-                rng1 = lib.generate_annual_range(datetime(2002,1,1),
-                        periods=12, dayoffset=i, biz=j)
-                rng2 = lib.generate_monthly_range(datetime(2002,1,1),
-                        periods=12, dayoffset=i, biz=j, stride=12)
-                self.assert_((rng1 == rng2).all())
+                do1 = lib.MonthOffset(dayoffset=i, biz=j, stride=12)
+                do2 = lib.YearOffset(dayoffset=i, biz=j)
+                rng1 = lib.DatetimeCache(do1, start=datetime(2002,1,1), 
+                                         periods=12)
+                rng2 = lib.DatetimeCache(do2, start=datetime(2002,1,1), 
+                                         periods=12)
+                rng1.rebuild()
+                rng2.rebuild()
 
-    def test_gen_dly_range(self):
-        rng = lib.generate_daily_range(datetime(2002,1,1), periods=365, biz=0)
-        self.assert_(len(rng) == 365)
+                buf1 = rng1.get_cache()
+                buf2 = rng2.get_cache()
 
-        ts = lib.Timestamp(rng[-1])
+                self.assert_((buf1 == buf2).all())
+
+    def test_dayoffset(self):
+        do  = lib.DayOffset(biz=0)
+        rng = lib.DatetimeCache(do, start=datetime(2002,1,1), periods=365)
+        rng.rebuild()
+        buf = rng.get_cache()
+
+        self.assert_(len(buf) == 365)
+
+        ts = lib.Timestamp(buf[-1])
         self.assert_(ts.day == 31)
         self.assert_(ts.month == 12)
         self.assert_(ts.year == 2002)
 
-        rng = lib.generate_daily_range(datetime(2004,1,1), periods=366, biz=0)
-        self.assert_(len(rng) == 366)
+        do  = lib.DayOffset(biz=0)
+        rng = lib.DatetimeCache(do, start=datetime(2004,1,1), periods=366)
+        rng.rebuild()
+        buf = rng.get_cache()
 
-        ts = lib.Timestamp(rng[-1])
+        ts = lib.Timestamp(buf[-1])
         self.assert_(ts.day == 31)
         self.assert_(ts.month == 12)
         self.assert_(ts.year == 2004)
 
-        rng = lib.generate_daily_range(datetime(2002,1,1), periods=365, biz=1)
-        for i, t in enumerate(rng):
+        do  = lib.DayOffset(biz=1)
+        rng = lib.DatetimeCache(do, start=datetime(2002,1,1), periods=365)
+        rng.rebuild()
+        buf = rng.get_cache()
+
+        for i, t in enumerate(buf):
             t = lib.Timestamp(t)
             self.assert_(t.weekday() < 5)
+
+    def test_dayofmonthoffset(self):
+        do  = lib.DayOfMonthOffset(week=-1, day=4)
+        rng = lib.DatetimeCache(do, start=datetime(2002,1,1), periods=40)
+        rng.rebuild()
+        buf = rng.get_cache()
+
+        self.assert_(len(buf) == 40)
+
+        for i, t in enumerate(buf):
+            t = lib.Timestamp(t)
+            self.assert_(t.weekday() == 4)
+
+        do  = lib.DayOfMonthOffset(week=2, day=2)
+        rng = lib.DatetimeCache(do, start=datetime(2002,1,1), periods=40)
+        rng.rebuild()
+        buf = rng.get_cache()
+
+        self.assert_(len(buf) == 40)
+
+        for i, t in enumerate(buf):
+            t = lib.Timestamp(t)
+            self.assert_(t.weekday() == 2)
 
 if tm.PERFORM_DATETIME64_TESTS:
     class TestDatetime64Range(TestDateRange):
