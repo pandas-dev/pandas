@@ -254,14 +254,51 @@ cdef int64_t us_in_day = conversion_factor(r_microsecond, r_day)
 
 cdef class _Offset:
     """
-    This class is used to generate timestamps from a provided start time,
-    maintaining state between each call to generate().
+    Base class to generate timestamps. Set the anchor, and then move offsets
+    with next & prev. Retrieve timestamp with ts attribute.
     """
-    cpdef int64_t generate(self):
+    cdef:
+        int64_t t, dow, biz, dayoffset
+        object start
+        _TSObject ts
+
+    def __cinit__(self):
+        self.t=0
+        self.dow=0
+        self.biz=0 
+        self.dayoffset=0
+
+    cpdef anchor(self, object start=None):
+        if start is not None:
+            self.start = start
+        self.ts = convert_to_tsobject(self.start)
+        self._setup()
+
+    cdef _setup(self):
         pass
 
-    cpdef reset(self, object start=None):
+    cpdef next(self):
         pass
+
+    cpdef prev(self):
+        pass
+
+    cdef int64_t _ts(self):
+        """
+        Access the current timestamp value, with a possible weekday
+        adjustment.
+        """
+        cdef int64_t adj
+
+        if self.biz != 0:
+            adj = weekend_adjustment(self.dow, self.biz < 0)
+            return self.t + us_in_day * adj
+        else:
+            return self.t
+
+    property ts:
+        def __get__(self):
+            return self._ts()
 
 cdef class YearOffset(_Offset):
     """
@@ -275,40 +312,26 @@ cdef class YearOffset(_Offset):
     biz : int
     """
     cdef:
-        int64_t t, adj, dow, y, ly
-        object start
-        int64_t dayoffset, biz
+        int64_t y, ly
 
     def __init__(self, int64_t dayoffset=0, int64_t biz=0):
         self.dayoffset = dayoffset
         self.biz = biz
 
-    cpdef reset(self, object start=None):
-        cdef:
-            _TSObject ts
+    cdef _setup(self):
+        cdef _TSObject ts = self.ts
 
-        if start is not None:
-            self.start = start
-
-        ts = convert_to_tsobject(self.start)
-
-        self.t = ts.value + (self.dayoffset * us_in_day)
+        self.t = ts.value + self.dayoffset * us_in_day
         self.y = ts.dtval.year
 
-        self.ly = (ts.dtval.month > 2
-                   or (ts.dtval.month == 2 and ts.dtval.day == 29))
+        self.ly = (ts.dtval.month > 2 or 
+                   ts.dtval.month == 2 and ts.dtval.day == 29)
 
         if self.biz != 0:
             self.dow = (ts_dayofweek(ts) + self.dayoffset) % 7
-            self.adj = weekend_adjustment(self.dow, self.biz < 0)
-        else:
-            self.adj = 0
 
-    cpdef int64_t generate(self):
-        cdef:
-            int64_t tmp, days
-
-        tmp = self.t + self.adj * us_in_day
+    cpdef next(self):
+        cdef int64_t days
 
         days = 365 + is_leapyear(self.y + self.ly)
 
@@ -317,9 +340,17 @@ cdef class YearOffset(_Offset):
 
         if self.biz != 0:
             self.dow = (self.dow + days) % 7
-            self.adj = weekend_adjustment(self.dow, self.biz < 0)
 
-        return tmp
+    cpdef prev(self):
+        cdef int64_t days
+
+        days = 365 + is_leapyear(self.y - (1-self.ly))
+
+        self.t -= days * us_in_day
+        self.y -= 1
+
+        if self.biz != 0:
+            self.dow = (self.dow - days) % 7
 
 cdef class MonthOffset(_Offset):
     """
@@ -335,8 +366,7 @@ cdef class MonthOffset(_Offset):
     """
     cdef:
         Py_ssize_t stride, ly, m
-        int64_t t, y, dow, adj, biz, dayoffset
-        object start
+        int64_t y
 
     def __init__(self, int64_t dayoffset=0, Py_ssize_t stride=1,
                  int64_t biz=0):
@@ -344,17 +374,11 @@ cdef class MonthOffset(_Offset):
         self.stride = stride
         self.biz = biz
 
-    cpdef reset(self, object start=None):
-        cdef:
-            _TSObject ts
-
-        if start is not None:
-            self.start = start
-
-        if self.stride <= 0:
+        if stride <= 0:
             raise ValueError("Stride must be positive")
 
-        ts = convert_to_tsobject(self.start)
+    cdef _setup(self):
+        cdef _TSObject ts = self.ts
 
         self.t = ts.value + (self.dayoffset * us_in_day)
 
@@ -365,16 +389,11 @@ cdef class MonthOffset(_Offset):
 
         if self.biz != 0:
             self.dow = (ts_dayofweek(ts) + self.dayoffset) % 7
-            self.adj = weekend_adjustment(self.dow, self.biz < 0)
-        else:
-            self.adj = 0
 
-    cpdef int64_t generate(self):
+    cpdef next(self):
         cdef:
             int64_t tmp, days
             Py_ssize_t j
-
-        tmp = self.t + self.adj * us_in_day
 
         days = 0
         for j in range(0, self.stride):
@@ -389,9 +408,25 @@ cdef class MonthOffset(_Offset):
 
         if self.biz != 0:
             self.dow = (self.dow + days) % 7
-            self.adj = weekend_adjustment(self.dow, self.biz < 0)
 
-        return tmp
+    cpdef prev(self):
+        cdef:
+            int64_t tmp, days
+            Py_ssize_t j
+
+        days = 0
+        for j in range(0, self.stride):
+            if self.m < 0:
+                self.m += 12
+                self.y -= 1
+                self.ly = is_leapyear(self.y)
+            days += _days_per_month_table[self.ly][self.m]
+            self.m -= 1
+
+        self.t -= days * us_in_day
+
+        if self.biz != 0:
+            self.dow = (self.dow - days) % 7
 
 cdef class DayOfMonthOffset(_Offset):
     """
@@ -405,58 +440,60 @@ cdef class DayOfMonthOffset(_Offset):
     day : int, 0 to 6
     """
     cdef:
-        Py_ssize_t stride, ly, m
-        int64_t t, y, dow, adj, day, week
-        object start
+        Py_ssize_t ly, m
+        int64_t y, day, week
 
     def __init__(self, int64_t week=0, int64_t day=0):
         self.week = week
         self.day = day
 
-    cpdef reset(self, object start=None):
-        cdef:
-            _TSObject ts
-
-        if start is not None:
-            self.start = start
-
         if self.day < 0 or self.day > 6:
             raise ValueError("Day offset must be 0 to 6")
 
-        ts = convert_to_tsobject(self.start)
+    cdef _setup(self):
+        cdef _TSObject ts = self.ts
 
         # rewind to beginning of month
         self.t = ts.value - (ts.dtval.day - 1) * us_in_day
-
-        # adjustment: week of month, plus to particular day of week
         self.dow = dayofweek(ts.dtval.year, ts.dtval.month, 1)
-        self.adj = (self.week * 7) + (self.day - self.dow) % 7
 
         # for day counting
         self.m = ts.dtval.month - 1
         self.y = ts.dtval.year
         self.ly = is_leapyear(self.y)
 
-    cpdef int64_t generate(self):
+    cpdef next(self):
         cdef:
             int64_t tmp, days
 
-        tmp = self.t + self.adj * us_in_day
-
-        # advance state
         days = _days_per_month_table[self.ly][self.m]
+        self.t += days * us_in_day
         self.dow = (self.dow + days) % 7
+
         self.m += 1
         if self.m >= 12:
             self.m -= 12
             self.y += 1
             self.ly = is_leapyear(self.y)
 
-        self.t += days * us_in_day
+    cpdef prev(self):
+        cdef:
+            int64_t tmp, days
 
-        self.adj = (self.week * 7) + (self.day - self.dow) % 7
+        days = _days_per_month_table[self.ly][(self.m - 1) % 12]
+        self.t -= days * us_in_day
+        self.dow = (self.dow - days) % 7
 
-        return tmp
+        self.m -= 1
+        if self.m < 0:
+            self.m += 12
+            self.y -= 1
+            self.ly = is_leapyear(self.y)
+
+    property ts:
+        def __get__(self):
+            cdef int64_t adj = (self.week * 7) + (self.day - self.dow) % 7
+            return self.t + us_in_day * adj
 
 cdef class DayOffset(_Offset):
     """
@@ -470,47 +507,35 @@ cdef class DayOffset(_Offset):
     """
     cdef:
         Py_ssize_t stride
-        int64_t t, adj, dow, biz
-        object start
 
     def __init__(self, int64_t stride=1, int64_t biz=0):
         self.stride = stride
         self.biz = biz
 
-    cpdef reset(self, object start=None):
-        cdef:
-            _TSObject ts
-
-        if start is not None:
-            self.start = start
-
         if self.stride <= 0:
             raise ValueError("Stride must be positive")
 
-        ts = convert_to_tsobject(self.start)
-
+    cdef _setup(self):
+        cdef _TSObject ts = self.ts
         self.t = ts.value
-
         if self.biz != 0:
             self.dow = ts_dayofweek(ts)
-            self.adj = weekend_adjustment(self.dow, 0)
-        else:
-            self.adj = 0
 
-    cpdef int64_t generate(self):
-        cdef:
-            int64_t tmp
-
-        tmp = self.t + self.adj * us_in_day
-
+    cpdef next(self):
         self.t += (self.stride * us_in_day)
-
         if self.biz != 0:
-            self.dow += self.stride
-            self.dow %= 7
-            self.adj = weekend_adjustment(self.dow, 0)
+            self.dow = (self.dow + self.stride) % 7
+            if self.dow >= 5:
+                self.t += (7 - self.dow) * us_in_day
+                self.dow = 0
 
-        return tmp
+    cpdef prev(self):
+        self.t -= (self.stride * us_in_day)
+        if self.biz != 0:
+            self.dow = (self.dow - self.stride) % 7
+            if self.dow >= 5:
+                self.t += (4 - self.dow) * us_in_day
+                self.dow = 4 
 
 cdef ndarray[int64_t] _generate_range(_Offset offset, Py_ssize_t periods):
     """
@@ -522,7 +547,8 @@ cdef ndarray[int64_t] _generate_range(_Offset offset, Py_ssize_t periods):
 
     dtindex = np.empty(periods, np.int64)
     for i in range(periods):
-        dtindex[i] = offset.generate()
+        dtindex[i] = offset._ts()
+        offset.next()
     return dtindex
 
 cdef int64_t _count_range(_Offset offset, object end):
@@ -535,8 +561,9 @@ cdef int64_t _count_range(_Offset offset, object end):
         _TSObject e
 
     e = convert_to_tsobject(end)
-    while offset.generate() < e.value:
+    while offset._ts() < e.value:
         i += 1
+        offset.next()
     return i
 
 # Here's some frequency caching logic
@@ -587,7 +614,7 @@ cdef class DatetimeCache:
         else:
             periods = self.count()
 
-        self.generator.reset(self.start)
+        self.generator.anchor(self.start)
         buf = _generate_range(self.generator, periods)
 
         if self.end is None:
@@ -617,7 +644,7 @@ cdef class DatetimeCache:
         if not self.is_dirty:
             return len(self.cache)
 
-        self.generator.reset(self.start)
+        self.generator.anchor(self.start)
         return _count_range(self.generator, self.end)
 
     cpdef lookup(self, object tslike):
