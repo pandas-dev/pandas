@@ -146,6 +146,18 @@ def get_indexer(ndarray values, dict mapping):
     return fill_vec
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def fancy_inc(ndarray[int64_t, ndim=2] values,
+              ndarray[int64_t] iarr, ndarray[int64_t] jarr, int64_t inc):
+    cdef:
+        Py_ssize_t i, n = len(iarr)
+
+    for i in range(n):
+        values[iarr[i], jarr[i]] += inc
+
+
+
 # def foo2(o):
 #     return util.is_integer_object(o)
 
