@@ -81,7 +81,7 @@ cdef class _Timestamp(datetime):
             else:
                 dtcache = _tcaches[self.freq]
                 buf = dtcache.get_cache()
-                idx = dtcache.lookup(self.value)
+                idx = dtcache._lookup(self.value)
                 return Timestamp(buf[idx + other])
         else:
             return super(_Timestamp, self).__add__(other)
@@ -314,9 +314,12 @@ cdef class YearOffset(_Offset):
     cdef:
         int64_t y, ly
 
-    def __init__(self, int64_t dayoffset=0, int64_t biz=0):
+    def __init__(self, int64_t dayoffset=0, int64_t biz=0, object anchor=None):
         self.dayoffset = dayoffset
         self.biz = biz
+
+        if anchor is not None:
+            self.anchor(anchor)
 
     cdef _setup(self):
         cdef _TSObject ts = self.ts
@@ -369,13 +372,16 @@ cdef class MonthOffset(_Offset):
         int64_t y
 
     def __init__(self, int64_t dayoffset=0, Py_ssize_t stride=1,
-                 int64_t biz=0):
+                 int64_t biz=0, object anchor=None):
         self.dayoffset = dayoffset
         self.stride = stride
         self.biz = biz
 
         if stride <= 0:
             raise ValueError("Stride must be positive")
+
+        if anchor is not None:
+            self.anchor(anchor)
 
     cdef _setup(self):
         cdef _TSObject ts = self.ts
@@ -416,12 +422,12 @@ cdef class MonthOffset(_Offset):
 
         days = 0
         for j in range(0, self.stride):
+            self.m -= 1
             if self.m < 0:
                 self.m += 12
                 self.y -= 1
                 self.ly = is_leapyear(self.y)
             days += _days_per_month_table[self.ly][self.m]
-            self.m -= 1
 
         self.t -= days * us_in_day
 
@@ -443,12 +449,15 @@ cdef class DayOfMonthOffset(_Offset):
         Py_ssize_t ly, m
         int64_t y, day, week
 
-    def __init__(self, int64_t week=0, int64_t day=0):
+    def __init__(self, int64_t week=0, int64_t day=0, object anchor=None):
         self.week = week
         self.day = day
 
         if self.day < 0 or self.day > 6:
             raise ValueError("Day offset must be 0 to 6")
+
+        if anchor is not None:
+            self.anchor(anchor)
 
     cdef _setup(self):
         cdef _TSObject ts = self.ts
@@ -490,10 +499,12 @@ cdef class DayOfMonthOffset(_Offset):
             self.y -= 1
             self.ly = is_leapyear(self.y)
 
-    property ts:
-        def __get__(self):
-            cdef int64_t adj = (self.week * 7) + (self.day - self.dow) % 7
-            return self.t + us_in_day * adj
+    cdef int64_t _ts(self):
+        """
+        Overwrite default adjustment
+        """
+        cdef int64_t adj = (self.week * 7) + (self.day - self.dow) % 7
+        return self.t + us_in_day * adj
 
 cdef class DayOffset(_Offset):
     """
@@ -508,12 +519,15 @@ cdef class DayOffset(_Offset):
     cdef:
         Py_ssize_t stride
 
-    def __init__(self, int64_t stride=1, int64_t biz=0):
+    def __init__(self, int64_t stride=1, int64_t biz=0, object anchor=None):
         self.stride = stride
         self.biz = biz
 
         if self.stride <= 0:
             raise ValueError("Stride must be positive")
+
+        if anchor is not None:
+            self.anchor(anchor)
 
     cdef _setup(self):
         cdef _TSObject ts = self.ts
@@ -576,7 +590,7 @@ cdef int64_t _count_range(_Offset offset, object end):
 cdef class DatetimeCache:
     """
     Holds a contiguous array of datetimes according to some offset rule, along
-    with a int64=>Py_ssize_t hashtable to discover offsets in that array quickly.
+    with a int64=>Py_ssize_t hashtable to discover offsets quickly.
     """
     cdef:
         object start
@@ -647,14 +661,14 @@ cdef class DatetimeCache:
         self.generator.anchor(self.start)
         return _count_range(self.generator, self.end)
 
-    cpdef lookup(self, object tslike):
-        cdef:
-            _TSObject ts
+    cdef Py_ssize_t _lookup(self, int64_t val):
+        return self.indexer.get_item(val)
 
-        ts = convert_to_tsobject(tslike)
-        return self.indexer.get_item(ts.value)
+    cpdef Py_ssize_t lookup(self, object tslike):
+        cdef _TSObject ts = convert_to_tsobject(tslike)
+        return self._lookup(ts.value)
 
-    cpdef get_cache(self):
+    cpdef ndarray[int64_t] get_cache(self):
         return self.cache
 
 _DEFAULT_BEGIN = Timestamp(datetime(1850, 1, 1))
@@ -778,31 +792,60 @@ def get_dtcache_freq(freq, start=None, end=None, n=None):
         tc.rebuild()
 
     if n is not None:
-        idx = tc.lookup(start.value)
+        idx = tc._lookup(start.value)
         if idx + n > tc.count():
             tc.set_periods(idx + n)
             tc.rebuild()
 
     return tc
 
+@cython.wraparound(False)
 def conformity_check(ndarray[int64_t] data, object freq):
     cdef:
         Py_ssize_t i
+        int idx, previdx
+        object contiguous
+        DatetimeCache cache
+
+    contiguous = True
 
     if len(data) == 0:
-        return None
+        return None, contiguous
 
-    cache = get_dtcache_freq(freq, data[0], n=len(data))
+    cache = get_dtcache_freq(freq)
 
-    i = 0
-    while i < len(data):
-        try:
-            cache.lookup(data[i])
-        except KeyError:
-            return data[i]
-        i += 1
+    previdx = -1
+    # fix me - keyerror ignored
+    try:
+        previdx = cache._lookup(data[0])
+        i = 1 
+        while i < len(data):
+            idx = cache._lookup(data[i])
+            if previdx != (idx - 1):
+                contiguous = False
+            i += 1
+    except KeyError:
+        return data[i], False
 
-    return None
+    return None, contiguous
+
+@cython.wraparound(False)
+def fast_shift(ndarray[int64_t] data, object freq, int64_t n):
+    cdef:
+        DatetimeCache tc
+        ndarray[int64_t] result, cache
+        Py_ssize_t i, l, idx
+
+    l = len(data)
+
+    tc = get_dtcache_freq(freq, data[0], data[l-1])
+
+    result = np.empty(l, dtype='i8')
+    cache  = tc.get_cache()
+    for i in range(l):
+        idx = tc._lookup(data[i])
+        result[i] = cache[idx + n]
+    return result
 
 
 # The following is derived from relativedelta.py in dateutil package

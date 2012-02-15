@@ -1093,10 +1093,11 @@ class DatetimeIndex(Int64Index):
         subarr.name = name
 
         if freq is not None:
-            failure = lib.conformity_check(subarr.asi8, freq)
+            failure, contiguous = lib.conformity_check(subarr.asi8, freq)
             if failure is not None:
                 raise ValueError("%s does not satisfy frequency %s"
                                   % (np.datetime64(failure), freq))
+            subarr.contiguous = contiguous
 
         return subarr
 
@@ -1118,7 +1119,17 @@ class DatetimeIndex(Int64Index):
 
         newdti.first = first
         newdti.last = last
+        newdti.contiguous = True
 
+        return newdti
+
+    @classmethod
+    def _quickbuilder(cls, name, freq, data, first):
+        newdti = data.view(cls)
+        newdti.name = name
+        newdti.freq = freq
+        newdti.first = first
+        newdti.contiguous = False
         return newdti
 
     @property
@@ -1130,8 +1141,13 @@ class DatetimeIndex(Int64Index):
         if self.freq is None:
             raise ValueError("Cannot shift, frequency of index is empty")
 
-        return self._construct_from_cache(self.name, self.freq, self.cache,
-                                          self.first+n, self.last+n)
+        if self.contiguous:
+            return self._construct_from_cache(self.name, self.freq, self.cache,
+                                              self.first+n, self.last+n)
+        else:
+            data = lib.fast_shift(self.asi8, self.freq, n)
+            return DatetimeIndex._quickbuilder(self.name, self.freq, data,
+                                               self.first)
 
     def __getitem__(self, key):
         """Override numpy.ndarray's __getitem__ method to work as desired"""

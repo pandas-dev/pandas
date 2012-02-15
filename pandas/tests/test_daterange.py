@@ -356,161 +356,194 @@ class TestDateRange(unittest.TestCase):
 class TestDatetimePyx(unittest.TestCase):
 
     def test_yearoffset(self):
-        do  = lib.YearOffset(dayoffset=0, biz=0)
-        rng = lib.DatetimeCache(do, start=datetime(2002,1,1), periods=12)
-        rng.rebuild()
-        buf = rng.get_cache()
+        off = lib.YearOffset(dayoffset=0, biz=0, anchor=datetime(2002,1,1))
 
-        self.assert_(len(buf) == 12)
+        for i in range(500):
+            t = lib.Timestamp(off.ts)
+            self.assert_(t.day == 1)
+            self.assert_(t.month == 1)
+            self.assert_(t.year == 2002 + i)
+            off.next()
 
-        for i, t in enumerate(buf):
-            t = lib.Timestamp(t)
+        for i in range(499, -1, -1):
+            off.prev()
+            t = lib.Timestamp(off.ts)
             self.assert_(t.day == 1)
             self.assert_(t.month == 1)
             self.assert_(t.year == 2002 + i)
 
-        do  = lib.YearOffset(dayoffset=-1, biz=0)
-        rng = lib.DatetimeCache(do, start=datetime(2002,1,1), periods=12)
-        rng.rebuild()
-        buf = rng.get_cache()
+        off = lib.YearOffset(dayoffset=-1, biz=0, anchor=datetime(2002,1,1))
 
-        for i, t in enumerate(buf):
-            t = lib.Timestamp(t)
-            self.assert_(t.day == 31)
+        for i in range(500):
+            t = lib.Timestamp(off.ts)
             self.assert_(t.month == 12)
+            self.assert_(t.day == 31)
+            self.assert_(t.year == 2001 + i)
+            off.next()
+
+        for i in range(499, -1, -1):
+            off.prev()
+            t = lib.Timestamp(off.ts)
+            self.assert_(t.month == 12)
+            self.assert_(t.day == 31)
             self.assert_(t.year == 2001 + i)
 
-        do  = lib.YearOffset(dayoffset=-1, biz=-1)
-        rng = lib.DatetimeCache(do, start=datetime(2002,1,1), periods=12)
-        rng.rebuild()
-        buf = rng.get_cache()
+        off = lib.YearOffset(dayoffset=-1, biz=-1, anchor=datetime(2002,1,1))
 
-        for i, t in enumerate(buf):
-            t = lib.Timestamp(t)
+        stack = []
+
+        for i in range(500):
+            t = lib.Timestamp(off.ts)
+            stack.append(t)
+            self.assert_(t.month == 12)
+            self.assert_(t.day == 31 or t.day == 30 or t.day == 29)
+            self.assert_(t.year == 2001 + i)
             self.assert_(t.weekday() < 5)
+            off.next()
 
-        do  = lib.YearOffset(dayoffset=0, biz=1)
-        rng = lib.DatetimeCache(do, start=datetime(2002,1,1), periods=12)
-        rng.rebuild()
-        buf = rng.get_cache()
-
-        for i, t in enumerate(buf):
-            t = lib.Timestamp(t)
+        for i in range(499, -1, -1):
+            off.prev()
+            t = lib.Timestamp(off.ts)
+            self.assert_(t == stack.pop())
+            self.assert_(t.month == 12)
+            self.assert_(t.day == 31 or t.day == 30 or t.day == 29)
+            self.assert_(t.year == 2001 + i)
             self.assert_(t.weekday() < 5)
 
     def test_monthoffset(self):
-        do  = lib.MonthOffset(dayoffset=0, biz=0)
-        rng = lib.DatetimeCache(do, start=datetime(2002,1,1), periods=12)
-        rng.rebuild()
-        buf = rng.get_cache()
+        off = lib.MonthOffset(dayoffset=0, biz=0, anchor=datetime(2002,1,1))
 
-        self.assert_(len(buf) == 12)
+        for i in range(12):
+            t = lib.Timestamp(off.ts)
+            self.assert_(t.day == 1)
+            self.assert_(t.month == 1 + i)
+            self.assert_(t.year == 2002)
+            off.next()
 
-        for i, t in enumerate(buf):
-            t = lib.Timestamp(t)
+        for i in range(11, -1, -1):
+            off.prev()
+            t = lib.Timestamp(off.ts)
             self.assert_(t.day == 1)
             self.assert_(t.month == 1 + i)
             self.assert_(t.year == 2002)
 
-        do  = lib.MonthOffset(dayoffset=-1, biz=0)
-        rng = lib.DatetimeCache(do, start=datetime(2002,1,1), periods=12)
-        rng.rebuild()
-        buf = rng.get_cache()
+        off = lib.MonthOffset(dayoffset=-1, biz=0, anchor=datetime(2002,1,1))
 
-        for i, t in enumerate(buf):
-            t = lib.Timestamp(t)
+        for i in range(12):
+            t = lib.Timestamp(off.ts)
+            self.assert_(t.day >= 28)
+            self.assert_(t.month == (12 if i == 0 else i))
+            self.assert_(t.year == 2001 + (i != 0))
+            off.next()
+
+        for i in range(11, -1, -1):
+            off.prev()
+            t = lib.Timestamp(off.ts)
             self.assert_(t.day >= 28)
             self.assert_(t.month == (12 if i == 0 else i))
             self.assert_(t.year == 2001 + (i != 0))
 
-        do  = lib.MonthOffset(dayoffset=0, biz=-1)
-        rng = lib.DatetimeCache(do, start=datetime(2002,1,1), periods=12)
-        rng.rebuild()
-        buf = rng.get_cache()
+        off = lib.MonthOffset(dayoffset=-1, biz=-1, anchor=datetime(2002,1,1))
 
-        for i, t in enumerate(buf):
-            t = lib.Timestamp(t)
+        stack = []
+
+        for i in range(500):
+            t = lib.Timestamp(off.ts)
+            stack.append(t)
+            if t.month != 2:
+                self.assert_(t.day >= 28)
+            else:
+                self.assert_(t.day >= 26)
             self.assert_(t.weekday() < 5)
+            off.next()
 
-        do  = lib.MonthOffset(dayoffset=0, biz=1)
-        rng = lib.DatetimeCache(do, start=datetime(2002,1,1), periods=12)
-        rng.rebuild()
-        buf = rng.get_cache()
-
-        for i, t in enumerate(buf):
-            t = lib.Timestamp(t)
+        for i in range(499, -1, -1):
+            off.prev()
+            t = lib.Timestamp(off.ts)
+            self.assert_(t == stack.pop())
+            if t.month != 2:
+                self.assert_(t.day >= 28)
+            else:
+                self.assert_(t.day >= 26)
             self.assert_(t.weekday() < 5)
 
         for i in (-2, -1, 1, 2):
             for j in (-1, 0, 1):
-                do1 = lib.MonthOffset(dayoffset=i, biz=j, stride=12)
-                do2 = lib.YearOffset(dayoffset=i, biz=j)
-                rng1 = lib.DatetimeCache(do1, start=datetime(2002,1,1), 
-                                         periods=12)
-                rng2 = lib.DatetimeCache(do2, start=datetime(2002,1,1), 
-                                         periods=12)
-                rng1.rebuild()
-                rng2.rebuild()
+                off1 = lib.MonthOffset(dayoffset=i, biz=j, stride=12,
+                                       anchor=datetime(2002,1,1))
+                off2 = lib.YearOffset(dayoffset=i, biz=j,
+                                      anchor=datetime(2002,1,1))
 
-                buf1 = rng1.get_cache()
-                buf2 = rng2.get_cache()
+                for k in range(500):
+                    self.assert_(off1.ts == off2.ts)
+                    off1.next()
+                    off2.next()
 
-                self.assert_((buf1 == buf2).all())
+                for k in range(500):
+                    self.assert_(off1.ts == off2.ts)
+                    off1.prev()
+                    off2.prev()
 
     def test_dayoffset(self):
-        do  = lib.DayOffset(biz=0)
-        rng = lib.DatetimeCache(do, start=datetime(2002,1,1), periods=365)
-        rng.rebuild()
-        buf = rng.get_cache()
+        off = lib.DayOffset(biz=0, anchor=datetime(2002,1,1))
 
-        self.assert_(len(buf) == 365)
+        us_in_day = 1e6 * 60 * 60 * 24
 
-        ts = lib.Timestamp(buf[-1])
-        self.assert_(ts.day == 31)
-        self.assert_(ts.month == 12)
-        self.assert_(ts.year == 2002)
+        t0 = lib.Timestamp(off.ts)
+        for i in range(500):
+            off.next()
+            t1 = lib.Timestamp(off.ts)
+            self.assert_(t1.value - t0.value == us_in_day)
+            t0 = t1
 
-        do  = lib.DayOffset(biz=0)
-        rng = lib.DatetimeCache(do, start=datetime(2004,1,1), periods=366)
-        rng.rebuild()
-        buf = rng.get_cache()
+        t0 = lib.Timestamp(off.ts)
+        for i in range(499, -1, -1):
+            off.prev()
+            t1 = lib.Timestamp(off.ts)
+            self.assert_(t0.value - t1.value == us_in_day)
+            t0 = t1
 
-        ts = lib.Timestamp(buf[-1])
-        self.assert_(ts.day == 31)
-        self.assert_(ts.month == 12)
-        self.assert_(ts.year == 2004)
+        off = lib.DayOffset(biz=1, anchor=datetime(2002,1,1))
 
-        do  = lib.DayOffset(biz=1)
-        rng = lib.DatetimeCache(do, start=datetime(2002,1,1), periods=365)
-        rng.rebuild()
-        buf = rng.get_cache()
+        t0 = lib.Timestamp(off.ts)
+        for i in range(500):
+            off.next()
+            t1 = lib.Timestamp(off.ts)
+            self.assert_(t1.weekday() < 5)
+            self.assert_(t1.value - t0.value == us_in_day or
+                         t1.value - t0.value == 3 * us_in_day)
+            t0 = t1
 
-        for i, t in enumerate(buf):
-            t = lib.Timestamp(t)
-            self.assert_(t.weekday() < 5)
+        t0 = lib.Timestamp(off.ts)
+        for i in range(499, -1, -1):
+            off.prev()
+            t1 = lib.Timestamp(off.ts)
+            self.assert_(t1.weekday() < 5)
+            self.assert_(t0.value - t1.value == us_in_day or
+                         t0.value - t1.value == 3 * us_in_day)
+            t0 = t1
+
 
     def test_dayofmonthoffset(self):
-        do  = lib.DayOfMonthOffset(week=-1, day=4)
-        rng = lib.DatetimeCache(do, start=datetime(2002,1,1), periods=40)
-        rng.rebuild()
-        buf = rng.get_cache()
+        for week in (-1, 0, 1):
+            for day in (0, 2, 4):
+                off = lib.DayOfMonthOffset(week=-1, day=day, 
+                                           anchor=datetime(2002,1,1))
 
-        self.assert_(len(buf) == 40)
+                stack = []
 
-        for i, t in enumerate(buf):
-            t = lib.Timestamp(t)
-            self.assert_(t.weekday() == 4)
+                for i in range(500):
+                    t = lib.Timestamp(off.ts)
+                    stack.append(t)
+                    self.assert_(t.weekday() == day) 
+                    off.next()
 
-        do  = lib.DayOfMonthOffset(week=2, day=2)
-        rng = lib.DatetimeCache(do, start=datetime(2002,1,1), periods=40)
-        rng.rebuild()
-        buf = rng.get_cache()
+                for i in range(499, -1, -1):
+                    off.prev()
+                    t = lib.Timestamp(off.ts)
+                    self.assert_(t == stack.pop())
+                    self.assert_(t.weekday() == day)
 
-        self.assert_(len(buf) == 40)
-
-        for i, t in enumerate(buf):
-            t = lib.Timestamp(t)
-            self.assert_(t.weekday() == 2)
 
 if tm.PERFORM_DATETIME64_TESTS:
     class TestDatetime64Range(TestDateRange):
