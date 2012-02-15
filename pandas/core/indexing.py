@@ -292,15 +292,27 @@ class _NDFrameIndexer(object):
 
         int_slice = _is_index_slice(slice_obj)
 
+        start = slice_obj.start
+        stop = slice_obj.stop
+
+        # in case of providing all floats, use label-based indexing
+        float_slice = (labels.inferred_type == 'floating'
+                       and (type(start) == float or start is None)
+                       and (type(stop) == float or stop is None))
+
         null_slice = slice_obj.start is None and slice_obj.stop is None
-        # could have integers in the first level of the MultiIndex
+
+        # could have integers in the first level of the MultiIndex, in which
+        # case we wouldn't want to do position-based slicing
         position_slice = (int_slice and not labels.inferred_type == 'integer'
-                          and not isinstance(labels, MultiIndex))
+                          and not isinstance(labels, MultiIndex)
+                          and not float_slice)
+
         if null_slice or position_slice:
             slicer = slice_obj
         else:
             try:
-                i, j = labels.slice_locs(slice_obj.start, slice_obj.stop)
+                i, j = labels.slice_locs(start, stop)
                 slicer = slice(i, j, slice_obj.step)
             except Exception:
                 if _is_index_slice(slice_obj):
