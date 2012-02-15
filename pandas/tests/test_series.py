@@ -529,14 +529,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_slice_floats2(self):
         s = Series(np.random.rand(10), index=np.arange(10,20,dtype=float))
 
-        self.assert_(len(s.ix[12.0:] == 8))
-        self.assert_(len(s.ix[12.5:] == 7))
+        self.assert_(len(s.ix[12.0:]) == 8)
+        self.assert_(len(s.ix[12.5:]) == 7)
 
         i = np.arange(10,20,dtype=float)
         i[2] = 12.2
         s.index = i
-        self.assert_(len(s.ix[12.0:] == 8))
-        self.assert_(len(s.ix[12.5:] == 7))
+        self.assert_(len(s.ix[12.0:]) == 8)
+        self.assert_(len(s.ix[12.5:]) == 7)
 
     def test_setitem(self):
         self.ts[self.ts.index[5]] = np.NaN
