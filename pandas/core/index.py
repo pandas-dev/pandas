@@ -1044,22 +1044,21 @@ class DatetimeIndex(Int64Index):
             if end is None and n is None:
                 raise ValueError("No data, must supply end or n")
 
-            dtcache = lib.get_dtcache_freq(freq)
-            buf = dtcache.get_cache()
+            tcache = lib.get_tcache(freq)
+            cache = tcache.cache()
             try:
-                first = dtcache.lookup(start)
+                first = tcache.lookup(start)
                 if n is not None:
-                    if first + n >= len(buf):
-                        ext = (first + n) - len(buf) + 1
-                        dtcache.extend(buf[0], buf[-1], ext)
-                        buf = dtcache.get_cache()
-                        first = dtcache.lookup(start)
+                    if first + n >= len(cache):
+                        ext = (first + n) - len(cache) + 1
+                        cache = tcache.extend(cache[0], cache[-1], ext)
+                        first = tcache.lookup(start)
 
-                    dti = cls._construct_from_cache(name, freq, buf,
+                    dti = cls._construct_from_cache(name, freq, cache,
                                                     first, first + n)
                 else:
-                    last = dtcache.lookup(end)
-                    dti = cls._construct_from_cache(name, freq, buf,
+                    last = tcache.lookup(end)
+                    dti = cls._construct_from_cache(name, freq, cache,
                                                     first, last + 1)
             except KeyError, e:
                 raise ValueError("Non-conforming time: %s"
@@ -1130,12 +1129,15 @@ class DatetimeIndex(Int64Index):
         return newdti
 
     @classmethod
-    def _quickbuilder(cls, name, freq, data, first):
+    def _quickbuilder(cls, name, freq, data, first, regular=None):
         newdti = data.view(cls)
         newdti.name = name
         newdti.freq = freq
         newdti.first = first
-        newdti.regular = False
+        if regular is None:
+            newdti.regular = False
+        else:
+            newdti.regular = regular
         return newdti
 
     @property
@@ -1143,6 +1145,14 @@ class DatetimeIndex(Int64Index):
         # to do: cache me?
         return self.values.view('i8')
 
+    def asfreq(self, freq):
+        if freq is not None:
+            failure, regular = lib.conformity_check(self.asi8, freq)
+            if failure is not None:
+                raise ValueError("%s does not satisfy frequency %s"
+                                  % (np.datetime64(failure), freq))
+            return DatetimeIndex._quickbuilder(self.name, freq, self.values,
+                                               self.first, regular)
     def shift(self, n=1):
         if self.freq is None:
             raise ValueError("Cannot shift, frequency of index is empty")

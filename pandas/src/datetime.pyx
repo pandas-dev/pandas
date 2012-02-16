@@ -1,4 +1,4 @@
-# cython: profile=True
+# cython: profile=False
 
 cimport numpy as np
 import numpy as np
@@ -73,7 +73,7 @@ cdef class _Timestamp(datetime):
         cdef:
             int64_t idx
             ndarray[int64_t] buf
-            DatetimeCache dtcache
+            DatetimeCache tcache
 
         if is_integer_object(other):
             if self.freq is None:
@@ -81,9 +81,9 @@ cdef class _Timestamp(datetime):
                        "without both freq and offset.")
                 raise ValueError(msg)
             else:
-                dtcache = _tcaches[self.freq]
-                buf = dtcache.get_cache()
-                idx = dtcache._lookup(self.value)
+                tcache = _tcaches[self.freq]
+                buf = tcache.cache()
+                idx = tcache._lookup(self.value)
                 return Timestamp(buf[idx + other])
         else:
             return super(_Timestamp, self).__add__(other)
@@ -270,7 +270,7 @@ cdef class _Offset:
     def __cinit__(self):
         self.t=0
         self.dow=0
-        self.biz=0 
+        self.biz=0
         self.dayoffset=0
 
     cpdef anchor(self, object start=None):
@@ -300,6 +300,12 @@ cdef class _Offset:
             return self.t + us_in_day * adj
         else:
             return self.t
+
+    cdef int64_t _get_anchor(self):
+        """
+        Retrieve an anchor relating to current offset we're on.
+        """
+        return self.t - self.dayoffset * us_in_day
 
     property ts:
         def __get__(self):
@@ -600,27 +606,32 @@ cdef class DatetimeCache:
     cdef:
         object start
         object end
-        object cache
+        object buf
         object periods
 
         _Offset offset
         Int64HashTable indexer
         object is_dirty
 
-    def __init__(self, _Offset offset, object start,
-                 object end=None, object periods=None):
+        int64_t end_anchor
+
+    def __init__(self, _Offset offset, object end=None, object periods=None):
         """
         Note, prefer 'periods' argument over 'end' for generating range.
         """
 
         self.offset = offset
-        self.start = convert_to_tsobject(start)
+        self.start = offset.ts
         self.end = convert_to_tsobject(end)
-        self.cache = None
+        self.buf = None
         self.periods = periods
         self.is_dirty = True
 
     cdef rebuild(self):
+        """
+        Rebuild cache so that start and end fall within the range of
+        times generated.
+        """
         cdef:
             int64_t periods
             Py_ssize_t i
@@ -630,8 +641,8 @@ cdef class DatetimeCache:
 
         if self.periods is not None:
             periods = self.periods
-            if self.cache is not None and periods < len(self.cache):
-                periods = len(self.cache)
+            if self.buf is not None and periods < len(self.buf):
+                periods = len(self.buf)
         else:
             periods = self.count()
 
@@ -639,8 +650,10 @@ cdef class DatetimeCache:
         buf = _generate_range(self.offset, periods)
 
         self.end = convert_to_tsobject(buf[-1])
+        self.buf = buf
 
-        self.cache = buf
+        self.offset.prev()
+        self.end_anchor = self.offset._get_anchor()
 
         self.indexer = Int64HashTable(size_hint=periods)
         for i in range(periods):
@@ -648,12 +661,12 @@ cdef class DatetimeCache:
 
         self.is_dirty = False
 
-    cdef set_start(self, object start):
-        self.start = convert_to_tsobject(start)
+    cdef set_start(self, _Offset off):
+        self.start = convert_to_tsobject(off._get_anchor())
         self.is_dirty = True
 
-    cdef set_end(self, object end):
-        self.end = convert_to_tsobject(end)
+    cdef set_end(self, _Offset off):
+        self.end = off._ts()
         self.is_dirty = True
 
     cdef set_periods(self, object periods):
@@ -671,7 +684,7 @@ cdef class DatetimeCache:
         else:
             return -1
 
-    cpdef extend(self, int64_t first, int64_t last, int n=0):
+    cpdef ndarray[int64_t] extend(self, int64_t first, int64_t last, int n=0):
         """
         Extend cache to at least n periods beyond first and last
         """
@@ -683,7 +696,7 @@ cdef class DatetimeCache:
         an = abs(n)
         offset = self.offset
 
-        offset.anchor(self.start.value)
+        offset.anchor()
         # if first is before current start
         if offset._ts() > first:
             # move back until on or just past first
@@ -692,7 +705,7 @@ cdef class DatetimeCache:
             # move back an additional n periods
             for i in range(an):
                 offset.prev()
-            self.set_start(offset._ts())
+            self.set_start(offset)
         # if first is after current start
         else:
             # move forward up to n periods until on or just past first
@@ -705,9 +718,9 @@ cdef class DatetimeCache:
                 offset.prev()
             # are we earlier than start?
             if offset._ts() < self.start.value:
-                self.set_start(offset._ts())
+                self.set_start(offset)
 
-        offset.anchor(self.end.value)
+        offset.anchor(self.end_anchor)
         # if last is after current end
         if offset._ts() < last:
             # move forward until on or just past last
@@ -716,7 +729,7 @@ cdef class DatetimeCache:
             # move forward an additional n periods
             for i in range(an):
                 offset.next()
-            self.set_end(offset._ts())
+            self.set_end(offset)
         # if last is before current end
         else:
             # move back up to n periods until on or just past last
@@ -729,16 +742,18 @@ cdef class DatetimeCache:
                 offset.next()
             # are we further than end?
             if offset._ts() > self.end.value:
-                self.set_end(offset._ts())
+                self.set_end(offset)
 
         if self.is_dirty:
             self.rebuild()
+
+        return self.buf
 
     # user/python-accessible methods
 
     cpdef Py_ssize_t count(self):
         if not self.is_dirty:
-            return len(self.cache)
+            return len(self.buf)
 
         self.offset.anchor(self.start)
         return _count_range(self.offset, self.end)
@@ -760,8 +775,8 @@ cdef class DatetimeCache:
         else:
             return idx
 
-    cpdef ndarray[int64_t] get_cache(self):
-        return self.cache
+    cpdef ndarray[int64_t] cache(self):
+        return self.buf
 
 _DEFAULT_BEGIN = Timestamp(datetime(1850, 1, 1))
 _DEFAULT_END = Timestamp(datetime(2050, 1, 1))
@@ -797,7 +812,24 @@ _weekdays = {
     'FRI' : 4
 }
 
-def get_dtcache_freq(freq, object first=None, object last=None):
+# first two letters of frequency determines major rank for considering up- or
+# down-sampling
+_freqrank = {
+    'DA' : 5,  # upsampling
+    'WE' : 4,
+    'W@' : 3,
+    'EO' : 2,
+    'Q@' : 1,
+    'A@' : 0,  # downsampling
+}
+
+def flush_tcache(object freq):
+    if freq in _tcaches:
+        del _tcaches[freq]
+
+# TODO: missing feature, user-provided striding
+
+cpdef DatetimeCache get_tcache(freq, object first=None, object last=None):
     """
     Retrieve from cache (or generate, first time through) times that correspond
     to the frequency we care about.
@@ -859,10 +891,10 @@ def get_dtcache_freq(freq, object first=None, object last=None):
         else:
             raise ValueError('Supplied frequency %s not implemented' % freq)
 
-        first = Timestamp(first)
+        offset.anchor(first)
         last = Timestamp(last)
 
-        _tcaches[freq] = DatetimeCache(offset, first.value, last.value)
+        _tcaches[freq] = DatetimeCache(offset, last.value)
 
     tc = _tcaches[freq]
 
@@ -870,6 +902,46 @@ def get_dtcache_freq(freq, object first=None, object last=None):
         tc.rebuild()
 
     return _tcaches[freq]
+
+# Helper methods for frequency-based analysis
+# -------------------------------------------------------------
+
+#def resample(ndarray[int64_t] data, object freq1, object freq2):
+#    """
+#    Handle frequency conversions from freq1 to freq2
+#    """
+#    cdef:
+#        int rank1, rank2
+#        int idx1, idx2
+#        DatetimeCache tc1, tc2
+#        ndarray[int64_t] cache
+
+#    if freq1 == freq2:
+#        return data
+
+#    rank1 = _freqrank[freq1[0:2]]
+#    rank2 = _freqrank[freq2[0:2]]
+
+#    if rank1 >= rank2:
+#        # same or lesser rank, shift forward to conform
+#        tc2 = get_tcache(freq2)
+#        cache = tc2.cache()
+
+#        if data[0] < cache[0] or data[-1] > cache[-1]:
+#            cache = tc2.extend(data[0], data[-1], 0)
+
+#        idx1 = cache.searchsorted(data[0])
+#        idx2 = cache.searchsorted(data[-1])
+#        return cache[idx1:(idx2+1)]
+
+#    if rank1 < rank2:
+#        # upsampling
+#        failure, regular = conformity_check(data, freq2)
+#        if failure is not None:
+#            raise ValueError("Upsample error: %s does not satisfy frequency %s"
+#                              % (np.datetime64(failure), freq2))
+#        return data
+
 
 @cython.wraparound(False)
 def conformity_check(ndarray[int64_t] data, object freq):
@@ -890,8 +962,8 @@ def conformity_check(ndarray[int64_t] data, object freq):
     if ld == 0:
         return None, regular
 
-    tc = get_dtcache_freq(freq)
-    cache = tc.get_cache()
+    tc = get_tcache(freq)
+    cache = tc.cache()
 
     lc = len(cache)
 
@@ -915,7 +987,7 @@ def conformity_check(ndarray[int64_t] data, object freq):
     return None, regular
 
 @cython.wraparound(False)
-def fast_shift(ndarray[int64_t] data, object freq, int64_t n):
+cpdef ndarray[int64_t] fast_shift(ndarray[int64_t] data, object freq, int64_t n):
     """
     Shift times n periods according to the frequency.
     """
@@ -927,8 +999,8 @@ def fast_shift(ndarray[int64_t] data, object freq, int64_t n):
 
     ld = len(data)
 
-    tc = get_dtcache_freq(freq)
-    cache = tc.get_cache()
+    tc = get_tcache(freq)
+    cache = tc.cache()
 
     lc = len(cache)
 
@@ -939,9 +1011,7 @@ def fast_shift(ndarray[int64_t] data, object freq, int64_t n):
 
     if (data[0] < cache[0] or s + n < 0 or
         data[ld-1] > cache[lc-1] or e + n > lc):
-        tc.extend(data[0], data[ld-1], n)
-
-    cache = tc.get_cache()
+        cache = tc.extend(data[0], data[ld-1], n)
 
     result = np.empty(ld, dtype='i8')
     for i in range(ld):
