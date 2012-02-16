@@ -1044,11 +1044,17 @@ class DatetimeIndex(Int64Index):
             if end is None and n is None:
                 raise ValueError("No data, must supply end or n")
 
-            dtcache = lib.get_dtcache_freq(freq, start, end, n)
+            dtcache = lib.get_dtcache_freq(freq)
             buf = dtcache.get_cache()
             try:
                 first = dtcache.lookup(start)
                 if n is not None:
+                    if first + n > len(buf):
+                        ext = (first + n) - len(buf) + 1
+                        dtcache.extend(buf[0], buf[-1], ext)
+                        buf = dtcache.get_cache()
+                        first = dtcache.lookup(start)
+
                     dti = cls._construct_from_cache(name, freq, buf,
                                                     first, first + n)
                 else:
@@ -1093,11 +1099,11 @@ class DatetimeIndex(Int64Index):
         subarr.name = name
 
         if freq is not None:
-            failure, contiguous = lib.conformity_check(subarr.asi8, freq)
+            failure, regular = lib.conformity_check(subarr.asi8, freq)
             if failure is not None:
                 raise ValueError("%s does not satisfy frequency %s"
                                   % (np.datetime64(failure), freq))
-            subarr.contiguous = contiguous
+            subarr.regular = regular
 
         return subarr
 
@@ -1119,7 +1125,7 @@ class DatetimeIndex(Int64Index):
 
         newdti.first = first
         newdti.last = last
-        newdti.contiguous = True
+        newdti.regular = True
 
         return newdti
 
@@ -1129,7 +1135,7 @@ class DatetimeIndex(Int64Index):
         newdti.name = name
         newdti.freq = freq
         newdti.first = first
-        newdti.contiguous = False
+        newdti.regular = False
         return newdti
 
     @property
@@ -1141,7 +1147,7 @@ class DatetimeIndex(Int64Index):
         if self.freq is None:
             raise ValueError("Cannot shift, frequency of index is empty")
 
-        if self.contiguous:
+        if self.regular:
             return self._construct_from_cache(self.name, self.freq, self.cache,
                                               self.first+n, self.last+n)
         else:

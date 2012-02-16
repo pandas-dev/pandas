@@ -1,3 +1,5 @@
+# cython: profile=True
+
 cimport numpy as np
 import numpy as np
 
@@ -125,6 +127,9 @@ cdef convert_to_tsobject(object ts):
         _Timestamp tmp
         _TSObject retval
 
+    if isinstance(ts, _TSObject) or ts is None:
+        return ts
+
     retval = _TSObject()
 
     # pretty expensive - faster way to access as i8?
@@ -136,7 +141,7 @@ cdef convert_to_tsobject(object ts):
                             dts.day, dts.hour,
                             dts.min, dts.sec, dts.us)
     # this is cheap
-    elif is_integer_object(ts): # or PyInt_Check(ts) or PyLong_Check(ts):
+    elif is_integer_object(ts):
         retval.value = ts
         PyArray_DatetimeToDatetimeStruct(retval.value, NPY_FR_us, &dts)
         retval.dtval = <object>PyDateTime_FromDateAndTime(
@@ -327,7 +332,7 @@ cdef class YearOffset(_Offset):
         self.t = ts.value + self.dayoffset * us_in_day
         self.y = ts.dtval.year
 
-        self.ly = (ts.dtval.month > 2 or 
+        self.ly = (ts.dtval.month > 2 or
                    ts.dtval.month == 2 and ts.dtval.day == 29)
 
         if self.biz != 0:
@@ -549,7 +554,7 @@ cdef class DayOffset(_Offset):
             self.dow = (self.dow - self.stride) % 7
             if self.dow >= 5:
                 self.t += (4 - self.dow) * us_in_day
-                self.dow = 4 
+                self.dow = 4
 
 cdef ndarray[int64_t] _generate_range(_Offset offset, Py_ssize_t periods):
     """
@@ -589,8 +594,8 @@ cdef int64_t _count_range(_Offset offset, object end):
 
 cdef class DatetimeCache:
     """
-    Holds a contiguous array of datetimes according to some offset rule, along
-    with a int64=>Py_ssize_t hashtable to discover offsets quickly.
+    Holds a array of datetimes according to some regular offset rule, along
+    with a int64 => Py_ssize_t hashtable to lookup array index values.
     """
     cdef:
         object start
@@ -598,28 +603,30 @@ cdef class DatetimeCache:
         object cache
         object periods
 
-        _Offset generator
+        _Offset offset
         Int64HashTable indexer
         object is_dirty
 
-    def __init__(self, _Offset generator,
-                 object start, object end=None, object periods=None):
+    def __init__(self, _Offset offset, object start, 
+                 object end=None, object periods=None):
         """
-        Note, prefer periods argument over end for generating range.
+        Note, prefer 'periods' argument over 'end' for generating range.
         """
 
-        self.generator = generator
-        self.start = start
-        self.end = end
+        self.offset = offset
+        self.start = convert_to_tsobject(start)
+        self.end = convert_to_tsobject(end)
         self.cache = None
         self.periods = periods
         self.is_dirty = True
 
-    cpdef rebuild(self):
+    cdef rebuild(self):
         cdef:
             int64_t periods
             Py_ssize_t i
             ndarray[int64_t] buf
+
+        # TODO: minimize memory allocation by copying existing data
 
         if self.periods is not None:
             periods = self.periods
@@ -628,11 +635,10 @@ cdef class DatetimeCache:
         else:
             periods = self.count()
 
-        self.generator.anchor(self.start)
-        buf = _generate_range(self.generator, periods)
+        self.offset.anchor(self.start)
+        buf = _generate_range(self.offset, periods)
 
-        if self.end is None:
-            self.end = buf[-1]
+        self.end = convert_to_tsobject(buf[-1])
 
         self.cache = buf
 
@@ -642,37 +648,112 @@ cdef class DatetimeCache:
 
         self.is_dirty = False
 
-    cpdef set_start(self, object start):
-        self.start = start
+    cdef set_start(self, object start):
+        self.start = convert_to_tsobject(start)
         self.is_dirty = True
 
-    cpdef set_end(self, object end):
-        self.end = end
+    cdef set_end(self, object end):
+        self.end = convert_to_tsobject(end)
         self.is_dirty = True
 
-    cpdef set_periods(self, object periods):
+    cdef set_periods(self, object periods):
         self.periods = periods
         self.is_dirty = True
+
+    cdef int _lookup(self, int64_t val):
+        cdef:
+            kh_int64_t *table = self.indexer.table
+            cdef khiter_t k
+
+        k = kh_get_int64(table, val)
+        if k != table.n_buckets:
+            return table.vals[k]
+        else:
+            return -1
+
+    cpdef extend(self, int64_t first, int64_t last, int n=0):
+        """
+        Extend cache to at least n periods beyond first and last
+        """
+        cdef:
+            _Offset offset
+            Py_ssize_t i, j
+            int an
+
+        an = abs(n)
+        offset = self.offset
+
+        offset.anchor(self.start.value)
+        if first < offset._ts():
+            while first < offset._ts():
+                offset.prev()
+            for i in range(an):
+                offset.prev()
+            self.set_start(offset._ts())
+        else:
+            for i in range(an):
+                if first <= offset._ts():
+                    self.is_dirty = True
+                    break
+                offset.next()
+            offset.anchor(self.start.value)
+            for j in range(an - i):
+                offset.prev()
+            self.set_start(offset._ts())
+
+        offset.anchor(self.end.value)
+        if last > offset._ts():
+            while last > offset._ts():
+                offset.next()
+            for i in range(an):
+                offset.next()
+            self.set_end(offset._ts())
+        else:
+            for i in range(an):
+                if last >= offset._ts():
+                    self.is_dirty = True
+                    break
+                offset.prev()
+            offset.anchor(self.end.value)
+            for j in range(an - i + 1):
+                offset.next()
+            self.set_end(offset._ts())
+
+        if self.is_dirty:
+            self.rebuild()
+
+    # user/python-accessible methods
 
     cpdef Py_ssize_t count(self):
         if not self.is_dirty:
             return len(self.cache)
 
-        self.generator.anchor(self.start)
-        return _count_range(self.generator, self.end)
+        self.offset.anchor(self.start)
+        return _count_range(self.offset, self.end)
 
-    cdef Py_ssize_t _lookup(self, int64_t val):
-        return self.indexer.get_item(val)
+    cpdef lookup(self, object tslike):
+        cdef:
+            _TSObject ts = convert_to_tsobject(tslike)
+            int idx
 
-    cpdef Py_ssize_t lookup(self, object tslike):
-        cdef _TSObject ts = convert_to_tsobject(tslike)
-        return self._lookup(ts.value)
+        if ts.value < self.start.value:
+            self.extend(ts.value, self.end.value)
+
+        if ts.value > self.end.value:
+            self.extend(self.start.value, ts.value)
+
+        idx = self._lookup(ts.value)
+        if idx < 0:
+            raise KeyError(ts.value)
+        else:
+            return idx
 
     cpdef ndarray[int64_t] get_cache(self):
         return self.cache
 
 _DEFAULT_BEGIN = Timestamp(datetime(1850, 1, 1))
 _DEFAULT_END = Timestamp(datetime(2050, 1, 1))
+
 _tcaches = {}
 
 _months = {
@@ -704,33 +785,23 @@ _weekdays = {
     'FRI' : 4
 }
 
-def get_dtcache_freq(freq, start=None, end=None, n=None):
+def get_dtcache_freq(freq, object first=None, object last=None):
     """
     Retrieve from cache (or generate, first time through) times that correspond
     to the frequency we care about.
 
-    If we fall off end of cache, we generate more cache.
+    First and last allow overriding default cache range.
     """
     cdef:
+        _Offset offset
+        int64_t s, e
         DatetimeCache tc
 
-    if start is not None:
-        start = Timestamp(start)
-        first = start
-    else:
+    if first is None:
         first = _DEFAULT_BEGIN
 
-    if end is not None:
-        end = Timestamp(end)
-        last = end
-    else:
-        last = _DEFAULT_END
-
-    if first.value > _DEFAULT_BEGIN.value:
-        first = _DEFAULT_BEGIN
-
-    if last.value < _DEFAULT_END.value:
-        last = _DEFAULT_END
+    if last is None:
+        last  = _DEFAULT_END
 
     if freq not in _tcaches:
         if freq == 'WEEKDAY':
@@ -777,74 +848,88 @@ def get_dtcache_freq(freq, start=None, end=None, n=None):
             raise ValueError('Supplied frequency %s not implemented' % freq)
 
         first = Timestamp(first)
+        last = Timestamp(last)
 
-        _tcaches[freq] = DatetimeCache(offset, first, last)
+        _tcaches[freq] = DatetimeCache(offset, first.value, last.value)
 
     tc = _tcaches[freq]
-
-    if first.value < tc.start.value:
-        tc.set_start(first)
-
-    if last.value > tc.end.value:
-        tc.set_end(last)
 
     if tc.is_dirty:
         tc.rebuild()
 
-    if n is not None:
-        idx = tc._lookup(start.value)
-        if idx + n > tc.count():
-            tc.set_periods(idx + n)
-            tc.rebuild()
-
-    return tc
+    return _tcaches[freq]
 
 @cython.wraparound(False)
 def conformity_check(ndarray[int64_t] data, object freq):
     cdef:
-        Py_ssize_t i
+        Py_ssize_t i, ld, lc
         int idx, previdx
-        object contiguous
-        DatetimeCache cache
+        object regular
+        ndarray[int64_t] cache
+        DatetimeCache tc
 
-    contiguous = True
+    regular = True
+    ld = len(data)
 
-    if len(data) == 0:
-        return None, contiguous
+    if ld == 0:
+        return None, regular
 
-    cache = get_dtcache_freq(freq)
+    tc = get_dtcache_freq(freq)
+    cache = tc.get_cache()
 
-    previdx = -1
-    # fix me - keyerror ignored
-    try:
-        previdx = cache._lookup(data[0])
-        i = 1 
-        while i < len(data):
-            idx = cache._lookup(data[i])
-            if previdx != (idx - 1):
-                contiguous = False
-            i += 1
-    except KeyError:
-        return data[i], False
+    lc = len(cache)
 
-    return None, contiguous
+    # make sure cache is large enough to handle data
+    if data[0] < cache[0] or data[ld-1] > cache[lc-1]:
+        tc.extend(data[0], data[ld-1])
+
+    previdx = tc._lookup(data[0])
+    if previdx == -1:
+        return data[0], False
+
+    i = 1
+    while i < ld:
+        idx = tc._lookup(data[i])
+        if idx == -1:
+            return data[i], False
+        if previdx != (idx - 1):
+            regular = False
+        i += 1
+
+    return None, regular
 
 @cython.wraparound(False)
 def fast_shift(ndarray[int64_t] data, object freq, int64_t n):
     cdef:
         DatetimeCache tc
         ndarray[int64_t] result, cache
-        Py_ssize_t i, l, idx
+        Py_ssize_t i, ld, lc
+        int idx, s, e
 
-    l = len(data)
+    ld = len(data)
 
-    tc = get_dtcache_freq(freq, data[0], data[l-1])
+    tc = get_dtcache_freq(freq)
+    cache = tc.get_cache()
 
-    result = np.empty(l, dtype='i8')
-    cache  = tc.get_cache()
-    for i in range(l):
-        idx = tc._lookup(data[i])
-        result[i] = cache[idx + n]
+    lc = len(cache)
+
+    # make sure cache is large enough to handle data
+    s = cache.searchsorted(data[0])
+    e = cache.searchsorted(data[ld-1])
+
+    if (data[0] < cache[0] or s + n < 0 or
+        data[ld-1] > cache[lc-1] or e + n > lc):
+        tc.extend(data[0], data[ld-1], n)
+
+    cache = tc.get_cache()
+
+    result = np.empty(ld, dtype='i8')
+    for i in range(ld):
+        idx = tc._lookup(data[i]) + n
+        if idx == -1:
+            raise ValueError("Nonconforming time %s" % np.datetime64(data[i]))
+        result[i] = cache[idx]
+
     return result
 
 
