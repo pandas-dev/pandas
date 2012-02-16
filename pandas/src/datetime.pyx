@@ -572,7 +572,7 @@ cdef ndarray[int64_t] _generate_range(_Offset offset, Py_ssize_t periods):
 
 cdef int64_t _count_range(_Offset offset, object end):
     """
-    Count timestamps in range according to offset up to (but not including)
+    Count timestamps in range according to offset up to (and including)
     end time.
     """
     cdef:
@@ -580,7 +580,7 @@ cdef int64_t _count_range(_Offset offset, object end):
         _TSObject e
 
     e = convert_to_tsobject(end)
-    while offset._ts() < e.value:
+    while offset._ts() <= e.value:
         i += 1
         offset.next()
     return i
@@ -607,7 +607,7 @@ cdef class DatetimeCache:
         Int64HashTable indexer
         object is_dirty
 
-    def __init__(self, _Offset offset, object start, 
+    def __init__(self, _Offset offset, object start,
                  object end=None, object periods=None):
         """
         Note, prefer 'periods' argument over 'end' for generating range.
@@ -684,40 +684,52 @@ cdef class DatetimeCache:
         offset = self.offset
 
         offset.anchor(self.start.value)
-        if first < offset._ts():
-            while first < offset._ts():
+        # if first is before current start
+        if offset._ts() > first:
+            # move back until on or just past first
+            while offset._ts() > first:
                 offset.prev()
+            # move back an additional n periods
             for i in range(an):
                 offset.prev()
             self.set_start(offset._ts())
+        # if first is after current start
         else:
+            # move forward up to n periods until on or just past first
             for i in range(an):
-                if first <= offset._ts():
-                    self.is_dirty = True
+                if offset._ts() >= first:
                     break
                 offset.next()
-            offset.anchor(self.start.value)
-            for j in range(an - i):
+            # now move back n periods
+            for i in range(an):
                 offset.prev()
-            self.set_start(offset._ts())
+            # are we earlier than start?
+            if offset._ts() < self.start.value:
+                self.set_start(offset._ts())
 
         offset.anchor(self.end.value)
-        if last > offset._ts():
-            while last > offset._ts():
+        # if last is after current end
+        if offset._ts() < last:
+            # move forward until on or just past last
+            while offset._ts() < last:
                 offset.next()
+            # move forward an additional n periods
             for i in range(an):
                 offset.next()
             self.set_end(offset._ts())
+        # if last is before current end
         else:
+            # move back up to n periods until on or just past last
             for i in range(an):
-                if last >= offset._ts():
-                    self.is_dirty = True
+                if offset._ts() <= last:
                     break
                 offset.prev()
-            offset.anchor(self.end.value)
-            for j in range(an - i + 1):
+            # move forward n periods
+            for j in range(an):
                 offset.next()
-            self.set_end(offset._ts())
+            # are we further than end?
+            if offset._ts() > self.end.value:
+                self.set_end(offset._ts())
 
         if self.is_dirty:
             self.rebuild()
@@ -734,7 +746,7 @@ cdef class DatetimeCache:
     cpdef lookup(self, object tslike):
         cdef:
             _TSObject ts = convert_to_tsobject(tslike)
-            int idx
+            int64_t idx
 
         if ts.value < self.start.value:
             self.extend(ts.value, self.end.value)
@@ -861,6 +873,10 @@ def get_dtcache_freq(freq, object first=None, object last=None):
 
 @cython.wraparound(False)
 def conformity_check(ndarray[int64_t] data, object freq):
+    """
+    Return first non-conforming time, otherwise None. Also, return
+    whether all times are concecutive according to the frequency.
+    """
     cdef:
         Py_ssize_t i, ld, lc
         int idx, previdx
@@ -900,6 +916,9 @@ def conformity_check(ndarray[int64_t] data, object freq):
 
 @cython.wraparound(False)
 def fast_shift(ndarray[int64_t] data, object freq, int64_t n):
+    """
+    Shift times n periods according to the frequency.
+    """
     cdef:
         DatetimeCache tc
         ndarray[int64_t] result, cache
@@ -914,6 +933,7 @@ def fast_shift(ndarray[int64_t] data, object freq, int64_t n):
     lc = len(cache)
 
     # make sure cache is large enough to handle data
+    # plus a shift of N
     s = cache.searchsorted(data[0])
     e = cache.searchsorted(data[ld-1])
 
@@ -927,7 +947,8 @@ def fast_shift(ndarray[int64_t] data, object freq, int64_t n):
     for i in range(ld):
         idx = tc._lookup(data[i]) + n
         if idx == -1:
-            raise ValueError("Nonconforming time %s" % np.datetime64(data[i]))
+            raise ValueError("Shift hit nonconforming time %s" 
+                             % np.datetime64(data[i]))
         result[i] = cache[idx]
 
     return result

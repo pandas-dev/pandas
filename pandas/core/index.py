@@ -1049,7 +1049,7 @@ class DatetimeIndex(Int64Index):
             try:
                 first = dtcache.lookup(start)
                 if n is not None:
-                    if first + n > len(buf):
+                    if first + n >= len(buf):
                         ext = (first + n) - len(buf) + 1
                         dtcache.extend(buf[0], buf[-1], ext)
                         buf = dtcache.get_cache()
