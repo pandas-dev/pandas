@@ -91,3 +91,10 @@ groupby_multi_different_functions = \
                                                    'value2' : 'var',
                                                    'value3' : 'sum'})""",
               setup, start_date=datetime(2011, 9, 1))
+
+groupby_multi_different_numpy_functions = \
+    Benchmark("""df.groupby(['key1', 'key2']).agg({'value1' : np.mean,
+                                                   'value2' : np.var,
+                                                   'value3' : np.sum})""",
+              setup, start_date=datetime(2011, 9, 1))
+

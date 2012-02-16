@@ -1505,8 +1505,30 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(result, expected.reindex(result.index))
 
         result = DataFrame([{}])
-        expected = DataFrame([])
+        expected = DataFrame(index=[0])
         assert_frame_equal(result, expected)
+
+    def test_constructor_list_of_series(self):
+        data = [{'a': 1.5, 'b': 3, 'c':4, 'd':6},
+                {'a': 1.5, 'b': 3, 'd':6},
+                {'a': 1.5, 'd':6},
+                {},
+                {'a': 1.5, 'b': 3, 'c':4},
+                {'b': 3, 'c':4, 'd':6}]
+        data = [Series(d) for d in data]
+
+        result = DataFrame(data)
+        expected = DataFrame.from_dict(dict(zip(range(len(data)), data)),
+                                       orient='index')
+        assert_frame_equal(result, expected.reindex(result.index))
+
+        result2 = DataFrame(data, index=np.arange(6))
+        assert_frame_equal(result, result2)
+
+        result = DataFrame([Series({})])
+        expected = DataFrame(index=[0])
+        assert_frame_equal(result, expected)
+
 
     def test_constructor_ragged(self):
         data = {'A' : randn(10),

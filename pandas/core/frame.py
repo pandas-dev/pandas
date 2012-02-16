@@ -298,12 +298,16 @@ class DataFrame(NDFrame):
                                          copy=copy)
         elif isinstance(data, list):
             if len(data) > 0:
-                if isinstance(data[0], (list, tuple)):
-                    data, columns = _list_to_sdict(data, columns)
-                    mgr = self._init_dict(data, index, columns, dtype=dtype)
-                elif isinstance(data[0], dict):
-                    data, columns = _list_of_dict_to_sdict(data, columns)
-                    mgr = self._init_dict(data, index, columns, dtype=dtype)
+                if isinstance(data[0], (list, tuple, dict, Series)):
+                    conv_data, columns = _to_sdict(data, columns)
+                    if isinstance(conv_data, dict):
+                        if len(conv_data) == 0 and index is None:
+                            index = np.arange(len(data))
+                        mgr = self._init_dict(conv_data, index, columns,
+                                              dtype=dtype)
+                    else:
+                        mgr = self._init_ndarray(conv_data, index, columns,
+                                                 dtype=dtype, copy=copy)
                 else:
                     mgr = self._init_ndarray(data, index, columns, dtype=dtype,
                                              copy=copy)
@@ -4040,6 +4044,16 @@ def _rec_to_dict(arr):
     return columns, sdict
 
 
+def _to_sdict(data, columns):
+    if isinstance(data[0], (list, tuple)):
+        return _list_to_sdict(data, columns)
+    elif isinstance(data[0], dict):
+        return _list_of_dict_to_sdict(data, columns)
+    elif isinstance(data[0], Series):
+        return _list_of_series_to_sdict(data, columns)
+    else:  # pragma: no cover
+        raise TypeError('No logic to handle %s type' % type(data[0]))
+
 def _list_to_sdict(data, columns):
     if len(data) > 0 and isinstance(data[0], tuple):
         content = list(lib.to_object_array_tuples(data).T)
@@ -4052,6 +4066,20 @@ def _list_to_sdict(data, columns):
         return {}, columns
     return _convert_object_array(content, columns)
 
+def _list_of_series_to_sdict(data, columns):
+    from pandas.core.index import _get_combined_index
+
+    if columns is None:
+        columns = _get_combined_index([s.index for s in data])
+
+    values = np.vstack([s.reindex(columns, copy=False).values
+                        for s in data])
+
+    if values.dtype == np.object_:
+        content = list(values.T)
+        return _convert_object_array(content, columns)
+    else:
+        return values, columns
 
 def _list_of_dict_to_sdict(data, columns):
     if columns is None:
