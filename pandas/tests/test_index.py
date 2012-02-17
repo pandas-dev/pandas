@@ -14,6 +14,7 @@ from pandas.util import py3compat
 
 import pandas.util.testing as tm
 import pandas._tseries as tseries
+from pandas.core.datetools import _dt_unbox
 
 class TestIndex(unittest.TestCase):
 
@@ -112,6 +113,10 @@ class TestIndex(unittest.TestCase):
     def test_comparators(self):
         index = self.dateIndex
         element = index[len(index) // 2]
+
+        if tm._test_with_datetime64:
+            element = _dt_unbox(element)
+
         arr = np.array(index)
 
         def _check(op):
@@ -148,7 +153,12 @@ class TestIndex(unittest.TestCase):
 
     def test_getitem(self):
         arr = np.array(self.dateIndex)
-        self.assertEquals(self.dateIndex[5], arr[5])
+        exp = self.dateIndex[5]
+
+        if tm._test_with_datetime64:
+            exp = _dt_unbox(exp)
+
+        self.assertEquals(exp, arr[5])
 
     def test_shift(self):
         shifted = self.dateIndex.shift(0, timedelta(1))
@@ -202,8 +212,12 @@ class TestIndex(unittest.TestCase):
         firstCat = self.strIndex + self.dateIndex
         secondCat = self.strIndex + self.strIndex
 
-        self.assert_(tm.equalContents(np.append(self.strIndex,
-                                                self.dateIndex), firstCat))
+        if self.dateIndex.dtype == np.object_:
+            appended = np.append(self.strIndex, self.dateIndex)
+        else:
+            appended = np.append(self.strIndex, self.dateIndex.astype('O'))
+
+        self.assert_(tm.equalContents(firstCat, appended))
         self.assert_(tm.equalContents(secondCat, self.strIndex))
         tm.assert_contains_all(self.strIndex, firstCat.indexMap)
         tm.assert_contains_all(self.strIndex, secondCat.indexMap)
@@ -653,7 +667,7 @@ class TestInt64Index(unittest.TestCase):
         from datetime import datetime, timedelta
         # corner case, non-Int64Index
         now = datetime.now()
-        other = Index([now + timedelta(i) for i in xrange(4)])
+        other = Index([now + timedelta(i) for i in xrange(4)], dtype=object)
         result = self.index.union(other)
         expected = np.concatenate((self.index, other))
         self.assert_(np.array_equal(result, expected))
@@ -690,6 +704,20 @@ class TestInt64Index(unittest.TestCase):
         df = DataFrame(range(3), index=index)
         repr(s)
         repr(df)
+
+if tm.PERFORM_DATETIME64_TESTS:
+    class TestDatetime64Index(TestIndex):
+        '''
+        Same tests as for TestIndex, but force datetime64 usage"
+        '''
+        def setUp(self):
+            self.dt64_setting = tm._test_with_datetime64
+            tm._test_with_datetime64 = True
+            super(TestDatetime64Index, self).setUp()
+
+        def tearDown(self):
+            super(TestDatetime64Index, self).tearDown()
+            tm._test_with_datetime64 = self.dt64_setting
 
 class TestMultiIndex(unittest.TestCase):
 
@@ -1391,6 +1419,20 @@ class TestMultiIndex(unittest.TestCase):
                            labels=[[0, 0, 0, 0, 1, 1, 1],
                                    [0, 1, 2, 0, 0, 1, 2]])
         self.assert_(index.has_duplicates)
+
+if tm.PERFORM_DATETIME64_TESTS:
+    class TestDatetime64MultiIndex(TestMultiIndex):
+        '''
+        Same tests as for TestIndex, but force datetime64 usage"
+        '''
+        def setUp(self):
+            self.dt64_setting = tm._test_with_datetime64
+            tm._test_with_datetime64 = True
+            super(TestDatetime64MultiIndex, self).setUp()
+
+        def tearDown(self):
+            super(TestDatetime64MultiIndex, self).tearDown()
+            tm._test_with_datetime64 = self.dt64_setting
 
 class TestFactor(unittest.TestCase):
 

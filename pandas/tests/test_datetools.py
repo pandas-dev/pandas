@@ -1,13 +1,24 @@
 from datetime import datetime, timedelta
 import unittest
+import numpy as np
 
 from pandas.core.datetools import (
     bday, BDay, BQuarterEnd, BMonthEnd, BYearEnd, MonthEnd,
     DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second,
     WeekOfMonth, format, ole2datetime, QuarterEnd, to_datetime, normalize_date,
-    getOffset, getOffsetName, inferTimeRule, hasOffsetName)
+    getOffset, getOffsetName, inferTimeRule, hasOffsetName,
+    _dt_box, _dt_unbox)
 
 from nose.tools import assert_raises
+
+import pandas._tseries as lib
+from pandas._tseries import Timestamp, Delta
+
+def test_monthrange():
+    import calendar
+    for y in range(2000,2013):
+        for m in range(1,13):
+            assert lib.monthrange(y,m) == calendar.monthrange(y,m)
 
 ####
 ## Misc function tests
@@ -37,6 +48,19 @@ def test_normalize_date():
     actual = normalize_date(datetime(2007, 10, 1, 1, 12, 5, 10))
     assert actual == datetime(2007, 10, 1)
 
+def test_datetime64_unbox():
+    valb = datetime(2007,10,1)
+    valu = _dt_unbox(valb)
+    print valu
+    #assert type(valu) == np.datetime64
+    #assert valu == np.datetime64(datetime(2007,10,1))
+
+#def test_datetime64_box():
+#    valu = np.datetime64(datetime(2007,10,1))
+#    valb = _dt_box(valu)
+#    assert type(valb) == datetime
+#    assert valb == datetime(2007,10,1)
+
 #####
 ### DateOffset Tests
 #####
@@ -44,7 +68,7 @@ def test_normalize_date():
 class TestDateOffset(unittest.TestCase):
 
     def setUp(self):
-        self.d = datetime(2008, 1, 2)
+        self.d = Timestamp(datetime(2008, 1, 2))
 
     def test_repr(self):
         repr(DateOffset())
@@ -78,6 +102,32 @@ class TestDateOffset(unittest.TestCase):
 
         self.assert_(offset1 != offset2)
         self.assert_(not (offset1 == offset2))
+
+class TestDelta(unittest.TestCase):
+
+    def setUp(self):
+        self.d = Timestamp(datetime(2008, 1, 2))
+
+    def test_repr(self):
+        repr(Delta())
+        repr(Delta(2))
+        repr(2 * Delta())
+        repr(2 * Delta(months=2))
+
+    def test_mul(self):
+        assert Delta(days=2) == 2 * Delta(days=1)
+        assert Delta(days=2) == Delta(days=1) * 2
+
+    def test_constructor(self):
+
+        assert((self.d + Delta(months=2)) == Timestamp(datetime(2008, 3, 2)))
+        assert((self.d - Delta(months=2)) == Timestamp(datetime(2007, 11, 2)))
+
+        assert((self.d + Delta(days=2)) == Timestamp(datetime(2008, 1, 4)))
+
+        d = Timestamp(datetime(2008, 1, 31))
+        assert((d + Delta(months=1)) == Timestamp(datetime(2008, 2, 29)))
+
 
 class TestBusinessDay(unittest.TestCase):
 

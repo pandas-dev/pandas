@@ -5,6 +5,7 @@ from pandas import Index
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as common
 import pandas._tseries as lib
+from datetime import datetime
 
 class TestTseriesUtil(unittest.TestCase):
 
@@ -347,7 +348,19 @@ class TestTypeInference(unittest.TestCase):
         pass
 
     def test_datetime(self):
-        pass
+        arr1 = np.array([1,2,3], dtype='M8[us]')
+        result = lib.infer_dtype(arr1)
+        self.assertEqual(result, 'datetime64')
+
+        result = lib.infer_dtype(np.array(list(arr1), dtype='O'))
+        self.assertEqual(result, 'datetime64')
+
+        arr2 = np.array([datetime(2010,10,5)]*5)
+        result = lib.infer_dtype(arr2)
+        self.assertEqual(result, 'datetime')
+
+        result = lib.infer_dtype(np.array(list(arr2), dtype='O'))
+        self.assertEqual(result, 'datetime')
 
     def test_to_object_array_tuples(self):
         r = (5,6)

@@ -796,6 +796,75 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                         name=('foo', 'bar', 'baz'))
         repr(biggie)
 
+    def test_to_string(self):
+        from cStringIO import StringIO
+        buf = StringIO()
+
+        s = self.ts.to_string()
+
+        retval = self.ts.to_string(buf=buf)
+        self.assert_(retval is None)
+        self.assertEqual(buf.getvalue().strip(), s)
+
+        # pass float_format
+        format = '%.4f'.__mod__
+        result = self.ts.to_string(float_format=format)
+        result = [x.split()[1] for x in result.split('\n')]
+        expected = [format(x) for x in self.ts]
+        self.assertEqual(result, expected)
+
+        # empty string
+        result = self.ts[:0].to_string()
+        self.assertEqual(result, '')
+
+        result = self.ts[:0].to_string(length=0)
+        self.assertEqual(result, '')
+
+        # name and length
+        cp = self.ts.copy()
+        cp.name = 'foo'
+        result = cp.to_string(length=True, name=True)
+        last_line = result.split('\n')[-1].strip()
+        self.assertEqual(last_line, "Name: foo, Length: %d" % len(cp))
+
+    def test_to_string_mixed(self):
+        s = Series(['foo', np.nan, -1.23, 4.56])
+        result = s.to_string()
+        expected = ('0    foo\n'
+                    '1    NaN\n'
+                    '2   -1.23\n'
+                    '3    4.56')
+        self.assertEqual(result, expected)
+
+        # but don't count NAs as floats
+        s = Series(['foo', np.nan, 'bar', 'baz'])
+        result = s.to_string()
+        expected = ('0    foo\n'
+                    '1    NaN\n'
+                    '2    bar\n'
+                    '3    baz')
+        self.assertEqual(result, expected)
+
+        s = Series(['foo', 5, 'bar', 'baz'])
+        result = s.to_string()
+        expected = ('0    foo\n'
+                    '1    5\n'
+                    '2    bar\n'
+                    '3    baz')
+        self.assertEqual(result, expected)
+
+    def test_to_string_float_na_spacing(self):
+        s = Series([0., 1.5678, 2., -3., 4.])
+        s[::2] = np.nan
+
+        result = s.to_string()
+        expected = ('0    NaN\n'
+                    '1    1.568\n'
+                    '2    NaN\n'
+                    '3   -3.000\n'
+                    '4    NaN')
+        self.assertEqual(result, expected)
+
     def test_iter(self):
         for i, val in enumerate(self.series):
             self.assertEqual(val, self.series[i])
@@ -1000,12 +1069,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(result, expected)
 
     def test_append(self):
-        appendedSeries = self.series.append(self.ts)
+        appendedSeries = self.series.append(self.objSeries)
         for idx, value in appendedSeries.iteritems():
             if idx in self.series.index:
                 self.assertEqual(value, self.series[idx])
-            elif idx in self.ts.index:
-                self.assertEqual(value, self.ts[idx])
+            elif idx in self.objSeries.index:
+                self.assertEqual(value, self.objSeries[idx])
             else:
                 self.fail("orphaned index!")
 
@@ -2089,6 +2158,19 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_numpy_unique(self):
         # it works!
         result = np.unique(self.ts)
+if tm.PERFORM_DATETIME64_TESTS:
+    class TestSeriesDatetime64(TestSeries):
+        '''
+        Same tests as for TestSeries, but force datetime64 usage"
+        '''
+        def setUp(self):
+            self.dt64_setting = tm._test_with_datetime64
+            tm._test_with_datetime64 = True
+            super(TestSeriesDatetime64, self).setUp()
+
+        def tearDown(self):
+            super(TestSeriesDatetime64, self).tearDown()
+            tm._test_with_datetime64 = self.dt64_setting
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

@@ -450,6 +450,8 @@ class GroupBy(object):
         result = None
 
         for label, group in self._generate_groups(obj, group_index, ngroups):
+            if group is None:
+                continue
             res = func(group)
             if result is None:
                 try:
@@ -568,6 +570,7 @@ class Grouping(object):
     """
     def __init__(self, index, grouper=None, name=None, level=None,
                  sort=True):
+
         self.name = name
         self.level = level
         self.grouper = _convert_grouper(index, grouper)

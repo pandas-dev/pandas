@@ -5,8 +5,10 @@ import operator
 
 import numpy as np
 
-from pandas.core.index import Index
+from pandas.core.index import DatetimeIndex
 import pandas.core.datetools as datetools
+from pandas.core.datetools import _dt_box, _dt_unbox_array
+from pandas._tseries import Timestamp
 
 __all__ = ['DateRange']
 
@@ -15,16 +17,18 @@ __all__ = ['DateRange']
 
 def _bin_op(op):
     def f(self, other):
+        if isinstance(other, datetime):
+            other = np.datetime64(other)
         return op(self.view(np.ndarray), other)
 
     return f
 
-_CACHE_START = datetime(1950, 1, 1)
-_CACHE_END   = datetime(2030, 1, 1)
+_CACHE_START = Timestamp(datetime(1950, 1, 1))
+_CACHE_END   = Timestamp(datetime(2030, 1, 1))
 
 _daterange_cache = {}
 
-class DateRange(Index):
+class DateRange(DatetimeIndex):
     """
     Fixed frequency date range according to input parameters.
 
@@ -66,10 +70,12 @@ class DateRange(Index):
         start = datetools.to_datetime(start)
         end = datetools.to_datetime(end)
 
-        if start is not None and not isinstance(start, datetime):
+        if (start is not None
+            and not isinstance(start, (datetime, np.datetime64, Timestamp))):
             raise ValueError('Failed to convert %s to datetime' % start)
 
-        if end is not None and not isinstance(end, datetime):
+        if (end is not None
+            and not isinstance(end, (datetime, np.datetime64, Timestamp))):
             raise ValueError('Failed to convert %s to datetime' % end)
 
         # inside cache range. Handle UTC case
@@ -92,7 +98,7 @@ class DateRange(Index):
         if tzinfo is not None:
             index = [d.replace(tzinfo=tzinfo) for d in index]
 
-        index = np.array(index, dtype=object, copy=False)
+        index = np.array(_dt_unbox_array(index), dtype='M8[us]', copy=False)
         index = index.view(cls)
         index.name = name
         index.offset = offset
@@ -101,7 +107,7 @@ class DateRange(Index):
 
     def __reduce__(self):
         """Necessary for making this object picklable"""
-        a, b, state = Index.__reduce__(self)
+        a, b, state = DatetimeIndex.__reduce__(self)
         aug_state = state, self.offset, self.tzinfo
 
         return a, b, aug_state
@@ -119,16 +125,16 @@ class DateRange(Index):
 
         self.offset = offset
         self.tzinfo = tzinfo
-        Index.__setstate__(self, *index_state)
+        DatetimeIndex.__setstate__(self, *index_state)
 
     def equals(self, other):
         if self is other:
             return True
 
-        if not isinstance(other, Index):
+        if not isinstance(other, DatetimeIndex):
             return False
 
-        return Index.equals(self.view(Index), other)
+        return DatetimeIndex.equals(self.view(DatetimeIndex), other)
 
     @property
     def is_all_dates(self):
@@ -137,6 +143,10 @@ class DateRange(Index):
     @classmethod
     def _cached_range(cls, start=None, end=None, periods=None, offset=None,
                       time_rule=None, name=None):
+        if start is not None:
+            start = Timestamp(start)
+        if end is not None:
+            end = Timestamp(end)
 
         # HACK: fix this dependency later
         if time_rule is not None:
@@ -147,7 +157,8 @@ class DateRange(Index):
 
         if offset not in _daterange_cache:
             xdr = generate_range(_CACHE_START, _CACHE_END, offset=offset)
-            arr = np.array(list(xdr), dtype=object, copy=False)
+            arr = np.array(_dt_unbox_array(list(xdr)),
+                           dtype='M8[us]', copy=False)
 
             cachedRange = arr.view(DateRange)
             cachedRange.offset = offset
@@ -163,14 +174,14 @@ class DateRange(Index):
             if periods is None:
                 raise Exception('Must provide number of periods!')
 
-            assert(isinstance(end, datetime))
+            assert(isinstance(end, (datetime, Timestamp)))
 
             end = offset.rollback(end)
 
             endLoc = cachedRange.get_loc(end) + 1
             startLoc = endLoc - periods
         elif end is None:
-            assert(isinstance(start, datetime))
+            assert(isinstance(start, (datetime, Timestamp)))
             start = offset.rollforward(start)
 
             startLoc = cachedRange.get_loc(start)
@@ -208,6 +219,9 @@ class DateRange(Index):
         """Override numpy.ndarray's __getitem__ method to work as desired"""
         result = self.view(np.ndarray)[key]
 
+        if isinstance(result, np.datetime64):
+            result = _dt_box(result).replace(tzinfo=self.tzinfo)
+
         if isinstance(key, (int, np.integer)):
             return result
         elif isinstance(key, slice):
@@ -221,10 +235,7 @@ class DateRange(Index):
             new_index.name = self.name
             return new_index
         else:
-            if result.ndim > 1:
-                return result
-
-            return Index(result, name=self.name)
+            return DatetimeIndex(result, name=self.name)
 
     def summary(self):
         if len(self) > 0:
@@ -263,7 +274,7 @@ class DateRange(Index):
         shifted : DateRange
         """
         if offset is not None and offset != self.offset:
-            return Index.shift(self, n, offset)
+            return DatetimeIndex.shift(self, n, offset)
 
         if n == 0:
             # immutable so OK
@@ -288,18 +299,18 @@ class DateRange(Index):
         y : Index or DateRange
         """
         if not isinstance(other, DateRange) or other.offset != self.offset:
-            return Index.union(self.view(Index), other)
+            return DatetimeIndex.union(self.view(DatetimeIndex), other)
 
         if self._can_fast_union(other):
             return self._fast_union(other)
         else:
-            return Index.union(self, other)
+            return DatetimeIndex.union(self, other)
 
     def _wrap_union_result(self, other, result):
         # If we are here, _can_fast_union is false or other is not a
         # DateRange, so their union has to be an Index.
         name = self.name if self.name == other.name else None
-        return Index(result, name=name)
+        return DatetimeIndex(result, name=name)
 
     def _wrap_joined_index(self, joined, other):
         name = self.name if self.name == other.name else None
@@ -310,7 +321,7 @@ class DateRange(Index):
             joined.name = name
             return joined
         else:
-            return Index(joined, name=name)
+            return DatetimeIndex(joined, name=name)
 
     def _can_fast_union(self, other):
         offset = self.offset
@@ -364,7 +375,7 @@ class DateRange(Index):
         y : Index or DateRange
         """
         if not isinstance(other, DateRange) or other.offset != self.offset:
-            return Index.intersection(self.view(Index), other)
+            return DatetimeIndex.intersection(self.view(DatetimeIndex), other)
 
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
@@ -375,8 +386,8 @@ class DateRange(Index):
         end = min(left[-1], right[-1])
         start = right[0]
 
-        if end < start:
-            return Index([])
+        if left_end < right_start:
+            return DatetimeIndex([])
         else:
             lslice = slice(*left.slice_locs(start, end))
             left_chunk = left.values[lslice]
@@ -397,7 +408,8 @@ class DateRange(Index):
         -------
         normalized : DateRange
         """
-        new_dates = np.array([tz.normalize(x) for x in self])
+        new_dates = np.array([tz.normalize(x.replace(tzinfo=self.tzinfo)) 
+                              for x in self])
         new_dates = new_dates.view(DateRange)
         new_dates.offset = self.offset
         new_dates.tzinfo = tz
@@ -412,7 +424,9 @@ class DateRange(Index):
         -------
         localized : DateRange
         """
-        new_dates = np.array([tz.localize(x) for x in self])
+        new_dates = np.array(
+                [np.datetime64(tz.localize(x.replace(tzinfo=self.tzinfo))) 
+                 for x in self])
         new_dates = new_dates.view(DateRange)
         new_dates.offset = self.offset
         new_dates.tzinfo = tz
@@ -546,6 +560,15 @@ def generate_range(start=None, end=None, periods=None,
 #         return False
 
 def _in_range(start, end, rng_start, rng_end):
+    if isinstance(rng_start, datetime):
+        rng_start = Timestamp(rng_start)
+    if isinstance(rng_end, datetime):
+        rng_end = Timestamp(rng_end)
+    if isinstance(start, datetime):
+        start = Timestamp(start)
+    if isinstance(end, datetime):
+        end = Timestamp(end)
+
     return start > rng_start and end < rng_end
 
 def _naive_in_cache_range(start, end):

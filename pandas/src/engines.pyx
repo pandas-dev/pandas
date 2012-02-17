@@ -1,11 +1,20 @@
 from numpy cimport ndarray
+
 cimport numpy as cnp
-cimport cpython
 
 cnp.import_array()
 cnp.import_ufunc()
 
 cimport util
+
+import numpy as np
+
+
+cdef extern from "datetime.h":
+    bint PyDateTime_Check(object o)
+    void PyDateTime_IMPORT()
+
+PyDateTime_IMPORT
 
 cdef extern from "Python.h":
     int PySlice_Check(object)
@@ -107,6 +116,44 @@ cdef class DictIndexEngine(IndexEngine):
             raise Exception('Index values are not unique')
         return self.mapping[val]
 
+cdef class DictIndexEngineDatetime(DictIndexEngine):
+
+    def __contains__(self, object val):
+        self._ensure_initialized()
+
+        if util.is_datetime64_object(val):
+            return val.view('i8') in self.mapping
+
+        if PyDateTime_Check(val):
+            key = np.datetime64(val)
+            return key.view('i8') in self.mapping
+
+        return val in self.mapping
+
+    cpdef get_loc(self, object val):
+        if is_definitely_invalid_key(val):
+            raise TypeError
+
+        self._ensure_initialized()
+        if not self.integrity:
+            raise Exception('Index values are not unique')
+
+        if util.is_datetime64_object(val):
+            val = val.view('i8')
+
+        if PyDateTime_Check(val):
+            val = np.datetime64(val)
+            val = val.view('i8')
+
+        return self.mapping[val]
+
+    cdef initialize(self):
+        # already passed a view on ndarray
+        values = self.index_weakref
+        self.mapping = self.mapfun(values)
+        if len(self.mapping) == len(values):
+            self.integrity = 1
+        self.initialized = 1
 
 cdef inline is_definitely_invalid_key(object val):
     return PySlice_Check(val) or cnp.PyArray_Check(val)

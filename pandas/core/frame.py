@@ -1187,6 +1187,7 @@ class DataFrame(NDFrame):
         """
         return self._constructor(data=self.values.T, index=self.columns,
                                  columns=self.index, copy=False)
+
     T = property(transpose)
 
     #----------------------------------------------------------------------

@@ -30,6 +30,7 @@ import pandas.core.nanops as nanops
 import pandas._tseries as lib
 from pandas.util.decorators import Appender, Substitution
 
+
 __all__ = ['Series', 'TimeSeries']
 
 _np_version = np.version.short_version
@@ -161,6 +162,19 @@ _doc_exclude_na = "NA/null values are excluded"
 _doc_ndarray_interface = ("Extra parameters are to preserve ndarray"
                           "interface.\n")
 
+def _series_dict_handler(data, index, dtype, copy):
+    if index is None:
+        index = Index(sorted(data))
+    else:
+        index = _ensure_index(index)
+
+    data_index = Index(data)
+    indexer = data_index.get_indexer(index)
+    values = _sanitize_array(data.values(), len(index), 
+                             dtype, copy, raise_cast_failure=True)
+    data = com.take_1d(values, indexer)
+    return data, index
+
 #-------------------------------------------------------------------------------
 # Series class
 
@@ -182,16 +196,11 @@ class Series(np.ndarray, generic.PandasObject):
             if index is None:
                 index = data.index
         elif isinstance(data, dict):
-            if index is None:
-                index = Index(sorted(data))
-            else:
-                index = _ensure_index(index)
-            try:
-                data = lib.fast_multiget(data, index, default=np.nan)
-            except TypeError:
-                data = [data.get(i, nan) for i in index]
+            data, index = _series_dict_handler(data, index, dtype, copy)
 
-        subarr = _sanitize_array(data, index, dtype, copy,
+        idxlen = len(index) if index is not None else None
+
+        subarr = _sanitize_array(data, idxlen, dtype, copy,
                                  raise_cast_failure=True)
 
         if not isinstance(subarr, np.ndarray):
@@ -2169,8 +2178,10 @@ copy : boolean, default False
         v = self.get(date)
 
         if isnull(v):
+            # this will convert datetime -> datetime64 index
             candidates = self.index[notnull(self)]
-            index = candidates.searchsorted(date)
+
+            index = candidates.searchsorted(lib.Timestamp(date))
 
             if index > 0:
                 asOfDate = candidates[index - 1]
@@ -2304,7 +2315,7 @@ def remove_na(arr):
     return arr[notnull(arr)]
 
 
-def _sanitize_array(data, index, dtype=None, copy=False,
+def _sanitize_array(data, idxlen, dtype=None, copy=False,
                     raise_cast_failure=False):
     if isinstance(data, ma.MaskedArray):
         mask = ma.getmaskarray(data)
@@ -2322,7 +2333,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
     if subarr.ndim == 0:
         if isinstance(data, list):  # pragma: no cover
             subarr = np.array(data, dtype=object)
-        elif index is not None:
+        elif idxlen is not None:
             value = data
 
             # If we create an empty array using a string to infer
@@ -2334,9 +2345,9 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 dtype = np.object_
 
             if dtype is None:
-                subarr = np.empty(len(index), dtype=type(value))
+                subarr = np.empty(idxlen, dtype=type(value))
             else:
-                subarr = np.empty(len(index), dtype=dtype)
+                subarr = np.empty(idxlen, dtype=dtype)
             subarr.fill(value)
         else:
             return subarr.item()
