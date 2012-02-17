@@ -799,9 +799,9 @@ _months = {
 }
 
 _quarters = {
-    'JAN' : 1,
-    'FEB' : 2,
-    'MAR' : 3
+    'JAN' : 0,
+    'FEB' : 1,
+    'MAR' : 2
 }
 
 _weekdays = {

@@ -201,6 +201,10 @@ class TestDatetime64(unittest.TestCase):
                     self.assert_(t == stack.pop())
                     self.assert_(t.weekday() == day)
 
+    def test_datetimeindex_creation(self):
+        dti = DatetimeIndex(freq='Q@JAN', start=datetime(1997,12,31), n=100)
+        self.assert_(dti[0] == datetime(1997,12,31))
+
     def test_datetimeindex_shift(self):
         dti = DatetimeIndex(freq='W@TUE', start=datetime(2005,1,4), n=100)
 
