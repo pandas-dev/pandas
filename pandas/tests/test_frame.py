@@ -2842,6 +2842,27 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         result = self.mixed_frame.fillna(value=0)
 
+    def test_fillna_inplace(self):
+        df = DataFrame(np.random.randn(10, 4))
+        df[1][:4] = np.nan
+        df[3][-4:] = np.nan
+
+        expected = df.fillna(value=0)
+        self.assert_(expected is not df)
+
+        df2 = df.fillna(value=0, inplace=True)
+        self.assert_(df2 is df)
+        assert_frame_equal(df2, expected)
+
+        df[1][:4] = np.nan
+        df[3][-4:] = np.nan
+        expected = df.fillna()
+        self.assert_(expected is not df)
+
+        df2 = df.fillna(inplace=True)
+        self.assert_(df2 is df)
+        assert_frame_equal(df2, expected)
+
     def test_truncate(self):
         offset = datetools.bday
 

@@ -209,6 +209,39 @@ class Block(object):
         new_values.flat[mask] = value
         return make_block(new_values, self.items, self.ref_items)
 
+    def interpolate(self, method='pad', inplace=False):
+        values = self.values if inplace else self.values.copy()
+
+        if values.ndim != 2:
+            raise NotImplementedError
+
+        if method == 'pad':
+            _pad(values)
+        else:
+            _backfill(values)
+
+        return make_block(values, self.items, self.ref_items)
+
+def _pad(values):
+    if com.is_float_dtype(values):
+        _method = lib.pad_2d_inplace_float64
+    elif values.dtype == np.object_:
+        _method = lib.pad_2d_inplace_object
+    else:
+        raise ValueError('Invalid dtype for padding')
+
+    _method(values, com.isnull(values).view(np.uint8))
+
+def _backfill(values):
+    if com.is_float_dtype(values):
+        _method = lib.backfill_2d_inplace_float64
+    elif values.dtype == np.object_:
+        _method = lib.backfill_2d_inplace_object
+    else:
+        raise ValueError('Invalid dtype for padding')
+
+    _method(values, com.isnull(values).view(np.uint8))
+
 #-------------------------------------------------------------------------------
 # Is this even possible?
 

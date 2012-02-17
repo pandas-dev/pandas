@@ -134,3 +134,16 @@ statement = "df.drop_duplicates(['key1', 'key2'])"
 frame_drop_duplicates = Benchmark(statement, setup,
                                   name='frame_drop_duplicates',
                                   start_date=datetime(2011, 11, 15))
+
+#----------------------------------------------------------------------
+# fillna, many columns
+
+
+setup = common_setup + """
+values = np.random.randn(1000, 1000)
+values[::2] = np.nan
+df = DataFrame(values)
+"""
+
+frame_fillna_many_columns_pad = Benchmark("df.fillna(method='pad')",
+                                          setup)

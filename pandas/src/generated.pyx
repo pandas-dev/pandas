@@ -752,6 +752,178 @@ def backfill_bool(ndarray[uint8_t] oldIndex,
     return fill_vec
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def pad_2d_inplace_float64(ndarray[float64_t, ndim=2] values,
+                            ndarray[uint8_t, ndim=2] mask):
+    cdef Py_ssize_t i, j, N, K
+    cdef float64_t val
+
+    K, N = (<object> values).shape
+
+    val = np.nan
+
+    for j in range(K):
+        val = values[j, 0]
+        for i in range(N):
+            if mask[j, i]:
+                values[j, i] = val
+            else:
+                val = values[j, i]
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def pad_2d_inplace_object(ndarray[object, ndim=2] values,
+                            ndarray[uint8_t, ndim=2] mask):
+    cdef Py_ssize_t i, j, N, K
+    cdef object val
+
+    K, N = (<object> values).shape
+
+    val = np.nan
+
+    for j in range(K):
+        val = values[j, 0]
+        for i in range(N):
+            if mask[j, i]:
+                values[j, i] = val
+            else:
+                val = values[j, i]
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def pad_2d_inplace_int32(ndarray[int32_t, ndim=2] values,
+                            ndarray[uint8_t, ndim=2] mask):
+    cdef Py_ssize_t i, j, N, K
+    cdef int32_t val
+
+    K, N = (<object> values).shape
+
+    val = np.nan
+
+    for j in range(K):
+        val = values[j, 0]
+        for i in range(N):
+            if mask[j, i]:
+                values[j, i] = val
+            else:
+                val = values[j, i]
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def pad_2d_inplace_int64(ndarray[int64_t, ndim=2] values,
+                            ndarray[uint8_t, ndim=2] mask):
+    cdef Py_ssize_t i, j, N, K
+    cdef int64_t val
+
+    K, N = (<object> values).shape
+
+    val = np.nan
+
+    for j in range(K):
+        val = values[j, 0]
+        for i in range(N):
+            if mask[j, i]:
+                values[j, i] = val
+            else:
+                val = values[j, i]
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def pad_2d_inplace_bool(ndarray[uint8_t, ndim=2] values,
+                            ndarray[uint8_t, ndim=2] mask):
+    cdef Py_ssize_t i, j, N, K
+    cdef uint8_t val
+
+    K, N = (<object> values).shape
+
+    val = np.nan
+
+    for j in range(K):
+        val = values[j, 0]
+        for i in range(N):
+            if mask[j, i]:
+                values[j, i] = val
+            else:
+                val = values[j, i]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def backfill_2d_inplace_float64(ndarray[float64_t, ndim=2] values,
+                                 ndarray[uint8_t, ndim=2] mask):
+    cdef Py_ssize_t i, j, N, K
+    cdef float64_t val
+
+    K, N = (<object> values).shape
+
+    for j in range(K):
+        val = values[j, N - 1]
+        for i in range(N - 1, -1 , -1):
+            if mask[j, i]:
+                values[j, i] = val
+            else:
+                val = values[j, i]
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def backfill_2d_inplace_object(ndarray[object, ndim=2] values,
+                                 ndarray[uint8_t, ndim=2] mask):
+    cdef Py_ssize_t i, j, N, K
+    cdef object val
+
+    K, N = (<object> values).shape
+
+    for j in range(K):
+        val = values[j, N - 1]
+        for i in range(N - 1, -1 , -1):
+            if mask[j, i]:
+                values[j, i] = val
+            else:
+                val = values[j, i]
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def backfill_2d_inplace_int32(ndarray[int32_t, ndim=2] values,
+                                 ndarray[uint8_t, ndim=2] mask):
+    cdef Py_ssize_t i, j, N, K
+    cdef int32_t val
+
+    K, N = (<object> values).shape
+
+    for j in range(K):
+        val = values[j, N - 1]
+        for i in range(N - 1, -1 , -1):
+            if mask[j, i]:
+                values[j, i] = val
+            else:
+                val = values[j, i]
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def backfill_2d_inplace_int64(ndarray[int64_t, ndim=2] values,
+                                 ndarray[uint8_t, ndim=2] mask):
+    cdef Py_ssize_t i, j, N, K
+    cdef int64_t val
+
+    K, N = (<object> values).shape
+
+    for j in range(K):
+        val = values[j, N - 1]
+        for i in range(N - 1, -1 , -1):
+            if mask[j, i]:
+                values[j, i] = val
+            else:
+                val = values[j, i]
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def backfill_2d_inplace_bool(ndarray[uint8_t, ndim=2] values,
+                                 ndarray[uint8_t, ndim=2] mask):
+    cdef Py_ssize_t i, j, N, K
+    cdef uint8_t val
+
+    K, N = (<object> values).shape
+
+    for j in range(K):
+        val = values[j, N - 1]
+        for i in range(N - 1, -1 , -1):
+            if mask[j, i]:
+                values[j, i] = val
+            else:
+                val = values[j, i]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def take_1d_float64(ndarray[float64_t] values, ndarray[int32_t] indexer,

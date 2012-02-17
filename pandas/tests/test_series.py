@@ -1991,6 +1991,16 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series([1., 1., 3., 3., nan], x.index)
         assert_series_equal(filled, expected)
 
+    def test_fillna_inplace(self):
+        x = Series([nan, 1., nan, 3., nan],['z','a','b','c','d'])
+        y = x.copy()
+
+        y2 = y.fillna(value=0, inplace=True)
+        self.assert_(y is y2)
+
+        expected = x.fillna(value=0)
+        assert_series_equal(y2, expected)
+
     def test_asfreq(self):
         ts = Series([0., 1., 2.], index=[datetime(2009, 10, 30),
                                          datetime(2009, 11, 30),

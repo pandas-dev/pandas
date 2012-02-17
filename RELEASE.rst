@@ -22,6 +22,16 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.7.1
+============
+
+**Release date:** NOT YET RELEASED
+
+**Bug fixes**
+
+  - Fix memory leak when inserting large number of columns into a single
+    DataFrame (#790)
+
 pandas 0.7.0
 ============
 

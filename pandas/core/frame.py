@@ -2307,7 +2307,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Filling NA's
 
-    def fillna(self, value=None, method='pad'):
+    def fillna(self, value=None, method='pad', inplace=False):
         """
         Fill NA/NaN values using the specified method. Member Series /
         TimeSeries are filled separately
@@ -2320,6 +2320,11 @@ class DataFrame(NDFrame):
             backfill / bfill: use NEXT valid observation to fill gap
         value : any kind (should be same type as array)
             Value to use to fill holes (e.g. 0)
+        inplace : boolean, default False
+            If True, fill the DataFrame in place. Note: this will modify any
+            other views on this DataFrame, like if you took a no-copy slice of
+            an existing DataFrame, for example a column in a DataFrame. Returns
+            a reference to the filled object, which is self if inplace=True
 
         See also
         --------
@@ -2329,18 +2334,38 @@ class DataFrame(NDFrame):
         -------
         filled : DataFrame
         """
+        from pandas.core.internals import FloatBlock, ObjectBlock
+
+        self._consolidate_inplace()
+
         if value is None:
-            result = {}
-            series = self._series
-            for col, s in series.iteritems():
-                result[col] = s.fillna(method=method, value=value)
-            return self._constructor(result, index=self.index,
-                                     columns=self.columns)
+            new_blocks = []
+
+            method = com._clean_fill_method(method)
+            for block in self._data.blocks:
+                if isinstance(block, (FloatBlock, ObjectBlock)):
+                    newb = block.interpolate(method, inplace=inplace)
+                else:
+                    newb = block if inplace else block.copy()
+                new_blocks.append(newb)
+
+            new_data = BlockManager(new_blocks, self._data.axes)
+
+            # series = self._series
+            # for col, s in series.iteritems():
+            #     result[col] = s.fillna(method=method, value=value)
+            # return self._constructor(result, index=self.index,
+            #                          columns=self.columns)
         else:
             # Float type values
             if len(self.columns) == 0:
                 return self
             new_data = self._data.fillna(value)
+
+        if inplace:
+            self._data = new_data
+            return self
+        else:
             return self._constructor(new_data)
 
     #----------------------------------------------------------------------

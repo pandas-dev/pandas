@@ -562,6 +562,13 @@ def _ensure_object(arr):
         arr = arr.astype('O')
     return arr
 
+def _clean_fill_method(method):
+    method = method.lower()
+    if method == 'ffill':
+        method = 'pad'
+    if method == 'bfill':
+        method = 'backfill'
+    return method
 
 def save(obj, path):
     """

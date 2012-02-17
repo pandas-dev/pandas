@@ -1832,7 +1832,7 @@ copy : boolean, default False
 
     truncate = generic.truncate
 
-    def fillna(self, value=None, method='pad'):
+    def fillna(self, value=None, method='pad', inplace=False):
         """
         Fill NA/NaN values using the specified method
 
@@ -1844,6 +1844,10 @@ copy : boolean, default False
             Method to use for filling holes in reindexed Series
             pad / ffill: propagate last valid observation forward to next valid
             backfill / bfill: use NEXT valid observation to fill gap
+        inplace : boolean, default False
+            If True, fill the Series in place. Note: this will modify any other
+            views on this Series, for example a column in a DataFrame. Returns
+            a reference to the filled object, which is self if inplace=True
 
         See also
         --------
@@ -1853,22 +1857,16 @@ copy : boolean, default False
         -------
         filled : Series
         """
+        mask = isnull(self.values)
+
         if value is not None:
-            newSeries = self.copy()
-            newSeries[isnull(newSeries)] = value
-            return newSeries
+            result = self.copy() if not inplace else self
+            np.putmask(result, mask, value)
         else:
             if method is None:  # pragma: no cover
                 raise ValueError('must specify a fill method')
 
-            method = method.lower()
-
-            if method == 'ffill':
-                method = 'pad'
-            if method == 'bfill':
-                method = 'backfill'
-
-            mask = isnull(self.values)
+            method = com._clean_fill_method(method)
 
             # sadness. for Python 2.5 compatibility
             mask = mask.astype(np.uint8)
@@ -1878,8 +1876,14 @@ copy : boolean, default False
             elif method == 'backfill':
                 indexer = lib.get_backfill_indexer(mask)
 
-            new_values = self.values.take(indexer)
-            return Series(new_values, index=self.index, name=self.name)
+            if inplace:
+                self.values[:] = self.values.take(indexer)
+                result = self
+            else:
+                new_values = self.values.take(indexer)
+                result = Series(new_values, index=self.index, name=self.name)
+
+        return result
 
     def isin(self, values):
         """

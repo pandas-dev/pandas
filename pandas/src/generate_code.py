@@ -268,6 +268,105 @@ def pad_%(name)s(ndarray[%(c_type)s] oldIndex,
 
 """
 
+pad_template = """@cython.boundscheck(False)
+@cython.wraparound(False)
+def pad_%(name)s(ndarray[%(c_type)s] oldIndex,
+                 ndarray[%(c_type)s] newIndex,
+                 dict oldMap, dict newMap):
+    cdef Py_ssize_t i, j, oldLength, newLength, curLoc
+    cdef ndarray[int32_t, ndim=1] fill_vec
+    cdef Py_ssize_t newPos, oldPos
+    cdef %(c_type)s prevOld, curOld
+
+    oldLength = len(oldIndex)
+    newLength = len(newIndex)
+
+    fill_vec = np.empty(len(newIndex), dtype = np.int32)
+    fill_vec.fill(-1)
+
+    if oldLength == 0 or newLength == 0:
+        return fill_vec
+
+    oldPos = 0
+    newPos = 0
+
+    if newIndex[newLength - 1] < oldIndex[0]:
+        return fill_vec
+
+    while newPos < newLength:
+        curOld = oldIndex[oldPos]
+
+        while newIndex[newPos] < curOld:
+            newPos += 1
+            if newPos > newLength - 1:
+                break
+
+        curLoc = oldMap[curOld]
+
+        if oldPos == oldLength - 1:
+            if newIndex[newPos] >= curOld:
+                fill_vec[newPos:] = curLoc
+            break
+        else:
+            nextOld = oldIndex[oldPos + 1]
+            done = 0
+
+            while newIndex[newPos] < nextOld:
+                fill_vec[newPos] = curLoc
+                newPos += 1
+
+                if newPos > newLength - 1:
+                    done = 1
+                    break
+
+            if done:
+                break
+
+        oldPos += 1
+
+    return fill_vec
+
+"""
+
+pad_2d_template = """@cython.boundscheck(False)
+@cython.wraparound(False)
+def pad_2d_inplace_%(name)s(ndarray[%(c_type)s, ndim=2] values,
+                            ndarray[uint8_t, ndim=2] mask):
+    cdef Py_ssize_t i, j, N, K
+    cdef %(c_type)s val
+
+    K, N = (<object> values).shape
+
+    val = np.nan
+
+    for j in range(K):
+        val = values[j, 0]
+        for i in range(N):
+            if mask[j, i]:
+                values[j, i] = val
+            else:
+                val = values[j, i]
+"""
+
+backfill_2d_template = """@cython.boundscheck(False)
+@cython.wraparound(False)
+def backfill_2d_inplace_%(name)s(ndarray[%(c_type)s, ndim=2] values,
+                                 ndarray[uint8_t, ndim=2] mask):
+    cdef Py_ssize_t i, j, N, K
+    cdef %(c_type)s val
+
+    K, N = (<object> values).shape
+
+    for j in range(K):
+        val = values[j, N - 1]
+        for i in range(N - 1, -1 , -1):
+            if mask[j, i]:
+                values[j, i] = val
+            else:
+                val = values[j, i]
+"""
+
+
 is_monotonic_template = """@cython.boundscheck(False)
 @cython.wraparound(False)
 def is_monotonic_%(name)s(ndarray[%(c_type)s] arr):
@@ -638,6 +737,8 @@ templates_1d = [map_indices_template,
                 merge_indexer_template,
                 pad_template,
                 backfill_template,
+                pad_2d_template,
+                backfill_2d_template,
                 take_1d_template,
                 is_monotonic_template,
                 groupby_template,
