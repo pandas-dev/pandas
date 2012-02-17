@@ -1198,17 +1198,20 @@ class DatetimeIndex(Int64Index):
                                   % (np.datetime64(failure), freq))
             return DatetimeIndex._quickbuilder(self.name, freq, self.values,
                                                self.first, regular)
-    #def shift(self, n=1):
-    #    if self.freq is None:
-    #        raise ValueError("Cannot shift, frequency of index is empty")
+    def fshift(self, n=1):
+        """
+        Frequency shift, use frequency of the DatetimeIndex to shift
+        """
+        if self.freq is None:
+            raise ValueError("Cannot shift, frequency of index is empty")
 
-    #    if self.regular:
-    #        return self._construct_from_cache(self.name, self.freq, self.cache,
-    #                                          self.first+n, self.last+n)
-    #    else:
-    #        data = lib.fast_shift(self.asi8, self.freq, n)
-    #        return DatetimeIndex._quickbuilder(self.name, self.freq, data,
-    #                                           self.first)
+        if self.regular:
+            return self._construct_from_cache(self.name, self.freq, self.cache,
+                                              self.first+n, self.last+n)
+        else:
+            data = lib.fast_shift(self.asi8, self.freq, n)
+            return DatetimeIndex._quickbuilder(self.name, self.freq, data,
+                                               self.first)
 
     def __getitem__(self, key):
         """Override numpy.ndarray's __getitem__ method to work as desired"""

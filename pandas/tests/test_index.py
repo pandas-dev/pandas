@@ -103,7 +103,7 @@ class TestIndex(unittest.TestCase):
         self.assert_(np.isnan(self.dateIndex.asof(d - timedelta(1))))
 
         d = self.dateIndex[-1]
-        self.assert_(self.dateIndex.asof(d + timedelta(1)) is d)
+        self.assert_(self.dateIndex.asof(d + timedelta(1)) == d)
 
     def test_argsort(self):
         result = self.strIndex.argsort()

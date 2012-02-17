@@ -205,13 +205,13 @@ class TestDatetime64(unittest.TestCase):
         dti = DatetimeIndex(freq='W@TUE', start=datetime(2005,1,4), n=100)
 
         # fast shift
-        self.assert_(dti.shift(1)[0] == datetime(2005,1,11))
-        self.assert_(dti.shift(-1)[0] == datetime(2004,12,28))
+        self.assert_(dti.fshift(1)[0] == datetime(2005,1,11))
+        self.assert_(dti.fshift(-1)[0] == datetime(2004,12,28))
 
         # slow shift
         dti.contiguous = False
-        self.assert_(dti.shift(1)[0] == datetime(2005,1,11))
-        self.assert_(dti.shift(-1)[0] == datetime(2004,12,28))
+        self.assert_(dti.fshift(1)[0] == datetime(2005,1,11))
+        self.assert_(dti.fshift(-1)[0] == datetime(2004,12,28))
 
     def test_datetimecache(self):
         lib.flush_tcache('W@TUE')
