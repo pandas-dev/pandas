@@ -2158,6 +2158,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_numpy_unique(self):
         # it works!
         result = np.unique(self.ts)
+
 if tm.PERFORM_DATETIME64_TESTS:
     class TestSeriesDatetime64(TestSeries):
         '''

@@ -59,8 +59,7 @@ def isnull(obj):
             # Working around NumPy ticket 1542
             shape = obj.shape
             result = np.empty(shape, dtype=bool)
-            raveled = obj.ravel()
-            vec = lib.isnullobj(raveled)
+            vec = lib.isnullobj(obj.ravel())
             result[:] = vec.reshape(shape)
 
             if isinstance(obj, Series):

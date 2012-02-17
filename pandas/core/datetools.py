@@ -35,6 +35,8 @@ def _dt_unbox(key):
     '''
     Timestamp-like => dt64
     '''
+    if type(key) == float:
+        raise TypeError("Cannot unbox a float to datetime")
     return np.datetime64(lib.pydt_to_i8(key))
 
 def _dt_unbox_array(arr):

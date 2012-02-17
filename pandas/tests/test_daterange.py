@@ -371,7 +371,8 @@ class TestDateRange(unittest.TestCase):
 
         start = datetime(2011, 1, 1)
         exp_values = [start + i * offset for i in range(5)]
-        self.assert_(np.array_equal(result, exp_values))
+        self.assert_(np.array_equal(result, DatetimeIndex(exp_values)))
+
 class TestDatetimePyx(unittest.TestCase):
 
     def test_yearoffset(self):

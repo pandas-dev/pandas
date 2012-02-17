@@ -23,6 +23,7 @@ try:
     _TYPE_MAP[np.float128] = 'floating'
     _TYPE_MAP[np.complex256] = 'complex'
     _TYPE_MAP[np.float16] = 'floating'
+    _TYPE_MAP[np.datetime64] = 'datetime64'
 
 except AttributeError:
     pass
@@ -89,9 +90,6 @@ cdef inline bint is_datetime(object o):
 
 cdef inline bint is_timestamp(object o):
     return isinstance(o, Timestamp)
-
-cpdef is_array(object o):
-    return np.PyArray_Check(o)
 
 def is_bool_array(ndarray values):
     cdef:

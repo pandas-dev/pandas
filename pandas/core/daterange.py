@@ -386,7 +386,7 @@ class DateRange(DatetimeIndex):
         end = min(left[-1], right[-1])
         start = right[0]
 
-        if left_end < right_start:
+        if end < start:
             return DatetimeIndex([])
         else:
             lslice = slice(*left.slice_locs(start, end))

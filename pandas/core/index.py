@@ -5,15 +5,14 @@ from itertools import izip
 
 import numpy as np
 
-from pandas.core.common import (adjoin as _adjoin, _stringify, _try_sort,
-                                _is_bool_indexer, _asarray_tuplesafe,
-                                is_iterator)
-from pandas.core.datetools import (_dt_box, _dt_unbox, _dt_box_array,
-                                  _dt_unbox_array)
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 import pandas._tseries as lib
 import pandas._engines as _gin
+
+from datetime import datetime
+from pandas.core.datetools import (_dt_box, _dt_unbox, _dt_box_array,
+                                  _dt_unbox_array)
 
 __all__ = ['Index']
 
@@ -80,7 +79,6 @@ class Index(np.ndarray):
         else:
             # other iterable of some kind
             subarr = com._asarray_tuplesafe(data, dtype=object)
-            subarr = _asarray_tuplesafe(data, dtype=object)
 
         if dtype is None:
             if (lib.is_datetime_array(subarr)
@@ -878,7 +876,7 @@ class Index(np.ndarray):
         """
         index = np.asarray(self)
         # because numpy is fussy with tuples
-        item_idx = Index([item])
+        item_idx = Index([item], dtype=index.dtype)
         new_index = np.concatenate((index[:loc], item_idx, index[loc:]))
         return Index(new_index, name=self.name)
 
@@ -1200,17 +1198,17 @@ class DatetimeIndex(Int64Index):
                                   % (np.datetime64(failure), freq))
             return DatetimeIndex._quickbuilder(self.name, freq, self.values,
                                                self.first, regular)
-    def shift(self, n=1):
-        if self.freq is None:
-            raise ValueError("Cannot shift, frequency of index is empty")
+    #def shift(self, n=1):
+    #    if self.freq is None:
+    #        raise ValueError("Cannot shift, frequency of index is empty")
 
-        if self.regular:
-            return self._construct_from_cache(self.name, self.freq, self.cache,
-                                              self.first+n, self.last+n)
-        else:
-            data = lib.fast_shift(self.asi8, self.freq, n)
-            return DatetimeIndex._quickbuilder(self.name, self.freq, data,
-                                               self.first)
+    #    if self.regular:
+    #        return self._construct_from_cache(self.name, self.freq, self.cache,
+    #                                          self.first+n, self.last+n)
+    #    else:
+    #        data = lib.fast_shift(self.asi8, self.freq, n)
+    #        return DatetimeIndex._quickbuilder(self.name, self.freq, data,
+    #                                           self.first)
 
     def __getitem__(self, key):
         """Override numpy.ndarray's __getitem__ method to work as desired"""
@@ -1226,7 +1224,7 @@ class DatetimeIndex(Int64Index):
             else:
                 return _dt_box(val)
         else:
-            if _is_bool_indexer(key):
+            if com._is_bool_indexer(key):
                 key = np.asarray(key)
 
             result = arr_idx[key]
@@ -2122,7 +2120,7 @@ class MultiIndex(Index):
             section = labs[start:end]
 
             if lab not in lev:
-                if lib.infer_dtype([lab]) != lev.inferred_type:
+                if not lev.is_type_compatible(lib.infer_dtype([lab])):
                     raise Exception('Level type mismatch: %s' % lab)
 
                 # short circuit
