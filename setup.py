@@ -352,7 +352,7 @@ tseries_ext = Extension('pandas._tseries',
                                  'pandas/src/np_datetime.c',
                                  'pandas/src/np_datetime_strings.c'],
                         include_dirs=[np.get_include()],
-                        pyrex_gdb=True,
+                        # pyrex_gdb=True,
                         # extra_compile_args=['-Wconversion']
                         )
 
