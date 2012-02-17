@@ -219,6 +219,8 @@ def groupsort_indexer(ndarray[int32_t] index, Py_ssize_t ngroups):
 
 # TODO: aggregate multiple columns in single pass
 
+# TODO: add passing bin edges, instead of labels
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_add(ndarray[float64_t, ndim=2] out,

@@ -283,6 +283,22 @@ def test_series_grouper():
     exp_counts = np.array([3, 4], dtype=np.int32)
     assert_almost_equal(counts, exp_counts)
 
+def test_series_bin_grouper():
+    from pandas import Series
+    obj = Series(np.random.randn(10))
+    dummy = obj[:0]
+
+    bins = np.array([3, 6])
+
+    grouper = lib.SeriesBinGrouper(obj, np.mean, bins, dummy)
+    result, counts = grouper.get_result()
+
+    expected = np.array([obj[:3].mean(), obj[3:6].mean(), obj[6:].mean()])
+    assert_almost_equal(result, expected)
+
+    exp_counts = np.array([3, 3, 4], dtype=np.int32)
+    assert_almost_equal(counts, exp_counts)
+
 class TestTypeInference(unittest.TestCase):
 
     def test_length_zero(self):
