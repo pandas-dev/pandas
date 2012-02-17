@@ -315,13 +315,6 @@ class BlockManager(object):
         return self.axes[0]
     items = property(fget=_get_items)
 
-    def set_items_norename(self, value):
-        value = _ensure_index(value)
-        self.axes[0] = value
-
-        for block in self.blocks:
-            block.set_ref_items(value, maybe_rename=False)
-
     def __getstate__(self):
         block_values = [b.values for b in self.blocks]
         block_items = [b.items for b in self.blocks]
@@ -579,6 +572,12 @@ class BlockManager(object):
         new_blocks = _consolidate(self.blocks, self.items)
         return BlockManager(new_blocks, self.axes)
 
+    def _consolidate_inplace(self):
+        if self.is_consolidated():
+            return
+
+        self.blocks = _consolidate(self.blocks, self.items)
+
     def get(self, item):
         _, block = self._find_block(item)
         return block.get(item)
@@ -619,7 +618,7 @@ class BlockManager(object):
             if not block.should_store(value):
                 # delete from block, create and append new block
                 self._delete_from_block(i, item)
-                self._add_new_block(item, value)
+                self._add_new_block(item, value, loc=None)
             else:
                 block.set(item, value)
         else:
@@ -632,8 +631,19 @@ class BlockManager(object):
 
         new_items = self.items.insert(loc, item)
         self.set_items_norename(new_items)
+
         # new block
-        self._add_new_block(item, value)
+        self._add_new_block(item, value, loc=loc)
+
+        if len(self.blocks) > 20:
+            self._consolidate_inplace()
+
+    def set_items_norename(self, value):
+        value = _ensure_index(value)
+        self.axes[0] = value
+
+        for block in self.blocks:
+            block.set_ref_items(value, maybe_rename=False)
 
     def _delete_from_block(self, i, item):
         """
@@ -648,11 +658,12 @@ class BlockManager(object):
         if new_right is not None:
             self.blocks.append(new_right)
 
-    def _add_new_block(self, item, value):
+    def _add_new_block(self, item, value, loc=None):
         # Do we care about dtype at the moment?
 
         # hm, elaborate hack?
-        loc = self.items.get_loc(item)
+        if loc is None:
+            loc = self.items.get_loc(item)
         new_block = make_block(value, self.items[loc:loc+1].copy(),
                                self.items)
         self.blocks.append(new_block)
