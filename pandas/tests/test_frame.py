@@ -797,6 +797,20 @@ class CheckIndexing(object):
         expected.ix[mask] = 0
         assert_frame_equal(cp, expected)
 
+    def test_getitem_setitem_float_labels(self):
+        index = Index([1.5, 2, 3, 4, 5])
+        df = DataFrame(np.random.randn(5, 5), index=index)
+
+        result = df.ix[1.5:4]
+        expected = df.reindex([1.5, 2, 3, 4])
+        assert_frame_equal(result, expected)
+        self.assertEqual(len(result), 4)
+
+        result = df.ix[4:5]
+        expected = df.reindex([4, 5])
+        assert_frame_equal(result, expected)
+        self.assertEqual(len(result), 2)
+
     def test_setitem_single_column_mixed(self):
         df = DataFrame(randn(5, 3), index=['a', 'b', 'c', 'd', 'e'],
                        columns=['foo', 'bar', 'baz'])

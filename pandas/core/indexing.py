@@ -243,6 +243,18 @@ class _NDFrameIndexer(object):
                               and not labels.inferred_type == 'integer'
                               and not isinstance(labels, MultiIndex))
 
+
+            # last ditch effort: if we are mixed and have integers
+            try:
+                if labels.inferred_type == 'mixed' and int_slice:
+                    if obj.start is not None:
+                        i = labels.get_loc(obj.start)
+                    if obj.stop is not None:
+                        j = labels.get_loc(obj.stop)
+                    position_slice = False
+            except KeyError:
+                pass
+
             if null_slice or position_slice:
                 slicer = obj
             else:
@@ -307,6 +319,17 @@ class _NDFrameIndexer(object):
         position_slice = (int_slice and not labels.inferred_type == 'integer'
                           and not isinstance(labels, MultiIndex)
                           and not float_slice)
+
+        # last ditch effort: if we are mixed and have integers
+        try:
+            if labels.inferred_type == 'mixed' and int_slice:
+                if start is not None:
+                    i = labels.get_loc(start)
+                if stop is not None:
+                    j = labels.get_loc(stop)
+                position_slice = False
+        except KeyError:
+            pass
 
         if null_slice or position_slice:
             slicer = slice_obj
