@@ -27,12 +27,12 @@ def clipboard_set(text):
     """
     if sys.platform == 'win32':
         try:
-            win32_clipboard_text(text)
+            return win32_clipboard_text(text)
         except Exception:
             pass
     elif sys.platform == 'darwin':
         try:
-            osx_clipboard_set(text)
+            return osx_clipboard_set(text)
         except Exception:
             pass
     xsel_clipboard_set(text)
