@@ -811,6 +811,10 @@ class CheckIndexing(object):
         assert_frame_equal(result, expected)
         self.assertEqual(len(result), 2)
 
+        # this should raise an exception
+        self.assertRaises(Exception, df.ix.__getitem__, slice(1, 2))
+        self.assertRaises(Exception, df.ix.__setitem__, slice(1, 2), 0)
+
     def test_setitem_single_column_mixed(self):
         df = DataFrame(randn(5, 3), index=['a', 'b', 'c', 'd', 'e'],
                        columns=['foo', 'bar', 'baz'])

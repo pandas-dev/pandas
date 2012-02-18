@@ -243,23 +243,25 @@ class _NDFrameIndexer(object):
                               and not labels.inferred_type == 'integer'
                               and not isinstance(labels, MultiIndex))
 
+            start, stop = obj.start, obj.stop
 
             # last ditch effort: if we are mixed and have integers
             try:
-                if labels.inferred_type == 'mixed' and int_slice:
-                    if obj.start is not None:
-                        i = labels.get_loc(obj.start)
-                    if obj.stop is not None:
-                        j = labels.get_loc(obj.stop)
+                if 'mixed' in labels.inferred_type and int_slice:
+                    if start is not None:
+                        i = labels.get_loc(start)
+                    if stop is not None:
+                        j = labels.get_loc(stop)
                     position_slice = False
             except KeyError:
-                pass
+                if labels.inferred_type == 'mixed-integer':
+                    raise
 
             if null_slice or position_slice:
                 slicer = obj
             else:
                 try:
-                    i, j = labels.slice_locs(obj.start, obj.stop)
+                    i, j = labels.slice_locs(start, stop)
                     slicer = slice(i, j, obj.step)
                 except Exception:
                     if _is_index_slice(obj):
@@ -316,20 +318,22 @@ class _NDFrameIndexer(object):
 
         # could have integers in the first level of the MultiIndex, in which
         # case we wouldn't want to do position-based slicing
-        position_slice = (int_slice and not labels.inferred_type == 'integer'
+        position_slice = (int_slice
+                          and labels.inferred_type != 'integer'
                           and not isinstance(labels, MultiIndex)
                           and not float_slice)
 
         # last ditch effort: if we are mixed and have integers
         try:
-            if labels.inferred_type == 'mixed' and int_slice:
+            if 'mixed' in labels.inferred_type and int_slice:
                 if start is not None:
                     i = labels.get_loc(start)
                 if stop is not None:
                     j = labels.get_loc(stop)
                 position_slice = False
         except KeyError:
-            pass
+            if labels.inferred_type == 'mixed-integer':
+                raise
 
         if null_slice or position_slice:
             slicer = slice_obj

@@ -299,7 +299,7 @@ class TestTypeInference(unittest.TestCase):
         arr = np.array([1, 2, 3, np.int64(4), np.int32(5), 'foo'],
                        dtype='O')
         result = lib.infer_dtype(arr)
-        self.assertEqual(result, 'mixed')
+        self.assertEqual(result, 'mixed-integer')
 
         arr = np.array([1, 2, 3, 4, 5], dtype='i4')
         result = lib.infer_dtype(arr)
@@ -330,7 +330,7 @@ class TestTypeInference(unittest.TestCase):
         arr = np.array([1, 2, 3, np.float64(4), np.float32(5), 'foo'],
                        dtype='O')
         result = lib.infer_dtype(arr)
-        self.assertEqual(result, 'mixed')
+        self.assertEqual(result, 'mixed-integer')
 
         arr = np.array([1, 2, 3, 4, 5], dtype='f4')
         result = lib.infer_dtype(arr)

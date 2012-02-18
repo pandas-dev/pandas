@@ -29,7 +29,7 @@ except AttributeError:
 def infer_dtype(object _values):
     cdef:
         Py_ssize_t i, n
-        object test_val
+        object val
         ndarray values
 
     if isinstance(_values, np.ndarray):
@@ -50,28 +50,33 @@ def infer_dtype(object _values):
     if values.dtype != np.object_:
         values = values.astype('O')
 
-    test_val = util.get_value_1d(values, 0)
+    val = util.get_value_1d(values, 0)
 
-    if util.is_integer_object(test_val):
+    if util.is_integer_object(val):
         if is_integer_array(values):
             return 'integer'
-
-    elif is_datetime(test_val):
+        return 'mixed-integer'
+    elif is_datetime(val):
         if is_datetime_array(values):
             return 'datetime'
 
-    elif util.is_float_object(test_val):
+    elif util.is_float_object(val):
         if is_float_array(values):
 
             return 'floating'
 
-    elif util.is_bool_object(test_val):
+    elif util.is_bool_object(val):
         if is_bool_array(values):
             return 'boolean'
 
-    elif util.is_string_object(test_val):
+    elif util.is_string_object(val):
         if is_string_array(values):
             return 'string'
+
+    for i in range(n):
+        val = util.get_value_1d(values, i)
+        if util.is_integer_object(val):
+            return 'mixed-integer'
 
     return 'mixed'
 
