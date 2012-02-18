@@ -1427,6 +1427,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = np.unique(strings)
         self.assert_(np.array_equal(result, expected))
 
+        # decision about None
+
+        s = Series([1, 2, 3, None, None, None], dtype=object)
+        result = s.unique()
+        expected = np.array([1, 2, 3, None], dtype=object)
+        self.assert_(np.array_equal(result, expected))
+
     def test_sort(self):
         ts = self.ts.copy()
         ts.sort()

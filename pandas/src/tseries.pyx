@@ -221,6 +221,9 @@ cdef double NEGINF = -INF
 cdef inline _checknull(object val):
     return not np.PyArray_Check(val) and (val is None or val != val)
 
+cdef inline _checknan(object val):
+    return not np.PyArray_Check(val) and val != val
+
 cpdef checknull(object val):
     if util.is_float_object(val):
         return val != val or val == INF or val == NEGINF

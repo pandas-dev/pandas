@@ -794,7 +794,7 @@ cdef class PyObjectHashTable:
         for i in range(n):
             val = values[i]
 
-            if not _checknull(val):
+            if not _checknan(val):
                 k = kh_get_pymap(self.table, <PyObject*>val)
                 if k == self.table.n_buckets:
                     k = kh_put_pymap(self.table, <PyObject*>val, &ret)

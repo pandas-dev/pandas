@@ -366,6 +366,5 @@ def unique1d(values):
             values = values.astype(np.object_)
         table = lib.PyObjectHashTable(len(values))
         uniques = lib.list_to_object_array(table.unique(values))
-        uniques = lib.maybe_convert_objects(uniques)
     return uniques
 

@@ -35,7 +35,7 @@ __all__ = ['Series', 'TimeSeries']
 _np_version = np.version.short_version
 _np_version_under1p6 = LooseVersion(_np_version) < '1.6'
 
-#-------------------------------------------------------------------------------
+#----------------------------------------------------------------------
 # Wrapper function for Series arithmetic methods
 
 def _arith_method(op, name):
