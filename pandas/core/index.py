@@ -1170,6 +1170,7 @@ class DatetimeIndex(Int64Index):
         subarr = subarr.view(cls)
         subarr.freq = None
         subarr.name = name
+        subarr.offset = None
 
         if freq is not None:
             failure, regular = lib.conformity_check(subarr.asi8, freq)
@@ -1179,6 +1180,7 @@ class DatetimeIndex(Int64Index):
             subarr.regular = regular
             subarr.freq = freq
             subarr.first = tcache.lookup(subarr.values[0])
+            subarr.offset = _offsetMap[freq]
 
         return subarr
 
@@ -1202,6 +1204,8 @@ class DatetimeIndex(Int64Index):
         newdti.last = last
         newdti.regular = True
 
+        newdti.offset = _offsetMap[freq]
+
         return newdti
 
     @classmethod
@@ -1210,6 +1214,7 @@ class DatetimeIndex(Int64Index):
         newdti.name = name
         newdti.freq = freq
         newdti.first = first
+        newdti.offset = _offsetMap[freq]
         if regular is None:
             newdti.regular = False
         else:
@@ -1253,7 +1258,7 @@ class DatetimeIndex(Int64Index):
         if n == 0:
             return self
 
-        if self.freq is not None:
+        if hasattr(self, 'freq') and self.freq is not None:
             if offset is None or offset == _offsetMap[self.freq]:
                 return self.fshift(n)
 
@@ -1296,6 +1301,16 @@ class DatetimeIndex(Int64Index):
                 return result
 
             return DatetimeIndex(result, name=self.name)
+
+    def _cache_loc(self, key):
+        """
+        Get location of key in associated tcache
+        """
+        if isinstance(key,datetime):
+            key = _dt_unbox(key)
+        if hasattr(self, 'freq') and self.freq is not None:
+            tcache = lib.get_tcache(self.freq)
+            return tcache.lookup(key)
 
     # Try to run function on index first, and then on elements of index
     # Especially important for group-by functionality

@@ -220,7 +220,7 @@ class TestDateRange(unittest.TestCase):
         the_int = rng1.intersection(rng2)
         expected = rng[10:25]
         self.assert_(the_int.equals(expected))
-        self.assert_(isinstance(the_int, DateRange))
+        self.assert_(isinstance(the_int, DatetimeIndex))
         self.assert_(the_int.offset == rng.offset)
 
         the_int = rng1.intersection(rng2.view(DatetimeIndex))
