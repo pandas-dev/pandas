@@ -99,10 +99,7 @@ def osx_clipboard_set(text):
     """
     p = subprocess.Popen(['pbpaste', '-Prefer', 'ascii'],
         stdout=subprocess.PIPE)
-    text, stderr = p.communicate()
-    # Text comes in with old Mac \r line endings. Change them to \n.
-    text = text.replace('\r', '\n')
-    return text
+    p.communicate(input=text)
 
 def xsel_clipboard_set(text):
     from subprocess import Popen, PIPE
