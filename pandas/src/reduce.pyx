@@ -128,7 +128,7 @@ cdef class SeriesBinGrouper:
         cdef:
             ndarray arr, result
             ndarray[int32_t] counts
-            Py_ssize_t i, n, group_size, lab
+            Py_ssize_t i, n, group_size
             object res, chunk
             bint initialized = 0
             Slider vslider, islider

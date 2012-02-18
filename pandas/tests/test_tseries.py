@@ -299,6 +299,54 @@ def test_series_bin_grouper():
     exp_counts = np.array([3, 3, 4], dtype=np.int32)
     assert_almost_equal(counts, exp_counts)
 
+def test_group_add_bin():
+    # original group_add
+    obj = np.random.randn(10, 1)
+
+    lab = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 2], dtype=np.int32)
+    cts = np.array([3, 3, 4], dtype=np.int32)
+    exp = np.zeros((3, 1), np.float64)
+    lib.group_add(exp, cts, obj, lab)
+
+    # bin-based group_add
+    bins = np.array([3, 6], dtype=np.int32)
+    out  = np.zeros((3, 1), np.float64)
+    lib.group_add_bin(out, obj, bins)
+
+    assert_almost_equal(out, exp)
+
+def test_group_mean_bin():
+    # original group_mean
+    obj = np.random.randn(10, 1)
+
+    lab = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 2], dtype=np.int32)
+    cts = np.array([3, 3, 4], dtype=np.int32)
+    exp = np.zeros((3, 1), np.float64)
+    lib.group_mean(exp, cts, obj, lab)
+
+    # bin-based group_mean
+    bins = np.array([3, 6], dtype=np.int32)
+    out  = np.zeros((3, 1), np.float64)
+    lib.group_mean_bin(out, obj, bins)
+
+    assert_almost_equal(out, exp)
+
+def test_group_var_bin():
+    # original group_var
+    obj = np.random.randn(10, 1)
+
+    lab = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 2], dtype=np.int32)
+    cts = np.array([3, 3, 4], dtype=np.int32)
+    exp = np.zeros((3, 1), np.float64)
+    lib.group_var(exp, cts, obj, lab)
+
+    # bin-based group_var
+    bins = np.array([3, 6], dtype=np.int32)
+    out  = np.zeros((3, 1), np.float64)
+    lib.group_var_bin(out, obj, bins)
+
+    assert_almost_equal(out, exp)
+
 class TestTypeInference(unittest.TestCase):
 
     def test_length_zero(self):
