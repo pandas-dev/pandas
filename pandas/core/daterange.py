@@ -98,11 +98,12 @@ class DateRange(DatetimeIndex):
         if tzinfo is not None:
             index = [d.replace(tzinfo=tzinfo) for d in index]
 
-        index = np.array(_dt_unbox_array(index), dtype='M8[us]', copy=False)
-        index = index.view(cls)
+        index = DatetimeIndex(data=index, name=name, freq=time_rule)
+        
         index.name = name
         index.offset = offset
         index.tzinfo = tzinfo
+
         return index
 
     def __reduce__(self):
@@ -258,31 +259,6 @@ class DateRange(DatetimeIndex):
         return output
 
     __str__ = __repr__
-
-    def shift(self, n, offset=None):
-        """
-        Specialized shift which produces a DateRange
-
-        Parameters
-        ----------
-        n : int
-            Periods to shift by
-        offset : DateOffset or timedelta-like, optional
-
-        Returns
-        -------
-        shifted : DateRange
-        """
-        if offset is not None and offset != self.offset:
-            return DatetimeIndex.shift(self, n, offset)
-
-        if n == 0:
-            # immutable so OK
-            return self
-
-        start = self[0] + n * self.offset
-        end = self[-1] + n * self.offset
-        return DateRange(start, end, offset=self.offset, name=self.name)
 
     def union(self, other):
         """

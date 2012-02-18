@@ -12,7 +12,7 @@ import pandas._engines as _gin
 
 from datetime import datetime
 from pandas.core.datetools import (_dt_box, _dt_unbox, _dt_box_array,
-                                  _dt_unbox_array)
+                                  _dt_unbox_array, _offsetMap)
 
 __all__ = ['Index']
 
@@ -1061,10 +1061,22 @@ class DatetimeIndex(Int64Index):
 
     Parameters
     ----------
-    data  : array-like (1-dimensional)
+    data  : array-like (1-dimensional), optional
+        Optional datetime-like data to construct index with
     dtype : NumPy dtype (default: M8[us])
     copy  : bool
         Make a copy of input ndarray
+    freq  : string, optional 
+        One of pandas date offset strings
+    start : starting value, datetime-like, optional
+        If data is None, start is used as the start point in generating regular
+        timestamp data. must conform to freq argument
+    n     : int, optional, > 0
+        Number of periods to generate, if generating data. Takes precedence
+        over end argument
+    end   : end time, datetime-like, optional
+        If n is none, generated index will extend to first conforming time
+        on or just past end argument
     """
 
     _is_monotonic  = _wrap_i8_function(lib.is_monotonic_int64)
@@ -1095,6 +1107,10 @@ class DatetimeIndex(Int64Index):
                 freq=None, start=None, end=None, n=None,
                 dtype=None, copy=False, name=None):
 
+        if freq is not None:
+            tcache = lib.get_tcache(freq)
+            cache = tcache.cache()
+
         if data is None:
             if freq is None:
                 raise ValueError("No data, must supply freq")
@@ -1103,8 +1119,6 @@ class DatetimeIndex(Int64Index):
             if end is None and n is None:
                 raise ValueError("No data, must supply end or n")
 
-            tcache = lib.get_tcache(freq)
-            cache = tcache.cache()
             try:
                 first = tcache.lookup(start)
                 if n is not None:
@@ -1162,6 +1176,8 @@ class DatetimeIndex(Int64Index):
                 raise ValueError("%s does not satisfy frequency %s"
                                   % (np.datetime64(failure), freq))
             subarr.regular = regular
+            subarr.freq = freq
+            subarr.first = tcache.lookup(subarr.values[0])
 
         return subarr
 
@@ -1218,6 +1234,30 @@ class DatetimeIndex(Int64Index):
                                   % (np.datetime64(failure), freq))
             return DatetimeIndex._quickbuilder(self.name, freq, self.values,
                                                self.first, regular)
+
+    def shift(self, n=1, offset=None):
+        """
+        Specialized shift which produces a DatetimeIndex
+
+        Parameters
+        ----------
+        n : int
+            Periods to shift by
+        offset : DateOffset or timedelta-like, optional
+
+        Returns
+        -------
+        shifted : DateRange
+        """
+        if n == 0:
+            return self
+
+        if self.freq is not None:
+            if offset is None or offset == _offsetMap[self.freq]:
+                return self.fshift(n)
+
+        return super(DatetimeIndex, self).shift(n, offset) 
+
     def fshift(self, n=1):
         """
         Frequency shift, use frequency of the DatetimeIndex to shift
