@@ -97,7 +97,7 @@ def win32_clipboard_set(text):
 def osx_clipboard_set(text):
     """ Get the clipboard's text on OS X.
     """
-    p = subprocess.Popen(['pbpaste', '-Prefer', 'ascii'],
+    p = subprocess.Popen(['pbcopy', '-Prefer', 'ascii'],
         stdout=subprocess.PIPE)
     p.communicate(input=text)
 
