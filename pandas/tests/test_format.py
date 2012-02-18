@@ -233,6 +233,19 @@ class TestDataFrameFormatting(unittest.TestCase):
                         '1  2.512000e-01')
         assert(df_s == expected)
 
+    def test_to_string_int_formatting(self):
+        df = DataFrame({'x' : [-15, 20, 25, -35]})
+        self.assert_(issubclass(df['x'].dtype.type, np.integer))
+
+        output = df.to_string()
+        self.assert_(isinstance(output, str))
+        expected = ('    x\n'
+                    '0 -15\n'
+                    '1  20\n'
+                    '2  25\n'
+                    '3 -35')
+        self.assertEqual(output, expected)
+
     def test_to_string_left_justify_cols(self):
         fmt.reset_printoptions()
         df = DataFrame({'x' : [3234, 0.253]})

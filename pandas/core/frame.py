@@ -1040,7 +1040,13 @@ class DataFrame(NDFrame):
         formatter.to_string(force_unicode=force_unicode)
 
         if buf is None:
-            return formatter.buf.getvalue()
+            result = formatter.buf.getvalue()
+            if not force_unicode:
+                try:
+                    result = str(result)
+                except ValueError:
+                    pass
+            return result
 
     @Appender(fmt.docstring_to_string, indents=1)
     def to_html(self, buf=None, columns=None, col_space=None, colSpace=None,
