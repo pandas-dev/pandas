@@ -3095,11 +3095,6 @@ class DataFrame(NDFrame):
             if (self.columns.get_indexer(other.columns) >= 0).all():
                 other = other.ix[:, self.columns]
 
-        if not other:
-            return self.copy()
-        if not self:
-            return other.copy()
-
         from pandas.tools.merge import concat
         if isinstance(other, (list, tuple)):
             to_concat = [self] + other

@@ -31,6 +31,8 @@ pandas 0.7.1
 
   - Fix memory leak when inserting large number of columns into a single
     DataFrame (#790)
+  - Appending length-0 DataFrame with new columns would not result in those new
+    columns being part of the resulting concatenated DataFrame (#782)
 
 pandas 0.7.0
 ============

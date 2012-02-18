@@ -786,6 +786,14 @@ class TestConcatenate(unittest.TestCase):
         # overlap
         self.assertRaises(Exception, self.frame.append, self.frame)
 
+    def test_append_length0_frame(self):
+        df = DataFrame(columns=['A', 'B', 'C'])
+        df3 = DataFrame(index=[0, 1], columns=['A', 'B'])
+        df5 = df.append(df3)
+
+        expected = DataFrame(index=[0, 1], columns=['A', 'B', 'C'])
+        assert_frame_equal(df5, expected)
+
     def test_append_records(self):
         arr1 = np.zeros((2,),dtype=('i4,f4,a10'))
         arr1[:] = [(1,2.,'Hello'),(2,3.,"World")]
