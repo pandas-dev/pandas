@@ -153,6 +153,19 @@ def read_clipboard(**kwargs):  # pragma: no cover
     text = clipboard_get()
     return read_table(StringIO(text), **kwargs)
 
+def to_clipboard(obj):
+    """
+    Attempt to write text representation of object to the system clipboard
+
+    Notes
+    -----
+    Requirements for your platform
+      - Linux: xsel command line tool
+      - Windows: Python win32 extensions
+      - OS X:
+    """
+    from pandas.util.clipboard import clipboard_set
+    clipboard_set(str(obj))
 
 class BufferedReader(object):
     """
