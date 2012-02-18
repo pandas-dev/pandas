@@ -190,32 +190,7 @@ class GroupBy(object):
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
-        if len(self.grouper.groupings) == 1:
-            groups = self.indices.keys()
-            try:
-                groups = sorted(groups)
-            except Exception: # pragma: no cover
-                pass
-
-            for name in groups:
-                yield name, self.get_group(name)
-        else:
-            # provide "flattened" iterator for multi-group setting
-            for it in self._multi_iter():
-                yield it
-
-    def _multi_iter(self):
-        data = self.obj
-
-        comp_ids, _, ngroups = self.grouper.group_info
-        label_list = self.grouper.labels
-        level_list = self.grouper.levels
-        mapper = _KeyMapper(comp_ids, ngroups, label_list, level_list)
-
-        for label, group in _generate_groups(data, comp_ids, ngroups,
-                                             axis=self.axis):
-            key = mapper.get_key(label)
-            yield key, group
+        return self.grouper.get_iterator(self.obj, axis=self.axis)
 
     def apply(self, func, *args, **kwargs):
         """
@@ -448,6 +423,40 @@ class Grouper(object):
 
     def __iter__(self):
         return iter(self.indices)
+
+    def get_iterator(self, data, axis=0):
+        """
+        Groupby iterator
+
+        Returns
+        -------
+        Generator yielding sequence of (name, subsetted object)
+        for each group
+        """
+        if len(self.groupings) == 1:
+            indices = self.indices
+            groups = indices.keys()
+            try:
+                groups = sorted(groups)
+            except Exception: # pragma: no cover
+                pass
+
+            for name in groups:
+                inds = indices[name]
+                group = data.take(inds, axis=axis)
+
+                yield name, group
+        else:
+            # provide "flattened" iterator for multi-group setting
+            comp_ids, _, ngroups = self.group_info
+            label_list = self.labels
+            level_list = self.levels
+            mapper = _KeyMapper(comp_ids, ngroups, label_list, level_list)
+
+            for label, group in _generate_groups(data, comp_ids, ngroups,
+                                                 axis=axis):
+                key = mapper.get_key(label)
+                yield key, group
 
     @cache_readonly
     def indices(self):
