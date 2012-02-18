@@ -27,9 +27,9 @@ def clipboard_set(text):
     """
     if sys.platform == 'win32':
         try:
-            return win32_clipboard_text(text)
+            return win32_clipboard_set(text)
         except Exception:
-            pass
+            raise
     elif sys.platform == 'darwin':
         try:
             return osx_clipboard_set(text)
