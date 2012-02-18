@@ -1000,12 +1000,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(result, expected)
 
     def test_append(self):
-        appendedSeries = self.series.append(self.ts)
+        appendedSeries = self.series.append(self.objSeries)
         for idx, value in appendedSeries.iteritems():
             if idx in self.series.index:
                 self.assertEqual(value, self.series[idx])
-            elif idx in self.ts.index:
-                self.assertEqual(value, self.ts[idx])
+            elif idx in self.objSeries.index:
+                self.assertEqual(value, self.objSeries[idx])
             else:
                 self.fail("orphaned index!")
 
@@ -2106,6 +2106,20 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_numpy_unique(self):
         # it works!
         result = np.unique(self.ts)
+
+if tm.PERFORM_DATETIME64_TESTS:
+    class TestSeriesDatetime64(TestSeries):
+        '''
+        Same tests as for TestSeries, but force datetime64 usage"
+        '''
+        def setUp(self):
+            self.dt64_setting = tm._test_with_datetime64
+            tm._test_with_datetime64 = True
+            super(TestSeriesDatetime64, self).setUp()
+
+        def tearDown(self):
+            super(TestSeriesDatetime64, self).tearDown()
+            tm._test_with_datetime64 = self.dt64_setting
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

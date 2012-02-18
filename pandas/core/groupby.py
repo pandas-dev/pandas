@@ -634,6 +634,7 @@ class Grouping(object):
     """
     def __init__(self, index, grouper=None, name=None, level=None,
                  sort=True):
+
         self.name = name
         self.level = level
         self.grouper = _convert_grouper(index, grouper)

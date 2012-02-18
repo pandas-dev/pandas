@@ -1,6 +1,6 @@
 # pylint: disable=E1101,E1103,W0232
 
-from datetime import time
+from datetime import time, timedelta
 from itertools import izip
 
 import numpy as np
@@ -9,6 +9,10 @@ from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 import pandas._tseries as lib
 import pandas._engines as _gin
+
+from datetime import datetime
+from pandas.core.datetools import (_dt_box, _dt_unbox, _dt_box_array,
+                                  _dt_unbox_array, _offsetMap)
 
 __all__ = ['Index']
 
@@ -57,11 +61,16 @@ class Index(np.ndarray):
     _backfill = lib.backfill_object
 
     name = None
+    asi8 = None
 
     def __new__(cls, data, dtype=None, copy=False, name=None):
         if isinstance(data, np.ndarray):
-            if dtype is None and issubclass(data.dtype.type, np.integer):
-                return Int64Index(data, copy=copy, name=name)
+            if dtype is None:
+                if issubclass(data.dtype.type, np.datetime64):
+                    return DatetimeIndex(data, copy=copy, name=name)
+
+                if issubclass(data.dtype.type, np.integer):
+                    return Int64Index(data, copy=copy, name=name)
 
             subarr = np.array(data, dtype=object, copy=copy)
         elif np.isscalar(data):
@@ -71,8 +80,14 @@ class Index(np.ndarray):
             # other iterable of some kind
             subarr = com._asarray_tuplesafe(data, dtype=object)
 
-        if lib.is_integer_array(subarr) and dtype is None:
-            return Int64Index(subarr.astype('i8'), name=name)
+        if dtype is None:
+            if (lib.is_datetime_array(subarr)
+                or lib.is_datetime64_array(subarr)
+                or lib.is_timestamp_array(subarr)):
+                return DatetimeIndex(subarr, copy=copy, name=name)
+
+            if lib.is_integer_array(subarr):
+                return Int64Index(subarr.astype('i8'), name=name)
 
         subarr = subarr.view(cls)
         subarr.name = name
@@ -178,6 +193,9 @@ class Index(np.ndarray):
     @cache_readonly
     def inferred_type(self):
         return lib.infer_dtype(self)
+
+    def is_type_compatible(self, typ):
+        return typ == self.inferred_type
 
     @cache_readonly
     def is_all_dates(self):
@@ -481,8 +499,10 @@ class Index(np.ndarray):
         if self.equals(other):
             return Index([])
 
-        otherArr = np.asarray(other)
-        theDiff = sorted(set(self) - set(otherArr))
+        if not isinstance(other, Index):
+            other = np.asarray(other)
+
+        theDiff = sorted(set(self) - set(other))
         return Index(theDiff)
 
     def get_loc(self, key):
@@ -859,7 +879,7 @@ class Index(np.ndarray):
         """
         index = np.asarray(self)
         # because numpy is fussy with tuples
-        item_idx = Index([item])
+        item_idx = Index([item], dtype=index.dtype)
         new_index = np.concatenate((index[:loc], item_idx, index[loc:]))
         return Index(new_index, name=self.name)
 
@@ -971,10 +991,441 @@ class Int64Index(Index):
         name = self.name if self.name == other.name else None
         return Int64Index(joined, name=name)
 
+# -------- some conversion wrapper functions
 
-class DateIndex(Index):
-    pass
+def _as_i8(arg):
+    if isinstance(arg, np.ndarray):
+        return arg.view('i8', type=np.ndarray)
+    else:
+        return arg
 
+def _wrap_i8_function(f):
+    @staticmethod
+    def wrapper(*args, **kwargs):
+        view_args = [_as_i8(arg) for arg in args]
+        return f(*view_args, **kwargs)
+    return wrapper
+
+def _wrap_dt_function(f):
+    @staticmethod
+    def wrapper(*args, **kwargs):
+        view_args = [_dt_box_array(arg) for arg in args]
+        return f(*view_args, **kwargs)
+    return wrapper
+
+def _join_i8_wrapper(joinf, with_indexers=True):
+    @staticmethod
+    def wrapper(left, right):
+        if isinstance(left, np.ndarray):
+            left = left.view('i8', type=np.ndarray)
+        if isinstance(right, np.ndarray):
+            right = right.view('i8', type=np.ndarray)
+        results = joinf(left, right)
+        if with_indexers:
+            join_index, left_indexer, right_indexer = results
+            join_index = join_index.view('M8')
+            return join_index, left_indexer, right_indexer
+        return results
+    return wrapper
+
+def _dt_index_cmp(opname):
+    """
+    Wrap comparison operations to unbox datetime-like to a datetime64.
+    """
+    def wrapper(self, other):
+        if isinstance(other, datetime):
+            func = getattr(self, opname)
+            return func(_dt_unbox(other))
+        else:
+            func = getattr(super(DatetimeIndex, self), opname)
+            return func(other)
+    return wrapper
+
+def _dt_index_op(opname):
+    """
+    Wrap arithmetic operations to unbox a timedelta to a timedelta64.
+    """
+    def wrapper(self, other):
+        if isinstance(other, timedelta):
+            func = getattr(self, opname)
+            return func(np.timedelta64(other))
+        else:
+            func = getattr(super(DatetimeIndex, self), opname)
+            return func(other)
+    return wrapper
+
+class DatetimeIndex(Int64Index):
+    """
+    Immutable ndarray of datetime64 data, represented internally as int64, and
+    which can be boxed to Timestamp objects that are subclasses of datetime and
+    carry metadata such as frequency information.
+
+    Parameters
+    ----------
+    data  : array-like (1-dimensional), optional
+        Optional datetime-like data to construct index with
+    dtype : NumPy dtype (default: M8[us])
+    copy  : bool
+        Make a copy of input ndarray
+    freq  : string, optional 
+        One of pandas date offset strings
+    start : starting value, datetime-like, optional
+        If data is None, start is used as the start point in generating regular
+        timestamp data. must conform to freq argument
+    n     : int, optional, > 0
+        Number of periods to generate, if generating data. Takes precedence
+        over end argument
+    end   : end time, datetime-like, optional
+        If n is none, generated index will extend to first conforming time
+        on or just past end argument
+    """
+
+    _is_monotonic  = _wrap_i8_function(lib.is_monotonic_int64)
+    _inner_indexer = _join_i8_wrapper(lib.inner_join_indexer_int64)
+    _outer_indexer = _join_i8_wrapper(lib.outer_join_indexer_int64)
+    _left_indexer  = _join_i8_wrapper(lib.left_join_indexer_int64,
+                                      with_indexers=False)
+    _merge_indexer = _join_i8_wrapper(lib.merge_indexer_int64,
+                                      with_indexers=False)
+    _map_indices   = _wrap_i8_function(lib.map_indices_int64)
+    _pad           = _wrap_i8_function(lib.pad_int64)
+    _backfill      = _wrap_i8_function(lib.backfill_int64)
+
+    _arrmap        = _wrap_dt_function(lib.arrmap_object)
+    _groupby       = _wrap_dt_function(lib.groupby_object)
+
+    __eq__ = _dt_index_cmp('__eq__')
+    __ne__ = _dt_index_cmp('__ne__')
+    __lt__ = _dt_index_cmp('__lt__')
+    __gt__ = _dt_index_cmp('__gt__')
+    __le__ = _dt_index_cmp('__le__')
+    __ge__ = _dt_index_cmp('__ge__')
+
+    __add__ = _dt_index_op('__add__')
+    __sub__ = _dt_index_op('__sub__')
+
+    def __new__(cls, data=None,
+                freq=None, start=None, end=None, n=None,
+                dtype=None, copy=False, name=None):
+
+        if freq is not None:
+            tcache = lib.get_tcache(freq)
+            cache = tcache.cache()
+
+        if data is None:
+            if freq is None:
+                raise ValueError("No data, must supply freq")
+            if start is None:
+                raise ValueError("No data, must supply start")
+            if end is None and n is None:
+                raise ValueError("No data, must supply end or n")
+
+            try:
+                first = tcache.lookup(start)
+                if n is not None:
+                    if first + n >= len(cache):
+                        ext = (first + n) - len(cache) + 1
+                        cache = tcache.extend(cache[0], cache[-1], ext)
+                        first = tcache.lookup(start)
+
+                    dti = cls._construct_from_cache(name, freq, cache,
+                                                    first, first + n)
+                else:
+                    last = tcache.lookup(end)
+                    dti = cls._construct_from_cache(name, freq, cache,
+                                                    first, last + 1)
+            except KeyError, e:
+                raise ValueError("Non-conforming time: %s"
+                                 % np.datetime64(e.message))
+
+            return dti
+
+        if not isinstance(data, np.ndarray):
+            if np.isscalar(data):
+                raise ValueError('DatetimeIndex() must be called with a '
+                                'collection of some kind, %s was passed'
+                                % repr(data))
+
+            # other iterable of some kind
+            if not isinstance(data, (list, tuple)):
+                data = list(data)
+
+            # try to make it datetime64
+            try:
+                data = np.asarray(data, dtype='M8[us]')
+            except ValueError:
+                data = np.asarray(data, dtype='O')
+                data = np.asarray(_dt_unbox_array(data), dtype='M8[us]')
+
+        if issubclass(data.dtype.type, basestring):
+            raise TypeError('String dtype not supported, you may need '
+                            'to explicitly cast to datetime64')
+        elif issubclass(data.dtype.type, np.integer):
+            subarr = np.array(data, dtype='M8[us]', copy=copy)
+        elif issubclass(data.dtype.type, np.datetime64):
+            subarr = np.array(data, dtype='M8[us]', copy=copy)
+        else:
+            subarr = np.array(data, dtype='M8[us]', copy=copy)
+
+        subarr = subarr.view(cls)
+        subarr.freq = None
+        subarr.name = name
+
+        if freq is not None:
+            failure, regular = lib.conformity_check(subarr.asi8, freq)
+            if failure is not None:
+                raise ValueError("%s does not satisfy frequency %s"
+                                  % (np.datetime64(failure), freq))
+            subarr.regular = regular
+            subarr.freq = freq
+            subarr.first = tcache.lookup(subarr.values[0])
+
+        return subarr
+
+    @classmethod
+    def _construct_from_cache(cls, name, freq, cache, first, last):
+        if first < 0:
+            raise ValueError('Fell outside freq cache (first)')
+
+        if last > len(cache):
+            raise ValueError('Fell outside freq cache (last)')
+
+        subarr = cache[first:last]
+
+        newdti = subarr.view(cls)
+
+        newdti.cache = cache
+        newdti.name = name
+        newdti.freq = freq
+
+        newdti.first = first
+        newdti.last = last
+        newdti.regular = True
+
+        return newdti
+
+    @classmethod
+    def _quickbuilder(cls, name, freq, data, first, regular=None):
+        newdti = data.view(cls)
+        newdti.name = name
+        newdti.freq = freq
+        newdti.first = first
+        if regular is None:
+            newdti.regular = False
+        else:
+            newdti.regular = regular
+        return newdti
+
+    @property
+    def asi8(self):
+        # to do: cache me?
+        return self.values.view('i8')
+
+    def asobject(self):
+        """
+        Unbox to an index of type object
+        """
+        return Index(_dt_box_array(self.asi8), dtype='object')
+
+    def asfreq(self, freq):
+        if freq is not None:
+            failure, regular = lib.conformity_check(self.asi8, freq)
+            if failure is not None:
+                raise ValueError("%s does not satisfy frequency %s"
+                                  % (np.datetime64(failure), freq))
+            return DatetimeIndex._quickbuilder(self.name, freq, self.values,
+                                               self.first, regular)
+
+    def shift(self, n=1, offset=None):
+        """
+        Specialized shift which produces a DatetimeIndex
+
+        Parameters
+        ----------
+        n : int
+            Periods to shift by
+        offset : DateOffset or timedelta-like, optional
+
+        Returns
+        -------
+        shifted : DateRange
+        """
+        if n == 0:
+            return self
+
+        if self.freq is not None:
+            if offset is None or offset == _offsetMap[self.freq]:
+                return self.fshift(n)
+
+        return super(DatetimeIndex, self).shift(n, offset) 
+
+    def fshift(self, n=1):
+        """
+        Frequency shift, use frequency of the DatetimeIndex to shift
+        """
+        if self.freq is None:
+            raise ValueError("Cannot shift, frequency of index is empty")
+
+        if self.regular:
+            return self._construct_from_cache(self.name, self.freq, self.cache,
+                                              self.first+n, self.last+n)
+        else:
+            data = lib.fast_shift(self.asi8, self.freq, n)
+            return DatetimeIndex._quickbuilder(self.name, self.freq, data,
+                                               self.first)
+
+    def __getitem__(self, key):
+        """Override numpy.ndarray's __getitem__ method to work as desired"""
+        arr_idx = self.view(np.ndarray)
+        if np.isscalar(key):
+            if type(key) == datetime:
+                key = _dt_unbox(key)
+            val = arr_idx[key]
+            if hasattr(self, 'freq') and self.freq:
+                # suffer another cache lookup? how to avoid?
+                return _dt_box(val, self.freq,
+                               self.first + self._engine.get_loc(val))
+            else:
+                return _dt_box(val)
+        else:
+            if com._is_bool_indexer(key):
+                key = np.asarray(key)
+
+            result = arr_idx[key]
+            if result.ndim > 1:
+                return result
+
+            return DatetimeIndex(result, name=self.name)
+
+    # Try to run function on index first, and then on elements of index
+    # Especially important for group-by functionality
+    def map(self, func_to_map):
+        try:
+            return func_to_map(self)
+        except:
+            return super(DatetimeIndex, self).map(func_to_map)
+
+    # Fast field accessors for periods of datetime index
+    # --------------------------------------------------------------
+
+    # Thought, could be made much much faster if we shadow the index
+    # with a structured array dtype for extracting vectorized fields
+
+    @property
+    def year(self):
+        return lib.fast_field_accessor(self.asi8, 'Y')
+
+    @property
+    def month(self):
+        return lib.fast_field_accessor(self.asi8, 'M')
+
+    @property
+    def day(self):
+        return lib.fast_field_accessor(self.asi8, 'D')
+
+    @property
+    def hour(self):
+        return lib.fast_field_accessor(self.asi8, 'h')
+
+    @property
+    def minute(self):
+        return lib.fast_field_accessor(self.asi8, 'm')
+
+    @property
+    def second(self):
+        return lib.fast_field_accessor(self.asi8, 's')
+
+    @property
+    def microsecond(self):
+        return lib.fast_field_accessor(self.asi8, 'us')
+
+    def __iter__(self):
+        asi8 = self.asi8
+        if hasattr(self, 'freq') and self.freq is not None:
+            zeroloc = self.first + self._engine.get_loc(asi8[0])
+            return iter(_dt_box_array(asi8, self.freq, zeroloc))
+        else:
+            return iter(_dt_box_array(asi8))
+
+    def searchsorted(self, key, side='left'):
+        if isinstance(key, np.ndarray):
+            key = np.array(key, dtype='M8[us]', copy=False)
+        else:
+            key = _dt_unbox(key)
+
+        return self.values.searchsorted(key, side=side)
+
+    def is_type_compatible(self, typ):
+        return typ == self.inferred_type or typ == 'datetime'
+
+    # hack to workaround argmin failure
+    def argmin(self):
+        return (-self).argmax()
+
+    @property
+    def inferred_type(self):
+        # b/c datetime is represented as microseconds since the epoch, make
+        # sure we can't have ambiguous indexing
+        return 'datetime64'
+
+    @property
+    def _constructor(self):
+        return DatetimeIndex
+
+    @property
+    def dtype(self):
+        return np.dtype('M8')
+
+    @property
+    def is_all_dates(self):
+        return True
+
+    @cache_readonly
+    def _engine(self):
+        mapping = lib.map_indices_int64
+        return _gin.DictIndexEngineDatetime(self.asi8, mapping)
+
+    def equals(self, other):
+        """
+        Determines if two Index objects contain the same elements.
+        """
+        if self is other:
+            return True
+
+        if other.inferred_type != 'datetime64':
+            try:
+                other = DatetimeIndex(other)
+            except:
+                return False
+
+        return np.array_equal(self.asi8, other.asi8)
+
+    def insert(self, loc, item):
+        """
+        Make new Index inserting new item at location
+
+        Parameters
+        ----------
+        loc : int
+        item : object
+
+        Returns
+        -------
+        new_index : Index
+        """
+        if type(item) == datetime:
+            item = _dt_unbox(item)
+
+        if self.freq is not None and not self.freq.onOffset(item):
+            raise ValueError("Cannot insert value at non-conforming time")
+
+        return super(DatetimeIndex, self).insert(loc, item)
+
+    def _wrap_joined_index(self, joined, other):
+        name = self.name if self.name == other.name else None
+        return DatetimeIndex(joined, name=name)
+
+# --------------------------- end of datetime-specific code ---------------
 
 class Factor(np.ndarray):
     """
@@ -1737,7 +2188,7 @@ class MultiIndex(Index):
             section = labs[start:end]
 
             if lab not in lev:
-                if lib.infer_dtype([lab]) != lev.inferred_type:
+                if not lev.is_type_compatible(lib.infer_dtype([lab])):
                     raise Exception('Level type mismatch: %s' % lab)
 
                 # short circuit

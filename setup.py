@@ -7,8 +7,6 @@ Lesser GNU General Public License.
 Parts are from lxml (https://github.com/lxml/lxml)
 """
 
-from datetime import datetime
-from glob import glob
 import os
 import sys
 import shutil
@@ -212,8 +210,18 @@ class CleanCommand(Command):
         self.all = True
         self._clean_me = []
         self._clean_trees = []
+        self._clean_exclude = ['np_datetime.c',
+                               'np_datetime_strings.c',
+                               # scikits.timeseries code
+                               'cseries.c',
+                               'c_dates.c',
+                               'c_lib.c',
+                               'c_tseries.c']
+
         for root, dirs, files in list(os.walk('pandas')):
             for f in files:
+                if f in self._clean_exclude:
+                    continue
                 if os.path.splitext(f)[-1] in ('.pyc', '.so', '.o',
                                                '.pyd', '.c'):
                     self._clean_me.append(pjoin(root, f))
@@ -269,7 +277,7 @@ class CheckSDist(sdist):
         sdist.run(self)
 
 class CheckingBuildExt(build_ext):
-    """Subclass build_ext to get clearer report if Cython is neccessary."""
+    """Subclass build_ext to get clearer report if Cython is necessary."""
 
     def check_cython_extensions(self, extensions):
         for ext in extensions:
@@ -292,6 +300,7 @@ cmdclass = {'clean': CleanCommand,
 
 try:
     from Cython.Distutils import build_ext
+    from Cython.Distutils import Extension # to get pyrex debugging symbols
     cython=True
 except ImportError:
     cython=False
@@ -326,6 +335,7 @@ tseries_depends = ['reindex', 'groupby', 'skiplist', 'moments',
                    'generated', 'reduce', 'stats',
                    'inference', 'properties', 'internals',
                    'hashtable', 'join']
+
 def srcpath(name=None, suffix='.pyx', subdir='src'):
     return pjoin('pandas', subdir, name+suffix)
 
@@ -338,8 +348,11 @@ else:
 
 tseries_ext = Extension('pandas._tseries',
                         depends=tseries_depends + ['pandas/src/numpy_helper.h'],
-                        sources=[srcpath('tseries', suffix=suffix)],
+                        sources=[srcpath('tseries', suffix=suffix),
+                                 'pandas/src/np_datetime.c',
+                                 'pandas/src/np_datetime_strings.c'],
                         include_dirs=[np.get_include()],
+                        # pyrex_gdb=True,
                         # extra_compile_args=['-Wconversion']
                         )
 
@@ -356,12 +369,21 @@ sandbox_ext = Extension('pandas._sandbox',
                         sources=[srcpath('sandbox', suffix=suffix)],
                         include_dirs=[np.get_include()])
 
+skts_ext = Extension('pandas._skts',
+                     sources= [os.path.join('pandas/src/timeseries', x)
+                               for x in ('c_lib.c',
+                                         'c_dates.c',
+                                         'c_tseries.c',
+                                         'cseries.c')],
+                      include_dirs=[np.get_include(),
+                                    'pandas/src/timeseries'])
+
 cppsandbox_ext = Extension('pandas._cppsandbox',
                            language='c++',
                            sources=[srcpath('cppsandbox', suffix=suffix)],
                            include_dirs=[np.get_include()])
 
-extensions = [tseries_ext, engines_ext, sparse_ext]
+extensions = [tseries_ext, engines_ext, sparse_ext, skts_ext]
 
 if not ISRELEASED:
     extensions.extend([sandbox_ext])

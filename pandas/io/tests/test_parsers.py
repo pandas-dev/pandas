@@ -22,6 +22,7 @@ from pandas.io.parsers import read_csv, read_table, ExcelFile, TextParser
 from pandas.util.testing import assert_almost_equal, assert_frame_equal
 import pandas._tseries as lib
 from pandas.util import py3compat
+from pandas._tseries import Timestamp
 
 class TestParsers(unittest.TestCase):
     data1 = """index,A,B,C,D
@@ -167,7 +168,7 @@ c,4,5
 """
         df = read_csv(StringIO(data), parse_dates=True)
         expected = read_csv(StringIO(data), index_col=0, parse_dates=True)
-        self.assert_(isinstance(df.index[0], datetime))
+        self.assert_(isinstance(df.index[0], (datetime, np.datetime64, Timestamp)))
         assert_frame_equal(df, expected)
 
     def test_no_header(self):
@@ -207,7 +208,7 @@ baz,7,8,9
         df2 = read_table(self.csv1, sep=',', index_col=0, parse_dates=True)
         self.assert_(np.array_equal(df.columns, ['A', 'B', 'C', 'D']))
         self.assert_(df.index.name == 'index')
-        self.assert_(isinstance(df.index[0], datetime))
+        self.assert_(isinstance(df.index[0], (datetime, np.datetime64, Timestamp)))
         self.assert_(df.values.dtype == np.float64)
         assert_frame_equal(df, df2)
 
@@ -215,7 +216,7 @@ baz,7,8,9
         df = read_csv(self.csv2, index_col=0, parse_dates=True)
         df2 = read_table(self.csv2, sep=',', index_col=0, parse_dates=True)
         self.assert_(np.array_equal(df.columns, ['A', 'B', 'C', 'D', 'E']))
-        self.assert_(isinstance(df.index[0], datetime))
+        self.assert_(isinstance(df.index[0], (datetime, np.datetime64, Timestamp)))
         self.assert_(df.ix[:, ['A', 'B', 'C', 'D']].values.dtype == np.float64)
         assert_frame_equal(df, df2)
 
@@ -461,11 +462,13 @@ bar,two,12,13,14,15
 20090103,three,c,4,5
 """
         df = read_csv(StringIO(data), index_col=[0, 1], parse_dates=True)
-        self.assert_(isinstance(df.index.levels[0][0], datetime))
+        self.assert_(isinstance(df.index.levels[0][0],
+                     (datetime, np.datetime64, Timestamp)))
 
         # specify columns out of order!
         df2 = read_csv(StringIO(data), index_col=[1, 0], parse_dates=True)
-        self.assert_(isinstance(df2.index.levels[1][0], datetime))
+        self.assert_(isinstance(df2.index.levels[1][0],
+                     (datetime, np.datetime64, Timestamp)))
 
     def test_skip_footer(self):
         data = """A,B,C
@@ -505,7 +508,7 @@ c,4,5,01/03/2009
         expected = read_csv(StringIO(data))
         expected['D'] = expected['D'].map(parser.parse)
 
-        self.assert_(isinstance(result['D'][0], datetime))
+        self.assert_(isinstance(result['D'][0], (datetime, Timestamp)))
         assert_frame_equal(result, expected)
         assert_frame_equal(result2, expected)
 

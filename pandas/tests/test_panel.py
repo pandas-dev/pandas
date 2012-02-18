@@ -1221,6 +1221,34 @@ class TestLongPanel(unittest.TestCase):
         # corner case, empty
         df = pivot(np.array([]), np.array([]), np.array([]))
 
+if tm.PERFORM_DATETIME64_TESTS:
+    class TestPanelDatetime64(TestPanel):
+        '''
+        Same tests as for TestPanel, but force datetime64 usage"
+        '''
+        def setUp(self):
+            self.dt64_setting = tm._test_with_datetime64
+            tm._test_with_datetime64 = True
+            super(TestPanelDatetime64, self).setUp()
+
+        def tearDown(self):
+            super(TestPanelDatetime64, self).tearDown()
+            tm._test_with_datetime64 = self.dt64_setting
+
+if tm.PERFORM_DATETIME64_TESTS:
+    class TestLongPanelDatetime64(TestLongPanel):
+        '''
+        Same tests as for TestLongPanel, but force datetime64 usage"
+        '''
+        def setUp(self):
+            self.dt64_setting = tm._test_with_datetime64
+            tm._test_with_datetime64 = True
+            super(TestLongPanelDatetime64, self).setUp()
+
+        def tearDown(self):
+            super(TestLongPanelDatetime64, self).tearDown()
+            tm._test_with_datetime64 = self.dt64_setting
+
 def test_monotonic():
     pos = np.array([1, 2, 3, 5])
 

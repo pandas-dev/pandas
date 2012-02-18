@@ -64,6 +64,9 @@ def isnull(obj):
 
             if isinstance(obj, Series):
                 result = Series(result, index=obj.index, copy=False)
+        elif obj.dtype == np.datetime64:
+            # this is the NaT pattern
+            result = obj.ravel().view('i8') == 0x8000000000000000
         else:
             result = -np.isfinite(obj)
         return result
@@ -535,7 +538,8 @@ def is_integer_dtype(arr_or_dtype):
         tipo = arr_or_dtype.type
     else:
         tipo = arr_or_dtype.dtype.type
-    return issubclass(tipo, np.integer)
+    return (issubclass(tipo, np.integer) and not
+            issubclass(tipo, np.datetime64))
 
 def is_float_dtype(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):

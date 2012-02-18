@@ -18,7 +18,7 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _asarray_tuplesafe)
 from pandas.core.daterange import DateRange
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
-                               _ensure_index)
+                               _ensure_index, DatetimeIndex)
 from pandas.core.indexing import _SeriesIndexer
 from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
@@ -187,6 +187,9 @@ class Series(np.ndarray, generic.PandasObject):
             else:
                 index = _ensure_index(index)
             try:
+                if isinstance(index, DatetimeIndex):
+                    # coerce back to datetime objects for lookup
+                    index = index.astype('O')
                 data = lib.fast_multiget(data, index, default=np.nan)
             except TypeError:
                 data = [data.get(i, nan) for i in index]
@@ -2173,8 +2176,10 @@ copy : boolean, default False
         v = self.get(date)
 
         if isnull(v):
+            # this will convert datetime -> datetime64 index
             candidates = self.index[notnull(self)]
-            index = candidates.searchsorted(date)
+
+            index = candidates.searchsorted(lib.Timestamp(date))
 
             if index > 0:
                 asOfDate = candidates[index - 1]

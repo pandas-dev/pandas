@@ -19,6 +19,9 @@ import pandas.core.series as series
 import pandas.core.frame as frame
 import pandas.core.panel as panel
 
+from pandas.core.index import DatetimeIndex
+from pandas.core.datetools import BDay
+
 # to_reload = ['index', 'daterange', 'series', 'frame', 'matrix', 'panel']
 # for mod in to_reload:
 #     reload(locals()[mod])
@@ -31,6 +34,12 @@ Panel = panel.Panel
 
 N = 30
 K = 4
+
+# PERFORM_DATETIME64_TESTS additionally runs each of:
+#   test_(frame|panel|series|index|multiindex|daterange)
+# where date ranges and indices are composed of datetime64[us] dtype
+
+PERFORM_DATETIME64_TESTS = True
 
 def rands(n):
     choices = string.ascii_letters + string.digits
@@ -159,9 +168,8 @@ def makeStringIndex(k):
 def makeIntIndex(k):
     return Index(range(k))
 
-def makeDateIndex(k):
-    dates = list(DateRange(datetime(2000, 1, 1), periods=k))
-    return Index(dates)
+def makeDateObjIndex(k):
+    return Index(makeDateIndex(k), dtype=object)
 
 def makeFloatSeries():
     index = makeStringIndex(N)
@@ -173,22 +181,20 @@ def makeStringSeries():
 
 def makeObjectSeries():
     dateIndex = makeDateIndex(N)
+    dateIndex = Index(dateIndex, dtype=object)
     index = makeStringIndex(N)
     return Series(dateIndex, index=index)
 
-def makeTimeSeries():
-    return Series(randn(N), index=makeDateIndex(N))
+def getSeriesData():
+    index = makeStringIndex(N)
+    return dict((c, Series(randn(N), index=index)) for c in getCols(K))
+
+def makeDataFrame():
+    data = getSeriesData()
+    return DataFrame(data)
 
 def getArangeMat():
     return np.arange(N * K).reshape((N, K))
-
-def getSeriesData():
-    index = makeStringIndex(N)
-
-    return dict((c, Series(randn(N), index=index)) for c in getCols(K))
-
-def getTimeSeriesData():
-    return dict((c, makeTimeSeries()) for c in getCols(K))
 
 def getMixedTypeDict():
     index = Index(['a', 'b', 'c', 'd', 'e'])
@@ -202,9 +208,22 @@ def getMixedTypeDict():
 
     return index, data
 
-def makeDataFrame():
-    data = getSeriesData()
-    return DataFrame(data)
+_test_with_datetime64 = False
+
+def makeDateIndex(k):
+    dt = datetime(2000,1,1)
+    dr = DateRange(dt, periods=k)
+    if _test_with_datetime64:
+        return DatetimeIndex(dr)
+    else:
+        dates = list(dr)
+        return Index(dates, dtype=object)
+
+def makeTimeSeries():
+    return Series(randn(N), index=makeDateIndex(N))
+
+def getTimeSeriesData():
+    return dict((c, makeTimeSeries()) for c in getCols(K))
 
 def makeTimeDataFrame():
     data = getTimeSeriesData()

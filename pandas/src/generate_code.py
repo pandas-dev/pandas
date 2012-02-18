@@ -82,8 +82,12 @@ def take_2d_axis1_%(name)s(ndarray[%(c_type)s, ndim=2] values,
 
 """
 
-set_na = "outbuf[i] = NaN"
-set_na_2d = "outbuf[i, j] = NaN"
+def set_na(na ="NaN"):
+    return "outbuf[i] = %s" % na
+
+def set_na_2d(na = "NaN"):
+    return "outbuf[i, j] = %s" % na
+
 raise_on_na = "raise ValueError('No NA values allowed')"
 
 merge_indexer_template = """@cython.wraparound(False)
@@ -709,25 +713,27 @@ def generate_put_functions():
         output.write(func)
     return output.getvalue()
 
-# name, ctype, capable of holding NA
+
+# name, ctype, capable of holding NA, NA representation
 function_list = [
-    ('float64', 'float64_t', 'np.float64', True),
-    ('object', 'object', 'object', True),
-    ('int32', 'int32_t', 'np.int32', False),
-    ('int64', 'int64_t', 'np.int64', False),
-    ('bool', 'uint8_t', 'np.bool', False)
+    ('float64', 'float64_t', 'np.float64', True, 'NaN'),
+    ('object', 'object', 'object', True, 'NaN'),
+    ('int32', 'int32_t', 'np.int32', False, ''),
+    ('int64', 'int64_t', 'np.int64', False, ''),
+    ('bool', 'uint8_t', 'np.bool', False, ''),
 ]
 
 def generate_from_template(template, ndim=1, exclude=None):
     output = StringIO()
-    for name, c_type, dtype, can_hold_na in function_list:
+    for name, c_type, dtype, can_hold_na, na_val in function_list:
         if exclude is not None and name in exclude:
             continue
 
         if ndim == 1:
-            na_action = set_na if can_hold_na else raise_on_na
+            na_action = set_na(na=na_val) if can_hold_na else raise_on_na
         elif ndim == 2:
-            na_action = set_na_2d if can_hold_na else raise_on_na
+            na_action = set_na_2d(na=na_val) if can_hold_na else raise_on_na
+
         func = template % {'name' : name, 'c_type' : c_type,
                            'dtype' : dtype, 'na_action' : na_action}
         output.write(func)

@@ -1193,6 +1193,7 @@ class DataFrame(NDFrame):
         """
         return self._constructor(data=self.values.T, index=self.columns,
                                  columns=self.index, copy=False)
+
     T = property(transpose)
 
     #----------------------------------------------------------------------
@@ -1974,6 +1975,9 @@ class DataFrame(NDFrame):
         def _maybe_cast(values):
             if values.dtype == np.object_:
                 values = lib.maybe_convert_objects(values)
+            elif values.dtype == np.datetime64:
+                # converts to datetime
+                values = values.astype('O')
             return values
 
         if not drop:
@@ -1990,7 +1994,7 @@ class DataFrame(NDFrame):
                     new_obj.insert(0, col_name, level_values.take(lab))
             else:
                 name = self.index.name
-                if name is None:
+                if name is None or name == 'index':
                     name = 'index' if 'index' not in self else 'level_0'
                 new_obj.insert(0, name, _maybe_cast(self.index.values))
         new_obj.index = np.arange(len(new_obj))

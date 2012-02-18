@@ -1,7 +1,7 @@
 from itertools import izip
 
 from StringIO import StringIO
-from pandas.core.common import adjoin, isnull, notnull, _stringify
+from pandas.core.common import adjoin, notnull, _stringify
 from pandas.core.index import MultiIndex, _ensure_index
 from pandas.util import py3compat
 

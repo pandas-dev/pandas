@@ -15,7 +15,8 @@ _TYPE_MAP = {
     np.complex128: 'complex',
     np.string_: 'string',
     np.unicode_: 'unicode',
-    np.bool_: 'boolean'
+    np.bool_: 'boolean',
+    np.datetime64 : 'datetime64'
 }
 
 try:
@@ -52,7 +53,10 @@ def infer_dtype(object _values):
 
     val = util.get_value_1d(values, 0)
 
-    if util.is_integer_object(val):
+    if util.is_datetime64_object(val):
+        if is_datetime64_array(values):
+            return 'datetime64'
+    elif util.is_integer_object(val):
         if is_integer_array(values):
             return 'integer'
         return 'mixed-integer'
@@ -62,7 +66,6 @@ def infer_dtype(object _values):
 
     elif util.is_float_object(val):
         if is_float_array(values):
-
             return 'floating'
 
     elif util.is_bool_object(val):
@@ -87,6 +90,9 @@ def infer_dtype_list(list values):
 
 cdef inline bint is_datetime(object o):
     return PyDateTime_Check(o)
+
+cdef inline bint is_timestamp(object o):
+    return isinstance(o, Timestamp)
 
 def is_bool_array(ndarray values):
     cdef:
@@ -184,6 +190,23 @@ def is_datetime_array(ndarray[object] values):
             return False
     return True
 
+def is_timestamp_array(ndarray[object] values):
+    cdef int i, n = len(values)
+    if n == 0:
+        return False
+    for i in range(n):
+        if not is_timestamp(values[i]):
+            return False
+    return True
+
+def is_datetime64_array(ndarray values):
+    cdef int i, n = len(values)
+    if n == 0:
+        return False
+    for i in range(n):
+        if not util.is_datetime64_object(values[i]):
+            return False
+    return True
 
 def maybe_convert_numeric(ndarray[object] values, set na_values):
     '''
@@ -268,6 +291,10 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         elif util.is_bool_object(val):
             seen_bool = 1
             bools[i] = val
+        elif util.is_datetime64_object(val):
+            # convert to datetime.datetime for now
+            seen_object = 1
+            objects[i] = val.astype('O')
         elif util.is_integer_object(val):
             seen_int = 1
             floats[i] = <float64_t> val
