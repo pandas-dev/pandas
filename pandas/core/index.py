@@ -498,8 +498,10 @@ class Index(np.ndarray):
         if self.equals(other):
             return Index([])
 
-        otherArr = np.asarray(other)
-        theDiff = sorted(set(self) - set(otherArr))
+        if not isinstance(other, Index):
+            other = np.asarray(other)
+
+        theDiff = sorted(set(self) - set(other))
         return Index(theDiff)
 
     def get_loc(self, key):
