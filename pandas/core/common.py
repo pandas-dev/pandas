@@ -383,7 +383,7 @@ def adjoin(space, *lists):
     Glues together two sets of strings using the amount of space requested.
     The idea is to prettify.
     """
-    outLines = []
+    out_lines = []
     newLists = []
     lengths = [max(map(len, x)) + space for x in lists[:-1]]
 
@@ -397,8 +397,16 @@ def adjoin(space, *lists):
         newLists.append(nl)
     toJoin = zip(*newLists)
     for lines in toJoin:
-        outLines.append(''.join(lines))
-    return '\n'.join(outLines)
+        out_lines.append(_join_unicode(lines))
+    return _join_unicode(out_lines, sep='\n')
+
+def _join_unicode(lines, sep=''):
+    try:
+        return sep.join(lines)
+    except UnicodeDecodeError:
+        sep = unicode(sep)
+        return sep.join([x.decode('utf-8') if isinstance(x, str) else x
+                         for x in lines])
 
 def iterpairs(seq):
     """

@@ -233,6 +233,17 @@ class TestDataFrameFormatting(unittest.TestCase):
                         '1  2.512000e-01')
         assert(df_s == expected)
 
+    def test_to_string_ascii_error(self):
+        data = [('0  ',
+                 u'                        .gitignore ',
+                 u'     5 ',
+                 ' \xe2\x80\xa2\xe2\x80\xa2\xe2\x80'
+                 '\xa2\xe2\x80\xa2\xe2\x80\xa2')]
+        df = DataFrame(data)
+
+        # it works!
+        repr(df)
+
     def test_to_string_int_formatting(self):
         df = DataFrame({'x' : [-15, 20, 25, -35]})
         self.assert_(issubclass(df['x'].dtype.type, np.integer))
