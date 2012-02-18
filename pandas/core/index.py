@@ -1171,6 +1171,7 @@ class DatetimeIndex(Int64Index):
         subarr.freq = None
         subarr.name = name
         subarr.offset = None
+        subarr.regular = False
 
         if freq is not None:
             failure, regular = lib.conformity_check(subarr.asi8, freq)
@@ -1191,6 +1192,10 @@ class DatetimeIndex(Int64Index):
 
         if last > len(cache):
             raise ValueError('Fell outside freq cache (last)')
+
+        if cache is None:
+            tcache = lib.get_tcache(freq)
+            cache = tcache.cache()
 
         subarr = cache[first:last]
 
@@ -1220,6 +1225,28 @@ class DatetimeIndex(Int64Index):
         else:
             newdti.regular = regular
         return newdti
+
+    def __reduce__(self):
+        """Necessary for making this object picklable"""
+        object_state = list(np.ndarray.__reduce__(self))
+        subclass_state = self.name, self.freq, self.offset, self.regular
+        object_state[2] = (object_state[2], subclass_state)
+        return tuple(object_state)
+
+    def __setstate__(self, state):
+        """Necessary for making this object picklable"""
+        if len(state) == 2:
+            nd_state, own_state = state
+            np.ndarray.__setstate__(self, nd_state)
+            self.name = own_state[0]
+            self.freq = own_state[1]
+            self.offset = own_state[2]
+            self.regular = own_state[3]
+            if self.freq is not None:
+                tcache = lib.get_tcache(self.freq)
+                self.cache = tcache.cache()
+        else:  # pragma: no cover
+            np.ndarray.__setstate__(self, state)
 
     @property
     def asi8(self):
@@ -1262,7 +1289,7 @@ class DatetimeIndex(Int64Index):
             if offset is None or offset == _offsetMap[self.freq]:
                 return self.fshift(n)
 
-        return super(DatetimeIndex, self).shift(n, offset) 
+        return super(DatetimeIndex, self).shift(n, offset)
 
     def fshift(self, n=1):
         """

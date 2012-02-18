@@ -160,6 +160,9 @@ class DateRange(DatetimeIndex):
         if offset is None:
             raise Exception('Must provide a DateOffset!')
 
+        if time_rule is None:
+            time_rule = datetools._offsetMap[offset]
+
         if offset not in _daterange_cache:
             xdr = generate_range(_CACHE_START, _CACHE_END, offset=offset)
             arr = np.array(_dt_unbox_array(list(xdr)),
@@ -203,6 +206,9 @@ class DateRange(DatetimeIndex):
 
         indexSlice = cachedRange[startLoc:endLoc]
         indexSlice.name = name
+        indexSlice.freq = time_rule
+        indexSlice.regular = True
+
         return indexSlice
 
     def __array_finalize__(self, obj):
