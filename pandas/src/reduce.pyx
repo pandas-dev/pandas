@@ -88,8 +88,6 @@ cdef class Reducer:
             raise ValueError('function does not reduce')
         return result
 
-# TODO: Series grouper that takes bin edges instead of labels
-
 cdef class SeriesBinGrouper:
     '''
     Performs grouping operation according to bin edges, rather than labels

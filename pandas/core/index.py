@@ -1052,6 +1052,18 @@ def _dt_index_op(opname):
     return wrapper
 
 class DatetimeIndex(Int64Index):
+    """
+    Immutable ndarray of datetime64 data, represented internally as int64, and
+    which can be boxed to Timestamp objects that are subclasses of datetime and
+    carry metadata such as frequency information.
+
+    Parameters
+    ----------
+    data  : array-like (1-dimensional)
+    dtype : NumPy dtype (default: M8[us])
+    copy  : bool
+        Make a copy of input ndarray
+    """
 
     _is_monotonic  = _wrap_i8_function(lib.is_monotonic_int64)
     _inner_indexer = _join_i8_wrapper(lib.inner_join_indexer_int64)
@@ -1190,6 +1202,12 @@ class DatetimeIndex(Int64Index):
         # to do: cache me?
         return self.values.view('i8')
 
+    def asobject(self):
+        """
+        Unbox to an index of type object
+        """
+        return Index(_dt_box_array(self.asi8), dtype='object')
+
     def asfreq(self, freq):
         if freq is not None:
             failure, regular = lib.conformity_check(self.asi8, freq)
@@ -1220,7 +1238,7 @@ class DatetimeIndex(Int64Index):
             if type(key) == datetime:
                 key = _dt_unbox(key)
             val = arr_idx[key]
-            if self.freq:
+            if hasattr(self, 'freq') and self.freq:
                 # suffer another cache lookup? how to avoid?
                 return _dt_box(val, self.freq,
                                self.first + self._engine.get_loc(val))
