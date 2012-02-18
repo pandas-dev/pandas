@@ -90,9 +90,12 @@ def win32_clipboard_set(text):
     win32clipboard.OpenClipboard()
     try:
         win32clipboard.EmptyClipboard()
-        win32clipboard.SetClipboardText(text)
+        win32clipboard.SetClipboardText(_fix_line_endings(text))
     finally:
         win32clipboard.CloseClipboard()
+
+def _fix_line_endings(text):
+    return '\r\n'.join(text.splitlines())
 
 def osx_clipboard_set(text):
     """ Get the clipboard's text on OS X.
