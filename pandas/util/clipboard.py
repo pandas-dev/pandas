@@ -98,7 +98,7 @@ def osx_clipboard_set(text):
     """ Get the clipboard's text on OS X.
     """
     p = subprocess.Popen(['pbcopy', '-Prefer', 'ascii'],
-        stdout=subprocess.PIPE)
+        stdin=subprocess.PIPE)
     p.communicate(input=text)
 
 def xsel_clipboard_set(text):
