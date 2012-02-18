@@ -1310,6 +1310,10 @@ class MultiIndex(Index):
         -------
         index : MultiIndex
         """
+        if len(arrays) == 1:
+            name = None if names is None else names[0]
+            return Index(arrays[0], name=name)
+
         levels = []
         labels = []
         for arr in arrays:
