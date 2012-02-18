@@ -97,4 +97,3 @@ groupby_multi_different_numpy_functions = \
                                                    'value2' : np.var,
                                                    'value3' : np.sum})""",
               setup, start_date=datetime(2011, 9, 1))
-

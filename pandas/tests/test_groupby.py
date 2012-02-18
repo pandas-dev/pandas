@@ -468,8 +468,8 @@ class TestGroupBy(unittest.TestCase):
             self.assert_(group.index[0].weekday() == weekday)
 
         # groups / group_indices
-        groups = grouped.primary.groups
-        indices = grouped.primary.indices
+        groups = grouped.groups
+        indices = grouped.indices
 
         for k, v in groups.iteritems():
             samething = self.tsframe.index.take(indices[k])
@@ -939,7 +939,7 @@ class TestGroupBy(unittest.TestCase):
         deleveled = self.mframe.reset_index()
         grouped = deleveled.groupby(['first', 'second'])
 
-        for i, ping in enumerate(grouped.groupings):
+        for i, ping in enumerate(grouped.info.groupings):
             the_counts = self.mframe.groupby(level=i).count()['A']
             other_counts = Series(ping.counts, ping.group_index)
             assert_almost_equal(the_counts,
@@ -947,7 +947,7 @@ class TestGroupBy(unittest.TestCase):
 
         # compute counts when group by level
         grouped = self.mframe.groupby(level=0)
-        ping = grouped.groupings[0]
+        ping = grouped.info.groupings[0]
         the_counts = grouped.size()
         other_counts = Series(ping.counts, ping.group_index)
         assert_almost_equal(the_counts,
@@ -1023,12 +1023,12 @@ class TestGroupBy(unittest.TestCase):
     def test_level_preserve_order(self):
         grouped = self.mframe.groupby(level=0)
         exp_labels = np.array([0, 0, 0, 1, 1, 2, 2, 3, 3, 3])
-        assert_almost_equal(grouped.groupings[0].labels, exp_labels)
+        assert_almost_equal(grouped.info.labels[0], exp_labels)
 
     def test_grouping_labels(self):
         grouped = self.mframe.groupby(self.mframe.index.get_level_values(0))
         exp_labels = np.array([2, 2, 2, 0, 0, 1, 1, 3, 3, 3])
-        assert_almost_equal(grouped.groupings[0].labels, exp_labels)
+        assert_almost_equal(grouped.info.labels[0], exp_labels)
 
     def test_cython_fail_agg(self):
         dr = DateRange('1/1/2000', periods=50)

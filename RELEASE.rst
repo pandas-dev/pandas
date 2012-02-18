@@ -27,6 +27,11 @@ pandas 0.7.1
 
 **Release date:** NOT YET RELEASED
 
+**New features / modules**
+
+  - Add ``to_clipboard`` function to pandas namespace for writing objects to
+    the system clipboard (#774)
+
 **Bug fixes**
 
   - Fix memory leak when inserting large number of columns into a single
