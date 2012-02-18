@@ -278,8 +278,9 @@ class Index(np.ndarray):
             return header + result
 
         values = self.values
+
         if values.dtype == np.object_:
-            values = lib.maybe_convert_objects(values)
+            values = lib.maybe_convert_objects(values, safe=1)
 
         if values.dtype == np.object_:
             result = [com._stringify(x) for x in values]

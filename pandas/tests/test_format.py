@@ -6,7 +6,7 @@ from numpy import nan
 from numpy.random import randn
 import numpy as np
 
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, Index
 import pandas.core.format as fmt
 import pandas.util.testing as tm
 
@@ -232,6 +232,19 @@ class TestDataFrameFormatting(unittest.TestCase):
                         '0  1.000000e+09\n'
                         '1  2.512000e-01')
         assert(df_s == expected)
+
+    def test_to_string_float_index(self):
+        index = Index([1.5, 2, 3, 4, 5])
+        df = DataFrame(range(5), index=index)
+
+        result = df.to_string()
+        expected = ('     0\n'
+                    '1.5  0\n'
+                    '2    1\n'
+                    '3    2\n'
+                    '4    3\n'
+                    '5    4')
+        self.assertEqual(result, expected)
 
     def test_to_string_ascii_error(self):
         data = [('0  ',

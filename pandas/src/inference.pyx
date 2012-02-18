@@ -227,7 +227,8 @@ def maybe_convert_numeric(ndarray[object] values, set na_values):
     else:
         return ints
 
-def maybe_convert_objects(ndarray[object] objects, bint try_float=0):
+def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
+                          bint safe=0):
     '''
     Type inference function-- convert object array to proper dtype
     '''
@@ -280,24 +281,48 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0):
         else:
             seen_object = 1
 
-    if seen_null:
-        if (seen_float or seen_int) and not seen_object:
-            return floats
+    if not safe:
+        if seen_null:
+            if (seen_float or seen_int) and not seen_object:
+                return floats
+            else:
+                return objects
         else:
+            if seen_object:
+                return objects
+            elif not seen_bool:
+                if seen_float:
+                    return floats
+                elif seen_int:
+                    return ints
+            else:
+                if not seen_float and not seen_int:
+                    return bools.view(np.bool_)
+
             return objects
     else:
-        if seen_object:
-            return objects
-        elif not seen_bool:
-            if seen_float:
+        # don't cast int to float, etc.
+        if seen_null:
+            if (seen_float or seen_int) and not seen_object:
                 return floats
-            elif seen_int:
-                return ints
+            else:
+                return objects
         else:
-            if not seen_float and not seen_int:
-                return bools.view(np.bool_)
+            if seen_object:
+                return objects
+            elif not seen_bool:
+                if seen_int and seen_float:
+                    return objects
+                elif seen_float:
+                    return floats
+                elif seen_int:
+                    return ints
+            else:
+                if not seen_float and not seen_int:
+                    return bools.view(np.bool_)
 
-        return objects
+            return objects
+
 
 def convert_sql_column(x):
     return maybe_convert_objects(x, try_float=1)
