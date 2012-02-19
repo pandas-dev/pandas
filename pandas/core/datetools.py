@@ -655,6 +655,14 @@ class YearEnd(DateOffset, CacheableOffset):
     """DateOffset increments between calendar year ends"""
     _normalizeFirst = True
 
+    def __init__(self, n=1, **kwds):
+        self.month = kwds.get('month', 12)
+
+        if self.month < 1 or self.month > 12:
+            raise Exception('Month must go from 1 to 12')
+
+        DateOffset.__init__(self, n=n, **kwds)
+
     def apply(self, other):
         n = self.n
         if other.month != 12 or other.day != 31:
