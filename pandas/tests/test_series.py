@@ -1130,6 +1130,20 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             expected = f(s.dropna() < s[9], s.dropna() > s[3]).reindex(s.index)
             assert_series_equal(result, expected)
 
+    def test_between(self):
+        from pandas import DateRange
+
+        s = Series(DateRange('1/1/2000', periods=20), dtype=object)
+        s[::2] = np.nan
+
+        result = s[s.between(s[3], s[17])]
+        expected = s[3:18].dropna()
+        assert_series_equal(result, expected)
+
+        result = s[s.between(s[3], s[17], inclusive=False)]
+        expected = s[5:16].dropna()
+        assert_series_equal(result, expected)
+
     def test_idxmin(self):
         # test idxmin
         # _check_stat_op approach can not be used here because of isnull check.

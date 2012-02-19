@@ -1978,8 +1978,8 @@ copy : boolean, default False
 
     def between(self, left, right, inclusive=True):
         """
-        Return boolean Series equivalent to left <= series <= right, taking NAs
-        (if any) into account
+        Return boolean Series equivalent to left <= series <= right. NA values
+        will be treated as False
 
         Parameters
         ----------
@@ -1993,7 +1993,19 @@ copy : boolean, default False
         is_between : Series
             NAs, if any, will be preserved
         """
-        pass
+        if inclusive:
+            lmask = self >= left
+            rmask = self <= right
+        else:
+            lmask = self > left
+            rmask = self < right
+
+        mask = lmask & rmask
+        if mask.dtype == np.object_:
+            np.putmask(mask, isnull(mask), False)
+            mask = mask.astype(bool)
+
+        return mask
 
 #----------------------------------------------------------------------
 # Miscellaneous
