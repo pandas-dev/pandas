@@ -435,9 +435,10 @@ class DataFrame(NDFrame):
         # e.g. "if frame: ..."
         return len(self.columns) > 0 and len(self.index) > 0
 
-    def __repr__(self):
+    def _need_info_repr_(self):
         """
-        Return a string representation for a particular DataFrame
+        Check if it is needed to use info/summary view to represent a
+        particular DataFrame.
         """
         config = fmt.print_config
 
@@ -446,35 +447,50 @@ class DataFrame(NDFrame):
                     else config.max_rows)
         max_columns = config.max_columns
 
-        buf = StringIO()
         if max_columns > 0:
-            if len(self.index) < max_rows and \
+            if len(self.index) <= max_rows and \
                     len(self.columns) <= max_columns:
-                self.to_string(buf=buf)
+                return False
             else:
-                self.info(buf=buf, verbose=self._verbose_info)
+                return True
         else:
             if len(self.index) > max_rows:
-                self.info(buf=buf, verbose=self._verbose_info)
+                return True
             else:
+                buf = StringIO()
                 self.to_string(buf=buf)
                 value = buf.getvalue()
                 if max([len(l) for l in value.split('\n')]) > terminal_width:
-                    buf = StringIO()
-                    self.info(buf=buf, verbose=self._verbose_info)
-                    value = buf.getvalue()
-                return com.console_encode(value)
-        return com.console_encode(buf.getvalue())
+                    return True
+                else:
+                    return False
+
+    def __repr__(self):
+        """
+        Return a string representation for a particular DataFrame
+        """
+        buf = StringIO()
+        if self._need_info_repr_():
+            self.info(buf=buf, verbose=self._verbose_info)
+        else:
+            self.to_string(buf=buf)
+        value = buf.getvalue()
+        return com.console_encode(value)
 
     def _repr_html_(self):
-        if len(self.index) <= 1000 and len(self.columns)<= 20:
-            return ('<div style="max-height:1000px;'
-                    'max-width:1500px;overflow:auto;">' +
-                    self.to_html() + '</div>')
+        """
+        Return a html representation for a particular DataFrame.
+        Mainly for IPython notebook.
+        """
+        if fmt.print_config.notebook_repr_html:
+            if self._need_info_repr_():
+                return None
+            else:
+                return ('<div style="max-height:1000px;'
+                        'max-width:1500px;overflow:auto;">\n' +
+                        self.to_html() + '\n</div>')
         else:
-            buf = StringIO()
-            self.info(buf=buf, verbose=self._verbose_info)
-            return '<pre>' + com.console_encode(buf.getvalue()) + '</pre>'
+            return None
 
     def __iter__(self):
         """
