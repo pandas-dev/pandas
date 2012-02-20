@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 from pandas.core.datetools import (
-    bday, BDay, BQuarterEnd, BMonthEnd, BYearEnd, MonthEnd,
+    bday, BDay, BQuarterEnd, BMonthEnd, BYearEnd, MonthEnd, BYearBegin,
     DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second,
     WeekOfMonth, format, ole2datetime, QuarterEnd, to_datetime, normalize_date,
     getOffset, getOffsetName, inferTimeRule, hasOffsetName,
@@ -715,6 +715,46 @@ class TestQuarterEnd(unittest.TestCase):
         for offset, date, expected in tests:
             assertOnOffset(offset, date, expected)
 
+class TestBYearBegin(unittest.TestCase):
+    def test_offset(self):
+        tests = []
+
+        tests.append((BYearBegin(),
+            {datetime(2008, 1, 1): datetime(2009, 1, 1),
+             datetime(2008, 6, 30): datetime(2009, 1, 1),
+             datetime(2008, 12, 31): datetime(2009, 1, 1),
+             datetime(2011, 1, 1) : datetime(2011, 1, 3),
+             datetime(2011, 1, 3) : datetime(2012, 1, 2),
+             datetime(2005, 12, 30) : datetime(2006, 1, 2),
+             datetime(2005, 12, 31) : datetime(2006, 1, 2)
+             }
+            ))
+
+        tests.append((BYearBegin(0),
+                      {datetime(2008, 1, 1): datetime(2008, 1, 1),
+                       datetime(2008, 6, 30): datetime(2009, 1, 1),
+                       datetime(2008, 12, 31): datetime(2009, 1, 1),
+                       datetime(2005, 12, 30): datetime(2006, 1, 2),
+                       datetime(2005, 12, 31): datetime(2006, 1, 2),}))
+
+        tests.append((BYearBegin(-1),
+                      {datetime(2007, 1, 1): datetime(2006, 1, 2),
+                       datetime(2009, 1, 4): datetime(2009, 1, 1),
+                       datetime(2009, 1, 1): datetime(2008, 1, 1),
+                       datetime(2008, 6, 30): datetime(2008, 1, 1),
+                       datetime(2008, 12, 31): datetime(2008, 1, 1),
+                       datetime(2006, 12, 29): datetime(2006, 1, 2),
+                       datetime(2006, 12, 30): datetime(2006, 1, 2),
+                       datetime(2006, 1, 1): datetime(2005, 1, 3),}))
+
+        tests.append((BYearBegin(-2),
+                      {datetime(2007, 1, 1): datetime(2005, 1, 3),
+                       datetime(2007, 6, 30): datetime(2006, 1, 2),
+                       datetime(2008, 12, 31): datetime(2007, 1, 1),}))
+
+        for dateOffset, cases in tests:
+            for baseDate, expected in cases.iteritems():
+                assertEq(dateOffset, baseDate, expected)
 
 
 class TestYearBegin(unittest.TestCase):
@@ -903,7 +943,11 @@ class TestYearEnd(unittest.TestCase):
 
 def assertEq(dateOffset, baseDate, expected):
     actual = dateOffset + baseDate
-    assert actual == expected
+    try:
+        assert actual == expected
+    except AssertionError as err:
+        raise AssertionError("\nExpected: %s\nActual: %s\nFor Offset: %s)" %
+                (expected, actual, dateOffset))
 
 def test_Hour():
     assertEq(Hour(), datetime(2010, 1, 1), datetime(2010, 1, 1, 1))
