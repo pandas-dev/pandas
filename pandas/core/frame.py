@@ -3828,8 +3828,20 @@ class DataFrame(NDFrame):
 
         if kind == 'line':
             if use_index:
-                x = self.index
+                if self.index.is_numeric() or self.index.is_datetime():
+                    """
+                    Matplotlib supports numeric values or datetime objects as
+                    xaxis values. Taking LBYL approach here, by the time
+                    matplotlib raises exception when using non numeric/datetime
+                    values for xaxis, several actions are already taken by plt.
+                    """
+                    need_to_set_xticklabels = False
+                    x = self.index
+                else:
+                    need_to_set_xticklabels = True
+                    x = range(len(self))
             else:
+                need_to_set_xticklabels = False
                 x = range(len(self))
 
             for i, col in enumerate(_try_sort(self.columns)):
@@ -3847,6 +3859,12 @@ class DataFrame(NDFrame):
 
             if legend and not subplots:
                 ax.legend(loc='best')
+
+            if need_to_set_xticklabels:
+                xticklabels = [gfx._stringify(key) for key in self.index]
+                for ax_ in axes:
+                    ax_.set_xticks(x)
+                    ax_.set_xticklabels(xticklabels, rotation=rot)
         elif kind == 'bar':
             self._bar_plot(axes, subplots=subplots, grid=grid, rot=rot,
                            legend=legend)
@@ -3865,6 +3883,8 @@ class DataFrame(NDFrame):
 
     def _bar_plot(self, axes, subplots=False, use_index=True, grid=True,
                   rot=30, legend=True, **kwds):
+        import pandas.tools.plotting as gfx
+
         N, K = self.shape
         xinds = np.arange(N) + 0.25
         colors = 'rgbyk'
@@ -3894,7 +3914,9 @@ class DataFrame(NDFrame):
             fontsize = 10
 
         ax.set_xticks(xinds + 0.25)
-        ax.set_xticklabels(self.index, rotation=rot, fontsize=fontsize)
+        ax.set_xticklabels([gfx._stringify(key) for key in self.index],
+                           rotation=rot,
+                           fontsize=fontsize)
 
         if legend and not subplots:
             fig = ax.get_figure()

@@ -3,7 +3,7 @@ import os
 import string
 import unittest
 
-from pandas import Series, DataFrame
+from pandas import Series, DataFrame, MultiIndex
 import pandas.util.testing as tm
 
 import numpy as np
@@ -39,6 +39,7 @@ class TestSeriesPlots(unittest.TestCase):
         _check_plot_works(self.ts.plot, style='.', logy=True)
         _check_plot_works(self.ts[:10].plot, kind='bar')
         _check_plot_works(self.series[:5].plot, kind='bar')
+        _check_plot_works(self.series[:5].plot, kind='line')
 
     @slow
     def test_hist(self):
@@ -69,6 +70,15 @@ class TestDataFramePlots(unittest.TestCase):
 
         df = DataFrame({'x':[1,2], 'y':[3,4]})
         self._check_plot_fails(df.plot, kind='line', blarg=True)
+
+        df = DataFrame(np.random.rand(10, 3),
+                       index=list(string.ascii_letters[:10]))
+        _check_plot_works(df.plot, use_index=True)
+
+        tuples = zip(list(string.ascii_letters[:10]), range(10))
+        df = DataFrame(np.random.rand(10, 3),
+                       index=MultiIndex.from_tuples(tuples))
+        _check_plot_works(df.plot, use_index=True)
 
     @slow
     def test_plot_bar(self):

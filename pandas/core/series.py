@@ -2076,8 +2076,20 @@ copy : boolean, default False
 
         if kind == 'line':
             if use_index:
-                x = np.asarray(self.index)
+                if self.index.is_numeric() or self.index.is_datetime():
+                    """
+                    Matplotlib supports numeric values or datetime objects as
+                    xaxis values. Taking LBYL approach here, by the time
+                    matplotlib raises exception when using non numeric/datetime
+                    values for xaxis, several actions are already taken by plt.
+                    """
+                    need_to_set_xticklabels = False
+                    x = np.asarray(self.index)
+                else:
+                    need_to_set_xticklabels = True
+                    x = range(len(self))
             else:
+                need_to_set_xticklabels = False
                 x = range(len(self))
 
             if logy:
@@ -2085,6 +2097,11 @@ copy : boolean, default False
             else:
                 ax.plot(x, self.values.astype(float), style, **kwds)
             gfx.format_date_labels(ax)
+
+            if need_to_set_xticklabels:
+                ax.set_xticks(x)
+                ax.set_xticklabels([gfx._stringify(key) for key in self.index],
+                                   rotation=rot)
         elif kind == 'bar':
             xinds = np.arange(N) + 0.25
             ax.bar(xinds, self.values.astype(float), 0.5,
@@ -2096,8 +2113,9 @@ copy : boolean, default False
                 fontsize = 10
 
             ax.set_xticks(xinds + 0.25)
-            ax.set_xticklabels(self.index, rotation=rot, fontsize=fontsize)
-
+            ax.set_xticklabels([gfx._stringify(key) for key in self.index],
+                               rotation=rot,
+                               fontsize=fontsize)
         ax.grid(grid)
         plt.draw_if_interactive()
 
