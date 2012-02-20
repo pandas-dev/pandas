@@ -3,7 +3,8 @@ import unittest
 import numpy as np
 
 from pandas.core.datetools import (
-    bday, BDay, BQuarterEnd, BMonthEnd, BYearEnd, MonthEnd, BYearBegin,
+    bday, BDay, BQuarterEnd, BMonthEnd, BYearEnd, MonthEnd, MonthBegin,
+    BYearBegin,
     DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second,
     WeekOfMonth, format, ole2datetime, QuarterEnd, to_datetime, normalize_date,
     getOffset, getOffsetName, inferTimeRule, hasOffsetName,
@@ -450,6 +451,45 @@ class TestBMonthEnd(unittest.TestCase):
         offset1 = BMonthEnd()
         offset2 = BMonthEnd()
         self.assertFalse(offset1 != offset2)
+
+class TestMonthBegin(unittest.TestCase):
+
+    def test_offset(self):
+        tests = []
+
+        #NOTE: I'm not entirely happy with the logic here for Begin -ss
+        #see thread 'offset conventions' on the ML
+        tests.append((MonthBegin(),
+                     {datetime(2008, 1, 31): datetime(2008, 2, 1),
+                      datetime(2008, 2, 1): datetime(2008, 3, 1),
+                      datetime(2006, 12, 31): datetime(2007, 1, 1),
+                      datetime(2006, 12, 1): datetime(2007, 1, 1),
+                      datetime(2007, 1, 31): datetime(2007, 2, 1)}))
+
+        tests.append((MonthBegin(0),
+                      {datetime(2008, 1, 31): datetime(2008, 2, 1),
+                       datetime(2008, 1, 1): datetime(2008, 1, 1),
+                       datetime(2006, 12, 3): datetime(2007, 1, 1),
+                       datetime(2007, 1, 31): datetime(2007, 2, 1)}))
+
+        tests.append((MonthBegin(2),
+                     {datetime(2008, 2, 29): datetime(2008, 4, 1),
+                      datetime(2008, 1, 31): datetime(2008, 3, 1),
+                      datetime(2006, 12, 31): datetime(2007, 2, 1),
+                      datetime(2007, 12, 28): datetime(2008, 2, 1),
+                      datetime(2007, 1, 1): datetime(2007, 3, 1),
+                      datetime(2006, 11, 1): datetime(2007, 1, 1)}))
+
+        tests.append((MonthBegin(-1),
+                     {datetime(2007, 1, 1): datetime(2006, 12, 1),
+                      datetime(2008, 5, 31): datetime(2008, 5, 1),
+                      datetime(2008, 12, 31): datetime(2008, 12, 1),
+                      datetime(2006, 12, 29): datetime(2006, 12, 1),
+                      datetime(2006, 1, 2): datetime(2006, 1, 1)}))
+
+        for dateOffset, cases in tests:
+            for baseDate, expected in cases.iteritems():
+                assertEq(dateOffset, baseDate, expected)
 
 class TestMonthEnd(unittest.TestCase):
 
