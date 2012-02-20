@@ -500,9 +500,6 @@ class TestMonthEnd(unittest.TestCase):
             assertOnOffset(offset, date, expected)
 
 class TestBQuarterEnd(unittest.TestCase):
-    def test_corner(self):
-        self.assertRaises(Exception, BQuarterEnd, startingMonth=4)
-        self.assertRaises(Exception, BQuarterEnd, startingMonth=-1)
 
     def test_isAnchored(self):
         self.assert_(BQuarterEnd(startingMonth=1).isAnchored())
@@ -606,9 +603,6 @@ class TestBQuarterEnd(unittest.TestCase):
             assertOnOffset(offset, date, expected)
 
 class TestQuarterEnd(unittest.TestCase):
-    def test_corner(self):
-        self.assertRaises(Exception, QuarterEnd, startingMonth=4)
-        self.assertRaises(Exception, QuarterEnd, startingMonth=-1)
 
     def test_isAnchored(self):
         self.assert_(QuarterEnd(startingMonth=1).isAnchored())
