@@ -529,9 +529,9 @@ class BQuarterEnd(DateOffset, CacheableOffset):
         self.n = n
         self.startingMonth = kwds.get('startingMonth', 3)
 
-        if self.startingMonth < 1 or self.startingMonth > 3:
-            raise Exception('Start month must be 1<=day<=3, got %d'
-                            % self.startingMonth)
+        #if self.startingMonth < 1 or self.startingMonth > 3:
+        #    raise Exception('Start month must be 1<=day<=3, got %d'
+        #                    % self.startingMonth)
 
         self.offset = BMonthEnd(3)
         self.kwds = kwds
@@ -578,9 +578,9 @@ class QuarterEnd(DateOffset, CacheableOffset):
         self.n = n
         self.startingMonth = kwds.get('startingMonth', 3)
 
-        if self.startingMonth < 1 or self.startingMonth > 3:
-            raise Exception('Start month must be 1<=day<=3, got %d'
-                            % self.startingMonth)
+        #if self.startingMonth < 1 or self.startingMonth > 3:
+        #    raise Exception('Start month must be 1<=day<=3, got %d'
+        #                    % self.startingMonth)
 
         self.offset = MonthEnd(3)
         self.kwds = kwds
@@ -649,6 +649,57 @@ class BYearEnd(DateOffset, CacheableOffset):
         if result.weekday() > 4:
             result = result - BDay()
 
+        return result
+
+class BYearBegin(DateOffset, CacheableOffset):
+    """DateOffset increments between business year begin dates"""
+    _outputName = 'BusinessYearBegin'
+    _normalizeFirst = True
+
+    def __init__(self, n=1, **kwds):
+        self.month = kwds.get('month', 1)
+
+        if self.month < 1 or self.month > 12:
+            raise Exception('Month must go from 1 to 12')
+
+        DateOffset.__init__(self, n=n, **kwds)
+
+    def apply(self, other):
+        n = self.n
+
+        if self._normalizeFirst:
+            other = normalize_date(other)
+
+        wkday, days_in_month = calendar.monthrange(other.year, self.month)
+
+        firstBDay = 1
+        if wkday == 5: # on Saturday
+            firstBDay = 3
+        elif wkday == 6: # on Sunday
+            firstBDay = 2
+
+        years = n
+        if n > 0:
+            if (other.month < self.month or
+                (other.month == self.month and other.day < firstBDay)):
+                years -= 1
+        elif n <= 0:
+            if (other.month > self.month or
+                (other.month == self.month and other.day > firstBDay)):
+                years += 1
+
+        other = other + lib.Delta(years = years)
+
+        wkday, days_in_month = calendar.monthrange(other.year, self.month)
+
+
+        firstBDay = 1
+        if wkday == 5: # on Saturday
+            firstBDay = 3
+        elif wkday == 6: # on Sunday
+            firstBDay = 2
+
+        result = datetime(other.year, self.month, firstBDay)
         return result
 
 class YearEnd(DateOffset, CacheableOffset):
@@ -781,47 +832,47 @@ _offsetMap = {
 
 _newoffsetMap = {
        # Annual - Calendar
-       "A@JAN" : YearEnd(startingMonth=1),
-       "A@FEB" : YearEnd(startingMonth=2),
-       "A@MAR" : YearEnd(startingMonth=3),
-       "A@APR" : YearEnd(startingMonth=4),
-       "A@MAY" : YearEnd(startingMonth=5),
-       "A@JUN" : YearEnd(startingMonth=6),
-       "A@JUL" : YearEnd(startingMonth=7),
-       "A@AUG" : YearEnd(startingMonth=8),
-       "A@SEP" : YearEnd(startingMonth=9),
-       "A@OCT" : YearEnd(startingMonth=10),
-       "A@NOV" : YearEnd(startingMonth=11),
-       "A@DEC" : YearEnd(startingMonth=12),
-       "A"     : YearEnd(startingMonth=12),
+       "A@JAN" : YearEnd(month=1),
+       "A@FEB" : YearEnd(month=2),
+       "A@MAR" : YearEnd(month=3),
+       "A@APR" : YearEnd(month=4),
+       "A@MAY" : YearEnd(month=5),
+       "A@JUN" : YearEnd(month=6),
+       "A@JUL" : YearEnd(month=7),
+       "A@AUG" : YearEnd(month=8),
+       "A@SEP" : YearEnd(month=9),
+       "A@OCT" : YearEnd(month=10),
+       "A@NOV" : YearEnd(month=11),
+       "A@DEC" : YearEnd(month=12),
+       "A"     : YearEnd(month=12),
        # Annual - Calendar (start)
-       "AS@JAN" : YearBegin(startingMonth=1),
-       "AS@FEB" : YearBegin(startingMonth=2),
-       "AS@MAR" : YearBegin(startingMonth=3),
-       "AS@APR" : YearBegin(startingMonth=4),
-       "AS@MAY" : YearBegin(startingMonth=5),
-       "AS@JUN" : YearBegin(startingMonth=6),
-       "AS@JUL" : YearBegin(startingMonth=7),
-       "AS@AUG" : YearBegin(startingMonth=8),
-       "AS@SEP" : YearBegin(startingMonth=9),
-       "AS@OCT" : YearBegin(startingMonth=10),
-       "AS@NOV" : YearBegin(startingMonth=11),
-       "AS@DEC" : YearBegin(startingMonth=12),
-       "AS"     : YearBegin(startingMonth=12),
+       "AS@JAN" : YearBegin(month=1),
+       "AS"     : YearBegin(month=1),
+       "AS@FEB" : YearBegin(month=2),
+       "AS@MAR" : YearBegin(month=3),
+       "AS@APR" : YearBegin(month=4),
+       "AS@MAY" : YearBegin(month=5),
+       "AS@JUN" : YearBegin(month=6),
+       "AS@JUL" : YearBegin(month=7),
+       "AS@AUG" : YearBegin(month=8),
+       "AS@SEP" : YearBegin(month=9),
+       "AS@OCT" : YearBegin(month=10),
+       "AS@NOV" : YearBegin(month=11),
+       "AS@DEC" : YearBegin(month=12),
        # Annual - Business
-       "BA@JAN" : BYearEnd(startingMonth=1),
-       "BA@FEB" : BYearEnd(startingMonth=2),
-       "BA@MAR" : BYearEnd(startingMonth=3),
-       "BA@APR" : BYearEnd(startingMonth=4),
-       "BA@MAY" : BYearEnd(startingMonth=5),
-       "BA@JUN" : BYearEnd(startingMonth=6),
-       "BA@JUL" : BYearEnd(startingMonth=7),
-       "BA@AUG" : BYearEnd(startingMonth=8),
-       "BA@SEP" : BYearEnd(startingMonth=9),
-       "BA@OCT" : BYearEnd(startingMonth=10),
-       "BA@NOV" : BYearEnd(startingMonth=11),
-       "BA@DEC" : BYearEnd(startingMonth=12),
-       "BA"     : BYearEnd(startingMonth=12),
+       "BA@JAN" : BYearEnd(month=1),
+       "BA@FEB" : BYearEnd(month=2),
+       "BA@MAR" : BYearEnd(month=3),
+       "BA@APR" : BYearEnd(month=4),
+       "BA@MAY" : BYearEnd(month=5),
+       "BA@JUN" : BYearEnd(month=6),
+       "BA@JUL" : BYearEnd(month=7),
+       "BA@AUG" : BYearEnd(month=8),
+       "BA@SEP" : BYearEnd(month=9),
+       "BA@OCT" : BYearEnd(month=10),
+       "BA@NOV" : BYearEnd(month=11),
+       "BA@DEC" : BYearEnd(month=12),
+       "BA"     : BYearEnd(month=12),
        # Annual - Business (Start)
        # Quarterly - Calendar
        "Q@JAN" : QuarterEnd(startingMonth=1),
@@ -868,7 +919,7 @@ _newoffsetMap = {
        "W@SAT" : Week(weekday=5),
        "W@SUN" : Week(weekday=6),
        "W"     : Week(weekday=6),
-       "D"     : Day(),
+       "D"     : DateOffset(),
        "B"     : BDay(),
        "H"     : Hour(),
        "Min"   : Minute(),
