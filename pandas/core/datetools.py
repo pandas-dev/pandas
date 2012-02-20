@@ -19,7 +19,7 @@ except ImportError: # pragma: no cover
     print 'Please install python-dateutil via easy_install or some method!'
     raise # otherwise a 2nd import won't show the message
 
-import calendar
+import calendar #NOTE: replace with _tseries.monthrange
 
 #-------------------------------------------------------------------------------
 # Boxing and unboxing
@@ -630,6 +630,29 @@ class QuarterBegin(DateOffset, CacheableOffset):
 
         self.offset = MonthBegin(3)
         self.kwds = kwds
+
+    def isAnchored(self):
+        return (self.n == 1 and self.startingMonth is not None)
+
+    def apply(self, other):
+        n = self.n
+
+        wkday, days_in_month = calendar.monthrange(other.year, other.month)
+
+        monthsSince = (other.month - self.startingMonth) % 3
+        if monthsSince == 3: # on an offset
+            monthsSince = 0
+
+        if n <= 0 and monthsSince != 0:
+            # make sure you roll forward, so negate
+            monthsSince = monthsSince - 3
+        if n < 0 and (monthsSince == 0 and other.day > 1):
+            # after start, so come back an extra period as if rolled forward
+            n = n + 1
+
+        other = other + lib.Delta(months=3*n - monthsSince, day=1)
+        return other
+
 
 class BYearEnd(DateOffset, CacheableOffset):
     """DateOffset increments between business EOM dates"""
