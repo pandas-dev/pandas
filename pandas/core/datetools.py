@@ -1097,8 +1097,15 @@ for i, weekday in enumerate(['MON', 'TUE', 'WED', 'THU', 'FRI']):
     for iweek in xrange(4):
         _offsetMap['WOM@%d%s' % (iweek + 1, weekday)] = \
             WeekOfMonth(week=iweek, weekday=i)
+        #NOTE: don't delete. this is for new map
+        _newoffsetMap['WOM@%d%s' % (iweek + 1, weekday)] = \
+            WeekOfMonth(week=iweek, weekday=i)
 
 _offsetNames = dict([(v, k) for k, v in _offsetMap.iteritems()])
+
+#NOTE: the below doesn't make sense since the values aren't unique
+# could have lists for non-unique keys, but then variable output...
+_newoffsetNames = dict([(v,k) for k,v in _newoffsetMap.iteritems()])
 
 def inferTimeRule(index):
     if len(index) < 3:
