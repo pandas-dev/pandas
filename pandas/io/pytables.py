@@ -715,8 +715,9 @@ def _convert_index(index):
             kind = 'datetime'
         else:
             kind = 'date'
-        converted = np.array([time.mktime(v.timetuple()) for v in values],
-                             dtype=np.int64)
+        converted = np.array([(time.mktime(v.timetuple()) +
+                               v.microsecond / 1E6) for v in values],
+                               dtype=np.float64)
         return converted, kind, _tables().Time64Col()
     elif isinstance(values[0], basestring):
         converted = np.array(list(values), dtype=np.str_)
