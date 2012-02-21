@@ -1,5 +1,4 @@
 """A collection of random tools for dealing with dates in Python"""
-/
 from datetime import datetime, timedelta
 import sys
 import numpy as np
