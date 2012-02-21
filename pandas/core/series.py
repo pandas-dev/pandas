@@ -1787,7 +1787,7 @@ copy : boolean, default False
             return Series(mapped, index=self.index, name=self.name)
 
     def align(self, other, join='outer', level=None, copy=True,
-              fill_value=None):
+              fill_value=None, fill_method=None):
         """
         Align two Series object with the specified join method
 
@@ -1802,7 +1802,7 @@ copy : boolean, default False
             Always return new objects. If copy=False and no reindexing is
             required, the same object will be returned (for better performance)
         fill_value : object, default None
-            Fills na's if not None
+        fill_method : str, default 'pad'
 
         Returns
         -------
@@ -1815,7 +1815,12 @@ copy : boolean, default False
 
         left = self._reindex_indexer(join_index, lidx, copy)
         right = other._reindex_indexer(join_index, ridx, copy)
-        return left.fillna(fill_value), right.fillna(fill_value)
+        fill_na = (fill_value is not None) or (fill_method is not None)
+        if fill_na:
+            return (left.fillna(fill_value, method=fill_method),
+                    right.fillna(fill_value, method=fill_method))
+        else:
+            return left, right
 
     def _reindex_indexer(self, new_index, indexer, copy):
         if indexer is not None:
