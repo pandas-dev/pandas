@@ -1,5 +1,5 @@
 """A collection of random tools for dealing with dates in Python"""
-
+/
 from datetime import datetime, timedelta
 import sys
 import numpy as np
@@ -29,7 +29,7 @@ def _dt_box(key, freq=None, offset=-1):
     '''
     timestamp-like (int64, python datetime, etc.) => Timestamp
     '''
-    return lib.Timestamp(key, freq=freq, offset=offset)
+    return Timestamp(key, freq=freq, offset=offset)
 
 def _dt_unbox(key):
     '''
@@ -302,7 +302,7 @@ class BDay(DateOffset, CacheableOffset):
         return (self.n == 1)
 
     def apply(self, other):
-        if isinstance(other, (datetime, lib.Timestamp)):
+        if isinstance(other, (datetime, Timestamp)):
             n = self.n
 
             if n == 0 and other.weekday() > 4:
@@ -687,7 +687,7 @@ class Tick(DateOffset):
         return self._delta
 
     def apply(self, other):
-        if isinstance(other, (datetime, timedelta, lib.Timestamp)):
+        if isinstance(other, (datetime, timedelta, Timestamp)):
             return other + self.delta
         elif isinstance(other, type(self)):
             return type(self)(self.n + other.n)
