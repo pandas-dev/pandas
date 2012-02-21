@@ -4101,6 +4101,7 @@ def _list_of_series_to_sdict(data, columns):
     else:
         return values, columns
 
+
 def _list_of_dict_to_sdict(data, columns):
     if columns is None:
         gen = (x.keys() for x in data)
