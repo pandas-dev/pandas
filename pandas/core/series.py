@@ -1786,7 +1786,8 @@ copy : boolean, default False
             mapped = lib.map_infer(self.values, func)
             return Series(mapped, index=self.index, name=self.name)
 
-    def align(self, other, join='outer', level=None, copy=True):
+    def align(self, other, join='outer', level=None, copy=True,
+              fill_value=None):
         """
         Align two Series object with the specified join method
 
@@ -1800,6 +1801,8 @@ copy : boolean, default False
         copy : boolean, default True
             Always return new objects. If copy=False and no reindexing is
             required, the same object will be returned (for better performance)
+        fill_value : object, default None
+            Fills na's if not None
 
         Returns
         -------
@@ -1812,7 +1815,7 @@ copy : boolean, default False
 
         left = self._reindex_indexer(join_index, lidx, copy)
         right = other._reindex_indexer(join_index, ridx, copy)
-        return left, right
+        return left.fillna(fill_value), right.fillna(fill_value)
 
     def _reindex_indexer(self, new_index, indexer, copy):
         if indexer is not None:
