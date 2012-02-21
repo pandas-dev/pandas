@@ -392,9 +392,8 @@ class MonthBegin(DateOffset, CacheableOffset):
     def apply(self, other):
         n = self.n
 
-        if other.day > 1: #then roll forward if n<=0
-            if n <= 0:
-                n = n + 1
+        if other.day > 1 and n<=0: #then roll forward if n<=0
+            n =+ 1
 
         other = other + lib.Delta(months=n, day=1)
         return other
@@ -439,10 +438,9 @@ class BMonthBegin(DateOffset, CacheableOffset):
         wkday, _ = calendar.monthrange(other.year, other.month)
         firstBDay = _get_firstbday(wkday)
 
-        if other.day > firstBDay:
-            if n <= 0:
-                # as if rolled forward already
-                n = n + 1
+        if other.day > firstBDay and n<=0:
+            # as if rolled forward already
+            n += 1
 
         other = other + lib.Delta(months=n)
         wkday, _ = calendar.monthrange(other.year, other.month)
@@ -646,12 +644,15 @@ class BQuarterBegin(DateOffset, CacheableOffset):
 
         if n <= 0 and monthsSince != 0: # make sure to roll forward so negate
             monthsSince = monthsSince - 3
+
+        # roll forward if on same month later than first bday
         if n <= 0 and (monthsSince == 0 and other.day > firstBDay):
             n = n + 1
+        # pretend to roll back if on same month but before firstbday
         elif n > 0 and (monthsSince == 0 and other.day < firstBDay):
             n = n - 1
 
-
+        # get the first bday for result
         other = other + lib.Delta(months=3*n - monthsSince)
         wkday, _ = calendar.monthrange(other.year, other.month)
         firstBDay = _get_firstbday(wkday)
@@ -718,12 +719,14 @@ class QuarterBegin(DateOffset, CacheableOffset):
         wkday, days_in_month = calendar.monthrange(other.year, other.month)
 
         monthsSince = (other.month - self.startingMonth) % 3
+
         if monthsSince == 3: # on an offset
             monthsSince = 0
 
         if n <= 0 and monthsSince != 0:
             # make sure you roll forward, so negate
             monthsSince = monthsSince - 3
+
         if n < 0 and (monthsSince == 0 and other.day > 1):
             # after start, so come back an extra period as if rolled forward
             n = n + 1
@@ -799,21 +802,21 @@ class BYearBegin(DateOffset, CacheableOffset):
         firstBDay = _get_firstbday(wkday)
 
         years = n
-        if n > 0:
+
+
+        if n > 0: # roll back first for positive n
             if (other.month < self.month or
                 (other.month == self.month and other.day < firstBDay)):
                 years -= 1
-        elif n <= 0:
+        elif n <= 0: # roll forward
             if (other.month > self.month or
                 (other.month == self.month and other.day > firstBDay)):
                 years += 1
 
+        # set first bday for result
         other = other + lib.Delta(years = years)
-
         wkday, days_in_month = calendar.monthrange(other.year, self.month)
-
         firstBDay = _get_firstbday(wkday)
-
         result = datetime(other.year, self.month, firstBDay)
         return result
 
