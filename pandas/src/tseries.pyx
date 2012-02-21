@@ -199,10 +199,10 @@ def array_to_datetime(ndarray[int64_t, ndim=1] arr):
 cdef double INF = <double> np.inf
 cdef double NEGINF = -INF
 
-cdef inline _checknull(object val):
+cdef inline bint _checknull(object val):
     return not np.PyArray_Check(val) and (val is None or val != val)
 
-cdef inline _checknan(object val):
+cdef inline bint _checknan(object val):
     return not np.PyArray_Check(val) and val != val
 
 cpdef checknull(object val):
@@ -213,6 +213,8 @@ cpdef checknull(object val):
     else:
         return _checknull(val)
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def isnullobj(ndarray[object] arr):
     cdef Py_ssize_t i, n
     cdef object val
@@ -221,11 +223,11 @@ def isnullobj(ndarray[object] arr):
     n = len(arr)
     result = np.zeros(n, dtype=np.uint8)
     for i from 0 <= i < n:
-        val = arr[i]
-        if _checknull(val):
-            result[i] = 1
+        result[i] = _checknull(arr[i])
     return result.view(np.bool_)
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def isnullobj2d(ndarray[object, ndim=2] arr):
     cdef Py_ssize_t i, j, n, m
     cdef object val
@@ -474,22 +476,117 @@ def convert_timestamps(ndarray values):
 
     return out
 
-# cdef class TypeConverter:
-#     cdef:
-#         cpython.PyTypeObject* klass_type
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def scalar_compare(ndarray[object] values, object val, object op):
+    import operator
+    cdef:
+        Py_ssize_t i, n = len(values)
+        int flag
+        object x
 
-#     cdef readonly:
-#         object factory
-#         object klass
+    if op is operator.lt:
+        flag = cpython.Py_LT
+    elif op is operator.le:
+        flag = cpython.Py_LE
+    elif op is operator.gt:
+        flag = cpython.Py_GT
+    elif op is operator.ge:
+        flag = cpython.Py_GE
+    elif op is operator.eq:
+        flag = cpython.Py_EQ
+    elif op is operator.ne:
+        flag = cpython.Py_NE
+    else:
+        raise ValueError('Unrecognized operator')
 
-#     def __init__(self, object klass, factory):
-#         self.klass_type = (<PyObject*> klass).ob_type
-#         self.factory = factory
+    result = np.empty(n, dtype=object)
 
-#     def convert(self, object obj):
-#         if cpython.PyObject_TypeCheck(obj, self.klass_type):
-#             return obj
-#         return self.factory(obj)
+    for i in range(n):
+        x = values[i]
+        if _checknull(x):
+            result[i] = x
+        else:
+            result[i] = cpython.PyObject_RichCompareBool(x, val, flag)
+
+    return maybe_convert_bool(result)
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def vec_compare(ndarray[object] left, ndarray[object] right, object op):
+    import operator
+    cdef:
+        Py_ssize_t i, n = len(left)
+        int flag
+
+    if op is operator.lt:
+        flag = cpython.Py_LT
+    elif op is operator.le:
+        flag = cpython.Py_LE
+    elif op is operator.gt:
+        flag = cpython.Py_GT
+    elif op is operator.ge:
+        flag = cpython.Py_GE
+    elif op is operator.eq:
+        flag = cpython.Py_EQ
+    elif op is operator.ne:
+        flag = cpython.Py_NE
+    else:
+        raise ValueError('Unrecognized operator')
+
+    result = np.empty(n, dtype=object)
+
+    for i in range(n):
+        x = left[i]
+        y = right[i]
+        if _checknull(x):
+            result[i] = x
+        elif _checknull(y):
+            result[i] = y
+        else:
+            result[i] = cpython.PyObject_RichCompareBool(x, y, flag)
+
+    return maybe_convert_bool(result)
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def scalar_binop(ndarray[object] values, object val, object op):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        object x
+
+    result = np.empty(n, dtype=object)
+
+    for i in range(n):
+        x = values[i]
+        if _checknull(x):
+            result[i] = x
+        else:
+            result[i] = op(x, val)
+
+    return maybe_convert_bool(result)
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def vec_binop(ndarray[object] left, ndarray[object] right, object op):
+    cdef:
+        Py_ssize_t i, n = len(left)
+
+    result = np.empty(n, dtype=object)
+
+    for i in range(n):
+        x = left[i]
+        y = right[i]
+        if _checknull(x):
+            result[i] = x
+        elif _checknull(y):
+            result[i] = y
+        else:
+            result[i] = op(x, y)
+
+    return maybe_convert_bool(result)
+
 
 include "datetime.pyx"
 include "skiplist.pyx"

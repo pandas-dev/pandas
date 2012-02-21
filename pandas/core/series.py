@@ -81,6 +81,78 @@ def _arith_method(op, name):
                           index=self.index, name=self.name)
     return wrapper
 
+
+def _comp_method(op, name):
+    """
+    Wrapper function for Series arithmetic operations, to avoid
+    code duplication.
+    """
+    def na_op(x, y):
+        if x.dtype == np.object_:
+            if isinstance(y, list):
+                y = lib.list_to_object_array(y)
+
+            if isinstance(y, np.ndarray):
+                result = lib.vec_compare(x, y, op)
+            else:
+                result = lib.scalar_compare(x, y, op)
+        else:
+            result = op(x, y)
+
+        return result
+
+    def wrapper(self, other):
+        from pandas.core.frame import DataFrame
+
+        if isinstance(other, Series):
+            name = _maybe_match_name(self, other)
+            return Series(na_op(self.values, other.values),
+                          index=self.index, name=name)
+        elif isinstance(other, DataFrame):
+            return NotImplemented
+        else:
+            # scalars
+            return Series(na_op(self.values, other),
+                          index=self.index, name=self.name)
+    return wrapper
+
+
+def _bool_method(op, name):
+    """
+    Wrapper function for Series arithmetic operations, to avoid
+    code duplication.
+    """
+    def na_op(x, y):
+        try:
+            result = op(x, y)
+        except TypeError:
+            if isinstance(y, list):
+                y = lib.list_to_object_array(y)
+
+            if isinstance(y, np.ndarray):
+                result = lib.vec_binop(x, y, op)
+            else:
+                result = lib.scalar_binop(x, y, op)
+
+        return result
+
+    def wrapper(self, other):
+        from pandas.core.frame import DataFrame
+
+        if isinstance(other, Series):
+            name = _maybe_match_name(self, other)
+            return Series(na_op(self.values, other.values),
+                          index=self.index, name=name)
+        elif isinstance(other, DataFrame):
+            return NotImplemented
+        else:
+            # scalars
+            return Series(na_op(self.values, other),
+                          index=self.index, name=self.name)
+    return wrapper
+
+
+
 def _radd_compat(left, right):
     radd = lambda x, y: y + x
     # GH #353, NumPy 1.5.1 workaround
@@ -97,11 +169,13 @@ def _radd_compat(left, right):
 
     return output
 
+
 def _maybe_match_name(a, b):
     name = None
     if a.name == b.name:
         name = a.name
     return name
+
 
 def _flex_method(op, name):
     doc = """
@@ -685,17 +759,17 @@ copy : boolean, default False
     __rpow__ = _arith_method(lambda x, y: y ** x, '__pow__')
 
     # comparisons
-    # __gt__ = _arith_method(operator.gt, '__gt__')
-    # __ge__ = _arith_method(operator.ge, '__ge__')
-    # __lt__ = _arith_method(operator.lt, '__lt__')
-    # __le__ = _arith_method(operator.le, '__le__')
-    # __eq__ = _arith_method(operator.eq, '__eq__')
-    # __ne__ = _arith_method(operator.ne, '__ne__')
+    __gt__ = _comp_method(operator.gt, '__gt__')
+    __ge__ = _comp_method(operator.ge, '__ge__')
+    __lt__ = _comp_method(operator.lt, '__lt__')
+    __le__ = _comp_method(operator.le, '__le__')
+    __eq__ = _comp_method(operator.eq, '__eq__')
+    __ne__ = _comp_method(operator.ne, '__ne__')
 
     # binary logic
-    # __or__ = _arith_method(operator.or_, '__or__')
-    # __and__ = _arith_method(operator.and_, '__and__')
-    # __xor__ = _arith_method(operator.xor, '__xor__')
+    __or__ = _bool_method(operator.or_, '__or__')
+    __and__ = _bool_method(operator.and_, '__and__')
+    __xor__ = _bool_method(operator.xor, '__xor__')
 
     # Inplace operators
     __iadd__ = __add__
@@ -1905,7 +1979,38 @@ copy : boolean, default False
         result = lib.ismember(self, value_set)
         return Series(result, self.index, name=self.name)
 
-#-------------------------------------------------------------------------------
+    def between(self, left, right, inclusive=True):
+        """
+        Return boolean Series equivalent to left <= series <= right. NA values
+        will be treated as False
+
+        Parameters
+        ----------
+        left : scalar
+            Left boundary
+        right : scalar
+            Right boundary
+
+        Returns
+        -------
+        is_between : Series
+            NAs, if any, will be preserved
+        """
+        if inclusive:
+            lmask = self >= left
+            rmask = self <= right
+        else:
+            lmask = self > left
+            rmask = self < right
+
+        mask = lmask & rmask
+        if mask.dtype == np.object_:
+            np.putmask(mask, isnull(mask), False)
+            mask = mask.astype(bool)
+
+        return mask
+
+#----------------------------------------------------------------------
 # Miscellaneous
 
     def plot(self, label=None, kind='line', use_index=True, rot=30, ax=None,

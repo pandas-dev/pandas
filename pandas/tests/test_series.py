@@ -1099,6 +1099,51 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series(['foo_suffix', 'bar_suffix', 'baz_suffix', np.nan])
         assert_series_equal(result, expected)
 
+    def test_comparison_operators_with_nas(self):
+        from pandas import DateRange
+
+        s = Series(DateRange('1/1/2000', periods=10), dtype=object)
+        s[::2] = np.nan
+
+        # test that comparions work
+        ops = ['lt', 'le', 'gt', 'ge', 'eq', 'ne']
+        for op in ops:
+            val = s[5]
+
+            f = getattr(operator, op)
+            result = f(s, val)
+            expected = f(s.dropna(), val).reindex(s.index)
+            assert_series_equal(result, expected)
+
+            # fffffffuuuuuuuuuuuu
+            # result = f(val, s)
+            # expected = f(val, s.dropna()).reindex(s.index)
+            # assert_series_equal(result, expected)
+
+        # boolean &, |, ^ should work with object arrays and propagate NAs
+
+        ops = ['and_', 'or_', 'xor']
+        for bool_op in ops:
+            f = getattr(operator, bool_op)
+
+            result = f(s < s[9], s > s[3])
+            expected = f(s.dropna() < s[9], s.dropna() > s[3]).reindex(s.index)
+            assert_series_equal(result, expected)
+
+    def test_between(self):
+        from pandas import DateRange
+
+        s = Series(DateRange('1/1/2000', periods=20), dtype=object)
+        s[::2] = np.nan
+
+        result = s[s.between(s[3], s[17])]
+        expected = s[3:18].dropna()
+        assert_series_equal(result, expected)
+
+        result = s[s.between(s[3], s[17], inclusive=False)]
+        expected = s[5:16].dropna()
+        assert_series_equal(result, expected)
+
     def test_idxmin(self):
         # test idxmin
         # _check_stat_op approach can not be used here because of isnull check.
