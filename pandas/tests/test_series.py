@@ -1719,10 +1719,16 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(result, self.ts * 2)
 
     def test_align(self):
-        def _check_align(a, b, how='left'):
-            aa, ab = a.align(b, join=how)
-
+        def _check_align(a, b, how='left', fill=None):
+            aa, ab = a.align(b, join=how, fill_value=fill)
+                        
             join_index = a.index.join(b.index, how=how)
+            if fill is not None:
+                diff_a = a.index.diff(join_index)
+                self.asset_((aa.reindex(diff_a) == fill).all())
+                diff_b = b.index.diff(join_index)
+                self.assert_((ab.reindex(diff_b) == fill).all())
+
             ea = a.reindex(join_index)
             eb = b.reindex(join_index)
 
@@ -1730,16 +1736,17 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             assert_series_equal(ab, eb)
 
         for kind in JOIN_TYPES:
-            _check_align(self.ts[2:], self.ts[:-5])
+            _check_align(self.ts[2:], self.ts[:-5], kind)
+            _check_align(self.ts[2:], self.ts[:-5], kind, -1)
 
             # empty left
-            _check_align(self.ts[:0], self.ts[:-5])
+            _check_align(self.ts[:0], self.ts[:-5], kind)
 
             # empty right
-            _check_align(self.ts[:-5], self.ts[:0])
+            _check_align(self.ts[:-5], self.ts[:0], kind)
 
             # both empty
-            _check_align(self.ts[:0], self.ts[:0])
+            _check_align(self.ts[:0], self.ts[:0], kind)
 
     def test_align_nocopy(self):
         b = self.ts[:5].copy()

@@ -1657,7 +1657,8 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Reindexing and alignment
 
-    def align(self, other, join='outer', axis=None, level=None, copy=True):
+    def align(self, other, join='outer', axis=None, level=None, copy=True,
+              fill_value=None):
         """
         Align two DataFrame object on their index and columns with the
         specified join method for each axis Index
@@ -1671,6 +1672,11 @@ class DataFrame(NDFrame):
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level
+        copy : boolean, default True
+            Always returns new objects. If copy=False and no reindexing is
+            required then original objects are returned.
+        fill_value : object, default None
+            Fills na's if not None
 
         Returns
         -------
@@ -1687,7 +1693,7 @@ class DataFrame(NDFrame):
             raise TypeError('unsupported type: %s' % type(other))
 
     def _align_frame(self, other, join='outer', axis=None, level=None,
-                     copy=True):
+                     copy=True, fill_value=None):
         # defaults
         join_index, join_columns = None, None
         ilidx, iridx = None, None
@@ -1709,10 +1715,10 @@ class DataFrame(NDFrame):
                                            join_columns, clidx, copy)
         right = other._reindex_with_indexers(join_index, iridx,
                                              join_columns, cridx, copy)
-        return left, right
+        return left.fillna(fill_value), right.fillna(fill_value)
 
     def _align_series(self, other, join='outer', axis=None, level=None,
-                      copy=True):
+                      copy=True, fill_value=None):
         fdata = self._data
         if axis == 0:
             join_index = self.index
@@ -1741,7 +1747,7 @@ class DataFrame(NDFrame):
 
         left_result = DataFrame(fdata)
         right_result = other if ridx is None else other.reindex(join_index)
-        return left_result, right_result
+        return left_result.fillna(fill_value), right_result.fillna(fill_value)
 
     def reindex(self, index=None, columns=None, method=None, level=None,
                 copy=True):
