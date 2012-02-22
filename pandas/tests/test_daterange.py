@@ -5,9 +5,9 @@ import unittest
 import numpy as np
 
 import pandas.core.datetools as datetools
+from pandas.core.datetools import generate_range
 from pandas.core.index import Index, DatetimeIndex
-from pandas.core.daterange import DateRange, generate_range
-import pandas.core.daterange as daterange
+from pandas.core.daterange import DateRange
 import pandas.util.testing as tm
 
 import pandas._tseries as lib
@@ -30,8 +30,7 @@ class TestDateRangeGeneration(unittest.TestCase):
         self.assert_(np.array_equal(rng1, rng2))
 
     def test_1(self):
-        eqXDateRange(dict(start=datetime(2009, 3, 25),
-                          periods=2),
+        eqXDateRange(dict(start=datetime(2009, 3, 25), periods=2),
                      [datetime(2009, 3, 25), datetime(2009, 3, 26)])
 
     def test_2(self):
@@ -326,17 +325,17 @@ class TestDateRange(unittest.TestCase):
 
         start = eastern.localize(_start)
         end = eastern.localize(_end)
-        assert(daterange._infer_tzinfo(start, end) is eastern)
-        assert(daterange._infer_tzinfo(start, None) is eastern)
-        assert(daterange._infer_tzinfo(None, end) is eastern)
+        assert(datetools._infer_tzinfo(start, end) is eastern)
+        assert(datetools._infer_tzinfo(start, None) is eastern)
+        assert(datetools._infer_tzinfo(None, end) is eastern)
 
         start = utc.localize(_start)
         end = utc.localize(_end)
-        assert(daterange._infer_tzinfo(start, end) is utc)
+        assert(datetools._infer_tzinfo(start, end) is utc)
 
         end = eastern.localize(_end)
-        self.assertRaises(Exception, daterange._infer_tzinfo, start, end)
-        self.assertRaises(Exception, daterange._infer_tzinfo, end, start)
+        self.assertRaises(Exception, datetools._infer_tzinfo, start, end)
+        self.assertRaises(Exception, datetools._infer_tzinfo, end, start)
 
     def test_date_parse_failure(self):
         badly_formed_date = '2007/100/1'
@@ -541,7 +540,6 @@ class TestDatetimePyx(unittest.TestCase):
             self.assert_(t0.value - t1.value == us_in_day or
                          t0.value - t1.value == 3 * us_in_day)
             t0 = t1
-
 
     def test_dayofmonthoffset(self):
         for week in (-1, 0, 1):

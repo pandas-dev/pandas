@@ -15,7 +15,7 @@ from pandas._tseries import Timestamp
 
 import pandas.core.datetools as datetools
 from pandas.core.datetools import (_dt_box, _dt_unbox, _dt_box_array,
-                                  _dt_unbox_array, _offsetMap)
+                                  _dt_unbox_array)
 
 __all__ = ['Index']
 
@@ -1067,11 +1067,11 @@ class DatetimeIndex(Int64Index):
     dtype : NumPy dtype (default: M8[us])
     copy  : bool
         Make a copy of input ndarray
-    freq  : string, optional 
-        One of pandas date offset strings
+    offset : string or offset object, optional
+        One of pandas date offset strings or corresponding objects
     start : starting value, datetime-like, optional
         If data is None, start is used as the start point in generating regular
-        timestamp data. must conform to freq argument
+        timestamp data.
     periods  : int, optional, > 0
         Number of periods to generate, if generating data. Takes precedence
         over end argument
@@ -1105,36 +1105,27 @@ class DatetimeIndex(Int64Index):
     __sub__ = _dt_index_op('__sub__')
 
     def __new__(cls, data=None,
-                freq=None, offset=None, start=None, end=None, periods=None,
+                offset=None, start=None, end=None, periods=None,
                 dtype=None, copy=False, name=None, tzinfo=None,
-                **kwds):
+                _deprecated=False):
 
-        if 'timeRule' in kwds or 'time_rule' in kwds:
-            import warnings
-            warnings.warn("timeRule/time_rule is deprecated, please use freq "
-                          "argument", DeprecationWarning,)
-            freq = kwds.get('timeRule', kwds.get('time_rule', None))
-
-        if freq is not None:
-            offset = datetools.getOffset(freq)
-        elif offset is not None and offset in datetools._offsetNames:
-            freq = datetools.getOffsetName(offset)
+        if isinstance(offset, basestring):
+            offset = datetools.getOffset(offset, _deprecated=_deprecated)
 
         if data is None and offset is None:
-            raise ValueError("Must provide offset/freq argument "
-                             "if no data is supplied")
+            raise ValueError("Must provide offset argument if no data is "
+                             "supplied")
 
         if data is None:
             start = datetools.to_timestamp(start)
             end = datetools.to_timestamp(end)
 
             if (start is not None and not isinstance(start, Timestamp)):
-                raise ValueError('Failed to convert %s to datetime' % start)
+                raise ValueError('Failed to convert %s to timestamp' % start)
 
             if (end is not None and not isinstance(end, Timestamp)):
-                raise ValueError('Failed to convert %s to datetime' % end)
+                raise ValueError('Failed to convert %s to timestamp' % end)
 
-            # inside cache range. Handle UTC case
             useCache = datetools._will_use_cache(offset)
 
             start, end, tzinfo = datetools._figure_out_timezone(start, end,
@@ -1144,10 +1135,12 @@ class DatetimeIndex(Int64Index):
 
             if useCache:
                 index = cls._cached_range(start, end, periods=periods,
-                                          offset=offset, name=name)
+                                          offset=offset, name=name,
+                                          _deprecated=_deprecated)
             else:
                 xdr = datetools.generate_range(start=start, end=end,
-                                               periods=periods, offset=offset)
+                                               periods=periods, offset=offset,
+                                               _deprecated=_deprecated)
 
                 index = np.array(_dt_unbox_array(list(xdr)), dtype='M8[us]',
                                  copy=False)
@@ -1155,7 +1148,6 @@ class DatetimeIndex(Int64Index):
             index = index.view(cls)
             index.name = name
             index.offset = offset
-            index.freq = freq
             index.tzinfo = tzinfo
 
             return index
@@ -1200,14 +1192,13 @@ class DatetimeIndex(Int64Index):
         subarr = subarr.view(cls)
         subarr.name = name
         subarr.offset = offset
-        subarr.freq = freq
         subarr.tzinfo = tzinfo
 
         return subarr
 
     @classmethod
     def _cached_range(cls, start=None, end=None, periods=None, offset=None,
-                      name=None):
+                      name=None, _deprecated=False):
         if start is not None:
             start = Timestamp(start)
         if end is not None:
@@ -1218,7 +1209,10 @@ class DatetimeIndex(Int64Index):
 
         drc = datetools._daterange_cache
         if offset not in drc:
-            xdr = datetools.generate_range(offset=offset)
+            xdr = datetools.generate_range(offset=offset,
+                    start=datetools._CACHE_START, end=datetools._CACHE_END,
+                    _deprecated=_deprecated)
+
             arr = np.array(_dt_unbox_array(list(xdr)),
                            dtype='M8[us]', copy=False)
 
@@ -1267,21 +1261,22 @@ class DatetimeIndex(Int64Index):
     # TODO: fix repr
 
     def __repr__(self):
-        output = str(self.__class__) + '\n'
-        output += 'offset: %s, tzinfo: %s\n' % (self.offset, self.tzinfo)
-        if len(self) > 0:
-            output += '[%s, ..., %s]\n' % (self[0], self[-1])
-        output += 'length: %d' % len(self)
-        return output
+        if self.offset is not None:
+            output = str(self.__class__) + '\n'
+            output += 'offset: %s, tzinfo: %s\n' % (self.offset, self.tzinfo)
+            if len(self) > 0:
+                output += '[%s, ..., %s]\n' % (self[0], self[-1])
+            output += 'length: %d' % len(self)
+            return output
+        else:
+            return super(DatetimeIndex, self).__repr__()
 
     __str__ = __repr__
-
-    # TODO: fix reduce, setstate
 
     def __reduce__(self):
         """Necessary for making this object picklable"""
         object_state = list(np.ndarray.__reduce__(self))
-        subclass_state = self.name, self.offset, self.freq, self.tzinfo
+        subclass_state = self.name, self.offset, self.tzinfo
         object_state[2] = (object_state[2], subclass_state)
         return tuple(object_state)
 
@@ -1291,8 +1286,7 @@ class DatetimeIndex(Int64Index):
             nd_state, own_state = state
             self.name = own_state[0]
             self.offset = own_state[1]
-            self.freq = own_state[2]
-            self.tzinfo = own_state[3]
+            self.tzinfo = own_state[2]
             np.ndarray.__setstate__(self, nd_state)
         else:  # pragma: no cover
             np.ndarray.__setstate__(self, state)
@@ -1332,14 +1326,10 @@ class DatetimeIndex(Int64Index):
         if self.offset is None:
             raise ValueError("Cannot shift with no offset")
 
-        if self.freq:
-            start = self[0] + n * self.offset
-            end = self[-1] + n * self.offset
-            return DatetimeIndex(start=start, end=end, offset=self.offset,
-                                 freq=self.freq, name=self.name)
-        else:
-            return DatetimeIndex([d + n * self.offset for d in self],
-                                 offset=self.offset, name=self.name)
+        start = self[0] + n * self.offset
+        end = self[-1] + n * self.offset
+        return DatetimeIndex(start=start, end=end, offset=self.offset,
+                                name=self.name)
 
     def union(self, other):
         """
@@ -1418,7 +1408,6 @@ class DatetimeIndex(Int64Index):
             return self.item()
 
         self.offset = getattr(obj, 'offset', None)
-        self.freq   = getattr(obj, 'freq', None)
         self.tzinfo = getattr(obj, 'tzinfo', None)
 
     def intersection(self, other):
@@ -1467,11 +1456,9 @@ class DatetimeIndex(Int64Index):
                 return _dt_box(val, tzinfo=self.tzinfo)
         else:
             new_offset = self.offset
-            new_freq = self.freq
             if (type(key) == slice and new_offset is not None
                 and key.step is not None):
                 new_offset = key.step * self.offset
-                new_freq = None
 
             if com._is_bool_indexer(key):
                 key = np.asarray(key)
@@ -1481,7 +1468,7 @@ class DatetimeIndex(Int64Index):
                 return result
 
             return DatetimeIndex(result, name=self.name, offset=new_offset,
-                                 freq=new_freq, tzinfo=self.tzinfo)
+                                 tzinfo=self.tzinfo)
 
     # Try to run function on index first, and then on elements of index
     # Especially important for group-by functionality
@@ -1579,7 +1566,7 @@ class DatetimeIndex(Int64Index):
 
         if (not hasattr(other, 'inferred_type') or
             other.inferred_type != 'datetime64'):
-            if self.freq is not None or self.offset is not None:
+            if self.offset is not None:
                 return False
             try:
                 other = DatetimeIndex(other)

@@ -20,7 +20,6 @@ import pandas.core.frame as frame
 import pandas.core.panel as panel
 
 from pandas.core.index import DatetimeIndex
-from pandas.core.datetools import BDay
 
 # to_reload = ['index', 'daterange', 'series', 'frame', 'matrix', 'panel']
 # for mod in to_reload:

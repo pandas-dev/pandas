@@ -538,8 +538,6 @@ class WeekOfMonth(DateOffset, CacheableOffset):
     def apply(self, other):
         offsetOfMonth = self.getOffsetOfMonth(other)
 
-        one_month = lib.Delta(months=1, day=1)
-
         if offsetOfMonth > other:
             if self.n > 0:
                 months = self.n - 1
@@ -948,7 +946,7 @@ _offsetMap = {
     "A@DEC"    : BYearEnd()
 }
 
-_newoffsetMap = {
+_newOffsetMap = {
        # Annual - Calendar
        "A@JAN" : YearEnd(month=1),
        "A@FEB" : YearEnd(month=2),
@@ -1090,35 +1088,38 @@ _newoffsetMap = {
        "S"     : Second(),
        "U"     : None,
        None    : None,
-        }
-
+}
 
 for i, weekday in enumerate(['MON', 'TUE', 'WED', 'THU', 'FRI']):
     for iweek in xrange(4):
         _offsetMap['WOM@%d%s' % (iweek + 1, weekday)] = \
             WeekOfMonth(week=iweek, weekday=i)
         #NOTE: don't delete. this is for new map
-        _newoffsetMap['WOM@%d%s' % (iweek + 1, weekday)] = \
+        _newOffsetMap['WOM@%d%s' % (iweek + 1, weekday)] = \
             WeekOfMonth(week=iweek, weekday=i)
 
 _offsetNames = dict([(v, k) for k, v in _offsetMap.iteritems()])
 
-#NOTE: the below doesn't make sense since the values aren't unique
-# could have lists for non-unique keys, but then variable output...
-_newoffsetNames = dict([(v,k) for k,v in _newoffsetMap.iteritems()])
+# NOTE: don't use the below for exact reverse-lookups b/c it's not 1-1
+_newOffsetNames = dict([(v,k) for k,v in _newOffsetMap.iteritems()])
 
-def inferTimeRule(index):
+def inferTimeRule(index, _deprecated=True):
     if len(index) < 3:
         raise Exception('Need at least three dates to infer time rule!')
 
     first, second, third = index[:3]
-    for rule, offset in _offsetMap.iteritems():
+    if _deprecated:
+        items = _offsetMap.iteritems()
+    else:
+        items = _newOffsetMap.iteritems()
+
+    for rule, offset in items:
         if (first + offset) == second and (second + offset) == third:
             return rule
 
     raise Exception('Could not infer time rule from data!')
 
-def getOffset(name):
+def getOffset(name, _deprecated=True):
     """
     Return DateOffset object associated with rule name
 
@@ -1126,7 +1127,11 @@ def getOffset(name):
     -------
     getOffset('EOM') --> BMonthEnd(1)
     """
-    offset = _offsetMap.get(name)
+    if _deprecated:
+        offset = _offsetMap.get(name)
+    else:
+        offset = _newOffsetMap.get(name)
+
     if offset is not None:
         return offset
     else:
@@ -1135,7 +1140,7 @@ def getOffset(name):
 def hasOffsetName(offset):
     return offset in _offsetNames
 
-def getOffsetName(offset):
+def getOffsetName(offset, _deprecated=True):
     """
     Return rule name associated with a DateOffset object
 
@@ -1143,7 +1148,11 @@ def getOffsetName(offset):
     -------
     getOffsetName(BMonthEnd(1)) --> 'EOM'
     """
-    name = _offsetNames.get(offset)
+    if _deprecated:
+        name = _offsetNames.get(offset)
+    else:
+        name = _newOffsetNames.get(offset)
+
     if name is not None:
         return name
     else:
@@ -1184,8 +1193,8 @@ _CACHE_END   = Timestamp(datetime(2030, 1, 1))
 
 _daterange_cache = {}
 
-def generate_range(start=_CACHE_START, end=_CACHE_END, periods=None,
-                   offset=BDay(), freq=None):
+def generate_range(start=None, end=None, periods=None,
+                   offset=BDay(), time_rule=None, _deprecated=True):
     """
     Generates a sequence of dates corresponding to the specified time
     offset. Similar to dateutil.rrule except uses pandas DateOffset
@@ -1193,8 +1202,8 @@ def generate_range(start=_CACHE_START, end=_CACHE_END, periods=None,
 
     Parameters
     ----------
-    start : timestamp-like (default None)
-    end : timestamp-like (default None)
+    start : datetime (default None)
+    end : datetime (default None)
     periods : int, optional
 
     Note
@@ -1213,15 +1222,11 @@ def generate_range(start=_CACHE_START, end=_CACHE_END, periods=None,
     DateRange, dateutil.rrule
     """
 
-    if freq is not None:
-        offset = getOffset(freq)
+    if time_rule is not None:
+        offset = getOffset(time_rule)
 
-    if freq is None:
-        if offset in _offsetNames:
-            freq = _offsetNames[offset]
-
-    start = to_timestamp(start)
-    end = to_timestamp(end)
+    start = to_datetime(start)
+    end = to_datetime(end)
 
     if start and not offset.onOffset(start):
         start = offset.rollforward(start)
