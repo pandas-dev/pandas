@@ -468,9 +468,10 @@ class TesttHDFStore(unittest.TestCase):
         store.close()
 
     def test_store_datetime_fractional_secs(self):
-        series = Series([0], [datetime(2012, 1, 2, 3, 4, 5, 123456)])
+        dt = datetime(2012, 1, 2, 3, 4, 5, 123456)
+        series = Series([0], [dt])
         self.store['a'] = series
-        self.assertEquals(self.store['a'].index[0].microsecond, 123456)
+        self.assertEquals(self.store['a'].index[0], dt)
 
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))
