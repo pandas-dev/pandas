@@ -24,11 +24,19 @@ import calendar
 #-------------------------------------------------------------------------------
 # Boxing and unboxing
 
-def _dt_box(key, freq=None, offset=-1):
+def _dt_box(key, offset=None, tzinfo=None):
     '''
     timestamp-like (int64, python datetime, etc.) => Timestamp
     '''
-    return Timestamp(key, freq=freq, offset=offset)
+    return Timestamp(key, offset=offset, tzinfo=None)
+
+def _dt_box_array(arr, offset=None, tzinfo=None):
+    if arr is None:
+        return arr
+
+    boxfunc = lambda x: _dt_box(x, offset=offset, tzinfo=tzinfo)
+    boxer = np.frompyfunc(boxfunc, 1, 1)
+    return boxer(arr)
 
 def _dt_unbox(key):
     '''
@@ -44,14 +52,6 @@ def _dt_unbox_array(arr):
 
     unboxer = np.frompyfunc(_dt_unbox, 1, 1)
     return unboxer(arr)
-
-def _dt_box_array(arr, freq=None, offset=-1):
-    if arr is None:
-        return arr
-
-    boxfunc = lambda x: _dt_box(x, freq=freq, offset=offset)
-    boxer = np.frompyfunc(boxfunc, 1, 1)
-    return boxer(arr)
 
 #-------------------------------------------------------------------------------
 # Miscellaneous date functions
@@ -72,6 +72,19 @@ def ole2datetime(oledt):
         raise Exception("Value is outside of acceptable range: %s " % val)
 
     return OLE_TIME_ZERO + timedelta(days=val)
+
+def to_timestamp(arg, offset=None):
+    """ Attempts to convert arg to timestamp """
+    if arg is None:
+        return arg
+
+    if isinstance(arg, basestring):
+        try:
+            arg = parser.parse(arg)
+        except Exception:
+            pass
+
+    return lib.Timestamp(arg, offset=offset)
 
 def to_datetime(arg):
     """Attempts to convert arg to datetime"""
@@ -199,6 +212,9 @@ class DateOffset(object):
         return out
 
     def __eq__(self, other):
+        if other is None:
+            return False
+
         return self._params() == other._params()
 
     def __ne__(self, other):
@@ -804,3 +820,116 @@ def getOffsetName(offset):
         return name
     else:
         raise Exception('Bad offset name requested: %s!' % offset)
+
+def _infer_tzinfo(start, end):
+    def _infer(a, b):
+        tz = a.tzinfo
+        if b and b.tzinfo:
+            assert(tz == b.tzinfo)
+        return tz
+    tz = None
+    if start is not None:
+        tz = _infer(start, end)
+    elif end is not None:
+        tz = _infer(end, start)
+    return tz
+
+def _will_use_cache(offset):
+    return (offset.isAnchored() and isinstance(offset, CacheableOffset))
+
+def _figure_out_timezone(start, end, tzinfo):
+    inferred_tz = _infer_tzinfo(start, end)
+    tz = inferred_tz
+    if inferred_tz is None and tzinfo is not None:
+        tz = tzinfo
+    elif tzinfo is not None:
+        assert(inferred_tz == tzinfo)
+        # make tz naive for now
+
+    start = start if start is None else start.replace(tzinfo=None)
+    end = end if end is None else end.replace(tzinfo=None)
+
+    return start, end, tz
+
+_CACHE_START = Timestamp(datetime(1950, 1, 1))
+_CACHE_END   = Timestamp(datetime(2030, 1, 1))
+
+_daterange_cache = {}
+
+def generate_range(start=_CACHE_START, end=_CACHE_END, periods=None,
+                   offset=BDay(), freq=None):
+    """
+    Generates a sequence of dates corresponding to the specified time
+    offset. Similar to dateutil.rrule except uses pandas DateOffset
+    objects to represent time increments
+
+    Parameters
+    ----------
+    start : timestamp-like (default None)
+    end : timestamp-like (default None)
+    periods : int, optional
+
+    Note
+    ----
+    * This method is faster for generating weekdays than dateutil.rrule
+    * At least two of (start, end, periods) must be specified.
+    * If both start and end are specified, the returned dates will
+    satisfy start <= date <= end.
+
+    Returns
+    -------
+    dates : generator object
+
+    See also
+    --------
+    DateRange, dateutil.rrule
+    """
+
+    if freq is not None:
+        offset = getOffset(freq)
+
+    if freq is None:
+        if offset in _offsetNames:
+            freq = _offsetNames[offset]
+
+    start = to_timestamp(start)
+    end = to_timestamp(end)
+
+    if start and not offset.onOffset(start):
+        start = offset.rollforward(start)
+
+    if end and not offset.onOffset(end):
+        end = offset.rollback(end)
+
+        if periods is None and end < start:
+            end = None
+            periods = 0
+
+    if end is None:
+        end = start + (periods - 1) * offset
+
+    if start is None:
+        start = end - (periods - 1) * offset
+
+    cur = start
+    if offset._normalizeFirst:
+        cur = normalize_date(cur)
+
+    next_date = cur
+    while cur <= end:
+        yield cur
+
+        # faster than cur + offset
+        next_date = offset.apply(cur)
+        if next_date <= cur:
+            raise ValueError('Offset %s did not increment date' % offset)
+        cur = next_date
+
+def _naive_in_cache_range(start, end):
+    if start is None or end is None:
+        return False
+    else:
+        return _in_range(start, end, _CACHE_START, _CACHE_END)
+
+def _in_range(start, end, rng_start, rng_end):
+    return start > rng_start and end < rng_end

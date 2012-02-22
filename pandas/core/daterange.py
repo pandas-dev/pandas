@@ -29,6 +29,17 @@ _CACHE_END   = Timestamp(datetime(2030, 1, 1))
 _daterange_cache = {}
 
 class DateRange(DatetimeIndex):
+    def __new__(cls, start=None, end=None, periods=None,
+                offset=datetools.bday, time_rule=None,
+                tzinfo=None, name=None, **kwds):
+
+        retval = super(DateRange, cls).__new__(cls, start=start, end=end,
+                periods=periods, offset=offset, freq=time_rule, tzinfo=tzinfo,
+                name=name, **kwds)
+
+        return retval
+
+class DateRangeOld:
     """
     Fixed frequency date range according to input parameters.
 
@@ -106,7 +117,6 @@ class DateRange(DatetimeIndex):
 
         index.freq = time_rule
         index.regular = True
-        index.first = index._cache_loc(index.values[0])
 
         return index
 
@@ -618,7 +628,6 @@ def _infer_tzinfo(start, end):
 def _will_use_cache(offset):
     return (offset.isAnchored() and
             isinstance(offset, datetools.CacheableOffset))
-
 
 if __name__ == '__main__':
     import pytz

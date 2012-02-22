@@ -11,6 +11,9 @@ import pandas._tseries as lib
 import pandas._engines as _gin
 
 from datetime import datetime
+from pandas._tseries import Timestamp
+
+import pandas.core.datetools as datetools
 from pandas.core.datetools import (_dt_box, _dt_unbox, _dt_box_array,
                                   _dt_unbox_array, _offsetMap)
 
@@ -438,10 +441,7 @@ class Index(np.ndarray):
 
     def _wrap_union_result(self, other, result):
         name = self.name if self.name == other.name else None
-        if type(self) == type(other):
-            return type(self)(result, name=name)
-        else:
-            return Index(result, name=name)
+        return type(self)(data=result, name=name)
 
     def intersection(self, other):
         """
@@ -1072,12 +1072,12 @@ class DatetimeIndex(Int64Index):
     start : starting value, datetime-like, optional
         If data is None, start is used as the start point in generating regular
         timestamp data. must conform to freq argument
-    n     : int, optional, > 0
+    periods  : int, optional, > 0
         Number of periods to generate, if generating data. Takes precedence
         over end argument
     end   : end time, datetime-like, optional
-        If n is none, generated index will extend to first conforming time
-        on or just past end argument
+        If periods is none, generated index will extend to first conforming
+        time on or just past end argument
     """
 
     _is_monotonic  = _wrap_i8_function(lib.is_monotonic_int64)
@@ -1105,46 +1105,69 @@ class DatetimeIndex(Int64Index):
     __sub__ = _dt_index_op('__sub__')
 
     def __new__(cls, data=None,
-                freq=None, start=None, end=None, n=None,
-                dtype=None, copy=False, name=None):
+                freq=None, offset=None, start=None, end=None, periods=None,
+                dtype=None, copy=False, name=None, tzinfo=None,
+                **kwds):
+
+        if 'timeRule' in kwds or 'time_rule' in kwds:
+            import warnings
+            warnings.warn("timeRule/time_rule is deprecated, please use freq "
+                          "argument", DeprecationWarning,)
+            freq = kwds.get('timeRule', kwds.get('time_rule', None))
 
         if freq is not None:
-            tcache = lib.get_tcache(freq)
-            cache = tcache.cache()
+            offset = datetools.getOffset(freq)
+        elif offset is not None and offset in datetools._offsetNames:
+            freq = datetools.getOffsetName(offset)
+
+        if data is None and offset is None:
+            raise ValueError("Must provide offset/freq argument "
+                             "if no data is supplied")
 
         if data is None:
-            if freq is None:
-                raise ValueError("No data, must supply freq")
-            if start is None:
-                raise ValueError("No data, must supply start")
-            if end is None and n is None:
-                raise ValueError("No data, must supply end or n")
+            start = datetools.to_timestamp(start)
+            end = datetools.to_timestamp(end)
 
-            try:
-                first = tcache.lookup(start)
-                if n is not None:
-                    if first + n >= len(cache):
-                        ext = (first + n) - len(cache) + 1
-                        cache = tcache.extend(cache[0], cache[-1], ext)
-                        first = tcache.lookup(start)
+            if (start is not None and not isinstance(start, Timestamp)):
+                raise ValueError('Failed to convert %s to datetime' % start)
 
-                    dti = cls._construct_from_cache(name, freq, cache,
-                                                    first, first + n)
-                else:
-                    last = tcache.lookup(end)
-                    dti = cls._construct_from_cache(name, freq, cache,
-                                                    first, last + 1)
-            except KeyError, e:
-                raise ValueError("Non-conforming time: %s"
-                                 % np.datetime64(e.message))
+            if (end is not None and not isinstance(end, Timestamp)):
+                raise ValueError('Failed to convert %s to datetime' % end)
 
-            return dti
+            # inside cache range. Handle UTC case
+            useCache = datetools._will_use_cache(offset)
+
+            start, end, tzinfo = datetools._figure_out_timezone(start, end,
+                                                                tzinfo)
+
+            useCache = useCache and datetools._naive_in_cache_range(start, end)
+
+            if useCache:
+                index = cls._cached_range(start, end, periods=periods,
+                                          offset=offset, name=name)
+            else:
+                xdr = datetools.generate_range(start=start, end=end,
+                                               periods=periods, offset=offset)
+
+                index = np.array(_dt_unbox_array(list(xdr)), dtype='M8[us]',
+                                copy=False)
+
+            index = index.view(cls)
+            index.name = name
+            index.offset = offset
+            index.tzinfo = tzinfo
+            index.freq = freq
+
+            return index
 
         if not isinstance(data, np.ndarray):
             if np.isscalar(data):
                 raise ValueError('DatetimeIndex() must be called with a '
-                                'collection of some kind, %s was passed'
-                                % repr(data))
+                                 'collection of some kind, %s was passed'
+                                 % repr(data))
+
+            if isinstance(data, datetime):
+                data = [data]
 
             # other iterable of some kind
             if not isinstance(data, (list, tuple)):
@@ -1167,69 +1190,98 @@ class DatetimeIndex(Int64Index):
         else:
             subarr = np.array(data, dtype='M8[us]', copy=copy)
 
-        subarr = subarr.view(cls)
-        subarr.freq = None
-        subarr.name = name
-        subarr.offset = None
-        subarr.regular = False
+        if offset is not None:
+            for i, ts in enumerate(subarr):
+                # make sure data points conform
+                if not offset.onOffset(Timestamp(ts)):
+                    val = Timestamp(offset.rollforward(ts)).value
+                    subarr[i] = val
 
-        if freq is not None:
-            failure, regular = lib.conformity_check(subarr.asi8, freq)
-            if failure is not None:
-                raise ValueError("%s does not satisfy frequency %s"
-                                  % (np.datetime64(failure), freq))
-            subarr.regular = regular
-            subarr.freq = freq
-            subarr.first = tcache.lookup(subarr.values[0])
-            subarr.offset = _offsetMap[freq]
+        subarr = subarr.view(cls)
+        subarr.name = name
+        subarr.offset = offset
+        subarr.tzinfo = tzinfo
+        subarr.freq = freq
 
         return subarr
 
     @classmethod
-    def _construct_from_cache(cls, name, freq, cache, first, last):
-        if first < 0:
-            raise ValueError('Fell outside freq cache (first)')
+    def _cached_range(cls, start=None, end=None, periods=None, offset=None,
+                      name=None):
+        if start is not None:
+            start = Timestamp(start)
+        if end is not None:
+            end = Timestamp(end)
 
-        if last > len(cache):
-            raise ValueError('Fell outside freq cache (last)')
+        if offset is None:
+            raise Exception('Must provide a DateOffset!')
 
-        if cache is None:
-            tcache = lib.get_tcache(freq)
-            cache = tcache.cache()
+        drc = datetools._daterange_cache
+        if offset not in drc:
+            xdr = datetools.generate_range(offset=offset)
+            arr = np.array(_dt_unbox_array(list(xdr)),
+                           dtype='M8[us]', copy=False)
 
-        subarr = cache[first:last]
-
-        newdti = subarr.view(cls)
-
-        newdti.cache = cache
-        newdti.name = name
-        newdti.freq = freq
-
-        newdti.first = first
-        newdti.last = last
-        newdti.regular = True
-
-        newdti.offset = _offsetMap[freq]
-
-        return newdti
-
-    @classmethod
-    def _quickbuilder(cls, name, freq, data, first, regular=None):
-        newdti = data.view(cls)
-        newdti.name = name
-        newdti.freq = freq
-        newdti.first = first
-        newdti.offset = _offsetMap[freq]
-        if regular is None:
-            newdti.regular = False
+            cachedRange = arr.view(DatetimeIndex)
+            cachedRange.offset = offset
+            cachedRange.tzinfo = None
+            cachedRange.name = None
+            drc[offset] = cachedRange
         else:
-            newdti.regular = regular
-        return newdti
+            cachedRange = drc[offset]
+
+        if start is None:
+            if end is None:
+                raise Exception('Must provide start or end date!')
+            if periods is None:
+                raise Exception('Must provide number of periods!')
+
+            assert(isinstance(end, Timestamp))
+
+            end = offset.rollback(end)
+
+            endLoc = cachedRange.get_loc(end) + 1
+            startLoc = endLoc - periods
+        elif end is None:
+            assert(isinstance(start, Timestamp))
+            start = offset.rollforward(start)
+
+            startLoc = cachedRange.get_loc(start)
+            if periods is None:
+                raise Exception('Must provide number of periods!')
+
+            endLoc = startLoc + periods
+        else:
+            start = offset.rollforward(start)
+            end = offset.rollback(end)
+
+            startLoc = cachedRange.get_loc(start)
+            endLoc = cachedRange.get_loc(end) + 1
+
+        indexSlice = cachedRange[startLoc:endLoc]
+        indexSlice.name = name
+        indexSlice.offset = offset
+
+        return indexSlice
+
+    # TODO: fix repr
+
+    def __repr__(self):
+        output = str(self.__class__) + '\n'
+        output += 'offset: %s, tzinfo: %s\n' % (self.offset, self.tzinfo)
+        if len(self) > 0:
+            output += '[%s, ..., %s]\n' % (self[0], self[-1])
+        output += 'length: %d' % len(self)
+        return output
+
+    __str__ = __repr__
+
+    # TODO: fix reduce, setstate
 
     def __reduce__(self):
         """Necessary for making this object picklable"""
         object_state = list(np.ndarray.__reduce__(self))
-        subclass_state = self.name, self.freq, self.offset, self.regular
+        subclass_state = self.name, self.offset, self.freq
         object_state[2] = (object_state[2], subclass_state)
         return tuple(object_state)
 
@@ -1239,12 +1291,8 @@ class DatetimeIndex(Int64Index):
             nd_state, own_state = state
             np.ndarray.__setstate__(self, nd_state)
             self.name = own_state[0]
-            self.freq = own_state[1]
-            self.offset = own_state[2]
-            self.regular = own_state[3]
-            if self.freq is not None:
-                tcache = lib.get_tcache(self.freq)
-                self.cache = tcache.cache()
+            self.offset = own_state[1]
+            self.freq = own_state[2]
         else:  # pragma: no cover
             np.ndarray.__setstate__(self, state)
 
@@ -1259,18 +1307,9 @@ class DatetimeIndex(Int64Index):
         """
         return Index(_dt_box_array(self.asi8), dtype='object')
 
-    def asfreq(self, freq):
-        if freq is not None:
-            failure, regular = lib.conformity_check(self.asi8, freq)
-            if failure is not None:
-                raise ValueError("%s does not satisfy frequency %s"
-                                  % (np.datetime64(failure), freq))
-            return DatetimeIndex._quickbuilder(self.name, freq, self.values,
-                                               self.first, regular)
-
-    def shift(self, n=1, offset=None):
+    def shift(self, n, offset=None):
         """
-        Specialized shift which produces a DatetimeIndex
+        Specialized shift which produces a DateRange
 
         Parameters
         ----------
@@ -1282,29 +1321,136 @@ class DatetimeIndex(Int64Index):
         -------
         shifted : DateRange
         """
+        if offset is not None and offset != self.offset:
+            return Index.shift(self, n, offset)
+
         if n == 0:
+            # immutable so OK
             return self
 
-        if hasattr(self, 'freq') and self.freq is not None:
-            if offset is None or offset == _offsetMap[self.freq]:
-                return self.fshift(n)
+        if self.offset is None:
+            raise ValueError("Cannot shift with no offset")
 
-        return super(DatetimeIndex, self).shift(n, offset)
-
-    def fshift(self, n=1):
-        """
-        Frequency shift, use frequency of the DatetimeIndex to shift
-        """
-        if self.freq is None:
-            raise ValueError("Cannot shift, frequency of index is empty")
-
-        if self.regular:
-            return self._construct_from_cache(self.name, self.freq, self.cache,
-                                              self.first+n, self.last+n)
+        if self.freq:
+            start = self[0] + n * self.offset
+            end = self[-1] + n * self.offset
+            return DatetimeIndex(start=start, end=end, offset=self.offset,
+                                 freq=self.freq, name=self.name)
         else:
-            data = lib.fast_shift(self.asi8, self.freq, n)
-            return DatetimeIndex._quickbuilder(self.name, self.freq, data,
-                                               self.first)
+            return DatetimeIndex([d + n * self.offset for d in self],
+                                 offset=self.offset, name=self.name)
+
+    def union(self, other):
+        """
+        Specialized union for DateRange objects. If combine
+        overlapping ranges with the same DateOffset, will be much
+        faster than Index.union
+
+        Parameters
+        ----------
+        other : DateRange or array-like
+
+        Returns
+        -------
+        y : Index or DateRange
+        """
+        if self._can_fast_union(other):
+            return self._fast_union(other)
+        else:
+            return Index.union(self, other)
+
+    def _wrap_joined_index(self, joined, other):
+        name = self.name if self.name == other.name else None
+        if (isinstance(other, DatetimeIndex)
+            and self.offset == other.offset
+            and self._can_fast_union(other)):
+            joined = self._view_like(joined)
+            joined.name = name
+            return joined
+        else:
+            return DatetimeIndex(joined, name=name)
+
+    def _can_fast_union(self, other):
+        offset = self.offset
+
+        if offset is None:
+            return False
+
+        # to make our life easier, "sort" the two ranges
+        if self[0] <= other[0]:
+            left, right = self, other
+        else:
+            left, right = other, self
+
+        left_end = left[-1]
+        right_start = right[0]
+
+        # Only need to "adjoin", not overlap
+        return (left_end + offset) >= right_start
+
+    def _fast_union(self, other):
+        # to make our life easier, "sort" the two ranges
+        if self[0] <= other[0]:
+            left, right = self, other
+        else:
+            left, right = other, self
+
+        left_start, left_end = left[0], left[-1]
+        right_end = right[-1]
+
+        if not datetools._will_use_cache(self.offset):
+            # concatenate dates
+            if left_end < right_end:
+                loc = right.searchsorted(left_end, side='right')
+                right_chunk = right.values[loc:]
+                dates = np.concatenate((left.values, right_chunk))
+                return self._view_like(dates)
+            else:
+                return left
+        else:
+            return type(self)(start=left_start,
+                              end=max(left_end, right_end),
+                              offset=left.offset)
+
+    def __array_finalize__(self, obj):
+        if self.ndim == 0: # pragma: no cover
+            return self.item()
+
+        self.offset = getattr(obj, 'offset', None)
+        self.tzinfo = getattr(obj, 'tzinfo', None)
+
+    def intersection(self, other):
+        """
+        Specialized intersection for DateRange objects. May be much faster than
+        Index.union
+
+        Parameters
+        ----------
+        other : DateRange or array-like
+
+        Returns
+        -------
+        y : Index or DateRange
+        """
+        if other.offset != self.offset:
+            return super(DatetimeIndex, self).intersection(self, other)
+
+        # to make our life easier, "sort" the two ranges
+        if self[0] <= other[0]:
+            left, right = self, other
+        else:
+            left, right = other, self
+
+        end = min(left[-1], right[-1])
+        start = right[0]
+
+        if end < start:
+            return type(self)(data=[])
+        else:
+            lslice = slice(*left.slice_locs(start, end))
+            left_chunk = left.values[lslice]
+            return self._view_like(left_chunk)
+
 
     def __getitem__(self, key):
         """Override numpy.ndarray's __getitem__ method to work as desired"""
@@ -1313,12 +1459,10 @@ class DatetimeIndex(Int64Index):
             if type(key) == datetime:
                 key = _dt_unbox(key)
             val = arr_idx[key]
-            if hasattr(self, 'freq') and self.freq:
-                # suffer another cache lookup? how to avoid?
-                return _dt_box(val, self.freq,
-                               self.first + self._engine.get_loc(val))
+            if hasattr(self, 'offset') and self.offset is not None:
+                return _dt_box(val, offset=self.offset, tzinfo=self.tzinfo)
             else:
-                return _dt_box(val)
+                return _dt_box(val, tzinfo=self.tzinfo)
         else:
             if com._is_bool_indexer(key):
                 key = np.asarray(key)
@@ -1328,16 +1472,6 @@ class DatetimeIndex(Int64Index):
                 return result
 
             return DatetimeIndex(result, name=self.name)
-
-    def _cache_loc(self, key):
-        """
-        Get location of key in associated tcache
-        """
-        if isinstance(key,datetime):
-            key = _dt_unbox(key)
-        if hasattr(self, 'freq') and self.freq is not None:
-            tcache = lib.get_tcache(self.freq)
-            return tcache.lookup(key)
 
     # Try to run function on index first, and then on elements of index
     # Especially important for group-by functionality
@@ -1383,9 +1517,8 @@ class DatetimeIndex(Int64Index):
 
     def __iter__(self):
         asi8 = self.asi8
-        if hasattr(self, 'freq') and self.freq is not None:
-            zeroloc = self.first + self._engine.get_loc(asi8[0])
-            return iter(_dt_box_array(asi8, self.freq, zeroloc))
+        if hasattr(self, 'offset') and self.offset is not None:
+            return iter(_dt_box_array(asi8, self.offset))
         else:
             return iter(_dt_box_array(asi8))
 
@@ -1434,7 +1567,10 @@ class DatetimeIndex(Int64Index):
         if self is other:
             return True
 
-        if other.inferred_type != 'datetime64':
+        if (not hasattr(other, 'inferred_type') or
+            other.inferred_type != 'datetime64'):
+            if self.freq is not None or self.offset is not None:
+                return False
             try:
                 other = DatetimeIndex(other)
             except:
@@ -1458,14 +1594,74 @@ class DatetimeIndex(Int64Index):
         if type(item) == datetime:
             item = _dt_unbox(item)
 
-        if self.freq is not None and not self.freq.onOffset(item):
+        if self.offset is not None and not self.offset.onOffset(item):
             raise ValueError("Cannot insert value at non-conforming time")
 
         return super(DatetimeIndex, self).insert(loc, item)
 
-    def _wrap_joined_index(self, joined, other):
-        name = self.name if self.name == other.name else None
-        return DatetimeIndex(joined, name=name)
+    def _view_like(self, ndarray):
+        result = ndarray.view(type(self))
+        result.offset = self.offset
+        result.tzinfo = self.tzinfo
+        result.name = self.name
+        return result
+
+    def tz_normalize(self, tz):
+        """
+        Convert DateRange from one time zone to another (using pytz)
+
+        Returns
+        -------
+        normalized : DateRange
+        """
+        new_dates = np.array([tz.normalize(x.replace(tzinfo=self.tzinfo)) 
+                              for x in self])
+        new_dates = new_dates.view(DatetimeIndex)
+        new_dates.offset = self.offset
+        new_dates.tzinfo = tz
+        new_dates.name = self.name
+        return new_dates
+
+    def tz_localize(self, tz):
+        """
+        Localize tzinfo-naive DateRange to given time zone (using pytz)
+
+        Returns
+        -------
+        localized : DateRange
+        """
+        new_dates = np.array(
+                [np.datetime64(tz.localize(x.replace(tzinfo=self.tzinfo)))
+                 for x in self])
+        new_dates = new_dates.view(DatetimeIndex)
+        new_dates.offset = self.offset
+        new_dates.tzinfo = tz
+        new_dates.name = self.name
+        return new_dates
+
+    def tz_validate(self):
+        """
+        For a localized time zone, verify that there are no DST ambiguities
+
+        Returns
+        -------
+        result : boolean
+            True if there are no DST ambiguities
+        """
+        import pytz
+
+        tz = self.tzinfo
+        if tz is None or tz is pytz.utc:
+            return True
+
+        # See if there are any DST resolution problems
+        for date in self:
+            try:
+                tz.utcoffset(date.replace(tzinfo=None))
+            except pytz.InvalidTimeError:
+                return False
+
+        return True
 
 # --------------------------- end of datetime-specific code ---------------
 

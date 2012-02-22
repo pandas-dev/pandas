@@ -38,8 +38,8 @@ ctypedef enum time_res:
 # Python front end to C extension type _Timestamp
 # This serves as the box for datetime64
 class Timestamp(_Timestamp):
-    def __new__(cls, object ts_input, object freq=None, object offset=None):
-        ts = convert_to_tsobject(ts_input)
+    def __new__(cls, object ts_input, object offset=None, tzinfo=None):
+        ts = convert_to_tsobject(ts_input, tzinfo)
 
         # make datetime happy
         ts_base = _Timestamp.__new__(
@@ -54,9 +54,8 @@ class Timestamp(_Timestamp):
             ts.dtval.tzinfo)
 
         # fill out rest of data
-        ts_base.freq = freq
         ts_base.value = ts.value
-        ts_base.offset = -1 if offset is None else offset
+        ts_base.offset = offset
 
         return ts_base
 
@@ -67,24 +66,16 @@ class Timestamp(_Timestamp):
 cdef class _Timestamp(datetime):
     cdef:
         int64_t value       # numpy int64
-        object freq         # frequency reference
+        object offset       # frequency reference
 
     def __add__(self, other):
-        cdef:
-            int64_t idx
-            ndarray[int64_t] buf
-            DatetimeCache tcache
-
         if is_integer_object(other):
-            if self.freq is None:
+            if self.offset is None:
                 msg = ("Cannot add integral value to Timestamp "
-                       "without both freq and offset.")
+                       "without offset.")
                 raise ValueError(msg)
             else:
-                tcache = _tcaches[self.freq]
-                buf = tcache.cache()
-                idx = tcache._lookup(self.value)
-                return Timestamp(buf[idx + other])
+                return Timestamp((self.offset.__mul__(other)).apply(self))
         else:
             return super(_Timestamp, self).__add__(other)
 
@@ -109,7 +100,7 @@ cdef class _TSObject:
             return self.value
 
 # helper to extract datetime and int64 from several different possibilities
-cdef convert_to_tsobject(object ts):
+cdef convert_to_tsobject(object ts, object tzinfo=None):
     """
     Extract datetime and int64 from any of:
         - np.int64
@@ -192,6 +183,9 @@ cdef convert_to_tsobject(object ts):
         retval.value = PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts)
     else:
         raise ValueError("Could not construct Timestamp from argument %s" % type(ts))
+
+    if tzinfo is not None:
+        retval.dtval = retval.dtval.replace(tzinfo=tzinfo)
 
     return retval
 
@@ -660,6 +654,10 @@ cdef class DatetimeCache:
             self.indexer.set_item(buf[i], i)
 
         self.is_dirty = False
+
+    cdef int search(self, object ts, object side='left'):
+        cdef _TSObject t = convert_to_tsobject(ts)
+        return np.searchsorted(self.buf, t, side=side)
 
     cdef set_start(self, _Offset off):
         self.start = convert_to_tsobject(off._get_anchor())

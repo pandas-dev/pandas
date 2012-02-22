@@ -214,21 +214,22 @@ class TestDateRange(unittest.TestCase):
         self.assert_(the_union.equals(expected))
 
     def test_intersection(self):
+        import ipdb; ipdb.set_trace()
         rng = DateRange('1/1/2000', periods=50, offset=datetools.Minute())
         rng1 = rng[10:]
         rng2 = rng[:25]
         the_int = rng1.intersection(rng2)
         expected = rng[10:25]
         self.assert_(the_int.equals(expected))
-        self.assert_(isinstance(the_int, DatetimeIndex))
+        self.assert_(isinstance(the_int, DateRange))
         self.assert_(the_int.offset == rng.offset)
 
-        the_int = rng1.intersection(rng2.view(DatetimeIndex))
+        the_int = rng1.intersection(rng2.view(DateRange))
         self.assert_(the_int.equals(expected))
 
         # non-overlapping
         the_int = rng[:10].intersection(rng[10:])
-        expected = DatetimeIndex([])
+        expected = DateRange([])
         self.assert_(the_int.equals(expected))
 
     def test_intersection_bug(self):
