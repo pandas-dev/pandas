@@ -392,8 +392,8 @@ class MonthBegin(DateOffset, CacheableOffset):
     def apply(self, other):
         n = self.n
 
-        if other.day > 1 and n<=0: #then roll forward if n<=0
-            n =+ 1
+        if other.day > 1 and n <= 0: #then roll forward if n<=0
+            n += 1
 
         other = other + lib.Delta(months=n, day=1)
         return other
