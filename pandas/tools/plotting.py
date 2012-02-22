@@ -1,3 +1,5 @@
+from pandas import DataFrame
+
 import numpy as np
 
 def scatter_matrix(data):
@@ -19,18 +21,22 @@ def hist(data, column, by=None, ax=None, fontsize=None):
     ax.set_xticklabels(keys, rotation=0, fontsize=fontsize)
     return ax
 
-def grouped_hist(data, column, by=None, ax=None, bins=50, log=False,
-                 figsize=None):
+def grouped_hist(data, column=None, by=None, ax=None, bins=50, log=False,
+                 figsize=None, layout=None):
     """
 
     Returns
     -------
     fig : matplotlib.Figure
     """
+    if isinstance(data, DataFrame):
+        data = data[column]
+
     def plot_group(group, ax):
-        ax.hist(group[column].dropna(), bins=bins)
-    fig = _grouped_plot(plot_group, data, by=by, sharex=False,
-                        sharey=False, figsize=figsize)
+        ax.hist(group.dropna(), bins=bins)
+    fig, axes = _grouped_plot(plot_group, data, by=by, sharex=False,
+                              sharey=False, figsize=figsize,
+                              layout=layout)
     fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9,
                         hspace=0.3, wspace=0.2)
     return fig
@@ -137,17 +143,18 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None):
     return fig
 
 def _grouped_plot(plotf, data, by=None, numeric_only=True, figsize=None,
-                  sharex=True, sharey=True):
+                  sharex=True, sharey=True, layout=None):
     import matplotlib.pyplot as plt
 
     # allow to specify mpl default with 'default'
-    if not (isinstance(figsize, str) and figsize == 'default'):
+    if figsize is None or figsize == 'default':
         figsize = (10, 5)               # our default
 
     grouped = data.groupby(by)
     ngroups = len(grouped)
 
-    nrows, ncols = _get_layout(ngroups)
+    nrows, ncols = layout or _get_layout(ngroups)
+
     if figsize is None:
         # our favorite default beating matplotlib's idea of the
         # default size
@@ -161,7 +168,7 @@ def _grouped_plot(plotf, data, by=None, numeric_only=True, figsize=None,
 
     for i, (key, group) in enumerate(grouped):
         ax = ravel_axes[i]
-        if numeric_only:
+        if numeric_only and isinstance(group, DataFrame):
             group = group._get_numeric_data()
         plotf(group, ax)
         ax.set_title(str(key))
