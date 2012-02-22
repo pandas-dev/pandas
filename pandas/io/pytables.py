@@ -717,8 +717,8 @@ def _convert_index(index):
         return converted, 'datetime', _tables().Time64Col()
     elif isinstance(values[0], date):
         converted = np.array([time.mktime(v.timetuple()) for v in values],
-                             dtype=np.int64)
-        return converted, 'date', _tables().Time64Col()
+                             dtype=np.int32)
+        return converted, 'date', _tables().Time32Col()
     elif isinstance(values[0], basestring):
         converted = np.array(list(values), dtype=np.str_)
         itemsize = converted.dtype.itemsize
