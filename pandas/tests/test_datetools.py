@@ -2,7 +2,8 @@ from datetime import datetime, timedelta
 import unittest
 
 from pandas.core.datetools import (
-    bday, BDay, BQuarterEnd, BMonthEnd, BYearEnd, MonthEnd,
+    bday, BDay, BQuarterEnd, BMonthEnd, BYearEnd, MonthEnd, MonthBegin,
+    BYearBegin, QuarterBegin, BQuarterBegin, BMonthBegin,
     DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second,
     WeekOfMonth, format, ole2datetime, QuarterEnd, to_datetime, normalize_date,
     getOffset, getOffsetName, inferTimeRule, hasOffsetName)
@@ -347,6 +348,65 @@ class TestWeekOfMonth(unittest.TestCase):
             offset = WeekOfMonth(week=week, weekday=weekday)
             self.assert_(offset.onOffset(date) == expected)
 
+class TestBMonthBegin(unittest.TestCase):
+    def test_offset(self):
+        tests = []
+
+        tests.append((BMonthBegin(),
+                     {datetime(2008, 1, 1): datetime(2008, 2, 1),
+                      datetime(2008, 1, 31): datetime(2008, 2, 1),
+                      datetime(2006, 12, 29): datetime(2007, 1, 1),
+                      datetime(2006, 12, 31): datetime(2007, 1, 1),
+                      datetime(2006, 9, 1): datetime(2006, 10, 2),
+                      datetime(2007, 1, 1): datetime(2007, 2, 1),
+                      datetime(2006, 12, 1): datetime(2007, 1, 1)}))
+
+        tests.append((BMonthBegin(0),
+                      {datetime(2008, 1, 1): datetime(2008, 1, 1),
+                       datetime(2006, 10, 2): datetime(2006, 10, 2),
+                       datetime(2008, 1, 31): datetime(2008, 2, 1),
+                       datetime(2006, 12, 29): datetime(2007, 1, 1),
+                       datetime(2006, 12, 31): datetime(2007, 1, 1),
+                       datetime(2006, 9, 15): datetime(2006, 10, 2)}))
+
+        tests.append((BMonthBegin(2),
+                     {datetime(2008, 1, 1): datetime(2008, 3, 3),
+                      datetime(2008, 1, 15): datetime(2008, 3, 3),
+                      datetime(2006, 12, 29): datetime(2007, 2, 1),
+                      datetime(2006, 12, 31): datetime(2007, 2, 1),
+                      datetime(2007, 1, 1): datetime(2007, 3, 1),
+                      datetime(2006, 11, 1): datetime(2007, 1, 1)}))
+
+        tests.append((BMonthBegin(-1),
+                     {datetime(2007, 1, 1): datetime(2006, 12, 1),
+                      datetime(2008, 6, 30): datetime(2008, 6, 2),
+                      datetime(2008, 6, 1): datetime(2008, 5, 1),
+                      datetime(2008, 3, 10): datetime(2008, 3, 3),
+                      datetime(2008, 12, 31): datetime(2008, 12, 1),
+                      datetime(2006, 12, 29): datetime(2006, 12, 1),
+                      datetime(2006, 12, 30): datetime(2006, 12, 1),
+                      datetime(2007, 1, 1): datetime(2006, 12, 1)}))
+
+        for dateOffset, cases in tests:
+            for baseDate, expected in cases.iteritems():
+                assertEq(dateOffset, baseDate, expected)
+
+    def test_onOffset(self):
+
+        tests = [(BMonthBegin(), datetime(2007, 12, 31), False),
+                 (BMonthBegin(), datetime(2008, 1, 1), True),
+                 (BMonthBegin(), datetime(2008, 3, 3), True)]
+
+        for offset, date, expected in tests:
+            assertOnOffset(offset, date, expected)
+
+    def test_offsets_compare_equal(self):
+        # root cause of #456
+        offset1 = BMonthBegin()
+        offset2 = BMonthBegin()
+        self.assertFalse(offset1 != offset2)
+
+
 class TestBMonthEnd(unittest.TestCase):
 
     def test_offset(self):
@@ -401,6 +461,45 @@ class TestBMonthEnd(unittest.TestCase):
         offset2 = BMonthEnd()
         self.assertFalse(offset1 != offset2)
 
+class TestMonthBegin(unittest.TestCase):
+
+    def test_offset(self):
+        tests = []
+
+        #NOTE: I'm not entirely happy with the logic here for Begin -ss
+        #see thread 'offset conventions' on the ML
+        tests.append((MonthBegin(),
+                     {datetime(2008, 1, 31): datetime(2008, 2, 1),
+                      datetime(2008, 2, 1): datetime(2008, 3, 1),
+                      datetime(2006, 12, 31): datetime(2007, 1, 1),
+                      datetime(2006, 12, 1): datetime(2007, 1, 1),
+                      datetime(2007, 1, 31): datetime(2007, 2, 1)}))
+
+        tests.append((MonthBegin(0),
+                      {datetime(2008, 1, 31): datetime(2008, 2, 1),
+                       datetime(2008, 1, 1): datetime(2008, 1, 1),
+                       datetime(2006, 12, 3): datetime(2007, 1, 1),
+                       datetime(2007, 1, 31): datetime(2007, 2, 1)}))
+
+        tests.append((MonthBegin(2),
+                     {datetime(2008, 2, 29): datetime(2008, 4, 1),
+                      datetime(2008, 1, 31): datetime(2008, 3, 1),
+                      datetime(2006, 12, 31): datetime(2007, 2, 1),
+                      datetime(2007, 12, 28): datetime(2008, 2, 1),
+                      datetime(2007, 1, 1): datetime(2007, 3, 1),
+                      datetime(2006, 11, 1): datetime(2007, 1, 1)}))
+
+        tests.append((MonthBegin(-1),
+                     {datetime(2007, 1, 1): datetime(2006, 12, 1),
+                      datetime(2008, 5, 31): datetime(2008, 5, 1),
+                      datetime(2008, 12, 31): datetime(2008, 12, 1),
+                      datetime(2006, 12, 29): datetime(2006, 12, 1),
+                      datetime(2006, 1, 2): datetime(2006, 1, 1)}))
+
+        for dateOffset, cases in tests:
+            for baseDate, expected in cases.iteritems():
+                assertEq(dateOffset, baseDate, expected)
+
 class TestMonthEnd(unittest.TestCase):
 
     def test_offset(self):
@@ -449,10 +548,91 @@ class TestMonthEnd(unittest.TestCase):
         for offset, date, expected in tests:
             assertOnOffset(offset, date, expected)
 
+class TestBQuarterBegin(unittest.TestCase):
+
+    def test_isAnchored(self):
+        self.assert_(BQuarterBegin(startingMonth=1).isAnchored())
+        self.assert_(BQuarterBegin().isAnchored())
+        self.assert_(not BQuarterBegin(2, startingMonth=1).isAnchored())
+
+    def test_offset(self):
+        tests = []
+
+        tests.append((BQuarterBegin(startingMonth=1),
+                      {datetime(2008, 1, 1): datetime(2008, 4, 1),
+                       datetime(2008, 1, 31): datetime(2008, 4, 1),
+                       datetime(2008, 2, 15): datetime(2008, 4, 1),
+                       datetime(2008, 2, 29): datetime(2008, 4, 1),
+                       datetime(2008, 3, 15): datetime(2008, 4, 1),
+                       datetime(2008, 3, 31): datetime(2008, 4, 1),
+                       datetime(2008, 4, 15): datetime(2008, 7, 1),
+                       datetime(2007, 3, 15): datetime(2007, 4, 2),
+                       datetime(2007, 2, 28): datetime(2007, 4, 2),
+                       datetime(2007, 1, 1): datetime(2007, 4, 2),
+                       datetime(2007, 4, 15): datetime(2007, 7, 2),
+                       datetime(2007, 7, 1): datetime(2007, 7, 2),
+                       datetime(2007, 4, 1): datetime(2007, 4, 2),
+                       datetime(2007, 4, 2): datetime(2007, 7, 2),
+                       datetime(2008, 4, 30): datetime(2008, 7, 1),}))
+
+        tests.append((BQuarterBegin(startingMonth=2),
+                      {datetime(2008, 1, 1): datetime(2008, 2, 1),
+                       datetime(2008, 1, 31): datetime(2008, 2, 1),
+                       datetime(2008, 1, 15): datetime(2008, 2, 1),
+                       datetime(2008, 2, 29): datetime(2008, 5, 1),
+                       datetime(2008, 3, 15): datetime(2008, 5, 1),
+                       datetime(2008, 3, 31): datetime(2008, 5, 1),
+                       datetime(2008, 4, 15): datetime(2008, 5, 1),
+                       datetime(2008, 8, 15): datetime(2008, 11, 3),
+                       datetime(2008, 9, 15): datetime(2008, 11, 3),
+                       datetime(2008, 11, 1): datetime(2008, 11, 3),
+                       datetime(2008, 4, 30): datetime(2008, 5, 1),}))
+
+        tests.append((BQuarterBegin(startingMonth=1, n=0),
+                      {datetime(2008, 1, 1): datetime(2008, 1, 1),
+                       datetime(2007, 12, 31): datetime(2008, 1, 1),
+                       datetime(2008, 2, 15): datetime(2008, 4, 1),
+                       datetime(2008, 2, 29): datetime(2008, 4, 1),
+                       datetime(2008, 1, 15): datetime(2008, 4, 1),
+                       datetime(2008, 2, 27): datetime(2008, 4, 1),
+                       datetime(2008, 3, 15): datetime(2008, 4, 1),
+                       datetime(2007, 4, 1): datetime(2007, 4, 2),
+                       datetime(2007, 4, 2): datetime(2007, 4, 2),
+                       datetime(2007, 7, 1): datetime(2007, 7, 2),
+                       datetime(2007, 4, 15): datetime(2007, 7, 2),
+                       datetime(2007, 7, 2): datetime(2007, 7, 2),}))
+
+        tests.append((BQuarterBegin(startingMonth=1, n=-1),
+                      {datetime(2008, 1, 1): datetime(2007, 10, 1),
+                       datetime(2008, 1, 31): datetime(2008, 1, 1),
+                       datetime(2008, 2, 15): datetime(2008, 1, 1),
+                       datetime(2008, 2, 29): datetime(2008, 1, 1),
+                       datetime(2008, 3, 15): datetime(2008, 1, 1),
+                       datetime(2008, 3, 31): datetime(2008, 1, 1),
+                       datetime(2008, 4, 15): datetime(2008, 4, 1),
+                       datetime(2007, 7, 3): datetime(2007, 7, 2),
+                       datetime(2007, 4, 3): datetime(2007, 4, 2),
+                       datetime(2007, 7, 2): datetime(2007, 4, 2),
+                       datetime(2008, 4, 1): datetime(2008, 1, 1),}))
+
+        tests.append((BQuarterBegin(startingMonth=1, n=2),
+                      {datetime(2008, 1, 1): datetime(2008, 7, 1),
+                       datetime(2008, 1, 15): datetime(2008, 7, 1),
+                       datetime(2008, 2, 29): datetime(2008, 7, 1),
+                       datetime(2008, 3, 15): datetime(2008, 7, 1),
+                       datetime(2007, 3, 31): datetime(2007, 7, 2),
+                       datetime(2007, 4, 15): datetime(2007, 10, 1),
+                       datetime(2008, 4, 30): datetime(2008, 10, 1),}))
+
+        for dateOffset, cases in tests:
+            for baseDate, expected in cases.iteritems():
+                assertEq(dateOffset, baseDate, expected)
+
+        # corner
+        offset = BQuarterBegin(n=-1, startingMonth=1)
+        self.assertEqual(datetime(2007, 4, 3) + offset, datetime(2007, 4, 2))
+
 class TestBQuarterEnd(unittest.TestCase):
-    def test_corner(self):
-        self.assertRaises(Exception, BQuarterEnd, startingMonth=4)
-        self.assertRaises(Exception, BQuarterEnd, startingMonth=-1)
 
     def test_isAnchored(self):
         self.assert_(BQuarterEnd(startingMonth=1).isAnchored())
@@ -555,10 +735,75 @@ class TestBQuarterEnd(unittest.TestCase):
         for offset, date, expected in tests:
             assertOnOffset(offset, date, expected)
 
+class TestQuarterBegin(unittest.TestCase):
+    def test_isAnchored(self):
+        self.assert_(QuarterBegin(startingMonth=1).isAnchored())
+        self.assert_(QuarterBegin().isAnchored())
+        self.assert_(not QuarterBegin(2, startingMonth=1).isAnchored())
+
+    def test_offset(self):
+        tests = []
+
+        tests.append((QuarterBegin(startingMonth=1),
+                      {datetime(2007, 12, 1): datetime(2008, 1, 1),
+                       datetime(2008, 1, 1): datetime(2008, 4, 1),
+                       datetime(2008, 2, 15): datetime(2008, 4, 1),
+                       datetime(2008, 2, 29): datetime(2008, 4, 1),
+                       datetime(2008, 3, 15): datetime(2008, 4, 1),
+                       datetime(2008, 3, 31): datetime(2008, 4, 1),
+                       datetime(2008, 4, 15): datetime(2008, 7, 1),
+                       datetime(2008, 4, 1): datetime(2008, 7, 1),}))
+
+        tests.append((QuarterBegin(startingMonth=2),
+                      {datetime(2008, 1, 1): datetime(2008, 2, 1),
+                       datetime(2008, 1, 31): datetime(2008, 2, 1),
+                       datetime(2008, 1, 15): datetime(2008, 2, 1),
+                       datetime(2008, 2, 29): datetime(2008, 5, 1),
+                       datetime(2008, 3, 15): datetime(2008, 5, 1),
+                       datetime(2008, 3, 31): datetime(2008, 5, 1),
+                       datetime(2008, 4, 15): datetime(2008, 5, 1),
+                       datetime(2008, 4, 30): datetime(2008, 5, 1),}))
+
+        tests.append((QuarterBegin(startingMonth=1, n=0),
+                      {datetime(2008, 1, 1): datetime(2008, 1, 1),
+                       datetime(2008, 12, 1): datetime(2009, 1, 1),
+                       datetime(2008, 1, 1): datetime(2008, 1, 1),
+                       datetime(2008, 2, 15): datetime(2008, 4, 1),
+                       datetime(2008, 2, 29): datetime(2008, 4, 1),
+                       datetime(2008, 3, 15): datetime(2008, 4, 1),
+                       datetime(2008, 3, 31): datetime(2008, 4, 1),
+                       datetime(2008, 4, 15): datetime(2008, 4, 1),
+                       datetime(2008, 4, 30): datetime(2008, 4, 1),}))
+
+        tests.append((QuarterBegin(startingMonth=1, n=-1),
+                      {datetime(2008, 1, 1): datetime(2007, 10, 1),
+                       datetime(2008, 1, 31): datetime(2008, 1, 1),
+                       datetime(2008, 2, 15): datetime(2008, 1, 1),
+                       datetime(2008, 2, 29): datetime(2008, 1, 1),
+                       datetime(2008, 3, 15): datetime(2008, 1, 1),
+                       datetime(2008, 3, 31): datetime(2008, 1, 1),
+                       datetime(2008, 4, 15): datetime(2008, 4, 1),
+                       datetime(2008, 4, 30): datetime(2008, 4, 1),
+                       datetime(2008, 7, 1): datetime(2008, 4, 1)}))
+
+        tests.append((QuarterBegin(startingMonth=1, n=2),
+                      {datetime(2008, 1, 1): datetime(2008, 7, 1),
+                       datetime(2008, 2, 15): datetime(2008, 7, 1),
+                       datetime(2008, 2, 29): datetime(2008, 7, 1),
+                       datetime(2008, 3, 15): datetime(2008, 7, 1),
+                       datetime(2008, 3, 31): datetime(2008, 7, 1),
+                       datetime(2008, 4, 15): datetime(2008, 10, 1),
+                       datetime(2008, 4, 1): datetime(2008, 10, 1),}))
+
+        for dateOffset, cases in tests:
+            for baseDate, expected in cases.iteritems():
+                assertEq(dateOffset, baseDate, expected)
+
+        # corner
+        offset = QuarterBegin(n=-1, startingMonth=1)
+        self.assertEqual(datetime(2010, 2, 1) + offset, datetime(2010, 1, 1))
+
 class TestQuarterEnd(unittest.TestCase):
-    def test_corner(self):
-        self.assertRaises(Exception, QuarterEnd, startingMonth=4)
-        self.assertRaises(Exception, QuarterEnd, startingMonth=-1)
 
     def test_isAnchored(self):
         self.assert_(QuarterEnd(startingMonth=1).isAnchored())
@@ -665,6 +910,46 @@ class TestQuarterEnd(unittest.TestCase):
         for offset, date, expected in tests:
             assertOnOffset(offset, date, expected)
 
+class TestBYearBegin(unittest.TestCase):
+    def test_offset(self):
+        tests = []
+
+        tests.append((BYearBegin(),
+            {datetime(2008, 1, 1): datetime(2009, 1, 1),
+             datetime(2008, 6, 30): datetime(2009, 1, 1),
+             datetime(2008, 12, 31): datetime(2009, 1, 1),
+             datetime(2011, 1, 1) : datetime(2011, 1, 3),
+             datetime(2011, 1, 3) : datetime(2012, 1, 2),
+             datetime(2005, 12, 30) : datetime(2006, 1, 2),
+             datetime(2005, 12, 31) : datetime(2006, 1, 2)
+             }
+            ))
+
+        tests.append((BYearBegin(0),
+                      {datetime(2008, 1, 1): datetime(2008, 1, 1),
+                       datetime(2008, 6, 30): datetime(2009, 1, 1),
+                       datetime(2008, 12, 31): datetime(2009, 1, 1),
+                       datetime(2005, 12, 30): datetime(2006, 1, 2),
+                       datetime(2005, 12, 31): datetime(2006, 1, 2),}))
+
+        tests.append((BYearBegin(-1),
+                      {datetime(2007, 1, 1): datetime(2006, 1, 2),
+                       datetime(2009, 1, 4): datetime(2009, 1, 1),
+                       datetime(2009, 1, 1): datetime(2008, 1, 1),
+                       datetime(2008, 6, 30): datetime(2008, 1, 1),
+                       datetime(2008, 12, 31): datetime(2008, 1, 1),
+                       datetime(2006, 12, 29): datetime(2006, 1, 2),
+                       datetime(2006, 12, 30): datetime(2006, 1, 2),
+                       datetime(2006, 1, 1): datetime(2005, 1, 3),}))
+
+        tests.append((BYearBegin(-2),
+                      {datetime(2007, 1, 1): datetime(2005, 1, 3),
+                       datetime(2007, 6, 30): datetime(2006, 1, 2),
+                       datetime(2008, 12, 31): datetime(2007, 1, 1),}))
+
+        for dateOffset, cases in tests:
+            for baseDate, expected in cases.iteritems():
+                assertEq(dateOffset, baseDate, expected)
 
 
 class TestYearBegin(unittest.TestCase):
@@ -853,7 +1138,12 @@ class TestYearEnd(unittest.TestCase):
 
 def assertEq(dateOffset, baseDate, expected):
     actual = dateOffset + baseDate
-    assert actual == expected
+    try:
+        assert actual == expected
+    except AssertionError as err:
+        raise AssertionError("\nExpected: %s\nActual: %s\nFor Offset: %s)"
+                             "\nAt Date: %s"%
+                (expected, actual, dateOffset, baseDate))
 
 def test_Hour():
     assertEq(Hour(), datetime(2010, 1, 1), datetime(2010, 1, 1, 1))

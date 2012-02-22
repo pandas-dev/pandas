@@ -17,7 +17,7 @@ except ImportError: # pragma: no cover
     print 'Please install python-dateutil via easy_install or some method!'
     raise # otherwise a 2nd import won't show the message
 
-import calendar
+import calendar #NOTE: replace with _tseries.monthrange
 
 #-------------------------------------------------------------------------------
 # Miscellaneous date functions
@@ -50,6 +50,19 @@ def to_datetime(arg):
 
 def normalize_date(dt):
     return datetime(dt.year, dt.month, dt.day)
+
+def _get_firstbday(wkday):
+    """
+    wkday is the result of calendar.monthrange(year, month)
+
+    If it's a saturday or sunday, increment first business day to reflect this
+    """
+    firstBDay = 1
+    if wkday == 5: # on Saturday
+        firstBDay = 3
+    elif wkday == 6: # on Sunday
+        firstBDay = 2
+    return firstBDay
 
 #-------------------------------------------------------------------------------
 # DateOffset
@@ -315,6 +328,25 @@ class MonthEnd(DateOffset, CacheableOffset):
                                                    someDate.month)
         return someDate.day == days_in_month
 
+class MonthBegin(DateOffset, CacheableOffset):
+    """DateOffset of one month at beginning"""
+
+    _normalizeFirst = True
+
+    def apply(self, other):
+        n = self.n
+
+        if other.day > 1 and n<=0: #then roll forward if n<=0
+            n =+ 1
+
+        other = other + lib.Delta(months=n, day=1)
+        return other
+
+    @classmethod
+    def onOffset(cls, someDate):
+        firstDay, _ = calendar.monthrange(someDate.year, someDate.month)
+        return someDate.day == (firstDay + 1)
+
 class BMonthEnd(DateOffset, CacheableOffset):
     """DateOffset increments between business EOM dates"""
     _outputName = 'BusinessMonthEnd'
@@ -338,6 +370,27 @@ class BMonthEnd(DateOffset, CacheableOffset):
         if other.weekday() > 4:
             other = other - BDay()
         return other
+
+class BMonthBegin(DateOffset, CacheableOffset):
+    """DateOffset of one business month at beginning"""
+
+    _normalizeFirst = True
+
+    def apply(self, other):
+        n = self.n
+
+        wkday, _ = calendar.monthrange(other.year, other.month)
+        firstBDay = _get_firstbday(wkday)
+
+        if other.day > firstBDay and n<=0:
+            # as if rolled forward already
+            n += 1
+
+        other = other + lib.Delta(months=n)
+        wkday, _ = calendar.monthrange(other.year, other.month)
+        firstBDay = _get_firstbday(wkday)
+        result = datetime(other.year, other.month, firstBDay)
+        return result
 
 
 class Week(DateOffset, CacheableOffset):
@@ -473,10 +526,6 @@ class BQuarterEnd(DateOffset, CacheableOffset):
         self.n = n
         self.startingMonth = kwds.get('startingMonth', 3)
 
-        if self.startingMonth < 1 or self.startingMonth > 3:
-            raise Exception('Start month must be 1<=day<=3, got %d'
-                            % self.startingMonth)
-
         self.offset = BMonthEnd(3)
         self.kwds = kwds
 
@@ -509,6 +558,52 @@ class BQuarterEnd(DateOffset, CacheableOffset):
         modMonth = (someDate.month - self.startingMonth) % 3
         return BMonthEnd().onOffset(someDate) and modMonth == 0
 
+class BQuarterBegin(DateOffset, CacheableOffset):
+    _outputName = "BusinessQuarterBegin"
+    _normalizeFirst = True
+
+    def __init__(self, n=1, **kwds):
+        self.n = n
+        self.startingMonth = kwds.get('startingMonth', 3)
+
+        self.offset = BMonthBegin(3)
+        self.kwds = kwds
+
+    def isAnchored(self):
+        return (self.n == 1 and self.startingMonth is not None)
+
+    def apply(self, other):
+        n = self.n
+
+        if self._normalizeFirst:
+            other = normalize_date(other)
+
+        wkday, _ = calendar.monthrange(other.year, other.month)
+
+        firstBDay = _get_firstbday(wkday)
+
+        monthsSince = (other.month - self.startingMonth) % 3
+        if monthsSince == 3: # on offset
+            monthsSince = 0
+
+        if n <= 0 and monthsSince != 0: # make sure to roll forward so negate
+            monthsSince = monthsSince - 3
+
+        # roll forward if on same month later than first bday
+        if n <= 0 and (monthsSince == 0 and other.day > firstBDay):
+            n = n + 1
+        # pretend to roll back if on same month but before firstbday
+        elif n > 0 and (monthsSince == 0 and other.day < firstBDay):
+            n = n - 1
+
+        # get the first bday for result
+        other = other + lib.Delta(months=3*n - monthsSince)
+        wkday, _ = calendar.monthrange(other.year, other.month)
+        firstBDay = _get_firstbday(wkday)
+        result = datetime(other.year, other.month, firstBDay)
+        return result
+
+
 class QuarterEnd(DateOffset, CacheableOffset):
     """DateOffset increments between business Quarter dates
     startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
@@ -521,10 +616,6 @@ class QuarterEnd(DateOffset, CacheableOffset):
     def __init__(self, n=1, **kwds):
         self.n = n
         self.startingMonth = kwds.get('startingMonth', 3)
-
-        if self.startingMonth < 1 or self.startingMonth > 3:
-            raise Exception('Start month must be 1<=day<=3, got %d'
-                            % self.startingMonth)
 
         self.offset = MonthEnd(3)
         self.kwds = kwds
@@ -551,6 +642,42 @@ class QuarterEnd(DateOffset, CacheableOffset):
     def onOffset(self, someDate):
         modMonth = (someDate.month - self.startingMonth) % 3
         return MonthEnd().onOffset(someDate) and modMonth == 0
+
+class QuarterBegin(DateOffset, CacheableOffset):
+    _outputName = 'QuarterBegin'
+    _normalizeFirst = True
+
+    def __init__(self, n=1, **kwds):
+        self.n = n
+        self.startingMonth = kwds.get('startingMonth', 3)
+
+        self.offset = MonthBegin(3)
+        self.kwds = kwds
+
+    def isAnchored(self):
+        return (self.n == 1 and self.startingMonth is not None)
+
+    def apply(self, other):
+        n = self.n
+
+        wkday, days_in_month = calendar.monthrange(other.year, other.month)
+
+        monthsSince = (other.month - self.startingMonth) % 3
+
+        if monthsSince == 3: # on an offset
+            monthsSince = 0
+
+        if n <= 0 and monthsSince != 0:
+            # make sure you roll forward, so negate
+            monthsSince = monthsSince - 3
+
+        if n < 0 and (monthsSince == 0 and other.day > 1):
+            # after start, so come back an extra period as if rolled forward
+            n = n + 1
+
+        other = other + lib.Delta(months=3*n - monthsSince, day=1)
+        return other
+
 
 class BYearEnd(DateOffset, CacheableOffset):
     """DateOffset increments between business EOM dates"""
@@ -595,9 +722,59 @@ class BYearEnd(DateOffset, CacheableOffset):
 
         return result
 
+class BYearBegin(DateOffset, CacheableOffset):
+    """DateOffset increments between business year begin dates"""
+    _outputName = 'BusinessYearBegin'
+    _normalizeFirst = True
+
+    def __init__(self, n=1, **kwds):
+        self.month = kwds.get('month', 1)
+
+        if self.month < 1 or self.month > 12:
+            raise Exception('Month must go from 1 to 12')
+
+        DateOffset.__init__(self, n=n, **kwds)
+
+    def apply(self, other):
+        n = self.n
+
+        if self._normalizeFirst:
+            other = normalize_date(other)
+
+        wkday, days_in_month = calendar.monthrange(other.year, self.month)
+
+        firstBDay = _get_firstbday(wkday)
+
+        years = n
+
+
+        if n > 0: # roll back first for positive n
+            if (other.month < self.month or
+                (other.month == self.month and other.day < firstBDay)):
+                years -= 1
+        elif n <= 0: # roll forward
+            if (other.month > self.month or
+                (other.month == self.month and other.day > firstBDay)):
+                years += 1
+
+        # set first bday for result
+        other = other + lib.Delta(years = years)
+        wkday, days_in_month = calendar.monthrange(other.year, self.month)
+        firstBDay = _get_firstbday(wkday)
+        result = datetime(other.year, self.month, firstBDay)
+        return result
+
 class YearEnd(DateOffset, CacheableOffset):
     """DateOffset increments between calendar year ends"""
     _normalizeFirst = True
+
+    def __init__(self, n=1, **kwds):
+        self.month = kwds.get('month', 12)
+
+        if self.month < 1 or self.month > 12:
+            raise Exception('Month must go from 1 to 12')
+
+        DateOffset.__init__(self, n=n, **kwds)
 
     def apply(self, other):
         n = self.n
@@ -715,13 +892,164 @@ _offsetMap = {
     "A@DEC"    : BYearEnd()
 }
 
+_newoffsetMap = {
+       # Annual - Calendar
+       "A@JAN" : YearEnd(month=1),
+       "A@FEB" : YearEnd(month=2),
+       "A@MAR" : YearEnd(month=3),
+       "A@APR" : YearEnd(month=4),
+       "A@MAY" : YearEnd(month=5),
+       "A@JUN" : YearEnd(month=6),
+       "A@JUL" : YearEnd(month=7),
+       "A@AUG" : YearEnd(month=8),
+       "A@SEP" : YearEnd(month=9),
+       "A@OCT" : YearEnd(month=10),
+       "A@NOV" : YearEnd(month=11),
+       "A@DEC" : YearEnd(month=12),
+       "A"     : YearEnd(month=12),
+       # Annual - Calendar (start)
+       "AS@JAN" : YearBegin(month=1),
+       "AS"     : YearBegin(month=1),
+       "AS@FEB" : YearBegin(month=2),
+       "AS@MAR" : YearBegin(month=3),
+       "AS@APR" : YearBegin(month=4),
+       "AS@MAY" : YearBegin(month=5),
+       "AS@JUN" : YearBegin(month=6),
+       "AS@JUL" : YearBegin(month=7),
+       "AS@AUG" : YearBegin(month=8),
+       "AS@SEP" : YearBegin(month=9),
+       "AS@OCT" : YearBegin(month=10),
+       "AS@NOV" : YearBegin(month=11),
+       "AS@DEC" : YearBegin(month=12),
+       # Annual - Business
+       "BA@JAN" : BYearEnd(month=1),
+       "BA@FEB" : BYearEnd(month=2),
+       "BA@MAR" : BYearEnd(month=3),
+       "BA@APR" : BYearEnd(month=4),
+       "BA@MAY" : BYearEnd(month=5),
+       "BA@JUN" : BYearEnd(month=6),
+       "BA@JUL" : BYearEnd(month=7),
+       "BA@AUG" : BYearEnd(month=8),
+       "BA@SEP" : BYearEnd(month=9),
+       "BA@OCT" : BYearEnd(month=10),
+       "BA@NOV" : BYearEnd(month=11),
+       "BA@DEC" : BYearEnd(month=12),
+       "BA"     : BYearEnd(month=12),
+       # Annual - Business (Start)
+       "BAS@JAN" : BYearBegin(month=1),
+       "BAS"     : BYearBegin(month=1),
+       "BAS@FEB" : BYearBegin(month=2),
+       "BAS@MAR" : BYearBegin(month=3),
+       "BAS@APR" : BYearBegin(month=4),
+       "BAS@MAY" : BYearBegin(month=5),
+       "BAS@JUN" : BYearBegin(month=6),
+       "BAS@JUL" : BYearBegin(month=7),
+       "BAS@AUG" : BYearBegin(month=8),
+       "BAS@SEP" : BYearBegin(month=9),
+       "BAS@OCT" : BYearBegin(month=10),
+       "BAS@NOV" : BYearBegin(month=11),
+       "BAS@DEC" : BYearBegin(month=12),
+       # Quarterly - Calendar
+       "Q@JAN" : QuarterEnd(startingMonth=1),
+       "Q@FEB" : QuarterEnd(startingMonth=2),
+       "Q@MAR" : QuarterEnd(startingMonth=3),
+       "Q"     : QuarterEnd(startingMonth=3),
+       "Q@APR" : QuarterEnd(startingMonth=4),
+       "Q@MAY" : QuarterEnd(startingMonth=5),
+       "Q@JUN" : QuarterEnd(startingMonth=6),
+       "Q@JUL" : QuarterEnd(startingMonth=7),
+       "Q@AUG" : QuarterEnd(startingMonth=8),
+       "Q@SEP" : QuarterEnd(startingMonth=9),
+       "Q@OCT" : QuarterEnd(startingMonth=10),
+       "Q@NOV" : QuarterEnd(startingMonth=11),
+       "Q@DEC" : QuarterEnd(startingMonth=12),
+       # Quarterly - Calendar (Start)
+       "QS@JAN" : QuarterBegin(startingMonth=1),
+       "QS"     : QuarterBegin(startingMonth=1),
+       "QS@FEB" : QuarterBegin(startingMonth=2),
+       "QS@MAR" : QuarterBegin(startingMonth=3),
+       "QS@APR" : QuarterBegin(startingMonth=4),
+       "QS@MAY" : QuarterBegin(startingMonth=5),
+       "QS@JUN" : QuarterBegin(startingMonth=6),
+       "QS@JUL" : QuarterBegin(startingMonth=7),
+       "QS@AUG" : QuarterBegin(startingMonth=8),
+       "QS@SEP" : QuarterBegin(startingMonth=9),
+       "QS@OCT" : QuarterBegin(startingMonth=10),
+       "QS@NOV" : QuarterBegin(startingMonth=11),
+       "QS@DEC" : QuarterBegin(startingMonth=12),
+       # Quarterly - Business
+       "BQ@JAN" : BQuarterEnd(startingMonth=1),
+       "BQ@FEB" : BQuarterEnd(startingMonth=2),
+       "BQ@MAR" : BQuarterEnd(startingMonth=3),
+       "BQ"     : BQuarterEnd(startingMonth=3),
+       "BQ@APR" : BQuarterEnd(startingMonth=4),
+       "BQ@MAY" : BQuarterEnd(startingMonth=5),
+       "BQ@JUN" : BQuarterEnd(startingMonth=6),
+       "BQ@JUL" : BQuarterEnd(startingMonth=7),
+       "BQ@AUG" : BQuarterEnd(startingMonth=8),
+       "BQ@SEP" : BQuarterEnd(startingMonth=9),
+       "BQ@OCT" : BQuarterEnd(startingMonth=10),
+       "BQ@NOV" : BQuarterEnd(startingMonth=11),
+       "BQ@DEC" : BQuarterEnd(startingMonth=12),
+       # Quarterly - Business (Start)
+       "BQS@JAN" : BQuarterBegin(startingMonth=1),
+       "BQS"     : BQuarterBegin(startingMonth=1),
+       "BQS@FEB" : BQuarterBegin(startingMonth=2),
+       "BQS@MAR" : BQuarterBegin(startingMonth=3),
+       "BQS@APR" : BQuarterBegin(startingMonth=4),
+       "BQS@MAY" : BQuarterBegin(startingMonth=5),
+       "BQS@JUN" : BQuarterBegin(startingMonth=6),
+       "BQS@JUL" : BQuarterBegin(startingMonth=7),
+       "BQS@AUG" : BQuarterBegin(startingMonth=8),
+       "BQS@SEP" : BQuarterBegin(startingMonth=9),
+       "BQS@OCT" : BQuarterBegin(startingMonth=10),
+       "BQS@NOV" : BQuarterBegin(startingMonth=11),
+       "BQS@DEC" : BQuarterBegin(startingMonth=12),
+       # Monthly - Calendar
+       "M"      : MonthEnd(),
+       "EOM"    : MonthEnd(),
+       "MS"     : MonthBegin(),
+       "SOM"    : MonthBegin(),
+       # Monthly - Business
+       "BM"     : BMonthEnd(),
+       "BEOM"   : BMonthEnd(),
+       "BMS"    : BMonthBegin(),
+       "BSOM"   : BMonthBegin(),
+       # Weekly
+       "W@MON" : Week(weekday=0),
+       "WS"    : Week(weekday=0),
+       "BWS"   : Week(weekday=0),
+       "W@TUE" : Week(weekday=1),
+       "W@WED" : Week(weekday=2),
+       "W@THU" : Week(weekday=3),
+       "W@FRI" : Week(weekday=4),
+       "BW"    : Week(weekday=4),
+       "W@SAT" : Week(weekday=5),
+       "W@SUN" : Week(weekday=6),
+       "W"     : Week(weekday=6),
+       "D"     : DateOffset(),
+       "B"     : BDay(),
+       "H"     : Hour(),
+       "Min"   : Minute(),
+       "S"     : Second(),
+       "U"     : None,
+       None    : None,
+        }
+
 
 for i, weekday in enumerate(['MON', 'TUE', 'WED', 'THU', 'FRI']):
     for iweek in xrange(4):
         _offsetMap['WOM@%d%s' % (iweek + 1, weekday)] = \
             WeekOfMonth(week=iweek, weekday=i)
+        #NOTE: don't delete. this is for new map
+        _newoffsetMap['WOM@%d%s' % (iweek + 1, weekday)] = \
+            WeekOfMonth(week=iweek, weekday=i)
 
 _offsetNames = dict([(v, k) for k, v in _offsetMap.iteritems()])
+
+#NOTE: the below doesn't make sense since the values aren't unique
+# could have lists for non-unique keys, but then variable output...
+_newoffsetNames = dict([(v,k) for k,v in _newoffsetMap.iteritems()])
 
 def inferTimeRule(index):
     if len(index) < 3:
