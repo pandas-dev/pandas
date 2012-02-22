@@ -59,6 +59,16 @@ class Timestamp(_Timestamp):
 
         return ts_base
 
+    def __setstate__(self, state):
+        self.value = state[0]
+        self.offset = state[1]
+        self.tzinfo = state[2]
+            
+    def __reduce__(self):
+        object_state = self.value, self.offset, self.tzinfo
+        return (Timestamp, object_state)
+
+
 # This is PITA. Because we inherit from datetime, which has very specific
 # construction requirements, we need to do object instantiation in python
 # (see Timestamp class above). This will serve as a C extension type that

@@ -1150,13 +1150,13 @@ class DatetimeIndex(Int64Index):
                                                periods=periods, offset=offset)
 
                 index = np.array(_dt_unbox_array(list(xdr)), dtype='M8[us]',
-                                copy=False)
+                                 copy=False)
 
             index = index.view(cls)
             index.name = name
             index.offset = offset
-            index.tzinfo = tzinfo
             index.freq = freq
+            index.tzinfo = tzinfo
 
             return index
 
@@ -1200,8 +1200,8 @@ class DatetimeIndex(Int64Index):
         subarr = subarr.view(cls)
         subarr.name = name
         subarr.offset = offset
-        subarr.tzinfo = tzinfo
         subarr.freq = freq
+        subarr.tzinfo = tzinfo
 
         return subarr
 
@@ -1281,7 +1281,7 @@ class DatetimeIndex(Int64Index):
     def __reduce__(self):
         """Necessary for making this object picklable"""
         object_state = list(np.ndarray.__reduce__(self))
-        subclass_state = self.name, self.offset, self.freq
+        subclass_state = self.name, self.offset, self.freq, self.tzinfo
         object_state[2] = (object_state[2], subclass_state)
         return tuple(object_state)
 
@@ -1289,10 +1289,11 @@ class DatetimeIndex(Int64Index):
         """Necessary for making this object picklable"""
         if len(state) == 2:
             nd_state, own_state = state
-            np.ndarray.__setstate__(self, nd_state)
             self.name = own_state[0]
             self.offset = own_state[1]
             self.freq = own_state[2]
+            self.tzinfo = own_state[3]
+            np.ndarray.__setstate__(self, nd_state)
         else:  # pragma: no cover
             np.ndarray.__setstate__(self, state)
 
@@ -1417,6 +1418,7 @@ class DatetimeIndex(Int64Index):
             return self.item()
 
         self.offset = getattr(obj, 'offset', None)
+        self.freq   = getattr(obj, 'freq', None)
         self.tzinfo = getattr(obj, 'tzinfo', None)
 
     def intersection(self, other):
@@ -1464,6 +1466,13 @@ class DatetimeIndex(Int64Index):
             else:
                 return _dt_box(val, tzinfo=self.tzinfo)
         else:
+            new_offset = self.offset
+            new_freq = self.freq
+            if (type(key) == slice and new_offset is not None
+                and key.step is not None):
+                new_offset = key.step * self.offset
+                new_freq = None
+
             if com._is_bool_indexer(key):
                 key = np.asarray(key)
 
@@ -1471,7 +1480,8 @@ class DatetimeIndex(Int64Index):
             if result.ndim > 1:
                 return result
 
-            return DatetimeIndex(result, name=self.name)
+            return DatetimeIndex(result, name=self.name, offset=new_offset,
+                                 freq=new_freq, tzinfo=self.tzinfo)
 
     # Try to run function on index first, and then on elements of index
     # Especially important for group-by functionality

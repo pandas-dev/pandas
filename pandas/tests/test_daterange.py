@@ -152,7 +152,6 @@ class TestDateRange(unittest.TestCase):
 
         the_union = left.union(right)
         self.assert_(isinstance(the_union, Index))
-        self.assert_(not isinstance(the_union, DateRange))
 
         # non-overlapping, no gap
         left = self.rng[:5]
@@ -168,7 +167,7 @@ class TestDateRange(unittest.TestCase):
         rng = DateRange(START, END, offset=datetools.bmonthEnd)
 
         the_union = self.rng.union(rng)
-        self.assert_(not isinstance(the_union, DateRange))
+        self.assert_(isinstance(the_union, DateRange))
 
     def test_outer_join(self):
         """ should behave just as union test"""
@@ -228,7 +227,7 @@ class TestDateRange(unittest.TestCase):
 
         # non-overlapping
         the_int = rng[:10].intersection(rng[10:])
-        expected = DateRange([])
+        expected = DatetimeIndex([])
         self.assert_(the_int.equals(expected))
 
     def test_intersection_bug(self):
