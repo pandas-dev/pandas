@@ -214,7 +214,6 @@ class TestDateRange(unittest.TestCase):
         self.assert_(the_union.equals(expected))
 
     def test_intersection(self):
-        import ipdb; ipdb.set_trace()
         rng = DateRange('1/1/2000', periods=50, offset=datetools.Minute())
         rng1 = rng[10:]
         rng2 = rng[:25]
