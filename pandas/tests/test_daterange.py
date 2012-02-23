@@ -561,18 +561,6 @@ class TestDatetimePyx(unittest.TestCase):
                     self.assert_(t == stack.pop())
                     self.assert_(t.weekday() == day)
 
-
-if tm.PERFORM_DATETIME64_TESTS:
-    class TestDatetime64Range(TestDateRange):
-        def setUp(self):
-            self.dt64_setting = tm._test_with_datetime64
-            tm._test_with_datetime64 = True
-            super(TestDatetime64Range, self).setUp()
-
-        def tearDown(self):
-            super(TestDatetime64Range, self).tearDown()
-            tm._test_with_datetime64 = self.dt64_setting
-
 def _skip_if_no_pytz():
     try:
         import pytz

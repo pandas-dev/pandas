@@ -4660,20 +4660,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         exp = Y['g'].sum()
         self.assert_(isnull(Y['g']['c']))
 
-if tm.PERFORM_DATETIME64_TESTS:
-    class TestDataFrameDatetime64(TestDataFrame):
-        '''
-        Same tests as for TestSeries, but force datetime64 usage"
-        '''
-        def setUp(self):
-            self.dt64_setting = tm._test_with_datetime64
-            tm._test_with_datetime64 = True
-            super(TestDataFrameDatetime64, self).setUp()
-
-        def tearDown(self):
-            super(TestDataFrameDatetime64, self).tearDown()
-            tm._test_with_datetime64 = self.dt64_setting
-
 if __name__ == '__main__':
     # unittest.main()
     import nose

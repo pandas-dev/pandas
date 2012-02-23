@@ -444,7 +444,6 @@ class Grouper(object):
             for name in groups:
                 inds = indices[name]
                 group = data.take(inds, axis=axis)
-
                 yield name, group
         else:
             # provide "flattened" iterator for multi-group setting

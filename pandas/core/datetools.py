@@ -34,6 +34,9 @@ def _dt_box_array(arr, offset=None, tzinfo=None):
     if arr is None:
         return arr
 
+    if not isinstance(arr, np.ndarray):
+        return arr
+
     boxfunc = lambda x: _dt_box(x, offset=offset, tzinfo=tzinfo)
     boxer = np.frompyfunc(boxfunc, 1, 1)
     return boxer(arr)

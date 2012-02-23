@@ -864,3 +864,38 @@ def ts_upsample_generic(ndarray[object] indices,
 
     return output
 
+
+def groupby_arrays(ndarray index, ndarray _labels):
+    cdef:
+        Py_ssize_t i, lab, cur, start, n = len(index)
+        ndarray[int32_t] labels
+        dict result = {}
+
+    if _labels.dtype == np.int32:
+        labels = _labels
+    else:
+        labels = _labels.astype(np.int32)
+
+    index = np.asarray(index)
+
+    # this is N log N. If this is a bottleneck may we worth fixing someday
+    indexer = labels.argsort(kind='mergesort')
+
+    labels = labels.take(indexer)
+    index = index.take(indexer)
+
+    if n == 0:
+        return result
+
+    start = 0
+    cur = labels[0]
+    for i in range(1, n):
+        lab = labels[i]
+
+        if lab != cur:
+            if lab != -1:
+                result[cur] = index[start:i]
+            start = i
+        cur = lab
+
+    return result

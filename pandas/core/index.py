@@ -994,7 +994,7 @@ class Int64Index(Index):
 # -------- some conversion wrapper functions
 
 def _as_i8(arg):
-    if isinstance(arg, np.ndarray):
+    if isinstance(arg, np.ndarray) and arg.dtype == np.datetime64:
         return arg.view('i8', type=np.ndarray)
     else:
         return arg
@@ -1009,7 +1009,7 @@ def _wrap_i8_function(f):
 def _wrap_dt_function(f):
     @staticmethod
     def wrapper(*args, **kwargs):
-        view_args = [_dt_box_array(arg) for arg in args]
+        view_args = [_dt_box_array(_as_i8(arg)) for arg in args]
         return f(*view_args, **kwargs)
     return wrapper
 
@@ -1090,9 +1090,9 @@ class DatetimeIndex(Int64Index):
     _map_indices   = _wrap_i8_function(lib.map_indices_int64)
     _pad           = _wrap_i8_function(lib.pad_int64)
     _backfill      = _wrap_i8_function(lib.backfill_int64)
+    _groupby       = lib.groupby_arrays # _wrap_i8_function(lib.groupby_int64)
 
     _arrmap        = _wrap_dt_function(lib.arrmap_object)
-    _groupby       = _wrap_dt_function(lib.groupby_object)
 
     __eq__ = _dt_index_cmp('__eq__')
     __ne__ = _dt_index_cmp('__ne__')
@@ -1257,8 +1257,6 @@ class DatetimeIndex(Int64Index):
         indexSlice.offset = offset
 
         return indexSlice
-
-    # TODO: fix repr
 
     def __repr__(self):
         if self.offset is not None:
@@ -1513,11 +1511,10 @@ class DatetimeIndex(Int64Index):
         return lib.fast_field_accessor(self.asi8, 'us')
 
     def __iter__(self):
-        asi8 = self.asi8
         if hasattr(self, 'offset') and self.offset is not None:
-            return iter(_dt_box_array(asi8, self.offset))
+            return iter(_dt_box_array(self.asi8, self.offset))
         else:
-            return iter(_dt_box_array(asi8))
+            return iter(_dt_box_array(self.asi8))
 
     def searchsorted(self, key, side='left'):
         if isinstance(key, np.ndarray):
@@ -1611,7 +1608,7 @@ class DatetimeIndex(Int64Index):
         -------
         normalized : DateRange
         """
-        new_dates = np.array([tz.normalize(x.replace(tzinfo=self.tzinfo)) 
+        new_dates = np.array([tz.normalize(x.replace(tzinfo=self.tzinfo))
                               for x in self])
         new_dates = new_dates.view(DatetimeIndex)
         new_dates.offset = self.offset

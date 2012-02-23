@@ -113,9 +113,7 @@ class TestIndex(unittest.TestCase):
     def test_comparators(self):
         index = self.dateIndex
         element = index[len(index) // 2]
-
-        if tm._test_with_datetime64:
-            element = _dt_unbox(element)
+        element = _dt_unbox(element)
 
         arr = np.array(index)
 
@@ -154,9 +152,7 @@ class TestIndex(unittest.TestCase):
     def test_getitem(self):
         arr = np.array(self.dateIndex)
         exp = self.dateIndex[5]
-
-        if tm._test_with_datetime64:
-            exp = _dt_unbox(exp)
+        exp = _dt_unbox(exp)
 
         self.assertEquals(exp, arr[5])
 
@@ -704,20 +700,6 @@ class TestInt64Index(unittest.TestCase):
         df = DataFrame(range(3), index=index)
         repr(s)
         repr(df)
-
-if tm.PERFORM_DATETIME64_TESTS:
-    class TestDatetime64Index(TestIndex):
-        '''
-        Same tests as for TestIndex, but force datetime64 usage"
-        '''
-        def setUp(self):
-            self.dt64_setting = tm._test_with_datetime64
-            tm._test_with_datetime64 = True
-            super(TestDatetime64Index, self).setUp()
-
-        def tearDown(self):
-            super(TestDatetime64Index, self).tearDown()
-            tm._test_with_datetime64 = self.dt64_setting
 
 class TestMultiIndex(unittest.TestCase):
 
@@ -1419,20 +1401,6 @@ class TestMultiIndex(unittest.TestCase):
                            labels=[[0, 0, 0, 0, 1, 1, 1],
                                    [0, 1, 2, 0, 0, 1, 2]])
         self.assert_(index.has_duplicates)
-
-if tm.PERFORM_DATETIME64_TESTS:
-    class TestDatetime64MultiIndex(TestMultiIndex):
-        '''
-        Same tests as for TestIndex, but force datetime64 usage"
-        '''
-        def setUp(self):
-            self.dt64_setting = tm._test_with_datetime64
-            tm._test_with_datetime64 = True
-            super(TestDatetime64MultiIndex, self).setUp()
-
-        def tearDown(self):
-            super(TestDatetime64MultiIndex, self).tearDown()
-            tm._test_with_datetime64 = self.dt64_setting
 
 class TestFactor(unittest.TestCase):
 

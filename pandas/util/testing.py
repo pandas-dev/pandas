@@ -34,12 +34,6 @@ Panel = panel.Panel
 N = 30
 K = 4
 
-# PERFORM_DATETIME64_TESTS additionally runs each of:
-#   test_(frame|panel|series|index|multiindex|daterange)
-# where date ranges and indices are composed of datetime64[us] dtype
-
-PERFORM_DATETIME64_TESTS = True
-
 def rands(n):
     choices = string.ascii_letters + string.digits
     return ''.join([random.choice(choices) for _ in xrange(n)])
@@ -207,16 +201,10 @@ def getMixedTypeDict():
 
     return index, data
 
-_test_with_datetime64 = False
-
 def makeDateIndex(k):
     dt = datetime(2000,1,1)
     dr = DateRange(dt, periods=k)
-    if _test_with_datetime64:
-        return DatetimeIndex(dr)
-    else:
-        dates = list(dr)
-        return Index(dates, dtype=object)
+    return DatetimeIndex(dr)
 
 def makeTimeSeries():
     return Series(randn(N), index=makeDateIndex(N))
