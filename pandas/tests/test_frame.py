@@ -2207,7 +2207,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(df[mask_a], df.ix[1:1,:])
         assert_frame_equal(df[-mask_a], df.ix[0:0,:])
 
-        import ipdb; ipdb.set_trace()
         mask_b = df.b == "foo"
         assert_frame_equal(df[mask_b], df.ix[0:0,:])
         assert_frame_equal(df[-mask_b], df.ix[1:1,:])
