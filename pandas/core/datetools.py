@@ -177,6 +177,10 @@ class DateOffset(object):
             self._offset = lib.Delta(**kwds)
         else:
             self._offset = timedelta(1)
+        if 'name' in kwds:
+            self.name = kwds['name']
+        else:
+            self.name = ''
 
     def apply(self, other):
         if len(self.kwds) > 0:
@@ -206,6 +210,9 @@ class DateOffset(object):
         return params
 
     def __repr__(self):
+        if hasattr(self, 'name') and len(self.name):
+            return self.name
+
         className = getattr(self, '_outputName', type(self).__name__)
         exclude = set(['n', 'inc'])
         attrs = []
@@ -1101,10 +1108,19 @@ for i, weekday in enumerate(['MON', 'TUE', 'WED', 'THU', 'FRI']):
         _newOffsetMap['WOM@%d%s' % (iweek + 1, weekday)] = \
             WeekOfMonth(week=iweek, weekday=i)
 
-_offsetNames = dict([(v, k) for k, v in _offsetMap.iteritems()])
+# for helping out with pretty-printing and name-lookups
 
-# NOTE: don't use the below for exact reverse-lookups b/c it's not 1-1
-_newOffsetNames = dict([(v,k) for k,v in _newOffsetMap.iteritems()])
+_offsetNames = {}
+for name, offset in _offsetMap.iteritems():
+    offset.name = name
+    _offsetNames[name] = offset
+
+_newOffsetNames = {}
+for name, offset in _newOffsetMap.iteritems():
+    if offset is None:
+        continue
+    offset.name = name
+    _newOffsetNames[name] = offset
 
 def inferTimeRule(index, _deprecated=True):
     if len(index) < 3:
