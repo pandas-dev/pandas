@@ -31,6 +31,8 @@ pandas 0.7.1
 
   - Add ``to_clipboard`` function to pandas namespace for writing objects to
     the system clipboard (#774)
+  - Add ``itertuples`` method to Dataframe for iterating through the rows of a
+    dataframe as tuples (#818)
 
 **Bug fixes**
 
@@ -38,6 +40,9 @@ pandas 0.7.1
     DataFrame (#790)
   - Appending length-0 DataFrame with new columns would not result in those new
     columns being part of the resulting concatenated DataFrame (#782)
+  - Fixed groupby corner case when passing dictionary grouper and as_index is
+    False (#819)
+  - Fixed bug whereby bool array sometimes had object dtype (#820)
 
 pandas 0.7.0
 ============

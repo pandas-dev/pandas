@@ -1928,6 +1928,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             exp = self.mixed_frame.xs(self.mixed_frame.index[i])
             assert_series_equal(v, exp)
 
+    def test_itertuples(self):
+        for i, tup in enumerate(self.frame.itertuples()):
+            s = Series(tup[1:])
+            s.name = tup[0]
+            expected = self.frame.ix[i,:].reset_index(drop=True)
+            assert_series_equal(s, expected)
+
     def test_len(self):
         self.assertEqual(len(self.frame), len(self.frame.index))
 

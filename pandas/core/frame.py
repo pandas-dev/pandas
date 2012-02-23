@@ -25,7 +25,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
-                                _default_index, _stringify, csv_encode)
+                                _default_index, _stringify)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, NULL_INDEX, _ensure_index
@@ -496,6 +496,15 @@ class DataFrame(NDFrame):
             s.index = columns
             s.name = k
             yield k, s
+
+    def itertuples(self):
+        """
+        Iterate over rows of DataFrame as tuples, with index value
+        as first element of the tuple
+        """
+        series = [self[col] for col in self.columns]
+        series.insert(0, self.index)
+        return izip(*series)
 
     iterkv = iteritems
     if py3compat.PY3:  # pragma: no cover

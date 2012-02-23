@@ -759,6 +759,19 @@ For instance, a contrived way to transpose the dataframe would be:
    df2_t = DataFrame(dict((idx,values) for idx, values in df2.iterrows()))
    print df2_t
 
+itertuples
+~~~~~~~~~~
+
+This method will return an iterator yielding a tuple for each row in the
+DataFrame. The first element of the tuple will be the row's corresponding index
+value, while the remaining values are the row values proper.
+
+For instance,
+
+.. ipython:: python
+
+   for r in df2.itertuples(): print r
+
 .. _basics.sorting:
 
 Sorting by index and value
