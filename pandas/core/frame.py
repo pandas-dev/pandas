@@ -515,7 +515,7 @@ class DataFrame(NDFrame):
     add = _arith_method(operator.add, 'add')
     mul = _arith_method(operator.mul, 'multiply')
     sub = _arith_method(operator.sub, 'subtract')
-    div = _arith_method(lambda x, y: x / y, 'divide')
+    div = divide = _arith_method(lambda x, y: x / y, 'divide')
 
     radd = _arith_method(_radd_compat, 'radd')
     rmul = _arith_method(operator.mul, 'rmultiply')
@@ -4098,8 +4098,18 @@ def _list_of_series_to_sdict(data, columns):
     if columns is None:
         columns = _get_combined_index([s.index for s in data])
 
-    values = np.vstack([s.reindex(columns, copy=False).values
-                        for s in data])
+    indexer_cache = {}
+
+    aligned_values = []
+    for s in data:
+        index = s.index
+        if id(index) in indexer_cache:
+            indexer = indexer_cache[id(index)]
+        else:
+            indexer = indexer_cache[id(index)] = index.get_indexer(columns)
+        aligned_values.append(com.take_1d(s.values, indexer))
+
+    values = np.vstack(aligned_values)
 
     if values.dtype == np.object_:
         content = list(values.T)
