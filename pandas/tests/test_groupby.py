@@ -1120,7 +1120,7 @@ class TestGroupBy(unittest.TestCase):
         sorted_columns, _ = columns.sortlevel(0)
         df['A', 'foo'] = 'bar'
         result = df.groupby(level=0).mean()
-        self.assert_(result.columns.equals(sorted_columns))
+        self.assert_(result.columns.equals(df.columns[:-1]))
 
     def test_pass_args_kwargs(self):
         from scipy.stats import scoreatpercentile
@@ -1398,6 +1398,18 @@ class TestGroupBy(unittest.TestCase):
         result = df.groupby(labels, axis=1).sum().values
         expected = numpy_groupby(data, labels, axis=1)
         assert_almost_equal(result, expected)
+
+    def test_groupby_2d_malformed(self):
+        d = DataFrame(index=range(2))
+        d['group'] = ['g1', 'g2']
+        d['zeros'] = [0, 0]
+        d['ones'] = [1, 1]
+        d['label'] = ['l1', 'l2']
+        tmp = d.groupby(['group']).mean()
+        res_values = np.array([[0., 1.], [0., 1.]])
+        self.assert_(np.array_equal(tmp.columns, ['zeros', 'ones']))
+        self.assert_(np.array_equal(tmp.values, res_values))
+
 
 def test_decons():
     from pandas.core.groupby import decons_group_index, get_group_index
