@@ -399,9 +399,9 @@ def maybe_convert_bool(ndarray[object] arr):
     for i from 0 <= i < n:
         val = arr[i]
 
-        if val == 'True':
+        if val == 'True' or type(val) == bool and val:
             result[i] = 1
-        elif val == 'False':
+        elif val == 'False' or type(val) == bool and not val:
             result[i] = 0
         else:
             return arr

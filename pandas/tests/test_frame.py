@@ -2201,6 +2201,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         test_comp(operator.ge)
         test_comp(operator.le)
 
+    def test_string_comparison(self):
+        df = DataFrame([{ "a" : 1, "b" : "foo" }, {"a" : 2, "b" : "bar"}])
+        mask_a = df.a > 1
+        assert_frame_equal(df[mask_a], df.ix[1:1,:])
+        assert_frame_equal(df[-mask_a], df.ix[0:0,:])
+
+        import ipdb; ipdb.set_trace()
+        mask_b = df.b == "foo"
+        assert_frame_equal(df[mask_b], df.ix[0:0,:])
+        assert_frame_equal(df[-mask_b], df.ix[1:1,:])
+
     def test_to_csv_from_csv(self):
         path = '__tmp__'
 
@@ -4659,6 +4670,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = Y.sum()
         exp = Y['g'].sum()
         self.assert_(isnull(Y['g']['c']))
+
 
 if __name__ == '__main__':
     # unittest.main()
