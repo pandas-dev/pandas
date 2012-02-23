@@ -1822,9 +1822,11 @@ class DataFrame(NDFrame):
 
         if index is not None:
             frame = frame._reindex_index(index, method, copy, level)
+            frame.index.name = self.index.name
 
         if columns is not None:
             frame = frame._reindex_columns(columns, copy, level)
+            frame.columns.name = self.columns.name
 
         return frame
 
@@ -1866,9 +1868,13 @@ class DataFrame(NDFrame):
         """
         self._consolidate_inplace()
         if axis == 0:
-            return self._reindex_index(labels, method, copy, level)
+            df = self._reindex_index(labels, method, copy, level)
+            df.index.name = self.index.name
+            return df
         elif axis == 1:
-            return self._reindex_columns(labels, copy, level)
+            df = self._reindex_columns(labels, copy, level)
+            df.columns.name = self.columns.name
+            return df
         else:  # pragma: no cover
             raise ValueError('Must specify axis=0 or 1')
 

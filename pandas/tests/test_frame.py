@@ -3100,6 +3100,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         newFrame = self.frame.reindex(list(self.ts1.index))
         self.assert_(newFrame.index.equals(self.ts1.index))
 
+    def test_reindex_name_remains(self):
+        s = Series(random.rand(10))
+        df = DataFrame(s, index=np.arange(len(s)))
+        df.index.name = 'iname'
+        df = df.reindex(s.index)
+        self.assert_(df.index.name == 'iname')
+
+        s = Series(random.rand(10))
+        df = DataFrame(s.T, index=np.arange(len(s)))
+        df.columns.name = 'iname'
+        df = df.reindex(columns=s.index)
+        self.assert_(df.columns.name == 'iname')
+
     def test_reindex_int(self):
         smaller = self.intframe.reindex(self.intframe.index[::2])
 
