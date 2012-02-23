@@ -369,6 +369,8 @@ copy : boolean, default False
 
     def __getitem__(self, key):
         try:
+            if type(key) == tuple and len(key)==1:
+                key = key[0]
             return self.index.get_value(self, key)
         except InvalidIndexError:
             pass

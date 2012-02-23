@@ -43,6 +43,7 @@ pandas 0.7.1
   - Fixed groupby corner case when passing dictionary grouper and as_index is
     False (#819)
   - Fixed bug whereby bool array sometimes had object dtype (#820)
+  - Fix exception thrown on np.diff (#816)
 
 pandas 0.7.0
 ============

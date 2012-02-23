@@ -911,6 +911,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         self.assert_(np.array_equal(result, expected))
 
+    def test_npdiff(self):
+        s = Series(np.arange(5))
+        r = np.diff(s)
+        assert_series_equal(Series([nan, 0, 0, 0, nan]), r)
+
     def _check_stat_op(self, name, alternate, check_objects=False):
         from pandas import DateRange
         import pandas.core.nanops as nanops
