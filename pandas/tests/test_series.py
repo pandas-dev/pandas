@@ -1783,10 +1783,18 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(result, self.ts * 2)
 
     def test_align(self):
-        def _check_align(a, b, how='left'):
-            aa, ab = a.align(b, join=how)
-
+        def _check_align(a, b, how='left', fill=None):
+            aa, ab = a.align(b, join=how, fill_value=fill)
+                        
             join_index = a.index.join(b.index, how=how)
+            if fill is not None:
+                diff_a = aa.index.diff(join_index)                
+                diff_b = ab.index.diff(join_index)
+                if len(diff_a) > 0:
+                    self.assert_((aa.reindex(diff_a) == fill).all())
+                if len(diff_b) > 0:
+                    self.assert_((ab.reindex(diff_b) == fill).all())
+
             ea = a.reindex(join_index)
             eb = b.reindex(join_index)
 
@@ -1795,6 +1803,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         for kind in JOIN_TYPES:
             _check_align(self.ts[2:], self.ts[:-5])
+            _check_align(self.ts[2:], self.ts[:-5], -1)
 
             # empty left
             _check_align(self.ts[:0], self.ts[:-5])

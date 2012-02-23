@@ -3190,8 +3190,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # axis = 0
         other = self.frame.ix[:-5, :3]
-        af, bf = self.frame.align(other, axis=0)
-        self.assert_(bf.columns.equals(other.columns))
+        af, bf = self.frame.align(other, axis=0, fill_value=-1)
+        self.assert_(bf.columns.equals(other.columns))        
+        #test fill value
+        join_idx = self.frame.index.join(other.index)
+        diff_a = self.frame.index.diff(join_idx)
+        diff_b = other.index.diff(join_idx)
+        diff_a_vals = af.reindex(diff_a).values
+        diff_b_vals = bf.reindex(diff_b).values
+        self.assert_((diff_a_vals == -1).all())
 
         af, bf = self.frame.align(other, join='right', axis=0)
         self.assert_(bf.columns.equals(other.columns))
@@ -3203,6 +3210,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         af, bf = self.frame.align(other, axis=1)
         self.assert_(bf.columns.equals(self.frame.columns))
         self.assert_(bf.index.equals(other.index))
+
+        #test fill value
+        join_idx = self.frame.index.join(other.index)
+        diff_a = self.frame.index.diff(join_idx)
+        diff_b = other.index.diff(join_idx)
+        diff_a_vals = af.reindex(diff_a).values
+        diff_b_vals = bf.reindex(diff_b).values
+        self.assert_((diff_a_vals == -1).all())
 
         af, bf = self.frame.align(other, join='inner', axis=1)
         self.assert_(bf.columns.equals(other.columns))
