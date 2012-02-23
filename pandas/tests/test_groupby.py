@@ -686,6 +686,12 @@ class TestGroupBy(unittest.TestCase):
         expected2['D'] = grouped.sum()['D']
         assert_frame_equal(result2, expected2)
 
+        grouped = self.df.groupby('A', as_index=True)
+        expected3 = grouped['C'].sum()
+        expected3 = DataFrame(expected3).rename(columns={'C' : 'Q'})
+        result3 = grouped['C'].agg({'Q' : np.sum})
+        assert_frame_equal(result3, expected3)
+
         # multi-key
 
         grouped = self.df.groupby(['A', 'B'], as_index=False)
@@ -698,6 +704,12 @@ class TestGroupBy(unittest.TestCase):
         expected2 = grouped.mean()
         expected2['D'] = grouped.sum()['D']
         assert_frame_equal(result2, expected2)
+
+        expected3 = grouped['C'].sum()
+        expected3 = DataFrame(expected3).rename(columns={'C' : 'Q'})
+        result3 = grouped['C'].agg({'Q' : np.sum})
+        assert_frame_equal(result3, expected3)
+
 
     def test_as_index_series_return_frame(self):
         grouped = self.df.groupby('A', as_index=False)
