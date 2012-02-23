@@ -1669,7 +1669,8 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Reindexing and alignment
 
-    def align(self, other, join='outer', axis=None, level=None, copy=True):
+    def align(self, other, join='outer', axis=None, level=None, copy=True,
+              fill_value=None, fill_method=None):
         """
         Align two DataFrame object on their index and columns with the
         specified join method for each axis Index
@@ -1683,6 +1684,11 @@ class DataFrame(NDFrame):
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level
+        copy : boolean, default True
+            Always returns new objects. If copy=False and no reindexing is
+            required then original objects are returned.
+        fill_value : object, default None
+        fill_method : str, default None
 
         Returns
         -------
@@ -1691,15 +1697,19 @@ class DataFrame(NDFrame):
         """
         if isinstance(other, DataFrame):
             return self._align_frame(other, join=join, axis=axis, level=level,
-                                     copy=copy)
+                                     copy=copy, 
+                                     fill_value=fill_value,
+                                     fill_method=fill_method)
         elif isinstance(other, Series):
             return self._align_series(other, join=join, axis=axis, level=level,
-                                      copy=copy)
+                                      copy=copy, 
+                                      fill_value=fill_value,
+                                      fill_method=fill_method)
         else:  # pragma: no cover
             raise TypeError('unsupported type: %s' % type(other))
 
     def _align_frame(self, other, join='outer', axis=None, level=None,
-                     copy=True):
+                     copy=True, fill_value=None, fill_method=None):
         # defaults
         join_index, join_columns = None, None
         ilidx, iridx = None, None
@@ -1721,10 +1731,15 @@ class DataFrame(NDFrame):
                                            join_columns, clidx, copy)
         right = other._reindex_with_indexers(join_index, iridx,
                                              join_columns, cridx, copy)
-        return left, right
+        fill_na = (fill_value is not None) or (fill_method is not None)
+        if fill_na:
+            return (left.fillna(fill_value, method=fill_method),
+                    right.fillna(fill_value, method=fill_method))
+        else:
+            return left, right
 
     def _align_series(self, other, join='outer', axis=None, level=None,
-                      copy=True):
+                      copy=True, fill_value=None, fill_method=None):
         fdata = self._data
         if axis == 0:
             join_index = self.index
@@ -1753,7 +1768,13 @@ class DataFrame(NDFrame):
 
         left_result = DataFrame(fdata)
         right_result = other if ridx is None else other.reindex(join_index)
-        return left_result, right_result
+
+        fill_na = (fill_value is not None) or (fill_method is not None)
+        if fill_na:
+            return (left_result.fillna(fill_value, fill_method=fill_method),
+                    right_result.fillna(fill_value, fill_method=fill_method))
+        else:
+            return left_result, right_result
 
     def reindex(self, index=None, columns=None, method=None, level=None,
                 copy=True):
@@ -4080,18 +4101,6 @@ def _to_sdict(data, columns):
     else:  # pragma: no cover
         raise TypeError('No logic to handle %s type' % type(data[0]))
 
-def _list_to_sdict(data, columns):
-    if len(data) > 0 and isinstance(data[0], tuple):
-        content = list(lib.to_object_array_tuples(data).T)
-    elif len(data) > 0:
-        # list of lists
-        content = list(lib.to_object_array(data).T)
-    else:
-        if columns is None:
-            columns = []
-        return {}, columns
-    return _convert_object_array(content, columns)
-
 def _list_of_series_to_sdict(data, columns):
     from pandas.core.index import _get_combined_index
 
@@ -4116,6 +4125,7 @@ def _list_of_series_to_sdict(data, columns):
         return _convert_object_array(content, columns)
     else:
         return values, columns
+
 
 def _list_of_dict_to_sdict(data, columns):
     if columns is None:
