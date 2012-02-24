@@ -95,7 +95,7 @@ if __name__ == '__main__':
     # churn = get_code_churn(commits)
 
     from vbench.git import GitRepo
-    repo = GitRepo('/home/wesm/code/pandas')
+    repo = GitRepo('/Users/wesm/code/pandas')
     churn = repo.get_churn_by_file()
 
     file_include = []

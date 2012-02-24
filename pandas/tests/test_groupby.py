@@ -686,6 +686,12 @@ class TestGroupBy(unittest.TestCase):
         expected2['D'] = grouped.sum()['D']
         assert_frame_equal(result2, expected2)
 
+        grouped = self.df.groupby('A', as_index=True)
+        expected3 = grouped['C'].sum()
+        expected3 = DataFrame(expected3).rename(columns={'C' : 'Q'})
+        result3 = grouped['C'].agg({'Q' : np.sum})
+        assert_frame_equal(result3, expected3)
+
         # multi-key
 
         grouped = self.df.groupby(['A', 'B'], as_index=False)
@@ -698,6 +704,18 @@ class TestGroupBy(unittest.TestCase):
         expected2 = grouped.mean()
         expected2['D'] = grouped.sum()['D']
         assert_frame_equal(result2, expected2)
+
+        expected3 = grouped['C'].sum()
+        expected3 = DataFrame(expected3).rename(columns={'C' : 'Q'})
+        result3 = grouped['C'].agg({'Q' : np.sum})
+        assert_frame_equal(result3, expected3)
+
+    def test_multifunc_select_col_integer_cols(self):
+        df = self.df
+        df.columns = np.arange(len(df.columns))
+
+        # it works!
+        result = df.groupby(1, as_index=False)[2].agg({'Q' : np.mean})
 
     def test_as_index_series_return_frame(self):
         grouped = self.df.groupby('A', as_index=False)
@@ -1120,7 +1138,7 @@ class TestGroupBy(unittest.TestCase):
         sorted_columns, _ = columns.sortlevel(0)
         df['A', 'foo'] = 'bar'
         result = df.groupby(level=0).mean()
-        self.assert_(result.columns.equals(sorted_columns))
+        self.assert_(result.columns.equals(df.columns[:-1]))
 
     def test_pass_args_kwargs(self):
         from scipy.stats import scoreatpercentile
@@ -1398,6 +1416,18 @@ class TestGroupBy(unittest.TestCase):
         result = df.groupby(labels, axis=1).sum().values
         expected = numpy_groupby(data, labels, axis=1)
         assert_almost_equal(result, expected)
+
+    def test_groupby_2d_malformed(self):
+        d = DataFrame(index=range(2))
+        d['group'] = ['g1', 'g2']
+        d['zeros'] = [0, 0]
+        d['ones'] = [1, 1]
+        d['label'] = ['l1', 'l2']
+        tmp = d.groupby(['group']).mean()
+        res_values = np.array([[0., 1.], [0., 1.]])
+        self.assert_(np.array_equal(tmp.columns, ['zeros', 'ones']))
+        self.assert_(np.array_equal(tmp.values, res_values))
+
 
 def test_decons():
     from pandas.core.groupby import decons_group_index, get_group_index

@@ -911,6 +911,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         self.assert_(np.array_equal(result, expected))
 
+    def test_npdiff(self):
+        s = Series(np.arange(5))
+        r = np.diff(s)
+        assert_series_equal(Series([nan, 0, 0, 0, nan]), r)
+
     def _check_stat_op(self, name, alternate, check_objects=False):
         from pandas import DateRange
         import pandas.core.nanops as nanops
@@ -1783,18 +1788,31 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(result, self.ts * 2)
 
     def test_align(self):
-        def _check_align(a, b, how='left'):
-            aa, ab = a.align(b, join=how)
+        def _check_align(a, b, how='left', fill=None):
+            aa, ab = a.align(b, join=how, fill_value=fill)
 
             join_index = a.index.join(b.index, how=how)
+            if fill is not None:
+                diff_a = aa.index.diff(join_index)
+                diff_b = ab.index.diff(join_index)
+                if len(diff_a) > 0:
+                    self.assert_((aa.reindex(diff_a) == fill).all())
+                if len(diff_b) > 0:
+                    self.assert_((ab.reindex(diff_b) == fill).all())
+
             ea = a.reindex(join_index)
             eb = b.reindex(join_index)
+
+            if fill is not None:
+                ea = ea.fillna(fill)
+                eb = eb.fillna(fill)
 
             assert_series_equal(aa, ea)
             assert_series_equal(ab, eb)
 
         for kind in JOIN_TYPES:
             _check_align(self.ts[2:], self.ts[:-5])
+            _check_align(self.ts[2:], self.ts[:-5], fill=-1)
 
             # empty left
             _check_align(self.ts[:0], self.ts[:-5])

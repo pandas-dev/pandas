@@ -1741,6 +1741,21 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertEqual(len(records.dtype.names), 2)
         self.assert_('index' not in records.dtype.names)
 
+    def test_to_records_floats(self):
+        df = DataFrame(np.random.rand(10,10))
+        df.to_records()
+
+    def test_join_str_datetime(self):
+        str_dates = ['20120209' , '20120222']
+        dt_dates = [datetime(2012,2,9), datetime(2012,2,22)]
+
+        A = DataFrame(str_dates, index=range(2), columns=['aa'])
+        C = DataFrame([[1,2],[3,4]], index=str_dates, columns=dt_dates)
+
+        tst = A.join(C, on = 'aa')
+
+        self.assert_(len(tst.columns) == 3)
+
     def test_from_records_sequencelike(self):
         df = DataFrame({'A' : np.random.randn(6),
                         'B' : np.arange(6),
@@ -1927,6 +1942,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         for i, (k, v) in enumerate(self.mixed_frame.iterrows()):
             exp = self.mixed_frame.xs(self.mixed_frame.index[i])
             assert_series_equal(v, exp)
+
+    def test_itertuples(self):
+        for i, tup in enumerate(self.frame.itertuples()):
+            s = Series(tup[1:])
+            s.name = tup[0]
+            expected = self.frame.ix[i,:].reset_index(drop=True)
+            assert_series_equal(s, expected)
 
     def test_len(self):
         self.assertEqual(len(self.frame), len(self.frame.index))
@@ -2200,6 +2222,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         test_comp(operator.gt)
         test_comp(operator.ge)
         test_comp(operator.le)
+
+    def test_string_comparison(self):
+        df = DataFrame([{ "a" : 1, "b" : "foo" }, {"a" : 2, "b" : "bar"}])
+        mask_a = df.a > 1
+        assert_frame_equal(df[mask_a], df.ix[1:1,:])
+        assert_frame_equal(df[-mask_a], df.ix[0:0,:])
+
+        mask_b = df.b == "foo"
+        assert_frame_equal(df[mask_b], df.ix[0:0,:])
+        assert_frame_equal(df[-mask_b], df.ix[1:1,:])
 
     def test_to_csv_from_csv(self):
         path = '__tmp__'
@@ -3083,6 +3115,22 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         newFrame = self.frame.reindex(list(self.ts1.index))
         self.assert_(newFrame.index.equals(self.ts1.index))
 
+    def test_reindex_name_remains(self):
+        s = Series(random.rand(10))
+        df = DataFrame(s, index=np.arange(len(s)))
+        i = Series(np.arange(10), name='iname')
+        df = df.reindex(i)
+        self.assert_(df.index.name == 'iname')
+
+        df = df.reindex(Index(np.arange(10), name='tmpname'))
+        self.assert_(df.index.name == 'tmpname')
+
+        s = Series(random.rand(10))
+        df = DataFrame(s.T, index=np.arange(len(s)))
+        i = Series(np.arange(10), name='iname')
+        df = df.reindex(columns=i)
+        self.assert_(df.columns.name == 'iname')
+
     def test_reindex_int(self):
         smaller = self.intframe.reindex(self.intframe.index[::2])
 
@@ -3180,8 +3228,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # axis = 0
         other = self.frame.ix[:-5, :3]
-        af, bf = self.frame.align(other, axis=0)
-        self.assert_(bf.columns.equals(other.columns))
+        af, bf = self.frame.align(other, axis=0, fill_value=-1)
+        self.assert_(bf.columns.equals(other.columns))        
+        #test fill value
+        join_idx = self.frame.index.join(other.index)
+        diff_a = self.frame.index.diff(join_idx)
+        diff_b = other.index.diff(join_idx)
+        diff_a_vals = af.reindex(diff_a).values
+        diff_b_vals = bf.reindex(diff_b).values
+        self.assert_((diff_a_vals == -1).all())
 
         af, bf = self.frame.align(other, join='right', axis=0)
         self.assert_(bf.columns.equals(other.columns))
@@ -3193,6 +3248,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         af, bf = self.frame.align(other, axis=1)
         self.assert_(bf.columns.equals(self.frame.columns))
         self.assert_(bf.index.equals(other.index))
+
+        #test fill value
+        join_idx = self.frame.index.join(other.index)
+        diff_a = self.frame.index.diff(join_idx)
+        diff_b = other.index.diff(join_idx)
+        diff_a_vals = af.reindex(diff_a).values
+        diff_b_vals = bf.reindex(diff_b).values
+        self.assert_((diff_a_vals == -1).all())
 
         af, bf = self.frame.align(other, join='inner', axis=1)
         self.assert_(bf.columns.equals(other.columns))
@@ -4659,6 +4722,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = Y.sum()
         exp = Y['g'].sum()
         self.assert_(isnull(Y['g']['c']))
+
 
 if __name__ == '__main__':
     # unittest.main()

@@ -31,6 +31,12 @@ pandas 0.7.1
 
   - Add ``to_clipboard`` function to pandas namespace for writing objects to
     the system clipboard (#774)
+  - Add ``itertuples`` method to Dataframe for iterating through the rows of a
+    dataframe as tuples (#818)
+  - Add ability to pass fill_value and method to Dataframe and Series align
+    method (#806)
+
+**API Changes**
 
 **Bug fixes**
 
@@ -38,6 +44,12 @@ pandas 0.7.1
     DataFrame (#790)
   - Appending length-0 DataFrame with new columns would not result in those new
     columns being part of the resulting concatenated DataFrame (#782)
+  - Fixed groupby corner case when passing dictionary grouper and as_index is
+    False (#819)
+  - Fixed bug whereby bool array sometimes had object dtype (#820)
+  - Fix exception thrown on np.diff (#816)
+  - Fix to_records where columns are non-strings (#822)
+  - Fix Index.intersection where indices have incomparable types (#811)
 
 pandas 0.7.0
 ============

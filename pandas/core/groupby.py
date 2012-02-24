@@ -1055,17 +1055,10 @@ class DataFrameGroupBy(GroupBy):
         if sum(len(x.items) for x in new_blocks) == len(agg_labels):
             output_keys = agg_labels
         else:
-            output_keys = []
+            all_items = []
             for b in new_blocks:
-                output_keys.extend(b.items)
-            try:
-                output_keys.sort()
-            except TypeError:  # pragma: no cover
-                pass
-
-            if isinstance(agg_labels, MultiIndex):
-                output_keys = MultiIndex.from_tuples(output_keys,
-                                                     names=agg_labels.names)
+                all_items.extend(b.items)
+            output_keys = agg_labels[agg_labels.isin(all_items)]
 
         if not self.as_index:
             index = np.arange(new_blocks[0].values.shape[1])
@@ -1122,10 +1115,18 @@ class DataFrameGroupBy(GroupBy):
                 raise ValueError('Can only pass dict with axis=0')
 
             obj = self._obj_with_exclusions
-            for col, func in arg.iteritems():
-                colg = SeriesGroupBy(obj[col], column=col,
-                                     grouper=self.grouper)
-                result[col] = colg.aggregate(func)
+
+            if self._column is not None:
+                series_obj = obj[self._column]
+                for fname, func in arg.iteritems():
+                    colg = SeriesGroupBy(series_obj, column=self._column,
+                                         grouper=self.grouper)
+                    result[fname] = colg.aggregate(func)
+            else:
+                for col, func in arg.iteritems():
+                    colg = SeriesGroupBy(obj[col], column=col,
+                                         grouper=self.grouper)
+                    result[col] = colg.aggregate(func)
 
             result = DataFrame(result)
         elif isinstance(arg, list):

@@ -25,7 +25,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
-                                _default_index, _stringify, csv_encode)
+                                _default_index, _stringify)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, NULL_INDEX, _ensure_index
@@ -497,6 +497,13 @@ class DataFrame(NDFrame):
             s.name = k
             yield k, s
 
+    def itertuples(self):
+        """
+        Iterate over rows of DataFrame as tuples, with index value
+        as first element of the tuple
+        """
+        return izip(self.index, *self.values.T)
+
     iterkv = iteritems
     if py3compat.PY3:  # pragma: no cover
         items = iteritems
@@ -515,7 +522,7 @@ class DataFrame(NDFrame):
     add = _arith_method(operator.add, 'add')
     mul = _arith_method(operator.mul, 'multiply')
     sub = _arith_method(operator.sub, 'subtract')
-    div = _arith_method(lambda x, y: x / y, 'divide')
+    div = divide = _arith_method(lambda x, y: x / y, 'divide')
 
     radd = _arith_method(_radd_compat, 'radd')
     rmul = _arith_method(operator.mul, 'rmultiply')
@@ -659,7 +666,7 @@ class DataFrame(NDFrame):
         if isinstance(data, (np.ndarray, DataFrame, dict)):
             columns, sdict = _rec_to_dict(data)
         else:
-            sdict, columns = _list_to_sdict(data, columns)
+            sdict, columns = _to_sdict(data, columns)
 
         if exclude is None:
             exclude = set()
@@ -710,10 +717,10 @@ class DataFrame(NDFrame):
         """
         if index:
             arrays = [self.index] + [self[c] for c in self.columns]
-            names = ['index'] + list(self.columns)
+            names = ['index'] + list(map(str, self.columns))
         else:
             arrays = [self[c] for c in self.columns]
-            names = list(self.columns)
+            names = list(map(str, self.columns))
 
         return np.rec.fromarrays(arrays, names=names)
 
@@ -1670,7 +1677,8 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Reindexing and alignment
 
-    def align(self, other, join='outer', axis=None, level=None, copy=True):
+    def align(self, other, join='outer', axis=None, level=None, copy=True,
+              fill_value=None, method=None):
         """
         Align two DataFrame object on their index and columns with the
         specified join method for each axis Index
@@ -1684,6 +1692,11 @@ class DataFrame(NDFrame):
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level
+        copy : boolean, default True
+            Always returns new objects. If copy=False and no reindexing is
+            required then original objects are returned.
+        fill_value : object, default None
+        method : str, default None
 
         Returns
         -------
@@ -1692,15 +1705,17 @@ class DataFrame(NDFrame):
         """
         if isinstance(other, DataFrame):
             return self._align_frame(other, join=join, axis=axis, level=level,
-                                     copy=copy)
+                                     copy=copy, fill_value=fill_value,
+                                     method=method)
         elif isinstance(other, Series):
             return self._align_series(other, join=join, axis=axis, level=level,
-                                      copy=copy)
+                                      copy=copy, fill_value=fill_value,
+                                      method=method)
         else:  # pragma: no cover
             raise TypeError('unsupported type: %s' % type(other))
 
     def _align_frame(self, other, join='outer', axis=None, level=None,
-                     copy=True):
+                     copy=True, fill_value=None, method=None):
         # defaults
         join_index, join_columns = None, None
         ilidx, iridx = None, None
@@ -1722,10 +1737,15 @@ class DataFrame(NDFrame):
                                            join_columns, clidx, copy)
         right = other._reindex_with_indexers(join_index, iridx,
                                              join_columns, cridx, copy)
-        return left, right
+        fill_na = (fill_value is not None) or (method is not None)
+        if fill_na:
+            return (left.fillna(fill_value, method=method),
+                    right.fillna(fill_value, method=method))
+        else:
+            return left, right
 
     def _align_series(self, other, join='outer', axis=None, level=None,
-                      copy=True):
+                      copy=True, fill_value=None, method=None):
         fdata = self._data
         if axis == 0:
             join_index = self.index
@@ -1754,7 +1774,13 @@ class DataFrame(NDFrame):
 
         left_result = DataFrame(fdata)
         right_result = other if ridx is None else other.reindex(join_index)
-        return left_result, right_result
+
+        fill_na = (fill_value is not None) or (method is not None)
+        if fill_na:
+            return (left_result.fillna(fill_value, method=method),
+                    right_result.fillna(fill_value, method=method))
+        else:
+            return left_result, right_result
 
     def reindex(self, index=None, columns=None, method=None, level=None,
                 copy=True):
@@ -1837,9 +1863,11 @@ class DataFrame(NDFrame):
         """
         self._consolidate_inplace()
         if axis == 0:
-            return self._reindex_index(labels, method, copy, level)
+            df = self._reindex_index(labels, method, copy, level)
+            return df
         elif axis == 1:
-            return self._reindex_columns(labels, copy, level)
+            df = self._reindex_columns(labels, copy, level)
+            return df
         else:  # pragma: no cover
             raise ValueError('Must specify axis=0 or 1')
 
@@ -2024,7 +2052,9 @@ class DataFrame(NDFrame):
                 new_columns = self.columns.take(indices)
                 return self.reindex(columns=new_columns)
         else:
-            new_values = self.values.take(indices, axis=axis)
+            new_values = com.take_2d(self.values,
+                                     com._ensure_int32(indices),
+                                     axis=axis)
             if axis == 0:
                 new_columns = self.columns
                 new_index = self.index.take(indices)
@@ -4075,6 +4105,8 @@ def _rec_to_dict(arr):
 
 
 def _to_sdict(data, columns):
+    if len(data) == 0:
+        return {}, columns
     if isinstance(data[0], (list, tuple)):
         return _list_to_sdict(data, columns)
     elif isinstance(data[0], dict):
@@ -4102,14 +4134,25 @@ def _list_of_series_to_sdict(data, columns):
     if columns is None:
         columns = _get_combined_index([s.index for s in data])
 
-    values = np.vstack([s.reindex(columns, copy=False).values
-                        for s in data])
+    indexer_cache = {}
+
+    aligned_values = []
+    for s in data:
+        index = s.index
+        if id(index) in indexer_cache:
+            indexer = indexer_cache[id(index)]
+        else:
+            indexer = indexer_cache[id(index)] = index.get_indexer(columns)
+        aligned_values.append(com.take_1d(s.values, indexer))
+
+    values = np.vstack(aligned_values)
 
     if values.dtype == np.object_:
         content = list(values.T)
         return _convert_object_array(content, columns)
     else:
         return values, columns
+
 
 def _list_of_dict_to_sdict(data, columns):
     if columns is None:
