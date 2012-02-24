@@ -1117,7 +1117,7 @@ class DataFrameGroupBy(GroupBy):
             obj = self._obj_with_exclusions
 
             if self._column is not None:
-                series_obj = Series(obj[self._column])
+                series_obj = obj[self._column]
                 for fname, func in arg.iteritems():
                     colg = SeriesGroupBy(series_obj, column=self._column,
                                          grouper=self.grouper)
