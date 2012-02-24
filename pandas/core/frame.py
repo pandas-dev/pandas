@@ -2050,7 +2050,9 @@ class DataFrame(NDFrame):
                 new_columns = self.columns.take(indices)
                 return self.reindex(columns=new_columns)
         else:
-            new_values = self.values.take(indices, axis=axis)
+            new_values = com.take_2d(self.values,
+                                     com._ensure_int32(indices),
+                                     axis=axis)
             if axis == 0:
                 new_columns = self.columns
                 new_index = self.index.take(indices)
