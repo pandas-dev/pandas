@@ -502,9 +502,7 @@ class DataFrame(NDFrame):
         Iterate over rows of DataFrame as tuples, with index value
         as first element of the tuple
         """
-        series = [self[col] for col in self.columns]
-        series.insert(0, self.index)
-        return izip(*series)
+        return izip(self.index, *self.values.T)
 
     iterkv = iteritems
     if py3compat.PY3:  # pragma: no cover
