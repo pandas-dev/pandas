@@ -1107,7 +1107,7 @@ class DatetimeIndex(Int64Index):
     def __new__(cls, data=None,
                 offset=None, start=None, end=None, periods=None,
                 dtype=None, copy=False, name=None, tzinfo=None,
-                _deprecated=False):
+                _deprecated=False, **kwds):
 
         if isinstance(offset, basestring):
             offset = datetools.getOffset(offset, _deprecated=_deprecated)

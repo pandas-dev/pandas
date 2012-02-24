@@ -21,6 +21,9 @@ except ImportError: # pragma: no cover
 
 import calendar #NOTE: replace with _tseries.monthrange
 
+# for backward compatibility
+relativedelta = lib.Delta
+
 #-------------------------------------------------------------------------------
 # Boxing and unboxing
 
@@ -177,10 +180,6 @@ class DateOffset(object):
             self._offset = lib.Delta(**kwds)
         else:
             self._offset = timedelta(1)
-        if 'name' in kwds:
-            self.name = kwds['name']
-        else:
-            self.name = ''
 
     def apply(self, other):
         if len(self.kwds) > 0:
@@ -202,7 +201,7 @@ class DateOffset(object):
 
     def _params(self):
         attrs = [(k, v) for k, v in vars(self).iteritems()
-                 if k not in ['kwds', '_offset']]
+                 if k not in ['kwds', '_offset', 'name']]
         attrs.extend(self.kwds.items())
         attrs = sorted(set(attrs))
 
@@ -319,6 +318,9 @@ class BDay(DateOffset, CacheableOffset):
         self.normalize = kwds.get('normalize', True)
 
     def __repr__(self):
+        if hasattr(self, 'name') and len(self.name):
+            return self.name
+
         className = getattr(self, '_outputName', self.__class__.__name__)
         attrs = []
 
@@ -902,7 +904,7 @@ class Second(Tick):
     _inc = timedelta(0, 1)
 
 day = DateOffset()
-bday = BDay(normalize=True)
+bday = BDay()
 businessDay = bday
 monthEnd = MonthEnd()
 yearEnd = YearEnd()
@@ -1104,7 +1106,6 @@ for i, weekday in enumerate(['MON', 'TUE', 'WED', 'THU', 'FRI']):
     for iweek in xrange(4):
         _offsetMap['WOM@%d%s' % (iweek + 1, weekday)] = \
             WeekOfMonth(week=iweek, weekday=i)
-        #NOTE: don't delete. this is for new map
         _newOffsetMap['WOM@%d%s' % (iweek + 1, weekday)] = \
             WeekOfMonth(week=iweek, weekday=i)
 
@@ -1113,14 +1114,16 @@ for i, weekday in enumerate(['MON', 'TUE', 'WED', 'THU', 'FRI']):
 _offsetNames = {}
 for name, offset in _offsetMap.iteritems():
     offset.name = name
-    _offsetNames[name] = offset
+    _offsetNames[offset] = name
+
+_offsetNames = dict([(v, k) for k, v in _offsetMap.iteritems()])
 
 _newOffsetNames = {}
 for name, offset in _newOffsetMap.iteritems():
     if offset is None:
         continue
     offset.name = name
-    _newOffsetNames[name] = offset
+    _newOffsetNames[offset] = offset
 
 def inferTimeRule(index, _deprecated=True):
     if len(index) < 3:
