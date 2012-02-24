@@ -452,12 +452,15 @@ class Index(np.ndarray):
             return this.intersection(other)
 
         if self.is_monotonic and other.is_monotonic:
-            result = self._inner_indexer(self, other.values)[0]
-            return self._wrap_union_result(other, result)
-        else:
-            indexer = self.get_indexer(other.values)
-            indexer = indexer.take((indexer != -1).nonzero()[0])
-            return self.take(indexer)
+            try:
+                result = self._inner_indexer(self, other.values)[0]
+                return self._wrap_union_result(other, result)
+            except TypeError:
+                pass
+
+        indexer = self.get_indexer(other.values)
+        indexer = indexer.take((indexer != -1).nonzero()[0])
+        return self.take(indexer)
 
     def diff(self, other):
         """
