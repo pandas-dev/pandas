@@ -44,6 +44,7 @@ pandas 0.7.1
     False (#819)
   - Fixed bug whereby bool array sometimes had object dtype (#820)
   - Fix exception thrown on np.diff (#816)
+  - Fix to_records where columns are non-strings (#822)
 
 pandas 0.7.0
 ============

@@ -717,10 +717,10 @@ class DataFrame(NDFrame):
         """
         if index:
             arrays = [self.index] + [self[c] for c in self.columns]
-            names = ['index'] + list(self.columns)
+            names = ['index'] + list(map(str, self.columns))
         else:
             arrays = [self[c] for c in self.columns]
-            names = list(self.columns)
+            names = list(map(str, self.columns))
 
         return np.rec.fromarrays(arrays, names=names)
 

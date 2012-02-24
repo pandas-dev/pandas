@@ -1741,6 +1741,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertEqual(len(records.dtype.names), 2)
         self.assert_('index' not in records.dtype.names)
 
+    def test_to_records_floats(self):
+        df = DataFrame(np.random.rand(10,10))
+        df.to_records()
+
     def test_from_records_sequencelike(self):
         df = DataFrame({'A' : np.random.randn(6),
                         'B' : np.arange(6),
