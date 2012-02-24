@@ -49,6 +49,7 @@ pandas 0.7.1
   - Fixed bug whereby bool array sometimes had object dtype (#820)
   - Fix exception thrown on np.diff (#816)
   - Fix to_records where columns are non-strings (#822)
+  - Fix Index.intersection where indices have incomparable types (#811)
 
 pandas 0.7.0
 ============
