@@ -3103,14 +3103,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_reindex_name_remains(self):
         s = Series(random.rand(10))
         df = DataFrame(s, index=np.arange(len(s)))
-        df.index.name = 'iname'
-        df = df.reindex(s.index)
+        i = Series(np.arange(10), name='iname')
+        df = df.reindex(i)
         self.assert_(df.index.name == 'iname')
+
+        df = df.reindex(Index(np.arange(10), name='tmpname'))
+        self.assert_(df.index.name == 'tmpname')
 
         s = Series(random.rand(10))
         df = DataFrame(s.T, index=np.arange(len(s)))
-        df.columns.name = 'iname'
-        df = df.reindex(columns=s.index)
+        i = Series(np.arange(10), name='iname')
+        df = df.reindex(columns=i)
         self.assert_(df.columns.name == 'iname')
 
     def test_reindex_int(self):

@@ -2137,13 +2137,13 @@ def _sparsify(label_list):
 def _ensure_index(index_like):
     if isinstance(index_like, Index):
         return index_like
+    if hasattr(index_like, 'name'):
+        return Index(index_like, name=index_like.name)
     return Index(index_like)
-
 
 def _validate_join_method(method):
     if method not in ['left', 'right', 'inner', 'outer']:
         raise Exception('do not recognize join method %s' % method)
-
 
 # TODO: handle index names!
 def _get_combined_index(indexes, intersect=False):
