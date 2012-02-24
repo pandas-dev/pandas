@@ -33,6 +33,10 @@ pandas 0.7.1
     the system clipboard (#774)
   - Add ``itertuples`` method to Dataframe for iterating through the rows of a
     dataframe as tuples (#818)
+  - Add ability to pass fill_value and method to Dataframe and Series align
+    method (#806)
+
+**API Changes**
 
 **Bug fixes**
 

@@ -1677,7 +1677,7 @@ class DataFrame(NDFrame):
     # Reindexing and alignment
 
     def align(self, other, join='outer', axis=None, level=None, copy=True,
-              fill_value=None, fill_method=None):
+              fill_value=None, method=None):
         """
         Align two DataFrame object on their index and columns with the
         specified join method for each axis Index
@@ -1695,7 +1695,7 @@ class DataFrame(NDFrame):
             Always returns new objects. If copy=False and no reindexing is
             required then original objects are returned.
         fill_value : object, default None
-        fill_method : str, default None
+        method : str, default None
 
         Returns
         -------
@@ -1704,19 +1704,17 @@ class DataFrame(NDFrame):
         """
         if isinstance(other, DataFrame):
             return self._align_frame(other, join=join, axis=axis, level=level,
-                                     copy=copy,
-                                     fill_value=fill_value,
-                                     fill_method=fill_method)
+                                     copy=copy, fill_value=fill_value,
+                                     method=method)
         elif isinstance(other, Series):
             return self._align_series(other, join=join, axis=axis, level=level,
-                                      copy=copy,
-                                      fill_value=fill_value,
-                                      fill_method=fill_method)
+                                      copy=copy, fill_value=fill_value,
+                                      method=method)
         else:  # pragma: no cover
             raise TypeError('unsupported type: %s' % type(other))
 
     def _align_frame(self, other, join='outer', axis=None, level=None,
-                     copy=True, fill_value=None, fill_method=None):
+                     copy=True, fill_value=None, method=None):
         # defaults
         join_index, join_columns = None, None
         ilidx, iridx = None, None
@@ -1738,15 +1736,15 @@ class DataFrame(NDFrame):
                                            join_columns, clidx, copy)
         right = other._reindex_with_indexers(join_index, iridx,
                                              join_columns, cridx, copy)
-        fill_na = (fill_value is not None) or (fill_method is not None)
+        fill_na = (fill_value is not None) or (method is not None)
         if fill_na:
-            return (left.fillna(fill_value, method=fill_method),
-                    right.fillna(fill_value, method=fill_method))
+            return (left.fillna(fill_value, method=method),
+                    right.fillna(fill_value, method=method))
         else:
             return left, right
 
     def _align_series(self, other, join='outer', axis=None, level=None,
-                      copy=True, fill_value=None, fill_method=None):
+                      copy=True, fill_value=None, method=None):
         fdata = self._data
         if axis == 0:
             join_index = self.index
@@ -1776,10 +1774,10 @@ class DataFrame(NDFrame):
         left_result = DataFrame(fdata)
         right_result = other if ridx is None else other.reindex(join_index)
 
-        fill_na = (fill_value is not None) or (fill_method is not None)
+        fill_na = (fill_value is not None) or (method is not None)
         if fill_na:
-            return (left_result.fillna(fill_value, fill_method=fill_method),
-                    right_result.fillna(fill_value, fill_method=fill_method))
+            return (left_result.fillna(fill_value, method=method),
+                    right_result.fillna(fill_value, method=method))
         else:
             return left_result, right_result
 
