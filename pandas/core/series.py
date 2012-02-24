@@ -369,8 +369,6 @@ copy : boolean, default False
 
     def __getitem__(self, key):
         try:
-            if type(key) == tuple and len(key)==1:
-                key = key[0]
             return self.index.get_value(self, key)
         except InvalidIndexError:
             pass
@@ -407,7 +405,14 @@ copy : boolean, default False
             return self._get_values(indexer)
         else:
             if isinstance(key, tuple):
-                return self._get_values_tuple(key)
+                try:
+                    return self._get_values_tuple(key)
+                except:
+                    if len(key) == 1:
+                        key = key[0]
+                        if isinstance(key, slice):
+                            return self._get_values(key)
+                    raise
 
             if not isinstance(key, (list, np.ndarray)):  # pragma: no cover
                 key = list(key)
