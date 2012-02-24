@@ -1745,6 +1745,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame(np.random.rand(10,10))
         df.to_records()
 
+    def test_join_str_datetime(self):
+        str_dates = ['20120209' , '20120222']
+        dt_dates = [datetime(2012,2,9), datetime(2012,2,22)]
+
+        A = DataFrame(str_dates, index=range(2), columns=['aa'])
+        C = DataFrame([[1,2],[3,4]], index=str_dates, columns=dt_dates)
+
+        tst = A.join(C, on = 'aa')
+
+        self.assert_(len(tst.columns) == 3)
+
     def test_from_records_sequencelike(self):
         df = DataFrame({'A' : np.random.randn(6),
                         'B' : np.arange(6),
