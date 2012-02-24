@@ -1115,14 +1115,13 @@ class DataFrameGroupBy(GroupBy):
                 raise ValueError('Can only pass dict with axis=0')
 
             obj = self._obj_with_exclusions
-            # more kludge
-            if len(obj.columns) == 1:
-                series_obj = Series(obj.ix[:,0])
-                series_name = obj.columns[0]
-                for col, func in arg.iteritems():
-                    colg = SeriesGroupBy(series_obj, column=series_name,
+
+            if self._column is not None:
+                series_obj = Series(obj[self._column])
+                for fname, func in arg.iteritems():
+                    colg = SeriesGroupBy(series_obj, column=self._column,
                                          grouper=self.grouper)
-                    result[col] = colg.aggregate(func)
+                    result[fname] = colg.aggregate(func)
             else:
                 for col, func in arg.iteritems():
                     colg = SeriesGroupBy(obj[col], column=col,

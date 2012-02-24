@@ -710,6 +710,12 @@ class TestGroupBy(unittest.TestCase):
         result3 = grouped['C'].agg({'Q' : np.sum})
         assert_frame_equal(result3, expected3)
 
+    def test_multifunc_select_col_integer_cols(self):
+        df = self.df
+        df.columns = np.arange(len(df.columns))
+
+        # it works!
+        result = df.groupby(1, as_index=False)[2].agg({'Q' : np.mean})
 
     def test_as_index_series_return_frame(self):
         grouped = self.df.groupby('A', as_index=False)
