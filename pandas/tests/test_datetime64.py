@@ -230,6 +230,19 @@ class TestDatetime64(unittest.TestCase):
 
         lib.flush_tcache('W@TUE')
 
+    def test_fancy_getitem(self):
+        dti = DatetimeIndex(offset='WOM@1FRI', start=datetime(2005,1,1),
+                            end=datetime(2010,1,1))
+
+        s = Series(np.arange(len(dti)), index=dti) 
+
+        self.assertEquals(s[48], 48)
+        self.assertEquals(s['1/2/2009'], 48)
+        self.assertEquals(s['2009-1-2'], 48)
+        self.assertEquals(s[datetime(2009,1,2)], 48)
+        self.assertEquals(s[lib.Timestamp(datetime(2009,1,2))], 48)
+        self.assertRaises(KeyError, s.__getitem__, '2009-1-3') 
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

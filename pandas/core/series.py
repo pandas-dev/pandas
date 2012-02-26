@@ -2321,7 +2321,7 @@ copy : boolean, default False
 
         Parameters
         ----------
-        offset : DateOffset object, or string in {'WEEKDAY', 'EOM'}
+        offset : DateOffset object, or corresponding string
             DateOffset object or subclass (e.g. monthEnd)
         method : {'backfill', 'pad', None}
             Method to use for filling holes in new index
@@ -2330,6 +2330,9 @@ copy : boolean, default False
         -------
         converted : TimeSeries
         """
+
+        # TODO: this uses deprecated API, add new method?
+
         if isinstance(freq, datetools.DateOffset):
             dateRange = DateRange(self.index[0], self.index[-1], offset=freq)
         else:

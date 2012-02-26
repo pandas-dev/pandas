@@ -15,7 +15,7 @@ from pandas._tseries import Timestamp
 
 import pandas.core.datetools as datetools
 from pandas.core.datetools import (_dt_box, _dt_unbox, _dt_box_array,
-                                  _dt_unbox_array)
+                                   _dt_unbox_array)
 
 __all__ = ['Index']
 
@@ -1452,13 +1452,21 @@ class DatetimeIndex(Int64Index):
             left_chunk = left.values[lslice]
             return self._view_like(left_chunk)
 
+    def get_value(self, series, key):
+        """
+        Fast lookup of value from 1-dimensional ndarray. Only use this if you
+        know what you're doing
+        """
+        try:
+            return super(DatetimeIndex, self).get_value(series, key)
+        except KeyError:
+            return self._engine.get_value(series,
+                                          datetools.to_timestamp(key))
 
     def __getitem__(self, key):
         """Override numpy.ndarray's __getitem__ method to work as desired"""
         arr_idx = self.view(np.ndarray)
         if np.isscalar(key):
-            if type(key) == datetime:
-                key = _dt_unbox(key)
             val = arr_idx[key]
             if hasattr(self, 'offset') and self.offset is not None:
                 return _dt_box(val, offset=self.offset, tzinfo=self.tzinfo)
