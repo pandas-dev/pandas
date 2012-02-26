@@ -274,7 +274,6 @@ class Index(np.ndarray):
         try:
             return Index(np.concatenate(to_concat))
         except TypeError:
-            # need to unbox datetime64
             return Index(np.concatenate(map(_maybe_box_dtindex, to_concat)))
 
     def take(self, *args, **kwargs):
