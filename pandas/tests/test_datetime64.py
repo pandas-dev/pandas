@@ -8,7 +8,9 @@ import numpy as np
 
 from pandas import Series
 
-from numpy.random import rand, randn
+from numpy.random import rand
+
+from pandas.util.testing import assert_series_equal
 
 class TestDatetime64(unittest.TestCase):
 
@@ -242,6 +244,21 @@ class TestDatetime64(unittest.TestCase):
         self.assertEquals(s[datetime(2009,1,2)], 48)
         self.assertEquals(s[lib.Timestamp(datetime(2009,1,2))], 48)
         self.assertRaises(KeyError, s.__getitem__, '2009-1-3') 
+
+        assert_series_equal(s['3/6/2009':'2009-06-05'],
+                            s[datetime(2009,3,6):datetime(2009,6,5)])
+
+    def test_fancy_setitem(self):
+        dti = DatetimeIndex(offset='WOM@1FRI', start=datetime(2005,1,1),
+                            end=datetime(2010,1,1))
+
+        s = Series(np.arange(len(dti)), index=dti) 
+        s[48] = -1
+        self.assertEquals(s[48], -1)
+        s['1/2/2009'] = -2
+        self.assertEquals(s[48], -2)
+        s['1/2/2009':'2009-06-05'] = -3
+        self.assert_((s[48:54] == -3).all())
 
 if __name__ == '__main__':
     import nose

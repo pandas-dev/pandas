@@ -1463,6 +1463,19 @@ class DatetimeIndex(Int64Index):
             return self._engine.get_value(series,
                                           datetools.to_timestamp(key))
 
+    def get_loc(self, key):
+        """
+        Get integer location for requested label
+
+        Returns
+        -------
+        loc : int
+        """
+        try:
+            return self._engine.get_loc(key)
+        except KeyError:
+            return self._engine.get_loc(datetools.to_timestamp(key))
+
     def __getitem__(self, key):
         """Override numpy.ndarray's __getitem__ method to work as desired"""
         arr_idx = self.view(np.ndarray)
