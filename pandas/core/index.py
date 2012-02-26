@@ -270,7 +270,12 @@ class Index(np.ndarray):
             to_concat = (self.values,) + tuple(other)
         else:
             to_concat = self.values, other.values
-        return Index(np.concatenate(to_concat))
+
+        try:
+            return Index(np.concatenate(to_concat))
+        except TypeError:
+            # need to unbox datetime64
+            return Index(np.concatenate(map(_maybe_box_dtindex, to_concat)))
 
     def take(self, *args, **kwargs):
         """
@@ -1056,6 +1061,11 @@ def _dt_index_op(opname):
             func = getattr(super(DatetimeIndex, self), opname)
             return func(other)
     return wrapper
+
+def _maybe_box_dtindex(idx):
+    if isinstance(idx, DatetimeIndex):
+        return Index(_dt_box_array(idx.asi8), dtype='object')
+    return idx
 
 class DatetimeIndex(Int64Index):
     """
