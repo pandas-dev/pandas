@@ -1609,7 +1609,7 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
     field and return an array of these values.
     '''
     cdef:
-        npy_datetimestruct dts
+        _TSObject ts
         Py_ssize_t i, count = 0
         ndarray[int32_t] out
 
@@ -1618,48 +1618,59 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
 
     if field == 'Y':
         for i in range(count):
-            PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
-            out[i] = dts.year
+            ts = convert_to_tsobject(dtindex[i])
+            out[i] = ts.dtval.year
         return out
 
     elif field == 'M':
         for i in range(count):
-            PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
-            out[i] = dts.month
+            ts = convert_to_tsobject(dtindex[i])
+            out[i] = ts.dtval.month
         return out
 
     elif field == 'D':
         for i in range(count):
-            PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
-            out[i] = dts.day
+            ts = convert_to_tsobject(dtindex[i])
+            out[i] = ts.dtval.day
         return out
 
     elif field == 'h':
         for i in range(count):
-            PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
-            out[i] = dts.hour
+            ts = convert_to_tsobject(dtindex[i])
+            out[i] = ts.dtval.hour
         return out
 
     elif field == 'm':
         for i in range(count):
-            PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
-            out[i] = dts.min
+            ts = convert_to_tsobject(dtindex[i])
+            out[i] = ts.dtval.minute
         return out
 
     elif field == 's':
         for i in range(count):
-            PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
-            out[i] = dts.sec
+            ts = convert_to_tsobject(dtindex[i])
+            out[i] = ts.dtval.second
         return out
 
     elif field == 'us':
         for i in range(count):
-            PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
-            out[i] = dts.us
+            ts = convert_to_tsobject(dtindex[i])
+            out[i] = ts.dtval.microsecond
         return out
 
-    else:
-        raise ValueError("Field %s not supported; not in (Y,M,D,h,m,s,us)" % field)
+    elif field == 'doy':
+        pass
+
+    elif field == 'dow':
+        pass
+
+    elif field == 'woy':
+        pass
+
+    elif field == 'q':
+        pass
+
+    raise ValueError("Field %s not supported; not in (Y,M,D,h,m,s,us)" % field)
 
 
 # Some general helper functions

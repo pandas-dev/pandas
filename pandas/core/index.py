@@ -1543,6 +1543,22 @@ class DatetimeIndex(Int64Index):
     def microsecond(self):
         return lib.fast_field_accessor(self.asi8, 'us')
 
+    @property
+    def weekofyear(self):
+        return lib.fast_field_accessor(self.asi8, 'woy')
+
+    @property
+    def dayofweek(self):
+        return lib.fast_field_accessor(self.asi8, 'dow')
+
+    @property
+    def dayofyear(self):
+        return lib.fast_field_accessor(self.asi8, 'doy')
+
+    @property
+    def quarter(self):
+        return lib.fast_field_accessor(self.asi8, 'q')
+
     def __iter__(self):
         if hasattr(self, 'offset') and self.offset is not None:
             return iter(_dt_box_array(self.asi8, self.offset))

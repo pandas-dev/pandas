@@ -203,6 +203,26 @@ class TestDatetime64(unittest.TestCase):
                     self.assert_(t == stack.pop())
                     self.assert_(t.weekday() == day)
 
+    def test_datetimeindex_accessors(self):
+        dti = DatetimeIndex(offset='Q@JAN', start=datetime(1997,12,31),
+                            periods=100)
+
+        dti.year[0] == 1997
+        dti.month[0] == 12
+        dti.day[0] == 31
+        dti.hour[0] = 0
+        dti.minute[0] = 0
+        dti.second[0] = 0
+        dti.microsecond[0] = 0
+
+        self.assertEquals(len(dti.year), 100)
+        self.assertEquals(len(dti.month), 100)
+        self.assertEquals(len(dti.day), 100)
+        self.assertEquals(len(dti.hour), 100)
+        self.assertEquals(len(dti.minute), 100)
+        self.assertEquals(len(dti.second), 100)
+        self.assertEquals(len(dti.microsecond), 100)
+
     def test_datetimeindex_diff(self):
         dti1 = DatetimeIndex(offset='Q@JAN', start=datetime(1997,12,31),
                              periods=100)
