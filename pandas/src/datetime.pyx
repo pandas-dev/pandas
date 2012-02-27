@@ -1612,6 +1612,7 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
         _TSObject ts
         Py_ssize_t i, count = 0
         ndarray[int32_t] out
+        int isleap
 
     count = len(dtindex)
     out = np.empty(count, dtype='i4')
@@ -1659,18 +1660,34 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
         return out
 
     elif field == 'doy':
-        pass
+        for i in range(count):
+            ts = convert_to_tsobject(dtindex[i])
+            isleap = is_leapyear(ts.dtval.year)
+            out[i] = _month_offset[isleap][ts.dtval.month-1] + ts.dtval.day
+        return out
 
     elif field == 'dow':
-        pass
+        for i in range(count):
+            ts = convert_to_tsobject(dtindex[i])
+            out[i] = ts_dayofweek(ts)
+        return out
 
     elif field == 'woy':
-        pass
+        for i in range(count):
+            ts = convert_to_tsobject(dtindex[i])
+            isleap = is_leapyear(ts.dtval.year)
+            out[i] = _month_offset[isleap][ts.dtval.month-1] + ts.dtval.day
+            out[i] = ((out[i] - 1) / 7) + 1
+        return out
 
     elif field == 'q':
-        pass
+        for i in range(count):
+            ts = convert_to_tsobject(dtindex[i])
+            out[i] = ts.dtval.month
+            out[i] = ((out[i] - 1) / 3) + 1
+        return out
 
-    raise ValueError("Field %s not supported; not in (Y,M,D,h,m,s,us)" % field)
+    raise ValueError("Field %s not supported" % field)
 
 
 # Some general helper functions

@@ -24,6 +24,12 @@ static int _days_per_month_table[2][12] = {
     { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
 };
 
+/* Table with day offsets for each month (0-based, without and with leap) */
+static int _month_offset[2][13] = {
+    { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 },
+    { 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 }
+};
+
 // stuff numpy needs in header
 // ----------------------------------------------------------------------------
 

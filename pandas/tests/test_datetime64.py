@@ -207,13 +207,23 @@ class TestDatetime64(unittest.TestCase):
         dti = DatetimeIndex(offset='Q@JAN', start=datetime(1997,12,31),
                             periods=100)
 
-        dti.year[0] == 1997
-        dti.month[0] == 12
-        dti.day[0] == 31
-        dti.hour[0] = 0
-        dti.minute[0] = 0
-        dti.second[0] = 0
-        dti.microsecond[0] = 0
+        self.assertEquals(dti.year[0], 1998)
+        self.assertEquals(dti.month[0], 1)
+        self.assertEquals(dti.day[0], 31)
+        self.assertEquals(dti.hour[0], 0)
+        self.assertEquals(dti.minute[0], 0)
+        self.assertEquals(dti.second[0], 0)
+        self.assertEquals(dti.microsecond[0], 0)
+        self.assertEquals(dti.dayofweek[0], 5)
+
+        self.assertEquals(dti.dayofyear[0], 31)
+        self.assertEquals(dti.dayofyear[1], 120) 
+
+        self.assertEquals(dti.weekofyear[0], 5)
+        self.assertEquals(dti.weekofyear[1], 18) 
+
+        self.assertEquals(dti.quarter[0], 1)
+        self.assertEquals(dti.quarter[1], 2)
 
         self.assertEquals(len(dti.year), 100)
         self.assertEquals(len(dti.month), 100)
@@ -222,6 +232,10 @@ class TestDatetime64(unittest.TestCase):
         self.assertEquals(len(dti.minute), 100)
         self.assertEquals(len(dti.second), 100)
         self.assertEquals(len(dti.microsecond), 100)
+        self.assertEquals(len(dti.dayofweek), 100)
+        self.assertEquals(len(dti.dayofyear), 100)
+        self.assertEquals(len(dti.weekofyear), 100)
+        self.assertEquals(len(dti.quarter), 100)
 
     def test_datetimeindex_diff(self):
         dti1 = DatetimeIndex(offset='Q@JAN', start=datetime(1997,12,31),
