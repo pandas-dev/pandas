@@ -1174,7 +1174,18 @@ class TestConcatenate(unittest.TestCase):
         expected.index = exp_index
         tm.assert_series_equal(result, expected)
 
-        self.assertRaises(Exception, concat, pieces, axis=1)
+    def test_concat_series_axis1(self):
+        ts = tm.makeTimeSeries()
+
+        pieces = [ts[:-2], ts[2:], ts[2:-2]]
+
+        result = concat(pieces, axis=1)
+        expected = DataFrame(pieces).T
+        assert_frame_equal(result, expected)
+
+        result = concat(pieces, keys=['A', 'B', 'C'], axis=1)
+        expected = DataFrame(pieces, index=['A', 'B', 'C']).T
+        assert_frame_equal(result, expected)
 
     def test_concat_single_with_key(self):
         df = DataFrame(np.random.randn(10, 4))
