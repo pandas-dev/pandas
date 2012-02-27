@@ -1603,6 +1603,33 @@ def i8_to_pydt(int64_t i8, object tzinfo = None):
 # Accessors
 # ------------------------------------------------------------------------------
 
+def build_field_sarray(ndarray[int64_t] dtindex):
+    '''
+    Datetime as int64 representation to a structured array of fields
+    '''
+    cdef:
+        Py_ssize_t i, count = 0
+        int isleap
+        npy_datetimestruct dts
+
+    count = len(dtindex)
+
+    sa_dtype = [('Y', '>i4'), # year
+                ('M', '>i4'), # month
+                ('D', '>i4'), # day
+                ('h', '>i4'), # hour
+                ('m', '>i4'), # min
+                ('s', '>i4'), # second
+                ('u', '>i4')] # microsecond
+
+    out = np.empty(count, dtype=sa_dtype)
+
+    for i in range(count):
+        PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
+        out[i] = (dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec,
+                  dts.us)
+    return out
+
 def fast_field_accessor(ndarray[int64_t] dtindex, object field):
     '''
     Given a int64-based datetime index, extract the year, month, etc.,
@@ -1613,57 +1640,58 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
         Py_ssize_t i, count = 0
         ndarray[int32_t] out
         int isleap
+        npy_datetimestruct dts
 
     count = len(dtindex)
     out = np.empty(count, dtype='i4')
 
     if field == 'Y':
         for i in range(count):
-            ts = convert_to_tsobject(dtindex[i])
-            out[i] = ts.dtval.year
+            PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
+            out[i] = dts.year
         return out
 
     elif field == 'M':
         for i in range(count):
-            ts = convert_to_tsobject(dtindex[i])
-            out[i] = ts.dtval.month
+            PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
+            out[i] = dts.month
         return out
 
     elif field == 'D':
         for i in range(count):
-            ts = convert_to_tsobject(dtindex[i])
-            out[i] = ts.dtval.day
+            PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
+            out[i] = dts.day
         return out
 
     elif field == 'h':
         for i in range(count):
-            ts = convert_to_tsobject(dtindex[i])
-            out[i] = ts.dtval.hour
+            PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
+            out[i] = dts.hour
         return out
 
     elif field == 'm':
         for i in range(count):
-            ts = convert_to_tsobject(dtindex[i])
-            out[i] = ts.dtval.minute
+            PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
+            out[i] = dts.min
         return out
 
     elif field == 's':
         for i in range(count):
-            ts = convert_to_tsobject(dtindex[i])
-            out[i] = ts.dtval.second
+            PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
+            out[i] = dts.sec
         return out
 
     elif field == 'us':
         for i in range(count):
-            ts = convert_to_tsobject(dtindex[i])
-            out[i] = ts.dtval.microsecond
+            PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
+            out[i] = dts.us
         return out
 
     elif field == 'doy':
         for i in range(count):
-            ts = convert_to_tsobject(dtindex[i])
-            isleap = is_leapyear(ts.dtval.year)
-            out[i] = _month_offset[isleap][ts.dtval.month-1] + ts.dtval.day
+            PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
+            isleap = is_leapyear(dts.year)
+            out[i] = _month_offset[isleap][dts.month-1] + dts.day
         return out
 
     elif field == 'dow':
@@ -1674,16 +1702,16 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
 
     elif field == 'woy':
         for i in range(count):
-            ts = convert_to_tsobject(dtindex[i])
-            isleap = is_leapyear(ts.dtval.year)
-            out[i] = _month_offset[isleap][ts.dtval.month-1] + ts.dtval.day
+            PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
+            isleap = is_leapyear(dts.year)
+            out[i] = _month_offset[isleap][dts.month-1] + dts.day
             out[i] = ((out[i] - 1) / 7) + 1
         return out
 
     elif field == 'q':
         for i in range(count):
-            ts = convert_to_tsobject(dtindex[i])
-            out[i] = ts.dtval.month
+            PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
+            out[i] = dts.month
             out[i] = ((out[i] - 1) / 3) + 1
         return out
 

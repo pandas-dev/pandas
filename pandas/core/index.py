@@ -45,7 +45,7 @@ class Index(np.ndarray):
     data : array-like (1-dimensional)
     dtype : NumPy dtype (default: object)
     copy : bool
-        Make a copy of input ndarray
+        Mt_fieldke a copy of input ndarray
 
     Note
     ----
@@ -1116,6 +1116,9 @@ class DatetimeIndex(Int64Index):
     __add__ = _dt_index_op('__add__')
     __sub__ = _dt_index_op('__sub__')
 
+    # structured array cache for datetime fields
+    _sarr_cache = None
+
     def __new__(cls, data=None,
                 offset=None, start=None, end=None, periods=None,
                 dtype=None, copy=False, name=None, tzinfo=None,
@@ -1509,11 +1512,15 @@ class DatetimeIndex(Int64Index):
         except:
             return super(DatetimeIndex, self).map(func_to_map)
 
+    @property
+    def asstruct(self):
+        if self._sarr_cache is None:
+            self._sarr_cache = lib.build_field_sarray(self.asi8)
+        return self._sarr_cache
+
+
     # Fast field accessors for periods of datetime index
     # --------------------------------------------------------------
-
-    # Thought, could be made much much faster if we shadow the index
-    # with a structured array dtype for extracting vectorized fields
 
     @property
     def year(self):
