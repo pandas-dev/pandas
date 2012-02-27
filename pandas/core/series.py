@@ -1841,7 +1841,8 @@ copy : boolean, default False
         # be subclass-friendly
         return self._constructor(new_values, new_index, name=self.name)
 
-    def reindex(self, index=None, method=None, level=None, copy=True):
+    def reindex(self, index=None, method=None, level=None, fill_value=np.nan,
+                copy=True):
         """Conform Series to new index with optional filling logic, placing
         NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
@@ -1861,6 +1862,9 @@ copy : boolean, default False
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level
+        fill_value : scalar, default np.NaN
+            Value to use for missing values. Defaults to NaN, but can be any
+            "compatible" value
 
         Returns
         -------
@@ -1878,7 +1882,7 @@ copy : boolean, default False
 
         new_index, fill_vec = self.index.reindex(index, method=method,
                                                  level=level)
-        new_values = com.take_1d(self.values, fill_vec)
+        new_values = com.take_1d(self.values, fill_vec, fill_value=fill_value)
         return Series(new_values, index=new_index, name=self.name)
 
     def reindex_like(self, other, method=None):

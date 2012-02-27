@@ -103,10 +103,10 @@ def _unpickle_array(bytes):
     arr = read_array(BytesIO(bytes))
     return arr
 
-def _take_1d_bool(arr, indexer, out):
+def _take_1d_bool(arr, indexer, out, fill_value=np.nan):
     view = arr.view(np.uint8)
     outview = out.view(np.uint8)
-    lib.take_1d_bool(view, indexer, outview)
+    lib.take_1d_bool(view, indexer, outview, fill_value=fill_value)
 
 def _take_2d_axis0_bool(arr, indexer, out):
     view = arr.view(np.uint8)
@@ -148,7 +148,7 @@ def _get_take2d_function(dtype_str, axis=0):
     else:
         return _take2d_axis1_dict[dtype_str]
 
-def take_1d(arr, indexer, out=None):
+def take_1d(arr, indexer, out=None, fill_value=np.nan):
     """
     Specialized Cython take which sets NaN values in one pass
     """
@@ -167,7 +167,7 @@ def take_1d(arr, indexer, out=None):
             if out is None:
                 out = np.empty(n, dtype=arr.dtype)
             take_f = _take1d_dict[dtype_str]
-            take_f(arr, indexer, out=out)
+            take_f(arr, indexer, out=out, fill_value=fill_value)
         except ValueError:
             mask = indexer == -1
             if len(arr) == 0:
@@ -180,12 +180,12 @@ def take_1d(arr, indexer, out=None):
                     raise Exception('out with dtype %s does not support NA' %
                                     out.dtype)
                 out = _maybe_upcast(out)
-                np.putmask(out, mask, np.nan)
+                np.putmask(out, mask, fill_value)
     elif dtype_str in ('float64', 'object'):
         if out is None:
             out = np.empty(n, dtype=arr.dtype)
         take_f = _take1d_dict[dtype_str]
-        take_f(arr, indexer, out=out)
+        take_f(arr, indexer, out=out, fill_value=fill_value)
     else:
         out = arr.take(indexer, out=out)
         mask = indexer == -1
@@ -194,7 +194,7 @@ def take_1d(arr, indexer, out=None):
                 raise Exception('out with dtype %s does not support NA' %
                                 out.dtype)
             out = _maybe_upcast(out)
-            np.putmask(out, mask, np.nan)
+            np.putmask(out, mask, fill_value)
 
     return out
 

@@ -3,10 +3,11 @@ from cStringIO import StringIO
 take_1d_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
 def take_1d_%(name)s(ndarray[%(c_type)s] values, ndarray[int32_t] indexer,
-                     out=None):
+                     out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
         ndarray[%(c_type)s] outbuf
+        %(c_type)s fv
 
     n = len(indexer)
 
@@ -15,12 +16,21 @@ def take_1d_%(name)s(ndarray[%(c_type)s] values, ndarray[int32_t] indexer,
     else:
         outbuf = out
 
-    for i in range(n):
-        idx = indexer[i]
-        if idx == -1:
-            %(na_action)s
-        else:
-            outbuf[i] = values[idx]
+    if %(raise_on_na)s and _checknan(fill_value):
+        for i in range(n):
+            idx = indexer[i]
+            if idx == -1:
+                raise ValueError('No NA values allowed')
+            else:
+                outbuf[i] = values[idx]
+    else:
+        fv = fill_value
+        for i in range(n):
+            idx = indexer[i]
+            if idx == -1:
+                outbuf[i] = fv
+            else:
+                outbuf[i] = values[idx]
 
 """
 
@@ -724,12 +734,14 @@ def generate_from_template(template, ndim=1, exclude=None):
         if exclude is not None and name in exclude:
             continue
 
+        raise_on_na = 'False' if can_hold_na else 'True'
         if ndim == 1:
             na_action = set_na if can_hold_na else raise_on_na
         elif ndim == 2:
             na_action = set_na_2d if can_hold_na else raise_on_na
-        func = template % {'name' : name, 'c_type' : c_type,
-                           'dtype' : dtype, 'na_action' : na_action}
+        func = template % {'name': name, 'c_type': c_type,
+                           'dtype': dtype, 'na_action': na_action,
+                           'raise_on_na': raise_on_na}
         output.write(func)
     return output.getvalue()
 

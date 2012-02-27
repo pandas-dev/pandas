@@ -1958,6 +1958,56 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(self.ts.reindex(other.index),
                             self.ts.reindex_like(other))
 
+    def test_reindex_fill_value(self):
+        #------------------------------------------------------------
+        # floats
+        floats = Series([1., 2., 3.])
+        result = floats.reindex([1, 2, 3])
+        expected = Series([2., 3., np.nan], index=[1, 2, 3])
+        assert_series_equal(result, expected)
+
+        result = floats.reindex([1, 2, 3], fill_value=0)
+        expected = Series([2., 3., 0], index=[1, 2, 3])
+        assert_series_equal(result, expected)
+
+        #------------------------------------------------------------
+        # ints
+        ints = Series([1, 2, 3])
+
+        result = ints.reindex([1, 2, 3])
+        expected = Series([2., 3., np.nan], index=[1, 2, 3])
+        assert_series_equal(result, expected)
+
+        # don't upcast
+        result = ints.reindex([1, 2, 3], fill_value=0)
+        expected = Series([2, 3, 0], index=[1, 2, 3])
+        self.assert_(issubclass(result.dtype.type, np.integer))
+        assert_series_equal(result, expected)
+
+        #------------------------------------------------------------
+        # objects
+        objects = Series([1, 2, 3], dtype=object)
+
+        result = objects.reindex([1, 2, 3])
+        expected = Series([2, 3, np.nan], index=[1, 2, 3], dtype=object)
+        assert_series_equal(result, expected)
+
+        result = objects.reindex([1, 2, 3], fill_value='foo')
+        expected = Series([2, 3, 'foo'], index=[1, 2, 3], dtype=object)
+        assert_series_equal(result, expected)
+
+        #------------------------------------------------------------
+        # bools
+        bools = Series([True, False, True])
+
+        result = bools.reindex([1, 2, 3])
+        expected = Series([False, True, np.nan], index=[1, 2, 3], dtype=object)
+        assert_series_equal(result, expected)
+
+        result = bools.reindex([1, 2, 3], fill_value=False)
+        expected = Series([False, True, False], index=[1, 2, 3])
+        assert_series_equal(result, expected)
+
     def test_rename(self):
         renamer = lambda x: x.strftime('%Y%m%d')
         renamed = self.ts.rename(renamer)
