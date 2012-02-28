@@ -486,14 +486,12 @@ def group_add_bin(ndarray[float64_t, ndim=2] out,
         Py_ssize_t i, j, N, K, ngroups, b
         float64_t val, count
         ndarray[float64_t, ndim=2] sumx, nobs
-        ndarray[int32_t] counts
 
     nobs = np.zeros_like(out)
     sumx = np.zeros_like(out)
 
     ngroups = len(bins) + 1
     N, K = (<object> values).shape
-    counts = counts_by_bins(bins, N)
 
     b = 0
     if K > 1:
@@ -536,14 +534,12 @@ def group_mean_bin(ndarray[float64_t, ndim=2] out,
         Py_ssize_t i, j, N, K, ngroups, b
         float64_t val, count
         ndarray[float64_t, ndim=2] sumx, nobs
-        ndarray[int32_t] counts
 
     nobs = np.zeros_like(out)
     sumx = np.zeros_like(out)
 
     ngroups = len(bins) + 1
     N, K = (<object> values).shape
-    counts = counts_by_bins(bins, N)
 
     b = 0
     if K > 1:
@@ -588,7 +584,6 @@ def group_var_bin(ndarray[float64_t, ndim=2] out,
         Py_ssize_t i, j, N, K, ngroups, b
         float64_t val, ct
         ndarray[float64_t, ndim=2] nobs, sumx, sumxx
-        ndarray[int32_t] counts
 
     nobs = np.zeros_like(out)
     sumx = np.zeros_like(out)
@@ -596,7 +591,6 @@ def group_var_bin(ndarray[float64_t, ndim=2] out,
 
     ngroups = len(bins) + 1
     N, K = (<object> values).shape
-    counts = counts_by_bins(bins, N)
 
     b = 0
     if K > 1:
