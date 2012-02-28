@@ -1693,7 +1693,7 @@ class DataFrame(NDFrame):
     # Reindexing and alignment
 
     def align(self, other, join='outer', axis=None, level=None, copy=True,
-              fill_value=None, method=None):
+              fill_value=np.nan, method=None):
         """
         Align two DataFrame object on their index and columns with the
         specified join method for each axis Index
@@ -1710,7 +1710,9 @@ class DataFrame(NDFrame):
         copy : boolean, default True
             Always returns new objects. If copy=False and no reindexing is
             required then original objects are returned.
-        fill_value : object, default None
+        fill_value : scalar, default np.NaN
+            Value to use for missing values. Defaults to NaN, but can be any
+            "compatible" value
         method : str, default None
 
         Returns
@@ -1730,7 +1732,7 @@ class DataFrame(NDFrame):
             raise TypeError('unsupported type: %s' % type(other))
 
     def _align_frame(self, other, join='outer', axis=None, level=None,
-                     copy=True, fill_value=None, method=None):
+                     copy=True, fill_value=np.nan, method=None):
         # defaults
         join_index, join_columns = None, None
         ilidx, iridx = None, None
@@ -1749,15 +1751,17 @@ class DataFrame(NDFrame):
                                       return_indexers=True)
 
         left = self._reindex_with_indexers(join_index, ilidx,
-                                           join_columns, clidx, copy)
+                                           join_columns, clidx, copy,
+                                           fill_value=fill_value)
         right = other._reindex_with_indexers(join_index, iridx,
-                                             join_columns, cridx, copy)
-        fill_na = (fill_value is not None) or (method is not None)
-        if fill_na:
-            return (left.fillna(fill_value, method=method),
-                    right.fillna(fill_value, method=method))
-        else:
-            return left, right
+                                             join_columns, cridx, copy,
+                                             fill_value=fill_value)
+
+        if method is not None:
+            left = left.fillna(method=method)
+            right = right.fillna(method=method)
+
+        return left, right
 
     def _align_series(self, other, join='outer', axis=None, level=None,
                       copy=True, fill_value=None, method=None):
@@ -1798,7 +1802,7 @@ class DataFrame(NDFrame):
             return left_result, right_result
 
     def reindex(self, index=None, columns=None, method=None, level=None,
-                copy=True):
+                fill_value=np.nan, copy=True):
         """Conform DataFrame to new index with optional filling logic, placing
         NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
@@ -1820,6 +1824,9 @@ class DataFrame(NDFrame):
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level
+        fill_value : scalar, default np.NaN
+            Value to use for missing values. Defaults to NaN, but can be any
+            "compatible" value
 
         Examples
         --------
@@ -1833,14 +1840,15 @@ class DataFrame(NDFrame):
         frame = self
 
         if index is not None:
-            frame = frame._reindex_index(index, method, copy, level)
+            frame = frame._reindex_index(index, method, copy, level, fill_value)
 
         if columns is not None:
-            frame = frame._reindex_columns(columns, copy, level)
+            frame = frame._reindex_columns(columns, copy, level, fill_value)
 
         return frame
 
-    def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True):
+    def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True,
+                     fill_value=np.nan):
         """Conform DataFrame to new index with optional filling logic, placing
         NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
@@ -1878,42 +1886,45 @@ class DataFrame(NDFrame):
         """
         self._consolidate_inplace()
         if axis == 0:
-            df = self._reindex_index(labels, method, copy, level)
-            return df
+            return self._reindex_index(labels, method, copy, level,
+                                       fill_value=fill_value)
         elif axis == 1:
-            df = self._reindex_columns(labels, copy, level)
-            return df
+            return self._reindex_columns(labels, copy, level,
+                                         fill_value=fill_value)
         else:  # pragma: no cover
             raise ValueError('Must specify axis=0 or 1')
 
-    def _reindex_index(self, new_index, method, copy, level):
+    def _reindex_index(self, new_index, method, copy, level, fill_value=np.nan):
         if level is not None:
             assert(isinstance(new_index, MultiIndex))
         new_index, indexer = self.index.reindex(new_index, method, level)
         return self._reindex_with_indexers(new_index, indexer, None, None,
-                                           copy)
+                                           copy, fill_value)
 
-    def _reindex_columns(self, new_columns, copy, level):
+    def _reindex_columns(self, new_columns, copy, level, fill_value=np.nan):
         if level is not None:
             assert(isinstance(new_columns, MultiIndex))
         new_columns, indexer = self.columns.reindex(new_columns, level=level)
         return self._reindex_with_indexers(None, None, new_columns, indexer,
-                                           copy)
+                                           copy, fill_value)
 
     def _reindex_with_indexers(self, index, row_indexer, columns, col_indexer,
-                               copy):
+                               copy, fill_value):
         new_data = self._data
         if row_indexer is not None:
-            new_data = new_data.reindex_indexer(index, row_indexer, axis=1)
+            new_data = new_data.reindex_indexer(index, row_indexer, axis=1,
+                                                fill_value=fill_value)
         elif index is not None and index is not new_data.axes[1]:
             new_data = new_data.copy(deep=copy)
             new_data.axes[1] = index
 
         if col_indexer is not None:
             # TODO: speed up on homogeneous DataFrame objects
-            new_data = new_data.reindex_indexer(columns, col_indexer, axis=0)
+            new_data = new_data.reindex_indexer(columns, col_indexer, axis=0,
+                                                fill_value=fill_value)
         elif columns is not None and columns is not new_data.axes[0]:
-            new_data = new_data.reindex_items(columns, copy=copy)
+            new_data = new_data.reindex_items(columns, copy=copy,
+                                              fill_value=fill_value)
 
         if copy and new_data is self._data:
             new_data = new_data.copy()
@@ -2361,8 +2372,7 @@ class DataFrame(NDFrame):
 
     def fillna(self, value=None, method='pad', inplace=False):
         """
-        Fill NA/NaN values using the specified method. Member Series /
-        TimeSeries are filled separately
+        Fill NA/NaN values using the specified method
 
         Parameters
         ----------
@@ -2402,12 +2412,6 @@ class DataFrame(NDFrame):
                 new_blocks.append(newb)
 
             new_data = BlockManager(new_blocks, self._data.axes)
-
-            # series = self._series
-            # for col, s in series.iteritems():
-            #     result[col] = s.fillna(method=method, value=value)
-            # return self._constructor(result, index=self.index,
-            #                          columns=self.columns)
         else:
             # Float type values
             if len(self.columns) == 0:

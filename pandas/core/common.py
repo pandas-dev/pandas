@@ -108,15 +108,15 @@ def _take_1d_bool(arr, indexer, out, fill_value=np.nan):
     outview = out.view(np.uint8)
     lib.take_1d_bool(view, indexer, outview, fill_value=fill_value)
 
-def _take_2d_axis0_bool(arr, indexer, out):
+def _take_2d_axis0_bool(arr, indexer, out, fill_value=np.nan):
     view = arr.view(np.uint8)
     outview = out.view(np.uint8)
-    lib.take_2d_axis0_bool(view, indexer, outview)
+    lib.take_2d_axis0_bool(view, indexer, outview, fill_value=fill_value)
 
-def _take_2d_axis1_bool(arr, indexer, out):
+def _take_2d_axis1_bool(arr, indexer, out, fill_value=np.nan):
     view = arr.view(np.uint8)
     outview = out.view(np.uint8)
-    lib.take_2d_axis1_bool(view, indexer, outview)
+    lib.take_2d_axis1_bool(view, indexer, outview, fill_value=fill_value)
 
 _take1d_dict = {
     'float64' : lib.take_1d_float64,
@@ -198,7 +198,8 @@ def take_1d(arr, indexer, out=None, fill_value=np.nan):
 
     return out
 
-def take_2d(arr, indexer, out=None, mask=None, needs_masking=None, axis=0):
+def take_2d(arr, indexer, out=None, mask=None, needs_masking=None, axis=0,
+            fill_value=np.nan):
     """
     Specialized Cython take which sets NaN values in one pass
     """
@@ -221,19 +222,20 @@ def take_2d(arr, indexer, out=None, mask=None, needs_masking=None, axis=0):
             # upcasting may be required
             result = arr.take(indexer, axis=axis, out=out)
             result = _maybe_mask(result, mask, needs_masking, axis=axis,
-                                 out_passed=out is not None)
+                                 out_passed=out is not None,
+                                 fill_value=fill_value)
             return result
         else:
             if out is None:
                 out = np.empty(out_shape, dtype=arr.dtype)
             take_f = _get_take2d_function(dtype_str, axis=axis)
-            take_f(arr, indexer, out=out)
+            take_f(arr, indexer, out=out, fill_value=fill_value)
             return out
     elif dtype_str in ('float64', 'object'):
         if out is None:
             out = np.empty(out_shape, dtype=arr.dtype)
         take_f = _get_take2d_function(dtype_str, axis=axis)
-        take_f(arr, indexer, out=out)
+        take_f(arr, indexer, out=out, fill_value=fill_value)
         return out
     else:
         if mask is None:
@@ -246,34 +248,37 @@ def take_2d(arr, indexer, out=None, mask=None, needs_masking=None, axis=0):
 
         result = arr.take(indexer, axis=axis, out=out)
         result = _maybe_mask(result, mask, needs_masking, axis=axis,
-                             out_passed=out is not None)
+                             out_passed=out is not None,
+                             fill_value=fill_value)
         return result
 
-def null_out_axis(arr, mask, axis):
+def mask_out_axis(arr, mask, axis, fill_value=np.nan):
     indexer = [slice(None)] * arr.ndim
     indexer[axis] = mask
 
-    arr[tuple(indexer)] = np.NaN
+    arr[tuple(indexer)] = fill_value
 
-def take_fast(arr, indexer, mask, needs_masking, axis=0, out=None):
+def take_fast(arr, indexer, mask, needs_masking, axis=0, out=None,
+              fill_value=np.nan):
     if arr.ndim == 2:
         return take_2d(arr, indexer, out=out, mask=mask,
                        needs_masking=needs_masking,
-                       axis=axis)
+                       axis=axis, fill_value=fill_value)
 
     result = arr.take(indexer, axis=axis, out=out)
     result = _maybe_mask(result, mask, needs_masking, axis=axis,
-                         out_passed=out is not None)
+                         out_passed=out is not None, fill_value=fill_value)
     return result
 
-def _maybe_mask(result, mask, needs_masking, axis=0, out_passed=False):
+def _maybe_mask(result, mask, needs_masking, axis=0, out_passed=False,
+                fill_value=np.nan):
     if needs_masking:
         if out_passed and _need_upcast(result):
             raise Exception('incompatible type for NAs')
         else:
             # a bit spaghettified
             result = _maybe_upcast(result)
-            null_out_axis(result, mask, axis)
+            mask_out_axis(result, mask, axis, fill_value)
     return result
 
 def _maybe_upcast(values):

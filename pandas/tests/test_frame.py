@@ -3159,7 +3159,49 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         newFrame = self.frame.reindex(columns=[])
         self.assert_(not newFrame)
 
-    def test_add_index(self):
+    def test_reindex_fill_value(self):
+        df = DataFrame(np.random.randn(10, 4))
+
+        # axis=0
+        result = df.reindex(range(15))
+        self.assert_(np.isnan(result.values[-5:]).all())
+
+        result = df.reindex(range(15), fill_value=0)
+        expected = df.reindex(range(15)).fillna(0)
+        assert_frame_equal(result, expected)
+
+        # axis=1
+        result = df.reindex(columns=range(5), fill_value=0.)
+        expected = df.copy()
+        expected[4] = 0.
+        assert_frame_equal(result, expected)
+
+        result = df.reindex(columns=range(5), fill_value=0)
+        expected = df.copy()
+        expected[4] = 0
+        assert_frame_equal(result, expected)
+
+        result = df.reindex(columns=range(5), fill_value='foo')
+        expected = df.copy()
+        expected[4] = 'foo'
+        assert_frame_equal(result, expected)
+
+        # reindex_axis
+        result = df.reindex_axis(range(15), fill_value=0., axis=0)
+        expected = df.reindex(range(15)).fillna(0)
+        assert_frame_equal(result, expected)
+
+        result = df.reindex_axis(range(5), fill_value=0., axis=1)
+        expected = df.reindex(columns=range(5)).fillna(0)
+        assert_frame_equal(result, expected)
+
+        # other dtypes
+        df['foo'] = 'foo'
+        result = df.reindex(range(15), fill_value=0)
+        expected = df.reindex(range(15)).fillna(0)
+        assert_frame_equal(result, expected)
+
+    def test_set_index2(self):
         df = DataFrame({'A' : ['foo', 'foo', 'foo', 'bar', 'bar'],
                         'B' : ['one', 'two', 'three', 'one', 'two'],
                         'C' : ['a', 'b', 'c', 'd', 'e'],
@@ -3229,7 +3271,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # axis = 0
         other = self.frame.ix[:-5, :3]
         af, bf = self.frame.align(other, axis=0, fill_value=-1)
-        self.assert_(bf.columns.equals(other.columns))        
+        self.assert_(bf.columns.equals(other.columns))
         #test fill value
         join_idx = self.frame.index.join(other.index)
         diff_a = self.frame.index.diff(join_idx)

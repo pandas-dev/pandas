@@ -1048,7 +1048,10 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         self.assertRaises(Exception, self.frame.astype, np.int64)
 
     def test_fillna(self):
-        self.assertRaises(NotImplementedError, self.frame.fillna, 0)
+        df = self.zframe.reindex(range(5))
+        result = df.fillna(0)
+        expected = df.to_dense().fillna(0).to_sparse(fill_value=0)
+        assert_sp_frame_equal(result, expected)
 
     def test_rename(self):
         # just check this works
@@ -1128,6 +1131,12 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         reindexed = self.frame.reindex(self.frame.index)
         reindexed['G'] = reindexed['A']
         self.assert_('G' not in self.frame)
+
+    def test_reindex_fill_value(self):
+        rng = DateRange('20110110', periods=20)
+        result = self.zframe.reindex(rng, fill_value=0)
+        expected = self.zframe.reindex(rng).fillna(0)
+        assert_sp_frame_equal(result, expected)
 
     def test_take(self):
         result = self.frame.take([1, 0, 2], axis=1)
