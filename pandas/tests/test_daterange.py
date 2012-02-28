@@ -373,7 +373,6 @@ class TestDateRange(unittest.TestCase):
     def test_catch_infinite_loop(self):
         offset = datetools.DateOffset(minute=5)
         # blow up, don't loop forever
-        DateRange(datetime(2011,11,11), datetime(2011,11,12), offset=offset)
         self.assertRaises(Exception, DateRange, datetime(2011,11,11),
                           datetime(2011,11,12), offset=offset)
 
