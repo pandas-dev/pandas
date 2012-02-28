@@ -1153,12 +1153,25 @@ class DatetimeIndex(Int64Index):
                                           offset=offset, name=name,
                                           _deprecated=_deprecated)
             else:
-                xdr = datetools.generate_range(start=start, end=end,
-                                               periods=periods, offset=offset,
-                                               _deprecated=_deprecated)
+                if isinstance(offset, datetools.Tick):
+                    if periods is None:
+                        b, e = Timestamp(start), Timestamp(end)
+                        data = np.arange(b.value, e.value+1,
+                                        offset.us_stride(), dtype=np.int64)
+                    else:
+                        b = Timestamp(start)
+                        e = b.value + periods * offset.us_stride()
+                        data = np.arange(b.value, e,
+                                         offset.us_stride(), dtype=np.int64)
 
-                index = np.array(_dt_unbox_array(list(xdr)), dtype='M8[us]',
-                                 copy=False)
+                else:
+                    xdr = datetools.generate_range(start=start, end=end,
+                        periods=periods, offset=offset,
+                        _deprecated=_deprecated)
+
+                    data = _dt_unbox_array(list(xdr))
+
+                index = np.array(data, dtype=np.datetime64, copy=False)
 
             index = index.view(cls)
             index.name = name

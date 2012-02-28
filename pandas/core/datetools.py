@@ -893,9 +893,9 @@ class Tick(DateOffset):
         return self._delta
 
     def us_stride(self):
-        return (self._delta.days * 24 * 60 * 60 * 1000000
-                + self._delta.seconds * 1000000
-                + self._delta.microseconds)
+        return (self.delta.days * 24 * 60 * 60 * 1000000
+                + self.delta.seconds * 1000000
+                + self.delta.microseconds)
 
     def apply(self, other):
         if isinstance(other, (datetime, timedelta, Timestamp)):
