@@ -370,6 +370,13 @@ class TestDateRange(unittest.TestCase):
         exp_values = [start + i * offset for i in range(5)]
         self.assert_(np.array_equal(result, exp_values))
 
+    def test_catch_infinite_loop(self):
+        offset = datetools.DateOffset(minute=5)
+        # blow up, don't loop forever
+        DateRange(datetime(2011,11,11), datetime(2011,11,12), offset=offset)
+        self.assertRaises(Exception, DateRange, datetime(2011,11,11),
+                          datetime(2011,11,12), offset=offset)
+
 def _skip_if_no_pytz():
     try:
         import pytz
