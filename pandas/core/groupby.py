@@ -1,17 +1,17 @@
-from itertools import izip
 import types
 
 import numpy as np
 
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.index import Index, MultiIndex
+from pandas.core.index import Index, MultiIndex, DatetimeIndex
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly, Appender
 import pandas.core.algorithms as algos
 import pandas.core.common as com
+import pandas.core.datetools as dt
 import pandas._tseries as lib
 
 
@@ -95,8 +95,6 @@ class GroupBy(object):
             obj._consolidate_inplace()
 
         self.obj = obj
-
-
         self.axis = axis
         self.level = level
 
@@ -622,7 +620,7 @@ class Grouper(object):
 
         return name_list
 
-def generate_bins_generic(index, binner, closed, label):
+def generate_bins_generic(values, binner, closed, label):
     """
     Generate bin edge offsets and bin labels for one array using another array
     which has bin edge values. Both arrays must be sorted.
@@ -643,25 +641,29 @@ def generate_bins_generic(index, binner, closed, label):
         bin is values[0:bin[0]] and the last is values[bin[-1]:]
     labels : array of labels of bins
     """
-    lenidx = len(index)
+    lenidx = len(values)
     lenbin = len(binner)
 
+    if lenidx <= 0 or lenbin <= 0:
+        raise ValueError("Invalid length for values or for binner")
+
     # check binner fits data
-    if index[0] < binner[0]:
-        raise ValueError("Index overlaps first bin")
+    if values[0] < binner[0]:
+        raise ValueError("Values falls before first bin")
 
-    if index[-1] > binner[-1]:
-        raise ValueError("Index overlaps last bin")
+    if values[lenidx-1] > binner[lenbin-1]:
+        raise ValueError("Values falls after last bin")
 
-    labels = np.empty(lenbin, dtype='O')
-    bins = np.empty(lenbin, dtype='i4')
+    labels = np.empty(lenbin, dtype=np.int64)
+    bins   = np.empty(lenbin, dtype=np.int32)
 
-    j = 0
+    j  = 0 # index into values
     bc = 0 # bin count
     vc = 0 # value count
 
-    # linear scan, presume nothing about index/binner
-    for i in range(0, len(binner)-1):
+    # linear scan, presume nothing about values/binner except that it
+    # fits ok
+    for i in range(0, lenbin-1):
         l_bin = binner[i]
         r_bin = binner[i+1]
 
@@ -671,33 +673,22 @@ def generate_bins_generic(index, binner, closed, label):
         else:
             labels[bc] = r_bin
 
-        # check still within possible bins
-        if index[lenidx-1] < r_bin:
-            vc = lenidx - j
+        # count values in current bin, advance to next bin
+        while values[j] < r_bin or closed == 'right' and values[j] == r_bin:
+            j += 1
+            vc += 1
+            if j >= lenidx:
+                break
+
+        # check we have data left to scan
+        if j >= lenidx:
             break
 
-        # advance until in correct bin
-        if closed == 'left':
-            while r_bin > index[j]:
-                j += 1
-                vc += 1
-                if j >= lenidx:
-                    break
-        else:
-            while r_bin >= index[j]:
-                j += 1
-                vc += 1
-                if j >= lenidx:
-                    break
-
-        # check we have more data to scan
-        if j < lenidx:
-            if vc != 0:
-                bins[bc] = j 
-                bc += 1
-                vc = 0
-        else:
-            break
+        # if we've seen some values, mark bin
+        if vc != 0:
+            bins[bc] = j 
+            bc += 1
+            vc = 0
 
     labels = np.resize(labels, bc + 1)
     bins = np.resize(bins, bc)
@@ -707,53 +698,109 @@ def generate_bins_generic(index, binner, closed, label):
 class CustomGrouper:
     pass
 
-class Binner(Grouper, CustomGrouper):
+def _generate_time_binner(dtindex, offset,
+                          begin=None, end=None, nperiods=None):
+
+    if isinstance(offset, basestring):
+        offset = dt.getOffset(offset)
+
+    if begin is None:
+        first = lib.Timestamp(dtindex[0] - offset)
+    else:
+        first = lib.Timestamp(begin)
+
+    if end is None:
+        last = lib.Timestamp(dtindex[-1] + offset)
+    else:
+        last = lib.Timestamp(end)
+
+    if isinstance(offset, dt.Tick):
+        return np.arange(first.value, last.value+1, offset.us_stride(),
+                         dtype=np.int64)
+
+    return DatetimeIndex(offset=offset, 
+                         start=first, end=last, periods=nperiods)
+
+class Tinterval(Grouper, CustomGrouper):
     """
-    Custom binner class (for grouping into bins)
+    Custom groupby class for time-interval grouping 
 
     Parameters
     ----------
-    index : index object to bin
-    binner : index object containing bin edges 
+    interval : pandas offset string or object for identifying bin edges 
     closed : closed end of interval; left (default) or right
     label : interval boundary to use for labeling; left (default) or right
+    begin : optional, timestamp-like
+    end : optional, timestamp-like
+    nperiods : optional, integer
+
+    Notes
+    -----
+    Use begin, end, nperiods to generate intervals that cannot be derived 
+    directly from the associated object
     """
-    index = None
+
+    obj = None
     bins = None
     binlabels = None
+    begin = None
+    end = None
+    nperiods = None
 
-    def __init__(self, index, binner, closed='left', label='left'):
-        from pandas.core.index import DatetimeIndex
+    def __init__(self, interval='Min', closed='left', label='left',
+                 begin=None, end=None, nperiods=None):
+        self.offset = interval
+        self.closed = closed
+        self.label = label
+        self.begin = begin
+        self.end = end
+        self.nperiods = None
 
-        if isinstance(index, DatetimeIndex):
-            # we know nothing about frequencies
-            bins, labels = lib.generate_bins_dt64(index.asi8, binner.asi8,
-                                                  closed, label)
-            labels = labels.view('M8[us]')
-            # TODO: more speedup using freq info
-        else:
-            bins, labels = generate_bins_generic(index, binner, closed, label)
+    def set_obj(self, obj):
+        """
+        Injects the object we'll act on, which we use to initialize grouper
+        """
+        self.obj = obj
 
-        self.index = index
+        if not isinstance(obj.index, DatetimeIndex):
+            raise ValueError("Cannot apply Tinterval to non-DatetimeIndex")
+
+        index = obj.index
+
+        if len(obj.index) < 1:
+            self.bins = []
+            self.binlabels = []
+            return
+
+        binner = _generate_time_binner(obj.index, self.offset, self.begin,
+                                       self.end, self.nperiods)
+
+        if isinstance(binner, DatetimeIndex):
+            binner = binner.asi8
+
+        # general version, knowing nothing about relative frequencies
+        bins, labels = lib.generate_bins_dt64(index.asi8, binner,
+                                              self.closed, self.label)
+
         self.bins = bins
-        self.binlabels = labels
+        self.binlabels = labels.view('M8[us]')
 
     @cache_readonly
     def groupings(self):
-        return [Grouping(self.index, self, name="Binner")]
+        return [Grouping(self.obj.index, self, name="Binner")]
 
     @cache_readonly
     def ngroups(self):
         return len(self.binlabels)
 
+    @cache_readonly
+    def result_index(self):
+        return self.binlabels
+
     def agg_series(self, obj, func):
         dummy = obj[:0]
         grouper = lib.SeriesBinGrouper(obj, func, self.bins, dummy)
         return grouper.get_result()
-
-    @cache_readonly
-    def result_index(self):
-        return self.binlabels
 
 class Grouping(object):
     """
@@ -888,6 +935,10 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
 
     if level is not None and not isinstance(group_axis, MultiIndex):
         raise ValueError('can only specify level with multi-level index')
+
+    if isinstance(key, CustomGrouper):
+        key.set_obj(obj)
+        return key, []
 
     if not isinstance(key, (tuple, list)):
         keys = [key]

@@ -300,33 +300,30 @@ def test_series_bin_grouper():
     assert_almost_equal(counts, exp_counts)
 
 def test_generate_bins():
+    from pandas.core.groupby import generate_bins_generic
     values = np.array([1,2,3,4,5,6])
     binner = np.array([0,3,6,9])
 
-    bins, labels = lib.generate_bins_dt64(values, binner,
-                                          closed='left', label='left')
+    for func in [lib.generate_bins_dt64, generate_bins_generic]:
+        bins, labels = func(values, binner, closed='left', label='left')
 
-    assert((bins == np.array([2, 5])).all())
-    assert((labels == np.array([0, 3, 6])).all())
+        assert((bins == np.array([2, 5])).all())
+        assert((labels == np.array([0, 3, 6])).all())
 
-    bins, labels = lib.generate_bins_dt64(values, binner,
-                                          closed='left', label='right')
+        bins, labels = func(values, binner, closed='left', label='right')
 
-    assert((bins == np.array([2, 5])).all())
-    assert((labels == np.array([3, 6, 9])).all())
+        assert((bins == np.array([2, 5])).all())
+        assert((labels == np.array([3, 6, 9])).all())
 
-    bins, labels = lib.generate_bins_dt64(values, binner,
-                                          closed='right', label='left')
+        bins, labels = func(values, binner, closed='right', label='left')
 
-    assert((bins == np.array([3])).all())
-    assert((labels == np.array([0, 3])).all())
+        assert((bins == np.array([3])).all())
+        assert((labels == np.array([0, 3])).all())
 
-    bins, labels = lib.generate_bins_dt64(values, binner,
-                                          closed='right', label='right')
+        bins, labels = func(values, binner, closed='right', label='right')
 
-    assert((bins == np.array([3])).all())
-    assert((labels == np.array([3, 6])).all())
-
+        assert((bins == np.array([3])).all())
+        assert((labels == np.array([3, 6])).all())
 
 def test_group_add_bin():
     # original group_add

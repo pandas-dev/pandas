@@ -430,33 +430,22 @@ def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
         else:
             labels[bc] = r_bin
 
-        # check still within possible bins
-        if values[lenidx-1] < r_bin:
+        # count values in current bin, advance to next bin
+        while values[j] < r_bin or closed == 'right' and values[j] == r_bin:
+            j += 1
+            vc += 1
+            if j >= lenidx:
+                break
+
+        # check we have data left to scan
+        if j >= lenidx:
             break
 
-        # advance until in correct bin
-        if closed == 'left':
-            while r_bin > values[j]:
-                j += 1
-                vc += 1
-                if j >= lenidx:
-                    break
-        else:
-            while r_bin >= values[j]:
-                j += 1
-                vc += 1
-                if j >= lenidx:
-                    break
-
-        # if we haven't fallen off
-        if j < lenidx:
-            # and we've seen some values
-            if vc != 0:
-                bins[bc] = j 
-                bc += 1
-                vc = 0
-        else:
-            break
+        # if we've seen some values, mark bin
+        if vc != 0:
+            bins[bc] = j 
+            bc += 1
+            vc = 0
 
     labels = np.resize(labels, bc + 1)
     bins = np.resize(bins, bc)

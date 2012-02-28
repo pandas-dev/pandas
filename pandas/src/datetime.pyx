@@ -63,7 +63,7 @@ class Timestamp(_Timestamp):
         self.value = state[0]
         self.offset = state[1]
         self.tzinfo = state[2]
-            
+
     def __reduce__(self):
         object_state = self.value, self.offset, self.tzinfo
         return (Timestamp, object_state)
