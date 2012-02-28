@@ -51,7 +51,7 @@ pandas 0.7.1
   - Fix to_records where columns are non-strings (#822)
   - Fix Index.intersection where indices have incomparable types (#811)
   - Fix ExcelFile throwing an exception for two-line file (#837)
-  - Add ability to suppress index inference in csv parser (related to #835)
+  - Add clearer error message in csv parser (#835)
 
 pandas 0.7.0
 ============
