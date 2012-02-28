@@ -91,7 +91,7 @@ def read_csv(filepath_or_buffer, sep=',', header=0, index_col=None, names=None,
              skiprows=None, na_values=None, parse_dates=False,
              date_parser=None, nrows=None, iterator=False, chunksize=None,
              skip_footer=0, converters=None, verbose=False, delimiter=None,
-             encoding=None):
+             encoding=None, infer_index=True):
     if hasattr(filepath_or_buffer, 'read'):
         f = filepath_or_buffer
     else:
@@ -117,7 +117,8 @@ def read_csv(filepath_or_buffer, sep=',', header=0, index_col=None, names=None,
                         skip_footer=skip_footer,
                         converters=converters,
                         verbose=verbose,
-                        encoding=encoding)
+                        encoding=encoding,
+                        infer_index=infer_index)
 
     if nrows is not None:
         return parser.get_chunk(nrows)
@@ -204,6 +205,8 @@ class TextParser(object):
         Number of line at bottom of file to skip
     encoding : string, default None
         Encoding to use for UTF when reading/writing (ex. 'utf-8')
+    infer_index : boolean, default True
+        If index_col is None, will try to infer index unless this is False
     """
 
     # common NA values
@@ -217,7 +220,7 @@ class TextParser(object):
                  index_col=None, na_values=None, parse_dates=False,
                  date_parser=None, chunksize=None, skiprows=None,
                  skip_footer=0, converters=None, verbose=False,
-                 encoding=None):
+                 encoding=None, infer_index=True):
         """
         Workhorse function for processing nested list into DataFrame
 
@@ -234,7 +237,7 @@ class TextParser(object):
         self.chunksize = chunksize
         self.passed_names = names is not None
         self.encoding = encoding
-
+        self.infer_index = infer_index
 
         if com.is_integer(skiprows):
             skiprows = range(skiprows)
@@ -401,7 +404,7 @@ class TextParser(object):
                     return line
 
         if implicit_first_cols > 0:
-            if self.index_col is None:
+            if self.index_col is None and self.infer_index:
                 if implicit_first_cols == 1:
                     self.index_col = 0
                 else:
