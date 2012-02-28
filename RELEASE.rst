@@ -31,10 +31,12 @@ pandas 0.7.1
 
   - Add ``to_clipboard`` function to pandas namespace for writing objects to
     the system clipboard (#774)
-  - Add ``itertuples`` method to Dataframe for iterating through the rows of a
+  - Add ``itertuples`` method to DataFrame for iterating through the rows of a
     dataframe as tuples (#818)
-  - Add ability to pass fill_value and method to Dataframe and Series align
+  - Add ability to pass fill_value and method to DataFrame and Series align
     method (#806)
+  - Enable concat to produce DataFrame from Series (#787)
+  - Add ``between`` method to Series (#802)
 
 **API Changes**
 
@@ -52,6 +54,12 @@ pandas 0.7.1
   - Fix Index.intersection where indices have incomparable types (#811)
   - Fix ExcelFile throwing an exception for two-line file (#837)
   - Add clearer error message in csv parser (#835)
+  - Fix loss of fractional seconds in HDFStore (#513)
+  - Fix DataFrame join where columns have datetimes (#787)
+  - Work around numpy performance issue in take (#817)
+  - Improve comparison operations for NA-friendliness (#801)
+  - Fix indexing operation for floating point values (#780, #798)
+  - Fix groupby case resulting in malformed dataframe (#814)
 
 pandas 0.7.0
 ============
