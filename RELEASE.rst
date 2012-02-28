@@ -34,7 +34,8 @@ pandas 0.7.1
   - Add ``itertuples`` method to DataFrame for iterating through the rows of a
     dataframe as tuples (#818)
   - Add ability to pass fill_value and method to DataFrame and Series align
-    method (#806)
+    method (#806, #807)
+  - Add fill_value option to reindex (#784)
   - Enable concat to produce DataFrame from Series (#787)
   - Add ``between`` method to Series (#802)
 
@@ -60,6 +61,8 @@ pandas 0.7.1
   - Improve comparison operations for NA-friendliness (#801)
   - Fix indexing operation for floating point values (#780, #798)
   - Fix groupby case resulting in malformed dataframe (#814)
+  - Fix behavior of reindex of Series dropping name (#812)
+  - Improve on redudant groupby computation (#775)
 
 pandas 0.7.0
 ============
