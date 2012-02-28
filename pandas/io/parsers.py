@@ -350,7 +350,10 @@ class TextParser(object):
             while self.pos in self.skiprows:
                 self.pos += 1
 
-            line = self.data[self.pos]
+            try:
+                line = self.data[self.pos]
+            except IndexError:
+                raise StopIteration
         else:
             while self.pos in self.skiprows:
                 self.data.next()

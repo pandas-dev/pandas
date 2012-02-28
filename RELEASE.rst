@@ -50,6 +50,7 @@ pandas 0.7.1
   - Fix exception thrown on np.diff (#816)
   - Fix to_records where columns are non-strings (#822)
   - Fix Index.intersection where indices have incomparable types (#811)
+  - Fix ExcelFile throwing an exception for two-line file (#837)
 
 pandas 0.7.0
 ============
