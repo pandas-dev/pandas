@@ -381,6 +381,87 @@ def group_var(ndarray[float64_t, ndim=2] out,
                 out[i, j] = ((ct * sumxx[i, j] - sumx[i, j] * sumx[i, j]) /
                              (ct * ct - ct))
 
+# TODO: could do even better if we know something about the data. eg, index has
+# 1-min data, binner has 5-min data, then  bins are just strides in index. This
+# is a general, O(max(len(values), len(binner))) method.
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
+                       object closed='left', object label='left'):
+    """
+    Int64 (datetime64) version of generic python version in groupby.py
+    """
+    cdef:
+        Py_ssize_t lenidx, lenbin, i, j, bc, vc
+        ndarray[int64_t] labels
+        ndarray[int32_t] bins
+        int64_t l_bin, r_bin
+
+    lenidx = len(values)
+    lenbin = len(binner)
+
+    if lenidx <= 0 or lenbin <= 0:
+        raise ValueError("Invalid length for values or for binner")
+
+    # check binner fits data
+    if values[0] < binner[0]:
+        raise ValueError("Values falls before first bin")
+
+    if values[lenidx-1] > binner[lenbin-1]:
+        raise ValueError("Values falls after last bin")
+
+    labels = np.empty(lenbin, dtype=np.int64)
+    bins   = np.empty(lenbin, dtype=np.int32)
+
+    j  = 0 # index into values
+    bc = 0 # bin count
+    vc = 0 # value count
+
+    # linear scan, presume nothing about values/binner except that it
+    # fits ok
+    for i in range(0, lenbin-1):
+        l_bin = binner[i]
+        r_bin = binner[i+1]
+
+        # set label of bin
+        if label == 'left':
+            labels[bc] = l_bin
+        else:
+            labels[bc] = r_bin
+
+        # check still within possible bins
+        if values[lenidx-1] < r_bin:
+            break
+
+        # advance until in correct bin
+        if closed == 'left':
+            while r_bin > values[j]:
+                j += 1
+                vc += 1
+                if j >= lenidx:
+                    break
+        else:
+            while r_bin >= values[j]:
+                j += 1
+                vc += 1
+                if j >= lenidx:
+                    break
+
+        # if we haven't fallen off
+        if j < lenidx:
+            # and we've seen some values
+            if vc != 0:
+                bins[bc] = j 
+                bc += 1
+                vc = 0
+        else:
+            break
+
+    labels = np.resize(labels, bc + 1)
+    bins = np.resize(bins, bc)
+
+    return bins, labels
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

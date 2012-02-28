@@ -819,7 +819,7 @@ copy : boolean, default False
         """
         return self.view(ndarray)
 
-    def copy(self):
+    def copy(self, order='C'):
         """
         Return new Series with copy of underlying values
 
@@ -827,7 +827,7 @@ copy : boolean, default False
         -------
         cp : Series
         """
-        return Series(self.values.copy(), index=self.index, name=self.name)
+        return Series(self.values.copy(order), index=self.index, name=self.name)
 
     def to_dict(self):
         """

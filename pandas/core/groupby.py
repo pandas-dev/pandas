@@ -125,6 +125,10 @@ class GroupBy(object):
         return self.grouper.groups
 
     @property
+    def ngroups(self):
+        return self.grouper.ngroups
+
+    @property
     def indices(self):
         return self.grouper.indices
 
@@ -618,6 +622,138 @@ class Grouper(object):
 
         return name_list
 
+def generate_bins_generic(index, binner, closed, label):
+    """
+    Generate bin edge offsets and bin labels for one array using another array
+    which has bin edge values. Both arrays must be sorted.
+
+    Parameters
+    ----------
+    values : array of values
+    binner : a comparable array of values representing bins into which to bin
+        the first array. Note, 'values' end-points must fall within 'binner'
+        end-points.
+    closed : which end of bin is closed; left (default), right
+    label : which end of bin to use as a label: left (default), right
+
+    Returns
+    -------
+    bins : array of offsets (into 'values' argument) of bins. 
+        Zero and last edge are excluded in result, so for instance the first
+        bin is values[0:bin[0]] and the last is values[bin[-1]:]
+    labels : array of labels of bins
+    """
+    lenidx = len(index)
+    lenbin = len(binner)
+
+    # check binner fits data
+    if index[0] < binner[0]:
+        raise ValueError("Index overlaps first bin")
+
+    if index[-1] > binner[-1]:
+        raise ValueError("Index overlaps last bin")
+
+    labels = np.empty(lenbin, dtype='O')
+    bins = np.empty(lenbin, dtype='i4')
+
+    j = 0
+    bc = 0 # bin count
+    vc = 0 # value count
+
+    # linear scan, presume nothing about index/binner
+    for i in range(0, len(binner)-1):
+        l_bin = binner[i]
+        r_bin = binner[i+1]
+
+        # set label of bin
+        if label == 'left':
+            labels[bc] = l_bin
+        else:
+            labels[bc] = r_bin
+
+        # check still within possible bins
+        if index[lenidx-1] < r_bin:
+            vc = lenidx - j
+            break
+
+        # advance until in correct bin
+        if closed == 'left':
+            while r_bin > index[j]:
+                j += 1
+                vc += 1
+                if j >= lenidx:
+                    break
+        else:
+            while r_bin >= index[j]:
+                j += 1
+                vc += 1
+                if j >= lenidx:
+                    break
+
+        # check we have more data to scan
+        if j < lenidx:
+            if vc != 0:
+                bins[bc] = j 
+                bc += 1
+                vc = 0
+        else:
+            break
+
+    labels = np.resize(labels, bc + 1)
+    bins = np.resize(bins, bc)
+
+    return bins, labels
+
+class CustomGrouper:
+    pass
+
+class Binner(Grouper, CustomGrouper):
+    """
+    Custom binner class (for grouping into bins)
+
+    Parameters
+    ----------
+    index : index object to bin
+    binner : index object containing bin edges 
+    closed : closed end of interval; left (default) or right
+    label : interval boundary to use for labeling; left (default) or right
+    """
+    index = None
+    bins = None
+    binlabels = None
+
+    def __init__(self, index, binner, closed='left', label='left'):
+        from pandas.core.index import DatetimeIndex
+
+        if isinstance(index, DatetimeIndex):
+            # we know nothing about frequencies
+            bins, labels = lib.generate_bins_dt64(index.asi8, binner.asi8,
+                                                  closed, label)
+            labels = labels.view('M8[us]')
+            # TODO: more speedup using freq info
+        else:
+            bins, labels = generate_bins_generic(index, binner, closed, label)
+
+        self.index = index
+        self.bins = bins
+        self.binlabels = labels
+
+    @cache_readonly
+    def groupings(self):
+        return [Grouping(self.index, self, name="Binner")]
+
+    @cache_readonly
+    def ngroups(self):
+        return len(self.binlabels)
+
+    def agg_series(self, obj, func):
+        dummy = obj[:0]
+        grouper = lib.SeriesBinGrouper(obj, func, self.bins, dummy)
+        return grouper.get_result()
+
+    @cache_readonly
+    def result_index(self):
+        return self.binlabels
 
 class Grouping(object):
     """
@@ -655,6 +791,10 @@ class Grouping(object):
 
         # pre-computed
         self._was_factor = False
+
+        # did we pass a custom grouper object? Do nothing
+        if isinstance(grouper, CustomGrouper):
+            return
 
         if level is not None:
             if not isinstance(level, int):

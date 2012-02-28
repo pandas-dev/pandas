@@ -294,6 +294,44 @@ class TestDatetime64(unittest.TestCase):
         s['1/2/2009':'2009-06-05'] = -3
         self.assert_((s[48:54] == -3).all())
 
+    def test_custom_grouper(self):
+        from pandas.core.datetools import Minute 
+        from pandas.core.groupby import Binner
+        from pandas.core.frame import DataFrame
+
+        dti = DatetimeIndex(offset='Min', start=datetime(2005,1,1),
+                            end=datetime(2005,1,10))
+
+        data = np.array([1]*len(dti))
+        s = Series(data, index=dti) 
+
+        dti2 = DatetimeIndex(offset=Minute(5), 
+                             start=datetime(2005,1,1) - Minute(5),
+                             end=datetime(2005,1,10) + Minute(5))
+
+        b = Binner(dti, dti2, closed='left', label='left')
+        g = s.groupby(grouper=b)
+
+        self.assertEquals(g.ngroups, 2593)
+        arr = [5] * 2592
+        arr.append(1)
+
+        idx = dti[0:-1:5]
+        idx = idx.append(DatetimeIndex([np.datetime64(dti[-1])]))
+
+        e = Series(arr, index=idx)
+        r = g.agg(np.sum)
+        
+        assert_series_equal(r, e)
+
+        data = np.random.rand(len(dti), 10) 
+        df = DataFrame(data, index=dti)
+        r = df.groupby(grouper=b).agg(np.sum)
+
+        self.assertEquals(len(r.columns), 10)
+        self.assertEquals(len(r.index), 2593)
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

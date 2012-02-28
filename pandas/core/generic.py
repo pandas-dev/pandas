@@ -90,7 +90,8 @@ class PandasObject(Picklable):
         except KeyError:
             return default
 
-    def groupby(self, by=None, axis=0, level=None, as_index=True, sort=True):
+    def groupby(self, by=None, axis=0, level=None, as_index=True, sort=True,
+                grouper=None):
         """
         Group series using mapper (dict or key function, apply given function
         to group, return result as series) or by a series of columns
@@ -130,7 +131,7 @@ class PandasObject(Picklable):
         """
         from pandas.core.groupby import groupby
         return groupby(self, by, axis=axis, level=level, as_index=as_index,
-                       sort=sort)
+                       sort=sort, grouper=grouper)
 
     def select(self, crit, axis=0):
         """
