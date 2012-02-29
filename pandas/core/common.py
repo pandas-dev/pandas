@@ -630,12 +630,6 @@ def console_encode(value):
     except (AttributeError, TypeError):
         return value.encode('ascii', 'replace')
 
-def csv_encode(value, encoding='UTF-8'):
-    if py3compat.PY3 or not isinstance(value, unicode):
-        return value
-
-    return value.encode(encoding, 'replace')
-
 class UTF8Recoder:
     """
     Iterator that reads an encoded stream and reencodes the input to UTF-8
@@ -709,7 +703,3 @@ else:
             self.stream.write(data)
             # empty queue
             self.queue.truncate(0)
-
-        def writerows(self, rows):
-            for row in rows:
-                self.writerow(row)

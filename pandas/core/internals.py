@@ -229,7 +229,7 @@ def _pad(values):
         _method = lib.pad_2d_inplace_float64
     elif values.dtype == np.object_:
         _method = lib.pad_2d_inplace_object
-    else:
+    else: # pragma: no cover
         raise ValueError('Invalid dtype for padding')
 
     _method(values, com.isnull(values).view(np.uint8))
@@ -239,7 +239,7 @@ def _backfill(values):
         _method = lib.backfill_2d_inplace_float64
     elif values.dtype == np.object_:
         _method = lib.backfill_2d_inplace_object
-    else:
+    else: # pragma: no cover
         raise ValueError('Invalid dtype for padding')
 
     _method(values, com.isnull(values).view(np.uint8))
@@ -608,9 +608,6 @@ class BlockManager(object):
         return BlockManager(new_blocks, self.axes)
 
     def _consolidate_inplace(self):
-        if self.is_consolidated():
-            return
-
         self.blocks = _consolidate(self.blocks, self.items)
 
     def get(self, item):

@@ -864,6 +864,13 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         assert_frame_equal(filled['ItemA'],
                            self.panel['ItemA'].fillna(method='backfill'))
 
+        panel = self.panel.copy()
+        panel['str'] = 'foo'
+
+        filled = panel.fillna(method='backfill')
+        assert_frame_equal(filled['ItemA'],
+                           panel['ItemA'].fillna(method='backfill'))
+
         empty = self.panel.reindex(items=[])
         filled = empty.fillna(0)
         assert_panel_equal(filled, empty)

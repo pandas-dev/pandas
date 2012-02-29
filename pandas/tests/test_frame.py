@@ -1174,6 +1174,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame(data={})
         self.assert_(len(df.index) == 0)
 
+    def test_list_to_sdict(self):
+        from pandas.core.frame import _list_to_sdict
+
+        d, c = _list_to_sdict([], None)
+        self.assertEquals(d, {})
+        self.assertEquals(c, [])
+
+        d, c = _list_to_sdict([], [])
+        self.assertEquals(d, {})
+        self.assertEquals(c, [])
+
     def test_constructor_mixed(self):
         index, data = tm.getMixedTypeDict()
 
@@ -1536,8 +1547,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         data = [Series(d) for d in data]
 
         result = DataFrame(data)
-        expected = DataFrame.from_dict(dict(zip(range(len(data)), data)),
-                                       orient='index')
+        sdict = dict(zip(range(len(data)), data))
+        expected = DataFrame.from_dict(sdict, orient='index')
         assert_frame_equal(result, expected.reindex(result.index))
 
         result2 = DataFrame(data, index=np.arange(6))
@@ -1547,6 +1558,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = DataFrame(index=[0])
         assert_frame_equal(result, expected)
 
+        data = [{'a': 1.5, 'b': 3.0, 'c':4.0},
+                {'a': 1.5, 'b': 3.0, 'c':6.0}]
+        sdict = dict(zip(range(len(data)), data))
+        idx = Index(['a', 'b', 'c'])
+        data2 = [Series([1.5, 3, 4], idx, dtype='O'),
+                 Series([1.5, 3, 6], idx)]
+        result = DataFrame(data2)
+        expected = DataFrame.from_dict(sdict, orient='index')
+        assert_frame_equal(result, expected)
 
     def test_constructor_ragged(self):
         data = {'A' : randn(10),
@@ -1893,6 +1913,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         fmt.set_printoptions(max_rows=10, max_columns=2)
         repr(self.frame)
+
+        fmt.set_printoptions(max_rows=1000, max_columns=1000)
+        repr(self.frame)
+
         fmt.reset_printoptions()
 
     def test_head_tail(self):
@@ -3302,6 +3326,21 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         af, bf = self.frame.align(other, join='inner', axis=1)
         self.assert_(bf.columns.equals(other.columns))
 
+        af, bf = self.frame.align(other, join='inner', axis=1, method='pad')
+        self.assert_(bf.columns.equals(other.columns))
+
+        # test other non-float types
+        af, bf = self.intframe.align(other, join='inner', axis=1, method='pad')
+        self.assert_(bf.columns.equals(other.columns))
+
+        af, bf = self.mixed_frame.align(self.mixed_frame,
+                                        join='inner', axis=1, method='pad')
+        self.assert_(bf.columns.equals(self.mixed_frame.columns))
+
+        af, bf = self.frame.align(other.ix[:,0], join='inner', axis=1,
+                                  method=None, fill_value=None)
+        self.assert_(bf.index.equals(Index([])))
+
         # try to align dataframe to series along bad axis
         self.assertRaises(ValueError, self.frame.align, af.ix[0,:3],
                           join='inner', axis=2)
@@ -4613,6 +4652,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(len(self.frame._data.blocks) == 3)
         self.frame.consolidate(inplace=True)
         self.assert_(len(self.frame._data.blocks) == 1)
+
+    def test_consolidate_inplace(self):
+        frame = self.frame.copy()
+
+        # triggers in-place consolidation
+        for letter in range(ord('A'), ord('Z')):
+            self.frame[chr(letter)] = chr(letter)
 
     def test_as_matrix_consolidate(self):
         self.frame['E'] = 7.

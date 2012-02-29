@@ -2245,7 +2245,7 @@ class DataFrame(NDFrame):
         -------
         sorted : DataFrame
         """
-        if column is not None:
+        if column is not None: # pragma: no cover
             import warnings
             warnings.warn("column is deprecated, use columns", FutureWarning)
             columns = column

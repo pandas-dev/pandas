@@ -187,7 +187,8 @@ class TestDataFrameFormatting(unittest.TestCase):
 
     def test_to_string_float_formatting(self):
         fmt.reset_printoptions()
-        fmt.set_printoptions(precision=6, column_space=12)
+        fmt.set_printoptions(precision=6, column_space=12,
+                             notebook_repr_html=False)
 
         df = DataFrame({'x' : [0, 0.25, 3456.000, 12e+45, 1.64e+6,
                                1.7e+8, 1.253456, np.pi, -1e6]})
@@ -341,6 +342,13 @@ class TestDataFrameFormatting(unittest.TestCase):
     def test_repr_html(self):
         self.frame._repr_html_()
 
+        fmt.set_printoptions(max_rows=1, max_columns=1)
+        self.frame._repr_html_()
+
+        fmt.set_printoptions(notebook_repr_html=False)
+        self.frame._repr_html_()
+
+        fmt.reset_printoptions()
 
 class TestSeriesFormatting(unittest.TestCase):
 

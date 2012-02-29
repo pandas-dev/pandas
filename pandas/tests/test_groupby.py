@@ -204,6 +204,25 @@ class TestGroupBy(unittest.TestCase):
         assert_frame_equal(grouped.agg(np.sum), DataFrame({}))
         assert_frame_equal(grouped.apply(np.sum), DataFrame({}))
 
+    def test_agg_grouping_is_list_tuple(self):
+        from pandas.core.groupby import Grouping
+
+        df = tm.makeTimeDataFrame()
+
+        grouped = df.groupby(lambda x: x.year)
+        grouper = grouped.grouper.groupings[0].grouper
+        grouped.grouper.groupings[0] = Grouping(self.ts.index, list(grouper))
+
+        result = grouped.agg(np.mean)
+        expected = grouped.mean()
+        tm.assert_frame_equal(result, expected)
+
+        grouped.grouper.groupings[0] = Grouping(self.ts.index, tuple(grouper))
+
+        result = grouped.agg(np.mean)
+        expected = grouped.mean()
+        tm.assert_frame_equal(result, expected)
+
     def test_agg_python_multiindex(self):
         grouped = self.mframe.groupby(['A', 'B'])
 
@@ -474,6 +493,16 @@ class TestGroupBy(unittest.TestCase):
         for k, v in groups.iteritems():
             samething = self.tsframe.index.take(indices[k])
             self.assert_(np.array_equal(v, samething))
+
+    def test_grouping_is_iterable(self):
+        # this code path isn't used anywhere else
+        # not sure it's useful
+        grouped = self.tsframe.groupby([lambda x: x.weekday(),
+                                        lambda x: x.year])
+
+        # test it works
+        for g in grouped.grouper.groupings[0]:
+            pass
 
     def test_frame_groupby_columns(self):
         mapping = {

@@ -108,7 +108,7 @@ def _comp_method(op, name):
             name = _maybe_match_name(self, other)
             return Series(na_op(self.values, other.values),
                           index=self.index, name=name)
-        elif isinstance(other, DataFrame):
+        elif isinstance(other, DataFrame): # pragma: no cover
             return NotImplemented
         else:
             # scalars

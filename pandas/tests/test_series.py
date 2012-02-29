@@ -1149,6 +1149,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = s[5:16].dropna()
         assert_series_equal(result, expected)
 
+    def test_scalar_na_cmp(self):
+        s = Series([2,3,4,5,6,7,8,9,10])
+        s[::2] = np.nan
+
+        def tester(a, b):
+            return a & b
+
+        self.assertRaises(ValueError, tester, s, datetime(2005,1,1))
+
     def test_idxmin(self):
         # test idxmin
         # _check_stat_op approach can not be used here because of isnull check.
@@ -1258,6 +1267,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         tm.assert_almost_equal(self.ts + self.ts, (self.ts + df)['A'])
         tm.assert_almost_equal(self.ts ** self.ts, (self.ts ** df)['A'])
+        tm.assert_almost_equal(self.ts < self.ts, (self.ts < df)['A'])
 
     def test_operators_combine(self):
         def _check_fill(meth, op, a, b, fill_value=0):
