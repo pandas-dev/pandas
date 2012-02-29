@@ -1158,8 +1158,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             s = Series([True, True, False, False])
             s[::2] = np.nan
 
+        def testme3():
+            s = Series(np.arange(10))
+            s[:5] = np.nan
+
         self.assertRaises(Exception, testme1)
         self.assertRaises(Exception, testme2)
+        self.assertRaises(Exception, testme3)
 
     def test_scalar_na_cmp_corners(self):
         s = Series([2,3,4,5,6,7,8,9,10])

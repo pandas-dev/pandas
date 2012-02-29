@@ -555,6 +555,10 @@ copy : boolean, default False
 
     def __setslice__(self, i, j, value):
         """Set slice equal to given value(s)"""
+        if issubclass(self.dtype.type, (np.integer, np.bool_)):
+            if np.isscalar(value) and isnull(value):
+                raise ValueError('Cannot assign nan to integer series')
+
         ndarray.__setslice__(self, i, j, value)
 
     def get(self, label, default=None):
