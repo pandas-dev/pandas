@@ -433,6 +433,14 @@ class TestDatetime64(unittest.TestCase):
         self.assertEquals(xs['low'], s[1:6].min())
         self.assertEquals(xs['close'], s[5])
 
+    def test_convert_reconvert(self):
+        dti = DatetimeIndex(start=datetime(2005,1,1), 
+                            end=datetime(2005,1,10), offset='D')
+        s = Series(rand(len(dti)), dti)
+        s = s.convert('B').convert('8H')
+        self.assertEquals(len(s), 22)
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

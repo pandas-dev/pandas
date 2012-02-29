@@ -742,7 +742,7 @@ class Tinterval(Grouper, CustomGrouper):
 
     Notes
     -----
-    Use begin, end, nperiods to generate intervals that cannot be derived 
+    Use begin, end, nperiods to generate intervals that cannot be derived
     directly from the associated object
     """
 
@@ -1773,7 +1773,7 @@ def numpy_groupby(data, labels, axis=0):
 #-----------------------------------------------------------------------
 # Helper functions
 
-def translateGrouping(how):
+def translate_grouping(how):
     if set(how) == set('ohlc'):
         return {'open'  : lambda arr: arr[0],
                 'low'   : lambda arr: arr.min(),

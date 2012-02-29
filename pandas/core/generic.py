@@ -145,10 +145,10 @@ class PandasObject(Picklable):
         axis : int, optional, default 0
         as_index : see synonymous argument of groupby
         """
-        from pandas.core.groupby import Tinterval, translateGrouping
+        from pandas.core.groupby import Tinterval, translate_grouping
 
         if isinstance(rule, basestring):
-            rule = datetools.toOffset(rule)
+            rule = datetools.to_offset(rule)
 
         idx = self._get_axis(axis)
         if not isinstance(idx, DatetimeIndex):
@@ -170,7 +170,7 @@ class PandasObject(Picklable):
             grouped  = self.groupby(interval, axis=axis, as_index=as_index)
 
             if isinstance(how, basestring):
-                how = translateGrouping(how)
+                how = translate_grouping(how)
 
             result = grouped.agg(how)
         else:
@@ -178,6 +178,7 @@ class PandasObject(Picklable):
             result = self.reindex(interval.binner[1:-1].view('M8[us]'),
                                   method=method)
 
+        result.index.offset = rule
         return result
 
 

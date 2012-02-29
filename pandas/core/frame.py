@@ -2870,7 +2870,11 @@ class DataFrame(NDFrame):
 
         offset = kwds.get('timeRule', offset)
         if isinstance(offset, basestring):
-            offset = datetools.getOffset(offset)
+            # deprecated code path
+            if isinstance(self.index, DateRange):
+                offset = datetools.getOffset(offset)
+            else:
+                offset = datetools.to_offset(offset)
 
         def _shift_block(blk, indexer):
             new_values = blk.values.take(indexer, axis=1)

@@ -2257,7 +2257,11 @@ copy : boolean, default False
 
         offset = kwds.get('timeRule', offset)
         if isinstance(offset, basestring):
-            offset = datetools.getOffset(offset)
+            # deprecated code path
+            if isinstance(self.index, DateRange):
+                offset = datetools.getOffset(offset)
+            else:
+                offset = datetools.to_offset(offset)
 
         if offset is None:
             new_values = np.empty(len(self), dtype=self.dtype)

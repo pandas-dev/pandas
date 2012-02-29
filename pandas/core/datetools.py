@@ -1153,13 +1153,13 @@ def inferTimeRule(index, _deprecated=True):
 
 opattern = re.compile(r'(\d*)\s*(\S+)')
 
-def toOffset(name):
+def to_offset(name):
     """
     Return DateOffset object from string representation
 
     Example
     -------
-    getOffset('5Min') -> Minute(5)
+    to_offset('5Min') -> Minute(5)
     """
     groups = opattern.match(name)
 
