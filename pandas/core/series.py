@@ -599,6 +599,7 @@ copy : boolean, default False
                 return self[label]
 
     iget = iget_value
+    irow = iget_value
 
     def get_value(self, label):
         """

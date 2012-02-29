@@ -345,12 +345,78 @@ class TestDatetime64(unittest.TestCase):
 
         assert_series_equal(result, expect)
 
+        # from daily
+        dti = DatetimeIndex(start=datetime(2005,1,1), 
+                            end=datetime(2005,1,10), offset='D')
+
+        s = Series(rand(len(dti)), dti)
+
+        # to weekly
+        result = s.convert('W') # implicitly @SUN
+
+        self.assertEquals(len(result), 3)
+        self.assert_((result.index.dayofweek == [6,6,6]).all())
+        self.assertEquals(result.irow(0), s['1/2/2005'])
+        self.assertEquals(result.irow(1), s['1/9/2005'])
+        self.assertEquals(result.irow(2), s.irow(-1))
+
+        result = s.convert('W@MON')
+        self.assertEquals(len(result), 2)
+        self.assert_((result.index.dayofweek == [0,0]).all())
+        self.assertEquals(result.irow(0), s['1/3/2005'])
+        self.assertEquals(result.irow(1), s['1/10/2005'])
+
+        result = s.convert('W@TUE')
+        self.assertEquals(len(result), 2)
+        self.assert_((result.index.dayofweek == [1,1]).all())
+        self.assertEquals(result.irow(0), s['1/4/2005'])
+        self.assertEquals(result.irow(1), s['1/10/2005'])
+
+        result = s.convert('W@WED')
+        self.assertEquals(len(result), 2)
+        self.assert_((result.index.dayofweek == [2,2]).all())
+        self.assertEquals(result.irow(0), s['1/5/2005'])
+        self.assertEquals(result.irow(1), s['1/10/2005'])
+
+        result = s.convert('W@THU')
+        self.assertEquals(len(result), 2)
+        self.assert_((result.index.dayofweek == [3,3]).all())
+        self.assertEquals(result.irow(0), s['1/6/2005'])
+        self.assertEquals(result.irow(1), s['1/10/2005'])
+
+        result = s.convert('W@FRI')
+        self.assertEquals(len(result), 2)
+        self.assert_((result.index.dayofweek == [4,4]).all())
+        self.assertEquals(result.irow(0), s['1/7/2005'])
+        self.assertEquals(result.irow(1), s['1/10/2005'])
+
+        # to biz day
+        result = s.convert('B')
+        self.assertEquals(len(result), 6)
+        self.assert_((result.index.dayofweek == [0,1,2,3,4,0]).all())
+        self.assertEquals(result.irow(0), s['1/3/2005'])
+        self.assertEquals(result.irow(1), s['1/4/2005'])
+        self.assertEquals(result.irow(5), s['1/10/2005'])
+
+    def test_convert_upsample(self):
+        # from daily
+        dti = DatetimeIndex(start=datetime(2005,1,1), 
+                            end=datetime(2005,1,10), offset='D')
+
+        s = Series(rand(len(dti)), dti)
+
+        # to minutely, by padding
+        result = s.convert('Min', method='pad')
+        self.assertEquals(len(result), 12961)
+        self.assertEquals(result[0], s[0])
+        self.assertEquals(result[-1], s[-1])
+
     def test_convert_olhc(self):
         s = self.series
 
         grouper = Tinterval(Minute(5), closed='right', label='right')
         expect = s.groupby(grouper).agg(lambda x: x[-1])
-        result = s.convert('5Min', 'olhc')
+        result = s.convert('5Min', how='ohlc')
 
         self.assertEquals(len(result), len(expect))
         self.assertEquals(len(result.columns), 4)

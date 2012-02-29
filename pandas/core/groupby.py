@@ -626,7 +626,7 @@ class Grouper(object):
 
         return name_list
 
-def generate_bins_generic(values, binner, closed, label):
+def generate_bins_generic(values, binner, closed, label, drop):
     """
     Generate bin edge offsets and bin labels for one array using another array
     which has bin edge values. Both arrays must be sorted.
@@ -690,9 +690,9 @@ def generate_bins_generic(values, binner, closed, label):
         if j >= lenidx:
             break
 
-        # if we've seen some values, mark bin
-        if vc != 0:
-            bins[bc] = j 
+        # if we've seen some values or not ignoring empty bins
+        if vc != 0 or not drop:
+            bins[bc] = j
             bc += 1
             vc = 0
 
@@ -752,9 +752,10 @@ class Tinterval(Grouper, CustomGrouper):
     begin = None
     end = None
     nperiods = None
+    binner = None
 
     def __init__(self, interval='Min', closed='left', label='left',
-                 begin=None, end=None, nperiods=None):
+                 begin=None, end=None, nperiods=None, _obj=None):
         self.offset = interval
         self.closed = closed
         self.label = label
@@ -762,10 +763,16 @@ class Tinterval(Grouper, CustomGrouper):
         self.end = end
         self.nperiods = None
 
+        if _obj is not None:
+            self.set_obj(_obj)
+
     def set_obj(self, obj):
         """
         Injects the object we'll act on, which we use to initialize grouper
         """
+        if id(self.obj) == id(obj):
+            return
+
         self.obj = obj
 
         if not isinstance(obj.index, DatetimeIndex):
@@ -778,14 +785,14 @@ class Tinterval(Grouper, CustomGrouper):
             self.binlabels = []
             return
 
-        binner = _generate_time_binner(obj.index, self.offset, self.begin,
-                                       self.end, self.nperiods)
+        self.binner = _generate_time_binner(obj.index, self.offset, self.begin,
+                                            self.end, self.nperiods)
 
-        if isinstance(binner, DatetimeIndex):
-            binner = binner.asi8
+        if isinstance(self.binner, DatetimeIndex):
+            self.binner = self.binner.asi8
 
         # general version, knowing nothing about relative frequencies
-        bins, labels = lib.generate_bins_dt64(index.asi8, binner,
+        bins, labels = lib.generate_bins_dt64(index.asi8, self.binner,
                                               self.closed, self.label)
 
         self.bins = bins
@@ -1767,14 +1774,16 @@ def numpy_groupby(data, labels, axis=0):
 # Helper functions
 
 def translateGrouping(how):
-    if how == 'olhc':
-        return {'open' : lambda arr: arr[0],
-                'low' : lambda arr: arr.min(),
-                'high' : lambda arr: arr.max(),
+    if set(how) == set('ohlc'):
+        return {'open'  : lambda arr: arr[0],
+                'low'   : lambda arr: arr.min(),
+                'high'  : lambda arr: arr.max(),
                 'close' : lambda arr: arr[-1]}
 
-    if how == 'last':
-        return lambda arr: arr[-1]
+    if how in 'last':
+        def picker(arr):
+            return arr[-1] if arr is not None and len(arr) else np.nan
+        return picker
 
     raise ValueError("Unrecognized method: %s" % how)
 
