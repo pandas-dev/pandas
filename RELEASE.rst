@@ -35,11 +35,17 @@ pandas 0.7.1
     dataframe as tuples (#818)
   - Add ability to pass fill_value and method to DataFrame and Series align
     method (#806, #807)
-  - Add fill_value option to reindex (#784)
+  - Add fill_value option to reindex, align methods (#784)
   - Enable concat to produce DataFrame from Series (#787)
   - Add ``between`` method to Series (#802)
+  - Add HTML representation hook to DataFrame for the IPython HTML notebook
+    (#773)
+  - Support for reading Excel 2007 XML documents using openpyxl
 
-**API Changes**
+**Improvements to existing features**
+
+  - Improve performance and memory usage of fillna on DataFrame
+  - Can concatenate a list of Series along axis=1 to obtain a DataFrame (#787)
 
 **Bug fixes**
 
