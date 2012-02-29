@@ -2,6 +2,7 @@ import pandas._tseries as lib
 from datetime import datetime
 
 from pandas.core.index import DatetimeIndex
+from pandas.core.frame import DataFrame
 
 import unittest
 import numpy as np
@@ -12,7 +13,17 @@ from numpy.random import rand
 
 from pandas.util.testing import assert_series_equal
 
+from pandas.core.groupby import Tinterval
+from pandas.core.datetools import Minute
+
 class TestDatetime64(unittest.TestCase):
+
+    def setUp(self):
+        dti = DatetimeIndex(start=datetime(2005,1,1),
+                            end=datetime(2005,1,10), offset='Min')
+
+        self.series = Series(rand(len(dti)), dti)
+
 
     def test_yearoffset(self):
         off = lib.YearOffset(dayoffset=0, biz=0, anchor=datetime(2002,1,1))
@@ -295,9 +306,6 @@ class TestDatetime64(unittest.TestCase):
         self.assert_((s[48:54] == -3).all())
 
     def test_custom_grouper(self):
-        from pandas.core.datetools import Minute
-        from pandas.core.groupby import Tinterval
-        from pandas.core.frame import DataFrame
 
         dti = DatetimeIndex(offset='Min', start=datetime(2005,1,1),
                             end=datetime(2005,1,10))
@@ -327,6 +335,37 @@ class TestDatetime64(unittest.TestCase):
         self.assertEquals(len(r.columns), 10)
         self.assertEquals(len(r.index), 2593)
 
+    def test_convert_basic(self):
+        s = self.series
+
+        result = s.convert('5Min')
+
+        grouper = Tinterval(Minute(5), closed='right', label='right')
+        expect = s.groupby(grouper).agg(lambda x: x[-1])
+
+        assert_series_equal(result, expect)
+
+    def test_convert_olhc(self):
+        s = self.series
+
+        grouper = Tinterval(Minute(5), closed='right', label='right')
+        expect = s.groupby(grouper).agg(lambda x: x[-1])
+        result = s.convert('5Min', 'olhc')
+
+        self.assertEquals(len(result), len(expect))
+        self.assertEquals(len(result.columns), 4)
+        
+        xs = result.irow(-1)
+        self.assertEquals(xs['open'], s[-5])
+        self.assertEquals(xs['high'], s[-5:].max())
+        self.assertEquals(xs['low'], s[-5:].min())
+        self.assertEquals(xs['close'], s[-1])
+
+        xs = result.irow(1)
+        self.assertEquals(xs['open'], s[1])
+        self.assertEquals(xs['high'], s[1:6].max())
+        self.assertEquals(xs['low'], s[1:6].min())
+        self.assertEquals(xs['close'], s[5])
 
 if __name__ == '__main__':
     import nose
