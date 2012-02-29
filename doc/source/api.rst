@@ -12,12 +12,18 @@ General functions
 
 Data manipulations
 ~~~~~~~~~~~~~~~~~~
-.. currentmodule:: pandas
+.. currentmodule:: pandas.tools.pivot
 
 .. autosummary::
    :toctree: generated/
 
    pivot_table
+
+.. currentmodule:: pandas.tools.merge
+
+.. autosummary::
+   :toctree: generated/
+
    merge
    concat
 
