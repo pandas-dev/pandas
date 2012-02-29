@@ -63,6 +63,7 @@ pandas 0.7.1
   - Fix groupby case resulting in malformed dataframe (#814)
   - Fix behavior of reindex of Series dropping name (#812)
   - Improve on redudant groupby computation (#775)
+  - Catch possible NA assignment to int/bool series with exception (#839)
 
 pandas 0.7.0
 ============

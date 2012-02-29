@@ -1149,9 +1149,20 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = s[5:16].dropna()
         assert_series_equal(result, expected)
 
+    def test_setitem_na_exception(self):
+        def testme1():
+            s = Series([2,3,4,5,6,7,8,9,10])
+            s[::2] = np.nan
+
+        def testme2():
+            s = Series([True, True, False, False])
+            s[::2] = np.nan
+
+        self.assertRaises(Exception, testme1)
+        self.assertRaises(Exception, testme2)
+
     def test_scalar_na_cmp_corners(self):
         s = Series([2,3,4,5,6,7,8,9,10])
-        s[::2] = np.nan
 
         def tester(a, b):
             return a & b
