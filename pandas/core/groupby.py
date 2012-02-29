@@ -733,7 +733,7 @@ class Tinterval(Grouper, CustomGrouper):
 
     Parameters
     ----------
-    interval : pandas offset string or object for identifying bin edges 
+    interval : pandas offset string or object for identifying bin edges
     closed : closed end of interval; left (default) or right
     label : interval boundary to use for labeling; left (default) or right
     begin : optional, timestamp-like
@@ -1762,3 +1762,19 @@ def numpy_groupby(data, labels, axis=0):
     group_sums = np.add.reduceat(ordered_data, groups_at, axis=axis)
 
     return group_sums
+
+#-----------------------------------------------------------------------
+# Helper functions
+
+def translateGrouping(how):
+    if how == 'olhc':
+        return {'open' : lambda arr: arr[0],
+                'low' : lambda arr: arr.min(),
+                'high' : lambda arr: arr.max(),
+                'close' : lambda arr: arr[-1]}
+
+    if how == 'last':
+        return lambda arr: arr[-1]
+
+    raise ValueError("Unrecognized method: %s" % how)
+

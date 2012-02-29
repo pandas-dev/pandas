@@ -132,12 +132,26 @@ class PandasObject(Picklable):
         return groupby(self, by, axis=axis, level=level, as_index=as_index,
                        sort=sort)
 
-    def convert(self, rule, how='olhc', axis=0, as_index=True):
+    def convert(self, rule, how='last', axis=0, as_index=True):
         """
-        Convenience method for frequency conversion of timestamped data. Works
-        only with data indexed by a DatetimeIndex.
+        Convenience method for frequency conversion of timestamped data
         """
-        pass
+        from pandas.core.groupby import Tinterval, translateGrouping
+
+        if isinstance(rule, basestring):
+            rule = datetools.toOffset(rule)
+
+        if not isinstance(rule, datetools.DateOffset):
+            raise ValueError("Rule not a recognized offset")
+
+        interval = Tinterval(rule, label='right', closed='right')
+        grouped  = self.groupby(interval, axis=axis, as_index=as_index)
+
+        if isinstance(how, basestring):
+            how = translateGrouping(how)
+
+        return grouped.agg(how)
+
 
     def select(self, crit, axis=0):
         """
