@@ -1053,6 +1053,16 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         expected = df.to_dense().fillna(0).to_sparse(fill_value=0)
         assert_sp_frame_equal(result, expected)
 
+        result = df.copy()
+        result.fillna(0, inplace=True)
+        expected = df.to_dense().fillna(0).to_sparse(fill_value=0)
+        assert_sp_frame_equal(result, expected)
+
+        result = df.copy()
+        result = df['A']
+        result.fillna(0, inplace=True)
+        assert_series_equal(result, df['A'].fillna(0))
+
     def test_rename(self):
         # just check this works
         renamed = self.frame.rename(index=str)

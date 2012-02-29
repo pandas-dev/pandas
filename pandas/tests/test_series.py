@@ -1149,7 +1149,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = s[5:16].dropna()
         assert_series_equal(result, expected)
 
-    def test_scalar_na_cmp(self):
+    def test_scalar_na_cmp_corners(self):
         s = Series([2,3,4,5,6,7,8,9,10])
         s[::2] = np.nan
 
@@ -1157,6 +1157,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             return a & b
 
         self.assertRaises(ValueError, tester, s, datetime(2005,1,1))
+
+        s = Series([2,3,4,5,6,7,8,9,datetime(2005,1,1)])
+        s[::2] = np.nan
+
+        assert_series_equal(tester(s, list(s)), s)
+
+        d = DataFrame({'A':s})
+        self.assertRaises(TypeError, tester, s, d)
 
     def test_idxmin(self):
         # test idxmin
@@ -2047,7 +2055,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_pad_nan(self):
         x = TimeSeries([np.nan, 1., np.nan, 3., np.nan],
                        ['z', 'a', 'b', 'c', 'd'], dtype=float)
-        x = x.fillna(method='pad')
+        x.fillna(method='pad', inplace=True)
         expected = TimeSeries([np.nan, 1.0, 1.0, 3.0, 3.0],
                                 ['z', 'a', 'b', 'c', 'd'], dtype=float)
         assert_series_equal(x[1:], expected[1:])

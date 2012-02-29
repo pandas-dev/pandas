@@ -432,7 +432,7 @@ to sparse
                                   fill_value=self.fill_value)
 
         if inplace:
-            self.sp_values[:] = result.sp_values
+            self.sp_values[:] = result.values
             return self
         else:
             return result

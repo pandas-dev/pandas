@@ -153,7 +153,7 @@ def read_clipboard(**kwargs):  # pragma: no cover
     text = clipboard_get()
     return read_table(StringIO(text), **kwargs)
 
-def to_clipboard(obj):
+def to_clipboard(obj): # pragma: no cover
     """
     Attempt to write text representation of object to the system clipboard
 
