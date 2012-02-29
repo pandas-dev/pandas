@@ -132,6 +132,13 @@ class PandasObject(Picklable):
         return groupby(self, by, axis=axis, level=level, as_index=as_index,
                        sort=sort)
 
+    def convert(self, rule, how='olhc', axis=0, as_index=True):
+        """
+        Convenience method for frequency conversion of timestamped data. Works
+        only with data indexed by a DatetimeIndex.
+        """
+        pass
+
     def select(self, crit, axis=0):
         """
         Return data corresponding to axis labels matching criteria

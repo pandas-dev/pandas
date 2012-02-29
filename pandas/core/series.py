@@ -2068,7 +2068,7 @@ copy : boolean, default False
         if kind == 'line':
             if use_index:
                 if isinstance(self.index, DatetimeIndex):
-                    x = np.asarray(self.index.asobject())
+                    x = np.asarray(self.index.asobject)
                 else:
                     x = np.asarray(self.index)
             else:

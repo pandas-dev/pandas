@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import sys
 import numpy as np
 import pandas._tseries as lib
+import re
 
 from pandas._tseries import Timestamp
 
@@ -346,7 +347,7 @@ class BDay(DateOffset, CacheableOffset):
         return (self.n == 1)
 
     def apply(self, other):
-        if isinstance(other, (datetime, Timestamp)):
+        if isinstance(other, datetime):
             n = self.n
 
             if n == 0 and other.weekday() > 4:
@@ -898,7 +899,7 @@ class Tick(DateOffset):
                 + self.delta.microseconds)
 
     def apply(self, other):
-        if isinstance(other, (datetime, timedelta, Timestamp)):
+        if isinstance(other, (datetime, timedelta)):
             return other + self.delta
         elif isinstance(other, type(self)):
             return type(self)(self.n + other.n)
@@ -1149,6 +1150,37 @@ def inferTimeRule(index, _deprecated=True):
             return rule
 
     raise Exception('Could not infer time rule from data!')
+
+opattern = re.compile(r'(\d*)\s*(\S+)')
+
+def toOffset(name):
+    """
+    Return DateOffset object from string representation
+
+    Example
+    -------
+    getOffset('5Min') -> Minute(5)
+    """
+    groups = opattern.match(name)
+
+    if groups.lastindex != 2:
+        raise ValueError("Could not evaluate %s" % name)
+
+    stride = groups.group(1)
+
+    if len(stride):
+        stride = int(stride)
+    else:
+        stride = 1
+
+    name = groups.group(2)
+
+    offset = _newOffsetMap.get(name)
+
+    if offset is None:
+        raise ValueError('Bad offset request: %s' % name)
+
+    return offset * stride
 
 def getOffset(name, _deprecated=True):
     """

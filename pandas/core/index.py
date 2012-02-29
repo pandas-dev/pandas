@@ -1322,15 +1322,25 @@ class DatetimeIndex(Int64Index):
         # to do: cache me?
         return self.values.view('i8')
 
+    @property
+    def asstruct(self):
+        if self._sarr_cache is None:
+            self._sarr_cache = lib.build_field_sarray(self.asi8)
+        return self._sarr_cache
+
+    @property
     def asobject(self):
         """
         Unbox to an index of type object
         """
-        return Index(_dt_box_array(self.asi8), dtype='object')
+        if hasattr(self, 'offset') and self.offset is not None:
+            return Index(_dt_box_array(self.asi8, self.offset), dtype='object')
+        else:
+            return Index(_dt_box_array(self.asi8), dtype='object')
 
     def shift(self, n, offset=None):
         """
-        Specialized shift which produces a DateRange
+        Specialized shift which produces a DatetimeIndex
 
         Parameters
         ----------
@@ -1355,7 +1365,7 @@ class DatetimeIndex(Int64Index):
         start = self[0] + n * self.offset
         end = self[-1] + n * self.offset
         return DatetimeIndex(start=start, end=end, offset=self.offset,
-                                name=self.name)
+                             name=self.name)
 
     def union(self, other):
         """
@@ -1525,13 +1535,6 @@ class DatetimeIndex(Int64Index):
         except:
             return super(DatetimeIndex, self).map(func_to_map)
 
-    @property
-    def asstruct(self):
-        if self._sarr_cache is None:
-            self._sarr_cache = lib.build_field_sarray(self.asi8)
-        return self._sarr_cache
-
-
     # Fast field accessors for periods of datetime index
     # --------------------------------------------------------------
 
@@ -1580,10 +1583,7 @@ class DatetimeIndex(Int64Index):
         return lib.fast_field_accessor(self.asi8, 'q')
 
     def __iter__(self):
-        if hasattr(self, 'offset') and self.offset is not None:
-            return iter(_dt_box_array(self.asi8, self.offset))
-        else:
-            return iter(_dt_box_array(self.asi8))
+        return iter(self.asobject)
 
     def searchsorted(self, key, side='left'):
         if isinstance(key, np.ndarray):
