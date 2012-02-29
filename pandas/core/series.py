@@ -520,9 +520,9 @@ copy : boolean, default False
         self._set_values(indexer, value)
 
     def _set_values(self, key, value):
-        if (isnull(value) and 
-            issubclass(self.dtype.type, (np.integer, np.bool_))):
-            raise ValueError('Cannot assign nan to integer series')
+        if issubclass(self.dtype.type, (np.integer, np.bool_)):
+            if np.isscalar(value) and isnull(value):
+                raise ValueError('Cannot assign nan to integer series')
 
         self.values[key] = value
 
