@@ -295,7 +295,7 @@ class TestDatetime64(unittest.TestCase):
         self.assert_((s[48:54] == -3).all())
 
     def test_custom_grouper(self):
-        from pandas.core.datetools import Minute 
+        from pandas.core.datetools import Minute
         from pandas.core.groupby import Tinterval
         from pandas.core.frame import DataFrame
 
@@ -303,7 +303,7 @@ class TestDatetime64(unittest.TestCase):
                             end=datetime(2005,1,10))
 
         data = np.array([1]*len(dti))
-        s = Series(data, index=dti) 
+        s = Series(data, index=dti)
 
         b = Tinterval(Minute(5))
         g = s.groupby(b)
@@ -318,10 +318,9 @@ class TestDatetime64(unittest.TestCase):
         expect = Series(arr, index=idx)
 
         result = g.agg(np.sum)
-        
         assert_series_equal(result, expect)
 
-        data = np.random.rand(len(dti), 10) 
+        data = np.random.rand(len(dti), 10)
         df = DataFrame(data, index=dti)
         r = df.groupby(b).agg(np.sum)
 

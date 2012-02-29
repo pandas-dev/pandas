@@ -426,6 +426,12 @@ class Grouper(object):
     def __iter__(self):
         return iter(self.indices)
 
+    def numkeys(self):
+        try:
+            return len(self.groupings)
+        except:
+            return 1
+
     def get_iterator(self, data, axis=0):
         """
         Groupby iterator
@@ -718,12 +724,12 @@ def _generate_time_binner(dtindex, offset,
         return np.arange(first.value, last.value+1, offset.us_stride(),
                          dtype=np.int64)
 
-    return DatetimeIndex(offset=offset, 
+    return DatetimeIndex(offset=offset,
                          start=first, end=last, periods=nperiods)
 
 class Tinterval(Grouper, CustomGrouper):
     """
-    Custom groupby class for time-interval grouping 
+    Custom groupby class for time-interval grouping
 
     Parameters
     ----------
@@ -784,10 +790,6 @@ class Tinterval(Grouper, CustomGrouper):
 
         self.bins = bins
         self.binlabels = labels.view('M8[us]')
-
-    @cache_readonly
-    def groupings(self):
-        return [Grouping(self.obj.index, self, name="Binner")]
 
     @cache_readonly
     def ngroups(self):
@@ -1067,7 +1069,7 @@ class SeriesGroupBy(GroupBy):
         if hasattr(func_or_funcs,'__iter__'):
             ret = self._aggregate_multiple_funcs(func_or_funcs)
         else:
-            if len(self.grouper.groupings) > 1:
+            if self.grouper.numkeys() > 1:
                 return self._python_agg_general(func_or_funcs, *args, **kwargs)
 
             try:
@@ -1107,7 +1109,7 @@ class SeriesGroupBy(GroupBy):
         key_names = self.grouper.names
 
         def _get_index():
-            if len(self.grouper.groupings) > 1:
+            if self.grouper.numkeys() > 1:
                 index = MultiIndex.from_tuples(keys, names=key_names)
             else:
                 ping = self.grouper.groupings[0]
@@ -1323,7 +1325,7 @@ class DataFrameGroupBy(GroupBy):
         elif isinstance(arg, list):
             return self._aggregate_multiple_funcs(arg)
         else:
-            if len(self.grouper.groupings) > 1:
+            if self.grouper.numkeys() > 1:
                 return self._python_agg_general(arg, *args, **kwargs)
             else:
                 result = self._aggregate_generic(arg, *args, **kwargs)
@@ -1367,7 +1369,7 @@ class DataFrameGroupBy(GroupBy):
         return result
 
     def _aggregate_generic(self, func, *args, **kwargs):
-        assert(len(self.grouper.groupings) == 1)
+        assert(self.grouper.numkeys() == 1)
 
         axis = self.axis
         obj = self._obj_with_exclusions
