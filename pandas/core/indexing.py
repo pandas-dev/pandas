@@ -20,6 +20,9 @@ class _NDFrameIndexer(object):
         self.obj = obj
         self.ndim = obj.ndim
 
+    def __iter__(self):
+        raise NotImplementedError('ix is not iterable')
+
     def __getitem__(self, key):
         if isinstance(key, tuple):
             try:
