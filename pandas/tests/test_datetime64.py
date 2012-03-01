@@ -20,7 +20,7 @@ class TestDatetime64(unittest.TestCase):
 
     def setUp(self):
         dti = DatetimeIndex(start=datetime(2005,1,1),
-                            end=datetime(2005,1,10), offset='Min')
+                            end=datetime(2005,1,10), freq='Min')
 
         self.series = Series(rand(len(dti)), dti)
 
@@ -215,7 +215,7 @@ class TestDatetime64(unittest.TestCase):
                     self.assert_(t.weekday() == day)
 
     def test_datetimeindex_accessors(self):
-        dti = DatetimeIndex(offset='Q@JAN', start=datetime(1997,12,31),
+        dti = DatetimeIndex(freq='Q@JAN', start=datetime(1997,12,31),
                             periods=100)
 
         self.assertEquals(dti.year[0], 1998)
@@ -249,9 +249,9 @@ class TestDatetime64(unittest.TestCase):
         self.assertEquals(len(dti.quarter), 100)
 
     def test_datetimeindex_diff(self):
-        dti1 = DatetimeIndex(offset='Q@JAN', start=datetime(1997,12,31),
+        dti1 = DatetimeIndex(freq='Q@JAN', start=datetime(1997,12,31),
                              periods=100)
-        dti2 = DatetimeIndex(offset='Q@JAN', start=datetime(1997,12,31),
+        dti2 = DatetimeIndex(freq='Q@JAN', start=datetime(1997,12,31),
                              periods=98)
         self.assert_( len(dti1.diff(dti2)) == 2)
 
@@ -278,7 +278,7 @@ class TestDatetime64(unittest.TestCase):
         lib.flush_tcache('W@TUE')
 
     def test_fancy_getitem(self):
-        dti = DatetimeIndex(offset='WOM@1FRI', start=datetime(2005,1,1),
+        dti = DatetimeIndex(freq='WOM@1FRI', start=datetime(2005,1,1),
                             end=datetime(2010,1,1))
 
         s = Series(np.arange(len(dti)), index=dti) 
@@ -294,7 +294,7 @@ class TestDatetime64(unittest.TestCase):
                             s[datetime(2009,3,6):datetime(2009,6,5)])
 
     def test_fancy_setitem(self):
-        dti = DatetimeIndex(offset='WOM@1FRI', start=datetime(2005,1,1),
+        dti = DatetimeIndex(freq='WOM@1FRI', start=datetime(2005,1,1),
                             end=datetime(2010,1,1))
 
         s = Series(np.arange(len(dti)), index=dti) 
@@ -307,7 +307,7 @@ class TestDatetime64(unittest.TestCase):
 
     def test_custom_grouper(self):
 
-        dti = DatetimeIndex(offset='Min', start=datetime(2005,1,1),
+        dti = DatetimeIndex(freq='Min', start=datetime(2005,1,1),
                             end=datetime(2005,1,10))
 
         data = np.array([1]*len(dti))
@@ -346,8 +346,8 @@ class TestDatetime64(unittest.TestCase):
         assert_series_equal(result, expect)
 
         # from daily
-        dti = DatetimeIndex(start=datetime(2005,1,1), 
-                            end=datetime(2005,1,10), offset='D')
+        dti = DatetimeIndex(start=datetime(2005,1,1), end=datetime(2005,1,10),
+                            freq='D')
 
         s = Series(rand(len(dti)), dti)
 
@@ -400,8 +400,8 @@ class TestDatetime64(unittest.TestCase):
 
     def test_convert_upsample(self):
         # from daily
-        dti = DatetimeIndex(start=datetime(2005,1,1), 
-                            end=datetime(2005,1,10), offset='D')
+        dti = DatetimeIndex(start=datetime(2005,1,1), end=datetime(2005,1,10),
+                            freq='D')
 
         s = Series(rand(len(dti)), dti)
 
@@ -434,8 +434,8 @@ class TestDatetime64(unittest.TestCase):
         self.assertEquals(xs['close'], s[5])
 
     def test_convert_reconvert(self):
-        dti = DatetimeIndex(start=datetime(2005,1,1), 
-                            end=datetime(2005,1,10), offset='D')
+        dti = DatetimeIndex(start=datetime(2005,1,1), end=datetime(2005,1,10),
+                            freq='D')
         s = Series(rand(len(dti)), dti)
         s = s.convert('B').convert('8H')
         self.assertEquals(len(s), 22)

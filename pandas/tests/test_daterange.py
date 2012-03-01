@@ -127,7 +127,7 @@ class TestDateRange(unittest.TestCase):
         self.assertEquals(shifted.offset, self.rng.offset)
 
         rng = DateRange(START, END, offset=datetools.bmonthEnd)
-        shifted = rng.shift(1, offset=datetools.bday)
+        shifted = rng.shift(1, freq=datetools.bday)
         self.assertEquals(shifted[0], rng[0] + datetools.bday)
 
     def test_pickle_unpickle(self):

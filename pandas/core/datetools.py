@@ -1257,7 +1257,7 @@ _CACHE_END   = Timestamp(datetime(2030, 1, 1))
 _daterange_cache = {}
 
 def generate_range(start=None, end=None, periods=None,
-                   offset=BDay(), time_rule=None, _deprecated=True):
+                   offset=BDay(), time_rule=None):
     """
     Generates a sequence of dates corresponding to the specified time
     offset. Similar to dateutil.rrule except uses pandas DateOffset

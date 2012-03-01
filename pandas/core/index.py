@@ -345,7 +345,7 @@ class Index(np.ndarray):
     def sort(self, *args, **kwargs):
         raise Exception('Cannot sort an Index object')
 
-    def shift(self, periods, offset):
+    def shift(self, periods, freq):
         """
         Shift Index containing datetime objects by input number of periods and
         DateOffset
@@ -358,7 +358,7 @@ class Index(np.ndarray):
             # OK because immutable
             return self
 
-        offset = periods * offset
+        offset = periods * freq
         return Index([idx + offset for idx in self])
 
     def argsort(self, *args, **kwargs):
@@ -1120,15 +1120,27 @@ class DatetimeIndex(Int64Index):
     _sarr_cache = None
 
     def __new__(cls, data=None,
-                offset=None, start=None, end=None, periods=None,
+                freq=None, start=None, end=None, periods=None,
                 dtype=None, copy=False, name=None, tzinfo=None,
-                _deprecated=False, **kwds):
+                **kwds):
 
-        if isinstance(offset, basestring):
-            if _deprecated:
-                offset = datetools.getOffset(offset)
-            else:
-                offset = datetools.to_offset(offset)
+        warn = False
+        if 'offset' in kwds and kwds['offset']:
+            freq = kwds['offset']
+            warn = True
+
+        if warn:
+            import warnings
+            warnings.warn("parameter 'offset' is deprecated, "
+                          "please use 'freq' instead",
+                          FutureWarning)
+            if isinstance(freq, basestring):
+                freq = datetools.getOffset(freq)
+        else:
+            if isinstance(freq, basestring):
+                freq = datetools.to_offset(freq)
+
+        offset = freq
 
         if data is None and offset is None:
             raise ValueError("Must provide offset argument if no data is "
@@ -1153,8 +1165,7 @@ class DatetimeIndex(Int64Index):
 
             if useCache:
                 index = cls._cached_range(start, end, periods=periods,
-                                          offset=offset, name=name,
-                                          _deprecated=_deprecated)
+                                          offset=offset, name=name)
             else:
                 if isinstance(offset, datetools.Tick):
                     if periods is None:
@@ -1169,8 +1180,7 @@ class DatetimeIndex(Int64Index):
 
                 else:
                     xdr = datetools.generate_range(start=start, end=end,
-                        periods=periods, offset=offset,
-                        _deprecated=_deprecated)
+                        periods=periods, offset=offset)
 
                     data = _dt_unbox_array(list(xdr))
 
@@ -1229,7 +1239,7 @@ class DatetimeIndex(Int64Index):
 
     @classmethod
     def _cached_range(cls, start=None, end=None, periods=None, offset=None,
-                      name=None, _deprecated=False):
+                      name=None):
         if start is not None:
             start = Timestamp(start)
         if end is not None:
@@ -1241,8 +1251,7 @@ class DatetimeIndex(Int64Index):
         drc = datetools._daterange_cache
         if offset not in drc:
             xdr = datetools.generate_range(offset=offset,
-                    start=datetools._CACHE_START, end=datetools._CACHE_END,
-                    _deprecated=_deprecated)
+                    start=datetools._CACHE_START, end=datetools._CACHE_END)
 
             arr = np.array(_dt_unbox_array(list(xdr)),
                            dtype='M8[us]', copy=False)
@@ -1341,7 +1350,7 @@ class DatetimeIndex(Int64Index):
         else:
             return Index(_dt_box_array(self.asi8), dtype='object')
 
-    def shift(self, n, offset=None):
+    def shift(self, n, freq=None):
         """
         Specialized shift which produces a DatetimeIndex
 
@@ -1349,14 +1358,14 @@ class DatetimeIndex(Int64Index):
         ----------
         n : int
             Periods to shift by
-        offset : DateOffset or timedelta-like, optional
+        freq : DateOffset or timedelta-like, optional
 
         Returns
         -------
         shifted : DateRange
         """
-        if offset is not None and offset != self.offset:
-            return Index.shift(self, n, offset)
+        if freq is not None and freq != self.offset:
+            return Index.shift(self, n, freq)
 
         if n == 0:
             # immutable so OK

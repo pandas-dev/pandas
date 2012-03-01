@@ -28,7 +28,8 @@ from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
                                 _default_index, _stringify)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import NDFrame
-from pandas.core.index import Index, MultiIndex, NULL_INDEX, _ensure_index
+from pandas.core.index import (Index, DatetimeIndex, MultiIndex, NULL_INDEX,
+                               _ensure_index)
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _radd_compat
@@ -661,7 +662,8 @@ class DataFrame(NDFrame):
             columns = names
             warnings.warn("'names' parameter to DataFrame.from_records is "
                           "being renamed to 'columns', 'names' will be "
-                          "removed in 0.8.0", FutureWarning)
+                          "removed in 0.8.0",
+                          FutureWarning)
 
         if isinstance(data, (np.ndarray, DataFrame, dict)):
             columns, sdict = _rec_to_dict(data)
@@ -2805,7 +2807,30 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Time series-related
 
-    def asfreq(self, freq, method=None):
+    def tofreq(self, freq, method=None):
+        """
+        Convert all TimeSeries inside to specified frequency using DateOffset
+        objects. Optionally provide fill method to pad/backfill missing values.
+
+        Parameters
+        ----------
+        freq : DateOffset object, or string
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}
+            Method to use for filling holes in reindexed Series
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill methdo
+
+        Returns
+        -------
+        converted : DataFrame
+        """
+        if len(self.index) == 0:
+            return self.copy()
+        dti = DatetimeIndex(self.index[0], self.index[-1], freq=freq)
+        return self.reindex(dti, method=method)
+
+
+    def asfreq(self, offset, method=None):
         """
         Convert all TimeSeries inside to specified frequency using DateOffset
         objects. Optionally provide fill method to pad/backfill missing values.
@@ -2823,14 +2848,19 @@ class DataFrame(NDFrame):
         -------
         converted : DataFrame
         """
+
+        import warnings
+        warnings.warn("The 'asfreq' method is deprecated; use 'tofreq' "
+                      " and the new pandas offsets",
+                      FutureWarning)
+        
         if len(self.index) == 0:
             return self.copy()
 
-        if isinstance(freq, datetools.DateOffset):
-            dateRange = DateRange(self.index[0], self.index[-1], offset=freq)
+        if isinstance(offset, datetools.DateOffset):
+            dateRange = DateRange(self.index[0], self.index[-1], offset=offset)
         else:
-            dateRange = DateRange(self.index[0], self.index[-1],
-                                  time_rule=freq)
+            dateRange = DateRange(self.index[0], self.index[-1], time_rule=offset)
 
         return self.reindex(dateRange, method=method)
 
@@ -2852,13 +2882,13 @@ class DataFrame(NDFrame):
     def shift(self, periods, freq=None, **kwds):
         """
         Shift the index of the DataFrame by desired number of periods with an
-        optional time offset
+        optional time freq
 
         Parameters
         ----------
         periods : int
             Number of periods to move, can be positive or negative
-        offset : DateOffset, timedelta, or time rule string, optional
+        freq : DateOffset, timedelta, or time rule string, optional
             Increment to use from datetools module or time rule (e.g. 'EOM')
 
         Returns
@@ -2881,7 +2911,8 @@ class DataFrame(NDFrame):
         if warn:
             import warnings
             warnings.warn("'timeRule' and 'offset' parameters are deprecated,"
-                          " please use 'freq' instead", FutureWarning)
+                          " please use 'freq' instead",
+                          FutureWarning)
 
         if isinstance(offset, basestring):
             offset = datetools.to_offset(offset)
