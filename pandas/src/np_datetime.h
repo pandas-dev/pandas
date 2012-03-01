@@ -1,12 +1,12 @@
 /*
- * This is derived from numpy 1.7  
+ * This is derived from numpy 1.7
  * See NP_LICENSE.TXT
  */
 
 #ifndef _PANDAS_DATETIME_H_
 #define _PANDAS_DATETIME_H_
 
-#define NPY_DATETIME_MAX_ISO8601_STRLEN (21+3*5+1+3*6+6+1)  
+#define NPY_DATETIME_MAX_ISO8601_STRLEN (21+3*5+1+3*6+6+1)
 
 // stuff pandas needs
 // ----------------------------------------------------------------------------
@@ -19,23 +19,17 @@ int convert_pydatetime_to_datetimestruct(PyObject *obj, npy_datetimestruct *out,
 int dayofweek(int y, int m, int d);
 
 /* Days per month, regular year and leap year */
-static int _days_per_month_table[2][12] = {
-    { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
-    { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
-};
+int _days_per_month_table[2][12];
 
 /* Table with day offsets for each month (0-based, without and with leap) */
-static int _month_offset[2][13] = {
-    { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 },
-    { 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 }
-};
+int _month_offset[2][13];
 
 // stuff numpy needs in header
 // ----------------------------------------------------------------------------
 
 int is_leapyear(npy_int64 year);
 
-static char *_datetime_strings[NPY_DATETIME_NUMUNITS];
+char *_datetime_strings[NPY_DATETIME_NUMUNITS];
 
 /*
  * Converts a datetime from a datetimestruct to a datetime based

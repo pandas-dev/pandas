@@ -14,8 +14,8 @@ from datetime cimport *
 from util cimport is_integer_object, is_datetime64_object
 
 # initialize numpy
-np.import_array()
-np.import_ufunc()
+import_array()
+import_ufunc()
 
 # import datetime C API
 PyDateTime_IMPORT
@@ -199,22 +199,22 @@ cdef convert_to_tsobject(object ts, object tzinfo=None):
 
     return retval
 
-cdef convert_to_res(object res):
-    if res == 'microsecond':
-        return r_microsecond
-    if res == 'second':
-        return r_second
-    if res == 'minute':
-        return r_minute
-    if res == 'hour':
-        return r_hour
-    if res == 'day':
-        return r_day
-    if res == 'month':
-        return r_month
-    if res == 'year':
-        return r_year
-    return r_invalid
+#cdef convert_to_res(object res):
+#    if res == 'microsecond':
+#        return r_microsecond
+#    if res == 'second':
+#        return r_second
+#    if res == 'minute':
+#        return r_minute
+#    if res == 'hour':
+#        return r_hour
+#    if res == 'day':
+#        return r_day
+#    if res == 'month':
+#        return r_month
+#    if res == 'year':
+#        return r_year
+#    return r_invalid
 
 cdef conversion_factor(time_res res1, time_res res2):
     cdef:

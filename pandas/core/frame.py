@@ -2849,7 +2849,7 @@ class DataFrame(NDFrame):
         """
         return self - self.shift(periods)
 
-    def shift(self, periods, offset=None, **kwds):
+    def shift(self, periods, freq=None, **kwds):
         """
         Shift the index of the DataFrame by desired number of periods with an
         optional time offset
@@ -2868,13 +2868,23 @@ class DataFrame(NDFrame):
         if periods == 0:
             return self
 
-        offset = kwds.get('timeRule', offset)
-        if isinstance(offset, basestring):
-            # deprecated code path
-            if isinstance(self.index, DateRange):
+        if 'timeRule' in kwds or 'offset' in kwds:
+            offset = kwds.get('offset')
+            offset = kwds.get('timeRule', offset)
+            if isinstance(offset, basestring):
                 offset = datetools.getOffset(offset)
-            else:
-                offset = datetools.to_offset(offset)
+            warn = True
+        else:
+            offset = freq
+            warn = False
+
+        if warn:
+            import warnings
+            warnings.warn("'timeRule' and 'offset' parameters are deprecated,"
+                          " please use 'freq' instead", FutureWarning)
+
+        if isinstance(offset, basestring):
+            offset = datetools.to_offset(offset)
 
         def _shift_block(blk, indexer):
             new_values = blk.values.take(indexer, axis=1)

@@ -1645,8 +1645,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         unshifted = self.ts.shift(0, offset=offset)
         assert_series_equal(unshifted, self.ts)
 
-        shifted = self.ts.shift(1, timeRule='B')
-        unshifted = shifted.shift(-1, timeRule='B')
+        shifted = self.ts.shift(1, timeRule='WEEKDAY')
+        unshifted = shifted.shift(-1, timeRule='WEEKDAY')
 
         assert_series_equal(unshifted, self.ts)
 

@@ -58,8 +58,7 @@ class TestDateRange(unittest.TestCase):
     def test_cached_range(self):
         rng = DateRange._cached_range(START, END, offset=datetools.bday)
         rng = DateRange._cached_range(START, periods=20, offset=datetools.bday)
-        rng = DateRange._cached_range(end=START, periods=20,
-                                       offset=datetools.bday)
+        rng = DateRange._cached_range(end=START, periods=20, offset=datetools.bday)
 
         self.assertRaises(Exception, DateRange._cached_range, START, END)
 

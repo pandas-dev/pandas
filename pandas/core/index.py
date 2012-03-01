@@ -1125,7 +1125,10 @@ class DatetimeIndex(Int64Index):
                 _deprecated=False, **kwds):
 
         if isinstance(offset, basestring):
-            offset = datetools.getOffset(offset, _deprecated=_deprecated)
+            if _deprecated:
+                offset = datetools.getOffset(offset)
+            else:
+                offset = datetools.to_offset(offset)
 
         if data is None and offset is None:
             raise ValueError("Must provide offset argument if no data is "

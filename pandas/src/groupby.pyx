@@ -452,25 +452,25 @@ def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
 
     return bins, labels
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef ndarray[int32_t] counts_by_bins(ndarray[int32_t] bins,
-                                     Py_ssize_t datalen):
-    cdef:
-        Py_ssize_t ngroups = len(bins)
-        i = 0
+#@cython.boundscheck(False)
+#@cython.wraparound(False)
+#cdef ndarray[int32_t] counts_by_bins(ndarray[int32_t] bins,
+#                                     Py_ssize_t datalen):
+#    cdef:
+#        Py_ssize_t ngroups = len(bins)
+#        i = 0
 
-    counts = np.zeros(ngroups, dtype='i4')
+#    counts = np.zeros(ngroups, dtype='i4')
 
-    if ngroups > 0:
-        counts[0] = bins[0]
-        for i in range(1, ngroups):
-            if i == ngroups - 1:
-                counts[i] = datalen - bins[i-1]
-            else:
-                counts[i] = bins[i] - bins[i-1]
+#    if ngroups > 0:
+#        counts[0] = bins[0]
+#        for i in range(1, ngroups):
+#            if i == ngroups - 1:
+#                counts[i] = datalen - bins[i-1]
+#            else:
+#                counts[i] = bins[i] - bins[i-1]
 
-    return counts
+#    return counts
 
 # add passing bin edges, instead of labels
 

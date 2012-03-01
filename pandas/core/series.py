@@ -2236,7 +2236,7 @@ copy : boolean, default False
     #----------------------------------------------------------------------
     # Time series-oriented methods
 
-    def shift(self, periods, offset=None, **kwds):
+    def shift(self, periods, freq=None, **kwds):
         """
         Shift the index of the Series by desired number of periods with an
         optional time offset
@@ -2245,7 +2245,7 @@ copy : boolean, default False
         ----------
         periods : int
             Number of periods to move, can be positive or negative
-        offset : DateOffset, timedelta, or time rule string, optional
+        freq : DateOffset, timedelta, or time rule string, optional
             Increment to use from datetools module or time rule (e.g. 'EOM')
 
         Returns
@@ -2255,13 +2255,23 @@ copy : boolean, default False
         if periods == 0:
             return self.copy()
 
-        offset = kwds.get('timeRule', offset)
-        if isinstance(offset, basestring):
-            # deprecated code path
-            if isinstance(self.index, DateRange):
+        if 'timeRule' in kwds or 'offset' in kwds:
+            offset = kwds.get('offset')
+            offset = kwds.get('timeRule', offset)
+            if isinstance(offset, basestring):
                 offset = datetools.getOffset(offset)
-            else:
-                offset = datetools.to_offset(offset)
+            warn = True
+        else:
+            offset = freq
+            warn = False
+
+        if warn:
+            import warnings
+            warnings.warn("'timeRule' and 'offset' parameters are deprecated,"
+                          " please use 'freq' instead", FutureWarning)
+
+        if isinstance(offset, basestring):
+            offset = datetools.to_offset(offset)
 
         if offset is None:
             new_values = np.empty(len(self), dtype=self.dtype)
@@ -2326,7 +2336,7 @@ copy : boolean, default False
 
         Parameters
         ----------
-        offset : DateOffset object, or corresponding string
+        freq : DateOffset object, or corresponding string
             DateOffset object or subclass (e.g. monthEnd)
         method : {'backfill', 'pad', None}
             Method to use for filling holes in new index
@@ -2335,8 +2345,6 @@ copy : boolean, default False
         -------
         converted : TimeSeries
         """
-
-        # TODO: this uses deprecated API, add new method?
 
         if isinstance(freq, datetools.DateOffset):
             dateRange = DateRange(self.index[0], self.index[-1], offset=freq)

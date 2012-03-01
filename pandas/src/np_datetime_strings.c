@@ -8,14 +8,13 @@
  */
 
 #define PY_SSIZE_T_CLEAN
+#define NO_IMPORT
+
 #include <Python.h>
 
 #include <time.h>
 
 #include <numpy/arrayobject.h>
-
-//#include "numpy/npy_3kcompat.h"
-
 #include "numpy/arrayscalars.h"
 
 #include "np_datetime.h"
