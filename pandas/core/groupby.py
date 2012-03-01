@@ -626,7 +626,7 @@ class Grouper(object):
 
         return name_list
 
-def generate_bins_generic(values, binner, closed, label, drop):
+def generate_bins_generic(values, binner, closed, label):
     """
     Generate bin edge offsets and bin labels for one array using another array
     which has bin edge values. Both arrays must be sorted.
@@ -691,7 +691,7 @@ def generate_bins_generic(values, binner, closed, label, drop):
             break
 
         # if we've seen some values or not ignoring empty bins
-        if vc != 0 or not drop:
+        if vc != 0:
             bins[bc] = j
             bc += 1
             vc = 0

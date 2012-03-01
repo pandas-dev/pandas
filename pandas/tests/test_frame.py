@@ -3379,7 +3379,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         shiftedFrame = self.tsframe.shift(5, offset=datetools.BDay())
         self.assert_(len(shiftedFrame) == len(self.tsframe))
 
-        shiftedFrame2 = self.tsframe.shift(5, timeRule='WEEKDAY')
+        shiftedFrame2 = self.tsframe.shift(5, timeRule='B')
         assert_frame_equal(shiftedFrame, shiftedFrame2)
 
         d = self.tsframe.index[0]
