@@ -27,3 +27,13 @@ Performance improvements
 
   - Improve performance and memory usage of fillna on DataFrame
   - Can concatenate a list of Series along axis=1 to obtain a DataFrame (GH787_)
+
+.. _GH774: https://github.com/pydata/pandas/issues/774
+.. _GH818: https://github.com/pydata/pandas/issues/818
+.. _GH806: https://github.com/pydata/pandas/issues/806
+.. _GH807: https://github.com/pydata/pandas/issues/807
+.. _GH784: https://github.com/pydata/pandas/issues/784
+.. _GH787: https://github.com/pydata/pandas/issues/787
+.. _GH802: https://github.com/pydata/pandas/issues/802
+.. _GH773: https://github.com/pydata/pandas/issues/773
+.. _GH787: https://github.com/pydata/pandas/issues/787
