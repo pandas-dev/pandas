@@ -3,6 +3,7 @@ import unittest
 import os
 import sys
 
+from datetime import datetime
 import numpy as np
 
 from pandas import Series, DataFrame, Panel, DateRange, MultiIndex
@@ -465,6 +466,12 @@ class TesttHDFStore(unittest.TestCase):
         store['c']
         store['d']
         store.close()
+
+    def test_store_datetime_fractional_secs(self):
+        dt = datetime(2012, 1, 2, 3, 4, 5, 123456)
+        series = Series([0], [dt])
+        self.store['a'] = series
+        self.assertEquals(self.store['a'].index[0], dt)
 
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))

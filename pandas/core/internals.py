@@ -101,18 +101,20 @@ class Block(object):
         #     union_ref = self.ref_items + other.ref_items
         return _merge_blocks([self, other], self.ref_items)
 
-    def reindex_axis(self, indexer, mask, needs_masking, axis=0):
+    def reindex_axis(self, indexer, mask, needs_masking, axis=0,
+                     fill_value=np.nan):
         """
         Reindex using pre-computed indexer information
         """
         if self.values.size > 0:
             new_values = com.take_fast(self.values, indexer, mask,
-                                       needs_masking, axis=axis)
+                                       needs_masking, axis=axis,
+                                       fill_value=fill_value)
         else:
             shape = list(self.shape)
             shape[axis] = len(indexer)
             new_values = np.empty(shape)
-            new_values.fill(np.nan)
+            new_values.fill(fill_value)
         return make_block(new_values, self.items, self.ref_items)
 
     def reindex_items_from(self, new_ref_items, copy=True):
@@ -208,6 +210,39 @@ class Block(object):
         mask = com.isnull(new_values.ravel())
         new_values.flat[mask] = value
         return make_block(new_values, self.items, self.ref_items)
+
+    def interpolate(self, method='pad', inplace=False):
+        values = self.values if inplace else self.values.copy()
+
+        if values.ndim != 2:
+            raise NotImplementedError
+
+        if method == 'pad':
+            _pad(values)
+        else:
+            _backfill(values)
+
+        return make_block(values, self.items, self.ref_items)
+
+def _pad(values):
+    if com.is_float_dtype(values):
+        _method = lib.pad_2d_inplace_float64
+    elif values.dtype == np.object_:
+        _method = lib.pad_2d_inplace_object
+    else: # pragma: no cover
+        raise ValueError('Invalid dtype for padding')
+
+    _method(values, com.isnull(values).view(np.uint8))
+
+def _backfill(values):
+    if com.is_float_dtype(values):
+        _method = lib.backfill_2d_inplace_float64
+    elif values.dtype == np.object_:
+        _method = lib.backfill_2d_inplace_object
+    else: # pragma: no cover
+        raise ValueError('Invalid dtype for padding')
+
+    _method(values, com.isnull(values).view(np.uint8))
 
 #-------------------------------------------------------------------------------
 # Is this even possible?
@@ -314,13 +349,6 @@ class BlockManager(object):
     def _get_items(self):
         return self.axes[0]
     items = property(fget=_get_items)
-
-    def set_items_norename(self, value):
-        value = _ensure_index(value)
-        self.axes[0] = value
-
-        for block in self.blocks:
-            block.set_ref_items(value, maybe_rename=False)
 
     def __getstate__(self):
         block_values = [b.values for b in self.blocks]
@@ -579,6 +607,9 @@ class BlockManager(object):
         new_blocks = _consolidate(self.blocks, self.items)
         return BlockManager(new_blocks, self.axes)
 
+    def _consolidate_inplace(self):
+        self.blocks = _consolidate(self.blocks, self.items)
+
     def get(self, item):
         _, block = self._find_block(item)
         return block.get(item)
@@ -619,7 +650,7 @@ class BlockManager(object):
             if not block.should_store(value):
                 # delete from block, create and append new block
                 self._delete_from_block(i, item)
-                self._add_new_block(item, value)
+                self._add_new_block(item, value, loc=None)
             else:
                 block.set(item, value)
         else:
@@ -632,8 +663,19 @@ class BlockManager(object):
 
         new_items = self.items.insert(loc, item)
         self.set_items_norename(new_items)
+
         # new block
-        self._add_new_block(item, value)
+        self._add_new_block(item, value, loc=loc)
+
+        if len(self.blocks) > 20:
+            self._consolidate_inplace()
+
+    def set_items_norename(self, value):
+        value = _ensure_index(value)
+        self.axes[0] = value
+
+        for block in self.blocks:
+            block.set_ref_items(value, maybe_rename=False)
 
     def _delete_from_block(self, i, item):
         """
@@ -648,11 +690,12 @@ class BlockManager(object):
         if new_right is not None:
             self.blocks.append(new_right)
 
-    def _add_new_block(self, item, value):
+    def _add_new_block(self, item, value, loc=None):
         # Do we care about dtype at the moment?
 
         # hm, elaborate hack?
-        loc = self.items.get_loc(item)
+        if loc is None:
+            loc = self.items.get_loc(item)
         new_block = make_block(value, self.items[loc:loc+1].copy(),
                                self.items)
         self.blocks.append(new_block)
@@ -686,12 +729,12 @@ class BlockManager(object):
         new_axis, indexer = cur_axis.reindex(new_axis, method)
         return self.reindex_indexer(new_axis, indexer, axis=axis)
 
-    def reindex_indexer(self, new_axis, indexer, axis=1):
+    def reindex_indexer(self, new_axis, indexer, axis=1, fill_value=np.nan):
         """
         pandas-indexer with -1's only.
         """
         if axis == 0:
-            return self._reindex_indexer_items(new_axis, indexer)
+            return self._reindex_indexer_items(new_axis, indexer, fill_value)
 
         mask = indexer == -1
 
@@ -701,14 +744,14 @@ class BlockManager(object):
         new_blocks = []
         for block in self.blocks:
             newb = block.reindex_axis(indexer, mask, needs_masking,
-                                      axis=axis)
+                                      axis=axis, fill_value=fill_value)
             new_blocks.append(newb)
 
         new_axes = list(self.axes)
         new_axes[axis] = new_axis
         return BlockManager(new_blocks, new_axes)
 
-    def _reindex_indexer_items(self, new_items, indexer):
+    def _reindex_indexer_items(self, new_items, indexer, fill_value):
         # TODO: less efficient than I'd like
 
         item_order = com.take_1d(self.items.values, indexer)
@@ -734,13 +777,14 @@ class BlockManager(object):
 
         if not mask.all():
             na_items = new_items[-mask]
-            na_block = self._make_na_block(na_items, new_items)
+            na_block = self._make_na_block(na_items, new_items,
+                                           fill_value=fill_value)
             new_blocks.append(na_block)
             new_blocks = _consolidate(new_blocks, new_items)
 
         return BlockManager(new_blocks, [new_items] + self.axes[1:])
 
-    def reindex_items(self, new_items, copy=True):
+    def reindex_items(self, new_items, copy=True, fill_value=np.nan):
         """
 
         """
@@ -770,17 +814,22 @@ class BlockManager(object):
             mask = indexer == -1
             if mask.any():
                 extra_items = new_items[mask]
-                na_block = self._make_na_block(extra_items, new_items)
+                na_block = self._make_na_block(extra_items, new_items,
+                                               fill_value=fill_value)
                 new_blocks.append(na_block)
                 new_blocks = _consolidate(new_blocks, new_items)
 
         return BlockManager(new_blocks, [new_items] + self.axes[1:])
 
-    def _make_na_block(self, items, ref_items):
+    def _make_na_block(self, items, ref_items, fill_value=np.nan):
+        # TODO: infer dtypes other than float64 from fill_value
+
         block_shape = list(self.shape)
         block_shape[0] = len(items)
-        block_values = np.empty(block_shape, dtype=np.float64)
-        block_values.fill(nan)
+
+        dtype = com._infer_dtype(fill_value)
+        block_values = np.empty(block_shape, dtype=dtype)
+        block_values.fill(fill_value)
         na_block = make_block(block_values, items, ref_items,
                               do_integrity_check=True)
         return na_block

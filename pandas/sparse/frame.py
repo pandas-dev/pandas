@@ -477,7 +477,7 @@ class SparseDataFrame(DataFrame):
         return self._constructor(data=new_data, index=self.index,
                                  columns=self.columns)
 
-    def _reindex_index(self, index, method, copy, level):
+    def _reindex_index(self, index, method, copy, level, fill_value=np.nan):
         if level is not None:
             raise Exception('Reindex by level not supported for sparse')
 
@@ -500,16 +500,19 @@ class SparseDataFrame(DataFrame):
             new = values.take(indexer)
 
             if need_mask:
-                np.putmask(new, mask, nan)
+                np.putmask(new, mask, fill_value)
 
             new_series[col] = new
 
         return SparseDataFrame(new_series, index=index, columns=self.columns,
                                default_fill_value=self.default_fill_value)
 
-    def _reindex_columns(self, columns, copy, level):
+    def _reindex_columns(self, columns, copy, level, fill_value):
         if level is not None:
             raise Exception('Reindex by level not supported for sparse')
+
+        if com.notnull(fill_value):
+            raise NotImplementedError
 
         # TODO: fill value handling
         sdict = dict((k, v) for k, v in self.iteritems() if k in columns)
@@ -517,7 +520,7 @@ class SparseDataFrame(DataFrame):
                                default_fill_value=self.default_fill_value)
 
     def _reindex_with_indexers(self, index, row_indexer, columns, col_indexer,
-                               copy):
+                               copy, fill_value):
         if columns is None:
             columns = self.columns
 
@@ -526,7 +529,8 @@ class SparseDataFrame(DataFrame):
             if col not in self:
                 continue
             if row_indexer is not None:
-                new_arrays[col] = com.take_1d(self[col].values, row_indexer)
+                new_arrays[col] = com.take_1d(self[col].values, row_indexer,
+                                              fill_value=fill_value)
             else:
                 new_arrays[col] = self[col]
 
@@ -720,8 +724,18 @@ class SparseDataFrame(DataFrame):
             else:
                 return self._apply_broadcast(func, axis)
 
-    def fillna(self, *args, **kwargs):
-        raise NotImplementedError
+    @Appender(DataFrame.fillna.__doc__)
+    def fillna(self, value=None, method='pad', inplace=False):
+        new_series = {}
+        for k, v in self.iterkv():
+            new_series[k] = v.fillna(value=value, method=method)
+
+        if inplace:
+            self._series = new_series
+            return self
+        else:
+            return self._constructor(new_series, index=self.index,
+                                     columns=self.columns)
 
 def stack_sparse_frame(frame):
     """

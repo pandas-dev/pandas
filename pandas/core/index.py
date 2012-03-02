@@ -1,6 +1,6 @@
 # pylint: disable=E1101,E1103,W0232
 
-from datetime import time
+from datetime import time, datetime
 from itertools import izip
 
 import numpy as np
@@ -142,6 +142,15 @@ class Index(np.ndarray):
         except TypeError:
             return False
 
+    def is_numeric(self):
+        return issubclass(self.dtype.type, np.number)
+
+    def is_datetime(self):
+        for key in self.values:
+            if not isinstance(key, datetime):
+                return False
+        return True
+
     def get_duplicates(self):
         from collections import defaultdict
         counter = defaultdict(lambda: 0)
@@ -278,8 +287,9 @@ class Index(np.ndarray):
             return header + result
 
         values = self.values
+
         if values.dtype == np.object_:
-            values = lib.maybe_convert_objects(values)
+            values = lib.maybe_convert_objects(values, safe=1)
 
         if values.dtype == np.object_:
             result = [com._stringify(x) for x in values]
@@ -451,12 +461,15 @@ class Index(np.ndarray):
             return this.intersection(other)
 
         if self.is_monotonic and other.is_monotonic:
-            result = self._inner_indexer(self, other.values)[0]
-            return self._wrap_union_result(other, result)
-        else:
-            indexer = self.get_indexer(other.values)
-            indexer = indexer.take((indexer != -1).nonzero()[0])
-            return self.take(indexer)
+            try:
+                result = self._inner_indexer(self, other.values)[0]
+                return self._wrap_union_result(other, result)
+            except TypeError:
+                pass
+
+        indexer = self.get_indexer(other.values)
+        indexer = indexer.take((indexer != -1).nonzero()[0])
+        return self.take(indexer)
 
     def diff(self, other):
         """
@@ -1309,6 +1322,10 @@ class MultiIndex(Index):
         -------
         index : MultiIndex
         """
+        if len(arrays) == 1:
+            name = None if names is None else names[0]
+            return Index(arrays[0], name=name)
+
         levels = []
         labels = []
         for arr in arrays:
@@ -2132,13 +2149,13 @@ def _sparsify(label_list):
 def _ensure_index(index_like):
     if isinstance(index_like, Index):
         return index_like
+    if hasattr(index_like, 'name'):
+        return Index(index_like, name=index_like.name)
     return Index(index_like)
-
 
 def _validate_join_method(method):
     if method not in ['left', 'right', 'inner', 'outer']:
         raise Exception('do not recognize join method %s' % method)
-
 
 # TODO: handle index names!
 def _get_combined_index(indexes, intersect=False):

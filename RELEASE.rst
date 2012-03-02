@@ -22,6 +22,55 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.7.1
+============
+
+**Release date:** February 29, 2012
+
+**New features / modules**
+
+  - Add ``to_clipboard`` function to pandas namespace for writing objects to
+    the system clipboard (#774)
+  - Add ``itertuples`` method to DataFrame for iterating through the rows of a
+    dataframe as tuples (#818)
+  - Add ability to pass fill_value and method to DataFrame and Series align
+    method (#806, #807)
+  - Add fill_value option to reindex, align methods (#784)
+  - Enable concat to produce DataFrame from Series (#787)
+  - Add ``between`` method to Series (#802)
+  - Add HTML representation hook to DataFrame for the IPython HTML notebook
+    (#773)
+  - Support for reading Excel 2007 XML documents using openpyxl
+
+**Improvements to existing features**
+
+  - Improve performance and memory usage of fillna on DataFrame
+  - Can concatenate a list of Series along axis=1 to obtain a DataFrame (#787)
+
+**Bug fixes**
+
+  - Fix memory leak when inserting large number of columns into a single
+    DataFrame (#790)
+  - Appending length-0 DataFrame with new columns would not result in those new
+    columns being part of the resulting concatenated DataFrame (#782)
+  - Fixed groupby corner case when passing dictionary grouper and as_index is
+    False (#819)
+  - Fixed bug whereby bool array sometimes had object dtype (#820)
+  - Fix exception thrown on np.diff (#816)
+  - Fix to_records where columns are non-strings (#822)
+  - Fix Index.intersection where indices have incomparable types (#811)
+  - Fix ExcelFile throwing an exception for two-line file (#837)
+  - Add clearer error message in csv parser (#835)
+  - Fix loss of fractional seconds in HDFStore (#513)
+  - Fix DataFrame join where columns have datetimes (#787)
+  - Work around numpy performance issue in take (#817)
+  - Improve comparison operations for NA-friendliness (#801)
+  - Fix indexing operation for floating point values (#780, #798)
+  - Fix groupby case resulting in malformed dataframe (#814)
+  - Fix behavior of reindex of Series dropping name (#812)
+  - Improve on redudant groupby computation (#775)
+  - Catch possible NA assignment to int/bool series with exception (#839)
+
 pandas 0.7.0
 ============
 

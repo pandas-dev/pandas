@@ -204,6 +204,25 @@ class TestGroupBy(unittest.TestCase):
         assert_frame_equal(grouped.agg(np.sum), DataFrame({}))
         assert_frame_equal(grouped.apply(np.sum), DataFrame({}))
 
+    def test_agg_grouping_is_list_tuple(self):
+        from pandas.core.groupby import Grouping
+
+        df = tm.makeTimeDataFrame()
+
+        grouped = df.groupby(lambda x: x.year)
+        grouper = grouped.grouper.groupings[0].grouper
+        grouped.grouper.groupings[0] = Grouping(self.ts.index, list(grouper))
+
+        result = grouped.agg(np.mean)
+        expected = grouped.mean()
+        tm.assert_frame_equal(result, expected)
+
+        grouped.grouper.groupings[0] = Grouping(self.ts.index, tuple(grouper))
+
+        result = grouped.agg(np.mean)
+        expected = grouped.mean()
+        tm.assert_frame_equal(result, expected)
+
     def test_agg_python_multiindex(self):
         grouped = self.mframe.groupby(['A', 'B'])
 
@@ -468,12 +487,22 @@ class TestGroupBy(unittest.TestCase):
             self.assert_(group.index[0].weekday() == weekday)
 
         # groups / group_indices
-        groups = grouped.primary.groups
-        indices = grouped.primary.indices
+        groups = grouped.groups
+        indices = grouped.indices
 
         for k, v in groups.iteritems():
             samething = self.tsframe.index.take(indices[k])
             self.assert_(np.array_equal(v, samething))
+
+    def test_grouping_is_iterable(self):
+        # this code path isn't used anywhere else
+        # not sure it's useful
+        grouped = self.tsframe.groupby([lambda x: x.weekday(),
+                                        lambda x: x.year])
+
+        # test it works
+        for g in grouped.grouper.groupings[0]:
+            pass
 
     def test_frame_groupby_columns(self):
         mapping = {
@@ -686,6 +715,12 @@ class TestGroupBy(unittest.TestCase):
         expected2['D'] = grouped.sum()['D']
         assert_frame_equal(result2, expected2)
 
+        grouped = self.df.groupby('A', as_index=True)
+        expected3 = grouped['C'].sum()
+        expected3 = DataFrame(expected3).rename(columns={'C' : 'Q'})
+        result3 = grouped['C'].agg({'Q' : np.sum})
+        assert_frame_equal(result3, expected3)
+
         # multi-key
 
         grouped = self.df.groupby(['A', 'B'], as_index=False)
@@ -698,6 +733,18 @@ class TestGroupBy(unittest.TestCase):
         expected2 = grouped.mean()
         expected2['D'] = grouped.sum()['D']
         assert_frame_equal(result2, expected2)
+
+        expected3 = grouped['C'].sum()
+        expected3 = DataFrame(expected3).rename(columns={'C' : 'Q'})
+        result3 = grouped['C'].agg({'Q' : np.sum})
+        assert_frame_equal(result3, expected3)
+
+    def test_multifunc_select_col_integer_cols(self):
+        df = self.df
+        df.columns = np.arange(len(df.columns))
+
+        # it works!
+        result = df.groupby(1, as_index=False)[2].agg({'Q' : np.mean})
 
     def test_as_index_series_return_frame(self):
         grouped = self.df.groupby('A', as_index=False)
@@ -939,7 +986,7 @@ class TestGroupBy(unittest.TestCase):
         deleveled = self.mframe.reset_index()
         grouped = deleveled.groupby(['first', 'second'])
 
-        for i, ping in enumerate(grouped.groupings):
+        for i, ping in enumerate(grouped.grouper.groupings):
             the_counts = self.mframe.groupby(level=i).count()['A']
             other_counts = Series(ping.counts, ping.group_index)
             assert_almost_equal(the_counts,
@@ -947,7 +994,7 @@ class TestGroupBy(unittest.TestCase):
 
         # compute counts when group by level
         grouped = self.mframe.groupby(level=0)
-        ping = grouped.groupings[0]
+        ping = grouped.grouper.groupings[0]
         the_counts = grouped.size()
         other_counts = Series(ping.counts, ping.group_index)
         assert_almost_equal(the_counts,
@@ -1023,12 +1070,12 @@ class TestGroupBy(unittest.TestCase):
     def test_level_preserve_order(self):
         grouped = self.mframe.groupby(level=0)
         exp_labels = np.array([0, 0, 0, 1, 1, 2, 2, 3, 3, 3])
-        assert_almost_equal(grouped.groupings[0].labels, exp_labels)
+        assert_almost_equal(grouped.grouper.labels[0], exp_labels)
 
     def test_grouping_labels(self):
         grouped = self.mframe.groupby(self.mframe.index.get_level_values(0))
         exp_labels = np.array([2, 2, 2, 0, 0, 1, 1, 3, 3, 3])
-        assert_almost_equal(grouped.groupings[0].labels, exp_labels)
+        assert_almost_equal(grouped.grouper.labels[0], exp_labels)
 
     def test_cython_fail_agg(self):
         dr = DateRange('1/1/2000', periods=50)
@@ -1120,7 +1167,7 @@ class TestGroupBy(unittest.TestCase):
         sorted_columns, _ = columns.sortlevel(0)
         df['A', 'foo'] = 'bar'
         result = df.groupby(level=0).mean()
-        self.assert_(result.columns.equals(sorted_columns))
+        self.assert_(result.columns.equals(df.columns[:-1]))
 
     def test_pass_args_kwargs(self):
         from scipy.stats import scoreatpercentile
@@ -1398,6 +1445,18 @@ class TestGroupBy(unittest.TestCase):
         result = df.groupby(labels, axis=1).sum().values
         expected = numpy_groupby(data, labels, axis=1)
         assert_almost_equal(result, expected)
+
+    def test_groupby_2d_malformed(self):
+        d = DataFrame(index=range(2))
+        d['group'] = ['g1', 'g2']
+        d['zeros'] = [0, 0]
+        d['ones'] = [1, 1]
+        d['label'] = ['l1', 'l2']
+        tmp = d.groupby(['group']).mean()
+        res_values = np.array([[0., 1.], [0., 1.]])
+        self.assert_(np.array_equal(tmp.columns, ['zeros', 'ones']))
+        self.assert_(np.array_equal(tmp.values, res_values))
+
 
 def test_decons():
     from pandas.core.groupby import decons_group_index, get_group_index

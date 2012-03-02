@@ -1,14 +1,12 @@
 from pandas import *
 import numpy as np
-
 import pandas.util.testing as tm
+import os
+import psutil
 
-tm.N = 2000
-tm.K = 25
+pid = os.getpid()
+proc = psutil.Process(pid)
 
-for i in xrange(100):
-    print i
-    df = tm.makeTimeDataFrame()
-    y = df.pop('A')
-    model = ols(y=y, x=df, window=1999).beta
-
+df = DataFrame(index=np.arange(100))
+for i in range(5000):
+    df[i] = 5

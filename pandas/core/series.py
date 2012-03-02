@@ -35,7 +35,7 @@ __all__ = ['Series', 'TimeSeries']
 _np_version = np.version.short_version
 _np_version_under1p6 = LooseVersion(_np_version) < '1.6'
 
-#-------------------------------------------------------------------------------
+#----------------------------------------------------------------------
 # Wrapper function for Series arithmetic methods
 
 def _arith_method(op, name):
@@ -81,6 +81,78 @@ def _arith_method(op, name):
                           index=self.index, name=self.name)
     return wrapper
 
+
+def _comp_method(op, name):
+    """
+    Wrapper function for Series arithmetic operations, to avoid
+    code duplication.
+    """
+    def na_op(x, y):
+        if x.dtype == np.object_:
+            if isinstance(y, list):
+                y = lib.list_to_object_array(y)
+
+            if isinstance(y, np.ndarray):
+                result = lib.vec_compare(x, y, op)
+            else:
+                result = lib.scalar_compare(x, y, op)
+        else:
+            result = op(x, y)
+
+        return result
+
+    def wrapper(self, other):
+        from pandas.core.frame import DataFrame
+
+        if isinstance(other, Series):
+            name = _maybe_match_name(self, other)
+            return Series(na_op(self.values, other.values),
+                          index=self.index, name=name)
+        elif isinstance(other, DataFrame): # pragma: no cover
+            return NotImplemented
+        else:
+            # scalars
+            return Series(na_op(self.values, other),
+                          index=self.index, name=self.name)
+    return wrapper
+
+
+def _bool_method(op, name):
+    """
+    Wrapper function for Series arithmetic operations, to avoid
+    code duplication.
+    """
+    def na_op(x, y):
+        try:
+            result = op(x, y)
+        except TypeError:
+            if isinstance(y, list):
+                y = lib.list_to_object_array(y)
+
+            if isinstance(y, np.ndarray):
+                result = lib.vec_binop(x, y, op)
+            else:
+                result = lib.scalar_binop(x, y, op)
+
+        return result
+
+    def wrapper(self, other):
+        from pandas.core.frame import DataFrame
+
+        if isinstance(other, Series):
+            name = _maybe_match_name(self, other)
+            return Series(na_op(self.values, other.values),
+                          index=self.index, name=name)
+        elif isinstance(other, DataFrame):
+            return NotImplemented
+        else:
+            # scalars
+            return Series(na_op(self.values, other),
+                          index=self.index, name=self.name)
+    return wrapper
+
+
+
 def _radd_compat(left, right):
     radd = lambda x, y: y + x
     # GH #353, NumPy 1.5.1 workaround
@@ -97,11 +169,13 @@ def _radd_compat(left, right):
 
     return output
 
+
 def _maybe_match_name(a, b):
     name = None
     if a.name == b.name:
         name = a.name
     return name
+
 
 def _flex_method(op, name):
     doc = """
@@ -331,7 +405,14 @@ copy : boolean, default False
             return self._get_values(indexer)
         else:
             if isinstance(key, tuple):
-                return self._get_values_tuple(key)
+                try:
+                    return self._get_values_tuple(key)
+                except:
+                    if len(key) == 1:
+                        key = key[0]
+                        if isinstance(key, slice):
+                            return self._get_values(key)
+                    raise
 
             if not isinstance(key, (list, np.ndarray)):  # pragma: no cover
                 key = list(key)
@@ -439,6 +520,10 @@ copy : boolean, default False
         self._set_values(indexer, value)
 
     def _set_values(self, key, value):
+        if issubclass(self.dtype.type, (np.integer, np.bool_)):
+            if np.isscalar(value) and isnull(value):
+                raise ValueError('Cannot assign nan to integer series')
+
         self.values[key] = value
 
     # help out SparseSeries
@@ -470,6 +555,10 @@ copy : boolean, default False
 
     def __setslice__(self, i, j, value):
         """Set slice equal to given value(s)"""
+        if issubclass(self.dtype.type, (np.integer, np.bool_)):
+            if np.isscalar(value) and isnull(value):
+                raise ValueError('Cannot assign nan to integer series')
+
         ndarray.__setslice__(self, i, j, value)
 
     def get(self, label, default=None):
@@ -682,17 +771,17 @@ copy : boolean, default False
     __rpow__ = _arith_method(lambda x, y: y ** x, '__pow__')
 
     # comparisons
-    # __gt__ = _arith_method(operator.gt, '__gt__')
-    # __ge__ = _arith_method(operator.ge, '__ge__')
-    # __lt__ = _arith_method(operator.lt, '__lt__')
-    # __le__ = _arith_method(operator.le, '__le__')
-    # __eq__ = _arith_method(operator.eq, '__eq__')
-    # __ne__ = _arith_method(operator.ne, '__ne__')
+    __gt__ = _comp_method(operator.gt, '__gt__')
+    __ge__ = _comp_method(operator.ge, '__ge__')
+    __lt__ = _comp_method(operator.lt, '__lt__')
+    __le__ = _comp_method(operator.le, '__le__')
+    __eq__ = _comp_method(operator.eq, '__eq__')
+    __ne__ = _comp_method(operator.ne, '__ne__')
 
     # binary logic
-    # __or__ = _arith_method(operator.or_, '__or__')
-    # __and__ = _arith_method(operator.and_, '__and__')
-    # __xor__ = _arith_method(operator.xor, '__xor__')
+    __or__ = _bool_method(operator.or_, '__or__')
+    __and__ = _bool_method(operator.and_, '__and__')
+    __xor__ = _bool_method(operator.xor, '__xor__')
 
     # Inplace operators
     __iadd__ = __add__
@@ -1712,7 +1801,8 @@ copy : boolean, default False
             mapped = lib.map_infer(self.values, func)
             return Series(mapped, index=self.index, name=self.name)
 
-    def align(self, other, join='outer', level=None, copy=True):
+    def align(self, other, join='outer', level=None, copy=True,
+              fill_value=None, method=None):
         """
         Align two Series object with the specified join method
 
@@ -1726,6 +1816,8 @@ copy : boolean, default False
         copy : boolean, default True
             Always return new objects. If copy=False and no reindexing is
             required, the same object will be returned (for better performance)
+        fill_value : object, default None
+        method : str, default 'pad'
 
         Returns
         -------
@@ -1738,7 +1830,12 @@ copy : boolean, default False
 
         left = self._reindex_indexer(join_index, lidx, copy)
         right = other._reindex_indexer(join_index, ridx, copy)
-        return left, right
+        fill_na = (fill_value is not None) or (method is not None)
+        if fill_na:
+            return (left.fillna(fill_value, method=method),
+                    right.fillna(fill_value, method=method))
+        else:
+            return left, right
 
     def _reindex_indexer(self, new_index, indexer, copy):
         if indexer is not None:
@@ -1752,7 +1849,8 @@ copy : boolean, default False
         # be subclass-friendly
         return self._constructor(new_values, new_index, name=self.name)
 
-    def reindex(self, index=None, method=None, level=None, copy=True):
+    def reindex(self, index=None, method=None, level=None, fill_value=np.nan,
+                copy=True):
         """Conform Series to new index with optional filling logic, placing
         NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
@@ -1772,6 +1870,9 @@ copy : boolean, default False
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level
+        fill_value : scalar, default np.NaN
+            Value to use for missing values. Defaults to NaN, but can be any
+            "compatible" value
 
         Returns
         -------
@@ -1789,7 +1890,7 @@ copy : boolean, default False
 
         new_index, fill_vec = self.index.reindex(index, method=method,
                                                  level=level)
-        new_values = com.take_1d(self.values, fill_vec)
+        new_values = com.take_1d(self.values, fill_vec, fill_value=fill_value)
         return Series(new_values, index=new_index, name=self.name)
 
     def reindex_like(self, other, method=None):
@@ -1832,7 +1933,7 @@ copy : boolean, default False
 
     truncate = generic.truncate
 
-    def fillna(self, value=None, method='pad'):
+    def fillna(self, value=None, method='pad', inplace=False):
         """
         Fill NA/NaN values using the specified method
 
@@ -1844,6 +1945,10 @@ copy : boolean, default False
             Method to use for filling holes in reindexed Series
             pad / ffill: propagate last valid observation forward to next valid
             backfill / bfill: use NEXT valid observation to fill gap
+        inplace : boolean, default False
+            If True, fill the Series in place. Note: this will modify any other
+            views on this Series, for example a column in a DataFrame. Returns
+            a reference to the filled object, which is self if inplace=True
 
         See also
         --------
@@ -1853,22 +1958,16 @@ copy : boolean, default False
         -------
         filled : Series
         """
+        mask = isnull(self.values)
+
         if value is not None:
-            newSeries = self.copy()
-            newSeries[isnull(newSeries)] = value
-            return newSeries
+            result = self.copy() if not inplace else self
+            np.putmask(result, mask, value)
         else:
             if method is None:  # pragma: no cover
                 raise ValueError('must specify a fill method')
 
-            method = method.lower()
-
-            if method == 'ffill':
-                method = 'pad'
-            if method == 'bfill':
-                method = 'backfill'
-
-            mask = isnull(self.values)
+            method = com._clean_fill_method(method)
 
             # sadness. for Python 2.5 compatibility
             mask = mask.astype(np.uint8)
@@ -1878,8 +1977,14 @@ copy : boolean, default False
             elif method == 'backfill':
                 indexer = lib.get_backfill_indexer(mask)
 
-            new_values = self.values.take(indexer)
-            return Series(new_values, index=self.index, name=self.name)
+            if inplace:
+                self.values[:] = self.values.take(indexer)
+                result = self
+            else:
+                new_values = self.values.take(indexer)
+                result = Series(new_values, index=self.index, name=self.name)
+
+        return result
 
     def isin(self, values):
         """
@@ -1898,7 +2003,38 @@ copy : boolean, default False
         result = lib.ismember(self, value_set)
         return Series(result, self.index, name=self.name)
 
-#-------------------------------------------------------------------------------
+    def between(self, left, right, inclusive=True):
+        """
+        Return boolean Series equivalent to left <= series <= right. NA values
+        will be treated as False
+
+        Parameters
+        ----------
+        left : scalar
+            Left boundary
+        right : scalar
+            Right boundary
+
+        Returns
+        -------
+        is_between : Series
+            NAs, if any, will be preserved
+        """
+        if inclusive:
+            lmask = self >= left
+            rmask = self <= right
+        else:
+            lmask = self > left
+            rmask = self < right
+
+        mask = lmask & rmask
+        if mask.dtype == np.object_:
+            np.putmask(mask, isnull(mask), False)
+            mask = mask.astype(bool)
+
+        return mask
+
+#----------------------------------------------------------------------
 # Miscellaneous
 
     def plot(self, label=None, kind='line', use_index=True, rot=30, ax=None,
@@ -1940,8 +2076,20 @@ copy : boolean, default False
 
         if kind == 'line':
             if use_index:
-                x = np.asarray(self.index)
+                if self.index.is_numeric() or self.index.is_datetime():
+                    """
+                    Matplotlib supports numeric values or datetime objects as
+                    xaxis values. Taking LBYL approach here, by the time
+                    matplotlib raises exception when using non numeric/datetime
+                    values for xaxis, several actions are already taken by plt.
+                    """
+                    need_to_set_xticklabels = False
+                    x = np.asarray(self.index)
+                else:
+                    need_to_set_xticklabels = True
+                    x = range(len(self))
             else:
+                need_to_set_xticklabels = False
                 x = range(len(self))
 
             if logy:
@@ -1949,6 +2097,11 @@ copy : boolean, default False
             else:
                 ax.plot(x, self.values.astype(float), style, **kwds)
             gfx.format_date_labels(ax)
+
+            if need_to_set_xticklabels:
+                ax.set_xticks(x)
+                ax.set_xticklabels([gfx._stringify(key) for key in self.index],
+                                   rotation=rot)
         elif kind == 'bar':
             xinds = np.arange(N) + 0.25
             ax.bar(xinds, self.values.astype(float), 0.5,
@@ -1960,8 +2113,9 @@ copy : boolean, default False
                 fontsize = 10
 
             ax.set_xticks(xinds + 0.25)
-            ax.set_xticklabels(self.index, rotation=rot, fontsize=fontsize)
-
+            ax.set_xticklabels([gfx._stringify(key) for key in self.index],
+                               rotation=rot,
+                               fontsize=fontsize)
         ax.grid(grid)
         plt.draw_if_interactive()
 

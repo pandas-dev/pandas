@@ -6,7 +6,7 @@ from numpy import nan
 from numpy.random import randn
 import numpy as np
 
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, Index
 import pandas.core.format as fmt
 import pandas.util.testing as tm
 
@@ -80,6 +80,11 @@ class TestDataFrameFormatting(unittest.TestCase):
 
     def test_to_string_unicode_two(self):
         dm = DataFrame({u'c/\u03c3': []})
+        buf = StringIO()
+        dm.to_string(buf)
+
+    def test_to_string_unicode_three(self):
+        dm = DataFrame(['\xc2'])
         buf = StringIO()
         dm.to_string(buf)
 
@@ -182,7 +187,8 @@ class TestDataFrameFormatting(unittest.TestCase):
 
     def test_to_string_float_formatting(self):
         fmt.reset_printoptions()
-        fmt.set_printoptions(precision=6, column_space=12)
+        fmt.set_printoptions(precision=6, column_space=12,
+                             notebook_repr_html=False)
 
         df = DataFrame({'x' : [0, 0.25, 3456.000, 12e+45, 1.64e+6,
                                1.7e+8, 1.253456, np.pi, -1e6]})
@@ -227,6 +233,43 @@ class TestDataFrameFormatting(unittest.TestCase):
                         '0  1.000000e+09\n'
                         '1  2.512000e-01')
         assert(df_s == expected)
+
+    def test_to_string_float_index(self):
+        index = Index([1.5, 2, 3, 4, 5])
+        df = DataFrame(range(5), index=index)
+
+        result = df.to_string()
+        expected = ('     0\n'
+                    '1.5  0\n'
+                    '2    1\n'
+                    '3    2\n'
+                    '4    3\n'
+                    '5    4')
+        self.assertEqual(result, expected)
+
+    def test_to_string_ascii_error(self):
+        data = [('0  ',
+                 u'                        .gitignore ',
+                 u'     5 ',
+                 ' \xe2\x80\xa2\xe2\x80\xa2\xe2\x80'
+                 '\xa2\xe2\x80\xa2\xe2\x80\xa2')]
+        df = DataFrame(data)
+
+        # it works!
+        repr(df)
+
+    def test_to_string_int_formatting(self):
+        df = DataFrame({'x' : [-15, 20, 25, -35]})
+        self.assert_(issubclass(df['x'].dtype.type, np.integer))
+
+        output = df.to_string()
+        self.assert_(isinstance(output, str))
+        expected = ('    x\n'
+                    '0 -15\n'
+                    '1  20\n'
+                    '2  25\n'
+                    '3 -35')
+        self.assertEqual(output, expected)
 
     def test_to_string_left_justify_cols(self):
         fmt.reset_printoptions()
@@ -296,6 +339,16 @@ class TestDataFrameFormatting(unittest.TestCase):
         ashtml = x.to_html(bold_rows=False)
         assert('<strong>' not in ashtml)
 
+    def test_repr_html(self):
+        self.frame._repr_html_()
+
+        fmt.set_printoptions(max_rows=1, max_columns=1)
+        self.frame._repr_html_()
+
+        fmt.set_printoptions(notebook_repr_html=False)
+        self.frame._repr_html_()
+
+        fmt.reset_printoptions()
 
 class TestSeriesFormatting(unittest.TestCase):
 

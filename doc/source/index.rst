@@ -10,11 +10,15 @@ pandas: powerful Python data analysis toolkit
 
 **Date**: |today| **Version**: |version|
 
-**Installers:** http://pypi.python.org/pypi/pandas
+**Binary Installers:** http://pypi.python.org/pypi/pandas
 
-**Code Repository:** http://github.com/pydata/pandas
+**Source Repository:** http://github.com/pydata/pandas
 
-**Mailing List:** http://groups.google.com/group/pystatsmodels
+**Issues & Ideas:** https://github.com/pydata/pandas/issues
+
+**Q&A Support:** http://stackoverflow.com/questions/tagged/pandas
+
+**Developer Mailing List:** http://groups.google.com/group/pystatsmodels
 
 **pandas** is a `Python <http://www.python.org>`__ package providing fast,
 flexible, and expressive data structures designed to make working with

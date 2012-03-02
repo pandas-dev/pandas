@@ -81,12 +81,14 @@ sensible.
 Getting Support
 ---------------
 
-For community support, please join us on the `pystatsmodels mailing list
-<http://groups.google.com/group/pystatsmodels>`__.
+The first stop for pandas issues and ideas is the `Github Issue Tracker
+<https://github.com/pydata/pandas/issues>`__. If you have a general question,
+pandas community experts can answer through `Stack Overflow
+<http://stackoverflow.com/questions/tagged/pandas>`__.
 
-For commercial support from Lambda Foundry, please send inquiries to:
-
-support@lambdafoundry.com
+Longer discussions occur on the `developer mailing list
+<http://groups.google.com/group/pystatsmodels>`__, and commercial support
+inquiries for Lambda Foundry should be sent to: support@lambdafoundry.com
 
 Credits
 -------

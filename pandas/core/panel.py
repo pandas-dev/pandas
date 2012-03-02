@@ -60,8 +60,9 @@ def panel_index(time, panels, names=['time', 'panel']):
     >>> panels = ['A', 'B', 'C']
     >>> panel_idx = panel_index(years, panels)
     >>> panel_idx
-    MultiIndex([(1960, 'A'), (1961, 'A'), (1962, 'A'), (1960, 'B'), (1961, 'B'),
-       (1962, 'B'), (1960, 'C'), (1961, 'C'), (1962, 'C')], dtype=object)
+    MultiIndex([(1960, 'A'), (1961, 'A'), (1962, 'A'), (1960, 'B'),
+                (1961, 'B'), (1962, 'B'), (1960, 'C'), (1961, 'C'),
+                (1962, 'C')], dtype=object)
 
     or
 
@@ -70,8 +71,9 @@ def panel_index(time, panels, names=['time', 'panel']):
     >>> panels = np.tile(['A', 'B', 'C'], 3)
     >>> panel_idx = panel_index(years, panels)
     >>> panel_idx
-    MultiIndex([(1960, 'A'), (1960, 'B'), (1960, 'C'), (1961, 'A'), (1961, 'B'),
-       (1961, 'C'), (1962, 'A'), (1962, 'B'), (1962, 'C')], dtype=object)
+    MultiIndex([(1960, 'A'), (1960, 'B'), (1960, 'C'), (1961, 'A'),
+                (1961, 'B'), (1961, 'C'), (1962, 'A'), (1962, 'B'),
+                (1962, 'C')], dtype=object)
     """
     time, panels = _ensure_like_indices(time, panels)
     time_factor = Factor(time)
@@ -458,12 +460,12 @@ class Panel(NDFrame):
 
     def to_excel(self, path, na_rep=''):
         """
-        Write each DataFrame in Panel to a separate excel sheet 
+        Write each DataFrame in Panel to a separate excel sheet
 
         Parameters
         ----------
         excel_writer : string or ExcelWriter object
-            File path or existing ExcelWriter 
+            File path or existing ExcelWriter
         na_rep : string, default ''
             Missing data rep'n
         """

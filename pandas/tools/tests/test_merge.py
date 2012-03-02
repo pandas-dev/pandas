@@ -786,6 +786,14 @@ class TestConcatenate(unittest.TestCase):
         # overlap
         self.assertRaises(Exception, self.frame.append, self.frame)
 
+    def test_append_length0_frame(self):
+        df = DataFrame(columns=['A', 'B', 'C'])
+        df3 = DataFrame(index=[0, 1], columns=['A', 'B'])
+        df5 = df.append(df3)
+
+        expected = DataFrame(index=[0, 1], columns=['A', 'B', 'C'])
+        assert_frame_equal(df5, expected)
+
     def test_append_records(self):
         arr1 = np.zeros((2,),dtype=('i4,f4,a10'))
         arr1[:] = [(1,2.,'Hello'),(2,3.,"World")]
@@ -1166,7 +1174,18 @@ class TestConcatenate(unittest.TestCase):
         expected.index = exp_index
         tm.assert_series_equal(result, expected)
 
-        self.assertRaises(Exception, concat, pieces, axis=1)
+    def test_concat_series_axis1(self):
+        ts = tm.makeTimeSeries()
+
+        pieces = [ts[:-2], ts[2:], ts[2:-2]]
+
+        result = concat(pieces, axis=1)
+        expected = DataFrame(pieces).T
+        assert_frame_equal(result, expected)
+
+        result = concat(pieces, keys=['A', 'B', 'C'], axis=1)
+        expected = DataFrame(pieces, index=['A', 'B', 'C']).T
+        assert_frame_equal(result, expected)
 
     def test_concat_single_with_key(self):
         df = DataFrame(np.random.randn(10, 4))

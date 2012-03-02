@@ -45,16 +45,16 @@ class GroupBy(object):
 
     Notes
     -----
-    After grouping, see aggregate, apply, and transform functions. Here are some
-    other brief notes about usage. When grouping by multiple groups, the result
-    index will be a MultiIndex (hierarhical) by default.
+    After grouping, see aggregate, apply, and transform functions. Here are
+    some other brief notes about usage. When grouping by multiple groups, the
+    result index will be a MultiIndex (hierarhical) by default.
 
     Iteration produces (key, group) tuples, i.e. chunking the data by group. So
     you can write code like:
 
     ::
 
-        grouped = obj.groupby(grouper, axis=axis)
+        grouped = obj.groupby(keys, axis=axis)
         for key, group in grouped:
             # do something with the data
 
@@ -86,8 +86,8 @@ class GroupBy(object):
         Number of groups
     """
 
-    def __init__(self, obj, grouper=None, axis=0, level=None,
-                 groupings=None, exclusions=None, column=None, as_index=True,
+    def __init__(self, obj, keys=None, axis=0, level=None,
+                 grouper=None, exclusions=None, column=None, as_index=True,
                  sort=True):
         self._column = column
 
@@ -107,39 +107,26 @@ class GroupBy(object):
                 raise ValueError('as_index=False only valid for axis=0')
 
         self.as_index = as_index
-        self.grouper = grouper
+        self.keys = keys
         self.sort = sort
 
-        if groupings is None:
-            groupings, exclusions = _get_groupings(obj, grouper, axis=axis,
-                                                   level=level, sort=sort)
+        if grouper is None:
+            grouper, exclusions = _get_grouper(obj, keys, axis=axis,
+                                               level=level, sort=sort)
 
-        self.groupings = groupings
+        self.grouper = grouper
         self.exclusions = set(exclusions) if exclusions else set()
 
     def __len__(self):
         return len(self.indices)
 
-    @cache_readonly
+    @property
     def groups(self):
-        if len(self.groupings) == 1:
-            return self.primary.groups
-        else:
-            to_groupby = zip(*(ping.grouper for ping in self.groupings))
-            to_groupby = Index(to_groupby)
+        return self.grouper.groups
 
-            axis = self.obj._get_axis(self.axis)
-            return axis.groupby(to_groupby)
-
-    @cache_readonly
+    @property
     def indices(self):
-        if len(self.groupings) == 1:
-            return self.primary.indices
-        else:
-            # TODO: this is massively inefficient
-            to_groupby = zip(*(ping.grouper for ping in self.groupings))
-            to_groupby = Index(to_groupby)
-            return lib.groupby_indices(to_groupby)
+        return self.grouper.indices
 
     @property
     def name(self):
@@ -187,10 +174,6 @@ class GroupBy(object):
 
         return wrapper
 
-    @property
-    def primary(self):
-        return self.groupings[0]
-
     def get_group(self, name, obj=None):
         if obj is None:
             obj = self.obj
@@ -207,31 +190,7 @@ class GroupBy(object):
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
-        if len(self.groupings) == 1:
-            groups = self.indices.keys()
-            try:
-                groups = sorted(groups)
-            except Exception: # pragma: no cover
-                pass
-
-            for name in groups:
-                yield name, self.get_group(name)
-        else:
-            # provide "flattened" iterator for multi-group setting
-            for it in self._multi_iter():
-                yield it
-
-    def _multi_iter(self):
-        data = self.obj
-
-        comp_ids, _, ngroups = self._group_info
-        label_list = [ping.labels for ping in self.groupings]
-        level_list = [ping.group_index for ping in self.groupings]
-        mapper = _KeyMapper(comp_ids, ngroups, label_list, level_list)
-
-        for label, group in self._generate_groups(data, comp_ids, ngroups):
-            key = mapper.get_key(label)
-            yield key, group
+        return self.grouper.get_iterator(self.obj, axis=self.axis)
 
     def apply(self, func, *args, **kwargs):
         """
@@ -303,26 +262,25 @@ class GroupBy(object):
 
     def std(self):
         """
-        Compute mean of groups, excluding missing values
+        Compute standard deviation of groups, excluding missing values
 
         For multiple groupings, the result index will be a MultiIndex
         """
         return self._cython_agg_general('std')
 
+    def var(self):
+        """
+        Compute variance of groups, excluding missing values
+
+        For multiple groupings, the result index will be a MultiIndex
+        """
+        return self._cython_agg_general('var')
+
     def size(self):
         """
         Compute group sizes
         """
-        result = sorted((k, len(v)) for k, v in self.groups.iteritems())
-        keys, values = zip(*result)
-
-        if len(self.groupings) > 1:
-            names = [ping.name for ping in self.groupings]
-            index = MultiIndex.from_tuples(keys, names=names)
-        else:
-            index = Index(keys, name=self.groupings[0].name)
-
-        return Series(values, index=index)
+        return self.grouper.size()
 
     def sum(self):
         """
@@ -336,38 +294,29 @@ class GroupBy(object):
             return self.aggregate(lambda x: np.sum(x, axis=self.axis))
 
     def _cython_agg_general(self, how):
-        # TODO: address inefficiencies, like duplicating effort (should
-        # aggregate all the columns at once?)
-
-        comp_ids, obs_group_ids, max_group = self._group_info
-
         output = {}
         for name, obj in self._iterate_slices():
             if not issubclass(obj.dtype.type, (np.number, np.bool_)):
                 continue
 
             obj = com._ensure_float64(obj)
-            result, counts = cython_aggregate(obj, comp_ids,
-                                              max_group, how=how)
+            result, counts = self.grouper.aggregate(obj, how)
             mask = counts > 0
             output[name] = result[mask]
 
         if len(output) == 0:
             raise GroupByError('No numeric types to aggregate')
 
-        return self._wrap_aggregated_output(output, mask, obs_group_ids)
+        return self._wrap_aggregated_output(output)
 
     def _python_agg_general(self, func, *args, **kwargs):
         agg_func = lambda x: func(x, *args, **kwargs)
-
-        comp_ids, obs_group_ids, max_group = self._group_info
 
         # iterate through "columns" ex exclusions to populate output dict
         output = {}
         for name, obj in self._iterate_slices():
             try:
-                result, counts = self._aggregate_series(obj, agg_func,
-                                                        comp_ids, max_group)
+                result, counts = self.grouper.agg_series(obj, agg_func)
                 output[name] = result
             except TypeError:
                 continue
@@ -379,85 +328,7 @@ class GroupBy(object):
         for name, result in output.iteritems():
             output[name] = result[mask]
 
-        return self._wrap_aggregated_output(output, mask, obs_group_ids)
-
-    @property
-    def _group_info(self):
-        if len(self.groupings) > 1:
-            all_labels = [ping.labels for ping in self.groupings]
-            group_index = get_group_index(all_labels, self._group_shape)
-            comp_ids, obs_group_ids = _compress_group_index(group_index)
-        else:
-            ping = self.groupings[0]
-            group_index = ping.labels
-
-        comp_ids, obs_group_ids = _compress_group_index(group_index)
-        ngroups = len(obs_group_ids)
-        comp_ids = com._ensure_int32(comp_ids)
-        return comp_ids, obs_group_ids, ngroups
-
-    @property
-    def _group_shape(self):
-        return tuple(ping.ngroups for ping in self.groupings)
-
-    def _get_multi_index(self, mask, obs_ids):
-        masked = [labels for _, labels in
-                  self._get_group_levels(mask, obs_ids)]
-        names = [ping.name for ping in self.groupings]
-        return MultiIndex.from_arrays(masked, names=names)
-
-    def _get_group_levels(self, mask, obs_ids):
-        recons_labels = decons_group_index(obs_ids, self._group_shape)
-
-        name_list = []
-        for ping, labels in zip(self.groupings, recons_labels):
-            labels = com._ensure_platform_int(labels)
-            name_list.append((ping.name, ping.group_index.take(labels)))
-
-        return name_list
-
-    def _aggregate_series(self, obj, func, group_index, ngroups):
-        try:
-            return self._aggregate_series_fast(obj, func, group_index, ngroups)
-        except Exception:
-            return self._aggregate_series_pure_python(obj, func, group_index,
-                                                      ngroups)
-
-    def _aggregate_series_fast(self, obj, func, group_index, ngroups):
-        if obj.index._has_complex_internals:
-            raise TypeError('Incompatible index for Cython grouper')
-
-        # avoids object / Series creation overhead
-        dummy = obj[:0].copy()
-        indexer = lib.groupsort_indexer(group_index, ngroups)[0]
-        obj = obj.take(indexer)
-        group_index = group_index.take(indexer)
-        grouper = lib.SeriesGrouper(obj, func, group_index, ngroups,
-                                    dummy)
-        result, counts = grouper.get_result()
-        return result, counts
-
-    def _aggregate_series_pure_python(self, obj, func, group_index, ngroups):
-        counts = np.zeros(ngroups, dtype=int)
-        result = None
-
-        for label, group in self._generate_groups(obj, group_index, ngroups):
-            res = func(group)
-            if result is None:
-                try:
-                    assert(not isinstance(res, np.ndarray))
-                    assert(not (isinstance(res, list) and
-                                len(res) == len(self.dummy)))
-
-                    result = np.empty(ngroups, dtype='O')
-                except Exception:
-                    raise ValueError('function does not reduce')
-
-            counts[label] = group.shape[0]
-            result[label] = res
-
-        result = lib.maybe_convert_objects(result, try_float=0)
-        return result, counts
+        return self._wrap_aggregated_output(output)
 
     def _python_apply_general(self, func, *args, **kwargs):
         result_keys = []
@@ -489,8 +360,8 @@ class GroupBy(object):
 
         if not_indexed_same:
             group_keys = keys
-            group_levels = [ping.group_index for ping in self.groupings]
-            group_names = [ping.name for ping in self.groupings]
+            group_levels = self.grouper.levels
+            group_names = self.grouper.names
             result = concat(values, axis=self.axis, keys=group_keys,
                             levels=group_levels, names=group_names)
         else:
@@ -500,15 +371,16 @@ class GroupBy(object):
 
         return result
 
-    def _generate_groups(self, obj, group_index, ngroups):
-        if isinstance(obj, NDFrame) and not isinstance(obj, DataFrame):
-            factory = obj._constructor
-            obj = obj._data
-        else:
-            factory = None
 
-        return generate_groups(obj, group_index, ngroups,
-                               axis=self.axis, factory=factory)
+def _generate_groups(obj, group_index, ngroups, axis=0):
+    if isinstance(obj, NDFrame) and not isinstance(obj, DataFrame):
+        factory = obj._constructor
+        obj = obj._data
+    else:
+        factory = None
+
+    return generate_groups(obj, group_index, ngroups,
+                           axis=axis, factory=factory)
 
 @Appender(GroupBy.__doc__)
 def groupby(obj, by, **kwds):
@@ -536,6 +408,217 @@ def _is_indexed_like(obj, axes):
         return obj.index.equals(axes[0])
 
     return False
+
+class Grouper(object):
+    """
+
+    """
+    def __init__(self, axis, groupings):
+        self.axis = axis
+        self.groupings = groupings
+
+    @property
+    def shape(self):
+        return tuple(ping.ngroups for ping in self.groupings)
+
+    def __iter__(self):
+        return iter(self.indices)
+
+    def get_iterator(self, data, axis=0):
+        """
+        Groupby iterator
+
+        Returns
+        -------
+        Generator yielding sequence of (name, subsetted object)
+        for each group
+        """
+        if len(self.groupings) == 1:
+            indices = self.indices
+            groups = indices.keys()
+            try:
+                groups = sorted(groups)
+            except Exception: # pragma: no cover
+                pass
+
+            for name in groups:
+                inds = indices[name]
+                group = data.take(inds, axis=axis)
+
+                yield name, group
+        else:
+            # provide "flattened" iterator for multi-group setting
+            comp_ids, _, ngroups = self.group_info
+            label_list = self.labels
+            level_list = self.levels
+            mapper = _KeyMapper(comp_ids, ngroups, label_list, level_list)
+
+            for label, group in _generate_groups(data, comp_ids, ngroups,
+                                                 axis=axis):
+                key = mapper.get_key(label)
+                yield key, group
+
+    @cache_readonly
+    def indices(self):
+        if len(self.groupings) == 1:
+            return self.groupings[0].indices
+        else:
+            # TODO: this is massively inefficient
+            to_groupby = zip(*(ping.grouper for ping in self.groupings))
+            to_groupby = Index(to_groupby)
+            return lib.groupby_indices(to_groupby)
+
+    @property
+    def labels(self):
+        return [ping.labels for ping in self.groupings]
+
+    @property
+    def levels(self):
+        return [ping.group_index for ping in self.groupings]
+
+    @property
+    def names(self):
+        return [ping.name for ping in self.groupings]
+
+    def size(self):
+        """
+        Compute group sizes
+        """
+        result = sorted((k, len(v)) for k, v in self.groups.iteritems())
+        keys, values = zip(*result)
+
+        if len(self.groupings) > 1:
+            names = [ping.name for ping in self.groupings]
+            index = MultiIndex.from_tuples(keys, names=names)
+        else:
+            index = Index(keys, name=self.groupings[0].name)
+
+        return Series(values, index=index)
+
+    @cache_readonly
+    def groups(self):
+        if len(self.groupings) == 1:
+            return self.groupings[0].groups
+        else:
+            to_groupby = zip(*(ping.grouper for ping in self.groupings))
+            to_groupby = Index(to_groupby)
+
+            return self.axis.groupby(to_groupby)
+
+    @cache_readonly
+    def group_info(self):
+        if len(self.groupings) > 1:
+            all_labels = [ping.labels for ping in self.groupings]
+            group_index = get_group_index(all_labels, self.shape)
+            comp_ids, obs_group_ids = _compress_group_index(group_index)
+        else:
+            ping = self.groupings[0]
+            group_index = ping.labels
+
+        comp_ids, obs_group_ids = _compress_group_index(group_index)
+        ngroups = len(obs_group_ids)
+        comp_ids = com._ensure_int32(comp_ids)
+        return comp_ids, obs_group_ids, ngroups
+
+    _cython_functions = {
+        'add' : lib.group_add,
+        'mean' : lib.group_mean,
+        'var' : lib.group_var,
+        'std' : lib.group_var
+    }
+
+    _cython_transforms = {
+        'std' : np.sqrt
+    }
+
+    def aggregate(self, values, how):
+        comp_ids, _, ngroups = self.group_info
+        agg_func = self._cython_functions[how]
+        if values.ndim == 1:
+            squeeze = True
+            values = values[:, None]
+            out_shape = (ngroups, 1)
+        else:
+            squeeze = False
+            out_shape = (ngroups, values.shape[1])
+
+        trans_func = self._cython_transforms.get(how, lambda x: x)
+
+        # will be filled in Cython function
+        result = np.empty(out_shape, dtype=np.float64)
+        counts = np.zeros(ngroups, dtype=np.int32)
+
+        agg_func(result, counts, values, comp_ids)
+        result = trans_func(result)
+
+        if squeeze:
+            result = result.squeeze()
+
+        return result, counts
+
+    def agg_series(self, obj, func):
+        try:
+            return self._aggregate_series_fast(obj, func)
+        except Exception:
+            return self._aggregate_series_pure_python(obj, func)
+
+    def _aggregate_series_fast(self, obj, func):
+        if obj.index._has_complex_internals:
+            raise TypeError('Incompatible index for Cython grouper')
+
+        group_index, _, ngroups = self.group_info
+
+        # avoids object / Series creation overhead
+        dummy = obj[:0].copy()
+        indexer = lib.groupsort_indexer(group_index, ngroups)[0]
+        obj = obj.take(indexer)
+        group_index = group_index.take(indexer)
+        grouper = lib.SeriesGrouper(obj, func, group_index, ngroups,
+                                    dummy)
+        result, counts = grouper.get_result()
+        return result, counts
+
+    def _aggregate_series_pure_python(self, obj, func):
+        group_index, _, ngroups = self.group_info
+
+        counts = np.zeros(ngroups, dtype=int)
+        result = None
+
+        group_index, _, ngroups = self.group_info
+
+        for label, group in _generate_groups(obj, group_index, ngroups,
+                                             axis=self.axis):
+            res = func(group)
+            if result is None:
+                try:
+                    assert(not isinstance(res, np.ndarray))
+                    assert(not isinstance(res, list))
+                    result = np.empty(ngroups, dtype='O')
+                except Exception:
+                    raise ValueError('function does not reduce')
+
+            counts[label] = group.shape[0]
+            result[label] = res
+
+        result = lib.maybe_convert_objects(result, try_float=0)
+        return result, counts
+
+    @cache_readonly
+    def result_index(self):
+        recons = self.get_group_levels()
+        return MultiIndex.from_arrays(recons, names=self.names)
+
+    def get_group_levels(self):
+        obs_ids = self.group_info[1]
+        recons_labels = decons_group_index(obs_ids, self.shape)
+
+        name_list = []
+        for ping, labels in zip(self.groupings, recons_labels):
+            labels = com._ensure_platform_int(labels)
+            name_list.append(ping.group_index.take(labels))
+
+        return name_list
+
 
 class Grouping(object):
     """
@@ -595,6 +678,9 @@ class Grouping(object):
                 self._group_index = level_index
                 self.grouper = level_values
         else:
+            if isinstance(self.grouper, (list, tuple)):
+                self.grouper = com._asarray_tuplesafe(self.grouper)
+
             # no level passed
             if not isinstance(self.grouper, np.ndarray):
                 self.grouper = self.index.map(self.grouper)
@@ -657,26 +743,26 @@ class Grouping(object):
         return self._groups
 
 
-def _get_groupings(obj, grouper=None, axis=0, level=None, sort=True):
+def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
     group_axis = obj._get_axis(axis)
 
     if level is not None and not isinstance(group_axis, MultiIndex):
         raise ValueError('can only specify level with multi-level index')
 
-    if not isinstance(grouper, (tuple, list)):
-        groupers = [grouper]
+    if not isinstance(key, (tuple, list)):
+        keys = [key]
     else:
-        groupers = grouper
+        keys = key
 
     # what are we after, exactly?
-    match_axis_length = len(groupers) == len(group_axis)
-    any_callable = any(callable(g) or isinstance(g, dict) for g in groupers)
+    match_axis_length = len(keys) == len(group_axis)
+    any_callable = any(callable(g) or isinstance(g, dict) for g in keys)
     any_arraylike = any(isinstance(g, (list, tuple, np.ndarray))
-                        for g in groupers)
+                        for g in keys)
 
     try:
         if isinstance(obj, DataFrame):
-            all_in_columns = all(g in obj.columns for g in groupers)
+            all_in_columns = all(g in obj.columns for g in keys)
         else:
             all_in_columns = False
     except Exception:
@@ -685,18 +771,18 @@ def _get_groupings(obj, grouper=None, axis=0, level=None, sort=True):
     if (not any_callable and not all_in_columns
         and not any_arraylike and match_axis_length
         and not level):
-        groupers = [com._asarray_tuplesafe(groupers)]
+        keys = [com._asarray_tuplesafe(keys)]
 
     if isinstance(level, (tuple, list)):
-        if grouper is None:
-            groupers = [None] * len(level)
+        if key is None:
+            keys = [None] * len(level)
         levels = level
     else:
-        levels = [level] * len(groupers)
+        levels = [level] * len(keys)
 
     groupings = []
     exclusions = []
-    for i, (gpr, level) in enumerate(zip(groupers, levels)):
+    for i, (gpr, level) in enumerate(zip(keys, levels)):
         name = None
         if _is_label_like(gpr):
             exclusions.append(gpr)
@@ -707,7 +793,9 @@ def _get_groupings(obj, grouper=None, axis=0, level=None, sort=True):
             ping.name = 'key_%d' % i
         groupings.append(ping)
 
-    return groupings, exclusions
+    grouper = Grouper(group_axis, groupings)
+
+    return grouper, exclusions
 
 def _is_label_like(val):
     return isinstance(val, basestring) or np.isscalar(val)
@@ -788,7 +876,7 @@ class SeriesGroupBy(GroupBy):
         if hasattr(func_or_funcs,'__iter__'):
             ret = self._aggregate_multiple_funcs(func_or_funcs)
         else:
-            if len(self.groupings) > 1:
+            if len(self.grouper.groupings) > 1:
                 return self._python_agg_general(func_or_funcs, *args, **kwargs)
 
             try:
@@ -796,7 +884,7 @@ class SeriesGroupBy(GroupBy):
             except Exception:
                 result = self._aggregate_named(func_or_funcs, *args, **kwargs)
 
-            index = Index(sorted(result), name=self.groupings[0].name)
+            index = Index(sorted(result), name=self.grouper.names[0])
             ret = Series(result, index=index)
 
         if not self.as_index:  # pragma: no cover
@@ -815,23 +903,23 @@ class SeriesGroupBy(GroupBy):
 
         return DataFrame(results)
 
-    def _wrap_aggregated_output(self, output, mask, comp_ids):
+    def _wrap_aggregated_output(self, output):
         # sort of a kludge
         output = output[self.name]
-        index = self._get_multi_index(mask, comp_ids)
-        return Series(output, index=index)
+        index = self.grouper.result_index
+        return Series(output, index=index, name=self.name)
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         if len(keys) == 0:
             return Series([])
 
-        key_names = [ping.name for ping in self.groupings]
+        key_names = self.grouper.names
 
         def _get_index():
-            if len(self.groupings) > 1:
+            if len(self.grouper.groupings) > 1:
                 index = MultiIndex.from_tuples(keys, names=key_names)
             else:
-                ping = self.groupings[0]
+                ping = self.grouper.groupings[0]
                 if len(keys) == ping.ngroups:
                     index = ping.group_index
                     index.name = key_names[0]
@@ -861,7 +949,7 @@ class SeriesGroupBy(GroupBy):
     def _aggregate_named(self, func, *args, **kwargs):
         result = {}
 
-        for name in self.primary:
+        for name in self.grouper:
             grp = self.get_group(name)
             grp.name = name
             output = func(grp, *args, **kwargs)
@@ -911,11 +999,11 @@ class DataFrameGroupBy(GroupBy):
         # kind of a kludge
         if self.as_index:
             return SeriesGroupBy(self.obj[key], column=key,
-                                 groupings=self.groupings,
+                                 grouper=self.grouper,
                                  exclusions=self.exclusions)
         else:
             return DataFrameGroupBy(self.obj, self.grouper, column=key,
-                                    groupings=self.groupings,
+                                    grouper=self.grouper,
                                     exclusions=self.exclusions,
                                     as_index=self.as_index)
 
@@ -938,9 +1026,6 @@ class DataFrameGroupBy(GroupBy):
             yield val, slicer(val)
 
     def _cython_agg_general(self, how):
-
-        comp_ids, obs_group_ids, max_group = self._group_info
-
         obj = self._obj_with_exclusions
         if self.axis == 1:
             obj = obj.T
@@ -953,8 +1038,7 @@ class DataFrameGroupBy(GroupBy):
                 continue
 
             values = com._ensure_float64(values)
-            result, counts = cython_aggregate(values, comp_ids,
-                                              max_group, how=how)
+            result, counts = self.grouper.aggregate(values, how)
 
             mask = counts > 0
             if len(mask) > 0:
@@ -971,28 +1055,24 @@ class DataFrameGroupBy(GroupBy):
         if sum(len(x.items) for x in new_blocks) == len(agg_labels):
             output_keys = agg_labels
         else:
-            output_keys = []
+            all_items = []
             for b in new_blocks:
-                output_keys.extend(b.items)
-            try:
-                output_keys.sort()
-            except TypeError:  # pragma: no cover
-                pass
-
-            if isinstance(agg_labels, MultiIndex):
-                output_keys = MultiIndex.from_tuples(output_keys,
-                                                     names=agg_labels.names)
+                all_items.extend(b.items)
+            output_keys = agg_labels[agg_labels.isin(all_items)]
 
         if not self.as_index:
             index = np.arange(new_blocks[0].values.shape[1])
             mgr = BlockManager(new_blocks, [output_keys, index])
             result = DataFrame(mgr)
-            group_levels = self._get_group_levels(mask, obs_group_ids)
-            for i, (name, labels) in enumerate(group_levels):
+
+            group_levels = self.grouper.get_group_levels()
+            zipped = zip(self.grouper.names, group_levels)
+
+            for i, (name, labels) in enumerate(zipped):
                 result.insert(i, name, labels)
             result = result.consolidate()
         else:
-            index = self._get_multi_index(mask, obs_group_ids)
+            index = self.grouper.result_index
             mgr = BlockManager(new_blocks, [output_keys, index])
             result = DataFrame(mgr)
 
@@ -1035,16 +1115,24 @@ class DataFrameGroupBy(GroupBy):
                 raise ValueError('Can only pass dict with axis=0')
 
             obj = self._obj_with_exclusions
-            for col, func in arg.iteritems():
-                colg = SeriesGroupBy(obj[col], column=col,
-                                     groupings=self.groupings)
-                result[col] = colg.agg(func)
+
+            if self._column is not None:
+                series_obj = obj[self._column]
+                for fname, func in arg.iteritems():
+                    colg = SeriesGroupBy(series_obj, column=self._column,
+                                         grouper=self.grouper)
+                    result[fname] = colg.aggregate(func)
+            else:
+                for col, func in arg.iteritems():
+                    colg = SeriesGroupBy(obj[col], column=col,
+                                         grouper=self.grouper)
+                    result[col] = colg.aggregate(func)
 
             result = DataFrame(result)
         elif isinstance(arg, list):
             return self._aggregate_multiple_funcs(arg)
         else:
-            if len(self.groupings) > 1:
+            if len(self.grouper.groupings) > 1:
                 return self._python_agg_general(arg, *args, **kwargs)
             else:
                 result = self._aggregate_generic(arg, *args, **kwargs)
@@ -1058,7 +1146,7 @@ class DataFrameGroupBy(GroupBy):
                 result = result.consolidate()
             else:
                 values = result.index.values
-                name = self.groupings[0].name
+                name = self.grouper.groupings[0].name
                 result.insert(0, name, values)
             result.index = np.arange(len(result))
 
@@ -1077,7 +1165,7 @@ class DataFrameGroupBy(GroupBy):
         for col in obj:
             try:
                 colg = SeriesGroupBy(obj[col], column=col,
-                                     groupings=self.groupings)
+                                     grouper=self.grouper)
                 results.append(colg.agg(arg))
                 keys.append(col)
             except TypeError:
@@ -1088,7 +1176,7 @@ class DataFrameGroupBy(GroupBy):
         return result
 
     def _aggregate_generic(self, func, *args, **kwargs):
-        assert(len(self.groupings) == 1)
+        assert(len(self.grouper.groupings) == 1)
 
         axis = self.axis
         obj = self._obj_with_exclusions
@@ -1110,7 +1198,7 @@ class DataFrameGroupBy(GroupBy):
                     wrapper = lambda x: func(x, *args, **kwargs)
                     result[name] = data.apply(wrapper, axis=axis)
 
-        result_index = self.groupings[0].group_index
+        result_index = self.grouper.levels[0]
 
         if result:
             if axis == 0:
@@ -1133,7 +1221,7 @@ class DataFrameGroupBy(GroupBy):
         for item in obj:
             try:
                 colg = SeriesGroupBy(obj[item], column=item,
-                                     groupings=self.groupings)
+                                     grouper=self.grouper)
                 result[item] = colg.agg(func, *args, **kwargs)
             except (ValueError, TypeError):
                 cannot_agg.append(item)
@@ -1145,7 +1233,7 @@ class DataFrameGroupBy(GroupBy):
 
         return DataFrame(result, columns=result_columns)
 
-    def _wrap_aggregated_output(self, output, mask, comp_ids):
+    def _wrap_aggregated_output(self, output):
         agg_axis = 0 if self.axis == 1 else 1
         agg_labels = self._obj_with_exclusions._get_axis(agg_axis)
 
@@ -1164,12 +1252,14 @@ class DataFrameGroupBy(GroupBy):
 
         if not self.as_index:
             result = DataFrame(output, columns=output_keys)
-            group_levels = self._get_group_levels(mask, comp_ids)
-            for i, (name, labels) in enumerate(group_levels):
+            group_levels = self.grouper.get_group_levels()
+            zipped = zip(self.grouper.names, group_levels)
+
+            for i, (name, labels) in enumerate(zipped):
                 result.insert(i, name, labels)
             result = result.consolidate()
         else:
-            index = self._get_multi_index(mask, comp_ids)
+            index = self.grouper.result_index
             result = DataFrame(output, index=index, columns=output_keys)
 
         if self.axis == 1:
@@ -1182,16 +1272,16 @@ class DataFrameGroupBy(GroupBy):
             # XXX
             return DataFrame({})
 
-        key_names = [ping.name for ping in self.groupings]
+        key_names = self.grouper.names
 
         if isinstance(values[0], DataFrame):
             return self._wrap_frames(keys, values,
                                      not_indexed_same=not_indexed_same)
         else:
-            if len(self.groupings) > 1:
+            if len(self.grouper.groupings) > 1:
                 key_index = MultiIndex.from_tuples(keys, names=key_names)
             else:
-                ping = self.groupings[0]
+                ping = self.grouper.groupings[0]
                 if len(keys) == ping.ngroups:
                     key_index = ping.group_index
                     key_index.name = key_names[0]
@@ -1297,7 +1387,7 @@ class PanelGroupBy(GroupBy):
 
         obj = self._obj_with_exclusions
 
-        for name in self.primary:
+        for name in self.grouper:
             data = self.get_group(name, obj=obj)
             try:
                 result[name] = func(data, *args, **kwargs)
@@ -1426,45 +1516,6 @@ class _KeyMapper(object):
                      for table, level in zip(self.tables, self.levels))
 
 #----------------------------------------------------------------------
-# Group aggregations in Cython
-
-
-def cython_aggregate(values, group_index, ngroups, how='add'):
-    agg_func = _cython_functions[how]
-    if values.ndim == 1:
-        squeeze = True
-        values = values[:, None]
-        out_shape = (ngroups, 1)
-    else:
-        squeeze = False
-        out_shape = (ngroups, values.shape[1])
-
-    trans_func = _cython_transforms.get(how, lambda x: x)
-
-    # will be filled in Cython function
-    result = np.empty(out_shape, dtype=np.float64)
-    counts = np.zeros(ngroups, dtype=np.int32)
-
-    agg_func(result, counts, values, group_index)
-    result = trans_func(result)
-
-    if squeeze:
-        result = result.squeeze()
-
-    return result, counts
-
-_cython_functions = {
-    'add' : lib.group_add,
-    'mean' : lib.group_mean,
-    'var' : lib.group_var,
-    'std' : lib.group_var
-}
-
-_cython_transforms = {
-    'std' : np.sqrt
-}
-
-#----------------------------------------------------------------------
 # sorting levels...cleverly?
 
 def _compress_group_index(group_index, sort=True):
@@ -1511,7 +1562,7 @@ def _groupby_indices(values):
 
 def numpy_groupby(data, labels, axis=0):
     s = np.argsort(labels)
-    keys, inv = np.unique(labels, return_inverse = True)
+    keys, inv = np.unique(labels, return_inverse=True)
     i = inv.take(s)
     groups_at = np.where(i != np.concatenate(([-1], i[:-1])))[0]
     ordered_data = data.take(s, axis=axis)
