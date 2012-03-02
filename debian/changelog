@@ -1,3 +1,9 @@
+pandas (0.7.1+git1-ga2e86c2-1) unstable; urgency=low
+
+  * New upstream release with a bugfix which followed
+
+ -- Yaroslav Halchenko <debian@onerussian.com>  Thu, 01 Mar 2012 22:28:10 -0500
+
 pandas (0.7.0-1) unstable; urgency=low
 
   * New upstream release
