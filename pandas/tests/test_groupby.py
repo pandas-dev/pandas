@@ -1457,6 +1457,15 @@ class TestGroupBy(unittest.TestCase):
         self.assert_(np.array_equal(tmp.columns, ['zeros', 'ones']))
         self.assert_(np.array_equal(tmp.values, res_values))
 
+    def test_int32_overflow(self):
+        B = np.concatenate((np.arange(100000), np.arange(100000),
+                            np.arange(50000)))
+        A = np.arange(250000)
+        df = DataFrame({'A' : A, 'B' : B, 'C' : np.random.randn(250000)})
+
+        left = df.groupby(['A', 'B']).sum()
+        right = df.groupby(['B', 'A']).sum()
+        self.assert_(len(left) == len(right))
 
 def test_decons():
     from pandas.core.groupby import decons_group_index, get_group_index

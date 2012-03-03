@@ -22,21 +22,24 @@ def hist(data, column, by=None, ax=None, fontsize=None):
     return ax
 
 def grouped_hist(data, column=None, by=None, ax=None, bins=50, log=False,
-                 figsize=None, layout=None):
+                 figsize=None, layout=None, sharex=False, sharey=False,
+                 rot=90):
     """
 
     Returns
     -------
     fig : matplotlib.Figure
     """
-    if isinstance(data, DataFrame):
-        data = data[column]
+    # if isinstance(data, DataFrame):
+    #     data = data[column]
 
     def plot_group(group, ax):
         ax.hist(group.dropna(), bins=bins)
-    fig, axes = _grouped_plot(plot_group, data, by=by, sharex=False,
-                              sharey=False, figsize=figsize,
-                              layout=layout)
+
+    fig, axes = _grouped_plot(plot_group, data, column=column,
+                              by=by, sharex=sharex, sharey=sharey,
+                              figsize=figsize, layout=layout,
+                              rot=rot)
     fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9,
                         hspace=0.3, wspace=0.2)
     return fig
@@ -45,7 +48,7 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, log=False,
 def boxplot(data, column=None, by=None, ax=None, fontsize=None,
             rot=0, grid=True, figsize=None):
     """
-    Make a box plot from DataFrame column optionally grouped by some columns or
+    Make a box plot from DataFrame column optionally grouped b ysome columns or
     other inputs
 
     Parameters
@@ -142,8 +145,9 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None):
 
     return fig
 
-def _grouped_plot(plotf, data, by=None, numeric_only=True, figsize=None,
-                  sharex=True, sharey=True, layout=None):
+def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
+                  figsize=None, sharex=True, sharey=True, layout=None,
+                  rot=0):
     import matplotlib.pyplot as plt
 
     # allow to specify mpl default with 'default'
@@ -151,6 +155,9 @@ def _grouped_plot(plotf, data, by=None, numeric_only=True, figsize=None,
         figsize = (10, 5)               # our default
 
     grouped = data.groupby(by)
+    if column is not None:
+        grouped = grouped[column]
+
     ngroups = len(grouped)
 
     nrows, ncols = layout or _get_layout(ngroups)

@@ -1472,7 +1472,7 @@ def get_group_index(label_list, shape):
     mask = np.zeros(n, dtype=bool)
     for i in xrange(len(shape)):
         stride = np.prod([x for x in shape[i+1:]], dtype=int)
-        group_index += label_list[i] * stride
+        group_index += com._ensure_int64(label_list[i]) * stride
         mask |= label_list[i] < 0
 
     np.putmask(group_index, mask, -1)
