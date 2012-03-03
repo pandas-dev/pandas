@@ -1,6 +1,6 @@
 # pylint: disable=E1101,E1103,W0232
 
-from datetime import time, datetime
+from datetime import time, datetime, date
 from itertools import izip
 
 import numpy as np
@@ -145,9 +145,9 @@ class Index(np.ndarray):
     def is_numeric(self):
         return issubclass(self.dtype.type, np.number)
 
-    def is_datetime(self):
+    def is_datetype(self):
         for key in self.values:
-            if not isinstance(key, datetime):
+            if not isinstance(key, (datetime, date)):
                 return False
         return True
 

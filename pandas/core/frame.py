@@ -3828,7 +3828,7 @@ class DataFrame(NDFrame):
 
         if kind == 'line':
             if use_index:
-                if self.index.is_numeric() or self.index.is_datetime():
+                if self.index.is_numeric() or self.index.is_datetype():
                     """
                     Matplotlib supports numeric values or datetime objects as
                     xaxis values. Taking LBYL approach here, by the time
