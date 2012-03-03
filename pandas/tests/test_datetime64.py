@@ -16,6 +16,18 @@ from pandas.util.testing import assert_series_equal
 from pandas.core.groupby import Tinterval
 from pandas.core.datetools import Minute
 
+try:
+    import pytz
+except ImportError:
+    pass
+
+def _skip_if_no_pytz():
+    try:
+        import pytz
+    except ImportError:
+        import nose
+        raise nose.SkipTest
+
 class TestDatetime64(unittest.TestCase):
 
     def setUp(self):
@@ -420,7 +432,7 @@ class TestDatetime64(unittest.TestCase):
 
         self.assertEquals(len(result), len(expect))
         self.assertEquals(len(result.columns), 4)
-        
+
         xs = result.irow(-1)
         self.assertEquals(xs['open'], s[-5])
         self.assertEquals(xs['high'], s[-5:].max())
@@ -440,6 +452,29 @@ class TestDatetime64(unittest.TestCase):
         s = s.convert('B').convert('8H')
         self.assertEquals(len(s), 22)
 
+    def test_tz_localize(self):
+        _skip_if_no_pytz()
+        from pandas.core.datetools import Hour
+
+        dti = DatetimeIndex(start='1/1/2005', end='1/1/2005 0:00:30.256',
+                            freq='L')
+        tz = pytz.timezone('US/Eastern')
+        dti2 = dti.tz_localize(tz)
+
+        self.assert_((dti.values == dti2.values).all())
+
+        tz2 = pytz.timezone('US/Pacific')
+        dti3 = dti2.tz_normalize(tz2)
+
+        self.assert_((dti2.shift(-3, Hour()).values == dti3.values).all())
+
+        dti = DatetimeIndex(start='11/6/2011 1:59', end='11/6/2011 2:00',
+                            freq='L')
+        self.assertRaises(pytz.AmbiguousTimeError, dti.tz_localize, tz)
+
+        dti = DatetimeIndex(start='3/13/2011 1:59', end='3/13/2011 2:00',
+                            freq='L')
+        self.assertRaises(pytz.AmbiguousTimeError, dti.tz_localize, tz)
 
 if __name__ == '__main__':
     import nose

@@ -32,7 +32,7 @@ def _dt_box(key, offset=None, tzinfo=None):
     '''
     timestamp-like (int64, python datetime, etc.) => Timestamp
     '''
-    return Timestamp(key, offset=offset, tzinfo=None)
+    return Timestamp(key, offset=offset, tzinfo=tzinfo)
 
 def _dt_box_array(arr, offset=None, tzinfo=None):
     if arr is None:
@@ -81,7 +81,7 @@ def ole2datetime(oledt):
 
     return OLE_TIME_ZERO + timedelta(days=val)
 
-def to_timestamp(arg, offset=None):
+def to_timestamp(arg, offset=None, tzinfo=None):
     """ Attempts to convert arg to timestamp """
     if arg is None:
         return arg
@@ -95,7 +95,7 @@ def to_timestamp(arg, offset=None):
         except Exception:
             pass
 
-    return lib.Timestamp(arg, offset=offset)
+    return lib.Timestamp(arg, offset=offset, tzinfo=tzinfo)
 
 def to_datetime(arg):
     """Attempts to convert arg to datetime"""
@@ -913,6 +913,12 @@ class Minute(Tick):
 class Second(Tick):
     _inc = timedelta(0, 1)
 
+class Milli(Tick):
+    pass
+
+class Micro(Tick):
+    _inc = timedelta(microseconds=1)
+
 day = DateOffset()
 bday = BDay()
 businessDay = bday
@@ -1108,7 +1114,8 @@ _newOffsetMap = {
        "H"     : Hour(),
        "Min"   : Minute(),
        "S"     : Second(),
-       "U"     : None,
+       "L"     : Milli(),
+       "U"     : Micro(),
        None    : None,
 }
 

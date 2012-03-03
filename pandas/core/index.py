@@ -1376,7 +1376,7 @@ class DatetimeIndex(Int64Index):
 
         start = self[0] + n * self.offset
         end = self[-1] + n * self.offset
-        return DatetimeIndex(start=start, end=end, offset=self.offset,
+        return DatetimeIndex(start=start, end=end, freq=self.offset,
                              name=self.name)
 
     def union(self, other):
@@ -1689,9 +1689,9 @@ class DatetimeIndex(Int64Index):
         -------
         normalized : DateRange
         """
-        new_dates = np.array([tz.normalize(x.replace(tzinfo=self.tzinfo))
-                              for x in self])
-        new_dates = new_dates.view(DatetimeIndex)
+        new_dates = lib.tz_normalize_array(self.asi8, self.tzinfo, tz)
+        new_dates = new_dates.view('M8[us]')
+        new_dates = new_dates.view(self.__class__)
         new_dates.offset = self.offset
         new_dates.tzinfo = tz
         new_dates.name = self.name
@@ -1703,12 +1703,15 @@ class DatetimeIndex(Int64Index):
 
         Returns
         -------
-        localized : DateRange
+        localized : DatetimeIndex
         """
-        new_dates = np.array(
-                [np.datetime64(tz.localize(x.replace(tzinfo=self.tzinfo)))
-                 for x in self])
-        new_dates = new_dates.view(DatetimeIndex)
+        if self.tzinfo is not None:
+            raise ValueError("Already have timezone info, "
+                             "use tz_normalize to convert.")
+
+        new_dates = lib.tz_localize_array(self.asi8, tz)
+        new_dates = new_dates.view('M8[us]')
+        new_dates = new_dates.view(self.__class__)
         new_dates.offset = self.offset
         new_dates.tzinfo = tz
         new_dates.name = self.name
@@ -1717,6 +1720,7 @@ class DatetimeIndex(Int64Index):
     def tz_validate(self):
         """
         For a localized time zone, verify that there are no DST ambiguities
+        (using pytz)
 
         Returns
         -------
@@ -1725,16 +1729,14 @@ class DatetimeIndex(Int64Index):
         """
         import pytz
 
-        tz = self.tzinfo
-        if tz is None or tz is pytz.utc:
+        if self.tzinfo is None or self.tzinfo is pytz.utc:
             return True
 
         # See if there are any DST resolution problems
-        for date in self:
-            try:
-                tz.utcoffset(date.replace(tzinfo=None))
-            except pytz.InvalidTimeError:
-                return False
+        try:
+            lib.tz_localize_array(self.asi8, self.tzinfo)
+        except:
+            return False
 
         return True
 

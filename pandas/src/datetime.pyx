@@ -1600,6 +1600,143 @@ def i8_to_pydt(int64_t i8, object tzinfo = None):
     '''
     return Timestamp(i8)
 
+# time zone conversion helpers
+
+try:
+    import pytz
+    have_pytz = True
+except:
+    have_pytz = False
+
+trans_cache = {}
+utc_offset_cache = {}
+
+cdef ndarray[int64_t] _get_transitions(object tz):
+    """
+    Get UTC times of DST transitions
+    """
+    if tz not in trans_cache:
+        arr = np.array(tz._utc_transition_times, dtype='M8[us]')
+        trans_cache[tz] = np.array(arr.view('i8'))
+    return trans_cache[tz]
+
+cdef ndarray[int64_t] _unbox_utcoffsets(object transinfo):
+    cdef:
+        Py_ssize_t i, sz
+        ndarray[int64_t] arr
+
+    sz = len(transinfo)
+    arr = np.empty(sz, dtype='i8')
+
+    for i in range(sz):
+        arr[i] = int(transinfo[i][0].total_seconds()) * 1000000
+
+    return arr
+
+cdef int64_t get_utcoffset(object tz, Py_ssize_t idx):
+    """
+    Get UTC offsets in microseconds corresponding to DST transitions
+    """
+    cdef:
+        ndarray[int64_t] arr
+    if tz not in utc_offset_cache:
+        utc_offset_cache[tz] = _unbox_utcoffsets(tz._transition_info)
+    arr = utc_offset_cache[tz]
+    return arr[idx]
+
+def tz_normalize_array(ndarray[int64_t] vals, object tz1, object tz2):
+    """
+    Convert DateRange from one time zone to another (using pytz)
+
+    Returns
+    -------
+    normalized : DateRange
+    """
+    cdef:
+        ndarray[int64_t] result
+        ndarray[int64_t] trans
+        Py_ssize_t i, sz, tzidx
+        int64_t v, tz1offset, tz2offset
+
+    if not have_pytz:
+        raise Exception("Could not find pytz module")
+
+    sz = len(vals)
+
+    if sz == 0:
+        return np.empty(0, dtype=np.int64)
+
+    result = np.empty(sz, dtype=np.int64)
+    trans = _get_transitions(tz1)
+
+    tzidx = np.searchsorted(trans, vals[0])
+
+    tz1offset = get_utcoffset(tz1, tzidx)
+    tz2offset = get_utcoffset(tz2, tzidx)
+
+    for i in range(sz):
+        v = vals[i]
+        if v >= trans[tzidx + 1]:
+            tzidx += 1
+            tz1offset = get_utcoffset(tz1, tzidx)
+            tz2offset = get_utcoffset(tz2, tzidx)
+
+        result[i] = (v - tz1offset) + tz2offset
+
+    return result
+
+def tz_localize_array(ndarray[int64_t] vals, object tz):
+    """
+    Localize tzinfo-naive DateRange to given time zone (using pytz). If
+    there are ambiguities in the values, raise AmbiguousTimeError.
+
+    Returns
+    -------
+    localized : DatetimeIndex
+    """
+    cdef:
+        ndarray[int64_t] trans
+        Py_ssize_t i, sz, tzidx
+        int64_t v, t1, t2, currtrans, tmp
+
+    if not have_pytz:
+        raise Exception("Could not find pytz module")
+
+    if tz == pytz.utc or tz is None:
+        return vals
+
+    sz = len(vals)
+
+    if sz == 0:
+        return np.empty(0, dtype=np.int64)
+
+    result = np.empty(sz, dtype=np.int64)
+    trans = _get_transitions(tz)
+    tzidx = np.searchsorted(trans, vals[0])
+
+    currtrans = trans[tzidx]
+    t1 = currtrans + get_utcoffset(tz, tzidx-1)
+    t2 = currtrans + get_utcoffset(tz, tzidx)
+
+    for i in range(sz):
+        v = vals[i]
+        if v >= trans[tzidx + 1]:
+            tzidx += 1
+            currtrans = trans[tzidx]
+            t1 = currtrans + get_utcoffset(tz, tzidx-1)
+            t2 = currtrans + get_utcoffset(tz, tzidx)
+
+        if t1 > t2:
+            tmp = t1
+            t1 = t2
+            t2 = tmp
+
+        if t1 <= v and v <= t2:
+            msg = "Cannot localize, ambiguous time %s found" % Timestamp(v)
+            raise pytz.AmbiguousTimeError(msg)
+
+    return vals
+
 # Accessors
 # ------------------------------------------------------------------------------
 
