@@ -107,8 +107,7 @@ df = DataFrame({'key1': np.random.randint(0, 500, size=100000),
                 'value1' : np.random.randn(100000),
                 'value2' : np.random.randn(100000),
                 'value3' : np.random.randn(100000)})
-grouped = df.groupby(['key1', 'key2'])
 """
 
-groupby_multi_size = Benchmark("grouped.size()",
+groupby_multi_size = Benchmark("df.groupby(['key1', 'key2']).size()",
                                setup, start_date=datetime(2011, 10, 1))
