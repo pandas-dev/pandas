@@ -5,6 +5,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
 
+from collections import defaultdict
 from itertools import izip
 import operator
 from distutils.version import LooseVersion
@@ -915,11 +916,8 @@ copy : boolean, default False
         -------
         counts : Series
         """
-        from collections import defaultdict
-        counter = defaultdict(lambda: 0)
-        for value in self.dropna().values:
-            counter[value] += 1
-        return Series(counter).order(ascending=False)
+        import pandas.core.algorithms as algos
+        return algos.value_counts(self.values, sort=True, ascending=False)
 
     def unique(self):
         """
