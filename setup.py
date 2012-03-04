@@ -300,7 +300,7 @@ cmdclass = {'clean': CleanCommand,
 
 try:
     from Cython.Distutils import build_ext
-    from Cython.Distutils import Extension # to get pyrex debugging symbols
+    #from Cython.Distutils import Extension # to get pyrex debugging symbols
     cython=True
 except ImportError:
     cython=False

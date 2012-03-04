@@ -19,17 +19,17 @@ int convert_pydatetime_to_datetimestruct(PyObject *obj, npy_datetimestruct *out,
 int dayofweek(int y, int m, int d);
 
 /* Days per month, regular year and leap year */
-int _days_per_month_table[2][12];
+static int _days_per_month_table[2][12];
 
 /* Table with day offsets for each month (0-based, without and with leap) */
-int _month_offset[2][13];
+static int _month_offset[2][13];
 
 // stuff numpy needs in header
 // ----------------------------------------------------------------------------
 
 int is_leapyear(npy_int64 year);
 
-char *_datetime_strings[NPY_DATETIME_NUMUNITS];
+static char *_datetime_strings[NPY_DATETIME_NUMUNITS];
 
 /*
  * Converts a datetime from a datetimestruct to a datetime based
