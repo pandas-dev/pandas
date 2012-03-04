@@ -484,16 +484,12 @@ class Grouper(object):
         """
         Compute group sizes
         """
-        result = sorted((k, len(v)) for k, v in self.groups.iteritems())
-        keys, values = zip(*result)
-
-        if len(self.groupings) > 1:
-            names = [ping.name for ping in self.groupings]
-            index = MultiIndex.from_tuples(keys, names=names)
-        else:
-            index = Index(keys, name=self.groupings[0].name)
-
-        return Series(values, index=index)
+        # TODO: better impl
+        labels, _, ngroups = self.group_info
+        bin_counts = Series(labels).value_counts()
+        bin_counts = bin_counts.reindex(np.arange(ngroups))
+        bin_counts.index = self.result_index
+        return bin_counts
 
     @cache_readonly
     def groups(self):
