@@ -400,7 +400,10 @@ class TextParser(object):
                     self.buf = self.buf[1:]
                     return line
 
+        self.implicit_idx = False
+
         if implicit_first_cols > 0:
+            self.implicit_idx = True
             if self.index_col is None:
                 if implicit_first_cols == 1:
                     self.index_col = 0
@@ -482,8 +485,10 @@ class TextParser(object):
 
         if not index._verify_integrity():
             dups = index.get_duplicates()
-            err_msg = 'Tried columns 1-X as index but found duplicates %s'
-            raise Exception(err_msg % str(dups))
+            idx_str = 'Index' if not self.implicit_idx else 'Implicit index'
+            err_msg = ('%s (columns %s) have duplicate values %s'
+                       % (idx_str, self.index_col, str(dups)))
+            raise Exception(err_msg)
 
         if len(self.columns) != len(zipped_content):
             raise Exception('wrong number of columns')
