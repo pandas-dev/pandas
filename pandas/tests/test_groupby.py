@@ -1467,6 +1467,20 @@ class TestGroupBy(unittest.TestCase):
         right = df.groupby(['B', 'A']).sum()
         self.assert_(len(left) == len(right))
 
+    def test_int64_overflow(self):
+        B = np.concatenate((np.arange(100000), np.arange(100000),
+                            np.arange(50000)))
+        A = np.arange(250000)
+        df = DataFrame({'A' : A, 'B' : B,
+                        'C' : A, 'D' : B,
+                        'values' : np.random.randn(250000)})
+
+        self.assertRaises(Exception, df.groupby(['A', 'B', 'C', 'D']).sum)
+
+        # left = df.groupby(['A', 'B', 'C', 'D']).sum()
+        # right = df.groupby(['D', 'C', 'B', 'A']).sum()
+        # self.assert_(len(left) == len(right))
+
 def test_decons():
     from pandas.core.groupby import decons_group_index, get_group_index
 

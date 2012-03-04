@@ -1468,15 +1468,26 @@ def get_group_index(label_list, shape):
         return label_list[0]
 
     n = len(label_list[0])
-    group_index = np.zeros(n, dtype=int)
+    group_index = np.zeros(n, dtype=np.int64)
     mask = np.zeros(n, dtype=bool)
-    for i in xrange(len(shape)):
-        stride = np.prod([x for x in shape[i+1:]], dtype=int)
-        group_index += com._ensure_int64(label_list[i]) * stride
-        mask |= label_list[i] < 0
+
+    if _int64_overflow_possible(shape):
+        raise Exception('Possible int64 overflow, raise exception for now')
+    else:
+        for i in xrange(len(shape)):
+            stride = np.prod([x for x in shape[i+1:]], dtype=np.int64)
+            group_index += com._ensure_int64(label_list[i]) * stride
+            mask |= label_list[i] < 0
 
     np.putmask(group_index, mask, -1)
     return group_index
+
+def _int64_overflow_possible(shape):
+    the_prod = 1L
+    for x in shape:
+        the_prod *= long(x)
+
+    return the_prod >= 2**63
 
 def decons_group_index(comp_labels, shape):
     # reconstruct labels
