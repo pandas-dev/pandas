@@ -1578,7 +1578,7 @@ class MultiIndex(Index):
         -------
         sorted_index : MultiIndex
         """
-        from pandas.core.frame import _indexer_from_factorized
+        from pandas.core.groupby import _indexer_from_factorized
 
         labels = list(self.labels)
 

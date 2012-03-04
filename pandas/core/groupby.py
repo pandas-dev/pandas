@@ -1,6 +1,5 @@
 from itertools import izip
 import types
-
 import numpy as np
 
 from pandas.core.frame import DataFrame
@@ -413,9 +412,10 @@ class Grouper(object):
     """
 
     """
-    def __init__(self, axis, groupings):
+    def __init__(self, axis, groupings, sort=True):
         self.axis = axis
         self.groupings = groupings
+        self.sort = sort
 
     @property
     def shape(self):
@@ -507,18 +507,55 @@ class Grouper(object):
 
     @cache_readonly
     def group_info(self):
-        if len(self.groupings) > 1:
-            all_labels = [ping.labels for ping in self.groupings]
-            group_index = get_group_index(all_labels, self.shape)
-            comp_ids, obs_group_ids = _compress_group_index(group_index)
-        else:
-            ping = self.groupings[0]
-            group_index = ping.labels
+        comp_ids, obs_group_ids = self._get_compressed_labels()
 
-        comp_ids, obs_group_ids = _compress_group_index(group_index)
         ngroups = len(obs_group_ids)
         comp_ids = com._ensure_int32(comp_ids)
         return comp_ids, obs_group_ids, ngroups
+
+    def _get_compressed_labels(self):
+        all_labels = [ping.labels for ping in self.groupings]
+        if self._overflow_possible:
+            tups = lib.fast_zip(all_labels)
+            labs, uniques, _ = algos.factorize(tups)
+
+            if self.sort:
+                uniques, labs = _reorder_by_uniques(uniques, labs)
+
+            return labs, uniques
+        else:
+            if len(all_labels) > 1:
+                group_index = get_group_index(all_labels, self.shape)
+            else:
+                group_index = all_labels[0]
+            comp_ids, obs_group_ids = _compress_group_index(group_index)
+            return comp_ids, obs_group_ids
+
+    @cache_readonly
+    def _overflow_possible(self):
+        return _int64_overflow_possible(self.shape)
+
+    @cache_readonly
+    def result_index(self):
+        recons = self.get_group_levels()
+        return MultiIndex.from_arrays(recons, names=self.names)
+
+    def get_group_levels(self):
+        obs_ids = self.group_info[1]
+        if self._overflow_possible:
+            recons_labels = [np.array(x) for x in izip(*obs_ids)]
+        else:
+            recons_labels = decons_group_index(obs_ids, self.shape)
+
+        name_list = []
+        for ping, labels in zip(self.groupings, recons_labels):
+            labels = com._ensure_platform_int(labels)
+            name_list.append(ping.group_index.take(labels))
+
+        return name_list
+
+    #------------------------------------------------------------
+    # Aggregation functions
 
     _cython_functions = {
         'add' : lib.group_add,
@@ -602,22 +639,6 @@ class Grouper(object):
 
         result = lib.maybe_convert_objects(result, try_float=0)
         return result, counts
-
-    @cache_readonly
-    def result_index(self):
-        recons = self.get_group_levels()
-        return MultiIndex.from_arrays(recons, names=self.names)
-
-    def get_group_levels(self):
-        obs_ids = self.group_info[1]
-        recons_labels = decons_group_index(obs_ids, self.shape)
-
-        name_list = []
-        for ping, labels in zip(self.groupings, recons_labels):
-            labels = com._ensure_platform_int(labels)
-            name_list.append(ping.group_index.take(labels))
-
-        return name_list
 
 
 class Grouping(object):
@@ -793,7 +814,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
             ping.name = 'key_%d' % i
         groupings.append(ping)
 
-    grouper = Grouper(group_axis, groupings)
+    grouper = Grouper(group_axis, groupings, sort=sort)
 
     return grouper, exclusions
 
@@ -1470,24 +1491,21 @@ def get_group_index(label_list, shape):
     n = len(label_list[0])
     group_index = np.zeros(n, dtype=np.int64)
     mask = np.zeros(n, dtype=bool)
-
-    if _int64_overflow_possible(shape):
-        raise Exception('Possible int64 overflow, raise exception for now')
-    else:
-        for i in xrange(len(shape)):
-            stride = np.prod([x for x in shape[i+1:]], dtype=np.int64)
-            group_index += com._ensure_int64(label_list[i]) * stride
-            mask |= label_list[i] < 0
+    for i in xrange(len(shape)):
+        stride = np.prod([x for x in shape[i+1:]], dtype=np.int64)
+        group_index += com._ensure_int64(label_list[i]) * stride
+        mask |= label_list[i] < 0
 
     np.putmask(group_index, mask, -1)
     return group_index
 
+_INT64_MAX = np.iinfo(np.int64).max
 def _int64_overflow_possible(shape):
     the_prod = 1L
     for x in shape:
         the_prod *= long(x)
 
-    return the_prod >= 2**63
+    return the_prod >= _INT64_MAX
 
 def decons_group_index(comp_labels, shape):
     # reconstruct labels
@@ -1503,6 +1521,39 @@ def decons_group_index(comp_labels, shape):
         factor *= shape[i]
     return label_list[::-1]
 
+
+def _indexer_from_factorized(labels, shape, compress=True):
+    if _int64_overflow_possible(shape):
+        indexer = np.lexsort(np.array(labels[::-1]))
+        return indexer
+
+    group_index = get_group_index(labels, shape)
+
+    if compress:
+        comp_ids, obs_ids = _compress_group_index(group_index)
+        max_group = len(obs_ids)
+    else:
+        comp_ids = group_index
+        max_group = np.prod(shape)
+
+    indexer, _ = lib.groupsort_indexer(comp_ids.astype('i4'), max_group)
+
+    return indexer
+
+
+def _lexsort_indexer(keys):
+    labels = []
+    shape = []
+    for key in keys:
+        rizer = lib.Factorizer(len(key))
+
+        if not key.dtype == np.object_:
+            key = key.astype('O')
+
+        ids, _ = rizer.factorize(key, sort=True)
+        labels.append(ids)
+        shape.append(len(rizer.uniques))
+    return _indexer_from_factorized(labels, shape)
 
 class _KeyMapper(object):
     """
@@ -1548,23 +1599,29 @@ def _compress_group_index(group_index, sort=True):
     obs_group_ids = np.array(uniques, dtype='i8')
 
     if sort and len(obs_group_ids) > 0:
-        # sorter is index where elements ought to go
-        sorter = obs_group_ids.argsort()
-
-        # reverse_indexer is where elements came from
-        reverse_indexer = np.empty(len(sorter), dtype='i4')
-        reverse_indexer.put(sorter, np.arange(len(sorter)))
-
-        mask = comp_ids < 0
-
-        # move comp_ids to right locations (ie, unsort ascending labels)
-        comp_ids = reverse_indexer.take(comp_ids)
-        np.putmask(comp_ids, mask, -1)
-
-        # sort observed ids
-        obs_group_ids = obs_group_ids.take(sorter)
+        obs_group_ids, comp_ids = _reorder_by_uniques(obs_group_ids,
+                                                      comp_ids)
 
     return comp_ids, obs_group_ids
+
+def _reorder_by_uniques(uniques, labels):
+    # sorter is index where elements ought to go
+    sorter = uniques.argsort()
+
+    # reverse_indexer is where elements came from
+    reverse_indexer = np.empty(len(sorter), dtype='i4')
+    reverse_indexer.put(sorter, np.arange(len(sorter)))
+
+    mask = labels < 0
+
+    # move labels to right locations (ie, unsort ascending labels)
+    labels = reverse_indexer.take(labels)
+    np.putmask(labels, mask, -1)
+
+    # sort observed ids
+    uniques = uniques.take(sorter)
+
+    return uniques, labels
 
 def _groupby_indices(values):
     if values.dtype != np.object_:

@@ -30,18 +30,6 @@ def match(values, index):
         return _match_generic(values, index, lib.PyObjectHashTable,
                               com._ensure_object)
 
-def _get_hash_table_and_cast(values):
-    if com.is_float_dtype(values):
-        klass = lib.Float64HashTable
-        values = com._ensure_float64(values)
-    elif com.is_integer_dtype(values):
-        klass = lib.Int64HashTable
-        values = com._ensure_int64(values)
-    else:
-        klass = lib.PyObjectHashTable
-        values = com._ensure_object(values)
-    return klass, values
-
 def count(values, uniques=None):
     if uniques is not None:
         raise NotImplementedError
@@ -103,6 +91,20 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
         counts = counts.take(sorter)
 
     return labels, uniques, counts
+
+
+def _get_hash_table_and_cast(values):
+    if com.is_float_dtype(values):
+        klass = lib.Float64HashTable
+        values = com._ensure_float64(values)
+    elif com.is_integer_dtype(values):
+        klass = lib.Int64HashTable
+        values = com._ensure_int64(values)
+    else:
+        klass = lib.PyObjectHashTable
+        values = com._ensure_object(values)
+    return klass, values
+
 
 def unique(values):
     """
