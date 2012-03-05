@@ -1,6 +1,6 @@
 # pylint: disable=E1101,E1103,W0232
 
-from datetime import time, datetime, timedelta
+from datetime import time, datetime, date
 from itertools import izip
 
 import numpy as np
@@ -163,9 +163,9 @@ class Index(np.ndarray):
     def is_numeric(self):
         return issubclass(self.dtype.type, np.number)
 
-    def is_datetime(self):
+    def is_datetype(self):
         for key in self.values:
-            if not isinstance(key, datetime):
+            if not isinstance(key, (datetime, date)):
                 return False
         return True
 
@@ -2375,7 +2375,7 @@ class MultiIndex(Index):
         -------
         sorted_index : MultiIndex
         """
-        from pandas.core.frame import _indexer_from_factorized
+        from pandas.core.groupby import _indexer_from_factorized
 
         labels = list(self.labels)
 

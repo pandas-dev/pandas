@@ -97,3 +97,27 @@ groupby_multi_different_numpy_functions = \
                                                    'value2' : np.var,
                                                    'value3' : np.sum})""",
               setup, start_date=datetime(2011, 9, 1))
+
+#----------------------------------------------------------------------
+# size() speed
+
+setup = common_setup + """
+df = DataFrame({'key1': np.random.randint(0, 500, size=100000),
+                'key2': np.random.randint(0, 100, size=100000),
+                'value1' : np.random.randn(100000),
+                'value2' : np.random.randn(100000),
+                'value3' : np.random.randn(100000)})
+"""
+
+groupby_multi_size = Benchmark("df.groupby(['key1', 'key2']).size()",
+                               setup, start_date=datetime(2011, 10, 1))
+
+#----------------------------------------------------------------------
+# Series.value_counts
+
+setup = common_setup + """
+s = Series(np.random.randint(0, 1000, size=100000))
+"""
+
+series_value_counts_int64 = Benchmark('s.value_counts()', setup,
+                                      start_date=datetime(2011, 10, 21))

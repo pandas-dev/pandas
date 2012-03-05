@@ -401,6 +401,11 @@ cdef class Int64HashTable:
     def __dealloc__(self):
         kh_destroy_int64(self.table)
 
+    cdef inline bint has_key(self, int64_t val):
+        cdef khiter_t k
+        k = kh_get_int64(self.table, val)
+        return k != self.table.n_buckets
+
     cpdef get_item(self, int64_t val):
         cdef khiter_t k
         k = kh_get_int64(self.table, val)
@@ -576,6 +581,39 @@ cdef class Int64HashTable:
                 count += 1
 
         return uniques
+
+def value_count_int64(ndarray[int64_t] values):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        kh_int64_t *table
+        int ret = 0
+        list uniques = []
+
+    table = kh_init_int64()
+    kh_resize_int64(table, n)
+
+    for i in range(n):
+        val = values[i]
+        k = kh_get_int64(table, val)
+        if k != table.n_buckets:
+            table.vals[k] += 1
+        else:
+            k = kh_put_int64(table, val, &ret)
+            table.vals[k] = 1
+
+    # for (k = kh_begin(h); k != kh_end(h); ++k)
+    # 	if (kh_exist(h, k)) kh_value(h, k) = 1;
+    i = 0
+    result_keys = np.empty(table.n_occupied, dtype=np.int64)
+    result_counts = np.zeros(table.n_occupied, dtype=np.int64)
+    for k in range(table.n_buckets):
+        if kh_exist_int64(table, k):
+            result_keys[i] = table.keys[k]
+            result_counts[i] = table.vals[k]
+            i += 1
+    kh_destroy_int64(table)
+
+    return result_keys, result_counts
 
 ONAN = np.nan
 

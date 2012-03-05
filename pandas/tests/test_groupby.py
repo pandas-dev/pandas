@@ -15,6 +15,7 @@ from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
 from pandas.core.panel import Panel
 from pandas.tools.merge import concat
 from collections import defaultdict
+import pandas.core.common as com
 import pandas.core.datetools as dt
 import numpy as np
 
@@ -1457,6 +1458,85 @@ class TestGroupBy(unittest.TestCase):
         self.assert_(np.array_equal(tmp.columns, ['zeros', 'ones']))
         self.assert_(np.array_equal(tmp.values, res_values))
 
+    def test_int32_overflow(self):
+        B = np.concatenate((np.arange(10000), np.arange(10000),
+                            np.arange(5000)))
+        A = np.arange(25000)
+        df = DataFrame({'A' : A, 'B' : B,
+                        'C' : A, 'D' : B,
+                        'E' : np.random.randn(25000)})
+
+        left = df.groupby(['A', 'B', 'C', 'D']).sum()
+        right = df.groupby(['D', 'C', 'B', 'A']).sum()
+        self.assert_(len(left) == len(right))
+
+    def test_int64_overflow(self):
+        B = np.concatenate((np.arange(1000), np.arange(1000),
+                            np.arange(500)))
+        A = np.arange(2500)
+        df = DataFrame({'A' : A, 'B' : B,
+                        'C' : A, 'D' : B,
+                        'E' : A, 'F' : B,
+                        'G' : A, 'H' : B,
+                        'values' : np.random.randn(2500)})
+
+        lg = df.groupby(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'])
+        rg = df.groupby(['H', 'G', 'F', 'E', 'D', 'C', 'B', 'A'])
+
+        left = lg.sum()['values']
+        right = rg.sum()['values']
+
+        exp_index, _ = left.index.sortlevel(0)
+        self.assert_(left.index.equals(exp_index))
+
+        exp_index, _ = right.index.sortlevel(0)
+        self.assert_(right.index.equals(exp_index))
+
+        tups = map(tuple, df[['A', 'B', 'C', 'D',
+                              'E', 'F', 'G', 'H']].values)
+        tups = com._asarray_tuplesafe(tups)
+        expected = df.groupby(tups).sum()['values']
+
+        for k, v in expected.iteritems():
+            self.assert_(left[k] == right[k[::-1]] == v)
+        self.assert_(len(left) == len(right))
+
+    def test_groupby_sort_multi(self):
+        df = DataFrame({'a' : ['foo', 'bar', 'baz'],
+                        'b' : [3, 2, 1],
+                        'c' : [0, 1, 2],
+                        'd' : np.random.randn(3)})
+
+        tups = map(tuple, df[['a', 'b', 'c']].values)
+        tups = com._asarray_tuplesafe(tups)
+        result = df.groupby(['a', 'b', 'c'], sort=True).sum()
+        self.assert_(np.array_equal(result.index.values,
+                                    tups[[1, 2, 0]]))
+
+        tups = map(tuple, df[['c', 'a', 'b']].values)
+        tups = com._asarray_tuplesafe(tups)
+        result = df.groupby(['c', 'a', 'b'], sort=True).sum()
+        self.assert_(np.array_equal(result.index.values, tups))
+
+        tups = map(tuple, df[['b', 'c', 'a']].values)
+        tups = com._asarray_tuplesafe(tups)
+        result = df.groupby(['b', 'c', 'a'], sort=True).sum()
+        self.assert_(np.array_equal(result.index.values,
+                                    tups[[2, 1, 0]]))
+
+        df = DataFrame({'a' : [0, 1, 2, 0, 1, 2],
+                        'b' : [0, 0, 0, 1, 1, 1],
+                        'd' : np.random.randn(6)})
+        grouped = df.groupby(['a', 'b'])['d']
+        result = grouped.sum()
+        _check_groupby(df, result, ['a', 'b'], 'd')
+
+def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
+    tups = map(tuple, df[keys].values)
+    tups = com._asarray_tuplesafe(tups)
+    expected = f(df.groupby(tups)[field])
+    for k, v in expected.iteritems():
+        assert(result[k] == v)
 
 def test_decons():
     from pandas.core.groupby import decons_group_index, get_group_index
