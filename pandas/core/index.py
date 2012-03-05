@@ -1,6 +1,6 @@
 # pylint: disable=E1101,E1103,W0232
 
-from datetime import time, datetime
+from datetime import time, datetime, timedelta
 from itertools import izip
 
 import numpy as np

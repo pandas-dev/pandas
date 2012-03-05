@@ -11,8 +11,9 @@ import time
 import numpy as np
 from pandas import Series, TimeSeries, DataFrame, Panel, Index, MultiIndex
 from pandas.core.common import adjoin
-import pandas.core.common as com
 import pandas._tseries as lib
+
+import pandas.core.common as com
 
 # reading and writing the full object in one go
 _TYPE_MAP = {
@@ -287,7 +288,7 @@ class HDFStore(object):
         if where is None:
             self.handle.removeNode(self.handle.root, key, recursive=True)
         else:
-            group = getattr(self.handle.root, key,None)
+            group = getattr(self.handle.root, key, None)
             if group is not None:
                 self._delete_from_table(group, where)
 
@@ -639,7 +640,7 @@ class HDFStore(object):
         fields = table._v_attrs.fields
 
         # create the selection
-        sel = Selection(table, where)
+        sel = Selection(table, where, table._v_attrs.index_kind)
         sel.select()
         fields = table._v_attrs.fields
 
@@ -702,7 +703,7 @@ class HDFStore(object):
         table = getattr(group, 'table')
 
         # create the selection
-        s = Selection(table,where)
+        s = Selection(table, where, table._v_attrs.index_kind)
         s.select_coords()
 
         # delete the rows in reverse order
@@ -722,34 +723,29 @@ def _convert_index(index):
     if inferred_type == 'datetime64':
         converted = values.view('i8')
         return converted, 'datetime64', _tables().Int64Col()
-    elif inferred_type == 'datetime':
-        # backward compatibility handling with < 0.7.0
-        if isinstance(values[0], datetime):
-            kind = 'datetime'
-        else:
-            kind = 'date'
+    elif isinstance(values[0], datetime):
+        converted = np.array([(time.mktime(v.timetuple()) +
+                            v.microsecond / 1E6) for v in values],
+                            dtype=np.float64)
+        return converted, 'datetime', _tables().Time64Col()
+    elif isinstance(values[0], date):
         converted = np.array([time.mktime(v.timetuple()) for v in values],
-                             dtype=np.int64)
-        return converted, kind, _tables().Time64Col()
-    elif inferred_type == 'integer':
-        atom = _tables().Int64Col()
-        return np.asarray(values, dtype=np.int64), 'integer', atom
-    elif inferred_type == 'floating':
-        atom = _tables().Float64Col()
-        return np.asarray(values, dtype=np.float64), 'float', atom
-        pass
-    elif inferred_type == 'boolean':
-        atom = _tables().Int64Col()
-        return np.asarray(values, dtype=np.int64), 'integer', atom
-    elif inferred_type == 'string':
+                            dtype=np.int32)
+        return converted, 'date', _tables().Time32Col()
+    elif isinstance(values[0], basestring):
         converted = np.array(list(values), dtype=np.str_)
         itemsize = converted.dtype.itemsize
         return converted, 'string', _tables().StringCol(itemsize)
-    elif inferred_type == 'mixed':
+    elif com.is_integer(values[0]):
+        # take a guess for now, hope the values fit
+        atom = _tables().Int64Col()
+        return np.asarray(values, dtype=np.int64), 'integer', atom
+    elif com.is_float(values[0]):
+        atom = _tables().Float64Col()
+        return np.asarray(values, dtype=np.float64), 'float', atom
+    else: # pragma: no cover
         atom = _tables().ObjectAtom()
-        return np.asarray(values, dtype='O'), 'object', atom
-    else:
-        raise TypeError("Unrecognized inferred type '%s'" % inferred_type)
+        return np.asarray(values, dtype='O'), 'object', atom 
 
 def _read_array(group, key):
     import tables
