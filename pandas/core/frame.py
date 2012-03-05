@@ -1620,8 +1620,10 @@ class DataFrame(NDFrame):
         index = self.index
         if isinstance(index, MultiIndex):
             loc, new_index = self.index.get_loc_level(key)
-        #elif isinstance(index, DatetimeIndex):
-        #    loc, new_index = self.index.get_loc(key)
+        elif isinstance(index, DatetimeIndex):
+            loc = self.index.get_loc(key)
+            if not np.isscalar(loc):
+                new_index = self.index[loc]
         else:
             loc = self.index.get_loc(key)
 

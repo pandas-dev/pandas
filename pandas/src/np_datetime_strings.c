@@ -42,6 +42,37 @@ npy_casting_to_string(NPY_CASTING casting)
 /* Platform-specific time_t typedef */
 typedef time_t NPY_TIME_T;
 
+/*// We *do* want these symbols, but for cython, not for C. fine in mac osx,*/
+/*// linux complains.*/
+/*static void _suppress_unused_variable_warning(void)*/
+/*{*/
+/*    int x = _days_per_month_table[0][0];*/
+/*    x = x;*/
+
+/*    int y = _month_offset[0][0];*/
+/*    y = y;*/
+
+/*    char *z = _datetime_strings[0];*/
+/*    z = z;*/
+/*}*/
+
+/* Exported as DATETIMEUNITS in multiarraymodule.c */
+static char *_datetime_strings[NPY_DATETIME_NUMUNITS] = {
+    NPY_STR_Y,
+    NPY_STR_M,
+    NPY_STR_W,
+    NPY_STR_D,
+    NPY_STR_h,
+    NPY_STR_m,
+    NPY_STR_s,
+    NPY_STR_ms,
+    NPY_STR_us,
+    NPY_STR_ns,
+    NPY_STR_ps,
+    NPY_STR_fs,
+    NPY_STR_as,
+    "generic"
+};
 /*
  * Wraps `localtime` functionality for multiple platforms. This
  * converts a time value to a time structure in the local timezone.

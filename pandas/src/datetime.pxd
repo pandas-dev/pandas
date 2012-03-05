@@ -75,7 +75,6 @@ cdef extern from "np_datetime.h":
                                              NPY_DATETIMEUNIT *out_bestunit,
                                              int apply_tzinfo)
     int _days_per_month_table[2][12]
-    int _month_offset[2][13]
 
     int dayofweek(int y, int m, int d)
     int is_leapyear(int64_t year)

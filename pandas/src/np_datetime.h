@@ -15,35 +15,11 @@ int convert_pydatetime_to_datetimestruct(PyObject *obj, npy_datetimestruct *out,
                                          NPY_DATETIMEUNIT *out_bestunit,
                                          int apply_tzinfo);
 
-
 int dayofweek(int y, int m, int d);
-
-/* Exported as DATETIMEUNITS in multiarraymodule.c */
-static char *_datetime_strings[NPY_DATETIME_NUMUNITS] = {
-    NPY_STR_Y,
-    NPY_STR_M,
-    NPY_STR_W,
-    NPY_STR_D,
-    NPY_STR_h,
-    NPY_STR_m,
-    NPY_STR_s,
-    NPY_STR_ms,
-    NPY_STR_us,
-    NPY_STR_ns,
-    NPY_STR_ps,
-    NPY_STR_fs,
-    NPY_STR_as,
-    "generic"
-};
 
 static int _days_per_month_table[2][12] = {
     { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
     { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
-};
-
-static int _month_offset[2][13] = {
-    { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 },
-    { 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 }
 };
 
 // stuff numpy needs in header

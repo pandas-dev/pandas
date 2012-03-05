@@ -1731,6 +1731,7 @@ def build_field_sarray(ndarray[int64_t] dtindex):
                   dts.us)
     return out
 
+@cython.wraparound(False)
 def fast_field_accessor(ndarray[int64_t] dtindex, object field):
     '''
     Given a int64-based datetime index, extract the year, month, etc.,
@@ -1740,8 +1741,14 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
         _TSObject ts
         Py_ssize_t i, count = 0
         ndarray[int32_t] out
+        ndarray[int32_t, ndim=2] _month_offset
         int isleap
         npy_datetimestruct dts
+
+    _month_offset = np.array( 
+        [[ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 ],
+         [ 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 ]],
+         dtype=np.int32 )
 
     count = len(dtindex)
     out = np.empty(count, dtype='i4')

@@ -1490,6 +1490,21 @@ class DatetimeIndex(Int64Index):
             left_chunk = left.values[lslice]
             return self._view_like(left_chunk)
 
+    def _partial_date_slice(self, reso, parsed):
+        if reso == 'year':
+            t1 = to_timestamp(datetime(parsed.year, 1, 1))
+            t2 = to_timestamp(datetime(parsed.year, 12, 31))
+            i1, i2 = np.searchsorted(self.asi8, [t1.value, t2.value])
+            return slice(i1, i2+1)
+        elif reso == 'month':
+            d = lib.monthrange(parsed.year, parsed.month)[1]
+            t1 = to_timestamp(datetime(parsed.year, parsed.month, 1))
+            t2 = to_timestamp(datetime(parsed.year, parsed.month, d))
+            i1, i2 = np.searchsorted(self.asi8, [t1.value, t2.value])
+            return slice(i1, i2+1)
+
+        raise KeyError
+
     def get_value(self, series, key):
         """
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
@@ -1498,25 +1513,16 @@ class DatetimeIndex(Int64Index):
         try:
             return super(DatetimeIndex, self).get_value(series, key)
         except KeyError:
-            #try:
-            #    asdt, parsed, reso = datetools.parse_time_string(key)
-            #    if reso == 'year':
-            #        t1 = to_timestamp(datetime(parsed.year, 1, 1))
-            #        t2 = to_timestamp(datetime(parsed.year, 12, 31))
-            #        i1, i2 = np.searchsorted(self.asi8, [t1.value, t2.value])
-            #        return series[slice(i1, i2+1)]
-            #    elif reso == 'month':
-            #        d = lib.monthrange(parsed.year, parsed.month)[1]
-            #        t1 = to_timestamp(datetime(parsed.year, parsed.month, 1))
-            #        t2 = to_timestamp(datetime(parsed.year, parsed.month, d))
-            #        i1, i2 = np.searchsorted(self.asi8, [t1.value, t2.value])
-            #        return series[slice(i1, i2+1)]
-            #    else:
-                    #return self._engine.get_value(series, to_timestamp(asdt))
-            #except datetools.DateParseError:
-            #    raise KeyError(key)
-            #except KeyError:
-            #    raise
+            try:
+                asdt, parsed, reso = datetools.parse_time_string(key)
+                key = asdt
+                loc = self._partial_date_slice(reso, parsed)
+                return series[loc]
+            except TypeError:
+                pass
+            except KeyError:
+                pass
+
             return self._engine.get_value(series, to_timestamp(key))
 
     def get_loc(self, key):
@@ -1530,25 +1536,16 @@ class DatetimeIndex(Int64Index):
         try:
             return self._engine.get_loc(key)
         except KeyError:
-            #try:
-            #    asdt, parsed, reso = datetools.parse_time_string(key)
-            #    if reso == 'year':
-            #        t1 = to_timestamp(datetime(parsed.year, 1, 1))
-            #        t2 = to_timestamp(datetime(parsed.year, 12, 31))
-            #        i1, i2 = np.searchsorted(self.asi8, [t1.value, t2.value])
-            #        return slice(i1, i2+1), self[i1:i2+1]
-            #    elif reso == 'month':
-            #        d = lib.monthrange(parsed.year, parsed.month)[1]
-            #        t1 = to_timestamp(datetime(parsed.year, parsed.month, 1))
-            #        t2 = to_timestamp(datetime(parsed.year, parsed.month, d))
-            #        i1, i2 = np.searchsorted(self.asi8, [t1.value, t2.value])
-            #        return slice(i1, i2+1), self[i1:i2+1]
-            #    else:
-            #        return self._engine.get_loc(to_timestamp(asdt)), None
-            #except datetools.DateParseError:
-            #    raise KeyError(key)
-            #except KeyError:
-            #    raise
+            try:
+                asdt, parsed, reso = datetools.parse_time_string(key)
+                key = asdt
+                loc = self._partial_date_slice(reso, parsed)
+                return loc
+            except TypeError:
+                pass
+            except KeyError:
+                pass
+
             return self._engine.get_loc(to_timestamp(key))
 
     def __getitem__(self, key):
