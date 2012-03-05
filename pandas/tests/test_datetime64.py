@@ -476,6 +476,24 @@ class TestDatetime64(unittest.TestCase):
                             freq='L')
         self.assertRaises(pytz.AmbiguousTimeError, dti.tz_localize, tz)
 
+    def test_slice_year(self):
+        dti = DatetimeIndex(freq='B', start=datetime(2005,1,1), periods=500)
+
+        s = Series(np.arange(len(dti)), index=dti)
+        self.assertEquals(len(s['2005']), 261)
+
+        df = DataFrame(np.random.rand(len(dti), 5), index=dti)
+        self.assertEquals(len(df.ix['2005']), 261)
+
+    def test_slice_month(self):
+        dti = DatetimeIndex(freq='D', start=datetime(2005,1,1), periods=500)
+
+        s = Series(np.arange(len(dti)), index=dti)
+        self.assertEquals(len(s['2005-11']), 30)
+
+        df = DataFrame(np.random.rand(len(dti), 5), index=dti)
+        self.assertEquals(len(df.ix['2005-11']), 30)
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

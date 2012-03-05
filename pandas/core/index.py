@@ -15,7 +15,7 @@ from pandas._tseries import Timestamp
 
 import pandas.core.datetools as datetools
 from pandas.core.datetools import (_dt_box, _dt_unbox, _dt_box_array,
-                                   _dt_unbox_array)
+                                   _dt_unbox_array, to_timestamp)
 
 __all__ = ['Index']
 
@@ -1498,8 +1498,26 @@ class DatetimeIndex(Int64Index):
         try:
             return super(DatetimeIndex, self).get_value(series, key)
         except KeyError:
-            return self._engine.get_value(series,
-                                          datetools.to_timestamp(key))
+            #try:
+            #    asdt, parsed, reso = datetools.parse_time_string(key)
+            #    if reso == 'year':
+            #        t1 = to_timestamp(datetime(parsed.year, 1, 1))
+            #        t2 = to_timestamp(datetime(parsed.year, 12, 31))
+            #        i1, i2 = np.searchsorted(self.asi8, [t1.value, t2.value])
+            #        return series[slice(i1, i2+1)]
+            #    elif reso == 'month':
+            #        d = lib.monthrange(parsed.year, parsed.month)[1]
+            #        t1 = to_timestamp(datetime(parsed.year, parsed.month, 1))
+            #        t2 = to_timestamp(datetime(parsed.year, parsed.month, d))
+            #        i1, i2 = np.searchsorted(self.asi8, [t1.value, t2.value])
+            #        return series[slice(i1, i2+1)]
+            #    else:
+                    #return self._engine.get_value(series, to_timestamp(asdt))
+            #except datetools.DateParseError:
+            #    raise KeyError(key)
+            #except KeyError:
+            #    raise
+            return self._engine.get_value(series, to_timestamp(key))
 
     def get_loc(self, key):
         """
@@ -1512,7 +1530,26 @@ class DatetimeIndex(Int64Index):
         try:
             return self._engine.get_loc(key)
         except KeyError:
-            return self._engine.get_loc(datetools.to_timestamp(key))
+            #try:
+            #    asdt, parsed, reso = datetools.parse_time_string(key)
+            #    if reso == 'year':
+            #        t1 = to_timestamp(datetime(parsed.year, 1, 1))
+            #        t2 = to_timestamp(datetime(parsed.year, 12, 31))
+            #        i1, i2 = np.searchsorted(self.asi8, [t1.value, t2.value])
+            #        return slice(i1, i2+1), self[i1:i2+1]
+            #    elif reso == 'month':
+            #        d = lib.monthrange(parsed.year, parsed.month)[1]
+            #        t1 = to_timestamp(datetime(parsed.year, parsed.month, 1))
+            #        t2 = to_timestamp(datetime(parsed.year, parsed.month, d))
+            #        i1, i2 = np.searchsorted(self.asi8, [t1.value, t2.value])
+            #        return slice(i1, i2+1), self[i1:i2+1]
+            #    else:
+            #        return self._engine.get_loc(to_timestamp(asdt)), None
+            #except datetools.DateParseError:
+            #    raise KeyError(key)
+            #except KeyError:
+            #    raise
+            return self._engine.get_loc(to_timestamp(key))
 
     def __getitem__(self, key):
         """Override numpy.ndarray's __getitem__ method to work as desired"""
@@ -1536,7 +1573,7 @@ class DatetimeIndex(Int64Index):
             if result.ndim > 1:
                 return result
 
-            return DatetimeIndex(result, name=self.name, offset=new_offset,
+            return DatetimeIndex(result, name=self.name, freq=new_offset,
                                  tzinfo=self.tzinfo)
 
     # Try to run function on index first, and then on elements of index

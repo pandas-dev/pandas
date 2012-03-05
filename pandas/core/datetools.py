@@ -97,6 +97,36 @@ def to_timestamp(arg, offset=None, tzinfo=None):
 
     return lib.Timestamp(arg, offset=offset, tzinfo=tzinfo)
 
+class DateParseError(Exception):
+    pass
+
+_dtparser = parser.parser()
+
+def parse_time_string(arg):
+    if not isinstance(arg, basestring):
+        return arg
+
+    try:
+        parsed = _dtparser._parse(arg)
+        default = datetime.now().replace(hour=0, minute=0,
+                                         second=0, microsecond=0)
+        repl = {}
+        reso = 'year'
+        stopped = False
+        for attr in ["year", "month", "day", "hour",
+                     "minute", "second", "microsecond"]:
+            value = getattr(parsed, attr)
+            if value is not None:
+                repl[attr] = value
+                if not stopped:
+                    reso = attr
+            else:
+                stopped = True
+        ret = default.replace(**repl)
+        return ret, parsed, reso  # datetime, partial parse, resolution
+    except Exception:
+        raise DateParseError
+
 def to_datetime(arg):
     """Attempts to convert arg to datetime"""
     if arg is None:

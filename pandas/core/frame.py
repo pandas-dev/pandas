@@ -1620,6 +1620,8 @@ class DataFrame(NDFrame):
         index = self.index
         if isinstance(index, MultiIndex):
             loc, new_index = self.index.get_loc_level(key)
+        #elif isinstance(index, DatetimeIndex):
+        #    loc, new_index = self.index.get_loc(key)
         else:
             loc = self.index.get_loc(key)
 

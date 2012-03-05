@@ -914,43 +914,6 @@ cpdef DatetimeCache get_tcache(freq, object first=None, object last=None):
 # Helper methods for frequency-based analysis
 # -------------------------------------------------------------
 
-#def resample(ndarray[int64_t] data, object freq1, object freq2):
-#    """
-#    Handle frequency conversions from freq1 to freq2
-#    """
-#    cdef:
-#        int rank1, rank2
-#        int idx1, idx2
-#        DatetimeCache tc1, tc2
-#        ndarray[int64_t] cache
-
-#    if freq1 == freq2:
-#        return data
-
-#    rank1 = _freqrank[freq1[0:2]]
-#    rank2 = _freqrank[freq2[0:2]]
-
-#    if rank1 >= rank2:
-#        # same or lesser rank, shift forward to conform
-#        tc2 = get_tcache(freq2)
-#        cache = tc2.cache()
-
-#        if data[0] < cache[0] or data[-1] > cache[-1]:
-#            cache = tc2.extend(data[0], data[-1], 0)
-
-#        idx1 = cache.searchsorted(data[0])
-#        idx2 = cache.searchsorted(data[-1])
-#        return cache[idx1:(idx2+1)]
-
-#    if rank1 < rank2:
-#        # upsampling
-#        failure, regular = conformity_check(data, freq2)
-#        if failure is not None:
-#            raise ValueError("Upsample error: %s does not satisfy frequency %s"
-#                              % (np.datetime64(failure), freq2))
-#        return data
-
-
 @cython.wraparound(False)
 def conformity_check(ndarray[int64_t] data, object freq):
     """
@@ -1601,6 +1564,7 @@ def i8_to_pydt(int64_t i8, object tzinfo = None):
     return Timestamp(i8)
 
 # time zone conversion helpers
+# ------------------------------------------------------------------------------
 
 try:
     import pytz
@@ -1853,7 +1817,6 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
         return out
 
     raise ValueError("Field %s not supported" % field)
-
 
 # Some general helper functions
 # ------------------------------------------------------------------------------
