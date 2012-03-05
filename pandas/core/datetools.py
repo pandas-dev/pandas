@@ -61,6 +61,12 @@ def _dt_unbox_array(arr):
     unboxer = np.frompyfunc(_dt_unbox, 1, 1)
     return unboxer(arr)
 
+def _from_string_array(arr):
+    from dateutil import parser
+    p_ufunc = np.frompyfunc(lambda x: parser.parse(x), 1, 1)
+    data = p_ufunc(arr)
+    return np.array(data, dtype='M8[us]')
+
 #-------------------------------------------------------------------------------
 # Miscellaneous date functions
 

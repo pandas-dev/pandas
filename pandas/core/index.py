@@ -1076,6 +1076,7 @@ def _maybe_box_dtindex(idx):
         return Index(_dt_box_array(idx.asi8), dtype='object')
     return idx
 
+
 class DatetimeIndex(Int64Index):
     """
     Immutable ndarray of datetime64 data, represented internally as int64, and
@@ -1089,7 +1090,7 @@ class DatetimeIndex(Int64Index):
     dtype : NumPy dtype (default: M8[us])
     copy  : bool
         Make a copy of input ndarray
-    offset : string or offset object, optional
+    freq : string or pandas offset object, optional
         One of pandas date offset strings or corresponding objects
     start : starting value, datetime-like, optional
         If data is None, start is used as the start point in generating regular
@@ -1224,8 +1225,7 @@ class DatetimeIndex(Int64Index):
                 data = np.asarray(_dt_unbox_array(data), dtype='M8[us]')
 
         if issubclass(data.dtype.type, basestring):
-            raise TypeError('String dtype not supported, you may need '
-                            'to explicitly cast to datetime64')
+            subarr = datetools._from_string_array(data)
         elif issubclass(data.dtype.type, np.integer):
             subarr = np.array(data, dtype='M8[us]', copy=copy)
         elif issubclass(data.dtype.type, np.datetime64):
@@ -1233,9 +1233,11 @@ class DatetimeIndex(Int64Index):
         else:
             subarr = np.array(data, dtype='M8[us]', copy=copy)
 
+        # TODO: this is horribly inefficient. If user passes data + offset,
+        # we need to make sure data points conform. Punting on this
+
         if offset is not None:
             for i, ts in enumerate(subarr):
-                # make sure data points conform
                 if not offset.onOffset(Timestamp(ts)):
                     val = Timestamp(offset.rollforward(ts)).value
                     subarr[i] = val

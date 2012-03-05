@@ -529,6 +529,14 @@ class TestDatetime64(unittest.TestCase):
         self.assert_((unpickled.index == dtindex).all())
         self.assertEquals(unpickled.index.offset, BDay(1))
 
+    def test_from_string_array(self):
+        arr = ['1/1/2005', '1/2/2005', 'Jan 3, 2005', '2005-01-04']
+        idx = DatetimeIndex(arr)
+        self.assertEquals(len(idx), 4)
+        self.assertEquals(idx[0], lib.Timestamp(datetime(2005,1,1)))
+
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
