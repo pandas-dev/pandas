@@ -108,7 +108,7 @@ def _comp_method(op, name):
             name = _maybe_match_name(self, other)
             return Series(na_op(self.values, other.values),
                           index=self.index, name=name)
-        elif isinstance(other, DataFrame):
+        elif isinstance(other, DataFrame): # pragma: no cover
             return NotImplemented
         else:
             # scalars
@@ -523,6 +523,10 @@ copy : boolean, default False
         self._set_values(indexer, value)
 
     def _set_values(self, key, value):
+        if issubclass(self.dtype.type, (np.integer, np.bool_)):
+            if np.isscalar(value) and isnull(value):
+                raise ValueError('Cannot assign nan to integer series')
+
         self.values[key] = value
 
     # help out SparseSeries
@@ -554,6 +558,10 @@ copy : boolean, default False
 
     def __setslice__(self, i, j, value):
         """Set slice equal to given value(s)"""
+        if issubclass(self.dtype.type, (np.integer, np.bool_)):
+            if np.isscalar(value) and isnull(value):
+                raise ValueError('Cannot assign nan to integer series')
+
         ndarray.__setslice__(self, i, j, value)
 
     def get(self, label, default=None):
@@ -1844,7 +1852,8 @@ copy : boolean, default False
         # be subclass-friendly
         return self._constructor(new_values, new_index, name=self.name)
 
-    def reindex(self, index=None, method=None, level=None, copy=True):
+    def reindex(self, index=None, method=None, level=None, fill_value=np.nan,
+                copy=True):
         """Conform Series to new index with optional filling logic, placing
         NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
@@ -1864,6 +1873,9 @@ copy : boolean, default False
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level
+        fill_value : scalar, default np.NaN
+            Value to use for missing values. Defaults to NaN, but can be any
+            "compatible" value
 
         Returns
         -------
@@ -1881,7 +1893,7 @@ copy : boolean, default False
 
         new_index, fill_vec = self.index.reindex(index, method=method,
                                                  level=level)
-        new_values = com.take_1d(self.values, fill_vec)
+        new_values = com.take_1d(self.values, fill_vec, fill_value=fill_value)
         return Series(new_values, index=new_index, name=self.name)
 
     def reindex_like(self, other, method=None):
@@ -2067,11 +2079,20 @@ copy : boolean, default False
 
         if kind == 'line':
             if use_index:
-                if isinstance(self.index, DatetimeIndex):
-                    x = np.asarray(self.index.asobject)
-                else:
+                if self.index.is_numeric() or self.index.is_datetime():
+                    """
+                    Matplotlib supports numeric values or datetime objects as
+                    xaxis values. Taking LBYL approach here, by the time
+                    matplotlib raises exception when using non numeric/datetime
+                    values for xaxis, several actions are already taken by plt.
+                    """
+                    need_to_set_xticklabels = False
                     x = np.asarray(self.index)
+                else:
+                    need_to_set_xticklabels = True
+                    x = range(len(self))
             else:
+                need_to_set_xticklabels = False
                 x = range(len(self))
 
             if logy:
@@ -2079,6 +2100,11 @@ copy : boolean, default False
             else:
                 ax.plot(x, self.values.astype(float), style, **kwds)
             gfx.format_date_labels(ax)
+
+            if need_to_set_xticklabels:
+                ax.set_xticks(x)
+                ax.set_xticklabels([gfx._stringify(key) for key in self.index],
+                                   rotation=rot)
         elif kind == 'bar':
             xinds = np.arange(N) + 0.25
             ax.bar(xinds, self.values.astype(float), 0.5,
@@ -2090,8 +2116,9 @@ copy : boolean, default False
                 fontsize = 10
 
             ax.set_xticks(xinds + 0.25)
-            ax.set_xticklabels(self.index, rotation=rot, fontsize=fontsize)
-
+            ax.set_xticklabels([gfx._stringify(key) for key in self.index],
+                               rotation=rot,
+                               fontsize=fontsize)
         ax.grid(grid)
         plt.draw_if_interactive()
 

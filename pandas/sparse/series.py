@@ -23,6 +23,7 @@ from pandas.sparse.array import (make_sparse, _sparse_array_op, SparseArray)
 from pandas._sparse import BlockIndex, IntIndex
 import pandas._sparse as splib
 
+from pandas.util.decorators import Appender
 
 #-------------------------------------------------------------------------------
 # Wrapper function for Series arithmetic methods
@@ -422,6 +423,19 @@ to sparse
         return SparseSeries(new_values, index=self.index,
                             sparse_index=new_index,
                             fill_value=self.fill_value)
+
+    @Appender(Series.fillna.__doc__)
+    def fillna(self, value=None, method='pad', inplace=False):
+        dense = self.to_dense()
+        filled = dense.fillna(value=value, method=method)
+        result = filled.to_sparse(kind=self.kind,
+                                  fill_value=self.fill_value)
+
+        if inplace:
+            self.sp_values[:] = result.values
+            return self
+        else:
+            return result
 
     def take(self, indices, axis=0):
         """

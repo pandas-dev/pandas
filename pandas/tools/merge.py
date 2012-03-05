@@ -749,10 +749,14 @@ class _Concatenator(object):
         self.new_axes = self._get_new_axes()
 
     def get_result(self):
-        if self._is_series:
+        if self._is_series and self.axis == 0:
             new_data = np.concatenate([x.values for x in self.objs])
             name = _consensus_name_attr(self.objs)
             return Series(new_data, index=self.new_axes[0], name=name)
+        elif self._is_series:
+            data = dict(zip(self.new_axes[1], self.objs))
+            return DataFrame(data, index=self.new_axes[0],
+                             columns=self.new_axes[1])
         else:
             new_data = self._get_concatenated_data()
             return self.objs[0]._from_axes(new_data, self.new_axes)
@@ -864,8 +868,14 @@ class _Concatenator(object):
         assert(self.axis >= 1)
         return np.concatenate(to_concat, axis=self.axis - 1)
 
+    def _get_result_dim(self):
+        if self._is_series and self.axis == 1:
+            return 2
+        else:
+            return self.objs[0].ndim
+
     def _get_new_axes(self):
-        ndim = self.objs[0].ndim
+        ndim = self._get_result_dim()
         new_axes = [None] * ndim
 
         if self.ignore_index:
@@ -879,11 +889,7 @@ class _Concatenator(object):
             for i in range(ndim):
                 if i == self.axis:
                     continue
-                all_indexes = [x._data.axes[i] for x in self.objs]
-                comb_axis = _get_combined_index(all_indexes,
-                                                intersect=self.intersect)
-                new_axes[i] = comb_axis
-
+                new_axes[i] = self._get_comb_axis(i)
         else:
             assert(len(self.join_axes) == ndim - 1)
 
@@ -896,9 +902,22 @@ class _Concatenator(object):
 
         return new_axes
 
+    def _get_comb_axis(self, i):
+        if self._is_series:
+            all_indexes = [x.index for x in self.objs]
+        else:
+            all_indexes = [x._data.axes[i] for x in self.objs]
+
+        return _get_combined_index(all_indexes, intersect=self.intersect)
+
     def _get_concat_axis(self):
         if self._is_series:
-            indexes = [x.index for x in self.objs]
+            if self.axis == 0:
+                indexes = [x.index for x in self.objs]
+            elif self.keys is None:
+                return Index(np.arange(len(self.objs)))
+            else:
+                return _ensure_index(self.keys)
         else:
             indexes = [x._data.axes[self.axis] for x in self.objs]
 

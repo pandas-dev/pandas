@@ -1,6 +1,6 @@
 # pylint: disable=E1101,E1103,W0232
 
-from datetime import time, timedelta
+from datetime import time, datetime
 from itertools import izip
 
 import numpy as np
@@ -45,7 +45,7 @@ class Index(np.ndarray):
     data : array-like (1-dimensional)
     dtype : NumPy dtype (default: object)
     copy : bool
-        Mt_fieldke a copy of input ndarray
+        Make a copy of input ndarray
 
     Note
     ----
@@ -159,6 +159,15 @@ class Index(np.ndarray):
             return self._is_monotonic(self.values)
         except TypeError:
             return False
+
+    def is_numeric(self):
+        return issubclass(self.dtype.type, np.number)
+
+    def is_datetime(self):
+        for key in self.values:
+            if not isinstance(key, datetime):
+                return False
+        return True
 
     def get_duplicates(self):
         from collections import defaultdict

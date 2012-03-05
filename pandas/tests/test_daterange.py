@@ -560,6 +560,12 @@ class TestDatetimePyx(unittest.TestCase):
                     self.assert_(t == stack.pop())
                     self.assert_(t.weekday() == day)
 
+    def test_catch_infinite_loop(self):
+        offset = datetools.DateOffset(minute=5)
+        # blow up, don't loop forever
+        self.assertRaises(Exception, DateRange, datetime(2011,11,11),
+                          datetime(2011,11,12), offset=offset)
+
 def _skip_if_no_pytz():
     try:
         import pytz

@@ -25,18 +25,27 @@ Where to get it
 pandas 0.7.1
 ============
 
-**Release date:** NOT YET RELEASED
+**Release date:** February 29, 2012
 
 **New features / modules**
 
   - Add ``to_clipboard`` function to pandas namespace for writing objects to
     the system clipboard (#774)
-  - Add ``itertuples`` method to Dataframe for iterating through the rows of a
+  - Add ``itertuples`` method to DataFrame for iterating through the rows of a
     dataframe as tuples (#818)
-  - Add ability to pass fill_value and method to Dataframe and Series align
-    method (#806)
+  - Add ability to pass fill_value and method to DataFrame and Series align
+    method (#806, #807)
+  - Add fill_value option to reindex, align methods (#784)
+  - Enable concat to produce DataFrame from Series (#787)
+  - Add ``between`` method to Series (#802)
+  - Add HTML representation hook to DataFrame for the IPython HTML notebook
+    (#773)
+  - Support for reading Excel 2007 XML documents using openpyxl
 
-**API Changes**
+**Improvements to existing features**
+
+  - Improve performance and memory usage of fillna on DataFrame
+  - Can concatenate a list of Series along axis=1 to obtain a DataFrame (#787)
 
 **Bug fixes**
 
@@ -50,6 +59,17 @@ pandas 0.7.1
   - Fix exception thrown on np.diff (#816)
   - Fix to_records where columns are non-strings (#822)
   - Fix Index.intersection where indices have incomparable types (#811)
+  - Fix ExcelFile throwing an exception for two-line file (#837)
+  - Add clearer error message in csv parser (#835)
+  - Fix loss of fractional seconds in HDFStore (#513)
+  - Fix DataFrame join where columns have datetimes (#787)
+  - Work around numpy performance issue in take (#817)
+  - Improve comparison operations for NA-friendliness (#801)
+  - Fix indexing operation for floating point values (#780, #798)
+  - Fix groupby case resulting in malformed dataframe (#814)
+  - Fix behavior of reindex of Series dropping name (#812)
+  - Improve on redudant groupby computation (#775)
+  - Catch possible NA assignment to int/bool series with exception (#839)
 
 pandas 0.7.0
 ============

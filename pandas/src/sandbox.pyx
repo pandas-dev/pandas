@@ -166,3 +166,47 @@ def fancy_inc(ndarray[int64_t, ndim=2] values,
 
 
 cimport util
+
+from khash cimport *
+
+cdef class Int64HashTable:
+
+    cdef:
+        kh_int64_t *table
+
+    def __init__(self, size_hint=1):
+        if size_hint is not None:
+            kh_resize_int64(self.table, size_hint)
+
+    def __cinit__(self):
+        self.table = kh_init_int64()
+
+    def __dealloc__(self):
+        kh_destroy_int64(self.table)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def get_labels(self, ndarray[int64_t] values):
+        cdef:
+            Py_ssize_t i, n = len(values)
+            ndarray[int32_t] labels
+            Py_ssize_t idx, count = 0
+            int ret = 0
+            int64_t val
+            khiter_t k
+
+        labels = np.empty(n, dtype=np.int32)
+
+        for i in range(n):
+            val = values[i]
+            k = kh_get_int64(self.table, val)
+            if k != self.table.n_buckets:
+                idx = self.table.vals[k]
+                labels[i] = idx
+            else:
+                k = kh_put_int64(self.table, val, &ret)
+                self.table.vals[k] = count
+                labels[i] = count
+                count += 1
+
+        return labels

@@ -2,9 +2,8 @@
 
 """
 Parts of this file were taken from the pyzmq project
-(https://github.com/zeromq/pyzmq) and hence are subject to the terms of the
-Lesser GNU General Public License.
-Parts are from lxml (https://github.com/lxml/lxml)
+(https://github.com/zeromq/pyzmq) which have been permitted for use under the
+BSD license. Parts are from lxml (https://github.com/lxml/lxml)
 """
 
 import os
@@ -162,9 +161,9 @@ CLASSIFIERS = [
 ]
 
 MAJOR = 0
-MINOR = 8
-MICRO = 0
-ISRELEASED = False
+MINOR = 7
+MICRO = 1
+ISRELEASED = True
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 QUALIFIER = ''
 

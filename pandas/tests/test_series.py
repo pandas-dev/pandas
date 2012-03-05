@@ -1149,6 +1149,39 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = s[5:16].dropna()
         assert_series_equal(result, expected)
 
+    def test_setitem_na_exception(self):
+        def testme1():
+            s = Series([2,3,4,5,6,7,8,9,10])
+            s[::2] = np.nan
+
+        def testme2():
+            s = Series([True, True, False, False])
+            s[::2] = np.nan
+
+        def testme3():
+            s = Series(np.arange(10))
+            s[:5] = np.nan
+
+        self.assertRaises(Exception, testme1)
+        self.assertRaises(Exception, testme2)
+        self.assertRaises(Exception, testme3)
+
+    def test_scalar_na_cmp_corners(self):
+        s = Series([2,3,4,5,6,7,8,9,10])
+
+        def tester(a, b):
+            return a & b
+
+        self.assertRaises(ValueError, tester, s, datetime(2005,1,1))
+
+        s = Series([2,3,4,5,6,7,8,9,datetime(2005,1,1)])
+        s[::2] = np.nan
+
+        assert_series_equal(tester(s, list(s)), s)
+
+        d = DataFrame({'A':s})
+        self.assertRaises(TypeError, tester, s, d)
+
     def test_idxmin(self):
         # test idxmin
         # _check_stat_op approach can not be used here because of isnull check.
@@ -1258,6 +1291,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         tm.assert_almost_equal(self.ts + self.ts, (self.ts + df)['A'])
         tm.assert_almost_equal(self.ts ** self.ts, (self.ts ** df)['A'])
+        tm.assert_almost_equal(self.ts < self.ts, (self.ts < df)['A'])
 
     def test_operators_combine(self):
         def _check_fill(meth, op, a, b, fill_value=0):
@@ -1958,6 +1992,56 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(self.ts.reindex(other.index),
                             self.ts.reindex_like(other))
 
+    def test_reindex_fill_value(self):
+        #------------------------------------------------------------
+        # floats
+        floats = Series([1., 2., 3.])
+        result = floats.reindex([1, 2, 3])
+        expected = Series([2., 3., np.nan], index=[1, 2, 3])
+        assert_series_equal(result, expected)
+
+        result = floats.reindex([1, 2, 3], fill_value=0)
+        expected = Series([2., 3., 0], index=[1, 2, 3])
+        assert_series_equal(result, expected)
+
+        #------------------------------------------------------------
+        # ints
+        ints = Series([1, 2, 3])
+
+        result = ints.reindex([1, 2, 3])
+        expected = Series([2., 3., np.nan], index=[1, 2, 3])
+        assert_series_equal(result, expected)
+
+        # don't upcast
+        result = ints.reindex([1, 2, 3], fill_value=0)
+        expected = Series([2, 3, 0], index=[1, 2, 3])
+        self.assert_(issubclass(result.dtype.type, np.integer))
+        assert_series_equal(result, expected)
+
+        #------------------------------------------------------------
+        # objects
+        objects = Series([1, 2, 3], dtype=object)
+
+        result = objects.reindex([1, 2, 3])
+        expected = Series([2, 3, np.nan], index=[1, 2, 3], dtype=object)
+        assert_series_equal(result, expected)
+
+        result = objects.reindex([1, 2, 3], fill_value='foo')
+        expected = Series([2, 3, 'foo'], index=[1, 2, 3], dtype=object)
+        assert_series_equal(result, expected)
+
+        #------------------------------------------------------------
+        # bools
+        bools = Series([True, False, True])
+
+        result = bools.reindex([1, 2, 3])
+        expected = Series([False, True, np.nan], index=[1, 2, 3], dtype=object)
+        assert_series_equal(result, expected)
+
+        result = bools.reindex([1, 2, 3], fill_value=False)
+        expected = Series([False, True, False], index=[1, 2, 3])
+        assert_series_equal(result, expected)
+
     def test_rename(self):
         renamer = lambda x: x.strftime('%Y%m%d')
         renamed = self.ts.rename(renamer)
@@ -1987,7 +2071,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_pad_nan(self):
         x = TimeSeries([np.nan, 1., np.nan, 3., np.nan],
                        ['z', 'a', 'b', 'c', 'd'], dtype=float)
-        x = x.fillna(method='pad')
+        x.fillna(method='pad', inplace=True)
         expected = TimeSeries([np.nan, 1.0, 1.0, 3.0, 3.0],
                                 ['z', 'a', 'b', 'c', 'd'], dtype=float)
         assert_series_equal(x[1:], expected[1:])

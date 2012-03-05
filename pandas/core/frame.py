@@ -436,9 +436,10 @@ class DataFrame(NDFrame):
         # e.g. "if frame: ..."
         return len(self.columns) > 0 and len(self.index) > 0
 
-    def __repr__(self):
+    def _need_info_repr_(self):
         """
-        Return a string representation for a particular DataFrame
+        Check if it is needed to use info/summary view to represent a
+        particular DataFrame.
         """
         config = fmt.print_config
 
@@ -447,35 +448,50 @@ class DataFrame(NDFrame):
                     else config.max_rows)
         max_columns = config.max_columns
 
-        buf = StringIO()
         if max_columns > 0:
-            if len(self.index) < max_rows and \
+            if len(self.index) <= max_rows and \
                     len(self.columns) <= max_columns:
-                self.to_string(buf=buf)
+                return False
             else:
-                self.info(buf=buf, verbose=self._verbose_info)
+                return True
         else:
             if len(self.index) > max_rows:
-                self.info(buf=buf, verbose=self._verbose_info)
+                return True
             else:
+                buf = StringIO()
                 self.to_string(buf=buf)
                 value = buf.getvalue()
                 if max([len(l) for l in value.split('\n')]) > terminal_width:
-                    buf = StringIO()
-                    self.info(buf=buf, verbose=self._verbose_info)
-                    value = buf.getvalue()
-                return com.console_encode(value)
-        return com.console_encode(buf.getvalue())
+                    return True
+                else:
+                    return False
+
+    def __repr__(self):
+        """
+        Return a string representation for a particular DataFrame
+        """
+        buf = StringIO()
+        if self._need_info_repr_():
+            self.info(buf=buf, verbose=self._verbose_info)
+        else:
+            self.to_string(buf=buf)
+        value = buf.getvalue()
+        return com.console_encode(value)
 
     def _repr_html_(self):
-        if len(self.index) <= 1000 and len(self.columns)<= 20:
-            return ('<div style="max-height:1000px;'
-                    'max-width:1500px;overflow:auto;">' +
-                    self.to_html() + '</div>')
+        """
+        Return a html representation for a particular DataFrame.
+        Mainly for IPython notebook.
+        """
+        if fmt.print_config.notebook_repr_html:
+            if self._need_info_repr_():
+                return None
+            else:
+                return ('<div style="max-height:1000px;'
+                        'max-width:1500px;overflow:auto;">\n' +
+                        self.to_html() + '\n</div>')
         else:
-            buf = StringIO()
-            self.info(buf=buf, verbose=self._verbose_info)
-            return '<pre>' + com.console_encode(buf.getvalue()) + '</pre>'
+            return None
 
     def __iter__(self):
         """
@@ -1684,7 +1700,7 @@ class DataFrame(NDFrame):
     # Reindexing and alignment
 
     def align(self, other, join='outer', axis=None, level=None, copy=True,
-              fill_value=None, method=None):
+              fill_value=np.nan, method=None):
         """
         Align two DataFrame object on their index and columns with the
         specified join method for each axis Index
@@ -1701,7 +1717,9 @@ class DataFrame(NDFrame):
         copy : boolean, default True
             Always returns new objects. If copy=False and no reindexing is
             required then original objects are returned.
-        fill_value : object, default None
+        fill_value : scalar, default np.NaN
+            Value to use for missing values. Defaults to NaN, but can be any
+            "compatible" value
         method : str, default None
 
         Returns
@@ -1721,7 +1739,7 @@ class DataFrame(NDFrame):
             raise TypeError('unsupported type: %s' % type(other))
 
     def _align_frame(self, other, join='outer', axis=None, level=None,
-                     copy=True, fill_value=None, method=None):
+                     copy=True, fill_value=np.nan, method=None):
         # defaults
         join_index, join_columns = None, None
         ilidx, iridx = None, None
@@ -1740,15 +1758,17 @@ class DataFrame(NDFrame):
                                       return_indexers=True)
 
         left = self._reindex_with_indexers(join_index, ilidx,
-                                           join_columns, clidx, copy)
+                                           join_columns, clidx, copy,
+                                           fill_value=fill_value)
         right = other._reindex_with_indexers(join_index, iridx,
-                                             join_columns, cridx, copy)
-        fill_na = (fill_value is not None) or (method is not None)
-        if fill_na:
-            return (left.fillna(fill_value, method=method),
-                    right.fillna(fill_value, method=method))
-        else:
-            return left, right
+                                             join_columns, cridx, copy,
+                                             fill_value=fill_value)
+
+        if method is not None:
+            left = left.fillna(method=method)
+            right = right.fillna(method=method)
+
+        return left, right
 
     def _align_series(self, other, join='outer', axis=None, level=None,
                       copy=True, fill_value=None, method=None):
@@ -1789,7 +1809,7 @@ class DataFrame(NDFrame):
             return left_result, right_result
 
     def reindex(self, index=None, columns=None, method=None, level=None,
-                copy=True):
+                fill_value=np.nan, copy=True):
         """Conform DataFrame to new index with optional filling logic, placing
         NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
@@ -1811,6 +1831,9 @@ class DataFrame(NDFrame):
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level
+        fill_value : scalar, default np.NaN
+            Value to use for missing values. Defaults to NaN, but can be any
+            "compatible" value
 
         Examples
         --------
@@ -1824,14 +1847,15 @@ class DataFrame(NDFrame):
         frame = self
 
         if index is not None:
-            frame = frame._reindex_index(index, method, copy, level)
+            frame = frame._reindex_index(index, method, copy, level, fill_value)
 
         if columns is not None:
-            frame = frame._reindex_columns(columns, copy, level)
+            frame = frame._reindex_columns(columns, copy, level, fill_value)
 
         return frame
 
-    def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True):
+    def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True,
+                     fill_value=np.nan):
         """Conform DataFrame to new index with optional filling logic, placing
         NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
@@ -1869,42 +1893,45 @@ class DataFrame(NDFrame):
         """
         self._consolidate_inplace()
         if axis == 0:
-            df = self._reindex_index(labels, method, copy, level)
-            return df
+            return self._reindex_index(labels, method, copy, level,
+                                       fill_value=fill_value)
         elif axis == 1:
-            df = self._reindex_columns(labels, copy, level)
-            return df
+            return self._reindex_columns(labels, copy, level,
+                                         fill_value=fill_value)
         else:  # pragma: no cover
             raise ValueError('Must specify axis=0 or 1')
 
-    def _reindex_index(self, new_index, method, copy, level):
+    def _reindex_index(self, new_index, method, copy, level, fill_value=np.nan):
         if level is not None:
             assert(isinstance(new_index, MultiIndex))
         new_index, indexer = self.index.reindex(new_index, method, level)
         return self._reindex_with_indexers(new_index, indexer, None, None,
-                                           copy)
+                                           copy, fill_value)
 
-    def _reindex_columns(self, new_columns, copy, level):
+    def _reindex_columns(self, new_columns, copy, level, fill_value=np.nan):
         if level is not None:
             assert(isinstance(new_columns, MultiIndex))
         new_columns, indexer = self.columns.reindex(new_columns, level=level)
         return self._reindex_with_indexers(None, None, new_columns, indexer,
-                                           copy)
+                                           copy, fill_value)
 
     def _reindex_with_indexers(self, index, row_indexer, columns, col_indexer,
-                               copy):
+                               copy, fill_value):
         new_data = self._data
         if row_indexer is not None:
-            new_data = new_data.reindex_indexer(index, row_indexer, axis=1)
+            new_data = new_data.reindex_indexer(index, row_indexer, axis=1,
+                                                fill_value=fill_value)
         elif index is not None and index is not new_data.axes[1]:
             new_data = new_data.copy(deep=copy)
             new_data.axes[1] = index
 
         if col_indexer is not None:
             # TODO: speed up on homogeneous DataFrame objects
-            new_data = new_data.reindex_indexer(columns, col_indexer, axis=0)
+            new_data = new_data.reindex_indexer(columns, col_indexer, axis=0,
+                                                fill_value=fill_value)
         elif columns is not None and columns is not new_data.axes[0]:
-            new_data = new_data.reindex_items(columns, copy=copy)
+            new_data = new_data.reindex_items(columns, copy=copy,
+                                              fill_value=fill_value)
 
         if copy and new_data is self._data:
             new_data = new_data.copy()
@@ -2228,7 +2255,7 @@ class DataFrame(NDFrame):
         -------
         sorted : DataFrame
         """
-        if column is not None:
+        if column is not None: # pragma: no cover
             import warnings
             warnings.warn("column is deprecated, use columns", FutureWarning)
             columns = column
@@ -2355,8 +2382,7 @@ class DataFrame(NDFrame):
 
     def fillna(self, value=None, method='pad', inplace=False):
         """
-        Fill NA/NaN values using the specified method. Member Series /
-        TimeSeries are filled separately
+        Fill NA/NaN values using the specified method
 
         Parameters
         ----------
@@ -2396,12 +2422,6 @@ class DataFrame(NDFrame):
                 new_blocks.append(newb)
 
             new_data = BlockManager(new_blocks, self._data.axes)
-
-            # series = self._series
-            # for col, s in series.iteritems():
-            #     result[col] = s.fillna(method=method, value=value)
-            # return self._constructor(result, index=self.index,
-            #                          columns=self.columns)
         else:
             # Float type values
             if len(self.columns) == 0:
@@ -3861,8 +3881,20 @@ class DataFrame(NDFrame):
 
         if kind == 'line':
             if use_index:
-                x = self.index
+                if self.index.is_numeric() or self.index.is_datetime():
+                    """
+                    Matplotlib supports numeric values or datetime objects as
+                    xaxis values. Taking LBYL approach here, by the time
+                    matplotlib raises exception when using non numeric/datetime
+                    values for xaxis, several actions are already taken by plt.
+                    """
+                    need_to_set_xticklabels = False
+                    x = self.index
+                else:
+                    need_to_set_xticklabels = True
+                    x = range(len(self))
             else:
+                need_to_set_xticklabels = False
                 x = range(len(self))
 
             for i, col in enumerate(_try_sort(self.columns)):
@@ -3880,6 +3912,12 @@ class DataFrame(NDFrame):
 
             if legend and not subplots:
                 ax.legend(loc='best')
+
+            if need_to_set_xticklabels:
+                xticklabels = [gfx._stringify(key) for key in self.index]
+                for ax_ in axes:
+                    ax_.set_xticks(x)
+                    ax_.set_xticklabels(xticklabels, rotation=rot)
         elif kind == 'bar':
             self._bar_plot(axes, subplots=subplots, grid=grid, rot=rot,
                            legend=legend)
@@ -3898,6 +3936,8 @@ class DataFrame(NDFrame):
 
     def _bar_plot(self, axes, subplots=False, use_index=True, grid=True,
                   rot=30, legend=True, **kwds):
+        import pandas.tools.plotting as gfx
+
         N, K = self.shape
         xinds = np.arange(N) + 0.25
         colors = 'rgbyk'
@@ -3927,7 +3967,9 @@ class DataFrame(NDFrame):
             fontsize = 10
 
         ax.set_xticks(xinds + 0.25)
-        ax.set_xticklabels(self.index, rotation=rot, fontsize=fontsize)
+        ax.set_xticklabels([gfx._stringify(key) for key in self.index],
+                           rotation=rot,
+                           fontsize=fontsize)
 
         if legend and not subplots:
             fig = ax.get_figure()

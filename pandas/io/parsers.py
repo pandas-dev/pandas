@@ -153,7 +153,7 @@ def read_clipboard(**kwargs):  # pragma: no cover
     text = clipboard_get()
     return read_table(StringIO(text), **kwargs)
 
-def to_clipboard(obj):
+def to_clipboard(obj): # pragma: no cover
     """
     Attempt to write text representation of object to the system clipboard
 
@@ -350,7 +350,10 @@ class TextParser(object):
             while self.pos in self.skiprows:
                 self.pos += 1
 
-            line = self.data[self.pos]
+            try:
+                line = self.data[self.pos]
+            except IndexError:
+                raise StopIteration
         else:
             while self.pos in self.skiprows:
                 self.data.next()
@@ -479,7 +482,8 @@ class TextParser(object):
 
         if not index._verify_integrity():
             dups = index.get_duplicates()
-            raise Exception('Index has duplicates: %s' % str(dups))
+            err_msg = 'Tried columns 1-X as index but found duplicates %s'
+            raise Exception(err_msg % str(dups))
 
         if len(self.columns) != len(zipped_content):
             raise Exception('wrong number of columns')

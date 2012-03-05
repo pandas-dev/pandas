@@ -131,3 +131,16 @@ series_align_left_monotonic = \
               name="series_align_left_monotonic",
               start_date=datetime(2011, 3, 1), logy=True)
 
+#----------------------------------------------------------------------
+# Concat Series axis=1
+
+setup = common_setup + """
+n = 1000
+indices = Index([rands(10) for _ in xrange(1000)])
+s = Series(n, index=indices)
+pieces = [s[i:-i] for i in range(1, 10)]
+pieces = pieces * 50
+"""
+
+concat_series_axis1 = Benchmark('concat(pieces, axis=1)', setup,
+                                start_date=datetime(2012, 2, 27))

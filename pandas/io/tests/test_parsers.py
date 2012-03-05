@@ -220,6 +220,17 @@ baz,7,8,9
         self.assert_(df.ix[:, ['A', 'B', 'C', 'D']].values.dtype == np.float64)
         assert_frame_equal(df, df2)
 
+    def test_excel_stop_iterator(self):
+        try:
+            import xlrd
+        except ImportError:
+            raise nose.SkipTest('xlrd not installed, skipping')
+
+        excel_data = ExcelFile(os.path.join(self.dirpath, 'test2.xls'))
+        parsed = excel_data.parse('Sheet1')
+        expected = DataFrame([['aaaa','bbbbb']], columns=['Test', 'Test1'])
+        assert_frame_equal(parsed, expected)
+
     def test_excel_table(self):
         try:
             import xlrd

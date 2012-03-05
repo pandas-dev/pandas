@@ -581,7 +581,8 @@ def _has_names(index):
 # Global formatting options
 
 def set_printoptions(precision=None, column_space=None, max_rows=None,
-                     max_columns=None, colheader_justify='right'):
+                     max_columns=None, colheader_justify='right',
+                     notebook_repr_html=None):
     """
     Alter default behavior of DataFrame.toString
 
@@ -597,6 +598,10 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
         Either one, or both can be set to 0 (experimental). Pandas will figure
         out how big the terminal is and will not display more rows or/and
         columns that can fit on it.
+    colheader_justify
+    notebook_repr_html : boolean
+        When True (default), IPython notebook will use html representation for
+        pandas objects (if it is available).
     """
     if precision is not None:
         print_config.precision = precision
@@ -608,6 +613,8 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
         print_config.max_columns = max_columns
     if colheader_justify is not None:
         print_config.colheader_justify = colheader_justify
+    if notebook_repr_html is not None:
+        print_config.notebook_repr_html = notebook_repr_html
 
 def reset_printoptions():
     print_config.reset()
@@ -733,6 +740,7 @@ class _GlobalPrintConfig(object):
         self.max_rows = 200
         self.max_columns = 0
         self.colheader_justify = 'right'
+        self.notebook_repr_html = True
 
     def reset(self):
         self.__init__()

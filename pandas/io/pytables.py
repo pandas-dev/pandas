@@ -639,12 +639,12 @@ class HDFStore(object):
         fields = table._v_attrs.fields
 
         # create the selection
-        sel = Selection(table, where, table._v_attrs.index_kind)
+        sel = Selection(table, where)
         sel.select()
+        fields = table._v_attrs.fields
 
         columns = _maybe_convert(sel.values['column'],
                                  table._v_attrs.columns_kind)
-
         index = _maybe_convert(sel.values['index'],
                                table._v_attrs.index_kind)
         values = sel.values['values']
@@ -702,7 +702,7 @@ class HDFStore(object):
         table = getattr(group, 'table')
 
         # create the selection
-        s = Selection(table, where, table._v_attrs.index_kind)
+        s = Selection(table,where)
         s.select_coords()
 
         # delete the rows in reverse order
