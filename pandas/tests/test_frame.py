@@ -1724,6 +1724,24 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         unpickled = pickle.loads(pickle.dumps(self.empty))
         repr(unpickled)
 
+    def test_unpickle_legacy_frame(self):
+        from pandas.core.daterange import DateRange
+        from pandas.core.datetools import BDay
+        from pandas.core.index import Int64Index
+
+        f = open('pandas/tests/data/frame.pickle', 'r')
+        unpickled = pickle.loads(f.read())
+        f.close()
+
+        dtindex = DateRange(start='1/3/2005', end='1/14/2005',
+                            offset=BDay(1))
+
+        self.assertEquals(type(unpickled.index), DateRange)
+        self.assertEquals(len(unpickled), 10)
+        self.assert_((unpickled.columns == Int64Index(np.arange(5))).all())
+        self.assert_((unpickled.index == dtindex).all())
+        self.assertEquals(unpickled.index.offset, BDay(1))
+
     def test_to_dict(self):
         test_data = {
                 'A' : {'1' : 1, '2' : 2},

@@ -1336,6 +1336,24 @@ class DatetimeIndex(Int64Index):
             self.offset = own_state[1]
             self.tzinfo = own_state[2]
             np.ndarray.__setstate__(self, nd_state)
+        elif len(state) == 3: 
+            # legacy format: daterange
+            offset = state[1]
+
+            if len(state) > 2:
+                tzinfo = state[2]
+            else: # pragma: no cover
+                tzinfo = None
+
+            self.offset = offset
+            self.tzinfo = tzinfo
+
+            # extract the raw datetime data, turn into datetime64
+            index_state = state[0]
+            raw_data = index_state[0][4]
+            raw_data = np.array(raw_data, dtype='M8[us]')
+            new_state = raw_data.__reduce__()
+            np.ndarray.__setstate__(self, new_state[2])
         else:  # pragma: no cover
             np.ndarray.__setstate__(self, state)
 

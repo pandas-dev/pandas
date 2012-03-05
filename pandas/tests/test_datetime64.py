@@ -1,8 +1,13 @@
 import pandas._tseries as lib
 from datetime import datetime
 
+import cPickle as pickle
+
 from pandas.core.index import DatetimeIndex
 from pandas.core.frame import DataFrame
+
+from pandas.core.daterange import DateRange
+from pandas.core.index import Int64Index
 
 import unittest
 import numpy as np
@@ -14,7 +19,7 @@ from numpy.random import rand
 from pandas.util.testing import assert_series_equal
 
 from pandas.core.groupby import Tinterval
-from pandas.core.datetools import Minute
+from pandas.core.datetools import Minute, BDay
 
 try:
     import pytz
@@ -493,6 +498,36 @@ class TestDatetime64(unittest.TestCase):
 
         df = DataFrame(np.random.rand(len(dti), 5), index=dti)
         self.assertEquals(len(df.ix['2005-11']), 30)
+
+    def test_unpickle_legacy_frame(self):
+        f = open('pandas/tests/data/frame.pickle', 'r')
+        unpickled = pickle.loads(f.read())
+        f.close()
+
+        dtindex = DateRange(start='1/3/2005', end='1/14/2005',
+                            offset=BDay(1))
+
+        self.assertEquals(type(unpickled.index), DateRange)
+        self.assertEquals(len(unpickled), 10)
+        self.assert_((unpickled.columns == Int64Index(np.arange(5))).all())
+        self.assert_((unpickled.index == dtindex).all())
+        self.assertEquals(unpickled.index.offset, BDay(1))
+
+    def test_unpickle_legacy_series(self):
+        from pandas.core.daterange import DateRange
+        from pandas.core.datetools import BDay
+
+        f = open('pandas/tests/data/series.pickle', 'r')
+        unpickled = pickle.loads(f.read())
+        f.close()
+
+        dtindex = DateRange(start='1/3/2005', end='1/14/2005',
+                            offset=BDay(1))
+
+        self.assertEquals(type(unpickled.index), DateRange)
+        self.assertEquals(len(unpickled), 10)
+        self.assert_((unpickled.index == dtindex).all())
+        self.assertEquals(unpickled.index.offset, BDay(1))
 
 if __name__ == '__main__':
     import nose
