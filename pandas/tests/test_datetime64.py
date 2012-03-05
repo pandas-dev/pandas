@@ -529,13 +529,34 @@ class TestDatetime64(unittest.TestCase):
         self.assert_((unpickled.index == dtindex).all())
         self.assertEquals(unpickled.index.offset, BDay(1))
 
-    def test_from_string_array(self):
-        arr = ['1/1/2005', '1/2/2005', 'Jan 3, 2005', '2005-01-04']
-        idx = DatetimeIndex(arr)
-        self.assertEquals(len(idx), 4)
-        self.assertEquals(idx[0], lib.Timestamp(datetime(2005,1,1)))
+    def test_datetimeindex_constructor(self):
+        arr = ['1/1/2005', '1/2/2005', 'Jn 3, 2005', '2005-01-04']
+        self.assertRaises(Exception, DatetimeIndex, arr)
 
+        arr = ['1/1/2005', '1/2/2005', '1/3/2005', '2005-01-04']
+        idx1 = DatetimeIndex(arr)
 
+        arr = [datetime(2005,1,1), '1/2/2005', '1/3/2005', '2005-01-04']
+        idx2 = DatetimeIndex(arr)
+
+        arr = [lib.Timestamp(datetime(2005,1,1)), '1/2/2005', '1/3/2005',
+               '2005-01-04']
+        idx3 = DatetimeIndex(arr)
+
+        arr = np.array(['1/1/2005', '1/2/2005', '1/3/2005',
+                        '2005-01-04'], dtype='O')
+        idx4 = DatetimeIndex(arr)
+
+        arr = np.array(['1/1/2005', '1/2/2005', '1/3/2005',
+                        '2005-01-04'], dtype='M8[us]')
+        idx5 = DatetimeIndex(arr)
+
+        arr = np.array(['1/1/2005', '1/2/2005', 'Jan 3, 2005',
+                        '2005-01-04'], dtype='M8[us]')
+        idx6 = DatetimeIndex(arr)
+
+        for other in [idx2, idx3, idx4, idx5, idx6]:
+            self.assert_( (idx1.values == other.values).all() )
 
 if __name__ == '__main__':
     import nose

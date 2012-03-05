@@ -1217,12 +1217,13 @@ class DatetimeIndex(Int64Index):
             if not isinstance(data, (list, tuple)):
                 data = list(data)
 
-            # try to make it datetime64
-            try:
+            data = np.asarray(data, dtype='O')
+
+            # try a few ways to make it datetime64
+            if lib.is_string_array(data):
+                data = datetools._from_string_array(data)
+            else:
                 data = np.asarray(data, dtype='M8[us]')
-            except ValueError:
-                data = np.asarray(data, dtype='O')
-                data = np.asarray(_dt_unbox_array(data), dtype='M8[us]')
 
         if issubclass(data.dtype.type, basestring):
             subarr = datetools._from_string_array(data)

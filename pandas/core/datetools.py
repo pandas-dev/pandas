@@ -62,8 +62,11 @@ def _dt_unbox_array(arr):
     return unboxer(arr)
 
 def _from_string_array(arr):
-    from dateutil import parser
-    p_ufunc = np.frompyfunc(lambda x: parser.parse(x), 1, 1)
+    def parser(x):
+        result = parse_time_string(x)
+        return result[0]
+
+    p_ufunc = np.frompyfunc(parser, 1, 1)
     data = p_ufunc(arr)
     return np.array(data, dtype='M8[us]')
 
@@ -116,6 +119,9 @@ def parse_time_string(arg):
         parsed = _dtparser._parse(arg)
         default = datetime.now().replace(hour=0, minute=0,
                                          second=0, microsecond=0)
+        if parsed is None:
+            raise DateParseError("Could not parse %s" % arg)
+
         repl = {}
         reso = 'year'
         stopped = False
@@ -126,12 +132,14 @@ def parse_time_string(arg):
                 repl[attr] = value
                 if not stopped:
                     reso = attr
+                else:
+                    raise DateParseError("Missing attribute before %s", attr)
             else:
                 stopped = True
         ret = default.replace(**repl)
         return ret, parsed, reso  # datetime, partial parse, resolution
-    except Exception:
-        raise DateParseError
+    except Exception, e:
+        raise DateParseError(e)
 
 def to_datetime(arg):
     """Attempts to convert arg to datetime"""
