@@ -822,13 +822,12 @@ def _convert_grouper(axis, grouper):
         return grouper.get
     elif isinstance(grouper, Series):
         if grouper.index.equals(axis):
-            return np.asarray(grouper, dtype=object)
+            return grouper.values
         else:
-            return grouper.reindex(axis).astype(object)
+            return grouper.reindex(axis).values
     elif isinstance(grouper, (list, np.ndarray)):
         assert(len(grouper) == len(axis))
         return grouper
-        # return np.asarray(grouper, dtype=object)
     else:
         return grouper
 
