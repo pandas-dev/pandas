@@ -395,6 +395,8 @@ class CheckIndexing(object):
         exp.values[5:10] = 5
         assert_frame_equal(f, exp)
 
+        self.assertRaises(ValueError, ix.__getitem__, f > 0.5)
+
     def test_slice_floats(self):
         index = [52195.504153, 52196.303147, 52198.369883]
         df = DataFrame(np.random.rand(3, 2), index=index)
