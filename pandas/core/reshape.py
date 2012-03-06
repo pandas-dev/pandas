@@ -7,9 +7,8 @@ import numpy as np
 
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
-from pandas.core.panel import Panel
 
-from pandas.core.common import notnull
+from pandas.core.common import notnull, _ensure_platform_int
 from pandas.core.groupby import get_group_index
 from pandas.core.index import MultiIndex
 
@@ -90,6 +89,8 @@ class _Unstacker(object):
         # make the mask
         group_index = get_group_index(self.sorted_labels,
                                       [len(x) for x in new_levels])
+
+        group_index = _ensure_platform_int(group_index)
 
         group_mask = np.zeros(self.full_shape[0], dtype=bool)
         group_mask.put(group_index, True)
