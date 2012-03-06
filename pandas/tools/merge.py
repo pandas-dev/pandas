@@ -761,6 +761,9 @@ class _Concatenator(object):
             new_data = self._get_concatenated_data()
             return self.objs[0]._from_axes(new_data, self.new_axes)
 
+    def _get_fresh_axis(self):
+        return Index(np.arange(len(self._get_concat_axis())))
+
     def _get_concatenated_data(self):
         try:
             # need to conform to same other (joined) axes for block join
@@ -768,6 +771,7 @@ class _Concatenator(object):
 
             blockmaps = []
             for data in reindexed_data:
+                data = data.consolidate()
                 type_map = dict((type(blk), blk) for blk in data.blocks)
                 blockmaps.append(type_map)
             kinds = _get_all_block_kinds(blockmaps)
@@ -777,6 +781,10 @@ class _Concatenator(object):
                 klass_blocks = [mapping.get(kind) for mapping in blockmaps]
                 stacked_block = self._concat_blocks(klass_blocks)
                 new_blocks.append(stacked_block)
+
+            if self.axis == 0 and self.ignore_index:
+                self.new_axes[0] = self._get_fresh_axis()
+
             new_data = BlockManager(new_blocks, self.new_axes)
         except Exception:  # EAFP
             # should not be possible to fail here for the expected reason with
@@ -820,16 +828,19 @@ class _Concatenator(object):
                                 'DataFrames')
             return make_block(concat_values, blocks[0].items, self.new_axes[0])
         else:
-            all_items = [b.items for b in blocks if b is not None]
-            if self.axis == 0 and self.keys is not None:
-                offsets = np.r_[0, np.cumsum([len(x._data.axes[self.axis]) for
-                                              x in self.objs])]
-                indexer = np.concatenate([offsets[i] + b.ref_locs
-                                          for i, b in enumerate(blocks)
-                                          if b is not None])
-                concat_items = self.new_axes[0].take(indexer)
+            offsets = np.r_[0, np.cumsum([len(x._data.axes[0]) for
+                                            x in self.objs])]
+            indexer = np.concatenate([offsets[i] + b.ref_locs
+                                        for i, b in enumerate(blocks)
+                                        if b is not None])
+            if self.ignore_index:
+                concat_items = indexer
             else:
-                concat_items = _concat_indexes(all_items)
+                concat_items = self.new_axes[0].take(indexer)
+
+            if self.ignore_index:
+                ref_items = self._get_fresh_axis()
+                return make_block(concat_values, concat_items, ref_items)
 
             return make_block(concat_values, concat_items, self.new_axes[0])
 

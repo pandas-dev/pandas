@@ -963,6 +963,25 @@ class TestConcatenate(unittest.TestCase):
         expected = concat([frames[k] for k in keys], keys=keys)
         tm.assert_frame_equal(result, expected)
 
+    def test_concat_ignore_index(self):
+        frame1 = DataFrame({"test1": ["a", "b", "c"], 
+                            "test2": [1,2,3], 
+                            "test3": [4.5, 3.2, 1.2]})
+        frame2 = DataFrame({"test3": [5.2, 2.2, 4.3]})
+        frame1.index = Index(["x", "y", "z"])
+        frame2.index = Index(["x", "y", "q"])
+
+        v1 = concat([frame1, frame2], axis=1, ignore_index=True)
+
+        nan = np.nan
+        expected = DataFrame([[nan,nan,nan, 4.3], 
+                              ['a', 1, 4.5, 5.2],
+                              ['b', 2, 3.2, 2.2],
+                              ['c', 3, 1.2, nan]], 
+                             index=Index(["q", "x", "y", "z"]))
+                
+        tm.assert_frame_equal(v1, expected)
+
     def test_concat_multiindex_with_keys(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
