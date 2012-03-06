@@ -1691,6 +1691,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                           {'A' : self.frame['A'],
                            'B' : list(self.frame['B'])[:-2]})
 
+    def test_constructor_miscast_na_int_dtype(self):
+        df = DataFrame([[np.nan, 1], [1, 0]], dtype=np.int64)
+        expected = DataFrame([[np.nan, 1], [1, 0]])
+        assert_frame_equal(df, expected)
+
     def test_astype(self):
         casted = self.frame.astype(int)
         expected = DataFrame(self.frame.values.astype(int),

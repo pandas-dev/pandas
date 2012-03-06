@@ -266,6 +266,9 @@ class Series(np.ndarray, generic.PandasObject):
             except TypeError:
                 data = [data.get(i, nan) for i in index]
 
+        if dtype is not None:
+            dtype = np.dtype(dtype)
+
         subarr = _sanitize_array(data, index, dtype, copy,
                                  raise_cast_failure=True)
 
@@ -2463,13 +2466,35 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         data = ma.copy(data)
         data[mask] = np.nan
 
-    try:
-        subarr = np.array(data, dtype=dtype, copy=copy)
-    except (ValueError, TypeError):
-        if dtype and raise_cast_failure:
-            raise
-        else:  # pragma: no cover
-            subarr = np.array(data, dtype=object)
+    def _try_cast(arr):
+        try:
+            subarr = np.array(data, dtype=dtype, copy=copy)
+        except (ValueError, TypeError):
+            if dtype is not None and raise_cast_failure:
+                raise
+            else:  # pragma: no cover
+                subarr = np.array(data, dtype=object, copy=copy)
+        return subarr
+
+    # GH #846
+    if isinstance(data, np.ndarray):
+        if dtype is not None:
+            # possibility of nan -> garbage
+            if com.is_float_dtype(data.dtype) and com.is_integer_dtype(dtype):
+                if not isnull(data).any():
+                    subarr = _try_cast(data)
+                elif copy:
+                    subarr = data.copy()
+                else:
+                    subarr = data
+            else:
+                subarr = _try_cast(data)
+        elif copy:
+            subarr = data.copy()
+        else:
+            subarr = data
+    else:
+        subarr = _try_cast(data)
 
     if subarr.ndim == 0:
         if isinstance(data, list):  # pragma: no cover
