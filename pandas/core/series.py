@@ -896,6 +896,13 @@ copy : boolean, default False
         """
         if level is not None:
             mask = notnull(self.values)
+
+            if isinstance(level, basestring):
+                if self.index.names is None:
+                    raise ValueError("Could not access level by name")
+
+                level = self.index.names.index(level)
+
             level_index = self.index.levels[level]
 
             if len(self) == 0:

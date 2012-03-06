@@ -3439,6 +3439,12 @@ class DataFrame(NDFrame):
         # python 2.5
         mask = notnull(frame.values).view(np.uint8)
 
+        if isinstance(level, basestring):
+            if self.index.names is None:
+                raise ValueError("Could not access level by name")
+
+            level = self.index.names.index(level)
+
         level_index = frame.index.levels[level]
         counts = lib.count_level_2d(mask, frame.index.labels[level],
                                     len(level_index))
