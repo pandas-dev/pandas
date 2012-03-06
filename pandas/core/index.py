@@ -16,7 +16,7 @@ from pandas._tseries import Timestamp
 
 import pandas.core.datetools as datetools
 from pandas.core.datetools import (_dt_box, _dt_unbox, _dt_box_array,
-                                   _dt_unbox_array, to_timestamp)
+                                   _dt_unbox_array, to_timestamp, Interval)
 
 __all__ = ['Index']
 
@@ -1076,7 +1076,6 @@ def _maybe_box_dtindex(idx):
         return Index(_dt_box_array(idx.asi8), dtype='object')
     return idx
 
-
 class DatetimeIndex(Int64Index):
     """
     Immutable ndarray of datetime64 data, represented internally as int64, and
@@ -1154,7 +1153,7 @@ class DatetimeIndex(Int64Index):
         offset = freq
 
         if data is None and offset is None:
-            raise ValueError("Must provide offset argument if no data is "
+            raise ValueError("Must provide freq argument if no data is "
                              "supplied")
 
         if data is None:
@@ -1805,6 +1804,79 @@ class DatetimeIndex(Int64Index):
 
         return True
 
+# --- Interval index sketch
+
+class IntervalIndex(Int64Index):
+    """
+    Immutable ndarray where values represent interval offsets from the
+    Gregorian proleptic date 1/1/1.
+
+    Intervals are boxed to Interval objects which carry metadata such as
+    frequency information and start and end datetimes.
+
+    Parameters
+    ----------
+    data  : array-like (1-dimensional), optional
+        Optional interval-like data to construct index with
+    dtype : NumPy dtype (default: i8)
+    copy  : bool
+        Make a copy of input ndarray
+    freq : string or interval object, optional
+        One of pandas interval strings or corresponding objects
+    start : starting value, interval-like, optional
+        If data is None, used as the start point in generating regular
+        interval data.
+    periods  : int, optional, > 0
+        Number of intervals to generate, if generating data. Takes precedence
+        over end argument
+    end   : end value, interval-like, optional
+        If periods is none, generated index will extend to first conforming
+        interval on or just past end argument
+    """
+
+    def __new__(cls, data=None,
+                freq=None, start=None, end=None, periods=None,
+                copy=False, name=None):
+
+        if data is None and freq is None:
+            raise ValueError("Must provide freq argument if no data is "
+                             "supplied")
+
+        if data is None:
+            start = datetools.to_interval(start, freq)
+            end = datetools.to_interval(end, freq)
+
+            if (start is not None and not isinstance(start, Interval)):
+                raise ValueError('Failed to convert %s to interval' % start)
+
+            if (end is not None and not isinstance(end, Interval)):
+                raise ValueError('Failed to convert %s to interval' % end)
+
+            data = np.arange(start.value, end.value+1, dtype=np.int64)
+
+            index = data.view(cls)
+            index.name = name
+            index.freq = freq
+
+            return index
+
+        if not isinstance(data, np.ndarray):
+            if np.isscalar(data):
+                raise ValueError('IntervalIndex() must be called with a '
+                                 'collection of some kind, %s was passed'
+                                 % repr(data))
+
+            if isinstance(data, int):
+                data = [data]
+
+            # other iterable of some kind
+            if not isinstance(data, (list, tuple)):
+                data = list(data)
+
+        subarr = data.view(cls)
+        subarr.name = name
+
+        return subarr
 # --------------------------- end of datetime-specific code ---------------
 
 class Factor(np.ndarray):

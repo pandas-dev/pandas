@@ -70,6 +70,44 @@ def _from_string_array(arr):
     data = p_ufunc(arr)
     return np.array(data, dtype='M8[us]')
 
+#-------
+# Interval sketching
+
+_dt_component_ordinal = {
+    "year" : 0,
+    "month" : 2,
+    "day" : 3,
+    "hour" : 4,
+    "minute" : 5,
+    "second" : 6,
+    "microsecond" : 8
+}
+
+_ti_ordinal = {
+    'Y' : 0,
+    'Q' : 1,
+    'M' : 2,
+    'D' : 3,
+    'H' : 4,
+    'm' : 5,
+    's' : 6,
+    'ms' : 7,
+    'us' : 8
+}
+
+class TimeInterval:
+    def __init__(self, ival, freq='D'):
+        ret, parsed, reso = parse_time_string(ival)
+
+        if _dt_component_ordinal[reso] > _ti_ordinal[freq]:
+            pass
+
+def to_interval(val, freq):
+    if isinstance(val, datetime):
+        return val
+    if isinstance(val, int):
+        return TimeInterval(val, freq)
+
 #-------------------------------------------------------------------------------
 # Miscellaneous date functions
 

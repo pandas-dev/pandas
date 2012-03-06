@@ -21,6 +21,9 @@ from pandas.util.testing import assert_series_equal
 from pandas.core.groupby import Tinterval
 from pandas.core.datetools import Minute, BDay
 
+from pandas.core.index import IntervalIndex
+from pandas.core.datetools import TimeInterval
+
 try:
     import pytz
 except ImportError:
@@ -557,6 +560,12 @@ class TestDatetime64(unittest.TestCase):
 
         for other in [idx2, idx3, idx4, idx5, idx6]:
             self.assert_( (idx1.values == other.values).all() )
+
+    def test_intervalindex_constructor(self):
+        ii = IntervalIndex(freq='M', start='1/1/2005', end='12/1/2005')
+        self.assertEquals(len(ii), 12)
+        self.assertEquals(ii[0], TimeInterval('1/2005', freq='M'))
+        self.assertEquals(ii[-1], TimeInterval('12/2005', freq='M'))
 
 if __name__ == '__main__':
     import nose
