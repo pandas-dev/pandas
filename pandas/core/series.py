@@ -898,10 +898,7 @@ copy : boolean, default False
             mask = notnull(self.values)
 
             if isinstance(level, basestring):
-                if self.index.names is None:
-                    raise ValueError("Could not access level by name")
-
-                level = self.index.names.index(level)
+                level = self.index._get_level_number(level)
 
             level_index = self.index.levels[level]
 

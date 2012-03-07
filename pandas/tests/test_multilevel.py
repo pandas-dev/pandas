@@ -885,8 +885,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         expect = self.series.count(level=0)
         assert_series_equal(result, expect)
 
-        self.assertRaises(ValueError, series.count, 'x')
-        self.assertRaises(ValueError, frame.count, level='x')
+        self.assertRaises(Exception, series.count, 'x')
+        self.assertRaises(Exception, frame.count, level='x')
 
     AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
                      'mad', 'std', 'var']
