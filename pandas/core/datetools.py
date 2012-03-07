@@ -73,40 +73,121 @@ def _from_string_array(arr):
 #-------
 # Interval sketching
 
-_dt_component_ordinal = {
-    "year" : 0,
-    "month" : 2,
-    "day" : 3,
-    "hour" : 4,
-    "minute" : 5,
-    "second" : 6,
-    "microsecond" : 8
+# interval frequency constants corresponding to scikits timeseries
+# originals
+interval_freq_map = {
+    "A"     : 1000,  # Annual
+    "A@DEC" : 1000,  # Annual - December year end
+    "A@JAN" : 1001,  # Annual - January year end
+    "A@FEB" : 1002,  # Annual - February year end
+    "A@MAR" : 1003,  # Annual - March year end
+    "A@APR" : 1004,  # Annual - April year end
+    "A@MAY" : 1005,  # Annual - May year end
+    "A@JUN" : 1006,  # Annual - June year end
+    "A@JUL" : 1007,  # Annual - July year end
+    "A@AUG" : 1008,  # Annual - August year end
+    "A@SEP" : 1009,  # Annual - September year end
+    "A@OCT" : 1010,  # Annual - October year end
+    "A@NOV" : 1011,  # Annual - November year end
+
+    # The standard quarterly frequencies. Year is determined by
+    # what year the end month lies in
+    "Q"     : 2000,    # Quarterly - December year end (default quarterly)
+    "Q@DEC" : 2000,    # Quarterly - December year end
+    "Q@JAN" : 2001,    # Quarterly - January year end
+    "Q@FEB" : 2002,    # Quarterly - February year end
+    "Q@MAR" : 2003,    # Quarterly - March year end
+    "Q@APR" : 2004,    # Quarterly - April year end
+    "Q@MAY" : 2005,    # Quarterly - May year end
+    "Q@JUN" : 2006,    # Quarterly - June year end
+    "Q@JUL" : 2007,    # Quarterly - July year end
+    "Q@AUG" : 2008,    # Quarterly - August year end
+    "Q@SEP" : 2009,    # Quarterly - September year end
+    "Q@OCT" : 2010,    # Quarterly - October year end
+    "Q@NOV" : 2011,    # Quarterly - November year end
+
+    # Starting period based quarterly frequencies. Year is determined by
+    # what year the start month lies in.
+    "QS@DEC" : 2012,   # Quarterly - December year start
+    "QS@JAN" : 2013,   # Quarterly - January year start
+    "QS@FEB" : 2014,   # Quarterly - February year start
+    "QS@MAR" : 2015,   # Quarterly - March year start
+    "QS@APR" : 2016,   # Quarterly - April year start
+    "QS@MAY" : 2017,   # Quarterly - May year start
+    "QS@JUN" : 2018,   # Quarterly - June year start
+    "QS@JUL" : 2019,   # Quarterly - July year start
+    "QS@AUG" : 2020,   # Quarterly - August year start
+    "QS@SEP" : 2021,   # Quarterly - September year start
+    "QS@OCT" : 2022,   # Quarterly - October year start
+    "QS@NOV" : 2023,   # Quarterly - November year start
+
+    "M"      : 3000,   # Monthly
+
+    "WK"     : 4000,   # Weekly
+    "WK@SUN" : 4000,   # Weekly - Sunday end of week
+    "WK@MON" : 4001,   # Weekly - Monday end of week
+    "WK@TUE" : 4002,   # Weekly - Tuesday end of week
+    "WK@WED" : 4003,   # Weekly - Wednesday end of week
+    "WK@THU" : 4004,   # Weekly - Thursday end of week
+    "WK@FRI" : 4005,   # Weekly - Friday end of week
+    "WK@SAT" : 4006,   # Weekly - Saturday end of week
+
+    "B"      : 5000,   # Business days
+    "D"      : 6000,   # Daily
+    "H"      : 7000,   # Hourly
+    "Min"    : 8000,   # Minutely
+    "S"      : 9000,   # Secondly
+    None     : -10000  # Undefined
 }
 
-_ti_ordinal = {
-    'Y' : 0,
-    'Q' : 1,
-    'M' : 2,
-    'D' : 3,
-    'H' : 4,
-    'm' : 5,
-    's' : 6,
-    'ms' : 7,
-    'us' : 8
-}
+class Interval:
+    def __init__(self, ival, freq=None):
+        self.ordinal = None
 
-class TimeInterval:
-    def __init__(self, ival, freq='D'):
-        ret, parsed, reso = parse_time_string(ival)
+        if isinstance(ival, basestring):
+            dt, parsed, reso = parse_time_string(ival)
 
-        if _dt_component_ordinal[reso] > _ti_ordinal[freq]:
-            pass
+            if freq is None:
+                if reso == 'year':
+                    self.freq = interval_freq_map['A']
+                elif reso == 'month':
+                    self.freq = interval_freq_map['M']
+                elif reso == 'day':
+                    self.freq = interval_freq_map['D']
+                elif reso == 'hour':
+                    self.freq = interval_freq_map['H']
+                elif reso == 'minute':
+                    self.freq = interval_freq_map['Min']
+                elif reso == 'second':
+                    self.freq = interval_freq_map['S']
+                else:
+                    raise ValueError("Could not infer frequency for interval")
+            else:
+                self.freq = interval_freq_map[freq]
+        elif isinstance(ival, datetime):
+            dt = ival
+        elif isinstance(ival, int):
+            self.ordinal = ival
+        else:
+            raise ValueError("Value must be string or datetime")
 
-def to_interval(val, freq):
-    if isinstance(val, datetime):
-        return val
-    if isinstance(val, int):
-        return TimeInterval(val, freq)
+        if freq is not None:
+            if isinstance(freq, basestring):
+                self.freq = interval_freq_map[freq]
+            else:
+                self.freq = freq
+
+        if self.ordinal is None:
+            self.ordinal = lib.skts_ordinal(dt.year, dt.month, dt.day, dt.hour,
+                                            dt.minute, dt.second, self.freq)
+
+    def asfreq(self, freq=None):
+        freq = interval_freq_map[freq]
+        new_ordinal = lib.interval_freq_conv(self.ordinal, self.freq, freq)
+        return Interval(new_ordinal, freq)
+
+    def __str__(self):
+        return str(lib.skts_ordinal_to_dt(self.ordinal, self.freq))
 
 #-------------------------------------------------------------------------------
 # Miscellaneous date functions
@@ -155,8 +236,8 @@ def parse_time_string(arg):
 
     try:
         parsed = _dtparser._parse(arg)
-        default = datetime.now().replace(hour=0, minute=0,
-                                         second=0, microsecond=0)
+        default = datetime(1,1,1).replace(hour=0, minute=0,
+                                          second=0, microsecond=0)
         if parsed is None:
             raise DateParseError("Could not parse %s" % arg)
 

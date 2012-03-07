@@ -427,7 +427,8 @@ static long absdate_from_ymd(int y, int m, int d) {
 ///////////////////////////////////////////////
 
 // frequency specifc conversion routines
-// each function must take an integer fromDate and a char relation ('S' or 'E' for 'START' or 'END')
+// each function must take an integer fromDate and 
+// a char relation ('S' or 'E' for 'START' or 'END')
 
 //************ FROM DAILY ***************
 

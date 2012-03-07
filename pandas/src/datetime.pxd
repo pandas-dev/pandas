@@ -92,6 +92,15 @@ cdef extern from "np_datetime_strings.h":
 
     int get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base)
 
+cdef extern from "skts.h":
+    int frequency_conversion(int dtordinal, int freq1, int freq2, char relation)
+
+    long get_skts_ordinal(int year, int month, int day,
+                          int hour, int minute, int second,
+                          int freq)
+
+    long get_python_ordinal(long skts_ordinal, int freq)
+
 cdef extern from "stdint.h":
     enum: INT64_MIN
 
