@@ -75,7 +75,7 @@ def _from_string_array(arr):
 
 # interval frequency constants corresponding to scikits timeseries
 # originals
-interval_freq_map = {
+_interval_freq_map = {
     "A"     : 1000,  # Annual
     "A@DEC" : 1000,  # Annual - December year end
     "A@JAN" : 1001,  # Annual - January year end
@@ -140,6 +140,10 @@ interval_freq_map = {
     None     : -10000  # Undefined
 }
 
+_reverse_interval_map = {}
+for k, v in _interval_freq_map.iteritems():
+    _reverse_interval_map[v] = k
+
 class Interval:
     def __init__(self, ival, freq=None):
         self.ordinal = None
@@ -149,21 +153,21 @@ class Interval:
 
             if freq is None:
                 if reso == 'year':
-                    self.freq = interval_freq_map['A']
+                    self.freq = _interval_freq_map['A']
                 elif reso == 'month':
-                    self.freq = interval_freq_map['M']
+                    self.freq = _interval_freq_map['M']
                 elif reso == 'day':
-                    self.freq = interval_freq_map['D']
+                    self.freq = _interval_freq_map['D']
                 elif reso == 'hour':
-                    self.freq = interval_freq_map['H']
+                    self.freq = _interval_freq_map['H']
                 elif reso == 'minute':
-                    self.freq = interval_freq_map['Min']
+                    self.freq = _interval_freq_map['Min']
                 elif reso == 'second':
-                    self.freq = interval_freq_map['S']
+                    self.freq = _interval_freq_map['S']
                 else:
                     raise ValueError("Could not infer frequency for interval")
             else:
-                self.freq = interval_freq_map[freq]
+                self.freq = _interval_freq_map[freq]
         elif isinstance(ival, datetime):
             dt = ival
         elif isinstance(ival, int):
@@ -173,7 +177,7 @@ class Interval:
 
         if freq is not None:
             if isinstance(freq, basestring):
-                self.freq = interval_freq_map[freq]
+                self.freq = _interval_freq_map[freq]
             else:
                 self.freq = freq
 
@@ -182,12 +186,15 @@ class Interval:
                                             dt.minute, dt.second, self.freq)
 
     def asfreq(self, freq=None):
-        freq = interval_freq_map[freq]
+        if isinstance(freq, basestring):
+            freq = _interval_freq_map[freq]
         new_ordinal = lib.interval_freq_conv(self.ordinal, self.freq, freq)
         return Interval(new_ordinal, freq)
 
-    def __str__(self):
-        return str(lib.skts_ordinal_to_dt(self.ordinal, self.freq))
+    def __repr__(self):
+        formatted = lib.skts_interval_to_string(self.ordinal, self.freq)
+        freqstr = _reverse_interval_map[self.req]
+        return ("<%s : %s>" % (freqstr, formatted))
 
 #-------------------------------------------------------------------------------
 # Miscellaneous date functions

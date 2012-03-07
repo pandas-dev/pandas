@@ -1867,3 +1867,7 @@ def skts_ordinal(int y, int m, int d, int h, int min, int s, int freq):
 
 def skts_ordinal_to_dt(long skts_ordinal, int freq):
     return datetime.fromordinal(get_python_ordinal(skts_ordinal, freq))
+
+
+def skts_interval_to_string(long value, int freq):
+    return <object>interval_to_string(value, freq)

@@ -1,6 +1,7 @@
 /* 
- * This file will contain borrowed and derived code from scikits.timeseries
- * that we will expose via Cython.
+ * Borrowed and derived code from scikits.timeseries that we will expose via
+ * Cython to pandas. This primarily concerns interval representation and
+ * frequency conversion routines.
  */
 
 #ifndef C_SKTS_H
@@ -149,5 +150,8 @@ long get_skts_ordinal(int year, int month, int day,
                       int freq);
 
 long get_python_ordinal(long skts_ordinal, int freq);
+
+PyObject *interval_strftime(long value, int freq, PyObject *args);
+PyObject *interval_to_string(long value, int freq);
 
 #endif
