@@ -285,9 +285,9 @@ class NDFrame(PandasObject):
                 cache[item] = res
                 return res
             except Exception:
-                from pandas.core.frame import DataFrame 
+                from pandas.core.frame import DataFrame
                 if isinstance(item, DataFrame):
-                    raise ValueError('Cannot slice using dataframe')
+                    raise ValueError('Cannot index using (boolean) dataframe')
                 raise
 
     def _box_item_values(self, key, values):

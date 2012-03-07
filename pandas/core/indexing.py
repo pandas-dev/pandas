@@ -169,7 +169,7 @@ class _NDFrameIndexer(object):
                                          isinstance(labels, MultiIndex)):
 
             if hasattr(key, 'ndim') and key.ndim > 1:
-                raise ValueError('Cannot slice with multidimensional input')
+                raise ValueError('Cannot index with multidimensional key')
  
             return self._getitem_iterable(key, axis=axis)
         elif axis == 0:
