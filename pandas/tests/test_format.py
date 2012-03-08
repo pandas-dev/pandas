@@ -88,6 +88,20 @@ class TestDataFrameFormatting(unittest.TestCase):
         buf = StringIO()
         dm.to_string(buf)
 
+    def test_to_string_with_formatters(self):
+        df = DataFrame({'int': [1, 2, 3],
+                        'float': [1.0, 2.0, 3.0],
+                        'object': [(1,2), True, False]},
+                        columns=['int', 'float', 'object'])
+
+        result = df.to_string(formatters={'int': lambda x: '0x%x' % x,
+                                          'float': lambda x: '[% 4.1f]' % x,
+                                          'object': lambda x: '-%s-' % str(x)})
+        self.assertEqual(result, ('  int  float    object\n'
+                                  '0 0x1 [ 1.0]  -(1, 2)-\n'
+                                  '1 0x2 [ 2.0]    -True-\n'
+                                  '2 0x3 [ 3.0]   -False-'))
+
     def test_to_string_with_formatters_unicode(self):
         df = DataFrame({u'c/\u03c3':[1,2,3]})
         result = df.to_string(formatters={u'c/\u03c3': lambda x: '%s' % x})
