@@ -143,7 +143,7 @@ typedef long (*freq_conv_func)(long, char, asfreq_info*);
  * new pandas API helper functions here
  */
 
-int frequency_conversion(long dtordinal, int freq1, int freq2, char relation);
+long frequency_conversion(long skts_ordinal, int freq1, int freq2, char relation);
 
 long get_skts_ordinal(int year, int month, int day,
                       int hour, int minute, int second,

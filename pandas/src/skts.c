@@ -78,7 +78,7 @@ static int dInfoCalc_YearOffset(long year, int calendar)
     }
     Py_Error(PyExc_ValueError, "unknown calendar");
  onError:
-    return -1;
+    return INT_ERR_CODE;
 }
 
 /* Set the instance's value using the given date and time. calendar may be set
@@ -163,7 +163,7 @@ static int dInfoCalc_SetFromDateAndTime(struct date_info *dinfo,
     return 0;
 
  onError:
-    return -1;
+    return INT_ERR_CODE;
 }
 
 /* Sets the date part of the date_info struct using the indicated
@@ -242,7 +242,7 @@ int dInfoCalc_SetFromAbsDate(register struct date_info *dinfo,
     return 0;
 
  onError:
-    return -1;
+    return INT_ERR_CODE;
 }
 
 ///////////////////////////////////////////////
@@ -317,9 +317,8 @@ static long asfreq_DtoQ(long fromDate, char relation, asfreq_info *af_info) {
 
     int year, quarter;
 
-    if (DtoQ_yq(fromDate, af_info, &year, &quarter) == INT_ERR_CODE)
-    { 
-        return INT_ERR_CODE; 
+    if (DtoQ_yq(fromDate, af_info, &year, &quarter) == INT_ERR_CODE) {
+        return INT_ERR_CODE;
     }
 
     return (long)((year - 1) * 4 + quarter);
@@ -328,8 +327,8 @@ static long asfreq_DtoQ(long fromDate, char relation, asfreq_info *af_info) {
 static long asfreq_DtoM(long fromDate, char relation, asfreq_info *af_info) {
 
     struct date_info dinfo;
-    if (dInfoCalc_SetFromAbsDate(&dinfo, fromDate,
-                    GREGORIAN_CALENDAR)) return INT_ERR_CODE;
+    if (dInfoCalc_SetFromAbsDate(&dinfo, fromDate, GREGORIAN_CALENDAR))
+        return INT_ERR_CODE;
     return (long)((dinfo.year - 1) * 12 + dinfo.month);
 }
 
@@ -353,11 +352,11 @@ static long asfreq_DtoB(long fromDate, char relation, asfreq_info *af_info) {
 static long asfreq_DtoB_forConvert(long fromDate, char relation, asfreq_info *af_info) {
 
     struct date_info dinfo;
-    if (dInfoCalc_SetFromAbsDate(&dinfo, fromDate,
-                    GREGORIAN_CALENDAR)) return INT_ERR_CODE;
+    if (dInfoCalc_SetFromAbsDate(&dinfo, fromDate, GREGORIAN_CALENDAR))
+        return INT_ERR_CODE;
 
     if (dinfo.day_of_week > 4) {
-        return -1;
+        return INT_ERR_CODE;
     } else {
         return DtoB_weekday(fromDate);
     }
@@ -370,7 +369,7 @@ static long asfreq_DtoHIGHFREQ(long fromDate, char relation, long periodsPerDay)
     if (fromDate >= HIGHFREQ_ORIG) {
         if (relation == 'S') { return (fromDate - HIGHFREQ_ORIG)*(periodsPerDay) + 1; }
         else                 { return (fromDate - HIGHFREQ_ORIG + 1)*(periodsPerDay); }
-    } else { return -1; }
+    } else { return INT_ERR_CODE; }
 }
 
 static long asfreq_DtoH(long fromDate, char relation, asfreq_info *af_info)
@@ -672,7 +671,7 @@ static long asfreq_AtoT(long fromDate, char relation, asfreq_info *af_info)
 static long asfreq_AtoS(long fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoS(asfreq_AtoD(fromDate, relation, af_info), relation, &NULL_AF_INFO); }
 
-static long nofunc(long fromDate, char relation, asfreq_info *af_info) { return -1; }
+static long nofunc(long fromDate, char relation, asfreq_info *af_info) { return INT_ERR_CODE; }
 
 // end of frequency specific conversion routines
 
@@ -945,21 +944,28 @@ int dInfoCalc_SetFromAbsDateTime(struct date_info *dinfo,
 
     return 0;
  onError:
-    return -1;
+    return INT_ERR_CODE;
 }
 
 /* ------------------------------------------------------------------
- * New pandas API-helper code, to expose to cython 
+ * New pandas API-helper code, to expose to cython
  * ------------------------------------------------------------------*/
 
-int frequency_conversion(long dtordinal, int freq1, int freq2, char relation)
+long frequency_conversion(long skts_ordinal, int freq1, int freq2, char relation)
 {
     freq_conv_func func = get_asfreq_func(freq1, freq2, 1);
 
     asfreq_info finfo;
     get_asfreq_info(freq1, freq2, &finfo);
 
-    return (*func)(dtordinal, relation, &finfo);
+    long val = (*func)(skts_ordinal, relation, &finfo);
+
+    if (val == INT_ERR_CODE)
+        Py_Error(PyExc_ValueError, "Unable to convert to desired frequency.");
+
+    return val;
+onError:
+    return INT_ERR_CODE;
 }
 
 /* generate an ordinal in skts space */
@@ -986,7 +992,7 @@ long get_skts_ordinal(int year, int month, int day,
 
     if (freq == FR_HR) {
         long absdays, delta;
-        if ((absdays = absdate_from_ymd(year, month, day)) == INT_ERR_CODE) 
+        if ((absdays = absdate_from_ymd(year, month, day)) == INT_ERR_CODE)
         {
             goto onError;
         }
@@ -1049,8 +1055,9 @@ long get_skts_ordinal(int year, int month, int day,
         return year;
     }
 
+    Py_Error(PyExc_RuntimeError, "Unable to generate frequency ordinal");
+
 onError:
-    Py_Error(PyExc_Exception, "Unable to generate frequency ordinal");
     return INT_ERR_CODE;
 }
 
@@ -1063,7 +1070,7 @@ onError:
 
 long get_python_ordinal(long skts_ordinal, int freq)
 {
-    if (freq == FR_DAY) 
+    if (freq == FR_DAY)
         return skts_ordinal;
 
     long (*toDaily)(long, char, asfreq_info*) = NULL;

@@ -1849,11 +1849,14 @@ cdef inline int64_t ts_dayofweek(_TSObject ts):
 # Interval logic
 # ------------------------------------------------------------------------------
 
-def interval_freq_conv(int dtordinal, int freq1, int freq2, char relation='E'):
+def interval_freq_conv(long dtordinal, int freq1, int freq2, object relation='E'):
     cdef:
-        int retval
+        long retval
 
-    retval = frequency_conversion(dtordinal, freq1, freq2, relation)
+    if not isinstance(relation, basestring) or len(relation) != 1:
+        raise ValueError('relation argument must be one of S or E')
+
+    retval = frequency_conversion(dtordinal, freq1, freq2, (<char*>relation)[0])
 
     return retval
 
@@ -1866,7 +1869,12 @@ def skts_ordinal(int y, int m, int d, int h, int min, int s, int freq):
     return ordinal
 
 def skts_ordinal_to_dt(long skts_ordinal, int freq):
-    return datetime.fromordinal(get_python_ordinal(skts_ordinal, freq))
+    cdef:
+        long ordinal
+
+    ordinal = get_python_ordinal(skts_ordinal, freq)
+
+    return datetime.fromordinal(ordinal)
 
 
 def skts_interval_to_string(long value, int freq):

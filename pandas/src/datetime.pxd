@@ -93,16 +93,16 @@ cdef extern from "np_datetime_strings.h":
     int get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base)
 
 cdef extern from "skts.h":
-    int frequency_conversion(int dtordinal, int freq1, int freq2, char relation)
+    long frequency_conversion(long dtordinal, int freq1, int freq2, char relation) except -1
 
     long get_skts_ordinal(int year, int month, int day,
                           int hour, int minute, int second,
-                          int freq)
+                          int freq) except -1
 
-    long get_python_ordinal(long skts_ordinal, int freq)
+    long get_python_ordinal(long skts_ordinal, int freq) except -1
 
-    PyObject *interval_strftime(long value, int freq, PyObject *args)
-    PyObject *interval_to_string(long value, int freq)
+    PyObject *interval_strftime(long value, int freq, PyObject *args) except -1
+    PyObject *interval_to_string(long value, int freq) except -1
 
 cdef extern from "stdint.h":
     enum: INT64_MIN

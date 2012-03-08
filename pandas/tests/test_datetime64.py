@@ -572,14 +572,24 @@ class TestDatetime64(unittest.TestCase):
 
         self.assertEquals(i1, i2)
 
+        i3 = Interval('2005', freq='M')
+        self.assert_(i1 != i3)
+
         i1 = Interval.now('Q')
         i2 = Interval(datetime.now(), freq='Q')
 
         self.assertEquals(i1, i2)
 
+        # Biz day construction, roll forward if non-weekday
+        i1 = Interval('3/10/12', freq='B')
+        i2 = Interval('3/12/12', freq='D')
+        self.assertEquals(i1, i2.asfreq('B'))
+
     def test_interval_asfreq(self):
         # need a whole bunch of tests here ...
-        pass
+        # D to B conversion exception, was failing silently before
+        i1 = Interval('3/10/12')
+        self.assertRaises(Exception, i1.asfreq, 'B')
 
     def test_intervalindex_constructor(self):
         pass
