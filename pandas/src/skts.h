@@ -73,18 +73,18 @@
 
 /* Starting period based quarterly frequencies. Year is determined by what year
    the starting month lies in. */
-#define FR_QTRSDEC  FR_QTRDEC+12  /* Quarterly - December year end*/
-#define FR_QTRSJAN  FR_QTRJAN+12  /* Quarterly - January year end*/
-#define FR_QTRSFEB  FR_QTRFEB+12  /* Quarterly - February year end*/
-#define FR_QTRSMAR  FR_QTRMAR+12  /* Quarterly - March year end*/
-#define FR_QTRSAPR  FR_QTRAPR+12  /* Quarterly - April year end*/
-#define FR_QTRSMAY  FR_QTRMAY+12  /* Quarterly - May year end*/
-#define FR_QTRSJUN  FR_QTRJUN+12  /* Quarterly - June year end*/
-#define FR_QTRSJUL  FR_QTRJUL+12  /* Quarterly - July year end*/
-#define FR_QTRSAUG  FR_QTRAUG+12  /* Quarterly - August year end*/
-#define FR_QTRSSEP  FR_QTRSEP+12  /* Quarterly - September year end*/
-#define FR_QTRSOCT  FR_QTROCT+12  /* Quarterly - October year end*/
-#define FR_QTRSNOV  FR_QTRNOV+12  /* Quarterly - November year end*/
+#define FR_QTRSDEC  FR_QTRDEC+12  /* Quarterly - December year start*/
+#define FR_QTRSJAN  FR_QTRJAN+12  /* Quarterly - January year start*/
+#define FR_QTRSFEB  FR_QTRFEB+12  /* Quarterly - February year start*/
+#define FR_QTRSMAR  FR_QTRMAR+12  /* Quarterly - March year start*/
+#define FR_QTRSAPR  FR_QTRAPR+12  /* Quarterly - April year start*/
+#define FR_QTRSMAY  FR_QTRMAY+12  /* Quarterly - May year start*/
+#define FR_QTRSJUN  FR_QTRJUN+12  /* Quarterly - June year start*/
+#define FR_QTRSJUL  FR_QTRJUL+12  /* Quarterly - July year start*/
+#define FR_QTRSAUG  FR_QTRAUG+12  /* Quarterly - August year start*/
+#define FR_QTRSSEP  FR_QTRSEP+12  /* Quarterly - September year start*/
+#define FR_QTRSOCT  FR_QTROCT+12  /* Quarterly - October year start*/
+#define FR_QTRSNOV  FR_QTRNOV+12  /* Quarterly - November year start*/
 
 #define FR_MTH  3000  /* Monthly */
 

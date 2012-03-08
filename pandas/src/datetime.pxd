@@ -101,8 +101,8 @@ cdef extern from "skts.h":
 
     long get_python_ordinal(long skts_ordinal, int freq) except -1
 
-    PyObject *interval_strftime(long value, int freq, PyObject *args) except -1
-    PyObject *interval_to_string(long value, int freq) except -1
+    PyObject *interval_strftime(long value, int freq, PyObject *args)
+    PyObject *interval_to_string(long value, int freq)
 
 cdef extern from "stdint.h":
     enum: INT64_MIN

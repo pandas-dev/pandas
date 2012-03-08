@@ -1142,6 +1142,7 @@ isBMonthEnd = BMonthEnd().onOffset
 #-------------------------------------------------------------------------------
 # Offset names ("time rules") and related functions
 
+# deprecated
 _offsetMap = {
     "WEEKDAY"  : BDay(1),
     "EOM"      : BMonthEnd(1),
