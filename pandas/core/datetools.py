@@ -57,7 +57,6 @@ def _dt_unbox(key):
 def _dt_unbox_array(arr):
     if arr is None:
         return arr
-
     unboxer = np.frompyfunc(_dt_unbox, 1, 1)
     return unboxer(arr)
 
@@ -69,6 +68,38 @@ def _from_string_array(arr):
     p_ufunc = np.frompyfunc(parser, 1, 1)
     data = p_ufunc(arr)
     return np.array(data, dtype='M8[us]')
+
+def _iv_unbox(key, check=None):
+    '''
+    Interval-like => int64
+    '''
+    if not isinstance(key, Interval):
+        key = Interval(key, freq=check)
+    elif check is not None:
+        if key.freq != check:
+            raise ValueError("%s is wrong freq" % key)
+    return np.int64(key.ordinal)
+
+def _iv_unbox_array(arr, check=None):
+    if arr is None:
+        return arr
+    unboxer = np.frompyfunc(lambda x: _iv_unbox(x, check=check), 1, 1)
+    return unboxer(arr)
+
+class Ts(lib.Timestamp):
+    """
+    Convenience class to expose cython-based Timestamp to user. This is the
+    box class for the index values of DatetimeIndex.
+    """
+    def __new__(self, value, freq=None, tzinfo=None):
+        ts = to_timestamp(value, freq, tzinfo)
+        return lib.Timestamp.__new__(Ts, ts, freq, tzinfo)
+
+    def asfreq(self, freq):
+        """
+        Return an interval of which this timestamp is an observation.
+        """
+        return Interval(self, freq=freq)
 
 #-------
 # Interval sketching
@@ -170,7 +201,16 @@ class Interval:
 
             self.ordinal = lib.skts_ordinal(year, month, day, hour,
                                             minute, second, self.freq)
+            return
 
+        if isinstance(value, Interval):
+            other = value
+            if self.freq is None or self.freq == other.freq:
+                self.ordinal = other.ordinal
+                self.freq = other.freq
+            else:
+                converted = other.asfreq(self.freq)
+                self.ordinal = converted.ordinal
             return
 
         if isinstance(value, basestring):
@@ -200,7 +240,6 @@ class Interval:
         else:
             raise ValueError("Value must be string or datetime")
 
-
         if self.ordinal is None:
             self.ordinal = lib.skts_ordinal(dt.year, dt.month, dt.day, dt.hour,
                                             dt.minute, dt.second, self.freq)
@@ -209,6 +248,20 @@ class Interval:
         if isinstance(other, Interval):
             return self.ordinal == other.ordinal and self.freq == other.freq
         return False
+
+    def __add__(self, other):
+        if isinstance(other, (int, long)):
+            return Interval(self.ordinal + other, self.freq)
+        raise "Cannot add with non-integer value"
+
+    def __sub__(self, other):
+        if isinstance(other, (int, long)):
+            return Interval(self.ordinal - other, self.freq)
+        if isinstance(other, Interval):
+            if other.freq != self.freq:
+                raise "Cannot do arithmetic with non-conforming intervals"
+            return self.ordinal - other.ordinal
+        raise "Cannot sub with non-integer value"
 
     def asfreq(self, freq=None, how='E'):
         if how not in ('S', 'E'):
@@ -261,12 +314,13 @@ def ole2datetime(oledt):
 
     return OLE_TIME_ZERO + timedelta(days=val)
 
-def to_timestamp(arg, offset=None, tzinfo=None):
+def to_timestamp(arg, freq=None, tzinfo=None):
     """ Attempts to convert arg to timestamp """
     if arg is None:
         return arg
 
     if type(arg) == float:
+        # to do, do we want to support this, ie with fractional seconds?
         raise TypeError("Cannot convert a float to datetime")
 
     if isinstance(arg, basestring):
@@ -275,7 +329,17 @@ def to_timestamp(arg, offset=None, tzinfo=None):
         except Exception:
             pass
 
-    return lib.Timestamp(arg, offset=offset, tzinfo=tzinfo)
+    return lib.Timestamp(arg, offset=freq, tzinfo=tzinfo)
+
+def to_interval(arg, freq=None):
+    """ Attempts to convert arg to timestamp """
+    if arg is None:
+        return arg
+
+    if type(arg) == float:
+        raise TypeError("Cannot convert a float to interval")
+
+    return Interval(arg, freq=freq)
 
 class DateParseError(Exception):
     pass
@@ -1191,148 +1255,148 @@ _offsetMap = {
 }
 
 _newOffsetMap = {
-       # Annual - Calendar
-       "A@JAN" : YearEnd(month=1),
-       "A@FEB" : YearEnd(month=2),
-       "A@MAR" : YearEnd(month=3),
-       "A@APR" : YearEnd(month=4),
-       "A@MAY" : YearEnd(month=5),
-       "A@JUN" : YearEnd(month=6),
-       "A@JUL" : YearEnd(month=7),
-       "A@AUG" : YearEnd(month=8),
-       "A@SEP" : YearEnd(month=9),
-       "A@OCT" : YearEnd(month=10),
-       "A@NOV" : YearEnd(month=11),
-       "A@DEC" : YearEnd(month=12),
-       "A"     : YearEnd(month=12),
-       # Annual - Calendar (start)
-       "AS@JAN" : YearBegin(month=1),
-       "AS"     : YearBegin(month=1),
-       "AS@FEB" : YearBegin(month=2),
-       "AS@MAR" : YearBegin(month=3),
-       "AS@APR" : YearBegin(month=4),
-       "AS@MAY" : YearBegin(month=5),
-       "AS@JUN" : YearBegin(month=6),
-       "AS@JUL" : YearBegin(month=7),
-       "AS@AUG" : YearBegin(month=8),
-       "AS@SEP" : YearBegin(month=9),
-       "AS@OCT" : YearBegin(month=10),
-       "AS@NOV" : YearBegin(month=11),
-       "AS@DEC" : YearBegin(month=12),
-       # Annual - Business
-       "BA@JAN" : BYearEnd(month=1),
-       "BA@FEB" : BYearEnd(month=2),
-       "BA@MAR" : BYearEnd(month=3),
-       "BA@APR" : BYearEnd(month=4),
-       "BA@MAY" : BYearEnd(month=5),
-       "BA@JUN" : BYearEnd(month=6),
-       "BA@JUL" : BYearEnd(month=7),
-       "BA@AUG" : BYearEnd(month=8),
-       "BA@SEP" : BYearEnd(month=9),
-       "BA@OCT" : BYearEnd(month=10),
-       "BA@NOV" : BYearEnd(month=11),
-       "BA@DEC" : BYearEnd(month=12),
-       "BA"     : BYearEnd(month=12),
-       # Annual - Business (Start)
-       "BAS@JAN" : BYearBegin(month=1),
-       "BAS"     : BYearBegin(month=1),
-       "BAS@FEB" : BYearBegin(month=2),
-       "BAS@MAR" : BYearBegin(month=3),
-       "BAS@APR" : BYearBegin(month=4),
-       "BAS@MAY" : BYearBegin(month=5),
-       "BAS@JUN" : BYearBegin(month=6),
-       "BAS@JUL" : BYearBegin(month=7),
-       "BAS@AUG" : BYearBegin(month=8),
-       "BAS@SEP" : BYearBegin(month=9),
-       "BAS@OCT" : BYearBegin(month=10),
-       "BAS@NOV" : BYearBegin(month=11),
-       "BAS@DEC" : BYearBegin(month=12),
-       # Quarterly - Calendar
-       "Q@JAN" : QuarterEnd(startingMonth=1),
-       "Q@FEB" : QuarterEnd(startingMonth=2),
-       "Q@MAR" : QuarterEnd(startingMonth=3),
-       "Q"     : QuarterEnd(startingMonth=3),
-       "Q@APR" : QuarterEnd(startingMonth=4),
-       "Q@MAY" : QuarterEnd(startingMonth=5),
-       "Q@JUN" : QuarterEnd(startingMonth=6),
-       "Q@JUL" : QuarterEnd(startingMonth=7),
-       "Q@AUG" : QuarterEnd(startingMonth=8),
-       "Q@SEP" : QuarterEnd(startingMonth=9),
-       "Q@OCT" : QuarterEnd(startingMonth=10),
-       "Q@NOV" : QuarterEnd(startingMonth=11),
-       "Q@DEC" : QuarterEnd(startingMonth=12),
-       # Quarterly - Calendar (Start)
-       "QS@JAN" : QuarterBegin(startingMonth=1),
-       "QS"     : QuarterBegin(startingMonth=1),
-       "QS@FEB" : QuarterBegin(startingMonth=2),
-       "QS@MAR" : QuarterBegin(startingMonth=3),
-       "QS@APR" : QuarterBegin(startingMonth=4),
-       "QS@MAY" : QuarterBegin(startingMonth=5),
-       "QS@JUN" : QuarterBegin(startingMonth=6),
-       "QS@JUL" : QuarterBegin(startingMonth=7),
-       "QS@AUG" : QuarterBegin(startingMonth=8),
-       "QS@SEP" : QuarterBegin(startingMonth=9),
-       "QS@OCT" : QuarterBegin(startingMonth=10),
-       "QS@NOV" : QuarterBegin(startingMonth=11),
-       "QS@DEC" : QuarterBegin(startingMonth=12),
-       # Quarterly - Business
-       "BQ@JAN" : BQuarterEnd(startingMonth=1),
-       "BQ@FEB" : BQuarterEnd(startingMonth=2),
-       "BQ@MAR" : BQuarterEnd(startingMonth=3),
-       "BQ"     : BQuarterEnd(startingMonth=3),
-       "BQ@APR" : BQuarterEnd(startingMonth=4),
-       "BQ@MAY" : BQuarterEnd(startingMonth=5),
-       "BQ@JUN" : BQuarterEnd(startingMonth=6),
-       "BQ@JUL" : BQuarterEnd(startingMonth=7),
-       "BQ@AUG" : BQuarterEnd(startingMonth=8),
-       "BQ@SEP" : BQuarterEnd(startingMonth=9),
-       "BQ@OCT" : BQuarterEnd(startingMonth=10),
-       "BQ@NOV" : BQuarterEnd(startingMonth=11),
-       "BQ@DEC" : BQuarterEnd(startingMonth=12),
-       # Quarterly - Business (Start)
-       "BQS@JAN" : BQuarterBegin(startingMonth=1),
-       "BQS"     : BQuarterBegin(startingMonth=1),
-       "BQS@FEB" : BQuarterBegin(startingMonth=2),
-       "BQS@MAR" : BQuarterBegin(startingMonth=3),
-       "BQS@APR" : BQuarterBegin(startingMonth=4),
-       "BQS@MAY" : BQuarterBegin(startingMonth=5),
-       "BQS@JUN" : BQuarterBegin(startingMonth=6),
-       "BQS@JUL" : BQuarterBegin(startingMonth=7),
-       "BQS@AUG" : BQuarterBegin(startingMonth=8),
-       "BQS@SEP" : BQuarterBegin(startingMonth=9),
-       "BQS@OCT" : BQuarterBegin(startingMonth=10),
-       "BQS@NOV" : BQuarterBegin(startingMonth=11),
-       "BQS@DEC" : BQuarterBegin(startingMonth=12),
-       # Monthly - Calendar
-       "M"      : MonthEnd(),
-       "EOM"    : MonthEnd(),
-       "MS"     : MonthBegin(),
-       "SOM"    : MonthBegin(),
-       # Monthly - Business
-       "BM"     : BMonthEnd(),
-       "BEOM"   : BMonthEnd(),
-       "BMS"    : BMonthBegin(),
-       "BSOM"   : BMonthBegin(),
-       # Weekly
-       "W@MON" : Week(weekday=0),
-       "WS"    : Week(weekday=0),
-       "BWS"   : Week(weekday=0),
-       "W@TUE" : Week(weekday=1),
-       "W@WED" : Week(weekday=2),
-       "W@THU" : Week(weekday=3),
-       "W@FRI" : Week(weekday=4),
-       "BW"    : Week(weekday=4),
-       "W@SAT" : Week(weekday=5),
-       "W@SUN" : Week(weekday=6),
-       "W"     : Week(weekday=6),
-       "D"     : DateOffset(),
-       "B"     : BDay(),
-       "H"     : Hour(),
-       "Min"   : Minute(),
-       "S"     : Second(),
-       "L"     : Milli(),
-       "U"     : Micro(),
-       None    : None,
+    # Annual - Calendar
+    "A@JAN" : YearEnd(month=1),
+    "A@FEB" : YearEnd(month=2),
+    "A@MAR" : YearEnd(month=3),
+    "A@APR" : YearEnd(month=4),
+    "A@MAY" : YearEnd(month=5),
+    "A@JUN" : YearEnd(month=6),
+    "A@JUL" : YearEnd(month=7),
+    "A@AUG" : YearEnd(month=8),
+    "A@SEP" : YearEnd(month=9),
+    "A@OCT" : YearEnd(month=10),
+    "A@NOV" : YearEnd(month=11),
+    "A@DEC" : YearEnd(month=12),
+    "A"     : YearEnd(month=12),
+    # Annual - Calendar (start)
+    "AS@JAN" : YearBegin(month=1),
+    "AS"     : YearBegin(month=1),
+    "AS@FEB" : YearBegin(month=2),
+    "AS@MAR" : YearBegin(month=3),
+    "AS@APR" : YearBegin(month=4),
+    "AS@MAY" : YearBegin(month=5),
+    "AS@JUN" : YearBegin(month=6),
+    "AS@JUL" : YearBegin(month=7),
+    "AS@AUG" : YearBegin(month=8),
+    "AS@SEP" : YearBegin(month=9),
+    "AS@OCT" : YearBegin(month=10),
+    "AS@NOV" : YearBegin(month=11),
+    "AS@DEC" : YearBegin(month=12),
+    # Annual - Business
+    "BA@JAN" : BYearEnd(month=1),
+    "BA@FEB" : BYearEnd(month=2),
+    "BA@MAR" : BYearEnd(month=3),
+    "BA@APR" : BYearEnd(month=4),
+    "BA@MAY" : BYearEnd(month=5),
+    "BA@JUN" : BYearEnd(month=6),
+    "BA@JUL" : BYearEnd(month=7),
+    "BA@AUG" : BYearEnd(month=8),
+    "BA@SEP" : BYearEnd(month=9),
+    "BA@OCT" : BYearEnd(month=10),
+    "BA@NOV" : BYearEnd(month=11),
+    "BA@DEC" : BYearEnd(month=12),
+    "BA"     : BYearEnd(month=12),
+    # Annual - Business (Start)
+    "BAS@JAN" : BYearBegin(month=1),
+    "BAS"     : BYearBegin(month=1),
+    "BAS@FEB" : BYearBegin(month=2),
+    "BAS@MAR" : BYearBegin(month=3),
+    "BAS@APR" : BYearBegin(month=4),
+    "BAS@MAY" : BYearBegin(month=5),
+    "BAS@JUN" : BYearBegin(month=6),
+    "BAS@JUL" : BYearBegin(month=7),
+    "BAS@AUG" : BYearBegin(month=8),
+    "BAS@SEP" : BYearBegin(month=9),
+    "BAS@OCT" : BYearBegin(month=10),
+    "BAS@NOV" : BYearBegin(month=11),
+    "BAS@DEC" : BYearBegin(month=12),
+    # Quarterly - Calendar
+    "Q@JAN" : QuarterEnd(startingMonth=1),
+    "Q@FEB" : QuarterEnd(startingMonth=2),
+    "Q@MAR" : QuarterEnd(startingMonth=3),
+    "Q"     : QuarterEnd(startingMonth=3),
+    "Q@APR" : QuarterEnd(startingMonth=4),
+    "Q@MAY" : QuarterEnd(startingMonth=5),
+    "Q@JUN" : QuarterEnd(startingMonth=6),
+    "Q@JUL" : QuarterEnd(startingMonth=7),
+    "Q@AUG" : QuarterEnd(startingMonth=8),
+    "Q@SEP" : QuarterEnd(startingMonth=9),
+    "Q@OCT" : QuarterEnd(startingMonth=10),
+    "Q@NOV" : QuarterEnd(startingMonth=11),
+    "Q@DEC" : QuarterEnd(startingMonth=12),
+    # Quarterly - Calendar (Start)
+    "QS@JAN" : QuarterBegin(startingMonth=1),
+    "QS"     : QuarterBegin(startingMonth=1),
+    "QS@FEB" : QuarterBegin(startingMonth=2),
+    "QS@MAR" : QuarterBegin(startingMonth=3),
+    "QS@APR" : QuarterBegin(startingMonth=4),
+    "QS@MAY" : QuarterBegin(startingMonth=5),
+    "QS@JUN" : QuarterBegin(startingMonth=6),
+    "QS@JUL" : QuarterBegin(startingMonth=7),
+    "QS@AUG" : QuarterBegin(startingMonth=8),
+    "QS@SEP" : QuarterBegin(startingMonth=9),
+    "QS@OCT" : QuarterBegin(startingMonth=10),
+    "QS@NOV" : QuarterBegin(startingMonth=11),
+    "QS@DEC" : QuarterBegin(startingMonth=12),
+    # Quarterly - Business
+    "BQ@JAN" : BQuarterEnd(startingMonth=1),
+    "BQ@FEB" : BQuarterEnd(startingMonth=2),
+    "BQ@MAR" : BQuarterEnd(startingMonth=3),
+    "BQ"     : BQuarterEnd(startingMonth=3),
+    "BQ@APR" : BQuarterEnd(startingMonth=4),
+    "BQ@MAY" : BQuarterEnd(startingMonth=5),
+    "BQ@JUN" : BQuarterEnd(startingMonth=6),
+    "BQ@JUL" : BQuarterEnd(startingMonth=7),
+    "BQ@AUG" : BQuarterEnd(startingMonth=8),
+    "BQ@SEP" : BQuarterEnd(startingMonth=9),
+    "BQ@OCT" : BQuarterEnd(startingMonth=10),
+    "BQ@NOV" : BQuarterEnd(startingMonth=11),
+    "BQ@DEC" : BQuarterEnd(startingMonth=12),
+    # Quarterly - Business (Start)
+    "BQS@JAN" : BQuarterBegin(startingMonth=1),
+    "BQS"     : BQuarterBegin(startingMonth=1),
+    "BQS@FEB" : BQuarterBegin(startingMonth=2),
+    "BQS@MAR" : BQuarterBegin(startingMonth=3),
+    "BQS@APR" : BQuarterBegin(startingMonth=4),
+    "BQS@MAY" : BQuarterBegin(startingMonth=5),
+    "BQS@JUN" : BQuarterBegin(startingMonth=6),
+    "BQS@JUL" : BQuarterBegin(startingMonth=7),
+    "BQS@AUG" : BQuarterBegin(startingMonth=8),
+    "BQS@SEP" : BQuarterBegin(startingMonth=9),
+    "BQS@OCT" : BQuarterBegin(startingMonth=10),
+    "BQS@NOV" : BQuarterBegin(startingMonth=11),
+    "BQS@DEC" : BQuarterBegin(startingMonth=12),
+    # Monthly - Calendar
+    "M"      : MonthEnd(),
+    "EOM"    : MonthEnd(),
+    "MS"     : MonthBegin(),
+    "SOM"    : MonthBegin(),
+    # Monthly - Business
+    "BM"     : BMonthEnd(),
+    "BEOM"   : BMonthEnd(),
+    "BMS"    : BMonthBegin(),
+    "BSOM"   : BMonthBegin(),
+    # Weekly
+    "W@MON" : Week(weekday=0),
+    "WS"    : Week(weekday=0),
+    "BWS"   : Week(weekday=0),
+    "W@TUE" : Week(weekday=1),
+    "W@WED" : Week(weekday=2),
+    "W@THU" : Week(weekday=3),
+    "W@FRI" : Week(weekday=4),
+    "BW"    : Week(weekday=4),
+    "W@SAT" : Week(weekday=5),
+    "W@SUN" : Week(weekday=6),
+    "W"     : Week(weekday=6),
+    "D"     : DateOffset(),
+    "B"     : BDay(),
+    "H"     : Hour(),
+    "Min"   : Minute(),
+    "S"     : Second(),
+    "L"     : Milli(),
+    "U"     : Micro(),
+    None    : None,
 }
 
 for i, weekday in enumerate(['MON', 'TUE', 'WED', 'THU', 'FRI']):

@@ -8,8 +8,11 @@ import pandas.core.datetools as datetools
 from pandas.core.common import isnull, notnull, save, load
 from pandas.core.format import set_printoptions
 from pandas.core.index import (Index, Int64Index, Factor, MultiIndex, 
-                               DatetimeIndex)
+                               DatetimeIndex, IntervalIndex)
+
 from pandas.core.daterange import DateRange
+from pandas.core.datetools import Ts, Interval
+
 from pandas.core.series import Series, TimeSeries
 from pandas.core.frame import DataFrame
 from pandas.core.panel import Panel
