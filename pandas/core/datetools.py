@@ -207,12 +207,14 @@ class Interval:
         if isinstance(freq, basestring):
             freq = _interval_freq_map[freq]
 
+        sfreq = _interval_freq_map['S']
+
         dt = datetime.now()
 
-        skts_ordinal  = lib.skts_ordinal(dt.year, dt.month, dt.day, dt.hour,
-                                         dt.minute, dt.second, freq)
+        skts_ordinal = lib.skts_ordinal(dt.year, dt.month, dt.day, dt.hour,
+                                        dt.minute, dt.second, sfreq)
 
-        return Interval(skts_ordinal, freq)
+        return Interval(skts_ordinal, sfreq).asfreq(freq)
 
     def __repr__(self):
         formatted = lib.skts_interval_to_string(self.ordinal, self.freq)
