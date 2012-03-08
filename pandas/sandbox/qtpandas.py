@@ -48,7 +48,17 @@ class DataFrameModel(QAbstractTableModel):
             return QVariant()
         
         return QVariant(str(self.df.ix[index.row(),index.column()]))
+    
+    def flags(self, index):
+            flags = super(DataFrameModel, self).flags(index)
+            flags |= Qt.ItemIsEditable
+            return flags
+
+    def setData(self, index, value, role):
         
+        
+        self.df.set_value(str(self.df.index[index.row()]),str(self.df.columns[index.column()]), value.toPyObject())
+        return  True        
       
     def rowCount(self, index=QModelIndex()):
         return self.df.shape[0]
