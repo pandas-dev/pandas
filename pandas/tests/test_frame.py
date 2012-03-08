@@ -531,6 +531,16 @@ class CheckIndexing(object):
         frame.ix[:, 'B':'C'] = 4.
         assert_frame_equal(frame, expected)
 
+        # new corner case of boolean slicing / setting
+        frame = DataFrame(zip([2,3,9,6,7], [np.nan]*5),
+                          columns=['a','b'])
+        lst = [100]
+        lst.extend([np.nan]*4)
+        expected = DataFrame(zip([100,3,9,6,7], lst), columns=['a','b'])
+        frame[frame['a'] == 2] = 100
+        assert_frame_equal(frame, expected)
+
+
     def test_fancy_getitem_slice_mixed(self):
         sliced = self.mixed_frame.ix[:, -3:]
         self.assert_(sliced['D'].dtype == np.float64)

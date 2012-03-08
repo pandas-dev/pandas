@@ -1515,7 +1515,12 @@ class DataFrame(NDFrame):
             for k1, k2 in zip(keys, value.columns):
                 self[k1] = value[k2]
         else:
-            self.ix[:, keys] = value
+            if isinstance(keys, np.ndarray) and keys.dtype == np.bool_:
+                # boolean slicing should happen on rows, consistent with
+                # behavior of getitem
+                self.ix[keys, :] = value
+            else:
+                self.ix[:, keys] = value
 
     def _set_item(self, key, value):
         """
