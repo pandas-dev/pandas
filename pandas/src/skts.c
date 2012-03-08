@@ -970,8 +970,8 @@ onError:
 
 /* generate an ordinal in skts space */
 long get_skts_ordinal(int year, int month, int day,
-                     int hour, int minute, int second,
-                     int freq)
+                      int hour, int minute, int second,
+                      int freq)
 {
     int freq_group = get_freq_group(freq);
     int quarter=((month-1)/3)+1;

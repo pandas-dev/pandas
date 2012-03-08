@@ -585,6 +585,22 @@ class TestDatetime64(unittest.TestCase):
         i2 = Interval('3/12/12', freq='D')
         self.assertEquals(i1, i2.asfreq('B'))
 
+        i1 = Interval(year=2005, quarter=1, freq='Q')
+        i2 = Interval('1/1/2005', freq='Q')
+        self.assertEquals(i1, i2)
+
+        i1 = Interval(year=2005, quarter=3, freq='Q')
+        i2 = Interval('9/1/2005', freq='Q')
+        self.assertEquals(i1, i2)
+
+        i1 = Interval(year=2005, month=3, day=1, freq='D')
+        i2 = Interval('3/1/2005', freq='D')
+        self.assertEquals(i1, i2)
+
+        i1 = Interval(year=2012, month=3, day=10, freq='B')
+        i2 = Interval('3/12/12', freq='B')
+        self.assertEquals(i1, i2)
+
     def test_interval_asfreq(self):
         # need a whole bunch of tests here ...
         # D to B conversion exception, was failing silently before

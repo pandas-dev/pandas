@@ -145,11 +145,36 @@ for k, v in _interval_freq_map.iteritems():
     _reverse_interval_map[v] = k
 
 class Interval:
-    def __init__(self, ival, freq=None):
+    def __init__(self, value=None, freq=None,
+                 year=None, month=1, quarter=None, day=1,
+                 hour=0, minute=0, second=0):
+
+        self.freq = None
         self.ordinal = None
 
-        if isinstance(ival, basestring):
-            dt, parsed, reso = parse_time_string(ival)
+        if freq is not None:
+            if isinstance(freq, basestring):
+                self.freq = _interval_freq_map[freq]
+            else:
+                self.freq = freq
+
+        if value is None:
+            if self.freq is None:
+                raise ValueError("If value is None, freq cannot be None")
+
+            if year is None:
+                raise ValueError("If value is None, year cannot be None")
+
+            if quarter is not None:
+                month = (quarter - 1) * 3 + 1
+
+            self.ordinal = lib.skts_ordinal(year, month, day, hour,
+                                            minute, second, self.freq)
+
+            return
+
+        if isinstance(value, basestring):
+            dt, parsed, reso = parse_time_string(value)
 
             if freq is None:
                 if reso == 'year':
@@ -168,18 +193,13 @@ class Interval:
                     raise ValueError("Could not infer frequency for interval")
             else:
                 self.freq = _interval_freq_map[freq]
-        elif isinstance(ival, datetime):
-            dt = ival
-        elif isinstance(ival, int):
-            self.ordinal = ival
+        elif isinstance(value, datetime):
+            dt = value
+        elif isinstance(value, int):
+            self.ordinal = value
         else:
             raise ValueError("Value must be string or datetime")
 
-        if freq is not None:
-            if isinstance(freq, basestring):
-                self.freq = _interval_freq_map[freq]
-            else:
-                self.freq = freq
 
         if self.ordinal is None:
             self.ordinal = lib.skts_ordinal(dt.year, dt.month, dt.day, dt.hour,
