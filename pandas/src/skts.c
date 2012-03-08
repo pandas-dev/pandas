@@ -2,7 +2,7 @@
 #include "limits.h"
 #include "numpy/ndarraytypes.h"
 
-/* 
+/*
  * Borrowed and derived code from scikits.timeseries that we will expose via
  * Cython to pandas. This primarily concerns interval representation and
  * frequency conversion routines.
@@ -248,13 +248,13 @@ int dInfoCalc_SetFromAbsDate(register struct date_info *dinfo,
 ///////////////////////////////////////////////
 
 // frequency specifc conversion routines
-// each function must take an integer fromDate and 
+// each function must take an integer fromDate and
 // a char relation ('S' or 'E' for 'START' or 'END')
 ///////////////////////////////////////////////////////////////////////
 
 // helpers for frequency conversion routines //
 
-static long DtoB_weekday(long fromDate) { 
+static long DtoB_weekday(long fromDate) {
     return (((fromDate) / 7) * 5) + (fromDate)%7;
 }
 

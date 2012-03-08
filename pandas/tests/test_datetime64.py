@@ -567,7 +567,7 @@ class TestDatetime64(unittest.TestCase):
 
         self.assertEquals(i1, i2)
 
-        i1 = Interval('2005', freq='Y')
+        i1 = Interval('2005', freq='A')
         i2 = Interval('2005')
 
         self.assertEquals(i1, i2)
@@ -576,6 +576,10 @@ class TestDatetime64(unittest.TestCase):
         i2 = Interval(datetime.now(), freq='Q')
 
         self.assertEquals(i1, i2)
+
+    def test_interval_asfreq(self):
+        # need a whole bunch of tests here ...
+        pass
 
     def test_intervalindex_constructor(self):
         pass

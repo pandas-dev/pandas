@@ -185,15 +185,38 @@ class Interval:
             self.ordinal = lib.skts_ordinal(dt.year, dt.month, dt.day, dt.hour,
                                             dt.minute, dt.second, self.freq)
 
-    def asfreq(self, freq=None):
+    def __eq__(self, other):
+        if isinstance(other, Interval):
+            return self.ordinal == other.ordinal and self.freq == other.freq
+        return False
+
+    def asfreq(self, freq=None, how='E'):
+        if how not in ('S', 'E'):
+            raise ValueError('How must be one of S or E')
+
         if isinstance(freq, basestring):
             freq = _interval_freq_map[freq]
-        new_ordinal = lib.interval_freq_conv(self.ordinal, self.freq, freq)
+
+        new_ordinal = lib.interval_freq_conv(self.ordinal,
+                                             self.freq, freq, how)
+
         return Interval(new_ordinal, freq)
+
+    @classmethod
+    def now(cls, freq=None):
+        if isinstance(freq, basestring):
+            freq = _interval_freq_map[freq]
+
+        dt = datetime.now()
+
+        skts_ordinal  = lib.skts_ordinal(dt.year, dt.month, dt.day, dt.hour,
+                                         dt.minute, dt.second, freq)
+
+        return Interval(skts_ordinal, freq)
 
     def __repr__(self):
         formatted = lib.skts_interval_to_string(self.ordinal, self.freq)
-        freqstr = _reverse_interval_map[self.req]
+        freqstr = _reverse_interval_map[self.freq]
         return ("<%s : %s>" % (freqstr, formatted))
 
 #-------------------------------------------------------------------------------
