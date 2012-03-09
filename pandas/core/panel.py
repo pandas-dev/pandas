@@ -320,7 +320,7 @@ class Panel(NDFrame):
         data, index, columns = _homogenize_dict(data, intersect=intersect,
                                                 dtype=dtype)
         items = Index(sorted(data.keys()))
-        return Panel(data, items, index, columns)
+        return __class__(data, items, index, columns)
 
     def __getitem__(self, key):
         if isinstance(self.items, MultiIndex):
@@ -464,7 +464,7 @@ class Panel(NDFrame):
 
     @property
     def _constructor(self):
-        return Panel
+        return self.__class__
 
     # Fancy indexing
     _ix = None
@@ -777,7 +777,7 @@ class Panel(NDFrame):
             return self._combine_frame(other, func, axis=axis)
         elif np.isscalar(other):
             new_values = func(self.values, other)
-            return Panel(new_values, self.items, self.major_axis,
+            return self._constructor(new_values, self.items, self.major_axis,
                              self.minor_axis)
 
     def __neg__(self):
@@ -798,7 +798,7 @@ class Panel(NDFrame):
             new_values = func(self.values.swapaxes(0, 2), other.values)
             new_values = new_values.swapaxes(0, 2)
 
-        return Panel(new_values, self.items, self.major_axis,
+        return self._constructor(new_values, self.items, self.major_axis,
                      self.minor_axis)
 
     def _combine_panel(self, other, func):
@@ -812,7 +812,7 @@ class Panel(NDFrame):
 
         result_values = func(this.values, other.values)
 
-        return Panel(result_values, items, major, minor)
+        return self._constructor(result_values, items, major, minor)
 
     def fillna(self, value=None, method='pad'):
         """
@@ -844,10 +844,10 @@ class Panel(NDFrame):
             for col, s in self.iterkv():
                 result[col] = s.fillna(method=method, value=value)
 
-            return Panel.from_dict(result)
+            return self._constructor.from_dict(result)
         else:
             new_data = self._data.fillna(value)
-            return Panel(new_data)
+            return self._constructor(new_data)
 
     add = _panel_arith_method(operator.add, 'add')
     subtract = sub = _panel_arith_method(operator.sub, 'subtract')
@@ -936,7 +936,7 @@ class Panel(NDFrame):
         """
         from pandas.core.groupby import PanelGroupBy
         axis = self._get_axis_number(axis)
-        return PanelGroupBy(self, function, axis=axis)
+        return self._constructorGroupBy(self, function, axis=axis)
 
     def swapaxes(self, axis1='major', axis2='minor'):
         """
@@ -958,7 +958,7 @@ class Panel(NDFrame):
                     for k in range(3))
         new_values = self.values.swapaxes(i, j).copy()
 
-        return Panel(new_values, *new_axes)
+        return self._constructor(new_values, *new_axes)
 
     def to_frame(self, filter_observations=True):
         """
@@ -1159,7 +1159,7 @@ class Panel(NDFrame):
         else:
             raise ValueError('Invalid axis')
 
-        return Panel(values, items=items, major_axis=major_axis,
+        return self._constructor(values, items=items, major_axis=major_axis,
                          minor_axis=minor_axis)
 
     def truncate(self, before=None, after=None, axis='major'):
