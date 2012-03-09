@@ -1849,14 +1849,39 @@ cdef inline int64_t ts_dayofweek(_TSObject ts):
 # Interval logic
 # ------------------------------------------------------------------------------
 
-def interval_freq_conv(long dtordinal, int freq1, int freq2, object relation='E'):
+def dt64arr_to_sktsarr(ndarray[int64_t] dtarr, int freq):
+    """
+    Convert array of datetime64 values (passed in as 'i8' dtype) to a set of
+    intervals corresponding to desired frequency, per skts convention.
+    """
+    cdef:
+        ndarray[int64_t] out
+        Py_ssize_t i, l
+        npy_datetimestruct dts
+
+    l = len(dtarr)
+
+    out = np.empty(l, dtype='i8')
+
+    for i in range(l):
+        PyArray_DatetimeToDatetimeStruct(dtarr[i], NPY_FR_us, &dts)
+        out[i] = skts_ordinal(dts.year, dts.month, dts.day,
+                              dts.hour, dts.min, dts.sec, 
+                              freq)
+    return out
+
+def skts_freq_conv(long skts_ordinal, int freq1, int freq2,
+                  object relation='E'):
+    """
+    """
     cdef:
         long retval
 
     if not isinstance(relation, basestring) or len(relation) != 1:
         raise ValueError('relation argument must be one of S or E')
 
-    retval = frequency_conversion(dtordinal, freq1, freq2, (<char*>relation)[0])
+    retval = frequency_conversion(skts_ordinal, freq1, freq2,
+                                  (<char*>relation)[0])
 
     return retval
 
@@ -1876,6 +1901,5 @@ def skts_ordinal_to_dt(long skts_ordinal, int freq):
 
     return datetime.fromordinal(ordinal)
 
-
-def skts_interval_to_string(long value, int freq):
+def skts_ordinal_to_string(long value, int freq):
     return <object>interval_to_string(value, freq)

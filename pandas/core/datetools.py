@@ -69,23 +69,6 @@ def _from_string_array(arr):
     data = p_ufunc(arr)
     return np.array(data, dtype='M8[us]')
 
-def _iv_unbox(key, check=None):
-    '''
-    Interval-like => int64
-    '''
-    if not isinstance(key, Interval):
-        key = Interval(key, freq=check)
-    elif check is not None:
-        if key.freq != check:
-            raise ValueError("%s is wrong freq" % key)
-    return np.int64(key.ordinal)
-
-def _iv_unbox_array(arr, check=None):
-    if arr is None:
-        return arr
-    unboxer = np.frompyfunc(lambda x: _iv_unbox(x, check=check), 1, 1)
-    return unboxer(arr)
-
 class Ts(lib.Timestamp):
     """
     Convenience class to expose cython-based Timestamp to user. This is the
@@ -103,6 +86,46 @@ class Ts(lib.Timestamp):
 
 #-------
 # Interval sketching
+
+def _skts_unbox(key, check=None):
+    '''
+    Interval-like => int64
+    '''
+    if not isinstance(key, Interval):
+        key = Interval(key, freq=check)
+    elif check is not None:
+        if key.freq != check:
+            raise ValueError("%s is wrong freq" % key)
+    return np.int64(key.ordinal)
+
+def _skts_unbox_array(arr, check=None):
+    if arr is None:
+        return arr
+    unboxer = np.frompyfunc(lambda x: _skts_unbox(x, check=check), 1, 1)
+    return unboxer(arr)
+
+def _skts_box(val, freq):
+    return Interval(val, freq=freq)
+
+def _skts_box_array(arr, freq):
+    if arr is None:
+        return arr
+
+    if not isinstance(arr, np.ndarray):
+        return arr
+
+    boxfunc = lambda x: _skts_box(x, freq)
+    boxer = np.frompyfunc(boxfunc, 1, 1)
+    return boxer(arr)
+
+def dt64arr_to_sktsarr(data, freq):
+    if data is None:
+        return data
+
+    if isinstance(freq, basestring):
+        freq = _interval_freq_map[freq]
+
+    return lib.dt64arr_to_sktsarr(data.view('i8'), freq)
 
 # interval frequency constants corresponding to scikits timeseries
 # originals
@@ -270,8 +293,8 @@ class Interval:
         if isinstance(freq, basestring):
             freq = _interval_freq_map[freq]
 
-        new_ordinal = lib.interval_freq_conv(self.ordinal,
-                                             self.freq, freq, how)
+        new_ordinal = lib.skts_freq_conv(self.ordinal,
+                                         self.freq, freq, how)
 
         return Interval(new_ordinal, freq)
 
@@ -290,9 +313,14 @@ class Interval:
         return Interval(skts_ordinal, sfreq).asfreq(freq)
 
     def __repr__(self):
-        formatted = lib.skts_interval_to_string(self.ordinal, self.freq)
+        formatted = lib.skts_ordinal_to_string(self.ordinal, self.freq)
         freqstr = _reverse_interval_map[self.freq]
-        return ("<%s : %s>" % (freqstr, formatted))
+        return ("Interval('%s', '%s')" % (formatted, freqstr))
+
+    def __str__(self):
+        formatted = lib.skts_ordinal_to_string(self.ordinal, self.freq)
+        return ("%s" % formatted)
+
 
 #-------------------------------------------------------------------------------
 # Miscellaneous date functions

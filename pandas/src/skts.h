@@ -23,8 +23,14 @@
 
 /*** FREQUENCY CONSTANTS ***/
 
-// datetime ordinal of unix epoch
-#define HIGHFREQ_ORIG 719163
+// HIGHFREQ_ORIG is the datetime ordinal from which to begin the second
+// frequency ordinal sequence
+
+// begins second ordinal at 1/1/1AD gregorian proleptic calendar
+#define HIGHFREQ_ORIG 1
+
+// begins second ordinal at 1/1/1970 unix epoch
+// #define HIGHFREQ_ORIG 719163
 
 #define FR_ANN  1000  /* Annual */
 #define FR_ANNDEC  FR_ANN  /* Annual - December year end*/

@@ -17,7 +17,7 @@ from pandas._tseries import Timestamp
 import pandas.core.datetools as datetools
 from pandas.core.datetools import (_dt_box, _dt_unbox, _dt_box_array,
                                    _dt_unbox_array, to_timestamp, Interval,
-                                   _iv_unbox_array)
+                                   _skts_unbox_array, _skts_box, to_interval)
 
 __all__ = ['Index']
 
@@ -1809,11 +1809,18 @@ class DatetimeIndex(Int64Index):
 
 class IntervalIndex(Int64Index):
     """
-    Immutable ndarray where values represent offsets in the associated
-    frequency, starting with the Gregorian proleptic date Jan 1, 1AD. This
-    representation is inherited from the scikits.timeseries project.
+    Immutable ndarray holding ordinal values which represent intervals of a
+    particular frequency. A value of 1 represents the interval containing the
+    Gregorian proleptic date/time Jan 1, 0001 00:00:00. This representation
+    is borrowed from the scikits.timeseries project.
 
-    Index keys are boxed to Interval objects which carries its metadata (eg, 
+    For instance,
+        # construct interval for day 1/1/1 and get the first second
+        i = Interval(year=1,month=1,day=1,freq='D').asfreq('S', 'S')
+        i.ordinal
+        ===> 1
+
+    Index keys are boxed to Interval objects which carries the metadata (eg,
     frequency information).
 
     Parameters
@@ -1845,8 +1852,8 @@ class IntervalIndex(Int64Index):
                              "supplied")
 
         if data is None:
-            start = datetools.to_interval(start, freq)
-            end = datetools.to_interval(end, freq)
+            start = to_interval(start, freq)
+            end = to_interval(end, freq)
 
             if (start is not None and not isinstance(start, Interval)):
                 raise ValueError('Failed to convert %s to interval' % start)
@@ -1854,15 +1861,17 @@ class IntervalIndex(Int64Index):
             if (end is not None and not isinstance(end, Interval)):
                 raise ValueError('Failed to convert %s to interval' % end)
 
-            data = np.arange(start.ordinal, end.ordinal+1, dtype=np.int64)
+            if periods is not None:
+                data = np.arange(start.ordinal, start.ordinal + periods,
+                                 dtype=np.int64)
+            else:
+                data = np.arange(start.ordinal, end.ordinal+1, dtype=np.int64)
 
             index = data.view(cls)
             index.name = name
             index.freq = freq
 
             return index
-
-        # TODO: what if data in np.datetime64, special case that
 
         if not isinstance(data, np.ndarray):
             if np.isscalar(data):
@@ -1882,12 +1891,131 @@ class IntervalIndex(Int64Index):
             except:
                 data = np.array(data, dtype='O')
 
-            data = _iv_unbox_array(data, check=freq)
+            if freq is None:
+                raise ValueError('freq cannot be none')
+
+            data = _skts_unbox_array(data, check=freq)
+        else:
+            if isinstance(data, IntervalIndex):
+                if freq is None or freq == data.freq:
+                    freq = data.freq
+                    data = data.values
+                else:
+                    # TODO: need vectorized frequency conversion here
+                    raise NotImplementedError
+            else:
+                if freq is None:
+                    raise ValueError('freq cannot be none')
+
+                if data.dtype == np.datetime64:
+                    data = datetools.dt64arr_to_sktsarr(data, freq)
+                elif data.dtype == np.int64:
+                    pass
 
         subarr = data.view(cls)
         subarr.name = name
+        subarr.freq = freq
 
         return subarr
+
+    @property
+    def inferred_type(self):
+        # b/c data is represented as ints make sure we can't have ambiguous
+        # indexing
+        return 'interval'
+
+    def get_value(self, series, key):
+        """
+        Fast lookup of value from 1-dimensional ndarray. Only use this if you
+        know what you're doing
+        """
+        try:
+            return super(IntervalIndex, self).get_value(series, key)
+        except KeyError:
+            try:
+                asdt, parsed, reso = datetools.parse_time_string(key)
+                # TODO: add partial date slicing
+                key = to_interval(asdt, freq=self.freq).ordinal
+                return series[key]
+            except TypeError:
+                pass
+            except KeyError:
+                pass
+            except IndexError:
+                ival = Interval(key, freq=self.freq)
+                raise IndexError("%s is out of bounds" % ival)
+
+            key = to_interval(key, self.freq).ordinal
+            return self._engine.get_value(series, key)
+
+    def get_loc(self, key):
+        """
+        Get integer location for requested label
+
+        Returns
+        -------
+        loc : int
+        """
+        try:
+            return self._engine.get_loc(key)
+        except KeyError:
+            try:
+                asdt, parsed, reso = datetools.parse_time_string(key)
+                key = asdt
+            except TypeError:
+                pass
+            except KeyError:
+                pass
+
+            key = to_interval(key, self.freq).ordinal
+            return self._engine.get_loc(key)
+
+    def __getitem__(self, key):
+        """Override numpy.ndarray's __getitem__ method to work as desired"""
+        arr_idx = self.view(np.ndarray)
+        if np.isscalar(key):
+            val = arr_idx[key]
+            return _skts_box(val, freq=self.freq)
+        else:
+            if com._is_bool_indexer(key):
+                key = np.asarray(key)
+
+            result = arr_idx[key]
+            if result.ndim > 1:
+                return IntervalIndex(result, name=self.name, freq=self.freq)
+
+            return IntervalIndex(result, name=self.name, freq=self.freq)
+
+    def format(self, name=False):
+        """
+        Render a string representation of the Index
+        """
+        header = []
+
+        if name:
+            header.append(str(self.name) if self.name is not None else '')
+
+        return header + ['%s' % _skts_box(x, freq=self.freq) for x in self]
+
+    def _view_like(self, ndarray):
+        result = ndarray.view(type(self))
+        result.freq = self.freq
+        result.name = self.name
+        return result
+
+    def __array_finalize__(self, obj):
+        if self.ndim == 0: # pragma: no cover
+            return self.item()
+
+        self.freq = getattr(obj, 'freq', None)
+
+    def __repr__(self):
+        output = str(self.__class__) + '\n'
+        output += 'freq: ''%s''\n' % self.freq
+        if len(self) > 0:
+            output += '[%s, ..., %s]\n' % (self[0], self[-1])
+        output += 'length: %d' % len(self)
+        return output
 
 # --------------------------- end of datetime-specific code ---------------
 
