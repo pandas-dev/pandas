@@ -320,7 +320,7 @@ class Panel(NDFrame):
         data, index, columns = _homogenize_dict(data, intersect=intersect,
                                                 dtype=dtype)
         items = Index(sorted(data.keys()))
-        return __class__(data, items, index, columns)
+        return cls(data, items, index, columns)
 
     def __getitem__(self, key):
         if isinstance(self.items, MultiIndex):
