@@ -258,7 +258,7 @@ class Interval:
                 self.freq = _interval_freq_map[freq]
         elif isinstance(value, datetime):
             dt = value
-        elif isinstance(value, int):
+        elif isinstance(value, (int, long)):
             self.ordinal = value
         else:
             raise ValueError("Value must be string or datetime")

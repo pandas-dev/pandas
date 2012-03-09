@@ -85,8 +85,8 @@ static int dInfoCalc_YearOffset(long year, int calendar)
  * to the flags: GREGORIAN_CALENDAR, JULIAN_CALENDAR to indicate the calendar
  * to be used. */
 
-static int dInfoCalc_SetFromDateAndTime(struct date_info *dinfo, 
-        int year, int month, int day, int hour, int minute, double second, 
+static int dInfoCalc_SetFromDateAndTime(struct date_info *dinfo,
+        int year, int month, int day, int hour, int minute, double second,
         int calendar)
 {
 
@@ -980,14 +980,14 @@ long get_skts_ordinal(int year, int month, int day,
         long absdays, delta;
         absdays = absdate_from_ymd(year, month, day);
         delta = (absdays - HIGHFREQ_ORIG);
-        return (int)(delta*86400 + hour*3600 + minute*60 + second + 1);
+        return (long)(delta*86400 + hour*3600 + minute*60 + second + 1);
     }
 
     if (freq == FR_MIN) {
         long absdays, delta;
         absdays = absdate_from_ymd(year, month, day);
         delta = (absdays - HIGHFREQ_ORIG);
-        return (int)(delta*1440 + hour*60 + minute + 1);
+        return (long)(delta*1440 + hour*60 + minute + 1);
     }
 
     if (freq == FR_HR) {
@@ -997,17 +997,17 @@ long get_skts_ordinal(int year, int month, int day,
             goto onError;
         }
         delta = (absdays - HIGHFREQ_ORIG);
-        return (int)(delta*24 + hour + 1);
+        return (long)(delta*24 + hour + 1);
     }
 
     if (freq == FR_DAY)
     {
-        return (int)absdate_from_ymd(year, month, day);
+        return (long)absdate_from_ymd(year, month, day);
     }
 
     if (freq == FR_UND)
     {
-        return (int)absdate_from_ymd(year, month, day);
+        return (long)absdate_from_ymd(year, month, day);
     }
 
     if (freq == FR_BUS)
@@ -1018,13 +1018,13 @@ long get_skts_ordinal(int year, int month, int day,
             goto onError;
         }
         weeks = days/7;
-        return (int)(days - weeks*2);
+        return (long)(days - weeks*2);
     }
 
     if (freq_group == FR_WK)
     {
-        int adj_ordinal, ordinal, day_adj;
-        if((ordinal = (int)absdate_from_ymd(year, month, day)) == INT_ERR_CODE)
+        long adj_ordinal, ordinal, day_adj;
+        if((ordinal = (long)absdate_from_ymd(year, month, day)) == INT_ERR_CODE)
         {
             goto onError;
         }
