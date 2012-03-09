@@ -936,7 +936,7 @@ class Panel(NDFrame):
         """
         from pandas.core.groupby import PanelGroupBy
         axis = self._get_axis_number(axis)
-        return self._PanelGroupBy(self, function, axis=axis)
+        return PanelGroupBy(self, function, axis=axis)
 
     def swapaxes(self, axis1='major', axis2='minor'):
         """
