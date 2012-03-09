@@ -441,7 +441,7 @@ class Panel(NDFrame):
 
     @property
     def _constructor(self):
-        return self.__class__
+        return type(self)
 
     # Fancy indexing
     _ix = None
@@ -882,7 +882,7 @@ class Panel(NDFrame):
         """
         from pandas.core.groupby import PanelGroupBy
         axis = self._get_axis_number(axis)
-        return self._constructorGroupBy(self, function, axis=axis)
+        return self._PanelGroupBy(self, function, axis=axis)
 
     def swapaxes(self, axis1='major', axis2='minor'):
         """
