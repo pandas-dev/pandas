@@ -372,6 +372,12 @@ def _use_window(minp, window):
     else:
         return minp
 
+def _use_weights(minp, weights):
+    if minp is None:
+        return len(weights)
+    else:
+        return minp
+
 def _rolling_func(func, desc, check_minp=_use_window):
     @Substitution(desc, _unary_arg, _type_of_input)
     @Appender(_doc_template)
@@ -390,6 +396,8 @@ rolling_min = _rolling_func(_tseries.roll_min, 'Moving minimum')
 rolling_sum = _rolling_func(_tseries.roll_sum, 'Moving sum')
 rolling_mean = _rolling_func(_tseries.roll_mean, 'Moving mean')
 rolling_median = _rolling_func(_tseries.roll_median_cython, 'Moving median')
+rolling_weighted_mean = _rolling_func(_tseries.weighted_mean,'Movinweighted',
+        check_minp = _use_weights)
 
 _ts_std = lambda *a, **kw: np.sqrt(_tseries.roll_var(*a, **kw))
 rolling_std = _rolling_func(_ts_std, 'Unbiased moving standard deviation',
@@ -400,6 +408,7 @@ rolling_skew = _rolling_func(_tseries.roll_skew, 'Unbiased moving skewness',
                              check_minp=_require_min_periods(3))
 rolling_kurt = _rolling_func(_tseries.roll_kurt, 'Unbiased moving kurtosis',
                              check_minp=_require_min_periods(4))
+
 
 def rolling_quantile(arg, window, quantile, min_periods=None, time_rule=None):
     """Moving quantile
