@@ -3931,7 +3931,8 @@ class DataFrame(NDFrame):
         if legend and not subplots:
             fig = ax.get_figure()
             fig.legend([r[0] for r in rects], labels, loc='upper center',
-                       fancybox=True, ncol=6, mode='expand')
+                       fancybox=True, ncol=6)
+                       #mode='expand')
 
         import matplotlib.pyplot as plt
         plt.subplots_adjust(top=0.8)

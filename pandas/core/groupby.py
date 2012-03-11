@@ -833,8 +833,6 @@ def _convert_grouper(axis, grouper):
 
 class SeriesGroupBy(GroupBy):
 
-    _cythonized_methods = set(['add', 'mean'])
-
     def aggregate(self, func_or_funcs, *args, **kwargs):
         """
         Apply aggregation function or functions to groups, yielding most likely

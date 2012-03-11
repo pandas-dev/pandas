@@ -38,10 +38,14 @@ def check_for_scipy():
         raise nose.SkipTest('no scipy')
 
 def check_for_statsmodels():
+    _have_statsmodels = True
     try:
-        import scikits.statsmodels as sm
-    except Exception:
-        raise nose.SkipTest('no statsmodels')
+        import statsmodels.api as sm
+    except ImportError:
+        try:
+            import scikits.statsmodels.api as sm
+        except ImportError:
+            raise nose.SkipTest('no statsmodels')
 
 
 class BaseTest(unittest.TestCase):

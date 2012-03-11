@@ -7,8 +7,13 @@ import unittest
 
 raise nose.SkipTest('skipping this for now')
 
-import scikits.statsmodels.tsa.var as sm_var
-import scikits.statsmodels as sm
+try:
+    import statsmodels.tsa.var as sm_var
+    import statsmodels as sm
+except ImportError:
+    import scikits.statsmodels.tsa.var as sm_var
+    import scikits.statsmodels as sm
+
 
 import pandas.stats.var as _pvar
 reload(_pvar)

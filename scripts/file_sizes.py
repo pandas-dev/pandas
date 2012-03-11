@@ -11,12 +11,10 @@ dirs = []
 names = []
 lengths = []
 
-# if len(sys.argv) > 1:
-#     loc = sys.argv[1]
-# else:
-#     loc = '.'
-
-loc = 'pandas'
+if len(sys.argv) > 1:
+    loc = sys.argv[1]
+else:
+    loc = '.'
 walked = os.walk(loc)
 
 def _should_count_file(path):
@@ -192,9 +190,9 @@ ax = fig.add_subplot(111)
 ax.hist(all_counts, bins=100)
 n = len(all_counts)
 nmore = (all_counts > 50).sum()
-ax.set_title('%s function lengths, n=%d' % (loc, n))
+ax.set_title('%s function lengths, n=%d' % ('pandas', n))
 ax.set_ylabel('N functions')
 ax.set_xlabel('Function length')
-ax.text(60, 200, '%.3f%% with > 50 lines' % ((n - nmore) / float(n)),
+ax.text(100, 300, '%.3f%% with > 50 lines' % ((n - nmore) / float(n)),
         fontsize=18)
 plt.show()

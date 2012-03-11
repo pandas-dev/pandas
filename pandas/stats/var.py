@@ -23,7 +23,10 @@ class VAR(object):
     """
 
     def __init__(self, data, p=1, intercept=True):
-        import scikits.statsmodels.tsa.var as sm_var
+        try:
+            import statsmodels.tsa.var as sm_var
+        except ImportError:
+            import scikits.statsmodels.tsa.var as sm_var
 
         self._data = DataFrame(_combine_rhs(data))
         self._p = p

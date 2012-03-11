@@ -353,6 +353,10 @@ class TestDataFrameFormatting(unittest.TestCase):
         ashtml = x.to_html(bold_rows=False)
         assert('<strong>' not in ashtml)
 
+    def test_to_html_columns_arg(self):
+        result = self.frame.to_html(columns=['A'])
+        self.assert_('<th>B</th>' not in result)
+
     def test_repr_html(self):
         self.frame._repr_html_()
 

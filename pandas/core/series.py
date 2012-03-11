@@ -2121,6 +2121,21 @@ copy : boolean, default False
             ax.set_xticklabels([gfx._stringify(key) for key in self.index],
                                rotation=rot,
                                fontsize=fontsize)
+        elif kind == 'barh':
+            yinds = np.arange(N) + 0.25
+            ax.barh(yinds, self.values.astype(float), 0.5,
+                    left=np.zeros(N), linewidth=1, **kwds)
+
+            if N < 10:
+                fontsize = 12
+            else:
+                fontsize = 10
+
+            ax.set_yticks(yinds + 0.25)
+            ax.set_yticklabels([gfx._stringify(key) for key in self.index],
+                               rotation=rot,
+                               fontsize=fontsize)
+
         ax.grid(grid)
         plt.draw_if_interactive()
 
