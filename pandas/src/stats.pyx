@@ -2,7 +2,20 @@ cdef float64_t FP_ERR = 1e-13
 
 cimport util
 
-def rank_1d_float64(object in_arr):
+cdef:
+    int TIEBREAK_AVERAGE = 0
+    int TIEBREAK_MIN = 1
+    int TIEBREAK_MAX = 2
+    int TIEBREAK_FIRST = 3
+
+tiebreakers = {
+    'average' : TIEBREAK_AVERAGE,
+    'min' : TIEBREAK_MIN,
+    'max' : TIEBREAK_MAX,
+    'first' : TIEBREAK_FIRST
+}
+
+def rank_1d_float64(object in_arr, ties_method='average'):
     """
     Fast NaN-friendly version of scipy.stats.rankdata
     """
@@ -14,6 +27,8 @@ def rank_1d_float64(object in_arr):
         int32_t idx
         float64_t val, nan_value
         float64_t sum_ranks = 0
+        int tiebreak = 0
+    tiebreak = tiebreakers[ties_method]
 
     values = np.asarray(in_arr).copy()
 
@@ -27,7 +42,6 @@ def rank_1d_float64(object in_arr):
     # py2.5/win32 hack, can't pass i8
     _as = values.argsort()
     sorted_data = values.take(_as)
-
     argsorted = _as.astype('i8')
 
     for i in range(n):
@@ -38,12 +52,22 @@ def rank_1d_float64(object in_arr):
             ranks[argsorted[i]] = nan
             continue
         if i == n - 1 or fabs(sorted_data[i + 1] - val) > FP_ERR:
-            for j in range(i - dups + 1, i + 1):
-                ranks[argsorted[j]] = sum_ranks / dups
+            if tiebreak == TIEBREAK_AVERAGE:
+                for j in range(i - dups + 1, i + 1):
+                    ranks[argsorted[j]] = sum_ranks / dups
+            elif tiebreak == TIEBREAK_MIN:
+                for j in range(i - dups + 1, i + 1):
+                    ranks[argsorted[j]] = i - dups + 2
+            elif tiebreak == TIEBREAK_MAX:
+                for j in range(i - dups + 1, i + 1):
+                    ranks[argsorted[j]] = i + 1
+            elif tiebreak == TIEBREAK_FIRST:
+                for j in range(i - dups + 1, i + 1):
+                    ranks[argsorted[j]] = j + 1
             sum_ranks = dups = 0
     return ranks
 
-def rank_2d_float64(object in_arr, axis=0):
+def rank_2d_float64(object in_arr, axis=0, ties_method='average'):
     """
     Fast NaN-friendly version of scipy.stats.rankdata
     """
@@ -55,6 +79,8 @@ def rank_2d_float64(object in_arr, axis=0):
         int32_t idx
         float64_t val, nan_value
         float64_t sum_ranks = 0
+        int tiebreak = 0
+    tiebreak = tiebreakers[ties_method]
 
     in_arr = np.asarray(in_arr)
 
@@ -81,8 +107,18 @@ def rank_2d_float64(object in_arr, axis=0):
                 ranks[i, argsorted[i, j]] = nan
                 continue
             if j == k - 1 or fabs(values[i, j + 1] - val) > FP_ERR:
-                for z in range(j - dups + 1, j + 1):
-                    ranks[i, argsorted[i, z]] = sum_ranks / dups
+                if tiebreak == TIEBREAK_AVERAGE:
+                    for z in range(j - dups + 1, j + 1):
+                        ranks[i, argsorted[i, z]] = sum_ranks / dups
+                elif tiebreak == TIEBREAK_MIN:
+                    for z in range(j - dups + 1, j + 1):
+                        ranks[i, argsorted[i, z]] = j - dups + 2
+                elif tiebreak == TIEBREAK_MAX:
+                    for z in range(j - dups + 1, j + 1):
+                        ranks[i, argsorted[i, z]] = j + 1
+                elif tiebreak == TIEBREAK_FIRST:
+                    for z in range(j - dups + 1, j + 1):
+                        ranks[i, argsorted[i, z]] = z + 1
                 sum_ranks = dups = 0
 
     if axis == 0:
@@ -90,7 +126,7 @@ def rank_2d_float64(object in_arr, axis=0):
     else:
         return ranks
 
-def rank_1d_generic(object in_arr, bint retry=1):
+def rank_1d_generic(object in_arr, bint retry=1, ties_method='average'):
     """
     Fast NaN-friendly version of scipy.stats.rankdata
     """
@@ -103,6 +139,8 @@ def rank_1d_generic(object in_arr, bint retry=1):
         int32_t idx
         object val, nan_value
         float64_t sum_ranks = 0
+        int tiebreak = 0
+    tiebreak = tiebreakers[ties_method]
 
     values = np.array(in_arr, copy=True)
 
@@ -140,8 +178,18 @@ def rank_1d_generic(object in_arr, bint retry=1):
             continue
         if (i == n - 1 or
             are_diff(util.get_value_at(sorted_data, i + 1), val)):
-            for j in range(i - dups + 1, i + 1):
-                ranks[argsorted[j]] = sum_ranks / dups
+            if tiebreak == TIEBREAK_AVERAGE:
+                for j in range(i - dups + 1, i + 1):
+                    ranks[argsorted[j]] = sum_ranks / dups
+            elif tiebreak == TIEBREAK_MIN:
+                for j in range(i - dups + 1, i + 1):
+                    ranks[argsorted[j]] = i - dups + 2
+            elif tiebreak == TIEBREAK_MAX:
+                for j in range(i - dups + 1, i + 1):
+                    ranks[argsorted[j]] = i + 1
+            elif tiebreak == TIEBREAK_FIRST:
+                for j in range(i - dups + 1, i + 1):
+                    ranks[argsorted[j]] = j + 1
             sum_ranks = dups = 0
     return ranks
 
@@ -163,7 +211,7 @@ class Infinity(object):
     __ge__ = return_true
     __cmp__ = return_false
 
-def rank_2d_generic(object in_arr, axis=0):
+def rank_2d_generic(object in_arr, axis=0, ties_method='average'):
     """
     Fast NaN-friendly version of scipy.stats.rankdata
     """
@@ -176,6 +224,8 @@ def rank_2d_generic(object in_arr, axis=0):
         int32_t idx
         object val, nan_value
         float64_t sum_ranks = 0
+        int tiebreak = 0
+    tiebreak = tiebreakers[ties_method]
 
     in_arr = np.asarray(in_arr)
 
@@ -218,8 +268,18 @@ def rank_2d_generic(object in_arr, axis=0):
             sum_ranks += (j - infs) + 1
             dups += 1
             if j == k - 1 or are_diff(values[i, j + 1], val):
-                for z in range(j - dups + 1, j + 1):
-                    ranks[i, argsorted[i, z]] = sum_ranks / dups
+                if tiebreak == TIEBREAK_AVERAGE:
+                    for z in range(j - dups + 1, j + 1):
+                        ranks[i, argsorted[i, z]] = sum_ranks / dups
+                elif tiebreak == TIEBREAK_MIN:
+                    for z in range(j - dups + 1, j + 1):
+                        ranks[i, argsorted[i, z]] = j - dups + 2
+                elif tiebreak == TIEBREAK_MAX:
+                    for z in range(j - dups + 1, j + 1):
+                        ranks[i, argsorted[i, z]] = j + 1
+                elif tiebreak == TIEBREAK_FIRST:
+                    for z in range(j - dups + 1, j + 1):
+                        ranks[i, argsorted[i, z]] = z + 1
                 sum_ranks = dups = 0
 
     if axis == 0:

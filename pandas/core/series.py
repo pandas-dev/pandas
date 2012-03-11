@@ -1576,19 +1576,24 @@ copy : boolean, default False
             return Series(np.argsort(values, kind=kind), index=self.index,
                           name=self.name)
 
-    def rank(self):
+    def rank(self, method='average', na_option='keep'):
         """
         Compute data ranks (1 through n). Equal values are assigned a rank that
         is the average of the ranks of those values
+
+        Parameters
+        ----------
+        method : {'average', 'min', 'max', 'first'}
+        na_option : {'keep'}
 
         Returns
         -------
         ranks : Series
         """
         try:
-            ranks = lib.rank_1d_float64(self.values)
+            ranks = lib.rank_1d_float64(self.values, ties_method=method)
         except Exception:
-            ranks = lib.rank_1d_generic(self.values)
+            ranks = lib.rank_1d_generic(self.values, ties_method=method)
         return Series(ranks, index=self.index, name=self.name)
 
     def order(self, na_last=True, ascending=True, kind='mergesort'):

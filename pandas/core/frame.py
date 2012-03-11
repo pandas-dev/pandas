@@ -3730,7 +3730,7 @@ class DataFrame(NDFrame):
         """
         return self.apply(lambda x: x.clip_lower(threshold))
 
-    def rank(self, axis=0, numeric_only=None):
+    def rank(self, axis=0, numeric_only=None, method='average'):
         """
         Compute numerical data ranks (1 through n) along axis. Equal values are
         assigned a rank that is the average of the ranks of those values
@@ -3750,9 +3750,12 @@ class DataFrame(NDFrame):
             try:
                 values = self.values
                 if issubclass(values.dtype.type, np.floating):
-                    ranks = lib.rank_2d_float64(values, axis=axis)
+                    ranks = lib.rank_2d_float64(values, axis=axis,
+                                                ties_method=method)
                 else:
-                    ranks = lib.rank_2d_generic(values, axis=axis)
+                    ranks = lib.rank_2d_generic(values, axis=axis,
+                                                ties_method=method)
+                return DataFrame(ranks, index=self.index, columns=self.columns)
             except TypeError:
                 numeric_only = True
 
