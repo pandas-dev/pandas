@@ -595,7 +595,7 @@ class ExcelFile(object):
             import xlrd
             self.book = xlrd.open_workbook(path)
         else:
-            from openpyxl import load_workbook
+            from openpyxl.reader.excel import load_workbook
             self.book = load_workbook(path, use_iterators=True)
         self.path = path
 
@@ -729,7 +729,7 @@ class ExcelWriter(object):
             self.fm_datetime = xlwt.easyxf(num_format_str='YYYY-MM-DD HH:MM:SS')
             self.fm_date = xlwt.easyxf(num_format_str='YYYY-MM-DD')
         else:
-            from openpyxl import Workbook
+            from openpyxl.workbook import Workbook
             self.book = Workbook(optimized_write = True)
         self.path = path
         self.sheets = {}
