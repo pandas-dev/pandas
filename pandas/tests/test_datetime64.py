@@ -248,10 +248,10 @@ class TestDatetime64(unittest.TestCase):
         self.assertEquals(dti.dayofweek[0], 5)
 
         self.assertEquals(dti.dayofyear[0], 31)
-        self.assertEquals(dti.dayofyear[1], 120) 
+        self.assertEquals(dti.dayofyear[1], 120)
 
         self.assertEquals(dti.weekofyear[0], 5)
-        self.assertEquals(dti.weekofyear[1], 18) 
+        self.assertEquals(dti.weekofyear[1], 18)
 
         self.assertEquals(dti.quarter[0], 1)
         self.assertEquals(dti.quarter[1], 2)
@@ -606,6 +606,16 @@ class TestDatetime64(unittest.TestCase):
         # D to B conversion exception, was failing silently before
         i1 = Interval('3/10/12')
         self.assertRaises(Exception, i1.asfreq, 'B')
+
+    def test_interval_slice_index(self):
+        ii = IntervalIndex(start='1/1/10', end='12/31/12', freq='M')
+        s = Series(np.random.rand(len(ii)), index=ii)
+        res = s['2010']
+        exp = s[0:12]
+        assert_series_equal(res, exp)
+        res = s['2011']
+        exp = s[12:24]
+        assert_series_equal(res, exp)
 
     def test_intervalindex_constructor(self):
         pass

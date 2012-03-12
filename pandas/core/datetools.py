@@ -123,13 +123,13 @@ def dt64arr_to_sktsarr(data, freq):
         return data
 
     if isinstance(freq, basestring):
-        freq = _interval_freq_map[freq]
+        freq = _interval_code_map[freq]
 
     return lib.dt64arr_to_sktsarr(data.view('i8'), freq)
 
 # interval frequency constants corresponding to scikits timeseries
 # originals
-_interval_freq_map = {
+_interval_code_map = {
     "A"     : 1000,  # Annual
     "A@DEC" : 1000,  # Annual - December year end
     "A@JAN" : 1001,  # Annual - January year end
@@ -194,9 +194,18 @@ _interval_freq_map = {
     None     : -10000  # Undefined
 }
 
-_reverse_interval_map = {}
-for k, v in _interval_freq_map.iteritems():
-    _reverse_interval_map[v] = k
+_reverse_interval_code_map = {}
+for k, v in _interval_code_map.iteritems():
+    _reverse_interval_code_map[v] = k
+
+_reso_interval_map = {
+    "year"   : "A",
+    "month"  : "M",
+    "day"    : "D",
+    "hour"   : "H",
+    "minute" : "Min",
+    "second" : "S",
+}
 
 class Interval:
     def __init__(self, value=None, freq=None,
@@ -208,7 +217,7 @@ class Interval:
 
         if freq is not None:
             if isinstance(freq, basestring):
-                self.freq = _interval_freq_map[freq]
+                self.freq = _interval_code_map[freq]
             else:
                 self.freq = freq
 
@@ -241,21 +250,21 @@ class Interval:
 
             if freq is None:
                 if reso == 'year':
-                    self.freq = _interval_freq_map['A']
+                    self.freq = _interval_code_map['A']
                 elif reso == 'month':
-                    self.freq = _interval_freq_map['M']
+                    self.freq = _interval_code_map['M']
                 elif reso == 'day':
-                    self.freq = _interval_freq_map['D']
+                    self.freq = _interval_code_map['D']
                 elif reso == 'hour':
-                    self.freq = _interval_freq_map['H']
+                    self.freq = _interval_code_map['H']
                 elif reso == 'minute':
-                    self.freq = _interval_freq_map['Min']
+                    self.freq = _interval_code_map['Min']
                 elif reso == 'second':
-                    self.freq = _interval_freq_map['S']
+                    self.freq = _interval_code_map['S']
                 else:
                     raise ValueError("Could not infer frequency for interval")
             else:
-                self.freq = _interval_freq_map[freq]
+                self.freq = _interval_code_map[freq]
         elif isinstance(value, datetime):
             dt = value
         elif isinstance(value, (int, long)):
@@ -291,7 +300,7 @@ class Interval:
             raise ValueError('How must be one of S or E')
 
         if isinstance(freq, basestring):
-            freq = _interval_freq_map[freq]
+            freq = _interval_code_map[freq]
 
         new_ordinal = lib.skts_freq_conv(self.ordinal,
                                          self.freq, freq, how)
@@ -301,9 +310,9 @@ class Interval:
     @classmethod
     def now(cls, freq=None):
         if isinstance(freq, basestring):
-            freq = _interval_freq_map[freq]
+            freq = _interval_code_map[freq]
 
-        sfreq = _interval_freq_map['S']
+        sfreq = _interval_code_map['S']
 
         dt = datetime.now()
 
@@ -314,13 +323,19 @@ class Interval:
 
     def __repr__(self):
         formatted = lib.skts_ordinal_to_string(self.ordinal, self.freq)
-        freqstr = _reverse_interval_map[self.freq]
+        freqstr = _reverse_interval_code_map[self.freq]
         return ("Interval('%s', '%s')" % (formatted, freqstr))
 
     def __str__(self):
         formatted = lib.skts_ordinal_to_string(self.ordinal, self.freq)
         return ("%s" % formatted)
 
+def _infer_interval_group(freqstr):
+    return _interval_group(_reso_interval_map[freqstr])
+
+def _interval_group(freqstr):
+    grp = _interval_code_map[freqstr]
+    return grp // 1000 * 1000
 
 #-------------------------------------------------------------------------------
 # Miscellaneous date functions
@@ -396,7 +411,7 @@ def parse_time_string(arg):
                 if not stopped:
                     reso = attr
                 else:
-                    raise DateParseError("Missing attribute before %s", attr)
+                    raise DateParseError("Missing attribute before %s" % attr)
             else:
                 stopped = True
         ret = default.replace(**repl)

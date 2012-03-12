@@ -1809,10 +1809,10 @@ class DatetimeIndex(Int64Index):
 
 class IntervalIndex(Int64Index):
     """
-    Immutable ndarray holding ordinal values which represent intervals of a
-    particular frequency. A value of 1 represents the interval containing the
-    Gregorian proleptic date/time Jan 1, 0001 00:00:00. This representation
-    is borrowed from the scikits.timeseries project.
+    Immutable ndarray holding ordinal values indicating regular intervals in
+    time such as particular years, quarters, months, etc. A value of 1 is the
+    interval containing the Gregorian proleptic datetime Jan 1, 0001 00:00:00.
+    This ordinal representation is from the scikits.timeseries project.
 
     For instance,
         # construct interval for day 1/1/1 and get the first second
@@ -1934,8 +1934,18 @@ class IntervalIndex(Int64Index):
         except KeyError:
             try:
                 asdt, parsed, reso = datetools.parse_time_string(key)
-                # TODO: add partial date slicing
-                key = to_interval(asdt, freq=self.freq).ordinal
+                grp = datetools._infer_interval_group(reso)
+                freqn = datetools._interval_group(self.freq)
+
+                # if our data is higher resolution than requested key, slice
+                if grp < freqn:
+                    iv = Interval(asdt, freq=grp)
+                    ord1 = iv.asfreq(self.freq, how='S').ordinal
+                    ord2 = iv.asfreq(self.freq, how='E').ordinal
+                    pos = np.searchsorted(self.values, [ord1, ord2])
+                    key = slice(pos[0], pos[1]+1)
+                else:
+                    key = to_interval(asdt, freq=self.freq).ordinal
                 return series[key]
             except TypeError:
                 pass
