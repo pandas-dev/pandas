@@ -57,6 +57,14 @@ stats_rank_average = Benchmark('s.rank()', setup,
                                start_date=datetime(2011, 12, 12))
 
 setup = common_setup + """
+values = np.random.randint(0, 100000, size=200000)
+s = Series(values)
+"""
+
+stats_rank_average_int = Benchmark('s.rank()', setup,
+                                   start_date=datetime(2011, 12, 12))
+
+setup = common_setup + """
 df = DataFrame(np.random.randn(5000, 50))
 """
 

@@ -1595,10 +1595,8 @@ copy : boolean, default False
         -------
         ranks : Series
         """
-        try:
-            ranks = lib.rank_1d_float64(self.values, ties_method=method)
-        except Exception:
-            ranks = lib.rank_1d_generic(self.values, ties_method=method)
+        from pandas.core.algorithms import rank
+        ranks = rank(self.values, method=method, na_option=na_option)
         return Series(ranks, index=self.index, name=self.name)
 
     def order(self, na_last=True, ascending=True, kind='mergesort'):

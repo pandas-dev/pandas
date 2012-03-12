@@ -67,6 +67,52 @@ def rank_1d_float64(object in_arr, ties_method='average'):
             sum_ranks = dups = 0
     return ranks
 
+def rank_1d_int64(object in_arr, ties_method='average'):
+    """
+    Fast NaN-friendly version of scipy.stats.rankdata
+    """
+
+    cdef:
+        Py_ssize_t i, j, n, dups = 0
+        ndarray[int64_t] sorted_data, values
+        ndarray[float64_t] ranks
+        ndarray[int64_t] argsorted
+        int32_t idx
+        int64_t val
+        float64_t sum_ranks = 0
+        int tiebreak = 0
+    tiebreak = tiebreakers[ties_method]
+
+    values = np.asarray(in_arr)
+
+    n = len(values)
+    ranks = np.empty(n, dtype='f8')
+
+    # py2.5/win32 hack, can't pass i8
+    _as = values.argsort()
+    sorted_data = values.take(_as)
+    argsorted = _as.astype('i8')
+
+    for i in range(n):
+        sum_ranks += i + 1
+        dups += 1
+        val = sorted_data[i]
+        if i == n - 1 or sorted_data[i + 1] - val:
+            if tiebreak == TIEBREAK_AVERAGE:
+                for j in range(i - dups + 1, i + 1):
+                    ranks[argsorted[j]] = sum_ranks / dups
+            elif tiebreak == TIEBREAK_MIN:
+                for j in range(i - dups + 1, i + 1):
+                    ranks[argsorted[j]] = i - dups + 2
+            elif tiebreak == TIEBREAK_MAX:
+                for j in range(i - dups + 1, i + 1):
+                    ranks[argsorted[j]] = i + 1
+            elif tiebreak == TIEBREAK_FIRST:
+                for j in range(i - dups + 1, i + 1):
+                    ranks[argsorted[j]] = j + 1
+            sum_ranks = dups = 0
+    return ranks
+
 def rank_2d_float64(object in_arr, axis=0, ties_method='average'):
     """
     Fast NaN-friendly version of scipy.stats.rankdata
