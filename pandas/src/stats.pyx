@@ -188,8 +188,9 @@ def rank_1d_generic(object in_arr, bint retry=1, ties_method='average'):
                 for j in range(i - dups + 1, i + 1):
                     ranks[argsorted[j]] = i + 1
             elif tiebreak == TIEBREAK_FIRST:
-                for j in range(i - dups + 1, i + 1):
-                    ranks[argsorted[j]] = j + 1
+                raise ValueError('first not supported for non-numeric data')
+                # for j in range(i - dups + 1, i + 1):
+                #     ranks[argsorted[j]] = j + 1
             sum_ranks = dups = 0
     return ranks
 
@@ -278,8 +279,9 @@ def rank_2d_generic(object in_arr, axis=0, ties_method='average'):
                     for z in range(j - dups + 1, j + 1):
                         ranks[i, argsorted[i, z]] = j + 1
                 elif tiebreak == TIEBREAK_FIRST:
-                    for z in range(j - dups + 1, j + 1):
-                        ranks[i, argsorted[i, z]] = z + 1
+                    raise ValueError('first not supported for non-numeric data')
+                    # for z in range(j - dups + 1, j + 1):
+                    #     ranks[i, argsorted[i, z]] = z + 1
                 sum_ranks = dups = 0
 
     if axis == 0:

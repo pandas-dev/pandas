@@ -1584,7 +1584,12 @@ copy : boolean, default False
         Parameters
         ----------
         method : {'average', 'min', 'max', 'first'}
+            average: average rank of group
+            min: lowest rank in group
+            max: highest rank in group
+            first: ranks assigned in order they appear in the array
         na_option : {'keep'}
+            keep: leave NA values where they are
 
         Returns
         -------

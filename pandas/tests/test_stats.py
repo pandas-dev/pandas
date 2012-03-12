@@ -14,24 +14,27 @@ class TestStats(unittest.TestCase):
     def test_rank_tie_methods(self):
         s = Series([1, 3, 4, 2, nan, 2, 1, 5, nan, 3])
 
-        # c(1, 3, 4, 2, NA, 2, 1, 5, NA, 3)
+        def _check(s, expected, method='average'):
+            result = s.rank(method=method)
+            assert_almost_equal(result, expected)
 
-        ranks = s.rank()
-        expected = np.array([1.5, 5.5, 7.0, 3.5, nan,
-                             3.5, 1.5, 8.0, nan, 5.5])
-        assert_almost_equal(ranks, expected)
+        results = {
+            'average': np.array([1.5, 5.5, 7.0, 3.5, nan,
+                                 3.5, 1.5, 8.0, nan, 5.5]),
+            'min': np.array([1, 5, 7, 3, nan, 3, 1, 8, nan, 5]),
+            'max': np.array([2, 6, 7, 4, nan, 4, 2, 8, nan, 6]),
+            'first': np.array([1, 5, 7, 3, nan, 4, 2, 8, nan, 6])
+        }
 
-        ranks = s.rank(method='min')
-        expected = np.array([1, 5, 7, 3, nan, 3, 1, 8, nan, 5])
-        assert_almost_equal(ranks, expected)
+        dtypes = [None, object]
 
-        ranks = s.rank(method='max')
-        expected = np.array([2, 6, 7, 4, nan, 4, 2, 8, nan, 6])
-        assert_almost_equal(ranks, expected)
+        disabled = set([(object, 'first')])
 
-        ranks = s.rank(method='first')
-        expected = np.array([1, 5, 7, 3, nan, 4, 2, 8, nan, 6])
-        assert_almost_equal(ranks, expected)
+        for method, dtype in product(results, dtypes):
+            if (dtype, method) in disabled:
+                continue
+            series = s if dtype is None else s.astype(dtype)
+            _check(series, results[method], method=method)
 
     def test_rank_2d_tie_methods(self):
         s = Series([1, 3, 4, 2, nan, 2, 1, 5, nan, 3])
@@ -55,9 +58,13 @@ class TestStats(unittest.TestCase):
             'first': np.array([1, 5, 7, 3, nan, 4, 2, 8, nan, 6])
         }
 
-        dtypes = [None]
+        dtypes = [None, object]
+
+        disabled = set([(object, 'first')])
 
         for method, axis, dtype in product(results, [0, 1], dtypes):
+            if (dtype, method) in disabled:
+                continue
             frame = df if dtype is None else df.astype(dtype)
             _check2d(frame, results[method], method=method, axis=axis)
 
