@@ -1849,7 +1849,21 @@ cdef inline int64_t ts_dayofweek(_TSObject ts):
 # Interval logic
 # ------------------------------------------------------------------------------
 
-def dt64arr_to_sktsarr(ndarray[int64_t] dtarr, int freq):
+cdef long apply_mult(long skts_ord, long mult):
+    """
+    Get base+multiple ordinal value from corresponding base-only ordinal value.
+    For example, 5min ordinal will be 1/5th the 1min ordinal (rounding down to
+    integer).
+    """
+    return (skts_ord - 1) // mult
+
+cdef long remove_mult(long skits_ord_w_mult, long mult):
+    """
+    Get base-only ordinal value from corresponding base+multiple ordinal.
+    """
+    return skits_ord_w_mult * mult + 1;
+
+def dt64arr_to_sktsarr(ndarray[int64_t] dtarr, int base, long mult):
     """
     Convert array of datetime64 values (passed in as 'i8' dtype) to a set of
     intervals corresponding to desired frequency, per skts convention.
@@ -1866,12 +1880,12 @@ def dt64arr_to_sktsarr(ndarray[int64_t] dtarr, int freq):
     for i in range(l):
         PyArray_DatetimeToDatetimeStruct(dtarr[i], NPY_FR_us, &dts)
         out[i] = skts_ordinal(dts.year, dts.month, dts.day,
-                              dts.hour, dts.min, dts.sec, 
-                              freq)
+                              dts.hour, dts.min, dts.sec, base)
+        out[i] = apply_mult(out[i], mult)
     return out
 
-def skts_freq_conv(long skts_ordinal, int freq1, int freq2,
-                  object relation='E'):
+def skts_freq_conv(long skts_ordinal, int base1, long mult1, int base2, long mult2,
+                   object relation='E'):
     """
     """
     cdef:
@@ -1880,26 +1894,28 @@ def skts_freq_conv(long skts_ordinal, int freq1, int freq2,
     if not isinstance(relation, basestring) or len(relation) != 1:
         raise ValueError('relation argument must be one of S or E')
 
-    retval = frequency_conversion(skts_ordinal, freq1, freq2,
-                                  (<char*>relation)[0])
+    skts_ordinal = remove_mult(skts_ordinal, mult1)
 
-    return retval
+    retval = frequency_conversion(skts_ordinal, base1, base2, (<char*>relation)[0])
 
-def skts_ordinal(int y, int m, int d, int h, int min, int s, int freq):
+    return apply_mult(retval, mult2)
+
+def skts_ordinal(int y, int m, int d, int h, int min, int s, int base, long mult):
     cdef:
         long ordinal
 
-    ordinal = get_skts_ordinal(y, m, d, h, min, s, freq)
+    ordinal = get_skts_ordinal(y, m, d, h, min, s, base)
 
-    return ordinal
+    return apply_mult(ordinal, mult)
 
-def skts_ordinal_to_dt(long skts_ordinal, int freq):
+def skts_ordinal_to_dt(long skts_ordinal, int base, long mult):
     cdef:
         long ordinal
 
-    ordinal = get_python_ordinal(skts_ordinal, freq)
+    ordinal = remove_mult(skts_ordinal, mult)
+    ordinal = get_python_ordinal(ordinal, base)
 
     return datetime.fromordinal(ordinal)
 
-def skts_ordinal_to_string(long value, int freq):
-    return <object>interval_to_string(value, freq)
+def skts_ordinal_to_string(long value, int base, long mult):
+    return <object>interval_to_string(remove_mult(value, mult), base)

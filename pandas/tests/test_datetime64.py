@@ -616,6 +616,14 @@ class TestDatetime64(unittest.TestCase):
         res = s['2011']
         exp = s[12:24]
         assert_series_equal(res, exp)
+        
+    def test_interval_multiples(self):
+        ii = IntervalIndex(start='1/1/10', end='12/31/12', freq='2M')
+        self.assertEquals(ii[0], Interval('1/1/10', '2M'))
+        self.assertEquals(ii[1], Interval('3/1/10', '2M'))
+
+        self.assertEquals(ii[0].asfreq('6M'), ii[2].asfreq('6M')) 
+
 
     def test_intervalindex_constructor(self):
         pass

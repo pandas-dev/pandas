@@ -672,6 +672,7 @@ static long asfreq_AtoS(long fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoS(asfreq_AtoD(fromDate, relation, af_info), relation, &NULL_AF_INFO); }
 
 static long nofunc(long fromDate, char relation, asfreq_info *af_info) { return INT_ERR_CODE; }
+static long no_op(long fromDate, char relation, asfreq_info *af_info) { return fromDate; }
 
 // end of frequency specific conversion routines
 
@@ -763,6 +764,7 @@ static freq_conv_func get_asfreq_func(int fromFreq, int toFreq, int forConvert)
             {
                 case FR_ANN: return &asfreq_MtoA;
                 case FR_QTR: return &asfreq_MtoQ;
+                case FR_MTH: return &no_op;
                 case FR_WK: return &asfreq_MtoW;
                 case FR_BUS: return &asfreq_MtoB;
                 case FR_DAY: return &asfreq_MtoD;
@@ -795,6 +797,7 @@ static freq_conv_func get_asfreq_func(int fromFreq, int toFreq, int forConvert)
                 case FR_MTH: return &asfreq_BtoM;
                 case FR_WK: return &asfreq_BtoW;
                 case FR_DAY: return &asfreq_BtoD;
+                case FR_BUS: return &no_op;
                 case FR_HR: return &asfreq_BtoH;
                 case FR_MIN: return &asfreq_BtoT;
                 case FR_SEC: return &asfreq_BtoS;
@@ -829,6 +832,7 @@ static freq_conv_func get_asfreq_func(int fromFreq, int toFreq, int forConvert)
                     if (forConvert) { return &asfreq_HtoB_forConvert; }
                     else            { return &asfreq_HtoB; }
                 case FR_DAY: return &asfreq_HtoD;
+                case FR_HR: return &no_op;
                 case FR_MIN: return &asfreq_HtoT;
                 case FR_SEC: return &asfreq_HtoS;
                 default: return &nofunc;
@@ -846,6 +850,7 @@ static freq_conv_func get_asfreq_func(int fromFreq, int toFreq, int forConvert)
                     else            { return &asfreq_TtoB; }
                 case FR_DAY: return &asfreq_TtoD;
                 case FR_HR: return &asfreq_TtoH;
+                case FR_MIN: return &no_op;
                 case FR_SEC: return &asfreq_TtoS;
                 default: return &nofunc;
             }
@@ -863,6 +868,7 @@ static freq_conv_func get_asfreq_func(int fromFreq, int toFreq, int forConvert)
                 case FR_DAY: return &asfreq_StoD;
                 case FR_HR: return &asfreq_StoH;
                 case FR_MIN: return &asfreq_StoT;
+                case FR_SEC: return &no_op;
                 default: return &nofunc;
             }
         default: return &nofunc;

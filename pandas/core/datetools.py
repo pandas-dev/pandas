@@ -123,9 +123,11 @@ def dt64arr_to_sktsarr(data, freq):
         return data
 
     if isinstance(freq, basestring):
-        freq = _interval_code_map[freq]
+        base, mult = _get_freq_code(freq)
+    else:
+        base, mult = freq
 
-    return lib.dt64arr_to_sktsarr(data.view('i8'), freq)
+    return lib.dt64arr_to_sktsarr(data.view('i8'), base, mult)
 
 # interval frequency constants corresponding to scikits timeseries
 # originals
@@ -212,14 +214,24 @@ class Interval:
                  year=None, month=1, quarter=None, day=1,
                  hour=0, minute=0, second=0):
 
+        # freq is a tuple (base, mult) where base is one of the defined
+        # intervals such as A, Q, etc. Every five minutes would be, e.g.,
+        # ('Min', 5) but may be passed in as a string like '5Min'
+
         self.freq = None
+
+        # ordinal is the interval offset from the gregorian proleptic epoch
+
         self.ordinal = None
 
         if freq is not None:
             if isinstance(freq, basestring):
-                self.freq = _interval_code_map[freq]
-            else:
+                base, mult = _get_freq_code(freq)
+                self.freq = (base, mult)
+            elif isinstance(freq, tuple):
                 self.freq = freq
+            else:
+                raise ValueError("Expected (timerule, mult) tuple for freq")
 
         if value is None:
             if self.freq is None:
@@ -231,8 +243,10 @@ class Interval:
             if quarter is not None:
                 month = (quarter - 1) * 3 + 1
 
-            self.ordinal = lib.skts_ordinal(year, month, day, hour,
-                                            minute, second, self.freq)
+            base, mult = self.freq
+
+            self.ordinal = lib.skts_ordinal(year, month, day, hour, minute,
+                                            second, base, mult)
             return
 
         if isinstance(value, Interval):
@@ -250,21 +264,21 @@ class Interval:
 
             if freq is None:
                 if reso == 'year':
-                    self.freq = _interval_code_map['A']
+                    freq = _interval_code_map['A']
                 elif reso == 'month':
-                    self.freq = _interval_code_map['M']
+                    freq = _interval_code_map['M']
                 elif reso == 'day':
-                    self.freq = _interval_code_map['D']
+                    freq = _interval_code_map['D']
                 elif reso == 'hour':
-                    self.freq = _interval_code_map['H']
+                    freq = _interval_code_map['H']
                 elif reso == 'minute':
-                    self.freq = _interval_code_map['Min']
+                    freq = _interval_code_map['Min']
                 elif reso == 'second':
-                    self.freq = _interval_code_map['S']
+                    freq = _interval_code_map['S']
                 else:
                     raise ValueError("Could not infer frequency for interval")
-            else:
-                self.freq = _interval_code_map[freq]
+                self.freq = (freq, 1)
+
         elif isinstance(value, datetime):
             dt = value
         elif isinstance(value, (int, long)):
@@ -272,9 +286,11 @@ class Interval:
         else:
             raise ValueError("Value must be string or datetime")
 
+        base, mult = self.freq
+
         if self.ordinal is None:
             self.ordinal = lib.skts_ordinal(dt.year, dt.month, dt.day, dt.hour,
-                                            dt.minute, dt.second, self.freq)
+                                            dt.minute, dt.second, base, mult)
 
     def __eq__(self, other):
         if isinstance(other, Interval):
@@ -299,43 +315,58 @@ class Interval:
         if how not in ('S', 'E'):
             raise ValueError('How must be one of S or E')
 
+        base1, mult1 = self.freq
+
         if isinstance(freq, basestring):
-            freq = _interval_code_map[freq]
+            base2, mult2 = _get_freq_code(freq)
+        else:
+            base2, mult2 = freq
 
-        new_ordinal = lib.skts_freq_conv(self.ordinal,
-                                         self.freq, freq, how)
+        new_ordinal = lib.skts_freq_conv(self.ordinal, base1, mult1, 
+                                         base2, mult2, how)
 
-        return Interval(new_ordinal, freq)
+        return Interval(new_ordinal, (base2, mult2))
 
     @classmethod
     def now(cls, freq=None):
         if isinstance(freq, basestring):
-            freq = _interval_code_map[freq]
+            base, mult = _get_freq_code(freq)
+            freq = (base, mult)
 
-        sfreq = _interval_code_map['S']
+        base, mult = _interval_code_map['S'], 1
+        sfreq = (base, mult)
 
         dt = datetime.now()
 
         skts_ordinal = lib.skts_ordinal(dt.year, dt.month, dt.day, dt.hour,
-                                        dt.minute, dt.second, sfreq)
+                                        dt.minute, dt.second, base, mult)
 
         return Interval(skts_ordinal, sfreq).asfreq(freq)
 
     def __repr__(self):
-        formatted = lib.skts_ordinal_to_string(self.ordinal, self.freq)
-        freqstr = _reverse_interval_code_map[self.freq]
-        return ("Interval('%s', '%s')" % (formatted, freqstr))
+        base = self.freq[0]
+        mult = self.freq[1]
+        formatted = lib.skts_ordinal_to_string(self.ordinal, base, mult)
+        freqstr = _reverse_interval_code_map[base]
+        return ("Interval('%s', '%d%s')" % (formatted, mult, freqstr))
 
     def __str__(self):
-        formatted = lib.skts_ordinal_to_string(self.ordinal, self.freq)
+        base = self.freq[0]
+        mult = self.freq[1]
+        formatted = lib.skts_ordinal_to_string(self.ordinal, base, mult)
         return ("%s" % formatted)
 
 def _infer_interval_group(freqstr):
     return _interval_group(_reso_interval_map[freqstr])
 
 def _interval_group(freqstr):
-    grp = _interval_code_map[freqstr]
-    return grp // 1000 * 1000
+    base, mult = _get_freq_code(freqstr)
+    return base // 1000 * 1000
+
+def _get_freq_code(freqstr):
+    base, stride = _base_and_stride(freqstr)
+    code = _interval_code_map[base]
+    return code, stride
 
 #-------------------------------------------------------------------------------
 # Miscellaneous date functions
@@ -1483,7 +1514,7 @@ def inferTimeRule(index, _deprecated=True):
 
 opattern = re.compile(r'(\d*)\s*(\S+)')
 
-def to_offset(name):
+def to_offset(freqstr):
     """
     Return DateOffset object from string representation
 
@@ -1491,10 +1522,27 @@ def to_offset(name):
     -------
     to_offset('5Min') -> Minute(5)
     """
-    groups = opattern.match(name)
+    name, stride = _base_and_stride(freqstr)
+
+    offset = _newOffsetMap.get(name)
+
+    if offset is None:
+        raise ValueError('Bad offset request: %s' % name)
+
+    return offset * stride
+
+def _base_and_stride(freqstr):
+    """
+    Return base freq and stride info from string representation
+
+    Example
+    -------
+    _freq_and_stride('5Min') -> 'Min', 5
+    """
+    groups = opattern.match(freqstr)
 
     if groups.lastindex != 2:
-        raise ValueError("Could not evaluate %s" % name)
+        raise ValueError("Could not evaluate %s" % freqstr)
 
     stride = groups.group(1)
 
@@ -1503,14 +1551,10 @@ def to_offset(name):
     else:
         stride = 1
 
-    name = groups.group(2)
+    base = groups.group(2)
 
-    offset = _newOffsetMap.get(name)
+    return (base, stride)
 
-    if offset is None:
-        raise ValueError('Bad offset request: %s' % name)
-
-    return offset * stride
 
 def getOffset(name, _deprecated=True):
     """

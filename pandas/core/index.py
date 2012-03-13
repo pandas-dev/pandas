@@ -1939,7 +1939,7 @@ class IntervalIndex(Int64Index):
 
                 # if our data is higher resolution than requested key, slice
                 if grp < freqn:
-                    iv = Interval(asdt, freq=grp)
+                    iv = Interval(asdt, freq=(grp,1))
                     ord1 = iv.asfreq(self.freq, how='S').ordinal
                     ord2 = iv.asfreq(self.freq, how='E').ordinal
                     pos = np.searchsorted(self.values, [ord1, ord2])
