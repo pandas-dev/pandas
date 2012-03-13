@@ -149,6 +149,12 @@ class CheckIndexing(object):
         self.assertRaises(AttributeError, getattr, self.frame,
                           'NONEXISTENT_NAME')
 
+    def test_setattr_column(self):
+        df = DataFrame({'foobar' : 1}, index=range(10))
+
+        df.foobar = 5
+        self.assert_((df.foobar == 5).all())
+
     def test_setitem(self):
         # not sure what else to do here
         series = self.frame['A'][::2]

@@ -1479,6 +1479,23 @@ class DataFrame(NDFrame):
         raise AttributeError("'%s' object has no attribute '%s'" %
                              (type(self).__name__, name))
 
+    def __setattr__(self, name, value):
+        """After regular attribute access, try looking up the name of a column.
+        This allows simpler access to columns for interactive use."""
+        if name == '_data':
+            super(DataFrame, self).__setattr__(name, value)
+        else:
+            try:
+                existing = getattr(self, name)
+                if isinstance(existing, Index):
+                    super(DataFrame, self).__setattr__(name, value)
+                elif name in self.columns:
+                    self[name] = value
+                else:
+                    object.__setattr__(self, name, value)
+            except (AttributeError, TypeError):
+                object.__setattr__(self, name, value)
+
     def __setitem__(self, key, value):
         # support boolean setting with DataFrame input, e.g.
         # df[df > df2] = 0
