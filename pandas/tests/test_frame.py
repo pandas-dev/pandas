@@ -1784,6 +1784,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertEqual(len(records.dtype.names), 2)
         self.assert_('index' not in records.dtype.names)
 
+    def test_from_records_nones(self):
+        tuples = [(1, 2, None, 3),
+                  (1, 2, None, 3),
+                  (None, 2, 5, 3)]
+
+        df = DataFrame.from_records(tuples, columns=['a', 'b', 'c', 'd'])
+        self.assert_(np.isnan(df['c'][0]))
+
     def test_to_records_floats(self):
         df = DataFrame(np.random.rand(10,10))
         df.to_records()
