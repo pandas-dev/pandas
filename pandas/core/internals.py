@@ -201,15 +201,20 @@ class Block(object):
             left_block = make_block(self.values[:loc],
                                     self.items[:loc].copy(), self.ref_items)
             right_block = make_block(self.values[loc + 1:],
-                                     self.items[loc + 1:].copy(), self.ref_items)
+                                     self.items[loc + 1:].copy(),
+                                     self.ref_items)
 
         return left_block, right_block
 
-    def fillna(self, value):
-        new_values = self.values.copy()
+    def fillna(self, value, inplace=False):
+        new_values = self.values if inplace else self.values.copy()
         mask = com.isnull(new_values.ravel())
         new_values.flat[mask] = value
-        return make_block(new_values, self.items, self.ref_items)
+
+        if inplace:
+            return self
+        else:
+            return make_block(new_values, self.items, self.ref_items)
 
     def interpolate(self, method='pad', inplace=False):
         values = self.values if inplace else self.values.copy()
@@ -931,11 +936,14 @@ class BlockManager(object):
         f = ('%s' + ('%s' % suffix)).__mod__
         return self.rename_items(f)
 
-    def fillna(self, value):
+    def fillna(self, value, inplace=False):
         """
 
         """
-        new_blocks = [b.fillna(value) for b in self.blocks]
+        new_blocks = [b.fillna(value, inplace=inplace)
+                      for b in self.blocks]
+        if inplace:
+            return self
         return BlockManager(new_blocks, self.axes)
 
     @property

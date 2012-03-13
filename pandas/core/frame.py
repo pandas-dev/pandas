@@ -2402,8 +2402,10 @@ class DataFrame(NDFrame):
             Method to use for filling holes in reindexed Series
             pad / ffill: propagate last valid observation forward to next valid
             backfill / bfill: use NEXT valid observation to fill gap
-        value : any kind (should be same type as array)
-            Value to use to fill holes (e.g. 0)
+        value : scalar or dict
+            Value to use to fill holes (e.g. 0), alternately a dict of values
+            specifying which value to use for each column (columns not in the
+            dict will not be filled)
         inplace : boolean, default False
             If True, fill the DataFrame in place. Note: this will modify any
             other views on this DataFrame, like if you took a no-copy slice of
@@ -2438,7 +2440,17 @@ class DataFrame(NDFrame):
             # Float type values
             if len(self.columns) == 0:
                 return self
-            new_data = self._data.fillna(value)
+            if np.isscalar(value):
+                new_data = self._data.fillna(value, inplace=inplace)
+            elif isinstance(value, dict):
+                result = self if inplace else self.copy()
+                for k, v in value.iteritems():
+                    if k not in result:
+                        continue
+                    result[k].fillna(v, inplace=True)
+                return result
+            else:  # pragma: no cover
+                raise TypeError('Invalid fill value type: %s' % type(value))
 
         if inplace:
             self._data = new_data

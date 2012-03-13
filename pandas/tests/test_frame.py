@@ -2968,6 +2968,21 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(df2 is df)
         assert_frame_equal(df2, expected)
 
+    def test_fillna_dict(self):
+        df = DataFrame({'a': [nan, 1, 2, nan, nan],
+                        'b': [1, 2, 3, nan, nan],
+                        'c': [nan, 1, 2, 3, 4]})
+
+        result = df.fillna({'a': 0, 'b': 5})
+
+        expected = df.copy()
+        expected['a'] = expected['a'].fillna(0)
+        expected['b'] = expected['b'].fillna(5)
+        assert_frame_equal(result, expected)
+
+        # it works
+        result = df.fillna({'a': 0, 'b': 5, 'd' : 7})
+
     def test_truncate(self):
         offset = datetools.bday
 
