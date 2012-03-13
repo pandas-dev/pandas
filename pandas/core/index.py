@@ -1446,7 +1446,7 @@ class MultiIndex(Index):
     def argsort(self, *args, **kwargs):
         return self.values.argsort()
 
-    def drop(self, labels):
+    def drop(self, labels, level=None):
         """
         Make new MultiIndex with passed list of labels deleted
 
@@ -1454,11 +1454,15 @@ class MultiIndex(Index):
         ----------
         labels : array-like
             Must be a list of tuples
+        level : int or name, default None
 
         Returns
         -------
         dropped : MultiIndex
         """
+        if level is not None:
+            return self._drop_from_level(labels, level)
+
         try:
             if not isinstance(labels, np.ndarray):
                 labels = com._asarray_tuplesafe(labels)
@@ -1480,6 +1484,15 @@ class MultiIndex(Index):
                 inds.extend(range(loc.start, loc.stop))
 
         return self.delete(inds)
+
+    def _drop_from_level(self, labels, level):
+        i = self._get_level_number(level)
+        index = self.levels[i]
+        values = index.get_indexer(labels)
+
+        mask = -lib.ismember(self.labels[i], set(values))
+
+        return self[mask]
 
     def droplevel(self, level=0):
         """

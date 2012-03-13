@@ -1118,18 +1118,18 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         tuples.sort()
         index = MultiIndex.from_tuples(tuples)
         df = DataFrame(randn(4,6),columns = index)
-            
+
         result = df['a']
         expected = df['a','','']
         assert_series_equal(result, expected)
         self.assertEquals(result.name, 'a')
-        
+
         result = df['routine1','result1']
         expected = df['routine1','result1','']
         assert_series_equal(result, expected)
         self.assertEquals(result.name, ('routine1', 'result1'))
 
-    def test_mixed_depth_insert(self):  
+    def test_mixed_depth_insert(self):
         arrays = [[  'a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
                   [   '',  'OD',  'OD', 'result1',   'result2',  'result1'],
                   [   '',  'wx',  'wy',        '',          '',         '']]
@@ -1137,15 +1137,15 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         tuples = zip(*arrays)
         tuples.sort()
         index = MultiIndex.from_tuples(tuples)
-        df = DataFrame(randn(4,6),columns = index)     
+        df = DataFrame(randn(4,6),columns = index)
 
         result = df.copy()
         expected = df.copy()
         result['b'] = [1,2,3,4]
         expected['b','',''] = [1,2,3,4]
         assert_frame_equal(result, expected)
- 
-    def test_mixed_depth_drop(self):  
+
+    def test_mixed_depth_drop(self):
         arrays = [[  'a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
                   [   '',  'OD',  'OD', 'result1',   'result2',  'result1'],
                   [   '',  'wx',  'wy',        '',          '',         '']]
@@ -1153,18 +1153,18 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         tuples = zip(*arrays)
         tuples.sort()
         index = MultiIndex.from_tuples(tuples)
-        df = DataFrame(randn(4,6),columns = index)     
+        df = DataFrame(randn(4,6),columns = index)
 
         result = df.drop('a',axis=1)
         expected = df.drop([('a','','')],axis=1)
         assert_frame_equal(expected, result)
-        
+
         result = df.drop(['top'],axis=1)
         expected = df.drop([('top','OD','wx')], axis=1)
         expected = expected.drop([('top','OD','wy')], axis=1)
         assert_frame_equal(expected, result)
-               
-    def test_mixed_depth_pop(self):  
+
+    def test_mixed_depth_pop(self):
         arrays = [[  'a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
                   [   '',  'OD',  'OD', 'result1',   'result2',  'result1'],
                   [   '',  'wx',  'wy',        '',          '',         '']]
@@ -1172,7 +1172,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         tuples = zip(*arrays)
         tuples.sort()
         index = MultiIndex.from_tuples(tuples)
-        df = DataFrame(randn(4,6),columns = index)     
+        df = DataFrame(randn(4,6),columns = index)
 
         df1 = df.copy()
         df2 = df.copy()
@@ -1181,14 +1181,30 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         assert_series_equal(expected, result)
         assert_frame_equal(df1, df2)
         self.assertEquals(result.name,'a')
-        
+
         expected = df1['top']
         df1 = df1.drop(['top'],axis=1)
         result = df2.pop('top')
         assert_frame_equal(expected, result)
         assert_frame_equal(df1, df2)
-            
-        
+
+    def test_drop_level(self):
+        result = self.frame.drop(['bar', 'qux'], level='first')
+        expected = self.frame.ix[[0, 1, 2, 5, 6]]
+        assert_frame_equal(result, expected)
+
+        result = self.frame.drop(['two'], level='second')
+        expected = self.frame.ix[[0, 2, 3, 6, 7, 9]]
+        assert_frame_equal(result, expected)
+
+        result = self.frame.T.drop(['bar', 'qux'], axis=1, level='first')
+        expected = self.frame.ix[[0, 1, 2, 5, 6]].T
+        assert_frame_equal(result, expected)
+
+        result = self.frame.T.drop(['two'], axis=1, level='second')
+        expected = self.frame.ix[[0, 2, 3, 6, 7, 9]].T
+        assert_frame_equal(result, expected)
+
 if __name__ == '__main__':
 
     # unittest.main()
