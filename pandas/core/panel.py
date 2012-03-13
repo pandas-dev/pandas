@@ -337,7 +337,7 @@ class Panel(NDFrame):
                 result.index = result_index
             else:
                 new_values = self.values[loc, :, :]
-                result = Panel(new_values, 
+                result = Panel(new_values,
                                items=self.items[loc],
                                major_axis=self.major_axis,
                                minor_axis=self.minor_axis)
@@ -698,6 +698,37 @@ class Panel(NDFrame):
             raise ValueError('Must specify at least one axis')
 
         return result
+
+    def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True):
+        """Conform Panel to new index with optional filling logic, placing
+        NA/NaN in locations having no value in the previous index. A new object
+        is produced unless the new index is equivalent to the current one and
+        copy=False
+
+        Parameters
+        ----------
+        index : array-like, optional
+            New labels / index to conform to. Preferably an Index object to
+            avoid duplicating data
+        axis : {0, 1}
+            0 -> index (rows)
+            1 -> columns
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
+            Method to use for filling holes in reindexed DataFrame
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap
+        copy : boolean, default True
+            Return a new object, even if the passed indexes are the same
+        level : int or name
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level
+
+        Returns
+        -------
+        reindexed : Panel
+        """
+        self._consolidate_inplace()
+        return self._reindex_axis(labels, method, axis, copy)
 
     def reindex_like(self, other, method=None):
         """

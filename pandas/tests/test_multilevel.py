@@ -83,6 +83,7 @@ class TestMultiLevel(unittest.TestCase):
             op = getattr(DataFrame, opname)
             month_sums = self.ymd.sum(level='month')
             result = op(self.ymd, month_sums, level='month')
+
             broadcasted = self.ymd.groupby(level='month').transform(np.sum)
             expected = op(self.ymd, broadcasted)
             assert_frame_equal(result, expected)
@@ -1187,6 +1188,23 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         result = df2.pop('top')
         assert_frame_equal(expected, result)
         assert_frame_equal(df1, df2)
+
+    def test_reindex_level_partial_selection(self):
+        result = self.frame.reindex(['foo', 'qux'], level=0)
+        expected = self.frame.ix[[0, 1, 2, 7, 8, 9]]
+        assert_frame_equal(result, expected)
+
+        result = self.frame.T.reindex_axis(['foo', 'qux'], axis=1, level=0)
+        assert_frame_equal(result, expected.T)
+
+        result = self.frame.ix[['foo', 'qux']]
+        assert_frame_equal(result, expected)
+
+        result = self.frame['A'].ix[['foo', 'qux']]
+        assert_series_equal(result, expected['A'])
+
+        result = self.frame.T.ix[:, ['foo', 'qux']]
+        assert_frame_equal(result, expected.T)
 
     def test_drop_level(self):
         result = self.frame.drop(['bar', 'qux'], level='first')

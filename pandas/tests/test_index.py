@@ -1386,11 +1386,18 @@ class TestMultiIndex(unittest.TestCase):
         idx = Index(['one'])
 
         target, indexer = self.index.reindex(idx, level='second')
-        target2, indexer2 = idx.reindex(self.index, idx, level='second')
+        target2, indexer2 = idx.reindex(self.index, level='second')
 
-        exp_index = self.index.join(idx, level='second', how='left')
+        exp_index = self.index.join(idx, level='second', how='right')
+        exp_index2 = self.index.join(idx, level='second', how='left')
+
         self.assert_(target.equals(exp_index))
-        self.assert_(target2.equals(exp_index))
+        exp_indexer = np.array([0, 2, 4])
+        self.assert_(np.array_equal(indexer, exp_indexer))
+
+        self.assert_(target2.equals(exp_index2))
+        exp_indexer2 = np.array([0, -1, 0, -1, 0, -1])
+        self.assert_(np.array_equal(indexer2, exp_indexer2))
 
     def test_has_duplicates(self):
         self.assert_(not self.index.has_duplicates)
