@@ -269,3 +269,18 @@ cdef extern from "math.h":
     double fabs(double)
 
 cdef float64_t FP_ERR = 1e-13
+
+cimport util
+
+cdef:
+    int TIEBREAK_AVERAGE = 0
+    int TIEBREAK_MIN = 1
+    int TIEBREAK_MAX = 2
+    int TIEBREAK_FIRST = 3
+
+tiebreakers = {
+    'average' : TIEBREAK_AVERAGE,
+    'min' : TIEBREAK_MIN,
+    'max' : TIEBREAK_MAX,
+    'first' : TIEBREAK_FIRST
+}

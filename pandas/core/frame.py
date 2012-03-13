@@ -3731,7 +3731,7 @@ class DataFrame(NDFrame):
         return self.apply(lambda x: x.clip_lower(threshold))
 
     def rank(self, axis=0, numeric_only=None, method='average',
-             na_option='keep'):
+             na_option='keep', ascending=True):
         """
         Compute numerical data ranks (1 through n) along axis. Equal values are
         assigned a rank that is the average of the ranks of those values
@@ -3749,6 +3749,8 @@ class DataFrame(NDFrame):
             first: ranks assigned in order they appear in the array
         na_option : {'keep'}
             keep: leave NA values where they are
+        ascending : boolean, default True
+            False for ranks by high (1) to low (N)
 
         Returns
         -------
@@ -3758,7 +3760,8 @@ class DataFrame(NDFrame):
 
         if numeric_only is None:
             try:
-                ranks = rank(self.values, axis=axis, method=method)
+                ranks = rank(self.values, axis=axis, method=method,
+                             ascending=ascending)
                 return DataFrame(ranks, index=self.index, columns=self.columns)
             except TypeError:
                 numeric_only = True
@@ -3767,7 +3770,8 @@ class DataFrame(NDFrame):
             data = self._get_numeric_data()
         else:
             data = self
-        ranks = rank(data.values, axis=axis, method=method)
+        ranks = rank(data.values, axis=axis, method=method,
+                     ascending=ascending)
         return DataFrame(ranks, index=data.index, columns=data.columns)
 
     #----------------------------------------------------------------------

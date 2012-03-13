@@ -1576,7 +1576,7 @@ copy : boolean, default False
             return Series(np.argsort(values, kind=kind), index=self.index,
                           name=self.name)
 
-    def rank(self, method='average', na_option='keep'):
+    def rank(self, method='average', na_option='keep', ascending=True):
         """
         Compute data ranks (1 through n). Equal values are assigned a rank that
         is the average of the ranks of those values
@@ -1590,13 +1590,16 @@ copy : boolean, default False
             first: ranks assigned in order they appear in the array
         na_option : {'keep'}
             keep: leave NA values where they are
+        ascending : boolean, default True
+            False for ranks by high (1) to low (N)
 
         Returns
         -------
         ranks : Series
         """
         from pandas.core.algorithms import rank
-        ranks = rank(self.values, method=method, na_option=na_option)
+        ranks = rank(self.values, method=method, na_option=na_option,
+                     ascending=ascending)
         return Series(ranks, index=self.index, name=self.name)
 
     def order(self, na_last=True, ascending=True, kind='mergesort'):
