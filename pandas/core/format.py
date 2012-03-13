@@ -329,7 +329,7 @@ class DataFrameFormatter(object):
             fmt_columns = zip(*fmt_columns)
             dtypes = self.frame.dtypes.values
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
-            str_columns = zip(*[[u' %s' % y
+            str_columns = zip(*[[' ' + y
                                 if y not in self.formatters and need_leadsp[x]
                                 else y for y in x]
                                for x in fmt_columns])
@@ -341,7 +341,7 @@ class DataFrameFormatter(object):
             fmt_columns = self.columns.format()
             dtypes = self.frame.dtypes
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
-            str_columns = [[u' %s' % x
+            str_columns = [[' ' + x
                             if col not in self.formatters and need_leadsp[x]
                             else x]
                            for col, x in zip(self.columns, fmt_columns)]
@@ -439,6 +439,18 @@ class GenericArrayFormatter(object):
         self.justify = justify
 
     def get_result(self):
+        if self._have_unicode():
+            fmt_values = self._format_strings(use_unicode=True)
+        else:
+            fmt_values = self._format_strings(use_unicode=False)
+
+        return _make_fixed_width(fmt_values, self.justify)
+
+    def _have_unicode(self):
+        mask = lib.map_infer(self.values, lambda x: isinstance(x, unicode))
+        return mask.any()
+
+    def _format_strings(self, use_unicode=False):
         if self.float_format is None:
             float_format = print_config.float_format
             if float_format is None:
@@ -447,7 +459,10 @@ class GenericArrayFormatter(object):
         else:
             float_format = self.float_format
 
-        formatter = _stringify if self.formatter is None else self.formatter
+        if use_unicode:
+            formatter = _stringify if self.formatter is None else self.formatter
+        else:
+            formatter = str if self.formatter is None else self.formatter
 
         def _format(x):
             if self.na_rep is not None and lib.checknull(x):
@@ -472,7 +487,7 @@ class GenericArrayFormatter(object):
             else:
                 fmt_values.append(' %s' % _format(v))
 
-        return _make_fixed_width(fmt_values, self.justify)
+        return fmt_values
 
 class FloatArrayFormatter(GenericArrayFormatter):
     """

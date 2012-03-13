@@ -1,4 +1,5 @@
 from StringIO import StringIO
+import os
 import sys
 import unittest
 
@@ -9,8 +10,13 @@ import numpy as np
 from pandas import DataFrame, Series, Index
 import pandas.core.format as fmt
 import pandas.util.testing as tm
+import pandas
 
 _frame = DataFrame(tm.getSeriesData())
+
+def curpath():
+    pth, _ = os.path.split(os.path.abspath(__file__))
+    return pth
 
 class TestDataFrameFormatting(unittest.TestCase):
 
@@ -125,6 +131,13 @@ class TestDataFrameFormatting(unittest.TestCase):
     def test_unicode_problem_decoding_as_ascii(self):
         dm = DataFrame({u'c/\u03c3': Series({'test':np.NaN})})
         unicode(dm.to_string())
+
+    def test_string_repr_encoding(self):
+        pth = curpath()
+        filepath = os.path.join(pth, 'unicode_series.csv')
+        df = pandas.read_csv(filepath, header=None)
+        repr(df)
+        repr(df['X.2'])
 
     def test_repr_corner(self):
         # representing infs poses no problems

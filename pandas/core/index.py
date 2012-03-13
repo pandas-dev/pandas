@@ -292,7 +292,7 @@ class Index(np.ndarray):
             values = lib.maybe_convert_objects(values, safe=1)
 
         if values.dtype == np.object_:
-            result = [com._stringify(x) for x in values]
+            result = com._stringify_seq(values)
         else:
             result = _trim_front(format_array(values, None, justify='left'))
         return header + result
