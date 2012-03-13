@@ -168,6 +168,9 @@ class _NDFrameIndexer(object):
         elif _is_list_like(key) and not (isinstance(key, tuple) and
                                          isinstance(labels, MultiIndex)):
 
+            if hasattr(key, 'ndim') and key.ndim > 1:
+                raise ValueError('Cannot index with multidimensional key')
+ 
             return self._getitem_iterable(key, axis=axis)
         elif axis == 0:
             is_int_index = _is_integer_index(labels)

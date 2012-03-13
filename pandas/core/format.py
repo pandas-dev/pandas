@@ -253,13 +253,13 @@ class DataFrameFormatter(object):
         def _column_header():
             row = [''] * (frame.index.nlevels - 1)
 
-            if isinstance(frame.columns, MultiIndex):
+            if isinstance(self.columns, MultiIndex):
                 if self.has_column_names:
-                    row.append(single_column_table(frame.columns.names))
-                row.extend([single_column_table(c) for c in frame.columns])
+                    row.append(single_column_table(self.columns.names))
+                row.extend([single_column_table(c) for c in self.columns])
             else:
-                row.append(frame.columns.name or '')
-                row.extend(frame.columns)
+                row.append(self.columns.name or '')
+                row.extend(self.columns)
             return row
 
         if len(frame.columns) == 0 or len(frame.index) == 0:
@@ -282,7 +282,7 @@ class DataFrameFormatter(object):
                 indent += indent_delta
                 write_tr(buf, col_row, indent, indent_delta, header=True)
                 if self.has_index_names:
-                    row = frame.index.names + [''] * len(frame.columns)
+                    row = frame.index.names + [''] * len(self.columns)
                     write_tr(buf, row, indent, indent_delta, header=True)
 
                 write(buf, '</thead>', indent)
@@ -299,7 +299,7 @@ class DataFrameFormatter(object):
                     return x
 
             fmt_values = {}
-            for col in frame.columns:
+            for col in self.columns:
                 fmt_values[col] = self._format_col(col)
 
             # write values
@@ -309,7 +309,7 @@ class DataFrameFormatter(object):
                     row.extend(_maybe_bold_row(frame.index[i]))
                 else:
                     row.append(_maybe_bold_row(frame.index[i]))
-                for col in frame.columns:
+                for col in self.columns:
                     row.append(fmt_values[col][i])
                 write_tr(buf, row, indent, indent_delta)
             indent -= indent_delta
@@ -516,9 +516,14 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
 class IntArrayFormatter(GenericArrayFormatter):
 
-
     def get_result(self):
-        fmt_values = ['% d' % x for x in self.values]
+        if self.formatter:
+            formatter = self.formatter
+        else:
+            formatter = lambda x: '% d' % x
+
+        fmt_values = [formatter(x) for x in self.values]
+
         return _make_fixed_width(fmt_values, self.justify)
 
 

@@ -269,6 +269,9 @@ class Series(np.ndarray, generic.PandasObject):
             except TypeError:
                 data = [data.get(i, nan) for i in index]
 
+        if dtype is not None:
+            dtype = np.dtype(dtype)
+
         subarr = _sanitize_array(data, index, dtype, copy,
                                  raise_cast_failure=True)
 
@@ -896,6 +899,10 @@ copy : boolean, default False
         """
         if level is not None:
             mask = notnull(self.values)
+
+            if isinstance(level, basestring):
+                level = self.index._get_level_number(level)
+
             level_index = self.index.levels[level]
 
             if len(self) == 0:
@@ -1572,19 +1579,30 @@ copy : boolean, default False
             return Series(np.argsort(values, kind=kind), index=self.index,
                           name=self.name)
 
-    def rank(self):
+    def rank(self, method='average', na_option='keep', ascending=True):
         """
         Compute data ranks (1 through n). Equal values are assigned a rank that
         is the average of the ranks of those values
+
+        Parameters
+        ----------
+        method : {'average', 'min', 'max', 'first'}
+            average: average rank of group
+            min: lowest rank in group
+            max: highest rank in group
+            first: ranks assigned in order they appear in the array
+        na_option : {'keep'}
+            keep: leave NA values where they are
+        ascending : boolean, default True
+            False for ranks by high (1) to low (N)
 
         Returns
         -------
         ranks : Series
         """
-        try:
-            ranks = lib.rank_1d_float64(self.values)
-        except Exception:
-            ranks = lib.rank_1d_generic(self.values)
+        from pandas.core.algorithms import rank
+        ranks = rank(self.values, method=method, na_option=na_option,
+                     ascending=ascending)
         return Series(ranks, index=self.index, name=self.name)
 
     def order(self, na_last=True, ascending=True, kind='mergesort'):
@@ -2117,6 +2135,21 @@ copy : boolean, default False
             ax.set_xticklabels([gfx._stringify(key) for key in self.index],
                                rotation=rot,
                                fontsize=fontsize)
+        elif kind == 'barh':
+            yinds = np.arange(N) + 0.25
+            ax.barh(yinds, self.values.astype(float), 0.5,
+                    left=np.zeros(N), linewidth=1, **kwds)
+
+            if N < 10:
+                fontsize = 12
+            else:
+                fontsize = 10
+
+            ax.set_yticks(yinds + 0.25)
+            ax.set_yticklabels([gfx._stringify(key) for key in self.index],
+                               rotation=rot,
+                               fontsize=fontsize)
+
         ax.grid(grid)
         plt.draw_if_interactive()
 
@@ -2484,13 +2517,35 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         data = ma.copy(data)
         data[mask] = np.nan
 
-    try:
-        subarr = np.array(data, dtype=dtype, copy=copy)
-    except (ValueError, TypeError):
-        if dtype and raise_cast_failure:
-            raise
-        else:  # pragma: no cover
-            subarr = np.array(data, dtype=object)
+    def _try_cast(arr):
+        try:
+            subarr = np.array(data, dtype=dtype, copy=copy)
+        except (ValueError, TypeError):
+            if dtype is not None and raise_cast_failure:
+                raise
+            else:  # pragma: no cover
+                subarr = np.array(data, dtype=object, copy=copy)
+        return subarr
+
+    # GH #846
+    if isinstance(data, np.ndarray):
+        if dtype is not None:
+            # possibility of nan -> garbage
+            if com.is_float_dtype(data.dtype) and com.is_integer_dtype(dtype):
+                if not isnull(data).any():
+                    subarr = _try_cast(data)
+                elif copy:
+                    subarr = data.copy()
+                else:
+                    subarr = data
+            else:
+                subarr = _try_cast(data)
+        elif copy:
+            subarr = data.copy()
+        else:
+            subarr = data
+    else:
+        subarr = _try_cast(data)
 
     if subarr.ndim == 0:
         if isinstance(data, list):  # pragma: no cover

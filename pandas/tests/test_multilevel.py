@@ -862,6 +862,32 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         assert_series_equal(result, expected)
         assert_series_equal(result2, expected)
 
+    def test_count(self):
+        frame = self.frame.copy()
+        frame.index.names = ['a', 'b']
+
+        result = frame.count(level='b')
+        expect = self.frame.count(level=1)
+        assert_frame_equal(result, expect)
+
+        result = frame.count(level='a')
+        expect = self.frame.count(level=0)
+        assert_frame_equal(result, expect)
+
+        series = self.series.copy()
+        series.index.names = ['a', 'b']
+
+        result = series.count(level='b')
+        expect = self.series.count(level=1)
+        assert_series_equal(result, expect)
+
+        result = series.count(level='a')
+        expect = self.series.count(level=0)
+        assert_series_equal(result, expect)
+
+        self.assertRaises(Exception, series.count, 'x')
+        self.assertRaises(Exception, frame.count, level='x')
+
     AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
                      'mad', 'std', 'var']
 

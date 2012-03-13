@@ -1482,6 +1482,23 @@ class DataFrame(NDFrame):
         raise AttributeError("'%s' object has no attribute '%s'" %
                              (type(self).__name__, name))
 
+    def __setattr__(self, name, value):
+        """After regular attribute access, try looking up the name of a column.
+        This allows simpler access to columns for interactive use."""
+        if name == '_data':
+            super(DataFrame, self).__setattr__(name, value)
+        else:
+            try:
+                existing = getattr(self, name)
+                if isinstance(existing, Index):
+                    super(DataFrame, self).__setattr__(name, value)
+                elif name in self.columns:
+                    self[name] = value
+                else:
+                    object.__setattr__(self, name, value)
+            except (AttributeError, TypeError):
+                object.__setattr__(self, name, value)
+
     def __setitem__(self, key, value):
         # support boolean setting with DataFrame input, e.g.
         # df[df > df2] = 0
@@ -1518,7 +1535,12 @@ class DataFrame(NDFrame):
             for k1, k2 in zip(keys, value.columns):
                 self[k1] = value[k2]
         else:
-            self.ix[:, keys] = value
+            if isinstance(keys, np.ndarray) and keys.dtype == np.bool_:
+                # boolean slicing should happen on rows, consistent with
+                # behavior of getitem
+                self.ix[keys, :] = value
+            else:
+                self.ix[:, keys] = value
 
     def _set_item(self, key, value):
         """
@@ -3492,6 +3514,9 @@ class DataFrame(NDFrame):
         # python 2.5
         mask = notnull(frame.values).view(np.uint8)
 
+        if isinstance(level, basestring):
+            level = self.index._get_level_number(level)
+
         level_index = frame.index.levels[level]
         counts = lib.count_level_2d(mask, frame.index.labels[level],
                                     len(level_index))
@@ -3775,7 +3800,8 @@ class DataFrame(NDFrame):
         """
         return self.apply(lambda x: x.clip_lower(threshold))
 
-    def rank(self, axis=0, numeric_only=None):
+    def rank(self, axis=0, numeric_only=None, method='average',
+             na_option='keep', ascending=True):
         """
         Compute numerical data ranks (1 through n) along axis. Equal values are
         assigned a rank that is the average of the ranks of those values
@@ -3786,29 +3812,37 @@ class DataFrame(NDFrame):
             Ranks over columns (0) or rows (1)
         numeric_only : boolean, default None
             Include only float, int, boolean data
+        method : {'average', 'min', 'max', 'first'}
+            average: average rank of group
+            min: lowest rank in group
+            max: highest rank in group
+            first: ranks assigned in order they appear in the array
+        na_option : {'keep'}
+            keep: leave NA values where they are
+        ascending : boolean, default True
+            False for ranks by high (1) to low (N)
 
         Returns
         -------
         ranks : DataFrame
         """
+        from pandas.core.algorithms import rank
+
         if numeric_only is None:
             try:
-                values = self.values
-                if issubclass(values.dtype.type, np.floating):
-                    ranks = lib.rank_2d_float64(values, axis=axis)
-                else:
-                    ranks = lib.rank_2d_generic(values, axis=axis)
+                ranks = rank(self.values, axis=axis, method=method,
+                             ascending=ascending)
+                return DataFrame(ranks, index=self.index, columns=self.columns)
             except TypeError:
                 numeric_only = True
 
         if numeric_only:
             data = self._get_numeric_data()
-            ranks = lib.rank_2d_float64(data.values.astype('f8'), axis=axis)
-            return DataFrame(ranks, index=data.index, columns=data.columns)
         else:
             data = self
-            ranks = lib.rank_2d_generic(data.values.astype('O'), axis=axis)
-            return DataFrame(ranks, index=data.index, columns=data.columns)
+        ranks = rank(data.values, axis=axis, method=method,
+                     ascending=ascending)
+        return DataFrame(ranks, index=data.index, columns=data.columns)
 
     #----------------------------------------------------------------------
     # Plotting
@@ -3976,7 +4010,8 @@ class DataFrame(NDFrame):
         if legend and not subplots:
             fig = ax.get_figure()
             fig.legend([r[0] for r in rects], labels, loc='upper center',
-                       fancybox=True, ncol=6, mode='expand')
+                       fancybox=True, ncol=6)
+                       #mode='expand')
 
         import matplotlib.pyplot as plt
         plt.subplots_adjust(top=0.8)

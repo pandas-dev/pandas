@@ -944,6 +944,20 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 
         self.assertRaises(Exception, self.panel.shift, 1, axis='items')
 
+    def test_multiindex_get(self):
+        ind = MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1), ('b',2)],
+                                     names=['first', 'second'])
+        wp = Panel(np.random.random((4,5,5)), 
+                                    items=ind, 
+                                    major_axis=np.arange(5), 
+                                    minor_axis=np.arange(5))
+        f1 = wp['a']
+        f2 = wp.ix['a']
+        assert_panel_equal(f1, f2)
+
+        self.assert_((f1.items == ind[0:2]).all())
+        self.assert_((f2.items == ind[0:2]).all())
+
     def test_repr_empty(self):
         empty = Panel()
         repr(empty)

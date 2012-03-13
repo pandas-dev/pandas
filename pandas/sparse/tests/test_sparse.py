@@ -1250,6 +1250,17 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         assert_sp_frame_equal(result, result2)
         assert_sp_frame_equal(result, expected)
 
+    def test_combine_add(self):
+        df = self.frame.to_dense()
+        df2 = df.copy()
+        df2['C'][:3] = np.nan
+        df['A'][:3] = 5.7
+
+        result = df.to_sparse().add(df2.to_sparse(), fill_value=0)
+        expected = df.add(df2, fill_value=0).to_sparse()
+        assert_sp_frame_equal(result, expected)
+
+
 def _dense_series_compare(s, f):
     result = f(s)
     assert(isinstance(result, SparseSeries))

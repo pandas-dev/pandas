@@ -149,6 +149,12 @@ class CheckIndexing(object):
         self.assertRaises(AttributeError, getattr, self.frame,
                           'NONEXISTENT_NAME')
 
+    def test_setattr_column(self):
+        df = DataFrame({'foobar' : 1}, index=range(10))
+
+        df.foobar = 5
+        self.assert_((df.foobar == 5).all())
+
     def test_setitem(self):
         # not sure what else to do here
         series = self.frame['A'][::2]
@@ -395,6 +401,8 @@ class CheckIndexing(object):
         exp.values[5:10] = 5
         assert_frame_equal(f, exp)
 
+        self.assertRaises(ValueError, ix.__getitem__, f > 0.5)
+
     def test_slice_floats(self):
         index = [52195.504153, 52196.303147, 52198.369883]
         df = DataFrame(np.random.rand(3, 2), index=index)
@@ -528,6 +536,16 @@ class CheckIndexing(object):
         # slice with labels
         frame.ix[:, 'B':'C'] = 4.
         assert_frame_equal(frame, expected)
+
+        # new corner case of boolean slicing / setting
+        frame = DataFrame(zip([2,3,9,6,7], [np.nan]*5),
+                          columns=['a','b'])
+        lst = [100]
+        lst.extend([np.nan]*4)
+        expected = DataFrame(zip([100,3,9,6,7], lst), columns=['a','b'])
+        frame[frame['a'] == 2] = 100
+        assert_frame_equal(frame, expected)
+
 
     def test_fancy_getitem_slice_mixed(self):
         sliced = self.mixed_frame.ix[:, -3:]
@@ -1691,6 +1709,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                           {'A' : self.frame['A'],
                            'B' : list(self.frame['B'])[:-2]})
 
+    def test_constructor_miscast_na_int_dtype(self):
+        df = DataFrame([[np.nan, 1], [1, 0]], dtype=np.int64)
+        expected = DataFrame([[np.nan, 1], [1, 0]])
+        assert_frame_equal(df, expected)
+
     def test_astype(self):
         casted = self.frame.astype(int)
         expected = DataFrame(self.frame.values.astype(int),
@@ -1778,6 +1801,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         records = indexed_frame.to_records(index=False)
         self.assertEqual(len(records.dtype.names), 2)
         self.assert_('index' not in records.dtype.names)
+
+    def test_from_records_nones(self):
+        tuples = [(1, 2, None, 3),
+                  (1, 2, None, 3),
+                  (None, 2, 5, 3)]
+
+        df = DataFrame.from_records(tuples, columns=['a', 'b', 'c', 'd'])
+        self.assert_(np.isnan(df['c'][0]))
 
     def test_to_records_floats(self):
         df = DataFrame(np.random.rand(10,10))

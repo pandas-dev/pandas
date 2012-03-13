@@ -142,8 +142,12 @@ class GroupBy(object):
         return self.obj
 
     def __getattr__(self, attr):
+        if attr in self.obj:
+            return self[attr]
+
         if hasattr(self.obj, attr) and attr != '_cache':
             return self._make_wrapper(attr)
+
         raise AttributeError("'%s' object has no attribute '%s'" %
                              (type(self).__name__, attr))
 
@@ -312,6 +316,7 @@ class GroupBy(object):
         return self._wrap_aggregated_output(output)
 
     def _python_agg_general(self, func, *args, **kwargs):
+        func = _intercept_function(func)
         agg_func = lambda x: func(x, *args, **kwargs)
 
         # iterate through "columns" ex exclusions to populate output dict
@@ -333,6 +338,8 @@ class GroupBy(object):
         return self._wrap_aggregated_output(output)
 
     def _python_apply_general(self, func, *args, **kwargs):
+        func = _intercept_function(func)
+
         result_keys = []
         result_values = []
 
@@ -604,6 +611,8 @@ class Grouper(object):
             return self._aggregate_series_pure_python(obj, func)
 
     def _aggregate_series_fast(self, obj, func):
+        func = _intercept_function(func)
+
         if obj.index._has_complex_internals:
             raise TypeError('Incompatible index for Cython grouper')
 
@@ -1024,19 +1033,16 @@ def _convert_grouper(axis, grouper):
         return grouper.get
     elif isinstance(grouper, Series):
         if grouper.index.equals(axis):
-            return np.asarray(grouper, dtype=object)
+            return grouper.values
         else:
-            return grouper.reindex(axis).astype(object)
+            return grouper.reindex(axis).values
     elif isinstance(grouper, (list, np.ndarray)):
         assert(len(grouper) == len(axis))
         return grouper
-        # return np.asarray(grouper, dtype=object)
     else:
         return grouper
 
 class SeriesGroupBy(GroupBy):
-
-    _cythonized_methods = set(['add', 'mean'])
 
     def aggregate(self, func_or_funcs, *args, **kwargs):
         """
@@ -1821,6 +1827,15 @@ def _reorder_by_uniques(uniques, labels):
 
     return uniques, labels
 
+import __builtin__
+
+_func_table = {
+    __builtin__.sum : np.sum
+}
+
+def _intercept_function(func):
+    return _func_table.get(func, func)
+
 def _groupby_indices(values):
     if values.dtype != np.object_:
         values = values.astype('O')
@@ -1852,4 +1867,28 @@ def translate_grouping(how):
         return picker
 
     raise ValueError("Unrecognized method: %s" % how)
+
+
+from pandas.util import py3compat
+import sys
+
+def install_ipython_completers():  # pragma: no cover
+    """Register the DataFrame type with IPython's tab completion machinery, so
+    that it knows about accessing column names as attributes."""
+    from IPython.utils.generics import complete_object
+
+    @complete_object.when_type(DataFrameGroupBy)
+    def complete_dataframe(obj, prev_completions):
+        return prev_completions + [c for c in obj.obj.columns \
+                    if isinstance(c, basestring) and py3compat.isidentifier(c)]
+
+
+# Importing IPython brings in about 200 modules, so we want to avoid it unless
+# we're in IPython (when those modules are loaded anyway).
+if "IPython" in sys.modules:  # pragma: no cover
+    try:
+        install_ipython_completers()
+    except Exception:
+        pass
+
 

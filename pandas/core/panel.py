@@ -11,7 +11,7 @@ from pandas.core.common import (PandasError, _mut_exclusive,
                                 _try_sort, _default_index, _infer_dtype)
 from pandas.core.index import (Factor, Index, MultiIndex, _ensure_index,
                                _get_combined_index, NULL_INDEX)
-from pandas.core.indexing import _NDFrameIndexer
+from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
@@ -321,6 +321,29 @@ class Panel(NDFrame):
                                                 dtype=dtype)
         items = Index(sorted(data.keys()))
         return Panel(data, items, index, columns)
+
+    def __getitem__(self, key):
+        if isinstance(self.items, MultiIndex):
+            return self._getitem_multilevel(key)
+        return super(Panel, self).__getitem__(key)
+
+    def _getitem_multilevel(self, key):
+        loc = self.items.get_loc(key)
+        if isinstance(loc, (slice, np.ndarray)):
+            new_index = self.items[loc]
+            result_index = _maybe_droplevels(new_index, key)
+            if self._is_mixed_type:
+                result = self.reindex(items=new_index)
+                result.index = result_index
+            else:
+                new_values = self.values[loc, :, :]
+                result = Panel(new_values, 
+                               items=self.items[loc],
+                               major_axis=self.major_axis,
+                               minor_axis=self.minor_axis)
+            return result
+        else:
+            return self._get_item_cache(key)
 
     def _init_matrix(self, data, axes, dtype=None, copy=False):
         values = _prep_ndarray(data, copy=copy)

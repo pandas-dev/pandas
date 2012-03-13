@@ -8,6 +8,7 @@ from __future__ import division
 
 from datetime import datetime
 import unittest
+import nose
 import numpy as np
 
 from pandas.core.panel import Panel
@@ -21,10 +22,14 @@ import pandas.util.testing as tm
 
 from common import BaseTest
 
+_have_statsmodels = True
 try:
-    import scikits.statsmodels.api as sm
+    import statsmodels.api as sm
 except ImportError:
-    pass
+    try:
+        import scikits.statsmodels.api as sm
+    except ImportError:
+        _have_statsmodels = False
 
 def _check_repr(obj):
     repr(obj)
@@ -60,10 +65,7 @@ class TestOLS(BaseTest):
         except ImportError:
             pass
 
-        try:
-            import scikits.statsmodels.api as _
-        except ImportError:
-            import nose
+        if not _have_statsmodels:
             raise nose.SkipTest
 
     def testOLSWithDatasets(self):
@@ -149,8 +151,7 @@ class TestOLS(BaseTest):
         _check_non_raw_results(result)
 
     def checkMovingOLS(self, window_type, x, y, weights=None, **kwds):
-        from scikits.statsmodels.tools.tools import rank
-        window = rank(x.values) * 2
+        window = sm.tools.tools.rank(x.values) * 2
 
         moving = ols(y=y, x=x, weights=weights, window_type=window_type,
                      window=window, **kwds)
@@ -232,10 +233,7 @@ class TestOLSMisc(unittest.TestCase):
     '''
     @classmethod
     def setupClass(cls):
-        try:
-            import scikits.statsmodels.api as _
-        except ImportError:
-            import nose
+        if not _have_statsmodels:
             raise nose.SkipTest
 
     def test_f_test(self):
