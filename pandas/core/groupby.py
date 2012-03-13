@@ -309,6 +309,7 @@ class GroupBy(object):
         return self._wrap_aggregated_output(output)
 
     def _python_agg_general(self, func, *args, **kwargs):
+        func = _intercept_function(func)
         agg_func = lambda x: func(x, *args, **kwargs)
 
         # iterate through "columns" ex exclusions to populate output dict
@@ -330,6 +331,8 @@ class GroupBy(object):
         return self._wrap_aggregated_output(output)
 
     def _python_apply_general(self, func, *args, **kwargs):
+        func = _intercept_function(func)
+
         result_keys = []
         result_values = []
 
@@ -596,6 +599,8 @@ class Grouper(object):
             return self._aggregate_series_pure_python(obj, func)
 
     def _aggregate_series_fast(self, obj, func):
+        func = _intercept_function(func)
+
         if obj.index._has_complex_internals:
             raise TypeError('Incompatible index for Cython grouper')
 
@@ -1615,6 +1620,15 @@ def _reorder_by_uniques(uniques, labels):
     uniques = uniques.take(sorter)
 
     return uniques, labels
+
+import __builtin__
+
+_func_table = {
+    __builtin__.sum : np.sum
+}
+
+def _intercept_function(func):
+    return _func_table.get(func, func)
 
 def _groupby_indices(values):
     if values.dtype != np.object_:

@@ -1531,6 +1531,17 @@ class TestGroupBy(unittest.TestCase):
         result = grouped.sum()
         _check_groupby(df, result, ['a', 'b'], 'd')
 
+    def test_intercept_builtin_sum(self):
+        import __builtin__
+        s = Series([1., 2., np.nan, 3.])
+        grouped = s.groupby([0, 1, 2, 2])
+
+        result = grouped.agg(__builtin__.sum)
+        result2 = grouped.apply(__builtin__.sum)
+        expected = grouped.sum()
+        assert_series_equal(result, expected)
+        assert_series_equal(result2, expected)
+
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     tups = map(tuple, df[keys].values)
     tups = com._asarray_tuplesafe(tups)
