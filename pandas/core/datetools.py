@@ -437,7 +437,7 @@ def parse_time_string(arg):
         for attr in ["year", "month", "day", "hour",
                      "minute", "second", "microsecond"]:
             value = getattr(parsed, attr)
-            if value is not None:
+            if value is not None and value != 0:
                 repl[attr] = value
                 if not stopped:
                     reso = attr

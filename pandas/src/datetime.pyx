@@ -1896,9 +1896,13 @@ def skts_freq_conv(long skts_ordinal, int base1, long mult1, int base2, long mul
 
     skts_ordinal = remove_mult(skts_ordinal, mult1)
 
-    retval = frequency_conversion(skts_ordinal, base1, base2, (<char*>relation)[0])
+    if mult1 != 1 and relation == 'E':
+        skts_ordinal += (mult1 - 1)
 
-    return apply_mult(retval, mult2)
+    retval = frequency_conversion(skts_ordinal, base1, base2, (<char*>relation)[0])
+    retval = apply_mult(retval, mult2)
+
+    return retval
 
 def skts_ordinal(int y, int m, int d, int h, int min, int s, int base, long mult):
     cdef:

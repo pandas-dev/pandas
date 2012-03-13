@@ -603,7 +603,7 @@ class TestDatetime64(unittest.TestCase):
 
     def test_interval_asfreq(self):
         # need a whole bunch of tests here ...
-        # D to B conversion exception, was failing silently before
+        # D to B conversion exception, not on biz day
         i1 = Interval('3/10/12')
         self.assertRaises(Exception, i1.asfreq, 'B')
 
@@ -623,14 +623,21 @@ class TestDatetime64(unittest.TestCase):
         self.assertEquals(ii[1], Interval('3/1/10', '2M'))
 
         self.assertEquals(ii[0].asfreq('6M'), ii[2].asfreq('6M')) 
+        self.assertEquals(ii[0].asfreq('A'), ii[2].asfreq('A')) 
 
+        self.assertEquals(ii[0].asfreq('M', how='S'),
+                          Interval('Jan 2010', '1M'))
+        self.assertEquals(ii[0].asfreq('M', how='E'),
+                          Interval('Feb 2010', '1M'))
+        self.assertEquals(ii[1].asfreq('M', how='S'),
+                          Interval('Mar 2010', '1M'))
 
-    def test_intervalindex_constructor(self):
-        pass
-        #ii = IntervalIndex(freq='M', start='1/1/2005', end='12/1/2005')
-        #self.assertEquals(len(ii), 12)
-        #self.assertEquals(ii[0], TimeInterval('1/2005', freq='M'))
-        #self.assertEquals(ii[-1], TimeInterval('12/2005', freq='M'))
+        i = Interval('1/1/2010 12:05:18', '5S')
+        self.assertEquals(i, Interval('1/1/2010 12:05:15', '5S'))
+
+        i = Interval('1/1/2010 12:05:18', '5S')
+        self.assertEquals(i.asfreq('1S', how='E'), 
+                          Interval('1/1/2010 12:05:19', '1S'))
 
 if __name__ == '__main__':
     import nose
