@@ -1542,6 +1542,16 @@ class TestGroupBy(unittest.TestCase):
         assert_series_equal(result, expected)
         assert_series_equal(result2, expected)
 
+    def test_column_select_via_attr(self):
+        result = self.df.groupby('A').C.sum()
+        expected = self.df.groupby('A')['C'].sum()
+        assert_series_equal(result, expected)
+
+        self.df['mean'] = 1.5
+        result = self.df.groupby('A').mean()
+        expected = self.df.groupby('A').agg(np.mean)
+        assert_frame_equal(result, expected)
+
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     tups = map(tuple, df[keys].values)
     tups = com._asarray_tuplesafe(tups)
