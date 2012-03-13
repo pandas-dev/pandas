@@ -109,8 +109,6 @@
 #define FR_MIN  8000  /* Minutely */
 #define FR_SEC  9000  /* Secondly */
 
-#define FR_MUL 10000  /* A multiple of a base frequency */
-
 #define FR_UND  -10000 /* Undefined */
 
 #define INT_ERR_CODE -1
