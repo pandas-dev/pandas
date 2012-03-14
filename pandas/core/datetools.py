@@ -331,62 +331,62 @@ class Interval:
     @property
     def year(self):
         base, mult = self.freq
-        return lib.get_skts_field(self.ordinal, base, mult, 'Y')
+        return lib.get_skts_year(self.ordinal, base, mult)
 
     @property
     def month(self):
         base, mult = self.freq
-        return lib.get_skts_field(self.ordinal, base, mult, 'M')
+        return lib.get_skts_month(self.ordinal, base, mult)
 
     @property
     def qyear(self):
         base, mult = self.freq
-        return lib.get_skts_field(self.ordinal, base, mult, 'R')
+        return lib.get_skts_qyear(self.ordinal, base, mult)
 
     @property
     def quarter(self):
         base, mult = self.freq
-        return lib.get_skts_field(self.ordinal, base, mult, 'Q')
+        return lib.get_skts_quarter(self.ordinal, base, mult)
 
     @property
     def day(self):
         base, mult = self.freq
-        return lib.get_skts_field(self.ordinal, base, mult, 'D')
+        return lib.get_skts_day(self.ordinal, base, mult)
 
     @property
     def week(self):
         base, mult = self.freq
-        return lib.get_skts_field(self.ordinal, base, mult, 'E')
+        return lib.get_skts_week(self.ordinal, base, mult)
 
     @property
     def weekday(self):
         base, mult = self.freq
-        return lib.get_skts_field(self.ordinal, base, mult, 'K')
+        return lib.get_skts_weekday(self.ordinal, base, mult)
 
     @property
     def day_of_week(self):
         base, mult = self.freq
-        return lib.get_skts_field(self.ordinal, base, mult, 'W')
+        return lib.get_skts_dow(self.ordinal, base, mult)
 
     @property
     def day_of_year(self):
         base, mult = self.freq
-        return lib.get_skts_field(self.ordinal, base, mult, 'A')
+        return lib.get_skts_doy(self.ordinal, base, mult)
 
     @property
     def hour(self):
         base, mult = self.freq
-        return lib.get_skts_field(self.ordinal, base, mult, 'H')
+        return lib.get_skts_hour(self.ordinal, base, mult)
 
     @property
     def minute(self):
         base, mult = self.freq
-        return lib.get_skts_field(self.ordinal, base, mult, 'T')
+        return lib.get_skts_minute(self.ordinal, base, mult)
 
     @property
     def second(self):
         base, mult = self.freq
-        return lib.get_skts_field(self.ordinal, base, mult, 'S')
+        return lib.get_skts_second(self.ordinal, base, mult)
 
     @classmethod
     def now(cls, freq=None):

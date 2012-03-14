@@ -1930,39 +1930,54 @@ def skts_ordinal_to_dt(long skts_ordinal, int base, long mult):
 def skts_ordinal_to_string(long value, int base, long mult):
     return <object>interval_to_string(remove_mult(value, mult), base)
 
-def get_skts_field(long value, int base, long mult, object fld):
-    return _get_skts_field(value, base, mult, (<char*>fld)[0])
+# interval accessors
 
-cdef int _get_skts_field(long value, int base, long mult, char fld) except -1:
-    cdef:
-        date_info dinfo
-
+cpdef int get_skts_year(long value, int base, long mult) except -1:
     value = remove_mult(value, mult)
+    return iyear(value, base)
 
-    if fld == 'Y':
-        return iyear(value, base)
-    elif fld == 'R':
-        return iqyear(value, base)
-    elif fld == 'Q':
-        return iquarter(value, base)
-    elif fld == 'M':
-        return imonth(value, base)
-    elif fld == 'D':
-        return iday(value, base)
-    elif fld == 'H':
-        return ihour(value, base)
-    elif fld == 'T':
-        return iminute(value, base)
-    elif fld == 'S':
-        return isecond(value, base)
-    elif fld == 'W':
-        return iday_of_week(value, base)
-    elif fld == 'E':
-        return iweek(value, base)
-    elif fld == 'K': # python weekday
-        return iweekday(value, base)
-    elif fld == 'A':
-        return iday_of_year(value, base)
+cpdef int get_skts_qyear(long value, int base, long mult) except -1:
+    value = remove_mult(value, mult)
+    return iqyear(value, base)
 
-    raise ValueError("Bad field passed to _get_skts_field")
+cpdef int get_skts_quarter(long value, int base, long mult) except -1:
+    value = remove_mult(value, mult)
+    return iquarter(value, base)
+
+cpdef int get_skts_month(long value, int base, long mult) except -1:
+    value = remove_mult(value, mult)
+    return imonth(value, base)
+
+cpdef int get_skts_day(long value, int base, long mult) except -1:
+    value = remove_mult(value, mult)
+    return iday(value, base)
+
+cpdef int get_skts_hour(long value, int base, long mult) except -1:
+    value = remove_mult(value, mult)
+    return ihour(value, base)
+
+cpdef int get_skts_minute(long value, int base, long mult) except -1:
+    value = remove_mult(value, mult)
+    return iminute(value, base)
+
+cpdef int get_skts_second(long value, int base, long mult) except -1:
+    value = remove_mult(value, mult)
+    return isecond(value, base)
+
+cpdef int get_skts_dow(long value, int base, long mult) except -1:
+    value = remove_mult(value, mult)
+    return iday_of_week(value, base)
+
+cpdef int get_skts_week(long value, int base, long mult) except -1:
+    value = remove_mult(value, mult)
+    return iweek(value, base)
+
+cpdef int get_skts_weekday(long value, int base, long mult) except -1:
+    value = remove_mult(value, mult)
+    return iweekday(value, base)
+
+cpdef int get_skts_doy(long value, int base, long mult) except -1:
+    value = remove_mult(value, mult)
+    return iday_of_year(value, base)
+
 
