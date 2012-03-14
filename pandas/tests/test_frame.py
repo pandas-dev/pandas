@@ -2989,6 +2989,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # it works
         result = df.fillna({'a': 0, 'b': 5, 'd' : 7})
 
+    def test_fillna_columns(self):
+        df = DataFrame(np.random.randn(10, 10))
+        df.values[:, ::2] = np.nan
+
+        result = df.fillna(axis=1)
+        expected = df.T.fillna(method='pad').T
+        assert_frame_equal(result, expected)
+
+        df.insert(6, 'foo', 5)
+        result = df.fillna(axis=1)
+        expected = df.astype(float).fillna(axis=1)
+        assert_frame_equal(result, expected)
+
     def test_truncate(self):
         offset = datetools.bday
 

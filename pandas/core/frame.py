@@ -2392,7 +2392,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Filling NA's
 
-    def fillna(self, value=None, method='pad', inplace=False):
+    def fillna(self, value=None, method='pad', axis=0, inplace=False):
         """
         Fill NA/NaN values using the specified method
 
@@ -2406,6 +2406,9 @@ class DataFrame(NDFrame):
             Value to use to fill holes (e.g. 0), alternately a dict of values
             specifying which value to use for each column (columns not in the
             dict will not be filled)
+        axis : {0, 1}, default 0
+            0: fill column-by-column
+            1: fill row-by-row
         inplace : boolean, default False
             If True, fill the DataFrame in place. Note: this will modify any
             other views on this DataFrame, like if you took a no-copy slice of
@@ -2425,12 +2428,14 @@ class DataFrame(NDFrame):
         self._consolidate_inplace()
 
         if value is None:
-            new_blocks = []
+            if self._is_mixed_type and axis == 1:
+                return self.T.fillna(method=method).T
 
+            new_blocks = []
             method = com._clean_fill_method(method)
             for block in self._data.blocks:
                 if isinstance(block, (FloatBlock, ObjectBlock)):
-                    newb = block.interpolate(method, inplace=inplace)
+                    newb = block.interpolate(method, axis=axis, inplace=inplace)
                 else:
                     newb = block if inplace else block.copy()
                 new_blocks.append(newb)
