@@ -1019,12 +1019,14 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         except ImportError:
             raise nose.SkipTest
 
-        path = '__tmp__.xlsx'
-        self.panel.to_excel(path)
-        reader = ExcelFile(path)
-        for item, df in self.panel.iteritems():
-            recdf = reader.parse(str(item),index_col=0)
-            assert_frame_equal(df, recdf)
+        for ext in ['xls', 'xlsx']:
+            path = '__tmp__.' + ext
+            self.panel.to_excel(path)
+            reader = ExcelFile(path)
+            for item, df in self.panel.iteritems():
+                recdf = reader.parse(str(item),index_col=0)
+                assert_frame_equal(df, recdf)
+            os.remove(path)
 
 class TestLongPanel(unittest.TestCase):
     """
