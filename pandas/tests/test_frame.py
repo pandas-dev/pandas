@@ -912,6 +912,12 @@ class CheckIndexing(object):
         self.assert_(isnull(res3['baz'].drop(['foobar'])).values.all())
         self.assertRaises(ValueError, res3.set_value, 'foobar', 'baz', 'sam')
 
+    def test_set_value_with_index_dtype_change(self):
+        df = DataFrame(randn(3,3), index=range(3), columns=list('ABC'))
+        res = df.set_value('C', 2, 1.0)
+        self.assert_(list(res.index) == list(df.index) + ['C'])
+        self.assert_(list(res.columns) == list(df.columns) + [2])
+
     def test_get_set_value_no_partial_indexing(self):
         # partial w/ MultiIndex raise exception
         index = MultiIndex.from_tuples([(0, 1), (0, 2), (1, 1), (1, 2)])
