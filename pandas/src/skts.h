@@ -161,4 +161,19 @@ long get_python_ordinal(long skts_ordinal, int freq);
 PyObject *interval_strftime(long value, int freq, PyObject *args);
 PyObject *interval_to_string(long value, int freq);
 
+int get_date_info(long ordinal, int freq, struct date_info *dinfo);
+
+int iyear(long ordinal, int freq);
+int iqyear(long ordinal, int freq);
+int iquarter(long ordinal, int freq);
+int imonth(long ordinal, int freq);
+int iday(long ordinal, int freq);
+int iweekday(long ordinal, int freq);
+int iday_of_week(long ordinal, int freq);
+int iday_of_year(long ordinal, int freq);
+int iweek(long ordinal, int freq);
+int ihour(long ordinal, int freq);
+int iminute(long ordinal, int freq);
+int isecond(long ordinal, int freq);
+
 #endif

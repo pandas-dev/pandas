@@ -1221,12 +1221,12 @@ class DatetimeIndex(Int64Index):
 
             # try a few ways to make it datetime64
             if lib.is_string_array(data):
-                data = datetools._from_string_array(data)
+                data = datetools._str_to_dt_array(data)
             else:
                 data = np.asarray(data, dtype='M8[us]')
 
         if issubclass(data.dtype.type, basestring):
-            subarr = datetools._from_string_array(data)
+            subarr = datetools._str_to_dt_array(data)
         elif issubclass(data.dtype.type, np.integer):
             subarr = np.array(data, dtype='M8[us]', copy=copy)
         elif issubclass(data.dtype.type, np.datetime64):

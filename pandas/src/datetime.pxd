@@ -93,6 +93,20 @@ cdef extern from "np_datetime_strings.h":
     int get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base)
 
 cdef extern from "skts.h":
+    ctypedef struct date_info:
+        long absdate
+        double abstime
+        double second
+        int minute
+        int hour
+        int day
+        int month
+        int quarter
+        int year
+        int day_of_week
+        int day_of_year
+        int calendar
+
     long frequency_conversion(long dtordinal, int freq1, int freq2, char relation) except -1
 
     long get_skts_ordinal(int year, int month, int day,
@@ -103,6 +117,21 @@ cdef extern from "skts.h":
 
     PyObject *interval_strftime(long value, int freq, PyObject *args)
     PyObject *interval_to_string(long value, int freq)
+
+    # int get_date_info(long ordinal, int freq, date_info *dinfo) except -1
+
+    int iyear(long ordinal, int freq) except -1
+    int iqyear(long ordinal, int freq) except -1
+    int iquarter(long ordinal, int freq) except -1
+    int imonth(long ordinal, int freq) except -1
+    int iday(long ordinal, int freq) except -1
+    int iweekday(long ordinal, int freq) except -1
+    int iday_of_week(long ordinal, int freq) except -1
+    int iday_of_year(long ordinal, int freq) except -1
+    int iweek(long ordinal, int freq) except -1
+    int ihour(long ordinal, int freq) except -1
+    int iminute(long ordinal, int freq) except -1
+    int isecond(long ordinal, int freq) except -1
 
 cdef extern from "stdint.h":
     enum: INT64_MIN

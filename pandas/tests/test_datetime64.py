@@ -561,53 +561,7 @@ class TestDatetime64(unittest.TestCase):
         for other in [idx2, idx3, idx4, idx5, idx6]:
             self.assert_( (idx1.values == other.values).all() )
 
-    def test_interval_constructor(self):
-        i1 = Interval('1/1/2005', freq='M')
-        i2 = Interval('Jan 2005')
-
-        self.assertEquals(i1, i2)
-
-        i1 = Interval('2005', freq='A')
-        i2 = Interval('2005')
-
-        self.assertEquals(i1, i2)
-
-        i3 = Interval('2005', freq='M')
-        self.assert_(i1 != i3)
-
-        i1 = Interval.now('Q')
-        i2 = Interval(datetime.now(), freq='Q')
-
-        self.assertEquals(i1, i2)
-
-        # Biz day construction, roll forward if non-weekday
-        i1 = Interval('3/10/12', freq='B')
-        i2 = Interval('3/12/12', freq='D')
-        self.assertEquals(i1, i2.asfreq('B'))
-
-        i1 = Interval(year=2005, quarter=1, freq='Q')
-        i2 = Interval('1/1/2005', freq='Q')
-        self.assertEquals(i1, i2)
-
-        i1 = Interval(year=2005, quarter=3, freq='Q')
-        i2 = Interval('9/1/2005', freq='Q')
-        self.assertEquals(i1, i2)
-
-        i1 = Interval(year=2005, month=3, day=1, freq='D')
-        i2 = Interval('3/1/2005', freq='D')
-        self.assertEquals(i1, i2)
-
-        i1 = Interval(year=2012, month=3, day=10, freq='B')
-        i2 = Interval('3/12/12', freq='B')
-        self.assertEquals(i1, i2)
-
-    def test_interval_asfreq(self):
-        # need a whole bunch of tests here ...
-        # D to B conversion exception, not on biz day
-        i1 = Interval('3/10/12')
-        self.assertRaises(Exception, i1.asfreq, 'B')
-
-    def test_interval_slice_index(self):
+    def test_iindex_slice_index(self):
         ii = IntervalIndex(start='1/1/10', end='12/31/12', freq='M')
         s = Series(np.random.rand(len(ii)), index=ii)
         res = s['2010']
@@ -617,7 +571,7 @@ class TestDatetime64(unittest.TestCase):
         exp = s[12:24]
         assert_series_equal(res, exp)
         
-    def test_interval_multiples(self):
+    def test_iindex_multiples(self):
         ii = IntervalIndex(start='1/1/10', end='12/31/12', freq='2M')
         self.assertEquals(ii[0], Interval('1/1/10', '2M'))
         self.assertEquals(ii[1], Interval('3/1/10', '2M'))

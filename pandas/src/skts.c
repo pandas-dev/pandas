@@ -959,7 +959,7 @@ int dInfoCalc_SetFromAbsDateTime(struct date_info *dinfo,
 
 long frequency_conversion(long skts_ordinal, int freq1, int freq2, char relation)
 {
-    freq_conv_func func = get_asfreq_func(freq1, freq2, 1);
+    freq_conv_func func = get_asfreq_func(freq1, freq2, 0);
 
     asfreq_info finfo;
     get_asfreq_info(freq1, freq2, &finfo);
@@ -1282,4 +1282,146 @@ PyObject *interval_to_string(long value, int freq)
     Py_DECREF(string_arg);
 
     return retval;
+}
+
+static int _quarter_year(long ordinal, int freq, int *year, int *quarter) {
+    asfreq_info af_info;
+    int qtr_freq;
+
+    ordinal = get_python_ordinal(ordinal, freq);
+
+    if (get_freq_group(freq) == FR_QTR)
+        qtr_freq = freq;
+    else
+        qtr_freq = FR_QTR;
+
+    get_asfreq_info(FR_DAY, qtr_freq, &af_info);
+
+    if (DtoQ_yq(ordinal, &af_info, year, quarter) == INT_ERR_CODE)
+        return INT_ERR_CODE;
+
+    if ((qtr_freq % 1000) > 12)
+        *year -= 1;
+
+    return 0;
+}
+
+static int _ISOWeek(struct date_info *dinfo)
+{
+    int week;
+
+    /* Estimate */
+    week = (dinfo->day_of_year-1) - dinfo->day_of_week + 3;
+    if (week >= 0) week = week / 7 + 1;
+
+    /* Verify */
+    if (week < 0) {
+        /* The day lies in last week of the previous year */
+        if ((week > -2) ||
+            (week == -2 && dInfoCalc_Leapyear(dinfo->year-1, dinfo->calendar)))
+            week = 53;
+        else
+            week = 52;
+    } else if (week == 53) {
+    /* Check if the week belongs to year or year+1 */
+        if (31-dinfo->day + dinfo->day_of_week < 3) {
+            week = 1;
+        }
+    }
+
+    return week;
+}
+
+int get_date_info(long ordinal, int freq, struct date_info *dinfo)
+{
+    long absdate = get_python_ordinal(ordinal, freq);
+    double abstime = getAbsTime(freq, absdate, ordinal);
+
+    if(dInfoCalc_SetFromAbsDateTime(dinfo, absdate, abstime, GREGORIAN_CALENDAR))
+        return INT_ERR_CODE;
+
+    return 0;
+}
+
+int iyear(long ordinal, int freq) {
+    struct date_info dinfo;
+    get_date_info(ordinal, freq, &dinfo);
+    return dinfo.year;
+}
+
+int iqyear(long ordinal, int freq) {
+    int year, quarter;
+    if( _quarter_year(ordinal, freq, &year, &quarter) == INT_ERR_CODE)
+        return INT_ERR_CODE;
+    return year;
+}
+
+int iquarter(long ordinal, int freq) {
+    int year, quarter;
+    if(_quarter_year(ordinal, freq, &year, &quarter) == INT_ERR_CODE)
+        return INT_ERR_CODE;
+    return quarter;
+}
+
+int imonth(long ordinal, int freq) {
+    struct date_info dinfo;
+    if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
+        return INT_ERR_CODE;
+    return dinfo.month;
+}
+
+int iday(long ordinal, int freq) {
+    struct date_info dinfo;
+    if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
+        return INT_ERR_CODE;
+    return dinfo.day;
+}
+
+int iweekday(long ordinal, int freq) {
+    struct date_info dinfo;
+    if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
+        return INT_ERR_CODE;
+    return dinfo.day_of_week;
+}
+
+int iday_of_week(long ordinal, int freq) {
+    struct date_info dinfo;
+    if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
+        return INT_ERR_CODE;
+    return dinfo.day_of_week;
+}
+
+int iday_of_year(long ordinal, int freq) {
+    struct date_info dinfo;
+    if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
+        return INT_ERR_CODE;
+    return dinfo.day_of_year;
+}
+
+int iweek(long ordinal, int freq) {
+    struct date_info dinfo;
+    if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
+        return INT_ERR_CODE;
+    return _ISOWeek(&dinfo);
+}
+
+int ihour(long ordinal, int freq) {
+    struct date_info dinfo;
+    if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
+        return INT_ERR_CODE;
+    return dinfo.hour;
+}
+
+int iminute(long ordinal, int freq) {
+    struct date_info dinfo;
+    if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
+        return INT_ERR_CODE;
+    return dinfo.minute;
+}
+
+int isecond(long ordinal, int freq) {
+    struct date_info dinfo;
+    if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
+        return INT_ERR_CODE;
+    return (int)dinfo.second;
 }

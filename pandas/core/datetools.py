@@ -60,7 +60,7 @@ def _dt_unbox_array(arr):
     unboxer = np.frompyfunc(_dt_unbox, 1, 1)
     return unboxer(arr)
 
-def _from_string_array(arr):
+def _str_to_dt_array(arr):
     def parser(x):
         result = parse_time_string(x)
         return result[0]
@@ -300,16 +300,17 @@ class Interval:
     def __add__(self, other):
         if isinstance(other, (int, long)):
             return Interval(self.ordinal + other, self.freq)
-        raise "Cannot add with non-integer value"
+        raise ValueError("Cannot add with non-integer value")
 
     def __sub__(self, other):
         if isinstance(other, (int, long)):
             return Interval(self.ordinal - other, self.freq)
         if isinstance(other, Interval):
             if other.freq != self.freq:
-                raise "Cannot do arithmetic with non-conforming intervals"
+                raise ValueError("Cannot do arithmetic with "
+                                 "non-conforming intervals")
             return self.ordinal - other.ordinal
-        raise "Cannot sub with non-integer value"
+        raise ValueError("Cannot sub with non-integer value")
 
     def asfreq(self, freq=None, how='E'):
         if how not in ('S', 'E'):
@@ -322,10 +323,70 @@ class Interval:
         else:
             base2, mult2 = freq
 
-        new_ordinal = lib.skts_freq_conv(self.ordinal, base1, mult1, 
+        new_ordinal = lib.skts_freq_conv(self.ordinal, base1, mult1,
                                          base2, mult2, how)
 
         return Interval(new_ordinal, (base2, mult2))
+
+    @property
+    def year(self):
+        base, mult = self.freq
+        return lib.get_skts_field(self.ordinal, base, mult, 'Y')
+
+    @property
+    def month(self):
+        base, mult = self.freq
+        return lib.get_skts_field(self.ordinal, base, mult, 'M')
+
+    @property
+    def qyear(self):
+        base, mult = self.freq
+        return lib.get_skts_field(self.ordinal, base, mult, 'R')
+
+    @property
+    def quarter(self):
+        base, mult = self.freq
+        return lib.get_skts_field(self.ordinal, base, mult, 'Q')
+
+    @property
+    def day(self):
+        base, mult = self.freq
+        return lib.get_skts_field(self.ordinal, base, mult, 'D')
+
+    @property
+    def week(self):
+        base, mult = self.freq
+        return lib.get_skts_field(self.ordinal, base, mult, 'E')
+
+    @property
+    def weekday(self):
+        base, mult = self.freq
+        return lib.get_skts_field(self.ordinal, base, mult, 'K')
+
+    @property
+    def day_of_week(self):
+        base, mult = self.freq
+        return lib.get_skts_field(self.ordinal, base, mult, 'W')
+
+    @property
+    def day_of_year(self):
+        base, mult = self.freq
+        return lib.get_skts_field(self.ordinal, base, mult, 'A')
+
+    @property
+    def hour(self):
+        base, mult = self.freq
+        return lib.get_skts_field(self.ordinal, base, mult, 'H')
+
+    @property
+    def minute(self):
+        base, mult = self.freq
+        return lib.get_skts_field(self.ordinal, base, mult, 'T')
+
+    @property
+    def second(self):
+        base, mult = self.freq
+        return lib.get_skts_field(self.ordinal, base, mult, 'S')
 
     @classmethod
     def now(cls, freq=None):

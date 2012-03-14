@@ -1855,13 +1855,19 @@ cdef long apply_mult(long skts_ord, long mult):
     For example, 5min ordinal will be 1/5th the 1min ordinal (rounding down to
     integer).
     """
+    if mult == 1:
+        return skts_ord
+
     return (skts_ord - 1) // mult
 
-cdef long remove_mult(long skits_ord_w_mult, long mult):
+cdef long remove_mult(long skts_ord_w_mult, long mult):
     """
     Get base-only ordinal value from corresponding base+multiple ordinal.
     """
-    return skits_ord_w_mult * mult + 1;
+    if mult == 1:
+        return skts_ord_w_mult
+
+    return skts_ord_w_mult * mult + 1;
 
 def dt64arr_to_sktsarr(ndarray[int64_t] dtarr, int base, long mult):
     """
@@ -1923,3 +1929,40 @@ def skts_ordinal_to_dt(long skts_ordinal, int base, long mult):
 
 def skts_ordinal_to_string(long value, int base, long mult):
     return <object>interval_to_string(remove_mult(value, mult), base)
+
+def get_skts_field(long value, int base, long mult, object fld):
+    return _get_skts_field(value, base, mult, (<char*>fld)[0])
+
+cdef int _get_skts_field(long value, int base, long mult, char fld) except -1:
+    cdef:
+        date_info dinfo
+
+    value = remove_mult(value, mult)
+
+    if fld == 'Y':
+        return iyear(value, base)
+    elif fld == 'R':
+        return iqyear(value, base)
+    elif fld == 'Q':
+        return iquarter(value, base)
+    elif fld == 'M':
+        return imonth(value, base)
+    elif fld == 'D':
+        return iday(value, base)
+    elif fld == 'H':
+        return ihour(value, base)
+    elif fld == 'T':
+        return iminute(value, base)
+    elif fld == 'S':
+        return isecond(value, base)
+    elif fld == 'W':
+        return iday_of_week(value, base)
+    elif fld == 'E':
+        return iweek(value, base)
+    elif fld == 'K': # python weekday
+        return iweekday(value, base)
+    elif fld == 'A':
+        return iday_of_year(value, base)
+
+    raise ValueError("Bad field passed to _get_skts_field")
+
