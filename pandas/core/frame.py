@@ -1141,7 +1141,6 @@ class DataFrame(NDFrame):
             for col, count in counts.iteritems():
                 if not isinstance(col, (unicode, str)):
                     col = str(col)
-                # colstr = _stringify(col)
                 lines.append(_put_str(col, space) +
                              '%d  non-null values' % count)
         else:
