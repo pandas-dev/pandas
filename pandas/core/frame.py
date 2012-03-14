@@ -1116,36 +1116,45 @@ class DataFrame(NDFrame):
         if buf is None:  # pragma: no cover
             buf = sys.stdout
 
-        print >> buf, str(type(self))
-        print >> buf, self.index.summary()
+        def _put_lines(buf, lines):
+            if any(isinstance(x, unicode) for x in lines):
+                lines = [unicode(x) for x in lines]
+            print >> buf, '\n'.join(lines)
+
+        lines = []
+
+        lines.append(str(type(self)))
+        lines.append(self.index.summary())
 
         if len(self.columns) == 0:
-            print >> buf, 'Empty %s' % type(self).__name__
+            lines.append('Empty %s' % type(self).__name__)
+            _put_lines(buf, lines)
             return
 
         cols = self.columns
 
         if verbose:
-            print >> buf, 'Data columns:'
+            lines.append('Data columns:')
             space = max([len(_stringify(k)) for k in self.columns]) + 4
-            col_counts = []
             counts = self.count()
             assert(len(cols) == len(counts))
             for col, count in counts.iteritems():
-                colstr = _stringify(col)
-                col_counts.append('%s%d  non-null values' %
-                                  (_put_str(colstr, space), count))
-            print >> buf, '\n'.join(col_counts)
+                if not isinstance(col, (unicode, str)):
+                    col = str(col)
+                # colstr = _stringify(col)
+                lines.append(_put_str(col, space) +
+                             '%d  non-null values' % count)
         else:
             if len(cols) <= 2:
-                print >> buf, 'Columns: %s' % repr(cols)
+                lines.append('Columns: %s' % repr(cols))
             else:
-                print >> buf, ('Columns: %s to %s' % (_stringify(cols[0]),
-                                                      _stringify(cols[-1])))
+                lines.append('Columns: %s to %s' % (_stringify(cols[0]),
+                                                    _stringify(cols[-1])))
 
         counts = self.get_dtype_counts()
         dtypes = ['%s(%d)' % k for k in sorted(counts.iteritems())]
-        buf.write('dtypes: %s' % ', '.join(dtypes))
+        lines.append('dtypes: %s' % ', '.join(dtypes))
+        _put_lines(buf, lines)
 
     @property
     def dtypes(self):

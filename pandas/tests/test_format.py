@@ -144,6 +144,15 @@ class TestDataFrameFormatting(unittest.TestCase):
         df = DataFrame({'foo' : np.inf * np.empty(10)})
         foo = repr(df)
 
+    def test_frame_info_encoding(self):
+        index = ['\'Til There Was You (1997)',
+                 '\xc1 k\xf6ldum klaka (Cold Fever) (1994)']
+        fmt.set_printoptions(max_rows=1)
+        df = DataFrame(columns=['a', 'b', 'c'], index=index)
+        repr(df)
+        repr(df.T)
+        fmt.set_printoptions(max_rows=200)
+
     def test_to_string(self):
         from pandas import read_table
         import re
