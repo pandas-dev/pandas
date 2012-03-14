@@ -134,7 +134,7 @@ class TestDataFrameFormatting(unittest.TestCase):
 
     def test_string_repr_encoding(self):
         pth = curpath()
-        filepath = os.path.join(pth, 'unicode_series.csv')
+        filepath = os.path.join(pth, 'data', 'unicode_series.csv')
         df = pandas.read_csv(filepath, header=None)
         repr(df)
         repr(df['X.2'])
