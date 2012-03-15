@@ -206,7 +206,7 @@ class PandasObject(Picklable):
 
         return self.reindex(**{axis_name : new_axis})
 
-    def drop(self, labels, axis=0):
+    def drop(self, labels, axis=0, level=None):
         """
         Return new object with labels in requested axis removed
 
@@ -214,6 +214,8 @@ class PandasObject(Picklable):
         ----------
         labels : array-like
         axis : int
+        level : int or name, default None
+            For MultiIndex
 
         Returns
         -------
@@ -221,7 +223,13 @@ class PandasObject(Picklable):
         """
         axis_name = self._get_axis_name(axis)
         axis = self._get_axis(axis)
-        new_axis = axis.drop(labels)
+
+        if level is not None:
+            assert(isinstance(axis, MultiIndex))
+            new_axis = axis.drop(labels, level=level)
+        else:
+            new_axis = axis.drop(labels)
+
         return self.reindex(**{axis_name : new_axis})
 
     def sort_index(self, axis=0, ascending=True):
@@ -366,7 +374,7 @@ class NDFrame(PandasObject):
         Delete item
         """
         deleted = False
-        if (hasattr(self,'columns') and 
+        if (hasattr(self,'columns') and
                 isinstance(self.columns, MultiIndex)
                 and key not in self.columns):
             # Allow shorthand to delete all columns whose first len(key)
@@ -400,9 +408,7 @@ class NDFrame(PandasObject):
         new_axes = []
         for k, ax in zip(key, self.axes):
             if k not in ax:
-                if type(k) != ax.dtype.type:
-                    ax = ax.astype('O')
-                new_axes.append(np.concatenate([ax, [k]]))
+                new_axes.append(ax.insert(len(ax), k))
             else:
                 new_axes.append(ax)
 

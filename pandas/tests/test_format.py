@@ -1,4 +1,5 @@
 from StringIO import StringIO
+import os
 import sys
 import unittest
 
@@ -9,8 +10,13 @@ import numpy as np
 from pandas import DataFrame, Series, Index
 import pandas.core.format as fmt
 import pandas.util.testing as tm
+import pandas
 
 _frame = DataFrame(tm.getSeriesData())
+
+def curpath():
+    pth, _ = os.path.split(os.path.abspath(__file__))
+    return pth
 
 class TestDataFrameFormatting(unittest.TestCase):
 
@@ -126,10 +132,26 @@ class TestDataFrameFormatting(unittest.TestCase):
         dm = DataFrame({u'c/\u03c3': Series({'test':np.NaN})})
         unicode(dm.to_string())
 
+    def test_string_repr_encoding(self):
+        pth = curpath()
+        filepath = os.path.join(pth, 'data', 'unicode_series.csv')
+        df = pandas.read_csv(filepath, header=None)
+        repr(df)
+        repr(df['X.2'])
+
     def test_repr_corner(self):
         # representing infs poses no problems
         df = DataFrame({'foo' : np.inf * np.empty(10)})
         foo = repr(df)
+
+    def test_frame_info_encoding(self):
+        index = ['\'Til There Was You (1997)',
+                 '\xc1 k\xf6ldum klaka (Cold Fever) (1994)']
+        fmt.set_printoptions(max_rows=1)
+        df = DataFrame(columns=['a', 'b', 'c'], index=index)
+        repr(df)
+        repr(df.T)
+        fmt.set_printoptions(max_rows=200)
 
     def test_to_string(self):
         from pandas import read_table

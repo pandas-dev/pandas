@@ -912,6 +912,12 @@ class CheckIndexing(object):
         self.assert_(isnull(res3['baz'].drop(['foobar'])).values.all())
         self.assertRaises(ValueError, res3.set_value, 'foobar', 'baz', 'sam')
 
+    def test_set_value_with_index_dtype_change(self):
+        df = DataFrame(randn(3,3), index=range(3), columns=list('ABC'))
+        res = df.set_value('C', 2, 1.0)
+        self.assert_(list(res.index) == list(df.index) + ['C'])
+        self.assert_(list(res.columns) == list(df.columns) + [2])
+
     def test_get_set_value_no_partial_indexing(self):
         # partial w/ MultiIndex raise exception
         index = MultiIndex.from_tuples([(0, 1), (0, 2), (1, 1), (1, 2)])
@@ -2965,6 +2971,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         result = self.mixed_frame.fillna(value=0)
 
+    def test_fillna_skip_certain_blocks(self):
+        # don't try to fill boolean, int blocks
+
+        df = DataFrame(np.random.randn(10, 4).astype(int))
+
+        # it works!
+        df.fillna(np.nan)
+
     def test_fillna_inplace(self):
         df = DataFrame(np.random.randn(10, 4))
         df[1][:4] = np.nan
@@ -2985,6 +2999,34 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df2 = df.fillna(inplace=True)
         self.assert_(df2 is df)
         assert_frame_equal(df2, expected)
+
+    def test_fillna_dict(self):
+        df = DataFrame({'a': [nan, 1, 2, nan, nan],
+                        'b': [1, 2, 3, nan, nan],
+                        'c': [nan, 1, 2, 3, 4]})
+
+        result = df.fillna({'a': 0, 'b': 5})
+
+        expected = df.copy()
+        expected['a'] = expected['a'].fillna(0)
+        expected['b'] = expected['b'].fillna(5)
+        assert_frame_equal(result, expected)
+
+        # it works
+        result = df.fillna({'a': 0, 'b': 5, 'd' : 7})
+
+    def test_fillna_columns(self):
+        df = DataFrame(np.random.randn(10, 10))
+        df.values[:, ::2] = np.nan
+
+        result = df.fillna(axis=1)
+        expected = df.T.fillna(method='pad').T
+        assert_frame_equal(result, expected)
+
+        df.insert(6, 'foo', 5)
+        result = df.fillna(axis=1)
+        expected = df.astype(float).fillna(axis=1)
+        assert_frame_equal(result, expected)
 
     def test_truncate(self):
         offset = datetools.bday
@@ -3393,6 +3435,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # try to align dataframe to series along bad axis
         self.assertRaises(ValueError, self.frame.align, af.ix[0,:3],
                           join='inner', axis=2)
+
+    def test_align_int_fill_bug(self):
+        # GH #910
+        X = np.random.rand(10,10)
+        Y = np.ones((10,1),dtype=int)
+        df1 = DataFrame(X)
+        df1['0.X'] = Y.squeeze()
+
+        df2 = df1.astype(float)
+
+        result = df1 - df1.mean()
+        expected = df2 - df2.mean()
+        assert_frame_equal(result, expected)
 
     #----------------------------------------------------------------------
     # Transposing

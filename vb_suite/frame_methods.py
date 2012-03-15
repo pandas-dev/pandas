@@ -23,3 +23,13 @@ frame_fancy_lookup = Benchmark('df.lookup(row_labels, col_labels)', setup,
 frame_fancy_lookup_all = Benchmark('df.lookup(row_labels_all, col_labels_all)',
                                    setup,
                                    start_date=datetime(2012, 1, 12))
+
+#----------------------------------------------------------------------
+# fillna in place
+
+setup = common_setup + """
+df = DataFrame(randn(10000, 100))
+df.values[::2] = np.nan
+"""
+
+frame_fillna_inplace = Benchmark('df.fillna(0, inplace=True)', setup)

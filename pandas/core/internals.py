@@ -201,26 +201,33 @@ class Block(object):
             left_block = make_block(self.values[:loc],
                                     self.items[:loc].copy(), self.ref_items)
             right_block = make_block(self.values[loc + 1:],
-                                     self.items[loc + 1:].copy(), self.ref_items)
+                                     self.items[loc + 1:].copy(),
+                                     self.ref_items)
 
         return left_block, right_block
 
-    def fillna(self, value):
-        new_values = self.values.copy()
+    def fillna(self, value, inplace=False):
+        new_values = self.values if inplace else self.values.copy()
         mask = com.isnull(new_values.ravel())
         new_values.flat[mask] = value
-        return make_block(new_values, self.items, self.ref_items)
 
-    def interpolate(self, method='pad', inplace=False):
+        if inplace:
+            return self
+        else:
+            return make_block(new_values, self.items, self.ref_items)
+
+    def interpolate(self, method='pad', axis=0, inplace=False):
         values = self.values if inplace else self.values.copy()
 
         if values.ndim != 2:
             raise NotImplementedError
 
+        transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
+
         if method == 'pad':
-            _pad(values)
+            _pad(transf(values))
         else:
-            _backfill(values)
+            _backfill(transf(values))
 
         return make_block(values, self.items, self.ref_items)
 
@@ -248,6 +255,7 @@ def _backfill(values):
 # Is this even possible?
 
 class FloatBlock(Block):
+    _can_hold_na = True
 
     def should_store(self, value):
         # when inserting a column should not coerce integers to floats
@@ -255,16 +263,19 @@ class FloatBlock(Block):
         return issubclass(value.dtype.type, np.floating)
 
 class IntBlock(Block):
+    _can_hold_na = False
 
     def should_store(self, value):
         return issubclass(value.dtype.type, np.integer)
 
 class BoolBlock(Block):
+    _can_hold_na = False
 
     def should_store(self, value):
         return issubclass(value.dtype.type, np.bool_)
 
 class ObjectBlock(Block):
+    _can_hold_na = True
 
     def should_store(self, value):
         return not issubclass(value.dtype.type,
@@ -931,11 +942,15 @@ class BlockManager(object):
         f = ('%s' + ('%s' % suffix)).__mod__
         return self.rename_items(f)
 
-    def fillna(self, value):
+    def fillna(self, value, inplace=False):
         """
 
         """
-        new_blocks = [b.fillna(value) for b in self.blocks]
+        new_blocks = [b.fillna(value, inplace=inplace)
+                      if b._can_hold_na else b
+                      for b in self.blocks]
+        if inplace:
+            return self
         return BlockManager(new_blocks, self.axes)
 
     @property

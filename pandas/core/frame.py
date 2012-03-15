@@ -1118,36 +1118,44 @@ class DataFrame(NDFrame):
         if buf is None:  # pragma: no cover
             buf = sys.stdout
 
-        print >> buf, str(type(self))
-        print >> buf, self.index.summary()
+        def _put_lines(buf, lines):
+            if any(isinstance(x, unicode) for x in lines):
+                lines = [unicode(x) for x in lines]
+            print >> buf, '\n'.join(lines)
+
+        lines = []
+
+        lines.append(str(type(self)))
+        lines.append(self.index.summary())
 
         if len(self.columns) == 0:
-            print >> buf, 'Empty %s' % type(self).__name__
+            lines.append('Empty %s' % type(self).__name__)
+            _put_lines(buf, lines)
             return
 
         cols = self.columns
 
         if verbose:
-            print >> buf, 'Data columns:'
+            lines.append('Data columns:')
             space = max([len(_stringify(k)) for k in self.columns]) + 4
-            col_counts = []
             counts = self.count()
             assert(len(cols) == len(counts))
             for col, count in counts.iteritems():
-                colstr = _stringify(col)
-                col_counts.append('%s%d  non-null values' %
-                                  (_put_str(colstr, space), count))
-            print >> buf, '\n'.join(col_counts)
+                if not isinstance(col, (unicode, str)):
+                    col = str(col)
+                lines.append(_put_str(col, space) +
+                             '%d  non-null values' % count)
         else:
             if len(cols) <= 2:
-                print >> buf, 'Columns: %s' % repr(cols)
+                lines.append('Columns: %s' % repr(cols))
             else:
-                print >> buf, ('Columns: %s to %s' % (_stringify(cols[0]),
-                                                      _stringify(cols[-1])))
+                lines.append('Columns: %s to %s' % (_stringify(cols[0]),
+                                                    _stringify(cols[-1])))
 
         counts = self.get_dtype_counts()
         dtypes = ['%s(%d)' % k for k in sorted(counts.iteritems())]
-        buf.write('dtypes: %s' % ', '.join(dtypes))
+        lines.append('dtypes: %s' % ', '.join(dtypes))
+        _put_lines(buf, lines)
 
     @property
     def dtypes(self):
@@ -1823,7 +1831,7 @@ class DataFrame(NDFrame):
         left_result = DataFrame(fdata)
         right_result = other if ridx is None else other.reindex(join_index)
 
-        fill_na = (fill_value is not None) or (method is not None)
+        fill_na = notnull(fill_value) or (method is not None)
         if fill_na:
             return (left_result.fillna(fill_value, method=method),
                     right_result.fillna(fill_value, method=method))
@@ -1924,15 +1932,11 @@ class DataFrame(NDFrame):
             raise ValueError('Must specify axis=0 or 1')
 
     def _reindex_index(self, new_index, method, copy, level, fill_value=np.nan):
-        if level is not None:
-            assert(isinstance(new_index, MultiIndex))
         new_index, indexer = self.index.reindex(new_index, method, level)
         return self._reindex_with_indexers(new_index, indexer, None, None,
                                            copy, fill_value)
 
     def _reindex_columns(self, new_columns, copy, level, fill_value=np.nan):
-        if level is not None:
-            assert(isinstance(new_columns, MultiIndex))
         new_columns, indexer = self.columns.reindex(new_columns, level=level)
         return self._reindex_with_indexers(None, None, new_columns, indexer,
                                            copy, fill_value)
@@ -1941,6 +1945,7 @@ class DataFrame(NDFrame):
                                copy, fill_value):
         new_data = self._data
         if row_indexer is not None:
+            row_indexer = com._ensure_int32(row_indexer)
             new_data = new_data.reindex_indexer(index, row_indexer, axis=1,
                                                 fill_value=fill_value)
         elif index is not None and index is not new_data.axes[1]:
@@ -1949,6 +1954,7 @@ class DataFrame(NDFrame):
 
         if col_indexer is not None:
             # TODO: speed up on homogeneous DataFrame objects
+            col_indexer = com._ensure_int32(col_indexer)
             new_data = new_data.reindex_indexer(columns, col_indexer, axis=0,
                                                 fill_value=fill_value)
         elif columns is not None and columns is not new_data.axes[0]:
@@ -2404,7 +2410,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Filling NA's
 
-    def fillna(self, value=None, method='pad', inplace=False):
+    def fillna(self, value=None, method='pad', axis=0, inplace=False):
         """
         Fill NA/NaN values using the specified method
 
@@ -2414,8 +2420,13 @@ class DataFrame(NDFrame):
             Method to use for filling holes in reindexed Series
             pad / ffill: propagate last valid observation forward to next valid
             backfill / bfill: use NEXT valid observation to fill gap
-        value : any kind (should be same type as array)
-            Value to use to fill holes (e.g. 0)
+        value : scalar or dict
+            Value to use to fill holes (e.g. 0), alternately a dict of values
+            specifying which value to use for each column (columns not in the
+            dict will not be filled)
+        axis : {0, 1}, default 0
+            0: fill column-by-column
+            1: fill row-by-row
         inplace : boolean, default False
             If True, fill the DataFrame in place. Note: this will modify any
             other views on this DataFrame, like if you took a no-copy slice of
@@ -2435,12 +2446,14 @@ class DataFrame(NDFrame):
         self._consolidate_inplace()
 
         if value is None:
-            new_blocks = []
+            if self._is_mixed_type and axis == 1:
+                return self.T.fillna(method=method).T
 
+            new_blocks = []
             method = com._clean_fill_method(method)
             for block in self._data.blocks:
                 if isinstance(block, (FloatBlock, ObjectBlock)):
-                    newb = block.interpolate(method, inplace=inplace)
+                    newb = block.interpolate(method, axis=axis, inplace=inplace)
                 else:
                     newb = block if inplace else block.copy()
                 new_blocks.append(newb)
@@ -2450,7 +2463,17 @@ class DataFrame(NDFrame):
             # Float type values
             if len(self.columns) == 0:
                 return self
-            new_data = self._data.fillna(value)
+            if np.isscalar(value):
+                new_data = self._data.fillna(value, inplace=inplace)
+            elif isinstance(value, dict):
+                result = self if inplace else self.copy()
+                for k, v in value.iteritems():
+                    if k not in result:
+                        continue
+                    result[k].fillna(v, inplace=True)
+                return result
+            else:  # pragma: no cover
+                raise TypeError('Invalid fill value type: %s' % type(value))
 
         if inplace:
             self._data = new_data

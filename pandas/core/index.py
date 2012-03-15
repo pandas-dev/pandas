@@ -319,7 +319,7 @@ class Index(np.ndarray):
             values = lib.maybe_convert_objects(values, safe=1)
 
         if values.dtype == np.object_:
-            result = [com._stringify(x) for x in values]
+            result = com._stringify_seq(values)
         else:
             result = _trim_front(format_array(values, None, justify='left'))
         return header + result
@@ -667,8 +667,8 @@ class Index(np.ndarray):
         """
         target = _ensure_index(target)
         if level is not None:
-            _, indexer, _ = self._join_level(target, level, how='left',
-                                                  return_indexers=True)
+            _, indexer, _ = self._join_level(target, level, how='right',
+                                             return_indexers=True)
         else:
             if self.equals(target):
                 indexer = None
@@ -752,7 +752,6 @@ class Index(np.ndarray):
             how = {'right': 'left', 'left': 'right'}.get(how, how)
 
         level = left._get_level_number(level)
-
         old_level = left.levels[level]
 
         new_level, left_lev_indexer, right_lev_indexer = \
@@ -776,10 +775,10 @@ class Index(np.ndarray):
 
             join_index = MultiIndex(levels=new_levels, labels=new_labels,
                                     names=left.names)
+            left_indexer = np.arange(len(left))[new_lev_labels != -1]
         else:
             join_index = left
-
-        left_indexer = None
+            left_indexer = None
 
         if right_lev_indexer is not None:
             right_indexer = right_lev_indexer.take(join_index.labels[level])
@@ -2487,7 +2486,7 @@ class MultiIndex(Index):
     def argsort(self, *args, **kwargs):
         return self.values.argsort()
 
-    def drop(self, labels):
+    def drop(self, labels, level=None):
         """
         Make new MultiIndex with passed list of labels deleted
 
@@ -2495,11 +2494,15 @@ class MultiIndex(Index):
         ----------
         labels : array-like
             Must be a list of tuples
+        level : int or name, default None
 
         Returns
         -------
         dropped : MultiIndex
         """
+        if level is not None:
+            return self._drop_from_level(labels, level)
+
         try:
             if not isinstance(labels, np.ndarray):
                 labels = com._asarray_tuplesafe(labels)
@@ -2521,6 +2524,15 @@ class MultiIndex(Index):
                 inds.extend(range(loc.start, loc.stop))
 
         return self.delete(inds)
+
+    def _drop_from_level(self, labels, level):
+        i = self._get_level_number(level)
+        index = self.levels[i]
+        values = index.get_indexer(labels)
+
+        mask = -lib.ismember(self.labels[i], set(values))
+
+        return self[mask]
 
     def droplevel(self, level=0):
         """
@@ -2710,7 +2722,7 @@ class MultiIndex(Index):
         (new_index, indexer, mask) : (MultiIndex, ndarray, ndarray)
         """
         if level is not None:
-            target, _, indexer = self._join_level(target, level, how='left',
+            target, indexer, _ = self._join_level(target, level, how='right',
                                                   return_indexers=True)
         else:
             if self.equals(target):

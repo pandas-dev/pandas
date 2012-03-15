@@ -170,7 +170,7 @@ class _NDFrameIndexer(object):
 
             if hasattr(key, 'ndim') and key.ndim > 1:
                 raise ValueError('Cannot index with multidimensional key')
- 
+
             return self._getitem_iterable(key, axis=axis)
         elif axis == 0:
             is_int_index = _is_integer_index(labels)
@@ -197,11 +197,19 @@ class _NDFrameIndexer(object):
 
     def _getitem_iterable(self, key, axis=0):
         labels = self.obj._get_axis(axis)
-        axis_name = self.obj._get_axis_name(axis)
+        # axis_name = self.obj._get_axis_name(axis)
+
+        def _reindex(keys, level=None):
+            try:
+                return self.obj.reindex_axis(keys, axis=axis, level=level)
+            except AttributeError:
+                # Series
+                assert(axis == 0)
+                return self.obj.reindex(keys, level=level)
 
         if com._is_bool_indexer(key):
             key = _check_bool_indexer(labels, key)
-            return self.obj.reindex(**{axis_name: labels[np.asarray(key)]})
+            return _reindex(labels[np.asarray(key)])
         else:
             if isinstance(key, Index):
                 # want Index objects to pass through untouched
@@ -212,7 +220,14 @@ class _NDFrameIndexer(object):
             if _is_integer_dtype(keyarr) and not _is_integer_index(labels):
                 keyarr = labels.take(keyarr)
 
-            return self.obj.reindex(**{axis_name: keyarr})
+            # this is not the most robust, but...
+            if (isinstance(labels, MultiIndex) and
+                not isinstance(keyarr[0], tuple)):
+                level = 0
+            else:
+                level = None
+
+            return _reindex(keyarr, level=level)
 
     def _convert_to_indexer(self, obj, axis=0):
         """
