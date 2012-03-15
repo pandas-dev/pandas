@@ -1083,6 +1083,9 @@ class DataFrameGroupBy(GroupBy):
                 all_items.extend(b.items)
             output_keys = agg_labels[agg_labels.isin(all_items)]
 
+            for blk in new_blocks:
+                blk.set_ref_items(output_keys, maybe_rename=False)
+
         if not self.as_index:
             index = np.arange(new_blocks[0].values.shape[1])
             mgr = BlockManager(new_blocks, [output_keys, index])
