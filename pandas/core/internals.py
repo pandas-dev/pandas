@@ -255,6 +255,7 @@ def _backfill(values):
 # Is this even possible?
 
 class FloatBlock(Block):
+    _can_hold_na = True
 
     def should_store(self, value):
         # when inserting a column should not coerce integers to floats
@@ -262,16 +263,19 @@ class FloatBlock(Block):
         return issubclass(value.dtype.type, np.floating)
 
 class IntBlock(Block):
+    _can_hold_na = False
 
     def should_store(self, value):
         return issubclass(value.dtype.type, np.integer)
 
 class BoolBlock(Block):
+    _can_hold_na = False
 
     def should_store(self, value):
         return issubclass(value.dtype.type, np.bool_)
 
 class ObjectBlock(Block):
+    _can_hold_na = True
 
     def should_store(self, value):
         return not issubclass(value.dtype.type,
@@ -943,6 +947,7 @@ class BlockManager(object):
 
         """
         new_blocks = [b.fillna(value, inplace=inplace)
+                      if b._can_hold_na else b
                       for b in self.blocks]
         if inplace:
             return self

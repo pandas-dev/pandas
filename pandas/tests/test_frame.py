@@ -2953,6 +2953,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         result = self.mixed_frame.fillna(value=0)
 
+    def test_fillna_skip_certain_blocks(self):
+        # don't try to fill boolean, int blocks
+
+        df = DataFrame(np.random.randn(10, 4).astype(int))
+
+        # it works!
+        df.fillna(np.nan)
+
     def test_fillna_inplace(self):
         df = DataFrame(np.random.randn(10, 4))
         df[1][:4] = np.nan
@@ -3409,6 +3417,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # try to align dataframe to series along bad axis
         self.assertRaises(ValueError, self.frame.align, af.ix[0,:3],
                           join='inner', axis=2)
+
+    def test_align_int_fill_bug(self):
+        # GH #910
+        X = np.random.rand(10,10)
+        Y = np.ones((10,1),dtype=int)
+        df1 = DataFrame(X)
+        df1['0.X'] = Y.squeeze()
+
+        df2 = df1.astype(float)
+
+        result = df1 - df1.mean()
+        expected = df2 - df2.mean()
+        assert_frame_equal(result, expected)
 
     #----------------------------------------------------------------------
     # Transposing

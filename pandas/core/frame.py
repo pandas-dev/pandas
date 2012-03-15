@@ -1824,7 +1824,7 @@ class DataFrame(NDFrame):
         left_result = DataFrame(fdata)
         right_result = other if ridx is None else other.reindex(join_index)
 
-        fill_na = (fill_value is not None) or (method is not None)
+        fill_na = notnull(fill_value) or (method is not None)
         if fill_na:
             return (left_result.fillna(fill_value, method=method),
                     right_result.fillna(fill_value, method=method))
