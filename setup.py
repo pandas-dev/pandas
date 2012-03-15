@@ -347,7 +347,8 @@ sparse_ext = Extension('pandas._sparse',
                        include_dirs=[np.get_include()])
 
 engines_ext = Extension('pandas._engines',
-                        depends=['pandas/src/numpy_helper.h'],
+                        depends=['pandas/src/numpy_helper.h',
+                                 'pandas/src/util.pxd'],
                         sources=[srcpath('engines', suffix=suffix)],
                         include_dirs=[np.get_include()])
 

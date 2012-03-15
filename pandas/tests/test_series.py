@@ -465,6 +465,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # don't segfault, GH #495
         self.assertRaises(IndexError, self.ts.__getitem__, len(self.ts))
 
+        # GH #917
+        s = Series([])
+        self.assertRaises(IndexError, s.__getitem__, -1)
+
     def test_getitem_box_float64(self):
         value = self.ts[5]
         self.assert_(isinstance(value, np.float64))
