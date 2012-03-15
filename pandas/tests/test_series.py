@@ -252,6 +252,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s = Series(objs, index=[0, 1])
         self.assert_(isinstance(s, Series))
 
+    def test_constructor_sanitize(self):
+        s = Series(np.array([1., 1., 8.]), dtype='i8')
+        self.assertEquals(s.dtype, np.dtype('i8'))
+
+        s = Series(np.array([1., 1., np.nan]), copy=True, dtype='i8')
+        self.assertEquals(s.dtype, np.dtype('f8'))
+
     def test_constructor_pass_none(self):
         s = Series(None, index=range(5))
         self.assert_(s.dtype == np.float64)

@@ -3426,6 +3426,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                                   method=None, fill_value=None)
         self.assert_(bf.index.equals(Index([])))
 
+        af, bf = self.frame.align(other.ix[:,0], join='inner', axis=1,
+                                  method=None, fill_value=0)
+        self.assert_(bf.index.equals(Index([])))
+
         # try to align dataframe to series along bad axis
         self.assertRaises(ValueError, self.frame.align, af.ix[0,:3],
                           join='inner', axis=2)

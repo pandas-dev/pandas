@@ -1203,6 +1203,9 @@ class TestMultiIndex(unittest.TestCase):
     def test_from_tuples(self):
         self.assertRaises(Exception, MultiIndex.from_tuples, [])
 
+        idx = MultiIndex.from_tuples( ((1,2),(3,4)), names=['a', 'b'] )
+        self.assertEquals(len(idx), 2)
+
     def test_argsort(self):
         result = self.index.argsort()
         expected = self.index.get_tuple_index().argsort()
