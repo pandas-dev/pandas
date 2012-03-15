@@ -1798,6 +1798,18 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame.from_records(tuples, columns=['a', 'b', 'c', 'd'])
         self.assert_(np.isnan(df['c'][0]))
 
+    def test_from_records_decimal(self):
+        from decimal import Decimal
+
+        tuples = [(Decimal('1.5'),), (Decimal('2.5'),), (None,)]
+
+        df = DataFrame.from_records(tuples, columns=['a'])
+        self.assert_(df['a'].dtype == object)
+
+        df = DataFrame.from_records(tuples, columns=['a'], coerce_float=True)
+        self.assert_(df['a'].dtype == np.float64)
+        self.assert_(np.isnan(df['a'].values[-1]))
+
     def test_to_records_floats(self):
         df = DataFrame(np.random.rand(10,10))
         df.to_records()

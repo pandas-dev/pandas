@@ -652,7 +652,7 @@ class DataFrame(NDFrame):
 
     @classmethod
     def from_records(cls, data, index=None, exclude=None, columns=None,
-                     names=None):
+                     names=None, coerce_float=False):
         """
         Convert structured or record ndarray to DataFrame
 
@@ -666,6 +666,9 @@ class DataFrame(NDFrame):
             Columns or fields to exclude
         columns : sequence, default None
             Column names to use, replacing any found in passed data
+        coerce_float : boolean, default False
+            Attempt to convert values to non-string, non-numeric objects (like
+            decimal.Decimal) to floating point, useful for SQL result sets
 
         Returns
         -------
@@ -682,7 +685,8 @@ class DataFrame(NDFrame):
         if isinstance(data, (np.ndarray, DataFrame, dict)):
             columns, sdict = _rec_to_dict(data)
         else:
-            sdict, columns = _to_sdict(data, columns)
+            sdict, columns = _to_sdict(data, columns,
+                                       coerce_float=coerce_float)
 
         if exclude is None:
             exclude = set()
@@ -4209,19 +4213,20 @@ def _rec_to_dict(arr):
     return columns, sdict
 
 
-def _to_sdict(data, columns):
+def _to_sdict(data, columns, coerce_float=False):
     if len(data) == 0:
         return {}, columns
     if isinstance(data[0], (list, tuple)):
-        return _list_to_sdict(data, columns)
+        return _list_to_sdict(data, columns, coerce_float=coerce_float)
     elif isinstance(data[0], dict):
-        return _list_of_dict_to_sdict(data, columns)
+        return _list_of_dict_to_sdict(data, columns, coerce_float=coerce_float)
     elif isinstance(data[0], Series):
-        return _list_of_series_to_sdict(data, columns)
+        return _list_of_series_to_sdict(data, columns,
+                                        coerce_float=coerce_float)
     else:  # pragma: no cover
         raise TypeError('No logic to handle %s type' % type(data[0]))
 
-def _list_to_sdict(data, columns):
+def _list_to_sdict(data, columns, coerce_float=False):
     if len(data) > 0 and isinstance(data[0], tuple):
         content = list(lib.to_object_array_tuples(data).T)
     elif len(data) > 0:
@@ -4231,9 +4236,10 @@ def _list_to_sdict(data, columns):
         if columns is None:
             columns = []
         return {}, columns
-    return _convert_object_array(content, columns)
+    return _convert_object_array(content, columns,
+                                 coerce_float=coerce_float)
 
-def _list_of_series_to_sdict(data, columns):
+def _list_of_series_to_sdict(data, columns, coerce_float=False):
     from pandas.core.index import _get_combined_index
 
     if columns is None:
@@ -4254,21 +4260,23 @@ def _list_of_series_to_sdict(data, columns):
 
     if values.dtype == np.object_:
         content = list(values.T)
-        return _convert_object_array(content, columns)
+        return _convert_object_array(content, columns,
+                                     coerce_float=coerce_float)
     else:
         return values, columns
 
 
-def _list_of_dict_to_sdict(data, columns):
+def _list_of_dict_to_sdict(data, columns, coerce_float=False):
     if columns is None:
         gen = (x.keys() for x in data)
         columns = lib.fast_unique_multiple_list_gen(gen)
 
     content = list(lib.dicts_to_array(data, list(columns)).T)
-    return _convert_object_array(content, columns)
+    return _convert_object_array(content, columns,
+                                 coerce_float=coerce_float)
 
 
-def _convert_object_array(content, columns):
+def _convert_object_array(content, columns, coerce_float=False):
     if columns is None:
         columns = range(len(content))
     else:
@@ -4276,7 +4284,7 @@ def _convert_object_array(content, columns):
             raise AssertionError('%d columns passed, passed data had %s '
                                  'columns' % (len(columns), len(content)))
 
-    sdict = dict((c, lib.maybe_convert_objects(vals))
+    sdict = dict((c, lib.maybe_convert_objects(vals, try_float=coerce_float))
                  for c, vals in zip(columns, content))
     return sdict, columns
 
