@@ -1815,7 +1815,7 @@ class IntervalIndex(Int64Index):
 
     For instance,
         # construct interval for day 1/1/1 and get the first second
-        i = Interval(year=1,month=1,day=1,freq='D').asfreq('S', 'S')
+        i = Interval(year=1,month=1,day=1,freq='D').resample('S', 'S')
         i.ordinal
         ===> 1
 
@@ -1900,8 +1900,10 @@ class IntervalIndex(Int64Index):
                     freq = data.freq
                     data = data.values
                 else:
-                    # TODO: need vectorized frequency conversion here
-                    raise NotImplementedError
+                    base1, mult1 = datetools._get_freq_code(data.freq)
+                    base2, mult2 = datetools._get_freq_code(freq)
+                    data = lib.skts_resample_arr(data.values, base1, mult1,
+                                                 base2, mult2, 'E')
             else:
                 if freq is None:
                     raise ValueError('freq cannot be none')
@@ -1910,12 +1912,31 @@ class IntervalIndex(Int64Index):
                     data = datetools.dt64arr_to_sktsarr(data, freq)
                 elif data.dtype == np.int64:
                     pass
+                else:
+                    data = data.astype('i8')
 
         subarr = data.view(cls)
         subarr.name = name
         subarr.freq = freq
 
         return subarr
+
+    def resample(self, freq=None, how='E'):
+        if how not in ('S', 'E'):
+            raise ValueError('How must be one of S or E')
+
+        base1, mult1 = datetools._get_freq_code(self.freq)
+
+        if isinstance(freq, basestring):
+            base2, mult2 = datetools._get_freq_code(freq)
+        else:
+            base2, mult2 = freq
+
+        new_data = lib.skts_resample_arr(self.values,
+                                         base1, mult1,
+                                         base2, mult2, how)
+
+        return IntervalIndex(new_data, freq=freq)
 
     @property
     def inferred_type(self):
@@ -1939,8 +1960,8 @@ class IntervalIndex(Int64Index):
                 # if our data is higher resolution than requested key, slice
                 if grp < freqn:
                     iv = Interval(asdt, freq=(grp,1))
-                    ord1 = iv.asfreq(self.freq, how='S').ordinal
-                    ord2 = iv.asfreq(self.freq, how='E').ordinal
+                    ord1 = iv.resample(self.freq, how='S').ordinal
+                    ord2 = iv.resample(self.freq, how='E').ordinal
                     pos = np.searchsorted(self.values, [ord1, ord2])
                     key = slice(pos[0], pos[1]+1)
                 else:

@@ -107,7 +107,7 @@ cdef extern from "skts.h":
         int day_of_year
         int calendar
 
-    long frequency_conversion(long dtordinal, int freq1, int freq2, char relation) except -1
+    long resample(long dtordinal, int freq1, int freq2, char relation) except -1
 
     long get_skts_ordinal(int year, int month, int day,
                           int hour, int minute, int second,

@@ -78,7 +78,7 @@ class Ts(lib.Timestamp):
         ts = to_timestamp(value, freq, tzinfo)
         return lib.Timestamp.__new__(Ts, ts, freq, tzinfo)
 
-    def asfreq(self, freq):
+    def asinterval(self, freq):
         """
         Return an interval of which this timestamp is an observation.
         """
@@ -255,7 +255,7 @@ class Interval:
                 self.ordinal = other.ordinal
                 self.freq = other.freq
             else:
-                converted = other.asfreq(self.freq)
+                converted = other.resample(self.freq)
                 self.ordinal = converted.ordinal
             return
 
@@ -312,7 +312,7 @@ class Interval:
             return self.ordinal - other.ordinal
         raise ValueError("Cannot sub with non-integer value")
 
-    def asfreq(self, freq=None, how='E'):
+    def resample(self, freq=None, how='E'):
         if how not in ('S', 'E'):
             raise ValueError('How must be one of S or E')
 
@@ -323,8 +323,8 @@ class Interval:
         else:
             base2, mult2 = freq
 
-        new_ordinal = lib.skts_freq_conv(self.ordinal, base1, mult1,
-                                         base2, mult2, how)
+        new_ordinal = lib.skts_resample(self.ordinal, base1, mult1,
+                                        base2, mult2, how)
 
         return Interval(new_ordinal, (base2, mult2))
 
@@ -402,7 +402,7 @@ class Interval:
         skts_ordinal = lib.skts_ordinal(dt.year, dt.month, dt.day, dt.hour,
                                         dt.minute, dt.second, base, mult)
 
-        return Interval(skts_ordinal, sfreq).asfreq(freq)
+        return Interval(skts_ordinal, sfreq).resample(freq)
 
     def __repr__(self):
         base = self.freq[0]

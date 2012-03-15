@@ -40,7 +40,7 @@ class TestIntervalProperties(TestCase):
         # Biz day construction, roll forward if non-weekday
         i1 = Interval('3/10/12', freq='B')
         i2 = Interval('3/12/12', freq='D')
-        self.assertEquals(i1, i2.asfreq('B'))
+        self.assertEquals(i1, i2.resample('B'))
 
         i1 = Interval(year=2005, quarter=1, freq='Q')
         i2 = Interval('1/1/2005', freq='Q')
@@ -83,17 +83,17 @@ class TestIntervalProperties(TestCase):
         "Test properties on Intervals with daily frequency."
         m_date = Interval(freq='M', year=2007, month=1)
         for x in range(11):
-            m_date_x = m_date + x
-            assert_equal(m_date_x.year, 2007)
+            m_ival_x = m_date + x
+            assert_equal(m_ival_x.year, 2007)
             if 1 <= x + 1 <= 3:
-                assert_equal(m_date_x.quarter, 1)
+                assert_equal(m_ival_x.quarter, 1)
             elif 4 <= x + 1 <= 6:
-                assert_equal(m_date_x.quarter, 2)
+                assert_equal(m_ival_x.quarter, 2)
             elif 7 <= x + 1 <= 9:
-                assert_equal(m_date_x.quarter, 3)
+                assert_equal(m_ival_x.quarter, 3)
             elif 10 <= x + 1 <= 12:
-                assert_equal(m_date_x.quarter, 4)
-            assert_equal(m_date_x.month, x + 1)
+                assert_equal(m_ival_x.quarter, 4)
+            assert_equal(m_ival_x.month, x + 1)
 
 
     def test_properties_weekly(self):
@@ -144,7 +144,8 @@ class TestIntervalProperties(TestCase):
 
     def test_properties_minutely(self):
         "Test properties on Intervals with minutely frequency."
-        t_date = Interval(freq='Min', year=2007, month=1, day=1, hour=0, minute=0)
+        t_date = Interval(freq='Min', year=2007, month=1, day=1, hour=0, 
+                          minute=0)
         #
         assert_equal(t_date.quarter, 1)
         assert_equal(t_date.month, 1)
@@ -178,607 +179,605 @@ class TestFreqConversion(TestCase):
 
     def __init__(self, *args, **kwds):
         TestCase.__init__(self, *args, **kwds)
-        self.dateWrap = [(noWrap, assert_equal)]
 
     def test_conv_annual(self):
         "frequency conversion tests: from Annual Frequency"
 
-        for dWrap, assert_func in self.dateWrap:
-            date_A = dWrap(Interval(freq='A', year=2007))
+        ival_A = Interval(freq='A', year=2007)
 
-            date_AJAN = dWrap(Interval(freq="A@JAN", year=2007))
-            date_AJUN = dWrap(Interval(freq="A@JUN", year=2007))
-            date_ANOV = dWrap(Interval(freq="A@NOV", year=2007))
+        ival_AJAN = Interval(freq="A@JAN", year=2007)
+        ival_AJUN = Interval(freq="A@JUN", year=2007)
+        ival_ANOV = Interval(freq="A@NOV", year=2007)
 
-            date_A_to_Q_start = dWrap(Interval(freq='Q', year=2007, quarter=1))
-            date_A_to_Q_end = dWrap(Interval(freq='Q', year=2007, quarter=4))
-            date_A_to_M_start = dWrap(Interval(freq='M', year=2007, month=1))
-            date_A_to_M_end = dWrap(Interval(freq='M', year=2007, month=12))
-            date_A_to_W_start = dWrap(Interval(freq='WK', year=2007, month=1, day=1))
-            date_A_to_W_end = dWrap(Interval(freq='WK', year=2007, month=12, day=31))
-            date_A_to_B_start = dWrap(Interval(freq='B', year=2007, month=1, day=1))
-            date_A_to_B_end = dWrap(Interval(freq='B', year=2007, month=12, day=31))
-            date_A_to_D_start = dWrap(Interval(freq='D', year=2007, month=1, day=1))
-            date_A_to_D_end = dWrap(Interval(freq='D', year=2007, month=12, day=31))
-            date_A_to_H_start = dWrap(Interval(freq='H', year=2007, month=1, day=1,
-                                      hour=0))
-            date_A_to_H_end = dWrap(Interval(freq='H', year=2007, month=12, day=31,
-                                     hour=23))
-            date_A_to_T_start = dWrap(Interval(freq='Min', year=2007, month=1, day=1,
-                                      hour=0, minute=0))
-            date_A_to_T_end = dWrap(Interval(freq='Min', year=2007, month=12, day=31,
-                                     hour=23, minute=59))
-            date_A_to_S_start = dWrap(Interval(freq='S', year=2007, month=1, day=1,
-                                      hour=0, minute=0, second=0))
-            date_A_to_S_end = dWrap(Interval(freq='S', year=2007, month=12, day=31,
-                                     hour=23, minute=59, second=59))
+        ival_A_to_Q_start = Interval(freq='Q', year=2007, quarter=1)
+        ival_A_to_Q_end = Interval(freq='Q', year=2007, quarter=4)
+        ival_A_to_M_start = Interval(freq='M', year=2007, month=1)
+        ival_A_to_M_end = Interval(freq='M', year=2007, month=12)
+        ival_A_to_W_start = Interval(freq='WK', year=2007, month=1, day=1)
+        ival_A_to_W_end = Interval(freq='WK', year=2007, month=12, day=31)
+        ival_A_to_B_start = Interval(freq='B', year=2007, month=1, day=1)
+        ival_A_to_B_end = Interval(freq='B', year=2007, month=12, day=31)
+        ival_A_to_D_start = Interval(freq='D', year=2007, month=1, day=1)
+        ival_A_to_D_end = Interval(freq='D', year=2007, month=12, day=31)
+        ival_A_to_H_start = Interval(freq='H', year=2007, month=1, day=1,
+                                    hour=0)
+        ival_A_to_H_end = Interval(freq='H', year=2007, month=12, day=31,
+                                    hour=23)
+        ival_A_to_T_start = Interval(freq='Min', year=2007, month=1, day=1,
+                                    hour=0, minute=0)
+        ival_A_to_T_end = Interval(freq='Min', year=2007, month=12, day=31,
+                                    hour=23, minute=59)
+        ival_A_to_S_start = Interval(freq='S', year=2007, month=1, day=1,
+                                    hour=0, minute=0, second=0)
+        ival_A_to_S_end = Interval(freq='S', year=2007, month=12, day=31,
+                                    hour=23, minute=59, second=59)
 
-            date_AJAN_to_D_end = dWrap(Interval(freq='D', year=2007, month=1, day=31))
-            date_AJAN_to_D_start = dWrap(Interval(freq='D', year=2006, month=2, day=1))
-            date_AJUN_to_D_end = dWrap(Interval(freq='D', year=2007, month=6, day=30))
-            date_AJUN_to_D_start = dWrap(Interval(freq='D', year=2006, month=7, day=1))
-            date_ANOV_to_D_end = dWrap(Interval(freq='D', year=2007, month=11, day=30))
-            date_ANOV_to_D_start = dWrap(Interval(freq='D', year=2006, month=12, day=1))
+        ival_AJAN_to_D_end = Interval(freq='D', year=2007, month=1, day=31)
+        ival_AJAN_to_D_start = Interval(freq='D', year=2006, month=2, day=1)
+        ival_AJUN_to_D_end = Interval(freq='D', year=2007, month=6, day=30)
+        ival_AJUN_to_D_start = Interval(freq='D', year=2006, month=7, day=1)
+        ival_ANOV_to_D_end = Interval(freq='D', year=2007, month=11, day=30)
+        ival_ANOV_to_D_start = Interval(freq='D', year=2006, month=12, day=1)
 
-            assert_func(date_A.asfreq('Q', 'S'), date_A_to_Q_start)
-            assert_func(date_A.asfreq('Q', 'E'), date_A_to_Q_end)
-            assert_func(date_A.asfreq('M', 'S'), date_A_to_M_start)
-            assert_func(date_A.asfreq('M', 'E'), date_A_to_M_end)
-            assert_func(date_A.asfreq('WK', 'S'), date_A_to_W_start)
-            assert_func(date_A.asfreq('WK', 'E'), date_A_to_W_end)
-            assert_func(date_A.asfreq('B', 'S'), date_A_to_B_start)
-            assert_func(date_A.asfreq('B', 'E'), date_A_to_B_end)
-            assert_func(date_A.asfreq('D', 'S'), date_A_to_D_start)
-            assert_func(date_A.asfreq('D', 'E'), date_A_to_D_end)
-            assert_func(date_A.asfreq('H', 'S'), date_A_to_H_start)
-            assert_func(date_A.asfreq('H', 'E'), date_A_to_H_end)
-            assert_func(date_A.asfreq('Min', 'S'), date_A_to_T_start)
-            assert_func(date_A.asfreq('Min', 'E'), date_A_to_T_end)
-            assert_func(date_A.asfreq('S', 'S'), date_A_to_S_start)
-            assert_func(date_A.asfreq('S', 'E'), date_A_to_S_end)
+        assert_equal(ival_A.resample('Q', 'S'), ival_A_to_Q_start)
+        assert_equal(ival_A.resample('Q', 'E'), ival_A_to_Q_end)
+        assert_equal(ival_A.resample('M', 'S'), ival_A_to_M_start)
+        assert_equal(ival_A.resample('M', 'E'), ival_A_to_M_end)
+        assert_equal(ival_A.resample('WK', 'S'), ival_A_to_W_start)
+        assert_equal(ival_A.resample('WK', 'E'), ival_A_to_W_end)
+        assert_equal(ival_A.resample('B', 'S'), ival_A_to_B_start)
+        assert_equal(ival_A.resample('B', 'E'), ival_A_to_B_end)
+        assert_equal(ival_A.resample('D', 'S'), ival_A_to_D_start)
+        assert_equal(ival_A.resample('D', 'E'), ival_A_to_D_end)
+        assert_equal(ival_A.resample('H', 'S'), ival_A_to_H_start)
+        assert_equal(ival_A.resample('H', 'E'), ival_A_to_H_end)
+        assert_equal(ival_A.resample('Min', 'S'), ival_A_to_T_start)
+        assert_equal(ival_A.resample('Min', 'E'), ival_A_to_T_end)
+        assert_equal(ival_A.resample('S', 'S'), ival_A_to_S_start)
+        assert_equal(ival_A.resample('S', 'E'), ival_A_to_S_end)
 
-            assert_func(date_AJAN.asfreq('D', 'S'), date_AJAN_to_D_start)
-            assert_func(date_AJAN.asfreq('D', 'E'), date_AJAN_to_D_end)
+        assert_equal(ival_AJAN.resample('D', 'S'), ival_AJAN_to_D_start)
+        assert_equal(ival_AJAN.resample('D', 'E'), ival_AJAN_to_D_end)
 
-            assert_func(date_AJUN.asfreq('D', 'S'), date_AJUN_to_D_start)
-            assert_func(date_AJUN.asfreq('D', 'E'), date_AJUN_to_D_end)
+        assert_equal(ival_AJUN.resample('D', 'S'), ival_AJUN_to_D_start)
+        assert_equal(ival_AJUN.resample('D', 'E'), ival_AJUN_to_D_end)
 
-            assert_func(date_ANOV.asfreq('D', 'S'), date_ANOV_to_D_start)
-            assert_func(date_ANOV.asfreq('D', 'E'), date_ANOV_to_D_end)
+        assert_equal(ival_ANOV.resample('D', 'S'), ival_ANOV_to_D_start)
+        assert_equal(ival_ANOV.resample('D', 'E'), ival_ANOV_to_D_end)
 
-            assert_func(date_A.asfreq('A'), date_A)
+        assert_equal(ival_A.resample('A'), ival_A)
 
 
     def test_conv_quarterly(self):
         "frequency conversion tests: from Quarterly Frequency"
 
-        for dWrap, assert_func in self.dateWrap:
-            date_Q = dWrap(Interval(freq='Q', year=2007, quarter=1))
-            date_Q_end_of_year = dWrap(Interval(freq='Q', year=2007, quarter=4))
+        ival_Q = Interval(freq='Q', year=2007, quarter=1)
+        ival_Q_end_of_year = Interval(freq='Q', year=2007, quarter=4)
 
-            date_QEJAN = dWrap(Interval(freq="Q@JAN", year=2007, quarter=1))
-            date_QEJUN = dWrap(Interval(freq="Q@JUN", year=2007, quarter=1))
+        ival_QEJAN = Interval(freq="Q@JAN", year=2007, quarter=1)
+        ival_QEJUN = Interval(freq="Q@JUN", year=2007, quarter=1)
 
-            date_QSJAN = dWrap(Interval(freq="QS@JAN", year=2007, quarter=1))
-            date_QSJUN = dWrap(Interval(freq="QS@JUN", year=2007, quarter=1))
-            date_QSDEC = dWrap(Interval(freq="QS@DEC", year=2007, quarter=1))
+        ival_QSJAN = Interval(freq="QS@JAN", year=2007, quarter=1)
+        ival_QSJUN = Interval(freq="QS@JUN", year=2007, quarter=1)
+        ival_QSDEC = Interval(freq="QS@DEC", year=2007, quarter=1)
 
-            date_Q_to_A = dWrap(Interval(freq='A', year=2007))
-            date_Q_to_M_start = dWrap(Interval(freq='M', year=2007, month=1))
-            date_Q_to_M_end = dWrap(Interval(freq='M', year=2007, month=3))
-            date_Q_to_W_start = dWrap(Interval(freq='WK', year=2007, month=1, day=1))
-            date_Q_to_W_end = dWrap(Interval(freq='WK', year=2007, month=3, day=31))
-            date_Q_to_B_start = dWrap(Interval(freq='B', year=2007, month=1, day=1))
-            date_Q_to_B_end = dWrap(Interval(freq='B', year=2007, month=3, day=30))
-            date_Q_to_D_start = dWrap(Interval(freq='D', year=2007, month=1, day=1))
-            date_Q_to_D_end = dWrap(Interval(freq='D', year=2007, month=3, day=31))
-            date_Q_to_H_start = dWrap(Interval(freq='H', year=2007, month=1, day=1,
-                                      hour=0))
-            date_Q_to_H_end = dWrap(Interval(freq='H', year=2007, month=3, day=31,
-                                     hour=23))
-            date_Q_to_T_start = dWrap(Interval(freq='Min', year=2007, month=1, day=1,
-                                      hour=0, minute=0))
-            date_Q_to_T_end = dWrap(Interval(freq='Min', year=2007, month=3, day=31,
-                                     hour=23, minute=59))
-            date_Q_to_S_start = dWrap(Interval(freq='S', year=2007, month=1, day=1,
-                                      hour=0, minute=0, second=0))
-            date_Q_to_S_end = dWrap(Interval(freq='S', year=2007, month=3, day=31,
-                                     hour=23, minute=59, second=59))
+        ival_Q_to_A = Interval(freq='A', year=2007)
+        ival_Q_to_M_start = Interval(freq='M', year=2007, month=1)
+        ival_Q_to_M_end = Interval(freq='M', year=2007, month=3)
+        ival_Q_to_W_start = Interval(freq='WK', year=2007, month=1, day=1)
+        ival_Q_to_W_end = Interval(freq='WK', year=2007, month=3, day=31)
+        ival_Q_to_B_start = Interval(freq='B', year=2007, month=1, day=1)
+        ival_Q_to_B_end = Interval(freq='B', year=2007, month=3, day=30)
+        ival_Q_to_D_start = Interval(freq='D', year=2007, month=1, day=1)
+        ival_Q_to_D_end = Interval(freq='D', year=2007, month=3, day=31)
+        ival_Q_to_H_start = Interval(freq='H', year=2007, month=1, day=1,
+                                    hour=0)
+        ival_Q_to_H_end = Interval(freq='H', year=2007, month=3, day=31,
+                                    hour=23)
+        ival_Q_to_T_start = Interval(freq='Min', year=2007, month=1, day=1,
+                                    hour=0, minute=0)
+        ival_Q_to_T_end = Interval(freq='Min', year=2007, month=3, day=31,
+                                    hour=23, minute=59)
+        ival_Q_to_S_start = Interval(freq='S', year=2007, month=1, day=1,
+                                    hour=0, minute=0, second=0)
+        ival_Q_to_S_end = Interval(freq='S', year=2007, month=3, day=31,
+                                    hour=23, minute=59, second=59)
 
-            date_QEJAN_to_D_start = dWrap(Interval(freq='D', year=2006, month=2, day=1))
-            date_QEJAN_to_D_end = dWrap(Interval(freq='D', year=2006, month=4, day=30))
+        ival_QEJAN_to_D_start = Interval(freq='D', year=2006, month=2, day=1)
+        ival_QEJAN_to_D_end = Interval(freq='D', year=2006, month=4, day=30)
 
-            date_QEJUN_to_D_start = dWrap(Interval(freq='D', year=2006, month=7, day=1))
-            date_QEJUN_to_D_end = dWrap(Interval(freq='D', year=2006, month=9, day=30))
+        ival_QEJUN_to_D_start = Interval(freq='D', year=2006, month=7, day=1)
+        ival_QEJUN_to_D_end = Interval(freq='D', year=2006, month=9, day=30)
 
-            date_QSJAN_to_D_start = dWrap(Interval(freq='D', year=2007, month=2, day=1))
-            date_QSJAN_to_D_end = dWrap(Interval(freq='D', year=2007, month=4, day=30))
+        ival_QSJAN_to_D_start = Interval(freq='D', year=2007, month=2, day=1)
+        ival_QSJAN_to_D_end = Interval(freq='D', year=2007, month=4, day=30)
 
-            date_QSJUN_to_D_start = dWrap(Interval(freq='D', year=2007, month=7, day=1))
-            date_QSJUN_to_D_end = dWrap(Interval(freq='D', year=2007, month=9, day=30))
+        ival_QSJUN_to_D_start = Interval(freq='D', year=2007, month=7, day=1)
+        ival_QSJUN_to_D_end = Interval(freq='D', year=2007, month=9, day=30)
 
-            date_QSDEC_to_D_start = dWrap(Interval(freq='D', year=2007, month=1, day=1))
-            date_QSDEC_to_D_end = dWrap(Interval(freq='D', year=2007, month=3, day=31))
+        ival_QSDEC_to_D_start = Interval(freq='D', year=2007, month=1, day=1)
+        ival_QSDEC_to_D_end = Interval(freq='D', year=2007, month=3, day=31)
 
-            assert_func(date_Q.asfreq('A'), date_Q_to_A)
-            assert_func(date_Q_end_of_year.asfreq('A'), date_Q_to_A)
+        assert_equal(ival_Q.resample('A'), ival_Q_to_A)
+        assert_equal(ival_Q_end_of_year.resample('A'), ival_Q_to_A)
 
-            assert_func(date_Q.asfreq('M', 'S'), date_Q_to_M_start)
-            assert_func(date_Q.asfreq('M', 'E'), date_Q_to_M_end)
-            assert_func(date_Q.asfreq('WK', 'S'), date_Q_to_W_start)
-            assert_func(date_Q.asfreq('WK', 'E'), date_Q_to_W_end)
-            assert_func(date_Q.asfreq('B', 'S'), date_Q_to_B_start)
-            assert_func(date_Q.asfreq('B', 'E'), date_Q_to_B_end)
-            assert_func(date_Q.asfreq('D', 'S'), date_Q_to_D_start)
-            assert_func(date_Q.asfreq('D', 'E'), date_Q_to_D_end)
-            assert_func(date_Q.asfreq('H', 'S'), date_Q_to_H_start)
-            assert_func(date_Q.asfreq('H', 'E'), date_Q_to_H_end)
-            assert_func(date_Q.asfreq('Min', 'S'), date_Q_to_T_start)
-            assert_func(date_Q.asfreq('Min', 'E'), date_Q_to_T_end)
-            assert_func(date_Q.asfreq('S', 'S'), date_Q_to_S_start)
-            assert_func(date_Q.asfreq('S', 'E'), date_Q_to_S_end)
+        assert_equal(ival_Q.resample('M', 'S'), ival_Q_to_M_start)
+        assert_equal(ival_Q.resample('M', 'E'), ival_Q_to_M_end)
+        assert_equal(ival_Q.resample('WK', 'S'), ival_Q_to_W_start)
+        assert_equal(ival_Q.resample('WK', 'E'), ival_Q_to_W_end)
+        assert_equal(ival_Q.resample('B', 'S'), ival_Q_to_B_start)
+        assert_equal(ival_Q.resample('B', 'E'), ival_Q_to_B_end)
+        assert_equal(ival_Q.resample('D', 'S'), ival_Q_to_D_start)
+        assert_equal(ival_Q.resample('D', 'E'), ival_Q_to_D_end)
+        assert_equal(ival_Q.resample('H', 'S'), ival_Q_to_H_start)
+        assert_equal(ival_Q.resample('H', 'E'), ival_Q_to_H_end)
+        assert_equal(ival_Q.resample('Min', 'S'), ival_Q_to_T_start)
+        assert_equal(ival_Q.resample('Min', 'E'), ival_Q_to_T_end)
+        assert_equal(ival_Q.resample('S', 'S'), ival_Q_to_S_start)
+        assert_equal(ival_Q.resample('S', 'E'), ival_Q_to_S_end)
 
-            assert_func(date_QEJAN.asfreq('D', 'S'), date_QEJAN_to_D_start)
-            assert_func(date_QEJAN.asfreq('D', 'E'), date_QEJAN_to_D_end)
-            assert_func(date_QEJUN.asfreq('D', 'S'), date_QEJUN_to_D_start)
-            assert_func(date_QEJUN.asfreq('D', 'E'), date_QEJUN_to_D_end)
+        assert_equal(ival_QEJAN.resample('D', 'S'), ival_QEJAN_to_D_start)
+        assert_equal(ival_QEJAN.resample('D', 'E'), ival_QEJAN_to_D_end)
+        assert_equal(ival_QEJUN.resample('D', 'S'), ival_QEJUN_to_D_start)
+        assert_equal(ival_QEJUN.resample('D', 'E'), ival_QEJUN_to_D_end)
 
-            assert_func(date_QSJAN.asfreq('D', 'S'), date_QSJAN_to_D_start)
-            assert_func(date_QSJAN.asfreq('D', 'E'), date_QSJAN_to_D_end)
-            assert_func(date_QSJUN.asfreq('D', 'S'), date_QSJUN_to_D_start)
-            assert_func(date_QSJUN.asfreq('D', 'E'), date_QSJUN_to_D_end)
-            assert_func(date_QSDEC.asfreq('D', 'S'), date_QSDEC_to_D_start)
-            assert_func(date_QSDEC.asfreq('D', 'E'), date_QSDEC_to_D_end)
+        assert_equal(ival_QSJAN.resample('D', 'S'), ival_QSJAN_to_D_start)
+        assert_equal(ival_QSJAN.resample('D', 'E'), ival_QSJAN_to_D_end)
+        assert_equal(ival_QSJUN.resample('D', 'S'), ival_QSJUN_to_D_start)
+        assert_equal(ival_QSJUN.resample('D', 'E'), ival_QSJUN_to_D_end)
+        assert_equal(ival_QSDEC.resample('D', 'S'), ival_QSDEC_to_D_start)
+        assert_equal(ival_QSDEC.resample('D', 'E'), ival_QSDEC_to_D_end)
 
-            assert_func(date_Q.asfreq('Q'), date_Q)
+        assert_equal(ival_Q.resample('Q'), ival_Q)
 
 
     def test_conv_monthly(self):
         "frequency conversion tests: from Monthly Frequency"
 
-        for dWrap, assert_func in self.dateWrap:
-            date_M = dWrap(Interval(freq='M', year=2007, month=1))
-            date_M_end_of_year = dWrap(Interval(freq='M', year=2007, month=12))
-            date_M_end_of_quarter = dWrap(Interval(freq='M', year=2007, month=3))
-            date_M_to_A = dWrap(Interval(freq='A', year=2007))
-            date_M_to_Q = dWrap(Interval(freq='Q', year=2007, quarter=1))
-            date_M_to_W_start = dWrap(Interval(freq='WK', year=2007, month=1, day=1))
-            date_M_to_W_end = dWrap(Interval(freq='WK', year=2007, month=1, day=31))
-            date_M_to_B_start = dWrap(Interval(freq='B', year=2007, month=1, day=1))
-            date_M_to_B_end = dWrap(Interval(freq='B', year=2007, month=1, day=31))
-            date_M_to_D_start = dWrap(Interval(freq='D', year=2007, month=1, day=1))
-            date_M_to_D_end = dWrap(Interval(freq='D', year=2007, month=1, day=31))
-            date_M_to_H_start = dWrap(Interval(freq='H', year=2007, month=1, day=1,
-                                      hour=0))
-            date_M_to_H_end = dWrap(Interval(freq='H', year=2007, month=1, day=31,
-                                     hour=23))
-            date_M_to_T_start = dWrap(Interval(freq='Min', year=2007, month=1, day=1,
-                                      hour=0, minute=0))
-            date_M_to_T_end = dWrap(Interval(freq='Min', year=2007, month=1, day=31,
-                                     hour=23, minute=59))
-            date_M_to_S_start = dWrap(Interval(freq='S', year=2007, month=1, day=1,
-                                      hour=0, minute=0, second=0))
-            date_M_to_S_end = dWrap(Interval(freq='S', year=2007, month=1, day=31,
-                                     hour=23, minute=59, second=59))
+        ival_M = Interval(freq='M', year=2007, month=1)
+        ival_M_end_of_year = Interval(freq='M', year=2007, month=12)
+        ival_M_end_of_quarter = Interval(freq='M', year=2007, month=3)
+        ival_M_to_A = Interval(freq='A', year=2007)
+        ival_M_to_Q = Interval(freq='Q', year=2007, quarter=1)
+        ival_M_to_W_start = Interval(freq='WK', year=2007, month=1, day=1)
+        ival_M_to_W_end = Interval(freq='WK', year=2007, month=1, day=31)
+        ival_M_to_B_start = Interval(freq='B', year=2007, month=1, day=1)
+        ival_M_to_B_end = Interval(freq='B', year=2007, month=1, day=31)
+        ival_M_to_D_start = Interval(freq='D', year=2007, month=1, day=1)
+        ival_M_to_D_end = Interval(freq='D', year=2007, month=1, day=31)
+        ival_M_to_H_start = Interval(freq='H', year=2007, month=1, day=1,
+                                    hour=0)
+        ival_M_to_H_end = Interval(freq='H', year=2007, month=1, day=31,
+                                    hour=23)
+        ival_M_to_T_start = Interval(freq='Min', year=2007, month=1, day=1,
+                                    hour=0, minute=0)
+        ival_M_to_T_end = Interval(freq='Min', year=2007, month=1, day=31,
+                                    hour=23, minute=59)
+        ival_M_to_S_start = Interval(freq='S', year=2007, month=1, day=1,
+                                    hour=0, minute=0, second=0)
+        ival_M_to_S_end = Interval(freq='S', year=2007, month=1, day=31,
+                                    hour=23, minute=59, second=59)
 
-            assert_func(date_M.asfreq('A'), date_M_to_A)
-            assert_func(date_M_end_of_year.asfreq('A'), date_M_to_A)
-            assert_func(date_M.asfreq('Q'), date_M_to_Q)
-            assert_func(date_M_end_of_quarter.asfreq('Q'), date_M_to_Q)
+        assert_equal(ival_M.resample('A'), ival_M_to_A)
+        assert_equal(ival_M_end_of_year.resample('A'), ival_M_to_A)
+        assert_equal(ival_M.resample('Q'), ival_M_to_Q)
+        assert_equal(ival_M_end_of_quarter.resample('Q'), ival_M_to_Q)
 
-            assert_func(date_M.asfreq('WK', 'S'), date_M_to_W_start)
-            assert_func(date_M.asfreq('WK', 'E'), date_M_to_W_end)
-            assert_func(date_M.asfreq('B', 'S'), date_M_to_B_start)
-            assert_func(date_M.asfreq('B', 'E'), date_M_to_B_end)
-            assert_func(date_M.asfreq('D', 'S'), date_M_to_D_start)
-            assert_func(date_M.asfreq('D', 'E'), date_M_to_D_end)
-            assert_func(date_M.asfreq('H', 'S'), date_M_to_H_start)
-            assert_func(date_M.asfreq('H', 'E'), date_M_to_H_end)
-            assert_func(date_M.asfreq('Min', 'S'), date_M_to_T_start)
-            assert_func(date_M.asfreq('Min', 'E'), date_M_to_T_end)
-            assert_func(date_M.asfreq('S', 'S'), date_M_to_S_start)
-            assert_func(date_M.asfreq('S', 'E'), date_M_to_S_end)
+        assert_equal(ival_M.resample('WK', 'S'), ival_M_to_W_start)
+        assert_equal(ival_M.resample('WK', 'E'), ival_M_to_W_end)
+        assert_equal(ival_M.resample('B', 'S'), ival_M_to_B_start)
+        assert_equal(ival_M.resample('B', 'E'), ival_M_to_B_end)
+        assert_equal(ival_M.resample('D', 'S'), ival_M_to_D_start)
+        assert_equal(ival_M.resample('D', 'E'), ival_M_to_D_end)
+        assert_equal(ival_M.resample('H', 'S'), ival_M_to_H_start)
+        assert_equal(ival_M.resample('H', 'E'), ival_M_to_H_end)
+        assert_equal(ival_M.resample('Min', 'S'), ival_M_to_T_start)
+        assert_equal(ival_M.resample('Min', 'E'), ival_M_to_T_end)
+        assert_equal(ival_M.resample('S', 'S'), ival_M_to_S_start)
+        assert_equal(ival_M.resample('S', 'E'), ival_M_to_S_end)
 
-            assert_func(date_M.asfreq('M'), date_M)
+        assert_equal(ival_M.resample('M'), ival_M)
 
 
     def test_conv_weekly(self):
         "frequency conversion tests: from Weekly Frequency"
 
-        for dWrap, assert_func in self.dateWrap:
-            date_W = dWrap(Interval(freq='WK', year=2007, month=1, day=1))
+        ival_W = Interval(freq='WK', year=2007, month=1, day=1)
 
-            date_WSUN = dWrap(Interval(freq='WK', year=2007, month=1, day=7))
-            date_WSAT = dWrap(Interval(freq='WK@SAT', year=2007, month=1, day=6))
-            date_WFRI = dWrap(Interval(freq='WK@FRI', year=2007, month=1, day=5))
-            date_WTHU = dWrap(Interval(freq='WK@THU', year=2007, month=1, day=4))
-            date_WWED = dWrap(Interval(freq='WK@WED', year=2007, month=1, day=3))
-            date_WTUE = dWrap(Interval(freq='WK@TUE', year=2007, month=1, day=2))
-            date_WMON = dWrap(Interval(freq='WK@MON', year=2007, month=1, day=1))
+        ival_WSUN = Interval(freq='WK', year=2007, month=1, day=7)
+        ival_WSAT = Interval(freq='WK@SAT', year=2007, month=1, day=6)
+        ival_WFRI = Interval(freq='WK@FRI', year=2007, month=1, day=5)
+        ival_WTHU = Interval(freq='WK@THU', year=2007, month=1, day=4)
+        ival_WWED = Interval(freq='WK@WED', year=2007, month=1, day=3)
+        ival_WTUE = Interval(freq='WK@TUE', year=2007, month=1, day=2)
+        ival_WMON = Interval(freq='WK@MON', year=2007, month=1, day=1)
 
-            date_WSUN_to_D_start = dWrap(Interval(freq='D', year=2007, month=1, day=1))
-            date_WSUN_to_D_end = dWrap(Interval(freq='D', year=2007, month=1, day=7))
-            date_WSAT_to_D_start = dWrap(Interval(freq='D', year=2006, month=12, day=31))
-            date_WSAT_to_D_end = dWrap(Interval(freq='D', year=2007, month=1, day=6))
-            date_WFRI_to_D_start = dWrap(Interval(freq='D', year=2006, month=12, day=30))
-            date_WFRI_to_D_end = dWrap(Interval(freq='D', year=2007, month=1, day=5))
-            date_WTHU_to_D_start = dWrap(Interval(freq='D', year=2006, month=12, day=29))
-            date_WTHU_to_D_end = dWrap(Interval(freq='D', year=2007, month=1, day=4))
-            date_WWED_to_D_start = dWrap(Interval(freq='D', year=2006, month=12, day=28))
-            date_WWED_to_D_end = dWrap(Interval(freq='D', year=2007, month=1, day=3))
-            date_WTUE_to_D_start = dWrap(Interval(freq='D', year=2006, month=12, day=27))
-            date_WTUE_to_D_end = dWrap(Interval(freq='D', year=2007, month=1, day=2))
-            date_WMON_to_D_start = dWrap(Interval(freq='D', year=2006, month=12, day=26))
-            date_WMON_to_D_end = dWrap(Interval(freq='D', year=2007, month=1, day=1))
+        ival_WSUN_to_D_start = Interval(freq='D', year=2007, month=1, day=1)
+        ival_WSUN_to_D_end = Interval(freq='D', year=2007, month=1, day=7)
+        ival_WSAT_to_D_start = Interval(freq='D', year=2006, month=12, day=31)
+        ival_WSAT_to_D_end = Interval(freq='D', year=2007, month=1, day=6)
+        ival_WFRI_to_D_start = Interval(freq='D', year=2006, month=12, day=30)
+        ival_WFRI_to_D_end = Interval(freq='D', year=2007, month=1, day=5)
+        ival_WTHU_to_D_start = Interval(freq='D', year=2006, month=12, day=29)
+        ival_WTHU_to_D_end = Interval(freq='D', year=2007, month=1, day=4)
+        ival_WWED_to_D_start = Interval(freq='D', year=2006, month=12, day=28)
+        ival_WWED_to_D_end = Interval(freq='D', year=2007, month=1, day=3)
+        ival_WTUE_to_D_start = Interval(freq='D', year=2006, month=12, day=27)
+        ival_WTUE_to_D_end = Interval(freq='D', year=2007, month=1, day=2)
+        ival_WMON_to_D_start = Interval(freq='D', year=2006, month=12, day=26)
+        ival_WMON_to_D_end = Interval(freq='D', year=2007, month=1, day=1)
 
-            date_W_end_of_year = dWrap(Interval(freq='WK', year=2007, month=12, day=31))
-            date_W_end_of_quarter = dWrap(Interval(freq='WK', year=2007, month=3, day=31))
-            date_W_end_of_month = dWrap(Interval(freq='WK', year=2007, month=1, day=31))
-            date_W_to_A = dWrap(Interval(freq='A', year=2007))
-            date_W_to_Q = dWrap(Interval(freq='Q', year=2007, quarter=1))
-            date_W_to_M = dWrap(Interval(freq='M', year=2007, month=1))
+        ival_W_end_of_year = Interval(freq='WK', year=2007, month=12, day=31)
+        ival_W_end_of_quarter = Interval(freq='WK', year=2007, month=3, day=31)
+        ival_W_end_of_month = Interval(freq='WK', year=2007, month=1, day=31)
+        ival_W_to_A = Interval(freq='A', year=2007)
+        ival_W_to_Q = Interval(freq='Q', year=2007, quarter=1)
+        ival_W_to_M = Interval(freq='M', year=2007, month=1)
 
-            if Interval(freq='D', year=2007, month=12, day=31).weekday == 6:
-                date_W_to_A_end_of_year = dWrap(Interval(freq='A', year=2007))
-            else:
-                date_W_to_A_end_of_year = dWrap(Interval(freq='A', year=2008))
+        if Interval(freq='D', year=2007, month=12, day=31).weekday == 6:
+            ival_W_to_A_end_of_year = Interval(freq='A', year=2007)
+        else:
+            ival_W_to_A_end_of_year = Interval(freq='A', year=2008)
 
-            if Interval(freq='D', year=2007, month=3, day=31).weekday == 6:
-                date_W_to_Q_end_of_quarter = dWrap(Interval(freq='Q', year=2007, quarter=1))
-            else:
-                date_W_to_Q_end_of_quarter = dWrap(Interval(freq='Q', year=2007, quarter=2))
+        if Interval(freq='D', year=2007, month=3, day=31).weekday == 6:
+            ival_W_to_Q_end_of_quarter = Interval(freq='Q', year=2007, 
+                                                  quarter=1)
+        else:
+            ival_W_to_Q_end_of_quarter = Interval(freq='Q', year=2007, 
+                                                  quarter=2)
 
-            if Interval(freq='D', year=2007, month=1, day=31).weekday == 6:
-                date_W_to_M_end_of_month = dWrap(Interval(freq='M', year=2007, month=1))
-            else:
-                date_W_to_M_end_of_month = dWrap(Interval(freq='M', year=2007, month=2))
+        if Interval(freq='D', year=2007, month=1, day=31).weekday == 6:
+            ival_W_to_M_end_of_month = Interval(freq='M', year=2007, month=1)
+        else:
+            ival_W_to_M_end_of_month = Interval(freq='M', year=2007, month=2)
 
-            date_W_to_B_start = dWrap(Interval(freq='B', year=2007, month=1, day=1))
-            date_W_to_B_end = dWrap(Interval(freq='B', year=2007, month=1, day=5))
-            date_W_to_D_start = dWrap(Interval(freq='D', year=2007, month=1, day=1))
-            date_W_to_D_end = dWrap(Interval(freq='D', year=2007, month=1, day=7))
-            date_W_to_H_start = dWrap(Interval(freq='H', year=2007, month=1, day=1,
-                                      hour=0))
-            date_W_to_H_end = dWrap(Interval(freq='H', year=2007, month=1, day=7,
-                                     hour=23))
-            date_W_to_T_start = dWrap(Interval(freq='Min', year=2007, month=1, day=1,
-                                      hour=0, minute=0))
-            date_W_to_T_end = dWrap(Interval(freq='Min', year=2007, month=1, day=7,
-                                     hour=23, minute=59))
-            date_W_to_S_start = dWrap(Interval(freq='S', year=2007, month=1, day=1,
-                                      hour=0, minute=0, second=0))
-            date_W_to_S_end = dWrap(Interval(freq='S', year=2007, month=1, day=7,
-                                     hour=23, minute=59, second=59))
+        ival_W_to_B_start = Interval(freq='B', year=2007, month=1, day=1)
+        ival_W_to_B_end = Interval(freq='B', year=2007, month=1, day=5)
+        ival_W_to_D_start = Interval(freq='D', year=2007, month=1, day=1)
+        ival_W_to_D_end = Interval(freq='D', year=2007, month=1, day=7)
+        ival_W_to_H_start = Interval(freq='H', year=2007, month=1, day=1,
+                                    hour=0)
+        ival_W_to_H_end = Interval(freq='H', year=2007, month=1, day=7,
+                                    hour=23)
+        ival_W_to_T_start = Interval(freq='Min', year=2007, month=1, day=1,
+                                    hour=0, minute=0)
+        ival_W_to_T_end = Interval(freq='Min', year=2007, month=1, day=7,
+                                    hour=23, minute=59)
+        ival_W_to_S_start = Interval(freq='S', year=2007, month=1, day=1,
+                                    hour=0, minute=0, second=0)
+        ival_W_to_S_end = Interval(freq='S', year=2007, month=1, day=7,
+                                    hour=23, minute=59, second=59)
 
-            assert_func(date_W.asfreq('A'), date_W_to_A)
-            assert_func(date_W_end_of_year.asfreq('A'), date_W_to_A_end_of_year)
-            assert_func(date_W.asfreq('Q'), date_W_to_Q)
-            assert_func(date_W_end_of_quarter.asfreq('Q'), date_W_to_Q_end_of_quarter)
-            assert_func(date_W.asfreq('M'), date_W_to_M)
-            assert_func(date_W_end_of_month.asfreq('M'), date_W_to_M_end_of_month)
+        assert_equal(ival_W.resample('A'), ival_W_to_A)
+        assert_equal(ival_W_end_of_year.resample('A'), 
+                     ival_W_to_A_end_of_year)
+        assert_equal(ival_W.resample('Q'), ival_W_to_Q)
+        assert_equal(ival_W_end_of_quarter.resample('Q'), 
+                     ival_W_to_Q_end_of_quarter)
+        assert_equal(ival_W.resample('M'), ival_W_to_M)
+        assert_equal(ival_W_end_of_month.resample('M'),
+                     ival_W_to_M_end_of_month)
 
-            assert_func(date_W.asfreq('B', 'S'), date_W_to_B_start)
-            assert_func(date_W.asfreq('B', 'E'), date_W_to_B_end)
+        assert_equal(ival_W.resample('B', 'S'), ival_W_to_B_start)
+        assert_equal(ival_W.resample('B', 'E'), ival_W_to_B_end)
 
-            assert_func(date_W.asfreq('D', 'S'), date_W_to_D_start)
-            assert_func(date_W.asfreq('D', 'E'), date_W_to_D_end)
+        assert_equal(ival_W.resample('D', 'S'), ival_W_to_D_start)
+        assert_equal(ival_W.resample('D', 'E'), ival_W_to_D_end)
 
-            assert_func(date_WSUN.asfreq('D', 'S'), date_WSUN_to_D_start)
-            assert_func(date_WSUN.asfreq('D', 'E'), date_WSUN_to_D_end)
-            assert_func(date_WSAT.asfreq('D', 'S'), date_WSAT_to_D_start)
-            assert_func(date_WSAT.asfreq('D', 'E'), date_WSAT_to_D_end)
-            assert_func(date_WFRI.asfreq('D', 'S'), date_WFRI_to_D_start)
-            assert_func(date_WFRI.asfreq('D', 'E'), date_WFRI_to_D_end)
-            assert_func(date_WTHU.asfreq('D', 'S'), date_WTHU_to_D_start)
-            assert_func(date_WTHU.asfreq('D', 'E'), date_WTHU_to_D_end)
-            assert_func(date_WWED.asfreq('D', 'S'), date_WWED_to_D_start)
-            assert_func(date_WWED.asfreq('D', 'E'), date_WWED_to_D_end)
-            assert_func(date_WTUE.asfreq('D', 'S'), date_WTUE_to_D_start)
-            assert_func(date_WTUE.asfreq('D', 'E'), date_WTUE_to_D_end)
-            assert_func(date_WMON.asfreq('D', 'S'), date_WMON_to_D_start)
-            assert_func(date_WMON.asfreq('D', 'E'), date_WMON_to_D_end)
+        assert_equal(ival_WSUN.resample('D', 'S'), ival_WSUN_to_D_start)
+        assert_equal(ival_WSUN.resample('D', 'E'), ival_WSUN_to_D_end)
+        assert_equal(ival_WSAT.resample('D', 'S'), ival_WSAT_to_D_start)
+        assert_equal(ival_WSAT.resample('D', 'E'), ival_WSAT_to_D_end)
+        assert_equal(ival_WFRI.resample('D', 'S'), ival_WFRI_to_D_start)
+        assert_equal(ival_WFRI.resample('D', 'E'), ival_WFRI_to_D_end)
+        assert_equal(ival_WTHU.resample('D', 'S'), ival_WTHU_to_D_start)
+        assert_equal(ival_WTHU.resample('D', 'E'), ival_WTHU_to_D_end)
+        assert_equal(ival_WWED.resample('D', 'S'), ival_WWED_to_D_start)
+        assert_equal(ival_WWED.resample('D', 'E'), ival_WWED_to_D_end)
+        assert_equal(ival_WTUE.resample('D', 'S'), ival_WTUE_to_D_start)
+        assert_equal(ival_WTUE.resample('D', 'E'), ival_WTUE_to_D_end)
+        assert_equal(ival_WMON.resample('D', 'S'), ival_WMON_to_D_start)
+        assert_equal(ival_WMON.resample('D', 'E'), ival_WMON_to_D_end)
 
-            assert_func(date_W.asfreq('H', 'S'), date_W_to_H_start)
-            assert_func(date_W.asfreq('H', 'E'), date_W_to_H_end)
-            assert_func(date_W.asfreq('Min', 'S'), date_W_to_T_start)
-            assert_func(date_W.asfreq('Min', 'E'), date_W_to_T_end)
-            assert_func(date_W.asfreq('S', 'S'), date_W_to_S_start)
-            assert_func(date_W.asfreq('S', 'E'), date_W_to_S_end)
+        assert_equal(ival_W.resample('H', 'S'), ival_W_to_H_start)
+        assert_equal(ival_W.resample('H', 'E'), ival_W_to_H_end)
+        assert_equal(ival_W.resample('Min', 'S'), ival_W_to_T_start)
+        assert_equal(ival_W.resample('Min', 'E'), ival_W_to_T_end)
+        assert_equal(ival_W.resample('S', 'S'), ival_W_to_S_start)
+        assert_equal(ival_W.resample('S', 'E'), ival_W_to_S_end)
 
-            assert_func(date_W.asfreq('WK'), date_W)
+        assert_equal(ival_W.resample('WK'), ival_W)
 
 
     def test_conv_business(self):
         "frequency conversion tests: from Business Frequency"
 
-        for dWrap, assert_func in self.dateWrap:
-            date_B = dWrap(Interval(freq='B', year=2007, month=1, day=1))
-            date_B_end_of_year = dWrap(Interval(freq='B', year=2007, month=12, day=31))
-            date_B_end_of_quarter = dWrap(Interval(freq='B', year=2007, month=3, day=30))
-            date_B_end_of_month = dWrap(Interval(freq='B', year=2007, month=1, day=31))
-            date_B_end_of_week = dWrap(Interval(freq='B', year=2007, month=1, day=5))
+        ival_B = Interval(freq='B', year=2007, month=1, day=1)
+        ival_B_end_of_year = Interval(freq='B', year=2007, month=12, day=31)
+        ival_B_end_of_quarter = Interval(freq='B', year=2007, month=3, day=30)
+        ival_B_end_of_month = Interval(freq='B', year=2007, month=1, day=31)
+        ival_B_end_of_week = Interval(freq='B', year=2007, month=1, day=5)
 
-            date_B_to_A = dWrap(Interval(freq='A', year=2007))
-            date_B_to_Q = dWrap(Interval(freq='Q', year=2007, quarter=1))
-            date_B_to_M = dWrap(Interval(freq='M', year=2007, month=1))
-            date_B_to_W = dWrap(Interval(freq='WK', year=2007, month=1, day=7))
-            date_B_to_D = dWrap(Interval(freq='D', year=2007, month=1, day=1))
-            date_B_to_H_start = dWrap(Interval(freq='H', year=2007, month=1, day=1,
-                                      hour=0))
-            date_B_to_H_end = dWrap(Interval(freq='H', year=2007, month=1, day=1,
-                                     hour=23))
-            date_B_to_T_start = dWrap(Interval(freq='Min', year=2007, month=1, day=1,
-                                      hour=0, minute=0))
-            date_B_to_T_end = dWrap(Interval(freq='Min', year=2007, month=1, day=1,
-                                     hour=23, minute=59))
-            date_B_to_S_start = dWrap(Interval(freq='S', year=2007, month=1, day=1,
-                                      hour=0, minute=0, second=0))
-            date_B_to_S_end = dWrap(Interval(freq='S', year=2007, month=1, day=1,
-                                     hour=23, minute=59, second=59))
+        ival_B_to_A = Interval(freq='A', year=2007)
+        ival_B_to_Q = Interval(freq='Q', year=2007, quarter=1)
+        ival_B_to_M = Interval(freq='M', year=2007, month=1)
+        ival_B_to_W = Interval(freq='WK', year=2007, month=1, day=7)
+        ival_B_to_D = Interval(freq='D', year=2007, month=1, day=1)
+        ival_B_to_H_start = Interval(freq='H', year=2007, month=1, day=1,
+                                    hour=0)
+        ival_B_to_H_end = Interval(freq='H', year=2007, month=1, day=1,
+                                    hour=23)
+        ival_B_to_T_start = Interval(freq='Min', year=2007, month=1, day=1,
+                                    hour=0, minute=0)
+        ival_B_to_T_end = Interval(freq='Min', year=2007, month=1, day=1,
+                                    hour=23, minute=59)
+        ival_B_to_S_start = Interval(freq='S', year=2007, month=1, day=1,
+                                    hour=0, minute=0, second=0)
+        ival_B_to_S_end = Interval(freq='S', year=2007, month=1, day=1,
+                                    hour=23, minute=59, second=59)
 
-            assert_func(date_B.asfreq('A'), date_B_to_A)
-            assert_func(date_B_end_of_year.asfreq('A'), date_B_to_A)
-            assert_func(date_B.asfreq('Q'), date_B_to_Q)
-            assert_func(date_B_end_of_quarter.asfreq('Q'), date_B_to_Q)
-            assert_func(date_B.asfreq('M'), date_B_to_M)
-            assert_func(date_B_end_of_month.asfreq('M'), date_B_to_M)
-            assert_func(date_B.asfreq('WK'), date_B_to_W)
-            assert_func(date_B_end_of_week.asfreq('WK'), date_B_to_W)
+        assert_equal(ival_B.resample('A'), ival_B_to_A)
+        assert_equal(ival_B_end_of_year.resample('A'), ival_B_to_A)
+        assert_equal(ival_B.resample('Q'), ival_B_to_Q)
+        assert_equal(ival_B_end_of_quarter.resample('Q'), ival_B_to_Q)
+        assert_equal(ival_B.resample('M'), ival_B_to_M)
+        assert_equal(ival_B_end_of_month.resample('M'), ival_B_to_M)
+        assert_equal(ival_B.resample('WK'), ival_B_to_W)
+        assert_equal(ival_B_end_of_week.resample('WK'), ival_B_to_W)
 
-            assert_func(date_B.asfreq('D'), date_B_to_D)
+        assert_equal(ival_B.resample('D'), ival_B_to_D)
 
-            assert_func(date_B.asfreq('H', 'S'), date_B_to_H_start)
-            assert_func(date_B.asfreq('H', 'E'), date_B_to_H_end)
-            assert_func(date_B.asfreq('Min', 'S'), date_B_to_T_start)
-            assert_func(date_B.asfreq('Min', 'E'), date_B_to_T_end)
-            assert_func(date_B.asfreq('S', 'S'), date_B_to_S_start)
-            assert_func(date_B.asfreq('S', 'E'), date_B_to_S_end)
+        assert_equal(ival_B.resample('H', 'S'), ival_B_to_H_start)
+        assert_equal(ival_B.resample('H', 'E'), ival_B_to_H_end)
+        assert_equal(ival_B.resample('Min', 'S'), ival_B_to_T_start)
+        assert_equal(ival_B.resample('Min', 'E'), ival_B_to_T_end)
+        assert_equal(ival_B.resample('S', 'S'), ival_B_to_S_start)
+        assert_equal(ival_B.resample('S', 'E'), ival_B_to_S_end)
 
-            assert_func(date_B.asfreq('B'), date_B)
+        assert_equal(ival_B.resample('B'), ival_B)
 
 
     def test_conv_daily(self):
         "frequency conversion tests: from Business Frequency"
 
-        for dWrap, assert_func in self.dateWrap:
-            date_D = dWrap(Interval(freq='D', year=2007, month=1, day=1))
-            date_D_end_of_year = dWrap(Interval(freq='D', year=2007, month=12, day=31))
-            date_D_end_of_quarter = dWrap(Interval(freq='D', year=2007, month=3, day=31))
-            date_D_end_of_month = dWrap(Interval(freq='D', year=2007, month=1, day=31))
-            date_D_end_of_week = dWrap(Interval(freq='D', year=2007, month=1, day=7))
+        ival_D = Interval(freq='D', year=2007, month=1, day=1)
+        ival_D_end_of_year = Interval(freq='D', year=2007, month=12, day=31)
+        ival_D_end_of_quarter = Interval(freq='D', year=2007, month=3, day=31)
+        ival_D_end_of_month = Interval(freq='D', year=2007, month=1, day=31)
+        ival_D_end_of_week = Interval(freq='D', year=2007, month=1, day=7)
 
-            date_D_friday = dWrap(Interval(freq='D', year=2007, month=1, day=5))
-            date_D_saturday = dWrap(Interval(freq='D', year=2007, month=1, day=6))
-            date_D_sunday = dWrap(Interval(freq='D', year=2007, month=1, day=7))
-            date_D_monday = dWrap(Interval(freq='D', year=2007, month=1, day=8))
+        ival_D_friday = Interval(freq='D', year=2007, month=1, day=5)
+        ival_D_saturday = Interval(freq='D', year=2007, month=1, day=6)
+        ival_D_sunday = Interval(freq='D', year=2007, month=1, day=7)
+        ival_D_monday = Interval(freq='D', year=2007, month=1, day=8)
 
-            date_B_friday = dWrap(Interval(freq='B', year=2007, month=1, day=5))
-            date_B_monday = dWrap(Interval(freq='B', year=2007, month=1, day=8))
+        ival_B_friday = Interval(freq='B', year=2007, month=1, day=5)
+        ival_B_monday = Interval(freq='B', year=2007, month=1, day=8)
 
-            date_D_to_A = dWrap(Interval(freq='A', year=2007))
+        ival_D_to_A = Interval(freq='A', year=2007)
 
-            date_Deoq_to_AJAN = dWrap(Interval(freq='A@JAN', year=2008))
-            date_Deoq_to_AJUN = dWrap(Interval(freq='A@JUN', year=2007))
-            date_Deoq_to_ADEC = dWrap(Interval(freq='A@DEC', year=2007))
+        ival_Deoq_to_AJAN = Interval(freq='A@JAN', year=2008)
+        ival_Deoq_to_AJUN = Interval(freq='A@JUN', year=2007)
+        ival_Deoq_to_ADEC = Interval(freq='A@DEC', year=2007)
 
-            date_D_to_QEJAN = dWrap(Interval(freq="Q@JAN", year=2007, quarter=4))
-            date_D_to_QEJUN = dWrap(Interval(freq="Q@JUN", year=2007, quarter=3))
-            date_D_to_QEDEC = dWrap(Interval(freq="Q@DEC", year=2007, quarter=1))
+        ival_D_to_QEJAN = Interval(freq="Q@JAN", year=2007, quarter=4)
+        ival_D_to_QEJUN = Interval(freq="Q@JUN", year=2007, quarter=3)
+        ival_D_to_QEDEC = Interval(freq="Q@DEC", year=2007, quarter=1)
 
-            date_D_to_QSJAN = dWrap(Interval(freq="QS@JAN", year=2006, quarter=4))
-            date_D_to_QSJUN = dWrap(Interval(freq="QS@JUN", year=2006, quarter=3))
-            date_D_to_QSDEC = dWrap(Interval(freq="QS@DEC", year=2007, quarter=1))
+        ival_D_to_QSJAN = Interval(freq="QS@JAN", year=2006, quarter=4)
+        ival_D_to_QSJUN = Interval(freq="QS@JUN", year=2006, quarter=3)
+        ival_D_to_QSDEC = Interval(freq="QS@DEC", year=2007, quarter=1)
 
-            date_D_to_M = dWrap(Interval(freq='M', year=2007, month=1))
-            date_D_to_W = dWrap(Interval(freq='WK', year=2007, month=1, day=7))
+        ival_D_to_M = Interval(freq='M', year=2007, month=1)
+        ival_D_to_W = Interval(freq='WK', year=2007, month=1, day=7)
 
-            date_D_to_H_start = dWrap(Interval(freq='H', year=2007, month=1, day=1,
-                                      hour=0))
-            date_D_to_H_end = dWrap(Interval(freq='H', year=2007, month=1, day=1,
-                                     hour=23))
-            date_D_to_T_start = dWrap(Interval(freq='Min', year=2007, month=1, day=1,
-                                      hour=0, minute=0))
-            date_D_to_T_end = dWrap(Interval(freq='Min', year=2007, month=1, day=1,
-                                     hour=23, minute=59))
-            date_D_to_S_start = dWrap(Interval(freq='S', year=2007, month=1, day=1,
-                                      hour=0, minute=0, second=0))
-            date_D_to_S_end = dWrap(Interval(freq='S', year=2007, month=1, day=1,
-                                     hour=23, minute=59, second=59))
+        ival_D_to_H_start = Interval(freq='H', year=2007, month=1, day=1,
+                                    hour=0)
+        ival_D_to_H_end = Interval(freq='H', year=2007, month=1, day=1,
+                                    hour=23)
+        ival_D_to_T_start = Interval(freq='Min', year=2007, month=1, day=1,
+                                    hour=0, minute=0)
+        ival_D_to_T_end = Interval(freq='Min', year=2007, month=1, day=1,
+                                    hour=23, minute=59)
+        ival_D_to_S_start = Interval(freq='S', year=2007, month=1, day=1,
+                                    hour=0, minute=0, second=0)
+        ival_D_to_S_end = Interval(freq='S', year=2007, month=1, day=1,
+                                    hour=23, minute=59, second=59)
 
-            assert_func(date_D.asfreq('A'), date_D_to_A)
+        assert_equal(ival_D.resample('A'), ival_D_to_A)
 
-            assert_func(date_D_end_of_quarter.asfreq('A@JAN'), date_Deoq_to_AJAN)
-            assert_func(date_D_end_of_quarter.asfreq('A@JUN'), date_Deoq_to_AJUN)
-            assert_func(date_D_end_of_quarter.asfreq('A@DEC'), date_Deoq_to_ADEC)
+        assert_equal(ival_D_end_of_quarter.resample('A@JAN'),
+                     ival_Deoq_to_AJAN)
+        assert_equal(ival_D_end_of_quarter.resample('A@JUN'),
+                     ival_Deoq_to_AJUN)
+        assert_equal(ival_D_end_of_quarter.resample('A@DEC'),
+                     ival_Deoq_to_ADEC)
 
-            assert_func(date_D_end_of_year.asfreq('A'), date_D_to_A)
-            assert_func(date_D_end_of_quarter.asfreq('Q'), date_D_to_QEDEC)
-            assert_func(date_D.asfreq("Q@JAN"), date_D_to_QEJAN)
-            assert_func(date_D.asfreq("Q@JUN"), date_D_to_QEJUN)
-            assert_func(date_D.asfreq("Q@DEC"), date_D_to_QEDEC)
-            assert_func(date_D.asfreq("QS@JAN"), date_D_to_QSJAN)
-            assert_func(date_D.asfreq("QS@JUN"), date_D_to_QSJUN)
-            assert_func(date_D.asfreq("QS@DEC"), date_D_to_QSDEC)
-            assert_func(date_D.asfreq('M'), date_D_to_M)
-            assert_func(date_D_end_of_month.asfreq('M'), date_D_to_M)
-            assert_func(date_D.asfreq('WK'), date_D_to_W)
-            assert_func(date_D_end_of_week.asfreq('WK'), date_D_to_W)
+        assert_equal(ival_D_end_of_year.resample('A'), ival_D_to_A)
+        assert_equal(ival_D_end_of_quarter.resample('Q'), ival_D_to_QEDEC)
+        assert_equal(ival_D.resample("Q@JAN"), ival_D_to_QEJAN)
+        assert_equal(ival_D.resample("Q@JUN"), ival_D_to_QEJUN)
+        assert_equal(ival_D.resample("Q@DEC"), ival_D_to_QEDEC)
+        assert_equal(ival_D.resample("QS@JAN"), ival_D_to_QSJAN)
+        assert_equal(ival_D.resample("QS@JUN"), ival_D_to_QSJUN)
+        assert_equal(ival_D.resample("QS@DEC"), ival_D_to_QSDEC)
+        assert_equal(ival_D.resample('M'), ival_D_to_M)
+        assert_equal(ival_D_end_of_month.resample('M'), ival_D_to_M)
+        assert_equal(ival_D.resample('WK'), ival_D_to_W)
+        assert_equal(ival_D_end_of_week.resample('WK'), ival_D_to_W)
 
-            assert_func(date_D_friday.asfreq('B'), date_B_friday)
-            assert_func(date_D_saturday.asfreq('B', 'S'), date_B_friday)
-            assert_func(date_D_saturday.asfreq('B', 'E'), date_B_monday)
-            assert_func(date_D_sunday.asfreq('B', 'S'), date_B_friday)
-            assert_func(date_D_sunday.asfreq('B', 'E'), date_B_monday)
+        assert_equal(ival_D_friday.resample('B'), ival_B_friday)
+        assert_equal(ival_D_saturday.resample('B', 'S'), ival_B_friday)
+        assert_equal(ival_D_saturday.resample('B', 'E'), ival_B_monday)
+        assert_equal(ival_D_sunday.resample('B', 'S'), ival_B_friday)
+        assert_equal(ival_D_sunday.resample('B', 'E'), ival_B_monday)
 
-            assert_func(date_D.asfreq('H', 'S'), date_D_to_H_start)
-            assert_func(date_D.asfreq('H', 'E'), date_D_to_H_end)
-            assert_func(date_D.asfreq('Min', 'S'), date_D_to_T_start)
-            assert_func(date_D.asfreq('Min', 'E'), date_D_to_T_end)
-            assert_func(date_D.asfreq('S', 'S'), date_D_to_S_start)
-            assert_func(date_D.asfreq('S', 'E'), date_D_to_S_end)
+        assert_equal(ival_D.resample('H', 'S'), ival_D_to_H_start)
+        assert_equal(ival_D.resample('H', 'E'), ival_D_to_H_end)
+        assert_equal(ival_D.resample('Min', 'S'), ival_D_to_T_start)
+        assert_equal(ival_D.resample('Min', 'E'), ival_D_to_T_end)
+        assert_equal(ival_D.resample('S', 'S'), ival_D_to_S_start)
+        assert_equal(ival_D.resample('S', 'E'), ival_D_to_S_end)
 
-            assert_func(date_D.asfreq('D'), date_D)
+        assert_equal(ival_D.resample('D'), ival_D)
 
     def test_conv_hourly(self):
         "frequency conversion tests: from Hourly Frequency"
 
-        for dWrap, assert_func in self.dateWrap:
-            date_H = dWrap(Interval(freq='H', year=2007, month=1, day=1, hour=0))
-            date_H_end_of_year = dWrap(Interval(freq='H', year=2007, month=12, day=31,
-                                      hour=23))
-            date_H_end_of_quarter = dWrap(Interval(freq='H', year=2007, month=3, day=31,
-                                         hour=23))
-            date_H_end_of_month = dWrap(Interval(freq='H', year=2007, month=1, day=31,
-                                       hour=23))
-            date_H_end_of_week = dWrap(Interval(freq='H', year=2007, month=1, day=7,
-                                      hour=23))
-            date_H_end_of_day = dWrap(Interval(freq='H', year=2007, month=1, day=1,
-                                     hour=23))
-            date_H_end_of_bus = dWrap(Interval(freq='H', year=2007, month=1, day=1,
-                                     hour=23))
+        ival_H = Interval(freq='H', year=2007, month=1, day=1, hour=0)
+        ival_H_end_of_year = Interval(freq='H', year=2007, month=12, day=31,
+                                    hour=23)
+        ival_H_end_of_quarter = Interval(freq='H', year=2007, month=3, day=31,
+                                        hour=23)
+        ival_H_end_of_month = Interval(freq='H', year=2007, month=1, day=31,
+                                    hour=23)
+        ival_H_end_of_week = Interval(freq='H', year=2007, month=1, day=7,
+                                    hour=23)
+        ival_H_end_of_day = Interval(freq='H', year=2007, month=1, day=1,
+                                    hour=23)
+        ival_H_end_of_bus = Interval(freq='H', year=2007, month=1, day=1,
+                                    hour=23)
 
-            date_H_to_A = dWrap(Interval(freq='A', year=2007))
-            date_H_to_Q = dWrap(Interval(freq='Q', year=2007, quarter=1))
-            date_H_to_M = dWrap(Interval(freq='M', year=2007, month=1))
-            date_H_to_W = dWrap(Interval(freq='WK', year=2007, month=1, day=7))
-            date_H_to_D = dWrap(Interval(freq='D', year=2007, month=1, day=1))
-            date_H_to_B = dWrap(Interval(freq='B', year=2007, month=1, day=1))
+        ival_H_to_A = Interval(freq='A', year=2007)
+        ival_H_to_Q = Interval(freq='Q', year=2007, quarter=1)
+        ival_H_to_M = Interval(freq='M', year=2007, month=1)
+        ival_H_to_W = Interval(freq='WK', year=2007, month=1, day=7)
+        ival_H_to_D = Interval(freq='D', year=2007, month=1, day=1)
+        ival_H_to_B = Interval(freq='B', year=2007, month=1, day=1)
 
-            date_H_to_T_start = dWrap(Interval(freq='Min', year=2007, month=1, day=1,
-                                      hour=0, minute=0))
-            date_H_to_T_end = dWrap(Interval(freq='Min', year=2007, month=1, day=1,
-                                     hour=0, minute=59))
-            date_H_to_S_start = dWrap(Interval(freq='S', year=2007, month=1, day=1,
-                                      hour=0, minute=0, second=0))
-            date_H_to_S_end = dWrap(Interval(freq='S', year=2007, month=1, day=1,
-                                     hour=0, minute=59, second=59))
+        ival_H_to_T_start = Interval(freq='Min', year=2007, month=1, day=1,
+                                    hour=0, minute=0)
+        ival_H_to_T_end = Interval(freq='Min', year=2007, month=1, day=1,
+                                    hour=0, minute=59)
+        ival_H_to_S_start = Interval(freq='S', year=2007, month=1, day=1,
+                                    hour=0, minute=0, second=0)
+        ival_H_to_S_end = Interval(freq='S', year=2007, month=1, day=1,
+                                    hour=0, minute=59, second=59)
 
-            assert_func(date_H.asfreq('A'), date_H_to_A)
-            assert_func(date_H_end_of_year.asfreq('A'), date_H_to_A)
-            assert_func(date_H.asfreq('Q'), date_H_to_Q)
-            assert_func(date_H_end_of_quarter.asfreq('Q'), date_H_to_Q)
-            assert_func(date_H.asfreq('M'), date_H_to_M)
-            assert_func(date_H_end_of_month.asfreq('M'), date_H_to_M)
-            assert_func(date_H.asfreq('WK'), date_H_to_W)
-            assert_func(date_H_end_of_week.asfreq('WK'), date_H_to_W)
-            assert_func(date_H.asfreq('D'), date_H_to_D)
-            assert_func(date_H_end_of_day.asfreq('D'), date_H_to_D)
-            assert_func(date_H.asfreq('B'), date_H_to_B)
-            assert_func(date_H_end_of_bus.asfreq('B'), date_H_to_B)
+        assert_equal(ival_H.resample('A'), ival_H_to_A)
+        assert_equal(ival_H_end_of_year.resample('A'), ival_H_to_A)
+        assert_equal(ival_H.resample('Q'), ival_H_to_Q)
+        assert_equal(ival_H_end_of_quarter.resample('Q'), ival_H_to_Q)
+        assert_equal(ival_H.resample('M'), ival_H_to_M)
+        assert_equal(ival_H_end_of_month.resample('M'), ival_H_to_M)
+        assert_equal(ival_H.resample('WK'), ival_H_to_W)
+        assert_equal(ival_H_end_of_week.resample('WK'), ival_H_to_W)
+        assert_equal(ival_H.resample('D'), ival_H_to_D)
+        assert_equal(ival_H_end_of_day.resample('D'), ival_H_to_D)
+        assert_equal(ival_H.resample('B'), ival_H_to_B)
+        assert_equal(ival_H_end_of_bus.resample('B'), ival_H_to_B)
 
-            assert_func(date_H.asfreq('Min', 'S'), date_H_to_T_start)
-            assert_func(date_H.asfreq('Min', 'E'), date_H_to_T_end)
-            assert_func(date_H.asfreq('S', 'S'), date_H_to_S_start)
-            assert_func(date_H.asfreq('S', 'E'), date_H_to_S_end)
+        assert_equal(ival_H.resample('Min', 'S'), ival_H_to_T_start)
+        assert_equal(ival_H.resample('Min', 'E'), ival_H_to_T_end)
+        assert_equal(ival_H.resample('S', 'S'), ival_H_to_S_start)
+        assert_equal(ival_H.resample('S', 'E'), ival_H_to_S_end)
 
-            assert_func(date_H.asfreq('H'), date_H)
+        assert_equal(ival_H.resample('H'), ival_H)
 
     def test_conv_minutely(self):
         "frequency conversion tests: from Minutely Frequency"
 
-        for dWrap, assert_func in self.dateWrap:
-            date_T = dWrap(Interval(freq='Min', year=2007, month=1, day=1,
-                          hour=0, minute=0))
-            date_T_end_of_year = dWrap(Interval(freq='Min', year=2007, month=12, day=31,
-                                      hour=23, minute=59))
-            date_T_end_of_quarter = dWrap(Interval(freq='Min', year=2007, month=3, day=31,
-                                         hour=23, minute=59))
-            date_T_end_of_month = dWrap(Interval(freq='Min', year=2007, month=1, day=31,
-                                       hour=23, minute=59))
-            date_T_end_of_week = dWrap(Interval(freq='Min', year=2007, month=1, day=7,
-                                      hour=23, minute=59))
-            date_T_end_of_day = dWrap(Interval(freq='Min', year=2007, month=1, day=1,
-                                     hour=23, minute=59))
-            date_T_end_of_bus = dWrap(Interval(freq='Min', year=2007, month=1, day=1,
-                                     hour=23, minute=59))
-            date_T_end_of_hour = dWrap(Interval(freq='Min', year=2007, month=1, day=1,
-                                      hour=0, minute=59))
+        ival_T = Interval(freq='Min', year=2007, month=1, day=1,
+                        hour=0, minute=0)
+        ival_T_end_of_year = Interval(freq='Min', year=2007, month=12, day=31,
+                                    hour=23, minute=59)
+        ival_T_end_of_quarter = Interval(freq='Min', year=2007, month=3, day=31,
+                                        hour=23, minute=59)
+        ival_T_end_of_month = Interval(freq='Min', year=2007, month=1, day=31,
+                                    hour=23, minute=59)
+        ival_T_end_of_week = Interval(freq='Min', year=2007, month=1, day=7,
+                                    hour=23, minute=59)
+        ival_T_end_of_day = Interval(freq='Min', year=2007, month=1, day=1,
+                                    hour=23, minute=59)
+        ival_T_end_of_bus = Interval(freq='Min', year=2007, month=1, day=1,
+                                    hour=23, minute=59)
+        ival_T_end_of_hour = Interval(freq='Min', year=2007, month=1, day=1,
+                                    hour=0, minute=59)
 
-            date_T_to_A = dWrap(Interval(freq='A', year=2007))
-            date_T_to_Q = dWrap(Interval(freq='Q', year=2007, quarter=1))
-            date_T_to_M = dWrap(Interval(freq='M', year=2007, month=1))
-            date_T_to_W = dWrap(Interval(freq='WK', year=2007, month=1, day=7))
-            date_T_to_D = dWrap(Interval(freq='D', year=2007, month=1, day=1))
-            date_T_to_B = dWrap(Interval(freq='B', year=2007, month=1, day=1))
-            date_T_to_H = dWrap(Interval(freq='H', year=2007, month=1, day=1, hour=0))
+        ival_T_to_A = Interval(freq='A', year=2007)
+        ival_T_to_Q = Interval(freq='Q', year=2007, quarter=1)
+        ival_T_to_M = Interval(freq='M', year=2007, month=1)
+        ival_T_to_W = Interval(freq='WK', year=2007, month=1, day=7)
+        ival_T_to_D = Interval(freq='D', year=2007, month=1, day=1)
+        ival_T_to_B = Interval(freq='B', year=2007, month=1, day=1)
+        ival_T_to_H = Interval(freq='H', year=2007, month=1, day=1, hour=0)
 
-            date_T_to_S_start = dWrap(Interval(freq='S', year=2007, month=1, day=1,
-                                      hour=0, minute=0, second=0))
-            date_T_to_S_end = dWrap(Interval(freq='S', year=2007, month=1, day=1,
-                                     hour=0, minute=0, second=59))
+        ival_T_to_S_start = Interval(freq='S', year=2007, month=1, day=1,
+                                    hour=0, minute=0, second=0)
+        ival_T_to_S_end = Interval(freq='S', year=2007, month=1, day=1,
+                                    hour=0, minute=0, second=59)
 
-            assert_func(date_T.asfreq('A'), date_T_to_A)
-            assert_func(date_T_end_of_year.asfreq('A'), date_T_to_A)
-            assert_func(date_T.asfreq('Q'), date_T_to_Q)
-            assert_func(date_T_end_of_quarter.asfreq('Q'), date_T_to_Q)
-            assert_func(date_T.asfreq('M'), date_T_to_M)
-            assert_func(date_T_end_of_month.asfreq('M'), date_T_to_M)
-            assert_func(date_T.asfreq('WK'), date_T_to_W)
-            assert_func(date_T_end_of_week.asfreq('WK'), date_T_to_W)
-            assert_func(date_T.asfreq('D'), date_T_to_D)
-            assert_func(date_T_end_of_day.asfreq('D'), date_T_to_D)
-            assert_func(date_T.asfreq('B'), date_T_to_B)
-            assert_func(date_T_end_of_bus.asfreq('B'), date_T_to_B)
-            assert_func(date_T.asfreq('H'), date_T_to_H)
-            assert_func(date_T_end_of_hour.asfreq('H'), date_T_to_H)
+        assert_equal(ival_T.resample('A'), ival_T_to_A)
+        assert_equal(ival_T_end_of_year.resample('A'), ival_T_to_A)
+        assert_equal(ival_T.resample('Q'), ival_T_to_Q)
+        assert_equal(ival_T_end_of_quarter.resample('Q'), ival_T_to_Q)
+        assert_equal(ival_T.resample('M'), ival_T_to_M)
+        assert_equal(ival_T_end_of_month.resample('M'), ival_T_to_M)
+        assert_equal(ival_T.resample('WK'), ival_T_to_W)
+        assert_equal(ival_T_end_of_week.resample('WK'), ival_T_to_W)
+        assert_equal(ival_T.resample('D'), ival_T_to_D)
+        assert_equal(ival_T_end_of_day.resample('D'), ival_T_to_D)
+        assert_equal(ival_T.resample('B'), ival_T_to_B)
+        assert_equal(ival_T_end_of_bus.resample('B'), ival_T_to_B)
+        assert_equal(ival_T.resample('H'), ival_T_to_H)
+        assert_equal(ival_T_end_of_hour.resample('H'), ival_T_to_H)
 
-            assert_func(date_T.asfreq('S', 'S'), date_T_to_S_start)
-            assert_func(date_T.asfreq('S', 'E'), date_T_to_S_end)
+        assert_equal(ival_T.resample('S', 'S'), ival_T_to_S_start)
+        assert_equal(ival_T.resample('S', 'E'), ival_T_to_S_end)
 
-            assert_func(date_T.asfreq('Min'), date_T)
+        assert_equal(ival_T.resample('Min'), ival_T)
 
     def test_conv_secondly(self):
         "frequency conversion tests: from Secondly Frequency"
 
-        for dWrap, assert_func in self.dateWrap:
-            date_S = dWrap(Interval(freq='S', year=2007, month=1, day=1,
-                          hour=0, minute=0, second=0))
-            date_S_end_of_year = dWrap(Interval(freq='S', year=2007, month=12, day=31,
-                                      hour=23, minute=59, second=59))
-            date_S_end_of_quarter = dWrap(Interval(freq='S', year=2007, month=3, day=31,
-                                         hour=23, minute=59, second=59))
-            date_S_end_of_month = dWrap(Interval(freq='S', year=2007, month=1, day=31,
-                                       hour=23, minute=59, second=59))
-            date_S_end_of_week = dWrap(Interval(freq='S', year=2007, month=1, day=7,
-                                      hour=23, minute=59, second=59))
-            date_S_end_of_day = dWrap(Interval(freq='S', year=2007, month=1, day=1,
-                                     hour=23, minute=59, second=59))
-            date_S_end_of_bus = dWrap(Interval(freq='S', year=2007, month=1, day=1,
-                                     hour=23, minute=59, second=59))
-            date_S_end_of_hour = dWrap(Interval(freq='S', year=2007, month=1, day=1,
-                                      hour=0, minute=59, second=59))
-            date_S_end_of_minute = dWrap(Interval(freq='S', year=2007, month=1, day=1,
-                                        hour=0, minute=0, second=59))
+        ival_S = Interval(freq='S', year=2007, month=1, day=1,
+                        hour=0, minute=0, second=0)
+        ival_S_end_of_year = Interval(freq='S', year=2007, month=12, day=31,
+                                    hour=23, minute=59, second=59)
+        ival_S_end_of_quarter = Interval(freq='S', year=2007, month=3, day=31,
+                                        hour=23, minute=59, second=59)
+        ival_S_end_of_month = Interval(freq='S', year=2007, month=1, day=31,
+                                    hour=23, minute=59, second=59)
+        ival_S_end_of_week = Interval(freq='S', year=2007, month=1, day=7,
+                                    hour=23, minute=59, second=59)
+        ival_S_end_of_day = Interval(freq='S', year=2007, month=1, day=1,
+                                    hour=23, minute=59, second=59)
+        ival_S_end_of_bus = Interval(freq='S', year=2007, month=1, day=1,
+                                    hour=23, minute=59, second=59)
+        ival_S_end_of_hour = Interval(freq='S', year=2007, month=1, day=1,
+                                    hour=0, minute=59, second=59)
+        ival_S_end_of_minute = Interval(freq='S', year=2007, month=1, day=1,
+                                    hour=0, minute=0, second=59)
 
-            date_S_to_A = dWrap(Interval(freq='A', year=2007))
-            date_S_to_Q = dWrap(Interval(freq='Q', year=2007, quarter=1))
-            date_S_to_M = dWrap(Interval(freq='M', year=2007, month=1))
-            date_S_to_W = dWrap(Interval(freq='WK', year=2007, month=1, day=7))
-            date_S_to_D = dWrap(Interval(freq='D', year=2007, month=1, day=1))
-            date_S_to_B = dWrap(Interval(freq='B', year=2007, month=1, day=1))
-            date_S_to_H = dWrap(Interval(freq='H', year=2007, month=1, day=1,
-                               hour=0))
-            date_S_to_T = dWrap(Interval(freq='Min', year=2007, month=1, day=1,
-                               hour=0, minute=0))
+        ival_S_to_A = Interval(freq='A', year=2007)
+        ival_S_to_Q = Interval(freq='Q', year=2007, quarter=1)
+        ival_S_to_M = Interval(freq='M', year=2007, month=1)
+        ival_S_to_W = Interval(freq='WK', year=2007, month=1, day=7)
+        ival_S_to_D = Interval(freq='D', year=2007, month=1, day=1)
+        ival_S_to_B = Interval(freq='B', year=2007, month=1, day=1)
+        ival_S_to_H = Interval(freq='H', year=2007, month=1, day=1,
+                            hour=0)
+        ival_S_to_T = Interval(freq='Min', year=2007, month=1, day=1,
+                            hour=0, minute=0)
 
-            assert_func(date_S.asfreq('A'), date_S_to_A)
-            assert_func(date_S_end_of_year.asfreq('A'), date_S_to_A)
-            assert_func(date_S.asfreq('Q'), date_S_to_Q)
-            assert_func(date_S_end_of_quarter.asfreq('Q'), date_S_to_Q)
-            assert_func(date_S.asfreq('M'), date_S_to_M)
-            assert_func(date_S_end_of_month.asfreq('M'), date_S_to_M)
-            assert_func(date_S.asfreq('WK'), date_S_to_W)
-            assert_func(date_S_end_of_week.asfreq('WK'), date_S_to_W)
-            assert_func(date_S.asfreq('D'), date_S_to_D)
-            assert_func(date_S_end_of_day.asfreq('D'), date_S_to_D)
-            assert_func(date_S.asfreq('B'), date_S_to_B)
-            assert_func(date_S_end_of_bus.asfreq('B'), date_S_to_B)
-            assert_func(date_S.asfreq('H'), date_S_to_H)
-            assert_func(date_S_end_of_hour.asfreq('H'), date_S_to_H)
-            assert_func(date_S.asfreq('Min'), date_S_to_T)
-            assert_func(date_S_end_of_minute.asfreq('Min'), date_S_to_T)
+        assert_equal(ival_S.resample('A'), ival_S_to_A)
+        assert_equal(ival_S_end_of_year.resample('A'), ival_S_to_A)
+        assert_equal(ival_S.resample('Q'), ival_S_to_Q)
+        assert_equal(ival_S_end_of_quarter.resample('Q'), ival_S_to_Q)
+        assert_equal(ival_S.resample('M'), ival_S_to_M)
+        assert_equal(ival_S_end_of_month.resample('M'), ival_S_to_M)
+        assert_equal(ival_S.resample('WK'), ival_S_to_W)
+        assert_equal(ival_S_end_of_week.resample('WK'), ival_S_to_W)
+        assert_equal(ival_S.resample('D'), ival_S_to_D)
+        assert_equal(ival_S_end_of_day.resample('D'), ival_S_to_D)
+        assert_equal(ival_S.resample('B'), ival_S_to_B)
+        assert_equal(ival_S_end_of_bus.resample('B'), ival_S_to_B)
+        assert_equal(ival_S.resample('H'), ival_S_to_H)
+        assert_equal(ival_S_end_of_hour.resample('H'), ival_S_to_H)
+        assert_equal(ival_S.resample('Min'), ival_S_to_T)
+        assert_equal(ival_S_end_of_minute.resample('Min'), ival_S_to_T)
 
-            assert_func(date_S.asfreq('S'), date_S)
+        assert_equal(ival_S.resample('S'), ival_S)
 
 
 class TestMethods(TestCase):

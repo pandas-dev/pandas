@@ -1890,9 +1890,11 @@ def dt64arr_to_sktsarr(ndarray[int64_t] dtarr, int base, long mult):
         out[i] = apply_mult(out[i], mult)
     return out
 
-def skts_freq_conv(long skts_ordinal, int base1, long mult1, int base2, long mult2,
-                   object relation='E'):
+cpdef long skts_resample(long skts_ordinal, int base1, long mult1, int base2, long mult2,
+                          object relation='E'):
     """
+    Convert skts ordinal from one frequency to another, and if upsampling, choose
+    to use start ('S') or end ('E') of interval.
     """
     cdef:
         long retval
@@ -1905,10 +1907,31 @@ def skts_freq_conv(long skts_ordinal, int base1, long mult1, int base2, long mul
     if mult1 != 1 and relation == 'E':
         skts_ordinal += (mult1 - 1)
 
-    retval = frequency_conversion(skts_ordinal, base1, base2, (<char*>relation)[0])
+    retval = resample(skts_ordinal, base1, base2, (<char*>relation)[0])
     retval = apply_mult(retval, mult2)
 
     return retval
+
+def skts_resample_arr(ndarray[int64_t] arr, int base1, long mult1, int base2, long mult2,
+                       object relation='E'):
+    """
+    Convert int64-array of skts ordinals from one frequency to another, and if
+    upsampling, choose to use start ('S') or end ('E') of interval.
+    """
+    cdef:
+        ndarray[int64_t] new_arr
+        Py_ssize_t i, sz
+
+    if not isinstance(relation, basestring) or len(relation) != 1:
+        raise ValueError('relation argument must be one of S or E')
+
+    sz = len(arr)
+    new_arr = np.empty(sz, dtype=np.int64)
+
+    for i in range(sz):
+        new_arr[i] = skts_resample(arr[i], base1, mult1, base2, mult2, relation)
+
+    return new_arr
 
 def skts_ordinal(int y, int m, int d, int h, int min, int s, int base, long mult):
     cdef:

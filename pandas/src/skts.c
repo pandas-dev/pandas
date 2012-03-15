@@ -957,7 +957,7 @@ int dInfoCalc_SetFromAbsDateTime(struct date_info *dinfo,
  * New pandas API-helper code, to expose to cython
  * ------------------------------------------------------------------*/
 
-long frequency_conversion(long skts_ordinal, int freq1, int freq2, char relation)
+long resample(long skts_ordinal, int freq1, int freq2, char relation)
 {
     freq_conv_func func = get_asfreq_func(freq1, freq2, 0);
 

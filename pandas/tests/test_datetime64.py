@@ -576,21 +576,21 @@ class TestDatetime64(unittest.TestCase):
         self.assertEquals(ii[0], Interval('1/1/10', '2M'))
         self.assertEquals(ii[1], Interval('3/1/10', '2M'))
 
-        self.assertEquals(ii[0].asfreq('6M'), ii[2].asfreq('6M')) 
-        self.assertEquals(ii[0].asfreq('A'), ii[2].asfreq('A')) 
+        self.assertEquals(ii[0].resample('6M'), ii[2].resample('6M')) 
+        self.assertEquals(ii[0].resample('A'), ii[2].resample('A')) 
 
-        self.assertEquals(ii[0].asfreq('M', how='S'),
+        self.assertEquals(ii[0].resample('M', how='S'),
                           Interval('Jan 2010', '1M'))
-        self.assertEquals(ii[0].asfreq('M', how='E'),
+        self.assertEquals(ii[0].resample('M', how='E'),
                           Interval('Feb 2010', '1M'))
-        self.assertEquals(ii[1].asfreq('M', how='S'),
+        self.assertEquals(ii[1].resample('M', how='S'),
                           Interval('Mar 2010', '1M'))
 
         i = Interval('1/1/2010 12:05:18', '5S')
         self.assertEquals(i, Interval('1/1/2010 12:05:15', '5S'))
 
         i = Interval('1/1/2010 12:05:18', '5S')
-        self.assertEquals(i.asfreq('1S', how='E'), 
+        self.assertEquals(i.resample('1S', how='E'), 
                           Interval('1/1/2010 12:05:19', '1S'))
 
 if __name__ == '__main__':

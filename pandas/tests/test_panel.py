@@ -1009,6 +1009,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 
     def test_to_excel(self):
         try:
+            import os
             import xlwt
             import xlrd
             import openpyxl
