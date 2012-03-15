@@ -162,6 +162,20 @@ class TestNanops(unittest.TestCase):
 
         assert_almost_equal(result, expected)
 
+    def test_sum_zero(self):
+        arr = np.array([])
+        self.assert_(nanops.nansum(arr) == 0)
+
+        arr = np.empty((10, 0))
+        self.assert_((nanops.nansum(arr, axis=1) == 0).all())
+
+        # GH #844
+        s = Series([], index=[])
+        self.assert_(s.sum() == 0)
+
+        df = DataFrame(np.empty((10, 0)))
+        self.assert_((df.sum(1) == 0).all())
+
 class SafeForSparse(object):
     pass
 
