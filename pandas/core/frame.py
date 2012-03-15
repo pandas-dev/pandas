@@ -1117,13 +1117,10 @@ class DataFrame(NDFrame):
             If False, don't print column count summary
         buf : writable buffer, defaults to sys.stdout
         """
+        from pandas.core.format import _put_lines
+
         if buf is None:  # pragma: no cover
             buf = sys.stdout
-
-        def _put_lines(buf, lines):
-            if any(isinstance(x, unicode) for x in lines):
-                lines = [unicode(x) for x in lines]
-            print >> buf, '\n'.join(lines)
 
         lines = []
 
@@ -3866,7 +3863,7 @@ class DataFrame(NDFrame):
             Use index as ticks for x axis
         kind : {'line', 'bar'}
         sort_columns: boolean, default True
-            Sort column names to determine plot ordering 
+            Sort column names to determine plot ordering
         kwds : keywords
             Options to pass to Axis.plot
 

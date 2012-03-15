@@ -128,6 +128,13 @@ class TestDataFrameFormatting(unittest.TestCase):
         # this should work
         buf.getvalue()
 
+    def test_to_html_unicode(self):
+        # it works!
+        df = DataFrame({u'\u03c3' : np.arange(10.)})
+        df.to_html()
+        df = DataFrame({'A' : [u'\u03c3']})
+        df.to_html()
+
     def test_unicode_problem_decoding_as_ascii(self):
         dm = DataFrame({u'c/\u03c3': Series({'test':np.NaN})})
         unicode(dm.to_string())
