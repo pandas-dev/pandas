@@ -11,6 +11,7 @@ from datetime import datetime
 
 from numpy.ma.testutils import assert_equal
 from pandas.core.datetools import Interval
+from pandas.core.index import IntervalIndex
 
 class TestIntervalProperties(TestCase):
     "Test properties such as year, month, weekday, etc...."
@@ -779,6 +780,124 @@ class TestFreqConversion(TestCase):
 
         assert_equal(ival_S.resample('S'), ival_S)
 
+class TestIntervalIndex(TestCase):
+    def __init__(self, *args, **kwds):
+        TestCase.__init__(self, *args, **kwds)
+
+    def test_constructor(self):
+        ii = IntervalIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        assert_equal(len(ii), 9)
+
+        ii = IntervalIndex(freq='Q', start='1/1/2001', end='12/1/2009')
+        assert_equal(len(ii), 4 * 9)
+
+        ii = IntervalIndex(freq='M', start='1/1/2001', end='12/1/2009')
+        assert_equal(len(ii), 12 * 9)
+
+        ii = IntervalIndex(freq='D', start='1/1/2001', end='12/31/2009')
+        assert_equal(len(ii), 365 * 9 + 2)
+
+        ii = IntervalIndex(freq='B', start='1/1/2001', end='12/31/2009')
+        assert_equal(len(ii), 261 * 9)
+
+        ii = IntervalIndex(freq='H', start='1/1/2001', end='12/31/2001 23:00')
+        assert_equal(len(ii), 365 * 24)
+
+        ii = IntervalIndex(freq='Min', start='1/1/2001', end='1/1/2001 23:59')
+        assert_equal(len(ii), 24 * 60)
+
+        ii = IntervalIndex(freq='S', start='1/1/2001', end='1/1/2001 23:59:59')
+        assert_equal(len(ii), 24 * 60 * 60)
+
+    def test_shift(self):
+        ii1 = IntervalIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        ii2 = IntervalIndex(freq='A', start='1/1/2002', end='12/1/2010')
+        assert_equal(len(ii1), len(ii2))
+        assert_equal(ii1.shift(1).values, ii2.values)
+
+        ii1 = IntervalIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        ii2 = IntervalIndex(freq='A', start='1/1/2000', end='12/1/2008')
+        assert_equal(len(ii1), len(ii2))
+        assert_equal(ii1.shift(-1).values, ii2.values)
+
+        ii1 = IntervalIndex(freq='M', start='1/1/2001', end='12/1/2009')
+        ii2 = IntervalIndex(freq='M', start='2/1/2001', end='1/1/2010')
+        assert_equal(len(ii1), len(ii2))
+        assert_equal(ii1.shift(1).values, ii2.values)
+
+        ii1 = IntervalIndex(freq='M', start='1/1/2001', end='12/1/2009')
+        ii2 = IntervalIndex(freq='M', start='12/1/2000', end='11/1/2009')
+        assert_equal(len(ii1), len(ii2))
+        assert_equal(ii1.shift(-1).values, ii2.values)
+
+        ii1 = IntervalIndex(freq='D', start='1/1/2001', end='12/1/2009')
+        ii2 = IntervalIndex(freq='D', start='1/2/2001', end='12/2/2009')
+        assert_equal(len(ii1), len(ii2))
+        assert_equal(ii1.shift(1).values, ii2.values)
+
+        ii1 = IntervalIndex(freq='D', start='1/1/2001', end='12/1/2009')
+        ii2 = IntervalIndex(freq='D', start='12/31/2000', end='11/30/2009')
+        assert_equal(len(ii1), len(ii2))
+        assert_equal(ii1.shift(-1).values, ii2.values)
+
+    def test_resample(self):
+        ii1 = IntervalIndex(freq='A', start='1/1/2001', end='1/1/2001')
+        ii2 = IntervalIndex(freq='Q', start='1/1/2001', end='1/1/2001')
+        ii3 = IntervalIndex(freq='M', start='1/1/2001', end='1/1/2001')
+        ii4 = IntervalIndex(freq='D', start='1/1/2001', end='1/1/2001')
+        ii5 = IntervalIndex(freq='H', start='1/1/2001', end='1/1/2001 00:00')
+        ii6 = IntervalIndex(freq='Min', start='1/1/2001', end='1/1/2001 00:00')
+        ii7 = IntervalIndex(freq='S', start='1/1/2001', end='1/1/2001 00:00:00')
+
+        self.assertEquals(ii1.resample('Q', 'S'), ii2)
+        self.assertEquals(ii1.resample('Q', 'S'), ii2)
+        self.assertEquals(ii1.resample('M', 'S'), ii3)
+        self.assertEquals(ii1.resample('D', 'S'), ii4)
+        self.assertEquals(ii1.resample('H', 'S'), ii5)
+        self.assertEquals(ii1.resample('Min', 'S'), ii6)
+        self.assertEquals(ii1.resample('S', 'S'), ii7)
+
+        self.assertEquals(ii2.resample('A', 'S'), ii1)
+        self.assertEquals(ii2.resample('M', 'S'), ii3)
+        self.assertEquals(ii2.resample('D', 'S'), ii4)
+        self.assertEquals(ii2.resample('H', 'S'), ii5)
+        self.assertEquals(ii2.resample('Min', 'S'), ii6)
+        self.assertEquals(ii2.resample('S', 'S'), ii7)
+
+        self.assertEquals(ii3.resample('A', 'S'), ii1)
+        self.assertEquals(ii3.resample('Q', 'S'), ii2)
+        self.assertEquals(ii3.resample('D', 'S'), ii4)
+        self.assertEquals(ii3.resample('H', 'S'), ii5)
+        self.assertEquals(ii3.resample('Min', 'S'), ii6)
+        self.assertEquals(ii3.resample('S', 'S'), ii7)
+
+        self.assertEquals(ii4.resample('A', 'S'), ii1)
+        self.assertEquals(ii4.resample('Q', 'S'), ii2)
+        self.assertEquals(ii4.resample('M', 'S'), ii3)
+        self.assertEquals(ii4.resample('H', 'S'), ii5)
+        self.assertEquals(ii4.resample('Min', 'S'), ii6)
+        self.assertEquals(ii4.resample('S', 'S'), ii7)
+
+        self.assertEquals(ii5.resample('A', 'S'), ii1)
+        self.assertEquals(ii5.resample('Q', 'S'), ii2)
+        self.assertEquals(ii5.resample('M', 'S'), ii3)
+        self.assertEquals(ii5.resample('D', 'S'), ii4)
+        self.assertEquals(ii5.resample('Min', 'S'), ii6)
+        self.assertEquals(ii5.resample('S', 'S'), ii7)
+
+        self.assertEquals(ii6.resample('A', 'S'), ii1)
+        self.assertEquals(ii6.resample('Q', 'S'), ii2)
+        self.assertEquals(ii6.resample('M', 'S'), ii3)
+        self.assertEquals(ii6.resample('D', 'S'), ii4)
+        self.assertEquals(ii6.resample('H', 'S'), ii5)
+        self.assertEquals(ii6.resample('S', 'S'), ii7)
+
+        self.assertEquals(ii7.resample('A', 'S'), ii1)
+        self.assertEquals(ii7.resample('Q', 'S'), ii2)
+        self.assertEquals(ii7.resample('M', 'S'), ii3)
+        self.assertEquals(ii7.resample('D', 'S'), ii4)
+        self.assertEquals(ii7.resample('H', 'S'), ii5)
+        self.assertEquals(ii7.resample('Min', 'S'), ii6)
 
 class TestMethods(TestCase):
     "Base test class for MaskedArrays."

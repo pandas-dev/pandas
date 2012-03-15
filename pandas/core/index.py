@@ -171,6 +171,14 @@ class Index(np.ndarray):
                 return False
         return True
 
+    def _mplib_repr(self):
+        # how to represent ourselves to matplotlib: return tuple that follows
+        # (representation data, need_to_set_xticklabels)
+        if self.is_numeric() or self.is_datetype():
+            return np.asarray(self), False
+        else:
+            return range(len(self)), True
+
     def get_duplicates(self):
         from collections import defaultdict
         counter = defaultdict(lambda: 0)
@@ -1392,7 +1400,7 @@ class DatetimeIndex(Int64Index):
 
         Returns
         -------
-        shifted : DateRange
+        shifted : DatetimeIndex
         """
         if freq is not None and freq != self.offset:
             return Index.shift(self, n, freq)
@@ -2005,6 +2013,29 @@ class IntervalIndex(Int64Index):
             return func_to_map(self)
         except:
             return super(DatetimeIndex, self).map(func_to_map)
+
+    def _mplib_repr(self):
+        # how to represent ourselves to matplotlib
+        return datetools._skts_box_array(self, self.freq), False
+
+    def shift(self, n):
+        """
+        Specialized shift which produces an IntervalIndex
+
+        Parameters
+        ----------
+        n : int
+            Periods to shift by
+        freq : freq string
+
+        Returns
+        -------
+        shifted : IntervalIndex
+        """
+        if n == 0:
+            return self
+
+        return IntervalIndex(data=self.values + n, freq=self.freq)
 
     @property
     def inferred_type(self):
