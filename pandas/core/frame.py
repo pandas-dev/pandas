@@ -3845,7 +3845,7 @@ class DataFrame(NDFrame):
 
     def plot(self, subplots=False, sharex=True, sharey=False, use_index=True,
              figsize=None, grid=True, legend=True, rot=30, ax=None,
-             kind='line', **kwds):
+             kind='line', sort_columns=True, **kwds):
         """
         Make line plot of DataFrame's series with the index on the x-axis using
         matplotlib / pylab.
@@ -3861,6 +3861,8 @@ class DataFrame(NDFrame):
         use_index : boolean, default True
             Use index as ticks for x axis
         kind : {'line', 'bar'}
+        sort_columns: boolean, default True
+            Sort column names to determine plot ordering 
         kwds : keywords
             Options to pass to Axis.plot
 
@@ -3903,7 +3905,12 @@ class DataFrame(NDFrame):
                 need_to_set_xticklabels = False
                 x = range(len(self))
 
-            for i, col in enumerate(_try_sort(self.columns)):
+            if sort_columns:
+                columns = _try_sort(self.columns)
+            else:
+                columns = self.columns
+
+            for i, col in enumerate(columns):
                 empty = self[col].count() == 0
                 y = self[col].values if not empty else np.zeros(x.shape)
 
