@@ -369,21 +369,12 @@ sandbox_ext = Extension('pandas._sandbox',
                         sources=[srcpath('sandbox', suffix=suffix)],
                         include_dirs=[np.get_include()])
 
-skts_ext = Extension('pandas._skts',
-                     sources= [os.path.join('pandas/src/timeseries', x)
-                               for x in ('c_lib.c',
-                                         'c_dates.c',
-                                         'c_tseries.c',
-                                         'cseries.c')],
-                      include_dirs=[np.get_include(),
-                                    'pandas/src/timeseries'])
-
 cppsandbox_ext = Extension('pandas._cppsandbox',
                            language='c++',
                            sources=[srcpath('cppsandbox', suffix=suffix)],
                            include_dirs=[np.get_include()])
 
-extensions = [tseries_ext, engines_ext, sparse_ext, skts_ext]
+extensions = [tseries_ext, engines_ext, sparse_ext]
 
 if not ISRELEASED:
     extensions.extend([sandbox_ext])

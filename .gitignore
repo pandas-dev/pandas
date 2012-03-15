@@ -7,7 +7,6 @@ MANIFEST
 *.c
 !np_datetime.c
 !np_datetime_strings.c
-!pandas/src/timeseries/*.c
 !skts.c
 *.cpp
 *.so
