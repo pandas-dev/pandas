@@ -1913,7 +1913,7 @@ cpdef long skts_resample(long skts_ordinal, int base1, long mult1, int base2, lo
     return retval
 
 def skts_resample_arr(ndarray[int64_t] arr, int base1, long mult1, int base2, long mult2,
-                       object relation='E'):
+                      object relation='E'):
     """
     Convert int64-array of skts ordinals from one frequency to another, and if
     upsampling, choose to use start ('S') or end ('E') of interval.
@@ -1955,52 +1955,99 @@ def skts_ordinal_to_string(long value, int base, long mult):
 
 # interval accessors
 
-cpdef int get_skts_year(long value, int base, long mult) except -1:
+ctypedef int (*accessor)(long ordinal, int base) except -1
+
+cdef int apply_accessor(accessor func, long value, int base, long mult) except -1:
     value = remove_mult(value, mult)
-    return iyear(value, base)
+    return func(value, base)
+
+cpdef int get_skts_year(long value, int base, long mult) except -1:
+    return apply_accessor(iyear, value, base, mult)
 
 cpdef int get_skts_qyear(long value, int base, long mult) except -1:
-    value = remove_mult(value, mult)
-    return iqyear(value, base)
+    return apply_accessor(iqyear, value, base, mult)
 
 cpdef int get_skts_quarter(long value, int base, long mult) except -1:
-    value = remove_mult(value, mult)
-    return iquarter(value, base)
+    return apply_accessor(iquarter, value, base, mult)
 
 cpdef int get_skts_month(long value, int base, long mult) except -1:
-    value = remove_mult(value, mult)
-    return imonth(value, base)
+    return apply_accessor(imonth, value, base, mult)
 
 cpdef int get_skts_day(long value, int base, long mult) except -1:
-    value = remove_mult(value, mult)
-    return iday(value, base)
+    return apply_accessor(iday, value, base, mult)
 
 cpdef int get_skts_hour(long value, int base, long mult) except -1:
-    value = remove_mult(value, mult)
-    return ihour(value, base)
+    return apply_accessor(ihour, value, base, mult)
 
 cpdef int get_skts_minute(long value, int base, long mult) except -1:
-    value = remove_mult(value, mult)
-    return iminute(value, base)
+    return apply_accessor(iminute, value, base, mult)
 
 cpdef int get_skts_second(long value, int base, long mult) except -1:
-    value = remove_mult(value, mult)
-    return isecond(value, base)
+    return apply_accessor(isecond, value, base, mult)
 
 cpdef int get_skts_dow(long value, int base, long mult) except -1:
-    value = remove_mult(value, mult)
-    return iday_of_week(value, base)
+    return apply_accessor(iday_of_week, value, base, mult)
 
 cpdef int get_skts_week(long value, int base, long mult) except -1:
-    value = remove_mult(value, mult)
-    return iweek(value, base)
+    return apply_accessor(iweek, value, base, mult)
 
 cpdef int get_skts_weekday(long value, int base, long mult) except -1:
-    value = remove_mult(value, mult)
-    return iweekday(value, base)
+    return apply_accessor(iweekday, value, base, mult)
 
 cpdef int get_skts_doy(long value, int base, long mult) except -1:
-    value = remove_mult(value, mult)
-    return iday_of_year(value, base)
+    return apply_accessor(iday_of_year, value, base, mult)
 
+# same but for arrays
+
+cdef ndarray[int64_t] apply_accessor_arr(accessor func,
+                                         ndarray[int64_t] arr,
+                                         int base, long mult):
+    cdef:
+        Py_ssize_t i, sz
+        ndarray[int64_t] out
+
+    sz = len(arr)
+    out = np.empty(sz, dtype=np.int64)
+
+    for i in range(sz):
+        out[i] = remove_mult(arr[i], mult)
+        out[i] = func(out[i], base)
+
+    return out
+
+def get_skts_year_arr(ndarray[int64_t] arr, int base, long mult):
+    return apply_accessor_arr(iyear, arr, base, mult)
+
+def get_skts_qyear_arr(ndarray[int64_t] arr, int base, long mult):
+    return apply_accessor_arr(iqyear, arr, base, mult)
+
+def get_skts_quarter_arr(ndarray[int64_t] arr, int base, long mult):
+    return apply_accessor_arr(iquarter, arr, base, mult)
+
+def get_skts_month_arr(ndarray[int64_t] arr, int base, long mult):
+    return apply_accessor_arr(imonth, arr, base, mult)
+
+def get_skts_day_arr(ndarray[int64_t] arr, int base, long mult):
+    return apply_accessor_arr(iday, arr, base, mult)
+
+def get_skts_hour_arr(ndarray[int64_t] arr, int base, long mult):
+    return apply_accessor_arr(ihour, arr, base, mult)
+
+def get_skts_minute_arr(ndarray[int64_t] arr, int base, long mult):
+    return apply_accessor_arr(iminute, arr, base, mult)
+
+def get_skts_second_arr(ndarray[int64_t] arr, int base, long mult):
+    return apply_accessor_arr(isecond, arr, base, mult)
+
+def get_skts_dow_arr(ndarray[int64_t] arr, int base, long mult):
+    return apply_accessor_arr(iday_of_week, arr, base, mult)
+
+def get_skts_week_arr(ndarray[int64_t] arr, int base, long mult):
+    return apply_accessor_arr(iweek, arr, base, mult)
+
+def get_skts_weekday_arr(ndarray[int64_t] arr, int base, long mult):
+    return apply_accessor_arr(iweekday, arr, base, mult)
+
+def get_skts_doy_arr(ndarray[int64_t] arr, int base, long mult):
+    return apply_accessor_arr(iday_of_year, arr, base, mult)
 

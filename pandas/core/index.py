@@ -1939,6 +1939,74 @@ class IntervalIndex(Int64Index):
         return IntervalIndex(new_data, freq=freq)
 
     @property
+    def year(self):
+        base, mult = datetools._get_freq_code(self.freq)
+        return lib.get_skts_year_arr(self.values, base, mult)
+
+    @property
+    def month(self):
+        base, mult = datetools._get_freq_code(self.freq)
+        return lib.get_skts_month_arr(self.values, base, mult)
+
+    @property
+    def qyear(self):
+        base, mult = datetools._get_freq_code(self.freq)
+        return lib.get_skts_qyear_arr(self.values, base, mult)
+
+    @property
+    def quarter(self):
+        base, mult = datetools._get_freq_code(self.freq)
+        return lib.get_skts_quarter_arr(self.values, base, mult)
+
+    @property
+    def day(self):
+        base, mult = datetools._get_freq_code(self.freq)
+        return lib.get_skts_day_arr(self.values, base, mult)
+
+    @property
+    def week(self):
+        base, mult = datetools._get_freq_code(self.freq)
+        return lib.get_skts_week_arr(self.values, base, mult)
+
+    @property
+    def weekday(self):
+        base, mult = datetools._get_freq_code(self.freq)
+        return lib.get_skts_weekday_arr(self.values, base, mult)
+
+    @property
+    def day_of_week(self):
+        base, mult = datetools._get_freq_code(self.freq)
+        return lib.get_skts_dow_arr(self.values, base, mult)
+
+    @property
+    def day_of_year(self):
+        base, mult = datetools._get_freq_code(self.freq)
+        return lib.get_skts_doy_arr(self.values, base, mult)
+
+    @property
+    def hour(self):
+        base, mult = datetools._get_freq_code(self.freq)
+        return lib.get_skts_hour_arr(self.values, base, mult)
+
+    @property
+    def minute(self):
+        base, mult = datetools._get_freq_code(self.freq)
+        return lib.get_skts_minute_arr(self.values, base, mult)
+
+    @property
+    def second(self):
+        base, mult = datetools._get_freq_code(self.freq)
+        return lib.get_skts_second_arr(self.values, base, mult)
+
+    # Try to run function on index first, and then on elements of index
+    # Especially important for group-by functionality
+    def map(self, func_to_map):
+        try:
+            return func_to_map(self)
+        except:
+            return super(DatetimeIndex, self).map(func_to_map)
+
+    @property
     def inferred_type(self):
         # b/c data is represented as ints make sure we can't have ambiguous
         # indexing
