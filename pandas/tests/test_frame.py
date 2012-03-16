@@ -1881,6 +1881,25 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertRaises(Exception, DataFrame.from_records, df, index=[2])
         self.assertRaises(KeyError, DataFrame.from_records, df, index=2)
 
+    def test_from_records_non_tuple(self):
+        class Record(object):
+
+            def __init__(self, *args):
+                self.args = args
+
+            def __getitem__(self, i):
+                return self.args[i]
+
+            def __iter__(self):
+                return iter(self.args)
+
+        recs = [Record(1, 2, 3), Record(4, 5, 6), Record(7, 8, 9)]
+        tups = map(tuple, recs)
+
+        result = DataFrame.from_records(recs)
+        expected = DataFrame.from_records(tups)
+        assert_frame_equal(result, expected)
+
     def test_get_agg_axis(self):
         cols = self.frame._get_agg_axis(0)
         self.assert_(cols is self.frame.columns)

@@ -4220,8 +4220,10 @@ def _to_sdict(data, columns, coerce_float=False):
     elif isinstance(data[0], Series):
         return _list_of_series_to_sdict(data, columns,
                                         coerce_float=coerce_float)
-    else:  # pragma: no cover
-        raise TypeError('No logic to handle %s type' % type(data[0]))
+    else:
+        # last ditch effort
+        data = map(tuple, data)
+        return _list_to_sdict(data, columns, coerce_float=coerce_float)
 
 def _list_to_sdict(data, columns, coerce_float=False):
     if len(data) > 0 and isinstance(data[0], tuple):
