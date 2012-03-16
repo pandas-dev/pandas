@@ -558,12 +558,15 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op):
     for i in range(n):
         x = left[i]
         y = right[i]
-        if _checknull(x):
-            result[i] = x
-        elif _checknull(y):
-            result[i] = y
-        else:
+        try:
             result[i] = cpython.PyObject_RichCompareBool(x, y, flag)
+        except TypeError:
+            if _checknull(x):
+                result[i] = x
+            elif _checknull(y):
+                result[i] = y
+            else:
+                raise
 
     return maybe_convert_bool(result)
 
@@ -597,12 +600,15 @@ def vec_binop(ndarray[object] left, ndarray[object] right, object op):
     for i in range(n):
         x = left[i]
         y = right[i]
-        if _checknull(x):
-            result[i] = x
-        elif _checknull(y):
-            result[i] = y
-        else:
+        try:
             result[i] = op(x, y)
+        except TypeError:
+            if _checknull(x):
+                result[i] = x
+            elif _checknull(y):
+                result[i] = y
+            else:
+                raise
 
     return maybe_convert_bool(result)
 

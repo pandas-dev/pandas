@@ -1160,6 +1160,18 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             expected = f(s.dropna() < s[9], s.dropna() > s[3]).reindex(s.index)
             assert_series_equal(result, expected)
 
+    def test_comparison_object_numeric_nas(self):
+        s = Series(np.random.randn(10), dtype=object)
+        shifted = s.shift(2)
+
+        ops = ['lt', 'le', 'gt', 'ge', 'eq', 'ne']
+        for op in ops:
+            f = getattr(operator, op)
+
+            result = f(s, shifted)
+            expected = f(s.astype(float), shifted.astype(float))
+            assert_series_equal(result, expected)
+
     def test_between(self):
         from pandas import DateRange
 
