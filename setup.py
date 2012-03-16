@@ -40,7 +40,8 @@ if sys.version_info[0] >= 3:
 
     setuptools_kwargs = {'use_2to3': True,
                          'zip_safe': False,
-                         'install_requires': ['python-dateutil >= 2','numpy'],
+                         'install_requires': ['python-dateutil >= 2',
+                                              'numpy >= 1.4'],
                         }
     if not _have_setuptools:
         sys.exit("need setuptools/distribute for Py3k"
@@ -48,7 +49,8 @@ if sys.version_info[0] >= 3:
 
 else:
     setuptools_kwargs = {
-        'install_requires': ['python-dateutil < 2', 'numpy'],
+        'install_requires': ['python-dateutil < 2',
+                             'numpy >= 1.4'],
         'zip_safe' : False,
     }
     if not _have_setuptools:
