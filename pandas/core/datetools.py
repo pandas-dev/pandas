@@ -5,11 +5,12 @@ import numpy as np
 import pandas._tseries as lib
 import re
 
-from pandas._tseries import Timestamp
+from pandas._tseries import Timestamp, monthrange
 
 try:
     import dateutil
     from dateutil import parser
+    from dateutil.relativedelta import relativedelta
 
     # raise exception if dateutil 2.0 install on 2.x platform
     if (sys.version_info[0] == 2 and
@@ -19,11 +20,6 @@ try:
 except ImportError: # pragma: no cover
     print 'Please install python-dateutil via easy_install or some method!'
     raise # otherwise a 2nd import won't show the message
-
-import calendar #NOTE: replace with _tseries.monthrange
-
-# for backward compatibility
-relativedelta = lib.Delta
 
 #-------------------------------------------------------------------------------
 # Boxing and unboxing
@@ -78,14 +74,21 @@ class Ts(lib.Timestamp):
         ts = to_timestamp(value, freq, tzinfo)
         return lib.Timestamp.__new__(Ts, ts, freq, tzinfo)
 
-    def asinterval(self, freq):
+    @property
+    def freq(self):
+        return self.offset
+
+    def to_interval(self, freq=None):
         """
         Return an interval of which this timestamp is an observation.
         """
+        if freq == None:
+            freq = self.freq
+
         return Interval(self, freq=freq)
 
-#-------
-# Interval sketching
+#---------------
+# Interval logic
 
 def _skts_unbox(key, check=None):
     '''
@@ -328,6 +331,11 @@ class Interval:
 
         return Interval(new_ordinal, (base2, mult2))
 
+    def to_timestamp(self):
+        base, mult = _get_freq_code('S')
+        new_val = self.resample('S', 'S')
+        return Timestamp(lib.skts_ordinal_to_dt64(new_val, base, mult))
+
     @property
     def year(self):
         base, mult = self.freq
@@ -482,11 +490,16 @@ class DateParseError(Exception):
 _dtparser = parser.parser()
 
 def parse_time_string(arg):
+    from pandas.core.format import print_config
+
     if not isinstance(arg, basestring):
         return arg
 
     try:
-        parsed = _dtparser._parse(arg)
+        dayfirst = print_config.date_dayfirst
+        yearfirst = print_config.date_yearfirst
+
+        parsed = _dtparser._parse(arg, dayfirst=dayfirst, yearfirst=yearfirst)
         default = datetime(1,1,1).replace(hour=0, minute=0,
                                           second=0, microsecond=0)
         if parsed is None:
@@ -530,7 +543,7 @@ def normalize_date(dt):
 
 def _get_firstbday(wkday):
     """
-    wkday is the result of calendar.monthrange(year, month)
+    wkday is the result of monthrange(year, month)
 
     If it's a saturday or sunday, increment first business day to reflect this
     """
@@ -597,7 +610,7 @@ class DateOffset(object):
         self.n = int(n)
         self.kwds = kwds
         if len(kwds) > 0:
-            self._offset = lib.Delta(**kwds)
+            self._offset = relativedelta(**kwds)
         else:
             self._offset = timedelta(1)
 
@@ -808,17 +821,17 @@ class MonthEnd(DateOffset, CacheableOffset):
 
     def apply(self, other):
         n = self.n
-        _, days_in_month = calendar.monthrange(other.year, other.month)
+        _, days_in_month = monthrange(other.year, other.month)
         if other.day != days_in_month:
-            other = other + lib.Delta(months=-1, day=31)
+            other = other + relativedelta(months=-1, day=31)
             if n <= 0:
                 n = n + 1
-        other = other + lib.Delta(months=n, day=31)
+        other = other + relativedelta(months=n, day=31)
         return other
 
     @classmethod
     def onOffset(cls, someDate):
-        __junk, days_in_month = calendar.monthrange(someDate.year,
+        __junk, days_in_month = monthrange(someDate.year,
                                                    someDate.month)
         return someDate.day == days_in_month
 
@@ -833,12 +846,12 @@ class MonthBegin(DateOffset, CacheableOffset):
         if other.day > 1 and n <= 0: #then roll forward if n<=0
             n += 1
 
-        other = other + lib.Delta(months=n, day=1)
+        other = other + relativedelta(months=n, day=1)
         return other
 
     @classmethod
     def onOffset(cls, someDate):
-        firstDay, _ = calendar.monthrange(someDate.year, someDate.month)
+        firstDay, _ = monthrange(someDate.year, someDate.month)
         return someDate.day == (firstDay + 1)
 
 class BMonthEnd(DateOffset, CacheableOffset):
@@ -852,14 +865,14 @@ class BMonthEnd(DateOffset, CacheableOffset):
     def apply(self, other):
         n = self.n
 
-        wkday, days_in_month = calendar.monthrange(other.year, other.month)
+        wkday, days_in_month = monthrange(other.year, other.month)
         lastBDay = days_in_month - max(((wkday + days_in_month - 1) % 7) - 4, 0)
 
         if n > 0 and not other.day >= lastBDay:
             n = n - 1
         elif n <= 0 and other.day > lastBDay:
             n = n + 1
-        other = other + lib.Delta(months=n, day=31)
+        other = other + relativedelta(months=n, day=31)
 
         if other.weekday() > 4:
             other = other - BDay()
@@ -873,15 +886,15 @@ class BMonthBegin(DateOffset, CacheableOffset):
     def apply(self, other):
         n = self.n
 
-        wkday, _ = calendar.monthrange(other.year, other.month)
+        wkday, _ = monthrange(other.year, other.month)
         firstBDay = _get_firstbday(wkday)
 
         if other.day > firstBDay and n<=0:
             # as if rolled forward already
             n += 1
 
-        other = other + lib.Delta(months=n)
-        wkday, _ = calendar.monthrange(other.year, other.month)
+        other = other + relativedelta(months=n)
+        wkday, _ = monthrange(other.year, other.month)
         firstBDay = _get_firstbday(wkday)
         result = datetime(other.year, other.month, firstBDay)
         return result
@@ -989,7 +1002,7 @@ class WeekOfMonth(DateOffset, CacheableOffset):
             else:
                 months = self.n + 1
 
-        return self.getOffsetOfMonth(other + lib.Delta(months=months, day=1))
+        return self.getOffsetOfMonth(other + relativedelta(months=months, day=1))
 
     def getOffsetOfMonth(self, someDate):
         w = Week(weekday=self.weekday)
@@ -1027,7 +1040,7 @@ class BQuarterEnd(DateOffset, CacheableOffset):
     def apply(self, other):
         n = self.n
 
-        wkday, days_in_month = calendar.monthrange(other.year, other.month)
+        wkday, days_in_month = monthrange(other.year, other.month)
         lastBDay = days_in_month - max(((wkday + days_in_month - 1) % 7) - 4, 0)
 
         monthsToGo = 3 - ((other.month - self.startingMonth) % 3)
@@ -1039,7 +1052,7 @@ class BQuarterEnd(DateOffset, CacheableOffset):
         elif n <= 0 and other.day > lastBDay and monthsToGo == 0:
             n = n + 1
 
-        other = other + lib.Delta(months=monthsToGo + 3*n, day=31)
+        other = other + relativedelta(months=monthsToGo + 3*n, day=31)
 
         if other.weekday() > 4:
             other = other - BDay()
@@ -1070,7 +1083,7 @@ class BQuarterBegin(DateOffset, CacheableOffset):
         if self._normalizeFirst:
             other = normalize_date(other)
 
-        wkday, _ = calendar.monthrange(other.year, other.month)
+        wkday, _ = monthrange(other.year, other.month)
 
         firstBDay = _get_firstbday(wkday)
 
@@ -1089,8 +1102,8 @@ class BQuarterBegin(DateOffset, CacheableOffset):
             n = n - 1
 
         # get the first bday for result
-        other = other + lib.Delta(months=3*n - monthsSince)
-        wkday, _ = calendar.monthrange(other.year, other.month)
+        other = other + relativedelta(months=3*n - monthsSince)
+        wkday, _ = monthrange(other.year, other.month)
         firstBDay = _get_firstbday(wkday)
         result = datetime(other.year, other.month, firstBDay)
         return result
@@ -1118,7 +1131,7 @@ class QuarterEnd(DateOffset, CacheableOffset):
     def apply(self, other):
         n = self.n
 
-        wkday, days_in_month = calendar.monthrange(other.year, other.month)
+        wkday, days_in_month = monthrange(other.year, other.month)
 
         monthsToGo = 3 - ((other.month - self.startingMonth) % 3)
         if monthsToGo == 3:
@@ -1127,7 +1140,7 @@ class QuarterEnd(DateOffset, CacheableOffset):
         if n > 0 and not (other.day >= days_in_month and monthsToGo == 0):
             n = n - 1
 
-        other = other + lib.Delta(months=monthsToGo + 3*n, day=31)
+        other = other + relativedelta(months=monthsToGo + 3*n, day=31)
 
         return other
 
@@ -1152,7 +1165,7 @@ class QuarterBegin(DateOffset, CacheableOffset):
     def apply(self, other):
         n = self.n
 
-        wkday, days_in_month = calendar.monthrange(other.year, other.month)
+        wkday, days_in_month = monthrange(other.year, other.month)
 
         monthsSince = (other.month - self.startingMonth) % 3
 
@@ -1167,7 +1180,7 @@ class QuarterBegin(DateOffset, CacheableOffset):
             # after start, so come back an extra period as if rolled forward
             n = n + 1
 
-        other = other + lib.Delta(months=3*n - monthsSince, day=1)
+        other = other + relativedelta(months=3*n - monthsSince, day=1)
         return other
 
 
@@ -1190,7 +1203,7 @@ class BYearEnd(DateOffset, CacheableOffset):
         if self._normalizeFirst:
             other = normalize_date(other)
 
-        wkday, days_in_month = calendar.monthrange(other.year, self.month)
+        wkday, days_in_month = monthrange(other.year, self.month)
         lastBDay = (days_in_month -
                     max(((wkday + days_in_month - 1) % 7) - 4, 0))
 
@@ -1204,9 +1217,9 @@ class BYearEnd(DateOffset, CacheableOffset):
                 (other.month == self.month and other.day > lastBDay)):
                 years += 1
 
-        other = other + lib.Delta(years=years)
+        other = other + relativedelta(years=years)
 
-        _, days_in_month = calendar.monthrange(other.year, self.month)
+        _, days_in_month = monthrange(other.year, self.month)
         result = datetime(other.year, self.month, days_in_month)
 
         if result.weekday() > 4:
@@ -1233,7 +1246,7 @@ class BYearBegin(DateOffset, CacheableOffset):
         if self._normalizeFirst:
             other = normalize_date(other)
 
-        wkday, days_in_month = calendar.monthrange(other.year, self.month)
+        wkday, days_in_month = monthrange(other.year, self.month)
 
         firstBDay = _get_firstbday(wkday)
 
@@ -1250,8 +1263,8 @@ class BYearBegin(DateOffset, CacheableOffset):
                 years += 1
 
         # set first bday for result
-        other = other + lib.Delta(years = years)
-        wkday, days_in_month = calendar.monthrange(other.year, self.month)
+        other = other + relativedelta(years = years)
+        wkday, days_in_month = monthrange(other.year, self.month)
         firstBDay = _get_firstbday(wkday)
         result = datetime(other.year, self.month, firstBDay)
         return result
@@ -1274,7 +1287,7 @@ class YearEnd(DateOffset, CacheableOffset):
             other = datetime(other.year - 1, 12, 31)
             if n <= 0:
                 n = n + 1
-        other = other + lib.Delta(years=n)
+        other = other + relativedelta(years=n)
         return other
 
     @classmethod
@@ -1292,7 +1305,7 @@ class YearBegin(DateOffset, CacheableOffset):
             other = datetime(other.year, 1, 1)
             if n <= 0:
                 n = n + 1
-        other = other + lib.Delta(years = n, day=1)
+        other = other + relativedelta(years = n, day=1)
         return other
 
     @classmethod

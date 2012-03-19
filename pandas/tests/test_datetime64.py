@@ -275,28 +275,6 @@ class TestDatetime64(unittest.TestCase):
                              periods=98)
         self.assert_( len(dti1.diff(dti2)) == 2)
 
-    def test_datetimecache(self):
-        lib.flush_tcache('W@TUE')
-
-        tc = lib.get_tcache('W@TUE', first = datetime(2004,1,6),
-                            last = datetime(2004,12,28))
-        cache = tc.cache()
-
-        self.assert_(lib.Timestamp(cache[0]) == datetime(2004,1,6))
-        self.assert_(lib.Timestamp(cache[-1]) == datetime(2004,12,28))
-
-        cache = tc.extend(cache[0], cache[-1], 1)
-
-        self.assert_(lib.Timestamp(cache[0]) == datetime(2003,12,30))
-        self.assert_(lib.Timestamp(cache[-1]) == datetime(2005,1,4))
-
-        cache = tc.extend(cache[0], cache[-1], 1)
-
-        self.assert_(lib.Timestamp(cache[0]) == datetime(2003,12,23))
-        self.assert_(lib.Timestamp(cache[-1]) == datetime(2005,1,11))
-
-        lib.flush_tcache('W@TUE')
-
     def test_fancy_getitem(self):
         dti = DatetimeIndex(freq='WOM@1FRI', start=datetime(2005,1,1),
                             end=datetime(2010,1,1))

@@ -602,7 +602,8 @@ def _has_names(index):
 
 def set_printoptions(precision=None, column_space=None, max_rows=None,
                      max_columns=None, colheader_justify='right',
-                     notebook_repr_html=None):
+                     notebook_repr_html=None, 
+                     date_dayfirst=None, date_yearfirst=None):
     """
     Alter default behavior of DataFrame.toString
 
@@ -622,6 +623,10 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
     notebook_repr_html : boolean
         When True (default), IPython notebook will use html representation for
         pandas objects (if it is available).
+    date_dayfirst : boolean
+        When True, prints and parses dates with the day first, eg 20/01/2005
+    date_yearfirst : boolean
+        When True, prints and parses dates with the year first, eg 2005/01/20
     """
     if precision is not None:
         print_config.precision = precision
@@ -635,6 +640,10 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
         print_config.colheader_justify = colheader_justify
     if notebook_repr_html is not None:
         print_config.notebook_repr_html = notebook_repr_html
+    if date_dayfirst is not None:
+        print_config.date_dayfirst = date_dayfirst
+    if date_yearfirst is not None:
+        print_config.date_yearfirst = date_yearfirst
 
 def reset_printoptions():
     print_config.reset()
@@ -761,12 +770,13 @@ class _GlobalPrintConfig(object):
         self.max_columns = 0
         self.colheader_justify = 'right'
         self.notebook_repr_html = True
+        self.date_dayfirst = False
+        self.date_yearfirst = False
 
     def reset(self):
         self.__init__()
 
 print_config = _GlobalPrintConfig()
-
 
 if __name__ == '__main__':
     arr = np.array([746.03, 0.00, 5620.00, 1592.36])

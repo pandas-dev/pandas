@@ -13,7 +13,7 @@ from pandas.core.datetools import (
 from nose.tools import assert_raises
 
 import pandas._tseries as lib
-from pandas._tseries import Timestamp, Delta
+from pandas._tseries import Timestamp
 
 def test_monthrange():
     import calendar
@@ -103,32 +103,6 @@ class TestDateOffset(unittest.TestCase):
 
         self.assert_(offset1 != offset2)
         self.assert_(not (offset1 == offset2))
-
-class TestDelta(unittest.TestCase):
-
-    def setUp(self):
-        self.d = Timestamp(datetime(2008, 1, 2))
-
-    def test_repr(self):
-        repr(Delta())
-        repr(Delta(2))
-        repr(2 * Delta())
-        repr(2 * Delta(months=2))
-
-    def test_mul(self):
-        assert Delta(days=2) == 2 * Delta(days=1)
-        assert Delta(days=2) == Delta(days=1) * 2
-
-    def test_constructor(self):
-
-        assert((self.d + Delta(months=2)) == Timestamp(datetime(2008, 3, 2)))
-        assert((self.d - Delta(months=2)) == Timestamp(datetime(2007, 11, 2)))
-
-        assert((self.d + Delta(days=2)) == Timestamp(datetime(2008, 1, 4)))
-
-        d = Timestamp(datetime(2008, 1, 31))
-        assert((d + Delta(months=1)) == Timestamp(datetime(2008, 2, 29)))
-
 
 class TestBusinessDay(unittest.TestCase):
 
