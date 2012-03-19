@@ -735,7 +735,7 @@ def _generate_time_binner(dtindex, offset,
                           begin=None, end=None, nperiods=None):
 
     if isinstance(offset, basestring):
-        offset = dt.getOffset(offset)
+        offset = dt.to_offset(offset)
 
     if begin is None:
         first = lib.Timestamp(dtindex[0] - offset)
