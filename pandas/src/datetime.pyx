@@ -1898,18 +1898,13 @@ def sktsarr_to_dt64arr(ndarray[int64_t] sktsarr, int base, long mult):
     cdef:
         ndarray[int64_t] out
         Py_ssize_t i, l
-        long ordinal
 
     l = len(sktsarr)
 
     out = np.empty(l, dtype='i8')
 
     for i in range(l):
-        ordinal = remove_mult(sktsarr[i], mult)
-        # TODO: allow to select begin, not just end as is default
-        ordinal = get_python_ordinal(ordinal, base)
-        # TODO: python ordinal -> dt64 fast?
-        out[i] = 0
+        out[i] = skts_ordinal_to_dt64(sktsarr[i], base, mult)
 
     return out
 
@@ -1964,14 +1959,25 @@ def skts_ordinal(int y, int m, int d, int h, int min, int s, int base, long mult
 
     return apply_mult(ordinal, mult)
 
-def skts_ordinal_to_dt(long skts_ordinal, int base, long mult):
+cpdef int64_t skts_ordinal_to_dt64(long skts_ordinal, int base, long mult):
     cdef:
         long ordinal
+        npy_datetimestruct dts
+        date_info dinfo
 
     ordinal = remove_mult(skts_ordinal, mult)
-    ordinal = get_python_ordinal(ordinal, base)
 
-    return datetime.fromordinal(ordinal)
+    get_date_info(ordinal, base, &dinfo)
+
+    dts.year = dinfo.year
+    dts.month = dinfo.month
+    dts.day = dinfo.day
+    dts.hour = dinfo.hour
+    dts.min = dinfo.minute
+    dts.sec = int(dinfo.second)
+    dts.us = 0
+
+    return PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts)
 
 def skts_ordinal_to_string(long value, int base, long mult):
     return <object>interval_to_string(remove_mult(value, mult), base)

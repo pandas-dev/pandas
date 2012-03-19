@@ -2043,12 +2043,14 @@ class IntervalIndex(Int64Index):
         # how to represent ourselves to matplotlib
         return datetools._skts_box_array(self, self.freq), False
 
-    def to_timestamp(self, how='E'):
+    def to_timestamp(self):
         """
-        Cast to datetimeindex of timestamps, either at end or beginning of
-        interval
+        Cast to datetimeindex of timestamps, at *beginning* of interval
         """
-        raise NotImplementedError
+        base, mult = datetools._get_freq_code('S')
+        new_data = self.resample('S', 'S')
+        new_data = lib.sktsarr_to_dt64arr(new_data.values, base, mult)
+        return DatetimeIndex(new_data, freq=self.freq)
 
     def shift(self, n):
         """

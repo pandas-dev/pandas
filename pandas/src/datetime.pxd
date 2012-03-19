@@ -118,7 +118,7 @@ cdef extern from "skts.h":
     PyObject *interval_strftime(long value, int freq, PyObject *args)
     PyObject *interval_to_string(long value, int freq)
 
-    # int get_date_info(long ordinal, int freq, date_info *dinfo) except -1
+    int get_date_info(long ordinal, int freq, date_info *dinfo) except -1
 
     int iyear(long ordinal, int freq) except -1
     int iqyear(long ordinal, int freq) except -1

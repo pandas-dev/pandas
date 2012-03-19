@@ -583,6 +583,17 @@ class TestDatetime64(unittest.TestCase):
         self.assertEquals(len(dti2), len(dti))
         self.assertEquals(dti2.freq, None)
 
+    def test_dti_to_interval(self):
+        dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
+        ii1 = dti.to_interval()
+        ii2 = dti.to_interval(freq='D')
+
+        self.assertEquals(ii1[0], Interval('Jan 2005', freq='M'))
+        self.assertEquals(ii2[0], Interval('1/31/2005', freq='D'))
+
+        self.assertEquals(ii1[-1], Interval('Nov 2005', freq='M'))
+        self.assertEquals(ii2[-1], Interval('11/30/2005', freq='D'))
+
     def test_iindex_slice_index(self):
         ii = IntervalIndex(start='1/1/10', end='12/31/12', freq='M')
         s = Series(np.random.rand(len(ii)), index=ii)
@@ -592,6 +603,17 @@ class TestDatetime64(unittest.TestCase):
         res = s['2011']
         exp = s[12:24]
         assert_series_equal(res, exp)
+
+    def test_interval_dt64_round_trip(self):
+        dti = DatetimeIndex(['1/1/2002', '1/2/2002', '1/3/2002', '1/4/2002', 
+                             '1/5/2002', '1/6/2002', '1/7/2002'], freq='B')
+        ii = dti.to_interval()
+        self.assert_(ii.to_timestamp().equals(dti))
+
+        dti = DatetimeIndex(['1/1/2002', '1/2/2002', '1/3/2002', '1/4/2002', 
+                             '1/5/2002', '1/6/2002', '1/7/2002'], freq='B')
+        ii = dti.to_interval(freq='3H')
+        self.assert_(ii.to_timestamp().equals(dti))
 
     def test_iindex_multiples(self):
         ii = IntervalIndex(start='1/1/10', end='12/31/12', freq='2M')
