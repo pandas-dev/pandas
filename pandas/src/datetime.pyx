@@ -1885,9 +1885,32 @@ def dt64arr_to_sktsarr(ndarray[int64_t] dtarr, int base, long mult):
 
     for i in range(l):
         PyArray_DatetimeToDatetimeStruct(dtarr[i], NPY_FR_us, &dts)
-        out[i] = skts_ordinal(dts.year, dts.month, dts.day,
-                              dts.hour, dts.min, dts.sec, base)
+        out[i] = get_skts_ordinal(dts.year, dts.month, dts.day,
+                                  dts.hour, dts.min, dts.sec, base)
         out[i] = apply_mult(out[i], mult)
+    return out
+
+def sktsarr_to_dt64arr(ndarray[int64_t] sktsarr, int base, long mult):
+    """
+    Convert array to datetime64 values from a set of ordinals corresponding to
+    intervals per skts convention.
+    """
+    cdef:
+        ndarray[int64_t] out
+        Py_ssize_t i, l
+        long ordinal
+
+    l = len(sktsarr)
+
+    out = np.empty(l, dtype='i8')
+
+    for i in range(l):
+        ordinal = remove_mult(sktsarr[i], mult)
+        # TODO: allow to select begin, not just end as is default
+        ordinal = get_python_ordinal(ordinal, base)
+        # TODO: python ordinal -> dt64 fast?
+        out[i] = 0
+
     return out
 
 cpdef long skts_resample(long skts_ordinal, int base1, long mult1, int base2, long mult2,

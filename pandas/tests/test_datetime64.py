@@ -561,6 +561,28 @@ class TestDatetime64(unittest.TestCase):
         for other in [idx2, idx3, idx4, idx5, idx6]:
             self.assert_( (idx1.values == other.values).all() )
 
+    def test_dti_slicing(self):
+        from pandas.core.datetools import Ts
+
+        dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
+        dti2 = dti[[1,3,5]]
+
+        v1 = dti2[0]
+        v2 = dti2[1]
+        v3 = dti2[2]
+
+        self.assertEquals(v1, Ts('2/28/2005'))
+        self.assertEquals(v2, Ts('4/30/2005'))
+        self.assertEquals(v3, Ts('6/30/2005'))
+
+        # don't carry freq through irregular slicing
+        self.assertEquals(dti2.freq, None)
+
+        # don't carry freq through boolean slicing
+        dti2 = dti[[True]*len(dti)]
+        self.assertEquals(len(dti2), len(dti))
+        self.assertEquals(dti2.freq, None)
+
     def test_iindex_slice_index(self):
         ii = IntervalIndex(start='1/1/10', end='12/31/12', freq='M')
         s = Series(np.random.rand(len(ii)), index=ii)
@@ -570,7 +592,7 @@ class TestDatetime64(unittest.TestCase):
         res = s['2011']
         exp = s[12:24]
         assert_series_equal(res, exp)
-        
+
     def test_iindex_multiples(self):
         ii = IntervalIndex(start='1/1/10', end='12/31/12', freq='2M')
         self.assertEquals(ii[0], Interval('1/1/10', '2M'))

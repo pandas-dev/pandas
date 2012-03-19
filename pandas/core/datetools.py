@@ -657,6 +657,12 @@ class DateOffset(object):
         if other is None:
             return False
 
+        if isinstance(other, basestring):
+            other = to_offset(other)
+
+        if not isinstance(other, DateOffset):
+            return False
+
         return self._params() == other._params()
 
     def __ne__(self, other):
@@ -1556,7 +1562,7 @@ for name, offset in _newOffsetMap.iteritems():
     if offset is None:
         continue
     offset.name = name
-    _newOffsetNames[offset] = offset
+    _newOffsetNames[offset] = name
 
 def inferTimeRule(index, _deprecated=True):
     if len(index) < 3:

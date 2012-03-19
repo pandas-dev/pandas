@@ -1388,6 +1388,19 @@ class DatetimeIndex(Int64Index):
         else:
             return Index(_dt_box_array(self.asi8), dtype='object')
 
+    def to_interval(self, freq=None):
+        """
+        Cast to IntervalIndex at a particular frequency
+        """
+        if self.freq is None and freq is None:
+            msg = "You must pass a freq argument as current index has none."
+            raise ValueError(msg)
+
+        if freq is None:
+            freq = self.freq
+
+        return IntervalIndex(self.values, freq=freq)
+
     def shift(self, n, freq=None):
         """
         Specialized shift which produces a DatetimeIndex
@@ -1403,6 +1416,8 @@ class DatetimeIndex(Int64Index):
         shifted : DatetimeIndex
         """
         if freq is not None and freq != self.offset:
+            if isinstance(freq, basestring):
+                freq = datetools.to_offset(freq)
             return Index.shift(self, n, freq)
 
         if n == 0:
@@ -1596,10 +1611,12 @@ class DatetimeIndex(Int64Index):
             else:
                 return _dt_box(val, tzinfo=self.tzinfo)
         else:
-            new_offset = self.offset
-            if (type(key) == slice and new_offset is not None
-                and key.step is not None):
-                new_offset = key.step * self.offset
+            new_offset = None
+            if (type(key) == slice):
+                if self.offset is not None and key.step is not None:
+                    new_offset = key.step * self.offset
+                else:
+                    new_offset = self.offset
 
             if com._is_bool_indexer(key):
                 key = np.asarray(key)
@@ -1618,6 +1635,11 @@ class DatetimeIndex(Int64Index):
             return func_to_map(self)
         except:
             return super(DatetimeIndex, self).map(func_to_map)
+
+    # alias to offset
+    @property
+    def freq(self):
+        return self.offset
 
     # Fast field accessors for periods of datetime index
     # --------------------------------------------------------------
@@ -1916,6 +1938,9 @@ class IntervalIndex(Int64Index):
                 if freq is None:
                     raise ValueError('freq cannot be none')
 
+                if isinstance(freq, datetools.DateOffset):
+                    freq = datetools._newOffsetNames[freq]
+
                 if data.dtype == np.datetime64:
                     data = datetools.dt64arr_to_sktsarr(data, freq)
                 elif data.dtype == np.int64:
@@ -2017,6 +2042,13 @@ class IntervalIndex(Int64Index):
     def _mplib_repr(self):
         # how to represent ourselves to matplotlib
         return datetools._skts_box_array(self, self.freq), False
+
+    def to_timestamp(self, how='E'):
+        """
+        Cast to datetimeindex of timestamps, either at end or beginning of
+        interval
+        """
+        raise NotImplementedError
 
     def shift(self, n):
         """
