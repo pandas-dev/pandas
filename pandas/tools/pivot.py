@@ -4,6 +4,7 @@ from pandas import Series, DataFrame
 from pandas.tools.merge import concat
 import pandas.core.common as com
 import numpy as np
+import types
 
 def pivot_table(data, values=None, rows=None, cols=None, aggfunc='mean',
                 fill_value=None, margins=False):
@@ -16,10 +17,10 @@ def pivot_table(data, values=None, rows=None, cols=None, aggfunc='mean',
     ----------
     data : DataFrame
     values : column to aggregate, optional
-    rows : list
-        Columns to group on the x-axis of the pivot table
-    cols : list
-        Columns to group on the x-axis of the pivot table
+    rows : list of column names or arrays to group on
+        Keys to group on the x-axis of the pivot table
+    cols : list of column names or arrays to group on
+        Keys to group on the x-axis of the pivot table
     aggfunc : function, default numpy.mean, or list of functions
         If list of functions passed, the resulting pivot table will have
         hierarchical columns whose top level are the function names (inferred
@@ -83,14 +84,23 @@ def pivot_table(data, values=None, rows=None, cols=None, aggfunc='mean',
         values = list(data.columns.drop(keys))
 
     if values_passed:
-        data = data[keys + values]
+        to_filter = []
+        for x in keys + values:
+            try:
+                if x in data:
+                    to_filter.append(x)
+            except TypeError:
+                pass
+        if len(to_filter) < len(data.columns):
+            data = data[to_filter]
 
     grouped = data.groupby(keys)
     agged = grouped.agg(aggfunc)
 
     table = agged
-    for k in cols:
-        table = table.unstack(level=k)
+    for i in range(len(cols)):
+        name = table.index.names[len(rows)]
+        table = table.unstack(name)
 
     if fill_value is not None:
         table = table.fillna(value=fill_value)
@@ -183,7 +193,8 @@ def _add_margins(table, data, values, rows=None, cols=None, aggfunc=np.mean):
 def _convert_by(by):
     if by is None:
         by = []
-    elif np.isscalar(by):
+    elif (np.isscalar(by) or isinstance(by, np.ndarray)
+          or hasattr(by, '__call__')):
         by = [by]
     else:
         by = list(by)

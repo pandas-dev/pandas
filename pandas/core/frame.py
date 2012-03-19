@@ -3845,8 +3845,9 @@ class DataFrame(NDFrame):
         return ax
 
     def plot(self, subplots=False, sharex=True, sharey=False, use_index=True,
-             figsize=None, grid=True, legend=True, rot=30, ax=None,
-             kind='line', sort_columns=True, **kwds):
+             figsize=None, grid=True, legend=True, rot=30, ax=None, title=None,
+             xlim=None, ylim=None, xticks=None, yticks=None, kind='line',
+             sort_columns=True, fontsize=None, **kwds):
         """
         Make line plot of DataFrame's series with the index on the x-axis using
         matplotlib / pylab.
@@ -3934,13 +3935,28 @@ class DataFrame(NDFrame):
                     ax_.set_xticklabels(xticklabels, rotation=rot)
         elif kind == 'bar':
             self._bar_plot(axes, subplots=subplots, grid=grid, rot=rot,
-                           legend=legend)
+                           legend=legend, ax=ax, fontsize=fontsize)
 
-        if not subplots or (subplots and sharex):
+        if self.index.is_all_dates and not subplots or (subplots and sharex):
             try:
                 fig.autofmt_xdate()
             except Exception:  # pragma: no cover
                 pass
+
+        if yticks is not None:
+            ax.set_yticks(yticks)
+
+        if xticks is not None:
+            ax.set_xticks(xticks)
+
+        if ylim is not None:
+            ax.set_ylim(ylim)
+
+        if xlim is not None:
+            ax.set_xlim(xlim)
+
+        if title and not subplots:
+            ax.set_title(title)
 
         plt.draw_if_interactive()
         if subplots:
@@ -3949,7 +3965,7 @@ class DataFrame(NDFrame):
             return ax
 
     def _bar_plot(self, axes, subplots=False, use_index=True, grid=True,
-                  rot=30, legend=True, **kwds):
+                  rot=30, legend=True, ax=None, fontsize=None, **kwds):
         import pandas.tools.plotting as gfx
 
         N, K = self.shape
@@ -3958,7 +3974,7 @@ class DataFrame(NDFrame):
         rects = []
         labels = []
 
-        if not subplots:
+        if not subplots and ax is None:
             ax = axes[0]
 
         for i, col in enumerate(self.columns):
@@ -3970,17 +3986,20 @@ class DataFrame(NDFrame):
                        bottom=np.zeros(N), linewidth=1, **kwds)
                 ax.set_title(col)
             else:
-                rects.append(ax.bar(xinds + i * 0.5 / K, y, 0.5 / K,
+                rects.append(ax.bar(xinds + i * 0.75 / K, y, 0.75 / K,
                                     bottom=np.zeros(N), label=col,
                                     color=colors[i % len(colors)], **kwds))
                 labels.append(col)
 
-        if N < 10:
-            fontsize = 12
-        else:
-            fontsize = 10
+        if fontsize is None:
+            if N < 10:
+                fontsize = 12
+            else:
+                fontsize = 10
 
-        ax.set_xticks(xinds + 0.25)
+        ax.set_xlim([xinds[0] - 1, xinds[-1] + 1])
+
+        ax.set_xticks(xinds + 0.375)
         ax.set_xticklabels([gfx._stringify(key) for key in self.index],
                            rotation=rot,
                            fontsize=fontsize)

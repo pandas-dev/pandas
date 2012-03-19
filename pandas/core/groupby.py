@@ -342,7 +342,7 @@ class GroupBy(object):
 
         not_indexed_same = False
         for key, group in self:
-            group.name = key
+            object.__setattr__(group, 'name', key)
 
             # group might be modified
             group_axes = _get_axes(group)
@@ -1003,7 +1003,7 @@ class SeriesGroupBy(GroupBy):
         result = self.obj.copy()
 
         for name, group in self:
-            group.name = name
+            object.__setattr__(group, 'name', name)
             res = func(group, *args, **kwargs)
             indexer = self.obj.index.get_indexer(group.index)
             np.put(result, indexer, res)
@@ -1363,7 +1363,7 @@ class DataFrameGroupBy(GroupBy):
 
         obj = self._obj_with_exclusions
         for name, group in self:
-            group.name = name
+            object.__setattr__(group, 'name', name)
 
             try:
                 wrapper = lambda x: func(x, *args, **kwargs)

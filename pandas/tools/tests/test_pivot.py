@@ -47,6 +47,18 @@ class TestPivotTable(unittest.TestCase):
         expected = self.data.groupby(rows + [cols])['D'].agg(np.mean).unstack()
         tm.assert_frame_equal(table, expected)
 
+    def test_pass_array(self):
+        result = self.data.pivot_table('D', rows=self.data.A, cols=self.data.C)
+        expected = self.data.pivot_table('D', rows='A', cols='C')
+        tm.assert_frame_equal(result, expected)
+
+    def test_pass_function(self):
+        result = self.data.pivot_table('D', rows=lambda x: x // 5,
+                                       cols=self.data.C)
+        expected = self.data.pivot_table('D', rows=self.data.index // 5,
+                                         cols='C')
+        tm.assert_frame_equal(result, expected)
+
     def test_pivot_table_multiple(self):
         rows = ['A', 'B']
         cols=  'C'
