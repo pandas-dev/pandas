@@ -11,7 +11,7 @@ import unittest
 import nose
 
 from numpy import random, nan
-from numpy.random import randn
+from numpy.random import randn, randint
 import numpy as np
 import numpy.ma as ma
 
@@ -2512,11 +2512,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             recons = reader.parse('test1')
             assert_frame_equal(self.tsframe, recons)
 
-            #Test np.int64
-            frame = DataFrame(np.random.randn(10,2))
+            #Test np.int64, values read come back as float
+            frame = DataFrame(np.random.randint(-10,10,size=(10,2)))
             frame.to_excel(path,'test1')
             reader = ExcelFile(path)
-            recons = reader.parse('test1')
+            recons = reader.parse('test1').astype(np.int64)
             assert_frame_equal(frame, recons)
             
             #Test reading/writing np.bool8, roundtrip only works for xlsx
