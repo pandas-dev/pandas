@@ -2518,6 +2518,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             reader = ExcelFile(path)
             recons = reader.parse('test1')
             assert_frame_equal(frame, recons)
+            
+            #Test reading/writing np.bool8, roundtrip only works for xlsx
+            frame = (DataFrame(np.random.randn(10,2)) >= 0)
+            frame.to_excel(path,'test1')
+            reader = ExcelFile(path)
+            recons = reader.parse('test1').astype(np.bool8)
+            assert_frame_equal(frame, recons)
 
             # Test writing to separate sheets
             writer = ExcelWriter(path)
@@ -2545,6 +2552,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         recons = reader.parse('test1')
         assert_frame_equal(self.tsframe, recons)
         os.remove(path)
+            
+        #Test roundtrip np.bool8, does not seem to work for xls
+        path = '__tmp__.xlsx'
+        frame = (DataFrame(np.random.randn(10,2)) >= 0)
+        frame.to_excel(path,'test1')
+        reader = ExcelFile(path)
+        recons = reader.parse('test1')
+        assert_frame_equal(frame, recons)
+        os.remove(path)
+
 
     def test_to_excel_multiindex(self):
         try:
