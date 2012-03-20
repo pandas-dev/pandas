@@ -3910,7 +3910,7 @@ class DataFrame(NDFrame):
             for j in range(n):
                 if i != j:
                     axes[i, j].set_xlim(axes[j, j].get_xlim())
-                    axes[i, j].set_ylim(axes[i, i].get_xlim())
+                    axes[i, j].set_ylim(axes[i, i].get_ylim())
 
         return axes
     #----------------------------------------------------------------------
