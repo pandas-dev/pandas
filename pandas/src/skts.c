@@ -1284,6 +1284,16 @@ PyObject *interval_to_string(long value, int freq)
     return retval;
 }
 
+PyObject *interval_to_string2(long value, int freq, char *fmt)
+{
+    PyObject *string_arg, *retval;
+    string_arg = Py_BuildValue("(s)", fmt);
+    if (string_arg == NULL) { return NULL; }
+    retval = interval_strftime(value, freq, string_arg);
+    Py_DECREF(string_arg);
+    return retval;
+}
+
 static int _quarter_year(long ordinal, int freq, int *year, int *quarter) {
     asfreq_info af_info;
     int qtr_freq;

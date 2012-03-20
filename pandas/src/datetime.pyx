@@ -554,34 +554,34 @@ cdef class DayOffset(_Offset):
                 self.t += (4 - self.dow) * us_in_day
                 self.dow = 4
 
-cdef ndarray[int64_t] _generate_range(_Offset offset, Py_ssize_t periods):
-    """
-    Generate timestamps according to offset.
-    """
-    cdef:
-        Py_ssize_t i
-        ndarray[int64_t] dtindex
+#cdef ndarray[int64_t] _generate_range(_Offset offset, Py_ssize_t periods):
+#    """
+#    Generate timestamps according to offset.
+#    """
+#    cdef:
+#        Py_ssize_t i
+#        ndarray[int64_t] dtindex
 
-    dtindex = np.empty(periods, np.int64)
-    for i in range(periods):
-        dtindex[i] = offset._ts()
-        offset.next()
-    return dtindex
+#    dtindex = np.empty(periods, np.int64)
+#    for i in range(periods):
+#        dtindex[i] = offset._ts()
+#        offset.next()
+#    return dtindex
 
-cdef int64_t _count_range(_Offset offset, object end):
-    """
-    Count timestamps in range according to offset up to (and including)
-    end time.
-    """
-    cdef:
-        Py_ssize_t i=0
-        _TSObject e
+#cdef int64_t _count_range(_Offset offset, object end):
+#    """
+#    Count timestamps in range according to offset up to (and including)
+#    end time.
+#    """
+#    cdef:
+#        Py_ssize_t i=0
+#        _TSObject e
 
-    e = convert_to_tsobject(end)
-    while offset._ts() <= e.value:
-        i += 1
-        offset.next()
-    return i
+#    e = convert_to_tsobject(end)
+#    while offset._ts() <= e.value:
+#        i += 1
+#        offset.next()
+#    return i
 
 # Conversion routines
 # ------------------------------------------------------------------------------
@@ -1022,6 +1022,18 @@ cpdef int64_t skts_ordinal_to_dt64(long skts_ordinal, int base, long mult):
 
 def skts_ordinal_to_string(long value, int base, long mult):
     return <object>interval_to_string(remove_mult(value, mult), base)
+
+def skts_strftime(long value, int freq, long mult, object fmt):
+    cdef:
+        PyObject *ptr
+
+    value = remove_mult(value, mult)
+    ptr = interval_to_string2(value, freq, <char*>fmt)
+
+    if ptr == NULL:
+        raise ValueError("Could not create string with fmt '%s'" % fmt)
+
+    return <object>ptr
 
 # interval accessors
 

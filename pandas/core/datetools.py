@@ -233,6 +233,8 @@ class Interval:
                 self.freq = (base, mult)
             elif isinstance(freq, tuple):
                 self.freq = freq
+            elif isinstance(freq, (int, long)):
+                self.freq = (freq, 1)
             else:
                 raise ValueError("Expected (timerule, mult) tuple for freq")
 
@@ -425,6 +427,14 @@ class Interval:
         formatted = lib.skts_ordinal_to_string(self.ordinal, base, mult)
         return ("%s" % formatted)
 
+    def strftime(self, fmt):
+        base = self.freq[0]
+        mult = self.freq[1]
+        if fmt is not None:
+            return lib.skts_strftime(self.ordinal, base, mult, fmt)
+        else:
+            return lib.skts_ordinal_to_string(self.ordinal, base, mult)
+
 def _infer_interval_group(freqstr):
     return _interval_group(_reso_interval_map[freqstr])
 
@@ -433,6 +443,8 @@ def _interval_group(freqstr):
     return base // 1000 * 1000
 
 def _get_freq_code(freqstr):
+    if isinstance(freqstr, tuple):
+        return freqstr
     base, stride = _base_and_stride(freqstr)
     code = _interval_code_map[base]
     return code, stride

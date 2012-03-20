@@ -1880,6 +1880,9 @@ class IntervalIndex(Int64Index):
             raise ValueError("Must provide freq argument if no data is "
                              "supplied")
 
+        if isinstance(freq, (int, long)):
+            freq = datetools._reverse_interval_code_map[freq]
+
         if data is None:
             start = to_interval(start, freq)
             end = to_interval(end, freq)
@@ -1896,11 +1899,11 @@ class IntervalIndex(Int64Index):
             else:
                 data = np.arange(start.ordinal, end.ordinal+1, dtype=np.int64)
 
-            index = data.view(cls)
-            index.name = name
-            index.freq = freq
+            subarr = data.view(cls)
+            subarr.name = name
+            subarr.freq = freq
 
-            return index
+            return subarr
 
         if not isinstance(data, np.ndarray):
             if np.isscalar(data):
@@ -2070,6 +2073,21 @@ class IntervalIndex(Int64Index):
             return self
 
         return IntervalIndex(data=self.values + n, freq=self.freq)
+
+    def __add__(self, other):
+        if isinstance(other, (int, long)):
+            return IntervalIndex(self.values + other, self.freq)
+        return super(IntervalIndex, self).__add__(other)
+
+    def __sub__(self, other):
+        if isinstance(other, (int, long)):
+            return IntervalIndex(self.values - other, self.freq)
+        if isinstance(other, Interval):
+            if other.freq != self.freq:
+                raise ValueError("Cannot do arithmetic with "
+                                 "non-conforming intervals")
+            return IntervalIndex(self.values - other.ordinal)
+        return super(IntervalIndex, self).__sub__(other)
 
     @property
     def inferred_type(self):
