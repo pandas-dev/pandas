@@ -1951,6 +1951,9 @@ class IntervalIndex(Int64Index):
                 else:
                     data = data.astype('i8')
 
+        if (data <= 0).any():
+            raise ValueError("Found illegal (<= 0) values in data")
+
         subarr = data.view(cls)
         subarr.name = name
         subarr.freq = freq

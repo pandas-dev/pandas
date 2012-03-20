@@ -12,6 +12,8 @@ from datetime import datetime
 from numpy.ma.testutils import assert_equal
 from pandas.core.datetools import Interval
 from pandas.core.index import IntervalIndex
+import pandas.core.datetools as datetools
+import numpy as np
 
 class TestIntervalProperties(TestCase):
     "Test properties such as year, month, weekday, etc...."
@@ -898,6 +900,13 @@ class TestIntervalIndex(TestCase):
         self.assertEquals(ii7.resample('D', 'S'), ii4)
         self.assertEquals(ii7.resample('H', 'S'), ii5)
         self.assertEquals(ii7.resample('Min', 'S'), ii6)
+
+    def test_badinput(self):
+        self.assertRaises(datetools.DateParseError, Interval, '1/1/-2000', 'A')
+        self.assertRaises(ValueError, Interval, -2000, 'A')
+        self.assertRaises(ValueError, Interval, 0, 'A')
+        self.assertRaises(ValueError, IntervalIndex, [-1, 0, 1], 'A')
+        self.assertRaises(ValueError, IntervalIndex, np.array([-1, 0, 1]), 'A')
 
 class TestMethods(TestCase):
     "Base test class for MaskedArrays."

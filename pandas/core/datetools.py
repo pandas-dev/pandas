@@ -287,6 +287,8 @@ class Interval:
         elif isinstance(value, datetime):
             dt = value
         elif isinstance(value, (int, long)):
+            if value <= 0:
+                raise ValueError("Value must be positive")
             self.ordinal = value
         else:
             raise ValueError("Value must be string or datetime")
