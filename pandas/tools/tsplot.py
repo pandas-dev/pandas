@@ -256,7 +256,7 @@ def _daily_finder(vmin, vmax, freq):
     info = np.zeros(span,
                     dtype=[('val', int), ('maj', bool), ('min', bool),
                            ('fmt', '|S20')])
-    info['val'][:] = np.arange(vmin, vmax + 1)
+    info['val'][:] = dates_.values
     info['fmt'][:] = ''
     info['maj'][[0, -1]] = True
     # .. and set some shortcuts
@@ -419,6 +419,7 @@ def _daily_finder(vmin, vmax, freq):
         info_min[minor_idx] = True
         info_fmt[major_idx] = '%Y'
     #............................................
+
     return info
 
 
@@ -817,8 +818,8 @@ class TimeSeriesPlot(Subplot, object):
 
         # Process options .......................
         if _series is not None:
-            self._series = _series.ravel()
-            self.xdata = self._series.index
+            self._series = _series.values
+            self.xdata = _series.index
             # TODO: Mmh, what's going on with the line below ?
             self.xaxis.set_major_locator
         else:
