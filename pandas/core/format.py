@@ -778,7 +778,7 @@ print_config = _GlobalPrintConfig()
 def _put_lines(buf, lines):
     if any(isinstance(x, unicode) for x in lines):
         lines = [unicode(x) for x in lines]
-    print >> buf, '\n'.join(lines)
+    buf.write('\n'.join(lines))
 
 
 if __name__ == '__main__':

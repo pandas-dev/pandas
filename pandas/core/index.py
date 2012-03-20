@@ -113,13 +113,14 @@ class Index(np.ndarray):
         # to disable groupby tricks in MultiIndex
         return False
 
-    def summary(self):
+    def summary(self, name=None):
         if len(self) > 0:
             index_summary = ', %s to %s' % (str(self[0]), str(self[-1]))
         else:
             index_summary = ''
 
-        name = type(self).__name__
+        if name is None:
+            name = type(self).__name__
         return '%s: %s entries%s' % (name, len(self), index_summary)
 
     def __str__(self):

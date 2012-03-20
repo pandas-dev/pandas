@@ -899,6 +899,10 @@ class SeriesGroupBy(GroupBy):
         if hasattr(func_or_funcs,'__iter__'):
             ret = self._aggregate_multiple_funcs(func_or_funcs)
         else:
+            cyfunc = _intercept_cython(func_or_funcs)
+            if cyfunc and not args and not kwargs:
+                return getattr(self, cyfunc)()
+
             if len(self.grouper.groupings) > 1:
                 return self._python_agg_general(func_or_funcs, *args, **kwargs)
 
@@ -1158,6 +1162,10 @@ class DataFrameGroupBy(GroupBy):
         elif isinstance(arg, list):
             return self._aggregate_multiple_funcs(arg)
         else:
+            cyfunc = _intercept_cython(arg)
+            if cyfunc and not args and not kwargs:
+                return getattr(self, cyfunc)()
+
             if len(self.grouper.groupings) > 1:
                 return self._python_agg_general(arg, *args, **kwargs)
             else:
@@ -1194,7 +1202,7 @@ class DataFrameGroupBy(GroupBy):
                                      grouper=self.grouper)
                 results.append(colg.agg(arg))
                 keys.append(col)
-            except TypeError:
+            except (TypeError, GroupByError):
                 pass
 
         result = concat(results, keys=keys, axis=1)
@@ -1634,8 +1642,19 @@ _func_table = {
     __builtin__.sum : np.sum
 }
 
+_cython_table = {
+    __builtin__.sum : 'sum',
+    np.sum : 'sum',
+    np.mean : 'mean',
+    np.std : 'std',
+    np.var : 'var'
+}
+
 def _intercept_function(func):
     return _func_table.get(func, func)
+
+def _intercept_cython(func):
+    return _cython_table.get(func)
 
 def _groupby_indices(values):
     if values.dtype != np.object_:

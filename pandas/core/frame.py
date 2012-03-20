@@ -454,7 +454,9 @@ class DataFrame(NDFrame):
             else:
                 return True
         else:
-            if len(self.index) > max_rows:
+            # save us
+            if (len(self.index) > max_rows or
+                len(self.columns) > terminal_width // 2):
                 return True
             else:
                 buf = StringIO()
@@ -1134,7 +1136,8 @@ class DataFrame(NDFrame):
 
         cols = self.columns
 
-        if verbose:
+        # hack
+        if verbose and len(self.columns) < 100:
             lines.append('Data columns:')
             space = max([len(_stringify(k)) for k in self.columns]) + 4
             counts = self.count()
@@ -1145,11 +1148,7 @@ class DataFrame(NDFrame):
                 lines.append(_put_str(col, space) +
                              '%d  non-null values' % count)
         else:
-            if len(cols) <= 2:
-                lines.append('Columns: %s' % repr(cols))
-            else:
-                lines.append('Columns: %s to %s' % (_stringify(cols[0]),
-                                                    _stringify(cols[-1])))
+            lines.append(self.columns.summary(name='Columns'))
 
         counts = self.get_dtype_counts()
         dtypes = ['%s(%d)' % k for k in sorted(counts.iteritems())]
@@ -3960,8 +3959,12 @@ class DataFrame(NDFrame):
         if xlim is not None:
             ax.set_xlim(xlim)
 
-        if title and not subplots:
-            ax.set_title(title)
+        if title:
+            if subplots:
+                fig.suptitle(title)
+            else:
+                ax.set_title(title)
+
 
         plt.draw_if_interactive()
         if subplots:
@@ -4011,8 +4014,8 @@ class DataFrame(NDFrame):
 
         if legend and not subplots:
             fig = ax.get_figure()
-            fig.legend([r[0] for r in rects], labels, loc='upper center',
-                       fancybox=True, ncol=6)
+            fig.legend([r[0] for r in rects], labels, loc='lower center',
+                       fancybox=True, ncol=6, borderaxespad=20)
                        #mode='expand')
 
         import matplotlib.pyplot as plt
