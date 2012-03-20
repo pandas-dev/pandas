@@ -2601,8 +2601,13 @@ class DataFrame(NDFrame):
     def _combine_const(self, other, func):
         if not self:
             return self
+        result_values = func(self.values, other)
 
-        return self._constructor(func(self.values, other), index=self.index,
+        if not isinstance(result_values, np.ndarray):
+            raise TypeError('Could not compare %s with DataFrame values'
+                            % repr(other))
+
+        return self._constructor(result_values, index=self.index,
                                  columns=self.columns, copy=False)
 
     def _compare_frame(self, other, func):

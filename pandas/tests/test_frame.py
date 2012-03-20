@@ -2110,6 +2110,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         _check_unary_op(operator.neg)
 
+    def test_logical_typeerror(self):
+        self.assertRaises(TypeError, self.frame.__eq__, 'foo')
+        self.assertRaises(TypeError, self.frame.__lt__, 'foo')
+        self.assertRaises(TypeError, self.frame.__gt__, 'foo')
+        self.assertRaises(TypeError, self.frame.__ne__, 'foo')
+
     def test_neg(self):
         # what to do?
         assert_frame_equal(-self.frame, -1 * self.frame)
@@ -2518,7 +2524,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             reader = ExcelFile(path)
             recons = reader.parse('test1').astype(np.int64)
             assert_frame_equal(frame, recons)
-            
+
             #Test reading/writing np.bool8, roundtrip only works for xlsx
             frame = (DataFrame(np.random.randn(10,2)) >= 0)
             frame.to_excel(path,'test1')
@@ -2552,7 +2558,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         recons = reader.parse('test1')
         assert_frame_equal(self.tsframe, recons)
         os.remove(path)
-            
+
         #Test roundtrip np.bool8, does not seem to work for xls
         path = '__tmp__.xlsx'
         frame = (DataFrame(np.random.randn(10,2)) >= 0)
