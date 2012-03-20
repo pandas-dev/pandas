@@ -5,39 +5,12 @@ Adopted from scikits.timeseries by Pierre GF Gerard-Marchant & Matt Knox
 #!!! TODO: Use the fact that axis can have units to simplify the process
 
 
-from matplotlib import pylab, rcParams
+from matplotlib import pylab
 from matplotlib import _pylab_helpers
-from matplotlib.artist import setp
 from matplotlib.axes import Subplot
 from matplotlib.figure import Figure
-from matplotlib.ticker import Formatter, ScalarFormatter, FuncFormatter, \
-                              Locator, FixedLocator, MultipleLocator
+from matplotlib.ticker import Formatter, Locator
 from matplotlib.transforms import nonsingular
-
-from matplotlib.pyplot import acorr, annotate, arrow, autumn, axes, axhline, \
-    axhspan, axis, axvline, axvspan, \
-    bar, barbs, barh, bone, box, boxplot, broken_barh, \
-    cla, clabel, clf, clim, close, cm, cohere, colorbar, colormaps, colors, \
-    connect, contour, contourf, cool, copper, csd, \
-    dedent, delaxes, disconnect, draw, draw_if_interactive, \
-    errorbar, \
-    figaspect, figimage, figlegend, figtext, figure, fill, findobj, flag, \
-    gca, gcf, gci, get, get_backend, get_cmap, get_current_fig_manager, \
-    get_plot_commands, get_scale_docs, get_scale_names, getp, ginput, gray, \
-    grid, \
-    hexbin, hist, hlines, hold, hot, hsv, \
-    imread, imshow, interactive, ioff, ion, is_numlike, is_string_like, ishold,\
-    isinteractive, jet, legend, loglog, \
-    matshow, mlab, new_figure_manager, normalize, over, \
-    pcolor, pcolormesh, pie, pink, plot, plot_date, plotfile, plotting, polar, \
-    prism, psd, pylab_setup, \
-    quiver, quiverkey, rc, rcParams, rcParamsDefault, rcdefaults, rgrids, \
-    savefig, scatter, sci, semilogx, semilogy, setp, show, silent_list, \
-    specgram, spectral, spring, spy, stem, step, subplot, subplot_tool, \
-    subplots_adjust, summer, suptitle, switch_backend, \
-    table, text, thetagrids, title, twinx, twiny, \
-    vlines, waitforbuttonpress, winter, xcorr, xlabel, xlim, xscale, xticks, \
-    ylabel, ylim, yscale, yticks
 
 import numpy as np
 
@@ -1323,6 +1296,10 @@ def tsplot(series, *args, **kwargs):
     kwargs : var
         Optional arguments for the creation of the subplot.
     """
+    base, mult = datetools._get_freq_code(series.freq)
+    if mult != 1:
+        series = series.resample(base)
+
     # allow callers to override the hold state by passing hold=True|False
     b = pylab.ishold()
     h = kwargs.pop('hold', None)

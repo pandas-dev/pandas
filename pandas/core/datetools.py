@@ -228,15 +228,7 @@ class Interval:
         self.ordinal = None
 
         if freq is not None:
-            if isinstance(freq, basestring):
-                base, mult = _get_freq_code(freq)
-                self.freq = (base, mult)
-            elif isinstance(freq, tuple):
-                self.freq = freq
-            elif isinstance(freq, (int, long)):
-                self.freq = (freq, 1)
-            else:
-                raise ValueError("Expected (timerule, mult) tuple for freq")
+            self.freq = freq
 
         if value is None:
             if self.freq is None:
@@ -248,7 +240,7 @@ class Interval:
             if quarter is not None:
                 month = (quarter - 1) * 3 + 1
 
-            base, mult = self.freq
+            base, mult = _get_freq_code(self.freq)
 
             self.ordinal = lib.skts_ordinal(year, month, day, hour, minute,
                                             second, base, mult)
@@ -256,7 +248,7 @@ class Interval:
 
         if isinstance(value, Interval):
             other = value
-            if self.freq is None or self.freq == other.freq:
+            if self.freq is None or _gfc(self.freq) == _gfc(other.freq):
                 self.ordinal = other.ordinal
                 self.freq = other.freq
             else:
@@ -269,20 +261,20 @@ class Interval:
 
             if freq is None:
                 if reso == 'year':
-                    freq = _interval_code_map['A']
+                    freq = 'A'
                 elif reso == 'month':
-                    freq = _interval_code_map['M']
+                    freq = 'M'
                 elif reso == 'day':
-                    freq = _interval_code_map['D']
+                    freq = 'D'
                 elif reso == 'hour':
-                    freq = _interval_code_map['H']
+                    freq = 'H'
                 elif reso == 'minute':
-                    freq = _interval_code_map['Min']
+                    freq = 'Min'
                 elif reso == 'second':
-                    freq = _interval_code_map['S']
+                    freq = 'S'
                 else:
                     raise ValueError("Could not infer frequency for interval")
-                self.freq = (freq, 1)
+                self.freq = freq
 
         elif isinstance(value, datetime):
             dt = value
@@ -293,7 +285,7 @@ class Interval:
         else:
             raise ValueError("Value must be string or datetime")
 
-        base, mult = self.freq
+        base, mult = _gfc(self.freq)
 
         if self.ordinal is None:
             self.ordinal = lib.skts_ordinal(dt.year, dt.month, dt.day, dt.hour,
@@ -301,7 +293,8 @@ class Interval:
 
     def __eq__(self, other):
         if isinstance(other, Interval):
-            return self.ordinal == other.ordinal and self.freq == other.freq
+            return (self.ordinal == other.ordinal
+                    and _gfc(self.freq) == _gfc(other.freq))
         return False
 
     def __add__(self, other):
@@ -323,12 +316,8 @@ class Interval:
         if how not in ('S', 'E'):
             raise ValueError('How must be one of S or E')
 
-        base1, mult1 = self.freq
-
-        if isinstance(freq, basestring):
-            base2, mult2 = _get_freq_code(freq)
-        else:
-            base2, mult2 = freq
+        base1, mult1 = _get_freq_code(self.freq)
+        base2, mult2 = _get_freq_code(freq)
 
         new_ordinal = lib.skts_resample(self.ordinal, base1, mult1,
                                         base2, mult2, how)
@@ -342,62 +331,62 @@ class Interval:
 
     @property
     def year(self):
-        base, mult = self.freq
+        base, mult = _gfc(self.freq)
         return lib.get_skts_year(self.ordinal, base, mult)
 
     @property
     def month(self):
-        base, mult = self.freq
+        base, mult = _gfc(self.freq)
         return lib.get_skts_month(self.ordinal, base, mult)
 
     @property
     def qyear(self):
-        base, mult = self.freq
+        base, mult = _gfc(self.freq)
         return lib.get_skts_qyear(self.ordinal, base, mult)
 
     @property
     def quarter(self):
-        base, mult = self.freq
+        base, mult = _gfc(self.freq)
         return lib.get_skts_quarter(self.ordinal, base, mult)
 
     @property
     def day(self):
-        base, mult = self.freq
+        base, mult = _gfc(self.freq)
         return lib.get_skts_day(self.ordinal, base, mult)
 
     @property
     def week(self):
-        base, mult = self.freq
+        base, mult = _gfc(self.freq)
         return lib.get_skts_week(self.ordinal, base, mult)
 
     @property
     def weekday(self):
-        base, mult = self.freq
+        base, mult = _gfc(self.freq)
         return lib.get_skts_weekday(self.ordinal, base, mult)
 
     @property
     def day_of_week(self):
-        base, mult = self.freq
+        base, mult = _gfc(self.freq)
         return lib.get_skts_dow(self.ordinal, base, mult)
 
     @property
     def day_of_year(self):
-        base, mult = self.freq
+        base, mult = _gfc(self.freq)
         return lib.get_skts_doy(self.ordinal, base, mult)
 
     @property
     def hour(self):
-        base, mult = self.freq
+        base, mult = _gfc(self.freq)
         return lib.get_skts_hour(self.ordinal, base, mult)
 
     @property
     def minute(self):
-        base, mult = self.freq
+        base, mult = _gfc(self.freq)
         return lib.get_skts_minute(self.ordinal, base, mult)
 
     @property
     def second(self):
-        base, mult = self.freq
+        base, mult = _gfc(self.freq)
         return lib.get_skts_second(self.ordinal, base, mult)
 
     @classmethod
@@ -417,21 +406,18 @@ class Interval:
         return Interval(skts_ordinal, sfreq).resample(freq)
 
     def __repr__(self):
-        base = self.freq[0]
-        mult = self.freq[1]
+        base, mult = _gfc(self.freq)
         formatted = lib.skts_ordinal_to_string(self.ordinal, base, mult)
         freqstr = _reverse_interval_code_map[base]
         return ("Interval('%s', '%d%s')" % (formatted, mult, freqstr))
 
     def __str__(self):
-        base = self.freq[0]
-        mult = self.freq[1]
+        base, mult = _gfc(self.freq)
         formatted = lib.skts_ordinal_to_string(self.ordinal, base, mult)
         return ("%s" % formatted)
 
     def strftime(self, fmt):
-        base = self.freq[0]
-        mult = self.freq[1]
+        base, mult = _gfc(self.freq)
         if fmt is not None:
             return lib.skts_strftime(self.ordinal, base, mult, fmt)
         else:
@@ -447,9 +433,16 @@ def _interval_group(freqstr):
 def _get_freq_code(freqstr):
     if isinstance(freqstr, tuple):
         return freqstr
+
+    if isinstance(freqstr, (int, long)):
+        return (freqstr, 1)
+
     base, stride = _base_and_stride(freqstr)
     code = _interval_code_map[base]
+
     return code, stride
+
+_gfc = _get_freq_code
 
 #-------------------------------------------------------------------------------
 # Miscellaneous date functions
