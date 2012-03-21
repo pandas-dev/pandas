@@ -950,7 +950,7 @@ def sktsarr_to_dt64arr(ndarray[int64_t] sktsarr, int base, long mult):
     return out
 
 cpdef long skts_resample(long skts_ordinal, int base1, long mult1, int base2, long mult2,
-                          object relation='E'):
+                         object relation='E'):
     """
     Convert skts ordinal from one frequency to another, and if upsampling, choose
     to use start ('S') or end ('E') of interval.
@@ -958,7 +958,7 @@ cpdef long skts_resample(long skts_ordinal, int base1, long mult1, int base2, lo
     cdef:
         long retval
 
-    if not isinstance(relation, basestring) or len(relation) != 1:
+    if relation not in ('S', 'E'):
         raise ValueError('relation argument must be one of S or E')
 
     skts_ordinal = remove_mult(skts_ordinal, mult1)
@@ -981,7 +981,7 @@ def skts_resample_arr(ndarray[int64_t] arr, int base1, long mult1, int base2, lo
         ndarray[int64_t] new_arr
         Py_ssize_t i, sz
 
-    if not isinstance(relation, basestring) or len(relation) != 1:
+    if relation not in ('S', 'E'):
         raise ValueError('relation argument must be one of S or E')
 
     sz = len(arr)
