@@ -1060,10 +1060,14 @@ def _dt_index_cmp(opname):
     def wrapper(self, other):
         if isinstance(other, datetime):
             func = getattr(self, opname)
-            return func(_dt_unbox(other))
+            result = func(_dt_unbox(other))
         else:
             func = getattr(super(DatetimeIndex, self), opname)
-            return func(other)
+            result = func(other)
+        try:
+            return result.view(np.ndarray)
+        except:
+            return result
     return wrapper
 
 def _dt_index_op(opname):

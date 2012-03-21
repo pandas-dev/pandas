@@ -11,9 +11,12 @@ from datetime import datetime
 
 from numpy.ma.testutils import assert_equal
 from pandas.core.datetools import Interval
-from pandas.core.index import IntervalIndex
+from pandas.core.index import IntervalIndex, DatetimeIndex
 import pandas.core.datetools as datetools
 import numpy as np
+
+from pandas import Series
+from pandas.util.testing import assert_series_equal
 
 class TestIntervalProperties(TestCase):
     "Test properties such as year, month, weekday, etc...."
@@ -907,6 +910,60 @@ class TestIntervalIndex(TestCase):
         self.assertRaises(ValueError, Interval, 0, 'A')
         self.assertRaises(ValueError, IntervalIndex, [-1, 0, 1], 'A')
         self.assertRaises(ValueError, IntervalIndex, np.array([-1, 0, 1]), 'A')
+
+    def test_dti_to_interval(self):
+        dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
+        ii1 = dti.to_interval()
+        ii2 = dti.to_interval(freq='D')
+
+        self.assertEquals(ii1[0], Interval('Jan 2005', freq='M'))
+        self.assertEquals(ii2[0], Interval('1/31/2005', freq='D'))
+
+        self.assertEquals(ii1[-1], Interval('Nov 2005', freq='M'))
+        self.assertEquals(ii2[-1], Interval('11/30/2005', freq='D'))
+
+    def test_iindex_slice_index(self):
+        ii = IntervalIndex(start='1/1/10', end='12/31/12', freq='M')
+        s = Series(np.random.rand(len(ii)), index=ii)
+        res = s['2010']
+        exp = s[0:12]
+        assert_series_equal(res, exp)
+        res = s['2011']
+        exp = s[12:24]
+        assert_series_equal(res, exp)
+
+    def test_interval_dt64_round_trip(self):
+        dti = DatetimeIndex(['1/1/2002', '1/2/2002', '1/3/2002', '1/4/2002', 
+                             '1/5/2002', '1/6/2002', '1/7/2002'], freq='B')
+        ii = dti.to_interval()
+        self.assert_(ii.to_timestamp().equals(dti))
+
+        dti = DatetimeIndex(['1/1/2002', '1/2/2002', '1/3/2002', '1/4/2002', 
+                             '1/5/2002', '1/6/2002', '1/7/2002'], freq='B')
+        ii = dti.to_interval(freq='3H')
+        self.assert_(ii.to_timestamp().equals(dti))
+
+    def test_iindex_multiples(self):
+        ii = IntervalIndex(start='1/1/10', end='12/31/12', freq='2M')
+        self.assertEquals(ii[0], Interval('1/1/10', '2M'))
+        self.assertEquals(ii[1], Interval('3/1/10', '2M'))
+
+        self.assertEquals(ii[0].resample('6M'), ii[2].resample('6M')) 
+        self.assertEquals(ii[0].resample('A'), ii[2].resample('A')) 
+
+        self.assertEquals(ii[0].resample('M', how='S'),
+                          Interval('Jan 2010', '1M'))
+        self.assertEquals(ii[0].resample('M', how='E'),
+                          Interval('Feb 2010', '1M'))
+        self.assertEquals(ii[1].resample('M', how='S'),
+                          Interval('Mar 2010', '1M'))
+
+        i = Interval('1/1/2010 12:05:18', '5S')
+        self.assertEquals(i, Interval('1/1/2010 12:05:15', '5S'))
+
+        i = Interval('1/1/2010 12:05:18', '5S')
+        self.assertEquals(i.resample('1S', how='E'), 
+                          Interval('1/1/2010 12:05:19', '1S'))
 
 class TestMethods(TestCase):
     "Base test class for MaskedArrays."
