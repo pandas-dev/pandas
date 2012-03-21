@@ -417,6 +417,16 @@ class TestIndex(unittest.TestCase):
         self.assert_(len(result) == 0)
         self.assert_(result.dtype == np.bool_)
 
+    def test_boolean_cmp(self):
+        values = [1,2,3,4]
+
+        idx = Index(values)
+        res = (idx == values)
+
+        self.assert_( res.all() )
+        self.assert_( res.dtype == 'bool' )
+        self.assert_( not isinstance(res, Index) )
+
 class TestInt64Index(unittest.TestCase):
 
     def setUp(self):
