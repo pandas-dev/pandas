@@ -423,9 +423,9 @@ class TestIndex(unittest.TestCase):
         idx = Index(values)
         res = (idx == values)
 
-        self.assert_( res.all() )
-        self.assert_( res.dtype == 'bool' )
-        self.assert_( not isinstance(res, Index) )
+        self.assert_(res.all())
+        self.assert_(res.dtype == 'bool')
+        self.assert_(not isinstance(res, Index))
 
 class TestInt64Index(unittest.TestCase):
 
