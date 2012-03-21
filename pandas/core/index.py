@@ -1401,6 +1401,32 @@ class DatetimeIndex(Int64Index):
 
         return IntervalIndex(self.values, freq=freq)
 
+    def snap(self, freq='S'):
+        """
+        Snap time stamps to nearest occuring frequency
+
+        """
+        # Superdumb, punting on any optimizing
+        freq = datetools.to_offset(freq)
+
+        snapped = np.empty(len(self), dtype='M8[us]')
+
+        for i, v in enumerate(self):
+            s = v
+            if not freq.onOffset(s):
+                t0 = freq.rollback(s)
+                t1 = freq.rollforward(s)
+                if abs(s - t0) < abs(t1 - s):
+                    s = t0
+                else:
+                    s = t1
+            snapped[i] = np.datetime64(s)
+
+        dti = DatetimeIndex(snapped) # we know it conforms; this skips check
+        dti.offset = freq
+
+        return dti
+
     def shift(self, n, freq=None):
         """
         Specialized shift which produces a DatetimeIndex

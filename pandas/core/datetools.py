@@ -1610,6 +1610,9 @@ def to_offset(freqstr):
     -------
     to_offset('5Min') -> Minute(5)
     """
+    if isinstance(freqstr, DateOffset):
+        return freqstr
+
     name, stride = _base_and_stride(freqstr)
 
     offset = _newOffsetMap.get(name)

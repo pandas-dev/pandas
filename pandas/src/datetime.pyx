@@ -91,13 +91,13 @@ cdef class _Timestamp(datetime):
             else:
                 return Timestamp((self.offset.__mul__(other)).apply(self))
         else:
-            return super(_Timestamp, self).__add__(other)
+            return datetime.__add__(self, other)
 
     def __sub__(self, other):
         if is_integer_object(other):
             return self.__add__(-other)
         else:
-            return super(_Timestamp, self).__sub__(other)
+            return datetime.__sub__(self, other)
 
 # lightweight C object to hold datetime & int64 pair
 cdef class _TSObject:
