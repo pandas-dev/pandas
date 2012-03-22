@@ -158,9 +158,9 @@ long get_skts_ordinal(int year, int month, int day,
 
 long get_python_ordinal(long skts_ordinal, int freq);
 
-PyObject *interval_strftime(long value, int freq, PyObject *args);
-PyObject *interval_to_string(long value, int freq);
-PyObject *interval_to_string2(long value, int freq, char *fmt);
+char *interval_strftime(long value, int freq, PyObject *args);
+char *interval_to_string(long value, int freq);
+char *interval_to_string2(long value, int freq, char *fmt);
 
 int get_date_info(long ordinal, int freq, struct date_info *dinfo);
 

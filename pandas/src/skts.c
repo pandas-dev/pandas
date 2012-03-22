@@ -1122,7 +1122,7 @@ char *str_replace(const char *s, const char *old, const char *new) {
 // function to generate a nice string representation of the interval
 // object, originally from DateObject_strftime
 
-PyObject *interval_strftime(long value, int freq, PyObject *args)
+char *interval_strftime(long value, int freq, PyObject *args)
 {
     char *orig_fmt_str, *fmt_str;
     char *result;
@@ -1145,7 +1145,8 @@ PyObject *interval_strftime(long value, int freq, PyObject *args)
     long (*toDaily)(long, char, asfreq_info*) = NULL;
     asfreq_info af_info;
 
-    if (!PyArg_ParseTuple(args, "s:strftime(fmt)", &orig_fmt_str)) return NULL;
+    if (!PyArg_ParseTuple(args, "s:strftime(fmt)", &orig_fmt_str)) 
+        return NULL;
 
     toDaily = get_asfreq_func(freq, FR_DAY, 0);
     get_asfreq_info(freq, FR_DAY, &af_info);
@@ -1168,7 +1169,9 @@ PyObject *interval_strftime(long value, int freq, PyObject *args)
     c_date.tm_isdst = -1;
 
     result_len = strlen(orig_fmt_str) + 50;
-    if ((result = PyArray_malloc(result_len * sizeof(char))) == NULL) {return PyErr_NoMemory();}
+    if ((result = PyArray_malloc(result_len * sizeof(char))) == NULL) {
+        return (char*)PyErr_NoMemory();
+    }
 
     fmt_str = orig_fmt_str;
 
@@ -1217,7 +1220,7 @@ PyObject *interval_strftime(long value, int freq, PyObject *args)
                 if(strcmp(extra_fmts[i][0], "%q") == 0) {
                     if ((extra_str = PyArray_malloc(2 * sizeof(char))) == NULL) {
                         free(tmp_str);
-                        return PyErr_NoMemory();
+                        return (char *)PyErr_NoMemory();
                     }
                     sprintf(extra_str, "%i", quarter);
                 } else {
@@ -1230,7 +1233,7 @@ PyObject *interval_strftime(long value, int freq, PyObject *args)
 
                     if ((extra_str = PyArray_malloc((year_len+1) * sizeof(char))) == NULL) {
                         free(tmp_str);
-                        return PyErr_NoMemory();
+                        return (char *)PyErr_NoMemory();
                     }
 
                     if (year_len == 2 && year < 10) {
@@ -1250,13 +1253,10 @@ PyObject *interval_strftime(long value, int freq, PyObject *args)
         }
     }
 
-    py_result = PyString_FromString(result);
-    free(result);
-
-    return py_result;
+    return result;
 }
 
-PyObject *interval_to_string(long value, int freq)
+char *interval_to_string(long value, int freq)
 {
     int freq_group = get_freq_group(freq);
     PyObject *string_arg, *retval;
@@ -1284,9 +1284,10 @@ PyObject *interval_to_string(long value, int freq)
     return retval;
 }
 
-PyObject *interval_to_string2(long value, int freq, char *fmt)
+char *interval_to_string2(long value, int freq, char *fmt)
 {
-    PyObject *string_arg, *retval;
+    PyObject *string_arg;
+    char *retval;
     string_arg = Py_BuildValue("(s)", fmt);
     if (string_arg == NULL) { return NULL; }
     retval = interval_strftime(value, freq, string_arg);

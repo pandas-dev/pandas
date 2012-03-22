@@ -1021,11 +1021,19 @@ cpdef int64_t skts_ordinal_to_dt64(long skts_ordinal, int base, long mult):
     return PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts)
 
 def skts_ordinal_to_string(long value, int base, long mult):
-    return <object>interval_to_string(remove_mult(value, mult), base)
+    cdef:
+        char *ptr
+
+    ptr = interval_to_string(remove_mult(value, mult), base)
+
+    if ptr == NULL:
+        raise ValueError("Could not create string from ordinal '%d'" % value)
+
+    return <object>ptr
 
 def skts_strftime(long value, int freq, long mult, object fmt):
     cdef:
-        PyObject *ptr
+        char *ptr
 
     value = remove_mult(value, mult)
     ptr = interval_to_string2(value, freq, <char*>fmt)
