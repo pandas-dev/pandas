@@ -18,7 +18,7 @@ from numpy import nan
 import numpy as np
 
 from pandas import DataFrame, Index, isnull
-from pandas.io.parsers import read_csv, read_table, ExcelFile, TextParser
+from pandas.io.parsers import read_csv, read_table, read_fwf, ExcelFile, TextParser
 from pandas.util.testing import assert_almost_equal, assert_frame_equal
 import pandas._tseries as lib
 from pandas.util import py3compat
@@ -718,6 +718,27 @@ bar"""
                                                   'days':convert_days_sentinel},
                                   na_values=[-1,'',None])
         assert_frame_equal(result, result2)
+
+    def test_fwf(self):
+        data = """\
+2011 58   360.242940   149.910199   11950.7
+2011 59   444.953632   166.985655   11788.4
+2011 60   364.136849   183.628767   11806.2
+2011 61   413.836124   184.375703   11916.8
+2011 62   502.953953   173.237159   12468.3
+"""
+        data2 = """\
+2011,58,360.242940,149.910199,11950.7
+2011,59,444.953632,166.985655,11788.4
+2011,60,364.136849,183.628767,11806.2
+2011,61,413.836124,184.375703,11916.8
+2011,62,502.953953,173.237159,12468.3
+"""
+        widths = [(0, 3), (5, 6), (8, 19), (21, 32), (34, 42)]
+        df = read_fwf(StringIO(data), widths)
+        expected = read_csv(StringIO(data2), header=None)
+        assert_frame_equal(df, expected)
+
 
 class TestParseSQL(unittest.TestCase):
 
