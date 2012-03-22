@@ -1046,14 +1046,7 @@ long get_skts_ordinal(int year, int month, int day,
 
     if (freq_group == FR_QTR)
     {
-        if ((freq - freq_group) > 12) {
-            // quarterly frequency with year determined by ending period
-            return year*4 + quarter;
-        } else {
-            /* quarterly frequency with year determined by ending period
-            or has December year end*/
-            return (year-1)*4 + quarter;
-        }
+        return (year-1)*4 + quarter;
     }
 
     if (freq_group == FR_ANN)

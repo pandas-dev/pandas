@@ -74,13 +74,9 @@ class TestIntervalProperties(TestCase):
         qedec_date = Interval(freq="Q@DEC", year=2007, quarter=1)
         qejan_date = Interval(freq="Q@JAN", year=2007, quarter=1)
         qejun_date = Interval(freq="Q@JUN", year=2007, quarter=1)
-        qsdec_date = Interval(freq="QS@DEC", year=2007, quarter=1)
-        qsjan_date = Interval(freq="QS@JAN", year=2007, quarter=1)
-        qsjun_date = Interval(freq="QS@JUN", year=2007, quarter=1)
         #
         for x in range(3):
-            for qd in (qedec_date, qejan_date, qejun_date,
-                       qsdec_date, qsjan_date, qsjun_date):
+            for qd in (qedec_date, qejan_date, qejun_date):
                 assert_equal((qd + x).qyear, 2007)
                 assert_equal((qd + x).quarter, x + 1)
 
@@ -263,10 +259,6 @@ class TestFreqConversion(TestCase):
         ival_QEJAN = Interval(freq="Q@JAN", year=2007, quarter=1)
         ival_QEJUN = Interval(freq="Q@JUN", year=2007, quarter=1)
 
-        ival_QSJAN = Interval(freq="QS@JAN", year=2007, quarter=1)
-        ival_QSJUN = Interval(freq="QS@JUN", year=2007, quarter=1)
-        ival_QSDEC = Interval(freq="QS@DEC", year=2007, quarter=1)
-
         ival_Q_to_A = Interval(freq='A', year=2007)
         ival_Q_to_M_start = Interval(freq='M', year=2007, month=1)
         ival_Q_to_M_end = Interval(freq='M', year=2007, month=3)
@@ -295,15 +287,6 @@ class TestFreqConversion(TestCase):
         ival_QEJUN_to_D_start = Interval(freq='D', year=2006, month=7, day=1)
         ival_QEJUN_to_D_end = Interval(freq='D', year=2006, month=9, day=30)
 
-        ival_QSJAN_to_D_start = Interval(freq='D', year=2007, month=2, day=1)
-        ival_QSJAN_to_D_end = Interval(freq='D', year=2007, month=4, day=30)
-
-        ival_QSJUN_to_D_start = Interval(freq='D', year=2007, month=7, day=1)
-        ival_QSJUN_to_D_end = Interval(freq='D', year=2007, month=9, day=30)
-
-        ival_QSDEC_to_D_start = Interval(freq='D', year=2007, month=1, day=1)
-        ival_QSDEC_to_D_end = Interval(freq='D', year=2007, month=3, day=31)
-
         assert_equal(ival_Q.resample('A'), ival_Q_to_A)
         assert_equal(ival_Q_end_of_year.resample('A'), ival_Q_to_A)
 
@@ -326,13 +309,6 @@ class TestFreqConversion(TestCase):
         assert_equal(ival_QEJAN.resample('D', 'E'), ival_QEJAN_to_D_end)
         assert_equal(ival_QEJUN.resample('D', 'S'), ival_QEJUN_to_D_start)
         assert_equal(ival_QEJUN.resample('D', 'E'), ival_QEJUN_to_D_end)
-
-        assert_equal(ival_QSJAN.resample('D', 'S'), ival_QSJAN_to_D_start)
-        assert_equal(ival_QSJAN.resample('D', 'E'), ival_QSJAN_to_D_end)
-        assert_equal(ival_QSJUN.resample('D', 'S'), ival_QSJUN_to_D_start)
-        assert_equal(ival_QSJUN.resample('D', 'E'), ival_QSJUN_to_D_end)
-        assert_equal(ival_QSDEC.resample('D', 'S'), ival_QSDEC_to_D_start)
-        assert_equal(ival_QSDEC.resample('D', 'E'), ival_QSDEC_to_D_end)
 
         assert_equal(ival_Q.resample('Q'), ival_Q)
 
@@ -570,10 +546,6 @@ class TestFreqConversion(TestCase):
         ival_D_to_QEJUN = Interval(freq="Q@JUN", year=2007, quarter=3)
         ival_D_to_QEDEC = Interval(freq="Q@DEC", year=2007, quarter=1)
 
-        ival_D_to_QSJAN = Interval(freq="QS@JAN", year=2006, quarter=4)
-        ival_D_to_QSJUN = Interval(freq="QS@JUN", year=2006, quarter=3)
-        ival_D_to_QSDEC = Interval(freq="QS@DEC", year=2007, quarter=1)
-
         ival_D_to_M = Interval(freq='M', year=2007, month=1)
         ival_D_to_W = Interval(freq='WK', year=2007, month=1, day=7)
 
@@ -604,9 +576,6 @@ class TestFreqConversion(TestCase):
         assert_equal(ival_D.resample("Q@JAN"), ival_D_to_QEJAN)
         assert_equal(ival_D.resample("Q@JUN"), ival_D_to_QEJUN)
         assert_equal(ival_D.resample("Q@DEC"), ival_D_to_QEDEC)
-        assert_equal(ival_D.resample("QS@JAN"), ival_D_to_QSJAN)
-        assert_equal(ival_D.resample("QS@JUN"), ival_D_to_QSJUN)
-        assert_equal(ival_D.resample("QS@DEC"), ival_D_to_QSDEC)
         assert_equal(ival_D.resample('M'), ival_D_to_M)
         assert_equal(ival_D_end_of_month.resample('M'), ival_D_to_M)
         assert_equal(ival_D.resample('WK'), ival_D_to_W)

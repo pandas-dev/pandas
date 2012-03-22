@@ -46,8 +46,8 @@
 #define FR_ANNOCT  1010  /* Annual - October year end*/
 #define FR_ANNNOV  1011  /* Annual - November year end*/
 
-/* The standard quarterly frequencies. Year is determined by what year the end
-   month lies in. */
+/* The standard quarterly frequencies with various fiscal year ends
+   eg, Q42005 for Q@OCT runs Aug 1, 2005 to Oct 31, 2005 */
 #define FR_QTR  2000       /* Quarterly - December year end (default quarterly) */
 #define FR_QTRDEC  FR_QTR  /* Quarterly - December year end */
 #define FR_QTRJAN  2001    /* Quarterly - January year end */
@@ -61,36 +61,6 @@
 #define FR_QTRSEP  2009    /* Quarterly - September year end */
 #define FR_QTROCT  2010    /* Quarterly - October year end */
 #define FR_QTRNOV  2011    /* Quarterly - November year end */
-
-/* End period based quarterly frequencies. Year is determined by what year the
-   end month lies in. */
-#define FR_QTREDEC  FR_QTRDEC  /* Quarterly - December year end*/
-#define FR_QTREJAN  FR_QTRJAN  /* Quarterly - January year end*/
-#define FR_QTREFEB  FR_QTRFEB  /* Quarterly - February year end*/
-#define FR_QTREMAR  FR_QTRMAR  /* Quarterly - March year end*/
-#define FR_QTREAPR  FR_QTRAPR  /* Quarterly - April year end*/
-#define FR_QTREMAY  FR_QTRMAY  /* Quarterly - May year end*/
-#define FR_QTREJUN  FR_QTRJUN  /* Quarterly - June year end*/
-#define FR_QTREJUL  FR_QTRJUL  /* Quarterly - July year end*/
-#define FR_QTREAUG  FR_QTRAUG  /* Quarterly - August year end*/
-#define FR_QTRESEP  FR_QTRSEP  /* Quarterly - September year end*/
-#define FR_QTREOCT  FR_QTROCT  /* Quarterly - October year end*/
-#define FR_QTRENOV  FR_QTRNOV  /* Quarterly - November year end*/
-
-/* Starting period based quarterly frequencies. Year is determined by what year
-   the starting month lies in. */
-#define FR_QTRSDEC  FR_QTRDEC+12  /* Quarterly - December year start*/
-#define FR_QTRSJAN  FR_QTRJAN+12  /* Quarterly - January year start*/
-#define FR_QTRSFEB  FR_QTRFEB+12  /* Quarterly - February year start*/
-#define FR_QTRSMAR  FR_QTRMAR+12  /* Quarterly - March year start*/
-#define FR_QTRSAPR  FR_QTRAPR+12  /* Quarterly - April year start*/
-#define FR_QTRSMAY  FR_QTRMAY+12  /* Quarterly - May year start*/
-#define FR_QTRSJUN  FR_QTRJUN+12  /* Quarterly - June year start*/
-#define FR_QTRSJUL  FR_QTRJUL+12  /* Quarterly - July year start*/
-#define FR_QTRSAUG  FR_QTRAUG+12  /* Quarterly - August year start*/
-#define FR_QTRSSEP  FR_QTRSEP+12  /* Quarterly - September year start*/
-#define FR_QTRSOCT  FR_QTROCT+12  /* Quarterly - October year start*/
-#define FR_QTRSNOV  FR_QTRNOV+12  /* Quarterly - November year start*/
 
 #define FR_MTH  3000  /* Monthly */
 

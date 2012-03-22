@@ -1910,7 +1910,9 @@ class IntervalIndex(Int64Index):
             raise ValueError("Must provide freq argument if no data is "
                              "supplied")
 
-        if isinstance(freq, (int, long)):
+        if isinstance(freq, basestring):
+            freq = freq.upper()
+        elif isinstance(freq, (int, long)):
             freq = datetools._reverse_interval_code_map[freq]
 
         if data is None:

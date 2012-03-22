@@ -90,134 +90,13 @@ class Ts(lib.Timestamp):
 #---------------
 # Interval logic
 
-def _skts_unbox(key, check=None):
-    '''
-    Interval-like => int64
-    '''
-    if not isinstance(key, Interval):
-        key = Interval(key, freq=check)
-    elif check is not None:
-        if key.freq != check:
-            raise ValueError("%s is wrong freq" % key)
-    return np.int64(key.ordinal)
-
-def _skts_unbox_array(arr, check=None):
-    if arr is None:
-        return arr
-    unboxer = np.frompyfunc(lambda x: _skts_unbox(x, check=check), 1, 1)
-    return unboxer(arr)
-
-def _skts_box(val, freq):
-    return Interval(val, freq=freq)
-
-def _skts_box_array(arr, freq):
-    if arr is None:
-        return arr
-
-    if not isinstance(arr, np.ndarray):
-        return arr
-
-    boxfunc = lambda x: _skts_box(x, freq)
-    boxer = np.frompyfunc(boxfunc, 1, 1)
-    return boxer(arr)
-
-def dt64arr_to_sktsarr(data, freq):
-    if data is None:
-        return data
-
-    if isinstance(freq, basestring):
-        base, mult = _get_freq_code(freq)
-    else:
-        base, mult = freq
-
-    return lib.dt64arr_to_sktsarr(data.view('i8'), base, mult)
-
-# interval frequency constants corresponding to scikits timeseries
-# originals
-_interval_code_map = {
-    "A"     : 1000,  # Annual
-    "A@DEC" : 1000,  # Annual - December year end
-    "A@JAN" : 1001,  # Annual - January year end
-    "A@FEB" : 1002,  # Annual - February year end
-    "A@MAR" : 1003,  # Annual - March year end
-    "A@APR" : 1004,  # Annual - April year end
-    "A@MAY" : 1005,  # Annual - May year end
-    "A@JUN" : 1006,  # Annual - June year end
-    "A@JUL" : 1007,  # Annual - July year end
-    "A@AUG" : 1008,  # Annual - August year end
-    "A@SEP" : 1009,  # Annual - September year end
-    "A@OCT" : 1010,  # Annual - October year end
-    "A@NOV" : 1011,  # Annual - November year end
-
-    # The standard quarterly frequencies. Year is determined by
-    # what year the end month lies in
-    "Q"     : 2000,    # Quarterly - December year end (default quarterly)
-    "Q@DEC" : 2000,    # Quarterly - December year end
-    "Q@JAN" : 2001,    # Quarterly - January year end
-    "Q@FEB" : 2002,    # Quarterly - February year end
-    "Q@MAR" : 2003,    # Quarterly - March year end
-    "Q@APR" : 2004,    # Quarterly - April year end
-    "Q@MAY" : 2005,    # Quarterly - May year end
-    "Q@JUN" : 2006,    # Quarterly - June year end
-    "Q@JUL" : 2007,    # Quarterly - July year end
-    "Q@AUG" : 2008,    # Quarterly - August year end
-    "Q@SEP" : 2009,    # Quarterly - September year end
-    "Q@OCT" : 2010,    # Quarterly - October year end
-    "Q@NOV" : 2011,    # Quarterly - November year end
-
-    # Starting period based quarterly frequencies. Year is determined by
-    # what year the start month lies in.
-    "QS@DEC" : 2012,   # Quarterly - December year start
-    "QS@JAN" : 2013,   # Quarterly - January year start
-    "QS@FEB" : 2014,   # Quarterly - February year start
-    "QS@MAR" : 2015,   # Quarterly - March year start
-    "QS@APR" : 2016,   # Quarterly - April year start
-    "QS@MAY" : 2017,   # Quarterly - May year start
-    "QS@JUN" : 2018,   # Quarterly - June year start
-    "QS@JUL" : 2019,   # Quarterly - July year start
-    "QS@AUG" : 2020,   # Quarterly - August year start
-    "QS@SEP" : 2021,   # Quarterly - September year start
-    "QS@OCT" : 2022,   # Quarterly - October year start
-    "QS@NOV" : 2023,   # Quarterly - November year start
-
-    "M"      : 3000,   # Monthly
-
-    "WK"     : 4000,   # Weekly
-    "WK@SUN" : 4000,   # Weekly - Sunday end of week
-    "WK@MON" : 4001,   # Weekly - Monday end of week
-    "WK@TUE" : 4002,   # Weekly - Tuesday end of week
-    "WK@WED" : 4003,   # Weekly - Wednesday end of week
-    "WK@THU" : 4004,   # Weekly - Thursday end of week
-    "WK@FRI" : 4005,   # Weekly - Friday end of week
-    "WK@SAT" : 4006,   # Weekly - Saturday end of week
-
-    "B"      : 5000,   # Business days
-    "D"      : 6000,   # Daily
-    "H"      : 7000,   # Hourly
-    "Min"    : 8000,   # Minutely
-    "S"      : 9000,   # Secondly
-    None     : -10000  # Undefined
-}
-
-_reverse_interval_code_map = {}
-for k, v in _interval_code_map.iteritems():
-    _reverse_interval_code_map[v] = k
-
-_reso_interval_map = {
-    "year"   : "A",
-    "month"  : "M",
-    "day"    : "D",
-    "hour"   : "H",
-    "minute" : "Min",
-    "second" : "S",
-}
 
 class Interval:
     def __init__(self, value=None, freq=None,
                  year=None, month=1, quarter=None, day=1,
                  hour=0, minute=0, second=0):
 
-        # freq is a tuple (base, mult) where base is one of the defined
+        # freq points to a tuple (base, mult);  base is one of the defined
         # intervals such as A, Q, etc. Every five minutes would be, e.g.,
         # ('Min', 5) but may be passed in as a string like '5Min'
 
@@ -326,7 +205,7 @@ class Interval:
 
     def to_timestamp(self):
         base, mult = _get_freq_code('S')
-        new_val = self.resample('S', 'S')
+        new_val = self.resample('S', 'S').ordinal
         return Timestamp(lib.skts_ordinal_to_dt64(new_val, base, mult))
 
     @property
@@ -417,11 +296,351 @@ class Interval:
         return ("%s" % formatted)
 
     def strftime(self, fmt):
+        """
+        Returns the string representation of the :class:`Interval`, depending
+        on the selected :keyword:`format`. :keyword:`format` must be a string
+        containing one or several directives.  The method recognizes the same
+        directives as the :func:`time.strftime` function of the standard Python
+        distribution, as well as the specific additional directives ``%f``,
+        ``%F``, ``%q``. (formatting & docs originally from scikits.timeries)
+        
+        +-----------+--------------------------------+-------+
+        | Directive | Meaning                        | Notes |
+        +===========+================================+=======+
+        | ``%a``    | Locale's abbreviated weekday   |       |
+        |           | name.                          |       |
+        +-----------+--------------------------------+-------+
+        | ``%A``    | Locale's full weekday name.    |       |
+        +-----------+--------------------------------+-------+
+        | ``%b``    | Locale's abbreviated month     |       |
+        |           | name.                          |       |
+        +-----------+--------------------------------+-------+
+        | ``%B``    | Locale's full month name.      |       |
+        +-----------+--------------------------------+-------+
+        | ``%c``    | Locale's appropriate date and  |       |
+        |           | time representation.           |       |
+        +-----------+--------------------------------+-------+
+        | ``%d``    | Day of the month as a decimal  |       |
+        |           | number [01,31].                |       |
+        +-----------+--------------------------------+-------+
+        | ``%f``    | 'Fiscal' year without a        | \(1)  |
+        |           | century  as a decimal number   |       |
+        |           | [00,99]                        |       |
+        +-----------+--------------------------------+-------+
+        | ``%F``    | 'Fiscal' year with a century   | \(2)  |
+        |           | as a decimal number            |       |
+        +-----------+--------------------------------+-------+
+        | ``%H``    | Hour (24-hour clock) as a      |       |
+        |           | decimal number [00,23].        |       |
+        +-----------+--------------------------------+-------+
+        | ``%I``    | Hour (12-hour clock) as a      |       |
+        |           | decimal number [01,12].        |       |
+        +-----------+--------------------------------+-------+
+        | ``%j``    | Day of the year as a decimal   |       |
+        |           | number [001,366].              |       |
+        +-----------+--------------------------------+-------+
+        | ``%m``    | Month as a decimal number      |       |
+        |           | [01,12].                       |       |
+        +-----------+--------------------------------+-------+
+        | ``%M``    | Minute as a decimal number     |       |
+        |           | [00,59].                       |       |
+        +-----------+--------------------------------+-------+
+        | ``%p``    | Locale's equivalent of either  | \(3)  |
+        |           | AM or PM.                      |       |
+        +-----------+--------------------------------+-------+
+        | ``%q``    | Quarter as a decimal number    |       |
+        |           | [01,04]                        |       |
+        +-----------+--------------------------------+-------+
+        | ``%S``    | Second as a decimal number     | \(4)  |
+        |           | [00,61].                       |       |
+        +-----------+--------------------------------+-------+
+        | ``%U``    | Week number of the year        | \(5)  |
+        |           | (Sunday as the first day of    |       |
+        |           | the week) as a decimal number  |       |
+        |           | [00,53].  All days in a new    |       |
+        |           | year preceding the first       |       |
+        |           | Sunday are considered to be in |       |
+        |           | week 0.                        |       |
+        +-----------+--------------------------------+-------+
+        | ``%w``    | Weekday as a decimal number    |       |
+        |           | [0(Sunday),6].                 |       |
+        +-----------+--------------------------------+-------+
+        | ``%W``    | Week number of the year        | \(5)  |
+        |           | (Monday as the first day of    |       |
+        |           | the week) as a decimal number  |       |
+        |           | [00,53].  All days in a new    |       |
+        |           | year preceding the first       |       |
+        |           | Monday are considered to be in |       |
+        |           | week 0.                        |       |
+        +-----------+--------------------------------+-------+
+        | ``%x``    | Locale's appropriate date      |       |
+        |           | representation.                |       |
+        +-----------+--------------------------------+-------+
+        | ``%X``    | Locale's appropriate time      |       |
+        |           | representation.                |       |
+        +-----------+--------------------------------+-------+
+        | ``%y``    | Year without century as a      |       |
+        |           | decimal number [00,99].        |       |
+        +-----------+--------------------------------+-------+
+        | ``%Y``    | Year with century as a decimal |       |
+        |           | number.                        |       |
+        +-----------+--------------------------------+-------+
+        | ``%Z``    | Time zone name (no characters  |       |
+        |           | if no time zone exists).       |       |
+        +-----------+--------------------------------+-------+
+        | ``%%``    | A literal ``'%'`` character.   |       |
+        +-----------+--------------------------------+-------+
+        
+        .. note::
+        
+            (1)
+                The ``%f`` directive is the same as ``%y`` if the frequency is 
+                not quarterly.
+                Otherwise, it corresponds to the 'fiscal' year, as defined by 
+                the :attr:`qyear` attribute.
+        
+            (2)
+                The ``%F`` directive is the same as ``%Y`` if the frequency is 
+                not quarterly.
+                Otherwise, it corresponds to the 'fiscal' year, as defined by 
+                the :attr:`qyear` attribute.
+        
+            (3)
+                The ``%p`` directive only affects the output hour field 
+                if the ``%I`` directive is used to parse the hour.
+        
+            (4)
+                The range really is ``0`` to ``61``; this accounts for leap
+                seconds and the (very rare) double leap seconds.
+        
+            (5)
+                The ``%U`` and ``%W`` directives are only used in calculations 
+                when the day of the week and the year are specified.
+        
+        .. rubric::  Examples
+        
+            >>> a = Interval(freq='Q@JUL', year=2006, quarter=1)
+            >>> a.strftime('%F-Q%q')
+            '2006-Q1'
+            >>> # Output the last month in the quarter of this date
+            >>> a.strftime('%b-%Y')
+            'Oct-2005'
+            >>> 
+            >>> a = Interval(freq='D', year=2001, month=1, day=1)
+            >>> a.strftime('%d-%b-%Y')
+            '01-Jan-2006'
+            >>> a.strftime('%b. %d, %Y was a %A')
+            'Jan. 01, 2001 was a Monday'
+        """
         base, mult = _gfc(self.freq)
         if fmt is not None:
             return lib.skts_strftime(self.ordinal, base, mult, fmt)
         else:
             return lib.skts_ordinal_to_string(self.ordinal, base, mult)
+
+def _skts_unbox(key, check=None):
+    '''
+    Interval-like => int64
+    '''
+    if not isinstance(key, Interval):
+        key = Interval(key, freq=check)
+    elif check is not None:
+        if key.freq != check:
+            raise ValueError("%s is wrong freq" % key)
+    return np.int64(key.ordinal)
+
+def _skts_unbox_array(arr, check=None):
+    if arr is None:
+        return arr
+    unboxer = np.frompyfunc(lambda x: _skts_unbox(x, check=check), 1, 1)
+    return unboxer(arr)
+
+def _skts_box(val, freq):
+    return Interval(val, freq=freq)
+
+def _skts_box_array(arr, freq):
+    if arr is None:
+        return arr
+
+    if not isinstance(arr, np.ndarray):
+        return arr
+
+    boxfunc = lambda x: _skts_box(x, freq)
+    boxer = np.frompyfunc(boxfunc, 1, 1)
+    return boxer(arr)
+
+def dt64arr_to_sktsarr(data, freq):
+    if data is None:
+        return data
+
+    if isinstance(freq, basestring):
+        base, mult = _get_freq_code(freq)
+    else:
+        base, mult = freq
+
+    return lib.dt64arr_to_sktsarr(data.view('i8'), base, mult)
+
+# interval frequency constants corresponding to scikits timeseries
+# originals
+_interval_code_map = {
+    # Annual freqs with various fiscal year ends.
+    # eg, 2005 for A@FEB runs Mar 1, 2004 to Feb 28, 2005
+    "A"     : 1000,  # Annual
+    "A@DEC" : 1000,  # Annual - December year end
+    "A@JAN" : 1001,  # Annual - January year end
+    "A@FEB" : 1002,  # Annual - February year end
+    "A@MAR" : 1003,  # Annual - March year end
+    "A@APR" : 1004,  # Annual - April year end
+    "A@MAY" : 1005,  # Annual - May year end
+    "A@JUN" : 1006,  # Annual - June year end
+    "A@JUL" : 1007,  # Annual - July year end
+    "A@AUG" : 1008,  # Annual - August year end
+    "A@SEP" : 1009,  # Annual - September year end
+    "A@OCT" : 1010,  # Annual - October year end
+    "A@NOV" : 1011,  # Annual - November year end
+
+    # Quarterly frequencies with various fiscal year ends.
+    # eg, Q42005 for Q@OCT runs Aug 1, 2005 to Oct 31, 2005
+    "Q"     : 2000,    # Quarterly - December year end (default quarterly)
+    "Q@DEC" : 2000,    # Quarterly - December year end
+    "Q@JAN" : 2001,    # Quarterly - January year end
+    "Q@FEB" : 2002,    # Quarterly - February year end
+    "Q@MAR" : 2003,    # Quarterly - March year end
+    "Q@APR" : 2004,    # Quarterly - April year end
+    "Q@MAY" : 2005,    # Quarterly - May year end
+    "Q@JUN" : 2006,    # Quarterly - June year end
+    "Q@JUL" : 2007,    # Quarterly - July year end
+    "Q@AUG" : 2008,    # Quarterly - August year end
+    "Q@SEP" : 2009,    # Quarterly - September year end
+    "Q@OCT" : 2010,    # Quarterly - October year end
+    "Q@NOV" : 2011,    # Quarterly - November year end
+
+    "M"     : 3000,   # Monthly
+
+    "W"     : 4000,    # Weekly
+    "W@SUN" : 4000,    # Weekly - Sunday end of week
+    "W@MON" : 4001,    # Weekly - Monday end of week
+    "W@TUE" : 4002,    # Weekly - Tuesday end of week
+    "W@WED" : 4003,    # Weekly - Wednesday end of week
+    "W@THU" : 4004,    # Weekly - Thursday end of week
+    "W@FRI" : 4005,    # Weekly - Friday end of week
+    "W@SAT" : 4006,    # Weekly - Saturday end of week
+
+    "B"      : 5000,   # Business days
+    "D"      : 6000,   # Daily
+    "H"      : 7000,   # Hourly
+    "Min"    : 8000,   # Minutely
+    "S"      : 9000,   # Secondly
+    None     : -10000  # Undefined
+}
+
+def _skts_alias_dictionary():
+    """
+    Build freq alias dictionary to support freqs from original c_dates.c file
+    of the scikits.timeseries library.
+    """
+    alias_dict = {}
+
+    M_aliases = ["M", "MTH", "MONTH", "MONTHLY"]
+    B_aliases = ["B", "BUS", "BUSINESS", "BUSINESSLY"]
+    D_aliases = ["D", "DAY", "DLY", "DAILY"]
+    H_aliases = ["H", "HR", "HOUR", "HRLY", "HOURLY"]
+    T_aliases = ["T", "MIN", "MINUTE", "MINUTELY"]
+    S_aliases = ["S", "SEC", "SECOND", "SECONDLY"]
+    U_aliases = ["U", "UND", "UNDEF", "UNDEFINED"]
+
+    for k in M_aliases:
+        alias_dict[k] = 'M'
+
+    for k in B_aliases:
+        alias_dict[k] = 'B'
+
+    for k in D_aliases:
+        alias_dict[k] = 'D'
+
+    for k in H_aliases:
+        alias_dict[k] = 'H'
+
+    for k in T_aliases:
+        alias_dict[k] = 'Min'
+
+    for k in S_aliases:
+        alias_dict[k] = 'S'
+
+    for k in U_aliases:
+        alias_dict[k] = None
+
+    A_prefixes = ["A", "Y", "ANN", "ANNUAL", "ANNUALLY", "YR", "YEAR",
+                  "YEARLY"]
+
+    Q_prefixes = ["Q", "QTR", "QUARTER", "QUARTERLY", "Q-E",
+                  "QTR-E", "QUARTER-E", "QUARTERLY-E"]
+
+    month_names = [
+        [ "DEC", "DECEMBER" ],
+        [ "JAN", "JANUARY" ],
+        [ "FEB", "FEBRUARY" ],
+        [ "MAR", "MARCH" ],
+        [ "APR", "APRIL" ],
+        [ "MAY", "MAY" ],
+        [ "JUN", "JUNE" ],
+        [ "JUL", "JULY" ],
+        [ "AUG", "AUGUST" ],
+        [ "SEP", "SEPTEMBER" ],
+        [ "OCT", "OCTOBER" ],
+        [ "NOV", "NOVEMBER" ] ]
+
+    seps = ["@", "-"]
+
+    for k in A_prefixes:
+        alias_dict[k] = 'A'
+        for m_tup in month_names:
+            for sep in seps: 
+                m1, m2 = m_tup
+                alias_dict[k + sep + m1] = 'A@' + m1
+                alias_dict[k + sep + m2] = 'A@' + m1
+
+    for k in Q_prefixes:
+        alias_dict[k] = 'Q'
+        for m_tup in month_names:
+            for sep in seps:
+                m1, m2 = m_tup
+                alias_dict[k + sep + m1] = 'Q@' + m1
+                alias_dict[k + sep + m2] = 'Q@' + m1
+
+    W_prefixes = ["W", "WK", "WEEK", "WEEKLY"]
+
+    day_names = [
+        [ "SUN", "SUNDAY" ],
+        [ "MON", "MONDAY" ],
+        [ "TUE", "TUESDAY" ],
+        [ "WED", "WEDNESDAY" ],
+        [ "THU", "THURSDAY" ],
+        [ "FRI", "FRIDAY" ],
+        [ "SAT", "SATURDAY" ] ]
+
+    for k in W_prefixes:
+        alias_dict[k] = 'W'
+        for d_tup in day_names:
+            for sep in ["@", "-"]:
+                d1, d2 = d_tup
+                alias_dict[k + sep + d1] = 'W@' + d1
+                alias_dict[k + sep + d2] = 'W@' + d1
+
+    return alias_dict 
+
+_reverse_interval_code_map = {}
+for k, v in _interval_code_map.iteritems():
+    _reverse_interval_code_map[v] = k
+
+_reso_interval_map = {
+    "year"   : "A",
+    "month"  : "M",
+    "day"    : "D",
+    "hour"   : "H",
+    "minute" : "Min",
+    "second" : "S",
+}
 
 def _infer_interval_group(freqstr):
     return _interval_group(_reso_interval_map[freqstr])
@@ -438,9 +657,22 @@ def _get_freq_code(freqstr):
         return (freqstr, 1)
 
     base, stride = _base_and_stride(freqstr)
-    code = _interval_code_map[base]
+    code = _interval_str_to_code(base)
 
     return code, stride
+
+_skts_alias_dict = _skts_alias_dictionary()
+
+def _interval_str_to_code(freqstr):
+    freqstr = freqstr.upper()
+    try:
+        return _interval_code_map[freqstr]
+    except:
+        alias = _skts_alias_dict[freqstr]
+        try:
+            return _interval_code_map[alias]
+        except:
+            raise "Could not interpret frequency %s" % freqstr
 
 _gfc = _get_freq_code
 
