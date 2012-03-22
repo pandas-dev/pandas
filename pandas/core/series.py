@@ -1225,11 +1225,17 @@ copy : boolean, default False
             return np.nan
         return scoreatpercentile(valid_values, q * 100)
 
-    def describe(self):
+    def describe(self, percentile_width=50):
         """
         Generate various summary statistics of Series, excluding NaN
-        values. These include: count, mean, std, min, max, and 10%/50%/90%
-        quantiles
+        values. These include: count, mean, std, min, max, and 
+        lower%/50%/upper% percentiles
+
+        Parameters
+        ----------
+        percentile_width : float, optional
+            width of the desired uncertainty interval, default is 50,
+            which corresponds to lower=25, upper=75
 
         Returns
         -------
@@ -1249,11 +1255,24 @@ copy : boolean, default False
             data = [self.count(), len(objcounts), top, freq]
 
         else:
+
+            lb = .5 * (1. - percentile_width/100.)
+            ub = 1. - lb
+
+
+            def pretty_name(x):
+                x *= 100
+                if x == int(x):
+                    return '%.0f%%' % x
+                else:
+                    return '%.1f%%' % x
+
             names = ['count', 'mean', 'std', 'min',
-                     '25%', '50%', '75%', 'max']
+                     pretty_name(lb), '50%', pretty_name(ub),
+                     'max']
 
             data = [self.count(), self.mean(), self.std(), self.min(),
-                    self.quantile(.25), self.median(), self.quantile(.75),
+                    self.quantile(lb), self.median(), self.quantile(ub),
                     self.max()]
 
         return Series(data, index=names)

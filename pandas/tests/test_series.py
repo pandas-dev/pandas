@@ -1029,6 +1029,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         _ = self.series.describe()
         _ = self.ts.describe()
 
+    def test_describe_percentiles(self):
+        desc = self.series.describe(percentile_width=50)
+        assert '75%' in desc.index
+        assert '25%' in desc.index
+
+        desc = self.series.describe(percentile_width=95)
+        assert '97.5%' in desc.index
+        assert '2.5%' in desc.index
+
     def test_describe_objects(self):
         s = Series(['a', 'b', 'b', np.nan, np.nan, np.nan, 'c', 'd', 'a', 'a'])
         result = s.describe()
