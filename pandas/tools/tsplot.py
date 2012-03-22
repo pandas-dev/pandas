@@ -22,7 +22,6 @@ from pandas.core.series import Series
 
 import warnings
 
-
 # Generic documentation ........................................................
 
 _doc_parameters = dict(
@@ -1296,7 +1295,7 @@ def tsplot(series, *args, **kwargs):
     kwargs : var
         Optional arguments for the creation of the subplot.
     """
-    base, mult = datetools._get_freq_code(series.freq)
+    base, mult = datetools._get_freq_code(series.index.freq)
     if mult != 1:
         series = series.resample(base)
 
