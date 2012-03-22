@@ -1145,7 +1145,7 @@ char *interval_strftime(long value, int freq, PyObject *args)
     long (*toDaily)(long, char, asfreq_info*) = NULL;
     asfreq_info af_info;
 
-    if (!PyArg_ParseTuple(args, "s:strftime(fmt)", &orig_fmt_str)) 
+    if (!PyArg_ParseTuple(args, "s:strftime(fmt)", &orig_fmt_str))
         return NULL;
 
     toDaily = get_asfreq_func(freq, FR_DAY, 0);
@@ -1259,11 +1259,16 @@ char *interval_strftime(long value, int freq, PyObject *args)
 char *interval_to_string(long value, int freq)
 {
     int freq_group = get_freq_group(freq);
-    PyObject *string_arg, *retval;
+    PyObject *string_arg;
+    char *retval;
 
     string_arg = NULL;
     if (freq_group == FR_UND) {
-        retval = PyString_FromFormat("%ld", value);
+        int digits = log10(value) + 1;
+        if ((retval = PyArray_malloc(digits * sizeof(char))) == NULL) {
+            return (char *)PyErr_NoMemory();
+        }
+        sprintf(retval, "%ld", value);
         return retval;
     }
     else if (freq_group == FR_ANN) { string_arg = Py_BuildValue("(s)", "%Y"); }
@@ -1276,7 +1281,7 @@ char *interval_to_string(long value, int freq)
     else if (freq_group == FR_MIN) { string_arg = Py_BuildValue("(s)", "%d-%b-%Y %H:%M"); }
     else if (freq_group == FR_SEC) { string_arg = Py_BuildValue("(s)", "%d-%b-%Y %H:%M:%S"); }
 
-    if (string_arg == NULL) { return NULL; }
+    if (string_arg == NULL) { return (char *)NULL; }
 
     retval = interval_strftime(value, freq, string_arg);
     Py_DECREF(string_arg);
@@ -1289,7 +1294,7 @@ char *interval_to_string2(long value, int freq, char *fmt)
     PyObject *string_arg;
     char *retval;
     string_arg = Py_BuildValue("(s)", fmt);
-    if (string_arg == NULL) { return NULL; }
+    if (string_arg == NULL) { return (char *)NULL; }
     retval = interval_strftime(value, freq, string_arg);
     Py_DECREF(string_arg);
     return retval;
