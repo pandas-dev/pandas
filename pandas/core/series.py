@@ -2085,7 +2085,6 @@ copy : boolean, default False
         import matplotlib.pyplot as plt
         import pandas.tools.plotting as gfx
         import pandas.tools.tsplotting as tsp
-        from pandas import IntervalIndex
 
         if label is not None:
             kwds = kwds.copy()
@@ -2093,8 +2092,23 @@ copy : boolean, default False
 
         N = len(self)
 
-        if use_index and isinstance(self.index, IntervalIndex):
-            return tsp.tsplot(self)
+        if use_index:
+            # custom datetime/interval plotting
+            from pandas import IntervalIndex, DatetimeIndex
+            if isinstance(self.index, IntervalIndex):
+                return tsp.tsplot(self)
+            if isinstance(self.index, DatetimeIndex):
+                offset = self.index.freq
+                name = datetools._newOffsetNames.get(offset, None)
+                if name is not None:
+                    try:
+                        code = datetools._interval_str_to_code(name)
+                        s_ = Series(self.values,
+                                    index=self.index.to_interval(freq=code),
+                                    name=self.name)
+                        tsp.tsplot(s_)
+                    except:
+                        pass
 
         if ax is None:
             ax = plt.gca()
