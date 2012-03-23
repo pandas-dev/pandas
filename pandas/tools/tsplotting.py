@@ -1,12 +1,11 @@
 """
-Adopted from scikits.timeseries by Pierre GF Gerard-Marchant & Matt Knox
+Adapted from scikits.timeseries by Pierre GF Gerard-Marchant & Matt Knox
 """
 
 #!!! TODO: Use the fact that axis can have units to simplify the process
 
 
 from matplotlib import pylab
-from matplotlib import _pylab_helpers
 from matplotlib.axes import Subplot
 from matplotlib.figure import Figure
 from matplotlib.ticker import Formatter, Locator
@@ -22,7 +21,7 @@ from pandas.core.series import Series
 
 import warnings
 
-# Generic documentation ........................................................
+# Generic documentation ......................................................
 
 _doc_parameters = dict(
 figsize="""figsize : {None, tuple}
@@ -47,8 +46,7 @@ mandatoryplotargs="""args : var
         Mandatory arguments for the creation of the subplot.
         These arguments should be given as ``nb_of_rows``, ``nb_of_columns``,
         ``plot_number``, or as a single 3-digit number if the 3 previous numbers
-        are all lower than 10.""",
-                       )
+        are all lower than 10.""" )
 
 
 #####---------------------------------------------------------------------------
@@ -137,8 +135,8 @@ def period_break(dates, period):
 
     Parameters
     ----------
-    dates : DateArray
-        Array of dates to monitor.
+    dates : IntervalIndex
+        Array of intervals to monitor.
     period : string
         Name of the period to monitor.
     """
@@ -454,7 +452,7 @@ def _monthly_finder(vmin, vmax, freq):
         info['min'][quarter_start] = True
 
         info_fmt[year_start] = '%Y'
-#..................
+    #..................
     else:
         nyears = span / periodsperyear
         (min_anndef, maj_anndef) = _get_default_annual_spacing(nyears)
@@ -562,7 +560,7 @@ def get_finder(freq):
 
 class TimeSeries_DateLocator(Locator):
     """
-    Locates the ticks along an axis controlled by a :class:`~scikits.timeseries.DateArray`.
+    Locates the ticks along an axis controlled by a :class:`Series`.
 
     Parameters
     ----------
@@ -635,7 +633,8 @@ class TimeSeries_DateLocator(Locator):
 
     def autoscale(self):
         """
-    Sets the view limits to the nearest multiples of base that contain the data.
+        Sets the view limits to the nearest multiples of base that contain the
+        data.
         """
         # requires matplotlib >= 0.98.0
         (vmin, vmax) = self.axis.get_data_interval()
@@ -647,12 +646,12 @@ class TimeSeries_DateLocator(Locator):
             vmax += 1
         return nonsingular(vmin, vmax)
 
-#####---------------------------------------------------------------------------
+#####-------------------------------------------------------------------------
 #---- --- Formatter ---
-#####---------------------------------------------------------------------------
+#####-------------------------------------------------------------------------
 class TimeSeries_DateFormatter(Formatter):
     """
-    Formats the ticks along an axis controlled by a :class:`DateArray`.
+    Formats the ticks along an axis controlled by a :class:`IntervalIndex`.
 
     Parameters
     ----------
@@ -736,33 +735,30 @@ class TimeSeriesPlot(Subplot, object):
 
     Defines a subclass of :class:`matplotlib.axes.Subplot` to plot time series.
 
-    A :class:`~scikits.timeseries.TimeSeries` is associated with the plot.
-    This time series is usually specified at the creation of the plot,
-    through the optional parameter ``series``.
-    If no series is given at the creation, the first time series being plotted
-    will be used as associated series.
+    A :class:`~Series` is associated with the plot.  This time series is
+    usually specified at the creation of the plot, through the optional
+    parameter ``series``.  If no series is given at the creation, the first
+    time series being plotted will be used as associated series.
 
     The associated series is stored in the :attr:`~TimeSeriesPlot.series`
-    attribute.
-    It gives its frequency to the plot.
-    This frequency can be accessed through the attribute :attr:`freq`.
-    All the other series that will be plotted will be first converted to the
-    :attr:`freq` frequency, using their
-    :meth:`~scikits.timeseries.TimeSeries.asfreq` method.
+    attribute.  It gives its frequency to the plot.  This frequency can be
+    accessed through the attribute :attr:`freq`.  All the other series that
+    will be plotted will be first converted to the :attr:`freq` frequency,
+    using their :meth:`~resample` method.
 
     The same parameters used for the instanciation of a standard
     :class:`matplotlib.axes.Subplot` are recognized.
 
     Parameters
     ----------
-    series : {None, TimeSeries}, optional
+    series : {None, Series}, optional
         The time series allocated to the plot.
 
     Attributes
     ----------
     freq : int
         Frequency of the plot.
-    xdata : DateArray
+    xdata : IntervalIndex
         The array of dates corresponding to the x axis.
     legendsymbols : list
     legendlabels : list
@@ -772,10 +768,10 @@ class TimeSeriesPlot(Subplot, object):
 
     Warnings
     --------
-    * Because the series to plot are first converted to the plot frequency,
-      it is recommended when plotting several series to associate the plot with
-      the series with the highest frequency, in order to keep a good level
-      of detail.
+    * Because the series to plot are first converted to the plot frequency, it
+    * is recommended when plotting several series to associate the plot with
+    * the series with the highest frequency, in order to keep a good level of
+    * detail.
 
     """
     def __init__(self, fig=None, *args, **kwargs):
@@ -800,9 +796,9 @@ class TimeSeriesPlot(Subplot, object):
 
     def set_series(self, series=None):
         """
-    Sets the time series associated with the plot.
-    If ``series`` is a valid :class:`~scikits.timeseries.TimeSeries` object,
-    the :attr:`xdata` attribute is updated to the ``_dates`` part of ``series``.
+        Sets the time series associated with the plot.  If ``series`` is a
+        valid :class:`~Series` object, the :attr:`xdata` attribute is updated
+        to the ``_dates`` part of ``series``.
         """
         if series is not None:
             self._series = series.values
@@ -813,9 +809,9 @@ class TimeSeriesPlot(Subplot, object):
     #
     def get_series(self):
         """
-    Returns the data part of the time series associated with the plot,
-    as a (subclass of) :class:`MaskedArray`.
-    """
+        Returns the data part of the time series associated with the plot,
+        as a (subclass of) :class:`ndarray`.
+        """
         return self._series
     #
     series = property(fget=get_series, fset=set_series,
@@ -823,14 +819,14 @@ class TimeSeriesPlot(Subplot, object):
 
 
     def set_ydata(self, series=None):
-        errmsg = "The use of 'set_ydata' is deprecated. "\
-            "Please use 'set_series' instead"
+        errmsg = ("The use of 'set_ydata' is deprecated. "
+                  "Please use 'set_series' instead")
         warnings.DepreciationWarning(errmsg)
         return self.set_series(series)
     #
     def get_ydata(self):
-        errmsg = "The use of 'get_ydata' is deprecated. "\
-            "Please use 'get_series' instead"
+        errmsg = ("The use of 'get_ydata' is deprecated. "
+                  "Please use 'get_series' instead")
         warnings.DepreciationWarning(errmsg)
         return self.get_series()
     #
@@ -840,7 +836,7 @@ class TimeSeriesPlot(Subplot, object):
 
     def get_freq(self):
         """
-    Returns the underlying frequency of the plot
+        Returns the underlying frequency of the plot
         """
         return getattr(self.xdata, 'freq', None)
     #
@@ -849,7 +845,7 @@ class TimeSeriesPlot(Subplot, object):
     #......................................................
     def _check_plot_params(self, *args):
         """
-    Defines the plot coordinates (and basic plotting arguments).
+        Defines the plot coordinates (and basic plotting arguments).
         """
         remaining = list(args)
         noinfo_msg = "No date information available!"
@@ -867,7 +863,7 @@ class TimeSeriesPlot(Subplot, object):
                     raise ValueError(noinfo_msg)
                 else:
                     output.extend([self.xdata, self.series, a])
-            # The argument is a TimeSeries: use its dates for x
+            # The argument is a Series: use its dates for x
             elif isinstance(a, Series):
                 (x, y) = (a.index, a.values)
                 if len(remaining) > 0 and isinstance(remaining[0], str):
@@ -875,8 +871,8 @@ class TimeSeriesPlot(Subplot, object):
                     output.extend([x, y, b])
                 else:
                     output.extend([x, y])
-            # The argument is a DateArray............
-            elif isinstance(a, (Interval, IntervalIndex)):
+            # The argument is a IntervalIndex............
+            elif isinstance(a, IntervalIndex):
                 # Force to current freq
                 if self.freq is not None:
                     if a.freq != self.freq:
@@ -930,46 +926,45 @@ class TimeSeriesPlot(Subplot, object):
     #......................................................
     def tsplot(self, *args,  **kwargs):
         """
-    Plots the data parsed in argument to the current axes.
-    This command accepts the same optional keywords as :func:`matplotlib.pyplot.plot`.
+        Plots the data parsed in argument to the current axes.  This command
+        accepts the same optional keywords as :func:`matplotlib.pyplot.plot`.
 
-    The argument ``args`` is a variable length argument, allowing for multiple
-    data to be plotted at once. Acceptable combinations are:
+        The argument ``args`` is a variable length argument, allowing for
+        multiple data to be plotted at once. Acceptable combinations are:
 
-    No arguments or a format string:
-       The time series associated with the subplot is plotted with the given
-       format.
-       If no format string is given, the default format is used instead.
-       For example, to plot the underlying time series with the default format,
-       use:
+        No arguments or a format string: The time series associated with the
+        subplot is plotted with the given format.  If no format string is
+        given, the default format is used instead.  For example, to plot the
+        underlying time series with the default format, use:
 
-          >>> tsplot()
+            >>> tsplot()
 
-       To plot the underlying time series with a red solid line, use the command:
+        To plot the underlying time series with a red solid line, use the
+        command:
 
-          >>> tsplot('r-')
+            >>> tsplot('r-')
 
-    a :class:`~scikits.timeseries.TimeSeries` object or one of its subclass
-    with or without a format string:
-       The given time series is plotted with the given format.
-       If no format string is given, the default format is used instead.
+        a :class:`~Series` object or one of its subclass with or without a
+        format string: The given time series is plotted with the given format.
+        If no format string is given, the default format is used instead.
 
-    an array or sequence, with or without a format string:
-       The data is plotted with the given format
-       using the :attr:`~TimeSeriesPlot.xdata` attribute of the plot as abscissae.
+        an array or sequence, with or without a format string: The data is
+        plotted with the given format using the :attr:`~TimeSeriesPlot.xdata`
+        attribute of the plot as abscissae.
 
-    two arrays or sequences, with or without a format string:
-       The data are plotted with the given format, using the first array as
-       abscissae and the second as ordinates.
+        two arrays or sequences, with or without a format string: The data are
+        plotted with the given format, using the first array as abscissae and
+        the second as ordinates.
 
 
-    Parameters
-    ----------
-    args : var
-        Sequence of arguments, as described previously.
-    kwargs : var
-        Optional parameters.
-        The same parameters are accepted as for :meth:`matplotlib.axes.Subplot.plot`.
+        Parameters
+        ----------
+        args : var
+            Sequence of arguments, as described previously.
+        kwargs : var
+            Optional parameters.
+            The same parameters are accepted as for
+            :meth:`matplotlib.axes.Subplot.plot`.
 
         """
         args = self._check_plot_params(*args)
@@ -988,12 +983,12 @@ class TimeSeriesPlot(Subplot, object):
     #......................................................
     def format_dateaxis(self):
         """
-    Pretty-formats the date axis (x-axis).
+        Pretty-formats the date axis (x-axis).
 
-    Major and minor ticks are automatically set for the frequency of the current
-    underlying series.
-    As the dynamic mode is activated by default, changing the limits of the x
-    axis will intelligently change the positions of the ticks.
+        Major and minor ticks are automatically set for the frequency of the
+        current underlying series.  As the dynamic mode is activated by
+        default, changing the limits of the x axis will intelligently change
+        the positions of the ticks.
         """
         # Get the locator class .................
         majlocator = TimeSeries_DateLocator(self.freq, dynamic_mode=True,
@@ -1015,18 +1010,18 @@ class TimeSeriesPlot(Subplot, object):
     #......................................................
     def set_dlim(self, start_date=None, end_date=None):
         """
-    Sets the date limits of the plot to ``start_date`` and ``end_date``.
-    The dates can be given as :class:`~scikits.timeseries.Date` objects,
-    strings or integers.
+        Sets the date limits of the plot to ``start_date`` and ``end_date``.
+        The dates can be given as :class:`~Interval` objects, strings or
+        integers.
 
-    Parameters
-    ----------
-    start_date : {var}
-        Starting date of the plot. If None, the current left limit (earliest
-        date) is used.
-    end_date : {var}
-        Ending date of the plot. If None, the current right limit (latest date)
-        is used.
+        Parameters
+        ----------
+        start_date : {var}
+            Starting date of the plot. If None, the current left limit
+            (earliest date) is used.
+        end_date : {var}
+            Ending date of the plot. If None, the current right limit (latest
+            date) is used.
         """
         freq = self.freq
         if freq is None:
@@ -1052,14 +1047,14 @@ class TimeSeriesPlot(Subplot, object):
 
     def reset_datelimits(self):
         """
-    Reset the date range of the x axis to the date range of the underlying
-    time series.
+        Reset the date range of the x axis to the date range of the underlying
+        time series.
         """
         return self.set_xlim(self.xdata[[0, -1]])
 
     def get_dlim(self):
         """
-    Returns the limits of the x axis as a :class:`~scikits.timeseries.DateArray`.
+        Returns the limits of the x axis as a :class:`~IntervalIndex`.
         """
         xlims = self.get_xlim()
         return IntervalIndex(xlims, freq=self.freq)
@@ -1179,17 +1174,17 @@ class TimeSeriesFigure(Figure):
     #.........
     def add_tsplot(self, *args, **kwargs):
         """
-    Adds a :class:`TimeSeriesPlot` subplot to the current figure.
+        Adds a :class:`TimeSeriesPlot` subplot to the current figure.
 
-    Parameters
-    ----------
-    args : var
-        Mandatory arguments for the creation of the subplot.
-        These arguments should be given as ``nb_of_rows``, ``nb_of_columns``,
-        ``plot_number``, or as a single 3-digit number if the 3 previous numbers
-        are all lower than 10.
-    kwargs : var
-        Optional arguments, as recognized by `add_subplot`.
+        Parameters
+        ----------
+        args : var
+            Mandatory arguments for the creation of the subplot.
+            These arguments should be given as ``nb_of_rows``,
+            ``nb_of_columns``, ``plot_number``, or as a single 3-digit number
+            if the 3 previous numbers are all lower than 10.
+        kwargs : var
+            Optional arguments, as recognized by `add_subplot`.
         """
         kwargs.update(SubplotClass=TimeSeriesPlot)
         if self._series is not None:
@@ -1197,11 +1192,13 @@ class TimeSeriesFigure(Figure):
         return add_generic_subplot(self, *args, **kwargs)
 
     add_subplot = add_tsplot
+
 TSFigure = TimeSeriesFigure
 
 #................................................
-def tsfigure(num=None, figsize=None, dpi=None, facecolor=None, edgecolor=None,
-             frameon=True, subplotpars=None, series=None, FigureClass=TSFigure):
+def tsfigure(num=None, figsize=None, dpi=None, facecolor=None,
+             edgecolor=None, frameon=True, subplotpars=None,
+             FigureClass=TSFigure):
     """
     Creates a new :class:`TimeSeriesFigure` object.
 
@@ -1221,86 +1218,48 @@ def tsfigure(num=None, figsize=None, dpi=None, facecolor=None, edgecolor=None,
     """
     figargs = dict(num=num, figsize=figsize, dpi=dpi, facecolor=facecolor,
                    frameon=frameon, FigureClass=FigureClass,
-                   subplotpars=subplotpars, series=series)
+                   subplotpars=subplotpars)
     fig = pylab.figure(**figargs)
     return fig
+
 tsfigure.__doc__ %= _doc_parameters
 
-#####----- Pandas TimeSeries Mix-In?
+def tsplot(series=None, num=None, figsize=None, dpi=None, facecolor=None,
+           edgecolor=None, frameon=True, subplotpars=None,
+           FigureClass=TSFigure):
+    """
+    Creates a new :class:`TimeSeriesFigure` object and plots a series
 
-class Plotting(object):
-    def plot_series(self, num=None, figsize=None, dpi=None, facecolor=None,
-                          edgecolor=None, frameon=True, subplotpars=None,
-                          series=None, FigureClass=TSFigure):
-        """
+    Parameters
+    ----------
+    num : {None, int}, optional
+        Number of the figure.
+        If None, a new figure is created and ``num`` is incremented.
+    %(figsize)s
+    %(dpi)s
+    %(facecolor)s
+    %(edgecolor)s
+    %(frameon)s
+    %(subplotpars)s
+    FigureClass : FigureClass
+        Class of the figure to create
 
-        Parameters
-        ----------
+    Parameters
+    ----------
 
-        kwargs are used to instantiate the matplotlib.figure
-
-        %(kwargs)
-        """
-        # deal with kwargs
-        fig = plt.figure(num=num, figsize=figsize, dpi=dpi,
+    """
+    # deal with kwargs
+    fig = tsfigure(num=num, figsize=figsize, dpi=dpi,
                    facecolor=facecolor, edgecolor=edgecolor,
-                   frameon=frameon, subplotpars=subplotpars, series=series,
+                   frameon=frameon, subplotpars=subplotpars,
                    FigureClass=FigureClass)
 
-        ax = fig.add_tsplot()
-
-def add_tsplot(axes, *args, **kwargs):
-    """
-    Adds a :class:`TimeSeriesPlot` to the current figure.
-
-    Parameters
-    ----------
-    %(mandatoryplotargs)s
-    """
-    kwargs.update(SubplotClass=TimeSeriesPlot)
-    if 'series' not in kwargs.keys():
-        if hasattr(axes, 'series'):
-            kwargs['series'] = axes.series
-        elif hasattr(axes, '_series'):
-            kwargs['series'] = axes._series
-        else:
-            kwargs['series'] = None
-    return add_generic_subplot(axes, *args, **kwargs)
-
-add_tsplot.__doc__ %= _doc_parameters
-Figure.add_tsplot = add_tsplot
-
-def tsplot(series, *args, **kwargs):
-    """
-    Plots the series to the current :class:`TimeSeriesPlot`.
-    If the current plot is not a :class:`TimeSeriesPlot`,
-    a new :class:`TimeSeriesFigure` is created.
-
-    Parameters
-    ----------
-    series : TimeSeries
-        The time series to plot
-    %(mandatoryplotargs)s
-    kwargs : var
-        Optional arguments for the creation of the subplot.
-    """
-    base, mult = datetools._get_freq_code(series.index.freq)
-    if mult != 1:
-        series = series.resample(base)
-
-    # allow callers to override the hold state by passing hold=True|False
-    h = kwargs.pop('hold', None)
-    if h is not None:
-        pylab.hold(h)
-
-    fig = tsfigure()
     sub = fig.add_tsplot(111)
-    ret = sub.tsplot(series, *args, **kwargs)
+    ret = sub.tsplot(series)
 
     return ret
 
 tsplot.__doc__ %= _doc_parameters
 
 ###############################################################################
-
 
