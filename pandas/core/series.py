@@ -2084,12 +2084,17 @@ copy : boolean, default False
         """
         import matplotlib.pyplot as plt
         import pandas.tools.plotting as gfx
+        import pandas.tools.tsplotting as tsp
+        from pandas import IntervalIndex
 
         if label is not None:
             kwds = kwds.copy()
             kwds['label'] = label
 
         N = len(self)
+
+        if use_index and isinstance(self.index, IntervalIndex):
+            return tsp.tsplot(self)
 
         if ax is None:
             ax = plt.gca()

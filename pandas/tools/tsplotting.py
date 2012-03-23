@@ -1224,8 +1224,8 @@ def tsfigure(num=None, figsize=None, dpi=None, facecolor=None,
 
 tsfigure.__doc__ %= _doc_parameters
 
-def tsplot(series=None, num=None, figsize=None, dpi=None, facecolor=None,
-           edgecolor=None, frameon=True, subplotpars=None,
+def tsplot(series=None, num=None, figsize=None, dpi=None,
+           facecolor=None, edgecolor=None, frameon=True, subplotpars=None,
            FigureClass=TSFigure):
     """
     Creates a new :class:`TimeSeriesFigure` object and plots a series
@@ -1250,9 +1250,9 @@ def tsplot(series=None, num=None, figsize=None, dpi=None, facecolor=None,
     """
     # deal with kwargs
     fig = tsfigure(num=num, figsize=figsize, dpi=dpi,
-                   facecolor=facecolor, edgecolor=edgecolor,
-                   frameon=frameon, subplotpars=subplotpars,
-                   FigureClass=FigureClass)
+                facecolor=facecolor, edgecolor=edgecolor,
+                frameon=frameon, subplotpars=subplotpars,
+                FigureClass=FigureClass)
 
     sub = fig.add_tsplot(111)
     ret = sub.tsplot(series)
