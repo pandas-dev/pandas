@@ -64,6 +64,19 @@ class TestIntervalProperties(TestCase):
         i2 = Interval('3/12/12', freq='B')
         self.assertEquals(i1, i2)
 
+        i1 = Interval('2005Q1')
+        i2 = Interval(year=2005, quarter=1, freq='Q')
+        self.assertEquals(i1, i2)
+
+        i1 = Interval('05Q1')
+        self.assertEquals(i1, i2)
+
+        i1 = Interval('1Q2005')
+        self.assertEquals(i1, i2)
+
+        i1 = Interval('1Q05')
+        self.assertEquals(i1, i2)
+
     def test_properties_annually(self):
         "Test properties on Intervals with annually frequency."
         a_date = Interval(freq='A', year=2007)
@@ -900,6 +913,12 @@ class TestIntervalIndex(TestCase):
         res = s['2011']
         exp = s[12:24]
         assert_series_equal(res, exp)
+
+    def test_iindex_qaccess(self):
+        ii = IntervalIndex(['2Q05', '3Q05', '4Q05', '1Q06', '2Q06'], freq='Q')
+        s = Series(np.random.rand(len(ii)), index=ii).cumsum()
+        # Todo: fix these accessors!
+        assert_series_equal(s['05Q4'], s[0])
 
     def test_interval_dt64_round_trip(self):
         dti = DatetimeIndex(['1/1/2002', '1/2/2002', '1/3/2002', '1/4/2002', 

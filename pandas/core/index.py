@@ -2137,7 +2137,7 @@ class IntervalIndex(Int64Index):
         """
         try:
             return super(IntervalIndex, self).get_value(series, key)
-        except KeyError:
+        except (ValueError, KeyError):
             try:
                 asdt, parsed, reso = datetools.parse_time_string(key)
                 grp = datetools._infer_interval_group(reso)
@@ -2153,7 +2153,7 @@ class IntervalIndex(Int64Index):
                 else:
                     key = to_interval(asdt, freq=self.freq).ordinal
                 return series[key]
-            except TypeError:
+            except (TypeError, ValueError):
                 pass
             except KeyError:
                 pass

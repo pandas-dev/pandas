@@ -141,6 +141,8 @@ class Interval:
             if freq is None:
                 if reso == 'year':
                     freq = 'A'
+                elif reso == 'quarter':
+                    freq = 'Q'
                 elif reso == 'month':
                     freq = 'M'
                 elif reso == 'day':
@@ -634,12 +636,13 @@ for k, v in _interval_code_map.iteritems():
     _reverse_interval_code_map[v] = k
 
 _reso_interval_map = {
-    "year"   : "A",
-    "month"  : "M",
-    "day"    : "D",
-    "hour"   : "H",
-    "minute" : "Min",
-    "second" : "S",
+    "year"    : "A",
+    "quarter" : "Q",
+    "month"   : "M",
+    "day"     : "D",
+    "hour"    : "H",
+    "minute"  : "Min",
+    "second"  : "S",
 }
 
 def _infer_interval_group(freqstr):
@@ -728,19 +731,51 @@ class DateParseError(Exception):
 
 _dtparser = parser.parser()
 
+# patterns for quarters like 4Q2005, 05Q1
+qpat1full = re.compile(r'(\d)Q(\d\d\d\d)')
+qpat2full = re.compile(r'(\d\d\d\d)Q(\d)')
+qpat1 = re.compile(r'(\d)Q(\d\d)')
+qpat2 = re.compile(r'(\d\d)Q(\d)')
+
 def parse_time_string(arg):
+    """
+    Try hard to parse datetime string, leveraging dateutil plus some extra
+    goodies like quarter recognition.
+    """
     from pandas.core.format import print_config
 
     if not isinstance(arg, basestring):
         return arg
 
     try:
+        default = datetime(1,1,1).replace(hour=0, minute=0,
+                                            second=0, microsecond=0)
+
+        # special handling for possibilities eg, 2Q2005, 2Q05, 2005Q1, 05Q1
+        if len(arg) in [4, 6]:
+            if len(arg) == 4:
+                qpats = [(qpat1, 1), (qpat2, 0)]
+            else:
+                qpats = [(qpat1full, 1), (qpat2full, 0)]
+        
+            for pat, yfirst in qpats:
+                qparse = pat.match(arg)
+                if qparse is not None:
+                    if yfirst:
+                        yi, qi = 1, 2
+                    else:
+                        yi, qi = 2, 1
+                    q = int(qparse.group(yi))
+                    y = int(qparse.group(qi))
+                    if y < 2000: 
+                        y += 2000
+                    ret = default.replace(year=y, month=(q-1)*3+1)
+                    return ret, ret.strftime('%Y/%m'), 'quarter'
+
         dayfirst = print_config.date_dayfirst
         yearfirst = print_config.date_yearfirst
 
         parsed = _dtparser._parse(arg, dayfirst=dayfirst, yearfirst=yearfirst)
-        default = datetime(1,1,1).replace(hour=0, minute=0,
-                                          second=0, microsecond=0)
         if parsed is None:
             raise DateParseError("Could not parse %s" % arg)
 
@@ -748,7 +783,7 @@ def parse_time_string(arg):
         reso = 'year'
         stopped = False
         for attr in ["year", "month", "day", "hour",
-                     "minute", "second", "microsecond"]:
+                        "minute", "second", "microsecond"]:
             can_be_zero = ['hour', 'minute', 'second', 'microsecond']
             value = getattr(parsed, attr)
             if value is not None and (value != 0 or attr in can_be_zero):
@@ -760,7 +795,7 @@ def parse_time_string(arg):
             else:
                 stopped = True
         ret = default.replace(**repl)
-        return ret, parsed, reso  # datetime, partial parse, resolution
+        return ret, parsed, reso  # datetime, resolution
     except Exception, e:
         raise DateParseError(e)
 
