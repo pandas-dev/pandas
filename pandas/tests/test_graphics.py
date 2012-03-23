@@ -3,7 +3,7 @@ import os
 import string
 import unittest
 
-from pandas import Series, DataFrame, MultiIndex
+from pandas import Series, DataFrame, MultiIndex, IntervalIndex
 import pandas.util.testing as tm
 
 import numpy as np
@@ -31,6 +31,9 @@ class TestSeriesPlots(unittest.TestCase):
         self.series = tm.makeStringSeries()
         self.series.name = 'series'
 
+        self.iseries = tm.makeIntervalSeries()
+        self.iseries.name = 'iseries'
+
     @slow
     def test_plot(self):
         _check_plot_works(self.ts.plot, label='foo')
@@ -40,6 +43,7 @@ class TestSeriesPlots(unittest.TestCase):
         _check_plot_works(self.ts[:10].plot, kind='bar')
         _check_plot_works(self.series[:5].plot, kind='bar')
         _check_plot_works(self.series[:5].plot, kind='line')
+        _check_plot_works(self.iseries[:5].plot, kind='line')
 
     @slow
     def test_hist(self):

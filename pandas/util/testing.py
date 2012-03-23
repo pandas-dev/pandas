@@ -19,7 +19,7 @@ import pandas.core.series as series
 import pandas.core.frame as frame
 import pandas.core.panel as panel
 
-from pandas.core.index import DatetimeIndex
+from pandas.core.index import DatetimeIndex, IntervalIndex
 
 # to_reload = ['index', 'daterange', 'series', 'frame', 'matrix', 'panel']
 # for mod in to_reload:
@@ -206,8 +206,16 @@ def makeDateIndex(k):
     dr = DateRange(dt, periods=k)
     return DatetimeIndex(dr)
 
+def makeIntervalIndex(k):
+    dt = datetime(2000,1,1)
+    dr = IntervalIndex(start=dt, periods=k, freq='B')
+    return dr
+
 def makeTimeSeries():
     return Series(randn(N), index=makeDateIndex(N))
+
+def makeIntervalSeries():
+    return Series(randn(N), index=makeIntervalIndex(N))
 
 def getTimeSeriesData():
     return dict((c, makeTimeSeries()) for c in getCols(K))
