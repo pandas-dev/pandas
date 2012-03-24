@@ -1039,19 +1039,7 @@ copy : boolean, default False
         if level is not None:
             return self._agg_by_level('kurt', level=level, skipna=skipna)
 
-        if not skipna:
-            if isnull(self).any():
-                return np.nan
-            ser = self
-        else:
-            ser = self.dropna()
-
-        if ser.count() == 0:
-            return np.nan
-        
-        from pandas.stats.moments import rolling_kurt
-        kurt = rolling_kurt(ser, ser.count(), ser.count())
-        return kurt.values[-1]    
+        return nanops.nankurt(self.values, skipna=skipna)
 
     def _agg_by_level(self, name, level=0, skipna=True):
         grouped = self.groupby(level=level)

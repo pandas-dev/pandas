@@ -3619,8 +3619,8 @@ class DataFrame(NDFrame):
         if level is not None:
             return self._agg_by_level('kurt', axis=axis, level=level,
                                       skipna=skipna)
-        f = lambda x : Series.kurt(x, skipna=skipna)
-        return self._get_numeric_data().apply(f, axis=axis)
+        return self._reduce(nanops.nankurt, axis=axis, skipna=skipna,
+                            numeric_only=None)
 
     def _agg_by_level(self, name, axis=0, level=0, skipna=True):
         grouped = self.groupby(level=level, axis=axis)
