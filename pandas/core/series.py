@@ -1012,7 +1012,7 @@ copy : boolean, default False
             level=None):
         if level is not None:
             return self._agg_by_level('std', level=level, skipna=skipna)
-        return np.sqrt(nanops.nanvar(self.values, skipna=skipna))
+        return np.sqrt(nanops.nanvar(self.values, skipna=skipna, ddof=ddof))
 
     @Substitution(name='unbiased variance', shortname='var',
                   na_action=_doc_exclude_na, extras='')
@@ -1021,7 +1021,7 @@ copy : boolean, default False
             level=None):
         if level is not None:
             return self._agg_by_level('var', level=level, skipna=skipna)
-        return nanops.nanvar(self.values, skipna=skipna)
+        return nanops.nanvar(self.values, skipna=skipna, ddof=ddof)
 
     @Substitution(name='unbiased skewness', shortname='skew',
                   na_action=_doc_exclude_na, extras='')
