@@ -15,12 +15,16 @@ __all__ = ['Index']
 
 def _indexOp(opname):
     """
-    Wrapper function for Series arithmetic operations, to avoid
+    Wrapper function for index comparison operations, to avoid
     code duplication.
     """
     def wrapper(self, other):
         func = getattr(self.view(np.ndarray), opname)
-        return func(other)
+        result = func(other)
+        try:
+            return result.view(np.ndarray)
+        except:
+            return result
     return wrapper
 
 
