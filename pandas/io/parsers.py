@@ -688,9 +688,6 @@ class FixedWidthFieldParser(TextParser):
     """
     Specialization that Converts fixed-width fields into DataFrames.
     See TextParser for details.
-
-    Note: this class is hijacking the 'delimiter' attribute to store the list of
-    column specs.
     """
     def __init__(self, f, **kwds):
         # Support iterators, convert to a list.
