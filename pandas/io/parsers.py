@@ -81,50 +81,47 @@ Read general delimited file into DataFrame
 """ % (_parser_params % _table_sep)
 
 
-_fwf_widths = """widths : list of tuples/lists, giving the widths of
-    the fixed-width fields of each line, as [from, to] (inclusively)
+_fwf_widths = """\
+colspecs : a list of pairs (tuples), giving the extents
+    of the fixed-width fields of each line as half-open internals
+    (i.e.,  [from, to[  ).
+widths : a list of field widths, which can be used instead of
+    'colspecs' if the intervals are contiguous.
 """
 
 _read_fwf_doc = """
 Read a table of fixed-width formatted lines into DataFrame
-(Note: this reader ignores the header field.)
 
 %s
+
+Also, 'delimiter' is used to specify the filler character of the
+fields if it is not spaces (e.g., '~').
 """ % (_parser_params % _fwf_widths)
 
 
-def _read(cls, filepath_or_buffer, sep=',', header=0, index_col=None, names=None,
-          skiprows=None, na_values=None, parse_dates=False,
-          date_parser=None, nrows=None, iterator=False, chunksize=None,
-          skip_footer=0, converters=None, verbose=False, delimiter=None,
-          encoding=None):
+def _read(cls, filepath_or_buffer, kwds):
     "Generic reader of line files."
     if hasattr(filepath_or_buffer, 'read'):
         f = filepath_or_buffer
     else:
+        encoding = kwds.get('encoding', None)
         try:
             # universal newline mode
             f = com._get_handle(filepath_or_buffer, 'U', encoding=encoding)
         except Exception: # pragma: no cover
             f = com._get_handle(filepath_or_buffer, 'r', encoding=encoding)
 
-    if delimiter is not None:
-        sep = delimiter
+    if kwds.get('date_parser', None) is not None:
+        kwds['parse_dates'] = True
 
-    if date_parser is not None:
-        parse_dates = True
+    # Extract some of the arguments (pass chunksize on).
+    kwds.pop('filepath_or_buffer')
+    iterator = kwds.pop('iterator')
+    nrows = kwds.pop('nrows')
+    chunksize = kwds.get('chunksize', None)
 
-    parser = cls(f, header=header, index_col=index_col,
-                 names=names, na_values=na_values,
-                 parse_dates=parse_dates,
-                 date_parser=date_parser,
-                 skiprows=skiprows,
-                 delimiter=sep,
-                 chunksize=chunksize,
-                 skip_footer=skip_footer,
-                 converters=converters,
-                 verbose=verbose,
-                 encoding=encoding)
+    # Create the parser.
+    parser = cls(f, **kwds)
 
     if nrows is not None:
         return parser.get_chunk(nrows)
@@ -134,52 +131,99 @@ def _read(cls, filepath_or_buffer, sep=',', header=0, index_col=None, names=None
     return parser.get_chunk()
 
 @Appender(_read_csv_doc)
-def read_csv(filepath_or_buffer, sep=',', header=0, index_col=None, names=None,
-             skiprows=None, na_values=None, parse_dates=False,
-             date_parser=None, nrows=None, iterator=False, chunksize=None,
-             skip_footer=0, converters=None, verbose=False, delimiter=None,
+def read_csv(filepath_or_buffer,
+             sep=',',
+             header=0,
+             index_col=None,
+             names=None,
+             skiprows=None,
+             na_values=None,
+             parse_dates=False,
+             date_parser=None,
+             nrows=None,
+             iterator=False,
+             chunksize=None,
+             skip_footer=0,
+             converters=None,
+             verbose=False,
+             delimiter=None,
              encoding=None):
+    kwds = locals()
 
-    return _read(TextParser,
-                 filepath_or_buffer, sep=sep, header=header,
-                 skiprows=skiprows, index_col=index_col,
-                 na_values=na_values, date_parser=date_parser,
-                 names=names, parse_dates=parse_dates,
-                 nrows=nrows, iterator=iterator, chunksize=chunksize,
-                 skip_footer=skip_footer, converters=converters,
-                 verbose=verbose, delimiter=delimiter)
+    # Alias sep -> delimiter.
+    sep = kwds.pop('sep')
+    if kwds.get('delimiter', None) is None:
+        kwds['delimiter'] = sep
+
+    return _read(TextParser, filepath_or_buffer, kwds)
 
 @Appender(_read_table_doc)
-def read_table(filepath_or_buffer, sep='\t', header=0, index_col=None,
-               names=None, skiprows=None, na_values=None, parse_dates=False,
-               date_parser=None, nrows=None, iterator=False, chunksize=None,
-               skip_footer=0, converters=None, verbose=False, delimiter=None,
+def read_table(filepath_or_buffer,
+               sep='\t',
+               header=0,
+               index_col=None,
+               names=None,
+               skiprows=None,
+               na_values=None,
+               parse_dates=False,
+               date_parser=None,
+               nrows=None,
+               iterator=False,
+               chunksize=None,
+               skip_footer=0,
+               converters=None,
+               verbose=False,
+               delimiter=None,
                encoding=None):
+    kwds = locals()
 
-    return _read(TextParser,
-                 filepath_or_buffer, sep=sep, header=header,
-                 skiprows=skiprows, index_col=index_col,
-                 na_values=na_values, date_parser=date_parser,
-                 names=names, parse_dates=parse_dates,
-                 nrows=nrows, iterator=iterator, chunksize=chunksize,
-                 skip_footer=skip_footer, converters=converters,
-                 verbose=verbose, delimiter=delimiter, encoding=None)
+    # Alias sep -> delimiter.
+    sep = kwds.pop('sep')
+    if kwds.get('delimiter', None) is None:
+        kwds['delimiter'] = sep
+
+    # Override as default encoding.
+    kwds['encoding'] = None
+
+    return _read(TextParser, filepath_or_buffer, kwds)
 
 @Appender(_read_fwf_doc)
-def read_fwf(filepath_or_buffer, widths, index_col=None,
-             names=None, skiprows=None, na_values=None, parse_dates=False,
-             date_parser=None, nrows=None, iterator=False, chunksize=None,
-             skip_footer=0, converters=None, verbose=False,
+def read_fwf(filepath_or_buffer,
+             colspecs=None,
+             widths=None,
+             header=0,
+             index_col=None,
+             names=None,
+             skiprows=None,
+             na_values=None,
+             parse_dates=False,
+             date_parser=None,
+             nrows=None,
+             iterator=False,
+             chunksize=None,
+             skip_footer=0,
+             converters=None,
+             delimiter=None,
+             verbose=False,
              encoding=None):
 
-    return _read(FixedWidthFieldParser,
-                 filepath_or_buffer, sep=None, header=None,
-                 skiprows=skiprows, index_col=index_col,
-                 na_values=na_values, date_parser=date_parser,
-                 names=names, parse_dates=parse_dates,
-                 nrows=nrows, iterator=iterator, chunksize=chunksize,
-                 skip_footer=skip_footer, converters=converters,
-                 verbose=verbose, delimiter=widths, encoding=None)
+    kwds = locals()
+
+    # Check input arguments.
+    colspecs = kwds.get('colspecs', None)
+    widths = kwds.pop('widths', None)
+    if bool(colspecs is None) == bool(widths is None):
+        raise ValueError("You must specify only one of 'widths' and 'colspecs'")
+
+    # Compute 'colspec' from 'widths', if specified.
+    if widths is not None:
+        colspecs, col = [], 0
+        for w in widths:
+            colspecs.append( (col, col+w) )
+            col += w
+        kwds['colspecs'] = colspecs
+
+    return _read(FixedWidthFieldParser, filepath_or_buffer, kwds)
 
 
 
@@ -622,9 +666,10 @@ class FixedWidthReader(object):
     """
     A reader of fixed-width lines.
     """
-    def __init__(self, f, colspecs):
+    def __init__(self, f, colspecs, filler):
         self.f = f
         self.colspecs = colspecs
+        self.filler = filler # Empty characters between fields.
 
         assert isinstance(colspecs, (tuple, list))
         for colspec in colspecs:
@@ -635,8 +680,9 @@ class FixedWidthReader(object):
 
     def next(self):
         line = self.f.next()
-        return [line[fromm:to+1] for (fromm, to) in self.colspecs]
-      
+        # Note: 'colspecs' is a sequence of half-open intervals.
+        return [line[fromm:to].strip(self.filler or ' ') for (fromm, to) in self.colspecs]
+
 
 class FixedWidthFieldParser(TextParser):
     """
@@ -646,8 +692,14 @@ class FixedWidthFieldParser(TextParser):
     Note: this class is hijacking the 'delimiter' attribute to store the list of
     column specs.
     """
+    def __init__(self, f, **kwds):
+        # Support iterators, convert to a list.
+        self.colspecs = list(kwds.pop('colspecs'))
+
+        TextParser.__init__(self, f, **kwds)
+
     def _make_reader(self, f):
-        self.data = FixedWidthReader(f, self.delimiter)
+        self.data = FixedWidthReader(f, self.colspecs, self.delimiter)
 
 
 #-------------------------------------------------------------------------------
