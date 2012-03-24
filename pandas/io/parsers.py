@@ -456,7 +456,7 @@ class TextParser(object):
             index_name = None
         elif np.isscalar(self.index_col):
             index_name = columns.pop(self.index_col)
-            if 'Unnamed' in index_name:
+            if index_name is not None and 'Unnamed' in index_name:
                 index_name = None
         elif self.index_col is not None:
             cp_cols = list(columns)
