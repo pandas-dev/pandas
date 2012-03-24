@@ -197,10 +197,11 @@ else:
 def write_version_py(filename='pandas/version.py'):
     cnt = """\
 version = '%s'
+short_version = '%s'
 """
     a = open(filename, 'w')
     try:
-        a.write(cnt % FULLVERSION)
+        a.write(cnt % (FULLVERSION, VERSION))
     finally:
         a.close()
 
