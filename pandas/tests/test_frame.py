@@ -4958,7 +4958,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_attach(self):
         Y = DataFrame(np.random.random((4, 4)), index=('a', 'b','c','d'),
                       columns=('e','f','g','h'))
-        #t his is just to fool nose
         Y.attach(conflicts='ignore')
         assert_series_equal(Y['e'], e)
         assert_series_equal(Y['f'], f)
@@ -4969,13 +4968,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         Y = DataFrame(np.random.random((4, 4)), index=('a', 'b','c','d'),
                       columns=('e','f','g','h'))
         e = 'I exist locally'
-        np.testing.assert_raises(AttributeError, Y.attach, conflicts='raises')
+        np.testing.assert_raises(AttributeError, Y.attach, conflicts='raise')
 
     def test_attach_warns(self):
         Y = DataFrame(np.random.random((4, 4)), index=('a', 'b','c','d'),
                       columns=('e','f','g','h'))
         e = 'I exist locally'
-        np.testing.assert_warns(Warning, Y.attach, conflicts='raises')
+        np.testing.assert_warns(Warning, Y.attach, conflicts='warn')
 
     def test_attach_namespace(self):
         Y = DataFrame(np.random.random((4, 4)), index=('a', 'b','c','d'),
