@@ -1585,6 +1585,8 @@ class DatetimeIndex(Int64Index):
             t2 = to_timestamp(datetime(parsed.year, parsed.month, d))
             i1, i2 = np.searchsorted(self.asi8, [t1.value, t2.value])
             return slice(i1, i2+1)
+        elif reso == 'quarter':
+            raise NotImplementedError('Quarter slicing not implemented yet')
 
         raise KeyError
 
@@ -1983,6 +1985,8 @@ class IntervalIndex(Int64Index):
                 else:
                     data = data.astype('i8')
 
+        data = np.array(data, dtype=np.int64, copy=False)
+
         if (data <= 0).any():
             raise ValueError("Found illegal (<= 0) values in data")
 
@@ -2137,7 +2141,7 @@ class IntervalIndex(Int64Index):
         """
         try:
             return super(IntervalIndex, self).get_value(series, key)
-        except (ValueError, KeyError):
+        except KeyError:
             try:
                 asdt, parsed, reso = datetools.parse_time_string(key)
                 grp = datetools._infer_interval_group(reso)
@@ -2150,10 +2154,11 @@ class IntervalIndex(Int64Index):
                     ord2 = iv.resample(self.freq, how='E').ordinal
                     pos = np.searchsorted(self.values, [ord1, ord2])
                     key = slice(pos[0], pos[1]+1)
+                    return series[key]
                 else:
                     key = to_interval(asdt, freq=self.freq).ordinal
-                return series[key]
-            except (TypeError, ValueError):
+                    return self._engine.get_value(series, key)
+            except TypeError:
                 pass
             except KeyError:
                 pass

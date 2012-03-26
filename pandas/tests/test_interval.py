@@ -918,7 +918,7 @@ class TestIntervalIndex(TestCase):
         ii = IntervalIndex(['2Q05', '3Q05', '4Q05', '1Q06', '2Q06'], freq='Q')
         s = Series(np.random.rand(len(ii)), index=ii).cumsum()
         # Todo: fix these accessors!
-        assert_series_equal(s['05Q4'], s[0])
+        self.assert_(s['05Q4'] == s[2])
 
     def test_interval_dt64_round_trip(self):
         dti = DatetimeIndex(['1/1/2002', '1/2/2002', '1/3/2002', '1/4/2002', 
