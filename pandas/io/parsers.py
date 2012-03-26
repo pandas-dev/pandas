@@ -20,7 +20,10 @@ into chunks.
 
 Parameters
 ----------
-filepath_or_buffer : string or file handle / StringIO
+filepath_or_buffer : string or file handle / StringIO. The string could be
+    a URL. Valid URL schemes include http://, ftp://, and file://. For
+    file:// URLs, a host is expected. For instance, a local file could be
+    file://localhost/path/to/table.csv
 %s
 header : int, default 0
     Row to use for the column labels of the parsed DataFrame
@@ -80,7 +83,6 @@ Read general delimited file into DataFrame
 %s
 """ % (_parser_params % _table_sep)
 
-
 _fwf_widths = """\
 colspecs : a list of pairs (tuples), giving the extents
     of the fixed-width fields of each line as half-open internals
@@ -99,8 +101,25 @@ fields if it is not spaces (e.g., '~').
 """ % (_parser_params % _fwf_widths)
 
 
+def _is_url(url):
+    """
+    Very naive check to see if url is an http, ftp, or file location.
+    """
+    from urlparse import urlparse
+    parsed_url = urlparse(url)
+    if parsed_url.scheme in ['http','file', 'ftp']:
+        return True
+    else:
+        return False
+
+
 def _read(cls, filepath_or_buffer, kwds):
     "Generic reader of line files."
+
+    if _is_url(filepath_or_buffer):
+        from urllib2 import urlopen
+        filepath_or_buffer = urlopen(filepath_or_buffer)
+
     if hasattr(filepath_or_buffer, 'read'):
         f = filepath_or_buffer
     else:
