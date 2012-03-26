@@ -4,6 +4,7 @@ Module contains tools for processing files into DataFrames or other objects
 from StringIO import StringIO
 import re
 from itertools import izip
+from urlparse import urlparse
 
 import numpy as np
 
@@ -105,7 +106,6 @@ def _is_url(url):
     """
     Very naive check to see if url is an http(s), ftp, or file location.
     """
-    from urlparse import urlparse
     parsed_url = urlparse(url)
     if parsed_url.scheme in ['http','file', 'ftp', 'https']:
         return True
