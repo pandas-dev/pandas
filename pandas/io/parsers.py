@@ -112,11 +112,10 @@ def _is_url(url):
     else:
         return False
 
-
 def _read(cls, filepath_or_buffer, kwds):
     "Generic reader of line files."
 
-    if _is_url(filepath_or_buffer):
+    if isinstance(filepath_or_buffer, str) and _is_url(filepath_or_buffer):
         from urllib2 import urlopen
         filepath_or_buffer = urlopen(filepath_or_buffer)
 
