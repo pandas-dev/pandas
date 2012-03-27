@@ -148,7 +148,7 @@ class Index(np.ndarray):
             return False
 
     def is_numeric(self):
-        return issubclass(self.dtype.type, np.number)
+        return self.inferred_type in ['integer', 'floating']
 
     def is_datetype(self):
         for key in self.values:
