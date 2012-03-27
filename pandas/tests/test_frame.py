@@ -4955,6 +4955,40 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         exp = Y['g'].sum()
         self.assert_(isnull(Y['g']['c']))
 
+    def test_attach(self):
+        Y = DataFrame(np.random.random((4, 4)), index=('a', 'b','c','d'),
+                      columns=('e','f','g','h'))
+        Y.attach(conflicts='ignore')
+        assert_series_equal(Y['e'], e)
+        assert_series_equal(Y['f'], f)
+        assert_series_equal(Y['g'], g)
+        assert_series_equal(Y['h'], h)
+
+    def test_attach_raises(self):
+        Y = DataFrame(np.random.random((4, 4)), index=('a', 'b','c','d'),
+                      columns=('e','f','g','h'))
+        e = 'I exist locally'
+        np.testing.assert_raises(AttributeError, Y.attach, conflicts='raise')
+
+    def test_attach_warns(self):
+        Y = DataFrame(np.random.random((4, 4)), index=('a', 'b','c','d'),
+                      columns=('e','f','g','h'))
+        e = 'I exist locally'
+        np.testing.assert_warns(Warning, Y.attach, conflicts='warn')
+
+    def test_attach_namespace(self):
+        Y = DataFrame(np.random.random((4, 4)), index=('a', 'b','c','d'),
+                      columns=('e','f','g','h'))
+        Y.attach(namespace='myspace')
+        assert_series_equal(Y['e'], myspace.e)
+        assert_series_equal(Y['f'], myspace.f)
+        assert_series_equal(Y['g'], mypsace.g)
+        assert_series_equal(Y['h'], myspace.h)
+
+
+
+
+
 
 if __name__ == '__main__':
     # unittest.main()

@@ -1109,6 +1109,53 @@ class DataFrame(NDFrame):
         if buf is None:
             return formatter.buf.getvalue()
 
+    def attach(self, namespace='local', conflicts='warn'):
+        """
+        Attach the variables in the DataFrame to `namespace`
+
+        Parameters
+        -----------
+        namespace : str
+            Names to attach columns to. Default is the user's local namespace.
+            Ie., the namespace that calls attach. If a string is given other
+            than local, the the calling namespace will have a variable of
+            this name with the series attached.
+        conflicts : str {'warn', 'raise', 'ignore'}
+            What to do if the namespace already contains a variable of the
+            same name.
+        """
+        #TODO: where to put these helpers?
+        class Namespace(object):
+            pass
+
+        def _handle_conflict(conflicts, name):
+            if conflicts == 'ignore':
+                pass
+            elif conflicts == 'warn':
+                import warnings
+                warnings.warn("Overwriting %s in given namespace" % name,
+                             Warning)
+            elif conflicts == 'raise':
+                raise AttributeError("%s exists in given namespace" % name)
+
+        import inspect
+        calling_frame = inspect.getouterframes(sys._getframe(0))[1][0]
+
+        if namespace == 'local':
+            ns = calling_frame.f_locals
+        else:
+            ns = {}
+        for column in self: #TODO: might make sense to have fast to_series ?
+            if column in ns:
+                _handle_conflict(conflicts, column)
+            ns.update({self[column].name : self[column]})
+
+        if namespace != 'local':
+            local_ns = Namespace()
+            for key in ns:
+                setattr(local_ns, key, ns[key])
+            calling_frame.f_locals.update({namespace : local_ns})
+
     def info(self, verbose=True, buf=None):
         """
         Concise summary of a DataFrame, used in __repr__ when very large.
