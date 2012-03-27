@@ -3995,7 +3995,7 @@ class DataFrame(NDFrame):
                 ax.set_title(col)
             else:
                 rects.append(ax.bar(xinds + i * 0.75 / K, y, 0.75 / K,
-                                    bottom=np.zeros(N), label=col,
+                                    bottom=np.zeros(N), label=str(col),
                                     color=colors[i % len(colors)], **kwds))
                 labels.append(col)
 
