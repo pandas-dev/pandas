@@ -678,6 +678,10 @@ class DataFrame(NDFrame):
         """
         import warnings
 
+        # Make a copy of the input columns so we can modify it
+        if columns is not None:
+            columns = list(columns)
+
         if names is not None:  # pragma: no cover
             columns = names
             warnings.warn("'names' parameter to DataFrame.from_records is "
