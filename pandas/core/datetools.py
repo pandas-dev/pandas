@@ -731,7 +731,7 @@ class DateParseError(Exception):
 
 _dtparser = parser.parser()
 
-# patterns for quarters like 4Q2005, 05Q1
+# patterns for quarters like '4Q2005', '05Q1'
 qpat1full = re.compile(r'(\d)Q(\d\d\d\d)')
 qpat2full = re.compile(r'(\d\d\d\d)Q(\d)')
 qpat1 = re.compile(r'(\d)Q(\d\d)')
@@ -749,7 +749,7 @@ def parse_time_string(arg):
 
     try:
         default = datetime(1,1,1).replace(hour=0, minute=0,
-                                            second=0, microsecond=0)
+                                          second=0, microsecond=0)
 
         # special handling for possibilities eg, 2Q2005, 2Q05, 2005Q1, 05Q1
         if len(arg) in [4, 6]:
@@ -757,7 +757,7 @@ def parse_time_string(arg):
                 qpats = [(qpat1, 1), (qpat2, 0)]
             else:
                 qpats = [(qpat1full, 1), (qpat2full, 0)]
-        
+
             for pat, yfirst in qpats:
                 qparse = pat.match(arg)
                 if qparse is not None:
@@ -767,10 +767,10 @@ def parse_time_string(arg):
                         yi, qi = 2, 1
                     q = int(qparse.group(yi))
                     y = int(qparse.group(qi))
-                    if y < 2000: 
+                    if y < 2000:
                         y += 2000
                     ret = default.replace(year=y, month=(q-1)*3+1)
-                    return ret, ret.strftime('%Y/%m'), 'quarter'
+                    return ret, ret, 'quarter'
 
         dayfirst = print_config.date_dayfirst
         yearfirst = print_config.date_yearfirst
@@ -783,7 +783,7 @@ def parse_time_string(arg):
         reso = 'year'
         stopped = False
         for attr in ["year", "month", "day", "hour",
-                        "minute", "second", "microsecond"]:
+                     "minute", "second", "microsecond"]:
             can_be_zero = ['hour', 'minute', 'second', 'microsecond']
             value = getattr(parsed, attr)
             if value is not None and (value != 0 or attr in can_be_zero):

@@ -1591,7 +1591,12 @@ class DatetimeIndex(Int64Index):
             i1, i2 = np.searchsorted(self.asi8, [t1.value, t2.value])
             return slice(i1, i2+1)
         elif reso == 'quarter':
-            raise NotImplementedError('Quarter slicing not implemented yet')
+            qe = (((parsed.month - 1) + 2) % 12) + 1 # two months ahead
+            d = lib.monthrange(parsed.year, qe)[1]   # at end of month
+            t1 = to_timestamp(datetime(parsed.year, parsed.month, 1))
+            t2 = to_timestamp(datetime(parsed.year, qe, d))
+            i1, i2 = np.searchsorted(self.asi8, [t1.value, t2.value])
+            return slice(i1, i2+1)
 
         raise KeyError
 

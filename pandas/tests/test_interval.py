@@ -950,7 +950,7 @@ class TestIntervalIndex(TestCase):
         self.assertEquals(i, Interval('1/1/2010 12:05:15', '5S'))
 
         i = Interval('1/1/2010 12:05:18', '5S')
-        self.assertEquals(i.resample('1S', how='E'), 
+        self.assertEquals(i.resample('1S', how='E'),
                           Interval('1/1/2010 12:05:19', '1S'))
 
 class TestMethods(TestCase):

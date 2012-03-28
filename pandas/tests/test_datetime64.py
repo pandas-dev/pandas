@@ -468,6 +468,15 @@ class TestDatetime64(unittest.TestCase):
         df = DataFrame(np.random.rand(len(dti), 5), index=dti)
         self.assertEquals(len(df.ix['2005']), 261)
 
+    def test_slice_quarter(self):
+        dti = DatetimeIndex(freq='D', start=datetime(2000,6,1), periods=500)
+
+        s = Series(np.arange(len(dti)), index=dti)
+        self.assertEquals(len(s['2001Q1']), 90)
+
+        df = DataFrame(np.random.rand(len(dti), 5), index=dti)
+        self.assertEquals(len(df.ix['1Q01']), 90)
+
     def test_slice_month(self):
         dti = DatetimeIndex(freq='D', start=datetime(2005,1,1), periods=500)
 
