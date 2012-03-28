@@ -16,7 +16,7 @@ from pandas import Series
 
 from numpy.random import rand
 
-from pandas.util.testing import assert_series_equal
+from pandas.util.testing import assert_series_equal, assert_frame_equal
 
 from pandas.core.groupby import Tinterval
 from pandas.core.datetools import Minute, BDay
@@ -585,6 +585,14 @@ class TestDatetime64(unittest.TestCase):
                              '1/4/2002', '1/7/2002', '1/7/2002'], freq='B')
 
         self.assert_( (res == exp).all() )
+
+    def test_dti_reset_index_round_trip(self):
+        dti = DatetimeIndex(start='1/1/2001', end='6/1/2001', freq='D')
+        d1 = DataFrame({'v' : np.random.rand(len(dti))}, index=dti)
+        d2 = d1.reset_index()
+        self.assert_(d2.dtypes[0] == np.datetime64)
+        d3 = d2.set_index('index')
+        assert_frame_equal(d1, d3)
 
 if __name__ == '__main__':
     import nose

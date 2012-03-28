@@ -281,12 +281,17 @@ class ObjectBlock(Block):
         return not issubclass(value.dtype.type,
                               (np.integer, np.floating, np.bool_))
 
+class DatetimeBlock(IntBlock):
+    pass
+
 def make_block(values, items, ref_items, do_integrity_check=False):
     dtype = values.dtype
     vtype = dtype.type
 
     if issubclass(vtype, np.floating):
         klass = FloatBlock
+    elif issubclass(vtype, np.datetime64):
+        klass = DatetimeBlock
     elif issubclass(vtype, np.integer):
         if vtype != np.int64:
             values = values.astype('i8')
@@ -1090,6 +1095,7 @@ def _interleaved_dtype(blocks):
     have_bool = counts[BoolBlock] > 0
     have_object = counts[ObjectBlock] > 0
     have_float = counts[FloatBlock] > 0
+    have_dt64 = counts[DatetimeBlock] > 0
     have_numeric = have_float or have_int
 
     if have_object:
@@ -1100,6 +1106,8 @@ def _interleaved_dtype(blocks):
         return np.bool_
     elif have_int and not have_float:
         return np.int64
+    elif have_dt64 and not have_float:
+        return np.datetime64
     else:
         return np.float64
 
