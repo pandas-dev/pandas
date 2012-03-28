@@ -594,6 +594,8 @@ class TestDatetime64(unittest.TestCase):
         d3 = d2.set_index('index')
         assert_frame_equal(d1, d3)
 
+    # TODO: test merge & concat with datetime64 block
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

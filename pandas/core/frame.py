@@ -2064,9 +2064,6 @@ class DataFrame(NDFrame):
         def _maybe_cast(values):
             if values.dtype == np.object_:
                 values = lib.maybe_convert_objects(values)
-            #elif values.dtype == np.datetime64:
-            #    # converts to datetime
-            #    values = values.astype('O')
             return values
 
         if not drop:
