@@ -22,6 +22,63 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.7.2
+============
+
+**Release date:** March 16, 2012
+
+**New features / modules**
+
+  - Add additional tie-breaking methods in DataFrame.rank (#874)
+  - Add ascending parameter to rank in Series, DataFrame (#875)
+  - Add coerce_float option to DataFrame.from_records (#893)
+  - Add sort_columns parameter to allow unsorted plots (#918)
+  - IPython tab completion on GroupBy objects
+
+**API Changes**
+
+  - Series.sum returns 0 instead of NA when called on an empty
+    series. Analogously for a DataFrame whose rows or columns are length 0
+    (#844)
+
+**Improvements to existing features**
+
+  - Don't use groups dict in Grouper.size (#860)
+  - Use khash for Series.value_counts, add raw function to algorithms.py (#861)
+  - Enable column access via attributes on GroupBy (#882)
+  - Enable setting existing columns (only) via attributes on DataFrame, Panel
+    (#883)
+  - Intercept __builtin__.sum in groupby (#885)
+  - Can pass dict to DataFrame.fillna to use different values per column (#661)
+  - Can select multiple hierarchical groups by passing list of values in .ix
+    (#134)
+  - Add level keyword to ``drop`` for dropping values from a level (GH #159)
+  - Add ``coerce_float`` option on DataFrame.from_records (# 893)
+  - Raise exception if passed date_parser fails in ``read_csv``
+  - Add ``axis`` option to DataFrame.fillna (#174)
+  - Fixes to Panel to make it easier to subclass (PR #888)
+
+**Bug fixes**
+
+  - Fix overflow-related bugs in groupby (#850, #851)
+  - Fix unhelpful error message in parsers (#856)
+  - Better err msg for failed boolean slicing of dataframe (#859)
+  - Series.count cannot accept a string (level name) in the level argument (#869)
+  - Group index platform int check (#870)
+  - concat on axis=1 and ignore_index=True raises TypeError (#871)
+  - Further unicode handling issues resolved (#795)
+  - Fix failure in multiindex-based access in Panel (#880)
+  - Fix DataFrame boolean slice assignment failure (#881)
+  - Fix combineAdd NotImplementedError for SparseDataFrame (#887)
+  - Fix DataFrame.to_html encoding and columns (#890, #891, #909)
+  - Fix na-filling handling in mixed-type DataFrame (#910)
+  - Fix to DataFrame.set_value with non-existant row/col (#911)
+  - Fix malformed block in groupby when excluding nuisance columns (#916)
+  - Fix inconsistant NA handling in dtype=object arrays (#925)
+  - Fix missing center-of-mass computation in ewmcov (#862)
+  - Don't raise exception when opening read-only HDF5 file (#847)
+  - Fix possible out-of-bounds memory access in 0-length Series (#917)
+
 pandas 0.7.1
 ============
 

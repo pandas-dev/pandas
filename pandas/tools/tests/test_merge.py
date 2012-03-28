@@ -963,8 +963,8 @@ class TestConcatenate(unittest.TestCase):
         tm.assert_frame_equal(result, expected)
 
     def test_concat_ignore_index(self):
-        frame1 = DataFrame({"test1": ["a", "b", "c"], 
-                            "test2": [1,2,3], 
+        frame1 = DataFrame({"test1": ["a", "b", "c"],
+                            "test2": [1,2,3],
                             "test3": [4.5, 3.2, 1.2]})
         frame2 = DataFrame({"test3": [5.2, 2.2, 4.3]})
         frame1.index = Index(["x", "y", "z"])
@@ -973,12 +973,12 @@ class TestConcatenate(unittest.TestCase):
         v1 = concat([frame1, frame2], axis=1, ignore_index=True)
 
         nan = np.nan
-        expected = DataFrame([[nan,nan,nan, 4.3], 
+        expected = DataFrame([[nan,nan,nan, 4.3],
                               ['a', 1, 4.5, 5.2],
                               ['b', 2, 3.2, 2.2],
-                              ['c', 3, 1.2, nan]], 
+                              ['c', 3, 1.2, nan]],
                              index=Index(["q", "x", "y", "z"]))
-                
+
         tm.assert_frame_equal(v1, expected)
 
     def test_concat_multiindex_with_keys(self):
@@ -1223,6 +1223,20 @@ class TestConcatenate(unittest.TestCase):
         result = concat(pieces)
         tm.assert_frame_equal(result, df)
         self.assertRaises(Exception, concat, [None, None])
+
+    def test_mixed_type_join_with_suffix(self):
+        # GH #916
+        df = DataFrame(np.random.randn(20, 6),
+                       columns=['a', 'b', 'c', 'd', 'e', 'f'])
+        df.insert(0, 'id', 0)
+        df.insert(5, 'dt', 'foo')
+
+        grouped = df.groupby('id')
+        mn = grouped.mean()
+        cn = grouped.count()
+
+        # it works!
+        mn.join(cn, rsuffix='_right')
 
 if __name__ == '__main__':
     import nose

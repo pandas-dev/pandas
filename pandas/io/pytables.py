@@ -177,7 +177,14 @@ class HDFStore(object):
                                              self.complib,
                                              fletcher32=self.fletcher32)
 
-        self.handle = _tables().openFile(self.path, self.mode)
+        try:
+            self.handle = _tables().openFile(self.path, self.mode)
+        except IOError, e:  # pragma: no cover
+            if 'can not be written' in str(e):
+                print 'Opening %s in read-only mode' % self.path
+                self.handle = _tables().openFile(self.path, 'r')
+            else:
+                raise
 
     def close(self):
         """

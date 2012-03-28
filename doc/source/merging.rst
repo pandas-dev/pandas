@@ -322,7 +322,7 @@ Here's a description of what each argument is for:
     DataFrames will be inferred to be the join keys
   - ``left_on``: Columns from the left DataFrame to use as keys. Can either be
     column names or arrays with length equal to the length of the DataFrame
-  - ``right_on``: Columns from the left DataFrame to use as keys. Can either be
+  - ``right_on``: Columns from the right DataFrame to use as keys. Can either be
     column names or arrays with length equal to the length of the DataFrame
   - ``left_index``: If ``True``, use the index (row labels) from the left
     DataFrame as its join key(s). In the case of a DataFrame with a MultiIndex

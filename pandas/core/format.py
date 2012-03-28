@@ -1,7 +1,7 @@
 from itertools import izip
 
 from StringIO import StringIO
-from pandas.core.common import adjoin, notnull, _stringify
+from pandas.core.common import adjoin, isnull, notnull, _stringify
 from pandas.core.index import MultiIndex, _ensure_index
 from pandas.util import py3compat
 
@@ -222,33 +222,39 @@ class DataFrameFormatter(object):
         """
         Render a DataFrame to a html table.
         """
-        def write(buf, s, indent=0):
-            buf.write(unicode((' ' * indent) + str(s) + '\n'))
+        def _str(x):
+            if not isinstance(x, basestring):
+                return str(x)
+            return x
 
-        def write_th(buf, s, indent=0):
-            write(buf, '<th>%s</th>' % str(s), indent)
+        elements = []
+        def write(s, indent=0):
+            elements.append(' ' * indent + _str(s))
 
-        def write_td(buf, s, indent=0):
-            write(buf, '<td>%s</td>' % str(s), indent)
 
-        def write_tr(buf, l, indent=0, indent_delta=4, header=False):
-            write(buf, '<tr>', indent)
+        def write_th(s, indent=0):
+            write('<th>%s</th>' % _str(s), indent)
+
+        def write_td(s, indent=0):
+            write('<td>%s</td>' % _str(s), indent)
+
+        def write_tr(l, indent=0, indent_delta=4, header=False):
+            write('<tr>', indent)
             indent += indent_delta
             if header:
                 for s in l:
-                    write_th(buf, s, indent)
+                    write_th(s, indent)
             else:
                 for s in l:
-                    write_td(buf, s, indent)
+                    write_td(s, indent)
             indent -= indent_delta
-            write(buf, '</tr>', indent)
+            write('</tr>', indent)
 
         indent = 0
         indent_delta = 2
         frame = self.frame
-        buf = self.buf
 
-        write(buf, '<table border="1">', indent)
+        write('<table border="1">', indent)
 
         def _column_header():
             row = [''] * (frame.index.nlevels - 1)
@@ -263,31 +269,30 @@ class DataFrameFormatter(object):
             return row
 
         if len(frame.columns) == 0 or len(frame.index) == 0:
-            write(buf, '<tbody>', indent  + indent_delta)
-            write_tr(buf,
-                     [repr(frame.index),
+            write('<tbody>', indent  + indent_delta)
+            write_tr([repr(frame.index),
                       'Empty %s' % type(self.frame).__name__],
                      indent + (2 * indent_delta),
                      indent_delta)
-            write(buf, '</tbody>', indent  + indent_delta)
+            write('</tbody>', indent  + indent_delta)
         else:
             indent += indent_delta
 
             # header row
             if self.header:
-                write(buf, '<thead>', indent)
+                write('<thead>', indent)
                 row = []
 
                 col_row = _column_header()
                 indent += indent_delta
-                write_tr(buf, col_row, indent, indent_delta, header=True)
+                write_tr(col_row, indent, indent_delta, header=True)
                 if self.has_index_names:
                     row = frame.index.names + [''] * len(self.columns)
-                    write_tr(buf, row, indent, indent_delta, header=True)
+                    write_tr(row, indent, indent_delta, header=True)
 
-                write(buf, '</thead>', indent)
+                write('</thead>', indent)
 
-            write(buf, '<tbody>', indent)
+            write('<tbody>', indent)
 
             _bold_row = self.kwds.get('bold_rows', False)
             def _maybe_bold_row(x):
@@ -311,12 +316,14 @@ class DataFrameFormatter(object):
                     row.append(_maybe_bold_row(frame.index[i]))
                 for col in self.columns:
                     row.append(fmt_values[col][i])
-                write_tr(buf, row, indent, indent_delta)
+                write_tr(row, indent, indent_delta)
             indent -= indent_delta
-            write(buf, '</tbody>', indent)
+            write('</tbody>', indent)
             indent -= indent_delta
 
-        write(buf, '</table>', indent)
+        write('</table>', indent)
+
+        _put_lines(self.buf, elements)
 
     def _get_formatted_column_labels(self):
         from pandas.core.index import _sparsify
@@ -777,6 +784,13 @@ class _GlobalPrintConfig(object):
         self.__init__()
 
 print_config = _GlobalPrintConfig()
+
+
+def _put_lines(buf, lines):
+    if any(isinstance(x, unicode) for x in lines):
+        lines = [unicode(x) for x in lines]
+    buf.write('\n'.join(lines))
+
 
 if __name__ == '__main__':
     arr = np.array([746.03, 0.00, 5620.00, 1592.36])

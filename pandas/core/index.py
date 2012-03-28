@@ -24,12 +24,16 @@ __all__ = ['Index']
 
 def _indexOp(opname):
     """
-    Wrapper function for Series arithmetic operations, to avoid
+    Wrapper function for index comparison operations, to avoid
     code duplication.
     """
     def wrapper(self, other):
         func = getattr(self.view(np.ndarray), opname)
-        return func(other)
+        result = func(other)
+        try:
+            return result.view(np.ndarray)
+        except:
+            return result
     return wrapper
 
 
@@ -133,13 +137,14 @@ class Index(np.ndarray):
         # to disable groupby tricks in MultiIndex
         return False
 
-    def summary(self):
+    def summary(self, name=None):
         if len(self) > 0:
             index_summary = ', %s to %s' % (str(self[0]), str(self[-1]))
         else:
             index_summary = ''
 
-        name = type(self).__name__
+        if name is None:
+            name = type(self).__name__
         return '%s: %s entries%s' % (name, len(self), index_summary)
 
     def __str__(self):
@@ -163,7 +168,7 @@ class Index(np.ndarray):
             return False
 
     def is_numeric(self):
-        return issubclass(self.dtype.type, np.number)
+        return self.inferred_type in ['integer', 'floating']
 
     def is_datetype(self):
         for key in self.values:

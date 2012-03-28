@@ -22,6 +22,7 @@ class TestIndex(unittest.TestCase):
         self.strIndex = tm.makeStringIndex(100)
         self.dateIndex = tm.makeDateIndex(100)
         self.intIndex = tm.makeIntIndex(100)
+        self.floatIndex = tm.makeFloatIndex(100)
         self.empty = Index([])
         self.tuples = Index(zip(['foo', 'bar', 'baz'], [1, 2, 3]))
 
@@ -277,6 +278,12 @@ class TestIndex(unittest.TestCase):
     #     self.assert_(empty is NULL_INDEX)
     #     self.assert_(self.dateIndex[15:15] is NULL_INDEX)
 
+    def test_is_numeric(self):
+        self.assert_(not self.dateIndex.is_numeric())
+        self.assert_(not self.strIndex.is_numeric())
+        self.assert_(self.intIndex.is_numeric())
+        self.assert_(self.floatIndex.is_numeric())
+
     def test_is_all_dates(self):
         self.assert_(self.dateIndex.is_all_dates)
         self.assert_(not self.strIndex.is_all_dates)
@@ -426,6 +433,16 @@ class TestIndex(unittest.TestCase):
         result = idx.isin(values)
         self.assert_(len(result) == 0)
         self.assert_(result.dtype == np.bool_)
+
+    def test_boolean_cmp(self):
+        values = [1,2,3,4]
+
+        idx = Index(values)
+        res = (idx == values)
+
+        self.assert_(res.all())
+        self.assert_(res.dtype == 'bool')
+        self.assert_(not isinstance(res, Index))
 
 class TestInt64Index(unittest.TestCase):
 
@@ -829,6 +846,10 @@ class TestMultiIndex(unittest.TestCase):
     def test_is_all_dates(self):
         self.assert_(not self.index.is_all_dates)
 
+    def test_is_numeric(self):
+        # MultiIndex is never numeric
+        self.assert_(not self.index.is_numeric())
+
     def test_getitem(self):
         # scalar
         self.assertEquals(self.index[2], ('bar', 'one'))
@@ -1212,6 +1233,9 @@ class TestMultiIndex(unittest.TestCase):
 
     def test_from_tuples(self):
         self.assertRaises(Exception, MultiIndex.from_tuples, [])
+
+        idx = MultiIndex.from_tuples( ((1,2),(3,4)), names=['a', 'b'] )
+        self.assertEquals(len(idx), 2)
 
     def test_argsort(self):
         result = self.index.argsort()

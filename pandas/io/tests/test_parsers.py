@@ -641,6 +641,32 @@ bar"""
                                        'foo', 'bar']})
         assert_frame_equal(df, expected)
 
+    def test_parse_dates_custom_euroformat(self):
+        from dateutil.parser import parse
+        text = """foo,bar,baz
+31/01/2010,1,2
+01/02/2010,1,NA
+02/02/2010,1,2
+"""
+        parser = lambda d: parse(d, dayfirst=True)
+        df = read_csv(StringIO(text), skiprows=[0],
+                      names=['time', 'Q', 'NTU'], index_col=0,
+                      parse_dates=True, date_parser=parser,
+                      na_values=['NA'])
+
+        exp_index = Index([datetime(2010, 1, 31), datetime(2010, 2, 1),
+                           datetime(2010, 2, 2)], name='time')
+        expected = DataFrame({'Q' : [1, 1, 1], 'NTU' : [2, np.nan, 2]},
+                             index=exp_index, columns=['Q', 'NTU'])
+        assert_frame_equal(df, expected)
+
+        parser = lambda d: parse(d, day_first=True)
+        self.assertRaises(Exception, read_csv,
+                          StringIO(text), skiprows=[0],
+                          names=['time', 'Q', 'NTU'], index_col=0,
+                          parse_dates=True, date_parser=parser,
+                          na_values=['NA'])
+
     def test_converters_corner_with_nas(self):
         import StringIO
         import numpy as np

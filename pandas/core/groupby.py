@@ -345,7 +345,7 @@ class GroupBy(object):
 
         not_indexed_same = False
         for key, group in self:
-            group.name = key
+            object.__setattr__(group, 'name', key)
 
             # group might be modified
             group_axes = _get_axes(group)
@@ -1101,6 +1101,10 @@ class SeriesGroupBy(GroupBy):
         if hasattr(func_or_funcs,'__iter__'):
             ret = self._aggregate_multiple_funcs(func_or_funcs)
         else:
+            cyfunc = _intercept_cython(func_or_funcs)
+            if cyfunc and not args and not kwargs:
+                return getattr(self, cyfunc)()
+
             if self.grouper.numkeys() > 1:
                 return self._python_agg_general(func_or_funcs, *args, **kwargs)
 
@@ -1205,7 +1209,7 @@ class SeriesGroupBy(GroupBy):
         result = self.obj.copy()
 
         for name, group in self:
-            group.name = name
+            object.__setattr__(group, 'name', name)
             res = func(group, *args, **kwargs)
             indexer = self.obj.index.get_indexer(group.index)
             np.put(result, indexer, res)
@@ -1285,6 +1289,9 @@ class DataFrameGroupBy(GroupBy):
                 all_items.extend(b.items)
             output_keys = agg_labels[agg_labels.isin(all_items)]
 
+            for blk in new_blocks:
+                blk.set_ref_items(output_keys, maybe_rename=False)
+
         if not self.as_index:
             index = np.arange(new_blocks[0].values.shape[1])
             mgr = BlockManager(new_blocks, [output_keys, index])
@@ -1357,6 +1364,10 @@ class DataFrameGroupBy(GroupBy):
         elif isinstance(arg, list):
             return self._aggregate_multiple_funcs(arg)
         else:
+            cyfunc = _intercept_cython(arg)
+            if cyfunc and not args and not kwargs:
+                return getattr(self, cyfunc)()
+
             if self.grouper.numkeys() > 1:
                 return self._python_agg_general(arg, *args, **kwargs)
             else:
@@ -1393,7 +1404,7 @@ class DataFrameGroupBy(GroupBy):
                                      grouper=self.grouper)
                 results.append(colg.agg(arg))
                 keys.append(col)
-            except TypeError:
+            except (TypeError, GroupByError):
                 pass
 
         result = concat(results, keys=keys, axis=1)
@@ -1562,7 +1573,7 @@ class DataFrameGroupBy(GroupBy):
 
         obj = self._obj_with_exclusions
         for name, group in self:
-            group.name = name
+            object.__setattr__(group, 'name', name)
 
             try:
                 wrapper = lambda x: func(x, *args, **kwargs)
@@ -1833,8 +1844,19 @@ _func_table = {
     __builtin__.sum : np.sum
 }
 
+_cython_table = {
+    __builtin__.sum : 'sum',
+    np.sum : 'sum',
+    np.mean : 'mean',
+    np.std : 'std',
+    np.var : 'var'
+}
+
 def _intercept_function(func):
     return _func_table.get(func, func)
+
+def _intercept_cython(func):
+    return _cython_table.get(func)
 
 def _groupby_indices(values):
     if values.dtype != np.object_:

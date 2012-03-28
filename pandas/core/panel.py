@@ -332,15 +332,11 @@ class Panel(NDFrame):
         if isinstance(loc, (slice, np.ndarray)):
             new_index = self.items[loc]
             result_index = _maybe_droplevels(new_index, key)
-            if self._is_mixed_type:
-                result = self.reindex(items=new_index)
-                result.index = result_index
-            else:
-                new_values = self.values[loc, :, :]
-                result = Panel(new_values,
-                               items=result_index,
-                               major_axis=self.major_axis,
-                               minor_axis=self.minor_axis)
+            new_values = self.values[loc, :, :]
+            result = Panel(new_values,
+                            items=result_index,
+                            major_axis=self.major_axis,
+                            minor_axis=self.minor_axis)
             return result
         else:
             return self._get_item_cache(key)

@@ -342,7 +342,7 @@ class NDFrame(PandasObject):
                 res = self._box_item_values(item, values)
                 cache[item] = res
                 return res
-            except Exception:
+            except Exception: # pragma: no cover
                 from pandas.core.frame import DataFrame
                 if isinstance(item, DataFrame):
                     raise ValueError('Cannot index using (boolean) dataframe')

@@ -12,13 +12,22 @@ try:
 except ImportError:  # pragma: no cover
     _USE_BOTTLENECK = False
 
-def _bottleneck_switch(bn_name, alt, **kwargs):
+def _bottleneck_switch(bn_name, alt, zero_value=None, **kwargs):
     try:
         bn_func = getattr(bn, bn_name)
     except (AttributeError, NameError):  # pragma: no cover
         bn_func = None
     def f(values, axis=None, skipna=True):
         try:
+            if zero_value is not None and values.size == 0:
+                if values.ndim == 1:
+                    return 0
+                else:
+                    result_shape = values.shape[:axis] + values.shape[axis + 1:]
+                    result = np.empty(result_shape)
+                    result.fill(0)
+                    return result
+
             if _USE_BOTTLENECK and skipna and values.dtype != np.object_:
                 result = bn_func(values, axis=axis, **kwargs)
                 # prefer to treat inf/-inf as NA
@@ -168,7 +177,7 @@ def nanargmin(values, axis=None, skipna=True):
     result = _maybe_arg_null_out(result, axis, mask, skipna)
     return result
 
-nansum = _bottleneck_switch('nansum', _nansum)
+nansum = _bottleneck_switch('nansum', _nansum, zero_value=0)
 nanmean = _bottleneck_switch('nanmean', _nanmean)
 nanmedian = _bottleneck_switch('nanmedian', _nanmedian)
 nanvar = _bottleneck_switch('nanvar', _nanvar, ddof=1)

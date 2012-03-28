@@ -202,7 +202,8 @@ class TestGroupBy(unittest.TestCase):
         grouped = self.tsframe.groupby(self.tsframe['A'] * np.nan)
         assert_frame_equal(grouped.sum(),
                            DataFrame(columns=self.tsframe.columns))
-        assert_frame_equal(grouped.agg(np.sum), DataFrame({}))
+        assert_frame_equal(grouped.agg(np.sum),
+                           DataFrame(columns=self.tsframe.columns))
         assert_frame_equal(grouped.apply(np.sum), DataFrame({}))
 
     def test_agg_grouping_is_list_tuple(self):
@@ -863,7 +864,8 @@ class TestGroupBy(unittest.TestCase):
 
         # won't work with axis = 1
         grouped = df.groupby({'A' : 0, 'C' : 0, 'D' : 1, 'E' : 1}, axis=1)
-        result = self.assertRaises(TypeError, grouped.agg, np.sum)
+        result = self.assertRaises(TypeError, grouped.agg,
+                                   lambda x: x.sum(1, numeric_only=False))
 
     def test_omit_nuisance_python_multiple(self):
         grouped = self.three_group.groupby(['A', 'B'])
@@ -1551,6 +1553,27 @@ class TestGroupBy(unittest.TestCase):
         result = self.df.groupby('A').mean()
         expected = self.df.groupby('A').agg(np.mean)
         assert_frame_equal(result, expected)
+
+    def test_rank_apply(self):
+        lev1 = np.array([rands(10) for _ in xrange(1000)], dtype=object)
+        lev2 = np.array([rands(10) for _ in xrange(130)], dtype=object)
+        lab1 = np.random.randint(0, 1000, size=10000)
+        lab2 = np.random.randint(0, 130, size=10000)
+
+        df = DataFrame({'value' : np.random.randn(10000),
+                        'key1' : lev1.take(lab1),
+                        'key2' : lev2.take(lab2)})
+
+        result = df.groupby(['key1', 'key2']).value.rank()
+
+        expected = []
+        for key, piece in df.groupby(['key1', 'key2']):
+            expected.append(piece.value.rank())
+        expected = concat(expected, axis=0)
+        expected = expected.reindex(result.index)
+
+        assert_series_equal(result, expected)
+
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     tups = map(tuple, df[keys].values)

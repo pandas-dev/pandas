@@ -23,9 +23,9 @@ cdef inline object get_value_at(ndarray arr, object loc):
     i = <Py_ssize_t> loc
     sz = cnp.PyArray_SIZE(arr)
 
-    if i < 0:
+    if i < 0 and sz > 0:
         i += sz
-    elif i >= sz:
+    elif i >= sz or sz == 0:
         raise IndexError('index out of bounds')
 
     return get_value_1d(arr, i)

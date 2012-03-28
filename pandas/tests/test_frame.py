@@ -11,7 +11,7 @@ import unittest
 import nose
 
 from numpy import random, nan
-from numpy.random import randn
+from numpy.random import randn, randint
 import numpy as np
 import numpy.ma as ma
 
@@ -1816,6 +1816,18 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame.from_records(tuples, columns=['a', 'b', 'c', 'd'])
         self.assert_(np.isnan(df['c'][0]))
 
+    def test_from_records_decimal(self):
+        from decimal import Decimal
+
+        tuples = [(Decimal('1.5'),), (Decimal('2.5'),), (None,)]
+
+        df = DataFrame.from_records(tuples, columns=['a'])
+        self.assert_(df['a'].dtype == object)
+
+        df = DataFrame.from_records(tuples, columns=['a'], coerce_float=True)
+        self.assert_(df['a'].dtype == np.float64)
+        self.assert_(np.isnan(df['a'].values[-1]))
+
     def test_to_records_floats(self):
         df = DataFrame(np.random.rand(10,10))
         df.to_records()
@@ -1886,6 +1898,25 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # should fail
         self.assertRaises(Exception, DataFrame.from_records, df, index=[2])
         self.assertRaises(KeyError, DataFrame.from_records, df, index=2)
+
+    def test_from_records_non_tuple(self):
+        class Record(object):
+
+            def __init__(self, *args):
+                self.args = args
+
+            def __getitem__(self, i):
+                return self.args[i]
+
+            def __iter__(self):
+                return iter(self.args)
+
+        recs = [Record(1, 2, 3), Record(4, 5, 6), Record(7, 8, 9)]
+        tups = map(tuple, recs)
+
+        result = DataFrame.from_records(recs)
+        expected = DataFrame.from_records(tups)
+        assert_frame_equal(result, expected)
 
     def test_get_agg_axis(self):
         cols = self.frame._get_agg_axis(0)
@@ -2096,6 +2127,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         _check_bin_op(operator.xor)
 
         _check_unary_op(operator.neg)
+
+    def test_logical_typeerror(self):
+        self.assertRaises(TypeError, self.frame.__eq__, 'foo')
+        self.assertRaises(TypeError, self.frame.__lt__, 'foo')
+        self.assertRaises(TypeError, self.frame.__gt__, 'foo')
+        self.assertRaises(TypeError, self.frame.__ne__, 'foo')
 
     def test_neg(self):
         # what to do?
@@ -2499,11 +2536,18 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             recons = reader.parse('test1')
             assert_frame_equal(self.tsframe, recons)
 
-            #Test np.int64
-            frame = DataFrame(np.random.randn(10,2))
+            #Test np.int64, values read come back as float
+            frame = DataFrame(np.random.randint(-10,10,size=(10,2)))
             frame.to_excel(path,'test1')
             reader = ExcelFile(path)
-            recons = reader.parse('test1')
+            recons = reader.parse('test1').astype(np.int64)
+            assert_frame_equal(frame, recons)
+
+            #Test reading/writing np.bool8, roundtrip only works for xlsx
+            frame = (DataFrame(np.random.randn(10,2)) >= 0)
+            frame.to_excel(path,'test1')
+            reader = ExcelFile(path)
+            recons = reader.parse('test1').astype(np.bool8)
             assert_frame_equal(frame, recons)
 
             # Test writing to separate sheets
@@ -2532,6 +2576,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         recons = reader.parse('test1')
         assert_frame_equal(self.tsframe, recons)
         os.remove(path)
+
+        #Test roundtrip np.bool8, does not seem to work for xls
+        path = '__tmp__.xlsx'
+        frame = (DataFrame(np.random.randn(10,2)) >= 0)
+        frame.to_excel(path,'test1')
+        reader = ExcelFile(path)
+        recons = reader.parse('test1')
+        assert_frame_equal(frame, recons)
+        os.remove(path)
+
 
     def test_to_excel_multiindex(self):
         try:
@@ -3430,6 +3484,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         af, bf = self.frame.align(other.ix[:,0], join='inner', axis=1,
                                   method=None, fill_value=None)
+        self.assert_(bf.index.equals(Index([])))
+
+        af, bf = self.frame.align(other.ix[:,0], join='inner', axis=1,
+                                  method=None, fill_value=0)
         self.assert_(bf.index.equals(Index([])))
 
         # try to align dataframe to series along bad axis

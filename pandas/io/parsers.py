@@ -412,7 +412,7 @@ class TextParser(object):
             index_name = None
         elif np.isscalar(self.index_col):
             index_name = columns.pop(self.index_col)
-            if 'Unnamed' in index_name:
+            if index_name is not None and 'Unnamed' in index_name:
                 index_name = None
         elif self.index_col is not None:
             cp_cols = list(columns)
@@ -777,6 +777,8 @@ class ExcelWriter(object):
                     sheetrow.write(i,val, self.fm_date)
             elif isinstance(val, np.int64):
                 sheetrow.write(i,int(val))
+            elif isinstance(val, np.bool8):
+                sheetrow.write(i,bool(val))
             else:
                 sheetrow.write(i,val)
         row_idx += 1
@@ -791,8 +793,14 @@ class ExcelWriter(object):
             sheet = self.book.create_sheet()
             sheet.title = sheet_name
             row_idx = 0
-
-        sheet.append([int(val) if isinstance(val, np.int64) else val
-                      for val in row])
+        
+        conv_row = []
+        for val in row:
+            if isinstance(val, np.int64):
+                val = int(val)
+            elif isinstance(val, np.bool8):
+                val = bool(val)
+            conv_row.append(val)
+        sheet.append(conv_row)
         row_idx += 1
         self.sheets[sheet_name] = (sheet, row_idx)

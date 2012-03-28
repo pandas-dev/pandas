@@ -455,7 +455,9 @@ class DataFrame(NDFrame):
             else:
                 return True
         else:
-            if len(self.index) > max_rows:
+            # save us
+            if (len(self.index) > max_rows or
+                len(self.columns) > terminal_width // 2):
                 return True
             else:
                 buf = StringIO()
@@ -653,7 +655,7 @@ class DataFrame(NDFrame):
 
     @classmethod
     def from_records(cls, data, index=None, exclude=None, columns=None,
-                     names=None):
+                     names=None, coerce_float=False):
         """
         Convert structured or record ndarray to DataFrame
 
@@ -667,6 +669,9 @@ class DataFrame(NDFrame):
             Columns or fields to exclude
         columns : sequence, default None
             Column names to use, replacing any found in passed data
+        coerce_float : boolean, default False
+            Attempt to convert values to non-string, non-numeric objects (like
+            decimal.Decimal) to floating point, useful for SQL result sets
 
         Returns
         -------
@@ -684,7 +689,8 @@ class DataFrame(NDFrame):
         if isinstance(data, (np.ndarray, DataFrame, dict)):
             columns, sdict = _rec_to_dict(data)
         else:
-            sdict, columns = _to_sdict(data, columns)
+            sdict, columns = _to_sdict(data, columns,
+                                       coerce_float=coerce_float)
 
         if exclude is None:
             exclude = set()
@@ -1115,13 +1121,10 @@ class DataFrame(NDFrame):
             If False, don't print column count summary
         buf : writable buffer, defaults to sys.stdout
         """
+        from pandas.core.format import _put_lines
+
         if buf is None:  # pragma: no cover
             buf = sys.stdout
-
-        def _put_lines(buf, lines):
-            if any(isinstance(x, unicode) for x in lines):
-                lines = [unicode(x) for x in lines]
-            print >> buf, '\n'.join(lines)
 
         lines = []
 
@@ -1135,7 +1138,8 @@ class DataFrame(NDFrame):
 
         cols = self.columns
 
-        if verbose:
+        # hack
+        if verbose and len(self.columns) < 100:
             lines.append('Data columns:')
             space = max([len(_stringify(k)) for k in self.columns]) + 4
             counts = self.count()
@@ -1146,11 +1150,7 @@ class DataFrame(NDFrame):
                 lines.append(_put_str(col, space) +
                              '%d  non-null values' % count)
         else:
-            if len(cols) <= 2:
-                lines.append('Columns: %s' % repr(cols))
-            else:
-                lines.append('Columns: %s to %s' % (_stringify(cols[0]),
-                                                    _stringify(cols[-1])))
+            lines.append(self.columns.summary(name='Columns'))
 
         counts = self.get_dtype_counts()
         dtypes = ['%s(%d)' % k for k in sorted(counts.iteritems())]
@@ -2610,8 +2610,13 @@ class DataFrame(NDFrame):
     def _combine_const(self, other, func):
         if not self:
             return self
+        result_values = func(self.values, other)
 
-        return self._constructor(func(self.values, other), index=self.index,
+        if not isinstance(result_values, np.ndarray):
+            raise TypeError('Could not compare %s with DataFrame values'
+                            % repr(other))
+
+        return self._constructor(result_values, index=self.index,
                                  columns=self.columns, copy=False)
 
     def _compare_frame(self, other, func):
@@ -3897,8 +3902,9 @@ class DataFrame(NDFrame):
         return ax
 
     def plot(self, subplots=False, sharex=True, sharey=False, use_index=True,
-             figsize=None, grid=True, legend=True, rot=30, ax=None,
-             kind='line', **kwds):
+             figsize=None, grid=True, legend=True, rot=30, ax=None, title=None,
+             xlim=None, ylim=None, xticks=None, yticks=None, kind='line',
+             sort_columns=True, fontsize=None, **kwds):
         """
         Make line plot of DataFrame's series with the index on the x-axis using
         matplotlib / pylab.
@@ -3914,6 +3920,8 @@ class DataFrame(NDFrame):
         use_index : boolean, default True
             Use index as ticks for x axis
         kind : {'line', 'bar'}
+        sort_columns: boolean, default True
+            Sort column names to determine plot ordering
         kwds : keywords
             Options to pass to Axis.plot
 
@@ -3956,7 +3964,12 @@ class DataFrame(NDFrame):
                 need_to_set_xticklabels = False
                 x = range(len(self))
 
-            for i, col in enumerate(_try_sort(self.columns)):
+            if sort_columns:
+                columns = _try_sort(self.columns)
+            else:
+                columns = self.columns
+
+            for i, col in enumerate(columns):
                 empty = self[col].count() == 0
                 y = self[col].values if not empty else np.zeros(x.shape)
 
@@ -3979,13 +3992,32 @@ class DataFrame(NDFrame):
                     ax_.set_xticklabels(xticklabels, rotation=rot)
         elif kind == 'bar':
             self._bar_plot(axes, subplots=subplots, grid=grid, rot=rot,
-                           legend=legend)
+                           legend=legend, ax=ax, fontsize=fontsize)
 
-        if not subplots or (subplots and sharex):
+        if self.index.is_all_dates and not subplots or (subplots and sharex):
             try:
                 fig.autofmt_xdate()
             except Exception:  # pragma: no cover
                 pass
+
+        if yticks is not None:
+            ax.set_yticks(yticks)
+
+        if xticks is not None:
+            ax.set_xticks(xticks)
+
+        if ylim is not None:
+            ax.set_ylim(ylim)
+
+        if xlim is not None:
+            ax.set_xlim(xlim)
+
+        if title:
+            if subplots:
+                fig.suptitle(title)
+            else:
+                ax.set_title(title)
+
 
         plt.draw_if_interactive()
         if subplots:
@@ -3994,7 +4026,7 @@ class DataFrame(NDFrame):
             return ax
 
     def _bar_plot(self, axes, subplots=False, use_index=True, grid=True,
-                  rot=30, legend=True, **kwds):
+                  rot=30, legend=True, ax=None, fontsize=None, **kwds):
         import pandas.tools.plotting as gfx
 
         N, K = self.shape
@@ -4003,7 +4035,7 @@ class DataFrame(NDFrame):
         rects = []
         labels = []
 
-        if not subplots:
+        if not subplots and ax is None:
             ax = axes[0]
 
         for i, col in enumerate(self.columns):
@@ -4015,25 +4047,28 @@ class DataFrame(NDFrame):
                        bottom=np.zeros(N), linewidth=1, **kwds)
                 ax.set_title(col)
             else:
-                rects.append(ax.bar(xinds + i * 0.5 / K, y, 0.5 / K,
-                                    bottom=np.zeros(N), label=col,
+                rects.append(ax.bar(xinds + i * 0.75 / K, y, 0.75 / K,
+                                    bottom=np.zeros(N), label=str(col),
                                     color=colors[i % len(colors)], **kwds))
                 labels.append(col)
 
-        if N < 10:
-            fontsize = 12
-        else:
-            fontsize = 10
+        if fontsize is None:
+            if N < 10:
+                fontsize = 12
+            else:
+                fontsize = 10
 
-        ax.set_xticks(xinds + 0.25)
+        ax.set_xlim([xinds[0] - 1, xinds[-1] + 1])
+
+        ax.set_xticks(xinds + 0.375)
         ax.set_xticklabels([gfx._stringify(key) for key in self.index],
                            rotation=rot,
                            fontsize=fontsize)
 
         if legend and not subplots:
             fig = ax.get_figure()
-            fig.legend([r[0] for r in rects], labels, loc='upper center',
-                       fancybox=True, ncol=6)
+            fig.legend([r[0] for r in rects], labels, loc='lower center',
+                       fancybox=True, ncol=6, borderaxespad=20)
                        #mode='expand')
 
         import matplotlib.pyplot as plt
@@ -4255,19 +4290,22 @@ def _rec_to_dict(arr):
     return columns, sdict
 
 
-def _to_sdict(data, columns):
+def _to_sdict(data, columns, coerce_float=False):
     if len(data) == 0:
         return {}, columns
     if isinstance(data[0], (list, tuple)):
-        return _list_to_sdict(data, columns)
+        return _list_to_sdict(data, columns, coerce_float=coerce_float)
     elif isinstance(data[0], dict):
-        return _list_of_dict_to_sdict(data, columns)
+        return _list_of_dict_to_sdict(data, columns, coerce_float=coerce_float)
     elif isinstance(data[0], Series):
-        return _list_of_series_to_sdict(data, columns)
-    else:  # pragma: no cover
-        raise TypeError('No logic to handle %s type' % type(data[0]))
+        return _list_of_series_to_sdict(data, columns,
+                                        coerce_float=coerce_float)
+    else:
+        # last ditch effort
+        data = map(tuple, data)
+        return _list_to_sdict(data, columns, coerce_float=coerce_float)
 
-def _list_to_sdict(data, columns):
+def _list_to_sdict(data, columns, coerce_float=False):
     if len(data) > 0 and isinstance(data[0], tuple):
         content = list(lib.to_object_array_tuples(data).T)
     elif len(data) > 0:
@@ -4277,9 +4315,10 @@ def _list_to_sdict(data, columns):
         if columns is None:
             columns = []
         return {}, columns
-    return _convert_object_array(content, columns)
+    return _convert_object_array(content, columns,
+                                 coerce_float=coerce_float)
 
-def _list_of_series_to_sdict(data, columns):
+def _list_of_series_to_sdict(data, columns, coerce_float=False):
     from pandas.core.index import _get_combined_index
 
     if columns is None:
@@ -4300,21 +4339,23 @@ def _list_of_series_to_sdict(data, columns):
 
     if values.dtype == np.object_:
         content = list(values.T)
-        return _convert_object_array(content, columns)
+        return _convert_object_array(content, columns,
+                                     coerce_float=coerce_float)
     else:
         return values, columns
 
 
-def _list_of_dict_to_sdict(data, columns):
+def _list_of_dict_to_sdict(data, columns, coerce_float=False):
     if columns is None:
         gen = (x.keys() for x in data)
         columns = lib.fast_unique_multiple_list_gen(gen)
 
     content = list(lib.dicts_to_array(data, list(columns)).T)
-    return _convert_object_array(content, columns)
+    return _convert_object_array(content, columns,
+                                 coerce_float=coerce_float)
 
 
-def _convert_object_array(content, columns):
+def _convert_object_array(content, columns, coerce_float=False):
     if columns is None:
         columns = range(len(content))
     else:
@@ -4322,7 +4363,7 @@ def _convert_object_array(content, columns):
             raise AssertionError('%d columns passed, passed data had %s '
                                  'columns' % (len(columns), len(content)))
 
-    sdict = dict((c, lib.maybe_convert_objects(vals))
+    sdict = dict((c, lib.maybe_convert_objects(vals, try_float=coerce_float))
                  for c, vals in zip(columns, content))
     return sdict, columns
 

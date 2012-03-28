@@ -38,7 +38,8 @@ if sys.version_info[0] >= 3:
 
     setuptools_kwargs = {'use_2to3': True,
                          'zip_safe': False,
-                         'install_requires': ['python-dateutil >= 2','numpy'],
+                         'install_requires': ['python-dateutil >= 2',
+                                              'numpy >= 1.4'],
                         }
     if not _have_setuptools:
         sys.exit("need setuptools/distribute for Py3k"
@@ -46,7 +47,8 @@ if sys.version_info[0] >= 3:
 
 else:
     setuptools_kwargs = {
-        'install_requires': ['python-dateutil < 2', 'numpy'],
+        'install_requires': ['python-dateutil < 2',
+                             'numpy >= 1.4'],
         'zip_safe' : False,
     }
     if not _have_setuptools:
@@ -162,7 +164,7 @@ CLASSIFIERS = [
 
 MAJOR = 0
 MINOR = 7
-MICRO = 2
+MICRO = 3
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 QUALIFIER = ''
@@ -357,7 +359,8 @@ sparse_ext = Extension('pandas._sparse',
                        include_dirs=[np.get_include()])
 
 engines_ext = Extension('pandas._engines',
-                        depends=['pandas/src/numpy_helper.h'],
+                        depends=['pandas/src/numpy_helper.h',
+                                 'pandas/src/util.pxd'],
                         sources=[srcpath('engines', suffix=suffix)],
                         include_dirs=[np.get_include()])
 

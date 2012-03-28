@@ -162,6 +162,20 @@ class TestNanops(unittest.TestCase):
 
         assert_almost_equal(result, expected)
 
+    def test_sum_zero(self):
+        arr = np.array([])
+        self.assert_(nanops.nansum(arr) == 0)
+
+        arr = np.empty((10, 0))
+        self.assert_((nanops.nansum(arr, axis=1) == 0).all())
+
+        # GH #844
+        s = Series([], index=[])
+        self.assert_(s.sum() == 0)
+
+        df = DataFrame(np.empty((10, 0)))
+        self.assert_((df.sum(1) == 0).all())
+
 class SafeForSparse(object):
     pass
 
@@ -237,6 +251,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         objs = [df, df]
         s = Series(objs, index=[0, 1])
         self.assert_(isinstance(s, Series))
+
+    def test_constructor_sanitize(self):
+        s = Series(np.array([1., 1., 8.]), dtype='i8')
+        self.assertEquals(s.dtype, np.dtype('i8'))
+
+        s = Series(np.array([1., 1., np.nan]), copy=True, dtype='i8')
+        self.assertEquals(s.dtype, np.dtype('f8'))
 
     def test_constructor_pass_none(self):
         s = Series(None, index=range(5))
@@ -464,6 +485,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_getitem_out_of_bounds(self):
         # don't segfault, GH #495
         self.assertRaises(IndexError, self.ts.__getitem__, len(self.ts))
+
+        # GH #917
+        s = Series([])
+        self.assertRaises(IndexError, s.__getitem__, -1)
 
     def test_getitem_box_float64(self):
         value = self.ts[5]
@@ -1133,6 +1158,18 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
             result = f(s < s[9], s > s[3])
             expected = f(s.dropna() < s[9], s.dropna() > s[3]).reindex(s.index)
+            assert_series_equal(result, expected)
+
+    def test_comparison_object_numeric_nas(self):
+        s = Series(np.random.randn(10), dtype=object)
+        shifted = s.shift(2)
+
+        ops = ['lt', 'le', 'gt', 'ge', 'eq', 'ne']
+        for op in ops:
+            f = getattr(operator, op)
+
+            result = f(s, shifted)
+            expected = f(s.astype(float), shifted.astype(float))
             assert_series_equal(result, expected)
 
     def test_between(self):

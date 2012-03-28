@@ -958,6 +958,20 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         self.assert_((f1.items == [1, 2]).all())
         self.assert_((f2.items == [1, 2]).all())
 
+        ind = MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1)],
+                                     names=['first', 'second'])
+
+    def test_multiindex_blocks(self):
+        ind = MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1)],
+                                     names=['first', 'second'])
+        wp = Panel(self.panel._data)
+        wp.items = ind
+        f1 = wp['a']
+        self.assert_((f1.items == [1, 2]).all())
+
+        f1 = wp[('b',1)]
+        self.assert_((f1.columns == ['A', 'B', 'C', 'D']).all())
+
     def test_repr_empty(self):
         empty = Panel()
         repr(empty)

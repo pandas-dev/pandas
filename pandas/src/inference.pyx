@@ -379,16 +379,22 @@ def try_parse_dates(ndarray[object] values, parser=None):
                     return datetime.strptime(s, '%m/%d/%Y')
                 except Exception:
                     return s
+        # EAFP here
+        try:
+            for i from 0 <= i < n:
+                result[i] = parse_date(values[i])
+        except Exception:
+            # failed
+            return values
     else:
         parse_date = parser
 
-    # EAFP
-    try:
-        for i from 0 <= i < n:
-            result[i] = parse_date(values[i])
-    except Exception:
-        # failed
-        return values
+        try:
+            for i from 0 <= i < n:
+                result[i] = parse_date(values[i])
+        except Exception:
+            # raise if passed parser and it failed
+            raise
 
     return result
 
