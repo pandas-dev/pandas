@@ -13,6 +13,7 @@ from pandas.core.frame import DataFrame
 import datetime
 import pandas.core.common as com
 import pandas._tseries as lib
+from pandas.util import py3compat
 
 from pandas.util.decorators import Appender
 
@@ -118,7 +119,10 @@ def _read(cls, filepath_or_buffer, kwds):
     if isinstance(filepath_or_buffer, str) and _is_url(filepath_or_buffer):
         from urllib2 import urlopen
         filepath_or_buffer = urlopen(filepath_or_buffer)
-
+        if py3compat.PY3:
+            from io import TextIOWrapper
+            filepath_or_buffer = TextIOWrapper(filepath_or_buffer,
+                                               encoding=encoding)
     if hasattr(filepath_or_buffer, 'read'):
         f = filepath_or_buffer
     else:
