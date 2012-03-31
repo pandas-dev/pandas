@@ -125,9 +125,9 @@ def _read(cls, filepath_or_buffer, kwds):
                 errors = 'strict'
             else:
                 errors = 'replace'
-            filepath_or_buffer = TextIOWrapper(filepath_or_buffer,
-                                               encoding=encoding,
-                                               errors=errors)
+                encoding = 'utf-8'
+            filepath_or_buffer = StringIO(filepath_or_buffer.read().decode(encoding, errors))
+
     if hasattr(filepath_or_buffer, 'read'):
         f = filepath_or_buffer
     else:
