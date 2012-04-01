@@ -349,6 +349,9 @@ class TestTypeInference(unittest.TestCase):
     def test_datetime(self):
         pass
 
+    def test_date(self):
+        pass
+
     def test_to_object_array_tuples(self):
         r = (5,6)
         values = [r]

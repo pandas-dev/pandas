@@ -53,9 +53,11 @@ class MPLPlot(object):
     data :
 
     """
+    _default_rot = 0
+
     def __init__(self, data, kind=None, by=None, subplots=False, sharex=True,
                  sharey=False, use_index=True,
-                 figsize=None, grid=True, legend=True, rot=30,
+                 figsize=None, grid=True, legend=True, rot=None,
                  ax=None, fig=None, title=None,
                  xlim=None, ylim=None,
                  xticks=None, yticks=None,
@@ -97,6 +99,7 @@ class MPLPlot(object):
         self._setup_subplots()
         self._make_plot()
         self._post_plot_logic()
+        self._adorn_subplots()
 
     def draw(self):
         self.plt.draw_if_interactive()
@@ -235,12 +238,17 @@ class LinePlot(MPLPlot):
 
 
 class BarPlot(MPLPlot):
+    _default_rot = {'bar' : 90, 'barh' : 0}
 
     def __init__(self, data, **kwargs):
         self.stacked = kwargs.pop('stacked', False)
+        self.ax_pos = np.arange(len(data)) + 0.25
         MPLPlot.__init__(self, data, **kwargs)
 
     def _args_adjust(self):
+        if self.rot is None:
+            self.rot = self._default_rot[self.kind]
+
         if self.fontsize is None:
             if len(self.data) < 10:
                 self.fontsize = 12
@@ -264,7 +272,7 @@ class BarPlot(MPLPlot):
         df = self.data
 
         N, K = df.shape
-        xinds = np.arange(N) + 0.25
+
         colors = 'rgbyk'
         rects = []
         labels = []
@@ -273,35 +281,32 @@ class BarPlot(MPLPlot):
 
         bar_f = self.bar_f
 
-        prior = np.zeros(N)
+        pos_prior = neg_prior = np.zeros(N)
         for i, col in enumerate(df.columns):
             empty = df[col].count() == 0
             y = df[col].values if not empty else np.zeros(len(df))
 
             if self.subplots:
                 ax = self.axes[i]
-                rect = bar_f(ax, xinds, y, 0.5, start=prior,
+                rect = bar_f(ax, self.ax_pos, y, 0.5, start=pos_prior,
                              linewidth=1, **self.kwds)
                 ax.set_title(col)
             elif self.stacked:
-                rect = bar_f(ax, xinds, y, 0.5, start=prior,
+                mask = y > 0
+                start = np.where(mask, pos_prior, neg_prior)
+                rect = bar_f(ax, self.ax_pos, y, 0.5, start=start,
                              color=colors[i % len(colors)],
                              label=str(col), linewidth=1,
                              **self.kwds)
-                prior = y + prior
+                pos_prior = pos_prior + np.where(mask, y, 0)
+                neg_prior = neg_prior + np.where(mask, 0, y)
             else:
-                rect = bar_f(ax, xinds + i * 0.75 / K, y, 0.75 / K,
+                rect = bar_f(ax, self.ax_pos + i * 0.75 / K, y, 0.75 / K,
                              start=np.zeros(N), label=str(col),
                              color=colors[i % len(colors)],
                              **self.kwds)
             rects.append(rect)
             labels.append(col)
-
-        ax.set_xlim([xinds[0] - 0.25, xinds[-1] + 1])
-        ax.set_xticks(xinds + 0.375)
-        ax.set_xticklabels([_stringify(key) for key in df.index],
-                           rotation=self.rot,
-                           fontsize=self.fontsize)
 
         if self.legend and not self.subplots:
             patches =[r[0] for r in rects]
@@ -309,11 +314,29 @@ class BarPlot(MPLPlot):
             # Legend to the right of the plot
             # ax.legend(patches, labels, bbox_to_anchor=(1.05, 1),
             #           loc=2, borderaxespad=0.)
+            # self.fig.subplots_adjust(right=0.80)
 
             ax.legend(patches, labels, loc='best')
 
-        self.fig.subplots_adjust(top=0.8, right=0.80)
 
+        self.fig.subplots_adjust(top=0.8)
+
+    def _post_plot_logic(self):
+        for ax in self.axes:
+            str_index = [_stringify(key) for key in self.data.index]
+            if self.kind == 'bar':
+                ax.set_xlim([self.ax_pos[0] - 0.25, self.ax_pos[-1] + 1])
+                ax.set_xticks(self.ax_pos + 0.375)
+                ax.set_xticklabels(str_index, rotation=self.rot,
+                                   fontsize=self.fontsize)
+                ax.axhline(0, color='k', linestyle='--')
+            else:
+                # horizontal bars
+                ax.set_ylim([self.ax_pos[0] - 0.25, self.ax_pos[-1] + 1])
+                ax.set_yticks(self.ax_pos + 0.375)
+                ax.set_yticklabels(str_index, rotation=self.rot,
+                                   fontsize=self.fontsize)
+                ax.axvline(0, color='k', linestyle='--')
 
 class BoxPlot(MPLPlot):
     pass
@@ -325,7 +348,7 @@ class HistPlot(MPLPlot):
 
 def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
                use_index=True,
-               figsize=None, grid=True, legend=True, rot=30,
+               figsize=None, grid=True, legend=True, rot=None,
                ax=None, title=None,
                xlim=None, ylim=None,
                xticks=None, yticks=None,
@@ -843,8 +866,9 @@ if __name__ == '__main__':
     reload(fr)
     from pandas.core.frame import DataFrame
 
-    data = DataFrame([[3, 6], [4, 8], [4, 9], [4, 9], [2, 5]],
-                     columns=['A', 'B'])
+    data = DataFrame([[3, 6, -5], [4, 8, 2], [4, 9, -6],
+                      [4, 9, -3], [2, 5, -1]],
+                     columns=['A', 'B', 'C'])
     data.plot(kind='barh', stacked=True)
 
     plt.show()

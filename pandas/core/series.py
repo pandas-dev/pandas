@@ -2448,6 +2448,7 @@ import pandas.tools.plotting as _gfx
 Series.plot = _gfx.plot_series
 Series.hist = _gfx.hist_series
 
+# Put here, otherwise monkey-patching in methods fails
 
 class TimeSeries(Series):
     pass

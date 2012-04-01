@@ -60,6 +60,10 @@ def infer_dtype(object _values):
         if is_datetime_array(values):
             return 'datetime'
 
+    elif is_date(val):
+        if is_date_array(values):
+            return 'date'
+
     elif util.is_float_object(val):
         if is_float_array(values):
 
@@ -87,6 +91,9 @@ def infer_dtype_list(list values):
 
 cdef inline bint is_datetime(object o):
     return PyDateTime_Check(o)
+
+cdef inline bint is_date(object o):
+    return PyDate_Check(o)
 
 def is_bool_array(ndarray values):
     cdef:
