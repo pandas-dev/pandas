@@ -347,10 +347,16 @@ class TestTypeInference(unittest.TestCase):
         pass
 
     def test_datetime(self):
-        pass
+        import datetime
+        dates = [datetime.datetime(2012, 1, x) for x in range(1, 20)]
+        index = Index(dates)
+        self.assert_(index.inferred_type == 'datetime')
 
     def test_date(self):
-        pass
+        import datetime
+        dates = [datetime.date(2012, 1, x) for x in range(1, 20)]
+        index = Index(dates)
+        self.assert_(index.inferred_type == 'date')
 
     def test_to_object_array_tuples(self):
         r = (5,6)

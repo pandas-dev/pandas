@@ -150,12 +150,6 @@ class Index(np.ndarray):
     def is_numeric(self):
         return self.inferred_type in ['integer', 'floating']
 
-    def is_datetype(self):
-        for key in self.values:
-            if not isinstance(key, (datetime, date)):
-                return False
-        return True
-
     def get_duplicates(self):
         from collections import defaultdict
         counter = defaultdict(lambda: 0)

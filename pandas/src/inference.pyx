@@ -191,6 +191,15 @@ def is_datetime_array(ndarray[object] values):
             return False
     return True
 
+def is_date_array(ndarray[object] values):
+    cdef int i, n = len(values)
+    if n == 0:
+        return False
+    for i in range(n):
+        if not is_date(values[i]):
+            return False
+    return True
+
 
 def maybe_convert_numeric(ndarray[object] values, set na_values):
     '''

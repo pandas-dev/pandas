@@ -50,6 +50,7 @@ cdef extern from "datetime.h":
     int PyDateTime_TIME_GET_SECOND(datetime o)
     int PyDateTime_TIME_GET_MICROSECOND(datetime o)
     bint PyDateTime_Check(object o)
+    bint PyDate_Check(object o)
     void PyDateTime_IMPORT()
 
 # import datetime C API

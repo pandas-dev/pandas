@@ -1,3 +1,6 @@
+# being a bit too dynamic
+# pylint: disable=E1101
+
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 
@@ -55,11 +58,12 @@ class MPLPlot(object):
     """
     _default_rot = 0
 
+    _pop_attributes = ['label', 'style', 'logy', 'logx', 'loglog']
+
     def __init__(self, data, kind=None, by=None, subplots=False, sharex=True,
                  sharey=False, use_index=True,
                  figsize=None, grid=True, legend=True, rot=None,
-                 ax=None, fig=None, title=None,
-                 xlim=None, ylim=None,
+                 ax=None, fig=None, title=None, xlim=None, ylim=None,
                  xticks=None, yticks=None,
                  sort_columns=True, fontsize=None, **kwds):
 
@@ -88,21 +92,57 @@ class MPLPlot(object):
         self.grid = grid
         self.legend = legend
 
+        for attr in self._pop_attributes:
+            setattr(self, attr, kwds.pop(attr, None))
+
         self.ax = ax
         self.fig = fig
         self.axes = None
 
         self.kwds = kwds
 
+        # if self.xticks is None:
+        #     self.xticks = self._get_xticks()
+
+    def _iter_data(self):
+        from pandas.core.frame import DataFrame
+        from pandas.core.series import Series
+
+        if isinstance(self.data, (Series, np.ndarray)):
+            yield com._stringify(self.label), np.asarray(self.data)
+        elif isinstance(self.data, DataFrame):
+            df = self.data
+
+            if self.sort_columns:
+                columns = com._try_sort(df.columns)
+            else:
+                columns = df.columns
+
+            for col in columns:
+                empty = df[col].count() == 0
+                # is this right?
+                values = df[col].values if not empty else np.zeros(len(df))
+
+                col = com._stringify(col)
+                yield col, values
+
+    @property
+    def nseries(self):
+        if self.data.ndim == 1:
+            return 1
+        else:
+            return self.data.shape[1]
+
+    def draw(self):
+        self.plt.draw_if_interactive()
+
+    def generate(self):
         self._args_adjust()
         self._compute_plot_data()
         self._setup_subplots()
         self._make_plot()
         self._post_plot_logic()
         self._adorn_subplots()
-
-    def draw(self):
-        self.plt.draw_if_interactive()
 
     def _args_adjust(self):
         pass
@@ -169,72 +209,93 @@ class MPLPlot(object):
             else:
                 self.ax.set_title(self.title)
 
+        if self._need_to_set_index:
+            xticklabels = [_stringify(key) for key in self.data.index]
+            for ax_ in self.axes:
+                # ax_.set_xticks(self.xticks)
+                ax_.set_xticklabels(xticklabels, rotation=self.rot)
+
     @cache_readonly
     def plt(self):
         import matplotlib.pyplot as plt
         return plt
 
+    _need_to_set_index = False
 
-class LinePlot(MPLPlot):
-
-    def _make_plot(self):
-        df = self.data
+    def _get_xticks(self):
+        index = self.data.index
+        is_datetype = index.inferred_type in ('datetime', 'date')
 
         if self.use_index:
-            if df.index.is_numeric() or df.index.is_datetype():
+            if index.is_numeric() or is_datetype:
                 """
                 Matplotlib supports numeric values or datetime objects as
                 xaxis values. Taking LBYL approach here, by the time
                 matplotlib raises exception when using non numeric/datetime
                 values for xaxis, several actions are already taken by plt.
                 """
-                need_to_set_xticklabels = False
-                x = df.index
+                x = index.values
             else:
-                need_to_set_xticklabels = True
-                x = range(len(df))
+                self._need_to_set_index = True
+                x = range(len(index))
         else:
-            need_to_set_xticklabels = False
-            x = range(len(df))
+            x = range(len(index))
 
-        if self.sort_columns:
-            columns = com._try_sort(df.columns)
+        return x
+
+class LinePlot(MPLPlot):
+
+    def __init__(self, data, **kwargs):
+        self.logy = kwargs.pop('logy', False)
+        self.logx = kwargs.pop('logx', False)
+        self.loglog = kwargs.pop('loglog', False)
+
+        MPLPlot.__init__(self, data, **kwargs)
+
+    def _get_plot_function(self):
+        if self.logy:
+            plotf = self.plt.Axes.semilogy
+        elif self.logx:
+            plotf = self.plt.Axes.semilogx
+        elif self.loglog:
+            plotf = self.plt.Axes.loglog
         else:
-            columns = df.columns
+            plotf = self.plt.Axes.plot
 
-        for i, col in enumerate(columns):
-            empty = df[col].count() == 0
-            y = df[col].values if not empty else np.zeros(x.shape)
+        return plotf
 
+    def _make_plot(self):
+        # this is slightly deceptive
+        x = self._get_xticks()
+
+        plotf = self._get_plot_function()
+
+        for i, (label, y) in enumerate(self._iter_data()):
             if self.subplots:
                 ax = self.axes[i]
-
-                # kind of a hack
-                ax.plot(x, y, 'k', label=str(col), **self.kwds)
-                ax.legend(loc='best')
+                style = 'k'
             else:
+                style = ''  # empty string ignored
                 ax = self.ax
-                ax.plot(x, y, label=str(col), **self.kwds)
+            if self.style:
+                style = self.style
 
+            plotf(ax, x, y, style, label=label, **self.kwds)
             ax.grid(self.grid)
-
-        if need_to_set_xticklabels:
-            xticklabels = [_stringify(key) for key in df.index]
-            for ax_ in self.axes:
-                ax_.set_xticks(x)
-                ax_.set_xticklabels(xticklabels, rotation=self.rot)
 
     def _post_plot_logic(self):
         df = self.data
 
+        if self.subplots and self.legend:
+            self.axes[0].legend(loc='best')
+
         condition = (df.index.is_all_dates
                      and not self.subplots
                      or (self.subplots and self.sharex))
-        if condition:
-            try:
-                self.fig.autofmt_xdate()
-            except Exception:  # pragma: no cover
-                pass
+
+        for ax in self.axes:
+            if condition:
+                format_date_labels(ax)
 
 
 class BarPlot(MPLPlot):
@@ -269,11 +330,7 @@ class BarPlot(MPLPlot):
         return f
 
     def _make_plot(self):
-        df = self.data
-
-        N, K = df.shape
-
-        colors = 'rgbyk'
+        colors = 'brgyk'
         rects = []
         labels = []
 
@@ -281,32 +338,32 @@ class BarPlot(MPLPlot):
 
         bar_f = self.bar_f
 
-        pos_prior = neg_prior = np.zeros(N)
-        for i, col in enumerate(df.columns):
-            empty = df[col].count() == 0
-            y = df[col].values if not empty else np.zeros(len(df))
+        pos_prior = neg_prior = np.zeros(len(self.data))
 
+        K = self.nseries
+
+        for i, (label, y) in enumerate(self._iter_data()):
             if self.subplots:
                 ax = self.axes[i]
                 rect = bar_f(ax, self.ax_pos, y, 0.5, start=pos_prior,
                              linewidth=1, **self.kwds)
-                ax.set_title(col)
+                ax.set_title(label)
             elif self.stacked:
                 mask = y > 0
                 start = np.where(mask, pos_prior, neg_prior)
                 rect = bar_f(ax, self.ax_pos, y, 0.5, start=start,
                              color=colors[i % len(colors)],
-                             label=str(col), linewidth=1,
+                             label=label, linewidth=1,
                              **self.kwds)
                 pos_prior = pos_prior + np.where(mask, y, 0)
                 neg_prior = neg_prior + np.where(mask, 0, y)
             else:
                 rect = bar_f(ax, self.ax_pos + i * 0.75 / K, y, 0.75 / K,
-                             start=np.zeros(N), label=str(col),
+                             start=pos_prior, label=label,
                              color=colors[i % len(colors)],
                              **self.kwds)
             rects.append(rect)
-            labels.append(col)
+            labels.append(label)
 
         if self.legend and not self.subplots:
             patches =[r[0] for r in rects]
@@ -317,7 +374,6 @@ class BarPlot(MPLPlot):
             # self.fig.subplots_adjust(right=0.80)
 
             ax.legend(patches, labels, loc='best')
-
 
         self.fig.subplots_adjust(top=0.8)
 
@@ -390,6 +446,7 @@ def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
                      xticks=xticks, yticks=yticks, xlim=xlim, ylim=ylim,
                      title=title, grid=grid, figsize=figsize,
                      sort_columns=sort_columns, **kwds)
+    plot_obj.generate()
     plot_obj.draw()
     if subplots:
         return plot_obj.axes
@@ -397,8 +454,9 @@ def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
         return plot_obj.axes[0]
 
 
-def plot_series(series, label=None, kind='line', use_index=True, rot=30,
-                ax=None, style='-', grid=True, logy=False, **kwds):
+def plot_series(series, label=None, kind='line', use_index=True, rot=None,
+                xticks=None, yticks=None, xlim=None, ylim=None,
+                ax=None, style=None, grid=True, logy=False, **kwds):
     """
     Plot the input series with the index on the x-axis using matplotlib
 
@@ -412,7 +470,7 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=30,
         Plot index as axis tick labels
     ax : matplotlib axis object
         If not passed, uses gca()
-    style : string, default '-'
+    style : string, default matplotlib default
         matplotlib line style to use
     kwds : keywords
         To be passed to the actual plotting function
@@ -422,78 +480,27 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=30,
     See matplotlib documentation online for more on this subject
     Intended to be used in ipython --pylab mode
     """
-    import matplotlib.pyplot as plt
-
-    if label is not None:
-        kwds = kwds.copy()
-        kwds['label'] = label
-
-    N = len(series)
+    if kind == 'line':
+        klass = LinePlot
+    elif kind in ('bar', 'barh'):
+        klass = BarPlot
 
     if ax is None:
-        ax = plt.gca()
+        ax = _gca()
 
-    if kind == 'line':
-        if use_index:
-            if series.index.is_numeric() or series.index.is_datetype():
-                """
-                Matplotlib supports numeric values or datetime objects as
-                xaxis values. Taking LBYL approach here, by the time
-                matplotlib raises exception when using non numeric/datetime
-                values for xaxis, several actions are already taken by plt.
-                """
-                need_to_set_xticklabels = False
-                x = np.asarray(series.index)
-            else:
-                need_to_set_xticklabels = True
-                x = range(len(series))
-        else:
-            need_to_set_xticklabels = False
-            x = range(len(series))
+    # is there harm in this?
+    if label is None:
+        label = series.name
 
-        if logy:
-            ax.semilogy(x, series.values.astype(float), style, **kwds)
-        else:
-            ax.plot(x, series.values.astype(float), style, **kwds)
-        format_date_labels(ax)
+    plot_obj = klass(series, kind=kind, rot=rot, logy=logy,
+                     ax=ax, use_index=use_index, style=style,
+                     xticks=xticks, yticks=yticks, xlim=xlim, ylim=ylim,
+                     legend=False, grid=grid, label=label, **kwds)
 
-        if need_to_set_xticklabels:
-            ax.set_xticks(x)
-            ax.set_xticklabels([_stringify(key) for key in series.index],
-                               rotation=rot)
-    elif kind == 'bar':
-        xinds = np.arange(N) + 0.25
-        ax.bar(xinds, series.values.astype(float), 0.5,
-               bottom=np.zeros(N), linewidth=1, **kwds)
+    plot_obj.generate()
+    plot_obj.draw()
 
-        if N < 10:
-            fontsize = 12
-        else:
-            fontsize = 10
-
-        ax.set_xticks(xinds + 0.25)
-        ax.set_xticklabels([_stringify(key) for key in series.index],
-                           rotation=rot,
-                           fontsize=fontsize)
-    elif kind == 'barh':
-        yinds = np.arange(N) + 0.25
-        ax.barh(yinds, series.values.astype(float), 0.5,
-                left=np.zeros(N), linewidth=1, **kwds)
-
-        if N < 10:
-            fontsize = 12
-        else:
-            fontsize = 10
-
-        ax.set_yticks(yinds + 0.25)
-        ax.set_yticklabels([_stringify(key) for key in series.index],
-                           rotation=rot,
-                           fontsize=fontsize)
-
-    ax.grid(grid)
-    plt.draw_if_interactive()
-
-    return ax
+    return plot_obj.ax
 
 
 def boxplot(data, column=None, by=None, ax=None, fontsize=None,
