@@ -1,4 +1,5 @@
-from pandas import DataFrame
+from pandas.util.decorators import cache_readonly
+import pandas.core.common as com
 
 import numpy as np
 
@@ -38,11 +39,438 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, log=False,
 
     fig, axes = _grouped_plot(plot_group, data, column=column,
                               by=by, sharex=sharex, sharey=sharey,
-                              figsize=figsize, layout=layout,
-                              rot=rot)
+                              figsize=figsize, layout=layout, rot=rot)
     fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9,
                         hspace=0.3, wspace=0.2)
     return fig
+
+class MPLPlot(object):
+    """
+    Base class for assembling a pandas plot using matplotlib
+
+    Parameters
+    ----------
+    data :
+
+    """
+    def __init__(self, data, kind=None, by=None, subplots=False, sharex=True,
+                 sharey=False, use_index=True,
+                 figsize=None, grid=True, legend=True, rot=30,
+                 ax=None, fig=None, title=None,
+                 xlim=None, ylim=None,
+                 xticks=None, yticks=None,
+                 sort_columns=True, fontsize=None, **kwds):
+
+        self.data = data
+        self.by = by
+
+        self.kind = kind
+
+        self.sort_columns = sort_columns
+
+        self.subplots = subplots
+        self.sharex = sharex
+        self.sharey = sharey
+        self.figsize = figsize
+
+        self.xticks = xticks
+        self.yticks = yticks
+        self.xlim = xlim
+        self.ylim = ylim
+        self.title = title
+        self.use_index = use_index
+
+        self.fontsize = fontsize
+        self.rot = rot
+
+        self.grid = grid
+        self.legend = legend
+
+        self.ax = ax
+        self.fig = fig
+        self.axes = None
+
+        self.kwds = kwds
+
+        self._args_adjust()
+        self._compute_plot_data()
+        self._setup_subplots()
+        self._make_plot()
+        self._post_plot_logic()
+
+    def draw(self):
+        self.plt.draw_if_interactive()
+
+    def _args_adjust(self):
+        pass
+
+    def _setup_subplots(self):
+        if self.subplots:
+            nrows, ncols = self._get_layout()
+            fig, axes = _subplots(nrows=nrows, ncols=ncols,
+                                  sharex=self.sharex, sharey=self.sharey,
+                                  figsize=self.figsize)
+        else:
+            if self.ax is None:
+                fig = self.plt.figure(figsize=self.figsize)
+                self.ax = fig.add_subplot(111)
+            else:
+                fig = self.ax.get_figure()
+
+            axes = [self.ax]
+
+        self.fig = fig
+        self.axes = axes
+
+    def _get_layout(self):
+        return (len(self.data.columns), 1)
+
+    def _compute_plot_data(self):
+        pass
+
+    def _make_plot(self):
+        raise NotImplementedError
+
+    def _post_plot_logic(self):
+        pass
+
+    def _adorn_subplots(self):
+        if self.subplots:
+            to_adorn = self.axes
+        else:
+            to_adorn = [self.ax]
+
+        # todo: sharex, sharey handling?
+
+        for ax in to_adorn:
+            if self.yticks is not None:
+                ax.set_yticks(self.yticks)
+
+            if self.xticks is not None:
+                ax.set_xticks(self.xticks)
+
+            if self.ylim is not None:
+                ax.set_ylim(self.ylim)
+
+            if self.xlim is not None:
+                ax.set_xlim(self.xlim)
+
+            ax.grid(self.grid)
+
+        if self.legend and not self.subplots:
+            self.ax.legend(loc='best')
+
+        if self.title:
+            if self.subplots:
+                self.fig.suptitle(self.title)
+            else:
+                self.ax.set_title(self.title)
+
+    @cache_readonly
+    def plt(self):
+        import matplotlib.pyplot as plt
+        return plt
+
+
+class LinePlot(MPLPlot):
+
+    def _make_plot(self):
+        df = self.data
+
+        if self.use_index:
+            if df.index.is_numeric() or df.index.is_datetype():
+                """
+                Matplotlib supports numeric values or datetime objects as
+                xaxis values. Taking LBYL approach here, by the time
+                matplotlib raises exception when using non numeric/datetime
+                values for xaxis, several actions are already taken by plt.
+                """
+                need_to_set_xticklabels = False
+                x = df.index
+            else:
+                need_to_set_xticklabels = True
+                x = range(len(df))
+        else:
+            need_to_set_xticklabels = False
+            x = range(len(df))
+
+        if self.sort_columns:
+            columns = com._try_sort(df.columns)
+        else:
+            columns = df.columns
+
+        for i, col in enumerate(columns):
+            empty = df[col].count() == 0
+            y = df[col].values if not empty else np.zeros(x.shape)
+
+            if self.subplots:
+                ax = self.axes[i]
+
+                # kind of a hack
+                ax.plot(x, y, 'k', label=str(col), **self.kwds)
+                ax.legend(loc='best')
+            else:
+                ax = self.ax
+                ax.plot(x, y, label=str(col), **self.kwds)
+
+            ax.grid(self.grid)
+
+        if need_to_set_xticklabels:
+            xticklabels = [_stringify(key) for key in df.index]
+            for ax_ in self.axes:
+                ax_.set_xticks(x)
+                ax_.set_xticklabels(xticklabels, rotation=self.rot)
+
+    def _post_plot_logic(self):
+        df = self.data
+
+        condition = (df.index.is_all_dates
+                     and not self.subplots
+                     or (self.subplots and self.sharex))
+        if condition:
+            try:
+                self.fig.autofmt_xdate()
+            except Exception:  # pragma: no cover
+                pass
+
+
+class BarPlot(MPLPlot):
+
+    def __init__(self, data, **kwargs):
+        self.stacked = kwargs.pop('stacked', False)
+        MPLPlot.__init__(self, data, **kwargs)
+
+    def _args_adjust(self):
+        if self.fontsize is None:
+            if len(self.data) < 10:
+                self.fontsize = 12
+            else:
+                self.fontsize = 10
+
+    @property
+    def bar_f(self):
+        if self.kind == 'bar':
+            def f(ax, x, y, w, start=None, **kwds):
+                return ax.bar(x, y, w, bottom=start, **kwds)
+        elif self.kind == 'barh':
+            def f(ax, x, y, w, start=None, **kwds):
+                return ax.barh(x, y, w, left=start, **kwds)
+        else:
+            raise NotImplementedError
+
+        return f
+
+    def _make_plot(self):
+        df = self.data
+
+        N, K = df.shape
+        xinds = np.arange(N) + 0.25
+        colors = 'rgbyk'
+        rects = []
+        labels = []
+
+        ax = self.axes[0]
+
+        bar_f = self.bar_f
+
+        prior = np.zeros(N)
+        for i, col in enumerate(df.columns):
+            empty = df[col].count() == 0
+            y = df[col].values if not empty else np.zeros(len(df))
+
+            if self.subplots:
+                ax = self.axes[i]
+                rect = bar_f(ax, xinds, y, 0.5, start=prior,
+                             linewidth=1, **self.kwds)
+                ax.set_title(col)
+            elif self.stacked:
+                rect = bar_f(ax, xinds, y, 0.5, start=prior,
+                             color=colors[i % len(colors)],
+                             label=str(col), linewidth=1,
+                             **self.kwds)
+                prior = y + prior
+            else:
+                rect = bar_f(ax, xinds + i * 0.75 / K, y, 0.75 / K,
+                             start=np.zeros(N), label=str(col),
+                             color=colors[i % len(colors)],
+                             **self.kwds)
+            rects.append(rect)
+            labels.append(col)
+
+        ax.set_xlim([xinds[0] - 0.25, xinds[-1] + 1])
+        ax.set_xticks(xinds + 0.375)
+        ax.set_xticklabels([_stringify(key) for key in df.index],
+                           rotation=self.rot,
+                           fontsize=self.fontsize)
+
+        if self.legend and not self.subplots:
+            patches =[r[0] for r in rects]
+
+            # Legend to the right of the plot
+            # ax.legend(patches, labels, bbox_to_anchor=(1.05, 1),
+            #           loc=2, borderaxespad=0.)
+
+            ax.legend(patches, labels, loc='best')
+
+        self.fig.subplots_adjust(top=0.8, right=0.80)
+
+
+class BoxPlot(MPLPlot):
+    pass
+
+
+class HistPlot(MPLPlot):
+    pass
+
+
+def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
+               use_index=True,
+               figsize=None, grid=True, legend=True, rot=30,
+               ax=None, title=None,
+               xlim=None, ylim=None,
+               xticks=None, yticks=None,
+               kind='line',
+               sort_columns=True, fontsize=None, **kwds):
+    """
+    Make line plot of DataFrame's series with the index on the x-axis using
+    matplotlib / pylab.
+
+    Parameters
+    ----------
+    subplots : boolean, default False
+        Make separate subplots for each time series
+    sharex : boolean, default True
+        In case subplots=True, share x axis
+    sharey : boolean, default False
+        In case subplots=True, share y axis
+    use_index : boolean, default True
+        Use index as ticks for x axis
+    kind : {'line', 'bar'}
+    sort_columns: boolean, default True
+        Sort column names to determine plot ordering
+    kwds : keywords
+        Options to pass to Axis.plot
+
+    Notes
+    -----
+    This method doesn't make much sense for cross-sections,
+    and will error.
+    """
+    if kind == 'line':
+        klass = LinePlot
+    elif kind in ('bar', 'barh'):
+        klass = BarPlot
+
+    plot_obj = klass(frame, kind=kind, subplots=subplots, rot=rot,
+                     legend=legend, ax=ax, fontsize=fontsize,
+                     use_index=use_index, sharex=sharex, sharey=sharey,
+                     xticks=xticks, yticks=yticks, xlim=xlim, ylim=ylim,
+                     title=title, grid=grid, figsize=figsize,
+                     sort_columns=sort_columns, **kwds)
+    plot_obj.draw()
+    if subplots:
+        return plot_obj.axes
+    else:
+        return plot_obj.axes[0]
+
+
+def plot_series(series, label=None, kind='line', use_index=True, rot=30,
+                ax=None, style='-', grid=True, logy=False, **kwds):
+    """
+    Plot the input series with the index on the x-axis using matplotlib
+
+    Parameters
+    ----------
+    label : label argument to provide to plot
+    kind : {'line', 'bar'}
+    rot : int, default 30
+        Rotation for tick labels
+    use_index : boolean, default True
+        Plot index as axis tick labels
+    ax : matplotlib axis object
+        If not passed, uses gca()
+    style : string, default '-'
+        matplotlib line style to use
+    kwds : keywords
+        To be passed to the actual plotting function
+
+    Notes
+    -----
+    See matplotlib documentation online for more on this subject
+    Intended to be used in ipython --pylab mode
+    """
+    import matplotlib.pyplot as plt
+
+    if label is not None:
+        kwds = kwds.copy()
+        kwds['label'] = label
+
+    N = len(series)
+
+    if ax is None:
+        ax = plt.gca()
+
+    if kind == 'line':
+        if use_index:
+            if series.index.is_numeric() or series.index.is_datetype():
+                """
+                Matplotlib supports numeric values or datetime objects as
+                xaxis values. Taking LBYL approach here, by the time
+                matplotlib raises exception when using non numeric/datetime
+                values for xaxis, several actions are already taken by plt.
+                """
+                need_to_set_xticklabels = False
+                x = np.asarray(series.index)
+            else:
+                need_to_set_xticklabels = True
+                x = range(len(series))
+        else:
+            need_to_set_xticklabels = False
+            x = range(len(series))
+
+        if logy:
+            ax.semilogy(x, series.values.astype(float), style, **kwds)
+        else:
+            ax.plot(x, series.values.astype(float), style, **kwds)
+        format_date_labels(ax)
+
+        if need_to_set_xticklabels:
+            ax.set_xticks(x)
+            ax.set_xticklabels([_stringify(key) for key in series.index],
+                               rotation=rot)
+    elif kind == 'bar':
+        xinds = np.arange(N) + 0.25
+        ax.bar(xinds, series.values.astype(float), 0.5,
+               bottom=np.zeros(N), linewidth=1, **kwds)
+
+        if N < 10:
+            fontsize = 12
+        else:
+            fontsize = 10
+
+        ax.set_xticks(xinds + 0.25)
+        ax.set_xticklabels([_stringify(key) for key in series.index],
+                           rotation=rot,
+                           fontsize=fontsize)
+    elif kind == 'barh':
+        yinds = np.arange(N) + 0.25
+        ax.barh(yinds, series.values.astype(float), 0.5,
+                left=np.zeros(N), linewidth=1, **kwds)
+
+        if N < 10:
+            fontsize = 12
+        else:
+            fontsize = 10
+
+        ax.set_yticks(yinds + 0.25)
+        ax.set_yticklabels([_stringify(key) for key in series.index],
+                           rotation=rot,
+                           fontsize=fontsize)
+
+    ax.grid(grid)
+    plt.draw_if_interactive()
+
+    return ax
 
 
 def boxplot(data, column=None, by=None, ax=None, fontsize=None,
@@ -145,10 +573,64 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None):
 
     return fig
 
+
+def hist_frame(data, grid=True, **kwds):
+    """
+    Draw Histogram the DataFrame's series using matplotlib / pylab.
+
+    Parameters
+    ----------
+    kwds : other plotting keyword arguments
+        To be passed to hist function
+    """
+    n = len(data.columns)
+    k = 1
+    while k ** 2 < n:
+        k += 1
+    _, axes = _subplots(nrows=k, ncols=k)
+
+    for i, col in enumerate(com._try_sort(data.columns)):
+        ax = axes[i / k][i % k]
+        ax.hist(data[col].dropna().values, **kwds)
+        ax.set_title(col)
+        ax.grid(grid)
+
+    return axes
+
+
+def hist_series(self, ax=None, grid=True, **kwds):
+    """
+    Draw histogram of the input series using matplotlib
+
+    Parameters
+    ----------
+    ax : matplotlib axis object
+        If not passed, uses gca()
+    kwds : keywords
+        To be passed to the actual plotting function
+
+    Notes
+    -----
+    See matplotlib documentation online for more on this
+
+    """
+    import matplotlib.pyplot as plt
+
+    if ax is None:
+        ax = plt.gca()
+
+    values = self.dropna().values
+
+    ax.hist(values, **kwds)
+    ax.grid(grid)
+
+    return ax
+
+
 def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
                   figsize=None, sharex=True, sharey=True, layout=None,
                   rot=0):
-    import matplotlib.pyplot as plt
+    from pandas.core.frame import DataFrame
 
     # allow to specify mpl default with 'default'
     if figsize is None or figsize == 'default':
@@ -166,8 +648,8 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
         # our favorite default beating matplotlib's idea of the
         # default size
         figsize = (10, 5)
-    fig, axes = subplots(nrows=nrows, ncols=ncols, figsize=figsize,
-                         sharex=sharex, sharey=sharey)
+    fig, axes = _subplots(nrows=nrows, ncols=ncols, figsize=figsize,
+                          sharex=sharex, sharey=sharey)
 
     ravel_axes = []
     for row in axes:
@@ -193,9 +675,9 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
     ngroups = len(columns)
 
     nrows, ncols = _get_layout(ngroups)
-    fig, axes = subplots(nrows=nrows, ncols=ncols,
-                         sharex=True, sharey=True,
-                         figsize=figsize)
+    fig, axes = _subplots(nrows=nrows, ncols=ncols,
+                          sharex=True, sharey=True,
+                          figsize=figsize)
 
     if isinstance(axes, plt.Axes):
         ravel_axes = [axes]
@@ -239,7 +721,7 @@ def _get_layout(nplots):
 
 # copied from matplotlib/pyplot.py for compatibility with matplotlib < 1.0
 
-def subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
+def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
               subplot_kw=None, **fig_kw):
     """Create a figure with a set of subplots already made.
 
@@ -345,11 +827,24 @@ def subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
         return fig, axarr.reshape(nrows, ncols)
 
 if __name__ == '__main__':
-    import pandas.rpy.common as com
-    sales = com.load_data('sanfrancisco.home.sales', package='nutshell')
-    top10 = sales['zip'].value_counts()[:10].index
-    sales2 = sales[sales.zip.isin(top10)]
-
-    fig = scatter_plot(sales2, 'squarefeet', 'price', by='zip')
+    # import pandas.rpy.common as com
+    # sales = com.load_data('sanfrancisco.home.sales', package='nutshell')
+    # top10 = sales['zip'].value_counts()[:10].index
+    # sales2 = sales[sales.zip.isin(top10)]
+    # _ = scatter_plot(sales2, 'squarefeet', 'price', by='zip')
 
     # plt.show()
+
+    import matplotlib.pyplot as plt
+
+    import pandas.tools.plotting as plots
+    import pandas.core.frame as fr
+    reload(plots)
+    reload(fr)
+    from pandas.core.frame import DataFrame
+
+    data = DataFrame([[3, 6], [4, 8], [4, 9], [4, 9], [2, 5]],
+                     columns=['A', 'B'])
+    data.plot(kind='barh', stacked=True)
+
+    plt.show()

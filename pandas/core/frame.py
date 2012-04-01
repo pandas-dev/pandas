@@ -3820,232 +3820,6 @@ class DataFrame(NDFrame):
         return DataFrame(ranks, index=data.index, columns=data.columns)
 
     #----------------------------------------------------------------------
-    # Plotting
-
-    def boxplot(self, column=None, by=None, ax=None, fontsize=None,
-                rot=0, grid=True, **kwds):
-        """
-        Make a box plot from DataFrame column/columns optionally grouped
-        (stratified) by one or more columns
-
-        Parameters
-        ----------
-        data : DataFrame
-        column : column names or list of names, or vector
-            Can be any valid input to groupby
-        by : string or sequence
-            Column in the DataFrame to group by
-        fontsize : int or string
-
-        Returns
-        -------
-        ax : matplotlib.axes.AxesSubplot
-        """
-        import pandas.tools.plotting as plots
-        import matplotlib.pyplot as plt
-        ax = plots.boxplot(self, column=column, by=by, ax=ax,
-                           fontsize=fontsize, grid=grid, rot=rot, **kwds)
-        plt.draw_if_interactive()
-        return ax
-
-    def plot(self, subplots=False, sharex=True, sharey=False, use_index=True,
-             figsize=None, grid=True, legend=True, rot=30, ax=None, title=None,
-             xlim=None, ylim=None, xticks=None, yticks=None, kind='line',
-             sort_columns=True, fontsize=None, **kwds):
-        """
-        Make line plot of DataFrame's series with the index on the x-axis using
-        matplotlib / pylab.
-
-        Parameters
-        ----------
-        subplots : boolean, default False
-            Make separate subplots for each time series
-        sharex : boolean, default True
-            In case subplots=True, share x axis
-        sharey : boolean, default False
-            In case subplots=True, share y axis
-        use_index : boolean, default True
-            Use index as ticks for x axis
-        kind : {'line', 'bar'}
-        sort_columns: boolean, default True
-            Sort column names to determine plot ordering
-        kwds : keywords
-            Options to pass to Axis.plot
-
-        Notes
-        -----
-        This method doesn't make much sense for cross-sections,
-        and will error.
-        """
-        import matplotlib.pyplot as plt
-        import pandas.tools.plotting as gfx
-
-        if subplots:
-            fig, axes = gfx.subplots(nrows=len(self.columns),
-                                     sharex=sharex, sharey=sharey,
-                                     figsize=figsize)
-        else:
-            if ax is None:
-                fig = plt.figure(figsize=figsize)
-                ax = fig.add_subplot(111)
-                axes = [ax]
-            else:
-                fig = ax.get_figure()
-                axes = fig.get_axes()
-
-        if kind == 'line':
-            if use_index:
-                if self.index.is_numeric() or self.index.is_datetype():
-                    """
-                    Matplotlib supports numeric values or datetime objects as
-                    xaxis values. Taking LBYL approach here, by the time
-                    matplotlib raises exception when using non numeric/datetime
-                    values for xaxis, several actions are already taken by plt.
-                    """
-                    need_to_set_xticklabels = False
-                    x = self.index
-                else:
-                    need_to_set_xticklabels = True
-                    x = range(len(self))
-            else:
-                need_to_set_xticklabels = False
-                x = range(len(self))
-
-            if sort_columns:
-                columns = _try_sort(self.columns)
-            else:
-                columns = self.columns
-
-            for i, col in enumerate(columns):
-                empty = self[col].count() == 0
-                y = self[col].values if not empty else np.zeros(x.shape)
-
-                if subplots:
-                    ax = axes[i]
-                    ax.plot(x, y, 'k', label=str(col), **kwds)
-                    ax.legend(loc='best')
-                else:
-                    ax.plot(x, y, label=str(col), **kwds)
-
-                ax.grid(grid)
-
-            if legend and not subplots:
-                ax.legend(loc='best')
-
-            if need_to_set_xticklabels:
-                xticklabels = [gfx._stringify(key) for key in self.index]
-                for ax_ in axes:
-                    ax_.set_xticks(x)
-                    ax_.set_xticklabels(xticklabels, rotation=rot)
-        elif kind == 'bar':
-            self._bar_plot(axes, subplots=subplots, grid=grid, rot=rot,
-                           legend=legend, ax=ax, fontsize=fontsize)
-
-        if self.index.is_all_dates and not subplots or (subplots and sharex):
-            try:
-                fig.autofmt_xdate()
-            except Exception:  # pragma: no cover
-                pass
-
-        if yticks is not None:
-            ax.set_yticks(yticks)
-
-        if xticks is not None:
-            ax.set_xticks(xticks)
-
-        if ylim is not None:
-            ax.set_ylim(ylim)
-
-        if xlim is not None:
-            ax.set_xlim(xlim)
-
-        if title:
-            if subplots:
-                fig.suptitle(title)
-            else:
-                ax.set_title(title)
-
-
-        plt.draw_if_interactive()
-        if subplots:
-            return axes
-        else:
-            return ax
-
-    def _bar_plot(self, axes, subplots=False, use_index=True, grid=True,
-                  rot=30, legend=True, ax=None, fontsize=None, **kwds):
-        import pandas.tools.plotting as gfx
-
-        N, K = self.shape
-        xinds = np.arange(N) + 0.25
-        colors = 'rgbyk'
-        rects = []
-        labels = []
-
-        if not subplots and ax is None:
-            ax = axes[0]
-
-        for i, col in enumerate(self.columns):
-            empty = self[col].count() == 0
-            y = self[col].values if not empty else np.zeros(len(self))
-            if subplots:
-                ax = axes[i]
-                ax.bar(xinds, y, 0.5,
-                       bottom=np.zeros(N), linewidth=1, **kwds)
-                ax.set_title(col)
-            else:
-                rects.append(ax.bar(xinds + i * 0.75 / K, y, 0.75 / K,
-                                    bottom=np.zeros(N), label=str(col),
-                                    color=colors[i % len(colors)], **kwds))
-                labels.append(col)
-
-        if fontsize is None:
-            if N < 10:
-                fontsize = 12
-            else:
-                fontsize = 10
-
-        ax.set_xlim([xinds[0] - 1, xinds[-1] + 1])
-
-        ax.set_xticks(xinds + 0.375)
-        ax.set_xticklabels([gfx._stringify(key) for key in self.index],
-                           rotation=rot,
-                           fontsize=fontsize)
-
-        if legend and not subplots:
-            fig = ax.get_figure()
-            fig.legend([r[0] for r in rects], labels, loc='lower center',
-                       fancybox=True, ncol=6, borderaxespad=20)
-                       #mode='expand')
-
-        import matplotlib.pyplot as plt
-        plt.subplots_adjust(top=0.8)
-
-    def hist(self, grid=True, **kwds):
-        """
-        Draw Histogram the DataFrame's series using matplotlib / pylab.
-
-        Parameters
-        ----------
-        kwds : other plotting keyword arguments
-            To be passed to hist function
-        """
-        import pandas.tools.plotting as gfx
-
-        n = len(self.columns)
-        k = 1
-        while k ** 2 < n:
-            k += 1
-        _, axes = gfx.subplots(nrows=k, ncols=k)
-
-        for i, col in enumerate(_try_sort(self.columns)):
-            ax = axes[i / k][i % k]
-            ax.hist(self[col].dropna().values, **kwds)
-            ax.set_title(col)
-            ax.grid(grid)
-
-        return axes
-    #----------------------------------------------------------------------
     # Deprecated stuff
 
     def combineAdd(self, other):
@@ -4393,6 +4167,40 @@ if "IPython" in sys.modules:  # pragma: no cover
     except Exception:
         pass
 
+#----------------------------------------------------------------------
+# Add plotting methods to DataFrame
+
+import pandas.tools.plotting as gfx
+
+DataFrame.plot = gfx.plot_frame
+DataFrame.hist = gfx.hist_frame
+
+def boxplot(self, column=None, by=None, ax=None, fontsize=None,
+            rot=0, grid=True, **kwds):
+    """
+    Make a box plot from DataFrame column/columns optionally grouped
+    (stratified) by one or more columns
+
+    Parameters
+    ----------
+    data : DataFrame
+    column : column names or list of names, or vector
+        Can be any valid input to groupby
+    by : string or sequence
+        Column in the DataFrame to group by
+    fontsize : int or string
+
+    Returns
+    -------
+    ax : matplotlib.axes.AxesSubplot
+    """
+    import pandas.tools.plotting as plots
+    import matplotlib.pyplot as plt
+    ax = plots.boxplot(self, column=column, by=by, ax=ax,
+                       fontsize=fontsize, grid=grid, rot=rot, **kwds)
+    plt.draw_if_interactive()
+    return ax
+DataFrame.boxplot = boxplot
 
 
 if __name__ == '__main__':

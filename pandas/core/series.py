@@ -2051,136 +2051,6 @@ copy : boolean, default False
 
         return mask
 
-#----------------------------------------------------------------------
-# Miscellaneous
-
-    def plot(self, label=None, kind='line', use_index=True, rot=30, ax=None,
-             style='-', grid=True, logy=False, **kwds):
-        """
-        Plot the input series with the index on the x-axis using matplotlib
-
-        Parameters
-        ----------
-        label : label argument to provide to plot
-        kind : {'line', 'bar'}
-        rot : int, default 30
-            Rotation for tick labels
-        use_index : boolean, default True
-            Plot index as axis tick labels
-        ax : matplotlib axis object
-            If not passed, uses gca()
-        style : string, default '-'
-            matplotlib line style to use
-        kwds : keywords
-            To be passed to the actual plotting function
-
-        Notes
-        -----
-        See matplotlib documentation online for more on this subject
-        Intended to be used in ipython --pylab mode
-        """
-        import matplotlib.pyplot as plt
-        import pandas.tools.plotting as gfx
-
-        if label is not None:
-            kwds = kwds.copy()
-            kwds['label'] = label
-
-        N = len(self)
-
-        if ax is None:
-            ax = plt.gca()
-
-        if kind == 'line':
-            if use_index:
-                if self.index.is_numeric() or self.index.is_datetype():
-                    """
-                    Matplotlib supports numeric values or datetime objects as
-                    xaxis values. Taking LBYL approach here, by the time
-                    matplotlib raises exception when using non numeric/datetime
-                    values for xaxis, several actions are already taken by plt.
-                    """
-                    need_to_set_xticklabels = False
-                    x = np.asarray(self.index)
-                else:
-                    need_to_set_xticklabels = True
-                    x = range(len(self))
-            else:
-                need_to_set_xticklabels = False
-                x = range(len(self))
-
-            if logy:
-                ax.semilogy(x, self.values.astype(float), style, **kwds)
-            else:
-                ax.plot(x, self.values.astype(float), style, **kwds)
-            gfx.format_date_labels(ax)
-
-            if need_to_set_xticklabels:
-                ax.set_xticks(x)
-                ax.set_xticklabels([gfx._stringify(key) for key in self.index],
-                                   rotation=rot)
-        elif kind == 'bar':
-            xinds = np.arange(N) + 0.25
-            ax.bar(xinds, self.values.astype(float), 0.5,
-                   bottom=np.zeros(N), linewidth=1, **kwds)
-
-            if N < 10:
-                fontsize = 12
-            else:
-                fontsize = 10
-
-            ax.set_xticks(xinds + 0.25)
-            ax.set_xticklabels([gfx._stringify(key) for key in self.index],
-                               rotation=rot,
-                               fontsize=fontsize)
-        elif kind == 'barh':
-            yinds = np.arange(N) + 0.25
-            ax.barh(yinds, self.values.astype(float), 0.5,
-                    left=np.zeros(N), linewidth=1, **kwds)
-
-            if N < 10:
-                fontsize = 12
-            else:
-                fontsize = 10
-
-            ax.set_yticks(yinds + 0.25)
-            ax.set_yticklabels([gfx._stringify(key) for key in self.index],
-                               rotation=rot,
-                               fontsize=fontsize)
-
-        ax.grid(grid)
-        plt.draw_if_interactive()
-
-        return ax
-
-    def hist(self, ax=None, grid=True, **kwds):
-        """
-        Draw histogram of the input series using matplotlib
-
-        Parameters
-        ----------
-        ax : matplotlib axis object
-            If not passed, uses gca()
-        kwds : keywords
-            To be passed to the actual plotting function
-
-        Notes
-        -----
-        See matplotlib documentation online for more on this
-
-        """
-        import matplotlib.pyplot as plt
-
-        if ax is None:
-            ax = plt.gca()
-
-        values = self.dropna().values
-
-        ax.hist(values, **kwds)
-        ax.grid(grid)
-
-        return ax
-
     @classmethod
     def from_csv(cls, path, sep=',', parse_dates=True, header=None,
                  index_col=0, encoding=None):
@@ -2475,9 +2345,6 @@ copy : boolean, default False
         return Series([d.weekday() for d in self.index], index=self.index)
 
 
-class TimeSeries(Series):
-    pass
-
 _INDEX_TYPES = ndarray, Index, list, tuple
 
 #-------------------------------------------------------------------------------
@@ -2572,3 +2439,15 @@ def _get_rename_function(mapper):
         f = mapper
 
     return f
+
+#----------------------------------------------------------------------
+# Add plotting methods to Series
+
+import pandas.tools.plotting as _gfx
+
+Series.plot = _gfx.plot_series
+Series.hist = _gfx.hist_series
+
+
+class TimeSeries(Series):
+    pass
