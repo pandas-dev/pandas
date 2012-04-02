@@ -24,6 +24,9 @@ from pandas.util.testing import assert_almost_equal, assert_frame_equal
 import pandas._tseries as lib
 from pandas.util import py3compat
 
+from numpy.testing.decorators import slow
+
+
 class TestParsers(unittest.TestCase):
     data1 = """index,A,B,C,D
 foo,2,3,4,5
@@ -764,9 +767,10 @@ bar"""
         df = read_fwf(StringIO(data3), colspecs=colspecs, delimiter='~', header=None)
         assert_frame_equal(df, expected)
 
+    @slow
     def test_url(self):
         # HTTP(S)
-        url = 'https://raw.github.com/jseabold/pandas/read-table-url/pandas/io/tests/salary.table'
+        url = 'https://raw.github.com/pydata/pandas/master/pandas/io/tests/salary.table'
         url_table = read_table(url)
         dirpath = curpath()
         localtable = os.path.join(dirpath, 'salary.table')
