@@ -1,6 +1,6 @@
 # pylint: disable=E1101,E1103
 
-from pandas.core.index import DatetimeIndex
+from pandas.core.index import DatetimeIndex, Index
 import pandas.core.datetools as datetools
 
 __all__ = ['DateRange']
@@ -9,6 +9,7 @@ __all__ = ['DateRange']
 # DateRange class
 
 class DateRange(DatetimeIndex):
+
     def __new__(cls, start=None, end=None, periods=None,
                 offset=datetools.bday, time_rule=None,
                 tzinfo=None, name=None, **kwds):
@@ -26,3 +27,41 @@ class DateRange(DatetimeIndex):
         return super(DateRange, cls).__new__(cls, start=start, end=end,
                 periods=periods, offset=offset, tzinfo=tzinfo, name=name,
                 _deprecated=True, **kwds)
+
+
+def date_range(start=None, end=None, periods=None, freq='D', tz=None):
+    """
+    Return a fixed frequency datetime index, with day (calendar) as the default
+    frequency
+
+
+    Parameters
+    ----------
+    start :
+    end :
+
+    Returns
+    -------
+
+    """
+    return DatetimeIndex(start=start, end=end, periods=periods,
+                         freq=freq, tz=tz)
+
+
+def bdate_range(start=None, end=None, periods=None, freq='B', tz=None):
+    """
+    Return a fixed frequency datetime index, with business day as the default
+    frequency
+
+    Parameters
+    ----------
+
+
+    Returns
+    -------
+    date_range : DatetimeIndex
+
+    """
+
+    return DatetimeIndex(start=start, end=end, periods=periods,
+                         freq=freq, tz=tz)

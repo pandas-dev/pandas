@@ -91,7 +91,8 @@ class Ts(lib.Timestamp):
 # Interval logic
 
 
-class Interval:
+class Interval(object):
+
     def __init__(self, value=None, freq=None,
                  year=None, month=1, quarter=None, day=1,
                  hour=0, minute=0, second=0):
@@ -305,7 +306,7 @@ class Interval:
         directives as the :func:`time.strftime` function of the standard Python
         distribution, as well as the specific additional directives ``%f``,
         ``%F``, ``%q``. (formatting & docs originally from scikits.timeries)
-        
+
         +-----------+--------------------------------+-------+
         | Directive | Meaning                        | Notes |
         +===========+================================+=======+
@@ -392,42 +393,42 @@ class Interval:
         +-----------+--------------------------------+-------+
         | ``%%``    | A literal ``'%'`` character.   |       |
         +-----------+--------------------------------+-------+
-        
+
         .. note::
-        
+
             (1)
-                The ``%f`` directive is the same as ``%y`` if the frequency is 
+                The ``%f`` directive is the same as ``%y`` if the frequency is
                 not quarterly.
-                Otherwise, it corresponds to the 'fiscal' year, as defined by 
+                Otherwise, it corresponds to the 'fiscal' year, as defined by
                 the :attr:`qyear` attribute.
-        
+
             (2)
-                The ``%F`` directive is the same as ``%Y`` if the frequency is 
+                The ``%F`` directive is the same as ``%Y`` if the frequency is
                 not quarterly.
-                Otherwise, it corresponds to the 'fiscal' year, as defined by 
+                Otherwise, it corresponds to the 'fiscal' year, as defined by
                 the :attr:`qyear` attribute.
-        
+
             (3)
-                The ``%p`` directive only affects the output hour field 
+                The ``%p`` directive only affects the output hour field
                 if the ``%I`` directive is used to parse the hour.
-        
+
             (4)
                 The range really is ``0`` to ``61``; this accounts for leap
                 seconds and the (very rare) double leap seconds.
-        
+
             (5)
-                The ``%U`` and ``%W`` directives are only used in calculations 
+                The ``%U`` and ``%W`` directives are only used in calculations
                 when the day of the week and the year are specified.
-        
+
         .. rubric::  Examples
-        
+
             >>> a = Interval(freq='Q@JUL', year=2006, quarter=1)
             >>> a.strftime('%F-Q%q')
             '2006-Q1'
             >>> # Output the last month in the quarter of this date
             >>> a.strftime('%b-%Y')
             'Oct-2005'
-            >>> 
+            >>>
             >>> a = Interval(freq='D', year=2001, month=1, day=1)
             >>> a.strftime('%d-%b-%Y')
             '01-Jan-2006'
@@ -597,7 +598,7 @@ def _skts_alias_dictionary():
     for k in A_prefixes:
         alias_dict[k] = 'A'
         for m_tup in month_names:
-            for sep in seps: 
+            for sep in seps:
                 m1, m2 = m_tup
                 alias_dict[k + sep + m1] = 'A@' + m1
                 alias_dict[k + sep + m2] = 'A@' + m1
@@ -629,7 +630,7 @@ def _skts_alias_dictionary():
                 alias_dict[k + sep + d1] = 'W@' + d1
                 alias_dict[k + sep + d2] = 'W@' + d1
 
-    return alias_dict 
+    return alias_dict
 
 _reverse_interval_code_map = {}
 for k, v in _interval_code_map.iteritems():
