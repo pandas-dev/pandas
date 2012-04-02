@@ -101,9 +101,6 @@ class MPLPlot(object):
 
         self.kwds = kwds
 
-        # if self.xticks is None:
-        #     self.xticks = self._get_xticks()
-
     def _iter_data(self):
         from pandas.core.frame import DataFrame
         from pandas.core.series import Series
@@ -411,8 +408,8 @@ def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
                kind='line',
                sort_columns=True, fontsize=None, **kwds):
     """
-    Make line plot of DataFrame's series with the index on the x-axis using
-    matplotlib / pylab.
+    Make line or bar plot of DataFrame's series with the index on the x-axis
+    using matplotlib / pylab.
 
     Parameters
     ----------
@@ -424,16 +421,37 @@ def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
         In case subplots=True, share y axis
     use_index : boolean, default True
         Use index as ticks for x axis
-    kind : {'line', 'bar'}
+    stacked : boolean, default False
+        If True, create stacked bar plot. Only valid for DataFrame input
     sort_columns: boolean, default True
         Sort column names to determine plot ordering
-    kwds : keywords
-        Options to pass to Axis.plot
+    title : string
+        Title to use for the plot
+    grid : boolean, default True
+        Axis grid lines
+    legend : boolean, default True
+        Place legend on axis subplots
 
-    Notes
-    -----
-    This method doesn't make much sense for cross-sections,
-    and will error.
+    ax : matplotlib axis object, default None
+    kind : {'line', 'bar', 'barh'}
+        bar : vertical bar plot
+        barh : horizontal bar plot
+    logy : boolean, default False
+        For line plots, use log scaling on y axis
+    xticks : sequence
+        Values to use for the xticks
+    yticks : sequence
+        Values to use for the yticks
+    xlim : 2-tuple/list
+    ylim : 2-tuple/list
+    rot : int, default None
+        Rotation for ticks
+    kwds : keywords
+        Options to pass to matplotlib plotting method
+
+    Returns
+    -------
+    ax_or_axes : matplotlib.AxesSubplot or list of them
     """
     if kind == 'line':
         klass = LinePlot
@@ -472,13 +490,28 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
         If not passed, uses gca()
     style : string, default matplotlib default
         matplotlib line style to use
+
+    ax : matplotlib axis object
+        If not passed, uses gca()
+    kind : {'line', 'bar', 'barh'}
+        bar : vertical bar plot
+        barh : horizontal bar plot
+    logy : boolean, default False
+        For line plots, use log scaling on y axis
+    xticks : sequence
+        Values to use for the xticks
+    yticks : sequence
+        Values to use for the yticks
+    xlim : 2-tuple/list
+    ylim : 2-tuple/list
+    rot : int, default None
+        Rotation for ticks
     kwds : keywords
-        To be passed to the actual plotting function
+        Options to pass to matplotlib plotting method
 
     Notes
     -----
     See matplotlib documentation online for more on this subject
-    Intended to be used in ipython --pylab mode
     """
     if kind == 'line':
         klass = LinePlot
@@ -560,11 +593,13 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
     fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
     return ax
 
+
 def _stringify(x):
     if isinstance(x, tuple):
         return '|'.join(str(y) for y in x)
     else:
         return str(x)
+
 
 def format_date_labels(ax):
     # mini version of autofmt_xdate
