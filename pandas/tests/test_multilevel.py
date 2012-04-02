@@ -930,6 +930,24 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
             assert_frame_equal(leftside, rightside)
 
+    def test_std_var_pass_ddof(self):
+        index = MultiIndex.from_arrays([np.arange(5).repeat(10),
+                                        np.tile(np.arange(10), 5)])
+        df = DataFrame(np.random.randn(len(index), 5), index=index)
+
+        for meth in ['var', 'std']:
+            ddof = 4
+            alt = lambda x: getattr(x, meth)(ddof=ddof)
+
+            result = getattr(df[0], meth)(level=0, ddof=ddof)
+            expected = df[0].groupby(level=0).agg(alt)
+            assert_series_equal(result, expected)
+
+            result = getattr(df, meth)(level=0, ddof=ddof)
+            expected = df.groupby(level=0).agg(alt)
+            assert_frame_equal(result, expected)
+
+
     def test_frame_series_agg_multiple_levels(self):
         result = self.ymd.sum(level=['year', 'month'])
         expected = self.ymd.groupby(level=['year', 'month']).sum()

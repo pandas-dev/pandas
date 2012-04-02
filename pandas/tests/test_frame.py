@@ -4293,13 +4293,20 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         f = lambda x: np.abs(x - x.mean()).mean()
         self._check_stat_op('mad', f)
 
-    def test_var(self):
+    def test_var_std(self):
         alt = lambda x: np.var(x, ddof=1)
         self._check_stat_op('var', alt)
 
-    def test_std(self):
         alt = lambda x: np.std(x, ddof=1)
         self._check_stat_op('std', alt)
+
+        result = self.tsframe.std(ddof=4)
+        expected = self.tsframe.apply(lambda x: x.std(ddof=4))
+        assert_almost_equal(result, expected)
+
+        result = self.tsframe.var(ddof=4)
+        expected = self.tsframe.apply(lambda x: x.var(ddof=4))
+        assert_almost_equal(result, expected)
 
     def test_skew(self):
         from scipy.stats import skew

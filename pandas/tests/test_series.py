@@ -880,13 +880,20 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_max(self):
         self._check_stat_op('max', np.max, check_objects=True)
 
-    def test_std(self):
+    def test_var_std(self):
         alt = lambda x: np.std(x, ddof=1)
         self._check_stat_op('std', alt)
 
-    def test_var(self):
         alt = lambda x: np.var(x, ddof=1)
         self._check_stat_op('var', alt)
+
+        result = self.ts.std(ddof=4)
+        expected = np.std(self.ts.values, ddof=4)
+        assert_almost_equal(result, expected)
+
+        result = self.ts.var(ddof=4)
+        expected = np.var(self.ts.values, ddof=4)
+        assert_almost_equal(result, expected)
 
     def test_skew(self):
         from scipy.stats import skew

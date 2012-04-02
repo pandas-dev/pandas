@@ -1005,22 +1005,24 @@ copy : boolean, default False
             return self._agg_by_level('max', level=level, skipna=skipna)
         return nanops.nanmax(self.values, skipna=skipna)
 
-    @Substitution(name='unbiased standard deviation', shortname='stdev',
+    @Substitution(name='standard deviation', shortname='stdev',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
     def std(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
             level=None):
         if level is not None:
-            return self._agg_by_level('std', level=level, skipna=skipna)
+            return self._agg_by_level('std', level=level, skipna=skipna,
+                                      ddof=ddof)
         return np.sqrt(nanops.nanvar(self.values, skipna=skipna, ddof=ddof))
 
-    @Substitution(name='unbiased variance', shortname='var',
+    @Substitution(name='variance', shortname='var',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
     def var(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
             level=None):
         if level is not None:
-            return self._agg_by_level('var', level=level, skipna=skipna)
+            return self._agg_by_level('var', level=level, skipna=skipna,
+                                      ddof=ddof)
         return nanops.nanvar(self.values, skipna=skipna, ddof=ddof)
 
     @Substitution(name='unbiased skewness', shortname='skew',
@@ -1032,12 +1034,12 @@ copy : boolean, default False
 
         return nanops.nanskew(self.values, skipna=skipna)
 
-    def _agg_by_level(self, name, level=0, skipna=True):
+    def _agg_by_level(self, name, level=0, skipna=True, **kwds):
         grouped = self.groupby(level=level)
         if hasattr(grouped, name) and skipna:
-            return getattr(grouped, name)()
+            return getattr(grouped, name)(**kwds)
         method = getattr(type(self), name)
-        applyf = lambda x: method(x, skipna=skipna)
+        applyf = lambda x: method(x, skipna=skipna, **kwds)
         return grouped.aggregate(applyf)
 
     def idxmin(self, axis=None, out=None, skipna=True):

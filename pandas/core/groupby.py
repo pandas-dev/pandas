@@ -263,21 +263,30 @@ class GroupBy(object):
             f = lambda x: x.mean(axis=self.axis)
             return self._python_agg_general(f)
 
-    def std(self):
+    def std(self, ddof=1):
         """
         Compute standard deviation of groups, excluding missing values
 
         For multiple groupings, the result index will be a MultiIndex
         """
-        return self._cython_agg_general('std')
+        # todo, implement at cython level?
+        if ddof == 1:
+            return self._cython_agg_general('std')
+        else:
+            f = lambda x: x.std(ddof=ddof)
+            return self._python_agg_general(f)
 
-    def var(self):
+    def var(self, ddof=1):
         """
         Compute variance of groups, excluding missing values
 
         For multiple groupings, the result index will be a MultiIndex
         """
-        return self._cython_agg_general('var')
+        if ddof == 1:
+            return self._cython_agg_general('var')
+        else:
+            f = lambda x: x.var(ddof=ddof)
+            return self._python_agg_general(f)
 
     def size(self):
         """
