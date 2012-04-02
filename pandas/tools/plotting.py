@@ -575,7 +575,9 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
 
         fig, axes = _grouped_plot_by_column(plot_group, data, columns=columns,
                                             by=by, grid=grid, figsize=figsize)
-        ax = axes
+
+        # Return axes in multiplot case, maybe revisit later # 985
+        ret = axes
     else:
         if ax is None:
             ax = _gca()
@@ -586,12 +588,17 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         else:
             cols = data.columns
         keys = [_stringify(x) for x in cols]
-        ax.boxplot(list(data[cols].values.T))
+
+        # Return boxplot dict in single plot case
+
+        bp = ax.boxplot(list(data[cols].values.T))
         ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
         ax.grid(grid)
 
+        ret = bp
+
     fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
-    return ax
+    return ret
 
 
 def _stringify(x):
