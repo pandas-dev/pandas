@@ -4,6 +4,7 @@ Module contains tools for processing files into DataFrames or other objects
 from StringIO import StringIO
 import re
 from itertools import izip
+from urlparse import urlparse
 
 import numpy as np
 
@@ -12,6 +13,7 @@ from pandas.core.frame import DataFrame
 import datetime
 import pandas.core.common as com
 import pandas._tseries as lib
+from pandas.util import py3compat
 
 from pandas.util.decorators import Appender
 
@@ -20,7 +22,10 @@ into chunks.
 
 Parameters
 ----------
-filepath_or_buffer : string or file handle / StringIO
+filepath_or_buffer : string or file handle / StringIO. The string could be
+    a URL. Valid URL schemes include http://, ftp://, and file://. For
+    file:// URLs, a host is expected. For instance, a local file could be
+    file://localhost/path/to/table.csv
 %s
 header : int, default 0
     Row to use for the column labels of the parsed DataFrame
@@ -80,7 +85,6 @@ Read general delimited file into DataFrame
 %s
 """ % (_parser_params % _table_sep)
 
-
 _fwf_widths = """\
 colspecs : a list of pairs (tuples), giving the extents
     of the fixed-width fields of each line as half-open internals
@@ -99,8 +103,31 @@ fields if it is not spaces (e.g., '~').
 """ % (_parser_params % _fwf_widths)
 
 
+def _is_url(url):
+    """
+    Very naive check to see if url is an http(s), ftp, or file location.
+    """
+    parsed_url = urlparse(url)
+    if parsed_url.scheme in ['http','file', 'ftp', 'https']:
+        return True
+    else:
+        return False
+
 def _read(cls, filepath_or_buffer, kwds):
     "Generic reader of line files."
+
+    if isinstance(filepath_or_buffer, str) and _is_url(filepath_or_buffer):
+        from urllib2 import urlopen
+        filepath_or_buffer = urlopen(filepath_or_buffer)
+        if py3compat.PY3:
+            from io import TextIOWrapper
+            if encoding:
+                errors = 'strict'
+            else:
+                errors = 'replace'
+                encoding = 'utf-8'
+            filepath_or_buffer = StringIO(filepath_or_buffer.read().decode(encoding, errors))
+
     if hasattr(filepath_or_buffer, 'read'):
         f = filepath_or_buffer
     else:

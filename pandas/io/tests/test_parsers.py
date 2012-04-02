@@ -764,6 +764,18 @@ bar"""
         df = read_fwf(StringIO(data3), colspecs=colspecs, delimiter='~', header=None)
         assert_frame_equal(df, expected)
 
+    def test_url(self):
+        # HTTP(S)
+        url = 'https://raw.github.com/jseabold/pandas/read-table-url/pandas/io/tests/salary.table'
+        url_table = read_table(url)
+        dirpath = curpath()
+        localtable = os.path.join(dirpath, 'salary.table')
+        local_table = read_table(localtable)
+        assert_frame_equal(url_table, local_table)
+        # FILE
+        url_table = read_table('file://localhost/'+localtable)
+        assert_frame_equal(url_table, local_table)
+        #TODO: ftp testing
 
 class TestParseSQL(unittest.TestCase):
 

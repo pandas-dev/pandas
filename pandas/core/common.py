@@ -667,10 +667,10 @@ def _get_handle(path, mode, encoding=None):
 if py3compat.PY3:  # pragma: no cover
     def UnicodeReader(f, dialect=csv.excel, encoding="utf-8", **kwds):
         # ignore encoding
-        return csv.reader(f, dialect=csv.excel, **kwds)
+        return csv.reader(f, dialect=dialect, **kwds)
 
     def UnicodeWriter(f, dialect=csv.excel, encoding="utf-8", **kwds):
-        return csv.writer(f, dialect=csv.excel, **kwds)
+        return csv.writer(f, dialect=dialect, **kwds)
 else:
     class UnicodeReader:
         """
