@@ -2981,15 +2981,16 @@ class DataFrame(NDFrame):
         """
         Applies function along input axis of DataFrame. Objects passed to
         functions are Series objects having index either the DataFrame's index
-        (axis=0) or the columns (axis=1). Returns either a DataFrame (if the
-        function produces another Series) or a Series indexed on either the
-        index or columns if the function produces an aggregated value.
+        (axis=0) or the columns (axis=1). Return type depends on whether passed
+        function aggregates
 
         Parameters
         ----------
         func : function
             Function to apply to each column
         axis : {0, 1}
+            0 : apply function to each column
+            1 : apply function to each row
         broadcast : bool, default False
             For aggregation functions, return object of same size with values
             propagated
@@ -3011,8 +3012,7 @@ class DataFrame(NDFrame):
 
         Notes
         -----
-        Function passed should not have side effects. If the result is a
-        Series, it should have the same index
+        To apply a function elementwise, use applymap
 
         Returns
         -------
