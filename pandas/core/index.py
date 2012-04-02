@@ -253,11 +253,19 @@ class Index(np.ndarray):
         -------
         appended : Index
         """
+        name = self.name
         if isinstance(other, (list, tuple)):
             to_concat = (self.values,) + tuple(other)
+            for obj in other:
+                if isinstance(obj, Index) and obj.name != name:
+                    name = None
+                    break
         else:
             to_concat = self.values, other.values
-        return Index(np.concatenate(to_concat))
+            if isinstance(other, Index) and other.name != name:
+                name = None
+
+        return Index(np.concatenate(to_concat), name=name)
 
     def take(self, *args, **kwargs):
         """
@@ -2238,3 +2246,12 @@ def _sanitize_and_check(indexes):
         return indexes, 'special'
     else:
         return indexes, 'array'
+
+
+def _get_consensus_names(indexes):
+    consensus_name = indexes[0].names
+    for index in indexes[1:]:
+        if index.names != consensus_name:
+            consensus_name = [None] * index.nlevels
+            break
+    return consensus_name

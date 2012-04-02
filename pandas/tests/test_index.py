@@ -224,6 +224,19 @@ class TestIndex(unittest.TestCase):
         result = index.append([])
         self.assert_(result.equals(index))
 
+    def test_append_empty_preserve_name(self):
+        left = Index([], name='foo')
+        right = Index([1, 2, 3], name='foo')
+
+        result = left.append(right)
+        self.assert_(result.name == 'foo')
+
+        left = Index([], name='foo')
+        right = Index([1, 2, 3], name='bar')
+
+        result = left.append(right)
+        self.assert_(result.name is None)
+
     def test_add_string(self):
         # from bug report
         index = Index(['a', 'b', 'c'])
@@ -1470,3 +1483,5 @@ if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                          # '--with-coverage', '--cover-package=pandas.core'],
                    exit=False)
+
+
