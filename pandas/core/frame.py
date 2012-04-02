@@ -3589,21 +3589,21 @@ class DataFrame(NDFrame):
     @Substitution(name='unbiased variance', shortname='var',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
-    def var(self, axis=0, skipna=True, level=None):
+    def var(self, axis=0, skipna=True, level=None, ddof=1):
         if level is not None:
             return self._agg_by_level('var', axis=axis, level=level,
                                       skipna=skipna)
         return self._reduce(nanops.nanvar, axis=axis, skipna=skipna,
-                            numeric_only=None)
+                            numeric_only=None, ddof=ddof)
 
     @Substitution(name='unbiased standard deviation', shortname='std',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
-    def std(self, axis=0, skipna=True, level=None):
+    def std(self, axis=0, skipna=True, level=None, ddof=1):
         if level is not None:
             return self._agg_by_level('std', axis=axis, level=level,
                                       skipna=skipna)
-        return np.sqrt(self.var(axis=axis, skipna=skipna))
+        return np.sqrt(self.var(axis=axis, skipna=skipna, ddof=ddof))
 
     @Substitution(name='unbiased skewness', shortname='skew',
                   na_action=_doc_exclude_na, extras='')
@@ -3623,8 +3623,8 @@ class DataFrame(NDFrame):
         applyf = lambda x: method(x, axis=axis, skipna=skipna)
         return grouped.aggregate(applyf)
 
-    def _reduce(self, op, axis=0, skipna=True, numeric_only=None):
-        f = lambda x: op(x, axis=axis, skipna=skipna)
+    def _reduce(self, op, axis=0, skipna=True, numeric_only=None, **kwds):
+        f = lambda x: op(x, axis=axis, skipna=skipna, **kwds)
         labels = self._get_agg_axis(axis)
         if numeric_only is None:
             try:
