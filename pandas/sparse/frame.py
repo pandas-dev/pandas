@@ -9,7 +9,7 @@ from numpy import nan
 import numpy as np
 
 from pandas.core.common import _pickle_array, _unpickle_array, _try_sort
-from pandas.core.index import Index, MultiIndex, NULL_INDEX, _ensure_index
+from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.series import Series
 from pandas.core.frame import (DataFrame, extract_index, _prep_ndarray,
                                _default_index)
@@ -80,10 +80,10 @@ class SparseDataFrame(DataFrame):
             sdict = {}
 
             if index is None:
-                index = NULL_INDEX
+                index = Index([])
 
             if columns is None:
-                columns = NULL_INDEX
+                columns = Index([])
             else:
                 for c in columns:
                     sdict[c] = Series(np.nan, index=index)

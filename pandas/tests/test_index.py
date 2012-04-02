@@ -263,11 +263,6 @@ class TestIndex(unittest.TestCase):
 
         testit(self.dateIndex)
 
-    # def test_always_get_null_index(self):
-    #     empty = Index([])
-    #     self.assert_(empty is NULL_INDEX)
-    #     self.assert_(self.dateIndex[15:15] is NULL_INDEX)
-
     def test_is_numeric(self):
         self.assert_(not self.dateIndex.is_numeric())
         self.assert_(not self.strIndex.is_numeric())
@@ -1466,10 +1461,9 @@ class TestFactor(unittest.TestCase):
 
 
 def test_get_combined_index():
-    from pandas.core.index import _get_combined_index, NULL_INDEX
-
+    from pandas.core.index import _get_combined_index
     result = _get_combined_index([])
-    assert(result is NULL_INDEX)
+    assert(result.equals(Index([])))
 
 if __name__ == '__main__':
     import nose

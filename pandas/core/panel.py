@@ -10,7 +10,7 @@ import numpy as np
 from pandas.core.common import (PandasError, _mut_exclusive,
                                 _try_sort, _default_index, _infer_dtype)
 from pandas.core.index import (Factor, Index, MultiIndex, _ensure_index,
-                               _get_combined_index, NULL_INDEX)
+                               _get_combined_index)
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.frame import DataFrame
@@ -1273,7 +1273,7 @@ def _extract_axis(data, axis=0, intersect=False):
     from pandas.core.index import _union_indexes
 
     if len(data) == 0:
-        index = NULL_INDEX
+        index = Index([])
     elif len(data) > 0:
         raw_lengths = []
         indexes = []
@@ -1301,9 +1301,6 @@ def _extract_axis(data, axis=0, intersect=False):
                 assert(lengths[0] == len(index))
             else:
                 index = Index(np.arange(lengths[0]))
-
-    if len(index) == 0:
-        index = NULL_INDEX
 
     return _ensure_index(index)
 

@@ -514,7 +514,7 @@ class Index(np.ndarray):
         try:
             return self._engine.get_value(series, key)
         except KeyError, e1:
-            if self.inferred_type == 'integer':
+            if len(self) > 0 and self.inferred_type == 'integer':
                 raise
 
             try:
@@ -2128,8 +2128,6 @@ class MultiIndex(Index):
 
 # For utility purposes
 
-NULL_INDEX = Index([])
-
 
 def _sparsify(label_list):
     pivoted = zip(*label_list)
@@ -2172,7 +2170,7 @@ def _validate_join_method(method):
 def _get_combined_index(indexes, intersect=False):
     indexes = _get_distinct_indexes(indexes)
     if len(indexes) == 0:
-        return NULL_INDEX
+        return Index([])
     if len(indexes) == 1:
         return indexes[0]
     if intersect:

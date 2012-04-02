@@ -28,7 +28,7 @@ from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
                                 _default_index, _stringify)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import NDFrame
-from pandas.core.index import Index, MultiIndex, NULL_INDEX, _ensure_index
+from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _radd_compat
@@ -3927,7 +3927,7 @@ def extract_index(data):
 
     index = None
     if len(data) == 0:
-        index = NULL_INDEX
+        index = Index([])
     elif len(data) > 0 and index is None:
         raw_lengths = []
         indexes = []
@@ -3963,9 +3963,6 @@ def extract_index(data):
                 assert(lengths[0] == len(index))
             else:
                 index = Index(np.arange(lengths[0]))
-
-    if len(index) == 0:
-        index = NULL_INDEX
 
     return _ensure_index(index)
 

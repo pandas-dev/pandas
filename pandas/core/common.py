@@ -335,11 +335,8 @@ def _is_bool_indexer(key):
     return False
 
 def _default_index(n):
-    from pandas.core.index import NULL_INDEX, Index
-    if n == 0:
-        return NULL_INDEX
-    else:
-        return Index(np.arange(n))
+    from pandas.core.index import Index
+    return Index(np.arange(n))
 
 def ensure_float(arr):
     if issubclass(arr.dtype.type, np.integer):

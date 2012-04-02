@@ -19,7 +19,6 @@ import pandas as pan
 import pandas.core.common as com
 import pandas.core.format as fmt
 import pandas.core.datetools as datetools
-from pandas.core.index import NULL_INDEX
 from pandas.core.api import (DataFrame, Index, Series, notnull, isnull,
                              MultiIndex)
 from pandas.io.parsers import (ExcelFile, ExcelWriter)
@@ -1289,14 +1288,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # with dict of empty list and Series
         frame = DataFrame({'A' : [], 'B' : []}, columns=['A', 'B'])
-        self.assert_(frame.index is NULL_INDEX)
+        self.assert_(frame.index.equals(Index([])))
 
     def test_constructor_subclass_dict(self):
         # Test for passing dict subclass to constructor
         data = {'col1': tm.TestSubDict((x, 10.0 * x) for x in xrange(10)),
                 'col2': tm.TestSubDict((x, 20.0 * x) for x in xrange(10))}
         df = DataFrame(data)
-        refdf = DataFrame(dict((col, dict(val.iteritems())) for col, val in data.iteritems()))
+        refdf = DataFrame(dict((col, dict(val.iteritems()))
+                               for col, val in data.iteritems()))
         assert_frame_equal(refdf, df)
 
         data = tm.TestSubDict(data.iteritems())
@@ -1400,7 +1400,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # 0-length axis
         frame = DataFrame(np.empty((0, 3)))
-        self.assert_(frame.index is NULL_INDEX)
+        self.assert_(len(frame.index) == 0)
 
         frame = DataFrame(np.empty((3, 0)))
         self.assert_(len(frame.columns) == 0)
@@ -1458,7 +1458,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # 0-length axis
         frame = DataFrame(ma.masked_all((0, 3)))
-        self.assert_(frame.index is NULL_INDEX)
+        self.assert_(len(frame.index) == 0)
 
         frame = DataFrame(ma.masked_all((3, 0)))
         self.assert_(len(frame.columns) == 0)
@@ -1719,6 +1719,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame([[np.nan, 1], [1, 0]], dtype=np.int64)
         expected = DataFrame([[np.nan, 1], [1, 0]])
         assert_frame_equal(df, expected)
+
+    def test_new_empty_index(self):
+        df1 = DataFrame(randn(0, 3))
+        df2 = DataFrame(randn(0, 3))
+        df1.index.name = 'foo'
+        self.assert_(df2.index.name is None)
 
     def test_astype(self):
         casted = self.frame.astype(int)

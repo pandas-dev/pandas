@@ -836,6 +836,17 @@ class TestConcatenate(unittest.TestCase):
         self.assert_((result['foo'][15:] == 'bar').all())
         self.assert_(result['foo'][:15].isnull().all())
 
+    def test_append_preserve_index_name(self):
+        # #980
+        df1 = DataFrame(data=None, columns=['A','B','C'])
+        df1 = df1.set_index(['A'])
+        df2 = DataFrame(data=[[1,4,7], [2,5,8], [3,6,9]],
+                        columns=['A','B','C'])
+        df2 = df2.set_index(['A'])
+
+        result = df1.append(df2)
+        self.assert_(result.index.name == 'A')
+
     def test_join_many(self):
         df = DataFrame(np.random.randn(10, 6), columns=list('abcdef'))
         df_list = [df[['a', 'b']], df[['c', 'd']], df[['e', 'f']]]
