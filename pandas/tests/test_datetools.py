@@ -1160,6 +1160,53 @@ class TestYearEnd(unittest.TestCase):
         for offset, date, expected in tests:
             assertOnOffset(offset, date, expected)
 
+class TestYearEndDiffMonth(unittest.TestCase):
+
+    def test_offset(self):
+        tests = []
+
+        tests.append((YearEnd(month=3),
+                      {datetime(2008, 1, 1): datetime(2008, 3, 31),
+                       datetime(2008, 2, 15): datetime(2008, 3, 31),
+                       datetime(2008, 3, 31): datetime(2009, 3, 31),
+                       datetime(2008, 3, 30): datetime(2008, 3, 31),
+                       datetime(2005, 3, 31): datetime(2006, 3, 31),}))
+
+        tests.append((YearEnd(0, month=3),
+                      {datetime(2008, 1, 1): datetime(2008, 3, 31),
+                       datetime(2008, 2, 28): datetime(2008, 3, 31),
+                       datetime(2008, 3, 31): datetime(2008, 3, 31),
+                       datetime(2005, 3, 30): datetime(2005, 3, 31),}))
+
+        tests.append((YearEnd(-1, month=3),
+                      {datetime(2007, 1, 1): datetime(2006, 3, 31),
+                       datetime(2008, 2, 28): datetime(2007, 3, 31),
+                       datetime(2008, 3, 31): datetime(2007, 3, 31),
+                       datetime(2006, 3, 29): datetime(2005, 3, 31),
+                       datetime(2006, 3, 30): datetime(2005, 3, 31),
+                       datetime(2007, 3, 1): datetime(2006, 3, 31),}))
+
+        tests.append((YearEnd(-2, month=3),
+                      {datetime(2007, 1, 1): datetime(2005, 3, 31),
+                       datetime(2008, 6, 30): datetime(2006, 3, 31),
+                       datetime(2008, 3, 31): datetime(2006, 3, 31),}))
+
+        for dateOffset, cases in tests:
+            for baseDate, expected in cases.iteritems():
+                assertEq(dateOffset, baseDate, expected)
+
+    def test_onOffset(self):
+
+        tests = [
+            (YearEnd(month=3), datetime(2007, 3, 31), True),
+            (YearEnd(month=3), datetime(2008, 1, 1), False),
+            (YearEnd(month=3), datetime(2006, 3, 31), True),
+            (YearEnd(month=3), datetime(2006, 3, 29), False),
+        ]
+
+        for offset, date, expected in tests:
+            assertOnOffset(offset, date, expected)
+
 def assertEq(dateOffset, baseDate, expected):
     actual = dateOffset + baseDate
     try:

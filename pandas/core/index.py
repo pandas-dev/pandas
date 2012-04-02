@@ -1315,8 +1315,11 @@ class DatetimeIndex(Int64Index):
 
             endLoc = startLoc + periods
         else:
-            start = offset.rollforward(start)
-            end = offset.rollback(end)
+            if not offset.onOffset(start):
+                start = offset.rollforward(start)
+
+            if not offset.onOffset(end):
+                end = offset.rollback(end)
 
             startLoc = cachedRange.get_loc(start)
             endLoc = cachedRange.get_loc(end) + 1

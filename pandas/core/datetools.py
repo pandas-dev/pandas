@@ -1557,16 +1557,17 @@ class YearEnd(DateOffset, CacheableOffset):
 
     def apply(self, other):
         n = self.n
-        if other.month != 12 or other.day != 31:
-            other = datetime(other.year - 1, 12, 31)
+        wkday, days_in_month = monthrange(other.year, self.month)
+        if other.month != self.month or other.day != days_in_month:
+            other = datetime(other.year - 1, self.month, days_in_month)
             if n <= 0:
                 n = n + 1
         other = other + relativedelta(years=n)
         return other
 
-    @classmethod
-    def onOffset(cls, someDate):
-        return someDate.month == 12 and someDate.day == 31
+    def onOffset(self, someDate):
+        wkday, days_in_month = monthrange(someDate.year, self.month)
+        return self.month == someDate.month and someDate.day == days_in_month
 
 
 class YearBegin(DateOffset, CacheableOffset):

@@ -740,19 +740,18 @@ def _generate_time_binner(dtindex, offset,
     if begin is None:
         first = lib.Timestamp(dtindex[0] - offset)
     else:
-        first = lib.Timestamp(begin)
+        first = lib.Timestamp(offset.rollback(begin))
 
     if end is None:
         last = lib.Timestamp(dtindex[-1] + offset)
     else:
-        last = lib.Timestamp(end)
+        last = lib.Timestamp(offset.rollforward(end))
 
     if isinstance(offset, dt.Tick):
         return np.arange(first.value, last.value+1, offset.us_stride(),
                          dtype=np.int64)
 
-    return DatetimeIndex(offset=offset,
-                         start=first, end=last, periods=nperiods)
+    return DatetimeIndex(freq=offset, start=first, end=last, periods=nperiods)
 
 class Tinterval(Grouper, CustomGrouper):
     """
