@@ -18,7 +18,8 @@ from numpy import nan
 import numpy as np
 
 from pandas import DataFrame, Index, isnull
-from pandas.io.parsers import read_csv, read_table, read_fwf, ExcelFile, TextParser
+from pandas.io.parsers import (read_csv, read_table, read_fwf,
+                               ExcelFile, TextParser)
 from pandas.util.testing import assert_almost_equal, assert_frame_equal
 import pandas._tseries as lib
 from pandas.util import py3compat
@@ -839,4 +840,3 @@ if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-
