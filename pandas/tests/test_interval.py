@@ -32,21 +32,31 @@ class TestIntervalProperties(TestCase):
 
         i1 = Interval('2005', freq='A')
         i2 = Interval('2005')
+        i3 = Interval('2005', freq='a')
 
         self.assertEquals(i1, i2)
+        self.assertEquals(i1, i3)
 
-        i3 = Interval('2005', freq='M')
-        self.assert_(i1 != i3)
+        i4 = Interval('2005', freq='M')
+        i5 = Interval('2005', freq='m')
+
+        self.assert_(i1 != i4)
+        self.assertEquals(i4, i5)
 
         i1 = Interval.now('Q')
         i2 = Interval(datetime.now(), freq='Q')
+        i3 = Interval.now('q')
 
         self.assertEquals(i1, i2)
+        self.assertEquals(i1, i3)
 
         # Biz day construction, roll forward if non-weekday
         i1 = Interval('3/10/12', freq='B')
         i2 = Interval('3/12/12', freq='D')
         self.assertEquals(i1, i2.resample('B'))
+
+        i3 = Interval('3/10/12', freq='b')
+        self.assertEquals(i1, i3)
 
         i1 = Interval(year=2005, quarter=1, freq='Q')
         i2 = Interval('1/1/2005', freq='Q')
@@ -60,21 +70,43 @@ class TestIntervalProperties(TestCase):
         i2 = Interval('3/1/2005', freq='D')
         self.assertEquals(i1, i2)
 
+        i3 = Interval(year=2005, month=3, day=1, freq='d')
+        self.assertEquals(i1, i3)
+
         i1 = Interval(year=2012, month=3, day=10, freq='B')
         i2 = Interval('3/12/12', freq='B')
         self.assertEquals(i1, i2)
 
         i1 = Interval('2005Q1')
         i2 = Interval(year=2005, quarter=1, freq='Q')
+        i3 = Interval('2005q1')
         self.assertEquals(i1, i2)
+        self.assertEquals(i1, i3)
 
         i1 = Interval('05Q1')
         self.assertEquals(i1, i2)
+        lower = Interval('05q1')
+        self.assertEquals(i1, lower)
 
         i1 = Interval('1Q2005')
         self.assertEquals(i1, i2)
+        lower = Interval('1q2005')
+        self.assertEquals(i1, lower)
 
         i1 = Interval('1Q05')
+        self.assertEquals(i1, i2)
+        lower = Interval('1q05')
+        self.assertEquals(i1, lower)
+
+        i1 = Interval('4Q1984')
+        self.assertEquals(i1.year, 1984)
+        lower = Interval('4q1984')
+        self.assertEquals(i1, lower)
+
+        i1 = Interval('1982', freq='min')
+        i2 = Interval('1982', freq='MIN')
+        self.assertEquals(i1, i2)
+        i2 = Interval('1982', freq=('Min', 1))
         self.assertEquals(i1, i2)
 
     def test_properties_annually(self):
@@ -795,6 +827,45 @@ class TestIntervalIndex(TestCase):
 
         ii = IntervalIndex(freq='S', start='1/1/2001', end='1/1/2001 23:59:59')
         assert_equal(len(ii), 24 * 60 * 60)
+
+        start = Interval('02-Apr-2005', 'B')
+        i1 = IntervalIndex(start=start, periods=20)
+        assert_equal(len(i1), 20)
+        assert_equal(i1.freq, start.freq)
+        assert_equal(i1[0], start)
+
+        end_intv = Interval('2006-12-31', 'W')
+        i1 = IntervalIndex(end=end_intv, periods=10)
+        assert_equal(len(i1), 10)
+        assert_equal(i1.freq, end_intv.freq)
+        assert_equal(i1[-1], end_intv)
+
+        end_intv = Interval('2006-12-31', 'w')
+        i2 = IntervalIndex(end=end_intv, periods=10)
+        assert_equal(len(i1), len(i2))
+        self.assert_((i1 == i2).all())
+        assert_equal(i1.freq, i2.freq)
+
+        end_intv = Interval('2006-12-31', ('w', 1))
+        i2 = IntervalIndex(end=end_intv, periods=10)
+        assert_equal(len(i1), len(i2))
+        self.assert_((i1 == i2).all())
+        assert_equal(i1.freq, i2.freq)
+
+        try:
+            IntervalIndex(start=start, end=end_intv)
+            raise AssertionError('Cannot allow mixed freq for start and end')
+        except ValueError:
+            pass
+
+        end_intv = Interval('2005-05-01', 'B')
+        i1 = IntervalIndex(start=start, end=end_intv)
+
+        try:
+            IntervalIndex(start=start)
+            raise AssertionError('Must specify periods if missing start or end')
+        except ValueError:
+            pass
 
     def test_shift(self):
         ii1 = IntervalIndex(freq='A', start='1/1/2001', end='12/1/2009')

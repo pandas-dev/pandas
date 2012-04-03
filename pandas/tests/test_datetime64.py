@@ -3,10 +3,9 @@ from datetime import datetime
 
 import cPickle as pickle
 
-from pandas.core.index import DatetimeIndex, Index
+import pandas.core.datetools as dt
+from pandas.core.index import Index, DatetimeIndex, Int64Index
 from pandas.core.frame import DataFrame
-
-from pandas.core.index import Int64Index
 
 import unittest
 import numpy as np
@@ -550,6 +549,19 @@ class TestDatetime64(unittest.TestCase):
 
         for other in [idx2, idx3, idx4, idx5, idx6]:
             self.assert_( (idx1.values == other.values).all() )
+
+        sdate = datetime(1999, 12, 25)
+        edate = datetime(2000, 1, 1)
+        idx = DatetimeIndex(start=sdate, freq='B', periods=20)
+        self.assertEquals(len(idx), 20)
+        self.assertEquals(idx[0], sdate + 0 * dt.bday)
+
+        idx = DatetimeIndex(end=edate, freq='D', periods=20)
+        self.assertEquals(len(idx), 20)
+        self.assertEquals(idx[-1], edate)
+
+        idx1 = DatetimeIndex(start=sdate, end=edate, freq='W')
+
 
     def test_dti_slicing(self):
         dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')

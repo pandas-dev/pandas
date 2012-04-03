@@ -104,7 +104,23 @@ class Interval(object):
     def __init__(self, value=None, freq=None,
                  year=None, month=1, quarter=None, day=1,
                  hour=0, minute=0, second=0):
+        """
+        Represents an interval of time
 
+        Parameters
+        ----------
+        value : Interval or basestring, default None
+            The time interval represented (e.g., '4Q2005')
+        freq : str, default None
+            e.g., 'B' for businessday, ('Min', 5) or '5Min' for 5 minutes
+        year : int, default None
+        month : int, default 1
+        quarter : int, default None
+        day : int, default 1
+        hour : int, default 0
+        minute : int, default 0
+        second : int, default 0
+        """
         # freq points to a tuple (base, mult);  base is one of the defined
         # intervals such as A, Q, etc. Every five minutes would be, e.g.,
         # ('Min', 5) but may be passed in as a string like '5Min'
@@ -115,11 +131,8 @@ class Interval(object):
 
         self.ordinal = None
 
-        if freq is not None:
-            self.freq = freq
-
         if value is None:
-            if self.freq is None:
+            if freq is None:
                 raise ValueError("If value is None, freq cannot be None")
 
             if year is None:
@@ -128,23 +141,22 @@ class Interval(object):
             if quarter is not None:
                 month = (quarter - 1) * 3 + 1
 
-            base, mult = _get_freq_code(self.freq)
+            base, mult = _get_freq_code(freq)
 
             self.ordinal = lib.skts_ordinal(year, month, day, hour, minute,
                                             second, base, mult)
-            return
 
-        if isinstance(value, Interval):
+        elif isinstance(value, Interval):
             other = value
-            if self.freq is None or _gfc(self.freq) == _gfc(other.freq):
+            if freq is None or _gfc(freq) == _gfc(other.freq):
                 self.ordinal = other.ordinal
-                self.freq = other.freq
+                freq = other.freq
             else:
-                converted = other.resample(self.freq)
+                converted = other.resample(freq)
                 self.ordinal = converted.ordinal
-            return
 
-        if isinstance(value, basestring):
+        elif isinstance(value, basestring):
+            value = value.upper()
             dt, parsed, reso = parse_time_string(value)
 
             if freq is None:
@@ -164,22 +176,28 @@ class Interval(object):
                     freq = 'S'
                 else:
                     raise ValueError("Could not infer frequency for interval")
-                self.freq = freq
 
         elif isinstance(value, datetime):
             dt = value
+            if freq is None:
+                raise ValueError('Must supply freq for datetime value')
         elif isinstance(value, (int, long)):
             if value <= 0:
                 raise ValueError("Value must be positive")
             self.ordinal = value
+            if freq is None:
+                raise ValueError('Must supply freq for ordinal value')
         else:
-            raise ValueError("Value must be string or datetime")
+            msg = "Value must be Interval, string, integer, or datetime"
+            raise ValueError(msg)
 
-        base, mult = _gfc(self.freq)
+        base, mult = _gfc(freq)
 
         if self.ordinal is None:
             self.ordinal = lib.skts_ordinal(dt.year, dt.month, dt.day, dt.hour,
                                             dt.minute, dt.second, base, mult)
+
+        self.freq = _get_freq_str(base, mult)
 
     def __eq__(self, other):
         if isinstance(other, Interval):
@@ -678,7 +696,19 @@ def _interval_group(freqstr):
 
 def _get_freq_code(freqstr):
     if isinstance(freqstr, tuple):
-        return freqstr
+        if (isinstance(freqstr[0], (int, long)) and
+            isinstance(freqstr[1], (int, long))):
+            #e.g., freqstr = (2000, 1)
+            return freqstr
+        else:
+            #e.g., freqstr = ('Min', 5)
+            try:
+                code = _interval_str_to_code(freqstr[0])
+                stride = freqstr[1]
+            except:
+                code = _interval_str_to_code(freqstr[1])
+                stride = freqstr[0]
+            return code, stride
 
     if isinstance(freqstr, (int, long)):
         return (freqstr, 1)
@@ -691,8 +721,8 @@ def _get_freq_code(freqstr):
 _skts_alias_dict = _skts_alias_dictionary()
 
 def _interval_str_to_code(freqstr):
-    freqstr = freqstr.upper()
     try:
+        freqstr = freqstr.upper()
         return _interval_code_map[freqstr]
     except:
         alias = _skts_alias_dict[freqstr]
@@ -702,6 +732,17 @@ def _interval_str_to_code(freqstr):
             raise "Could not interpret frequency %s" % freqstr
 
 _gfc = _get_freq_code
+
+def _get_freq_str(base, mult):
+    code = _reverse_interval_code_map.get(base)
+    if code is None:
+        return _unknown_freq
+    return str(mult) + code
+
+_gfs = _get_freq_str
+
+_unknown_freq = 'Unknown'
+
 
 #-------------------------------------------------------------------------------
 # Miscellaneous date functions
@@ -739,19 +780,30 @@ def parse_time_string(arg):
     """
     Try hard to parse datetime string, leveraging dateutil plus some extra
     goodies like quarter recognition.
+
+    Parameters
+    ----------
+    arg : basestring
+
+    Returns
+    -------
+    datetime, datetime/dateutil.parser._result, str
     """
     from pandas.core.format import print_config
 
     if not isinstance(arg, basestring):
         return arg
 
+    arg = arg.upper()
     try:
         default = datetime(1,1,1).replace(hour=0, minute=0,
                                           second=0, microsecond=0)
 
         # special handling for possibilities eg, 2Q2005, 2Q05, 2005Q1, 05Q1
         if len(arg) in [4, 6]:
+            add_century = False
             if len(arg) == 4:
+                add_century = True
                 qpats = [(qpat1, 1), (qpat2, 0)]
             else:
                 qpats = [(qpat1full, 1), (qpat2full, 0)]
@@ -764,8 +816,9 @@ def parse_time_string(arg):
                     else:
                         yi, qi = 2, 1
                     q = int(qparse.group(yi))
-                    y = int(qparse.group(qi))
-                    if y < 2000:
+                    y_str = qparse.group(qi)
+                    y = int(y_str)
+                    if add_century:
                         y += 2000
                     ret = default.replace(year=y, month=(q-1)*3+1)
                     return ret, ret, 'quarter'
@@ -1843,10 +1896,7 @@ def to_offset(freqstr):
 
     name, stride = _base_and_stride(freqstr)
 
-    offset = _offset_map.get(name)
-
-    if offset is None:
-        raise ValueError('Bad offset request: %s' % name)
+    offset = getOffset(name)
 
     return offset * stride
 
@@ -1883,6 +1933,9 @@ def getOffset(name):
     -------
     getOffset('EOM') --> BMonthEnd(1)
     """
+    name = name.upper()
+    if name == 'MIN':
+        name = 'Min'
     offset = _offset_map.get(name)
 
     if offset is not None:
