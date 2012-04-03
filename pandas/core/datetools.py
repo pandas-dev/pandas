@@ -24,20 +24,20 @@ except ImportError: # pragma: no cover
 #-------------------------------------------------------------------------------
 # Boxing and unboxing
 
-def _dt_box(key, offset=None, tzinfo=None):
+def _dt_box(key, offset=None, tz=None):
     '''
     timestamp-like (int64, python datetime, etc.) => Timestamp
     '''
-    return Timestamp(key, offset=offset, tzinfo=tzinfo)
+    return Timestamp(key, offset=offset, tz=tz)
 
-def _dt_box_array(arr, offset=None, tzinfo=None):
+def _dt_box_array(arr, offset=None, tz=None):
     if arr is None:
         return arr
 
     if not isinstance(arr, np.ndarray):
         return arr
 
-    boxfunc = lambda x: _dt_box(x, offset=offset, tzinfo=tzinfo)
+    boxfunc = lambda x: _dt_box(x, offset=offset, tz=tz)
     boxer = np.frompyfunc(boxfunc, 1, 1)
     return boxer(arr)
 
@@ -65,27 +65,35 @@ def _str_to_dt_array(arr):
     data = p_ufunc(arr)
     return np.array(data, dtype='M8[us]')
 
-class Ts(lib.Timestamp):
-    """
-    Convenience class to expose cython-based Timestamp to user. This is the
-    box class for the index values of DatetimeIndex.
-    """
-    def __new__(self, value, freq=None, tzinfo=None):
-        ts = to_timestamp(value, freq, tzinfo)
-        return lib.Timestamp.__new__(Ts, ts, freq, tzinfo)
 
-    @property
-    def freq(self):
-        return self.offset
+def to_datetime(arg):
+    """Attempts to convert arg to datetime"""
+    if arg is None:
+        return arg
+    elif isinstance(arg, datetime):
+        return arg
+    try:
+        return parser.parse(arg)
+    except Exception:
+        return arg
 
-    def to_interval(self, freq=None):
-        """
-        Return an interval of which this timestamp is an observation.
-        """
-        if freq == None:
-            freq = self.freq
 
-        return Interval(self, freq=freq)
+def to_timestamp(arg, offset=None, tz=None):
+    if arg is None:
+        return arg
+    return Timestamp(arg, offset=offset, tz=tz)
+
+
+def to_interval(arg, freq=None):
+    """ Attempts to convert arg to timestamp """
+    if arg is None:
+        return arg
+
+    if type(arg) == float:
+        raise TypeError("Cannot convert a float to interval")
+
+    return Interval(arg, freq=freq)
+
 
 #---------------
 # Interval logic
@@ -195,6 +203,18 @@ class Interval(object):
         raise ValueError("Cannot sub with non-integer value")
 
     def resample(self, freq=None, how='E'):
+        """
+
+        Parameters
+        ----------
+        freq :
+        how :
+
+        Returns
+        -------
+        resampled : Interval
+        """
+
         if how not in ('S', 'E'):
             raise ValueError('How must be one of S or E')
 
@@ -205,6 +225,9 @@ class Interval(object):
                                         base2, mult2, how)
 
         return Interval(new_ordinal, (base2, mult2))
+
+    # for skts compatibility
+    asfreq = resample
 
     def to_timestamp(self):
         base, mult = _get_freq_code('S')
@@ -545,7 +568,7 @@ def _skts_alias_dictionary():
     alias_dict = {}
 
     M_aliases = ["M", "MTH", "MONTH", "MONTHLY"]
-    B_aliases = ["B", "BUS", "BUSINESS", "BUSINESSLY"]
+    B_aliases = ["B", "BUS", "BUSINESS", "BUSINESSLY", 'WEEKDAY']
     D_aliases = ["D", "DAY", "DLY", "DAILY"]
     H_aliases = ["H", "HR", "HOUR", "HRLY", "HOURLY"]
     T_aliases = ["T", "MIN", "MINUTE", "MINUTELY"]
@@ -700,32 +723,6 @@ def ole2datetime(oledt):
 
     return OLE_TIME_ZERO + timedelta(days=val)
 
-def to_timestamp(arg, freq=None, tzinfo=None):
-    """ Attempts to convert arg to timestamp """
-    if arg is None:
-        return arg
-
-    if type(arg) == float:
-        # to do, do we want to support this, ie with fractional seconds?
-        raise TypeError("Cannot convert a float to datetime")
-
-    if isinstance(arg, basestring):
-        try:
-            arg = parser.parse(arg)
-        except Exception:
-            pass
-
-    return lib.Timestamp(arg, offset=freq, tzinfo=tzinfo)
-
-def to_interval(arg, freq=None):
-    """ Attempts to convert arg to timestamp """
-    if arg is None:
-        return arg
-
-    if type(arg) == float:
-        raise TypeError("Cannot convert a float to interval")
-
-    return Interval(arg, freq=freq)
 
 class DateParseError(Exception):
     pass
@@ -799,17 +796,6 @@ def parse_time_string(arg):
         return ret, parsed, reso  # datetime, resolution
     except Exception, e:
         raise DateParseError(e)
-
-def to_datetime(arg):
-    """Attempts to convert arg to datetime"""
-    if arg is None:
-        return arg
-    elif isinstance(arg, datetime):
-        return arg
-    try:
-        return parser.parse(arg)
-    except Exception:
-        return arg
 
 def normalize_date(dt):
     if isinstance(dt, np.datetime64):
@@ -1011,9 +997,9 @@ class DateOffset(object):
         if type(self) == DateOffset:
             return True
 
-        # Default (slow) method for determining if some date is a
-        # member of the DateRange generated by this offset. Subclasses
-        # may have this re-implemented in a nicer way.
+        # Default (slow) method for determining if some date is a member of the
+        # date range generated by this offset. Subclasses may have this
+        # re-implemented in a nicer way.
         a = someDate
         b = ((someDate + self) - self)
         return a == b
@@ -1659,33 +1645,9 @@ isBMonthEnd = BMonthEnd().onOffset
 #-------------------------------------------------------------------------------
 # Offset names ("time rules") and related functions
 
-# deprecated
-_offsetMap = {
+_offset_map = {
     "WEEKDAY"  : BDay(1),
-    "EOM"      : BMonthEnd(1),
-    "W@MON"    : Week(weekday=0),
-    "W@TUE"    : Week(weekday=1),
-    "W@WED"    : Week(weekday=2),
-    "W@THU"    : Week(weekday=3),
-    "W@FRI"    : Week(weekday=4),
-    "Q@JAN"    : BQuarterEnd(startingMonth=1),
-    "Q@FEB"    : BQuarterEnd(startingMonth=2),
-    "Q@MAR"    : BQuarterEnd(startingMonth=3),
-    "A@JAN"    : BYearEnd(month=1),
-    "A@FEB"    : BYearEnd(month=2),
-    "A@MAR"    : BYearEnd(month=3),
-    "A@APR"    : BYearEnd(month=4),
-    "A@MAY"    : BYearEnd(month=5),
-    "A@JUN"    : BYearEnd(month=6),
-    "A@JUL"    : BYearEnd(month=7),
-    "A@AUG"    : BYearEnd(month=8),
-    "A@SEP"    : BYearEnd(month=9),
-    "A@OCT"    : BYearEnd(month=10),
-    "A@NOV"    : BYearEnd(month=11),
-    "A@DEC"    : BYearEnd()
-}
 
-_newOffsetMap = {
     # Annual - Calendar
     "A@JAN" : YearEnd(month=1),
     "A@FEB" : YearEnd(month=2),
@@ -1799,15 +1761,21 @@ _newOffsetMap = {
     "BQS@NOV" : BQuarterBegin(startingMonth=11),
     "BQS@DEC" : BQuarterBegin(startingMonth=12),
     # Monthly - Calendar
+    "EOM"      : BMonthEnd(1),  # legacy, deprecated?
+
     "M"      : MonthEnd(),
-    "EOM"    : MonthEnd(),
     "MS"     : MonthBegin(),
-    "SOM"    : MonthBegin(),
+
+
     # Monthly - Business
     "BM"     : BMonthEnd(),
-    "BEOM"   : BMonthEnd(),
     "BMS"    : BMonthBegin(),
-    "BSOM"   : BMonthBegin(),
+
+    # "EOM"    : MonthEnd(),
+    # "SOM"    : MonthBegin(),
+    # "BEOM"   : BMonthEnd(),
+    # "BSOM"   : BMonthBegin(),
+
     # Weekly
     "W@MON" : Week(weekday=0),
     "WS"    : Week(weekday=0),
@@ -1832,38 +1800,29 @@ _newOffsetMap = {
 
 for i, weekday in enumerate(['MON', 'TUE', 'WED', 'THU', 'FRI']):
     for iweek in xrange(4):
-        _offsetMap['WOM@%d%s' % (iweek + 1, weekday)] = \
-            WeekOfMonth(week=iweek, weekday=i)
-        _newOffsetMap['WOM@%d%s' % (iweek + 1, weekday)] = \
+        _offset_map['WOM@%d%s' % (iweek + 1, weekday)] = \
             WeekOfMonth(week=iweek, weekday=i)
 
 # for helping out with pretty-printing and name-lookups
 
-_offsetNames = {}
-for name, offset in _offsetMap.iteritems():
-    offset.name = name
-    _offsetNames[offset] = name
-
-_offsetNames = dict([(v, k) for k, v in _offsetMap.iteritems()])
-
-_newOffsetNames = {}
-for name, offset in _newOffsetMap.iteritems():
+_offset_names = {}
+for name, offset in _offset_map.iteritems():
     if offset is None:
         continue
     offset.name = name
-    _newOffsetNames[offset] = name
+    _offset_names[offset] = name
 
-def inferTimeRule(index, _deprecated=True):
+
+def inferTimeRule(index):
     if len(index) < 3:
         raise Exception('Need at least three dates to infer time rule!')
 
     first, second, third = index[:3]
-    if _deprecated:
-        items = _offsetMap.iteritems()
-    else:
-        items = _newOffsetMap.iteritems()
+    items = _offset_map.iteritems()
 
     for rule, offset in items:
+        if offset is None:
+            continue
         if (first + offset) == second and (second + offset) == third:
             return rule
 
@@ -1884,7 +1843,7 @@ def to_offset(freqstr):
 
     name, stride = _base_and_stride(freqstr)
 
-    offset = _newOffsetMap.get(name)
+    offset = _offset_map.get(name)
 
     if offset is None:
         raise ValueError('Bad offset request: %s' % name)
@@ -1916,7 +1875,7 @@ def _base_and_stride(freqstr):
     return (base, stride)
 
 
-def getOffset(name, _deprecated=True):
+def getOffset(name):
     """
     Return DateOffset object associated with rule name
 
@@ -1924,10 +1883,7 @@ def getOffset(name, _deprecated=True):
     -------
     getOffset('EOM') --> BMonthEnd(1)
     """
-    if _deprecated:
-        offset = _offsetMap.get(name)
-    else:
-        offset = _newOffsetMap.get(name)
+    offset = _offset_map.get(name)
 
     if offset is not None:
         return offset
@@ -1935,9 +1891,9 @@ def getOffset(name, _deprecated=True):
         raise Exception('Bad rule name requested: %s!' % name)
 
 def hasOffsetName(offset):
-    return offset in _offsetNames
+    return offset in _offset_names
 
-def getOffsetName(offset, _deprecated=True):
+def getOffsetName(offset):
     """
     Return rule name associated with a DateOffset object
 
@@ -1945,10 +1901,7 @@ def getOffsetName(offset, _deprecated=True):
     -------
     getOffsetName(BMonthEnd(1)) --> 'EOM'
     """
-    if _deprecated:
-        name = _offsetNames.get(offset)
-    else:
-        name = _newOffsetNames.get(offset)
+    name = _offset_names.get(offset)
 
     if name is not None:
         return name
@@ -2014,9 +1967,6 @@ def generate_range(start=None, end=None, periods=None,
     -------
     dates : generator object
 
-    See also
-    --------
-    DateRange, dateutil.rrule
     """
 
     if time_rule is not None:

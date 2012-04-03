@@ -237,7 +237,7 @@ class SafeForSparse(object):
         tm.equalContents(self.panel.keys(), self.panel.items)
 
     def test_iteritems(self):
-        """Test panel.iteritems(), aka panel.iterkv()"""
+        # Test panel.iteritems(), aka panel.iterkv()
         # just test that it works
         for k, v in self.panel.iterkv():
             pass
@@ -406,14 +406,15 @@ class CheckIndexing(object):
         self.assert_(self.panel['ItemP'].values.dtype == np.bool_)
 
     def test_setitem_ndarray(self):
-        from pandas import DateRange, datetools
+        from pandas import date_range, datetools
 
-        timeidx = DateRange(start=datetime(2009,1,1),
-                            end=datetime(2009,12,31),
-                            offset=datetools.MonthEnd())
+        timeidx = date_range(start=datetime(2009,1,1),
+                             end=datetime(2009,12,31),
+                             freq=datetools.MonthEnd())
         lons_coarse = np.linspace(-177.5, 177.5, 72)
         lats_coarse = np.linspace(-87.5, 87.5, 36)
-        P = Panel(items=timeidx, major_axis=lons_coarse, minor_axis=lats_coarse)
+        P = Panel(items=timeidx, major_axis=lons_coarse,
+                  minor_axis=lats_coarse)
         data = np.random.randn(72*36).reshape((72,36))
         key = datetime(2009,2,28)
         P[key] = data

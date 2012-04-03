@@ -50,10 +50,9 @@ def test_normalize_date():
     assert actual == datetime(2007, 10, 1)
 
 def test_datetime64_unbox():
-    valb = datetime(2007,10,1)
+    valb = datetime(2007, 10, 1)
     valu = _dt_unbox(valb)
-    print valu
-    #assert type(valu) == np.datetime64
+    assert type(valu) == np.datetime64
     #assert valu == np.datetime64(datetime(2007,10,1))
 
 #def test_datetime64_box():
@@ -1256,8 +1255,8 @@ def test_inferTimeRule():
               datetime(2010, 3, 27, 0, 0),
               datetime(2010, 3, 29, 0, 0)]
 
-    assert inferTimeRule(index1) == 'EOM'
-    assert inferTimeRule(index2) == 'WEEKDAY'
+    assert inferTimeRule(index1) == 'BM'
+    assert inferTimeRule(index2) == 'B'
 
     assert_raises(Exception, inferTimeRule, index1[:2])
     assert_raises(Exception, inferTimeRule, index3)
@@ -1269,13 +1268,13 @@ def test_hasOffsetName():
 def test_getOffsetName():
     assert_raises(Exception, getOffsetName, BDay(2))
 
-    assert getOffsetName(BDay()) == 'WEEKDAY'
-    assert getOffsetName(BMonthEnd()) == 'EOM'
-    assert getOffsetName(Week(weekday=0)) == 'W@MON'
-    assert getOffsetName(Week(weekday=1)) == 'W@TUE'
+    assert getOffsetName(BDay()) in ['WEEKDAY', 'B']
+    assert getOffsetName(BMonthEnd()) in ['EOM', 'BM']
+    assert getOffsetName(Week(weekday=0)) in ['W@MON', 'WS']
+    assert getOffsetName(Week(weekday=1)) =='W@TUE'
     assert getOffsetName(Week(weekday=2)) == 'W@WED'
     assert getOffsetName(Week(weekday=3)) == 'W@THU'
-    assert getOffsetName(Week(weekday=4)) == 'W@FRI'
+    assert getOffsetName(Week(weekday=4)) in ['W@FRI', 'BW']
 
 
 def test_getOffset():

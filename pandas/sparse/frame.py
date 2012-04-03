@@ -674,12 +674,13 @@ class SparseDataFrame(DataFrame):
         """
         return self.apply(lambda x: x.cumsum(), axis=axis)
 
-    def shift(self, periods, offset=None, timeRule=None):
+    def shift(self, periods, freq=None, **kwds):
         """
         Analogous to DataFrame.shift
         """
-        if timeRule is not None and offset is None:
-            offset = datetools.getOffset(timeRule)
+        from pandas.core.series import _resolve_offset
+
+        offset = _resolve_offset(freq, kwds)
 
         new_series = {}
         if offset is None:

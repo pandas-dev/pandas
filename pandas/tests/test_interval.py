@@ -78,12 +78,12 @@ class TestIntervalProperties(TestCase):
         self.assertEquals(i1, i2)
 
     def test_properties_annually(self):
-        "Test properties on Intervals with annually frequency."
+        # Test properties on Intervals with annually frequency.
         a_date = Interval(freq='A', year=2007)
         assert_equal(a_date.year, 2007)
 
     def test_properties_quarterly(self):
-        "Test properties on Intervals with daily frequency."
+        # Test properties on Intervals with daily frequency.
         qedec_date = Interval(freq="Q@DEC", year=2007, quarter=1)
         qejan_date = Interval(freq="Q@JAN", year=2007, quarter=1)
         qejun_date = Interval(freq="Q@JUN", year=2007, quarter=1)
@@ -95,7 +95,7 @@ class TestIntervalProperties(TestCase):
 
 
     def test_properties_monthly(self):
-        "Test properties on Intervals with daily frequency."
+        # Test properties on Intervals with daily frequency.
         m_date = Interval(freq='M', year=2007, month=1)
         for x in range(11):
             m_ival_x = m_date + x
@@ -112,7 +112,7 @@ class TestIntervalProperties(TestCase):
 
 
     def test_properties_weekly(self):
-        "Test properties on Intervals with daily frequency."
+        # Test properties on Intervals with daily frequency.
         w_date = Interval(freq='WK', year=2007, month=1, day=7)
         #
         assert_equal(w_date.year, 2007)
@@ -123,7 +123,7 @@ class TestIntervalProperties(TestCase):
 
 
     def test_properties_daily(self):
-        "Test properties on Intervals with daily frequency."
+        # Test properties on Intervals with daily frequency.
         b_date = Interval(freq='B', year=2007, month=1, day=1)
         #
         assert_equal(b_date.year, 2007)
@@ -144,7 +144,7 @@ class TestIntervalProperties(TestCase):
 
 
     def test_properties_hourly(self):
-        "Test properties on Intervals with hourly frequency."
+        # Test properties on Intervals with hourly frequency.
         h_date = Interval(freq='H', year=2007, month=1, day=1, hour=0)
         #
         assert_equal(h_date.year, 2007)
@@ -158,8 +158,8 @@ class TestIntervalProperties(TestCase):
 
 
     def test_properties_minutely(self):
-        "Test properties on Intervals with minutely frequency."
-        t_date = Interval(freq='Min', year=2007, month=1, day=1, hour=0, 
+        # Test properties on Intervals with minutely frequency.
+        t_date = Interval(freq='Min', year=2007, month=1, day=1, hour=0,
                           minute=0)
         #
         assert_equal(t_date.quarter, 1)
@@ -172,7 +172,7 @@ class TestIntervalProperties(TestCase):
 
 
     def test_properties_secondly(self):
-        "Test properties on Intervals with secondly frequency."
+        # Test properties on Intervals with secondly frequency.
         s_date = Interval(freq='Min', year=2007, month=1, day=1,
                                        hour=0, minute=0, second=0)
         #
@@ -196,7 +196,7 @@ class TestFreqConversion(TestCase):
         TestCase.__init__(self, *args, **kwds)
 
     def test_conv_annual(self):
-        "frequency conversion tests: from Annual Frequency"
+        # frequency conversion tests: from Annual Frequency
 
         ival_A = Interval(freq='A', year=2007)
 
@@ -264,7 +264,7 @@ class TestFreqConversion(TestCase):
 
 
     def test_conv_quarterly(self):
-        "frequency conversion tests: from Quarterly Frequency"
+        # frequency conversion tests: from Quarterly Frequency
 
         ival_Q = Interval(freq='Q', year=2007, quarter=1)
         ival_Q_end_of_year = Interval(freq='Q', year=2007, quarter=4)
@@ -327,7 +327,7 @@ class TestFreqConversion(TestCase):
 
 
     def test_conv_monthly(self):
-        "frequency conversion tests: from Monthly Frequency"
+        # frequency conversion tests: from Monthly Frequency
 
         ival_M = Interval(freq='M', year=2007, month=1)
         ival_M_end_of_year = Interval(freq='M', year=2007, month=12)
@@ -375,7 +375,7 @@ class TestFreqConversion(TestCase):
 
 
     def test_conv_weekly(self):
-        "frequency conversion tests: from Weekly Frequency"
+        # frequency conversion tests: from Weekly Frequency
 
         ival_W = Interval(freq='WK', year=2007, month=1, day=1)
 
@@ -415,10 +415,10 @@ class TestFreqConversion(TestCase):
             ival_W_to_A_end_of_year = Interval(freq='A', year=2008)
 
         if Interval(freq='D', year=2007, month=3, day=31).weekday == 6:
-            ival_W_to_Q_end_of_quarter = Interval(freq='Q', year=2007, 
+            ival_W_to_Q_end_of_quarter = Interval(freq='Q', year=2007,
                                                   quarter=1)
         else:
-            ival_W_to_Q_end_of_quarter = Interval(freq='Q', year=2007, 
+            ival_W_to_Q_end_of_quarter = Interval(freq='Q', year=2007,
                                                   quarter=2)
 
         if Interval(freq='D', year=2007, month=1, day=31).weekday == 6:
@@ -444,10 +444,10 @@ class TestFreqConversion(TestCase):
                                     hour=23, minute=59, second=59)
 
         assert_equal(ival_W.resample('A'), ival_W_to_A)
-        assert_equal(ival_W_end_of_year.resample('A'), 
+        assert_equal(ival_W_end_of_year.resample('A'),
                      ival_W_to_A_end_of_year)
         assert_equal(ival_W.resample('Q'), ival_W_to_Q)
-        assert_equal(ival_W_end_of_quarter.resample('Q'), 
+        assert_equal(ival_W_end_of_quarter.resample('Q'),
                      ival_W_to_Q_end_of_quarter)
         assert_equal(ival_W.resample('M'), ival_W_to_M)
         assert_equal(ival_W_end_of_month.resample('M'),
@@ -485,7 +485,7 @@ class TestFreqConversion(TestCase):
 
 
     def test_conv_business(self):
-        "frequency conversion tests: from Business Frequency"
+        # frequency conversion tests: from Business Frequency"
 
         ival_B = Interval(freq='B', year=2007, month=1, day=1)
         ival_B_end_of_year = Interval(freq='B', year=2007, month=12, day=31)
@@ -533,7 +533,7 @@ class TestFreqConversion(TestCase):
 
 
     def test_conv_daily(self):
-        "frequency conversion tests: from Business Frequency"
+        # frequency conversion tests: from Business Frequency"
 
         ival_D = Interval(freq='D', year=2007, month=1, day=1)
         ival_D_end_of_year = Interval(freq='D', year=2007, month=12, day=31)
@@ -610,7 +610,7 @@ class TestFreqConversion(TestCase):
         assert_equal(ival_D.resample('D'), ival_D)
 
     def test_conv_hourly(self):
-        "frequency conversion tests: from Hourly Frequency"
+        # frequency conversion tests: from Hourly Frequency"
 
         ival_H = Interval(freq='H', year=2007, month=1, day=1, hour=0)
         ival_H_end_of_year = Interval(freq='H', year=2007, month=12, day=31,
@@ -663,7 +663,7 @@ class TestFreqConversion(TestCase):
         assert_equal(ival_H.resample('H'), ival_H)
 
     def test_conv_minutely(self):
-        "frequency conversion tests: from Minutely Frequency"
+        # frequency conversion tests: from Minutely Frequency"
 
         ival_T = Interval(freq='Min', year=2007, month=1, day=1,
                         hour=0, minute=0)
@@ -716,7 +716,7 @@ class TestFreqConversion(TestCase):
         assert_equal(ival_T.resample('Min'), ival_T)
 
     def test_conv_secondly(self):
-        "frequency conversion tests: from Secondly Frequency"
+        # frequency conversion tests: from Secondly Frequency"
 
         ival_S = Interval(freq='S', year=2007, month=1, day=1,
                         hour=0, minute=0, second=0)
@@ -921,12 +921,12 @@ class TestIntervalIndex(TestCase):
         self.assert_(s['05Q4'] == s[2])
 
     def test_interval_dt64_round_trip(self):
-        dti = DatetimeIndex(['1/1/2002', '1/2/2002', '1/3/2002', '1/4/2002', 
+        dti = DatetimeIndex(['1/1/2002', '1/2/2002', '1/3/2002', '1/4/2002',
                              '1/5/2002', '1/6/2002', '1/7/2002'], freq='B')
         ii = dti.to_interval()
         self.assert_(ii.to_timestamp().equals(dti))
 
-        dti = DatetimeIndex(['1/1/2002', '1/2/2002', '1/3/2002', '1/4/2002', 
+        dti = DatetimeIndex(['1/1/2002', '1/2/2002', '1/3/2002', '1/4/2002',
                              '1/5/2002', '1/6/2002', '1/7/2002'], freq='B')
         ii = dti.to_interval(freq='3H')
         self.assert_(ii.to_timestamp().equals(dti))
@@ -936,8 +936,8 @@ class TestIntervalIndex(TestCase):
         self.assertEquals(ii[0], Interval('1/1/10', '2M'))
         self.assertEquals(ii[1], Interval('3/1/10', '2M'))
 
-        self.assertEquals(ii[0].resample('6M'), ii[2].resample('6M')) 
-        self.assertEquals(ii[0].resample('A'), ii[2].resample('A')) 
+        self.assertEquals(ii[0].resample('6M'), ii[2].resample('6M'))
+        self.assertEquals(ii[0].resample('A'), ii[2].resample('A'))
 
         self.assertEquals(ii[0].resample('M', how='S'),
                           Interval('Jan 2010', '1M'))

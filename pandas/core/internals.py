@@ -3,7 +3,7 @@ import itertools
 from numpy import nan
 import numpy as np
 
-from pandas.core.index import Index, _ensure_index
+from pandas.core.index import Index, _ensure_index, _handle_legacy_indexes
 import pandas.core.common as com
 import pandas._tseries as lib
 
@@ -378,6 +378,8 @@ class BlockManager(object):
         ax_arrays, bvalues, bitems = state[:3]
 
         self.axes = [_ensure_index(ax) for ax in ax_arrays]
+        self.axes = _handle_legacy_indexes(self.axes)
+
         blocks = []
         for values, items in zip(bvalues, bitems):
             blk = make_block(values, items, self.axes[0],
@@ -920,7 +922,7 @@ class BlockManager(object):
 
     def rename_axis(self, mapper, axis=1):
         new_axis = Index([mapper(x) for x in self.axes[axis]])
-        new_axis._verify_integrity()
+        assert(new_axis.is_unique)
 
         new_axes = list(self.axes)
         new_axes[axis] = new_axis
@@ -928,7 +930,7 @@ class BlockManager(object):
 
     def rename_items(self, mapper, copydata=True):
         new_items = Index([mapper(x) for x in self.items])
-        new_items._verify_integrity()
+        new_items.is_unique
 
         new_blocks = []
         for block in self.blocks:
@@ -1127,6 +1129,7 @@ def _consolidate(blocks, items):
         new_blocks.append(new_block)
 
     return new_blocks
+
 
 # TODO: this could be much optimized
 

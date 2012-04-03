@@ -12,7 +12,8 @@ from numpy import nan
 import numpy as np
 import numpy.ma as ma
 
-from pandas import Index, Series, TimeSeries, DataFrame, isnull, notnull
+from pandas import (Index, Series, TimeSeries, DataFrame, isnull, notnull,
+                    bdate_range)
 from pandas.core.index import MultiIndex
 
 import pandas.core.datetools as datetools
@@ -464,7 +465,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_getitem_setitem_boolean_corner(self):
         ts = self.ts
-        mask_shifted = ts.shift(1, offset=datetools.bday) > ts.median()
+        mask_shifted = ts.shift(1, freq=datetools.bday) > ts.median()
         self.assertRaises(Exception, ts.__getitem__, mask_shifted)
         self.assertRaises(Exception, ts.__setitem__, mask_shifted, 1)
 
@@ -942,7 +943,6 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(Series([nan, 0, 0, 0, nan]), r)
 
     def _check_stat_op(self, name, alternate, check_objects=False):
-        from pandas import DateRange
         import pandas.core.nanops as nanops
 
         def testit():
@@ -966,9 +966,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             s = Series([1, 2, 3, None, 5])
             f(s)
 
-            # check DateRange
+            # check date range
             if check_objects:
-                s = Series(DateRange('1/1/2000', periods=10))
+                s = Series(bdate_range('1/1/2000', periods=10))
                 res = f(s)
                 exp = alternate(s)
                 self.assertEqual(res, exp)
@@ -1130,9 +1130,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(result, expected)
 
     def test_comparison_operators_with_nas(self):
-        from pandas import DateRange
-
-        s = Series(DateRange('1/1/2000', periods=10), dtype=object)
+        s = Series(bdate_range('1/1/2000', periods=10), dtype=object)
         s[::2] = np.nan
 
         # test that comparions work
@@ -1173,9 +1171,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             assert_series_equal(result, expected)
 
     def test_between(self):
-        from pandas import DateRange
-
-        s = Series(DateRange('1/1/2000', periods=20), dtype=object)
+        s = Series(bdate_range('1/1/2000', periods=20), dtype=object)
         s[::2] = np.nan
 
         result = s[s.between(s[3], s[17])]
@@ -1708,16 +1704,16 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         tm.assert_dict_equal(unshifted.valid(), self.ts, compare_keys=False)
 
         offset = datetools.bday
-        shifted = self.ts.shift(1, offset=offset)
-        unshifted = shifted.shift(-1, offset=offset)
+        shifted = self.ts.shift(1, freq=offset)
+        unshifted = shifted.shift(-1, freq=offset)
 
         assert_series_equal(unshifted, self.ts)
 
-        unshifted = self.ts.shift(0, offset=offset)
+        unshifted = self.ts.shift(0, freq=offset)
         assert_series_equal(unshifted, self.ts)
 
-        shifted = self.ts.shift(1, timeRule='WEEKDAY')
-        unshifted = shifted.shift(-1, timeRule='WEEKDAY')
+        shifted = self.ts.shift(1, freq='WEEKDAY')
+        unshifted = shifted.shift(-1, freq='WEEKDAY')
 
         assert_series_equal(unshifted, self.ts)
 

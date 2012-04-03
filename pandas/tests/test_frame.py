@@ -1753,24 +1753,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         unpickled = pickle.loads(pickle.dumps(self.empty))
         repr(unpickled)
 
-    def test_unpickle_legacy_frame(self):
-        from pandas.core.daterange import DateRange
-        from pandas.core.datetools import BDay
-        from pandas.core.index import Int64Index
-
-        f = open('pandas/tests/data/frame.pickle', 'r')
-        unpickled = pickle.loads(f.read())
-        f.close()
-
-        dtindex = DateRange(start='1/3/2005', end='1/14/2005',
-                            offset=BDay(1))
-
-        self.assertEquals(type(unpickled.index), DateRange)
-        self.assertEquals(len(unpickled), 10)
-        self.assert_((unpickled.columns == Int64Index(np.arange(5))).all())
-        self.assert_((unpickled.index == dtindex).all())
-        self.assertEquals(unpickled.index.offset, BDay(1))
-
     def test_to_dict(self):
         test_data = {
                 'A' : {'1' : 1, '2' : 2},
@@ -2743,16 +2725,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = zero_length.asfreq('EOM')
         self.assert_(result is not zero_length)
 
-    def test_asfreq_DateRange(self):
-        from pandas.core.daterange import DateRange
+    def test_asfreq_datetimeindex(self):
+        from pandas import DatetimeIndex
         df = DataFrame({'A': [1,2,3]},
                        index=[datetime(2011,11,01), datetime(2011,11,2),
                               datetime(2011,11,3)])
         df = df.asfreq('WEEKDAY')
-        self.assert_(isinstance(df.index, DateRange))
+        self.assert_(isinstance(df.index, DatetimeIndex))
 
         ts = df['A'].asfreq('WEEKDAY')
-        self.assert_(isinstance(ts.index, DateRange))
+        self.assert_(isinstance(ts.index, DatetimeIndex))
 
     def test_as_matrix(self):
         frame = self.frame
@@ -3619,10 +3601,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(unshifted, self.tsframe)
 
         # shift by DateOffset
-        shiftedFrame = self.tsframe.shift(5, offset=datetools.BDay())
+        shiftedFrame = self.tsframe.shift(5, freq=datetools.BDay())
         self.assert_(len(shiftedFrame) == len(self.tsframe))
 
-        shiftedFrame2 = self.tsframe.shift(5, timeRule='WEEKDAY')
+        shiftedFrame2 = self.tsframe.shift(5, freq='WEEKDAY')
         assert_frame_equal(shiftedFrame, shiftedFrame2)
 
         d = self.tsframe.index[0]

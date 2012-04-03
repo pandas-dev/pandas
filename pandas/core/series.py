@@ -17,9 +17,9 @@ import numpy.ma as ma
 from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _default_index, _maybe_upcast,
                                 _asarray_tuplesafe)
-from pandas.core.daterange import DateRange
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
-                               _ensure_index, DatetimeIndex)
+                               _ensure_index, DatetimeIndex,
+                               _handle_legacy_indexes)
 from pandas.core.indexing import _SeriesIndexer
 from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
@@ -362,7 +362,7 @@ copy : boolean, default False
         if len(own_state) > 1:
             name = own_state[1]
 
-        self.index = index
+        self.index = _handle_legacy_indexes([index])[0]
         self.name = name
 
     _ix = None
@@ -2099,7 +2099,7 @@ copy : boolean, default False
                 return tsp.tsplot(self)
             if isinstance(self.index, DatetimeIndex):
                 offset = self.index.freq
-                name = datetools._newOffsetNames.get(offset, None)
+                name = datetools._offset_names.get(offset, None)
                 if name is not None:
                     try:
                         code = datetools._interval_str_to_code(name)
@@ -2321,21 +2321,7 @@ copy : boolean, default False
         if periods == 0:
             return self.copy()
 
-        if 'timeRule' in kwds or 'offset' in kwds:
-            offset = kwds.get('offset')
-            offset = kwds.get('timeRule', offset)
-            if isinstance(offset, basestring):
-                offset = datetools.getOffset(offset)
-            warn = True
-        else:
-            offset = freq
-            warn = False
-
-        if warn:
-            import warnings
-            warnings.warn("'timeRule' and 'offset' parameters are deprecated,"
-                          " please use 'freq' instead",
-                          FutureWarning)
+        offset = _resolve_offset(freq, kwds)
 
         if isinstance(offset, basestring):
             offset = datetools.to_offset(offset)
@@ -2397,28 +2383,26 @@ copy : boolean, default False
 
     def asfreq(self, freq, method=None):
         """
-        Convert this TimeSeries to the provided frequency using DateOffset
-        object or time rule. Optionally provide fill method to pad/backfill
-        missing values.
+        Convert all TimeSeries inside to specified frequency using DateOffset
+        objects. Optionally provide fill method to pad/backfill missing values.
 
         Parameters
         ----------
-        freq : DateOffset object, or corresponding string
-            DateOffset object or subclass (e.g. monthEnd)
-        method : {'backfill', 'pad', None}
-            Method to use for filling holes in new index
+        freq : DateOffset object, or string
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}
+            Method to use for filling holes in reindexed Series
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill methdo
 
         Returns
         -------
-        converted : TimeSeries
+        converted : DataFrame
         """
-
-        if isinstance(freq, datetools.DateOffset):
-            dateRange = DateRange(self.index[0], self.index[-1], offset=freq)
-        else:
-            dateRange = DateRange(self.index[0], self.index[-1], time_rule=freq)
-
-        return self.reindex(dateRange, method=method)
+        from pandas.core.daterange import date_range
+        if len(self.index) == 0:
+            return self.copy()
+        dti = date_range(self.index[0], self.index[-1], freq=freq)
+        return self.reindex(dti, method=method)
 
     def interpolate(self, method='linear'):
         """
@@ -2601,3 +2585,26 @@ def _get_rename_function(mapper):
         f = mapper
 
     return f
+
+
+def _resolve_offset(freq, kwds):
+    from pandas.core.datetools import getOffset
+
+    if 'timeRule' in kwds or 'offset' in kwds:
+        offset = kwds.get('offset')
+        offset = kwds.get('timeRule', offset)
+        if isinstance(offset, basestring):
+            offset = datetools.getOffset(offset)
+        warn = True
+    else:
+        offset = freq
+        warn = False
+
+    if warn:
+        import warnings
+        foo
+        warnings.warn("'timeRule' and 'offset' parameters are deprecated,"
+                      " please use 'freq' instead",
+                      FutureWarning)
+
+    return offset

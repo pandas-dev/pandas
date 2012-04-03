@@ -7,7 +7,7 @@ import numpy as np
 import pandas.core.datetools as datetools
 from pandas.core.datetools import generate_range
 from pandas.core.index import Index, DatetimeIndex
-from pandas.core.daterange import DateRange
+from pandas.core.daterange import bdate_range, date_range
 import pandas.util.testing as tm
 
 import pandas._tseries as lib
@@ -17,63 +17,66 @@ try:
 except ImportError:
     pass
 
-def eqXDateRange(kwargs, expected):
+def eq_gen_range(kwargs, expected):
     rng = generate_range(**kwargs)
     assert(np.array_equal(list(rng), expected))
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
-class TestDateRangeGeneration(unittest.TestCase):
+class TestGenRangeGeneration(unittest.TestCase):
     def test_generate(self):
         rng1 = list(generate_range(START, END, offset=datetools.bday))
         rng2 = list(generate_range(START, END, time_rule='WEEKDAY'))
         self.assert_(np.array_equal(rng1, rng2))
 
     def test_1(self):
-        eqXDateRange(dict(start=datetime(2009, 3, 25), periods=2),
+        eq_gen_range(dict(start=datetime(2009, 3, 25), periods=2),
                      [datetime(2009, 3, 25), datetime(2009, 3, 26)])
 
     def test_2(self):
-        eqXDateRange(dict(start=datetime(2008, 1, 1),
+        eq_gen_range(dict(start=datetime(2008, 1, 1),
                           end=datetime(2008, 1, 3)),
                      [datetime(2008, 1, 1),
                       datetime(2008, 1, 2),
                       datetime(2008, 1, 3)])
 
     def test_3(self):
-        eqXDateRange(dict(start = datetime(2008, 1, 5),
+        eq_gen_range(dict(start = datetime(2008, 1, 5),
                           end = datetime(2008, 1, 6)),
                      [])
 
 class TestDateRange(unittest.TestCase):
 
     def setUp(self):
-        self.rng = DateRange(START, END, offset=datetools.bday)
+        self.rng = bdate_range(START, END)
 
     def test_constructor(self):
-        rng = DateRange(START, END, offset=datetools.bday)
-        rng = DateRange(START, periods=20, offset=datetools.bday)
-        rng = DateRange(end=START, periods=20, offset=datetools.bday)
+        rng = bdate_range(START, END, freq=datetools.bday)
+        rng = bdate_range(START, periods=20, freq=datetools.bday)
+        rng = bdate_range(end=START, periods=20, freq=datetools.bday)
 
     def test_cached_range(self):
-        rng = DateRange._cached_range(START, END, offset=datetools.bday)
-        rng = DateRange._cached_range(START, periods=20, offset=datetools.bday)
-        rng = DateRange._cached_range(end=START, periods=20, offset=datetools.bday)
+        rng = DatetimeIndex._cached_range(START, END,
+                                          offset=datetools.bday)
+        rng = DatetimeIndex._cached_range(START, periods=20,
+                                          offset=datetools.bday)
+        rng = DatetimeIndex._cached_range(end=START, periods=20,
+                                          offset=datetools.bday)
 
-        self.assertRaises(Exception, DateRange._cached_range, START, END)
+        self.assertRaises(Exception, DatetimeIndex._cached_range, START, END)
 
-        self.assertRaises(Exception, DateRange._cached_range, START,
-                          offset=datetools.bday)
+        self.assertRaises(Exception, DatetimeIndex._cached_range, START,
+                          freq=datetools.bday)
 
-        self.assertRaises(Exception, DateRange._cached_range, end=END,
-                          offset=datetools.bday)
+        self.assertRaises(Exception, DatetimeIndex._cached_range, end=END,
+                          freq=datetools.bday)
 
-        self.assertRaises(Exception, DateRange._cached_range, periods=20,
-                          offset=datetools.bday)
+        self.assertRaises(Exception, DatetimeIndex._cached_range, periods=20,
+                          freq=datetools.bday)
 
     def test_cached_range_bug(self):
-        rng = DateRange('2010-09-01 05:00:00', periods=50,
-                        offset=datetools.DateOffset(hours=6))
+        rng = date_range('2010-09-01 05:00:00', periods=50,
+                         freq=datetools.DateOffset(hours=6))
         self.assertEquals(len(rng), 50)
         self.assertEquals(rng[0], datetime(2010, 9, 1, 5))
 
@@ -103,7 +106,8 @@ class TestDateRange(unittest.TestCase):
 
         fancy_indexed = self.rng[[4, 3, 2, 1, 0]]
         self.assertEquals(len(fancy_indexed), 5)
-        self.assert_(not isinstance(fancy_indexed, DateRange))
+        self.assert_(isinstance(fancy_indexed, DatetimeIndex))
+        self.assert_(fancy_indexed.freq is None)
 
         # 32-bit vs. 64-bit platforms
         self.assertEquals(self.rng[4], self.rng[np.int_(4)])
@@ -126,7 +130,7 @@ class TestDateRange(unittest.TestCase):
         self.assertEquals(shifted[0], self.rng[0])
         self.assertEquals(shifted.offset, self.rng.offset)
 
-        rng = DateRange(START, END, offset=datetools.bmonthEnd)
+        rng = date_range(START, END, freq=datetools.bmonthEnd)
         shifted = rng.shift(1, freq=datetools.bday)
         self.assertEquals(shifted[0], rng[0] + datetools.bday)
 
@@ -142,7 +146,7 @@ class TestDateRange(unittest.TestCase):
         right = self.rng[5:10]
 
         the_union = left.union(right)
-        self.assert_(isinstance(the_union, DateRange))
+        self.assert_(isinstance(the_union, DatetimeIndex))
 
         # non-overlapping, gap in middle
         left = self.rng[:5]
@@ -156,49 +160,51 @@ class TestDateRange(unittest.TestCase):
         right = self.rng[5:10]
 
         the_union = left.union(right)
-        self.assert_(isinstance(the_union, DateRange))
+        self.assert_(isinstance(the_union, DatetimeIndex))
 
         # order does not matter
         self.assert_(np.array_equal(right.union(left), the_union))
 
         # overlapping, but different offset
-        rng = DateRange(START, END, offset=datetools.bmonthEnd)
+        rng = date_range(START, END, freq=datetools.bmonthEnd)
 
         the_union = self.rng.union(rng)
-        self.assert_(isinstance(the_union, DateRange))
+        self.assert_(isinstance(the_union, DatetimeIndex))
 
     def test_outer_join(self):
-        """ should behave just as union test"""
+        # should just behave as union
+
         # overlapping
         left = self.rng[:10]
         right = self.rng[5:10]
 
         the_join = left.join(right, how='outer')
-        self.assert_(isinstance(the_join, DateRange))
+        self.assert_(isinstance(the_join, DatetimeIndex))
 
         # non-overlapping, gap in middle
         left = self.rng[:5]
         right = self.rng[10:]
 
         the_join = left.join(right, how='outer')
-        self.assert_(isinstance(the_join, Index))
-        self.assert_(not isinstance(the_join, DateRange))
+        self.assert_(isinstance(the_join, DatetimeIndex))
+        self.assert_(the_join.freq is None)
 
         # non-overlapping, no gap
         left = self.rng[:5]
         right = self.rng[5:10]
 
         the_join = left.join(right, how='outer')
-        self.assert_(isinstance(the_join, DateRange))
+        self.assert_(isinstance(the_join, DatetimeIndex))
 
         # overlapping, but different offset
-        rng = DateRange(START, END, offset=datetools.bmonthEnd)
+        rng = date_range(START, END, freq=datetools.bmonthEnd)
 
         the_join = self.rng.join(rng, how='outer')
-        self.assert_(not isinstance(the_join, DateRange))
+        self.assert_(isinstance(the_join, DatetimeIndex))
+        self.assert_(the_join.freq is None)
 
     def test_union_not_cacheable(self):
-        rng = DateRange('1/1/2000', periods=50, offset=datetools.Minute())
+        rng = date_range('1/1/2000', periods=50, freq=datetools.Minute())
         rng1 = rng[10:]
         rng2 = rng[:25]
         the_union = rng1.union(rng2)
@@ -211,16 +217,16 @@ class TestDateRange(unittest.TestCase):
         self.assert_(the_union.equals(expected))
 
     def test_intersection(self):
-        rng = DateRange('1/1/2000', periods=50, offset=datetools.Minute())
+        rng = date_range('1/1/2000', periods=50, freq=datetools.Minute())
         rng1 = rng[10:]
         rng2 = rng[:25]
         the_int = rng1.intersection(rng2)
         expected = rng[10:25]
         self.assert_(the_int.equals(expected))
-        self.assert_(isinstance(the_int, DateRange))
+        self.assert_(isinstance(the_int, DatetimeIndex))
         self.assert_(the_int.offset == rng.offset)
 
-        the_int = rng1.intersection(rng2.view(DateRange))
+        the_int = rng1.intersection(rng2.view(DatetimeIndex))
         self.assert_(the_int.equals(expected))
 
         # non-overlapping
@@ -230,46 +236,46 @@ class TestDateRange(unittest.TestCase):
 
     def test_intersection_bug(self):
         # GH #771
-        a = DateRange('11/30/2011','12/31/2011')
-        b = DateRange('12/10/2011','12/20/2011')
+        a = bdate_range('11/30/2011','12/31/2011')
+        b = bdate_range('12/10/2011','12/20/2011')
         result = a.intersection(b)
         self.assert_(result.equals(b))
 
-    def test_with_tzinfo(self):
+    def test_with_tz(self):
         _skip_if_no_pytz()
         tz = pytz.timezone('US/Central')
 
         # just want it to work
         start = datetime(2011, 3, 12, tzinfo=pytz.utc)
-        dr = DateRange(start, periods=50, offset=datetools.Hour())
-        self.assert_(dr.tzinfo is not None)
-        self.assert_(dr.tzinfo is start.tzinfo)
+        dr = bdate_range(start, periods=50, freq=datetools.Hour())
+        self.assert_(dr.tz is not None)
+        self.assert_(dr.tz is start.tzinfo)
 
         # DateRange with naive datetimes
-        dr = DateRange('1/1/2005', '1/1/2009', tzinfo=pytz.utc)
-        dr = DateRange('1/1/2005', '1/1/2009', tzinfo=tz)
+        dr = bdate_range('1/1/2005', '1/1/2009', tz=pytz.utc)
+        dr = bdate_range('1/1/2005', '1/1/2009', tz=tz)
 
         # normalized
         central = dr.tz_normalize(tz)
-        self.assert_(central.tzinfo is tz)
-        self.assert_(central[0].tzinfo is tz)
+        self.assert_(central.tz is tz)
+        self.assert_(central[0].tz is tz)
 
         # datetimes with tzinfo set
-        dr = DateRange(datetime(2005, 1, 1, tzinfo=pytz.utc),
-                       '1/1/2009', tzinfo=pytz.utc)
+        dr = bdate_range(datetime(2005, 1, 1, tzinfo=pytz.utc),
+                         '1/1/2009', tz=pytz.utc)
 
-        self.assertRaises(Exception, DateRange,
+        self.assertRaises(Exception, bdate_range,
                           datetime(2005, 1, 1, tzinfo=pytz.utc),
-                          '1/1/2009', tzinfo=tz)
+                          '1/1/2009', tz=tz)
 
     def test_tz_localize(self):
         _skip_if_no_pytz()
-        dr = DateRange('1/1/2009', '1/1/2010')
-        dr_utc = DateRange('1/1/2009', '1/1/2010', tzinfo=pytz.utc)
+        dr = bdate_range('1/1/2009', '1/1/2010')
+        dr_utc = bdate_range('1/1/2009', '1/1/2010', tz=pytz.utc)
         localized = dr.tz_localize(pytz.utc)
         self.assert_(np.array_equal(dr_utc, localized))
 
-    def test_with_tzinfo_ambiguous_times(self):
+    def test_with_tz_ambiguous_times(self):
         _skip_if_no_pytz()
         tz = pytz.timezone('US/Eastern')
 
@@ -277,36 +283,36 @@ class TestDateRange(unittest.TestCase):
         self.assert_(self.rng.tz_validate())
 
         # March 13, 2011, spring forward, skip from 2 AM to 3 AM
-        dr = DateRange(datetime(2011, 3, 13, 1, 30), periods=3,
-                       offset=datetools.Hour(), tzinfo=tz)
+        dr = date_range(datetime(2011, 3, 13, 1, 30), periods=3,
+                        freq=datetools.Hour(), tz=tz)
         self.assert_(not dr.tz_validate())
 
         # after dst transition
-        dr = DateRange(datetime(2011, 3, 13, 3, 30), periods=3,
-                       offset=datetools.Hour(), tzinfo=tz)
+        dr = date_range(datetime(2011, 3, 13, 3, 30), periods=3,
+                        freq=datetools.Hour(), tz=tz)
         self.assert_(dr.tz_validate())
 
         # November 6, 2011, fall back, repeat 2 AM hour
-        dr = DateRange(datetime(2011, 11, 6, 1, 30), periods=3,
-                       offset=datetools.Hour(), tzinfo=tz)
+        dr = date_range(datetime(2011, 11, 6, 1, 30), periods=3,
+                        freq=datetools.Hour(), tz=tz)
         self.assert_(not dr.tz_validate())
 
         # UTC is OK
-        dr = DateRange(datetime(2011, 3, 13), periods=48,
-                       offset=datetools.Minute(30), tzinfo=pytz.utc)
+        dr = date_range(datetime(2011, 3, 13), periods=48,
+                        freq=datetools.Minute(30), tz=pytz.utc)
         self.assert_(dr.tz_validate())
 
     def test_summary(self):
         self.rng.summary()
         self.rng[2:2].summary()
         try:
-            DateRange('1/1/2005', '1/1/2009', tzinfo=pytz.utc).summary()
+            bdate_range('1/1/2005', '1/1/2009', tz=pytz.utc).summary()
         except Exception:
             pass
 
     def test_misc(self):
         end = datetime(2009, 5, 13)
-        dr = DateRange(end=end, periods=20)
+        dr = bdate_range(end=end, periods=20)
         firstDate = end - 19 * datetools.bday
 
         assert len(dr) == 20
@@ -314,7 +320,7 @@ class TestDateRange(unittest.TestCase):
         assert dr[-1] == end
 
     # test utility methods
-    def test_infer_tzinfo(self):
+    def test_infer_tz(self):
         _skip_if_no_pytz()
         eastern = pytz.timezone('US/Eastern')
         utc = pytz.utc
@@ -338,11 +344,11 @@ class TestDateRange(unittest.TestCase):
 
     def test_date_parse_failure(self):
         badly_formed_date = '2007/100/1'
-        self.assertRaises(ValueError, DateRange, start=badly_formed_date,
+        self.assertRaises(ValueError, bdate_range, start=badly_formed_date,
                           periods=10)
-        self.assertRaises(ValueError, DateRange, end=badly_formed_date,
+        self.assertRaises(ValueError, bdate_range, end=badly_formed_date,
                           periods=10)
-        self.assertRaises(ValueError, DateRange, badly_formed_date,
+        self.assertRaises(ValueError, bdate_range, badly_formed_date,
                           badly_formed_date)
 
     def test_equals(self):
@@ -350,21 +356,21 @@ class TestDateRange(unittest.TestCase):
 
     def test_daterange_bug_456(self):
         # GH #456
-        rng1 = DateRange('12/5/2011', '12/5/2011')
-        rng2 = DateRange('12/2/2011', '12/5/2011')
+        rng1 = bdate_range('12/5/2011', '12/5/2011')
+        rng2 = bdate_range('12/2/2011', '12/5/2011')
         rng2.offset = datetools.BDay()
 
         result = rng1.union(rng2)
-        self.assert_(type(result) == DateRange)
+        self.assert_(isinstance(result, DatetimeIndex))
 
     def test_error_with_zero_monthends(self):
-        self.assertRaises(ValueError, DateRange, '1/1/2000', '1/1/2001',
-                          offset=datetools.MonthEnd(0))
+        self.assertRaises(ValueError, date_range, '1/1/2000', '1/1/2001',
+                          freq=datetools.MonthEnd(0))
 
     def test_range_bug(self):
         # GH #770
         offset = datetools.DateOffset(months=3)
-        result = DateRange("2011-1-1", "2012-1-31", offset=offset)
+        result = date_range("2011-1-1", "2012-1-31", freq=offset)
 
         start = datetime(2011, 1, 1)
         exp_values = [start + i * offset for i in range(5)]
@@ -543,7 +549,7 @@ class TestDatetimePyx(unittest.TestCase):
     def test_dayofmonthoffset(self):
         for week in (-1, 0, 1):
             for day in (0, 2, 4):
-                off = lib.DayOfMonthOffset(week=-1, day=day, 
+                off = lib.DayOfMonthOffset(week=-1, day=day,
                                            anchor=datetime(2002,1,1))
 
                 stack = []
@@ -551,7 +557,7 @@ class TestDatetimePyx(unittest.TestCase):
                 for i in range(500):
                     t = lib.Timestamp(off.ts)
                     stack.append(t)
-                    self.assert_(t.weekday() == day) 
+                    self.assert_(t.weekday() == day)
                     off.next()
 
                 for i in range(499, -1, -1):
@@ -563,8 +569,8 @@ class TestDatetimePyx(unittest.TestCase):
     def test_catch_infinite_loop(self):
         offset = datetools.DateOffset(minute=5)
         # blow up, don't loop forever
-        self.assertRaises(Exception, DateRange, datetime(2011,11,11),
-                          datetime(2011,11,12), offset=offset)
+        self.assertRaises(Exception, date_range, datetime(2011,11,11),
+                          datetime(2011,11,12), freq=offset)
 
 def _skip_if_no_pytz():
     try:

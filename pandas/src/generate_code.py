@@ -408,9 +408,15 @@ def backfill_2d_inplace_%(name)s(ndarray[%(c_type)s, ndim=2] values,
 is_monotonic_template = """@cython.boundscheck(False)
 @cython.wraparound(False)
 def is_monotonic_%(name)s(ndarray[%(c_type)s] arr):
+    '''
+    Returns
+    -------
+    is_monotonic, is_unique
+    '''
     cdef:
         Py_ssize_t i, n
         %(c_type)s prev, cur
+        bint is_unique = 1
 
     n = len(arr)
 
@@ -421,10 +427,11 @@ def is_monotonic_%(name)s(ndarray[%(c_type)s] arr):
     for i in range(1, n):
         cur = arr[i]
         if cur < prev:
-            return False
+            return False, None
+        elif cur == prev:
+            is_unique = 0
         prev = cur
-    return True
-
+    return True, is_unique
 """
 
 map_indices_template = """@cython.wraparound(False)
@@ -748,28 +755,24 @@ def generate_put_functions():
     return output.getvalue()
 
 
-# name, ctype, capable of holding NA, NA representation
+# name, ctype, capable of holding NA
 function_list = [
-    ('float64', 'float64_t', 'np.float64', True, 'NaN'),
-    ('object', 'object', 'object', True, 'NaN'),
-    ('int32', 'int32_t', 'np.int32', False, ''),
-    ('int64', 'int64_t', 'np.int64', False, ''),
-    ('bool', 'uint8_t', 'np.bool', False, ''),
+    ('float64', 'float64_t', 'np.float64', True),
+    ('object', 'object', 'object', True),
+    ('int32', 'int32_t', 'np.int32', False),
+    ('int64', 'int64_t', 'np.int64', False),
+    ('bool', 'uint8_t', 'np.bool', False)
 ]
 
 def generate_from_template(template, ndim=1, exclude=None):
     output = StringIO()
-    for name, c_type, dtype, can_hold_na, na_val in function_list:
+    for name, c_type, dtype, can_hold_na in function_list:
         if exclude is not None and name in exclude:
             continue
 
-        if ndim == 1:
-            na_action = set_na(na=na_val) if can_hold_na else raise_on_na
-        elif ndim == 2:
-            na_action = set_na_2d(na=na_val) if can_hold_na else raise_on_na
-
-        func = template % {'name' : name, 'c_type' : c_type,
-                           'dtype' : dtype, 'na_action' : na_action}
+        func = template % {'name': name, 'c_type': c_type,
+                           'dtype': dtype,
+                           'raise_on_na': 'False' if can_hold_na else 'True'}
         output.write(func)
     return output.getvalue()
 

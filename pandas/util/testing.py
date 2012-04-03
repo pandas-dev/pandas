@@ -14,18 +14,17 @@ import numpy as np
 
 from pandas.core.common import isnull
 import pandas.core.index as index
-import pandas.core.daterange as daterange
 import pandas.core.series as series
 import pandas.core.frame as frame
 import pandas.core.panel as panel
 
+from pandas import bdate_range
 from pandas.core.index import DatetimeIndex, IntervalIndex
 
 # to_reload = ['index', 'daterange', 'series', 'frame', 'matrix', 'panel']
 # for mod in to_reload:
 #     reload(locals()[mod])
 
-DateRange = daterange.DateRange
 Index = index.Index
 Series = series.Series
 DataFrame = frame.DataFrame
@@ -166,7 +165,7 @@ def makeFloatIndex(k):
     return Index(values * (10 ** np.random.randint(0, 9)))
 
 def makeDateIndex(k):
-    dates = list(DateRange(datetime(2000, 1, 1), periods=k))
+    dates = list(bdate_range(datetime(2000, 1, 1), periods=k))
     return Index(dates)
 
 def makeFloatSeries():
@@ -201,14 +200,14 @@ def getMixedTypeDict():
         'A' : [0., 1., 2., 3., 4.],
         'B' : [0., 1., 0., 1., 0.],
         'C' : ['foo1', 'foo2', 'foo3', 'foo4', 'foo5'],
-        'D' : DateRange('1/1/2009', periods=5)
+        'D' : bdate_range('1/1/2009', periods=5)
     }
 
     return index, data
 
 def makeDateIndex(k):
     dt = datetime(2000,1,1)
-    dr = DateRange(dt, periods=k)
+    dr = bdate_range(dt, periods=k)
     return DatetimeIndex(dr)
 
 def makeIntervalIndex(k):

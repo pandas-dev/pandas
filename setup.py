@@ -329,7 +329,7 @@ else:
     cmdclass['sdist'] =  CheckSDist
 
 tseries_depends = ['reindex', 'groupby', 'skiplist', 'moments',
-                   'generated', 'reduce', 'stats',
+                   'generated', 'reduce', 'stats', 'datetime',
                    'inference', 'properties', 'internals',
                    'hashtable', 'join']
 

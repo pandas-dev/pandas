@@ -13,6 +13,8 @@ from libc.math cimport floor
 from datetime cimport *
 from util cimport is_integer_object, is_datetime64_object
 
+from dateutil.parser import parse as parse_date
+
 # initialize numpy
 import_array()
 import_ufunc()
@@ -38,8 +40,18 @@ ctypedef enum time_res:
 # Python front end to C extension type _Timestamp
 # This serves as the box for datetime64
 class Timestamp(_Timestamp):
-    def __new__(cls, object ts_input, object offset=None, tzinfo=None):
-        ts = convert_to_tsobject(ts_input, tzinfo)
+    def __new__(cls, object ts_input, object offset=None, tz=None):
+        if isinstance(ts_input, float):
+            # to do, do we want to support this, ie with fractional seconds?
+            raise TypeError("Cannot convert a float to datetime")
+
+        if isinstance(ts_input, basestring):
+            try:
+                ts_input = parse_date(ts_input)
+            except Exception:
+                pass
+
+        ts = convert_to_tsobject(ts_input, tz)
 
         # make datetime happy
         ts_base = _Timestamp.__new__(
@@ -60,6 +72,13 @@ class Timestamp(_Timestamp):
         return ts_base
 
     @property
+    def tz(self):
+        """
+        Alias for tzinfo
+        """
+        return self.tzinfo
+
+    @property
     def freq(self):
         return self.offset
 
@@ -71,6 +90,17 @@ class Timestamp(_Timestamp):
     def __reduce__(self):
         object_state = self.value, self.offset, self.tzinfo
         return (Timestamp, object_state)
+
+    def to_interval(self, freq=None):
+        """
+        Return an interval of which this timestamp is an observation.
+        """
+        from pandas.core.datetools import Interval
+
+        if freq == None:
+            freq = self.freq
+
+        return Interval(self, freq=freq)
 
 
 # This is PITA. Because we inherit from datetime, which has very specific
@@ -786,7 +816,7 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
         int isleap
         npy_datetimestruct dts
 
-    _month_offset = np.array( 
+    _month_offset = np.array(
         [[ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 ],
          [ 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 ]],
          dtype=np.int32 )

@@ -5,7 +5,7 @@ from datetime import datetime
 from numpy.random import randn
 import numpy as np
 
-from pandas.core.api import Series, DataFrame, DateRange
+from pandas import Series, DataFrame, bdate_range
 from pandas.util.testing import assert_almost_equal
 import pandas.core.datetools as datetools
 import pandas.stats.moments as mom
@@ -23,7 +23,7 @@ class TestMoments(unittest.TestCase):
         arr[self._nan_locs] = np.NaN
 
         self.arr = arr
-        self.rng = DateRange(datetime(2009, 1, 1), periods=N)
+        self.rng = bdate_range(datetime(2009, 1, 1), periods=N)
 
         self.series = Series(arr.copy(), index=self.rng)
 

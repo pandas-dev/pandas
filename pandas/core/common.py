@@ -163,6 +163,8 @@ def take_1d(arr, indexer, out=None, fill_value=np.nan):
         # Cython methods expects 32-bit integers
         indexer = np.array(indexer, dtype=np.int32)
 
+    indexer = _ensure_int32(indexer)
+
     out_passed = out is not None
 
     if dtype_str in ('int32', 'int64', 'bool'):

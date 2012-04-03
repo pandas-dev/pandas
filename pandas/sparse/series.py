@@ -481,22 +481,23 @@ to sparse
         else:
             return dense_valid.to_sparse(fill_value=self.fill_value)
 
-    def shift(self, periods, offset=None, timeRule=None):
+    def shift(self, periods, freq=None, **kwds):
         """
         Analogous to Series.shift
         """
+        from pandas.core.series import _resolve_offset
+
+        offset = _resolve_offset(freq, kwds)
+
         # no special handling of fill values yet
         if not isnull(self.fill_value):
-            dense_shifted = self.to_dense().shift(periods, offset=offset,
-                                                  timeRule=timeRule)
+            dense_shifted = self.to_dense().shift(periods, freq=freq,
+                                                  **kwds)
             return dense_shifted.to_sparse(fill_value=self.fill_value,
                                            kind=self.kind)
 
         if periods == 0:
             return self.copy()
-
-        if timeRule is not None and offset is None:
-            offset = datetools.getOffset(timeRule)
 
         if offset is not None:
             return SparseSeries(self.sp_values,

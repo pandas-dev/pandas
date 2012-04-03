@@ -4,7 +4,7 @@ import unittest
 from datetime import datetime
 from numpy import nan
 
-from pandas.core.daterange import DateRange
+from pandas import bdate_range
 from pandas.core.index import Index, MultiIndex
 from pandas.core.common import rands
 from pandas.core.frame import DataFrame
@@ -22,7 +22,7 @@ import numpy as np
 import pandas.util.testing as tm
 
 def commonSetUp(self):
-    self.dateRange = DateRange('1/1/2005', periods=250, offset=dt.bday)
+    self.dateRange = bdate_range('1/1/2005', periods=250)
     self.stringIndex = Index([rands(8).upper() for x in xrange(250)])
 
     self.groupId = Series([x[0] for x in self.stringIndex],
@@ -1081,7 +1081,7 @@ class TestGroupBy(unittest.TestCase):
         assert_almost_equal(grouped.grouper.labels[0], exp_labels)
 
     def test_cython_fail_agg(self):
-        dr = DateRange('1/1/2000', periods=50)
+        dr = bdate_range('1/1/2000', periods=50)
         ts = Series(['A', 'B', 'C', 'D', 'E'] * 10, index=dr)
 
         grouped = ts.groupby(lambda x: x.month)
@@ -1095,7 +1095,7 @@ class TestGroupBy(unittest.TestCase):
                               'demeaned' : piece - piece.mean(),
                               'logged' : np.log(piece)})
 
-        dr = DateRange('1/1/2000', periods=100)
+        dr = bdate_range('1/1/2000', periods=100)
         ts = Series(np.random.randn(100), index=dr)
 
         grouped = ts.groupby(lambda x: x.month)

@@ -483,7 +483,7 @@ class TextParser(object):
         else:
             index = Index(np.arange(len(content)))
 
-        if not index._verify_integrity():
+        if not index.is_unique:
             dups = index.get_duplicates()
             idx_str = 'Index' if not self.implicit_idx else 'Implicit index'
             err_msg = ('%s (columns %s) have duplicate values %s'
@@ -793,7 +793,7 @@ class ExcelWriter(object):
             sheet = self.book.create_sheet()
             sheet.title = sheet_name
             row_idx = 0
-        
+
         conv_row = []
         for val in row:
             if isinstance(val, np.int64):

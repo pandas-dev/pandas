@@ -26,7 +26,6 @@ import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
                                 _default_index, _stringify)
-from pandas.core.daterange import DateRange
 from pandas.core.generic import NDFrame
 from pandas.core.index import (Index, DatetimeIndex, MultiIndex, NULL_INDEX,
                                _ensure_index)
@@ -2032,7 +2031,7 @@ class DataFrame(NDFrame):
 
         index = MultiIndex.from_arrays(arrays, names=cols)
 
-        if verify_integrity and not index._verify_integrity():
+        if verify_integrity and not index.is_unique:
             duplicates = index.get_duplicates()
             raise Exception('Index has duplicate keys: %s' % duplicates)
 
@@ -2880,7 +2879,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Time series-related
 
-    def tofreq(self, freq, method=None):
+    def asfreq(self, freq, method=None):
         """
         Convert all TimeSeries inside to specified frequency using DateOffset
         objects. Optionally provide fill method to pad/backfill missing values.
@@ -2897,45 +2896,11 @@ class DataFrame(NDFrame):
         -------
         converted : DataFrame
         """
+        from pandas.core.daterange import date_range
         if len(self.index) == 0:
             return self.copy()
-        dti = DatetimeIndex(self.index[0], self.index[-1], freq=freq)
+        dti = date_range(self.index[0], self.index[-1], freq=freq)
         return self.reindex(dti, method=method)
-
-
-    def asfreq(self, offset, method=None):
-        """
-        Convert all TimeSeries inside to specified frequency using DateOffset
-        objects. Optionally provide fill method to pad/backfill missing values.
-
-        Parameters
-        ----------
-        offset : DateOffset object, or string in {'WEEKDAY', 'EOM'}
-            DateOffset object or subclass (e.g. monthEnd)
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}
-            Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill methdo
-
-        Returns
-        -------
-        converted : DataFrame
-        """
-
-        import warnings
-        warnings.warn("The 'asfreq' method is deprecated; use 'tofreq' "
-                      " and the new pandas offsets",
-                      FutureWarning)
-        
-        if len(self.index) == 0:
-            return self.copy()
-
-        if isinstance(offset, datetools.DateOffset):
-            dateRange = DateRange(self.index[0], self.index[-1], offset=offset)
-        else:
-            dateRange = DateRange(self.index[0], self.index[-1], time_rule=offset)
-
-        return self.reindex(dateRange, method=method)
 
     def diff(self, periods=1):
         """
@@ -2968,24 +2933,12 @@ class DataFrame(NDFrame):
         -------
         shifted : DataFrame
         """
+        from pandas.core.series import _resolve_offset
+
         if periods == 0:
             return self
 
-        if 'timeRule' in kwds or 'offset' in kwds:
-            offset = kwds.get('offset')
-            offset = kwds.get('timeRule', offset)
-            if isinstance(offset, basestring):
-                offset = datetools.getOffset(offset)
-            warn = True
-        else:
-            offset = freq
-            warn = False
-
-        if warn:
-            import warnings
-            warnings.warn("'timeRule' and 'offset' parameters are deprecated,"
-                          " please use 'freq' instead",
-                          FutureWarning)
+        offset = _resolve_offset(freq, kwds)
 
         if isinstance(offset, basestring):
             offset = datetools.to_offset(offset)

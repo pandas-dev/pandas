@@ -3,10 +3,9 @@ from datetime import datetime
 
 import cPickle as pickle
 
-from pandas.core.index import DatetimeIndex
+from pandas.core.index import DatetimeIndex, Index
 from pandas.core.frame import DataFrame
 
-from pandas.core.daterange import DateRange
 from pandas.core.index import Int64Index
 
 import unittest
@@ -19,7 +18,7 @@ from numpy.random import rand
 from pandas.util.testing import assert_series_equal, assert_frame_equal
 
 from pandas.core.groupby import Tinterval
-from pandas.core.datetools import Minute, BDay
+from pandas.core.datetools import Minute, BDay, Timestamp
 
 try:
     import pytz
@@ -214,7 +213,7 @@ class TestDatetime64(unittest.TestCase):
     def test_dayofmonthoffset(self):
         for week in (-1, 0, 1):
             for day in (0, 2, 4):
-                off = lib.DayOfMonthOffset(week=-1, day=day, 
+                off = lib.DayOfMonthOffset(week=-1, day=day,
                                            anchor=datetime(2002,1,1))
 
                 stack = []
@@ -222,7 +221,7 @@ class TestDatetime64(unittest.TestCase):
                 for i in range(500):
                     t = lib.Timestamp(off.ts)
                     stack.append(t)
-                    self.assert_(t.weekday() == day) 
+                    self.assert_(t.weekday() == day)
                     off.next()
 
                 for i in range(499, -1, -1):
@@ -276,14 +275,14 @@ class TestDatetime64(unittest.TestCase):
         dti = DatetimeIndex(freq='WOM@1FRI', start=datetime(2005,1,1),
                             end=datetime(2010,1,1))
 
-        s = Series(np.arange(len(dti)), index=dti) 
+        s = Series(np.arange(len(dti)), index=dti)
 
         self.assertEquals(s[48], 48)
         self.assertEquals(s['1/2/2009'], 48)
         self.assertEquals(s['2009-1-2'], 48)
         self.assertEquals(s[datetime(2009,1,2)], 48)
         self.assertEquals(s[lib.Timestamp(datetime(2009,1,2))], 48)
-        self.assertRaises(KeyError, s.__getitem__, '2009-1-3') 
+        self.assertRaises(KeyError, s.__getitem__, '2009-1-3')
 
         assert_series_equal(s['3/6/2009':'2009-06-05'],
                             s[datetime(2009,3,6):datetime(2009,6,5)])
@@ -292,7 +291,7 @@ class TestDatetime64(unittest.TestCase):
         dti = DatetimeIndex(freq='WOM@1FRI', start=datetime(2005,1,1),
                             end=datetime(2010,1,1))
 
-        s = Series(np.arange(len(dti)), index=dti) 
+        s = Series(np.arange(len(dti)), index=dti)
         s[48] = -1
         self.assertEquals(s[48], -1)
         s['1/2/2009'] = -2
@@ -459,6 +458,14 @@ class TestDatetime64(unittest.TestCase):
                             freq='L')
         self.assertRaises(pytz.AmbiguousTimeError, dti.tz_localize, tz)
 
+    def test_asobject_tz_box(self):
+        tz = pytz.timezone('US/Eastern')
+        index = DatetimeIndex(start='1/1/2005', periods=10, tz=tz,
+                              freq='B')
+
+        result = index.asobject
+        self.assert_(result[0].tz is tz)
+
     def test_slice_year(self):
         dti = DatetimeIndex(freq='B', start=datetime(2005,1,1), periods=500)
 
@@ -491,27 +498,26 @@ class TestDatetime64(unittest.TestCase):
         unpickled = pickle.loads(f.read())
         f.close()
 
-        dtindex = DateRange(start='1/3/2005', end='1/14/2005',
-                            offset=BDay(1))
+        dtindex = DatetimeIndex(start='1/3/2005', end='1/14/2005',
+                                freq=BDay(1))
 
-        self.assertEquals(type(unpickled.index), DateRange)
+        self.assertEquals(type(unpickled.index), DatetimeIndex)
         self.assertEquals(len(unpickled), 10)
         self.assert_((unpickled.columns == Int64Index(np.arange(5))).all())
         self.assert_((unpickled.index == dtindex).all())
         self.assertEquals(unpickled.index.offset, BDay(1))
 
     def test_unpickle_legacy_series(self):
-        from pandas.core.daterange import DateRange
         from pandas.core.datetools import BDay
 
         f = open('pandas/tests/data/series.pickle', 'r')
         unpickled = pickle.loads(f.read())
         f.close()
 
-        dtindex = DateRange(start='1/3/2005', end='1/14/2005',
-                            offset=BDay(1))
+        dtindex = DatetimeIndex(start='1/3/2005', end='1/14/2005',
+                                freq=BDay(1))
 
-        self.assertEquals(type(unpickled.index), DateRange)
+        self.assertEquals(type(unpickled.index), DatetimeIndex)
         self.assertEquals(len(unpickled), 10)
         self.assert_((unpickled.index == dtindex).all())
         self.assertEquals(unpickled.index.offset, BDay(1))
@@ -546,8 +552,6 @@ class TestDatetime64(unittest.TestCase):
             self.assert_( (idx1.values == other.values).all() )
 
     def test_dti_slicing(self):
-        from pandas.core.datetools import Ts
-
         dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
         dti2 = dti[[1,3,5]]
 
@@ -555,9 +559,9 @@ class TestDatetime64(unittest.TestCase):
         v2 = dti2[1]
         v3 = dti2[2]
 
-        self.assertEquals(v1, Ts('2/28/2005'))
-        self.assertEquals(v2, Ts('4/30/2005'))
-        self.assertEquals(v3, Ts('6/30/2005'))
+        self.assertEquals(v1, Timestamp('2/28/2005'))
+        self.assertEquals(v2, Timestamp('4/30/2005'))
+        self.assertEquals(v3, Timestamp('6/30/2005'))
 
         # don't carry freq through irregular slicing
         self.assertEquals(dti2.freq, None)
@@ -573,7 +577,7 @@ class TestDatetime64(unittest.TestCase):
 
         res = dti.snap(freq='W@MON')
 
-        exp = DatetimeIndex(['12/31/2001', '12/31/2001', '12/31/2001', 
+        exp = DatetimeIndex(['12/31/2001', '12/31/2001', '12/31/2001',
                              '1/7/2002', '1/7/2002', '1/7/2002', '1/7/2002'],
                              freq='W@MON')
 
@@ -593,6 +597,17 @@ class TestDatetime64(unittest.TestCase):
         self.assert_(d2.dtypes[0] == np.datetime64)
         d3 = d2.set_index('index')
         assert_frame_equal(d1, d3)
+
+    def test_datetimeindex_union_join_empty(self):
+        dti = DatetimeIndex(start='1/1/2001', end='2/1/2001', freq='D')
+        empty = Index([])
+
+        result = dti.union(empty)
+        self.assert_(isinstance(result, DatetimeIndex))
+        self.assert_(result is result)
+
+        result = dti.join(empty)
+        self.assert_(isinstance(result, DatetimeIndex))
 
     # TODO: test merge & concat with datetime64 block
 
