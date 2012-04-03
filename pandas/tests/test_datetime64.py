@@ -552,15 +552,21 @@ class TestDatetime64(unittest.TestCase):
 
         sdate = datetime(1999, 12, 25)
         edate = datetime(2000, 1, 1)
-        idx = DatetimeIndex(start=sdate, freq='B', periods=20)
+        idx = DatetimeIndex(start=sdate, freq='1B', periods=20)
         self.assertEquals(len(idx), 20)
         self.assertEquals(idx[0], sdate + 0 * dt.bday)
+        self.assertEquals(idx.freq, 'B')
 
-        idx = DatetimeIndex(end=edate, freq='D', periods=20)
+        idx = DatetimeIndex(end=edate, freq=('D', 5), periods=20)
         self.assertEquals(len(idx), 20)
         self.assertEquals(idx[-1], edate)
+        self.assertEquals(idx.freq, '5D')
 
         idx1 = DatetimeIndex(start=sdate, end=edate, freq='W')
+        idx2 = DatetimeIndex(start=sdate, end=edate,
+                             freq=dt.Week(weekday=6))
+        self.assertEquals(len(idx1), len(idx2))
+        self.assertEquals(idx1.offset, idx2.offset)
 
 
     def test_dti_slicing(self):

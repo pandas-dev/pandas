@@ -320,9 +320,9 @@ class Index(np.ndarray):
             zero_time = time(0, 0)
             result = []
             for dt in self:
-                if dt.time() != zero_time or dt.tzinfo is not None:
+                if dt.time() != zero_time or datetools.tzinfo is not None:
                     return header + ['%s' % x for x in self]
-                result.append(dt.strftime("%Y-%m-%d"))
+                result.append(datetools.strftime("%Y-%m-%d"))
             return header + result
 
         values = self.values
@@ -1201,6 +1201,9 @@ class DatetimeIndex(Int64Index):
             freq = kwds['offset']
             warn = True
 
+        if not isinstance(freq, datetools.DateOffset):
+            freq = datetools.get_standard_freq(freq)
+
         if warn:
             import warnings
             warnings.warn("parameter 'offset' is deprecated, "
@@ -1967,10 +1970,7 @@ class IntervalIndex(Int64Index):
                 freq=None, start=None, end=None, periods=None,
                 copy=False, name=None):
 
-        if isinstance(freq, basestring):
-            freq = freq.upper()
-        elif isinstance(freq, (int, long)):
-            freq = datetools._reverse_interval_code_map[freq]
+        freq = datetools.get_standard_freq(freq)
 
         if data is None:
             if start is None and end is None:
@@ -2053,9 +2053,6 @@ class IntervalIndex(Int64Index):
             else:
                 if freq is None:
                     raise ValueError('freq cannot be none')
-
-                if isinstance(freq, datetools.DateOffset):
-                    freq = datetools.getOffsetName(freq)
 
                 if data.dtype == np.datetime64:
                     data = datetools.dt64arr_to_sktsarr(data, freq)

@@ -840,7 +840,7 @@ class TestIntervalIndex(TestCase):
         assert_equal(i1.freq, end_intv.freq)
         assert_equal(i1[-1], end_intv)
 
-        end_intv = Interval('2006-12-31', 'w')
+        end_intv = Interval('2006-12-31', '1w')
         i2 = IntervalIndex(end=end_intv, periods=10)
         assert_equal(len(i1), len(i2))
         self.assert_((i1 == i2).all())
