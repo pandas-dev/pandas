@@ -65,7 +65,6 @@ def _str_to_dt_array(arr):
     data = p_ufunc(arr)
     return np.array(data, dtype='M8[us]')
 
-
 def to_datetime(arg):
     """Attempts to convert arg to datetime"""
     if arg is None:
@@ -695,6 +694,9 @@ def _interval_group(freqstr):
     return base // 1000 * 1000
 
 def _get_freq_code(freqstr):
+    if isinstance(freqstr, DateOffset):
+        freqstr = (getOffsetName(freqstr), freqstr.n)
+
     if isinstance(freqstr, tuple):
         if (isinstance(freqstr[0], (int, long)) and
             isinstance(freqstr[1], (int, long))):
@@ -737,11 +739,34 @@ def _get_freq_str(base, mult):
     code = _reverse_interval_code_map.get(base)
     if code is None:
         return _unknown_freq
+    if mult == 1:
+        return code
     return str(mult) + code
 
 _gfs = _get_freq_str
 
 _unknown_freq = 'Unknown'
+
+def get_standard_freq(freq):
+    """
+    Return the standardized frequency string
+    """
+    if freq is None:
+        return None
+
+    if isinstance(freq, basestring):
+        try:
+            freq = to_offset(freq)
+        except:
+            pass
+
+    if isinstance(freq, DateOffset):
+        if freq.n == 1:
+            return getOffsetName(freq)
+        return str(freq.n) + getOffsetName(freq)
+
+    code, stride = _get_freq_code(freq)
+    return _get_freq_str(code, stride)
 
 
 #-------------------------------------------------------------------------------

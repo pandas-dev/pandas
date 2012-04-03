@@ -8,7 +8,7 @@ from pandas.core.datetools import (
     DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second,
     WeekOfMonth, format, ole2datetime, QuarterEnd, to_datetime, normalize_date,
     getOffset, getOffsetName, inferTimeRule, hasOffsetName,
-    _dt_box, _dt_unbox, parse_time_string)
+    _dt_box, _dt_unbox, parse_time_string, get_standard_freq)
 
 from nose.tools import assert_raises
 
@@ -1297,6 +1297,18 @@ def test_parse_time_string():
     assert date == date_lower
     assert parsed == parsed_lower
     assert reso == reso_lower
+
+def test_get_standard_freq():
+    fstr = get_standard_freq('W')
+    assert fstr == get_standard_freq('w')
+    assert fstr == get_standard_freq('1w')
+    assert fstr == get_standard_freq(('W', 1))
+    assert fstr == get_standard_freq('WeEk')
+
+    fstr = get_standard_freq('5Q')
+    assert fstr == get_standard_freq('5q')
+    assert fstr == get_standard_freq('5QuarTer')
+    assert fstr == get_standard_freq(('q', 5))
 
 if __name__ == '__main__':
     import nose
