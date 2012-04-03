@@ -2073,7 +2073,11 @@ class IntervalIndex(Int64Index):
         return subarr
 
     def resample(self, freq=None, how='E'):
-        if how not in ('S', 'E'):
+        how_dict = {'S': 'S', 'E': 'E',
+                    'START': 'S', 'FINISH': 'E',
+                    'BEGIN': 'S', 'END': 'E'}
+        how = how_dict.get(str(how).upper())
+        if how not in set('S', 'E'):
             raise ValueError('How must be one of S or E')
 
         base1, mult1 = datetools._get_freq_code(self.freq)
@@ -2085,7 +2089,7 @@ class IntervalIndex(Int64Index):
 
         new_data = lib.skts_resample_arr(self.values,
                                          base1, mult1,
-                                         base2, mult2, how)
+                                         base2, mult2, how.upper())
 
         return IntervalIndex(new_data, freq=freq)
 
