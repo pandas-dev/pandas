@@ -8,7 +8,7 @@ from pandas.core.datetools import (
     DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second,
     WeekOfMonth, format, ole2datetime, QuarterEnd, to_datetime, normalize_date,
     getOffset, getOffsetName, inferTimeRule, hasOffsetName,
-    _dt_box, _dt_unbox)
+    _dt_box, _dt_unbox, parse_time_string)
 
 from nose.tools import assert_raises
 
@@ -1281,13 +1281,22 @@ def test_getOffset():
     assert_raises(Exception, getOffset, 'gibberish')
 
     assert getOffset('WEEKDAY') == BDay()
+    assert getOffset('weEkDaY') == BDay()
     assert getOffset('EOM') == BMonthEnd()
+    assert getOffset('eOM') == BMonthEnd()
     assert getOffset('W@MON') == Week(weekday=0)
     assert getOffset('W@TUE') == Week(weekday=1)
     assert getOffset('W@WED') == Week(weekday=2)
     assert getOffset('W@THU') == Week(weekday=3)
     assert getOffset('W@FRI') == Week(weekday=4)
+    assert getOffset('w@Sat') == Week(weekday=5)
 
+def test_parse_time_string():
+    (date, parsed, reso) = parse_time_string('4Q1984')
+    (date_lower, parsed_lower, reso_lower) = parse_time_string('4q1984')
+    assert date == date_lower
+    assert parsed == parsed_lower
+    assert reso == reso_lower
 
 if __name__ == '__main__':
     import nose

@@ -1409,6 +1409,24 @@ class DatetimeIndex(Int64Index):
             self.offset = own_state[1]
             self.tz = own_state[2]
             np.ndarray.__setstate__(self, nd_state)
+        elif len(state) == 3:
+            # legacy format: daterange
+            offset = state[1]
+
+            if len(state) > 2:
+                tzinfo = state[2]
+            else: # pragma: no cover
+                tzinfo = None
+
+            self.offset = offset
+            self.tzinfo = tzinfo
+
+            # extract the raw datetime data, turn into datetime64
+            index_state = state[0]
+            raw_data = index_state[0][4]
+            raw_data = np.array(raw_data, dtype='M8[us]')
+            new_state = raw_data.__reduce__()
+            np.ndarray.__setstate__(self, new_state[2])
         else:  # pragma: no cover
             np.ndarray.__setstate__(self, state)
 
@@ -1949,29 +1967,49 @@ class IntervalIndex(Int64Index):
                 freq=None, start=None, end=None, periods=None,
                 copy=False, name=None):
 
-        if data is None and freq is None:
-            raise ValueError("Must provide freq argument if no data is "
-                             "supplied")
-
         if isinstance(freq, basestring):
             freq = freq.upper()
         elif isinstance(freq, (int, long)):
             freq = datetools._reverse_interval_code_map[freq]
 
         if data is None:
+            if start is None and end is None:
+                raise ValueError('Must specify start, end, or data')
+
             start = to_interval(start, freq)
             end = to_interval(end, freq)
 
-            if (start is not None and not isinstance(start, Interval)):
+            is_start_intv = isinstance(start, Interval)
+            is_end_intv = isinstance(end, Interval)
+            if (start is not None and not is_start_intv):
                 raise ValueError('Failed to convert %s to interval' % start)
 
-            if (end is not None and not isinstance(end, Interval)):
+            if (end is not None and not is_end_intv):
                 raise ValueError('Failed to convert %s to interval' % end)
 
+            if is_start_intv and is_end_intv and (start.freq != end.freq):
+                raise ValueError('Start and end must have same freq')
+
+            if freq is None:
+                if is_start_intv:
+                    freq = start.freq
+                elif is_end_intv:
+                    freq = end.freq
+                else:
+                    raise ValueError('Could not infer freq from start/end')
+
             if periods is not None:
-                data = np.arange(start.ordinal, start.ordinal + periods,
-                                 dtype=np.int64)
+                if start is None:
+                    data = np.arange(end.ordinal - periods + 1,
+                                     end.ordinal + 1,
+                                     dtype=np.int64)
+                else:
+                    data = np.arange(start.ordinal, start.ordinal + periods,
+                                     dtype=np.int64)
             else:
+                if start is None or end is None:
+                    msg = 'Must specify both start and end if periods is None'
+                    raise ValueError(msg)
                 data = np.arange(start.ordinal, end.ordinal+1, dtype=np.int64)
 
             subarr = data.view(cls)
