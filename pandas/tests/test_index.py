@@ -43,7 +43,6 @@ class TestIndex(unittest.TestCase):
     def test_duplicates(self):
         idx = Index([0, 0, 0])
         self.assert_(not idx.is_unique)
-        self.assertRaises(Exception, getattr, idx, 'indexMap')
 
     def test_sort(self):
         self.assertRaises(Exception, self.strIndex.sort)
@@ -138,17 +137,18 @@ class TestIndex(unittest.TestCase):
         boolIdx[5:30:2] = False
 
         subIndex = self.strIndex[boolIdx]
-        tm.assert_dict_equal(tseries.map_indices_object(subIndex),
-                             subIndex.indexMap)
+
+        for i, val in enumerate(subIndex):
+            self.assertEqual(subIndex.get_loc(val), i)
 
         subIndex = self.strIndex[list(boolIdx)]
-        tm.assert_dict_equal(tseries.map_indices_object(subIndex),
-                             subIndex.indexMap)
+        for i, val in enumerate(subIndex):
+            self.assertEqual(subIndex.get_loc(val), i)
 
     def test_fancy(self):
         sl = self.strIndex[[1,2,3]]
         for i in sl:
-            self.assertEqual(i, sl[sl.indexMap[i]])
+            self.assertEqual(i, sl[sl.get_loc(i)])
 
     def test_getitem(self):
         arr = np.array(self.dateIndex)
@@ -216,9 +216,9 @@ class TestIndex(unittest.TestCase):
 
         self.assert_(tm.equalContents(firstCat, appended))
         self.assert_(tm.equalContents(secondCat, self.strIndex))
-        tm.assert_contains_all(self.strIndex, firstCat.indexMap)
-        tm.assert_contains_all(self.strIndex, secondCat.indexMap)
-        tm.assert_contains_all(self.dateIndex, firstCat.indexMap)
+        tm.assert_contains_all(self.strIndex, firstCat)
+        tm.assert_contains_all(self.strIndex, secondCat)
+        tm.assert_contains_all(self.dateIndex, firstCat)
 
         # this is valid too
         shifted = self.dateIndex + timedelta(1)
@@ -239,8 +239,8 @@ class TestIndex(unittest.TestCase):
         index = Index(['a', 'b', 'c'])
         index2 = index + 'foo'
 
-        self.assert_('a' not in index2.indexMap)
-        self.assert_('afoo' in index2.indexMap)
+        self.assert_('a' not in index2)
+        self.assert_('afoo' in index2)
 
     def test_diff(self):
         first = self.strIndex[5:20]
@@ -265,7 +265,7 @@ class TestIndex(unittest.TestCase):
             self.assert_(np.array_equal(unpickled, index))
             self.assertEquals(unpickled.name, index.name)
 
-            tm.assert_dict_equal(unpickled.indexMap, index.indexMap)
+            # tm.assert_dict_equal(unpickled.indexMap, index.indexMap)
 
         testit(self.strIndex)
         self.strIndex.name = 'foo'
@@ -889,7 +889,10 @@ class TestMultiIndex(unittest.TestCase):
 
     def test_get_loc_duplicates(self):
         index = Index([2, 2, 2, 2])
-        self.assertRaises(Exception, index.get_loc, 2)
+        result = index.get_loc(2)
+        expected = slice(0, 4)
+        assert(result == expected)
+        # self.assertRaises(Exception, index.get_loc, 2)
 
     def test_get_loc_level(self):
         index = MultiIndex(levels=[Index(range(4)),
@@ -1011,7 +1014,7 @@ class TestMultiIndex(unittest.TestCase):
         index = MultiIndex(levels=[major_axis, minor_axis],
                            labels=[major_labels, minor_labels])
 
-        self.assertRaises(Exception, getattr, index, 'indexMap')
+        self.assert_(not index.is_unique)
 
     def test_truncate(self):
         major_axis = Index(range(4))

@@ -331,7 +331,7 @@ else:
 tseries_depends = ['reindex', 'groupby', 'skiplist', 'moments',
                    'generated', 'reduce', 'stats', 'datetime',
                    'inference', 'properties', 'internals',
-                   'hashtable', 'join']
+                   'join']
 
 def srcpath(name=None, suffix='.pyx', subdir='src'):
     return pjoin('pandas', subdir, name+suffix)
@@ -354,12 +354,20 @@ tseries_ext = Extension('pandas._tseries',
                         # extra_compile_args=['-Wconversion']
                         )
 
+# hashtable_ext = Extension('pandas._hashtable',
+#                        sources=[srcpath('hashtable', suffix=suffix)],
+#                        depends=['pandas/src/khash.pxd',
+#                                 'pandas/src/util.pxd',
+#                                 'pandas/src/khash.h'],
+#                        include_dirs=[np.get_include()])
+
 sparse_ext = Extension('pandas._sparse',
                        sources=[srcpath('sparse', suffix=suffix)],
                        include_dirs=[np.get_include()])
 
 engines_ext = Extension('pandas._engines',
                         depends=['pandas/src/numpy_helper.h',
+                                 'pandas/src/hashtable.pyx',
                                  'pandas/src/util.pxd'],
                         sources=[srcpath('engines', suffix=suffix)],
                         include_dirs=[np.get_include()])
@@ -373,7 +381,11 @@ cppsandbox_ext = Extension('pandas._cppsandbox',
                            sources=[srcpath('cppsandbox', suffix=suffix)],
                            include_dirs=[np.get_include()])
 
-extensions = [tseries_ext, engines_ext, sparse_ext]
+extensions = [tseries_ext,
+              engines_ext,
+              sparse_ext,
+              # hashtable_ext
+              ]
 
 if not ISRELEASED:
     extensions.extend([sandbox_ext])

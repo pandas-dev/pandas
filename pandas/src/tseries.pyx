@@ -21,13 +21,15 @@ from datetime import datetime as pydatetime
 # this is our datetime.pxd
 from datetime cimport *
 
+from khash cimport *
+
 cdef inline int int_max(int a, int b): return a if a >= b else b
 cdef inline int int_min(int a, int b): return a if a <= b else b
 
 ctypedef unsigned char UChar
 
 cimport util
-from util cimport is_array
+from util cimport is_array, _checknull, _checknan
 
 cdef extern from "math.h":
     double sqrt(double x)
@@ -62,53 +64,6 @@ cpdef map_indices_list(list index):
 
 
 from libc.stdlib cimport malloc, free
-
-cdef class MultiMap:
-    '''
-    Need to come up with a better data structure for multi-level indexing
-    '''
-
-    cdef:
-        dict store
-        Py_ssize_t depth, length
-
-    def __init__(self, list label_arrays):
-        cdef:
-            int32_t **ptr
-            Py_ssize_t i
-
-        self.depth = len(label_arrays)
-        self.length = len(label_arrays[0])
-        self.store = {}
-
-        ptr = <int32_t**> malloc(self.depth * sizeof(int32_t*))
-
-        for i in range(self.depth):
-            ptr[i] = <int32_t*> (<ndarray> label_arrays[i]).data
-
-        free(ptr)
-
-    cdef populate(self, int32_t **ptr):
-        cdef Py_ssize_t i, j
-        cdef int32_t* buf
-        cdef dict level
-
-        for i from 0 <= i < self.length:
-
-            for j from 0 <= j < self.depth - 1:
-                pass
-
-    cpdef get(self, tuple key):
-        cdef Py_ssize_t i
-        cdef dict level = self.store
-
-        for i from 0 <= i < self.depth:
-            if i == self.depth - 1:
-                return level[i]
-            else:
-                level = level[i]
-
-        raise KeyError(key)
 
 
 def ismember(ndarray arr, set values):
@@ -199,19 +154,14 @@ def array_to_datetime(ndarray[int64_t, ndim=1] arr):
 cdef double INF = <double> np.inf
 cdef double NEGINF = -INF
 
-cdef inline bint _checknull(object val):
-    return not np.PyArray_Check(val) and (val is None or val != val)
-
-cdef inline bint _checknan(object val):
-    return not np.PyArray_Check(val) and val != val
-
 cpdef checknull(object val):
     if util.is_float_object(val):
         return val != val or val == INF or val == NEGINF
     elif is_array(val):
         return False
     else:
-        return _checknull(val)
+        return util._checknull(val)
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -223,8 +173,9 @@ def isnullobj(ndarray[object] arr):
     n = len(arr)
     result = np.zeros(n, dtype=np.uint8)
     for i from 0 <= i < n:
-        result[i] = _checknull(arr[i])
+        result[i] = util._checknull(arr[i])
     return result.view(np.bool_)
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -504,7 +455,7 @@ def scalar_compare(ndarray[object] values, object val, object op):
 
     for i in range(n):
         x = values[i]
-        if _checknull(x):
+        if util._checknull(x):
             result[i] = x
         else:
             result[i] = cpython.PyObject_RichCompareBool(x, val, flag)
@@ -542,9 +493,9 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op):
         try:
             result[i] = cpython.PyObject_RichCompareBool(x, y, flag)
         except TypeError:
-            if _checknull(x):
+            if util._checknull(x):
                 result[i] = x
-            elif _checknull(y):
+            elif util._checknull(y):
                 result[i] = y
             else:
                 raise
@@ -563,7 +514,7 @@ def scalar_binop(ndarray[object] values, object val, object op):
 
     for i in range(n):
         x = values[i]
-        if _checknull(x):
+        if util._checknull(x):
             result[i] = x
         else:
             result[i] = op(x, val)
@@ -584,9 +535,9 @@ def vec_binop(ndarray[object] left, ndarray[object] right, object op):
         try:
             result[i] = op(x, y)
         except TypeError:
-            if _checknull(x):
+            if util._checknull(x):
                 result[i] = x
-            elif _checknull(y):
+            elif util._checknull(y):
                 result[i] = y
             else:
                 raise
@@ -594,6 +545,40 @@ def vec_binop(ndarray[object] left, ndarray[object] right, object op):
     return maybe_convert_bool(result)
 
 
+def value_count_int64(ndarray[int64_t] values):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        kh_int64_t *table
+        int ret = 0
+        list uniques = []
+
+    table = kh_init_int64()
+    kh_resize_int64(table, n)
+
+    for i in range(n):
+        val = values[i]
+        k = kh_get_int64(table, val)
+        if k != table.n_buckets:
+            table.vals[k] += 1
+        else:
+            k = kh_put_int64(table, val, &ret)
+            table.vals[k] = 1
+
+    # for (k = kh_begin(h); k != kh_end(h); ++k)
+    # 	if (kh_exist(h, k)) kh_value(h, k) = 1;
+    i = 0
+    result_keys = np.empty(table.n_occupied, dtype=np.int64)
+    result_counts = np.zeros(table.n_occupied, dtype=np.int64)
+    for k in range(table.n_buckets):
+        if kh_exist_int64(table, k):
+            result_keys[i] = table.keys[k]
+            result_counts[i] = table.vals[k]
+            i += 1
+    kh_destroy_int64(table)
+
+    return result_keys, result_counts
+
+include "hashtable.pyx"
 include "datetime.pyx"
 include "skiplist.pyx"
 include "groupby.pyx"
@@ -605,5 +590,4 @@ include "stats.pyx"
 include "properties.pyx"
 include "inference.pyx"
 include "internals.pyx"
-include "hashtable.pyx"
 include "join.pyx"

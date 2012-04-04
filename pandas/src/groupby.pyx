@@ -111,6 +111,7 @@ def is_lexsorted(list list_of_arrays):
         int i
         Py_ssize_t n, nlevels
         int32_t k, cur, pre
+        ndarray arr
 
     nlevels = len(list_of_arrays)
     n = len(list_of_arrays[0])
@@ -118,6 +119,9 @@ def is_lexsorted(list list_of_arrays):
     cdef int32_t **vecs = <int32_t**> malloc(nlevels * sizeof(int32_t*))
     for i from 0 <= i < nlevels:
         vecs[i] = <int32_t *> (<ndarray> list_of_arrays[i]).data
+
+        arr = list_of_arrays[i]
+        vecs[i] = <int32_t *> arr.data
     # assume uniqueness??
 
     for i from 1 <= i < n:
@@ -443,7 +447,7 @@ def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
 
         # if we've seen some values, mark bin
         if vc != 0:
-            bins[bc] = j 
+            bins[bc] = j
             bc += 1
             vc = 0
 

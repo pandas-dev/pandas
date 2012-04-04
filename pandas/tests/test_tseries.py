@@ -24,27 +24,11 @@ class TestTseriesUtil(unittest.TestCase):
     def test_groupby_withnull(self):
         pass
 
-    def test_merge_indexer(self):
-        old = Index([1, 5, 10])
-        new = Index(range(12))
-
-        filler = lib.merge_indexer_int64(new, old.indexMap)
-
-        expect_filler = [-1, 0, -1, -1, -1, 1, -1, -1, -1, -1, 2, -1]
-        self.assert_(np.array_equal(filler, expect_filler))
-
-        # corner case
-        old = Index([1, 4])
-        new = Index(range(5, 10))
-        filler = lib.merge_indexer_int64(new, old.indexMap)
-        expect_filler = [-1, -1, -1, -1, -1]
-        self.assert_(np.array_equal(filler, expect_filler))
-
     def test_backfill(self):
         old = Index([1, 5, 10])
         new = Index(range(12))
 
-        filler = lib.backfill_int64(old, new, old.indexMap, new.indexMap)
+        filler = lib.backfill_int64(old, new)
 
         expect_filler = [0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, -1]
         self.assert_(np.array_equal(filler, expect_filler))
@@ -52,7 +36,7 @@ class TestTseriesUtil(unittest.TestCase):
         # corner case
         old = Index([1, 4])
         new = Index(range(5, 10))
-        filler = lib.backfill_int64(old, new, old.indexMap, new.indexMap)
+        filler = lib.backfill_int64(old, new)
 
         expect_filler = [-1, -1, -1, -1, -1]
         self.assert_(np.array_equal(filler, expect_filler))
@@ -61,7 +45,7 @@ class TestTseriesUtil(unittest.TestCase):
         old = Index([1, 5, 10])
         new = Index(range(12))
 
-        filler = lib.pad_int64(old, new, old.indexMap, new.indexMap)
+        filler = lib.pad_int64(old, new)
 
         expect_filler = [-1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2]
         self.assert_(np.array_equal(filler, expect_filler))
@@ -69,7 +53,7 @@ class TestTseriesUtil(unittest.TestCase):
         # corner case
         old = Index([5, 10])
         new = Index(range(5))
-        filler = lib.pad_int64(old, new, old.indexMap, new.indexMap)
+        filler = lib.pad_int64(old, new)
         expect_filler = [-1, -1, -1, -1, -1]
         self.assert_(np.array_equal(filler, expect_filler))
 
@@ -242,23 +226,19 @@ def test_pad_backfill_object_segfault():
     old = np.array([], dtype='O')
     new = np.array([datetime(2010, 12, 31)], dtype='O')
 
-    result = lib.pad_object(old, new, lib.map_indices_object(old),
-                            lib.map_indices_object(new))
+    result = lib.pad_object(old, new)
     expected = np.array([-1], dtype='i4')
     assert(np.array_equal(result, expected))
 
-    result = lib.pad_object(new, old, lib.map_indices_object(new),
-                            lib.map_indices_object(old))
+    result = lib.pad_object(new, old)
     expected = np.array([], dtype='i4')
     assert(np.array_equal(result, expected))
 
-    result = lib.backfill_object(old, new, lib.map_indices_object(old),
-                                 lib.map_indices_object(new))
+    result = lib.backfill_object(old, new)
     expected = np.array([-1], dtype='i4')
     assert(np.array_equal(result, expected))
 
-    result = lib.backfill_object(new, old, lib.map_indices_object(new),
-                            lib.map_indices_object(old))
+    result = lib.backfill_object(new, old)
     expected = np.array([], dtype='i4')
     assert(np.array_equal(result, expected))
 

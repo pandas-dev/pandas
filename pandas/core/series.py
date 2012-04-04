@@ -2602,7 +2602,6 @@ def _resolve_offset(freq, kwds):
 
     if warn:
         import warnings
-        foo
         warnings.warn("'timeRule' and 'offset' parameters are deprecated,"
                       " please use 'freq' instead",
                       FutureWarning)

@@ -109,647 +109,521 @@ cpdef map_indices_bool(ndarray[uint8_t] index):
     return result
 
 
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def merge_indexer_float64(ndarray[float64_t] values, dict oldMap):
-    cdef Py_ssize_t i, j, length, newLength
-    cdef float64_t idx
-    cdef ndarray[int32_t] fill_vec
-
-    newLength = len(values)
-    fill_vec = np.empty(newLength, dtype=np.int32)
-    for i in range(newLength):
-        idx = values[i]
-        if idx in oldMap:
-            fill_vec[i] = oldMap[idx]
-        else:
-            fill_vec[i] = -1
-
-    return fill_vec
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def merge_indexer_object(ndarray[object] values, dict oldMap):
-    cdef Py_ssize_t i, j, length, newLength
-    cdef object idx
-    cdef ndarray[int32_t] fill_vec
-
-    newLength = len(values)
-    fill_vec = np.empty(newLength, dtype=np.int32)
-    for i in range(newLength):
-        idx = values[i]
-        if idx in oldMap:
-            fill_vec[i] = oldMap[idx]
-        else:
-            fill_vec[i] = -1
-
-    return fill_vec
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def merge_indexer_int32(ndarray[int32_t] values, dict oldMap):
-    cdef Py_ssize_t i, j, length, newLength
-    cdef int32_t idx
-    cdef ndarray[int32_t] fill_vec
-
-    newLength = len(values)
-    fill_vec = np.empty(newLength, dtype=np.int32)
-    for i in range(newLength):
-        idx = values[i]
-        if idx in oldMap:
-            fill_vec[i] = oldMap[idx]
-        else:
-            fill_vec[i] = -1
-
-    return fill_vec
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def merge_indexer_int64(ndarray[int64_t] values, dict oldMap):
-    cdef Py_ssize_t i, j, length, newLength
-    cdef int64_t idx
-    cdef ndarray[int32_t] fill_vec
-
-    newLength = len(values)
-    fill_vec = np.empty(newLength, dtype=np.int32)
-    for i in range(newLength):
-        idx = values[i]
-        if idx in oldMap:
-            fill_vec[i] = oldMap[idx]
-        else:
-            fill_vec[i] = -1
-
-    return fill_vec
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def merge_indexer_bool(ndarray[uint8_t] values, dict oldMap):
-    cdef Py_ssize_t i, j, length, newLength
-    cdef uint8_t idx
-    cdef ndarray[int32_t] fill_vec
-
-    newLength = len(values)
-    fill_vec = np.empty(newLength, dtype=np.int32)
-    for i in range(newLength):
-        idx = values[i]
-        if idx in oldMap:
-            fill_vec[i] = oldMap[idx]
-        else:
-            fill_vec[i] = -1
-
-    return fill_vec
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad_float64(ndarray[float64_t] oldIndex,
-                 ndarray[float64_t] newIndex,
-                 dict oldMap, dict newMap):
-    cdef Py_ssize_t i, j, oldLength, newLength, curLoc
-    cdef ndarray[int32_t, ndim=1] fill_vec
-    cdef Py_ssize_t newPos, oldPos
-    cdef float64_t prevOld, curOld
+def pad_float64(ndarray[float64_t] old, ndarray[float64_t] new,
+                   limit=None):
+    cdef Py_ssize_t i, j, nleft, nright
+    cdef ndarray[int32_t, ndim=1] indexer
+    cdef float64_t cur, next
+    cdef int lim
 
-    oldLength = len(oldIndex)
-    newLength = len(newIndex)
+    nleft = len(old)
+    nright = len(new)
+    indexer = np.empty(nright, dtype=np.int32)
+    indexer.fill(-1)
 
-    fill_vec = np.empty(len(newIndex), dtype = np.int32)
-    fill_vec.fill(-1)
+    if limit is None:
+        lim = nright
+    else:
+        # TODO: > 0?
+        lim = limit
 
-    if oldLength == 0 or newLength == 0:
-        return fill_vec
+    if nleft == 0 or nright == 0 or new[nright - 1] < old[0]:
+        return indexer
 
-    oldPos = 0
-    newPos = 0
+    i = j = 0
 
-    if newIndex[newLength - 1] < oldIndex[0]:
-        return fill_vec
+    cur = old[0]
 
-    while newPos < newLength:
-        curOld = oldIndex[oldPos]
+    while j <= nright - 1 and new[j] < cur:
+        j += 1
 
-        while newIndex[newPos] < curOld:
-            newPos += 1
-            if newPos > newLength - 1:
-                break
-
-        curLoc = oldMap[curOld]
-
-        if oldPos == oldLength - 1:
-            if newIndex[newPos] >= curOld:
-                fill_vec[newPos:] = curLoc
+    while True:
+        if j == nright - 1:
             break
-        else:
-            nextOld = oldIndex[oldPos + 1]
-            done = 0
 
-            while newIndex[newPos] < nextOld:
-                fill_vec[newPos] = curLoc
-                newPos += 1
+        if i == nleft - 1:
+            while j < nright and new[j] >= cur:
+                indexer[j] = i
+                j += 1
+            break
 
-                if newPos > newLength - 1:
-                    done = 1
-                    break
+        next = old[i + 1]
 
-            if done:
-                break
+        while j < nright and cur <= new[j] < next:
+            indexer[j] = i
+            j += 1
 
-        oldPos += 1
+        i += 1
+        cur = next
 
-    return fill_vec
+    return indexer
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad_object(ndarray[object] oldIndex,
-                 ndarray[object] newIndex,
-                 dict oldMap, dict newMap):
-    cdef Py_ssize_t i, j, oldLength, newLength, curLoc
-    cdef ndarray[int32_t, ndim=1] fill_vec
-    cdef Py_ssize_t newPos, oldPos
-    cdef object prevOld, curOld
+def pad_object(ndarray[object] old, ndarray[object] new,
+                   limit=None):
+    cdef Py_ssize_t i, j, nleft, nright
+    cdef ndarray[int32_t, ndim=1] indexer
+    cdef object cur, next
+    cdef int lim
 
-    oldLength = len(oldIndex)
-    newLength = len(newIndex)
+    nleft = len(old)
+    nright = len(new)
+    indexer = np.empty(nright, dtype=np.int32)
+    indexer.fill(-1)
 
-    fill_vec = np.empty(len(newIndex), dtype = np.int32)
-    fill_vec.fill(-1)
+    if limit is None:
+        lim = nright
+    else:
+        # TODO: > 0?
+        lim = limit
 
-    if oldLength == 0 or newLength == 0:
-        return fill_vec
+    if nleft == 0 or nright == 0 or new[nright - 1] < old[0]:
+        return indexer
 
-    oldPos = 0
-    newPos = 0
+    i = j = 0
 
-    if newIndex[newLength - 1] < oldIndex[0]:
-        return fill_vec
+    cur = old[0]
 
-    while newPos < newLength:
-        curOld = oldIndex[oldPos]
+    while j <= nright - 1 and new[j] < cur:
+        j += 1
 
-        while newIndex[newPos] < curOld:
-            newPos += 1
-            if newPos > newLength - 1:
-                break
-
-        curLoc = oldMap[curOld]
-
-        if oldPos == oldLength - 1:
-            if newIndex[newPos] >= curOld:
-                fill_vec[newPos:] = curLoc
+    while True:
+        if j == nright - 1:
             break
-        else:
-            nextOld = oldIndex[oldPos + 1]
-            done = 0
 
-            while newIndex[newPos] < nextOld:
-                fill_vec[newPos] = curLoc
-                newPos += 1
+        if i == nleft - 1:
+            while j < nright and new[j] >= cur:
+                indexer[j] = i
+                j += 1
+            break
 
-                if newPos > newLength - 1:
-                    done = 1
-                    break
+        next = old[i + 1]
 
-            if done:
-                break
+        while j < nright and cur <= new[j] < next:
+            indexer[j] = i
+            j += 1
 
-        oldPos += 1
+        i += 1
+        cur = next
 
-    return fill_vec
+    return indexer
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad_int32(ndarray[int32_t] oldIndex,
-                 ndarray[int32_t] newIndex,
-                 dict oldMap, dict newMap):
-    cdef Py_ssize_t i, j, oldLength, newLength, curLoc
-    cdef ndarray[int32_t, ndim=1] fill_vec
-    cdef Py_ssize_t newPos, oldPos
-    cdef int32_t prevOld, curOld
+def pad_int32(ndarray[int32_t] old, ndarray[int32_t] new,
+                   limit=None):
+    cdef Py_ssize_t i, j, nleft, nright
+    cdef ndarray[int32_t, ndim=1] indexer
+    cdef int32_t cur, next
+    cdef int lim
 
-    oldLength = len(oldIndex)
-    newLength = len(newIndex)
+    nleft = len(old)
+    nright = len(new)
+    indexer = np.empty(nright, dtype=np.int32)
+    indexer.fill(-1)
 
-    fill_vec = np.empty(len(newIndex), dtype = np.int32)
-    fill_vec.fill(-1)
+    if limit is None:
+        lim = nright
+    else:
+        # TODO: > 0?
+        lim = limit
 
-    if oldLength == 0 or newLength == 0:
-        return fill_vec
+    if nleft == 0 or nright == 0 or new[nright - 1] < old[0]:
+        return indexer
 
-    oldPos = 0
-    newPos = 0
+    i = j = 0
 
-    if newIndex[newLength - 1] < oldIndex[0]:
-        return fill_vec
+    cur = old[0]
 
-    while newPos < newLength:
-        curOld = oldIndex[oldPos]
+    while j <= nright - 1 and new[j] < cur:
+        j += 1
 
-        while newIndex[newPos] < curOld:
-            newPos += 1
-            if newPos > newLength - 1:
-                break
-
-        curLoc = oldMap[curOld]
-
-        if oldPos == oldLength - 1:
-            if newIndex[newPos] >= curOld:
-                fill_vec[newPos:] = curLoc
+    while True:
+        if j == nright - 1:
             break
-        else:
-            nextOld = oldIndex[oldPos + 1]
-            done = 0
 
-            while newIndex[newPos] < nextOld:
-                fill_vec[newPos] = curLoc
-                newPos += 1
+        if i == nleft - 1:
+            while j < nright and new[j] >= cur:
+                indexer[j] = i
+                j += 1
+            break
 
-                if newPos > newLength - 1:
-                    done = 1
-                    break
+        next = old[i + 1]
 
-            if done:
-                break
+        while j < nright and cur <= new[j] < next:
+            indexer[j] = i
+            j += 1
 
-        oldPos += 1
+        i += 1
+        cur = next
 
-    return fill_vec
+    return indexer
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad_int64(ndarray[int64_t] oldIndex,
-                 ndarray[int64_t] newIndex,
-                 dict oldMap, dict newMap):
-    cdef Py_ssize_t i, j, oldLength, newLength, curLoc
-    cdef ndarray[int32_t, ndim=1] fill_vec
-    cdef Py_ssize_t newPos, oldPos
-    cdef int64_t prevOld, curOld
+def pad_int64(ndarray[int64_t] old, ndarray[int64_t] new,
+                   limit=None):
+    cdef Py_ssize_t i, j, nleft, nright
+    cdef ndarray[int32_t, ndim=1] indexer
+    cdef int64_t cur, next
+    cdef int lim
 
-    oldLength = len(oldIndex)
-    newLength = len(newIndex)
+    nleft = len(old)
+    nright = len(new)
+    indexer = np.empty(nright, dtype=np.int32)
+    indexer.fill(-1)
 
-    fill_vec = np.empty(len(newIndex), dtype = np.int32)
-    fill_vec.fill(-1)
+    if limit is None:
+        lim = nright
+    else:
+        # TODO: > 0?
+        lim = limit
 
-    if oldLength == 0 or newLength == 0:
-        return fill_vec
+    if nleft == 0 or nright == 0 or new[nright - 1] < old[0]:
+        return indexer
 
-    oldPos = 0
-    newPos = 0
+    i = j = 0
 
-    if newIndex[newLength - 1] < oldIndex[0]:
-        return fill_vec
+    cur = old[0]
 
-    while newPos < newLength:
-        curOld = oldIndex[oldPos]
+    while j <= nright - 1 and new[j] < cur:
+        j += 1
 
-        while newIndex[newPos] < curOld:
-            newPos += 1
-            if newPos > newLength - 1:
-                break
-
-        curLoc = oldMap[curOld]
-
-        if oldPos == oldLength - 1:
-            if newIndex[newPos] >= curOld:
-                fill_vec[newPos:] = curLoc
+    while True:
+        if j == nright - 1:
             break
-        else:
-            nextOld = oldIndex[oldPos + 1]
-            done = 0
 
-            while newIndex[newPos] < nextOld:
-                fill_vec[newPos] = curLoc
-                newPos += 1
+        if i == nleft - 1:
+            while j < nright and new[j] >= cur:
+                indexer[j] = i
+                j += 1
+            break
 
-                if newPos > newLength - 1:
-                    done = 1
-                    break
+        next = old[i + 1]
 
-            if done:
-                break
+        while j < nright and cur <= new[j] < next:
+            indexer[j] = i
+            j += 1
 
-        oldPos += 1
+        i += 1
+        cur = next
 
-    return fill_vec
+    return indexer
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad_bool(ndarray[uint8_t] oldIndex,
-                 ndarray[uint8_t] newIndex,
-                 dict oldMap, dict newMap):
-    cdef Py_ssize_t i, j, oldLength, newLength, curLoc
-    cdef ndarray[int32_t, ndim=1] fill_vec
-    cdef Py_ssize_t newPos, oldPos
-    cdef uint8_t prevOld, curOld
+def pad_bool(ndarray[uint8_t] old, ndarray[uint8_t] new,
+                   limit=None):
+    cdef Py_ssize_t i, j, nleft, nright
+    cdef ndarray[int32_t, ndim=1] indexer
+    cdef uint8_t cur, next
+    cdef int lim
 
-    oldLength = len(oldIndex)
-    newLength = len(newIndex)
+    nleft = len(old)
+    nright = len(new)
+    indexer = np.empty(nright, dtype=np.int32)
+    indexer.fill(-1)
 
-    fill_vec = np.empty(len(newIndex), dtype = np.int32)
-    fill_vec.fill(-1)
+    if limit is None:
+        lim = nright
+    else:
+        # TODO: > 0?
+        lim = limit
 
-    if oldLength == 0 or newLength == 0:
-        return fill_vec
+    if nleft == 0 or nright == 0 or new[nright - 1] < old[0]:
+        return indexer
 
-    oldPos = 0
-    newPos = 0
+    i = j = 0
 
-    if newIndex[newLength - 1] < oldIndex[0]:
-        return fill_vec
+    cur = old[0]
 
-    while newPos < newLength:
-        curOld = oldIndex[oldPos]
+    while j <= nright - 1 and new[j] < cur:
+        j += 1
 
-        while newIndex[newPos] < curOld:
-            newPos += 1
-            if newPos > newLength - 1:
-                break
-
-        curLoc = oldMap[curOld]
-
-        if oldPos == oldLength - 1:
-            if newIndex[newPos] >= curOld:
-                fill_vec[newPos:] = curLoc
+    while True:
+        if j == nright - 1:
             break
-        else:
-            nextOld = oldIndex[oldPos + 1]
-            done = 0
 
-            while newIndex[newPos] < nextOld:
-                fill_vec[newPos] = curLoc
-                newPos += 1
+        if i == nleft - 1:
+            while j < nright and new[j] >= cur:
+                indexer[j] = i
+                j += 1
+            break
 
-                if newPos > newLength - 1:
-                    done = 1
-                    break
+        next = old[i + 1]
 
-            if done:
-                break
+        while j < nright and cur <= new[j] < next:
+            indexer[j] = i
+            j += 1
 
-        oldPos += 1
+        i += 1
+        cur = next
 
-    return fill_vec
+    return indexer
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def backfill_float64(ndarray[float64_t] oldIndex,
-                      ndarray[float64_t] newIndex,
-                      dict oldMap, dict newMap):
-    cdef Py_ssize_t i, j, oldLength, newLength, curLoc
-    cdef ndarray[int32_t, ndim=1] fill_vec
-    cdef Py_ssize_t newPos, oldPos
-    cdef float64_t prevOld, curOld
+def backfill_float64(ndarray[float64_t] old, ndarray[float64_t] new,
+                      limit=None):
+    cdef Py_ssize_t i, j, nleft, nright
+    cdef ndarray[int32_t, ndim=1] indexer
+    cdef float64_t cur, prev
+    cdef int lim
 
-    oldLength = len(oldIndex)
-    newLength = len(newIndex)
+    nleft = len(old)
+    nright = len(new)
+    indexer = np.empty(nright, dtype=np.int32)
+    indexer.fill(-1)
 
-    fill_vec = np.empty(len(newIndex), dtype = np.int32)
-    fill_vec.fill(-1)
+    if limit is None:
+        lim = nright
+    else:
+        # TODO: > 0?
+        lim = limit
 
-    if oldLength == 0 or newLength == 0:
-        return fill_vec
+    if nleft == 0 or nright == 0 or new[0] > old[nleft - 1]:
+        return indexer
 
-    oldPos = oldLength - 1
-    newPos = newLength - 1
+    i = nleft - 1
+    j = nright - 1
 
-    if newIndex[0] > oldIndex[oldLength - 1]:
-        return fill_vec
+    cur = old[nleft - 1]
 
-    while newPos >= 0:
-        curOld = oldIndex[oldPos]
+    while j >= 0 and new[j] > cur:
+        j -= 1
 
-        while newIndex[newPos] > curOld:
-            newPos -= 1
-            if newPos < 0:
-                break
-
-        curLoc = oldMap[curOld]
-
-        if oldPos == 0:
-            if newIndex[newPos] <= curOld:
-                fill_vec[:newPos + 1] = curLoc
+    while True:
+        if j == 0:
             break
-        else:
-            prevOld = oldIndex[oldPos - 1]
 
-            while newIndex[newPos] > prevOld:
-                fill_vec[newPos] = curLoc
+        if i == 0:
+            while j >= 0 and new[j] <= cur:
+                indexer[j] = i
+                j -= 1
+            break
 
-                newPos -= 1
-                if newPos < 0:
-                    break
-        oldPos -= 1
+        prev = old[i - 1]
 
-    return fill_vec
+        while j >= 0 and prev < new[j] <= cur:
+            indexer[j] = i
+            j -= 1
+
+        i -= 1
+        cur = prev
+
+    return indexer
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def backfill_object(ndarray[object] oldIndex,
-                      ndarray[object] newIndex,
-                      dict oldMap, dict newMap):
-    cdef Py_ssize_t i, j, oldLength, newLength, curLoc
-    cdef ndarray[int32_t, ndim=1] fill_vec
-    cdef Py_ssize_t newPos, oldPos
-    cdef object prevOld, curOld
+def backfill_object(ndarray[object] old, ndarray[object] new,
+                      limit=None):
+    cdef Py_ssize_t i, j, nleft, nright
+    cdef ndarray[int32_t, ndim=1] indexer
+    cdef object cur, prev
+    cdef int lim
 
-    oldLength = len(oldIndex)
-    newLength = len(newIndex)
+    nleft = len(old)
+    nright = len(new)
+    indexer = np.empty(nright, dtype=np.int32)
+    indexer.fill(-1)
 
-    fill_vec = np.empty(len(newIndex), dtype = np.int32)
-    fill_vec.fill(-1)
+    if limit is None:
+        lim = nright
+    else:
+        # TODO: > 0?
+        lim = limit
 
-    if oldLength == 0 or newLength == 0:
-        return fill_vec
+    if nleft == 0 or nright == 0 or new[0] > old[nleft - 1]:
+        return indexer
 
-    oldPos = oldLength - 1
-    newPos = newLength - 1
+    i = nleft - 1
+    j = nright - 1
 
-    if newIndex[0] > oldIndex[oldLength - 1]:
-        return fill_vec
+    cur = old[nleft - 1]
 
-    while newPos >= 0:
-        curOld = oldIndex[oldPos]
+    while j >= 0 and new[j] > cur:
+        j -= 1
 
-        while newIndex[newPos] > curOld:
-            newPos -= 1
-            if newPos < 0:
-                break
-
-        curLoc = oldMap[curOld]
-
-        if oldPos == 0:
-            if newIndex[newPos] <= curOld:
-                fill_vec[:newPos + 1] = curLoc
+    while True:
+        if j == 0:
             break
-        else:
-            prevOld = oldIndex[oldPos - 1]
 
-            while newIndex[newPos] > prevOld:
-                fill_vec[newPos] = curLoc
+        if i == 0:
+            while j >= 0 and new[j] <= cur:
+                indexer[j] = i
+                j -= 1
+            break
 
-                newPos -= 1
-                if newPos < 0:
-                    break
-        oldPos -= 1
+        prev = old[i - 1]
 
-    return fill_vec
+        while j >= 0 and prev < new[j] <= cur:
+            indexer[j] = i
+            j -= 1
+
+        i -= 1
+        cur = prev
+
+    return indexer
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def backfill_int32(ndarray[int32_t] oldIndex,
-                      ndarray[int32_t] newIndex,
-                      dict oldMap, dict newMap):
-    cdef Py_ssize_t i, j, oldLength, newLength, curLoc
-    cdef ndarray[int32_t, ndim=1] fill_vec
-    cdef Py_ssize_t newPos, oldPos
-    cdef int32_t prevOld, curOld
+def backfill_int32(ndarray[int32_t] old, ndarray[int32_t] new,
+                      limit=None):
+    cdef Py_ssize_t i, j, nleft, nright
+    cdef ndarray[int32_t, ndim=1] indexer
+    cdef int32_t cur, prev
+    cdef int lim
 
-    oldLength = len(oldIndex)
-    newLength = len(newIndex)
+    nleft = len(old)
+    nright = len(new)
+    indexer = np.empty(nright, dtype=np.int32)
+    indexer.fill(-1)
 
-    fill_vec = np.empty(len(newIndex), dtype = np.int32)
-    fill_vec.fill(-1)
+    if limit is None:
+        lim = nright
+    else:
+        # TODO: > 0?
+        lim = limit
 
-    if oldLength == 0 or newLength == 0:
-        return fill_vec
+    if nleft == 0 or nright == 0 or new[0] > old[nleft - 1]:
+        return indexer
 
-    oldPos = oldLength - 1
-    newPos = newLength - 1
+    i = nleft - 1
+    j = nright - 1
 
-    if newIndex[0] > oldIndex[oldLength - 1]:
-        return fill_vec
+    cur = old[nleft - 1]
 
-    while newPos >= 0:
-        curOld = oldIndex[oldPos]
+    while j >= 0 and new[j] > cur:
+        j -= 1
 
-        while newIndex[newPos] > curOld:
-            newPos -= 1
-            if newPos < 0:
-                break
-
-        curLoc = oldMap[curOld]
-
-        if oldPos == 0:
-            if newIndex[newPos] <= curOld:
-                fill_vec[:newPos + 1] = curLoc
+    while True:
+        if j == 0:
             break
-        else:
-            prevOld = oldIndex[oldPos - 1]
 
-            while newIndex[newPos] > prevOld:
-                fill_vec[newPos] = curLoc
+        if i == 0:
+            while j >= 0 and new[j] <= cur:
+                indexer[j] = i
+                j -= 1
+            break
 
-                newPos -= 1
-                if newPos < 0:
-                    break
-        oldPos -= 1
+        prev = old[i - 1]
 
-    return fill_vec
+        while j >= 0 and prev < new[j] <= cur:
+            indexer[j] = i
+            j -= 1
+
+        i -= 1
+        cur = prev
+
+    return indexer
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def backfill_int64(ndarray[int64_t] oldIndex,
-                      ndarray[int64_t] newIndex,
-                      dict oldMap, dict newMap):
-    cdef Py_ssize_t i, j, oldLength, newLength, curLoc
-    cdef ndarray[int32_t, ndim=1] fill_vec
-    cdef Py_ssize_t newPos, oldPos
-    cdef int64_t prevOld, curOld
+def backfill_int64(ndarray[int64_t] old, ndarray[int64_t] new,
+                      limit=None):
+    cdef Py_ssize_t i, j, nleft, nright
+    cdef ndarray[int32_t, ndim=1] indexer
+    cdef int64_t cur, prev
+    cdef int lim
 
-    oldLength = len(oldIndex)
-    newLength = len(newIndex)
+    nleft = len(old)
+    nright = len(new)
+    indexer = np.empty(nright, dtype=np.int32)
+    indexer.fill(-1)
 
-    fill_vec = np.empty(len(newIndex), dtype = np.int32)
-    fill_vec.fill(-1)
+    if limit is None:
+        lim = nright
+    else:
+        # TODO: > 0?
+        lim = limit
 
-    if oldLength == 0 or newLength == 0:
-        return fill_vec
+    if nleft == 0 or nright == 0 or new[0] > old[nleft - 1]:
+        return indexer
 
-    oldPos = oldLength - 1
-    newPos = newLength - 1
+    i = nleft - 1
+    j = nright - 1
 
-    if newIndex[0] > oldIndex[oldLength - 1]:
-        return fill_vec
+    cur = old[nleft - 1]
 
-    while newPos >= 0:
-        curOld = oldIndex[oldPos]
+    while j >= 0 and new[j] > cur:
+        j -= 1
 
-        while newIndex[newPos] > curOld:
-            newPos -= 1
-            if newPos < 0:
-                break
-
-        curLoc = oldMap[curOld]
-
-        if oldPos == 0:
-            if newIndex[newPos] <= curOld:
-                fill_vec[:newPos + 1] = curLoc
+    while True:
+        if j == 0:
             break
-        else:
-            prevOld = oldIndex[oldPos - 1]
 
-            while newIndex[newPos] > prevOld:
-                fill_vec[newPos] = curLoc
+        if i == 0:
+            while j >= 0 and new[j] <= cur:
+                indexer[j] = i
+                j -= 1
+            break
 
-                newPos -= 1
-                if newPos < 0:
-                    break
-        oldPos -= 1
+        prev = old[i - 1]
 
-    return fill_vec
+        while j >= 0 and prev < new[j] <= cur:
+            indexer[j] = i
+            j -= 1
+
+        i -= 1
+        cur = prev
+
+    return indexer
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def backfill_bool(ndarray[uint8_t] oldIndex,
-                      ndarray[uint8_t] newIndex,
-                      dict oldMap, dict newMap):
-    cdef Py_ssize_t i, j, oldLength, newLength, curLoc
-    cdef ndarray[int32_t, ndim=1] fill_vec
-    cdef Py_ssize_t newPos, oldPos
-    cdef uint8_t prevOld, curOld
+def backfill_bool(ndarray[uint8_t] old, ndarray[uint8_t] new,
+                      limit=None):
+    cdef Py_ssize_t i, j, nleft, nright
+    cdef ndarray[int32_t, ndim=1] indexer
+    cdef uint8_t cur, prev
+    cdef int lim
 
-    oldLength = len(oldIndex)
-    newLength = len(newIndex)
+    nleft = len(old)
+    nright = len(new)
+    indexer = np.empty(nright, dtype=np.int32)
+    indexer.fill(-1)
 
-    fill_vec = np.empty(len(newIndex), dtype = np.int32)
-    fill_vec.fill(-1)
+    if limit is None:
+        lim = nright
+    else:
+        # TODO: > 0?
+        lim = limit
 
-    if oldLength == 0 or newLength == 0:
-        return fill_vec
+    if nleft == 0 or nright == 0 or new[0] > old[nleft - 1]:
+        return indexer
 
-    oldPos = oldLength - 1
-    newPos = newLength - 1
+    i = nleft - 1
+    j = nright - 1
 
-    if newIndex[0] > oldIndex[oldLength - 1]:
-        return fill_vec
+    cur = old[nleft - 1]
 
-    while newPos >= 0:
-        curOld = oldIndex[oldPos]
+    while j >= 0 and new[j] > cur:
+        j -= 1
 
-        while newIndex[newPos] > curOld:
-            newPos -= 1
-            if newPos < 0:
-                break
-
-        curLoc = oldMap[curOld]
-
-        if oldPos == 0:
-            if newIndex[newPos] <= curOld:
-                fill_vec[:newPos + 1] = curLoc
+    while True:
+        if j == 0:
             break
-        else:
-            prevOld = oldIndex[oldPos - 1]
 
-            while newIndex[newPos] > prevOld:
-                fill_vec[newPos] = curLoc
+        if i == 0:
+            while j >= 0 and new[j] <= cur:
+                indexer[j] = i
+                j -= 1
+            break
 
-                newPos -= 1
-                if newPos < 0:
-                    break
-        oldPos -= 1
+        prev = old[i - 1]
 
-    return fill_vec
+        while j >= 0 and prev < new[j] <= cur:
+            indexer[j] = i
+            j -= 1
+
+        i -= 1
+        cur = prev
+
+    return indexer
 
 
 @cython.boundscheck(False)

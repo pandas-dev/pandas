@@ -3103,6 +3103,7 @@ class DataFrame(NDFrame):
                 for k, v in series_gen:
                     results[k] = func(v)
             except Exception, e:
+                raise # XXXXX
                 if hasattr(e, 'args'):
                     e.args = e.args + ('occurred at index %s' % str(k),)
                 raise

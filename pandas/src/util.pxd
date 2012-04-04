@@ -52,3 +52,11 @@ cdef inline int is_contiguous(ndarray arr):
 
 cdef inline is_array(object o):
     return cnp.PyArray_Check(o)
+
+
+cdef inline bint _checknull(object val):
+    return not cnp.PyArray_Check(val) and (val is None or val != val)
+
+cdef inline bint _checknan(object val):
+    return not cnp.PyArray_Check(val) and val != val
+

@@ -1,7 +1,7 @@
 - DatetimeIndex.union empty -> error
 - DateOffset display sucks -> 1 Day
 
-- get rid of Ts class, simplify timestamp creation
+gp- get rid of Ts class, simplify timestamp creation
 - rename tzinfo to tz
 - get rid of deprecated / new offset mapping, will deal with users
 - add Index.is_unique, check via is_monotonic cython routine

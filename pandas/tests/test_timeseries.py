@@ -45,6 +45,7 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
 
 
     def test_duplicate_dates_indexing(self):
+        ts = self.dups
 
         for date in ts.index.unique():
             result = ts[date]
@@ -57,7 +58,13 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
             else:
                 assert_almost_equal(result, expected[0])
 
+            cp = ts.copy()
+            cp[date] = 0
+            expected = np.where(ts.index == date, 0, ts)
+            assert_series_equal(cp, expected)
 
+        self.assertRaises(KeyError, ts.__getitem__, datetime(2000, 1, 6))
+        self.assertRaises(KeyError, ts.__setitem__, datetime(2000, 1, 6), 0)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

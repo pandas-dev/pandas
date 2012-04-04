@@ -3,6 +3,7 @@
 from datetime import time, datetime, date
 from datetime import timedelta
 from itertools import izip
+import weakref
 
 import numpy as np
 
@@ -57,20 +58,25 @@ class Index(np.ndarray):
     ----
     An Index instance can **only** contain hashable objects
     """
+    # _algos = {
+    #     'groupby' : _gin.groupby_index,
+    # }
+
+    # _map_indices = lib.map_indices_object
+
     # Cython methods
-    _map_indices = lib.map_indices_object
-    _is_monotonic = lib.is_monotonic_object
     _groupby = lib.groupby_object
     _arrmap = lib.arrmap_object
     _left_indexer = lib.left_join_indexer_object
     _inner_indexer = lib.inner_join_indexer_object
     _outer_indexer = lib.outer_join_indexer_object
-    _merge_indexer = lib.merge_indexer_object
     _pad = lib.pad_object
     _backfill = lib.backfill_object
 
     name = None
     asi8 = None
+
+    _engine_type = _gin.ObjectEngine
 
     def __new__(cls, data, dtype=None, copy=False, name=None):
         if isinstance(data, np.ndarray):
@@ -164,25 +170,11 @@ class Index(np.ndarray):
 
     @property
     def is_monotonic(self):
-        return self._monotonicity_check[0]
-
-    @property
-    def is_unique(self):
-        is_unique = self._monotonicity_check[1]
-
-        if is_unique is None:
-            return self._engine.has_integrity
-        else:
-            return is_unique
+        return self._engine.is_monotonic
 
     @cache_readonly
-    def _monotonicity_check(self):
-        try:
-            # wrong buffer type raises ValueError
-            is_monotonic, is_unique = self._is_monotonic(self.values)
-            return is_monotonic, is_unique
-        except TypeError:
-            return False, None
+    def is_unique(self):
+        return self._engine.is_unique
 
     def is_numeric(self):
         return self.inferred_type in ['integer', 'floating']
@@ -210,20 +202,13 @@ class Index(np.ndarray):
 
     _get_duplicates = get_duplicates
 
-    @property
-    def indexMap(self):
-        "{label -> location}"
-        return self._engine.get_mapping(1)
-
     def _cleanup(self):
         self._engine.clear_mapping()
 
     @cache_readonly
     def _engine(self):
-        import weakref
         # property, for now, slow to look up
-        return _gin.DictIndexEngine(weakref.ref(self),
-                                    self._map_indices)
+        return self._engine_type(weakref.ref(self))
 
     def _get_level_number(self, level):
         if not isinstance(level, int):
@@ -574,7 +559,15 @@ class Index(np.ndarray):
         -------
         loc : int
         """
-        return self._engine.get_loc(key)
+        # TODO: push all of this into Cython
+        if self.is_unique:
+            return self._engine.get_loc(key)
+        elif self.is_monotonic:
+            left = self.searchsorted(key, side='left')
+            right = self.searchsorted(key, side='right')
+            return slice(left, right)
+        else:
+            return self.values == key
 
     def get_value(self, series, key):
         """
@@ -664,7 +657,7 @@ class Index(np.ndarray):
             self.is_monotonic and other.is_monotonic):
             return self._left_indexer(other, self)
         else:
-            return self._merge_indexer(other, self.indexMap)
+            return self._engine.get_indexer(other)
 
     def groupby(self, to_groupby):
         return self._groupby(self.values, to_groupby)
@@ -995,15 +988,18 @@ class Index(np.ndarray):
 class Int64Index(Index):
 
     _map_indices = lib.map_indices_int64
-    _is_monotonic = lib.is_monotonic_int64
+
+    # _is_monotonic = lib.is_monotonic_int64
+
     _groupby = lib.groupby_int64
     _arrmap = lib.arrmap_int64
     _left_indexer = lib.left_join_indexer_int64
     _inner_indexer = lib.inner_join_indexer_int64
     _outer_indexer = lib.outer_join_indexer_int64
-    _merge_indexer = lib.merge_indexer_int64
     _pad = lib.pad_int64
     _backfill = lib.backfill_int64
+
+    _engine_type = _gin.Int64Engine
 
     def __new__(cls, data, dtype=None, copy=False, name=None):
         if not isinstance(data, np.ndarray):
@@ -1172,12 +1168,11 @@ class DatetimeIndex(Int64Index):
         time on or just past end argument
     """
 
-    _is_monotonic  = _wrap_i8_function(lib.is_monotonic_int64)
+    # _is_monotonic  = _wrap_i8_function(lib.is_monotonic_int64)
+
     _inner_indexer = _join_i8_wrapper(lib.inner_join_indexer_int64)
     _outer_indexer = _join_i8_wrapper(lib.outer_join_indexer_int64)
     _left_indexer  = _join_i8_wrapper(lib.left_join_indexer_int64,
-                                      with_indexers=False)
-    _merge_indexer = _join_i8_wrapper(lib.merge_indexer_int64,
                                       with_indexers=False)
     _map_indices   = _wrap_i8_function(lib.map_indices_int64)
     _pad           = _wrap_i8_function(lib.pad_int64)
@@ -1198,6 +1193,10 @@ class DatetimeIndex(Int64Index):
 
     # structured array cache for datetime fields
     _sarr_cache = None
+
+    _engine_type = _gin.DatetimeEngine
+
+    offset = None
 
     def __new__(cls, data=None,
                 freq=None, start=None, end=None, periods=None,
@@ -1437,7 +1436,6 @@ class DatetimeIndex(Int64Index):
         """
         Unbox to an index of type object
         """
-        offset = getattr(self, 'offset', None)
         boxed_values = _dt_box_array(self.asi8, self.offset, self.tz)
         return Index(boxed_values, dtype=object)
 
@@ -1656,7 +1654,7 @@ class DatetimeIndex(Int64Index):
         know what you're doing
         """
         try:
-            return super(DatetimeIndex, self).get_value(series, key)
+            return Index.get_value(self, series, key)
         except KeyError:
             try:
                 asdt, parsed, reso = datetools.parse_time_string(key)
@@ -1698,8 +1696,7 @@ class DatetimeIndex(Int64Index):
         arr_idx = self.view(np.ndarray)
         if np.isscalar(key):
             val = arr_idx[key]
-            offset = getattr(self, 'offset', None)
-            return _dt_box(val, offset=offset, tz=self.tz)
+            return _dt_box(val, offset=self.offset, tz=self.tz)
         else:
             new_offset = None
             if (type(key) == slice):
@@ -1813,11 +1810,6 @@ class DatetimeIndex(Int64Index):
     @property
     def is_all_dates(self):
         return True
-
-    @cache_readonly
-    def _engine(self):
-        mapping = lib.map_indices_int64
-        return _gin.DictIndexEngineDatetime(self.asi8, mapping)
 
     def equals(self, other):
         """
@@ -2977,7 +2969,7 @@ class MultiIndex(Index):
             indexer = self._backfill(self_index, target_index,
                                      self_index.indexMap, target.indexMap)
         else:
-            indexer = self._merge_indexer(target_index, self_index.indexMap)
+            indexer = self._engine.get_indexer(target_index)
 
         return indexer
 
