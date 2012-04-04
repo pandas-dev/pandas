@@ -70,8 +70,6 @@ class Index(np.ndarray):
     _left_indexer = lib.left_join_indexer_object
     _inner_indexer = lib.inner_join_indexer_object
     _outer_indexer = lib.outer_join_indexer_object
-    _pad = lib.pad_object
-    _backfill = lib.backfill_object
 
     name = None
     asi8 = None
@@ -999,8 +997,6 @@ class Int64Index(Index):
     _left_indexer = lib.left_join_indexer_int64
     _inner_indexer = lib.inner_join_indexer_int64
     _outer_indexer = lib.outer_join_indexer_int64
-    _pad = lib.pad_int64
-    _backfill = lib.backfill_int64
 
     _engine_type = _gin.Int64Engine
 
@@ -1178,8 +1174,6 @@ class DatetimeIndex(Int64Index):
     _left_indexer  = _join_i8_wrapper(lib.left_join_indexer_int64,
                                       with_indexers=False)
     _map_indices   = _wrap_i8_function(lib.map_indices_int64)
-    _pad           = _wrap_i8_function(lib.pad_int64)
-    _backfill      = _wrap_i8_function(lib.backfill_int64)
     _groupby       = lib.groupby_arrays # _wrap_i8_function(lib.groupby_int64)
 
     _arrmap        = _wrap_dt_function(lib.arrmap_object)

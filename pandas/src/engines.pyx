@@ -1,8 +1,6 @@
 from numpy cimport ndarray
 
 
-cdef inline is_definitely_invalid_key(object val):
-    return PySlice_Check(val) or cnp.PyArray_Check(val)
 
 from numpy cimport float64_t, int32_t, int64_t, uint8_t
 cimport cython
@@ -28,6 +26,12 @@ PyDateTime_IMPORT
 
 cdef extern from "Python.h":
     int PySlice_Check(object)
+    int PyList_Check(object)
+
+
+cdef inline is_definitely_invalid_key(object val):
+    return (PySlice_Check(val) or cnp.PyArray_Check(val)
+            or PyList_Check(val))
 
 def get_value_at(ndarray arr, object loc):
     return util.get_value_at(arr, loc)
@@ -239,6 +243,9 @@ cdef class DatetimeEngine(IndexEngine):
     cdef _get_index_values(self):
         return self.index_weakref().values.view('i8')
 
+    def _call_monotonic(self, values):
+        return _tseries.is_monotonic_int64(values)
+
     cpdef get_loc(self, object val):
         if is_definitely_invalid_key(val):
             raise TypeError
@@ -256,6 +263,24 @@ cdef class DatetimeEngine(IndexEngine):
 
         return self.mapping.get_item(val)
 
+    def get_indexer(self, values):
+        self._ensure_mapping_populated()
+        if values.dtype != 'M8':
+            return np.repeat(-1, len(values)).astype('i4')
+        values = np.asarray(values).view('i8')
+        return self.mapping.lookup(values)
+
+    def get_pad_indexer(self, other):
+        if other.dtype != 'M8':
+            return np.repeat(-1, len(other)).astype('i4')
+        other = np.asarray(other).view('i8')
+        return _tseries.pad_int64(self._get_index_values(), other)
+
+    def get_backfill_indexer(self, other):
+        if other.dtype != 'M8':
+            return np.repeat(-1, len(other)).astype('i4')
+        other = np.asarray(other).view('i8')
+        return _tseries.backfill_int64(self._get_index_values(), other)
 
 # ctypedef fused idxvalue_t:
 #     object
