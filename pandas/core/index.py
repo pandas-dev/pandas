@@ -320,9 +320,9 @@ class Index(np.ndarray):
             zero_time = time(0, 0)
             result = []
             for dt in self:
-                if dt.time() != zero_time or datetools.tzinfo is not None:
+                if dt.time() != zero_time or dt.tzinfo is not None:
                     return header + ['%s' % x for x in self]
-                result.append(datetools.strftime("%Y-%m-%d"))
+                result.append(dt.strftime("%Y-%m-%d"))
             return header + result
 
         values = self.values
@@ -1202,7 +1202,7 @@ class DatetimeIndex(Int64Index):
             warn = True
 
         if not isinstance(freq, datetools.DateOffset):
-            freq = datetools.get_standard_freq(freq)
+            freq = datetools.to_offset(freq)
 
         if warn:
             import warnings
@@ -1970,7 +1970,10 @@ class IntervalIndex(Int64Index):
                 freq=None, start=None, end=None, periods=None,
                 copy=False, name=None):
 
-        freq = datetools.get_standard_freq(freq)
+        if isinstance(freq, Interval):
+            freq = freq.freq
+        else:
+            freq = datetools.get_standard_freq(freq)
 
         if data is None:
             if start is None and end is None:
@@ -2077,7 +2080,7 @@ class IntervalIndex(Int64Index):
                     'START': 'S', 'FINISH': 'E',
                     'BEGIN': 'S', 'END': 'E'}
         how = how_dict.get(str(how).upper())
-        if how not in set('S', 'E'):
+        if how not in set(['S', 'E']):
             raise ValueError('How must be one of S or E')
 
         base1, mult1 = datetools._get_freq_code(self.freq)
@@ -2087,9 +2090,10 @@ class IntervalIndex(Int64Index):
         else:
             base2, mult2 = freq
 
+
         new_data = lib.skts_resample_arr(self.values,
                                          base1, mult1,
-                                         base2, mult2, how.upper())
+                                         base2, mult2, how)
 
         return IntervalIndex(new_data, freq=freq)
 

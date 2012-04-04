@@ -908,10 +908,10 @@ class TestIntervalIndex(TestCase):
         ii7 = IntervalIndex(freq='S', start='1/1/2001', end='1/1/2001 00:00:00')
 
         self.assertEquals(ii1.resample('Q', 'S'), ii2)
-        self.assertEquals(ii1.resample('Q', 'S'), ii2)
-        self.assertEquals(ii1.resample('M', 'S'), ii3)
-        self.assertEquals(ii1.resample('D', 'S'), ii4)
-        self.assertEquals(ii1.resample('H', 'S'), ii5)
+        self.assertEquals(ii1.resample('Q', 's'), ii2)
+        self.assertEquals(ii1.resample('M', 'start'), ii3)
+        self.assertEquals(ii1.resample('D', 'StarT'), ii4)
+        self.assertEquals(ii1.resample('H', 'beGIN'), ii5)
         self.assertEquals(ii1.resample('Min', 'S'), ii6)
         self.assertEquals(ii1.resample('S', 'S'), ii7)
 
@@ -956,6 +956,8 @@ class TestIntervalIndex(TestCase):
         self.assertEquals(ii7.resample('D', 'S'), ii4)
         self.assertEquals(ii7.resample('H', 'S'), ii5)
         self.assertEquals(ii7.resample('Min', 'S'), ii6)
+
+        #self.assertEquals(ii7.resample('A', 'E'), i_end)
 
     def test_badinput(self):
         self.assertRaises(datetools.DateParseError, Interval, '1/1/-2000', 'A')
