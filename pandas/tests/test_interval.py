@@ -109,6 +109,13 @@ class TestIntervalProperties(TestCase):
         i2 = Interval('1982', freq=('Min', 1))
         self.assertEquals(i1, i2)
 
+    def test_freq_str(self):
+        i1 = Interval('1982', freq='Min')
+        self.assert_(i1.freq[0] != '1')
+
+        i2 = Interval('11/30/2005', freq='2Q')
+        self.assertEquals(i2.freq[0], '2')
+
     def test_to_timestamp(self):
         intv = Interval('1982', freq='A')
         start_ts = intv.to_timestamp(which_end='S')
