@@ -2287,6 +2287,65 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # it works!
         result = np.unique(self.ts)
 
+class TestSeriesNonUnique(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    def test_basic_indexing(self):
+        s = Series(np.random.randn(5), index=['a', 'b', 'a', 'a', 'b'])
+
+        self.assertRaises(IndexError, s.__getitem__, 5)
+        self.assertRaises(IndexError, s.__setitem__, 5, 0)
+
+        self.assertRaises(KeyError, s.__getitem__, 'c')
+        self.assertRaises(KeyError, s.__setitem__, 'c', 0)
+
+        s = s.sort_index()
+
+        self.assertRaises(IndexError, s.__getitem__, 5)
+        self.assertRaises(IndexError, s.__setitem__, 5, 0)
+
+        self.assertRaises(KeyError, s.__getitem__, 'c')
+        self.assertRaises(KeyError, s.__setitem__, 'c', 0)
+
+    def test_int_indexing(self):
+        s = Series(np.random.randn(6), index=[0, 0, 1, 1, 2, 2])
+
+        self.assertRaises(KeyError, s.__getitem__, 5)
+        self.assertRaises(KeyError, s.__setitem__, 5, 0)
+
+        self.assertRaises(KeyError, s.__getitem__, 'c')
+        self.assertRaises(KeyError, s.__setitem__, 'c', 0)
+
+        # not monotonic
+        s = Series(np.random.randn(6), index=[2, 2, 0, 0, 1, 1])
+
+        self.assertRaises(KeyError, s.__getitem__, 5)
+        self.assertRaises(KeyError, s.__setitem__, 5, 0)
+
+        self.assertRaises(KeyError, s.__getitem__, 'c')
+        self.assertRaises(KeyError, s.__setitem__, 'c', 0)
+
+    def test_datetime_indexing(self):
+        from pandas import date_range
+        from pandas.core.datetools import to_timestamp
+
+        index = date_range('1/1/2000', '1/7/2000')
+        index = index.repeat(3)
+
+        s = Series(len(index), index=index)
+        stamp = to_timestamp('1/8/2000')
+
+        self.assertRaises(KeyError, s.__getitem__, stamp)
+        self.assertRaises(KeyError, s.__setitem__, stamp, 0)
+
+        # not monotonic
+        s = s[::-1]
+
+        self.assertRaises(KeyError, s.__getitem__, stamp)
+        self.assertRaises(KeyError, s.__setitem__, stamp, 0)
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)

@@ -44,11 +44,16 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
     def test_is_unique_monotonic(self):
         self.assert_(not self.dups.index.is_unique)
 
+    def test_index_unique(self):
+        uniques = self.dups.index.unique()
+        self.assert_(uniques.dtype == 'M8') # sanity
 
     def test_duplicate_dates_indexing(self):
         ts = self.dups
 
-        for date in ts.index.unique():
+        uniques = ts.index.unique()
+
+        for date in uniques:
             result = ts[date]
 
             mask = ts.index == date
@@ -61,7 +66,7 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
 
             cp = ts.copy()
             cp[date] = 0
-            expected = np.where(ts.index == date, 0, ts)
+            expected = Series(np.where(mask, 0, ts), index=ts.index)
             assert_series_equal(cp, expected)
 
         self.assertRaises(KeyError, ts.__getitem__, datetime(2000, 1, 6))

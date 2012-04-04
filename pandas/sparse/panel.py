@@ -7,14 +7,13 @@ float64 data
 
 import numpy as np
 
-from pandas.core.common import _pickle_array, _unpickle_array, _mut_exclusive
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.frame import DataFrame
 from pandas.core.panel import Panel
-
 from pandas.sparse.frame import SparseDataFrame
-
 from pandas.util.decorators import deprecate
+
+import pandas.core.common as com
 
 class SparsePanelAxis(object):
 
@@ -209,8 +208,9 @@ class SparsePanel(Panel):
 
     def __getstate__(self):
         # pickling
-        return (self._frames, _pickle_array(self.items),
-                _pickle_array(self.major_axis), _pickle_array(self.minor_axis),
+        return (self._frames, com._pickle_array(self.items),
+                com._pickle_array(self.major_axis),
+                com._pickle_array(self.minor_axis),
                 self.default_fill_value, self.default_kind)
 
     def __setstate__(self, state):
@@ -218,9 +218,9 @@ class SparsePanel(Panel):
 
         self.default_fill_value = fv
         self.default_kind = kind
-        self._items = _unpickle_array(items)
-        self._major_axis = _unpickle_array(major)
-        self._minor_axis = _unpickle_array(minor)
+        self._items = com._unpickle_array(items)
+        self._major_axis = com._unpickle_array(major)
+        self._minor_axis = com._unpickle_array(minor)
         self._frames = frames
 
     def copy(self):
@@ -307,10 +307,10 @@ class SparsePanel(Panel):
         -------
         reindexed : SparsePanel
         """
-        major = _mut_exclusive(major, major_axis)
-        minor = _mut_exclusive(minor, minor_axis)
+        major = com._mut_exclusive(major, major_axis)
+        minor = com._mut_exclusive(minor, minor_axis)
 
-        if None == major == items == minor:
+        if com._all_none(items, major, minor):
             raise ValueError('Must specify at least one axis')
 
         major = self.major_axis if major is None else major

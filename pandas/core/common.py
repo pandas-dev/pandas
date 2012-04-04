@@ -596,6 +596,13 @@ def _clean_fill_method(method):
         method = 'backfill'
     return method
 
+def _all_none(*args):
+    for arg in args:
+        if arg is not None:
+            return False
+    return True
+
+
 def save(obj, path):
     """
     Pickle (serialize) object to input file path

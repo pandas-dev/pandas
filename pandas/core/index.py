@@ -562,15 +562,7 @@ class Index(np.ndarray):
         -------
         loc : int
         """
-        # TODO: push all of this into Cython
-        if self.is_unique:
-            return self._engine.get_loc(key)
-        elif self.is_monotonic:
-            left = self.searchsorted(key, side='left')
-            right = self.searchsorted(key, side='right')
-            return slice(left, right)
-        else:
-            return self.values == key
+        return self._engine.get_loc(key)
 
     def get_value(self, series, key):
         """
@@ -1109,7 +1101,11 @@ def _dt_index_cmp(opname):
         if isinstance(other, datetime):
             func = getattr(self, opname)
             result = func(_dt_unbox(other))
+        elif isinstance(other, np.ndarray):
+            func = getattr(super(DatetimeIndex, self), opname)
+            result = func(other)
         else:
+            other = _ensure_datetime64(other)
             func = getattr(super(DatetimeIndex, self), opname)
             result = func(other)
         try:
@@ -1117,6 +1113,14 @@ def _dt_index_cmp(opname):
         except:
             return result
     return wrapper
+
+def _ensure_datetime64(other):
+    if isinstance(other, np.datetime64):
+        return other
+    elif com.is_integer(other):
+        return np.datetime64(other)
+    else:
+        raise TypeError(other)
 
 def _dt_index_op(opname):
     """

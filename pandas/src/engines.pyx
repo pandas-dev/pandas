@@ -67,22 +67,84 @@ cdef class IndexEngine:
         arr : 1-dimensional ndarray
         '''
         cdef:
-            Py_ssize_t loc
+            object loc
             void* data_ptr
 
         loc = self.get_loc(key)
-        return util.get_value_at(arr, loc)
+        if PySlice_Check(loc) or cnp.PyArray_Check(loc):
+            return arr[loc]
+        else:
+            return util.get_value_at(arr, loc)
 
     cpdef set_value(self, ndarray arr, object key, object value):
         '''
         arr : 1-dimensional ndarray
         '''
         cdef:
-            Py_ssize_t loc
+            object loc
             void* data_ptr
 
         loc = self.get_loc(key)
-        util.set_value_at(arr, loc, value)
+        if PySlice_Check(loc) or cnp.PyArray_Check(loc):
+            arr[loc] = value
+        else:
+            util.set_value_at(arr, loc, value)
+
+    cpdef get_loc(self, object val):
+        if is_definitely_invalid_key(val):
+            raise TypeError
+
+        self._ensure_mapping_populated()
+        if not self.unique:
+            return self._get_loc_duplicates(val)
+
+        try:
+            return self.mapping.get_item(val)
+        except TypeError:
+            self._check_type(val)
+            raise KeyError(val)
+
+    cdef inline _get_loc_duplicates(self, object val):
+        cdef:
+            Py_ssize_t diff
+
+        if self.is_monotonic:
+            values = self._get_index_values()
+            left = values.searchsorted(val, side='left')
+            right = values.searchsorted(val, side='right')
+            diff = right - left
+            if diff == 0:
+                raise KeyError(val)
+            elif diff == 1:
+                return left
+            else:
+                return slice(left, right)
+        else:
+            return self._get_bool_indexer(val)
+
+    cdef _get_bool_indexer(self, object val):
+        cdef:
+            ndarray[uint8_t, cast=True] indexer
+            ndarray[object] values
+            int count = 0
+            Py_ssize_t i, n
+
+        values = self._get_index_values()
+        n = len(values)
+
+        indexer = np.empty(n, dtype=bool)
+
+        for i in range(n):
+            if values[i] == val:
+                count += 1
+                indexer[i] = 1
+            else:
+                indexer[i] = 0
+
+        if count == 0:
+            raise KeyError(val)
+
+        return indexer
 
     property is_unique:
 
@@ -124,20 +186,6 @@ cdef class IndexEngine:
 
     cdef _make_hash_table(self, n):
         raise NotImplementedError
-
-    cpdef get_loc(self, object val):
-        if is_definitely_invalid_key(val):
-            raise TypeError
-
-        self._ensure_mapping_populated()
-        if not self.unique:
-            raise Exception('Index values are not unique')
-
-        try:
-            return self.mapping.get_item(val)
-        except TypeError:
-            self._check_type(val)
-            raise KeyError(val)
 
     cdef inline _check_type(self, object val):
         hash(val)
@@ -195,6 +243,36 @@ cdef class Int64Engine(IndexEngine):
     def get_backfill_indexer(self, other):
         return _tseries.backfill_int64(self._get_index_values(), other)
 
+    cdef _get_bool_indexer(self, object val):
+        cdef:
+            ndarray[uint8_t, cast=True] indexer
+            ndarray[int64_t] values
+            int count = 0
+            Py_ssize_t i, n
+            int64_t ival
+
+        if not util.is_integer_object(val):
+            raise KeyError(val)
+
+        ival = val
+
+        values = self._get_index_values()
+        n = len(values)
+
+        indexer = np.empty(n, dtype=bool)
+
+        for i in range(n):
+            if values[i] == val:
+                count += 1
+                indexer[i] = 1
+            else:
+                indexer[i] = 0
+
+        if count == 0:
+            raise KeyError(val)
+
+        return indexer
+
 cdef class Float64Engine(IndexEngine):
 
     # cdef Float64HashTable mapping
@@ -229,7 +307,7 @@ cdef class ObjectEngine(IndexEngine):
         return _tseries.backfill_object(self._get_index_values(), other)
 
 
-cdef class DatetimeEngine(IndexEngine):
+cdef class DatetimeEngine(Int64Engine):
 
     # cdef Int64HashTable mapping
 
@@ -245,9 +323,6 @@ cdef class DatetimeEngine(IndexEngine):
 
         return val in self.mapping
 
-    cdef _make_hash_table(self, n):
-        return Int64HashTable(n)
-
     cdef _get_index_values(self):
         return self.index_weakref().values.view('i8')
 
@@ -258,15 +333,15 @@ cdef class DatetimeEngine(IndexEngine):
         if is_definitely_invalid_key(val):
             raise TypeError
 
-        self._ensure_mapping_populated()
-        if not self.unique:
-            raise Exception('Index values are not unique')
-
         if util.is_datetime64_object(val):
             val = val.view('i8')
         elif PyDateTime_Check(val):
             val = np.datetime64(val)
             val = val.view('i8')
+
+        self._ensure_mapping_populated()
+        if not self.unique:
+            return self._get_loc_duplicates(val)
 
         try:
             return self.mapping.get_item(val)
@@ -297,6 +372,7 @@ cdef class DatetimeEngine(IndexEngine):
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
         return _tseries.backfill_int64(self._get_index_values(), other)
+
 
 # ctypedef fused idxvalue_t:
 #     object
