@@ -301,6 +301,27 @@ def _need_upcast(values):
         return True
     return False
 
+def pad_1d(values, limit=None):
+    if is_float_dtype(values):
+        _method = lib.pad_inplace_float64
+    elif values.dtype == np.object_:
+        _method = lib.pad_inplace_object
+    else: # pragma: no cover
+        raise ValueError('Invalid dtype for padding')
+
+    _method(values, isnull(values).view(np.uint8), limit=limit)
+
+def backfill_1d(values, limit=None):
+    if is_float_dtype(values):
+        _method = lib.backfill_inplace_float64
+    elif values.dtype == np.object_:
+        _method = lib.backfill_inplace_object
+    else: # pragma: no cover
+        raise ValueError('Invalid dtype for padding')
+
+    _method(values, isnull(values).view(np.uint8), limit=limit)
+
+
 #-------------------------------------------------------------------------------
 # Lots of little utilities
 

@@ -81,6 +81,76 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
         expected = s[indexer[0]]
         assert_series_equal(result, expected)
 
+    def test_series_pad_backfill_limit(self):
+        index = np.arange(10)
+        s = Series(np.random.randn(10), index=index)
+
+        result = s[:2].reindex(index, method='pad', limit=5)
+
+        expected = s[:2].reindex(index).fillna(method='pad')
+        expected[-3:] = np.nan
+        assert_series_equal(result, expected)
+
+        result = s[-2:].reindex(index, method='backfill', limit=5)
+
+        expected = s[-2:].reindex(index).fillna(method='backfill')
+        expected[:3] = np.nan
+        assert_series_equal(result, expected)
+
+    def test_series_fillna_limit(self):
+        index = np.arange(10)
+        s = Series(np.random.randn(10), index=index)
+
+        result = s[:2].reindex(index)
+        result = result.fillna(method='pad', limit=5)
+
+        expected = s[:2].reindex(index).fillna(method='pad')
+        expected[-3:] = np.nan
+        assert_series_equal(result, expected)
+
+        result = s[-2:].reindex(index)
+        result = result.fillna(method='bfill', limit=5)
+
+        expected = s[-2:].reindex(index).fillna(method='backfill')
+        expected[:3] = np.nan
+        assert_series_equal(result, expected)
+
+    def test_frame_pad_backfill_limit(self):
+        index = np.arange(10)
+        df = DataFrame(np.random.randn(10, 4), index=index)
+
+        result = df[:2].reindex(index, method='pad', limit=5)
+
+        expected = df[:2].reindex(index).fillna(method='pad')
+        expected.values[-3:] = np.nan
+        tm.assert_frame_equal(result, expected)
+
+        result = df[-2:].reindex(index, method='backfill', limit=5)
+
+        expected = df[-2:].reindex(index).fillna(method='backfill')
+        expected.values[:3] = np.nan
+        tm.assert_frame_equal(result, expected)
+
+    def test_frame_fillna_limit(self):
+        index = np.arange(10)
+        df = DataFrame(np.random.randn(10, 4), index=index)
+
+        result = df[:2].reindex(index)
+        result = result.fillna(method='pad', limit=5)
+
+        expected = df[:2].reindex(index).fillna(method='pad')
+        expected.values[-3:] = np.nan
+        tm.assert_frame_equal(result, expected)
+
+        result = df[-2:].reindex(index)
+        result = result.fillna(method='backfill', limit=5)
+
+        expected = df[-2:].reindex(index).fillna(method='backfill')
+        expected.values[:3] = np.nan
+        tm.assert_frame_equal(result, expected)
+
+
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)

@@ -116,7 +116,7 @@ def pad_float64(ndarray[float64_t] old, ndarray[float64_t] new,
     cdef Py_ssize_t i, j, nleft, nright
     cdef ndarray[int32_t, ndim=1] indexer
     cdef float64_t cur, next
-    cdef int lim
+    cdef int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
@@ -126,7 +126,8 @@ def pad_float64(ndarray[float64_t] old, ndarray[float64_t] new,
     if limit is None:
         lim = nright
     else:
-        # TODO: > 0?
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
         lim = limit
 
     if nleft == 0 or nright == 0 or new[nright - 1] < old[0]:
@@ -144,17 +145,26 @@ def pad_float64(ndarray[float64_t] old, ndarray[float64_t] new,
             break
 
         if i == nleft - 1:
-            while j < nright and new[j] >= cur:
-                indexer[j] = i
+            while j < nright:
+                if new[j] == cur:
+                    indexer[j] = i
+                elif new[j] > cur and fill_count < lim:
+                    indexer[j] = i
+                    fill_count += 1
                 j += 1
             break
 
         next = old[i + 1]
 
         while j < nright and cur <= new[j] < next:
-            indexer[j] = i
+            if new[j] == cur:
+                indexer[j] = i
+            elif fill_count < lim:
+                indexer[j] = i
+                fill_count += 1
             j += 1
 
+        fill_count = 0
         i += 1
         cur = next
 
@@ -167,7 +177,7 @@ def pad_object(ndarray[object] old, ndarray[object] new,
     cdef Py_ssize_t i, j, nleft, nright
     cdef ndarray[int32_t, ndim=1] indexer
     cdef object cur, next
-    cdef int lim
+    cdef int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
@@ -177,7 +187,8 @@ def pad_object(ndarray[object] old, ndarray[object] new,
     if limit is None:
         lim = nright
     else:
-        # TODO: > 0?
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
         lim = limit
 
     if nleft == 0 or nright == 0 or new[nright - 1] < old[0]:
@@ -195,17 +206,26 @@ def pad_object(ndarray[object] old, ndarray[object] new,
             break
 
         if i == nleft - 1:
-            while j < nright and new[j] >= cur:
-                indexer[j] = i
+            while j < nright:
+                if new[j] == cur:
+                    indexer[j] = i
+                elif new[j] > cur and fill_count < lim:
+                    indexer[j] = i
+                    fill_count += 1
                 j += 1
             break
 
         next = old[i + 1]
 
         while j < nright and cur <= new[j] < next:
-            indexer[j] = i
+            if new[j] == cur:
+                indexer[j] = i
+            elif fill_count < lim:
+                indexer[j] = i
+                fill_count += 1
             j += 1
 
+        fill_count = 0
         i += 1
         cur = next
 
@@ -218,7 +238,7 @@ def pad_int32(ndarray[int32_t] old, ndarray[int32_t] new,
     cdef Py_ssize_t i, j, nleft, nright
     cdef ndarray[int32_t, ndim=1] indexer
     cdef int32_t cur, next
-    cdef int lim
+    cdef int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
@@ -228,7 +248,8 @@ def pad_int32(ndarray[int32_t] old, ndarray[int32_t] new,
     if limit is None:
         lim = nright
     else:
-        # TODO: > 0?
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
         lim = limit
 
     if nleft == 0 or nright == 0 or new[nright - 1] < old[0]:
@@ -246,17 +267,26 @@ def pad_int32(ndarray[int32_t] old, ndarray[int32_t] new,
             break
 
         if i == nleft - 1:
-            while j < nright and new[j] >= cur:
-                indexer[j] = i
+            while j < nright:
+                if new[j] == cur:
+                    indexer[j] = i
+                elif new[j] > cur and fill_count < lim:
+                    indexer[j] = i
+                    fill_count += 1
                 j += 1
             break
 
         next = old[i + 1]
 
         while j < nright and cur <= new[j] < next:
-            indexer[j] = i
+            if new[j] == cur:
+                indexer[j] = i
+            elif fill_count < lim:
+                indexer[j] = i
+                fill_count += 1
             j += 1
 
+        fill_count = 0
         i += 1
         cur = next
 
@@ -269,7 +299,7 @@ def pad_int64(ndarray[int64_t] old, ndarray[int64_t] new,
     cdef Py_ssize_t i, j, nleft, nright
     cdef ndarray[int32_t, ndim=1] indexer
     cdef int64_t cur, next
-    cdef int lim
+    cdef int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
@@ -279,7 +309,8 @@ def pad_int64(ndarray[int64_t] old, ndarray[int64_t] new,
     if limit is None:
         lim = nright
     else:
-        # TODO: > 0?
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
         lim = limit
 
     if nleft == 0 or nright == 0 or new[nright - 1] < old[0]:
@@ -297,17 +328,26 @@ def pad_int64(ndarray[int64_t] old, ndarray[int64_t] new,
             break
 
         if i == nleft - 1:
-            while j < nright and new[j] >= cur:
-                indexer[j] = i
+            while j < nright:
+                if new[j] == cur:
+                    indexer[j] = i
+                elif new[j] > cur and fill_count < lim:
+                    indexer[j] = i
+                    fill_count += 1
                 j += 1
             break
 
         next = old[i + 1]
 
         while j < nright and cur <= new[j] < next:
-            indexer[j] = i
+            if new[j] == cur:
+                indexer[j] = i
+            elif fill_count < lim:
+                indexer[j] = i
+                fill_count += 1
             j += 1
 
+        fill_count = 0
         i += 1
         cur = next
 
@@ -320,7 +360,7 @@ def pad_bool(ndarray[uint8_t] old, ndarray[uint8_t] new,
     cdef Py_ssize_t i, j, nleft, nright
     cdef ndarray[int32_t, ndim=1] indexer
     cdef uint8_t cur, next
-    cdef int lim
+    cdef int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
@@ -330,7 +370,8 @@ def pad_bool(ndarray[uint8_t] old, ndarray[uint8_t] new,
     if limit is None:
         lim = nright
     else:
-        # TODO: > 0?
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
         lim = limit
 
     if nleft == 0 or nright == 0 or new[nright - 1] < old[0]:
@@ -348,17 +389,26 @@ def pad_bool(ndarray[uint8_t] old, ndarray[uint8_t] new,
             break
 
         if i == nleft - 1:
-            while j < nright and new[j] >= cur:
-                indexer[j] = i
+            while j < nright:
+                if new[j] == cur:
+                    indexer[j] = i
+                elif new[j] > cur and fill_count < lim:
+                    indexer[j] = i
+                    fill_count += 1
                 j += 1
             break
 
         next = old[i + 1]
 
         while j < nright and cur <= new[j] < next:
-            indexer[j] = i
+            if new[j] == cur:
+                indexer[j] = i
+            elif fill_count < lim:
+                indexer[j] = i
+                fill_count += 1
             j += 1
 
+        fill_count = 0
         i += 1
         cur = next
 
@@ -372,7 +422,7 @@ def backfill_float64(ndarray[float64_t] old, ndarray[float64_t] new,
     cdef Py_ssize_t i, j, nleft, nright
     cdef ndarray[int32_t, ndim=1] indexer
     cdef float64_t cur, prev
-    cdef int lim
+    cdef int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
@@ -382,7 +432,8 @@ def backfill_float64(ndarray[float64_t] old, ndarray[float64_t] new,
     if limit is None:
         lim = nright
     else:
-        # TODO: > 0?
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
         lim = limit
 
     if nleft == 0 or nright == 0 or new[0] > old[nleft - 1]:
@@ -401,17 +452,26 @@ def backfill_float64(ndarray[float64_t] old, ndarray[float64_t] new,
             break
 
         if i == 0:
-            while j >= 0 and new[j] <= cur:
-                indexer[j] = i
+            while j >= 0:
+                if new[j] == cur:
+                    indexer[j] = i
+                elif new[j] < cur and fill_count < lim:
+                    indexer[j] = i
+                    fill_count += 1
                 j -= 1
             break
 
         prev = old[i - 1]
 
         while j >= 0 and prev < new[j] <= cur:
-            indexer[j] = i
+            if new[j] == cur:
+                indexer[j] = i
+            elif new[j] < cur and fill_count < lim:
+                indexer[j] = i
+                fill_count += 1
             j -= 1
 
+        fill_count = 0
         i -= 1
         cur = prev
 
@@ -424,7 +484,7 @@ def backfill_object(ndarray[object] old, ndarray[object] new,
     cdef Py_ssize_t i, j, nleft, nright
     cdef ndarray[int32_t, ndim=1] indexer
     cdef object cur, prev
-    cdef int lim
+    cdef int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
@@ -434,7 +494,8 @@ def backfill_object(ndarray[object] old, ndarray[object] new,
     if limit is None:
         lim = nright
     else:
-        # TODO: > 0?
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
         lim = limit
 
     if nleft == 0 or nright == 0 or new[0] > old[nleft - 1]:
@@ -453,17 +514,26 @@ def backfill_object(ndarray[object] old, ndarray[object] new,
             break
 
         if i == 0:
-            while j >= 0 and new[j] <= cur:
-                indexer[j] = i
+            while j >= 0:
+                if new[j] == cur:
+                    indexer[j] = i
+                elif new[j] < cur and fill_count < lim:
+                    indexer[j] = i
+                    fill_count += 1
                 j -= 1
             break
 
         prev = old[i - 1]
 
         while j >= 0 and prev < new[j] <= cur:
-            indexer[j] = i
+            if new[j] == cur:
+                indexer[j] = i
+            elif new[j] < cur and fill_count < lim:
+                indexer[j] = i
+                fill_count += 1
             j -= 1
 
+        fill_count = 0
         i -= 1
         cur = prev
 
@@ -476,7 +546,7 @@ def backfill_int32(ndarray[int32_t] old, ndarray[int32_t] new,
     cdef Py_ssize_t i, j, nleft, nright
     cdef ndarray[int32_t, ndim=1] indexer
     cdef int32_t cur, prev
-    cdef int lim
+    cdef int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
@@ -486,7 +556,8 @@ def backfill_int32(ndarray[int32_t] old, ndarray[int32_t] new,
     if limit is None:
         lim = nright
     else:
-        # TODO: > 0?
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
         lim = limit
 
     if nleft == 0 or nright == 0 or new[0] > old[nleft - 1]:
@@ -505,17 +576,26 @@ def backfill_int32(ndarray[int32_t] old, ndarray[int32_t] new,
             break
 
         if i == 0:
-            while j >= 0 and new[j] <= cur:
-                indexer[j] = i
+            while j >= 0:
+                if new[j] == cur:
+                    indexer[j] = i
+                elif new[j] < cur and fill_count < lim:
+                    indexer[j] = i
+                    fill_count += 1
                 j -= 1
             break
 
         prev = old[i - 1]
 
         while j >= 0 and prev < new[j] <= cur:
-            indexer[j] = i
+            if new[j] == cur:
+                indexer[j] = i
+            elif new[j] < cur and fill_count < lim:
+                indexer[j] = i
+                fill_count += 1
             j -= 1
 
+        fill_count = 0
         i -= 1
         cur = prev
 
@@ -528,7 +608,7 @@ def backfill_int64(ndarray[int64_t] old, ndarray[int64_t] new,
     cdef Py_ssize_t i, j, nleft, nright
     cdef ndarray[int32_t, ndim=1] indexer
     cdef int64_t cur, prev
-    cdef int lim
+    cdef int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
@@ -538,7 +618,8 @@ def backfill_int64(ndarray[int64_t] old, ndarray[int64_t] new,
     if limit is None:
         lim = nright
     else:
-        # TODO: > 0?
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
         lim = limit
 
     if nleft == 0 or nright == 0 or new[0] > old[nleft - 1]:
@@ -557,17 +638,26 @@ def backfill_int64(ndarray[int64_t] old, ndarray[int64_t] new,
             break
 
         if i == 0:
-            while j >= 0 and new[j] <= cur:
-                indexer[j] = i
+            while j >= 0:
+                if new[j] == cur:
+                    indexer[j] = i
+                elif new[j] < cur and fill_count < lim:
+                    indexer[j] = i
+                    fill_count += 1
                 j -= 1
             break
 
         prev = old[i - 1]
 
         while j >= 0 and prev < new[j] <= cur:
-            indexer[j] = i
+            if new[j] == cur:
+                indexer[j] = i
+            elif new[j] < cur and fill_count < lim:
+                indexer[j] = i
+                fill_count += 1
             j -= 1
 
+        fill_count = 0
         i -= 1
         cur = prev
 
@@ -580,7 +670,7 @@ def backfill_bool(ndarray[uint8_t] old, ndarray[uint8_t] new,
     cdef Py_ssize_t i, j, nleft, nright
     cdef ndarray[int32_t, ndim=1] indexer
     cdef uint8_t cur, prev
-    cdef int lim
+    cdef int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
@@ -590,7 +680,8 @@ def backfill_bool(ndarray[uint8_t] old, ndarray[uint8_t] new,
     if limit is None:
         lim = nright
     else:
-        # TODO: > 0?
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
         lim = limit
 
     if nleft == 0 or nright == 0 or new[0] > old[nleft - 1]:
@@ -609,17 +700,26 @@ def backfill_bool(ndarray[uint8_t] old, ndarray[uint8_t] new,
             break
 
         if i == 0:
-            while j >= 0 and new[j] <= cur:
-                indexer[j] = i
+            while j >= 0:
+                if new[j] == cur:
+                    indexer[j] = i
+                elif new[j] < cur and fill_count < lim:
+                    indexer[j] = i
+                    fill_count += 1
                 j -= 1
             break
 
         prev = old[i - 1]
 
         while j >= 0 and prev < new[j] <= cur:
-            indexer[j] = i
+            if new[j] == cur:
+                indexer[j] = i
+            elif new[j] < cur and fill_count < lim:
+                indexer[j] = i
+                fill_count += 1
             j -= 1
 
+        fill_count = 0
         i -= 1
         cur = prev
 
@@ -628,179 +728,607 @@ def backfill_bool(ndarray[uint8_t] old, ndarray[uint8_t] new,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def pad_inplace_float64(ndarray[float64_t] values,
+                         ndarray[uint8_t, cast=True] mask,
+                            limit=None):
+    cdef Py_ssize_t i, N
+    cdef float64_t val
+    cdef int lim, fill_count = 0
+
+    N = len(values)
+    val = np.nan
+
+    if limit is None:
+        lim = N
+    else:
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
+        lim = limit
+
+    val = values[0]
+    for i in range(N):
+        if mask[i]:
+            if fill_count >= lim:
+                continue
+            fill_count += 1
+            values[i] = val
+        else:
+            fill_count = 0
+            val = values[i]
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def pad_inplace_object(ndarray[object] values,
+                         ndarray[uint8_t, cast=True] mask,
+                            limit=None):
+    cdef Py_ssize_t i, N
+    cdef object val
+    cdef int lim, fill_count = 0
+
+    N = len(values)
+    val = np.nan
+
+    if limit is None:
+        lim = N
+    else:
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
+        lim = limit
+
+    val = values[0]
+    for i in range(N):
+        if mask[i]:
+            if fill_count >= lim:
+                continue
+            fill_count += 1
+            values[i] = val
+        else:
+            fill_count = 0
+            val = values[i]
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def pad_inplace_int32(ndarray[int32_t] values,
+                         ndarray[uint8_t, cast=True] mask,
+                            limit=None):
+    cdef Py_ssize_t i, N
+    cdef int32_t val
+    cdef int lim, fill_count = 0
+
+    N = len(values)
+    val = np.nan
+
+    if limit is None:
+        lim = N
+    else:
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
+        lim = limit
+
+    val = values[0]
+    for i in range(N):
+        if mask[i]:
+            if fill_count >= lim:
+                continue
+            fill_count += 1
+            values[i] = val
+        else:
+            fill_count = 0
+            val = values[i]
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def pad_inplace_int64(ndarray[int64_t] values,
+                         ndarray[uint8_t, cast=True] mask,
+                            limit=None):
+    cdef Py_ssize_t i, N
+    cdef int64_t val
+    cdef int lim, fill_count = 0
+
+    N = len(values)
+    val = np.nan
+
+    if limit is None:
+        lim = N
+    else:
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
+        lim = limit
+
+    val = values[0]
+    for i in range(N):
+        if mask[i]:
+            if fill_count >= lim:
+                continue
+            fill_count += 1
+            values[i] = val
+        else:
+            fill_count = 0
+            val = values[i]
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def pad_inplace_bool(ndarray[uint8_t] values,
+                         ndarray[uint8_t, cast=True] mask,
+                            limit=None):
+    cdef Py_ssize_t i, N
+    cdef uint8_t val
+    cdef int lim, fill_count = 0
+
+    N = len(values)
+    val = np.nan
+
+    if limit is None:
+        lim = N
+    else:
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
+        lim = limit
+
+    val = values[0]
+    for i in range(N):
+        if mask[i]:
+            if fill_count >= lim:
+                continue
+            fill_count += 1
+            values[i] = val
+        else:
+            fill_count = 0
+            val = values[i]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def backfill_inplace_float64(ndarray[float64_t] values,
+                              ndarray[uint8_t, cast=True] mask,
+                              limit=None):
+    cdef Py_ssize_t i, N
+    cdef float64_t val
+    cdef int lim, fill_count = 0
+
+    N = len(values)
+
+    if limit is None:
+        lim = N
+    else:
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
+        lim = limit
+
+    val = values[N - 1]
+    for i in range(N - 1, -1 , -1):
+        if mask[i]:
+            if fill_count >= lim:
+                continue
+            fill_count += 1
+            values[i] = val
+        else:
+            fill_count = 0
+            val = values[i]
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def backfill_inplace_object(ndarray[object] values,
+                              ndarray[uint8_t, cast=True] mask,
+                              limit=None):
+    cdef Py_ssize_t i, N
+    cdef object val
+    cdef int lim, fill_count = 0
+
+    N = len(values)
+
+    if limit is None:
+        lim = N
+    else:
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
+        lim = limit
+
+    val = values[N - 1]
+    for i in range(N - 1, -1 , -1):
+        if mask[i]:
+            if fill_count >= lim:
+                continue
+            fill_count += 1
+            values[i] = val
+        else:
+            fill_count = 0
+            val = values[i]
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def backfill_inplace_int32(ndarray[int32_t] values,
+                              ndarray[uint8_t, cast=True] mask,
+                              limit=None):
+    cdef Py_ssize_t i, N
+    cdef int32_t val
+    cdef int lim, fill_count = 0
+
+    N = len(values)
+
+    if limit is None:
+        lim = N
+    else:
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
+        lim = limit
+
+    val = values[N - 1]
+    for i in range(N - 1, -1 , -1):
+        if mask[i]:
+            if fill_count >= lim:
+                continue
+            fill_count += 1
+            values[i] = val
+        else:
+            fill_count = 0
+            val = values[i]
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def backfill_inplace_int64(ndarray[int64_t] values,
+                              ndarray[uint8_t, cast=True] mask,
+                              limit=None):
+    cdef Py_ssize_t i, N
+    cdef int64_t val
+    cdef int lim, fill_count = 0
+
+    N = len(values)
+
+    if limit is None:
+        lim = N
+    else:
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
+        lim = limit
+
+    val = values[N - 1]
+    for i in range(N - 1, -1 , -1):
+        if mask[i]:
+            if fill_count >= lim:
+                continue
+            fill_count += 1
+            values[i] = val
+        else:
+            fill_count = 0
+            val = values[i]
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def backfill_inplace_bool(ndarray[uint8_t] values,
+                              ndarray[uint8_t, cast=True] mask,
+                              limit=None):
+    cdef Py_ssize_t i, N
+    cdef uint8_t val
+    cdef int lim, fill_count = 0
+
+    N = len(values)
+
+    if limit is None:
+        lim = N
+    else:
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
+        lim = limit
+
+    val = values[N - 1]
+    for i in range(N - 1, -1 , -1):
+        if mask[i]:
+            if fill_count >= lim:
+                continue
+            fill_count += 1
+            values[i] = val
+        else:
+            fill_count = 0
+            val = values[i]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def pad_2d_inplace_float64(ndarray[float64_t, ndim=2] values,
-                            ndarray[uint8_t, ndim=2] mask):
+                            ndarray[uint8_t, ndim=2] mask,
+                            limit=None):
     cdef Py_ssize_t i, j, N, K
     cdef float64_t val
+    cdef int lim, fill_count = 0
 
     K, N = (<object> values).shape
 
     val = np.nan
 
+    if limit is None:
+        lim = N
+    else:
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
+        lim = limit
+
     for j in range(K):
+        fill_count = 0
         val = values[j, 0]
         for i in range(N):
             if mask[j, i]:
+                if fill_count >= lim:
+                    continue
+                fill_count += 1
                 values[j, i] = val
             else:
+                fill_count = 0
                 val = values[j, i]
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def pad_2d_inplace_object(ndarray[object, ndim=2] values,
-                            ndarray[uint8_t, ndim=2] mask):
+                            ndarray[uint8_t, ndim=2] mask,
+                            limit=None):
     cdef Py_ssize_t i, j, N, K
     cdef object val
+    cdef int lim, fill_count = 0
 
     K, N = (<object> values).shape
 
     val = np.nan
 
+    if limit is None:
+        lim = N
+    else:
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
+        lim = limit
+
     for j in range(K):
+        fill_count = 0
         val = values[j, 0]
         for i in range(N):
             if mask[j, i]:
+                if fill_count >= lim:
+                    continue
+                fill_count += 1
                 values[j, i] = val
             else:
+                fill_count = 0
                 val = values[j, i]
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def pad_2d_inplace_int32(ndarray[int32_t, ndim=2] values,
-                            ndarray[uint8_t, ndim=2] mask):
+                            ndarray[uint8_t, ndim=2] mask,
+                            limit=None):
     cdef Py_ssize_t i, j, N, K
     cdef int32_t val
+    cdef int lim, fill_count = 0
 
     K, N = (<object> values).shape
 
     val = np.nan
 
+    if limit is None:
+        lim = N
+    else:
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
+        lim = limit
+
     for j in range(K):
+        fill_count = 0
         val = values[j, 0]
         for i in range(N):
             if mask[j, i]:
+                if fill_count >= lim:
+                    continue
+                fill_count += 1
                 values[j, i] = val
             else:
+                fill_count = 0
                 val = values[j, i]
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def pad_2d_inplace_int64(ndarray[int64_t, ndim=2] values,
-                            ndarray[uint8_t, ndim=2] mask):
+                            ndarray[uint8_t, ndim=2] mask,
+                            limit=None):
     cdef Py_ssize_t i, j, N, K
     cdef int64_t val
+    cdef int lim, fill_count = 0
 
     K, N = (<object> values).shape
 
     val = np.nan
 
+    if limit is None:
+        lim = N
+    else:
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
+        lim = limit
+
     for j in range(K):
+        fill_count = 0
         val = values[j, 0]
         for i in range(N):
             if mask[j, i]:
+                if fill_count >= lim:
+                    continue
+                fill_count += 1
                 values[j, i] = val
             else:
+                fill_count = 0
                 val = values[j, i]
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def pad_2d_inplace_bool(ndarray[uint8_t, ndim=2] values,
-                            ndarray[uint8_t, ndim=2] mask):
+                            ndarray[uint8_t, ndim=2] mask,
+                            limit=None):
     cdef Py_ssize_t i, j, N, K
     cdef uint8_t val
+    cdef int lim, fill_count = 0
 
     K, N = (<object> values).shape
 
     val = np.nan
 
+    if limit is None:
+        lim = N
+    else:
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
+        lim = limit
+
     for j in range(K):
+        fill_count = 0
         val = values[j, 0]
         for i in range(N):
             if mask[j, i]:
+                if fill_count >= lim:
+                    continue
+                fill_count += 1
                 values[j, i] = val
             else:
+                fill_count = 0
                 val = values[j, i]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def backfill_2d_inplace_float64(ndarray[float64_t, ndim=2] values,
-                                 ndarray[uint8_t, ndim=2] mask):
+                                 ndarray[uint8_t, ndim=2] mask,
+                                 limit=None):
     cdef Py_ssize_t i, j, N, K
     cdef float64_t val
+    cdef int lim, fill_count = 0
 
     K, N = (<object> values).shape
 
+    if limit is None:
+        lim = N
+    else:
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
+        lim = limit
+
     for j in range(K):
+        fill_count = 0
         val = values[j, N - 1]
         for i in range(N - 1, -1 , -1):
             if mask[j, i]:
+                if fill_count >= lim:
+                    continue
+                fill_count += 1
                 values[j, i] = val
             else:
+                fill_count = 0
                 val = values[j, i]
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def backfill_2d_inplace_object(ndarray[object, ndim=2] values,
-                                 ndarray[uint8_t, ndim=2] mask):
+                                 ndarray[uint8_t, ndim=2] mask,
+                                 limit=None):
     cdef Py_ssize_t i, j, N, K
     cdef object val
+    cdef int lim, fill_count = 0
 
     K, N = (<object> values).shape
 
+    if limit is None:
+        lim = N
+    else:
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
+        lim = limit
+
     for j in range(K):
+        fill_count = 0
         val = values[j, N - 1]
         for i in range(N - 1, -1 , -1):
             if mask[j, i]:
+                if fill_count >= lim:
+                    continue
+                fill_count += 1
                 values[j, i] = val
             else:
+                fill_count = 0
                 val = values[j, i]
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def backfill_2d_inplace_int32(ndarray[int32_t, ndim=2] values,
-                                 ndarray[uint8_t, ndim=2] mask):
+                                 ndarray[uint8_t, ndim=2] mask,
+                                 limit=None):
     cdef Py_ssize_t i, j, N, K
     cdef int32_t val
+    cdef int lim, fill_count = 0
 
     K, N = (<object> values).shape
 
+    if limit is None:
+        lim = N
+    else:
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
+        lim = limit
+
     for j in range(K):
+        fill_count = 0
         val = values[j, N - 1]
         for i in range(N - 1, -1 , -1):
             if mask[j, i]:
+                if fill_count >= lim:
+                    continue
+                fill_count += 1
                 values[j, i] = val
             else:
+                fill_count = 0
                 val = values[j, i]
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def backfill_2d_inplace_int64(ndarray[int64_t, ndim=2] values,
-                                 ndarray[uint8_t, ndim=2] mask):
+                                 ndarray[uint8_t, ndim=2] mask,
+                                 limit=None):
     cdef Py_ssize_t i, j, N, K
     cdef int64_t val
+    cdef int lim, fill_count = 0
 
     K, N = (<object> values).shape
 
+    if limit is None:
+        lim = N
+    else:
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
+        lim = limit
+
     for j in range(K):
+        fill_count = 0
         val = values[j, N - 1]
         for i in range(N - 1, -1 , -1):
             if mask[j, i]:
+                if fill_count >= lim:
+                    continue
+                fill_count += 1
                 values[j, i] = val
             else:
+                fill_count = 0
                 val = values[j, i]
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def backfill_2d_inplace_bool(ndarray[uint8_t, ndim=2] values,
-                                 ndarray[uint8_t, ndim=2] mask):
+                                 ndarray[uint8_t, ndim=2] mask,
+                                 limit=None):
     cdef Py_ssize_t i, j, N, K
     cdef uint8_t val
+    cdef int lim, fill_count = 0
 
     K, N = (<object> values).shape
 
+    if limit is None:
+        lim = N
+    else:
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
+        lim = limit
+
     for j in range(K):
+        fill_count = 0
         val = values[j, N - 1]
         for i in range(N - 1, -1 , -1):
             if mask[j, i]:
+                if fill_count >= lim:
+                    continue
+                fill_count += 1
                 values[j, i] = val
             else:
+                fill_count = 0
                 val = values[j, i]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def take_1d_float64(ndarray[float64_t] values, ndarray[int32_t] indexer,
+def take_1d_float64(ndarray[float64_t] values,
+                     ndarray[int32_t] indexer,
                      out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
@@ -832,7 +1360,8 @@ def take_1d_float64(ndarray[float64_t] values, ndarray[int32_t] indexer,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def take_1d_object(ndarray[object] values, ndarray[int32_t] indexer,
+def take_1d_object(ndarray[object] values,
+                     ndarray[int32_t] indexer,
                      out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
@@ -864,7 +1393,8 @@ def take_1d_object(ndarray[object] values, ndarray[int32_t] indexer,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def take_1d_int32(ndarray[int32_t] values, ndarray[int32_t] indexer,
+def take_1d_int32(ndarray[int32_t] values,
+                     ndarray[int32_t] indexer,
                      out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
@@ -896,7 +1426,8 @@ def take_1d_int32(ndarray[int32_t] values, ndarray[int32_t] indexer,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def take_1d_int64(ndarray[int64_t] values, ndarray[int32_t] indexer,
+def take_1d_int64(ndarray[int64_t] values,
+                     ndarray[int32_t] indexer,
                      out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
@@ -928,7 +1459,8 @@ def take_1d_int64(ndarray[int64_t] values, ndarray[int32_t] indexer,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def take_1d_bool(ndarray[uint8_t] values, ndarray[int32_t] indexer,
+def take_1d_bool(ndarray[uint8_t] values,
+                     ndarray[int32_t] indexer,
                      out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx

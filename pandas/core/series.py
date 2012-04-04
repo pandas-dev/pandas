@@ -1867,7 +1867,7 @@ copy : boolean, default False
         return self._constructor(new_values, new_index, name=self.name)
 
     def reindex(self, index=None, method=None, level=None, fill_value=np.nan,
-                copy=True):
+                limit=None, copy=True):
         """Conform Series to new index with optional filling logic, placing
         NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
@@ -1906,12 +1906,12 @@ copy : boolean, default False
             return Series(nan, index=index, name=self.name)
 
         new_index, fill_vec = self.index.reindex(index, method=method,
-                                                 level=level)
+                                                 level=level, limit=limit)
         fill_vec = com._ensure_int32(fill_vec)
         new_values = com.take_1d(self.values, fill_vec, fill_value=fill_value)
         return Series(new_values, index=new_index, name=self.name)
 
-    def reindex_like(self, other, method=None):
+    def reindex_like(self, other, method=None, limit=None):
         """
         Reindex Series to match index of another Series, optionally with
         filling logic
@@ -1930,7 +1930,7 @@ copy : boolean, default False
         -------
         reindexed : Series
         """
-        return self.reindex(other.index, method=method)
+        return self.reindex(other.index, method=method, limit=limit)
 
     def take(self, indices, axis=0):
         """
@@ -1951,7 +1951,8 @@ copy : boolean, default False
 
     truncate = generic.truncate
 
-    def fillna(self, value=None, method='pad', inplace=False):
+    def fillna(self, value=None, method='pad', inplace=False,
+               limit=None):
         """
         Fill NA/NaN values using the specified method
 
@@ -1986,21 +1987,22 @@ copy : boolean, default False
                 raise ValueError('must specify a fill method')
 
             method = com._clean_fill_method(method)
-
-            # sadness. for Python 2.5 compatibility
-            mask = mask.astype(np.uint8)
-
             if method == 'pad':
-                indexer = lib.get_pad_indexer(mask)
+                fill_f = com.pad_1d
             elif method == 'backfill':
-                indexer = lib.get_backfill_indexer(mask)
+                fill_f = com.backfill_1d
 
             if inplace:
-                self.values[:] = self.values.take(indexer)
+                values = self.values
+            else:
+                values = self.values.copy()
+
+            fill_f(values, limit=limit)
+
+            if inplace:
                 result = self
             else:
-                new_values = self.values.take(indexer)
-                result = Series(new_values, index=self.index, name=self.name)
+                result = Series(values, index=self.index, name=self.name)
 
         return result
 

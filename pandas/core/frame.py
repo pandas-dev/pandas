@@ -1838,7 +1838,7 @@ class DataFrame(NDFrame):
             return left_result, right_result
 
     def reindex(self, index=None, columns=None, method=None, level=None,
-                fill_value=np.nan, copy=True):
+                fill_value=np.nan, limit=None, copy=True):
         """Conform DataFrame to new index with optional filling logic, placing
         NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
@@ -1876,15 +1876,17 @@ class DataFrame(NDFrame):
         frame = self
 
         if index is not None:
-            frame = frame._reindex_index(index, method, copy, level, fill_value)
+            frame = frame._reindex_index(index, method, copy, level,
+                                         fill_value, limit)
 
         if columns is not None:
-            frame = frame._reindex_columns(columns, copy, level, fill_value)
+            frame = frame._reindex_columns(columns, copy, level,
+                                           fill_value, limit)
 
         return frame
 
     def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True,
-                     fill_value=np.nan):
+                     limit=None, fill_value=np.nan):
         """Conform DataFrame to new index with optional filling logic, placing
         NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
@@ -1923,20 +1925,26 @@ class DataFrame(NDFrame):
         self._consolidate_inplace()
         if axis == 0:
             return self._reindex_index(labels, method, copy, level,
-                                       fill_value=fill_value)
+                                       fill_value=fill_value,
+                                       limit=limit)
         elif axis == 1:
             return self._reindex_columns(labels, copy, level,
-                                         fill_value=fill_value)
+                                         fill_value=fill_value,
+                                         limit=limit)
         else:  # pragma: no cover
             raise ValueError('Must specify axis=0 or 1')
 
-    def _reindex_index(self, new_index, method, copy, level, fill_value=np.nan):
-        new_index, indexer = self.index.reindex(new_index, method, level)
+    def _reindex_index(self, new_index, method, copy, level, fill_value=np.nan,
+                       limit=None):
+        new_index, indexer = self.index.reindex(new_index, method, level,
+                                                limit=limit)
         return self._reindex_with_indexers(new_index, indexer, None, None,
                                            copy, fill_value)
 
-    def _reindex_columns(self, new_columns, copy, level, fill_value=np.nan):
-        new_columns, indexer = self.columns.reindex(new_columns, level=level)
+    def _reindex_columns(self, new_columns, copy, level, fill_value=np.nan,
+                         limit=None):
+        new_columns, indexer = self.columns.reindex(new_columns, level=level,
+                                                    limit=limit)
         return self._reindex_with_indexers(None, None, new_columns, indexer,
                                            copy, fill_value)
 
@@ -1965,7 +1973,7 @@ class DataFrame(NDFrame):
 
         return DataFrame(new_data)
 
-    def reindex_like(self, other, method=None, copy=True):
+    def reindex_like(self, other, method=None, copy=True, limit=None):
         """
         Reindex DataFrame to match indices of another DataFrame, optionally
         with filling logic
@@ -1986,7 +1994,7 @@ class DataFrame(NDFrame):
         reindexed : DataFrame
         """
         return self.reindex(index=other.index, columns=other.columns,
-                            method=method, copy=copy)
+                            method=method, copy=copy, limit=limit)
 
     truncate = generic.truncate
 
@@ -2406,7 +2414,8 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Filling NA's
 
-    def fillna(self, value=None, method='pad', axis=0, inplace=False):
+    def fillna(self, value=None, method='pad', axis=0, inplace=False,
+               limit=None):
         """
         Fill NA/NaN values using the specified method
 
@@ -2443,13 +2452,14 @@ class DataFrame(NDFrame):
 
         if value is None:
             if self._is_mixed_type and axis == 1:
-                return self.T.fillna(method=method).T
+                return self.T.fillna(method=method, limit=limit).T
 
             new_blocks = []
             method = com._clean_fill_method(method)
             for block in self._data.blocks:
                 if isinstance(block, (FloatBlock, ObjectBlock)):
-                    newb = block.interpolate(method, axis=axis, inplace=inplace)
+                    newb = block.interpolate(method, axis=axis,
+                                             limit=limit, inplace=inplace)
                 else:
                     newb = block if inplace else block.copy()
                 new_blocks.append(newb)

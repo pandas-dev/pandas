@@ -373,7 +373,7 @@ to sparse
                             sparse_index=self.sp_index,
                             fill_value=self.fill_value, name=self.name)
 
-    def reindex(self, index=None, method=None, copy=True):
+    def reindex(self, index=None, method=None, copy=True, limit=None):
         """
         Conform SparseSeries to new Index
 
@@ -398,7 +398,8 @@ to sparse
             return SparseSeries(values, index=new_index,
                                 fill_value=self.fill_value)
 
-        new_index, fill_vec = self.index.reindex(index, method=method)
+        new_index, fill_vec = self.index.reindex(index, method=method,
+                                                 limit=limit)
         new_values = common.take_1d(self.values, fill_vec)
         return SparseSeries(new_values, index=new_index,
                             fill_value=self.fill_value, name=self.name)
@@ -425,9 +426,9 @@ to sparse
                             fill_value=self.fill_value)
 
     @Appender(Series.fillna.__doc__)
-    def fillna(self, value=None, method='pad', inplace=False):
+    def fillna(self, value=None, method='pad', inplace=False, limit=None):
         dense = self.to_dense()
-        filled = dense.fillna(value=value, method=method)
+        filled = dense.fillna(value=value, method=method, limit=limit)
         result = filled.to_sparse(kind=self.kind,
                                   fill_value=self.fill_value)
 

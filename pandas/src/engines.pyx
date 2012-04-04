@@ -237,11 +237,13 @@ cdef class Int64Engine(IndexEngine):
     def _call_monotonic(self, values):
         return _tseries.is_monotonic_int64(values)
 
-    def get_pad_indexer(self, other):
-        return _tseries.pad_int64(self._get_index_values(), other)
+    def get_pad_indexer(self, other, limit=None):
+        return _tseries.pad_int64(self._get_index_values(), other,
+                                  limit=limit)
 
-    def get_backfill_indexer(self, other):
-        return _tseries.backfill_int64(self._get_index_values(), other)
+    def get_backfill_indexer(self, other, limit=None):
+        return _tseries.backfill_int64(self._get_index_values(), other,
+                                       limit=limit)
 
     cdef _get_bool_indexer(self, object val):
         cdef:
@@ -283,12 +285,25 @@ cdef class Float64Engine(IndexEngine):
     def _call_monotonic(self, values):
         return _tseries.is_monotonic_float64(values)
 
-    def get_pad_indexer(self, other):
-        return _tseries.pad_float64(self._get_index_values(), other)
+    def get_pad_indexer(self, other, limit=None):
+        return _tseries.pad_float64(self._get_index_values(), other,
+                                    limit=limit)
 
-    def get_backfill_indexer(self, other):
-        return _tseries.backfill_float64(self._get_index_values(), other)
+    def get_backfill_indexer(self, other, limit=None):
+        return _tseries.backfill_float64(self._get_index_values(), other,
+                                         limit=limit)
 
+_pad_functions = {
+    'object' : _tseries.pad_object,
+    'int64' : _tseries.pad_int64,
+    'float64' : _tseries.pad_float64
+}
+
+_backfill_functions = {
+    'object': _tseries.backfill_object,
+    'int64': _tseries.backfill_int64,
+    'float64': _tseries.backfill_float64
+}
 
 cdef class ObjectEngine(IndexEngine):
 
@@ -300,11 +315,13 @@ cdef class ObjectEngine(IndexEngine):
     def _call_monotonic(self, values):
         return _tseries.is_monotonic_object(values)
 
-    def get_pad_indexer(self, other):
-        return _tseries.pad_object(self._get_index_values(), other)
+    def get_pad_indexer(self, other, limit=None):
+        return _tseries.pad_object(self._get_index_values(), other,
+                                   limit=limit)
 
-    def get_backfill_indexer(self, other):
-        return _tseries.backfill_object(self._get_index_values(), other)
+    def get_backfill_indexer(self, other, limit=None):
+        return _tseries.backfill_object(self._get_index_values(), other,
+                                        limit=limit)
 
 
 cdef class DatetimeEngine(Int64Engine):
@@ -361,17 +378,19 @@ cdef class DatetimeEngine(Int64Engine):
         values = np.asarray(values).view('i8')
         return self.mapping.lookup(values)
 
-    def get_pad_indexer(self, other):
+    def get_pad_indexer(self, other, limit=None):
         if other.dtype != 'M8':
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
-        return _tseries.pad_int64(self._get_index_values(), other)
+        return _tseries.pad_int64(self._get_index_values(), other,
+                                  limit=limit)
 
-    def get_backfill_indexer(self, other):
+    def get_backfill_indexer(self, other, limit=None):
         if other.dtype != 'M8':
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
-        return _tseries.backfill_int64(self._get_index_values(), other)
+        return _tseries.backfill_int64(self._get_index_values(), other,
+                                       limit=limit)
 
 
 # ctypedef fused idxvalue_t:

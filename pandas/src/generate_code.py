@@ -157,7 +157,7 @@ def backfill_%(name)s(ndarray[%(c_type)s] old, ndarray[%(c_type)s] new,
     cdef Py_ssize_t i, j, nleft, nright
     cdef ndarray[int32_t, ndim=1] indexer
     cdef %(c_type)s cur, prev
-    cdef int lim
+    cdef int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
@@ -167,7 +167,8 @@ def backfill_%(name)s(ndarray[%(c_type)s] old, ndarray[%(c_type)s] new,
     if limit is None:
         lim = nright
     else:
-        # TODO: > 0?
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
         lim = limit
 
     if nleft == 0 or nright == 0 or new[0] > old[nleft - 1]:
@@ -186,45 +187,32 @@ def backfill_%(name)s(ndarray[%(c_type)s] old, ndarray[%(c_type)s] new,
             break
 
         if i == 0:
-            while j >= 0 and new[j] <= cur:
-                indexer[j] = i
+            while j >= 0:
+                if new[j] == cur:
+                    indexer[j] = i
+                elif new[j] < cur and fill_count < lim:
+                    indexer[j] = i
+                    fill_count += 1
                 j -= 1
             break
 
         prev = old[i - 1]
 
         while j >= 0 and prev < new[j] <= cur:
-            indexer[j] = i
+            if new[j] == cur:
+                indexer[j] = i
+            elif new[j] < cur and fill_count < lim:
+                indexer[j] = i
+                fill_count += 1
             j -= 1
 
+        fill_count = 0
         i -= 1
         cur = prev
 
     return indexer
 
 """
-
-'''
-Padding logic for generating fill vector
-
-Diagram of what's going on
-
-Old      New    Fill vector    Mask
-         .                        0
-         .                        0
-         .                        0
-A        A        0               1
-         .        0               1
-         .        0               1
-         .        0               1
-         .        0               1
-         .        0               1
-B        B        1               1
-         .        1               1
-         .        1               1
-         .        1               1
-C        C        2               1
-'''
 
 
 pad_template = """@cython.boundscheck(False)
@@ -234,7 +222,7 @@ def pad_%(name)s(ndarray[%(c_type)s] old, ndarray[%(c_type)s] new,
     cdef Py_ssize_t i, j, nleft, nright
     cdef ndarray[int32_t, ndim=1] indexer
     cdef %(c_type)s cur, next
-    cdef int lim
+    cdef int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
@@ -244,7 +232,8 @@ def pad_%(name)s(ndarray[%(c_type)s] old, ndarray[%(c_type)s] new,
     if limit is None:
         lim = nright
     else:
-        # TODO: > 0?
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
         lim = limit
 
     if nleft == 0 or nright == 0 or new[nright - 1] < old[0]:
@@ -262,17 +251,26 @@ def pad_%(name)s(ndarray[%(c_type)s] old, ndarray[%(c_type)s] new,
             break
 
         if i == nleft - 1:
-            while j < nright and new[j] >= cur:
-                indexer[j] = i
+            while j < nright:
+                if new[j] == cur:
+                    indexer[j] = i
+                elif new[j] > cur and fill_count < lim:
+                    indexer[j] = i
+                    fill_count += 1
                 j += 1
             break
 
         next = old[i + 1]
 
         while j < nright and cur <= new[j] < next:
-            indexer[j] = i
+            if new[j] == cur:
+                indexer[j] = i
+            elif fill_count < lim:
+                indexer[j] = i
+                fill_count += 1
             j += 1
 
+        fill_count = 0
         i += 1
         cur = next
 
@@ -280,44 +278,132 @@ def pad_%(name)s(ndarray[%(c_type)s] old, ndarray[%(c_type)s] new,
 
 """
 
+pad_1d_template = """@cython.boundscheck(False)
+@cython.wraparound(False)
+def pad_inplace_%(name)s(ndarray[%(c_type)s] values,
+                         ndarray[uint8_t, cast=True] mask,
+                            limit=None):
+    cdef Py_ssize_t i, N
+    cdef %(c_type)s val
+    cdef int lim, fill_count = 0
+
+    N = len(values)
+    val = np.nan
+
+    if limit is None:
+        lim = N
+    else:
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
+        lim = limit
+
+    val = values[0]
+    for i in range(N):
+        if mask[i]:
+            if fill_count >= lim:
+                continue
+            fill_count += 1
+            values[i] = val
+        else:
+            fill_count = 0
+            val = values[i]
+"""
+
 pad_2d_template = """@cython.boundscheck(False)
 @cython.wraparound(False)
 def pad_2d_inplace_%(name)s(ndarray[%(c_type)s, ndim=2] values,
-                            ndarray[uint8_t, ndim=2] mask):
+                            ndarray[uint8_t, ndim=2] mask,
+                            limit=None):
     cdef Py_ssize_t i, j, N, K
     cdef %(c_type)s val
+    cdef int lim, fill_count = 0
 
     K, N = (<object> values).shape
 
     val = np.nan
 
+    if limit is None:
+        lim = N
+    else:
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
+        lim = limit
+
     for j in range(K):
+        fill_count = 0
         val = values[j, 0]
         for i in range(N):
             if mask[j, i]:
+                if fill_count >= lim:
+                    continue
+                fill_count += 1
                 values[j, i] = val
             else:
+                fill_count = 0
                 val = values[j, i]
 """
 
 backfill_2d_template = """@cython.boundscheck(False)
 @cython.wraparound(False)
 def backfill_2d_inplace_%(name)s(ndarray[%(c_type)s, ndim=2] values,
-                                 ndarray[uint8_t, ndim=2] mask):
+                                 ndarray[uint8_t, ndim=2] mask,
+                                 limit=None):
     cdef Py_ssize_t i, j, N, K
     cdef %(c_type)s val
+    cdef int lim, fill_count = 0
 
     K, N = (<object> values).shape
 
+    if limit is None:
+        lim = N
+    else:
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
+        lim = limit
+
     for j in range(K):
+        fill_count = 0
         val = values[j, N - 1]
         for i in range(N - 1, -1 , -1):
             if mask[j, i]:
+                if fill_count >= lim:
+                    continue
+                fill_count += 1
                 values[j, i] = val
             else:
+                fill_count = 0
                 val = values[j, i]
 """
 
+backfill_1d_template = """@cython.boundscheck(False)
+@cython.wraparound(False)
+def backfill_inplace_%(name)s(ndarray[%(c_type)s] values,
+                              ndarray[uint8_t, cast=True] mask,
+                              limit=None):
+    cdef Py_ssize_t i, N
+    cdef %(c_type)s val
+    cdef int lim, fill_count = 0
+
+    N = len(values)
+
+    if limit is None:
+        lim = N
+    else:
+        if limit < 0:
+            raise ValueError('Limit must be non-negative')
+        lim = limit
+
+    val = values[N - 1]
+    for i in range(N - 1, -1 , -1):
+        if mask[i]:
+            if fill_count >= lim:
+                continue
+            fill_count += 1
+            values[i] = val
+        else:
+            fill_count = 0
+            val = values[i]
+"""
 
 is_monotonic_template = """@cython.boundscheck(False)
 @cython.wraparound(False)
@@ -693,6 +779,8 @@ def generate_from_template(template, ndim=1, exclude=None):
 templates_1d = [map_indices_template,
                 pad_template,
                 backfill_template,
+                pad_1d_template,
+                backfill_1d_template,
                 pad_2d_template,
                 backfill_2d_template,
                 take_1d_template,

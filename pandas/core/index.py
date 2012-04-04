@@ -62,8 +62,6 @@ class Index(np.ndarray):
     #     'groupby' : _gin.groupby_index,
     # }
 
-    # _map_indices = lib.map_indices_object
-
     # Cython methods
     _groupby = lib.groupby_object
     _arrmap = lib.arrmap_object
@@ -597,7 +595,7 @@ class Index(np.ndarray):
         """
         self._engine.set_value(arr, key, value)
 
-    def get_indexer(self, target, method=None):
+    def get_indexer(self, target, method=None, limit=None):
         """
         Compute indexer and mask for new index given the current index. The
         indexer should be then used as an input to ndarray.take to align the
@@ -632,14 +630,14 @@ class Index(np.ndarray):
         if self.dtype != target.dtype:
             this = Index(self, dtype=object)
             target = Index(target, dtype=object)
-            return this.get_indexer(target, method=method)
+            return this.get_indexer(target, method=method, limit=limit)
 
         if method == 'pad':
             assert(self.is_unique and self.is_monotonic)
-            indexer = self._engine.get_pad_indexer(target)
+            indexer = self._engine.get_pad_indexer(target, limit)
         elif method == 'backfill':
             assert(self.is_unique and self.is_monotonic)
-            indexer = self._engine.get_backfill_indexer(target)
+            indexer = self._engine.get_backfill_indexer(target, limit)
         elif method is None:
             indexer = self._engine.get_indexer(target)
         else:
@@ -686,7 +684,7 @@ class Index(np.ndarray):
         }
         return aliases.get(method, method)
 
-    def reindex(self, target, method=None, level=None):
+    def reindex(self, target, method=None, level=None, limit=None):
         """
         For Index, simply returns the new index and the results of
         get_indexer. Provided here to enable an interface that is amenable for
@@ -698,13 +696,16 @@ class Index(np.ndarray):
         """
         target = _ensure_index(target)
         if level is not None:
+            if method is not None:
+                raise ValueError('Fill method not supported if level passed')
             _, indexer, _ = self._join_level(target, level, how='right',
                                              return_indexers=True)
         else:
             if self.equals(target):
                 indexer = None
             else:
-                indexer = self.get_indexer(target, method=method)
+                indexer = self.get_indexer(target, method=method,
+                                           limit=limit)
         return target, indexer
 
     def join(self, other, how='left', level=None, return_indexers=False):
@@ -982,8 +983,6 @@ class Index(np.ndarray):
 
 class Int64Index(Index):
 
-    _map_indices = lib.map_indices_int64
-
     # _is_monotonic = lib.is_monotonic_int64
 
     _groupby = lib.groupby_int64
@@ -1179,7 +1178,6 @@ class DatetimeIndex(Int64Index):
     _outer_indexer = _join_i8_wrapper(lib.outer_join_indexer_int64)
     _left_indexer  = _join_i8_wrapper(lib.left_join_indexer_int64,
                                       with_indexers=False)
-    _map_indices   = _wrap_i8_function(lib.map_indices_int64)
     _groupby       = lib.groupby_arrays # _wrap_i8_function(lib.groupby_int64)
 
     _arrmap        = _wrap_dt_function(lib.arrmap_object)
@@ -2921,7 +2919,7 @@ class MultiIndex(Index):
 
         return new_index, indexer
 
-    def get_indexer(self, target, method=None):
+    def get_indexer(self, target, method=None, limit=None):
         """
         Compute indexer and mask for new index given the current index. The
         indexer should be then used as an input to ndarray.take to align the
@@ -2966,16 +2964,18 @@ class MultiIndex(Index):
 
         if method == 'pad':
             assert(self.is_unique and self.is_monotonic)
-            indexer = self_index._engine.get_pad_indexer(target_index)
+            indexer = self_index._engine.get_pad_indexer(target_index,
+                                                         limit=limit)
         elif method == 'backfill':
             assert(self.is_unique and self.is_monotonic)
-            indexer = self_index._engine.get_backfill_indexer(target_index)
+            indexer = self_index._engine.get_backfill_indexer(target_index,
+                                                              limit=limit)
         else:
             indexer = self_index._engine.get_indexer(target_index)
 
         return indexer
 
-    def reindex(self, target, method=None, level=None):
+    def reindex(self, target, method=None, level=None, limit=None):
         """
         Performs any necessary conversion on the input index and calls
         get_indexer. This method is here so MultiIndex and an Index of
@@ -2986,13 +2986,16 @@ class MultiIndex(Index):
         (new_index, indexer, mask) : (MultiIndex, ndarray, ndarray)
         """
         if level is not None:
+            if method is not None:
+                raise ValueError('Fill method not supported if level passed')
             target, indexer, _ = self._join_level(target, level, how='right',
                                                   return_indexers=True)
         else:
             if self.equals(target):
                 indexer = None
             else:
-                indexer = self.get_indexer(target, method=method)
+                indexer = self.get_indexer(target, method=method,
+                                           limit=limit)
 
         if not isinstance(target, MultiIndex):
             if indexer is None:

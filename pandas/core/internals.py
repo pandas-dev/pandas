@@ -216,7 +216,7 @@ class Block(object):
         else:
             return make_block(new_values, self.items, self.ref_items)
 
-    def interpolate(self, method='pad', axis=0, inplace=False):
+    def interpolate(self, method='pad', axis=0, inplace=False, limit=None):
         values = self.values if inplace else self.values.copy()
 
         if values.ndim != 2:
@@ -225,13 +225,13 @@ class Block(object):
         transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
 
         if method == 'pad':
-            _pad(transf(values))
+            _pad(transf(values), limit=limit)
         else:
-            _backfill(transf(values))
+            _backfill(transf(values), limit=limit)
 
         return make_block(values, self.items, self.ref_items)
 
-def _pad(values):
+def _pad(values, limit=None):
     if com.is_float_dtype(values):
         _method = lib.pad_2d_inplace_float64
     elif values.dtype == np.object_:
@@ -239,9 +239,10 @@ def _pad(values):
     else: # pragma: no cover
         raise ValueError('Invalid dtype for padding')
 
-    _method(values, com.isnull(values).view(np.uint8))
+    _method(values, com.isnull(values).view(np.uint8),
+            limit=limit)
 
-def _backfill(values):
+def _backfill(values, limit=None):
     if com.is_float_dtype(values):
         _method = lib.backfill_2d_inplace_float64
     elif values.dtype == np.object_:
@@ -249,7 +250,8 @@ def _backfill(values):
     else: # pragma: no cover
         raise ValueError('Invalid dtype for padding')
 
-    _method(values, com.isnull(values).view(np.uint8))
+    _method(values, com.isnull(values).view(np.uint8),
+            limit=limit)
 
 #-------------------------------------------------------------------------------
 # Is this even possible?
