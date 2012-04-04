@@ -1008,23 +1008,25 @@ copy : boolean, default False
             return self._agg_by_level('max', level=level, skipna=skipna)
         return nanops.nanmax(self.values, skipna=skipna)
 
-    @Substitution(name='unbiased standard deviation', shortname='stdev',
+    @Substitution(name='standard deviation', shortname='stdev',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
     def std(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
             level=None):
         if level is not None:
-            return self._agg_by_level('std', level=level, skipna=skipna)
-        return np.sqrt(nanops.nanvar(self.values, skipna=skipna))
+            return self._agg_by_level('std', level=level, skipna=skipna,
+                                      ddof=ddof)
+        return np.sqrt(nanops.nanvar(self.values, skipna=skipna, ddof=ddof))
 
-    @Substitution(name='unbiased variance', shortname='var',
+    @Substitution(name='variance', shortname='var',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
     def var(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
             level=None):
         if level is not None:
-            return self._agg_by_level('var', level=level, skipna=skipna)
-        return nanops.nanvar(self.values, skipna=skipna)
+            return self._agg_by_level('var', level=level, skipna=skipna,
+                                      ddof=ddof)
+        return nanops.nanvar(self.values, skipna=skipna, ddof=ddof)
 
     @Substitution(name='unbiased skewness', shortname='skew',
                   na_action=_doc_exclude_na, extras='')
@@ -1035,12 +1037,12 @@ copy : boolean, default False
 
         return nanops.nanskew(self.values, skipna=skipna)
 
-    def _agg_by_level(self, name, level=0, skipna=True):
+    def _agg_by_level(self, name, level=0, skipna=True, **kwds):
         grouped = self.groupby(level=level)
         if hasattr(grouped, name) and skipna:
-            return getattr(grouped, name)()
+            return getattr(grouped, name)(**kwds)
         method = getattr(type(self), name)
-        applyf = lambda x: method(x, skipna=skipna)
+        applyf = lambda x: method(x, skipna=skipna, **kwds)
         return grouped.aggregate(applyf)
 
     def idxmin(self, axis=None, out=None, skipna=True):
@@ -2060,144 +2062,6 @@ copy : boolean, default False
 
         return mask
 
-#----------------------------------------------------------------------
-# Miscellaneous
-
-    def plot(self, label=None, kind='line', use_index=True, rot=30, ax=None,
-             style='-', grid=True, logy=False, **kwds):
-        """
-        Plot the input series with the index on the x-axis using matplotlib
-
-        Parameters
-        ----------
-        label : label argument to provide to plot
-        kind : {'line', 'bar'}
-        rot : int, default 30
-            Rotation for tick labels
-        use_index : boolean, default True
-            Plot index as axis tick labels
-        ax : matplotlib axis object
-            If not passed, uses gca()
-        style : string, default '-'
-            matplotlib line style to use
-        kwds : keywords
-            To be passed to the actual plotting function
-
-        Notes
-        -----
-        See matplotlib documentation online for more on this subject
-        Intended to be used in ipython --pylab mode
-        """
-        import matplotlib.pyplot as plt
-        import pandas.tools.plotting as gfx
-        import pandas.tools.tsplotting as tsp
-
-        if label is not None:
-            kwds = kwds.copy()
-            kwds['label'] = label
-
-        N = len(self)
-
-        if use_index:
-            # custom datetime/interval plotting
-            from pandas import IntervalIndex, DatetimeIndex
-            if isinstance(self.index, IntervalIndex):
-                return tsp.tsplot(self)
-            if isinstance(self.index, DatetimeIndex):
-                offset = self.index.freq
-                name = datetools._offset_names.get(offset, None)
-                if name is not None:
-                    try:
-                        code = datetools._interval_str_to_code(name)
-                        s_ = Series(self.values,
-                                    index=self.index.to_interval(freq=code),
-                                    name=self.name)
-                        tsp.tsplot(s_)
-                    except:
-                        pass
-
-        if ax is None:
-            ax = plt.gca()
-
-        if kind == 'line':
-            if use_index:
-                x, need_to_set_xticklabels = self.index._mplib_repr()
-            else:
-                need_to_set_xticklabels = False
-                x = range(len(self))
-
-            if logy:
-                ax.semilogy(x, self.values.astype(float), style, **kwds)
-            else:
-                ax.plot(x, self.values.astype(float), style, **kwds)
-            gfx.format_date_labels(ax)
-
-            if need_to_set_xticklabels:
-                ax.set_xticks(x)
-                ax.set_xticklabels([gfx._stringify(key) for key in self.index],
-                                   rotation=rot)
-        elif kind == 'bar':
-            xinds = np.arange(N) + 0.25
-            ax.bar(xinds, self.values.astype(float), 0.5,
-                   bottom=np.zeros(N), linewidth=1, **kwds)
-
-            if N < 10:
-                fontsize = 12
-            else:
-                fontsize = 10
-
-            ax.set_xticks(xinds + 0.25)
-            ax.set_xticklabels([gfx._stringify(key) for key in self.index],
-                               rotation=rot,
-                               fontsize=fontsize)
-        elif kind == 'barh':
-            yinds = np.arange(N) + 0.25
-            ax.barh(yinds, self.values.astype(float), 0.5,
-                    left=np.zeros(N), linewidth=1, **kwds)
-
-            if N < 10:
-                fontsize = 12
-            else:
-                fontsize = 10
-
-            ax.set_yticks(yinds + 0.25)
-            ax.set_yticklabels([gfx._stringify(key) for key in self.index],
-                               rotation=rot,
-                               fontsize=fontsize)
-
-        ax.grid(grid)
-        plt.draw_if_interactive()
-
-        return ax
-
-    def hist(self, ax=None, grid=True, **kwds):
-        """
-        Draw histogram of the input series using matplotlib
-
-        Parameters
-        ----------
-        ax : matplotlib axis object
-            If not passed, uses gca()
-        kwds : keywords
-            To be passed to the actual plotting function
-
-        Notes
-        -----
-        See matplotlib documentation online for more on this
-
-        """
-        import matplotlib.pyplot as plt
-
-        if ax is None:
-            ax = plt.gca()
-
-        values = self.dropna().values
-
-        ax.hist(values, **kwds)
-        ax.grid(grid)
-
-        return ax
-
     @classmethod
     def from_csv(cls, path, sep=',', parse_dates=True, header=None,
                  index_col=0, encoding=None):
@@ -2494,9 +2358,6 @@ copy : boolean, default False
         return Series([d.weekday() for d in self.index], index=self.index)
 
 
-class TimeSeries(Series):
-    pass
-
 _INDEX_TYPES = ndarray, Index, list, tuple
 
 #-------------------------------------------------------------------------------
@@ -2592,24 +2453,15 @@ def _get_rename_function(mapper):
 
     return f
 
+#----------------------------------------------------------------------
+# Add plotting methods to Series
 
-def _resolve_offset(freq, kwds):
-    from pandas.core.datetools import getOffset
+import pandas.tools.plotting as _gfx
 
-    if 'timeRule' in kwds or 'offset' in kwds:
-        offset = kwds.get('offset')
-        offset = kwds.get('timeRule', offset)
-        if isinstance(offset, basestring):
-            offset = datetools.getOffset(offset)
-        warn = True
-    else:
-        offset = freq
-        warn = False
+Series.plot = _gfx.plot_series
+Series.hist = _gfx.hist_series
 
-    if warn:
-        import warnings
-        warnings.warn("'timeRule' and 'offset' parameters are deprecated,"
-                      " please use 'freq' instead",
-                      FutureWarning)
+# Put here, otherwise monkey-patching in methods fails
 
-    return offset
+class TimeSeries(Series):
+    pass

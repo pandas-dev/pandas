@@ -64,6 +64,10 @@ def infer_dtype(object _values):
         if is_datetime_array(values):
             return 'datetime'
 
+    elif is_date(val):
+        if is_date_array(values):
+            return 'date'
+
     elif util.is_float_object(val):
         if is_float_array(values):
             return 'floating'
@@ -91,8 +95,8 @@ def infer_dtype_list(list values):
 cdef inline bint is_datetime(object o):
     return PyDateTime_Check(o)
 
-cdef inline bint is_timestamp(object o):
-    return isinstance(o, Timestamp)
+cdef inline bint is_date(object o):
+    return PyDate_Check(o)
 
 def is_bool_array(ndarray values):
     cdef:
@@ -190,23 +194,15 @@ def is_datetime_array(ndarray[object] values):
             return False
     return True
 
-def is_timestamp_array(ndarray[object] values):
+def is_date_array(ndarray[object] values):
     cdef int i, n = len(values)
     if n == 0:
         return False
     for i in range(n):
-        if not is_timestamp(values[i]):
+        if not is_date(values[i]):
             return False
     return True
 
-def is_datetime64_array(ndarray values):
-    cdef int i, n = len(values)
-    if n == 0:
-        return False
-    for i in range(n):
-        if not util.is_datetime64_object(values[i]):
-            return False
-    return True
 
 def maybe_convert_numeric(ndarray[object] values, set na_values):
     '''

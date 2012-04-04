@@ -19,7 +19,6 @@ import pandas as pan
 import pandas.core.common as com
 import pandas.core.format as fmt
 import pandas.core.datetools as datetools
-from pandas.core.index import NULL_INDEX
 from pandas.core.api import (DataFrame, Index, Series, notnull, isnull,
                              MultiIndex)
 from pandas.io.parsers import (ExcelFile, ExcelWriter)
@@ -1295,14 +1294,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # with dict of empty list and Series
         frame = DataFrame({'A' : [], 'B' : []}, columns=['A', 'B'])
-        self.assert_(frame.index is NULL_INDEX)
+        self.assert_(frame.index.equals(Index([])))
 
     def test_constructor_subclass_dict(self):
         # Test for passing dict subclass to constructor
         data = {'col1': tm.TestSubDict((x, 10.0 * x) for x in xrange(10)),
                 'col2': tm.TestSubDict((x, 20.0 * x) for x in xrange(10))}
         df = DataFrame(data)
-        refdf = DataFrame(dict((col, dict(val.iteritems())) for col, val in data.iteritems()))
+        refdf = DataFrame(dict((col, dict(val.iteritems()))
+                               for col, val in data.iteritems()))
         assert_frame_equal(refdf, df)
 
         data = tm.TestSubDict(data.iteritems())
@@ -1406,7 +1406,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # 0-length axis
         frame = DataFrame(np.empty((0, 3)))
-        self.assert_(frame.index is NULL_INDEX)
+        self.assert_(len(frame.index) == 0)
 
         frame = DataFrame(np.empty((3, 0)))
         self.assert_(len(frame.columns) == 0)
@@ -1464,7 +1464,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # 0-length axis
         frame = DataFrame(ma.masked_all((0, 3)))
-        self.assert_(frame.index is NULL_INDEX)
+        self.assert_(len(frame.index) == 0)
 
         frame = DataFrame(ma.masked_all((3, 0)))
         self.assert_(len(frame.columns) == 0)
@@ -1598,6 +1598,18 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = DataFrame.from_dict(sdict, orient='index')
         assert_frame_equal(result, expected)
 
+    def test_constructor_list_of_derived_dicts(self):
+        class CustomDict(dict):
+            pass
+        d = {'a': 1.5, 'b': 3}
+
+        data_custom = [CustomDict(d)]
+        data = [d]
+
+        result_custom = DataFrame(data_custom)
+        result = DataFrame(data)
+        assert_frame_equal(result, result_custom)
+
     def test_constructor_ragged(self):
         data = {'A' : randn(10),
                 'B' : randn(8)}
@@ -1726,6 +1738,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = DataFrame([[np.nan, 1], [1, 0]])
         assert_frame_equal(df, expected)
 
+    def test_new_empty_index(self):
+        df1 = DataFrame(randn(0, 3))
+        df2 = DataFrame(randn(0, 3))
+        df1.index.name = 'foo'
+        self.assert_(df2.index.name is None)
+
     def test_astype(self):
         casted = self.frame.astype(int)
         expected = DataFrame(self.frame.values.astype(int),
@@ -1803,6 +1821,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         df = DataFrame.from_records(tuples, columns=['a', 'b', 'c', 'd'])
         self.assert_(np.isnan(df['c'][0]))
+
+    def test_from_records_columns_not_modified(self):
+        tuples = [(1, 2, 3),
+                  (1, 2, 3),
+                  (2, 5, 3)]
+
+        columns = ['a', 'b', 'c']
+        original_columns = list(columns)
+        df = DataFrame.from_records(tuples, columns=columns, index='a')
+        self.assertEqual(columns, original_columns)
 
     def test_from_records_decimal(self):
         from decimal import Decimal
@@ -4271,13 +4299,20 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         f = lambda x: np.abs(x - x.mean()).mean()
         self._check_stat_op('mad', f)
 
-    def test_var(self):
+    def test_var_std(self):
         alt = lambda x: np.var(x, ddof=1)
         self._check_stat_op('var', alt)
 
-    def test_std(self):
         alt = lambda x: np.std(x, ddof=1)
         self._check_stat_op('std', alt)
+
+        result = self.tsframe.std(ddof=4)
+        expected = self.tsframe.apply(lambda x: x.std(ddof=4))
+        assert_almost_equal(result, expected)
+
+        result = self.tsframe.var(ddof=4)
+        expected = self.tsframe.apply(lambda x: x.var(ddof=4))
+        assert_almost_equal(result, expected)
 
     def test_skew(self):
         from scipy.stats import skew

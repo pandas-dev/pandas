@@ -171,20 +171,6 @@ class Index(np.ndarray):
     def is_numeric(self):
         return self.inferred_type in ['integer', 'floating']
 
-    def is_datetype(self):
-        for key in self.values:
-            if not isinstance(key, (datetime, date)):
-                return False
-        return True
-
-    def _mplib_repr(self):
-        # how to represent ourselves to matplotlib: return tuple that follows
-        # (representation data, need_to_set_xticklabels)
-        if self.is_numeric() or self.is_datetype():
-            return np.asarray(self), False
-        else:
-            return range(len(self)), True
-
     def get_duplicates(self):
         from collections import defaultdict
         counter = defaultdict(lambda: 0)
@@ -286,18 +272,19 @@ class Index(np.ndarray):
         -------
         appended : Index
         """
-        to_concat = [self]
-
+        name = self.name
         if isinstance(other, (list, tuple)):
-            to_concat = to_concat + list(other)
+            to_concat = (self.values,) + tuple(other)
+            for obj in other:
+                if isinstance(obj, Index) and obj.name != name:
+                    name = None
+                    break
         else:
-            to_concat.append(other)
+            to_concat = self.values, other.values
+            if isinstance(other, Index) and other.name != name:
+                name = None
 
-        to_concat = _ensure_compat_concat(to_concat)
-        to_concat = [x.values if isinstance(x, Index) else x
-                     for x in to_concat]
-        concatenated = np.concatenate(to_concat)
-        return Index(concatenated)
+        return Index(np.concatenate(to_concat), name=name)
 
     def take(self, *args, **kwargs):
         """
@@ -566,7 +553,7 @@ class Index(np.ndarray):
         try:
             return self._engine.get_value(series, key)
         except KeyError, e1:
-            if self.inferred_type == 'integer':
+            if len(self) > 0 and self.inferred_type == 'integer':
                 raise
 
             try:
@@ -3466,8 +3453,6 @@ class MultiIndex(Index):
 
 # For utility purposes
 
-NULL_INDEX = Index([])
-
 
 def _sparsify(label_list):
     pivoted = zip(*label_list)
@@ -3510,7 +3495,7 @@ def _validate_join_method(method):
 def _get_combined_index(indexes, intersect=False):
     indexes = _get_distinct_indexes(indexes)
     if len(indexes) == 0:
-        return NULL_INDEX
+        return Index([])
     if len(indexes) == 1:
         return indexes[0]
     if intersect:
@@ -3580,22 +3565,10 @@ def _sanitize_and_check(indexes):
         return indexes, 'array'
 
 
-#----------------------------------------------------------------------
-# legacy unpickling
-
-def _handle_legacy_indexes(indexes):
-    from pandas.core.daterange import DateRange
-
-    converted = []
-    for index in indexes:
-        if isinstance(index, DateRange):
-            index = _convert_daterange(index)
-
-        converted.append(index)
-
-    return converted
-
-def _convert_daterange(obj):
-    return DatetimeIndex(start=obj[0], end=obj[-1],
-                         freq=obj.offset, tz=obj.tzinfo)
-
+def _get_consensus_names(indexes):
+    consensus_name = indexes[0].names
+    for index in indexes[1:]:
+        if index.names != consensus_name:
+            consensus_name = [None] * index.nlevels
+            break
+    return consensus_name

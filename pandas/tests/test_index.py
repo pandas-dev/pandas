@@ -234,6 +234,19 @@ class TestIndex(unittest.TestCase):
         result = index.append([])
         self.assert_(result.equals(index))
 
+    def test_append_empty_preserve_name(self):
+        left = Index([], name='foo')
+        right = Index([1, 2, 3], name='foo')
+
+        result = left.append(right)
+        self.assert_(result.name == 'foo')
+
+        left = Index([], name='foo')
+        right = Index([1, 2, 3], name='bar')
+
+        result = left.append(right)
+        self.assert_(result.name is None)
+
     def test_add_string(self):
         # from bug report
         index = Index(['a', 'b', 'c'])
@@ -272,11 +285,6 @@ class TestIndex(unittest.TestCase):
         testit(self.strIndex)
 
         testit(self.dateIndex)
-
-    # def test_always_get_null_index(self):
-    #     empty = Index([])
-    #     self.assert_(empty is NULL_INDEX)
-    #     self.assert_(self.dateIndex[15:15] is NULL_INDEX)
 
     def test_is_numeric(self):
         self.assert_(not self.dateIndex.is_numeric())
@@ -1483,13 +1491,14 @@ class TestFactor(unittest.TestCase):
 
 
 def test_get_combined_index():
-    from pandas.core.index import _get_combined_index, NULL_INDEX
-
+    from pandas.core.index import _get_combined_index
     result = _get_combined_index([])
-    assert(result is NULL_INDEX)
+    assert(result.equals(Index([])))
 
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                          # '--with-coverage', '--cover-package=pandas.core'],
                    exit=False)
+
+

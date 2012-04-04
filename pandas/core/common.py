@@ -319,8 +319,13 @@ def backfill_1d(values, limit=None):
     else: # pragma: no cover
         raise ValueError('Invalid dtype for padding')
 
-    _method(values, isnull(values).view(np.uint8), limit=limit)
 
+def _consensus_name_attr(objs):
+    name = objs[0].name
+    for obj in objs[1:]:
+        if obj.name != name:
+            return None
+    return name
 
 #-------------------------------------------------------------------------------
 # Lots of little utilities
@@ -363,11 +368,8 @@ def _is_bool_indexer(key):
     return False
 
 def _default_index(n):
-    from pandas.core.index import NULL_INDEX, Index
-    if n == 0:
-        return NULL_INDEX
-    else:
-        return Index(np.arange(n))
+    from pandas.core.index import Index
+    return Index(np.arange(n))
 
 def ensure_float(arr):
     if issubclass(arr.dtype.type, np.integer):
@@ -697,10 +699,10 @@ def _get_handle(path, mode, encoding=None):
 if py3compat.PY3:  # pragma: no cover
     def UnicodeReader(f, dialect=csv.excel, encoding="utf-8", **kwds):
         # ignore encoding
-        return csv.reader(f, dialect=csv.excel, **kwds)
+        return csv.reader(f, dialect=dialect, **kwds)
 
     def UnicodeWriter(f, dialect=csv.excel, encoding="utf-8", **kwds):
-        return csv.writer(f, dialect=csv.excel, **kwds)
+        return csv.writer(f, dialect=dialect, **kwds)
 else:
     class UnicodeReader:
         """

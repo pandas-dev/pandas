@@ -17,7 +17,10 @@ def _bottleneck_switch(bn_name, alt, zero_value=None, **kwargs):
         bn_func = getattr(bn, bn_name)
     except (AttributeError, NameError):  # pragma: no cover
         bn_func = None
-    def f(values, axis=None, skipna=True):
+    def f(values, axis=None, skipna=True, **kwds):
+        if len(kwargs) > 0:
+            for k, v in kwargs.iteritems():
+                kwds[k] = v
         try:
             if zero_value is not None and values.size == 0:
                 if values.ndim == 1:
@@ -29,14 +32,14 @@ def _bottleneck_switch(bn_name, alt, zero_value=None, **kwargs):
                     return result
 
             if _USE_BOTTLENECK and skipna and values.dtype != np.object_:
-                result = bn_func(values, axis=axis, **kwargs)
+                result = bn_func(values, axis=axis, **kwds)
                 # prefer to treat inf/-inf as NA
                 if _has_infs(result):
-                    result = alt(values, axis=axis, skipna=skipna, **kwargs)
+                    result = alt(values, axis=axis, skipna=skipna, **kwds)
             else:
-                result = alt(values, axis=axis, skipna=skipna, **kwargs)
+                result = alt(values, axis=axis, skipna=skipna, **kwds)
         except Exception:
-            result = alt(values, axis=axis, skipna=skipna, **kwargs)
+            result = alt(values, axis=axis, skipna=skipna, **kwds)
 
         return result
 
@@ -180,7 +183,7 @@ def nanargmin(values, axis=None, skipna=True):
 nansum = _bottleneck_switch('nansum', _nansum, zero_value=0)
 nanmean = _bottleneck_switch('nanmean', _nanmean)
 nanmedian = _bottleneck_switch('nanmedian', _nanmedian)
-nanvar = _bottleneck_switch('nanvar', _nanvar, ddof=1)
+nanvar = _bottleneck_switch('nanvar', _nanvar)
 nanmin = _bottleneck_switch('nanmin', _nanmin)
 nanmax = _bottleneck_switch('nanmax', _nanmax)
 

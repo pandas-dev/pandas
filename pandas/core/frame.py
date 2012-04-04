@@ -27,8 +27,7 @@ import numpy.ma as ma
 from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
                                 _default_index, _stringify)
 from pandas.core.generic import NDFrame
-from pandas.core.index import (Index, DatetimeIndex, MultiIndex, NULL_INDEX,
-                               _ensure_index)
+from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _radd_compat
@@ -677,6 +676,10 @@ class DataFrame(NDFrame):
         df : DataFrame
         """
         import warnings
+
+        # Make a copy of the input columns so we can modify it
+        if columns is not None:
+            columns = list(columns)
 
         if names is not None:  # pragma: no cover
             columns = names
@@ -3002,15 +3005,16 @@ class DataFrame(NDFrame):
         """
         Applies function along input axis of DataFrame. Objects passed to
         functions are Series objects having index either the DataFrame's index
-        (axis=0) or the columns (axis=1). Returns either a DataFrame (if the
-        function produces another Series) or a Series indexed on either the
-        index or columns if the function produces an aggregated value.
+        (axis=0) or the columns (axis=1). Return type depends on whether passed
+        function aggregates
 
         Parameters
         ----------
         func : function
             Function to apply to each column
         axis : {0, 1}
+            0 : apply function to each column
+            1 : apply function to each row
         broadcast : bool, default False
             For aggregation functions, return object of same size with values
             propagated
@@ -3032,8 +3036,7 @@ class DataFrame(NDFrame):
 
         Notes
         -----
-        Function passed should not have side effects. If the result is a
-        Series, it should have the same index
+        To apply a function elementwise, use applymap
 
         Returns
         -------
@@ -3607,24 +3610,24 @@ class DataFrame(NDFrame):
             demeaned = frame.sub(frame.mean(axis=1), axis=0)
         return np.abs(demeaned).mean(axis=axis, skipna=skipna)
 
-    @Substitution(name='unbiased variance', shortname='var',
+    @Substitution(name='variance', shortname='var',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
-    def var(self, axis=0, skipna=True, level=None):
+    def var(self, axis=0, skipna=True, level=None, ddof=1):
         if level is not None:
             return self._agg_by_level('var', axis=axis, level=level,
-                                      skipna=skipna)
+                                      skipna=skipna, ddof=ddof)
         return self._reduce(nanops.nanvar, axis=axis, skipna=skipna,
-                            numeric_only=None)
+                            numeric_only=None, ddof=ddof)
 
-    @Substitution(name='unbiased standard deviation', shortname='std',
+    @Substitution(name='standard deviation', shortname='std',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
-    def std(self, axis=0, skipna=True, level=None):
+    def std(self, axis=0, skipna=True, level=None, ddof=1):
         if level is not None:
             return self._agg_by_level('std', axis=axis, level=level,
-                                      skipna=skipna)
-        return np.sqrt(self.var(axis=axis, skipna=skipna))
+                                      skipna=skipna, ddof=ddof)
+        return np.sqrt(self.var(axis=axis, skipna=skipna, ddof=ddof))
 
     @Substitution(name='unbiased skewness', shortname='skew',
                   na_action=_doc_exclude_na, extras='')
@@ -3636,16 +3639,16 @@ class DataFrame(NDFrame):
         return self._reduce(nanops.nanskew, axis=axis, skipna=skipna,
                             numeric_only=None)
 
-    def _agg_by_level(self, name, axis=0, level=0, skipna=True):
+    def _agg_by_level(self, name, axis=0, level=0, skipna=True, **kwds):
         grouped = self.groupby(level=level, axis=axis)
         if hasattr(grouped, name) and skipna:
-            return getattr(grouped, name)()
+            return getattr(grouped, name)(**kwds)
         method = getattr(type(self), name)
-        applyf = lambda x: method(x, axis=axis, skipna=skipna)
+        applyf = lambda x: method(x, axis=axis, skipna=skipna, **kwds)
         return grouped.aggregate(applyf)
 
-    def _reduce(self, op, axis=0, skipna=True, numeric_only=None):
-        f = lambda x: op(x, axis=axis, skipna=skipna)
+    def _reduce(self, op, axis=0, skipna=True, numeric_only=None, **kwds):
+        f = lambda x: op(x, axis=axis, skipna=skipna, **kwds)
         labels = self._get_agg_axis(axis)
         if numeric_only is None:
             try:
@@ -3845,232 +3848,6 @@ class DataFrame(NDFrame):
         return DataFrame(ranks, index=data.index, columns=data.columns)
 
     #----------------------------------------------------------------------
-    # Plotting
-
-    def boxplot(self, column=None, by=None, ax=None, fontsize=None,
-                rot=0, grid=True, **kwds):
-        """
-        Make a box plot from DataFrame column/columns optionally grouped
-        (stratified) by one or more columns
-
-        Parameters
-        ----------
-        data : DataFrame
-        column : column names or list of names, or vector
-            Can be any valid input to groupby
-        by : string or sequence
-            Column in the DataFrame to group by
-        fontsize : int or string
-
-        Returns
-        -------
-        ax : matplotlib.axes.AxesSubplot
-        """
-        import pandas.tools.plotting as plots
-        import matplotlib.pyplot as plt
-        ax = plots.boxplot(self, column=column, by=by, ax=ax,
-                           fontsize=fontsize, grid=grid, rot=rot, **kwds)
-        plt.draw_if_interactive()
-        return ax
-
-    def plot(self, subplots=False, sharex=True, sharey=False, use_index=True,
-             figsize=None, grid=True, legend=True, rot=30, ax=None, title=None,
-             xlim=None, ylim=None, xticks=None, yticks=None, kind='line',
-             sort_columns=True, fontsize=None, **kwds):
-        """
-        Make line plot of DataFrame's series with the index on the x-axis using
-        matplotlib / pylab.
-
-        Parameters
-        ----------
-        subplots : boolean, default False
-            Make separate subplots for each time series
-        sharex : boolean, default True
-            In case subplots=True, share x axis
-        sharey : boolean, default False
-            In case subplots=True, share y axis
-        use_index : boolean, default True
-            Use index as ticks for x axis
-        kind : {'line', 'bar'}
-        sort_columns: boolean, default True
-            Sort column names to determine plot ordering
-        kwds : keywords
-            Options to pass to Axis.plot
-
-        Notes
-        -----
-        This method doesn't make much sense for cross-sections,
-        and will error.
-        """
-        import matplotlib.pyplot as plt
-        import pandas.tools.plotting as gfx
-
-        if subplots:
-            fig, axes = gfx.subplots(nrows=len(self.columns),
-                                     sharex=sharex, sharey=sharey,
-                                     figsize=figsize)
-        else:
-            if ax is None:
-                fig = plt.figure(figsize=figsize)
-                ax = fig.add_subplot(111)
-                axes = [ax]
-            else:
-                fig = ax.get_figure()
-                axes = fig.get_axes()
-
-        if kind == 'line':
-            if use_index:
-                if self.index.is_numeric() or self.index.is_datetype():
-                    """
-                    Matplotlib supports numeric values or datetime objects as
-                    xaxis values. Taking LBYL approach here, by the time
-                    matplotlib raises exception when using non numeric/datetime
-                    values for xaxis, several actions are already taken by plt.
-                    """
-                    need_to_set_xticklabels = False
-                    x = self.index
-                else:
-                    need_to_set_xticklabels = True
-                    x = range(len(self))
-            else:
-                need_to_set_xticklabels = False
-                x = range(len(self))
-
-            if sort_columns:
-                columns = _try_sort(self.columns)
-            else:
-                columns = self.columns
-
-            for i, col in enumerate(columns):
-                empty = self[col].count() == 0
-                y = self[col].values if not empty else np.zeros(x.shape)
-
-                if subplots:
-                    ax = axes[i]
-                    ax.plot(x, y, 'k', label=str(col), **kwds)
-                    ax.legend(loc='best')
-                else:
-                    ax.plot(x, y, label=str(col), **kwds)
-
-                ax.grid(grid)
-
-            if legend and not subplots:
-                ax.legend(loc='best')
-
-            if need_to_set_xticklabels:
-                xticklabels = [gfx._stringify(key) for key in self.index]
-                for ax_ in axes:
-                    ax_.set_xticks(x)
-                    ax_.set_xticklabels(xticklabels, rotation=rot)
-        elif kind == 'bar':
-            self._bar_plot(axes, subplots=subplots, grid=grid, rot=rot,
-                           legend=legend, ax=ax, fontsize=fontsize)
-
-        if self.index.is_all_dates and not subplots or (subplots and sharex):
-            try:
-                fig.autofmt_xdate()
-            except Exception:  # pragma: no cover
-                pass
-
-        if yticks is not None:
-            ax.set_yticks(yticks)
-
-        if xticks is not None:
-            ax.set_xticks(xticks)
-
-        if ylim is not None:
-            ax.set_ylim(ylim)
-
-        if xlim is not None:
-            ax.set_xlim(xlim)
-
-        if title:
-            if subplots:
-                fig.suptitle(title)
-            else:
-                ax.set_title(title)
-
-
-        plt.draw_if_interactive()
-        if subplots:
-            return axes
-        else:
-            return ax
-
-    def _bar_plot(self, axes, subplots=False, use_index=True, grid=True,
-                  rot=30, legend=True, ax=None, fontsize=None, **kwds):
-        import pandas.tools.plotting as gfx
-
-        N, K = self.shape
-        xinds = np.arange(N) + 0.25
-        colors = 'rgbyk'
-        rects = []
-        labels = []
-
-        if not subplots and ax is None:
-            ax = axes[0]
-
-        for i, col in enumerate(self.columns):
-            empty = self[col].count() == 0
-            y = self[col].values if not empty else np.zeros(len(self))
-            if subplots:
-                ax = axes[i]
-                ax.bar(xinds, y, 0.5,
-                       bottom=np.zeros(N), linewidth=1, **kwds)
-                ax.set_title(col)
-            else:
-                rects.append(ax.bar(xinds + i * 0.75 / K, y, 0.75 / K,
-                                    bottom=np.zeros(N), label=str(col),
-                                    color=colors[i % len(colors)], **kwds))
-                labels.append(col)
-
-        if fontsize is None:
-            if N < 10:
-                fontsize = 12
-            else:
-                fontsize = 10
-
-        ax.set_xlim([xinds[0] - 1, xinds[-1] + 1])
-
-        ax.set_xticks(xinds + 0.375)
-        ax.set_xticklabels([gfx._stringify(key) for key in self.index],
-                           rotation=rot,
-                           fontsize=fontsize)
-
-        if legend and not subplots:
-            fig = ax.get_figure()
-            fig.legend([r[0] for r in rects], labels, loc='lower center',
-                       fancybox=True, ncol=6, borderaxespad=20)
-                       #mode='expand')
-
-        import matplotlib.pyplot as plt
-        plt.subplots_adjust(top=0.8)
-
-    def hist(self, grid=True, **kwds):
-        """
-        Draw Histogram the DataFrame's series using matplotlib / pylab.
-
-        Parameters
-        ----------
-        kwds : other plotting keyword arguments
-            To be passed to hist function
-        """
-        import pandas.tools.plotting as gfx
-
-        n = len(self.columns)
-        k = 1
-        while k ** 2 < n:
-            k += 1
-        _, axes = gfx.subplots(nrows=k, ncols=k)
-
-        for i, col in enumerate(_try_sort(self.columns)):
-            ax = axes[i / k][i % k]
-            ax.hist(self[col].dropna().values, **kwds)
-            ax.set_title(col)
-            ax.grid(grid)
-
-        return axes
-    #----------------------------------------------------------------------
     # Deprecated stuff
 
     def combineAdd(self, other):
@@ -4178,7 +3955,7 @@ def extract_index(data):
 
     index = None
     if len(data) == 0:
-        index = NULL_INDEX
+        index = Index([])
     elif len(data) > 0 and index is None:
         raw_lengths = []
         indexes = []
@@ -4214,9 +3991,6 @@ def extract_index(data):
                 assert(lengths[0] == len(index))
             else:
                 index = Index(np.arange(lengths[0]))
-
-    if len(index) == 0:
-        index = NULL_INDEX
 
     return _ensure_index(index)
 
@@ -4322,6 +4096,11 @@ def _list_of_dict_to_sdict(data, columns, coerce_float=False):
         gen = (x.keys() for x in data)
         columns = lib.fast_unique_multiple_list_gen(gen)
 
+    # assure that they are of the base dict class and not of derived
+    # classes
+    data = [(type(d) is dict) and d or dict(d)
+            for d in data]
+
     content = list(lib.dicts_to_array(data, list(columns)).T)
     return _convert_object_array(content, columns,
                                  coerce_float=coerce_float)
@@ -4418,6 +4197,40 @@ if "IPython" in sys.modules:  # pragma: no cover
     except Exception:
         pass
 
+#----------------------------------------------------------------------
+# Add plotting methods to DataFrame
+
+import pandas.tools.plotting as gfx
+
+DataFrame.plot = gfx.plot_frame
+DataFrame.hist = gfx.hist_frame
+
+def boxplot(self, column=None, by=None, ax=None, fontsize=None,
+            rot=0, grid=True, **kwds):
+    """
+    Make a box plot from DataFrame column/columns optionally grouped
+    (stratified) by one or more columns
+
+    Parameters
+    ----------
+    data : DataFrame
+    column : column names or list of names, or vector
+        Can be any valid input to groupby
+    by : string or sequence
+        Column in the DataFrame to group by
+    fontsize : int or string
+
+    Returns
+    -------
+    ax : matplotlib.axes.AxesSubplot
+    """
+    import pandas.tools.plotting as plots
+    import matplotlib.pyplot as plt
+    ax = plots.boxplot(self, column=column, by=by, ax=ax,
+                       fontsize=fontsize, grid=grid, rot=rot, **kwds)
+    plt.draw_if_interactive()
+    return ax
+DataFrame.boxplot = boxplot
 
 
 if __name__ == '__main__':

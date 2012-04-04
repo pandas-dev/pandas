@@ -418,19 +418,16 @@ class TestTypeInference(unittest.TestCase):
         pass
 
     def test_datetime(self):
-        arr1 = np.array([1,2,3], dtype='M8[us]')
-        result = lib.infer_dtype(arr1)
-        self.assertEqual(result, 'datetime64')
+        import datetime
+        dates = [datetime.datetime(2012, 1, x) for x in range(1, 20)]
+        index = Index(dates)
+        self.assert_(index.inferred_type == 'datetime')
 
-        result = lib.infer_dtype(np.array(list(arr1), dtype='O'))
-        self.assertEqual(result, 'datetime64')
-
-        arr2 = np.array([datetime(2010,10,5)]*5)
-        result = lib.infer_dtype(arr2)
-        self.assertEqual(result, 'datetime')
-
-        result = lib.infer_dtype(np.array(list(arr2), dtype='O'))
-        self.assertEqual(result, 'datetime')
+    def test_date(self):
+        import datetime
+        dates = [datetime.date(2012, 1, x) for x in range(1, 20)]
+        index = Index(dates)
+        self.assert_(index.inferred_type == 'date')
 
     def test_to_object_array_tuples(self):
         r = (5,6)
