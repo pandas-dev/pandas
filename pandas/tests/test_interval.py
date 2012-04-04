@@ -109,6 +109,30 @@ class TestIntervalProperties(TestCase):
         i2 = Interval('1982', freq=('Min', 1))
         self.assertEquals(i1, i2)
 
+    def test_to_timestamp(self):
+        intv = Interval('1982', freq='A')
+        start_ts = intv.to_timestamp(which_end='S')
+        aliases = ['s', 'StarT', 'BEGIn']
+        for a in aliases:
+            self.assertEquals(start_ts, intv.to_timestamp(which_end=a))
+
+        end_ts = intv.to_timestamp(which_end='E')
+        aliases = ['e', 'end', 'FINIsH']
+        for a in aliases:
+            self.assertEquals(end_ts, intv.to_timestamp(which_end=a))
+
+        from_lst = ['A', 'Q', 'M', 'W', 'B',
+                    'D', 'H', 'Min', 'S']
+        for i, fcode in enumerate(from_lst):
+            intv = Interval('1982', freq=fcode)
+            result = intv.to_timestamp().to_interval(fcode)
+            self.assertEquals(result, intv)
+
+            self.assertEquals(intv.start_time(), intv.to_timestamp('S'))
+
+            self.assertEquals(intv.end_time(), intv.to_timestamp('E'))
+
+
     def test_properties_annually(self):
         # Test properties on Intervals with annually frequency.
         a_date = Interval(freq='A', year=2007)
