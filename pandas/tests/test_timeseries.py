@@ -12,7 +12,8 @@ from numpy import nan
 import numpy as np
 import numpy.ma as ma
 
-from pandas import Index, Series, TimeSeries, DataFrame, isnull, notnull
+from pandas import (Index, Series, TimeSeries, DataFrame, isnull, notnull,
+                    date_range)
 from pandas.core.index import MultiIndex
 
 from pandas import DatetimeIndex
@@ -65,6 +66,15 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
 
         self.assertRaises(KeyError, ts.__getitem__, datetime(2000, 1, 6))
         self.assertRaises(KeyError, ts.__setitem__, datetime(2000, 1, 6), 0)
+
+    def test_getitem_median_slice_bug(self):
+        index = date_range('20090415', '20090519', freq='2B')
+        s = Series(np.random.randn(13), index=index)
+
+        indexer = [slice(6, 7, None)]
+        result = s[indexer]
+        expected = s[indexer[0]]
+        assert_series_equal(result, expected)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

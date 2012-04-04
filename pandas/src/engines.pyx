@@ -59,6 +59,7 @@ cdef class IndexEngine:
 
     def __contains__(self, object val):
         self._ensure_mapping_populated()
+        hash(val)
         return val in self.mapping
 
     cpdef get_value(self, ndarray arr, object key):
@@ -135,7 +136,11 @@ cdef class IndexEngine:
         try:
             return self.mapping.get_item(val)
         except TypeError:
+            self._check_type(val)
             raise KeyError(val)
+
+    cdef inline _check_type(self, object val):
+        hash(val)
 
     cdef inline _ensure_mapping_populated(self):
         if not self.initialized:
@@ -259,14 +264,19 @@ cdef class DatetimeEngine(IndexEngine):
 
         if util.is_datetime64_object(val):
             val = val.view('i8')
-
-        if PyDateTime_Check(val):
+        elif PyDateTime_Check(val):
             val = np.datetime64(val)
             val = val.view('i8')
 
         try:
             return self.mapping.get_item(val)
         except TypeError:
+            self._check_type(val)
+            raise KeyError(val)
+
+    cdef inline _check_type(self, object val):
+        hash(val)
+        if not util.is_integer_object(val):
             raise KeyError(val)
 
     def get_indexer(self, values):

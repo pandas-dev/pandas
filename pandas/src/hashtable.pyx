@@ -626,6 +626,7 @@ cdef class PyObjectHashTable(HashTable):
 
     def __contains__(self, object key):
         cdef khiter_t k
+        hash(key)
         k = kh_get_pymap(self.table, <PyObject*>key)
         return k != self.table.n_buckets
 
@@ -654,6 +655,7 @@ cdef class PyObjectHashTable(HashTable):
             int ret = 0
             char* buf
 
+        hash(key)
         k = kh_put_pymap(self.table, <PyObject*>key, &ret)
         # self.table.keys[k] = key
         if kh_exist_pymap(self.table, k):
@@ -670,6 +672,7 @@ cdef class PyObjectHashTable(HashTable):
 
         for i in range(n):
             val = values[i]
+            hash(val)
             k = kh_put_pymap(self.table, <PyObject*>val, &ret)
             self.table.vals[k] = i
 
@@ -683,6 +686,7 @@ cdef class PyObjectHashTable(HashTable):
 
         for i in range(n):
             val = values[i]
+            hash(val)
             k = kh_get_pymap(self.table, <PyObject*>val)
             if k != self.table.n_buckets:
                 locs[i] = self.table.vals[k]
@@ -719,7 +723,7 @@ cdef class PyObjectHashTable(HashTable):
 
         for i in range(n):
             val = values[i]
-
+            hash(val)
             if not _checknan(val):
                 k = kh_get_pymap(self.table, <PyObject*>val)
                 if k == self.table.n_buckets:
@@ -747,6 +751,7 @@ cdef class PyObjectHashTable(HashTable):
 
         for i in range(n):
             val = values[i]
+            hash(val)
 
             if val != val or val is None:
                 labels[i] = na_sentinel

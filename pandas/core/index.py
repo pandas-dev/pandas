@@ -251,6 +251,8 @@ class Index(np.ndarray):
         return self
 
     def __contains__(self, key):
+        hash(key)
+        # work around some kind of odd cython bug
         try:
             return key in self._engine
         except TypeError:
@@ -1653,14 +1655,13 @@ class DatetimeIndex(Int64Index):
         try:
             return Index.get_value(self, series, key)
         except KeyError:
+
             try:
                 asdt, parsed, reso = datetools.parse_time_string(key)
                 key = asdt
                 loc = self._partial_date_slice(reso, parsed)
                 return series[loc]
-            except TypeError:
-                pass
-            except KeyError:
+            except (TypeError, ValueError, KeyError):
                 pass
 
             return self._engine.get_value(series, to_timestamp(key))

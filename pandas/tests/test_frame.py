@@ -1191,6 +1191,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertRaises(Exception, setattr, self.mixed_frame, 'columns',
                           cols[::2])
 
+    def test_column_contains_typeerror(self):
+        try:
+            self.frame.columns in self.frame
+        except TypeError:
+            pass
+
     def test_constructor(self):
         df = DataFrame()
         self.assert_(len(df.index) == 0)
