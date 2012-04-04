@@ -231,8 +231,11 @@ class Interval(object):
         -------
         resampled : Interval
         """
-
-        if how not in ('S', 'E'):
+        how_dict = {'S': 'S', 'E': 'E',
+                    'START': 'S', 'FINISH': 'E',
+                    'BEGIN': 'S', 'END': 'E'}
+        how = how_dict.get(str(how).upper())
+        if how not in set(['S', 'E']):
             raise ValueError('How must be one of S or E')
 
         base1, mult1 = _get_freq_code(self.freq)
@@ -313,24 +316,14 @@ class Interval(object):
 
     @classmethod
     def now(cls, freq=None):
-        if isinstance(freq, basestring):
-            base, mult = _get_freq_code(freq)
-            freq = (base, mult)
-
-        base, mult = _interval_code_map['S'], 1
-        sfreq = (base, mult)
-
-        dt = datetime.now()
-
-        skts_ordinal = lib.skts_ordinal(dt.year, dt.month, dt.day, dt.hour,
-                                        dt.minute, dt.second, base, mult)
-
-        return Interval(skts_ordinal, sfreq).resample(freq)
+        return Interval(datetime.now(), freq=freq)
 
     def __repr__(self):
         base, mult = _gfc(self.freq)
         formatted = lib.skts_ordinal_to_string(self.ordinal, base, mult)
         freqstr = _reverse_interval_code_map[base]
+        if mult == 1:
+            return "Interval('%s', '%s')" % (formatted, freqstr)
         return ("Interval('%s', '%d%s')" % (formatted, mult, freqstr))
 
     def __str__(self):
@@ -545,7 +538,7 @@ _interval_code_map = {
     # Quarterly frequencies with various fiscal year ends.
     # eg, Q42005 for Q@OCT runs Aug 1, 2005 to Oct 31, 2005
     "Q"     : 2000,    # Quarterly - December year end (default quarterly)
-    "Q@DEC" : 2000,    # Quarterly - December year end
+    "Q@DEC" : 2000 ,    # Quarterly - December year end
     "Q@JAN" : 2001,    # Quarterly - January year end
     "Q@FEB" : 2002,    # Quarterly - February year end
     "Q@MAR" : 2003,    # Quarterly - March year end
@@ -746,28 +739,6 @@ def _get_freq_str(base, mult):
 _gfs = _get_freq_str
 
 _unknown_freq = 'Unknown'
-
-def get_standard_freq(freq):
-    """
-    Return the standardized frequency string
-    """
-    if freq is None:
-        return None
-
-    if isinstance(freq, basestring):
-        try:
-            freq = to_offset(freq)
-        except:
-            pass
-
-    if isinstance(freq, DateOffset):
-        if freq.n == 1:
-            return getOffsetName(freq)
-        return str(freq.n) + getOffsetName(freq)
-
-    code, stride = _get_freq_code(freq)
-    return _get_freq_str(code, stride)
-
 
 #-------------------------------------------------------------------------------
 # Miscellaneous date functions
@@ -1082,6 +1053,9 @@ class DateOffset(object):
         b = ((someDate + self) - self)
         return a == b
 
+    def rule_code(self):
+        if self.__class__.__name__ == DateOffset.__name__:
+            return 'D'
 
 class BDay(DateOffset, CacheableOffset):
     """
@@ -1094,6 +1068,9 @@ class BDay(DateOffset, CacheableOffset):
         self.kwds = kwds
         self.offset = kwds.get('offset', timedelta(0))
         self.normalize = kwds.get('normalize', True)
+
+    def rule_code(self):
+        return 'B'
 
     def __repr__(self):
         if hasattr(self, 'name') and len(self.name):
@@ -1174,6 +1151,9 @@ class MonthEnd(DateOffset, CacheableOffset):
                                                    someDate.month)
         return someDate.day == days_in_month
 
+    def rule_code(self):
+        return 'M'
+
 class MonthBegin(DateOffset, CacheableOffset):
     """DateOffset of one month at beginning"""
 
@@ -1192,6 +1172,10 @@ class MonthBegin(DateOffset, CacheableOffset):
     def onOffset(cls, someDate):
         firstDay, _ = monthrange(someDate.year, someDate.month)
         return someDate.day == (firstDay + 1)
+
+    def rule_code(self):
+        return 'MS'
+
 
 class BMonthEnd(DateOffset, CacheableOffset):
     """DateOffset increments between business EOM dates"""
@@ -1217,6 +1201,10 @@ class BMonthEnd(DateOffset, CacheableOffset):
             other = other - BDay()
         return other
 
+    def rule_code(self):
+        return 'BM'
+
+
 class BMonthBegin(DateOffset, CacheableOffset):
     """DateOffset of one business month at beginning"""
 
@@ -1237,6 +1225,9 @@ class BMonthBegin(DateOffset, CacheableOffset):
         firstBDay = _get_firstbday(wkday)
         result = datetime(other.year, other.month, firstBDay)
         return result
+
+    def rule_code(self):
+        return 'BMS'
 
 
 class Week(DateOffset, CacheableOffset):
@@ -1288,6 +1279,21 @@ class Week(DateOffset, CacheableOffset):
     def onOffset(self, someDate):
         return someDate.weekday() == self.weekday
 
+    def rule_code(self):
+        suffix = ''
+        if self.weekday is not None:
+            suffix = '@%s' % (_weekday_dict[self.weekday])
+        return 'W' + suffix
+
+_weekday_dict = {
+    0: 'MON',
+    1: 'TUE',
+    2: 'WED',
+    3: 'THU',
+    4: 'FRI',
+    5: 'SAT',
+    6: 'SUN'
+}
 
 class WeekOfMonth(DateOffset, CacheableOffset):
     """
@@ -1357,6 +1363,10 @@ class WeekOfMonth(DateOffset, CacheableOffset):
     def onOffset(self, someDate):
         return someDate == self.getOffsetOfMonth(someDate)
 
+    def rule_code(self):
+        suffix = '@%d%s' % (self.week + 1, _weekday_dict.get(self.weekday, ''))
+        return 'WOM' + suffix
+
 class BQuarterEnd(DateOffset, CacheableOffset):
     """DateOffset increments between business Quarter dates
     startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
@@ -1401,6 +1411,25 @@ class BQuarterEnd(DateOffset, CacheableOffset):
     def onOffset(self, someDate):
         modMonth = (someDate.month - self.startingMonth) % 3
         return BMonthEnd().onOffset(someDate) and modMonth == 0
+
+    def rule_code(self):
+        suffix = '@%s' % _month_dict[self.startingMonth]
+        return 'BQ' + suffix
+
+_month_dict = {
+    1: 'JAN',
+    2: 'FEB',
+    3: 'MAR',
+    4: 'APR',
+    5: 'MAY',
+    6: 'JUN',
+    7: 'JUL',
+    8: 'AUG',
+    9: 'SEP',
+    10: 'OCT',
+    11: 'NOV',
+    12: 'DEC'
+}
 
 class BQuarterBegin(DateOffset, CacheableOffset):
     _outputName = "BusinessQuarterBegin"
@@ -1447,6 +1476,10 @@ class BQuarterBegin(DateOffset, CacheableOffset):
         result = datetime(other.year, other.month, firstBDay)
         return result
 
+    def rule_code(self):
+        suffix = '@%s' % _month_dict[self.startingMonth]
+        return 'BQS' + suffix
+
 
 class QuarterEnd(DateOffset, CacheableOffset):
     """DateOffset increments between business Quarter dates
@@ -1487,6 +1520,11 @@ class QuarterEnd(DateOffset, CacheableOffset):
         modMonth = (someDate.month - self.startingMonth) % 3
         return MonthEnd().onOffset(someDate) and modMonth == 0
 
+    def rule_code(self):
+        suffix = '@%s' % _month_dict[self.startingMonth]
+        return 'Q' + suffix
+
+
 class QuarterBegin(DateOffset, CacheableOffset):
     _outputName = 'QuarterBegin'
     _normalizeFirst = True
@@ -1521,6 +1559,10 @@ class QuarterBegin(DateOffset, CacheableOffset):
 
         other = other + relativedelta(months=3*n - monthsSince, day=1)
         return other
+
+    def rule_code(self):
+        suffix = '@%s' % _month_dict[self.startingMonth]
+        return 'QS' + suffix
 
 
 class BYearEnd(DateOffset, CacheableOffset):
@@ -1566,6 +1608,11 @@ class BYearEnd(DateOffset, CacheableOffset):
 
         return result
 
+    def rule_code(self):
+        suffix = '@%s' % _month_dict[self.month]
+        return 'BA' + suffix
+
+
 class BYearBegin(DateOffset, CacheableOffset):
     """DateOffset increments between business year begin dates"""
     _outputName = 'BusinessYearBegin'
@@ -1608,6 +1655,11 @@ class BYearBegin(DateOffset, CacheableOffset):
         result = datetime(other.year, self.month, firstBDay)
         return result
 
+    def rule_code(self):
+        suffix = '@%s' % _month_dict[self.month]
+        return 'BAS' + suffix
+
+
 class YearEnd(DateOffset, CacheableOffset):
     """DateOffset increments between calendar year ends"""
     _normalizeFirst = True
@@ -1634,10 +1686,22 @@ class YearEnd(DateOffset, CacheableOffset):
         wkday, days_in_month = monthrange(someDate.year, self.month)
         return self.month == someDate.month and someDate.day == days_in_month
 
+    def rule_code(self):
+        suffix = '@%s' % _month_dict[self.month]
+        return 'A' + suffix
+
 
 class YearBegin(DateOffset, CacheableOffset):
     """DateOffset increments between calendar year begin dates"""
     _normalizeFirst = True
+
+    def __init__(self, n=1, **kwds):
+        self.month = kwds.get('month', 12)
+
+        if self.month < 1 or self.month > 12:
+            raise Exception('Month must go from 1 to 12')
+
+        DateOffset.__init__(self, n=n, **kwds)
 
     def apply(self, other):
         n = self.n
@@ -1651,6 +1715,11 @@ class YearBegin(DateOffset, CacheableOffset):
     @classmethod
     def onOffset(cls, someDate):
         return someDate.month == 1 and someDate.day == 1
+
+    def rule_code(self):
+        suffix = '@%s' % _month_dict[self.month]
+        return 'AS' + suffix
+
 
 #-------------------------------------------------------------------------------
 # Ticks
@@ -1678,20 +1747,37 @@ class Tick(DateOffset):
         elif isinstance(other, type(self)):
             return type(self)(self.n + other.n)
 
+    def rule_code(self):
+        return 'T'
+
 class Hour(Tick):
     _inc = timedelta(0, 3600)
+
+    def rule_code(self):
+        return 'H'
 
 class Minute(Tick):
     _inc = timedelta(0, 60)
 
+    def rule_code(self):
+        return 'Min'
+
 class Second(Tick):
     _inc = timedelta(0, 1)
 
+    def rule_code(self):
+        return 'S'
+
 class Milli(Tick):
-    pass
+
+    def rule_code(self):
+        return 'L'
 
 class Micro(Tick):
     _inc = timedelta(microseconds=1)
+
+    def rule_code(self):
+        return 'U'
 
 day = DateOffset()
 bday = BDay()
@@ -1916,10 +2002,20 @@ def to_offset(freqstr):
     -------
     to_offset('5Min') -> Minute(5)
     """
+    if freqstr is None:
+        return None
+
     if isinstance(freqstr, DateOffset):
         return freqstr
 
-    name, stride = _base_and_stride(freqstr)
+    if isinstance(freqstr, tuple):
+        name = freqstr[0]
+        stride = freqstr[1]
+        if isinstance(stride, basestring):
+            name, stride = stride, name
+        name, _ = _base_and_stride(name)
+    else:
+        name, stride = _base_and_stride(freqstr)
 
     offset = getOffset(name)
 
@@ -1984,7 +2080,20 @@ def getOffsetName(offset):
     if name is not None:
         return name
     else:
-        raise Exception('Bad offset name requested: %s!' % offset)
+        raise Exception('Bad rule given: %s!' % offset)
+
+def get_standard_freq(freq):
+    """
+    Return the standardized frequency string
+    """
+    if freq is None:
+        return None
+
+    if isinstance(freq, DateOffset):
+        return getOffsetName(freq)
+
+    code, stride = _get_freq_code(freq)
+    return _get_freq_str(code, stride)
 
 def _infer_tzinfo(start, end):
     def _infer(a, b):

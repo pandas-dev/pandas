@@ -1310,6 +1310,7 @@ def test_get_standard_freq():
     assert fstr == get_standard_freq('5QuarTer')
     assert fstr == get_standard_freq(('q', 5))
 
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
