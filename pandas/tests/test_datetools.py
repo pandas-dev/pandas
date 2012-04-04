@@ -8,7 +8,8 @@ from pandas.core.datetools import (
     DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second,
     WeekOfMonth, format, ole2datetime, QuarterEnd, to_datetime, normalize_date,
     getOffset, getOffsetName, inferTimeRule, hasOffsetName,
-    _dt_box, _dt_unbox, parse_time_string, get_standard_freq)
+    _dt_box, _dt_unbox, parse_time_string, get_standard_freq,
+    _offset_map)
 
 from nose.tools import assert_raises
 
@@ -1309,6 +1310,30 @@ def test_get_standard_freq():
     assert fstr == get_standard_freq('5q')
     assert fstr == get_standard_freq('5QuarTer')
     assert fstr == get_standard_freq(('q', 5))
+
+def test_rule_code():
+    lst = ['M', 'MS', 'BM', 'BMS', 'D', 'B', 'H', 'Min', 'S', 'L', 'U']
+    for k in lst:
+        assert k == _offset_map[k].rule_code()
+        assert k == (_offset_map[k] * 3).rule_code()
+
+    suffix_lst = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
+    base = 'W'
+    for v in suffix_lst:
+        alias = '@'.join([base, v])
+        assert alias == _offset_map[alias].rule_code()
+        assert alias == (_offset_map[alias] * 5).rule_code()
+
+    suffix_lst = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG',
+                  'SEP', 'OCT', 'NOV', 'DEC']
+    base_lst = ['A', 'AS', 'BA', 'BAS', 'Q', 'QS', 'BQ', 'BQS']
+    for base in base_lst:
+        for v in suffix_lst:
+            alias = '@'.join([base, v])
+            assert alias == _offset_map[alias].rule_code()
+            assert alias == (_offset_map[alias] * 5).rule_code()
+
+
 
 
 if __name__ == '__main__':

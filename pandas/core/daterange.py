@@ -81,3 +81,8 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None):
 
     return DatetimeIndex(start=start, end=end, periods=periods,
                          freq=freq, tz=tz)
+
+def interval_range():
+    """
+    Return a fixed frequency interval index
+    """

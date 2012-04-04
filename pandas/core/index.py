@@ -2076,12 +2076,7 @@ class IntervalIndex(Int64Index):
         return subarr
 
     def resample(self, freq=None, how='E'):
-        how_dict = {'S': 'S', 'E': 'E',
-                    'START': 'S', 'FINISH': 'E',
-                    'BEGIN': 'S', 'END': 'E'}
-        how = how_dict.get(str(how).upper())
-        if how not in set(['S', 'E']):
-            raise ValueError('How must be one of S or E')
+        how = datetools.validate_end_alias(how)
 
         base1, mult1 = datetools._get_freq_code(self.freq)
 

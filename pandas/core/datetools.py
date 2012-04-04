@@ -231,13 +231,7 @@ class Interval(object):
         -------
         resampled : Interval
         """
-        how_dict = {'S': 'S', 'E': 'E',
-                    'START': 'S', 'FINISH': 'E',
-                    'BEGIN': 'S', 'END': 'E'}
-        how = how_dict.get(str(how).upper())
-        if how not in set(['S', 'E']):
-            raise ValueError('How must be one of S or E')
-
+        how = validate_end_alias(how)
         base1, mult1 = _get_freq_code(self.freq)
         base2, mult2 = _get_freq_code(freq)
 
@@ -249,10 +243,30 @@ class Interval(object):
     # for skts compatibility
     asfreq = resample
 
-    def to_timestamp(self):
-        base, mult = _get_freq_code('S')
-        new_val = self.resample('S', 'S').ordinal
-        return Timestamp(lib.skts_ordinal_to_dt64(new_val, base, mult))
+    def start_time(self):
+        return self.to_timestamp(which_end='S')
+
+    def end_time(self):
+        return self.to_timestamp(which_end='E')
+
+    def to_timestamp(self, which_end='S'):
+        """
+        Return the Timestamp at the start/end of the interval
+
+        Parameters
+        ----------
+        which_end: str, default 'S' (start)
+            'S', 'E'. Can be aliased as case insensitive
+            'Start', 'Finish', 'Begin', 'End'
+
+        Returns
+        -------
+        Timestamp
+        """
+        which_end = validate_end_alias(which_end)
+        new_val = self.resample('S', which_end)
+        base, mult = _get_freq_code(new_val.freq)
+        return Timestamp(lib.skts_ordinal_to_dt64(new_val.ordinal, base, mult))
 
     @property
     def year(self):
@@ -1925,14 +1939,12 @@ _offset_map = {
     "BQS@NOV" : BQuarterBegin(startingMonth=11),
     "BQS@DEC" : BQuarterBegin(startingMonth=12),
     # Monthly - Calendar
-    "EOM"      : BMonthEnd(1),  # legacy, deprecated?
-
     "M"      : MonthEnd(),
     "MS"     : MonthBegin(),
 
-
     # Monthly - Business
     "BM"     : BMonthEnd(),
+    "EOM"      : BMonthEnd(1),  # legacy, deprecated?
     "BMS"    : BMonthBegin(),
 
     # "EOM"    : MonthEnd(),
@@ -2200,3 +2212,12 @@ def _naive_in_cache_range(start, end):
 
 def _in_range(start, end, rng_start, rng_end):
     return start > rng_start and end < rng_end
+
+def validate_end_alias(how):
+    how_dict = {'S': 'S', 'E': 'E',
+                'START': 'S', 'FINISH': 'E',
+                'BEGIN': 'S', 'END': 'E'}
+    how = how_dict.get(str(how).upper())
+    if how not in set(['S', 'E']):
+        raise ValueError('How must be one of S or E')
+    return how
