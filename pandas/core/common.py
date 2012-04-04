@@ -319,6 +319,7 @@ def backfill_1d(values, limit=None):
     else: # pragma: no cover
         raise ValueError('Invalid dtype for padding')
 
+    _method(values, isnull(values).view(np.uint8), limit=limit)
 
 def _consensus_name_attr(objs):
     name = objs[0].name

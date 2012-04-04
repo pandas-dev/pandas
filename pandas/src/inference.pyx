@@ -92,6 +92,10 @@ def infer_dtype_list(list values):
         Py_ssize_t i, n = len(values)
     pass
 
+cdef inline bint is_timestamp(object o):
+    return isinstance(o, Timestamp)
+
+
 cdef inline bint is_datetime(object o):
     return PyDateTime_Check(o)
 
@@ -191,6 +195,24 @@ def is_datetime_array(ndarray[object] values):
         return False
     for i in range(n):
         if not is_datetime(values[i]):
+            return False
+    return True
+
+def is_timestamp_array(ndarray[object] values):
+    cdef int i, n = len(values)
+    if n == 0:
+        return False
+    for i in range(n):
+        if not is_timestamp(values[i]):
+            return False
+    return True
+
+def is_datetime64_array(ndarray values):
+    cdef int i, n = len(values)
+    if n == 0:
+        return False
+    for i in range(n):
+        if not util.is_datetime64_object(values[i]):
             return False
     return True
 

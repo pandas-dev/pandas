@@ -23,6 +23,7 @@ cdef extern from "datetime.h":
     int PyDateTime_TIME_GET_SECOND(datetime o)
     int PyDateTime_TIME_GET_MICROSECOND(datetime o)
     bint PyDateTime_Check(object o)
+    bint PyDate_Check(object o)
     PyObject *PyDateTime_FromDateAndTime(int year, int month, int day, int hour,
                                          int minute, int second, int us)
 

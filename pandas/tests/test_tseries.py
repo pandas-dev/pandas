@@ -421,7 +421,7 @@ class TestTypeInference(unittest.TestCase):
         import datetime
         dates = [datetime.datetime(2012, 1, x) for x in range(1, 20)]
         index = Index(dates)
-        self.assert_(index.inferred_type == 'datetime')
+        self.assert_(index.inferred_type == 'datetime64')
 
     def test_date(self):
         import datetime

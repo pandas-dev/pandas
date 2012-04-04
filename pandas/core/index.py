@@ -273,16 +273,21 @@ class Index(np.ndarray):
         appended : Index
         """
         name = self.name
+        to_concat = [self]
+
         if isinstance(other, (list, tuple)):
-            to_concat = (self.values,) + tuple(other)
-            for obj in other:
-                if isinstance(obj, Index) and obj.name != name:
-                    name = None
-                    break
+            to_concat = to_concat + list(other)
         else:
-            to_concat = self.values, other.values
-            if isinstance(other, Index) and other.name != name:
+            to_concat.append(other)
+
+        for obj in to_concat:
+            if isinstance(obj, Index) and obj.name != name:
                 name = None
+                break
+
+        to_concat = _ensure_compat_concat(to_concat)
+        to_concat = [x.values if isinstance(x, Index) else x
+                     for x in to_concat]
 
         return Index(np.concatenate(to_concat), name=name)
 
@@ -3563,6 +3568,22 @@ def _sanitize_and_check(indexes):
         return indexes, 'special'
     else:
         return indexes, 'array'
+
+def _handle_legacy_indexes(indexes):
+    from pandas.core.daterange import DateRange
+
+    converted = []
+    for index in indexes:
+        if isinstance(index, DateRange):
+            index = _convert_daterange(index)
+
+        converted.append(index)
+
+    return converted
+
+def _convert_daterange(obj):
+    return DatetimeIndex(start=obj[0], end=obj[-1],
+                         freq=obj.offset, tz=obj.tzinfo)
 
 
 def _get_consensus_names(indexes):

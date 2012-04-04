@@ -2453,6 +2453,28 @@ def _get_rename_function(mapper):
 
     return f
 
+def _resolve_offset(freq, kwds):
+    from pandas.core.datetools import getOffset
+
+    if 'timeRule' in kwds or 'offset' in kwds:
+        offset = kwds.get('offset')
+        offset = kwds.get('timeRule', offset)
+        if isinstance(offset, basestring):
+            offset = datetools.getOffset(offset)
+        warn = True
+    else:
+        offset = freq
+        warn = False
+
+    if warn:
+        import warnings
+        warnings.warn("'timeRule' and 'offset' parameters are deprecated,"
+                      " please use 'freq' instead",
+                      FutureWarning)
+
+    return offset
+
+
 #----------------------------------------------------------------------
 # Add plotting methods to Series
 
