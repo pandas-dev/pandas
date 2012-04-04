@@ -218,6 +218,8 @@ def take_2d(arr, indexer, out=None, mask=None, needs_masking=None, axis=0,
         # Cython methods expects 32-bit integers
         indexer = np.array(indexer, dtype=np.int32)
 
+    indexer = _ensure_int32(indexer)
+
     if dtype_str in ('int32', 'int64', 'bool'):
         if mask is None:
             mask = indexer == -1

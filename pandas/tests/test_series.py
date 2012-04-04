@@ -598,7 +598,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_setslice(self):
         sl = self.ts[5:20]
         self.assertEqual(len(sl), len(sl.index))
-        self.assertEqual(len(sl.index.indexMap), len(sl.index))
+        self.assert_(sl.index.is_unique)
 
     def test_basic_getitem_setitem_corner(self):
         # invalid tuples, e.g. self.ts[:, None] vs. self.ts[:, 2]

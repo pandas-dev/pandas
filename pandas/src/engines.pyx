@@ -132,7 +132,10 @@ cdef class IndexEngine:
         if not self.unique:
             raise Exception('Index values are not unique')
 
-        return self.mapping.get_item(val)
+        try:
+            return self.mapping.get_item(val)
+        except TypeError:
+            raise KeyError(val)
 
     cdef inline _ensure_mapping_populated(self):
         if not self.initialized:
@@ -261,7 +264,10 @@ cdef class DatetimeEngine(IndexEngine):
             val = np.datetime64(val)
             val = val.view('i8')
 
-        return self.mapping.get_item(val)
+        try:
+            return self.mapping.get_item(val)
+        except TypeError:
+            raise KeyError(val)
 
     def get_indexer(self, values):
         self._ensure_mapping_populated()

@@ -2,7 +2,8 @@ from cStringIO import StringIO
 
 take_1d_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
-def take_1d_%(name)s(ndarray[%(c_type)s] values, ndarray[int32_t] indexer,
+def take_1d_%(name)s(ndarray[%(c_type)s] values,
+                     ndarray[int32_t] indexer,
                      out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx

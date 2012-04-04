@@ -11,6 +11,7 @@ import time
 import numpy as np
 from pandas import Series, TimeSeries, DataFrame, Panel, Index, MultiIndex
 from pandas.core.common import adjoin
+from pandas.core.algorithms import match
 import pandas._tseries as lib
 
 import pandas.core.common as com
@@ -693,7 +694,7 @@ class HDFStore(object):
             unique_tuples = lib.fast_unique(tuple_index)
             unique_tuples = _asarray_tuplesafe(unique_tuples)
 
-            indexer = lib.merge_indexer_object(unique_tuples, index_map)
+            indexer = match(unique_tuples, tuple_index)
 
             new_index = long_index.take(indexer)
             new_values = lp.values.take(indexer, axis=0)
@@ -752,7 +753,7 @@ def _convert_index(index):
         return np.asarray(values, dtype=np.float64), 'float', atom
     else: # pragma: no cover
         atom = _tables().ObjectAtom()
-        return np.asarray(values, dtype='O'), 'object', atom 
+        return np.asarray(values, dtype='O'), 'object', atom
 
 def _read_array(group, key):
     import tables

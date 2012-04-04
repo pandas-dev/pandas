@@ -1789,10 +1789,8 @@ copy : boolean, default False
             if isinstance(arg, dict):
                 arg = Series(arg)
 
-            indexer = lib.merge_indexer_object(self.values.astype(object),
-                                               arg.index.indexMap)
-
-            new_values = com.take_1d(np.asarray(arg), indexer)
+            indexer = arg.index.get_indexer(self.values)
+            new_values = com.take_1d(arg.values, indexer)
             return Series(new_values, index=self.index, name=self.name)
         else:
             mapped = lib.map_infer(self.values, arg)
