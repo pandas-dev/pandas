@@ -58,10 +58,6 @@ class Index(np.ndarray):
     ----
     An Index instance can **only** contain hashable objects
     """
-    # _algos = {
-    #     'groupby' : _gin.groupby_index,
-    # }
-
     # Cython methods
     _groupby = lib.groupby_object
     _arrmap = lib.arrmap_object
@@ -983,8 +979,6 @@ class Index(np.ndarray):
 
 class Int64Index(Index):
 
-    # _is_monotonic = lib.is_monotonic_int64
-
     _groupby = lib.groupby_int64
     _arrmap = lib.arrmap_int64
     _left_indexer = lib.left_join_indexer_int64
@@ -1172,8 +1166,6 @@ class DatetimeIndex(Int64Index):
         time on or just past end argument
     """
 
-    # _is_monotonic  = _wrap_i8_function(lib.is_monotonic_int64)
-
     _inner_indexer = _join_i8_wrapper(lib.inner_join_indexer_int64)
     _outer_indexer = _join_i8_wrapper(lib.outer_join_indexer_int64)
     _left_indexer  = _join_i8_wrapper(lib.left_join_indexer_int64,
@@ -1238,8 +1230,7 @@ class DatetimeIndex(Int64Index):
 
             useCache = datetools._will_use_cache(offset)
 
-            start, end, tz = datetools._figure_out_timezone(start, end,
-                                                                tz)
+            start, end, tz = datetools._figure_out_timezone(start, end, tz)
 
             useCache = useCache and datetools._naive_in_cache_range(start, end)
 
@@ -1303,8 +1294,8 @@ class DatetimeIndex(Int64Index):
         else:
             subarr = np.array(data, dtype='M8[us]', copy=copy)
 
-        # TODO: this is horribly inefficient. If user passes data + offset,
-        # we need to make sure data points conform. Punting on this
+        # TODO: this is horribly inefficient. If user passes data + offset, we
+        # need to make sure data points conform. Punting on this
 
         if offset is not None:
             for i, ts in enumerate(subarr):
@@ -1423,7 +1414,7 @@ class DatetimeIndex(Int64Index):
 
     @property
     def asi8(self):
-        # to do: cache me?
+        # do not cache or you'll create a memory leak
         return self.values.view('i8')
 
     @property

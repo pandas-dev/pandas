@@ -1863,6 +1863,8 @@ class DataFrame(NDFrame):
         fill_value : scalar, default np.NaN
             Value to use for missing values. Defaults to NaN, but can be any
             "compatible" value
+        limit : int, default None
+            Maximum size gap to forward or backward fill
 
         Examples
         --------
@@ -1909,6 +1911,8 @@ class DataFrame(NDFrame):
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level
+        limit : int, default None
+            Maximum size gap to forward or backward fill
 
         Examples
         --------
@@ -1983,6 +1987,8 @@ class DataFrame(NDFrame):
         other : DataFrame
         method : string or None
         copy : boolean, default True
+        limit : int, default None
+            Maximum size gap to forward or backward fill
 
         Notes
         -----
@@ -2437,6 +2443,8 @@ class DataFrame(NDFrame):
             other views on this DataFrame, like if you took a no-copy slice of
             an existing DataFrame, for example a column in a DataFrame. Returns
             a reference to the filled object, which is self if inplace=True
+        limit : int, default None
+            Maximum size gap to forward or backward fill
 
         See also
         --------

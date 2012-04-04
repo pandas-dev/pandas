@@ -1890,6 +1890,8 @@ copy : boolean, default False
         fill_value : scalar, default np.NaN
             Value to use for missing values. Defaults to NaN, but can be any
             "compatible" value
+        limit : int, default None
+            Maximum size gap to forward or backward fill
 
         Returns
         -------
@@ -1921,6 +1923,8 @@ copy : boolean, default False
         other : Series
         method : string or None
             See Series.reindex docstring
+        limit : int, default None
+            Maximum size gap to forward or backward fill
 
         Notes
         -----
@@ -1968,6 +1972,8 @@ copy : boolean, default False
             If True, fill the Series in place. Note: this will modify any other
             views on this Series, for example a column in a DataFrame. Returns
             a reference to the filled object, which is self if inplace=True
+        limit : int, default None
+            Maximum size gap to forward or backward fill
 
         See also
         --------
