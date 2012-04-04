@@ -118,7 +118,7 @@ def is_lexsorted(list list_of_arrays):
 
     cdef int32_t **vecs = <int32_t**> malloc(nlevels * sizeof(int32_t*))
     for i from 0 <= i < nlevels:
-        vecs[i] = <int32_t *> (<ndarray> list_of_arrays[i]).data
+        # vecs[i] = <int32_t *> (<ndarray> list_of_arrays[i]).data
 
         arr = list_of_arrays[i]
         vecs[i] = <int32_t *> arr.data

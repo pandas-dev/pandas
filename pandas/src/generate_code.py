@@ -181,7 +181,7 @@ def backfill_%(name)s(ndarray[%(c_type)s] old, ndarray[%(c_type)s] new,
         j -= 1
 
     while True:
-        if j == 0:
+        if j < 0:
             break
 
         if i == 0:
@@ -257,7 +257,7 @@ def pad_%(name)s(ndarray[%(c_type)s] old, ndarray[%(c_type)s] new,
         j += 1
 
     while True:
-        if j == nright - 1:
+        if j == nright:
             break
 
         if i == nleft - 1:
@@ -334,7 +334,7 @@ def is_monotonic_%(name)s(ndarray[%(c_type)s] arr):
     n = len(arr)
 
     if n < 2:
-        return True
+        return True, True
 
     prev = arr[0]
     for i in range(1, n):

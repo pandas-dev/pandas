@@ -832,6 +832,10 @@ class TestMultiIndex(unittest.TestCase):
         obj2 = MultiIndex.from_tuples(obj.values)
         self.assert_(obj.equals(obj2))
 
+        res = obj.get_indexer(obj)
+        exp = np.arange(len(obj))
+        assert_almost_equal(res, exp)
+
         res = obj.get_indexer(obj2[::-1])
         exp = obj.get_indexer(obj[::-1])
         exp2 = obj2.get_indexer(obj2[::-1])

@@ -98,7 +98,12 @@ cdef class IndexEngine:
     cdef inline _do_monotonic_check(self):
         try:
             values = self._get_index_values()
-            self.monotonic, self.unique = self._call_monotonic(values)
+            self.monotonic, unique = self._call_monotonic(values)
+
+            if unique is not None:
+                self.unique = unique
+                self.unique_check = 1
+
         except TypeError:
             self.monotonic = 0
         self.monotonic_check = 1
@@ -149,57 +154,6 @@ cdef class IndexEngine:
         self._ensure_mapping_populated()
         return self.mapping.lookup(values)
 
-    def get_pad_indexer(self, values):
-        pass
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def backfill_object(ndarray[object] old, ndarray[object] new, limit=None):
-    cdef Py_ssize_t i, j, nleft, nright
-    cdef ndarray[int32_t, ndim=1] indexer
-    cdef object cur, prev
-    cdef int lim
-
-    nleft = len(old)
-    nright = len(new)
-    indexer = np.empty(nright, dtype=np.int32)
-    indexer.fill(-1)
-
-    if limit is None:
-        lim = nright
-    else:
-        # TODO: > 0?
-        lim = limit
-
-    if nleft == 0 or nright == 0 or new[nright - 1] < old[0]:
-        return indexer
-
-    i = nleft - 1
-    j = nright - 1
-
-    cur = old[nleft - 1]
-    while True:
-        if j == 0:
-            break
-
-        if i == 0:
-            while j > 0 and new[j] >= cur:
-                indexer[j] = i
-                j -= 1
-            break
-
-        prev = old[i - 1]
-
-        while j > 0 and prev < new[j] <= cur:
-            indexer[j] = i
-            j -= 1
-
-        i -= 1
-        cur = prev
-
-    return indexer
-
 
 
 # @cache_readonly
@@ -223,6 +177,12 @@ cdef class Int64Engine(IndexEngine):
     def _call_monotonic(self, values):
         return _tseries.is_monotonic_int64(values)
 
+    def get_pad_indexer(self, other):
+        return _tseries.pad_int64(self._get_index_values(), other)
+
+    def get_backfill_indexer(self, other):
+        return _tseries.backfill_int64(self._get_index_values(), other)
+
 cdef class Float64Engine(IndexEngine):
 
     # cdef Float64HashTable mapping
@@ -232,6 +192,12 @@ cdef class Float64Engine(IndexEngine):
 
     def _call_monotonic(self, values):
         return _tseries.is_monotonic_float64(values)
+
+    def get_pad_indexer(self, other):
+        return _tseries.pad_float64(self._get_index_values(), other)
+
+    def get_backfill_indexer(self, other):
+        return _tseries.backfill_float64(self._get_index_values(), other)
 
 
 cdef class ObjectEngine(IndexEngine):
@@ -243,6 +209,12 @@ cdef class ObjectEngine(IndexEngine):
 
     def _call_monotonic(self, values):
         return _tseries.is_monotonic_object(values)
+
+    def get_pad_indexer(self, other):
+        return _tseries.pad_object(self._get_index_values(), other)
+
+    def get_backfill_indexer(self, other):
+        return _tseries.backfill_object(self._get_index_values(), other)
 
 
 cdef class DatetimeEngine(IndexEngine):
@@ -282,7 +254,7 @@ cdef class DatetimeEngine(IndexEngine):
             val = np.datetime64(val)
             val = val.view('i8')
 
-        return self.mapping[val]
+        return self.mapping.get_item(val)
 
 
 # ctypedef fused idxvalue_t:

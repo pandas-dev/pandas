@@ -253,7 +253,10 @@ class Index(np.ndarray):
         return self
 
     def __contains__(self, key):
-        return key in self._engine
+        try:
+            return key in self._engine
+        except TypeError:
+            return False
 
     def __hash__(self):
         return hash(self.view(np.ndarray))
@@ -638,18 +641,18 @@ class Index(np.ndarray):
             this = Index(self, dtype=object)
             target = Index(target, dtype=object)
             return this.get_indexer(target, method=method)
-        # if self.dtype != target.dtype:
-        #     target = Index(target, dtype=object)
 
         if method == 'pad':
-            indexer = self._pad(self, target, self.indexMap, target.indexMap)
+            assert(self.is_unique and self.is_monotonic)
+            indexer = self._engine.get_pad_indexer(target)
         elif method == 'backfill':
-            indexer = self._backfill(self, target, self.indexMap,
-                                     target.indexMap)
+            assert(self.is_unique and self.is_monotonic)
+            indexer = self._engine.get_backfill_indexer(target)
         elif method is None:
-            indexer = self._get_indexer_standard(target)
+            indexer = self._engine.get_indexer(target)
         else:
             raise ValueError('unrecognized method: %s' % method)
+
         return indexer
 
     def _get_indexer_standard(self, other):
@@ -2963,13 +2966,13 @@ class MultiIndex(Index):
             self_index = self.get_tuple_index()
 
         if method == 'pad':
-            indexer = self._pad(self_index, target_index, self_index.indexMap,
-                                target.indexMap)
+            assert(self.is_unique and self.is_monotonic)
+            indexer = self_index._engine.get_pad_indexer(target_index)
         elif method == 'backfill':
-            indexer = self._backfill(self_index, target_index,
-                                     self_index.indexMap, target.indexMap)
+            assert(self.is_unique and self.is_monotonic)
+            indexer = self_index._engine.get_backfill_indexer(target_index)
         else:
-            indexer = self._engine.get_indexer(target_index)
+            indexer = self_index._engine.get_indexer(target_index)
 
         return indexer
 

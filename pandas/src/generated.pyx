@@ -140,7 +140,7 @@ def pad_float64(ndarray[float64_t] old, ndarray[float64_t] new,
         j += 1
 
     while True:
-        if j == nright - 1:
+        if j == nright:
             break
 
         if i == nleft - 1:
@@ -191,7 +191,7 @@ def pad_object(ndarray[object] old, ndarray[object] new,
         j += 1
 
     while True:
-        if j == nright - 1:
+        if j == nright:
             break
 
         if i == nleft - 1:
@@ -242,7 +242,7 @@ def pad_int32(ndarray[int32_t] old, ndarray[int32_t] new,
         j += 1
 
     while True:
-        if j == nright - 1:
+        if j == nright:
             break
 
         if i == nleft - 1:
@@ -293,7 +293,7 @@ def pad_int64(ndarray[int64_t] old, ndarray[int64_t] new,
         j += 1
 
     while True:
-        if j == nright - 1:
+        if j == nright:
             break
 
         if i == nleft - 1:
@@ -344,7 +344,7 @@ def pad_bool(ndarray[uint8_t] old, ndarray[uint8_t] new,
         j += 1
 
     while True:
-        if j == nright - 1:
+        if j == nright:
             break
 
         if i == nleft - 1:
@@ -397,7 +397,7 @@ def backfill_float64(ndarray[float64_t] old, ndarray[float64_t] new,
         j -= 1
 
     while True:
-        if j == 0:
+        if j < 0:
             break
 
         if i == 0:
@@ -449,7 +449,7 @@ def backfill_object(ndarray[object] old, ndarray[object] new,
         j -= 1
 
     while True:
-        if j == 0:
+        if j < 0:
             break
 
         if i == 0:
@@ -501,7 +501,7 @@ def backfill_int32(ndarray[int32_t] old, ndarray[int32_t] new,
         j -= 1
 
     while True:
-        if j == 0:
+        if j < 0:
             break
 
         if i == 0:
@@ -553,7 +553,7 @@ def backfill_int64(ndarray[int64_t] old, ndarray[int64_t] new,
         j -= 1
 
     while True:
-        if j == 0:
+        if j < 0:
             break
 
         if i == 0:
@@ -605,7 +605,7 @@ def backfill_bool(ndarray[uint8_t] old, ndarray[uint8_t] new,
         j -= 1
 
     while True:
-        if j == 0:
+        if j < 0:
             break
 
         if i == 0:
@@ -975,7 +975,7 @@ def is_monotonic_float64(ndarray[float64_t] arr):
     n = len(arr)
 
     if n < 2:
-        return True
+        return True, True
 
     prev = arr[0]
     for i in range(1, n):
@@ -1002,7 +1002,7 @@ def is_monotonic_object(ndarray[object] arr):
     n = len(arr)
 
     if n < 2:
-        return True
+        return True, True
 
     prev = arr[0]
     for i in range(1, n):
@@ -1029,7 +1029,7 @@ def is_monotonic_int32(ndarray[int32_t] arr):
     n = len(arr)
 
     if n < 2:
-        return True
+        return True, True
 
     prev = arr[0]
     for i in range(1, n):
@@ -1056,7 +1056,7 @@ def is_monotonic_int64(ndarray[int64_t] arr):
     n = len(arr)
 
     if n < 2:
-        return True
+        return True, True
 
     prev = arr[0]
     for i in range(1, n):
@@ -1083,7 +1083,7 @@ def is_monotonic_bool(ndarray[uint8_t] arr):
     n = len(arr)
 
     if n < 2:
-        return True
+        return True, True
 
     prev = arr[0]
     for i in range(1, n):

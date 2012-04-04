@@ -319,13 +319,13 @@ cdef class Slider:
 
         self.buf.data = self.values.data
 
-    cdef inline advance(self, Py_ssize_t k):
+    cpdef advance(self, Py_ssize_t k):
         self.buf.data = <char*> self.buf.data + self.stride * k
 
-    cdef inline set_length(self, Py_ssize_t length):
+    cpdef set_length(self, Py_ssize_t length):
         self.buf.shape[0] = length
 
-    cdef inline cleanup(self):
+    cpdef cleanup(self):
         self.buf.shape[0] = self.orig_len
         self.buf.data = self.orig_data
 
