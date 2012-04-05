@@ -1711,6 +1711,10 @@ class DataFrame(NDFrame):
             values = self.values
             ridx = self.index.get_indexer(row_labels)
             cidx = self.columns.get_indexer(col_labels)
+            if (ridx == -1).any():
+                raise ValueError("Bad row label(s)")
+            if (cidx == -1).any():
+                raise ValueError("Bad col label(s)")
             flat_index = ridx * len(self.columns) + cidx
             result = values.flat[flat_index]
         else:
