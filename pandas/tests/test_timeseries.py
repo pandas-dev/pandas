@@ -13,7 +13,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas import (Index, Series, TimeSeries, DataFrame, isnull, notnull,
-                    date_range)
+                    date_range, Timestamp)
 from pandas.core.index import MultiIndex
 
 from pandas import DatetimeIndex
@@ -72,6 +72,45 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
 
         self.assertRaises(KeyError, ts.__getitem__, datetime(2000, 1, 6))
         self.assertRaises(KeyError, ts.__setitem__, datetime(2000, 1, 6), 0)
+
+
+def assert_range_equal(left, right):
+    assert(left.equals(right))
+    assert(left.freq == right.freq)
+    assert(left.tz == right.tz)
+
+
+class TestTimeSeries(unittest.TestCase):
+
+    def test_dti_slicing(self):
+        dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
+        dti2 = dti[[1,3,5]]
+
+        v1 = dti2[0]
+        v2 = dti2[1]
+        v3 = dti2[2]
+
+        self.assertEquals(v1, Timestamp('2/28/2005'))
+        self.assertEquals(v2, Timestamp('4/30/2005'))
+        self.assertEquals(v3, Timestamp('6/30/2005'))
+
+        # don't carry freq through irregular slicing
+        self.assert_(dti2.freq is None)
+
+    def test_contiguous_boolean_preserve_freq(self):
+        rng = date_range('1/1/2000', '3/1/2000', freq='B')
+
+        mask = np.zeros(len(rng), dtype=bool)
+        mask[10:20] = True
+
+        masked = rng[mask]
+        expected = rng[10:20]
+        self.assert_(expected.freq is not None)
+        assert_range_equal(masked, expected)
+
+        mask[22] = True
+        masked = rng[mask]
+        self.assert_(masked.freq is None)
 
     def test_getitem_median_slice_bug(self):
         index = date_range('20090415', '20090519', freq='2B')

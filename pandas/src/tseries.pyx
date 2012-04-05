@@ -427,6 +427,30 @@ def convert_timestamps(ndarray values):
 
     return out
 
+def maybe_booleans_to_slice(ndarray[uint8_t, cast=True] mask):
+    cdef:
+        Py_ssize_t i, n = len(mask)
+        Py_ssize_t start, end
+        bint started = 0, finished = 0
+
+    for i in range(n):
+        if mask[i]:
+            if finished:
+                return mask
+            if not started:
+                started = 1
+                start = i
+        else:
+            if finished:
+                continue
+
+            if started:
+                end = i
+                finished = 1
+
+    return slice(start, end)
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def scalar_compare(ndarray[object] values, object val, object op):

@@ -1702,15 +1702,16 @@ class DatetimeIndex(Int64Index):
             val = arr_idx[key]
             return _dt_box(val, offset=self.offset, tz=self.tz)
         else:
+            if com._is_bool_indexer(key):
+                key = np.asarray(key)
+                key = lib.maybe_booleans_to_slice(key)
+
             new_offset = None
-            if (type(key) == slice):
+            if isinstance(key, slice):
                 if self.offset is not None and key.step is not None:
                     new_offset = key.step * self.offset
                 else:
                     new_offset = self.offset
-
-            if com._is_bool_indexer(key):
-                key = np.asarray(key)
 
             result = arr_idx[key]
             if result.ndim > 1:
