@@ -317,7 +317,8 @@ def test_group_add_bin():
     # bin-based group_add
     bins = np.array([3, 6], dtype=np.int32)
     out  = np.zeros((3, 1), np.float64)
-    lib.group_add_bin(out, obj, bins)
+    counts = np.empty(len(out), dtype=np.int32)
+    lib.group_add_bin(out, counts, obj, bins)
 
     assert_almost_equal(out, exp)
 
@@ -333,7 +334,8 @@ def test_group_mean_bin():
     # bin-based group_mean
     bins = np.array([3, 6], dtype=np.int32)
     out  = np.zeros((3, 1), np.float64)
-    lib.group_mean_bin(out, obj, bins)
+    counts = np.empty(len(out), dtype=np.int32)
+    lib.group_mean_bin(out, counts, obj, bins)
 
     assert_almost_equal(out, exp)
 
@@ -349,7 +351,9 @@ def test_group_var_bin():
     # bin-based group_var
     bins = np.array([3, 6], dtype=np.int32)
     out  = np.zeros((3, 1), np.float64)
-    lib.group_var_bin(out, obj, bins)
+    counts = np.empty(len(out), dtype=np.int32)
+
+    lib.group_var_bin(out, counts, obj, bins)
 
     assert_almost_equal(out, exp)
 

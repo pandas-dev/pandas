@@ -1186,7 +1186,7 @@ class DatetimeIndex(Int64Index):
     def __new__(cls, data=None,
                 freq=None, start=None, end=None, periods=None,
                 dtype=None, copy=False, name=None, tz=None,
-                **kwds):
+                verify_integrity=True, **kwds):
 
         warn = False
         if 'offset' in kwds and kwds['offset']:
@@ -1292,11 +1292,12 @@ class DatetimeIndex(Int64Index):
         # TODO: this is horribly inefficient. If user passes data + offset, we
         # need to make sure data points conform. Punting on this
 
-        if offset is not None:
-            for i, ts in enumerate(subarr):
-                if not offset.onOffset(Timestamp(ts)):
-                    val = Timestamp(offset.rollforward(ts)).value
-                    subarr[i] = val
+        if verify_integrity:
+            if offset is not None:
+                for i, ts in enumerate(subarr):
+                    if not offset.onOffset(Timestamp(ts)):
+                        val = Timestamp(offset.rollforward(ts)).value
+                        subarr[i] = val
 
         subarr = subarr.view(cls)
         subarr.name = name
@@ -1304,6 +1305,15 @@ class DatetimeIndex(Int64Index):
         subarr.tz = tz
 
         return subarr
+
+    @classmethod
+    def _simple_new(cls, values, name, offset, tz):
+        result = values.view(cls)
+        result.name = name
+        result.offset = offset
+        result.tz = tz
+
+        return result
 
     @property
     def tzinfo(self):
@@ -1740,16 +1750,15 @@ class DatetimeIndex(Int64Index):
             if result.ndim > 1:
                 return result
 
-            return DatetimeIndex(result, name=self.name, freq=new_offset,
-                                 tz=self.tz)
+            return self._simple_new(result, self.name, new_offset, self.tz)
 
     # Try to run function on index first, and then on elements of index
     # Especially important for group-by functionality
-    def map(self, func_to_map):
+    def map(self, f):
         try:
-            return func_to_map(self)
+            return f(self)
         except:
-            return super(DatetimeIndex, self).map(func_to_map)
+            return Index.map(self, f)
 
     # alias to offset
     @property

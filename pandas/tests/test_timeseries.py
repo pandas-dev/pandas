@@ -473,8 +473,9 @@ class TestDatetime64(unittest.TestCase):
         idx = idx.append(DatetimeIndex([np.datetime64(dti[-1])]))
         expect = Series(arr, index=idx)
 
+        # cython returns float for now
         result = g.agg(np.sum)
-        assert_series_equal(result, expect)
+        assert_series_equal(result, expect.astype(float))
 
         data = np.random.rand(len(dti), 10)
         df = DataFrame(data, index=dti)

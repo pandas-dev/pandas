@@ -481,6 +481,7 @@ def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_add_bin(ndarray[float64_t, ndim=2] out,
+                  ndarray[int32_t] counts,
                   ndarray[float64_t, ndim=2] values,
                   ndarray[int32_t] bins):
     '''
@@ -503,6 +504,7 @@ def group_add_bin(ndarray[float64_t, ndim=2] out,
             if b < ngroups - 1 and i >= bins[b]:
                 b += 1
 
+            counts[b] += 1
             for j in range(K):
                 val = values[i, j]
 
@@ -515,6 +517,7 @@ def group_add_bin(ndarray[float64_t, ndim=2] out,
             if b < ngroups - 1 and i >= bins[b]:
                 b += 1
 
+            counts[b] += 1
             val = values[i, 0]
 
             # not nan
@@ -532,6 +535,7 @@ def group_add_bin(ndarray[float64_t, ndim=2] out,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_mean_bin(ndarray[float64_t, ndim=2] out,
+                   ndarray[int32_t] counts,
                    ndarray[float64_t, ndim=2] values,
                    ndarray[int32_t] bins):
     cdef:
@@ -551,6 +555,7 @@ def group_mean_bin(ndarray[float64_t, ndim=2] out,
             if b < ngroups - 1 and i >= bins[b]:
                 b += 1
 
+            counts[b] += 1
             for j in range(K):
                 val = values[i, j]
 
@@ -563,6 +568,7 @@ def group_mean_bin(ndarray[float64_t, ndim=2] out,
             if b < ngroups - 1 and i >= bins[b]:
                 b += 1
 
+            counts[b] += 1
             val = values[i, 0]
 
             # not nan
@@ -581,6 +587,7 @@ def group_mean_bin(ndarray[float64_t, ndim=2] out,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_var_bin(ndarray[float64_t, ndim=2] out,
+                  ndarray[int32_t] counts,
                   ndarray[float64_t, ndim=2] values,
                   ndarray[int32_t] bins):
 
@@ -602,6 +609,8 @@ def group_var_bin(ndarray[float64_t, ndim=2] out,
             if b < ngroups - 1 and i >= bins[b]:
                 b += 1
 
+            counts[b] += 1
+
             for j in range(K):
                 val = values[i, j]
 
@@ -615,6 +624,7 @@ def group_var_bin(ndarray[float64_t, ndim=2] out,
             if b < ngroups - 1 and i >= bins[b]:
                 b += 1
 
+            counts[b] += 1
             val = values[i, 0]
 
             # not nan
@@ -792,145 +802,6 @@ def generate_slices(ndarray[int32_t] labels, Py_ssize_t ngroups):
             group_size = 0
 
     return starts, ends
-
-'''
-
-def ts_upsample_mean(ndarray[object] indices,
-                     ndarray[object] buckets,
-                     ndarray[float64_t] values,
-                     inclusive=False):
-    cdef:
-        Py_ssize_t i, j, nbuckets, nvalues
-        ndarray[float64_t] output
-        object next_bound
-        float64_t the_sum, val, nobs
-
-    nbuckets = len(buckets)
-    nvalues = len(indices)
-
-    assert(len(values) == len(indices))
-
-    output = np.empty(nbuckets, dtype=float)
-    output.fill(np.NaN)
-
-    j = 0
-    for i from 0 <= i < nbuckets:
-        next_bound = buckets[i]
-        the_sum = 0
-        nobs = 0
-        if inclusive:
-            while j < nvalues and indices[j] <= next_bound:
-                val = values[j]
-                # not NaN
-                if val == val:
-                    the_sum += val
-                    nobs += 1
-                j += 1
-        else:
-            while j < nvalues and indices[j] < next_bound:
-
-    cdef:
-        Py_ssize_t i, j, nbuckets, nvalues
-        ndarray[float64_t] output
-        object next_bound
-        float64_t the_sum, val, nobs
-
-    nbuckets = len(buckets)
-    nvalues = len(indices)
-
-    assert(len(values) == len(indices))
-
-    output = np.empty(nbuckets, dtype=float)
-    output.fill(np.NaN)
-
-    j = 0
-    for i from 0 <= i < nbuckets:
-        next_bound = buckets[i]
-        the_sum = 0
-        nobs = 0
-        if inclusive:
-            while j < nvalues and indices[j] <= next_bound:
-                val = values[j]
-                # not NaN
-                if val == val:
-                    the_sum += val
-                    nobs += 1
-                j += 1
-        else:
-            while j < nvalues and indices[j] < next_bound:
-                val = values[j]
-                # not NaN
-                if val == val:
-                    the_sum += val
-                    nobs += 1
-                j += 1
-
-        if nobs > 0:
-            output[i] = the_sum / nobs
-
-        if j >= nvalues:
-            break
-
-    return output
-                val = values[j]
-                # not NaN
-                if val == val:
-                    the_sum += val
-                    nobs += 1
-                j += 1
-
-        if nobs > 0:
-            output[i] = the_sum / nobs
-
-        if j >= nvalues:
-            break
-
-    return output
-'''
-
-def ts_upsample_generic(ndarray[object] indices,
-                        ndarray[object] buckets,
-                        ndarray[float64_t] values,
-                        object aggfunc,
-                        inclusive=False):
-    '''
-    put something here
-    '''
-    cdef:
-        Py_ssize_t i, j, jstart, nbuckets, nvalues
-        ndarray[float64_t] output
-        object next_bound
-        float64_t the_sum, val, nobs
-
-    nbuckets = len(buckets)
-    nvalues = len(indices)
-
-    assert(len(values) == len(indices))
-
-    output = np.empty(nbuckets, dtype=float)
-    output.fill(np.NaN)
-
-    j = 0
-    for i from 0 <= i < nbuckets:
-        next_bound = buckets[i]
-        the_sum = 0
-        nobs = 0
-
-        jstart = j
-        if inclusive:
-            while j < nvalues and indices[j] <= next_bound:
-                j += 1
-        else:
-            while j < nvalues and indices[j] < next_bound:
-                j += 1
-
-        if nobs > 0:
-            output[i] = aggfunc(values[jstart:j])
-
-        if j >= nvalues:
-            break
-
-    return output
 
 
 def groupby_arrays(ndarray index, ndarray _labels):

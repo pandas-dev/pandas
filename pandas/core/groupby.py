@@ -846,6 +846,39 @@ class Tinterval(Grouper, CustomGrouper):
         grouper = lib.SeriesBinGrouper(obj, func, self.bins, dummy)
         return grouper.get_result()
 
+    #----------------------------------------------------------------------
+    # cython aggregation
+
+    _cython_functions = {
+        'add' : lib.group_add_bin,
+        'mean' : lib.group_mean_bin,
+        'var' : lib.group_var_bin,
+        'std' : lib.group_var_bin
+    }
+
+    def aggregate(self, values, how):
+        agg_func = self._cython_functions[how]
+        if values.ndim == 1:
+            squeeze = True
+            values = values[:, None]
+            out_shape = (self.ngroups, 1)
+        else:
+            squeeze = False
+            out_shape = (self.ngroups, values.shape[1])
+
+        trans_func = self._cython_transforms.get(how, lambda x: x)
+
+        # will be filled in Cython function
+        result = np.empty(out_shape, dtype=np.float64)
+        counts = np.zeros(self.ngroups, dtype=np.int32)
+
+        agg_func(result, counts, values, self.bins)
+        result = trans_func(result)
+
+        if squeeze:
+            result = result.squeeze()
+
+        return result, counts
 
 class Grouping(object):
     """
@@ -1901,7 +1934,7 @@ def translate_grouping(how):
             return arr[-1] if arr is not None and len(arr) else np.nan
         return picker
 
-    raise ValueError("Unrecognized method: %s" % how)
+    return how
 
 
 from pandas.util import py3compat
