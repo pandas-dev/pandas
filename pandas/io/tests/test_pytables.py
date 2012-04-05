@@ -7,7 +7,7 @@ from datetime import datetime
 import numpy as np
 
 from pandas import Series, DataFrame, Panel, DateRange, MultiIndex
-from pandas.io.pytables import HDFStore
+from pandas.io.pytables import HDFStore, get_store
 import pandas.util.testing as tm
 
 try:
@@ -30,6 +30,16 @@ class TesttHDFStore(unittest.TestCase):
     def tearDown(self):
         self.store.close()
         os.remove(self.path)
+
+    def test_factory_fun(self):
+        try:
+            with get_store(self.path) as tbl:
+                raise ValueError('blah')
+        except ValueError:
+            pass
+
+        with get_store(self.path) as tbl:
+            pass
 
     def test_len_keys(self):
         self.store['a'] = tm.makeTimeSeries()

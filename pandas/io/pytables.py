@@ -13,6 +13,7 @@ from pandas import Series, TimeSeries, DataFrame, Panel, Index, MultiIndex
 from pandas.core.common import adjoin
 import pandas.core.common as com
 import pandas._tseries as lib
+from contextlib import contextmanager
 
 # reading and writing the full object in one go
 _TYPE_MAP = {
@@ -54,6 +55,18 @@ def _tables():
         import tables
         _table_mod = tables
     return _table_mod
+
+@contextmanager
+def get_store(path, mode='a', complevel=None, complib=None,
+              fletcher32=False):
+    store = None
+    try:
+        store = HDFStore(path, mode=mode, complevel=complevel,
+                         complib=complib, fletcher32=False)
+        yield store
+    finally:
+        if store is not None:
+            store.close()
 
 class HDFStore(object):
     """
