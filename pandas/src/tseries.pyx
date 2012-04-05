@@ -568,6 +568,27 @@ def vec_binop(ndarray[object] left, ndarray[object] right, object op):
 
     return maybe_convert_bool(result)
 
+def string_to_datetime(ndarray[object] strings, raise_=False):
+    cdef:
+        Py_ssize_t i, n = len(strings)
+        object val
+    from dateutil.parser import parse
+
+    result = np.empty(n, dtype=object)
+
+    for i in range(n):
+        val = strings[i]
+        if util._checknull(val):
+            result[i] = val
+        else:
+            try:
+                result[i] = parse(val)
+            except Exception:
+                if raise_:
+                    raise
+                result[i] = val
+
+    return result
 
 def value_count_int64(ndarray[int64_t] values):
     cdef:

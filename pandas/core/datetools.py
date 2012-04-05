@@ -5,7 +5,8 @@ import numpy as np
 import pandas._tseries as lib
 import re
 
-from pandas._tseries import Timestamp, monthrange
+from pandas._tseries import Timestamp
+import pandas.core.common as com
 
 try:
     import dateutil
@@ -65,15 +66,33 @@ def _str_to_dt_array(arr):
     data = p_ufunc(arr)
     return np.array(data, dtype='M8[us]')
 
-def to_datetime(arg):
-    """Attempts to convert arg to datetime"""
+def to_datetime(arg, errors='ignore'):
+    """
+    Convert argument to datetime
+
+    Parameters
+    ----------
+    arg : string, datetime, array of strings (with possible NAs)
+    errors : {'ignore', 'raise'}, default 'ignore'
+        Errors are ignored by default (values left untouched)
+
+    Returns
+    -------
+    ret : datetime if parsing succeeded
+    """
     if arg is None:
         return arg
     elif isinstance(arg, datetime):
         return arg
+    elif isinstance(arg, np.ndarray):
+        return lib.string_to_datetime(com._ensure_object(arg),
+                                      raise_=errors == 'raise')
+
     try:
         return parser.parse(arg)
     except Exception:
+        if errors == 'raise':
+            raise
         return arg
 
 
@@ -1151,7 +1170,7 @@ class MonthEnd(DateOffset, CacheableOffset):
 
     def apply(self, other):
         n = self.n
-        _, days_in_month = monthrange(other.year, other.month)
+        _, days_in_month = lib.monthrange(other.year, other.month)
         if other.day != days_in_month:
             other = other + relativedelta(months=-1, day=31)
             if n <= 0:
@@ -1161,8 +1180,8 @@ class MonthEnd(DateOffset, CacheableOffset):
 
     @classmethod
     def onOffset(cls, someDate):
-        __junk, days_in_month = monthrange(someDate.year,
-                                                   someDate.month)
+        __junk, days_in_month = lib.monthrange(someDate.year,
+                                               someDate.month)
         return someDate.day == days_in_month
 
     def rule_code(self):
@@ -1184,7 +1203,7 @@ class MonthBegin(DateOffset, CacheableOffset):
 
     @classmethod
     def onOffset(cls, someDate):
-        firstDay, _ = monthrange(someDate.year, someDate.month)
+        firstDay, _ = lib.monthrange(someDate.year, someDate.month)
         return someDate.day == (firstDay + 1)
 
     def rule_code(self):
@@ -1202,7 +1221,7 @@ class BMonthEnd(DateOffset, CacheableOffset):
     def apply(self, other):
         n = self.n
 
-        wkday, days_in_month = monthrange(other.year, other.month)
+        wkday, days_in_month = lib.monthrange(other.year, other.month)
         lastBDay = days_in_month - max(((wkday + days_in_month - 1) % 7) - 4, 0)
 
         if n > 0 and not other.day >= lastBDay:
@@ -1227,7 +1246,7 @@ class BMonthBegin(DateOffset, CacheableOffset):
     def apply(self, other):
         n = self.n
 
-        wkday, _ = monthrange(other.year, other.month)
+        wkday, _ = lib.monthrange(other.year, other.month)
         firstBDay = _get_firstbday(wkday)
 
         if other.day > firstBDay and n<=0:
@@ -1235,7 +1254,7 @@ class BMonthBegin(DateOffset, CacheableOffset):
             n += 1
 
         other = other + relativedelta(months=n)
-        wkday, _ = monthrange(other.year, other.month)
+        wkday, _ = lib.monthrange(other.year, other.month)
         firstBDay = _get_firstbday(wkday)
         result = datetime(other.year, other.month, firstBDay)
         return result
@@ -1403,7 +1422,7 @@ class BQuarterEnd(DateOffset, CacheableOffset):
     def apply(self, other):
         n = self.n
 
-        wkday, days_in_month = monthrange(other.year, other.month)
+        wkday, days_in_month = lib.monthrange(other.year, other.month)
         lastBDay = days_in_month - max(((wkday + days_in_month - 1) % 7) - 4, 0)
 
         monthsToGo = 3 - ((other.month - self.startingMonth) % 3)
@@ -1465,7 +1484,7 @@ class BQuarterBegin(DateOffset, CacheableOffset):
         if self._normalizeFirst:
             other = normalize_date(other)
 
-        wkday, _ = monthrange(other.year, other.month)
+        wkday, _ = lib.monthrange(other.year, other.month)
 
         firstBDay = _get_firstbday(wkday)
 
@@ -1485,7 +1504,7 @@ class BQuarterBegin(DateOffset, CacheableOffset):
 
         # get the first bday for result
         other = other + relativedelta(months=3*n - monthsSince)
-        wkday, _ = monthrange(other.year, other.month)
+        wkday, _ = lib.monthrange(other.year, other.month)
         firstBDay = _get_firstbday(wkday)
         result = datetime(other.year, other.month, firstBDay)
         return result
@@ -1517,7 +1536,7 @@ class QuarterEnd(DateOffset, CacheableOffset):
     def apply(self, other):
         n = self.n
 
-        wkday, days_in_month = monthrange(other.year, other.month)
+        wkday, days_in_month = lib.monthrange(other.year, other.month)
 
         monthsToGo = 3 - ((other.month - self.startingMonth) % 3)
         if monthsToGo == 3:
@@ -1556,7 +1575,7 @@ class QuarterBegin(DateOffset, CacheableOffset):
     def apply(self, other):
         n = self.n
 
-        wkday, days_in_month = monthrange(other.year, other.month)
+        wkday, days_in_month = lib.monthrange(other.year, other.month)
 
         monthsSince = (other.month - self.startingMonth) % 3
 
@@ -1598,7 +1617,7 @@ class BYearEnd(DateOffset, CacheableOffset):
         if self._normalizeFirst:
             other = normalize_date(other)
 
-        wkday, days_in_month = monthrange(other.year, self.month)
+        wkday, days_in_month = lib.monthrange(other.year, self.month)
         lastBDay = (days_in_month -
                     max(((wkday + days_in_month - 1) % 7) - 4, 0))
 
@@ -1614,7 +1633,7 @@ class BYearEnd(DateOffset, CacheableOffset):
 
         other = other + relativedelta(years=years)
 
-        _, days_in_month = monthrange(other.year, self.month)
+        _, days_in_month = lib.monthrange(other.year, self.month)
         result = datetime(other.year, self.month, days_in_month)
 
         if result.weekday() > 4:
@@ -1646,7 +1665,7 @@ class BYearBegin(DateOffset, CacheableOffset):
         if self._normalizeFirst:
             other = normalize_date(other)
 
-        wkday, days_in_month = monthrange(other.year, self.month)
+        wkday, days_in_month = lib.monthrange(other.year, self.month)
 
         firstBDay = _get_firstbday(wkday)
 
@@ -1664,7 +1683,7 @@ class BYearBegin(DateOffset, CacheableOffset):
 
         # set first bday for result
         other = other + relativedelta(years = years)
-        wkday, days_in_month = monthrange(other.year, self.month)
+        wkday, days_in_month = lib.monthrange(other.year, self.month)
         firstBDay = _get_firstbday(wkday)
         result = datetime(other.year, self.month, firstBDay)
         return result
@@ -1688,7 +1707,7 @@ class YearEnd(DateOffset, CacheableOffset):
 
     def apply(self, other):
         n = self.n
-        wkday, days_in_month = monthrange(other.year, self.month)
+        wkday, days_in_month = lib.monthrange(other.year, self.month)
         if other.month != self.month or other.day != days_in_month:
             other = datetime(other.year - 1, self.month, days_in_month)
             if n <= 0:
@@ -1697,7 +1716,7 @@ class YearEnd(DateOffset, CacheableOffset):
         return other
 
     def onOffset(self, someDate):
-        wkday, days_in_month = monthrange(someDate.year, self.month)
+        wkday, days_in_month = lib.monthrange(someDate.year, self.month)
         return self.month == someDate.month and someDate.day == days_in_month
 
     def rule_code(self):
@@ -1825,6 +1844,20 @@ isBMonthEnd = BMonthEnd().onOffset
 
 _offset_map = {
     "WEEKDAY"  : BDay(1),
+
+    # Annual - Calendar
+    "A-JAN" : YearEnd(month=1),
+    "A-FEB" : YearEnd(month=2),
+    "A-MAR" : YearEnd(month=3),
+    "A-APR" : YearEnd(month=4),
+    "A-MAY" : YearEnd(month=5),
+    "A-JUN" : YearEnd(month=6),
+    "A-JUL" : YearEnd(month=7),
+    "A-AUG" : YearEnd(month=8),
+    "A-SEP" : YearEnd(month=9),
+    "A-OCT" : YearEnd(month=10),
+    "A-NOV" : YearEnd(month=11),
+    "A-DEC" : YearEnd(month=12),
 
     # Annual - Calendar
     "A@JAN" : YearEnd(month=1),

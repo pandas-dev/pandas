@@ -1,9 +1,6 @@
 # pylint: disable-msg=E1101,W0612
 
-from cStringIO import StringIO
-from datetime import datetime, timedelta
-import os
-import operator
+from datetime import datetime
 import unittest
 
 import nose
@@ -25,6 +22,35 @@ from pandas.util import py3compat
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
 import pandas
+
+
+import pandas._tseries as lib
+from datetime import datetime
+
+import cPickle as pickle
+
+import pandas.core.datetools as dt
+from pandas.core.index import Index, DatetimeIndex, Int64Index
+from pandas.core.frame import DataFrame
+
+import unittest
+import numpy as np
+
+from pandas import Series
+
+from numpy.random import rand
+
+from pandas.util.testing import assert_series_equal, assert_frame_equal
+
+from pandas.core.groupby import Tinterval
+from pandas.core.datetools import Minute, BDay, Timestamp
+
+import pandas.core.common as com
+
+try:
+    import pytz
+except ImportError:
+    pass
 
 class TestTimeSeriesDuplicates(unittest.TestCase):
 
@@ -85,6 +111,33 @@ def assert_range_equal(left, right):
 
 
 class TestTimeSeries(unittest.TestCase):
+
+    def test_string_na_conversion(self):
+        from dateutil.parser import parse
+        from pandas.core.datetools import to_datetime
+
+        strings = np.array(['1/1/2000', '1/2/2000', np.nan,
+                            '1/4/2000, 12:34:56'], dtype=object)
+
+        expected = []
+        for val in strings:
+            if com.isnull(val):
+                expected.append(val)
+            else:
+                expected.append(parse(val))
+
+        result = lib.string_to_datetime(strings)
+        assert_almost_equal(result, expected)
+
+        result2 = to_datetime(strings)
+        assert_almost_equal(result, result2)
+
+        malformed = np.array(['1/100/2000', np.nan], dtype=object)
+        result = to_datetime(malformed)
+        assert_almost_equal(result, malformed)
+
+        self.assertRaises(ValueError, to_datetime, malformed,
+                          errors='raise')
 
     def test_dti_slicing(self):
         dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
@@ -200,32 +253,6 @@ class TestTimeSeries(unittest.TestCase):
 
         self.assertRaises(AssertionError, rng2.get_indexer, rng,
                           method='pad')
-
-import pandas._tseries as lib
-from datetime import datetime
-
-import cPickle as pickle
-
-import pandas.core.datetools as dt
-from pandas.core.index import Index, DatetimeIndex, Int64Index
-from pandas.core.frame import DataFrame
-
-import unittest
-import numpy as np
-
-from pandas import Series
-
-from numpy.random import rand
-
-from pandas.util.testing import assert_series_equal, assert_frame_equal
-
-from pandas.core.groupby import Tinterval
-from pandas.core.datetools import Minute, BDay, Timestamp
-
-try:
-    import pytz
-except ImportError:
-    pass
 
 def _skip_if_no_pytz():
     try:
@@ -898,6 +925,7 @@ class TestNewOffsets(unittest.TestCase):
                     t = lib.Timestamp(off.ts)
                     self.assert_(t == stack.pop())
                     self.assert_(t.weekday() == day)
+
 
 
 if __name__ == '__main__':
