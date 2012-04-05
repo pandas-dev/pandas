@@ -273,7 +273,6 @@ class TestLegacyInteraction(unittest.TestCase):
         pass
 
     def test_join_interaction(self):
-        foo
         pass
 
     def test_setops(self):
