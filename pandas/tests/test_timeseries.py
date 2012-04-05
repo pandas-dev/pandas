@@ -193,7 +193,13 @@ class TestTimeSeries(unittest.TestCase):
         expected.values[:3] = np.nan
         tm.assert_frame_equal(result, expected)
 
+    def test_pad_require_monotonicity(self):
+        rng = date_range('1/1/2000', '3/1/2000', freq='B')
 
+        rng2 = rng[::2][::-1]
+
+        self.assertRaises(AssertionError, rng2.get_indexer, rng,
+                          method='pad')
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
