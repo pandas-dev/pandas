@@ -1533,6 +1533,20 @@ class DatetimeIndex(Int64Index):
         else:
             return Index.union(self, other)
 
+    def join(self, other, how='left', level=None, return_indexers=False):
+        """
+        See Index.join
+        """
+        if not isinstance(other, DatetimeIndex) and len(other) > 0:
+            try:
+                other = DatetimeIndex(other)
+            except ValueError:
+                pass
+
+        return Index.join(self, other, how=how, level=level,
+                          return_indexers=return_indexers)
+
+
     def _wrap_joined_index(self, joined, other):
         name = self.name if self.name == other.name else None
         if (isinstance(other, DatetimeIndex)
@@ -1545,6 +1559,9 @@ class DatetimeIndex(Int64Index):
             return DatetimeIndex(joined, name=name)
 
     def _can_fast_union(self, other):
+        if not isinstance(other, DatetimeIndex):
+            return False
+
         offset = self.offset
 
         if offset is None:
@@ -1612,8 +1629,14 @@ class DatetimeIndex(Int64Index):
         -------
         y : Index or DatetimeIndex
         """
-        if other.offset != self.offset:
-            return super(DatetimeIndex, self).intersection(self, other)
+        if not isinstance(other, DatetimeIndex):
+            try:
+                other = DatetimeIndex(other)
+            except TypeError:
+                pass
+            return Index.intersection(self, other)
+        elif other.offset != self.offset:
+            return Index.intersection(self, other)
 
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:

@@ -270,17 +270,82 @@ class TestLegacyInteraction(unittest.TestCase):
         self.assertEquals(unpickled.index.offset, BDay(1))
 
     def test_arithmetic_interaction(self):
-        pass
+        index = self.frame.index
+        obj_index = index.asobject
+
+        dseries = Series(rand(len(index)), index=index)
+        oseries = Series(dseries.values, index=obj_index)
+
+        result = dseries + oseries
+        expected = dseries * 2
+        self.assert_(isinstance(result.index, DatetimeIndex))
+        assert_series_equal(result, expected)
+
+        result = dseries + oseries[:5]
+        expected = dseries + dseries[:5]
+        self.assert_(isinstance(result.index, DatetimeIndex))
+        assert_series_equal(result, expected)
 
     def test_join_interaction(self):
-        pass
+        index = self.frame.index
+        obj_index = index.asobject
+
+        def _check_join(left, right, how='inner'):
+            ra, rb, rc = left.join(right, how=how, return_indexers=True)
+            ea, eb, ec = left.join(DatetimeIndex(right), how=how,
+                                   return_indexers=True)
+
+            self.assert_(isinstance(ra, DatetimeIndex))
+            self.assert_(ra.equals(ea))
+
+            assert_almost_equal(rb, eb)
+            assert_almost_equal(rc, ec)
+
+        _check_join(index[:15], obj_index[5:], how='inner')
+        _check_join(index[:15], obj_index[5:], how='outer')
+        _check_join(index[:15], obj_index[5:], how='right')
+        _check_join(index[:15], obj_index[5:], how='left')
 
     def test_setops(self):
-        pass
+        index = self.frame.index
+        obj_index = index.asobject
+
+        result = index[:5].union(obj_index[5:])
+        expected = index
+        self.assert_(isinstance(result, DatetimeIndex))
+        self.assert_(result.equals(expected))
+
+        result = index[:10].intersection(obj_index[5:])
+        expected = index[5:10]
+        self.assert_(isinstance(result, DatetimeIndex))
+        self.assert_(result.equals(expected))
+
+        result = index[:10] - obj_index[5:]
+        expected = index[:5]
+        self.assert_(isinstance(result, DatetimeIndex))
+        self.assert_(result.equals(expected))
 
     def test_index_conversion(self):
-        pass
+        index = self.frame.index
+        obj_index = index.asobject
 
+        conv = DatetimeIndex(obj_index)
+        self.assert_(conv.equals(index))
+
+        self.assertRaises(ValueError, DatetimeIndex, ['a', 'b', 'c', 'd'])
+
+    def test_setops_conversion_fail(self):
+        index = self.frame.index
+
+        right = Index(['a', 'b', 'c', 'd'])
+
+        result = index.union(right)
+        expected = Index(np.concatenate([index.asobject, right]))
+        self.assert_(result.equals(expected))
+
+        result = index.intersection(right)
+        expected = Index([])
+        self.assert_(result.equals(expected))
 
 
 class TestDatetime64(unittest.TestCase):

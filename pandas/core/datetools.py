@@ -775,7 +775,7 @@ def ole2datetime(oledt):
     return OLE_TIME_ZERO + timedelta(days=val)
 
 
-class DateParseError(Exception):
+class DateParseError(ValueError):
     pass
 
 _dtparser = parser.parser()
