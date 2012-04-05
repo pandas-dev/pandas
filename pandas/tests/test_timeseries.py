@@ -48,7 +48,6 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
         uniques = self.dups.index.unique()
         self.assert_(uniques.dtype == 'M8') # sanity
 
-
     def test_duplicate_dates_indexing(self):
         ts = self.dups
 
@@ -72,6 +71,11 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
 
         self.assertRaises(KeyError, ts.__getitem__, datetime(2000, 1, 6))
         self.assertRaises(KeyError, ts.__setitem__, datetime(2000, 1, 6), 0)
+
+    def test_groupby_average_dup_values(self):
+        result = self.dups.groupby(level=0).mean()
+        expected = self.dups.groupby(self.dups.index).mean()
+        assert_series_equal(result, expected)
 
 
 def assert_range_equal(left, right):

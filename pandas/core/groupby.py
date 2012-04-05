@@ -678,7 +678,7 @@ def generate_bins_generic(values, binner, closed, label):
 
     Returns
     -------
-    bins : array of offsets (into 'values' argument) of bins. 
+    bins : array of offsets (into 'values' argument) of bins.
         Zero and last edge are excluded in result, so for instance the first
         bin is values[0:bin[0]] and the last is values[bin[-1]:]
     labels : array of labels of bins
@@ -978,8 +978,13 @@ class Grouping(object):
 def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
     group_axis = obj._get_axis(axis)
 
-    if level is not None and not isinstance(group_axis, MultiIndex):
-        raise ValueError('can only specify level with multi-level index')
+    if level is not None:
+        if not isinstance(group_axis, MultiIndex):
+            if level > 0:
+                raise ValueError('level > 0 only valid with MultiIndex')
+            else:
+                level = None
+                key = group_axis
 
     if isinstance(key, CustomGrouper):
         key.set_obj(obj)

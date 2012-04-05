@@ -568,7 +568,6 @@ class TestDatetime64(unittest.TestCase):
         self.assertEquals(len(idx1), len(idx2))
         self.assertEquals(idx1.offset, idx2.offset)
 
-
     def test_dti_snap(self):
         dti = DatetimeIndex(['1/1/2002', '1/2/2002', '1/3/2002', '1/4/2002',
                              '1/5/2002', '1/6/2002', '1/7/2002'], freq='D')

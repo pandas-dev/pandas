@@ -1038,7 +1038,7 @@ class TestGroupBy(unittest.TestCase):
         assert_frame_equal(result1, expected1.T)
 
         # raise exception for non-MultiIndex
-        self.assertRaises(ValueError, self.df.groupby, level=0)
+        self.assertRaises(ValueError, self.df.groupby, level=1)
 
     def test_groupby_level_apply(self):
         frame = self.mframe
