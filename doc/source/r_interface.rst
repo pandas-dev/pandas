@@ -15,8 +15,10 @@ rpy2 / R interface
 If your computer has R and rpy2 (> 2.2) installed (which will be left to the
 reader), you will be able to leverage the below functionality. On Windows,
 doing this is quite an ordeal at the moment, but users on Unix-like systems
-should find it quite easy. As a general rule, I would recommend using the
-latest revision of rpy2 from bitbucket:
+should find it quite easy. rpy2 evolves in time and the current interface is
+designed for the 2.2.x series, and we recommend to use over other series 
+unless you are prepared to fix parts of the code. Released packages are available
+in PyPi, but should the latest code in the 2.2.x series be wanted it can be obtained with:
 
 ::
 
@@ -25,7 +27,7 @@ latest revision of rpy2 from bitbucket:
 
     cd rpy2
     hg pull
-    hg update
+    hg update version_2.2.x
     sudo python setup.py install
 
 .. note::
