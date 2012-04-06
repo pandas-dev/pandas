@@ -59,6 +59,40 @@ def _tables():
 @contextmanager
 def get_store(path, mode='a', complevel=None, complib=None,
               fletcher32=False):
+    """
+    Creates an HDFStore instance. This function can be used in a with statement
+
+    Parameters
+    ----------
+    path : string
+        File path to HDF5 file
+    mode : {'a', 'w', 'r', 'r+'}, default 'a'
+
+        ``'r'``
+            Read-only; no data can be modified.
+        ``'w'``
+            Write; a new file is created (an existing file with the same
+            name would be deleted).
+        ``'a'``
+            Append; an existing file is opened for reading and writing,
+            and if the file does not exist it is created.
+        ``'r+'``
+            It is similar to ``'a'``, but the file must already exist.
+    complevel : int, 1-9, default 0
+            If a complib is specified compression will be applied
+            where possible
+    complib : {'zlib', 'bzip2', 'lzo', 'blosc', None}, default None
+            If complevel is > 0 apply compression to objects written
+            in the store wherever possible
+    fletcher32 : bool, default False
+            If applying compression use the fletcher32 checksum
+
+    Examples
+    --------
+    >>> with get_store('test.h5') as store:
+    >>>     store['foo'] = bar   # write to HDF5
+    >>>     bar = store['foo']   # retrieve
+    """
     store = None
     try:
         store = HDFStore(path, mode=mode, complevel=complevel,
