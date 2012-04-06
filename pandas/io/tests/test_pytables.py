@@ -33,13 +33,19 @@ class TesttHDFStore(unittest.TestCase):
 
     def test_factory_fun(self):
         try:
-            with get_store(self.path) as tbl:
+            with get_store(self.scratchpath) as tbl:
                 raise ValueError('blah')
         except ValueError:
             pass
 
-        with get_store(self.path) as tbl:
-            pass
+        with get_store(self.scratchpath) as tbl:
+            tbl['a'] = tm.makeDataFrame()
+
+        with get_store(self.scratchpath) as tbl:
+            self.assertEquals(len(tbl), 1)
+            self.assertEquals(type(tbl['a']), DataFrame)
+
+        os.remove(self.scratchpath)
 
     def test_len_keys(self):
         self.store['a'] = tm.makeTimeSeries()
@@ -482,6 +488,8 @@ class TesttHDFStore(unittest.TestCase):
         series = Series([0], [dt])
         self.store['a'] = series
         self.assertEquals(self.store['a'].index[0], dt)
+
+
 
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))
