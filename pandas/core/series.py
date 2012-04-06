@@ -839,7 +839,8 @@ copy : boolean, default False
         -------
         cp : Series
         """
-        return Series(self.values.copy(order), index=self.index, name=self.name)
+        return Series(self.values.copy(order), index=self.index,
+                      name=self.name)
 
     def to_dict(self):
         """
