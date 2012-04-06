@@ -782,7 +782,7 @@ def _generate_time_binner(dtindex, offset,
 
     return DatetimeIndex(freq=offset, start=first, end=last, periods=nperiods)
 
-class Tinterval(Grouper, CustomGrouper):
+class TimeGrouper(Grouper, CustomGrouper):
     """
     Custom groupby class for time-interval grouping
 
@@ -831,7 +831,7 @@ class Tinterval(Grouper, CustomGrouper):
         self.obj = obj
 
         if not isinstance(obj.index, DatetimeIndex):
-            raise ValueError("Cannot apply Tinterval to non-DatetimeIndex")
+            raise ValueError("Cannot apply TimeGrouper to non-DatetimeIndex")
 
         index = obj.index
 

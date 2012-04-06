@@ -156,6 +156,10 @@ class Index(np.ndarray):
             return u'%s([%s], dtype=''%s'')' % (type(self).__name__, converted,
                                               str(self.values.dtype))
 
+    def _mpl_repr(self):
+        # how to represent ourselves to matplotlib
+        return self.values
+
     @property
     def values(self):
         return np.asarray(self)
@@ -1386,6 +1390,10 @@ class DatetimeIndex(Int64Index):
 
         return indexSlice
 
+    def _mpl_repr(self):
+        # how to represent ourselves to matplotlib
+        return self.values.astype('O')
+
     def __repr__(self):
         if self.offset is not None:
             output = str(self.__class__) + '\n'
@@ -2185,9 +2193,9 @@ class IntervalIndex(Int64Index):
         except:
             return super(DatetimeIndex, self).map(func_to_map)
 
-    def _mplib_repr(self):
+    def _mpl_repr(self):
         # how to represent ourselves to matplotlib
-        return datetools._skts_box_array(self, self.freq), False
+        return datetools._skts_box_array(self, self.freq)
 
     def to_timestamp(self):
         """

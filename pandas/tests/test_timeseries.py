@@ -5,23 +5,15 @@ import unittest
 
 import nose
 
-from numpy import nan
 import numpy as np
-import numpy.ma as ma
 
-from pandas import (Index, Series, TimeSeries, DataFrame, isnull, notnull,
+from pandas import (Index, Series, TimeSeries, DataFrame, isnull,
                     date_range, Timestamp)
-from pandas.core.index import MultiIndex
 
 from pandas import DatetimeIndex
 
-import pandas.core.datetools as datetools
-import pandas.core.nanops as nanops
-
-from pandas.util import py3compat
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
-import pandas
 
 
 import pandas._tseries as lib
@@ -42,7 +34,7 @@ from numpy.random import rand
 
 from pandas.util.testing import assert_series_equal, assert_frame_equal
 
-from pandas.core.groupby import Tinterval
+from pandas.core.groupby import TimeGrouper
 from pandas.core.datetools import Minute, BDay, Timestamp
 
 import pandas.core.common as com
@@ -483,7 +475,7 @@ class TestDatetime64(unittest.TestCase):
         data = np.array([1]*len(dti))
         s = Series(data, index=dti)
 
-        b = Tinterval(Minute(5))
+        b = TimeGrouper(Minute(5))
         g = s.groupby(b)
 
         self.assertEquals(g.ngroups, 2593)
@@ -511,7 +503,7 @@ class TestDatetime64(unittest.TestCase):
 
         result = s.convert('5Min')
 
-        grouper = Tinterval(Minute(5), closed='right', label='right')
+        grouper = TimeGrouper(Minute(5), closed='right', label='right')
         expect = s.groupby(grouper).agg(lambda x: x[-1])
 
         assert_series_equal(result, expect)
@@ -585,7 +577,7 @@ class TestDatetime64(unittest.TestCase):
     def test_convert_olhc(self):
         s = self.series
 
-        grouper = Tinterval(Minute(5), closed='right', label='right')
+        grouper = TimeGrouper(Minute(5), closed='right', label='right')
         expect = s.groupby(grouper).agg(lambda x: x[-1])
         result = s.convert('5Min', how='ohlc')
 

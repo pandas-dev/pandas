@@ -145,7 +145,7 @@ class PandasObject(Picklable):
         axis : int, optional, default 0
         as_index : see synonymous argument of groupby
         """
-        from pandas.core.groupby import Tinterval, translate_grouping
+        from pandas.core.groupby import TimeGrouper, translate_grouping
 
         if isinstance(rule, basestring):
             rule = datetools.to_offset(rule)
@@ -160,7 +160,8 @@ class PandasObject(Picklable):
         if not isinstance(rule, datetools.DateOffset):
             raise ValueError("Rule not a recognized offset")
 
-        interval = Tinterval(rule, label='right', closed='right', _obj=self)
+        interval = TimeGrouper(rule, label='right',
+                               closed='right', _obj=self)
 
         currfreq = len(idx)
         targfreq = len(interval.binner) - 2 # since binner extends endpoints
