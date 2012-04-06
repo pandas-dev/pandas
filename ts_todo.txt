@@ -15,3 +15,6 @@ gp- get rid of Ts class, simplify timestamp creation
 - attach tz in DatetimeIndex.asobject
 - failing duplicate timestamp test
 - _tseries.pyd depends on datetime.pyx
+
+
+- BUG: time_rule DateRange tests

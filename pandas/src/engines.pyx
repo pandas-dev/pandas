@@ -27,9 +27,15 @@ PyDateTime_IMPORT
 cdef extern from "Python.h":
     int PySlice_Check(object)
     int PyList_Check(object)
-
+    int PyTuple_Check(object)
 
 cdef inline is_definitely_invalid_key(object val):
+    if PyTuple_Check(val):
+        try:
+            hash(val)
+        except TypeError:
+            return True
+
     return (PySlice_Check(val) or cnp.PyArray_Check(val)
             or PyList_Check(val))
 

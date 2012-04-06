@@ -853,11 +853,18 @@ class Tinterval(Grouper, CustomGrouper):
         'add' : lib.group_add_bin,
         'mean' : lib.group_mean_bin,
         'var' : lib.group_var_bin,
-        'std' : lib.group_var_bin
+        'std' : lib.group_var_bin,
+        'ohlc' : lib.group_ohlc
+    }
+
+    _cython_arity = {
+        'ohlc' : 4, # OHLC
     }
 
     def aggregate(self, values, how):
         agg_func = self._cython_functions[how]
+        arity = self._cython_arity.get(how, 1)
+
         if values.ndim == 1:
             squeeze = True
             values = values[:, None]

@@ -532,6 +532,78 @@ def group_add_bin(ndarray[float64_t, ndim=2] out,
             else:
                 out[i, j] = sumx[i, j]
 
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_ohlc(ndarray[float64_t, ndim=2] out,
+                  ndarray[int32_t] counts,
+                  ndarray[float64_t, ndim=2] values,
+                  ndarray[int32_t] bins):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, ngroups, b
+        float64_t val, count
+        float64_t vopen, vhigh, vlow, vclose, NA
+        bint got_first = 0
+
+    ngroups = len(bins) + 1
+    N, K = (<object> values).shape
+
+    if out.shape[1] != 4:
+        raise ValueError('Output array must have 4 columns')
+
+    NA = np.nan
+
+    b = 0
+    if K > 1:
+        raise NotImplementedError
+    else:
+        for i in range(N):
+            if b < ngroups - 1 and i >= bins[b]:
+                if not got_first:
+                    out[b, 0] = NA
+                    out[b, 1] = NA
+                    out[b, 2] = NA
+                    out[b, 3] = NA
+                else:
+                    out[b, 0] = vopen
+                    out[b, 1] = vlow
+                    out[b, 2] = vhigh
+                    out[b, 3] = vclose
+                b += 1
+                got_first = 0
+
+            counts[b] += 1
+            val = values[i, 0]
+
+            # not nan
+            if val == val:
+                if not got_first:
+                    got_first = 1
+                    vopen = val
+                    vlow = val
+                    vhigh = val
+                else:
+                    if val < vlow:
+                        vlow = val
+                    if val > vhigh:
+                        vhigh = val
+                vclose = val
+
+        if not got_first:
+            out[b, 0] = NA
+            out[b, 1] = NA
+            out[b, 2] = NA
+            out[b, 3] = NA
+        else:
+            out[b, 0] = vopen
+            out[b, 1] = vlow
+            out[b, 2] = vhigh
+            out[b, 3] = vclose
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_mean_bin(ndarray[float64_t, ndim=2] out,

@@ -1,7 +1,7 @@
 import unittest
 
 import numpy as np
-from pandas import Index
+from pandas import Index, isnull
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as common
 import pandas._tseries as lib
@@ -317,7 +317,7 @@ def test_group_add_bin():
     # bin-based group_add
     bins = np.array([3, 6], dtype=np.int32)
     out  = np.zeros((3, 1), np.float64)
-    counts = np.empty(len(out), dtype=np.int32)
+    counts = np.zeros(len(out), dtype=np.int32)
     lib.group_add_bin(out, counts, obj, bins)
 
     assert_almost_equal(out, exp)
@@ -334,7 +334,7 @@ def test_group_mean_bin():
     # bin-based group_mean
     bins = np.array([3, 6], dtype=np.int32)
     out  = np.zeros((3, 1), np.float64)
-    counts = np.empty(len(out), dtype=np.int32)
+    counts = np.zeros(len(out), dtype=np.int32)
     lib.group_mean_bin(out, counts, obj, bins)
 
     assert_almost_equal(out, exp)
@@ -351,11 +351,36 @@ def test_group_var_bin():
     # bin-based group_var
     bins = np.array([3, 6], dtype=np.int32)
     out  = np.zeros((3, 1), np.float64)
-    counts = np.empty(len(out), dtype=np.int32)
+    counts = np.zeros(len(out), dtype=np.int32)
 
     lib.group_var_bin(out, counts, obj, bins)
 
     assert_almost_equal(out, exp)
+
+def test_group_ohlc():
+    obj = np.random.randn(20)
+
+    bins = np.array([6, 12], dtype=np.int32)
+    out  = np.zeros((3, 4), np.float64)
+    counts = np.zeros(len(out), dtype=np.int32)
+
+    lib.group_ohlc(out, counts, obj[:, None], bins)
+
+    def _ohlc(group):
+        if isnull(group).all():
+            return np.repeat(np.nan, 4)
+        return [group[0], group.min(), group.max(), group[-1]]
+
+    expected = np.array([_ohlc(obj[:6]), _ohlc(obj[6:12]),
+                         _ohlc(obj[12:])])
+
+    assert_almost_equal(out, expected)
+    assert_almost_equal(counts, [6, 6, 8])
+
+    obj[:6] = np.nan
+    lib.group_ohlc(out, counts, obj[:, None], bins)
+    expected[0] = np.nan
+    assert_almost_equal(out, expected)
 
 class TestTypeInference(unittest.TestCase):
 
