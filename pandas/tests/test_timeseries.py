@@ -254,6 +254,28 @@ class TestTimeSeries(unittest.TestCase):
         self.assertRaises(AssertionError, rng2.get_indexer, rng,
                           method='pad')
 
+
+    def test_ohlc_5min(self):
+        def _ohlc(group):
+            if isnull(group).all():
+                return np.repeat(np.nan, 4)
+            return [group[0], group.min(), group.max(), group[-1]]
+
+        rng = date_range('1/1/2000 00:00:00', '1/1/2000 5:59:50',
+                         freq='10s')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        converted = ts.convert('5min', how='ohlc')
+
+        self.assert_((converted.ix['1/1/2000 00:00'] == ts[0]).all())
+
+        exp = _ohlc(ts[1:31])
+        self.assert_((converted.ix['1/1/2000 00:05'] == exp).all())
+
+        exp = _ohlc(ts['1/1/2000 5:55:01':])
+        self.assert_((converted.ix['1/1/2000 6:00:00'] == exp).all())
+
+
 def _skip_if_no_pytz():
     try:
         import pytz

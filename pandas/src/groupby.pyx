@@ -714,6 +714,31 @@ def group_var_bin(ndarray[float64_t, ndim=2] out,
                 out[i, j] = ((ct * sumxx[i, j] - sumx[i, j] * sumx[i, j]) /
                              (ct * ct - ct))
 
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def row_bool_subset(ndarray[float64_t, ndim=2] values,
+                    ndarray[uint8_t, cast=True] mask):
+    cdef:
+        Py_ssize_t i, j, n, k, pos = 0
+        ndarray[float64_t, ndim=2] out
+
+    n, k = (<object> values).shape
+    assert(n == len(mask))
+
+    out = np.empty((mask.sum(), k), dtype=np.float64)
+
+    for i in range(n):
+        if mask[i]:
+            for j in range(k):
+                out[pos, j] = values[i, j]
+            pos += 1
+
+    return out
+
+
+
 def group_count(ndarray[int32_t] values, Py_ssize_t size):
     cdef:
         Py_ssize_t i, n = len(values)

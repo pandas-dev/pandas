@@ -308,21 +308,27 @@ class GroupBy(object):
         except Exception:
             return self.aggregate(lambda x: np.sum(x, axis=self.axis))
 
+    def ohlc(self):
+        """
+        Compute sum of values, excluding missing values
+
+        For multiple groupings, the result index will be a MultiIndex
+        """
+        return self._cython_agg_general('ohlc')
+
     def _cython_agg_general(self, how):
         output = {}
         for name, obj in self._iterate_slices():
             if not issubclass(obj.dtype.type, (np.number, np.bool_)):
                 continue
 
-            obj = com._ensure_float64(obj)
-            result, counts = self.grouper.aggregate(obj, how)
-            mask = counts > 0
-            output[name] = result[mask]
+            result, names = self.grouper.aggregate(obj, how)
+            output[name] = result
 
         if len(output) == 0:
             raise GroupByError('No numeric types to aggregate')
 
-        return self._wrap_aggregated_output(output)
+        return self._wrap_aggregated_output(output, names)
 
     def _python_agg_general(self, func, *args, **kwargs):
         func = _intercept_function(func)
@@ -588,7 +594,13 @@ class Grouper(object):
         'std' : np.sqrt
     }
 
+    _name_functions = {
+        'ohlc' : lambda *args: ['open', 'low', 'high', 'close']
+    }
+
     def aggregate(self, values, how):
+        values = com._ensure_float64(values)
+
         comp_ids, _, ngroups = self.group_info
         agg_func = self._cython_functions[how]
         if values.ndim == 1:
@@ -608,10 +620,18 @@ class Grouper(object):
         agg_func(result, counts, values, comp_ids)
         result = trans_func(result)
 
+        result = lib.row_bool_subset(result, counts > 0)
+
         if squeeze:
             result = result.squeeze()
 
-        return result, counts
+        if how in self._name_functions:
+            # TODO
+            names = self._name_functions[how]()
+        else:
+            names = None
+
+        return result, names
 
     def agg_series(self, obj, func):
         try:
@@ -862,16 +882,18 @@ class Tinterval(Grouper, CustomGrouper):
     }
 
     def aggregate(self, values, how):
+        values = com._ensure_float64(values)
+
         agg_func = self._cython_functions[how]
         arity = self._cython_arity.get(how, 1)
 
         if values.ndim == 1:
             squeeze = True
             values = values[:, None]
-            out_shape = (self.ngroups, 1)
+            out_shape = (self.ngroups, arity)
         else:
             squeeze = False
-            out_shape = (self.ngroups, values.shape[1])
+            out_shape = (self.ngroups, values.shape[1] * arity)
 
         trans_func = self._cython_transforms.get(how, lambda x: x)
 
@@ -882,10 +904,18 @@ class Tinterval(Grouper, CustomGrouper):
         agg_func(result, counts, values, self.bins)
         result = trans_func(result)
 
+        result = lib.row_bool_subset(result, counts > 0)
+
         if squeeze:
             result = result.squeeze()
 
-        return result, counts
+        if how in self._name_functions:
+            # TODO
+            names = self._name_functions[how]()
+        else:
+            names = None
+
+        return result, names
 
 class Grouping(object):
     """
@@ -1185,11 +1215,15 @@ class SeriesGroupBy(GroupBy):
 
         return DataFrame(results)
 
-    def _wrap_aggregated_output(self, output):
+    def _wrap_aggregated_output(self, output, names=None):
         # sort of a kludge
         output = output[self.name]
         index = self.grouper.result_index
-        return Series(output, index=index, name=self.name)
+
+        if names is not None:
+            return DataFrame(output, index=index, columns=names)
+        else:
+            return Series(output, index=index, name=self.name)
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         if len(keys) == 0:
@@ -1320,11 +1354,7 @@ class DataFrameGroupBy(GroupBy):
                 continue
 
             values = com._ensure_float64(values)
-            result, counts = self.grouper.aggregate(values, how)
-
-            mask = counts > 0
-            if len(mask) > 0:
-                result = result[mask]
+            result, names = self.grouper.aggregate(values, how)
             newb = make_block(result.T, block.items, block.ref_items)
             new_blocks.append(newb)
 
@@ -1522,7 +1552,7 @@ class DataFrameGroupBy(GroupBy):
 
         return DataFrame(result, columns=result_columns)
 
-    def _wrap_aggregated_output(self, output):
+    def _wrap_aggregated_output(self, output, names=None):
         agg_axis = 0 if self.axis == 1 else 1
         agg_labels = self._obj_with_exclusions._get_axis(agg_axis)
 
@@ -1930,12 +1960,6 @@ def numpy_groupby(data, labels, axis=0):
 # Helper functions
 
 def translate_grouping(how):
-    if set(how) == set('ohlc'):
-        return {'open'  : lambda arr: arr[0],
-                'low'   : lambda arr: arr.min(),
-                'high'  : lambda arr: arr.max(),
-                'close' : lambda arr: arr[-1]}
-
     if how in 'last':
         def picker(arr):
             return arr[-1] if arr is not None and len(arr) else np.nan
