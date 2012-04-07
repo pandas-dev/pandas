@@ -749,7 +749,7 @@ class ExcelFile(object):
             self.book = xlrd.open_workbook(path)
         else:
             try:
-                from openpyxl2.reader.excel import load_workbook
+                from openpyxl.reader.excel import load_workbook
                 self.book = load_workbook(path, use_iterators=True)
             except ImportError:
                 print("\nFor parsing .xlsx files 'openpyxl' is required.\n"
@@ -786,7 +786,7 @@ class ExcelFile(object):
         -------
         parsed : DataFrame
         """
-        choose = {True:self._pars_xlsx, 
+        choose = {True:self._parse_xlsx, 
                   False:self._parse_xls}
         return choose[self.use_xlsx](sheetname, header=header,
                                      skiprows=skiprows, index_col=index_col,
