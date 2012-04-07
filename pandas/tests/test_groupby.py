@@ -1574,6 +1574,12 @@ class TestGroupBy(unittest.TestCase):
 
         assert_series_equal(result, expected)
 
+    def test_dont_clobber_name_column(self):
+        df = DataFrame({'key': ['a', 'a', 'a', 'b', 'b', 'b'],
+                        'name' : ['foo', 'bar', 'baz'] * 2})
+
+        result = df.groupby('key').apply(lambda x: x)
+        assert_frame_equal(result, df)
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     tups = map(tuple, df[keys].values)
