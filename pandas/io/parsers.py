@@ -752,11 +752,9 @@ class ExcelFile(object):
                 from openpyxl.reader.excel import load_workbook
                 self.book = load_workbook(path, use_iterators=True)
             except ImportError:
-                print("\nFor parsing .xlsx files 'openpyxl' is required.\n"
+                raise ImportError("\nFor parsing .xlsx files 'openpyxl' is required.\n"
                       "You can install it via 'easy_install openpyxl' or 'pip openpyxl'.\n"
-                      "Alternatively, you could save the .xlsx file as a .xls file.\n"
-                      "Parsed nothing for now.\n")
-                return
+                      "Alternatively, you could save the .xlsx file as a .xls file.\n")
         self.path = path
 
     def __repr__(self):
