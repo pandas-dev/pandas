@@ -248,6 +248,20 @@ baz,7,8,9
         assert_frame_equal(df, df2)
         assert_frame_equal(df3, df2)
 
+    def test_xlsx_table(self):
+        try:
+            import openpyxl
+        except ImportError:
+            raise nose.SkipTest('openpyxl not installed, skipping')
+
+        pth = os.path.join(self.dirpath, 'test.xlsx')
+        xlsx = ExcelFile(pth)
+        df = xlsx.parse('Sheet1', index_col=0, parse_dates=True)
+        df2 = read_csv(self.csv1, index_col=0, parse_dates=True)
+        df3 = xlsx.parse('Sheet2', skiprows=[1], index_col=0, parse_dates=True)
+        assert_frame_equal(df, df2)
+        assert_frame_equal(df3, df2)
+
     def test_read_table_wrong_num_columns(self):
         data = """A,B,C,D,E,F
 1,2,3,4,5

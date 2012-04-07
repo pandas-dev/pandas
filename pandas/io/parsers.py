@@ -748,8 +748,15 @@ class ExcelFile(object):
             import xlrd
             self.book = xlrd.open_workbook(path)
         else:
-            from openpyxl.reader.excel import load_workbook
-            self.book = load_workbook(path, use_iterators=True)
+            try:
+                from openpyxl2.reader.excel import load_workbook
+                self.book = load_workbook(path, use_iterators=True)
+            except ImportError:
+                print("\nFor parsing .xlsx files 'openpyxl' is required.\n"
+                      "You can install it via 'easy_install openpyxl' or 'pip openpyxl'.\n"
+                      "Alternatively, you could save the .xlsx file as a .xls file.\n"
+                      "Parsed nothing for now.\n")
+                return
         self.path = path
 
     def __repr__(self):
@@ -779,18 +786,13 @@ class ExcelFile(object):
         -------
         parsed : DataFrame
         """
-        if self.use_xlsx:
-            return self._parse_xlsx(sheetname, header=header,
-                                    skiprows=skiprows, index_col=index_col,
-                                    parse_dates=parse_dates,
-                                    date_parser=date_parser,
-                                    na_values=na_values, chunksize=chunksize)
-        else:
-            return self._parse_xls(sheetname, header=header, skiprows=skiprows,
-                                   index_col=index_col,
-                                   parse_dates=parse_dates,
-                                   date_parser=date_parser,
-                                   na_values=na_values, chunksize=chunksize)
+        choose = {True:self._pars_xlsx, 
+                  False:self._parse_xls}
+        return choose[self.use_xlsx](sheetname, header=header,
+                                     skiprows=skiprows, index_col=index_col,
+                                     parse_dates=parse_dates,
+                                     date_parser=date_parser,
+                                     na_values=na_values, chunksize=chunksize)
 
     def _parse_xlsx(self, sheetname, header=0, skiprows=None, index_col=None,
               parse_dates=False, date_parser=None, na_values=None,
