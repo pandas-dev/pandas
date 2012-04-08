@@ -705,6 +705,8 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None):
         if ax is None:
             fig = plt.figure()
             ax = fig.add_subplot(111)
+        else:
+            fig = ax.get_figure()
         plot_group(data, ax)
         ax.set_ylabel(str(y))
         ax.set_xlabel(str(x))
