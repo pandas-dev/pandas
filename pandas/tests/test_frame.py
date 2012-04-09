@@ -882,10 +882,10 @@ class CheckIndexing(object):
         assert_almost_equal(df['mask'], exp_mask)
         self.assert_(df['mask'].dtype == np.bool_)
 
-        self.assertRaises(ValueError, self.frame.lookup, 
+        self.assertRaises(ValueError, self.frame.lookup,
                           ['xyz'], ['A'])
 
-        self.assertRaises(ValueError, self.frame.lookup, 
+        self.assertRaises(ValueError, self.frame.lookup,
                           [self.frame.index[0]], ['xyz'])
 
     def test_set_value(self):
