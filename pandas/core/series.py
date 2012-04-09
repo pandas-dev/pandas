@@ -1806,6 +1806,10 @@ copy : boolean, default False
         ----------
         func : function
 
+        See also
+        --------
+        Series.map: For element-wise operations
+
         Returns
         -------
         y : Series
