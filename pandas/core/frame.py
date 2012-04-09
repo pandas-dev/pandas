@@ -1416,7 +1416,13 @@ class DataFrame(NDFrame):
     def __getitem__(self, key):
         # slice rows
         if isinstance(key, slice):
-            new_data = self._data.get_slice(key, axis=1)
+            from pandas.core.indexing import _is_index_slice
+            if self.index.inferred_type == 'integer' or _is_index_slice(key):
+                indexer = key
+            else:
+                indexer = self.ix._convert_to_indexer(key, axis=0)
+
+            new_data = self._data.get_slice(indexer, axis=1)
             return self._constructor(new_data)
         # either boolean or fancy integer index
         elif isinstance(key, (np.ndarray, list)):

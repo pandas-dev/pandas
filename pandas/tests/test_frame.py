@@ -840,6 +840,27 @@ class CheckIndexing(object):
         expected = [nan, 'qux', nan, 'qux', nan]
         assert_almost_equal(df['str'].values, expected)
 
+    def test_getitem_setitem_non_ix_labels(self):
+        df = tm.makeTimeDataFrame()
+
+        start, end = df.index[[5, 10]]
+
+        result = df.ix[start:end]
+        result2 = df[start:end]
+        expected = df[5:11]
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result2, expected)
+
+        # not implementing this yet
+
+        # exp = df.copy()
+        # exp[5:10] = exp[-5:].values
+
+        # # setting
+
+        # df[start:end] = df[-5:].values
+        # assert_frame_equal(df, exp)
+
     def test_setitem_fancy_exceptions(self):
         pass
 
