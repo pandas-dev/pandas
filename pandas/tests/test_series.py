@@ -1157,6 +1157,21 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series(['foo_suffix', 'bar_suffix', 'baz_suffix', np.nan])
         assert_series_equal(result, expected)
 
+    def test_object_comparisons(self):
+        s = Series(['a', 'b', np.nan, 'c', 'a'])
+
+        result = s == 'a'
+        expected = Series([True, False, False, False, True])
+        assert_series_equal(result, expected)
+
+        result = s < 'a'
+        expected = Series([False, False, False, False, False])
+        assert_series_equal(result, expected)
+
+        result = s != 'a'
+        expected = -(s == 'a')
+        assert_series_equal(result, expected)
+
     def test_comparison_operators_with_nas(self):
         from pandas import DateRange
 
@@ -1170,7 +1185,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
             f = getattr(operator, op)
             result = f(s, val)
+
             expected = f(s.dropna(), val).reindex(s.index)
+
+            if op == 'ne':
+                expected = expected.fillna(True).astype(bool)
+            else:
+                expected = expected.fillna(False).astype(bool)
+
             assert_series_equal(result, expected)
 
             # fffffffuuuuuuuuuuuu
@@ -1181,11 +1203,16 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # boolean &, |, ^ should work with object arrays and propagate NAs
 
         ops = ['and_', 'or_', 'xor']
+        mask = s.isnull()
         for bool_op in ops:
             f = getattr(operator, bool_op)
 
+            filled = s.fillna(s[0])
+
             result = f(s < s[9], s > s[3])
-            expected = f(s.dropna() < s[9], s.dropna() > s[3]).reindex(s.index)
+
+            expected = f(filled < filled[9], filled > filled[3])
+            expected[mask] = False
             assert_series_equal(result, expected)
 
     def test_comparison_object_numeric_nas(self):
@@ -1199,6 +1226,26 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             result = f(s, shifted)
             expected = f(s.astype(float), shifted.astype(float))
             assert_series_equal(result, expected)
+
+    def test_more_na_comparisons(self):
+        left = Series(['a', np.nan, 'c'])
+        right = Series(['a', np.nan, 'd'])
+
+        result = left == right
+        expected = Series([True, False, False])
+        assert_series_equal(result, expected)
+
+        result = left != right
+        expected = Series([False, True, True])
+        assert_series_equal(result, expected)
+
+        result = left == np.nan
+        expected = Series([False, False, False])
+        assert_series_equal(result, expected)
+
+        result = left != np.nan
+        expected = Series([True, True, True])
+        assert_series_equal(result, expected)
 
     def test_between(self):
         from pandas import DateRange

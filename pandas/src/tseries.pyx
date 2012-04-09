@@ -502,6 +502,7 @@ def scalar_compare(ndarray[object] values, object val, object op):
     import operator
     cdef:
         Py_ssize_t i, n = len(values)
+        ndarray[uint8_t, cast=True] result
         int flag
         object x
 
@@ -520,16 +521,24 @@ def scalar_compare(ndarray[object] values, object val, object op):
     else:
         raise ValueError('Unrecognized operator')
 
-    result = np.empty(n, dtype=object)
+    result = np.empty(n, dtype=bool)
 
-    for i in range(n):
-        x = values[i]
-        if _checknull(x):
-            result[i] = x
-        else:
-            result[i] = cpython.PyObject_RichCompareBool(x, val, flag)
+    if flag == cpython.Py_NE:
+        for i in range(n):
+            x = values[i]
+            if _checknull(x):
+                result[i] = True
+            else:
+                result[i] = cpython.PyObject_RichCompareBool(x, val, flag)
+    else:
+        for i in range(n):
+            x = values[i]
+            if _checknull(x):
+                result[i] = False
+            else:
+                result[i] = cpython.PyObject_RichCompareBool(x, val, flag)
 
-    return maybe_convert_bool(result)
+    return result
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -537,6 +546,7 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op):
     import operator
     cdef:
         Py_ssize_t i, n = len(left)
+        ndarray[uint8_t, cast=True] result
         int flag
 
     if op is operator.lt:
@@ -554,22 +564,28 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op):
     else:
         raise ValueError('Unrecognized operator')
 
-    result = np.empty(n, dtype=object)
+    result = np.empty(n, dtype=bool)
 
-    for i in range(n):
-        x = left[i]
-        y = right[i]
-        try:
-            result[i] = cpython.PyObject_RichCompareBool(x, y, flag)
-        except TypeError:
-            if _checknull(x):
-                result[i] = x
-            elif _checknull(y):
-                result[i] = y
+    if flag == cpython.Py_NE:
+        for i in range(n):
+            x = left[i]
+            y = right[i]
+
+            if _checknull(x) or _checknull(y):
+                result[i] = True
             else:
-                raise
+                result[i] = cpython.PyObject_RichCompareBool(x, y, flag)
+    else:
+        for i in range(n):
+            x = left[i]
+            y = right[i]
 
-    return maybe_convert_bool(result)
+            if _checknull(x) or _checknull(y):
+                result[i] = False
+            else:
+                result[i] = cpython.PyObject_RichCompareBool(x, y, flag)
+
+    return result
 
 
 @cython.wraparound(False)
@@ -577,6 +593,7 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op):
 def scalar_binop(ndarray[object] values, object val, object op):
     cdef:
         Py_ssize_t i, n = len(values)
+        ndarray[uint8_t, cast=True] result
         object x
 
     result = np.empty(n, dtype=object)
