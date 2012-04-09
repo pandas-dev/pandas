@@ -20,7 +20,7 @@ def pivot_table(data, values=None, rows=None, cols=None, aggfunc='mean',
     rows : list of column names or arrays to group on
         Keys to group on the x-axis of the pivot table
     cols : list of column names or arrays to group on
-        Keys to group on the x-axis of the pivot table
+        Keys to group on the y-axis of the pivot table
     aggfunc : function, default numpy.mean, or list of functions
         If list of functions passed, the resulting pivot table will have
         hierarchical columns whose top level are the function names (inferred
