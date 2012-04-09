@@ -87,7 +87,7 @@ class GroupBy(object):
 
     def __init__(self, obj, keys=None, axis=0, level=None,
                  grouper=None, exclusions=None, column=None, as_index=True,
-                 sort=True):
+                 sort=True, group_keys=True):
         self._column = column
 
         if isinstance(obj, NDFrame):
@@ -108,6 +108,7 @@ class GroupBy(object):
         self.as_index = as_index
         self.keys = keys
         self.sort = sort
+        self.group_keys = group_keys
 
         if grouper is None:
             grouper, exclusions = _get_grouper(obj, keys, axis=axis,
@@ -370,10 +371,18 @@ class GroupBy(object):
     def _wrap_applied_output(self, *args, **kwargs):
         raise NotImplementedError
 
-    def _wrap_frames(self, keys, values, not_indexed_same=False):
+    def _concat_objects(self, keys, values, not_indexed_same=False):
         from pandas.tools.merge import concat
 
-        if not_indexed_same:
+        if not not_indexed_same:
+            result = concat(values, axis=self.axis)
+            ax = self.obj._get_axis(self.axis)
+
+            if isinstance(result, Series):
+                result = result.reindex(ax)
+            else:
+                result = result.reindex_axis(ax, axis=self.axis)
+        elif self.group_keys:
             group_keys = keys
             group_levels = self.grouper.levels
             group_names = self.grouper.names
@@ -381,11 +390,8 @@ class GroupBy(object):
                             levels=group_levels, names=group_names)
         else:
             result = concat(values, axis=self.axis)
-            ax = self.obj._get_axis(self.axis)
-            result = result.reindex_axis(ax, axis=self.axis)
 
         return result
-
 
 def _generate_groups(obj, group_index, ngroups, axis=0):
     if isinstance(obj, NDFrame) and not isinstance(obj, DataFrame):
@@ -428,10 +434,11 @@ class Grouper(object):
     """
 
     """
-    def __init__(self, axis, groupings, sort=True):
+    def __init__(self, axis, groupings, sort=True, group_keys=True):
         self.axis = axis
         self.groupings = groupings
         self.sort = sort
+        self.group_keys = group_keys
 
     @property
     def shape(self):
@@ -964,21 +971,12 @@ class SeriesGroupBy(GroupBy):
             return index
 
         if isinstance(values[0], Series):
-            if not_indexed_same:
-                data_dict = dict(zip(keys, values))
-                result = DataFrame(data_dict).T
-                result.index = _get_index()
-                return result
-            else:
-                cat_values = np.concatenate([x.values for x in values])
-                cat_index = values[0].index
-                if len(values) > 1:
-                    cat_index = cat_index.append([x.index for x in values[1:]])
-                return Series(cat_values, index=cat_index)
+            return self._concat_objects(keys, values,
+                                        not_indexed_same=not_indexed_same)
         elif isinstance(values[0], DataFrame):
             # possible that Series -> DataFrame by applied function
-            return self._wrap_frames(keys, values,
-                                     not_indexed_same=not_indexed_same)
+            return self._concat_objects(keys, values,
+                                        not_indexed_same=not_indexed_same)
         else:
             return Series(values, index=_get_index())
 
@@ -1318,8 +1316,8 @@ class DataFrameGroupBy(GroupBy):
         key_names = self.grouper.names
 
         if isinstance(values[0], DataFrame):
-            return self._wrap_frames(keys, values,
-                                     not_indexed_same=not_indexed_same)
+            return self._concat_objects(keys, values,
+                                        not_indexed_same=not_indexed_same)
         else:
             if len(self.grouper.groupings) > 1:
                 key_index = MultiIndex.from_tuples(keys, names=key_names)

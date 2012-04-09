@@ -383,7 +383,7 @@ class TestGroupBy(unittest.TestCase):
         for name, gp in grouped:
             expected[name] = gp.describe()
         expected = DataFrame(expected).T
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result.unstack(), expected)
 
         # get attribute
         result = grouped.dtype
@@ -395,7 +395,7 @@ class TestGroupBy(unittest.TestCase):
     def test_series_describe_multikey(self):
         ts = tm.makeTimeSeries()
         grouped = ts.groupby([lambda x: x.year, lambda x: x.month])
-        result = grouped.describe()
+        result = grouped.describe().unstack()
         assert_series_equal(result['mean'], grouped.mean())
         assert_series_equal(result['std'], grouped.std())
         assert_series_equal(result['min'], grouped.min())
@@ -405,7 +405,7 @@ class TestGroupBy(unittest.TestCase):
         grouped = ts.groupby(lambda x: x.month)
         result = grouped.apply(lambda x: x.describe())
         expected = grouped.describe()
-        assert_frame_equal(result, expected)
+        assert_series_equal(result, expected)
 
     def test_series_agg_multikey(self):
         ts = tm.makeTimeSeries()
@@ -449,7 +449,7 @@ class TestGroupBy(unittest.TestCase):
 
         for col in self.tsframe:
             expected = grouped[col].describe()
-            assert_frame_equal(result[col].unstack(), expected)
+            assert_series_equal(result[col], expected)
 
         groupedT = self.tsframe.groupby({'A' : 0, 'B' : 0,
                                          'C' : 1, 'D' : 1}, axis=1)
@@ -1580,6 +1580,31 @@ class TestGroupBy(unittest.TestCase):
 
         result = df.groupby('key').apply(lambda x: x)
         assert_frame_equal(result, df)
+
+    def test_skip_group_keys(self):
+        from pandas import concat
+
+        tsf = tm.makeTimeDataFrame()
+
+        grouped = tsf.groupby(lambda x: x.month, group_keys=False)
+        result = grouped.apply(lambda x: x.sort_index(by='A')[:3])
+
+        pieces = []
+        for key, group in grouped:
+            pieces.append(group.sort_index(by='A')[:3])
+
+        expected = concat(pieces)
+        assert_frame_equal(result, expected)
+
+        grouped = tsf['A'].groupby(lambda x: x.month, group_keys=False)
+        result = grouped.apply(lambda x: x.order()[:3])
+
+        pieces = []
+        for key, group in grouped:
+            pieces.append(group.order()[:3])
+
+        expected = concat(pieces)
+        assert_series_equal(result, expected)
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     tups = map(tuple, df[keys].values)

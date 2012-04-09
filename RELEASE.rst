@@ -22,6 +22,20 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.7.3
+============
+
+**Release date:** NOT YET RELEAED
+
+**New features / modules**
+
+**API Changes**
+
+  - Calling apply on grouped Series, e.g. describe(), will no longer yield
+    DataFrame by default. Will have to call unstack() to get prior behavior
+
+**Bug fixes**
+
 pandas 0.7.2
 ============
 
