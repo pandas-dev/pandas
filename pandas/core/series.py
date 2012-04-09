@@ -565,6 +565,13 @@ copy : boolean, default False
 
         ndarray.__setslice__(self, i, j, value)
 
+    def astype(self, dtype):
+        """
+        See numpy.ndarray.astype
+        """
+        casted = com._astype_nansafe(self.values, dtype)
+        return self._constructor(casted, index=self.index, name=self.name)
+
     def get(self, label, default=None):
         """
         Returns value occupying requested label, default to specified
@@ -1228,7 +1235,7 @@ copy : boolean, default False
     def describe(self, percentile_width=50):
         """
         Generate various summary statistics of Series, excluding NaN
-        values. These include: count, mean, std, min, max, and 
+        values. These include: count, mean, std, min, max, and
         lower%/50%/upper% percentiles
 
         Parameters

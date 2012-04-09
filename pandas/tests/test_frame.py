@@ -1758,6 +1758,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                              columns=self.frame.columns)
         assert_frame_equal(casted, expected)
 
+    def test_astype_cast_nan_int(self):
+        df = DataFrame(data={"Values": [1.0, 2.0, 3.0, np.nan]})
+        self.assertRaises(ValueError, df.astype, np.int64)
+
     def test_array_interface(self):
         result = np.sqrt(self.frame)
         self.assert_(type(result) is type(self.frame))
@@ -4495,7 +4499,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertEqual(np.shape(cumprod_xs), np.shape(self.tsframe))
 
         # ints
-        df = self.tsframe.astype(int)
+        df = self.tsframe.fillna(0).astype(int)
         df.cumprod(0)
         df.cumprod(1)
 

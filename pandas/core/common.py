@@ -586,6 +586,15 @@ def _ensure_object(arr):
         arr = arr.astype('O')
     return arr
 
+def _astype_nansafe(arr, dtype):
+    if (np.issubdtype(arr.dtype, np.floating) and
+        np.issubdtype(dtype, np.integer)):
+
+        if np.isnan(arr).any():
+            raise ValueError('Cannot convert NA to integer')
+
+    return arr.astype(dtype)
+
 def _clean_fill_method(method):
     method = method.lower()
     if method == 'ffill':

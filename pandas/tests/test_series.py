@@ -1818,6 +1818,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         d = self.ts.index[0] - datetools.bday
         self.assert_(np.isnan(self.ts.asof(d)))
 
+    def test_astype_cast_nan_int(self):
+        df = Series([1.0, 2.0, 3.0, np.nan])
+        self.assertRaises(ValueError, df.astype, np.int64)
+
     def test_map(self):
         index, data = tm.getMixedTypeDict()
 
