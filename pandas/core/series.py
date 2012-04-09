@@ -572,6 +572,15 @@ copy : boolean, default False
         casted = com._astype_nansafe(self.values, dtype)
         return self._constructor(casted, index=self.index, name=self.name)
 
+    def reshape(self, newshape, order='C'):
+        """
+        See numpy.ndarray.reshape
+        """
+        if isinstance(newshape, tuple) and len(newshape) > 1:
+            return self.values.reshape(newshape, order=order)
+        else:
+            return ndarray.reshape(self, newshape, order)
+
     def get(self, label, default=None):
         """
         Returns value occupying requested label, default to specified

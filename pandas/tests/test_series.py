@@ -617,6 +617,18 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(Exception, self.ts.__setitem__,
                           [5, slice(None, None)], 2)
 
+    def test_reshape_2d_return_array(self):
+        x = Series(np.random.random(201), name='x')
+        result = x.reshape((-1,1))
+        self.assert_(not isinstance(result, Series))
+
+        result2 = np.reshape(x, (-1,1))
+        self.assert_(not isinstance(result, Series))
+
+        result = x[:, None]
+        expected = x.reshape((-1,1))
+        assert_almost_equal(result, expected)
+
     def test_basic_getitem_with_labels(self):
         indices = self.ts.index[[5, 10, 15]]
 
