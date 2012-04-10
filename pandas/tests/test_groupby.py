@@ -290,7 +290,13 @@ class TestGroupBy(unittest.TestCase):
         _check_results(by_mwkday)
 
     def test_aggregate_item_by_item(self):
-        pass
+        grouped = self.df.groupby('A')
+        aggfun = lambda ser: ser.size
+        result = grouped.agg(aggfun)
+        foo = (self.df.A == 'foo').sum()
+        bar = (self.df.A == 'bar').sum()
+        self.assert_((result.xs('foo') == foo).all())
+        self.assert_((result.xs('bar') == bar).all())
 
     def test_basic_regression(self):
         # regression
