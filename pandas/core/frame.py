@@ -3082,7 +3082,8 @@ class DataFrame(NDFrame):
             values = self.values
             dummy = Series(np.nan, index=self._get_axis(axis),
                            dtype=values.dtype)
-            result = lib.reduce(values, func, axis=axis, dummy=dummy)
+            result = lib.reduce(values, func, axis=axis, dummy=dummy,
+                                labels=self._get_agg_axis(axis))
             return Series(result, index=self._get_agg_axis(axis))
         except Exception:
             pass

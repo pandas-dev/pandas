@@ -3882,6 +3882,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = data.apply(lambda x: x, axis=1)
         assert_frame_equal(result, data)
 
+    def test_apply_attach_name(self):
+        result = self.frame.apply(lambda x: x.name)
+        expected = Series(self.frame.columns, index=self.frame.columns)
+        assert_series_equal(result, expected)
+
+        result = self.frame.apply(lambda x: x.name, axis=1)
+        expected = Series(self.frame.index, index=self.frame.index)
+        assert_series_equal(result, expected)
+
     def test_applymap(self):
         applied = self.frame.applymap(lambda x: x * 2)
         assert_frame_equal(applied, self.frame * 2)
@@ -5039,7 +5048,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = Y.sum()
         exp = Y['g'].sum()
         self.assert_(isnull(Y['g']['c']))
-
 
 if __name__ == '__main__':
     # unittest.main()
