@@ -3904,6 +3904,22 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = Series(self.frame.index, index=self.frame.index)
         assert_series_equal(result, expected)
 
+        # non-reductions
+        result = self.frame.apply(lambda x: np.repeat(x.name, len(x)))
+        expected = DataFrame(np.tile(self.frame.columns,
+                                     (len(self.frame.index), 1)),
+                             index=self.frame.index,
+                             columns=self.frame.columns)
+        assert_frame_equal(result, expected)
+
+        result = self.frame.apply(lambda x: np.repeat(x.name, len(x)),
+                                  axis=1)
+        expected = DataFrame(np.tile(self.frame.index,
+                                     (len(self.frame.columns), 1)).T,
+                             index=self.frame.index,
+                             columns=self.frame.columns)
+        assert_frame_equal(result, expected)
+
     def test_applymap(self):
         applied = self.frame.applymap(lambda x: x * 2)
         assert_frame_equal(applied, self.frame * 2)

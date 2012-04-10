@@ -3095,7 +3095,7 @@ class DataFrame(NDFrame):
         elif axis == 1:
             res_index = self.index
             res_columns = self.columns
-            series_gen = ((i, Series(v, self.columns))
+            series_gen = ((i, Series(v, self.columns, name=i))
                           for i, v in izip(self.index, self.values))
 
         results = {}
@@ -3125,7 +3125,8 @@ class DataFrame(NDFrame):
             else:
                 index = None
 
-            result = self._constructor(data=results, index=index)
+            result = self._constructor(data=results, index=index,
+                                       columns=res_index)
 
             if axis == 1:
                 result = result.T
