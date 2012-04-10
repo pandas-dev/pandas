@@ -176,6 +176,11 @@ class TestNanops(unittest.TestCase):
         df = DataFrame(np.empty((10, 0)))
         self.assert_((df.sum(1) == 0).all())
 
+    def test_bn_switch(self):
+        f = nanops._bottleneck_switch('nanskew', nanops.nanskew)
+        ser = Series(np.random.randn(100))
+        self.assertAlmostEqual(f(ser), nanops.nanskew(ser))
+
 class SafeForSparse(object):
     pass
 
@@ -616,6 +621,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                           [5, slice(None, None)])
         self.assertRaises(Exception, self.ts.__setitem__,
                           [5, slice(None, None)], 2)
+
+    def test_reshape_non_2d(self):
+        x = Series(np.random.random(201), name='x')
+        self.assertRaises(TypeError, x.reshape, (len(x),))
 
     def test_reshape_2d_return_array(self):
         x = Series(np.random.random(201), name='x')

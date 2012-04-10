@@ -2702,7 +2702,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.frame.info(buf=io)
         self.tsframe.info(buf=io)
 
-        frame = DataFrame(np.random(5, 3))
+        frame = DataFrame(np.random.randn(5, 3))
         frame.info()
         frame.info(verbose=False)
 
