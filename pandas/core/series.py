@@ -2085,7 +2085,6 @@ copy : boolean, default False
         Returns
         -------
         is_between : Series
-            NAs, if any, will be preserved
         """
         if inclusive:
             lmask = self >= left
@@ -2094,12 +2093,7 @@ copy : boolean, default False
             lmask = self > left
             rmask = self < right
 
-        mask = lmask & rmask
-        if mask.dtype == np.object_:
-            np.putmask(mask, isnull(mask), False)
-            mask = mask.astype(bool)
-
-        return mask
+        return lmask & rmask
 
     @classmethod
     def from_csv(cls, path, sep=',', parse_dates=True, header=None,

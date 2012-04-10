@@ -2046,6 +2046,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         fmt.reset_printoptions()
 
+    def test_very_wide_info_repr(self):
+        df = DataFrame(np.random.randn(10, 20),
+                       columns=[tm.rands(10) for _ in xrange(20)])
+        repr(df)
+
     def test_head_tail(self):
         assert_frame_equal(self.frame.head(), self.frame[:5])
         assert_frame_equal(self.frame.tail(), self.frame[-5:])
@@ -2703,8 +2708,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.tsframe.info(buf=io)
 
         frame = DataFrame(np.random.randn(5, 3))
+
+        import sys
+        sys.stdout = StringIO()
         frame.info()
         frame.info(verbose=False)
+        sys.stdout = sys.__stdout__
 
     def test_dtypes(self):
         self.mixed_frame['bool'] = self.mixed_frame['A'] > 0
