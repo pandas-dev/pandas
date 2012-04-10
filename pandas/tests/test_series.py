@@ -176,10 +176,6 @@ class TestNanops(unittest.TestCase):
         df = DataFrame(np.empty((10, 0)))
         self.assert_((df.sum(1) == 0).all())
 
-    def test_bn_switch(self):
-        f = nanops._bottleneck_switch('nanskew', nanops.nanskew)
-        ser = Series(np.random.randn(100))
-        self.assertAlmostEqual(f(ser), nanops.nanskew(ser))
 
 class SafeForSparse(object):
     pass
