@@ -3,8 +3,11 @@ import unittest
 import sqlite3
 import sys
 
+import numpy as np
+
 import pandas.io.sql as sql
 import pandas.util.testing as tm
+from pandas import Series, Index
 
 class TestSQLite(unittest.TestCase):
 
@@ -17,6 +20,7 @@ class TestSQLite(unittest.TestCase):
 
     def test_write_row_by_row(self):
         frame = tm.makeTimeDataFrame()
+        frame.ix[0, 0] = np.nan
         create_sql = sql.get_sqlite_schema(frame, 'test')
         self.db.execute(create_sql)
 
@@ -105,6 +109,55 @@ class TestSQLite(unittest.TestCase):
 
         expected = frame
         tm.assert_frame_equal(result, expected)
+
+        frame['txt'] = ['a'] * len(frame)
+        frame2 = frame.copy()
+        frame2['Idx'] = Index(range(len(frame2))) + 10
+        sql.write_frame(frame2, name='test_table2', con=self.db)
+        result = sql.read_frame("select * from test_table2", self.db,
+                                index_col='Idx')
+        expected = frame.copy()
+        expected.index = Index(range(len(frame2))) + 10
+        tm.assert_frame_equal(expected, result)
+
+
+
+    def test_tquery(self):
+        frame = tm.makeTimeDataFrame()
+        sql.write_frame(frame, name='test_table', con=self.db)
+        result = sql.tquery("select A from test_table", self.db)
+        expected = frame.A
+        result = Series(result, frame.index)
+        tm.assert_series_equal(result, expected)
+
+        try:
+            sys.stdout = StringIO()
+            self.assertRaises(sqlite3.OperationalError, sql.tquery,
+                              'select * from blah', con=self.db)
+
+            self.assertRaises(sqlite3.OperationalError, sql.tquery,
+                              'select * from blah', con=self.db, retry=True)
+        finally:
+            sys.stdout = sys.__stdout__
+
+    def test_uquery(self):
+        frame = tm.makeTimeDataFrame()
+        sql.write_frame(frame, name='test_table', con=self.db)
+        stmt = 'INSERT INTO test_table VALUES(2.314, -123.1, 1.234, 2.3)'
+        self.assertEqual(sql.uquery(stmt, con=self.db), 1)
+
+        try:
+            sys.stdout = StringIO()
+
+            self.assertRaises(sqlite3.OperationalError, sql.tquery,
+                              'insert into blah values (1)', con=self.db)
+
+            self.assertRaises(sqlite3.OperationalError, sql.tquery,
+                              'insert into blah values (1)', con=self.db,
+                              retry=True)
+        finally:
+            sys.stdout = sys.__stdout__
+
 
 if __name__ == '__main__':
     # unittest.main()
