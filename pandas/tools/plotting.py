@@ -59,6 +59,7 @@ class MPLPlot(object):
     _default_rot = 0
 
     _pop_attributes = ['label', 'style', 'logy', 'logx', 'loglog']
+    _attr_defaults = {'logy': False, 'logx': False, 'loglog': False}
 
     def __init__(self, data, kind=None, by=None, subplots=False, sharex=True,
                  sharey=False, use_index=True,
@@ -93,7 +94,8 @@ class MPLPlot(object):
         self.legend = legend
 
         for attr in self._pop_attributes:
-            setattr(self, attr, kwds.pop(attr, None))
+            value = kwds.pop(attr, self._attr_defaults.get(attr, None))
+            setattr(self, attr, value)
 
         self.ax = ax
         self.fig = fig
@@ -243,10 +245,6 @@ class MPLPlot(object):
 class LinePlot(MPLPlot):
 
     def __init__(self, data, **kwargs):
-        self.logy = kwargs.pop('logy', False)
-        self.logx = kwargs.pop('logx', False)
-        self.loglog = kwargs.pop('loglog', False)
-
         MPLPlot.__init__(self, data, **kwargs)
 
     def _get_plot_function(self):
@@ -403,7 +401,7 @@ def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
                use_index=True,
                figsize=None, grid=True, legend=True, rot=None,
                ax=None, title=None,
-               xlim=None, ylim=None,
+               xlim=None, ylim=None, logy=False,
                xticks=None, yticks=None,
                kind='line',
                sort_columns=True, fontsize=None, **kwds):
@@ -462,7 +460,7 @@ def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
                      legend=legend, ax=ax, fontsize=fontsize,
                      use_index=use_index, sharex=sharex, sharey=sharey,
                      xticks=xticks, yticks=yticks, xlim=xlim, ylim=ylim,
-                     title=title, grid=grid, figsize=figsize,
+                     title=title, grid=grid, figsize=figsize, logy=logy,
                      sort_columns=sort_columns, **kwds)
     plot_obj.generate()
     plot_obj.draw()
