@@ -9,6 +9,7 @@ import pandas.util.testing as tm
 import numpy as np
 
 from numpy.testing.decorators import slow
+import pandas.tools.plotting as plotting
 
 class TestSeriesPlots(unittest.TestCase):
 
@@ -123,6 +124,16 @@ class TestDataFramePlots(unittest.TestCase):
         df = DataFrame(np.random.randn(100, 4))
         _check_plot_works(df.hist)
         _check_plot_works(df.hist, grid=False)
+
+    @slow
+    def test_scatter(self):
+        df = DataFrame(np.random.randn(100, 4))
+        import pandas.tools.plotting as plt
+        def scat(**kwds):
+            return plt.scatter_matrix(df, **kwds)
+        _check_plot_works(scat)
+        _check_plot_works(scat, marker='+')
+        _check_plot_works(scat, vmin=0)
 
     @slow
     def test_plot_int_columns(self):
