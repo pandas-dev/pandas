@@ -1606,6 +1606,14 @@ class TestGroupBy(unittest.TestCase):
         expected = concat(pieces)
         assert_series_equal(result, expected)
 
+    def test_no_nonsense_name(self):
+        # GH #995
+        s = self.frame['C'].copy()
+        s.name = None
+
+        result = s.groupby(self.frame['A']).agg(np.sum)
+        self.assert_(result.name is None)
+
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     tups = map(tuple, df[keys].values)
     tups = com._asarray_tuplesafe(tups)

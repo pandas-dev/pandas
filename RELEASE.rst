@@ -32,6 +32,7 @@ pandas 0.7.3
   - Add group_keys argument to groupby to not add group names to MultiIndex in
     result of apply (GH #938)
   - scatter_matrix method in pandas/tools/plotting.py (PR #935)
+  - Add ``kurt`` methods to Series and DataFrame (PR #964)
 
 **API Changes**
 
@@ -39,6 +40,8 @@ pandas 0.7.3
     DataFrame by default. Will have to call unstack() to get prior behavior
 
 **Bug fixes**
+
+  - Don't attach nonsense 'result' name to groupby results (GH #995)
 
 pandas 0.7.2
 ============

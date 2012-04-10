@@ -131,7 +131,7 @@ class GroupBy(object):
     @property
     def name(self):
         if self._column is None:
-            return 'result'
+            return None # 'result'
         else:
             return self._column
 
