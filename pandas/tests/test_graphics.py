@@ -42,6 +42,9 @@ class TestSeriesPlots(unittest.TestCase):
         _check_plot_works(self.series[:5].plot, kind='line')
         _check_plot_works(self.series[:5].plot, kind='barh')
         _check_plot_works(self.series[:10].plot, kind='barh')
+
+        Series(np.random.randn(10)).plot(kind='bar',color='black')
+
     @slow
     def test_hist(self):
         _check_plot_works(self.ts.hist)

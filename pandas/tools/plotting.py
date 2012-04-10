@@ -394,25 +394,27 @@ class BarPlot(MPLPlot):
         K = self.nseries
 
         for i, (label, y) in enumerate(self._iter_data()):
+
+            kwds = self.kwds.copy()
+            if 'color' not in kwds:
+                kwds['color'] = colors[i % len(colors)]
+
             if self.subplots:
                 ax = self.axes[i]
                 rect = bar_f(ax, self.ax_pos, y, 0.5, start=pos_prior,
-                             linewidth=1, **self.kwds)
+                             linewidth=1, **kwds)
                 ax.set_title(label)
             elif self.stacked:
                 mask = y > 0
                 start = np.where(mask, pos_prior, neg_prior)
+
                 rect = bar_f(ax, self.ax_pos, y, 0.5, start=start,
-                             color=colors[i % len(colors)],
-                             label=label, linewidth=1,
-                             **self.kwds)
+                             label=label, linewidth=1, **kwds)
                 pos_prior = pos_prior + np.where(mask, y, 0)
                 neg_prior = neg_prior + np.where(mask, 0, y)
             else:
                 rect = bar_f(ax, self.ax_pos + i * 0.75 / K, y, 0.75 / K,
-                             start=pos_prior, label=label,
-                             color=colors[i % len(colors)],
-                             **self.kwds)
+                             start=pos_prior, label=label, **kwds)
             rects.append(rect)
             labels.append(label)
 
