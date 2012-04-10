@@ -297,7 +297,15 @@ class TestGroupBy(unittest.TestCase):
         _check_results(by_mwkday)
 
     def test_aggregate_item_by_item(self):
+
+        df = self.df.copy()
+        df['E'] = ['a'] * len(self.df)
         grouped = self.df.groupby('A')
+        def aggfun(ser):
+            return len(ser + 'a')
+        result = grouped.agg(aggfun)
+        self.assertEqual(len(result.columns), 1)
+
         aggfun = lambda ser: ser.size
         result = grouped.agg(aggfun)
         foo = (self.df.A == 'foo').sum()
@@ -306,15 +314,7 @@ class TestGroupBy(unittest.TestCase):
         self.assert_((result.xs('bar') == bar).all())
 
         def aggfun(ser):
-            if ser.name == 'C':
-                raise ValueError
-            else:
-                return ser.size
-        result = DataFrame().groupby(self.df.A).agg(aggfun)
-
-
-        def aggfun(ser):
-            raise ValueError
+            return ser.size
         result = DataFrame().groupby(self.df.A).agg(aggfun)
         self.assert_(isinstance(result, DataFrame))
         self.assertEqual(len(result), 0)
