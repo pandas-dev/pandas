@@ -1241,6 +1241,17 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         expected = self.frame.ix[[0, 2, 3, 6, 7, 9]].T
         assert_frame_equal(result, expected)
 
+    def test_unicode_repr_issues(self):
+        levels = [Index([u'a/\u03c3', u'b/\u03c3',u'c/\u03c3']),
+                  Index([0, 1])]
+        labels = [np.arange(3).repeat(2), np.tile(np.arange(2), 3)]
+        index = MultiIndex(levels=levels, labels=labels)
+
+        repr(index.levels)
+
+        # NumPy bug
+        # repr(index.get_level_values(1))
+
 if __name__ == '__main__':
 
     # unittest.main()

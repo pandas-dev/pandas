@@ -85,6 +85,14 @@ class Index(np.ndarray):
     def __array_finalize__(self, obj):
         self.name = getattr(obj, 'name', None)
 
+    def __repr__(self):
+        try:
+            result = np.ndarray.__repr__(self)
+        except UnicodeEncodeError:
+            result = 'Index([%s])' % (', '.join([repr(x) for x in self]))
+
+        return result
+
     def astype(self, dtype):
         return Index(self.values.astype(dtype), name=self.name,
                      dtype=dtype)
