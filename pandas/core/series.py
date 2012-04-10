@@ -1050,6 +1050,15 @@ copy : boolean, default False
 
         return nanops.nanskew(self.values, skipna=skipna)
 
+    @Substitution(name='unbiased kurtosis', shortname='kurt',
+                  na_action=_doc_exclude_na, extras='')
+    @Appender(_stat_doc)
+    def kurt(self, skipna=True, level=None):
+        if level is not None:
+            return self._agg_by_level('kurt', level=level, skipna=skipna)
+
+        return nanops.nankurt(self.values, skipna=skipna)
+
     def _agg_by_level(self, name, level=0, skipna=True, **kwds):
         grouped = self.groupby(level=level)
         if hasattr(grouped, name) and skipna:

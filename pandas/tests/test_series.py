@@ -912,6 +912,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         alt =lambda x: skew(x, bias=False)
         self._check_stat_op('skew', alt)
 
+    def test_kurt(self):
+        from scipy.stats import kurtosis
+        alt = lambda x: kurtosis(x, bias=False)
+        self._check_stat_op('kurt', alt)
+
     def test_argsort(self):
         self._check_accum_op('argsort')
         argsorted = self.ts.argsort()

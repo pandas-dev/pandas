@@ -219,6 +219,38 @@ def nanskew(values, axis=None, skipna=True):
             return np.nan
         return result
 
+def nankurt(values, axis=None, skipna=True):
+    if not isinstance(values.dtype.type, np.floating):
+        values = values.astype('f8')
+
+    mask = isnull(values)
+    count = _get_counts(mask, axis)
+
+    if skipna:
+        values = values.copy()
+        np.putmask(values, mask, 0)
+
+    A = values.sum(axis) / count
+    B = (values ** 2).sum(axis) / count - A ** 2
+    C = (values ** 3).sum(axis) / count - A ** 3 - 3 * A * B
+    D = (values ** 4).sum(axis) / count - A ** 4 - 6 * B * A * A - 4 * C * A
+
+    B = _zero_out_fperr(B)
+    C = _zero_out_fperr(C)
+    D = _zero_out_fperr(D)
+
+    result = (((count*count - 1.)*D / (B*B) - 3*((count-1.)**2)) /
+              ((count - 2.)*(count-3.)))
+    if isinstance(result, np.ndarray):
+        result = np.where(B == 0, 0, result)
+        result[count < 4] = np.nan
+        return result
+    else:
+        result = 0 if B == 0 else result
+        if count < 4:
+            return np.nan
+        return result
+
 def nanprod(values, axis=None, skipna=True):
     mask = isnull(values)
     if skipna and not issubclass(values.dtype.type, np.integer):

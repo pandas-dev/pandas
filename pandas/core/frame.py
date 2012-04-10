@@ -3642,6 +3642,17 @@ class DataFrame(NDFrame):
         return self._reduce(nanops.nanskew, axis=axis, skipna=skipna,
                             numeric_only=None)
 
+
+    @Substitution(name='unbiased kurtosis', shortname='kurt',
+                  na_action=_doc_exclude_na, extras='')
+    @Appender(_stat_doc)
+    def kurt(self, axis=0, skipna=True, level=None):
+        if level is not None:
+            return self._agg_by_level('kurt', axis=axis, level=level,
+                                      skipna=skipna)
+        return self._reduce(nanops.nankurt, axis=axis, skipna=skipna,
+                            numeric_only=None)
+
     def _agg_by_level(self, name, axis=0, level=0, skipna=True, **kwds):
         grouped = self.groupby(level=level, axis=axis)
         if hasattr(grouped, name) and skipna:

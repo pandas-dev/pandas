@@ -4349,6 +4349,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         self._check_stat_op('skew', alt)
 
+    def test_kurt(self):
+        from scipy.stats import kurtosis
+
+        def alt(x):
+            if len(x) < 4:
+                return np.nan
+            return kurtosis(x, bias=False)
+
+        self._check_stat_op('kurt', alt)
+
     def _check_stat_op(self, name, alternative, frame=None, has_skipna=True,
                        has_numeric_only=False):
         if frame is None:
