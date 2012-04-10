@@ -310,11 +310,14 @@ class TestGroupBy(unittest.TestCase):
                 raise ValueError
             else:
                 return ser.size
-        result = grouped.agg(aggfun)
-        foo = (self.df.A == 'foo').sum()
-        bar = (self.df.A == 'bar').sum()
-        self.assert_((result.xs('foo') == foo).all())
-        self.assert_((result.xs('bar') == bar).all())
+        result = DataFrame().groupby(self.df.A).agg(aggfun)
+
+
+        def aggfun(ser):
+            raise ValueError
+        result = DataFrame().groupby(self.df.A).agg(aggfun)
+        self.assert_(isinstance(result, DataFrame))
+        self.assertEqual(len(result), 0)
 
     def test_basic_regression(self):
         # regression
