@@ -168,35 +168,54 @@ merged : DataFrame
 #----------------------------------------------------------------------
 # Factory helper methods
 
-def _arith_method(func, name, default_axis='columns'):
+def _arith_method(op, name, default_axis='columns'):
+    def na_op(x, y):
+        try:
+            result = op(x, y)
+        except TypeError:
+            xrav = x.ravel()
+            result = np.empty(x.size, dtype=x.dtype)
+            if isinstance(y, np.ndarray):
+                yrav = y.ravel()
+                mask = notnull(xrav) & notnull(yrav)
+                result[mask] = op(xrav[mask], yrav[mask])
+            else:
+                mask = notnull(xrav)
+                result[mask] = op(xrav[mask], y)
+
+            np.putmask(result, -mask, np.nan)
+            result = result.reshape(x.shape)
+
+        return result
+
     @Appender(_arith_doc % name)
     def f(self, other, axis=default_axis, level=None, fill_value=None):
         if isinstance(other, DataFrame):    # Another DataFrame
-            return self._combine_frame(other, func, fill_value, level)
+            return self._combine_frame(other, na_op, fill_value, level)
         elif isinstance(other, Series):
-            return self._combine_series(other, func, fill_value, axis, level)
+            return self._combine_series(other, na_op, fill_value, axis, level)
         elif isinstance(other, (list, tuple)):
             if axis is not None and self._get_axis_name(axis) == 'index':
                 casted = Series(other, index=self.index)
             else:
                 casted = Series(other, index=self.columns)
-            return self._combine_series(casted, func, fill_value, axis, level)
+            return self._combine_series(casted, na_op, fill_value, axis, level)
         elif isinstance(other, np.ndarray):
             if other.ndim == 1:
                 if axis is not None and self._get_axis_name(axis) == 'index':
                     casted = Series(other, index=self.index)
                 else:
                     casted = Series(other, index=self.columns)
-                return self._combine_series(casted, func, fill_value,
+                return self._combine_series(casted, na_op, fill_value,
                                             axis, level)
             elif other.ndim == 2:
                 casted = DataFrame(other, index=self.index,
                                    columns=self.columns)
-                return self._combine_frame(casted, func, fill_value, level)
+                return self._combine_frame(casted, na_op, fill_value, level)
             else:  # pragma: no cover
                 raise ValueError("Bad argument shape")
         else:
-            return self._combine_const(other, func)
+            return self._combine_const(other, na_op)
 
     f.__name__ = name
 

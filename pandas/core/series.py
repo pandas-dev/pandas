@@ -48,14 +48,14 @@ def _arith_method(op, name):
         try:
             result = op(x, y)
         except TypeError:
+            result = np.empty(len(x), dtype=x.dtype)
             if isinstance(y, np.ndarray):
                 mask = notnull(x) & notnull(y)
-                result = np.empty(len(x), dtype=x.dtype)
                 result[mask] = op(x[mask], y[mask])
             else:
                 mask = notnull(x)
-                result = np.empty(len(x), dtype=x.dtype)
                 result[mask] = op(x[mask], y)
+            np.putmask(result, -mask, np.nan)
 
         return result
 

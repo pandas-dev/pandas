@@ -2136,6 +2136,30 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = self.frame2 * 2
         assert_frame_equal(added, expected)
 
+    def test_operators_none_as_na(self):
+        df = DataFrame({"col1": [2,5.0,123,None],
+                        "col2": [1,2,3,4]})
+
+        ops = [operator.add, operator.sub, operator.mul, operator.div]
+
+        for op in ops:
+            filled = df.fillna(np.nan)
+            result = op(df, 3)
+            expected = op(filled, 3)
+            expected[com.isnull(expected)] = None
+            assert_frame_equal(result, expected)
+
+            result = op(df, df)
+            expected = op(filled, filled)
+            expected[com.isnull(expected)] = None
+            assert_frame_equal(result, expected)
+
+            result = op(df, df.fillna(7))
+            assert_frame_equal(result, expected)
+
+            result = op(df.fillna(7), df)
+            assert_frame_equal(result, expected)
+
     def test_logical_operators(self):
         import operator
 
@@ -2154,16 +2178,21 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             assert_frame_equal(result, expected)
 
         df1 = {'a': {'a': True, 'b': False, 'c': False, 'd': True, 'e': True},
-               'b': {'a': False, 'b': True, 'c': False, 'd': False, 'e': False},
-               'c': {'a': False, 'b': False, 'c': True, 'd': False, 'e': False},
+               'b': {'a': False, 'b': True, 'c': False,
+                     'd': False, 'e': False},
+               'c': {'a': False, 'b': False, 'c': True,
+                     'd': False, 'e': False},
                'd': {'a': True, 'b': False, 'c': False, 'd': True, 'e': True},
                'e': {'a': True, 'b': False, 'c': False, 'd': True, 'e': True}}
 
         df2 = {'a': {'a': True, 'b': False, 'c': True, 'd': False, 'e': False},
-               'b': {'a': False, 'b': True, 'c': False, 'd': False, 'e': False},
+               'b': {'a': False, 'b': True, 'c': False,
+                     'd': False, 'e': False},
                'c': {'a': True, 'b': False, 'c': True, 'd': False, 'e': False},
-               'd': {'a': False, 'b': False, 'c': False, 'd': True, 'e': False},
-               'e': {'a': False, 'b': False, 'c': False, 'd': False, 'e': True}}
+               'd': {'a': False, 'b': False, 'c': False,
+                     'd': True, 'e': False},
+               'e': {'a': False, 'b': False, 'c': False,
+                     'd': False, 'e': True}}
 
         df1 = DataFrame(df1)
         df2 = DataFrame(df2)
