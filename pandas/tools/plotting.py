@@ -19,7 +19,7 @@ def scatter_matrix(frame, **kwds):
     Examples
     --------
     >>> df = DataFrame(np.random.randn(1000, 4), columns=['A','B','C','D'])
-    >>> df.scatter_matrix(alpha=0.2)
+    >>> scatter_matrix(df, alpha=0.2)
     """
     df = frame._get_numeric_data()
     n = df.columns.size

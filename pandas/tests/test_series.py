@@ -176,6 +176,7 @@ class TestNanops(unittest.TestCase):
         df = DataFrame(np.empty((10, 0)))
         self.assert_((df.sum(1) == 0).all())
 
+
 class SafeForSparse(object):
     pass
 
@@ -617,6 +618,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(Exception, self.ts.__setitem__,
                           [5, slice(None, None)], 2)
 
+    def test_reshape_non_2d(self):
+        x = Series(np.random.random(201), name='x')
+        self.assertRaises(TypeError, x.reshape, (len(x),))
+
     def test_reshape_2d_return_array(self):
         x = Series(np.random.random(201), name='x')
         result = x.reshape((-1,1))
@@ -916,6 +921,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         from scipy.stats import kurtosis
         alt = lambda x: kurtosis(x, bias=False)
         self._check_stat_op('kurt', alt)
+
+        index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
+                           labels=[[0, 0, 0, 0, 0, 0],
+                                   [0, 1, 2, 0, 1, 2],
+                                   [0, 1, 0, 1, 0, 1]])
+        s = Series(np.random.randn(6), index=index)
+        self.assertAlmostEqual(s.kurt(), s.kurt(level=0)['bar'])
 
     def test_argsort(self):
         self._check_accum_op('argsort')

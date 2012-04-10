@@ -182,6 +182,13 @@ class TestGroupBy(unittest.TestCase):
         self.assertRaises(Exception, grouped.agg, lambda x: x.describe())
         self.assertRaises(Exception, grouped.agg, lambda x: x.index[:2])
 
+    def test_agg_ser_multi_key(self):
+        ser = self.df.C
+        f = lambda x: x.sum()
+        results = self.df.C.groupby([self.df.A, self.df.B]).aggregate(f)
+        expected = self.df.groupby(['A', 'B']).sum()['C']
+        assert_series_equal(results, expected)
+
     def test_get_group(self):
         wp = tm.makePanel()
         grouped = wp.groupby(lambda x: x.month, axis='major')
@@ -288,6 +295,29 @@ class TestGroupBy(unittest.TestCase):
         by_mwkday = self.tsframe.groupby([lambda x: x.month,
                                           lambda x: x.weekday()])
         _check_results(by_mwkday)
+
+    def test_aggregate_item_by_item(self):
+
+        df = self.df.copy()
+        df['E'] = ['a'] * len(self.df)
+        grouped = self.df.groupby('A')
+        def aggfun(ser):
+            return len(ser + 'a')
+        result = grouped.agg(aggfun)
+        self.assertEqual(len(result.columns), 1)
+
+        aggfun = lambda ser: ser.size
+        result = grouped.agg(aggfun)
+        foo = (self.df.A == 'foo').sum()
+        bar = (self.df.A == 'bar').sum()
+        self.assert_((result.xs('foo') == foo).all())
+        self.assert_((result.xs('bar') == bar).all())
+
+        def aggfun(ser):
+            return ser.size
+        result = DataFrame().groupby(self.df.A).agg(aggfun)
+        self.assert_(isinstance(result, DataFrame))
+        self.assertEqual(len(result), 0)
 
     def test_basic_regression(self):
         # regression
@@ -985,6 +1015,14 @@ class TestGroupBy(unittest.TestCase):
         agged = df.groupby(keys).agg(np.mean)
         self.assert_(isinstance(agged.columns, MultiIndex))
 
+        def aggfun(ser):
+            if ser.name == ('foo', 'one'):
+                raise TypeError
+            else:
+                return ser.sum()
+        agged2 = df.groupby(keys).aggregate(aggfun)
+        self.assertEqual(len(agged2.columns) + 1, len(df.columns))
+
     def test_grouping_attrs(self):
         deleveled = self.mframe.reset_index()
         grouped = deleveled.groupby(['first', 'second'])
@@ -1613,6 +1651,19 @@ class TestGroupBy(unittest.TestCase):
 
         result = s.groupby(self.frame['A']).agg(np.sum)
         self.assert_(result.name is None)
+
+    def test_wrap_agg_out(self):
+        grouped = self.three_group.groupby(['A', 'B'])
+        def func(ser):
+            if ser.dtype == np.object:
+                raise TypeError
+            else:
+                return ser.sum()
+        result = grouped.aggregate(func)
+        exp_grouped = self.three_group.ix[:, self.three_group.columns != 'C']
+        expected = exp_grouped.groupby(['A', 'B']).aggregate(func)
+        assert_frame_equal(result, expected)
+
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     tups = map(tuple, df[keys].values)
