@@ -2702,6 +2702,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.frame.info(buf=io)
         self.tsframe.info(buf=io)
 
+        frame = DataFrame(np.random(5, 3))
+        frame.info()
+        frame.info(verbose=False)
+
     def test_dtypes(self):
         self.mixed_frame['bool'] = self.mixed_frame['A'] > 0
         result = self.mixed_frame.dtypes
