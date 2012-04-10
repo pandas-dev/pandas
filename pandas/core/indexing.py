@@ -137,7 +137,7 @@ class _NDFrameIndexer(object):
         # df.ix[d1:d2, 0] -> columns first (True)
         # df.ix[0, ['C', 'B', A']] -> rows first (False)
         for i, key in enumerate(tup):
-            if _is_label_like(key):
+            if _is_label_like(key) or isinstance(key, tuple):
                 section = self._getitem_axis(key, axis=i)
 
                 # might have been a MultiIndex

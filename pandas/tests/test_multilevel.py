@@ -255,6 +255,15 @@ class TestMultiLevel(unittest.TestCase):
         assert_series_equal(result, expected)
         assert_series_equal(result, expected2)
 
+    def test_getitem_setitem_tuple_plus_columns(self):
+        # GH #1013
+
+        df = self.ymd[:5]
+
+        result = df.ix[(2000, 1, 6), ['A', 'B', 'C']]
+        expected = df.ix[2000, 1, 6][['A', 'B', 'C']]
+        assert_series_equal(result, expected)
+
     def test_xs(self):
         xs = self.frame.xs(('bar', 'two'))
         xs2 = self.frame.ix[('bar', 'two')]
@@ -1251,6 +1260,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         # NumPy bug
         # repr(index.get_level_values(1))
+
 
 if __name__ == '__main__':
 

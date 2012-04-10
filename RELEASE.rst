@@ -43,6 +43,8 @@ pandas 0.7.3
 **Bug fixes**
 
   - Don't attach nonsense 'result' name to groupby results (GH #995)
+  - Fix logic error when selecting part of a row in a DataFrame with a
+    MultiIndex index (GH #1013)
 
 pandas 0.7.2
 ============
