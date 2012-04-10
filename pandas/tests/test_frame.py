@@ -4372,6 +4372,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         self._check_stat_op('kurt', alt)
 
+        index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
+                           labels=[[0, 0, 0, 0, 0, 0],
+                                   [0, 1, 2, 0, 1, 2],
+                                   [0, 1, 0, 1, 0, 1]])
+        df = DataFrame(np.random.randn(6, 3), index=index)
+        assert_series_equal(df.kurt(), df.kurt(level=0).xs('bar'))
+
     def _check_stat_op(self, name, alternative, frame=None, has_skipna=True,
                        has_numeric_only=False):
         if frame is None:

@@ -922,6 +922,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         alt = lambda x: kurtosis(x, bias=False)
         self._check_stat_op('kurt', alt)
 
+        index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
+                           labels=[[0, 0, 0, 0, 0, 0],
+                                   [0, 1, 2, 0, 1, 2],
+                                   [0, 1, 0, 1, 0, 1]])
+        s = Series(np.random.randn(6), index=index)
+        self.assertAlmostEqual(s.kurt(), s.kurt(level=0)['bar'])
+
     def test_argsort(self):
         self._check_accum_op('argsort')
         argsorted = self.ts.argsort()
