@@ -38,6 +38,8 @@ class TestSeriesPlots(unittest.TestCase):
         _check_plot_works(self.ts.plot, use_index=False)
         _check_plot_works(self.ts.plot, rot=0)
         _check_plot_works(self.ts.plot, style='.', logy=True)
+        _check_plot_works(self.ts.plot, style='.', logx=True)
+        _check_plot_works(self.ts.plot, style='.', loglog=True)
         _check_plot_works(self.ts[:10].plot, kind='bar')
         _check_plot_works(self.series[:5].plot, kind='bar')
         _check_plot_works(self.series[:5].plot, kind='line')
@@ -79,6 +81,12 @@ class TestDataFramePlots(unittest.TestCase):
         df = DataFrame(np.random.rand(10, 3),
                        index=list(string.ascii_letters[:10]))
         _check_plot_works(df.plot, use_index=True)
+        _check_plot_works(df.plot, sort_columns=False)
+        _check_plot_works(df.plot, yticks=[1, 5, 10])
+        _check_plot_works(df.plot, xticks=[1, 5, 10])
+        _check_plot_works(df.plot, ylim=(-100, 100), xlim=(-100, 100))
+        _check_plot_works(df.plot, subplots=True, title='blah')
+        _check_plot_works(df.plot, title='blah')
 
         tuples = zip(list(string.ascii_letters[:10]), range(10))
         df = DataFrame(np.random.rand(10, 3),
@@ -94,6 +102,7 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(df.plot, kind='bar')
         _check_plot_works(df.plot, kind='bar', legend=False)
         _check_plot_works(df.plot, kind='bar', subplots=True)
+        _check_plot_works(df.plot, kind='bar', stacked=True)
 
         df = DataFrame(np.random.randn(10, 15),
                        index=list(string.ascii_letters[:10]),
@@ -125,6 +134,14 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(df.hist)
         _check_plot_works(df.hist, grid=False)
 
+        #make sure layout is handled
+        df = DataFrame(np.random.randn(100, 3))
+        _check_plot_works(df.hist)
+
+        #make sure layout is handled
+        df = DataFrame(np.random.randn(100, 6))
+        _check_plot_works(df.hist)
+
     @slow
     def test_scatter(self):
         df = DataFrame(np.random.randn(100, 4))
@@ -134,6 +151,13 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(scat)
         _check_plot_works(scat, marker='+')
         _check_plot_works(scat, vmin=0)
+
+        def scat2(x, y, by=None, ax=None, figsize=None):
+            return plt.scatter_plot(df, x, y, by, ax, figsize=None)
+
+        _check_plot_works(scat2, 0, 1)
+        grouper = Series(np.repeat([1, 2, 3, 4, 5], 20), df.index)
+        _check_plot_works(scat2, 0, 1, by=grouper)
 
     @slow
     def test_plot_int_columns(self):
