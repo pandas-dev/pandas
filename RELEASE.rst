@@ -33,6 +33,7 @@ pandas 0.7.3
     result of apply (GH #938)
   - scatter_matrix method in pandas/tools/plotting.py (PR #935)
   - Add ``kurt`` methods to Series and DataFrame (PR #964)
+  - Can pass dict of column -> list/set NA values for text parsers (GH #754)
 
 **API Changes**
 

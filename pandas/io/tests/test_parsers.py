@@ -781,6 +781,20 @@ bar"""
         df = read_fwf(StringIO(data3), colspecs=colspecs, delimiter='~', header=None)
         assert_frame_equal(df, expected)
 
+    def test_na_value_dict(self):
+        data = """A,B,C
+foo,bar,NA
+bar,foo,foo
+foo,bar,NA
+bar,foo,foo"""
+
+        df = read_csv(StringIO(data),
+                      na_values={'A': ['foo'], 'B': ['bar']})
+        expected = DataFrame({'A': [np.nan, 'bar', np.nan, 'bar'],
+                              'B': [np.nan, 'foo', np.nan, 'foo'],
+                              'C': [np.nan, 'foo', np.nan, 'foo']})
+        assert_frame_equal(df, expected)
+
     @slow
     def test_url(self):
         # HTTP(S)
