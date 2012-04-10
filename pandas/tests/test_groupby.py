@@ -289,6 +289,9 @@ class TestGroupBy(unittest.TestCase):
                                           lambda x: x.weekday()])
         _check_results(by_mwkday)
 
+    def test_aggregate_item_by_item(self):
+        pass
+
     def test_basic_regression(self):
         # regression
         T = [1.0*x for x in range(1,10) *10][:1095]
