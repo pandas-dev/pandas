@@ -1252,6 +1252,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series([True, True, True])
         assert_series_equal(result, expected)
 
+    def test_comparison_different_length(self):
+        a = Series(['a', 'b', 'c'])
+        b = Series(['b', 'a'])
+        self.assertRaises(ValueError, a.__lt__, b)
+
     def test_between(self):
         from pandas import DateRange
 

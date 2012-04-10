@@ -549,6 +549,10 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op):
         ndarray[uint8_t, cast=True] result
         int flag
 
+    if n != len(right):
+        raise ValueError('Arrays were different lengths: %d vs %d'
+                         % (n, len(right)))
+
     if op is operator.lt:
         flag = cpython.Py_LT
     elif op is operator.le:
@@ -612,6 +616,11 @@ def scalar_binop(ndarray[object] values, object val, object op):
 def vec_binop(ndarray[object] left, ndarray[object] right, object op):
     cdef:
         Py_ssize_t i, n = len(left)
+        ndarray[object] result
+
+    if n != len(right):
+        raise ValueError('Arrays were different lengths: %d vs %d'
+                         % (n, len(right)))
 
     result = np.empty(n, dtype=object)
 
