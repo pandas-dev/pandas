@@ -120,7 +120,7 @@ def _read(cls, filepath_or_buffer, kwds):
     if isinstance(filepath_or_buffer, str) and _is_url(filepath_or_buffer):
         from urllib2 import urlopen
         filepath_or_buffer = urlopen(filepath_or_buffer)
-        if py3compat.PY3:
+        if py3compat.PY3:  # pragma: no cover
             from io import TextIOWrapper
             if encoding:
                 errors = 'strict'
@@ -745,6 +745,11 @@ class FixedWidthFieldParser(TextParser):
 #-------------------------------------------------------------------------------
 # ExcelFile class
 
+_openpyxl_msg = ("\nFor parsing .xlsx files 'openpyxl' is required.\n"
+                 "You can install it via 'easy_install openpyxl' or "
+                 "'pip install openpyxl'.\nAlternatively, you could save"
+                 " the .xlsx file as a .xls file.\n")
+
 
 class ExcelFile(object):
     """
@@ -767,10 +772,8 @@ class ExcelFile(object):
             try:
                 from openpyxl.reader.excel import load_workbook
                 self.book = load_workbook(path, use_iterators=True)
-            except ImportError:
-                raise ImportError("\nFor parsing .xlsx files 'openpyxl' is required.\n"
-                      "You can install it via 'easy_install openpyxl' or 'pip install openpyxl'.\n"
-                      "Alternatively, you could save the .xlsx file as a .xls file.\n")
+            except ImportError:  # pragma: no cover
+                raise ImportError(_openpyxl_msg)
         self.path = path
 
     def __repr__(self):
