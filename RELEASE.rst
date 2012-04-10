@@ -29,6 +29,9 @@ pandas 0.7.3
 
 **New features / modules**
 
+  - Add group_keys argument to groupby to not add group names to MultiIndex in
+    result of apply (GH #938)
+
 **API Changes**
 
   - Calling apply on grouped Series, e.g. describe(), will no longer yield

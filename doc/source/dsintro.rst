@@ -747,3 +747,15 @@ For example, using the earlier example data, we could do:
     wp.major_xs(wp.major_axis[2])
     wp.minor_axis
     wp.minor_xs('C')
+
+Conversion to DataFrame
+~~~~~~~~~~~~~~~~~~~~~~~
+
+A Panel can be represented in 2D form as a hierarchically indexed DataFrame. See the section :ref:`hierarchical indexing <indexing.hierarchical>` for more on this. To convert a Panel to a DataFrame, use the ``to_frame`` method:
+
+.. ipython:: python
+
+   panel = Panel(np.random.randn(3, 5, 4), items=['one', 'two', 'three'],
+                 major_axis=DateRange('1/1/2000', periods=5),
+                 minor_axis=['a', 'b', 'c', 'd'])
+   panel.to_frame()
