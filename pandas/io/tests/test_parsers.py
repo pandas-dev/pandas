@@ -781,6 +781,8 @@ bar"""
         df = read_fwf(StringIO(data3), colspecs=colspecs, delimiter='~', header=None)
         assert_frame_equal(df, expected)
 
+        self.assertRaises(ValueError, read_fwf, StringIO(data3),
+                          colspecs=colspecs, widths=[6, 10, 10, 7])
     def test_na_value_dict(self):
         data = """A,B,C
 foo,bar,NA
