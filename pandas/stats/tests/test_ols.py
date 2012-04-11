@@ -287,6 +287,21 @@ class TestOLSMisc(unittest.TestCase):
         assert_series_equal(model1.y_predict, model1.y_fitted)
         assert_almost_equal(model1._y_predict_raw, model1._y_fitted_raw)
 
+    def test_predict(self):
+        y = tm.makeTimeSeries()
+        x = tm.makeTimeDataFrame()
+        model1 = ols(y=y, x=x)
+        assert_series_equal(model1.predict(x), model1.y_predict)
+        x2 = x.reindex(columns=x.columns[::-1])
+        assert_series_equal(model1.predict(x2), model1.y_predict)
+
+        x3 = x2 + 10
+        pred3 = model1.predict(x3)
+        x3['intercept'] = 1.
+        x3 = x3.reindex(columns = model1.beta.index)
+        expected = Series(x3.values.dot(model1.beta.values), x3.index)
+        assert_series_equal(expected, pred3)
+
     def test_longpanel_series_combo(self):
         wp = tm.makePanel()
         lp = wp.to_frame()

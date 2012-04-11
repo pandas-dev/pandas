@@ -381,6 +381,43 @@ class OLS(object):
         For in-sample, this is same as y_fitted."""
         return self.y_fitted
 
+    def predict(self, new_y_values, fill_value=None, fill_method=None,
+                axis=0):
+        """
+        Parameters
+        ----------
+        new_y_values : Series or DataFrame
+        fill_value : scalar or dict, default None
+        fill_method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
+        axis : {0, 1}, default 0
+            See DataFrame.fillna for more details
+
+        Notes
+        -----
+        1. If both fill_value and fill_method are None then NaNs are dropped
+        (this is the default behavior)
+        2. An intercept will be automatically added to the new_y_values if
+           the model was fitted using an intercept
+
+        Returns
+        -------
+        Series of predicted values
+        """
+        orig_y = new_y_values
+        if fill_value is None and fill_method is None:
+            new_y_values = new_y_values.dropna(how='any')
+        else:
+            new_y_values = new_y_values.fillna(value=fill_value,
+                                               method=fill_method, axis=axis)
+        if isinstance(new_y_values, Series):
+            new_y_values = DataFrame({'x' : new_y_values})
+        if self._intercept:
+            new_y_values['intercept'] = 1.
+
+        new_y_values = new_y_values.reindex(columns=self._x.columns)
+        rs = self.sm_ols.model.predict(new_y_values.values)
+        return Series(rs, new_y_values.index).reindex(orig_y.index)
+
     RESULT_FIELDS = ['r2', 'r2_adj', 'df', 'df_model', 'df_resid', 'rmse',
                      'f_stat', 'beta', 'std_err', 't_stat', 'p_value', 'nobs']
 
