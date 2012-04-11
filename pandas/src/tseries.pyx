@@ -521,7 +521,7 @@ def scalar_compare(ndarray[object] values, object val, object op):
     else:
         raise ValueError('Unrecognized operator')
 
-    result = np.empty(n, dtype=bool)
+    result = np.empty(n, dtype=bool).view(np.uint8)
 
     if flag == cpython.Py_NE:
         for i in range(n):
@@ -538,7 +538,7 @@ def scalar_compare(ndarray[object] values, object val, object op):
             else:
                 result[i] = cpython.PyObject_RichCompareBool(x, val, flag)
 
-    return result
+    return result.view(bool)
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -568,7 +568,7 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op):
     else:
         raise ValueError('Unrecognized operator')
 
-    result = np.empty(n, dtype=bool)
+    result = np.empty(n, dtype=bool).view(np.uint8)
 
     if flag == cpython.Py_NE:
         for i in range(n):
@@ -589,7 +589,7 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op):
             else:
                 result[i] = cpython.PyObject_RichCompareBool(x, y, flag)
 
-    return result
+    return result.view(bool)
 
 
 @cython.wraparound(False)
@@ -597,7 +597,7 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op):
 def scalar_binop(ndarray[object] values, object val, object op):
     cdef:
         Py_ssize_t i, n = len(values)
-        ndarray[uint8_t, cast=True] result
+        ndarray[object] result
         object x
 
     result = np.empty(n, dtype=object)
