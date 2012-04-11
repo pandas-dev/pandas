@@ -1233,6 +1233,35 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         result = self.frame.T.ix[:, ['foo', 'qux']]
         assert_frame_equal(result, expected.T)
 
+    def test_setitem_multiple_partial(self):
+        expected = self.frame.copy()
+        result = self.frame.copy()
+        result.ix[['foo', 'bar']] = 0
+        expected.ix['foo'] = 0
+        expected.ix['bar'] = 0
+        assert_frame_equal(result, expected)
+
+        expected = self.frame.copy()
+        result = self.frame.copy()
+        result.ix['foo':'bar'] = 0
+        expected.ix['foo'] = 0
+        expected.ix['bar'] = 0
+        assert_frame_equal(result, expected)
+
+        expected = self.frame['A'].copy()
+        result = self.frame['A'].copy()
+        result.ix[['foo', 'bar']] = 0
+        expected.ix['foo'] = 0
+        expected.ix['bar'] = 0
+        assert_series_equal(result, expected)
+
+        expected = self.frame['A'].copy()
+        result = self.frame['A'].copy()
+        result.ix['foo':'bar'] = 0
+        expected.ix['foo'] = 0
+        expected.ix['bar'] = 0
+        assert_series_equal(result, expected)
+
     def test_drop_level(self):
         result = self.frame.drop(['bar', 'qux'], level='first')
         expected = self.frame.ix[[0, 1, 2, 5, 6]]
