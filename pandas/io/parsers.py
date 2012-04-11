@@ -116,6 +116,7 @@ def _is_url(url):
 
 def _read(cls, filepath_or_buffer, kwds):
     "Generic reader of line files."
+    encoding = kwds.get('encoding', None)
 
     if isinstance(filepath_or_buffer, str) and _is_url(filepath_or_buffer):
         from urllib2 import urlopen
@@ -132,7 +133,6 @@ def _read(cls, filepath_or_buffer, kwds):
     if hasattr(filepath_or_buffer, 'read'):
         f = filepath_or_buffer
     else:
-        encoding = kwds.get('encoding', None)
         try:
             # universal newline mode
             f = com._get_handle(filepath_or_buffer, 'U', encoding=encoding)

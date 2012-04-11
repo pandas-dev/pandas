@@ -2140,7 +2140,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame({"col1": [2,5.0,123,None],
                         "col2": [1,2,3,4]})
 
-        ops = [operator.add, operator.sub, operator.mul, operator.div]
+        ops = [operator.add, operator.sub, operator.mul, operator.truediv]
 
         for op in ops:
             filled = df.fillna(np.nan)

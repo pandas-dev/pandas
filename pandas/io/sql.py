@@ -87,7 +87,8 @@ def tquery(sql, con=None, cur=None, retry=True):
                 return tquery(sql, con=con, retry=False)
 
     if result and len(result[0]) == 1:
-        result = list(zip(*result)[0])
+        # python 3 compat
+        result = list(list(zip(*result))[0])
     elif result is None:  # pragma: no cover
         result = []
 

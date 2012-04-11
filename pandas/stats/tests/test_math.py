@@ -16,6 +16,14 @@ from pandas import ols
 
 N, K = 100, 10
 
+_have_statsmodels = True
+try:
+    import statsmodels.api as sm
+except ImportError:
+    try:
+        import scikits.statsmodels.api as sm
+    except ImportError:
+        _have_statsmodels = False
 
 class TestMath(unittest.TestCase):
 
@@ -39,6 +47,9 @@ class TestMath(unittest.TestCase):
         self.assertEqual(0, pmath.rank(Series(0, self.series.index)))
 
     def test_solve_rect(self):
+        if not _have_statsmodels:
+            raise nose.SkipTest
+
         b = Series(np.random.randn(N), self.frame.index)
         result = pmath.solve(self.frame, b)
         expected = ols(y=b, x=self.frame, intercept=False).beta
