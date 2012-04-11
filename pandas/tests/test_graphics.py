@@ -142,6 +142,30 @@ class TestDataFramePlots(unittest.TestCase):
         df = DataFrame(np.random.randn(100, 6))
         _check_plot_works(df.hist)
 
+        #make sure kwargs are handled
+        ser = df[0]
+        xf, yf = 20, 20
+        xrot, yrot = 30, 30
+        ax = ser.hist(xlabelsize=xf, xrot=30, ylabelsize=yf, yrot=30)
+        ytick = ax.get_yticklabels()[0]
+        xtick = ax.get_xticklabels()[0]
+        self.assertAlmostEqual(ytick.get_fontsize(), yf)
+        self.assertAlmostEqual(ytick.get_rotation(), yrot)
+        self.assertAlmostEqual(xtick.get_fontsize(), xf)
+        self.assertAlmostEqual(xtick.get_rotation(), xrot)
+
+        xf, yf = 20, 20
+        xrot, yrot = 30, 30
+        axes = df.hist(xlabelsize=xf, xrot=30, ylabelsize=yf, yrot=30)
+        for i, ax in enumerate(axes.ravel()):
+            if i < len(df.columns):
+                ytick = ax.get_yticklabels()[0]
+                xtick = ax.get_xticklabels()[0]
+                self.assertAlmostEqual(ytick.get_fontsize(), yf)
+                self.assertAlmostEqual(ytick.get_rotation(), yrot)
+                self.assertAlmostEqual(xtick.get_fontsize(), xf)
+                self.assertAlmostEqual(xtick.get_rotation(), xrot)
+
     @slow
     def test_scatter(self):
         df = DataFrame(np.random.randn(100, 4))
