@@ -94,7 +94,7 @@ data into a DataFrame object. They can take a number of arguments:
   - ``converters``: a dictionary of functions for converting values in certain
     columns, where keys are either integers or column labels
   - ``encoding``: a string representing the encoding to use if the contents are
-    non-ascii, for python versions prior to 3 
+    non-ascii, for python versions prior to 3
   - ``verbose`` : show number of NA values inserted in non-numeric columns
 
 .. ipython:: python
@@ -138,6 +138,65 @@ The parsers make every attempt to "do the right thing" and not be very
 fragile. Type inference is a pretty big deal. So if a column can be coerced to
 integer dtype without altering the contents, it will do so. Any non-numeric
 columns will come through as object dtype as with the rest of pandas objects.
+
+Files with Fixed Width Columns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+While `read_csv` reads delimited data, the :func:`~pandas.io.parsers.read_fwf`
+function works with data files that have known and fixed column widths.
+The function parameters to `read_fwf` are largely the same as `read_csv` with
+two extra parameters:
+
+  - ``colspecs``: a list of pairs (tuples), giving the extents of the
+    fixed-width fields of each line as half-open intervals [from, to[
+  - ``widths``: a list of field widths, which can be used instead of
+    ``colspecs`` if the intervals are contiguous
+
+.. ipython:: python
+   :suppress:
+
+   f = open('bar.csv', 'w')
+   data1 = """\
+id8141    360.242940   149.910199   11950.7
+id1594    444.953632   166.985655   11788.4
+id1849    364.136849   183.628767   11806.2
+id1230    413.836124   184.375703   11916.8
+id1948    502.953953   173.237159   12468.3
+"""
+   f.write(data1)
+   f.close()
+
+Consider a typical fixed-width data file:
+
+.. ipython:: python
+
+   print open('bar.csv').read()
+
+In order to parse this file into a DataFrame, we simply need to supply the
+column specifications to the `read_fwf` function along with the file name:
+
+.. ipython:: python
+
+   #Column specifications are a list of half-intervals
+   colspecs = [(0, 6), (8, 20), (21, 33), (34, 43)]
+   df = read_fwf('bar.csv', colspecs=colspecs, header=None, index_col=0)
+   df
+
+Alternatively, you can supply just the column widths for contiguous columns:
+
+.. ipython:: python
+
+   #Widths are a list of integers
+   widths = [6, 14, 13, 10]
+   df = read_fwf('bar.csv', widths=widths, header=None, index_col=0)
+   df
+
+The parser will take care of extra white spaces around the columns
+so it's ok to have extra separation between the columns in the file.
+
+.. ipython:: python
+   :suppress:
+
+   os.remove('bar.csv')
 
 Files with an "implicit" index column
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -281,7 +340,7 @@ function takes a number of arguments. Only the first is required.
   - ``mode`` : Python write mode, default 'w'
   - ``sep`` : Field delimiter for the output file (default "'")
   - ``encoding``: a string representing the encoding to use if the contents are
-    non-ascii, for python versions prior to 3 
+    non-ascii, for python versions prior to 3
 
 Writing a formatted string
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
