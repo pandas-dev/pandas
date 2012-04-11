@@ -9,7 +9,7 @@ from StringIO import StringIO
 
 import numpy as np
 
-from pandas.core.api import DataFrame, Series
+from pandas.core.api import DataFrame, Series, isnull
 from pandas.core.common import _ensure_float64
 from pandas.core.index import MultiIndex
 from pandas.core.panel import Panel
@@ -381,12 +381,13 @@ class OLS(object):
         For in-sample, this is same as y_fitted."""
         return self.y_fitted
 
-    def predict(self, new_y_values, fill_value=None, fill_method=None,
-                axis=0):
+    def predict(self, beta=None, x=None, fill_value=None,
+                fill_method=None, axis=0):
         """
         Parameters
         ----------
-        new_y_values : Series or DataFrame
+        beta : Series
+        x : Series or DataFrame
         fill_value : scalar or dict, default None
         fill_method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
         axis : {0, 1}, default 0
@@ -403,20 +404,34 @@ class OLS(object):
         -------
         Series of predicted values
         """
-        orig_y = new_y_values
-        if fill_value is None and fill_method is None:
-            new_y_values = new_y_values.dropna(how='any')
-        else:
-            new_y_values = new_y_values.fillna(value=fill_value,
-                                               method=fill_method, axis=axis)
-        if isinstance(new_y_values, Series):
-            new_y_values = DataFrame({'x' : new_y_values})
-        if self._intercept:
-            new_y_values['intercept'] = 1.
+        if beta is None and x is None:
+            return self.y_predict
 
-        new_y_values = new_y_values.reindex(columns=self._x.columns)
-        rs = self.sm_ols.model.predict(new_y_values.values)
-        return Series(rs, new_y_values.index).reindex(orig_y.index)
+        if beta is None:
+            beta = self.beta
+        else:
+            beta = beta.reindex(self.beta.index)
+            if isnull(beta).any():
+                raise ValueError('Must supply betas for same variables')
+
+        if x is None:
+            x = self._x
+            orig_x = x
+        else:
+            orig_x = x
+            if fill_value is None and fill_method is None:
+                x = x.dropna(how='any')
+            else:
+                x = x.fillna(value=fill_value, method=fill_method, axis=axis)
+            if isinstance(x, Series):
+                x = DataFrame({'x' : x})
+            if self._intercept:
+                x['intercept'] = 1.
+
+            x = x.reindex(columns=self._x.columns)
+
+        rs = x.values.dot(beta.values)
+        return Series(rs, x.index).reindex(orig_x.index)
 
     RESULT_FIELDS = ['r2', 'r2_adj', 'df', 'df_model', 'df_resid', 'rmse',
                      'f_stat', 'beta', 'std_err', 't_stat', 'p_value', 'nobs']

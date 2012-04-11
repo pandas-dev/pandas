@@ -291,16 +291,28 @@ class TestOLSMisc(unittest.TestCase):
         y = tm.makeTimeSeries()
         x = tm.makeTimeDataFrame()
         model1 = ols(y=y, x=x)
-        assert_series_equal(model1.predict(x), model1.y_predict)
+        assert_series_equal(model1.predict(), model1.y_predict)
+        assert_series_equal(model1.predict(x=x), model1.y_predict)
+        assert_series_equal(model1.predict(beta=model1.beta), model1.y_predict)
+
+        exog = x.copy()
+        exog['intercept'] = 1.
+        rs = Series(exog.values.dot(model1.beta.values), x.index)
+        assert_series_equal(model1.y_predict, rs)
+
         x2 = x.reindex(columns=x.columns[::-1])
-        assert_series_equal(model1.predict(x2), model1.y_predict)
+        assert_series_equal(model1.predict(x=x2), model1.y_predict)
 
         x3 = x2 + 10
-        pred3 = model1.predict(x3)
+        pred3 = model1.predict(x=x3)
         x3['intercept'] = 1.
         x3 = x3.reindex(columns = model1.beta.index)
         expected = Series(x3.values.dot(model1.beta.values), x3.index)
         assert_series_equal(expected, pred3)
+
+        beta = Series(0., model1.beta.index)
+        pred4 = model1.predict(beta=beta)
+        assert_series_equal(Series(0., pred4.index), pred4)
 
     def test_longpanel_series_combo(self):
         wp = tm.makePanel()
