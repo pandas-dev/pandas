@@ -9,7 +9,7 @@ from StringIO import StringIO
 
 import numpy as np
 
-from pandas.core.api import DataFrame, Series
+from pandas.core.api import DataFrame, Series, isnull
 from pandas.core.common import _ensure_float64
 from pandas.core.index import MultiIndex
 from pandas.core.panel import Panel
@@ -380,6 +380,58 @@ class OLS(object):
 
         For in-sample, this is same as y_fitted."""
         return self.y_fitted
+
+    def predict(self, beta=None, x=None, fill_value=None,
+                fill_method=None, axis=0):
+        """
+        Parameters
+        ----------
+        beta : Series
+        x : Series or DataFrame
+        fill_value : scalar or dict, default None
+        fill_method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
+        axis : {0, 1}, default 0
+            See DataFrame.fillna for more details
+
+        Notes
+        -----
+        1. If both fill_value and fill_method are None then NaNs are dropped
+        (this is the default behavior)
+        2. An intercept will be automatically added to the new_y_values if
+           the model was fitted using an intercept
+
+        Returns
+        -------
+        Series of predicted values
+        """
+        if beta is None and x is None:
+            return self.y_predict
+
+        if beta is None:
+            beta = self.beta
+        else:
+            beta = beta.reindex(self.beta.index)
+            if isnull(beta).any():
+                raise ValueError('Must supply betas for same variables')
+
+        if x is None:
+            x = self._x
+            orig_x = x
+        else:
+            orig_x = x
+            if fill_value is None and fill_method is None:
+                x = x.dropna(how='any')
+            else:
+                x = x.fillna(value=fill_value, method=fill_method, axis=axis)
+            if isinstance(x, Series):
+                x = DataFrame({'x' : x})
+            if self._intercept:
+                x['intercept'] = 1.
+
+            x = x.reindex(columns=self._x.columns)
+
+        rs = x.values.dot(beta.values)
+        return Series(rs, x.index).reindex(orig_x.index)
 
     RESULT_FIELDS = ['r2', 'r2_adj', 'df', 'df_model', 'df_resid', 'rmse',
                      'f_stat', 'beta', 'std_err', 't_stat', 'p_value', 'nobs']
