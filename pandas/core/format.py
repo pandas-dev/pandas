@@ -413,6 +413,8 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
         fmt_klass = FloatArrayFormatter
     elif com.is_integer_dtype(values.dtype):
         fmt_klass = IntArrayFormatter
+    elif com.is_datetime64_dtype(values.dtype):
+        fmt_klass = Datetime64Formatter
     else:
         fmt_klass = GenericArrayFormatter
 
@@ -549,6 +551,23 @@ class IntArrayFormatter(GenericArrayFormatter):
         return _make_fixed_width(fmt_values, self.justify)
 
 
+class Datetime64Formatter(GenericArrayFormatter):
+
+    def get_result(self):
+        if self.formatter:
+            formatter = self.formatter
+        else:
+            def formatter(x):
+                if isnull(x):
+                    return 'NaT'
+                else:
+                    return str(x)
+
+        fmt_values = [formatter(x) for x in self.values]
+
+        return _make_fixed_width(fmt_values, self.justify)
+
+
 def _make_fixed_width(strings, justify='right'):
     if len(strings) == 0:
         return strings
@@ -609,7 +628,7 @@ def _has_names(index):
 
 def set_printoptions(precision=None, column_space=None, max_rows=None,
                      max_columns=None, colheader_justify='right',
-                     notebook_repr_html=None, 
+                     notebook_repr_html=None,
                      date_dayfirst=None, date_yearfirst=None):
     """
     Alter default behavior of DataFrame.toString

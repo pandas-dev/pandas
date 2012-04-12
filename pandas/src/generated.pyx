@@ -730,13 +730,12 @@ def backfill_bool(ndarray[uint8_t] old, ndarray[uint8_t] new,
 @cython.wraparound(False)
 def pad_inplace_float64(ndarray[float64_t] values,
                          ndarray[uint8_t, cast=True] mask,
-                            limit=None):
+                         limit=None):
     cdef Py_ssize_t i, N
     cdef float64_t val
     cdef int lim, fill_count = 0
 
     N = len(values)
-    val = np.nan
 
     if limit is None:
         lim = N
@@ -755,17 +754,17 @@ def pad_inplace_float64(ndarray[float64_t] values,
         else:
             fill_count = 0
             val = values[i]
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def pad_inplace_object(ndarray[object] values,
                          ndarray[uint8_t, cast=True] mask,
-                            limit=None):
+                         limit=None):
     cdef Py_ssize_t i, N
     cdef object val
     cdef int lim, fill_count = 0
 
     N = len(values)
-    val = np.nan
 
     if limit is None:
         lim = N
@@ -784,17 +783,17 @@ def pad_inplace_object(ndarray[object] values,
         else:
             fill_count = 0
             val = values[i]
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def pad_inplace_int32(ndarray[int32_t] values,
                          ndarray[uint8_t, cast=True] mask,
-                            limit=None):
+                         limit=None):
     cdef Py_ssize_t i, N
     cdef int32_t val
     cdef int lim, fill_count = 0
 
     N = len(values)
-    val = np.nan
 
     if limit is None:
         lim = N
@@ -813,17 +812,17 @@ def pad_inplace_int32(ndarray[int32_t] values,
         else:
             fill_count = 0
             val = values[i]
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def pad_inplace_int64(ndarray[int64_t] values,
                          ndarray[uint8_t, cast=True] mask,
-                            limit=None):
+                         limit=None):
     cdef Py_ssize_t i, N
     cdef int64_t val
     cdef int lim, fill_count = 0
 
     N = len(values)
-    val = np.nan
 
     if limit is None:
         lim = N
@@ -842,17 +841,17 @@ def pad_inplace_int64(ndarray[int64_t] values,
         else:
             fill_count = 0
             val = values[i]
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def pad_inplace_bool(ndarray[uint8_t] values,
                          ndarray[uint8_t, cast=True] mask,
-                            limit=None):
+                         limit=None):
     cdef Py_ssize_t i, N
     cdef uint8_t val
     cdef int lim, fill_count = 0
 
     N = len(values)
-    val = np.nan
 
     if limit is None:
         lim = N
@@ -871,6 +870,7 @@ def pad_inplace_bool(ndarray[uint8_t] values,
         else:
             fill_count = 0
             val = values[i]
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -1024,8 +1024,6 @@ def pad_2d_inplace_float64(ndarray[float64_t, ndim=2] values,
 
     K, N = (<object> values).shape
 
-    val = np.nan
-
     if limit is None:
         lim = N
     else:
@@ -1055,8 +1053,6 @@ def pad_2d_inplace_object(ndarray[object, ndim=2] values,
     cdef int lim, fill_count = 0
 
     K, N = (<object> values).shape
-
-    val = np.nan
 
     if limit is None:
         lim = N
@@ -1088,8 +1084,6 @@ def pad_2d_inplace_int32(ndarray[int32_t, ndim=2] values,
 
     K, N = (<object> values).shape
 
-    val = np.nan
-
     if limit is None:
         lim = N
     else:
@@ -1120,8 +1114,6 @@ def pad_2d_inplace_int64(ndarray[int64_t, ndim=2] values,
 
     K, N = (<object> values).shape
 
-    val = np.nan
-
     if limit is None:
         lim = N
     else:
@@ -1151,8 +1143,6 @@ def pad_2d_inplace_bool(ndarray[uint8_t, ndim=2] values,
     cdef int lim, fill_count = 0
 
     K, N = (<object> values).shape
-
-    val = np.nan
 
     if limit is None:
         lim = N

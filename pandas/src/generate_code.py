@@ -282,13 +282,12 @@ pad_1d_template = """@cython.boundscheck(False)
 @cython.wraparound(False)
 def pad_inplace_%(name)s(ndarray[%(c_type)s] values,
                          ndarray[uint8_t, cast=True] mask,
-                            limit=None):
+                         limit=None):
     cdef Py_ssize_t i, N
     cdef %(c_type)s val
     cdef int lim, fill_count = 0
 
     N = len(values)
-    val = np.nan
 
     if limit is None:
         lim = N
@@ -307,6 +306,7 @@ def pad_inplace_%(name)s(ndarray[%(c_type)s] values,
         else:
             fill_count = 0
             val = values[i]
+
 """
 
 pad_2d_template = """@cython.boundscheck(False)
@@ -319,8 +319,6 @@ def pad_2d_inplace_%(name)s(ndarray[%(c_type)s, ndim=2] values,
     cdef int lim, fill_count = 0
 
     K, N = (<object> values).shape
-
-    val = np.nan
 
     if limit is None:
         lim = N
@@ -795,6 +793,12 @@ nobool_1d_templates = [left_join_template,
 templates_2d = [take_2d_axis0_template,
                 take_2d_axis1_template]
 
+
+# templates_1d_datetime = [take_1d_template]
+# templates_2d_datetime = [take_2d_axis0_template,
+#                          take_2d_axis1_template]
+
+
 def generate_take_cython_file(path='generated.pyx'):
     with open(path, 'w') as f:
         for template in templates_1d:
@@ -802,6 +806,12 @@ def generate_take_cython_file(path='generated.pyx'):
 
         for template in templates_2d:
             print >> f, generate_from_template(template, ndim=2)
+
+        # for template in templates_1d_datetime:
+        #     print >> f, generate_from_template_datetime(template)
+
+        # for template in templates_2d_datetime:
+        #     print >> f, generate_from_template_datetime(template, ndim=2)
 
         for template in nobool_1d_templates:
             print >> f, generate_from_template(template, exclude=['bool'])

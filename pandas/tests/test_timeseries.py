@@ -42,6 +42,10 @@ from pandas.core.datetools import Minute, BDay, Timestamp
 
 import pandas.core.common as com
 
+import pandas._tseries as lib
+NaT = lib.NaT
+
+
 try:
     import pytz
 except ImportError:
@@ -278,6 +282,14 @@ class TestTimeSeries(unittest.TestCase):
         df = DataFrame({'A': np.random.randn(len(rng)), 'B': dates})
         self.assert_(np.issubdtype(df['B'].dtype, np.datetime64))
 
+    def test_frame_add_datetime64_column(self):
+        rng = date_range('1/1/2000 00:00:00', '1/1/2000 1:59:50',
+                         freq='10s')
+        df = DataFrame(index=np.arange(len(rng)))
+
+        df['A'] = rng
+        self.assert_(np.issubdtype(df['A'].dtype, np.datetime64))
+
     def test_series_ctor_datetime64(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 1:59:50',
                          freq='10s')
@@ -286,6 +298,56 @@ class TestTimeSeries(unittest.TestCase):
         series = Series(dates)
         self.assert_(np.issubdtype(series.dtype, np.datetime64))
 
+    def test_reindex_series_add_nat(self):
+        rng = date_range('1/1/2000 00:00:00', periods=10, freq='10s')
+        series = Series(rng)
+
+        result = series.reindex(range(15))
+        self.assert_(np.issubdtype(result.dtype, np.datetime64))
+
+        mask = result.isnull()
+        self.assert_(mask[-5:].all())
+        self.assert_(not mask[:-5].any())
+
+    def test_reindex_frame_add_nat(self):
+        rng = date_range('1/1/2000 00:00:00', periods=10, freq='10s')
+        df = DataFrame({'A': np.random.randn(len(rng)), 'B': rng})
+
+        result = df.reindex(range(15))
+        self.assert_(np.issubdtype(result['B'].dtype, np.datetime64))
+
+        mask = com.isnull(result)['B']
+        self.assert_(mask[-5:].all())
+        self.assert_(not mask[:-5].any())
+
+    def test_series_repr_nat(self):
+        series = Series([0, 1, 2, NaT], dtype='M8[us]')
+
+        result = repr(series)
+        expected = ('0          1970-01-01 00:00:00\n'
+                    '1   1970-01-01 00:00:00.000001\n'
+                    '2   1970-01-01 00:00:00.000002\n'
+                    '3                          NaT')
+        self.assertEquals(result, expected)
+
+    def test_fillna_nat(self):
+        series = Series([0, 1, 2, NaT], dtype='M8[us]')
+
+        filled = series.fillna(method='pad')
+        filled2 = series.fillna(value=series[2])
+
+        expected = series.copy()
+        expected[3] = expected[2]
+
+        assert_series_equal(filled, expected)
+        assert_series_equal(filled2, expected)
+
+        df = DataFrame({'A': series})
+        filled = df.fillna(method='pad')
+        filled2 = df.fillna(value=series[2])
+        expected = DataFrame({'A': expected})
+        assert_frame_equal(filled, expected)
+        assert_frame_equal(filled2, expected)
 
 def _skip_if_no_pytz():
     try:

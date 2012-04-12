@@ -42,6 +42,11 @@ infer_type(PyObject* obj) {
   }
 }
 
+PANDAS_INLINE npy_int64
+get_nat() {
+  return NPY_MIN_INT64;
+}
+
 PANDAS_INLINE int
 is_integer_object(PyObject* obj) {
   return (!PyBool_Check(obj)) && PyArray_IsIntegerScalar(obj);

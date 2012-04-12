@@ -1910,10 +1910,9 @@ copy : boolean, default False
         if len(self.index) == 0:
             return Series(nan, index=index, name=self.name)
 
-        new_index, fill_vec = self.index.reindex(index, method=method,
+        new_index, indexer = self.index.reindex(index, method=method,
                                                  level=level, limit=limit)
-        fill_vec = com._ensure_int32(fill_vec)
-        new_values = com.take_1d(self.values, fill_vec, fill_value=fill_value)
+        new_values = com.take_1d(self.values, indexer, fill_value=fill_value)
         return Series(new_values, index=new_index, name=self.name)
 
     def reindex_like(self, other, method=None, limit=None):

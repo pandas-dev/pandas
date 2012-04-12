@@ -225,33 +225,12 @@ class Block(object):
         transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
 
         if method == 'pad':
-            _pad(transf(values), limit=limit)
+            com.pad_2d(transf(values), limit=limit)
         else:
-            _backfill(transf(values), limit=limit)
+            com.backfill_2d(transf(values), limit=limit)
 
         return make_block(values, self.items, self.ref_items)
 
-def _pad(values, limit=None):
-    if com.is_float_dtype(values):
-        _method = lib.pad_2d_inplace_float64
-    elif values.dtype == np.object_:
-        _method = lib.pad_2d_inplace_object
-    else: # pragma: no cover
-        raise ValueError('Invalid dtype for padding')
-
-    _method(values, com.isnull(values).view(np.uint8),
-            limit=limit)
-
-def _backfill(values, limit=None):
-    if com.is_float_dtype(values):
-        _method = lib.backfill_2d_inplace_float64
-    elif values.dtype == np.object_:
-        _method = lib.backfill_2d_inplace_object
-    else: # pragma: no cover
-        raise ValueError('Invalid dtype for padding')
-
-    _method(values, com.isnull(values).view(np.uint8),
-            limit=limit)
 
 #-------------------------------------------------------------------------------
 # Is this even possible?
@@ -284,7 +263,7 @@ class ObjectBlock(Block):
                               (np.integer, np.floating, np.bool_))
 
 class DatetimeBlock(IntBlock):
-    pass
+    _can_hold_na = True
 
 
 def make_block(values, items, ref_items, do_integrity_check=False):

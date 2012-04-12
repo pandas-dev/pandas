@@ -65,6 +65,7 @@ cpdef map_indices_list(list index):
 
 from libc.stdlib cimport malloc, free
 
+NaT = util.get_nat()
 
 def ismember(ndarray arr, set values):
     '''
@@ -157,6 +158,8 @@ cdef double NEGINF = -INF
 cpdef checknull(object val):
     if util.is_float_object(val):
         return val != val or val == INF or val == NEGINF
+    elif util.is_datetime64_object(val):
+        return val.view('i8') == NaT
     elif is_array(val):
         return False
     else:

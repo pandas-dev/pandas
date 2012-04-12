@@ -2457,8 +2457,6 @@ class DataFrame(NDFrame):
         -------
         filled : DataFrame
         """
-        from pandas.core.internals import FloatBlock, ObjectBlock
-
         self._consolidate_inplace()
 
         if value is None:
@@ -2468,7 +2466,7 @@ class DataFrame(NDFrame):
             new_blocks = []
             method = com._clean_fill_method(method)
             for block in self._data.blocks:
-                if isinstance(block, (FloatBlock, ObjectBlock)):
+                if block._can_hold_na:
                     newb = block.interpolate(method, axis=axis,
                                              limit=limit, inplace=inplace)
                 else:
