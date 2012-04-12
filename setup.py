@@ -394,6 +394,7 @@ setup(name=DISTNAME,
       package_data={'pandas.io' : ['tests/*.h5',
                                    'tests/*.csv',
                                    'tests/*.xls',
+                                   'tests/*.xlsx',
                                    'tests/*.table'],
                     'pandas.tests' : ['data/*.pickle',
                                       'data/*.csv']
