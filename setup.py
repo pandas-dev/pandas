@@ -40,7 +40,8 @@ if sys.version_info[0] >= 3:
 
     setuptools_kwargs = {'use_2to3': True,
                          'zip_safe': False,
-                         'install_requires': ['python-dateutil >= 2','numpy'],
+                         'install_requires': ['python-dateutil >= 2',
+                                              'numpy >= 1.4'],
                         }
     if not _have_setuptools:
         sys.exit("need setuptools/distribute for Py3k"
@@ -48,7 +49,8 @@ if sys.version_info[0] >= 3:
 
 else:
     setuptools_kwargs = {
-        'install_requires': ['python-dateutil < 2', 'numpy'],
+        'install_requires': ['python-dateutil < 2',
+                             'numpy >= 1.4'],
         'zip_safe' : False,
     }
     if not _have_setuptools:
@@ -147,7 +149,7 @@ Windows binaries built against NumPy 1.6.1
 DISTNAME = 'pandas'
 LICENSE = 'BSD'
 AUTHOR = "The PyData Development Team"
-EMAIL = "pystatsmodels@googlegroups.com"
+EMAIL = "pydata@googlegroups.com"
 URL = "http://pandas.pydata.org"
 DOWNLOAD_URL = ''
 CLASSIFIERS = [
@@ -164,8 +166,8 @@ CLASSIFIERS = [
 
 MAJOR = 0
 MINOR = 7
-MICRO = 1
-ISRELEASED = True
+MICRO = 3
+ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 QUALIFIER = ''
 
@@ -195,10 +197,11 @@ else:
 def write_version_py(filename='pandas/version.py'):
     cnt = """\
 version = '%s'
+short_version = '%s'
 """
     a = open(filename, 'w')
     try:
-        a.write(cnt % FULLVERSION)
+        a.write(cnt % (FULLVERSION, VERSION))
     finally:
         a.close()
 
@@ -347,7 +350,8 @@ sparse_ext = Extension('pandas._sparse',
                        include_dirs=[np.get_include()])
 
 engines_ext = Extension('pandas._engines',
-                        depends=['pandas/src/numpy_helper.h'],
+                        depends=['pandas/src/numpy_helper.h',
+                                 'pandas/src/util.pxd'],
                         sources=[srcpath('engines', suffix=suffix)],
                         include_dirs=[np.get_include()])
 
@@ -389,9 +393,11 @@ setup(name=DISTNAME,
                 ],
       package_data={'pandas.io' : ['tests/*.h5',
                                    'tests/*.csv',
-                                   'tests/*.xls'],
-                    'pandas.tests' : ['data/*.pickle']
-                    },
+                                   'tests/*.xls',
+                                   'tests/*.table'],
+                    'pandas.tests' : ['data/*.pickle',
+                                      'data/*.csv']
+                   },
       ext_modules=extensions,
       maintainer_email=EMAIL,
       description=DESCRIPTION,

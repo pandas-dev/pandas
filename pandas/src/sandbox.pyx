@@ -210,3 +210,77 @@ cdef class Int64HashTable:
                 count += 1
 
         return labels
+
+#----------------------------------------------------------------------
+# isnull / notnull related
+
+cdef double INF = <double> np.inf
+cdef double NEGINF = -INF
+
+cdef inline bint _checknull(object val):
+    return not np.PyArray_Check(val) and (val is None or val != val)
+
+cdef inline bint _checknan(object val):
+    return not np.PyArray_Check(val) and val != val
+
+cpdef checknull(object val):
+    if util.is_float_object(val):
+        return val != val or val == INF or val == NEGINF
+    elif is_array(val):
+        return False
+    else:
+        return _checknull(val)
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def isnullobj(ndarray[object] arr):
+    cdef Py_ssize_t i, n
+    cdef object val
+    cdef ndarray[uint8_t] result
+
+    n = len(arr)
+    result = np.zeros(n, dtype=np.uint8)
+    for i from 0 <= i < n:
+        result[i] = _checknull(arr[i])
+    return result.view(np.bool_)
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def isnullobj2d(ndarray[object, ndim=2] arr):
+    cdef Py_ssize_t i, j, n, m
+    cdef object val
+    cdef ndarray[uint8_t, ndim=2] result
+
+    n, m = (<object> arr).shape
+    result = np.zeros((n, m), dtype=np.uint8)
+    for i from 0 <= i < n:
+        for j from 0 <= j < m:
+            val = arr[i, j]
+            if checknull(val):
+                result[i, j] = 1
+    return result.view(np.bool_)
+
+from util cimport is_array
+
+from numpy import nan
+
+cdef extern from "math.h":
+    double sqrt(double x)
+    double fabs(double)
+
+cdef float64_t FP_ERR = 1e-13
+
+cimport util
+
+cdef:
+    int TIEBREAK_AVERAGE = 0
+    int TIEBREAK_MIN = 1
+    int TIEBREAK_MAX = 2
+    int TIEBREAK_FIRST = 3
+
+tiebreakers = {
+    'average' : TIEBREAK_AVERAGE,
+    'min' : TIEBREAK_MIN,
+    'max' : TIEBREAK_MAX,
+    'first' : TIEBREAK_FIRST
+}

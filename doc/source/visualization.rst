@@ -112,8 +112,8 @@ Other plotting features
 
 .. _visualization.barplot:
 
-Plotting non-time series data
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Bar plots
+~~~~~~~~~
 
 For labeled, non-time series data, you may wish to produce a bar plot:
 
@@ -124,8 +124,47 @@ For labeled, non-time series data, you may wish to produce a bar plot:
    @savefig bar_plot_ex.png width=4.5in
    df.ix[5].plot(kind='bar'); plt.axhline(0, color='k')
 
-Histogramming
-~~~~~~~~~~~~~
+Calling a DataFrame's ``plot`` method with ``kind='bar'`` produces a multiple
+bar plot:
+
+.. ipython:: python
+   :suppress:
+
+   plt.figure();
+
+.. ipython:: python
+
+   df2 = DataFrame(np.random.rand(10, 4), columns=['a', 'b', 'c', 'd'])
+
+   @savefig bar_plot_multi_ex.png width=5in
+   df2.plot(kind='bar');
+
+To produce a stacked bar plot, pass ``stacked=True``:
+
+.. ipython:: python
+   :suppress:
+
+   plt.figure();
+
+.. ipython:: python
+
+   @savefig bar_plot_stacked_ex.png width=5in
+   df2.plot(kind='bar', stacked=True);
+
+To get horizontal bar plots, pass ``kind='barh'``:
+
+.. ipython:: python
+   :suppress:
+
+   plt.figure();
+
+.. ipython:: python
+
+   @savefig barh_plot_stacked_ex.png width=5in
+   df2.plot(kind='barh', stacked=True);
+
+Histograms
+~~~~~~~~~~
 .. ipython:: python
 
    plt.figure();
@@ -160,7 +199,7 @@ a uniform random variable on [0,1).
    plt.figure();
 
    @savefig box_plot_ex.png width=4.5in
-   df.boxplot()
+   bp = df.boxplot()
 
 You can create a stratified boxplot using the ``by`` keyword argument to create
 groupings.  For instance,
@@ -173,7 +212,7 @@ groupings.  For instance,
    plt.figure();
 
    @savefig box_plot_ex2.png width=4.5in
-   df.boxplot(by='X')
+   bp = df.boxplot(by='X')
 
 You can also pass a subset of columns to plot, as well as group by multiple
 columns:
@@ -187,4 +226,20 @@ columns:
    plt.figure();
 
    @savefig box_plot_ex3.png width=4.5in
-   df.boxplot(column=['Col1','Col2'], by=['X','Y'])
+   bp = df.boxplot(column=['Col1','Col2'], by=['X','Y'])
+
+.. _visualization.scatter_matrix:
+
+Scatter plot matrix
+~~~~~~~~~~~~~~~~~~~
+
+*New in 0.7.3.* You can create a scatter plot matrix using the
+ ``scatter_matrix`` method in ``pandas.tools.plotting``:
+
+.. ipython:: python
+
+   from pandas.tools.plotting import scatter_matrix
+   df = DataFrame(np.random.randn(1000, 4), columns=['a', 'b', 'c', 'd'])
+
+   @savefig scatter_matrix_ex.png width=6in
+   scatter_matrix(df, alpha=0.2, figsize=(8, 8))

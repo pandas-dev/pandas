@@ -5,6 +5,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
 
+from collections import defaultdict
 from itertools import izip
 import operator
 from distutils.version import LooseVersion
@@ -47,14 +48,14 @@ def _arith_method(op, name):
         try:
             result = op(x, y)
         except TypeError:
+            result = np.empty(len(x), dtype=x.dtype)
             if isinstance(y, np.ndarray):
                 mask = notnull(x) & notnull(y)
-                result = np.empty(len(x), dtype=x.dtype)
                 result[mask] = op(x[mask], y[mask])
             else:
                 mask = notnull(x)
-                result = np.empty(len(x), dtype=x.dtype)
                 result[mask] = op(x[mask], y)
+            np.putmask(result, -mask, np.nan)
 
         return result
 
@@ -264,6 +265,9 @@ class Series(np.ndarray, generic.PandasObject):
                 data = lib.fast_multiget(data, index, default=np.nan)
             except TypeError:
                 data = [data.get(i, nan) for i in index]
+
+        if dtype is not None:
+            dtype = np.dtype(dtype)
 
         subarr = _sanitize_array(data, index, dtype, copy,
                                  raise_cast_failure=True)
@@ -560,6 +564,22 @@ copy : boolean, default False
                 raise ValueError('Cannot assign nan to integer series')
 
         ndarray.__setslice__(self, i, j, value)
+
+    def astype(self, dtype):
+        """
+        See numpy.ndarray.astype
+        """
+        casted = com._astype_nansafe(self.values, dtype)
+        return self._constructor(casted, index=self.index, name=self.name)
+
+    def reshape(self, newshape, order='C'):
+        """
+        See numpy.ndarray.reshape
+        """
+        if isinstance(newshape, tuple) and len(newshape) > 1:
+            return self.values.reshape(newshape, order=order)
+        else:
+            return ndarray.reshape(self, newshape, order)
 
     def get(self, label, default=None):
         """
@@ -892,6 +912,10 @@ copy : boolean, default False
         """
         if level is not None:
             mask = notnull(self.values)
+
+            if isinstance(level, basestring):
+                level = self.index._get_level_number(level)
+
             level_index = self.index.levels[level]
 
             if len(self) == 0:
@@ -915,11 +939,8 @@ copy : boolean, default False
         -------
         counts : Series
         """
-        from collections import defaultdict
-        counter = defaultdict(lambda: 0)
-        for value in self.dropna().values:
-            counter[value] += 1
-        return Series(counter).order(ascending=False)
+        import pandas.core.algorithms as algos
+        return algos.value_counts(self.values, sort=True, ascending=False)
 
     def unique(self):
         """
@@ -1000,23 +1021,25 @@ copy : boolean, default False
             return self._agg_by_level('max', level=level, skipna=skipna)
         return nanops.nanmax(self.values, skipna=skipna)
 
-    @Substitution(name='unbiased standard deviation', shortname='stdev',
+    @Substitution(name='standard deviation', shortname='stdev',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
     def std(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
             level=None):
         if level is not None:
-            return self._agg_by_level('std', level=level, skipna=skipna)
-        return np.sqrt(nanops.nanvar(self.values, skipna=skipna))
+            return self._agg_by_level('std', level=level, skipna=skipna,
+                                      ddof=ddof)
+        return np.sqrt(nanops.nanvar(self.values, skipna=skipna, ddof=ddof))
 
-    @Substitution(name='unbiased variance', shortname='var',
+    @Substitution(name='variance', shortname='var',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
     def var(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
             level=None):
         if level is not None:
-            return self._agg_by_level('var', level=level, skipna=skipna)
-        return nanops.nanvar(self.values, skipna=skipna)
+            return self._agg_by_level('var', level=level, skipna=skipna,
+                                      ddof=ddof)
+        return nanops.nanvar(self.values, skipna=skipna, ddof=ddof)
 
     @Substitution(name='unbiased skewness', shortname='skew',
                   na_action=_doc_exclude_na, extras='')
@@ -1027,12 +1050,21 @@ copy : boolean, default False
 
         return nanops.nanskew(self.values, skipna=skipna)
 
-    def _agg_by_level(self, name, level=0, skipna=True):
+    @Substitution(name='unbiased kurtosis', shortname='kurt',
+                  na_action=_doc_exclude_na, extras='')
+    @Appender(_stat_doc)
+    def kurt(self, skipna=True, level=None):
+        if level is not None:
+            return self._agg_by_level('kurt', level=level, skipna=skipna)
+
+        return nanops.nankurt(self.values, skipna=skipna)
+
+    def _agg_by_level(self, name, level=0, skipna=True, **kwds):
         grouped = self.groupby(level=level)
         if hasattr(grouped, name) and skipna:
-            return getattr(grouped, name)()
+            return getattr(grouped, name)(**kwds)
         method = getattr(type(self), name)
-        applyf = lambda x: method(x, skipna=skipna)
+        applyf = lambda x: method(x, skipna=skipna, **kwds)
         return grouped.aggregate(applyf)
 
     def idxmin(self, axis=None, out=None, skipna=True):
@@ -1218,11 +1250,17 @@ copy : boolean, default False
             return np.nan
         return scoreatpercentile(valid_values, q * 100)
 
-    def describe(self):
+    def describe(self, percentile_width=50):
         """
         Generate various summary statistics of Series, excluding NaN
-        values. These include: count, mean, std, min, max, and 10%/50%/90%
-        quantiles
+        values. These include: count, mean, std, min, max, and
+        lower%/50%/upper% percentiles
+
+        Parameters
+        ----------
+        percentile_width : float, optional
+            width of the desired uncertainty interval, default is 50,
+            which corresponds to lower=25, upper=75
 
         Returns
         -------
@@ -1242,11 +1280,24 @@ copy : boolean, default False
             data = [self.count(), len(objcounts), top, freq]
 
         else:
+
+            lb = .5 * (1. - percentile_width/100.)
+            ub = 1. - lb
+
+
+            def pretty_name(x):
+                x *= 100
+                if x == int(x):
+                    return '%.0f%%' % x
+                else:
+                    return '%.1f%%' % x
+
             names = ['count', 'mean', 'std', 'min',
-                     '25%', '50%', '75%', 'max']
+                     pretty_name(lb), '50%', pretty_name(ub),
+                     'max']
 
             data = [self.count(), self.mean(), self.std(), self.min(),
-                    self.quantile(.25), self.median(), self.quantile(.75),
+                    self.quantile(lb), self.median(), self.quantile(ub),
                     self.max()]
 
         return Series(data, index=names)
@@ -1571,19 +1622,30 @@ copy : boolean, default False
             return Series(np.argsort(values, kind=kind), index=self.index,
                           name=self.name)
 
-    def rank(self):
+    def rank(self, method='average', na_option='keep', ascending=True):
         """
         Compute data ranks (1 through n). Equal values are assigned a rank that
         is the average of the ranks of those values
+
+        Parameters
+        ----------
+        method : {'average', 'min', 'max', 'first'}
+            average: average rank of group
+            min: lowest rank in group
+            max: highest rank in group
+            first: ranks assigned in order they appear in the array
+        na_option : {'keep'}
+            keep: leave NA values where they are
+        ascending : boolean, default True
+            False for ranks by high (1) to low (N)
 
         Returns
         -------
         ranks : Series
         """
-        try:
-            ranks = lib.rank_1d_float64(self.values)
-        except Exception:
-            ranks = lib.rank_1d_generic(self.values)
+        from pandas.core.algorithms import rank
+        ranks = rank(self.values, method=method, na_option=na_option,
+                     ascending=ascending)
         return Series(ranks, index=self.index, name=self.name)
 
     def order(self, na_last=True, ascending=True, kind='mergesort'):
@@ -1788,6 +1850,10 @@ copy : boolean, default False
         ----------
         func : function
 
+        See also
+        --------
+        Series.map: For element-wise operations
+
         Returns
         -------
         y : Series
@@ -1890,6 +1956,7 @@ copy : boolean, default False
 
         new_index, fill_vec = self.index.reindex(index, method=method,
                                                  level=level)
+        fill_vec = com._ensure_int32(fill_vec)
         new_values = com.take_1d(self.values, fill_vec, fill_value=fill_value)
         return Series(new_values, index=new_index, name=self.name)
 
@@ -2018,7 +2085,6 @@ copy : boolean, default False
         Returns
         -------
         is_between : Series
-            NAs, if any, will be preserved
         """
         if inclusive:
             lmask = self >= left
@@ -2027,127 +2093,7 @@ copy : boolean, default False
             lmask = self > left
             rmask = self < right
 
-        mask = lmask & rmask
-        if mask.dtype == np.object_:
-            np.putmask(mask, isnull(mask), False)
-            mask = mask.astype(bool)
-
-        return mask
-
-#----------------------------------------------------------------------
-# Miscellaneous
-
-    def plot(self, label=None, kind='line', use_index=True, rot=30, ax=None,
-             style='-', grid=True, logy=False, **kwds):
-        """
-        Plot the input series with the index on the x-axis using matplotlib
-
-        Parameters
-        ----------
-        label : label argument to provide to plot
-        kind : {'line', 'bar'}
-        rot : int, default 30
-            Rotation for tick labels
-        use_index : boolean, default True
-            Plot index as axis tick labels
-        ax : matplotlib axis object
-            If not passed, uses gca()
-        style : string, default '-'
-            matplotlib line style to use
-        kwds : keywords
-            To be passed to the actual plotting function
-
-        Notes
-        -----
-        See matplotlib documentation online for more on this subject
-        Intended to be used in ipython --pylab mode
-        """
-        import matplotlib.pyplot as plt
-        import pandas.tools.plotting as gfx
-
-        if label is not None:
-            kwds = kwds.copy()
-            kwds['label'] = label
-
-        N = len(self)
-
-        if ax is None:
-            ax = plt.gca()
-
-        if kind == 'line':
-            if use_index:
-                if self.index.is_numeric() or self.index.is_datetime():
-                    """
-                    Matplotlib supports numeric values or datetime objects as
-                    xaxis values. Taking LBYL approach here, by the time
-                    matplotlib raises exception when using non numeric/datetime
-                    values for xaxis, several actions are already taken by plt.
-                    """
-                    need_to_set_xticklabels = False
-                    x = np.asarray(self.index)
-                else:
-                    need_to_set_xticklabels = True
-                    x = range(len(self))
-            else:
-                need_to_set_xticklabels = False
-                x = range(len(self))
-
-            if logy:
-                ax.semilogy(x, self.values.astype(float), style, **kwds)
-            else:
-                ax.plot(x, self.values.astype(float), style, **kwds)
-            gfx.format_date_labels(ax)
-
-            if need_to_set_xticklabels:
-                ax.set_xticks(x)
-                ax.set_xticklabels([gfx._stringify(key) for key in self.index],
-                                   rotation=rot)
-        elif kind == 'bar':
-            xinds = np.arange(N) + 0.25
-            ax.bar(xinds, self.values.astype(float), 0.5,
-                   bottom=np.zeros(N), linewidth=1, **kwds)
-
-            if N < 10:
-                fontsize = 12
-            else:
-                fontsize = 10
-
-            ax.set_xticks(xinds + 0.25)
-            ax.set_xticklabels([gfx._stringify(key) for key in self.index],
-                               rotation=rot,
-                               fontsize=fontsize)
-        ax.grid(grid)
-        plt.draw_if_interactive()
-
-        return ax
-
-    def hist(self, ax=None, grid=True, **kwds):
-        """
-        Draw histogram of the input series using matplotlib
-
-        Parameters
-        ----------
-        ax : matplotlib axis object
-            If not passed, uses gca()
-        kwds : keywords
-            To be passed to the actual plotting function
-
-        Notes
-        -----
-        See matplotlib documentation online for more on this
-
-        """
-        import matplotlib.pyplot as plt
-
-        if ax is None:
-            ax = plt.gca()
-
-        values = self.dropna().values
-
-        ax.hist(values, **kwds)
-        ax.grid(grid)
-
-        return ax
+        return lmask & rmask
 
     @classmethod
     def from_csv(cls, path, sep=',', parse_dates=True, header=None,
@@ -2443,9 +2389,6 @@ copy : boolean, default False
         return Series([d.weekday() for d in self.index], index=self.index)
 
 
-class TimeSeries(Series):
-    pass
-
 _INDEX_TYPES = ndarray, Index, list, tuple
 
 #-------------------------------------------------------------------------------
@@ -2465,13 +2408,35 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         data = ma.copy(data)
         data[mask] = np.nan
 
-    try:
-        subarr = np.array(data, dtype=dtype, copy=copy)
-    except (ValueError, TypeError):
-        if dtype and raise_cast_failure:
-            raise
-        else:  # pragma: no cover
-            subarr = np.array(data, dtype=object)
+    def _try_cast(arr):
+        try:
+            subarr = np.array(data, dtype=dtype, copy=copy)
+        except (ValueError, TypeError):
+            if dtype is not None and raise_cast_failure:
+                raise
+            else:  # pragma: no cover
+                subarr = np.array(data, dtype=object, copy=copy)
+        return subarr
+
+    # GH #846
+    if isinstance(data, np.ndarray):
+        if dtype is not None:
+            # possibility of nan -> garbage
+            if com.is_float_dtype(data.dtype) and com.is_integer_dtype(dtype):
+                if not isnull(data).any():
+                    subarr = _try_cast(data)
+                elif copy:
+                    subarr = data.copy()
+                else:
+                    subarr = data
+            else:
+                subarr = _try_cast(data)
+        elif copy:
+            subarr = data.copy()
+        else:
+            subarr = data
+    else:
+        subarr = _try_cast(data)
 
     if subarr.ndim == 0:
         if isinstance(data, list):  # pragma: no cover
@@ -2518,3 +2483,16 @@ def _get_rename_function(mapper):
         f = mapper
 
     return f
+
+#----------------------------------------------------------------------
+# Add plotting methods to Series
+
+import pandas.tools.plotting as _gfx
+
+Series.plot = _gfx.plot_series
+Series.hist = _gfx.hist_series
+
+# Put here, otherwise monkey-patching in methods fails
+
+class TimeSeries(Series):
+    pass

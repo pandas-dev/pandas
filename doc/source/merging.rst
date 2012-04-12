@@ -318,11 +318,11 @@ Here's a description of what each argument is for:
   - ``right``: Another DataFrame object
   - ``on``: Columns (names) to join on. Must be found in both the left and
     right DataFrame objects. If not passed and ``left_index`` and
-    ``right_index`` are ``False``, the intersectino of the columns in the
+    ``right_index`` are ``False``, the intersection of the columns in the
     DataFrames will be inferred to be the join keys
   - ``left_on``: Columns from the left DataFrame to use as keys. Can either be
     column names or arrays with length equal to the length of the DataFrame
-  - ``right_on``: Columns from the left DataFrame to use as keys. Can either be
+  - ``right_on``: Columns from the right DataFrame to use as keys. Can either be
     column names or arrays with length equal to the length of the DataFrame
   - ``left_index``: If ``True``, use the index (row labels) from the left
     DataFrame as its join key(s). In the case of a DataFrame with a MultiIndex

@@ -222,72 +222,77 @@ class DataFrameFormatter(object):
         """
         Render a DataFrame to a html table.
         """
-        def write(buf, s, indent=0):
-            buf.write(unicode((' ' * indent) + str(s) + '\n'))
+        def _str(x):
+            if not isinstance(x, basestring):
+                return str(x)
+            return x
 
-        def write_th(buf, s, indent=0):
-            write(buf, '<th>%s</th>' % str(s), indent)
+        elements = []
+        def write(s, indent=0):
+            elements.append(' ' * indent + _str(s))
 
-        def write_td(buf, s, indent=0):
-            write(buf, '<td>%s</td>' % str(s), indent)
 
-        def write_tr(buf, l, indent=0, indent_delta=4, header=False):
-            write(buf, '<tr>', indent)
+        def write_th(s, indent=0):
+            write('<th>%s</th>' % _str(s), indent)
+
+        def write_td(s, indent=0):
+            write('<td>%s</td>' % _str(s), indent)
+
+        def write_tr(l, indent=0, indent_delta=4, header=False):
+            write('<tr>', indent)
             indent += indent_delta
             if header:
                 for s in l:
-                    write_th(buf, s, indent)
+                    write_th(s, indent)
             else:
                 for s in l:
-                    write_td(buf, s, indent)
+                    write_td(s, indent)
             indent -= indent_delta
-            write(buf, '</tr>', indent)
+            write('</tr>', indent)
 
         indent = 0
         indent_delta = 2
         frame = self.frame
-        buf = self.buf
 
-        write(buf, '<table border="1">', indent)
+        write('<table border="1">', indent)
 
         def _column_header():
             row = [''] * (frame.index.nlevels - 1)
 
-            if isinstance(frame.columns, MultiIndex):
+            if isinstance(self.columns, MultiIndex):
                 if self.has_column_names:
-                    row.append(single_column_table(frame.columns.names))
-                row.extend([single_column_table(c) for c in frame.columns])
+                    row.append(single_column_table(self.columns.names))
+                row.extend([single_column_table(c) for c in self.columns])
             else:
-                row.append(frame.columns.name or '')
-                row.extend(frame.columns)
+                row.append(self.columns.name or '')
+                row.extend(self.columns)
             return row
 
         if len(frame.columns) == 0 or len(frame.index) == 0:
-            write(buf, '<tbody>', indent  + indent_delta)
-            write_tr(buf,
-                     [repr(frame.index),
+            write('<tbody>', indent  + indent_delta)
+            write_tr([repr(frame.index),
                       'Empty %s' % type(self.frame).__name__],
                      indent + (2 * indent_delta),
                      indent_delta)
-            write(buf, '</tbody>', indent  + indent_delta)
+            write('</tbody>', indent  + indent_delta)
         else:
             indent += indent_delta
 
             # header row
             if self.header:
-                write(buf, '<thead>', indent)
+                write('<thead>', indent)
                 row = []
 
                 col_row = _column_header()
                 indent += indent_delta
-                write_tr(buf, col_row, indent, indent_delta, header=True)
+                write_tr(col_row, indent, indent_delta, header=True)
                 if self.has_index_names:
-                    row = frame.index.names + [''] * len(frame.columns)
-                    write_tr(buf, row, indent, indent_delta, header=True)
+                    row = frame.index.names + [''] * len(self.columns)
+                    write_tr(row, indent, indent_delta, header=True)
 
-                write(buf, '</thead>', indent)
+                write('</thead>', indent)
 
-            write(buf, '<tbody>', indent)
+            write('<tbody>', indent)
 
             _bold_row = self.kwds.get('bold_rows', False)
             def _maybe_bold_row(x):
@@ -299,7 +304,7 @@ class DataFrameFormatter(object):
                     return x
 
             fmt_values = {}
-            for col in frame.columns:
+            for col in self.columns:
                 fmt_values[col] = self._format_col(col)
 
             # write values
@@ -309,14 +314,16 @@ class DataFrameFormatter(object):
                     row.extend(_maybe_bold_row(frame.index[i]))
                 else:
                     row.append(_maybe_bold_row(frame.index[i]))
-                for col in frame.columns:
+                for col in self.columns:
                     row.append(fmt_values[col][i])
-                write_tr(buf, row, indent, indent_delta)
+                write_tr(row, indent, indent_delta)
             indent -= indent_delta
-            write(buf, '</tbody>', indent)
+            write('</tbody>', indent)
             indent -= indent_delta
 
-        write(buf, '</table>', indent)
+        write('</table>', indent)
+
+        _put_lines(self.buf, elements)
 
     def _get_formatted_column_labels(self):
         from pandas.core.index import _sparsify
@@ -329,7 +336,7 @@ class DataFrameFormatter(object):
             fmt_columns = zip(*fmt_columns)
             dtypes = self.frame.dtypes.values
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
-            str_columns = zip(*[[u' %s' % y
+            str_columns = zip(*[[' ' + y
                                 if y not in self.formatters and need_leadsp[x]
                                 else y for y in x]
                                for x in fmt_columns])
@@ -341,7 +348,7 @@ class DataFrameFormatter(object):
             fmt_columns = self.columns.format()
             dtypes = self.frame.dtypes
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
-            str_columns = [[u' %s' % x
+            str_columns = [[' ' + x
                             if col not in self.formatters and need_leadsp[x]
                             else x]
                            for col, x in zip(self.columns, fmt_columns)]
@@ -439,6 +446,18 @@ class GenericArrayFormatter(object):
         self.justify = justify
 
     def get_result(self):
+        if self._have_unicode():
+            fmt_values = self._format_strings(use_unicode=True)
+        else:
+            fmt_values = self._format_strings(use_unicode=False)
+
+        return _make_fixed_width(fmt_values, self.justify)
+
+    def _have_unicode(self):
+        mask = lib.map_infer(self.values, lambda x: isinstance(x, unicode))
+        return mask.any()
+
+    def _format_strings(self, use_unicode=False):
         if self.float_format is None:
             float_format = print_config.float_format
             if float_format is None:
@@ -447,7 +466,10 @@ class GenericArrayFormatter(object):
         else:
             float_format = self.float_format
 
-        formatter = _stringify if self.formatter is None else self.formatter
+        if use_unicode:
+            formatter = _stringify if self.formatter is None else self.formatter
+        else:
+            formatter = str if self.formatter is None else self.formatter
 
         def _format(x):
             if self.na_rep is not None and lib.checknull(x):
@@ -472,7 +494,7 @@ class GenericArrayFormatter(object):
             else:
                 fmt_values.append(' %s' % _format(v))
 
-        return _make_fixed_width(fmt_values, self.justify)
+        return fmt_values
 
 class FloatArrayFormatter(GenericArrayFormatter):
     """
@@ -516,9 +538,14 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
 class IntArrayFormatter(GenericArrayFormatter):
 
-
     def get_result(self):
-        fmt_values = ['% d' % x for x in self.values]
+        if self.formatter:
+            formatter = self.formatter
+        else:
+            formatter = lambda x: '% d' % x
+
+        fmt_values = [formatter(x) for x in self.values]
+
         return _make_fixed_width(fmt_values, self.justify)
 
 
@@ -746,6 +773,12 @@ class _GlobalPrintConfig(object):
         self.__init__()
 
 print_config = _GlobalPrintConfig()
+
+
+def _put_lines(buf, lines):
+    if any(isinstance(x, unicode) for x in lines):
+        lines = [unicode(x) for x in lines]
+    buf.write('\n'.join(lines))
 
 
 if __name__ == '__main__':

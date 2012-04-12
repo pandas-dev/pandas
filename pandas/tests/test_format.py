@@ -1,4 +1,5 @@
 from StringIO import StringIO
+import os
 import sys
 import unittest
 
@@ -9,8 +10,13 @@ import numpy as np
 from pandas import DataFrame, Series, Index
 import pandas.core.format as fmt
 import pandas.util.testing as tm
+import pandas
 
 _frame = DataFrame(tm.getSeriesData())
+
+def curpath():
+    pth, _ = os.path.split(os.path.abspath(__file__))
+    return pth
 
 class TestDataFrameFormatting(unittest.TestCase):
 
@@ -88,6 +94,20 @@ class TestDataFrameFormatting(unittest.TestCase):
         buf = StringIO()
         dm.to_string(buf)
 
+    def test_to_string_with_formatters(self):
+        df = DataFrame({'int': [1, 2, 3],
+                        'float': [1.0, 2.0, 3.0],
+                        'object': [(1,2), True, False]},
+                        columns=['int', 'float', 'object'])
+
+        result = df.to_string(formatters={'int': lambda x: '0x%x' % x,
+                                          'float': lambda x: '[% 4.1f]' % x,
+                                          'object': lambda x: '-%s-' % str(x)})
+        self.assertEqual(result, ('  int  float    object\n'
+                                  '0 0x1 [ 1.0]  -(1, 2)-\n'
+                                  '1 0x2 [ 2.0]    -True-\n'
+                                  '2 0x3 [ 3.0]   -False-'))
+
     def test_to_string_with_formatters_unicode(self):
         df = DataFrame({u'c/\u03c3':[1,2,3]})
         result = df.to_string(formatters={u'c/\u03c3': lambda x: '%s' % x})
@@ -108,14 +128,37 @@ class TestDataFrameFormatting(unittest.TestCase):
         # this should work
         buf.getvalue()
 
+    def test_to_html_unicode(self):
+        # it works!
+        df = DataFrame({u'\u03c3' : np.arange(10.)})
+        df.to_html()
+        df = DataFrame({'A' : [u'\u03c3']})
+        df.to_html()
+
     def test_unicode_problem_decoding_as_ascii(self):
         dm = DataFrame({u'c/\u03c3': Series({'test':np.NaN})})
         unicode(dm.to_string())
+
+    def test_string_repr_encoding(self):
+        pth = curpath()
+        filepath = os.path.join(pth, 'data', 'unicode_series.csv')
+        df = pandas.read_csv(filepath, header=None)
+        repr(df)
+        repr(df['X.2'])
 
     def test_repr_corner(self):
         # representing infs poses no problems
         df = DataFrame({'foo' : np.inf * np.empty(10)})
         foo = repr(df)
+
+    def test_frame_info_encoding(self):
+        index = ['\'Til There Was You (1997)',
+                 '\xc1 k\xf6ldum klaka (Cold Fever) (1994)']
+        fmt.set_printoptions(max_rows=1)
+        df = DataFrame(columns=['a', 'b', 'c'], index=index)
+        repr(df)
+        repr(df.T)
+        fmt.set_printoptions(max_rows=200)
 
     def test_to_string(self):
         from pandas import read_table
@@ -338,6 +381,10 @@ class TestDataFrameFormatting(unittest.TestCase):
         x = DataFrame({'x': randn(5)})
         ashtml = x.to_html(bold_rows=False)
         assert('<strong>' not in ashtml)
+
+    def test_to_html_columns_arg(self):
+        result = self.frame.to_html(columns=['A'])
+        self.assert_('<th>B</th>' not in result)
 
     def test_repr_html(self):
         self.frame._repr_html_()

@@ -43,3 +43,33 @@ stat_ops_level_series_sum_multiple = \
     Benchmark("df[1].sum(level=[0, 1])", setup, repeat=1,
               start_date=datetime(2011, 11, 15))
 
+#----------------------------------------------------------------------
+# rank
+
+setup = common_setup + """
+values = np.concatenate([np.arange(100000),
+                         np.random.randn(100000),
+                         np.arange(100000)])
+s = Series(values)
+"""
+
+stats_rank_average = Benchmark('s.rank()', setup,
+                               start_date=datetime(2011, 12, 12))
+
+setup = common_setup + """
+values = np.random.randint(0, 100000, size=200000)
+s = Series(values)
+"""
+
+stats_rank_average_int = Benchmark('s.rank()', setup,
+                                   start_date=datetime(2011, 12, 12))
+
+setup = common_setup + """
+df = DataFrame(np.random.randn(5000, 50))
+"""
+
+stats_rank2d_axis1_average = Benchmark('df.rank(1)', setup,
+                                       start_date=datetime(2011, 12, 12))
+
+stats_rank2d_axis0_average = Benchmark('df.rank()', setup,
+                                       start_date=datetime(2011, 12, 12))

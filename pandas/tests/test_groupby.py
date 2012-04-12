@@ -15,6 +15,7 @@ from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
 from pandas.core.panel import Panel
 from pandas.tools.merge import concat
 from collections import defaultdict
+import pandas.core.common as com
 import pandas.core.datetools as dt
 import numpy as np
 
@@ -181,6 +182,13 @@ class TestGroupBy(unittest.TestCase):
         self.assertRaises(Exception, grouped.agg, lambda x: x.describe())
         self.assertRaises(Exception, grouped.agg, lambda x: x.index[:2])
 
+    def test_agg_ser_multi_key(self):
+        ser = self.df.C
+        f = lambda x: x.sum()
+        results = self.df.C.groupby([self.df.A, self.df.B]).aggregate(f)
+        expected = self.df.groupby(['A', 'B']).sum()['C']
+        assert_series_equal(results, expected)
+
     def test_get_group(self):
         wp = tm.makePanel()
         grouped = wp.groupby(lambda x: x.month, axis='major')
@@ -201,7 +209,8 @@ class TestGroupBy(unittest.TestCase):
         grouped = self.tsframe.groupby(self.tsframe['A'] * np.nan)
         assert_frame_equal(grouped.sum(),
                            DataFrame(columns=self.tsframe.columns))
-        assert_frame_equal(grouped.agg(np.sum), DataFrame({}))
+        assert_frame_equal(grouped.agg(np.sum),
+                           DataFrame(columns=self.tsframe.columns))
         assert_frame_equal(grouped.apply(np.sum), DataFrame({}))
 
     def test_agg_grouping_is_list_tuple(self):
@@ -286,6 +295,29 @@ class TestGroupBy(unittest.TestCase):
         by_mwkday = self.tsframe.groupby([lambda x: x.month,
                                           lambda x: x.weekday()])
         _check_results(by_mwkday)
+
+    def test_aggregate_item_by_item(self):
+
+        df = self.df.copy()
+        df['E'] = ['a'] * len(self.df)
+        grouped = self.df.groupby('A')
+        def aggfun(ser):
+            return len(ser + 'a')
+        result = grouped.agg(aggfun)
+        self.assertEqual(len(result.columns), 1)
+
+        aggfun = lambda ser: ser.size
+        result = grouped.agg(aggfun)
+        foo = (self.df.A == 'foo').sum()
+        bar = (self.df.A == 'bar').sum()
+        self.assert_((result.xs('foo') == foo).all())
+        self.assert_((result.xs('bar') == bar).all())
+
+        def aggfun(ser):
+            return ser.size
+        result = DataFrame().groupby(self.df.A).agg(aggfun)
+        self.assert_(isinstance(result, DataFrame))
+        self.assertEqual(len(result), 0)
 
     def test_basic_regression(self):
         # regression
@@ -381,7 +413,7 @@ class TestGroupBy(unittest.TestCase):
         for name, gp in grouped:
             expected[name] = gp.describe()
         expected = DataFrame(expected).T
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result.unstack(), expected)
 
         # get attribute
         result = grouped.dtype
@@ -393,7 +425,7 @@ class TestGroupBy(unittest.TestCase):
     def test_series_describe_multikey(self):
         ts = tm.makeTimeSeries()
         grouped = ts.groupby([lambda x: x.year, lambda x: x.month])
-        result = grouped.describe()
+        result = grouped.describe().unstack()
         assert_series_equal(result['mean'], grouped.mean())
         assert_series_equal(result['std'], grouped.std())
         assert_series_equal(result['min'], grouped.min())
@@ -403,7 +435,7 @@ class TestGroupBy(unittest.TestCase):
         grouped = ts.groupby(lambda x: x.month)
         result = grouped.apply(lambda x: x.describe())
         expected = grouped.describe()
-        assert_frame_equal(result, expected)
+        assert_series_equal(result, expected)
 
     def test_series_agg_multikey(self):
         ts = tm.makeTimeSeries()
@@ -447,7 +479,7 @@ class TestGroupBy(unittest.TestCase):
 
         for col in self.tsframe:
             expected = grouped[col].describe()
-            assert_frame_equal(result[col].unstack(), expected)
+            assert_series_equal(result[col], expected)
 
         groupedT = self.tsframe.groupby({'A' : 0, 'B' : 0,
                                          'C' : 1, 'D' : 1}, axis=1)
@@ -862,7 +894,8 @@ class TestGroupBy(unittest.TestCase):
 
         # won't work with axis = 1
         grouped = df.groupby({'A' : 0, 'C' : 0, 'D' : 1, 'E' : 1}, axis=1)
-        result = self.assertRaises(TypeError, grouped.agg, np.sum)
+        result = self.assertRaises(TypeError, grouped.agg,
+                                   lambda x: x.sum(1, numeric_only=False))
 
     def test_omit_nuisance_python_multiple(self):
         grouped = self.three_group.groupby(['A', 'B'])
@@ -981,6 +1014,14 @@ class TestGroupBy(unittest.TestCase):
         keys = [np.array([0, 0, 1]), np.array([0, 0, 1])]
         agged = df.groupby(keys).agg(np.mean)
         self.assert_(isinstance(agged.columns, MultiIndex))
+
+        def aggfun(ser):
+            if ser.name == ('foo', 'one'):
+                raise TypeError
+            else:
+                return ser.sum()
+        agged2 = df.groupby(keys).aggregate(aggfun)
+        self.assertEqual(len(agged2.columns) + 1, len(df.columns))
 
     def test_grouping_attrs(self):
         deleveled = self.mframe.reset_index()
@@ -1457,6 +1498,179 @@ class TestGroupBy(unittest.TestCase):
         self.assert_(np.array_equal(tmp.columns, ['zeros', 'ones']))
         self.assert_(np.array_equal(tmp.values, res_values))
 
+    def test_int32_overflow(self):
+        B = np.concatenate((np.arange(10000), np.arange(10000),
+                            np.arange(5000)))
+        A = np.arange(25000)
+        df = DataFrame({'A' : A, 'B' : B,
+                        'C' : A, 'D' : B,
+                        'E' : np.random.randn(25000)})
+
+        left = df.groupby(['A', 'B', 'C', 'D']).sum()
+        right = df.groupby(['D', 'C', 'B', 'A']).sum()
+        self.assert_(len(left) == len(right))
+
+    def test_int64_overflow(self):
+        B = np.concatenate((np.arange(1000), np.arange(1000),
+                            np.arange(500)))
+        A = np.arange(2500)
+        df = DataFrame({'A' : A, 'B' : B,
+                        'C' : A, 'D' : B,
+                        'E' : A, 'F' : B,
+                        'G' : A, 'H' : B,
+                        'values' : np.random.randn(2500)})
+
+        lg = df.groupby(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'])
+        rg = df.groupby(['H', 'G', 'F', 'E', 'D', 'C', 'B', 'A'])
+
+        left = lg.sum()['values']
+        right = rg.sum()['values']
+
+        exp_index, _ = left.index.sortlevel(0)
+        self.assert_(left.index.equals(exp_index))
+
+        exp_index, _ = right.index.sortlevel(0)
+        self.assert_(right.index.equals(exp_index))
+
+        tups = map(tuple, df[['A', 'B', 'C', 'D',
+                              'E', 'F', 'G', 'H']].values)
+        tups = com._asarray_tuplesafe(tups)
+        expected = df.groupby(tups).sum()['values']
+
+        for k, v in expected.iteritems():
+            self.assert_(left[k] == right[k[::-1]] == v)
+        self.assert_(len(left) == len(right))
+
+    def test_groupby_sort_multi(self):
+        df = DataFrame({'a' : ['foo', 'bar', 'baz'],
+                        'b' : [3, 2, 1],
+                        'c' : [0, 1, 2],
+                        'd' : np.random.randn(3)})
+
+        tups = map(tuple, df[['a', 'b', 'c']].values)
+        tups = com._asarray_tuplesafe(tups)
+        result = df.groupby(['a', 'b', 'c'], sort=True).sum()
+        self.assert_(np.array_equal(result.index.values,
+                                    tups[[1, 2, 0]]))
+
+        tups = map(tuple, df[['c', 'a', 'b']].values)
+        tups = com._asarray_tuplesafe(tups)
+        result = df.groupby(['c', 'a', 'b'], sort=True).sum()
+        self.assert_(np.array_equal(result.index.values, tups))
+
+        tups = map(tuple, df[['b', 'c', 'a']].values)
+        tups = com._asarray_tuplesafe(tups)
+        result = df.groupby(['b', 'c', 'a'], sort=True).sum()
+        self.assert_(np.array_equal(result.index.values,
+                                    tups[[2, 1, 0]]))
+
+        df = DataFrame({'a' : [0, 1, 2, 0, 1, 2],
+                        'b' : [0, 0, 0, 1, 1, 1],
+                        'd' : np.random.randn(6)})
+        grouped = df.groupby(['a', 'b'])['d']
+        result = grouped.sum()
+        _check_groupby(df, result, ['a', 'b'], 'd')
+
+    def test_intercept_builtin_sum(self):
+        import __builtin__
+        s = Series([1., 2., np.nan, 3.])
+        grouped = s.groupby([0, 1, 2, 2])
+
+        result = grouped.agg(__builtin__.sum)
+        result2 = grouped.apply(__builtin__.sum)
+        expected = grouped.sum()
+        assert_series_equal(result, expected)
+        assert_series_equal(result2, expected)
+
+    def test_column_select_via_attr(self):
+        result = self.df.groupby('A').C.sum()
+        expected = self.df.groupby('A')['C'].sum()
+        assert_series_equal(result, expected)
+
+        self.df['mean'] = 1.5
+        result = self.df.groupby('A').mean()
+        expected = self.df.groupby('A').agg(np.mean)
+        assert_frame_equal(result, expected)
+
+    def test_rank_apply(self):
+        lev1 = np.array([rands(10) for _ in xrange(1000)], dtype=object)
+        lev2 = np.array([rands(10) for _ in xrange(130)], dtype=object)
+        lab1 = np.random.randint(0, 1000, size=10000)
+        lab2 = np.random.randint(0, 130, size=10000)
+
+        df = DataFrame({'value' : np.random.randn(10000),
+                        'key1' : lev1.take(lab1),
+                        'key2' : lev2.take(lab2)})
+
+        result = df.groupby(['key1', 'key2']).value.rank()
+
+        expected = []
+        for key, piece in df.groupby(['key1', 'key2']):
+            expected.append(piece.value.rank())
+        expected = concat(expected, axis=0)
+        expected = expected.reindex(result.index)
+
+        assert_series_equal(result, expected)
+
+    def test_dont_clobber_name_column(self):
+        df = DataFrame({'key': ['a', 'a', 'a', 'b', 'b', 'b'],
+                        'name' : ['foo', 'bar', 'baz'] * 2})
+
+        result = df.groupby('key').apply(lambda x: x)
+        assert_frame_equal(result, df)
+
+    def test_skip_group_keys(self):
+        from pandas import concat
+
+        tsf = tm.makeTimeDataFrame()
+
+        grouped = tsf.groupby(lambda x: x.month, group_keys=False)
+        result = grouped.apply(lambda x: x.sort_index(by='A')[:3])
+
+        pieces = []
+        for key, group in grouped:
+            pieces.append(group.sort_index(by='A')[:3])
+
+        expected = concat(pieces)
+        assert_frame_equal(result, expected)
+
+        grouped = tsf['A'].groupby(lambda x: x.month, group_keys=False)
+        result = grouped.apply(lambda x: x.order()[:3])
+
+        pieces = []
+        for key, group in grouped:
+            pieces.append(group.order()[:3])
+
+        expected = concat(pieces)
+        assert_series_equal(result, expected)
+
+    def test_no_nonsense_name(self):
+        # GH #995
+        s = self.frame['C'].copy()
+        s.name = None
+
+        result = s.groupby(self.frame['A']).agg(np.sum)
+        self.assert_(result.name is None)
+
+    def test_wrap_agg_out(self):
+        grouped = self.three_group.groupby(['A', 'B'])
+        def func(ser):
+            if ser.dtype == np.object:
+                raise TypeError
+            else:
+                return ser.sum()
+        result = grouped.aggregate(func)
+        exp_grouped = self.three_group.ix[:, self.three_group.columns != 'C']
+        expected = exp_grouped.groupby(['A', 'B']).aggregate(func)
+        assert_frame_equal(result, expected)
+
+
+def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
+    tups = map(tuple, df[keys].values)
+    tups = com._asarray_tuplesafe(tups)
+    expected = f(df.groupby(tups)[field])
+    for k, v in expected.iteritems():
+        assert(result[k] == v)
 
 def test_decons():
     from pandas.core.groupby import decons_group_index, get_group_index

@@ -633,10 +633,12 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         self.assert_(wp.values is not vals)
 
     def test_constructor_cast(self):
-        casted = Panel(self.panel._data, dtype=int)
-        casted2 = Panel(self.panel.values, dtype=int)
+        zero_filled = self.panel.fillna(0)
 
-        exp_values = self.panel.values.astype(int)
+        casted = Panel(zero_filled._data, dtype=int)
+        casted2 = Panel(zero_filled.values, dtype=int)
+
+        exp_values = zero_filled.values.astype(int)
         assert_almost_equal(casted.values, exp_values)
         assert_almost_equal(casted2.values, exp_values)
 
@@ -690,8 +692,12 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         assert_panel_equal(Panel(d3), Panel.from_dict(d3))
 
         # cast
-        result = Panel(d, dtype=int)
-        expected = Panel(dict((k, v.astype(int)) for k, v in d.iteritems()))
+        dcasted = dict((k, v.reindex(wp.major_axis).fillna(0))
+                       for k, v in d.iteritems())
+        result = Panel(dcasted, dtype=int)
+        expected = Panel(dict((k, v.astype(int))
+                              for k, v in dcasted.iteritems()))
+        assert_panel_equal(result, expected)
 
     def test_constructor_dict_mixed(self):
         data = dict((k, v.values) for k, v in self.panel.iterkv())
@@ -948,6 +954,34 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 
         self.assertRaises(Exception, self.panel.shift, 1, axis='items')
 
+    def test_multiindex_get(self):
+        ind = MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1), ('b',2)],
+                                     names=['first', 'second'])
+        wp = Panel(np.random.random((4,5,5)),
+                                    items=ind,
+                                    major_axis=np.arange(5),
+                                    minor_axis=np.arange(5))
+        f1 = wp['a']
+        f2 = wp.ix['a']
+        assert_panel_equal(f1, f2)
+
+        self.assert_((f1.items == [1, 2]).all())
+        self.assert_((f2.items == [1, 2]).all())
+
+        ind = MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1)],
+                                     names=['first', 'second'])
+
+    def test_multiindex_blocks(self):
+        ind = MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1)],
+                                     names=['first', 'second'])
+        wp = Panel(self.panel._data)
+        wp.items = ind
+        f1 = wp['a']
+        self.assert_((f1.items == [1, 2]).all())
+
+        f1 = wp[('b',1)]
+        self.assert_((f1.columns == ['A', 'B', 'C', 'D']).all())
+
     def test_repr_empty(self):
         empty = Panel()
         repr(empty)
@@ -1005,12 +1039,14 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         except ImportError:
             raise nose.SkipTest
 
-        path = '__tmp__.xlsx'
-        self.panel.to_excel(path)
-        reader = ExcelFile(path)
-        for item, df in self.panel.iteritems():
-            recdf = reader.parse(str(item),index_col=0)
-            assert_frame_equal(df, recdf)
+        for ext in ['xls', 'xlsx']:
+            path = '__tmp__.' + ext
+            self.panel.to_excel(path)
+            reader = ExcelFile(path)
+            for item, df in self.panel.iteritems():
+                recdf = reader.parse(str(item),index_col=0)
+                assert_frame_equal(df, recdf)
+            os.remove(path)
 
 class TestLongPanel(unittest.TestCase):
     """

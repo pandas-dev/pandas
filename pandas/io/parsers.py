@@ -4,6 +4,7 @@ Module contains tools for processing files into DataFrames or other objects
 from StringIO import StringIO
 import re
 from itertools import izip
+from urlparse import urlparse
 
 import numpy as np
 
@@ -12,6 +13,7 @@ from pandas.core.frame import DataFrame
 import datetime
 import pandas.core.common as com
 import pandas._tseries as lib
+from pandas.util import py3compat
 
 from pandas.util.decorators import Appender
 
@@ -20,7 +22,10 @@ into chunks.
 
 Parameters
 ----------
-filepath_or_buffer : string or file handle / StringIO
+filepath_or_buffer : string or file handle / StringIO. The string could be
+    a URL. Valid URL schemes include http://, ftp://, and file://. For
+    file:// URLs, a host is expected. For instance, a local file could be
+    file://localhost/path/to/table.csv
 %s
 header : int, default 0
     Row to use for the column labels of the parsed DataFrame
@@ -31,8 +36,9 @@ index_col : int or sequence, default None
     given, a MultiIndex is used.
 names : array-like
     List of column names
-na_values : list-like, default None
-    List of additional strings to recognize as NA/NaN
+na_values : list-like or dict, default None
+    Additional strings to recognize as NA/NaN. If dict passed, specific
+    per-column NA values
 parse_dates : boolean, default False
     Attempt to parse dates in the index column(s)
 date_parser : function
@@ -74,24 +80,57 @@ Read CSV (comma-separated) file into DataFrame
 %s
 """ % (_parser_params % _csv_sep)
 
-_read_csv_doc = """
-Read CSV (comma-separated) file into DataFrame
-
-%s
-""" % (_parser_params % _csv_sep)
-
 _read_table_doc = """
 Read general delimited file into DataFrame
 
 %s
 """ % (_parser_params % _table_sep)
 
-@Appender(_read_csv_doc)
-def read_csv(filepath_or_buffer, sep=',', header=0, index_col=None, names=None,
-             skiprows=None, na_values=None, parse_dates=False,
-             date_parser=None, nrows=None, iterator=False, chunksize=None,
-             skip_footer=0, converters=None, verbose=False, delimiter=None,
-             encoding=None):
+_fwf_widths = """\
+colspecs : a list of pairs (tuples), giving the extents
+    of the fixed-width fields of each line as half-open internals
+    (i.e.,  [from, to[  ).
+widths : a list of field widths, which can be used instead of
+    'colspecs' if the intervals are contiguous.
+"""
+
+_read_fwf_doc = """
+Read a table of fixed-width formatted lines into DataFrame
+
+%s
+
+Also, 'delimiter' is used to specify the filler character of the
+fields if it is not spaces (e.g., '~').
+""" % (_parser_params % _fwf_widths)
+
+
+def _is_url(url):
+    """
+    Very naive check to see if url is an http(s), ftp, or file location.
+    """
+    parsed_url = urlparse(url)
+    if parsed_url.scheme in ['http','file', 'ftp', 'https']:
+        return True
+    else:
+        return False
+
+def _read(cls, filepath_or_buffer, kwds):
+    "Generic reader of line files."
+    encoding = kwds.get('encoding', None)
+
+    if isinstance(filepath_or_buffer, str) and _is_url(filepath_or_buffer):
+        from urllib2 import urlopen
+        filepath_or_buffer = urlopen(filepath_or_buffer)
+        if py3compat.PY3:  # pragma: no cover
+            from io import TextIOWrapper
+            if encoding:
+                errors = 'strict'
+            else:
+                errors = 'replace'
+                encoding = 'utf-8'
+            bytes = filepath_or_buffer.read()
+            filepath_or_buffer = StringIO(bytes.decode(encoding, errors))
+
     if hasattr(filepath_or_buffer, 'read'):
         f = filepath_or_buffer
     else:
@@ -101,23 +140,17 @@ def read_csv(filepath_or_buffer, sep=',', header=0, index_col=None, names=None,
         except Exception: # pragma: no cover
             f = com._get_handle(filepath_or_buffer, 'r', encoding=encoding)
 
-    if delimiter is not None:
-        sep = delimiter
+    if kwds.get('date_parser', None) is not None:
+        kwds['parse_dates'] = True
 
-    if date_parser is not None:
-        parse_dates = True
+    # Extract some of the arguments (pass chunksize on).
+    kwds.pop('filepath_or_buffer')
+    iterator = kwds.pop('iterator')
+    nrows = kwds.pop('nrows')
+    chunksize = kwds.get('chunksize', None)
 
-    parser = TextParser(f, header=header, index_col=index_col,
-                        names=names, na_values=na_values,
-                        parse_dates=parse_dates,
-                        date_parser=date_parser,
-                        skiprows=skiprows,
-                        delimiter=sep,
-                        chunksize=chunksize,
-                        skip_footer=skip_footer,
-                        converters=converters,
-                        verbose=verbose,
-                        encoding=encoding)
+    # Create the parser.
+    parser = cls(f, **kwds)
 
     if nrows is not None:
         return parser.get_chunk(nrows)
@@ -126,19 +159,102 @@ def read_csv(filepath_or_buffer, sep=',', header=0, index_col=None, names=None,
 
     return parser.get_chunk()
 
+@Appender(_read_csv_doc)
+def read_csv(filepath_or_buffer,
+             sep=',',
+             header=0,
+             index_col=None,
+             names=None,
+             skiprows=None,
+             na_values=None,
+             parse_dates=False,
+             date_parser=None,
+             nrows=None,
+             iterator=False,
+             chunksize=None,
+             skip_footer=0,
+             converters=None,
+             verbose=False,
+             delimiter=None,
+             encoding=None):
+    kwds = locals()
+
+    # Alias sep -> delimiter.
+    sep = kwds.pop('sep')
+    if kwds.get('delimiter', None) is None:
+        kwds['delimiter'] = sep
+
+    return _read(TextParser, filepath_or_buffer, kwds)
+
 @Appender(_read_table_doc)
-def read_table(filepath_or_buffer, sep='\t', header=0, index_col=None,
-               names=None, skiprows=None, na_values=None, parse_dates=False,
-               date_parser=None, nrows=None, iterator=False, chunksize=None,
-               skip_footer=0, converters=None, verbose=False, delimiter=None,
+def read_table(filepath_or_buffer,
+               sep='\t',
+               header=0,
+               index_col=None,
+               names=None,
+               skiprows=None,
+               na_values=None,
+               parse_dates=False,
+               date_parser=None,
+               nrows=None,
+               iterator=False,
+               chunksize=None,
+               skip_footer=0,
+               converters=None,
+               verbose=False,
+               delimiter=None,
                encoding=None):
-    return read_csv(filepath_or_buffer, sep=sep, header=header,
-                    skiprows=skiprows, index_col=index_col,
-                    na_values=na_values, date_parser=date_parser,
-                    names=names, parse_dates=parse_dates,
-                    nrows=nrows, iterator=iterator, chunksize=chunksize,
-                    skip_footer=skip_footer, converters=converters,
-                    verbose=verbose, delimiter=delimiter, encoding=None)
+    kwds = locals()
+
+    # Alias sep -> delimiter.
+    sep = kwds.pop('sep')
+    if kwds.get('delimiter', None) is None:
+        kwds['delimiter'] = sep
+
+    # Override as default encoding.
+    kwds['encoding'] = None
+
+    return _read(TextParser, filepath_or_buffer, kwds)
+
+@Appender(_read_fwf_doc)
+def read_fwf(filepath_or_buffer,
+             colspecs=None,
+             widths=None,
+             header=0,
+             index_col=None,
+             names=None,
+             skiprows=None,
+             na_values=None,
+             parse_dates=False,
+             date_parser=None,
+             nrows=None,
+             iterator=False,
+             chunksize=None,
+             skip_footer=0,
+             converters=None,
+             delimiter=None,
+             verbose=False,
+             encoding=None):
+
+    kwds = locals()
+
+    # Check input arguments.
+    colspecs = kwds.get('colspecs', None)
+    widths = kwds.pop('widths', None)
+    if bool(colspecs is None) == bool(widths is None):
+        raise ValueError("You must specify only one of 'widths' and 'colspecs'")
+
+    # Compute 'colspec' from 'widths', if specified.
+    if widths is not None:
+        colspecs, col = [], 0
+        for w in widths:
+            colspecs.append( (col, col+w) )
+            col += w
+        kwds['colspecs'] = colspecs
+
+    return _read(FixedWidthFieldParser, filepath_or_buffer, kwds)
+
+
 
 def read_clipboard(**kwargs):  # pragma: no cover
     """
@@ -179,6 +295,15 @@ class BufferedReader(object):
 class BufferedCSVReader(BufferedReader):
     pass
 
+
+# common NA values
+# no longer excluding inf representations
+# '1.#INF','-1.#INF', '1.#INF000000',
+_NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
+                 '#N/A N/A', 'NA', '#NA', 'NULL', 'NaN',
+                 'nan', ''])
+
+
 class TextParser(object):
     """
     Converts lists of lists/tuples into DataFrames with proper type inference
@@ -188,13 +313,14 @@ class TextParser(object):
     Parameters
     ----------
     data : file-like object or list
+    delimiter : separator character to use
     names : sequence, default
     header : int, default 0
         Row to use to parse column labels. Defaults to the first row. Prior
         rows will be discarded
     index_col : int or list, default None
         Column or columns to use as the (possibly hierarchical) index
-    na_values : iterable, defualt None
+    na_values : iterable, default None
         Custom NA values
     parse_dates : boolean, default False
     date_parser : function, default None
@@ -205,13 +331,6 @@ class TextParser(object):
     encoding : string, default None
         Encoding to use for UTF when reading/writing (ex. 'utf-8')
     """
-
-    # common NA values
-    # no longer excluding inf representations
-    # '1.#INF','-1.#INF', '1.#INF000000',
-    NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
-                     '#N/A N/A', 'NA', '#NA', 'NULL', 'NaN',
-                     'nan', ''])
 
     def __init__(self, f, delimiter=None, names=None, header=0,
                  index_col=None, na_values=None, parse_dates=False,
@@ -235,10 +354,10 @@ class TextParser(object):
         self.passed_names = names is not None
         self.encoding = encoding
 
-
         if com.is_integer(skiprows):
             skiprows = range(skiprows)
         self.skiprows = set() if skiprows is None else set(skiprows)
+
         self.skip_footer = skip_footer
         self.delimiter = delimiter
         self.verbose = verbose
@@ -252,9 +371,11 @@ class TextParser(object):
         assert(self.skip_footer >= 0)
 
         if na_values is None:
-            self.na_values = self.NA_VALUES
+            self.na_values = _NA_VALUES
+        elif isinstance(na_values, dict):
+            self.na_values = na_values
         else:
-            self.na_values = set(list(na_values)) | self.NA_VALUES
+            self.na_values = set(list(na_values)) | _NA_VALUES
 
         if hasattr(f, 'readline'):
             self._make_reader(f)
@@ -374,6 +495,8 @@ class TextParser(object):
         except StopIteration:
             pass
 
+    _implicit_index = False
+
     def _get_index_name(self):
         columns = self.columns
 
@@ -401,6 +524,7 @@ class TextParser(object):
                     return line
 
         if implicit_first_cols > 0:
+            self._implicit_index = True
             if self.index_col is None:
                 if implicit_first_cols == 1:
                     self.index_col = 0
@@ -409,7 +533,7 @@ class TextParser(object):
             index_name = None
         elif np.isscalar(self.index_col):
             index_name = columns.pop(self.index_col)
-            if 'Unnamed' in index_name:
+            if index_name is not None and 'Unnamed' in index_name:
                 index_name = None
         elif self.index_col is not None:
             cp_cols = list(columns)
@@ -458,7 +582,8 @@ class TextParser(object):
                 index = []
                 for idx in self.index_col:
                     index.append(zipped_content[idx])
-                # remove index items from content and columns, don't pop in loop
+                # remove index items from content and columns, don't pop in
+                # loop
                 for i in reversed(sorted(self.index_col)):
                     zipped_content.pop(i)
 
@@ -482,8 +607,10 @@ class TextParser(object):
 
         if not index._verify_integrity():
             dups = index.get_duplicates()
-            err_msg = 'Tried columns 1-X as index but found duplicates %s'
-            raise Exception(err_msg % str(dups))
+            idx_str = 'Index' if not self._implicit_index else 'Implicit index'
+            err_msg = ('%s (columns %s) have duplicate values %s'
+                       % (idx_str, self.index_col, str(dups)))
+            raise Exception(err_msg)
 
         if len(self.columns) != len(zipped_content):
             raise Exception('wrong number of columns')
@@ -538,9 +665,19 @@ class TextParser(object):
         return lines
 
 def _convert_to_ndarrays(dct, na_values, verbose=False):
+    def _get_na_values(col):
+        if isinstance(na_values, dict):
+            if col in na_values:
+                return set(list(na_values[col]))
+            else:
+                return _NA_VALUES
+        else:
+            return na_values
+
     result = {}
     for c, values in dct.iteritems():
-        cvals, na_count = _convert_types(values, na_values)
+        col_na_values = _get_na_values(c)
+        cvals, na_count = _convert_types(values, col_na_values)
         result[c] = cvals
         if verbose and na_count:
             print 'Filled %d NA values in column %s' % (na_count, str(c))
@@ -568,8 +705,51 @@ def _convert_types(values, na_values):
 
     return result, na_count
 
+
+class FixedWidthReader(object):
+    """
+    A reader of fixed-width lines.
+    """
+    def __init__(self, f, colspecs, filler):
+        self.f = f
+        self.colspecs = colspecs
+        self.filler = filler # Empty characters between fields.
+
+        assert isinstance(colspecs, (tuple, list))
+        for colspec in colspecs:
+            assert isinstance(colspec, (tuple, list))
+            assert len(colspec) == 2
+            assert isinstance(colspec[0], int)
+            assert isinstance(colspec[1], int)
+
+    def next(self):
+        line = self.f.next()
+        # Note: 'colspecs' is a sequence of half-open intervals.
+        return [line[fromm:to].strip(self.filler or ' ') for (fromm, to) in self.colspecs]
+
+
+class FixedWidthFieldParser(TextParser):
+    """
+    Specialization that Converts fixed-width fields into DataFrames.
+    See TextParser for details.
+    """
+    def __init__(self, f, **kwds):
+        # Support iterators, convert to a list.
+        self.colspecs = list(kwds.pop('colspecs'))
+
+        TextParser.__init__(self, f, **kwds)
+
+    def _make_reader(self, f):
+        self.data = FixedWidthReader(f, self.colspecs, self.delimiter)
+
+
 #-------------------------------------------------------------------------------
 # ExcelFile class
+
+_openpyxl_msg = ("\nFor parsing .xlsx files 'openpyxl' is required.\n"
+                 "You can install it via 'easy_install openpyxl' or "
+                 "'pip install openpyxl'.\nAlternatively, you could save"
+                 " the .xlsx file as a .xls file.\n")
 
 
 class ExcelFile(object):
@@ -590,8 +770,11 @@ class ExcelFile(object):
             import xlrd
             self.book = xlrd.open_workbook(path)
         else:
-            from openpyxl import load_workbook
-            self.book = load_workbook(path, use_iterators=True)
+            try:
+                from openpyxl.reader.excel import load_workbook
+                self.book = load_workbook(path, use_iterators=True)
+            except ImportError:  # pragma: no cover
+                raise ImportError(_openpyxl_msg)
         self.path = path
 
     def __repr__(self):
@@ -621,18 +804,13 @@ class ExcelFile(object):
         -------
         parsed : DataFrame
         """
-        if self.use_xlsx:
-            return self._parse_xlsx(sheetname, header=header,
-                                    skiprows=skiprows, index_col=index_col,
-                                    parse_dates=parse_dates,
-                                    date_parser=date_parser,
-                                    na_values=na_values, chunksize=chunksize)
-        else:
-            return self._parse_xls(sheetname, header=header, skiprows=skiprows,
-                                   index_col=index_col,
-                                   parse_dates=parse_dates,
-                                   date_parser=date_parser,
-                                   na_values=na_values, chunksize=chunksize)
+        choose = {True:self._parse_xlsx,
+                  False:self._parse_xls}
+        return choose[self.use_xlsx](sheetname, header=header,
+                                     skiprows=skiprows, index_col=index_col,
+                                     parse_dates=parse_dates,
+                                     date_parser=date_parser,
+                                     na_values=na_values, chunksize=chunksize)
 
     def _parse_xlsx(self, sheetname, header=0, skiprows=None, index_col=None,
               parse_dates=False, date_parser=None, na_values=None,
@@ -724,7 +902,7 @@ class ExcelWriter(object):
             self.fm_datetime = xlwt.easyxf(num_format_str='YYYY-MM-DD HH:MM:SS')
             self.fm_date = xlwt.easyxf(num_format_str='YYYY-MM-DD')
         else:
-            from openpyxl import Workbook
+            from openpyxl.workbook import Workbook
             self.book = Workbook(optimized_write = True)
         self.path = path
         self.sheets = {}
@@ -772,6 +950,8 @@ class ExcelWriter(object):
                     sheetrow.write(i,val, self.fm_date)
             elif isinstance(val, np.int64):
                 sheetrow.write(i,int(val))
+            elif isinstance(val, np.bool8):
+                sheetrow.write(i,bool(val))
             else:
                 sheetrow.write(i,val)
         row_idx += 1
@@ -787,7 +967,13 @@ class ExcelWriter(object):
             sheet.title = sheet_name
             row_idx = 0
 
-        sheet.append([int(val) if isinstance(val, np.int64) else val
-                      for val in row])
+        conv_row = []
+        for val in row:
+            if isinstance(val, np.int64):
+                val = int(val)
+            elif isinstance(val, np.bool8):
+                val = bool(val)
+            conv_row.append(val)
+        sheet.append(conv_row)
         row_idx += 1
         self.sheets[sheet_name] = (sheet, row_idx)

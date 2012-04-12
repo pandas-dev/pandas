@@ -159,6 +159,10 @@ def makeStringIndex(k):
 def makeIntIndex(k):
     return Index(range(k))
 
+def makeFloatIndex(k):
+    values = sorted(np.random.random_sample(k)) - np.random.random_sample(1)
+    return Index(values * (10 ** np.random.randint(0, 9)))
+
 def makeDateIndex(k):
     dates = list(DateRange(datetime(2000, 1, 1), periods=k))
     return Index(dates)

@@ -60,6 +60,10 @@ def infer_dtype(object _values):
         if is_datetime_array(values):
             return 'datetime'
 
+    elif is_date(val):
+        if is_date_array(values):
+            return 'date'
+
     elif util.is_float_object(val):
         if is_float_array(values):
 
@@ -87,6 +91,9 @@ def infer_dtype_list(list values):
 
 cdef inline bint is_datetime(object o):
     return PyDateTime_Check(o)
+
+cdef inline bint is_date(object o):
+    return PyDate_Check(o)
 
 def is_bool_array(ndarray values):
     cdef:
@@ -181,6 +188,15 @@ def is_datetime_array(ndarray[object] values):
         return False
     for i in range(n):
         if not is_datetime(values[i]):
+            return False
+    return True
+
+def is_date_array(ndarray[object] values):
+    cdef int i, n = len(values)
+    if n == 0:
+        return False
+    for i in range(n):
+        if not is_date(values[i]):
             return False
     return True
 
@@ -352,16 +368,22 @@ def try_parse_dates(ndarray[object] values, parser=None):
                     return datetime.strptime(s, '%m/%d/%Y')
                 except Exception:
                     return s
+        # EAFP here
+        try:
+            for i from 0 <= i < n:
+                result[i] = parse_date(values[i])
+        except Exception:
+            # failed
+            return values
     else:
         parse_date = parser
 
-    # EAFP
-    try:
-        for i from 0 <= i < n:
-            result[i] = parse_date(values[i])
-    except Exception:
-        # failed
-        return values
+        try:
+            for i from 0 <= i < n:
+                result[i] = parse_date(values[i])
+        except Exception:
+            # raise if passed parser and it failed
+            raise
 
     return result
 

@@ -294,6 +294,15 @@ def _need_upcast(values):
         return True
     return False
 
+
+
+def _consensus_name_attr(objs):
+    name = objs[0].name
+    for obj in objs[1:]:
+        if obj.name != name:
+            return None
+    return name
+
 #-------------------------------------------------------------------------------
 # Lots of little utilities
 
@@ -335,11 +344,8 @@ def _is_bool_indexer(key):
     return False
 
 def _default_index(n):
-    from pandas.core.index import NULL_INDEX, Index
-    if n == 0:
-        return NULL_INDEX
-    else:
-        return Index(np.arange(n))
+    from pandas.core.index import Index
+    return Index(np.arange(n))
 
 def ensure_float(arr):
     if issubclass(arr.dtype.type, np.integer):
@@ -520,6 +526,11 @@ def _stringify(col):
     except UnicodeError:
         return console_encode(col)
 
+def _stringify_seq(values):
+    if any(isinstance(x, unicode) for x in values):
+        return [_stringify(x) for x in values]
+    return [str(x) for x in values]
+
 def _maybe_make_list(obj):
     if obj is not None and not isinstance(obj, (tuple, list)):
         return [obj]
@@ -574,6 +585,15 @@ def _ensure_object(arr):
     if arr.dtype != np.object_:
         arr = arr.astype('O')
     return arr
+
+def _astype_nansafe(arr, dtype):
+    if (np.issubdtype(arr.dtype, np.floating) and
+        np.issubdtype(dtype, np.integer)):
+
+        if np.isnan(arr).any():
+            raise ValueError('Cannot convert NA to integer')
+
+    return arr.astype(dtype)
 
 def _clean_fill_method(method):
     method = method.lower()
@@ -645,7 +665,10 @@ class UTF8Recoder:
 
 def _get_handle(path, mode, encoding=None):
     if py3compat.PY3:  # pragma: no cover
-        f = open(path, mode, encoding=encoding)
+        if encoding:
+            f = open(path, mode, encoding=encoding)
+        else:
+            f = open(path, mode, errors='replace')
     else:
         f = open(path, mode)
     return f
@@ -653,10 +676,10 @@ def _get_handle(path, mode, encoding=None):
 if py3compat.PY3:  # pragma: no cover
     def UnicodeReader(f, dialect=csv.excel, encoding="utf-8", **kwds):
         # ignore encoding
-        return csv.reader(f, dialect=csv.excel, **kwds)
+        return csv.reader(f, dialect=dialect, **kwds)
 
     def UnicodeWriter(f, dialect=csv.excel, encoding="utf-8", **kwds):
-        return csv.writer(f, dialect=csv.excel, **kwds)
+        return csv.writer(f, dialect=dialect, **kwds)
 else:
     class UnicodeReader:
         """

@@ -18,10 +18,14 @@ from numpy import nan
 import numpy as np
 
 from pandas import DataFrame, Index, isnull
-from pandas.io.parsers import read_csv, read_table, ExcelFile, TextParser
+from pandas.io.parsers import (read_csv, read_table, read_fwf,
+                               ExcelFile, TextParser)
 from pandas.util.testing import assert_almost_equal, assert_frame_equal
 import pandas._tseries as lib
 from pandas.util import py3compat
+
+from numpy.testing.decorators import slow
+
 
 class TestParsers(unittest.TestCase):
     data1 = """index,A,B,C,D
@@ -244,6 +248,20 @@ baz,7,8,9
         assert_frame_equal(df, df2)
         assert_frame_equal(df3, df2)
 
+    def test_xlsx_table(self):
+        try:
+            import openpyxl
+        except ImportError:
+            raise nose.SkipTest('openpyxl not installed, skipping')
+
+        pth = os.path.join(self.dirpath, 'test.xlsx')
+        xlsx = ExcelFile(pth)
+        df = xlsx.parse('Sheet1', index_col=0, parse_dates=True)
+        df2 = read_csv(self.csv1, index_col=0, parse_dates=True)
+        df3 = xlsx.parse('Sheet2', skiprows=[1], index_col=0, parse_dates=True)
+        assert_frame_equal(df, df2)
+        assert_frame_equal(df3, df2)
+
     def test_read_table_wrong_num_columns(self):
         data = """A,B,C,D,E,F
 1,2,3,4,5
@@ -254,6 +272,19 @@ baz,7,8,9
 
     def test_read_table_duplicate_index(self):
         data = """index,A,B,C,D
+foo,2,3,4,5
+bar,7,8,9,10
+baz,12,13,14,15
+qux,12,13,14,15
+foo,12,13,14,15
+bar,12,13,14,15
+"""
+
+        self.assertRaises(Exception, read_csv, StringIO(data),
+                          index_col=0)
+
+    def test_read_table_duplicate_index_implicit(self):
+        data = """A,B,C,D
 foo,2,3,4,5
 bar,7,8,9,10
 baz,12,13,14,15
@@ -625,6 +656,32 @@ bar"""
                                        'foo', 'bar']})
         assert_frame_equal(df, expected)
 
+    def test_parse_dates_custom_euroformat(self):
+        from dateutil.parser import parse
+        text = """foo,bar,baz
+31/01/2010,1,2
+01/02/2010,1,NA
+02/02/2010,1,2
+"""
+        parser = lambda d: parse(d, dayfirst=True)
+        df = read_csv(StringIO(text), skiprows=[0],
+                      names=['time', 'Q', 'NTU'], index_col=0,
+                      parse_dates=True, date_parser=parser,
+                      na_values=['NA'])
+
+        exp_index = Index([datetime(2010, 1, 31), datetime(2010, 2, 1),
+                           datetime(2010, 2, 2)], name='time')
+        expected = DataFrame({'Q' : [1, 1, 1], 'NTU' : [2, np.nan, 2]},
+                             index=exp_index, columns=['Q', 'NTU'])
+        assert_frame_equal(df, expected)
+
+        parser = lambda d: parse(d, day_first=True)
+        self.assertRaises(Exception, read_csv,
+                          StringIO(text), skiprows=[0],
+                          names=['time', 'Q', 'NTU'], index_col=0,
+                          parse_dates=True, date_parser=parser,
+                          na_values=['NA'])
+
     def test_converters_corner_with_nas(self):
         import StringIO
         import numpy as np
@@ -679,6 +736,80 @@ bar"""
                                                   'days':convert_days_sentinel},
                                   na_values=[-1,'',None])
         assert_frame_equal(result, result2)
+
+    def test_fwf(self):
+        data_expected = """\
+2011,58,360.242940,149.910199,11950.7
+2011,59,444.953632,166.985655,11788.4
+2011,60,364.136849,183.628767,11806.2
+2011,61,413.836124,184.375703,11916.8
+2011,62,502.953953,173.237159,12468.3
+"""
+        expected = read_csv(StringIO(data_expected), header=None)
+
+        data1 = """\
+201158    360.242940   149.910199   11950.7
+201159    444.953632   166.985655   11788.4
+201160    364.136849   183.628767   11806.2
+201161    413.836124   184.375703   11916.8
+201162    502.953953   173.237159   12468.3
+"""
+        colspecs = [(0, 4), (4, 8), (8, 20), (21, 33), (34, 43)]
+        df = read_fwf(StringIO(data1), colspecs=colspecs, header=None)
+        assert_frame_equal(df, expected)
+
+        data2 = """\
+2011 58   360.242940   149.910199   11950.7
+2011 59   444.953632   166.985655   11788.4
+2011 60   364.136849   183.628767   11806.2
+2011 61   413.836124   184.375703   11916.8
+2011 62   502.953953   173.237159   12468.3
+"""
+        df = read_fwf(StringIO(data2), widths=[5, 5, 13, 13, 7], header=None)
+        assert_frame_equal(df, expected)
+
+        # From Thomas Kluyver: apparently some non-space filler characters can
+        # be seen, this is supported by specifying the 'delimiter' character:
+        # http://publib.boulder.ibm.com/infocenter/dmndhelp/v6r1mx/index.jsp?topic=/com.ibm.wbit.612.help.config.doc/topics/rfixwidth.html
+        data3 = """\
+201158~~~~360.242940~~~149.910199~~~11950.7
+201159~~~~444.953632~~~166.985655~~~11788.4
+201160~~~~364.136849~~~183.628767~~~11806.2
+201161~~~~413.836124~~~184.375703~~~11916.8
+201162~~~~502.953953~~~173.237159~~~12468.3
+"""
+        df = read_fwf(StringIO(data3), colspecs=colspecs, delimiter='~', header=None)
+        assert_frame_equal(df, expected)
+
+        self.assertRaises(ValueError, read_fwf, StringIO(data3),
+                          colspecs=colspecs, widths=[6, 10, 10, 7])
+    def test_na_value_dict(self):
+        data = """A,B,C
+foo,bar,NA
+bar,foo,foo
+foo,bar,NA
+bar,foo,foo"""
+
+        df = read_csv(StringIO(data),
+                      na_values={'A': ['foo'], 'B': ['bar']})
+        expected = DataFrame({'A': [np.nan, 'bar', np.nan, 'bar'],
+                              'B': [np.nan, 'foo', np.nan, 'foo'],
+                              'C': [np.nan, 'foo', np.nan, 'foo']})
+        assert_frame_equal(df, expected)
+
+    @slow
+    def test_url(self):
+        # HTTP(S)
+        url = 'https://raw.github.com/pydata/pandas/master/pandas/io/tests/salary.table'
+        url_table = read_table(url)
+        dirpath = curpath()
+        localtable = os.path.join(dirpath, 'salary.table')
+        local_table = read_table(localtable)
+        assert_frame_equal(url_table, local_table)
+        # FILE
+        url_table = read_table('file://localhost/'+localtable)
+        assert_frame_equal(url_table, local_table)
+        #TODO: ftp testing
 
 class TestParseSQL(unittest.TestCase):
 
@@ -755,4 +886,3 @@ if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-

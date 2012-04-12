@@ -90,7 +90,8 @@ class PandasObject(Picklable):
         except KeyError:
             return default
 
-    def groupby(self, by=None, axis=0, level=None, as_index=True, sort=True):
+    def groupby(self, by=None, axis=0, level=None, as_index=True, sort=True,
+                group_keys=True):
         """
         Group series using mapper (dict or key function, apply given function
         to group, return result as series) or by a series of columns
@@ -112,6 +113,8 @@ class PandasObject(Picklable):
             effectively "SQL-style" grouped output
         sort : boolean, default True
             Sort group keys. Get better performance by turning this off
+        group_keys : boolean, default True
+            When calling apply, add group keys to index to identify pieces
 
         Examples
         --------
@@ -130,7 +133,7 @@ class PandasObject(Picklable):
         """
         from pandas.core.groupby import groupby
         return groupby(self, by, axis=axis, level=level, as_index=as_index,
-                       sort=sort)
+                       sort=sort, group_keys=group_keys)
 
     def select(self, crit, axis=0):
         """
@@ -156,7 +159,7 @@ class PandasObject(Picklable):
 
         return self.reindex(**{axis_name : new_axis})
 
-    def drop(self, labels, axis=0):
+    def drop(self, labels, axis=0, level=None):
         """
         Return new object with labels in requested axis removed
 
@@ -164,6 +167,8 @@ class PandasObject(Picklable):
         ----------
         labels : array-like
         axis : int
+        level : int or name, default None
+            For MultiIndex
 
         Returns
         -------
@@ -171,7 +176,13 @@ class PandasObject(Picklable):
         """
         axis_name = self._get_axis_name(axis)
         axis = self._get_axis(axis)
-        new_axis = axis.drop(labels)
+
+        if level is not None:
+            assert(isinstance(axis, MultiIndex))
+            new_axis = axis.drop(labels, level=level)
+        else:
+            new_axis = axis.drop(labels)
+
         return self.reindex(**{axis_name : new_axis})
 
     def sort_index(self, axis=0, ascending=True):
@@ -279,10 +290,16 @@ class NDFrame(PandasObject):
         try:
             return cache[item]
         except Exception:
-            values = self._data.get(item)
-            res = self._box_item_values(item, values)
-            cache[item] = res
-            return res
+            try:
+                values = self._data.get(item)
+                res = self._box_item_values(item, values)
+                cache[item] = res
+                return res
+            except Exception: # pragma: no cover
+                from pandas.core.frame import DataFrame
+                if isinstance(item, DataFrame):
+                    raise ValueError('Cannot index using (boolean) dataframe')
+                raise
 
     def _box_item_values(self, key, values):
         raise NotImplementedError
@@ -310,7 +327,7 @@ class NDFrame(PandasObject):
         Delete item
         """
         deleted = False
-        if (hasattr(self,'columns') and 
+        if (hasattr(self,'columns') and
                 isinstance(self.columns, MultiIndex)
                 and key not in self.columns):
             # Allow shorthand to delete all columns whose first len(key)
@@ -344,7 +361,7 @@ class NDFrame(PandasObject):
         new_axes = []
         for k, ax in zip(key, self.axes):
             if k not in ax:
-                new_axes.append(np.concatenate([ax, [k]]))
+                new_axes.append(ax.insert(len(ax), k))
             else:
                 new_axes.append(ax)
 

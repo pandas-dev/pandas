@@ -1,6 +1,6 @@
 # pylint: disable=E1101,E1103,W0232
 
-from datetime import time, datetime
+from datetime import time, datetime, date
 from itertools import izip
 
 import numpy as np
@@ -15,12 +15,16 @@ __all__ = ['Index']
 
 def _indexOp(opname):
     """
-    Wrapper function for Series arithmetic operations, to avoid
+    Wrapper function for index comparison operations, to avoid
     code duplication.
     """
     def wrapper(self, other):
         func = getattr(self.view(np.ndarray), opname)
-        return func(other)
+        result = func(other)
+        try:
+            return result.view(np.ndarray)
+        except:
+            return result
     return wrapper
 
 
@@ -81,6 +85,14 @@ class Index(np.ndarray):
     def __array_finalize__(self, obj):
         self.name = getattr(obj, 'name', None)
 
+    def __repr__(self):
+        try:
+            result = np.ndarray.__repr__(self)
+        except UnicodeEncodeError:
+            result = 'Index([%s])' % (', '.join([repr(x) for x in self]))
+
+        return result
+
     def astype(self, dtype):
         return Index(self.values.astype(dtype), name=self.name,
                      dtype=dtype)
@@ -113,13 +125,14 @@ class Index(np.ndarray):
         # to disable groupby tricks in MultiIndex
         return False
 
-    def summary(self):
+    def summary(self, name=None):
         if len(self) > 0:
             index_summary = ', %s to %s' % (str(self[0]), str(self[-1]))
         else:
             index_summary = ''
 
-        name = type(self).__name__
+        if name is None:
+            name = type(self).__name__
         return '%s: %s entries%s' % (name, len(self), index_summary)
 
     def __str__(self):
@@ -143,13 +156,7 @@ class Index(np.ndarray):
             return False
 
     def is_numeric(self):
-        return issubclass(self.dtype.type, np.number)
-
-    def is_datetime(self):
-        for key in self.values:
-            if not isinstance(key, datetime):
-                return False
-        return True
+        return self.inferred_type in ['integer', 'floating']
 
     def get_duplicates(self):
         from collections import defaultdict
@@ -254,11 +261,19 @@ class Index(np.ndarray):
         -------
         appended : Index
         """
+        name = self.name
         if isinstance(other, (list, tuple)):
             to_concat = (self.values,) + tuple(other)
+            for obj in other:
+                if isinstance(obj, Index) and obj.name != name:
+                    name = None
+                    break
         else:
             to_concat = self.values, other.values
-        return Index(np.concatenate(to_concat))
+            if isinstance(other, Index) and other.name != name:
+                name = None
+
+        return Index(np.concatenate(to_concat), name=name)
 
     def take(self, *args, **kwargs):
         """
@@ -292,7 +307,7 @@ class Index(np.ndarray):
             values = lib.maybe_convert_objects(values, safe=1)
 
         if values.dtype == np.object_:
-            result = [com._stringify(x) for x in values]
+            result = com._stringify_seq(values)
         else:
             result = _trim_front(format_array(values, None, justify='left'))
         return header + result
@@ -515,7 +530,7 @@ class Index(np.ndarray):
         try:
             return self._engine.get_value(series, key)
         except KeyError, e1:
-            if self.inferred_type == 'integer':
+            if len(self) > 0 and self.inferred_type == 'integer':
                 raise
 
             try:
@@ -641,8 +656,8 @@ class Index(np.ndarray):
         """
         target = _ensure_index(target)
         if level is not None:
-            _, indexer, _ = self._join_level(target, level, how='left',
-                                                  return_indexers=True)
+            _, indexer, _ = self._join_level(target, level, how='right',
+                                             return_indexers=True)
         else:
             if self.equals(target):
                 indexer = None
@@ -726,7 +741,6 @@ class Index(np.ndarray):
             how = {'right': 'left', 'left': 'right'}.get(how, how)
 
         level = left._get_level_number(level)
-
         old_level = left.levels[level]
 
         new_level, left_lev_indexer, right_lev_indexer = \
@@ -750,10 +764,10 @@ class Index(np.ndarray):
 
             join_index = MultiIndex(levels=new_levels, labels=new_labels,
                                     names=left.names)
+            left_indexer = np.arange(len(left))[new_lev_labels != -1]
         else:
             join_index = left
-
-        left_indexer = None
+            left_indexer = None
 
         if right_lev_indexer is not None:
             right_indexer = right_lev_indexer.take(join_index.labels[level])
@@ -1446,7 +1460,7 @@ class MultiIndex(Index):
     def argsort(self, *args, **kwargs):
         return self.values.argsort()
 
-    def drop(self, labels):
+    def drop(self, labels, level=None):
         """
         Make new MultiIndex with passed list of labels deleted
 
@@ -1454,11 +1468,15 @@ class MultiIndex(Index):
         ----------
         labels : array-like
             Must be a list of tuples
+        level : int or name, default None
 
         Returns
         -------
         dropped : MultiIndex
         """
+        if level is not None:
+            return self._drop_from_level(labels, level)
+
         try:
             if not isinstance(labels, np.ndarray):
                 labels = com._asarray_tuplesafe(labels)
@@ -1480,6 +1498,15 @@ class MultiIndex(Index):
                 inds.extend(range(loc.start, loc.stop))
 
         return self.delete(inds)
+
+    def _drop_from_level(self, labels, level):
+        i = self._get_level_number(level)
+        index = self.levels[i]
+        values = index.get_indexer(labels)
+
+        mask = -lib.ismember(self.labels[i], set(values))
+
+        return self[mask]
 
     def droplevel(self, level=0):
         """
@@ -1578,7 +1605,7 @@ class MultiIndex(Index):
         -------
         sorted_index : MultiIndex
         """
-        from pandas.core.frame import _indexer_from_factorized
+        from pandas.core.groupby import _indexer_from_factorized
 
         labels = list(self.labels)
 
@@ -1669,7 +1696,7 @@ class MultiIndex(Index):
         (new_index, indexer, mask) : (MultiIndex, ndarray, ndarray)
         """
         if level is not None:
-            target, _, indexer = self._join_level(target, level, how='left',
+            target, indexer, _ = self._join_level(target, level, how='right',
                                                   return_indexers=True)
         else:
             if self.equals(target):
@@ -2117,8 +2144,6 @@ class MultiIndex(Index):
 
 # For utility purposes
 
-NULL_INDEX = Index([])
-
 
 def _sparsify(label_list):
     pivoted = zip(*label_list)
@@ -2161,7 +2186,7 @@ def _validate_join_method(method):
 def _get_combined_index(indexes, intersect=False):
     indexes = _get_distinct_indexes(indexes)
     if len(indexes) == 0:
-        return NULL_INDEX
+        return Index([])
     if len(indexes) == 1:
         return indexes[0]
     if intersect:
@@ -2229,3 +2254,12 @@ def _sanitize_and_check(indexes):
         return indexes, 'special'
     else:
         return indexes, 'array'
+
+
+def _get_consensus_names(indexes):
+    consensus_name = indexes[0].names
+    for index in indexes[1:]:
+        if index.names != consensus_name:
+            consensus_name = [None] * index.nlevels
+            break
+    return consensus_name

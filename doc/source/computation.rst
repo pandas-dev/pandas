@@ -95,7 +95,7 @@ Data ranking
 ~~~~~~~~~~~~
 
 The ``rank`` method produces a data ranking with ties being assigned the mean
-of the ranks for the group:
+of the ranks (by default) for the group:
 
 .. ipython:: python
 
@@ -112,6 +112,17 @@ or the columns (``axis=1``). ``NaN`` values are excluded from the ranking.
    df[4] = df[2][:5] # some ties
    df
    df.rank(1)
+
+``rank`` optionally takes a parameter ``ascending`` which by default is true;
+when false, data is reverse-ranked, with larger values assigned a smaller rank.
+
+``rank`` supports different tie-breaking methods, specified with the ``method``
+parameter:
+
+  - ``average`` : average rank of tied group
+  - ``min`` : lowest rank in the group
+  - ``max`` : highest rank in the group
+  - ``first`` : ranks assigned in the order they appear in the array
 
 .. note::
 

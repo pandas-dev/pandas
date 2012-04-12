@@ -10,8 +10,8 @@ import numpy as np
 from pandas.core.common import (PandasError, _mut_exclusive,
                                 _try_sort, _default_index, _infer_dtype)
 from pandas.core.index import (Factor, Index, MultiIndex, _ensure_index,
-                               _get_combined_index, NULL_INDEX)
-from pandas.core.indexing import _NDFrameIndexer
+                               _get_combined_index)
+from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
@@ -320,7 +320,26 @@ class Panel(NDFrame):
         data, index, columns = _homogenize_dict(data, intersect=intersect,
                                                 dtype=dtype)
         items = Index(sorted(data.keys()))
-        return Panel(data, items, index, columns)
+        return cls(data, items, index, columns)
+
+    def __getitem__(self, key):
+        if isinstance(self.items, MultiIndex):
+            return self._getitem_multilevel(key)
+        return super(Panel, self).__getitem__(key)
+
+    def _getitem_multilevel(self, key):
+        loc = self.items.get_loc(key)
+        if isinstance(loc, (slice, np.ndarray)):
+            new_index = self.items[loc]
+            result_index = _maybe_droplevels(new_index, key)
+            new_values = self.values[loc, :, :]
+            result = Panel(new_values,
+                            items=result_index,
+                            major_axis=self.major_axis,
+                            minor_axis=self.minor_axis)
+            return result
+        else:
+            return self._get_item_cache(key)
 
     def _init_matrix(self, data, axes, dtype=None, copy=False):
         values = _prep_ndarray(data, copy=copy)
@@ -418,7 +437,7 @@ class Panel(NDFrame):
 
     @property
     def _constructor(self):
-        return Panel
+        return type(self)
 
     # Fancy indexing
     _ix = None
@@ -676,6 +695,37 @@ class Panel(NDFrame):
 
         return result
 
+    def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True):
+        """Conform Panel to new index with optional filling logic, placing
+        NA/NaN in locations having no value in the previous index. A new object
+        is produced unless the new index is equivalent to the current one and
+        copy=False
+
+        Parameters
+        ----------
+        index : array-like, optional
+            New labels / index to conform to. Preferably an Index object to
+            avoid duplicating data
+        axis : {0, 1}
+            0 -> index (rows)
+            1 -> columns
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
+            Method to use for filling holes in reindexed DataFrame
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap
+        copy : boolean, default True
+            Return a new object, even if the passed indexes are the same
+        level : int or name
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level
+
+        Returns
+        -------
+        reindexed : Panel
+        """
+        self._consolidate_inplace()
+        return self._reindex_axis(labels, method, axis, copy)
+
     def reindex_like(self, other, method=None):
         """
         Reindex Panel to match indices of another Panel
@@ -700,7 +750,7 @@ class Panel(NDFrame):
             return self._combine_frame(other, func, axis=axis)
         elif np.isscalar(other):
             new_values = func(self.values, other)
-            return Panel(new_values, self.items, self.major_axis,
+            return self._constructor(new_values, self.items, self.major_axis,
                              self.minor_axis)
 
     def __neg__(self):
@@ -721,7 +771,7 @@ class Panel(NDFrame):
             new_values = func(self.values.swapaxes(0, 2), other.values)
             new_values = new_values.swapaxes(0, 2)
 
-        return Panel(new_values, self.items, self.major_axis,
+        return self._constructor(new_values, self.items, self.major_axis,
                      self.minor_axis)
 
     def _combine_panel(self, other, func):
@@ -735,7 +785,7 @@ class Panel(NDFrame):
 
         result_values = func(this.values, other.values)
 
-        return Panel(result_values, items, major, minor)
+        return self._constructor(result_values, items, major, minor)
 
     def fillna(self, value=None, method='pad'):
         """
@@ -767,10 +817,10 @@ class Panel(NDFrame):
             for col, s in self.iterkv():
                 result[col] = s.fillna(method=method, value=value)
 
-            return Panel.from_dict(result)
+            return self._constructor.from_dict(result)
         else:
             new_data = self._data.fillna(value)
-            return Panel(new_data)
+            return self._constructor(new_data)
 
     add = _panel_arith_method(operator.add, 'add')
     subtract = sub = _panel_arith_method(operator.sub, 'subtract')
@@ -881,7 +931,7 @@ class Panel(NDFrame):
                     for k in range(3))
         new_values = self.values.swapaxes(i, j).copy()
 
-        return Panel(new_values, *new_axes)
+        return self._constructor(new_values, *new_axes)
 
     def to_frame(self, filter_observations=True):
         """
@@ -1082,7 +1132,7 @@ class Panel(NDFrame):
         else:
             raise ValueError('Invalid axis')
 
-        return Panel(values, items=items, major_axis=major_axis,
+        return self._constructor(values, items=items, major_axis=major_axis,
                          minor_axis=minor_axis)
 
     def truncate(self, before=None, after=None, axis='major'):
@@ -1223,7 +1273,7 @@ def _extract_axis(data, axis=0, intersect=False):
     from pandas.core.index import _union_indexes
 
     if len(data) == 0:
-        index = NULL_INDEX
+        index = Index([])
     elif len(data) > 0:
         raw_lengths = []
         indexes = []
@@ -1251,9 +1301,6 @@ def _extract_axis(data, axis=0, intersect=False):
                 assert(lengths[0] == len(index))
             else:
                 index = Index(np.arange(lengths[0]))
-
-    if len(index) == 0:
-        index = NULL_INDEX
 
     return _ensure_index(index)
 

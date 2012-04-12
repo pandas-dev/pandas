@@ -836,6 +836,17 @@ class TestConcatenate(unittest.TestCase):
         self.assert_((result['foo'][15:] == 'bar').all())
         self.assert_(result['foo'][:15].isnull().all())
 
+    def test_append_preserve_index_name(self):
+        # #980
+        df1 = DataFrame(data=None, columns=['A','B','C'])
+        df1 = df1.set_index(['A'])
+        df2 = DataFrame(data=[[1,4,7], [2,5,8], [3,6,9]],
+                        columns=['A','B','C'])
+        df2 = df2.set_index(['A'])
+
+        result = df1.append(df2)
+        self.assert_(result.index.name == 'A')
+
     def test_join_many(self):
         df = DataFrame(np.random.randn(10, 6), columns=list('abcdef'))
         df_list = [df[['a', 'b']], df[['c', 'd']], df[['e', 'f']]]
@@ -962,6 +973,25 @@ class TestConcatenate(unittest.TestCase):
         result = concat(frames, keys=keys)
         expected = concat([frames[k] for k in keys], keys=keys)
         tm.assert_frame_equal(result, expected)
+
+    def test_concat_ignore_index(self):
+        frame1 = DataFrame({"test1": ["a", "b", "c"],
+                            "test2": [1,2,3],
+                            "test3": [4.5, 3.2, 1.2]})
+        frame2 = DataFrame({"test3": [5.2, 2.2, 4.3]})
+        frame1.index = Index(["x", "y", "z"])
+        frame2.index = Index(["x", "y", "q"])
+
+        v1 = concat([frame1, frame2], axis=1, ignore_index=True)
+
+        nan = np.nan
+        expected = DataFrame([[nan,nan,nan, 4.3],
+                              ['a', 1, 4.5, 5.2],
+                              ['b', 2, 3.2, 2.2],
+                              ['c', 3, 1.2, nan]],
+                             index=Index(["q", "x", "y", "z"]))
+
+        tm.assert_frame_equal(v1, expected)
 
     def test_concat_multiindex_with_keys(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
@@ -1201,6 +1231,20 @@ class TestConcatenate(unittest.TestCase):
         result = concat(pieces)
         tm.assert_frame_equal(result, df)
         self.assertRaises(Exception, concat, [None, None])
+
+    def test_mixed_type_join_with_suffix(self):
+        # GH #916
+        df = DataFrame(np.random.randn(20, 6),
+                       columns=['a', 'b', 'c', 'd', 'e', 'f'])
+        df.insert(0, 'id', 0)
+        df.insert(5, 'dt', 'foo')
+
+        grouped = df.groupby('id')
+        mn = grouped.mean()
+        cn = grouped.count()
+
+        # it works!
+        mn.join(cn, rsuffix='_right')
 
 if __name__ == '__main__':
     import nose

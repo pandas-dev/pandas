@@ -30,18 +30,6 @@ def match(values, index):
         return _match_generic(values, index, lib.PyObjectHashTable,
                               com._ensure_object)
 
-def _get_hash_table_and_cast(values):
-    if com.is_float_dtype(values):
-        klass = lib.Float64HashTable
-        values = com._ensure_float64(values)
-    elif com.is_integer_dtype(values):
-        klass = lib.Int64HashTable
-        values = com._ensure_int64(values)
-    else:
-        klass = lib.PyObjectHashTable
-        values = com._ensure_object(values)
-    return klass, values
-
 def count(values, uniques=None):
     if uniques is not None:
         raise NotImplementedError
@@ -83,7 +71,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
     Returns
     -------
     """
-    hash_klass, values = _get_hash_table_and_cast(values)
+    hash_klass, values = _get_data_algo(values, _hashtables)
 
     uniques = []
     table = hash_klass(len(values))
@@ -103,6 +91,77 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
         counts = counts.take(sorter)
 
     return labels, uniques, counts
+
+def value_counts(values, sort=True, ascending=False):
+    """
+    Compute a histogram of the counts of non-null values
+
+    Returns
+    -------
+    value_counts : Series
+    """
+    from collections import defaultdict
+    if com.is_integer_dtype(values.dtype):
+        values = com._ensure_int64(values)
+        keys, counts = lib.value_count_int64(values)
+        result = Series(counts, index=keys)
+    else:
+        counter = defaultdict(lambda: 0)
+        values = values[com.notnull(values)]
+        for value in values:
+            counter[value] += 1
+        result = Series(counter)
+
+    if sort:
+        result.sort()
+        if not ascending:
+            result = result[::-1]
+
+    return result
+
+def rank(values, axis=0, method='average', na_option='keep',
+         ascending=True):
+    """
+
+    """
+    if values.ndim == 1:
+        f, values = _get_data_algo(values, _rank1d_functions)
+        ranks = f(values, ties_method=method, ascending=ascending)
+    elif values.ndim == 2:
+        f, values = _get_data_algo(values, _rank2d_functions)
+        ranks = f(values, axis=axis, ties_method=method,
+                  ascending=ascending)
+    return ranks
+
+
+def _get_data_algo(values, func_map):
+    if com.is_float_dtype(values):
+        f = func_map['float64']
+        values = com._ensure_float64(values)
+    elif com.is_integer_dtype(values):
+        f = func_map['int64']
+        values = com._ensure_int64(values)
+    else:
+        f = func_map['generic']
+        values = com._ensure_object(values)
+    return f, values
+
+_rank1d_functions = {
+    'float64' : lib.rank_1d_float64,
+    'int64' : lib.rank_1d_int64,
+    'generic' : lib.rank_1d_generic
+}
+
+_rank2d_functions = {
+    'float64' : lib.rank_2d_float64,
+    'generic' : lib.rank_2d_generic
+}
+
+_hashtables = {
+    'float64' : lib.Float64HashTable,
+    'int64' : lib.Int64HashTable,
+    'generic' : lib.PyObjectHashTable
+}
 
 def unique(values):
     """

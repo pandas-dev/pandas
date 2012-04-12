@@ -83,6 +83,7 @@ class TestMultiLevel(unittest.TestCase):
             op = getattr(DataFrame, opname)
             month_sums = self.ymd.sum(level='month')
             result = op(self.ymd, month_sums, level='month')
+
             broadcasted = self.ymd.groupby(level='month').transform(np.sum)
             expected = op(self.ymd, broadcasted)
             assert_frame_equal(result, expected)
@@ -253,6 +254,15 @@ class TestMultiLevel(unittest.TestCase):
 
         assert_series_equal(result, expected)
         assert_series_equal(result, expected2)
+
+    def test_getitem_setitem_tuple_plus_columns(self):
+        # GH #1013
+
+        df = self.ymd[:5]
+
+        result = df.ix[(2000, 1, 6), ['A', 'B', 'C']]
+        expected = df.ix[2000, 1, 6][['A', 'B', 'C']]
+        assert_series_equal(result, expected)
 
     def test_xs(self):
         xs = self.frame.xs(('bar', 'two'))
@@ -862,6 +872,32 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         assert_series_equal(result, expected)
         assert_series_equal(result2, expected)
 
+    def test_count(self):
+        frame = self.frame.copy()
+        frame.index.names = ['a', 'b']
+
+        result = frame.count(level='b')
+        expect = self.frame.count(level=1)
+        assert_frame_equal(result, expect)
+
+        result = frame.count(level='a')
+        expect = self.frame.count(level=0)
+        assert_frame_equal(result, expect)
+
+        series = self.series.copy()
+        series.index.names = ['a', 'b']
+
+        result = series.count(level='b')
+        expect = self.series.count(level=1)
+        assert_series_equal(result, expect)
+
+        result = series.count(level='a')
+        expect = self.series.count(level=0)
+        assert_series_equal(result, expect)
+
+        self.assertRaises(Exception, series.count, 'x')
+        self.assertRaises(Exception, frame.count, level='x')
+
     AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
                      'mad', 'std', 'var']
 
@@ -902,6 +938,24 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
             self.assert_(rightside._get_axis(axis).equals(level_index))
 
             assert_frame_equal(leftside, rightside)
+
+    def test_std_var_pass_ddof(self):
+        index = MultiIndex.from_arrays([np.arange(5).repeat(10),
+                                        np.tile(np.arange(10), 5)])
+        df = DataFrame(np.random.randn(len(index), 5), index=index)
+
+        for meth in ['var', 'std']:
+            ddof = 4
+            alt = lambda x: getattr(x, meth)(ddof=ddof)
+
+            result = getattr(df[0], meth)(level=0, ddof=ddof)
+            expected = df[0].groupby(level=0).agg(alt)
+            assert_series_equal(result, expected)
+
+            result = getattr(df, meth)(level=0, ddof=ddof)
+            expected = df.groupby(level=0).agg(alt)
+            assert_frame_equal(result, expected)
+
 
     def test_frame_series_agg_multiple_levels(self):
         result = self.ymd.sum(level=['year', 'month'])
@@ -1092,18 +1146,18 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         tuples.sort()
         index = MultiIndex.from_tuples(tuples)
         df = DataFrame(randn(4,6),columns = index)
-            
+
         result = df['a']
         expected = df['a','','']
         assert_series_equal(result, expected)
         self.assertEquals(result.name, 'a')
-        
+
         result = df['routine1','result1']
         expected = df['routine1','result1','']
         assert_series_equal(result, expected)
         self.assertEquals(result.name, ('routine1', 'result1'))
 
-    def test_mixed_depth_insert(self):  
+    def test_mixed_depth_insert(self):
         arrays = [[  'a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
                   [   '',  'OD',  'OD', 'result1',   'result2',  'result1'],
                   [   '',  'wx',  'wy',        '',          '',         '']]
@@ -1111,15 +1165,15 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         tuples = zip(*arrays)
         tuples.sort()
         index = MultiIndex.from_tuples(tuples)
-        df = DataFrame(randn(4,6),columns = index)     
+        df = DataFrame(randn(4,6),columns = index)
 
         result = df.copy()
         expected = df.copy()
         result['b'] = [1,2,3,4]
         expected['b','',''] = [1,2,3,4]
         assert_frame_equal(result, expected)
- 
-    def test_mixed_depth_drop(self):  
+
+    def test_mixed_depth_drop(self):
         arrays = [[  'a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
                   [   '',  'OD',  'OD', 'result1',   'result2',  'result1'],
                   [   '',  'wx',  'wy',        '',          '',         '']]
@@ -1127,18 +1181,18 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         tuples = zip(*arrays)
         tuples.sort()
         index = MultiIndex.from_tuples(tuples)
-        df = DataFrame(randn(4,6),columns = index)     
+        df = DataFrame(randn(4,6),columns = index)
 
         result = df.drop('a',axis=1)
         expected = df.drop([('a','','')],axis=1)
         assert_frame_equal(expected, result)
-        
+
         result = df.drop(['top'],axis=1)
         expected = df.drop([('top','OD','wx')], axis=1)
         expected = expected.drop([('top','OD','wy')], axis=1)
         assert_frame_equal(expected, result)
-               
-    def test_mixed_depth_pop(self):  
+
+    def test_mixed_depth_pop(self):
         arrays = [[  'a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
                   [   '',  'OD',  'OD', 'result1',   'result2',  'result1'],
                   [   '',  'wx',  'wy',        '',          '',         '']]
@@ -1146,7 +1200,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         tuples = zip(*arrays)
         tuples.sort()
         index = MultiIndex.from_tuples(tuples)
-        df = DataFrame(randn(4,6),columns = index)     
+        df = DataFrame(randn(4,6),columns = index)
 
         df1 = df.copy()
         df2 = df.copy()
@@ -1155,14 +1209,88 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         assert_series_equal(expected, result)
         assert_frame_equal(df1, df2)
         self.assertEquals(result.name,'a')
-        
+
         expected = df1['top']
         df1 = df1.drop(['top'],axis=1)
         result = df2.pop('top')
         assert_frame_equal(expected, result)
         assert_frame_equal(df1, df2)
-            
-        
+
+    def test_reindex_level_partial_selection(self):
+        result = self.frame.reindex(['foo', 'qux'], level=0)
+        expected = self.frame.ix[[0, 1, 2, 7, 8, 9]]
+        assert_frame_equal(result, expected)
+
+        result = self.frame.T.reindex_axis(['foo', 'qux'], axis=1, level=0)
+        assert_frame_equal(result, expected.T)
+
+        result = self.frame.ix[['foo', 'qux']]
+        assert_frame_equal(result, expected)
+
+        result = self.frame['A'].ix[['foo', 'qux']]
+        assert_series_equal(result, expected['A'])
+
+        result = self.frame.T.ix[:, ['foo', 'qux']]
+        assert_frame_equal(result, expected.T)
+
+    def test_setitem_multiple_partial(self):
+        expected = self.frame.copy()
+        result = self.frame.copy()
+        result.ix[['foo', 'bar']] = 0
+        expected.ix['foo'] = 0
+        expected.ix['bar'] = 0
+        assert_frame_equal(result, expected)
+
+        expected = self.frame.copy()
+        result = self.frame.copy()
+        result.ix['foo':'bar'] = 0
+        expected.ix['foo'] = 0
+        expected.ix['bar'] = 0
+        assert_frame_equal(result, expected)
+
+        expected = self.frame['A'].copy()
+        result = self.frame['A'].copy()
+        result.ix[['foo', 'bar']] = 0
+        expected.ix['foo'] = 0
+        expected.ix['bar'] = 0
+        assert_series_equal(result, expected)
+
+        expected = self.frame['A'].copy()
+        result = self.frame['A'].copy()
+        result.ix['foo':'bar'] = 0
+        expected.ix['foo'] = 0
+        expected.ix['bar'] = 0
+        assert_series_equal(result, expected)
+
+    def test_drop_level(self):
+        result = self.frame.drop(['bar', 'qux'], level='first')
+        expected = self.frame.ix[[0, 1, 2, 5, 6]]
+        assert_frame_equal(result, expected)
+
+        result = self.frame.drop(['two'], level='second')
+        expected = self.frame.ix[[0, 2, 3, 6, 7, 9]]
+        assert_frame_equal(result, expected)
+
+        result = self.frame.T.drop(['bar', 'qux'], axis=1, level='first')
+        expected = self.frame.ix[[0, 1, 2, 5, 6]].T
+        assert_frame_equal(result, expected)
+
+        result = self.frame.T.drop(['two'], axis=1, level='second')
+        expected = self.frame.ix[[0, 2, 3, 6, 7, 9]].T
+        assert_frame_equal(result, expected)
+
+    def test_unicode_repr_issues(self):
+        levels = [Index([u'a/\u03c3', u'b/\u03c3',u'c/\u03c3']),
+                  Index([0, 1])]
+        labels = [np.arange(3).repeat(2), np.tile(np.arange(2), 3)]
+        index = MultiIndex(levels=levels, labels=labels)
+
+        repr(index.levels)
+
+        # NumPy bug
+        # repr(index.get_level_values(1))
+
+
 if __name__ == '__main__':
 
     # unittest.main()

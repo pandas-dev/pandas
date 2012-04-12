@@ -87,7 +87,8 @@ def tquery(sql, con=None, cur=None, retry=True):
                 return tquery(sql, con=con, retry=False)
 
     if result and len(result[0]) == 1:
-        result = list(zip(*result)[0])
+        # python 3 compat
+        result = list(list(zip(*result))[0])
     elif result is None:  # pragma: no cover
         result = []
 
@@ -114,7 +115,7 @@ def uquery(sql, con=None, cur=None, retry=True, params=()):
             return uquery(sql, con, retry=False)
     return result
 
-def read_frame(sql, con, index_col=None):
+def read_frame(sql, con, index_col=None, coerce_float=True):
     """
     Returns a DataFrame corresponding to the result set of the query
     string.
@@ -135,7 +136,8 @@ def read_frame(sql, con, index_col=None):
     con.commit()
 
     columns = [col_desc[0] for col_desc in cur.description]
-    result = DataFrame.from_records(rows, columns=columns)
+    result = DataFrame.from_records(rows, columns=columns,
+                                    coerce_float=coerce_float)
 
     if index_col is not None:
         result = result.set_index(index_col)

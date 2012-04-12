@@ -28,7 +28,7 @@ from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
                                 _default_index, _stringify)
 from pandas.core.daterange import DateRange
 from pandas.core.generic import NDFrame
-from pandas.core.index import Index, MultiIndex, NULL_INDEX, _ensure_index
+from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _radd_compat
@@ -168,35 +168,54 @@ merged : DataFrame
 #----------------------------------------------------------------------
 # Factory helper methods
 
-def _arith_method(func, name, default_axis='columns'):
+def _arith_method(op, name, default_axis='columns'):
+    def na_op(x, y):
+        try:
+            result = op(x, y)
+        except TypeError:
+            xrav = x.ravel()
+            result = np.empty(x.size, dtype=x.dtype)
+            if isinstance(y, np.ndarray):
+                yrav = y.ravel()
+                mask = notnull(xrav) & notnull(yrav)
+                result[mask] = op(xrav[mask], yrav[mask])
+            else:
+                mask = notnull(xrav)
+                result[mask] = op(xrav[mask], y)
+
+            np.putmask(result, -mask, np.nan)
+            result = result.reshape(x.shape)
+
+        return result
+
     @Appender(_arith_doc % name)
     def f(self, other, axis=default_axis, level=None, fill_value=None):
         if isinstance(other, DataFrame):    # Another DataFrame
-            return self._combine_frame(other, func, fill_value, level)
+            return self._combine_frame(other, na_op, fill_value, level)
         elif isinstance(other, Series):
-            return self._combine_series(other, func, fill_value, axis, level)
+            return self._combine_series(other, na_op, fill_value, axis, level)
         elif isinstance(other, (list, tuple)):
             if axis is not None and self._get_axis_name(axis) == 'index':
                 casted = Series(other, index=self.index)
             else:
                 casted = Series(other, index=self.columns)
-            return self._combine_series(casted, func, fill_value, axis, level)
+            return self._combine_series(casted, na_op, fill_value, axis, level)
         elif isinstance(other, np.ndarray):
             if other.ndim == 1:
                 if axis is not None and self._get_axis_name(axis) == 'index':
                     casted = Series(other, index=self.index)
                 else:
                     casted = Series(other, index=self.columns)
-                return self._combine_series(casted, func, fill_value,
+                return self._combine_series(casted, na_op, fill_value,
                                             axis, level)
             elif other.ndim == 2:
                 casted = DataFrame(other, index=self.index,
                                    columns=self.columns)
-                return self._combine_frame(casted, func, fill_value, level)
+                return self._combine_frame(casted, na_op, fill_value, level)
             else:  # pragma: no cover
                 raise ValueError("Bad argument shape")
         else:
-            return self._combine_const(other, func)
+            return self._combine_const(other, na_op)
 
     f.__name__ = name
 
@@ -454,7 +473,9 @@ class DataFrame(NDFrame):
             else:
                 return True
         else:
-            if len(self.index) > max_rows:
+            # save us
+            if (len(self.index) > max_rows or
+                len(self.columns) > terminal_width // 2):
                 return True
             else:
                 buf = StringIO()
@@ -652,7 +673,7 @@ class DataFrame(NDFrame):
 
     @classmethod
     def from_records(cls, data, index=None, exclude=None, columns=None,
-                     names=None):
+                     names=None, coerce_float=False):
         """
         Convert structured or record ndarray to DataFrame
 
@@ -666,12 +687,19 @@ class DataFrame(NDFrame):
             Columns or fields to exclude
         columns : sequence, default None
             Column names to use, replacing any found in passed data
+        coerce_float : boolean, default False
+            Attempt to convert values to non-string, non-numeric objects (like
+            decimal.Decimal) to floating point, useful for SQL result sets
 
         Returns
         -------
         df : DataFrame
         """
         import warnings
+
+        # Make a copy of the input columns so we can modify it
+        if columns is not None:
+            columns = list(columns)
 
         if names is not None:  # pragma: no cover
             columns = names
@@ -682,7 +710,8 @@ class DataFrame(NDFrame):
         if isinstance(data, (np.ndarray, DataFrame, dict)):
             columns, sdict = _rec_to_dict(data)
         else:
-            sdict, columns = _to_sdict(data, columns)
+            sdict, columns = _to_sdict(data, columns,
+                                       coerce_float=coerce_float)
 
         if exclude is None:
             exclude = set()
@@ -1113,39 +1142,41 @@ class DataFrame(NDFrame):
             If False, don't print column count summary
         buf : writable buffer, defaults to sys.stdout
         """
+        from pandas.core.format import _put_lines
+
         if buf is None:  # pragma: no cover
             buf = sys.stdout
 
-        print >> buf, str(type(self))
-        print >> buf, self.index.summary()
+        lines = []
+
+        lines.append(str(type(self)))
+        lines.append(self.index.summary())
 
         if len(self.columns) == 0:
-            print >> buf, 'Empty %s' % type(self).__name__
+            lines.append('Empty %s' % type(self).__name__)
+            _put_lines(buf, lines)
             return
 
         cols = self.columns
 
-        if verbose:
-            print >> buf, 'Data columns:'
+        # hack
+        if verbose and len(self.columns) < 100:
+            lines.append('Data columns:')
             space = max([len(_stringify(k)) for k in self.columns]) + 4
-            col_counts = []
             counts = self.count()
             assert(len(cols) == len(counts))
             for col, count in counts.iteritems():
-                colstr = _stringify(col)
-                col_counts.append('%s%d  non-null values' %
-                                  (_put_str(colstr, space), count))
-            print >> buf, '\n'.join(col_counts)
+                if not isinstance(col, (unicode, str)):
+                    col = str(col)
+                lines.append(_put_str(col, space) +
+                             '%d  non-null values' % count)
         else:
-            if len(cols) <= 2:
-                print >> buf, 'Columns: %s' % repr(cols)
-            else:
-                print >> buf, ('Columns: %s to %s' % (_stringify(cols[0]),
-                                                      _stringify(cols[-1])))
+            lines.append(self.columns.summary(name='Columns'))
 
         counts = self.get_dtype_counts()
         dtypes = ['%s(%d)' % k for k in sorted(counts.iteritems())]
-        buf.write('dtypes: %s' % ', '.join(dtypes))
+        lines.append('dtypes: %s' % ', '.join(dtypes))
+        _put_lines(buf, lines)
 
     @property
     def dtypes(self):
@@ -1404,7 +1435,13 @@ class DataFrame(NDFrame):
     def __getitem__(self, key):
         # slice rows
         if isinstance(key, slice):
-            new_data = self._data.get_slice(key, axis=1)
+            from pandas.core.indexing import _is_index_slice
+            if self.index.inferred_type == 'integer' or _is_index_slice(key):
+                indexer = key
+            else:
+                indexer = self.ix._convert_to_indexer(key, axis=0)
+
+            new_data = self._data.get_slice(indexer, axis=1)
             return self._constructor(new_data)
         # either boolean or fancy integer index
         elif isinstance(key, (np.ndarray, list)):
@@ -1479,6 +1516,23 @@ class DataFrame(NDFrame):
         raise AttributeError("'%s' object has no attribute '%s'" %
                              (type(self).__name__, name))
 
+    def __setattr__(self, name, value):
+        """After regular attribute access, try looking up the name of a column.
+        This allows simpler access to columns for interactive use."""
+        if name == '_data':
+            super(DataFrame, self).__setattr__(name, value)
+        else:
+            try:
+                existing = getattr(self, name)
+                if isinstance(existing, Index):
+                    super(DataFrame, self).__setattr__(name, value)
+                elif name in self.columns:
+                    self[name] = value
+                else:
+                    object.__setattr__(self, name, value)
+            except (AttributeError, TypeError):
+                object.__setattr__(self, name, value)
+
     def __setitem__(self, key, value):
         # support boolean setting with DataFrame input, e.g.
         # df[df > df2] = 0
@@ -1515,7 +1569,12 @@ class DataFrame(NDFrame):
             for k1, k2 in zip(keys, value.columns):
                 self[k1] = value[k2]
         else:
-            self.ix[:, keys] = value
+            if isinstance(keys, np.ndarray) and keys.dtype == np.bool_:
+                # boolean slicing should happen on rows, consistent with
+                # behavior of getitem
+                self.ix[keys, :] = value
+            else:
+                self.ix[:, keys] = value
 
     def _set_item(self, key, value):
         """
@@ -1677,6 +1736,10 @@ class DataFrame(NDFrame):
             values = self.values
             ridx = self.index.get_indexer(row_labels)
             cidx = self.columns.get_indexer(col_labels)
+            if (ridx == -1).any():
+                raise ValueError('One or more row labels was not found')
+            if (cidx == -1).any():
+                raise ValueError('One or more column labels was not found')
             flat_index = ridx * len(self.columns) + cidx
             result = values.flat[flat_index]
         else:
@@ -1794,7 +1857,7 @@ class DataFrame(NDFrame):
         left_result = DataFrame(fdata)
         right_result = other if ridx is None else other.reindex(join_index)
 
-        fill_na = (fill_value is not None) or (method is not None)
+        fill_na = notnull(fill_value) or (method is not None)
         if fill_na:
             return (left_result.fillna(fill_value, method=method),
                     right_result.fillna(fill_value, method=method))
@@ -1895,15 +1958,11 @@ class DataFrame(NDFrame):
             raise ValueError('Must specify axis=0 or 1')
 
     def _reindex_index(self, new_index, method, copy, level, fill_value=np.nan):
-        if level is not None:
-            assert(isinstance(new_index, MultiIndex))
         new_index, indexer = self.index.reindex(new_index, method, level)
         return self._reindex_with_indexers(new_index, indexer, None, None,
                                            copy, fill_value)
 
     def _reindex_columns(self, new_columns, copy, level, fill_value=np.nan):
-        if level is not None:
-            assert(isinstance(new_columns, MultiIndex))
         new_columns, indexer = self.columns.reindex(new_columns, level=level)
         return self._reindex_with_indexers(None, None, new_columns, indexer,
                                            copy, fill_value)
@@ -1912,6 +1971,7 @@ class DataFrame(NDFrame):
                                copy, fill_value):
         new_data = self._data
         if row_indexer is not None:
+            row_indexer = com._ensure_int32(row_indexer)
             new_data = new_data.reindex_indexer(index, row_indexer, axis=1,
                                                 fill_value=fill_value)
         elif index is not None and index is not new_data.axes[1]:
@@ -1920,6 +1980,7 @@ class DataFrame(NDFrame):
 
         if col_indexer is not None:
             # TODO: speed up on homogeneous DataFrame objects
+            col_indexer = com._ensure_int32(col_indexer)
             new_data = new_data.reindex_indexer(columns, col_indexer, axis=0,
                                                 fill_value=fill_value)
         elif columns is not None and columns is not new_data.axes[0]:
@@ -2270,6 +2331,8 @@ class DataFrame(NDFrame):
         -------
         sorted : DataFrame
         """
+        from pandas.core.groupby import _lexsort_indexer
+
         labels = self._get_axis(axis)
 
         if by is not None:
@@ -2370,7 +2433,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Filling NA's
 
-    def fillna(self, value=None, method='pad', inplace=False):
+    def fillna(self, value=None, method='pad', axis=0, inplace=False):
         """
         Fill NA/NaN values using the specified method
 
@@ -2380,8 +2443,13 @@ class DataFrame(NDFrame):
             Method to use for filling holes in reindexed Series
             pad / ffill: propagate last valid observation forward to next valid
             backfill / bfill: use NEXT valid observation to fill gap
-        value : any kind (should be same type as array)
-            Value to use to fill holes (e.g. 0)
+        value : scalar or dict
+            Value to use to fill holes (e.g. 0), alternately a dict of values
+            specifying which value to use for each column (columns not in the
+            dict will not be filled)
+        axis : {0, 1}, default 0
+            0: fill column-by-column
+            1: fill row-by-row
         inplace : boolean, default False
             If True, fill the DataFrame in place. Note: this will modify any
             other views on this DataFrame, like if you took a no-copy slice of
@@ -2401,12 +2469,14 @@ class DataFrame(NDFrame):
         self._consolidate_inplace()
 
         if value is None:
-            new_blocks = []
+            if self._is_mixed_type and axis == 1:
+                return self.T.fillna(method=method).T
 
+            new_blocks = []
             method = com._clean_fill_method(method)
             for block in self._data.blocks:
                 if isinstance(block, (FloatBlock, ObjectBlock)):
-                    newb = block.interpolate(method, inplace=inplace)
+                    newb = block.interpolate(method, axis=axis, inplace=inplace)
                 else:
                     newb = block if inplace else block.copy()
                 new_blocks.append(newb)
@@ -2416,7 +2486,17 @@ class DataFrame(NDFrame):
             # Float type values
             if len(self.columns) == 0:
                 return self
-            new_data = self._data.fillna(value)
+            if np.isscalar(value):
+                new_data = self._data.fillna(value, inplace=inplace)
+            elif isinstance(value, dict):
+                result = self if inplace else self.copy()
+                for k, v in value.iteritems():
+                    if k not in result:
+                        continue
+                    result[k].fillna(v, inplace=True)
+                return result
+            else:  # pragma: no cover
+                raise TypeError('Invalid fill value type: %s' % type(value))
 
         if inplace:
             self._data = new_data
@@ -2553,8 +2633,13 @@ class DataFrame(NDFrame):
     def _combine_const(self, other, func):
         if not self:
             return self
+        result_values = func(self.values, other)
 
-        return self._constructor(func(self.values, other), index=self.index,
+        if not isinstance(result_values, np.ndarray):
+            raise TypeError('Could not compare %s with DataFrame values'
+                            % repr(other))
+
+        return self._constructor(result_values, index=self.index,
                                  columns=self.columns, copy=False)
 
     def _compare_frame(self, other, func):
@@ -2929,15 +3014,16 @@ class DataFrame(NDFrame):
         """
         Applies function along input axis of DataFrame. Objects passed to
         functions are Series objects having index either the DataFrame's index
-        (axis=0) or the columns (axis=1). Returns either a DataFrame (if the
-        function produces another Series) or a Series indexed on either the
-        index or columns if the function produces an aggregated value.
+        (axis=0) or the columns (axis=1). Return type depends on whether passed
+        function aggregates
 
         Parameters
         ----------
         func : function
             Function to apply to each column
         axis : {0, 1}
+            0 : apply function to each column
+            1 : apply function to each row
         broadcast : bool, default False
             For aggregation functions, return object of same size with values
             propagated
@@ -2959,8 +3045,7 @@ class DataFrame(NDFrame):
 
         Notes
         -----
-        Function passed should not have side effects. If the result is a
-        Series, it should have the same index
+        To apply a function elementwise, use applymap
 
         Returns
         -------
@@ -3016,7 +3101,8 @@ class DataFrame(NDFrame):
             values = self.values
             dummy = Series(np.nan, index=self._get_axis(axis),
                            dtype=values.dtype)
-            result = lib.reduce(values, func, axis=axis, dummy=dummy)
+            result = lib.reduce(values, func, axis=axis, dummy=dummy,
+                                labels=self._get_agg_axis(axis))
             return Series(result, index=self._get_agg_axis(axis))
         except Exception:
             pass
@@ -3028,7 +3114,7 @@ class DataFrame(NDFrame):
         elif axis == 1:
             res_index = self.index
             res_columns = self.columns
-            series_gen = ((i, Series(v, self.columns))
+            series_gen = ((i, Series(v, self.columns, name=i))
                           for i, v in izip(self.index, self.values))
 
         results = {}
@@ -3058,7 +3144,8 @@ class DataFrame(NDFrame):
             else:
                 index = None
 
-            result = self._constructor(data=results, index=index)
+            result = self._constructor(data=results, index=index,
+                                       columns=res_index)
 
             if axis == 1:
                 result = result.T
@@ -3351,11 +3438,17 @@ class DataFrame(NDFrame):
 
         return correl
 
-    def describe(self):
+    def describe(self, percentile_width=50):
         """
-        Generate various summary statistics of each column, excluding NaN
-        values. These include: count, mean, std, min, max, and 10%/50%/90%
-        quantiles
+        Generate various summary statistics of each column, excluding
+        NaN values. These include: count, mean, std, min, max, and
+        lower%/50%/upper% percentiles
+
+        Parameters
+        ----------
+        percentile_width : float, optional
+            width of the desired uncertainty interval, default is 50,
+            which corresponds to lower=25, upper=75
 
         Returns
         -------
@@ -3368,16 +3461,27 @@ class DataFrame(NDFrame):
                                   for k, v in self.iteritems()),
                                   columns=self.columns)
 
+        lb = .5 * (1. - percentile_width/100.)
+        ub = 1. - lb
+
+        def pretty_name(x):
+            x *= 100
+            if x == int(x):
+                return '%.0f%%' % x
+            else:
+                return '%.1f%%' % x
+
         destat_columns = ['count', 'mean', 'std', 'min',
-                          '25%', '50%', '75%', 'max']
+                          pretty_name(lb), '50%', pretty_name(ub),
+                          'max']
 
         destat = []
 
         for column in numdata.columns:
             series = self[column]
             destat.append([series.count(), series.mean(), series.std(),
-                           series.min(), series.quantile(.25), series.median(),
-                           series.quantile(.75), series.max()])
+                           series.min(), series.quantile(lb), series.median(),
+                           series.quantile(ub), series.max()])
 
         return self._constructor(map(list, zip(*destat)), index=destat_columns,
                                  columns=numdata.columns)
@@ -3436,6 +3540,9 @@ class DataFrame(NDFrame):
 
         # python 2.5
         mask = notnull(frame.values).view(np.uint8)
+
+        if isinstance(level, basestring):
+            level = self.index._get_level_number(level)
 
         level_index = frame.index.levels[level]
         counts = lib.count_level_2d(mask, frame.index.labels[level],
@@ -3527,24 +3634,24 @@ class DataFrame(NDFrame):
             demeaned = frame.sub(frame.mean(axis=1), axis=0)
         return np.abs(demeaned).mean(axis=axis, skipna=skipna)
 
-    @Substitution(name='unbiased variance', shortname='var',
+    @Substitution(name='variance', shortname='var',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
-    def var(self, axis=0, skipna=True, level=None):
+    def var(self, axis=0, skipna=True, level=None, ddof=1):
         if level is not None:
             return self._agg_by_level('var', axis=axis, level=level,
-                                      skipna=skipna)
+                                      skipna=skipna, ddof=ddof)
         return self._reduce(nanops.nanvar, axis=axis, skipna=skipna,
-                            numeric_only=None)
+                            numeric_only=None, ddof=ddof)
 
-    @Substitution(name='unbiased standard deviation', shortname='std',
+    @Substitution(name='standard deviation', shortname='std',
                   na_action=_doc_exclude_na, extras='')
     @Appender(_stat_doc)
-    def std(self, axis=0, skipna=True, level=None):
+    def std(self, axis=0, skipna=True, level=None, ddof=1):
         if level is not None:
             return self._agg_by_level('std', axis=axis, level=level,
-                                      skipna=skipna)
-        return np.sqrt(self.var(axis=axis, skipna=skipna))
+                                      skipna=skipna, ddof=ddof)
+        return np.sqrt(self.var(axis=axis, skipna=skipna, ddof=ddof))
 
     @Substitution(name='unbiased skewness', shortname='skew',
                   na_action=_doc_exclude_na, extras='')
@@ -3556,16 +3663,27 @@ class DataFrame(NDFrame):
         return self._reduce(nanops.nanskew, axis=axis, skipna=skipna,
                             numeric_only=None)
 
-    def _agg_by_level(self, name, axis=0, level=0, skipna=True):
+
+    @Substitution(name='unbiased kurtosis', shortname='kurt',
+                  na_action=_doc_exclude_na, extras='')
+    @Appender(_stat_doc)
+    def kurt(self, axis=0, skipna=True, level=None):
+        if level is not None:
+            return self._agg_by_level('kurt', axis=axis, level=level,
+                                      skipna=skipna)
+        return self._reduce(nanops.nankurt, axis=axis, skipna=skipna,
+                            numeric_only=None)
+
+    def _agg_by_level(self, name, axis=0, level=0, skipna=True, **kwds):
         grouped = self.groupby(level=level, axis=axis)
         if hasattr(grouped, name) and skipna:
-            return getattr(grouped, name)()
+            return getattr(grouped, name)(**kwds)
         method = getattr(type(self), name)
-        applyf = lambda x: method(x, axis=axis, skipna=skipna)
+        applyf = lambda x: method(x, axis=axis, skipna=skipna, **kwds)
         return grouped.aggregate(applyf)
 
-    def _reduce(self, op, axis=0, skipna=True, numeric_only=None):
-        f = lambda x: op(x, axis=axis, skipna=skipna)
+    def _reduce(self, op, axis=0, skipna=True, numeric_only=None, **kwds):
+        f = lambda x: op(x, axis=axis, skipna=skipna, **kwds)
         labels = self._get_agg_axis(axis)
         if numeric_only is None:
             try:
@@ -3720,7 +3838,8 @@ class DataFrame(NDFrame):
         """
         return self.apply(lambda x: x.clip_lower(threshold))
 
-    def rank(self, axis=0, numeric_only=None):
+    def rank(self, axis=0, numeric_only=None, method='average',
+             na_option='keep', ascending=True):
         """
         Compute numerical data ranks (1 through n) along axis. Equal values are
         assigned a rank that is the average of the ranks of those values
@@ -3731,225 +3850,38 @@ class DataFrame(NDFrame):
             Ranks over columns (0) or rows (1)
         numeric_only : boolean, default None
             Include only float, int, boolean data
+        method : {'average', 'min', 'max', 'first'}
+            average: average rank of group
+            min: lowest rank in group
+            max: highest rank in group
+            first: ranks assigned in order they appear in the array
+        na_option : {'keep'}
+            keep: leave NA values where they are
+        ascending : boolean, default True
+            False for ranks by high (1) to low (N)
 
         Returns
         -------
         ranks : DataFrame
         """
+        from pandas.core.algorithms import rank
+
         if numeric_only is None:
             try:
-                values = self.values
-                if issubclass(values.dtype.type, np.floating):
-                    ranks = lib.rank_2d_float64(values, axis=axis)
-                else:
-                    ranks = lib.rank_2d_generic(values, axis=axis)
+                ranks = rank(self.values, axis=axis, method=method,
+                             ascending=ascending)
+                return DataFrame(ranks, index=self.index, columns=self.columns)
             except TypeError:
                 numeric_only = True
 
         if numeric_only:
             data = self._get_numeric_data()
-            ranks = lib.rank_2d_float64(data.values.astype('f8'), axis=axis)
-            return DataFrame(ranks, index=data.index, columns=data.columns)
         else:
             data = self
-            ranks = lib.rank_2d_generic(data.values.astype('O'), axis=axis)
-            return DataFrame(ranks, index=data.index, columns=data.columns)
+        ranks = rank(data.values, axis=axis, method=method,
+                     ascending=ascending)
+        return DataFrame(ranks, index=data.index, columns=data.columns)
 
-    #----------------------------------------------------------------------
-    # Plotting
-
-    def boxplot(self, column=None, by=None, ax=None, fontsize=None,
-                rot=0, grid=True, **kwds):
-        """
-        Make a box plot from DataFrame column/columns optionally grouped
-        (stratified) by one or more columns
-
-        Parameters
-        ----------
-        data : DataFrame
-        column : column names or list of names, or vector
-            Can be any valid input to groupby
-        by : string or sequence
-            Column in the DataFrame to group by
-        fontsize : int or string
-
-        Returns
-        -------
-        ax : matplotlib.axes.AxesSubplot
-        """
-        import pandas.tools.plotting as plots
-        import matplotlib.pyplot as plt
-        ax = plots.boxplot(self, column=column, by=by, ax=ax,
-                           fontsize=fontsize, grid=grid, rot=rot, **kwds)
-        plt.draw_if_interactive()
-        return ax
-
-    def plot(self, subplots=False, sharex=True, sharey=False, use_index=True,
-             figsize=None, grid=True, legend=True, rot=30, ax=None,
-             kind='line', **kwds):
-        """
-        Make line plot of DataFrame's series with the index on the x-axis using
-        matplotlib / pylab.
-
-        Parameters
-        ----------
-        subplots : boolean, default False
-            Make separate subplots for each time series
-        sharex : boolean, default True
-            In case subplots=True, share x axis
-        sharey : boolean, default False
-            In case subplots=True, share y axis
-        use_index : boolean, default True
-            Use index as ticks for x axis
-        kind : {'line', 'bar'}
-        kwds : keywords
-            Options to pass to Axis.plot
-
-        Notes
-        -----
-        This method doesn't make much sense for cross-sections,
-        and will error.
-        """
-        import matplotlib.pyplot as plt
-        import pandas.tools.plotting as gfx
-
-        if subplots:
-            fig, axes = gfx.subplots(nrows=len(self.columns),
-                                     sharex=sharex, sharey=sharey,
-                                     figsize=figsize)
-        else:
-            if ax is None:
-                fig = plt.figure(figsize=figsize)
-                ax = fig.add_subplot(111)
-                axes = [ax]
-            else:
-                fig = ax.get_figure()
-                axes = fig.get_axes()
-
-        if kind == 'line':
-            if use_index:
-                if self.index.is_numeric() or self.index.is_datetime():
-                    """
-                    Matplotlib supports numeric values or datetime objects as
-                    xaxis values. Taking LBYL approach here, by the time
-                    matplotlib raises exception when using non numeric/datetime
-                    values for xaxis, several actions are already taken by plt.
-                    """
-                    need_to_set_xticklabels = False
-                    x = self.index
-                else:
-                    need_to_set_xticklabels = True
-                    x = range(len(self))
-            else:
-                need_to_set_xticklabels = False
-                x = range(len(self))
-
-            for i, col in enumerate(_try_sort(self.columns)):
-                empty = self[col].count() == 0
-                y = self[col].values if not empty else np.zeros(x.shape)
-
-                if subplots:
-                    ax = axes[i]
-                    ax.plot(x, y, 'k', label=str(col), **kwds)
-                    ax.legend(loc='best')
-                else:
-                    ax.plot(x, y, label=str(col), **kwds)
-
-                ax.grid(grid)
-
-            if legend and not subplots:
-                ax.legend(loc='best')
-
-            if need_to_set_xticklabels:
-                xticklabels = [gfx._stringify(key) for key in self.index]
-                for ax_ in axes:
-                    ax_.set_xticks(x)
-                    ax_.set_xticklabels(xticklabels, rotation=rot)
-        elif kind == 'bar':
-            self._bar_plot(axes, subplots=subplots, grid=grid, rot=rot,
-                           legend=legend)
-
-        if not subplots or (subplots and sharex):
-            try:
-                fig.autofmt_xdate()
-            except Exception:  # pragma: no cover
-                pass
-
-        plt.draw_if_interactive()
-        if subplots:
-            return axes
-        else:
-            return ax
-
-    def _bar_plot(self, axes, subplots=False, use_index=True, grid=True,
-                  rot=30, legend=True, **kwds):
-        import pandas.tools.plotting as gfx
-
-        N, K = self.shape
-        xinds = np.arange(N) + 0.25
-        colors = 'rgbyk'
-        rects = []
-        labels = []
-
-        if not subplots:
-            ax = axes[0]
-
-        for i, col in enumerate(self.columns):
-            empty = self[col].count() == 0
-            y = self[col].values if not empty else np.zeros(len(self))
-            if subplots:
-                ax = axes[i]
-                ax.bar(xinds, y, 0.5,
-                       bottom=np.zeros(N), linewidth=1, **kwds)
-                ax.set_title(col)
-            else:
-                rects.append(ax.bar(xinds + i * 0.5 / K, y, 0.5 / K,
-                                    bottom=np.zeros(N), label=col,
-                                    color=colors[i % len(colors)], **kwds))
-                labels.append(col)
-
-        if N < 10:
-            fontsize = 12
-        else:
-            fontsize = 10
-
-        ax.set_xticks(xinds + 0.25)
-        ax.set_xticklabels([gfx._stringify(key) for key in self.index],
-                           rotation=rot,
-                           fontsize=fontsize)
-
-        if legend and not subplots:
-            fig = ax.get_figure()
-            fig.legend([r[0] for r in rects], labels, loc='upper center',
-                       fancybox=True, ncol=6, mode='expand')
-
-        import matplotlib.pyplot as plt
-        plt.subplots_adjust(top=0.8)
-
-    def hist(self, grid=True, **kwds):
-        """
-        Draw Histogram the DataFrame's series using matplotlib / pylab.
-
-        Parameters
-        ----------
-        kwds : other plotting keyword arguments
-            To be passed to hist function
-        """
-        import pandas.tools.plotting as gfx
-
-        n = len(self.columns)
-        k = 1
-        while k ** 2 < n:
-            k += 1
-        _, axes = gfx.subplots(nrows=k, ncols=k)
-
-        for i, col in enumerate(_try_sort(self.columns)):
-            ax = axes[i / k][i % k]
-            ax.hist(self[col].dropna().values, **kwds)
-            ax.set_title(col)
-            ax.grid(grid)
-
-        return axes
     #----------------------------------------------------------------------
     # Deprecated stuff
 
@@ -4058,7 +3990,7 @@ def extract_index(data):
 
     index = None
     if len(data) == 0:
-        index = NULL_INDEX
+        index = Index([])
     elif len(data) > 0 and index is None:
         raw_lengths = []
         indexes = []
@@ -4094,9 +4026,6 @@ def extract_index(data):
                 assert(lengths[0] == len(index))
             else:
                 index = Index(np.arange(lengths[0]))
-
-    if len(index) == 0:
-        index = NULL_INDEX
 
     return _ensure_index(index)
 
@@ -4142,19 +4071,22 @@ def _rec_to_dict(arr):
     return columns, sdict
 
 
-def _to_sdict(data, columns):
+def _to_sdict(data, columns, coerce_float=False):
     if len(data) == 0:
         return {}, columns
     if isinstance(data[0], (list, tuple)):
-        return _list_to_sdict(data, columns)
+        return _list_to_sdict(data, columns, coerce_float=coerce_float)
     elif isinstance(data[0], dict):
-        return _list_of_dict_to_sdict(data, columns)
+        return _list_of_dict_to_sdict(data, columns, coerce_float=coerce_float)
     elif isinstance(data[0], Series):
-        return _list_of_series_to_sdict(data, columns)
-    else:  # pragma: no cover
-        raise TypeError('No logic to handle %s type' % type(data[0]))
+        return _list_of_series_to_sdict(data, columns,
+                                        coerce_float=coerce_float)
+    else:
+        # last ditch effort
+        data = map(tuple, data)
+        return _list_to_sdict(data, columns, coerce_float=coerce_float)
 
-def _list_to_sdict(data, columns):
+def _list_to_sdict(data, columns, coerce_float=False):
     if len(data) > 0 and isinstance(data[0], tuple):
         content = list(lib.to_object_array_tuples(data).T)
     elif len(data) > 0:
@@ -4164,9 +4096,10 @@ def _list_to_sdict(data, columns):
         if columns is None:
             columns = []
         return {}, columns
-    return _convert_object_array(content, columns)
+    return _convert_object_array(content, columns,
+                                 coerce_float=coerce_float)
 
-def _list_of_series_to_sdict(data, columns):
+def _list_of_series_to_sdict(data, columns, coerce_float=False):
     from pandas.core.index import _get_combined_index
 
     if columns is None:
@@ -4187,21 +4120,28 @@ def _list_of_series_to_sdict(data, columns):
 
     if values.dtype == np.object_:
         content = list(values.T)
-        return _convert_object_array(content, columns)
+        return _convert_object_array(content, columns,
+                                     coerce_float=coerce_float)
     else:
         return values, columns
 
 
-def _list_of_dict_to_sdict(data, columns):
+def _list_of_dict_to_sdict(data, columns, coerce_float=False):
     if columns is None:
         gen = (x.keys() for x in data)
         columns = lib.fast_unique_multiple_list_gen(gen)
 
+    # assure that they are of the base dict class and not of derived
+    # classes
+    data = [(type(d) is dict) and d or dict(d)
+            for d in data]
+
     content = list(lib.dicts_to_array(data, list(columns)).T)
-    return _convert_object_array(content, columns)
+    return _convert_object_array(content, columns,
+                                 coerce_float=coerce_float)
 
 
-def _convert_object_array(content, columns):
+def _convert_object_array(content, columns, coerce_float=False):
     if columns is None:
         columns = range(len(content))
     else:
@@ -4209,7 +4149,7 @@ def _convert_object_array(content, columns):
             raise AssertionError('%d columns passed, passed data had %s '
                                  'columns' % (len(columns), len(content)))
 
-    sdict = dict((c, lib.maybe_convert_objects(vals))
+    sdict = dict((c, lib.maybe_convert_objects(vals, try_float=coerce_float))
                  for c, vals in zip(columns, content))
     return sdict, columns
 
@@ -4292,37 +4232,40 @@ if "IPython" in sys.modules:  # pragma: no cover
     except Exception:
         pass
 
+#----------------------------------------------------------------------
+# Add plotting methods to DataFrame
 
-def _indexer_from_factorized(labels, shape, compress=True):
-    from pandas.core.groupby import get_group_index, _compress_group_index
+import pandas.tools.plotting as gfx
 
-    group_index = get_group_index(labels, shape)
+DataFrame.plot = gfx.plot_frame
+DataFrame.hist = gfx.hist_frame
 
-    if compress:
-        comp_ids, obs_ids = _compress_group_index(group_index)
-        max_group = len(obs_ids)
-    else:
-        comp_ids = group_index
-        max_group = np.prod(shape)
+def boxplot(self, column=None, by=None, ax=None, fontsize=None,
+            rot=0, grid=True, **kwds):
+    """
+    Make a box plot from DataFrame column/columns optionally grouped
+    (stratified) by one or more columns
 
-    indexer, _ = lib.groupsort_indexer(comp_ids.astype('i4'), max_group)
+    Parameters
+    ----------
+    data : DataFrame
+    column : column names or list of names, or vector
+        Can be any valid input to groupby
+    by : string or sequence
+        Column in the DataFrame to group by
+    fontsize : int or string
 
-    return indexer
-
-
-def _lexsort_indexer(keys):
-    labels = []
-    shape = []
-    for key in keys:
-        rizer = lib.Factorizer(len(key))
-
-        if not key.dtype == np.object_:
-            key = key.astype('O')
-
-        ids, _ = rizer.factorize(key, sort=True)
-        labels.append(ids)
-        shape.append(len(rizer.uniques))
-    return _indexer_from_factorized(labels, shape)
+    Returns
+    -------
+    ax : matplotlib.axes.AxesSubplot
+    """
+    import pandas.tools.plotting as plots
+    import matplotlib.pyplot as plt
+    ax = plots.boxplot(self, column=column, by=by, ax=ax,
+                       fontsize=fontsize, grid=grid, rot=rot, **kwds)
+    plt.draw_if_interactive()
+    return ax
+DataFrame.boxplot = boxplot
 
 
 if __name__ == '__main__':

@@ -21,6 +21,7 @@ class TestIndex(unittest.TestCase):
         self.strIndex = tm.makeStringIndex(100)
         self.dateIndex = tm.makeDateIndex(100)
         self.intIndex = tm.makeIntIndex(100)
+        self.floatIndex = tm.makeFloatIndex(100)
         self.empty = Index([])
         self.tuples = Index(zip(['foo', 'bar', 'baz'], [1, 2, 3]))
 
@@ -223,6 +224,19 @@ class TestIndex(unittest.TestCase):
         result = index.append([])
         self.assert_(result.equals(index))
 
+    def test_append_empty_preserve_name(self):
+        left = Index([], name='foo')
+        right = Index([1, 2, 3], name='foo')
+
+        result = left.append(right)
+        self.assert_(result.name == 'foo')
+
+        left = Index([], name='foo')
+        right = Index([1, 2, 3], name='bar')
+
+        result = left.append(right)
+        self.assert_(result.name is None)
+
     def test_add_string(self):
         # from bug report
         index = Index(['a', 'b', 'c'])
@@ -262,10 +276,11 @@ class TestIndex(unittest.TestCase):
 
         testit(self.dateIndex)
 
-    # def test_always_get_null_index(self):
-    #     empty = Index([])
-    #     self.assert_(empty is NULL_INDEX)
-    #     self.assert_(self.dateIndex[15:15] is NULL_INDEX)
+    def test_is_numeric(self):
+        self.assert_(not self.dateIndex.is_numeric())
+        self.assert_(not self.strIndex.is_numeric())
+        self.assert_(self.intIndex.is_numeric())
+        self.assert_(self.floatIndex.is_numeric())
 
     def test_is_all_dates(self):
         self.assert_(self.dateIndex.is_all_dates)
@@ -416,6 +431,16 @@ class TestIndex(unittest.TestCase):
         result = idx.isin(values)
         self.assert_(len(result) == 0)
         self.assert_(result.dtype == np.bool_)
+
+    def test_boolean_cmp(self):
+        values = [1,2,3,4]
+
+        idx = Index(values)
+        res = (idx == values)
+
+        self.assert_(res.all())
+        self.assert_(res.dtype == 'bool')
+        self.assert_(not isinstance(res, Index))
 
 class TestInt64Index(unittest.TestCase):
 
@@ -819,6 +844,10 @@ class TestMultiIndex(unittest.TestCase):
     def test_is_all_dates(self):
         self.assert_(not self.index.is_all_dates)
 
+    def test_is_numeric(self):
+        # MultiIndex is never numeric
+        self.assert_(not self.index.is_numeric())
+
     def test_getitem(self):
         # scalar
         self.assertEquals(self.index[2], ('bar', 'one'))
@@ -1203,6 +1232,9 @@ class TestMultiIndex(unittest.TestCase):
     def test_from_tuples(self):
         self.assertRaises(Exception, MultiIndex.from_tuples, [])
 
+        idx = MultiIndex.from_tuples( ((1,2),(3,4)), names=['a', 'b'] )
+        self.assertEquals(len(idx), 2)
+
     def test_argsort(self):
         result = self.index.argsort()
         expected = self.index.get_tuple_index().argsort()
@@ -1386,11 +1418,18 @@ class TestMultiIndex(unittest.TestCase):
         idx = Index(['one'])
 
         target, indexer = self.index.reindex(idx, level='second')
-        target2, indexer2 = idx.reindex(self.index, idx, level='second')
+        target2, indexer2 = idx.reindex(self.index, level='second')
 
-        exp_index = self.index.join(idx, level='second', how='left')
+        exp_index = self.index.join(idx, level='second', how='right')
+        exp_index2 = self.index.join(idx, level='second', how='left')
+
         self.assert_(target.equals(exp_index))
-        self.assert_(target2.equals(exp_index))
+        exp_indexer = np.array([0, 2, 4])
+        self.assert_(np.array_equal(indexer, exp_indexer))
+
+        self.assert_(target2.equals(exp_index2))
+        exp_indexer2 = np.array([0, -1, 0, -1, 0, -1])
+        self.assert_(np.array_equal(indexer2, exp_indexer2))
 
     def test_has_duplicates(self):
         self.assert_(not self.index.has_duplicates)
@@ -1435,13 +1474,14 @@ class TestFactor(unittest.TestCase):
 
 
 def test_get_combined_index():
-    from pandas.core.index import _get_combined_index, NULL_INDEX
-
+    from pandas.core.index import _get_combined_index
     result = _get_combined_index([])
-    assert(result is NULL_INDEX)
+    assert(result.equals(Index([])))
 
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                          # '--with-coverage', '--cover-package=pandas.core'],
                    exit=False)
+
+
