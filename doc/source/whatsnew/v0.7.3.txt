@@ -12,8 +12,9 @@ or issue tracker on GitHub for a complete list.
 New features
 ~~~~~~~~~~~~
 
-- New fixed width file reader, ``read_fwf``
-- New :ref:`scatter_matrix <visualization.scatter_matrix>` function
+- New :ref:`fixed width file reader <io.fwf>`, ``read_fwf``
+- New :ref:`scatter_matrix <visualization.scatter_matrix>` function for making
+  a scatter plot matrix
 
 .. code-block:: python
 

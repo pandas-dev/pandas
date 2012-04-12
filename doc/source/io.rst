@@ -139,8 +139,10 @@ fragile. Type inference is a pretty big deal. So if a column can be coerced to
 integer dtype without altering the contents, it will do so. Any non-numeric
 columns will come through as object dtype as with the rest of pandas objects.
 
+.. _io.fwf:
+
 Files with Fixed Width Columns
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 While `read_csv` reads delimited data, the :func:`~pandas.io.parsers.read_fwf`
 function works with data files that have known and fixed column widths.
 The function parameters to `read_fwf` are largely the same as `read_csv` with
@@ -155,13 +157,11 @@ two extra parameters:
    :suppress:
 
    f = open('bar.csv', 'w')
-   data1 = """\
-id8141    360.242940   149.910199   11950.7
-id1594    444.953632   166.985655   11788.4
-id1849    364.136849   183.628767   11806.2
-id1230    413.836124   184.375703   11916.8
-id1948    502.953953   173.237159   12468.3
-"""
+   data1 = ("id8141    360.242940   149.910199   11950.7\n"
+            "id1594    444.953632   166.985655   11788.4\n"
+            "id1849    364.136849   183.628767   11806.2\n"
+            "id1230    413.836124   184.375703   11916.8\n"
+            "id1948    502.953953   173.237159   12468.3")
    f.write(data1)
    f.close()
 
@@ -181,13 +181,15 @@ column specifications to the `read_fwf` function along with the file name:
    df = read_fwf('bar.csv', colspecs=colspecs, header=None, index_col=0)
    df
 
-Alternatively, you can supply just the column widths for contiguous columns:
+Note how the parser automatically picks column names X.<column number> when
+``header=None`` argument is specified. Alternatively, you can supply just the
+column widths for contiguous columns:
 
 .. ipython:: python
 
    #Widths are a list of integers
    widths = [6, 14, 13, 10]
-   df = read_fwf('bar.csv', widths=widths, header=None, index_col=0)
+   df = read_fwf('bar.csv', widths=widths, header=None)
    df
 
 The parser will take care of extra white spaces around the columns
