@@ -90,7 +90,7 @@ override_dh_pysupport:
 	   sdir=$$(dirname $$lib) ; \
 	   tdir=$(PACKAGE_ROOT_DIR)-lib/$${sdir#*$(PACKAGE_NAME)/} ; \
 	   mkdir -p $$tdir ; \
-	   echo "Moving '$$lib' into '$$tdir'." ; \
+	   echo "I: Moving '$$lib' into '$$tdir'." ; \
 	   mv $$lib $$tdir ; \
 	done
 	if [ -x /usr/bin/dh_numpy ]; then dh_numpy -ppython-pandas-lib; fi
