@@ -57,8 +57,7 @@ ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
 	: # Run unittests here against installed pandas
 	export PYTHONPATH=`/bin/ls -d $$PWD/$(PACKAGE_ROOT_DIR)/usr/lib/python$*/*/`; \
 	export MPLCONFIGDIR=$(CURDIR)/build HOME=$(CURDIR)/build; \
-	cd build/; python$* /usr/bin/nosetests -s -v pandas;
-	: # Upstream was informed about testFamaMacBethRolling failures on 32bit
+	cd build/; python$* /usr/bin/nosetests -s -v -a '!network' pandas;
 else
 	: # Skip unittests due to nocheck
 endif

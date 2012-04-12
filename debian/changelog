@@ -1,9 +1,13 @@
 pandas (0.7.3-1) unstable; urgency=low
 
   * Fresh upstream release
+    - few post-release patches (submitted upstream) to exclude unittests
+  	  requiring network access
   * debian/control:
     - python-openpyxl, python-xlwt, python-xlrd into Build-Depends
       and Recommends
+  * debian/rules:
+    - exclude running tests marked with @network
 
  -- Yaroslav Halchenko <debian@onerussian.com>  Thu, 12 Apr 2012 11:27:31 -0400
 
