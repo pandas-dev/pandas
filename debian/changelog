@@ -1,6 +1,6 @@
-pandas (0.7.2+git111-gf7b9139-1) UNRELEASED; urgency=low
+pandas (0.7.3-1) unstable; urgency=low
 
-  * Pre-release snapshot
+  * Fresh upstream release
   * debian/control:
     - python-openpyxl, python-xlwt, python-xlrd into Build-Depends
       and Recommends
