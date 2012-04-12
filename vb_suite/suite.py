@@ -108,7 +108,7 @@ Performance Benchmarks
 ======================
 
 These historical benchmark graphs were produced with `vbench
-<http://github.com/wesm/vbench>`__.
+<http://github.com/pydata/vbench>`__.
 
 The ``pandas_vb_common`` setup script can be found here_
 
