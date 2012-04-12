@@ -314,6 +314,26 @@ class TestOLSMisc(unittest.TestCase):
         pred4 = model1.predict(beta=beta)
         assert_series_equal(Series(0., pred4.index), pred4)
 
+    def test_predict_longer_exog(self):
+        exogenous = {"1998": "4760","1999": "5904","2000": "4504",
+                     "2001": "9808","2002": "4241","2003": "4086",
+                     "2004": "4687","2005": "7686","2006": "3740",
+                     "2007": "3075","2008": "3753","2009": "4679",
+                     "2010": "5468","2011": "7154","2012": "4292",
+                     "2013": "4283","2014": "4595","2015": "9194",
+                     "2016": "4221","2017": "4520"}
+        endogenous = {"1998": "691", "1999": "1580", "2000": "80",
+                      "2001": "1450", "2002": "555", "2003": "956",
+                      "2004": "877", "2005": "614", "2006": "468",
+                      "2007": "191"}
+
+        endog = Series(endogenous)
+        exog = Series(exogenous)
+        model = ols(y=endog, x=exog)
+
+        pred = model.y_predict
+        self.assert_(pred.index.equals(exog.index))
+
     def test_longpanel_series_combo(self):
         wp = tm.makePanel()
         lp = wp.to_frame()

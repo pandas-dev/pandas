@@ -361,13 +361,27 @@ class OLS(object):
     @cache_readonly
     def _y_fitted_raw(self):
         """Returns the raw fitted y values."""
-        return self.sm_ols.fittedvalues
+        if self._weights is None:
+            X = self._x_filtered.values
+        else:
+            # XXX
+            return self.sm_ols.fittedvalues
+
+        b = self._beta_raw
+        return np.dot(X, b)
 
     @cache_readonly
     def y_fitted(self):
         """Returns the fitted y values.  This equals BX."""
-        result = Series(self._y_fitted_raw, index=self._y.index)
-        return result.reindex(self._y_orig.index)
+        if self._weights is None:
+            index = self._x_filtered.index
+            orig_index = index
+        else:
+            index = self._y.index
+            orig_index = self._y_orig.index
+
+        result = Series(self._y_fitted_raw, index=index)
+        return result.reindex(orig_index)
 
     @cache_readonly
     def _y_predict_raw(self):
