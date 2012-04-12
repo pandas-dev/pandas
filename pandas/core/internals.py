@@ -286,6 +286,7 @@ class ObjectBlock(Block):
 class DatetimeBlock(IntBlock):
     pass
 
+
 def make_block(values, items, ref_items, do_integrity_check=False):
     dtype = values.dtype
     vtype = dtype.type
@@ -307,6 +308,7 @@ def make_block(values, items, ref_items, do_integrity_check=False):
                  do_integrity_check=do_integrity_check)
 
 # TODO: flexible with index=None and/or items=None
+
 
 class BlockManager(object):
     """
@@ -1002,9 +1004,12 @@ def form_blocks(data, axes):
     int_dict = {}
     bool_dict = {}
     object_dict = {}
+    datetime_dict = {}
     for k, v in data.iteritems():
         if issubclass(v.dtype.type, np.floating):
             float_dict[k] = v
+        elif issubclass(v.dtype.type, np.datetime64):
+            datetime_dict[k] = v
         elif issubclass(v.dtype.type, np.integer):
             int_dict[k] = v
         elif v.dtype == np.bool_:
@@ -1020,6 +1025,10 @@ def form_blocks(data, axes):
     if len(int_dict):
         int_block = _simple_blockify(int_dict, items, np.int64)
         blocks.append(int_block)
+
+    if len(datetime_dict):
+        datetime_block = _simple_blockify(datetime_dict, items, np.datetime64)
+        blocks.append(datetime_block)
 
     if len(bool_dict):
         bool_block = _simple_blockify(bool_dict, items, np.bool_)

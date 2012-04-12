@@ -270,6 +270,22 @@ class TestTimeSeries(unittest.TestCase):
         exp = _ohlc(ts['1/1/2000 5:55:01':])
         self.assert_((converted.ix['1/1/2000 6:00:00'] == exp).all())
 
+    def test_frame_ctor_datetime64_column(self):
+        rng = date_range('1/1/2000 00:00:00', '1/1/2000 1:59:50',
+                         freq='10s')
+        dates = np.asarray(rng)
+
+        df = DataFrame({'A': np.random.randn(len(rng)), 'B': dates})
+        self.assert_(np.issubdtype(df['B'].dtype, np.datetime64))
+
+    def test_series_ctor_datetime64(self):
+        rng = date_range('1/1/2000 00:00:00', '1/1/2000 1:59:50',
+                         freq='10s')
+        dates = np.asarray(rng)
+
+        series = Series(dates)
+        self.assert_(np.issubdtype(series.dtype, np.datetime64))
+
 
 def _skip_if_no_pytz():
     try:
