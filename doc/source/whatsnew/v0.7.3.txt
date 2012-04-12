@@ -6,8 +6,9 @@ v.0.7.3 (April 12, 2012)
 This is a minor release from 0.7.2 and fixes many minor bugs and adds a number
 of nice new features. There are also a couple of API changes to note; these
 should not affect very many users, and we are inclined to call them "bug fixes"
-even though they do constitute a change in behavior. See the full release notes
-or issue tracker on GitHub for a complete list.
+even though they do constitute a change in behavior. See the `full release
+notes <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue
+tracker on GitHub for a complete list.
 
 New features
 ~~~~~~~~~~~~

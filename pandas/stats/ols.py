@@ -444,7 +444,7 @@ class OLS(object):
 
             x = x.reindex(columns=self._x.columns)
 
-        rs = x.values.dot(beta.values)
+        rs = np.dot(x.values, beta.values)
         return Series(rs, x.index).reindex(orig_x.index)
 
     RESULT_FIELDS = ['r2', 'r2_adj', 'df', 'df_model', 'df_resid', 'rmse',

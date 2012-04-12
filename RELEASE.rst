@@ -25,7 +25,7 @@ Where to get it
 pandas 0.7.3
 ============
 
-**Release date:** NOT YET RELEAED
+**Release date:** April 12, 2012
 
 **New features / modules**
 

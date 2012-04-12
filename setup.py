@@ -167,7 +167,7 @@ CLASSIFIERS = [
 MAJOR = 0
 MINOR = 7
 MICRO = 3
-ISRELEASED = False
+ISRELEASED = True
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 QUALIFIER = ''
 
@@ -394,6 +394,7 @@ setup(name=DISTNAME,
       package_data={'pandas.io' : ['tests/*.h5',
                                    'tests/*.csv',
                                    'tests/*.xls',
+                                   'tests/*.xlsx',
                                    'tests/*.table'],
                     'pandas.tests' : ['data/*.pickle',
                                       'data/*.csv']

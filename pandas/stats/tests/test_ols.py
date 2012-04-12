@@ -297,7 +297,7 @@ class TestOLSMisc(unittest.TestCase):
 
         exog = x.copy()
         exog['intercept'] = 1.
-        rs = Series(exog.values.dot(model1.beta.values), x.index)
+        rs = Series(np.dot(exog.values, model1.beta.values), x.index)
         assert_series_equal(model1.y_predict, rs)
 
         x2 = x.reindex(columns=x.columns[::-1])
@@ -307,7 +307,7 @@ class TestOLSMisc(unittest.TestCase):
         pred3 = model1.predict(x=x3)
         x3['intercept'] = 1.
         x3 = x3.reindex(columns = model1.beta.index)
-        expected = Series(x3.values.dot(model1.beta.values), x3.index)
+        expected = Series(np.dot(x3.values, model1.beta.values), x3.index)
         assert_series_equal(expected, pred3)
 
         beta = Series(0., model1.beta.index)
