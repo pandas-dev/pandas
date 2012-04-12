@@ -149,7 +149,7 @@ Windows binaries built against NumPy 1.6.1
 DISTNAME = 'pandas'
 LICENSE = 'BSD'
 AUTHOR = "The PyData Development Team"
-EMAIL = "pystatsmodels@googlegroups.com"
+EMAIL = "pydata@googlegroups.com"
 URL = "http://pandas.pydata.org"
 DOWNLOAD_URL = ''
 CLASSIFIERS = [
