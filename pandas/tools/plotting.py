@@ -7,7 +7,7 @@ import pandas.core.common as com
 import numpy as np
 
 
-def scatter_matrix(frame, **kwds):
+def scatter_matrix(frame, alpha=0.5, figsize=None, **kwds):
     """
     Draw a matrix of scatter plots.
 
@@ -23,14 +23,14 @@ def scatter_matrix(frame, **kwds):
     """
     df = frame._get_numeric_data()
     n = df.columns.size
-    fig, axes = _subplots(nrows=n, ncols=n)
+    fig, axes = _subplots(nrows=n, ncols=n, figsize=figsize)
 
     # no gaps between subplots
     fig.subplots_adjust(wspace=0, hspace=0)
 
     for i, a in zip(range(n), df.columns):
         for j, b in zip(range(n), df.columns):
-            axes[i, j].scatter(df[b], df[a], **kwds)
+            axes[i, j].scatter(df[b], df[a], alpha=alpha, **kwds)
             axes[i, j].yaxis.set_visible(False)
             axes[i, j].xaxis.set_visible(False)
 

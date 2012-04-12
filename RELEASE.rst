@@ -29,17 +29,17 @@ pandas 0.7.3
 
 **New features / modules**
 
+  - Added fixed-width file reader, read_fwf (PR #952)
   - Add group_keys argument to groupby to not add group names to MultiIndex in
     result of apply (GH #938)
   - DataFrame can now accept non-integer label slicing (GH #946). Previously
     only DataFrame.ix was able to do so.
-  - DataFrame.apply now retains name attributes (GH #983)
+  - DataFrame.apply now retains name attributes on Series objects (GH #983)
   - Numeric DataFrame comparisons with non-numeric values now raises proper
     TypeError (GH #943). Previously raise "PandasError: DataFrame constructor
     not properly called!"
   - Add ``kurt`` methods to Series and DataFrame (PR #964)
   - Can pass dict of column -> list/set NA values for text parsers (GH #754)
-  - Added fixed-width file reader (PR #952)
   - Allows users specified NA values in text parsers (GH #754)
   - Parsers checks for openpyxl dependency and raises ImportError if not found
     (PR #1007)
@@ -54,19 +54,21 @@ pandas 0.7.3
   - More informative Series.apply docstring regarding element-wise apply
     (GH #977)
   - Notes on rpy2 installation (GH #1006)
+  - Add rotation and font size options to hist method (#1012)
 
 **API Changes**
 
   - Calling apply on grouped Series, e.g. describe(), will no longer yield
     DataFrame by default. Will have to call unstack() to get prior behavior
+  - NA handling in non-numeric comparisons has been tightened up (#933, #953)
 
 **Bug fixes**
 
-  - Don't attach nonsense 'result' name to groupby results (GH #995)
   - Fix logic error when selecting part of a row in a DataFrame with a
     MultiIndex index (GH #1013)
   - Series comparison with Series of differing length causes crash (GH #1016).
-  - DataFrame.ix[tup, list] raises Exception (GH #1013)
+  - Fix bug in indexing when selecting section of hierarchically-indexed row
+    (GH #1013)
   - DataFrame.plot(logy=True) has no effect (GH #1011).
   - Broken arithmetic operations between SparsePanel-Panel (GH #1015)
   - Unicode repr issues in MultiIndex with non-ascii characters (GH #1010)
@@ -75,7 +77,6 @@ pandas 0.7.3
   - DataFrame arithmetic operations not treating None as NA (GH #992)
   - DataFrameGroupBy.apply returns incorrect result (GH #991)
   - Series.reshape returns incorrect result for multiple dimensions (GH #989)
-  - Series comparison with nan doesn't always return boolean type (GH #933 #953)
   - Series.std and Series.var ignores ddof parameter (GH #934)
   - DataFrame.append loses index names (GH #980)
   - DataFrame.plot(kind='bar') ignores color argument (GH #958)
