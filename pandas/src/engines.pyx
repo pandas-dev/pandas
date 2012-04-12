@@ -369,10 +369,10 @@ cdef class DatetimeEngine(Int64Engine):
         try:
             return self.mapping.get_item(val)
         except TypeError:
-            self._check_type(val)
+            self._date_check_type(val)
             raise KeyError(val)
 
-    cdef inline _check_type(self, object val):
+    cdef inline _date_check_type(self, object val):
         hash(val)
         if not util.is_integer_object(val):
             raise KeyError(val)
