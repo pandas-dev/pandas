@@ -5114,6 +5114,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         exp = Y['g'].sum()
         self.assert_(isnull(Y['g']['c']))
 
+    def test_index_namedtuple(self):
+        from collections import namedtuple
+        IndexType = namedtuple("IndexType", ["a", "b"])
+        idx1 = IndexType("foo", "bar")
+        idx2 = IndexType("baz", "bof")
+        index = Index([idx1, idx2], name="composite_index")
+        df = DataFrame([(1, 2), (3, 4)], index=index, columns=["A", "B"])
+        self.assertEqual(df.ix[IndexType("foo", "bar")], (1, 2))
+
 if __name__ == '__main__':
     # unittest.main()
     import nose
