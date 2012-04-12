@@ -21,9 +21,9 @@ class DateRange(Index):
 
         # use old mapping
         if time_rule is not None:
-            offset = datetools._offsetMap[time_rule]
+            offset = datetools._offset_map[time_rule]
         elif 'timeRule' in kwds and kwds['timeRule'] is not None:
-            offset = datetools._offsetMap[kwds['timeRule']]
+            offset = datetools._offset_map[kwds['timeRule']]
 
         return DatetimeIndex(start=start, end=end,
                              periods=periods, offset=offset,

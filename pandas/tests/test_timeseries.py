@@ -1,6 +1,7 @@
 # pylint: disable-msg=E1101,W0612
 
 from datetime import datetime
+import sys
 import unittest
 
 import nose
@@ -11,6 +12,8 @@ from pandas import (Index, Series, TimeSeries, DataFrame, isnull,
                     date_range, Timestamp)
 
 from pandas import DatetimeIndex
+
+from pandas.core.daterange import DateRange
 
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
@@ -387,6 +390,25 @@ class TestLegacyInteraction(unittest.TestCase):
         result = index.intersection(right)
         expected = Index([])
         self.assert_(result.equals(expected))
+
+
+class TestDateRangeCompat(unittest.TestCase):
+
+    def setUp(self):
+        from StringIO import StringIO
+        # suppress deprecation warnings
+        sys.stderr = StringIO()
+
+    def test_time_rule(self):
+        result = DateRange('1/1/2000', '1/30/2000', time_rule='WEEKDAY')
+        result2 = DateRange('1/1/2000', '1/30/2000', timeRule='WEEKDAY')
+        expected = date_range('1/1/2000', '1/30/2000', freq='B')
+
+        self.assert_(result.equals(expected))
+        self.assert_(result2.equals(expected))
+
+    def tearDown(self):
+        sys.stderr = sys.__stderr__
 
 
 class TestDatetime64(unittest.TestCase):
