@@ -128,7 +128,8 @@ def _read(cls, filepath_or_buffer, kwds):
             else:
                 errors = 'replace'
                 encoding = 'utf-8'
-            filepath_or_buffer = StringIO(filepath_or_buffer.read().decode(encoding, errors))
+            bytes = filepath_or_buffer.read()
+            filepath_or_buffer = StringIO(bytes.decode(encoding, errors))
 
     if hasattr(filepath_or_buffer, 'read'):
         f = filepath_or_buffer

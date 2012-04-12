@@ -687,7 +687,20 @@ For example, compare to the construction above:
 
    Panel.from_dict(data, orient='minor')
 
-Orient is especially useful for mixed-type DataFrames.
+Orient is especially useful for mixed-type DataFrames. If you pass a dict of
+DataFrame objects with mixed-type columns, all of the data will get upcasted to
+``dtype=object`` unless you pass ``orient='minor'``:
+
+.. ipython:: python
+
+   df = DataFrame({'a': ['foo', 'bar', 'baz'],
+                   'b': np.random.randn(3)})
+   df
+   data = {'item1': df, 'item2': df}
+   panel = Panel.from_dict(data, orient='minor')
+   panel['a']
+   panel['b']
+   panel['b'].dtypes
 
 .. note::
 
@@ -751,7 +764,10 @@ For example, using the earlier example data, we could do:
 Conversion to DataFrame
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-A Panel can be represented in 2D form as a hierarchically indexed DataFrame. See the section :ref:`hierarchical indexing <indexing.hierarchical>` for more on this. To convert a Panel to a DataFrame, use the ``to_frame`` method:
+A Panel can be represented in 2D form as a hierarchically indexed
+DataFrame. See the section :ref:`hierarchical indexing <indexing.hierarchical>`
+for more on this. To convert a Panel to a DataFrame, use the ``to_frame``
+method:
 
 .. ipython:: python
 

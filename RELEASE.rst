@@ -55,6 +55,8 @@ pandas 0.7.3
     (GH #977)
   - Notes on rpy2 installation (GH #1006)
   - Add rotation and font size options to hist method (#1012)
+  - Use exogenous / X variable index in result of OLS.y_predict. Add
+    OLS.predict method (PR #1027, #1008)
 
 **API Changes**
 
