@@ -457,8 +457,7 @@ class Index(np.ndarray):
 
             if len(indexer) > 0:
                 other_diff = other.values.take(indexer)
-                result = list(self) + list(other_diff)
-                # timsort wins
+                result = np.concatenate((self.values, other_diff))
                 try:
                     result.sort()
                 except Exception:

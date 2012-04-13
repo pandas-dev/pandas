@@ -132,7 +132,8 @@ class PandasObject(Picklable):
         return groupby(self, by, axis=axis, level=level, as_index=as_index,
                        sort=sort)
 
-    def convert(self, rule, method='pad', how='last', axis=0, as_index=True):
+    def convert(self, rule, method='pad', how='last', axis=0, as_index=True,
+                closed='right', label='right'):
         """
         Convenience method for frequency conversion and resampling of regular
         time-series data.
@@ -143,6 +144,10 @@ class PandasObject(Picklable):
         how : string, method for down- or re-sampling, default 'last'
         method : string, method for upsampling, default 'pad'
         axis : int, optional, default 0
+        closed : {'right', 'left'}, default 'right'
+            Which side of bin interval is closed
+        label : {'right', 'left'}, default 'right'
+            Which bin edge label to label bucket with
         as_index : see synonymous argument of groupby
         """
         from pandas.core.groupby import TimeGrouper, translate_grouping
@@ -154,14 +159,11 @@ class PandasObject(Picklable):
         if not isinstance(idx, DatetimeIndex):
             raise ValueError("Cannot call convert with non-DatetimeIndex")
 
-        if idx.offset is None:
-            raise ValueError("Cannot call convert with non-regular index")
-
         if not isinstance(rule, datetools.DateOffset):
             raise ValueError("Rule not a recognized offset")
 
-        interval = TimeGrouper(rule, label='right',
-                               closed='right', _obj=self)
+        interval = TimeGrouper(rule, label=label,
+                               closed=closed, _obj=self)
 
         currfreq = len(idx)
         targfreq = len(interval.binner) - 2 # since binner extends endpoints
