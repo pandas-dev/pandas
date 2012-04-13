@@ -135,7 +135,7 @@ class Interval(object):
         value : Interval or basestring, default None
             The time interval represented (e.g., '4Q2005')
         freq : str, default None
-            e.g., 'B' for businessday, ('Min', 5) or '5Min' for 5 minutes
+            e.g., 'B' for businessday, ('T', 5) or '5T' for 5 minutes
         year : int, default None
         month : int, default 1
         quarter : int, default None
@@ -146,7 +146,7 @@ class Interval(object):
         """
         # freq points to a tuple (base, mult);  base is one of the defined
         # intervals such as A, Q, etc. Every five minutes would be, e.g.,
-        # ('Min', 5) but may be passed in as a string like '5Min'
+        # ('T', 5) but may be passed in as a string like '5T'
 
         self.freq = None
 
@@ -194,7 +194,7 @@ class Interval(object):
                 elif reso == 'hour':
                     freq = 'H'
                 elif reso == 'minute':
-                    freq = 'Min'
+                    freq = 'T'
                 elif reso == 'second':
                     freq = 'S'
                 else:
@@ -558,52 +558,52 @@ def dt64arr_to_sktsarr(data, freq):
 # originals
 _interval_code_map = {
     # Annual freqs with various fiscal year ends.
-    # eg, 2005 for A@FEB runs Mar 1, 2004 to Feb 28, 2005
+    # eg, 2005 for A-FEB runs Mar 1, 2004 to Feb 28, 2005
     "A"     : 1000,  # Annual
-    "A@DEC" : 1000,  # Annual - December year end
-    "A@JAN" : 1001,  # Annual - January year end
-    "A@FEB" : 1002,  # Annual - February year end
-    "A@MAR" : 1003,  # Annual - March year end
-    "A@APR" : 1004,  # Annual - April year end
-    "A@MAY" : 1005,  # Annual - May year end
-    "A@JUN" : 1006,  # Annual - June year end
-    "A@JUL" : 1007,  # Annual - July year end
-    "A@AUG" : 1008,  # Annual - August year end
-    "A@SEP" : 1009,  # Annual - September year end
-    "A@OCT" : 1010,  # Annual - October year end
-    "A@NOV" : 1011,  # Annual - November year end
+    "A-DEC" : 1000,  # Annual - December year end
+    "A-JAN" : 1001,  # Annual - January year end
+    "A-FEB" : 1002,  # Annual - February year end
+    "A-MAR" : 1003,  # Annual - March year end
+    "A-APR" : 1004,  # Annual - April year end
+    "A-MAY" : 1005,  # Annual - May year end
+    "A-JUN" : 1006,  # Annual - June year end
+    "A-JUL" : 1007,  # Annual - July year end
+    "A-AUG" : 1008,  # Annual - August year end
+    "A-SEP" : 1009,  # Annual - September year end
+    "A-OCT" : 1010,  # Annual - October year end
+    "A-NOV" : 1011,  # Annual - November year end
 
     # Quarterly frequencies with various fiscal year ends.
-    # eg, Q42005 for Q@OCT runs Aug 1, 2005 to Oct 31, 2005
+    # eg, Q42005 for Q-OCT runs Aug 1, 2005 to Oct 31, 2005
     "Q"     : 2000,    # Quarterly - December year end (default quarterly)
-    "Q@DEC" : 2000 ,    # Quarterly - December year end
-    "Q@JAN" : 2001,    # Quarterly - January year end
-    "Q@FEB" : 2002,    # Quarterly - February year end
-    "Q@MAR" : 2003,    # Quarterly - March year end
-    "Q@APR" : 2004,    # Quarterly - April year end
-    "Q@MAY" : 2005,    # Quarterly - May year end
-    "Q@JUN" : 2006,    # Quarterly - June year end
-    "Q@JUL" : 2007,    # Quarterly - July year end
-    "Q@AUG" : 2008,    # Quarterly - August year end
-    "Q@SEP" : 2009,    # Quarterly - September year end
-    "Q@OCT" : 2010,    # Quarterly - October year end
-    "Q@NOV" : 2011,    # Quarterly - November year end
+    "Q-DEC" : 2000 ,    # Quarterly - December year end
+    "Q-JAN" : 2001,    # Quarterly - January year end
+    "Q-FEB" : 2002,    # Quarterly - February year end
+    "Q-MAR" : 2003,    # Quarterly - March year end
+    "Q-APR" : 2004,    # Quarterly - April year end
+    "Q-MAY" : 2005,    # Quarterly - May year end
+    "Q-JUN" : 2006,    # Quarterly - June year end
+    "Q-JUL" : 2007,    # Quarterly - July year end
+    "Q-AUG" : 2008,    # Quarterly - August year end
+    "Q-SEP" : 2009,    # Quarterly - September year end
+    "Q-OCT" : 2010,    # Quarterly - October year end
+    "Q-NOV" : 2011,    # Quarterly - November year end
 
     "M"     : 3000,   # Monthly
 
     "W"     : 4000,    # Weekly
-    "W@SUN" : 4000,    # Weekly - Sunday end of week
-    "W@MON" : 4001,    # Weekly - Monday end of week
-    "W@TUE" : 4002,    # Weekly - Tuesday end of week
-    "W@WED" : 4003,    # Weekly - Wednesday end of week
-    "W@THU" : 4004,    # Weekly - Thursday end of week
-    "W@FRI" : 4005,    # Weekly - Friday end of week
-    "W@SAT" : 4006,    # Weekly - Saturday end of week
+    "W-SUN" : 4000,    # Weekly - Sunday end of week
+    "W-MON" : 4001,    # Weekly - Monday end of week
+    "W-TUE" : 4002,    # Weekly - Tuesday end of week
+    "W-WED" : 4003,    # Weekly - Wednesday end of week
+    "W-THU" : 4004,    # Weekly - Thursday end of week
+    "W-FRI" : 4005,    # Weekly - Friday end of week
+    "W-SAT" : 4006,    # Weekly - Saturday end of week
 
     "B"      : 5000,   # Business days
     "D"      : 6000,   # Daily
     "H"      : 7000,   # Hourly
-    "Min"    : 8000,   # Minutely
+    "T"      : 8000,   # Minutely
     "S"      : 9000,   # Secondly
     None     : -10000  # Undefined
 }
@@ -671,16 +671,16 @@ def _skts_alias_dictionary():
         for m_tup in month_names:
             for sep in seps:
                 m1, m2 = m_tup
-                alias_dict[k + sep + m1] = 'A@' + m1
-                alias_dict[k + sep + m2] = 'A@' + m1
+                alias_dict[k + sep + m1] = 'A-' + m1
+                alias_dict[k + sep + m2] = 'A-' + m1
 
     for k in Q_prefixes:
         alias_dict[k] = 'Q'
         for m_tup in month_names:
             for sep in seps:
                 m1, m2 = m_tup
-                alias_dict[k + sep + m1] = 'Q@' + m1
-                alias_dict[k + sep + m2] = 'Q@' + m1
+                alias_dict[k + sep + m1] = 'Q-' + m1
+                alias_dict[k + sep + m2] = 'Q-' + m1
 
     W_prefixes = ["W", "WK", "WEEK", "WEEKLY"]
 
@@ -698,8 +698,8 @@ def _skts_alias_dictionary():
         for d_tup in day_names:
             for sep in ["@", "-"]:
                 d1, d2 = d_tup
-                alias_dict[k + sep + d1] = 'W@' + d1
-                alias_dict[k + sep + d2] = 'W@' + d1
+                alias_dict[k + sep + d1] = 'W-' + d1
+                alias_dict[k + sep + d2] = 'W-' + d1
 
     return alias_dict
 
@@ -713,7 +713,7 @@ _reso_interval_map = {
     "month"   : "M",
     "day"     : "D",
     "hour"    : "H",
-    "minute"  : "Min",
+    "minute"  : "T",
     "second"  : "S",
 }
 
@@ -734,7 +734,7 @@ def _get_freq_code(freqstr):
             #e.g., freqstr = (2000, 1)
             return freqstr
         else:
-            #e.g., freqstr = ('Min', 5)
+            #e.g., freqstr = ('T', 5)
             try:
                 code = _interval_str_to_code(freqstr[0])
                 stride = freqstr[1]
@@ -754,6 +754,10 @@ def _get_freq_code(freqstr):
 _skts_alias_dict = _skts_alias_dictionary()
 
 def _interval_str_to_code(freqstr):
+    # hack
+    freqstr = _rule_aliases.get(freqstr, freqstr)
+    freqstr = _rule_aliases.get(freqstr.lower(), freqstr)
+
     try:
         freqstr = freqstr.upper()
         return _interval_code_map[freqstr]
@@ -1091,9 +1095,12 @@ class DateOffset(object):
         b = ((someDate + self) - self)
         return a == b
 
+
+class Day(DateOffset, CacheableOffset):
+    _outputName = 'Day'
+
     def rule_code(self):
-        if self.__class__.__name__ == DateOffset.__name__:
-            return 'D'
+        return 'D'
 
 class BDay(DateOffset, CacheableOffset):
     """
@@ -1320,7 +1327,7 @@ class Week(DateOffset, CacheableOffset):
     def rule_code(self):
         suffix = ''
         if self.weekday is not None:
-            suffix = '@%s' % (_weekday_dict[self.weekday])
+            suffix = '-%s' % (_weekday_dict[self.weekday])
         return 'W' + suffix
 
 _weekday_dict = {
@@ -1402,7 +1409,7 @@ class WeekOfMonth(DateOffset, CacheableOffset):
         return someDate == self.getOffsetOfMonth(someDate)
 
     def rule_code(self):
-        suffix = '@%d%s' % (self.week + 1, _weekday_dict.get(self.weekday, ''))
+        suffix = '-%d%s' % (self.week + 1, _weekday_dict.get(self.weekday, ''))
         return 'WOM' + suffix
 
 class BQuarterEnd(DateOffset, CacheableOffset):
@@ -1451,7 +1458,7 @@ class BQuarterEnd(DateOffset, CacheableOffset):
         return BMonthEnd().onOffset(someDate) and modMonth == 0
 
     def rule_code(self):
-        suffix = '@%s' % _month_dict[self.startingMonth]
+        suffix = '-%s' % _month_dict[self.startingMonth]
         return 'BQ' + suffix
 
 _month_dict = {
@@ -1515,7 +1522,7 @@ class BQuarterBegin(DateOffset, CacheableOffset):
         return result
 
     def rule_code(self):
-        suffix = '@%s' % _month_dict[self.startingMonth]
+        suffix = '-%s' % _month_dict[self.startingMonth]
         return 'BQS' + suffix
 
 
@@ -1559,7 +1566,7 @@ class QuarterEnd(DateOffset, CacheableOffset):
         return MonthEnd().onOffset(someDate) and modMonth == 0
 
     def rule_code(self):
-        suffix = '@%s' % _month_dict[self.startingMonth]
+        suffix = '-%s' % _month_dict[self.startingMonth]
         return 'Q' + suffix
 
 
@@ -1599,7 +1606,7 @@ class QuarterBegin(DateOffset, CacheableOffset):
         return other
 
     def rule_code(self):
-        suffix = '@%s' % _month_dict[self.startingMonth]
+        suffix = '-%s' % _month_dict[self.startingMonth]
         return 'QS' + suffix
 
 
@@ -1647,7 +1654,7 @@ class BYearEnd(DateOffset, CacheableOffset):
         return result
 
     def rule_code(self):
-        suffix = '@%s' % _month_dict[self.month]
+        suffix = '-%s' % _month_dict[self.month]
         return 'BA' + suffix
 
 
@@ -1694,7 +1701,7 @@ class BYearBegin(DateOffset, CacheableOffset):
         return result
 
     def rule_code(self):
-        suffix = '@%s' % _month_dict[self.month]
+        suffix = '-%s' % _month_dict[self.month]
         return 'BAS' + suffix
 
 
@@ -1725,7 +1732,7 @@ class YearEnd(DateOffset, CacheableOffset):
         return self.month == someDate.month and someDate.day == days_in_month
 
     def rule_code(self):
-        suffix = '@%s' % _month_dict[self.month]
+        suffix = '-%s' % _month_dict[self.month]
         return 'A' + suffix
 
 
@@ -1755,7 +1762,7 @@ class YearBegin(DateOffset, CacheableOffset):
         return someDate.month == 1 and someDate.day == 1
 
     def rule_code(self):
-        suffix = '@%s' % _month_dict[self.month]
+        suffix = '-%s' % _month_dict[self.month]
         return 'AS' + suffix
 
 
@@ -1766,6 +1773,18 @@ class Tick(DateOffset):
     _normalizeFirst = False
     _delta = None
     _inc = timedelta(microseconds=1000)
+
+    def __eq__(self, other):
+        if isinstance(other, Tick):
+            return self._inc == other._inc
+        else:
+            return DateOffset.__eq__(self, other)
+
+    def __ne__(self, other):
+        if isinstance(other, Tick):
+            return self._inc != other._inc
+        else:
+            return DateOffset.__ne__(self, other)
 
     @property
     def delta(self):
@@ -1798,7 +1817,7 @@ class Minute(Tick):
     _inc = timedelta(0, 60)
 
     def rule_code(self):
-        return 'Min'
+        return 'T'
 
 class Second(Tick):
     _inc = timedelta(0, 1)
@@ -1847,170 +1866,195 @@ isBMonthEnd = BMonthEnd().onOffset
 #-------------------------------------------------------------------------------
 # Offset names ("time rules") and related functions
 
+
 _offset_map = {
-    "WEEKDAY"  : BDay(1),
+    'D'     : Day(),
+    'B'     : BDay(),
+    'H'     : Hour(),
+    'T'     : Minute(),
+    'S'     : Second(),
+    'L'     : Milli(),
+    'U'     : Micro(),
+    None    : None,
 
-    # Annual - Calendar
-    "A-JAN" : YearEnd(month=1),
-    "A-FEB" : YearEnd(month=2),
-    "A-MAR" : YearEnd(month=3),
-    "A-APR" : YearEnd(month=4),
-    "A-MAY" : YearEnd(month=5),
-    "A-JUN" : YearEnd(month=6),
-    "A-JUL" : YearEnd(month=7),
-    "A-AUG" : YearEnd(month=8),
-    "A-SEP" : YearEnd(month=9),
-    "A-OCT" : YearEnd(month=10),
-    "A-NOV" : YearEnd(month=11),
-    "A-DEC" : YearEnd(month=12),
-
-    # Annual - Calendar
-    "A@JAN" : YearEnd(month=1),
-    "A@FEB" : YearEnd(month=2),
-    "A@MAR" : YearEnd(month=3),
-    "A@APR" : YearEnd(month=4),
-    "A@MAY" : YearEnd(month=5),
-    "A@JUN" : YearEnd(month=6),
-    "A@JUL" : YearEnd(month=7),
-    "A@AUG" : YearEnd(month=8),
-    "A@SEP" : YearEnd(month=9),
-    "A@OCT" : YearEnd(month=10),
-    "A@NOV" : YearEnd(month=11),
-    "A@DEC" : YearEnd(month=12),
-    "A"     : YearEnd(month=12),
-    # Annual - Calendar (start)
-    "AS@JAN" : YearBegin(month=1),
-    "AS"     : YearBegin(month=1),
-    "AS@FEB" : YearBegin(month=2),
-    "AS@MAR" : YearBegin(month=3),
-    "AS@APR" : YearBegin(month=4),
-    "AS@MAY" : YearBegin(month=5),
-    "AS@JUN" : YearBegin(month=6),
-    "AS@JUL" : YearBegin(month=7),
-    "AS@AUG" : YearBegin(month=8),
-    "AS@SEP" : YearBegin(month=9),
-    "AS@OCT" : YearBegin(month=10),
-    "AS@NOV" : YearBegin(month=11),
-    "AS@DEC" : YearBegin(month=12),
-    # Annual - Business
-    "BA@JAN" : BYearEnd(month=1),
-    "BA@FEB" : BYearEnd(month=2),
-    "BA@MAR" : BYearEnd(month=3),
-    "BA@APR" : BYearEnd(month=4),
-    "BA@MAY" : BYearEnd(month=5),
-    "BA@JUN" : BYearEnd(month=6),
-    "BA@JUL" : BYearEnd(month=7),
-    "BA@AUG" : BYearEnd(month=8),
-    "BA@SEP" : BYearEnd(month=9),
-    "BA@OCT" : BYearEnd(month=10),
-    "BA@NOV" : BYearEnd(month=11),
-    "BA@DEC" : BYearEnd(month=12),
-    "BA"     : BYearEnd(month=12),
-    # Annual - Business (Start)
-    "BAS@JAN" : BYearBegin(month=1),
-    "BAS"     : BYearBegin(month=1),
-    "BAS@FEB" : BYearBegin(month=2),
-    "BAS@MAR" : BYearBegin(month=3),
-    "BAS@APR" : BYearBegin(month=4),
-    "BAS@MAY" : BYearBegin(month=5),
-    "BAS@JUN" : BYearBegin(month=6),
-    "BAS@JUL" : BYearBegin(month=7),
-    "BAS@AUG" : BYearBegin(month=8),
-    "BAS@SEP" : BYearBegin(month=9),
-    "BAS@OCT" : BYearBegin(month=10),
-    "BAS@NOV" : BYearBegin(month=11),
-    "BAS@DEC" : BYearBegin(month=12),
-    # Quarterly - Calendar
-    "Q@JAN" : QuarterEnd(startingMonth=1),
-    "Q@FEB" : QuarterEnd(startingMonth=2),
-    "Q@MAR" : QuarterEnd(startingMonth=3),
-    "Q"     : QuarterEnd(startingMonth=3),
-    "Q@APR" : QuarterEnd(startingMonth=4),
-    "Q@MAY" : QuarterEnd(startingMonth=5),
-    "Q@JUN" : QuarterEnd(startingMonth=6),
-    "Q@JUL" : QuarterEnd(startingMonth=7),
-    "Q@AUG" : QuarterEnd(startingMonth=8),
-    "Q@SEP" : QuarterEnd(startingMonth=9),
-    "Q@OCT" : QuarterEnd(startingMonth=10),
-    "Q@NOV" : QuarterEnd(startingMonth=11),
-    "Q@DEC" : QuarterEnd(startingMonth=12),
-    # Quarterly - Calendar (Start)
-    "QS@JAN" : QuarterBegin(startingMonth=1),
-    "QS"     : QuarterBegin(startingMonth=1),
-    "QS@FEB" : QuarterBegin(startingMonth=2),
-    "QS@MAR" : QuarterBegin(startingMonth=3),
-    "QS@APR" : QuarterBegin(startingMonth=4),
-    "QS@MAY" : QuarterBegin(startingMonth=5),
-    "QS@JUN" : QuarterBegin(startingMonth=6),
-    "QS@JUL" : QuarterBegin(startingMonth=7),
-    "QS@AUG" : QuarterBegin(startingMonth=8),
-    "QS@SEP" : QuarterBegin(startingMonth=9),
-    "QS@OCT" : QuarterBegin(startingMonth=10),
-    "QS@NOV" : QuarterBegin(startingMonth=11),
-    "QS@DEC" : QuarterBegin(startingMonth=12),
-    # Quarterly - Business
-    "BQ@JAN" : BQuarterEnd(startingMonth=1),
-    "BQ@FEB" : BQuarterEnd(startingMonth=2),
-    "BQ@MAR" : BQuarterEnd(startingMonth=3),
-    "BQ"     : BQuarterEnd(startingMonth=3),
-    "BQ@APR" : BQuarterEnd(startingMonth=4),
-    "BQ@MAY" : BQuarterEnd(startingMonth=5),
-    "BQ@JUN" : BQuarterEnd(startingMonth=6),
-    "BQ@JUL" : BQuarterEnd(startingMonth=7),
-    "BQ@AUG" : BQuarterEnd(startingMonth=8),
-    "BQ@SEP" : BQuarterEnd(startingMonth=9),
-    "BQ@OCT" : BQuarterEnd(startingMonth=10),
-    "BQ@NOV" : BQuarterEnd(startingMonth=11),
-    "BQ@DEC" : BQuarterEnd(startingMonth=12),
-    # Quarterly - Business (Start)
-    "BQS@JAN" : BQuarterBegin(startingMonth=1),
-    "BQS"     : BQuarterBegin(startingMonth=1),
-    "BQS@FEB" : BQuarterBegin(startingMonth=2),
-    "BQS@MAR" : BQuarterBegin(startingMonth=3),
-    "BQS@APR" : BQuarterBegin(startingMonth=4),
-    "BQS@MAY" : BQuarterBegin(startingMonth=5),
-    "BQS@JUN" : BQuarterBegin(startingMonth=6),
-    "BQS@JUL" : BQuarterBegin(startingMonth=7),
-    "BQS@AUG" : BQuarterBegin(startingMonth=8),
-    "BQS@SEP" : BQuarterBegin(startingMonth=9),
-    "BQS@OCT" : BQuarterBegin(startingMonth=10),
-    "BQS@NOV" : BQuarterBegin(startingMonth=11),
-    "BQS@DEC" : BQuarterBegin(startingMonth=12),
     # Monthly - Calendar
-    "M"      : MonthEnd(),
-    "MS"     : MonthBegin(),
+    'M'      : MonthEnd(),
+    'MS'     : MonthBegin(),
 
     # Monthly - Business
-    "BM"     : BMonthEnd(),
-    "EOM"      : BMonthEnd(1),  # legacy, deprecated?
-    "BMS"    : BMonthBegin(),
+    'BM'     : BMonthEnd(),
+    'BMS'    : BMonthBegin(),
 
-    # "EOM"    : MonthEnd(),
-    # "SOM"    : MonthBegin(),
-    # "BEOM"   : BMonthEnd(),
-    # "BSOM"   : BMonthBegin(),
+    # Annual - Calendar
+    'A-JAN' : YearEnd(month=1),
+    'A-FEB' : YearEnd(month=2),
+    'A-MAR' : YearEnd(month=3),
+    'A-APR' : YearEnd(month=4),
+    'A-MAY' : YearEnd(month=5),
+    'A-JUN' : YearEnd(month=6),
+    'A-JUL' : YearEnd(month=7),
+    'A-AUG' : YearEnd(month=8),
+    'A-SEP' : YearEnd(month=9),
+    'A-OCT' : YearEnd(month=10),
+    'A-NOV' : YearEnd(month=11),
+    'A-DEC' : YearEnd(month=12),
+    'A'     : YearEnd(month=12),
+
+    # Annual - Calendar (start)
+    'AS-JAN' : YearBegin(month=1),
+    'AS'     : YearBegin(month=1),
+    'AS-FEB' : YearBegin(month=2),
+    'AS-MAR' : YearBegin(month=3),
+    'AS-APR' : YearBegin(month=4),
+    'AS-MAY' : YearBegin(month=5),
+    'AS-JUN' : YearBegin(month=6),
+    'AS-JUL' : YearBegin(month=7),
+    'AS-AUG' : YearBegin(month=8),
+    'AS-SEP' : YearBegin(month=9),
+    'AS-OCT' : YearBegin(month=10),
+    'AS-NOV' : YearBegin(month=11),
+    'AS-DEC' : YearBegin(month=12),
+    # Annual - Business
+    'BA-JAN' : BYearEnd(month=1),
+    'BA-FEB' : BYearEnd(month=2),
+    'BA-MAR' : BYearEnd(month=3),
+    'BA-APR' : BYearEnd(month=4),
+    'BA-MAY' : BYearEnd(month=5),
+    'BA-JUN' : BYearEnd(month=6),
+    'BA-JUL' : BYearEnd(month=7),
+    'BA-AUG' : BYearEnd(month=8),
+    'BA-SEP' : BYearEnd(month=9),
+    'BA-OCT' : BYearEnd(month=10),
+    'BA-NOV' : BYearEnd(month=11),
+    'BA-DEC' : BYearEnd(month=12),
+    'BA'     : BYearEnd(month=12),
+    # Annual - Business (Start)
+    'BAS-JAN' : BYearBegin(month=1),
+    'BAS'     : BYearBegin(month=1),
+    'BAS-FEB' : BYearBegin(month=2),
+    'BAS-MAR' : BYearBegin(month=3),
+    'BAS-APR' : BYearBegin(month=4),
+    'BAS-MAY' : BYearBegin(month=5),
+    'BAS-JUN' : BYearBegin(month=6),
+    'BAS-JUL' : BYearBegin(month=7),
+    'BAS-AUG' : BYearBegin(month=8),
+    'BAS-SEP' : BYearBegin(month=9),
+    'BAS-OCT' : BYearBegin(month=10),
+    'BAS-NOV' : BYearBegin(month=11),
+    'BAS-DEC' : BYearBegin(month=12),
+    # Quarterly - Calendar
+    'Q-JAN' : QuarterEnd(startingMonth=1),
+    'Q-FEB' : QuarterEnd(startingMonth=2),
+    'Q-MAR' : QuarterEnd(startingMonth=3),
+    'Q'     : QuarterEnd(startingMonth=3),
+    'Q-APR' : QuarterEnd(startingMonth=4),
+    'Q-MAY' : QuarterEnd(startingMonth=5),
+    'Q-JUN' : QuarterEnd(startingMonth=6),
+    'Q-JUL' : QuarterEnd(startingMonth=7),
+    'Q-AUG' : QuarterEnd(startingMonth=8),
+    'Q-SEP' : QuarterEnd(startingMonth=9),
+    'Q-OCT' : QuarterEnd(startingMonth=10),
+    'Q-NOV' : QuarterEnd(startingMonth=11),
+    'Q-DEC' : QuarterEnd(startingMonth=12),
+    # Quarterly - Calendar (Start)
+    'QS-JAN' : QuarterBegin(startingMonth=1),
+    'QS'     : QuarterBegin(startingMonth=1),
+    'QS-FEB' : QuarterBegin(startingMonth=2),
+    'QS-MAR' : QuarterBegin(startingMonth=3),
+    'QS-APR' : QuarterBegin(startingMonth=4),
+    'QS-MAY' : QuarterBegin(startingMonth=5),
+    'QS-JUN' : QuarterBegin(startingMonth=6),
+    'QS-JUL' : QuarterBegin(startingMonth=7),
+    'QS-AUG' : QuarterBegin(startingMonth=8),
+    'QS-SEP' : QuarterBegin(startingMonth=9),
+    'QS-OCT' : QuarterBegin(startingMonth=10),
+    'QS-NOV' : QuarterBegin(startingMonth=11),
+    'QS-DEC' : QuarterBegin(startingMonth=12),
+    # Quarterly - Business
+    'BQ-JAN' : BQuarterEnd(startingMonth=1),
+    'BQ-FEB' : BQuarterEnd(startingMonth=2),
+    'BQ-MAR' : BQuarterEnd(startingMonth=3),
+    'BQ'     : BQuarterEnd(startingMonth=3),
+    'BQ-APR' : BQuarterEnd(startingMonth=4),
+    'BQ-MAY' : BQuarterEnd(startingMonth=5),
+    'BQ-JUN' : BQuarterEnd(startingMonth=6),
+    'BQ-JUL' : BQuarterEnd(startingMonth=7),
+    'BQ-AUG' : BQuarterEnd(startingMonth=8),
+    'BQ-SEP' : BQuarterEnd(startingMonth=9),
+    'BQ-OCT' : BQuarterEnd(startingMonth=10),
+    'BQ-NOV' : BQuarterEnd(startingMonth=11),
+    'BQ-DEC' : BQuarterEnd(startingMonth=12),
+    # Quarterly - Business (Start)
+    'BQS-JAN' : BQuarterBegin(startingMonth=1),
+    'BQS'     : BQuarterBegin(startingMonth=1),
+    'BQS-FEB' : BQuarterBegin(startingMonth=2),
+    'BQS-MAR' : BQuarterBegin(startingMonth=3),
+    'BQS-APR' : BQuarterBegin(startingMonth=4),
+    'BQS-MAY' : BQuarterBegin(startingMonth=5),
+    'BQS-JUN' : BQuarterBegin(startingMonth=6),
+    'BQS-JUL' : BQuarterBegin(startingMonth=7),
+    'BQS-AUG' : BQuarterBegin(startingMonth=8),
+    'BQS-SEP' : BQuarterBegin(startingMonth=9),
+    'BQS-OCT' : BQuarterBegin(startingMonth=10),
+    'BQS-NOV' : BQuarterBegin(startingMonth=11),
+    'BQS-DEC' : BQuarterBegin(startingMonth=12),
 
     # Weekly
-    "W@MON" : Week(weekday=0),
-    "WS"    : Week(weekday=0),
-    "BWS"   : Week(weekday=0),
-    "W@TUE" : Week(weekday=1),
-    "W@WED" : Week(weekday=2),
-    "W@THU" : Week(weekday=3),
-    "W@FRI" : Week(weekday=4),
-    "BW"    : Week(weekday=4),
-    "W@SAT" : Week(weekday=5),
-    "W@SUN" : Week(weekday=6),
-    "W"     : Week(weekday=6),
-    "D"     : DateOffset(),
-    "B"     : BDay(),
-    "H"     : Hour(),
-    "Min"   : Minute(),
-    "S"     : Second(),
-    "L"     : Milli(),
-    "U"     : Micro(),
-    None    : None,
+    'W-MON' : Week(weekday=0),
+    'W-TUE' : Week(weekday=1),
+    'W-WED' : Week(weekday=2),
+    'W-THU' : Week(weekday=3),
+    'W-FRI' : Week(weekday=4),
+    'W-SAT' : Week(weekday=5),
+    'W-SUN' : Week(weekday=6),
+
+    # Dunno about these
+
+    # 'WS'    : Week(weekday=0),
+    # 'BWS'   : Week(weekday=0),
+    # 'BW'    : Week(weekday=4),
+    # 'W'     : Week(weekday=6),
 }
+
+_rule_aliases = {
+    # Legacy rules that will continue to map to their original values
+    # essentially for the rest of time
+
+    'WEEKDAY': 'B',
+    'EOM': 'BM',
+
+    'W@MON': 'W-MON',
+    'W@TUE': 'W-TUE',
+    'W@WED': 'W-WED',
+    'W@THU': 'W-THU',
+    'W@FRI': 'W-FRI',
+    'W@SAT': 'W-SAT',
+    'W@SUN': 'W-SUN',
+
+    'Q@JAN': 'BQ-JAN',
+    'Q@FEB': 'BQ-FEB',
+    'Q@MAR': 'BQ-MAR',
+
+    'A@JAN' : 'BA-JAN',
+    'A@FEB' : 'BA-FEB',
+    'A@MAR' : 'BA-MAR',
+    'A@APR' : 'BA-APR',
+    'A@MAY' : 'BA-MAY',
+    'A@JUN' : 'BA-JUN',
+    'A@JUL' : 'BA-JUL',
+    'A@AUG' : 'BA-AUG',
+    'A@SEP' : 'BA-SEP',
+    'A@OCT' : 'BA-OCT',
+    'A@NOV' : 'BA-NOV',
+    'A@DEC' : 'BA-DEC',
+
+    # lite aliases
+    'Min': 'T',
+    'min': 'T',
+    'ms': 'L',
+    'us': 'U'
+}
+
 
 for i, weekday in enumerate(['MON', 'TUE', 'WED', 'THU', 'FRI']):
     for iweek in xrange(4):
@@ -2067,7 +2111,7 @@ def to_offset(freqstr):
     else:
         name, stride = _base_and_stride(freqstr)
 
-    offset = getOffset(name)
+    offset = get_offset(name)
 
     return offset * stride
 
@@ -2095,24 +2139,37 @@ def _base_and_stride(freqstr):
 
     return (base, stride)
 
+_dont_uppercase = ['MS', 'ms']
 
-def getOffset(name):
+def get_offset(name):
     """
     Return DateOffset object associated with rule name
 
     Example
     -------
-    getOffset('EOM') --> BMonthEnd(1)
+    get_offset('EOM') --> BMonthEnd(1)
     """
-    name = name.upper()
-    if name == 'MIN':
-        name = 'Min'
+    if name not in _dont_uppercase:
+        name = name.upper()
+
+        if name in _rule_aliases:
+            name = _rule_aliases[name]
+        elif name.lower() in _rule_aliases:
+            name = _rule_aliases[name.lower()]
+    else:
+        if name in _rule_aliases:
+            name = _rule_aliases[name]
+
     offset = _offset_map.get(name)
 
     if offset is not None:
         return offset
     else:
         raise Exception('Bad rule name requested: %s!' % name)
+
+
+getOffset = get_offset
+
 
 def hasOffsetName(offset):
     return offset in _offset_names

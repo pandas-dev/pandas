@@ -14,6 +14,7 @@ from pandas import (Index, Series, TimeSeries, DataFrame, isnull,
 from pandas import DatetimeIndex, to_datetime
 
 from pandas.core.daterange import DateRange
+import pandas.core.datetools as datetools
 
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
@@ -375,6 +376,8 @@ class TestTimeSeries(unittest.TestCase):
         assert_series_equal(dresult, expected)
         self.assertEquals(dresult.name, 'foo')
 
+
+
 def _skip_if_no_pytz():
     try:
         import pytz
@@ -382,7 +385,7 @@ def _skip_if_no_pytz():
         import nose
         raise nose.SkipTest
 
-class TestLegacyInteraction(unittest.TestCase):
+class TestLegacySupport(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -495,6 +498,34 @@ class TestLegacyInteraction(unittest.TestCase):
         expected = Index([])
         self.assert_(result.equals(expected))
 
+    def test_legacy_time_rules(self):
+        rules = [('WEEKDAY', 'B'),
+                 ('EOM', 'BM'),
+                 ('W@MON', 'W-MON'), ('W@TUE', 'W-TUE'), ('W@WED', 'W-WED'),
+                 ('W@THU', 'W-THU'), ('W@FRI', 'W-FRI'),
+                 ('Q@JAN', 'BQ-JAN'), ('Q@FEB', 'BQ-FEB'), ('Q@MAR', 'BQ-MAR'),
+                 ('A@JAN', 'BA-JAN'), ('A@FEB', 'BA-FEB'), ('A@MAR', 'BA-MAR'),
+                 ('A@APR', 'BA-APR'), ('A@MAY', 'BA-MAY'), ('A@JUN', 'BA-JUN'),
+                 ('A@JUL', 'BA-JUL'), ('A@AUG', 'BA-AUG'), ('A@SEP', 'BA-SEP'),
+                 ('A@OCT', 'BA-OCT'), ('A@NOV', 'BA-NOV'), ('A@DEC', 'BA-DEC')
+                 ]
+
+        start, end = '1/1/2000', '1/1/2010'
+
+        for old_freq, new_freq in rules:
+            old_rng = date_range(start, end, freq=old_freq)
+            new_rng = date_range(start, end, freq=new_freq)
+            self.assert_(old_rng.equals(new_rng))
+
+    def test_ms_vs_MS(self):
+        left = datetools.get_offset('ms')
+        right = datetools.get_offset('MS')
+        self.assert_(left == datetools.Milli())
+        self.assert_(right == datetools.MonthBegin())
+
+    def test_rule_aliases(self):
+        rule = datetools.to_offset('10us')
+        self.assert_(rule == datetools.Micro(10))
 
 class TestDateRangeCompat(unittest.TestCase):
 
@@ -525,7 +556,7 @@ class TestDatetime64(unittest.TestCase):
 
 
     def test_datetimeindex_accessors(self):
-        dti = DatetimeIndex(freq='Q@JAN', start=datetime(1997,12,31),
+        dti = DatetimeIndex(freq='Q-JAN', start=datetime(1997,12,31),
                             periods=100)
 
         self.assertEquals(dti.year[0], 1998)
@@ -559,9 +590,9 @@ class TestDatetime64(unittest.TestCase):
         self.assertEquals(len(dti.quarter), 100)
 
     def test_datetimeindex_diff(self):
-        dti1 = DatetimeIndex(freq='Q@JAN', start=datetime(1997,12,31),
+        dti1 = DatetimeIndex(freq='Q-JAN', start=datetime(1997,12,31),
                              periods=100)
-        dti2 = DatetimeIndex(freq='Q@JAN', start=datetime(1997,12,31),
+        dti2 = DatetimeIndex(freq='Q-JAN', start=datetime(1997,12,31),
                              periods=98)
         self.assert_( len(dti1.diff(dti2)) == 2)
 
@@ -641,7 +672,7 @@ class TestDatetime64(unittest.TestCase):
         s = Series(rand(len(dti)), dti)
 
         # to weekly
-        result = s.convert('W') # implicitly @SUN
+        result = s.convert('w-sun')
 
         self.assertEquals(len(result), 3)
         self.assert_((result.index.dayofweek == [6,6,6]).all())
@@ -649,31 +680,31 @@ class TestDatetime64(unittest.TestCase):
         self.assertEquals(result.irow(1), s['1/9/2005'])
         self.assertEquals(result.irow(2), s.irow(-1))
 
-        result = s.convert('W@MON')
+        result = s.convert('W-MON')
         self.assertEquals(len(result), 2)
         self.assert_((result.index.dayofweek == [0,0]).all())
         self.assertEquals(result.irow(0), s['1/3/2005'])
         self.assertEquals(result.irow(1), s['1/10/2005'])
 
-        result = s.convert('W@TUE')
+        result = s.convert('W-TUE')
         self.assertEquals(len(result), 2)
         self.assert_((result.index.dayofweek == [1,1]).all())
         self.assertEquals(result.irow(0), s['1/4/2005'])
         self.assertEquals(result.irow(1), s['1/10/2005'])
 
-        result = s.convert('W@WED')
+        result = s.convert('W-WED')
         self.assertEquals(len(result), 2)
         self.assert_((result.index.dayofweek == [2,2]).all())
         self.assertEquals(result.irow(0), s['1/5/2005'])
         self.assertEquals(result.irow(1), s['1/10/2005'])
 
-        result = s.convert('W@THU')
+        result = s.convert('W-THU')
         self.assertEquals(len(result), 2)
         self.assert_((result.index.dayofweek == [3,3]).all())
         self.assertEquals(result.irow(0), s['1/6/2005'])
         self.assertEquals(result.irow(1), s['1/10/2005'])
 
-        result = s.convert('W@FRI')
+        result = s.convert('W-FRI')
         self.assertEquals(len(result), 2)
         self.assert_((result.index.dayofweek == [4,4]).all())
         self.assertEquals(result.irow(0), s['1/7/2005'])
@@ -829,7 +860,7 @@ class TestDatetime64(unittest.TestCase):
         self.assertEquals(idx[-1], edate)
         self.assertEquals(idx.freq, '5D')
 
-        idx1 = DatetimeIndex(start=sdate, end=edate, freq='W')
+        idx1 = DatetimeIndex(start=sdate, end=edate, freq='W-SUN')
         idx2 = DatetimeIndex(start=sdate, end=edate,
                              freq=dt.Week(weekday=6))
         self.assertEquals(len(idx1), len(idx2))
@@ -839,11 +870,11 @@ class TestDatetime64(unittest.TestCase):
         dti = DatetimeIndex(['1/1/2002', '1/2/2002', '1/3/2002', '1/4/2002',
                              '1/5/2002', '1/6/2002', '1/7/2002'], freq='D')
 
-        res = dti.snap(freq='W@MON')
+        res = dti.snap(freq='W-MON')
 
         exp = DatetimeIndex(['12/31/2001', '12/31/2001', '12/31/2001',
                              '1/7/2002', '1/7/2002', '1/7/2002', '1/7/2002'],
-                             freq='W@MON')
+                             freq='W-MON')
 
         self.assert_( (res == exp).all() )
 
@@ -1067,6 +1098,12 @@ class TestNewOffsets(unittest.TestCase):
                     self.assert_(t == stack.pop())
                     self.assert_(t.weekday() == day)
 
+
+    def test_catch_infinite_loop(self):
+        offset = datetools.DateOffset(minute=5)
+        # blow up, don't loop forever
+        self.assertRaises(Exception, date_range, datetime(2011,11,11),
+                          datetime(2011,11,12), freq=offset)
 
 
 if __name__ == '__main__':

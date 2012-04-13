@@ -1719,8 +1719,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         unshifted = self.ts.shift(0, freq=offset)
         assert_series_equal(unshifted, self.ts)
 
-        shifted = self.ts.shift(1, freq='WEEKDAY')
-        unshifted = shifted.shift(-1, freq='WEEKDAY')
+        shifted = self.ts.shift(1, freq='B')
+        unshifted = shifted.shift(-1, freq='B')
 
         assert_series_equal(unshifted, self.ts)
 
@@ -2200,12 +2200,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                                          datetime(2009, 11, 30),
                                          datetime(2009, 12, 31)])
 
-        daily_ts = ts.asfreq('WEEKDAY')
-        monthly_ts = daily_ts.asfreq('EOM')
+        daily_ts = ts.asfreq('B')
+        monthly_ts = daily_ts.asfreq('BM')
         self.assert_(np.array_equal(monthly_ts, ts))
 
-        daily_ts = ts.asfreq('WEEKDAY', method='pad')
-        monthly_ts = daily_ts.asfreq('EOM')
+        daily_ts = ts.asfreq('B', method='pad')
+        monthly_ts = daily_ts.asfreq('BM')
         self.assert_(np.array_equal(monthly_ts, ts))
 
         daily_ts = ts.asfreq(datetools.bday)

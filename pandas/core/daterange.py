@@ -19,16 +19,14 @@ class DateRange(Index):
         warnings.warn("DateRange is deprecated, use DatetimeIndex instead",
                        FutureWarning)
 
-        # use old mapping
+        if time_rule is None:
+            time_rule = kwds.get('timeRule')
         if time_rule is not None:
-            offset = datetools._offset_map[time_rule]
-        elif 'timeRule' in kwds and kwds['timeRule'] is not None:
-            offset = datetools._offset_map[kwds['timeRule']]
+            offset = datetools.get_offset(time_rule)
 
         return DatetimeIndex(start=start, end=end,
                              periods=periods, offset=offset,
-                             tzinfo=tzinfo, name=name, _deprecated=True,
-                             **kwds)
+                             tzinfo=tzinfo, name=name, **kwds)
 
     def __setstate__(self, aug_state):
         """Necessary for making this object picklable"""

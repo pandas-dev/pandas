@@ -7,7 +7,7 @@ from pandas.core.datetools import (
     BYearBegin, QuarterBegin, BQuarterBegin, BMonthBegin,
     DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second,
     WeekOfMonth, format, ole2datetime, QuarterEnd, to_datetime, normalize_date,
-    getOffset, getOffsetName, inferTimeRule, hasOffsetName,
+    get_offset, getOffsetName, inferTimeRule, hasOffsetName,
     _dt_box, _dt_unbox, parse_time_string, get_standard_freq,
     _offset_map)
 
@@ -1269,28 +1269,28 @@ def test_hasOffsetName():
 def test_getOffsetName():
     assert_raises(Exception, getOffsetName, BDay(2))
 
-    assert getOffsetName(BDay()) in ['WEEKDAY', 'B']
-    assert getOffsetName(BMonthEnd()) in ['EOM', 'BM']
-    assert getOffsetName(Week(weekday=0)) in ['W@MON', 'WS']
-    assert getOffsetName(Week(weekday=1)) =='W@TUE'
-    assert getOffsetName(Week(weekday=2)) == 'W@WED'
-    assert getOffsetName(Week(weekday=3)) == 'W@THU'
-    assert getOffsetName(Week(weekday=4)) in ['W@FRI', 'BW']
+    assert getOffsetName(BDay()) == 'B'
+    assert getOffsetName(BMonthEnd()) == 'BM'
+    assert getOffsetName(Week(weekday=0)) == 'W-MON'
+    assert getOffsetName(Week(weekday=1)) =='W-TUE'
+    assert getOffsetName(Week(weekday=2)) == 'W-WED'
+    assert getOffsetName(Week(weekday=3)) == 'W-THU'
+    assert getOffsetName(Week(weekday=4)) == 'W-FRI'
 
 
-def test_getOffset():
-    assert_raises(Exception, getOffset, 'gibberish')
+def test_get_offset():
+    assert_raises(Exception, get_offset, 'gibberish')
 
-    assert getOffset('WEEKDAY') == BDay()
-    assert getOffset('weEkDaY') == BDay()
-    assert getOffset('EOM') == BMonthEnd()
-    assert getOffset('eOM') == BMonthEnd()
-    assert getOffset('W@MON') == Week(weekday=0)
-    assert getOffset('W@TUE') == Week(weekday=1)
-    assert getOffset('W@WED') == Week(weekday=2)
-    assert getOffset('W@THU') == Week(weekday=3)
-    assert getOffset('W@FRI') == Week(weekday=4)
-    assert getOffset('w@Sat') == Week(weekday=5)
+    assert get_offset('B') == BDay()
+    assert get_offset('b') == BDay()
+    assert get_offset('bm') == BMonthEnd()
+    assert get_offset('Bm') == BMonthEnd()
+    assert get_offset('W-MON') == Week(weekday=0)
+    assert get_offset('W-TUE') == Week(weekday=1)
+    assert get_offset('W-WED') == Week(weekday=2)
+    assert get_offset('W-THU') == Week(weekday=3)
+    assert get_offset('W-FRI') == Week(weekday=4)
+    assert get_offset('w@Sat') == Week(weekday=5)
 
 def test_parse_time_string():
     (date, parsed, reso) = parse_time_string('4Q1984')
@@ -1312,7 +1312,7 @@ def test_get_standard_freq():
     assert fstr == get_standard_freq(('q', 5))
 
 def test_rule_code():
-    lst = ['M', 'MS', 'BM', 'BMS', 'D', 'B', 'H', 'Min', 'S', 'L', 'U']
+    lst = ['M', 'MS', 'BM', 'BMS', 'D', 'B', 'H', 'T', 'S', 'L', 'U']
     for k in lst:
         assert k == _offset_map[k].rule_code()
         assert k == (_offset_map[k] * 3).rule_code()
@@ -1320,7 +1320,7 @@ def test_rule_code():
     suffix_lst = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
     base = 'W'
     for v in suffix_lst:
-        alias = '@'.join([base, v])
+        alias = '-'.join([base, v])
         assert alias == _offset_map[alias].rule_code()
         assert alias == (_offset_map[alias] * 5).rule_code()
 
@@ -1329,7 +1329,7 @@ def test_rule_code():
     base_lst = ['A', 'AS', 'BA', 'BAS', 'Q', 'QS', 'BQ', 'BQS']
     for base in base_lst:
         for v in suffix_lst:
-            alias = '@'.join([base, v])
+            alias = '-'.join([base, v])
             assert alias == _offset_map[alias].rule_code()
             assert alias == (_offset_map[alias] * 5).rule_code()
 

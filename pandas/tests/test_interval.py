@@ -147,9 +147,9 @@ class TestIntervalProperties(TestCase):
 
     def test_properties_quarterly(self):
         # Test properties on Intervals with daily frequency.
-        qedec_date = Interval(freq="Q@DEC", year=2007, quarter=1)
-        qejan_date = Interval(freq="Q@JAN", year=2007, quarter=1)
-        qejun_date = Interval(freq="Q@JUN", year=2007, quarter=1)
+        qedec_date = Interval(freq="Q-DEC", year=2007, quarter=1)
+        qejan_date = Interval(freq="Q-JAN", year=2007, quarter=1)
+        qejun_date = Interval(freq="Q-JUN", year=2007, quarter=1)
         #
         for x in range(3):
             for qd in (qedec_date, qejan_date, qejun_date):
@@ -263,9 +263,9 @@ class TestFreqConversion(TestCase):
 
         ival_A = Interval(freq='A', year=2007)
 
-        ival_AJAN = Interval(freq="A@JAN", year=2007)
-        ival_AJUN = Interval(freq="A@JUN", year=2007)
-        ival_ANOV = Interval(freq="A@NOV", year=2007)
+        ival_AJAN = Interval(freq="A-JAN", year=2007)
+        ival_AJUN = Interval(freq="A-JUN", year=2007)
+        ival_ANOV = Interval(freq="A-NOV", year=2007)
 
         ival_A_to_Q_start = Interval(freq='Q', year=2007, quarter=1)
         ival_A_to_Q_end = Interval(freq='Q', year=2007, quarter=4)
@@ -332,8 +332,8 @@ class TestFreqConversion(TestCase):
         ival_Q = Interval(freq='Q', year=2007, quarter=1)
         ival_Q_end_of_year = Interval(freq='Q', year=2007, quarter=4)
 
-        ival_QEJAN = Interval(freq="Q@JAN", year=2007, quarter=1)
-        ival_QEJUN = Interval(freq="Q@JUN", year=2007, quarter=1)
+        ival_QEJAN = Interval(freq="Q-JAN", year=2007, quarter=1)
+        ival_QEJUN = Interval(freq="Q-JUN", year=2007, quarter=1)
 
         ival_Q_to_A = Interval(freq='A', year=2007)
         ival_Q_to_M_start = Interval(freq='M', year=2007, month=1)
@@ -443,12 +443,12 @@ class TestFreqConversion(TestCase):
         ival_W = Interval(freq='WK', year=2007, month=1, day=1)
 
         ival_WSUN = Interval(freq='WK', year=2007, month=1, day=7)
-        ival_WSAT = Interval(freq='WK@SAT', year=2007, month=1, day=6)
-        ival_WFRI = Interval(freq='WK@FRI', year=2007, month=1, day=5)
-        ival_WTHU = Interval(freq='WK@THU', year=2007, month=1, day=4)
-        ival_WWED = Interval(freq='WK@WED', year=2007, month=1, day=3)
-        ival_WTUE = Interval(freq='WK@TUE', year=2007, month=1, day=2)
-        ival_WMON = Interval(freq='WK@MON', year=2007, month=1, day=1)
+        ival_WSAT = Interval(freq='WK-SAT', year=2007, month=1, day=6)
+        ival_WFRI = Interval(freq='WK-FRI', year=2007, month=1, day=5)
+        ival_WTHU = Interval(freq='WK-THU', year=2007, month=1, day=4)
+        ival_WWED = Interval(freq='WK-WED', year=2007, month=1, day=3)
+        ival_WTUE = Interval(freq='WK-TUE', year=2007, month=1, day=2)
+        ival_WMON = Interval(freq='WK-MON', year=2007, month=1, day=1)
 
         ival_WSUN_to_D_start = Interval(freq='D', year=2007, month=1, day=1)
         ival_WSUN_to_D_end = Interval(freq='D', year=2007, month=1, day=7)
@@ -614,13 +614,13 @@ class TestFreqConversion(TestCase):
 
         ival_D_to_A = Interval(freq='A', year=2007)
 
-        ival_Deoq_to_AJAN = Interval(freq='A@JAN', year=2008)
-        ival_Deoq_to_AJUN = Interval(freq='A@JUN', year=2007)
-        ival_Deoq_to_ADEC = Interval(freq='A@DEC', year=2007)
+        ival_Deoq_to_AJAN = Interval(freq='A-JAN', year=2008)
+        ival_Deoq_to_AJUN = Interval(freq='A-JUN', year=2007)
+        ival_Deoq_to_ADEC = Interval(freq='A-DEC', year=2007)
 
-        ival_D_to_QEJAN = Interval(freq="Q@JAN", year=2007, quarter=4)
-        ival_D_to_QEJUN = Interval(freq="Q@JUN", year=2007, quarter=3)
-        ival_D_to_QEDEC = Interval(freq="Q@DEC", year=2007, quarter=1)
+        ival_D_to_QEJAN = Interval(freq="Q-JAN", year=2007, quarter=4)
+        ival_D_to_QEJUN = Interval(freq="Q-JUN", year=2007, quarter=3)
+        ival_D_to_QEDEC = Interval(freq="Q-DEC", year=2007, quarter=1)
 
         ival_D_to_M = Interval(freq='M', year=2007, month=1)
         ival_D_to_W = Interval(freq='WK', year=2007, month=1, day=7)
@@ -640,18 +640,18 @@ class TestFreqConversion(TestCase):
 
         assert_equal(ival_D.resample('A'), ival_D_to_A)
 
-        assert_equal(ival_D_end_of_quarter.resample('A@JAN'),
+        assert_equal(ival_D_end_of_quarter.resample('A-JAN'),
                      ival_Deoq_to_AJAN)
-        assert_equal(ival_D_end_of_quarter.resample('A@JUN'),
+        assert_equal(ival_D_end_of_quarter.resample('A-JUN'),
                      ival_Deoq_to_AJUN)
-        assert_equal(ival_D_end_of_quarter.resample('A@DEC'),
+        assert_equal(ival_D_end_of_quarter.resample('A-DEC'),
                      ival_Deoq_to_ADEC)
 
         assert_equal(ival_D_end_of_year.resample('A'), ival_D_to_A)
         assert_equal(ival_D_end_of_quarter.resample('Q'), ival_D_to_QEDEC)
-        assert_equal(ival_D.resample("Q@JAN"), ival_D_to_QEJAN)
-        assert_equal(ival_D.resample("Q@JUN"), ival_D_to_QEJUN)
-        assert_equal(ival_D.resample("Q@DEC"), ival_D_to_QEDEC)
+        assert_equal(ival_D.resample("Q-JAN"), ival_D_to_QEJAN)
+        assert_equal(ival_D.resample("Q-JUN"), ival_D_to_QEJUN)
+        assert_equal(ival_D.resample("Q-DEC"), ival_D_to_QEDEC)
         assert_equal(ival_D.resample('M'), ival_D_to_M)
         assert_equal(ival_D_end_of_month.resample('M'), ival_D_to_M)
         assert_equal(ival_D.resample('WK'), ival_D_to_W)

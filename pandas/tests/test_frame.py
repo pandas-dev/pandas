@@ -2744,19 +2744,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_asfreq(self):
         offset_monthly = self.tsframe.asfreq(datetools.bmonthEnd)
-        rule_monthly = self.tsframe.asfreq('EOM')
+        rule_monthly = self.tsframe.asfreq('BM')
 
         assert_almost_equal(offset_monthly['A'], rule_monthly['A'])
 
-        filled = rule_monthly.asfreq('WEEKDAY', method='pad')
+        filled = rule_monthly.asfreq('B', method='pad')
         # TODO: actually check that this worked.
 
         # don't forget!
-        filled_dep = rule_monthly.asfreq('WEEKDAY', method='pad')
+        filled_dep = rule_monthly.asfreq('B', method='pad')
 
         # test does not blow up on length-0 DataFrame
         zero_length = self.tsframe.reindex([])
-        result = zero_length.asfreq('EOM')
+        result = zero_length.asfreq('BM')
         self.assert_(result is not zero_length)
 
     def test_asfreq_datetimeindex(self):
@@ -2764,10 +2764,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame({'A': [1,2,3]},
                        index=[datetime(2011,11,01), datetime(2011,11,2),
                               datetime(2011,11,3)])
-        df = df.asfreq('WEEKDAY')
+        df = df.asfreq('B')
         self.assert_(isinstance(df.index, DatetimeIndex))
 
-        ts = df['A'].asfreq('WEEKDAY')
+        ts = df['A'].asfreq('B')
         self.assert_(isinstance(ts.index, DatetimeIndex))
 
     def test_as_matrix(self):
@@ -3638,7 +3638,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         shiftedFrame = self.tsframe.shift(5, freq=datetools.BDay())
         self.assert_(len(shiftedFrame) == len(self.tsframe))
 
-        shiftedFrame2 = self.tsframe.shift(5, freq='WEEKDAY')
+        shiftedFrame2 = self.tsframe.shift(5, freq='B')
         assert_frame_equal(shiftedFrame, shiftedFrame2)
 
         d = self.tsframe.index[0]
