@@ -20,7 +20,7 @@ import numpy as np
 from pandas import DataFrame, Index, isnull
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                ExcelFile, TextParser)
-from pandas.util.testing import assert_almost_equal, assert_frame_equal
+from pandas.util.testing import assert_almost_equal, assert_frame_equal, network
 import pandas._tseries as lib
 from pandas.util import py3compat
 
@@ -798,6 +798,7 @@ bar,foo,foo"""
         assert_frame_equal(df, expected)
 
     @slow
+    @network
     def test_url(self):
         # HTTP(S)
         url = 'https://raw.github.com/pydata/pandas/master/pandas/io/tests/salary.table'
@@ -806,10 +807,20 @@ bar,foo,foo"""
         localtable = os.path.join(dirpath, 'salary.table')
         local_table = read_table(localtable)
         assert_frame_equal(url_table, local_table)
+        #TODO: ftp testing
+
+    @slow
+    def test_file(self):
         # FILE
+        if sys.version_info[:2] < (2, 6):
+            raise nose.SkipTest("file:// not supported with Python < 2.6")
+        dirpath = curpath()
+        localtable = os.path.join(dirpath, 'salary.table')
+        local_table = read_table(localtable)
+
         url_table = read_table('file://localhost/'+localtable)
         assert_frame_equal(url_table, local_table)
-        #TODO: ftp testing
+
 
 class TestParseSQL(unittest.TestCase):
 
