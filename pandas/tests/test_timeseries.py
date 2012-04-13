@@ -151,6 +151,13 @@ class TestTimeSeries(unittest.TestCase):
         expected = s[indexer[0]]
         assert_series_equal(result, expected)
 
+    def test_series_ctor_plus_datetimeindex(self):
+        rng = date_range('20090415', '20090519', freq='B')
+        data = dict((k, 1) for k in rng)
+
+        result = Series(data, index=rng)
+        self.assert_(result.index is rng)
+
     def test_series_pad_backfill_limit(self):
         index = np.arange(10)
         s = Series(np.random.randn(10), index=index)

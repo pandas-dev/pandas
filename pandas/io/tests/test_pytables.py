@@ -9,7 +9,7 @@ from datetime import datetime
 import numpy as np
 
 from pandas import Series, DataFrame, Panel, MultiIndex, bdate_range
-from pandas.io.pytables import HDFStore
+from pandas.io.pytables import HDFStore, get_store
 import pandas.util.testing as tm
 
 try:

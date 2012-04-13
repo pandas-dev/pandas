@@ -103,6 +103,9 @@ class Index(np.ndarray):
     def __array_finalize__(self, obj):
         self.name = getattr(obj, 'name', None)
 
+    def _shallow_copy(self):
+        return self.view(type(self))
+
     def __repr__(self):
         try:
             result = np.ndarray.__repr__(self)
