@@ -80,10 +80,15 @@ def to_datetime(arg, errors='ignore'):
     -------
     ret : datetime if parsing succeeded
     """
+    from pandas.core.series import Series
     if arg is None:
         return arg
     elif isinstance(arg, datetime):
         return arg
+    elif isinstance(arg, Series):
+        values = lib.string_to_datetime(com._ensure_object(arg.values),
+                                        raise_=errors == 'raise')
+        return Series(values, index=arg.index, name=arg.name)
     elif isinstance(arg, np.ndarray):
         return lib.string_to_datetime(com._ensure_object(arg),
                                       raise_=errors == 'raise')

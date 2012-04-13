@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from pandas.core.datetools import DateOffset
+from pandas.core.datetools import DateOffset, to_datetime
 import pandas.core.datetools as datetools
 
 from pandas.core.common import isnull, notnull, save, load

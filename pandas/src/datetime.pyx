@@ -613,6 +613,49 @@ cdef class DayOffset(_Offset):
 #        offset.next()
 #    return i
 
+def string_to_datetime(ndarray[object] strings, raise_=False):
+    cdef:
+        Py_ssize_t i, n = len(strings)
+        object val
+        ndarray[int64_t] iresult
+        ndarray[object] oresult
+
+    from dateutil.parser import parse
+
+
+    try:
+        result = np.empty(n, dtype='M8[us]')
+        iresult = result.view('i8')
+        for i in range(n):
+            val = strings[i]
+            if util._checknull(val):
+                result[i] = NaT
+            elif PyDateTime_Check(val):
+                result[i] = val
+            else:
+                try:
+                    result[i] = parse(val)
+                except Exception:
+                    raise TypeError
+        return result
+    except TypeError:
+        oresult = np.empty(n, dtype=object)
+
+        for i in range(n):
+            val = strings[i]
+            if util._checknull(val):
+                oresult[i] = val
+            else:
+                try:
+                    oresult[i] = parse(val)
+                except Exception:
+                    if raise_:
+                        raise
+                    oresult[i] = val
+
+        return oresult
+
+
 # Conversion routines
 # ------------------------------------------------------------------------------
 

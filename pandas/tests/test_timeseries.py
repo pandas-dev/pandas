@@ -11,7 +11,7 @@ import numpy as np
 from pandas import (Index, Series, TimeSeries, DataFrame, isnull,
                     date_range, Timestamp)
 
-from pandas import DatetimeIndex
+from pandas import DatetimeIndex, to_datetime
 
 from pandas.core.daterange import DateRange
 
@@ -110,33 +110,6 @@ def assert_range_equal(left, right):
 
 
 class TestTimeSeries(unittest.TestCase):
-
-    def test_string_na_conversion(self):
-        from dateutil.parser import parse
-        from pandas.core.datetools import to_datetime
-
-        strings = np.array(['1/1/2000', '1/2/2000', np.nan,
-                            '1/4/2000, 12:34:56'], dtype=object)
-
-        expected = []
-        for val in strings:
-            if com.isnull(val):
-                expected.append(val)
-            else:
-                expected.append(parse(val))
-
-        result = lib.string_to_datetime(strings)
-        assert_almost_equal(result, expected)
-
-        result2 = to_datetime(strings)
-        assert_almost_equal(result, result2)
-
-        malformed = np.array(['1/100/2000', np.nan], dtype=object)
-        result = to_datetime(malformed)
-        assert_almost_equal(result, malformed)
-
-        self.assertRaises(ValueError, to_datetime, malformed,
-                          errors='raise')
 
     def test_dti_slicing(self):
         dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
@@ -348,6 +321,59 @@ class TestTimeSeries(unittest.TestCase):
         expected = DataFrame({'A': expected})
         assert_frame_equal(filled, expected)
         assert_frame_equal(filled2, expected)
+
+    def test_string_na_nat_conversion(self):
+        # GH #999, #858
+
+        from dateutil.parser import parse
+        from pandas.core.datetools import to_datetime
+
+        strings = np.array(['1/1/2000', '1/2/2000', np.nan,
+                            '1/4/2000, 12:34:56'], dtype=object)
+
+        expected = np.empty(4, dtype='M8')
+        for i, val in enumerate(strings):
+            if com.isnull(val):
+                expected[i] = NaT
+            else:
+                expected[i] = parse(val)
+
+        result = lib.string_to_datetime(strings)
+        assert_almost_equal(result, expected)
+
+        result2 = to_datetime(strings)
+        assert_almost_equal(result, result2)
+
+        malformed = np.array(['1/100/2000', np.nan], dtype=object)
+        result = to_datetime(malformed)
+        assert_almost_equal(result, malformed)
+
+        self.assertRaises(ValueError, to_datetime, malformed,
+                          errors='raise')
+
+        idx = ['a', 'b', 'c', 'd', 'e']
+        series = Series(['1/1/2000', np.nan, '1/3/2000', np.nan,
+                         '1/5/2000'], index=idx, name='foo')
+        dseries = Series([to_datetime('1/1/2000'), np.nan,
+                          to_datetime('1/3/2000'), np.nan,
+                          to_datetime('1/5/2000')], index=idx, name='foo')
+
+        result = to_datetime(series)
+        dresult = to_datetime(dseries)
+
+        expected = Series(np.empty(5, dtype='M8[us]'), index=idx)
+        for i in range(5):
+            x = series[i]
+            if isnull(x):
+                expected[i] = NaT
+            else:
+                expected[i] = to_datetime(x)
+
+        assert_series_equal(result, expected)
+        self.assertEquals(result.name, 'foo')
+
+        assert_series_equal(dresult, expected)
+        self.assertEquals(dresult.name, 'foo')
 
 def _skip_if_no_pytz():
     try:
