@@ -376,7 +376,12 @@ class TestTimeSeries(unittest.TestCase):
         assert_series_equal(dresult, expected)
         self.assertEquals(dresult.name, 'foo')
 
+    def test_index_to_datetime(self):
+        idx = Index(['1/1/2000', '1/2/2000', '1/3/2000'])
 
+        result = idx.to_datetime()
+        expected = DatetimeIndex(datetools.to_datetime(idx.values))
+        self.assert_(result.equals(expected))
 
 def _skip_if_no_pytz():
     try:

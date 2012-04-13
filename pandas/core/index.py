@@ -110,6 +110,13 @@ class Index(np.ndarray):
         return Index(self.values.astype(dtype), name=self.name,
                      dtype=dtype)
 
+    def to_datetime(self):
+        """
+        For an Index containing strings or datetime.datetime objects, attempt
+        conversion to DatetimeIndex
+        """
+        return DatetimeIndex(self.values)
+
     @property
     def dtype(self):
         return self.values.dtype
@@ -1397,7 +1404,7 @@ class DatetimeIndex(Int64Index):
     def __repr__(self):
         if self.offset is not None:
             output = str(self.__class__) + '\n'
-            output += 'offset: %s, timezone: %s\n' % (self.offset, self.tz)
+            output += 'freq: %s, timezone: %s\n' % (self.offset, self.tz)
             if len(self) > 0:
                 output += '[%s, ..., %s]\n' % (self[0], self[-1])
             output += 'length: %d' % len(self)
