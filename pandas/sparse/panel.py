@@ -218,9 +218,9 @@ class SparsePanel(Panel):
 
         self.default_fill_value = fv
         self.default_kind = kind
-        self._items = com._unpickle_array(items)
-        self._major_axis = com._unpickle_array(major)
-        self._minor_axis = com._unpickle_array(minor)
+        self._items = _ensure_index(_unpickle_array(items))
+        self._major_axis = _ensure_index(_unpickle_array(major))
+        self._minor_axis = _ensure_index(_unpickle_array(minor))
         self._frames = frames
 
     def copy(self):
@@ -395,9 +395,12 @@ class SparsePanel(Panel):
         for item in items:
             new_frames[item] = func(this[item], other[item])
 
-        # maybe unnecessary
-        new_default_fill = func(self.default_fill_value,
-                                other.default_fill_value)
+        if not isinstance(other, SparsePanel):
+            new_default_fill = self.default_fill_value
+        else:
+            # maybe unnecessary
+            new_default_fill = func(self.default_fill_value,
+                                    other.default_fill_value)
 
         return SparsePanel(new_frames, items, major, minor,
                            default_fill_value=new_default_fill,

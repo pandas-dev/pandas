@@ -20,7 +20,8 @@ def _bottleneck_switch(bn_name, alt, zero_value=None, **kwargs):
     def f(values, axis=None, skipna=True, **kwds):
         if len(kwargs) > 0:
             for k, v in kwargs.iteritems():
-                kwds[k] = v
+                if k not in kwds:
+                    kwds[k] = v
         try:
             if zero_value is not None and values.size == 0:
                 if values.ndim == 1:
@@ -183,7 +184,7 @@ def nanargmin(values, axis=None, skipna=True):
 nansum = _bottleneck_switch('nansum', _nansum, zero_value=0)
 nanmean = _bottleneck_switch('nanmean', _nanmean)
 nanmedian = _bottleneck_switch('nanmedian', _nanmedian)
-nanvar = _bottleneck_switch('nanvar', _nanvar)
+nanvar = _bottleneck_switch('nanvar', _nanvar, ddof=1)
 nanmin = _bottleneck_switch('nanmin', _nanmin)
 nanmax = _bottleneck_switch('nanmax', _nanmax)
 
@@ -216,6 +217,38 @@ def nanskew(values, axis=None, skipna=True):
     else:
         result = 0 if B == 0 else result
         if count < 3:
+            return np.nan
+        return result
+
+def nankurt(values, axis=None, skipna=True):
+    if not isinstance(values.dtype.type, np.floating):
+        values = values.astype('f8')
+
+    mask = isnull(values)
+    count = _get_counts(mask, axis)
+
+    if skipna:
+        values = values.copy()
+        np.putmask(values, mask, 0)
+
+    A = values.sum(axis) / count
+    B = (values ** 2).sum(axis) / count - A ** 2
+    C = (values ** 3).sum(axis) / count - A ** 3 - 3 * A * B
+    D = (values ** 4).sum(axis) / count - A ** 4 - 6 * B * A * A - 4 * C * A
+
+    B = _zero_out_fperr(B)
+    C = _zero_out_fperr(C)
+    D = _zero_out_fperr(D)
+
+    result = (((count*count - 1.)*D / (B*B) - 3*((count-1.)**2)) /
+              ((count - 2.)*(count-3.)))
+    if isinstance(result, np.ndarray):
+        result = np.where(B == 0, 0, result)
+        result[count < 4] = np.nan
+        return result
+    else:
+        result = 0 if B == 0 else result
+        if count < 4:
             return np.nan
         return result
 

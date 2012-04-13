@@ -137,7 +137,7 @@ class _NDFrameIndexer(object):
         # df.ix[d1:d2, 0] -> columns first (True)
         # df.ix[0, ['C', 'B', A']] -> rows first (False)
         for i, key in enumerate(tup):
-            if _is_label_like(key):
+            if _is_label_like(key) or isinstance(key, tuple):
                 section = self._getitem_axis(key, axis=i)
 
                 # might have been a MultiIndex
@@ -197,7 +197,6 @@ class _NDFrameIndexer(object):
 
     def _getitem_iterable(self, key, axis=0):
         labels = self.obj._get_axis(axis)
-        # axis_name = self.obj._get_axis_name(axis)
 
         def _reindex(keys, level=None):
             try:
@@ -305,8 +304,18 @@ class _NDFrameIndexer(object):
                 if _is_integer_dtype(objarr) and not is_int_index:
                     return objarr
 
-                indexer = labels.get_indexer(objarr)
-                mask = indexer == -1
+                # this is not the most robust, but...
+                if (isinstance(labels, MultiIndex) and
+                    not isinstance(objarr[0], tuple)):
+                    level = 0
+                    _, indexer = labels.reindex(objarr, level=level)
+
+                    check = labels.levels[0].get_indexer(objarr)
+                else:
+                    level = None
+                    indexer = check = labels.get_indexer(objarr)
+
+                mask = check == -1
                 if mask.any():
                     raise KeyError('%s not in index' % objarr[mask])
 

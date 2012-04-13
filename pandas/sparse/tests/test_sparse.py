@@ -1342,6 +1342,9 @@ class TestSparsePanel(TestCase,
         def _test_roundtrip(panel):
             pickled = pickle.dumps(panel, protocol=pickle.HIGHEST_PROTOCOL)
             unpickled = pickle.loads(pickled)
+            self.assert_(isinstance(unpickled.items, Index))
+            self.assert_(isinstance(unpickled.major_axis, Index))
+            self.assert_(isinstance(unpickled.minor_axis, Index))
             assert_sp_panel_equal(panel, unpickled)
 
         _test_roundtrip(self.panel)
@@ -1449,6 +1452,11 @@ class TestSparsePanel(TestCase,
                 dense_result = op(dense)
                 assert_panel_equal(sparse_result.to_dense(), dense_result)
 
+            def _mixed_comp(op):
+                result = op(panel, panel.to_dense())
+                expected = op(panel.to_dense(), panel.to_dense())
+                assert_panel_equal(result, expected)
+
             op1 = lambda x: x + 2
 
             _dense_comp(op1)
@@ -1460,6 +1468,9 @@ class TestSparsePanel(TestCase,
             _dense_comp(op4)
             op5 = lambda x: x.subtract(x.mean(2), axis=2)
             _dense_comp(op5)
+
+            _mixed_comp(Panel.multiply)
+            _mixed_comp(Panel.subtract)
 
             # TODO: this case not yet supported!
             # op6 = lambda x: x.add(x.to_frame())

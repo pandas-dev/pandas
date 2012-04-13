@@ -249,6 +249,20 @@ baz,7,8,9
         assert_frame_equal(df, df2)
         assert_frame_equal(df3, df2)
 
+    def test_xlsx_table(self):
+        try:
+            import openpyxl
+        except ImportError:
+            raise nose.SkipTest('openpyxl not installed, skipping')
+
+        pth = os.path.join(self.dirpath, 'test.xlsx')
+        xlsx = ExcelFile(pth)
+        df = xlsx.parse('Sheet1', index_col=0, parse_dates=True)
+        df2 = read_csv(self.csv1, index_col=0, parse_dates=True)
+        df3 = xlsx.parse('Sheet2', skiprows=[1], index_col=0, parse_dates=True)
+        assert_frame_equal(df, df2)
+        assert_frame_equal(df3, df2)
+
     def test_read_table_wrong_num_columns(self):
         data = """A,B,C,D,E,F
 1,2,3,4,5
@@ -768,6 +782,22 @@ bar"""
 201162~~~~502.953953~~~173.237159~~~12468.3
 """
         df = read_fwf(StringIO(data3), colspecs=colspecs, delimiter='~', header=None)
+        assert_frame_equal(df, expected)
+
+        self.assertRaises(ValueError, read_fwf, StringIO(data3),
+                          colspecs=colspecs, widths=[6, 10, 10, 7])
+    def test_na_value_dict(self):
+        data = """A,B,C
+foo,bar,NA
+bar,foo,foo
+foo,bar,NA
+bar,foo,foo"""
+
+        df = read_csv(StringIO(data),
+                      na_values={'A': ['foo'], 'B': ['bar']})
+        expected = DataFrame({'A': [np.nan, 'bar', np.nan, 'bar'],
+                              'B': [np.nan, 'foo', np.nan, 'foo'],
+                              'C': [np.nan, 'foo', np.nan, 'foo']})
         assert_frame_equal(df, expected)
 
     @slow

@@ -840,6 +840,27 @@ class CheckIndexing(object):
         expected = [nan, 'qux', nan, 'qux', nan]
         assert_almost_equal(df['str'].values, expected)
 
+    def test_getitem_setitem_non_ix_labels(self):
+        df = tm.makeTimeDataFrame()
+
+        start, end = df.index[[5, 10]]
+
+        result = df.ix[start:end]
+        result2 = df[start:end]
+        expected = df[5:11]
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result2, expected)
+
+        # not implementing this yet
+
+        # exp = df.copy()
+        # exp[5:10] = exp[-5:].values
+
+        # # setting
+
+        # df[start:end] = df[-5:].values
+        # assert_frame_equal(df, exp)
+
     def test_setitem_fancy_exceptions(self):
         pass
 
@@ -881,6 +902,12 @@ class CheckIndexing(object):
         exp_mask = alt(df, df.index, 'mask_' + df['label'])
         assert_almost_equal(df['mask'], exp_mask)
         self.assert_(df['mask'].dtype == np.bool_)
+
+        self.assertRaises(ValueError, self.frame.lookup,
+                          ['xyz'], ['A'])
+
+        self.assertRaises(ValueError, self.frame.lookup,
+                          [self.frame.index[0]], ['xyz'])
 
     def test_set_value(self):
         for idx in self.frame.index:
@@ -1758,6 +1785,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                              columns=self.frame.columns)
         assert_frame_equal(casted, expected)
 
+    def test_astype_cast_nan_int(self):
+        df = DataFrame(data={"Values": [1.0, 2.0, 3.0, np.nan]})
+        self.assertRaises(ValueError, df.astype, np.int64)
+
     def test_array_interface(self):
         result = np.sqrt(self.frame)
         self.assert_(type(result) is type(self.frame))
@@ -2021,6 +2052,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         fmt.reset_printoptions()
 
+    def test_very_wide_info_repr(self):
+        df = DataFrame(np.random.randn(10, 20),
+                       columns=[tm.rands(10) for _ in xrange(20)])
+        repr(df)
+
     def test_head_tail(self):
         assert_frame_equal(self.frame.head(), self.frame[:5])
         assert_frame_equal(self.frame.tail(), self.frame[-5:])
@@ -2106,6 +2142,30 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = self.frame2 * 2
         assert_frame_equal(added, expected)
 
+    def test_operators_none_as_na(self):
+        df = DataFrame({"col1": [2,5.0,123,None],
+                        "col2": [1,2,3,4]})
+
+        ops = [operator.add, operator.sub, operator.mul, operator.truediv]
+
+        for op in ops:
+            filled = df.fillna(np.nan)
+            result = op(df, 3)
+            expected = op(filled, 3)
+            expected[com.isnull(expected)] = None
+            assert_frame_equal(result, expected)
+
+            result = op(df, df)
+            expected = op(filled, filled)
+            expected[com.isnull(expected)] = None
+            assert_frame_equal(result, expected)
+
+            result = op(df, df.fillna(7))
+            assert_frame_equal(result, expected)
+
+            result = op(df.fillna(7), df)
+            assert_frame_equal(result, expected)
+
     def test_logical_operators(self):
         import operator
 
@@ -2124,16 +2184,21 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             assert_frame_equal(result, expected)
 
         df1 = {'a': {'a': True, 'b': False, 'c': False, 'd': True, 'e': True},
-               'b': {'a': False, 'b': True, 'c': False, 'd': False, 'e': False},
-               'c': {'a': False, 'b': False, 'c': True, 'd': False, 'e': False},
+               'b': {'a': False, 'b': True, 'c': False,
+                     'd': False, 'e': False},
+               'c': {'a': False, 'b': False, 'c': True,
+                     'd': False, 'e': False},
                'd': {'a': True, 'b': False, 'c': False, 'd': True, 'e': True},
                'e': {'a': True, 'b': False, 'c': False, 'd': True, 'e': True}}
 
         df2 = {'a': {'a': True, 'b': False, 'c': True, 'd': False, 'e': False},
-               'b': {'a': False, 'b': True, 'c': False, 'd': False, 'e': False},
+               'b': {'a': False, 'b': True, 'c': False,
+                     'd': False, 'e': False},
                'c': {'a': True, 'b': False, 'c': True, 'd': False, 'e': False},
-               'd': {'a': False, 'b': False, 'c': False, 'd': True, 'e': False},
-               'e': {'a': False, 'b': False, 'c': False, 'd': False, 'e': True}}
+               'd': {'a': False, 'b': False, 'c': False,
+                     'd': True, 'e': False},
+               'e': {'a': False, 'b': False, 'c': False,
+                     'd': False, 'e': True}}
 
         df1 = DataFrame(df1)
         df2 = DataFrame(df2)
@@ -2676,6 +2741,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         io = StringIO()
         self.frame.info(buf=io)
         self.tsframe.info(buf=io)
+
+        frame = DataFrame(np.random.randn(5, 3))
+
+        import sys
+        sys.stdout = StringIO()
+        frame.info()
+        frame.info(verbose=False)
+        sys.stdout = sys.__stdout__
 
     def test_dtypes(self):
         self.mixed_frame['bool'] = self.mixed_frame['A'] > 0
@@ -3857,6 +3930,31 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = data.apply(lambda x: x, axis=1)
         assert_frame_equal(result, data)
 
+    def test_apply_attach_name(self):
+        result = self.frame.apply(lambda x: x.name)
+        expected = Series(self.frame.columns, index=self.frame.columns)
+        assert_series_equal(result, expected)
+
+        result = self.frame.apply(lambda x: x.name, axis=1)
+        expected = Series(self.frame.index, index=self.frame.index)
+        assert_series_equal(result, expected)
+
+        # non-reductions
+        result = self.frame.apply(lambda x: np.repeat(x.name, len(x)))
+        expected = DataFrame(np.tile(self.frame.columns,
+                                     (len(self.frame.index), 1)),
+                             index=self.frame.index,
+                             columns=self.frame.columns)
+        assert_frame_equal(result, expected)
+
+        result = self.frame.apply(lambda x: np.repeat(x.name, len(x)),
+                                  axis=1)
+        expected = DataFrame(np.tile(self.frame.index,
+                                     (len(self.frame.columns), 1)).T,
+                             index=self.frame.index,
+                             columns=self.frame.columns)
+        assert_frame_equal(result, expected)
+
     def test_applymap(self):
         applied = self.frame.applymap(lambda x: x * 2)
         assert_frame_equal(applied, self.frame * 2)
@@ -4324,6 +4422,23 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         self._check_stat_op('skew', alt)
 
+    def test_kurt(self):
+        from scipy.stats import kurtosis
+
+        def alt(x):
+            if len(x) < 4:
+                return np.nan
+            return kurtosis(x, bias=False)
+
+        self._check_stat_op('kurt', alt)
+
+        index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
+                           labels=[[0, 0, 0, 0, 0, 0],
+                                   [0, 1, 2, 0, 1, 2],
+                                   [0, 1, 0, 1, 0, 1]])
+        df = DataFrame(np.random.randn(6, 3), index=index)
+        assert_series_equal(df.kurt(), df.kurt(level=0).xs('bar'))
+
     def _check_stat_op(self, name, alternative, frame=None, has_skipna=True,
                        has_numeric_only=False):
         if frame is None:
@@ -4495,7 +4610,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertEqual(np.shape(cumprod_xs), np.shape(self.tsframe))
 
         # ints
-        df = self.tsframe.astype(int)
+        df = self.tsframe.fillna(0).astype(int)
         df.cumprod(0)
         df.cumprod(1)
 
@@ -4564,6 +4679,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         desc = self.tsframe.describe()
         desc = self.mixed_frame.describe()
         desc = self.frame.describe()
+
+    def test_describe_percentiles(self):
+        desc = self.frame.describe(percentile_width=50)
+        assert '75%' in desc.index
+        assert '25%' in desc.index
+
+        desc = self.frame.describe(percentile_width=95)
+        assert '97.5%' in desc.index
+        assert '2.5%' in desc.index
 
     def test_describe_no_numeric(self):
         df = DataFrame({'A' : ['foo', 'foo', 'bar'] * 8,
@@ -4995,7 +5119,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = Y.sum()
         exp = Y['g'].sum()
         self.assert_(isnull(Y['g']['c']))
-
 
 if __name__ == '__main__':
     # unittest.main()

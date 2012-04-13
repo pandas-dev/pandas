@@ -255,6 +255,15 @@ class TestMultiLevel(unittest.TestCase):
         assert_series_equal(result, expected)
         assert_series_equal(result, expected2)
 
+    def test_getitem_setitem_tuple_plus_columns(self):
+        # GH #1013
+
+        df = self.ymd[:5]
+
+        result = df.ix[(2000, 1, 6), ['A', 'B', 'C']]
+        expected = df.ix[2000, 1, 6][['A', 'B', 'C']]
+        assert_series_equal(result, expected)
+
     def test_xs(self):
         xs = self.frame.xs(('bar', 'two'))
         xs2 = self.frame.ix[('bar', 'two')]
@@ -1224,6 +1233,35 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         result = self.frame.T.ix[:, ['foo', 'qux']]
         assert_frame_equal(result, expected.T)
 
+    def test_setitem_multiple_partial(self):
+        expected = self.frame.copy()
+        result = self.frame.copy()
+        result.ix[['foo', 'bar']] = 0
+        expected.ix['foo'] = 0
+        expected.ix['bar'] = 0
+        assert_frame_equal(result, expected)
+
+        expected = self.frame.copy()
+        result = self.frame.copy()
+        result.ix['foo':'bar'] = 0
+        expected.ix['foo'] = 0
+        expected.ix['bar'] = 0
+        assert_frame_equal(result, expected)
+
+        expected = self.frame['A'].copy()
+        result = self.frame['A'].copy()
+        result.ix[['foo', 'bar']] = 0
+        expected.ix['foo'] = 0
+        expected.ix['bar'] = 0
+        assert_series_equal(result, expected)
+
+        expected = self.frame['A'].copy()
+        result = self.frame['A'].copy()
+        result.ix['foo':'bar'] = 0
+        expected.ix['foo'] = 0
+        expected.ix['bar'] = 0
+        assert_series_equal(result, expected)
+
     def test_drop_level(self):
         result = self.frame.drop(['bar', 'qux'], level='first')
         expected = self.frame.ix[[0, 1, 2, 5, 6]]
@@ -1240,6 +1278,18 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         result = self.frame.T.drop(['two'], axis=1, level='second')
         expected = self.frame.ix[[0, 2, 3, 6, 7, 9]].T
         assert_frame_equal(result, expected)
+
+    def test_unicode_repr_issues(self):
+        levels = [Index([u'a/\u03c3', u'b/\u03c3',u'c/\u03c3']),
+                  Index([0, 1])]
+        labels = [np.arange(3).repeat(2), np.tile(np.arange(2), 3)]
+        index = MultiIndex(levels=levels, labels=labels)
+
+        repr(index.levels)
+
+        # NumPy bug
+        # repr(index.get_level_values(1))
+
 
 if __name__ == '__main__':
 

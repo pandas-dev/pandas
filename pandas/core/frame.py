@@ -167,35 +167,54 @@ merged : DataFrame
 #----------------------------------------------------------------------
 # Factory helper methods
 
-def _arith_method(func, name, default_axis='columns'):
+def _arith_method(op, name, default_axis='columns'):
+    def na_op(x, y):
+        try:
+            result = op(x, y)
+        except TypeError:
+            xrav = x.ravel()
+            result = np.empty(x.size, dtype=x.dtype)
+            if isinstance(y, np.ndarray):
+                yrav = y.ravel()
+                mask = notnull(xrav) & notnull(yrav)
+                result[mask] = op(xrav[mask], yrav[mask])
+            else:
+                mask = notnull(xrav)
+                result[mask] = op(xrav[mask], y)
+
+            np.putmask(result, -mask, np.nan)
+            result = result.reshape(x.shape)
+
+        return result
+
     @Appender(_arith_doc % name)
     def f(self, other, axis=default_axis, level=None, fill_value=None):
         if isinstance(other, DataFrame):    # Another DataFrame
-            return self._combine_frame(other, func, fill_value, level)
+            return self._combine_frame(other, na_op, fill_value, level)
         elif isinstance(other, Series):
-            return self._combine_series(other, func, fill_value, axis, level)
+            return self._combine_series(other, na_op, fill_value, axis, level)
         elif isinstance(other, (list, tuple)):
             if axis is not None and self._get_axis_name(axis) == 'index':
                 casted = Series(other, index=self.index)
             else:
                 casted = Series(other, index=self.columns)
-            return self._combine_series(casted, func, fill_value, axis, level)
+            return self._combine_series(casted, na_op, fill_value, axis, level)
         elif isinstance(other, np.ndarray):
             if other.ndim == 1:
                 if axis is not None and self._get_axis_name(axis) == 'index':
                     casted = Series(other, index=self.index)
                 else:
                     casted = Series(other, index=self.columns)
-                return self._combine_series(casted, func, fill_value,
+                return self._combine_series(casted, na_op, fill_value,
                                             axis, level)
             elif other.ndim == 2:
                 casted = DataFrame(other, index=self.index,
                                    columns=self.columns)
-                return self._combine_frame(casted, func, fill_value, level)
+                return self._combine_frame(casted, na_op, fill_value, level)
             else:  # pragma: no cover
                 raise ValueError("Bad argument shape")
         else:
-            return self._combine_const(other, func)
+            return self._combine_const(other, na_op)
 
     f.__name__ = name
 
@@ -1417,7 +1436,13 @@ class DataFrame(NDFrame):
     def __getitem__(self, key):
         # slice rows
         if isinstance(key, slice):
-            new_data = self._data.get_slice(key, axis=1)
+            from pandas.core.indexing import _is_index_slice
+            if self.index.inferred_type == 'integer' or _is_index_slice(key):
+                indexer = key
+            else:
+                indexer = self.ix._convert_to_indexer(key, axis=0)
+
+            new_data = self._data.get_slice(indexer, axis=1)
             return self._constructor(new_data)
         # either boolean or fancy integer index
         elif isinstance(key, (np.ndarray, list)):
@@ -1716,6 +1741,10 @@ class DataFrame(NDFrame):
             values = self.values
             ridx = self.index.get_indexer(row_labels)
             cidx = self.columns.get_indexer(col_labels)
+            if (ridx == -1).any():
+                raise ValueError('One or more row labels was not found')
+            if (cidx == -1).any():
+                raise ValueError('One or more column labels was not found')
             flat_index = ridx * len(self.columns) + cidx
             result = values.flat[flat_index]
         else:
@@ -3090,7 +3119,8 @@ class DataFrame(NDFrame):
             values = self.values
             dummy = Series(np.nan, index=self._get_axis(axis),
                            dtype=values.dtype)
-            result = lib.reduce(values, func, axis=axis, dummy=dummy)
+            result = lib.reduce(values, func, axis=axis, dummy=dummy,
+                                labels=self._get_agg_axis(axis))
             return Series(result, index=self._get_agg_axis(axis))
         except Exception:
             pass
@@ -3102,7 +3132,7 @@ class DataFrame(NDFrame):
         elif axis == 1:
             res_index = self.index
             res_columns = self.columns
-            series_gen = ((i, Series(v, self.columns))
+            series_gen = ((i, Series(v, self.columns, name=i))
                           for i, v in izip(self.index, self.values))
 
         results = {}
@@ -3136,7 +3166,8 @@ class DataFrame(NDFrame):
             else:
                 index = None
 
-            result = self._constructor(data=results, index=index)
+            result = self._constructor(data=results, index=index,
+                                       columns=res_index)
 
             if axis == 1:
                 result = result.T
@@ -3429,11 +3460,17 @@ class DataFrame(NDFrame):
 
         return correl
 
-    def describe(self):
+    def describe(self, percentile_width=50):
         """
-        Generate various summary statistics of each column, excluding NaN
-        values. These include: count, mean, std, min, max, and 10%/50%/90%
-        quantiles
+        Generate various summary statistics of each column, excluding
+        NaN values. These include: count, mean, std, min, max, and
+        lower%/50%/upper% percentiles
+
+        Parameters
+        ----------
+        percentile_width : float, optional
+            width of the desired uncertainty interval, default is 50,
+            which corresponds to lower=25, upper=75
 
         Returns
         -------
@@ -3446,16 +3483,27 @@ class DataFrame(NDFrame):
                                   for k, v in self.iteritems()),
                                   columns=self.columns)
 
+        lb = .5 * (1. - percentile_width/100.)
+        ub = 1. - lb
+
+        def pretty_name(x):
+            x *= 100
+            if x == int(x):
+                return '%.0f%%' % x
+            else:
+                return '%.1f%%' % x
+
         destat_columns = ['count', 'mean', 'std', 'min',
-                          '25%', '50%', '75%', 'max']
+                          pretty_name(lb), '50%', pretty_name(ub),
+                          'max']
 
         destat = []
 
         for column in numdata.columns:
             series = self[column]
             destat.append([series.count(), series.mean(), series.std(),
-                           series.min(), series.quantile(.25), series.median(),
-                           series.quantile(.75), series.max()])
+                           series.min(), series.quantile(lb), series.median(),
+                           series.quantile(ub), series.max()])
 
         return self._constructor(map(list, zip(*destat)), index=destat_columns,
                                  columns=numdata.columns)
@@ -3635,6 +3683,17 @@ class DataFrame(NDFrame):
             return self._agg_by_level('skew', axis=axis, level=level,
                                       skipna=skipna)
         return self._reduce(nanops.nanskew, axis=axis, skipna=skipna,
+                            numeric_only=None)
+
+
+    @Substitution(name='unbiased kurtosis', shortname='kurt',
+                  na_action=_doc_exclude_na, extras='')
+    @Appender(_stat_doc)
+    def kurt(self, axis=0, skipna=True, level=None):
+        if level is not None:
+            return self._agg_by_level('kurt', axis=axis, level=level,
+                                      skipna=skipna)
+        return self._reduce(nanops.nankurt, axis=axis, skipna=skipna,
                             numeric_only=None)
 
     def _agg_by_level(self, name, axis=0, level=0, skipna=True, **kwds):

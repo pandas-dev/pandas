@@ -177,6 +177,7 @@ class TestNanops(unittest.TestCase):
         df = DataFrame(np.empty((10, 0)))
         self.assert_((df.sum(1) == 0).all())
 
+
 class SafeForSparse(object):
     pass
 
@@ -618,6 +619,22 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(Exception, self.ts.__setitem__,
                           [5, slice(None, None)], 2)
 
+    def test_reshape_non_2d(self):
+        x = Series(np.random.random(201), name='x')
+        self.assertRaises(TypeError, x.reshape, (len(x),))
+
+    def test_reshape_2d_return_array(self):
+        x = Series(np.random.random(201), name='x')
+        result = x.reshape((-1,1))
+        self.assert_(not isinstance(result, Series))
+
+        result2 = np.reshape(x, (-1,1))
+        self.assert_(not isinstance(result, Series))
+
+        result = x[:, None]
+        expected = x.reshape((-1,1))
+        assert_almost_equal(result, expected)
+
     def test_basic_getitem_with_labels(self):
         indices = self.ts.index[[5, 10, 15]]
 
@@ -901,6 +918,18 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         alt =lambda x: skew(x, bias=False)
         self._check_stat_op('skew', alt)
 
+    def test_kurt(self):
+        from scipy.stats import kurtosis
+        alt = lambda x: kurtosis(x, bias=False)
+        self._check_stat_op('kurt', alt)
+
+        index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
+                           labels=[[0, 0, 0, 0, 0, 0],
+                                   [0, 1, 2, 0, 1, 2],
+                                   [0, 1, 0, 1, 0, 1]])
+        s = Series(np.random.randn(6), index=index)
+        self.assertAlmostEqual(s.kurt(), s.kurt(level=0)['bar'])
+
     def test_argsort(self):
         self._check_accum_op('argsort')
         argsorted = self.ts.argsort()
@@ -1029,6 +1058,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         _ = self.series.describe()
         _ = self.ts.describe()
 
+    def test_describe_percentiles(self):
+        desc = self.series.describe(percentile_width=50)
+        assert '75%' in desc.index
+        assert '25%' in desc.index
+
+        desc = self.series.describe(percentile_width=95)
+        assert '97.5%' in desc.index
+        assert '2.5%' in desc.index
+
     def test_describe_objects(self):
         s = Series(['a', 'b', 'b', np.nan, np.nan, np.nan, 'c', 'd', 'a', 'a'])
         result = s.describe()
@@ -1136,6 +1174,21 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series(['foo_suffix', 'bar_suffix', 'baz_suffix', np.nan])
         assert_series_equal(result, expected)
 
+    def test_object_comparisons(self):
+        s = Series(['a', 'b', np.nan, 'c', 'a'])
+
+        result = s == 'a'
+        expected = Series([True, False, False, False, True])
+        assert_series_equal(result, expected)
+
+        result = s < 'a'
+        expected = Series([False, False, False, False, False])
+        assert_series_equal(result, expected)
+
+        result = s != 'a'
+        expected = -(s == 'a')
+        assert_series_equal(result, expected)
+
     def test_comparison_operators_with_nas(self):
         s = Series(bdate_range('1/1/2000', periods=10), dtype=object)
         s[::2] = np.nan
@@ -1147,7 +1200,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
             f = getattr(operator, op)
             result = f(s, val)
+
             expected = f(s.dropna(), val).reindex(s.index)
+
+            if op == 'ne':
+                expected = expected.fillna(True).astype(bool)
+            else:
+                expected = expected.fillna(False).astype(bool)
+
             assert_series_equal(result, expected)
 
             # fffffffuuuuuuuuuuuu
@@ -1158,11 +1218,16 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # boolean &, |, ^ should work with object arrays and propagate NAs
 
         ops = ['and_', 'or_', 'xor']
+        mask = s.isnull()
         for bool_op in ops:
             f = getattr(operator, bool_op)
 
+            filled = s.fillna(s[0])
+
             result = f(s < s[9], s > s[3])
-            expected = f(s.dropna() < s[9], s.dropna() > s[3]).reindex(s.index)
+
+            expected = f(filled < filled[9], filled > filled[3])
+            expected[mask] = False
             assert_series_equal(result, expected)
 
     def test_comparison_object_numeric_nas(self):
@@ -1176,6 +1241,31 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             result = f(s, shifted)
             expected = f(s.astype(float), shifted.astype(float))
             assert_series_equal(result, expected)
+
+    def test_more_na_comparisons(self):
+        left = Series(['a', np.nan, 'c'])
+        right = Series(['a', np.nan, 'd'])
+
+        result = left == right
+        expected = Series([True, False, False])
+        assert_series_equal(result, expected)
+
+        result = left != right
+        expected = Series([False, True, True])
+        assert_series_equal(result, expected)
+
+        result = left == np.nan
+        expected = Series([False, False, False])
+        assert_series_equal(result, expected)
+
+        result = left != np.nan
+        expected = Series([True, True, True])
+        assert_series_equal(result, expected)
+
+    def test_comparison_different_length(self):
+        a = Series(['a', 'b', 'c'])
+        b = Series(['b', 'a'])
+        self.assertRaises(ValueError, a.__lt__, b)
 
     def test_between(self):
         s = Series(bdate_range('1/1/2000', periods=20), dtype=object)
@@ -1804,6 +1894,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # no as of value
         d = self.ts.index[0] - datetools.bday
         self.assert_(np.isnan(self.ts.asof(d)))
+
+    def test_astype_cast_nan_int(self):
+        df = Series([1.0, 2.0, 3.0, np.nan])
+        self.assertRaises(ValueError, df.astype, np.int64)
 
     def test_map(self):
         index, data = tm.getMixedTypeDict()

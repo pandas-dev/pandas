@@ -48,14 +48,14 @@ def _arith_method(op, name):
         try:
             result = op(x, y)
         except TypeError:
+            result = np.empty(len(x), dtype=x.dtype)
             if isinstance(y, np.ndarray):
                 mask = notnull(x) & notnull(y)
-                result = np.empty(len(x), dtype=x.dtype)
                 result[mask] = op(x[mask], y[mask])
             else:
                 mask = notnull(x)
-                result = np.empty(len(x), dtype=x.dtype)
                 result[mask] = op(x[mask], y)
+            np.putmask(result, -mask, np.nan)
 
         return result
 
@@ -568,6 +568,22 @@ copy : boolean, default False
 
         ndarray.__setslice__(self, i, j, value)
 
+    def astype(self, dtype):
+        """
+        See numpy.ndarray.astype
+        """
+        casted = com._astype_nansafe(self.values, dtype)
+        return self._constructor(casted, index=self.index, name=self.name)
+
+    def reshape(self, newshape, order='C'):
+        """
+        See numpy.ndarray.reshape
+        """
+        if isinstance(newshape, tuple) and len(newshape) > 1:
+            return self.values.reshape(newshape, order=order)
+        else:
+            return ndarray.reshape(self, newshape, order)
+
     def get(self, label, default=None):
         """
         Returns value occupying requested label, default to specified
@@ -1038,6 +1054,15 @@ copy : boolean, default False
 
         return nanops.nanskew(self.values, skipna=skipna)
 
+    @Substitution(name='unbiased kurtosis', shortname='kurt',
+                  na_action=_doc_exclude_na, extras='')
+    @Appender(_stat_doc)
+    def kurt(self, skipna=True, level=None):
+        if level is not None:
+            return self._agg_by_level('kurt', level=level, skipna=skipna)
+
+        return nanops.nankurt(self.values, skipna=skipna)
+
     def _agg_by_level(self, name, level=0, skipna=True, **kwds):
         grouped = self.groupby(level=level)
         if hasattr(grouped, name) and skipna:
@@ -1229,11 +1254,17 @@ copy : boolean, default False
             return np.nan
         return scoreatpercentile(valid_values, q * 100)
 
-    def describe(self):
+    def describe(self, percentile_width=50):
         """
         Generate various summary statistics of Series, excluding NaN
-        values. These include: count, mean, std, min, max, and 10%/50%/90%
-        quantiles
+        values. These include: count, mean, std, min, max, and
+        lower%/50%/upper% percentiles
+
+        Parameters
+        ----------
+        percentile_width : float, optional
+            width of the desired uncertainty interval, default is 50,
+            which corresponds to lower=25, upper=75
 
         Returns
         -------
@@ -1253,11 +1284,24 @@ copy : boolean, default False
             data = [self.count(), len(objcounts), top, freq]
 
         else:
+
+            lb = .5 * (1. - percentile_width/100.)
+            ub = 1. - lb
+
+
+            def pretty_name(x):
+                x *= 100
+                if x == int(x):
+                    return '%.0f%%' % x
+                else:
+                    return '%.1f%%' % x
+
             names = ['count', 'mean', 'std', 'min',
-                     '25%', '50%', '75%', 'max']
+                     pretty_name(lb), '50%', pretty_name(ub),
+                     'max']
 
             data = [self.count(), self.mean(), self.std(), self.min(),
-                    self.quantile(.25), self.median(), self.quantile(.75),
+                    self.quantile(lb), self.median(), self.quantile(ub),
                     self.max()]
 
         return Series(data, index=names)
@@ -1808,6 +1852,10 @@ copy : boolean, default False
         ----------
         func : function
 
+        See also
+        --------
+        Series.map: For element-wise operations
+
         Returns
         -------
         y : Series
@@ -2046,7 +2094,6 @@ copy : boolean, default False
         Returns
         -------
         is_between : Series
-            NAs, if any, will be preserved
         """
         if inclusive:
             lmask = self >= left
@@ -2055,12 +2102,7 @@ copy : boolean, default False
             lmask = self > left
             rmask = self < right
 
-        mask = lmask & rmask
-        if mask.dtype == np.object_:
-            np.putmask(mask, isnull(mask), False)
-            mask = mask.astype(bool)
-
-        return mask
+        return lmask & rmask
 
     @classmethod
     def from_csv(cls, path, sep=',', parse_dates=True, header=None,

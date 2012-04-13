@@ -400,8 +400,8 @@ class BlockManager(object):
     def astype(self, dtype):
         new_blocks = []
         for block in self.blocks:
-            newb = make_block(block.values.astype(dtype), block.items,
-                              block.ref_items)
+            newb = make_block(com._astype_nansafe(block.values, dtype),
+                              block.items, block.ref_items)
             new_blocks.append(newb)
 
         new_mgr = BlockManager(new_blocks, self.axes)

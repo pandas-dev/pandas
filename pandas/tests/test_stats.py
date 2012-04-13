@@ -111,6 +111,7 @@ class TestRank(unittest.TestCase):
             expected.index = result.index
             assert_series_equal(result, expected)
 
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)

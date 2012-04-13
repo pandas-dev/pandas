@@ -147,7 +147,7 @@ Windows binaries built against NumPy 1.6.1
 DISTNAME = 'pandas'
 LICENSE = 'BSD'
 AUTHOR = "The PyData Development Team"
-EMAIL = "pystatsmodels@googlegroups.com"
+EMAIL = "pydata@googlegroups.com"
 URL = "http://pandas.pydata.org"
 DOWNLOAD_URL = ''
 CLASSIFIERS = [
@@ -165,7 +165,7 @@ CLASSIFIERS = [
 MAJOR = 0
 MINOR = 7
 MICRO = 3
-ISRELEASED = False
+ISRELEASED = True
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 QUALIFIER = ''
 
@@ -416,6 +416,7 @@ setup(name=DISTNAME,
       package_data={'pandas.io' : ['tests/*.h5',
                                    'tests/*.csv',
                                    'tests/*.xls',
+                                   'tests/*.xlsx',
                                    'tests/*.table'],
                     'pandas.tests' : ['data/*.pickle',
                                       'data/*.csv']

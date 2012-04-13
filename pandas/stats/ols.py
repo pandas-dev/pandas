@@ -9,7 +9,7 @@ from StringIO import StringIO
 
 import numpy as np
 
-from pandas.core.api import DataFrame, Series
+from pandas.core.api import DataFrame, Series, isnull
 from pandas.core.common import _ensure_float64
 from pandas.core.index import MultiIndex
 from pandas.core.panel import Panel
@@ -361,13 +361,27 @@ class OLS(object):
     @cache_readonly
     def _y_fitted_raw(self):
         """Returns the raw fitted y values."""
-        return self.sm_ols.fittedvalues
+        if self._weights is None:
+            X = self._x_filtered.values
+        else:
+            # XXX
+            return self.sm_ols.fittedvalues
+
+        b = self._beta_raw
+        return np.dot(X, b)
 
     @cache_readonly
     def y_fitted(self):
         """Returns the fitted y values.  This equals BX."""
-        result = Series(self._y_fitted_raw, index=self._y.index)
-        return result.reindex(self._y_orig.index)
+        if self._weights is None:
+            index = self._x_filtered.index
+            orig_index = index
+        else:
+            index = self._y.index
+            orig_index = self._y_orig.index
+
+        result = Series(self._y_fitted_raw, index=index)
+        return result.reindex(orig_index)
 
     @cache_readonly
     def _y_predict_raw(self):
@@ -380,6 +394,58 @@ class OLS(object):
 
         For in-sample, this is same as y_fitted."""
         return self.y_fitted
+
+    def predict(self, beta=None, x=None, fill_value=None,
+                fill_method=None, axis=0):
+        """
+        Parameters
+        ----------
+        beta : Series
+        x : Series or DataFrame
+        fill_value : scalar or dict, default None
+        fill_method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
+        axis : {0, 1}, default 0
+            See DataFrame.fillna for more details
+
+        Notes
+        -----
+        1. If both fill_value and fill_method are None then NaNs are dropped
+        (this is the default behavior)
+        2. An intercept will be automatically added to the new_y_values if
+           the model was fitted using an intercept
+
+        Returns
+        -------
+        Series of predicted values
+        """
+        if beta is None and x is None:
+            return self.y_predict
+
+        if beta is None:
+            beta = self.beta
+        else:
+            beta = beta.reindex(self.beta.index)
+            if isnull(beta).any():
+                raise ValueError('Must supply betas for same variables')
+
+        if x is None:
+            x = self._x
+            orig_x = x
+        else:
+            orig_x = x
+            if fill_value is None and fill_method is None:
+                x = x.dropna(how='any')
+            else:
+                x = x.fillna(value=fill_value, method=fill_method, axis=axis)
+            if isinstance(x, Series):
+                x = DataFrame({'x' : x})
+            if self._intercept:
+                x['intercept'] = 1.
+
+            x = x.reindex(columns=self._x.columns)
+
+        rs = np.dot(x.values, beta.values)
+        return Series(rs, x.index).reindex(orig_x.index)
 
     RESULT_FIELDS = ['r2', 'r2_adj', 'df', 'df_model', 'df_resid', 'rmse',
                      'f_stat', 'beta', 'std_err', 't_stat', 'p_value', 'nobs']

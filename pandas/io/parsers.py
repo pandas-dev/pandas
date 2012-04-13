@@ -36,8 +36,9 @@ index_col : int or sequence, default None
     given, a MultiIndex is used.
 names : array-like
     List of column names
-na_values : list-like, default None
-    List of additional strings to recognize as NA/NaN
+na_values : list-like or dict, default None
+    Additional strings to recognize as NA/NaN. If dict passed, specific
+    per-column NA values
 parse_dates : boolean, default False
     Attempt to parse dates in the index column(s)
 date_parser : function
@@ -115,23 +116,24 @@ def _is_url(url):
 
 def _read(cls, filepath_or_buffer, kwds):
     "Generic reader of line files."
+    encoding = kwds.get('encoding', None)
 
     if isinstance(filepath_or_buffer, str) and _is_url(filepath_or_buffer):
         from urllib2 import urlopen
         filepath_or_buffer = urlopen(filepath_or_buffer)
-        if py3compat.PY3:
+        if py3compat.PY3:  # pragma: no cover
             from io import TextIOWrapper
             if encoding:
                 errors = 'strict'
             else:
                 errors = 'replace'
                 encoding = 'utf-8'
-            filepath_or_buffer = StringIO(filepath_or_buffer.read().decode(encoding, errors))
+            bytes = filepath_or_buffer.read()
+            filepath_or_buffer = StringIO(bytes.decode(encoding, errors))
 
     if hasattr(filepath_or_buffer, 'read'):
         f = filepath_or_buffer
     else:
-        encoding = kwds.get('encoding', None)
         try:
             # universal newline mode
             f = com._get_handle(filepath_or_buffer, 'U', encoding=encoding)
@@ -293,6 +295,15 @@ class BufferedReader(object):
 class BufferedCSVReader(BufferedReader):
     pass
 
+
+# common NA values
+# no longer excluding inf representations
+# '1.#INF','-1.#INF', '1.#INF000000',
+_NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
+                 '#N/A N/A', 'NA', '#NA', 'NULL', 'NaN',
+                 'nan', ''])
+
+
 class TextParser(object):
     """
     Converts lists of lists/tuples into DataFrames with proper type inference
@@ -309,7 +320,7 @@ class TextParser(object):
         rows will be discarded
     index_col : int or list, default None
         Column or columns to use as the (possibly hierarchical) index
-    na_values : iterable, defualt None
+    na_values : iterable, default None
         Custom NA values
     parse_dates : boolean, default False
     date_parser : function, default None
@@ -320,13 +331,6 @@ class TextParser(object):
     encoding : string, default None
         Encoding to use for UTF when reading/writing (ex. 'utf-8')
     """
-
-    # common NA values
-    # no longer excluding inf representations
-    # '1.#INF','-1.#INF', '1.#INF000000',
-    NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
-                     '#N/A N/A', 'NA', '#NA', 'NULL', 'NaN',
-                     'nan', ''])
 
     def __init__(self, f, delimiter=None, names=None, header=0,
                  index_col=None, na_values=None, parse_dates=False,
@@ -350,10 +354,10 @@ class TextParser(object):
         self.passed_names = names is not None
         self.encoding = encoding
 
-
         if com.is_integer(skiprows):
             skiprows = range(skiprows)
         self.skiprows = set() if skiprows is None else set(skiprows)
+
         self.skip_footer = skip_footer
         self.delimiter = delimiter
         self.verbose = verbose
@@ -367,9 +371,11 @@ class TextParser(object):
         assert(self.skip_footer >= 0)
 
         if na_values is None:
-            self.na_values = self.NA_VALUES
+            self.na_values = _NA_VALUES
+        elif isinstance(na_values, dict):
+            self.na_values = na_values
         else:
-            self.na_values = set(list(na_values)) | self.NA_VALUES
+            self.na_values = set(list(na_values)) | _NA_VALUES
 
         if hasattr(f, 'readline'):
             self._make_reader(f)
@@ -489,6 +495,8 @@ class TextParser(object):
         except StopIteration:
             pass
 
+    _implicit_index = False
+
     def _get_index_name(self):
         columns = self.columns
 
@@ -515,10 +523,8 @@ class TextParser(object):
                     self.buf = self.buf[1:]
                     return line
 
-        self.implicit_idx = False
-
         if implicit_first_cols > 0:
-            self.implicit_idx = True
+            self._implicit_index = True
             if self.index_col is None:
                 if implicit_first_cols == 1:
                     self.index_col = 0
@@ -576,7 +582,8 @@ class TextParser(object):
                 index = []
                 for idx in self.index_col:
                     index.append(zipped_content[idx])
-                # remove index items from content and columns, don't pop in loop
+                # remove index items from content and columns, don't pop in
+                # loop
                 for i in reversed(sorted(self.index_col)):
                     zipped_content.pop(i)
 
@@ -600,7 +607,7 @@ class TextParser(object):
 
         if not index.is_unique:
             dups = index.get_duplicates()
-            idx_str = 'Index' if not self.implicit_idx else 'Implicit index'
+            idx_str = 'Index' if not self._implicit_index else 'Implicit index'
             err_msg = ('%s (columns %s) have duplicate values %s'
                        % (idx_str, self.index_col, str(dups)))
             raise Exception(err_msg)
@@ -658,9 +665,19 @@ class TextParser(object):
         return lines
 
 def _convert_to_ndarrays(dct, na_values, verbose=False):
+    def _get_na_values(col):
+        if isinstance(na_values, dict):
+            if col in na_values:
+                return set(list(na_values[col]))
+            else:
+                return _NA_VALUES
+        else:
+            return na_values
+
     result = {}
     for c, values in dct.iteritems():
-        cvals, na_count = _convert_types(values, na_values)
+        col_na_values = _get_na_values(c)
+        cvals, na_count = _convert_types(values, col_na_values)
         result[c] = cvals
         if verbose and na_count:
             print 'Filled %d NA values in column %s' % (na_count, str(c))
@@ -729,6 +746,11 @@ class FixedWidthFieldParser(TextParser):
 #-------------------------------------------------------------------------------
 # ExcelFile class
 
+_openpyxl_msg = ("\nFor parsing .xlsx files 'openpyxl' is required.\n"
+                 "You can install it via 'easy_install openpyxl' or "
+                 "'pip install openpyxl'.\nAlternatively, you could save"
+                 " the .xlsx file as a .xls file.\n")
+
 
 class ExcelFile(object):
     """
@@ -748,8 +770,11 @@ class ExcelFile(object):
             import xlrd
             self.book = xlrd.open_workbook(path)
         else:
-            from openpyxl.reader.excel import load_workbook
-            self.book = load_workbook(path, use_iterators=True)
+            try:
+                from openpyxl.reader.excel import load_workbook
+                self.book = load_workbook(path, use_iterators=True)
+            except ImportError:  # pragma: no cover
+                raise ImportError(_openpyxl_msg)
         self.path = path
 
     def __repr__(self):
@@ -779,18 +804,13 @@ class ExcelFile(object):
         -------
         parsed : DataFrame
         """
-        if self.use_xlsx:
-            return self._parse_xlsx(sheetname, header=header,
-                                    skiprows=skiprows, index_col=index_col,
-                                    parse_dates=parse_dates,
-                                    date_parser=date_parser,
-                                    na_values=na_values, chunksize=chunksize)
-        else:
-            return self._parse_xls(sheetname, header=header, skiprows=skiprows,
-                                   index_col=index_col,
-                                   parse_dates=parse_dates,
-                                   date_parser=date_parser,
-                                   na_values=na_values, chunksize=chunksize)
+        choose = {True:self._parse_xlsx,
+                  False:self._parse_xls}
+        return choose[self.use_xlsx](sheetname, header=header,
+                                     skiprows=skiprows, index_col=index_col,
+                                     parse_dates=parse_dates,
+                                     date_parser=date_parser,
+                                     na_values=na_values, chunksize=chunksize)
 
     def _parse_xlsx(self, sheetname, header=0, skiprows=None, index_col=None,
               parse_dates=False, date_parser=None, na_values=None,

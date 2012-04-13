@@ -8,9 +8,10 @@ cdef class Reducer:
     '''
     cdef:
         Py_ssize_t increment, chunksize, nresults
-        object arr, dummy, f
+        object arr, dummy, f, labels
 
-    def __init__(self, object arr, object f, axis=1, dummy=None):
+    def __init__(self, object arr, object f, axis=1, dummy=None,
+                 labels=None):
         n, k = arr.shape
 
         if axis == 0:
@@ -31,6 +32,7 @@ cdef class Reducer:
         self.f = f
         self.arr = arr
         self.dummy = self._check_dummy(dummy)
+        self.labels = labels
 
     def _check_dummy(self, dummy=None):
         if dummy is None:
@@ -51,14 +53,28 @@ cdef class Reducer:
             Py_ssize_t i
             flatiter it
             object res
+            bint set_label = 0
+            ndarray[object] labels
 
         arr = self.arr
         chunk = self.dummy
 
         dummy_buf = chunk.data
         chunk.data = arr.data
+
+        set_label = self.labels is not None
+
+        if set_label:
+            if not np.issubdtype(self.labels.dtype, object):
+                labels = self.labels.astype('O')
+            else:
+                labels = self.labels
+
         try:
             for i in range(self.nresults):
+                if set_label:
+                    chunk.name = labels[i]
+
                 res = self.f(chunk)
                 if i == 0:
                     result = self._get_result_array(res)
@@ -329,6 +345,6 @@ cdef class Slider:
         self.buf.shape[0] = self.orig_len
         self.buf.data = self.orig_data
 
-def reduce(arr, f, axis=0, dummy=None):
-    reducer = Reducer(arr, f, axis=axis, dummy=dummy)
+def reduce(arr, f, axis=0, dummy=None, labels=None):
+    reducer = Reducer(arr, f, axis=axis, dummy=dummy, labels=labels)
     return reducer.get_result()

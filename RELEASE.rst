@@ -22,6 +22,71 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.7.3
+============
+
+**Release date:** April 12, 2012
+
+**New features / modules**
+
+  - Added fixed-width file reader, read_fwf (PR #952)
+  - Add group_keys argument to groupby to not add group names to MultiIndex in
+    result of apply (GH #938)
+  - DataFrame can now accept non-integer label slicing (GH #946). Previously
+    only DataFrame.ix was able to do so.
+  - DataFrame.apply now retains name attributes on Series objects (GH #983)
+  - Numeric DataFrame comparisons with non-numeric values now raises proper
+    TypeError (GH #943). Previously raise "PandasError: DataFrame constructor
+    not properly called!"
+  - Add ``kurt`` methods to Series and DataFrame (PR #964)
+  - Can pass dict of column -> list/set NA values for text parsers (GH #754)
+  - Allows users specified NA values in text parsers (GH #754)
+  - Parsers checks for openpyxl dependency and raises ImportError if not found
+    (PR #1007)
+  - New factory function to create HDFStore objects that can be used in a with
+    statement so users do not have to explicitly call HDFStore.close (PR #1005)
+  - pivot_table is now more flexible with same parameters as groupby (GH #941)
+  - Added stacked bar plots (GH #987)
+  - scatter_matrix method in pandas/tools/plotting.py (PR #935)
+  - DataFrame.boxplot returns plot results for ex-post styling (GH #985)
+  - Short version number accessible as pandas.version.short_version (GH #930)
+  - Additional documentation in panel.to_frame (GH #942)
+  - More informative Series.apply docstring regarding element-wise apply
+    (GH #977)
+  - Notes on rpy2 installation (GH #1006)
+  - Add rotation and font size options to hist method (#1012)
+  - Use exogenous / X variable index in result of OLS.y_predict. Add
+    OLS.predict method (PR #1027, #1008)
+
+**API Changes**
+
+  - Calling apply on grouped Series, e.g. describe(), will no longer yield
+    DataFrame by default. Will have to call unstack() to get prior behavior
+  - NA handling in non-numeric comparisons has been tightened up (#933, #953)
+
+**Bug fixes**
+
+  - Fix logic error when selecting part of a row in a DataFrame with a
+    MultiIndex index (GH #1013)
+  - Series comparison with Series of differing length causes crash (GH #1016).
+  - Fix bug in indexing when selecting section of hierarchically-indexed row
+    (GH #1013)
+  - DataFrame.plot(logy=True) has no effect (GH #1011).
+  - Broken arithmetic operations between SparsePanel-Panel (GH #1015)
+  - Unicode repr issues in MultiIndex with non-ascii characters (GH #1010)
+  - DataFrame.lookup() returns inconsistent results if exact match not present
+    (GH #1001)
+  - DataFrame arithmetic operations not treating None as NA (GH #992)
+  - DataFrameGroupBy.apply returns incorrect result (GH #991)
+  - Series.reshape returns incorrect result for multiple dimensions (GH #989)
+  - Series.std and Series.var ignores ddof parameter (GH #934)
+  - DataFrame.append loses index names (GH #980)
+  - DataFrame.plot(kind='bar') ignores color argument (GH #958)
+  - Inconsistent Index comparison results (GH #948)
+  - Improper int dtype DataFrame construction from data with NaN (GH #846)
+  - Removes default 'result' name in grouby results (GH #995)
+  - DataFrame.from_records no longer mutate input columns (PR #975)
+
 pandas 0.7.2
 ============
 
