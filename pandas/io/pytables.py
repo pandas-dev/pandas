@@ -167,6 +167,9 @@ class HDFStore(object):
     def __setitem__(self, key, value):
         self.put(key, value)
 
+    def __contains__(self, key):
+        return hasattr(self.handle.root, key)
+
     def __len__(self):
         return len(self.handle.root._v_children)
 
