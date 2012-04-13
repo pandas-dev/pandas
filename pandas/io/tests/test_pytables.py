@@ -65,6 +65,13 @@ class TesttHDFStore(unittest.TestCase):
         self.store['d'] = tm.makePanel()
         repr(self.store)
 
+    def test_contains(self):
+        self.store['a'] = tm.makeTimeSeries()
+        self.store['b'] = tm.makeDataFrame()
+        self.assert_('a' in self.store)
+        self.assert_('b' in self.store)
+        self.assert_('c' not in self.store)
+
     def test_reopen_handle(self):
         self.store['a'] = tm.makeTimeSeries()
         self.store.open('w', warn=False)
