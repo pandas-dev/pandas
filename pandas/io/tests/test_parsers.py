@@ -812,6 +812,8 @@ bar,foo,foo"""
     @slow
     def test_file(self):
         # FILE
+        if sys.version_info[:2] < (2, 6):
+            raise nose.SkipTest("file:// not supported with Python < 2.6")
         dirpath = curpath()
         localtable = os.path.join(dirpath, 'salary.table')
         local_table = read_table(localtable)
