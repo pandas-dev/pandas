@@ -294,3 +294,40 @@ def skip_if_no_package(*args, **kwargs):
     package_check(exc_failed_import=SkipTest,
                   exc_failed_check=SkipTest,
                   *args, **kwargs)
+
+#
+# Additional tags decorators for nose
+#
+def network(t):
+    """
+    Label a test as requiring network connection.
+
+    In some cases it is not possible to assume network presence (e.g. Debian
+    build hosts).
+
+    Parameters
+    ----------
+    t : callable
+        The test requiring network connectivity.
+
+    Returns
+    -------
+    t : callable
+        The decorated test `t`.
+
+    Examples
+    --------
+    A test can be decorated as requiring network like this::
+
+      from pandas.util.testing import *
+
+      @network
+      def test_network(self):
+          print 'Fetch the stars from http://'
+
+    And use ``nosetests -a '!network'`` to exclude running tests requiring
+    network connectivity.
+    """
+
+    t.network = True
+    return t
