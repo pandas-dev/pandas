@@ -279,9 +279,9 @@ def group_add(ndarray[float64_t, ndim=2] out,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_prod(ndarray[float64_t, ndim=2] out,
-              ndarray[int32_t] counts,
-              ndarray[float64_t, ndim=2] values,
-              ndarray[int32_t] labels):
+               ndarray[int32_t] counts,
+               ndarray[float64_t, ndim=2] values,
+               ndarray[int32_t] labels):
     '''
     Only aggregates on axis=0
     '''
@@ -329,6 +329,124 @@ def group_prod(ndarray[float64_t, ndim=2] out,
                 out[i, j] = nan
             else:
                 out[i, j] = prodx[i, j]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_min(ndarray[float64_t, ndim=2] out,
+              ndarray[int32_t] counts,
+              ndarray[float64_t, ndim=2] values,
+              ndarray[int32_t] labels):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        float64_t val, count
+        ndarray[float64_t, ndim=2] minx, nobs
+
+    nobs = np.zeros_like(out)
+
+    minx = np.empty_like(out)
+    minx.fill(np.inf)
+
+    N, K = (<object> values).shape
+
+    if K > 1:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[lab, j] += 1
+                    if val < minx[lab, j]:
+                        minx[lab, j] = val
+    else:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            val = values[i, 0]
+
+            # not nan
+            if val == val:
+                nobs[lab, 0] += 1
+                if val < minx[lab, 0]:
+                    minx[lab, 0] = val
+
+    for i in range(len(counts)):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = minx[i, j]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_max(ndarray[float64_t, ndim=2] out,
+              ndarray[int32_t] counts,
+              ndarray[float64_t, ndim=2] values,
+              ndarray[int32_t] labels):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        float64_t val, count
+        ndarray[float64_t, ndim=2] maxx, nobs
+
+    nobs = np.zeros_like(out)
+
+    maxx = np.empty_like(out)
+    maxx.fill(-np.inf)
+
+    N, K = (<object> values).shape
+
+    if K > 1:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[lab, j] += 1
+                    if val > maxx[lab, j]:
+                        maxx[lab, j] = val
+    else:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            val = values[i, 0]
+
+            # not nan
+            if val == val:
+                nobs[lab, 0] += 1
+                if val > maxx[lab, 0]:
+                    maxx[lab, 0] = val
+
+    for i in range(len(counts)):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = maxx[i, j]
 
 
 @cython.boundscheck(False)
@@ -620,6 +738,122 @@ def group_prod_bin(ndarray[float64_t, ndim=2] out,
                 out[i, j] = nan
             else:
                 out[i, j] = prodx[i, j]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_min_bin(ndarray[float64_t, ndim=2] out,
+                   ndarray[int32_t] counts,
+                   ndarray[float64_t, ndim=2] values,
+                   ndarray[int32_t] bins):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, ngroups, b
+        float64_t val, count
+        ndarray[float64_t, ndim=2] minx, nobs
+
+    nobs = np.zeros_like(out)
+
+    minx = np.empty_like(out)
+    minx.fill(np.inf)
+
+
+    ngroups = len(bins) + 1
+    N, K = (<object> values).shape
+
+    b = 0
+    if K > 1:
+        for i in range(N):
+            if b < ngroups - 1 and i >= bins[b]:
+                b += 1
+
+            counts[b] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[b, j] += 1
+                    if val < minx[b, j]:
+                        minx[b, j] = val
+    else:
+        for i in range(N):
+            if b < ngroups - 1 and i >= bins[b]:
+                b += 1
+
+            counts[b] += 1
+            val = values[i, 0]
+
+            # not nan
+            if val == val:
+                nobs[b, 0] += 1
+                if val < minx[b, 0]:
+                    minx[b, 0] = val
+
+    for i in range(ngroups):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = minx[i, j]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_max_bin(ndarray[float64_t, ndim=2] out,
+                  ndarray[int32_t] counts,
+                  ndarray[float64_t, ndim=2] values,
+                  ndarray[int32_t] bins):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, ngroups, b
+        float64_t val, count
+        ndarray[float64_t, ndim=2] maxx, nobs
+
+    nobs = np.zeros_like(out)
+    maxx = np.empty_like(out)
+    maxx.fill(-np.inf)
+
+    ngroups = len(bins) + 1
+    N, K = (<object> values).shape
+
+    b = 0
+    if K > 1:
+        for i in range(N):
+            if b < ngroups - 1 and i >= bins[b]:
+                b += 1
+
+            counts[b] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[b, j] += 1
+                    if val > maxx[b, j]:
+                        maxx[b, j] = val
+    else:
+        for i in range(N):
+            if b < ngroups - 1 and i >= bins[b]:
+                b += 1
+
+            counts[b] += 1
+            val = values[i, 0]
+
+            # not nan
+            if val == val:
+                nobs[b, 0] += 1
+                if val > maxx[b, 0]:
+                    maxx[b, 0] = val
+
+    for i in range(ngroups):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = maxx[i, j]
 
 
 @cython.boundscheck(False)

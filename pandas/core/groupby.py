@@ -320,6 +320,28 @@ class GroupBy(object):
         except Exception:
             return self.aggregate(lambda x: np.prod(x, axis=self.axis))
 
+    def min(self):
+        """
+        Compute minimum of values, excluding missing values
+
+        For multiple groupings, the result index will be a MultiIndex
+        """
+        try:
+            return self._cython_agg_general('min')
+        except Exception:
+            return self.aggregate(lambda x: np.min(x, axis=self.axis))
+
+    def max(self):
+        """
+        Compute maximum of values, excluding missing values
+
+        For multiple groupings, the result index will be a MultiIndex
+        """
+        try:
+            return self._cython_agg_general('max')
+        except Exception:
+            return self.aggregate(lambda x: np.max(x, axis=self.axis))
+
     def ohlc(self):
         """
         Compute sum of values, excluding missing values
@@ -604,6 +626,8 @@ class Grouper(object):
     _cython_functions = {
         'add' : lib.group_add,
         'prod' : lib.group_prod,
+        'min' : lib.group_min,
+        'max' : lib.group_max,
         'mean' : lib.group_mean,
         'var' : lib.group_var,
         'std' : lib.group_var
