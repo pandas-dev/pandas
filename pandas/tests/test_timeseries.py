@@ -1,6 +1,6 @@
 # pylint: disable-msg=E1101,W0612
 
-from datetime import datetime
+from datetime import datetime, time, timedelta
 import sys
 import unittest
 
@@ -417,7 +417,7 @@ class TestLegacySupport(unittest.TestCase):
         self.assertEquals(len(unpickled), 10)
         self.assert_((unpickled.columns == Int64Index(np.arange(5))).all())
         self.assert_((unpickled.index == dtindex).all())
-        self.assertEquals(unpickled.index.offset, BDay(1))
+        self.assertEquals(unpickled.index.offset, BDay(1, normalize=True))
 
     def test_unpickle_legacy_series(self):
         from pandas.core.datetools import BDay
@@ -430,7 +430,7 @@ class TestLegacySupport(unittest.TestCase):
         self.assertEquals(type(unpickled.index), DatetimeIndex)
         self.assertEquals(len(unpickled), 10)
         self.assert_((unpickled.index == dtindex).all())
-        self.assertEquals(unpickled.index.offset, BDay(1))
+        self.assertEquals(unpickled.index.offset, BDay(1, normalize=True))
 
     def test_arithmetic_interaction(self):
         index = self.frame.index
@@ -543,6 +543,65 @@ class TestLegacySupport(unittest.TestCase):
     def test_rule_aliases(self):
         rule = datetools.to_offset('10us')
         self.assert_(rule == datetools.Micro(10))
+
+    def test_slice_year(self):
+        dti = DatetimeIndex(freq='B', start=datetime(2005,1,1), periods=500)
+
+        s = Series(np.arange(len(dti)), index=dti)
+        self.assertEquals(len(s['2005']), 261)
+
+        df = DataFrame(np.random.rand(len(dti), 5), index=dti)
+        self.assertEquals(len(df.ix['2005']), 261)
+
+    def test_slice_quarter(self):
+        dti = DatetimeIndex(freq='D', start=datetime(2000,6,1), periods=500)
+
+        s = Series(np.arange(len(dti)), index=dti)
+        self.assertEquals(len(s['2001Q1']), 90)
+
+        df = DataFrame(np.random.rand(len(dti), 5), index=dti)
+        self.assertEquals(len(df.ix['1Q01']), 90)
+
+    def test_slice_month(self):
+        dti = DatetimeIndex(freq='D', start=datetime(2005,1,1), periods=500)
+        s = Series(np.arange(len(dti)), index=dti)
+        self.assertEquals(len(s['2005-11']), 30)
+
+        df = DataFrame(np.random.rand(len(dti), 5), index=dti)
+        self.assertEquals(len(df.ix['2005-11']), 30)
+
+    def test_partial_slice(self):
+        rng = DatetimeIndex(freq='D', start=datetime(2005,1,1), periods=500)
+        s = Series(np.arange(len(rng)), index=rng)
+
+        result = s['2005-05':'2006-02']
+        expected = s['20050501':'20060228']
+        assert_series_equal(result, expected)
+
+        result = s['2005-05':]
+        expected = s['20050501':]
+        assert_series_equal(result, expected)
+
+        result = s[:'2006-02']
+        expected = s[:'20060228']
+        assert_series_equal(result, expected)
+
+    def test_date_range_normalize(self):
+        snap = datetime.today()
+        n = 50
+
+        rng = date_range(snap, periods=n, normalize=False, freq='2D')
+
+        offset = timedelta(2)
+        values = np.array([snap + i * offset for i in range(n)],
+                          dtype='M8[us]')
+
+        self.assert_(np.array_equal(rng, values))
+
+        rng = date_range('1/1/2000 08:15', periods=n, normalize=False, freq='B')
+        the_time = time(8, 15)
+        for val in rng:
+            self.assert_(val.time() == the_time)
 
 class TestDateRangeCompat(unittest.TestCase):
 
@@ -808,48 +867,6 @@ class TestDatetime64(unittest.TestCase):
 
         result = index.asobject
         self.assert_(result[0].tz is tz)
-
-    def test_slice_year(self):
-        dti = DatetimeIndex(freq='B', start=datetime(2005,1,1), periods=500)
-
-        s = Series(np.arange(len(dti)), index=dti)
-        self.assertEquals(len(s['2005']), 261)
-
-        df = DataFrame(np.random.rand(len(dti), 5), index=dti)
-        self.assertEquals(len(df.ix['2005']), 261)
-
-    def test_slice_quarter(self):
-        dti = DatetimeIndex(freq='D', start=datetime(2000,6,1), periods=500)
-
-        s = Series(np.arange(len(dti)), index=dti)
-        self.assertEquals(len(s['2001Q1']), 90)
-
-        df = DataFrame(np.random.rand(len(dti), 5), index=dti)
-        self.assertEquals(len(df.ix['1Q01']), 90)
-
-    def test_slice_month(self):
-        dti = DatetimeIndex(freq='D', start=datetime(2005,1,1), periods=500)
-        s = Series(np.arange(len(dti)), index=dti)
-        self.assertEquals(len(s['2005-11']), 30)
-
-        df = DataFrame(np.random.rand(len(dti), 5), index=dti)
-        self.assertEquals(len(df.ix['2005-11']), 30)
-
-    def test_partial_slice(self):
-        rng = DatetimeIndex(freq='D', start=datetime(2005,1,1), periods=500)
-        s = Series(np.arange(len(rng)), index=rng)
-
-        result = s['2005-05':'2006-02']
-        expected = s['20050501':'20060228']
-        assert_series_equal(result, expected)
-
-        result = s['2005-05':]
-        expected = s['20050501':]
-        assert_series_equal(result, expected)
-
-        result = s[:'2006-02']
-        expected = s[:'20060228']
-        assert_series_equal(result, expected)
 
     def test_datetimeindex_constructor(self):
         arr = ['1/1/2005', '1/2/2005', 'Jn 3, 2005', '2005-01-04']

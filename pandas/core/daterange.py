@@ -43,7 +43,8 @@ class DateRange(Index):
         self.tzinfo = tzinfo
         Index.__setstate__(self, *index_state)
 
-def date_range(start=None, end=None, periods=None, freq='D', tz=None):
+def date_range(start=None, end=None, periods=None, freq='D', tz=None,
+               normalize=False):
     """
     Return a fixed frequency datetime index, with day (calendar) as the default
     frequency
@@ -53,16 +54,19 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None):
     ----------
     start :
     end :
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range
 
     Returns
     -------
 
     """
     return DatetimeIndex(start=start, end=end, periods=periods,
-                         freq=freq, tz=tz)
+                         freq=freq, tz=tz, normalize=normalize)
 
 
-def bdate_range(start=None, end=None, periods=None, freq='B', tz=None):
+def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
+                normalize=True):
     """
     Return a fixed frequency datetime index, with business day as the default
     frequency
@@ -70,6 +74,9 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None):
     Parameters
     ----------
 
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date
+        range. Defaults to True for legacy reasons
 
     Returns
     -------
@@ -78,7 +85,7 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None):
     """
 
     return DatetimeIndex(start=start, end=end, periods=periods,
-                         freq=freq, tz=tz)
+                         freq=freq, tz=tz, normalize=normalize)
 
 def interval_range():
     """

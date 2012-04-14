@@ -1150,6 +1150,8 @@ def _maybe_box_dtindex(idx):
         return Index(_dt_box_array(idx.asi8), dtype='object')
     return idx
 
+_midnight = time(0, 0)
+
 class DatetimeIndex(Int64Index):
     """
     Immutable ndarray of datetime64 data, represented internally as int64, and
@@ -1204,7 +1206,7 @@ class DatetimeIndex(Int64Index):
     def __new__(cls, data=None,
                 freq=None, start=None, end=None, periods=None,
                 dtype=None, copy=False, name=None, tz=None,
-                verify_integrity=True, **kwds):
+                verify_integrity=True, normalize=False, **kwds):
 
         warn = False
         if 'offset' in kwds and kwds['offset']:
@@ -1232,22 +1234,37 @@ class DatetimeIndex(Int64Index):
                              "supplied")
 
         if data is None:
-            start = datetools.to_timestamp(start)
-            end = datetools.to_timestamp(end)
+            _normalized = True
 
-            if (start is not None and not isinstance(start, Timestamp)):
-                raise ValueError('Failed to convert %s to timestamp' % start)
+            if start is not None:
+                start = datetools.to_timestamp(start)
+                if not isinstance(start, Timestamp):
+                    raise ValueError('Failed to convert %s to timestamp'
+                                     % start)
 
-            if (end is not None and not isinstance(end, Timestamp)):
-                raise ValueError('Failed to convert %s to timestamp' % end)
+                if normalize:
+                    start = datetools.normalize_date(start)
+                    _normalized = True
+                else:
+                    _normalized = _normalized and start.time() == _midnight
 
-            useCache = datetools._will_use_cache(offset)
+            if end is not None:
+                end = datetools.to_timestamp(end)
+                if not isinstance(end, Timestamp):
+                    raise ValueError('Failed to convert %s to timestamp'
+                                     % end)
+
+                if normalize:
+                    end = datetools.normalize_date(end)
+                    _normalized = True
+                else:
+                    _normalized = _normalized and end.time() == _midnight
 
             start, end, tz = datetools._figure_out_timezone(start, end, tz)
 
-            useCache = useCache and datetools._naive_in_cache_range(start, end)
-
-            if useCache:
+            if (offset._should_cache() and
+                not (offset._normalize_cache and not _normalized) and
+                datetools._naive_in_cache_range(start, end)):
                 index = cls._cached_range(start, end, periods=periods,
                                           offset=offset, name=name)
             else:
@@ -1625,7 +1642,7 @@ class DatetimeIndex(Int64Index):
         left_start, left_end = left[0], left[-1]
         right_end = right[-1]
 
-        if not datetools._will_use_cache(self.offset):
+        if not self.offset._should_cache():
             # concatenate dates
             if left_end < right_end:
                 loc = right.searchsorted(left_end, side='right')

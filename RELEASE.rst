@@ -22,6 +22,13 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.8.0
+============
+
+**API Changes**
+
+ - Change BDay (business day) to not normalize dates by default
+
 pandas 0.7.3
 ============
 
