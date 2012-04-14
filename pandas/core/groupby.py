@@ -489,11 +489,9 @@ class Grouper(object):
     def __iter__(self):
         return iter(self.indices)
 
-    def numkeys(self):
-        try:
-            return len(self.groupings)
-        except:
-            return 1
+    @property
+    def nkeys(self):
+        return len(self.groupings)
 
     def get_iterator(self, data, axis=0):
         """
@@ -600,6 +598,10 @@ class Grouper(object):
     @cache_readonly
     def _overflow_possible(self):
         return _int64_overflow_possible(self.shape)
+
+    @cache_readonly
+    def ngroups(self):
+        return len(self.result_index)
 
     @cache_readonly
     def result_index(self):
@@ -829,6 +831,10 @@ class BinGrouper(Grouper):
     def __init__(self, bins, binlabels):
         self.bins = bins
         self.binlabels = binlabels
+
+    @property
+    def nkeys(self):
+        return 1
 
     def get_iterator(self, data, axis=0):
         """
@@ -1271,7 +1277,7 @@ class SeriesGroupBy(GroupBy):
             if cyfunc and not args and not kwargs:
                 return getattr(self, cyfunc)()
 
-            if self.grouper.numkeys() > 1:
+            if self.grouper.nkeys > 1:
                 return self._python_agg_general(func_or_funcs, *args, **kwargs)
 
             try:
@@ -1312,18 +1318,15 @@ class SeriesGroupBy(GroupBy):
         if len(keys) == 0:
             return Series([])
 
-        key_names = self.grouper.names
-
         def _get_index():
-            if self.grouper.numkeys() > 1:
-                index = MultiIndex.from_tuples(keys, names=key_names)
+            if self.grouper.nkeys > 1:
+                index = MultiIndex.from_tuples(keys, names=self.grouper.names)
             else:
-                ping = self.grouper.groupings[0]
-                if len(keys) == ping.ngroups:
-                    index = ping.group_index
-                    index.name = key_names[0]
-                else:
-                    index = Index(keys, name=key_names[0])
+                index = Index(keys, name=self.grouper.names[0])
+                # if len(keys) == self.grouper.ngroups:
+                #     index = self.grouper.result_index
+                # else:
+                #     index = Index(keys, name=self.grouper.names[0])
             return index
 
         if isinstance(values[0], Series):
@@ -1524,7 +1527,7 @@ class DataFrameGroupBy(GroupBy):
             if cyfunc and not args and not kwargs:
                 return getattr(self, cyfunc)()
 
-            if self.grouper.numkeys() > 1:
+            if self.grouper.nkeys > 1:
                 return self._python_agg_general(arg, *args, **kwargs)
             else:
                 result = self._aggregate_generic(arg, *args, **kwargs)
@@ -1568,7 +1571,7 @@ class DataFrameGroupBy(GroupBy):
         return result
 
     def _aggregate_generic(self, func, *args, **kwargs):
-        assert(self.grouper.numkeys() == 1)
+        assert(self.grouper.nkeys == 1)
 
         axis = self.axis
         obj = self._obj_with_exclusions
