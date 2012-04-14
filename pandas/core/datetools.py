@@ -726,7 +726,7 @@ def _interval_group(freqstr):
 
 def _get_freq_code(freqstr):
     if isinstance(freqstr, DateOffset):
-        freqstr = (getOffsetName(freqstr), freqstr.n)
+        freqstr = (get_offset_name(freqstr), freqstr.n)
 
     if isinstance(freqstr, tuple):
         if (isinstance(freqstr[0], (int, long)) and
@@ -1943,10 +1943,11 @@ _offset_map = {
     'BAS-NOV' : BYearBegin(month=11),
     'BAS-DEC' : BYearBegin(month=12),
     # Quarterly - Calendar
+    # 'Q'     : QuarterEnd(startingMonth=3),
+
     'Q-JAN' : QuarterEnd(startingMonth=1),
     'Q-FEB' : QuarterEnd(startingMonth=2),
     'Q-MAR' : QuarterEnd(startingMonth=3),
-    'Q'     : QuarterEnd(startingMonth=3),
     'Q-APR' : QuarterEnd(startingMonth=4),
     'Q-MAY' : QuarterEnd(startingMonth=5),
     'Q-JUN' : QuarterEnd(startingMonth=6),
@@ -1957,8 +1958,9 @@ _offset_map = {
     'Q-NOV' : QuarterEnd(startingMonth=11),
     'Q-DEC' : QuarterEnd(startingMonth=12),
     # Quarterly - Calendar (Start)
+    # 'QS'     : QuarterBegin(startingMonth=1),
+
     'QS-JAN' : QuarterBegin(startingMonth=1),
-    'QS'     : QuarterBegin(startingMonth=1),
     'QS-FEB' : QuarterBegin(startingMonth=2),
     'QS-MAR' : QuarterBegin(startingMonth=3),
     'QS-APR' : QuarterBegin(startingMonth=4),
@@ -1974,7 +1976,9 @@ _offset_map = {
     'BQ-JAN' : BQuarterEnd(startingMonth=1),
     'BQ-FEB' : BQuarterEnd(startingMonth=2),
     'BQ-MAR' : BQuarterEnd(startingMonth=3),
-    'BQ'     : BQuarterEnd(startingMonth=3),
+
+    # 'BQ'     : BQuarterEnd(startingMonth=3),
+
     'BQ-APR' : BQuarterEnd(startingMonth=4),
     'BQ-MAY' : BQuarterEnd(startingMonth=5),
     'BQ-JUN' : BQuarterEnd(startingMonth=6),
@@ -2055,6 +2059,8 @@ _rule_aliases = {
     'us': 'U'
 }
 
+
+_legacy_reverse_map = dict((v, k) for k, v in _rule_aliases.iteritems())
 
 for i, weekday in enumerate(['MON', 'TUE', 'WED', 'THU', 'FRI']):
     for iweek in xrange(4):
@@ -2174,13 +2180,13 @@ getOffset = get_offset
 def hasOffsetName(offset):
     return offset in _offset_names
 
-def getOffsetName(offset):
+def get_offset_name(offset):
     """
     Return rule name associated with a DateOffset object
 
     Example
     -------
-    getOffsetName(BMonthEnd(1)) --> 'EOM'
+    get_offset_name(BMonthEnd(1)) --> 'EOM'
     """
     name = _offset_names.get(offset)
 
@@ -2188,6 +2194,15 @@ def getOffsetName(offset):
         return name
     else:
         raise Exception('Bad rule given: %s!' % offset)
+
+def get_legacy_offset_name(offset):
+    """
+    Return the pre pandas 0.8.0 name for the date offset
+    """
+    name = _offset_names.get(offset)
+    return _legacy_reverse_map.get(name, name)
+
+get_offset_name = get_offset_name
 
 def get_standard_freq(freq):
     """
@@ -2197,7 +2212,7 @@ def get_standard_freq(freq):
         return None
 
     if isinstance(freq, DateOffset):
-        return getOffsetName(freq)
+        return get_offset_name(freq)
 
     code, stride = _get_freq_code(freq)
     return _get_freq_str(code, stride)

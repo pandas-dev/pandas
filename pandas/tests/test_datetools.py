@@ -7,7 +7,7 @@ from pandas.core.datetools import (
     BYearBegin, QuarterBegin, BQuarterBegin, BMonthBegin,
     DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second,
     WeekOfMonth, format, ole2datetime, QuarterEnd, to_datetime, normalize_date,
-    get_offset, getOffsetName, inferTimeRule, hasOffsetName,
+    get_offset, get_offset_name, inferTimeRule, hasOffsetName,
     _dt_box, _dt_unbox, parse_time_string, get_standard_freq,
     _offset_map)
 
@@ -1266,16 +1266,16 @@ def test_hasOffsetName():
     assert hasOffsetName(BDay())
     assert not hasOffsetName(BDay(2))
 
-def test_getOffsetName():
-    assert_raises(Exception, getOffsetName, BDay(2))
+def test_get_offset_name():
+    assert_raises(Exception, get_offset_name, BDay(2))
 
-    assert getOffsetName(BDay()) == 'B'
-    assert getOffsetName(BMonthEnd()) == 'BM'
-    assert getOffsetName(Week(weekday=0)) == 'W-MON'
-    assert getOffsetName(Week(weekday=1)) =='W-TUE'
-    assert getOffsetName(Week(weekday=2)) == 'W-WED'
-    assert getOffsetName(Week(weekday=3)) == 'W-THU'
-    assert getOffsetName(Week(weekday=4)) == 'W-FRI'
+    assert get_offset_name(BDay()) == 'B'
+    assert get_offset_name(BMonthEnd()) == 'BM'
+    assert get_offset_name(Week(weekday=0)) == 'W-MON'
+    assert get_offset_name(Week(weekday=1)) =='W-TUE'
+    assert get_offset_name(Week(weekday=2)) == 'W-WED'
+    assert get_offset_name(Week(weekday=3)) == 'W-THU'
+    assert get_offset_name(Week(weekday=4)) == 'W-FRI'
 
 
 def test_get_offset():

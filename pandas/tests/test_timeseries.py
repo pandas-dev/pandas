@@ -529,6 +529,11 @@ class TestLegacySupport(unittest.TestCase):
             new_rng = date_range(start, end, freq=new_freq)
             self.assert_(old_rng.equals(new_rng))
 
+            # test get_legacy_offset_name
+            offset = datetools.get_offset(new_freq)
+            old_name = datetools.get_legacy_offset_name(offset)
+            self.assertEquals(old_name, old_freq)
+
     def test_ms_vs_MS(self):
         left = datetools.get_offset('ms')
         right = datetools.get_offset('MS')
