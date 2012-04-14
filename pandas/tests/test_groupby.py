@@ -989,6 +989,7 @@ class TestGroupBy(unittest.TestCase):
 
         _testit(lambda x: x.sum())
         _testit(lambda x: x.mean())
+        _testit(lambda x: x.prod())
 
     def test_cython_agg_boolean(self):
         frame = DataFrame({'a': np.random.randint(0, 5, 50),

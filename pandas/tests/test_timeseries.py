@@ -976,7 +976,7 @@ class TestTimeGrouper(unittest.TestCase):
         assert_series_equal(applied, expected)
 
     def test_numpy_reduction(self):
-        result = self.ts.convert('A', how=np.prod, closed='right')
+        result = self.ts.convert('A', how='prod', closed='right')
 
         expected = self.ts.groupby(lambda x: x.year).agg(np.prod)
         expected.index = result.index

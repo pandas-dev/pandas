@@ -309,6 +309,17 @@ class GroupBy(object):
         except Exception:
             return self.aggregate(lambda x: np.sum(x, axis=self.axis))
 
+    def prod(self):
+        """
+        Compute product of values, excluding missing values
+
+        For multiple groupings, the result index will be a MultiIndex
+        """
+        try:
+            return self._cython_agg_general('prod')
+        except Exception:
+            return self.aggregate(lambda x: np.prod(x, axis=self.axis))
+
     def ohlc(self):
         """
         Compute sum of values, excluding missing values
@@ -592,6 +603,7 @@ class Grouper(object):
 
     _cython_functions = {
         'add' : lib.group_add,
+        'prod' : lib.group_prod,
         'mean' : lib.group_mean,
         'var' : lib.group_var,
         'std' : lib.group_var
@@ -822,6 +834,7 @@ class BinGrouper(Grouper):
 
     _cython_functions = {
         'add' : lib.group_add_bin,
+        'prod' : lib.group_prod_bin,
         'mean' : lib.group_mean_bin,
         'var' : lib.group_var_bin,
         'std' : lib.group_var_bin,

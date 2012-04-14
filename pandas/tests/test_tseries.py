@@ -339,6 +339,23 @@ def test_group_mean_bin():
 
     assert_almost_equal(out, exp)
 
+def test_group_prod_bin():
+    # original group_prod
+    obj = np.random.randn(10, 1)
+
+    lab = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 2], dtype=np.int32)
+    cts = np.array([3, 3, 4], dtype=np.int32)
+    exp = np.zeros((3, 1), np.float64)
+    lib.group_prod(exp, cts, obj, lab)
+
+    # bin-based group_prod
+    bins = np.array([3, 6], dtype=np.int32)
+    out  = np.zeros((3, 1), np.float64)
+    counts = np.zeros(len(out), dtype=np.int32)
+    lib.group_prod_bin(out, counts, obj, bins)
+
+    assert_almost_equal(out, exp)
+
 def test_group_var_bin():
     # original group_var
     obj = np.random.randn(10, 1)

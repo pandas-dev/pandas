@@ -278,6 +278,61 @@ def group_add(ndarray[float64_t, ndim=2] out,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def group_prod(ndarray[float64_t, ndim=2] out,
+              ndarray[int32_t] counts,
+              ndarray[float64_t, ndim=2] values,
+              ndarray[int32_t] labels):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        float64_t val, count
+        ndarray[float64_t, ndim=2] prodx, nobs
+
+    nobs = np.zeros_like(out)
+    prodx = np.ones_like(out)
+
+    N, K = (<object> values).shape
+
+    if K > 1:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[lab, j] += 1
+                    prodx[lab, j] *= val
+    else:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            val = values[i, 0]
+
+            # not nan
+            if val == val:
+                nobs[lab, 0] += 1
+                prodx[lab, 0] *= val
+
+    for i in range(len(counts)):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = prodx[i, j]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def group_mean(ndarray[float64_t, ndim=2] out,
                ndarray[int32_t] counts,
                ndarray[float64_t, ndim=2] values,
@@ -456,26 +511,6 @@ def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
 
     return bins, labels
 
-#@cython.boundscheck(False)
-#@cython.wraparound(False)
-#cdef ndarray[int32_t] counts_by_bins(ndarray[int32_t] bins,
-#                                     Py_ssize_t datalen):
-#    cdef:
-#        Py_ssize_t ngroups = len(bins)
-#        i = 0
-
-#    counts = np.zeros(ngroups, dtype='i4')
-
-#    if ngroups > 0:
-#        counts[0] = bins[0]
-#        for i in range(1, ngroups):
-#            if i == ngroups - 1:
-#                counts[i] = datalen - bins[i-1]
-#            else:
-#                counts[i] = bins[i] - bins[i-1]
-
-#    return counts
-
 # add passing bin edges, instead of labels
 
 @cython.boundscheck(False)
@@ -531,6 +566,60 @@ def group_add_bin(ndarray[float64_t, ndim=2] out,
                 out[i, j] = nan
             else:
                 out[i, j] = sumx[i, j]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_prod_bin(ndarray[float64_t, ndim=2] out,
+                  ndarray[int32_t] counts,
+                  ndarray[float64_t, ndim=2] values,
+                  ndarray[int32_t] bins):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, ngroups, b
+        float64_t val, count
+        ndarray[float64_t, ndim=2] prodx, nobs
+
+    nobs = np.zeros_like(out)
+    prodx = np.ones_like(out)
+
+    ngroups = len(bins) + 1
+    N, K = (<object> values).shape
+
+    b = 0
+    if K > 1:
+        for i in range(N):
+            if b < ngroups - 1 and i >= bins[b]:
+                b += 1
+
+            counts[b] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[b, j] += 1
+                    prodx[b, j] *= val
+    else:
+        for i in range(N):
+            if b < ngroups - 1 and i >= bins[b]:
+                b += 1
+
+            counts[b] += 1
+            val = values[i, 0]
+
+            # not nan
+            if val == val:
+                nobs[b, 0] += 1
+                prodx[b, 0] *= val
+
+    for i in range(ngroups):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = prodx[i, j]
 
 
 @cython.boundscheck(False)
