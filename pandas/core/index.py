@@ -1510,10 +1510,8 @@ class DatetimeIndex(Int64Index):
                     s = t1
             snapped[i] = np.datetime64(s)
 
-        dti = DatetimeIndex(snapped) # we know it conforms; this skips check
-        dti.offset = freq
-
-        return dti
+        # we know it conforms; skip check
+        return DatetimeIndex(snapped, freq=freq, verify_integrity=False)
 
     def shift(self, n, freq=None):
         """
@@ -1739,16 +1737,39 @@ class DatetimeIndex(Int64Index):
             return self._engine.get_loc(key)
         except KeyError:
             try:
-                asdt, parsed, reso = datetools.parse_time_string(key)
-                key = asdt
-                loc = self._partial_date_slice(reso, parsed)
-                return loc
-            except TypeError:
-                pass
-            except KeyError:
+                return self._get_string_slice(key)
+            except (TypeError, KeyError):
                 pass
 
             return self._engine.get_loc(to_timestamp(key))
+
+    def _get_string_slice(self, key):
+        asdt, parsed, reso = datetools.parse_time_string(key)
+        key = asdt
+        loc = self._partial_date_slice(reso, parsed)
+        return loc
+
+    def slice_locs(self, start=None, end=None):
+        """
+        Index.slice_locs, customized to handle partial ISO-8601 string slicing
+        """
+        if isinstance(start, basestring) or isinstance(end, basestring):
+            try:
+                if start:
+                    start_loc = self._get_string_slice(start).start
+                else:
+                    start_loc = 0
+
+                if end:
+                    end_loc = self._get_string_slice(end).stop
+                else:
+                    end_loc = len(self)
+
+                return start_loc, end_loc
+            except KeyError:
+                pass
+
+        return Index.slice_locs(self, start, end)
 
     def __getitem__(self, key):
         """Override numpy.ndarray's __getitem__ method to work as desired"""

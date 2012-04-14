@@ -829,12 +829,27 @@ class TestDatetime64(unittest.TestCase):
 
     def test_slice_month(self):
         dti = DatetimeIndex(freq='D', start=datetime(2005,1,1), periods=500)
-
         s = Series(np.arange(len(dti)), index=dti)
         self.assertEquals(len(s['2005-11']), 30)
 
         df = DataFrame(np.random.rand(len(dti), 5), index=dti)
         self.assertEquals(len(df.ix['2005-11']), 30)
+
+    def test_partial_slice(self):
+        rng = DatetimeIndex(freq='D', start=datetime(2005,1,1), periods=500)
+        s = Series(np.arange(len(rng)), index=rng)
+
+        result = s['2005-05':'2006-02']
+        expected = s['20050501':'20060228']
+        assert_series_equal(result, expected)
+
+        result = s['2005-05':]
+        expected = s['20050501':]
+        assert_series_equal(result, expected)
+
+        result = s[:'2006-02']
+        expected = s[:'20060228']
+        assert_series_equal(result, expected)
 
     def test_datetimeindex_constructor(self):
         arr = ['1/1/2005', '1/2/2005', 'Jn 3, 2005', '2005-01-04']
