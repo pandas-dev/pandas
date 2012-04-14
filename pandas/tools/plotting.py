@@ -822,8 +822,7 @@ def hist_frame(data, grid=True, xlabelsize=None, xrot=None,
 
     for j in range(i + 1, k**2):
         ax = axes[j / k, j % k]
-        ax.xaxis.set_visible(False)
-        ax.yaxis.set_visible(False)
+        ax.set_visible(False)
 
     ax.get_figure().subplots_adjust(wspace=0.3, hspace=0.3)
 

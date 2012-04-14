@@ -143,7 +143,7 @@ class TestDataFramePlots(unittest.TestCase):
         df = DataFrame(np.random.randn(100, 3))
         _check_plot_works(df.hist)
         axes = df.hist(grid=False)
-        self.assert_(not axes[1, 1].xaxis.get_visible())
+        self.assert_(not axes[1, 1].get_visible())
 
         df = DataFrame(np.random.randn(100, 1))
         _check_plot_works(df.hist)
