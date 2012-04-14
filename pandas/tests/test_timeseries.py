@@ -918,6 +918,33 @@ class TestDatetime64(unittest.TestCase):
 
     # TODO: test merge & concat with datetime64 block
 
+class TestTimeGrouper(unittest.TestCase):
+
+    def setUp(self):
+        self.ts = Series(np.random.randn(1000),
+                         index=date_range('1/1/2000', periods=1000))
+
+    def test_apply(self):
+        grouper = TimeGrouper('A', label='right', closed='right')
+
+        grouped = self.ts.groupby(grouper)
+
+        f = lambda x: x.order()[-3:]
+
+        applied = grouped.apply(f)
+        expected = self.ts.groupby(lambda x: x.year).apply(f)
+
+        applied.index = applied.index.droplevel(0)
+        expected.index = expected.index.droplevel(0)
+        assert_series_equal(applied, expected)
+
+    def test_numpy_reduction(self):
+        result = self.ts.convert('A', how=np.prod, closed='right')
+
+        expected = self.ts.groupby(lambda x: x.year).agg(np.prod)
+        expected.index = result.index
+
+        assert_series_equal(result, expected)
 
 class TestNewOffsets(unittest.TestCase):
 

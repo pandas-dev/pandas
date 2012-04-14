@@ -764,8 +764,6 @@ def generate_bins_generic(values, binner, closed, label):
 
     return bins, labels
 
-class CustomGrouper:
-    pass
 
 def _generate_time_binner(dtindex, offset,
                           begin=None, end=None, nperiods=None):
@@ -789,7 +787,90 @@ def _generate_time_binner(dtindex, offset,
 
     return DatetimeIndex(freq=offset, start=first, end=last, periods=nperiods)
 
-class TimeGrouper(Grouper, CustomGrouper):
+
+class BinGrouper(Grouper):
+
+    def __init__(self, bins, binlabels):
+        self.bins = bins
+        self.binlabels = binlabels
+
+    def get_iterator(self, data, axis=0):
+        """
+        Groupby iterator
+
+        Returns
+        -------
+        Generator yielding sequence of (name, subsetted object)
+        for each group
+        """
+        if axis == 1:
+            raise NotImplementedError
+
+        start = 0
+        for edge, label in zip(self.bins, self.binlabels):
+            yield label, data[start:edge]
+            start = edge
+
+        yield self.binlabels[-1], data[edge:]
+
+    @cache_readonly
+    def ngroups(self):
+        return len(self.binlabels)
+
+    #----------------------------------------------------------------------
+    # cython aggregation
+
+    _cython_functions = {
+        'add' : lib.group_add_bin,
+        'mean' : lib.group_mean_bin,
+        'var' : lib.group_var_bin,
+        'std' : lib.group_var_bin,
+        'ohlc' : lib.group_ohlc
+    }
+
+    _cython_arity = {
+        'ohlc' : 4, # OHLC
+    }
+
+    def aggregate(self, values, how):
+        values = com._ensure_float64(values)
+
+        agg_func = self._cython_functions[how]
+        arity = self._cython_arity.get(how, 1)
+
+        if values.ndim == 1:
+            squeeze = True
+            values = values[:, None]
+            out_shape = (self.ngroups, arity)
+        else:
+            squeeze = False
+            out_shape = (self.ngroups, values.shape[1] * arity)
+
+        trans_func = self._cython_transforms.get(how, lambda x: x)
+
+        # will be filled in Cython function
+        result = np.empty(out_shape, dtype=np.float64)
+        counts = np.zeros(self.ngroups, dtype=np.int32)
+
+        agg_func(result, counts, values, self.bins)
+        result = trans_func(result)
+
+        result = lib.row_bool_subset(result, counts > 0)
+
+        if squeeze:
+            result = result.squeeze()
+
+        if how in self._name_functions:
+            # TODO
+            names = self._name_functions[how]()
+        else:
+            names = None
+
+        return result, names
+
+
+
+class TimeGrouper(BinGrouper):
     """
     Custom groupby class for time-interval grouping
 
@@ -860,6 +941,14 @@ class TimeGrouper(Grouper, CustomGrouper):
         self.bins = bins
         self.binlabels = labels.view('M8[us]')
 
+    @property
+    def names(self):
+        return [self.obj.index.name]
+
+    @property
+    def levels(self):
+        return [self.binlabels]
+
     @cache_readonly
     def ngroups(self):
         return len(self.binlabels)
@@ -873,56 +962,6 @@ class TimeGrouper(Grouper, CustomGrouper):
         grouper = lib.SeriesBinGrouper(obj, func, self.bins, dummy)
         return grouper.get_result()
 
-    #----------------------------------------------------------------------
-    # cython aggregation
-
-    _cython_functions = {
-        'add' : lib.group_add_bin,
-        'mean' : lib.group_mean_bin,
-        'var' : lib.group_var_bin,
-        'std' : lib.group_var_bin,
-        'ohlc' : lib.group_ohlc
-    }
-
-    _cython_arity = {
-        'ohlc' : 4, # OHLC
-    }
-
-    def aggregate(self, values, how):
-        values = com._ensure_float64(values)
-
-        agg_func = self._cython_functions[how]
-        arity = self._cython_arity.get(how, 1)
-
-        if values.ndim == 1:
-            squeeze = True
-            values = values[:, None]
-            out_shape = (self.ngroups, arity)
-        else:
-            squeeze = False
-            out_shape = (self.ngroups, values.shape[1] * arity)
-
-        trans_func = self._cython_transforms.get(how, lambda x: x)
-
-        # will be filled in Cython function
-        result = np.empty(out_shape, dtype=np.float64)
-        counts = np.zeros(self.ngroups, dtype=np.int32)
-
-        agg_func(result, counts, values, self.bins)
-        result = trans_func(result)
-
-        result = lib.row_bool_subset(result, counts > 0)
-
-        if squeeze:
-            result = result.squeeze()
-
-        if how in self._name_functions:
-            # TODO
-            names = self._name_functions[how]()
-        else:
-            names = None
-
-        return result, names
 
 class Grouping(object):
     """
@@ -962,7 +1001,7 @@ class Grouping(object):
         self._was_factor = False
 
         # did we pass a custom grouper object? Do nothing
-        if isinstance(grouper, CustomGrouper):
+        if isinstance(grouper, Grouper):
             return
 
         if level is not None:
@@ -1063,7 +1102,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
                 level = None
                 key = group_axis
 
-    if isinstance(key, CustomGrouper):
+    if isinstance(key, Grouper):
         key.set_obj(obj)
         return key, []
 
@@ -1263,10 +1302,9 @@ class SeriesGroupBy(GroupBy):
     def _aggregate_named(self, func, *args, **kwargs):
         result = {}
 
-        for name in self.grouper:
-            grp = self.get_group(name)
-            grp.name = name
-            output = func(grp, *args, **kwargs)
+        for name, group in self:
+            group.name = name
+            output = func(group, *args, **kwargs)
             if isinstance(output, np.ndarray):
                 raise Exception('Must produce aggregated value')
             result[name] = output
