@@ -11,9 +11,11 @@ import time
 import numpy as np
 from pandas import Series, TimeSeries, DataFrame, Panel, Index, MultiIndex
 from pandas.core.common import adjoin
-import pandas.core.common as com
+from pandas.core.algorithms import match
 import pandas._tseries as lib
 from contextlib import contextmanager
+
+import pandas.core.common as com
 
 # reading and writing the full object in one go
 _TYPE_MAP = {
@@ -344,7 +346,7 @@ class HDFStore(object):
         if where is None:
             self.handle.removeNode(self.handle.root, key, recursive=True)
         else:
-            group = getattr(self.handle.root, key,None)
+            group = getattr(self.handle.root, key, None)
             if group is not None:
                 self._delete_from_table(group, where)
 
@@ -539,7 +541,11 @@ class HDFStore(object):
         if 'name' in node._v_attrs:
             name = node._v_attrs.name
 
-        index = Index(_unconvert_index(data, kind))
+        if kind in ('date', 'datetime'):
+            index = Index(_unconvert_index(data, kind), dtype=object)
+        else:
+            index = Index(_unconvert_index(data, kind))
+
         index.name = name
 
         return name, index
@@ -568,6 +574,8 @@ class HDFStore(object):
             vlarr = self.handle.createVLArray(group, key,
                                               _tables().ObjectAtom())
             vlarr.append(value)
+        elif value.dtype == np.datetime64:
+            self.handle.createArray(group, key, value.view('i8'))
         else:
             self.handle.createArray(group, key, value)
 
@@ -687,9 +695,10 @@ class HDFStore(object):
         from pandas.core.reshape import block2d_to_block3d
 
         table = getattr(group, 'table')
+        fields = table._v_attrs.fields
 
         # create the selection
-        sel = Selection(table, where)
+        sel = Selection(table, where, table._v_attrs.index_kind)
         sel.select()
         fields = table._v_attrs.fields
 
@@ -735,7 +744,7 @@ class HDFStore(object):
             unique_tuples = lib.fast_unique(tuple_index)
             unique_tuples = _asarray_tuplesafe(unique_tuples)
 
-            indexer = lib.merge_indexer_object(unique_tuples, index_map)
+            indexer = match(unique_tuples, tuple_index)
 
             new_index = long_index.take(indexer)
             new_values = lp.values.take(indexer, axis=0)
@@ -752,7 +761,7 @@ class HDFStore(object):
         table = getattr(group, 'table')
 
         # create the selection
-        s = Selection(table,where)
+        s = Selection(table, where, table._v_attrs.index_kind)
         s.select_coords()
 
         # delete the rows in reverse order
@@ -764,17 +773,22 @@ class HDFStore(object):
         return len(s.values)
 
 def _convert_index(index):
+    inferred_type = lib.infer_dtype(index)
+
     # Let's assume the index is homogeneous
     values = np.asarray(index)
 
-    if isinstance(values[0], datetime):
+    if inferred_type == 'datetime64':
+        converted = values.view('i8')
+        return converted, 'datetime64', _tables().Int64Col()
+    elif isinstance(values[0], datetime):
         converted = np.array([(time.mktime(v.timetuple()) +
-                               v.microsecond / 1E6) for v in values],
-                               dtype=np.float64)
+                            v.microsecond / 1E6) for v in values],
+                            dtype=np.float64)
         return converted, 'datetime', _tables().Time64Col()
     elif isinstance(values[0], date):
         converted = np.array([time.mktime(v.timetuple()) for v in values],
-                             dtype=np.int32)
+                            dtype=np.int32)
         return converted, 'date', _tables().Time32Col()
     elif isinstance(values[0], basestring):
         converted = np.array(list(values), dtype=np.str_)
@@ -802,13 +816,13 @@ def _read_array(group, key):
         return data
 
 def _unconvert_index(data, kind):
-    if kind == 'datetime':
+    if kind == 'datetime64':
+        index = np.array(data, dtype='M8[us]')
+    elif kind == 'datetime':
         index = np.array([datetime.fromtimestamp(v) for v in data],
                          dtype=object)
     elif kind == 'date':
-        index = np.array([date.fromtimestamp(v) for v in data],
-                         dtype=object)
-
+        index = np.array([date.fromtimestamp(v) for v in data], dtype=object)
     elif kind in ('string', 'integer', 'float'):
         index = np.array(data)
     elif kind == 'object':
@@ -834,13 +848,15 @@ def _maybe_convert(values, val_kind):
     return values
 
 def _get_converter(kind):
+    if kind == 'datetime64':
+        return lambda x: np.datetime64(x)
     if kind == 'datetime':
         return lib.convert_timestamps
     else: # pragma: no cover
         raise ValueError('invalid kind %s' % kind)
 
 def _need_convert(kind):
-    if kind == 'datetime':
+    if kind in ('datetime', 'datetime64'):
         return True
     return False
 
@@ -873,9 +889,10 @@ class Selection(object):
            {'field' : 'index',
             'value' : [v1, v2, v3]}
     """
-    def __init__(self, table, where=None):
+    def __init__(self, table, where=None, index_kind=None):
         self.table = table
         self.where = where
+        self.index_kind = index_kind
         self.column_filter = None
         self.the_condition = None
         self.conditions = []
@@ -890,7 +907,10 @@ class Selection(object):
             value = c['value']
             field = c['field']
 
-            if field == 'index' and isinstance(value, datetime):
+            if field == 'index' and self.index_kind == 'datetime64':
+                val = np.datetime64(value).view('i8')
+                self.conditions.append('(%s %s %s)' % (field,op,val))
+            elif field == 'index' and isinstance(value, datetime):
                 value = time.mktime(value.timetuple())
                 self.conditions.append('(%s %s %s)' % (field,op,value))
             else:

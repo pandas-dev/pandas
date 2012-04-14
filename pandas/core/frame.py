@@ -26,9 +26,8 @@ import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
                                 _default_index, _stringify)
-from pandas.core.daterange import DateRange
 from pandas.core.generic import NDFrame
-from pandas.core.index import Index, MultiIndex, _ensure_index
+from pandas.core.index import Index, DatetimeIndex, MultiIndex, _ensure_index
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _radd_compat
@@ -705,7 +704,8 @@ class DataFrame(NDFrame):
             columns = names
             warnings.warn("'names' parameter to DataFrame.from_records is "
                           "being renamed to 'columns', 'names' will be "
-                          "removed in 0.8.0", FutureWarning)
+                          "removed in 0.8.0",
+                          FutureWarning)
 
         if isinstance(data, (np.ndarray, DataFrame, dict)):
             columns, sdict = _rec_to_dict(data)
@@ -1247,6 +1247,7 @@ class DataFrame(NDFrame):
         """
         return self._constructor(data=self.values.T, index=self.columns,
                                  columns=self.index, copy=False)
+
     T = property(transpose)
 
     #----------------------------------------------------------------------
@@ -1692,6 +1693,10 @@ class DataFrame(NDFrame):
         index = self.index
         if isinstance(index, MultiIndex):
             loc, new_index = self.index.get_loc_level(key)
+        elif isinstance(index, DatetimeIndex):
+            loc = self.index.get_loc(key)
+            if not np.isscalar(loc):
+                new_index = self.index[loc]
         else:
             loc = self.index.get_loc(key)
 
@@ -1865,7 +1870,7 @@ class DataFrame(NDFrame):
             return left_result, right_result
 
     def reindex(self, index=None, columns=None, method=None, level=None,
-                fill_value=np.nan, copy=True):
+                fill_value=np.nan, limit=None, copy=True):
         """Conform DataFrame to new index with optional filling logic, placing
         NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
@@ -1890,6 +1895,8 @@ class DataFrame(NDFrame):
         fill_value : scalar, default np.NaN
             Value to use for missing values. Defaults to NaN, but can be any
             "compatible" value
+        limit : int, default None
+            Maximum size gap to forward or backward fill
 
         Examples
         --------
@@ -1903,15 +1910,17 @@ class DataFrame(NDFrame):
         frame = self
 
         if index is not None:
-            frame = frame._reindex_index(index, method, copy, level, fill_value)
+            frame = frame._reindex_index(index, method, copy, level,
+                                         fill_value, limit)
 
         if columns is not None:
-            frame = frame._reindex_columns(columns, copy, level, fill_value)
+            frame = frame._reindex_columns(columns, copy, level,
+                                           fill_value, limit)
 
         return frame
 
     def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True,
-                     fill_value=np.nan):
+                     limit=None, fill_value=np.nan):
         """Conform DataFrame to new index with optional filling logic, placing
         NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
@@ -1934,6 +1943,8 @@ class DataFrame(NDFrame):
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level
+        limit : int, default None
+            Maximum size gap to forward or backward fill
 
         Examples
         --------
@@ -1950,20 +1961,26 @@ class DataFrame(NDFrame):
         self._consolidate_inplace()
         if axis == 0:
             return self._reindex_index(labels, method, copy, level,
-                                       fill_value=fill_value)
+                                       fill_value=fill_value,
+                                       limit=limit)
         elif axis == 1:
             return self._reindex_columns(labels, copy, level,
-                                         fill_value=fill_value)
+                                         fill_value=fill_value,
+                                         limit=limit)
         else:  # pragma: no cover
             raise ValueError('Must specify axis=0 or 1')
 
-    def _reindex_index(self, new_index, method, copy, level, fill_value=np.nan):
-        new_index, indexer = self.index.reindex(new_index, method, level)
+    def _reindex_index(self, new_index, method, copy, level, fill_value=np.nan,
+                       limit=None):
+        new_index, indexer = self.index.reindex(new_index, method, level,
+                                                limit=limit)
         return self._reindex_with_indexers(new_index, indexer, None, None,
                                            copy, fill_value)
 
-    def _reindex_columns(self, new_columns, copy, level, fill_value=np.nan):
-        new_columns, indexer = self.columns.reindex(new_columns, level=level)
+    def _reindex_columns(self, new_columns, copy, level, fill_value=np.nan,
+                         limit=None):
+        new_columns, indexer = self.columns.reindex(new_columns, level=level,
+                                                    limit=limit)
         return self._reindex_with_indexers(None, None, new_columns, indexer,
                                            copy, fill_value)
 
@@ -1992,7 +2009,7 @@ class DataFrame(NDFrame):
 
         return DataFrame(new_data)
 
-    def reindex_like(self, other, method=None, copy=True):
+    def reindex_like(self, other, method=None, copy=True, limit=None):
         """
         Reindex DataFrame to match indices of another DataFrame, optionally
         with filling logic
@@ -2002,6 +2019,8 @@ class DataFrame(NDFrame):
         other : DataFrame
         method : string or None
         copy : boolean, default True
+        limit : int, default None
+            Maximum size gap to forward or backward fill
 
         Notes
         -----
@@ -2013,7 +2032,7 @@ class DataFrame(NDFrame):
         reindexed : DataFrame
         """
         return self.reindex(index=other.index, columns=other.columns,
-                            method=method, copy=copy)
+                            method=method, copy=copy, limit=limit)
 
     truncate = generic.truncate
 
@@ -2058,7 +2077,7 @@ class DataFrame(NDFrame):
 
         index = MultiIndex.from_arrays(arrays, names=cols)
 
-        if verify_integrity and not index._verify_integrity():
+        if verify_integrity and not index.is_unique:
             duplicates = index.get_duplicates()
             raise Exception('Index has duplicate keys: %s' % duplicates)
 
@@ -2106,7 +2125,7 @@ class DataFrame(NDFrame):
                     new_obj.insert(0, col_name, level_values.take(lab))
             else:
                 name = self.index.name
-                if name is None:
+                if name is None or name == 'index':
                     name = 'index' if 'index' not in self else 'level_0'
                 new_obj.insert(0, name, _maybe_cast(self.index.values))
         new_obj.index = np.arange(len(new_obj))
@@ -2433,7 +2452,8 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Filling NA's
 
-    def fillna(self, value=None, method='pad', axis=0, inplace=False):
+    def fillna(self, value=None, method='pad', axis=0, inplace=False,
+               limit=None):
         """
         Fill NA/NaN values using the specified method
 
@@ -2455,6 +2475,8 @@ class DataFrame(NDFrame):
             other views on this DataFrame, like if you took a no-copy slice of
             an existing DataFrame, for example a column in a DataFrame. Returns
             a reference to the filled object, which is self if inplace=True
+        limit : int, default None
+            Maximum size gap to forward or backward fill
 
         See also
         --------
@@ -2464,19 +2486,18 @@ class DataFrame(NDFrame):
         -------
         filled : DataFrame
         """
-        from pandas.core.internals import FloatBlock, ObjectBlock
-
         self._consolidate_inplace()
 
         if value is None:
             if self._is_mixed_type and axis == 1:
-                return self.T.fillna(method=method).T
+                return self.T.fillna(method=method, limit=limit).T
 
             new_blocks = []
             method = com._clean_fill_method(method)
             for block in self._data.blocks:
-                if isinstance(block, (FloatBlock, ObjectBlock)):
-                    newb = block.interpolate(method, axis=axis, inplace=inplace)
+                if block._can_hold_na:
+                    newb = block.interpolate(method, axis=axis,
+                                             limit=limit, inplace=inplace)
                 else:
                     newb = block if inplace else block.copy()
                 new_blocks.append(newb)
@@ -2913,8 +2934,7 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        offset : DateOffset object, or string in {'WEEKDAY', 'EOM'}
-            DateOffset object or subclass (e.g. monthEnd)
+        freq : DateOffset object, or string
         method : {'backfill', 'bfill', 'pad', 'ffill', None}
             Method to use for filling holes in reindexed Series
             pad / ffill: propagate last valid observation forward to next valid
@@ -2924,16 +2944,11 @@ class DataFrame(NDFrame):
         -------
         converted : DataFrame
         """
+        from pandas.core.daterange import date_range
         if len(self.index) == 0:
             return self.copy()
-
-        if isinstance(freq, datetools.DateOffset):
-            dateRange = DateRange(self.index[0], self.index[-1], offset=freq)
-        else:
-            dateRange = DateRange(self.index[0], self.index[-1],
-                                  time_rule=freq)
-
-        return self.reindex(dateRange, method=method)
+        dti = date_range(self.index[0], self.index[-1], freq=freq)
+        return self.reindex(dti, method=method)
 
     def diff(self, periods=1):
         """
@@ -2950,28 +2965,31 @@ class DataFrame(NDFrame):
         """
         return self - self.shift(periods)
 
-    def shift(self, periods, offset=None, **kwds):
+    def shift(self, periods, freq=None, **kwds):
         """
         Shift the index of the DataFrame by desired number of periods with an
-        optional time offset
+        optional time freq
 
         Parameters
         ----------
         periods : int
             Number of periods to move, can be positive or negative
-        offset : DateOffset, timedelta, or time rule string, optional
+        freq : DateOffset, timedelta, or time rule string, optional
             Increment to use from datetools module or time rule (e.g. 'EOM')
 
         Returns
         -------
         shifted : DataFrame
         """
+        from pandas.core.series import _resolve_offset
+
         if periods == 0:
             return self
 
-        offset = kwds.get('timeRule', offset)
+        offset = _resolve_offset(freq, kwds)
+
         if isinstance(offset, basestring):
-            offset = datetools.getOffset(offset)
+            offset = datetools.to_offset(offset)
 
         def _shift_block(blk, indexer):
             new_values = blk.values.take(indexer, axis=1)
@@ -3134,8 +3152,12 @@ class DataFrame(NDFrame):
                 for k, v in series_gen:
                     results[k] = func(v)
             except Exception, e:
-                if hasattr(e, 'args'):
-                    e.args = e.args + ('occurred at index %s' % str(k),)
+                try:
+                    if hasattr(e, 'args'):
+                        e.args = e.args + ('occurred at index %s' % str(k),)
+                except NameError:
+                    # no k defined yet
+                    pass
                 raise
 
         if len(results) > 0 and _is_sequence(results.values()[0]):

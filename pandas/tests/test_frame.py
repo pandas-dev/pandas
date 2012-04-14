@@ -1217,6 +1217,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertRaises(Exception, setattr, self.mixed_frame, 'columns',
                           cols[::2])
 
+    def test_column_contains_typeerror(self):
+        try:
+            self.frame.columns in self.frame
+        except TypeError:
+            pass
+
     def test_constructor(self):
         df = DataFrame()
         self.assert_(len(df.index) == 0)
@@ -2811,31 +2817,31 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_asfreq(self):
         offset_monthly = self.tsframe.asfreq(datetools.bmonthEnd)
-        rule_monthly = self.tsframe.asfreq('EOM')
+        rule_monthly = self.tsframe.asfreq('BM')
 
         assert_almost_equal(offset_monthly['A'], rule_monthly['A'])
 
-        filled = rule_monthly.asfreq('WEEKDAY', method='pad')
+        filled = rule_monthly.asfreq('B', method='pad')
         # TODO: actually check that this worked.
 
         # don't forget!
-        filled_dep = rule_monthly.asfreq('WEEKDAY', method='pad')
+        filled_dep = rule_monthly.asfreq('B', method='pad')
 
         # test does not blow up on length-0 DataFrame
         zero_length = self.tsframe.reindex([])
-        result = zero_length.asfreq('EOM')
+        result = zero_length.asfreq('BM')
         self.assert_(result is not zero_length)
 
-    def test_asfreq_DateRange(self):
-        from pandas.core.daterange import DateRange
+    def test_asfreq_datetimeindex(self):
+        from pandas import DatetimeIndex
         df = DataFrame({'A': [1,2,3]},
                        index=[datetime(2011,11,01), datetime(2011,11,2),
                               datetime(2011,11,3)])
-        df = df.asfreq('WEEKDAY')
-        self.assert_(isinstance(df.index, DateRange))
+        df = df.asfreq('B')
+        self.assert_(isinstance(df.index, DatetimeIndex))
 
-        ts = df['A'].asfreq('WEEKDAY')
-        self.assert_(isinstance(ts.index, DateRange))
+        ts = df['A'].asfreq('B')
+        self.assert_(isinstance(ts.index, DatetimeIndex))
 
     def test_as_matrix(self):
         frame = self.frame
@@ -3702,10 +3708,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(unshifted, self.tsframe)
 
         # shift by DateOffset
-        shiftedFrame = self.tsframe.shift(5, offset=datetools.BDay())
+        shiftedFrame = self.tsframe.shift(5, freq=datetools.BDay())
         self.assert_(len(shiftedFrame) == len(self.tsframe))
 
-        shiftedFrame2 = self.tsframe.shift(5, timeRule='WEEKDAY')
+        shiftedFrame2 = self.tsframe.shift(5, freq='B')
         assert_frame_equal(shiftedFrame, shiftedFrame2)
 
         d = self.tsframe.index[0]

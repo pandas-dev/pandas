@@ -1,0 +1,20 @@
+- DatetimeIndex.union empty -> error
+- DateOffset display sucks -> 1 Day
+
+gp- get rid of Ts class, simplify timestamp creation
+- rename tzinfo to tz
+- get rid of deprecated / new offset mapping, will deal with users
+- add Index.is_unique, check via is_monotonic cython routine
+- tofreq -> asfreq again
+- work around numpy refcount bug in Index.append with datetime64 type promotion
+- fix bug in Index.join with empty indexes
+- handle legacy DateRange unpickling in BlockManager
+- date_range/bdate_range factory functions, test refactoring
+- got rid of all deprecation warnings in test suite, usages of DateRange
+- fix merge issue? in generate_code.py
+- attach tz in DatetimeIndex.asobject
+- failing duplicate timestamp test
+- _tseries.pyd depends on datetime.pyx
+
+
+- BUG: time_rule DateRange tests

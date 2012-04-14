@@ -1,8 +1,6 @@
 # pylint: disable=W0612,E1101
 
-
 from datetime import datetime
-import os
 import operator
 import unittest
 import nose
@@ -15,9 +13,7 @@ from pandas.core.frame import group_agg
 from pandas.core.panel import Panel
 from pandas.core.series import remove_na
 import pandas.core.common as com
-import pandas.core.panel as panelmod
 from pandas.util import py3compat
-from pandas.io.parsers import (ExcelFile, ExcelWriter)
 
 from pandas.util.testing import (assert_panel_equal,
                                  assert_frame_equal,
@@ -241,7 +237,7 @@ class SafeForSparse(object):
         tm.equalContents(self.panel.keys(), self.panel.items)
 
     def test_iteritems(self):
-        """Test panel.iteritems(), aka panel.iterkv()"""
+        # Test panel.iteritems(), aka panel.iterkv()
         # just test that it works
         for k, v in self.panel.iterkv():
             pass
@@ -410,14 +406,15 @@ class CheckIndexing(object):
         self.assert_(self.panel['ItemP'].values.dtype == np.bool_)
 
     def test_setitem_ndarray(self):
-        from pandas import DateRange, datetools
+        from pandas import date_range, datetools
 
-        timeidx = DateRange(start=datetime(2009,1,1),
-                            end=datetime(2009,12,31),
-                            offset=datetools.MonthEnd())
+        timeidx = date_range(start=datetime(2009,1,1),
+                             end=datetime(2009,12,31),
+                             freq=datetools.MonthEnd())
         lons_coarse = np.linspace(-177.5, 177.5, 72)
         lats_coarse = np.linspace(-87.5, 87.5, 36)
-        P = Panel(items=timeidx, major_axis=lons_coarse, minor_axis=lats_coarse)
+        P = Panel(items=timeidx, major_axis=lons_coarse,
+                  minor_axis=lats_coarse)
         data = np.random.randn(72*36).reshape((72,36))
         key = datetime(2009,2,28)
         P[key] = data
@@ -1033,9 +1030,11 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 
     def test_to_excel(self):
         try:
+            import os
             import xlwt
             import xlrd
             import openpyxl
+            from pandas.io.parsers import ExcelFile
         except ImportError:
             raise nose.SkipTest
 

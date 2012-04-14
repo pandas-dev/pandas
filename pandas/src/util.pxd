@@ -2,11 +2,13 @@ from numpy cimport ndarray
 cimport numpy as cnp
 
 cdef extern from "numpy_helper.h":
-    inline bint is_integer_object(object)
-    inline bint is_float_object(object)
-    inline bint is_bool_object(object)
-    inline bint is_string_object(object)
+    inline int is_integer_object(object)
+    inline int is_float_object(object)
+    inline int is_bool_object(object)
+    inline int is_string_object(object)
+    inline int is_datetime64_object(object)
     inline int assign_value_1d(ndarray, Py_ssize_t, object) except -1
+    inline cnp.int64_t get_nat()
     inline object get_value_1d(ndarray, Py_ssize_t)
     inline char *get_c_string(object)
     inline object floatify(object)
@@ -51,3 +53,11 @@ cdef inline int is_contiguous(ndarray arr):
 
 cdef inline is_array(object o):
     return cnp.PyArray_Check(o)
+
+
+cdef inline bint _checknull(object val):
+    return not cnp.PyArray_Check(val) and (val is None or val != val)
+
+cdef inline bint _checknan(object val):
+    return not cnp.PyArray_Check(val) and val != val
+

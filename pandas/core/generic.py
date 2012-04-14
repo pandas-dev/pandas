@@ -3,7 +3,7 @@
 import numpy as np
 
 from pandas.core.common import save, load
-from pandas.core.index import MultiIndex
+from pandas.core.index import MultiIndex, DatetimeIndex
 import pandas.core.datetools as datetools
 
 #-------------------------------------------------------------------------------
@@ -134,6 +134,59 @@ class PandasObject(Picklable):
         from pandas.core.groupby import groupby
         return groupby(self, by, axis=axis, level=level, as_index=as_index,
                        sort=sort, group_keys=group_keys)
+
+    def convert(self, rule, method='pad', how='last', axis=0, as_index=True,
+                closed='right', label='right'):
+        """
+        Convenience method for frequency conversion and resampling of regular
+        time-series data.
+
+        Parameters
+        ----------
+        rule : the offset string or object representing target conversion
+        how : string, method for down- or re-sampling, default 'last'
+        method : string, method for upsampling, default 'pad'
+        axis : int, optional, default 0
+        closed : {'right', 'left'}, default 'right'
+            Which side of bin interval is closed
+        label : {'right', 'left'}, default 'right'
+            Which bin edge label to label bucket with
+        as_index : see synonymous argument of groupby
+        """
+        from pandas.core.groupby import TimeGrouper, translate_grouping
+
+        if isinstance(rule, basestring):
+            rule = datetools.to_offset(rule)
+
+        idx = self._get_axis(axis)
+        if not isinstance(idx, DatetimeIndex):
+            raise ValueError("Cannot call convert with non-DatetimeIndex")
+
+        if not isinstance(rule, datetools.DateOffset):
+            raise ValueError("Rule not a recognized offset")
+
+        interval = TimeGrouper(rule, label=label,
+                               closed=closed, _obj=self)
+
+        currfreq = len(idx)
+        targfreq = len(interval.binner) - 2 # since binner extends endpoints
+
+        if targfreq <= currfreq:
+            # down- or re-sampling
+            grouped  = self.groupby(interval, axis=axis, as_index=as_index)
+
+            if isinstance(how, basestring):
+                how = translate_grouping(how)
+
+            result = grouped.agg(how)
+        else:
+            # upsampling
+            result = self.reindex(interval.binner[1:-1].view('M8[us]'),
+                                  method=method)
+
+        result.index.offset = rule
+        return result
+
 
     def select(self, crit, axis=0):
         """
@@ -361,6 +414,8 @@ class NDFrame(PandasObject):
         new_axes = []
         for k, ax in zip(key, self.axes):
             if k not in ax:
+                if type(k) != ax.dtype.type:
+                    ax = ax.astype('O')
                 new_axes.append(ax.insert(len(ax), k))
             else:
                 new_axes.append(ax)

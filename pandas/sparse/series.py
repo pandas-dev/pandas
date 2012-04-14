@@ -373,7 +373,7 @@ to sparse
                             sparse_index=self.sp_index,
                             fill_value=self.fill_value, name=self.name)
 
-    def reindex(self, index=None, method=None, copy=True):
+    def reindex(self, index=None, method=None, copy=True, limit=None):
         """
         Conform SparseSeries to new Index
 
@@ -398,7 +398,8 @@ to sparse
             return SparseSeries(values, index=new_index,
                                 fill_value=self.fill_value)
 
-        new_index, fill_vec = self.index.reindex(index, method=method)
+        new_index, fill_vec = self.index.reindex(index, method=method,
+                                                 limit=limit)
         new_values = common.take_1d(self.values, fill_vec)
         return SparseSeries(new_values, index=new_index,
                             fill_value=self.fill_value, name=self.name)
@@ -425,9 +426,9 @@ to sparse
                             fill_value=self.fill_value)
 
     @Appender(Series.fillna.__doc__)
-    def fillna(self, value=None, method='pad', inplace=False):
+    def fillna(self, value=None, method='pad', inplace=False, limit=None):
         dense = self.to_dense()
-        filled = dense.fillna(value=value, method=method)
+        filled = dense.fillna(value=value, method=method, limit=limit)
         result = filled.to_sparse(kind=self.kind,
                                   fill_value=self.fill_value)
 
@@ -481,22 +482,23 @@ to sparse
         else:
             return dense_valid.to_sparse(fill_value=self.fill_value)
 
-    def shift(self, periods, offset=None, timeRule=None):
+    def shift(self, periods, freq=None, **kwds):
         """
         Analogous to Series.shift
         """
+        from pandas.core.series import _resolve_offset
+
+        offset = _resolve_offset(freq, kwds)
+
         # no special handling of fill values yet
         if not isnull(self.fill_value):
-            dense_shifted = self.to_dense().shift(periods, offset=offset,
-                                                  timeRule=timeRule)
+            dense_shifted = self.to_dense().shift(periods, freq=freq,
+                                                  **kwds)
             return dense_shifted.to_sparse(fill_value=self.fill_value,
                                            kind=self.kind)
 
         if periods == 0:
             return self.copy()
-
-        if timeRule is not None and offset is None:
-            offset = datetools.getOffset(timeRule)
 
         if offset is not None:
             return SparseSeries(self.sp_values,

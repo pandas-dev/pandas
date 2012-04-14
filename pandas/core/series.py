@@ -17,9 +17,9 @@ import numpy.ma as ma
 from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _default_index, _maybe_upcast,
                                 _asarray_tuplesafe)
-from pandas.core.daterange import DateRange
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
-                               _ensure_index)
+                               _ensure_index, DatetimeIndex,
+                               _handle_legacy_indexes)
 from pandas.core.indexing import _SeriesIndexer
 from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
@@ -262,7 +262,12 @@ class Series(np.ndarray, generic.PandasObject):
             else:
                 index = _ensure_index(index)
             try:
-                data = lib.fast_multiget(data, index, default=np.nan)
+                if isinstance(index, DatetimeIndex):
+                    # coerce back to datetime objects for lookup
+                    data = lib.fast_multiget(data, index.astype('O'),
+                                             default=np.nan)
+                else:
+                    data = lib.fast_multiget(data, index, default=np.nan)
             except TypeError:
                 data = [data.get(i, nan) for i in index]
 
@@ -359,7 +364,7 @@ copy : boolean, default False
         if len(own_state) > 1:
             name = own_state[1]
 
-        self.index = index
+        self.index = _handle_legacy_indexes([index])[0]
         self.name = name
 
     _ix = None
@@ -624,6 +629,7 @@ copy : boolean, default False
                 return self[label]
 
     iget = iget_value
+    irow = iget_value
 
     def get_value(self, label):
         """
@@ -739,8 +745,7 @@ copy : boolean, default False
 
         if nanRep is not None:  # pragma: no cover
             import warnings
-            warnings.warn("nanRep is deprecated, use na_rep",
-                          FutureWarning)
+            warnings.warn("nanRep is deprecated, use na_rep", FutureWarning)
             na_rep = nanRep
 
         the_repr = self._get_repr(float_format=float_format, na_rep=na_rep,
@@ -844,7 +849,7 @@ copy : boolean, default False
         """
         return self.view(ndarray)
 
-    def copy(self):
+    def copy(self, order='C'):
         """
         Return new Series with copy of underlying values
 
@@ -852,7 +857,8 @@ copy : boolean, default False
         -------
         cp : Series
         """
-        return Series(self.values.copy(), index=self.index, name=self.name)
+        return Series(self.values.copy(order), index=self.index,
+                      name=self.name)
 
     def to_dict(self):
         """
@@ -1832,10 +1838,8 @@ copy : boolean, default False
             if isinstance(arg, dict):
                 arg = Series(arg)
 
-            indexer = lib.merge_indexer_object(self.values.astype(object),
-                                               arg.index.indexMap)
-
-            new_values = com.take_1d(np.asarray(arg), indexer)
+            indexer = arg.index.get_indexer(self.values)
+            new_values = com.take_1d(arg.values, indexer)
             return Series(new_values, index=self.index, name=self.name)
         else:
             mapped = lib.map_infer(self.values, arg)
@@ -1916,7 +1920,7 @@ copy : boolean, default False
         return self._constructor(new_values, new_index, name=self.name)
 
     def reindex(self, index=None, method=None, level=None, fill_value=np.nan,
-                copy=True):
+                limit=None, copy=True):
         """Conform Series to new index with optional filling logic, placing
         NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
@@ -1939,6 +1943,8 @@ copy : boolean, default False
         fill_value : scalar, default np.NaN
             Value to use for missing values. Defaults to NaN, but can be any
             "compatible" value
+        limit : int, default None
+            Maximum size gap to forward or backward fill
 
         Returns
         -------
@@ -1954,13 +1960,12 @@ copy : boolean, default False
         if len(self.index) == 0:
             return Series(nan, index=index, name=self.name)
 
-        new_index, fill_vec = self.index.reindex(index, method=method,
-                                                 level=level)
-        fill_vec = com._ensure_int32(fill_vec)
-        new_values = com.take_1d(self.values, fill_vec, fill_value=fill_value)
+        new_index, indexer = self.index.reindex(index, method=method,
+                                                 level=level, limit=limit)
+        new_values = com.take_1d(self.values, indexer, fill_value=fill_value)
         return Series(new_values, index=new_index, name=self.name)
 
-    def reindex_like(self, other, method=None):
+    def reindex_like(self, other, method=None, limit=None):
         """
         Reindex Series to match index of another Series, optionally with
         filling logic
@@ -1970,6 +1975,8 @@ copy : boolean, default False
         other : Series
         method : string or None
             See Series.reindex docstring
+        limit : int, default None
+            Maximum size gap to forward or backward fill
 
         Notes
         -----
@@ -1979,7 +1986,7 @@ copy : boolean, default False
         -------
         reindexed : Series
         """
-        return self.reindex(other.index, method=method)
+        return self.reindex(other.index, method=method, limit=limit)
 
     def take(self, indices, axis=0):
         """
@@ -2000,7 +2007,8 @@ copy : boolean, default False
 
     truncate = generic.truncate
 
-    def fillna(self, value=None, method='pad', inplace=False):
+    def fillna(self, value=None, method='pad', inplace=False,
+               limit=None):
         """
         Fill NA/NaN values using the specified method
 
@@ -2016,6 +2024,8 @@ copy : boolean, default False
             If True, fill the Series in place. Note: this will modify any other
             views on this Series, for example a column in a DataFrame. Returns
             a reference to the filled object, which is self if inplace=True
+        limit : int, default None
+            Maximum size gap to forward or backward fill
 
         See also
         --------
@@ -2035,21 +2045,22 @@ copy : boolean, default False
                 raise ValueError('must specify a fill method')
 
             method = com._clean_fill_method(method)
-
-            # sadness. for Python 2.5 compatibility
-            mask = mask.astype(np.uint8)
-
             if method == 'pad':
-                indexer = lib.get_pad_indexer(mask)
+                fill_f = com.pad_1d
             elif method == 'backfill':
-                indexer = lib.get_backfill_indexer(mask)
+                fill_f = com.backfill_1d
 
             if inplace:
-                self.values[:] = self.values.take(indexer)
+                values = self.values
+            else:
+                values = self.values.copy()
+
+            fill_f(values, limit=limit)
+
+            if inplace:
                 result = self
             else:
-                new_values = self.values.take(indexer)
-                result = Series(new_values, index=self.index, name=self.name)
+                result = Series(values, index=self.index, name=self.name)
 
         return result
 
@@ -2205,7 +2216,7 @@ copy : boolean, default False
     #----------------------------------------------------------------------
     # Time series-oriented methods
 
-    def shift(self, periods, offset=None, **kwds):
+    def shift(self, periods, freq=None, **kwds):
         """
         Shift the index of the Series by desired number of periods with an
         optional time offset
@@ -2214,7 +2225,7 @@ copy : boolean, default False
         ----------
         periods : int
             Number of periods to move, can be positive or negative
-        offset : DateOffset, timedelta, or time rule string, optional
+        freq : DateOffset, timedelta, or time rule string, optional
             Increment to use from datetools module or time rule (e.g. 'EOM')
 
         Returns
@@ -2224,9 +2235,10 @@ copy : boolean, default False
         if periods == 0:
             return self.copy()
 
-        offset = kwds.get('timeRule', offset)
+        offset = _resolve_offset(freq, kwds)
+
         if isinstance(offset, basestring):
-            offset = datetools.getOffset(offset)
+            offset = datetools.to_offset(offset)
 
         if offset is None:
             new_values = np.empty(len(self), dtype=self.dtype)
@@ -2269,8 +2281,10 @@ copy : boolean, default False
         v = self.get(date)
 
         if isnull(v):
+            # this will convert datetime -> datetime64 index
             candidates = self.index[notnull(self)]
-            index = candidates.searchsorted(date)
+
+            index = candidates.searchsorted(lib.Timestamp(date))
 
             if index > 0:
                 asOfDate = candidates[index - 1]
@@ -2283,27 +2297,26 @@ copy : boolean, default False
 
     def asfreq(self, freq, method=None):
         """
-        Convert this TimeSeries to the provided frequency using DateOffset
-        object or time rule. Optionally provide fill method to pad/backfill
-        missing values.
+        Convert all TimeSeries inside to specified frequency using DateOffset
+        objects. Optionally provide fill method to pad/backfill missing values.
 
         Parameters
         ----------
-        offset : DateOffset object, or string in {'WEEKDAY', 'EOM'}
-            DateOffset object or subclass (e.g. monthEnd)
-        method : {'backfill', 'pad', None}
-            Method to use for filling holes in new index
+        freq : DateOffset object, or string
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}
+            Method to use for filling holes in reindexed Series
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill methdo
 
         Returns
         -------
-        converted : TimeSeries
+        converted : DataFrame
         """
-        if isinstance(freq, datetools.DateOffset):
-            dateRange = DateRange(self.index[0], self.index[-1], offset=freq)
-        else:
-            dateRange = DateRange(self.index[0], self.index[-1], time_rule=freq)
-
-        return self.reindex(dateRange, method=method)
+        from pandas.core.daterange import date_range
+        if len(self.index) == 0:
+            return self.copy()
+        dti = date_range(self.index[0], self.index[-1], freq=freq)
+        return self.reindex(dti, method=method)
 
     def interpolate(self, method='linear'):
         """
@@ -2483,6 +2496,28 @@ def _get_rename_function(mapper):
         f = mapper
 
     return f
+
+def _resolve_offset(freq, kwds):
+    from pandas.core.datetools import getOffset
+
+    if 'timeRule' in kwds or 'offset' in kwds:
+        offset = kwds.get('offset')
+        offset = kwds.get('timeRule', offset)
+        if isinstance(offset, basestring):
+            offset = datetools.getOffset(offset)
+        warn = True
+    else:
+        offset = freq
+        warn = False
+
+    if warn:
+        import warnings
+        warnings.warn("'timeRule' and 'offset' parameters are deprecated,"
+                      " please use 'freq' instead",
+                      FutureWarning)
+
+    return offset
+
 
 #----------------------------------------------------------------------
 # Add plotting methods to Series

@@ -3,7 +3,7 @@ import itertools
 from numpy import nan
 import numpy as np
 
-from pandas.core.index import Index, _ensure_index
+from pandas.core.index import Index, _ensure_index, _handle_legacy_indexes
 import pandas.core.common as com
 import pandas._tseries as lib
 
@@ -216,7 +216,7 @@ class Block(object):
         else:
             return make_block(new_values, self.items, self.ref_items)
 
-    def interpolate(self, method='pad', axis=0, inplace=False):
+    def interpolate(self, method='pad', axis=0, inplace=False, limit=None):
         values = self.values if inplace else self.values.copy()
 
         if values.ndim != 2:
@@ -225,31 +225,12 @@ class Block(object):
         transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
 
         if method == 'pad':
-            _pad(transf(values))
+            com.pad_2d(transf(values), limit=limit)
         else:
-            _backfill(transf(values))
+            com.backfill_2d(transf(values), limit=limit)
 
         return make_block(values, self.items, self.ref_items)
 
-def _pad(values):
-    if com.is_float_dtype(values):
-        _method = lib.pad_2d_inplace_float64
-    elif values.dtype == np.object_:
-        _method = lib.pad_2d_inplace_object
-    else: # pragma: no cover
-        raise ValueError('Invalid dtype for padding')
-
-    _method(values, com.isnull(values).view(np.uint8))
-
-def _backfill(values):
-    if com.is_float_dtype(values):
-        _method = lib.backfill_2d_inplace_float64
-    elif values.dtype == np.object_:
-        _method = lib.backfill_2d_inplace_object
-    else: # pragma: no cover
-        raise ValueError('Invalid dtype for padding')
-
-    _method(values, com.isnull(values).view(np.uint8))
 
 #-------------------------------------------------------------------------------
 # Is this even possible?
@@ -281,12 +262,18 @@ class ObjectBlock(Block):
         return not issubclass(value.dtype.type,
                               (np.integer, np.floating, np.bool_))
 
+class DatetimeBlock(IntBlock):
+    _can_hold_na = True
+
+
 def make_block(values, items, ref_items, do_integrity_check=False):
     dtype = values.dtype
     vtype = dtype.type
 
     if issubclass(vtype, np.floating):
         klass = FloatBlock
+    elif issubclass(vtype, np.datetime64):
+        klass = DatetimeBlock
     elif issubclass(vtype, np.integer):
         if vtype != np.int64:
             values = values.astype('i8')
@@ -300,6 +287,7 @@ def make_block(values, items, ref_items, do_integrity_check=False):
                  do_integrity_check=do_integrity_check)
 
 # TODO: flexible with index=None and/or items=None
+
 
 class BlockManager(object):
     """
@@ -373,6 +361,8 @@ class BlockManager(object):
         ax_arrays, bvalues, bitems = state[:3]
 
         self.axes = [_ensure_index(ax) for ax in ax_arrays]
+        self.axes = _handle_legacy_indexes(self.axes)
+
         blocks = []
         for values, items in zip(bvalues, bitems):
             blk = make_block(values, items, self.axes[0],
@@ -915,7 +905,7 @@ class BlockManager(object):
 
     def rename_axis(self, mapper, axis=1):
         new_axis = Index([mapper(x) for x in self.axes[axis]])
-        new_axis._verify_integrity()
+        assert(new_axis.is_unique)
 
         new_axes = list(self.axes)
         new_axes[axis] = new_axis
@@ -923,7 +913,7 @@ class BlockManager(object):
 
     def rename_items(self, mapper, copydata=True):
         new_items = Index([mapper(x) for x in self.items])
-        new_items._verify_integrity()
+        new_items.is_unique
 
         new_blocks = []
         for block in self.blocks:
@@ -993,9 +983,12 @@ def form_blocks(data, axes):
     int_dict = {}
     bool_dict = {}
     object_dict = {}
+    datetime_dict = {}
     for k, v in data.iteritems():
         if issubclass(v.dtype.type, np.floating):
             float_dict[k] = v
+        elif issubclass(v.dtype.type, np.datetime64):
+            datetime_dict[k] = v
         elif issubclass(v.dtype.type, np.integer):
             int_dict[k] = v
         elif v.dtype == np.bool_:
@@ -1011,6 +1004,10 @@ def form_blocks(data, axes):
     if len(int_dict):
         int_block = _simple_blockify(int_dict, items, np.int64)
         blocks.append(int_block)
+
+    if len(datetime_dict):
+        datetime_block = _simple_blockify(datetime_dict, items, np.datetime64)
+        blocks.append(datetime_block)
 
     if len(bool_dict):
         bool_block = _simple_blockify(bool_dict, items, np.bool_)
@@ -1090,6 +1087,7 @@ def _interleaved_dtype(blocks):
     have_bool = counts[BoolBlock] > 0
     have_object = counts[ObjectBlock] > 0
     have_float = counts[FloatBlock] > 0
+    have_dt64 = counts[DatetimeBlock] > 0
     have_numeric = have_float or have_int
 
     if have_object:
@@ -1100,6 +1098,8 @@ def _interleaved_dtype(blocks):
         return np.bool_
     elif have_int and not have_float:
         return np.int64
+    elif have_dt64 and not have_float:
+        return np.datetime64
     else:
         return np.float64
 
@@ -1119,6 +1119,7 @@ def _consolidate(blocks, items):
         new_blocks.append(new_block)
 
     return new_blocks
+
 
 # TODO: this could be much optimized
 

@@ -314,8 +314,8 @@ class SparseDataFrame(DataFrame):
             return s
         except (TypeError, KeyError):
             if isinstance(item, slice):
-                dateRange = self.index[item]
-                return self.reindex(dateRange)
+                date_rng = self.index[item]
+                return self.reindex(date_rng)
 
             elif isinstance(item, np.ndarray):
                 if len(item) != len(self.index):
@@ -487,7 +487,8 @@ class SparseDataFrame(DataFrame):
         return self._constructor(data=new_data, index=self.index,
                                  columns=self.columns)
 
-    def _reindex_index(self, index, method, copy, level, fill_value=np.nan):
+    def _reindex_index(self, index, method, copy, level, fill_value=np.nan,
+                       limit=None):
         if level is not None:
             raise Exception('Reindex by level not supported for sparse')
 
@@ -500,7 +501,7 @@ class SparseDataFrame(DataFrame):
         if len(self.index) == 0:
             return SparseDataFrame(index=index, columns=self.columns)
 
-        indexer = self.index.get_indexer(index, method)
+        indexer = self.index.get_indexer(index, method, limit=limit)
         mask = indexer == -1
         need_mask = mask.any()
 
@@ -517,11 +518,14 @@ class SparseDataFrame(DataFrame):
         return SparseDataFrame(new_series, index=index, columns=self.columns,
                                default_fill_value=self.default_fill_value)
 
-    def _reindex_columns(self, columns, copy, level, fill_value):
+    def _reindex_columns(self, columns, copy, level, fill_value, limit=None):
         if level is not None:
             raise Exception('Reindex by level not supported for sparse')
 
         if com.notnull(fill_value):
+            raise NotImplementedError
+
+        if limit:
             raise NotImplementedError
 
         # TODO: fill value handling
@@ -674,12 +678,13 @@ class SparseDataFrame(DataFrame):
         """
         return self.apply(lambda x: x.cumsum(), axis=axis)
 
-    def shift(self, periods, offset=None, timeRule=None):
+    def shift(self, periods, freq=None, **kwds):
         """
         Analogous to DataFrame.shift
         """
-        if timeRule is not None and offset is None:
-            offset = datetools.getOffset(timeRule)
+        from pandas.core.series import _resolve_offset
+
+        offset = _resolve_offset(freq, kwds)
 
         new_series = {}
         if offset is None:
