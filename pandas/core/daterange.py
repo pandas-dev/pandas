@@ -25,7 +25,7 @@ class DateRange(Index):
             offset = datetools.get_offset(time_rule)
 
         return DatetimeIndex(start=start, end=end,
-                             periods=periods, offset=offset,
+                             periods=periods, freq=offset,
                              tzinfo=tzinfo, name=name, **kwds)
 
     def __setstate__(self, aug_state):
