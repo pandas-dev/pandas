@@ -433,6 +433,16 @@ def test_group_ohlc():
     expected[0] = np.nan
     assert_almost_equal(out, expected)
 
+def test_try_parse_dates():
+    from dateutil.parser import parse
+
+    arr = np.array(['5/1/2000', '6/1/2000', '7/1/2000'], dtype=object)
+
+    result = lib.try_parse_dates(arr, dayfirst=True)
+    expected = [parse(d, dayfirst=True) for d in arr]
+    assert(np.array_equal(result, expected))
+
+
 class TestTypeInference(unittest.TestCase):
 
     def test_length_zero(self):

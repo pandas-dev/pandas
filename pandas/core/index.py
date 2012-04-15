@@ -118,12 +118,18 @@ class Index(np.ndarray):
         return Index(self.values.astype(dtype), name=self.name,
                      dtype=dtype)
 
-    def to_datetime(self):
+    def to_datetime(self, dayfirst=False):
         """
         For an Index containing strings or datetime.datetime objects, attempt
         conversion to DatetimeIndex
         """
-        return DatetimeIndex(self.values)
+        if self.inferred_type == 'string':
+            from dateutil.parser import parse
+            parser = lambda x: parse(x, dayfirst=dayfirst)
+            parsed = lib.try_parse_dates(self.values, parser=parser)
+            return DatetimeIndex(parsed)
+        else:
+            return DatetimeIndex(self.values)
 
     @property
     def dtype(self):

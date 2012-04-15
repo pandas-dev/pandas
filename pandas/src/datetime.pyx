@@ -613,7 +613,7 @@ cdef class DayOffset(_Offset):
 #        offset.next()
 #    return i
 
-def string_to_datetime(ndarray[object] strings, raise_=False):
+def string_to_datetime(ndarray[object] strings, raise_=False, dayfirst=False):
     cdef:
         Py_ssize_t i, n = len(strings)
         object val
@@ -634,7 +634,7 @@ def string_to_datetime(ndarray[object] strings, raise_=False):
                 result[i] = val
             else:
                 try:
-                    result[i] = parse(val)
+                    result[i] = parse(val, dayfirst=dayfirst)
                 except Exception:
                     raise TypeError
         return result
@@ -647,7 +647,7 @@ def string_to_datetime(ndarray[object] strings, raise_=False):
                 oresult[i] = val
             else:
                 try:
-                    oresult[i] = parse(val)
+                    oresult[i] = parse(val, dayfirst=dayfirst)
                 except Exception:
                     if raise_:
                         raise

@@ -66,7 +66,7 @@ def _str_to_dt_array(arr):
     data = p_ufunc(arr)
     return np.array(data, dtype='M8[us]')
 
-def to_datetime(arg, errors='ignore'):
+def to_datetime(arg, errors='ignore', dayfirst=False):
     """
     Convert argument to datetime
 
@@ -87,14 +87,16 @@ def to_datetime(arg, errors='ignore'):
         return arg
     elif isinstance(arg, Series):
         values = lib.string_to_datetime(com._ensure_object(arg.values),
-                                        raise_=errors == 'raise')
+                                        raise_=errors == 'raise',
+                                        dayfirst=dayfirst)
         return Series(values, index=arg.index, name=arg.name)
     elif isinstance(arg, np.ndarray):
         return lib.string_to_datetime(com._ensure_object(arg),
-                                      raise_=errors == 'raise')
+                                      raise_=errors == 'raise',
+                                      dayfirst=dayfirst)
 
     try:
-        return parser.parse(arg)
+        return parser.parse(arg, dayfirst=dayfirst)
     except Exception:
         if errors == 'raise':
             raise

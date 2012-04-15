@@ -175,6 +175,31 @@ c,4,5
         self.assert_(isinstance(df.index[0], (datetime, np.datetime64, Timestamp)))
         assert_frame_equal(df, expected)
 
+    def test_parse_dates_column_list(self):
+        from pandas.core.datetools import to_datetime
+
+        data = '''date;destination;ventilationcode;unitcode;units;aux_date
+01/01/2010;P;P;50;1;12/1/2011
+01/01/2010;P;R;50;1;13/1/2011
+15/01/2010;P;P;50;1;14/1/2011
+01/05/2010;P;P;50;1;15/1/2011'''
+
+        expected = read_csv(StringIO(data), sep=";", index_col=range(4))
+
+        lev = expected.index.levels[0]
+        expected.index.levels[0] = lev.to_datetime(dayfirst=True)
+        expected['aux_date'] = to_datetime(expected['aux_date'],
+                                           dayfirst=True).astype('O')
+        self.assert_(isinstance(expected['aux_date'][0], datetime))
+
+        df = read_csv(StringIO(data), sep=";", index_col = range(4),
+                      parse_dates=[0, 5], dayfirst=True)
+        assert_frame_equal(df, expected)
+
+        df = read_csv(StringIO(data), sep=";", index_col = range(4),
+                      parse_dates=['date', 'aux_date'], dayfirst=True)
+        assert_frame_equal(df, expected)
+
     def test_no_header(self):
         data = """1,2,3,4,5
 6,7,8,9,10
