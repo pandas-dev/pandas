@@ -5,6 +5,7 @@ from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 
 import numpy as np
+from scipy import stats
 
 
 def scatter_matrix(frame, alpha=0.5, figsize=None, **kwds):
@@ -305,6 +306,38 @@ class MPLPlot(object):
 
         return x
 
+class KdePlot(MPLPlot):
+    def __init__(self, data, **kwargs):
+        MPLPlot.__init__(self, data, **kwargs)
+
+    def _get_plot_function(self):
+        return self.plt.Axes.plot
+
+    def _make_plot(self):
+        plotf = self._get_plot_function()
+        for i, (label, y) in enumerate(self._iter_data()):
+            if self.subplots:
+                ax = self.axes[i]
+                style = 'k'
+            else:
+                style = ''  # empty string ignored
+                ax = self.ax
+            if self.style:
+                style = self.style
+            gkde = stats.gaussian_kde(y)
+            sample_range = max(y) - min(y)
+            ind = np.linspace(min(y) - 0.5 * sample_range, 
+                max(y) + 0.5 * sample_range, 1000)
+            ax.set_ylabel("Density")
+            plotf(ax, ind, gkde.evaluate(ind), style, label=label, **self.kwds)
+            ax.grid(self.grid)
+
+    def _post_plot_logic(self):
+        df = self.data
+
+        if self.subplots and self.legend:
+            self.axes[0].legend(loc='best')
+
 class LinePlot(MPLPlot):
 
     def __init__(self, data, **kwargs):
@@ -521,6 +554,8 @@ def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
         klass = LinePlot
     elif kind in ('bar', 'barh'):
         klass = BarPlot
+    elif kind == 'kde':
+        klass = KdePlot
     else:
         raise ValueError('Invalid chart type given %s' % kind)
 
@@ -583,6 +618,8 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
         klass = LinePlot
     elif kind in ('bar', 'barh'):
         klass = BarPlot
+    elif kind == 'kde':
+        klass = KdePlot
 
     if ax is None:
         ax = _gca()
