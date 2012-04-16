@@ -239,7 +239,7 @@ class TestTimeSeries(unittest.TestCase):
         def _ohlc(group):
             if isnull(group).all():
                 return np.repeat(np.nan, 4)
-            return [group[0], group.min(), group.max(), group[-1]]
+            return [group[0], group.max(), group.min(), group[-1]]
 
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 5:59:50',
                          freq='10s')
@@ -807,7 +807,7 @@ class TestDatetime64(unittest.TestCase):
         self.assertEquals(result[0], s[0])
         self.assertEquals(result[-1], s[-1])
 
-    def test_convert_olhc(self):
+    def test_convert_ohlc(self):
         s = self.series
 
         grouper = TimeGrouper(Minute(5), closed='right', label='right')

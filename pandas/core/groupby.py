@@ -640,7 +640,7 @@ class Grouper(object):
     }
 
     _name_functions = {
-        'ohlc' : lambda *args: ['open', 'low', 'high', 'close']
+        'ohlc' : lambda *args: ['open', 'high', 'low', 'close']
     }
 
     def aggregate(self, values, how):

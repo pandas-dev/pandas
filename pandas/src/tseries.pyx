@@ -451,7 +451,12 @@ def maybe_booleans_to_slice(ndarray[uint8_t, cast=True] mask):
                 end = i
                 finished = 1
 
-    return slice(start, end)
+    if not started:
+        return slice(0, 0)
+    if not finished:
+        return slice(start, None)
+    else:
+        return slice(start, end)
 
 
 @cython.wraparound(False)

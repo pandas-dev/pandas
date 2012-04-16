@@ -420,7 +420,7 @@ def test_group_ohlc():
     def _ohlc(group):
         if isnull(group).all():
             return np.repeat(np.nan, 4)
-        return [group[0], group.min(), group.max(), group[-1]]
+        return [group[0], group.max(), group.min(), group[-1]]
 
     expected = np.array([_ohlc(obj[:6]), _ohlc(obj[6:12]),
                          _ohlc(obj[12:])])

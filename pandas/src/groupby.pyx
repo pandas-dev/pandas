@@ -892,8 +892,8 @@ def group_ohlc(ndarray[float64_t, ndim=2] out,
                     out[b, 3] = NA
                 else:
                     out[b, 0] = vopen
-                    out[b, 1] = vlow
-                    out[b, 2] = vhigh
+                    out[b, 1] = vhigh
+                    out[b, 2] = vlow
                     out[b, 3] = vclose
                 b += 1
                 got_first = 0
@@ -922,8 +922,8 @@ def group_ohlc(ndarray[float64_t, ndim=2] out,
             out[b, 3] = NA
         else:
             out[b, 0] = vopen
-            out[b, 1] = vlow
-            out[b, 2] = vhigh
+            out[b, 1] = vhigh
+            out[b, 2] = vlow
             out[b, 3] = vclose
 
 
