@@ -548,10 +548,14 @@ class TestLegacySupport(unittest.TestCase):
         dti = DatetimeIndex(freq='B', start=datetime(2005,1,1), periods=500)
 
         s = Series(np.arange(len(dti)), index=dti)
-        self.assertEquals(len(s['2005']), 261)
+        result = s['2005']
+        expected = s[s.index.year == 2005]
+        assert_series_equal(result, expected)
 
         df = DataFrame(np.random.rand(len(dti), 5), index=dti)
-        self.assertEquals(len(df.ix['2005']), 261)
+        result = df.ix['2005']
+        expected = df[df.index.year == 2005]
+        assert_frame_equal(result, expected)
 
     def test_slice_quarter(self):
         dti = DatetimeIndex(freq='D', start=datetime(2000,6,1), periods=500)

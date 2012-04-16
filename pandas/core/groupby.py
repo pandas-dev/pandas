@@ -1323,10 +1323,6 @@ class SeriesGroupBy(GroupBy):
                 index = MultiIndex.from_tuples(keys, names=self.grouper.names)
             else:
                 index = Index(keys, name=self.grouper.names[0])
-                # if len(keys) == self.grouper.ngroups:
-                #     index = self.grouper.result_index
-                # else:
-                #     index = Index(keys, name=self.grouper.names[0])
             return index
 
         if isinstance(values[0], Series):

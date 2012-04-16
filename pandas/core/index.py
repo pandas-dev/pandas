@@ -1711,23 +1711,22 @@ class DatetimeIndex(Int64Index):
         if reso == 'year':
             t1 = to_timestamp(datetime(parsed.year, 1, 1))
             t2 = to_timestamp(datetime(parsed.year, 12, 31))
-            i1, i2 = np.searchsorted(self.asi8, [t1.value, t2.value])
-            return slice(i1, i2+1)
         elif reso == 'month':
             d = lib.monthrange(parsed.year, parsed.month)[1]
             t1 = to_timestamp(datetime(parsed.year, parsed.month, 1))
             t2 = to_timestamp(datetime(parsed.year, parsed.month, d))
-            i1, i2 = np.searchsorted(self.asi8, [t1.value, t2.value])
-            return slice(i1, i2+1)
         elif reso == 'quarter':
             qe = (((parsed.month - 1) + 2) % 12) + 1 # two months ahead
             d = lib.monthrange(parsed.year, qe)[1]   # at end of month
             t1 = to_timestamp(datetime(parsed.year, parsed.month, 1))
             t2 = to_timestamp(datetime(parsed.year, qe, d))
-            i1, i2 = np.searchsorted(self.asi8, [t1.value, t2.value])
-            return slice(i1, i2+1)
+        else:
+            raise KeyError
 
-        raise KeyError
+        stamps = self.asi8
+        left = stamps.searchsorted(t1.value, side='left')
+        right = stamps.searchsorted(t2.value, side='right')
+        return slice(left, right)
 
     def get_value(self, series, key):
         """
