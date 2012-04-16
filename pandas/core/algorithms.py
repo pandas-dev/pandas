@@ -146,6 +146,21 @@ def _get_data_algo(values, func_map):
         values = com._ensure_object(values)
     return f, values
 
+def group_position(*args):
+    """
+    Get group position
+    """
+    from collections import defaultdict
+    table = defaultdict(int)
+
+    result = []
+    for tup in zip(*args):
+        result.append(table[tup])
+        table[tup] += 1
+
+    return result
+
+
 _rank1d_functions = {
     'float64' : lib.rank_1d_float64,
     'int64' : lib.rank_1d_int64,
