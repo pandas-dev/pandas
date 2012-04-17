@@ -5122,7 +5122,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_index_namedtuple(self):
         # Skipping until 1026 is properly resolved
-        raise nose.SkipTest
         from collections import namedtuple
         IndexType = namedtuple("IndexType", ["a", "b"])
         idx1 = IndexType("foo", "bar")
