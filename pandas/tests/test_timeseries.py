@@ -2,6 +2,7 @@
 
 from datetime import datetime, time, timedelta
 import sys
+import os
 import unittest
 
 import nose
@@ -401,10 +402,14 @@ class TestLegacySupport(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        with open('pandas/tests/data/frame.pickle', 'r') as f:
+        pth, _ = os.path.split(os.path.abspath(__file__))
+        filepath = os.path.join(pth, 'data', 'frame.pickle')
+
+        with open(filepath, 'r') as f:
             cls.frame = pickle.load(f)
 
-        with open('pandas/tests/data/series.pickle', 'r') as f:
+        filepath = os.path.join(pth, 'data', 'series.pickle')
+        with open(filepath, 'r') as f:
             cls.series = pickle.load(f)
 
     def test_unpickle_legacy_frame(self):
