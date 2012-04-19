@@ -109,7 +109,7 @@ class Period(object):
             dt = value
             if freq is None:
                 raise ValueError('Must supply freq for datetime value')
-        elif isinstance(value, (int, long)):
+        elif isinstance(value, (int, long, np.integer)):
             if value <= 0:
                 raise ValueError("Value must be positive")
             self.ordinal = value
