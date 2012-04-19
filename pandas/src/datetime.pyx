@@ -37,6 +37,12 @@ ctypedef enum time_res:
     r_max = 98
     r_invalid = 99
 
+try:
+    basestring
+except NameError: # py3
+    basestring = str
+
+
 # Python front end to C extension type _Timestamp
 # This serves as the box for datetime64
 class Timestamp(_Timestamp):
