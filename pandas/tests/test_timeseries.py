@@ -877,6 +877,14 @@ class TestDatetime64(unittest.TestCase):
         result = index.asobject
         self.assert_(result[0].tz is tz)
 
+    def test_tz_string(self):
+        _skip_if_no_pytz()
+        result = date_range('1/1/2000', periods=10, tz='US/Eastern')
+        expected = date_range('1/1/2000', periods=10,
+                              tz=pytz.timezone('US/Eastern'))
+
+        self.assert_(result.equals(expected))
+
     def test_datetimeindex_constructor(self):
         arr = ['1/1/2005', '1/2/2005', 'Jn 3, 2005', '2005-01-04']
         self.assertRaises(Exception, DatetimeIndex, arr)

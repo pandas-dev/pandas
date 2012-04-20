@@ -90,7 +90,9 @@ def to_datetime(arg, errors='ignore', dayfirst=False):
                                         raise_=errors == 'raise',
                                         dayfirst=dayfirst)
         return Series(values, index=arg.index, name=arg.name)
-    elif isinstance(arg, np.ndarray):
+    elif isinstance(arg, (np.ndarray, list)):
+        if isinstance(arg, list):
+            arg = np.array(arg, dtype='O')
         return lib.string_to_datetime(com._ensure_object(arg),
                                       raise_=errors == 'raise',
                                       dayfirst=dayfirst)
@@ -2215,6 +2217,10 @@ def _figure_out_timezone(start, end, tzinfo):
     elif tzinfo is not None:
         assert(inferred_tz == tzinfo)
         # make tz naive for now
+
+    if isinstance(tz, (str, unicode)):
+        import pytz
+        tz = pytz.timezone(tz)
 
     start = start if start is None else start.replace(tzinfo=None)
     end = end if end is None else end.replace(tzinfo=None)

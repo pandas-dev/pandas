@@ -1228,7 +1228,7 @@ class DatetimeIndex(Int64Index):
                           "please use 'freq' instead",
                           FutureWarning)
             if isinstance(freq, basestring):
-                freq = datetools.getOffset(freq)
+                freq = datetools.get_offset(freq)
         else:
             if isinstance(freq, basestring):
                 freq = datetools.to_offset(freq)
