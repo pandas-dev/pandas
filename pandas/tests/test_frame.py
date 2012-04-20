@@ -1682,12 +1682,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_constructor_scalar_inference(self):
         data = {'int' : 1, 'bool' : True,
-                'float' : 3., 'object' : 'foo'}
+                'float' : 3., 'complex': 4j, 'object' : 'foo'}
         df = DataFrame(data, index=np.arange(10))
 
         self.assert_(df['int'].dtype == np.int64)
         self.assert_(df['bool'].dtype == np.bool_)
         self.assert_(df['float'].dtype == np.float64)
+        self.assert_(df['complex'].dtype == np.complex64)
         self.assert_(df['object'].dtype == np.object_)
 
     def test_constructor_DataFrame(self):
