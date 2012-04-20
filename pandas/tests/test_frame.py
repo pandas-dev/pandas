@@ -16,6 +16,7 @@ import numpy as np
 import numpy.ma as ma
 
 import pandas as pan
+import pandas.core.nanops as nanops
 import pandas.core.common as com
 import pandas.core.format as fmt
 import pandas.core.datetools as datetools
@@ -4411,6 +4412,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = self.tsframe.var(ddof=4)
         expected = self.tsframe.apply(lambda x: x.var(ddof=4))
         assert_almost_equal(result, expected)
+
+        arr = np.repeat(np.random.random((1, 1000)), 1000, 0)
+        result = nanops.nanvar(arr, axis=0)
+        self.assertFalse((result < 0).any())
+        if nanops._USE_BOTTLENECK:
+            nanops._USE_BOTTLENECK = False
+            result = nanops.nanvar(arr, axis=0)
+            self.assertFalse((result < 0).any())
+            nanops._USE_BOTTLENECK = True
 
     def test_skew(self):
         from scipy.stats import skew
