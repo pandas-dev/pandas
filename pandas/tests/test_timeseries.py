@@ -335,7 +335,6 @@ class TestTimeSeries(unittest.TestCase):
         # GH #999, #858
 
         from dateutil.parser import parse
-        from pandas.core.datetools import to_datetime
 
         strings = np.array(['1/1/2000', '1/2/2000', np.nan,
                             '1/4/2000, 12:34:56'], dtype=object)
@@ -383,6 +382,13 @@ class TestTimeSeries(unittest.TestCase):
 
         assert_series_equal(dresult, expected)
         self.assertEquals(dresult.name, 'foo')
+
+    def test_to_datetime_empty_string(self):
+        result = to_datetime('')
+        self.assert_(result == '')
+
+        result = to_datetime(['', ''])
+        self.assert_(isnull(result).all())
 
     def test_index_to_datetime(self):
         idx = Index(['1/1/2000', '1/2/2000', '1/3/2000'])

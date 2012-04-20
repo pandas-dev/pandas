@@ -98,6 +98,8 @@ def to_datetime(arg, errors='ignore', dayfirst=False):
                                       dayfirst=dayfirst)
 
     try:
+        if not arg:
+            return arg
         return parser.parse(arg, dayfirst=dayfirst)
     except Exception:
         if errors == 'raise':

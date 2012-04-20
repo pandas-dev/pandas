@@ -633,6 +633,9 @@ def string_to_datetime(ndarray[object] strings, raise_=False, dayfirst=False):
             elif PyDateTime_Check(val):
                 result[i] = val
             else:
+                if len(val) == 0:
+                    result[i] = NaT
+                    continue
                 try:
                     result[i] = parse(val, dayfirst=dayfirst)
                 except Exception:
@@ -646,6 +649,9 @@ def string_to_datetime(ndarray[object] strings, raise_=False, dayfirst=False):
             if util._checknull(val):
                 oresult[i] = val
             else:
+                if len(val) == 0:
+                    oresult[i] = NaT
+                    continue
                 try:
                     oresult[i] = parse(val, dayfirst=dayfirst)
                 except Exception:
