@@ -2039,13 +2039,13 @@ _rule_aliases = {
     'us': 'U'
 }
 
-
-_legacy_reverse_map = dict((v, k) for k, v in _rule_aliases.iteritems())
-
 for i, weekday in enumerate(['MON', 'TUE', 'WED', 'THU', 'FRI']):
     for iweek in xrange(4):
-        _offset_map['WOM@%d%s' % (iweek + 1, weekday)] = \
-            WeekOfMonth(week=iweek, weekday=i)
+        name = 'WOM-%d%s' % (iweek + 1, weekday)
+        _offset_map[name] = WeekOfMonth(week=iweek, weekday=i)
+        _rule_aliases[name.replace('-', '@')] = name
+
+_legacy_reverse_map = dict((v, k) for k, v in _rule_aliases.iteritems())
 
 # for helping out with pretty-printing and name-lookups
 

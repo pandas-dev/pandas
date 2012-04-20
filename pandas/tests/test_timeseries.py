@@ -530,8 +530,9 @@ class TestLegacySupport(unittest.TestCase):
                  ('A@JAN', 'BA-JAN'), ('A@FEB', 'BA-FEB'), ('A@MAR', 'BA-MAR'),
                  ('A@APR', 'BA-APR'), ('A@MAY', 'BA-MAY'), ('A@JUN', 'BA-JUN'),
                  ('A@JUL', 'BA-JUL'), ('A@AUG', 'BA-AUG'), ('A@SEP', 'BA-SEP'),
-                 ('A@OCT', 'BA-OCT'), ('A@NOV', 'BA-NOV'), ('A@DEC', 'BA-DEC')
-                 ]
+                 ('A@OCT', 'BA-OCT'), ('A@NOV', 'BA-NOV'), ('A@DEC', 'BA-DEC'),
+                 ('WOM@1FRI', 'WOM-1FRI'), ('WOM@2FRI', 'WOM-2FRI'),
+                 ('WOM@3FRI', 'WOM-3FRI'), ('WOM@4FRI', 'WOM-4FRI')]
 
         start, end = '1/1/2000', '1/1/2010'
 
@@ -688,7 +689,7 @@ class TestDatetime64(unittest.TestCase):
         self.assert_( len(dti1.diff(dti2)) == 2)
 
     def test_fancy_getitem(self):
-        dti = DatetimeIndex(freq='WOM@1FRI', start=datetime(2005,1,1),
+        dti = DatetimeIndex(freq='WOM-1FRI', start=datetime(2005,1,1),
                             end=datetime(2010,1,1))
 
         s = Series(np.arange(len(dti)), index=dti)
@@ -704,7 +705,7 @@ class TestDatetime64(unittest.TestCase):
                             s[datetime(2009,3,6):datetime(2009,6,5)])
 
     def test_fancy_setitem(self):
-        dti = DatetimeIndex(freq='WOM@1FRI', start=datetime(2005,1,1),
+        dti = DatetimeIndex(freq='WOM-1FRI', start=datetime(2005,1,1),
                             end=datetime(2010,1,1))
 
         s = Series(np.arange(len(dti)), index=dti)
