@@ -223,31 +223,37 @@ def maybe_convert_numeric(ndarray[object] values, set na_values):
     cdef:
         Py_ssize_t i, n
         ndarray[float64_t] floats
+        ndarray[complex64_t] complexes
         ndarray[int64_t] ints
         bint seen_float = 0
+        bint seen_complex = 0
         object val
         float64_t fval
 
     n = len(values)
 
     floats = np.empty(n, dtype='f8')
+    complexes = np.empty(n, dtype='c8')
     ints = np.empty(n, dtype='i8')
 
     for i from 0 <= i < n:
         val = values[i]
 
         if util.is_float_object(val):
-            floats[i] = val
+            floats[i] = complexes[i] = val
             seen_float = 1
         elif val in na_values:
-            floats[i] = nan
+            floats[i] = complexes[i] = nan
             seen_float = 1
         elif val is None:
-            floats[i] = nan
+            floats[i] = complexes[i] = nan
             seen_float = 1
         elif len(val) == 0:
-            floats[i] = nan
+            floats[i] = complexes[i] = nan
             seen_float = 1
+        elif util.is_complex_object(val):
+            complexes[i] = val
+            seen_complex = 1
         else:
             fval = util.floatify(val)
             floats[i] = fval
@@ -257,7 +263,9 @@ def maybe_convert_numeric(ndarray[object] values, set na_values):
                 else:
                     ints[i] = <int64_t> fval
 
-    if seen_float:
+    if seen_complex:
+        return complexes
+    elif seen_float:
         return floats
     else:
         return ints
