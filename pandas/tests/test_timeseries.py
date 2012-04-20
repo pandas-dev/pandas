@@ -619,6 +619,17 @@ class TestLegacySupport(unittest.TestCase):
         for val in rng:
             self.assert_(val.time() == the_time)
 
+    def test_shift_multiple_of_same_base(self):
+        # GH #1063
+        ts = Series(np.random.randn(5),
+                    index=date_range('1/1/2000', periods=5, freq='H'))
+
+        result = ts.shift(1, freq='4H')
+
+        exp_index = ts.index + datetools.Hour(4)
+
+        self.assert_(result.index.equals(exp_index))
+
 class TestDateRangeCompat(unittest.TestCase):
 
     def setUp(self):
