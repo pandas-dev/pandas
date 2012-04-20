@@ -4,6 +4,7 @@ cimport numpy as cnp
 cdef extern from "numpy_helper.h":
     inline int is_integer_object(object)
     inline int is_float_object(object)
+    inline int is_complex_object(object)
     inline int is_bool_object(object)
     inline int is_string_object(object)
     inline int is_datetime64_object(object)
