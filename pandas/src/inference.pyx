@@ -270,9 +270,11 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
     cdef:
         Py_ssize_t i, n
         ndarray[float64_t] floats
+        ndarray[complex64_t] complexes
         ndarray[int64_t] ints
         ndarray[uint8_t] bools
         bint seen_float = 0
+        bint seen_complex = 0
         bint seen_int = 0
         bint seen_bool = 0
         bint seen_object = 0
@@ -283,6 +285,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
     n = len(objects)
 
     floats = np.empty(n, dtype='f8')
+    complexes = np.empty(n, dtype='c8')
     ints = np.empty(n, dtype='i8')
     bools = np.empty(n, dtype=np.uint8)
 
@@ -294,7 +297,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
 
         if val is None:
             seen_null = 1
-            floats[i] = fnan
+            floats[i] = complexes[i] = fnan
         elif util.is_bool_object(val):
             seen_bool = 1
             bools[i] = val
@@ -305,15 +308,20 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         elif util.is_integer_object(val):
             seen_int = 1
             floats[i] = <float64_t> val
+            complexes[i] = <double complex> val
             if not seen_null:
                 ints[i] = val
         elif util.is_float_object(val):
-            floats[i] = val
+            floats[i] = complexes[i] = val
             seen_float = 1
+        elif util.is_complex_object(val):
+            complexes[i] = val
+            seen_complex = 1
         elif try_float and not util.is_string_object(val):
             # this will convert Decimal objects
             try:
                 floats[i] = float(val)
+                complexes[i] = complex(val)
                 seen_float = 1
             except Exception:
                 seen_object = 1
@@ -323,14 +331,19 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
     if not safe:
         if seen_null:
             if (seen_float or seen_int) and not seen_object:
-                return floats
+                if seen_complex:
+                    return complexes
+                else:
+                    return floats
             else:
                 return objects
         else:
             if seen_object:
                 return objects
             elif not seen_bool:
-                if seen_float:
+                if seen_complex:
+                    return complexes
+                elif seen_float:
                     return floats
                 elif seen_int:
                     return ints
@@ -343,7 +356,10 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         # don't cast int to float, etc.
         if seen_null:
             if (seen_float or seen_int) and not seen_object:
-                return floats
+                if seen_complex:
+                    return complexes
+                else:
+                    return floats
             else:
                 return objects
         else:
@@ -352,6 +368,8 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             elif not seen_bool:
                 if seen_int and seen_float:
                     return objects
+                elif seen_complex:
+                    return complexes
                 elif seen_float:
                     return floats
                 elif seen_int:

@@ -208,6 +208,13 @@ def test_convert_objects_ints():
         result = lib.maybe_convert_objects(arr)
         assert(issubclass(result.dtype.type, np.integer))
 
+def test_convert_objects_complex_number():
+    for dtype in np.sctypes['complex']:
+        arr = np.array(list(1j * np.arange(20, dtype=dtype)), dtype='O')
+        assert(arr[0].dtype == np.dtype(dtype))
+        result = lib.maybe_convert_objects(arr)
+        assert(issubclass(result.dtype.type, np.complexfloating))
+
 def test_rank():
     from pandas.compat.scipy import rankdata
 
