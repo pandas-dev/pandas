@@ -987,6 +987,7 @@ def form_blocks(data, axes):
     # put "leftover" items in float bucket, where else?
     # generalize?
     float_dict = {}
+    complex_dict = {}
     int_dict = {}
     bool_dict = {}
     object_dict = {}
@@ -994,6 +995,8 @@ def form_blocks(data, axes):
     for k, v in data.iteritems():
         if issubclass(v.dtype.type, np.floating):
             float_dict[k] = v
+        elif issubclass(v.dtype.type, np.complexfloating):
+            complex_dict[k] = v
         elif issubclass(v.dtype.type, np.datetime64):
             datetime_dict[k] = v
         elif issubclass(v.dtype.type, np.integer):
@@ -1007,6 +1010,10 @@ def form_blocks(data, axes):
     if len(float_dict):
         float_block = _simple_blockify(float_dict, items, np.float64)
         blocks.append(float_block)
+
+    if len(complex_dict):
+        complex_block = _simple_blockify(complex_dict, items, np.complex64)
+        blocks.append(complex_block)
 
     if len(int_dict):
         int_block = _simple_blockify(int_dict, items, np.int64)
