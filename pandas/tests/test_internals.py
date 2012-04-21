@@ -19,12 +19,16 @@ def assert_block_equal(left, right):
 def get_float_mat(n, k):
     return np.repeat(np.atleast_2d(np.arange(k, dtype=float)), n, axis=0)
 
-TEST_COLS = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
+TEST_COLS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 N = 10
 
 def get_float_ex(cols=['a', 'c', 'e']):
     floats = get_float_mat(N, 3).T
     return make_block(floats, cols, TEST_COLS)
+
+def get_complex_ex(cols=['h']):
+    complexes = (get_float_mat(N, 1).T * 1j).astype(np.complex64)
+    return make_block(complexes, cols, TEST_COLS)
 
 def get_obj_ex(cols=['b', 'd']):
     mat = np.empty((N, 2), dtype=object)
@@ -44,6 +48,7 @@ class TestBlock(unittest.TestCase):
 
     def setUp(self):
         self.fblock = get_float_ex()
+        self.cblock = get_complex_ex()
         self.oblock = get_obj_ex()
         self.bool_block = get_bool_ex()
         self.int_block = get_int_ex()
@@ -60,6 +65,7 @@ class TestBlock(unittest.TestCase):
             assert_block_equal(blk, unpickled)
 
         _check(self.fblock)
+        _check(self.cblock)
         _check(self.oblock)
         _check(self.bool_block)
 
@@ -175,7 +181,8 @@ class TestBlockManager(unittest.TestCase):
         self.blocks = [get_float_ex(),
                        get_obj_ex(),
                        get_bool_ex(),
-                       get_int_ex()]
+                       get_int_ex(),
+                       get_complex_ex()]
         self.mgr = BlockManager.from_blocks(self.blocks, np.arange(N))
 
     def test_constructor_corner(self):
@@ -198,13 +205,13 @@ class TestBlockManager(unittest.TestCase):
         self.assert_(not self.mgr._is_indexed_like(mgr2))
 
     def test_block_id_vector_item_dtypes(self):
-        expected = [0, 1, 0, 1, 0, 2, 3]
+        expected = [0, 1, 0, 1, 0, 2, 3, 4]
         result = self.mgr.block_id_vector
         assert_almost_equal(expected, result)
 
         result = self.mgr.item_dtypes
         expected = ['float64', 'object', 'float64', 'object', 'float64',
-                    'bool', 'int64']
+                    'bool', 'int64', 'complex64']
         self.assert_(np.array_equal(result, expected))
 
     def test_union_block_items(self):
@@ -298,6 +305,7 @@ class TestBlockManager(unittest.TestCase):
         self.mgr.set('d', randn(N))
         self.mgr.set('b', randn(N))
         self.mgr.set('g', randn(N))
+        self.mgr.set('h', randn(N))
 
         cons = self.mgr.consolidate()
         self.assertEquals(cons.nblocks, 1)
