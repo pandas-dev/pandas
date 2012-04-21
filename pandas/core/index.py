@@ -1,6 +1,6 @@
 # pylint: disable=E1101,E1103,W0232
 
-from datetime import time, datetime, date
+from datetime import time, datetime
 from datetime import timedelta
 from itertools import izip
 import weakref
@@ -12,7 +12,6 @@ import pandas.core.common as com
 import pandas._tseries as lib
 import pandas._engines as _gin
 
-from datetime import datetime
 from pandas._tseries import Timestamp
 
 import pandas.core.datetools as datetools
@@ -385,7 +384,7 @@ class Index(np.ndarray):
     def sort(self, *args, **kwargs):
         raise Exception('Cannot sort an Index object')
 
-    def shift(self, periods, freq):
+    def shift(self, periods=1, freq=None):
         """
         Shift Index containing datetime objects by input number of periods and
         DateOffset
@@ -1479,6 +1478,15 @@ class DatetimeIndex(Int64Index):
             np.ndarray.__setstate__(self, new_state[2])
         else:  # pragma: no cover
             np.ndarray.__setstate__(self, state)
+
+    def __add__(self, other):
+        if isinstance(other, Index):
+            return self.union(other)
+        elif isinstance(other, (datetools.DateOffset, timedelta)):
+            new_values = self.astype('O') + other
+            return DatetimeIndex(new_values, tz=self.tz)
+        else:
+            return Index(self.view(np.ndarray) + other)
 
     @property
     def asi8(self):

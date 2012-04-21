@@ -136,7 +136,7 @@ class PandasObject(Picklable):
                        sort=sort, group_keys=group_keys)
 
     def convert(self, rule, method='pad', how='last', axis=0, as_index=True,
-                closed='right', label='right'):
+                closed='right', label='right', as_period=False):
         """
         Convenience method for frequency conversion and resampling of regular
         time-series data.
@@ -166,7 +166,7 @@ class PandasObject(Picklable):
             raise ValueError("Rule not a recognized offset")
 
         interval = TimeGrouper(rule, label=label,
-                               closed=closed, _obj=self)
+                               closed=closed, obj=self)
 
         currfreq = len(idx)
         targfreq = len(interval.binner) - 2 # since binner extends endpoints

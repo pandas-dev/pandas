@@ -2965,7 +2965,7 @@ class DataFrame(NDFrame):
         """
         return self - self.shift(periods)
 
-    def shift(self, periods, freq=None, **kwds):
+    def shift(self, periods=1, freq=None, **kwds):
         """
         Shift the index of the DataFrame by desired number of periods with an
         optional time freq

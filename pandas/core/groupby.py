@@ -941,7 +941,7 @@ class TimeGrouper(BinGrouper):
     binner = None
 
     def __init__(self, interval='Min', closed='left', label='left',
-                 begin=None, end=None, nperiods=None, _obj=None):
+                 begin=None, end=None, nperiods=None, obj=None):
         self.offset = interval
         self.closed = closed
         self.label = label
@@ -949,8 +949,8 @@ class TimeGrouper(BinGrouper):
         self.end = end
         self.nperiods = None
 
-        if _obj is not None:
-            self.set_obj(_obj)
+        if obj is not None:
+            self.set_obj(obj)
 
     def set_obj(self, obj):
         """

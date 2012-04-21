@@ -12,7 +12,7 @@ import numpy as np
 from pandas import (Index, Series, TimeSeries, DataFrame, isnull,
                     date_range, Timestamp)
 
-from pandas import DatetimeIndex, to_datetime
+from pandas import DatetimeIndex, Int64Index, to_datetime
 
 from pandas.core.daterange import DateRange
 import pandas.core.datetools as datetools
@@ -20,31 +20,15 @@ import pandas.core.datetools as datetools
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
 
-
 import pandas._tseries as lib
-from datetime import datetime
-
 import cPickle as pickle
-
 import pandas.core.datetools as dt
-from pandas.core.index import Index, DatetimeIndex, Int64Index
-from pandas.core.frame import DataFrame
-
-import unittest
-import numpy as np
-
-from pandas import Series
-
 from numpy.random import rand
-
-from pandas.util.testing import assert_series_equal, assert_frame_equal
-
+from pandas.util.testing import assert_frame_equal
 from pandas.core.groupby import TimeGrouper
-from pandas.core.datetools import Minute, BDay, Timestamp
-
+from pandas.core.datetools import Minute, BDay
 import pandas.core.common as com
 
-import pandas._tseries as lib
 NaT = lib.NaT
 
 

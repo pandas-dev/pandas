@@ -40,6 +40,7 @@ ctypedef enum time_res:
 # Python front end to C extension type _Timestamp
 # This serves as the box for datetime64
 class Timestamp(_Timestamp):
+
     def __new__(cls, object ts_input, object offset=None, tz=None):
         if isinstance(ts_input, float):
             # to do, do we want to support this, ie with fractional seconds?
@@ -102,6 +103,15 @@ class Timestamp(_Timestamp):
 
         return Interval(self, freq=freq)
 
+def apply_offset(ndarray[object] values, object offset):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[int64_t] new_values
+        object boxed
+
+    result = np.empty(n, dtype='M8[us]')
+    new_values = result.view('i8')
+    pass
 
 # This is PITA. Because we inherit from datetime, which has very specific
 # construction requirements, we need to do object instantiation in python

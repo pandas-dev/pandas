@@ -5,7 +5,6 @@ Data structure for 1-dimensional cross-sectional and time series data
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
 
-from collections import defaultdict
 from itertools import izip
 import operator
 from distutils.version import LooseVersion
@@ -2216,7 +2215,7 @@ copy : boolean, default False
     #----------------------------------------------------------------------
     # Time series-oriented methods
 
-    def shift(self, periods, freq=None, **kwds):
+    def shift(self, periods=1, freq=None, **kwds):
         """
         Shift the index of the Series by desired number of periods with an
         optional time offset

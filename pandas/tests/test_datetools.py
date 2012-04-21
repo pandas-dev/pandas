@@ -1225,6 +1225,8 @@ def test_Hour():
     assert (Hour(3) + Hour(2)) == Hour(5)
     assert (Hour(3) - Hour(2)) == Hour()
 
+    assert(Hour(4) != Hour(1))
+
 def test_Minute():
     assertEq(Minute(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 1))
     assertEq(Minute(-1), datetime(2010, 1, 1, 0, 1), datetime(2010, 1, 1))
@@ -1233,6 +1235,7 @@ def test_Minute():
 
     assert (Minute(3) + Minute(2)) == Minute(5)
     assert (Minute(3) - Minute(2)) == Minute()
+    assert(Minute(5) != Minute())
 
 def test_Second():
     assertEq(Second(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 1))

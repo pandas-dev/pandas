@@ -1762,7 +1762,7 @@ class Tick(DateOffset):
 
     def __ne__(self, other):
         if isinstance(other, Tick):
-            return self._inc != other._inc
+            return self.delta != other.delta
         else:
             return DateOffset.__ne__(self, other)
 
