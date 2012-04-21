@@ -250,6 +250,12 @@ class FloatBlock(Block):
         # unnecessarily
         return issubclass(value.dtype.type, np.floating)
 
+class ComplexBlock(Block):
+    _can_hold_na = True
+
+    def should_store(self, value):
+        return issubclass(value.dtype.type, np.complexfloating)
+
 class IntBlock(Block):
     _can_hold_na = False
 
@@ -267,7 +273,8 @@ class ObjectBlock(Block):
 
     def should_store(self, value):
         return not issubclass(value.dtype.type,
-                              (np.integer, np.floating, np.bool_))
+                              (np.integer, np.floating, np.complexfloating,
+                               np.bool_))
 
 class DatetimeBlock(IntBlock):
     _can_hold_na = True
@@ -279,6 +286,8 @@ def make_block(values, items, ref_items, do_integrity_check=False):
 
     if issubclass(vtype, np.floating):
         klass = FloatBlock
+    elif issubclass(vtype, np.complexfloating):
+        klass = ComplexBlock
     elif issubclass(vtype, np.datetime64):
         klass = DatetimeBlock
     elif issubclass(vtype, np.integer):
@@ -423,7 +432,7 @@ class BlockManager(object):
 
     def get_numeric_data(self, copy=False):
         num_blocks = [b for b in self.blocks
-                      if isinstance(b, (IntBlock, FloatBlock))]
+                      if isinstance(b, (IntBlock, FloatBlock, ComplexBlock))]
 
         indexer = np.sort(np.concatenate([b.ref_locs for b in num_blocks]))
         new_items = self.items.take(indexer)
@@ -1103,8 +1112,9 @@ def _interleaved_dtype(blocks):
     have_bool = counts[BoolBlock] > 0
     have_object = counts[ObjectBlock] > 0
     have_float = counts[FloatBlock] > 0
+    have_complex = counts[ComplexBlock] > 0
     have_dt64 = counts[DatetimeBlock] > 0
-    have_numeric = have_float or have_int
+    have_numeric = have_float or have_complex or have_int
 
     if have_object:
         return np.object_
@@ -1112,10 +1122,12 @@ def _interleaved_dtype(blocks):
         return np.object_
     elif have_bool:
         return np.bool_
-    elif have_int and not have_float:
+    elif have_int and not have_float and not have_complex:
         return np.int64
-    elif have_dt64 and not have_float:
+    elif have_dt64 and not have_float and not have_complex:
         return np.datetime64
+    elif have_complex:
+        return np.complex64
     else:
         return np.float64
 
