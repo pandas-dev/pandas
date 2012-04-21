@@ -156,7 +156,7 @@ cdef double INF = <double> np.inf
 cdef double NEGINF = -INF
 
 cpdef checknull(object val):
-    if util.is_float_object(val):
+    if util.is_float_object(val) or util.is_complex_object(val):
         return val != val or val == INF or val == NEGINF
     elif util.is_datetime64_object(val):
         return val.view('i8') == NaT
