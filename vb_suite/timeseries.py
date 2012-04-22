@@ -41,3 +41,16 @@ right = Series(ts.values.take(rindex), index=ts.index.take(rindex))
 """
 
 timeseries_add_irregular = Benchmark('left + right', setup)
+
+#----------------------------------------------------------------------
+# Sort large irregular time series
+
+setup = common_setup + """
+N = 100000
+rng = date_range('1/1/2000', periods=N, freq='s')
+rng = rng.take(np.random.permutation(N))
+ts = Series(np.random.randn(N), index=rng)
+"""
+
+timeseries_sort_index = Benchmark('ts.sort_index()', setup,
+                                  start_date=datetime(2011, 11, 1))

@@ -443,6 +443,22 @@ class DatetimeIndex(Int64Index):
 
         return PeriodIndex(self.values, freq=freq)
 
+    def order(self, return_indexer=False, ascending=True):
+        """
+        Return sorted copy of Index
+        """
+        if return_indexer:
+            _as = self.argsort()
+            if not ascending:
+                _as = _as[::-1]
+            sorted_index = self.take(_as)
+            return sorted_index, _as
+        else:
+            sorted_values = np.sort(self.values)
+            return self._simple_new(sorted_values, self.name, None,
+                                    self.tz)
+
+
     def snap(self, freq='S'):
         """
         Snap time stamps to nearest occuring frequency

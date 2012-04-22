@@ -1591,12 +1591,9 @@ copy : boolean, default False
         -------
         sorted_obj : Series
         """
-        labels = self.index
-        sort_index = labels.argsort()
-        if not ascending:
-            sort_index = sort_index[::-1]
-        new_labels = labels.take(sort_index)
-        new_values = self.values.take(sort_index)
+        new_labels, indexer = self.index.order(return_indexer=True,
+                                               ascending=ascending)
+        new_values = self.values.take(indexer)
         return Series(new_values, new_labels, name=self.name)
 
     def argsort(self, axis=0, kind='quicksort', order=None):
