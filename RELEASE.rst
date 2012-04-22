@@ -30,6 +30,11 @@ pandas 0.8.0
   - Add GroupBy.prod optimized aggregation function and 'prod' fast time series
     conversion method (#1018)
 
+**Improvements to existing features**
+
+  - Shipping some functions from scipy.stats to reduce dependency,
+    e.g. Series.describe and DataFrame.describe (GH #1092)
+
 **API Changes**
 
   - Change BDay (business day) to not normalize dates by default

@@ -1047,7 +1047,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(not isinstance(result, Series))
 
     def test_quantile(self):
-        from scipy.stats import scoreatpercentile
+        from pandas.compat.scipy import scoreatpercentile
 
         q = self.ts.quantile(0.1)
         self.assertEqual(q, scoreatpercentile(self.ts.valid(), 10))
@@ -1698,7 +1698,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_almost_equal(expected, ordered.valid().values)
 
     def test_rank(self):
-        from scipy.stats import rankdata
+        from pandas.compat.scipy import rankdata
 
         self.ts[::2] = np.nan
         self.ts[:10][::3] = 4.

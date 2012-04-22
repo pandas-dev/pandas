@@ -3,6 +3,8 @@ import numpy as np
 
 from pandas.core.api import Series, DataFrame, isnull, notnull
 from pandas.core.series import remove_na
+from pandas.compat.scipy import scoreatpercentile
+
 
 __all__ = ['bucket', 'bucketpanel']
 
@@ -293,16 +295,10 @@ def quantileTS(frame, percentile):
     percentile: int
        nth percentile
 
-    See also
-    --------
-    scipy.stats.scoreatpercentile
-
     Returns
     -------
     Series (or TimeSeries)
     """
-    from scipy.stats import scoreatpercentile
-
     def func(x):
         x = np.asarray(x.valid())
         if x.any():
@@ -340,15 +336,11 @@ def percentileRank(frame, column=None, kind='mean'):
 
                   http://en.wikipedia.org/wiki/Percentile_rank
 
-    See also
-    --------
-    scipy.stats.percentileofscore
-
     Returns
     -------
     TimeSeries or DataFrame, depending on input
     """
-    from scipy.stats import percentileofscore
+    from pandas.compat.scipy import percentileofscore
     fun = lambda xs, score: percentileofscore(remove_na(xs),
                                               score, kind=kind)
 

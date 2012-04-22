@@ -1,5 +1,6 @@
 import unittest
 
+from numpy import nan
 import numpy as np
 from pandas import Index, isnull
 from pandas.util.testing import assert_almost_equal
@@ -163,7 +164,7 @@ def test_groupsort_indexer():
 
 
 def test_duplicated_with_nas():
-    keys = [0, 1, np.nan, 0, 2, np.nan]
+    keys = [0, 1, nan, 0, 2, nan]
 
     result = lib.duplicated(keys)
     expected = [False, False, False, True, False, True]
@@ -173,7 +174,7 @@ def test_duplicated_with_nas():
     expected = [True, False, True, False, False, False]
     assert(np.array_equal(result, expected))
 
-    keys = [(0, 0), (0, np.nan), (np.nan, 0), (np.nan, np.nan)] * 2
+    keys = [(0, 0), (0, nan), (nan, 0), (nan, nan)] * 2
 
     result = lib.duplicated(keys)
     falses = [False] * 4
@@ -186,7 +187,7 @@ def test_duplicated_with_nas():
     assert(np.array_equal(result, expected))
 
 def test_convert_objects():
-    arr = np.array(['a', 'b', np.nan, np.nan, 'd', 'e', 'f'], dtype='O')
+    arr = np.array(['a', 'b', nan, nan, 'd', 'e', 'f'], dtype='O')
     result = lib.maybe_convert_objects(arr)
     assert(result.dtype == np.object_)
 
@@ -201,15 +202,15 @@ def test_convert_objects_ints():
         assert(issubclass(result.dtype.type, np.integer))
 
 def test_rank():
-    from scipy.stats import rankdata
-    from numpy import nan
+    from pandas.compat.scipy import rankdata
+
     def _check(arr):
         mask = -np.isfinite(arr)
         arr = arr.copy()
         result = lib.rank_1d_float64(arr)
         arr[mask] = np.inf
         exp = rankdata(arr)
-        exp[mask] = np.nan
+        exp[mask] = nan
         assert_almost_equal(result, exp)
 
     _check(np.array([nan, nan, 5., 5., 5., nan, 1, 2, 3, nan]))
@@ -419,7 +420,7 @@ def test_group_ohlc():
 
     def _ohlc(group):
         if isnull(group).all():
-            return np.repeat(np.nan, 4)
+            return np.repeat(nan, 4)
         return [group[0], group.max(), group.min(), group[-1]]
 
     expected = np.array([_ohlc(obj[:6]), _ohlc(obj[6:12]),
@@ -428,9 +429,9 @@ def test_group_ohlc():
     assert_almost_equal(out, expected)
     assert_almost_equal(counts, [6, 6, 8])
 
-    obj[:6] = np.nan
+    obj[:6] = nan
     lib.group_ohlc(out, counts, obj[:, None], bins)
-    expected[0] = np.nan
+    expected[0] = nan
     assert_almost_equal(out, expected)
 
 def test_try_parse_dates():

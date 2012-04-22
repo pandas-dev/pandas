@@ -31,6 +31,7 @@ from pandas.core.index import Index, DatetimeIndex, MultiIndex, _ensure_index
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _radd_compat
+from pandas.compat.scipy import scoreatpercentile as _quantile
 from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
 from pandas.util.decorators import deprecate, Appender, Substitution
@@ -3810,7 +3811,6 @@ class DataFrame(NDFrame):
         -------
         quantiles : Series
         """
-        from scipy.stats import scoreatpercentile
         per = q * 100
 
         def f(arr):
@@ -3821,7 +3821,7 @@ class DataFrame(NDFrame):
             if len(arr) == 0:
                 return nan
             else:
-                return scoreatpercentile(arr, per)
+                return _quantile(arr, per)
 
         return self.apply(f, axis=axis)
 

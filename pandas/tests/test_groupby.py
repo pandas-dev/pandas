@@ -1214,7 +1214,7 @@ class TestGroupBy(unittest.TestCase):
         self.assert_(result.columns.equals(df.columns[:-1]))
 
     def test_pass_args_kwargs(self):
-        from scipy.stats import scoreatpercentile
+        from pandas.compat.scipy import scoreatpercentile
 
         def f(x, q=None):
             return scoreatpercentile(x, q)

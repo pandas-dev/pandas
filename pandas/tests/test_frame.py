@@ -4552,10 +4552,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self._check_stat_op('median', wrapper, frame=self.intframe)
 
     def test_quantile(self):
-        try:
-            from scipy.stats import scoreatpercentile
-        except ImportError:
-            return
+        from pandas.compat.scipy import scoreatpercentile
 
         q = self.tsframe.quantile(0.1, axis=0)
         self.assertEqual(q['A'], scoreatpercentile(self.tsframe['A'], 10))
@@ -4615,13 +4612,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df.cumprod(1)
 
     def test_rank(self):
-        from scipy.stats import rankdata
+        from pandas.compat.scipy import rankdata
 
         self.frame['A'][::2] = np.nan
         self.frame['B'][::3] = np.nan
         self.frame['C'][::4] = np.nan
         self.frame['D'][::5] = np.nan
-
 
         ranks0 = self.frame.rank()
         ranks1 = self.frame.rank(1)

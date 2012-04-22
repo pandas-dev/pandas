@@ -30,6 +30,8 @@ import pandas.core.nanops as nanops
 import pandas._tseries as lib
 from pandas.util.decorators import Appender, Substitution
 
+from pandas.compat.scipy import scoreatpercentile as _quantile
+
 __all__ = ['Series', 'TimeSeries']
 
 _np_version = np.version.short_version
@@ -1249,11 +1251,10 @@ copy : boolean, default False
         -------
         quantile : float
         """
-        from scipy.stats import scoreatpercentile
         valid_values = self.dropna().values
         if len(valid_values) == 0:
             return np.nan
-        return scoreatpercentile(valid_values, q * 100)
+        return _quantile(valid_values, q * 100)
 
     def describe(self, percentile_width=50):
         """
