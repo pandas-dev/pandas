@@ -204,11 +204,6 @@ class DateOffset(object):
         return a == b
 
 
-class Day(DateOffset, CacheableOffset):
-
-    def rule_code(self):
-        return 'D'
-
 
 class BusinessDay(DateOffset, CacheableOffset):
     """
@@ -888,6 +883,13 @@ class Tick(DateOffset):
 
     def rule_code(self):
         return 'T'
+
+
+class Day(Tick, CacheableOffset):
+    _inc = timedelta(1)
+
+    def rule_code(self):
+        return 'D'
 
 class Hour(Tick):
     _inc = timedelta(0, 3600)
