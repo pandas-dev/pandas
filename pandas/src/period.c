@@ -1,17 +1,17 @@
-#include "skts.h"
+#include "period.h"
 #include "limits.h"
 #include "numpy/ndarraytypes.h"
 
 /*
  * Borrowed and derived code from scikits.timeseries that we will expose via
- * Cython to pandas. This primarily concerns interval representation and
+ * Cython to pandas. This primarily concerns period representation and
  * frequency conversion routines.
  */
 
 /* see end of file for stuff pandas uses (search for 'pandas') */
 
 /* ------------------------------------------------------------------
- * Code derived from skts
+ * Code derived from scikits.timeseries
  * ------------------------------------------------------------------*/
 
 static asfreq_info NULL_AF_INFO;
@@ -957,14 +957,14 @@ int dInfoCalc_SetFromAbsDateTime(struct date_info *dinfo,
  * New pandas API-helper code, to expose to cython
  * ------------------------------------------------------------------*/
 
-long resample(long skts_ordinal, int freq1, int freq2, char relation)
+long asfreq(long period_ordinal, int freq1, int freq2, char relation)
 {
     freq_conv_func func = get_asfreq_func(freq1, freq2, 0);
 
     asfreq_info finfo;
     get_asfreq_info(freq1, freq2, &finfo);
 
-    long val = (*func)(skts_ordinal, relation, &finfo);
+    long val = (*func)(period_ordinal, relation, &finfo);
 
     if (val == INT_ERR_CODE)
         Py_Error(PyExc_ValueError, "Unable to convert to desired frequency.");
@@ -974,8 +974,8 @@ onError:
     return INT_ERR_CODE;
 }
 
-/* generate an ordinal in skts space */
-long get_skts_ordinal(int year, int month, int day,
+/* generate an ordinal in period space */
+long get_period_ordinal(int year, int month, int day,
                       int hour, int minute, int second,
                       int freq)
 {
@@ -1063,14 +1063,14 @@ onError:
 /*
     Returns the proleptic Gregorian ordinal of the date, as an integer.
     This corresponds to the number of days since Jan., 1st, 1AD.
-    When the instance has a frequency less than daily, the proleptic date 
+    When the instance has a frequency less than daily, the proleptic date
     is calculated for the last day of the period.
 */
 
-long get_python_ordinal(long skts_ordinal, int freq)
+long get_python_ordinal(long period_ordinal, int freq)
 {
     if (freq == FR_DAY)
-        return skts_ordinal;
+        return period_ordinal;
 
     long (*toDaily)(long, char, asfreq_info*) = NULL;
     asfreq_info af_info;
@@ -1078,7 +1078,7 @@ long get_python_ordinal(long skts_ordinal, int freq)
     toDaily = get_asfreq_func(freq, FR_DAY, 0);
     get_asfreq_info(freq, FR_DAY, &af_info);
 
-    return toDaily(skts_ordinal, 'E', &af_info);
+    return toDaily(period_ordinal, 'E', &af_info);
 }
 
 char *str_replace(const char *s, const char *old, const char *new) {
@@ -1112,10 +1112,10 @@ char *str_replace(const char *s, const char *old, const char *new) {
     return ret;
 }
 
-// function to generate a nice string representation of the interval
+// function to generate a nice string representation of the period
 // object, originally from DateObject_strftime
 
-char *interval_strftime(long value, int freq, PyObject *args)
+char *skts_strftime(long value, int freq, PyObject *args)
 {
     char *orig_fmt_str, *fmt_str;
     char *result;
@@ -1249,7 +1249,7 @@ char *interval_strftime(long value, int freq, PyObject *args)
     return result;
 }
 
-char *interval_to_string(long value, int freq)
+char *period_to_string(long value, int freq)
 {
     int freq_group = get_freq_group(freq);
     PyObject *string_arg;
@@ -1276,19 +1276,19 @@ char *interval_to_string(long value, int freq)
 
     if (string_arg == NULL) { return (char *)NULL; }
 
-    retval = interval_strftime(value, freq, string_arg);
+    retval = skts_strftime(value, freq, string_arg);
     Py_DECREF(string_arg);
 
     return retval;
 }
 
-char *interval_to_string2(long value, int freq, char *fmt)
+char *period_to_string2(long value, int freq, char *fmt)
 {
     PyObject *string_arg;
     char *retval;
     string_arg = Py_BuildValue("(s)", fmt);
     if (string_arg == NULL) { return (char *)NULL; }
-    retval = interval_strftime(value, freq, string_arg);
+    retval = skts_strftime(value, freq, string_arg);
     Py_DECREF(string_arg);
     return retval;
 }
@@ -1352,83 +1352,83 @@ int get_date_info(long ordinal, int freq, struct date_info *dinfo)
     return 0;
 }
 
-int iyear(long ordinal, int freq) {
+int pyear(long ordinal, int freq) {
     struct date_info dinfo;
     get_date_info(ordinal, freq, &dinfo);
     return dinfo.year;
 }
 
-int iqyear(long ordinal, int freq) {
+int pqyear(long ordinal, int freq) {
     int year, quarter;
     if( _quarter_year(ordinal, freq, &year, &quarter) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return year;
 }
 
-int iquarter(long ordinal, int freq) {
+int pquarter(long ordinal, int freq) {
     int year, quarter;
     if(_quarter_year(ordinal, freq, &year, &quarter) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return quarter;
 }
 
-int imonth(long ordinal, int freq) {
+int pmonth(long ordinal, int freq) {
     struct date_info dinfo;
     if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.month;
 }
 
-int iday(long ordinal, int freq) {
+int pday(long ordinal, int freq) {
     struct date_info dinfo;
     if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.day;
 }
 
-int iweekday(long ordinal, int freq) {
+int pweekday(long ordinal, int freq) {
     struct date_info dinfo;
     if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.day_of_week;
 }
 
-int iday_of_week(long ordinal, int freq) {
+int pday_of_week(long ordinal, int freq) {
     struct date_info dinfo;
     if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.day_of_week;
 }
 
-int iday_of_year(long ordinal, int freq) {
+int pday_of_year(long ordinal, int freq) {
     struct date_info dinfo;
     if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.day_of_year;
 }
 
-int iweek(long ordinal, int freq) {
+int pweek(long ordinal, int freq) {
     struct date_info dinfo;
     if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return _ISOWeek(&dinfo);
 }
 
-int ihour(long ordinal, int freq) {
+int phour(long ordinal, int freq) {
     struct date_info dinfo;
     if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.hour;
 }
 
-int iminute(long ordinal, int freq) {
+int pminute(long ordinal, int freq) {
     struct date_info dinfo;
     if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.minute;
 }
 
-int isecond(long ordinal, int freq) {
+int psecond(long ordinal, int freq) {
     struct date_info dinfo;
     if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;

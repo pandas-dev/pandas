@@ -7,10 +7,9 @@ import numpy as np
 import pandas.core.datetools as datetools
 from pandas.core.datetools import generate_range
 from pandas.core.index import Index, DatetimeIndex
-from pandas.core.daterange import bdate_range, date_range
-import pandas.util.testing as tm
 
-import pandas._tseries as lib
+from pandas.tseries.index import bdate_range, date_range
+import pandas.tseries.tools as tools
 
 try:
     import pytz
@@ -330,17 +329,17 @@ class TestDateRange(unittest.TestCase):
 
         start = eastern.localize(_start)
         end = eastern.localize(_end)
-        assert(datetools._infer_tzinfo(start, end) is eastern)
-        assert(datetools._infer_tzinfo(start, None) is eastern)
-        assert(datetools._infer_tzinfo(None, end) is eastern)
+        assert(tools._infer_tzinfo(start, end) is eastern)
+        assert(tools._infer_tzinfo(start, None) is eastern)
+        assert(tools._infer_tzinfo(None, end) is eastern)
 
         start = utc.localize(_start)
         end = utc.localize(_end)
-        assert(datetools._infer_tzinfo(start, end) is utc)
+        assert(tools._infer_tzinfo(start, end) is utc)
 
         end = eastern.localize(_end)
-        self.assertRaises(Exception, datetools._infer_tzinfo, start, end)
-        self.assertRaises(Exception, datetools._infer_tzinfo, end, start)
+        self.assertRaises(Exception, tools._infer_tzinfo, start, end)
+        self.assertRaises(Exception, tools._infer_tzinfo, end, start)
 
     def test_date_parse_failure(self):
         badly_formed_date = '2007/100/1'

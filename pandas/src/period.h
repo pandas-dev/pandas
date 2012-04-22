@@ -1,16 +1,16 @@
-/* 
+/*
  * Borrowed and derived code from scikits.timeseries that we will expose via
  * Cython to pandas. This primarily concerns interval representation and
  * frequency conversion routines.
  */
 
-#ifndef C_SKTS_H
-#define C_SKTS_H
+#ifndef C_PERIOD_H
+#define C_PERIOD_H
 
 #include <Python.h>
 
 /*
- * declarations from skts here
+ * declarations from period here
  */
 
 #define GREGORIAN_CALENDAR 0
@@ -120,31 +120,31 @@ typedef long (*freq_conv_func)(long, char, asfreq_info*);
  * new pandas API helper functions here
  */
 
-long resample(long skts_ordinal, int freq1, int freq2, char relation);
+long asfreq(long period_ordinal, int freq1, int freq2, char relation);
 
-long get_skts_ordinal(int year, int month, int day,
+long get_period_ordinal(int year, int month, int day,
                       int hour, int minute, int second,
                       int freq);
 
-long get_python_ordinal(long skts_ordinal, int freq);
+long get_python_ordinal(long period_ordinal, int freq);
 
-char *interval_strftime(long value, int freq, PyObject *args);
-char *interval_to_string(long value, int freq);
-char *interval_to_string2(long value, int freq, char *fmt);
+char *skts_strftime(long value, int freq, PyObject *args);
+char *period_to_string(long value, int freq);
+char *period_to_string2(long value, int freq, char *fmt);
 
 int get_date_info(long ordinal, int freq, struct date_info *dinfo);
 
-int iyear(long ordinal, int freq);
-int iqyear(long ordinal, int freq);
-int iquarter(long ordinal, int freq);
-int imonth(long ordinal, int freq);
-int iday(long ordinal, int freq);
-int iweekday(long ordinal, int freq);
-int iday_of_week(long ordinal, int freq);
-int iday_of_year(long ordinal, int freq);
-int iweek(long ordinal, int freq);
-int ihour(long ordinal, int freq);
-int iminute(long ordinal, int freq);
-int isecond(long ordinal, int freq);
+int pyear(long ordinal, int freq);
+int pqyear(long ordinal, int freq);
+int pquarter(long ordinal, int freq);
+int pmonth(long ordinal, int freq);
+int pday(long ordinal, int freq);
+int pweekday(long ordinal, int freq);
+int pday_of_week(long ordinal, int freq);
+int pday_of_year(long ordinal, int freq);
+int pweek(long ordinal, int freq);
+int phour(long ordinal, int freq);
+int pminute(long ordinal, int freq);
+int psecond(long ordinal, int freq);
 
 #endif

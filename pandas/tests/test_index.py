@@ -8,13 +8,14 @@ import nose
 
 import numpy as np
 
-from pandas.core.index import Index, Int64Index, Factor, MultiIndex
+from pandas.core.factor import Factor
+from pandas.core.index import Index, Int64Index, MultiIndex
 from pandas.util.testing import assert_almost_equal
 from pandas.util import py3compat
 
 import pandas.util.testing as tm
-import pandas._tseries as tseries
-from pandas.core.datetools import _dt_unbox
+
+from pandas.tseries.index import _to_m8
 
 class TestIndex(unittest.TestCase):
 
@@ -113,7 +114,7 @@ class TestIndex(unittest.TestCase):
     def test_comparators(self):
         index = self.dateIndex
         element = index[len(index) // 2]
-        element = _dt_unbox(element)
+        element = _to_m8(element)
 
         arr = np.array(index)
 
@@ -153,7 +154,7 @@ class TestIndex(unittest.TestCase):
     def test_getitem(self):
         arr = np.array(self.dateIndex)
         exp = self.dateIndex[5]
-        exp = _dt_unbox(exp)
+        exp = _to_m8(exp)
 
         self.assertEquals(exp, arr[5])
 

@@ -214,7 +214,7 @@ class CleanCommand(Command):
         self._clean_trees = []
         self._clean_exclude = ['np_datetime.c',
                                'np_datetime_strings.c',
-                               'skts.c']
+                               'period.c']
 
         for root, dirs, files in list(os.walk('pandas')):
             for f in files:
@@ -347,9 +347,9 @@ else:
 tseries_ext = Extension('pandas._tseries',
                         depends=tseries_depends + ['pandas/src/numpy_helper.h'],
                         sources=[srcpath('tseries', suffix=suffix),
+                                 'pandas/src/period.c',
                                  'pandas/src/np_datetime.c',
-                                 'pandas/src/np_datetime_strings.c',
-                                 'pandas/src/skts.c'],
+                                 'pandas/src/np_datetime_strings.c'],
                         include_dirs=[np.get_include()],
                         # pyrex_gdb=True,
                         # extra_compile_args=['-Wconversion']

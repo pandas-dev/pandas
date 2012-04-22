@@ -2311,7 +2311,7 @@ copy : boolean, default False
         -------
         converted : DataFrame
         """
-        from pandas.core.daterange import date_range
+        from pandas.tseries.index import date_range
         if len(self.index) == 0:
             return self.copy()
         dti = date_range(self.index[0], self.index[-1], freq=freq)

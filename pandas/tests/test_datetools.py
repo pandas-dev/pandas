@@ -8,8 +8,11 @@ from pandas.core.datetools import (
     DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second,
     WeekOfMonth, format, ole2datetime, QuarterEnd, to_datetime, normalize_date,
     get_offset, get_offset_name, inferTimeRule, hasOffsetName,
-    _dt_box, _dt_unbox, parse_time_string, get_standard_freq,
-    _offset_map)
+    get_standard_freq)
+
+from pandas.tseries.frequencies import _offset_map
+from pandas.tseries.index import _to_m8
+from pandas.tseries.tools import parse_time_string
 
 from nose.tools import assert_raises
 
@@ -50,9 +53,9 @@ def test_normalize_date():
     actual = normalize_date(datetime(2007, 10, 1, 1, 12, 5, 10))
     assert actual == datetime(2007, 10, 1)
 
-def test_datetime64_unbox():
+def test_to_m8():
     valb = datetime(2007, 10, 1)
-    valu = _dt_unbox(valb)
+    valu = _to_m8(valb)
     assert type(valu) == np.datetime64
     #assert valu == np.datetime64(datetime(2007,10,1))
 

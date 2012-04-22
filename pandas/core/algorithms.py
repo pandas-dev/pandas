@@ -20,29 +20,36 @@ def match(values, index):
     -------
     match : ndarray
     """
-    if com.is_float_dtype(index):
-        return _match_generic(values, index, lib.Float64HashTable,
-                              com._ensure_float64)
-    elif com.is_integer_dtype(index):
-        return _match_generic(values, index, lib.Int64HashTable,
-                              com._ensure_int64)
-    else:
-        return _match_generic(values, index, lib.PyObjectHashTable,
-                              com._ensure_object)
+    f = lambda htype, caster: _match_generic(values, index, htype, caster)
+    return _hashtable_algo(f, index.dtype)
+
+def unique(values):
+    """
+
+    """
+    f = lambda htype, caster: _unique_generic(values, htype, caster)
+    return _hashtable_algo(f, values.dtype)
+
 
 def count(values, uniques=None):
+    f = lambda htype, caster: _count_generic(values, htype, caster)
+
     if uniques is not None:
         raise NotImplementedError
     else:
-        if com.is_float_dtype(values):
-            return _count_generic(values, lib.Float64HashTable,
-                                  com._ensure_float64)
-        elif com.is_integer_dtype(values):
-            return _count_generic(values, lib.Int64HashTable,
-                                  com._ensure_int64)
-        else:
-            return _count_generic(values, lib.PyObjectHashTable,
-                                  com._ensure_object)
+        return _hashtable_algo(f, values.dtype)
+
+def _hashtable_algo(f, dtype):
+    """
+    f(HashTable, type_caster) -> result
+    """
+    if com.is_float_dtype(dtype):
+        return f(lib.Float64HashTable, com._ensure_float64)
+    elif com.is_integer_dtype(dtype):
+        return f(lib.Int64HashTable, com._ensure_int64)
+    else:
+        return f(lib.PyObjectHashTable, com._ensure_object)
+
 
 def _count_generic(values, table_type, type_caster):
     values = type_caster(values)
@@ -57,6 +64,12 @@ def _match_generic(values, index, table_type, type_caster):
     table = table_type(len(index))
     table.map_locations(index)
     return table.lookup(values)
+
+def _unique_generic(values, table_type, type_caster):
+    values = type_caster(values)
+    table = table_type(len(values))
+    uniques = table.unique(values)
+    return uniques
 
 def factorize(values, sort=False, order=None, na_sentinel=-1):
     """
@@ -177,9 +190,3 @@ _hashtables = {
     'int64' : lib.Int64HashTable,
     'generic' : lib.PyObjectHashTable
 }
-
-def unique(values):
-    """
-
-    """
-    pass

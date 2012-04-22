@@ -32,7 +32,8 @@ pandas 0.8.0
 
 **API Changes**
 
- - Change BDay (business day) to not normalize dates by default
+  - Change BDay (business day) to not normalize dates by default
+  - Remove deprecated DataMatrix name
 
 pandas 0.7.3
 ============

@@ -3,7 +3,7 @@ import os
 import string
 import unittest
 
-from pandas import Series, DataFrame, MultiIndex, IntervalIndex
+from pandas import Series, DataFrame, MultiIndex, PeriodIndex
 import pandas.util.testing as tm
 
 import numpy as np
@@ -32,7 +32,7 @@ class TestSeriesPlots(unittest.TestCase):
         self.series = tm.makeStringSeries()
         self.series.name = 'series'
 
-        self.iseries = tm.makeIntervalSeries()
+        self.iseries = tm.makePeriodSeries()
         self.iseries.name = 'iseries'
 
     @slow

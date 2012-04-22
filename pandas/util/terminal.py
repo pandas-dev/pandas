@@ -12,6 +12,8 @@ It is mentioned in the stackoverflow response that this code works
 on linux, os x, windows and cygwin (windows).
 """
 
+import os
+
 __all__=['get_terminal_size']
 
 
