@@ -429,6 +429,13 @@ class TestTimeSeries(unittest.TestCase):
         expected = ts[5:].asfreq('4H', method='ffill')
         assert_series_equal(result, expected)
 
+    def test_take_dont_lose_meta(self):
+        rng = date_range('1/1/2000', periods=20, tz='US/Eastern')
+
+        result = rng.take(range(5))
+        self.assert_(result.tz == rng.tz)
+        self.assert_(result.freq == rng.freq)
+
 def _skip_if_no_pytz():
     try:
         import pytz

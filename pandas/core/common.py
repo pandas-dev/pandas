@@ -657,9 +657,12 @@ def _ensure_float64(arr):
     return arr
 
 def _ensure_int64(arr):
-    if arr.dtype != np.int64:
-        arr = arr.astype(np.int64)
-    return arr
+    try:
+        if arr.dtype != np.int64:
+            arr = arr.astype(np.int64)
+        return arr
+    except AttributeError:
+        return np.array(arr, dtype=np.int64)
 
 def _ensure_platform_int(labels):
     if labels.dtype != np.int_:  # pragma: no cover
