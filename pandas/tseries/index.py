@@ -676,7 +676,11 @@ class DatetimeIndex(Int64Index):
             except (TypeError, ValueError, KeyError):
                 pass
 
-            return self._engine.get_value(series, Timestamp(key))
+            stamp = Timestamp(key)
+            try:
+                return self._engine.get_value(series, stamp)
+            except KeyError:
+                raise KeyError(stamp)
 
     def get_loc(self, key):
         """
@@ -694,7 +698,11 @@ class DatetimeIndex(Int64Index):
             except (TypeError, KeyError):
                 pass
 
-            return self._engine.get_loc(Timestamp(key))
+            stamp = Timestamp(key)
+            try:
+                return self._engine.get_loc(stamp)
+            except KeyError:
+                raise KeyError(stamp)
 
     def _get_string_slice(self, key):
         asdt, parsed, reso = datetools.parse_time_string(key)

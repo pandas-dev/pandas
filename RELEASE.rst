@@ -32,6 +32,8 @@ pandas 0.8.0
 
 **Improvements to existing features**
 
+  - Switch to klib/khash-based hash tables in Index classes for better
+    performance in many cases and lower memory footprint
   - Shipping some functions from scipy.stats to reduce dependency,
     e.g. Series.describe and DataFrame.describe (GH #1092)
 

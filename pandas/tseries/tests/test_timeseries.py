@@ -392,6 +392,14 @@ class TestTimeSeries(unittest.TestCase):
         self.assertRaises(ValueError, date_range, end='1/1/2000', freq='H')
         self.assertRaises(ValueError, date_range, periods=10, freq='H')
 
+    def test_reasonable_keyerror(self):
+        # GH #1062
+        index = DatetimeIndex(['1/3/2000'])
+        try:
+            index.get_loc('1/1/2000')
+        except KeyError, e:
+            self.assert_('2000' in str(e))
+
 def _skip_if_no_pytz():
     try:
         import pytz
