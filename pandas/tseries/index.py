@@ -93,6 +93,10 @@ def _dt_index_op(opname):
     return wrapper
 
 
+class TimeSeriesError(Exception):
+    pass
+
+
 _midnight = time(0, 0)
 
 class DatetimeIndex(Int64Index):
@@ -666,6 +670,10 @@ class DatetimeIndex(Int64Index):
             return self._view_like(left_chunk)
 
     def _partial_date_slice(self, reso, parsed):
+        if not self.is_monotonic:
+            raise TimeSeriesError('Partial indexing only valid for ordered time'
+                                  ' series')
+
         if reso == 'year':
             t1 = Timestamp(datetime(parsed.year, 1, 1))
             t2 = Timestamp(datetime(parsed.year, 12, 31))

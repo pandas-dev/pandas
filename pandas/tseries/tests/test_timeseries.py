@@ -641,6 +641,13 @@ class TestLegacySupport(unittest.TestCase):
         expected = s[:'20060228']
         assert_series_equal(result, expected)
 
+    def test_partial_not_monotonic(self):
+        rng = date_range(datetime(2005,1,1), periods=20, freq='M')
+        ts = Series(np.arange(len(rng)), index=rng)
+        ts = ts.take(np.random.permutation(20))
+
+        self.assertRaises(Exception, ts.__getitem__, '2005')
+
     def test_date_range_normalize(self):
         snap = datetime.today()
         n = 50
