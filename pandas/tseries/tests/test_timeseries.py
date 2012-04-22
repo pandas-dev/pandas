@@ -400,6 +400,17 @@ class TestTimeSeries(unittest.TestCase):
         except KeyError, e:
             self.assert_('2000' in str(e))
 
+    def test_reindex_with_datetimes(self):
+        rng = date_range('1/1/2000', periods=20)
+        ts = Series(np.random.randn(20), index=rng)
+
+        result = ts.reindex(list(ts.index[5:10]))
+        expected = ts[5:10]
+        tm.assert_series_equal(result, expected)
+
+        result = ts[list(ts.index[5:10])]
+        tm.assert_series_equal(result, expected)
+
 def _skip_if_no_pytz():
     try:
         import pytz

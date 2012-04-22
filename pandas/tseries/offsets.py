@@ -852,12 +852,20 @@ class Tick(DateOffset):
     _inc = timedelta(microseconds=1000)
 
     def __eq__(self, other):
+        if isinstance(other, basestring):
+            from pandas.tseries.frequencies import to_offset
+            other = to_offset(other)
+
         if isinstance(other, Tick):
-            return self._inc == other._inc
+            return self.delta == other.delta
         else:
             return DateOffset.__eq__(self, other)
 
     def __ne__(self, other):
+        if isinstance(other, basestring):
+            from pandas.tseries.frequencies import to_offset
+            other = to_offset(other)
+
         if isinstance(other, Tick):
             return self.delta != other.delta
         else:

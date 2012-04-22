@@ -963,17 +963,18 @@ def _generate_regular_range(start, end, periods, offset):
         raise ValueError('Must specify two of start, end, or periods')
 
     if isinstance(offset, datetools.Tick):
+        stride = offset.us_stride()
         if periods is None:
             b = Timestamp(start).value
-            e = Timestamp(end).value + 1
+            e = Timestamp(end).value + stride
         elif start is not None:
             b = Timestamp(start).value
-            e = b + periods * offset.us_stride()
+            e = b + periods * stride
         else:
-            e = Timestamp(start).value
-            b = e - periods * offset.us_stride()
+            e = Timestamp(end).value + stride
+            b = e - periods * stride
 
-        data = np.arange(b, e, offset.us_stride(), dtype=np.int64)
+        data = np.arange(b, e, stride, dtype=np.int64)
         data = data.view('M8[us]')
     else:
         xdr = datetools.generate_range(start=start, end=end,
