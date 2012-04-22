@@ -42,6 +42,11 @@ pandas 0.8.0
   - Change BDay (business day) to not normalize dates by default
   - Remove deprecated DataMatrix name
 
+**Bug fixes**
+
+  - Fix OverflowError from storing pre-1970 dates in HDFStore by switching to
+    datetime64 (GH #179)
+
 pandas 0.7.3
 ============
 
