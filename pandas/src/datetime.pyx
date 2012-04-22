@@ -217,6 +217,17 @@ cdef convert_to_tsobject(object ts, object tzinfo=None):
         dts.sec = PyDateTime_DATE_GET_SECOND(ts)
         dts.us = PyDateTime_DATE_GET_MICROSECOND(ts)
         retval.value = PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts)
+    elif PyDate_Check(ts):
+        dts.year = PyDateTime_GET_YEAR(ts)
+        dts.month = PyDateTime_GET_MONTH(ts)
+        dts.day = PyDateTime_GET_DAY(ts)
+        retval.dtval = PyDateTime_FromDateAndTime(dts.year, dts.month, dts.day,
+                                                  0, 0, 0, 0)
+        dts.hour = 0
+        dts.min = 0
+        dts.sec = 0
+        dts.us = 0
+        retval.value = PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts)
     # pretty cheap
     elif isinstance(ts, _Timestamp):
         tmp = ts

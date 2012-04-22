@@ -120,6 +120,7 @@ class DatetimeIndex(Int64Index):
         If periods is none, generated index will extend to first conforming
         time on or just past end argument
     """
+    _join_precedence = 10
 
     _inner_indexer = _join_i8_wrapper(lib.inner_join_indexer_int64)
     _outer_indexer = _join_i8_wrapper(lib.outer_join_indexer_int64)
@@ -674,6 +675,11 @@ class DatetimeIndex(Int64Index):
         left = stamps.searchsorted(t1.value, side='left')
         right = stamps.searchsorted(t2.value, side='right')
         return slice(left, right)
+
+    def _possibly_promote(self, other):
+        if other.inferred_type == 'date':
+            other = DatetimeIndex(other)
+        return self, other
 
     def get_value(self, series, key):
         """

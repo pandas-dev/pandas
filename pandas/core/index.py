@@ -51,6 +51,9 @@ class Index(np.ndarray):
     ----
     An Index instance can **only** contain hashable objects
     """
+    # To hand over control to subclasses
+    _join_precedence = 1
+
     # Cython methods
     _groupby = lib.groupby_object
     _arrmap = lib.arrmap_object
@@ -644,8 +647,11 @@ class Index(np.ndarray):
         (indexer, mask) : (ndarray, ndarray)
         """
         method = self._get_method(method)
-
         target = _ensure_index(target)
+
+        pself, ptarget = self._possibly_promote(target)
+        if pself is not self or ptarget is not target:
+            return pself.get_indexer(ptarget, method=method, limit=limit)
 
         if self.dtype != target.dtype:
             this = Index(self, dtype=object)
@@ -664,6 +670,13 @@ class Index(np.ndarray):
             raise ValueError('unrecognized method: %s' % method)
 
         return indexer
+
+    def _possibly_promote(self, other):
+        # A hack, but it works
+        from pandas.tseries.index import DatetimeIndex
+        if self.inferred_type == 'date' and isinstance(other, DatetimeIndex):
+            return DatetimeIndex(self), other
+        return self, other
 
     def _get_indexer_standard(self, other):
         if (self.dtype != np.object_ and
@@ -766,6 +779,15 @@ class Index(np.ndarray):
                 return join_index, lindexer, None
             else:
                 return join_index
+
+        if self._join_precedence < other._join_precedence:
+            how = {'right': 'left', 'left': 'right'}.get(how, how)
+            result = other.join(self, how=how, level=level,
+                                return_indexers=return_indexers)
+            if return_indexers:
+                x, y, z = result
+                result = x, z, y
+            return result
 
         if self.dtype != other.dtype:
             this = self.astype('O')

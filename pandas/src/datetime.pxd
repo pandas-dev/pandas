@@ -3,6 +3,9 @@ from cpython cimport PyObject
 
 cdef extern from "datetime.h":
 
+    ctypedef class datetime.date [object PyDateTime_Date]:
+        pass
+
     ctypedef class datetime.datetime [object PyDateTime_DateTime]:
         pass
 
@@ -11,21 +14,21 @@ cdef extern from "datetime.h":
 
     void PyDateTime_IMPORT()
 
-    int PyDateTime_GET_YEAR(datetime o)
-    int PyDateTime_GET_MONTH(datetime o)
-    int PyDateTime_GET_DAY(datetime o)
-    int PyDateTime_DATE_GET_HOUR(datetime o)
-    int PyDateTime_DATE_GET_MINUTE(datetime o)
-    int PyDateTime_DATE_GET_SECOND(datetime o)
-    int PyDateTime_DATE_GET_MICROSECOND(datetime o)
-    int PyDateTime_TIME_GET_HOUR(datetime o)
-    int PyDateTime_TIME_GET_MINUTE(datetime o)
-    int PyDateTime_TIME_GET_SECOND(datetime o)
-    int PyDateTime_TIME_GET_MICROSECOND(datetime o)
+    int PyDateTime_GET_YEAR(date)
+    int PyDateTime_GET_MONTH(date)
+    int PyDateTime_GET_DAY(date)
+    int PyDateTime_DATE_GET_HOUR(object o)
+    int PyDateTime_DATE_GET_MINUTE(object o)
+    int PyDateTime_DATE_GET_SECOND(object o)
+    int PyDateTime_DATE_GET_MICROSECOND(object o)
+    int PyDateTime_TIME_GET_HOUR(object o)
+    int PyDateTime_TIME_GET_MINUTE(object o)
+    int PyDateTime_TIME_GET_SECOND(object o)
+    int PyDateTime_TIME_GET_MICROSECOND(object o)
     bint PyDateTime_Check(object o)
     bint PyDate_Check(object o)
-    PyObject *PyDateTime_FromDateAndTime(int year, int month, int day, int hour,
-                                         int minute, int second, int us)
+    object PyDateTime_FromDateAndTime(int year, int month, int day, int hour,
+                                      int minute, int second, int us)
 
 cdef extern from "numpy/ndarrayobject.h":
 
