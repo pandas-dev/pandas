@@ -459,6 +459,9 @@ def _try_sort(iterable):
     except Exception:
         return listed
 
+def _count_not_none(*args):
+    return sum(x is not None for x in args)
+
 #------------------------------------------------------------------------------
 # miscellaneous python tools
 

@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 import numpy as np
 
+from pandas.core.common import _count_not_none
 from pandas.tseries.tools import to_datetime
 
 # import after tools, dateutil check
@@ -1004,6 +1005,9 @@ def generate_range(start=None, end=None, periods=None,
         if periods is None and end < start:
             end = None
             periods = 0
+
+    if _count_not_none(start, end, periods) < 2:
+        raise ValueError('Must specify 2 of start, end, periods')
 
     if end is None:
         end = start + (periods - 1) * offset

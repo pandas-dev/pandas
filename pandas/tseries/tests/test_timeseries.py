@@ -381,6 +381,17 @@ class TestTimeSeries(unittest.TestCase):
         expected = DatetimeIndex(datetools.to_datetime(idx.values))
         self.assert_(result.equals(expected))
 
+    def test_range_misspecified(self):
+        # GH #1095
+
+        self.assertRaises(ValueError, date_range, '1/1/2000')
+        self.assertRaises(ValueError, date_range, end='1/1/2000')
+        self.assertRaises(ValueError, date_range, periods=10)
+
+        self.assertRaises(ValueError, date_range, '1/1/2000', freq='H')
+        self.assertRaises(ValueError, date_range, end='1/1/2000', freq='H')
+        self.assertRaises(ValueError, date_range, periods=10, freq='H')
+
 def _skip_if_no_pytz():
     try:
         import pytz

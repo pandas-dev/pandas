@@ -211,24 +211,7 @@ class DatetimeIndex(Int64Index):
                 index = cls._cached_range(start, end, periods=periods,
                                           offset=offset, name=name)
             else:
-                if isinstance(offset, datetools.Tick):
-                    if periods is None:
-                        b, e = Timestamp(start), Timestamp(end)
-                        data = np.arange(b.value, e.value+1,
-                                        offset.us_stride(), dtype=np.int64)
-                    else:
-                        b = Timestamp(start)
-                        e = b.value + periods * offset.us_stride()
-                        data = np.arange(b.value, e,
-                                         offset.us_stride(), dtype=np.int64)
-
-                else:
-                    xdr = datetools.generate_range(start=start, end=end,
-                        periods=periods, offset=offset)
-
-                    data = _to_m8_array(list(xdr))
-
-                index = np.array(data, dtype=np.datetime64, copy=False)
+                index = _generate_regular_range(start, end, periods, offset)
 
             index = index.view(cls)
             index.name = name
@@ -965,6 +948,32 @@ class DatetimeIndex(Int64Index):
             return False
 
         return True
+
+
+def _generate_regular_range(start, end, periods, offset):
+    if com._count_not_none(start, end, periods) < 2:
+        raise ValueError('Must specify two of start, end, or periods')
+
+    if isinstance(offset, datetools.Tick):
+        if periods is None:
+            b = Timestamp(start).value
+            e = Timestamp(end).value + 1
+        elif start is not None:
+            b = Timestamp(start).value
+            e = b + periods * offset.us_stride()
+        else:
+            e = Timestamp(start).value
+            b = e - periods * offset.us_stride()
+
+        data = np.arange(b, e, offset.us_stride(), dtype=np.int64)
+        data = data.view('M8[us]')
+    else:
+        xdr = datetools.generate_range(start=start, end=end,
+            periods=periods, offset=offset)
+
+        data = np.array(list(xdr), dtype='M8[us]')
+
+    return data
 
 
 def date_range(start=None, end=None, periods=None, freq='D', tz=None,
