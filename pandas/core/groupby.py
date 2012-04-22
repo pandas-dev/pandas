@@ -8,11 +8,9 @@ from pandas.core.index import Index, MultiIndex
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 from pandas.core.panel import Panel
-from pandas.tseries.index import DatetimeIndex
 from pandas.util.decorators import cache_readonly, Appender
 import pandas.core.algorithms as algos
 import pandas.core.common as com
-import pandas.core.datetools as dt
 import pandas._tseries as lib
 
 
@@ -350,6 +348,11 @@ class GroupBy(object):
         For multiple groupings, the result index will be a MultiIndex
         """
         return self._cython_agg_general('ohlc')
+
+    def last(self):
+        def picker(arr):
+            return arr[-1] if arr is not None and len(arr) else np.nan
+        return self.agg(picker)
 
     def _cython_agg_general(self, how):
         output = {}
@@ -728,6 +731,7 @@ class Grouper(object):
         result = lib.maybe_convert_objects(result, try_float=0)
         return result, counts
 
+
 def generate_bins_generic(values, binner, closed, label):
     """
     Generate bin edge offsets and bin labels for one array using another array
@@ -803,28 +807,6 @@ def generate_bins_generic(values, binner, closed, label):
 
     return bins, labels
 
-
-def _generate_time_binner(dtindex, offset,
-                          begin=None, end=None, nperiods=None):
-
-    if isinstance(offset, basestring):
-        offset = dt.to_offset(offset)
-
-    if begin is None:
-        first = lib.Timestamp(dtindex[0] - offset)
-    else:
-        first = lib.Timestamp(offset.rollback(begin))
-
-    if end is None:
-        last = lib.Timestamp(dtindex[-1] + offset)
-    else:
-        last = lib.Timestamp(offset.rollforward(end))
-
-    if isinstance(offset, dt.Tick):
-        return np.arange(first.value, last.value+1, offset.us_stride(),
-                         dtype=np.int64)
-
-    return DatetimeIndex(freq=offset, start=first, end=last, periods=nperiods)
 
 
 class BinGrouper(Grouper):
@@ -911,95 +893,6 @@ class BinGrouper(Grouper):
             names = None
 
         return result, names
-
-
-
-class TimeGrouper(BinGrouper):
-    """
-    Custom groupby class for time-interval grouping
-
-    Parameters
-    ----------
-    interval : pandas offset string or object for identifying bin edges
-    closed : closed end of interval; left (default) or right
-    label : interval boundary to use for labeling; left (default) or right
-    begin : optional, timestamp-like
-    end : optional, timestamp-like
-    nperiods : optional, integer
-
-    Notes
-    -----
-    Use begin, end, nperiods to generate intervals that cannot be derived
-    directly from the associated object
-    """
-
-    obj = None
-    bins = None
-    binlabels = None
-    begin = None
-    end = None
-    nperiods = None
-    binner = None
-
-    def __init__(self, interval='Min', closed='left', label='left',
-                 begin=None, end=None, nperiods=None, obj=None):
-        self.offset = interval
-        self.closed = closed
-        self.label = label
-        self.begin = begin
-        self.end = end
-        self.nperiods = None
-
-        if obj is not None:
-            self.set_obj(obj)
-
-    def set_obj(self, obj):
-        """
-        Injects the object we'll act on, which we use to initialize grouper
-        """
-        if id(self.obj) == id(obj):
-            return
-
-        self.obj = obj
-
-        if not isinstance(obj.index, DatetimeIndex):
-            raise ValueError("Cannot apply TimeGrouper to non-DatetimeIndex")
-
-        index = obj.index
-
-        if len(obj.index) < 1:
-            self.bins = []
-            self.binlabels = []
-            return
-
-        self.binner = _generate_time_binner(obj.index, self.offset, self.begin,
-                                            self.end, self.nperiods)
-
-        if isinstance(self.binner, DatetimeIndex):
-            self.binner = self.binner.asi8
-
-        # general version, knowing nothing about relative frequencies
-        bins, labels = lib.generate_bins_dt64(index.asi8, self.binner,
-                                              self.closed, self.label)
-
-        self.bins = bins
-        self.binlabels = labels.view('M8[us]')
-
-    @property
-    def names(self):
-        return [self.obj.index.name]
-
-    @property
-    def levels(self):
-        return [self.binlabels]
-
-    @cache_readonly
-    def ngroups(self):
-        return len(self.binlabels)
-
-    @cache_readonly
-    def result_index(self):
-        return self.binlabels
 
     def agg_series(self, obj, func):
         dummy = obj[:0]
@@ -1147,7 +1040,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
                 key = group_axis
 
     if isinstance(key, Grouper):
-        key.set_obj(obj)
+        key.set_axis(group_axis)
         return key, []
 
     if not isinstance(key, (tuple, list)):
@@ -1970,8 +1863,7 @@ def _compress_group_index(group_index, sort=True):
     obs_group_ids = np.array(uniques, dtype='i8')
 
     if sort and len(obs_group_ids) > 0:
-        obs_group_ids, comp_ids = _reorder_by_uniques(obs_group_ids,
-                                                      comp_ids)
+        obs_group_ids, comp_ids = _reorder_by_uniques(obs_group_ids, comp_ids)
 
     return comp_ids, obs_group_ids
 
@@ -1997,15 +1889,16 @@ def _reorder_by_uniques(uniques, labels):
 import __builtin__
 
 _func_table = {
-    __builtin__.sum : np.sum
+    __builtin__.sum: np.sum
 }
 
 _cython_table = {
-    __builtin__.sum : 'sum',
-    np.sum : 'sum',
-    np.mean : 'mean',
-    np.std : 'std',
-    np.var : 'var'
+    __builtin__.sum: 'sum',
+    np.sum: 'sum',
+    np.mean: 'mean',
+    np.prod: 'prod',
+    np.std: 'std',
+    np.var: 'var'
 }
 
 def _intercept_function(func):
@@ -2031,14 +1924,6 @@ def numpy_groupby(data, labels, axis=0):
 
 #-----------------------------------------------------------------------
 # Helper functions
-
-def translate_grouping(how):
-    if how in 'last':
-        def picker(arr):
-            return arr[-1] if arr is not None and len(arr) else np.nan
-        return picker
-
-    return how
 
 
 from pandas.util import py3compat

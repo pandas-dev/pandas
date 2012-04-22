@@ -137,8 +137,8 @@ class PandasObject(Picklable):
         return groupby(self, by, axis=axis, level=level, as_index=as_index,
                        sort=sort, group_keys=group_keys)
 
-    def convert(self, rule, method='pad', how='last', axis=0, as_index=True,
-                closed='right', label='right', as_period=False):
+    def convert(self, rule, method='pad', how='mean', axis=0, as_index=True,
+                closed='right', label='right', kind=None):
         """
         Convenience method for frequency conversion and resampling of regular
         time-series data.
@@ -146,7 +146,7 @@ class PandasObject(Picklable):
         Parameters
         ----------
         rule : the offset string or object representing target conversion
-        how : string, method for down- or re-sampling, default 'last'
+        how : string, method for down- or re-sampling, default 'mean'
         method : string, method for upsampling, default 'pad'
         axis : int, optional, default 0
         closed : {'right', 'left'}, default 'right'
@@ -155,35 +155,23 @@ class PandasObject(Picklable):
             Which bin edge label to label bucket with
         as_index : see synonymous argument of groupby
         """
-        from pandas.core.groupby import TimeGrouper, translate_grouping
-
-        if isinstance(rule, basestring):
-            rule = datetools.to_offset(rule)
+        from pandas.tseries.resample import TimeGrouper
 
         idx = self._get_axis(axis)
         if not isinstance(idx, DatetimeIndex):
             raise ValueError("Cannot call convert with non-DatetimeIndex")
 
-        if not isinstance(rule, datetools.DateOffset):
-            raise ValueError("Rule not a recognized offset")
+        grouper = TimeGrouper(rule, label=label, closed=closed,
+                              axis=self.index, kind=kind)
 
-        interval = TimeGrouper(rule, label=label,
-                               closed=closed, obj=self)
-
-        currfreq = len(idx)
-        targfreq = len(interval.binner) - 2 # since binner extends endpoints
-
-        if targfreq <= currfreq:
+        # since binner extends endpoints
+        if len(grouper.binner) - 2 <= len(idx):
             # down- or re-sampling
-            grouped  = self.groupby(interval, axis=axis, as_index=as_index)
-
-            if isinstance(how, basestring):
-                how = translate_grouping(how)
-
+            grouped  = self.groupby(grouper, axis=axis, as_index=as_index)
             result = grouped.agg(how)
         else:
             # upsampling
-            result = self.reindex(interval.binner[1:-1].view('M8[us]'),
+            result = self.reindex(grouper.binner[1:-1].view('M8[us]'),
                                   method=method)
 
         result.index.offset = rule
