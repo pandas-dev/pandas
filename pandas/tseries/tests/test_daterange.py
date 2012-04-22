@@ -6,7 +6,8 @@ import numpy as np
 
 import pandas.core.datetools as datetools
 from pandas.core.datetools import generate_range
-from pandas.core.index import Index, DatetimeIndex
+from pandas.core.index import Index
+from pandas.tseries.index import DatetimeIndex
 
 from pandas.tseries.index import bdate_range, date_range
 import pandas.tseries.tools as tools

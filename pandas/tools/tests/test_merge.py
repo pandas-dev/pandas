@@ -8,6 +8,7 @@ import numpy as np
 import random
 
 from pandas import *
+from pandas.tseries.index import DatetimeIndex
 from pandas.tools.merge import merge, concat
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
                                  assert_almost_equal, rands)
@@ -1184,8 +1185,6 @@ class TestConcatenate(unittest.TestCase):
         tm.assert_panel_equal(result, expected)
 
     def test_concat_series(self):
-        from pandas.core.index import DatetimeIndex
-
         ts = tm.makeTimeSeries()
         ts.name = 'foo'
 

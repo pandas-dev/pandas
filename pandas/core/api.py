@@ -3,9 +3,6 @@
 
 import numpy as np
 
-from pandas.core.datetools import DateOffset, to_datetime
-import pandas.core.datetools as datetools
-
 from pandas.core.common import isnull, notnull, save, load
 from pandas.core.factor import Factor
 from pandas.core.format import set_printoptions
@@ -21,6 +18,11 @@ WidePanel = Panel
 
 from pandas.core.daterange import DateRange # deprecated
 
+from pandas.tseries.offsets import DateOffset
+from pandas.tseries.tools import to_datetime
 from pandas.tseries.index import (DatetimeIndex, Timestamp,
                                   date_range, bdate_range)
 from pandas.tseries.period import Period, PeriodIndex
+
+# legacy
+import pandas.core.datetools as datetools

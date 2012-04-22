@@ -1,6 +1,7 @@
 # pylint: disable=E1101,E1103
 
-from pandas.core.index import DatetimeIndex, Index
+from pandas.core.index import Index
+from pandas.tseries.index import DatetimeIndex
 import pandas.core.datetools as datetools
 
 

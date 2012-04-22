@@ -3,8 +3,10 @@
 import numpy as np
 
 from pandas.core.common import save, load
-from pandas.core.index import MultiIndex, DatetimeIndex
+from pandas.core.index import MultiIndex
 import pandas.core.datetools as datetools
+
+from pandas.tseries.index import DatetimeIndex
 
 #-------------------------------------------------------------------------------
 # Picklable mixin

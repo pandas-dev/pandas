@@ -1,6 +1,5 @@
 import numpy as np
 
-from pandas.core.index import Index
 import pandas._tseries as lib
 
 
@@ -54,6 +53,7 @@ class Factor(np.ndarray):
 
 
 def unique_with_labels(values):
+    from pandas.core.index import Index
     rizer = lib.Factorizer(len(values))
     labels, _ = rizer.factorize(values, sort=False)
     uniques = Index(rizer.uniques)

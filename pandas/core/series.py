@@ -17,9 +17,9 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _default_index, _maybe_upcast,
                                 _asarray_tuplesafe)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
-                               _ensure_index, DatetimeIndex,
-                               _handle_legacy_indexes)
+                               _ensure_index, _handle_legacy_indexes)
 from pandas.core.indexing import _SeriesIndexer
+from pandas.tseries.index import DatetimeIndex
 from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
 import pandas.core.common as com

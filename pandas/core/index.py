@@ -70,6 +70,7 @@ class Index(np.ndarray):
         if isinstance(data, np.ndarray):
             if dtype is None:
                 if issubclass(data.dtype.type, np.datetime64):
+                    from pandas.tseries.index import DatetimeIndex
                     return DatetimeIndex(data, copy=copy, name=name)
 
                 if issubclass(data.dtype.type, np.integer):
@@ -87,6 +88,7 @@ class Index(np.ndarray):
             if (lib.is_datetime_array(subarr)
                 or lib.is_datetime64_array(subarr)
                 or lib.is_timestamp_array(subarr)):
+                from pandas.tseries.index import DatetimeIndex
                 return DatetimeIndex(subarr, copy=copy, name=name)
 
             if lib.is_integer_array(subarr):
@@ -119,6 +121,7 @@ class Index(np.ndarray):
         For an Index containing strings or datetime.datetime objects, attempt
         conversion to DatetimeIndex
         """
+        from pandas.tseries.index import DatetimeIndex
         if self.inferred_type == 'string':
             from dateutil.parser import parse
             parser = lambda x: parse(x, dayfirst=dayfirst)
@@ -2305,15 +2308,15 @@ def _get_consensus_names(indexes):
             break
     return consensus_name
 
-from pandas.tseries.index import DatetimeIndex, _dt_box_array
-
 def _ensure_compat_concat(indexes):
+    from pandas.tseries.index import DatetimeIndex
     is_m8 = [isinstance(idx, DatetimeIndex) for idx in indexes]
     if any(is_m8) and not all(is_m8):
         return [_maybe_box_dtindex(idx) for idx in indexes]
     return indexes
 
 def _maybe_box_dtindex(idx):
+    from pandas.tseries.index import DatetimeIndex, _dt_box_array
     if isinstance(idx, DatetimeIndex):
         return Index(_dt_box_array(idx.asi8), dtype='object')
     return idx

@@ -16,7 +16,8 @@ from numpy.testing import assert_equal
 
 from pandas import Series, DataFrame, bdate_range, Panel
 from pandas.core.datetools import BDay
-from pandas.core.index import DatetimeIndex, Index
+from pandas.core.index import Index
+from pandas.tseries.index import DatetimeIndex
 import pandas.core.datetools as datetools
 import pandas.util.testing as tm
 
