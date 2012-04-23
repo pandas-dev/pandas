@@ -843,6 +843,7 @@ class DatetimeIndex(Int64Index):
     @property
     def weekofyear(self):
         return lib.fast_field_accessor(self.asi8, 'woy')
+    week = weekofyear
 
     @property
     def dayofweek(self):

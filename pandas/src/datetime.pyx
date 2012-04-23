@@ -940,7 +940,7 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
         for i in range(count):
             PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
             isleap = is_leapyear(dts.year)
-            out[i] = _month_offset[isleap][dts.month-1] + dts.day
+            out[i] = _month_offset[isleap, dts.month-1] + dts.day
         return out
 
     elif field == 'dow':
@@ -953,7 +953,7 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
         for i in range(count):
             PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
             isleap = is_leapyear(dts.year)
-            out[i] = _month_offset[isleap][dts.month-1] + dts.day
+            out[i] = _month_offset[isleap, dts.month - 1] + dts.day
             out[i] = ((out[i] - 1) / 7) + 1
         return out
 
