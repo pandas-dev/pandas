@@ -16,6 +16,7 @@ from pandas import DatetimeIndex, Int64Index, to_datetime
 
 from pandas.core.daterange import DateRange
 import pandas.core.datetools as datetools
+import pandas.tseries.offsets as offsets
 
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
@@ -458,6 +459,13 @@ class TestTimeSeries(unittest.TestCase):
 
         result = ts[:0].last('3M')
         assert_series_equal(result, ts[:0])
+
+    def test_add_offset(self):
+        rng = date_range('1/1/2000', '2/1/2000')
+
+        result = rng + offsets.Hour(2)
+        expected = date_range('1/1/2000 02:00', '2/1/2000 02:00')
+        self.assert_(result.equals(expected))
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
