@@ -661,11 +661,15 @@ class Index(np.ndarray):
             target = Index(target, dtype=object)
             return this.get_indexer(target, method=method, limit=limit)
 
+        if not self.is_unique:
+            raise Exception('Reindexing only valid with uniquely valued Index '
+                            'objects')
+
         if method == 'pad':
-            assert(self.is_unique and self.is_monotonic)
+            assert(self.is_monotonic)
             indexer = self._engine.get_pad_indexer(target, limit)
         elif method == 'backfill':
-            assert(self.is_unique and self.is_monotonic)
+            assert(self.is_monotonic)
             indexer = self._engine.get_backfill_indexer(target, limit)
         elif method is None:
             indexer = self._engine.get_indexer(target)
