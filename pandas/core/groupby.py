@@ -652,12 +652,13 @@ class Grouper(object):
 
         comp_ids, _, ngroups = self.group_info
         agg_func = self._cython_functions[how]
-        if values.ndim == 1:
-            squeeze = True
+
+        vdim = values.ndim
+
+        if vdim == 1:
             values = values[:, None]
             out_shape = (ngroups, 1)
         else:
-            squeeze = False
             out_shape = (ngroups, values.shape[1])
 
         trans_func = self._cython_transforms.get(how, lambda x: x)
@@ -672,8 +673,8 @@ class Grouper(object):
         if self._filter_empty_groups:
             result = lib.row_bool_subset(result, counts > 0)
 
-        if squeeze:
-            result = result.squeeze()
+        if vdim == 1:
+            result = result[:, 0]
 
         if how in self._name_functions:
             # TODO
@@ -851,12 +852,11 @@ class BinGrouper(Grouper):
         agg_func = self._cython_functions[how]
         arity = self._cython_arity.get(how, 1)
 
-        if values.ndim == 1:
-            squeeze = True
+        vdim = values.ndim
+        if vdim == 1:
             values = values[:, None]
             out_shape = (self.ngroups, arity)
         else:
-            squeeze = False
             out_shape = (self.ngroups, values.shape[1] * arity)
 
         trans_func = self._cython_transforms.get(how, lambda x: x)
@@ -871,8 +871,8 @@ class BinGrouper(Grouper):
         if self._filter_empty_groups:
             result = lib.row_bool_subset(result, counts > 0)
 
-        if squeeze:
-            result = result.squeeze()
+        if vdim == 1 and arity == 1:
+            result = result[:, 0]
 
         if how in self._name_functions:
             # TODO
