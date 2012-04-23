@@ -13,7 +13,7 @@ import pandas.tseries.offsets as offsets
 import unittest
 import nose
 
-from pandas.util.testing import assert_series_equal
+from pandas.util.testing import assert_series_equal, assert_almost_equal
 
 class TestResample(unittest.TestCase):
 
@@ -221,7 +221,17 @@ class TestResample(unittest.TestCase):
         exp = _ohlc(ts['1/1/2000 5:55:01':])
         self.assert_((resampled.ix['1/1/2000 6:00:00'] == exp).all())
 
+    def test_resample_non_unique(self):
+        rng = date_range('1/1/2000', '2/29/2000')
+        rng2 = rng.repeat(5).values
 
+        ts = Series(np.random.randn(len(rng2)), index=rng2)
+        result = ts.resample('M', how='mean')
+
+        expected = ts.groupby(lambda x: x.month).mean()
+        self.assertEquals(len(result), 2)
+        assert_almost_equal(result[0], expected[1])
+        assert_almost_equal(result[1], expected[2])
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
