@@ -137,7 +137,7 @@ class PandasObject(Picklable):
         return groupby(self, by, axis=axis, level=level, as_index=as_index,
                        sort=sort, group_keys=group_keys)
 
-    def convert(self, rule, method='pad', how='mean', axis=0, as_index=True,
+    def resample(self, rule, method='pad', how='mean', axis=0, as_index=True,
                 closed='right', label='right', kind=None):
         """
         Convenience method for frequency conversion and resampling of regular
@@ -159,20 +159,19 @@ class PandasObject(Picklable):
 
         idx = self._get_axis(axis)
         if not isinstance(idx, DatetimeIndex):
-            raise ValueError("Cannot call convert with non-DatetimeIndex")
+            raise ValueError("Cannot call resample with non-DatetimeIndex")
 
         grouper = TimeGrouper(rule, label=label, closed=closed,
                               axis=self.index, kind=kind)
 
         # since binner extends endpoints
-        if len(grouper.bins) <= len(idx):
+        if grouper.downsamples:
             # down- or re-sampling
             grouped  = self.groupby(grouper, axis=axis, as_index=as_index)
             result = grouped.agg(how)
         else:
             # upsampling
-            result = self.reindex(grouper.binner[1:-1].view('M8[us]'),
-                                  method=method)
+            result = self.reindex(grouper.binner[1:], method=method)
 
         result.index.offset = rule
         return result

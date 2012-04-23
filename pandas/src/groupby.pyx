@@ -565,15 +565,15 @@ def group_var(ndarray[float64_t, ndim=2] out,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
-                       object closed='left', object label='left'):
+                       object closed='left'):
     """
     Int64 (datetime64) version of generic python version in groupby.py
     """
     cdef:
         Py_ssize_t lenidx, lenbin, i, j, bc, vc
-        ndarray[int64_t] labels
         ndarray[int32_t] bins
         int64_t l_bin, r_bin
+        bint right_closed = closed == 'right'
 
     lenidx = len(values)
     lenbin = len(binner)
@@ -588,51 +588,30 @@ def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
     if values[lenidx-1] > binner[lenbin-1]:
         raise ValueError("Values falls after last bin")
 
-    labels = np.empty(lenbin, dtype=np.int64)
-    bins   = np.empty(lenbin, dtype=np.int32)
+    bins   = np.empty(lenbin - 1, dtype=np.int32)
 
     j  = 0 # index into values
     bc = 0 # bin count
-    vc = 0 # value count
 
-    # linear scan, presume nothing about values/binner except that it
-    # fits ok
-    for i in range(0, lenbin-1):
+    # linear scan
+    for i in range(0, lenbin - 1):
         l_bin = binner[i]
         r_bin = binner[i+1]
 
-        # set label of bin
-        if label == 'left':
-            labels[bc] = l_bin
-        else:
-            labels[bc] = r_bin
-
         # count values in current bin, advance to next bin
-        while values[j] < r_bin or closed == 'right' and values[j] == r_bin:
+        while j < lenidx and (values[j] < r_bin or
+                              (right_closed and values[j] == r_bin)):
             j += 1
-            vc += 1
-            if j >= lenidx:
-                break
 
-        # check we have data left to scan
-        if j >= lenidx:
-            break
+        bins[bc] = j
+        bc += 1
 
-        # if we've seen some values, mark bin
-        if vc != 0:
-            bins[bc] = j
-            bc += 1
-            vc = 0
-
-    labels = np.resize(labels, bc + 1)
-    bins = np.resize(bins, bc)
-
-    return bins, labels
+    return bins
 
 # add passing bin edges, instead of labels
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+# @cython.boundscheck(False)
+# @cython.wraparound(False)
 def group_add_bin(ndarray[float64_t, ndim=2] out,
                   ndarray[int32_t] counts,
                   ndarray[float64_t, ndim=2] values,
@@ -654,7 +633,7 @@ def group_add_bin(ndarray[float64_t, ndim=2] out,
     b = 0
     if K > 1:
         for i in range(N):
-            if b < ngroups - 1 and i >= bins[b]:
+            while b < ngroups - 1 and i >= bins[b]:
                 b += 1
 
             counts[b] += 1
@@ -667,7 +646,7 @@ def group_add_bin(ndarray[float64_t, ndim=2] out,
                     sumx[b, j] += val
     else:
         for i in range(N):
-            if b < ngroups - 1 and i >= bins[b]:
+            while b < ngroups - 1 and i >= bins[b]:
                 b += 1
 
             counts[b] += 1
@@ -685,8 +664,8 @@ def group_add_bin(ndarray[float64_t, ndim=2] out,
             else:
                 out[i, j] = sumx[i, j]
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+# @cython.boundscheck(False)
+# @cython.wraparound(False)
 def group_prod_bin(ndarray[float64_t, ndim=2] out,
                   ndarray[int32_t] counts,
                   ndarray[float64_t, ndim=2] values,
@@ -708,7 +687,7 @@ def group_prod_bin(ndarray[float64_t, ndim=2] out,
     b = 0
     if K > 1:
         for i in range(N):
-            if b < ngroups - 1 and i >= bins[b]:
+            while b < ngroups - 1 and i >= bins[b]:
                 b += 1
 
             counts[b] += 1
@@ -721,7 +700,7 @@ def group_prod_bin(ndarray[float64_t, ndim=2] out,
                     prodx[b, j] *= val
     else:
         for i in range(N):
-            if b < ngroups - 1 and i >= bins[b]:
+            while b < ngroups - 1 and i >= bins[b]:
                 b += 1
 
             counts[b] += 1
@@ -739,8 +718,8 @@ def group_prod_bin(ndarray[float64_t, ndim=2] out,
             else:
                 out[i, j] = prodx[i, j]
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+# @cython.boundscheck(False)
+# @cython.wraparound(False)
 def group_min_bin(ndarray[float64_t, ndim=2] out,
                    ndarray[int32_t] counts,
                    ndarray[float64_t, ndim=2] values,
@@ -765,7 +744,7 @@ def group_min_bin(ndarray[float64_t, ndim=2] out,
     b = 0
     if K > 1:
         for i in range(N):
-            if b < ngroups - 1 and i >= bins[b]:
+            while b < ngroups - 1 and i >= bins[b]:
                 b += 1
 
             counts[b] += 1
@@ -779,7 +758,7 @@ def group_min_bin(ndarray[float64_t, ndim=2] out,
                         minx[b, j] = val
     else:
         for i in range(N):
-            if b < ngroups - 1 and i >= bins[b]:
+            while b < ngroups - 1 and i >= bins[b]:
                 b += 1
 
             counts[b] += 1
@@ -798,8 +777,8 @@ def group_min_bin(ndarray[float64_t, ndim=2] out,
             else:
                 out[i, j] = minx[i, j]
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+# @cython.boundscheck(False)
+# @cython.wraparound(False)
 def group_max_bin(ndarray[float64_t, ndim=2] out,
                   ndarray[int32_t] counts,
                   ndarray[float64_t, ndim=2] values,
@@ -822,7 +801,7 @@ def group_max_bin(ndarray[float64_t, ndim=2] out,
     b = 0
     if K > 1:
         for i in range(N):
-            if b < ngroups - 1 and i >= bins[b]:
+            while b < ngroups - 1 and i >= bins[b]:
                 b += 1
 
             counts[b] += 1
@@ -836,7 +815,7 @@ def group_max_bin(ndarray[float64_t, ndim=2] out,
                         maxx[b, j] = val
     else:
         for i in range(N):
-            if b < ngroups - 1 and i >= bins[b]:
+            while b < ngroups - 1 and i >= bins[b]:
                 b += 1
 
             counts[b] += 1
@@ -856,8 +835,8 @@ def group_max_bin(ndarray[float64_t, ndim=2] out,
                 out[i, j] = maxx[i, j]
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+# @cython.boundscheck(False)
+# @cython.wraparound(False)
 def group_ohlc(ndarray[float64_t, ndim=2] out,
                   ndarray[int32_t] counts,
                   ndarray[float64_t, ndim=2] values,
@@ -884,7 +863,7 @@ def group_ohlc(ndarray[float64_t, ndim=2] out,
         raise NotImplementedError
     else:
         for i in range(N):
-            if b < ngroups - 1 and i >= bins[b]:
+            while b < ngroups - 1 and i >= bins[b]:
                 if not got_first:
                     out[b, 0] = NA
                     out[b, 1] = NA
@@ -927,8 +906,8 @@ def group_ohlc(ndarray[float64_t, ndim=2] out,
             out[b, 3] = vclose
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+# @cython.boundscheck(False)
+# @cython.wraparound(False)
 def group_mean_bin(ndarray[float64_t, ndim=2] out,
                    ndarray[int32_t] counts,
                    ndarray[float64_t, ndim=2] values,
@@ -947,8 +926,11 @@ def group_mean_bin(ndarray[float64_t, ndim=2] out,
     b = 0
     if K > 1:
         for i in range(N):
-            if b < ngroups - 1 and i >= bins[b]:
+            while b < ngroups and i >= bins[b]:
                 b += 1
+
+            if b == ngroups:
+                break
 
             counts[b] += 1
             for j in range(K):
@@ -960,7 +942,7 @@ def group_mean_bin(ndarray[float64_t, ndim=2] out,
                     sumx[b, j] += val
     else:
         for i in range(N):
-            if b < ngroups - 1 and i >= bins[b]:
+            while b < ngroups - 1 and i >= bins[b]:
                 b += 1
 
             counts[b] += 1
@@ -979,8 +961,8 @@ def group_mean_bin(ndarray[float64_t, ndim=2] out,
             else:
                 out[i, j] = sumx[i, j] / count
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+# @cython.boundscheck(False)
+# @cython.wraparound(False)
 def group_var_bin(ndarray[float64_t, ndim=2] out,
                   ndarray[int32_t] counts,
                   ndarray[float64_t, ndim=2] values,
@@ -1001,7 +983,7 @@ def group_var_bin(ndarray[float64_t, ndim=2] out,
     b = 0
     if K > 1:
         for i in range(N):
-            if b < ngroups - 1 and i >= bins[b]:
+            while b < ngroups - 1 and i >= bins[b]:
                 b += 1
 
             counts[b] += 1
@@ -1016,7 +998,7 @@ def group_var_bin(ndarray[float64_t, ndim=2] out,
                     sumxx[b, j] += val * val
     else:
         for i in range(N):
-            if b < ngroups - 1 and i >= bins[b]:
+            while b < ngroups - 1 and i >= bins[b]:
                 b += 1
 
             counts[b] += 1

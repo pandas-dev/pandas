@@ -3,7 +3,7 @@ import numpy as np
 from pandas.core.groupby import BinGrouper
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.index import DatetimeIndex
-from pandas.tseries.offsets import DateOffset, Tick
+from pandas.tseries.offsets import DateOffset
 from pandas.tseries.period import PeriodIndex
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
@@ -36,6 +36,9 @@ class TimeGrouper(BinGrouper):
     begin = None
     end = None
     nperiods = None
+    binner = None
+
+    _filter_empty_groups = False
 
     def __init__(self, offset='Min', closed='left', label='left',
                  begin=None, end=None, nperiods=None, axis=None,
@@ -67,25 +70,31 @@ class TimeGrouper(BinGrouper):
             return
 
         if isinstance(self.axis, DatetimeIndex):
-            self.bins, self.binlabels = self._group_timestamps()
+            self.binner, self.bins, self.binlabels = self._group_timestamps()
         elif isinstance(self.axis, PeriodIndex):
-            self.bins, self.binlabels = self._group_periods()
+            self.binner, self.bins, self.binlabels = self._group_periods()
         else:
             raise ValueError('Invalid index: %s' % type(self.axis))
 
     def _group_timestamps(self):
         if self.kind is None or self.kind == 'timestamp':
-            binner = _generate_time_binner(self.axis, self.offset,
-                                           self.begin, self.end,
-                                           self.nperiods)
+            binner = self._generate_time_binner()
 
-            int_axis = self.axis.asi8
-            int_binner = com._ensure_int64(binner)
+            # a little hack
+            if (len(binner) > 2 and self.closed == 'right'
+                and binner[-2] == self.axis[-1]):
+                binner = binner[:-1]
 
             # general version, knowing nothing about relative frequencies
-            bins, labels = lib.generate_bins_dt64(int_axis, int_binner,
-                                                  self.closed, self.label)
-            return bins, labels.view('M8[us]')
+            bins = lib.generate_bins_dt64(self.axis.asi8, binner.asi8,
+                                          self.closed)
+
+            if self.label == 'right':
+                labels = binner[1:]
+            else:
+                labels = binner[:-1]
+
+            return binner, bins, labels
         elif self.kind == 'period':
             index = PeriodIndex(start=self.axis[0], end=self.axis[-1],
                                 freq=self.offset)
@@ -93,7 +102,7 @@ class TimeGrouper(BinGrouper):
             end_stamps = (index + 1).asfreq('D', 's').to_timestamp()
             bins = self.axis.searchsorted(end_stamps, side='left')
 
-            return bins, index
+            return index, bins, index
 
     def _group_periods(self):
         raise NotImplementedError
@@ -106,24 +115,16 @@ class TimeGrouper(BinGrouper):
         if not isinstance(offset, DateOffset):
             raise ValueError("Rule not a recognized offset")
 
-        if self.begin is None:
-            first = Timestamp(self.axis[0] - self.offset)
-        else:
-            first = Timestamp(self.offset.rollback(self.begin))
-
-        if self.end is None:
-            last = Timestamp(self.axis[-1] + self.offset)
-        else:
-            last = Timestamp(self.offset.rollforward(self.end))
-
-        if isinstance(offset, Tick):
-            return np.arange(first.value, last.value + 1,
-                             self.offset.us_stride(), dtype=np.int64)
-
-        result = DatetimeIndex(freq=offset, start=first, end=last,
+        first, last = _get_range_edges(self.axis, self.begin, self.end,
+                                       offset, closed=self.closed)
+        binner = DatetimeIndex(freq=offset, start=first, end=last,
                                periods=self.nperiods)
-        return result.asi8
 
+        return binner
+
+    @property
+    def downsamples(self):
+        return len(self.binlabels) < len(self.axis)
 
     @property
     def names(self):
@@ -142,39 +143,39 @@ class TimeGrouper(BinGrouper):
         return self.binlabels
 
 
-def _generate_time_binner(dtindex, offset, begin=None, end=None, nperiods=None):
-    if isinstance(offset, basestring):
-        offset = to_offset(offset)
+def _get_range_edges(axis, begin, end, offset, closed='left'):
+    # from pandas.tseries.tools import _delta_to_microseconds
+
+    # if isinstance(offset, Tick):
+    #     if begin is None:
+    #         if closed == 'left':
+    #             first = Timestamp(offset.rollback(axis[0]))
+    #         else:
+    #             first = Timestamp(axis[0] - offset)
+    #     else:
+    #         first = Timestamp(offset.rollback(begin))
+
+    #     if end is None:
+    #         if closed == 'left':
+    #             last = Timestamp(axis[-1] + offset)
+    #         else:
+    #             last = Timestamp(offset.rollforward(axis[-1]))
+    #     else:
+    #         last = Timestamp(offset.rollforward(end))
+    # else:
 
     if begin is None:
-        first = Timestamp(dtindex[0] - offset)
+        if closed == 'left':
+            first = Timestamp(offset.rollback(axis[0]))
+        else:
+            first = Timestamp(axis[0] - offset)
     else:
         first = Timestamp(offset.rollback(begin))
 
     if end is None:
-        last = Timestamp(dtindex[-1] + offset)
+        last = Timestamp(axis[-1] + offset)
+        # last = Timestamp(offset.rollforward(axis[-1]))
     else:
         last = Timestamp(offset.rollforward(end))
 
-    if isinstance(offset, Tick):
-        return np.arange(first.value, last.value+1, offset.us_stride(),
-                         dtype=np.int64)
-
-    result = DatetimeIndex(freq=offset, start=first, end=last,
-                           periods=nperiods)
-    return result.asi8
-
-
-def _generate_period_binner(dtindex, offset, begin=None, end=None,
-                            nperiods=None):
-    # if isinstance(offset, basestring):
-    #     offset = to_offset(offset)
-
-    first = dtindex[0]
-    last = dtindex[-1]
-    # if isinstance(offset, Tick):
-    #     return np.arange(first.value, last.value+1, offset.us_stride(),
-    #                      dtype=np.int64)
-
-    return PeriodIndex(freq=offset, start=first, end=last, periods=nperiods)
-
+    return first, last

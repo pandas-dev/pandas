@@ -643,9 +643,9 @@ class Grouper(object):
         'std' : np.sqrt
     }
 
-    _name_functions = {
-        'ohlc' : lambda *args: ['open', 'high', 'low', 'close']
-    }
+    _name_functions = {}
+
+    _filter_empty_groups = True
 
     def aggregate(self, values, how):
         values = com._ensure_float64(values)
@@ -669,7 +669,8 @@ class Grouper(object):
         agg_func(result, counts, values, comp_ids)
         result = trans_func(result)
 
-        result = lib.row_bool_subset(result, counts > 0)
+        if self._filter_empty_groups:
+            result = lib.row_bool_subset(result, counts > 0)
 
         if squeeze:
             result = result.squeeze()
@@ -732,7 +733,7 @@ class Grouper(object):
         return result, counts
 
 
-def generate_bins_generic(values, binner, closed, label):
+def generate_bins_generic(values, binner, closed):
     """
     Generate bin edge offsets and bin labels for one array using another array
     which has bin edge values. Both arrays must be sorted.
@@ -744,14 +745,12 @@ def generate_bins_generic(values, binner, closed, label):
         the first array. Note, 'values' end-points must fall within 'binner'
         end-points.
     closed : which end of bin is closed; left (default), right
-    label : which end of bin to use as a label: left (default), right
 
     Returns
     -------
     bins : array of offsets (into 'values' argument) of bins.
         Zero and last edge are excluded in result, so for instance the first
         bin is values[0:bin[0]] and the last is values[bin[-1]:]
-    labels : array of labels of bins
     """
     lenidx = len(values)
     lenbin = len(binner)
@@ -766,46 +765,25 @@ def generate_bins_generic(values, binner, closed, label):
     if values[lenidx-1] > binner[lenbin-1]:
         raise ValueError("Values falls after last bin")
 
-    labels = np.empty(lenbin, dtype=np.int64)
-    bins   = np.empty(lenbin, dtype=np.int32)
+    bins   = np.empty(lenbin - 1, dtype=np.int32)
 
     j  = 0 # index into values
     bc = 0 # bin count
-    vc = 0 # value count
 
     # linear scan, presume nothing about values/binner except that it
     # fits ok
     for i in range(0, lenbin-1):
-        l_bin = binner[i]
         r_bin = binner[i+1]
 
-        # set label of bin
-        if label == 'left':
-            labels[bc] = l_bin
-        else:
-            labels[bc] = r_bin
-
         # count values in current bin, advance to next bin
-        while values[j] < r_bin or closed == 'right' and values[j] == r_bin:
+        while j < lenidx and (values[j] < r_bin or
+                              (closed == 'right' and values[j] == r_bin)):
             j += 1
-            vc += 1
-            if j >= lenidx:
-                break
 
-        # check we have data left to scan
-        if j >= lenidx:
-            break
+        bins[bc] = j
+        bc += 1
 
-        # if we've seen some values or not ignoring empty bins
-        if vc != 0:
-            bins[bc] = j
-            bc += 1
-            vc = 0
-
-    labels = np.resize(labels, bc + 1)
-    bins = np.resize(bins, bc)
-
-    return bins, labels
+    return bins
 
 
 
@@ -836,7 +814,8 @@ class BinGrouper(Grouper):
             yield label, data[start:edge]
             start = edge
 
-        yield self.binlabels[-1], data[edge:]
+        if edge < len(data):
+            yield self.binlabels[-1], data[edge:]
 
     @cache_readonly
     def ngroups(self):
@@ -845,8 +824,9 @@ class BinGrouper(Grouper):
     #----------------------------------------------------------------------
     # cython aggregation
 
+    import pandas._sandbox as sbx
     _cython_functions = {
-        'add' : lib.group_add_bin,
+        'add' : sbx.group_add_bin,
         'prod' : lib.group_prod_bin,
         'mean' : lib.group_mean_bin,
         'var' : lib.group_var_bin,
@@ -857,6 +837,12 @@ class BinGrouper(Grouper):
     _cython_arity = {
         'ohlc' : 4, # OHLC
     }
+
+    _name_functions = {
+        'ohlc' : lambda *args: ['open', 'high', 'low', 'close']
+    }
+
+    _filter_empty_groups = True
 
     def aggregate(self, values, how):
         values = com._ensure_float64(values)
@@ -881,7 +867,8 @@ class BinGrouper(Grouper):
         agg_func(result, counts, values, self.bins)
         result = trans_func(result)
 
-        result = lib.row_bool_subset(result, counts > 0)
+        if self._filter_empty_groups:
+            result = lib.row_bool_subset(result, counts > 0)
 
         if squeeze:
             result = result.squeeze()

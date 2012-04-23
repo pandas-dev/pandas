@@ -421,59 +421,115 @@ def int64_unique(ndarray[int64_t] arr):
 
     return np.sort(uniques[:j])
 
+def group_add_bin(ndarray[float64_t, ndim=2] out,
+                  ndarray[int32_t] counts,
+                  ndarray[float64_t, ndim=2] values,
+                  ndarray[int32_t] bins):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, ngroups, b
+        float64_t val, count
+        ndarray[float64_t, ndim=2] sumx, nobs
+
+    nobs = np.zeros_like(out)
+    sumx = np.zeros_like(out)
+
+    ngroups = len(bins) + 1
+    N, K = (<object> values).shape
+
+    b = 0
+    if K > 1:
+        for i in range(N):
+            while b < ngroups and i >= bins[b]:
+                b += 1
+
+            if b == ngroups:
+                break
+
+            counts[b] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[b, j] += 1
+                    sumx[b, j] += val
+    else:
+        for i in range(N):
+            while b < ngroups and i >= bins[b]:
+                b += 1
+
+            if b == ngroups:
+                break
+
+            counts[b] += 1
+            val = values[i, 0]
+
+            # not nan
+            if val == val:
+                nobs[b, 0] += 1
+                sumx[b, 0] += val
+
+    for i in range(ngroups):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = sumx[i, j]
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def backfill_int64(ndarray[int64_t] old, ndarray[int64_t] new,
-                      limit=None):
-    cdef Py_ssize_t i, j, nleft, nright
-    cdef ndarray[int32_t, ndim=1] indexer
-    cdef object cur, prev
-    cdef int lim
+def group_add(ndarray[float64_t, ndim=2] out,
+              ndarray[int32_t] counts,
+              ndarray[float64_t, ndim=2] values,
+              ndarray[int32_t] labels):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        float64_t val, count
+        ndarray[float64_t, ndim=2] sumx, nobs
 
-    nleft = len(old)
-    nright = len(new)
-    indexer = np.empty(nright, dtype=np.int32)
-    indexer.fill(-1)
+    nobs = np.zeros_like(out)
+    sumx = np.zeros_like(out)
 
-    if limit is None:
-        lim = nright
+    N, K = (<object> values).shape
+
+    if K > 1:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[lab, j] += 1
+                    sumx[lab, j] += val
     else:
-        # TODO: > 0?
-        lim = limit
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
 
-    if nleft == 0 or nright == 0 or new[0] > old[nleft - 1]:
-        return indexer
+            counts[lab] += 1
+            val = values[i, 0]
 
-    i = nleft - 1
-    j = nright - 1
+            # not nan
+            if val == val:
+                nobs[lab, 0] += 1
+                sumx[lab, 0] += val
 
-    cur = old[nleft - 1]
-
-    while j > 0 and new[j] > cur:
-        j -= 1
-
-    while True:
-        if j == 0:
-            break
-
-        if i == 0:
-            while j > 0 and new[j] <= cur:
-                print i, j
-                indexer[j] = i
-                j -= 1
-            break
-
-        prev = old[i - 1]
-
-        while j > 0 and prev < new[j] <= cur:
-            print i, j
-
-            indexer[j] = i
-            j -= 1
-
-        print 'decrement', i, j
-        i -= 1
-        cur = prev
-
-    return indexer
+    for i in range(len(counts)):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = sumx[i, j]
 

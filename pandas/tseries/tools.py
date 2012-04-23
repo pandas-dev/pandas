@@ -21,6 +21,10 @@ except ImportError: # pragma: no cover
     print 'Please install python-dateutil via easy_install or some method!'
     raise # otherwise a 2nd import won't show the message
 
+def _delta_to_microseconds(delta):
+    return (delta.days * 24 * 60 * 60 * 1000000
+            + delta.seconds * 1000000
+            + delta.microseconds)
 
 def _infer_tzinfo(start, end):
     def _infer(a, b):

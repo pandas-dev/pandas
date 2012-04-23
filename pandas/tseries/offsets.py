@@ -879,9 +879,7 @@ class Tick(DateOffset):
         return self._delta
 
     def us_stride(self):
-        return (self.delta.days * 24 * 60 * 60 * 1000000
-                + self.delta.seconds * 1000000
-                + self.delta.microseconds)
+        return _delta_to_microseconds(self.delta)
 
     def apply(self, other):
         if isinstance(other, (datetime, timedelta)):
@@ -892,6 +890,10 @@ class Tick(DateOffset):
     def rule_code(self):
         return 'T'
 
+def _delta_to_microseconds(delta):
+    return (delta.days * 24 * 60 * 60 * 1000000
+            + delta.seconds * 1000000
+            + delta.microseconds)
 
 class Day(Tick, CacheableOffset):
     _inc = timedelta(1)

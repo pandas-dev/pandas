@@ -219,27 +219,6 @@ class TestTimeSeries(unittest.TestCase):
         self.assertRaises(AssertionError, rng2.get_indexer, rng,
                           method='pad')
 
-
-    def test_ohlc_5min(self):
-        def _ohlc(group):
-            if isnull(group).all():
-                return np.repeat(np.nan, 4)
-            return [group[0], group.max(), group.min(), group[-1]]
-
-        rng = date_range('1/1/2000 00:00:00', '1/1/2000 5:59:50',
-                         freq='10s')
-        ts = Series(np.random.randn(len(rng)), index=rng)
-
-        converted = ts.convert('5min', how='ohlc')
-
-        self.assert_((converted.ix['1/1/2000 00:00'] == ts[0]).all())
-
-        exp = _ohlc(ts[1:31])
-        self.assert_((converted.ix['1/1/2000 00:05'] == exp).all())
-
-        exp = _ohlc(ts['1/1/2000 5:55:01':])
-        self.assert_((converted.ix['1/1/2000 6:00:00'] == exp).all())
-
     def test_frame_ctor_datetime64_column(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 1:59:50',
                          freq='10s')
@@ -435,6 +414,10 @@ class TestTimeSeries(unittest.TestCase):
         result = rng.take(range(5))
         self.assert_(result.tz == rng.tz)
         self.assert_(result.freq == rng.freq)
+
+    def test_date_range_gen_error(self):
+        rng = date_range('1/1/2000 00:00', '1/1/2000 00:18', freq='5min')
+        self.assertEquals(len(rng), 4)
 
 def _skip_if_no_pytz():
     try:
@@ -898,44 +881,6 @@ class TestDatetime64(unittest.TestCase):
 
     # TODO: test merge & concat with datetime64 block
 
-class TestTimeGrouper(unittest.TestCase):
-
-    def setUp(self):
-        self.ts = Series(np.random.randn(1000),
-                         index=date_range('1/1/2000', periods=1000))
-
-    def test_apply(self):
-        grouper = TimeGrouper('A', label='right', closed='right')
-
-        grouped = self.ts.groupby(grouper)
-
-        f = lambda x: x.order()[-3:]
-
-        applied = grouped.apply(f)
-        expected = self.ts.groupby(lambda x: x.year).apply(f)
-
-        applied.index = applied.index.droplevel(0)
-        expected.index = expected.index.droplevel(0)
-        assert_series_equal(applied, expected)
-
-    def test_count(self):
-        self.ts[::3] = np.nan
-
-        grouper = TimeGrouper('A', label='right', closed='right')
-        result = self.ts.convert('A', how='count')
-
-        expected = self.ts.groupby(lambda x: x.year).count()
-        expected.index = result.index
-
-        assert_series_equal(result, expected)
-
-    def test_numpy_reduction(self):
-        result = self.ts.convert('A', how='prod', closed='right')
-
-        expected = self.ts.groupby(lambda x: x.year).agg(np.prod)
-        expected.index = result.index
-
-        assert_series_equal(result, expected)
 
 class TestNewOffsets(unittest.TestCase):
 

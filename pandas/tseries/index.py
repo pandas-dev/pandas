@@ -1006,13 +1006,16 @@ def _generate_regular_range(start, end, periods, offset):
         stride = offset.us_stride()
         if periods is None:
             b = Timestamp(start).value
-            e = Timestamp(end).value + stride
+            e = Timestamp(end).value
+            e += stride - e % stride
         elif start is not None:
             b = Timestamp(start).value
             e = b + periods * stride
-        else:
+        elif end is not None:
             e = Timestamp(end).value + stride
             b = e - periods * stride
+        else:
+            raise NotImplementedError
 
         data = np.arange(b, e, stride, dtype=np.int64)
         data = data.view('M8[us]')
