@@ -519,7 +519,7 @@ def iterpairs(seq):
     # input may not be sliceable
     seq_it = iter(seq)
     seq_it_next = iter(seq)
-    _ = seq_it_next.next()
+    _ = next(seq_it_next)
 
     return itertools.izip(seq_it, seq_it_next)
 

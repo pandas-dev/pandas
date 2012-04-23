@@ -40,6 +40,8 @@ if sys.version_info[0] >= 3:
                          'zip_safe': False,
                          'install_requires': ['python-dateutil >= 2',
                                               'numpy >= 1.4'],
+                         'use_2to3_exclude_fixers': ['lib2to3.fixes.fix_next',
+                                                    ],
                         }
     if not _have_setuptools:
         sys.exit("need setuptools/distribute for Py3k"
