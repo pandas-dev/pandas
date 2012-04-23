@@ -20,6 +20,7 @@ from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index, _handle_legacy_indexes)
 from pandas.core.indexing import _SeriesIndexer
 from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.period import PeriodIndex
 from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
 import pandas.core.common as com
@@ -2527,4 +2528,24 @@ Series.hist = _gfx.hist_series
 # Put here, otherwise monkey-patching in methods fails
 
 class TimeSeries(Series):
-    pass
+
+    def to_timestamp(self, freq='D', how='start', copy=True):
+        """
+        Cast to datetimeindex of timestamps, at *beginning* of period
+
+        Parameters
+        ----------
+        how : {'s', 'e', 'start', 'end'}
+
+        Returns
+        -------
+        DatetimeIndex
+        """
+        new_values = self.values
+        if copy:
+            new_values = new_values.copy()
+
+        new_index = self.index.to_timestamp(freq=freq, how=how)
+        return Series(new_values, index=new_index, name=self.name)
+
+

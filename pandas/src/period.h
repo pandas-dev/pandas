@@ -146,5 +146,6 @@ int pweek(long ordinal, int freq);
 int phour(long ordinal, int freq);
 int pminute(long ordinal, int freq);
 int psecond(long ordinal, int freq);
+double getAbsTime(int freq, long dailyDate, long originalDate);
 
 #endif

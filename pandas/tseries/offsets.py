@@ -731,7 +731,9 @@ class BYearEnd(DateOffset, CacheableOffset):
         other = other + relativedelta(years=years)
 
         _, days_in_month = lib.monthrange(other.year, self.month)
-        result = datetime(other.year, self.month, days_in_month)
+        result = datetime(other.year, self.month, days_in_month,
+                          other.hour, other.minute, other.second,
+                          other.microsecond)
 
         if result.weekday() > 4:
             result = result - BDay()
@@ -800,7 +802,9 @@ class YearEnd(DateOffset, CacheableOffset):
         n = self.n
         wkday, days_in_month = lib.monthrange(other.year, self.month)
         if other.month != self.month or other.day != days_in_month:
-            other = datetime(other.year - 1, self.month, days_in_month)
+            other = datetime(other.year - 1, self.month, days_in_month,
+                             other.hour, other.minute, other.second,
+                             other.microsecond)
             if n <= 0:
                 n = n + 1
         other = other + relativedelta(years=n)
@@ -829,7 +833,9 @@ class YearBegin(DateOffset, CacheableOffset):
     def apply(self, other):
         n = self.n
         if other.month != 1 or other.day != 1:
-            other = datetime(other.year, 1, 1)
+            other = datetime(other.year, 1, 1,
+                             other.hour, other.minute, other.second,
+                             other.microsecond)
             if n <= 0:
                 n = n + 1
         other = other + relativedelta(years = n, day=1)

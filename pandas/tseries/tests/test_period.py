@@ -7,17 +7,18 @@ Parts derived from scikits.timeseries code, original authors:
 """
 
 from unittest import TestCase
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from numpy.ma.testutils import assert_equal
 
 from pandas.tseries.period import Period, PeriodIndex
-from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.index import DatetimeIndex, date_range
+from pandas.tseries.tools import to_datetime
 
 import pandas.core.datetools as datetools
 import numpy as np
 
-from pandas import Series
+from pandas import Series, TimeSeries
 from pandas.util.testing import assert_series_equal
 
 class TestPeriodProperties(TestCase):
@@ -300,8 +301,8 @@ class TestFreqConversion(TestCase):
         ival_ANOV_to_D_start = Period(freq='D', year=2006, month=12, day=1)
 
         assert_equal(ival_A.asfreq('Q', 'S'), ival_A_to_Q_start)
-        assert_equal(ival_A.asfreq('Q', 'E'), ival_A_to_Q_end)
-        assert_equal(ival_A.asfreq('M', 'S'), ival_A_to_M_start)
+        assert_equal(ival_A.asfreq('Q', 'e'), ival_A_to_Q_end)
+        assert_equal(ival_A.asfreq('M', 's'), ival_A_to_M_start)
         assert_equal(ival_A.asfreq('M', 'E'), ival_A_to_M_end)
         assert_equal(ival_A.asfreq('WK', 'S'), ival_A_to_W_start)
         assert_equal(ival_A.asfreq('WK', 'E'), ival_A_to_W_end)
@@ -311,8 +312,10 @@ class TestFreqConversion(TestCase):
         assert_equal(ival_A.asfreq('D', 'E'), ival_A_to_D_end)
         assert_equal(ival_A.asfreq('H', 'S'), ival_A_to_H_start)
         assert_equal(ival_A.asfreq('H', 'E'), ival_A_to_H_end)
-        assert_equal(ival_A.asfreq('Min', 'S'), ival_A_to_T_start)
-        assert_equal(ival_A.asfreq('Min', 'E'), ival_A_to_T_end)
+        assert_equal(ival_A.asfreq('min', 'S'), ival_A_to_T_start)
+        assert_equal(ival_A.asfreq('min', 'E'), ival_A_to_T_end)
+        assert_equal(ival_A.asfreq('T', 'S'), ival_A_to_T_start)
+        assert_equal(ival_A.asfreq('T', 'E'), ival_A_to_T_end)
         assert_equal(ival_A.asfreq('S', 'S'), ival_A_to_S_start)
         assert_equal(ival_A.asfreq('S', 'E'), ival_A_to_S_end)
 
@@ -835,6 +838,44 @@ class TestFreqConversion(TestCase):
 class TestPeriodIndex(TestCase):
     def __init__(self, *args, **kwds):
         TestCase.__init__(self, *args, **kwds)
+
+    def test_make_time_series(self):
+        index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        series = Series(1, index=index)
+        self.assert_(isinstance(series, TimeSeries))
+
+    def test_to_timestamp(self):
+        index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        series = Series(1, index=index, name='foo')
+
+        exp_index = date_range('1/1/2001', end='12/31/2009', freq='A-DEC')
+        result = series.to_timestamp('D', 'end')
+        self.assert_(result.index.equals(exp_index))
+        self.assertEquals(result.name, 'foo')
+
+        exp_index = date_range('1/1/2001', end='1/1/2009', freq='AS-DEC')
+        result = series.to_timestamp('D', 'start')
+        self.assert_(result.index.equals(exp_index))
+
+
+        def _get_with_delta(delta, freq='A-DEC'):
+            return date_range(to_datetime('1/1/2001') + delta,
+                              to_datetime('12/31/2009') + delta, freq=freq)
+
+        delta = timedelta(hours=23)
+        result = series.to_timestamp('H', 'end')
+        exp_index = _get_with_delta(delta)
+        self.assert_(result.index.equals(exp_index))
+
+        delta = timedelta(hours=23, minutes=59)
+        result = series.to_timestamp('T', 'end')
+        exp_index = _get_with_delta(delta)
+        self.assert_(result.index.equals(exp_index))
+
+        result = series.to_timestamp('S', 'end')
+        delta = timedelta(hours=23, minutes=59, seconds=59)
+        exp_index = _get_with_delta(delta)
+        self.assert_(result.index.equals(exp_index))
 
     def test_constructor(self):
         ii = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')

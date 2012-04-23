@@ -124,6 +124,7 @@ cdef extern from "period.h":
     char *period_to_string2(long value, int freq, char *fmt)
 
     int get_date_info(long ordinal, int freq, date_info *dinfo) except -1
+    double getAbsTime(int, long, long)
 
     int pyear(long ordinal, int freq) except -1
     int pqyear(long ordinal, int freq) except -1

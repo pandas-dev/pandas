@@ -529,3 +529,10 @@ def group_add(ndarray[float64_t, ndim=2] out,
             else:
                 out[i, j] = sumx[i, j]
 
+
+from datetime cimport getAbsTime
+
+
+def get_abs_time(freq, dailyDate, originalDate):
+    return getAbsTime(freq, dailyDate, originalDate)
+

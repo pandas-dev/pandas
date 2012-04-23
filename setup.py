@@ -374,7 +374,9 @@ engines_ext = Extension('pandas._engines',
                         include_dirs=[np.get_include()])
 
 sandbox_ext = Extension('pandas._sandbox',
-                        sources=[srcpath('sandbox', suffix=suffix)],
+                        sources=[srcpath('sandbox', suffix=suffix),
+                                 'pandas/src/period.c',
+                                 ],
                         include_dirs=[np.get_include()])
 
 cppsandbox_ext = Extension('pandas._cppsandbox',

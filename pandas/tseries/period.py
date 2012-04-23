@@ -602,6 +602,10 @@ class PeriodIndex(Int64Index):
 
         return subarr
 
+    @property
+    def is_all_dates(self):
+        return True
+
     def asfreq(self, freq=None, how='E'):
         how = _validate_end_alias(how)
 
@@ -691,14 +695,24 @@ class PeriodIndex(Int64Index):
         # how to represent ourselves to matplotlib
         return datetools._period_box_array(self, self.freq)
 
-    def to_timestamp(self):
+    def to_timestamp(self, freq='D', how='start'):
         """
         Cast to datetimeindex of timestamps, at *beginning* of period
+
+        Parameters
+        ----------
+        how : {'s', 'e', 'start', 'end'}
+
+        Returns
+        -------
+        DatetimeIndex
         """
-        base, mult = _gfc('S')
-        new_data = self.asfreq('S', 'S')
+        base, mult = _gfc(freq)
+        new_data = self.asfreq(freq, how)
         new_data = lib.periodarr_to_dt64arr(new_data.values, base, mult)
-        return DatetimeIndex(new_data, freq=self.freq)
+
+        ts_freq = _period_rule_to_timestamp_rule(self.freq, how=how)
+        return DatetimeIndex(new_data, freq=ts_freq)
 
     def shift(self, n):
         """
@@ -854,6 +868,9 @@ def _validate_end_alias(how):
         raise ValueError('How must be one of S or E')
     return how
 
+def pnow(freq=None):
+    return Period(datetime.now(), freq=freq)
+
 def period_range(start=None, end=None, periods=None, freq='D'):
     """
     Return a fixed frequency datetime index, with day (calendar) as the default
@@ -873,3 +890,13 @@ def period_range(start=None, end=None, periods=None, freq='D'):
     """
     return PeriodIndex(start=start, end=end, periods=periods,
                        freq=freq)
+
+def _period_rule_to_timestamp_rule(freq, how='end'):
+    how = how.lower()
+    if how in ('end', 'e'):
+        return freq
+    else:
+        if freq.startswith('A-') or freq.startswith('BA-'):
+            base, color = freq.split('-')
+            return '%sS-%s' % (base, color)
+        return freq

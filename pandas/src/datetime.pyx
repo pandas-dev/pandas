@@ -1243,3 +1243,5 @@ def get_period_weekday_arr(ndarray[int64_t] arr, int base, long mult):
 def get_period_doy_arr(ndarray[int64_t] arr, int base, long mult):
     return apply_accessor_arr(pday_of_year, arr, base, mult)
 
+def get_abs_time(freq, dailyDate, originalDate):
+    return getAbsTime(freq, dailyDate, originalDate)

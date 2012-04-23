@@ -875,7 +875,7 @@ static freq_conv_func get_asfreq_func(int fromFreq, int toFreq, int forConvert)
     }
 }
 
-static double getAbsTime(int freq, long dailyDate, long originalDate) {
+double getAbsTime(int freq, long dailyDate, long originalDate) {
 
     long startOfDay, periodsPerDay;
 
@@ -891,7 +891,7 @@ static double getAbsTime(int freq, long dailyDate, long originalDate) {
             periodsPerDay = 24*60*60;
             break;
         default:
-            return 24*60*60 - 1;
+		  return 0; // 24*60*60 - 1;
     }
 
     startOfDay = asfreq_DtoHIGHFREQ(dailyDate, 'S', periodsPerDay);

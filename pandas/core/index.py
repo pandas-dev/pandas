@@ -338,7 +338,7 @@ class Index(np.ndarray):
             for dt in self:
                 if dt.time() != zero_time or dt.tzinfo is not None:
                     return header + ['%s' % x for x in self]
-                result.append('%d-%d-%d' % (dt.year, dt.month, dt.day))
+                result.append('%d-%.2d-%.2d' % (dt.year, dt.month, dt.day))
             return header + result
 
         values = self.values
