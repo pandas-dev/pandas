@@ -562,8 +562,9 @@ def group_var(ndarray[float64_t, ndim=2] out,
 # 1-min data, binner has 5-min data, then  bins are just strides in index. This
 # is a general, O(max(len(values), len(binner))) method.
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+# @cython.boundscheck(False)
+# @cython.wraparound(False)
+
 def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
                        object closed='left'):
     """
@@ -620,7 +621,7 @@ def group_add_bin(ndarray[float64_t, ndim=2] out,
     Only aggregates on axis=0
     '''
     cdef:
-        Py_ssize_t i, j, N, K, ngroups, b
+        Py_ssize_t i, j, N, K, ngroups, b, nbins
         float64_t val, count
         ndarray[float64_t, ndim=2] sumx, nobs
 
@@ -659,7 +660,7 @@ def group_add_bin(ndarray[float64_t, ndim=2] out,
 
     for i in range(ngroups):
         for j in range(K):
-            if nobs[i, j] == 0:
+            if nobs[i] == 0:
                 out[i, j] = nan
             else:
                 out[i, j] = sumx[i, j]
@@ -713,7 +714,7 @@ def group_prod_bin(ndarray[float64_t, ndim=2] out,
 
     for i in range(ngroups):
         for j in range(K):
-            if nobs[i, j] == 0:
+            if nobs[i] == 0:
                 out[i, j] = nan
             else:
                 out[i, j] = prodx[i, j]
@@ -772,7 +773,7 @@ def group_min_bin(ndarray[float64_t, ndim=2] out,
 
     for i in range(ngroups):
         for j in range(K):
-            if nobs[i, j] == 0:
+            if nobs[i] == 0:
                 out[i, j] = nan
             else:
                 out[i, j] = minx[i, j]
@@ -829,7 +830,7 @@ def group_max_bin(ndarray[float64_t, ndim=2] out,
 
     for i in range(ngroups):
         for j in range(K):
-            if nobs[i, j] == 0:
+            if nobs[i] == 0:
                 out[i, j] = nan
             else:
                 out[i, j] = maxx[i, j]
@@ -920,17 +921,14 @@ def group_mean_bin(ndarray[float64_t, ndim=2] out,
     nobs = np.zeros_like(out)
     sumx = np.zeros_like(out)
 
-    ngroups = len(bins) + 1
     N, K = (<object> values).shape
+    ngroups = len(bins) + 1
 
     b = 0
     if K > 1:
         for i in range(N):
-            while b < ngroups and i >= bins[b]:
+            while b < ngroups - 1 and i >= bins[b]:
                 b += 1
-
-            if b == ngroups:
-                break
 
             counts[b] += 1
             for j in range(K):
@@ -955,8 +953,8 @@ def group_mean_bin(ndarray[float64_t, ndim=2] out,
 
     for i in range(ngroups):
         for j in range(K):
-            count = nobs[i, j]
-            if nobs[i, j] == 0:
+            count = nobs[i]
+            if nobs[i] == 0:
                 out[i, j] = nan
             else:
                 out[i, j] = sumx[i, j] / count
@@ -1012,7 +1010,7 @@ def group_var_bin(ndarray[float64_t, ndim=2] out,
 
     for i in range(ngroups):
         for j in range(K):
-            ct = nobs[i, j]
+            ct = nobs[i]
             if ct < 2:
                 out[i, j] = nan
             else:

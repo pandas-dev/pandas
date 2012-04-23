@@ -824,11 +824,12 @@ class BinGrouper(Grouper):
     #----------------------------------------------------------------------
     # cython aggregation
 
-    import pandas._sandbox as sbx
     _cython_functions = {
-        'add' : sbx.group_add_bin,
+        'add' : lib.group_add_bin,
         'prod' : lib.group_prod_bin,
         'mean' : lib.group_mean_bin,
+        'min' : lib.group_min_bin,
+        'max' : lib.group_max_bin,
         'var' : lib.group_var_bin,
         'std' : lib.group_var_bin,
         'ohlc' : lib.group_ohlc

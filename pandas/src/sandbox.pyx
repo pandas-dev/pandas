@@ -442,11 +442,8 @@ def group_add_bin(ndarray[float64_t, ndim=2] out,
     b = 0
     if K > 1:
         for i in range(N):
-            while b < ngroups and i >= bins[b]:
+            while b < ngroups - 1 and i >= bins[b]:
                 b += 1
-
-            if b == ngroups:
-                break
 
             counts[b] += 1
             for j in range(K):
@@ -458,11 +455,8 @@ def group_add_bin(ndarray[float64_t, ndim=2] out,
                     sumx[b, j] += val
     else:
         for i in range(N):
-            while b < ngroups and i >= bins[b]:
+            while b < ngroups - 1 and i >= bins[b]:
                 b += 1
-
-            if b == ngroups:
-                break
 
             counts[b] += 1
             val = values[i, 0]
@@ -471,10 +465,12 @@ def group_add_bin(ndarray[float64_t, ndim=2] out,
             if val == val:
                 nobs[b, 0] += 1
                 sumx[b, 0] += val
+            print i, b, counts, nobs.squeeze()
 
     for i in range(ngroups):
+        print 'writing %d' % i
         for j in range(K):
-            if nobs[i, j] == 0:
+            if nobs[i] == 0:
                 out[i, j] = nan
             else:
                 out[i, j] = sumx[i, j]

@@ -33,6 +33,11 @@ class TestResample(unittest.TestCase):
         b = TimeGrouper(Minute(5))
         g = s.groupby(b)
 
+        # check all cython functions work
+        funcs = ['add', 'mean', 'prod', 'ohlc', 'min', 'max', 'var']
+        for f in funcs:
+            g._cython_agg_general(f)
+
         self.assertEquals(g.ngroups, 2593)
         self.assert_(notnull(g.mean()).all())
 

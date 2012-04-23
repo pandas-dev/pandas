@@ -317,7 +317,6 @@ class TestBinGroupers(unittest.TestCase):
             'var': lambda x: x.var(ddof=1) if len(x) >=2 else np.nan
         }
 
-        # import pandas._sandbox as lib
         for fname in funcs:
             args = [getattr(lib, 'group_%s' % fname),
                     getattr(lib, 'group_%s_bin' % fname),

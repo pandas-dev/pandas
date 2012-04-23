@@ -81,9 +81,10 @@ class TimeGrouper(BinGrouper):
             binner = self._generate_time_binner()
 
             # a little hack
-            if (len(binner) > 2 and self.closed == 'right'
-                and binner[-2] == self.axis[-1]):
+            trimmed = False
+            if len(binner) > 2 and binner[-2] == self.axis[-1]:
                 binner = binner[:-1]
+                trimmed = True
 
             # general version, knowing nothing about relative frequencies
             bins = lib.generate_bins_dt64(self.axis.asi8, binner.asi8,
@@ -91,8 +92,10 @@ class TimeGrouper(BinGrouper):
 
             if self.label == 'right':
                 labels = binner[1:]
-            else:
+            elif not trimmed:
                 labels = binner[:-1]
+            else:
+                labels = binner
 
             return binner, bins, labels
         elif self.kind == 'period':
