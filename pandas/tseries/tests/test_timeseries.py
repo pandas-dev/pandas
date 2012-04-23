@@ -467,6 +467,13 @@ class TestTimeSeries(unittest.TestCase):
         expected = date_range('1/1/2000 02:00', '2/1/2000 02:00')
         self.assert_(result.equals(expected))
 
+    def test_format_pre_1900_dates(self):
+        rng = date_range('1/1/1850', '1/1/1950', freq='A-DEC')
+        rng.format()
+        ts = Series(1, index=rng)
+        repr(ts)
+
+
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
     return Series(np.random.randn(len(rng)), index=rng)
