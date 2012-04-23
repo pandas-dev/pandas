@@ -4,7 +4,9 @@ import numpy as np
 
 from pandas import Series, DataFrame
 
+from pandas.tseries.index import date_range
 from pandas.tseries.offsets import Minute
+from pandas.tseries.period import period_range
 from pandas.tseries.resample import DatetimeIndex, TimeGrouper
 
 import unittest
@@ -153,8 +155,32 @@ class TestResample(unittest.TestCase):
         dti = DatetimeIndex(start=datetime(2005,1,1), end=datetime(2005,1,10),
                             freq='D')
         s = Series(np.random.rand(len(dti)), dti)
-        s = s.convert('B').convert('8H')
-        self.assertEquals(len(s), 22)
+        result = s.convert('B').convert('8H')
+        self.assertEquals(len(result), 22)
+
+    def test_resample_timestamp_to_period(self):
+        ts = _simple_ts('1/1/1990', '1/1/2000')
+
+        result = ts.convert('A-DEC', kind='period')
+        expected = ts.convert('A-DEC')
+        expected.index = period_range('1990', '2000', freq='a-dec')
+        assert_series_equal(result, expected)
+
+        result = ts.convert('M', kind='period')
+        expected = ts.convert('M')
+        expected.index = period_range('1990-01', '2000-01', freq='M')
+        assert_series_equal(result, expected)
+
+        result = ts.convert('BM', kind='period')
+        expected = ts.convert('BM')
+        expected.index = period_range('1990-01', '2000-01', freq='M')
+        assert_series_equal(result, expected)
+
+
+def _simple_ts(start, end, freq='D'):
+    rng = date_range(start, end, freq=freq)
+    return Series(np.random.randn(len(rng)), index=rng)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

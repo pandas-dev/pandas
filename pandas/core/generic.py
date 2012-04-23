@@ -165,7 +165,7 @@ class PandasObject(Picklable):
                               axis=self.index, kind=kind)
 
         # since binner extends endpoints
-        if len(grouper.binner) - 2 <= len(idx):
+        if len(grouper.bins) <= len(idx):
             # down- or re-sampling
             grouped  = self.groupby(grouper, axis=axis, as_index=as_index)
             result = grouped.agg(how)

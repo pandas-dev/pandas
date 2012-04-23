@@ -700,9 +700,7 @@ class TestDatetime64(unittest.TestCase):
     def setUp(self):
         dti = DatetimeIndex(start=datetime(2005,1,1),
                             end=datetime(2005,1,10), freq='Min')
-
         self.series = Series(rand(len(dti)), dti)
-
 
     def test_datetimeindex_accessors(self):
         dti = DatetimeIndex(freq='Q-JAN', start=datetime(1997,12,31),
