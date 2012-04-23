@@ -8,6 +8,7 @@ from pandas.tseries.index import date_range
 from pandas.tseries.offsets import Minute
 from pandas.tseries.period import period_range
 from pandas.tseries.resample import DatetimeIndex, TimeGrouper
+import pandas.tseries.offsets as offsets
 
 import unittest
 import nose
@@ -140,7 +141,7 @@ class TestResample(unittest.TestCase):
         s = Series(np.random.rand(len(dti)), dti)
 
         # to minutely, by padding
-        result = s.resample('Min', method='pad')
+        result = s.resample('Min', fill_method='pad')
         self.assertEquals(len(result), 12961)
         self.assertEquals(result[0], s[0])
         self.assertEquals(result[-1], s[-1])
@@ -171,8 +172,11 @@ class TestResample(unittest.TestCase):
         dti = DatetimeIndex(start=datetime(2005,1,1), end=datetime(2005,1,10),
                             freq='D')
         s = Series(np.random.rand(len(dti)), dti)
-        result = s.resample('B').resample('8H')
+        bs = s.resample('B')
+        result = bs.resample('8H')
         self.assertEquals(len(result), 22)
+        self.assert_(isinstance(result.index.freq, offsets.DateOffset))
+        self.assert_(result.index.freq == offsets.Hour(8))
 
     def test_resample_timestamp_to_period(self):
         ts = _simple_ts('1/1/1990', '1/1/2000')

@@ -137,8 +137,8 @@ class PandasObject(Picklable):
         return groupby(self, by, axis=axis, level=level, as_index=as_index,
                        sort=sort, group_keys=group_keys)
 
-    def resample(self, rule, method='pad', how='mean', axis=0, as_index=True,
-                closed='right', label='right', kind=None):
+    def resample(self, rule, how='mean', axis=0, as_index=True,
+                 fill_method=None, closed='right', label='right', kind=None):
         """
         Convenience method for frequency conversion and resampling of regular
         time-series data.
@@ -147,7 +147,7 @@ class PandasObject(Picklable):
         ----------
         rule : the offset string or object representing target conversion
         how : string, method for down- or re-sampling, default 'mean'
-        method : string, method for upsampling, default 'pad'
+        fill_method : string, fill_method for upsampling, default None
         axis : int, optional, default 0
         closed : {'right', 'left'}, default 'right'
             Which side of bin interval is closed
@@ -171,11 +171,9 @@ class PandasObject(Picklable):
             result = grouped.agg(how)
         else:
             # upsampling
-            result = self.reindex(grouper.binner[1:], method=method)
+            result = self.reindex(grouper.binner[1:], method=fill_method)
 
-        result.index.offset = rule
         return result
-
 
     def select(self, crit, axis=0):
         """
