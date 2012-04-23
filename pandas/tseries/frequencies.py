@@ -57,10 +57,10 @@ _unknown_freq = 'Unknown'
 
 
 from pandas.tseries.offsets import (Day, BDay, Hour, Minute, Second, Milli,
-                                    Micro, MonthEnd, MonthBegin, BMonthBegin,
-                                    BMonthEnd, YearBegin, YearEnd, BYearBegin,
-                                    BYearEnd, QuarterBegin, QuarterEnd,
-                                    BQuarterBegin, BQuarterEnd)
+                                    Week, Micro, MonthEnd, MonthBegin,
+                                    BMonthBegin, BMonthEnd, YearBegin, YearEnd,
+                                    BYearBegin, BYearEnd, QuarterBegin,
+                                    QuarterEnd, BQuarterBegin, BQuarterEnd)
 
 _offset_map = {
     'D'     : Day(),
@@ -202,13 +202,15 @@ _offset_map = {
     'BQS-DEC' : BQuarterBegin(startingMonth=12),
 
     # Weekly
-    'W-MON' : offsets.Week(weekday=0),
-    'W-TUE' : offsets.Week(weekday=1),
-    'W-WED' : offsets.Week(weekday=2),
-    'W-THU' : offsets.Week(weekday=3),
-    'W-FRI' : offsets.Week(weekday=4),
-    'W-SAT' : offsets.Week(weekday=5),
-    'W-SUN' : offsets.Week(weekday=6),
+    'W-MON' : Week(weekday=0),
+    'W-TUE' : Week(weekday=1),
+    'W-WED' : Week(weekday=2),
+    'W-THU' : Week(weekday=3),
+    'W-FRI' : Week(weekday=4),
+    'W-SAT' : Week(weekday=5),
+    'W-SUN' : Week(weekday=6),
+
+    'W': Week()
 }
 
 _rule_aliases = {

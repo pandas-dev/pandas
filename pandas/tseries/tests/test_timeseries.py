@@ -419,6 +419,50 @@ class TestTimeSeries(unittest.TestCase):
         rng = date_range('1/1/2000 00:00', '1/1/2000 00:18', freq='5min')
         self.assertEquals(len(rng), 4)
 
+    def test_first_subset(self):
+        ts = _simple_ts('1/1/2000', '1/1/2010', freq='12h')
+        result = ts.first('10d')
+        self.assert_(len(result) == 20)
+
+        ts = _simple_ts('1/1/2000', '1/1/2010')
+        result = ts.first('10d')
+        self.assert_(len(result) == 10)
+
+        result = ts.first('3M')
+        expected = ts[:'3/31/2000']
+        assert_series_equal(result, expected)
+
+        result = ts.first('3W')
+        expected = ts.first('21D')
+        assert_series_equal(result, expected)
+
+        result = ts[:0].first('3M')
+        assert_series_equal(result, ts[:0])
+
+    def test_last_subset(self):
+        ts = _simple_ts('1/1/2000', '1/1/2010', freq='12h')
+        result = ts.last('10d')
+        self.assert_(len(result) == 20)
+
+        ts = _simple_ts('1/1/2000', '1/1/2010')
+        result = ts.last('10d')
+        self.assert_(len(result) == 10)
+
+        result = ts.last('3M')
+        expected = ts['11/1/2009':]
+        assert_series_equal(result, expected)
+
+        result = ts.last('3W')
+        expected = ts.last('21D')
+        assert_series_equal(result, expected)
+
+        result = ts[:0].last('3M')
+        assert_series_equal(result, ts[:0])
+
+def _simple_ts(start, end, freq='D'):
+    rng = date_range(start, end, freq=freq)
+    return Series(np.random.randn(len(rng)), index=rng)
+
 def _skip_if_no_pytz():
     try:
         import pytz

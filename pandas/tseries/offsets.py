@@ -388,7 +388,7 @@ class Week(DateOffset, CacheableOffset):
                 raise Exception('Day must be 0<=day<=6, got %d' %
                                 self.weekday)
 
-        self.inc = timedelta(weeks=1)
+        self.delta = timedelta(weeks=1)
         self.kwds = kwds
 
     def isAnchored(self):
@@ -396,7 +396,7 @@ class Week(DateOffset, CacheableOffset):
 
     def apply(self, other):
         if self.weekday is None:
-            return other + self.n * self.inc
+            return other + self.n * self.delta
 
         if self.n > 0:
             k = self.n
@@ -405,14 +405,14 @@ class Week(DateOffset, CacheableOffset):
                 other = other + timedelta((self.weekday - otherDay) % 7)
                 k = k - 1
             for i in xrange(k):
-                other = other + self.inc
+                other = other + self.delta
         else:
             k = self.n
             otherDay = other.weekday()
             if otherDay != self.weekday:
                 other = other + timedelta((self.weekday - otherDay) % 7)
             for i in xrange(-k):
-                other = other - self.inc
+                other = other - self.delta
         return other
 
     def onOffset(self, dt):

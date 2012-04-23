@@ -4,8 +4,6 @@ import numpy as np
 
 from pandas.core.common import save, load
 from pandas.core.index import MultiIndex
-import pandas.core.datetools as datetools
-
 from pandas.tseries.index import DatetimeIndex
 
 #-------------------------------------------------------------------------------
@@ -174,6 +172,70 @@ class PandasObject(Picklable):
             result = self.reindex(grouper.binner[1:], method=fill_method)
 
         return result
+
+    def first(self, offset):
+        """
+        Convenience method for subsetting initial periods of time series data
+        based on a date offset
+
+        Parameters
+        ----------
+        offset : string, DateOffset, dateutil.relativedelta
+
+        Examples
+        --------
+        ts.last('10D') -> First 10 days
+
+        Returns
+        -------
+        subset : type of caller
+        """
+        from pandas.tseries.frequencies import to_offset
+        if not isinstance(self.index, DatetimeIndex):
+            raise NotImplementedError
+
+        if len(self.index) == 0:
+            return self
+
+        offset = to_offset(offset)
+        end_date = end = self.index[0] + offset
+
+        # Tick-like, e.g. 3 weeks
+        if not offset.isAnchored() and hasattr(offset, 'delta'):
+            if end_date in self.index:
+                end = self.index.searchsorted(end_date, side='left')
+
+        return self.ix[:end]
+
+    def last(self, offset):
+        """
+        Convenience method for subsetting final periods of time series data
+        based on a date offset
+
+        Parameters
+        ----------
+        offset : string, DateOffset, dateutil.relativedelta
+
+        Examples
+        --------
+        ts.last('5M') -> Last 5 months
+
+        Returns
+        -------
+        subset : type of caller
+        """
+        from pandas.tseries.frequencies import to_offset
+        if not isinstance(self.index, DatetimeIndex):
+            raise NotImplementedError
+
+        if len(self.index) == 0:
+            return self
+
+        offset = to_offset(offset)
+
+        start_date = start = self.index[-1] - offset
+        start = self.index.searchsorted(start_date, side='right')
+        return self.ix[start:]
 
     def select(self, crit, axis=0):
         """
@@ -735,8 +797,9 @@ def truncate(self, before=None, after=None, copy=True):
     -------
     truncated : type of caller
     """
-    before = datetools.to_datetime(before)
-    after = datetools.to_datetime(after)
+    from pandas.tseries.tools import to_datetime
+    before = to_datetime(before)
+    after = to_datetime(after)
 
     if before is not None and after is not None:
         assert(before <= after)
