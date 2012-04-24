@@ -17,19 +17,19 @@
 static asfreq_info NULL_AF_INFO;
 
 /* Table with day offsets for each month (0-based, without and with leap) */
-static int month_offset[2][13] = {
+static int_t month_offset[2][13] = {
     { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 },
     { 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 }
 };
 
 /* Table of number of days in a month (0-based, without and with leap) */
-static int days_in_month[2][12] = {
+static int_t days_in_month[2][12] = {
     { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
     { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
 };
 
 /* Return 1/0 iff year points to a leap year in calendar. */
-static int dInfoCalc_Leapyear(long year, int calendar)
+static int dInfoCalc_Leapyear(long_t year, int_t calendar)
 {
     if (calendar == GREGORIAN_CALENDAR) {
         return (year % 4 == 0) && ((year % 100 != 0) || (year % 400 == 0));
@@ -39,9 +39,9 @@ static int dInfoCalc_Leapyear(long year, int calendar)
 }
 
 /* Return the day of the week for the given absolute date. */
-static int dInfoCalc_DayOfWeek(long absdate)
+static int_t dInfoCalc_DayOfWeek(long_t absdate)
 {
-    int day_of_week;
+    int_t day_of_week;
 
     if (absdate >= 1) {
         day_of_week = (absdate - 1) % 7;
@@ -51,7 +51,7 @@ static int dInfoCalc_DayOfWeek(long absdate)
     return day_of_week;
 }
 
-static int monthToQuarter(int month) { return ((month-1)/3)+1; }
+static int_t monthToQuarter(int_t month) { return ((month-1)/3)+1; }
 
 /* Return the year offset, that is the absolute date of the day
    31.12.(year-1) in the given calendar.
@@ -61,7 +61,7 @@ static int monthToQuarter(int month) { return ((month-1)/3)+1; }
    using the Gregorian Epoch) value by two days because the Epoch
    (0001-01-01) in the Julian calendar lies 2 days before the Epoch in
    the Gregorian calendar. */
-static int dInfoCalc_YearOffset(long year, int calendar)
+static int_t dInfoCalc_YearOffset(long_t year, int_t calendar)
 {
     year--;
     if (calendar == GREGORIAN_CALENDAR) {
@@ -93,7 +93,7 @@ static int dInfoCalc_SetFromDateAndTime(struct date_info *dinfo,
     /* Calculate the absolute date */
     {
         int leap;
-        long yearoffset,absdate;
+        long_t yearoffset,absdate;
 
         /* Range check */
         Py_AssertWithArg(year > -(INT_MAX / 366) && year < (INT_MAX / 366),
@@ -173,19 +173,19 @@ static int dInfoCalc_SetFromDateAndTime(struct date_info *dinfo,
        than with this iterative approach... */
 static
 int dInfoCalc_SetFromAbsDate(register struct date_info *dinfo,
-                  long absdate,
+                  long_t absdate,
                   int calendar)
 {
-    register long year;
-    long yearoffset;
+    register long_t year;
+    long_t yearoffset;
     int leap,dayoffset;
     int *monthoffset;
 
     /* Approximate year */
     if (calendar == GREGORIAN_CALENDAR) {
-        year = (long)(((double)absdate) / 365.2425);
+        year = (long_t)(((double)absdate) / 365.2425);
     } else if (calendar == JULIAN_CALENDAR) {
-        year = (long)(((double)absdate) / 365.25);
+        year = (long_t)(((double)absdate) / 365.25);
     } else {
         Py_Error(PyExc_ValueError, "unknown calendar");
     }
@@ -254,11 +254,11 @@ int dInfoCalc_SetFromAbsDate(register struct date_info *dinfo,
 
 // helpers for frequency conversion routines //
 
-static long DtoB_weekday(long fromDate) {
+static long_t DtoB_weekday(long_t fromDate) {
     return (((fromDate) / 7) * 5) + (fromDate)%7;
 }
 
-static long DtoB_WeekendToMonday(long absdate, int day_of_week) {
+static long_t DtoB_WeekendToMonday(long_t absdate, int day_of_week) {
 
     if (day_of_week > 4) {
         //change to Monday after weekend
@@ -267,7 +267,7 @@ static long DtoB_WeekendToMonday(long absdate, int day_of_week) {
     return DtoB_weekday(absdate);
 }
 
-static long DtoB_WeekendToFriday(long absdate, int day_of_week) {
+static long_t DtoB_WeekendToFriday(long_t absdate, int day_of_week) {
     if (day_of_week > 4) {
         //change to friday before weekend
         absdate -= (day_of_week - 4);
@@ -275,7 +275,7 @@ static long DtoB_WeekendToFriday(long absdate, int day_of_week) {
     return DtoB_weekday(absdate);
 }
 
-static long absdate_from_ymd(int y, int m, int d) {
+static long_t absdate_from_ymd(int y, int m, int d) {
     struct date_info tempDate;
     if (dInfoCalc_SetFromDateAndTime(&tempDate, y, m, d, 0, 0, 0, GREGORIAN_CALENDAR)) {
         return INT_ERR_CODE;
@@ -285,16 +285,16 @@ static long absdate_from_ymd(int y, int m, int d) {
 
 //************ FROM DAILY ***************
 
-static long asfreq_DtoA(long fromDate, char relation, asfreq_info *af_info) {
+static long_t asfreq_DtoA(long_t fromDate, char relation, asfreq_info *af_info) {
 
     struct date_info dinfo;
     if (dInfoCalc_SetFromAbsDate(&dinfo, fromDate,
                     GREGORIAN_CALENDAR)) return INT_ERR_CODE;
-    if (dinfo.month > af_info->to_a_year_end) { return (long)(dinfo.year + 1); }
-    else { return (long)(dinfo.year); }
+    if (dinfo.month > af_info->to_a_year_end) { return (long_t)(dinfo.year + 1); }
+    else { return (long_t)(dinfo.year); }
 }
 
-static long DtoQ_yq(long fromDate, asfreq_info *af_info,
+static long_t DtoQ_yq(long_t fromDate, asfreq_info *af_info,
                               int *year, int *quarter) {
     struct date_info dinfo;
     if (dInfoCalc_SetFromAbsDate(&dinfo, fromDate,
@@ -313,7 +313,7 @@ static long DtoQ_yq(long fromDate, asfreq_info *af_info,
 }
 
 
-static long asfreq_DtoQ(long fromDate, char relation, asfreq_info *af_info) {
+static long_t asfreq_DtoQ(long_t fromDate, char relation, asfreq_info *af_info) {
 
     int year, quarter;
 
@@ -321,22 +321,22 @@ static long asfreq_DtoQ(long fromDate, char relation, asfreq_info *af_info) {
         return INT_ERR_CODE;
     }
 
-    return (long)((year - 1) * 4 + quarter);
+    return (long_t)((year - 1) * 4 + quarter);
 }
 
-static long asfreq_DtoM(long fromDate, char relation, asfreq_info *af_info) {
+static long_t asfreq_DtoM(long_t fromDate, char relation, asfreq_info *af_info) {
 
     struct date_info dinfo;
     if (dInfoCalc_SetFromAbsDate(&dinfo, fromDate, GREGORIAN_CALENDAR))
         return INT_ERR_CODE;
-    return (long)((dinfo.year - 1) * 12 + dinfo.month);
+    return (long_t)((dinfo.year - 1) * 12 + dinfo.month);
 }
 
-static long asfreq_DtoW(long fromDate, char relation, asfreq_info *af_info) {
+static long_t asfreq_DtoW(long_t fromDate, char relation, asfreq_info *af_info) {
     return (fromDate - (1 + af_info->to_week_end))/7 + 1;
 }
 
-static long asfreq_DtoB(long fromDate, char relation, asfreq_info *af_info) {
+static long_t asfreq_DtoB(long_t fromDate, char relation, asfreq_info *af_info) {
 
     struct date_info dinfo;
     if (dInfoCalc_SetFromAbsDate(&dinfo, fromDate,
@@ -349,7 +349,7 @@ static long asfreq_DtoB(long fromDate, char relation, asfreq_info *af_info) {
     }
 }
 
-static long asfreq_DtoB_forConvert(long fromDate, char relation, asfreq_info *af_info) {
+static long_t asfreq_DtoB_forConvert(long_t fromDate, char relation, asfreq_info *af_info) {
 
     struct date_info dinfo;
     if (dInfoCalc_SetFromAbsDate(&dinfo, fromDate, GREGORIAN_CALENDAR))
@@ -363,138 +363,138 @@ static long asfreq_DtoB_forConvert(long fromDate, char relation, asfreq_info *af
 }
 
 // needed for getDateInfo function
-static long asfreq_DtoD(long fromDate, char relation, asfreq_info *af_info) { return fromDate; }
+static long_t asfreq_DtoD(long_t fromDate, char relation, asfreq_info *af_info) { return fromDate; }
 
-static long asfreq_DtoHIGHFREQ(long fromDate, char relation, long periodsPerDay) {
+static long_t asfreq_DtoHIGHFREQ(long_t fromDate, char relation, long_t periodsPerDay) {
     if (fromDate >= HIGHFREQ_ORIG) {
         if (relation == 'S') { return (fromDate - HIGHFREQ_ORIG)*(periodsPerDay) + 1; }
         else                 { return (fromDate - HIGHFREQ_ORIG + 1)*(periodsPerDay); }
     } else { return INT_ERR_CODE; }
 }
 
-static long asfreq_DtoH(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_DtoH(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoHIGHFREQ(fromDate, relation, 24); }
-static long asfreq_DtoT(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_DtoT(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoHIGHFREQ(fromDate, relation, 24*60); }
-static long asfreq_DtoS(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_DtoS(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoHIGHFREQ(fromDate, relation, 24*60*60); }
 
 //************ FROM SECONDLY ***************
 
-static long asfreq_StoD(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_StoD(long_t fromDate, char relation, asfreq_info *af_info)
     { return (fromDate - 1)/(60*60*24) + HIGHFREQ_ORIG; }
 
-static long asfreq_StoA(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_StoA(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoA(asfreq_StoD(fromDate, relation, &NULL_AF_INFO), relation, af_info); }
-static long asfreq_StoQ(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_StoQ(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoQ(asfreq_StoD(fromDate, relation, &NULL_AF_INFO), relation, af_info); }
-static long asfreq_StoM(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_StoM(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoM(asfreq_StoD(fromDate, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
-static long asfreq_StoW(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_StoW(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoW(asfreq_StoD(fromDate, relation, &NULL_AF_INFO), relation, af_info); }
-static long asfreq_StoB(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_StoB(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoB(asfreq_StoD(fromDate, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
-static long asfreq_StoB_forConvert(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_StoB_forConvert(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoB_forConvert(asfreq_StoD(fromDate, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
-static long asfreq_StoT(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_StoT(long_t fromDate, char relation, asfreq_info *af_info)
     { return (fromDate - 1)/60 + 1; }
-static long asfreq_StoH(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_StoH(long_t fromDate, char relation, asfreq_info *af_info)
     { return (fromDate - 1)/(60*60) + 1; }
 
 //************ FROM MINUTELY ***************
 
-static long asfreq_TtoD(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_TtoD(long_t fromDate, char relation, asfreq_info *af_info)
     { return (fromDate - 1)/(60*24) + HIGHFREQ_ORIG; }
 
-static long asfreq_TtoA(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_TtoA(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoA(asfreq_TtoD(fromDate, relation, &NULL_AF_INFO), relation, af_info); }
-static long asfreq_TtoQ(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_TtoQ(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoQ(asfreq_TtoD(fromDate, relation, &NULL_AF_INFO), relation, af_info); }
-static long asfreq_TtoM(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_TtoM(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoM(asfreq_TtoD(fromDate, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
-static long asfreq_TtoW(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_TtoW(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoW(asfreq_TtoD(fromDate, relation, &NULL_AF_INFO), relation, af_info); }
-static long asfreq_TtoB(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_TtoB(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoB(asfreq_TtoD(fromDate, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
 
-static long asfreq_TtoB_forConvert(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_TtoB_forConvert(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoB_forConvert(asfreq_TtoD(fromDate, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
 
-static long asfreq_TtoH(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_TtoH(long_t fromDate, char relation, asfreq_info *af_info)
     { return (fromDate - 1)/60 + 1; }
-static long asfreq_TtoS(long fromDate, char relation, asfreq_info *af_info) {
+static long_t asfreq_TtoS(long_t fromDate, char relation, asfreq_info *af_info) {
     if (relation == 'S') {  return fromDate*60 - 59; }
     else                 {  return fromDate*60;      }}
 
 //************ FROM HOURLY ***************
 
-static long asfreq_HtoD(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_HtoD(long_t fromDate, char relation, asfreq_info *af_info)
     { return (fromDate - 1)/24 + HIGHFREQ_ORIG; }
-static long asfreq_HtoA(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_HtoA(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoA(asfreq_HtoD(fromDate, relation, &NULL_AF_INFO), relation, af_info); }
-static long asfreq_HtoQ(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_HtoQ(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoQ(asfreq_HtoD(fromDate, relation, &NULL_AF_INFO), relation, af_info); }
-static long asfreq_HtoM(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_HtoM(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoM(asfreq_HtoD(fromDate, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
-static long asfreq_HtoW(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_HtoW(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoW(asfreq_HtoD(fromDate, relation, &NULL_AF_INFO), relation, af_info); }
-static long asfreq_HtoB(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_HtoB(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoB(asfreq_HtoD(fromDate, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
 
-static long asfreq_HtoB_forConvert(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_HtoB_forConvert(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoB_forConvert(asfreq_HtoD(fromDate, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
 
 // calculation works out the same as TtoS, so we just call that function for HtoT
-static long asfreq_HtoT(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_HtoT(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_TtoS(fromDate, relation, &NULL_AF_INFO); }
-static long asfreq_HtoS(long fromDate, char relation, asfreq_info *af_info) {
+static long_t asfreq_HtoS(long_t fromDate, char relation, asfreq_info *af_info) {
     if (relation == 'S') {  return fromDate*60*60 - 60*60 + 1; }
     else                 {  return fromDate*60*60;             }}
 
 //************ FROM BUSINESS ***************
 
-static long asfreq_BtoD(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_BtoD(long_t fromDate, char relation, asfreq_info *af_info)
     { return ((fromDate-1)/5)*7 + (fromDate-1)%5 + 1; }
 
-static long asfreq_BtoA(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_BtoA(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoA(asfreq_BtoD(fromDate, relation, &NULL_AF_INFO), relation, af_info); }
 
-static long asfreq_BtoQ(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_BtoQ(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoQ(asfreq_BtoD(fromDate, relation, &NULL_AF_INFO), relation, af_info); }
 
-static long asfreq_BtoM(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_BtoM(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoM(asfreq_BtoD(fromDate, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
 
-static long asfreq_BtoW(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_BtoW(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoW(asfreq_BtoD(fromDate, relation, &NULL_AF_INFO), relation, af_info); }
 
-static long asfreq_BtoH(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_BtoH(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoH(asfreq_BtoD(fromDate, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
 
-static long asfreq_BtoT(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_BtoT(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoT(asfreq_BtoD(fromDate, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
 
-static long asfreq_BtoS(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_BtoS(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoS(asfreq_BtoD(fromDate, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
 
 //************ FROM WEEKLY ***************
 
-static long asfreq_WtoD(long fromDate, char relation, asfreq_info *af_info) {
+static long_t asfreq_WtoD(long_t fromDate, char relation, asfreq_info *af_info) {
     if (relation == 'S') { return fromDate * 7 - 6 + af_info->from_week_end;}
     else                 { return fromDate * 7 + af_info->from_week_end; }
 }
 
-static long asfreq_WtoA(long fromDate, char relation, asfreq_info *af_info) {
+static long_t asfreq_WtoA(long_t fromDate, char relation, asfreq_info *af_info) {
     return asfreq_DtoA(asfreq_WtoD(fromDate, 'E', af_info), relation, af_info); }
-static long asfreq_WtoQ(long fromDate, char relation, asfreq_info *af_info) {
+static long_t asfreq_WtoQ(long_t fromDate, char relation, asfreq_info *af_info) {
     return asfreq_DtoQ(asfreq_WtoD(fromDate, 'E', af_info), relation, af_info); }
-static long asfreq_WtoM(long fromDate, char relation, asfreq_info *af_info) {
+static long_t asfreq_WtoM(long_t fromDate, char relation, asfreq_info *af_info) {
     return asfreq_DtoM(asfreq_WtoD(fromDate, 'E', af_info), relation, &NULL_AF_INFO); }
 
-static long asfreq_WtoW(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_WtoW(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoW(asfreq_WtoD(fromDate, relation, af_info), relation, af_info); }
 
-static long asfreq_WtoB(long fromDate, char relation, asfreq_info *af_info) {
+static long_t asfreq_WtoB(long_t fromDate, char relation, asfreq_info *af_info) {
 
     struct date_info dinfo;
     if (dInfoCalc_SetFromAbsDate(&dinfo, asfreq_WtoD(fromDate, relation, af_info),
@@ -504,23 +504,23 @@ static long asfreq_WtoB(long fromDate, char relation, asfreq_info *af_info) {
     else                 { return DtoB_WeekendToFriday(dinfo.absdate, dinfo.day_of_week); }
 }
 
-static long asfreq_WtoH(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_WtoH(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoH(asfreq_WtoD(fromDate, relation, af_info), relation, &NULL_AF_INFO); }
-static long asfreq_WtoT(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_WtoT(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoT(asfreq_WtoD(fromDate, relation, af_info), relation, &NULL_AF_INFO); }
-static long asfreq_WtoS(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_WtoS(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoS(asfreq_WtoD(fromDate, relation, af_info), relation, &NULL_AF_INFO); }
 
 //************ FROM MONTHLY ***************
 
-static void MtoD_ym(long fromDate, long *y, long *m) {
+static void MtoD_ym(long_t fromDate, long_t *y, long_t *m) {
     *y = (fromDate - 1) / 12 + 1;
     *m = fromDate - 12 * (*y) - 1;
 }
 
-static long asfreq_MtoD(long fromDate, char relation, asfreq_info *af_info) {
+static long_t asfreq_MtoD(long_t fromDate, char relation, asfreq_info *af_info) {
 
-    long y, m, absdate;
+    long_t y, m, absdate;
 
     if (relation == 'S') {
         MtoD_ym(fromDate, &y, &m);
@@ -533,16 +533,16 @@ static long asfreq_MtoD(long fromDate, char relation, asfreq_info *af_info) {
     }
 }
 
-static long asfreq_MtoA(long fromDate, char relation, asfreq_info *af_info) {
+static long_t asfreq_MtoA(long_t fromDate, char relation, asfreq_info *af_info) {
     return asfreq_DtoA(asfreq_MtoD(fromDate, 'E', &NULL_AF_INFO), relation, af_info); }
 
-static long asfreq_MtoQ(long fromDate, char relation, asfreq_info *af_info) {
+static long_t asfreq_MtoQ(long_t fromDate, char relation, asfreq_info *af_info) {
     return asfreq_DtoQ(asfreq_MtoD(fromDate, 'E', &NULL_AF_INFO), relation, af_info); }
 
-static long asfreq_MtoW(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_MtoW(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoW(asfreq_MtoD(fromDate, relation, &NULL_AF_INFO), relation, af_info); }
 
-static long asfreq_MtoB(long fromDate, char relation, asfreq_info *af_info) {
+static long_t asfreq_MtoB(long_t fromDate, char relation, asfreq_info *af_info) {
 
     struct date_info dinfo;
     if (dInfoCalc_SetFromAbsDate(&dinfo, asfreq_MtoD(fromDate, relation, &NULL_AF_INFO),
@@ -552,16 +552,16 @@ static long asfreq_MtoB(long fromDate, char relation, asfreq_info *af_info) {
     else                 { return DtoB_WeekendToFriday(dinfo.absdate, dinfo.day_of_week); }
 }
 
-static long asfreq_MtoH(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_MtoH(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoH(asfreq_MtoD(fromDate, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
-static long asfreq_MtoT(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_MtoT(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoT(asfreq_MtoD(fromDate, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
-static long asfreq_MtoS(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_MtoS(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoS(asfreq_MtoD(fromDate, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
 
 //************ FROM QUARTERLY ***************
 
-static void QtoD_ym(long fromDate, long *y, long *m, asfreq_info *af_info) {
+static void QtoD_ym(long_t fromDate, long_t *y, long_t *m, asfreq_info *af_info) {
 
     *y = (fromDate - 1) / 4 + 1;
     *m = (fromDate + 4) * 3 - 12 * (*y) - 2;
@@ -573,9 +573,9 @@ static void QtoD_ym(long fromDate, long *y, long *m, asfreq_info *af_info) {
     }
 }
 
-static long asfreq_QtoD(long fromDate, char relation, asfreq_info *af_info) {
+static long_t asfreq_QtoD(long_t fromDate, char relation, asfreq_info *af_info) {
 
-    long y, m, absdate;
+    long_t y, m, absdate;
 
     if (relation == 'S') {
         QtoD_ym(fromDate, &y, &m, af_info);
@@ -588,19 +588,19 @@ static long asfreq_QtoD(long fromDate, char relation, asfreq_info *af_info) {
     }
 }
 
-static long asfreq_QtoQ(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_QtoQ(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoQ(asfreq_QtoD(fromDate, relation, af_info), relation, af_info); }
 
-static long asfreq_QtoA(long fromDate, char relation, asfreq_info *af_info) {
+static long_t asfreq_QtoA(long_t fromDate, char relation, asfreq_info *af_info) {
     return asfreq_DtoA(asfreq_QtoD(fromDate, relation, af_info), relation, af_info); }
 
-static long asfreq_QtoM(long fromDate, char relation, asfreq_info *af_info) {
+static long_t asfreq_QtoM(long_t fromDate, char relation, asfreq_info *af_info) {
     return asfreq_DtoM(asfreq_QtoD(fromDate, relation, af_info), relation, &NULL_AF_INFO); }
 
-static long asfreq_QtoW(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_QtoW(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoW(asfreq_QtoD(fromDate, relation, af_info), relation, af_info); }
 
-static long asfreq_QtoB(long fromDate, char relation, asfreq_info *af_info) {
+static long_t asfreq_QtoB(long_t fromDate, char relation, asfreq_info *af_info) {
 
     struct date_info dinfo;
     if (dInfoCalc_SetFromAbsDate(&dinfo, asfreq_QtoD(fromDate, relation, af_info),
@@ -611,18 +611,18 @@ static long asfreq_QtoB(long fromDate, char relation, asfreq_info *af_info) {
 }
 
 
-static long asfreq_QtoH(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_QtoH(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoH(asfreq_QtoD(fromDate, relation, af_info), relation, &NULL_AF_INFO); }
-static long asfreq_QtoT(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_QtoT(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoT(asfreq_QtoD(fromDate, relation, af_info), relation, &NULL_AF_INFO); }
-static long asfreq_QtoS(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_QtoS(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoS(asfreq_QtoD(fromDate, relation, af_info), relation, &NULL_AF_INFO); }
 
 
 //************ FROM ANNUAL ***************
 
-static long asfreq_AtoD(long fromDate, char relation, asfreq_info *af_info) {
-    long absdate, year, final_adj;
+static long_t asfreq_AtoD(long_t fromDate, char relation, asfreq_info *af_info) {
+    long_t absdate, year, final_adj;
     int month = (af_info->from_a_year_end) % 12;
 
     if (month == 0) { month = 1; }
@@ -642,19 +642,19 @@ static long asfreq_AtoD(long fromDate, char relation, asfreq_info *af_info) {
     return absdate + final_adj;
 }
 
-static long asfreq_AtoA(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_AtoA(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoA(asfreq_AtoD(fromDate, relation, af_info), relation, af_info); }
 
-static long asfreq_AtoQ(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_AtoQ(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoQ(asfreq_AtoD(fromDate, relation, af_info), relation, af_info); }
 
-static long asfreq_AtoM(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_AtoM(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoM(asfreq_AtoD(fromDate, relation, af_info), relation, af_info); }
 
-static long asfreq_AtoW(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_AtoW(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoW(asfreq_AtoD(fromDate, relation, af_info), relation, af_info); }
 
-static long asfreq_AtoB(long fromDate, char relation, asfreq_info *af_info) {
+static long_t asfreq_AtoB(long_t fromDate, char relation, asfreq_info *af_info) {
 
     struct date_info dinfo;
     if (dInfoCalc_SetFromAbsDate(&dinfo, asfreq_AtoD(fromDate, relation, af_info),
@@ -664,15 +664,15 @@ static long asfreq_AtoB(long fromDate, char relation, asfreq_info *af_info) {
     else                 { return DtoB_WeekendToFriday(dinfo.absdate, dinfo.day_of_week); }
 }
 
-static long asfreq_AtoH(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_AtoH(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoH(asfreq_AtoD(fromDate, relation, af_info), relation, &NULL_AF_INFO); }
-static long asfreq_AtoT(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_AtoT(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoT(asfreq_AtoD(fromDate, relation, af_info), relation, &NULL_AF_INFO); }
-static long asfreq_AtoS(long fromDate, char relation, asfreq_info *af_info)
+static long_t asfreq_AtoS(long_t fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoS(asfreq_AtoD(fromDate, relation, af_info), relation, &NULL_AF_INFO); }
 
-static long nofunc(long fromDate, char relation, asfreq_info *af_info) { return INT_ERR_CODE; }
-static long no_op(long fromDate, char relation, asfreq_info *af_info) { return fromDate; }
+static long_t nofunc(long_t fromDate, char relation, asfreq_info *af_info) { return INT_ERR_CODE; }
+static long_t no_op(long_t fromDate, char relation, asfreq_info *af_info) { return fromDate; }
 
 // end of frequency specific conversion routines
 
@@ -875,9 +875,9 @@ static freq_conv_func get_asfreq_func(int fromFreq, int toFreq, int forConvert)
     }
 }
 
-double getAbsTime(int freq, long dailyDate, long originalDate) {
+double getAbsTime(int freq, long_t dailyDate, long_t originalDate) {
 
-    long startOfDay, periodsPerDay;
+    long_t startOfDay, periodsPerDay;
 
     switch(freq)
     {
@@ -926,7 +926,7 @@ int dInfoCalc_SetFromAbsTime(struct date_info *dinfo,
    indicate the calendar to be used. */
 static
 int dInfoCalc_SetFromAbsDateTime(struct date_info *dinfo,
-                  long absdate,
+                  long_t absdate,
                   double abstime,
                   int calendar)
 {
@@ -957,14 +957,14 @@ int dInfoCalc_SetFromAbsDateTime(struct date_info *dinfo,
  * New pandas API-helper code, to expose to cython
  * ------------------------------------------------------------------*/
 
-long asfreq(long period_ordinal, int freq1, int freq2, char relation)
+long_t asfreq(long_t period_ordinal, int freq1, int freq2, char relation)
 {
     freq_conv_func func = get_asfreq_func(freq1, freq2, 0);
 
     asfreq_info finfo;
     get_asfreq_info(freq1, freq2, &finfo);
 
-    long val = (*func)(period_ordinal, relation, &finfo);
+    long_t val = (*func)(period_ordinal, relation, &finfo);
 
     if (val == INT_ERR_CODE) {
         Py_Error(PyExc_ValueError, "Unable to convert to desired frequency.");
@@ -976,7 +976,7 @@ onError:
 }
 
 /* generate an ordinal in period space */
-long get_period_ordinal(int year, int month, int day,
+long_t get_period_ordinal(int year, int month, int day,
                       int hour, int minute, int second,
                       int freq)
 {
@@ -984,54 +984,54 @@ long get_period_ordinal(int year, int month, int day,
     int quarter=((month-1)/3)+1;
 
     if (freq == FR_SEC) {
-        long absdays, delta;
+        long_t absdays, delta;
         absdays = absdate_from_ymd(year, month, day);
         delta = (absdays - HIGHFREQ_ORIG);
-        return (long)(delta*86400 + hour*3600 + minute*60 + second + 1);
+        return (long_t)(delta*86400 + hour*3600 + minute*60 + second + 1);
     }
 
     if (freq == FR_MIN) {
-        long absdays, delta;
+        long_t absdays, delta;
         absdays = absdate_from_ymd(year, month, day);
         delta = (absdays - HIGHFREQ_ORIG);
-        return (long)(delta*1440 + hour*60 + minute + 1);
+        return (long_t)(delta*1440 + hour*60 + minute + 1);
     }
 
     if (freq == FR_HR) {
-        long absdays, delta;
+        long_t absdays, delta;
         if ((absdays = absdate_from_ymd(year, month, day)) == INT_ERR_CODE)
         {
             goto onError;
         }
         delta = (absdays - HIGHFREQ_ORIG);
-        return (long)(delta*24 + hour + 1);
+        return (long_t)(delta*24 + hour + 1);
     }
 
     if (freq == FR_DAY)
     {
-        return (long)absdate_from_ymd(year, month, day);
+        return (long_t)absdate_from_ymd(year, month, day);
     }
 
     if (freq == FR_UND)
     {
-        return (long)absdate_from_ymd(year, month, day);
+        return (long_t)absdate_from_ymd(year, month, day);
     }
 
     if (freq == FR_BUS)
     {
-        long weeks, days;
+        long_t weeks, days;
         if((days = absdate_from_ymd(year, month, day)) == INT_ERR_CODE)
         {
             goto onError;
         }
         weeks = days/7;
-        return (long)(days - weeks*2);
+        return (long_t)(days - weeks*2);
     }
 
     if (freq_group == FR_WK)
     {
-        long adj_ordinal, ordinal, day_adj;
-        if((ordinal = (long)absdate_from_ymd(year, month, day)) == INT_ERR_CODE)
+        long_t adj_ordinal, ordinal, day_adj;
+        if((ordinal = (long_t)absdate_from_ymd(year, month, day)) == INT_ERR_CODE)
         {
             goto onError;
         }
@@ -1068,12 +1068,12 @@ onError:
     is calculated for the last day of the period.
 */
 
-long get_python_ordinal(long period_ordinal, int freq)
+long_t get_python_ordinal(long_t period_ordinal, int freq)
 {
     if (freq == FR_DAY)
         return period_ordinal;
 
-    long (*toDaily)(long, char, asfreq_info*) = NULL;
+    long_t (*toDaily)(long_t, char, asfreq_info*) = NULL;
     asfreq_info af_info;
 
     toDaily = get_asfreq_func(freq, FR_DAY, 0);
@@ -1116,7 +1116,7 @@ char *str_replace(const char *s, const char *old, const char *new) {
 // function to generate a nice string representation of the period
 // object, originally from DateObject_strftime
 
-char *skts_strftime(long value, int freq, PyObject *args)
+char *skts_strftime(long_t value, int freq, PyObject *args)
 {
     char *orig_fmt_str, *fmt_str;
     char *result;
@@ -1131,12 +1131,12 @@ char *skts_strftime(long value, int freq, PyObject *args)
     int extra_fmts_found_one = 0;
     struct tm c_date;
     struct date_info tempDate;
-    long absdate;
+    long_t absdate;
     double abstime;
     int i, result_len;
     PyObject *py_result;
 
-    long (*toDaily)(long, char, asfreq_info*) = NULL;
+    long_t (*toDaily)(long_t, char, asfreq_info*) = NULL;
     asfreq_info af_info;
 
     if (!PyArg_ParseTuple(args, "s:strftime(fmt)", &orig_fmt_str))
@@ -1250,7 +1250,7 @@ char *skts_strftime(long value, int freq, PyObject *args)
     return result;
 }
 
-char *period_to_string(long value, int freq)
+char *period_to_string(long_t value, int freq)
 {
     int freq_group = get_freq_group(freq);
     PyObject *string_arg;
@@ -1283,7 +1283,7 @@ char *period_to_string(long value, int freq)
     return retval;
 }
 
-char *period_to_string2(long value, int freq, char *fmt)
+char *period_to_string2(long_t value, int freq, char *fmt)
 {
     PyObject *string_arg;
     char *retval;
@@ -1294,7 +1294,7 @@ char *period_to_string2(long value, int freq, char *fmt)
     return retval;
 }
 
-static int _quarter_year(long ordinal, int freq, int *year, int *quarter) {
+static int _quarter_year(long_t ordinal, int freq, int *year, int *quarter) {
     asfreq_info af_info;
     int qtr_freq;
 
@@ -1342,9 +1342,9 @@ static int _ISOWeek(struct date_info *dinfo)
     return week;
 }
 
-int get_date_info(long ordinal, int freq, struct date_info *dinfo)
+int get_date_info(long_t ordinal, int freq, struct date_info *dinfo)
 {
-    long absdate = get_python_ordinal(ordinal, freq);
+    long_t absdate = get_python_ordinal(ordinal, freq);
     double abstime = getAbsTime(freq, absdate, ordinal);
 
     if(dInfoCalc_SetFromAbsDateTime(dinfo, absdate, abstime, GREGORIAN_CALENDAR))
@@ -1353,83 +1353,83 @@ int get_date_info(long ordinal, int freq, struct date_info *dinfo)
     return 0;
 }
 
-int pyear(long ordinal, int freq) {
+int pyear(long_t ordinal, int freq) {
     struct date_info dinfo;
     get_date_info(ordinal, freq, &dinfo);
     return dinfo.year;
 }
 
-int pqyear(long ordinal, int freq) {
+int pqyear(long_t ordinal, int freq) {
     int year, quarter;
     if( _quarter_year(ordinal, freq, &year, &quarter) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return year;
 }
 
-int pquarter(long ordinal, int freq) {
+int pquarter(long_t ordinal, int freq) {
     int year, quarter;
     if(_quarter_year(ordinal, freq, &year, &quarter) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return quarter;
 }
 
-int pmonth(long ordinal, int freq) {
+int pmonth(long_t ordinal, int freq) {
     struct date_info dinfo;
     if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.month;
 }
 
-int pday(long ordinal, int freq) {
+int pday(long_t ordinal, int freq) {
     struct date_info dinfo;
     if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.day;
 }
 
-int pweekday(long ordinal, int freq) {
+int pweekday(long_t ordinal, int freq) {
     struct date_info dinfo;
     if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.day_of_week;
 }
 
-int pday_of_week(long ordinal, int freq) {
+int pday_of_week(long_t ordinal, int freq) {
     struct date_info dinfo;
     if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.day_of_week;
 }
 
-int pday_of_year(long ordinal, int freq) {
+int pday_of_year(long_t ordinal, int freq) {
     struct date_info dinfo;
     if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.day_of_year;
 }
 
-int pweek(long ordinal, int freq) {
+int pweek(long_t ordinal, int freq) {
     struct date_info dinfo;
     if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return _ISOWeek(&dinfo);
 }
 
-int phour(long ordinal, int freq) {
+int phour(long_t ordinal, int freq) {
     struct date_info dinfo;
     if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.hour;
 }
 
-int pminute(long ordinal, int freq) {
+int pminute(long_t ordinal, int freq) {
     struct date_info dinfo;
     if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.minute;
 }
 
-int psecond(long ordinal, int freq) {
+int psecond(long_t ordinal, int freq) {
     struct date_info dinfo;
     if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;

@@ -98,7 +98,7 @@ cdef extern from "np_datetime_strings.h":
 
 cdef extern from "period.h":
     ctypedef struct date_info:
-        long absdate
+        int64_t absdate
         double abstime
         double second
         int minute
@@ -111,33 +111,33 @@ cdef extern from "period.h":
         int day_of_year
         int calendar
 
-    long asfreq(long dtordinal, int freq1, int freq2, char relation) except -1
+    int64_t asfreq(int64_t dtordinal, int freq1, int freq2, char relation) except -1
 
-    long get_period_ordinal(int year, int month, int day,
+    int64_t get_period_ordinal(int year, int month, int day,
                           int hour, int minute, int second,
                           int freq) except -1
 
-    long get_python_ordinal(long period_ordinal, int freq) except -1
+    int64_t get_python_ordinal(int64_t period_ordinal, int freq) except -1
 
-    char *skts_strftime(long value, int freq, PyObject *args)
-    char *period_to_string(long value, int freq)
-    char *period_to_string2(long value, int freq, char *fmt)
+    char *skts_strftime(int64_t value, int freq, PyObject *args)
+    char *period_to_string(int64_t value, int freq)
+    char *period_to_string2(int64_t value, int freq, char *fmt)
 
-    int get_date_info(long ordinal, int freq, date_info *dinfo) except -1
-    double getAbsTime(int, long, long)
+    int get_date_info(int64_t ordinal, int freq, date_info *dinfo) except -1
+    double getAbsTime(int, int64_t, int64_t)
 
-    int pyear(long ordinal, int freq) except -1
-    int pqyear(long ordinal, int freq) except -1
-    int pquarter(long ordinal, int freq) except -1
-    int pmonth(long ordinal, int freq) except -1
-    int pday(long ordinal, int freq) except -1
-    int pweekday(long ordinal, int freq) except -1
-    int pday_of_week(long ordinal, int freq) except -1
-    int pday_of_year(long ordinal, int freq) except -1
-    int pweek(long ordinal, int freq) except -1
-    int phour(long ordinal, int freq) except -1
-    int pminute(long ordinal, int freq) except -1
-    int psecond(long ordinal, int freq) except -1
+    int pyear(int64_t ordinal, int freq) except -1
+    int pqyear(int64_t ordinal, int freq) except -1
+    int pquarter(int64_t ordinal, int freq) except -1
+    int pmonth(int64_t ordinal, int freq) except -1
+    int pday(int64_t ordinal, int freq) except -1
+    int pweekday(int64_t ordinal, int freq) except -1
+    int pday_of_week(int64_t ordinal, int freq) except -1
+    int pday_of_year(int64_t ordinal, int freq) except -1
+    int pweek(int64_t ordinal, int freq) except -1
+    int phour(int64_t ordinal, int freq) except -1
+    int pminute(int64_t ordinal, int freq) except -1
+    int psecond(int64_t ordinal, int freq) except -1
 
 cdef extern from "stdint.h":
     enum: INT64_MIN
