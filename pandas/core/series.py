@@ -31,6 +31,8 @@ import pandas.core.nanops as nanops
 import pandas._tseries as lib
 from pandas.util.decorators import Appender, Substitution
 
+import re
+
 __all__ = ['Series', 'TimeSeries']
 
 _np_version = np.version.short_version
@@ -2080,6 +2082,66 @@ copy : boolean, default False
         value_set = set(values)
         result = lib.ismember(self, value_set)
         return Series(result, self.index, name=self.name)
+
+    
+    def str_find(self, pattern, case=re.IGNORECASE):
+        """                                                                          
+        Return boolean vector showing whether each element matches regex 
+        pattern contained in passed string of pattern
+                                                                                    
+        Parameters                                                                        
+        ----------
+        pattern : string
+        case : int (defined in re module)                                                                           
+        Returns                                                                            
+        -------
+        str_find : Series (boolean dtype)
+        """        
+       
+        regex = re.compile(pattern, case)
+        vfunc  = np.vectorize(lambda x:bool(regex.search(x)))
+        try:
+            result = vfunc(self.values)
+        except TypeError:
+            print 'Warning: Type Error encountered.'
+            print 'Attempting to replace nan/null values with empty string.'
+            mask = isnull(self.values)
+            self.values[mask] = ''
+            result = vfunc(self.values)
+        
+        return Series(result, self.index, name=self.name)
+    
+
+    def str_sub(self, pattern, repl, case=0):
+        """                                                                          
+        Return modified Series with regex substitution performed at each element based on regex 
+        pattern contained in passed string
+                                                                                    
+        Parameters                                                                        
+        ----------
+        pattern : string
+        repl: string
+                                                                                   
+        Returns                                                                            
+        -------
+        str_sub : Series
+        """        
+       
+        regex = re.compile(pattern, case)
+        def perform_sub(string, sub_string, regex):
+            return regex.sub(sub_string, string)
+        vfunc = np.vectorize(perform_sub, otypes=[object])
+        try:
+            result = vfunc(self.values, repl, regex)
+        except TypeError:
+            print 'Warning: Type Error encountered.'
+            print 'Attempting to replace nan/null values with empty string.'
+            mask = isnull(self.values)
+            self.values[mask] = ''
+            result = vfunc(self.values, repl, regex)
+        
+        return Series(result, self.index, name=self.name)   
+               
 
     def between(self, left, right, inclusive=True):
         """

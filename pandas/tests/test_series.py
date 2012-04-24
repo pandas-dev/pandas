@@ -2253,6 +2253,51 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series([True, False, True, False, False, False, True, True])
         assert_series_equal(result, expected)
 
+    def test_str_find(self):
+        s = Series(['A', 'B', 'C', 'Aaba', 'Baca', '', \
+                        'CABA', 'dog', 'cat'])
+        
+        result = s.str_find('a')
+        expected = Series([True, False, False, True, True,  False, \
+                               True, False, True])
+        assert_series_equal(result, expected)
+    
+        result = s.str_find('aa')
+        expected = Series([False, False, False, True, False, False, \
+                               False, False, False])
+        assert_series_equal(result, expected)
+
+        result = s.str_find('ba')
+        expected = Series([False, False, False, True, True, False, \
+                               True, False, False])
+        assert_series_equal(result, expected)
+
+        result = s.str_find('ba', case=0)
+        expected = Series([False, False, False, True, False, False, \
+                               False, False, False])
+        assert_series_equal(result, expected)
+
+               
+    def test_str_sub(self):
+        import re
+        s = Series(['A', 'B', 'C', 'Aaba', 'Baca', '', \
+                        'CABA', 'dog', 'cat'])
+        
+        result = s.str_sub('A', 'XXX')
+        expected = Series(['XXX', 'B', 'C', 'XXXaba', 'Baca', '', \
+                               'CXXXBXXX', 'dog', 'cat'])
+        assert_series_equal(result, expected)
+        
+        result = s.str_sub('A', 'XXX', case=re.IGNORECASE)
+        expected = Series(['XXX', 'B', 'C', 'XXXXXXbXXX', 'BXXXcXXX', '', \
+                               'CXXXBXXX', 'dog', 'cXXXt'])
+        assert_series_equal(result, expected)
+        
+        result = s.str_sub('^.a|dog', 'XX-XX ', case=re.IGNORECASE)
+        expected = Series(['A',  'B', 'C', 'XX-XX ba', 'XX-XX ca', '', \
+                                'XX-XX BA', 'XX-XX ', 'XX-XX t'])
+        assert_series_equal(result, expected)
+         
 #-------------------------------------------------------------------------------
 # TimeSeries-specific
 
