@@ -534,6 +534,13 @@ class DatetimeIndex(Int64Index):
         return DatetimeIndex(start=start, end=end, freq=self.offset,
                              name=self.name)
 
+    def repeat(self, repeats, axis=None):
+        """
+        Analogous to ndarray.repeat
+        """
+        return DatetimeIndex(self.values.repeat(repeats),
+                             name=self.name)
+
     def take(self, indices, axis=0):
         """
         Analogous to ndarray.take
@@ -542,7 +549,7 @@ class DatetimeIndex(Int64Index):
         if isinstance(maybe_slice, slice):
             return self[maybe_slice]
         taken = self.values.take(indices, axis=axis)
-        return DatetimeIndex(taken, tz=self.tz)
+        return DatetimeIndex(taken, tz=self.tz, name=self.name)
 
     def union(self, other):
         """

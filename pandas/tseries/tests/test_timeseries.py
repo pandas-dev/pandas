@@ -473,6 +473,13 @@ class TestTimeSeries(unittest.TestCase):
         ts = Series(1, index=rng)
         repr(ts)
 
+    def test_repeat(self):
+        rng = date_range('1/1/2000', '1/1/2001')
+
+        result = rng.repeat(5)
+        self.assert_(result.freq is None)
+        self.assert_(len(result) == 5 * len(rng))
+
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
