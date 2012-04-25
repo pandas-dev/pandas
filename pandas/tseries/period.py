@@ -16,6 +16,27 @@ import pandas._tseries as lib
 #---------------
 # Period logic
 
+
+def _period_field_accessor(name, alias=None):
+    if alias is None:
+        alias = name
+    def f(self):
+        base, mult = _gfc(self.freq)
+        g = getattr(lib, 'get_period_%s' % alias)
+        return g(self.ordinal, base, mult)
+    f.__name__ = name
+    return property(f)
+
+def _field_accessor(name, alias=None):
+    if alias is None:
+        alias = name
+    def f(self):
+        base, mult = _gfc(self.freq)
+        g = getattr(lib, 'get_period_%s_arr' % alias)
+        return g(self.ordinal, base, mult)
+    f.__name__ = name
+    return property(f)
+
 def to_period(arg, freq=None):
     """ Attempts to convert arg to timestamp """
     if arg is None:
@@ -191,67 +212,22 @@ class Period(object):
         which_end = _validate_end_alias(which_end)
         new_val = self.asfreq('S', which_end)
         base, mult = _gfc(new_val.freq)
-        return Timestamp(lib.period_ordinal_to_dt64(new_val.ordinal, base, mult))
+        return Timestamp(lib.period_ordinal_to_dt64(new_val.ordinal, base,
+                                                    mult))
 
-    @property
-    def year(self):
-        base, mult = _gfc(self.freq)
-        return lib.get_period_year(self.ordinal, base, mult)
-
-    @property
-    def month(self):
-        base, mult = _gfc(self.freq)
-        return lib.get_period_month(self.ordinal, base, mult)
-
-    @property
-    def qyear(self):
-        base, mult = _gfc(self.freq)
-        return lib.get_period_qyear(self.ordinal, base, mult)
-
-    @property
-    def quarter(self):
-        base, mult = _gfc(self.freq)
-        return lib.get_period_quarter(self.ordinal, base, mult)
-
-    @property
-    def day(self):
-        base, mult = _gfc(self.freq)
-        return lib.get_period_day(self.ordinal, base, mult)
-
-    @property
-    def week(self):
-        base, mult = _gfc(self.freq)
-        return lib.get_period_week(self.ordinal, base, mult)
-
-    @property
-    def weekday(self):
-        base, mult = _gfc(self.freq)
-        return lib.get_period_weekday(self.ordinal, base, mult)
-
-    @property
-    def day_of_week(self):
-        base, mult = _gfc(self.freq)
-        return lib.get_period_dow(self.ordinal, base, mult)
-
-    @property
-    def day_of_year(self):
-        base, mult = _gfc(self.freq)
-        return lib.get_period_doy(self.ordinal, base, mult)
-
-    @property
-    def hour(self):
-        base, mult = _gfc(self.freq)
-        return lib.get_period_hour(self.ordinal, base, mult)
-
-    @property
-    def minute(self):
-        base, mult = _gfc(self.freq)
-        return lib.get_period_minute(self.ordinal, base, mult)
-
-    @property
-    def second(self):
-        base, mult = _gfc(self.freq)
-        return lib.get_period_second(self.ordinal, base, mult)
+    year = _period_field_accessor('year')
+    month = _period_field_accessor('month')
+    day = _period_field_accessor('day')
+    hour = _period_field_accessor('hour')
+    minute = _period_field_accessor('minute')
+    second = _period_field_accessor('second')
+    weekofyear = _period_field_accessor('week')
+    week = weekofyear
+    dayofweek = _period_field_accessor('dayofweek', 'dow')
+    weekday = dayofweek
+    dayofyear = day_of_year = _period_field_accessor('dayofyear', 'doy')
+    quarter = _period_field_accessor('quarter')
+    qyear = _period_field_accessor('qyear')
 
     @classmethod
     def now(cls, freq=None):
@@ -623,65 +599,19 @@ class PeriodIndex(Int64Index):
 
         return PeriodIndex(new_data, freq=freq)
 
-    @property
-    def year(self):
-        base, mult = _gfc(self.freq)
-        return lib.get_period_year_arr(self.values, base, mult)
-
-    @property
-    def month(self):
-        base, mult = _gfc(self.freq)
-        return lib.get_period_month_arr(self.values, base, mult)
-
-    @property
-    def qyear(self):
-        base, mult = _gfc(self.freq)
-        return lib.get_period_qyear_arr(self.values, base, mult)
-
-    @property
-    def quarter(self):
-        base, mult = _gfc(self.freq)
-        return lib.get_period_quarter_arr(self.values, base, mult)
-
-    @property
-    def day(self):
-        base, mult = _gfc(self.freq)
-        return lib.get_period_day_arr(self.values, base, mult)
-
-    @property
-    def week(self):
-        base, mult = _gfc(self.freq)
-        return lib.get_period_week_arr(self.values, base, mult)
-
-    @property
-    def weekday(self):
-        base, mult = _gfc(self.freq)
-        return lib.get_period_weekday_arr(self.values, base, mult)
-
-    @property
-    def day_of_week(self):
-        base, mult = _gfc(self.freq)
-        return lib.get_period_dow_arr(self.values, base, mult)
-
-    @property
-    def day_of_year(self):
-        base, mult = _gfc(self.freq)
-        return lib.get_period_doy_arr(self.values, base, mult)
-
-    @property
-    def hour(self):
-        base, mult = _gfc(self.freq)
-        return lib.get_period_hour_arr(self.values, base, mult)
-
-    @property
-    def minute(self):
-        base, mult = _gfc(self.freq)
-        return lib.get_period_minute_arr(self.values, base, mult)
-
-    @property
-    def second(self):
-        base, mult = _gfc(self.freq)
-        return lib.get_period_second_arr(self.values, base, mult)
+    year = _period_field_accessor('year')
+    month = _period_field_accessor('month')
+    day = _period_field_accessor('day')
+    hour = _period_field_accessor('hour')
+    minute = _period_field_accessor('minute')
+    second = _period_field_accessor('second')
+    weekofyear = _period_field_accessor('week')
+    week = weekofyear
+    dayofweek = _period_field_accessor('dayofweek', 'dow')
+    weekday = dayofweek
+    dayofyear = day_of_year = _period_field_accessor('dayofyear', 'doy')
+    quarter = _period_field_accessor('quarter')
+    qyear = _period_field_accessor('qyear')
 
     # Try to run function on index first, and then on elements of index
     # Especially important for group-by functionality

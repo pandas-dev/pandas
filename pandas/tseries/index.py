@@ -21,6 +21,13 @@ def _as_i8(arg):
     else:
         return arg
 
+
+def _field_accessor(name, field):
+    def f(self):
+        return lib.fast_field_accessor(self.asi8, field)
+    f.__name__ = name
+    return property(f)
+
 def _wrap_i8_function(f):
     @staticmethod
     def wrapper(*args, **kwargs):
@@ -835,54 +842,19 @@ class DatetimeIndex(Int64Index):
     def freqstr(self):
         return self.offset.freqstr
 
-    # Fast field accessors for periods of datetime index
-    # --------------------------------------------------------------
-
-    @property
-    def year(self):
-        return lib.fast_field_accessor(self.asi8, 'Y')
-
-    @property
-    def month(self):
-        return lib.fast_field_accessor(self.asi8, 'M')
-
-    @property
-    def day(self):
-        return lib.fast_field_accessor(self.asi8, 'D')
-
-    @property
-    def hour(self):
-        return lib.fast_field_accessor(self.asi8, 'h')
-
-    @property
-    def minute(self):
-        return lib.fast_field_accessor(self.asi8, 'm')
-
-    @property
-    def second(self):
-        return lib.fast_field_accessor(self.asi8, 's')
-
-    @property
-    def microsecond(self):
-        return lib.fast_field_accessor(self.asi8, 'us')
-
-    @property
-    def weekofyear(self):
-        return lib.fast_field_accessor(self.asi8, 'woy')
+    year = _field_accessor('year', 'Y')
+    month = _field_accessor('month', 'M')
+    day = _field_accessor('day', 'D')
+    hour = _field_accessor('hour', 'h')
+    minute = _field_accessor('minute', 'm')
+    second = _field_accessor('second', 's')
+    microsecond = _field_accessor('microsecond', 'us')
+    weekofyear = _field_accessor('weekofyear', 'woy')
     week = weekofyear
-
-    @property
-    def dayofweek(self):
-        return lib.fast_field_accessor(self.asi8, 'dow')
+    dayofweek = _field_accessor('dayofweek', 'dow')
     weekday = dayofweek
-
-    @property
-    def dayofyear(self):
-        return lib.fast_field_accessor(self.asi8, 'doy')
-
-    @property
-    def quarter(self):
-        return lib.fast_field_accessor(self.asi8, 'q')
+    dayofyear = _field_accessor('dayofyear', 'doy')
+    quarter = _field_accessor('quarter', 'q')
 
     def __iter__(self):
         return iter(self.asobject)
