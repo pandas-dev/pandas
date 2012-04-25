@@ -359,7 +359,8 @@ class DatetimeIndex(Int64Index):
     def __repr__(self):
         if self.offset is not None:
             output = str(self.__class__) + '\n'
-            output += 'freq: %s, timezone: %s\n' % (self.offset, self.tz)
+            output += 'freq: %s, timezone: %s\n' % (self.offset.freqstr,
+                                                    self.tz)
             if len(self) > 0:
                 output += '[%s, ..., %s]\n' % (self[0], self[-1])
             output += 'length: %d' % len(self)
@@ -413,6 +414,20 @@ class DatetimeIndex(Int64Index):
             return DatetimeIndex(new_values, tz=self.tz)
         else:
             return Index(self.view(np.ndarray) + other)
+
+    def summary(self, name=None):
+        if len(self) > 0:
+            index_summary = ', %s to %s' % (str(self[0]), str(self[-1]))
+        else:
+            index_summary = ''
+
+        if name is None:
+            name = type(self).__name__
+        result = '%s: %s entries%s' % (name, len(self), index_summary)
+        if self.freq:
+            result += '\nFreq: %s' % self.freqstr
+
+        return result
 
     @property
     def asi8(self):
@@ -808,6 +823,10 @@ class DatetimeIndex(Int64Index):
     @property
     def freq(self):
         return self.offset
+
+    @property
+    def freqstr(self):
+        return self.offset.freqstr
 
     # Fast field accessors for periods of datetime index
     # --------------------------------------------------------------

@@ -65,7 +65,13 @@ class SeriesFormatter(object):
 
     def _get_footer(self):
         footer = ''
+
         if self.name:
+            if getattr(self.series.index, 'freq', None):
+                footer += 'Freq: %s' % self.series.index.freqstr
+
+            if footer:
+                footer += ', '
             footer += ("Name: %s" % str(self.series.name)
                        if self.series.name else '')
 

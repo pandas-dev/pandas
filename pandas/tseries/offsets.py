@@ -11,7 +11,7 @@ from dateutil.relativedelta import relativedelta
 from pandas._tseries import Timestamp
 import pandas._tseries as lib
 
-#-------------------------------------------------------------------------------
+#----------------------------------------------------------------------
 # DateOffset
 
 
@@ -203,6 +203,21 @@ class DateOffset(object):
         b = ((dt + self) - self)
         return a == b
 
+    @property
+    def rule_code(self):
+        raise NotImplementedError
+
+    @property
+    def freqstr(self):
+        try:
+            code = self.rule_code
+        except NotImplementedError:
+            return repr(self)
+
+        if self.n != 1:
+            return '%d%s' % (self.n, code)
+        else:
+            return code
 
 
 class BusinessDay(DateOffset, CacheableOffset):
@@ -215,6 +230,7 @@ class BusinessDay(DateOffset, CacheableOffset):
         self.offset = kwds.get('offset', timedelta(0))
         self.normalize = kwds.get('normalize', False)
 
+    @property
     def rule_code(self):
         return 'B'
 
@@ -296,6 +312,7 @@ class MonthEnd(DateOffset, CacheableOffset):
         __junk, days_in_month = lib.monthrange(dt.year, dt.month)
         return dt.day == days_in_month
 
+    @property
     def rule_code(self):
         return 'M'
 
@@ -317,6 +334,7 @@ class MonthBegin(DateOffset, CacheableOffset):
         firstDay, _ = lib.monthrange(dt.year, dt.month)
         return dt.day == (firstDay + 1)
 
+    @property
     def rule_code(self):
         return 'MS'
 
@@ -343,6 +361,7 @@ class BusinessMonthEnd(DateOffset, CacheableOffset):
             other = other - BDay()
         return other
 
+    @property
     def rule_code(self):
         return 'BM'
 
@@ -366,6 +385,7 @@ class BusinessMonthBegin(DateOffset, CacheableOffset):
         result = datetime(other.year, other.month, first)
         return result
 
+    @property
     def rule_code(self):
         return 'BMS'
 
@@ -418,6 +438,7 @@ class Week(DateOffset, CacheableOffset):
     def onOffset(self, dt):
         return dt.weekday() == self.weekday
 
+    @property
     def rule_code(self):
         suffix = ''
         if self.weekday is not None:
@@ -501,6 +522,7 @@ class WeekOfMonth(DateOffset, CacheableOffset):
     def onOffset(self, dt):
         return dt == self.getOffsetOfMonth(dt)
 
+    @property
     def rule_code(self):
         suffix = '-%d%s' % (self.week + 1, _weekday_dict.get(self.weekday, ''))
         return 'WOM' + suffix
@@ -550,6 +572,7 @@ class BQuarterEnd(DateOffset, CacheableOffset):
         modMonth = (dt.month - self.startingMonth) % 3
         return BMonthEnd().onOffset(dt) and modMonth == 0
 
+    @property
     def rule_code(self):
         suffix = '-%s' % _month_dict[self.startingMonth]
         return 'BQ' + suffix
@@ -612,6 +635,7 @@ class BQuarterBegin(DateOffset, CacheableOffset):
         result = datetime(other.year, other.month, first)
         return result
 
+    @property
     def rule_code(self):
         suffix = '-%s' % _month_dict[self.startingMonth]
         return 'BQS' + suffix
@@ -655,6 +679,7 @@ class QuarterEnd(DateOffset, CacheableOffset):
         modMonth = (dt.month - self.startingMonth) % 3
         return MonthEnd().onOffset(dt) and modMonth == 0
 
+    @property
     def rule_code(self):
         suffix = '-%s' % _month_dict[self.startingMonth]
         return 'Q' + suffix
@@ -694,6 +719,7 @@ class QuarterBegin(DateOffset, CacheableOffset):
         other = other + relativedelta(months=3*n - monthsSince, day=1)
         return other
 
+    @property
     def rule_code(self):
         suffix = '-%s' % _month_dict[self.startingMonth]
         return 'QS' + suffix
@@ -740,6 +766,7 @@ class BYearEnd(DateOffset, CacheableOffset):
 
         return result
 
+    @property
     def rule_code(self):
         suffix = '-%s' % _month_dict[self.month]
         return 'BA' + suffix
@@ -782,6 +809,7 @@ class BYearBegin(DateOffset, CacheableOffset):
         first = _get_firstbday(wkday)
         return datetime(other.year, self.month, first)
 
+    @property
     def rule_code(self):
         suffix = '-%s' % _month_dict[self.month]
         return 'BAS' + suffix
@@ -814,6 +842,7 @@ class YearEnd(DateOffset, CacheableOffset):
         wkday, days_in_month = lib.monthrange(dt.year, self.month)
         return self.month == dt.month and dt.day == days_in_month
 
+    @property
     def rule_code(self):
         suffix = '-%s' % _month_dict[self.month]
         return 'A' + suffix
@@ -845,12 +874,13 @@ class YearBegin(DateOffset, CacheableOffset):
     def onOffset(cls, dt):
         return dt.month == 1 and dt.day == 1
 
+    @property
     def rule_code(self):
         suffix = '-%s' % _month_dict[self.month]
         return 'AS' + suffix
 
 
-#-------------------------------------------------------------------------------
+#----------------------------------------------------------------------
 # Ticks
 
 class Tick(DateOffset):
@@ -893,8 +923,10 @@ class Tick(DateOffset):
         elif isinstance(other, type(self)):
             return type(self)(self.n + other.n)
 
+    _rule_base = 'undefined'
+    @property
     def rule_code(self):
-        return 'T'
+        return self._rule_base
 
 def _delta_to_microseconds(delta):
     return (delta.days * 24 * 60 * 60 * 1000000
@@ -903,38 +935,26 @@ def _delta_to_microseconds(delta):
 
 class Day(Tick, CacheableOffset):
     _inc = timedelta(1)
-
-    def rule_code(self):
-        return 'D'
+    _rule_base = 'D'
 
 class Hour(Tick):
     _inc = timedelta(0, 3600)
-
-    def rule_code(self):
-        return 'H'
+    _rule_base = 'H'
 
 class Minute(Tick):
     _inc = timedelta(0, 60)
-
-    def rule_code(self):
-        return 'T'
+    _rule_base = 'T'
 
 class Second(Tick):
     _inc = timedelta(0, 1)
-
-    def rule_code(self):
-        return 'S'
+    _rule_base = 'S'
 
 class Milli(Tick):
-
-    def rule_code(self):
-        return 'L'
+    _rule_base = 'L'
 
 class Micro(Tick):
     _inc = timedelta(microseconds=1)
-
-    def rule_code(self):
-        return 'U'
+    _rule_base = 'U'
 
 BDay = BusinessDay
 BMonthEnd = BusinessMonthEnd

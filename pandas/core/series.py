@@ -717,9 +717,11 @@ copy : boolean, default False
                                                   length=False,
                                                   name=False)
         result = head + '\n...\n' + tail
+        return '%s\n%s' % (result, self._repr_footer())
+
+    def _repr_footer(self):
         namestr = "Name: %s, " % str(self.name) if self.name else ""
-        result = '%s\n%sLength: %d' % (result, namestr, len(self))
-        return result
+        return '%sLength: %d' % (namestr, len(self))
 
     def to_string(self, buf=None, na_rep='NaN', float_format=None,
                   nanRep=None, length=False, name=False):
@@ -2528,6 +2530,15 @@ Series.hist = _gfx.hist_series
 # Put here, otherwise monkey-patching in methods fails
 
 class TimeSeries(Series):
+
+    def _repr_footer(self):
+        if self.index.freq is not None:
+            freqstr = 'Freq: %s, ' % self.index.freqstr
+        else:
+            freqstr = ''
+
+        namestr = "Name: %s, " % str(self.name) if self.name else ""
+        return '%s%sLength: %d' % (freqstr, namestr, len(self))
 
     def to_timestamp(self, freq='D', how='start', copy=True):
         """
