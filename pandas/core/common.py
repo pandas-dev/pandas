@@ -13,6 +13,13 @@ except ImportError:  # pragma: no cover
     from cStringIO import StringIO as BytesIO
 import itertools
 
+try:
+    next
+except NameError:  # pragma: no cover
+    # Python < 2.6
+    def next(x):
+        return x.next()
+
 from cStringIO import StringIO
 
 from numpy.lib.format import read_array, write_array

@@ -6,6 +6,13 @@ import re
 from itertools import izip
 from urlparse import urlparse
 
+try:
+    next
+except NameError:  # pragma: no cover
+    # Python < 2.6
+    def next(x):
+        return x.next()
+
 import numpy as np
 
 from pandas.core.index import Index, MultiIndex
