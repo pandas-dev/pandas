@@ -306,15 +306,27 @@ def to_offset(freqstr):
         if isinstance(stride, basestring):
             name, stride = stride, name
         name, _ = _base_and_stride(name)
+        delta = get_offset(name) * stride
     else:
-        name, stride = _base_and_stride(freqstr)
+        delta = None
+        try:
+            for stride, name, _ in opattern.findall(freqstr):
+                offset = get_offset(name)
+                if not stride:
+                    stride = 1
+                offset = offset * int(stride)
+                if delta is None:
+                    delta = offset
+                else:
+                    delta = delta + offset
+        except ValueError:
+            raise ValueError("Could not evaluate %s" % freqstr)
 
-    offset = get_offset(name)
-
-    return offset * stride
+    return delta
 
 
-opattern = re.compile(r'(\d*)\s*(\S+)')
+# hack to handle WOM-1MON
+opattern = re.compile(r'(\d*)\s*([A-Za-z]+([\-@]\d*[A-Za-z]+)?)')
 
 def _base_and_stride(freqstr):
     """
@@ -326,7 +338,7 @@ def _base_and_stride(freqstr):
     """
     groups = opattern.match(freqstr)
 
-    if groups.lastindex != 2:
+    if not groups:
         raise ValueError("Could not evaluate %s" % freqstr)
 
     stride = groups.group(1)

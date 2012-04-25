@@ -887,6 +887,14 @@ class Tick(DateOffset):
     _delta = None
     _inc = timedelta(microseconds=1000)
 
+    def __add__(self, other):
+        if isinstance(other, Tick):
+            if type(self) == type(other):
+                return type(self)(self.n + other.n)
+            else:
+                return _delta_to_tick(self.delta + other.delta)
+        return self.apply(other)
+
     def __eq__(self, other):
         if isinstance(other, basestring):
             from pandas.tseries.frequencies import to_offset
@@ -927,6 +935,25 @@ class Tick(DateOffset):
     @property
     def rule_code(self):
         return self._rule_base
+
+def _delta_to_tick(delta):
+    if delta.microseconds == 0:
+        if delta.seconds == 0:
+            return Day(delta.days)
+        else:
+            seconds = delta.days * 86400 + delta.seconds
+            if seconds % 3600 == 0:
+                return Hour(seconds / 3600)
+            elif seconds % 60 == 0:
+                return Minute(seconds / 60)
+            else:
+                return Second(seconds)
+    else:
+        mus = _delta_to_microseconds(delta)
+        if mus % 1000 == 0:
+            return Milli(mus // 1000)
+        else:
+            return Micro(mus)
 
 def _delta_to_microseconds(delta):
     return (delta.days * 24 * 60 * 60 * 1000000
