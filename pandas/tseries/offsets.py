@@ -827,16 +827,49 @@ class YearEnd(DateOffset, CacheableOffset):
         DateOffset.__init__(self, n=n, **kwds)
 
     def apply(self, other):
+        def _increment(date):
+            if date.month == self.month:
+                _, days_in_month = lib.monthrange(date.year, self.month)
+                if date.day != days_in_month:
+                    year = date.year
+                else:
+                    year = date.year + 1
+            elif date.month < self.month:
+                year = date.year
+            else:
+                year = date.year + 1
+            _, days_in_month = lib.monthrange(year, self.month)
+            return datetime(year, self.month, days_in_month,
+                            date.hour, date.minute, date.second,
+                            date.microsecond)
+        def _decrement(date):
+            year = date.year if date.month > self.month else date.year - 1
+            _, days_in_month = lib.monthrange(year, self.month)
+            return datetime(year, self.month, days_in_month,
+                            date.hour, date.minute, date.second,
+                            date.microsecond)
+
+        def _rollf(date):
+            if (date.month != self.month or
+                date.day < lib.monthrange(date.year, date.month)[1]):
+                date = _increment(date)
+            return date
+
         n = self.n
-        wkday, days_in_month = lib.monthrange(other.year, self.month)
-        if other.month != self.month or other.day != days_in_month:
-            other = datetime(other.year - 1, self.month, days_in_month,
-                             other.hour, other.minute, other.second,
-                             other.microsecond)
-            if n <= 0:
-                n = n + 1
-        other = other + relativedelta(years=n)
-        return other
+        result = other
+        if n > 0:
+            while n > 0:
+                result = _increment(result)
+                n -= 1
+        elif n < 0:
+            while n < 0:
+                result = _decrement(result)
+                n += 1
+        else:
+            # n == 0, roll forward
+            result = _rollf(result)
+
+        return result
 
     def onOffset(self, dt):
         wkday, days_in_month = lib.monthrange(dt.year, self.month)

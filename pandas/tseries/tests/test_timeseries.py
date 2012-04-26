@@ -725,12 +725,34 @@ class TestLegacySupport(unittest.TestCase):
 
         self.assert_(result.index.equals(exp_index))
 
-class TestDateRangeCompat(unittest.TestCase):
+class TestLegacyCompat(unittest.TestCase):
 
     def setUp(self):
         from StringIO import StringIO
         # suppress deprecation warnings
         sys.stderr = StringIO()
+
+    def test_inferTimeRule(self):
+        from pandas.tseries.frequencies import inferTimeRule
+
+        index1 = [datetime(2010, 1, 29, 0, 0),
+                  datetime(2010, 2, 26, 0, 0),
+                  datetime(2010, 3, 31, 0, 0)]
+
+        index2 = [datetime(2010, 3, 26, 0, 0),
+                  datetime(2010, 3, 29, 0, 0),
+                  datetime(2010, 3, 30, 0, 0)]
+
+        index3 = [datetime(2010, 3, 26, 0, 0),
+                  datetime(2010, 3, 27, 0, 0),
+                  datetime(2010, 3, 29, 0, 0)]
+
+        # LEGACY
+        assert inferTimeRule(index1) == 'EOM'
+        assert inferTimeRule(index2) == 'WEEKDAY'
+
+        self.assertRaises(Exception, inferTimeRule, index1[:2])
+        self.assertRaises(Exception, inferTimeRule, index3)
 
     def test_time_rule(self):
         result = DateRange('1/1/2000', '1/30/2000', time_rule='WEEKDAY')

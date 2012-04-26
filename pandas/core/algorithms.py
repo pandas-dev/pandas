@@ -5,7 +5,6 @@ intended for public consumption
 
 import numpy as np
 
-from pandas.core.series import Series
 import pandas.core.common as com
 import pandas._tseries as lib
 
@@ -25,6 +24,12 @@ def match(values, index):
 
 def unique(values):
     """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
 
     """
     f = lambda htype, caster: _unique_generic(values, htype, caster)
@@ -52,6 +57,8 @@ def _hashtable_algo(f, dtype):
 
 
 def _count_generic(values, table_type, type_caster):
+    from pandas.core.series import Series
+
     values = type_caster(values)
     table = table_type(len(values))
     uniques, labels, counts = table.factorize(values)
@@ -113,6 +120,7 @@ def value_counts(values, sort=True, ascending=False):
     -------
     value_counts : Series
     """
+    from pandas.core.series import Series
     from collections import defaultdict
     if com.is_integer_dtype(values.dtype):
         values = com._ensure_int64(values)

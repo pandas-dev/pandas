@@ -842,7 +842,7 @@ class DatetimeIndex(Int64Index):
 
     @cache_readonly
     def inferred_freq(self):
-        return infer_freq(self.asi8)
+        return infer_freq(self)
 
     @property
     def freqstr(self):

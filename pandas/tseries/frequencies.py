@@ -1,8 +1,11 @@
+from datetime import datetime
+
 import re
 
 from pandas.tseries.offsets import DateOffset
-from pandas._tseries import Timestamp
+from pandas.util.decorators import cache_readonly
 import pandas.tseries.offsets as offsets
+import pandas._tseries as lib
 
 
 def get_freq_code(freqstr):
@@ -272,19 +275,17 @@ for name, offset in _offset_map.iteritems():
 
 
 def inferTimeRule(index):
-    if len(index) < 3:
-        raise Exception('Need at least three dates to infer time rule!')
+    from pandas.tseries.index import DatetimeIndex
+    import warnings
+    warnings.warn("This method is deprecated, use infer_freq or inferred_freq"
+                  " attribute of DatetimeIndex", FutureWarning)
 
-    first, second, third = index[:3]
-    items = _offset_map.iteritems()
+    freq = DatetimeIndex(index).inferred_freq
+    if freq is None:
+        raise Exception('Unable to infer time rule')
 
-    for rule, offset in items:
-        if offset is None:
-            continue
-        if (first + offset) == second and (second + offset) == third:
-            return rule
-
-    raise Exception('Could not infer time rule from data!')
+    offset = to_offset(freq)
+    return get_legacy_offset_name(offset)
 
 
 def to_offset(freqstr):
@@ -618,105 +619,194 @@ def _period_str_to_code(freqstr):
             raise "Could not interpret frequency %s" % freqstr
 
 
-def infer_freq(index):
+
+def infer_freq(index, warn=True):
+    """
+    Infer the most likely frequency given the input index. If the frequency is
+    uncertain, a warning will be printed
+
+    Parameters
+    ----------
+    index : DatetimeIndex
+
+    Returns
+    -------
+    freq : string or None
+        None if no discernable frequency
+    """
+
+    inferer = _FrequencyInferer(index, warn=warn)
+    return inferer.get_freq()
+
+
+class _FrequencyInferer(object):
     """
     Not sure if I can avoid the state machine here
     """
-    from pandas._sandbox import unique_deltas
 
-    if len(index) < 3:
-        raise ValueError('Need at least 3 dates to infer frequency')
+    def __init__(self, index, warn=True):
+        self.index = index
+        self.values = index.asi8
+        self.warn = warn
 
-    deltas = unique_deltas(index)
+        if len(index) < 3:
+            raise ValueError('Need at least 3 dates to infer frequency')
 
-    is_unique = len(deltas) == 1
+        self.deltas = lib.unique_deltas(self.values)
+        self.is_unique = len(self.deltas) == 1
 
-    if _is_multiple(deltas[0], _day_us):
-        if is_unique:
-            days = deltas[0] / _day_us
+    def get_freq(self):
+        if not self.index.is_monotonic:
+            return None
+
+        delta = self.deltas[0]
+        if _is_multiple(delta, _day_us):
+            return self._infer_daily_rule()
+        else:
+            # Possibly intraday frequency
+            if not self.is_unique:
+                return None
+            if _is_multiple(delta, 60 * 60 * 1000000):
+                # Hours
+                return _maybe_add_count('H', delta / (60 * 60 * 1000000))
+            elif _is_multiple(delta, 60 * 1000000):
+                # Minutes
+                return _maybe_add_count('T', delta / (60 * 1000000))
+            elif _is_multiple(delta, 1000000):
+                # Seconds
+                return _maybe_add_count('S', delta / 1000000)
+            elif _is_multiple(delta, 1000):
+                # Milliseconds
+                return _maybe_add_count('L', delta / 1000)
+            else:
+                # Microseconds
+                return _maybe_add_count('U', delta)
+
+    @cache_readonly
+    def day_deltas(self):
+        return [x / _day_us for x in self.deltas]
+
+    @cache_readonly
+    def fields(self):
+        return lib.build_field_sarray(self.values)
+
+    @cache_readonly
+    def rep_stamp(self):
+        return lib.Timestamp(self.values[0])
+
+    def month_position_check(self):
+        # TODO: cythonize this, very slow
+        calendar_end = True
+        business_end = True
+        calendar_start = True
+        business_start = True
+
+        years = self.fields['Y']
+        months = self.fields['M']
+        days = self.fields['D']
+        weekdays = self.index.dayofweek
+
+        from calendar import monthrange
+        for y, m, d, wd in zip(years, months, days, weekdays):
+            wd = datetime(y, m, d).weekday()
+
+            if calendar_start:
+                calendar_start &= d == 1
+            if business_start:
+                business_start &= d == 1 or (d < 3 and wd == 0)
+
+            _, daysinmonth = monthrange(y, m)
+            cal = d == daysinmonth
+            if calendar_end:
+                calendar_end &= cal
+            if business_end:
+                business_end &= cal or (daysinmonth - d < 3 and wd == 4)
+
+        if calendar_end:
+            return 'ce'
+        elif business_end:
+            return 'be'
+        elif calendar_start:
+            return 'cs'
+        elif business_start:
+            return 'bs'
+        else:
+            return None
+
+    @cache_readonly
+    def mdiffs(self):
+        nmonths = self.fields['Y'] * 12 + self.fields['M']
+        return lib.unique_deltas(nmonths.astype('i8'))
+
+    @cache_readonly
+    def ydiffs(self):
+        return lib.unique_deltas(self.fields['Y'].astype('i8'))
+
+    def _infer_daily_rule(self):
+        annual_rule = self._get_annual_rule()
+        if annual_rule:
+            nyears = self.ydiffs[0]
+            month = _month_aliases[self.rep_stamp.month]
+            return _maybe_add_count('%s-%s' % (annual_rule, month), nyears)
+
+        quarterly_rule = self._get_quarterly_rule()
+        if quarterly_rule:
+            nquarters = self.mdiffs[0] / 3
+            month = _month_aliases[self.rep_stamp.month]
+            return _maybe_add_count('%s-%s' % (quarterly_rule, month),
+                                    nquarters)
+
+        monthly_rule = self._get_monthly_rule()
+        if monthly_rule:
+            return monthly_rule
+
+        if self.is_unique:
+            days = self.deltas[0] / _day_us
             if days % 7 == 0:
                 # Weekly
-                alias = _weekday_rule_aliases[days]
+                alias = _weekday_rule_aliases[self.rep_stamp.weekday()]
                 return _maybe_add_count('W-%s' % alias, days / 7)
             else:
                 return _maybe_add_count('D', days)
 
-        fields = lib.build_field_sarray(index)
+        # Business daily. Maybe
+        if self.day_deltas == [1, 3]:
+            return 'B'
 
-        day_list = [x / _day_us for x in deltas]
-        rstamp = Timestamp(index[0])
-
-        annual_rule = _get_annual_rule(fields)
-        if annual_rule:
-            nyears = day_list[0] // 365
-            month = _month_aliases[rstamp.month]
-            return _maybe_add_count('%s-%s' % (annual_rule, month), nyears)
-
-        quarterly_rule = _get_quarterly_rule(fields)
-        if quarterly_rule:
-            month = _month_aliases[rstamp.month]
-            return '%s-%s' % (quarterly_rule, month)
-
-        elif _is_quarterly_deltas(day_list):
-            pass
-        elif _is_monthly_deltas(day_list):
-            pass
-        else:
-            # Business daily. Maybe
-            pass
-
-    elif _is_multiple(deltas[0], 60 * 60 * 1000000):
-        if not is_unique:
+    def _get_annual_rule(self):
+        if len(self.ydiffs) > 1:
             return None
-        # Hours
-        return '%dH' % (deltas[0] / (60 * 60 * 1000000))
-    elif _is_multiple(deltas[0], 60 * 1000000):
-        if not is_unique:
-            return None
-        # Minutes
-        return '%dT' % (deltas[0] / (60 * 1000000))
-    elif _is_multiple(deltas[0], 1000000):
-        if not is_unique:
-            return None
-        # Seconds
-        return '%dS' % (deltas[0] / 1000000)
-    elif _is_multiple(deltas[0], 1000):
-        if not is_unique:
-            return None
-        # Milliseconds
-        return '%dL' % (deltas[0] / 1000)
-    else:
-        if not is_unique:
-            return None
-        # Microseconds
-        return '%dU' % deltas[0]
 
+        if len(algos.unique(self.fields['M'])) > 1:
+            return None
+
+        pos_check = self.month_position_check()
+        return {'cs': 'AS', 'bs': 'BAS',
+                'ce': 'A', 'be': 'BA'}.get(pos_check)
+
+    def _get_quarterly_rule(self):
+        if len(self.mdiffs) > 1:
+            return None
+
+        if not self.mdiffs[0] % 3 == 0:
+            return None
+
+        pos_check = self.month_position_check()
+        return {'cs': 'QS', 'bs': 'BQS',
+                'ce': 'Q', 'be': 'BQ'}.get(pos_check)
+
+    def _get_monthly_rule(self):
+        if len(self.mdiffs) > 1:
+            return None
+        pos_check = self.month_position_check()
+        return {'cs': 'MS', 'bs': 'BMS',
+                'ce': 'M', 'be': 'BM'}.get(pos_check)
+
+
+def _is_weekday(y, m, d):
+    return datetime(y, m, d).weekday() < 5
 
 import pandas.core.algorithms as algos
-
-
-def _get_annual_rule(fields):
-    years = fields['Y']
-    months = fields['M']
-    days = fields['D']
-
-    ydiffs = unique_deltas(years.astype('i8'))
-    if len(ydiffs) > 1:
-        return False
-
-    if len(algos.unique(months)) == 1:
-        if _all_last_weekday(years, months, days):
-            return
-
-
-def _is_quarterly_deltas(day_list):
-    pass
-
-def _is_monthly_deltas(day_list):
-    pass
-
-def _is_business_years(index):
-    pass
 
 def _maybe_add_count(base, count):
     if count > 1:

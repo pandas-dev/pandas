@@ -29,6 +29,8 @@ pandas 0.8.0
 
   - Add GroupBy.prod optimized aggregation function and 'prod' fast time series
     conversion method (#1018)
+  - Implement robust frequency inference function and `inferred_freq` attribute
+    on DatetimeIndex (#391)
 
 **Improvements to existing features**
 
