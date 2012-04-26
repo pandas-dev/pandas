@@ -855,6 +855,7 @@ class Index(np.ndarray):
             old_level.join(right, how=how, return_indexers=True)
 
         if left_lev_indexer is not None:
+            left_lev_indexer = com._ensure_int32(left_lev_indexer)
             rev_indexer = lib.get_reverse_indexer(left_lev_indexer,
                                                   len(old_level))
 
