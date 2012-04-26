@@ -1105,7 +1105,7 @@ def periodarr_to_dt64arr(ndarray[int64_t] periodarr, int base, int64_t mult):
     return out
 
 cpdef int64_t period_asfreq(int64_t period_ordinal, int base1, int64_t mult1,
-                           int base2, int64_t mult2, object relation='E'):
+                           int base2, int64_t mult2, object relation=b'E'):
     """
     Convert period ordinal from one frequency to another, and if upsampling,
     choose to use start ('S') or end ('E') of period.
@@ -1127,7 +1127,7 @@ cpdef int64_t period_asfreq(int64_t period_ordinal, int base1, int64_t mult1,
     return retval
 
 def period_asfreq_arr(ndarray[int64_t] arr, int base1, int64_t mult1, int base2,
-                        int64_t mult2, object relation='E'):
+                        int64_t mult2, object relation=b'E'):
     """
     Convert int64-array of period ordinals from one frequency to another, and if
     upsampling, choose to use start ('S') or end ('E') of period.
