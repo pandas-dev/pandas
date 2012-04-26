@@ -1,10 +1,12 @@
 # pylint: disable=W0231
+from datetime import timedelta
 
 import numpy as np
 
 from pandas.core.common import save, load
 from pandas.core.index import MultiIndex
 from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.offsets import DateOffset
 
 #-------------------------------------------------------------------------------
 # Picklable mixin
@@ -136,7 +138,8 @@ class PandasObject(Picklable):
                        sort=sort, group_keys=group_keys)
 
     def resample(self, rule, how='mean', axis=0, as_index=True,
-                 fill_method=None, closed='right', label='right', kind=None):
+                 fill_method=None, closed='right', label='right', kind=None,
+                 loffset=None):
         """
         Convenience method for frequency conversion and resampling of regular
         time-series data.
@@ -152,6 +155,8 @@ class PandasObject(Picklable):
         label : {'right', 'left'}, default 'right'
             Which bin edge label to label bucket with
         as_index : see synonymous argument of groupby
+        loffset : timedelta
+            Adjust the resampled time labels
         """
         from pandas.tseries.resample import TimeGrouper
 
@@ -171,6 +176,9 @@ class PandasObject(Picklable):
             # upsampling
             result = self.reindex(grouper.binner[1:], method=fill_method)
 
+        if isinstance(loffset, (DateOffset, timedelta)):
+            if len(result.index) > 0:
+                result.index = result.index + loffset
         return result
 
     def first(self, offset):

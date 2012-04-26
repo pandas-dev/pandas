@@ -229,13 +229,6 @@ class TestIndex(unittest.TestCase):
         self.assertEqual(shifted.freq, self.dateIndex.freq)
         self.assertEqual(shifted.freq, back.freq)
 
-        lead = self.dateIndex - timedelta(1)
-        back = lead - timedelta(-1)
-        self.assert_(tm.equalContents(self.dateIndex, back))
-        self.assertEqual(self.dateIndex.freq, back.freq)
-        self.assertEqual(lead.freq, back.freq)
-
-
     def test_append_multiple(self):
         index = Index(['a', 'b', 'c', 'd', 'e', 'f'])
 

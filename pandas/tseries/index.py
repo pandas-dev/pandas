@@ -417,16 +417,7 @@ class DatetimeIndex(Int64Index):
             return self.union(other)
         elif isinstance(other, (datetools.DateOffset, timedelta)):
             new_values = self.astype('O') + other
-            return DatetimeIndex(new_values, tz=self.tz, freq=self.freq)
-        else:
-            return Index(self.view(np.ndarray) + other)
-
-    def __sub__(self, other):
-        if isinstance(other, Index):
-            return self.diff(other)
-        elif isinstance(other, (datetools.DateOffset, timedelta)):
-            new_values = self.astype('O') - other
-            return DatetimeIndex(new_values, tz=self.tz, freq=self.freq)
+            return DatetimeIndex(new_values, tz=self.tz)
         else:
             return Index(self.view(np.ndarray) + other)
 

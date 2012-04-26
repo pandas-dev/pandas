@@ -436,10 +436,7 @@ class Index(np.ndarray):
     __ge__ = _indexOp('__ge__')
 
     def __sub__(self, other):
-        if isinstance(other, Index):
-            return self.diff(other)
-        else:
-            return Index(self.view(np.ndarray) - other)
+        return self.diff(other)
 
     def __and__(self, other):
         return self.intersection(other)
