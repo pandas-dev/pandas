@@ -632,7 +632,9 @@ class BQuarterBegin(DateOffset, CacheableOffset):
         other = other + relativedelta(months=3*n - monthsSince)
         wkday, _ = lib.monthrange(other.year, other.month)
         first = _get_firstbday(wkday)
-        result = datetime(other.year, other.month, first)
+        result = datetime(other.year, other.month, first,
+                          other.hour, other.minute, other.second,
+                          other.microsecond)
         return result
 
     @property

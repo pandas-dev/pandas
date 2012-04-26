@@ -1298,6 +1298,15 @@ def test_get_standard_freq():
     assert fstr == get_standard_freq('5QuarTer')
     assert fstr == get_standard_freq(('q', 5))
 
+def test_quarterly_dont_normalize():
+    date = datetime(2012, 3, 31, 5, 30)
+
+    offsets = (QuarterBegin, QuarterEnd, BQuarterEnd, BQuarterBegin)
+
+    for klass in offsets:
+        result = date + klass()
+        assert(result.time() == date.time())
+
 def test_rule_code():
     lst = ['M', 'MS', 'BM', 'BMS', 'D', 'B', 'H', 'T', 'S', 'L', 'U']
     for k in lst:
