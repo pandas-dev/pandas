@@ -48,14 +48,14 @@ _dti = DatetimeIndex
 class TestFrequencyInference(unittest.TestCase):
 
     def test_business_daily(self):
-        index = _dti(['12/31/1999', '1/3/1999'])
+        index = _dti(['12/31/1999', '1/3/1999', '1/4/1999'])
         self.assert_(index.inferred_freq == 'B')
 
     def test_day(self):
         self._check_tick(timedelta(1), 'D')
 
     def test_day_corner(self):
-        index = _dti(['1/1/2000', '1/2/2000'])
+        index = _dti(['1/1/2000', '1/2/2000', '1/3/2000'])
         self.assert_(index.inferred_freq == 'D')
 
     def test_hour(self):
@@ -80,7 +80,7 @@ class TestFrequencyInference(unittest.TestCase):
             index = _dti([b + inc * j for j in range(3)])
             self.assert_(index.inferred_freq == '%d%s' % (i, code))
 
-        index = _dti([b + base_delta - 7] +
+        index = _dti([b + base_delta * 7] +
                      [b + base_delta * j for j in range(3)])
         self.assert_(index.inferred_freq is None)
 

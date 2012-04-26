@@ -1,6 +1,7 @@
 import re
 
 from pandas.tseries.offsets import DateOffset
+from pandas._tseries import Timestamp
 import pandas.tseries.offsets as offsets
 
 
@@ -52,7 +53,7 @@ def _get_freq_str(base, mult):
 _unknown_freq = 'Unknown'
 
 
-#-------------------------------------------------------------------------------
+#----------------------------------------------------------------------
 # Offset names ("time rules") and related functions
 
 
@@ -615,3 +616,142 @@ def _period_str_to_code(freqstr):
             return _period_code_map[alias]
         except:
             raise "Could not interpret frequency %s" % freqstr
+
+
+def infer_freq(index):
+    """
+    Not sure if I can avoid the state machine here
+    """
+    from pandas._sandbox import unique_deltas
+
+    if len(index) < 3:
+        raise ValueError('Need at least 3 dates to infer frequency')
+
+    deltas = unique_deltas(index)
+
+    is_unique = len(deltas) == 1
+
+    if _is_multiple(deltas[0], _day_us):
+        if is_unique:
+            days = deltas[0] / _day_us
+            if days % 7 == 0:
+                # Weekly
+                alias = _weekday_rule_aliases[days]
+                return _maybe_add_count('W-%s' % alias, days / 7)
+            else:
+                return _maybe_add_count('D', days)
+
+        fields = lib.build_field_sarray(index)
+
+        day_list = [x / _day_us for x in deltas]
+        rstamp = Timestamp(index[0])
+
+        annual_rule = _get_annual_rule(fields)
+        if annual_rule:
+            nyears = day_list[0] // 365
+            month = _month_aliases[rstamp.month]
+            return _maybe_add_count('%s-%s' % (annual_rule, month), nyears)
+
+        quarterly_rule = _get_quarterly_rule(fields)
+        if quarterly_rule:
+            month = _month_aliases[rstamp.month]
+            return '%s-%s' % (quarterly_rule, month)
+
+        elif _is_quarterly_deltas(day_list):
+            pass
+        elif _is_monthly_deltas(day_list):
+            pass
+        else:
+            # Business daily. Maybe
+            pass
+
+    elif _is_multiple(deltas[0], 60 * 60 * 1000000):
+        if not is_unique:
+            return None
+        # Hours
+        return '%dH' % (deltas[0] / (60 * 60 * 1000000))
+    elif _is_multiple(deltas[0], 60 * 1000000):
+        if not is_unique:
+            return None
+        # Minutes
+        return '%dT' % (deltas[0] / (60 * 1000000))
+    elif _is_multiple(deltas[0], 1000000):
+        if not is_unique:
+            return None
+        # Seconds
+        return '%dS' % (deltas[0] / 1000000)
+    elif _is_multiple(deltas[0], 1000):
+        if not is_unique:
+            return None
+        # Milliseconds
+        return '%dL' % (deltas[0] / 1000)
+    else:
+        if not is_unique:
+            return None
+        # Microseconds
+        return '%dU' % deltas[0]
+
+
+import pandas.core.algorithms as algos
+
+
+def _get_annual_rule(fields):
+    years = fields['Y']
+    months = fields['M']
+    days = fields['D']
+
+    ydiffs = unique_deltas(years.astype('i8'))
+    if len(ydiffs) > 1:
+        return False
+
+    if len(algos.unique(months)) == 1:
+        if _all_last_weekday(years, months, days):
+            return
+
+
+def _is_quarterly_deltas(day_list):
+    pass
+
+def _is_monthly_deltas(day_list):
+    pass
+
+def _is_business_years(index):
+    pass
+
+def _maybe_add_count(base, count):
+    if count > 1:
+        return '%d%s' % (count, base)
+    else:
+        return base
+
+
+
+_weekday_rule_aliases = {
+    0: 'MON',
+    1: 'TUE',
+    2: 'WED',
+    3: 'THU',
+    4: 'FRI',
+    5: 'SAT',
+    6: 'SUN'
+}
+
+_month_aliases = {
+    1: 'JAN',
+    2: 'FEB',
+    3: 'MAR',
+    4: 'APR',
+    5: 'MAY',
+    6: 'JUN',
+    7: 'JUL',
+    8: 'AUG',
+    9: 'SEP',
+    10: 'OCT',
+    11: 'NOV',
+    12: 'DEC'
+}
+
+def _is_multiple(us, mult):
+    return us % mult == 0
+
+_day_us = 24 * 60 * 60 * 1000000

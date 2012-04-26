@@ -41,6 +41,8 @@ ctypedef enum time_res:
 # This serves as the box for datetime64
 class Timestamp(_Timestamp):
 
+    __slots__ = ['value', 'offset']
+
     def __new__(cls, object ts_input, object offset=None, tz=None):
         if isinstance(ts_input, float):
             # to do, do we want to support this, ie with fractional seconds?
@@ -102,6 +104,37 @@ class Timestamp(_Timestamp):
             freq = self.freq
 
         return Period(self, freq=freq)
+
+#----------------------------------------------------------------------
+# Frequency inference
+
+def unique_deltas(ndarray[int64_t] arr):
+    cdef:
+        Py_ssize_t i, n = len(arr)
+        int64_t val
+        khiter_t k
+        kh_int64_t *table
+        int ret = 0
+        list uniques = []
+
+    table = kh_init_int64()
+    kh_resize_int64(table, 10)
+    for i in range(n - 1):
+        val = arr[i + 1] - arr[i]
+        k = kh_get_int64(table, val)
+        if k == table.n_buckets:
+            kh_put_int64(table, val, &ret)
+            uniques.append(val)
+    kh_destroy_int64(table)
+
+    result = np.array(uniques, dtype=np.int64)
+    result.sort()
+    return result
+
+
+cdef inline bint _is_multiple(int64_t us, int64_t mult):
+    return us % mult == 0
+
 
 def apply_offset(ndarray[object] values, object offset):
     cdef:
@@ -843,7 +876,7 @@ def tz_localize_array(ndarray[int64_t] vals, object tz):
     return vals
 
 # Accessors
-# ------------------------------------------------------------------------------
+#----------------------------------------------------------------------
 
 def build_field_sarray(ndarray[int64_t] dtindex):
     '''
@@ -966,8 +999,14 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
 
     raise ValueError("Field %s not supported" % field)
 
+
+cdef inline int m8_weekday(int64_t val):
+    ts = convert_to_tsobject(val)
+    return ts_dayofweek(ts)
+
+
 # Some general helper functions
-# ------------------------------------------------------------------------------
+#----------------------------------------------------------------------
 
 def isleapyear(int64_t year):
     return is_leapyear(year)
@@ -988,7 +1027,7 @@ cdef inline int64_t ts_dayofweek(_TSObject ts):
     return dayofweek(ts.dtval.year, ts.dtval.month, ts.dtval.day)
 
 # Period logic
-# ------------------------------------------------------------------------------
+#----------------------------------------------------------------------
 
 cdef int64_t apply_mult(int64_t period_ord, int64_t mult):
     """

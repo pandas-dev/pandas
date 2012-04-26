@@ -533,6 +533,13 @@ def group_add(ndarray[float64_t, ndim=2] out,
 from datetime cimport getAbsTime
 
 
+# cdef extern from "kvec.h":
+
+#     ctypedef struct kv_int64_t:
+#         size_t n, m
+#         int64_t *a
+
+
+
 def get_abs_time(freq, dailyDate, originalDate):
     return getAbsTime(freq, dailyDate, originalDate)
-
