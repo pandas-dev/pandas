@@ -406,9 +406,6 @@ def _period_unbox_array(arr, check=None):
     unboxer = np.frompyfunc(lambda x: _period_unbox(x, check=check), 1, 1)
     return unboxer(arr)
 
-def _period_box(val, freq):
-    return Period(val, freq=freq)
-
 def _period_box_array(arr, freq):
     if arr is None:
         return arr
@@ -416,7 +413,7 @@ def _period_box_array(arr, freq):
     if not isinstance(arr, np.ndarray):
         return arr
 
-    boxfunc = lambda x: _period_box(x, freq)
+    boxfunc = lambda x: Period(x, freq)
     boxer = np.frompyfunc(boxfunc, 1, 1)
     return boxer(arr)
 
@@ -479,46 +476,8 @@ class PeriodIndex(Int64Index):
             freq = datetools.get_standard_freq(freq)
 
         if data is None:
-            if start is None and end is None:
-                raise ValueError('Must specify start, end, or data')
-
-            start = to_period(start, freq)
-            end = to_period(end, freq)
-
-            is_start_intv = isinstance(start, Period)
-            is_end_intv = isinstance(end, Period)
-            if (start is not None and not is_start_intv):
-                raise ValueError('Failed to convert %s to period' % start)
-
-            if (end is not None and not is_end_intv):
-                raise ValueError('Failed to convert %s to period' % end)
-
-            if is_start_intv and is_end_intv and (start.freq != end.freq):
-                raise ValueError('Start and end must have same freq')
-
-            if freq is None:
-                if is_start_intv:
-                    freq = start.freq
-                elif is_end_intv:
-                    freq = end.freq
-                else:
-                    raise ValueError('Could not infer freq from start/end')
-
-            if periods is not None:
-                if start is None:
-                    data = np.arange(end.ordinal - periods + 1,
-                                     end.ordinal + 1,
-                                     dtype=np.int64)
-                else:
-                    data = np.arange(start.ordinal, start.ordinal + periods,
-                                     dtype=np.int64)
-            else:
-                if start is None or end is None:
-                    msg = 'Must specify both start and end if periods is None'
-                    raise ValueError(msg)
-                data = np.arange(start.ordinal, end.ordinal+1, dtype=np.int64)
-
-            subarr = data.view(cls)
+            subarr, freq = _get_ordinal_range(start, end, periods, freq)
+            subarr = subarr.view(cls)
             subarr.name = name
             subarr.freq = freq
 
@@ -577,6 +536,10 @@ class PeriodIndex(Int64Index):
         subarr.freq = freq
 
         return subarr
+
+    def __iter__(self):
+        for val in self.values:
+            yield Period(val, freq=self.freq)
 
     @property
     def is_all_dates(self):
@@ -746,7 +709,7 @@ class PeriodIndex(Int64Index):
         arr_idx = self.view(np.ndarray)
         if np.isscalar(key):
             val = arr_idx[key]
-            return _period_box(val, freq=self.freq)
+            return Period(val, freq=self.freq)
         else:
             if com._is_bool_indexer(key):
                 key = np.asarray(key)
@@ -766,7 +729,7 @@ class PeriodIndex(Int64Index):
         if name:
             header.append(str(self.name) if self.name is not None else '')
 
-        return header + ['%s' % _period_box(x, freq=self.freq) for x in self]
+        return header + ['%s' % Period(x, freq=self.freq) for x in self]
 
     def _view_like(self, ndarray):
         result = ndarray.view(type(self))
@@ -787,6 +750,58 @@ class PeriodIndex(Int64Index):
             output += '[%s, ..., %s]\n' % (self[0], self[-1])
         output += 'length: %d' % len(self)
         return output
+
+    def take(self, indices, axis=None):
+        """
+        Analogous to ndarray.take
+        """
+        taken = self.values.take(indices, axis=axis)
+        taken = taken.view(PeriodIndex)
+        taken.freq = self.freq
+        taken.name = self.name
+        return taken
+
+def _get_ordinal_range(start, end, periods, freq):
+    if com._count_not_none(start, end, periods) < 2:
+        raise ValueError('Must specify 2 of start, end, periods')
+
+    start = to_period(start, freq)
+    end = to_period(end, freq)
+
+    is_start_per = isinstance(start, Period)
+    is_end_per = isinstance(end, Period)
+    if (start is not None and not is_start_per):
+        raise ValueError('Failed to convert %s to period' % start)
+
+    if (end is not None and not is_end_per):
+        raise ValueError('Failed to convert %s to period' % end)
+
+    if is_start_per and is_end_per and (start.freq != end.freq):
+        raise ValueError('Start and end must have same freq')
+
+    if freq is None:
+        if is_start_per:
+            freq = start.freq
+        elif is_end_per:
+            freq = end.freq
+        else:
+            raise ValueError('Could not infer freq from start/end')
+
+    if periods is not None:
+        if start is None:
+            data = np.arange(end.ordinal - periods + 1,
+                             end.ordinal + 1,
+                             dtype=np.int64)
+        else:
+            data = np.arange(start.ordinal, start.ordinal + periods,
+                             dtype=np.int64)
+    else:
+        if start is None or end is None:
+            msg = 'Must specify both start and end if periods is None'
+            raise ValueError(msg)
+        data = np.arange(start.ordinal, end.ordinal+1, dtype=np.int64)
+
+    return data, freq
 
 
 def _validate_end_alias(how):

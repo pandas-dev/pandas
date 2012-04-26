@@ -1100,6 +1100,24 @@ class TestPeriodIndex(TestCase):
         self.assertEquals(i.asfreq('1S', how='E'),
                           Period('1/1/2010 12:05:19', '1S'))
 
+    def test_iteration(self):
+        index = PeriodIndex(start='1/1/10', periods=4, freq='B')
+
+        result = list(index)
+        self.assert_(isinstance(result[0], Period))
+        self.assert_(result[0].freq == index.freq)
+
+    def test_take(self):
+        index = PeriodIndex(start='1/1/10', end='12/31/12', freq='D')
+
+        taken = index.take([5, 6, 8, 12])
+        taken2 = index[[5, 6, 8, 12]]
+        self.assert_(isinstance(taken, PeriodIndex))
+        self.assert_(taken.freq == index.freq)
+        self.assert_(isinstance(taken2, PeriodIndex))
+        self.assert_(taken2.freq == index.freq)
+
+
 class TestMethods(TestCase):
     "Base test class for MaskedArrays."
 
@@ -1113,6 +1131,7 @@ class TestMethods(TestCase):
         #
         self.assertRaises(ValueError, dt1.__add__, "str")
         self.assertRaises(ValueError, dt1.__add__, dt2)
+
 
 ###############################################################################
 #------------------------------------------------------------------------------
