@@ -150,9 +150,6 @@ class DatetimeIndex(Int64Index):
     __le__ = _dt_index_cmp('__le__')
     __ge__ = _dt_index_cmp('__ge__')
 
-    __add__ = _dt_index_op('__add__')
-    __sub__ = _dt_index_op('__sub__')
-
     # structured array cache for datetime fields
     _sarr_cache = None
 
@@ -420,7 +417,16 @@ class DatetimeIndex(Int64Index):
             return self.union(other)
         elif isinstance(other, (datetools.DateOffset, timedelta)):
             new_values = self.astype('O') + other
-            return DatetimeIndex(new_values, tz=self.tz)
+            return DatetimeIndex(new_values, tz=self.tz, freq=self.freq)
+        else:
+            return Index(self.view(np.ndarray) + other)
+
+    def __sub__(self, other):
+        if isinstance(other, Index):
+            return self.diff(other)
+        elif isinstance(other, (datetools.DateOffset, timedelta)):
+            new_values = self.astype('O') - other
+            return DatetimeIndex(new_values, tz=self.tz, freq=self.freq)
         else:
             return Index(self.view(np.ndarray) + other)
 
