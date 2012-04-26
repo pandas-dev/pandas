@@ -6,9 +6,6 @@ import numpy as np
 from numpy cimport int32_t, int64_t, import_array, ndarray
 from cpython cimport *
 
-from libc.stdlib cimport malloc, free, abs
-from libc.math cimport floor
-
 # this is our datetime.pxd
 from datetime cimport *
 from util cimport is_integer_object, is_datetime64_object
@@ -104,6 +101,19 @@ class Timestamp(_Timestamp):
             freq = self.freq
 
         return Period(self, freq=freq)
+
+
+cdef inline bint is_timestamp(object o):
+    return isinstance(o, Timestamp)
+
+def is_timestamp_array(ndarray[object] values):
+    cdef int i, n = len(values)
+    if n == 0:
+        return False
+    for i in range(n):
+        if not is_timestamp(values[i]):
+            return False
+    return True
 
 #----------------------------------------------------------------------
 # Frequency inference
