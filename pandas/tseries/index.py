@@ -5,6 +5,7 @@ import numpy as np
 
 from pandas.core.index import Index, Int64Index
 from pandas.tseries.tools import parse_time_string
+from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 import pandas.core.datetools as datetools
 import pandas.tseries.tools as tools
@@ -837,6 +838,11 @@ class DatetimeIndex(Int64Index):
     @property
     def freq(self):
         return self.offset
+
+    @cache_readonly
+    def inferred_freq(self):
+        import pandas._sandbox as sbx
+        return sbx.infer_freq(self.asi8)
 
     @property
     def freqstr(self):
