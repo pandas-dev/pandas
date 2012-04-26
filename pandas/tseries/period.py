@@ -1,13 +1,12 @@
 from datetime import datetime
 import numpy as np
 
-from pandas.tseries.frequencies import get_freq_code as _gfc
+from pandas.tseries.frequencies import get_freq_code as _gfc, to_offset
 from pandas.tseries.index import DatetimeIndex, Int64Index
 from pandas.tseries.tools import parse_time_string
 import pandas.tseries.frequencies as _freq_mod
 
 import pandas.core.common as com
-import pandas.core.datetools as datetools
 from pandas.util import py3compat
 
 from pandas._tseries import Timestamp
@@ -190,19 +189,23 @@ class Period(object):
 
         return Period(new_ordinal, (base2, mult2))
 
+    @property
     def start_time(self):
-        return self.to_timestamp(which_end='S')
+        return self.to_timestamp(how='S')
 
+    @property
     def end_time(self):
-        return self.to_timestamp(which_end='E')
+        return self.to_timestamp(how='E')
 
-    def to_timestamp(self, which_end='S'):
+    def to_timestamp(self, freq='D', how='S'):
         """
         Return the Timestamp at the start/end of the period
 
         Parameters
         ----------
-        which_end: str, default 'S' (start)
+        freq : string or DateOffset, default 'D'
+            Target frequency
+        how: str, default 'S' (start)
             'S', 'E'. Can be aliased as case insensitive
             'Start', 'Finish', 'Begin', 'End'
 
@@ -210,11 +213,13 @@ class Period(object):
         -------
         Timestamp
         """
-        which_end = _validate_end_alias(which_end)
-        new_val = self.asfreq('S', which_end)
-        base, mult = _gfc(new_val.freq)
-        return Timestamp(lib.period_ordinal_to_dt64(new_val.ordinal, base,
-                                                    mult))
+        # how = _validate_end_alias(how)
+
+        base, mult = _gfc(freq)
+        new_val = self.asfreq(freq, how)
+        new_val = lib.period_ordinal_to_dt64(new_val.ordinal, base, mult)
+        ts_freq = _period_rule_to_timestamp_rule(self.freq, how=how)
+        return Timestamp(new_val, offset=to_offset(ts_freq))
 
     year = _period_field_accessor('year')
     month = _period_field_accessor('month')
@@ -474,7 +479,7 @@ class PeriodIndex(Int64Index):
         if isinstance(freq, Period):
             freq = freq.freq
         else:
-            freq = datetools.get_standard_freq(freq)
+            freq = _freq_mod.get_standard_freq(freq)
 
         if data is None:
             subarr, freq = _get_ordinal_range(start, end, periods, freq)
@@ -587,14 +592,16 @@ class PeriodIndex(Int64Index):
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
-        return datetools._period_box_array(self, self.freq)
+        return _period_box_array(self, self.freq)
 
     def to_timestamp(self, freq='D', how='start'):
         """
-        Cast to datetimeindex of timestamps, at *beginning* of period
+        Cast to DatetimeIndex
 
         Parameters
         ----------
+        freq : string or DateOffset, default 'D'
+            Target frequency
         how : {'s', 'e', 'start', 'end'}
 
         Returns
@@ -657,7 +664,7 @@ class PeriodIndex(Int64Index):
             return super(PeriodIndex, self).get_value(series, key)
         except KeyError:
             try:
-                asdt, parsed, reso = datetools.parse_time_string(key)
+                asdt, parsed, reso = parse_time_string(key)
                 grp = _freq_mod._infer_period_group(reso)
                 freqn = _freq_mod._period_group(self.freq)
 
@@ -695,7 +702,7 @@ class PeriodIndex(Int64Index):
             return self._engine.get_loc(key)
         except KeyError:
             try:
-                asdt, parsed, reso = datetools.parse_time_string(key)
+                asdt, parsed, reso = parse_time_string(key)
                 key = asdt
             except TypeError:
                 pass

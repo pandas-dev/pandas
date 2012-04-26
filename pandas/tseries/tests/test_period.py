@@ -120,28 +120,51 @@ class TestPeriodProperties(TestCase):
         self.assertEquals(i2.freq[0], '2')
 
     def test_to_timestamp(self):
-        intv = Period('1982', freq='A')
-        start_ts = intv.to_timestamp(which_end='S')
+        p = Period('1982', freq='A')
+        start_ts = p.to_timestamp(how='S')
         aliases = ['s', 'StarT', 'BEGIn']
         for a in aliases:
-            self.assertEquals(start_ts, intv.to_timestamp(which_end=a))
+            self.assertEquals(start_ts, p.to_timestamp(how=a))
 
-        end_ts = intv.to_timestamp(which_end='E')
+        end_ts = p.to_timestamp(how='E')
         aliases = ['e', 'end', 'FINIsH']
         for a in aliases:
-            self.assertEquals(end_ts, intv.to_timestamp(which_end=a))
+            self.assertEquals(end_ts, p.to_timestamp(how=a))
 
         from_lst = ['A', 'Q', 'M', 'W', 'B',
                     'D', 'H', 'Min', 'S']
         for i, fcode in enumerate(from_lst):
-            intv = Period('1982', freq=fcode)
-            result = intv.to_timestamp().to_period(fcode)
-            self.assertEquals(result, intv)
+            p = Period('1982', freq=fcode)
+            result = p.to_timestamp().to_period(fcode)
+            self.assertEquals(result, p)
 
-            self.assertEquals(intv.start_time(), intv.to_timestamp('S'))
+            self.assertEquals(p.start_time, p.to_timestamp(how='S'))
 
-            self.assertEquals(intv.end_time(), intv.to_timestamp('E'))
+            self.assertEquals(p.end_time, p.to_timestamp(how='E'))
 
+        # Frequency other than daily
+
+        p = Period('1985', freq='A')
+
+        result = p.to_timestamp('H', how='end')
+        expected = datetime(1985, 12, 31, 23)
+        self.assertEquals(result, expected)
+
+        result = p.to_timestamp('T', how='end')
+        expected = datetime(1985, 12, 31, 23, 59)
+        self.assertEquals(result, expected)
+
+        result = p.to_timestamp('S', how='end')
+        expected = datetime(1985, 12, 31, 23, 59, 59)
+        self.assertEquals(result, expected)
+
+        expected = datetime(1985, 1, 1)
+        result = p.to_timestamp('H', how='start')
+        self.assertEquals(result, expected)
+        result = p.to_timestamp('T', how='start')
+        self.assertEquals(result, expected)
+        result = p.to_timestamp('S', how='start')
+        self.assertEquals(result, expected)
 
     def test_properties_annually(self):
         # Test properties on Periods with annually frequency.
