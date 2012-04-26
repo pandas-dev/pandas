@@ -282,8 +282,8 @@ def test_series_bin_grouper():
 
 def test_generate_bins():
     from pandas.core.groupby import generate_bins_generic
-    values = np.array([1,2,3,4,5,6])
-    binner = np.array([0,3,6,9])
+    values = np.array([1,2,3,4,5,6], dtype=np.int64)
+    binner = np.array([0,3,6,9], dtype=np.int64)
 
     for func in [lib.generate_bins_dt64, generate_bins_generic]:
         bins = func(values, binner, closed='left')

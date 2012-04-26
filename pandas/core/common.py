@@ -285,7 +285,7 @@ def take_fast(arr, indexer, mask, needs_masking, axis=0, out=None,
         return take_2d(arr, indexer, out=out, mask=mask,
                        needs_masking=needs_masking,
                        axis=axis, fill_value=fill_value)
-
+    indexer = _ensure_platform_int(indexer)
     result = arr.take(indexer, axis=axis, out=out)
     result = _maybe_mask(result, mask, needs_masking, axis=axis,
                          out_passed=out is not None, fill_value=fill_value)

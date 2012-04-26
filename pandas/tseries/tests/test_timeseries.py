@@ -499,11 +499,11 @@ class TestLegacySupport(unittest.TestCase):
         pth, _ = os.path.split(os.path.abspath(__file__))
         filepath = os.path.join(pth, 'data', 'frame.pickle')
 
-        with open(filepath, 'r') as f:
+        with open(filepath, 'rb') as f:
             cls.frame = pickle.load(f)
 
         filepath = os.path.join(pth, 'data', 'series.pickle')
-        with open(filepath, 'r') as f:
+        with open(filepath, 'rb') as f:
             cls.series = pickle.load(f)
 
     def test_unpickle_legacy_frame(self):

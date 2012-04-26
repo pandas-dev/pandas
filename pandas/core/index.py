@@ -676,7 +676,7 @@ class Index(np.ndarray):
         else:
             raise ValueError('unrecognized method: %s' % method)
 
-        return indexer
+        return com._ensure_platform_int(indexer)
 
     def _possibly_promote(self, other):
         # A hack, but it works
@@ -1460,11 +1460,11 @@ class MultiIndex(Index):
 
             return result
 
-    def take(self, *args, **kwargs):
+    def take(self, indexer, axis=None):
         """
         Analogous to ndarray.take
         """
-        new_labels = [lab.take(*args, **kwargs) for lab in self.labels]
+        new_labels = [lab.take(indexer) for lab in self.labels]
         return MultiIndex(levels=self.levels, labels=new_labels,
                           names=self.names)
 
@@ -1715,7 +1715,7 @@ class MultiIndex(Index):
         else:
             indexer = self_index._engine.get_indexer(target_index)
 
-        return indexer
+        return com._ensure_platform_int(indexer)
 
     def reindex(self, target, method=None, level=None, limit=None):
         """
