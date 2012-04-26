@@ -96,6 +96,10 @@ class TestDataFramePlots(unittest.TestCase):
                        index=MultiIndex.from_tuples(tuples))
         _check_plot_works(df.plot, use_index=True)
 
+        axes = df.plot(subplots=True)
+        for ax in axes:
+            self.assert_(ax.get_legend() is not None)
+
     @slow
     def test_plot_bar(self):
         df = DataFrame(np.random.randn(6, 4),

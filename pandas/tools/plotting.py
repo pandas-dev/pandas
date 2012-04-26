@@ -345,7 +345,8 @@ class LinePlot(MPLPlot):
         df = self.data
 
         if self.subplots and self.legend:
-            self.axes[0].legend(loc='best')
+            for ax in self.axes:
+                ax.legend(loc='best')
 
         condition = (df.index.is_all_dates
                      and not self.subplots
