@@ -938,6 +938,11 @@ class Tick(DateOffset):
         else:
             return DateOffset.__eq__(self, other)
 
+    # This is identical to DateOffset.__hash__, but has to be redefined here
+    # for Python 3, because we've redefined __eq__.
+    def __hash__(self):
+        return hash(self._params())
+
     def __ne__(self, other):
         if isinstance(other, basestring):
             from pandas.tseries.frequencies import to_offset

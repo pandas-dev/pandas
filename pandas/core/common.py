@@ -13,6 +13,13 @@ except ImportError:  # pragma: no cover
     from cStringIO import StringIO as BytesIO
 import itertools
 
+try:
+    next
+except NameError:  # pragma: no cover
+    # Python < 2.6
+    def next(x):
+        return x.next()
+
 from cStringIO import StringIO
 
 from numpy.lib.format import read_array, write_array
@@ -519,7 +526,7 @@ def iterpairs(seq):
     # input may not be sliceable
     seq_it = iter(seq)
     seq_it_next = iter(seq)
-    _ = seq_it_next.next()
+    _ = next(seq_it_next)
 
     return itertools.izip(seq_it, seq_it_next)
 

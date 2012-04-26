@@ -34,6 +34,12 @@ ctypedef enum time_res:
     r_max = 98
     r_invalid = 99
 
+try:
+    basestring
+except NameError: # py3
+    basestring = str
+
+
 # Python front end to C extension type _Timestamp
 # This serves as the box for datetime64
 class Timestamp(_Timestamp):
@@ -1107,12 +1113,12 @@ cpdef int64_t period_asfreq(int64_t period_ordinal, int base1, int64_t mult1,
     cdef:
         int64_t retval
 
-    if relation not in ('S', 'E'):
+    if relation not in (b'S', b'E'):
         raise ValueError('relation argument must be one of S or E')
 
     period_ordinal = remove_mult(period_ordinal, mult1)
 
-    if mult1 != 1 and relation == 'E':
+    if mult1 != 1 and relation == b'E':
         period_ordinal += (mult1 - 1)
 
     retval = asfreq(period_ordinal, base1, base2, (<char*>relation)[0])
@@ -1130,7 +1136,7 @@ def period_asfreq_arr(ndarray[int64_t] arr, int base1, int64_t mult1, int base2,
         ndarray[int64_t] new_arr
         Py_ssize_t i, sz
 
-    if relation not in ('S', 'E'):
+    if relation not in (b'S', b'E'):
         raise ValueError('relation argument must be one of S or E')
 
     sz = len(arr)

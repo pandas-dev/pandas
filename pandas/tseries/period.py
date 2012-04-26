@@ -8,6 +8,7 @@ import pandas.tseries.frequencies as _freq_mod
 
 import pandas.core.common as com
 import pandas.core.datetools as datetools
+from pandas.util import py3compat
 
 from pandas._tseries import Timestamp
 import pandas._tseries as lib
@@ -185,7 +186,7 @@ class Period(object):
         base2, mult2 = _gfc(freq)
 
         new_ordinal = lib.period_asfreq(self.ordinal, base1, mult1,
-                                        base2, mult2, how)
+                                        base2, mult2, py3compat.str_to_bytes(how))
 
         return Period(new_ordinal, (base2, mult2))
 
@@ -514,7 +515,7 @@ class PeriodIndex(Int64Index):
                     base1, mult1 = _gfc(data.freq)
                     base2, mult2 = _gfc(freq)
                     data = lib.period_asfreq_arr(data.values, base1, mult1,
-                                                 base2, mult2, 'E')
+                                                 base2, mult2, b'E')
             else:
                 if freq is None:
                     raise ValueError('freq cannot be none')
@@ -558,7 +559,7 @@ class PeriodIndex(Int64Index):
 
         new_data = lib.period_asfreq_arr(self.values,
                                          base1, mult1,
-                                         base2, mult2, how)
+                                         base2, mult2, py3compat.str_to_bytes(how))
 
         return PeriodIndex(new_data, freq=freq)
 
