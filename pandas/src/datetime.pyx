@@ -844,7 +844,7 @@ cdef ndarray _unbox_utcoffsets(object transinfo):
     return arr
 
 
-def tz_localize_array(ndarray[int64_t] vals, object tz):
+def tz_localize(ndarray[int64_t] vals, object tz):
     """
     Localize tzinfo-naive DateRange to given time zone (using pytz). If
     there are ambiguities in the values, raise AmbiguousTimeError.

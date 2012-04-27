@@ -738,6 +738,13 @@ class TestTimeZones(unittest.TestCase):
 
         self.assert_(not left.equals(right))
 
+    def test_tz_normalize_naive(self):
+        rng = date_range('1/1/2011', periods=100, freq='H')
+
+        conv = rng.tz_normalize('US/Pacific')
+        exp = rng.tz_localize('US/Pacific')
+        self.assert_(conv.equals(exp))
+
     def test_tz_convert(self):
         rng = date_range('1/1/2011', periods=100, freq='H')
         ts = Series(1, index=rng)

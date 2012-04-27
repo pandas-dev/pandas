@@ -968,11 +968,14 @@ class DatetimeIndex(Int64Index):
         -------
         normalized : DatetimeIndex
         """
-        from pandas._tseries import tz_convert
         tz = tools._maybe_get_tz(tz)
-        new_dates = tz_convert(self.asi8, self.tz, tz)
-        new_dates = new_dates.view('M8[us]')
 
+        if self.tz is None:
+            new_dates = lib.tz_localize(self.asi8, tz)
+        else:
+            new_dates = lib.tz_convert(self.asi8, self.tz, tz)
+
+        new_dates = new_dates.view('M8[us]')
         new_dates = new_dates.view(type(self))
         new_dates.offset = self.offset
         new_dates.tz = tz
@@ -992,7 +995,7 @@ class DatetimeIndex(Int64Index):
                              "use tz_normalize to convert.")
         tz = tools._maybe_get_tz(tz)
 
-        new_dates = lib.tz_localize_array(self.asi8, tz)
+        new_dates = lib.tz_localize(self.asi8, tz)
         new_dates = new_dates.view('M8[us]')
         new_dates = new_dates.view(self.__class__)
         new_dates.offset = self.offset
