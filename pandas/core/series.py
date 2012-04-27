@@ -2517,6 +2517,24 @@ class TimeSeries(Series):
         namestr = "Name: %s, " % str(self.name) if self.name else ""
         return '%s%sLength: %d' % (freqstr, namestr, len(self))
 
+    def at_time(self, time, tz=None, asof=False):
+        """
+        Select values at particular time of day (e.g. 9:30AM)
+
+        Parameters
+        ----------
+        time : datetime.time or string
+        tz : string or pytz.timezone
+            Time zone for time. Corresponding timestamps would be converted to
+            time zone of the TimeSeries
+
+        Returns
+        -------
+        values_at_time : TimeSeries
+        """
+        from pandas.tseries.resample import values_at_time
+        return values_at_time(self, time, tz=tz, asof=asof)
+
     def tz_convert(self, tz, copy=True):
         """
         Convert TimeSeries to target time zone. If it is time zone naive, it

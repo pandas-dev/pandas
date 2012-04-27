@@ -480,6 +480,20 @@ class TestTimeSeries(unittest.TestCase):
         self.assert_(result.freq is None)
         self.assert_(len(result) == 5 * len(rng))
 
+    def test_at_time(self):
+        rng = date_range('1/1/2000', '1/5/2000', freq='5min')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+        df = DataFrame(np.random.randn(len(rng), 3), index=rng)
+
+        result = ts[time(9, 30)]
+        result_df = df.ix[time(9, 30)]
+        expected = ts[(rng.hour == 9) & (rng.minute == 30)]
+        exp_df = df[(rng.hour == 9) & (rng.minute == 30)]
+
+        # expected.index = date_range('1/1/2000', '1/4/2000')
+
+        assert_series_equal(result, expected)
+        tm.assert_frame_equal(result_df, exp_df)
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)

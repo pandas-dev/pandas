@@ -887,6 +887,7 @@ def tz_localize(ndarray[int64_t] vals, object tz):
 
     return vals
 
+
 # Accessors
 #----------------------------------------------------------------------
 
@@ -1016,6 +1017,48 @@ cdef inline int m8_weekday(int64_t val):
     ts = convert_to_tsobject(val)
     return ts_dayofweek(ts)
 
+cdef int64_t DAY_US = 24 * 60 * 60 * 1000000
+
+def values_at_time(ndarray[int64_t] stamps, int64_t time):
+    cdef:
+        Py_ssize_t i, j, count, n = len(stamps)
+        ndarray[int64_t] indexer, times
+        int64_t last, cur
+
+    # Assumes stamps is sorted
+
+    if len(stamps) == 0:
+        return np.empty(0, dtype=np.int64)
+
+    # is this OK?
+    # days = stamps // DAY_US
+    times = stamps % DAY_US
+
+    # Microsecond resolution
+    count = 0
+    for i in range(1, n):
+        if times[i] == time:
+            count += 1
+        # cur = days[i]
+        # if cur > last:
+        #     count += 1
+        #     last = cur
+
+    indexer = np.empty(count, dtype=np.int64)
+
+    j = 0
+    # last = days[0]
+    for i in range(n):
+        if times[i] == time:
+            indexer[j] = i
+            j += 1
+
+        # cur = days[i]
+        # if cur > last:
+        #     j += 1
+        #     last = cur
+
+    return indexer
 
 # Some general helper functions
 #----------------------------------------------------------------------

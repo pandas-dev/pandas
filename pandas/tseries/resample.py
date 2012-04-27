@@ -183,3 +183,42 @@ def asfreq(obj, freq, method=None, how=None):
             return obj.copy()
         dti = date_range(obj.index[0], obj.index[-1], freq=freq)
         return obj.reindex(dti, method=method)
+
+def values_at_time(obj, time, tz=None, asof=False):
+    """
+    Select values at particular time of day (e.g. 9:30AM)
+
+    Parameters
+    ----------
+    time : datetime.time or string
+    tz : string or pytz.timezone
+        Time zone for time. Corresponding timestamps would be converted to
+        time zone of the TimeSeries
+
+    Returns
+    -------
+    values_at_time : TimeSeries
+    """
+    from dateutil.parser import parse
+
+    if asof:
+        raise NotImplementedError
+    if tz:
+        raise NotImplementedError
+
+    if not isinstance(obj.index, DatetimeIndex):
+        raise NotImplementedError
+
+    if isinstance(time, basestring):
+        time = parse(time).time()
+
+    # TODO: time object with tzinfo?
+
+    mus = _time_to_microsecond(time)
+    indexer = lib.values_at_time(obj.index.asi8, mus)
+    indexer = com._ensure_platform_int(indexer)
+    return obj.take(indexer)
+
+def _time_to_microsecond(time):
+    seconds = time.hour * 60 * 60 + 60 * time.minute + time.second
+    return 1000000 * seconds + time.microsecond

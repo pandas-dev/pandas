@@ -789,6 +789,10 @@ class DatetimeIndex(Int64Index):
             except (TypeError, ValueError, KeyError):
                 pass
 
+            if isinstance(key, time):
+                locs = self._indices_at_time(key)
+                return series.take(locs)
+
             stamp = Timestamp(key)
             try:
                 return self._engine.get_value(series, stamp)
@@ -811,11 +815,23 @@ class DatetimeIndex(Int64Index):
             except (TypeError, KeyError):
                 pass
 
+            if isinstance(key, time):
+                return self._indices_at_time(key)
+
             stamp = Timestamp(key)
             try:
                 return self._engine.get_loc(stamp)
             except KeyError:
                 raise KeyError(stamp)
+
+    def _indices_at_time(self, key):
+        from dateutil.parser import parse
+
+        # TODO: time object with tzinfo?
+
+        mus = _time_to_microsecond(key)
+        indexer = lib.values_at_time(self.asi8, mus)
+        return com._ensure_platform_int(indexer)
 
     def _get_string_slice(self, key):
         asdt, parsed, reso = parse_time_string(key)
@@ -1184,3 +1200,7 @@ def _naive_in_cache_range(start, end):
 
 def _in_range(start, end, rng_start, rng_end):
     return start > rng_start and end < rng_end
+
+def _time_to_microsecond(time):
+    seconds = time.hour * 60 * 60 + 60 * time.minute + time.second
+    return 1000000 * seconds + time.microsecond
