@@ -70,7 +70,7 @@ class SeriesFormatter(object):
             if getattr(self.series.index, 'freq', None):
                 footer += 'Freq: %s' % self.series.index.freqstr
 
-            if footer:
+            if footer and self.series.name:
                 footer += ', '
             footer += ("Name: %s" % str(self.series.name)
                        if self.series.name else '')

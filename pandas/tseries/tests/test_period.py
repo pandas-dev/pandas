@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 
 from numpy.ma.testutils import assert_equal
 
-from pandas.tseries.period import Period, PeriodIndex
+from pandas.tseries.period import Period, PeriodIndex, period_range
 from pandas.tseries.index import DatetimeIndex, date_range
 from pandas.tseries.tools import to_datetime
 
@@ -20,6 +20,7 @@ import numpy as np
 
 from pandas import Series, TimeSeries, DataFrame
 from pandas.util.testing import assert_series_equal
+import pandas.util.testing as tm
 
 class TestPeriodProperties(TestCase):
     "Test properties such as year, month, weekday, etc...."
@@ -1184,6 +1185,80 @@ class TestPeriodIndex(TestCase):
         self.assert_(isinstance(taken2, PeriodIndex))
         self.assert_(taken2.freq == index.freq)
 
+    def test_joins(self):
+        index = period_range('1/1/2000', '1/20/2000', freq='D')
+
+        for kind in ['inner', 'outer', 'left', 'right']:
+            joined = index.join(index[:-5], how=kind)
+
+            self.assert_(isinstance(joined, PeriodIndex))
+            self.assert_(joined.freq == index.freq)
+
+    def test_align_series(self):
+        rng = period_range('1/1/2000', '1/1/2010', freq='A')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        result = ts + ts[::2]
+        expected = ts + ts
+        expected[1::2] = np.nan
+        assert_series_equal(result, expected)
+
+        result = ts + _permute(ts[::2])
+        assert_series_equal(result, expected)
+
+        # it works!
+        for kind in ['inner', 'outer', 'left', 'right']:
+            ts.align(ts[::2], join=kind)
+
+        self.assertRaises(Exception, ts.__add__,
+                          ts.asfreq('D', how='end'))
+
+    def test_align_frame(self):
+        rng = period_range('1/1/2000', '1/1/2010', freq='A')
+        ts = DataFrame(np.random.randn(len(rng), 3), index=rng)
+
+        result = ts + ts[::2]
+        expected = ts + ts
+        expected.values[1::2] = np.nan
+        tm.assert_frame_equal(result, expected)
+
+        result = ts + _permute(ts[::2])
+        tm.assert_frame_equal(result, expected)
+
+    def test_union(self):
+        index = period_range('1/1/2000', '1/20/2000', freq='D')
+
+        result = index[:-5].union(index[10:])
+        self.assert_(result.equals(index))
+
+        # not in order
+        result = _permute(index[:-5]).union(_permute(index[10:]))
+        self.assert_(result.equals(index))
+
+        # raise if different frequencies
+        index = period_range('1/1/2000', '1/20/2000', freq='D')
+        index2 = period_range('1/1/2000', '1/20/2000', freq='W-WED')
+        self.assertRaises(Exception, index.union, index2)
+
+    def test_intersection(self):
+        index = period_range('1/1/2000', '1/20/2000', freq='D')
+
+        result = index[:-5].intersection(index[10:])
+        self.assert_(result.equals(index[10:-5]))
+
+        # not in order
+        left = _permute(index[:-5])
+        right = _permute(index[10:])
+        result = left.intersection(right).order()
+        self.assert_(result.equals(index[10:-5]))
+
+        # raise if different frequencies
+        index = period_range('1/1/2000', '1/20/2000', freq='D')
+        index2 = period_range('1/1/2000', '1/20/2000', freq='W-WED')
+        self.assertRaises(Exception, index.intersection, index2)
+
+def _permute(obj):
+    return obj.take(np.random.permutation(len(obj)))
 
 class TestMethods(TestCase):
     "Base test class for MaskedArrays."

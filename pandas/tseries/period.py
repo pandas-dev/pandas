@@ -1,3 +1,5 @@
+# pylint: disable=E1101,E1103,W0232
+
 from datetime import datetime
 import numpy as np
 
@@ -727,6 +729,40 @@ class PeriodIndex(Int64Index):
             key = to_period(key, self.freq).ordinal
             return self._engine.get_loc(key)
 
+    def join(self, other, how='left', level=None, return_indexers=False):
+        """
+        See Index.join
+        """
+        self._assert_can_do_setop(other)
+
+        result = Int64Index.join(self, other, how=how, level=level,
+                                 return_indexers=return_indexers)
+
+        if return_indexers:
+            result, lidx, ridx = result
+            return self._apply_meta(result), lidx, ridx
+        else:
+            return self._apply_meta(result)
+
+    def _assert_can_do_setop(self, other):
+        if not isinstance(other, PeriodIndex):
+            raise TypeError('can only call with other PeriodIndex-ed objects')
+
+        if self.freq != other.freq:
+            raise ValueError('Only like-indexed PeriodIndexes compatible '
+                             'for join (for now)')
+
+    def _wrap_union_result(self, other, result):
+        name = self.name if self.name == other.name else None
+        result = self._apply_meta(result)
+        result.name = name
+        return result
+
+    def _apply_meta(self, rawarr):
+        idx = rawarr.view(PeriodIndex)
+        idx.freq = self.freq
+        return idx
+
     def __getitem__(self, key):
         """Override numpy.ndarray's __getitem__ method to work as desired"""
         arr_idx = self.view(np.ndarray)
@@ -783,6 +819,7 @@ class PeriodIndex(Int64Index):
         taken.freq = self.freq
         taken.name = self.name
         return taken
+
 
 def _get_ordinal_range(start, end, periods, freq):
     if com._count_not_none(start, end, periods) < 2:
