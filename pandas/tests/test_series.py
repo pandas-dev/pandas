@@ -13,7 +13,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas import (Index, Series, TimeSeries, DataFrame, isnull, notnull,
-                    bdate_range)
+                    bdate_range, date_range)
 from pandas.core.index import MultiIndex
 from pandas.tseries.index import Timestamp
 
@@ -1876,6 +1876,25 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                           after=self.ts.index[0] - offset)
 
     def test_asof(self):
+        # array or list or dates
+        N = 50
+        rng = date_range('1/1/1990', periods=N, freq='53s')
+        ts = Series(np.random.randn(N), index=rng)
+        ts[15:30] = np.nan
+        dates = date_range('1/1/1990', periods=N * 3, freq='25s')
+
+        result = ts.asof(dates)
+        self.assert_(notnull(result).all())
+        lb = ts.index[14]
+        ub = ts.index[30]
+
+        mask = (result.index >= lb) & (result.index < ub)
+        rs = result[mask]
+        self.assert_((rs == ts[lb]).all())
+
+        val = result[result.index[result.index >= ub][0]]
+        self.assertEqual(ts[ub], val)
+
         self.ts[5:10] = np.NaN
         self.ts[15:20] = np.NaN
 
@@ -1895,6 +1914,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # no as of value
         d = self.ts.index[0] - datetools.bday
         self.assert_(np.isnan(self.ts.asof(d)))
+
 
     def test_astype_cast_nan_int(self):
         df = Series([1.0, 2.0, 3.0, np.nan])

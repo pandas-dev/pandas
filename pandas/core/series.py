@@ -2278,22 +2278,37 @@ copy : boolean, default False
         if isinstance(date, basestring):
             date = datetools.to_datetime(date)
 
-        v = self.get(date)
+        if not isinstance(date, (list, tuple, np.ndarray)):
+            try:
+                date = list(date)
+            except TypeError:
+                date = [date]
 
-        if isnull(v):
-            # this will convert datetime -> datetime64 index
-            candidates = self.index[notnull(self)]
+        if not isinstance(date, Index):
+            date = Index(date)
 
-            index = candidates.searchsorted(lib.Timestamp(date))
+        candidates = self.index[notnull(self)]
 
-            if index > 0:
-                asOfDate = candidates[index - 1]
-            else:
-                return nan
+        mask = date.isin(candidates)
 
-            return self.get(asOfDate)
-        else:
-            return v
+        there = self.reindex(date[mask])
+        todo = date[-mask]
+
+        if len(there) == len(date):
+            if len(there) == 1:
+                return there[0]
+            return there
+
+        index = candidates.searchsorted(todo)
+        index = index - 1
+        asof_mask = index >= 0
+        asof = self.ix[candidates[index[asof_mask]]]
+        asof.index = todo[asof_mask]
+
+        if len(date) == 1 and len(asof) > 0:
+            return asof[0]
+
+        return there.combine_first(asof).reindex(date)
 
     def interpolate(self, method='linear'):
         """
