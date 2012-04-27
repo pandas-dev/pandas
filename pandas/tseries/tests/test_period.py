@@ -1115,13 +1115,11 @@ class TestPeriodIndex(TestCase):
         self.assert_(s['05Q4'] == s[2])
 
     def test_interval_dt64_round_trip(self):
-        dti = DatetimeIndex(['1/1/2002', '1/2/2002', '1/3/2002', '1/4/2002',
-                             '1/5/2002', '1/6/2002', '1/7/2002'], freq='B')
+        dti = date_range('1/1/2000', '1/7/2002', freq='B')
         ii = dti.to_period()
         self.assert_(ii.to_timestamp().equals(dti))
 
-        dti = DatetimeIndex(['1/1/2002', '1/2/2002', '1/3/2002', '1/4/2002',
-                             '1/5/2002', '1/6/2002', '1/7/2002'], freq='B')
+        dti = date_range('1/1/2000', '1/7/2002', freq='B')
         ii = dti.to_period(freq='3H')
         self.assert_(ii.to_timestamp().equals(dti))
 

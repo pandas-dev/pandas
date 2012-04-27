@@ -1,6 +1,7 @@
 from datetime import datetime
-
 import re
+
+import numpy as np
 
 from pandas.tseries.offsets import DateOffset
 from pandas.util.decorators import cache_readonly
@@ -646,7 +647,7 @@ class _FrequencyInferer(object):
 
     def __init__(self, index, warn=True):
         self.index = index
-        self.values = index.asi8
+        self.values = np.asarray(index).view('i8')
         self.warn = warn
 
         if len(index) < 3:
@@ -655,9 +656,13 @@ class _FrequencyInferer(object):
         self.deltas = lib.unique_deltas(self.values)
         self.is_unique = len(self.deltas) == 1
 
+    def is_monotonic(self):
+        try:
+            return self.index.is_monotonic
+        except:
+            return lib.is_monotonic_int64(self.values)[0]
+
     def get_freq(self):
-        if not self.index.is_monotonic:
-            return None
 
         delta = self.deltas[0]
         if _is_multiple(delta, _day_us):

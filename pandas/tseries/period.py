@@ -615,9 +615,7 @@ class PeriodIndex(Int64Index):
         base, mult = _gfc(freq)
         new_data = self.asfreq(freq, how)
         new_data = lib.periodarr_to_dt64arr(new_data.values, base, mult)
-
-        ts_freq = _period_rule_to_timestamp_rule(self.freq, how=how)
-        return DatetimeIndex(new_data, freq=ts_freq)
+        return DatetimeIndex(new_data, freq='infer')
 
     def shift(self, n):
         """

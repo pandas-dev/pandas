@@ -996,6 +996,8 @@ def _delta_to_tick(delta):
             return Micro(mus)
 
 def _delta_to_microseconds(delta):
+    if isinstance(delta, Tick):
+        delta = delta.delta
     return (delta.days * 24 * 60 * 60 * 1000000
             + delta.seconds * 1000000
             + delta.microseconds)

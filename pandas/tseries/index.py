@@ -9,6 +9,7 @@ from pandas.tseries.offsets import DateOffset, generate_range, Tick
 from pandas.tseries.tools import parse_time_string, normalize_date
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
+import pandas.tseries.offsets as offsets
 import pandas.tseries.tools as tools
 
 from pandas._engines import DatetimeEngine
@@ -169,8 +170,13 @@ class DatetimeIndex(Int64Index):
             freq = kwds['offset']
             warn = True
 
+        infer_freq = False
         if not isinstance(freq, DateOffset):
-            freq = to_offset(freq)
+            if freq != 'infer':
+                freq = to_offset(freq)
+            else:
+                infer_freq = True
+                freq = None
 
         if warn:
             import warnings
@@ -263,20 +269,22 @@ class DatetimeIndex(Int64Index):
         else:
             subarr = np.array(data, dtype='M8[us]', copy=copy)
 
-        # TODO: this is horribly inefficient. If user passes data + offset, we
-        # need to make sure data points conform. Punting on this
-
-        if verify_integrity:
-            if offset is not None:
-                for i, ts in enumerate(subarr):
-                    if not offset.onOffset(Timestamp(ts)):
-                        val = Timestamp(offset.rollforward(ts)).value
-                        subarr[i] = val
-
         subarr = subarr.view(cls)
         subarr.name = name
         subarr.offset = offset
         subarr.tz = tz
+
+        if verify_integrity:
+            if offset is not None and not infer_freq:
+                inferred = subarr.inferred_freq
+                if inferred != offset.freqstr:
+                    raise ValueError('Dates do not conform to passed '
+                                     'frequency')
+
+        if infer_freq:
+            inferred = subarr.inferred_freq
+            if inferred:
+                subarr.offset = to_offset(inferred)
 
         return subarr
 
@@ -418,10 +426,17 @@ class DatetimeIndex(Int64Index):
         if isinstance(other, Index):
             return self.union(other)
         elif isinstance(other, (DateOffset, timedelta)):
-            new_values = self.astype('O') + other
-            return DatetimeIndex(new_values, tz=self.tz)
+            return self._add_delta(other)
         else:
             return Index(self.view(np.ndarray) + other)
+
+    def _add_delta(self, delta):
+        if isinstance(delta, (Tick, timedelta)):
+            inc = offsets._delta_to_microseconds(delta)
+            new_values = (self.asi8 + inc).view('M8[us]')
+        else:
+            new_values = self.astype('O') + delta
+        return DatetimeIndex(new_values, tz=self.tz, freq='infer')
 
     def summary(self, name=None):
         if len(self) > 0:

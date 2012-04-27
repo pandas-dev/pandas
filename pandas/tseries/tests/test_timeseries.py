@@ -714,6 +714,15 @@ class TestLegacySupport(unittest.TestCase):
         for val in rng:
             self.assert_(val.time() == the_time)
 
+    def test_timedelta(self):
+        # this is valid too
+        index = date_range('1/1/2000', periods=50, freq='B')
+        shifted = index + timedelta(1)
+        back = shifted + timedelta(-1)
+        self.assert_(tm.equalContents(index, back))
+        self.assertEqual(shifted.freq, index.freq)
+        self.assertEqual(shifted.freq, back.freq)
+
     def test_shift_multiple_of_same_base(self):
         # GH #1063
         ts = Series(np.random.randn(5),
@@ -1028,18 +1037,14 @@ class TestDatetime64(unittest.TestCase):
                              '1/5/2002', '1/6/2002', '1/7/2002'], freq='D')
 
         res = dti.snap(freq='W-MON')
-
-        exp = DatetimeIndex(['12/31/2001', '12/31/2001', '12/31/2001',
-                             '1/7/2002', '1/7/2002', '1/7/2002', '1/7/2002'],
-                             freq='W-MON')
-
+        exp = date_range('12/31/2001', '1/7/2002', freq='w-mon')
+        exp = exp.repeat([3, 4])
         self.assert_( (res == exp).all() )
 
         res = dti.snap(freq='B')
 
-        exp = DatetimeIndex(['1/1/2002', '1/2/2002', '1/3/2002', '1/4/2002',
-                             '1/4/2002', '1/7/2002', '1/7/2002'], freq='B')
-
+        exp = date_range('1/1/2002', '1/7/2002', freq='b')
+        exp = exp.repeat([1, 1, 1, 2, 2])
         self.assert_( (res == exp).all() )
 
     def test_dti_reset_index_round_trip(self):

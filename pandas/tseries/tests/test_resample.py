@@ -143,6 +143,8 @@ class TestResample(unittest.TestCase):
                           index=idx + timedelta(minutes=1))
         assert_series_equal(result, expected)
 
+        self.assert_(result.index.freq == Minute(5))
+
                 # from daily
         dti = DatetimeIndex(start=datetime(2005,1,1), end=datetime(2005,1,10),
                             freq='D')
