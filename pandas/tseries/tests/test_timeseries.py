@@ -511,6 +511,19 @@ class TestTimeSeries(unittest.TestCase):
         self.assert_(result.is_normalized)
         self.assert_(not rng.is_normalized)
 
+    def test_to_period(self):
+        from pandas.tseries.period import period_range
+
+        ts = _simple_ts('1/1/2000', '1/1/2001')
+
+        pts = ts.to_period()
+        exp = ts.copy()
+        exp.index = period_range('1/1/2000', '1/1/2001')
+        assert_series_equal(pts, exp)
+
+        pts = ts.to_period('M')
+        self.assert_(pts.index.equals(exp.index.asfreq('M')))
+
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
     return Series(np.random.randn(len(rng)), index=rng)
