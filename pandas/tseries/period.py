@@ -508,8 +508,12 @@ class PeriodIndex(Int64Index):
             except:
                 data = np.array(data, dtype='O')
 
+            if freq is None and len(data) > 0:
+                freq = getattr(data[0], 'freq')
+
             if freq is None:
-                raise ValueError('freq cannot be none')
+                raise ValueError(('freq not specified and cannot be inferred '
+                                  'from first element'))
 
             data = _period_unbox_array(data, check=freq)
         else:
@@ -523,15 +527,23 @@ class PeriodIndex(Int64Index):
                     data = lib.period_asfreq_arr(data.values, base1, mult1,
                                                  base2, mult2, b'E')
             else:
+                if freq is None and len(data) > 0:
+                    freq = getattr(data[0], 'freq')
+
                 if freq is None:
-                    raise ValueError('freq cannot be none')
+                    raise ValueError(('freq not specified and cannot be '
+                                      'inferred from first element'))
 
                 if data.dtype == np.datetime64:
                     data = dt64arr_to_periodarr(data, freq)
                 elif data.dtype == np.int64:
                     pass
                 else:
-                    data = data.astype('i8')
+                    try:
+                        data = data.astype('i8')
+                    except:
+                        data = data.astype('O')
+                        data = _period_unbox_array(data, check=freq)
 
         data = np.array(data, dtype=np.int64, copy=False)
 

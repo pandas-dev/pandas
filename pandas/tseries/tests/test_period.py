@@ -974,6 +974,25 @@ class TestPeriodIndex(TestCase):
         except ValueError:
             pass
 
+        # infer freq from first element
+        i2 = PeriodIndex(end_intv)
+        assert_equal(len(i2), 1)
+        assert_equal(i2[0], end_intv)
+
+        i2 = PeriodIndex([end_intv, Period('2005-05-05', 'B')])
+        assert_equal(len(i2), 2)
+        assert_equal(i2[0], end_intv)
+
+        i2 = PeriodIndex(np.array([end_intv, Period('2005-05-05', 'B')]))
+        assert_equal(len(i2), 2)
+        assert_equal(i2[0], end_intv)
+
+        # Mixed freq should fail
+        vals = [end_intv, Period('2006-12-31', 'w')]
+        self.assertRaises(ValueError, PeriodIndex, vals)
+        vals = np.array(vals)
+        self.assertRaises(ValueError, PeriodIndex, vals)
+
     def test_shift(self):
         ii1 = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
         ii2 = PeriodIndex(freq='A', start='1/1/2002', end='12/1/2010')
