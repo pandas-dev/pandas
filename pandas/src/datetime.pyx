@@ -856,7 +856,7 @@ def tz_localize(ndarray[int64_t] vals, object tz):
     cdef:
         ndarray[int64_t] trans, deltas
         Py_ssize_t i, pos, n = len(vals)
-        int64_t v, t1, t2, tmp
+        int64_t v, dst_start, dst_end
 
     if not have_pytz:
         raise Exception("Could not find pytz module")
