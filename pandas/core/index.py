@@ -1011,7 +1011,7 @@ class Index(np.ndarray):
         -------
         dropped : Index
         """
-        labels = np.asarray(list(labels), dtype=object)
+        labels = com._index_labels_to_array(labels)
         indexer = self.get_indexer(labels)
         mask = indexer == -1
         if mask.any():
@@ -1511,7 +1511,7 @@ class MultiIndex(Index):
 
         try:
             if not isinstance(labels, np.ndarray):
-                labels = com._asarray_tuplesafe(labels)
+                labels = com._index_labels_to_array(labels)
             indexer = self.get_indexer(labels)
             mask = indexer == -1
             if mask.any():
@@ -1532,6 +1532,7 @@ class MultiIndex(Index):
         return self.delete(inds)
 
     def _drop_from_level(self, labels, level):
+        labels = com._index_labels_to_array(labels)
         i = self._get_level_number(level)
         index = self.levels[i]
         values = index.get_indexer(labels)

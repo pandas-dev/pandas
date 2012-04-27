@@ -395,6 +395,10 @@ class TestIndex(unittest.TestCase):
 
         self.assertRaises(ValueError, self.strIndex.drop, ['foo', 'bar'])
 
+        dropped = self.strIndex.drop(self.strIndex[0])
+        expected = self.strIndex[1:]
+        self.assert_(dropped.equals(expected))
+
     def test_tuple_union_bug(self):
         import pandas
         import numpy as np
