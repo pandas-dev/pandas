@@ -501,6 +501,16 @@ class TestTimeSeries(unittest.TestCase):
         rng2 = DatetimeIndex(rng)
         self.assert_(rng.freq == rng2.freq)
 
+    def test_normalize(self):
+        rng = date_range('1/1/2000 9:30', periods=10, freq='D')
+
+        result = rng.normalize()
+        expected = date_range('1/1/2000', periods=10, freq='D')
+        self.assert_(result.equals(expected))
+
+        self.assert_(result.is_normalized)
+        self.assert_(not rng.is_normalized)
+
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
     return Series(np.random.randn(len(rng)), index=rng)

@@ -899,23 +899,38 @@ def build_field_sarray(ndarray[int64_t] dtindex):
         Py_ssize_t i, count = 0
         int isleap
         npy_datetimestruct dts
+        ndarray[int32_t] years, months, days, hours, minutes, seconds, mus
 
     count = len(dtindex)
 
-    sa_dtype = [('Y', '>i4'), # year
-                ('M', '>i4'), # month
-                ('D', '>i4'), # day
-                ('h', '>i4'), # hour
-                ('m', '>i4'), # min
-                ('s', '>i4'), # second
-                ('u', '>i4')] # microsecond
+    sa_dtype = [('Y', 'i4'), # year
+                ('M', 'i4'), # month
+                ('D', 'i4'), # day
+                ('h', 'i4'), # hour
+                ('m', 'i4'), # min
+                ('s', 'i4'), # second
+                ('u', 'i4')] # microsecond
 
     out = np.empty(count, dtype=sa_dtype)
 
+    years = out['Y']
+    months = out['M']
+    days = out['D']
+    hours = out['h']
+    minutes = out['m']
+    seconds = out['s']
+    mus = out['u']
+
     for i in range(count):
         PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
-        out[i] = (dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec,
-                  dts.us)
+        years[i] = dts.year
+        months[i] = dts.month
+        days[i] = dts.day
+        hours[i] = dts.hour
+        minutes[i] = dts.min
+        seconds[i] = dts.sec
+        mus[i] = dts.us
+
     return out
 
 @cython.wraparound(False)
@@ -1059,6 +1074,35 @@ def values_at_time(ndarray[int64_t] stamps, int64_t time):
         #     last = cur
 
     return indexer
+
+
+def date_normalize(ndarray[int64_t] stamps):
+    cdef:
+        Py_ssize_t i, n = len(stamps)
+        ndarray[int64_t] result = np.empty(n, dtype=np.int64)
+        npy_datetimestruct dts
+
+    for i in range(n):
+        PyArray_DatetimeToDatetimeStruct(stamps[i], NPY_FR_us, &dts)
+        dts.hour = 0
+        dts.min = 0
+        dts.sec = 0
+        dts.us = 0
+        result[i] = PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts)
+
+    return result
+
+def dates_normalized(ndarray[int64_t] stamps):
+    cdef:
+        Py_ssize_t i, n = len(stamps)
+        npy_datetimestruct dts
+
+    for i in range(n):
+        PyArray_DatetimeToDatetimeStruct(stamps[i], NPY_FR_us, &dts)
+        if (dts.hour + dts.min + dts.sec + dts.us) > 0:
+            return False
+
+    return True
 
 # Some general helper functions
 #----------------------------------------------------------------------

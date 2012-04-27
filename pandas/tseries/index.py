@@ -928,6 +928,17 @@ class DatetimeIndex(Int64Index):
     dayofyear = _field_accessor('dayofyear', 'doy')
     quarter = _field_accessor('quarter', 'q')
 
+    def normalize(self):
+        """
+        Return DatetimeIndex with times to midnight. Length is unaltered
+
+        Returns
+        -------
+        normalized : DatetimeIndex
+        """
+        new_values = lib.date_normalize(self.asi8)
+        return DatetimeIndex(new_values, freq='infer', name=self.name)
+
     def __iter__(self):
         return iter(self.asobject)
 
@@ -963,6 +974,13 @@ class DatetimeIndex(Int64Index):
     @property
     def is_all_dates(self):
         return True
+
+    @cache_readonly
+    def is_normalized(self):
+        """
+        Returns True if all of the dates are at midnight ("no time")
+        """
+        return lib.dates_normalized(self.asi8)
 
     def equals(self, other):
         """
