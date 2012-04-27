@@ -66,3 +66,15 @@ rng = date_range('1/1/2000', periods=10000, freq='T')
 
 datetimeindex_add_offset = Benchmark('rng + timedelta(minutes=2)', setup,
                                      start_date=datetime(2012, 4, 1))
+
+setup = common_setup + """
+N = 1000
+rng = date_range('1/1/1990', periods=N, freq='53s')
+ts = Series(np.random.randn(N), index=rng)
+dates = date_range('1/1/1990', periods=N * 10, freq='5s')
+"""
+timeseries_asof_loop = Benchmark('[ts.asof(d) for d in dates]', setup,
+                                 start_date=datetime(2012, 4, 27))
+
+timeseries_asof = Benchmark('ts.asof(dates)', setup,
+                            start_date=datetime(2012, 4, 27))
