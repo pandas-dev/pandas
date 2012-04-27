@@ -262,9 +262,14 @@ class DatetimeIndex(Int64Index):
 
         if issubclass(data.dtype.type, basestring):
             subarr = _str_to_dt_array(data)
-        elif issubclass(data.dtype.type, np.integer):
-            subarr = np.array(data, dtype='M8[us]', copy=copy)
         elif issubclass(data.dtype.type, np.datetime64):
+            if isinstance(data, DatetimeIndex):
+                subarr = data.values
+                offset = data.offset
+                verify_integrity = False
+            else:
+                subarr = np.array(data, dtype='M8[us]', copy=copy)
+        elif issubclass(data.dtype.type, np.integer):
             subarr = np.array(data, dtype='M8[us]', copy=copy)
         else:
             subarr = np.array(data, dtype='M8[us]', copy=copy)
@@ -800,7 +805,7 @@ class DatetimeIndex(Int64Index):
                 raise KeyError(stamp)
 
     def get_loc(self, key):
-        """
+        """y
         Get integer location for requested label
 
         Returns

@@ -512,7 +512,7 @@ class TestSeriesFormatting(unittest.TestCase):
         cp.name = 'foo'
         result = cp.to_string(length=True, name=True)
         last_line = result.split('\n')[-1].strip()
-        self.assertEqual(last_line, "Name: foo, Length: %d" % len(cp))
+        self.assertEqual(last_line, "Freq: B, Name: foo, Length: %d" % len(cp))
 
     def test_to_string_mixed(self):
         s = Series(['foo', np.nan, -1.23, 4.56])
