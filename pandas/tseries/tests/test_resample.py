@@ -1,11 +1,11 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
 
 from pandas import Series, DataFrame, isnull, notnull
 
 from pandas.tseries.index import date_range
-from pandas.tseries.offsets import Minute
+from pandas.tseries.offsets import Minute, bday
 from pandas.tseries.period import period_range
 from pandas.tseries.resample import DatetimeIndex, TimeGrouper
 import pandas.tseries.offsets as offsets
@@ -132,6 +132,26 @@ class TestResample(unittest.TestCase):
         self.assertEquals(result.irow(0), s['1/3/2005'])
         self.assertEquals(result.irow(1), s['1/4/2005'])
         self.assertEquals(result.irow(5), s['1/10/2005'])
+
+    def test_resample_loffset(self):
+        rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min')
+        s = Series(np.random.randn(14), index=rng)
+        result = s.resample('5min', how='mean', closed='right', label='right',
+                            loffset=timedelta(minutes=1))
+        idx = date_range('1/1/2000', periods=4, freq='5min')
+        expected = Series([s[0], s[1:6].mean(), s[6:11].mean(), s[11:].mean()],
+                          index=idx + timedelta(minutes=1))
+        assert_series_equal(result, expected)
+
+                # from daily
+        dti = DatetimeIndex(start=datetime(2005,1,1), end=datetime(2005,1,10),
+                            freq='D')
+        ser = Series(np.random.rand(len(dti)), dti)
+
+        # to weekly
+        result = ser.resample('w-sun', how='last')
+        expected = ser.resample('w-sun', how='last', loffset=-bday)
+        self.assertEqual(result.index[0] - bday, expected.index[0])
 
     def test_resample_upsample(self):
         # from daily

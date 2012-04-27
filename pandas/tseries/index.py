@@ -150,7 +150,6 @@ class DatetimeIndex(Int64Index):
     __le__ = _dt_index_cmp('__le__')
     __ge__ = _dt_index_cmp('__ge__')
 
-    __add__ = _dt_index_op('__add__')
     __sub__ = _dt_index_op('__sub__')
 
     # structured array cache for datetime fields
