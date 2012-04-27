@@ -2511,7 +2511,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # empty
         tsframe[:0].to_csv(path)
         recons = DataFrame.from_csv(path)
-        assert_frame_equal(recons, tsframe[:0])
+        exp = tsframe[:0]
+        exp.index = []
+        assert_frame_equal(recons, exp)
 
     def test_to_csv_float32_nanrep(self):
         df = DataFrame(np.random.randn(1, 4).astype(np.float32))

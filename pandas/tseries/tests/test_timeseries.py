@@ -725,6 +725,27 @@ class TestLegacySupport(unittest.TestCase):
 
         self.assert_(result.index.equals(exp_index))
 
+    def test_setops_preserve_freq(self):
+        rng = date_range('1/1/2000', '1/1/2002')
+
+        result = rng[:50].union(rng[50:100])
+        self.assert_(result.freq == rng.freq)
+
+        result = rng[:50].union(rng[30:100])
+        self.assert_(result.freq == rng.freq)
+
+        result = rng[:50].union(rng[60:100])
+        self.assert_(result.freq is None)
+
+        result = rng[:50].intersection(rng[25:75])
+        self.assert_(result.freqstr == 'D')
+
+        nofreq = DatetimeIndex(list(rng[25:75]))
+        result = rng[:50].union(nofreq)
+        self.assert_(result.freq == rng.freq)
+
+        result = rng[:50].intersection(nofreq)
+        self.assert_(result.freq == rng.freq)
 
 class TestTimeZones(unittest.TestCase):
 
@@ -796,6 +817,7 @@ class TestTimeZones(unittest.TestCase):
         self.assert_(left.tz == rng.tz)
         result = left.intersection(right)
         self.assert_(result.tz == left.tz)
+
 
 class TestLegacyCompat(unittest.TestCase):
 

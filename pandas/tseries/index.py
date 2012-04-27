@@ -4,11 +4,11 @@ from datetime import timedelta
 import numpy as np
 
 from pandas.core.index import Index, Int64Index
-from pandas.tseries.frequencies import infer_freq
-from pandas.tseries.tools import parse_time_string
+from pandas.tseries.frequencies import infer_freq, to_offset
+from pandas.tseries.offsets import DateOffset, generate_range, Tick
+from pandas.tseries.tools import parse_time_string, normalize_date
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
-import pandas.core.datetools as datetools
 import pandas.tseries.tools as tools
 
 from pandas._engines import DatetimeEngine
@@ -170,8 +170,8 @@ class DatetimeIndex(Int64Index):
             freq = kwds['offset']
             warn = True
 
-        if not isinstance(freq, datetools.DateOffset):
-            freq = datetools.to_offset(freq)
+        if not isinstance(freq, DateOffset):
+            freq = to_offset(freq)
 
         if warn:
             import warnings
@@ -179,10 +179,10 @@ class DatetimeIndex(Int64Index):
                           "please use 'freq' instead",
                           FutureWarning)
             if isinstance(freq, basestring):
-                freq = datetools.get_offset(freq)
+                freq = to_offset(freq)
         else:
             if isinstance(freq, basestring):
-                freq = datetools.to_offset(freq)
+                freq = to_offset(freq)
 
         offset = freq
 
@@ -200,7 +200,7 @@ class DatetimeIndex(Int64Index):
                                      % start)
 
                 if normalize:
-                    start = datetools.normalize_date(start)
+                    start = normalize_date(start)
                     _normalized = True
                 else:
                     _normalized = _normalized and start.time() == _midnight
@@ -212,7 +212,7 @@ class DatetimeIndex(Int64Index):
                                      % end)
 
                 if normalize:
-                    end = datetools.normalize_date(end)
+                    end = normalize_date(end)
                     _normalized = True
                 else:
                     _normalized = _normalized and end.time() == _midnight
@@ -221,7 +221,7 @@ class DatetimeIndex(Int64Index):
 
             if (offset._should_cache() and
                 not (offset._normalize_cache and not _normalized) and
-                datetools._naive_in_cache_range(start, end)):
+                _naive_in_cache_range(start, end)):
                 index = cls._cached_range(start, end, periods=periods,
                                           offset=offset, name=name)
             else:
@@ -310,8 +310,8 @@ class DatetimeIndex(Int64Index):
 
         drc = _daterange_cache
         if offset not in _daterange_cache:
-            xdr = datetools.generate_range(offset=offset,
-                    start=_CACHE_START, end=_CACHE_END)
+            xdr = generate_range(offset=offset, start=_CACHE_START,
+                                 end=_CACHE_END)
 
             arr = np.array(_to_m8_array(list(xdr)),
                            dtype='M8[us]', copy=False)
@@ -418,7 +418,7 @@ class DatetimeIndex(Int64Index):
     def __add__(self, other):
         if isinstance(other, Index):
             return self.union(other)
-        elif isinstance(other, (datetools.DateOffset, timedelta)):
+        elif isinstance(other, (DateOffset, timedelta)):
             new_values = self.astype('O') + other
             return DatetimeIndex(new_values, tz=self.tz)
         else:
@@ -494,7 +494,7 @@ class DatetimeIndex(Int64Index):
 
         """
         # Superdumb, punting on any optimizing
-        freq = datetools.to_offset(freq)
+        freq = to_offset(freq)
 
         snapped = np.empty(len(self), dtype='M8[us]')
 
@@ -580,7 +580,10 @@ class DatetimeIndex(Int64Index):
             return this._fast_union(other)
         else:
             result = Index.union(this, other)
-            result.tz = self.tz
+            if isinstance(result, DatetimeIndex):
+                result.tz = self.tz
+                if result.freq is None:
+                    result.offset = to_offset(result.inferred_freq)
             return result
 
     def join(self, other, how='left', level=None, return_indexers=False):
@@ -695,10 +698,19 @@ class DatetimeIndex(Int64Index):
                 other = DatetimeIndex(other)
             except TypeError:
                 pass
-            return Index.intersection(self, other)
+            result = Index.intersection(self, other)
+            if isinstance(result, DatetimeIndex):
+                if result.freq is None:
+                    result.offset = to_offset(result.inferred_freq)
+            return result
+
         elif other.offset != self.offset or (not self.is_monotonic or
                                              not other.is_monotonic):
-            return Index.intersection(self, other)
+            result = Index.intersection(self, other)
+            if isinstance(result, DatetimeIndex):
+                if result.freq is None:
+                    result.offset = to_offset(result.inferred_freq)
+            return result
 
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
@@ -756,7 +768,7 @@ class DatetimeIndex(Int64Index):
         except KeyError:
 
             try:
-                asdt, parsed, reso = datetools.parse_time_string(key)
+                asdt, parsed, reso = parse_time_string(key)
                 key = asdt
                 loc = self._partial_date_slice(reso, parsed)
                 return series[loc]
@@ -792,7 +804,7 @@ class DatetimeIndex(Int64Index):
                 raise KeyError(stamp)
 
     def _get_string_slice(self, key):
-        asdt, parsed, reso = datetools.parse_time_string(key)
+        asdt, parsed, reso = parse_time_string(key)
         key = asdt
         loc = self._partial_date_slice(reso, parsed)
         return loc
@@ -858,7 +870,10 @@ class DatetimeIndex(Int64Index):
 
     @cache_readonly
     def inferred_freq(self):
-        return infer_freq(self)
+        try:
+            return infer_freq(self)
+        except ValueError:
+            return None
 
     @property
     def freqstr(self):
@@ -1020,7 +1035,7 @@ class DatetimeIndex(Int64Index):
 
         # See if there are any DST resolution problems
         try:
-            lib.tz_localize_array(self.asi8, self.tz)
+            lib.tz_localize(self.asi8, self.tz)
         except:
             return False
 
@@ -1031,7 +1046,7 @@ def _generate_regular_range(start, end, periods, offset):
     if com._count_not_none(start, end, periods) < 2:
         raise ValueError('Must specify two of start, end, or periods')
 
-    if isinstance(offset, datetools.Tick):
+    if isinstance(offset, Tick):
         stride = offset.us_stride()
         if periods is None:
             b = Timestamp(start).value
@@ -1049,7 +1064,7 @@ def _generate_regular_range(start, end, periods, offset):
         data = np.arange(b, e, stride, dtype=np.int64)
         data = data.view('M8[us]')
     else:
-        xdr = datetools.generate_range(start=start, end=end,
+        xdr = generate_range(start=start, end=end,
             periods=periods, offset=offset)
 
         data = np.array(list(xdr), dtype='M8[us]')
