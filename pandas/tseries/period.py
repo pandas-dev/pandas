@@ -509,7 +509,7 @@ class PeriodIndex(Int64Index):
                 data = np.array(data, dtype='O')
 
             if freq is None and len(data) > 0:
-                freq = getattr(data[0], 'freq')
+                freq = getattr(data[0], 'freq', None)
 
             if freq is None:
                 raise ValueError(('freq not specified and cannot be inferred '
