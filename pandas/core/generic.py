@@ -1,4 +1,4 @@
-# pylint: disable=W0231
+# pylint: disable=W0231,E1101
 from datetime import timedelta
 
 import numpy as np
@@ -182,12 +182,11 @@ class PandasObject(Picklable):
         """
         from pandas.tseries.resample import TimeGrouper
 
-        idx = self._get_axis(axis)
-        if not isinstance(idx, DatetimeIndex):
-            raise ValueError("Cannot call resample with non-DatetimeIndex")
+        if axis != 0:
+            raise NotImplementedError
 
         grouper = TimeGrouper(rule, label=label, closed=closed,
-                              axis=self.index, kind=kind)
+                              axis=self._get_axis(axis), kind=kind)
 
         # since binner extends endpoints
         if grouper.downsamples:

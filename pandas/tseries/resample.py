@@ -4,7 +4,7 @@ from pandas.core.groupby import BinGrouper
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.index import DatetimeIndex, date_range
 from pandas.tseries.offsets import DateOffset
-from pandas.tseries.period import PeriodIndex
+from pandas.tseries.period import PeriodIndex, period_range
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 
@@ -43,7 +43,7 @@ class TimeGrouper(BinGrouper):
     def __init__(self, offset='Min', closed='left', label='left',
                  begin=None, end=None, nperiods=None, axis=None,
                  kind=None):
-        self.offset = offset
+        self.freq = offset
         self.closed = closed
         self.label = label
         self.begin = begin
@@ -60,6 +60,9 @@ class TimeGrouper(BinGrouper):
         """
         if id(self.axis) == id(axis):
             return
+
+        if not isinstance(axis, (DatetimeIndex, PeriodIndex)):
+            raise ValueError('Only valid with DatetimeIndex or PeriodIndex')
 
         self.axis = axis
 
@@ -100,7 +103,7 @@ class TimeGrouper(BinGrouper):
             return binner, bins, labels
         elif self.kind == 'period':
             index = PeriodIndex(start=self.axis[0], end=self.axis[-1],
-                                freq=self.offset)
+                                freq=self.freq)
 
             end_stamps = (index + 1).asfreq('D', 's').to_timestamp()
             bins = self.axis.searchsorted(end_stamps, side='left')
@@ -108,10 +111,24 @@ class TimeGrouper(BinGrouper):
             return index, bins, index
 
     def _group_periods(self):
-        raise NotImplementedError
+        if self.kind is None or self.kind == 'period':
+            # Start vs. end of period
+            memb = self.axis.asfreq(self.freq)
+
+            if len(memb) > 1:
+                rng = np.arange(memb.values[0], memb.values[-1] + 1)
+                bins = memb.searchsorted(rng, side='right')
+            else:
+                bins = np.array([], dtype=np.int32)
+
+            index = period_range(memb[0], memb[-1], freq=self.freq)
+            return index, bins, index
+        else:
+            # Convert to timestamps
+            pass
 
     def _generate_time_binner(self):
-        offset = self.offset
+        offset = self.freq
         if isinstance(offset, basestring):
             offset = to_offset(offset)
 

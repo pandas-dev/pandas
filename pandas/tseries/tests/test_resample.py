@@ -263,10 +263,29 @@ class TestResample(unittest.TestCase):
 
         self.assertRaises(Exception, ts.asfreq, 'B')
 
+
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
     return Series(np.random.randn(len(rng)), index=rng)
 
+def _simple_pts(start, end, freq='D'):
+    rng = period_range(start, end, freq=freq)
+    return Series(np.random.randn(len(rng)), index=rng)
+
+
+class TestResamplePeriodIndex(unittest.TestCase):
+
+    def test_basic_resample(self):
+        ts = _simple_pts('1/1/1990', '6/30/1995', freq='M')
+
+        result = ts.resample('a-dec')
+        expected = ts.groupby(ts.index.year).mean()
+        expected.index = period_range('1/1/1990', '6/30/1995',
+                                      freq='a-dec')
+        assert_series_equal(result, expected)
+
+    def test_upsample_ffill(self):
+        pass
 
 class TestTimeGrouper(unittest.TestCase):
 

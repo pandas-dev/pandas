@@ -35,7 +35,7 @@ def _field_accessor(name, alias=None):
     def f(self):
         base, mult = _gfc(self.freq)
         g = getattr(lib, 'get_period_%s_arr' % alias)
-        return g(self.ordinal, base, mult)
+        return g(self.values, base, mult)
     f.__name__ = name
     return property(f)
 
@@ -580,26 +580,25 @@ class PeriodIndex(Int64Index):
         else:
             base2, mult2 = freq
 
-
-        new_data = lib.period_asfreq_arr(self.values,
-                                         base1, mult1,
-                                         base2, mult2, py3compat.str_to_bytes(how))
+        new_data = lib.period_asfreq_arr(self.values, base1, mult1,
+                                         base2, mult2,
+                                         py3compat.str_to_bytes(how))
 
         return PeriodIndex(new_data, freq=freq)
 
-    year = _period_field_accessor('year')
-    month = _period_field_accessor('month')
-    day = _period_field_accessor('day')
-    hour = _period_field_accessor('hour')
-    minute = _period_field_accessor('minute')
-    second = _period_field_accessor('second')
-    weekofyear = _period_field_accessor('week')
+    year = _field_accessor('year')
+    month = _field_accessor('month')
+    day = _field_accessor('day')
+    hour = _field_accessor('hour')
+    minute = _field_accessor('minute')
+    second = _field_accessor('second')
+    weekofyear = _field_accessor('week')
     week = weekofyear
-    dayofweek = _period_field_accessor('dayofweek', 'dow')
+    dayofweek = _field_accessor('dayofweek', 'dow')
     weekday = dayofweek
-    dayofyear = day_of_year = _period_field_accessor('dayofyear', 'doy')
-    quarter = _period_field_accessor('quarter')
-    qyear = _period_field_accessor('qyear')
+    dayofyear = day_of_year = _field_accessor('dayofyear', 'doy')
+    quarter = _field_accessor('quarter')
+    qyear = _field_accessor('qyear')
 
     # Try to run function on index first, and then on elements of index
     # Especially important for group-by functionality
