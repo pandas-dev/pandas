@@ -1192,8 +1192,12 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         expected = expected.drop([('top','OD','wy')], axis=1)
         assert_frame_equal(expected, result)
 
-        result = df.drop('top', axis=1)
+        result = df.drop(('top', 'OD', 'wx'), axis=1)
+        expected = df.drop([('top','OD','wx')], axis=1)
         assert_frame_equal(expected, result)
+
+        expected = df.drop([('top','OD','wy')], axis=1)
+        expected = df.drop('top', axis=1)
 
         result = df.drop('result1', level=1, axis=1)
         expected = df.drop([('routine1', 'result1', ''),
