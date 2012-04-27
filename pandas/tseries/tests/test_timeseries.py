@@ -725,6 +725,71 @@ class TestLegacySupport(unittest.TestCase):
 
         self.assert_(result.index.equals(exp_index))
 
+
+class TestTimeZones(unittest.TestCase):
+
+    def setUp(self):
+        _skip_if_no_pytz()
+
+    def test_index_equals_with_tz(self):
+        left = date_range('1/1/2011', periods=100, freq='H', tz='utc')
+        right = date_range('1/1/2011', periods=100, freq='H',
+                           tz='US/Eastern')
+
+        self.assert_(not left.equals(right))
+
+    def test_tz_convert(self):
+        rng = date_range('1/1/2011', periods=100, freq='H')
+        ts = Series(1, index=rng)
+
+        result = ts.tz_convert('utc')
+        self.assert_(result.index.tz.zone == 'UTC')
+
+    def test_join_utc_convert(self):
+        rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')
+
+        left = rng.tz_normalize('US/Eastern')
+        right = rng.tz_normalize('Europe/Berlin')
+
+        for how in ['inner', 'outer', 'left', 'right']:
+            result = left.join(left[:-5], how=how)
+            self.assert_(isinstance(result, DatetimeIndex))
+            self.assert_(result.tz == left.tz)
+
+            result = left.join(right[:-5], how=how)
+            self.assert_(isinstance(result, DatetimeIndex))
+            self.assert_(result.tz.zone == 'UTC')
+
+    def test_arith_utc_convert(self):
+        rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')
+
+        perm = np.random.permutation(100)[:90]
+        ts1 = Series(np.random.randn(90),
+                     index=rng.take(perm).tz_normalize('US/Eastern'))
+
+        perm = np.random.permutation(100)[:90]
+        ts2 = Series(np.random.randn(90),
+                     index=rng.take(perm).tz_normalize('Europe/Berlin'))
+
+        result = ts1 + ts2
+
+        uts1 = ts1.tz_convert('utc')
+        uts2 = ts2.tz_convert('utc')
+        expected = uts1 + uts2
+
+        self.assert_(result.index.tz == pytz.UTC)
+        assert_series_equal(result, expected)
+
+    def test_intersection(self):
+        rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')
+
+        left = rng[10:90][::-1]
+        right = rng[20:80][::-1]
+
+        self.assert_(left.tz == rng.tz)
+        result = left.intersection(right)
+        self.assert_(result.tz == left.tz)
+
 class TestLegacyCompat(unittest.TestCase):
 
     def setUp(self):

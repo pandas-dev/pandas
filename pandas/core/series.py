@@ -2540,6 +2540,31 @@ class TimeSeries(Series):
         namestr = "Name: %s, " % str(self.name) if self.name else ""
         return '%s%sLength: %d' % (freqstr, namestr, len(self))
 
+    def tz_convert(self, tz, copy=True):
+        """
+        Convert TimeSeries to target time zone. If it is time zone naive, it
+        will be localized to the passed time zone.
+
+        Parameters
+        ----------
+        tz : string or pytz.timezone object
+        copy : boolean, default True
+            Also make a copy of the underlying data
+
+        Returns
+        -------
+        """
+        if self.index.tz is None:
+            new_index = self.index.tz_localize(tz)
+        else:
+            new_index = self.index.tz_normalize(tz)
+
+        new_values = self.values
+        if copy:
+            new_values = new_values.copy()
+
+        return Series(new_values, index=new_index, name=self.name)
+
     def to_timestamp(self, freq='D', how='start', copy=True):
         """
         Cast to datetimeindex of timestamps, at *beginning* of period

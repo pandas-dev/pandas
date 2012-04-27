@@ -40,6 +40,12 @@ def _infer_tzinfo(start, end):
     return tz
 
 
+def _maybe_get_tz(tz):
+    if isinstance(tz, (str, unicode)):
+        import pytz
+        tz = pytz.timezone(tz)
+    return tz
+
 def _figure_out_timezone(start, end, tzinfo):
     inferred_tz = _infer_tzinfo(start, end)
     tz = inferred_tz
@@ -49,9 +55,7 @@ def _figure_out_timezone(start, end, tzinfo):
         assert(inferred_tz == tzinfo)
         # make tz naive for now
 
-    if isinstance(tz, (str, unicode)):
-        import pytz
-        tz = pytz.timezone(tz)
+    tz = _maybe_get_tz(tz)
 
     start = start if start is None else start.replace(tzinfo=None)
     end = end if end is None else end.replace(tzinfo=None)

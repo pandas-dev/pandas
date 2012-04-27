@@ -574,10 +574,14 @@ class DatetimeIndex(Int64Index):
         -------
         y : Index or DatetimeIndex
         """
-        if self._can_fast_union(other):
-            return self._fast_union(other)
+        this, other = self._maybe_utc_convert(other)
+
+        if this._can_fast_union(other):
+            return this._fast_union(other)
         else:
-            return Index.union(self, other)
+            result = Index.union(this, other)
+            result.tz = self.tz
+            return result
 
     def join(self, other, how='left', level=None, return_indexers=False):
         """
@@ -589,9 +593,17 @@ class DatetimeIndex(Int64Index):
             except ValueError:
                 pass
 
-        return Index.join(self, other, how=how, level=level,
+        this, other = self._maybe_utc_convert(other)
+        return Index.join(this, other, how=how, level=level,
                           return_indexers=return_indexers)
 
+    def _maybe_utc_convert(self, other):
+        this = self
+        if isinstance(other, DatetimeIndex):
+            if self.tz != other.tz:
+                this = self.tz_normalize('UTC')
+                other = other.tz_normalize('UTC')
+        return this, other
 
     def _wrap_joined_index(self, joined, other):
         name = self.name if self.name == other.name else None
@@ -611,6 +623,9 @@ class DatetimeIndex(Int64Index):
         offset = self.offset
 
         if offset is None:
+            return False
+
+        if not self.is_monotonic or not other.is_monotonic:
             return False
 
         if len(other) == 0:
@@ -681,7 +696,8 @@ class DatetimeIndex(Int64Index):
             except TypeError:
                 pass
             return Index.intersection(self, other)
-        elif other.offset != self.offset:
+        elif other.offset != self.offset or (not self.is_monotonic or
+                                             not other.is_monotonic):
             return Index.intersection(self, other)
 
         # to make our life easier, "sort" the two ranges
@@ -914,7 +930,7 @@ class DatetimeIndex(Int64Index):
             except:
                 return False
 
-        return np.array_equal(self.asi8, other.asi8)
+        return self.tz == other.tz and np.array_equal(self.asi8, other.asi8)
 
     def insert(self, loc, item):
         """
@@ -952,9 +968,12 @@ class DatetimeIndex(Int64Index):
         -------
         normalized : DatetimeIndex
         """
-        new_dates = lib.tz_normalize_array(self.asi8, self.tz, tz)
+        from pandas._tseries import tz_convert
+        tz = tools._maybe_get_tz(tz)
+        new_dates = tz_convert(self.asi8, self.tz, tz)
         new_dates = new_dates.view('M8[us]')
-        new_dates = new_dates.view(self.__class__)
+
+        new_dates = new_dates.view(type(self))
         new_dates.offset = self.offset
         new_dates.tz = tz
         new_dates.name = self.name
@@ -971,6 +990,7 @@ class DatetimeIndex(Int64Index):
         if self.tz is not None:
             raise ValueError("Already have timezone info, "
                              "use tz_normalize to convert.")
+        tz = tools._maybe_get_tz(tz)
 
         new_dates = lib.tz_localize_array(self.asi8, tz)
         new_dates = new_dates.view('M8[us]')
