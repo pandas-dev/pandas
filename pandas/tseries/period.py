@@ -495,8 +495,9 @@ class PeriodIndex(Int64Index):
                                  'collection of some kind, %s was passed'
                                  % repr(data))
 
-            if isinstance(data, Period):
-                data = [data]
+            elif isinstance(data, Period):
+                raise ValueError('Data must be array of dates, strings, '
+                                 'or Period objects')
 
             # other iterable of some kind
             if not isinstance(data, (list, tuple)):

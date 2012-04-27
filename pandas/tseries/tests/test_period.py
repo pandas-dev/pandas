@@ -870,6 +870,13 @@ class TestPeriodIndex(TestCase):
         series = Series(1, index=index)
         self.assert_(isinstance(series, TimeSeries))
 
+    def test_constructor_use_start_freq(self):
+        # GH #1118
+        p = Period('4/2/2012', freq='B')
+        index = PeriodIndex(start=p, periods=10)
+        expected = PeriodIndex(start='4/2/2012', periods=10, freq='B')
+        self.assert_(index.equals(expected))
+
     def test_to_timestamp(self):
         index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
         series = Series(1, index=index, name='foo')
