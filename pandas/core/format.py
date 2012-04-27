@@ -65,7 +65,13 @@ class SeriesFormatter(object):
 
     def _get_footer(self):
         footer = ''
+
         if self.name:
+            if getattr(self.series.index, 'freq', None):
+                footer += 'Freq: %s' % self.series.index.freqstr
+
+            if footer and self.series.name:
+                footer += ', '
             footer += ("Name: %s" % str(self.series.name)
                        if self.series.name else '')
 
@@ -262,6 +268,8 @@ class DataFrameFormatter(object):
             if isinstance(self.columns, MultiIndex):
                 if self.has_column_names:
                     row.append(single_column_table(self.columns.names))
+                else:
+                    row.append('')
                 row.extend([single_column_table(c) for c in self.columns])
             else:
                 row.append(self.columns.name or '')
@@ -290,9 +298,11 @@ class DataFrameFormatter(object):
                     row = frame.index.names + [''] * len(self.columns)
                     write_tr(row, indent, indent_delta, header=True)
 
+                indent -= indent_delta
                 write('</thead>', indent)
 
             write('<tbody>', indent)
+            indent += indent_delta
 
             _bold_row = self.kwds.get('bold_rows', False)
             def _maybe_bold_row(x):
@@ -413,6 +423,8 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
         fmt_klass = FloatArrayFormatter
     elif com.is_integer_dtype(values.dtype):
         fmt_klass = IntArrayFormatter
+    elif com.is_datetime64_dtype(values.dtype):
+        fmt_klass = Datetime64Formatter
     else:
         fmt_klass = GenericArrayFormatter
 
@@ -549,6 +561,23 @@ class IntArrayFormatter(GenericArrayFormatter):
         return _make_fixed_width(fmt_values, self.justify)
 
 
+class Datetime64Formatter(GenericArrayFormatter):
+
+    def get_result(self):
+        if self.formatter:
+            formatter = self.formatter
+        else:
+            def formatter(x):
+                if isnull(x):
+                    return 'NaT'
+                else:
+                    return str(x)
+
+        fmt_values = [formatter(x) for x in self.values]
+
+        return _make_fixed_width(fmt_values, self.justify)
+
+
 def _make_fixed_width(strings, justify='right'):
     if len(strings) == 0:
         return strings
@@ -609,7 +638,8 @@ def _has_names(index):
 
 def set_printoptions(precision=None, column_space=None, max_rows=None,
                      max_columns=None, colheader_justify='right',
-                     notebook_repr_html=None):
+                     notebook_repr_html=None,
+                     date_dayfirst=None, date_yearfirst=None):
     """
     Alter default behavior of DataFrame.toString
 
@@ -629,6 +659,10 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
     notebook_repr_html : boolean
         When True (default), IPython notebook will use html representation for
         pandas objects (if it is available).
+    date_dayfirst : boolean
+        When True, prints and parses dates with the day first, eg 20/01/2005
+    date_yearfirst : boolean
+        When True, prints and parses dates with the year first, eg 2005/01/20
     """
     if precision is not None:
         print_config.precision = precision
@@ -642,6 +676,10 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
         print_config.colheader_justify = colheader_justify
     if notebook_repr_html is not None:
         print_config.notebook_repr_html = notebook_repr_html
+    if date_dayfirst is not None:
+        print_config.date_dayfirst = date_dayfirst
+    if date_yearfirst is not None:
+        print_config.date_yearfirst = date_yearfirst
 
 def reset_printoptions():
     print_config.reset()
@@ -768,6 +806,8 @@ class _GlobalPrintConfig(object):
         self.max_columns = 0
         self.colheader_justify = 'right'
         self.notebook_repr_html = True
+        self.date_dayfirst = False
+        self.date_yearfirst = False
 
     def reset(self):
         self.__init__()

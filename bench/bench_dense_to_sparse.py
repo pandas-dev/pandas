@@ -4,7 +4,7 @@ K = 100
 N = 100000
 rng = DateRange('1/1/2000', periods=N, offset=datetools.Minute())
 
-rng2 = np.asarray(rng).astype('M8').astype('i8')
+rng2 = np.asarray(rng).astype('M8[us]').astype('i8')
 
 series = {}
 for i in range(1, K + 1):

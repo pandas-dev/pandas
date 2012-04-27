@@ -2,7 +2,7 @@ from datetime import datetime
 
 import unittest
 
-from pandas import Series, DataFrame
+from pandas import Series, DataFrame, date_range, DatetimeIndex
 from pandas.core.common import notnull, isnull
 import pandas.core.common as com
 import pandas.util.testing as tm
@@ -43,6 +43,17 @@ def test_isnull():
 def test_isnull_datetime():
     assert (not isnull(datetime.now()))
     assert notnull(datetime.now())
+
+    idx = date_range('1/1/1990', periods=20)
+    assert(notnull(idx).all())
+
+    import pandas._tseries as lib
+    idx = np.asarray(idx)
+    idx[0] = lib.NaT
+    idx = DatetimeIndex(idx)
+    mask = isnull(idx)
+    assert(mask[0])
+    assert(not mask[1:].any())
 
 def test_any_none():
     assert(com._any_none(1, 2, 3, None))

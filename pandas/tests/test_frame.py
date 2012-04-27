@@ -16,6 +16,7 @@ import numpy as np
 import numpy.ma as ma
 
 import pandas as pan
+import pandas.core.nanops as nanops
 import pandas.core.common as com
 import pandas.core.format as fmt
 import pandas.core.datetools as datetools
@@ -1216,6 +1217,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.mixed_frame.columns = cols
         self.assertRaises(Exception, setattr, self.mixed_frame, 'columns',
                           cols[::2])
+
+    def test_column_contains_typeerror(self):
+        try:
+            self.frame.columns in self.frame
+        except TypeError:
+            pass
 
     def test_constructor(self):
         df = DataFrame()
@@ -2504,7 +2511,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # empty
         tsframe[:0].to_csv(path)
         recons = DataFrame.from_csv(path)
-        assert_frame_equal(recons, tsframe[:0])
+        exp = tsframe[:0]
+        exp.index = []
+        assert_frame_equal(recons, exp)
 
     def test_to_csv_float32_nanrep(self):
         df = DataFrame(np.random.randn(1, 4).astype(np.float32))
@@ -2811,31 +2820,31 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_asfreq(self):
         offset_monthly = self.tsframe.asfreq(datetools.bmonthEnd)
-        rule_monthly = self.tsframe.asfreq('EOM')
+        rule_monthly = self.tsframe.asfreq('BM')
 
         assert_almost_equal(offset_monthly['A'], rule_monthly['A'])
 
-        filled = rule_monthly.asfreq('WEEKDAY', method='pad')
+        filled = rule_monthly.asfreq('B', method='pad')
         # TODO: actually check that this worked.
 
         # don't forget!
-        filled_dep = rule_monthly.asfreq('WEEKDAY', method='pad')
+        filled_dep = rule_monthly.asfreq('B', method='pad')
 
         # test does not blow up on length-0 DataFrame
         zero_length = self.tsframe.reindex([])
-        result = zero_length.asfreq('EOM')
+        result = zero_length.asfreq('BM')
         self.assert_(result is not zero_length)
 
-    def test_asfreq_DateRange(self):
-        from pandas.core.daterange import DateRange
+    def test_asfreq_datetimeindex(self):
+        from pandas import DatetimeIndex
         df = DataFrame({'A': [1,2,3]},
                        index=[datetime(2011,11,01), datetime(2011,11,2),
                               datetime(2011,11,3)])
-        df = df.asfreq('WEEKDAY')
-        self.assert_(isinstance(df.index, DateRange))
+        df = df.asfreq('B')
+        self.assert_(isinstance(df.index, DatetimeIndex))
 
-        ts = df['A'].asfreq('WEEKDAY')
-        self.assert_(isinstance(ts.index, DateRange))
+        ts = df['A'].asfreq('B')
+        self.assert_(isinstance(ts.index, DatetimeIndex))
 
     def test_as_matrix(self):
         frame = self.frame
@@ -3702,10 +3711,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(unshifted, self.tsframe)
 
         # shift by DateOffset
-        shiftedFrame = self.tsframe.shift(5, offset=datetools.BDay())
+        shiftedFrame = self.tsframe.shift(5, freq=datetools.BDay())
         self.assert_(len(shiftedFrame) == len(self.tsframe))
 
-        shiftedFrame2 = self.tsframe.shift(5, timeRule='WEEKDAY')
+        shiftedFrame2 = self.tsframe.shift(5, freq='B')
         assert_frame_equal(shiftedFrame, shiftedFrame2)
 
         d = self.tsframe.index[0]
@@ -4406,6 +4415,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = self.tsframe.apply(lambda x: x.var(ddof=4))
         assert_almost_equal(result, expected)
 
+        arr = np.repeat(np.random.random((1, 1000)), 1000, 0)
+        result = nanops.nanvar(arr, axis=0)
+        self.assertFalse((result < 0).any())
+        if nanops._USE_BOTTLENECK:
+            nanops._USE_BOTTLENECK = False
+            result = nanops.nanvar(arr, axis=0)
+            self.assertFalse((result < 0).any())
+            nanops._USE_BOTTLENECK = True
+
     def test_skew(self):
         from scipy.stats import skew
 
@@ -4546,10 +4564,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self._check_stat_op('median', wrapper, frame=self.intframe)
 
     def test_quantile(self):
-        try:
-            from scipy.stats import scoreatpercentile
-        except ImportError:
-            return
+        from pandas.compat.scipy import scoreatpercentile
 
         q = self.tsframe.quantile(0.1, axis=0)
         self.assertEqual(q['A'], scoreatpercentile(self.tsframe['A'], 10))
@@ -4609,13 +4624,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df.cumprod(1)
 
     def test_rank(self):
-        from scipy.stats import rankdata
+        from pandas.compat.scipy import rankdata
 
         self.frame['A'][::2] = np.nan
         self.frame['B'][::3] = np.nan
         self.frame['C'][::4] = np.nan
         self.frame['D'][::5] = np.nan
-
 
         ranks0 = self.frame.rank()
         ranks1 = self.frame.rank(1)
@@ -5113,6 +5127,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = Y.sum()
         exp = Y['g'].sum()
         self.assert_(isnull(Y['g']['c']))
+
+    def test_index_namedtuple(self):
+        from collections import namedtuple
+        IndexType = namedtuple("IndexType", ["a", "b"])
+        idx1 = IndexType("foo", "bar")
+        idx2 = IndexType("baz", "bof")
+        index = Index([idx1, idx2], name="composite_index")
+        df = DataFrame([(1, 2), (3, 4)], index=index, columns=["A", "B"])
+        self.assertEqual(df.ix[IndexType("foo", "bar")], (1, 2))
 
 if __name__ == '__main__':
     # unittest.main()

@@ -130,9 +130,6 @@ class _Unstacker(object):
         return DataFrame(values, index=index, columns=columns)
 
     def get_new_values(self):
-        return self._reshape_values(self.values)
-
-    def _reshape_values(self, values):
         values = self.values
         # place the values
         length, width = self.full_shape
@@ -148,7 +145,7 @@ class _Unstacker(object):
         new_values.fill(np.nan)
 
         # is there a simpler / faster way of doing this?
-        for i in xrange(self.values.shape[1]):
+        for i in xrange(values.shape[1]):
             chunk = new_values[:, i * width : (i + 1) * width]
             mask_chunk = new_mask[:, i * width : (i + 1) * width]
 
@@ -199,6 +196,8 @@ class _Unstacker(object):
                                    names=self.new_index_names)
 
         return new_index
+
+
 
 def pivot(self, index=None, columns=None, values=None):
     """

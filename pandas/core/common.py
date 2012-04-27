@@ -13,6 +13,13 @@ except ImportError:  # pragma: no cover
     from cStringIO import StringIO as BytesIO
 import itertools
 
+try:
+    next
+except NameError:  # pragma: no cover
+    # Python < 2.6
+    def next(x):
+        return x.next()
+
 from cStringIO import StringIO
 
 from numpy.lib.format import read_array, write_array
@@ -64,6 +71,9 @@ def isnull(obj):
 
             if isinstance(obj, Series):
                 result = Series(result, index=obj.index, copy=False)
+        elif obj.dtype == np.datetime64:
+            # this is the NaT pattern
+            result = np.array(obj).view('i8') == lib.NaT
         else:
             result = -np.isfinite(obj)
         return result
@@ -103,27 +113,39 @@ def _unpickle_array(bytes):
     arr = read_array(BytesIO(bytes))
     return arr
 
-def _take_1d_bool(arr, indexer, out, fill_value=np.nan):
+def _take_1d_datetime(arr, indexer, out, fill_value=np.nan):
+    view = arr.view(np.int64)
+    outview = out.view(np.int64)
+    lib.take_1d_bool(view, indexer, outview, fill_value=fill_value)
+
+def _take_2d_axis0_datetime(arr, indexer, out, fill_value=np.nan):
+    view = arr.view(np.int64)
+    outview = out.view(np.int64)
+    lib.take_1d_bool(view, indexer, outview, fill_value=fill_value)
+
+def _take_2d_axis1_datetime(arr, indexer, out, fill_value=np.nan):
     view = arr.view(np.uint8)
     outview = out.view(np.uint8)
     lib.take_1d_bool(view, indexer, outview, fill_value=fill_value)
 
-def _take_2d_axis0_bool(arr, indexer, out, fill_value=np.nan):
-    view = arr.view(np.uint8)
-    outview = out.view(np.uint8)
-    lib.take_2d_axis0_bool(view, indexer, outview, fill_value=fill_value)
+def _view_wrapper(f, wrap_dtype, na_override=None):
+    def wrapper(arr, indexer, out, fill_value=np.nan):
+        if na_override is not None and np.isnan(fill_value):
+            fill_value = na_override
+        view = arr.view(wrap_dtype)
+        outview = out.view(wrap_dtype)
+        f(view, indexer, outview, fill_value=fill_value)
+    return wrapper
 
-def _take_2d_axis1_bool(arr, indexer, out, fill_value=np.nan):
-    view = arr.view(np.uint8)
-    outview = out.view(np.uint8)
-    lib.take_2d_axis1_bool(view, indexer, outview, fill_value=fill_value)
 
 _take1d_dict = {
     'float64' : lib.take_1d_float64,
     'int32' : lib.take_1d_int32,
     'int64' : lib.take_1d_int64,
     'object' : lib.take_1d_object,
-    'bool' : _take_1d_bool
+    'bool' : _view_wrapper(lib.take_1d_bool, np.uint8),
+    'datetime64[us]' : _view_wrapper(lib.take_1d_int64, np.int64,
+                                     na_override=lib.NaT),
 }
 
 _take2d_axis0_dict = {
@@ -131,7 +153,9 @@ _take2d_axis0_dict = {
     'int32' : lib.take_2d_axis0_int32,
     'int64' : lib.take_2d_axis0_int64,
     'object' : lib.take_2d_axis0_object,
-    'bool' : _take_2d_axis0_bool
+    'bool' : _view_wrapper(lib.take_2d_axis0_bool, np.uint8),
+    'datetime64[us]' : _view_wrapper(lib.take_2d_axis0_int64, np.int64,
+                                     na_override=lib.NaT),
 }
 
 _take2d_axis1_dict = {
@@ -139,7 +163,9 @@ _take2d_axis1_dict = {
     'int32' : lib.take_2d_axis1_int32,
     'int64' : lib.take_2d_axis1_int64,
     'object' : lib.take_2d_axis1_object,
-    'bool' : _take_2d_axis1_bool
+    'bool' : _view_wrapper(lib.take_2d_axis1_bool, np.uint8),
+    'datetime64[us]' : _view_wrapper(lib.take_2d_axis1_int64, np.int64,
+                                     na_override=lib.NaT),
 }
 
 def _get_take2d_function(dtype_str, axis=0):
@@ -160,13 +186,14 @@ def take_1d(arr, indexer, out=None, fill_value=np.nan):
         # Cython methods expects 32-bit integers
         indexer = np.array(indexer, dtype=np.int32)
 
+    indexer = _ensure_int32(indexer)
     out_passed = out is not None
+    take_f = _take1d_dict.get(dtype_str)
 
     if dtype_str in ('int32', 'int64', 'bool'):
         try:
             if out is None:
                 out = np.empty(n, dtype=arr.dtype)
-            take_f = _take1d_dict[dtype_str]
             take_f(arr, indexer, out=out, fill_value=fill_value)
         except ValueError:
             mask = indexer == -1
@@ -181,10 +208,9 @@ def take_1d(arr, indexer, out=None, fill_value=np.nan):
                                     out.dtype)
                 out = _maybe_upcast(out)
                 np.putmask(out, mask, fill_value)
-    elif dtype_str in ('float64', 'object'):
+    elif dtype_str in ('float64', 'object', 'datetime64[us]'):
         if out is None:
             out = np.empty(n, dtype=arr.dtype)
-        take_f = _take1d_dict[dtype_str]
         take_f(arr, indexer, out=out, fill_value=fill_value)
     else:
         out = arr.take(indexer, out=out)
@@ -213,6 +239,8 @@ def take_2d(arr, indexer, out=None, mask=None, needs_masking=None, axis=0,
         # Cython methods expects 32-bit integers
         indexer = np.array(indexer, dtype=np.int32)
 
+    indexer = _ensure_int32(indexer)
+
     if dtype_str in ('int32', 'int64', 'bool'):
         if mask is None:
             mask = indexer == -1
@@ -231,7 +259,7 @@ def take_2d(arr, indexer, out=None, mask=None, needs_masking=None, axis=0,
             take_f = _get_take2d_function(dtype_str, axis=axis)
             take_f(arr, indexer, out=out, fill_value=fill_value)
             return out
-    elif dtype_str in ('float64', 'object'):
+    elif dtype_str in ('float64', 'object', 'datetime64[us]'):
         if out is None:
             out = np.empty(out_shape, dtype=arr.dtype)
         take_f = _get_take2d_function(dtype_str, axis=axis)
@@ -264,7 +292,7 @@ def take_fast(arr, indexer, mask, needs_masking, axis=0, out=None,
         return take_2d(arr, indexer, out=out, mask=mask,
                        needs_masking=needs_masking,
                        axis=axis, fill_value=fill_value)
-
+    indexer = _ensure_platform_int(indexer)
     result = arr.take(indexer, axis=axis, out=out)
     result = _maybe_mask(result, mask, needs_masking, axis=axis,
                          out_passed=out is not None, fill_value=fill_value)
@@ -294,6 +322,64 @@ def _need_upcast(values):
         return True
     return False
 
+def _interp_wrapper(f, wrap_dtype, na_override=None):
+    def wrapper(arr, mask, limit=None):
+        view = arr.view(wrap_dtype)
+        f(view, mask, limit=limit)
+    return wrapper
+
+_pad_1d_datetime = _interp_wrapper(lib.pad_inplace_int64, np.int64)
+_pad_2d_datetime = _interp_wrapper(lib.pad_2d_inplace_int64, np.int64)
+_backfill_1d_datetime = _interp_wrapper(lib.backfill_inplace_int64, np.int64)
+_backfill_2d_datetime = _interp_wrapper(lib.backfill_2d_inplace_int64, np.int64)
+
+def pad_1d(values, limit=None):
+    if is_float_dtype(values):
+        _method = lib.pad_inplace_float64
+    elif is_datetime64_dtype(values):
+        _method = _pad_1d_datetime
+    elif values.dtype == np.object_:
+        _method = lib.pad_inplace_object
+    else: # pragma: no cover
+        raise ValueError('Invalid dtype for padding')
+
+    _method(values, isnull(values).view(np.uint8), limit=limit)
+
+def backfill_1d(values, limit=None):
+    if is_float_dtype(values):
+        _method = lib.backfill_inplace_float64
+    elif is_datetime64_dtype(values):
+        _method = _backfill_1d_datetime
+    elif values.dtype == np.object_:
+        _method = lib.backfill_inplace_object
+    else: # pragma: no cover
+        raise ValueError('Invalid dtype for padding')
+
+    _method(values, isnull(values).view(np.uint8), limit=limit)
+
+def pad_2d(values, limit=None):
+    if is_float_dtype(values):
+        _method = lib.pad_2d_inplace_float64
+    elif is_datetime64_dtype(values):
+        _method = _pad_2d_datetime
+    elif values.dtype == np.object_:
+        _method = lib.pad_2d_inplace_object
+    else: # pragma: no cover
+        raise ValueError('Invalid dtype for padding')
+
+    _method(values, isnull(values).view(np.uint8), limit=limit)
+
+def backfill_2d(values, limit=None):
+    if is_float_dtype(values):
+        _method = lib.backfill_2d_inplace_float64
+    elif is_datetime64_dtype(values):
+        _method = _backfill_2d_datetime
+    elif values.dtype == np.object_:
+        _method = lib.backfill_2d_inplace_object
+    else: # pragma: no cover
+        raise ValueError('Invalid dtype for padding')
+
+    _method(values, isnull(values).view(np.uint8), limit=limit)
 
 
 def _consensus_name_attr(objs):
@@ -303,7 +389,7 @@ def _consensus_name_attr(objs):
             return None
     return name
 
-#-------------------------------------------------------------------------------
+#----------------------------------------------------------------------
 # Lots of little utilities
 
 def _infer_dtype(value):
@@ -380,6 +466,9 @@ def _try_sort(iterable):
     except Exception:
         return listed
 
+def _count_not_none(*args):
+    return sum(x is not None for x in args)
+
 #------------------------------------------------------------------------------
 # miscellaneous python tools
 
@@ -437,7 +526,7 @@ def iterpairs(seq):
     # input may not be sliceable
     seq_it = iter(seq)
     seq_it_next = iter(seq)
-    _ = seq_it_next.next()
+    _ = next(seq_it_next)
 
     return itertools.izip(seq_it, seq_it_next)
 
@@ -519,6 +608,20 @@ def _asarray_tuplesafe(values, dtype=None):
 
     return result
 
+def _index_labels_to_array(labels):
+    if isinstance(labels, (basestring, tuple)):
+        labels = [labels]
+
+    if not isinstance(labels, (list, np.ndarray)):
+        try:
+            labels = list(labels)
+        except TypeError: # non-iterable
+            labels = [labels]
+
+    labels = _asarray_tuplesafe(labels)
+
+    return labels
+
 def _stringify(col):
     # unicode workaround
     try:
@@ -551,7 +654,15 @@ def is_integer_dtype(arr_or_dtype):
         tipo = arr_or_dtype.type
     else:
         tipo = arr_or_dtype.dtype.type
-    return issubclass(tipo, np.integer)
+    return (issubclass(tipo, np.integer) and not
+            issubclass(tipo, np.datetime64))
+
+def is_datetime64_dtype(arr_or_dtype):
+    if isinstance(arr_or_dtype, np.dtype):
+        tipo = arr_or_dtype.type
+    else:
+        tipo = arr_or_dtype.dtype.type
+    return issubclass(tipo, np.datetime64)
 
 def is_float_dtype(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):
@@ -567,9 +678,12 @@ def _ensure_float64(arr):
     return arr
 
 def _ensure_int64(arr):
-    if arr.dtype != np.int64:
-        arr = arr.astype(np.int64)
-    return arr
+    try:
+        if arr.dtype != np.int64:
+            arr = arr.astype(np.int64)
+        return arr
+    except AttributeError:
+        return np.array(arr, dtype=np.int64)
 
 def _ensure_platform_int(labels):
     if labels.dtype != np.int_:  # pragma: no cover
@@ -602,6 +716,13 @@ def _clean_fill_method(method):
     if method == 'bfill':
         method = 'backfill'
     return method
+
+def _all_none(*args):
+    for arg in args:
+        if arg is not None:
+            return False
+    return True
+
 
 def save(obj, path):
     """

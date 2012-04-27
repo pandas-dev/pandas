@@ -12,8 +12,10 @@ from numpy import nan
 import numpy as np
 import numpy.ma as ma
 
-from pandas import Index, Series, TimeSeries, DataFrame, isnull, notnull
+from pandas import (Index, Series, TimeSeries, DataFrame, isnull, notnull,
+                    bdate_range)
 from pandas.core.index import MultiIndex
+from pandas.tseries.index import Timestamp
 
 import pandas.core.datetools as datetools
 import pandas.core.nanops as nanops
@@ -465,7 +467,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_getitem_setitem_boolean_corner(self):
         ts = self.ts
-        mask_shifted = ts.shift(1, offset=datetools.bday) > ts.median()
+        mask_shifted = ts.shift(1, freq=datetools.bday) > ts.median()
         self.assertRaises(Exception, ts.__getitem__, mask_shifted)
         self.assertRaises(Exception, ts.__setitem__, mask_shifted, 1)
 
@@ -598,7 +600,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_setslice(self):
         sl = self.ts[5:20]
         self.assertEqual(len(sl), len(sl.index))
-        self.assertEqual(len(sl.index.indexMap), len(sl.index))
+        self.assert_(sl.index.is_unique)
 
     def test_basic_getitem_setitem_corner(self):
         # invalid tuples, e.g. self.ts[:, None] vs. self.ts[:, 2]
@@ -978,7 +980,6 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(Series([nan, 0, 0, 0, nan]), r)
 
     def _check_stat_op(self, name, alternate, check_objects=False):
-        from pandas import DateRange
         import pandas.core.nanops as nanops
 
         def testit():
@@ -1002,9 +1003,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             s = Series([1, 2, 3, None, 5])
             f(s)
 
-            # check DateRange
+            # check date range
             if check_objects:
-                s = Series(DateRange('1/1/2000', periods=10))
+                s = Series(bdate_range('1/1/2000', periods=10))
                 res = f(s)
                 exp = alternate(s)
                 self.assertEqual(res, exp)
@@ -1046,7 +1047,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(not isinstance(result, Series))
 
     def test_quantile(self):
-        from scipy.stats import scoreatpercentile
+        from pandas.compat.scipy import scoreatpercentile
 
         q = self.ts.quantile(0.1)
         self.assertEqual(q, scoreatpercentile(self.ts.valid(), 10))
@@ -1075,12 +1076,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(result, expected)
 
     def test_append(self):
-        appendedSeries = self.series.append(self.ts)
+        appendedSeries = self.series.append(self.objSeries)
         for idx, value in appendedSeries.iteritems():
             if idx in self.series.index:
                 self.assertEqual(value, self.series[idx])
-            elif idx in self.ts.index:
-                self.assertEqual(value, self.ts[idx])
+            elif idx in self.objSeries.index:
+                self.assertEqual(value, self.objSeries[idx])
             else:
                 self.fail("orphaned index!")
 
@@ -1190,9 +1191,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(result, expected)
 
     def test_comparison_operators_with_nas(self):
-        from pandas import DateRange
-
-        s = Series(DateRange('1/1/2000', periods=10), dtype=object)
+        s = Series(bdate_range('1/1/2000', periods=10), dtype=object)
         s[::2] = np.nan
 
         # test that comparions work
@@ -1270,9 +1269,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(ValueError, a.__lt__, b)
 
     def test_between(self):
-        from pandas import DateRange
-
-        s = Series(DateRange('1/1/2000', periods=20), dtype=object)
+        s = Series(bdate_range('1/1/2000', periods=20), dtype=object)
         s[::2] = np.nan
 
         result = s[s.between(s[3], s[17])]
@@ -1701,7 +1698,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_almost_equal(expected, ordered.valid().values)
 
     def test_rank(self):
-        from scipy.stats import rankdata
+        from pandas.compat.scipy import rankdata
 
         self.ts[::2] = np.nan
         self.ts[:10][::3] = 4.
@@ -1805,16 +1802,16 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         tm.assert_dict_equal(unshifted.valid(), self.ts, compare_keys=False)
 
         offset = datetools.bday
-        shifted = self.ts.shift(1, offset=offset)
-        unshifted = shifted.shift(-1, offset=offset)
+        shifted = self.ts.shift(1, freq=offset)
+        unshifted = shifted.shift(-1, freq=offset)
 
         assert_series_equal(unshifted, self.ts)
 
-        unshifted = self.ts.shift(0, offset=offset)
+        unshifted = self.ts.shift(0, freq=offset)
         assert_series_equal(unshifted, self.ts)
 
-        shifted = self.ts.shift(1, timeRule='WEEKDAY')
-        unshifted = shifted.shift(-1, timeRule='WEEKDAY')
+        shifted = self.ts.shift(1, freq='B')
+        unshifted = shifted.shift(-1, freq='B')
 
         assert_series_equal(unshifted, self.ts)
 
@@ -2298,12 +2295,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                                          datetime(2009, 11, 30),
                                          datetime(2009, 12, 31)])
 
-        daily_ts = ts.asfreq('WEEKDAY')
-        monthly_ts = daily_ts.asfreq('EOM')
+        daily_ts = ts.asfreq('B')
+        monthly_ts = daily_ts.asfreq('BM')
         self.assert_(np.array_equal(monthly_ts, ts))
 
-        daily_ts = ts.asfreq('WEEKDAY', method='pad')
-        monthly_ts = daily_ts.asfreq('EOM')
+        daily_ts = ts.asfreq('B', method='pad')
+        monthly_ts = daily_ts.asfreq('BM')
         self.assert_(np.array_equal(monthly_ts, ts))
 
         daily_ts = ts.asfreq(datetools.bday)
@@ -2391,6 +2388,64 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_numpy_unique(self):
         # it works!
         result = np.unique(self.ts)
+
+class TestSeriesNonUnique(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    def test_basic_indexing(self):
+        s = Series(np.random.randn(5), index=['a', 'b', 'a', 'a', 'b'])
+
+        self.assertRaises(IndexError, s.__getitem__, 5)
+        self.assertRaises(IndexError, s.__setitem__, 5, 0)
+
+        self.assertRaises(KeyError, s.__getitem__, 'c')
+        self.assertRaises(KeyError, s.__setitem__, 'c', 0)
+
+        s = s.sort_index()
+
+        self.assertRaises(IndexError, s.__getitem__, 5)
+        self.assertRaises(IndexError, s.__setitem__, 5, 0)
+
+        self.assertRaises(KeyError, s.__getitem__, 'c')
+        self.assertRaises(KeyError, s.__setitem__, 'c', 0)
+
+    def test_int_indexing(self):
+        s = Series(np.random.randn(6), index=[0, 0, 1, 1, 2, 2])
+
+        self.assertRaises(KeyError, s.__getitem__, 5)
+        self.assertRaises(KeyError, s.__setitem__, 5, 0)
+
+        self.assertRaises(KeyError, s.__getitem__, 'c')
+        self.assertRaises(KeyError, s.__setitem__, 'c', 0)
+
+        # not monotonic
+        s = Series(np.random.randn(6), index=[2, 2, 0, 0, 1, 1])
+
+        self.assertRaises(KeyError, s.__getitem__, 5)
+        self.assertRaises(KeyError, s.__setitem__, 5, 0)
+
+        self.assertRaises(KeyError, s.__getitem__, 'c')
+        self.assertRaises(KeyError, s.__setitem__, 'c', 0)
+
+    def test_datetime_indexing(self):
+        from pandas import date_range
+
+        index = date_range('1/1/2000', '1/7/2000')
+        index = index.repeat(3)
+
+        s = Series(len(index), index=index)
+        stamp = Timestamp('1/8/2000')
+
+        self.assertRaises(KeyError, s.__getitem__, stamp)
+        self.assertRaises(KeyError, s.__setitem__, stamp, 0)
+
+        # not monotonic
+        s = s[::-1]
+
+        self.assertRaises(KeyError, s.__getitem__, stamp)
+        self.assertRaises(KeyError, s.__setitem__, stamp, 0)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

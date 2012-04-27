@@ -102,4 +102,3 @@ cdef extern from "khash.h":
     inline void kh_del_int32(kh_int32_t*, khint_t)
 
     bint kh_exist_int32(kh_int32_t*, khiter_t)
-

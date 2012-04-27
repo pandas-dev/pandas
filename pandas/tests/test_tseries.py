@@ -1,10 +1,12 @@
 import unittest
 
+from numpy import nan
 import numpy as np
-from pandas import Index
+from pandas import Index, isnull
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as common
 import pandas._tseries as lib
+from datetime import datetime
 
 class TestTseriesUtil(unittest.TestCase):
 
@@ -23,27 +25,11 @@ class TestTseriesUtil(unittest.TestCase):
     def test_groupby_withnull(self):
         pass
 
-    def test_merge_indexer(self):
-        old = Index([1, 5, 10])
-        new = Index(range(12))
-
-        filler = lib.merge_indexer_int64(new, old.indexMap)
-
-        expect_filler = [-1, 0, -1, -1, -1, 1, -1, -1, -1, -1, 2, -1]
-        self.assert_(np.array_equal(filler, expect_filler))
-
-        # corner case
-        old = Index([1, 4])
-        new = Index(range(5, 10))
-        filler = lib.merge_indexer_int64(new, old.indexMap)
-        expect_filler = [-1, -1, -1, -1, -1]
-        self.assert_(np.array_equal(filler, expect_filler))
-
     def test_backfill(self):
         old = Index([1, 5, 10])
         new = Index(range(12))
 
-        filler = lib.backfill_int64(old, new, old.indexMap, new.indexMap)
+        filler = lib.backfill_int64(old, new)
 
         expect_filler = [0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, -1]
         self.assert_(np.array_equal(filler, expect_filler))
@@ -51,7 +37,7 @@ class TestTseriesUtil(unittest.TestCase):
         # corner case
         old = Index([1, 4])
         new = Index(range(5, 10))
-        filler = lib.backfill_int64(old, new, old.indexMap, new.indexMap)
+        filler = lib.backfill_int64(old, new)
 
         expect_filler = [-1, -1, -1, -1, -1]
         self.assert_(np.array_equal(filler, expect_filler))
@@ -60,7 +46,7 @@ class TestTseriesUtil(unittest.TestCase):
         old = Index([1, 5, 10])
         new = Index(range(12))
 
-        filler = lib.pad_int64(old, new, old.indexMap, new.indexMap)
+        filler = lib.pad_int64(old, new)
 
         expect_filler = [-1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2]
         self.assert_(np.array_equal(filler, expect_filler))
@@ -68,7 +54,7 @@ class TestTseriesUtil(unittest.TestCase):
         # corner case
         old = Index([5, 10])
         new = Index(range(5))
-        filler = lib.pad_int64(old, new, old.indexMap, new.indexMap)
+        filler = lib.pad_int64(old, new)
         expect_filler = [-1, -1, -1, -1, -1]
         self.assert_(np.array_equal(filler, expect_filler))
 
@@ -178,7 +164,7 @@ def test_groupsort_indexer():
 
 
 def test_duplicated_with_nas():
-    keys = [0, 1, np.nan, 0, 2, np.nan]
+    keys = [0, 1, nan, 0, 2, nan]
 
     result = lib.duplicated(keys)
     expected = [False, False, False, True, False, True]
@@ -188,7 +174,7 @@ def test_duplicated_with_nas():
     expected = [True, False, True, False, False, False]
     assert(np.array_equal(result, expected))
 
-    keys = [(0, 0), (0, np.nan), (np.nan, 0), (np.nan, np.nan)] * 2
+    keys = [(0, 0), (0, nan), (nan, 0), (nan, nan)] * 2
 
     result = lib.duplicated(keys)
     falses = [False] * 4
@@ -201,7 +187,7 @@ def test_duplicated_with_nas():
     assert(np.array_equal(result, expected))
 
 def test_convert_objects():
-    arr = np.array(['a', 'b', np.nan, np.nan, 'd', 'e', 'f'], dtype='O')
+    arr = np.array(['a', 'b', nan, nan, 'd', 'e', 'f'], dtype='O')
     result = lib.maybe_convert_objects(arr)
     assert(result.dtype == np.object_)
 
@@ -216,15 +202,15 @@ def test_convert_objects_ints():
         assert(issubclass(result.dtype.type, np.integer))
 
 def test_rank():
-    from scipy.stats import rankdata
-    from numpy import nan
+    from pandas.compat.scipy import rankdata
+
     def _check(arr):
         mask = -np.isfinite(arr)
         arr = arr.copy()
         result = lib.rank_1d_float64(arr)
         arr[mask] = np.inf
         exp = rankdata(arr)
-        exp[mask] = np.nan
+        exp[mask] = nan
         assert_almost_equal(result, exp)
 
     _check(np.array([nan, nan, 5., 5., 5., nan, 1, 2, 3, nan]))
@@ -241,23 +227,19 @@ def test_pad_backfill_object_segfault():
     old = np.array([], dtype='O')
     new = np.array([datetime(2010, 12, 31)], dtype='O')
 
-    result = lib.pad_object(old, new, lib.map_indices_object(old),
-                            lib.map_indices_object(new))
+    result = lib.pad_object(old, new)
     expected = np.array([-1], dtype='i4')
     assert(np.array_equal(result, expected))
 
-    result = lib.pad_object(new, old, lib.map_indices_object(new),
-                            lib.map_indices_object(old))
+    result = lib.pad_object(new, old)
     expected = np.array([], dtype='i4')
     assert(np.array_equal(result, expected))
 
-    result = lib.backfill_object(old, new, lib.map_indices_object(old),
-                                 lib.map_indices_object(new))
+    result = lib.backfill_object(old, new)
     expected = np.array([-1], dtype='i4')
     assert(np.array_equal(result, expected))
 
-    result = lib.backfill_object(new, old, lib.map_indices_object(new),
-                            lib.map_indices_object(old))
+    result = lib.backfill_object(new, old)
     expected = np.array([], dtype='i4')
     assert(np.array_equal(result, expected))
 
@@ -281,6 +263,135 @@ def test_series_grouper():
 
     exp_counts = np.array([3, 4], dtype=np.int32)
     assert_almost_equal(counts, exp_counts)
+
+def test_series_bin_grouper():
+    from pandas import Series
+    obj = Series(np.random.randn(10))
+    dummy = obj[:0]
+
+    bins = np.array([3, 6])
+
+    grouper = lib.SeriesBinGrouper(obj, np.mean, bins, dummy)
+    result, counts = grouper.get_result()
+
+    expected = np.array([obj[:3].mean(), obj[3:6].mean(), obj[6:].mean()])
+    assert_almost_equal(result, expected)
+
+    exp_counts = np.array([3, 3, 4], dtype=np.int32)
+    assert_almost_equal(counts, exp_counts)
+
+def test_generate_bins():
+    from pandas.core.groupby import generate_bins_generic
+    values = np.array([1,2,3,4,5,6], dtype=np.int64)
+    binner = np.array([0,3,6,9], dtype=np.int64)
+
+    for func in [lib.generate_bins_dt64, generate_bins_generic]:
+        bins = func(values, binner, closed='left')
+        assert((bins == np.array([2, 5, 6])).all())
+
+        bins = func(values, binner, closed='left')
+        assert((bins == np.array([2, 5, 6])).all())
+
+        bins = func(values, binner, closed='right')
+        assert((bins == np.array([3, 6, 6])).all())
+
+        bins = func(values, binner, closed='right')
+        assert((bins == np.array([3, 6, 6])).all())
+
+class TestBinGroupers(unittest.TestCase):
+
+    def setUp(self):
+        self.obj = np.random.randn(10, 1)
+        self.labels = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 2], dtype=np.int32)
+        self.bins = np.array([3, 6], dtype=np.int32)
+
+    def test_group_bin_functions(self):
+        funcs = ['add', 'mean', 'prod', 'min', 'max', 'var']
+
+        np_funcs = {
+            'add': np.sum,
+            'mean': np.mean,
+            'prod': np.prod,
+            'min': np.min,
+            'max': np.max,
+            'var': lambda x: x.var(ddof=1) if len(x) >=2 else np.nan
+        }
+
+        for fname in funcs:
+            args = [getattr(lib, 'group_%s' % fname),
+                    getattr(lib, 'group_%s_bin' % fname),
+                    np_funcs[fname]]
+            self._check_versions(*args)
+
+    def _check_versions(self, irr_func, bin_func, np_func):
+        obj = self.obj
+
+        cts = np.zeros(3, dtype=np.int32)
+        exp = np.zeros((3, 1), np.float64)
+        irr_func(exp, cts, obj, self.labels)
+
+        # bin-based version
+        bins = np.array([3, 6], dtype=np.int32)
+        out  = np.zeros((3, 1), np.float64)
+        counts = np.zeros(len(out), dtype=np.int32)
+        bin_func(out, counts, obj, bins)
+
+        assert_almost_equal(out, exp)
+
+        # duplicate bins
+        bins = np.array([3, 9, 10], dtype=np.int32)
+        out  = np.zeros((4, 1), np.float64)
+        counts = np.zeros(len(out), dtype=np.int32)
+        bin_func(out, counts, obj, bins)
+        exp = np.array([np_func(obj[:3]), np_func(obj[3:9]),
+                        np_func(obj[9:]), np.nan],
+                       dtype=np.float64)
+        assert_almost_equal(out.squeeze(), exp)
+
+        bins = np.array([3, 6, 10, 10], dtype=np.int32)
+        out  = np.zeros((5, 1), np.float64)
+        counts = np.zeros(len(out), dtype=np.int32)
+        bin_func(out, counts, obj, bins)
+        exp = np.array([np_func(obj[:3]), np_func(obj[3:6]),
+                        np_func(obj[6:10]), np.nan, np.nan],
+                       dtype=np.float64)
+        assert_almost_equal(out.squeeze(), exp)
+
+
+def test_group_ohlc():
+    obj = np.random.randn(20)
+
+    bins = np.array([6, 12], dtype=np.int32)
+    out  = np.zeros((3, 4), np.float64)
+    counts = np.zeros(len(out), dtype=np.int32)
+
+    lib.group_ohlc(out, counts, obj[:, None], bins)
+
+    def _ohlc(group):
+        if isnull(group).all():
+            return np.repeat(nan, 4)
+        return [group[0], group.max(), group.min(), group[-1]]
+
+    expected = np.array([_ohlc(obj[:6]), _ohlc(obj[6:12]),
+                         _ohlc(obj[12:])])
+
+    assert_almost_equal(out, expected)
+    assert_almost_equal(counts, [6, 6, 8])
+
+    obj[:6] = nan
+    lib.group_ohlc(out, counts, obj[:, None], bins)
+    expected[0] = nan
+    assert_almost_equal(out, expected)
+
+def test_try_parse_dates():
+    from dateutil.parser import parse
+
+    arr = np.array(['5/1/2000', '6/1/2000', '7/1/2000'], dtype=object)
+
+    result = lib.try_parse_dates(arr, dayfirst=True)
+    expected = [parse(d, dayfirst=True) for d in arr]
+    assert(np.array_equal(result, expected))
+
 
 class TestTypeInference(unittest.TestCase):
 
@@ -350,7 +461,7 @@ class TestTypeInference(unittest.TestCase):
         import datetime
         dates = [datetime.datetime(2012, 1, x) for x in range(1, 20)]
         index = Index(dates)
-        self.assert_(index.inferred_type == 'datetime')
+        self.assert_(index.inferred_type == 'datetime64')
 
     def test_date(self):
         import datetime

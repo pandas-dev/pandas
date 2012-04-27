@@ -14,16 +14,16 @@ import numpy as np
 
 from pandas.core.common import isnull
 import pandas.core.index as index
-import pandas.core.daterange as daterange
 import pandas.core.series as series
 import pandas.core.frame as frame
 import pandas.core.panel as panel
 
-# to_reload = ['index', 'daterange', 'series', 'frame', 'matrix', 'panel']
-# for mod in to_reload:
-#     reload(locals()[mod])
+from pandas import bdate_range
+from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.period import PeriodIndex
+from pandas.tseries.interval import IntervalIndex
 
-DateRange = daterange.DateRange
+
 Index = index.Index
 Series = series.Series
 DataFrame = frame.DataFrame
@@ -163,10 +163,6 @@ def makeFloatIndex(k):
     values = sorted(np.random.random_sample(k)) - np.random.random_sample(1)
     return Index(values * (10 ** np.random.randint(0, 9)))
 
-def makeDateIndex(k):
-    dates = list(DateRange(datetime(2000, 1, 1), periods=k))
-    return Index(dates)
-
 def makeFloatSeries():
     index = makeStringIndex(N)
     return Series(randn(N), index=index)
@@ -177,22 +173,20 @@ def makeStringSeries():
 
 def makeObjectSeries():
     dateIndex = makeDateIndex(N)
+    dateIndex = Index(dateIndex, dtype=object)
     index = makeStringIndex(N)
     return Series(dateIndex, index=index)
 
-def makeTimeSeries():
-    return Series(randn(N), index=makeDateIndex(N))
+def getSeriesData():
+    index = makeStringIndex(N)
+    return dict((c, Series(randn(N), index=index)) for c in getCols(K))
+
+def makeDataFrame():
+    data = getSeriesData()
+    return DataFrame(data)
 
 def getArangeMat():
     return np.arange(N * K).reshape((N, K))
-
-def getSeriesData():
-    index = makeStringIndex(N)
-
-    return dict((c, Series(randn(N), index=index)) for c in getCols(K))
-
-def getTimeSeriesData():
-    return dict((c, makeTimeSeries()) for c in getCols(K))
 
 def getMixedTypeDict():
     index = Index(['a', 'b', 'c', 'd', 'e'])
@@ -201,14 +195,29 @@ def getMixedTypeDict():
         'A' : [0., 1., 2., 3., 4.],
         'B' : [0., 1., 0., 1., 0.],
         'C' : ['foo1', 'foo2', 'foo3', 'foo4', 'foo5'],
-        'D' : DateRange('1/1/2009', periods=5)
+        'D' : bdate_range('1/1/2009', periods=5)
     }
 
     return index, data
 
-def makeDataFrame():
-    data = getSeriesData()
-    return DataFrame(data)
+def makeDateIndex(k):
+    dt = datetime(2000,1,1)
+    dr = bdate_range(dt, periods=k)
+    return DatetimeIndex(dr)
+
+def makePeriodIndex(k):
+    dt = datetime(2000,1,1)
+    dr = PeriodIndex(start=dt, periods=k, freq='B')
+    return dr
+
+def makeTimeSeries():
+    return Series(randn(N), index=makeDateIndex(N))
+
+def makePeriodSeries():
+    return Series(randn(N), index=makePeriodIndex(N))
+
+def getTimeSeriesData():
+    return dict((c, makeTimeSeries()) for c in getCols(K))
 
 def makeTimeDataFrame():
     data = getTimeSeriesData()
@@ -294,3 +303,40 @@ def skip_if_no_package(*args, **kwargs):
     package_check(exc_failed_import=SkipTest,
                   exc_failed_check=SkipTest,
                   *args, **kwargs)
+
+#
+# Additional tags decorators for nose
+#
+def network(t):
+    """
+    Label a test as requiring network connection.
+
+    In some cases it is not possible to assume network presence (e.g. Debian
+    build hosts).
+
+    Parameters
+    ----------
+    t : callable
+        The test requiring network connectivity.
+
+    Returns
+    -------
+    t : callable
+        The decorated test `t`.
+
+    Examples
+    --------
+    A test can be decorated as requiring network like this::
+
+      from pandas.util.testing import *
+
+      @network
+      def test_network(self):
+          print 'Fetch the stars from http://'
+
+    And use ``nosetests -a '!network'`` to exclude running tests requiring
+    network connectivity.
+    """
+
+    t.network = True
+    return t

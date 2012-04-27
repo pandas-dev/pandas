@@ -104,6 +104,107 @@ cdef class Reducer:
             raise ValueError('function does not reduce')
         return result
 
+cdef class SeriesBinGrouper:
+    '''
+    Performs grouping operation according to bin edges, rather than labels
+    '''
+    cdef:
+        Py_ssize_t nresults, ngroups
+        bint passed_dummy
+
+    cdef public:
+        object arr, index, dummy, f, bins
+
+    def __init__(self, object series, object f, object bins, object dummy):
+        n = len(series)
+
+        self.bins = bins
+        self.f = f
+        if not series.flags.c_contiguous:
+            series = series.copy('C')
+        self.arr = series
+        self.index = series.index
+
+        self.dummy = self._check_dummy(dummy)
+        self.passed_dummy = dummy is not None
+        self.ngroups = len(bins) + 1
+
+    def _check_dummy(self, dummy=None):
+        if dummy is None:
+            dummy = np.empty(0, dtype=self.arr.dtype)
+        else:
+            if dummy.dtype != self.arr.dtype:
+                raise ValueError('Dummy array must be same dtype')
+            if not dummy.flags.contiguous:
+                dummy = dummy.copy()
+
+        return dummy
+
+    def get_result(self):
+        cdef:
+            ndarray arr, result
+            ndarray[int32_t] counts
+            Py_ssize_t i, n, group_size
+            object res, chunk
+            bint initialized = 0
+            Slider vslider, islider
+
+        counts = np.zeros(self.ngroups, dtype='i4')
+
+        if self.ngroups > 0:
+            counts[0] = self.bins[0]
+            for i in range(1, self.ngroups):
+                if i == self.ngroups - 1:
+                    counts[i] = len(self.arr) - self.bins[i-1]
+                else:
+                    counts[i] = self.bins[i] - self.bins[i-1]
+
+        chunk = self.dummy
+        group_size = 0
+        n = len(self.arr)
+
+        vslider = Slider(self.arr, self.dummy)
+        islider = Slider(self.index, self.dummy.index)
+
+        try:
+            for i in range(self.ngroups):
+                group_size = counts[i]
+
+                islider.set_length(group_size)
+                vslider.set_length(group_size)
+
+                res = self.f(chunk)
+
+                if not initialized:
+                    result = self._get_result_array(res)
+                    initialized = 1
+
+                util.assign_value_1d(result, i, res)
+
+                islider.advance(group_size)
+                vslider.advance(group_size)
+        except:
+            raise
+        finally:
+            # so we don't free the wrong memory
+            islider.cleanup()
+            vslider.cleanup()
+
+        if result.dtype == np.object_:
+            result = maybe_convert_objects(result)
+
+        return result, counts
+
+    def _get_result_array(self, object res):
+        try:
+            assert(not isinstance(res, np.ndarray))
+            assert(not (isinstance(res, list) and len(res) == len(self.dummy)))
+
+            result = np.empty(self.ngroups, dtype='O')
+        except Exception:
+            raise ValueError('function does not reduce')
+        return result
+
 cdef class SeriesGrouper:
     '''
     Performs generic grouping operation while avoiding ndarray construction
@@ -234,13 +335,13 @@ cdef class Slider:
 
         self.buf.data = self.values.data
 
-    cdef inline advance(self, Py_ssize_t k):
+    cpdef advance(self, Py_ssize_t k):
         self.buf.data = <char*> self.buf.data + self.stride * k
 
-    cdef inline set_length(self, Py_ssize_t length):
+    cpdef set_length(self, Py_ssize_t length):
         self.buf.shape[0] = length
 
-    cdef inline cleanup(self):
+    cpdef cleanup(self):
         self.buf.shape[0] = self.orig_len
         self.buf.data = self.orig_data
 

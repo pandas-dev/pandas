@@ -94,8 +94,6 @@ class GroupBy(object):
             obj._consolidate_inplace()
 
         self.obj = obj
-
-
         self.axis = axis
         self.level = level
 
@@ -123,6 +121,10 @@ class GroupBy(object):
     @property
     def groups(self):
         return self.grouper.groups
+
+    @property
+    def ngroups(self):
+        return self.grouper.ngroups
 
     @property
     def indices(self):
@@ -306,21 +308,65 @@ class GroupBy(object):
         except Exception:
             return self.aggregate(lambda x: np.sum(x, axis=self.axis))
 
+    def prod(self):
+        """
+        Compute product of values, excluding missing values
+
+        For multiple groupings, the result index will be a MultiIndex
+        """
+        try:
+            return self._cython_agg_general('prod')
+        except Exception:
+            return self.aggregate(lambda x: np.prod(x, axis=self.axis))
+
+    def min(self):
+        """
+        Compute minimum of values, excluding missing values
+
+        For multiple groupings, the result index will be a MultiIndex
+        """
+        try:
+            return self._cython_agg_general('min')
+        except Exception:
+            return self.aggregate(lambda x: np.min(x, axis=self.axis))
+
+    def max(self):
+        """
+        Compute maximum of values, excluding missing values
+
+        For multiple groupings, the result index will be a MultiIndex
+        """
+        try:
+            return self._cython_agg_general('max')
+        except Exception:
+            return self.aggregate(lambda x: np.max(x, axis=self.axis))
+
+    def ohlc(self):
+        """
+        Compute sum of values, excluding missing values
+
+        For multiple groupings, the result index will be a MultiIndex
+        """
+        return self._cython_agg_general('ohlc')
+
+    def last(self):
+        def picker(arr):
+            return arr[-1] if arr is not None and len(arr) else np.nan
+        return self.agg(picker)
+
     def _cython_agg_general(self, how):
         output = {}
         for name, obj in self._iterate_slices():
             if not issubclass(obj.dtype.type, (np.number, np.bool_)):
                 continue
 
-            obj = com._ensure_float64(obj)
-            result, counts = self.grouper.aggregate(obj, how)
-            mask = counts > 0
-            output[name] = result[mask]
+            result, names = self.grouper.aggregate(obj, how)
+            output[name] = result
 
         if len(output) == 0:
             raise GroupByError('No numeric types to aggregate')
 
-        return self._wrap_aggregated_output(output)
+        return self._wrap_aggregated_output(output, names)
 
     def _python_agg_general(self, func, *args, **kwargs):
         func = _intercept_function(func)
@@ -447,6 +493,10 @@ class Grouper(object):
     def __iter__(self):
         return iter(self.indices)
 
+    @property
+    def nkeys(self):
+        return len(self.groupings)
+
     def get_iterator(self, data, axis=0):
         """
         Groupby iterator
@@ -467,7 +517,6 @@ class Grouper(object):
             for name in groups:
                 inds = indices[name]
                 group = data.take(inds, axis=axis)
-
                 yield name, group
         else:
             # provide "flattened" iterator for multi-group setting
@@ -555,6 +604,10 @@ class Grouper(object):
         return _int64_overflow_possible(self.shape)
 
     @cache_readonly
+    def ngroups(self):
+        return len(self.result_index)
+
+    @cache_readonly
     def result_index(self):
         recons = self.get_group_levels()
         return MultiIndex.from_arrays(recons, names=self.names)
@@ -578,6 +631,9 @@ class Grouper(object):
 
     _cython_functions = {
         'add' : lib.group_add,
+        'prod' : lib.group_prod,
+        'min' : lib.group_min,
+        'max' : lib.group_max,
         'mean' : lib.group_mean,
         'var' : lib.group_var,
         'std' : lib.group_var
@@ -587,15 +643,22 @@ class Grouper(object):
         'std' : np.sqrt
     }
 
+    _name_functions = {}
+
+    _filter_empty_groups = True
+
     def aggregate(self, values, how):
+        values = com._ensure_float64(values)
+
         comp_ids, _, ngroups = self.group_info
         agg_func = self._cython_functions[how]
-        if values.ndim == 1:
-            squeeze = True
+
+        vdim = values.ndim
+
+        if vdim == 1:
             values = values[:, None]
             out_shape = (ngroups, 1)
         else:
-            squeeze = False
             out_shape = (ngroups, values.shape[1])
 
         trans_func = self._cython_transforms.get(how, lambda x: x)
@@ -607,10 +670,19 @@ class Grouper(object):
         agg_func(result, counts, values, comp_ids)
         result = trans_func(result)
 
-        if squeeze:
-            result = result.squeeze()
+        if self._filter_empty_groups:
+            result = lib.row_bool_subset(result, counts > 0)
 
-        return result, counts
+        if vdim == 1:
+            result = result[:, 0]
+
+        if how in self._name_functions:
+            # TODO
+            names = self._name_functions[how]()
+        else:
+            names = None
+
+        return result, names
 
     def agg_series(self, obj, func):
         try:
@@ -662,6 +734,160 @@ class Grouper(object):
         return result, counts
 
 
+def generate_bins_generic(values, binner, closed):
+    """
+    Generate bin edge offsets and bin labels for one array using another array
+    which has bin edge values. Both arrays must be sorted.
+
+    Parameters
+    ----------
+    values : array of values
+    binner : a comparable array of values representing bins into which to bin
+        the first array. Note, 'values' end-points must fall within 'binner'
+        end-points.
+    closed : which end of bin is closed; left (default), right
+
+    Returns
+    -------
+    bins : array of offsets (into 'values' argument) of bins.
+        Zero and last edge are excluded in result, so for instance the first
+        bin is values[0:bin[0]] and the last is values[bin[-1]:]
+    """
+    lenidx = len(values)
+    lenbin = len(binner)
+
+    if lenidx <= 0 or lenbin <= 0:
+        raise ValueError("Invalid length for values or for binner")
+
+    # check binner fits data
+    if values[0] < binner[0]:
+        raise ValueError("Values falls before first bin")
+
+    if values[lenidx-1] > binner[lenbin-1]:
+        raise ValueError("Values falls after last bin")
+
+    bins   = np.empty(lenbin - 1, dtype=np.int32)
+
+    j  = 0 # index into values
+    bc = 0 # bin count
+
+    # linear scan, presume nothing about values/binner except that it
+    # fits ok
+    for i in range(0, lenbin-1):
+        r_bin = binner[i+1]
+
+        # count values in current bin, advance to next bin
+        while j < lenidx and (values[j] < r_bin or
+                              (closed == 'right' and values[j] == r_bin)):
+            j += 1
+
+        bins[bc] = j
+        bc += 1
+
+    return bins
+
+
+
+class BinGrouper(Grouper):
+
+    def __init__(self, bins, binlabels):
+        self.bins = bins
+        self.binlabels = binlabels
+
+    @property
+    def nkeys(self):
+        return 1
+
+    def get_iterator(self, data, axis=0):
+        """
+        Groupby iterator
+
+        Returns
+        -------
+        Generator yielding sequence of (name, subsetted object)
+        for each group
+        """
+        if axis == 1:
+            raise NotImplementedError
+
+        start = 0
+        for edge, label in zip(self.bins, self.binlabels):
+            yield label, data[start:edge]
+            start = edge
+
+        if edge < len(data):
+            yield self.binlabels[-1], data[edge:]
+
+    @cache_readonly
+    def ngroups(self):
+        return len(self.binlabels)
+
+    #----------------------------------------------------------------------
+    # cython aggregation
+
+    _cython_functions = {
+        'add' : lib.group_add_bin,
+        'prod' : lib.group_prod_bin,
+        'mean' : lib.group_mean_bin,
+        'min' : lib.group_min_bin,
+        'max' : lib.group_max_bin,
+        'var' : lib.group_var_bin,
+        'std' : lib.group_var_bin,
+        'ohlc' : lib.group_ohlc
+    }
+
+    _cython_arity = {
+        'ohlc' : 4, # OHLC
+    }
+
+    _name_functions = {
+        'ohlc' : lambda *args: ['open', 'high', 'low', 'close']
+    }
+
+    _filter_empty_groups = True
+
+    def aggregate(self, values, how):
+        values = com._ensure_float64(values)
+
+        agg_func = self._cython_functions[how]
+        arity = self._cython_arity.get(how, 1)
+
+        vdim = values.ndim
+        if vdim == 1:
+            values = values[:, None]
+            out_shape = (self.ngroups, arity)
+        else:
+            out_shape = (self.ngroups, values.shape[1] * arity)
+
+        trans_func = self._cython_transforms.get(how, lambda x: x)
+
+        # will be filled in Cython function
+        result = np.empty(out_shape, dtype=np.float64)
+        counts = np.zeros(self.ngroups, dtype=np.int32)
+
+        agg_func(result, counts, values, self.bins)
+        result = trans_func(result)
+
+        if self._filter_empty_groups:
+            result = lib.row_bool_subset(result, counts > 0)
+
+        if vdim == 1 and arity == 1:
+            result = result[:, 0]
+
+        if how in self._name_functions:
+            # TODO
+            names = self._name_functions[how]()
+        else:
+            names = None
+
+        return result, names
+
+    def agg_series(self, obj, func):
+        dummy = obj[:0]
+        grouper = lib.SeriesBinGrouper(obj, func, self.bins, dummy)
+        return grouper.get_result()
+
+
 class Grouping(object):
     """
     Holds the grouping information for a single key
@@ -685,6 +911,7 @@ class Grouping(object):
     """
     def __init__(self, index, grouper=None, name=None, level=None,
                  sort=True):
+
         self.name = name
         self.level = level
         self.grouper = _convert_grouper(index, grouper)
@@ -697,6 +924,10 @@ class Grouping(object):
 
         # pre-computed
         self._was_factor = False
+
+        # did we pass a custom grouper object? Do nothing
+        if isinstance(grouper, Grouper):
+            return
 
         if level is not None:
             if not isinstance(level, int):
@@ -788,8 +1019,17 @@ class Grouping(object):
 def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
     group_axis = obj._get_axis(axis)
 
-    if level is not None and not isinstance(group_axis, MultiIndex):
-        raise ValueError('can only specify level with multi-level index')
+    if level is not None:
+        if not isinstance(group_axis, MultiIndex):
+            if level > 0:
+                raise ValueError('level > 0 only valid with MultiIndex')
+            else:
+                level = None
+                key = group_axis
+
+    if isinstance(key, Grouper):
+        key.set_axis(group_axis)
+        return key, []
 
     if not isinstance(key, (tuple, list)):
         keys = [key]
@@ -919,7 +1159,7 @@ class SeriesGroupBy(GroupBy):
             if cyfunc and not args and not kwargs:
                 return getattr(self, cyfunc)()
 
-            if len(self.grouper.groupings) > 1:
+            if self.grouper.nkeys > 1:
                 return self._python_agg_general(func_or_funcs, *args, **kwargs)
 
             try:
@@ -946,28 +1186,25 @@ class SeriesGroupBy(GroupBy):
 
         return DataFrame(results)
 
-    def _wrap_aggregated_output(self, output):
+    def _wrap_aggregated_output(self, output, names=None):
         # sort of a kludge
         output = output[self.name]
         index = self.grouper.result_index
-        return Series(output, index=index, name=self.name)
+
+        if names is not None:
+            return DataFrame(output, index=index, columns=names)
+        else:
+            return Series(output, index=index, name=self.name)
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         if len(keys) == 0:
             return Series([])
 
-        key_names = self.grouper.names
-
         def _get_index():
-            if len(self.grouper.groupings) > 1:
-                index = MultiIndex.from_tuples(keys, names=key_names)
+            if self.grouper.nkeys > 1:
+                index = MultiIndex.from_tuples(keys, names=self.grouper.names)
             else:
-                ping = self.grouper.groupings[0]
-                if len(keys) == ping.ngroups:
-                    index = ping.group_index
-                    index.name = key_names[0]
-                else:
-                    index = Index(keys, name=key_names[0])
+                index = Index(keys, name=self.grouper.names[0])
             return index
 
         if isinstance(values[0], Series):
@@ -983,10 +1220,9 @@ class SeriesGroupBy(GroupBy):
     def _aggregate_named(self, func, *args, **kwargs):
         result = {}
 
-        for name in self.grouper:
-            grp = self.get_group(name)
-            grp.name = name
-            output = func(grp, *args, **kwargs)
+        for name, group in self:
+            group.name = name
+            output = func(group, *args, **kwargs)
             if isinstance(output, np.ndarray):
                 raise Exception('Must produce aggregated value')
             result[name] = output
@@ -1072,11 +1308,7 @@ class DataFrameGroupBy(GroupBy):
                 continue
 
             values = com._ensure_float64(values)
-            result, counts = self.grouper.aggregate(values, how)
-
-            mask = counts > 0
-            if len(mask) > 0:
-                result = result[mask]
+            result, names = self.grouper.aggregate(values, how)
             newb = make_block(result.T, block.items, block.ref_items)
             new_blocks.append(newb)
 
@@ -1173,7 +1405,7 @@ class DataFrameGroupBy(GroupBy):
             if cyfunc and not args and not kwargs:
                 return getattr(self, cyfunc)()
 
-            if len(self.grouper.groupings) > 1:
+            if self.grouper.nkeys > 1:
                 return self._python_agg_general(arg, *args, **kwargs)
             else:
                 result = self._aggregate_generic(arg, *args, **kwargs)
@@ -1217,7 +1449,7 @@ class DataFrameGroupBy(GroupBy):
         return result
 
     def _aggregate_generic(self, func, *args, **kwargs):
-        assert(len(self.grouper.groupings) == 1)
+        assert(self.grouper.nkeys == 1)
 
         axis = self.axis
         obj = self._obj_with_exclusions
@@ -1274,7 +1506,7 @@ class DataFrameGroupBy(GroupBy):
 
         return DataFrame(result, columns=result_columns)
 
-    def _wrap_aggregated_output(self, output):
+    def _wrap_aggregated_output(self, output, names=None):
         agg_axis = 0 if self.axis == 1 else 1
         agg_labels = self._obj_with_exclusions._get_axis(agg_axis)
 
@@ -1619,8 +1851,7 @@ def _compress_group_index(group_index, sort=True):
     obs_group_ids = np.array(uniques, dtype='i8')
 
     if sort and len(obs_group_ids) > 0:
-        obs_group_ids, comp_ids = _reorder_by_uniques(obs_group_ids,
-                                                      comp_ids)
+        obs_group_ids, comp_ids = _reorder_by_uniques(obs_group_ids, comp_ids)
 
     return comp_ids, obs_group_ids
 
@@ -1646,15 +1877,16 @@ def _reorder_by_uniques(uniques, labels):
 import __builtin__
 
 _func_table = {
-    __builtin__.sum : np.sum
+    __builtin__.sum: np.sum
 }
 
 _cython_table = {
-    __builtin__.sum : 'sum',
-    np.sum : 'sum',
-    np.mean : 'mean',
-    np.std : 'std',
-    np.var : 'var'
+    __builtin__.sum: 'sum',
+    np.sum: 'sum',
+    np.mean: 'mean',
+    np.prod: 'prod',
+    np.std: 'std',
+    np.var: 'var'
 }
 
 def _intercept_function(func):
@@ -1677,6 +1909,10 @@ def numpy_groupby(data, labels, axis=0):
     group_sums = np.add.reduceat(ordered_data, groups_at, axis=axis)
 
     return group_sums
+
+#-----------------------------------------------------------------------
+# Helper functions
+
 
 from pandas.util import py3compat
 import sys

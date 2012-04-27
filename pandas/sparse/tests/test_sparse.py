@@ -14,8 +14,10 @@ from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal)
 from numpy.testing import assert_equal
 
-from pandas import Series, DataFrame, DateRange, Panel, Index
+from pandas import Series, DataFrame, bdate_range, Panel
 from pandas.core.datetools import BDay
+from pandas.core.index import Index
+from pandas.tseries.index import DatetimeIndex
 import pandas.core.datetools as datetools
 import pandas.util.testing as tm
 
@@ -109,7 +111,7 @@ class TestSparseSeries(TestCase,
     def setUp(self):
         arr, index = _test_data1()
 
-        date_index = DateRange('1/1/2011', periods=len(index))
+        date_index = bdate_range('1/1/2011', periods=len(index))
 
         self.bseries = SparseSeries(arr, index=index, kind='block')
         self.bseries.name = 'bseries'
@@ -196,7 +198,7 @@ class TestSparseSeries(TestCase,
         assert_sp_series_equal(s4, self.zbseries)
 
         # Sparse time series works
-        date_index = DateRange('1/1/2000', periods=len(self.bseries))
+        date_index = bdate_range('1/1/2000', periods=len(self.bseries))
         s5 = SparseSeries(self.bseries, index=date_index)
         self.assert_(isinstance(s5, SparseTimeSeries))
 
@@ -629,11 +631,11 @@ class TestSparseSeries(TestCase,
         _dense_series_compare(series, f)
 
         series = SparseSeries([nan, 1., 2., 3., nan, nan],
-                              index=DateRange('1/1/2000', periods=6))
-        f = lambda s: s.shift(2, timeRule='WEEKDAY')
+                              index=bdate_range('1/1/2000', periods=6))
+        f = lambda s: s.shift(2, freq='B')
         _dense_series_compare(series, f)
 
-        f = lambda s: s.shift(2, offset=datetools.bday)
+        f = lambda s: s.shift(2, freq=datetools.bday)
         _dense_series_compare(series, f)
 
     def test_cumsum(self):
@@ -672,7 +674,7 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
                      'C' : np.arange(10),
                      'D' : [0, 1, 2, 3, 4, 5, nan, nan, nan, nan]}
 
-        self.dates = DateRange('1/1/2011', periods=10)
+        self.dates = bdate_range('1/1/2011', periods=10)
 
         self.frame = SparseDataFrame(self.data, index=self.dates)
         self.iframe = SparseDataFrame(self.data, index=self.dates,
@@ -872,6 +874,7 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         self.assert_(not empty)
 
         foo = self.frame + self.empty
+        self.assert_(isinstance(foo.index, DatetimeIndex))
         assert_frame_equal(foo, self.frame * np.nan)
 
         foo = self.empty + self.frame
@@ -1143,7 +1146,7 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         self.assert_('G' not in self.frame)
 
     def test_reindex_fill_value(self):
-        rng = DateRange('20110110', periods=20)
+        rng = bdate_range('20110110', periods=20)
         result = self.zframe.reindex(rng, fill_value=0)
         expected = self.zframe.reindex(rng).fillna(0)
         assert_sp_frame_equal(result, expected)
@@ -1207,10 +1210,10 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
             f = lambda s: s.shift(-2)
             _dense_frame_compare(frame, f)
 
-            f = lambda s: s.shift(2, timeRule='WEEKDAY')
+            f = lambda s: s.shift(2, freq='B')
             _dense_frame_compare(frame, f)
 
-            f = lambda s: s.shift(2, offset=datetools.bday)
+            f = lambda s: s.shift(2, freq=datetools.bday)
             _dense_frame_compare(frame, f)
 
         self._check_all(_check)
@@ -1274,7 +1277,7 @@ def _dense_frame_compare(frame, f):
     assert_frame_equal(result.to_dense(), dense_result)
 
 def panel_data1():
-    index = DateRange('1/1/2011', periods=8)
+    index = bdate_range('1/1/2011', periods=8)
 
     return DataFrame({
         'A' : [nan, nan, nan, 0, 1, 2, 3, 4],
@@ -1285,7 +1288,7 @@ def panel_data1():
 
 
 def panel_data2():
-    index = DateRange('1/1/2011', periods=9)
+    index = bdate_range('1/1/2011', periods=9)
 
     return DataFrame({
         'A' : [nan, nan, nan, 0, 1, 2, 3, 4, 5],
@@ -1296,7 +1299,7 @@ def panel_data2():
 
 
 def panel_data3():
-    index = DateRange('1/1/2011', periods=10).shift(-2)
+    index = bdate_range('1/1/2011', periods=10).shift(-2)
 
     return DataFrame({
         'A' : [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],

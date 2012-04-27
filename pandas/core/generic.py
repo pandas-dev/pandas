@@ -1,10 +1,12 @@
 # pylint: disable=W0231
+from datetime import timedelta
 
 import numpy as np
 
 from pandas.core.common import save, load
 from pandas.core.index import MultiIndex
-import pandas.core.datetools as datetools
+from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.offsets import DateOffset
 
 #-------------------------------------------------------------------------------
 # Picklable mixin
@@ -134,6 +136,136 @@ class PandasObject(Picklable):
         from pandas.core.groupby import groupby
         return groupby(self, by, axis=axis, level=level, as_index=as_index,
                        sort=sort, group_keys=group_keys)
+
+    def asfreq(self, freq, method=None, how=None):
+        """
+        Convert all TimeSeries inside to specified frequency using DateOffset
+        objects. Optionally provide fill method to pad/backfill missing values.
+
+        Parameters
+        ----------
+        freq : DateOffset object, or string
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}
+            Method to use for filling holes in reindexed Series
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill methdo
+        how : {'start', 'end'}, default end
+            For PeriodIndex only, see PeriodIndex.asfreq
+
+        Returns
+        -------
+        converted : type of caller
+        """
+        from pandas.tseries.resample import asfreq
+        return asfreq(self, freq, method=method, how=how)
+
+    def resample(self, rule, how='mean', axis=0, as_index=True,
+                 fill_method=None, closed='right', label='right', kind=None,
+                 loffset=None):
+        """
+        Convenience method for frequency conversion and resampling of regular
+        time-series data.
+
+        Parameters
+        ----------
+        rule : the offset string or object representing target conversion
+        how : string, method for down- or re-sampling, default 'mean'
+        fill_method : string, fill_method for upsampling, default None
+        axis : int, optional, default 0
+        closed : {'right', 'left'}, default 'right'
+            Which side of bin interval is closed
+        label : {'right', 'left'}, default 'right'
+            Which bin edge label to label bucket with
+        as_index : see synonymous argument of groupby
+        loffset : timedelta
+            Adjust the resampled time labels
+        """
+        from pandas.tseries.resample import TimeGrouper
+
+        idx = self._get_axis(axis)
+        if not isinstance(idx, DatetimeIndex):
+            raise ValueError("Cannot call resample with non-DatetimeIndex")
+
+        grouper = TimeGrouper(rule, label=label, closed=closed,
+                              axis=self.index, kind=kind)
+
+        # since binner extends endpoints
+        if grouper.downsamples:
+            # down- or re-sampling
+            grouped  = self.groupby(grouper, axis=axis, as_index=as_index)
+            result = grouped.agg(how)
+        else:
+            # upsampling
+            result = self.reindex(grouper.binner[1:], method=fill_method)
+
+        if isinstance(loffset, (DateOffset, timedelta)):
+            if len(result.index) > 0:
+                result.index = result.index + loffset
+        return result
+
+    def first(self, offset):
+        """
+        Convenience method for subsetting initial periods of time series data
+        based on a date offset
+
+        Parameters
+        ----------
+        offset : string, DateOffset, dateutil.relativedelta
+
+        Examples
+        --------
+        ts.last('10D') -> First 10 days
+
+        Returns
+        -------
+        subset : type of caller
+        """
+        from pandas.tseries.frequencies import to_offset
+        if not isinstance(self.index, DatetimeIndex):
+            raise NotImplementedError
+
+        if len(self.index) == 0:
+            return self
+
+        offset = to_offset(offset)
+        end_date = end = self.index[0] + offset
+
+        # Tick-like, e.g. 3 weeks
+        if not offset.isAnchored() and hasattr(offset, 'delta'):
+            if end_date in self.index:
+                end = self.index.searchsorted(end_date, side='left')
+
+        return self.ix[:end]
+
+    def last(self, offset):
+        """
+        Convenience method for subsetting final periods of time series data
+        based on a date offset
+
+        Parameters
+        ----------
+        offset : string, DateOffset, dateutil.relativedelta
+
+        Examples
+        --------
+        ts.last('5M') -> Last 5 months
+
+        Returns
+        -------
+        subset : type of caller
+        """
+        from pandas.tseries.frequencies import to_offset
+        if not isinstance(self.index, DatetimeIndex):
+            raise NotImplementedError
+
+        if len(self.index) == 0:
+            return self
+
+        offset = to_offset(offset)
+
+        start_date = start = self.index[-1] - offset
+        start = self.index.searchsorted(start_date, side='right')
+        return self.ix[start:]
 
     def select(self, crit, axis=0):
         """
@@ -361,6 +493,8 @@ class NDFrame(PandasObject):
         new_axes = []
         for k, ax in zip(key, self.axes):
             if k not in ax:
+                if type(k) != ax.dtype.type:
+                    ax = ax.astype('O')
                 new_axes.append(ax.insert(len(ax), k))
             else:
                 new_axes.append(ax)
@@ -693,8 +827,9 @@ def truncate(self, before=None, after=None, copy=True):
     -------
     truncated : type of caller
     """
-    before = datetools.to_datetime(before)
-    after = datetools.to_datetime(after)
+    from pandas.tseries.tools import to_datetime
+    before = to_datetime(before)
+    after = to_datetime(after)
 
     if before is not None and after is not None:
         assert(before <= after)

@@ -22,6 +22,36 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.8.0
+============
+
+**New features**
+
+  - Add GroupBy.prod optimized aggregation function and 'prod' fast time series
+    conversion method (#1018)
+  - Implement robust frequency inference function and `inferred_freq` attribute
+    on DatetimeIndex (#391)
+  - Convert DatetimeIndexes to UTC if time zones are different in join/setops
+    (#864)
+
+**Improvements to existing features**
+
+  - Switch to klib/khash-based hash tables in Index classes for better
+    performance in many cases and lower memory footprint
+  - Shipping some functions from scipy.stats to reduce dependency,
+    e.g. Series.describe and DataFrame.describe (GH #1092)
+
+**API Changes**
+
+  - Change BDay (business day) to not normalize dates by default
+  - Remove deprecated DataMatrix name
+
+**Bug fixes**
+
+  - Fix OverflowError from storing pre-1970 dates in HDFStore by switching to
+    datetime64 (GH #179)
+  - Fix logical error with February leap year end in YearEnd offset
+
 pandas 0.7.3
 ============
 

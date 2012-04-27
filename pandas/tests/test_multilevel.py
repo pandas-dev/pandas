@@ -1192,6 +1192,18 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         expected = expected.drop([('top','OD','wy')], axis=1)
         assert_frame_equal(expected, result)
 
+        result = df.drop(('top', 'OD', 'wx'), axis=1)
+        expected = df.drop([('top','OD','wx')], axis=1)
+        assert_frame_equal(expected, result)
+
+        expected = df.drop([('top','OD','wy')], axis=1)
+        expected = df.drop('top', axis=1)
+
+        result = df.drop('result1', level=1, axis=1)
+        expected = df.drop([('routine1', 'result1', ''),
+                            ('routine2', 'result1', '')], axis=1)
+        assert_frame_equal(expected, result)
+
     def test_mixed_depth_pop(self):
         arrays = [[  'a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
                   [   '',  'OD',  'OD', 'result1',   'result2',  'result1'],

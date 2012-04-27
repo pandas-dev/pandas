@@ -4,11 +4,12 @@ SQL-style merge routines
 
 import numpy as np
 
+from pandas.core.factor import Factor
 from pandas.core.frame import DataFrame, _merge_doc
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import get_group_index
 from pandas.core.series import Series
-from pandas.core.index import (Factor, Index, MultiIndex, _get_combined_index,
+from pandas.core.index import (Index, MultiIndex, _get_combined_index,
                                _ensure_index, _get_consensus_names)
 from pandas.core.internals import (IntBlock, BoolBlock, BlockManager,
                                    make_block, _consolidate)
@@ -944,7 +945,7 @@ class _Concatenator(object):
 
     def _maybe_check_integrity(self, concat_index):
         if self.verify_integrity:
-            if not concat_index._verify_integrity():
+            if not concat_index.is_unique:
                 overlap = concat_index.get_duplicates()
                 raise Exception('Indexes have overlapping values: %s'
                                 % str(overlap))

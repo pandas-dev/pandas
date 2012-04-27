@@ -20,9 +20,10 @@ import numpy as np
 from pandas import DataFrame, Index, isnull
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                ExcelFile, TextParser)
-from pandas.util.testing import assert_almost_equal, assert_frame_equal
+from pandas.util.testing import assert_almost_equal, assert_frame_equal, network
 import pandas._tseries as lib
 from pandas.util import py3compat
+from pandas._tseries import Timestamp
 
 from numpy.testing.decorators import slow
 
@@ -171,7 +172,32 @@ c,4,5
 """
         df = read_csv(StringIO(data), parse_dates=True)
         expected = read_csv(StringIO(data), index_col=0, parse_dates=True)
-        self.assert_(isinstance(df.index[0], datetime))
+        self.assert_(isinstance(df.index[0], (datetime, np.datetime64, Timestamp)))
+        assert_frame_equal(df, expected)
+
+    def test_parse_dates_column_list(self):
+        from pandas.core.datetools import to_datetime
+
+        data = '''date;destination;ventilationcode;unitcode;units;aux_date
+01/01/2010;P;P;50;1;12/1/2011
+01/01/2010;P;R;50;1;13/1/2011
+15/01/2010;P;P;50;1;14/1/2011
+01/05/2010;P;P;50;1;15/1/2011'''
+
+        expected = read_csv(StringIO(data), sep=";", index_col=range(4))
+
+        lev = expected.index.levels[0]
+        expected.index.levels[0] = lev.to_datetime(dayfirst=True)
+        expected['aux_date'] = to_datetime(expected['aux_date'],
+                                           dayfirst=True).astype('O')
+        self.assert_(isinstance(expected['aux_date'][0], datetime))
+
+        df = read_csv(StringIO(data), sep=";", index_col = range(4),
+                      parse_dates=[0, 5], dayfirst=True)
+        assert_frame_equal(df, expected)
+
+        df = read_csv(StringIO(data), sep=";", index_col = range(4),
+                      parse_dates=['date', 'aux_date'], dayfirst=True)
         assert_frame_equal(df, expected)
 
     def test_no_header(self):
@@ -211,7 +237,7 @@ baz,7,8,9
         df2 = read_table(self.csv1, sep=',', index_col=0, parse_dates=True)
         self.assert_(np.array_equal(df.columns, ['A', 'B', 'C', 'D']))
         self.assert_(df.index.name == 'index')
-        self.assert_(isinstance(df.index[0], datetime))
+        self.assert_(isinstance(df.index[0], (datetime, np.datetime64, Timestamp)))
         self.assert_(df.values.dtype == np.float64)
         assert_frame_equal(df, df2)
 
@@ -219,7 +245,7 @@ baz,7,8,9
         df = read_csv(self.csv2, index_col=0, parse_dates=True)
         df2 = read_table(self.csv2, sep=',', index_col=0, parse_dates=True)
         self.assert_(np.array_equal(df.columns, ['A', 'B', 'C', 'D', 'E']))
-        self.assert_(isinstance(df.index[0], datetime))
+        self.assert_(isinstance(df.index[0], (datetime, np.datetime64, Timestamp)))
         self.assert_(df.ix[:, ['A', 'B', 'C', 'D']].values.dtype == np.float64)
         assert_frame_equal(df, df2)
 
@@ -503,11 +529,13 @@ bar,two,12,13,14,15
 20090103,three,c,4,5
 """
         df = read_csv(StringIO(data), index_col=[0, 1], parse_dates=True)
-        self.assert_(isinstance(df.index.levels[0][0], datetime))
+        self.assert_(isinstance(df.index.levels[0][0],
+                     (datetime, np.datetime64, Timestamp)))
 
         # specify columns out of order!
         df2 = read_csv(StringIO(data), index_col=[1, 0], parse_dates=True)
-        self.assert_(isinstance(df2.index.levels[1][0], datetime))
+        self.assert_(isinstance(df2.index.levels[1][0],
+                     (datetime, np.datetime64, Timestamp)))
 
     def test_skip_footer(self):
         data = """A,B,C
@@ -547,7 +575,7 @@ c,4,5,01/03/2009
         expected = read_csv(StringIO(data))
         expected['D'] = expected['D'].map(parser.parse)
 
-        self.assert_(isinstance(result['D'][0], datetime))
+        self.assert_(isinstance(result['D'][0], (datetime, Timestamp)))
         assert_frame_equal(result, expected)
         assert_frame_equal(result2, expected)
 
@@ -798,6 +826,7 @@ bar,foo,foo"""
         assert_frame_equal(df, expected)
 
     @slow
+    @network
     def test_url(self):
         # HTTP(S)
         url = 'https://raw.github.com/pydata/pandas/master/pandas/io/tests/salary.table'
@@ -806,10 +835,20 @@ bar,foo,foo"""
         localtable = os.path.join(dirpath, 'salary.table')
         local_table = read_table(localtable)
         assert_frame_equal(url_table, local_table)
+        #TODO: ftp testing
+
+    @slow
+    def test_file(self):
         # FILE
+        if sys.version_info[:2] < (2, 6):
+            raise nose.SkipTest("file:// not supported with Python < 2.6")
+        dirpath = curpath()
+        localtable = os.path.join(dirpath, 'salary.table')
+        local_table = read_table(localtable)
+
         url_table = read_table('file://localhost/'+localtable)
         assert_frame_equal(url_table, local_table)
-        #TODO: ftp testing
+
 
 class TestParseSQL(unittest.TestCase):
 

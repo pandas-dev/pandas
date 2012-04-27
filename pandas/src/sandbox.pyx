@@ -56,26 +56,6 @@ def bench_typecheck1(ndarray[object] arr):
 #         PyArray_Check(buf[i])
 
 
-def foo(object _chunk, object _arr):
-    cdef:
-        char* dummy_buf
-        ndarray arr, result, chunk
-
-    arr = _arr
-    chunk = _chunk
-
-    dummy_buf = chunk.data
-    chunk.data = arr.data
-
-    shape = chunk.shape
-    group_size = 0
-    n = len(arr)
-
-    inc = arr.dtype.itemsize
-
-    # chunk.shape[0] = 100
-    return chunk
-
 
 from skiplist cimport *
 
@@ -284,3 +264,370 @@ tiebreakers = {
     'max' : TIEBREAK_MAX,
     'first' : TIEBREAK_FIRST
 }
+
+from khash cimport *
+
+def test(ndarray arr, Py_ssize_t size_hint):
+    cdef:
+        kh_pymap_t *table
+        int ret = 0
+        khiter_t k
+        PyObject **data
+        Py_ssize_t i, n
+        ndarray[Py_ssize_t] indexer
+
+    table = kh_init_pymap()
+    kh_resize_pymap(table, size_hint)
+
+    data = <PyObject**> arr.data
+    n = len(arr)
+
+    indexer = np.empty(n, dtype=np.int_)
+
+    for i in range(n):
+        k = kh_put_pymap(table, data[i], &ret)
+
+        # if not ret:
+        #     kh_del_pymap(table, k)
+
+        table.vals[k] = i
+
+    for i in range(n):
+        k = kh_get_pymap(table, data[i])
+        indexer[i] = table.vals[k]
+
+    kh_destroy_pymap(table)
+
+    return indexer
+
+
+def test_str(ndarray arr, Py_ssize_t size_hint):
+    cdef:
+        kh_str_t *table
+        kh_cstr_t val
+        int ret = 0
+        khiter_t k
+        PyObject **data
+        Py_ssize_t i, n
+        ndarray[Py_ssize_t] indexer
+
+    table = kh_init_str()
+    kh_resize_str(table, size_hint)
+
+    data = <PyObject**> arr.data
+    n = len(arr)
+
+    indexer = np.empty(n, dtype=np.int_)
+
+    for i in range(n):
+        k = kh_put_str(table, util.get_c_string(<object> data[i]), &ret)
+
+        # if not ret:
+        #     kh_del_str(table, k)
+
+        table.vals[k] = i
+
+    # for i in range(n):
+    #     k = kh_get_str(table, PyString_AsString(<object> data[i]))
+    #     indexer[i] = table.vals[k]
+
+    kh_destroy_str(table)
+
+    return indexer
+
+# def test2(ndarray[object] arr):
+#     cdef:
+#         dict table
+#         object obj
+#         Py_ssize_t i, loc, n
+#         ndarray[Py_ssize_t] indexer
+
+#     n = len(arr)
+#     indexer = np.empty(n, dtype=np.int_)
+
+#     table = {}
+#     for i in range(n):
+#         table[arr[i]] = i
+
+#     for i in range(n):
+#         indexer[i] =  table[arr[i]]
+
+#     return indexer
+
+def obj_unique(ndarray[object] arr):
+    cdef:
+        kh_pyset_t *table
+        # PyObject *obj
+        object obj
+        PyObject **data
+        int ret = 0
+        khiter_t k
+        Py_ssize_t i, n
+        list uniques
+
+    n = len(arr)
+    uniques = []
+
+    table = kh_init_pyset()
+
+    data = <PyObject**> arr.data
+
+    # size hint
+    kh_resize_pyset(table, n // 10)
+
+    for i in range(n):
+        obj = arr[i]
+
+        k = kh_get_pyset(table, <PyObject*> obj)
+        if not kh_exist_pyset(table, k):
+            k = kh_put_pyset(table, <PyObject*> obj, &ret)
+            # uniques.append(obj)
+            # Py_INCREF(<object> obj)
+
+    kh_destroy_pyset(table)
+
+    return None
+
+def int64_unique(ndarray[int64_t] arr):
+    cdef:
+        kh_int64_t *table
+        # PyObject *obj
+        int64_t obj
+        PyObject **data
+        int ret = 0
+        khiter_t k
+        Py_ssize_t i, j, n
+        ndarray[int64_t] uniques
+
+    n = len(arr)
+    uniques = np.empty(n, dtype='i8')
+
+    table = kh_init_int64()
+    kh_resize_int64(table, n)
+
+    j = 0
+
+    for i in range(n):
+        obj = arr[i]
+
+        k = kh_get_int64(table, obj)
+        if not kh_exist_int64(table, k):
+            k = kh_put_int64(table, obj, &ret)
+            uniques[j] = obj
+            j += 1
+            # Py_INCREF(<object> obj)
+
+    kh_destroy_int64(table)
+
+    return np.sort(uniques[:j])
+
+def group_add_bin(ndarray[float64_t, ndim=2] out,
+                  ndarray[int32_t] counts,
+                  ndarray[float64_t, ndim=2] values,
+                  ndarray[int32_t] bins):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, ngroups, b
+        float64_t val, count
+        ndarray[float64_t, ndim=2] sumx, nobs
+
+    nobs = np.zeros_like(out)
+    sumx = np.zeros_like(out)
+
+    ngroups = len(bins) + 1
+    N, K = (<object> values).shape
+
+    b = 0
+    if K > 1:
+        for i in range(N):
+            while b < ngroups - 1 and i >= bins[b]:
+                b += 1
+
+            counts[b] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[b, j] += 1
+                    sumx[b, j] += val
+    else:
+        for i in range(N):
+            while b < ngroups - 1 and i >= bins[b]:
+                b += 1
+
+            counts[b] += 1
+            val = values[i, 0]
+
+            # not nan
+            if val == val:
+                nobs[b, 0] += 1
+                sumx[b, 0] += val
+            print i, b, counts, nobs.squeeze()
+
+    for i in range(ngroups):
+        print 'writing %d' % i
+        for j in range(K):
+            if nobs[i] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = sumx[i, j]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_add(ndarray[float64_t, ndim=2] out,
+              ndarray[int32_t] counts,
+              ndarray[float64_t, ndim=2] values,
+              ndarray[int32_t] labels):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        float64_t val, count
+        ndarray[float64_t, ndim=2] sumx, nobs
+
+    nobs = np.zeros_like(out)
+    sumx = np.zeros_like(out)
+
+    N, K = (<object> values).shape
+
+    if K > 1:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[lab, j] += 1
+                    sumx[lab, j] += val
+    else:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            val = values[i, 0]
+
+            # not nan
+            if val == val:
+                nobs[lab, 0] += 1
+                sumx[lab, 0] += val
+
+    for i in range(len(counts)):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = sumx[i, j]
+
+
+from datetime cimport getAbsTime
+
+
+# cdef extern from "kvec.h":
+
+#     ctypedef struct kv_int64_t:
+#         size_t n, m
+#         int64_t *a
+
+
+def test_foo(ndarray[int64_t] values):
+    cdef int64_t val
+
+    val = values[0]
+    print val
+
+def get_abs_time(freq, dailyDate, originalDate):
+    return getAbsTime(freq, dailyDate, originalDate)
+
+have_pytz = 1
+import pytz
+
+def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
+    cdef:
+        ndarray[int64_t] utc_dates, result, trans, deltas
+        Py_ssize_t i, pos, n = len(vals)
+        int64_t v, offset
+
+    print 'int64 is: %d' % sizeof(int64_t)
+
+    if not have_pytz:
+        import pytz
+
+    # Convert to UTC
+
+    if tz1.zone != 'UTC':
+        utc_dates = np.empty(n, dtype=np.int64)
+        deltas = _get_deltas(tz1)
+        trans = _get_transitions(tz1)
+        pos = trans.searchsorted(vals[0])
+        offset = deltas[pos]
+        for i in range(n):
+            v = vals[i]
+            if v >= trans[pos + 1]:
+                pos += 1
+                offset = deltas[pos]
+            utc_dates[i] = v - offset
+    else:
+        utc_dates = vals
+
+    if tz2.zone == 'UTC':
+        return utc_dates
+
+    # Convert UTC to other timezone
+
+    result = np.empty(n, dtype=np.int64)
+    trans = _get_transitions(tz2)
+    deltas = _get_deltas(tz2)
+    offset = deltas[pos]
+    pos = max(0, trans.searchsorted(utc_dates[0], side='right') - 1)
+    for i in range(n):
+        v = utc_dates[i]
+        if v >= trans[pos + 1]:
+            pos += 1
+            offset = deltas[pos]
+        result[i] = v + offset
+
+    return result
+
+trans_cache = {}
+utc_offset_cache = {}
+
+def _get_transitions(object tz):
+    """
+    Get UTC times of DST transitions
+    """
+    if tz not in trans_cache:
+        arr = np.array(tz._utc_transition_times, dtype='M8[us]')
+        trans_cache[tz] = arr.view('i8')
+    return trans_cache[tz]
+
+def _get_deltas(object tz):
+    """
+    Get UTC offsets in microseconds corresponding to DST transitions
+    """
+    if tz not in utc_offset_cache:
+        utc_offset_cache[tz] = _unbox_utcoffsets(tz._transition_info)
+    return utc_offset_cache[tz]
+
+cdef ndarray _unbox_utcoffsets(object transinfo):
+    cdef:
+        Py_ssize_t i, sz
+        ndarray[int64_t] arr
+
+    sz = len(transinfo)
+    arr = np.empty(sz, dtype='i8')
+
+    for i in range(sz):
+        arr[i] = int(transinfo[i][0].total_seconds()) * 1000000
+
+    return arr

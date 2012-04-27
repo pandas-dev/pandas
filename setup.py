@@ -6,8 +6,6 @@ Parts of this file were taken from the pyzmq project
 BSD license. Parts are from lxml (https://github.com/lxml/lxml)
 """
 
-from datetime import datetime
-from glob import glob
 import os
 import sys
 import shutil
@@ -42,6 +40,8 @@ if sys.version_info[0] >= 3:
                          'zip_safe': False,
                          'install_requires': ['python-dateutil >= 2',
                                               'numpy >= 1.4'],
+                         'use_2to3_exclude_fixers': ['lib2to3.fixes.fix_next',
+                                                    ],
                         }
     if not _have_setuptools:
         sys.exit("need setuptools/distribute for Py3k"
@@ -165,9 +165,9 @@ CLASSIFIERS = [
 ]
 
 MAJOR = 0
-MINOR = 7
-MICRO = 3
-ISRELEASED = True
+MINOR = 8
+MICRO = 0
+ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 QUALIFIER = ''
 
@@ -214,8 +214,14 @@ class CleanCommand(Command):
         self.all = True
         self._clean_me = []
         self._clean_trees = []
+        self._clean_exclude = ['np_datetime.c',
+                               'np_datetime_strings.c',
+                               'period.c']
+
         for root, dirs, files in list(os.walk('pandas')):
             for f in files:
+                if f in self._clean_exclude:
+                    continue
                 if os.path.splitext(f)[-1] in ('.pyc', '.so', '.o',
                                                '.pyd', '.c'):
                     self._clean_me.append(pjoin(root, f))
@@ -271,7 +277,7 @@ class CheckSDist(sdist):
         sdist.run(self)
 
 class CheckingBuildExt(build_ext):
-    """Subclass build_ext to get clearer report if Cython is neccessary."""
+    """Subclass build_ext to get clearer report if Cython is necessary."""
 
     def check_cython_extensions(self, extensions):
         for ext in extensions:
@@ -294,6 +300,7 @@ cmdclass = {'clean': CleanCommand,
 
 try:
     from Cython.Distutils import build_ext
+    #from Cython.Distutils import Extension # to get pyrex debugging symbols
     cython=True
 except ImportError:
     cython=False
@@ -325,9 +332,10 @@ else:
     cmdclass['sdist'] =  CheckSDist
 
 tseries_depends = ['reindex', 'groupby', 'skiplist', 'moments',
-                   'generated', 'reduce', 'stats',
+                   'generated', 'reduce', 'stats', 'datetime',
                    'inference', 'properties', 'internals',
-                   'hashtable', 'join']
+                   'join']
+
 def srcpath(name=None, suffix='.pyx', subdir='src'):
     return pjoin('pandas', subdir, name+suffix)
 
@@ -340,10 +348,21 @@ else:
 
 tseries_ext = Extension('pandas._tseries',
                         depends=tseries_depends + ['pandas/src/numpy_helper.h'],
-                        sources=[srcpath('tseries', suffix=suffix)],
+                        sources=[srcpath('tseries', suffix=suffix),
+                                 'pandas/src/period.c',
+                                 'pandas/src/np_datetime.c',
+                                 'pandas/src/np_datetime_strings.c'],
                         include_dirs=[np.get_include()],
+                        # pyrex_gdb=True,
                         # extra_compile_args=['-Wconversion']
                         )
+
+# hashtable_ext = Extension('pandas._hashtable',
+#                        sources=[srcpath('hashtable', suffix=suffix)],
+#                        depends=['pandas/src/khash.pxd',
+#                                 'pandas/src/util.pxd',
+#                                 'pandas/src/khash.h'],
+#                        include_dirs=[np.get_include()])
 
 sparse_ext = Extension('pandas._sparse',
                        sources=[srcpath('sparse', suffix=suffix)],
@@ -351,12 +370,15 @@ sparse_ext = Extension('pandas._sparse',
 
 engines_ext = Extension('pandas._engines',
                         depends=['pandas/src/numpy_helper.h',
+                                 'pandas/src/hashtable.pyx',
                                  'pandas/src/util.pxd'],
                         sources=[srcpath('engines', suffix=suffix)],
                         include_dirs=[np.get_include()])
 
 sandbox_ext = Extension('pandas._sandbox',
-                        sources=[srcpath('sandbox', suffix=suffix)],
+                        sources=[srcpath('sandbox', suffix=suffix),
+                                 'pandas/src/period.c',
+                                 ],
                         include_dirs=[np.get_include()])
 
 cppsandbox_ext = Extension('pandas._cppsandbox',
@@ -364,7 +386,11 @@ cppsandbox_ext = Extension('pandas._cppsandbox',
                            sources=[srcpath('cppsandbox', suffix=suffix)],
                            include_dirs=[np.get_include()])
 
-extensions = [tseries_ext, engines_ext, sparse_ext]
+extensions = [tseries_ext,
+              engines_ext,
+              sparse_ext,
+              # hashtable_ext
+              ]
 
 if not ISRELEASED:
     extensions.extend([sandbox_ext])
@@ -377,6 +403,7 @@ setup(name=DISTNAME,
       version=FULLVERSION,
       maintainer=AUTHOR,
       packages=['pandas',
+                'pandas.compat',
                 'pandas.core',
                 'pandas.io',
                 'pandas.rpy',
@@ -388,6 +415,8 @@ setup(name=DISTNAME,
                 'pandas.tests',
                 'pandas.tools',
                 'pandas.tools.tests',
+                'pandas.tseries',
+                'pandas.tseries.tests',
                 'pandas.io.tests',
                 'pandas.stats.tests',
                 ],
@@ -397,7 +426,9 @@ setup(name=DISTNAME,
                                    'tests/*.xlsx',
                                    'tests/*.table'],
                     'pandas.tests' : ['data/*.pickle',
-                                      'data/*.csv']
+                                      'data/*.csv'],
+                    'pandas.tseries.tests' : ['data/*.pickle',
+                                              'data/*.csv']
                    },
       ext_modules=extensions,
       maintainer_email=EMAIL,

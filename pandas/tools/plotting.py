@@ -285,7 +285,8 @@ class MPLPlot(object):
 
     def _get_xticks(self):
         index = self.data.index
-        is_datetype = index.inferred_type in ('datetime', 'date')
+        is_datetype = index.inferred_type in ('datetime', 'date',
+                                              'datetime64')
 
         if self.use_index:
             if index.is_numeric() or is_datetype:
@@ -295,7 +296,7 @@ class MPLPlot(object):
                 matplotlib raises exception when using non numeric/datetime
                 values for xaxis, several actions are already taken by plt.
                 """
-                x = index.values
+                x = index._mpl_repr()
             else:
                 self._need_to_set_index = True
                 x = range(len(index))
@@ -344,7 +345,8 @@ class LinePlot(MPLPlot):
         df = self.data
 
         if self.subplots and self.legend:
-            self.axes[0].legend(loc='best')
+            for ax in self.axes:
+                ax.legend(loc='best')
 
         condition = (df.index.is_all_dates
                      and not self.subplots
@@ -600,6 +602,23 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
 
     return plot_obj.ax
 
+# if use_index:
+#     # custom datetime/interval plotting
+#     from pandas import IntervalIndex, DatetimeIndex
+#     if isinstance(self.index, IntervalIndex):
+#         return tsp.tsplot(self)
+#     if isinstance(self.index, DatetimeIndex):
+#         offset = self.index.freq
+#         name = datetools._newOffsetNames.get(offset, None)
+#         if name is not None:
+#             try:
+#                 code = datetools._interval_str_to_code(name)
+#                 s_ = Series(self.values,
+#                             index=self.index.to_interval(freq=code),
+#                             name=self.name)
+#                 tsp.tsplot(s_)
+#             except:
+#                 pass
 
 def boxplot(data, column=None, by=None, ax=None, fontsize=None,
             rot=0, grid=True, figsize=None):

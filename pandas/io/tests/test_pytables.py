@@ -8,7 +8,7 @@ import sys
 from datetime import datetime
 import numpy as np
 
-from pandas import Series, DataFrame, Panel, DateRange, MultiIndex
+from pandas import Series, DataFrame, Panel, MultiIndex, bdate_range
 from pandas.io.pytables import HDFStore, get_store
 import pandas.util.testing as tm
 
@@ -64,6 +64,13 @@ class TesttHDFStore(unittest.TestCase):
         self.store['c'] = tm.makeDataFrame()
         self.store['d'] = tm.makePanel()
         repr(self.store)
+
+    def test_contains(self):
+        self.store['a'] = tm.makeTimeSeries()
+        self.store['b'] = tm.makeDataFrame()
+        self.assert_('a' in self.store)
+        self.assert_('b' in self.store)
+        self.assert_('c' not in self.store)
 
     def test_reopen_handle(self):
         self.store['a'] = tm.makeTimeSeries()
@@ -210,7 +217,7 @@ class TesttHDFStore(unittest.TestCase):
         if sys.version_info[0] == 2 and sys.version_info[1] < 7:
             raise nose.SkipTest
 
-        dr = DateRange('1/1/1940', '1/1/1960')
+        dr = bdate_range('1/1/1940', '1/1/1960')
         ts = Series(np.random.randn(len(dr)), index=dr)
         try:
             self._check_roundtrip(ts, tm.assert_series_equal)
@@ -248,7 +255,7 @@ class TesttHDFStore(unittest.TestCase):
                           tm.assert_frame_equal)
 
     def test_can_serialize_dates(self):
-        rng = [x.date() for x in DateRange('1/1/2000', '1/30/2000')]
+        rng = [x.date() for x in bdate_range('1/1/2000', '1/30/2000')]
         frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
         self._check_roundtrip(frame, tm.assert_frame_equal)
 
