@@ -135,6 +135,28 @@ class PandasObject(Picklable):
         return groupby(self, by, axis=axis, level=level, as_index=as_index,
                        sort=sort, group_keys=group_keys)
 
+    def asfreq(self, freq, method=None, how=None):
+        """
+        Convert all TimeSeries inside to specified frequency using DateOffset
+        objects. Optionally provide fill method to pad/backfill missing values.
+
+        Parameters
+        ----------
+        freq : DateOffset object, or string
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}
+            Method to use for filling holes in reindexed Series
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill methdo
+        how : {'start', 'end'}, default end
+            For PeriodIndex only, see PeriodIndex.asfreq
+
+        Returns
+        -------
+        converted : type of caller
+        """
+        from pandas.tseries.resample import asfreq
+        return asfreq(self, freq, method=method, how=how)
+
     def resample(self, rule, how='mean', axis=0, as_index=True,
                  fill_method=None, closed='right', label='right', kind=None):
         """

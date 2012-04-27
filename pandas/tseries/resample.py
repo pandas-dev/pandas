@@ -2,7 +2,7 @@ import numpy as np
 
 from pandas.core.groupby import BinGrouper
 from pandas.tseries.frequencies import to_offset
-from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.index import DatetimeIndex, date_range
 from pandas.tseries.offsets import DateOffset
 from pandas.tseries.period import PeriodIndex
 from pandas.util.decorators import cache_readonly
@@ -147,26 +147,6 @@ class TimeGrouper(BinGrouper):
 
 
 def _get_range_edges(axis, begin, end, offset, closed='left'):
-    # from pandas.tseries.tools import _delta_to_microseconds
-
-    # if isinstance(offset, Tick):
-    #     if begin is None:
-    #         if closed == 'left':
-    #             first = Timestamp(offset.rollback(axis[0]))
-    #         else:
-    #             first = Timestamp(axis[0] - offset)
-    #     else:
-    #         first = Timestamp(offset.rollback(begin))
-
-    #     if end is None:
-    #         if closed == 'left':
-    #             last = Timestamp(axis[-1] + offset)
-    #         else:
-    #             last = Timestamp(offset.rollforward(axis[-1]))
-    #     else:
-    #         last = Timestamp(offset.rollforward(end))
-    # else:
-
     if begin is None:
         if closed == 'left':
             first = Timestamp(offset.rollback(axis[0]))
@@ -182,3 +162,24 @@ def _get_range_edges(axis, begin, end, offset, closed='left'):
         last = Timestamp(offset.rollforward(end))
 
     return first, last
+
+def asfreq(obj, freq, method=None, how=None):
+    """
+    Utility frequency conversion method for Series/DataFrame
+    """
+    if isinstance(obj.index, PeriodIndex):
+        if method is not None:
+            raise NotImplementedError
+
+        if how is None:
+            how = 'E'
+
+        new_index = obj.index.asfreq(freq, how=how)
+        new_obj = obj.copy()
+        new_obj.index = new_index
+        return new_obj
+    else:
+        if len(obj.index) == 0:
+            return obj.copy()
+        dti = date_range(obj.index[0], obj.index[-1], freq=freq)
+        return obj.reindex(dti, method=method)

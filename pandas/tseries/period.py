@@ -551,6 +551,10 @@ class PeriodIndex(Int64Index):
     def is_all_dates(self):
         return True
 
+    @property
+    def freqstr(self):
+        return self.freq
+
     def asfreq(self, freq=None, how='E'):
         how = _validate_end_alias(how)
 

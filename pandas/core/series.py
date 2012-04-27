@@ -2295,29 +2295,6 @@ copy : boolean, default False
         else:
             return v
 
-    def asfreq(self, freq, method=None):
-        """
-        Convert all TimeSeries inside to specified frequency using DateOffset
-        objects. Optionally provide fill method to pad/backfill missing values.
-
-        Parameters
-        ----------
-        freq : DateOffset object, or string
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}
-            Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill methdo
-
-        Returns
-        -------
-        converted : DataFrame
-        """
-        from pandas.tseries.index import date_range
-        if len(self.index) == 0:
-            return self.copy()
-        dti = date_range(self.index[0], self.index[-1], freq=freq)
-        return self.reindex(dti, method=method)
-
     def interpolate(self, method='linear'):
         """
         Interpolate missing values (after the first valid value)

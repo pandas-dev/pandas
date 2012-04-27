@@ -18,7 +18,7 @@ from pandas.tseries.tools import to_datetime
 import pandas.core.datetools as datetools
 import numpy as np
 
-from pandas import Series, TimeSeries
+from pandas import Series, TimeSeries, DataFrame
 from pandas.util.testing import assert_series_equal
 
 class TestPeriodProperties(TestCase):
@@ -862,6 +862,9 @@ class TestPeriodIndex(TestCase):
     def __init__(self, *args, **kwds):
         TestCase.__init__(self, *args, **kwds)
 
+    def setUp(self):
+        pass
+
     def test_make_time_series(self):
         index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
         series = Series(1, index=index)
@@ -1055,6 +1058,27 @@ class TestPeriodIndex(TestCase):
         self.assertEquals(ii7.asfreq('Min', 'S'), ii6)
 
         #self.assertEquals(ii7.asfreq('A', 'E'), i_end)
+
+    def test_ts_repr(self):
+        index = PeriodIndex(freq='A', start='1/1/2001', end='12/31/2010')
+        ts = Series(np.random.randn(len(index)), index=index)
+        repr(ts)
+
+    def test_asfreq_ts(self):
+        index = PeriodIndex(freq='A', start='1/1/2001', end='12/31/2010')
+        ts = Series(np.random.randn(len(index)), index=index)
+        df = DataFrame(np.random.randn(len(index), 3), index=index)
+
+        result = ts.asfreq('D', how='end')
+        df_result = df.asfreq('D', how='end')
+        exp_index = index.asfreq('D', how='end')
+        self.assert_(len(result) == len(ts))
+        self.assert_(result.index.equals(exp_index))
+        self.assert_(df_result.index.equals(exp_index))
+
+        result = ts.asfreq('D', how='start')
+        self.assert_(len(result) == len(ts))
+        self.assert_(result.index.equals(index.asfreq('D', how='start')))
 
     def test_badinput(self):
         self.assertRaises(datetools.DateParseError, Period, '1/1/-2000', 'A')
