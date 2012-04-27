@@ -160,8 +160,8 @@ class PandasObject(Picklable):
         return asfreq(self, freq, method=method, how=how)
 
     def resample(self, rule, how='mean', axis=0, as_index=True,
-                 fill_method=None, closed='right', label='right', kind=None,
-                 loffset=None):
+                 fill_method=None, closed='right', label='right',
+                 convention=None, kind=None, loffset=None):
         """
         Convenience method for frequency conversion and resampling of regular
         time-series data.
@@ -176,6 +176,8 @@ class PandasObject(Picklable):
             Which side of bin interval is closed
         label : {'right', 'left'}, default 'right'
             Which bin edge label to label bucket with
+        convention : {'start', 'end', 's', 'e'}
+
         as_index : see synonymous argument of groupby
         loffset : timedelta
             Adjust the resampled time labels

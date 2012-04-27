@@ -277,7 +277,6 @@ class TestResamplePeriodIndex(unittest.TestCase):
 
     def test_basic_resample(self):
         ts = _simple_pts('1/1/1990', '6/30/1995', freq='M')
-
         result = ts.resample('a-dec')
         expected = ts.groupby(ts.index.year).mean()
         expected.index = period_range('1/1/1990', '6/30/1995',
@@ -285,7 +284,14 @@ class TestResamplePeriodIndex(unittest.TestCase):
         assert_series_equal(result, expected)
 
     def test_upsample_ffill(self):
-        pass
+        ts = _simple_pts('1/1/1990', '6/30/1995', freq='M')
+        result = ts.resample('a-dec')
+
+        resampled = result.resample('D', fill_method='ffill',
+                                    convention='end')
+
+        # expected = result.
+
 
 class TestTimeGrouper(unittest.TestCase):
 

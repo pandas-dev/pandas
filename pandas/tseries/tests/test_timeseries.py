@@ -524,9 +524,11 @@ class TestTimeSeries(unittest.TestCase):
         pts = ts.to_period('M')
         self.assert_(pts.index.equals(exp.index.asfreq('M')))
 
+
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
     return Series(np.random.randn(len(rng)), index=rng)
+
 
 def _skip_if_no_pytz():
     try:
@@ -534,6 +536,7 @@ def _skip_if_no_pytz():
     except ImportError:
         import nose
         raise nose.SkipTest
+
 
 class TestLegacySupport(unittest.TestCase):
 
