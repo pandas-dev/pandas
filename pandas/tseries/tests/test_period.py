@@ -975,10 +975,6 @@ class TestPeriodIndex(TestCase):
             pass
 
         # infer freq from first element
-        i2 = PeriodIndex(end_intv)
-        assert_equal(len(i2), 1)
-        assert_equal(i2[0], end_intv)
-
         i2 = PeriodIndex([end_intv, Period('2005-05-05', 'B')])
         assert_equal(len(i2), 2)
         assert_equal(i2[0], end_intv)
