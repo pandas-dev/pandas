@@ -502,6 +502,7 @@ class SparseDataFrame(DataFrame):
             return SparseDataFrame(index=index, columns=self.columns)
 
         indexer = self.index.get_indexer(index, method, limit=limit)
+        indexer = com._ensure_platform_int(indexer)
         mask = indexer == -1
         need_mask = mask.any()
 

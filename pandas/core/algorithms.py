@@ -5,7 +5,6 @@ intended for public consumption
 
 import numpy as np
 
-from pandas.core.series import Series
 import pandas.core.common as com
 import pandas._tseries as lib
 
@@ -20,31 +19,46 @@ def match(values, index):
     -------
     match : ndarray
     """
-    if com.is_float_dtype(index):
-        return _match_generic(values, index, lib.Float64HashTable,
-                              com._ensure_float64)
-    elif com.is_integer_dtype(index):
-        return _match_generic(values, index, lib.Int64HashTable,
-                              com._ensure_int64)
-    else:
-        return _match_generic(values, index, lib.PyObjectHashTable,
-                              com._ensure_object)
+    f = lambda htype, caster: _match_generic(values, index, htype, caster)
+    return _hashtable_algo(f, index.dtype)
+
+def unique(values):
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    """
+    f = lambda htype, caster: _unique_generic(values, htype, caster)
+    return _hashtable_algo(f, values.dtype)
+
 
 def count(values, uniques=None):
+    f = lambda htype, caster: _count_generic(values, htype, caster)
+
     if uniques is not None:
         raise NotImplementedError
     else:
-        if com.is_float_dtype(values):
-            return _count_generic(values, lib.Float64HashTable,
-                                  com._ensure_float64)
-        elif com.is_integer_dtype(values):
-            return _count_generic(values, lib.Int64HashTable,
-                                  com._ensure_int64)
-        else:
-            return _count_generic(values, lib.PyObjectHashTable,
-                                  com._ensure_object)
+        return _hashtable_algo(f, values.dtype)
+
+def _hashtable_algo(f, dtype):
+    """
+    f(HashTable, type_caster) -> result
+    """
+    if com.is_float_dtype(dtype):
+        return f(lib.Float64HashTable, com._ensure_float64)
+    elif com.is_integer_dtype(dtype):
+        return f(lib.Int64HashTable, com._ensure_int64)
+    else:
+        return f(lib.PyObjectHashTable, com._ensure_object)
+
 
 def _count_generic(values, table_type, type_caster):
+    from pandas.core.series import Series
+
     values = type_caster(values)
     table = table_type(len(values))
     uniques, labels, counts = table.factorize(values)
@@ -57,6 +71,12 @@ def _match_generic(values, index, table_type, type_caster):
     table = table_type(len(index))
     table.map_locations(index)
     return table.lookup(values)
+
+def _unique_generic(values, table_type, type_caster):
+    values = type_caster(values)
+    table = table_type(len(values))
+    uniques = table.unique(values)
+    return uniques
 
 def factorize(values, sort=False, order=None, na_sentinel=-1):
     """
@@ -100,6 +120,7 @@ def value_counts(values, sort=True, ascending=False):
     -------
     value_counts : Series
     """
+    from pandas.core.series import Series
     from collections import defaultdict
     if com.is_integer_dtype(values.dtype):
         values = com._ensure_int64(values)
@@ -146,6 +167,21 @@ def _get_data_algo(values, func_map):
         values = com._ensure_object(values)
     return f, values
 
+def group_position(*args):
+    """
+    Get group position
+    """
+    from collections import defaultdict
+    table = defaultdict(int)
+
+    result = []
+    for tup in zip(*args):
+        result.append(table[tup])
+        table[tup] += 1
+
+    return result
+
+
 _rank1d_functions = {
     'float64' : lib.rank_1d_float64,
     'int64' : lib.rank_1d_int64,
@@ -162,9 +198,3 @@ _hashtables = {
     'int64' : lib.Int64HashTable,
     'generic' : lib.PyObjectHashTable
 }
-
-def unique(values):
-    """
-
-    """
-    pass

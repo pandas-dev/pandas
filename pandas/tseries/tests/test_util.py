@@ -6,7 +6,7 @@ import numpy as np
 from pandas import Series, date_range
 import pandas.util.testing as tm
 
-from pandas.tseries.tools import convert_to_annual, isleapyear
+from pandas.tseries.util import convert_to_annual, isleapyear
 
 class TestConvertAnnual(unittest.TestCase):
     """

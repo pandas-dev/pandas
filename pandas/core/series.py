@@ -5,7 +5,6 @@ Data structure for 1-dimensional cross-sectional and time series data
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
 
-from collections import defaultdict
 from itertools import izip
 import operator
 from distutils.version import LooseVersion
@@ -18,9 +17,10 @@ from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _default_index, _maybe_upcast,
                                 _asarray_tuplesafe)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
-                               _ensure_index, DatetimeIndex,
-                               _handle_legacy_indexes)
+                               _ensure_index, _handle_legacy_indexes)
 from pandas.core.indexing import _SeriesIndexer
+from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.period import PeriodIndex
 from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
 import pandas.core.common as com
@@ -30,6 +30,8 @@ import pandas.core.generic as generic
 import pandas.core.nanops as nanops
 import pandas._tseries as lib
 from pandas.util.decorators import Appender, Substitution
+
+from pandas.compat.scipy import scoreatpercentile as _quantile
 
 __all__ = ['Series', 'TimeSeries']
 
@@ -715,9 +717,11 @@ copy : boolean, default False
                                                   length=False,
                                                   name=False)
         result = head + '\n...\n' + tail
+        return '%s\n%s' % (result, self._repr_footer())
+
+    def _repr_footer(self):
         namestr = "Name: %s, " % str(self.name) if self.name else ""
-        result = '%s\n%sLength: %d' % (result, namestr, len(self))
-        return result
+        return '%sLength: %d' % (namestr, len(self))
 
     def to_string(self, buf=None, na_rep='NaN', float_format=None,
                   nanRep=None, length=False, name=False):
@@ -1250,11 +1254,10 @@ copy : boolean, default False
         -------
         quantile : float
         """
-        from scipy.stats import scoreatpercentile
         valid_values = self.dropna().values
         if len(valid_values) == 0:
             return np.nan
-        return scoreatpercentile(valid_values, q * 100)
+        return _quantile(valid_values, q * 100)
 
     def describe(self, percentile_width=50):
         """
@@ -1591,12 +1594,9 @@ copy : boolean, default False
         -------
         sorted_obj : Series
         """
-        labels = self.index
-        sort_index = labels.argsort()
-        if not ascending:
-            sort_index = sort_index[::-1]
-        new_labels = labels.take(sort_index)
-        new_values = self.values.take(sort_index)
+        new_labels, indexer = self.index.order(return_indexer=True,
+                                               ascending=ascending)
+        new_values = self.values.take(indexer)
         return Series(new_values, new_labels, name=self.name)
 
     def argsort(self, axis=0, kind='quicksort', order=None):
@@ -2216,7 +2216,7 @@ copy : boolean, default False
     #----------------------------------------------------------------------
     # Time series-oriented methods
 
-    def shift(self, periods, freq=None, **kwds):
+    def shift(self, periods=1, freq=None, **kwds):
         """
         Shift the index of the Series by desired number of periods with an
         optional time offset
@@ -2294,29 +2294,6 @@ copy : boolean, default False
             return self.get(asOfDate)
         else:
             return v
-
-    def asfreq(self, freq, method=None):
-        """
-        Convert all TimeSeries inside to specified frequency using DateOffset
-        objects. Optionally provide fill method to pad/backfill missing values.
-
-        Parameters
-        ----------
-        freq : DateOffset object, or string
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}
-            Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill methdo
-
-        Returns
-        -------
-        converted : DataFrame
-        """
-        from pandas.core.daterange import date_range
-        if len(self.index) == 0:
-            return self.copy()
-        dti = date_range(self.index[0], self.index[-1], freq=freq)
-        return self.reindex(dti, method=method)
 
     def interpolate(self, method='linear'):
         """
@@ -2530,4 +2507,76 @@ Series.hist = _gfx.hist_series
 # Put here, otherwise monkey-patching in methods fails
 
 class TimeSeries(Series):
-    pass
+
+    def _repr_footer(self):
+        if self.index.freq is not None:
+            freqstr = 'Freq: %s, ' % self.index.freqstr
+        else:
+            freqstr = ''
+
+        namestr = "Name: %s, " % str(self.name) if self.name else ""
+        return '%s%sLength: %d' % (freqstr, namestr, len(self))
+
+    def at_time(self, time, tz=None, asof=False):
+        """
+        Select values at particular time of day (e.g. 9:30AM)
+
+        Parameters
+        ----------
+        time : datetime.time or string
+        tz : string or pytz.timezone
+            Time zone for time. Corresponding timestamps would be converted to
+            time zone of the TimeSeries
+
+        Returns
+        -------
+        values_at_time : TimeSeries
+        """
+        from pandas.tseries.resample import values_at_time
+        return values_at_time(self, time, tz=tz, asof=asof)
+
+    def tz_convert(self, tz, copy=True):
+        """
+        Convert TimeSeries to target time zone. If it is time zone naive, it
+        will be localized to the passed time zone.
+
+        Parameters
+        ----------
+        tz : string or pytz.timezone object
+        copy : boolean, default True
+            Also make a copy of the underlying data
+
+        Returns
+        -------
+        """
+        if self.index.tz is None:
+            new_index = self.index.tz_localize(tz)
+        else:
+            new_index = self.index.tz_normalize(tz)
+
+        new_values = self.values
+        if copy:
+            new_values = new_values.copy()
+
+        return Series(new_values, index=new_index, name=self.name)
+
+    def to_timestamp(self, freq='D', how='start', copy=True):
+        """
+        Cast to datetimeindex of timestamps, at *beginning* of period
+
+        Parameters
+        ----------
+        how : {'s', 'e', 'start', 'end'}
+
+        Returns
+        -------
+        DatetimeIndex
+        """
+        new_values = self.values
+        if copy:
+            new_values = new_values.copy()
+
+        new_index = self.index.to_timestamp(freq=freq, how=how)
+        return Series(new_values, index=new_index, name=self.name)
+
+

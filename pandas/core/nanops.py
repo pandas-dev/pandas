@@ -117,7 +117,7 @@ def _nanvar(values, axis=None, skipna=True, ddof=1):
 
     X = _ensure_numeric(values.sum(axis))
     XX = _ensure_numeric((values ** 2).sum(axis))
-    return (XX - X ** 2 / count) / (count - ddof)
+    return np.fabs((XX - X ** 2 / count) / (count - ddof))
 
 def _nanmin(values, axis=None, skipna=True):
     mask = isnull(values)

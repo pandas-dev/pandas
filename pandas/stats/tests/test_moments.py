@@ -220,7 +220,7 @@ class TestMoments(unittest.TestCase):
 
         # pass in ints
         result2 = func(np.arange(50), span=10)
-        self.assert_(result.dtype == np.float_)
+        self.assert_(result2.dtype == np.float_)
 
     def _check_ew_structures(self, func):
         series_result = func(self.series, com=10)

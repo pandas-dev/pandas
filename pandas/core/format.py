@@ -65,7 +65,13 @@ class SeriesFormatter(object):
 
     def _get_footer(self):
         footer = ''
+
         if self.name:
+            if getattr(self.series.index, 'freq', None):
+                footer += 'Freq: %s' % self.series.index.freqstr
+
+            if footer:
+                footer += ', '
             footer += ("Name: %s" % str(self.series.name)
                        if self.series.name else '')
 
@@ -262,6 +268,8 @@ class DataFrameFormatter(object):
             if isinstance(self.columns, MultiIndex):
                 if self.has_column_names:
                     row.append(single_column_table(self.columns.names))
+                else:
+                    row.append('')
                 row.extend([single_column_table(c) for c in self.columns])
             else:
                 row.append(self.columns.name or '')
@@ -290,9 +298,11 @@ class DataFrameFormatter(object):
                     row = frame.index.names + [''] * len(self.columns)
                     write_tr(row, indent, indent_delta, header=True)
 
+                indent -= indent_delta
                 write('</thead>', indent)
 
             write('<tbody>', indent)
+            indent += indent_delta
 
             _bold_row = self.kwds.get('bold_rows', False)
             def _maybe_bold_row(x):

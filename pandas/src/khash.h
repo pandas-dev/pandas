@@ -114,7 +114,6 @@ int main() {
 #include <limits.h>
 #include <Python.h>
 
-/* compipler specific configuration */
 
 #if UINT_MAX == 0xffffffffu
 typedef unsigned int khint32_t;

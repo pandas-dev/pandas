@@ -16,6 +16,7 @@ import numpy as np
 import numpy.ma as ma
 
 import pandas as pan
+import pandas.core.nanops as nanops
 import pandas.core.common as com
 import pandas.core.format as fmt
 import pandas.core.datetools as datetools
@@ -2510,7 +2511,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # empty
         tsframe[:0].to_csv(path)
         recons = DataFrame.from_csv(path)
-        assert_frame_equal(recons, tsframe[:0])
+        exp = tsframe[:0]
+        exp.index = []
+        assert_frame_equal(recons, exp)
 
     def test_to_csv_float32_nanrep(self):
         df = DataFrame(np.random.randn(1, 4).astype(np.float32))
@@ -4412,6 +4415,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = self.tsframe.apply(lambda x: x.var(ddof=4))
         assert_almost_equal(result, expected)
 
+        arr = np.repeat(np.random.random((1, 1000)), 1000, 0)
+        result = nanops.nanvar(arr, axis=0)
+        self.assertFalse((result < 0).any())
+        if nanops._USE_BOTTLENECK:
+            nanops._USE_BOTTLENECK = False
+            result = nanops.nanvar(arr, axis=0)
+            self.assertFalse((result < 0).any())
+            nanops._USE_BOTTLENECK = True
+
     def test_skew(self):
         from scipy.stats import skew
 
@@ -4552,10 +4564,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self._check_stat_op('median', wrapper, frame=self.intframe)
 
     def test_quantile(self):
-        try:
-            from scipy.stats import scoreatpercentile
-        except ImportError:
-            return
+        from pandas.compat.scipy import scoreatpercentile
 
         q = self.tsframe.quantile(0.1, axis=0)
         self.assertEqual(q['A'], scoreatpercentile(self.tsframe['A'], 10))
@@ -4615,13 +4624,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df.cumprod(1)
 
     def test_rank(self):
-        from scipy.stats import rankdata
+        from pandas.compat.scipy import rankdata
 
         self.frame['A'][::2] = np.nan
         self.frame['B'][::3] = np.nan
         self.frame['C'][::4] = np.nan
         self.frame['D'][::5] = np.nan
-
 
         ranks0 = self.frame.rank()
         ranks1 = self.frame.rank(1)

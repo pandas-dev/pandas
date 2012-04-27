@@ -421,59 +421,213 @@ def int64_unique(ndarray[int64_t] arr):
 
     return np.sort(uniques[:j])
 
+def group_add_bin(ndarray[float64_t, ndim=2] out,
+                  ndarray[int32_t] counts,
+                  ndarray[float64_t, ndim=2] values,
+                  ndarray[int32_t] bins):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, ngroups, b
+        float64_t val, count
+        ndarray[float64_t, ndim=2] sumx, nobs
+
+    nobs = np.zeros_like(out)
+    sumx = np.zeros_like(out)
+
+    ngroups = len(bins) + 1
+    N, K = (<object> values).shape
+
+    b = 0
+    if K > 1:
+        for i in range(N):
+            while b < ngroups - 1 and i >= bins[b]:
+                b += 1
+
+            counts[b] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[b, j] += 1
+                    sumx[b, j] += val
+    else:
+        for i in range(N):
+            while b < ngroups - 1 and i >= bins[b]:
+                b += 1
+
+            counts[b] += 1
+            val = values[i, 0]
+
+            # not nan
+            if val == val:
+                nobs[b, 0] += 1
+                sumx[b, 0] += val
+            print i, b, counts, nobs.squeeze()
+
+    for i in range(ngroups):
+        print 'writing %d' % i
+        for j in range(K):
+            if nobs[i] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = sumx[i, j]
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def backfill_int64(ndarray[int64_t] old, ndarray[int64_t] new,
-                      limit=None):
-    cdef Py_ssize_t i, j, nleft, nright
-    cdef ndarray[int32_t, ndim=1] indexer
-    cdef object cur, prev
-    cdef int lim
+def group_add(ndarray[float64_t, ndim=2] out,
+              ndarray[int32_t] counts,
+              ndarray[float64_t, ndim=2] values,
+              ndarray[int32_t] labels):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        float64_t val, count
+        ndarray[float64_t, ndim=2] sumx, nobs
 
-    nleft = len(old)
-    nright = len(new)
-    indexer = np.empty(nright, dtype=np.int32)
-    indexer.fill(-1)
+    nobs = np.zeros_like(out)
+    sumx = np.zeros_like(out)
 
-    if limit is None:
-        lim = nright
+    N, K = (<object> values).shape
+
+    if K > 1:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                # not nan
+                if val == val:
+                    nobs[lab, j] += 1
+                    sumx[lab, j] += val
     else:
-        # TODO: > 0?
-        lim = limit
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
 
-    if nleft == 0 or nright == 0 or new[0] > old[nleft - 1]:
-        return indexer
+            counts[lab] += 1
+            val = values[i, 0]
 
-    i = nleft - 1
-    j = nright - 1
+            # not nan
+            if val == val:
+                nobs[lab, 0] += 1
+                sumx[lab, 0] += val
 
-    cur = old[nleft - 1]
+    for i in range(len(counts)):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = sumx[i, j]
 
-    while j > 0 and new[j] > cur:
-        j -= 1
 
-    while True:
-        if j == 0:
-            break
+from datetime cimport getAbsTime
 
-        if i == 0:
-            while j > 0 and new[j] <= cur:
-                print i, j
-                indexer[j] = i
-                j -= 1
-            break
 
-        prev = old[i - 1]
+# cdef extern from "kvec.h":
 
-        while j > 0 and prev < new[j] <= cur:
-            print i, j
+#     ctypedef struct kv_int64_t:
+#         size_t n, m
+#         int64_t *a
 
-            indexer[j] = i
-            j -= 1
 
-        print 'decrement', i, j
-        i -= 1
-        cur = prev
+def test_foo(ndarray[int64_t] values):
+    cdef int64_t val
 
-    return indexer
+    val = values[0]
+    print val
 
+def get_abs_time(freq, dailyDate, originalDate):
+    return getAbsTime(freq, dailyDate, originalDate)
+
+have_pytz = 1
+import pytz
+
+def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
+    cdef:
+        ndarray[int64_t] utc_dates, result, trans, deltas
+        Py_ssize_t i, pos, n = len(vals)
+        int64_t v, offset
+
+    print 'int64 is: %d' % sizeof(int64_t)
+
+    if not have_pytz:
+        import pytz
+
+    # Convert to UTC
+
+    if tz1.zone != 'UTC':
+        utc_dates = np.empty(n, dtype=np.int64)
+        deltas = _get_deltas(tz1)
+        trans = _get_transitions(tz1)
+        pos = trans.searchsorted(vals[0])
+        offset = deltas[pos]
+        for i in range(n):
+            v = vals[i]
+            if v >= trans[pos + 1]:
+                pos += 1
+                offset = deltas[pos]
+            utc_dates[i] = v - offset
+    else:
+        utc_dates = vals
+
+    if tz2.zone == 'UTC':
+        return utc_dates
+
+    # Convert UTC to other timezone
+
+    result = np.empty(n, dtype=np.int64)
+    trans = _get_transitions(tz2)
+    deltas = _get_deltas(tz2)
+    offset = deltas[pos]
+    pos = max(0, trans.searchsorted(utc_dates[0], side='right') - 1)
+    for i in range(n):
+        v = utc_dates[i]
+        if v >= trans[pos + 1]:
+            pos += 1
+            offset = deltas[pos]
+        result[i] = v + offset
+
+    return result
+
+trans_cache = {}
+utc_offset_cache = {}
+
+def _get_transitions(object tz):
+    """
+    Get UTC times of DST transitions
+    """
+    if tz not in trans_cache:
+        arr = np.array(tz._utc_transition_times, dtype='M8[us]')
+        trans_cache[tz] = arr.view('i8')
+    return trans_cache[tz]
+
+def _get_deltas(object tz):
+    """
+    Get UTC offsets in microseconds corresponding to DST transitions
+    """
+    if tz not in utc_offset_cache:
+        utc_offset_cache[tz] = _unbox_utcoffsets(tz._transition_info)
+    return utc_offset_cache[tz]
+
+cdef ndarray _unbox_utcoffsets(object transinfo):
+    cdef:
+        Py_ssize_t i, sz
+        ndarray[int64_t] arr
+
+    sz = len(transinfo)
+    arr = np.empty(sz, dtype='i8')
+
+    for i in range(sz):
+        arr[i] = int(transinfo[i][0].total_seconds()) * 1000000
+
+    return arr

@@ -8,8 +8,11 @@ from pandas.core.datetools import (
     DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second,
     WeekOfMonth, format, ole2datetime, QuarterEnd, to_datetime, normalize_date,
     get_offset, get_offset_name, inferTimeRule, hasOffsetName,
-    _dt_box, _dt_unbox, parse_time_string, get_standard_freq,
-    _offset_map)
+    get_standard_freq)
+
+from pandas.tseries.frequencies import _offset_map
+from pandas.tseries.index import _to_m8
+from pandas.tseries.tools import parse_time_string
 
 from nose.tools import assert_raises
 
@@ -50,9 +53,9 @@ def test_normalize_date():
     actual = normalize_date(datetime(2007, 10, 1, 1, 12, 5, 10))
     assert actual == datetime(2007, 10, 1)
 
-def test_datetime64_unbox():
+def test_to_m8():
     valb = datetime(2007, 10, 1)
-    valu = _dt_unbox(valb)
+    valu = _to_m8(valb)
     assert type(valu) == np.datetime64
     #assert valu == np.datetime64(datetime(2007,10,1))
 
@@ -217,9 +220,9 @@ class TestBusinessDay(unittest.TestCase):
                        datetime(2008, 1, 6): datetime(2008, 1, 7),
                        datetime(2008, 1, 7): datetime(2008, 1, 7)}))
 
-        for dateOffset, cases in tests:
-            for baseDate, expected in cases.iteritems():
-                assertEq(dateOffset, baseDate, expected)
+        for offset, cases in tests:
+            for base, expected in cases.iteritems():
+                assertEq(offset, base, expected)
 
     def test_apply_corner(self):
         self.assertRaises(Exception, BDay().apply, BMonthEnd())
@@ -274,9 +277,9 @@ class TestWeek(unittest.TestCase):
                        datetime(2010, 4, 8): datetime(2010, 3, 30),
                        datetime(2010, 4, 5): datetime(2010, 3, 23)}))
 
-        for dateOffset, cases in tests:
-            for baseDate, expected in cases.iteritems():
-                assertEq(dateOffset, baseDate, expected)
+        for offset, cases in tests:
+            for base, expected in cases.iteritems():
+                assertEq(offset, base, expected)
 
     def test_onOffset(self):
         for weekday in range(7):
@@ -411,9 +414,9 @@ class TestBMonthBegin(unittest.TestCase):
                       datetime(2006, 12, 30): datetime(2006, 12, 1),
                       datetime(2007, 1, 1): datetime(2006, 12, 1)}))
 
-        for dateOffset, cases in tests:
-            for baseDate, expected in cases.iteritems():
-                assertEq(dateOffset, baseDate, expected)
+        for offset, cases in tests:
+            for base, expected in cases.iteritems():
+                assertEq(offset, base, expected)
 
     def test_onOffset(self):
 
@@ -467,9 +470,9 @@ class TestBMonthEnd(unittest.TestCase):
                       datetime(2006, 12, 30): datetime(2006, 12, 29),
                       datetime(2007, 1, 1): datetime(2006, 12, 29)}))
 
-        for dateOffset, cases in tests:
-            for baseDate, expected in cases.iteritems():
-                assertEq(dateOffset, baseDate, expected)
+        for offset, cases in tests:
+            for base, expected in cases.iteritems():
+                assertEq(offset, base, expected)
 
     def test_onOffset(self):
 
@@ -520,9 +523,9 @@ class TestMonthBegin(unittest.TestCase):
                       datetime(2006, 12, 29): datetime(2006, 12, 1),
                       datetime(2006, 1, 2): datetime(2006, 1, 1)}))
 
-        for dateOffset, cases in tests:
-            for baseDate, expected in cases.iteritems():
-                assertEq(dateOffset, baseDate, expected)
+        for offset, cases in tests:
+            for base, expected in cases.iteritems():
+                assertEq(offset, base, expected)
 
 class TestMonthEnd(unittest.TestCase):
 
@@ -560,9 +563,9 @@ class TestMonthEnd(unittest.TestCase):
                       datetime(2006, 12, 30): datetime(2006, 11, 30),
                       datetime(2007, 1, 1): datetime(2006, 12, 31)}))
 
-        for dateOffset, cases in tests:
-            for baseDate, expected in cases.iteritems():
-                assertEq(dateOffset, baseDate, expected)
+        for offset, cases in tests:
+            for base, expected in cases.iteritems():
+                assertEq(offset, base, expected)
 
     def test_onOffset(self):
 
@@ -648,9 +651,9 @@ class TestBQuarterBegin(unittest.TestCase):
                        datetime(2007, 4, 15): datetime(2007, 10, 1),
                        datetime(2008, 4, 30): datetime(2008, 10, 1),}))
 
-        for dateOffset, cases in tests:
-            for baseDate, expected in cases.iteritems():
-                assertEq(dateOffset, baseDate, expected)
+        for offset, cases in tests:
+            for base, expected in cases.iteritems():
+                assertEq(offset, base, expected)
 
         # corner
         offset = BQuarterBegin(n=-1, startingMonth=1)
@@ -715,9 +718,9 @@ class TestBQuarterEnd(unittest.TestCase):
                        datetime(2008, 4, 15): datetime(2008, 7, 31),
                        datetime(2008, 4, 30): datetime(2008, 10, 31),}))
 
-        for dateOffset, cases in tests:
-            for baseDate, expected in cases.iteritems():
-                assertEq(dateOffset, baseDate, expected)
+        for offset, cases in tests:
+            for base, expected in cases.iteritems():
+                assertEq(offset, base, expected)
 
         # corner
         offset = BQuarterEnd(n=-1, startingMonth=1)
@@ -819,9 +822,9 @@ class TestQuarterBegin(unittest.TestCase):
                        datetime(2008, 4, 15): datetime(2008, 10, 1),
                        datetime(2008, 4, 1): datetime(2008, 10, 1),}))
 
-        for dateOffset, cases in tests:
-            for baseDate, expected in cases.iteritems():
-                assertEq(dateOffset, baseDate, expected)
+        for offset, cases in tests:
+            for base, expected in cases.iteritems():
+                assertEq(offset, base, expected)
 
         # corner
         offset = QuarterBegin(n=-1, startingMonth=1)
@@ -887,9 +890,9 @@ class TestQuarterEnd(unittest.TestCase):
                        datetime(2008, 4, 15): datetime(2008, 7, 31),
                        datetime(2008, 4, 30): datetime(2008, 10, 31),}))
 
-        for dateOffset, cases in tests:
-            for baseDate, expected in cases.iteritems():
-                assertEq(dateOffset, baseDate, expected)
+        for offset, cases in tests:
+            for base, expected in cases.iteritems():
+                assertEq(offset, base, expected)
 
         # corner
         offset = QuarterEnd(n=-1, startingMonth=1)
@@ -971,9 +974,9 @@ class TestBYearBegin(unittest.TestCase):
                        datetime(2007, 6, 30): datetime(2006, 1, 2),
                        datetime(2008, 12, 31): datetime(2007, 1, 1),}))
 
-        for dateOffset, cases in tests:
-            for baseDate, expected in cases.iteritems():
-                assertEq(dateOffset, baseDate, expected)
+        for offset, cases in tests:
+            for base, expected in cases.iteritems():
+                assertEq(offset, base, expected)
 
 
 class TestYearBegin(unittest.TestCase):
@@ -1009,9 +1012,9 @@ class TestYearBegin(unittest.TestCase):
                        datetime(2008, 6, 30): datetime(2007, 1, 1),
                        datetime(2008, 12, 31): datetime(2007, 1, 1),}))
 
-        for dateOffset, cases in tests:
-            for baseDate, expected in cases.iteritems():
-                assertEq(dateOffset, baseDate, expected)
+        for offset, cases in tests:
+            for base, expected in cases.iteritems():
+                assertEq(offset, base, expected)
 
 
     def test_onOffset(self):
@@ -1045,9 +1048,9 @@ class TestBYearEndLagged(unittest.TestCase):
                       datetime(2007, 6, 30): datetime(2007, 6, 29)},
                       ))
 
-        for dateOffset, cases in tests:
-            for baseDate, expected in cases.iteritems():
-                self.assertEqual(baseDate + dateOffset, expected)
+        for offset, cases in tests:
+            for base, expected in cases.iteritems():
+                self.assertEqual(base + offset, expected)
 
     def test_roll(self):
         offset = BYearEnd(month=6)
@@ -1097,9 +1100,9 @@ class TestBYearEnd(unittest.TestCase):
                        datetime(2008, 6, 30): datetime(2006, 12, 29),
                        datetime(2008, 12, 31): datetime(2006, 12, 29),}))
 
-        for dateOffset, cases in tests:
-            for baseDate, expected in cases.iteritems():
-                assertEq(dateOffset, baseDate, expected)
+        for offset, cases in tests:
+            for base, expected in cases.iteritems():
+                assertEq(offset, base, expected)
 
     def test_onOffset(self):
 
@@ -1144,9 +1147,9 @@ class TestYearEnd(unittest.TestCase):
                        datetime(2008, 6, 30): datetime(2006, 12, 31),
                        datetime(2008, 12, 31): datetime(2006, 12, 31),}))
 
-        for dateOffset, cases in tests:
-            for baseDate, expected in cases.iteritems():
-                assertEq(dateOffset, baseDate, expected)
+        for offset, cases in tests:
+            for base, expected in cases.iteritems():
+                assertEq(offset, base, expected)
 
     def test_onOffset(self):
 
@@ -1188,12 +1191,12 @@ class TestYearEndDiffMonth(unittest.TestCase):
 
         tests.append((YearEnd(-2, month=3),
                       {datetime(2007, 1, 1): datetime(2005, 3, 31),
-                       datetime(2008, 6, 30): datetime(2006, 3, 31),
+                       datetime(2008, 6, 30): datetime(2007, 3, 31),
                        datetime(2008, 3, 31): datetime(2006, 3, 31),}))
 
-        for dateOffset, cases in tests:
-            for baseDate, expected in cases.iteritems():
-                assertEq(dateOffset, baseDate, expected)
+        for offset, cases in tests:
+            for base, expected in cases.iteritems():
+                assertEq(offset, base, expected)
 
     def test_onOffset(self):
 
@@ -1207,14 +1210,14 @@ class TestYearEndDiffMonth(unittest.TestCase):
         for offset, date, expected in tests:
             assertOnOffset(offset, date, expected)
 
-def assertEq(dateOffset, baseDate, expected):
-    actual = dateOffset + baseDate
+def assertEq(offset, base, expected):
+    actual = offset + base
     try:
         assert actual == expected
     except AssertionError as err:
         raise AssertionError("\nExpected: %s\nActual: %s\nFor Offset: %s)"
                              "\nAt Date: %s"%
-                (expected, actual, dateOffset, baseDate))
+                (expected, actual, offset, base))
 
 def test_Hour():
     assertEq(Hour(), datetime(2010, 1, 1), datetime(2010, 1, 1, 1))
@@ -1225,6 +1228,8 @@ def test_Hour():
     assert (Hour(3) + Hour(2)) == Hour(5)
     assert (Hour(3) - Hour(2)) == Hour()
 
+    assert(Hour(4) != Hour(1))
+
 def test_Minute():
     assertEq(Minute(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 1))
     assertEq(Minute(-1), datetime(2010, 1, 1, 0, 1), datetime(2010, 1, 1))
@@ -1233,6 +1238,7 @@ def test_Minute():
 
     assert (Minute(3) + Minute(2)) == Minute(5)
     assert (Minute(3) - Minute(2)) == Minute()
+    assert(Minute(5) != Minute())
 
 def test_Second():
     assertEq(Second(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 1))
@@ -1242,25 +1248,6 @@ def test_Second():
 
     assert (Second(3) + Second(2)) == Second(5)
     assert (Second(3) - Second(2)) == Second()
-
-def test_inferTimeRule():
-    index1 = [datetime(2010, 1, 29, 0, 0),
-              datetime(2010, 2, 26, 0, 0),
-              datetime(2010, 3, 31, 0, 0)]
-
-    index2 = [datetime(2010, 3, 26, 0, 0),
-              datetime(2010, 3, 29, 0, 0),
-              datetime(2010, 3, 30, 0, 0)]
-
-    index3 = [datetime(2010, 3, 26, 0, 0),
-              datetime(2010, 3, 27, 0, 0),
-              datetime(2010, 3, 29, 0, 0)]
-
-    assert inferTimeRule(index1) == 'BM'
-    assert inferTimeRule(index2) == 'B'
-
-    assert_raises(Exception, inferTimeRule, index1[:2])
-    assert_raises(Exception, inferTimeRule, index3)
 
 def test_hasOffsetName():
     assert hasOffsetName(BDay())
@@ -1311,18 +1298,27 @@ def test_get_standard_freq():
     assert fstr == get_standard_freq('5QuarTer')
     assert fstr == get_standard_freq(('q', 5))
 
+def test_quarterly_dont_normalize():
+    date = datetime(2012, 3, 31, 5, 30)
+
+    offsets = (QuarterBegin, QuarterEnd, BQuarterEnd, BQuarterBegin)
+
+    for klass in offsets:
+        result = date + klass()
+        assert(result.time() == date.time())
+
 def test_rule_code():
     lst = ['M', 'MS', 'BM', 'BMS', 'D', 'B', 'H', 'T', 'S', 'L', 'U']
     for k in lst:
-        assert k == _offset_map[k].rule_code()
-        assert k == (_offset_map[k] * 3).rule_code()
+        assert k == _offset_map[k].rule_code
+        assert k == (_offset_map[k] * 3).rule_code
 
     suffix_lst = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
     base = 'W'
     for v in suffix_lst:
         alias = '-'.join([base, v])
-        assert alias == _offset_map[alias].rule_code()
-        assert alias == (_offset_map[alias] * 5).rule_code()
+        assert alias == _offset_map[alias].rule_code
+        assert alias == (_offset_map[alias] * 5).rule_code
 
     suffix_lst = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG',
                   'SEP', 'OCT', 'NOV', 'DEC']
@@ -1330,8 +1326,8 @@ def test_rule_code():
     for base in base_lst:
         for v in suffix_lst:
             alias = '-'.join([base, v])
-            assert alias == _offset_map[alias].rule_code()
-            assert alias == (_offset_map[alias] * 5).rule_code()
+            assert alias == _offset_map[alias].rule_code
+            assert alias == (_offset_map[alias] * 5).rule_code
 
 
 

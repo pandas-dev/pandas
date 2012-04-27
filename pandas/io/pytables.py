@@ -11,11 +11,16 @@ import time
 import numpy as np
 from pandas import Series, TimeSeries, DataFrame, Panel, Index, MultiIndex
 from pandas.core.common import adjoin
-from pandas.core.algorithms import match
+from pandas.core.algorithms import match, unique
+
+from pandas.core.factor import Factor
+from pandas.core.common import _asarray_tuplesafe
+from pandas.core.internals import BlockManager, make_block
+from pandas.core.reshape import block2d_to_block3d
+import pandas.core.common as com
+
 import pandas._tseries as lib
 from contextlib import contextmanager
-
-import pandas.core.common as com
 
 # reading and writing the full object in one go
 _TYPE_MAP = {
@@ -421,10 +426,7 @@ class HDFStore(object):
             self._write_array(group, 'block%d_values' % i, blk.values)
 
     def _read_block_manager(self, group):
-        from pandas.core.internals import BlockManager, make_block
-
         ndim = group._v_attrs.ndim
-        nblocks = group._v_attrs.nblocks
 
         axes = []
         for i in xrange(ndim):
@@ -689,11 +691,6 @@ class HDFStore(object):
         return self._read_panel_table(group, where)['value']
 
     def _read_panel_table(self, group, where=None):
-        from pandas.core.index import unique_int64, Factor
-        from pandas.core.common import _asarray_tuplesafe
-        from pandas.core.internals import BlockManager
-        from pandas.core.reshape import block2d_to_block3d
-
         table = getattr(group, 'table')
         fields = table._v_attrs.fields
 
@@ -714,7 +711,7 @@ class HDFStore(object):
         J, K = len(major.levels), len(minor.levels)
         key = major.labels * K + minor.labels
 
-        if len(unique_int64(key)) == len(key):
+        if len(unique(key)) == len(key):
             sorter, _ = lib.groupsort_indexer(key, J * K)
 
             # the data need to be sorted
@@ -739,7 +736,6 @@ class HDFStore(object):
 
             # need a better algorithm
             tuple_index = long_index.get_tuple_index()
-            index_map = lib.map_indices_object(tuple_index)
 
             unique_tuples = lib.fast_unique(tuple_index)
             unique_tuples = _asarray_tuplesafe(unique_tuples)

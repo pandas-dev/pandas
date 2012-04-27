@@ -3,7 +3,7 @@ import os
 import string
 import unittest
 
-from pandas import Series, DataFrame, MultiIndex, IntervalIndex
+from pandas import Series, DataFrame, MultiIndex, PeriodIndex
 import pandas.util.testing as tm
 
 import numpy as np
@@ -32,7 +32,7 @@ class TestSeriesPlots(unittest.TestCase):
         self.series = tm.makeStringSeries()
         self.series.name = 'series'
 
-        self.iseries = tm.makeIntervalSeries()
+        self.iseries = tm.makePeriodSeries()
         self.iseries.name = 'iseries'
 
     @slow
@@ -95,6 +95,10 @@ class TestDataFramePlots(unittest.TestCase):
         df = DataFrame(np.random.rand(10, 3),
                        index=MultiIndex.from_tuples(tuples))
         _check_plot_works(df.plot, use_index=True)
+
+        axes = df.plot(subplots=True)
+        for ax in axes:
+            self.assert_(ax.get_legend() is not None)
 
     @slow
     def test_plot_bar(self):

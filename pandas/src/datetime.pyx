@@ -6,9 +6,6 @@ import numpy as np
 from numpy cimport int32_t, int64_t, import_array, ndarray
 from cpython cimport *
 
-from libc.stdlib cimport malloc, free, abs
-from libc.math cimport floor
-
 # this is our datetime.pxd
 from datetime cimport *
 from util cimport is_integer_object, is_datetime64_object
@@ -37,9 +34,18 @@ ctypedef enum time_res:
     r_max = 98
     r_invalid = 99
 
+try:
+    basestring
+except NameError: # py3
+    basestring = str
+
+
 # Python front end to C extension type _Timestamp
 # This serves as the box for datetime64
 class Timestamp(_Timestamp):
+
+    __slots__ = ['value', 'offset']
+
     def __new__(cls, object ts_input, object offset=None, tz=None):
         if isinstance(ts_input, float):
             # to do, do we want to support this, ie with fractional seconds?
@@ -91,17 +97,70 @@ class Timestamp(_Timestamp):
         object_state = self.value, self.offset, self.tzinfo
         return (Timestamp, object_state)
 
-    def to_interval(self, freq=None):
+    def to_period(self, freq=None):
         """
-        Return an interval of which this timestamp is an observation.
+        Return an period of which this timestamp is an observation.
         """
-        from pandas.core.datetools import Interval
+        from pandas.tseries.period import Period
 
         if freq == None:
             freq = self.freq
 
-        return Interval(self, freq=freq)
+        return Period(self, freq=freq)
 
+
+cdef inline bint is_timestamp(object o):
+    return isinstance(o, Timestamp)
+
+def is_timestamp_array(ndarray[object] values):
+    cdef int i, n = len(values)
+    if n == 0:
+        return False
+    for i in range(n):
+        if not is_timestamp(values[i]):
+            return False
+    return True
+
+#----------------------------------------------------------------------
+# Frequency inference
+
+def unique_deltas(ndarray[int64_t] arr):
+    cdef:
+        Py_ssize_t i, n = len(arr)
+        int64_t val
+        khiter_t k
+        kh_int64_t *table
+        int ret = 0
+        list uniques = []
+
+    table = kh_init_int64()
+    kh_resize_int64(table, 10)
+    for i in range(n - 1):
+        val = arr[i + 1] - arr[i]
+        k = kh_get_int64(table, val)
+        if k == table.n_buckets:
+            kh_put_int64(table, val, &ret)
+            uniques.append(val)
+    kh_destroy_int64(table)
+
+    result = np.array(uniques, dtype=np.int64)
+    result.sort()
+    return result
+
+
+cdef inline bint _is_multiple(int64_t us, int64_t mult):
+    return us % mult == 0
+
+
+def apply_offset(ndarray[object] values, object offset):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[int64_t] new_values
+        object boxed
+
+    result = np.empty(n, dtype='M8[us]')
+    new_values = result.view('i8')
+    pass
 
 # This is PITA. Because we inherit from datetime, which has very specific
 # construction requirements, we need to do object instantiation in python
@@ -206,6 +265,17 @@ cdef convert_to_tsobject(object ts, object tzinfo=None):
         dts.min = PyDateTime_DATE_GET_MINUTE(ts)
         dts.sec = PyDateTime_DATE_GET_SECOND(ts)
         dts.us = PyDateTime_DATE_GET_MICROSECOND(ts)
+        retval.value = PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts)
+    elif PyDate_Check(ts):
+        dts.year = PyDateTime_GET_YEAR(ts)
+        dts.month = PyDateTime_GET_MONTH(ts)
+        dts.day = PyDateTime_GET_DAY(ts)
+        retval.dtval = PyDateTime_FromDateAndTime(dts.year, dts.month, dts.day,
+                                                  0, 0, 0, 0)
+        dts.hour = 0
+        dts.min = 0
+        dts.sec = 0
+        dts.us = 0
         retval.value = PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts)
     # pretty cheap
     elif isinstance(ts, _Timestamp):
@@ -633,6 +703,9 @@ def string_to_datetime(ndarray[object] strings, raise_=False, dayfirst=False):
             elif PyDateTime_Check(val):
                 result[i] = val
             else:
+                if len(val) == 0:
+                    result[i] = NaT
+                    continue
                 try:
                     result[i] = parse(val, dayfirst=dayfirst)
                 except Exception:
@@ -646,6 +719,9 @@ def string_to_datetime(ndarray[object] strings, raise_=False, dayfirst=False):
             if util._checknull(val):
                 oresult[i] = val
             else:
+                if len(val) == 0:
+                    oresult[i] = NaT
+                    continue
                 try:
                     oresult[i] = parse(val, dayfirst=dayfirst)
                 except Exception:
@@ -689,16 +765,72 @@ except:
 trans_cache = {}
 utc_offset_cache = {}
 
-cdef ndarray[int64_t] _get_transitions(object tz):
+def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
+    cdef:
+        ndarray[int64_t] utc_dates, result, trans, deltas
+        Py_ssize_t i, pos, n = len(vals)
+        int64_t v, offset
+
+    if not have_pytz:
+        import pytz
+
+    # Convert to UTC
+
+    if tz1.zone != 'UTC':
+        utc_dates = np.empty(n, dtype=np.int64)
+        deltas = _get_deltas(tz1)
+        trans = _get_transitions(tz1)
+        pos = trans.searchsorted(vals[0])
+        offset = deltas[pos]
+        for i in range(n):
+            v = vals[i]
+            if v >= trans[pos + 1]:
+                pos += 1
+                offset = deltas[pos]
+            utc_dates[i] = v - offset
+    else:
+        utc_dates = vals
+
+    if tz2.zone == 'UTC':
+        return utc_dates
+
+    # Convert UTC to other timezone
+
+    result = np.empty(n, dtype=np.int64)
+    trans = _get_transitions(tz2)
+    deltas = _get_deltas(tz2)
+    pos = trans.searchsorted(utc_dates[0])
+    offset = deltas[pos]
+    for i in range(n):
+        v = utc_dates[i]
+        if v >= trans[pos + 1]:
+            pos += 1
+            offset = deltas[pos]
+        result[i] = v + offset
+
+    return result
+
+trans_cache = {}
+utc_offset_cache = {}
+
+def _get_transitions(object tz):
     """
     Get UTC times of DST transitions
     """
     if tz not in trans_cache:
         arr = np.array(tz._utc_transition_times, dtype='M8[us]')
-        trans_cache[tz] = np.array(arr.view('i8'))
+        trans_cache[tz] = arr.view('i8')
     return trans_cache[tz]
 
-cdef ndarray[int64_t] _unbox_utcoffsets(object transinfo):
+def _get_deltas(object tz):
+    """
+    Get UTC offsets in microseconds corresponding to DST transitions
+    """
+    if tz not in utc_offset_cache:
+        utc_offset_cache[tz] = _unbox_utcoffsets(tz._transition_info)
+    return utc_offset_cache[tz]
+
+cdef ndarray _unbox_utcoffsets(object transinfo):
     cdef:
         Py_ssize_t i, sz
         ndarray[int64_t] arr
@@ -711,59 +843,8 @@ cdef ndarray[int64_t] _unbox_utcoffsets(object transinfo):
 
     return arr
 
-cdef int64_t get_utcoffset(object tz, Py_ssize_t idx):
-    """
-    Get UTC offsets in microseconds corresponding to DST transitions
-    """
-    cdef:
-        ndarray[int64_t] arr
-    if tz not in utc_offset_cache:
-        utc_offset_cache[tz] = _unbox_utcoffsets(tz._transition_info)
-    arr = utc_offset_cache[tz]
-    return arr[idx]
 
-def tz_normalize_array(ndarray[int64_t] vals, object tz1, object tz2):
-    """
-    Convert DateRange from one time zone to another (using pytz)
-
-    Returns
-    -------
-    normalized : DateRange
-    """
-    cdef:
-        ndarray[int64_t] result
-        ndarray[int64_t] trans
-        Py_ssize_t i, sz, tzidx
-        int64_t v, tz1offset, tz2offset
-
-    if not have_pytz:
-        raise Exception("Could not find pytz module")
-
-    sz = len(vals)
-
-    if sz == 0:
-        return np.empty(0, dtype=np.int64)
-
-    result = np.empty(sz, dtype=np.int64)
-    trans = _get_transitions(tz1)
-
-    tzidx = np.searchsorted(trans, vals[0])
-
-    tz1offset = get_utcoffset(tz1, tzidx)
-    tz2offset = get_utcoffset(tz2, tzidx)
-
-    for i in range(sz):
-        v = vals[i]
-        if v >= trans[tzidx + 1]:
-            tzidx += 1
-            tz1offset = get_utcoffset(tz1, tzidx)
-            tz2offset = get_utcoffset(tz2, tzidx)
-
-        result[i] = (v - tz1offset) + tz2offset
-
-    return result
-
-def tz_localize_array(ndarray[int64_t] vals, object tz):
+def tz_localize(ndarray[int64_t] vals, object tz):
     """
     Localize tzinfo-naive DateRange to given time zone (using pytz). If
     there are ambiguities in the values, raise AmbiguousTimeError.
@@ -773,9 +854,9 @@ def tz_localize_array(ndarray[int64_t] vals, object tz):
     localized : DatetimeIndex
     """
     cdef:
-        ndarray[int64_t] trans
-        Py_ssize_t i, sz, tzidx
-        int64_t v, t1, t2, currtrans, tmp
+        ndarray[int64_t] trans, deltas
+        Py_ssize_t i, pos, n = len(vals)
+        int64_t v, dst_start, dst_end
 
     if not have_pytz:
         raise Exception("Could not find pytz module")
@@ -783,40 +864,32 @@ def tz_localize_array(ndarray[int64_t] vals, object tz):
     if tz == pytz.utc or tz is None:
         return vals
 
-    sz = len(vals)
-
-    if sz == 0:
-        return np.empty(0, dtype=np.int64)
-
-    result = np.empty(sz, dtype=np.int64)
     trans = _get_transitions(tz)
-    tzidx = np.searchsorted(trans, vals[0])
+    deltas = _get_deltas(tz)
 
-    currtrans = trans[tzidx]
-    t1 = currtrans + get_utcoffset(tz, tzidx-1)
-    t2 = currtrans + get_utcoffset(tz, tzidx)
+    pos = np.searchsorted(trans, vals[0])
+    dst_start = trans[pos] + deltas[pos - 1]
+    dst_end = trans[pos] + deltas[pos]
 
-    for i in range(sz):
+    for i in range(n):
         v = vals[i]
-        if v >= trans[tzidx + 1]:
-            tzidx += 1
-            currtrans = trans[tzidx]
-            t1 = currtrans + get_utcoffset(tz, tzidx-1)
-            t2 = currtrans + get_utcoffset(tz, tzidx)
+        if v >= trans[pos + 1]:
+            pos += 1
+            dst_start = trans[pos] + deltas[pos - 1]
+            dst_end = trans[pos] + deltas[pos]
 
-        if t1 > t2:
-            tmp = t1
-            t1 = t2
-            t2 = tmp
+        if dst_start > dst_end:
+            dst_end, dst_start = dst_start, dst_end
 
-        if t1 <= v and v <= t2:
+        if dst_start <= v and v <= dst_end:
             msg = "Cannot localize, ambiguous time %s found" % Timestamp(v)
             raise pytz.AmbiguousTimeError(msg)
 
     return vals
 
+
 # Accessors
-# ------------------------------------------------------------------------------
+#----------------------------------------------------------------------
 
 def build_field_sarray(ndarray[int64_t] dtindex):
     '''
@@ -913,7 +986,7 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
         for i in range(count):
             PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
             isleap = is_leapyear(dts.year)
-            out[i] = _month_offset[isleap][dts.month-1] + dts.day
+            out[i] = _month_offset[isleap, dts.month-1] + dts.day
         return out
 
     elif field == 'dow':
@@ -926,7 +999,7 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
         for i in range(count):
             PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
             isleap = is_leapyear(dts.year)
-            out[i] = _month_offset[isleap][dts.month-1] + dts.day
+            out[i] = _month_offset[isleap, dts.month - 1] + dts.day
             out[i] = ((out[i] - 1) / 7) + 1
         return out
 
@@ -939,8 +1012,56 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
 
     raise ValueError("Field %s not supported" % field)
 
+
+cdef inline int m8_weekday(int64_t val):
+    ts = convert_to_tsobject(val)
+    return ts_dayofweek(ts)
+
+cdef int64_t DAY_US = 24 * 60 * 60 * 1000000
+
+def values_at_time(ndarray[int64_t] stamps, int64_t time):
+    cdef:
+        Py_ssize_t i, j, count, n = len(stamps)
+        ndarray[int64_t] indexer, times
+        int64_t last, cur
+
+    # Assumes stamps is sorted
+
+    if len(stamps) == 0:
+        return np.empty(0, dtype=np.int64)
+
+    # is this OK?
+    # days = stamps // DAY_US
+    times = stamps % DAY_US
+
+    # Microsecond resolution
+    count = 0
+    for i in range(1, n):
+        if times[i] == time:
+            count += 1
+        # cur = days[i]
+        # if cur > last:
+        #     count += 1
+        #     last = cur
+
+    indexer = np.empty(count, dtype=np.int64)
+
+    j = 0
+    # last = days[0]
+    for i in range(n):
+        if times[i] == time:
+            indexer[j] = i
+            j += 1
+
+        # cur = days[i]
+        # if cur > last:
+        #     j += 1
+        #     last = cur
+
+    return indexer
+
 # Some general helper functions
-# ------------------------------------------------------------------------------
+#----------------------------------------------------------------------
 
 def isleapyear(int64_t year):
     return is_leapyear(year)
@@ -960,33 +1081,33 @@ def monthrange(int64_t year, int64_t month):
 cdef inline int64_t ts_dayofweek(_TSObject ts):
     return dayofweek(ts.dtval.year, ts.dtval.month, ts.dtval.day)
 
-# Interval logic
-# ------------------------------------------------------------------------------
+# Period logic
+#----------------------------------------------------------------------
 
-cdef long apply_mult(long skts_ord, long mult):
+cdef int64_t apply_mult(int64_t period_ord, int64_t mult):
     """
     Get base+multiple ordinal value from corresponding base-only ordinal value.
     For example, 5min ordinal will be 1/5th the 1min ordinal (rounding down to
     integer).
     """
     if mult == 1:
-        return skts_ord
+        return period_ord
 
-    return (skts_ord - 1) // mult
+    return (period_ord - 1) // mult
 
-cdef long remove_mult(long skts_ord_w_mult, long mult):
+cdef int64_t remove_mult(int64_t period_ord_w_mult, int64_t mult):
     """
     Get base-only ordinal value from corresponding base+multiple ordinal.
     """
     if mult == 1:
-        return skts_ord_w_mult
+        return period_ord_w_mult
 
-    return skts_ord_w_mult * mult + 1;
+    return period_ord_w_mult * mult + 1;
 
-def dt64arr_to_sktsarr(ndarray[int64_t] dtarr, int base, long mult):
+def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int base, int64_t mult):
     """
     Convert array of datetime64 values (passed in as 'i8' dtype) to a set of
-    intervals corresponding to desired frequency, per skts convention.
+    periods corresponding to desired frequency, per period convention.
     """
     cdef:
         ndarray[int64_t] out
@@ -999,87 +1120,88 @@ def dt64arr_to_sktsarr(ndarray[int64_t] dtarr, int base, long mult):
 
     for i in range(l):
         PyArray_DatetimeToDatetimeStruct(dtarr[i], NPY_FR_us, &dts)
-        out[i] = get_skts_ordinal(dts.year, dts.month, dts.day,
+        out[i] = get_period_ordinal(dts.year, dts.month, dts.day,
                                   dts.hour, dts.min, dts.sec, base)
         out[i] = apply_mult(out[i], mult)
     return out
 
-def sktsarr_to_dt64arr(ndarray[int64_t] sktsarr, int base, long mult):
+def periodarr_to_dt64arr(ndarray[int64_t] periodarr, int base, int64_t mult):
     """
     Convert array to datetime64 values from a set of ordinals corresponding to
-    intervals per skts convention.
+    periods per period convention.
     """
     cdef:
         ndarray[int64_t] out
         Py_ssize_t i, l
 
-    l = len(sktsarr)
+    l = len(periodarr)
 
     out = np.empty(l, dtype='i8')
 
     for i in range(l):
-        out[i] = skts_ordinal_to_dt64(sktsarr[i], base, mult)
+        out[i] = period_ordinal_to_dt64(periodarr[i], base, mult)
 
     return out
 
-cpdef long skts_resample(long skts_ordinal, int base1, long mult1, int base2, long mult2,
-                         object relation='E'):
+cpdef int64_t period_asfreq(int64_t period_ordinal, int base1, int64_t mult1,
+                           int base2, int64_t mult2, object relation=b'E'):
     """
-    Convert skts ordinal from one frequency to another, and if upsampling, choose
-    to use start ('S') or end ('E') of interval.
+    Convert period ordinal from one frequency to another, and if upsampling,
+    choose to use start ('S') or end ('E') of period.
     """
     cdef:
-        long retval
+        int64_t retval
 
-    if relation not in ('S', 'E'):
+    if relation not in (b'S', b'E'):
         raise ValueError('relation argument must be one of S or E')
 
-    skts_ordinal = remove_mult(skts_ordinal, mult1)
+    period_ordinal = remove_mult(period_ordinal, mult1)
 
-    if mult1 != 1 and relation == 'E':
-        skts_ordinal += (mult1 - 1)
+    if mult1 != 1 and relation == b'E':
+        period_ordinal += (mult1 - 1)
 
-    retval = resample(skts_ordinal, base1, base2, (<char*>relation)[0])
+    retval = asfreq(period_ordinal, base1, base2, (<char*>relation)[0])
     retval = apply_mult(retval, mult2)
 
     return retval
 
-def skts_resample_arr(ndarray[int64_t] arr, int base1, long mult1, int base2, long mult2,
-                      object relation='E'):
+def period_asfreq_arr(ndarray[int64_t] arr, int base1, int64_t mult1, int base2,
+                        int64_t mult2, object relation=b'E'):
     """
-    Convert int64-array of skts ordinals from one frequency to another, and if
-    upsampling, choose to use start ('S') or end ('E') of interval.
+    Convert int64-array of period ordinals from one frequency to another, and if
+    upsampling, choose to use start ('S') or end ('E') of period.
     """
     cdef:
         ndarray[int64_t] new_arr
         Py_ssize_t i, sz
 
-    if relation not in ('S', 'E'):
+    if relation not in (b'S', b'E'):
         raise ValueError('relation argument must be one of S or E')
 
     sz = len(arr)
     new_arr = np.empty(sz, dtype=np.int64)
 
     for i in range(sz):
-        new_arr[i] = skts_resample(arr[i], base1, mult1, base2, mult2, relation)
+        new_arr[i] = period_asfreq(arr[i], base1, mult1, base2, mult2, relation)
 
     return new_arr
 
-def skts_ordinal(int y, int m, int d, int h, int min, int s, int base, long mult):
+def period_ordinal(int y, int m, int d, int h, int min, int s,
+                   int base, int64_t mult):
     cdef:
-        long ordinal
+        int64_t ordinal
 
-    ordinal = get_skts_ordinal(y, m, d, h, min, s, base)
+    ordinal = get_period_ordinal(y, m, d, h, min, s, base)
 
     return apply_mult(ordinal, mult)
 
-cpdef int64_t skts_ordinal_to_dt64(long skts_ordinal, int base, long mult):
+cpdef int64_t period_ordinal_to_dt64(int64_t period_ordinal, int base, int64_t mult):
     cdef:
-        long ordinal
+        int64_t ordinal
         npy_datetimestruct dts
         date_info dinfo
 
-    ordinal = remove_mult(skts_ordinal, mult)
+    ordinal = remove_mult(period_ordinal, mult)
 
     get_date_info(ordinal, base, &dinfo)
 
@@ -1093,78 +1215,79 @@ cpdef int64_t skts_ordinal_to_dt64(long skts_ordinal, int base, long mult):
 
     return PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts)
 
-def skts_ordinal_to_string(long value, int base, long mult):
+def period_ordinal_to_string(int64_t value, int base, int64_t mult):
     cdef:
         char *ptr
 
-    ptr = interval_to_string(remove_mult(value, mult), base)
+    ptr = period_to_string(remove_mult(value, mult), base)
 
     if ptr == NULL:
         raise ValueError("Could not create string from ordinal '%d'" % value)
 
     return <object>ptr
 
-def skts_strftime(long value, int freq, long mult, object fmt):
+def period_strftime(int64_t value, int freq, int64_t mult, object fmt):
     cdef:
         char *ptr
 
     value = remove_mult(value, mult)
-    ptr = interval_to_string2(value, freq, <char*>fmt)
+    ptr = period_to_string2(value, freq, <char*>fmt)
 
     if ptr == NULL:
         raise ValueError("Could not create string with fmt '%s'" % fmt)
 
     return <object>ptr
 
-# interval accessors
+# period accessors
 
-ctypedef int (*accessor)(long ordinal, int base) except -1
+ctypedef int (*accessor)(int64_t ordinal, int base) except -1
 
-cdef int apply_accessor(accessor func, long value, int base, long mult) except -1:
+cdef int apply_accessor(accessor func, int64_t value, int base,
+                        int64_t mult) except -1:
     value = remove_mult(value, mult)
     return func(value, base)
 
-cpdef int get_skts_year(long value, int base, long mult) except -1:
-    return apply_accessor(iyear, value, base, mult)
+cpdef int get_period_year(int64_t value, int base, int64_t mult) except -1:
+    return apply_accessor(pyear, value, base, mult)
 
-cpdef int get_skts_qyear(long value, int base, long mult) except -1:
-    return apply_accessor(iqyear, value, base, mult)
+cpdef int get_period_qyear(int64_t value, int base, int64_t mult) except -1:
+    return apply_accessor(pqyear, value, base, mult)
 
-cpdef int get_skts_quarter(long value, int base, long mult) except -1:
-    return apply_accessor(iquarter, value, base, mult)
+cpdef int get_period_quarter(int64_t value, int base, int64_t mult) except -1:
+    return apply_accessor(pquarter, value, base, mult)
 
-cpdef int get_skts_month(long value, int base, long mult) except -1:
-    return apply_accessor(imonth, value, base, mult)
+cpdef int get_period_month(int64_t value, int base, int64_t mult) except -1:
+    return apply_accessor(pmonth, value, base, mult)
 
-cpdef int get_skts_day(long value, int base, long mult) except -1:
-    return apply_accessor(iday, value, base, mult)
+cpdef int get_period_day(int64_t value, int base, int64_t mult) except -1:
+    return apply_accessor(pday, value, base, mult)
 
-cpdef int get_skts_hour(long value, int base, long mult) except -1:
-    return apply_accessor(ihour, value, base, mult)
+cpdef int get_period_hour(int64_t value, int base, int64_t mult) except -1:
+    return apply_accessor(phour, value, base, mult)
 
-cpdef int get_skts_minute(long value, int base, long mult) except -1:
-    return apply_accessor(iminute, value, base, mult)
+cpdef int get_period_minute(int64_t value, int base, int64_t mult) except -1:
+    return apply_accessor(pminute, value, base, mult)
 
-cpdef int get_skts_second(long value, int base, long mult) except -1:
-    return apply_accessor(isecond, value, base, mult)
+cpdef int get_period_second(int64_t value, int base, int64_t mult) except -1:
+    return apply_accessor(psecond, value, base, mult)
 
-cpdef int get_skts_dow(long value, int base, long mult) except -1:
-    return apply_accessor(iday_of_week, value, base, mult)
+cpdef int get_period_dow(int64_t value, int base, int64_t mult) except -1:
+    return apply_accessor(pday_of_week, value, base, mult)
 
-cpdef int get_skts_week(long value, int base, long mult) except -1:
-    return apply_accessor(iweek, value, base, mult)
+cpdef int get_period_week(int64_t value, int base, int64_t mult) except -1:
+    return apply_accessor(pweek, value, base, mult)
 
-cpdef int get_skts_weekday(long value, int base, long mult) except -1:
-    return apply_accessor(iweekday, value, base, mult)
+cpdef int get_period_weekday(int64_t value, int base, int64_t mult) except -1:
+    return apply_accessor(pweekday, value, base, mult)
 
-cpdef int get_skts_doy(long value, int base, long mult) except -1:
-    return apply_accessor(iday_of_year, value, base, mult)
+cpdef int get_period_doy(int64_t value, int base, int64_t mult) except -1:
+    return apply_accessor(pday_of_year, value, base, mult)
 
 # same but for arrays
 
 cdef ndarray[int64_t] apply_accessor_arr(accessor func,
                                          ndarray[int64_t] arr,
-                                         int base, long mult):
+                                         int base, int64_t mult):
     cdef:
         Py_ssize_t i, sz
         ndarray[int64_t] out
@@ -1178,39 +1301,41 @@ cdef ndarray[int64_t] apply_accessor_arr(accessor func,
 
     return out
 
-def get_skts_year_arr(ndarray[int64_t] arr, int base, long mult):
-    return apply_accessor_arr(iyear, arr, base, mult)
+def get_period_year_arr(ndarray[int64_t] arr, int base, int64_t mult):
+    return apply_accessor_arr(pyear, arr, base, mult)
 
-def get_skts_qyear_arr(ndarray[int64_t] arr, int base, long mult):
-    return apply_accessor_arr(iqyear, arr, base, mult)
+def get_period_qyear_arr(ndarray[int64_t] arr, int base, int64_t mult):
+    return apply_accessor_arr(pqyear, arr, base, mult)
 
-def get_skts_quarter_arr(ndarray[int64_t] arr, int base, long mult):
-    return apply_accessor_arr(iquarter, arr, base, mult)
+def get_period_quarter_arr(ndarray[int64_t] arr, int base, int64_t mult):
+    return apply_accessor_arr(pquarter, arr, base, mult)
 
-def get_skts_month_arr(ndarray[int64_t] arr, int base, long mult):
-    return apply_accessor_arr(imonth, arr, base, mult)
+def get_period_month_arr(ndarray[int64_t] arr, int base, int64_t mult):
+    return apply_accessor_arr(pmonth, arr, base, mult)
 
-def get_skts_day_arr(ndarray[int64_t] arr, int base, long mult):
-    return apply_accessor_arr(iday, arr, base, mult)
+def get_period_day_arr(ndarray[int64_t] arr, int base, int64_t mult):
+    return apply_accessor_arr(pday, arr, base, mult)
 
-def get_skts_hour_arr(ndarray[int64_t] arr, int base, long mult):
-    return apply_accessor_arr(ihour, arr, base, mult)
+def get_period_hour_arr(ndarray[int64_t] arr, int base, int64_t mult):
+    return apply_accessor_arr(phour, arr, base, mult)
 
-def get_skts_minute_arr(ndarray[int64_t] arr, int base, long mult):
-    return apply_accessor_arr(iminute, arr, base, mult)
+def get_period_minute_arr(ndarray[int64_t] arr, int base, int64_t mult):
+    return apply_accessor_arr(pminute, arr, base, mult)
 
-def get_skts_second_arr(ndarray[int64_t] arr, int base, long mult):
-    return apply_accessor_arr(isecond, arr, base, mult)
+def get_period_second_arr(ndarray[int64_t] arr, int base, int64_t mult):
+    return apply_accessor_arr(psecond, arr, base, mult)
 
-def get_skts_dow_arr(ndarray[int64_t] arr, int base, long mult):
-    return apply_accessor_arr(iday_of_week, arr, base, mult)
+def get_period_dow_arr(ndarray[int64_t] arr, int base, int64_t mult):
+    return apply_accessor_arr(pday_of_week, arr, base, mult)
 
-def get_skts_week_arr(ndarray[int64_t] arr, int base, long mult):
-    return apply_accessor_arr(iweek, arr, base, mult)
+def get_period_week_arr(ndarray[int64_t] arr, int base, int64_t mult):
+    return apply_accessor_arr(pweek, arr, base, mult)
 
-def get_skts_weekday_arr(ndarray[int64_t] arr, int base, long mult):
-    return apply_accessor_arr(iweekday, arr, base, mult)
+def get_period_weekday_arr(ndarray[int64_t] arr, int base, int64_t mult):
+    return apply_accessor_arr(pweekday, arr, base, mult)
 
-def get_skts_doy_arr(ndarray[int64_t] arr, int base, long mult):
-    return apply_accessor_arr(iday_of_year, arr, base, mult)
+def get_period_doy_arr(ndarray[int64_t] arr, int base, int64_t mult):
+    return apply_accessor_arr(pday_of_year, arr, base, mult)
 
+def get_abs_time(freq, dailyDate, originalDate):
+    return getAbsTime(freq, dailyDate, originalDate)

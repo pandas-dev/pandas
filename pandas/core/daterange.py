@@ -1,6 +1,7 @@
 # pylint: disable=E1101,E1103
 
-from pandas.core.index import DatetimeIndex, Index
+from pandas.core.index import Index
+from pandas.tseries.index import DatetimeIndex
 import pandas.core.datetools as datetools
 
 
@@ -42,50 +43,6 @@ class DateRange(Index):
         self.offset = offset
         self.tzinfo = tzinfo
         Index.__setstate__(self, *index_state)
-
-def date_range(start=None, end=None, periods=None, freq='D', tz=None,
-               normalize=False):
-    """
-    Return a fixed frequency datetime index, with day (calendar) as the default
-    frequency
-
-
-    Parameters
-    ----------
-    start :
-    end :
-    normalize : bool, default False
-        Normalize start/end dates to midnight before generating date range
-
-    Returns
-    -------
-
-    """
-    return DatetimeIndex(start=start, end=end, periods=periods,
-                         freq=freq, tz=tz, normalize=normalize)
-
-
-def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
-                normalize=True):
-    """
-    Return a fixed frequency datetime index, with business day as the default
-    frequency
-
-    Parameters
-    ----------
-
-    normalize : bool, default False
-        Normalize start/end dates to midnight before generating date
-        range. Defaults to True for legacy reasons
-
-    Returns
-    -------
-    date_range : DatetimeIndex
-
-    """
-
-    return DatetimeIndex(start=start, end=end, periods=periods,
-                         freq=freq, tz=tz, normalize=normalize)
 
 def interval_range():
     """

@@ -27,10 +27,12 @@ import numpy.ma as ma
 from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
                                 _default_index, _stringify)
 from pandas.core.generic import NDFrame
-from pandas.core.index import Index, DatetimeIndex, MultiIndex, _ensure_index
+from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _radd_compat
+from pandas.compat.scipy import scoreatpercentile as _quantile
+from pandas.tseries.index import DatetimeIndex
 from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
 from pandas.util.decorators import deprecate, Appender, Substitution
@@ -1703,10 +1705,12 @@ class DataFrame(NDFrame):
         if np.isscalar(loc):
             new_values = self._data.fast_2d_xs(loc, copy=copy)
             return Series(new_values, index=self.columns, name=key)
-        else:
+        elif isinstance(loc, slice) or loc.dtype == np.bool_:
             result = self[loc]
             result.index = new_index
             return result
+        else:
+            return self.take(loc)
 
     def lookup(self, row_labels, col_labels):
         """
@@ -2927,29 +2931,6 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Time series-related
 
-    def asfreq(self, freq, method=None):
-        """
-        Convert all TimeSeries inside to specified frequency using DateOffset
-        objects. Optionally provide fill method to pad/backfill missing values.
-
-        Parameters
-        ----------
-        freq : DateOffset object, or string
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}
-            Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill methdo
-
-        Returns
-        -------
-        converted : DataFrame
-        """
-        from pandas.core.daterange import date_range
-        if len(self.index) == 0:
-            return self.copy()
-        dti = date_range(self.index[0], self.index[-1], freq=freq)
-        return self.reindex(dti, method=method)
-
     def diff(self, periods=1):
         """
         1st discrete difference of object
@@ -2965,7 +2946,7 @@ class DataFrame(NDFrame):
         """
         return self - self.shift(periods)
 
-    def shift(self, periods, freq=None, **kwds):
+    def shift(self, periods=1, freq=None, **kwds):
         """
         Shift the index of the DataFrame by desired number of periods with an
         optional time freq
@@ -3810,7 +3791,6 @@ class DataFrame(NDFrame):
         -------
         quantiles : Series
         """
-        from scipy.stats import scoreatpercentile
         per = q * 100
 
         def f(arr):
@@ -3821,7 +3801,7 @@ class DataFrame(NDFrame):
             if len(arr) == 0:
                 return nan
             else:
-                return scoreatpercentile(arr, per)
+                return _quantile(arr, per)
 
         return self.apply(f, axis=axis)
 

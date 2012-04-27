@@ -1214,7 +1214,7 @@ class TestGroupBy(unittest.TestCase):
         self.assert_(result.columns.equals(df.columns[:-1]))
 
     def test_pass_args_kwargs(self):
-        from scipy.stats import scoreatpercentile
+        from pandas.compat.scipy import scoreatpercentile
 
         def f(x, q=None):
             return scoreatpercentile(x, q)
@@ -1667,6 +1667,15 @@ class TestGroupBy(unittest.TestCase):
         expected = exp_grouped.groupby(['A', 'B']).aggregate(func)
         assert_frame_equal(result, expected)
 
+    def test_multifunc_sum_bug(self):
+        # GH #1065
+        x = DataFrame(np.arange(9).reshape(3,3))
+        x['test']=0
+        x['fl']= [1.3,1.5,1.6]
+
+        grouped = x.groupby('test')
+        result = grouped.agg({'fl':'sum',2:'size'})
+        self.assert_(result['fl'].dtype == np.float64)
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     tups = map(tuple, df[keys].values)

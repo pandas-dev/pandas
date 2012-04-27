@@ -2,12 +2,14 @@ from vbench.api import Benchmark
 from datetime import datetime
 
 common_setup = """from pandas_vb_common import *
+from datetime import timedelta
 N = 100000
 
 try:
     rng = date_range('1/1/2000', periods=N, freq='min')
 except NameError:
     rng = DateRange('1/1/2000', periods=N, offset=datetools.Minute())
+    date_range = DateRange
 
 ts = Series(np.random.randn(N), index=rng)
 """
@@ -41,3 +43,26 @@ right = Series(ts.values.take(rindex), index=ts.index.take(rindex))
 """
 
 timeseries_add_irregular = Benchmark('left + right', setup)
+
+#----------------------------------------------------------------------
+# Sort large irregular time series
+
+setup = common_setup + """
+N = 100000
+rng = date_range('1/1/2000', periods=N, freq='s')
+rng = rng.take(np.random.permutation(N))
+ts = Series(np.random.randn(N), index=rng)
+"""
+
+timeseries_sort_index = Benchmark('ts.sort_index()', setup,
+                                  start_date=datetime(2012, 4, 1))
+
+#----------------------------------------------------------------------
+# Shifting, add offset
+
+setup = common_setup + """
+rng = date_range('1/1/2000', periods=10000, freq='T')
+"""
+
+datetimeindex_add_offset = Benchmark('rng + timedelta(minutes=2)', setup,
+                                     start_date=datetime(2012, 4, 1))

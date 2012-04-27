@@ -4,14 +4,13 @@ import numpy as np
 
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.index import Index, MultiIndex, DatetimeIndex
+from pandas.core.index import Index, MultiIndex
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly, Appender
 import pandas.core.algorithms as algos
 import pandas.core.common as com
-import pandas.core.datetools as dt
 import pandas._tseries as lib
 
 
@@ -350,6 +349,11 @@ class GroupBy(object):
         """
         return self._cython_agg_general('ohlc')
 
+    def last(self):
+        def picker(arr):
+            return arr[-1] if arr is not None and len(arr) else np.nan
+        return self.agg(picker)
+
     def _cython_agg_general(self, how):
         output = {}
         for name, obj in self._iterate_slices():
@@ -639,21 +643,22 @@ class Grouper(object):
         'std' : np.sqrt
     }
 
-    _name_functions = {
-        'ohlc' : lambda *args: ['open', 'low', 'high', 'close']
-    }
+    _name_functions = {}
+
+    _filter_empty_groups = True
 
     def aggregate(self, values, how):
         values = com._ensure_float64(values)
 
         comp_ids, _, ngroups = self.group_info
         agg_func = self._cython_functions[how]
-        if values.ndim == 1:
-            squeeze = True
+
+        vdim = values.ndim
+
+        if vdim == 1:
             values = values[:, None]
             out_shape = (ngroups, 1)
         else:
-            squeeze = False
             out_shape = (ngroups, values.shape[1])
 
         trans_func = self._cython_transforms.get(how, lambda x: x)
@@ -665,10 +670,11 @@ class Grouper(object):
         agg_func(result, counts, values, comp_ids)
         result = trans_func(result)
 
-        result = lib.row_bool_subset(result, counts > 0)
+        if self._filter_empty_groups:
+            result = lib.row_bool_subset(result, counts > 0)
 
-        if squeeze:
-            result = result.squeeze()
+        if vdim == 1:
+            result = result[:, 0]
 
         if how in self._name_functions:
             # TODO
@@ -727,7 +733,8 @@ class Grouper(object):
         result = lib.maybe_convert_objects(result, try_float=0)
         return result, counts
 
-def generate_bins_generic(values, binner, closed, label):
+
+def generate_bins_generic(values, binner, closed):
     """
     Generate bin edge offsets and bin labels for one array using another array
     which has bin edge values. Both arrays must be sorted.
@@ -739,14 +746,12 @@ def generate_bins_generic(values, binner, closed, label):
         the first array. Note, 'values' end-points must fall within 'binner'
         end-points.
     closed : which end of bin is closed; left (default), right
-    label : which end of bin to use as a label: left (default), right
 
     Returns
     -------
     bins : array of offsets (into 'values' argument) of bins.
         Zero and last edge are excluded in result, so for instance the first
         bin is values[0:bin[0]] and the last is values[bin[-1]:]
-    labels : array of labels of bins
     """
     lenidx = len(values)
     lenbin = len(binner)
@@ -761,69 +766,26 @@ def generate_bins_generic(values, binner, closed, label):
     if values[lenidx-1] > binner[lenbin-1]:
         raise ValueError("Values falls after last bin")
 
-    labels = np.empty(lenbin, dtype=np.int64)
-    bins   = np.empty(lenbin, dtype=np.int32)
+    bins   = np.empty(lenbin - 1, dtype=np.int32)
 
     j  = 0 # index into values
     bc = 0 # bin count
-    vc = 0 # value count
 
     # linear scan, presume nothing about values/binner except that it
     # fits ok
     for i in range(0, lenbin-1):
-        l_bin = binner[i]
         r_bin = binner[i+1]
 
-        # set label of bin
-        if label == 'left':
-            labels[bc] = l_bin
-        else:
-            labels[bc] = r_bin
-
         # count values in current bin, advance to next bin
-        while values[j] < r_bin or closed == 'right' and values[j] == r_bin:
+        while j < lenidx and (values[j] < r_bin or
+                              (closed == 'right' and values[j] == r_bin)):
             j += 1
-            vc += 1
-            if j >= lenidx:
-                break
 
-        # check we have data left to scan
-        if j >= lenidx:
-            break
+        bins[bc] = j
+        bc += 1
 
-        # if we've seen some values or not ignoring empty bins
-        if vc != 0:
-            bins[bc] = j
-            bc += 1
-            vc = 0
+    return bins
 
-    labels = np.resize(labels, bc + 1)
-    bins = np.resize(bins, bc)
-
-    return bins, labels
-
-
-def _generate_time_binner(dtindex, offset,
-                          begin=None, end=None, nperiods=None):
-
-    if isinstance(offset, basestring):
-        offset = dt.to_offset(offset)
-
-    if begin is None:
-        first = lib.Timestamp(dtindex[0] - offset)
-    else:
-        first = lib.Timestamp(offset.rollback(begin))
-
-    if end is None:
-        last = lib.Timestamp(dtindex[-1] + offset)
-    else:
-        last = lib.Timestamp(offset.rollforward(end))
-
-    if isinstance(offset, dt.Tick):
-        return np.arange(first.value, last.value+1, offset.us_stride(),
-                         dtype=np.int64)
-
-    return DatetimeIndex(freq=offset, start=first, end=last, periods=nperiods)
 
 
 class BinGrouper(Grouper):
@@ -853,7 +815,8 @@ class BinGrouper(Grouper):
             yield label, data[start:edge]
             start = edge
 
-        yield self.binlabels[-1], data[edge:]
+        if edge < len(data):
+            yield self.binlabels[-1], data[edge:]
 
     @cache_readonly
     def ngroups(self):
@@ -866,6 +829,8 @@ class BinGrouper(Grouper):
         'add' : lib.group_add_bin,
         'prod' : lib.group_prod_bin,
         'mean' : lib.group_mean_bin,
+        'min' : lib.group_min_bin,
+        'max' : lib.group_max_bin,
         'var' : lib.group_var_bin,
         'std' : lib.group_var_bin,
         'ohlc' : lib.group_ohlc
@@ -875,18 +840,23 @@ class BinGrouper(Grouper):
         'ohlc' : 4, # OHLC
     }
 
+    _name_functions = {
+        'ohlc' : lambda *args: ['open', 'high', 'low', 'close']
+    }
+
+    _filter_empty_groups = True
+
     def aggregate(self, values, how):
         values = com._ensure_float64(values)
 
         agg_func = self._cython_functions[how]
         arity = self._cython_arity.get(how, 1)
 
-        if values.ndim == 1:
-            squeeze = True
+        vdim = values.ndim
+        if vdim == 1:
             values = values[:, None]
             out_shape = (self.ngroups, arity)
         else:
-            squeeze = False
             out_shape = (self.ngroups, values.shape[1] * arity)
 
         trans_func = self._cython_transforms.get(how, lambda x: x)
@@ -898,10 +868,11 @@ class BinGrouper(Grouper):
         agg_func(result, counts, values, self.bins)
         result = trans_func(result)
 
-        result = lib.row_bool_subset(result, counts > 0)
+        if self._filter_empty_groups:
+            result = lib.row_bool_subset(result, counts > 0)
 
-        if squeeze:
-            result = result.squeeze()
+        if vdim == 1 and arity == 1:
+            result = result[:, 0]
 
         if how in self._name_functions:
             # TODO
@@ -910,95 +881,6 @@ class BinGrouper(Grouper):
             names = None
 
         return result, names
-
-
-
-class TimeGrouper(BinGrouper):
-    """
-    Custom groupby class for time-interval grouping
-
-    Parameters
-    ----------
-    interval : pandas offset string or object for identifying bin edges
-    closed : closed end of interval; left (default) or right
-    label : interval boundary to use for labeling; left (default) or right
-    begin : optional, timestamp-like
-    end : optional, timestamp-like
-    nperiods : optional, integer
-
-    Notes
-    -----
-    Use begin, end, nperiods to generate intervals that cannot be derived
-    directly from the associated object
-    """
-
-    obj = None
-    bins = None
-    binlabels = None
-    begin = None
-    end = None
-    nperiods = None
-    binner = None
-
-    def __init__(self, interval='Min', closed='left', label='left',
-                 begin=None, end=None, nperiods=None, _obj=None):
-        self.offset = interval
-        self.closed = closed
-        self.label = label
-        self.begin = begin
-        self.end = end
-        self.nperiods = None
-
-        if _obj is not None:
-            self.set_obj(_obj)
-
-    def set_obj(self, obj):
-        """
-        Injects the object we'll act on, which we use to initialize grouper
-        """
-        if id(self.obj) == id(obj):
-            return
-
-        self.obj = obj
-
-        if not isinstance(obj.index, DatetimeIndex):
-            raise ValueError("Cannot apply TimeGrouper to non-DatetimeIndex")
-
-        index = obj.index
-
-        if len(obj.index) < 1:
-            self.bins = []
-            self.binlabels = []
-            return
-
-        self.binner = _generate_time_binner(obj.index, self.offset, self.begin,
-                                            self.end, self.nperiods)
-
-        if isinstance(self.binner, DatetimeIndex):
-            self.binner = self.binner.asi8
-
-        # general version, knowing nothing about relative frequencies
-        bins, labels = lib.generate_bins_dt64(index.asi8, self.binner,
-                                              self.closed, self.label)
-
-        self.bins = bins
-        self.binlabels = labels.view('M8[us]')
-
-    @property
-    def names(self):
-        return [self.obj.index.name]
-
-    @property
-    def levels(self):
-        return [self.binlabels]
-
-    @cache_readonly
-    def ngroups(self):
-        return len(self.binlabels)
-
-    @cache_readonly
-    def result_index(self):
-        return self.binlabels
 
     def agg_series(self, obj, func):
         dummy = obj[:0]
@@ -1146,7 +1028,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
                 key = group_axis
 
     if isinstance(key, Grouper):
-        key.set_obj(obj)
+        key.set_axis(group_axis)
         return key, []
 
     if not isinstance(key, (tuple, list)):
@@ -1323,10 +1205,6 @@ class SeriesGroupBy(GroupBy):
                 index = MultiIndex.from_tuples(keys, names=self.grouper.names)
             else:
                 index = Index(keys, name=self.grouper.names[0])
-                # if len(keys) == self.grouper.ngroups:
-                #     index = self.grouper.result_index
-                # else:
-                #     index = Index(keys, name=self.grouper.names[0])
             return index
 
         if isinstance(values[0], Series):
@@ -1973,8 +1851,7 @@ def _compress_group_index(group_index, sort=True):
     obs_group_ids = np.array(uniques, dtype='i8')
 
     if sort and len(obs_group_ids) > 0:
-        obs_group_ids, comp_ids = _reorder_by_uniques(obs_group_ids,
-                                                      comp_ids)
+        obs_group_ids, comp_ids = _reorder_by_uniques(obs_group_ids, comp_ids)
 
     return comp_ids, obs_group_ids
 
@@ -2000,15 +1877,16 @@ def _reorder_by_uniques(uniques, labels):
 import __builtin__
 
 _func_table = {
-    __builtin__.sum : np.sum
+    __builtin__.sum: np.sum
 }
 
 _cython_table = {
-    __builtin__.sum : 'sum',
-    np.sum : 'sum',
-    np.mean : 'mean',
-    np.std : 'std',
-    np.var : 'var'
+    __builtin__.sum: 'sum',
+    np.sum: 'sum',
+    np.mean: 'mean',
+    np.prod: 'prod',
+    np.std: 'std',
+    np.var: 'var'
 }
 
 def _intercept_function(func):
@@ -2034,14 +1912,6 @@ def numpy_groupby(data, labels, axis=0):
 
 #-----------------------------------------------------------------------
 # Helper functions
-
-def translate_grouping(how):
-    if how in 'last':
-        def picker(arr):
-            return arr[-1] if arr is not None and len(arr) else np.nan
-        return picker
-
-    return how
 
 
 from pandas.util import py3compat

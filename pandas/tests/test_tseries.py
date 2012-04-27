@@ -1,5 +1,6 @@
 import unittest
 
+from numpy import nan
 import numpy as np
 from pandas import Index, isnull
 from pandas.util.testing import assert_almost_equal
@@ -163,7 +164,7 @@ def test_groupsort_indexer():
 
 
 def test_duplicated_with_nas():
-    keys = [0, 1, np.nan, 0, 2, np.nan]
+    keys = [0, 1, nan, 0, 2, nan]
 
     result = lib.duplicated(keys)
     expected = [False, False, False, True, False, True]
@@ -173,7 +174,7 @@ def test_duplicated_with_nas():
     expected = [True, False, True, False, False, False]
     assert(np.array_equal(result, expected))
 
-    keys = [(0, 0), (0, np.nan), (np.nan, 0), (np.nan, np.nan)] * 2
+    keys = [(0, 0), (0, nan), (nan, 0), (nan, nan)] * 2
 
     result = lib.duplicated(keys)
     falses = [False] * 4
@@ -186,7 +187,7 @@ def test_duplicated_with_nas():
     assert(np.array_equal(result, expected))
 
 def test_convert_objects():
-    arr = np.array(['a', 'b', np.nan, np.nan, 'd', 'e', 'f'], dtype='O')
+    arr = np.array(['a', 'b', nan, nan, 'd', 'e', 'f'], dtype='O')
     result = lib.maybe_convert_objects(arr)
     assert(result.dtype == np.object_)
 
@@ -201,15 +202,15 @@ def test_convert_objects_ints():
         assert(issubclass(result.dtype.type, np.integer))
 
 def test_rank():
-    from scipy.stats import rankdata
-    from numpy import nan
+    from pandas.compat.scipy import rankdata
+
     def _check(arr):
         mask = -np.isfinite(arr)
         arr = arr.copy()
         result = lib.rank_1d_float64(arr)
         arr[mask] = np.inf
         exp = rankdata(arr)
-        exp[mask] = np.nan
+        exp[mask] = nan
         assert_almost_equal(result, exp)
 
     _check(np.array([nan, nan, 5., 5., 5., nan, 1, 2, 3, nan]))
@@ -281,132 +282,81 @@ def test_series_bin_grouper():
 
 def test_generate_bins():
     from pandas.core.groupby import generate_bins_generic
-    values = np.array([1,2,3,4,5,6])
-    binner = np.array([0,3,6,9])
+    values = np.array([1,2,3,4,5,6], dtype=np.int64)
+    binner = np.array([0,3,6,9], dtype=np.int64)
 
     for func in [lib.generate_bins_dt64, generate_bins_generic]:
-        bins, labels = func(values, binner, closed='left', label='left')
+        bins = func(values, binner, closed='left')
+        assert((bins == np.array([2, 5, 6])).all())
 
-        assert((bins == np.array([2, 5])).all())
-        assert((labels == np.array([0, 3, 6])).all())
+        bins = func(values, binner, closed='left')
+        assert((bins == np.array([2, 5, 6])).all())
 
-        bins, labels = func(values, binner, closed='left', label='right')
+        bins = func(values, binner, closed='right')
+        assert((bins == np.array([3, 6, 6])).all())
 
-        assert((bins == np.array([2, 5])).all())
-        assert((labels == np.array([3, 6, 9])).all())
+        bins = func(values, binner, closed='right')
+        assert((bins == np.array([3, 6, 6])).all())
 
-        bins, labels = func(values, binner, closed='right', label='left')
+class TestBinGroupers(unittest.TestCase):
 
-        assert((bins == np.array([3])).all())
-        assert((labels == np.array([0, 3])).all())
+    def setUp(self):
+        self.obj = np.random.randn(10, 1)
+        self.labels = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 2], dtype=np.int32)
+        self.bins = np.array([3, 6], dtype=np.int32)
 
-        bins, labels = func(values, binner, closed='right', label='right')
+    def test_group_bin_functions(self):
+        funcs = ['add', 'mean', 'prod', 'min', 'max', 'var']
 
-        assert((bins == np.array([3])).all())
-        assert((labels == np.array([3, 6])).all())
+        np_funcs = {
+            'add': np.sum,
+            'mean': np.mean,
+            'prod': np.prod,
+            'min': np.min,
+            'max': np.max,
+            'var': lambda x: x.var(ddof=1) if len(x) >=2 else np.nan
+        }
 
-def test_group_add_bin():
-    # original group_add
-    obj = np.random.randn(10, 1)
+        for fname in funcs:
+            args = [getattr(lib, 'group_%s' % fname),
+                    getattr(lib, 'group_%s_bin' % fname),
+                    np_funcs[fname]]
+            self._check_versions(*args)
 
-    lab = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 2], dtype=np.int32)
-    cts = np.array([3, 3, 4], dtype=np.int32)
-    exp = np.zeros((3, 1), np.float64)
-    lib.group_add(exp, cts, obj, lab)
+    def _check_versions(self, irr_func, bin_func, np_func):
+        obj = self.obj
 
-    # bin-based group_add
-    bins = np.array([3, 6], dtype=np.int32)
-    out  = np.zeros((3, 1), np.float64)
-    counts = np.zeros(len(out), dtype=np.int32)
-    lib.group_add_bin(out, counts, obj, bins)
+        cts = np.zeros(3, dtype=np.int32)
+        exp = np.zeros((3, 1), np.float64)
+        irr_func(exp, cts, obj, self.labels)
 
-    assert_almost_equal(out, exp)
+        # bin-based version
+        bins = np.array([3, 6], dtype=np.int32)
+        out  = np.zeros((3, 1), np.float64)
+        counts = np.zeros(len(out), dtype=np.int32)
+        bin_func(out, counts, obj, bins)
 
-def test_group_mean_bin():
-    # original group_mean
-    obj = np.random.randn(10, 1)
+        assert_almost_equal(out, exp)
 
-    lab = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 2], dtype=np.int32)
-    cts = np.array([3, 3, 4], dtype=np.int32)
-    exp = np.zeros((3, 1), np.float64)
-    lib.group_mean(exp, cts, obj, lab)
+        # duplicate bins
+        bins = np.array([3, 9, 10], dtype=np.int32)
+        out  = np.zeros((4, 1), np.float64)
+        counts = np.zeros(len(out), dtype=np.int32)
+        bin_func(out, counts, obj, bins)
+        exp = np.array([np_func(obj[:3]), np_func(obj[3:9]),
+                        np_func(obj[9:]), np.nan],
+                       dtype=np.float64)
+        assert_almost_equal(out.squeeze(), exp)
 
-    # bin-based group_mean
-    bins = np.array([3, 6], dtype=np.int32)
-    out  = np.zeros((3, 1), np.float64)
-    counts = np.zeros(len(out), dtype=np.int32)
-    lib.group_mean_bin(out, counts, obj, bins)
+        bins = np.array([3, 6, 10, 10], dtype=np.int32)
+        out  = np.zeros((5, 1), np.float64)
+        counts = np.zeros(len(out), dtype=np.int32)
+        bin_func(out, counts, obj, bins)
+        exp = np.array([np_func(obj[:3]), np_func(obj[3:6]),
+                        np_func(obj[6:10]), np.nan, np.nan],
+                       dtype=np.float64)
+        assert_almost_equal(out.squeeze(), exp)
 
-    assert_almost_equal(out, exp)
-
-def test_group_prod_bin():
-    # original group_prod
-    obj = np.random.randn(10, 1)
-
-    lab = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 2], dtype=np.int32)
-    cts = np.array([3, 3, 4], dtype=np.int32)
-    exp = np.zeros((3, 1), np.float64)
-    lib.group_prod(exp, cts, obj, lab)
-
-    # bin-based group_prod
-    bins = np.array([3, 6], dtype=np.int32)
-    out  = np.zeros((3, 1), np.float64)
-    counts = np.zeros(len(out), dtype=np.int32)
-    lib.group_prod_bin(out, counts, obj, bins)
-
-    assert_almost_equal(out, exp)
-
-def test_group_min_bin():
-    # original group_min
-    obj = np.random.randn(10, 1)
-
-    lab = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 2], dtype=np.int32)
-    cts = np.array([3, 3, 4], dtype=np.int32)
-    exp = np.zeros((3, 1), np.float64)
-    lib.group_min(exp, cts, obj, lab)
-
-    # bin-based group_min
-    bins = np.array([3, 6], dtype=np.int32)
-    out  = np.zeros((3, 1), np.float64)
-    counts = np.zeros(len(out), dtype=np.int32)
-    lib.group_min_bin(out, counts, obj, bins)
-
-    assert_almost_equal(out, exp)
-
-def test_group_max_bin():
-    # original group_max
-    obj = np.random.randn(10, 1)
-
-    lab = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 2], dtype=np.int32)
-    cts = np.array([3, 3, 4], dtype=np.int32)
-    exp = np.zeros((3, 1), np.float64)
-    lib.group_max(exp, cts, obj, lab)
-
-    # bin-based group_max
-    bins = np.array([3, 6], dtype=np.int32)
-    out  = np.zeros((3, 1), np.float64)
-    counts = np.zeros(len(out), dtype=np.int32)
-    lib.group_max_bin(out, counts, obj, bins)
-
-    assert_almost_equal(out, exp)
-
-def test_group_var_bin():
-    # original group_var
-    obj = np.random.randn(10, 1)
-
-    lab = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 2], dtype=np.int32)
-    cts = np.array([3, 3, 4], dtype=np.int32)
-    exp = np.zeros((3, 1), np.float64)
-    lib.group_var(exp, cts, obj, lab)
-
-    # bin-based group_var
-    bins = np.array([3, 6], dtype=np.int32)
-    out  = np.zeros((3, 1), np.float64)
-    counts = np.zeros(len(out), dtype=np.int32)
-
-    lib.group_var_bin(out, counts, obj, bins)
-
-    assert_almost_equal(out, exp)
 
 def test_group_ohlc():
     obj = np.random.randn(20)
@@ -419,8 +369,8 @@ def test_group_ohlc():
 
     def _ohlc(group):
         if isnull(group).all():
-            return np.repeat(np.nan, 4)
-        return [group[0], group.min(), group.max(), group[-1]]
+            return np.repeat(nan, 4)
+        return [group[0], group.max(), group.min(), group[-1]]
 
     expected = np.array([_ohlc(obj[:6]), _ohlc(obj[6:12]),
                          _ohlc(obj[12:])])
@@ -428,9 +378,9 @@ def test_group_ohlc():
     assert_almost_equal(out, expected)
     assert_almost_equal(counts, [6, 6, 8])
 
-    obj[:6] = np.nan
+    obj[:6] = nan
     lib.group_ohlc(out, counts, obj[:, None], bins)
-    expected[0] = np.nan
+    expected[0] = nan
     assert_almost_equal(out, expected)
 
 def test_try_parse_dates():

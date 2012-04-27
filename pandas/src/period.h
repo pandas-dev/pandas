@@ -1,16 +1,18 @@
-/* 
+/*
  * Borrowed and derived code from scikits.timeseries that we will expose via
  * Cython to pandas. This primarily concerns interval representation and
  * frequency conversion routines.
  */
 
-#ifndef C_SKTS_H
-#define C_SKTS_H
+#ifndef C_PERIOD_H
+#define C_PERIOD_H
 
 #include <Python.h>
+#include "numpy/ndarraytypes.h"
+#include "stdint.h"
 
 /*
- * declarations from skts here
+ * declarations from period here
  */
 
 #define GREGORIAN_CALENDAR 0
@@ -28,6 +30,8 @@
 
 // begins second ordinal at 1/1/1AD gregorian proleptic calendar
 #define HIGHFREQ_ORIG 1
+
+// typedef int64_t npy_int64;
 
 // begins second ordinal at 1/1/1970 unix epoch
 // #define HIGHFREQ_ORIG 719163
@@ -99,7 +103,7 @@ typedef struct asfreq_info {
 
 
 typedef struct date_info {
-    long absdate;
+    int64_t absdate;
     double abstime;
 
     double second;
@@ -114,37 +118,38 @@ typedef struct date_info {
     int calendar;
 } date_info;
 
-typedef long (*freq_conv_func)(long, char, asfreq_info*);
+typedef int64_t (*freq_conv_func)(int64_t, char, asfreq_info*);
 
 /*
  * new pandas API helper functions here
  */
 
-long resample(long skts_ordinal, int freq1, int freq2, char relation);
+int64_t asfreq(int64_t period_ordinal, int freq1, int freq2, char relation);
 
-long get_skts_ordinal(int year, int month, int day,
+int64_t get_period_ordinal(int year, int month, int day,
                       int hour, int minute, int second,
                       int freq);
 
-long get_python_ordinal(long skts_ordinal, int freq);
+int64_t get_python_ordinal(int64_t period_ordinal, int freq);
 
-char *interval_strftime(long value, int freq, PyObject *args);
-char *interval_to_string(long value, int freq);
-char *interval_to_string2(long value, int freq, char *fmt);
+char *skts_strftime(int64_t value, int freq, PyObject *args);
+char *period_to_string(int64_t value, int freq);
+char *period_to_string2(int64_t value, int freq, char *fmt);
 
-int get_date_info(long ordinal, int freq, struct date_info *dinfo);
+int get_date_info(int64_t ordinal, int freq, struct date_info *dinfo);
 
-int iyear(long ordinal, int freq);
-int iqyear(long ordinal, int freq);
-int iquarter(long ordinal, int freq);
-int imonth(long ordinal, int freq);
-int iday(long ordinal, int freq);
-int iweekday(long ordinal, int freq);
-int iday_of_week(long ordinal, int freq);
-int iday_of_year(long ordinal, int freq);
-int iweek(long ordinal, int freq);
-int ihour(long ordinal, int freq);
-int iminute(long ordinal, int freq);
-int isecond(long ordinal, int freq);
+int pyear(int64_t ordinal, int freq);
+int pqyear(int64_t ordinal, int freq);
+int pquarter(int64_t ordinal, int freq);
+int pmonth(int64_t ordinal, int freq);
+int pday(int64_t ordinal, int freq);
+int pweekday(int64_t ordinal, int freq);
+int pday_of_week(int64_t ordinal, int freq);
+int pday_of_year(int64_t ordinal, int freq);
+int pweek(int64_t ordinal, int freq);
+int phour(int64_t ordinal, int freq);
+int pminute(int64_t ordinal, int freq);
+int psecond(int64_t ordinal, int freq);
+double getAbsTime(int freq, int64_t dailyDate, int64_t originalDate);
 
 #endif

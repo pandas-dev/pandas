@@ -6,6 +6,13 @@ import re
 from itertools import izip
 from urlparse import urlparse
 
+try:
+    next
+except NameError:  # pragma: no cover
+    # Python < 2.6
+    def next(x):
+        return x.next()
+
 import numpy as np
 
 from pandas.core.index import Index, MultiIndex
@@ -489,9 +496,9 @@ class TextParser(object):
                 raise StopIteration
         else:
             while self.pos in self.skiprows:
-                self.data.next()
+                next(self.data)
                 self.pos += 1
-            line = self.data.next()
+            line = next(self.data)
         self.pos += 1
         self.buf.append(line)
 
@@ -682,10 +689,10 @@ class TextParser(object):
             try:
                 if rows is not None:
                     for _ in xrange(rows):
-                        lines.append(source.next())
+                        lines.append(next(source))
                 else:
                     while True:
-                        lines.append(source.next())
+                        lines.append(next(source))
             except StopIteration:
                 if len(lines) == 0:
                     raise
@@ -757,10 +764,13 @@ class FixedWidthReader(object):
             assert isinstance(colspec[1], int)
 
     def next(self):
-        line = self.f.next()
+        line = next(self.f)
         # Note: 'colspecs' is a sequence of half-open intervals.
         return [line[fromm:to].strip(self.filler or ' ')
                 for (fromm, to) in self.colspecs]
+    
+    # Iterator protocol in Python 3 uses __next__()
+    __next__ = next
 
 
 class FixedWidthFieldParser(TextParser):

@@ -40,6 +40,8 @@ if sys.version_info[0] >= 3:
                          'zip_safe': False,
                          'install_requires': ['python-dateutil >= 2',
                                               'numpy >= 1.4'],
+                         'use_2to3_exclude_fixers': ['lib2to3.fixes.fix_next',
+                                                    ],
                         }
     if not _have_setuptools:
         sys.exit("need setuptools/distribute for Py3k"
@@ -214,7 +216,7 @@ class CleanCommand(Command):
         self._clean_trees = []
         self._clean_exclude = ['np_datetime.c',
                                'np_datetime_strings.c',
-                               'skts.c']
+                               'period.c']
 
         for root, dirs, files in list(os.walk('pandas')):
             for f in files:
@@ -347,9 +349,9 @@ else:
 tseries_ext = Extension('pandas._tseries',
                         depends=tseries_depends + ['pandas/src/numpy_helper.h'],
                         sources=[srcpath('tseries', suffix=suffix),
+                                 'pandas/src/period.c',
                                  'pandas/src/np_datetime.c',
-                                 'pandas/src/np_datetime_strings.c',
-                                 'pandas/src/skts.c'],
+                                 'pandas/src/np_datetime_strings.c'],
                         include_dirs=[np.get_include()],
                         # pyrex_gdb=True,
                         # extra_compile_args=['-Wconversion']
@@ -374,7 +376,9 @@ engines_ext = Extension('pandas._engines',
                         include_dirs=[np.get_include()])
 
 sandbox_ext = Extension('pandas._sandbox',
-                        sources=[srcpath('sandbox', suffix=suffix)],
+                        sources=[srcpath('sandbox', suffix=suffix),
+                                 'pandas/src/period.c',
+                                 ],
                         include_dirs=[np.get_include()])
 
 cppsandbox_ext = Extension('pandas._cppsandbox',
@@ -399,6 +403,7 @@ setup(name=DISTNAME,
       version=FULLVERSION,
       maintainer=AUTHOR,
       packages=['pandas',
+                'pandas.compat',
                 'pandas.core',
                 'pandas.io',
                 'pandas.rpy',
@@ -410,6 +415,8 @@ setup(name=DISTNAME,
                 'pandas.tests',
                 'pandas.tools',
                 'pandas.tools.tests',
+                'pandas.tseries',
+                'pandas.tseries.tests',
                 'pandas.io.tests',
                 'pandas.stats.tests',
                 ],
@@ -419,7 +426,9 @@ setup(name=DISTNAME,
                                    'tests/*.xlsx',
                                    'tests/*.table'],
                     'pandas.tests' : ['data/*.pickle',
-                                      'data/*.csv']
+                                      'data/*.csv'],
+                    'pandas.tseries.tests' : ['data/*.pickle',
+                                              'data/*.csv']
                    },
       ext_modules=extensions,
       maintainer_email=EMAIL,

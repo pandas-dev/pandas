@@ -13,6 +13,13 @@ except ImportError:  # pragma: no cover
     from cStringIO import StringIO as BytesIO
 import itertools
 
+try:
+    next
+except NameError:  # pragma: no cover
+    # Python < 2.6
+    def next(x):
+        return x.next()
+
 from cStringIO import StringIO
 
 from numpy.lib.format import read_array, write_array
@@ -285,7 +292,7 @@ def take_fast(arr, indexer, mask, needs_masking, axis=0, out=None,
         return take_2d(arr, indexer, out=out, mask=mask,
                        needs_masking=needs_masking,
                        axis=axis, fill_value=fill_value)
-
+    indexer = _ensure_platform_int(indexer)
     result = arr.take(indexer, axis=axis, out=out)
     result = _maybe_mask(result, mask, needs_masking, axis=axis,
                          out_passed=out is not None, fill_value=fill_value)
@@ -459,6 +466,9 @@ def _try_sort(iterable):
     except Exception:
         return listed
 
+def _count_not_none(*args):
+    return sum(x is not None for x in args)
+
 #------------------------------------------------------------------------------
 # miscellaneous python tools
 
@@ -516,7 +526,7 @@ def iterpairs(seq):
     # input may not be sliceable
     seq_it = iter(seq)
     seq_it_next = iter(seq)
-    _ = seq_it_next.next()
+    _ = next(seq_it_next)
 
     return itertools.izip(seq_it, seq_it_next)
 
@@ -598,6 +608,20 @@ def _asarray_tuplesafe(values, dtype=None):
 
     return result
 
+def _index_labels_to_array(labels):
+    if isinstance(labels, (basestring, tuple)):
+        labels = [labels]
+
+    if not isinstance(labels, (list, np.ndarray)):
+        try:
+            labels = list(labels)
+        except TypeError: # non-iterable
+            labels = [labels]
+
+    labels = _asarray_tuplesafe(labels)
+
+    return labels
+
 def _stringify(col):
     # unicode workaround
     try:
@@ -654,9 +678,12 @@ def _ensure_float64(arr):
     return arr
 
 def _ensure_int64(arr):
-    if arr.dtype != np.int64:
-        arr = arr.astype(np.int64)
-    return arr
+    try:
+        if arr.dtype != np.int64:
+            arr = arr.astype(np.int64)
+        return arr
+    except AttributeError:
+        return np.array(arr, dtype=np.int64)
 
 def _ensure_platform_int(labels):
     if labels.dtype != np.int_:  # pragma: no cover

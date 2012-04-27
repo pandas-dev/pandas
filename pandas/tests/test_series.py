@@ -15,6 +15,7 @@ import numpy.ma as ma
 from pandas import (Index, Series, TimeSeries, DataFrame, isnull, notnull,
                     bdate_range)
 from pandas.core.index import MultiIndex
+from pandas.tseries.index import Timestamp
 
 import pandas.core.datetools as datetools
 import pandas.core.nanops as nanops
@@ -1046,7 +1047,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(not isinstance(result, Series))
 
     def test_quantile(self):
-        from scipy.stats import scoreatpercentile
+        from pandas.compat.scipy import scoreatpercentile
 
         q = self.ts.quantile(0.1)
         self.assertEqual(q, scoreatpercentile(self.ts.valid(), 10))
@@ -1697,7 +1698,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_almost_equal(expected, ordered.valid().values)
 
     def test_rank(self):
-        from scipy.stats import rankdata
+        from pandas.compat.scipy import rankdata
 
         self.ts[::2] = np.nan
         self.ts[:10][::3] = 4.
@@ -2430,13 +2431,12 @@ class TestSeriesNonUnique(unittest.TestCase):
 
     def test_datetime_indexing(self):
         from pandas import date_range
-        from pandas.core.datetools import to_timestamp
 
         index = date_range('1/1/2000', '1/7/2000')
         index = index.repeat(3)
 
         s = Series(len(index), index=index)
-        stamp = to_timestamp('1/8/2000')
+        stamp = Timestamp('1/8/2000')
 
         self.assertRaises(KeyError, s.__getitem__, stamp)
         self.assertRaises(KeyError, s.__setitem__, stamp, 0)

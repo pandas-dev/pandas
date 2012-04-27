@@ -15,8 +15,8 @@ import numpy as np
 
 import pandas.core.datetools as datetools
 
-from pandas.core.datetools import Interval
-from pandas.core.index import IntervalIndex
+from pandas.core.datetools import Period
+from pandas.core.index import PeriodIndex
 from pandas.core.series import Series
 
 import warnings
@@ -135,7 +135,7 @@ def period_break(dates, period):
 
     Parameters
     ----------
-    dates : IntervalIndex
+    dates : PeriodIndex
         Array of intervals to monitor.
     period : string
         Name of the period to monitor.
@@ -216,10 +216,10 @@ def _daily_finder(vmin, vmax, freq):
     # save this for later usage
     vmin_orig = vmin
 
-    (vmin, vmax) = (Interval(value=int(vmin), freq=freq),
-                    Interval(value=int(vmax), freq=freq))
+    (vmin, vmax) = (Period(value=int(vmin), freq=freq),
+                    Period(value=int(vmax), freq=freq))
     span = vmax.ordinal - vmin.ordinal + 1
-    dates_ = IntervalIndex(start=vmin, end=vmax, freq=freq)
+    dates_ = PeriodIndex(start=vmin, end=vmax, freq=freq)
     # Initialize the output
     info = np.zeros(span,
                     dtype=[('val', int), ('maj', bool), ('min', bool),
@@ -651,7 +651,7 @@ class TimeSeries_DateLocator(Locator):
 #####-------------------------------------------------------------------------
 class TimeSeries_DateFormatter(Formatter):
     """
-    Formats the ticks along an axis controlled by a :class:`IntervalIndex`.
+    Formats the ticks along an axis controlled by a :class:`PeriodIndex`.
 
     Parameters
     ----------
@@ -722,7 +722,7 @@ class TimeSeries_DateFormatter(Formatter):
             return ''
         else:
             fmt = self.formatdict.pop(x, '')
-            return Interval(int(x), self.freq).strftime(fmt)
+            return Period(int(x), self.freq).strftime(fmt)
 
 
 #####--------------------------------------------------------------------------
@@ -744,7 +744,7 @@ class TimeSeriesPlot(Subplot, object):
     attribute.  It gives its frequency to the plot.  This frequency can be
     accessed through the attribute :attr:`freq`.  All the other series that
     will be plotted will be first converted to the :attr:`freq` frequency,
-    using their :meth:`~resample` method.
+    using their :meth:`~asfreq` method.
 
     The same parameters used for the instanciation of a standard
     :class:`matplotlib.axes.Subplot` are recognized.
@@ -758,7 +758,7 @@ class TimeSeriesPlot(Subplot, object):
     ----------
     freq : int
         Frequency of the plot.
-    xdata : IntervalIndex
+    xdata : PeriodIndex
         The array of dates corresponding to the x axis.
     legendsymbols : list
     legendlabels : list
@@ -871,12 +871,12 @@ class TimeSeriesPlot(Subplot, object):
                     output.extend([x, y, b])
                 else:
                     output.extend([x, y])
-            # The argument is a IntervalIndex............
-            elif isinstance(a, IntervalIndex):
+            # The argument is a PeriodIndex............
+            elif isinstance(a, PeriodIndex):
                 # Force to current freq
                 if self.freq is not None:
                     if a.freq != self.freq:
-                        a = a.resample(self.freq)
+                        a = a.asfreq(self.freq)
                 # There's an argument after
                 if len(remaining) > 0:
                     #...and it's a format string
@@ -887,7 +887,7 @@ class TimeSeriesPlot(Subplot, object):
                         else:
                             output.extend([a, self.series, b])
                     #... and it's another date: use the default
-                    elif isinstance(remaining[0], IntervalIndex):
+                    elif isinstance(remaining[0], PeriodIndex):
                         if self.series is None:
                             raise ValueError(noinfo_msg)
                         else:
@@ -921,7 +921,7 @@ class TimeSeriesPlot(Subplot, object):
         # Force the xdata to the current frequency
         elif output[0].freq != self.freq:
             output = list(output)
-            output[0] = output[0].resample(self.freq)
+            output[0] = output[0].asfreq(self.freq)
         return output
     #......................................................
     def tsplot(self, *args,  **kwargs):
@@ -1011,7 +1011,7 @@ class TimeSeriesPlot(Subplot, object):
     def set_dlim(self, start_date=None, end_date=None):
         """
         Sets the date limits of the plot to ``start_date`` and ``end_date``.
-        The dates can be given as :class:`~Interval` objects, strings or
+        The dates can be given as :class:`~Period` objects, strings or
         integers.
 
         Parameters
@@ -1028,10 +1028,10 @@ class TimeSeriesPlot(Subplot, object):
             raise ValueError("Undefined frequency! Date limits can't be set!")
         # TODO : Shouldn't we make get_datevalue a more generic function ?
         def get_datevalue(date, freq):
-            if isinstance(date, Interval):
-                return date.resample(freq).value
+            if isinstance(date, Period):
+                return date.asfreq(freq).value
             elif isinstance(date, str):
-                return Interval(date, freq).value
+                return Period(date, freq).value
             elif isinstance(date, (int, float)) or \
                 (isinstance(date, np.ndarray) and (date.size == 1)):
                 return date
@@ -1054,10 +1054,10 @@ class TimeSeriesPlot(Subplot, object):
 
     def get_dlim(self):
         """
-        Returns the limits of the x axis as a :class:`~IntervalIndex`.
+        Returns the limits of the x axis as a :class:`~PeriodIndex`.
         """
         xlims = self.get_xlim()
-        return IntervalIndex(xlims, freq=self.freq)
+        return PeriodIndex(xlims, freq=self.freq)
 
 TSPlot = TimeSeriesPlot
 
