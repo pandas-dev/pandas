@@ -60,7 +60,11 @@ class TimeGrouper(CustomGrouper):
         if isinstance(axis, DatetimeIndex):
             return self._resample_timestamps(obj)
         elif isinstance(axis, PeriodIndex):
-            return self._resample_periods(obj)
+            if self.kind is None or self.kind == 'period':
+                return self._resample_periods(obj)
+            else:
+                obj = obj.to_timestamp(how=self.convention)
+                return self._resample_timestamps(obj)
         else:
             raise TypeError('Only valid with DatetimeIndex or PeriodIndex')
 
