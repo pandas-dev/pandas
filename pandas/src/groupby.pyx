@@ -562,8 +562,8 @@ def group_var(ndarray[float64_t, ndim=2] out,
 # 1-min data, binner has 5-min data, then  bins are just strides in index. This
 # is a general, O(max(len(values), len(binner))) method.
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 
 def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
                        object closed='left'):
@@ -614,8 +614,8 @@ def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
 
 # add passing bin edges, instead of labels
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def group_add_bin(ndarray[float64_t, ndim=2] out,
                   ndarray[int32_t] counts,
                   ndarray[float64_t, ndim=2] values,
@@ -671,8 +671,8 @@ def group_add_bin(ndarray[float64_t, ndim=2] out,
             else:
                 out[i, j] = sumx[i, j]
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def group_prod_bin(ndarray[float64_t, ndim=2] out,
                   ndarray[int32_t] counts,
                   ndarray[float64_t, ndim=2] values,
@@ -728,8 +728,8 @@ def group_prod_bin(ndarray[float64_t, ndim=2] out,
             else:
                 out[i, j] = prodx[i, j]
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def group_min_bin(ndarray[float64_t, ndim=2] out,
                    ndarray[int32_t] counts,
                    ndarray[float64_t, ndim=2] values,
@@ -790,8 +790,8 @@ def group_min_bin(ndarray[float64_t, ndim=2] out,
             else:
                 out[i, j] = minx[i, j]
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def group_max_bin(ndarray[float64_t, ndim=2] out,
                   ndarray[int32_t] counts,
                   ndarray[float64_t, ndim=2] values,
@@ -852,8 +852,8 @@ def group_max_bin(ndarray[float64_t, ndim=2] out,
                 out[i, j] = maxx[i, j]
 
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def group_ohlc(ndarray[float64_t, ndim=2] out,
                   ndarray[int32_t] counts,
                   ndarray[float64_t, ndim=2] values,
@@ -927,8 +927,8 @@ def group_ohlc(ndarray[float64_t, ndim=2] out,
             out[b, 3] = vclose
 
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def group_mean_bin(ndarray[float64_t, ndim=2] out,
                    ndarray[int32_t] counts,
                    ndarray[float64_t, ndim=2] values,
@@ -982,8 +982,8 @@ def group_mean_bin(ndarray[float64_t, ndim=2] out,
             else:
                 out[i, j] = sumx[i, j] / count
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def group_var_bin(ndarray[float64_t, ndim=2] out,
                   ndarray[int32_t] counts,
                   ndarray[float64_t, ndim=2] values,

@@ -1143,7 +1143,7 @@ class TestPeriodIndex(TestCase):
         self.assert_(ii.to_timestamp().equals(dti))
 
         dti = date_range('1/1/2000', '1/7/2002', freq='B')
-        ii = dti.to_period(freq='3H')
+        ii = dti.to_period(freq='H')
         self.assert_(ii.to_timestamp().equals(dti))
 
     def test_iindex_multiples(self):
