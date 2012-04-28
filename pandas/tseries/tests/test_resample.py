@@ -273,24 +273,67 @@ def _simple_pts(start, end, freq='D'):
     return Series(np.random.randn(len(rng)), index=rng)
 
 
+from pandas.tseries.frequencies import MONTHS
+from pandas.util.compat import product
+
 class TestResamplePeriodIndex(unittest.TestCase):
 
-    def test_basic_resample(self):
+    def test_basic_downsample(self):
         ts = _simple_pts('1/1/1990', '6/30/1995', freq='M')
         result = ts.resample('a-dec')
+
         expected = ts.groupby(ts.index.year).mean()
         expected.index = period_range('1/1/1990', '6/30/1995',
                                       freq='a-dec')
         assert_series_equal(result, expected)
 
-    def test_upsample_ffill(self):
+        # this is ok
+        assert_series_equal(ts.resample('a-dec'), result)
+
+    def test_not_subperiod(self):
+        # These are incompatible period rules for resampling
+        ts = _simple_pts('1/1/1990', '6/30/1995', freq='w-wed')
+        self.assertRaises(ValueError, ts.resample, 'a-dec')
+        self.assertRaises(ValueError, ts.resample, 'q-mar')
+        self.assertRaises(ValueError, ts.resample, 'M')
+        self.assertRaises(ValueError, ts.resample, 'w-thu')
+
+    def test_basic_upsample(self):
         ts = _simple_pts('1/1/1990', '6/30/1995', freq='M')
         result = ts.resample('a-dec')
 
-        resampled = result.resample('D', fill_method='ffill',
-                                    convention='end')
+        resampled = result.resample('D', fill_method='ffill', convention='end')
 
-        # expected = result.
+        expected = result.to_timestamp('D', how='end')
+        expected = expected.asfreq('D', 'ffill').to_period()
+
+        assert_series_equal(resampled, expected)
+
+    def test_annual_upsample(self):
+        targets = ['D', 'B', 'M']
+
+        for month in MONTHS:
+            ts = _simple_pts('1/1/1990', '12/31/1995', freq='A-%s' % month)
+
+            for targ, conv, meth in product(targets, ['start', 'end'],
+                                            ['ffill', 'bfill']):
+                result = ts.resample(targ, fill_method=meth,
+                                     convention=conv)
+                expected = result.to_timestamp(targ, how=conv)
+                expected = expected.asfreq(targ, meth).to_period()
+                assert_series_equal(result, expected)
+
+    def test_quarterly_upsample(self):
+        pass
+
+    def test_monthly_upsample(self):
+        pass
+
+    def test_weekly_upsample(self):
+        pass
+
+    def test_resampl_to_timestamps(self):
+        pass
 
 
 class TestTimeGrouper(unittest.TestCase):

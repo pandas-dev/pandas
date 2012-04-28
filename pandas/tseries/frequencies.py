@@ -819,9 +819,9 @@ def _maybe_add_count(base, count):
     else:
         return base
 
-def _is_subperiod(source, target):
+def is_subperiod(source, target):
     """
-    Returns True if conversion/resampling is possible between source and target
+    Returns True if downsampling is possible between source and target
     frequencies
 
     Parameters
@@ -838,24 +838,48 @@ def _is_subperiod(source, target):
     target = target.upper()
     source = source.upper()
     if _is_annual(target):
-        if _is_weekly(source):
-            raise ValueError('Weekly rules do not properly segment '
-                             'a yearly span')
-        if _is_annual(source) and source != target:
-            raise ValueError('Can only be same year end')
         return source in ['D', 'B', 'M', 'H', 'T', 'S']
     elif _is_quarterly(target):
-        pass
         return source in ['D', 'B', 'M', 'H', 'T', 'S']
     elif target == 'M':
-        pass
         return source in ['D', 'B', 'H', 'T', 'S']
     elif _is_weekly(target):
-        return source in ['D', 'B', 'H', 'T', 'S']
+        return source in [target, 'D', 'B', 'H', 'T', 'S']
     elif target == 'B':
         return source in ['B', 'H', 'T', 'S']
     elif target == 'D':
         return source in ['D', 'H', 'T', 'S']
+
+def is_superperiod(source, target):
+    """
+    Returns True if upsampling is possible between source and target
+    frequencies
+
+    Parameters
+    ----------
+    source : string
+        Frequency converting from
+    target : string
+        Frequency converting to
+
+    Returns
+    -------
+    is_superperiod : boolean
+    """
+    target = target.upper()
+    source = source.upper()
+    if _is_annual(source):
+        return target in ['D', 'B', 'M', 'H', 'T', 'S']
+    elif _is_quarterly(source):
+        return target in ['D', 'B', 'M', 'H', 'T', 'S']
+    elif target == 'M':
+        return source in ['D', 'B', 'H', 'T', 'S']
+    elif _is_weekly(source):
+        return source in [target, 'D', 'B', 'H', 'T', 'S']
+    elif target == 'B':
+        return source in ['D', 'B', 'H', 'T', 'S']
+    elif target == 'D':
+        return source not in ['D', 'B', 'H', 'T', 'S']
 
 
 def _is_annual(rule):
@@ -880,20 +904,10 @@ _weekday_rule_aliases = {
     6: 'SUN'
 }
 
-_month_aliases = {
-    1: 'JAN',
-    2: 'FEB',
-    3: 'MAR',
-    4: 'APR',
-    5: 'MAY',
-    6: 'JUN',
-    7: 'JUL',
-    8: 'AUG',
-    9: 'SEP',
-    10: 'OCT',
-    11: 'NOV',
-    12: 'DEC'
-}
+MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
+          'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+
+_month_aliases = dict((k + 1, v) for k, v in enumerate(MONTHS))
 
 def _is_multiple(us, mult):
     return us % mult == 0
