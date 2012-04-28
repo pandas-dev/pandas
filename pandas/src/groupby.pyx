@@ -607,6 +607,9 @@ def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
         bins[bc] = j
         bc += 1
 
+    # if len(bins) > 0 and bins[-1] == lenidx:
+    #     bins = bins[:-1]
+
     return bins
 
 # add passing bin edges, instead of labels
@@ -628,7 +631,10 @@ def group_add_bin(ndarray[float64_t, ndim=2] out,
     nobs = np.zeros_like(out)
     sumx = np.zeros_like(out)
 
-    ngroups = len(bins) + 1
+    if bins[len(bins) - 1] == len(values):
+        ngroups = len(bins)
+    else:
+        ngroups = len(bins) + 1
     N, K = (<object> values).shape
 
     b = 0
@@ -660,7 +666,7 @@ def group_add_bin(ndarray[float64_t, ndim=2] out,
 
     for i in range(ngroups):
         for j in range(K):
-            if nobs[i] == 0:
+            if nobs[i, j] == 0:
                 out[i, j] = nan
             else:
                 out[i, j] = sumx[i, j]
@@ -682,7 +688,10 @@ def group_prod_bin(ndarray[float64_t, ndim=2] out,
     nobs = np.zeros_like(out)
     prodx = np.ones_like(out)
 
-    ngroups = len(bins) + 1
+    if bins[len(bins) - 1] == len(values):
+        ngroups = len(bins)
+    else:
+        ngroups = len(bins) + 1
     N, K = (<object> values).shape
 
     b = 0
@@ -714,7 +723,7 @@ def group_prod_bin(ndarray[float64_t, ndim=2] out,
 
     for i in range(ngroups):
         for j in range(K):
-            if nobs[i] == 0:
+            if nobs[i, j] == 0:
                 out[i, j] = nan
             else:
                 out[i, j] = prodx[i, j]
@@ -738,8 +747,11 @@ def group_min_bin(ndarray[float64_t, ndim=2] out,
     minx = np.empty_like(out)
     minx.fill(np.inf)
 
+    if bins[len(bins) - 1] == len(values):
+        ngroups = len(bins)
+    else:
+        ngroups = len(bins) + 1
 
-    ngroups = len(bins) + 1
     N, K = (<object> values).shape
 
     b = 0
@@ -773,7 +785,7 @@ def group_min_bin(ndarray[float64_t, ndim=2] out,
 
     for i in range(ngroups):
         for j in range(K):
-            if nobs[i] == 0:
+            if nobs[i, j] == 0:
                 out[i, j] = nan
             else:
                 out[i, j] = minx[i, j]
@@ -796,7 +808,11 @@ def group_max_bin(ndarray[float64_t, ndim=2] out,
     maxx = np.empty_like(out)
     maxx.fill(-np.inf)
 
-    ngroups = len(bins) + 1
+    if bins[len(bins) - 1] == len(values):
+        ngroups = len(bins)
+    else:
+        ngroups = len(bins) + 1
+
     N, K = (<object> values).shape
 
     b = 0
@@ -830,7 +846,7 @@ def group_max_bin(ndarray[float64_t, ndim=2] out,
 
     for i in range(ngroups):
         for j in range(K):
-            if nobs[i] == 0:
+            if nobs[i, j] == 0:
                 out[i, j] = nan
             else:
                 out[i, j] = maxx[i, j]
@@ -851,7 +867,11 @@ def group_ohlc(ndarray[float64_t, ndim=2] out,
         float64_t vopen, vhigh, vlow, vclose, NA
         bint got_first = 0
 
-    ngroups = len(bins) + 1
+    if bins[len(bins) - 1] == len(values):
+        ngroups = len(bins)
+    else:
+        ngroups = len(bins) + 1
+
     N, K = (<object> values).shape
 
     if out.shape[1] != 4:
@@ -922,7 +942,10 @@ def group_mean_bin(ndarray[float64_t, ndim=2] out,
     sumx = np.zeros_like(out)
 
     N, K = (<object> values).shape
-    ngroups = len(bins) + 1
+    if bins[len(bins) - 1] == len(values):
+        ngroups = len(bins)
+    else:
+        ngroups = len(bins) + 1
 
     b = 0
     if K > 1:
@@ -953,8 +976,8 @@ def group_mean_bin(ndarray[float64_t, ndim=2] out,
 
     for i in range(ngroups):
         for j in range(K):
-            count = nobs[i]
-            if nobs[i] == 0:
+            count = nobs[i, j]
+            if nobs[i, j] == 0:
                 out[i, j] = nan
             else:
                 out[i, j] = sumx[i, j] / count
@@ -975,7 +998,11 @@ def group_var_bin(ndarray[float64_t, ndim=2] out,
     sumx = np.zeros_like(out)
     sumxx = np.zeros_like(out)
 
-    ngroups = len(bins) + 1
+    if bins[len(bins) - 1] == len(values):
+        ngroups = len(bins)
+    else:
+        ngroups = len(bins) + 1
+
     N, K = (<object> values).shape
 
     b = 0
@@ -1010,7 +1037,7 @@ def group_var_bin(ndarray[float64_t, ndim=2] out,
 
     for i in range(ngroups):
         for j in range(K):
-            ct = nobs[i]
+            ct = nobs[i, j]
             if ct < 2:
                 out[i, j] = nan
             else:

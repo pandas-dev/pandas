@@ -73,34 +73,33 @@ class TimeGrouper(CustomGrouper):
 
         if self.kind is None or self.kind == 'timestamp':
             binner, bins, binlabels = self._get_time_bins(axis)
-            grouper = BinGrouper(bins, binlabels)
         else:
-            index = binner = PeriodIndex(start=axis[0], end=axis[-1],
-                                         freq=self.freq)
+            binner, bins, binlabels = self._get_time_period_bins(axis)
 
-            end_stamps = (index + 1).asfreq('D', 's').to_timestamp()
-            bins = axis.searchsorted(end_stamps, side='left')
-
-            grouper = BinGrouper(bins, index)
-
+        grouper = BinGrouper(bins, binlabels)
         return binner, grouper
 
     def _get_time_bins(self, axis):
         return _make_time_bins(axis, self.freq, begin=self.begin,
-                               end=self.end, nperiods=self.nperiods,
-                               closed=self.closed, label=self.label)
+                               end=self.end, closed=self.closed,
+                               label=self.label)
+
+    def _get_time_period_bins(self, axis):
+        return _make_period_bins(axis, self.freq, begin=self.begin,
+                                 end=self.end, closed=self.closed,
+                                 label=self.label)
 
     def _resample_timestamps(self, obj):
-        axis = obj._get_axis(self.axis)
+        axlabels = obj._get_axis(self.axis)
 
         binner, grouper = self._get_time_grouper(obj)
 
         # downsamples
-        if len(grouper.binlabels) < len(axis):
-            grouped  = obj.groupby(grouper, axis=axis)
+        if len(grouper.binlabels) < len(axlabels):
+            grouped  = obj.groupby(grouper, axis=self.axis)
             result = grouped.agg(self.how)
         else:
-            assert(axis == 0)
+            assert(self.axis == 0)
             # upsampling
 
             # this is sort of a hack
@@ -115,12 +114,12 @@ class TimeGrouper(CustomGrouper):
         return result
 
     def _resample_periods(self, obj):
-        axis = obj._get_axis(self.axis)
+        axlabels = obj._get_axis(self.axis)
 
         # Start vs. end of period
-        memb = axis.asfreq(self.freq, how=self.convention)
+        memb = axlabels.asfreq(self.freq, how=self.convention)
 
-        if is_subperiod(self.axis.freq, self.freq):
+        if is_subperiod(axlabels.freq, self.freq):
             # Downsampling
             if len(memb) > 1:
                 rng = np.arange(memb.values[0], memb.values[-1])
@@ -131,9 +130,9 @@ class TimeGrouper(CustomGrouper):
             index = period_range(memb[0], memb[-1], freq=self.freq)
             grouper = BinGrouper(bins, index)
 
-            grouped = obj.groupby(grouper, axis=axis)
+            grouped = obj.groupby(grouper, axis=self.axis)
             return grouped.agg(self.how)
-        elif is_superperiod(self.axis.freq, self.freq):
+        elif is_superperiod(axlabels.freq, self.freq):
             # Generate full range
             new_index = period_range(memb[0], memb[-1], freq=self.freq)
 
@@ -144,7 +143,7 @@ class TimeGrouper(CustomGrouper):
             return _take_new_index(obj, indexer, new_index, axis=self.axis)
         else:
             raise ValueError('Frequency %s cannot be resampled to %s'
-                             % (self.axis.freq, self.freq))
+                             % (axlabels.freq, self.freq))
 
 
 def _take_new_index(obj, indexer, new_index, axis=0):
@@ -168,15 +167,7 @@ def _take_new_index(obj, indexer, new_index, axis=0):
         raise NotImplementedError
 
 
-def _make_period_bins(axis, freq):
-    index = PeriodIndex(start=axis[0], end=axis[-1], freq=freq)
-    end_stamps = (index + 1).asfreq('D', 's').to_timestamp()
-    bins = axis.searchsorted(end_stamps, side='left')
-
-    return index, bins, index
-
-
-def _make_time_bins(axis, freq, begin=None, end=None, nperiods=None,
+def _make_period_bins(axis, freq, begin=None, end=None,
                     closed='right', label='right'):
     assert(isinstance(axis, DatetimeIndex))
 
@@ -184,15 +175,39 @@ def _make_time_bins(axis, freq, begin=None, end=None, nperiods=None,
         # TODO: Should we be a bit more careful here?
         return [], [], []
 
-    if isinstance(freq, basestring):
-        freq = to_offset(freq)
+    first, last = _get_range_edges(axis, begin, end, freq, closed=closed)
+    binlabels = binner = PeriodIndex(start=first, end=last, freq=freq)
 
-    if not isinstance(freq, DateOffset):
-        raise ValueError("Rule not a recognized offset")
+    # a little hack
+    trimmed = False
+    if len(binner) > 2 and binner[-2] == axis[-1]:
+        binner = binner[:-1]
+        trimmed = True
+
+    end_stamps = (binlabels + 1).asfreq('D', 's').to_timestamp()
+    bins = axis.searchsorted(end_stamps, side='left')
+
+    if label == 'right':
+        bins = bins[1:]
+        labels = binner[1:]
+    elif not trimmed:
+        labels = binner[:-1]
+    else:
+        labels = binner
+
+    return binner, bins, labels
+
+
+def _make_time_bins(axis, freq, begin=None, end=None,
+                    closed='right', label='right'):
+    assert(isinstance(axis, DatetimeIndex))
+
+    if len(axis) == 0:
+        # TODO: Should we be a bit more careful here?
+        return [], [], []
 
     first, last = _get_range_edges(axis, begin, end, freq, closed=closed)
-    binner = DatetimeIndex(freq=freq, start=first, end=last,
-                           periods=nperiods)
+    binner = DatetimeIndex(freq=freq, start=first, end=last)
 
     # a little hack
     trimmed = False
@@ -213,6 +228,12 @@ def _make_time_bins(axis, freq, begin=None, end=None, nperiods=None,
     return binner, bins, labels
 
 def _get_range_edges(axis, begin, end, offset, closed='left'):
+    if isinstance(offset, basestring):
+        offset = to_offset(offset)
+
+    if not isinstance(offset, DateOffset):
+        raise ValueError("Rule not a recognized offset")
+
     if begin is None:
         if closed == 'left':
             first = Timestamp(offset.rollback(axis[0]))

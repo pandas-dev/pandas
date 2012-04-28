@@ -232,6 +232,12 @@ class Block(object):
 
         return make_block(values, self.items, self.ref_items)
 
+    def take(self, indexer, axis=1, fill_value=np.nan):
+        assert(axis >= 1)
+        new_values = com.take_fast(self.values, indexer, None,
+                                   None, axis=axis,
+                                   fill_value=fill_value)
+        return make_block(new_values, self.items, self.ref_items)
 
 #-------------------------------------------------------------------------------
 # Is this even possible?

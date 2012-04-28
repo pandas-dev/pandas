@@ -289,14 +289,15 @@ def test_generate_bins():
         bins = func(values, binner, closed='left')
         assert((bins == np.array([2, 5, 6])).all())
 
-        bins = func(values, binner, closed='left')
-        assert((bins == np.array([2, 5, 6])).all())
-
         bins = func(values, binner, closed='right')
         assert((bins == np.array([3, 6, 6])).all())
 
+    for func in [lib.generate_bins_dt64, generate_bins_generic]:
+        values = np.array([1,2,3,4,5,6], dtype=np.int64)
+        binner = np.array([0,3,6], dtype=np.int64)
+
         bins = func(values, binner, closed='right')
-        assert((bins == np.array([3, 6, 6])).all())
+        assert((bins == np.array([3, 6])).all())
 
 class TestBinGroupers(unittest.TestCase):
 
@@ -338,22 +339,22 @@ class TestBinGroupers(unittest.TestCase):
 
         assert_almost_equal(out, exp)
 
-        # duplicate bins
         bins = np.array([3, 9, 10], dtype=np.int32)
-        out  = np.zeros((4, 1), np.float64)
+        out  = np.zeros((3, 1), np.float64)
         counts = np.zeros(len(out), dtype=np.int32)
         bin_func(out, counts, obj, bins)
         exp = np.array([np_func(obj[:3]), np_func(obj[3:9]),
-                        np_func(obj[9:]), np.nan],
+                        np_func(obj[9:])],
                        dtype=np.float64)
         assert_almost_equal(out.squeeze(), exp)
 
+        # duplicate bins
         bins = np.array([3, 6, 10, 10], dtype=np.int32)
-        out  = np.zeros((5, 1), np.float64)
+        out  = np.zeros((4, 1), np.float64)
         counts = np.zeros(len(out), dtype=np.int32)
         bin_func(out, counts, obj, bins)
         exp = np.array([np_func(obj[:3]), np_func(obj[3:6]),
-                        np_func(obj[6:10]), np.nan, np.nan],
+                        np_func(obj[6:10]), np.nan],
                        dtype=np.float64)
         assert_almost_equal(out.squeeze(), exp)
 

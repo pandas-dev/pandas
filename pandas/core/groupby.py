@@ -796,7 +796,7 @@ class CustomGrouper(object):
 class BinGrouper(Grouper):
 
     def __init__(self, bins, binlabels, filter_empty=False):
-        self.bins = bins
+        self.bins = com._ensure_int32(bins)
         self.binlabels = _ensure_index(binlabels)
         self._filter_empty_groups = filter_empty
 
@@ -1048,6 +1048,8 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
     if isinstance(key, CustomGrouper):
         gpr = key.get_grouper(obj)
         return gpr, []
+    elif isinstance(key, Grouper):
+        return key, []
 
     if not isinstance(key, (tuple, list)):
         keys = [key]

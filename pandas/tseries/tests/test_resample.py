@@ -14,6 +14,7 @@ import unittest
 import nose
 
 from pandas.util.testing import assert_series_equal, assert_almost_equal
+import pandas.util.testing as tm
 
 class TestResample(unittest.TestCase):
 
@@ -39,12 +40,18 @@ class TestResample(unittest.TestCase):
         for f in funcs:
             g._cython_agg_general(f)
 
+        b = TimeGrouper(Minute(5), closed='right', label='right')
+        g = s.groupby(b)
+        # check all cython functions work
+        funcs = ['add', 'mean', 'prod', 'ohlc', 'min', 'max', 'var']
+        for f in funcs:
+            g._cython_agg_general(f)
+
         self.assertEquals(g.ngroups, 2593)
         self.assert_(notnull(g.mean()).all())
 
         # construct expected val
-        arr = [5] * 2592
-        arr.append(1)
+        arr = [1] + [5] * 2592
         idx = dti[0:-1:5]
         idx = idx.append(DatetimeIndex([np.datetime64(dti[-1])]))
         expect = Series(arr, index=idx)
@@ -132,6 +139,26 @@ class TestResample(unittest.TestCase):
         self.assertEquals(result.irow(0), s['1/3/2005'])
         self.assertEquals(result.irow(1), s['1/4/2005'])
         self.assertEquals(result.irow(5), s['1/10/2005'])
+
+    def test_resample_frame_basic(self):
+        df = tm.makeTimeDataFrame()
+
+        b = TimeGrouper('M')
+        g = df.groupby(b)
+
+        # check all cython functions work
+        funcs = ['add', 'mean', 'prod', 'min', 'max', 'var']
+        for f in funcs:
+            g._cython_agg_general(f)
+
+        result = df.resample('A')
+        assert_series_equal(result['A'], df['A'].resample('A'))
+
+        result = df.resample('M')
+        assert_series_equal(result['A'], df['A'].resample('M'))
+
+        df.resample('M', kind='period')
+        df.resample('W-WED', kind='period')
 
     def test_resample_loffset(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min')
@@ -322,6 +349,11 @@ class TestResamplePeriodIndex(unittest.TestCase):
                 expected = result.to_timestamp(targ, how=conv)
                 expected = expected.asfreq(targ, meth).to_period()
                 assert_series_equal(result, expected)
+
+        df = DataFrame({'a' : ts})
+        rdf = df.resample('D', fill_method='ffill')
+        exp = df['a'].resample('D', fill_method='ffill')
+        assert_series_equal(rdf['a'], exp)
 
     def test_quarterly_upsample(self):
         pass
