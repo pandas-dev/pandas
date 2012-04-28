@@ -2278,22 +2278,37 @@ copy : boolean, default False
         if isinstance(date, basestring):
             date = datetools.to_datetime(date)
 
-        v = self.get(date)
+        if not isinstance(date, (list, tuple, np.ndarray)):
+            try:
+                date = list(date)
+            except TypeError:
+                date = [date]
 
-        if isnull(v):
-            # this will convert datetime -> datetime64 index
-            candidates = self.index[notnull(self)]
+        if not isinstance(date, Index):
+            date = Index(date)
 
-            index = candidates.searchsorted(lib.Timestamp(date))
+        candidates = self.index[notnull(self)]
 
-            if index > 0:
-                asOfDate = candidates[index - 1]
-            else:
-                return nan
+        mask = date.isin(candidates)
 
-            return self.get(asOfDate)
-        else:
-            return v
+        there = self.reindex(date[mask])
+        todo = date[-mask]
+
+        if len(there) == len(date):
+            if len(there) == 1:
+                return there[0]
+            return there
+
+        index = candidates.searchsorted(todo)
+        index = index - 1
+        asof_mask = index >= 0
+        asof = self.ix[candidates[index[asof_mask]]]
+        asof.index = todo[asof_mask]
+
+        if len(date) == 1 and len(asof) > 0:
+            return asof[0]
+
+        return there.combine_first(asof).reindex(date)
 
     def interpolate(self, method='linear'):
         """
@@ -2566,11 +2581,15 @@ class TimeSeries(Series):
 
         Parameters
         ----------
+        freq : string, default 'D'
+            Desired frequency
         how : {'s', 'e', 'start', 'end'}
+            Convention for converting period to timestamp; start of period
+            vs. end
 
         Returns
         -------
-        DatetimeIndex
+        ts : TimeSeries with DatetimeIndex
         """
         new_values = self.values
         if copy:
@@ -2579,4 +2598,24 @@ class TimeSeries(Series):
         new_index = self.index.to_timestamp(freq=freq, how=how)
         return Series(new_values, index=new_index, name=self.name)
 
+    def to_period(self, freq=None, copy=True):
+        """
+        Convert TimeSeries from DatetimeIndex to PeriodIndex with desired
+        frequency (inferred from index if not passed)
 
+        Parameters
+        ----------
+        freq : string, default
+
+        Returns
+        -------
+        ts : TimeSeries with PeriodIndex
+        """
+        new_values = self.values
+        if copy:
+            new_values = new_values.copy()
+
+        if freq is None:
+            freq = self.index.freqstr or self.index.inferred_freq
+        new_index = self.index.to_period(freq=freq)
+        return Series(new_values, index=new_index, name=self.name)

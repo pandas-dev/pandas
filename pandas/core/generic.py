@@ -1,4 +1,4 @@
-# pylint: disable=W0231
+# pylint: disable=W0231,E1101
 from datetime import timedelta
 
 import numpy as np
@@ -160,8 +160,8 @@ class PandasObject(Picklable):
         return asfreq(self, freq, method=method, how=how)
 
     def resample(self, rule, how='mean', axis=0, as_index=True,
-                 fill_method=None, closed='right', label='right', kind=None,
-                 loffset=None):
+                 fill_method=None, closed='right', label='right',
+                 convention=None, kind=None, loffset=None):
         """
         Convenience method for frequency conversion and resampling of regular
         time-series data.
@@ -176,18 +176,19 @@ class PandasObject(Picklable):
             Which side of bin interval is closed
         label : {'right', 'left'}, default 'right'
             Which bin edge label to label bucket with
+        convention : {'start', 'end', 's', 'e'}
+
         as_index : see synonymous argument of groupby
         loffset : timedelta
             Adjust the resampled time labels
         """
         from pandas.tseries.resample import TimeGrouper
 
-        idx = self._get_axis(axis)
-        if not isinstance(idx, DatetimeIndex):
-            raise ValueError("Cannot call resample with non-DatetimeIndex")
+        if axis != 0:
+            raise NotImplementedError
 
         grouper = TimeGrouper(rule, label=label, closed=closed,
-                              axis=self.index, kind=kind)
+                              axis=self._get_axis(axis), kind=kind)
 
         # since binner extends endpoints
         if grouper.downsamples:

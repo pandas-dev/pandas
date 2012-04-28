@@ -131,6 +131,9 @@ class Index(np.ndarray):
         else:
             return DatetimeIndex(self.values)
 
+    def _assert_can_do_setop(self, other):
+        return True
+
     @property
     def dtype(self):
         return self.values.dtype
@@ -465,6 +468,8 @@ class Index(np.ndarray):
         if len(self) == 0:
             return _ensure_index(other)
 
+        self._assert_can_do_setop(other)
+
         if self.dtype != other.dtype:
             this = self.astype('O')
             other = other.astype('O')
@@ -493,7 +498,10 @@ class Index(np.ndarray):
                     pass
             else:
                 # contained in
-                result = sorted(self)
+                try:
+                    result = np.sort(self.values)
+                except TypeError:
+                    result = self.values
 
         # for subclasses
         return self._wrap_union_result(other, result)
@@ -517,6 +525,8 @@ class Index(np.ndarray):
         """
         if not hasattr(other, '__iter__'):
             raise Exception('Input must be iterable!')
+
+        self._assert_can_do_setop(other)
 
         other = _ensure_index(other)
 

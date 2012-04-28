@@ -1,3 +1,5 @@
+# pylint: disable=E1101,E1103,W0232
+
 from datetime import datetime
 import numpy as np
 
@@ -33,7 +35,7 @@ def _field_accessor(name, alias=None):
     def f(self):
         base, mult = _gfc(self.freq)
         g = getattr(lib, 'get_period_%s_arr' % alias)
-        return g(self.ordinal, base, mult)
+        return g(self.values, base, mult)
     f.__name__ = name
     return property(f)
 
@@ -578,26 +580,25 @@ class PeriodIndex(Int64Index):
         else:
             base2, mult2 = freq
 
-
-        new_data = lib.period_asfreq_arr(self.values,
-                                         base1, mult1,
-                                         base2, mult2, py3compat.str_to_bytes(how))
+        new_data = lib.period_asfreq_arr(self.values, base1, mult1,
+                                         base2, mult2,
+                                         py3compat.str_to_bytes(how))
 
         return PeriodIndex(new_data, freq=freq)
 
-    year = _period_field_accessor('year')
-    month = _period_field_accessor('month')
-    day = _period_field_accessor('day')
-    hour = _period_field_accessor('hour')
-    minute = _period_field_accessor('minute')
-    second = _period_field_accessor('second')
-    weekofyear = _period_field_accessor('week')
+    year = _field_accessor('year')
+    month = _field_accessor('month')
+    day = _field_accessor('day')
+    hour = _field_accessor('hour')
+    minute = _field_accessor('minute')
+    second = _field_accessor('second')
+    weekofyear = _field_accessor('week')
     week = weekofyear
-    dayofweek = _period_field_accessor('dayofweek', 'dow')
+    dayofweek = _field_accessor('dayofweek', 'dow')
     weekday = dayofweek
-    dayofyear = day_of_year = _period_field_accessor('dayofyear', 'doy')
-    quarter = _period_field_accessor('quarter')
-    qyear = _period_field_accessor('qyear')
+    dayofyear = day_of_year = _field_accessor('dayofyear', 'doy')
+    quarter = _field_accessor('quarter')
+    qyear = _field_accessor('qyear')
 
     # Try to run function on index first, and then on elements of index
     # Especially important for group-by functionality
@@ -727,6 +728,40 @@ class PeriodIndex(Int64Index):
             key = to_period(key, self.freq).ordinal
             return self._engine.get_loc(key)
 
+    def join(self, other, how='left', level=None, return_indexers=False):
+        """
+        See Index.join
+        """
+        self._assert_can_do_setop(other)
+
+        result = Int64Index.join(self, other, how=how, level=level,
+                                 return_indexers=return_indexers)
+
+        if return_indexers:
+            result, lidx, ridx = result
+            return self._apply_meta(result), lidx, ridx
+        else:
+            return self._apply_meta(result)
+
+    def _assert_can_do_setop(self, other):
+        if not isinstance(other, PeriodIndex):
+            raise TypeError('can only call with other PeriodIndex-ed objects')
+
+        if self.freq != other.freq:
+            raise ValueError('Only like-indexed PeriodIndexes compatible '
+                             'for join (for now)')
+
+    def _wrap_union_result(self, other, result):
+        name = self.name if self.name == other.name else None
+        result = self._apply_meta(result)
+        result.name = name
+        return result
+
+    def _apply_meta(self, rawarr):
+        idx = rawarr.view(PeriodIndex)
+        idx.freq = self.freq
+        return idx
+
     def __getitem__(self, key):
         """Override numpy.ndarray's __getitem__ method to work as desired"""
         arr_idx = self.view(np.ndarray)
@@ -783,6 +818,7 @@ class PeriodIndex(Int64Index):
         taken.freq = self.freq
         taken.name = self.name
         return taken
+
 
 def _get_ordinal_range(start, end, periods, freq):
     if com._count_not_none(start, end, periods) < 2:

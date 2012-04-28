@@ -819,6 +819,55 @@ def _maybe_add_count(base, count):
     else:
         return base
 
+def _is_subperiod(source, target):
+    """
+    Returns True if conversion/resampling is possible between source and target
+    frequencies
+
+    Parameters
+    ----------
+    source : string
+        Frequency converting from
+    target : string
+        Frequency converting to
+
+    Returns
+    -------
+    is_subperiod : boolean
+    """
+    target = target.upper()
+    source = source.upper()
+    if _is_annual(target):
+        if _is_weekly(source):
+            raise ValueError('Weekly rules do not properly segment '
+                             'a yearly span')
+        if _is_annual(source) and source != target:
+            raise ValueError('Can only be same year end')
+        return source in ['D', 'B', 'M', 'H', 'T', 'S']
+    elif _is_quarterly(target):
+        pass
+        return source in ['D', 'B', 'M', 'H', 'T', 'S']
+    elif target == 'M':
+        pass
+        return source in ['D', 'B', 'H', 'T', 'S']
+    elif _is_weekly(target):
+        return source in ['D', 'B', 'H', 'T', 'S']
+    elif target == 'B':
+        return source in ['B', 'H', 'T', 'S']
+    elif target == 'D':
+        return source in ['D', 'H', 'T', 'S']
+
+
+def _is_annual(rule):
+    return rule.upper().startswith('A-')
+
+
+def _is_quarterly(rule):
+    return rule.upper().startswith('Q-')
+
+
+def _is_weekly(rule):
+    return rule.upper().startswith('W-')
 
 
 _weekday_rule_aliases = {
