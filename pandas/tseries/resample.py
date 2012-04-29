@@ -109,11 +109,15 @@ class TimeGrouper(CustomGrouper):
             # this is sort of a hack
             result = obj.reindex(binner[1:], method=self.fill_method)
 
-        if isinstance(self.loffset, (DateOffset, timedelta)):
+        loffset = self.loffset
+        if isinstance(loffset, basestring):
+            loffset = to_offset(self.loffset)
+
+        if isinstance(loffset, (DateOffset, timedelta)):
             if (isinstance(result.index, DatetimeIndex)
                 and len(result.index) > 0):
 
-                result.index = result.index + self.loffset
+                result.index = result.index + loffset
 
         return result
 

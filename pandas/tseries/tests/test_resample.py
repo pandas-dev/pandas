@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import numpy as np
 
-from pandas import Series, DataFrame, isnull, notnull
+from pandas import Series, DataFrame, isnull, notnull, datetools
 
 from pandas.tseries.index import date_range
 from pandas.tseries.offsets import Minute, bday
@@ -163,11 +163,20 @@ class TestResample(unittest.TestCase):
     def test_resample_loffset(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min')
         s = Series(np.random.randn(14), index=rng)
+
         result = s.resample('5min', how='mean', closed='right', label='right',
                             loffset=timedelta(minutes=1))
         idx = date_range('1/1/2000', periods=4, freq='5min')
         expected = Series([s[0], s[1:6].mean(), s[6:11].mean(), s[11:].mean()],
                           index=idx + timedelta(minutes=1))
+        assert_series_equal(result, expected)
+
+        expected = s.resample('5min', how='mean', closed='right', label='right',
+                              loffset='1min')
+        assert_series_equal(result, expected)
+
+        expected = s.resample('5min', how='mean', closed='right', label='right',
+                              loffset=datetools.Minute(1))
         assert_series_equal(result, expected)
 
         self.assert_(result.index.freq == Minute(5))
