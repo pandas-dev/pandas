@@ -8,7 +8,7 @@ import numpy as np
 from scipy import stats
 
 
-def scatter_matrix(frame, alpha=0.5, figsize=None, **kwds):
+def scatter_matrix(frame, alpha=0.5, figsize=None, diagonal='hist', **kwds):
     """
     Draw a matrix of scatter plots.
 
@@ -33,7 +33,13 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, **kwds):
         for j, b in zip(range(n), df.columns):
             if i == j:
                 # Deal with the diagonal by drawing a histogram there.
-                axes[i, j].hist(df[a])
+                if diagonal == 'hist':
+                    axes[i, j].hist(df[a])
+                elif diagonal == 'kde':
+                    y = df[a]
+                    gkde = stats.gaussian_kde(y)
+                    ind = np.linspace(min(y), max(y), 1000)
+                    axes[i, j].plot(ind, gkde.evaluate(ind), **kwds)
                 axes[i, j].yaxis.set_visible(False)
                 axes[i, j].xaxis.set_visible(False)
                 if i == 0 and j == 0:
