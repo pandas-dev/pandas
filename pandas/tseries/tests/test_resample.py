@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import numpy as np
 
-from pandas import Series, DataFrame, isnull, notnull, datetools
+from pandas import Series, DataFrame, isnull, notnull
 
 from pandas.tseries.index import date_range
 from pandas.tseries.offsets import Minute, bday
@@ -176,7 +176,7 @@ class TestResample(unittest.TestCase):
         assert_series_equal(result, expected)
 
         expected = s.resample('5min', how='mean', closed='right', label='right',
-                              loffset=datetools.Minute(1))
+                              loffset=Minute(1))
         assert_series_equal(result, expected)
 
         self.assert_(result.index.freq == Minute(5))
