@@ -96,9 +96,34 @@ class TestDataFramePlots(unittest.TestCase):
                        index=MultiIndex.from_tuples(tuples))
         _check_plot_works(df.plot, use_index=True)
 
-        axes = df.plot(subplots=True)
+    @slow
+    def test_subplots(self):
+        df = DataFrame(np.random.rand(10, 3),
+                       index=list(string.ascii_letters[:10]))
+
+        axes = df.plot(subplots=True, sharex=True, legend=True)
+
         for ax in axes:
             self.assert_(ax.get_legend() is not None)
+
+        axes = df.plot(subplots=True, sharex=True)
+        for ax in axes[:-2]:
+            [self.assert_(not label.get_visible())
+             for label in ax.get_xticklabels()]
+            [self.assert_(label.get_visible())
+             for label in ax.get_yticklabels()]
+
+        [self.assert_(label.get_visible())
+         for label in axes[-1].get_xticklabels()]
+        [self.assert_(label.get_visible())
+         for label in axes[-1].get_yticklabels()]
+
+        axes = df.plot(subplots=True, sharex=False)
+        for ax in axes:
+            [self.assert_(label.get_visible())
+             for label in ax.get_xticklabels()]
+            [self.assert_(label.get_visible())
+             for label in ax.get_yticklabels()]
 
     @slow
     def test_plot_bar(self):

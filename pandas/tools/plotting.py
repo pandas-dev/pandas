@@ -1,11 +1,11 @@
 # being a bit too dynamic
 # pylint: disable=E1101
-
-from pandas.util.decorators import cache_readonly
-import pandas.core.common as com
+from itertools import izip
 
 import numpy as np
 
+from pandas.util.decorators import cache_readonly
+import pandas.core.common as com
 
 def scatter_matrix(frame, alpha=0.5, figsize=None, **kwds):
     """
@@ -1019,17 +1019,29 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
     for i in range(1, nplots):
         axarr[i] = fig.add_subplot(nrows, ncols, i+1, **subplot_kw)
 
+    if nplots > 1:
+        if sharex and nrows > 1:
+            for i, ax in enumerate(axarr):
+                if np.ceil(float(i + 1) / ncols) < nrows: # only last row
+                    [label.set_visible(False) for label in ax.get_xticklabels()]
+        if sharey and ncols > 1:
+            for i, ax in enumerate(axarr):
+                if (i % ncols) != 0: # only first column
+                    [label.set_visible(False) for label in ax.get_yticklabels()]
+
     if squeeze:
         # Reshape the array to have the final desired dimension (nrow,ncol),
         # though discarding unneeded dimensions that equal 1.  If we only have
         # one subplot, just return it instead of a 1-element array.
         if nplots==1:
-            return fig, axarr[0]
+            axes = axarr[0]
         else:
-            return fig, axarr.reshape(nrows, ncols).squeeze()
+            axes = axarr.reshape(nrows, ncols).squeeze()
     else:
         # returned axis array will be always 2-d, even if nrows=ncols=1
-        return fig, axarr.reshape(nrows, ncols)
+        axes = axarr.reshape(nrows, ncols)
+
+    return fig, axes
 
 if __name__ == '__main__':
     # import pandas.rpy.common as com
