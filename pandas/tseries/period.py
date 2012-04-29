@@ -529,7 +529,7 @@ class PeriodIndex(Int64Index):
                 else:
                     base1, mult1 = _gfc(data.freq)
                     base2, mult2 = _gfc(freq)
-                    how = 'E'.encode('ascii') # Python 2.5 support
+                    how = py3compat.str_to_bytes('E')
                     data = lib.period_asfreq_arr(data.values, base1, mult1,
                                                  base2, mult2, how)
             else:
