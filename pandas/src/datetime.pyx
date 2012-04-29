@@ -1,5 +1,4 @@
 # cython: profile=False
-
 cimport numpy as np
 import numpy as np
 
@@ -830,6 +829,10 @@ def _get_deltas(object tz):
         utc_offset_cache[tz] = _unbox_utcoffsets(tz._transition_info)
     return utc_offset_cache[tz]
 
+cdef double total_seconds(object td): # Python 2.6 compat
+    return ((td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) //
+            10**6)
+
 cdef ndarray _unbox_utcoffsets(object transinfo):
     cdef:
         Py_ssize_t i, sz
@@ -839,7 +842,7 @@ cdef ndarray _unbox_utcoffsets(object transinfo):
     arr = np.empty(sz, dtype='i8')
 
     for i in range(sz):
-        arr[i] = int(transinfo[i][0].total_seconds()) * 1000000
+        arr[i] = int(total_seconds(transinfo[i][0])) * 1000000
 
     return arr
 
