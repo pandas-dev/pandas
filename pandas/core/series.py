@@ -2278,11 +2278,17 @@ copy : boolean, default False
         if isinstance(date, basestring):
             date = datetools.to_datetime(date)
 
-        if not isinstance(date, (list, tuple, np.ndarray)):
-            try:
-                date = list(date)
-            except TypeError:
-                date = [date]
+        if not isinstance(date, (list, tuple, np.ndarray, Index)):
+            # treat scalar values differently
+            v = self.get(date)
+            if isnull(v):
+                candidates = self.index[notnull(self)]
+                index = candidates.searchsorted(lib.Timestamp(date))
+                if index > 0:
+                    asOfDate = candidates[index - 1]
+                    return self.get(asOfDate)
+                return nan
+            return v
 
         if not isinstance(date, Index):
             date = Index(date)
@@ -2291,7 +2297,7 @@ copy : boolean, default False
 
         mask = date.isin(candidates)
 
-        there = self.reindex(date[mask])
+        there = self[date[mask]]
         todo = date[-mask]
 
         if len(there) == len(date):
