@@ -4,7 +4,7 @@ import numpy as np
 
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.index import Index, MultiIndex
+from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 from pandas.core.panel import Panel
@@ -787,12 +787,18 @@ def generate_bins_generic(values, binner, closed):
     return bins
 
 
+class CustomGrouper(object):
+
+    def get_grouper(self, obj):
+        raise NotImplementedError
+
 
 class BinGrouper(Grouper):
 
-    def __init__(self, bins, binlabels):
-        self.bins = bins
-        self.binlabels = binlabels
+    def __init__(self, bins, binlabels, filter_empty=False):
+        self.bins = com._ensure_int32(bins)
+        self.binlabels = _ensure_index(binlabels)
+        self._filter_empty_groups = filter_empty
 
     @property
     def nkeys(self):
@@ -821,6 +827,18 @@ class BinGrouper(Grouper):
     @cache_readonly
     def ngroups(self):
         return len(self.binlabels)
+
+    @cache_readonly
+    def result_index(self):
+        return self.binlabels
+
+    @property
+    def levels(self):
+        return [self.binlabels]
+
+    @property
+    def names(self):
+        return [self.binlabels.name]
 
     #----------------------------------------------------------------------
     # cython aggregation
@@ -1027,8 +1045,10 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
                 level = None
                 key = group_axis
 
-    if isinstance(key, Grouper):
-        key.set_axis(group_axis)
+    if isinstance(key, CustomGrouper):
+        gpr = key.get_grouper(obj)
+        return gpr, []
+    elif isinstance(key, Grouper):
         return key, []
 
     if not isinstance(key, (tuple, list)):

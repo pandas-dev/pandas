@@ -159,9 +159,9 @@ class PandasObject(Picklable):
         from pandas.tseries.resample import asfreq
         return asfreq(self, freq, method=method, how=how)
 
-    def resample(self, rule, how='mean', axis=0, as_index=True,
+    def resample(self, rule, how='mean', axis=0,
                  fill_method=None, closed='right', label='right',
-                 convention=None, kind=None, loffset=None):
+                 convention=None, kind=None, loffset=None, limit=None):
         """
         Convenience method for frequency conversion and resampling of regular
         time-series data.
@@ -177,32 +177,15 @@ class PandasObject(Picklable):
         label : {'right', 'left'}, default 'right'
             Which bin edge label to label bucket with
         convention : {'start', 'end', 's', 'e'}
-
-        as_index : see synonymous argument of groupby
         loffset : timedelta
             Adjust the resampled time labels
         """
         from pandas.tseries.resample import TimeGrouper
-
-        if axis != 0:
-            raise NotImplementedError
-
-        grouper = TimeGrouper(rule, label=label, closed=closed,
-                              axis=self._get_axis(axis), kind=kind)
-
-        # since binner extends endpoints
-        if grouper.downsamples:
-            # down- or re-sampling
-            grouped  = self.groupby(grouper, axis=axis, as_index=as_index)
-            result = grouped.agg(how)
-        else:
-            # upsampling
-            result = self.reindex(grouper.binner[1:], method=fill_method)
-
-        if isinstance(loffset, (DateOffset, timedelta)):
-            if len(result.index) > 0:
-                result.index = result.index + loffset
-        return result
+        sampler = TimeGrouper(rule, label=label, closed=closed, how=how,
+                              axis=axis, kind=kind, loffset=loffset,
+                              fill_method=fill_method, convention=convention,
+                              limit=limit)
+        return sampler.resample(self)
 
     def first(self, offset):
         """

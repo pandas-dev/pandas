@@ -1,6 +1,6 @@
+#include "period.h"
 #include "limits.h"
 // #include "numpy/ndarraytypes.h"
-#include "period.h"
 
 /*
  * Borrowed and derived code from scikits.timeseries that we will expose via
@@ -962,7 +962,7 @@ int64_t asfreq(int64_t period_ordinal, int freq1, int freq2, char relation)
     int64_t val;
     freq_conv_func func;
     asfreq_info finfo;
-	
+
 	func = get_asfreq_func(freq1, freq2, 0);
     get_asfreq_info(freq1, freq2, &finfo);
 
@@ -1073,7 +1073,7 @@ int64_t get_python_ordinal(int64_t period_ordinal, int freq)
 {
     asfreq_info af_info;
     int64_t (*toDaily)(int64_t, char, asfreq_info*);
-	
+
     if (freq == FR_DAY)
         return period_ordinal;
 

@@ -26,7 +26,6 @@ import cPickle as pickle
 import pandas.core.datetools as dt
 from numpy.random import rand
 from pandas.util.testing import assert_frame_equal
-from pandas.tseries.resample import TimeGrouper
 from pandas.core.datetools import BDay
 import pandas.core.common as com
 

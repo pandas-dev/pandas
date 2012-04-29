@@ -14,6 +14,7 @@ import unittest
 import nose
 
 from pandas.util.testing import assert_series_equal, assert_almost_equal
+import pandas.util.testing as tm
 
 class TestResample(unittest.TestCase):
 
@@ -39,12 +40,18 @@ class TestResample(unittest.TestCase):
         for f in funcs:
             g._cython_agg_general(f)
 
+        b = TimeGrouper(Minute(5), closed='right', label='right')
+        g = s.groupby(b)
+        # check all cython functions work
+        funcs = ['add', 'mean', 'prod', 'ohlc', 'min', 'max', 'var']
+        for f in funcs:
+            g._cython_agg_general(f)
+
         self.assertEquals(g.ngroups, 2593)
         self.assert_(notnull(g.mean()).all())
 
         # construct expected val
-        arr = [5] * 2592
-        arr.append(1)
+        arr = [1] + [5] * 2592
         idx = dti[0:-1:5]
         idx = idx.append(DatetimeIndex([np.datetime64(dti[-1])]))
         expect = Series(arr, index=idx)
@@ -132,6 +139,26 @@ class TestResample(unittest.TestCase):
         self.assertEquals(result.irow(0), s['1/3/2005'])
         self.assertEquals(result.irow(1), s['1/4/2005'])
         self.assertEquals(result.irow(5), s['1/10/2005'])
+
+    def test_resample_frame_basic(self):
+        df = tm.makeTimeDataFrame()
+
+        b = TimeGrouper('M')
+        g = df.groupby(b)
+
+        # check all cython functions work
+        funcs = ['add', 'mean', 'prod', 'min', 'max', 'var']
+        for f in funcs:
+            g._cython_agg_general(f)
+
+        result = df.resample('A')
+        assert_series_equal(result['A'], df['A'].resample('A'))
+
+        result = df.resample('M')
+        assert_series_equal(result['A'], df['A'].resample('M'))
+
+        df.resample('M', kind='period')
+        df.resample('W-WED', kind='period')
 
     def test_resample_loffset(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min')
@@ -273,25 +300,106 @@ def _simple_pts(start, end, freq='D'):
     return Series(np.random.randn(len(rng)), index=rng)
 
 
+from pandas.tseries.frequencies import MONTHS, DAYS
+from pandas.util.compat import product
+
 class TestResamplePeriodIndex(unittest.TestCase):
 
-    def test_basic_resample(self):
+    def test_basic_downsample(self):
         ts = _simple_pts('1/1/1990', '6/30/1995', freq='M')
         result = ts.resample('a-dec')
+
         expected = ts.groupby(ts.index.year).mean()
         expected.index = period_range('1/1/1990', '6/30/1995',
                                       freq='a-dec')
         assert_series_equal(result, expected)
 
-    def test_upsample_ffill(self):
+        # this is ok
+        assert_series_equal(ts.resample('a-dec'), result)
+        assert_series_equal(ts.resample('a'), result)
+
+    def test_not_subperiod(self):
+        # These are incompatible period rules for resampling
+        ts = _simple_pts('1/1/1990', '6/30/1995', freq='w-wed')
+        self.assertRaises(ValueError, ts.resample, 'a-dec')
+        self.assertRaises(ValueError, ts.resample, 'q-mar')
+        self.assertRaises(ValueError, ts.resample, 'M')
+        self.assertRaises(ValueError, ts.resample, 'w-thu')
+
+    def test_basic_upsample(self):
         ts = _simple_pts('1/1/1990', '6/30/1995', freq='M')
         result = ts.resample('a-dec')
 
-        resampled = result.resample('D', fill_method='ffill',
-                                    convention='end')
+        resampled = result.resample('D', fill_method='ffill', convention='end')
 
-        # expected = result.
+        expected = result.to_timestamp('D', how='end')
+        expected = expected.asfreq('D', 'ffill').to_period()
 
+        assert_series_equal(resampled, expected)
+
+    def test_annual_upsample(self):
+        targets = ['D', 'B', 'M']
+
+        for month in MONTHS:
+            ts = _simple_pts('1/1/1990', '12/31/1995', freq='A-%s' % month)
+
+            for targ, conv, meth in product(targets, ['start', 'end'],
+                                            ['ffill', 'bfill']):
+                result = ts.resample(targ, fill_method=meth,
+                                     convention=conv)
+                expected = result.to_timestamp(targ, how=conv)
+                expected = expected.asfreq(targ, meth).to_period()
+                assert_series_equal(result, expected)
+
+        df = DataFrame({'a' : ts})
+        rdf = df.resample('D', fill_method='ffill')
+        exp = df['a'].resample('D', fill_method='ffill')
+        assert_series_equal(rdf['a'], exp)
+
+    def test_quarterly_upsample(self):
+        targets = ['D', 'B', 'M']
+
+        for month in MONTHS:
+            ts = _simple_pts('1/1/1990', '12/31/1995', freq='Q-%s' % month)
+
+            for targ, conv in product(targets, ['start', 'end']):
+                result = ts.resample(targ, fill_method='ffill',
+                                     convention=conv)
+                expected = result.to_timestamp(targ, how=conv)
+                expected = expected.asfreq(targ, 'ffill').to_period()
+                assert_series_equal(result, expected)
+
+    def test_monthly_upsample(self):
+        targets = ['D', 'B']
+
+        ts = _simple_pts('1/1/1990', '12/31/1995', freq='M')
+
+        for targ, conv in product(targets, ['start', 'end']):
+            result = ts.resample(targ, fill_method='ffill',
+                                 convention=conv)
+            expected = result.to_timestamp(targ, how=conv)
+            expected = expected.asfreq(targ, 'ffill').to_period()
+            assert_series_equal(result, expected)
+
+    def test_weekly_upsample(self):
+        targets = ['D', 'B']
+
+        for day in DAYS:
+            ts = _simple_pts('1/1/1990', '12/31/1995', freq='W-%s' % day)
+
+            for targ, conv in product(targets, ['start', 'end']):
+                result = ts.resample(targ, fill_method='ffill',
+                                     convention=conv)
+                expected = result.to_timestamp(targ, how=conv)
+                expected = expected.asfreq(targ, 'ffill').to_period()
+                assert_series_equal(result, expected)
+
+    def test_resample_to_timestamps(self):
+        ts = _simple_pts('1/1/1990', '12/31/1995', freq='M')
+
+        result = ts.resample('A-DEC', kind='timestamp')
+        expected = ts.to_timestamp(how='end').resample('A-DEC')
+        assert_series_equal(result, expected)
 
 class TestTimeGrouper(unittest.TestCase):
 

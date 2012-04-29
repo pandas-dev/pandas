@@ -199,13 +199,13 @@ class Period(object):
     def end_time(self):
         return self.to_timestamp(how='E')
 
-    def to_timestamp(self, freq='D', how='S'):
+    def to_timestamp(self, freq=None, how='S'):
         """
         Return the Timestamp at the start/end of the period
 
         Parameters
         ----------
-        freq : string or DateOffset, default 'D'
+        freq : string or DateOffset, default frequency of PeriodIndex
             Target frequency
         how: str, default 'S' (start)
             'S', 'E'. Can be aliased as case insensitive
@@ -216,12 +216,15 @@ class Period(object):
         Timestamp
         """
         # how = _validate_end_alias(how)
-
-        base, mult = _gfc(freq)
-        new_val = self.asfreq(freq, how)
-        new_val = lib.period_ordinal_to_dt64(new_val.ordinal, base, mult)
-        ts_freq = _period_rule_to_timestamp_rule(self.freq, how=how)
-        return Timestamp(new_val, offset=to_offset(ts_freq))
+        if freq is None:
+            base, mult = _gfc(self.freq)
+            new_val = self
+        else:
+            base, mult = _gfc(freq)
+            new_val = self.asfreq(freq, how)
+        dt64 = lib.period_ordinal_to_dt64(new_val.ordinal, base, mult)
+        ts_freq = _period_rule_to_timestamp_rule(new_val.freq, how=how)
+        return Timestamp(dt64, offset=to_offset(ts_freq))
 
     year = _period_field_accessor('year')
     month = _period_field_accessor('month')
@@ -612,7 +615,7 @@ class PeriodIndex(Int64Index):
         # how to represent ourselves to matplotlib
         return _period_box_array(self, self.freq)
 
-    def to_timestamp(self, freq='D', how='start'):
+    def to_timestamp(self, freq=None, how='start'):
         """
         Cast to DatetimeIndex
 
@@ -626,8 +629,14 @@ class PeriodIndex(Int64Index):
         -------
         DatetimeIndex
         """
-        base, mult = _gfc(freq)
-        new_data = self.asfreq(freq, how)
+        if freq is None:
+            base, mult = _gfc(self.freq)
+            new_data = self
+            # freq = self.freq
+        else:
+            base, mult = _gfc(freq)
+            new_data = self.asfreq(freq, how)
+            # freq = 'infer'
         new_data = lib.periodarr_to_dt64arr(new_data.values, base, mult)
         return DatetimeIndex(new_data, freq='infer')
 
