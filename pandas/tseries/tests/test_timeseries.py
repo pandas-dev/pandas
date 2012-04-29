@@ -1,5 +1,5 @@
 # pylint: disable-msg=E1101,W0612
-
+from __future__ import with_statement # for Python 2.5
 from datetime import datetime, time, timedelta
 import sys
 import os
