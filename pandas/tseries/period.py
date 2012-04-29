@@ -529,8 +529,9 @@ class PeriodIndex(Int64Index):
                 else:
                     base1, mult1 = _gfc(data.freq)
                     base2, mult2 = _gfc(freq)
+                    how = 'E'.encode('ascii') # Python 2.5 support
                     data = lib.period_asfreq_arr(data.values, base1, mult1,
-                                                 base2, mult2, b'E')
+                                                 base2, mult2, how)
             else:
                 if freq is None and len(data) > 0:
                     freq = getattr(data[0], 'freq')
