@@ -875,7 +875,7 @@ class DatetimeIndex(Int64Index):
         else:
             if com._is_bool_indexer(key):
                 key = np.asarray(key)
-                key = lib.maybe_booleans_to_slice(key)
+                key = lib.maybe_booleans_to_slice(key.view(np.uint8))
 
             new_offset = None
             if isinstance(key, slice):
