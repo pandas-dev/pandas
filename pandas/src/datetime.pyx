@@ -215,6 +215,9 @@ cpdef convert_to_tsobject(object ts, object tzinfo=None):
     """
     cdef:
         npy_datetimestruct dts
+        npy_bool islocal, special
+        NPY_DATETIMEUNIT out_bestunit
+        char* buf
         _Timestamp tmp
         _TSObject retval
 
@@ -241,7 +244,10 @@ cpdef convert_to_tsobject(object ts, object tzinfo=None):
                             dts.min, dts.sec, dts.us)
     # this is pretty cheap
     elif util.is_string_object(ts):
-        parse_python_string(ts, &dts)
+        if PyUnicode_Check(ts):
+            ts = PyUnicode_AsASCIIString(ts);
+        parse_iso_8601_datetime(ts, len(ts), NPY_FR_us, NPY_UNSAFE_CASTING,
+                                &dts, &islocal, &out_bestunit, &special)
         retval.value = PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts)
         retval.dtval = <object>PyDateTime_FromDateAndTime(
                             dts.year, dts.month,
