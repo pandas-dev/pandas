@@ -415,7 +415,7 @@ class SparseDataFrame(DataFrame):
         if level is not None:
             raise NotImplementedError
 
-        if not self and not other:
+        if self.empty and other.empty:
             return SparseDataFrame(index=new_index)
 
         new_data = {}
