@@ -671,7 +671,9 @@ class Grouper(object):
         result = trans_func(result)
 
         if self._filter_empty_groups:
-            result = lib.row_bool_subset(result, counts > 0)
+            # python 2.5
+            result = lib.row_bool_subset(result,
+                                         (counts > 0).view(np.uint8))
 
         if vdim == 1:
             result = result[:, 0]
@@ -887,7 +889,8 @@ class BinGrouper(Grouper):
         result = trans_func(result)
 
         if self._filter_empty_groups:
-            result = lib.row_bool_subset(result, counts > 0)
+            result = lib.row_bool_subset(result,
+                                         (counts > 0).view(np.uint8))
 
         if vdim == 1 and arity == 1:
             result = result[:, 0]
