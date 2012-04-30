@@ -132,7 +132,7 @@ cdef class IndexEngine:
 
     cdef _get_bool_indexer(self, object val):
         cdef:
-            ndarray[uint8_t, cast=True] indexer
+            ndarray[uint8_t] indexer
             ndarray[object] values
             int count = 0
             Py_ssize_t i, n
@@ -140,7 +140,8 @@ cdef class IndexEngine:
         values = self._get_index_values()
         n = len(values)
 
-        indexer = np.empty(n, dtype=bool)
+        result = np.empty(n, dtype=bool)
+        indexer = result.view(np.uint8)
 
         for i in range(n):
             if values[i] == val:
@@ -152,7 +153,7 @@ cdef class IndexEngine:
         if count == 0:
             raise KeyError(val)
 
-        return indexer
+        return result
 
     property is_unique:
 

@@ -5129,7 +5129,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(isnull(Y['g']['c']))
 
     def test_index_namedtuple(self):
-        from collections import namedtuple
+        try:
+            from collections import namedtuple
+        except ImportError:
+            raise nose.SkipTest
         IndexType = namedtuple("IndexType", ["a", "b"])
         idx1 = IndexType("foo", "bar")
         idx2 = IndexType("baz", "bof")
