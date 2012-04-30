@@ -1,4 +1,4 @@
-from cStringIO import StringIO
+from pandas.util.py3compat import StringIO
 
 import numpy as np
 

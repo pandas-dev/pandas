@@ -1,4 +1,8 @@
-from StringIO import StringIO
+try:
+    from StringIO import StringIO
+except:
+    from io import StringIO
+
 import os
 import sys
 import unittest
@@ -484,7 +488,6 @@ class TestSeriesFormatting(unittest.TestCase):
         repr(s)
 
     def test_to_string(self):
-        from cStringIO import StringIO
         buf = StringIO()
 
         s = self.ts.to_string()

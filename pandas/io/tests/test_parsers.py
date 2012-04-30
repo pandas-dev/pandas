@@ -1,10 +1,4 @@
-try:
-    from io import BytesIO
-except ImportError:  # pragma: no cover
-    # Python < 2.6
-    from cStringIO import StringIO as BytesIO
-
-from cStringIO import StringIO
+from pandas.util.py3compat import StringIO, BytesIO
 from datetime import datetime
 import csv
 import os

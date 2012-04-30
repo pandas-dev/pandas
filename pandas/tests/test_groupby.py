@@ -1347,7 +1347,7 @@ class TestGroupBy(unittest.TestCase):
 
     def test_groupby_wrong_multi_labels(self):
         from pandas import read_csv
-        from cStringIO import StringIO
+        from pandas.util.py3compat import StringIO
         data = """index,foo,bar,baz,spam,data
 0,foo1,bar1,baz1,spam2,20
 1,foo1,bar2,baz1,spam3,30

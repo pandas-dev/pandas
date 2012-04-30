@@ -1,6 +1,10 @@
 from itertools import izip
 
-from StringIO import StringIO
+try:
+    from StringIO import StringIO
+except:
+    from io import StringIO
+
 from pandas.core.common import adjoin, isnull, notnull, _stringify
 from pandas.core.index import MultiIndex, _ensure_index
 from pandas.util import py3compat

@@ -1124,7 +1124,7 @@ class TestLongPanel(unittest.TestCase):
         self.assert_(is_sorted(sorted_major.index.labels[0]))
 
     def test_to_string(self):
-        from cStringIO import StringIO
+        from pandas.util.py3compat import StringIO
 
         buf = StringIO()
         self.panel.to_string(buf)

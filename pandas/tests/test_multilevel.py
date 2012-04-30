@@ -1,5 +1,5 @@
 # pylint: disable-msg=W0612,E1101,W0141
-from cStringIO import StringIO
+from pandas.util.py3compat import StringIO
 import nose
 import unittest
 

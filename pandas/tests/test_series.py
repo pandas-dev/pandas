@@ -1,6 +1,5 @@
 # pylint: disable-msg=E1101,W0612
 
-from cStringIO import StringIO
 from datetime import datetime, timedelta
 import os
 import operator
@@ -20,6 +19,7 @@ from pandas.tseries.index import Timestamp
 import pandas.core.datetools as datetools
 import pandas.core.nanops as nanops
 
+from pandas.util.py3compat import StringIO
 from pandas.util import py3compat
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm

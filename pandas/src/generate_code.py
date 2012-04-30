@@ -1,4 +1,4 @@
-from cStringIO import StringIO
+from pandas.util.py3compat import StringIO
 
 take_1d_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
