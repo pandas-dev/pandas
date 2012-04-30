@@ -305,39 +305,39 @@ convert_datetimestruct_local_to_utc(npy_datetimestruct *out_dts_utc,
     return 0;
 }
 
-int
-parse_python_string(PyObject* obj, npy_datetimestruct *dts) {
-    PyObject *bytes = NULL;
-    char *str = NULL;
-    Py_ssize_t len = 0;
-    NPY_DATETIMEUNIT bestunit = -1;
+/* int */
+/* parse_python_string(PyObject* obj, npy_datetimestruct *dts) { */
+/*     PyObject *bytes = NULL; */
+/*     char *str = NULL; */
+/*     Py_ssize_t len = 0; */
+/*     NPY_DATETIMEUNIT bestunit = -1; */
 
-    /* Convert to an ASCII string for the date parser */
-    if (PyUnicode_Check(obj)) {
-        bytes = PyUnicode_AsASCIIString(obj);
-        if (bytes == NULL) {
-            return -1;
-        }
-    }
-    else {
-        bytes = obj;
-        Py_INCREF(bytes);
-    }
-    if (PyBytes_AsStringAndSize(bytes, &str, &len) == -1) {
-        Py_DECREF(bytes);
-        return -1;
-    }
+/*     /\* Convert to an ASCII string for the date parser *\/ */
+/*     if (PyUnicode_Check(obj)) { */
+/*         bytes = PyUnicode_AsASCIIString(obj); */
+/*         if (bytes == NULL) { */
+/*             return -1; */
+/*         } */
+/*     } */
+/*     else { */
+/*         bytes = obj; */
+/*         Py_INCREF(bytes); */
+/*     } */
+/*     if (PyBytes_AsStringAndSize(bytes, &str, &len) == -1) { */
+/*         Py_DECREF(bytes); */
+/*         return -1; */
+/*     } */
 
-    /* Parse the ISO date */
-    if (parse_iso_8601_datetime(str, len, NPY_FR_us, NPY_UNSAFE_CASTING,
-                            &dts, NULL, &bestunit, NULL) < 0) {
-        Py_DECREF(bytes);
-        return -1;
-    }
-    Py_DECREF(bytes);
+/*     /\* Parse the ISO date *\/ */
+/*     if (parse_iso_8601_datetime(str, len, NPY_FR_us, NPY_UNSAFE_CASTING, */
+/*                             dts, NULL, &bestunit, NULL) < 0) { */
+/*         Py_DECREF(bytes); */
+/*         return -1; */
+/*     } */
+/*     Py_DECREF(bytes); */
 
-    return 0;
-}
+/*     return 0; */
+/* } */
 
 
 /*
