@@ -270,7 +270,8 @@ cdef class Int64Engine(IndexEngine):
         values = self._get_index_values()
         n = len(values)
 
-        indexer = np.empty(n, dtype=bool)
+        result = np.empty(n, dtype=bool)
+        indexer = result.view(np.uint8)
 
         for i in range(n):
             if values[i] == val:
@@ -282,7 +283,7 @@ cdef class Int64Engine(IndexEngine):
         if count == 0:
             raise KeyError(val)
 
-        return indexer
+        return result
 
 cdef class Float64Engine(IndexEngine):
 

@@ -437,7 +437,6 @@ def get_standard_freq(freq):
 _period_code_map = {
     # Annual freqs with various fiscal year ends.
     # eg, 2005 for A-FEB runs Mar 1, 2004 to Feb 28, 2005
-    "A"     : 1000,  # Annual
     "A-DEC" : 1000,  # Annual - December year end
     "A-JAN" : 1001,  # Annual - January year end
     "A-FEB" : 1002,  # Annual - February year end
@@ -453,7 +452,6 @@ _period_code_map = {
 
     # Quarterly frequencies with various fiscal year ends.
     # eg, Q42005 for Q-OCT runs Aug 1, 2005 to Oct 31, 2005
-    "Q"     : 2000,    # Quarterly - December year end (default quarterly)
     "Q-DEC" : 2000 ,    # Quarterly - December year end
     "Q-JAN" : 2001,    # Quarterly - January year end
     "Q-FEB" : 2002,    # Quarterly - February year end
@@ -469,7 +467,6 @@ _period_code_map = {
 
     "M"     : 3000,   # Monthly
 
-    "W"     : 4000,    # Weekly
     "W-SUN" : 4000,    # Weekly - Sunday end of week
     "W-MON" : 4001,    # Weekly - Monday end of week
     "W-TUE" : 4002,    # Weekly - Tuesday end of week
@@ -484,7 +481,19 @@ _period_code_map = {
     "T"      : 8000,   # Minutely
     "S"      : 9000,   # Secondly
     None     : -10000  # Undefined
+
 }
+
+_reverse_period_code_map = {}
+for k, v in _period_code_map.iteritems():
+    _reverse_period_code_map[v] = k
+
+# Additional aliases
+_period_code_map.update({
+    "Q"     : 2000,    # Quarterly - December year end (default quarterly)
+    "A"     : 1000,  # Annual
+    "W"     : 4000,    # Weekly
+})
 
 def _period_alias_dictionary():
     """
@@ -580,10 +589,6 @@ def _period_alias_dictionary():
                 alias_dict[k + sep + d2] = 'W-' + d1
 
     return alias_dict
-
-_reverse_period_code_map = {}
-for k, v in _period_code_map.iteritems():
-    _reverse_period_code_map[v] = k
 
 _reso_period_map = {
     "year"    : "A",
