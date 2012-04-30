@@ -116,8 +116,10 @@ cdef class IndexEngine:
 
         if self.is_monotonic:
             values = self._get_index_values()
+
             left = values.searchsorted(val, side='left')
             right = values.searchsorted(val, side='right')
+
             diff = right - left
             if diff == 0:
                 raise KeyError(val)

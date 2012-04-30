@@ -10,6 +10,7 @@ from datetime cimport *
 from util cimport is_integer_object, is_datetime64_object
 
 from dateutil.parser import parse as parse_date
+cimport util
 
 # initialize numpy
 import_array()
@@ -202,7 +203,7 @@ cdef class _TSObject:
             return self.value
 
 # helper to extract datetime and int64 from several different possibilities
-cdef convert_to_tsobject(object ts, object tzinfo=None):
+cpdef convert_to_tsobject(object ts, object tzinfo=None):
     """
     Extract datetime and int64 from any of:
         - np.int64
@@ -213,9 +214,6 @@ cdef convert_to_tsobject(object ts, object tzinfo=None):
         - another timestamp object
     """
     cdef:
-        Py_ssize_t strlen
-        npy_bool islocal, special
-        NPY_DATETIMEUNIT out_bestunit
         npy_datetimestruct dts
         _Timestamp tmp
         _TSObject retval
@@ -242,10 +240,8 @@ cdef convert_to_tsobject(object ts, object tzinfo=None):
                             dts.day, dts.hour,
                             dts.min, dts.sec, dts.us)
     # this is pretty cheap
-    elif PyString_Check(ts):
-        # we might want to fall back on dateutil parser?
-        parse_iso_8601_datetime(ts, len(ts), NPY_FR_us, NPY_UNSAFE_CASTING,
-                                &dts, &islocal, &out_bestunit, &special)
+    elif util.is_string_object(ts):
+        parse_python_string(ts, &dts)
         retval.value = PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts)
         retval.dtval = <object>PyDateTime_FromDateAndTime(
                             dts.year, dts.month,

@@ -480,7 +480,10 @@ copy : boolean, default False
                 return
 
             raise KeyError('%s not in this series!' % str(key))
-        except TypeError:
+        except TypeError, e:
+            # python 3 type errors should be raised
+            if 'unorderable' in str(e):  # pragma: no cover
+                raise IndexError(key)
             # Could not hash item
             pass
 

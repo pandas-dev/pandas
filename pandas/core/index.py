@@ -623,6 +623,9 @@ class Index(np.ndarray):
             except Exception:  # pragma: no cover
                 raise e1
         except TypeError:
+            # python 3
+            if np.isscalar(key):  # pragma: no cover
+                raise IndexError(key)
             raise InvalidIndexError(key)
 
     def set_value(self, arr, key, value):

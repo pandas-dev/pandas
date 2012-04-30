@@ -26,6 +26,7 @@ import cPickle as pickle
 import pandas.core.datetools as dt
 from numpy.random import rand
 from pandas.util.testing import assert_frame_equal
+import pandas.util.py3compat as py3compat
 from pandas.core.datetools import BDay
 import pandas.core.common as com
 
@@ -409,6 +410,7 @@ class TestTimeSeries(unittest.TestCase):
         assert_series_equal(result, expected)
 
     def test_take_dont_lose_meta(self):
+        _skip_if_no_pytz()
         rng = date_range('1/1/2000', periods=20, tz='US/Eastern')
 
         result = rng.take(range(5))
@@ -541,6 +543,9 @@ class TestLegacySupport(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        if py3compat.PY3:
+            raise nose.SkipTest
+
         pth, _ = os.path.split(os.path.abspath(__file__))
         filepath = os.path.join(pth, 'data', 'frame.pickle')
 
@@ -1015,6 +1020,7 @@ class TestDatetime64(unittest.TestCase):
         self.assertRaises(pytz.AmbiguousTimeError, dti.tz_localize, tz)
 
     def test_asobject_tz_box(self):
+        _skip_if_no_pytz()
         tz = pytz.timezone('US/Eastern')
         index = DatetimeIndex(start='1/1/2005', periods=10, tz=tz,
                               freq='B')

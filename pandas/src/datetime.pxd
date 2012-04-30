@@ -96,6 +96,8 @@ cdef extern from "np_datetime_strings.h":
 
     int get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base)
 
+    int parse_python_string(object obj, npy_datetimestruct *out) except -1
+
 cdef extern from "period.h":
     ctypedef struct date_info:
         int64_t absdate
