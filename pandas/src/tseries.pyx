@@ -442,7 +442,7 @@ def maybe_indices_to_slice(ndarray[int64_t] indices):
     return slice(indices[0], indices[n - 1] + 1)
 
 
-def maybe_booleans_to_slice(ndarray[uint8_t, cast=True] mask):
+def maybe_booleans_to_slice(ndarray[uint8_t] mask):
     cdef:
         Py_ssize_t i, n = len(mask)
         Py_ssize_t start, end
@@ -451,7 +451,7 @@ def maybe_booleans_to_slice(ndarray[uint8_t, cast=True] mask):
     for i in range(n):
         if mask[i]:
             if finished:
-                return mask
+                return mask.view(np.bool_)
             if not started:
                 started = 1
                 start = i
