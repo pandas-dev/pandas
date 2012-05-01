@@ -335,12 +335,16 @@ def to_offset(freqstr):
         delta = get_offset(name) * stride
     else:
         delta = None
+        stride_sign = None
         try:
             for stride, name, _ in opattern.findall(freqstr):
                 offset = get_offset(name)
                 if not stride:
                     stride = 1
-                offset = offset * int(stride)
+                stride = int(stride)
+                if stride_sign is None:
+                    stride_sign = np.sign(stride)
+                offset = offset * int(np.fabs(stride) * stride_sign)
                 if delta is None:
                     delta = offset
                 else:
@@ -352,7 +356,7 @@ def to_offset(freqstr):
 
 
 # hack to handle WOM-1MON
-opattern = re.compile(r'(\d*)\s*([A-Za-z]+([\-@]\d*[A-Za-z]+)?)')
+opattern = re.compile(r'([\-]?\d*)\s*([A-Za-z]+([\-@]\d*[A-Za-z]+)?)')
 
 def _base_and_stride(freqstr):
     """

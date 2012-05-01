@@ -43,6 +43,16 @@ def test_to_offset_multiple():
     expected = offsets.Milli(10075)
     assert(result == expected)
 
+def test_to_offset_negative():
+    freqstr = '-1S'
+    result = to_offset(freqstr)
+    assert(result.n == -1)
+
+    freqstr='-5min10s'
+    result = to_offset(freqstr)
+    assert(result.n == -310)
+
+
 _dti = DatetimeIndex
 
 class TestFrequencyInference(unittest.TestCase):
