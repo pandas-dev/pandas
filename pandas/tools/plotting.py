@@ -328,11 +328,21 @@ class LinePlot(MPLPlot):
 
     def __init__(self, data, **kwargs):
         MPLPlot.__init__(self, data, **kwargs)
-        self.has_ts_index = False
+
+    @property
+    def has_ts_index(self):
+        from pandas.core.series import Series
+        from pandas.core.frame import DataFrame
         from pandas.tseries.index import DatetimeIndex
         from pandas.tseries.period import PeriodIndex
-        if isinstance(data.index, (DatetimeIndex, PeriodIndex)):
-            self.has_ts_index = True
+        if isinstance(self.data, (Series, DataFrame)):
+            if isinstance(self.data.index, (DatetimeIndex, PeriodIndex)):
+                has_freq = (hasattr(self.data.index, 'freq') and
+                            self.data.index.freq is not None)
+                has_inferred = (hasattr(self.data.index, 'inferred_freq') and
+                                self.data.index.inferred_freq is not None)
+                return has_freq or has_inferred
+        return False
 
     def _get_plot_function(self):
         if self.logy:

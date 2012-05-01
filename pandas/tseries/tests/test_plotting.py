@@ -7,7 +7,7 @@ import nose
 import numpy as np
 from numpy.testing.decorators import slow
 
-from pandas import Series, DataFrame, isnull, notnull
+from pandas import Index, Series, DataFrame, isnull, notnull
 
 from pandas.tseries.index import date_range
 from pandas.tseries.offsets import Minute, bday
@@ -66,6 +66,15 @@ class TestTSPlot(unittest.TestCase):
         for df in self.datetime_df:
             freq = df.index.to_period(df.index.freq.rule_code).freq
             _check_plot_works(df.plot, freq)
+
+    @slow
+    def test_line_plot_inferred_freq(self):
+        for ser in self.datetime_ser:
+            ser = Series(ser.values, Index(np.asarray(ser.index)))
+            _check_plot_works(ser.plot, ser.index.inferred_freq)
+            ser.inferred_freq = None
+            _check_plot_works(ser.plot, ser.index.inferred_freq)
+
 
 PNG_PATH = 'tmp.png'
 def _check_plot_works(f, freq, *args, **kwargs):
