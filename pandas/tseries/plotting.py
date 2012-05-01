@@ -66,27 +66,30 @@ def tsplot(axes, series, *args, **kwargs):
     Supports same args and kwargs as Axes.plot
 
     """
+    # Used inferred freq is possible, need a test case for inferred
     freq = getattr(series.index, 'freq', None)
     if freq is None and hasattr(series.index, 'inferred_freq'):
         freq = series.index.inferred_freq
     if isinstance(freq, DateOffset):
         freq = freq.rule_code
 
+    # Convert DatetimeIndex to PeriodIndex
     if isinstance(series.index, DatetimeIndex):
         idx = series.index.to_period(freq=freq)
-        series = Series(series.values, idx, series.name)
+        series = Series(series.values, idx, name=series.name)
 
     if not isinstance(series.index, PeriodIndex):
         raise TypeError('series argument to tsplot must have DatetimeIndex or '
                         'PeriodIndex')
 
-    args = _check_plot_params(series, series.index, freq, *args)
-
+    # Specialized ts plotting attributes for Axes
     axes.freq = freq
     axes.legendlabels = [kwargs.get('label', None)]
     axes.view_interval = None
     axes.date_axis_info = None
 
+    # format args and lot
+    args = _check_plot_params(series, series.index, freq, *args)
     plotted = axes.plot(*args,  **kwargs)
 
     format_dateaxis(axes, axes.freq)
@@ -118,123 +121,109 @@ def get_datevalue(date, freq):
         return None
     raise ValueError("Unrecognizable date '%s'" % date)
 
-def format_dateaxis(subplot, freq):
-    """
-    Pretty-formats the date axis (x-axis).
 
-    Major and minor ticks are automatically set for the frequency of the
-    current underlying series.  As the dynamic mode is activated by
-    default, changing the limits of the x axis will intelligently change
-    the positions of the ticks.
-    """
-    majlocator = TimeSeries_DateLocator(freq, dynamic_mode=True,
-                                        minor_locator=False,
-                                        plot_obj=subplot)
-    minlocator = TimeSeries_DateLocator(freq, dynamic_mode=True,
-                                        minor_locator=True,
-                                        plot_obj=subplot)
-    subplot.xaxis.set_major_locator(majlocator)
-    subplot.xaxis.set_minor_locator(minlocator)
-
-    majformatter = TimeSeries_DateFormatter(freq, dynamic_mode=True,
-                                            minor_locator=False,
-                                            plot_obj=subplot)
-    minformatter = TimeSeries_DateFormatter(freq, dynamic_mode=True,
-                                            minor_locator=True,
-                                            plot_obj=subplot)
-    subplot.xaxis.set_major_formatter(majformatter)
-    subplot.xaxis.set_minor_formatter(minformatter)
-    pylab.draw_if_interactive()
+# Check and format plotting parameters
 
 def _check_plot_params(series, xdata, freq, *args):
     """
     Defines the plot coordinates (and basic plotting arguments).
     """
-    # TODO clean up this massive method
     remaining = list(args)
     noinfo_msg = "No date information available!"
+
     # No args ? Use defaults, if any
     if len(args) == 0:
         if xdata is None:
             raise ValueError(noinfo_msg)
         return (xdata, series)
+
     output = []
     while len(remaining) > 0:
         a = remaining.pop(0)
+        output.extend(_handle_param(a, remaining, series, xdata, freq))
 
-        # The argument is a format: use default dates/
-        if isinstance(a, str):
-            if xdata is None:
-                raise ValueError(noinfo_msg)
-            else:
-                output.extend([xdata, series, a])
-
-        # The argument is a Series: use its dates for x
-        elif isinstance(a, Series):
-            (x, y) = (a.index, a.values)
-            if len(remaining) > 0 and isinstance(remaining[0], str):
-                b = remaining.pop(0)
-                output.extend([x, y, b])
-            else:
-                output.extend([x, y])
-
-        # The argument is a PeriodIndex............
-        elif isinstance(a, PeriodIndex):
-            # Force to current freq
-            if freq is not None:
-                if a.freq != freq:
-                    a = a.asfreq(freq)
-
-            # There's an argument after
-            if len(remaining) > 0:
-
-                #...and it's a format string
-                if isinstance(remaining[0], str):
-                    b = remaining.pop(0)
-                    if series is None:
-                        raise ValueError(noinfo_msg)
-                    else:
-                        output.extend([a, series, b])
-
-                #... and it's another date: use the default
-                elif isinstance(remaining[0], PeriodIndex):
-                    if series is None:
-                        raise ValueError(noinfo_msg)
-                    else:
-                        output.extend([a, series])
-
-                #... and it must be some data
-                else:
-                    b = remaining.pop(0)
-                    if len(remaining) > 0:
-                        if isinstance(remaining[0], str):
-                            c = remaining.pop(0)
-                            output.extend([a, b, c])
-                        else:
-                            output.extend([a, b])
-            else:
-                if series is None:
-                    raise ValueError(noinfo_msg)
-
-        # Otherwise..............................
-        elif len(remaining) > 0 and isinstance(remaining[0], str):
-            b = remaining.pop(0)
-            if xdata is None:
-                raise ValueError(noinfo_msg)
-            else:
-                output.extend([xdata, a, b])
-        elif xdata is None:
-            raise ValueError(noinfo_msg)
-        else:
-            output.extend([xdata, a])
     # Reinitialize the plot if needed ...........
     if xdata is None:
         xdata = output[0]
+
     # Force the xdata to the current frequency
     elif output[0].freq != freq:
         output = list(output)
         output[0] = output[0].asfreq(freq)
+
     return output
+
+def _handle_param(curr, remaining, series, xdata, freq):
+    # The argument is a format: use default dates/
+    noinfo_msg = "No date information available!"
+    if isinstance(curr, str):
+        if xdata is None:
+            raise ValueError(noinfo_msg)
+        else:
+            return [xdata, series, curr]
+
+    # The argument is a Series: use its dates for x
+    elif isinstance(curr, Series):
+        (x, y) = (curr.index, curr.values)
+        if len(remaining) > 0 and isinstance(remaining[0], str):
+            b = remaining.pop(0)
+            return [x, y, b]
+        else:
+            return [x, y]
+
+    # The argument is a PeriodIndex............
+    elif isinstance(curr, PeriodIndex):
+        return _handle_period_index(curr, remaining, series, xdata, freq)
+
+    # Otherwise..............................
+    elif len(remaining) > 0 and isinstance(remaining[0], str):
+        b = remaining.pop(0)
+        if xdata is None:
+            raise ValueError(noinfo_msg)
+        else:
+            return [xdata, curr, b]
+    elif xdata is None:
+        raise ValueError(noinfo_msg)
+    else:
+        return [xdata, curr]
+
+def _handle_period_index(curr, remaining, series, xdata, freq):
+    # Force to current freq
+    noinfo_msg = "No date information available!"
+    if freq is not None:
+        if curr.freq != freq:
+            curr = curr.asfreq(freq)
+
+    # There's an argument after
+    if len(remaining) > 0:
+        #...and it's a format string
+        if isinstance(remaining[0], str):
+            b = remaining.pop(0)
+            if series is None:
+                raise ValueError(noinfo_msg)
+            else:
+                return [curr, series, b]
+
+        #... and it's another date: use the default
+        elif isinstance(remaining[0], PeriodIndex):
+            if series is None:
+                raise ValueError(noinfo_msg)
+            else:
+                return [curr, series]
+
+        #... and it must be some data
+        else:
+            b = remaining.pop(0)
+            if len(remaining) > 0:
+                if isinstance(remaining[0], str):
+                    c = remaining.pop(0)
+                    return [curr, b, c]
+                else:
+                    return [curr, b]
+    else:
+        if series is None:
+            raise ValueError(noinfo_msg)
+
 
 ##### -------------------------------------------------------------------------
 #---- --- Locators ---
@@ -816,7 +805,36 @@ class TimeSeries_DateFormatter(Formatter):
             fmt = self.formatdict.pop(x, '')
             return Period(int(x), self.freq).strftime(fmt)
 
-# Do we need these monkey patch methods for convenience?
+# Patch methods for subplot. Only format_dateaxis is currently used.
+# Do we need the rest for convenience?
+
+def format_dateaxis(subplot, freq):
+    """
+    Pretty-formats the date axis (x-axis).
+
+    Major and minor ticks are automatically set for the frequency of the
+    current underlying series.  As the dynamic mode is activated by
+    default, changing the limits of the x axis will intelligently change
+    the positions of the ticks.
+    """
+    majlocator = TimeSeries_DateLocator(freq, dynamic_mode=True,
+                                        minor_locator=False,
+                                        plot_obj=subplot)
+    minlocator = TimeSeries_DateLocator(freq, dynamic_mode=True,
+                                        minor_locator=True,
+                                        plot_obj=subplot)
+    subplot.xaxis.set_major_locator(majlocator)
+    subplot.xaxis.set_minor_locator(minlocator)
+
+    majformatter = TimeSeries_DateFormatter(freq, dynamic_mode=True,
+                                            minor_locator=False,
+                                            plot_obj=subplot)
+    minformatter = TimeSeries_DateFormatter(freq, dynamic_mode=True,
+                                            minor_locator=True,
+                                            plot_obj=subplot)
+    subplot.xaxis.set_major_formatter(majformatter)
+    subplot.xaxis.set_minor_formatter(minformatter)
+    pylab.draw_if_interactive()
 
 def add_yaxis(fsp=None, position='right', yscale=None, basey=10, subsy=None):
     """
