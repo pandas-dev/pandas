@@ -677,7 +677,7 @@ copy : boolean, default False
             new_values = np.concatenate([self.values, [value]])
             return Series(new_values, index=new_index, name=self.name)
 
-    def reset_index(self, drop=False):
+    def reset_index(self, drop=False, name=None):
         """
         Analagous to the DataFrame.reset_index function, see docstring there.
 
@@ -685,6 +685,8 @@ copy : boolean, default False
         ----------
         drop : boolean, default False
             Do not try to insert index into dataframe columns
+        name : object, default None
+            The name of the column corresponding to the Series values
 
         Returns
         ----------
@@ -694,7 +696,12 @@ copy : boolean, default False
             return Series(self, index=np.arange(len(self)), name=self.name)
         else:
             from pandas.core.frame import DataFrame
-            return DataFrame(self).reset_index(drop=drop)
+            if name is None:
+                df = DataFrame(self)
+            else:
+                df = DataFrame({name : self})
+
+            return df.reset_index(drop=drop)
 
     def __repr__(self):
         """Clean string representation of a Series"""

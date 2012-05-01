@@ -2467,6 +2467,19 @@ class TestSeriesNonUnique(unittest.TestCase):
         self.assertRaises(KeyError, s.__getitem__, stamp)
         self.assertRaises(KeyError, s.__setitem__, stamp, 0)
 
+    def test_reset_index(self):
+        df = tm.makeDataFrame()[:5]
+        ser = df.stack()
+        ser.index.names = ['hash', 'category']
+
+        ser.name = 'value'
+        df = ser.reset_index()
+        self.assert_('value' in df)
+
+        df = ser.reset_index(name='value2')
+        self.assert_('value2' in df)
+
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
