@@ -72,12 +72,13 @@ class TestTSPlot(unittest.TestCase):
         for ser in self.datetime_ser:
             ser = Series(ser.values, Index(np.asarray(ser.index)))
             _check_plot_works(ser.plot, ser.index.inferred_freq)
-            ser.inferred_freq = None
-            _check_plot_works(ser.plot, ser.index.inferred_freq)
+
+            ser = ser[[0, 3, 5, 6]]
+            _check_plot_works(ser.plot)
 
 
 PNG_PATH = 'tmp.png'
-def _check_plot_works(f, freq, *args, **kwargs):
+def _check_plot_works(f, freq=None, *args, **kwargs):
     import matplotlib.pyplot as plt
 
     fig = plt.gcf()
@@ -91,7 +92,8 @@ def _check_plot_works(f, freq, *args, **kwargs):
     if series is not None:
         assert(orig_ax.freq == series.index.freq)
 
-    assert(orig_ax.freq == freq)
+    if freq is not None:
+        assert(orig_ax.freq == freq)
 
     ax = fig.add_subplot(212)
     try:

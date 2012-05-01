@@ -6,6 +6,10 @@ import numpy as np
 
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
+from pandas.core.series import Series
+from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.period import PeriodIndex
+from pandas.tseries.offsets import DateOffset
 
 def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
                    **kwds):
@@ -180,8 +184,6 @@ class MPLPlot(object):
 
     def _iter_data(self):
         from pandas.core.frame import DataFrame
-        from pandas.core.series import Series
-
         if isinstance(self.data, (Series, np.ndarray)):
             yield com._stringify(self.label), np.asarray(self.data)
         elif isinstance(self.data, DataFrame):
@@ -331,10 +333,7 @@ class LinePlot(MPLPlot):
 
     @property
     def has_ts_index(self):
-        from pandas.core.series import Series
         from pandas.core.frame import DataFrame
-        from pandas.tseries.index import DatetimeIndex
-        from pandas.tseries.period import PeriodIndex
         if isinstance(self.data, (Series, DataFrame)):
             if isinstance(self.data.index, (DatetimeIndex, PeriodIndex)):
                 has_freq = (hasattr(self.data.index, 'freq') and
@@ -382,10 +381,7 @@ class LinePlot(MPLPlot):
     def _maybe_convert_index(self, data):
         # tsplot converts automatically, but don't want to convert index
         # over and over for DataFrames
-        from pandas.tseries.offsets import DateOffset
-        from pandas.tseries.index import DatetimeIndex
         from pandas.core.frame import DataFrame
-
         if (isinstance(data.index, DatetimeIndex) and
             isinstance(data, DataFrame)):
             freq = getattr(data.index, 'freq', None)
@@ -401,8 +397,6 @@ class LinePlot(MPLPlot):
         return data
 
     def _make_ts_plot(self, data, **kwargs):
-        from pandas.core.series import Series
-        from pandas.core.frame import DataFrame
         import pandas.tseries.plotting as plot
 
         if isinstance(data, Series):
