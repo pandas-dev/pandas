@@ -7,7 +7,8 @@ import numpy as np
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 
-def scatter_matrix(frame, alpha=0.5, figsize=None, **kwds):
+def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
+                   **kwds):
     """
     Draw a matrix of scatter plots.
 
@@ -23,7 +24,8 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, **kwds):
     """
     df = frame._get_numeric_data()
     n = df.columns.size
-    fig, axes = _subplots(nrows=n, ncols=n, figsize=figsize)
+    fig, axes = _subplots(nrows=n, ncols=n, figsize=figsize, ax=ax,
+                          squeeze=False)
 
     # no gaps between subplots
     fig.subplots_adjust(wspace=0, hspace=0)
@@ -31,30 +33,55 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, **kwds):
     for i, a in zip(range(n), df.columns):
         for j, b in zip(range(n), df.columns):
             axes[i, j].scatter(df[b], df[a], alpha=alpha, **kwds)
-            axes[i, j].yaxis.set_visible(False)
-            axes[i, j].xaxis.set_visible(False)
+            axes[i, j].set_xlabel('')
+            axes[i, j].set_ylabel('')
+            axes[i, j].set_xticklabels([])
+            axes[i, j].set_yticklabels([])
+            ticks = df.index
+
+            is_datetype = ticks.inferred_type in ('datetime', 'date',
+                                                  'datetime64')
+
+            if ticks.is_numeric() or is_datetype:
+                """
+                Matplotlib supports numeric values or datetime objects as
+                xaxis values. Taking LBYL approach here, by the time
+                matplotlib raises exception when using non numeric/datetime
+                values for xaxis, several actions are already taken by plt.
+                """
+                ticks = ticks._mpl_repr()
 
             # setup labels
             if i == 0 and j % 2 == 1:
                 axes[i, j].set_xlabel(b, visible=True)
-                axes[i, j].xaxis.set_visible(True)
+                #axes[i, j].xaxis.set_visible(True)
+                axes[i, j].set_xlabel(b)
+                axes[i, j].set_xticklabels(ticks)
                 axes[i, j].xaxis.set_ticks_position('top')
                 axes[i, j].xaxis.set_label_position('top')
             if i == n - 1 and j % 2 == 0:
                 axes[i, j].set_xlabel(b, visible=True)
-                axes[i, j].xaxis.set_visible(True)
+                #axes[i, j].xaxis.set_visible(True)
+                axes[i, j].set_xlabel(b)
+                axes[i, j].set_xticklabels(ticks)
                 axes[i, j].xaxis.set_ticks_position('bottom')
                 axes[i, j].xaxis.set_label_position('bottom')
             if j == 0 and i % 2 == 0:
                 axes[i, j].set_ylabel(a, visible=True)
-                axes[i, j].yaxis.set_visible(True)
+                #axes[i, j].yaxis.set_visible(True)
+                axes[i, j].set_ylabel(a)
+                axes[i, j].set_yticklabels(ticks)
                 axes[i, j].yaxis.set_ticks_position('left')
                 axes[i, j].yaxis.set_label_position('left')
             if j == n - 1 and i % 2 == 1:
                 axes[i, j].set_ylabel(a, visible=True)
-                axes[i, j].yaxis.set_visible(True)
+                #axes[i, j].yaxis.set_visible(True)
+                axes[i, j].set_ylabel(a)
+                axes[i, j].set_yticklabels(ticks)
                 axes[i, j].yaxis.set_ticks_position('right')
                 axes[i, j].yaxis.set_label_position('right')
+
+            axes[i, j].grid(b=grid)
 
     # ensure {x,y}lim off diagonal are the same as diagonal
     for i in range(n):
@@ -72,14 +99,6 @@ def _gca():
 def _gcf():
     import matplotlib.pyplot as plt
     return plt.gcf()
-
-def hist(data, column, by=None, ax=None, fontsize=None):
-    keys, values = zip(*data.groupby(by)[column])
-    if ax is None:
-        ax = _gca()
-    ax.boxplot(values)
-    ax.set_xticklabels(keys, rotation=0, fontsize=fontsize)
-    return ax
 
 def grouped_hist(data, column=None, by=None, ax=None, bins=50, log=False,
                  figsize=None, layout=None, sharex=False, sharey=False,
@@ -395,12 +414,18 @@ class LinePlot(MPLPlot):
                 plot.tsplot(ax, data[col], label=label, **kwargs)
                 ax.grid(self.grid)
 
+        self.fig.subplots_adjust(wspace=0, hspace=0)
+
+
     def _post_plot_logic(self):
         df = self.data
 
-        if self.subplots and self.legend:
-            for ax in self.axes:
-                ax.legend(loc='best')
+        if self.legend:
+            if self.subplots:
+                for ax in self.axes:
+                    ax.legend(loc='best')
+            else:
+                self.axes[0].legend(loc='best')
 
         condition = (df.index.is_all_dates
                      and not self.subplots
@@ -490,7 +515,7 @@ class BarPlot(MPLPlot):
 
             ax.legend(patches, labels, loc='best')
 
-        self.fig.subplots_adjust(top=0.8)
+        self.fig.subplots_adjust(top=0.8, wspace=0, hspace=0)
 
     def _post_plot_logic(self):
         for ax in self.axes:
@@ -664,7 +689,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
 
     Parameters
     ----------
-    data : DataFrame
+    data : DataFrame or Series
     column : column name or list of names, or vector
         Can be any valid input to groupby
     by : string or sequence
@@ -675,6 +700,11 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
     -------
     ax : matplotlib.axes.AxesSubplot
     """
+    from pandas import Series, DataFrame
+    if isinstance(data, Series):
+        data = DataFrame({'x' : data})
+        column = 'x'
+
     def plot_group(grouped, ax):
         keys, values = zip(*grouped)
         keys = [_stringify(x) for x in keys]
@@ -740,7 +770,7 @@ def format_date_labels(ax):
         pass
 
 
-def scatter_plot(data, x, y, by=None, ax=None, figsize=None):
+def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False):
     """
 
     Returns
@@ -753,6 +783,7 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None):
         xvals = group[x].values
         yvals = group[y].values
         ax.scatter(xvals, yvals)
+        ax.grid(grid)
 
     if by is not None:
         fig = _grouped_plot(plot_group, data, by=by, figsize=figsize, ax=ax)
@@ -765,6 +796,8 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None):
         plot_group(data, ax)
         ax.set_ylabel(str(y))
         ax.set_xlabel(str(x))
+
+        ax.grid(grid)
 
     return fig
 
@@ -795,10 +828,12 @@ def hist_frame(data, grid=True, xlabelsize=None, xrot=None,
     k = 1
     while k ** 2 < n:
         k += 1
-    _, axes = _subplots(nrows=k, ncols=k, ax=ax)
+    _, axes = _subplots(nrows=k, ncols=k, ax=ax, squeeze=False)
 
     for i, col in enumerate(com._try_sort(data.columns)):
         ax = axes[i / k][i % k]
+        ax.xaxis.set_visible(True)
+        ax.yaxis.set_visible(True)
         ax.hist(data[col].dropna().values, **kwds)
         ax.set_title(col)
         ax.grid(grid)
@@ -811,6 +846,12 @@ def hist_frame(data, grid=True, xlabelsize=None, xrot=None,
             plt.setp(ax.get_yticklabels(), fontsize=ylabelsize)
         if yrot is not None:
             plt.setp(ax.get_yticklabels(), rotation=yrot)
+
+    for j in range(i + 1, k**2):
+        ax = axes[j / k, j % k]
+        ax.set_visible(False)
+
+    ax.get_figure().subplots_adjust(wspace=0.3, hspace=0.3)
 
     return axes
 
@@ -1036,6 +1077,7 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
         fig = plt.figure(**fig_kw)
     else:
         fig = ax.get_figure()
+        fig.clear()
 
     # Create empty object array to hold all axes.  It's easiest to make it 1-d
     # so we can just append subplots upon creation, and then

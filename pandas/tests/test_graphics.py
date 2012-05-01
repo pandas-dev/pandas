@@ -160,6 +160,8 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(df.boxplot, by='indic')
         _check_plot_works(df.boxplot, by=['indic', 'indic2'])
 
+        _check_plot_works(lambda x: plotting.boxplot(x), df['one'])
+
     @slow
     def test_hist(self):
         df = DataFrame(np.random.randn(100, 4))
@@ -168,6 +170,11 @@ class TestDataFramePlots(unittest.TestCase):
 
         #make sure layout is handled
         df = DataFrame(np.random.randn(100, 3))
+        _check_plot_works(df.hist)
+        axes = df.hist(grid=False)
+        self.assert_(not axes[1, 1].get_visible())
+
+        df = DataFrame(np.random.randn(100, 1))
         _check_plot_works(df.hist)
 
         #make sure layout is handled
