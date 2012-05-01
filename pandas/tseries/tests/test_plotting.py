@@ -21,6 +21,18 @@ import pandas.util.testing as tm
 
 class TestTSPlot(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        import sys
+        if 'IPython' in sys.modules:
+            raise nose.SkipTest
+
+        try:
+            import matplotlib as mpl
+            mpl.use('Agg', warn=False)
+        except ImportError:
+            raise nose.SkipTest
+
     def setUp(self):
         freq = ['S', 'T', 'H', 'D', 'W', 'M', 'Q', 'Y']
         idx = [period_range('12/31/1999', freq=x, periods=100) for x in freq]
