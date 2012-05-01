@@ -309,6 +309,11 @@ class LinePlot(MPLPlot):
 
     def __init__(self, data, **kwargs):
         MPLPlot.__init__(self, data, **kwargs)
+        self.has_ts_index = False
+        from pandas.tseries.index import DatetimeIndex
+        from pandas.tseries.period import PeriodIndex
+        if isinstance(data.index, (DatetimeIndex, PeriodIndex)):
+            self.has_ts_index = True
 
     def _get_plot_function(self):
         if self.logy:
@@ -324,22 +329,71 @@ class LinePlot(MPLPlot):
 
     def _make_plot(self):
         # this is slightly deceptive
-        x = self._get_xticks()
+        if self.use_index and self.has_ts_index:
+            data = self._maybe_convert_index(self.data)
+            self._make_ts_plot(data)
+        else:
+            x = self._get_xticks()
 
-        plotf = self._get_plot_function()
+            plotf = self._get_plot_function()
 
-        for i, (label, y) in enumerate(self._iter_data()):
-            if self.subplots:
-                ax = self.axes[i]
-                style = 'k'
+            for i, (label, y) in enumerate(self._iter_data()):
+                if self.subplots:
+                    ax = self.axes[i]
+                    style = 'k'
+                else:
+                    style = ''  # empty string ignored
+                    ax = self.ax
+                if self.style:
+                    style = self.style
+
+                plotf(ax, x, y, style, label=label, **self.kwds)
+                ax.grid(self.grid)
+
+    def _maybe_convert_index(self, data):
+        # tsplot converts automatically, but don't want to convert index
+        # over and over for DataFrames
+        from pandas.tseries.offsets import DateOffset
+        from pandas.tseries.index import DatetimeIndex
+        from pandas.core.frame import DataFrame
+
+        if (isinstance(data.index, DatetimeIndex) and
+            isinstance(data, DataFrame)):
+            freq = getattr(data.index, 'freq', None)
+            if freq is None and hasattr(data.index, 'inferred_freq'):
+                freq = data.index.inferred_freq
+
+            if isinstance(freq, DateOffset):
+                freq = freq.rule_code
+
+            data = DataFrame(data.values,
+                             index=data.index.to_period(freq=freq),
+                             columns=data.columns)
+        return data
+
+    def _make_ts_plot(self, data, **kwargs):
+        from pandas.core.series import Series
+        from pandas.core.frame import DataFrame
+        import pandas.tseries.plotting as plot
+
+        if isinstance(data, Series):
+            if self.subplots: # shouldn't even allow users to specify
+                ax = self.axes[0]
             else:
-                style = ''  # empty string ignored
                 ax = self.ax
-            if self.style:
-                style = self.style
 
-            plotf(ax, x, y, style, label=label, **self.kwds)
+            label = com._stringify(self.label)
+            plot.tsplot(ax, data, label=label, **kwargs)
             ax.grid(self.grid)
+        else:
+            for i, col in enumerate(data.columns):
+                if self.subplots:
+                    ax = self.axes[i]
+                else:
+                    ax = self.ax
+                label = com._stringify(col)
+                plot.tsplot(ax, data[col], label=label, **kwargs)
+                ax.grid(self.grid)
 
     def _post_plot_logic(self):
         df = self.data
@@ -601,24 +655,6 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     plot_obj.draw()
 
     return plot_obj.ax
-
-# if use_index:
-#     # custom datetime/interval plotting
-#     from pandas import IntervalIndex, DatetimeIndex
-#     if isinstance(self.index, IntervalIndex):
-#         return tsp.tsplot(self)
-#     if isinstance(self.index, DatetimeIndex):
-#         offset = self.index.freq
-#         name = datetools._newOffsetNames.get(offset, None)
-#         if name is not None:
-#             try:
-#                 code = datetools._interval_str_to_code(name)
-#                 s_ = Series(self.values,
-#                             index=self.index.to_interval(freq=code),
-#                             name=self.name)
-#                 tsp.tsplot(s_)
-#             except:
-#                 pass
 
 def boxplot(data, column=None, by=None, ax=None, fontsize=None,
             rot=0, grid=True, figsize=None):

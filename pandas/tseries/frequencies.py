@@ -8,6 +8,29 @@ from pandas.util.decorators import cache_readonly
 import pandas.tseries.offsets as offsets
 import pandas._tseries as lib
 
+class FreqGroup(object):
+    FR_ANN = 1000
+    FR_QTR = 2000
+    FR_MTH = 3000
+    FR_WK = 4000
+    FR_BUS = 5000
+    FR_DAY = 6000
+    FR_HR = 7000
+    FR_MIN = 8000
+    FR_SEC = 9000
+    FR_UND = -10000
+
+def get_freq_group(freq):
+    if isinstance(freq, basestring):
+        base, mult = get_freq_code(freq)
+        freq = base
+    return (freq // 1000) * 1000
+
+def get_freq(freq):
+    if isinstance(freq, basestring):
+        base, mult = get_freq_code(freq)
+        freq = base
+    return freq
 
 def get_freq_code(freqstr):
     """
