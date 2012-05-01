@@ -10,6 +10,7 @@ import time
 
 import numpy as np
 from pandas import Series, TimeSeries, DataFrame, Panel, Index, MultiIndex
+from pandas.tseries.api import PeriodIndex, DatetimeIndex
 from pandas.core.common import adjoin
 from pandas.core.algorithms import match, unique
 
@@ -485,6 +486,12 @@ class HDFStore(object):
             node._v_attrs.kind = kind
             node._v_attrs.name = index.name
 
+            if isinstance(index, (DatetimeIndex, PeriodIndex)):
+                node._v_attrs.index_class = type(index)
+
+            if hasattr(index, 'freq'):
+                node._v_attrs.freq = index.freq
+
     def _read_index(self, group, key):
         variety = getattr(group._v_attrs, '%s_variety' % key)
 
@@ -543,10 +550,16 @@ class HDFStore(object):
         if 'name' in node._v_attrs:
             name = node._v_attrs.name
 
+        index_class = getattr(node._v_attrs, 'index_class', Index)
+        kwargs = {}
+        if 'freq' in node._v_attrs:
+            kwargs['freq'] = node._v_attrs['freq']
+
         if kind in ('date', 'datetime'):
-            index = Index(_unconvert_index(data, kind), dtype=object)
+            index = index_class(_unconvert_index(data, kind), dtype=object,
+                                **kwargs)
         else:
-            index = Index(_unconvert_index(data, kind))
+            index = index_class(_unconvert_index(data, kind), **kwargs)
 
         index.name = name
 

@@ -11,6 +11,8 @@ import numpy as np
 from pandas import Series, DataFrame, Panel, MultiIndex, bdate_range
 from pandas.io.pytables import HDFStore, get_store
 import pandas.util.testing as tm
+from pandas.tests.test_series import assert_series_equal
+from pandas.tests.test_frame import assert_frame_equal
 
 try:
     import tables
@@ -498,6 +500,43 @@ class TesttHDFStore(unittest.TestCase):
         self.store['a'] = series
         self.assertEquals(self.store['a'].index[0], dt)
 
+    def test_tseries_indices_series(self):
+        idx = tm.makeDateIndex(10)
+        ser = Series(np.random.randn(len(idx)), idx)
+        self.store['a'] = ser
+        result = self.store['a']
+
+        assert_series_equal(result, ser)
+        self.assertEquals(type(result.index), type(ser.index))
+        self.assertEquals(result.index.freq, ser.index.freq)
+
+        idx = tm.makePeriodIndex(10)
+        ser = Series(np.random.randn(len(idx)), idx)
+        self.store['a'] = ser
+        result = self.store['a']
+
+        assert_series_equal(result, ser)
+        self.assertEquals(type(result.index), type(ser.index))
+        self.assertEquals(result.index.freq, ser.index.freq)
+
+    def test_tseries_indices_frame(self):
+        idx = tm.makeDateIndex(10)
+        df = DataFrame(np.random.randn(len(idx), 3), index=idx)
+        self.store['a'] = df
+        result = self.store['a']
+
+        assert_frame_equal(result, df)
+        self.assertEquals(type(result.index), type(df.index))
+        self.assertEquals(result.index.freq, df.index.freq)
+
+        idx = tm.makePeriodIndex(10)
+        df = DataFrame(np.random.randn(len(idx), 3), idx)
+        self.store['a'] = df
+        result = self.store['a']
+
+        assert_frame_equal(result, df)
+        self.assertEquals(type(result.index), type(df.index))
+        self.assertEquals(result.index.freq, df.index.freq)
 
 
 def curpath():
