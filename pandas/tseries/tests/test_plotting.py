@@ -14,7 +14,6 @@ from pandas.tseries.offsets import Minute, bday
 from pandas.tseries.period import period_range
 from pandas.tseries.resample import DatetimeIndex, TimeGrouper
 import pandas.tseries.offsets as offsets
-import pandas.tseries.plotting as plt
 
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
@@ -50,12 +49,13 @@ class TestTSPlot(unittest.TestCase):
 
     @slow
     def test_tsplot(self):
+        from pandas.tseries.plotting import tsplot
         import matplotlib.pyplot as pyplot
         ax = pyplot.gca()
         for s in self.period_ser:
-            _check_plot_works(plt.tsplot, s.index.freq, axes=ax, series=s)
+            _check_plot_works(tsplot, s.index.freq, axes=ax, series=s)
         for s in self.datetime_ser:
-            _check_plot_works(plt.tsplot, s.index.freq.rule_code,
+            _check_plot_works(tsplot, s.index.freq.rule_code,
                               axes=ax, series=s)
 
     @slow
