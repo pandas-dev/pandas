@@ -223,6 +223,13 @@ def makeTimeDataFrame():
     data = getTimeSeriesData()
     return DataFrame(data)
 
+def getPeriodData():
+    return dict((c, makePeriodSeries()) for c in getCols(K))
+
+def makePeriodFrame():
+    data = getPeriodData()
+    return DataFrame(data)
+
 def makePanel():
     cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
     data = dict((c, makeTimeDataFrame()) for c in cols)
