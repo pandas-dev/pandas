@@ -256,12 +256,12 @@ class DatetimeIndex(Int64Index):
 
             # try a few ways to make it datetime64
             if lib.is_string_array(data):
-                data = _str_to_dt_array(data)
+                data = _str_to_dt_array(data, offset)
             else:
                 data = np.asarray(data, dtype='M8[us]')
 
         if issubclass(data.dtype.type, basestring):
-            subarr = _str_to_dt_array(data)
+            subarr = _str_to_dt_array(data, offset)
         elif issubclass(data.dtype.type, np.datetime64):
             if isinstance(data, DatetimeIndex):
                 subarr = data.values
@@ -786,7 +786,9 @@ class DatetimeIndex(Int64Index):
         except KeyError:
 
             try:
-                asdt, parsed, reso = parse_time_string(key)
+                freq = getattr(self, 'freq', getattr(self, 'inferred_freq',
+                                                     None))
+                asdt, parsed, reso = parse_time_string(key, freq)
                 key = asdt
                 loc = self._partial_date_slice(reso, parsed)
                 return series[loc]
@@ -838,7 +840,8 @@ class DatetimeIndex(Int64Index):
         return com._ensure_platform_int(indexer)
 
     def _get_string_slice(self, key):
-        asdt, parsed, reso = parse_time_string(key)
+        freq = getattr(self, 'freq', getattr(self, 'inferred_freq', None))
+        asdt, parsed, reso = parse_time_string(key, freq)
         key = asdt
         loc = self._partial_date_slice(reso, parsed)
         return loc
@@ -1198,9 +1201,9 @@ def _to_m8_array(arr):
     return np.frompyfunc(_to_m8, 1, 1)(arr)
 
 
-def _str_to_dt_array(arr):
+def _str_to_dt_array(arr, offset=None):
     def parser(x):
-        result = parse_time_string(x)
+        result = parse_time_string(x, offset)
         return result[0]
 
     p_ufunc = np.frompyfunc(parser, 1, 1)

@@ -51,7 +51,7 @@ def to_period(arg, freq=None):
 
 class Period(object):
 
-    def __init__(self, value=None, freq=None,
+    def __init__(self, value=None, freq=None, ordinal=None,
                  year=None, month=1, quarter=None, day=1,
                  hour=0, minute=0, second=0):
         """
@@ -78,10 +78,21 @@ class Period(object):
         self.freq = None
 
         # ordinal is the period offset from the gregorian proleptic epoch
-
         self.ordinal = None
 
-        if value is None:
+        if ordinal is not None and value is not None:
+            raise ValueError(("Only value or ordinal but not both should be "
+                              "given but not both"))
+        elif ordinal is not None:
+            if not com.is_integer(ordinal):
+                raise ValueError("Ordinal must be an integer")
+            if ordinal <= 0:
+                raise ValueError("Ordinal must be positive")
+            if freq is None:
+                raise ValueError('Must supply freq for ordinal value')
+            self.ordinal = ordinal
+
+        elif value is None:
             if freq is None:
                 raise ValueError("If value is None, freq cannot be None")
 
@@ -105,9 +116,14 @@ class Period(object):
                 converted = other.asfreq(freq)
                 self.ordinal = converted.ordinal
 
-        elif isinstance(value, basestring):
+        elif isinstance(value, basestring) or com.is_integer(value):
+            if com.is_integer(value):
+                if value <= 0:
+                    raise ValueError('Value must be greater than 0')
+                value = str(value)
+
             value = value.upper()
-            dt, parsed, reso = parse_time_string(value)
+            dt, parsed, reso = parse_time_string(value, freq)
 
             if freq is None:
                 if reso == 'year':
@@ -131,12 +147,6 @@ class Period(object):
             dt = value
             if freq is None:
                 raise ValueError('Must supply freq for datetime value')
-        elif com.is_integer(value):
-            if value <= 0:
-                raise ValueError("Value must be positive")
-            self.ordinal = value
-            if freq is None:
-                raise ValueError('Must supply freq for ordinal value')
         else:
             msg = "Value must be Period, string, integer, or datetime"
             raise ValueError(msg)
@@ -160,12 +170,12 @@ class Period(object):
 
     def __add__(self, other):
         if isinstance(other, (int, long)):
-            return Period(self.ordinal + other, self.freq)
+            return Period(ordinal=self.ordinal + other, freq=self.freq)
         raise ValueError("Cannot add with non-integer value")
 
     def __sub__(self, other):
         if isinstance(other, (int, long)):
-            return Period(self.ordinal - other, self.freq)
+            return Period(ordinal=self.ordinal - other, freq=self.freq)
         if isinstance(other, Period):
             if other.freq != self.freq:
                 raise ValueError("Cannot do arithmetic with "
@@ -192,7 +202,7 @@ class Period(object):
         new_ordinal = lib.period_asfreq(self.ordinal, base1, mult1,
                                         base2, mult2, py3compat.str_to_bytes(how))
 
-        return Period(new_ordinal, (base2, mult2))
+        return Period(ordinal=new_ordinal, freq=(base2, mult2))
 
     @property
     def start_time(self):
@@ -427,7 +437,7 @@ def _period_box_array(arr, freq):
     if not isinstance(arr, np.ndarray):
         return arr
 
-    boxfunc = lambda x: Period(x, freq)
+    boxfunc = lambda x: Period(ordinal=x, freq=freq)
     boxer = np.frompyfunc(boxfunc, 1, 1)
     return boxer(arr)
 
@@ -567,7 +577,7 @@ class PeriodIndex(Int64Index):
 
     def __iter__(self):
         for val in self.values:
-            yield Period(val, freq=self.freq)
+            yield Period(ordinal=val, freq=self.freq)
 
     @property
     def is_all_dates(self):
@@ -693,7 +703,7 @@ class PeriodIndex(Int64Index):
             return super(PeriodIndex, self).get_value(series, key)
         except KeyError:
             try:
-                asdt, parsed, reso = parse_time_string(key)
+                asdt, parsed, reso = parse_time_string(key, self.freq)
                 grp = _freq_mod._infer_period_group(reso)
                 freqn = _freq_mod._period_group(self.freq)
 
@@ -706,8 +716,8 @@ class PeriodIndex(Int64Index):
                     key = slice(pos[0], pos[1]+1)
                     return series[key]
                 else:
-                    key = to_period(asdt, freq=self.freq).ordinal
-                    return self._engine.get_value(series, key)
+                    key = to_period(asdt, freq=self.freq)
+                    return self._engine.get_value(series, key.ordinal)
             except TypeError:
                 pass
             except KeyError:
@@ -716,8 +726,8 @@ class PeriodIndex(Int64Index):
                 ival = Period(key, freq=self.freq)
                 raise IndexError("%s is out of bounds" % ival)
 
-            key = to_period(key, self.freq).ordinal
-            return self._engine.get_value(series, key)
+            key = to_period(key, self.freq)
+            return self._engine.get_value(series, key.ordinal)
 
     def get_loc(self, key):
         """
@@ -731,7 +741,7 @@ class PeriodIndex(Int64Index):
             return self._engine.get_loc(key)
         except KeyError:
             try:
-                asdt, parsed, reso = parse_time_string(key)
+                asdt, parsed, reso = parse_time_string(key, self.freq)
                 key = asdt
             except TypeError:
                 pass
@@ -780,7 +790,7 @@ class PeriodIndex(Int64Index):
         arr_idx = self.view(np.ndarray)
         if np.isscalar(key):
             val = arr_idx[key]
-            return Period(val, freq=self.freq)
+            return Period(ordinal=val, freq=self.freq)
         else:
             if com._is_bool_indexer(key):
                 key = np.asarray(key)

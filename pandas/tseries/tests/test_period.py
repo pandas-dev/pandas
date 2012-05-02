@@ -113,6 +113,21 @@ class TestPeriodProperties(TestCase):
         i2 = Period('1982', freq=('Min', 1))
         self.assertEquals(i1, i2)
 
+        expected = Period('2007-01', freq='M')
+        i1 = Period('200701', freq='M')
+        self.assertEqual(i1, expected)
+
+        i1 = Period('200701', freq='M')
+        self.assertEqual(i1, expected)
+
+        i1 = Period(200701, freq='M')
+        self.assertEqual(i1, expected)
+
+        i1 = Period(ordinal=200701, freq='M')
+        self.assertEqual(i1.year, 16726)
+
+        self.assertRaises(ValueError, Period, ordinal=200701)
+
     def test_freq_str(self):
         i1 = Period('1982', freq='Min')
         self.assert_(i1.freq[0] != '1')

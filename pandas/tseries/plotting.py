@@ -316,8 +316,8 @@ def _daily_finder(vmin, vmax, freq):
     # save this for later usage
     vmin_orig = vmin
 
-    (vmin, vmax) = (Period(value=int(vmin), freq=freq),
-                    Period(value=int(vmax), freq=freq))
+    (vmin, vmax) = (Period(ordinal=int(vmin), freq=freq),
+                    Period(ordinal=int(vmax), freq=freq))
     span = vmax.ordinal - vmin.ordinal + 1
     dates_ = PeriodIndex(start=vmin, end=vmax, freq=freq)
     # Initialize the output
@@ -803,7 +803,7 @@ class TimeSeries_DateFormatter(Formatter):
             return ''
         else:
             fmt = self.formatdict.pop(x, '')
-            return Period(int(x), self.freq).strftime(fmt)
+            return Period(ordinal=int(x), freq=self.freq).strftime(fmt)
 
 # Patch methods for subplot. Only format_dateaxis is currently used.
 # Do we need the rest for convenience?
