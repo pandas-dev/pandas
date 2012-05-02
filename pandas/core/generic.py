@@ -334,6 +334,40 @@ class PandasObject(Picklable):
     def reindex(self, *args, **kwds):
         raise NotImplementedError
 
+    def tshift(self, periods=1, freq=None, **kwds):
+        """
+        Shift the time index, using the index's frequency if available
+
+        Parameters
+        ----------
+        periods : int
+            Number of periods to move, can be positive or negative
+        freq : DateOffset, timedelta, or time rule string, default None
+            Increment to use from datetools module or time rule (e.g. 'EOM')
+
+        Notes
+        -----
+        If freq is not specified then tries to use the freq or inferred_freq
+        attributes of the index. If neither of those attributes exist, a
+        ValueError is thrown
+
+        Returns
+        -------
+        shifted : Series
+        """
+        if freq is None:
+            freq = getattr(self.index, 'freq', None)
+
+        if freq is None:
+            freq = getattr(self.index, 'inferred_freq', None)
+
+        if freq is None:
+            msg = 'Freq was not given and was not set in the index'
+            raise ValueError(msg)
+
+        return self.shift(periods, freq, **kwds)
+
+
 class NDFrame(PandasObject):
     """
     N-dimensional analogue of DataFrame. Store multi-dimensional in a

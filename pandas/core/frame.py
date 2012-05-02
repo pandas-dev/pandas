@@ -2959,6 +2959,11 @@ class DataFrame(NDFrame):
         freq : DateOffset, timedelta, or time rule string, optional
             Increment to use from datetools module or time rule (e.g. 'EOM')
 
+        Notes
+        -----
+        If freq is specified then the index values are shifted but the data
+        if not realigned
+
         Returns
         -------
         shifted : DataFrame

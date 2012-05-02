@@ -1832,6 +1832,40 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         self.assertRaises(ValueError, ps.shift, freq='D')
 
+    def test_tshift(self):
+        # PeriodIndex
+        ps = tm.makePeriodSeries()
+        shifted = ps.tshift(1)
+        unshifted = shifted.tshift(-1)
+
+        assert_series_equal(unshifted, ps)
+
+        shifted2 = ps.tshift(freq='B')
+        assert_series_equal(shifted, shifted2)
+
+        shifted3 = ps.tshift(freq=datetools.bday)
+        assert_series_equal(shifted, shifted3)
+
+        self.assertRaises(ValueError, ps.tshift, freq='M')
+
+        # DatetimeIndex
+        shifted = self.ts.tshift(1)
+        unshifted = shifted.tshift(-1)
+
+        assert_series_equal(self.ts, unshifted)
+
+        shifted2 = self.ts.tshift(freq=self.ts.index.freq)
+        assert_series_equal(shifted, shifted2)
+
+        inferred_ts = Series(self.ts.values, Index(np.asarray(self.ts.index)))
+        shifted = inferred_ts.tshift(1)
+        unshifted = shifted.tshift(-1)
+        assert_series_equal(shifted, self.ts.tshift(1))
+        assert_series_equal(unshifted, inferred_ts)
+
+        no_freq = self.ts[[0, 5, 7]]
+        self.assertRaises(ValueError, no_freq.tshift)
+
     def test_shift_int(self):
         ts = self.ts.astype(int)
         shifted = ts.shift(1)
