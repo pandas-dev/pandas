@@ -552,23 +552,23 @@ def get_abs_time(freq, dailyDate, originalDate):
 have_pytz = 1
 import pytz
 
-cdef extern from "foo.h":
-    double add_things(double *a, double *b, double *c, int n)
+# cdef extern from "foo.h":
+#     double add_things(double *a, double *b, double *c, int n)
 
 
-def cython_test(ndarray a, ndarray b, ndarray c):
-    return add_things(<double*> a.data,
-                      <double*> b.data,
-                      <double*> c.data, len(a))
+# def cython_test(ndarray a, ndarray b, ndarray c):
+#     return add_things(<double*> a.data,
+#                       <double*> b.data,
+#                       <double*> c.data, len(a))
 
 
-def cython_test2(ndarray[float64_t] a, ndarray[float64_t] b,
-                 ndarray[float64_t] c):
-    cdef:
-        Py_ssize_t i, n = len(a)
-        float64_t result = 0
+# def cython_test2(ndarray[float64_t] a, ndarray[float64_t] b,
+#                  ndarray[float64_t] c):
+#     cdef:
+#         Py_ssize_t i, n = len(a)
+#         float64_t result = 0
 
-    for i in range(n):
-        result += a[i] + b[i] + c[i]
+#     for i in range(n):
+#         result += a[i] + b[i] + c[i]
 
-    return result
+#     return result

@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import numpy as np
 
-from pandas import Series, DataFrame, isnull, notnull
+from pandas import Series, TimeSeries, DataFrame, isnull, notnull
 
 from pandas.tseries.index import date_range
 from pandas.tseries.offsets import Minute, bday
@@ -306,7 +306,7 @@ def _simple_ts(start, end, freq='D'):
 
 def _simple_pts(start, end, freq='D'):
     rng = period_range(start, end, freq=freq)
-    return Series(np.random.randn(len(rng)), index=rng)
+    return TimeSeries(np.random.randn(len(rng)), index=rng)
 
 
 from pandas.tseries.frequencies import MONTHS, DAYS
@@ -409,6 +409,20 @@ class TestResamplePeriodIndex(unittest.TestCase):
         result = ts.resample('A-DEC', kind='timestamp')
         expected = ts.to_timestamp(how='end').resample('A-DEC')
         assert_series_equal(result, expected)
+
+    def test_resample_to_quarterly(self):
+        for month in MONTHS:
+            ts = _simple_pts('1990', '1992', freq='A-%s' % month)
+            quar_ts = ts.resample('Q-%s' % month, fill_method='ffill')
+
+            stamps = ts.to_timestamp('D', how='end')
+            qdates = period_range('1990Q4', '1992Q4', freq='Q-%s' % month)
+
+            expected = stamps.reindex(qdates.to_timestamp('D', 'e'),
+                                      method='ffill')
+            expected.index = qdates
+
+            assert_series_equal(quar_ts, expected)
 
 class TestTimeGrouper(unittest.TestCase):
 
