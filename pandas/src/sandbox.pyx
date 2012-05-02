@@ -552,82 +552,23 @@ def get_abs_time(freq, dailyDate, originalDate):
 have_pytz = 1
 import pytz
 
-def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
+cdef extern from "foo.h":
+    double add_things(double *a, double *b, double *c, int n)
+
+
+def cython_test(ndarray a, ndarray b, ndarray c):
+    return add_things(<double*> a.data,
+                      <double*> b.data,
+                      <double*> c.data, len(a))
+
+
+def cython_test2(ndarray[float64_t] a, ndarray[float64_t] b,
+                 ndarray[float64_t] c):
     cdef:
-        ndarray[int64_t] utc_dates, result, trans, deltas
-        Py_ssize_t i, pos, n = len(vals)
-        int64_t v, offset
+        Py_ssize_t i, n = len(a)
+        float64_t result = 0
 
-    print 'int64 is: %d' % sizeof(int64_t)
-
-    if not have_pytz:
-        import pytz
-
-    # Convert to UTC
-
-    if tz1.zone != 'UTC':
-        utc_dates = np.empty(n, dtype=np.int64)
-        deltas = _get_deltas(tz1)
-        trans = _get_transitions(tz1)
-        pos = trans.searchsorted(vals[0])
-        offset = deltas[pos]
-        for i in range(n):
-            v = vals[i]
-            if v >= trans[pos + 1]:
-                pos += 1
-                offset = deltas[pos]
-            utc_dates[i] = v - offset
-    else:
-        utc_dates = vals
-
-    if tz2.zone == 'UTC':
-        return utc_dates
-
-    # Convert UTC to other timezone
-
-    result = np.empty(n, dtype=np.int64)
-    trans = _get_transitions(tz2)
-    deltas = _get_deltas(tz2)
-    offset = deltas[pos]
-    pos = max(0, trans.searchsorted(utc_dates[0], side='right') - 1)
     for i in range(n):
-        v = utc_dates[i]
-        if v >= trans[pos + 1]:
-            pos += 1
-            offset = deltas[pos]
-        result[i] = v + offset
+        result += a[i] + b[i] + c[i]
 
     return result
-
-trans_cache = {}
-utc_offset_cache = {}
-
-def _get_transitions(object tz):
-    """
-    Get UTC times of DST transitions
-    """
-    if tz not in trans_cache:
-        arr = np.array(tz._utc_transition_times, dtype='M8[us]')
-        trans_cache[tz] = arr.view('i8')
-    return trans_cache[tz]
-
-def _get_deltas(object tz):
-    """
-    Get UTC offsets in microseconds corresponding to DST transitions
-    """
-    if tz not in utc_offset_cache:
-        utc_offset_cache[tz] = _unbox_utcoffsets(tz._transition_info)
-    return utc_offset_cache[tz]
-
-cdef ndarray _unbox_utcoffsets(object transinfo):
-    cdef:
-        Py_ssize_t i, sz
-        ndarray[int64_t] arr
-
-    sz = len(transinfo)
-    arr = np.empty(sz, dtype='i8')
-
-    for i in range(sz):
-        arr[i] = int(transinfo[i][0].total_seconds()) * 1000000
-
-    return arr

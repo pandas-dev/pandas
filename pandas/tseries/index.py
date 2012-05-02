@@ -379,15 +379,14 @@ class DatetimeIndex(Int64Index):
 
     def __repr__(self):
         if self.offset is not None:
-            output = str(self.__class__) + '\n'
-            output += 'freq: %s, timezone: %s\n' % (self.offset.freqstr,
-                                                    self.tz)
+            output = str(self.__class__)
             if len(self) > 0:
-                output += '[%s, ..., %s]\n' % (self[0], self[-1])
-            output += 'length: %d' % len(self)
+                output += '\n[%s, ..., %s]' % (self[0], self[-1])
+            tagline = '\nLength: %d, Freq: %s, Timezone: %s'
+            output += tagline % (len(self), self.offset.freqstr, self.tz)
             return output
         else:
-            return super(DatetimeIndex, self).__repr__()
+            return Index.__repr__(self)
 
     __str__ = __repr__
 
