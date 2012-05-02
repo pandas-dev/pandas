@@ -155,6 +155,9 @@ class Period(object):
                     and _gfc(self.freq) == _gfc(other.freq))
         return False
 
+    def __hash__(self):
+        return hash((self.ordinal, self.freq))
+
     def __add__(self, other):
         if isinstance(other, (int, long)):
             return Period(self.ordinal + other, self.freq)
