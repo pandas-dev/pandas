@@ -1269,6 +1269,9 @@ copy : boolean, default False
             return np.nan
         return _quantile(valid_values, q * 100)
 
+    def ptp(self, axis=None, out=None):
+        return self.values.ptp(axis, out)
+
     def describe(self, percentile_width=50):
         """
         Generate various summary statistics of Series, excluding NaN

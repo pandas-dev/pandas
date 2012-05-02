@@ -1922,6 +1922,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                           before=self.ts.index[-1] + offset,
                           after=self.ts.index[0] - offset)
 
+    def test_ptp(self):
+        N = 1000
+        arr = np.random.randn(N)
+        ser = Series(arr)
+        self.assertEqual(np.ptp(ser), np.ptp(arr))
+
     def test_asof(self):
         # array or list or dates
         N = 50
