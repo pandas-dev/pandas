@@ -547,7 +547,7 @@ class DatetimeIndex(Int64Index):
         """
         if freq is not None and freq != self.offset:
             if isinstance(freq, basestring):
-                freq = datetools.to_offset(freq)
+                freq = to_offset(freq)
             return Index.shift(self, n, freq)
 
         if n == 0:
