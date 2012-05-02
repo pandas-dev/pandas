@@ -33,6 +33,7 @@ from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _radd_compat
 from pandas.compat.scipy import scoreatpercentile as _quantile
 from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.period import PeriodIndex
 from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
 from pandas.util.decorators import deprecate, Appender, Substitution
@@ -2987,6 +2988,15 @@ class DataFrame(NDFrame):
             indexer = self._shift_indexer(periods)
             new_blocks = [_shift_block(b, indexer) for b in self._data.blocks]
             new_data = BlockManager(new_blocks, [self.columns, self.index])
+        elif isinstance(self.index, PeriodIndex):
+            orig_offset = datetools.to_offset(self.index.freq)
+            if offset == orig_offset:
+                new_data = self._data.copy()
+                new_data.axes[1] = self.index.shift(periods)
+            else:
+                msg = ('Given freq %s does not match PeriodIndex freq %s' %
+                       (offset.rule_code, orig_offset.rule_code))
+                raise ValueError(msg)
         else:
             new_data = self._data.copy()
             new_data.axes[1] = self.index.shift(periods, offset)

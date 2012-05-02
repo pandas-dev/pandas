@@ -2262,6 +2262,13 @@ copy : boolean, default False
                 new_values[periods:] = nan
 
             return Series(new_values, index=self.index, name=self.name)
+        elif isinstance(self.index, PeriodIndex):
+            orig_offset = datetools.to_offset(self.index.freq)
+            if orig_offset == offset:
+                return Series(self, self.index.shift(periods), name=self.name)
+            msg = ('Given freq %s does not match PeriodIndex freq %s' %
+                   (offset.rule_code, orig_offset.rule_code))
+            raise ValueError(msg)
         else:
             return Series(self, index=self.index.shift(periods, offset),
                           name=self.name)

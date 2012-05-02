@@ -3725,6 +3725,23 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # shift int frame
         int_shifted = self.intframe.shift(1)
 
+        # Shifting with PeriodIndex
+        ps = tm.makePeriodFrame()
+        shifted = ps.shift(1)
+        unshifted = shifted.shift(-1)
+        self.assert_(shifted.index.equals(ps.index))
+
+        tm.assert_dict_equal(unshifted.ix[:, 0].valid(), ps.ix[:, 0],
+                             compare_keys=False)
+
+        shifted2 = ps.shift(1, 'B')
+        shifted3 = ps.shift(1, datetools.bday)
+        assert_frame_equal(shifted2, shifted3)
+        assert_frame_equal(ps, shifted2.shift(-1, 'B'))
+
+        self.assertRaises(ValueError, ps.shift, freq='D')
+
+
     def test_apply(self):
         # ufunc
         applied = self.frame.apply(np.sqrt)

@@ -1819,6 +1819,19 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         unshifted = self.ts.shift(0)
         assert_series_equal(unshifted, self.ts)
 
+        # Shifting with PeriodIndex
+        ps = tm.makePeriodSeries()
+        shifted = ps.shift(1)
+        unshifted = shifted.shift(-1)
+        tm.assert_dict_equal(unshifted.valid(), ps, compare_keys=False)
+
+        shifted2 = ps.shift(1, 'B')
+        shifted3 = ps.shift(1, datetools.bday)
+        assert_series_equal(shifted2, shifted3)
+        assert_series_equal(ps, shifted2.shift(-1, 'B'))
+
+        self.assertRaises(ValueError, ps.shift, freq='D')
+
     def test_shift_int(self):
         ts = self.ts.astype(int)
         shifted = ts.shift(1)
