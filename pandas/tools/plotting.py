@@ -431,7 +431,8 @@ class LinePlot(MPLPlot):
             else:
                 self.axes[0].legend(loc='best')
 
-        condition = (df.index.is_all_dates
+        condition = (not self.has_ts_index
+                     and df.index.is_all_dates
                      and not self.subplots
                      or (self.subplots and self.sharex))
 
