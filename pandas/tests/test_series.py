@@ -2254,47 +2254,47 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(result, expected)
 
     def test_str_find(self):
-        s = Series(['A', 'B', 'C', 'Aaba', 'Baca', '', \
+        s = Series(['A', 'B', 'C', 'Aaba', 'Baca', '', nan, \
                         'CABA', 'dog', 'cat'])
         
         result = s.str_find('a')
-        expected = Series([True, False, False, True, True,  False, \
+        expected = Series([True, False, False, True, True, False, False, \
                                True, False, True])
         assert_series_equal(result, expected)
     
         result = s.str_find('aa')
-        expected = Series([False, False, False, True, False, False, \
+        expected = Series([False, False, False, True, False, False, False, \
                                False, False, False])
         assert_series_equal(result, expected)
 
         result = s.str_find('ba')
-        expected = Series([False, False, False, True, True, False, \
+        expected = Series([False, False, False, True, True, False, False, \
                                True, False, False])
         assert_series_equal(result, expected)
 
         result = s.str_find('ba', case=0)
-        expected = Series([False, False, False, True, False, False, \
+        expected = Series([False, False, False, True, False, False, False, \
                                False, False, False])
         assert_series_equal(result, expected)
 
                
     def test_str_sub(self):
         import re
-        s = Series(['A', 'B', 'C', 'Aaba', 'Baca', '', \
+        s = Series(['A', 'B', 'C', 'Aaba', 'Baca', '', nan, \
                         'CABA', 'dog', 'cat'])
         
         result = s.str_sub('A', 'XXX')
-        expected = Series(['XXX', 'B', 'C', 'XXXaba', 'Baca', '', \
+        expected = Series(['XXX', 'B', 'C', 'XXXaba', 'Baca', '', nan, \
                                'CXXXBXXX', 'dog', 'cat'])
         assert_series_equal(result, expected)
         
         result = s.str_sub('A', 'XXX', case=re.IGNORECASE)
-        expected = Series(['XXX', 'B', 'C', 'XXXXXXbXXX', 'BXXXcXXX', '', \
+        expected = Series(['XXX', 'B', 'C', 'XXXXXXbXXX', 'BXXXcXXX', '', nan, \
                                'CXXXBXXX', 'dog', 'cXXXt'])
         assert_series_equal(result, expected)
         
         result = s.str_sub('^.a|dog', 'XX-XX ', case=re.IGNORECASE)
-        expected = Series(['A',  'B', 'C', 'XX-XX ba', 'XX-XX ca', '', \
+        expected = Series(['A',  'B', 'C', 'XX-XX ba', 'XX-XX ca', '', nan, \
                                 'XX-XX BA', 'XX-XX ', 'XX-XX t'])
         assert_series_equal(result, expected)
          

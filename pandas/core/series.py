@@ -2100,15 +2100,14 @@ copy : boolean, default False
        
         regex = re.compile(pattern, case)
         vfunc  = np.vectorize(lambda x:bool(regex.search(x)))
+        
         try:
             result = vfunc(self.values)
         except TypeError:
-            print 'Warning: Type Error encountered.'
-            print 'Attempting to replace nan/null values with empty string.'
+            s = self.copy()
             mask = isnull(self.values)
-            self.values[mask] = ''
-            result = vfunc(self.values)
-        
+            s[mask] = ''
+            result = vfunc(s)
         return Series(result, self.index, name=self.name)
     
 
@@ -2134,12 +2133,11 @@ copy : boolean, default False
         try:
             result = vfunc(self.values, repl, regex)
         except TypeError:
-            print 'Warning: Type Error encountered.'
-            print 'Attempting to replace nan/null values with empty string.'
             mask = isnull(self.values)
-            self.values[mask] = ''
-            result = vfunc(self.values, repl, regex)
-        
+            s = self.copy()
+            s[mask] = ''
+            result = vfunc(s, repl, regex)
+            result[mask] = np.NAN
         return Series(result, self.index, name=self.name)   
                
 
