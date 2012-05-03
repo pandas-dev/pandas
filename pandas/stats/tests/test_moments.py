@@ -42,6 +42,12 @@ class TestMoments(unittest.TestCase):
     def test_rolling_mean(self):
         self._check_moment_func(mom.rolling_mean, np.mean)
 
+    def test_weighted_rolling_mean(self):
+        weights = np.array([0.4, 0.2, 0.2, 0.1, 0.1])
+        result = mom.rolling_weighted_mean(self.arr, weights)
+        assert_almost_equal(result[-1], np.dot(self.arr[-len(weights):],
+            weights[::-1]))
+
     def test_rolling_median(self):
         self._check_moment_func(mom.rolling_median, np.median)
 

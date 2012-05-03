@@ -158,6 +158,52 @@ def roll_mean(ndarray[double_t] input,
     return output
 
 #-------------------------------------------------------------------------------
+# Weighted moving average 
+
+def weighted_mean(ndarray[double_t] input, ndarray[double_t] weights, int minp):
+    cdef double val, prev, sum_x = 0
+    cdef Py_ssize_t nobs = 0, i, j
+    cdef Py_ssize_t N = len(input)
+    cdef Py_ssize_t w_n = len(weights)
+
+    cdef ndarray[double_t] output = np.empty(N, dtype=float)
+
+    for i from 0 <= i < minp - 1:
+        val = input[i]
+
+        if val == val:
+            nobs += 1
+        output[i] = NaN
+
+    for i from minp - 1 <= i < N:
+        sum_x = 0 
+        val = input[i]
+
+        if i > w_n - 1:
+            prev = input[i - w_n]
+            if prev == prev:
+                nobs -= 1
+
+        if val == val:
+            nobs += 1
+
+        if nobs >= minp:
+            for j from 0 <= j < w_n:
+                t_val = input[i - j]
+                # Not the right way to go about handling NAs
+                # Do some sort of re-weighting?
+                if t_val == t_val:
+                    sum_x += weights[j] * t_val 
+            output[i] = sum_x 
+        else:
+            output[i] = NaN
+
+    return output
+
+
+
+
+#-------------------------------------------------------------------------------
 # Exponentially weighted moving average
 
 def ewma(ndarray[double_t] input, double_t com):
