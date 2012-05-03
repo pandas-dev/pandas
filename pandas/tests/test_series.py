@@ -14,7 +14,7 @@ import numpy.ma as ma
 from pandas import (Index, Series, TimeSeries, DataFrame, isnull, notnull,
                     bdate_range, date_range)
 from pandas.core.index import MultiIndex
-from pandas.tseries.index import Timestamp
+from pandas.tseries.index import Timestamp, DatetimeIndex
 
 import pandas.core.datetools as datetools
 import pandas.core.nanops as nanops
@@ -2532,6 +2532,11 @@ class TestSeriesNonUnique(unittest.TestCase):
         df = ser.reset_index(name='value2')
         self.assert_('value2' in df)
 
+    def test_timeseries_coercion(self):
+        idx = tm.makeDateIndex(10000)
+        ser = Series(np.random.randn(len(idx)), idx.astype(object))
+        self.assert_(isinstance(ser, TimeSeries))
+        self.assert_(isinstance(ser.index, DatetimeIndex))
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

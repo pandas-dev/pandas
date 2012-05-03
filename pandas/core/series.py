@@ -289,6 +289,8 @@ class Series(np.ndarray, generic.PandasObject):
 
         # Change the class of the array to be the subclass type.
         if index.is_all_dates:
+            if not isinstance(index, (DatetimeIndex, PeriodIndex)):
+                index = DatetimeIndex(index)
             subarr = subarr.view(TimeSeries)
         else:
             subarr = subarr.view(Series)
