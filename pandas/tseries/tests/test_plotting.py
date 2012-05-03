@@ -50,13 +50,15 @@ class TestTSPlot(unittest.TestCase):
     @slow
     def test_tsplot(self):
         from pandas.tseries.plotting import tsplot
-        import matplotlib.pyplot as pyplot
-        ax = pyplot.gca()
+        import matplotlib.pyplot as plt
+        ax = plt.gca()
+
+        f = lambda *args, **kwds: tsplot(s, plt.Axes.plot, *args, **kwds)
+
         for s in self.period_ser:
-            _check_plot_works(tsplot, s.index.freq, axes=ax, series=s)
+            _check_plot_works(f, s.index.freq, ax=ax, series=s)
         for s in self.datetime_ser:
-            _check_plot_works(tsplot, s.index.freq.rule_code,
-                              axes=ax, series=s)
+            _check_plot_works(f, s.index.freq.rule_code, ax=ax, series=s)
 
     @slow
     def test_line_plot_period_series(self):
@@ -90,7 +92,7 @@ class TestTSPlot(unittest.TestCase):
 
 
 PNG_PATH = 'tmp.png'
-def _check_plot_works(f, freq=None, *args, **kwargs):
+def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     import matplotlib.pyplot as plt
 
     fig = plt.gcf()
@@ -99,8 +101,7 @@ def _check_plot_works(f, freq=None, *args, **kwargs):
     ret = f(*args, **kwargs)
     assert(ret is not None)  # do something more intelligent
 
-    orig_ax = kwargs.pop('axes', plt.gca())
-    series = kwargs.pop('series', None)
+    orig_ax = kwargs.pop('ax', plt.gca())
     if series is not None:
         assert(orig_ax.freq == series.index.freq)
 

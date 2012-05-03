@@ -21,7 +21,8 @@ from pandas.core.series import Series
 
 import warnings
 
-# Generic documentation ......................................................
+#----------------------------------------------------------------------
+# Generic documentation
 
 _doc_parameters = dict(
 figsize="""figsize : {None, tuple}
@@ -49,10 +50,10 @@ mandatoryplotargs="""args : var
         are all lower than 10.""" )
 
 
-#####---------------------------------------------------------------------------
-#---- Plotting functions and monkey patches
-#####---------------------------------------------------------------------------
-def tsplot(axes, series, *args, **kwargs):
+#----------------------------------------------------------------------
+# Plotting functions and monkey patches
+
+def tsplot(series, plotf, *args, **kwargs):
     """
     Plots a Series on the given Matplotlib axes object
 
@@ -82,28 +83,33 @@ def tsplot(axes, series, *args, **kwargs):
         raise TypeError('series argument to tsplot must have DatetimeIndex or '
                         'PeriodIndex')
 
+    if 'ax' in kwargs:
+        ax = kwargs.pop('ax')
+    else:
+        ax = plt.gca()
+
     # Specialized ts plotting attributes for Axes
-    axes.freq = freq
-    axes.legendlabels = [kwargs.get('label', None)]
-    axes.view_interval = None
-    axes.date_axis_info = None
+    ax.freq = freq
+    ax.legendlabels = [kwargs.get('label', None)]
+    ax.view_interval = None
+    ax.date_axis_info = None
 
     # format args and lot
     args = _check_plot_params(series, series.index, freq, *args)
-    plotted = axes.plot(*args,  **kwargs)
+    plotted = plotf(ax, *args,  **kwargs)
 
-    format_dateaxis(axes, axes.freq)
+    format_dateaxis(ax, ax.freq)
 
     # when adding a right axis (using add_yaxis), for some reason the
     # x axis limits don't get properly set. This gets around the problem
-    xlim = axes.get_xlim()
+    xlim = ax.get_xlim()
     if xlim[0] == 0.0 and xlim[1] == 1.0:
         # if xlim still at default values, autoscale the axis
-        axes.autoscale_view()
+        ax.autoscale_view()
 
     left = get_datevalue(series.index[0], freq)
     right = get_datevalue(series.index[-1], freq)
-    axes.set_xlim(left, right)
+    ax.set_xlim(left, right)
 
     return plotted
 

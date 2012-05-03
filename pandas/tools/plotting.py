@@ -397,7 +397,9 @@ class LinePlot(MPLPlot):
         return data
 
     def _make_ts_plot(self, data, **kwargs):
-        import pandas.tseries.plotting as plot
+        from pandas.tseries.plotting import tsplot
+
+        plotf = self._get_plot_function()
 
         if isinstance(data, Series):
             if self.subplots: # shouldn't even allow users to specify
@@ -406,7 +408,7 @@ class LinePlot(MPLPlot):
                 ax = self.ax
 
             label = com._stringify(self.label)
-            plot.tsplot(ax, data, label=label, **kwargs)
+            tsplot(data, plotf, ax=ax, label=label, **kwargs)
             ax.grid(self.grid)
         else:
             for i, col in enumerate(data.columns):
@@ -415,7 +417,7 @@ class LinePlot(MPLPlot):
                 else:
                     ax = self.ax
                 label = com._stringify(col)
-                plot.tsplot(ax, data[col], label=label, **kwargs)
+                tsplot(data[col], plotf, ax=ax, label=label, **kwargs)
                 ax.grid(self.grid)
 
         self.fig.subplots_adjust(wspace=0, hspace=0)

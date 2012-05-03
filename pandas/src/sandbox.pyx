@@ -572,3 +572,12 @@ import pytz
 #         result += a[i] + b[i] + c[i]
 
 #     return result
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def inner(ndarray[float64_t] x, ndarray[float64_t] y):
+    cdef Py_ssize_t i, n = len(x)
+    cdef float64_t result = 0
+    for i in range(n):
+        result += x[i] * y[i]
+    return result
