@@ -9,7 +9,9 @@ from datetime import datetime, date
 import time
 
 import numpy as np
-from pandas import Series, TimeSeries, DataFrame, Panel, Index, MultiIndex
+from pandas import (
+    Series, TimeSeries, DataFrame, Panel, Index, MultiIndex, Int64Index
+)
 from pandas.tseries.api import PeriodIndex, DatetimeIndex
 from pandas.core.common import adjoin
 from pandas.core.algorithms import match, unique
@@ -782,6 +784,13 @@ class HDFStore(object):
         return len(s.values)
 
 def _convert_index(index):
+    if isinstance(index, DatetimeIndex):
+        converted = np.asarray(index, dtype='i8')
+        return converted, 'datetime64', _tables().Int64Col()
+    elif isinstance(index, (Int64Index, PeriodIndex)):
+        atom = _tables().Int64Col()
+        return np.asarray(index, dtype=np.int64), 'integer', atom
+
     inferred_type = lib.infer_dtype(index)
 
     values = np.asarray(index)
