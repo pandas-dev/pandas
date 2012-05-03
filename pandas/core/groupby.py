@@ -350,8 +350,19 @@ class GroupBy(object):
         return self._cython_agg_general('ohlc')
 
     def last(self):
+        return self.nth(-1)
+
+    def first(self):
+        return self.nth(0)
+
+    def nth(self, n):
         def picker(arr):
-            return arr[-1] if arr is not None and len(arr) else np.nan
+            if arr is not None:
+                n_ok_pos = n >= 0 and len(arr) > n
+                n_ok_neg = n < 0 and len(arr) >= n
+                if n_ok_pos or n_ok_neg:
+                    return arr.iget(n)
+            return np.nan
         return self.agg(picker)
 
     def _cython_agg_general(self, how):
