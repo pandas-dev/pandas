@@ -784,30 +784,29 @@ class HDFStore(object):
 def _convert_index(index):
     inferred_type = lib.infer_dtype(index)
 
-    # Let's assume the index is homogeneous
     values = np.asarray(index)
 
     if inferred_type == 'datetime64':
         converted = values.view('i8')
         return converted, 'datetime64', _tables().Int64Col()
-    elif isinstance(values[0], datetime):
+    elif inferred_type == 'datetime':
         converted = np.array([(time.mktime(v.timetuple()) +
                             v.microsecond / 1E6) for v in values],
                             dtype=np.float64)
         return converted, 'datetime', _tables().Time64Col()
-    elif isinstance(values[0], date):
+    elif inferred_type == 'date':
         converted = np.array([time.mktime(v.timetuple()) for v in values],
                             dtype=np.int32)
         return converted, 'date', _tables().Time32Col()
-    elif isinstance(values[0], basestring):
+    elif inferred_type =='string':
         converted = np.array(list(values), dtype=np.str_)
         itemsize = converted.dtype.itemsize
         return converted, 'string', _tables().StringCol(itemsize)
-    elif com.is_integer(values[0]):
+    elif inferred_type == 'integer':
         # take a guess for now, hope the values fit
         atom = _tables().Int64Col()
         return np.asarray(values, dtype=np.int64), 'integer', atom
-    elif com.is_float(values[0]):
+    elif inferred_type == 'floating':
         atom = _tables().Float64Col()
         return np.asarray(values, dtype=np.float64), 'float', atom
     else: # pragma: no cover

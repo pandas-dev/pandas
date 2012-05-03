@@ -215,6 +215,28 @@ class TesttHDFStore(unittest.TestCase):
         DF = DataFrame(data, index=idx, columns=col)
         self._check_roundtrip(DF, tm.assert_frame_equal)
 
+    def test_mixed_index(self):
+        values = np.random.randn(2)
+
+        ser = Series(values, [0, 'y'])
+        self._check_roundtrip(ser, tm.assert_series_equal)
+
+        ser = Series(values, [datetime.today(), 0])
+        self._check_roundtrip(ser, tm.assert_series_equal)
+
+        ser = Series(values, ['y', 0])
+        self._check_roundtrip(ser, tm.assert_series_equal)
+
+        from datetime import date
+        ser = Series(values, [date.today(), 'a'])
+        self._check_roundtrip(ser, tm.assert_series_equal)
+
+        ser = Series(values, [1.23, 'b'])
+        self._check_roundtrip(ser, tm.assert_series_equal)
+
+        ser = Series(values, [1, 1.53])
+        self._check_roundtrip(ser, tm.assert_series_equal)
+
     def test_timeseries_preepoch(self):
         if sys.version_info[0] == 2 and sys.version_info[1] < 7:
             raise nose.SkipTest
