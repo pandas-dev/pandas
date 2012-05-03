@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 
 from numpy.ma.testutils import assert_equal
 
+from pandas.tseries.frequencies import MONTHS, DAYS
 from pandas.tseries.period import Period, PeriodIndex, period_range
 from pandas.tseries.index import DatetimeIndex, date_range
 from pandas.tseries.tools import to_datetime
@@ -28,7 +29,16 @@ class TestPeriodProperties(TestCase):
     def __init__(self, *args, **kwds):
         TestCase.__init__(self, *args, **kwds)
 
-    def test_interval_constructor(self):
+    def test_period_cons_quarterly(self):
+        # bugs in scikits.timeseries
+        for month in MONTHS:
+            freq = 'Q-%s' % month
+            exp = Period('1989Q3', freq=freq)
+            stamp = exp.to_timestamp('D', how='end')
+            p = Period(stamp, freq=freq)
+            self.assertEquals(p, exp)
+
+    def test_period_constructor(self):
         i1 = Period('1/1/2005', freq='M')
         i2 = Period('Jan 2005')
 
@@ -1152,7 +1162,7 @@ class TestPeriodIndex(TestCase):
         # Todo: fix these accessors!
         self.assert_(s['05Q4'] == s[2])
 
-    def test_interval_dt64_round_trip(self):
+    def test_period_dt64_round_trip(self):
         dti = date_range('1/1/2000', '1/7/2002', freq='B')
         ii = dti.to_period()
         self.assert_(ii.to_timestamp().equals(dti))
@@ -1160,6 +1170,15 @@ class TestPeriodIndex(TestCase):
         dti = date_range('1/1/2000', '1/7/2002', freq='B')
         ii = dti.to_period(freq='H')
         self.assert_(ii.to_timestamp().equals(dti))
+
+    def test_to_period_quarterly(self):
+        # make sure we can make the round trip
+        for month in MONTHS:
+            freq = 'Q-%s' % month
+            rng = period_range('1989Q3', '1991Q3', freq=freq)
+            stamps = rng.to_timestamp()
+            result = stamps.to_period(freq)
+            self.assert_(rng.equals(result))
 
     def test_iindex_multiples(self):
         ii = PeriodIndex(start='1/1/10', end='12/31/12', freq='2M')

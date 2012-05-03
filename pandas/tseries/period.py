@@ -3,7 +3,8 @@
 from datetime import datetime
 import numpy as np
 
-from pandas.tseries.frequencies import get_freq_code as _gfc, to_offset
+from pandas.tseries.frequencies import (get_freq_code as _gfc, to_offset,
+                                        _month_numbers)
 from pandas.tseries.index import DatetimeIndex, Int64Index
 from pandas.tseries.tools import parse_time_string
 import pandas.tseries.frequencies as _freq_mod
@@ -48,6 +49,16 @@ def to_period(arg, freq=None):
         raise TypeError("Cannot convert a float to period")
 
     return Period(arg, freq=freq)
+
+def _to_quarterly(year, month, freq='Q-DEC'):
+    fmonth = _freq_mod._month_numbers[_freq_mod._get_rule_month(freq)] + 1
+    print fmonth
+    mdiff = (month - fmonth) % 12
+    if month >= fmonth:
+        mdiff += 12
+
+    ordin = 1 + (year - 1) * 4 + (mdiff - 1) / 3
+    return Period(ordin, freq=freq)
 
 class Period(object):
 
@@ -99,10 +110,13 @@ class Period(object):
             if year is None:
                 raise ValueError("If value is None, year cannot be None")
 
-            if quarter is not None:
-                month = (quarter - 1) * 3 + 1
-
             base, mult = _gfc(freq)
+
+            if quarter is not None:
+                mnum = _month_numbers[_freq_mod._get_rule_month(freq)] + 1
+                month = (mnum + (quarter - 1) * 3) % 12 + 1
+                if month > mnum:
+                    year -= 1
 
             self.ordinal = lib.period_ordinal(year, month, day, hour, minute,
                                             second, base, mult)

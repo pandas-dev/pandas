@@ -901,9 +901,11 @@ def is_superperiod(source, target):
     target = target.upper()
     source = source.upper()
     if _is_annual(source):
-        month = _get_rule_month(source)
-        same_month = _get_rule_month(target) == month
-        return same_month or target in ['D', 'B', 'M', 'H', 'T', 'S']
+        if _is_quarterly(target):
+            smonth = _get_rule_month(source)
+            tmonth = _get_rule_month(target)
+            return _quarter_months_conform(smonth, tmonth)
+        return target in ['D', 'B', 'M', 'H', 'T', 'S']
     elif _is_quarterly(source):
         return target in ['D', 'B', 'M', 'H', 'T', 'S']
     elif source == 'M':
@@ -916,6 +918,7 @@ def is_superperiod(source, target):
         return target not in ['D', 'B', 'H', 'T', 'S']
 
 def _get_rule_month(source, default='DEC'):
+    source = source.upper()
     if '-' not in source:
         return default
     else:
@@ -925,6 +928,10 @@ def _is_annual(rule):
     rule = rule.upper()
     return rule == 'A' or rule.startswith('A-')
 
+def _quarter_months_conform(source, target):
+    snum = _month_numbers[source]
+    tnum = _month_numbers[target]
+    return snum % 3 == tnum % 3
 
 def _is_quarterly(rule):
     return rule.upper().startswith('Q-')
@@ -938,6 +945,9 @@ DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
 MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
           'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+
+_month_numbers = dict((k, i) for i, k in enumerate(MONTHS))
+
 
 
 _weekday_rule_aliases = dict((k, v) for k, v in enumerate(DAYS))

@@ -416,13 +416,24 @@ class TestResamplePeriodIndex(unittest.TestCase):
             quar_ts = ts.resample('Q-%s' % month, fill_method='ffill')
 
             stamps = ts.to_timestamp('D', how='end')
-            qdates = period_range('1990Q4', '1992Q4', freq='Q-%s' % month)
+            qdates = period_range(stamps.index[0], stamps.index[-1],
+                                  freq='Q-%s' % month)
 
             expected = stamps.reindex(qdates.to_timestamp('D', 'e'),
                                       method='ffill')
             expected.index = qdates
 
             assert_series_equal(quar_ts, expected)
+
+        # conforms, but different month
+        ts = _simple_pts('1990', '1992', freq='A-JUN')
+
+        for how in ['start', 'end']:
+            result = ts.resample('Q-MAR', convention=how, fill_method='ffill')
+            expected = ts.asfreq('Q-MAR', how=how).to_timestamp('D')
+            expected = expected.resample('Q-MAR', fill_method='ffill')
+            assert_series_equal(result, expected.to_period('Q-MAR'))
+
 
 class TestTimeGrouper(unittest.TestCase):
 

@@ -982,12 +982,11 @@ int64_t get_period_ordinal(int year, int month, int day,
                       int hour, int minute, int second,
                       int freq)
 {
-	int64_t absdays, delta;
+	  int64_t absdays, delta;
     int64_t weeks, days;
-	int64_t adj_ordinal, ordinal, day_adj;
-	int freq_group, quarter;
+    int64_t adj_ordinal, ordinal, day_adj;
+    int freq_group, fmonth, mdiff, quarter;
     freq_group = get_freq_group(freq);
-		quarter=((month-1)/3)+1;
 
     if (freq == FR_SEC) {
         absdays = absdate_from_ymd(year, month, day);
@@ -1048,7 +1047,14 @@ int64_t get_period_ordinal(int year, int month, int day,
 
     if (freq_group == FR_QTR)
     {
-        return (year-1)*4 + quarter;
+      fmonth = freq - FR_QTR;
+      if (fmonth == 0) fmonth = 12;
+
+      mdiff = month - fmonth;
+      if (mdiff < 0) mdiff += 12;
+      if (month >= fmonth) mdiff += 12;
+
+      return 1 + (year - 1) * 4 + (mdiff - 1) / 3;
     }
 
     if (freq_group == FR_ANN)
