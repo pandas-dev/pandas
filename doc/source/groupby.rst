@@ -283,6 +283,14 @@ the ``aggregate`` or equivalently ``agg`` method:
    grouped = df.groupby(['A', 'B'])
    grouped.aggregate(np.sum)
 
+Another simple example is to compute the size of each group. This is included
+in GroupBy as the ``size`` method. It returns a Series whose index are the
+group names and whose values are the sizes of each group.
+
+.. ipython:: python
+
+   grouped.size()
+
 As you can see, the result of the aggregation will have the group names as the
 new index along the grouped axis. In the case of multiple keys, the result is a
 :ref:`MultiIndex <indexing.hierarchical>` by default, though this can be
@@ -301,6 +309,7 @@ same result as the column names are stored in the resulting ``MultiIndex``:
 .. ipython:: python
 
    df.groupby(['A', 'B']).sum().reset_index()
+
 
 .. _groupby.aggregate.multifunc:
 
