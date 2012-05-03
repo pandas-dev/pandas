@@ -1059,7 +1059,14 @@ int64_t get_period_ordinal(int year, int month, int day,
 
     if (freq_group == FR_ANN)
     {
+      fmonth = freq - FR_ANN;
+      if (fmonth == 0) fmonth = 12;
+      if (month <= fmonth) {
         return year;
+      }
+      else {
+        return year + 1;
+      }
     }
 
     Py_Error(PyExc_RuntimeError, "Unable to generate frequency ordinal");

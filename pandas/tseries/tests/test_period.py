@@ -38,6 +38,15 @@ class TestPeriodProperties(TestCase):
             p = Period(stamp, freq=freq)
             self.assertEquals(p, exp)
 
+    def test_period_cons_annual(self):
+        # bugs in scikits.timeseries
+        for month in MONTHS:
+            freq = 'A-%s' % month
+            exp = Period('1989', freq=freq)
+            stamp = exp.to_timestamp('D', how='end') + 30
+            p = Period(stamp, freq=freq)
+            self.assertEquals(p, exp + 1)
+
     def test_period_constructor(self):
         i1 = Period('1/1/2005', freq='M')
         i2 = Period('Jan 2005')
