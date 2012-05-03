@@ -464,6 +464,9 @@ def groupby_%(name)s(ndarray[%(c_type)s] index, ndarray labels):
     cdef list members
     cdef object idx, key
 
+    if len(labels) == 0:
+        return list(index)
+
     length = len(index)
 
     for i in range(length):

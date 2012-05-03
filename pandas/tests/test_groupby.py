@@ -120,6 +120,11 @@ class TestGroupBy(unittest.TestCase):
         # corner cases
         self.assertRaises(Exception, grouped.aggregate, lambda x: x * 2)
 
+        result = self.df.groupby([]).groups
+        expected = range(len(self.df))
+        self.assertEqual(tuple(result), tuple(expected))
+
+        # tests for first / last / nth
         grouped = self.df.groupby('A')
         first = grouped.first()
         expected = grouped.get_group('bar')
@@ -138,6 +143,8 @@ class TestGroupBy(unittest.TestCase):
         expected = expected.xs(expected.index[1])[1:]
         expected.name ='foo'
         assert_series_equal(nth.xs('foo'), expected)
+
+
 
     def test_groupby_dict_mapping(self):
         # GH #679
