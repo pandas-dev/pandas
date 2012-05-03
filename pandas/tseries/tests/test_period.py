@@ -1272,6 +1272,50 @@ class TestPeriodIndex(TestCase):
         index2 = period_range('1/1/2000', '1/20/2000', freq='W-WED')
         self.assertRaises(Exception, index.intersection, index2)
 
+    def test_fields(self):
+        # year, month, day, hour, minute
+        # second, weekofyear, week, dayofweek, weekday, dayofyear, quarter
+        # qyear
+        ii = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        self._check_all_fields(ii)
+
+        ii = PeriodIndex(freq='Q', start='1/1/2001', end='12/1/2003')
+        self._check_all_fields(ii)
+
+        ii = PeriodIndex(freq='M', start='1/1/2001', end='1/1/2002')
+        self._check_all_fields(ii)
+
+        ii = PeriodIndex(freq='D', start='12/1/2001', end='1/1/2002')
+        self._check_all_fields(ii)
+
+        ii = PeriodIndex(freq='B', start='12/1/2001', end='1/1/2002')
+        self._check_all_fields(ii)
+
+        ii = PeriodIndex(freq='H', start='12/31/2001', end='1/1/2002 23:00')
+        self._check_all_fields(ii)
+
+        ii = PeriodIndex(freq='Min', start='12/31/2001', end='1/1/2002 00:59')
+        self._check_all_fields(ii)
+
+        ii = PeriodIndex(freq='S', start='12/31/2001', end='1/1/2001 00:00:01')
+        self._check_all_fields(ii)
+
+        end_intv = Period('2006-12-31', 'W')
+        i1 = PeriodIndex(end=end_intv, periods=10)
+        self._check_all_fields(ii)
+
+    def _check_all_fields(self, periodindex):
+        fields = ['year', 'month', 'day', 'hour', 'minute',
+                  'second', 'weekofyear', 'week', 'dayofweek',
+                  'weekday', 'dayofyear', 'quarter', 'qyear']
+        [self._check_field(periodindex, x) for x in fields]
+
+    def _check_field(self, periodindex, fieldname):
+        field_idx = getattr(periodindex, fieldname)
+        assert_equal(len(periodindex), len(field_idx))
+        for x, val in zip(periodindex, field_idx):
+            assert_equal(getattr(x, fieldname), val)
+
 def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
 
