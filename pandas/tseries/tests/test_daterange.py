@@ -12,11 +12,6 @@ from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.index import bdate_range, date_range
 import pandas.tseries.tools as tools
 
-try:
-    import pytz
-except ImportError:
-    pass
-
 def eq_gen_range(kwargs, expected):
     rng = generate_range(**kwargs)
     assert(np.array_equal(list(rng), expected))
@@ -241,71 +236,11 @@ class TestDateRange(unittest.TestCase):
         result = a.intersection(b)
         self.assert_(result.equals(b))
 
-    def test_with_tz(self):
-        _skip_if_no_pytz()
-        tz = pytz.timezone('US/Central')
-
-        # just want it to work
-        start = datetime(2011, 3, 12, tzinfo=pytz.utc)
-        dr = bdate_range(start, periods=50, freq=datetools.Hour())
-        self.assert_(dr.tz is not None)
-        self.assert_(dr.tz is start.tzinfo)
-
-        # DateRange with naive datetimes
-        dr = bdate_range('1/1/2005', '1/1/2009', tz=pytz.utc)
-        dr = bdate_range('1/1/2005', '1/1/2009', tz=tz)
-
-        # normalized
-        central = dr.tz_normalize(tz)
-        self.assert_(central.tz is tz)
-        self.assert_(central[0].tz is tz)
-
-        # datetimes with tzinfo set
-        dr = bdate_range(datetime(2005, 1, 1, tzinfo=pytz.utc),
-                         '1/1/2009', tz=pytz.utc)
-
-        self.assertRaises(Exception, bdate_range,
-                          datetime(2005, 1, 1, tzinfo=pytz.utc),
-                          '1/1/2009', tz=tz)
-
-    def test_tz_localize(self):
-        _skip_if_no_pytz()
-        dr = bdate_range('1/1/2009', '1/1/2010')
-        dr_utc = bdate_range('1/1/2009', '1/1/2010', tz=pytz.utc)
-        localized = dr.tz_localize(pytz.utc)
-        self.assert_(np.array_equal(dr_utc, localized))
-
-    def test_with_tz_ambiguous_times(self):
-        _skip_if_no_pytz()
-        tz = pytz.timezone('US/Eastern')
-
-        # regular no problem
-        self.assert_(self.rng.tz_validate())
-
-        # March 13, 2011, spring forward, skip from 2 AM to 3 AM
-        dr = date_range(datetime(2011, 3, 13, 1, 30), periods=3,
-                        freq=datetools.Hour(), tz=tz)
-        self.assert_(not dr.tz_validate())
-
-        # after dst transition
-        dr = date_range(datetime(2011, 3, 13, 3, 30), periods=3,
-                        freq=datetools.Hour(), tz=tz)
-        self.assert_(dr.tz_validate())
-
-        # November 6, 2011, fall back, repeat 2 AM hour
-        dr = date_range(datetime(2011, 11, 6, 1, 30), periods=3,
-                        freq=datetools.Hour(), tz=tz)
-        self.assert_(not dr.tz_validate())
-
-        # UTC is OK
-        dr = date_range(datetime(2011, 3, 13), periods=48,
-                        freq=datetools.Minute(30), tz=pytz.utc)
-        self.assert_(dr.tz_validate())
-
     def test_summary(self):
         self.rng.summary()
         self.rng[2:2].summary()
         try:
+            import pytz
             bdate_range('1/1/2005', '1/1/2009', tz=pytz.utc).summary()
         except Exception:
             pass
@@ -318,29 +253,6 @@ class TestDateRange(unittest.TestCase):
         assert len(dr) == 20
         assert dr[0] == firstDate
         assert dr[-1] == end
-
-    # test utility methods
-    def test_infer_tz(self):
-        _skip_if_no_pytz()
-        eastern = pytz.timezone('US/Eastern')
-        utc = pytz.utc
-
-        _start = datetime(2001, 1, 1)
-        _end = datetime(2009, 1, 1)
-
-        start = eastern.localize(_start)
-        end = eastern.localize(_end)
-        assert(tools._infer_tzinfo(start, end) is eastern)
-        assert(tools._infer_tzinfo(start, None) is eastern)
-        assert(tools._infer_tzinfo(None, end) is eastern)
-
-        start = utc.localize(_start)
-        end = utc.localize(_end)
-        assert(tools._infer_tzinfo(start, end) is utc)
-
-        end = eastern.localize(_end)
-        self.assertRaises(Exception, tools._infer_tzinfo, start, end)
-        self.assertRaises(Exception, tools._infer_tzinfo, end, start)
 
     def test_date_parse_failure(self):
         badly_formed_date = '2007/100/1'
@@ -376,13 +288,6 @@ class TestDateRange(unittest.TestCase):
         exp_values = [start + i * offset for i in range(5)]
         self.assert_(np.array_equal(result, DatetimeIndex(exp_values)))
 
-
-def _skip_if_no_pytz():
-    try:
-        import pytz
-    except ImportError:
-        import nose
-        raise nose.SkipTest
 
 
 if __name__ == '__main__':

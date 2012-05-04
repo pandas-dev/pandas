@@ -15,6 +15,10 @@ import pandas.tseries.tools as tools
 from pandas._tseries import Timestamp
 import pandas._tseries as lib
 
+def _utc():
+    import pytz
+    return pytz.utc
+
 # -------- some conversion wrapper functions
 
 def _as_i8(arg):
@@ -195,48 +199,8 @@ class DatetimeIndex(Int64Index):
                              "supplied")
 
         if data is None:
-            _normalized = True
-
-            if start is not None:
-                start = Timestamp(start)
-                if not isinstance(start, Timestamp):
-                    raise ValueError('Failed to convert %s to timestamp'
-                                     % start)
-
-                if normalize:
-                    start = normalize_date(start)
-                    _normalized = True
-                else:
-                    _normalized = _normalized and start.time() == _midnight
-
-            if end is not None:
-                end = Timestamp(end)
-                if not isinstance(end, Timestamp):
-                    raise ValueError('Failed to convert %s to timestamp'
-                                     % end)
-
-                if normalize:
-                    end = normalize_date(end)
-                    _normalized = True
-                else:
-                    _normalized = _normalized and end.time() == _midnight
-
-            start, end, tz = tools._figure_out_timezone(start, end, tz)
-
-            if (offset._should_cache() and
-                not (offset._normalize_cache and not _normalized) and
-                _naive_in_cache_range(start, end)):
-                index = cls._cached_range(start, end, periods=periods,
-                                          offset=offset, name=name)
-            else:
-                index = _generate_regular_range(start, end, periods, offset)
-
-            index = index.view(cls)
-            index.name = name
-            index.offset = offset
-            index.tz = tz
-
-            return index
+            return cls._generate(start, end, periods, name, offset,
+                                 tz=tz, normalize=normalize)
 
         if not isinstance(data, np.ndarray):
             if np.isscalar(data):
@@ -291,6 +255,59 @@ class DatetimeIndex(Int64Index):
                 subarr.offset = to_offset(inferred)
 
         return subarr
+
+    @classmethod
+    def _generate(cls, start, end, periods, name, offset,
+                  tz=None, normalize=False):
+        _normalized = True
+
+        if start is not None:
+            start = Timestamp(start)
+            if not isinstance(start, Timestamp):
+                raise ValueError('Failed to convert %s to timestamp'
+                                 % start)
+
+            if normalize:
+                start = normalize_date(start)
+                _normalized = True
+            else:
+                _normalized = _normalized and start.time() == _midnight
+
+        if end is not None:
+            end = Timestamp(end)
+            if not isinstance(end, Timestamp):
+                raise ValueError('Failed to convert %s to timestamp'
+                                 % end)
+
+            if normalize:
+                end = normalize_date(end)
+                _normalized = True
+            else:
+                _normalized = _normalized and end.time() == _midnight
+
+        start, end, tz = tools._figure_out_timezone(start, end, tz)
+
+        if (offset._should_cache() and
+            not (offset._normalize_cache and not _normalized) and
+            _naive_in_cache_range(start, end)):
+            index = cls._cached_range(start, end, periods=periods,
+                                      offset=offset, name=name)
+        else:
+            index = _generate_regular_range(start, end, periods, offset)
+
+        if tz is not None:
+            # Convert local to UTC
+            ints = index.view('i8')
+            lib.tz_localize_check(ints, tz)
+            index = tz_convert(ints, tz, _utc())
+            index = index.view('M8[us]')
+
+        index = index.view(cls)
+        index.name = name
+        index.offset = offset
+        index.tz = tz
+
+        return index
 
     @classmethod
     def _simple_new(cls, values, name, offset, tz):
@@ -621,8 +638,8 @@ class DatetimeIndex(Int64Index):
         this = self
         if isinstance(other, DatetimeIndex):
             if self.tz != other.tz:
-                this = self.tz_normalize('UTC')
-                other = other.tz_normalize('UTC')
+                this = self.tz_convert('UTC')
+                other = other.tz_convert('UTC')
         return this, other
 
     def _wrap_joined_index(self, joined, other):
@@ -1029,7 +1046,7 @@ class DatetimeIndex(Int64Index):
         result.name = self.name
         return result
 
-    def tz_normalize(self, tz):
+    def tz_convert(self, tz):
         """
         Convert DatetimeIndex from one time zone to another (using pytz)
 
@@ -1040,16 +1057,10 @@ class DatetimeIndex(Int64Index):
         tz = tools._maybe_get_tz(tz)
 
         if self.tz is None:
-            new_dates = lib.tz_localize(self.asi8, tz)
-        else:
-            new_dates = lib.tz_convert(self.asi8, self.tz, tz)
+            return self.tz_localize(tz)
 
-        new_dates = new_dates.view('M8[us]')
-        new_dates = new_dates.view(type(self))
-        new_dates.offset = self.offset
-        new_dates.tz = tz
-        new_dates.name = self.name
-        return new_dates
+        # No conversion since timestamps are all UTC to begin with
+        return self._simple_new(self.values, self.name, self.offset, tz)
 
     def tz_localize(self, tz):
         """
@@ -1061,16 +1072,15 @@ class DatetimeIndex(Int64Index):
         """
         if self.tz is not None:
             raise ValueError("Already have timezone info, "
-                             "use tz_normalize to convert.")
+                             "use tz_convert to convert.")
         tz = tools._maybe_get_tz(tz)
 
-        new_dates = lib.tz_localize(self.asi8, tz)
+        lib.tz_localize_check(self.asi8, tz)
+
+        # Convert to UTC
+        new_dates = tz_convert(self.asi8, tz, _utc())
         new_dates = new_dates.view('M8[us]')
-        new_dates = new_dates.view(self.__class__)
-        new_dates.offset = self.offset
-        new_dates.tz = tz
-        new_dates.name = self.name
-        return new_dates
+        return self._simple_new(new_dates, self.name, self.offset, tz)
 
     def tz_validate(self):
         """
@@ -1095,6 +1105,65 @@ class DatetimeIndex(Int64Index):
 
         return True
 
+def tz_convert(vals, tz1, tz2):
+    n = len(vals)
+    import pytz
+    # Convert to UTC
+
+    if tz1.zone != 'UTC':
+        utc_dates = np.empty(n, dtype=np.int64)
+        deltas = _get_deltas(tz1)
+        trans = _get_transitions(tz1)
+        pos = max(trans.searchsorted(vals[0], side='right') - 1, 0)
+
+        offset = deltas[pos]
+        for i in range(n):
+            v = vals[i]
+            if v >= trans[pos + 1]:
+                pos += 1
+                offset = deltas[pos]
+            utc_dates[i] = v - offset
+    else:
+        utc_dates = vals
+
+    if tz2.zone == 'UTC':
+        return utc_dates
+
+    # Convert UTC to other timezone
+
+    result = np.empty(n, dtype=np.int64)
+    trans = _get_transitions(tz2)
+    deltas = _get_deltas(tz2)
+    pos = max(trans.searchsorted(utc_dates[0], side='right') - 1, 0)
+    offset = deltas[pos]
+    for i in range(n):
+        v = utc_dates[i]
+        if v >= trans[pos + 1]:
+            pos += 1
+            offset = deltas[pos]
+        result[i] = v + offset
+
+    return result
+
+trans_cache = {}
+utc_offset_cache = {}
+
+def _get_transitions(tz):
+    """
+    Get UTC times of DST transitions
+    """
+    if tz not in trans_cache:
+        arr = np.array(tz._utc_transition_times, dtype='M8[us]')
+        trans_cache[tz] = arr.view('i8')
+    return trans_cache[tz]
+
+def _get_deltas(tz):
+    """
+    Get UTC offsets in microseconds corresponding to DST transitions
+    """
+    if tz not in utc_offset_cache:
+        utc_offset_cache[tz] = lib._unbox_utcoffsets(tz._transition_info)
+    return utc_offset_cache[tz]
 
 def _generate_regular_range(start, end, periods, offset):
     if com._count_not_none(start, end, periods) < 2:
