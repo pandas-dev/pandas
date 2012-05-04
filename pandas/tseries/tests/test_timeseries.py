@@ -524,6 +524,20 @@ class TestTimeSeries(unittest.TestCase):
         pts = ts.to_period('M')
         self.assert_(pts.index.equals(exp.index.asfreq('M')))
 
+    def test_timestamp_fields(self):
+        # extra fields from DatetimeIndex like quarter and week
+        from pandas._tseries import Timestamp
+        idx = tm.makeDateIndex(10)
+
+        fields = ['dayofweek', 'dayofyear', 'week', 'weekofyear', 'quarter']
+        for f in fields:
+            expected = getattr(idx, f)[0]
+            result = getattr(Timestamp(idx[0]), f)
+            self.assertEqual(result, expected)
+
+        self.assertEqual(idx.freq, Timestamp(idx[0], idx.freq).freq)
+        self.assertEqual(idx.freqstr, Timestamp(idx[0], idx.freq).freqstr)
+
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)

@@ -295,6 +295,10 @@ and thus offers performance that is a good deal faster than indexing.
    timeit arr[indexer]
    timeit arr.take(indexer, axis=0)
 
+   ser = Series(arr[:, 0])
+   timeit ser.ix[indexer]
+   timeit ser.take(indexer)
+
 Duplicate Data
 ~~~~~~~~~~~~~~
 

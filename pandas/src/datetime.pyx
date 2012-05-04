@@ -108,6 +108,27 @@ class Timestamp(_Timestamp):
 
         return Period(self, freq=freq)
 
+    @property
+    def dayofweek(self):
+        return self.weekday()
+
+    @property
+    def dayofyear(self):
+        return self.day
+
+    @property
+    def week(self):
+        return self._get_field('woy')
+
+    weekofyear = week
+
+    @property
+    def quarter(self):
+        return self._get_field('q')
+
+    @property
+    def freqstr(self):
+        return getattr(self.offset, 'freqstr', self.offset)
 
 cdef inline bint is_timestamp(object o):
     return isinstance(o, Timestamp)
@@ -187,6 +208,10 @@ cdef class _Timestamp(datetime):
             return self.__add__(-other)
         else:
             return datetime.__sub__(self, other)
+
+    def _get_field(self, field):
+        out = fast_field_accessor(np.array([self.value]), field)
+        return out[0]
 
 # lightweight C object to hold datetime & int64 pair
 cdef class _TSObject:
