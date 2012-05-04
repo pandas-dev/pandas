@@ -6,9 +6,11 @@
    :suppress:
 
    import numpy as np
+   import random
    np.random.seed(123456)
    from pandas import *
    randn = np.random.randn
+   randint = np.random.randint
    np.set_printoptions(precision=4, suppress=True)
 
 ***************************
@@ -202,7 +204,7 @@ select out rows where one or more columns have values you want:
 
    df2 = DataFrame({'a' : ['one', 'one', 'two', 'three', 'two', 'one', 'six'],
                     'b' : ['x', 'y', 'y', 'x', 'y', 'x', 'x'],
-                    'c' : np.random.randn(7)})
+                    'c' : randn(7)})
    df2[df2['a'].isin(['one', 'two'])]
 
 Note, with the :ref:`advanced indexing <indexing.advanced>` ``ix`` method, you
@@ -232,7 +234,66 @@ Take Methods
 
 .. _indexing.take:
 
-TODO: Fill Me In
+Similar to numpy ndarrays, pandas Index, Series, and DataFrame also provides
+the ``take`` method that retrieves elements along a given axis at the given
+indices. The given indices must be either a list or an ndarray of integer
+index positions.
+
+.. ipython:: python
+
+   index = Index(randint(0, 1000, 10))
+   index
+
+   positions = [0, 9, 3]
+
+   index.ix[positions]
+   index.take(positions)
+
+   ser = Series(randn(10))
+   ser
+
+   ser.ix[positions]
+   ser.take(positions)
+
+For DataFrames, the given indices should be a 1d list or ndarray that specifies
+row or column positions.
+
+.. ipython:: python
+
+   df = DataFrame(randn(5, 3))
+   df
+
+   df.take([0, 2])
+
+   df.take([1, 4, 6], axis=1)
+
+Like ndarray, the ``take`` method on pandas objects are not intended
+to work on boolean indices and may return unexpected results.
+
+.. ipython:: python
+
+   arr = randn(10)
+   arr
+   arr.take([False, True])
+   arr[[0, 1]]
+
+   ser = Series(randn(10))
+   ser
+   ser.take([False, True])
+   ser.ix[[0, 1]]
+
+Finally, as a small note on performance, because the ``take`` method handles
+more a narrower range of inputs, it is more optimized internally in numpy
+and thus offers performance that is a good deal faster than indexing.
+
+.. ipython::
+
+   arr = randn(10000, 5)
+   indexer = np.arange(10000)
+   random.shuffle(indexer)
+
+   timeit arr[indexer]
+   timeit arr.take(indexer, axis=0)
 
 Duplicate Data
 ~~~~~~~~~~~~~~
