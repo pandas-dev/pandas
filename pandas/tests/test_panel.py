@@ -888,11 +888,17 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         result = self.panel.swapaxes('major', 'minor')
         self.assert_(result.major_axis is self.panel.minor_axis)
 
+        panel = self.panel.copy()
+        result = panel.swapaxes('major', 'minor')
+        panel.values[0, 0, 1] = np.nan
+        expected = panel.swapaxes('major', 'minor')
+        assert_panel_equal(result, expected)
+
         # this should also work
         result = self.panel.swapaxes(0, 1)
         self.assert_(result.items is self.panel.major_axis)
 
-        # this should also work
+        # this should not work
         self.assertRaises(Exception, self.panel.swapaxes, 'items', 'items')
 
     def test_transpose(self):
@@ -911,22 +917,14 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         result = self.panel.transpose(2, 0, 1)
         assert_panel_equal(result, expected)
 
-    def test_transpose_sparse(self):
-        spanel = self.panel.to_sparse()
-        result = spanel.transpose('minor', 'major', 'items')
-        expected = spanel.swapaxes('items', 'minor')
-        assert_panel_equal(result, expected)
-
-        result = spanel.transpose(2, 1, 0)
-        assert_panel_equal(result, expected)
-
-        result = spanel.transpose('minor', 'items', 'major')
-        expected = spanel.swapaxes('items', 'minor')
+        panel = self.panel.copy()
+        result = panel.transpose(2, 0, 1, copy=False)
+        panel.values[0, 0, 1] = np.nan
+        expected = panel.swapaxes('items', 'minor')
         expected = expected.swapaxes('major', 'minor')
         assert_panel_equal(result, expected)
 
-        result = spanel.transpose(2, 0, 1)
-        assert_panel_equal(result, expected)
+        self.assertRaises(ValueError, self.panel.transpose, 0, 0, 1)
 
     def test_to_frame(self):
         # filtered

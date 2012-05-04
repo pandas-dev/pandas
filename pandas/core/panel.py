@@ -912,7 +912,7 @@ class Panel(NDFrame):
         axis = self._get_axis_number(axis)
         return PanelGroupBy(self, function, axis=axis)
 
-    def swapaxes(self, axis1='major', axis2='minor'):
+    def swapaxes(self, axis1='major', axis2='minor', copy=True):
         """
         Interchange axes and swap values axes appropriately
 
@@ -930,11 +930,14 @@ class Panel(NDFrame):
 
         new_axes = (self._get_axis(mapping.get(k, k))
                     for k in range(3))
-        new_values = self.values.swapaxes(i, j).copy()
+        new_values = self.values.swapaxes(i, j)
+        if copy:
+            new_values = new_values.copy()
 
         return self._constructor(new_values, *new_axes)
 
-    def transpose(self, items='items', major='major', minor='minor'):
+    def transpose(self, items='items', major='major', minor='minor',
+                  copy=True):
         """
         Permute the dimensions of the Panel
 
@@ -948,7 +951,9 @@ class Panel(NDFrame):
             raise ValueError('Must specify 3 unique axes')
 
         new_axes = [self._get_axis(x) for x in [i, j, k]]
-        new_values = self.values.transpose((i, j, k)).copy()
+        new_values = self.values.transpose((i, j, k))
+        if copy:
+            new_values = new_values.copy()
         return self._constructor(new_values, *new_axes)
 
     def to_frame(self, filter_observations=True):
