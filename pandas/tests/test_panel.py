@@ -895,6 +895,39 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         # this should also work
         self.assertRaises(Exception, self.panel.swapaxes, 'items', 'items')
 
+    def test_transpose(self):
+        result = self.panel.transpose('minor', 'major', 'items')
+        expected = self.panel.swapaxes('items', 'minor')
+        assert_panel_equal(result, expected)
+
+        result = self.panel.transpose(2, 1, 0)
+        assert_panel_equal(result, expected)
+
+        result = self.panel.transpose('minor', 'items', 'major')
+        expected = self.panel.swapaxes('items', 'minor')
+        expected = expected.swapaxes('major', 'minor')
+        assert_panel_equal(result, expected)
+
+        result = self.panel.transpose(2, 0, 1)
+        assert_panel_equal(result, expected)
+
+    def test_transpose_sparse(self):
+        spanel = self.panel.to_sparse()
+        result = spanel.transpose('minor', 'major', 'items')
+        expected = spanel.swapaxes('items', 'minor')
+        assert_panel_equal(result, expected)
+
+        result = spanel.transpose(2, 1, 0)
+        assert_panel_equal(result, expected)
+
+        result = spanel.transpose('minor', 'items', 'major')
+        expected = spanel.swapaxes('items', 'minor')
+        expected = expected.swapaxes('major', 'minor')
+        assert_panel_equal(result, expected)
+
+        result = spanel.transpose(2, 0, 1)
+        assert_panel_equal(result, expected)
+
     def test_to_frame(self):
         # filtered
         filtered = self.panel.to_frame()

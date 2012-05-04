@@ -934,6 +934,23 @@ class Panel(NDFrame):
 
         return self._constructor(new_values, *new_axes)
 
+    def transpose(self, items='items', major='major', minor='minor'):
+        """
+        Permute the dimensions of the Panel
+
+        Returns
+        -------
+        y : Panel (new object)
+        """
+        i, j, k = [self._get_axis_number(x) for x in [items, major, minor]]
+
+        if i == j or i == k or j == k:
+            raise ValueError('Must specify 3 unique axes')
+
+        new_axes = [self._get_axis(x) for x in [i, j, k]]
+        new_values = self.values.transpose((i, j, k)).copy()
+        return self._constructor(new_values, *new_axes)
+
     def to_frame(self, filter_observations=True):
         """
         Transform wide format into long (stacked) format as DataFrame
