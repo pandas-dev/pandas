@@ -741,10 +741,10 @@ class SparseDataFrame(DataFrame):
                 return self._apply_broadcast(func, axis)
 
     @Appender(DataFrame.fillna.__doc__)
-    def fillna(self, value=None, method='pad', inplace=False):
+    def fillna(self, value=None, method='pad', inplace=False, limit=None):
         new_series = {}
         for k, v in self.iterkv():
-            new_series[k] = v.fillna(value=value, method=method)
+            new_series[k] = v.fillna(value=value, method=method, limit=limit)
 
         if inplace:
             self._series = new_series
