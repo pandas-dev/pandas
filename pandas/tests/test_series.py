@@ -1968,6 +1968,22 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         d = self.ts.index[0] - datetools.bday
         self.assert_(np.isnan(self.ts.asof(d)))
 
+    def test_asof_more(self):
+        from pandas import date_range
+        s = Series([nan, nan, 1, 2, nan, nan, 3, 4, 5],
+                   index=date_range('1/1/2000', periods=9))
+
+        dates = s.index[[4, 5, 6, 2, 1]]
+
+        result = s.asof(dates)
+        expected = Series([2, 2, 3, 1, np.nan], index=dates)
+
+        assert_series_equal(result, expected)
+
+        s = Series([1.5, 2.5, 1, 2, nan, nan, 3, 4, 5],
+                   index=date_range('1/1/2000', periods=9))
+        result = s.asof(s.index[0])
+        self.assertEqual(result, s[0])
 
     def test_astype_cast_nan_int(self):
         df = Series([1.0, 2.0, 3.0, np.nan])

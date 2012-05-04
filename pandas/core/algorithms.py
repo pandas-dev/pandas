@@ -140,6 +140,7 @@ def value_counts(values, sort=True, ascending=False):
 
     return result
 
+
 def rank(values, axis=0, method='average', na_option='keep',
          ascending=True):
     """

@@ -219,7 +219,7 @@ def _unbox(func):
     return f
 
 _stat_doc = """
-Return %(name)s  of values
+Return %(name)s of values
 %(na_action)s
 
 Parameters
@@ -238,7 +238,21 @@ _doc_exclude_na = "NA/null values are excluded"
 _doc_ndarray_interface = ("Extra parameters are to preserve ndarray"
                           "interface.\n")
 
-#-------------------------------------------------------------------------------
+
+def _make_stat_func(nanop, name, shortname, na_action=_doc_exclude_na,
+                    extras=_doc_ndarray_interface):
+
+    @Substitution(name=name, shortname=shortname,
+                  na_action=na_action, extras=extras)
+    @Appender(_stat_doc)
+    def f(self, axis=0, dtype=None, out=None, skipna=True, level=None):
+        if level is not None:
+            return self._agg_by_level(shortname, level=level, skipna=skipna)
+        return nanop(self.values, skipna=skipna)
+    f.__name__ = shortname
+    return f
+
+#----------------------------------------------------------------------
 # Series class
 
 class Series(np.ndarray, generic.PandasObject):
@@ -985,21 +999,10 @@ copy : boolean, default False
         """
         return len(self.value_counts())
 
-    @Substitution(name='sum', shortname='sum', na_action=_doc_exclude_na,
-                  extras=_doc_ndarray_interface)
-    @Appender(_stat_doc)
-    def sum(self, axis=0, dtype=None, out=None, skipna=True, level=None):
-        if level is not None:
-            return self._agg_by_level('sum', level=level, skipna=skipna)
-        return nanops.nansum(self.values, skipna=skipna)
-
-    @Substitution(name='mean', shortname='mean', na_action=_doc_exclude_na,
-                  extras=_doc_ndarray_interface)
-    @Appender(_stat_doc)
-    def mean(self, axis=0, dtype=None, out=None, skipna=True, level=None):
-        if level is not None:
-            return self._agg_by_level('mean', level=level, skipna=skipna)
-        return nanops.nanmean(self.values, skipna=skipna)
+    sum = _make_stat_func(nanops.nansum, 'sum', 'sum')
+    mean = _make_stat_func(nanops.nanmean, 'mean', 'mean')
+    median = _make_stat_func(nanops.nanmedian, 'median', 'median', extras='')
+    prod = _make_stat_func(nanops.nanprod, 'product', 'prod', extras='')
 
     @Substitution(name='mean absolute deviation', shortname='mad',
                   na_action=_doc_exclude_na, extras='')
@@ -1010,22 +1013,6 @@ copy : boolean, default False
 
         demeaned = self - self.mean(skipna=skipna)
         return np.abs(demeaned).mean(skipna=skipna)
-
-    @Substitution(name='median', shortname='median',
-                  na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc)
-    def median(self, skipna=True, level=None):
-        if level is not None:
-            return self._agg_by_level('median', level=level, skipna=skipna)
-        return nanops.nanmedian(self.values, skipna=skipna)
-
-    @Substitution(name='product', shortname='product',
-                  na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc)
-    def prod(self, axis=None, dtype=None, out=None, skipna=True, level=None):
-        if level is not None:
-            return self._agg_by_level('prod', level=level, skipna=skipna)
-        return nanops.nanprod(self.values, skipna=skipna)
 
     @Substitution(name='minimum', shortname='min',
                   na_action=_doc_exclude_na, extras='')
@@ -2278,7 +2265,7 @@ copy : boolean, default False
             return Series(self, index=self.index.shift(periods, offset),
                           name=self.name)
 
-    def asof(self, date):
+    def asof(self, where):
         """
         Return last good (non-NaN) value in TimeSeries if value is NaN for
         requested date.
@@ -2287,7 +2274,7 @@ copy : boolean, default False
 
         Parameters
         ----------
-        date : datetime or similar value
+        wehre : date or array of dates
 
         Notes
         -----
@@ -2297,46 +2284,27 @@ copy : boolean, default False
         -------
         value or NaN
         """
-        if isinstance(date, basestring):
-            date = datetools.to_datetime(date)
+        if isinstance(where, basestring):
+            where = datetools.to_datetime(where)
 
-        if not isinstance(date, (list, tuple, np.ndarray, Index)):
-            # treat scalar values differently
-            v = self.get(date)
-            if isnull(v):
-                candidates = self.index[notnull(self)]
-                index = candidates.searchsorted(lib.Timestamp(date))
-                if index > 0:
-                    asOfDate = candidates[index - 1]
-                    return self.get(asOfDate)
-                return nan
-            return v
+        values = self.values
 
-        if not isinstance(date, Index):
-            date = Index(date)
+        if not hasattr(where, '__iter__'):
+            if where < self.index[0]:
+                return np.nan
+            loc = self.index.searchsorted(where, side='right')
+            if loc > 0:
+                loc -= 1
+            while isnull(values[loc]) and loc > 0:
+                loc -= 1
+            return values[loc]
 
-        candidates = self.index[notnull(self)]
+        if not isinstance(where, Index):
+            where = Index(where)
 
-        mask = date.isin(candidates)
-
-        there = self[date[mask]]
-        todo = date[-mask]
-
-        if len(there) == len(date):
-            if len(there) == 1:
-                return there[0]
-            return there
-
-        index = candidates.searchsorted(todo)
-        index = index - 1
-        asof_mask = index >= 0
-        asof = self.ix[candidates[index[asof_mask]]]
-        asof.index = todo[asof_mask]
-
-        if len(date) == 1 and len(asof) > 0:
-            return asof[0]
-
-        return there.combine_first(asof).reindex(date)
+        locs = self.index.asof_locs(where, notnull(values))
+        new_values = com.take_1d(values, locs)
+        return Series(new_values, index=where, name=self.name)
 
     def interpolate(self, method='linear'):
         """

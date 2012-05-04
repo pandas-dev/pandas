@@ -11,7 +11,6 @@ from pandas.util.decorators import cache_readonly
 from pandas.util import py3compat
 import pandas.core.common as com
 import pandas._tseries as lib
-import pandas._engines as _gin
 
 
 __all__ = ['Index']
@@ -65,7 +64,7 @@ class Index(np.ndarray):
     name = None
     asi8 = None
 
-    _engine_type = _gin.ObjectEngine
+    _engine_type = lib.ObjectEngine
 
     def __new__(cls, data, dtype=None, copy=False, name=None):
         if isinstance(data, np.ndarray):
@@ -385,6 +384,20 @@ class Index(np.ndarray):
 
         return label
 
+    def asof_locs(self, where, mask):
+        """
+
+        """
+        locs = self.values[mask].searchsorted(where.values, side='right')
+        locs = np.where(locs > 0, locs - 1, 0)
+
+        result = np.arange(len(self))[mask].take(locs)
+
+        first = mask.argmax()
+        result[(locs == 0) & (where < self.values[first])] = -1
+
+        return result
+
     def order(self, return_indexer=False, ascending=True):
         """
         Return sorted copy of Index
@@ -611,7 +624,7 @@ class Index(np.ndarray):
                 raise
 
             try:
-                return _gin.get_value_at(series, key)
+                return lib.get_value_at(series, key)
             except IndexError:
                 raise
             except TypeError:
@@ -1053,7 +1066,7 @@ class Int64Index(Index):
     _inner_indexer = lib.inner_join_indexer_int64
     _outer_indexer = lib.outer_join_indexer_int64
 
-    _engine_type = _gin.Int64Engine
+    _engine_type = lib.Int64Engine
 
     def __new__(cls, data, dtype=None, copy=False, name=None):
         if not isinstance(data, np.ndarray):
@@ -1283,7 +1296,7 @@ class MultiIndex(Index):
                 pass
 
             try:
-                return _gin.get_value_at(series, key)
+                return lib.get_value_at(series, key)
             except IndexError:
                 raise
             except TypeError:
@@ -2340,3 +2353,4 @@ def _maybe_box_dtindex(idx):
     if isinstance(idx, DatetimeIndex):
         return Index(_dt_box_array(idx.asi8), dtype='object')
     return idx
+

@@ -12,7 +12,6 @@ import pandas.core.common as com
 import pandas.tseries.offsets as offsets
 import pandas.tseries.tools as tools
 
-from pandas._engines import DatetimeEngine
 from pandas._tseries import Timestamp
 import pandas._tseries as lib
 
@@ -156,7 +155,7 @@ class DatetimeIndex(Int64Index):
     # structured array cache for datetime fields
     _sarr_cache = None
 
-    _engine_type = DatetimeEngine
+    _engine_type = lib.DatetimeEngine
 
     offset = None
 

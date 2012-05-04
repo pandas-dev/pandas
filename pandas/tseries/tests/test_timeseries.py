@@ -64,7 +64,6 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
         ts = self.dups
 
         uniques = ts.index.unique()
-
         for date in uniques:
             result = ts[date]
 

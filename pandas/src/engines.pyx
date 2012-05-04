@@ -1,7 +1,5 @@
 from numpy cimport ndarray
 
-
-
 from numpy cimport float64_t, int32_t, int64_t, uint8_t
 cimport cython
 
@@ -14,9 +12,9 @@ cimport util
 
 import numpy as np
 
-import _tseries
+# import _tseries
 
-include "hashtable.pyx"
+# include "hashtable.pyx"
 
 cdef extern from "datetime.h":
     bint PyDateTime_Check(object o)
@@ -26,8 +24,9 @@ PyDateTime_IMPORT
 
 cdef extern from "Python.h":
     int PySlice_Check(object)
-    int PyList_Check(object)
-    int PyTuple_Check(object)
+
+#     int PyList_Check(object)
+#     int PyTuple_Check(object)
 
 cdef inline is_definitely_invalid_key(object val):
     if PyTuple_Check(val):
@@ -244,14 +243,14 @@ cdef class Int64Engine(IndexEngine):
         return Int64HashTable(n)
 
     def _call_monotonic(self, values):
-        return _tseries.is_monotonic_int64(values)
+        return is_monotonic_int64(values)
 
     def get_pad_indexer(self, other, limit=None):
-        return _tseries.pad_int64(self._get_index_values(), other,
+        return pad_int64(self._get_index_values(), other,
                                   limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
-        return _tseries.backfill_int64(self._get_index_values(), other,
+        return backfill_int64(self._get_index_values(), other,
                                        limit=limit)
 
     cdef _get_bool_indexer(self, object val):
@@ -293,26 +292,26 @@ cdef class Float64Engine(IndexEngine):
         return Float64HashTable(n)
 
     def _call_monotonic(self, values):
-        return _tseries.is_monotonic_float64(values)
+        return is_monotonic_float64(values)
 
     def get_pad_indexer(self, other, limit=None):
-        return _tseries.pad_float64(self._get_index_values(), other,
+        return pad_float64(self._get_index_values(), other,
                                     limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
-        return _tseries.backfill_float64(self._get_index_values(), other,
+        return backfill_float64(self._get_index_values(), other,
                                          limit=limit)
 
 _pad_functions = {
-    'object' : _tseries.pad_object,
-    'int64' : _tseries.pad_int64,
-    'float64' : _tseries.pad_float64
+    'object' : pad_object,
+    'int64' : pad_int64,
+    'float64' : pad_float64
 }
 
 _backfill_functions = {
-    'object': _tseries.backfill_object,
-    'int64': _tseries.backfill_int64,
-    'float64': _tseries.backfill_float64
+    'object': backfill_object,
+    'int64': backfill_int64,
+    'float64': backfill_float64
 }
 
 cdef class ObjectEngine(IndexEngine):
@@ -323,14 +322,14 @@ cdef class ObjectEngine(IndexEngine):
         return PyObjectHashTable(n)
 
     def _call_monotonic(self, values):
-        return _tseries.is_monotonic_object(values)
+        return is_monotonic_object(values)
 
     def get_pad_indexer(self, other, limit=None):
-        return _tseries.pad_object(self._get_index_values(), other,
+        return pad_object(self._get_index_values(), other,
                                    limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
-        return _tseries.backfill_object(self._get_index_values(), other,
+        return backfill_object(self._get_index_values(), other,
                                         limit=limit)
 
 
@@ -354,23 +353,36 @@ cdef class DatetimeEngine(Int64Engine):
         return self.index_weakref().values.view('i8')
 
     def _call_monotonic(self, values):
-        return _tseries.is_monotonic_int64(values)
+        return is_monotonic_int64(values)
 
     cpdef get_loc(self, object val):
         if is_definitely_invalid_key(val):
             raise TypeError
 
-        if util.is_datetime64_object(val):
-            val = val.view('i8')
-        elif PyDateTime_Check(val):
-            val = np.datetime64(val)
-            val = val.view('i8')
+        # Welcome to the spaghetti factory
 
         self._ensure_mapping_populated()
         if not self.unique:
+            if util.is_datetime64_object(val):
+                val = val.view('i8')
+            elif PyDateTime_Check(val):
+                val = np.datetime64(val)
+                val = val.view('i8')
             return self._get_loc_duplicates(val)
 
         try:
+            return self.mapping.get_item(val.value)
+        except KeyError:
+            raise KeyError(val)
+        except AttributeError:
+            pass
+
+        try:
+            if util.is_datetime64_object(val):
+                val = val.view('i8')
+            elif PyDateTime_Check(val):
+                val = np.datetime64(val)
+                val = val.view('i8')
             return self.mapping.get_item(val)
         except TypeError:
             self._date_check_type(val)
@@ -392,14 +404,14 @@ cdef class DatetimeEngine(Int64Engine):
         if other.dtype != 'M8':
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
-        return _tseries.pad_int64(self._get_index_values(), other,
+        return pad_int64(self._get_index_values(), other,
                                   limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
         if other.dtype != 'M8':
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
-        return _tseries.backfill_int64(self._get_index_values(), other,
+        return backfill_int64(self._get_index_values(), other,
                                        limit=limit)
 
 
