@@ -2152,6 +2152,8 @@ class DataFrame(NDFrame):
         -------
         taken : DataFrame
         """
+        if isinstance(indices, list):
+            indices = np.array(indices)
         if self._data.is_mixed_dtype():
             if axis == 0:
                 new_data = self._data.take(indices, axis=1)
