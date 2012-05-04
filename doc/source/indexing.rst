@@ -246,11 +246,10 @@ index positions.
 
    positions = [0, 9, 3]
 
-   index.ix[positions]
+   index[positions]
    index.take(positions)
 
    ser = Series(randn(10))
-   ser
 
    ser.ix[positions]
    ser.take(positions)
@@ -260,31 +259,28 @@ row or column positions.
 
 .. ipython:: python
 
-   df = DataFrame(randn(5, 3))
-   df
+   frm = DataFrame(randn(5, 3))
 
-   df.take([0, 2])
+   frm.take([1, 4, 3])
 
-   df.take([1, 4, 6], axis=1)
+   frm.take([0, 2], axis=1)
 
-Like ndarray, the ``take`` method on pandas objects are not intended
-to work on boolean indices and may return unexpected results.
+It is important to note that the ``take`` method on pandas objects are not
+intended to work on boolean indices and may return unexpected results.
 
 .. ipython:: python
 
    arr = randn(10)
-   arr
-   arr.take([False, True])
+   arr.take([False, False, True, True])
    arr[[0, 1]]
 
    ser = Series(randn(10))
-   ser
-   ser.take([False, True])
+   ser.take([False, False, True, True])
    ser.ix[[0, 1]]
 
 Finally, as a small note on performance, because the ``take`` method handles
-more a narrower range of inputs, it is more optimized internally in numpy
-and thus offers performance that is a good deal faster than indexing.
+a narrower range of inputs, it can offer performance that is a good deal
+faster than fancy indexing.
 
 .. ipython::
 

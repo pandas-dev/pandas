@@ -9,6 +9,8 @@
    from pandas import *
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
+   import matplotlib.pyplot as plt
+   plt.close('all')
 
 *****************************
 Group By: split-apply-combine
@@ -283,14 +285,6 @@ the ``aggregate`` or equivalently ``agg`` method:
    grouped = df.groupby(['A', 'B'])
    grouped.aggregate(np.sum)
 
-Another simple example is to compute the size of each group. This is included
-in GroupBy as the ``size`` method. It returns a Series whose index are the
-group names and whose values are the sizes of each group.
-
-.. ipython:: python
-
-   grouped.size()
-
 As you can see, the result of the aggregation will have the group names as the
 new index along the grouped axis. In the case of multiple keys, the result is a
 :ref:`MultiIndex <indexing.hierarchical>` by default, though this can be
@@ -309,6 +303,14 @@ same result as the column names are stored in the resulting ``MultiIndex``:
 .. ipython:: python
 
    df.groupby(['A', 'B']).sum().reset_index()
+
+Another simple aggregation example is to compute the size of each group.
+This is included in GroupBy as the ``size`` method. It returns a Series whose
+index are the group names and whose values are the sizes of each group.
+
+.. ipython:: python
+
+   grouped.size()
 
 
 .. _groupby.aggregate.multifunc:
@@ -385,28 +387,85 @@ Transformation
 The ``transform`` method returns an object that is indexed the same (same size)
 as the one being grouped. Thus, the passed transform function should return a
 result that is the same size as the group chunk. For example, suppose we wished
-to standardize a data set within a group:
+to standardize the data within each group:
 
 .. ipython:: python
 
-   tsdf = DataFrame(randn(1000, 3),
-                    index=DateRange('1/1/2000', periods=1000),
-                    columns=['A', 'B', 'C'])
-   tsdf
+   index = date_range('10/1/1999', periods=1100)
+   ts = Series(np.random.normal(0.5, 2, 1100), index)
+   ts = rolling_mean(ts, 100, 100).dropna()
 
+   ts.head()
+   ts.tail()
+   key = lambda x: x.year
    zscore = lambda x: (x - x.mean()) / x.std()
-   transformed = tsdf.groupby(lambda x: x.year).transform(zscore)
+   transformed = ts.groupby(key).transform(zscore)
 
 We would expect the result to now have mean 0 and standard deviation 1 within
 each group, which we can easily check:
 
 .. ipython:: python
 
-   grouped = transformed.groupby(lambda x: x.year)
-
-   # OK, close enough to zero
+   # Original Data
+   grouped = ts.groupby(key)
    grouped.mean()
    grouped.std()
+
+   # Transformed Data
+   grouped_trans = transformed.groupby(key)
+   grouped_trans.mean()
+   grouped_trans.std()
+
+We can also visually compare the original and transformed data sets.
+
+.. ipython:: python
+
+   compare = DataFrame({'Original': ts, 'Transformed': transformed})
+
+   @savefig groupby_transform_plot.png width=4in
+   compare.plot()
+
+Another common data transform is to replace missing data with the group mean.
+
+.. ipython:: python
+   :suppress:
+
+   cols = ['A', 'B', 'C']
+   values = randn(1000, 3)
+   values[np.random.randint(0, 1000, 100), 0] = np.nan
+   values[np.random.randint(0, 1000, 50), 1] = np.nan
+   values[np.random.randint(0, 1000, 200), 2] = np.nan
+   data_df = DataFrame(values, columns=cols)
+
+.. ipython:: python
+
+   data_df
+
+   countries = np.array(['US', 'UK', 'GR', 'JP'])
+   key = countries[np.random.randint(0, 4, 1000)]
+
+   grouped = data_df.groupby(key)
+
+   # Non-NA count in each group
+   grouped.count()
+
+   f = lambda x: x.fillna(x.mean())
+
+   transformed = grouped.transform(f)
+
+We can verify that the group means have not changed in the transformed data
+and that the transformed data contains no NAs.
+
+.. ipython:: python
+
+   grouped_trans = transformed.groupby(key)
+
+   grouped.mean() # original group means
+   grouped_trans.mean() # transformation did not change group means
+
+   grouped.count() # original has some missing data points
+   grouped_trans.count() # counts after transformation
+   grouped_trans.size() # Verify non-NA count equals group size
 
 .. _groupby.dispatch:
 
@@ -439,6 +498,9 @@ next). This enables some operations to be carried out rather succinctly:
 
 .. ipython:: python
 
+   tsdf = DataFrame(randn(1000, 3),
+                    index=DateRange('1/1/2000', periods=1000),
+                    columns=['A', 'B', 'C'])
    tsdf.ix[::2] = np.nan
    grouped = tsdf.groupby(lambda x: x.year)
    grouped.fillna(method='pad')
