@@ -119,7 +119,10 @@ def assert_dict_equal(a, b, compare_keys=True):
 
 def assert_series_equal(left, right, check_dtype=True,
                         check_index_type=False,
-                        check_index_freq=False):
+                        check_index_freq=False,
+                        check_series_type=False):
+    if check_series_type:
+        assert(type(left) == type(right))
     assert_almost_equal(left.values, right.values)
     if check_dtype:
         assert(left.dtype == right.dtype)
@@ -133,7 +136,10 @@ def assert_series_equal(left, right, check_dtype=True,
                getattr(right, 'freqstr', None))
 
 def assert_frame_equal(left, right, check_index_type=False,
-                       check_column_type=False):
+                       check_column_type=False,
+                       check_frame_type=False):
+    if check_frame_type:
+        assert(type(left) == type(right))
     assert(isinstance(left, DataFrame))
     assert(isinstance(right, DataFrame))
     for col, series in left.iterkv():
@@ -152,7 +158,10 @@ def assert_frame_equal(left, right, check_index_type=False,
         assert(left.columns.dtype == right.columns.dtype)
         assert(left.columns.inferred_type == right.columns.inferred_type)
 
-def assert_panel_equal(left, right):
+def assert_panel_equal(left, right, check_panel_type=False):
+    if check_panel_type:
+        assert(type(left) == type(right))
+
     assert(left.items.equals(right.items))
     assert(left.major_axis.equals(right.major_axis))
     assert(left.minor_axis.equals(right.minor_axis))

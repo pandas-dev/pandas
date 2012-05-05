@@ -24,7 +24,7 @@ from distutils.version import LooseVersion
 _default_compressor = LooseVersion(tables.__version__) >= '2.2' \
                       and 'blosc' or 'zlib'
 
-class TesttHDFStore(unittest.TestCase):
+class TestHDFStore(unittest.TestCase):
     path = '__test__.h5'
     scratchpath = '__scratch__.h5'
 
@@ -200,6 +200,53 @@ class TesttHDFStore(unittest.TestCase):
 
         ts = tm.makeTimeSeries()
         self._check_roundtrip(ts, tm.assert_series_equal)
+
+    def test_sparse_series(self):
+        s = tm.makeStringSeries()
+        s[3:5] = np.nan
+        ss = s.to_sparse()
+        self._check_roundtrip(ss, tm.assert_series_equal,
+                              check_series_type=True)
+
+        ss2 = s.to_sparse(kind='integer')
+        self._check_roundtrip(ss2, tm.assert_series_equal,
+                              check_series_type=True)
+
+        ss3 = s.to_sparse(fill_value=0)
+        self._check_roundtrip(ss3, tm.assert_series_equal,
+                              check_series_type=True)
+
+    def test_sparse_frame(self):
+        s = tm.makeDataFrame()
+        s.ix[3:5, 1:3] = np.nan
+        s.ix[8:10, -2] = np.nan
+        ss = s.to_sparse()
+        self._check_roundtrip(ss, tm.assert_frame_equal,
+                              check_frame_type=True)
+
+        ss2 = s.to_sparse(kind='integer')
+        self._check_roundtrip(ss2, tm.assert_frame_equal,
+                              check_frame_type=True)
+
+        ss3 = s.to_sparse(fill_value=0)
+        self._check_roundtrip(ss3, tm.assert_frame_equal,
+                              check_frame_type=True)
+
+    def test_sparse_panel(self):
+        items = ['x', 'y', 'z']
+        p = Panel({i : tm.makeDataFrame() for i in items})
+        sp = p.to_sparse()
+
+        self._check_roundtrip(sp, tm.assert_panel_equal,
+                              check_panel_type=True)
+
+        sp2 = p.to_sparse(kind='integer')
+        self._check_roundtrip(sp2, tm.assert_panel_equal,
+                              check_panel_type=True)
+
+        sp3 = p.to_sparse(fill_value=0)
+        self._check_roundtrip(sp3, tm.assert_panel_equal,
+                              check_panel_type=True)
 
     def test_float_index(self):
         # GH #454
@@ -486,7 +533,7 @@ class TesttHDFStore(unittest.TestCase):
         result = self.store.select('frame', [crit])
         tm.assert_frame_equal(result, df.ix[:, df.columns[:75]])
 
-    def _check_roundtrip(self, obj, comparator, compression=False):
+    def _check_roundtrip(self, obj, comparator, compression=False, **kwargs):
         options = {}
         if compression:
             options['complib'] = _default_compressor
@@ -495,7 +542,7 @@ class TesttHDFStore(unittest.TestCase):
         try:
             store['obj'] = obj
             retrieved = store['obj']
-            comparator(retrieved, obj)
+            comparator(retrieved, obj, **kwargs)
         finally:
             store.close()
             os.remove(self.scratchpath)
