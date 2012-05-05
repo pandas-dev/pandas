@@ -615,6 +615,12 @@ class TestHDFStore(unittest.TestCase):
         self.assertEquals(type(result.index), type(df.index))
         self.assertEquals(result.index.freq, df.index.freq)
 
+    def test_unicode_index(self):
+        unicode_values = [u'\u03c3', u'\u03c3\u03c3']
+
+        s = Series(np.random.randn(len(unicode_values)), unicode_values)
+        self._check_roundtrip(s, tm.assert_series_equal)
+
 
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))

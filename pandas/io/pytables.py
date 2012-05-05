@@ -923,9 +923,13 @@ def _convert_index(index):
                             dtype=np.int32)
         return converted, 'date', _tables().Time32Col()
     elif inferred_type =='string':
-        converted = np.array(list(values), dtype=np.str_)
-        itemsize = converted.dtype.itemsize
-        return converted, 'string', _tables().StringCol(itemsize)
+        try:
+            converted = np.array(list(values), dtype=np.str_)
+            itemsize = converted.dtype.itemsize
+            return converted, 'string', _tables().StringCol(itemsize)
+        except UnicodeError: # Write an all unicode index as object array
+            atom = _tables().ObjectAtom()
+            return np.asarray(values, dtype='O'), 'object', atom
     elif inferred_type == 'integer':
         # take a guess for now, hope the values fit
         atom = _tables().Int64Col()
