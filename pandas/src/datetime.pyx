@@ -1212,7 +1212,7 @@ cdef inline int64_t ts_dayofweek(_TSObject ts):
 # Period logic
 #----------------------------------------------------------------------
 
-cdef int64_t apply_mult(int64_t period_ord, int64_t mult):
+cdef inline int64_t apply_mult(int64_t period_ord, int64_t mult):
     """
     Get base+multiple ordinal value from corresponding base-only ordinal value.
     For example, 5min ordinal will be 1/5th the 1min ordinal (rounding down to
@@ -1223,7 +1223,7 @@ cdef int64_t apply_mult(int64_t period_ord, int64_t mult):
 
     return (period_ord - 1) // mult
 
-cdef int64_t remove_mult(int64_t period_ord_w_mult, int64_t mult):
+cdef inline int64_t remove_mult(int64_t period_ord_w_mult, int64_t mult):
     """
     Get base-only ordinal value from corresponding base+multiple ordinal.
     """
@@ -1271,8 +1271,11 @@ def periodarr_to_dt64arr(ndarray[int64_t] periodarr, int base, int64_t mult):
 
     return out
 
+cdef char START = 'S'
+cdef char END = 'E'
+
 cpdef int64_t period_asfreq(int64_t period_ordinal, int base1, int64_t mult1,
-                           int base2, int64_t mult2, object relation=b'E'):
+                            int base2, int64_t mult2, bint end):
     """
     Convert period ordinal from one frequency to another, and if upsampling,
     choose to use start ('S') or end ('E') of period.
@@ -1280,37 +1283,35 @@ cpdef int64_t period_asfreq(int64_t period_ordinal, int base1, int64_t mult1,
     cdef:
         int64_t retval
 
-    if relation not in (b'S', b'E'):
-        raise ValueError('relation argument must be one of S or E')
-
     period_ordinal = remove_mult(period_ordinal, mult1)
 
-    if mult1 != 1 and relation == b'E':
+    if mult1 != 1 and end:
         period_ordinal += (mult1 - 1)
 
-    retval = asfreq(period_ordinal, base1, base2, (<char*>relation)[0])
+    if end:
+        retval = asfreq(period_ordinal, base1, base2, END)
+    else:
+        retval = asfreq(period_ordinal, base1, base2, START)
     retval = apply_mult(retval, mult2)
 
     return retval
 
-def period_asfreq_arr(ndarray[int64_t] arr, int base1, int64_t mult1, int base2,
-                        int64_t mult2, object relation=b'E'):
+def period_asfreq_arr(ndarray[int64_t] arr, int base1, int64_t mult1,
+                      int base2, int64_t mult2, bint end):
     """
-    Convert int64-array of period ordinals from one frequency to another, and if
-    upsampling, choose to use start ('S') or end ('E') of period.
+    Convert int64-array of period ordinals from one frequency to another, and
+    if upsampling, choose to use start ('S') or end ('E') of period.
     """
     cdef:
         ndarray[int64_t] new_arr
         Py_ssize_t i, sz
 
-    if relation not in (b'S', b'E'):
-        raise ValueError('relation argument must be one of S or E')
-
     sz = len(arr)
     new_arr = np.empty(sz, dtype=np.int64)
 
     for i in range(sz):
-        new_arr[i] = period_asfreq(arr[i], base1, mult1, base2, mult2, relation)
+        new_arr[i] = period_asfreq(arr[i], base1, mult1,
+                                   base2, mult2, end)
 
     return new_arr
 

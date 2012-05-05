@@ -213,8 +213,12 @@ class Period(object):
         base1, mult1 = _gfc(self.freq)
         base2, mult2 = _gfc(freq)
 
+        if how not in ('S', 'E'):
+            raise ValueError('relation argument must be one of S or E')
+
+        end = how == 'E'
         new_ordinal = lib.period_asfreq(self.ordinal, base1, mult1,
-                                        base2, mult2, py3compat.str_to_bytes(how))
+                                        base2, mult2, end)
 
         return Period(ordinal=new_ordinal, freq=(base2, mult2))
 
@@ -556,9 +560,8 @@ class PeriodIndex(Int64Index):
                 else:
                     base1, mult1 = _gfc(data.freq)
                     base2, mult2 = _gfc(freq)
-                    how = py3compat.str_to_bytes('E')
                     data = lib.period_asfreq_arr(data.values, base1, mult1,
-                                                 base2, mult2, how)
+                                                 base2, mult2, 1)
             else:
                 if freq is None and len(data) > 0:
                     freq = getattr(data[0], 'freq')
@@ -611,9 +614,12 @@ class PeriodIndex(Int64Index):
         else:
             base2, mult2 = freq
 
+        if how not in ('S', 'E'):
+            raise ValueError('relation argument must be one of S or E')
+
+        end = how == 'E'
         new_data = lib.period_asfreq_arr(self.values, base1, mult1,
-                                         base2, mult2,
-                                         py3compat.str_to_bytes(how))
+                                         base2, mult2, end)
 
         return PeriodIndex(new_data, freq=freq)
 

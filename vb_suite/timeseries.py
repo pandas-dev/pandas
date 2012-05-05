@@ -93,3 +93,24 @@ rng = date_range('1/1/2000', '3/1/2000', tz='US/Eastern')
 
 timeseries_timestamp_tzinfo_cons = \
     Benchmark('rng[0]', setup, start_date=datetime(2012, 5, 5))
+
+#----------------------------------------------------------------------
+# Resampling period
+
+setup = common_setup + """
+rng = period_range('1/1/2000', '1/1/2001', freq='T')
+ts = Series(np.random.randn(len(rng)), index=rng)
+"""
+
+timeseries_period_resample_mean = \
+    Benchmark("ts.resample('D', how='mean')", setup,
+              start_date=datetime(2012, 4, 25))
+
+setup = common_setup + """
+rng = date_range('1/1/2000', '1/1/2001', freq='T')
+ts = Series(np.random.randn(len(rng)), index=rng)
+"""
+
+timeseries_timestamp_resample_mean = \
+    Benchmark("ts.resample('D', how='mean')", setup,
+              start_date=datetime(2012, 4, 25))
