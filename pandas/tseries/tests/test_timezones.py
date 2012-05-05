@@ -119,13 +119,29 @@ class TestTimeZoneSupport(unittest.TestCase):
         self.assert_('EDT' in repr(rng_eastern[0].tzinfo))
 
     def test_timestamp_tz_convert(self):
-        pass
+        strdates = ['1/1/2012', '3/1/2012', '4/1/2012']
+        idx = DatetimeIndex(strdates, tz='US/Eastern')
+
+        conv = idx[0].tz_convert('US/Pacific')
+        expected = idx.tz_convert('US/Pacific')[0]
+
+        self.assertEquals(conv, expected)
 
     def test_pass_dates_convert_to_utc(self):
-        pass
+        strdates = ['1/1/2012', '3/1/2012', '4/1/2012']
+
+        idx = DatetimeIndex(strdates)
+        conv = idx.tz_convert('US/Eastern')
+
+        fromdates = DatetimeIndex(strdates, tz='US/Eastern')
+
+        self.assert_(conv.tz == fromdates.tz)
+        self.assert_(np.array_equal(conv.values, fromdates.values))
 
     def test_field_access_localize(self):
-        pass
+        strdates = ['1/1/2012', '3/1/2012', '4/1/2012']
+        rng = DatetimeIndex(strdates, tz='US/Eastern')
+        self.assert_((rng.hour == 0).all())
 
     def test_with_tz(self):
         tz = pytz.timezone('US/Central')

@@ -30,7 +30,12 @@ def _as_i8(arg):
 
 def _field_accessor(name, field):
     def f(self):
-        return lib.fast_field_accessor(self.asi8, field)
+        values = self.asi8
+        if self.tz is not None:
+            utc = _utc()
+            if self.tz is not utc:
+                values = lib.tz_convert(values, utc, self.tz)
+        return lib.fast_field_accessor(values, field)
     f.__name__ = name
     return property(f)
 
@@ -236,6 +241,14 @@ class DatetimeIndex(Int64Index):
             subarr = np.array(data, dtype='M8[us]', copy=copy)
         else:
             subarr = np.array(data, dtype='M8[us]', copy=copy)
+
+        if tz is not None:
+            tz = tools._maybe_get_tz(tz)
+            # Convert local to UTC
+            ints = subarr.view('i8')
+            lib.tz_localize_check(ints, tz)
+            subarr = lib.tz_convert(ints, tz, _utc())
+            subarr = subarr.view('M8[us]')
 
         subarr = subarr.view(cls)
         subarr.name = name

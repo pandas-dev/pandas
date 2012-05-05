@@ -125,6 +125,14 @@ class Timestamp(_Timestamp):
     def freqstr(self):
         return getattr(self.offset, 'freqstr', self.offset)
 
+    def tz_convert(self, tz):
+        if isinstance(tz, basestring):
+            import pytz
+            tz = pytz.timezone(tz)
+
+        conv = tz.normalize(self)
+        return Timestamp(conv)
+
 cdef inline bint is_timestamp(object o):
     return isinstance(o, Timestamp)
 
@@ -232,6 +240,7 @@ cpdef convert_to_tsobject(object ts, object tz=None):
     """
     cdef:
         _TSObject obj
+        bint utc_convert = 1
 
     obj = _TSObject()
 
@@ -246,8 +255,8 @@ cpdef convert_to_tsobject(object ts, object tz=None):
         obj.value = PyArray_DatetimeStructToDatetime(NPY_FR_us, &obj.dts)
     elif PyDateTime_Check(ts):
         obj.value = _pydatetime_to_dts(ts, &obj.dts)
-        if tz is None:
-            tz = ts.tzinfo
+        obj.tzinfo = ts.tzinfo
+        utc_convert = 0
     elif PyDate_Check(ts):
         obj.value  = _date_to_datetime64(ts, &obj.dts)
     else:
@@ -265,8 +274,11 @@ cpdef convert_to_tsobject(object ts, object tz=None):
             inf = tz._transition_info[pos]
 
             obj.value = obj.value + deltas[pos]
-            PyArray_DatetimeToDatetimeStruct(obj.value, NPY_FR_us, &obj.dts)
-            obj.tzinfo = tz._tzinfos[inf]
+
+            if utc_convert:
+                PyArray_DatetimeToDatetimeStruct(obj.value, NPY_FR_us,
+                                                 &obj.dts)
+                obj.tzinfo = tz._tzinfos[inf]
 
     return obj
 
@@ -842,6 +854,43 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
         result[i] = v + offset
 
     return result
+
+def tz_convert_single(int64_t val, object tz1, object tz2):
+    cdef:
+        ndarray[int64_t] trans, deltas
+        Py_ssize_t pos
+        int64_t v, offset, utc_date
+
+
+    if not have_pytz:
+        import pytz
+
+    # Convert to UTC
+
+    if tz1.zone != 'UTC':
+        deltas = _get_deltas(tz1)
+        trans = _get_transitions(tz1)
+        pos = trans.searchsorted(val) - 1
+        if pos < 0:
+            raise ValueError('First time before start of DST info')
+        offset = deltas[pos]
+        utc_date = val - offset
+    else:
+        utc_date = val
+
+    if tz2.zone == 'UTC':
+        return utc_date
+
+    # Convert UTC to other timezone
+    trans = _get_transitions(tz2)
+    deltas = _get_deltas(tz2)
+    pos = trans.searchsorted(utc_date) - 1
+    if pos < 0:
+        raise ValueError('First time before start of DST info')
+
+    offset = deltas[pos]
+    return utc_date + offset
+
 
 trans_cache = {}
 utc_offset_cache = {}
