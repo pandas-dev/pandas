@@ -901,6 +901,9 @@ def is_superperiod(source, target):
     target = target.upper()
     source = source.upper()
     if _is_annual(source):
+        if _is_annual(target):
+            return _get_rule_month(source) == _get_rule_month(target)
+
         if _is_quarterly(target):
             smonth = _get_rule_month(source)
             tmonth = _get_rule_month(target)

@@ -6,7 +6,7 @@ from pandas import Series, TimeSeries, DataFrame, isnull, notnull
 
 from pandas.tseries.index import date_range
 from pandas.tseries.offsets import Minute, bday
-from pandas.tseries.period import period_range
+from pandas.tseries.period import period_range, PeriodIndex
 from pandas.tseries.resample import DatetimeIndex, TimeGrouper
 import pandas.tseries.offsets as offsets
 
@@ -434,6 +434,25 @@ class TestResamplePeriodIndex(unittest.TestCase):
             expected = expected.resample('Q-MAR', fill_method='ffill')
             assert_series_equal(result, expected.to_period('Q-MAR'))
 
+    def test_resample_fill_missing(self):
+        rng = PeriodIndex([2000, 2005, 2007, 2009], freq='A')
+
+        s = TimeSeries(np.random.randn(4), index=rng)
+
+        stamps = s.to_timestamp()
+
+        filled = s.resample('A')
+        expected = stamps.resample('A').to_period('A')
+        assert_series_equal(filled, expected)
+
+        filled = s.resample('A', fill_method='ffill')
+        expected = stamps.resample('A', fill_method='ffill').to_period('A')
+        assert_series_equal(filled, expected)
+
+    def test_cant_fill_missing_dups(self):
+        rng = PeriodIndex([2000, 2005, 2005, 2007, 2007], freq='A')
+        s = TimeSeries(np.random.randn(5), index=rng)
+        self.assertRaises(Exception, s.resample, 'A')
 
 class TestTimeGrouper(unittest.TestCase):
 
