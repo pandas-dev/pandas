@@ -159,8 +159,6 @@ class DatetimeIndex(Int64Index):
     __le__ = _dt_index_cmp('__le__')
     __ge__ = _dt_index_cmp('__ge__')
 
-    __sub__ = _dt_index_op('__sub__')
-
     # structured array cache for datetime fields
     _sarr_cache = None
 
@@ -460,8 +458,20 @@ class DatetimeIndex(Int64Index):
             return self.union(other)
         elif isinstance(other, (DateOffset, timedelta)):
             return self._add_delta(other)
+        elif com.is_integer(other):
+            return self.shift(other)
         else:
             return Index(self.view(np.ndarray) + other)
+
+    def __sub__(self, other):
+        if isinstance(other, Index):
+            return self.diff(other)
+        elif isinstance(other, (DateOffset, timedelta)):
+            return self._add_delta(-other)
+        elif com.is_integer(other):
+            return self.shift(-other)
+        else:
+            return Index(self.view(np.ndarray) - other)
 
     def _add_delta(self, delta):
         if isinstance(delta, (Tick, timedelta)):

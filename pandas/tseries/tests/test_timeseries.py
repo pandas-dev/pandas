@@ -608,6 +608,17 @@ class TestTimeSeries(unittest.TestCase):
         self.assertEqual(idx.freq, Timestamp(idx[0], idx.freq).freq)
         self.assertEqual(idx.freqstr, Timestamp(idx[0], idx.freq).freqstr)
 
+    def test_datetimeindex_integers_shift(self):
+        rng = date_range('1/1/2000', periods=20)
+
+        result = rng + 5
+        expected = rng.shift(5)
+        self.assert_(result.equals(expected))
+
+        result = rng - 5
+        expected = rng.shift(-5)
+        self.assert_(result.equals(expected))
+
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
