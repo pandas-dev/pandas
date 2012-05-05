@@ -113,6 +113,11 @@ class TestTimeZoneSupport(unittest.TestCase):
         self.assertEquals(stamp, expected)
         self.assertEquals(stamp.tzinfo, expected.tzinfo)
 
+        # right tzinfo
+        rng = date_range('3/13/2012', '3/14/2012', freq='H', tz='utc')
+        rng_eastern = rng.tz_convert('US/Eastern')
+        self.assert_('EDT' in repr(rng_eastern[0].tzinfo))
+
     def test_timestamp_tz_convert(self):
         pass
 
