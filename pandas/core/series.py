@@ -2560,10 +2560,7 @@ class TimeSeries(Series):
         Returns
         -------
         """
-        if self.index.tz is None:
-            new_index = self.index.tz_localize(tz)
-        else:
-            new_index = self.index.tz_normalize(tz)
+        new_index = self.index.tz_convert(tz)
 
         new_values = self.values
         if copy:

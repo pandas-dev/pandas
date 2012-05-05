@@ -1,5 +1,6 @@
 #include "Python.h"
 #include "numpy/ndarrayobject.h"
+#include "numpy/arrayscalars.h"
 
 #ifndef PANDAS_INLINE
   #if defined(__GNUC__)
@@ -45,6 +46,12 @@ infer_type(PyObject* obj) {
 PANDAS_INLINE npy_int64
 get_nat() {
   return NPY_MIN_INT64;
+}
+
+PANDAS_INLINE npy_datetime
+unbox_datetime64_scalar(PyObject* obj) {
+  return ((PyDatetimeScalarObject*) obj)->obval;
+
 }
 
 PANDAS_INLINE int

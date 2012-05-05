@@ -69,6 +69,9 @@ cdef extern from "numpy/ndarrayobject.h":
                                           NPY_DATETIMEUNIT fr,
                                           npy_datetimestruct *result)
 
+cdef extern from "numpy_helper.h":
+    npy_datetime unbox_datetime64_scalar(object o)
+
 cdef extern from "numpy/npy_common.h":
 
     ctypedef unsigned char npy_bool

@@ -299,7 +299,7 @@ class DatetimeIndex(Int64Index):
             # Convert local to UTC
             ints = index.view('i8')
             lib.tz_localize_check(ints, tz)
-            index = tz_convert(ints, tz, _utc())
+            index = lib.tz_convert(ints, tz, _utc())
             index = index.view('M8[us]')
 
         index = index.view(cls)
@@ -1078,7 +1078,7 @@ class DatetimeIndex(Int64Index):
         lib.tz_localize_check(self.asi8, tz)
 
         # Convert to UTC
-        new_dates = tz_convert(self.asi8, tz, _utc())
+        new_dates = lib.tz_convert(self.asi8, tz, _utc())
         new_dates = new_dates.view('M8[us]')
         return self._simple_new(new_dates, self.name, self.offset, tz)
 
@@ -1099,71 +1099,11 @@ class DatetimeIndex(Int64Index):
 
         # See if there are any DST resolution problems
         try:
-            lib.tz_localize(self.asi8, self.tz)
+            lib.tz_localize_check(self.asi8, self.tz)
         except:
             return False
 
         return True
-
-def tz_convert(vals, tz1, tz2):
-    n = len(vals)
-    import pytz
-    # Convert to UTC
-
-    if tz1.zone != 'UTC':
-        utc_dates = np.empty(n, dtype=np.int64)
-        deltas = _get_deltas(tz1)
-        trans = _get_transitions(tz1)
-        pos = max(trans.searchsorted(vals[0], side='right') - 1, 0)
-
-        offset = deltas[pos]
-        for i in range(n):
-            v = vals[i]
-            if v >= trans[pos + 1]:
-                pos += 1
-                offset = deltas[pos]
-            utc_dates[i] = v - offset
-    else:
-        utc_dates = vals
-
-    if tz2.zone == 'UTC':
-        return utc_dates
-
-    # Convert UTC to other timezone
-
-    result = np.empty(n, dtype=np.int64)
-    trans = _get_transitions(tz2)
-    deltas = _get_deltas(tz2)
-    pos = max(trans.searchsorted(utc_dates[0], side='right') - 1, 0)
-    offset = deltas[pos]
-    for i in range(n):
-        v = utc_dates[i]
-        if v >= trans[pos + 1]:
-            pos += 1
-            offset = deltas[pos]
-        result[i] = v + offset
-
-    return result
-
-trans_cache = {}
-utc_offset_cache = {}
-
-def _get_transitions(tz):
-    """
-    Get UTC times of DST transitions
-    """
-    if tz not in trans_cache:
-        arr = np.array(tz._utc_transition_times, dtype='M8[us]')
-        trans_cache[tz] = arr.view('i8')
-    return trans_cache[tz]
-
-def _get_deltas(tz):
-    """
-    Get UTC offsets in microseconds corresponding to DST transitions
-    """
-    if tz not in utc_offset_cache:
-        utc_offset_cache[tz] = lib._unbox_utcoffsets(tz._transition_info)
-    return utc_offset_cache[tz]
 
 def _generate_regular_range(start, end, periods, offset):
     if com._count_not_none(start, end, periods) < 2:

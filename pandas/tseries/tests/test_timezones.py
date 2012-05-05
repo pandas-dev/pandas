@@ -104,9 +104,17 @@ class TestTimeZoneSupport(unittest.TestCase):
 
     def test_utc_box_timestamp_and_localize(self):
         rng = date_range('3/11/2012', '3/12/2012', freq='H', tz='utc')
-        rng = rng.tz_convert('US/Eastern')
+        rng_eastern = rng.tz_convert('US/Eastern')
 
-        # TODO
+        tz = pytz.timezone('US/Eastern')
+        expected = tz.normalize(rng[-1])
+
+        stamp = rng_eastern[-1]
+        self.assertEquals(stamp, expected)
+        self.assertEquals(stamp.tzinfo, expected.tzinfo)
+
+    def test_timestamp_tz_convert(self):
+        pass
 
     def test_pass_dates_convert_to_utc(self):
         pass
@@ -120,8 +128,7 @@ class TestTimeZoneSupport(unittest.TestCase):
         # just want it to work
         start = datetime(2011, 3, 12, tzinfo=pytz.utc)
         dr = bdate_range(start, periods=50, freq=datetools.Hour())
-        self.assert_(dr.tz is not None)
-        self.assert_(dr.tz is start.tzinfo)
+        self.assert_(dr.tz is pytz.utc)
 
         # DateRange with naive datetimes
         dr = bdate_range('1/1/2005', '1/1/2009', tz=pytz.utc)
@@ -156,23 +163,21 @@ class TestTimeZoneSupport(unittest.TestCase):
 
         # March 13, 2011, spring forward, skip from 2 AM to 3 AM
         dr = date_range(datetime(2011, 3, 13, 1, 30), periods=3,
-                        freq=datetools.Hour(), tz=tz)
-        self.assert_(not dr.tz_validate())
+                        freq=datetools.Hour())
+        self.assertRaises(pytz.AmbiguousTimeError, dr.tz_localize, tz)
 
-        # after dst transition
+        # after dst transition, it works
         dr = date_range(datetime(2011, 3, 13, 3, 30), periods=3,
                         freq=datetools.Hour(), tz=tz)
-        self.assert_(dr.tz_validate())
 
         # November 6, 2011, fall back, repeat 2 AM hour
         dr = date_range(datetime(2011, 11, 6, 1, 30), periods=3,
-                        freq=datetools.Hour(), tz=tz)
-        self.assert_(not dr.tz_validate())
+                        freq=datetools.Hour())
+        self.assertRaises(pytz.AmbiguousTimeError, dr.tz_localize, tz)
 
         # UTC is OK
         dr = date_range(datetime(2011, 3, 13), periods=48,
                         freq=datetools.Minute(30), tz=pytz.utc)
-        self.assert_(dr.tz_validate())
 
     # test utility methods
     def test_infer_tz(self):

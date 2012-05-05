@@ -47,6 +47,8 @@ class Timestamp(_Timestamp):
     __slots__ = ['value', 'offset']
 
     def __new__(cls, object ts_input, object offset=None, tz=None):
+        cdef _TSObject ts
+
         if isinstance(ts_input, float):
             # to do, do we want to support this, ie with fractional seconds?
             raise TypeError("Cannot convert a float to datetime")
@@ -61,15 +63,8 @@ class Timestamp(_Timestamp):
 
         # make datetime happy
         ts_base = _Timestamp.__new__(
-            cls,
-            ts.dtval.year,
-            ts.dtval.month,
-            ts.dtval.day,
-            ts.dtval.hour,
-            ts.dtval.minute,
-            ts.dtval.second,
-            ts.dtval.microsecond,
-            ts.dtval.tzinfo)
+            cls, ts.dts.year, ts.dts.month, ts.dts.day,
+            ts.dts.hour, ts.dts.min, ts.dts.sec, ts.dts.us, ts.tzinfo)
 
         # fill out rest of data
         ts_base.value = ts.value
@@ -103,7 +98,7 @@ class Timestamp(_Timestamp):
         """
         from pandas.tseries.period import Period
 
-        if freq == None:
+        if freq is None:
             freq = self.freq
 
         return Period(self, freq=freq)
@@ -216,19 +211,16 @@ cdef class _Timestamp(datetime):
 # lightweight C object to hold datetime & int64 pair
 cdef class _TSObject:
     cdef:
-        datetime dtval      # python datetime
-        int64_t value       # numpy dt64
-
-    property dtval:
-        def __get__(self):
-            return self.dtval
+        npy_datetimestruct dts      # npy_datetimestruct
+        int64_t value               # numpy dt64
+        object tzinfo
 
     property value:
         def __get__(self):
             return self.value
 
 # helper to extract datetime and int64 from several different possibilities
-cpdef convert_to_tsobject(object ts, object tzinfo=None):
+cpdef convert_to_tsobject(object ts, object tz=None):
     """
     Extract datetime and int64 from any of:
         - np.int64
@@ -239,96 +231,107 @@ cpdef convert_to_tsobject(object ts, object tzinfo=None):
         - another timestamp object
     """
     cdef:
-        npy_datetimestruct dts
+        _TSObject obj
+
+    obj = _TSObject()
+
+    if is_datetime64_object(ts):
+        obj.value = unbox_datetime64_scalar(ts)
+        PyArray_DatetimeToDatetimeStruct(obj.value, NPY_FR_us, &obj.dts)
+    elif is_integer_object(ts):
+        obj.value = ts
+        PyArray_DatetimeToDatetimeStruct(ts, NPY_FR_us, &obj.dts)
+    elif util.is_string_object(ts):
+        _string_to_dts(ts, &obj.dts)
+        obj.value = PyArray_DatetimeStructToDatetime(NPY_FR_us, &obj.dts)
+    elif PyDateTime_Check(ts):
+        obj.value = _pydatetime_to_dts(ts, &obj.dts)
+        if tz is None:
+            tz = ts.tzinfo
+    elif PyDate_Check(ts):
+        obj.value  = _date_to_datetime64(ts, &obj.dts)
+    else:
+        raise ValueError("Could not construct Timestamp from argument %s" %
+                         type(ts))
+
+    if tz is not None:
+        if tz is pytz.utc:
+            obj.tzinfo = tz
+        else:
+            # Adjust datetime64 timestamp, recompute datetimestruct
+            trans = _get_transitions(tz)
+            deltas = _get_deltas(tz)
+            pos = trans.searchsorted(obj.value) - 1
+            inf = tz._transition_info[pos]
+
+            obj.value = obj.value + deltas[pos]
+            PyArray_DatetimeToDatetimeStruct(obj.value, NPY_FR_us, &obj.dts)
+            obj.tzinfo = tz._tzinfos[inf]
+
+    return obj
+
+# elif isinstance(ts, _Timestamp):
+#     tmp = ts
+#     obj.value = (<_Timestamp> ts).value
+#     obj.dtval =
+# elif isinstance(ts, object):
+#     # If all else fails
+#     obj.value = _dtlike_to_datetime64(ts, &obj.dts)
+#     obj.dtval = _dts_to_pydatetime(&obj.dts)
+
+cdef inline object _datetime64_to_datetime(int64_t val):
+    cdef npy_datetimestruct dts
+    PyArray_DatetimeToDatetimeStruct(val, NPY_FR_us, &dts)
+    return _dts_to_pydatetime(&dts)
+
+cdef inline object _dts_to_pydatetime(npy_datetimestruct *dts):
+    return <object> PyDateTime_FromDateAndTime(dts.year, dts.month,
+                                               dts.day, dts.hour,
+                                               dts.min, dts.sec, dts.us)
+
+cdef inline int64_t _pydatetime_to_dts(object val, npy_datetimestruct *dts):
+    dts.year = PyDateTime_GET_YEAR(val)
+    dts.month = PyDateTime_GET_MONTH(val)
+    dts.day = PyDateTime_GET_DAY(val)
+    dts.hour = PyDateTime_DATE_GET_HOUR(val)
+    dts.min = PyDateTime_DATE_GET_MINUTE(val)
+    dts.sec = PyDateTime_DATE_GET_SECOND(val)
+    dts.us = PyDateTime_DATE_GET_MICROSECOND(val)
+    return PyArray_DatetimeStructToDatetime(NPY_FR_us, dts)
+
+cdef inline int64_t _dtlike_to_datetime64(object val,
+                                          npy_datetimestruct *dts):
+    dts.year = val.year
+    dts.month = val.month
+    dts.day = val.day
+    dts.hour = val.hour
+    dts.min = val.minute
+    dts.sec = val.second
+    dts.us = val.microsecond
+    return PyArray_DatetimeStructToDatetime(NPY_FR_us, dts)
+
+cdef inline int64_t _date_to_datetime64(object val,
+                                        npy_datetimestruct *dts):
+    dts.year = PyDateTime_GET_YEAR(val)
+    dts.month = PyDateTime_GET_MONTH(val)
+    dts.day = PyDateTime_GET_DAY(val)
+    dts.hour = 0
+    dts.min = 0
+    dts.sec = 0
+    dts.us = 0
+    return PyArray_DatetimeStructToDatetime(NPY_FR_us, dts)
+
+
+cdef inline int _string_to_dts(object val, npy_datetimestruct* dts) except -1:
+    cdef:
         npy_bool islocal, special
         NPY_DATETIMEUNIT out_bestunit
-        char* buf
-        _Timestamp tmp
-        _TSObject retval
 
-    if isinstance(ts, _TSObject) or ts is None:
-        return ts
-
-    retval = _TSObject()
-
-    # pretty expensive - faster way to access as i8?
-    if is_datetime64_object(ts):
-        retval.value = ts.view('i8')
-        PyArray_DatetimeToDatetimeStruct(retval.value, NPY_FR_us, &dts)
-        retval.dtval = <object>PyDateTime_FromDateAndTime(
-                            dts.year, dts.month,
-                            dts.day, dts.hour,
-                            dts.min, dts.sec, dts.us)
-    # this is cheap
-    elif is_integer_object(ts):
-        retval.value = ts
-        PyArray_DatetimeToDatetimeStruct(retval.value, NPY_FR_us, &dts)
-        retval.dtval = <object>PyDateTime_FromDateAndTime(
-                            dts.year, dts.month,
-                            dts.day, dts.hour,
-                            dts.min, dts.sec, dts.us)
-    # this is pretty cheap
-    elif util.is_string_object(ts):
-        if PyUnicode_Check(ts):
-            ts = PyUnicode_AsASCIIString(ts);
-        parse_iso_8601_datetime(ts, len(ts), NPY_FR_us, NPY_UNSAFE_CASTING,
-                                &dts, &islocal, &out_bestunit, &special)
-        retval.value = PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts)
-        retval.dtval = <object>PyDateTime_FromDateAndTime(
-                            dts.year, dts.month,
-                            dts.day, dts.hour,
-                            dts.min, dts.sec, dts.us)
-    # pretty cheap
-    elif PyDateTime_Check(ts):
-        retval.dtval = ts
-        # to do this is expensive (10x other constructors)
-        # convert_pydatetime_to_datetimestruct(<PyObject *>ts, &dts,
-        #                                     &out_bestunit, 0)
-        dts.year = PyDateTime_GET_YEAR(ts)
-        dts.month = PyDateTime_GET_MONTH(ts)
-        dts.day = PyDateTime_GET_DAY(ts)
-        dts.hour = PyDateTime_DATE_GET_HOUR(ts)
-        dts.min = PyDateTime_DATE_GET_MINUTE(ts)
-        dts.sec = PyDateTime_DATE_GET_SECOND(ts)
-        dts.us = PyDateTime_DATE_GET_MICROSECOND(ts)
-        retval.value = PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts)
-    elif PyDate_Check(ts):
-        dts.year = PyDateTime_GET_YEAR(ts)
-        dts.month = PyDateTime_GET_MONTH(ts)
-        dts.day = PyDateTime_GET_DAY(ts)
-        retval.dtval = PyDateTime_FromDateAndTime(dts.year, dts.month, dts.day,
-                                                  0, 0, 0, 0)
-        dts.hour = 0
-        dts.min = 0
-        dts.sec = 0
-        dts.us = 0
-        retval.value = PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts)
-    # pretty cheap
-    elif isinstance(ts, _Timestamp):
-        tmp = ts
-        retval.value = tmp.value
-        retval.dtval = tmp
-    # fallback, does it at least have the right fields?
-    elif isinstance(ts, object):
-        dts.year = ts.year
-        dts.month = ts.month
-        dts.day = ts.day
-        dts.hour = ts.hour
-        dts.min = ts.minute
-        dts.sec = ts.second
-        dts.us = ts.microsecond
-        retval.dtval = <object>PyDateTime_FromDateAndTime(
-                            dts.year, dts.month,
-                            dts.day, dts.hour,
-                            dts.min, dts.sec, dts.us)
-        retval.value = PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts)
-    else:
-        raise ValueError("Could not construct Timestamp from argument %s" % type(ts))
-
-    if tzinfo is not None:
-        retval.dtval = retval.dtval.replace(tzinfo=tzinfo)
-
-    return retval
+    if PyUnicode_Check(val):
+        val = PyUnicode_AsASCIIString(val);
+    parse_iso_8601_datetime(val, len(val), NPY_FR_us, NPY_UNSAFE_CASTING,
+                            dts, &islocal, &out_bestunit, &special)
+    return 0
 
 cdef conversion_factor(time_res res1, time_res res2):
     cdef:
@@ -454,10 +457,10 @@ cdef class YearOffset(_Offset):
         cdef _TSObject ts = self.ts
 
         self.t = ts.value + self.dayoffset * us_in_day
-        self.y = ts.dtval.year
+        self.y = ts.dts.year
 
-        self.ly = (ts.dtval.month > 2 or
-                   ts.dtval.month == 2 and ts.dtval.day == 29)
+        self.ly = (ts.dts.month > 2 or
+                   ts.dts.month == 2 and ts.dts.day == 29)
 
         if self.biz != 0:
             self.dow = (ts_dayofweek(ts) + self.dayoffset) % 7
@@ -518,8 +521,8 @@ cdef class MonthOffset(_Offset):
         self.t = ts.value + (self.dayoffset * us_in_day)
 
         # for day counting
-        self.m  = ts.dtval.month - 1
-        self.y  = ts.dtval.year
+        self.m  = ts.dts.month - 1
+        self.y  = ts.dts.year
         self.ly = is_leapyear(self.y)
 
         if self.biz != 0:
@@ -592,12 +595,12 @@ cdef class DayOfMonthOffset(_Offset):
         cdef _TSObject ts = self.ts
 
         # rewind to beginning of month
-        self.t = ts.value - (ts.dtval.day - 1) * us_in_day
-        self.dow = dayofweek(ts.dtval.year, ts.dtval.month, 1)
+        self.t = ts.value - (ts.dts.day - 1) * us_in_day
+        self.dow = dayofweek(ts.dts.year, ts.dts.month, 1)
 
         # for day counting
-        self.m = ts.dtval.month - 1
-        self.y = ts.dtval.year
+        self.m = ts.dts.month - 1
+        self.y = ts.dts.year
         self.ly = is_leapyear(self.y)
 
     cpdef next(self):
@@ -758,8 +761,9 @@ def string_to_datetime(ndarray[object] strings, raise_=False, dayfirst=False):
         return oresult
 
 
+#----------------------------------------------------------------------
 # Conversion routines
-# ------------------------------------------------------------------------------
+
 
 def pydt_to_i8(object pydt):
     '''
@@ -779,8 +783,8 @@ def i8_to_pydt(int64_t i8, object tzinfo = None):
     '''
     return Timestamp(i8)
 
+#----------------------------------------------------------------------
 # time zone conversion helpers
-# ------------------------------------------------------------------------------
 
 try:
     import pytz
@@ -803,7 +807,10 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
         utc_dates = np.empty(n, dtype=np.int64)
         deltas = _get_deltas(tz1)
         trans = _get_transitions(tz1)
-        pos = trans.searchsorted(vals[0])
+        pos = trans.searchsorted(vals[0]) - 1
+        if pos < 0:
+            raise ValueError('First time before start of DST info')
+
         offset = deltas[pos]
         for i in range(n):
             v = vals[i]
@@ -822,7 +829,10 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
     result = np.empty(n, dtype=np.int64)
     trans = _get_transitions(tz2)
     deltas = _get_deltas(tz2)
-    pos = trans.searchsorted(utc_dates[0])
+    pos = trans.searchsorted(utc_dates[0]) - 1
+    if pos < 0:
+        raise ValueError('First time before start of DST info')
+
     offset = deltas[pos]
     for i in range(n):
         v = utc_dates[i]
@@ -1148,7 +1158,7 @@ def monthrange(int64_t year, int64_t month):
     return (dayofweek(year, month, 1), days)
 
 cdef inline int64_t ts_dayofweek(_TSObject ts):
-    return dayofweek(ts.dtval.year, ts.dtval.month, ts.dtval.day)
+    return dayofweek(ts.dts.year, ts.dts.month, ts.dts.day)
 
 # Period logic
 #----------------------------------------------------------------------

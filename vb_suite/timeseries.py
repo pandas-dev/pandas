@@ -83,3 +83,13 @@ setup = setup + 'ts[250:5000] = np.nan'
 
 timeseries_asof_nan = Benchmark('ts.asof(dates)', setup,
                                 start_date=datetime(2012, 4, 27))
+
+#----------------------------------------------------------------------
+# Time zone stuff
+
+setup = common_setup + """
+rng = date_range('1/1/2000', '3/1/2000', tz='US/Eastern')
+"""
+
+timeseries_timestamp_tzinfo_cons = \
+    Benchmark('rng[0]', setup, start_date=datetime(2012, 5, 5))
