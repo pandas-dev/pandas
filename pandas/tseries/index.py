@@ -688,7 +688,7 @@ class DatetimeIndex(Int64Index):
         if not self.is_monotonic or not other.is_monotonic:
             return False
 
-        if len(other) == 0:
+        if len(self) == 0 or len(other) == 0:
             return True
 
         # to make our life easier, "sort" the two ranges
@@ -706,6 +706,9 @@ class DatetimeIndex(Int64Index):
     def _fast_union(self, other):
         if len(other) == 0:
             return self.view(type(self))
+
+        if len(self) == 0:
+            return other.view(type(self))
 
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:

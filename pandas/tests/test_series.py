@@ -2069,17 +2069,52 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             assert_series_equal(ab, eb)
 
         for kind in JOIN_TYPES:
-            _check_align(self.ts[2:], self.ts[:-5])
-            _check_align(self.ts[2:], self.ts[:-5], fill=-1)
+            _check_align(self.ts[2:], self.ts[:-5], how=kind)
+            _check_align(self.ts[2:], self.ts[:-5], how=kind, fill=-1)
 
             # empty left
-            _check_align(self.ts[:0], self.ts[:-5])
+            _check_align(self.ts[:0], self.ts[:-5], how=kind)
 
             # empty right
-            _check_align(self.ts[:-5], self.ts[:0])
+            _check_align(self.ts[:-5], self.ts[:0], how=kind)
 
             # both empty
-            _check_align(self.ts[:0], self.ts[:0])
+            _check_align(self.ts[:0], self.ts[:0], how=kind)
+
+    def test_align_fill_method(self):
+        def _check_align(a, b, how='left', method='pad', limit=None):
+            aa, ab = a.align(b, join=how, method=method, limit=limit)
+
+            join_index = a.index.join(b.index, how=how)
+            ea = a.reindex(join_index)
+            eb = b.reindex(join_index)
+
+            ea = ea.fillna(method=method, limit=limit)
+            eb = eb.fillna(method=method, limit=limit)
+
+            assert_series_equal(aa, ea)
+            assert_series_equal(ab, eb)
+
+        for kind in JOIN_TYPES:
+            for meth in ['pad', 'bfill']:
+                _check_align(self.ts[2:], self.ts[:-5], how=kind, method=meth)
+                _check_align(self.ts[2:], self.ts[:-5], how=kind,
+                             method=meth, limit=1)
+
+                # empty left
+                _check_align(self.ts[:0], self.ts[:-5], how=kind, method=meth)
+                _check_align(self.ts[:0], self.ts[:-5], how=kind, method=meth,
+                             limit=1)
+
+                # empty right
+                _check_align(self.ts[:-5], self.ts[:0], how=kind, method=meth)
+                _check_align(self.ts[:-5], self.ts[:0], how=kind, method=meth,
+                             limit=1)
+
+                # both empty
+                _check_align(self.ts[:0], self.ts[:0], how=kind, method=meth)
+                _check_align(self.ts[:0], self.ts[:0], how=kind, method=meth,
+                             limit=1)
 
     def test_align_nocopy(self):
         b = self.ts[:5].copy()

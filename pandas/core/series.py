@@ -1874,7 +1874,7 @@ copy : boolean, default False
             return Series(mapped, index=self.index, name=self.name)
 
     def align(self, other, join='outer', level=None, copy=True,
-              fill_value=None, method=None):
+              fill_value=None, method=None, inplace=False, limit=None):
         """
         Align two Series object with the specified join method
 
@@ -1890,6 +1890,8 @@ copy : boolean, default False
             required, the same object will be returned (for better performance)
         fill_value : object, default None
         method : str, default 'pad'
+        limit : int, default None
+           fill_value, method, inplace, limit are passed to fillna
 
         Returns
         -------
@@ -1904,8 +1906,8 @@ copy : boolean, default False
         right = other._reindex_indexer(join_index, ridx, copy)
         fill_na = (fill_value is not None) or (method is not None)
         if fill_na:
-            return (left.fillna(fill_value, method=method),
-                    right.fillna(fill_value, method=method))
+            return (left.fillna(fill_value, method=method, limit=limit),
+                    right.fillna(fill_value, method=method, limit=limit))
         else:
             return left, right
 

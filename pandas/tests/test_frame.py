@@ -3586,6 +3586,63 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertRaises(ValueError, self.frame.align, af.ix[0,:3],
                           join='inner', axis=2)
 
+    def test_align_fill_method(self):
+        def _check_align(a, b, axis, fill_axis, how, method, limit=None):
+            aa, ab = a.align(b, axis=axis, join=how, method=method, limit=limit,
+                             fill_axis=fill_axis)
+
+            join_index, join_columns = None, None
+
+            ea, eb = a, b
+            if axis is None or axis == 0:
+                join_index = a.index.join(b.index, how=how)
+                ea = ea.reindex(index=join_index)
+                eb = eb.reindex(index=join_index)
+
+            if axis is None or axis == 1:
+                join_columns  = a.columns.join(b.columns, how=how)
+                ea = ea.reindex(columns=join_columns)
+                eb = eb.reindex(columns=join_columns)
+
+            ea = ea.fillna(axis=fill_axis, method=method, limit=limit)
+            eb = eb.fillna(axis=fill_axis, method=method, limit=limit)
+
+            assert_frame_equal(aa, ea)
+            assert_frame_equal(ab, eb)
+
+        for kind in JOIN_TYPES:
+            for meth in ['pad', 'bfill']:
+                for ax in [0, 1, None]:
+                    for fax in [0, 1]:
+                        left = self.frame.ix[0:4, :10]
+                        right = self.frame.ix[2:, 6:]
+                        empty = self.frame.ix[:0, :0]
+
+                        _check_align(left, right, axis=ax, fill_axis=fax,
+                                     how=kind, method=meth)
+                        _check_align(left, right, axis=ax, fill_axis=fax,
+                                     how=kind, method=meth, limit=1)
+
+                        # empty left
+                        _check_align(empty, right, axis=ax, fill_axis=fax,
+                                     how=kind, method=meth)
+                        _check_align(empty, right, axis=ax, fill_axis=fax,
+                                     how=kind, method=meth, limit=1)
+
+
+                        # empty right
+                        _check_align(left, empty, axis=ax, fill_axis=fax,
+                                     how=kind, method=meth)
+                        _check_align(left, empty, axis=ax, fill_axis=fax,
+                                     how=kind, method=meth, limit=1)
+
+                        # both empty
+                        _check_align(empty, empty, axis=ax, fill_axis=fax,
+                                     how=kind, method=meth)
+                        _check_align(empty, empty, axis=ax, fill_axis=fax,
+                                     how=kind, method=meth, limit=1)
+
+
     def test_align_int_fill_bug(self):
         # GH #910
         X = np.random.rand(10,10)

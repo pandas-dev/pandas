@@ -1766,7 +1766,7 @@ class DataFrame(NDFrame):
     # Reindexing and alignment
 
     def align(self, other, join='outer', axis=None, level=None, copy=True,
-              fill_value=np.nan, method=None):
+              fill_value=np.nan, method=None, limit=None, fill_axis=0):
         """
         Align two DataFrame object on their index and columns with the
         specified join method for each axis Index
@@ -1787,6 +1787,9 @@ class DataFrame(NDFrame):
             Value to use for missing values. Defaults to NaN, but can be any
             "compatible" value
         method : str, default None
+        limit : int, default None
+        fill_axis : {0, 1}, default 0
+            Filling axis, method and limit
 
         Returns
         -------
@@ -1796,16 +1799,19 @@ class DataFrame(NDFrame):
         if isinstance(other, DataFrame):
             return self._align_frame(other, join=join, axis=axis, level=level,
                                      copy=copy, fill_value=fill_value,
-                                     method=method)
+                                     method=method, limit=limit,
+                                     fill_axis=fill_axis)
         elif isinstance(other, Series):
             return self._align_series(other, join=join, axis=axis, level=level,
                                       copy=copy, fill_value=fill_value,
-                                      method=method)
+                                      method=method, limit=limit,
+                                      fill_axis=fill_axis)
         else:  # pragma: no cover
             raise TypeError('unsupported type: %s' % type(other))
 
     def _align_frame(self, other, join='outer', axis=None, level=None,
-                     copy=True, fill_value=np.nan, method=None):
+                     copy=True, fill_value=np.nan, method=None, limit=None,
+                     fill_axis=0):
         # defaults
         join_index, join_columns = None, None
         ilidx, iridx = None, None
@@ -1831,13 +1837,14 @@ class DataFrame(NDFrame):
                                              fill_value=fill_value)
 
         if method is not None:
-            left = left.fillna(method=method)
-            right = right.fillna(method=method)
+            left = left.fillna(axis=fill_axis, method=method, limit=limit)
+            right = right.fillna(axis=fill_axis, method=method, limit=limit)
 
         return left, right
 
     def _align_series(self, other, join='outer', axis=None, level=None,
-                      copy=True, fill_value=None, method=None):
+                      copy=True, fill_value=None, method=None, limit=None,
+                      fill_axis=0):
         fdata = self._data
         if axis == 0:
             join_index = self.index
@@ -1869,8 +1876,9 @@ class DataFrame(NDFrame):
 
         fill_na = notnull(fill_value) or (method is not None)
         if fill_na:
-            return (left_result.fillna(fill_value, method=method),
-                    right_result.fillna(fill_value, method=method))
+            return (left_result.fillna(fill_value, method=method, limit=limit,
+                                       axis=fill_axis),
+                    right_result.fillna(fill_value, method=method, limit=limit))
         else:
             return left_result, right_result
 
