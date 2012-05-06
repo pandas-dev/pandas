@@ -181,6 +181,8 @@ Boolean indexing
 
 .. _indexing.boolean:
 
+Another common operation is the use of boolean vectors to filter the data.
+
 Using a boolean vector to index a Series works exactly as in a numpy ndarray:
 
 .. ipython:: python
@@ -206,6 +208,23 @@ select out rows where one or more columns have values you want:
                     'b' : ['x', 'y', 'y', 'x', 'y', 'x', 'x'],
                     'c' : randn(7)})
    df2[df2['a'].isin(['one', 'two'])]
+
+List comprehensions and ``map`` method of Series can also be used to produce
+more complex criteria:
+
+.. ipython:: python
+
+   # only want 'two' or 'three'
+   criterion = df2['a'].map(lambda x: x.startswith('t')
+
+   df2[criterion]
+
+   # equivalent but slower
+   df2[[x.startswith('t') for x in df2['a']]]
+
+   # Multiple criteria
+   df2[criterion & (df2['b'] == 'x')]
+
 
 Note, with the :ref:`advanced indexing <indexing.advanced>` ``ix`` method, you
 may select along more than one axis using boolean vectors combined with other
@@ -335,7 +354,6 @@ default value.
    s = Series([1,2,3], index=['a','b','c'])
    s.get('a')               # equivalent to s['a']
    s.get('x', default=-1)
-
 
 .. _indexing.advanced:
 
