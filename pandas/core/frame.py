@@ -452,9 +452,12 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Class behavior
 
+    @property
+    def empty(self):
+        return not (len(self.columns) > 0 and len(self.index) > 0)
+
     def __nonzero__(self):
-        # e.g. "if frame: ..."
-        return len(self.columns) > 0 and len(self.index) > 0
+        raise ValueError("Cannot call bool() on DataFrame.")
 
     def _need_info_repr_(self):
         """
@@ -2681,8 +2684,9 @@ class DataFrame(NDFrame):
                                  columns=left.columns, copy=False)
 
     def _combine_const(self, other, func):
-        if not self:
+        if self.empty:
             return self
+
         result_values = func(self.values, other)
 
         if not isinstance(result_values, np.ndarray):
@@ -2720,10 +2724,10 @@ class DataFrame(NDFrame):
         -------
         result : DataFrame
         """
-        if not other:
+        if other.empty:
             return self.copy()
 
-        if not self:
+        if self.empty:
             return other.copy()
 
         this, other = self.align(other, copy=False)
