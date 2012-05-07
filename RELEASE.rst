@@ -47,6 +47,8 @@ pandas 0.8.0
 
 **API Changes**
 
+  - Raise ValueError in DataFrame.__nonzero__, so "if df" no longer works
+    (#1073)
   - Change BDay (business day) to not normalize dates by default
   - Remove deprecated DataMatrix name
 
