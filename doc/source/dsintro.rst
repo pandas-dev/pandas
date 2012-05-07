@@ -70,7 +70,8 @@ index is passed, one will be created having values ``[0, ..., len(data) - 1]``.
 
 .. note::
 
-    The values in the index must be unique. If they are not, an exception will
+    Starting in v0.8.0, pandas supports non-unique index values. In previous
+    version, if the index values are not unique an exception will
     **not** be raised immediately, but attempting any operation involving the
     index will later result in an exception. In other words, the Index object
     containing the labels "lazily" checks whether the values are unique. The

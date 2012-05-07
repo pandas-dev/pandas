@@ -607,6 +607,17 @@ can think of ``MultiIndex`` an array of tuples where each tuple is unique. A
    s = Series(randn(8), index=index)
    s
 
+As a convenience, you can pass a list of arrays directly into Series or
+DataFrame to construct a MultiIndex automatically:
+
+.. ipython:: python
+   arrays = [np.array(['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux']),
+             np.array(['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two'])]
+   s = Series(randn(8), index=arrays)
+   s
+   df = DataFrame(randn(8, 4), index=arrays)
+   df
+
 All of the ``MultiIndex`` constructors accept a ``names`` argument which stores
 string names for the levels themselves. If no names are provided, some
 arbitrary ones will be assigned:
@@ -640,6 +651,7 @@ subsequent areas of the documentation. As you will see in later sections, you
 can find yourself working with hierarchically-indexed data without creating a
 ``MultiIndex`` explicitly yourself. However, when loading data from a file, you
 may wish to generate your own ``MultiIndex`` when preparing the data set.
+
 
 Reconstructing the level labels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
