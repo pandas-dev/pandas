@@ -59,6 +59,7 @@ pandas 0.8.0
   - Couldn't assign whole array to column in mixed-type DataFrame via .ix
     (#1142)
   - Fix label slicing issues with float index values (#1167)
+  - Fix segfault caused by empty groups passed to groupby (#1048)
 
 pandas 0.7.3
 ============

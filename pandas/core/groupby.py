@@ -1109,6 +1109,9 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
             ping.name = 'key_%d' % i
         groupings.append(ping)
 
+    if len(groupings) == 0:
+        raise ValueError('No group keys passed!')
+
     grouper = Grouper(group_axis, groupings, sort=sort)
 
     return grouper, exclusions

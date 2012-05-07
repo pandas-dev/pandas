@@ -120,10 +120,6 @@ class TestGroupBy(unittest.TestCase):
         # corner cases
         self.assertRaises(Exception, grouped.aggregate, lambda x: x * 2)
 
-        result = self.df.groupby([]).groups
-        expected = range(len(self.df))
-        self.assertEqual(tuple(result), tuple(expected))
-
         # tests for first / last / nth
         grouped = self.df.groupby('A')
         first = grouped.first()
@@ -144,7 +140,9 @@ class TestGroupBy(unittest.TestCase):
         expected.name ='foo'
         assert_series_equal(nth.xs('foo'), expected)
 
-
+    def test_empty_groups(self):
+        # GH # 1048
+        self.assertRaises(ValueError, self.df.groupby, [])
 
     def test_groupby_dict_mapping(self):
         # GH #679
@@ -1624,10 +1622,10 @@ class TestGroupBy(unittest.TestCase):
     def test_rank_apply(self):
         lev1 = np.array([rands(10) for _ in xrange(1000)], dtype=object)
         lev2 = np.array([rands(10) for _ in xrange(130)], dtype=object)
-        lab1 = np.random.randint(0, 1000, size=10000)
-        lab2 = np.random.randint(0, 130, size=10000)
+        lab1 = np.random.randint(0, 1000, size=5000)
+        lab2 = np.random.randint(0, 130, size=5000)
 
-        df = DataFrame({'value' : np.random.randn(10000),
+        df = DataFrame({'value' : np.random.randn(5000),
                         'key1' : lev1.take(lab1),
                         'key2' : lev2.take(lab2)})
 

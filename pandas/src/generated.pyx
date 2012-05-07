@@ -1625,9 +1625,6 @@ def groupby_float64(ndarray[float64_t] index, ndarray labels):
     cdef list members
     cdef object idx, key
 
-    if len(labels) == 0:
-        return list(index)
-
     length = len(index)
 
     for i in range(length):
@@ -1652,9 +1649,6 @@ def groupby_object(ndarray[object] index, ndarray labels):
     cdef Py_ssize_t i, length
     cdef list members
     cdef object idx, key
-
-    if len(labels) == 0:
-        return list(index)
 
     length = len(index)
 
@@ -1681,9 +1675,6 @@ def groupby_int32(ndarray[int32_t] index, ndarray labels):
     cdef list members
     cdef object idx, key
 
-    if len(labels) == 0:
-        return list(index)
-
     length = len(index)
 
     for i in range(length):
@@ -1709,9 +1700,6 @@ def groupby_int64(ndarray[int64_t] index, ndarray labels):
     cdef list members
     cdef object idx, key
 
-    if len(labels) == 0:
-        return list(index)
-
     length = len(index)
 
     for i in range(length):
@@ -1736,9 +1724,6 @@ def groupby_bool(ndarray[uint8_t] index, ndarray labels):
     cdef Py_ssize_t i, length
     cdef list members
     cdef object idx, key
-
-    if len(labels) == 0:
-        return list(index)
 
     length = len(index)
 
