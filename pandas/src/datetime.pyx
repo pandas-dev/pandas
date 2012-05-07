@@ -1214,7 +1214,7 @@ cdef inline int64_t ts_dayofweek(_TSObject ts):
 
 cdef inline int64_t apply_mult(int64_t period_ord, int64_t mult):
     """
-    Get base+multiple ordinal value from corresponding base-only ordinal value.
+    Get freq+multiple ordinal value from corresponding freq-only ordinal value.
     For example, 5min ordinal will be 1/5th the 1min ordinal (rounding down to
     integer).
     """
@@ -1225,14 +1225,14 @@ cdef inline int64_t apply_mult(int64_t period_ord, int64_t mult):
 
 cdef inline int64_t remove_mult(int64_t period_ord_w_mult, int64_t mult):
     """
-    Get base-only ordinal value from corresponding base+multiple ordinal.
+    Get freq-only ordinal value from corresponding freq+multiple ordinal.
     """
     if mult == 1:
         return period_ord_w_mult
 
     return period_ord_w_mult * mult + 1;
 
-def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int base, int64_t mult):
+def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int freq, int64_t mult):
     """
     Convert array of datetime64 values (passed in as 'i8' dtype) to a set of
     periods corresponding to desired frequency, per period convention.
@@ -1249,11 +1249,11 @@ def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int base, int64_t mult):
     for i in range(l):
         PyArray_DatetimeToDatetimeStruct(dtarr[i], NPY_FR_us, &dts)
         out[i] = get_period_ordinal(dts.year, dts.month, dts.day,
-                                  dts.hour, dts.min, dts.sec, base)
+                                  dts.hour, dts.min, dts.sec, freq)
         out[i] = apply_mult(out[i], mult)
     return out
 
-def periodarr_to_dt64arr(ndarray[int64_t] periodarr, int base, int64_t mult):
+def periodarr_to_dt64arr(ndarray[int64_t] periodarr, int freq, int64_t mult):
     """
     Convert array to datetime64 values from a set of ordinals corresponding to
     periods per period convention.
@@ -1267,15 +1267,15 @@ def periodarr_to_dt64arr(ndarray[int64_t] periodarr, int base, int64_t mult):
     out = np.empty(l, dtype='i8')
 
     for i in range(l):
-        out[i] = period_ordinal_to_dt64(periodarr[i], base, mult)
+        out[i] = period_ordinal_to_dt64(periodarr[i], freq, mult)
 
     return out
 
 cdef char START = 'S'
 cdef char END = 'E'
 
-cpdef int64_t period_asfreq(int64_t period_ordinal, int base1, int64_t mult1,
-                            int base2, int64_t mult2, bint end):
+cpdef int64_t period_asfreq(int64_t period_ordinal, int freq1, int64_t mult1,
+                            int freq2, int64_t mult2, bint end):
     """
     Convert period ordinal from one frequency to another, and if upsampling,
     choose to use start ('S') or end ('E') of period.
@@ -1289,42 +1289,58 @@ cpdef int64_t period_asfreq(int64_t period_ordinal, int base1, int64_t mult1,
         period_ordinal += (mult1 - 1)
 
     if end:
-        retval = asfreq(period_ordinal, base1, base2, END)
+        retval = asfreq(period_ordinal, freq1, freq2, END)
     else:
-        retval = asfreq(period_ordinal, base1, base2, START)
+        retval = asfreq(period_ordinal, freq1, freq2, START)
     retval = apply_mult(retval, mult2)
 
     return retval
 
-def period_asfreq_arr(ndarray[int64_t] arr, int base1, int64_t mult1,
-                      int base2, int64_t mult2, bint end):
+def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int64_t mult1,
+                      int freq2, int64_t mult2, bint end):
     """
     Convert int64-array of period ordinals from one frequency to another, and
     if upsampling, choose to use start ('S') or end ('E') of period.
     """
     cdef:
-        ndarray[int64_t] new_arr
-        Py_ssize_t i, sz
+        ndarray[int64_t] result
+        Py_ssize_t i, n
+        freq_conv_func func
+        asfreq_info finfo
+        int64_t val, ordinal
+        char relation
 
-    sz = len(arr)
-    new_arr = np.empty(sz, dtype=np.int64)
+    n = len(arr)
+    result = np.empty(n, dtype=np.int64)
 
-    for i in range(sz):
-        new_arr[i] = period_asfreq(arr[i], base1, mult1,
-                                   base2, mult2, end)
+    func = get_asfreq_func(freq1, freq2, 0)
+    get_asfreq_info(freq1, freq2, &finfo)
 
-    return new_arr
+    if end:
+        relation = END
+    else:
+        relation = START
+
+    for i in range(n):
+        ordinal = remove_mult(arr[i], mult1)
+        val = func(arr[i], relation, &finfo)
+        if val == -1:
+            raise ValueError("Unable to convert to desired frequency.")
+        result[i] = apply_mult(val, mult2)
+
+    return result
 
 def period_ordinal(int y, int m, int d, int h, int min, int s,
-                   int base, int64_t mult):
+                   int freq, int64_t mult):
     cdef:
         int64_t ordinal
 
-    ordinal = get_period_ordinal(y, m, d, h, min, s, base)
+    ordinal = get_period_ordinal(y, m, d, h, min, s, freq)
 
     return apply_mult(ordinal, mult)
 
-cpdef int64_t period_ordinal_to_dt64(int64_t period_ordinal, int base, int64_t mult):
+cpdef int64_t period_ordinal_to_dt64(int64_t period_ordinal, int freq,
+                                     int64_t mult):
     cdef:
         int64_t ordinal
         npy_datetimestruct dts
@@ -1332,7 +1348,7 @@ cpdef int64_t period_ordinal_to_dt64(int64_t period_ordinal, int base, int64_t m
 
     ordinal = remove_mult(period_ordinal, mult)
 
-    get_date_info(ordinal, base, &dinfo)
+    get_date_info(ordinal, freq, &dinfo)
 
     dts.year = dinfo.year
     dts.month = dinfo.month
@@ -1344,11 +1360,11 @@ cpdef int64_t period_ordinal_to_dt64(int64_t period_ordinal, int base, int64_t m
 
     return PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts)
 
-def period_ordinal_to_string(int64_t value, int base, int64_t mult):
+def period_ordinal_to_string(int64_t value, int freq, int64_t mult):
     cdef:
         char *ptr
 
-    ptr = period_to_string(remove_mult(value, mult), base)
+    ptr = period_to_string(remove_mult(value, mult), freq)
 
     if ptr == NULL:
         raise ValueError("Could not create string from ordinal '%d'" % value)
@@ -1369,54 +1385,54 @@ def period_strftime(int64_t value, int freq, int64_t mult, object fmt):
 
 # period accessors
 
-ctypedef int (*accessor)(int64_t ordinal, int base) except -1
+ctypedef int (*accessor)(int64_t ordinal, int freq) except -1
 
-cdef int apply_accessor(accessor func, int64_t value, int base,
+cdef int apply_accessor(accessor func, int64_t value, int freq,
                         int64_t mult) except -1:
     value = remove_mult(value, mult)
-    return func(value, base)
+    return func(value, freq)
 
-cpdef int get_period_year(int64_t value, int base, int64_t mult) except -1:
-    return apply_accessor(pyear, value, base, mult)
+cpdef int get_period_year(int64_t value, int freq, int64_t mult) except -1:
+    return apply_accessor(pyear, value, freq, mult)
 
-cpdef int get_period_qyear(int64_t value, int base, int64_t mult) except -1:
-    return apply_accessor(pqyear, value, base, mult)
+cpdef int get_period_qyear(int64_t value, int freq, int64_t mult) except -1:
+    return apply_accessor(pqyear, value, freq, mult)
 
-cpdef int get_period_quarter(int64_t value, int base, int64_t mult) except -1:
-    return apply_accessor(pquarter, value, base, mult)
+cpdef int get_period_quarter(int64_t value, int freq, int64_t mult) except -1:
+    return apply_accessor(pquarter, value, freq, mult)
 
-cpdef int get_period_month(int64_t value, int base, int64_t mult) except -1:
-    return apply_accessor(pmonth, value, base, mult)
+cpdef int get_period_month(int64_t value, int freq, int64_t mult) except -1:
+    return apply_accessor(pmonth, value, freq, mult)
 
-cpdef int get_period_day(int64_t value, int base, int64_t mult) except -1:
-    return apply_accessor(pday, value, base, mult)
+cpdef int get_period_day(int64_t value, int freq, int64_t mult) except -1:
+    return apply_accessor(pday, value, freq, mult)
 
-cpdef int get_period_hour(int64_t value, int base, int64_t mult) except -1:
-    return apply_accessor(phour, value, base, mult)
+cpdef int get_period_hour(int64_t value, int freq, int64_t mult) except -1:
+    return apply_accessor(phour, value, freq, mult)
 
-cpdef int get_period_minute(int64_t value, int base, int64_t mult) except -1:
-    return apply_accessor(pminute, value, base, mult)
+cpdef int get_period_minute(int64_t value, int freq, int64_t mult) except -1:
+    return apply_accessor(pminute, value, freq, mult)
 
-cpdef int get_period_second(int64_t value, int base, int64_t mult) except -1:
-    return apply_accessor(psecond, value, base, mult)
+cpdef int get_period_second(int64_t value, int freq, int64_t mult) except -1:
+    return apply_accessor(psecond, value, freq, mult)
 
-cpdef int get_period_dow(int64_t value, int base, int64_t mult) except -1:
-    return apply_accessor(pday_of_week, value, base, mult)
+cpdef int get_period_dow(int64_t value, int freq, int64_t mult) except -1:
+    return apply_accessor(pday_of_week, value, freq, mult)
 
-cpdef int get_period_week(int64_t value, int base, int64_t mult) except -1:
-    return apply_accessor(pweek, value, base, mult)
+cpdef int get_period_week(int64_t value, int freq, int64_t mult) except -1:
+    return apply_accessor(pweek, value, freq, mult)
 
-cpdef int get_period_weekday(int64_t value, int base, int64_t mult) except -1:
-    return apply_accessor(pweekday, value, base, mult)
+cpdef int get_period_weekday(int64_t value, int freq, int64_t mult) except -1:
+    return apply_accessor(pweekday, value, freq, mult)
 
-cpdef int get_period_doy(int64_t value, int base, int64_t mult) except -1:
-    return apply_accessor(pday_of_year, value, base, mult)
+cpdef int get_period_doy(int64_t value, int freq, int64_t mult) except -1:
+    return apply_accessor(pday_of_year, value, freq, mult)
 
 # same but for arrays
 
 cdef ndarray[int64_t] apply_accessor_arr(accessor func,
                                          ndarray[int64_t] arr,
-                                         int base, int64_t mult):
+                                         int freq, int64_t mult):
     cdef:
         Py_ssize_t i, sz
         ndarray[int64_t] out
@@ -1426,45 +1442,45 @@ cdef ndarray[int64_t] apply_accessor_arr(accessor func,
 
     for i in range(sz):
         out[i] = remove_mult(arr[i], mult)
-        out[i] = func(out[i], base)
+        out[i] = func(out[i], freq)
 
     return out
 
-def get_period_year_arr(ndarray[int64_t] arr, int base, int64_t mult):
-    return apply_accessor_arr(pyear, arr, base, mult)
+def get_period_year_arr(ndarray[int64_t] arr, int freq, int64_t mult):
+    return apply_accessor_arr(pyear, arr, freq, mult)
 
-def get_period_qyear_arr(ndarray[int64_t] arr, int base, int64_t mult):
-    return apply_accessor_arr(pqyear, arr, base, mult)
+def get_period_qyear_arr(ndarray[int64_t] arr, int freq, int64_t mult):
+    return apply_accessor_arr(pqyear, arr, freq, mult)
 
-def get_period_quarter_arr(ndarray[int64_t] arr, int base, int64_t mult):
-    return apply_accessor_arr(pquarter, arr, base, mult)
+def get_period_quarter_arr(ndarray[int64_t] arr, int freq, int64_t mult):
+    return apply_accessor_arr(pquarter, arr, freq, mult)
 
-def get_period_month_arr(ndarray[int64_t] arr, int base, int64_t mult):
-    return apply_accessor_arr(pmonth, arr, base, mult)
+def get_period_month_arr(ndarray[int64_t] arr, int freq, int64_t mult):
+    return apply_accessor_arr(pmonth, arr, freq, mult)
 
-def get_period_day_arr(ndarray[int64_t] arr, int base, int64_t mult):
-    return apply_accessor_arr(pday, arr, base, mult)
+def get_period_day_arr(ndarray[int64_t] arr, int freq, int64_t mult):
+    return apply_accessor_arr(pday, arr, freq, mult)
 
-def get_period_hour_arr(ndarray[int64_t] arr, int base, int64_t mult):
-    return apply_accessor_arr(phour, arr, base, mult)
+def get_period_hour_arr(ndarray[int64_t] arr, int freq, int64_t mult):
+    return apply_accessor_arr(phour, arr, freq, mult)
 
-def get_period_minute_arr(ndarray[int64_t] arr, int base, int64_t mult):
-    return apply_accessor_arr(pminute, arr, base, mult)
+def get_period_minute_arr(ndarray[int64_t] arr, int freq, int64_t mult):
+    return apply_accessor_arr(pminute, arr, freq, mult)
 
-def get_period_second_arr(ndarray[int64_t] arr, int base, int64_t mult):
-    return apply_accessor_arr(psecond, arr, base, mult)
+def get_period_second_arr(ndarray[int64_t] arr, int freq, int64_t mult):
+    return apply_accessor_arr(psecond, arr, freq, mult)
 
-def get_period_dow_arr(ndarray[int64_t] arr, int base, int64_t mult):
-    return apply_accessor_arr(pday_of_week, arr, base, mult)
+def get_period_dow_arr(ndarray[int64_t] arr, int freq, int64_t mult):
+    return apply_accessor_arr(pday_of_week, arr, freq, mult)
 
-def get_period_week_arr(ndarray[int64_t] arr, int base, int64_t mult):
-    return apply_accessor_arr(pweek, arr, base, mult)
+def get_period_week_arr(ndarray[int64_t] arr, int freq, int64_t mult):
+    return apply_accessor_arr(pweek, arr, freq, mult)
 
-def get_period_weekday_arr(ndarray[int64_t] arr, int base, int64_t mult):
-    return apply_accessor_arr(pweekday, arr, base, mult)
+def get_period_weekday_arr(ndarray[int64_t] arr, int freq, int64_t mult):
+    return apply_accessor_arr(pweekday, arr, freq, mult)
 
-def get_period_doy_arr(ndarray[int64_t] arr, int base, int64_t mult):
-    return apply_accessor_arr(pday_of_year, arr, base, mult)
+def get_period_doy_arr(ndarray[int64_t] arr, int freq, int64_t mult):
+    return apply_accessor_arr(pday_of_year, arr, freq, mult)
 
 def get_abs_time(freq, dailyDate, originalDate):
     return getAbsTime(freq, dailyDate, originalDate)

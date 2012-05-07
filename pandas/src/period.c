@@ -688,7 +688,7 @@ static int calc_week_end(int freq, int group) {
     return freq - group;
 }
 
-static void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info) {
+void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info) {
     int fromGroup = get_freq_group(fromFreq);
     int toGroup = get_freq_group(toFreq);
 
@@ -720,7 +720,7 @@ static void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info) {
 }
 
 
-static freq_conv_func get_asfreq_func(int fromFreq, int toFreq, int forConvert)
+freq_conv_func get_asfreq_func(int fromFreq, int toFreq, int forConvert)
 {
     int fromGroup = get_freq_group(fromFreq);
     int toGroup = get_freq_group(toFreq);

@@ -116,7 +116,21 @@ cdef extern from "period.h":
         int day_of_year
         int calendar
 
+    ctypedef struct asfreq_info:
+        int from_week_end
+        int to_week_end
+
+        int from_a_year_end
+        int to_a_year_end
+
+        int from_q_year_end
+        int to_q_year_end
+
+    ctypedef int64_t (*freq_conv_func)(int64_t, char, asfreq_info*)
+
     int64_t asfreq(int64_t dtordinal, int freq1, int freq2, char relation) except -1
+    freq_conv_func get_asfreq_func(int fromFreq, int toFreq, int forConvert)
+    void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info)
 
     int64_t get_period_ordinal(int year, int month, int day,
                           int hour, int minute, int second,
