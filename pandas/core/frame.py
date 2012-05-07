@@ -1469,8 +1469,11 @@ class DataFrame(NDFrame):
                 raise ValueError('Item wrong length %d instead of %d!' %
                                  (len(key), len(self.index)))
 
-            new_index = self.index[key]
-            return self.reindex(new_index)
+            inds, = key.nonzero()
+            return self.take(inds)
+
+            # new_index = self.index[key]
+            # return self.reindex(new_index)
         else:
             indexer = self.columns.get_indexer(key)
             mask = indexer == -1
@@ -1698,12 +1701,21 @@ class DataFrame(NDFrame):
         index = self.index
         if isinstance(index, MultiIndex):
             loc, new_index = self.index.get_loc_level(key)
-        elif isinstance(index, DatetimeIndex):
-            loc = self.index.get_loc(key)
-            if not np.isscalar(loc):
-                new_index = self.index[loc]
         else:
             loc = self.index.get_loc(key)
+
+            if isinstance(loc, np.ndarray):
+                if loc.dtype == np.bool_:
+                    inds, = loc.nonzero()
+                    if len(inds) == 1:
+                        loc = inds[0]
+                    else:
+                        return self.take(inds, axis=axis)
+                else:
+                    return self.take(loc, axis=axis)
+
+            if not np.isscalar(loc):
+                new_index = self.index[loc]
 
         if np.isscalar(loc):
             new_values = self._data.fast_2d_xs(loc, copy=copy)

@@ -877,6 +877,23 @@ class CheckIndexing(object):
     def test_setitem_boolean_missing(self):
         pass
 
+    def test_getitem_setitem_ix_duplicates(self):
+        # #1201
+        df = DataFrame(np.random.randn(5, 3),
+                       index=['foo', 'foo', 'bar', 'baz', 'bar'])
+
+        result = df.ix['foo']
+        expected = df[:2]
+        assert_frame_equal(result, expected)
+
+        result = df.ix['bar']
+        expected = df.ix[[2, 4]]
+        assert_frame_equal(result, expected)
+
+        result = df.ix['baz']
+        expected = df.ix[3]
+        assert_series_equal(result, expected)
+
     def test_get_value(self):
         for idx in self.frame.index:
             for col in self.frame.columns:

@@ -565,6 +565,11 @@ class TestTimeSeries(unittest.TestCase):
         assert_series_equal(result, expected)
         tm.assert_frame_equal(result_df, exp_df)
 
+        chunk = df.ix['1/4/2000':]
+        result = chunk.ix[time(9, 30)]
+        expected = result_df[-1:]
+        tm.assert_frame_equal(result, expected)
+
     def test_dti_constructor_preserve_dti_freq(self):
         rng = date_range('1/1/2000', '1/2/2000', freq='5min')
 

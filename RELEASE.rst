@@ -35,6 +35,8 @@ pandas 0.8.0
     (#864)
   - Add limit argument for forward/backward filling to reindex, fillna,
     etc. (#825 and others)
+  - Add support for indexes (dates or otherwise) with duplicates and common
+    sense indexing/selection functionality
 
 **Improvements to existing features**
 

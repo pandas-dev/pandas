@@ -50,3 +50,15 @@ cols = cols[0:99]
 
 frame_multiaxis_reindex = Benchmark('df.reindex(index=idx, columns=cols)',
                                     setup, start_date=datetime(2012, 5, 6))
+
+#----------------------------------------------------------------------
+# boolean indexing
+
+setup = common_setup + """
+df = DataFrame(randn(10000, 100))
+bool_arr = np.zeros(10000, dtype=bool)
+bool_arr[:1000] = True
+"""
+
+frame_boolean_row_select = Benchmark('df[bool_arr]', setup,
+                                     start_date=datetime(2011, 1, 1))
