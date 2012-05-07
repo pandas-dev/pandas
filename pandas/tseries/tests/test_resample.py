@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import numpy as np
 
-from pandas import Series, TimeSeries, DataFrame, isnull, notnull
+from pandas import Series, TimeSeries, DataFrame, Panel, isnull, notnull
 
 from pandas.tseries.index import date_range
 from pandas.tseries.offsets import Minute, bday
@@ -46,6 +46,7 @@ class TestResample(unittest.TestCase):
         funcs = ['add', 'mean', 'prod', 'ohlc', 'min', 'max', 'var']
         for f in funcs:
             g._cython_agg_general(f)
+
 
         self.assertEquals(g.ngroups, 2593)
         self.assert_(notnull(g.mean()).all())
@@ -299,6 +300,52 @@ class TestResample(unittest.TestCase):
 
         self.assertRaises(Exception, ts.asfreq, 'B')
 
+    def test_resample_axis1(self):
+        rng = date_range('1/1/2000', '2/29/2000')
+        df = DataFrame(np.random.randn(3, len(rng)), columns=rng,
+                       index=['a', 'b', 'c'])
+
+        result = df.resample('M', axis=1)
+        expected = df.T.resample('M').T
+        tm.assert_frame_equal(result, expected)
+
+    def test_resample_panel(self):
+        rng = date_range('1/1/2000', '6/30/2000')
+        n = len(rng)
+
+        panel = Panel(np.random.randn(3, n, 5),
+                      items=['one', 'two', 'three'],
+                      major_axis=rng,
+                      minor_axis=['a', 'b', 'c', 'd', 'e'])
+
+        result = panel.resample('M', axis=1)
+
+        def apply(panel, f):
+            result = {}
+            for item in panel.items:
+                result[item] = f(panel[item])
+            return Panel(result, items=panel.items)
+
+        expected = apply(panel, lambda x: x.resample('M'))
+        tm.assert_panel_equal(result, expected)
+
+        panel2 = panel.swapaxes(1, 2)
+        result = panel2.resample('M', axis=2)
+        expected = apply(panel2, lambda x: x.resample('M', axis=1))
+        tm.assert_panel_equal(result, expected)
+
+    def test_resample_panel_numpy(self):
+        rng = date_range('1/1/2000', '6/30/2000')
+        n = len(rng)
+
+        panel = Panel(np.random.randn(3, n, 5),
+                      items=['one', 'two', 'three'],
+                      major_axis=rng,
+                      minor_axis=['a', 'b', 'c', 'd', 'e'])
+
+        result = panel.resample('M', how=lambda x: x.mean(), axis=1)
+        expected = panel.resample('M', how='mean', axis=1)
+        tm.assert_panel_equal(result, expected)
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)

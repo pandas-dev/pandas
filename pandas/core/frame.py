@@ -1259,6 +1259,23 @@ class DataFrame(NDFrame):
 
     T = property(transpose)
 
+    def swapaxes(self, i, j):
+        """
+        Like ndarray.swapaxes, equivalent to transpose
+
+        Returns
+        -------
+        swapped : DataFrame
+            View on original data (no copy)
+        """
+        if i in (0, 1) and j in (0, 1):
+            if i == j:
+                return self
+            return self._constructor(data=self.values.T, index=self.columns,
+                                     columns=self.index, copy=False)
+        else:  # pragma: no cover
+            raise ValueError('Axis numbers must be in (0, 1)')
+
     #----------------------------------------------------------------------
     # Picklability
 

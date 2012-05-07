@@ -52,9 +52,6 @@ class TimeGrouper(CustomGrouper):
         self.fill_method = fill_method
         self.limit = limit
 
-        if axis != 0:
-            raise NotImplementedError
-
     def resample(self, obj):
         axis = obj._get_axis(self.axis)
         if isinstance(axis, DatetimeIndex):
