@@ -607,6 +607,8 @@ class PeriodIndex(Int64Index):
     def asfreq(self, freq=None, how='E'):
         how = _validate_end_alias(how)
 
+        freq = _freq_mod.get_standard_freq(freq)
+
         base1, mult1 = _gfc(self.freq)
 
         if isinstance(freq, basestring):
@@ -621,7 +623,10 @@ class PeriodIndex(Int64Index):
         new_data = lib.period_asfreq_arr(self.values, base1, mult1,
                                          base2, mult2, end)
 
-        return PeriodIndex(new_data, freq=freq)
+        result = new_data.view(PeriodIndex)
+        result.name = self.name
+        result.freq = freq
+        return result
 
     year = _field_accessor('year')
     month = _field_accessor('month')

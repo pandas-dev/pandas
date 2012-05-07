@@ -102,7 +102,7 @@ rng = period_range('1/1/2000', '1/1/2001', freq='T')
 ts = Series(np.random.randn(len(rng)), index=rng)
 """
 
-timeseries_period_resample_mean = \
+timeseries_period_downsample_mean = \
     Benchmark("ts.resample('D', how='mean')", setup,
               start_date=datetime(2012, 4, 25))
 
@@ -111,6 +111,6 @@ rng = date_range('1/1/2000', '1/1/2001', freq='T')
 ts = Series(np.random.randn(len(rng)), index=rng)
 """
 
-timeseries_timestamp_resample_mean = \
+timeseries_timestamp_downsample_mean = \
     Benchmark("ts.resample('D', how='mean')", setup,
               start_date=datetime(2012, 4, 25))

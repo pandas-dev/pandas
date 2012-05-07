@@ -371,7 +371,7 @@ class GroupBy(object):
             if not issubclass(obj.dtype.type, (np.number, np.bool_)):
                 continue
 
-            result, names = self.grouper.aggregate(obj, how)
+            result, names = self.grouper.aggregate(obj.values, how)
             output[name] = result
 
         if len(output) == 0:
