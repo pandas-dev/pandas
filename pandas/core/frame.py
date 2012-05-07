@@ -256,7 +256,7 @@ class DataFrame(NDFrame):
     _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
 
     def __init__(self, data=None, index=None, columns=None, dtype=None,
-                 copy=False, as_multi=False):
+                 copy=False):
         """Two-dimensional size-mutable, potentially heterogeneous tabular data
         structure with labeled axes (rows and columns). Arithmetic operations
         align on both row and column labels. Can be thought of as a dict-like
@@ -297,12 +297,6 @@ class DataFrame(NDFrame):
 
         if isinstance(data, DataFrame):
             data = data._data
-
-        if index is not None:
-            index = _ensure_index(index, as_multi)
-
-        if columns is not None:
-            columns = _ensure_index(columns, as_multi)
 
         if isinstance(data, BlockManager):
             mgr = self._init_mgr(data, index, columns, dtype=dtype, copy=copy)
