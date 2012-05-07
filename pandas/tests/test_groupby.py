@@ -18,6 +18,7 @@ from collections import defaultdict
 import pandas.core.common as com
 import pandas.core.datetools as dt
 import numpy as np
+from numpy.testing import assert_equal
 
 import pandas.util.testing as tm
 
@@ -484,7 +485,7 @@ class TestGroupBy(unittest.TestCase):
                           'F' : np.random.randn(11)})
 
         def bad(x):
-            assert(len(x.base) == len(x))
+            assert_equal(len(x.base), len(x))
             return 'foo'
 
         result = data.groupby(['A', 'B']).agg(bad)
