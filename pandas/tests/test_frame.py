@@ -1231,6 +1231,30 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame(data={})
         self.assert_(len(df.index) == 0)
 
+        multi = DataFrame(np.random.randn(4, 4),
+                          index=[np.array(['a', 'a', 'b', 'b']),
+                                 np.array(['x', 'y', 'x', 'y'])],
+                          as_multi=True)
+        self.assert_(isinstance(multi.index, MultiIndex))
+        self.assert_(not isinstance(multi.columns, MultiIndex))
+
+        multi = DataFrame(np.random.randn(4, 4),
+                          columns=[['a', 'a', 'b', 'b'],
+                                   ['x', 'y', 'x', 'y']],
+                          as_multi=True)
+        self.assert_(isinstance(multi.columns, MultiIndex))
+
+        multi = DataFrame(multi.values, index=zip(['a', 'a', 'b', 'b'],
+                                                  ['x', 'y', 'x', 'y']),
+                          as_multi=True)
+        self.assert_(isinstance(multi.index, MultiIndex))
+
+        notmulti = DataFrame(np.random.randn(2, 2),
+                             index=[np.array(['a', 'a', 'b', 'b']),
+                                    np.array(['x', 'y', 'x', 'y'])])
+        self.assert_(not isinstance(notmulti.index, MultiIndex))
+
+
     def test_list_to_sdict(self):
         from pandas.core.frame import _list_to_sdict
 

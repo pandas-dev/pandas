@@ -223,6 +223,25 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(Exception, Series, np.random.randn(3, 3),
                           index=np.arange(3))
 
+        multi = Series(1., index=[np.array(['a', 'a', 'b', 'b']),
+                                  np.array(['x', 'y', 'x', 'y'])],
+                       as_multi=True)
+        self.assert_(isinstance(multi.index, MultiIndex))
+
+        multi = Series(1., index=[['a', 'a', 'b', 'b'],
+                                  ['x', 'y', 'x', 'y']],
+                       as_multi=True)
+        self.assert_(isinstance(multi.index, MultiIndex))
+
+        multi = Series(1., index=zip(['a', 'a', 'b', 'b'],
+                                     ['x', 'y', 'x', 'y']),
+                       as_multi=True)
+        self.assert_(isinstance(multi.index, MultiIndex))
+
+        notmulti = Series(1., index=[np.array(['a', 'a', 'b', 'b']),
+                                     np.array(['x', 'y', 'x', 'y'])])
+        self.assert_(not isinstance(notmulti.index, MultiIndex))
+
     def test_constructor_empty(self):
         empty = Series()
         empty2 = Series([])

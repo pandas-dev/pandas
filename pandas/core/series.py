@@ -265,9 +265,12 @@ class Series(np.ndarray, generic.PandasObject):
     __slots__ = ['_index', 'name']
 
     def __new__(cls, data=None, index=None, dtype=None, name=None,
-                copy=False):
+                copy=False, as_multi=False):
         if data is None:
             data = {}
+
+        if index is not None:
+            index = _ensure_index(index, as_multi)
 
         if isinstance(data, Series):
             if index is None:
@@ -275,8 +278,7 @@ class Series(np.ndarray, generic.PandasObject):
         elif isinstance(data, dict):
             if index is None:
                 index = Index(sorted(data))
-            else:
-                index = _ensure_index(index)
+
             try:
                 if isinstance(index, DatetimeIndex):
                     # coerce back to datetime objects for lookup
@@ -298,8 +300,6 @@ class Series(np.ndarray, generic.PandasObject):
 
         if index is None:
             index = _default_index(len(subarr))
-        else:
-            index = _ensure_index(index)
 
         # Change the class of the array to be the subclass type.
         if index.is_all_dates:
@@ -314,7 +314,7 @@ class Series(np.ndarray, generic.PandasObject):
         return subarr
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
-                 copy=False):
+                 copy=False, as_multi=False):
         """One-dimensional ndarray with axis labels (including time
 series). Labels must be unique and can any hashable type. The object supports
 both integer- and label-based indexing and provides a host of methods for

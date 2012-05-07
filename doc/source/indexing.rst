@@ -215,12 +215,12 @@ more complex criteria:
 .. ipython:: python
 
    # only want 'two' or 'three'
-   criterion = df2['a'].map(lambda x: x.startswith('t')
+   criterion = df2.a.map(lambda x: x.startswith('t')
 
    df2[criterion]
 
    # equivalent but slower
-   df2[[x.startswith('t') for x in df2['a']]]
+   df2[[x.startswith('t') for x in df2.a]]
 
    # Multiple criteria
    df2[criterion & (df2['b'] == 'x')]

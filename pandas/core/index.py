@@ -2237,11 +2237,17 @@ def _sparsify(label_list):
     return zip(*result)
 
 
-def _ensure_index(index_like):
+def _ensure_index(index_like, as_multi=False):
     if isinstance(index_like, Index):
         return index_like
     if hasattr(index_like, 'name'):
         return Index(index_like, name=index_like.name)
+    if (as_multi and isinstance(index_like, list)
+        and len(index_like) > 0):
+        if isinstance(index_like[0], tuple):
+            return MultiIndex.from_tuples(index_like)
+        elif isinstance(index_like[0], (list, np.ndarray)):
+            return MultiIndex.from_arrays(index_like)
     return Index(index_like)
 
 def _validate_join_method(method):
