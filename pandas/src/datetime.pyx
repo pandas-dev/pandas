@@ -12,9 +12,12 @@ from util cimport is_integer_object, is_datetime64_object
 from dateutil.parser import parse as parse_date
 cimport util
 
+from khash cimport *
+import cython
+
 # initialize numpy
 import_array()
-import_ufunc()
+#import_ufunc()
 
 # import datetime C API
 PyDateTime_IMPORT
@@ -220,7 +223,7 @@ cdef class _Timestamp(datetime):
 # lightweight C object to hold datetime & int64 pair
 cdef class _TSObject:
     cdef:
-        npy_datetimestruct dts      # npy_datetimestruct
+        pandas_datetimestruct dts      # pandas_datetimestruct
         int64_t value               # numpy dt64
         object tzinfo
 
@@ -247,13 +250,13 @@ cpdef convert_to_tsobject(object ts, object tz=None):
 
     if is_datetime64_object(ts):
         obj.value = unbox_datetime64_scalar(ts)
-        PyArray_DatetimeToDatetimeStruct(obj.value, NPY_FR_us, &obj.dts)
+        pandas_datetime_to_datetimestruct(obj.value, PANDAS_FR_us, &obj.dts)
     elif is_integer_object(ts):
         obj.value = ts
-        PyArray_DatetimeToDatetimeStruct(ts, NPY_FR_us, &obj.dts)
+        pandas_datetime_to_datetimestruct(ts, PANDAS_FR_us, &obj.dts)
     elif util.is_string_object(ts):
         _string_to_dts(ts, &obj.dts)
-        obj.value = PyArray_DatetimeStructToDatetime(NPY_FR_us, &obj.dts)
+        obj.value = pandas_datetimestruct_to_datetime(PANDAS_FR_us, &obj.dts)
     elif PyDateTime_Check(ts):
         obj.value = _pydatetime_to_dts(ts, &obj.dts)
         obj.tzinfo = ts.tzinfo
@@ -277,7 +280,7 @@ cpdef convert_to_tsobject(object ts, object tz=None):
             obj.value = obj.value + deltas[pos]
 
             if utc_convert:
-                PyArray_DatetimeToDatetimeStruct(obj.value, NPY_FR_us,
+                pandas_datetime_to_datetimestruct(obj.value, PANDAS_FR_us,
                                                  &obj.dts)
                 obj.tzinfo = tz._tzinfos[inf]
 
@@ -293,16 +296,16 @@ cpdef convert_to_tsobject(object ts, object tz=None):
 #     obj.dtval = _dts_to_pydatetime(&obj.dts)
 
 cdef inline object _datetime64_to_datetime(int64_t val):
-    cdef npy_datetimestruct dts
-    PyArray_DatetimeToDatetimeStruct(val, NPY_FR_us, &dts)
+    cdef pandas_datetimestruct dts
+    pandas_datetime_to_datetimestruct(val, PANDAS_FR_us, &dts)
     return _dts_to_pydatetime(&dts)
 
-cdef inline object _dts_to_pydatetime(npy_datetimestruct *dts):
+cdef inline object _dts_to_pydatetime(pandas_datetimestruct *dts):
     return <object> PyDateTime_FromDateAndTime(dts.year, dts.month,
                                                dts.day, dts.hour,
                                                dts.min, dts.sec, dts.us)
 
-cdef inline int64_t _pydatetime_to_dts(object val, npy_datetimestruct *dts):
+cdef inline int64_t _pydatetime_to_dts(object val, pandas_datetimestruct *dts):
     dts.year = PyDateTime_GET_YEAR(val)
     dts.month = PyDateTime_GET_MONTH(val)
     dts.day = PyDateTime_GET_DAY(val)
@@ -310,10 +313,10 @@ cdef inline int64_t _pydatetime_to_dts(object val, npy_datetimestruct *dts):
     dts.min = PyDateTime_DATE_GET_MINUTE(val)
     dts.sec = PyDateTime_DATE_GET_SECOND(val)
     dts.us = PyDateTime_DATE_GET_MICROSECOND(val)
-    return PyArray_DatetimeStructToDatetime(NPY_FR_us, dts)
+    return pandas_datetimestruct_to_datetime(PANDAS_FR_us, dts)
 
 cdef inline int64_t _dtlike_to_datetime64(object val,
-                                          npy_datetimestruct *dts):
+                                          pandas_datetimestruct *dts):
     dts.year = val.year
     dts.month = val.month
     dts.day = val.day
@@ -321,10 +324,10 @@ cdef inline int64_t _dtlike_to_datetime64(object val,
     dts.min = val.minute
     dts.sec = val.second
     dts.us = val.microsecond
-    return PyArray_DatetimeStructToDatetime(NPY_FR_us, dts)
+    return pandas_datetimestruct_to_datetime(PANDAS_FR_us, dts)
 
 cdef inline int64_t _date_to_datetime64(object val,
-                                        npy_datetimestruct *dts):
+                                        pandas_datetimestruct *dts):
     dts.year = PyDateTime_GET_YEAR(val)
     dts.month = PyDateTime_GET_MONTH(val)
     dts.day = PyDateTime_GET_DAY(val)
@@ -332,17 +335,17 @@ cdef inline int64_t _date_to_datetime64(object val,
     dts.min = 0
     dts.sec = 0
     dts.us = 0
-    return PyArray_DatetimeStructToDatetime(NPY_FR_us, dts)
+    return pandas_datetimestruct_to_datetime(PANDAS_FR_us, dts)
 
 
-cdef inline int _string_to_dts(object val, npy_datetimestruct* dts) except -1:
+cdef inline int _string_to_dts(object val, pandas_datetimestruct* dts) except -1:
     cdef:
         npy_bool islocal, special
-        NPY_DATETIMEUNIT out_bestunit
+        PANDAS_DATETIMEUNIT out_bestunit
 
     if PyUnicode_Check(val):
         val = PyUnicode_AsASCIIString(val);
-    parse_iso_8601_datetime(val, len(val), NPY_FR_us, NPY_UNSAFE_CASTING,
+    parse_iso_8601_datetime(val, len(val), PANDAS_FR_us, NPY_UNSAFE_CASTING,
                             dts, &islocal, &out_bestunit, &special)
     return 0
 
@@ -741,12 +744,12 @@ def string_to_datetime(ndarray[object] strings, raise_=False, dayfirst=False):
         for i in range(n):
             val = strings[i]
             if util._checknull(val):
-                result[i] = NaT
+                result[i] = 'NaT'
             elif PyDateTime_Check(val):
                 result[i] = val
             else:
                 if len(val) == 0:
-                    result[i] = NaT
+                    result[i] = 'NaT'
                     continue
                 try:
                     result[i] = parse(val, dayfirst=dayfirst)
@@ -762,7 +765,7 @@ def string_to_datetime(ndarray[object] strings, raise_=False, dayfirst=False):
                 oresult[i] = val
             else:
                 if len(val) == 0:
-                    oresult[i] = NaT
+                    oresult[i] = 'NaT'
                     continue
                 try:
                     oresult[i] = parse(val, dayfirst=dayfirst)
@@ -983,7 +986,7 @@ def build_field_sarray(ndarray[int64_t] dtindex):
     cdef:
         Py_ssize_t i, count = 0
         int isleap
-        npy_datetimestruct dts
+        pandas_datetimestruct dts
         ndarray[int32_t] years, months, days, hours, minutes, seconds, mus
 
     count = len(dtindex)
@@ -1007,7 +1010,7 @@ def build_field_sarray(ndarray[int64_t] dtindex):
     mus = out['u']
 
     for i in range(count):
-        PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
+        pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_us, &dts)
         years[i] = dts.year
         months[i] = dts.month
         days[i] = dts.day
@@ -1030,7 +1033,7 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
         ndarray[int32_t] out
         ndarray[int32_t, ndim=2] _month_offset
         int isleap
-        npy_datetimestruct dts
+        pandas_datetimestruct dts
 
     _month_offset = np.array(
         [[ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 ],
@@ -1042,49 +1045,49 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
 
     if field == 'Y':
         for i in range(count):
-            PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
+            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_us, &dts)
             out[i] = dts.year
         return out
 
     elif field == 'M':
         for i in range(count):
-            PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
+            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_us, &dts)
             out[i] = dts.month
         return out
 
     elif field == 'D':
         for i in range(count):
-            PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
+            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_us, &dts)
             out[i] = dts.day
         return out
 
     elif field == 'h':
         for i in range(count):
-            PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
+            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_us, &dts)
             out[i] = dts.hour
         return out
 
     elif field == 'm':
         for i in range(count):
-            PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
+            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_us, &dts)
             out[i] = dts.min
         return out
 
     elif field == 's':
         for i in range(count):
-            PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
+            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_us, &dts)
             out[i] = dts.sec
         return out
 
     elif field == 'us':
         for i in range(count):
-            PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
+            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_us, &dts)
             out[i] = dts.us
         return out
 
     elif field == 'doy':
         for i in range(count):
-            PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
+            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_us, &dts)
             isleap = is_leapyear(dts.year)
             out[i] = _month_offset[isleap, dts.month-1] + dts.day
         return out
@@ -1097,7 +1100,7 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
 
     elif field == 'woy':
         for i in range(count):
-            PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
+            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_us, &dts)
             isleap = is_leapyear(dts.year)
             out[i] = _month_offset[isleap, dts.month - 1] + dts.day
             out[i] = ((out[i] - 1) / 7) + 1
@@ -1105,7 +1108,7 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
 
     elif field == 'q':
         for i in range(count):
-            PyArray_DatetimeToDatetimeStruct(dtindex[i], NPY_FR_us, &dts)
+            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_us, &dts)
             out[i] = dts.month
             out[i] = ((out[i] - 1) / 3) + 1
         return out
@@ -1165,25 +1168,25 @@ def date_normalize(ndarray[int64_t] stamps):
     cdef:
         Py_ssize_t i, n = len(stamps)
         ndarray[int64_t] result = np.empty(n, dtype=np.int64)
-        npy_datetimestruct dts
+        pandas_datetimestruct dts
 
     for i in range(n):
-        PyArray_DatetimeToDatetimeStruct(stamps[i], NPY_FR_us, &dts)
+        pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_us, &dts)
         dts.hour = 0
         dts.min = 0
         dts.sec = 0
         dts.us = 0
-        result[i] = PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts)
+        result[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_us, &dts)
 
     return result
 
 def dates_normalized(ndarray[int64_t] stamps):
     cdef:
         Py_ssize_t i, n = len(stamps)
-        npy_datetimestruct dts
+        pandas_datetimestruct dts
 
     for i in range(n):
-        PyArray_DatetimeToDatetimeStruct(stamps[i], NPY_FR_us, &dts)
+        pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_us, &dts)
         if (dts.hour + dts.min + dts.sec + dts.us) > 0:
             return False
 
@@ -1241,14 +1244,14 @@ def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int freq):
     cdef:
         ndarray[int64_t] out
         Py_ssize_t i, l
-        npy_datetimestruct dts
+        pandas_datetimestruct dts
 
     l = len(dtarr)
 
     out = np.empty(l, dtype='i8')
 
     for i in range(l):
-        PyArray_DatetimeToDatetimeStruct(dtarr[i], NPY_FR_us, &dts)
+        pandas_datetime_to_datetimestruct(dtarr[i], PANDAS_FR_us, &dts)
         out[i] = get_period_ordinal(dts.year, dts.month, dts.day,
                                   dts.hour, dts.min, dts.sec, freq)
     return out
@@ -1334,7 +1337,7 @@ def period_ordinal(int y, int m, int d, int h, int min, int s, int freq):
 
 cpdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq):
     cdef:
-        npy_datetimestruct dts
+        pandas_datetimestruct dts
         date_info dinfo
 
     get_date_info(ordinal, freq, &dinfo)
@@ -1347,7 +1350,7 @@ cpdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq):
     dts.sec = int(dinfo.second)
     dts.us = 0
 
-    return PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts)
+    return pandas_datetimestruct_to_datetime(PANDAS_FR_us, &dts)
 
 def period_ordinal_to_string(int64_t value, int freq):
     cdef:
