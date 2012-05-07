@@ -42,39 +42,12 @@ cdef extern from "numpy/ndarrayobject.h":
     ctypedef int64_t npy_timedelta
     ctypedef int64_t npy_datetime
 
-    ctypedef struct npy_datetimestruct:
-        int64_t year
-        int month, day, hour, min, sec, us, ps, as
-
-    ctypedef enum NPY_DATETIMEUNIT:
-        #NPY_FR_Y
-        #NPY_FR_M
-        #NPY_FR_W
-        #NPY_FR_B
-        #NPY_FR_D
-        #NPY_FR_h
-        #NPY_FR_m
-        #NPY_FR_s
-        #NPY_FR_ms
-        NPY_FR_us
-        #NPY_FR_ns
-        #NPY_FR_ps
-        #NPY_FR_fs
-        #NPY_FR_as
-
     ctypedef enum NPY_CASTING:
             NPY_NO_CASTING
             NPY_EQUIV_CASTING
             NPY_SAFE_CASTING
             NPY_SAME_KIND_CASTING
             NPY_UNSAFE_CASTING
-
-    npy_datetime PyArray_DatetimeStructToDatetime(NPY_DATETIMEUNIT fr,
-                                                  npy_datetimestruct *d)
-
-    void PyArray_DatetimeToDatetimeStruct(npy_datetime val,
-                                          NPY_DATETIMEUNIT fr,
-                                          npy_datetimestruct *result)
 
 cdef extern from "numpy_helper.h":
     npy_datetime unbox_datetime64_scalar(object o)
@@ -85,9 +58,32 @@ cdef extern from "numpy/npy_common.h":
 
 cdef extern from "np_datetime.h":
 
-    int convert_pydatetime_to_datetimestruct(PyObject *obj, npy_datetimestruct *out,
-                                             NPY_DATETIMEUNIT *out_bestunit,
+    ctypedef enum PANDAS_DATETIMEUNIT:
+        PANDAS_FR_Y
+        PANDAS_FR_M
+        PANDAS_FR_W
+        PANDAS_FR_D
+        PANDAS_FR_B
+        PANDAS_FR_h
+        PANDAS_FR_m
+        PANDAS_FR_s
+        PANDAS_FR_ms
+        PANDAS_FR_us
+        PANDAS_FR_ns
+        PANDAS_FR_ps
+        PANDAS_FR_fs
+        PANDAS_FR_as
+
+    ctypedef struct pandas_datetimestruct:
+        int64_t year
+        int month, day, hour, min, sec, us, ps, as
+
+    int convert_pydatetime_to_datetimestruct(PyObject *obj, pandas_datetimestruct *out,
+                                             PANDAS_DATETIMEUNIT *out_bestunit,
                                              int apply_tzinfo)
+
+    npy_datetime pandas_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT fr, pandas_datetimestruct *d)
+    void pandas_datetime_to_datetimestruct(npy_datetime val, PANDAS_DATETIMEUNIT fr, pandas_datetimestruct *result)
     int _days_per_month_table[2][12]
 
     int dayofweek(int y, int m, int d)
@@ -95,18 +91,18 @@ cdef extern from "np_datetime.h":
 
 cdef extern from "np_datetime_strings.h":
 
-    int parse_iso_8601_datetime(char *str, int len, NPY_DATETIMEUNIT unit,
-                                NPY_CASTING casting, npy_datetimestruct *out,
-                                npy_bool *out_local, NPY_DATETIMEUNIT *out_bestunit,
+    int parse_iso_8601_datetime(char *str, int len, PANDAS_DATETIMEUNIT unit,
+                                NPY_CASTING casting, pandas_datetimestruct *out,
+                                npy_bool *out_local, PANDAS_DATETIMEUNIT *out_bestunit,
                                 npy_bool *out_special)
 
-    int make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
-                               int local, NPY_DATETIMEUNIT base, int tzoffset,
+    int make_iso_8601_datetime(pandas_datetimestruct *dts, char *outstr, int outlen,
+                               int local, PANDAS_DATETIMEUNIT base, int tzoffset,
                                NPY_CASTING casting)
 
-    int get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base)
+    int get_datetime_iso_8601_strlen(int local, PANDAS_DATETIMEUNIT base)
 
-    # int parse_python_string(object obj, npy_datetimestruct *out) except -1
+    # int parse_python_string(object obj, pandas_datetimestruct *out) except -1
 
 cdef extern from "period.h":
     ctypedef struct date_info:
