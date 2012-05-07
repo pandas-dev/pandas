@@ -49,4 +49,4 @@ cols = cols[0:99]
 """
 
 frame_multiaxis_reindex = Benchmark('df.reindex(index=idx, columns=cols)',
-                                    setup, start_date=datetime(2012, 5, 6))
+                                    setup)

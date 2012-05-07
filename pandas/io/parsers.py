@@ -53,8 +53,6 @@ date_parser : function
     dateutil.parser
 dayfirst : boolean, default False
     DD/MM format dates, international and European format
-thousands : str, default None
-    Thousands separator
 nrows : int, default None
     Number of rows of file to read. Useful for reading pieces of large files
 iterator : boolean, default False
@@ -178,7 +176,6 @@ def read_csv(filepath_or_buffer,
              names=None,
              skiprows=None,
              na_values=None,
-             thousands=None,
              parse_dates=False,
              dayfirst=False,
              date_parser=None,
@@ -207,7 +204,6 @@ def read_table(filepath_or_buffer,
                names=None,
                skiprows=None,
                na_values=None,
-               thousands=None,
                parse_dates=False,
                dayfirst=False,
                date_parser=None,
@@ -240,7 +236,6 @@ def read_fwf(filepath_or_buffer,
              names=None,
              skiprows=None,
              na_values=None,
-             thousands=None,
              parse_dates=False,
              dayfirst=False,
              date_parser=None,
@@ -270,8 +265,9 @@ def read_fwf(filepath_or_buffer,
             col += w
         kwds['colspecs'] = colspecs
 
-    kwds['thousands'] = thousands
     return _read(FixedWidthFieldParser, filepath_or_buffer, kwds)
+
+
 
 def read_clipboard(**kwargs):  # pragma: no cover
     """
@@ -350,8 +346,7 @@ class TextParser(object):
     """
 
     def __init__(self, f, delimiter=None, names=None, header=0,
-                 index_col=None, na_values=None, thousands=None,
-                 parse_dates=False,
+                 index_col=None, na_values=None, parse_dates=False,
                  date_parser=None, dayfirst=False, chunksize=None,
                  skiprows=None, skip_footer=0, converters=None,
                  verbose=False, encoding=None):
@@ -396,8 +391,6 @@ class TextParser(object):
             self.na_values = na_values
         else:
             self.na_values = set(list(na_values)) | _NA_VALUES
-
-        self.thousands = thousands
 
         if hasattr(f, 'readline'):
             self._make_reader(f)
@@ -506,30 +499,10 @@ class TextParser(object):
                 next(self.data)
                 self.pos += 1
             line = next(self.data)
-
-        line = self._check_thousands([line])[0]
-
         self.pos += 1
         self.buf.append(line)
 
         return line
-
-    def _check_thousands(self, lines):
-        if self.thousands is None:
-            return lines
-        nonnum = re.compile('[^-^0-9^%s^.]+' % self.thousands)
-        ret = []
-        for l in lines:
-            rl = []
-            for x in l:
-                if (not isinstance(x, basestring) or
-                    self.thousands not in x or
-                    nonnum.search(x.strip())):
-                    rl.append(x)
-                else:
-                    rl.append(x.replace(',', ''))
-            ret.append(rl)
-        return ret
 
     def _clear_buffer(self):
         self.buf = []
@@ -730,7 +703,7 @@ class TextParser(object):
         if self.skip_footer:
             lines = lines[:-self.skip_footer]
 
-        return self._check_thousands(lines)
+        return lines
 
 def _convert_to_ndarrays(dct, na_values, verbose=False):
     def _get_na_values(col):
@@ -778,11 +751,10 @@ class FixedWidthReader(object):
     """
     A reader of fixed-width lines.
     """
-    def __init__(self, f, colspecs, filler, thousands=None):
+    def __init__(self, f, colspecs, filler):
         self.f = f
         self.colspecs = colspecs
         self.filler = filler # Empty characters between fields.
-        self.thousands = thousands
 
         assert isinstance(colspecs, (tuple, list))
         for colspec in colspecs:
@@ -796,7 +768,7 @@ class FixedWidthReader(object):
         # Note: 'colspecs' is a sequence of half-open intervals.
         return [line[fromm:to].strip(self.filler or ' ')
                 for (fromm, to) in self.colspecs]
-
+    
     # Iterator protocol in Python 3 uses __next__()
     __next__ = next
 
@@ -855,7 +827,7 @@ class ExcelFile(object):
 
     def parse(self, sheetname, header=0, skiprows=None, index_col=None,
               parse_dates=False, date_parser=None, na_values=None,
-              thousands=None, chunksize=None):
+              chunksize=None):
         """
         Read Excel table into DataFrame
 
@@ -883,13 +855,11 @@ class ExcelFile(object):
                                      skiprows=skiprows, index_col=index_col,
                                      parse_dates=parse_dates,
                                      date_parser=date_parser,
-                                     na_values=na_values,
-                                     thousands=thousands,
-                                     chunksize=chunksize)
+                                     na_values=na_values, chunksize=chunksize)
 
     def _parse_xlsx(self, sheetname, header=0, skiprows=None, index_col=None,
-                    parse_dates=False, date_parser=None, na_values=None,
-                    thousands=None, chunksize=None):
+              parse_dates=False, date_parser=None, na_values=None,
+              chunksize=None):
         sheet = self.book.get_sheet_by_name(name=sheetname)
         data = []
 
@@ -902,7 +872,6 @@ class ExcelFile(object):
 
         parser = TextParser(data, header=header, index_col=index_col,
                             na_values=na_values,
-                            thousands=thousands,
                             parse_dates=parse_dates,
                             date_parser=date_parser,
                             skiprows=skiprows,
@@ -911,8 +880,8 @@ class ExcelFile(object):
         return parser.get_chunk()
 
     def _parse_xls(self, sheetname, header=0, skiprows=None, index_col=None,
-                   parse_dates=False, date_parser=None, na_values=None,
-                   thousands=None, chunksize=None):
+              parse_dates=False, date_parser=None, na_values=None,
+              chunksize=None):
         from datetime import MINYEAR, time, datetime
         from xlrd import xldate_as_tuple, XL_CELL_DATE
 
@@ -938,7 +907,6 @@ class ExcelFile(object):
 
         parser = TextParser(data, header=header, index_col=index_col,
                             na_values=na_values,
-                            thousands=thousands,
                             parse_dates=parse_dates,
                             date_parser=date_parser,
                             skiprows=skiprows,
