@@ -937,9 +937,23 @@ class Panel(NDFrame):
         return self._constructor(new_values, *new_axes)
 
     def transpose(self, items='items', major='major', minor='minor',
-                  copy=True):
+                  copy=False):
         """
         Permute the dimensions of the Panel
+
+        Parameters
+        ----------
+        items : int or one of {'items', 'major', 'minor'}
+        major : int or one of {'items', 'major', 'minor'}
+        minor : int or one of {'items', 'major', 'minor'}
+        copy : boolean, default False
+            Make a copy of the underlying data. Mixed-dtype data will
+            always result in a copy
+
+        Examples
+        --------
+        >>> p.transpose(2, 0, 1)
+        >>> p.transpose(2, 0, 1, copy=True)
 
         Returns
         -------

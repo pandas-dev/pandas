@@ -33,6 +33,8 @@ pandas 0.8.0
     on DatetimeIndex (#391)
   - Convert DatetimeIndexes to UTC if time zones are different in join/setops
     (#864)
+  - Add limit argument for forward/backward filling to reindex, fillna,
+    etc. (#825 and others)
 
 **Improvements to existing features**
 

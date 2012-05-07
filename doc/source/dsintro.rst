@@ -741,6 +741,16 @@ The API for insertion and deletion is the same as for DataFrame. And as with
 DataFrame, if the item is a valid python identifier, you can access it as an
 attribute and tab-complete it in IPython.
 
+Transposing
+~~~~~~~~~~~
+
+A Panel can be rearranged using its ``transpose`` method (which does not make a
+copy by default unless the data are heterogeneous):
+
+.. ipython:: python
+
+   wp.transpose(2, 0, 1)
+
 Indexing / Selection
 ~~~~~~~~~~~~~~~~~~~~
 
