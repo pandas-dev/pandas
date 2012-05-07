@@ -51,6 +51,9 @@ pandas 0.8.0
   - Fix OverflowError from storing pre-1970 dates in HDFStore by switching to
     datetime64 (GH #179)
   - Fix logical error with February leap year end in YearEnd offset
+  - Series([False, nan]) was getting casted to float64 (GH #1074)
+  - Fix binary operations between boolean Series and object Series with
+    booleans and NAs (GH #1074)
 
 pandas 0.7.3
 ============

@@ -133,7 +133,12 @@ def _bool_method(op, name):
                 y = lib.list_to_object_array(y)
 
             if isinstance(y, np.ndarray):
-                result = lib.vec_binop(x, y, op)
+                if x.dtype == np.bool_ and y.dtype == np.bool_:
+                    result = op(x, y)
+                else:
+                    x = com._ensure_object(x)
+                    y = com._ensure_object(y)
+                    result = lib.vec_binop(x, y, op)
             else:
                 result = lib.scalar_binop(x, y, op)
 
@@ -2438,6 +2443,17 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             subarr = data.copy()
         else:
             subarr = data
+    elif isinstance(data, list) and len(data) > 0:
+        if dtype is not None:
+            try:
+                subarr = _try_cast(data)
+            except Exception:
+                if raise_cast_failure:
+                    raise
+                subarr = lib.maybe_convert_objects(subarr)
+        else:
+            subarr = lib.list_to_object_array(data)
+            subarr = lib.maybe_convert_objects(subarr)
     else:
         subarr = _try_cast(data)
 

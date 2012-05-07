@@ -2216,6 +2216,23 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertRaises(TypeError, self.frame.__gt__, 'foo')
         self.assertRaises(TypeError, self.frame.__ne__, 'foo')
 
+    def test_constructor_lists_to_object_dtype(self):
+        # from #1074
+        d = DataFrame({'a': [np.nan, False]})
+        self.assert_(d['a'].dtype == np.object_)
+        self.assert_(d['a'][1] is False)
+
+    def test_logical_with_nas(self):
+        d = DataFrame({'a': [np.nan, False], 'b': [True, True]})
+
+        result = d['a'] | d['b']
+        expected = Series([np.nan, True])
+        assert_series_equal(result, expected)
+
+        result = d['a'].fillna(False) | d['b']
+        expected = Series([True, True], dtype=object)
+        assert_series_equal(result, expected)
+
     def test_neg(self):
         # what to do?
         assert_frame_equal(-self.frame, -1 * self.frame)
