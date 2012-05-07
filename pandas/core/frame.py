@@ -3957,6 +3957,82 @@ class DataFrame(NDFrame):
                      ascending=ascending)
         return DataFrame(ranks, index=data.index, columns=data.columns)
 
+    def to_timestamp(self, freq=None, how='start', axis=0, copy=True):
+        """
+        Cast to DatetimeIndex of timestamps, at *beginning* of period
+
+        Parameters
+        ----------
+        freq : string, default frequency of PeriodIndex
+            Desired frequency
+        how : {'s', 'e', 'start', 'end'}
+            Convention for converting period to timestamp; start of period
+            vs. end
+        axis : {0, 1} default 0
+            The axis to convert (the index by default)
+        copy : boolean, default True
+            If false then underlying input data is not copied
+
+        Returns
+        -------
+        df : DataFrame with DatetimeIndex
+        """
+        new_data = self._data
+        if copy:
+            new_data = new_data.copy()
+
+        new_index, new_columns = self.index, self.columns
+
+        if axis == 0:
+            new_index = self.index.to_timestamp(freq=freq, how=how)
+        elif axis == 1:
+            new_columns = self.columns.to_timestamp(freq=freq, how=how)
+        else:
+            raise ValueError('Axis must be 0 or 1. Got %s' % str(axis))
+
+        axes = [new_columns, new_index]
+        new_data = BlockManager(new_data.blocks, axes)
+        return DataFrame(new_data, index=new_index, columns=new_columns)
+
+    def to_period(self, freq=None, axis=0, copy=True):
+        """
+        Convert DataFrame from DatetimeIndex to PeriodIndex with desired
+        frequency (inferred from index if not passed)
+
+        Parameters
+        ----------
+        freq : string, default
+        axis : {0, 1}, default 0
+            The axis to convert (the index by default)
+        copy : boolean, default True
+            If False then underlying input data is not copied
+
+        Returns
+        -------
+        ts : TimeSeries with PeriodIndex
+        """
+        new_data = self._data
+        if copy:
+            new_data = new_data.copy()
+
+        new_index, new_columns = self.index, self.columns
+
+        if axis == 0:
+            if freq is None:
+                freq = self.index.freqstr or self.index.inferred_freq
+            new_index = self.index.to_period(freq=freq)
+        elif axis == 1:
+            if freq is None:
+                freq = self.columns.freqstr or self.columns.inferred_freq
+            new_columns = self.columns.to_period(freq=freq)
+        else:
+            raise ValueError('Axis must be 0 or 1. Got %s' % str(axis))
+
+        axes = [new_columns, new_index]
+        new_data = BlockManager(new_data.blocks, axes)
+
+        return DataFrame(new_data, index=new_index, columns=new_columns)
+
     #----------------------------------------------------------------------
     # Deprecated stuff
 

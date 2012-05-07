@@ -18,9 +18,10 @@ from pandas.tseries.tools import to_datetime
 
 import pandas.core.datetools as datetools
 import numpy as np
+randn = np.random.randn
 
 from pandas import Series, TimeSeries, DataFrame
-from pandas.util.testing import assert_series_equal
+from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
 
 class TestPeriodProperties(TestCase):
@@ -944,6 +945,67 @@ class TestPeriodIndex(TestCase):
         delta = timedelta(hours=23, minutes=59, seconds=59)
         exp_index = _get_with_delta(delta)
         self.assert_(result.index.equals(exp_index))
+
+    def test_frame_to_time_stamp(self):
+        K = 5
+        index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        df = DataFrame(randn(len(index), K), index=index)
+        df['mix'] = 'a'
+
+        exp_index = date_range('1/1/2001', end='12/31/2009', freq='A-DEC')
+        result = df.to_timestamp('D', 'end')
+        self.assert_(result.index.equals(exp_index))
+        assert_almost_equal(result.values, df.values)
+
+        exp_index = date_range('1/1/2001', end='1/1/2009', freq='AS-DEC')
+        result = df.to_timestamp('D', 'start')
+        self.assert_(result.index.equals(exp_index))
+
+        def _get_with_delta(delta, freq='A-DEC'):
+            return date_range(to_datetime('1/1/2001') + delta,
+                              to_datetime('12/31/2009') + delta, freq=freq)
+
+        delta = timedelta(hours=23)
+        result = df.to_timestamp('H', 'end')
+        exp_index = _get_with_delta(delta)
+        self.assert_(result.index.equals(exp_index))
+
+        delta = timedelta(hours=23, minutes=59)
+        result = df.to_timestamp('T', 'end')
+        exp_index = _get_with_delta(delta)
+        self.assert_(result.index.equals(exp_index))
+
+        result = df.to_timestamp('S', 'end')
+        delta = timedelta(hours=23, minutes=59, seconds=59)
+        exp_index = _get_with_delta(delta)
+        self.assert_(result.index.equals(exp_index))
+
+        # columns
+        df = df.T
+
+        exp_index = date_range('1/1/2001', end='12/31/2009', freq='A-DEC')
+        result = df.to_timestamp('D', 'end', axis=1)
+        self.assert_(result.columns.equals(exp_index))
+        assert_almost_equal(result.values, df.values)
+
+        exp_index = date_range('1/1/2001', end='1/1/2009', freq='AS-DEC')
+        result = df.to_timestamp('D', 'start', axis=1)
+        self.assert_(result.columns.equals(exp_index))
+
+        delta = timedelta(hours=23)
+        result = df.to_timestamp('H', 'end', axis=1)
+        exp_index = _get_with_delta(delta)
+        self.assert_(result.columns.equals(exp_index))
+
+        delta = timedelta(hours=23, minutes=59)
+        result = df.to_timestamp('T', 'end', axis=1)
+        exp_index = _get_with_delta(delta)
+        self.assert_(result.columns.equals(exp_index))
+
+        result = df.to_timestamp('S', 'end', axis=1)
+        delta = timedelta(hours=23, minutes=59, seconds=59)
+        exp_index = _get_with_delta(delta)
+        self.assert_(result.columns.equals(exp_index))
 
     def test_index_duplicate_periods(self):
         # monotonic

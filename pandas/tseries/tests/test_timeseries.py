@@ -8,6 +8,7 @@ import unittest
 import nose
 
 import numpy as np
+randn = np.random.randn
 
 from pandas import (Index, Series, TimeSeries, DataFrame, isnull,
                     date_range, Timestamp)
@@ -598,6 +599,34 @@ class TestTimeSeries(unittest.TestCase):
 
         pts = ts.to_period('M')
         self.assert_(pts.index.equals(exp.index.asfreq('M')))
+
+    def test_frame_to_period(self):
+        K = 5
+        from pandas.tseries.period import period_range
+
+        dr = date_range('1/1/2000', '1/1/2001')
+        pr = period_range('1/1/2000', '1/1/2001')
+        df = DataFrame(randn(len(dr), K), index=dr)
+        df['mix'] = 'a'
+
+        pts = df.to_period()
+        exp = df.copy()
+        exp.index = pr
+        assert_frame_equal(pts, exp)
+
+        pts = df.to_period('M')
+        self.assert_(pts.index.equals(exp.index.asfreq('M')))
+
+        """ Put me back in after fixing DataFrame bug
+        df = df.T
+        pts = df.to_period(axis=1)
+        exp = df.copy()
+        exp.columns = pr
+        assert_frame_equal(pts, exp)
+
+        pts = df.to_period('M', axis=1)
+        self.assert_(pts.columns.equals(exp.columns.asfreq('M')))
+        """
 
     def test_timestamp_fields(self):
         # extra fields from DatetimeIndex like quarter and week

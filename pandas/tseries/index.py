@@ -525,7 +525,7 @@ class DatetimeIndex(Int64Index):
             raise ValueError(msg)
 
         if freq is None:
-            freq = self.freq
+            freq = self.freqstr
 
         return PeriodIndex(self.values, freq=freq)
 
