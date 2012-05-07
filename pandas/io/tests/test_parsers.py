@@ -92,6 +92,13 @@ bar2,12,13,14,15
                       comment='#')
         assert_almost_equal(df.values, expected)
 
+    def test_malformed(self):
+        data = """A,B,C
+1,2,3,4,5
+"""
+        self.assertRaises(Exception, 'read_table', StringIO(data),
+                          names=['A','B','C'], index_col=0)
+
     def test_custom_na_values(self):
         data = """A,B,C
 ignore,this,row

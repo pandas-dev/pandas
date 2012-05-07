@@ -710,8 +710,9 @@ class TextParser(object):
         #                % (idx_str, self.index_col, str(dups)))
         #     raise Exception(err_msg)
 
-        if len(self.columns) != len(zipped_content):
-            raise Exception('wrong number of columns')
+        col_len, zip_len = len(self.columns), len(zipped_content)
+        if col_len != zip_len:
+            raise Exception('Expecting %d columns, got %d' % (col_len, zip_len))
 
         data = dict((k, v) for k, v in izip(self.columns, zipped_content))
 
