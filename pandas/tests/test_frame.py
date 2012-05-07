@@ -4914,6 +4914,23 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         newFrame = self.frame.reindex_axis(cols, axis=1)
         assert_frame_equal(newFrame, self.frame)
 
+    def test_reindex_with_nans(self):
+        df = DataFrame([[1,2], [3,4], [np.nan,np.nan], [7,8], [9,10]],
+                       columns=['a', 'b'],
+                       index=[100.0, 101.0, np.nan, 102.0, 103.0])
+
+        result = df.reindex(index=[101.0, 102.0, 103.0])
+        expected = df.ix[[1, 3, 4]]
+        assert_frame_equal(result, expected)
+
+        result = df.reindex(index=[103.0])
+        expected = df.ix[[4]]
+        assert_frame_equal(result, expected)
+
+        result = df.reindex(index=[101.0])
+        expected = df.ix[[1]]
+        assert_frame_equal(result, expected)
+
     def test_rename_objects(self):
         renamed = self.mixed_frame.rename(columns=str.upper)
         self.assert_('FOO' in renamed)

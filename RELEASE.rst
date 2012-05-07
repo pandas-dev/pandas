@@ -60,6 +60,7 @@ pandas 0.8.0
     (#1142)
   - Fix label slicing issues with float index values (#1167)
   - Fix segfault caused by empty groups passed to groupby (#1048)
+  - Fix occasionally misbehaved reindexing in the presence of NaN labels (#522)
 
 pandas 0.7.3
 ============
