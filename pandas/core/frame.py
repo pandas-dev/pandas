@@ -3981,18 +3981,14 @@ class DataFrame(NDFrame):
         if copy:
             new_data = new_data.copy()
 
-        new_index, new_columns = self.index, self.columns
-
         if axis == 0:
-            new_index = self.index.to_timestamp(freq=freq, how=how)
+            new_data.set_axis(1, self.index.to_timestamp(freq=freq, how=how))
         elif axis == 1:
-            new_columns = self.columns.to_timestamp(freq=freq, how=how)
+            new_data.set_axis(0, self.columns.to_timestamp(freq=freq, how=how))
         else:
             raise ValueError('Axis must be 0 or 1. Got %s' % str(axis))
 
-        axes = [new_columns, new_index]
-        new_data = BlockManager(new_data.blocks, axes)
-        return DataFrame(new_data, index=new_index, columns=new_columns)
+        return DataFrame(new_data)
 
     def to_period(self, freq=None, axis=0, copy=True):
         """
@@ -4015,23 +4011,18 @@ class DataFrame(NDFrame):
         if copy:
             new_data = new_data.copy()
 
-        new_index, new_columns = self.index, self.columns
-
         if axis == 0:
             if freq is None:
                 freq = self.index.freqstr or self.index.inferred_freq
-            new_index = self.index.to_period(freq=freq)
+            new_data.set_axis(1, self.index.to_period(freq=freq))
         elif axis == 1:
             if freq is None:
                 freq = self.columns.freqstr or self.columns.inferred_freq
-            new_columns = self.columns.to_period(freq=freq)
+            new_data.set_axis(0, self.columns.to_period(freq=freq))
         else:
             raise ValueError('Axis must be 0 or 1. Got %s' % str(axis))
 
-        axes = [new_columns, new_index]
-        new_data = BlockManager(new_data.blocks, axes)
-
-        return DataFrame(new_data, index=new_index, columns=new_columns)
+        return DataFrame(new_data)
 
     #----------------------------------------------------------------------
     # Deprecated stuff
