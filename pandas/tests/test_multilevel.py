@@ -80,6 +80,10 @@ class TestMultiLevel(unittest.TestCase):
                                   ['x', 'y', 'x', 'y']])
         self.assert_(isinstance(multi.index, MultiIndex))
 
+        multi = Series(range(4), index=[['a', 'a', 'b', 'b'],
+                                        ['x', 'y', 'x', 'y']])
+        self.assert_(isinstance(multi.index, MultiIndex))
+
     def test_reindex_level(self):
         # axis=0
         month_sums = self.ymd.sum(level='month')

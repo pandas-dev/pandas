@@ -272,14 +272,15 @@ class Series(np.ndarray, generic.PandasObject):
         if data is None:
             data = {}
 
+        if index is not None:
+            index = _ensure_index(index)
+
         if isinstance(data, Series):
             if index is None:
                 index = data.index
         elif isinstance(data, dict):
             if index is None:
                 index = Index(sorted(data))
-            else:
-                index = _ensure_index(index)
             try:
                 if isinstance(index, DatetimeIndex):
                     # coerce back to datetime objects for lookup
@@ -292,9 +293,6 @@ class Series(np.ndarray, generic.PandasObject):
 
         if dtype is not None:
             dtype = np.dtype(dtype)
-
-        if index is not None:
-            index = _ensure_index(index)
 
         subarr = _sanitize_array(data, index, dtype, copy,
                                  raise_cast_failure=True)
