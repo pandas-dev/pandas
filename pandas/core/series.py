@@ -1872,8 +1872,10 @@ copy : boolean, default False
         """
         try:
             result = func(self)
-            if not isinstance(result, Series):
+            if isinstance(result, np.ndarray):
                 result = Series(result, index=self.index, name=self.name)
+            else:
+                raise ValueError('Must yield array')
             return result
         except Exception:
             mapped = lib.map_infer(self.values, func)

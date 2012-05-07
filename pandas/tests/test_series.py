@@ -2069,6 +2069,19 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = self.ts.apply(lambda x: x.values * 2)
         assert_series_equal(result, self.ts * 2)
 
+    def test_apply_same_length_inference_bug(self):
+        s = Series([1, 2])
+        f = lambda x: (x, x + 1)
+
+        result = s.apply(f)
+        expected = s.map(f)
+        assert_series_equal(result, expected)
+
+        s = Series([1, 2, 3])
+        result = s.apply(f)
+        expected = s.map(f)
+        assert_series_equal(result, expected)
+
     def test_align(self):
         def _check_align(a, b, how='left', fill=None):
             aa, ab = a.align(b, join=how, fill_value=fill)
