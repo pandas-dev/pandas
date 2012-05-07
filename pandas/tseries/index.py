@@ -1228,7 +1228,10 @@ def _to_m8(key):
         # this also converts strings
         key = Timestamp(key)
 
-    return np.datetime64(lib.pydt_to_i8(key))
+    if np.__version__[:3] == '1.6':
+        return np.datetime64(lib.pydt_to_i8(key))
+    else:
+        return np.datetime64(lib.pydt_to_i8(key), 'us')
 
 
 def _to_m8_array(arr):
