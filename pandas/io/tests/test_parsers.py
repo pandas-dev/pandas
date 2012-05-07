@@ -41,6 +41,31 @@ bar2,12,13,14,15
     def test_read_csv(self):
         pass
 
+    def test_1000_sep(self):
+        data = """A|B|C
+1|2,334.0|5
+10|13|10.
+"""
+        expected = [[1, 2334., 5],
+                    [10, 13, 10]]
+
+        df = read_csv(StringIO(data), sep='|', thousands=',')
+        assert_almost_equal(df.values, expected)
+
+        df = read_table(StringIO(data), sep='|', thousands=',')
+        assert_almost_equal(df.values, expected)
+
+    def test_1000_fwf(self):
+        data = """
+ 1 2,334.0    5
+10   13     10.
+"""
+        expected = [[1, 2334., 5],
+                    [10, 13, 10]]
+        df = read_fwf(StringIO(data), colspecs=[(0,3),(3,11),(12,16)],
+                      thousands=',')
+        assert_almost_equal(df.values, expected)
+
     def test_custom_na_values(self):
         data = """A,B,C
 ignore,this,row
