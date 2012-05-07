@@ -47,6 +47,7 @@ pandas 0.8.0
     e.g. Series.describe and DataFrame.describe (GH #1092)
   - Can create MultiIndex by passing list of lists or list of arrays to Series,
     DataFrame constructor, etc. (#831)
+  - Can pass arrays in addition to column names to DataFrame.set_index (#402)
 
 **API Changes**
 

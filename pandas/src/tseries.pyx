@@ -369,7 +369,7 @@ def fast_zip(list ndarrays):
         arr = ndarrays[j]
         it = <flatiter> PyArray_IterNew(arr)
         if len(arr) != n:
-            raise ValueError('all arrays but be same length')
+            raise ValueError('all arrays must be same length')
 
         for i in range(n):
             val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))

@@ -1235,6 +1235,79 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertRaises(Exception, setattr, self.mixed_frame, 'index',
                           idx[::2])
 
+    def test_set_index2(self):
+        df = DataFrame({'A' : ['foo', 'foo', 'foo', 'bar', 'bar'],
+                        'B' : ['one', 'two', 'three', 'one', 'two'],
+                        'C' : ['a', 'b', 'c', 'd', 'e'],
+                        'D' : np.random.randn(5),
+                        'E' : np.random.randn(5)})
+
+        # new object, single-column
+        result = df.set_index('C')
+        result_nodrop = df.set_index('C', drop=False)
+
+        index = Index(df['C'], name='C')
+
+        expected = df.ix[:, ['A', 'B', 'D', 'E']]
+        expected.index = index
+
+        expected_nodrop = df.copy()
+        expected_nodrop.index = index
+
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result_nodrop, expected_nodrop)
+        self.assertEqual(result.index.name, index.name)
+
+        # inplace, single
+        df2 = df.copy()
+        df2.set_index('C', inplace=True)
+        assert_frame_equal(df2, expected)
+
+        df3 = df.copy()
+        df3.set_index('C', drop=False, inplace=True)
+        assert_frame_equal(df3, expected_nodrop)
+
+        # create new object, multi-column
+        result = df.set_index(['A', 'B'])
+        result_nodrop = df.set_index(['A', 'B'], drop=False)
+
+        index = MultiIndex.from_arrays([df['A'], df['B']], names=['A', 'B'])
+
+        expected = df.ix[:, ['C', 'D', 'E']]
+        expected.index = index
+
+        expected_nodrop = df.copy()
+        expected_nodrop.index = index
+
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result_nodrop, expected_nodrop)
+        self.assertEqual(result.index.names, index.names)
+
+        # inplace
+        df2 = df.copy()
+        df2.set_index(['A', 'B'], inplace=True)
+        assert_frame_equal(df2, expected)
+
+        df3 = df.copy()
+        df3.set_index(['A', 'B'], drop=False, inplace=True)
+        assert_frame_equal(df3, expected_nodrop)
+
+        # corner case
+        self.assertRaises(Exception, df.set_index, 'A', verify_integrity=True)
+
+    def test_set_index_pass_arrays(self):
+        df = DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+                               'foo', 'bar', 'foo', 'foo'],
+                        'B' : ['one', 'one', 'two', 'three',
+                               'two', 'two', 'one', 'three'],
+                        'C' : np.random.randn(8),
+                        'D' : np.random.randn(8)})
+
+        # multiple columns
+        result = df.set_index(['A', df['B'].values], drop=False)
+        expected = df.set_index(['A', 'B'], drop=False)
+        assert_frame_equal(result, expected)
+
     def test_set_columns(self):
         cols = Index(np.arange(len(self.mixed_frame.columns)))
         self.mixed_frame.columns = cols
@@ -3501,66 +3574,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = df.reindex(range(15), fill_value=0)
         expected = df.reindex(range(15)).fillna(0)
         assert_frame_equal(result, expected)
-
-    def test_set_index2(self):
-        df = DataFrame({'A' : ['foo', 'foo', 'foo', 'bar', 'bar'],
-                        'B' : ['one', 'two', 'three', 'one', 'two'],
-                        'C' : ['a', 'b', 'c', 'd', 'e'],
-                        'D' : np.random.randn(5),
-                        'E' : np.random.randn(5)})
-
-        # new object, single-column
-        result = df.set_index('C')
-        result_nodrop = df.set_index('C', drop=False)
-
-        index = Index(df['C'], name='C')
-
-        expected = df.ix[:, ['A', 'B', 'D', 'E']]
-        expected.index = index
-
-        expected_nodrop = df.copy()
-        expected_nodrop.index = index
-
-        assert_frame_equal(result, expected)
-        assert_frame_equal(result_nodrop, expected_nodrop)
-        self.assertEqual(result.index.name, index.name)
-
-        # inplace, single
-        df2 = df.copy()
-        df2.set_index('C', inplace=True)
-        assert_frame_equal(df2, expected)
-
-        df3 = df.copy()
-        df3.set_index('C', drop=False, inplace=True)
-        assert_frame_equal(df3, expected_nodrop)
-
-        # create new object, multi-column
-        result = df.set_index(['A', 'B'])
-        result_nodrop = df.set_index(['A', 'B'], drop=False)
-
-        index = MultiIndex.from_arrays([df['A'], df['B']], names=['A', 'B'])
-
-        expected = df.ix[:, ['C', 'D', 'E']]
-        expected.index = index
-
-        expected_nodrop = df.copy()
-        expected_nodrop.index = index
-
-        assert_frame_equal(result, expected)
-        assert_frame_equal(result_nodrop, expected_nodrop)
-        self.assertEqual(result.index.names, index.names)
-
-        # inplace
-        df2 = df.copy()
-        df2.set_index(['A', 'B'], inplace=True)
-        assert_frame_equal(df2, expected)
-
-        df3 = df.copy()
-        df3.set_index(['A', 'B'], drop=False, inplace=True)
-        assert_frame_equal(df3, expected_nodrop)
-
-        # corner case
-        self.assertRaises(Exception, df.set_index, 'A')
 
     def test_align(self):
         af, bf = self.frame.align(self.frame)

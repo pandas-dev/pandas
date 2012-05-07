@@ -2069,31 +2069,36 @@ class DataFrame(NDFrame):
 
     truncate = generic.truncate
 
-    def set_index(self, col_or_cols, drop=True, inplace=False,
-                  verify_integrity=True):
+    def set_index(self, keys, drop=True, inplace=False,
+                  verify_integrity=False):
         """
         Set the DataFrame index (row labels) using one or more existing
         columns. By default yields a new object.
 
         Parameters
         ----------
-        col_or_cols : column label or list of column labels
+        keys : column label or list of column labels / arrays
         drop : boolean, default True
             Delete columns to be used as the new index
         inplace : boolean, default False
             Modify the DataFrame in place (do not create a new object)
-        verify_integrity : boolean, default True
+        verify_integrity : boolean, default False
             Check the new index for duplicates. Otherwise defer the check until
             necessary. Setting to False will improve the performance of this
             method
+
+        Examples
+        --------
+        indexed_df = df.set_index(['A', 'B'])
+        indexed_df2 = df.set_index(['A', [0, 1, 2, 0, 1, 2]])
+        indexed_df3 = df.set_index([[0, 1, 2, 0, 1, 2]])
 
         Returns
         -------
         dataframe : DataFrame
         """
-        cols = col_or_cols
-        if not isinstance(col_or_cols, (list, tuple)):
-            cols = [col_or_cols]
+        if not isinstance(keys, (list, tuple)):
+            keys = [keys]
 
         if inplace:
             frame = self
@@ -2102,13 +2107,16 @@ class DataFrame(NDFrame):
             frame = self.copy()
 
         arrays = []
-        for col in cols:
-            level = frame[col]
-            if drop:
-                del frame[col]
+        for col in keys:
+            if isinstance(col, (list, Series, np.ndarray)):
+                level = col
+            else:
+                level = frame[col]
+                if drop:
+                    del frame[col]
             arrays.append(level)
 
-        index = MultiIndex.from_arrays(arrays, names=cols)
+        index = MultiIndex.from_arrays(arrays, names=keys)
 
         if verify_integrity and not index.is_unique:
             duplicates = index.get_duplicates()
