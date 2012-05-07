@@ -56,6 +56,8 @@ pandas 0.8.0
   - Series([False, nan]) was getting casted to float64 (GH #1074)
   - Fix binary operations between boolean Series and object Series with
     booleans and NAs (GH #1074)
+  - Couldn't assign whole array to column in mixed-type DataFrame via .ix
+    (#1142)
 
 pandas 0.7.3
 ============

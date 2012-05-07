@@ -566,6 +566,30 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(len(s.ix[12.0:]) == 8)
         self.assert_(len(s.ix[12.5:]) == 7)
 
+    def test_slice_float64(self):
+        values = np.arange(10., 50., 2)
+        index = Index(values)
+
+        start, end = values[[5, 15]]
+
+        s = Series(np.random.randn(20), index=index)
+
+        result = s[start:end]
+        expected = s.ix[5:16]
+        assert_series_equal(result, expected)
+
+        result = s.ix[start:end]
+        assert_series_equal(result, expected)
+
+        df = DataFrame(np.random.randn(20, 3), index=index)
+
+        result = df[start:end]
+        expected = df.ix[5:16]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.ix[start:end]
+        tm.assert_frame_equal(result, expected)
+
     def test_setitem(self):
         self.ts[self.ts.index[5]] = np.NaN
         self.ts[[1,2,17]] = np.NaN
