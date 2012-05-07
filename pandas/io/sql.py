@@ -46,7 +46,10 @@ def execute(sql, con, retry=True, cur=None, params=None):
 
 def _safe_fetch(cur):
     try:
-        return [r for r in cur.fetchall()]
+        result = cur.fetchall()
+        if not isinstance(result, list):
+            result = list(result)
+        return result
     except Exception, e: # pragma: no cover
         excName = e.__class__.__name__
         if excName == 'OperationalError':
