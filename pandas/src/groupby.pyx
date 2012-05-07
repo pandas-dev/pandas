@@ -607,9 +607,6 @@ def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
         bins[bc] = j
         bc += 1
 
-    # if len(bins) > 0 and bins[-1] == lenidx:
-    #     bins = bins[:-1]
-
     return bins
 
 # add passing bin edges, instead of labels

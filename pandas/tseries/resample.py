@@ -124,6 +124,10 @@ class TimeGrouper(CustomGrouper):
     def _resample_periods(self, obj):
         axlabels = obj._get_axis(self.axis)
 
+        start = axlabels[0].asfreq(self.freq, how=self.convention)
+        end = axlabels[-1].asfreq(self.freq, how=self.convention)
+        new_index = period_range(start, end, freq=self.freq)
+
         # Start vs. end of period
         memb = axlabels.asfreq(self.freq, how=self.convention)
 
@@ -135,15 +139,11 @@ class TimeGrouper(CustomGrouper):
             else:
                 bins = np.array([], dtype=np.int32)
 
-            index = period_range(memb[0], memb[-1], freq=self.freq)
-            grouper = BinGrouper(bins, index)
+            grouper = BinGrouper(bins, new_index)
 
             grouped = obj.groupby(grouper, axis=self.axis)
             return grouped.agg(self.how)
         elif is_superperiod(axlabels.freq, self.freq):
-            # Generate full range
-            new_index = period_range(memb[0], memb[-1], freq=self.freq)
-
             # Get the fill indexer
             indexer = memb.get_indexer(new_index, method=self.fill_method,
                                        limit=self.limit)
