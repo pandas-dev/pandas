@@ -1559,6 +1559,19 @@ copy : boolean, default False
         return Series(np.where(isnull(this), other, this), index=new_index,
                       name=name)
 
+    def update(self, other):
+        """
+        Modify Series in place using non-NA values from passed
+        Series. Aligns on index
+
+        Parameters
+        ----------
+        other : Series
+        """
+        other = other.reindex_like(self)
+        mask = notnull(other)
+        np.putmask(self.values, mask, other.values)
+
     #----------------------------------------------------------------------
     # Reindexing, sorting
 

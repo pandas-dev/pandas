@@ -1527,6 +1527,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = s.combine_first(Series([], index=[]))
         assert_series_equal(s, result)
 
+    def test_update(self):
+        s = Series([1.5, nan, 3., 4., nan])
+        s2 = Series([nan, 3.5, nan, 5.])
+        s.update(s2)
+
+        expected = Series([1.5, 3.5, 3., 5., np.nan])
+        assert_series_equal(s, expected)
+
     def test_corr(self):
         import scipy.stats as stats
 

@@ -4316,6 +4316,23 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         combined = frame1.combine_first(frame2)
         self.assertEqual(len(combined.columns), 5)
 
+    def test_update(self):
+        df = DataFrame([[1.5, nan, 3.],
+                        [1.5, nan, 3.],
+                        [1.5, nan, 3],
+                        [1.5, nan, 3]])
+
+        other = DataFrame([[3.6, 2., np.nan],
+                           [np.nan, np.nan, 7]], index=[1, 3])
+
+        df.update(other)
+
+        expected = DataFrame([[1.5, nan, 3],
+                              [3.6, 2, 3],
+                              [1.5, nan, 3],
+                              [1.5, nan, 7.]])
+        assert_frame_equal(df, expected)
+
     def test_combineAdd(self):
         # trivial
         comb = self.frame.combineAdd(self.frame)

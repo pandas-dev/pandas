@@ -2781,6 +2781,25 @@ class DataFrame(NDFrame):
         combiner = lambda x, y: np.where(isnull(x), y, x)
         return self.combine(other, combiner)
 
+    def update(self, other, join='left'):
+        """
+        Modify DataFrame in place using non-NA values from passed
+        DataFrame. Aligns on indices
+
+        Parameters
+        ----------
+        other : DataFrame
+        join : {'left', 'right', 'outer', 'inner'}, default 'left'
+        """
+        if join != 'left':
+            raise NotImplementedError
+
+        other = other.reindex_like(self)
+        for col in self.columns:
+            this = self[col].values
+            that = other[col].values
+            self[col] = np.where(isnull(that), this, that)
+
     #----------------------------------------------------------------------
     # Misc methods
 
