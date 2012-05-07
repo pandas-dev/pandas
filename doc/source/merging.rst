@@ -162,7 +162,7 @@ need to be:
 
 .. ipython:: python
 
-   df = DataFrame(randn(6, 4), index=DateRange('1/1/2000', periods=6),
+   df = DataFrame(randn(6, 4), index=date_range('1/1/2000', periods=6),
                   columns=['A', 'B', 'C', 'D'])
    df1 = df.ix[:3]
    df2 = df.ix[3:, :3]

@@ -52,7 +52,7 @@ indexing functionality:
 
 .. ipython:: python
 
-   dates = np.asarray(DateRange('1/1/2000', periods=8))
+   dates = np.asarray(date_range('1/1/2000', periods=8))
    df = DataFrame(randn(8, 4), index=dates, columns=['A', 'B', 'C', 'D'])
    df
    panel = Panel({'one' : df, 'two' : df - df.mean()})
@@ -969,7 +969,7 @@ containers for the axis labels:
   - ``Int64Index``: a version of ``Index`` highly optimized for 64-bit integer
     data, such as time stamps
   - ``MultiIndex``: the standard hierarchical index object
-  - ``DateRange``: fixed frequency date range generated from a time rule or
+  - ``date_range``: fixed frequency date range generated from a time rule or
     DateOffset. An ndarray of Python datetime objects
 
 The motivation for having an ``Index`` class in the first place was to enable

@@ -13,7 +13,7 @@ Package overview
  * Index objects enabling both simple axis indexing and multi-level /
    hierarchical axis indexing
  * An integrated group by engine for aggregating and transforming data sets
- * Date range generation (DateRange) and custom date offsets enabling the
+ * Date range generation (date_range) and custom date offsets enabling the
    implementation of customized frequencies
  * Input/Output tools: loading tabular data from flat files (CSV, delimited,
    Excel 2003), and saving and loading pandas objects from the fast and

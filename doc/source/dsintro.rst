@@ -475,7 +475,7 @@ column-wise:
 
 .. ipython:: python
 
-   index = DateRange('1/1/2000', periods=8)
+   index = date_range('1/1/2000', periods=8)
    df = DataFrame(randn(8, 3), index=index,
                   columns=['A', 'B', 'C'])
    df
@@ -653,7 +653,7 @@ From 3D ndarray with optional axis labels
 .. ipython:: python
 
    wp = Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
-              major_axis=DateRange('1/1/2000', periods=5),
+              major_axis=date_range('1/1/2000', periods=5),
               minor_axis=['A', 'B', 'C', 'D'])
    wp
 
@@ -782,6 +782,6 @@ method:
 .. ipython:: python
 
    panel = Panel(np.random.randn(3, 5, 4), items=['one', 'two', 'three'],
-                 major_axis=DateRange('1/1/2000', periods=5),
+                 major_axis=date_range('1/1/2000', periods=5),
                  minor_axis=['a', 'b', 'c', 'd'])
    panel.to_frame()

@@ -19,12 +19,12 @@ the previous section:
 
 .. ipython:: python
 
-   index = DateRange('1/1/2000', periods=8)
+   index = date_range('1/1/2000', periods=8)
    s = Series(randn(5), index=['a', 'b', 'c', 'd', 'e'])
    df = DataFrame(randn(8, 3), index=index,
                   columns=['A', 'B', 'C'])
    wp = Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
-              major_axis=DateRange('1/1/2000', periods=5),
+              major_axis=date_range('1/1/2000', periods=5),
               minor_axis=['A', 'B', 'C', 'D'])
 
 .. _basics.head_tail:
@@ -385,7 +385,7 @@ maximum value for each column occurred:
 .. ipython:: python
 
    tsdf = DataFrame(randn(1000, 3), columns=['A', 'B', 'C'],
-                    index=DateRange('1/1/2000', periods=1000))
+                    index=date_range('1/1/2000', periods=1000))
    tsdf.apply(lambda x: x.index[x.dropna().argmax()])
 
 You may also pass additional arguments and keyword arguments to the ``apply``
@@ -409,7 +409,7 @@ Series operation on each column or row:
    :suppress:
 
    tsdf = DataFrame(randn(10, 3), columns=['A', 'B', 'C'],
-                    index=DateRange('1/1/2000', periods=10))
+                    index=date_range('1/1/2000', periods=10))
    tsdf.values[3:7] = np.nan
 
 .. ipython:: python
@@ -622,7 +622,7 @@ We illustrate these fill methods on a simple TimeSeries:
 
 .. ipython:: python
 
-   rng = DateRange('1/3/2000', periods=8)
+   rng = date_range('1/3/2000', periods=8)
    ts = Series(randn(8), index=rng)
    ts2 = ts[[0, 3, 6]]
    ts

@@ -499,7 +499,7 @@ next). This enables some operations to be carried out rather succinctly:
 .. ipython:: python
 
    tsdf = DataFrame(randn(1000, 3),
-                    index=DateRange('1/1/2000', periods=1000),
+                    index=date_range('1/1/2000', periods=1000),
                     columns=['A', 'B', 'C'])
    tsdf.ix[::2] = np.nan
    grouped = tsdf.groupby(lambda x: x.year)

@@ -249,10 +249,10 @@ alias parsing is case sensitive.
 
 .. _timeseries.daterange:
 
-Generating date ranges (DateRange)
+Generating date ranges (date_range)
 ----------------------------------
 
-The ``DateRange`` class utilizes these offsets (and any ones that we might add)
+The ``date_range`` class utilizes these offsets (and any ones that we might add)
 to generate fixed-frequency date ranges:
 
 .. ipython:: python
@@ -260,49 +260,49 @@ to generate fixed-frequency date ranges:
    start = datetime(2009, 1, 1)
    end = datetime(2010, 1, 1)
 
-   rng = DateRange(start, end, offset=BDay())
+   rng = date_range(start, end, offset=BDay())
    rng
-   DateRange(start, end, offset=BMonthEnd())
+   date_range(start, end, offset=BMonthEnd())
 
-**Business day frequency** is the default for ``DateRange``. You can also
-strictly generate a ``DateRange`` of a certain length by providing either a
+**Business day frequency** is the default for ``date_range``. You can also
+strictly generate a ``date_range`` of a certain length by providing either a
 start or end date and a ``periods`` argument:
 
 .. ipython:: python
 
-   DateRange(start, periods=20)
-   DateRange(end=end, periods=20)
+   date_range(start, periods=20)
+   date_range(end=end, periods=20)
 
 The start and end dates are strictly inclusive. So it will not generate any
 dates outside of those dates if specified.
 
-DateRange is a valid Index
+date_range is a valid Index
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-One of the main uses for ``DateRange`` is as an index for pandas objects. When
+One of the main uses for ``date_range`` is as an index for pandas objects. When
 working with a lot of time series data, there are several reasons to use
-``DateRange`` objects when possible:
+``date_range`` objects when possible:
 
   - A large range of dates for various offsets are pre-computed and cached
     under the hood in order to make generating subsequent date ranges very fast
     (just have to grab a slice)
   - Fast shifting using the ``shift`` method on pandas objects
-  - Unioning of overlapping DateRange objects with the same frequency is very
+  - Unioning of overlapping date_range objects with the same frequency is very
     fast (important for fast data alignment)
 
-The ``DateRange`` is a valid index and can even be intelligent when doing
+The ``date_range`` is a valid index and can even be intelligent when doing
 slicing, etc.
 
 .. ipython:: python
 
-   rng = DateRange(start, end, offset=BMonthEnd())
+   rng = date_range(start, end, offset=BMonthEnd())
    ts = Series(randn(len(rng)), index=rng)
    ts.index
    ts[:5].index
    ts[::2].index
 
 More complicated fancy indexing will result in an ``Index`` that is no longer a
-``DateRange``, however:
+``date_range``, however:
 
 .. ipython:: python
 
@@ -347,11 +347,11 @@ Frequency conversion
 
 The primary function for changing frequencies is the ``asfreq`` function. This
 is basically just a thin, but convenient wrapper around ``reindex`` which
-generates a ``DateRange`` and calls ``reindex``.
+generates a ``date_range`` and calls ``reindex``.
 
 .. ipython:: python
 
-   dr = DateRange('1/1/2010', periods=3, offset=3 * datetools.bday)
+   dr = date_range('1/1/2010', periods=3, offset=3 * datetools.bday)
    ts = Series(randn(3), index=dr)
    ts
    ts.asfreq(BDay())
@@ -373,16 +373,16 @@ extremely common in, but not limited to, financial applications.
 Until then, your best bet is a clever (or kludgy, depending on your point of
 view) application of GroupBy. Carry out the following steps:
 
-1. Generate the target ``DateRange`` of interest
+1. Generate the target ``date_range`` of interest
 
 .. code-block:: python
 
-   dr1hour = DateRange(start, end, offset=Hour())
-   dr5day = DateRange(start, end, offset=5 * datetools.day)
-   dr10day = DateRange(start, end, offset=10 * datetools.day)
+   dr1hour = date_range(start, end, offset=Hour())
+   dr5day = date_range(start, end, offset=5 * datetools.day)
+   dr10day = date_range(start, end, offset=10 * datetools.day)
 
 
-2. Use the ``asof`` function ("as of") of the DateRange to do a groupby
+2. Use the ``asof`` function ("as of") of the date_range to do a groupby
    expression
 
 .. code-block:: python
@@ -395,12 +395,12 @@ Here is a fully-worked example:
 .. ipython:: python
 
    # some minutely data
-   minutely = DateRange('1/3/2000 00:00:00', '1/3/2000 12:00:00',
+   minutely = date_range('1/3/2000 00:00:00', '1/3/2000 12:00:00',
                         offset=datetools.Minute())
    ts = Series(randn(len(minutely)), index=minutely)
    ts.index
 
-   hourly = DateRange('1/3/2000', '1/4/2000', offset=datetools.Hour())
+   hourly = date_range('1/3/2000', '1/4/2000', offset=datetools.Hour())
 
    grouped = ts.groupby(hourly.asof)
    grouped.mean()
