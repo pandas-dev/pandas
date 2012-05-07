@@ -267,8 +267,6 @@ class Series(np.ndarray, generic.PandasObject):
 
     _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
 
-    __slots__ = ['_index', 'name']
-
     def __new__(cls, data=None, index=None, dtype=None, name=None,
                 copy=False):
         if data is None:
@@ -431,7 +429,6 @@ copy : boolean, default False
             from pandas.core.indexing import _is_index_slice
 
             idx_type = self.index.inferred_type
-
             if idx_type == 'floating':
                 indexer = self.ix._convert_to_indexer(key, axis=0)
             elif idx_type == 'integer' or _is_index_slice(key):

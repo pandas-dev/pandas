@@ -58,6 +58,7 @@ pandas 0.8.0
     booleans and NAs (GH #1074)
   - Couldn't assign whole array to column in mixed-type DataFrame via .ix
     (#1142)
+  - Fix label slicing issues with float index values (#1167)
 
 pandas 0.7.3
 ============

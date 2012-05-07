@@ -8,22 +8,11 @@ from pandas.core.index import MultiIndex
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.offsets import DateOffset
 
-#-------------------------------------------------------------------------------
-# Picklable mixin
-
-class Picklable(object):
-
-    def save(self, path):
-        save(self, path)
-
-    @classmethod
-    def load(cls, path):
-        return load(path)
-
 class PandasError(Exception):
     pass
 
-class PandasObject(Picklable):
+
+class PandasObject(object):
 
     _AXIS_NUMBERS = {
         'index' : 0,
@@ -32,6 +21,13 @@ class PandasObject(Picklable):
 
     _AXIS_ALIASES = {}
     _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
+
+    def save(self, path):
+        save(self, path)
+
+    @classmethod
+    def load(cls, path):
+        return load(path)
 
     #----------------------------------------------------------------------
     # Axis name business
