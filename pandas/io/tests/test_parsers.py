@@ -325,8 +325,10 @@ foo,12,13,14,15
 bar,12,13,14,15
 """
 
-        self.assertRaises(Exception, read_csv, StringIO(data),
-                          index_col=0)
+        result = read_csv(StringIO(data), index_col=0)
+        expected = read_csv(StringIO(data)).set_index('index',
+                                                      verify_integrity=False)
+        assert_frame_equal(result, expected)
 
     def test_read_table_duplicate_index_implicit(self):
         data = """A,B,C,D
@@ -338,8 +340,8 @@ foo,12,13,14,15
 bar,12,13,14,15
 """
 
-        self.assertRaises(Exception, read_csv, StringIO(data),
-                          index_col=0)
+        # it works!
+        result = read_csv(StringIO(data))
 
     def test_parse_bools(self):
         data = """A,B

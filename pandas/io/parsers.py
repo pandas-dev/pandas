@@ -653,12 +653,12 @@ class TextParser(object):
         else:
             index = Index(np.arange(len(content)))
 
-        if not index.is_unique:
-            dups = index.get_duplicates()
-            idx_str = 'Index' if not self._implicit_index else 'Implicit index'
-            err_msg = ('%s (columns %s) have duplicate values %s'
-                       % (idx_str, self.index_col, str(dups)))
-            raise Exception(err_msg)
+        # if not index.is_unique:
+        #     dups = index.get_duplicates()
+        #     idx_str = 'Index' if not self._implicit_index else 'Implicit index'
+        #     err_msg = ('%s (columns %s) have duplicate values %s'
+        #                % (idx_str, self.index_col, str(dups)))
+        #     raise Exception(err_msg)
 
         if len(self.columns) != len(zipped_content):
             raise Exception('wrong number of columns')
