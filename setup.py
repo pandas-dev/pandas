@@ -50,7 +50,7 @@ if sys.version_info[0] >= 3:
 else:
     setuptools_kwargs = {
         'install_requires': ['python-dateutil < 2',
-                             'numpy >= 1.4'],
+                             'numpy >= 1.6'],
         'zip_safe' : False,
     }
     if not _have_setuptools:
@@ -70,6 +70,9 @@ except ImportError:
     "    $ pip install numpy  # or easy_install numpy\n")
     sys.exit(nonumpy_msg)
 
+if np.__version__ < '1.6.1':
+    msg = "pandas requires NumPy >= 1.6 due to datetime64 dependency"
+    sys.exit(msg)
 
 from distutils.extension import Extension
 from distutils.command.build import build
