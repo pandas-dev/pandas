@@ -241,6 +241,32 @@ _offset_map = {
     'W': Week()
 }
 
+_offset_to_period_map = {
+    'WEEKDAY' : 'D',
+    'EOM' : 'M',
+    'B' : 'D',
+    'BM' : 'M',
+    'BQS' : 'Q',
+    'QS' : 'Q',
+    'BQ' : 'Q',
+    'BA' : 'A',
+    'AS' : 'A',
+    'BAS' : 'A',
+    'MS' : 'M'
+}
+
+need_suffix = ['QS', 'BQ', 'BQS', 'AS', 'BA', 'BAS']
+months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP',
+          'OCT', 'NOV', 'DEC']
+for prefix in need_suffix:
+    for m in months:
+        _offset_to_period_map['%s-%s' % (prefix, m)] = \
+            _offset_to_period_map[prefix]
+
+def offset_to_period_alias(offset_str):
+    """ alias to closest period strings BQ->Q etc"""
+    return _offset_to_period_map.get(offset_str, offset_str)
+
 _rule_aliases = {
     # Legacy rules that will continue to map to their original values
     # essentially for the rest of time

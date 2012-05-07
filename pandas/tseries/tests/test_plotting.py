@@ -90,6 +90,15 @@ class TestTSPlot(unittest.TestCase):
             ser = ser[[0, 3, 5, 6]]
             _check_plot_works(ser.plot)
 
+    @slow
+    def test_aplot_offset_freq(self):
+        ser = tm.makeTimeSeries()
+        _check_plot_works(ser.plot)
+
+        dr = date_range(ser.index[0], freq='BQS', periods=10)
+        ser = Series(np.random.randn(len(dr)), dr)
+        _check_plot_works(ser.plot)
+
 
 PNG_PATH = 'tmp.png'
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
