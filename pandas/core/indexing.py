@@ -83,10 +83,6 @@ class _NDFrameIndexer(object):
             if isinstance(het_idx, (int, long)):
                 het_idx = [het_idx]
 
-            if not np.isscalar(value):
-                raise IndexingError('setting on mixed-type frames only '
-                                    'allowed with scalar values')
-
             plane_indexer = indexer[:het_axis] + indexer[het_axis + 1:]
             item_labels = self.obj._get_axis(het_axis)
             for item in item_labels[het_idx]:
@@ -472,7 +468,7 @@ def _is_null_slice(obj):
 
 
 def _is_integer_dtype(arr):
-    return (issubclass(arr.dtype.type, np.integer) and 
+    return (issubclass(arr.dtype.type, np.integer) and
             not arr.dtype.type == np.datetime64)
 
 

@@ -627,6 +627,12 @@ class CheckIndexing(object):
         self.assertRaises(Exception, self.mixed_frame.ix.__setitem__,
                           5, self.mixed_frame.ix[6])
 
+    def test_ix_assign_column_mixed(self):
+        # GH #1142
+        orig = self.mixed_frame.ix[:, 'B'].copy()
+        self.mixed_frame.ix[:, 'B'] = self.mixed_frame.ix[:, 'B'] + 1
+        assert_series_equal(self.mixed_frame.B, orig + 1)
+
     def test_getitem_fancy_1d(self):
         f = self.frame
         ix = f.ix
