@@ -1013,7 +1013,7 @@ def form_blocks(data, axes):
         blocks.append(int_block)
 
     if len(datetime_dict):
-        datetime_block = _simple_blockify(datetime_dict, items, np.datetime64)
+        datetime_block = _simple_blockify(datetime_dict, items, np.dtype('M8[ms]'))
         blocks.append(datetime_block)
 
     if len(bool_dict):
