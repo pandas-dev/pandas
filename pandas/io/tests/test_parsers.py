@@ -69,7 +69,6 @@ bar2,12,13,14,15
     def test_comment(self):
         data = """A,B,C
 1,2.,4.#hello world
-#hello self
 5.,NaN,10.0
 """
         expected = [[1., 2., 4.],
@@ -83,7 +82,6 @@ bar2,12,13,14,15
     def test_comment_fwf(self):
         data = """
   1   2.   4  #hello world
-#hello self
   5  NaN  10.0
 """
         expected = [[1, 2., 4],
@@ -93,11 +91,78 @@ bar2,12,13,14,15
         assert_almost_equal(df.values, expected)
 
     def test_malformed(self):
-        data = """A,B,C
+        # all
+        data = """ignore
+A,B,C
+1,2,3 # comment
 1,2,3,4,5
+2,3,4
+footer
 """
-        self.assertRaises(Exception, 'read_table', StringIO(data),
-                          names=['A','B','C'], index_col=0)
+
+        try:
+            df = read_table(StringIO(data), sep=',', header=1, comment='#')
+            self.assert_(False)
+        except ValueError, inst:
+            self.assert_('Expecting 3 columns, got 5 in row 3' in str(inst))
+
+        # first chunk
+        data = """ignore
+A,B,C
+skip
+1,2,3
+3,5,10 # comment
+1,2,3,4,5
+2,3,4
+"""
+        try:
+            it = read_table(StringIO(data), sep=',',
+                            header=1, comment='#', iterator=True, chunksize=1,
+                            skiprows=[2])
+            df = it.get_chunk(5)
+            self.assert_(False)
+        except ValueError, inst:
+            self.assert_('Expecting 3 columns, got 5 in row 5' in str(inst))
+
+
+        # middle chunk
+        data = """ignore
+A,B,C
+skip
+1,2,3
+3,5,10 # comment
+1,2,3,4,5
+2,3,4
+"""
+        try:
+            it = read_table(StringIO(data), sep=',',
+                            header=1, comment='#', iterator=True, chunksize=1,
+                            skiprows=[2])
+            df = it.get_chunk(1)
+            it.get_chunk(2)
+            self.assert_(False)
+        except ValueError, inst:
+            self.assert_('Expecting 3 columns, got 5 in row 5' in str(inst))
+
+
+        # last chunk
+        data = """ignore
+A,B,C
+skip
+1,2,3
+3,5,10 # comment
+1,2,3,4,5
+2,3,4
+"""
+        try:
+            it = read_table(StringIO(data), sep=',',
+                            header=1, comment='#', iterator=True, chunksize=1,
+                            skiprows=[2])
+            df = it.get_chunk(1)
+            it.get_chunk()
+            self.assert_(False)
+        except ValueError, inst:
+            self.assert_('Expecting 3 columns, got 5 in row 5' in str(inst))
 
     def test_custom_na_values(self):
         data = """A,B,C

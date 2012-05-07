@@ -57,6 +57,7 @@ thousands : str, default None
     Thousands separator
 comment : str, default None
     Indicates remainder of line should not be parsed
+    Does not support line commenting (will return empty line)
 nrows : int, default None
     Number of rows of file to read. Useful for reading pieces of large files
 iterator : boolean, default False
@@ -408,6 +409,7 @@ class TextParser(object):
 
         self.thousands = thousands
         self.comment = comment
+        self._comment_lines = []
 
         if hasattr(f, 'readline'):
             self._make_reader(f)
@@ -420,6 +422,7 @@ class TextParser(object):
 
         self.index_name = self._get_index_name()
         self._first_chunk = True
+
 
     def _make_reader(self, f):
         import csv
@@ -560,8 +563,7 @@ class TextParser(object):
                     if len(x) > 0:
                         rl.append(x)
                     break
-            if len(rl) > 0:
-                ret.append(rl)
+            ret.append(rl)
         return ret
 
     def _check_thousands(self, lines):
@@ -712,7 +714,19 @@ class TextParser(object):
 
         col_len, zip_len = len(self.columns), len(zipped_content)
         if col_len != zip_len:
-            raise Exception('Expecting %d columns, got %d' % (col_len, zip_len))
+            row_num = -1
+            for (i, l) in enumerate(content):
+                if len(l) != col_len:
+                    break
+
+            footers = 0
+            if self.skip_footer:
+                footers = self.skip_footer
+            row_num = self.pos - (len(content) - i + footers)
+
+            msg = ('Expecting %d columns, got %d in row %d' %
+                   (col_len, zip_len, row_num))
+            raise ValueError(msg)
 
         data = dict((k, v) for k, v in izip(self.columns, zipped_content))
 
@@ -734,6 +748,24 @@ class TextParser(object):
         data = _convert_to_ndarrays(data, self.na_values, self.verbose)
 
         return DataFrame(data=data, columns=self.columns, index=index)
+
+    def _find_line_number(self, exp_len, chunk_len, chunk_i):
+        if exp_len is None:
+            prev_pos = 0
+        else:
+            prev_pos = self.pos - exp_len
+
+        # add in skip rows in this chunk appearing before chunk_i
+        if self.skiprows is not None and len(self.skiprows) > 0:
+            skipped = Index(self.skiprows)
+            skipped = skipped[skipped > prev_pos & skipped < self.pos]
+
+
+        row_num = prev_pos + chunk_i
+
+        # add in comments in this chunk appearing before chunk_i
+
+        return row_num
 
     def _should_parse_dates(self, i):
         if isinstance(self.parse_dates, bool):
@@ -764,17 +796,20 @@ class TextParser(object):
                 lines.extend(source[self.pos:self.pos+rows])
                 self.pos += rows
         else:
+            new_rows = []
             try:
                 if rows is not None:
                     for _ in xrange(rows):
-                        lines.append(next(source))
+                        new_rows.append(next(source))
+                    lines.extend(new_rows)
                 else:
                     while True:
-                        lines.append(next(source))
+                        new_rows.append(next(source))
             except StopIteration:
+                lines.extend(new_rows)
                 if len(lines) == 0:
                     raise
-            self.pos += len(lines)
+            self.pos += len(new_rows)
 
         self.buf = []
 
