@@ -66,6 +66,32 @@ bar2,12,13,14,15
                       thousands=',')
         assert_almost_equal(df.values, expected)
 
+    def test_comment(self):
+        data = """A,B,C
+1,2.,4.#hello world
+#hello self
+5.,NaN,10.0
+"""
+        expected = [[1., 2., 4.],
+                    [5., np.nan, 10.]]
+        df = read_csv(StringIO(data), comment='#')
+        assert_almost_equal(df.values, expected)
+
+        df = read_table(StringIO(data), sep=',', comment='#', na_values=['NaN'])
+        assert_almost_equal(df.values, expected)
+
+    def test_comment_fwf(self):
+        data = """
+  1   2.   4  #hello world
+#hello self
+  5  NaN  10.0
+"""
+        expected = [[1, 2., 4],
+                    [5, np.nan, 10.]]
+        df = read_fwf(StringIO(data), colspecs=[(0,3),(4,9),(9,25)],
+                      comment='#')
+        assert_almost_equal(df.values, expected)
+
     def test_custom_na_values(self):
         data = """A,B,C
 ignore,this,row

@@ -55,6 +55,8 @@ dayfirst : boolean, default False
     DD/MM format dates, international and European format
 thousands : str, default None
     Thousands separator
+comment : str, default None
+    Indicates remainder of line should not be parsed
 nrows : int, default None
     Number of rows of file to read. Useful for reading pieces of large files
 iterator : boolean, default False
@@ -179,6 +181,7 @@ def read_csv(filepath_or_buffer,
              skiprows=None,
              na_values=None,
              thousands=None,
+             comment=None,
              parse_dates=False,
              dayfirst=False,
              date_parser=None,
@@ -208,6 +211,7 @@ def read_table(filepath_or_buffer,
                skiprows=None,
                na_values=None,
                thousands=None,
+               comment=None,
                parse_dates=False,
                dayfirst=False,
                date_parser=None,
@@ -241,6 +245,7 @@ def read_fwf(filepath_or_buffer,
              skiprows=None,
              na_values=None,
              thousands=None,
+             comment=None,
              parse_dates=False,
              dayfirst=False,
              date_parser=None,
@@ -339,6 +344,10 @@ class TextParser(object):
         Column or columns to use as the (possibly hierarchical) index
     na_values : iterable, default None
         Custom NA values
+    thousands : str, default None
+        Thousands separator
+    comment : str, default None
+        Comment out remainder of line
     parse_dates : boolean, default False
     date_parser : function, default None
     skiprows : list of integers
@@ -351,7 +360,7 @@ class TextParser(object):
 
     def __init__(self, f, delimiter=None, names=None, header=0,
                  index_col=None, na_values=None, thousands=None,
-                 parse_dates=False,
+                 comment=None, parse_dates=False,
                  date_parser=None, dayfirst=False, chunksize=None,
                  skiprows=None, skip_footer=0, converters=None,
                  verbose=False, encoding=None):
@@ -398,6 +407,7 @@ class TextParser(object):
             self.na_values = set(list(na_values)) | _NA_VALUES
 
         self.thousands = thousands
+        self.comment = comment
 
         if hasattr(f, 'readline'):
             self._make_reader(f)
@@ -429,6 +439,12 @@ class TextParser(object):
                 while self.pos in self.skiprows:
                     self.pos += 1
                     line = f.readline()
+
+                while self._is_commented(line):
+                    self.pos += 1
+                    line = f.readline()
+
+                line = self._check_comments([line])[0]
 
                 self.pos += 1
                 sniffed = csv.Sniffer().sniff(line)
@@ -498,21 +514,55 @@ class TextParser(object):
                 self.pos += 1
 
             try:
-                line = self.data[self.pos]
+                while True:
+                    line = self.data[self.pos]
+                    if not self._is_commented(line):
+                        break
+                    self.pos += 1
             except IndexError:
                 raise StopIteration
         else:
             while self.pos in self.skiprows:
                 next(self.data)
                 self.pos += 1
-            line = next(self.data)
 
+            while True:
+                line = next(self.data)
+                if not self._is_commented(line):
+                    break
+                self.pos += 1
+
+        line = self._check_comments([line])[0]
         line = self._check_thousands([line])[0]
 
         self.pos += 1
         self.buf.append(line)
 
         return line
+
+    def _is_commented(self, line):
+        if self.comment is None or len(line) == 0:
+            return False
+        return line[0].startswith(self.comment)
+
+    def _check_comments(self, lines):
+        if self.comment is None:
+            return lines
+        ret = []
+        for l in lines:
+            rl = []
+            for x in l:
+                if (not isinstance(x, basestring) or
+                    self.comment not in x):
+                    rl.append(x)
+                else:
+                    x = x[:x.find(self.comment)]
+                    if len(x) > 0:
+                        rl.append(x)
+                    break
+            if len(rl) > 0:
+                ret.append(rl)
+        return ret
 
     def _check_thousands(self, lines):
         if self.thousands is None:
@@ -730,6 +780,7 @@ class TextParser(object):
         if self.skip_footer:
             lines = lines[:-self.skip_footer]
 
+        lines = self._check_comments(lines)
         return self._check_thousands(lines)
 
 def _convert_to_ndarrays(dct, na_values, verbose=False):
