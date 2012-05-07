@@ -59,6 +59,27 @@ class TestMultiLevel(unittest.TestCase):
         result = a['A'].append(b['A'])
         tm.assert_series_equal(result, self.frame['A'])
 
+    def test_dataframe_constructor(self):
+        multi = DataFrame(np.random.randn(4, 4),
+                          index=[np.array(['a', 'a', 'b', 'b']),
+                                 np.array(['x', 'y', 'x', 'y'])])
+        self.assert_(isinstance(multi.index, MultiIndex))
+        self.assert_(not isinstance(multi.columns, MultiIndex))
+
+        multi = DataFrame(np.random.randn(4, 4),
+                          columns=[['a', 'a', 'b', 'b'],
+                                   ['x', 'y', 'x', 'y']])
+        self.assert_(isinstance(multi.columns, MultiIndex))
+
+    def test_series_constructor(self):
+        multi = Series(1., index=[np.array(['a', 'a', 'b', 'b']),
+                                  np.array(['x', 'y', 'x', 'y'])])
+        self.assert_(isinstance(multi.index, MultiIndex))
+
+        multi = Series(1., index=[['a', 'a', 'b', 'b'],
+                                  ['x', 'y', 'x', 'y']])
+        self.assert_(isinstance(multi.index, MultiIndex))
+
     def test_reindex_level(self):
         # axis=0
         month_sums = self.ymd.sum(level='month')

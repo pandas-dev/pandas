@@ -37,6 +37,7 @@ pandas 0.8.0
     etc. (#825 and others)
   - Add support for indexes (dates or otherwise) with duplicates and common
     sense indexing/selection functionality
+  - Series/DataFrame.update methods, in-place variant of combine_first (#961)
 
 **Improvements to existing features**
 
@@ -44,6 +45,8 @@ pandas 0.8.0
     performance in many cases and lower memory footprint
   - Shipping some functions from scipy.stats to reduce dependency,
     e.g. Series.describe and DataFrame.describe (GH #1092)
+  - Can create MultiIndex by passing list of lists or list of arrays to Series,
+    DataFrame constructor, etc. (#831)
 
 **API Changes**
 

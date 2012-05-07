@@ -2242,6 +2242,11 @@ def _ensure_index(index_like):
         return index_like
     if hasattr(index_like, 'name'):
         return Index(index_like, name=index_like.name)
+
+    if isinstance(index_like, list):
+        if len(index_like) and isinstance(index_like[0], (list, np.ndarray)):
+            return MultiIndex.from_arrays(index_like)
+
     return Index(index_like)
 
 def _validate_join_method(method):

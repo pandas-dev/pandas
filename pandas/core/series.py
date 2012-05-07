@@ -293,6 +293,9 @@ class Series(np.ndarray, generic.PandasObject):
         if dtype is not None:
             dtype = np.dtype(dtype)
 
+        if index is not None:
+            index = _ensure_index(index)
+
         subarr = _sanitize_array(data, index, dtype, copy,
                                  raise_cast_failure=True)
 
@@ -301,8 +304,6 @@ class Series(np.ndarray, generic.PandasObject):
 
         if index is None:
             index = _default_index(len(subarr))
-        else:
-            index = _ensure_index(index)
 
         # Change the class of the array to be the subclass type.
         if index.is_all_dates:

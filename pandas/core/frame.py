@@ -415,11 +415,14 @@ class DataFrame(NDFrame):
 
         if index is None:
             index = _default_index(N)
+        else:
+            index = _ensure_index(index)
 
         if columns is None:
             columns = _default_index(K)
+        else:
+            columns = _ensure_index(columns)
 
-        columns = _ensure_index(columns)
         block = make_block(values.T, columns, columns)
         return BlockManager([block], [columns, index])
 
