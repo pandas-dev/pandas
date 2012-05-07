@@ -945,6 +945,25 @@ class TestPeriodIndex(TestCase):
         exp_index = _get_with_delta(delta)
         self.assert_(result.index.equals(exp_index))
 
+    def test_index_duplicate_periods(self):
+        # monotonic
+        idx = PeriodIndex([2000, 2007, 2007, 2009, 2009], freq='A-JUN')
+        ts = Series(np.random.randn(len(idx)), index=idx)
+
+        result = ts[2007]
+        expected = ts[1:3]
+        assert_series_equal(result, expected)
+        result[:] = 1
+        self.assert_((ts[1:3] == 1).all())
+
+        # not monotonic
+        idx = PeriodIndex([2000, 2007, 2007, 2009, 2007], freq='A-JUN')
+        ts = Series(np.random.randn(len(idx)), index=idx)
+
+        result = ts[2007]
+        expected = ts[idx == 2007]
+        assert_series_equal(result, expected)
+
     def test_constructor(self):
         ii = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
         assert_equal(len(ii), 9)
