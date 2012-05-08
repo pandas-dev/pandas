@@ -1349,7 +1349,9 @@ class MultiIndex(Index):
             result_levels.append(level)
 
         if sparsify:
-            result_levels = _sparsify(result_levels)
+            # little bit of a kludge job for #1217
+            result_levels = _sparsify(result_levels,
+                                      start=int(names))
 
         if adjoin:
             return com.adjoin(space, *result_levels).split('\n')
@@ -2213,14 +2215,14 @@ class MultiIndex(Index):
 # For utility purposes
 
 
-def _sparsify(label_list):
+def _sparsify(label_list, start=0):
     pivoted = zip(*label_list)
     k = len(label_list)
 
-    result = [pivoted[0]]
-    prev = pivoted[0]
+    result = pivoted[:start + 1]
+    prev = pivoted[start]
 
-    for cur in pivoted[1:]:
+    for cur in pivoted[start + 1:]:
         sparse_cur = []
 
         for i, (p, t) in enumerate(zip(prev, cur)):
