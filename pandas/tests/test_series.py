@@ -869,6 +869,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                         name=('foo', 'bar', 'baz'))
         repr(biggie)
 
+    def test_timeseries_repr_object_dtype(self):
+        index = Index([datetime(2000, 1, 1) + timedelta(i)
+                       for i in range(1000)], dtype=object)
+        ts = Series(np.random.randn(len(index)), index)
+        repr(ts)
+
     def test_iter(self):
         for i, val in enumerate(self.series):
             self.assertEqual(val, self.series[i])

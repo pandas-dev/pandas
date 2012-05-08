@@ -21,7 +21,7 @@ import pandas.core.common as com
 import pandas.core.format as fmt
 import pandas.core.datetools as datetools
 from pandas.core.api import (DataFrame, Index, Series, notnull, isnull,
-                             MultiIndex)
+                             MultiIndex, DatetimeIndex)
 from pandas.io.parsers import (ExcelFile, ExcelWriter)
 
 from pandas.util.testing import (assert_almost_equal,
@@ -1307,6 +1307,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = df.set_index(['A', df['B'].values], drop=False)
         expected = df.set_index(['A', 'B'], drop=False)
         assert_frame_equal(result, expected)
+
+    def test_set_index_cast_datetimeindex(self):
+        df = DataFrame({'A' : [datetime(2000, 1, 1) + timedelta(i)
+                               for i in range(1000)],
+                        'B' : np.random.randn(1000)})
+
+        idf = df.set_index('A')
+        self.assert_(isinstance(idf.index, DatetimeIndex))
 
     def test_set_columns(self):
         cols = Index(np.arange(len(self.mixed_frame.columns)))
