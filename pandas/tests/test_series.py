@@ -2259,7 +2259,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         reindexed2 = s2.reindex(s.index, method='ffill')
         assert_series_equal(reindexed, reindexed2)
 
-        expected = Series([0, 0, 2, 2, 4, 4, 6, 6, 8, 8], index=np.arange(10))
+        # used platform int above, need to pass int explicitly here per #1219
+        expected = Series([0, 0, 2, 2, 4, 4, 6, 6, 8, 8], dtype=int,
+                          index=np.arange(10))
         assert_series_equal(reindexed, expected)
 
     def test_reindex_backfill(self):
