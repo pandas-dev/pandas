@@ -121,3 +121,26 @@ s = Series(np.random.randint(0, 1000, size=100000))
 
 series_value_counts_int64 = Benchmark('s.value_counts()', setup,
                                       start_date=datetime(2011, 10, 21))
+
+#----------------------------------------------------------------------
+# pivot_table
+
+setup = common_setup + """
+fac1 = np.array(['A', 'B', 'C'], dtype='O')
+fac2 = np.array(['one', 'two'], dtype='O')
+
+ind1 = np.random.randint(0, 3, size=100000)
+ind2 = np.random.randint(0, 2, size=100000)
+
+df = DataFrame({'key1': fac1.take(ind1),
+                'key2': fac2.take(ind2),
+                'key3': fac2.take(ind2),
+                'value1' : np.random.randn(100000),
+                'value2' : np.random.randn(100000),
+                'value3' : np.random.randn(100000)})
+"""
+
+stmt = "df.pivot_table(rows='key1', cols=['key2', 'key3'])"
+groupby_pivot_table = Benchmark(stmt, setup, start_date=datetime(2011, 12, 15))
+
+

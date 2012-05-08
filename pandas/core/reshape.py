@@ -9,7 +9,10 @@ from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 
 from pandas.core.common import notnull, _ensure_platform_int
-from pandas.core.groupby import get_group_index
+from pandas.core.groupby import (get_group_index, _compress_group_index,
+                                 decons_group_index)
+
+
 from pandas.core.index import MultiIndex
 
 
@@ -197,6 +200,71 @@ class _Unstacker(object):
 
         return new_index
 
+
+def _unstack_multiple(data, clocs):
+    if len(clocs) == 0:
+        return data
+
+    # NOTE: This doesn't deal with hierarchical columns yet
+
+    index = data.index
+
+    clevels, rlevels = _partition(index.levels, clocs)
+    clabels, rlabels = _partition(index.labels, clocs)
+    cnames, rnames = _partition(index.names, clocs)
+
+    shape = [len(x) for x in clevels]
+    group_index = get_group_index(clabels, shape)
+
+    comp_ids, obs_ids = _compress_group_index(group_index, sort=False)
+
+    dummy_index = MultiIndex(levels=rlevels + [obs_ids],
+                             labels=rlabels + [comp_ids],
+                             names=rnames + ['__placeholder__'])
+
+    dummy = DataFrame(data.values, index=dummy_index,
+                      columns=data.columns)
+
+    unstacked = dummy.unstack('__placeholder__')
+
+    if isinstance(unstacked, Series):
+        unstcols = unstacked.index
+    else:
+        unstcols = unstacked.columns
+
+    new_levels = [unstcols.levels[0]] + clevels
+    new_names = [data.columns.name] + cnames
+
+    recons_labels = decons_group_index(obs_ids, shape)
+
+    new_labels = [unstcols.labels[0]]
+    for rec in recons_labels:
+        new_labels.append(rec.take(unstcols.labels[-1]))
+
+    new_columns = MultiIndex(levels=new_levels, labels=new_labels,
+                             names=new_names)
+
+    if isinstance(unstacked, Series):
+        unstacked.index = new_columns
+    else:
+        unstacked.columns = new_columns
+
+    return unstacked
+
+
+def _partition(values, inds):
+    left = []
+    right = []
+
+    set_inds = set(inds)
+
+    for i, val in enumerate(values):
+        if i in set_inds:
+            left.append(val)
+        else:
+            right.append(val)
+
+    return left, right
 
 
 def pivot(self, index=None, columns=None, values=None):
