@@ -11,15 +11,17 @@ from datetime import datetime, timedelta
 
 from numpy.ma.testutils import assert_equal
 
+from pandas.tseries.frequencies import MONTHS, DAYS
 from pandas.tseries.period import Period, PeriodIndex, period_range
 from pandas.tseries.index import DatetimeIndex, date_range
 from pandas.tseries.tools import to_datetime
 
 import pandas.core.datetools as datetools
 import numpy as np
+randn = np.random.randn
 
 from pandas import Series, TimeSeries, DataFrame
-from pandas.util.testing import assert_series_equal
+from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
 
 class TestPeriodProperties(TestCase):
@@ -28,7 +30,25 @@ class TestPeriodProperties(TestCase):
     def __init__(self, *args, **kwds):
         TestCase.__init__(self, *args, **kwds)
 
-    def test_interval_constructor(self):
+    def test_period_cons_quarterly(self):
+        # bugs in scikits.timeseries
+        for month in MONTHS:
+            freq = 'Q-%s' % month
+            exp = Period('1989Q3', freq=freq)
+            stamp = exp.to_timestamp('D', how='end')
+            p = Period(stamp, freq=freq)
+            self.assertEquals(p, exp)
+
+    def test_period_cons_annual(self):
+        # bugs in scikits.timeseries
+        for month in MONTHS:
+            freq = 'A-%s' % month
+            exp = Period('1989', freq=freq)
+            stamp = exp.to_timestamp('D', how='end') + 30
+            p = Period(stamp, freq=freq)
+            self.assertEquals(p, exp + 1)
+
+    def test_period_constructor(self):
         i1 = Period('1/1/2005', freq='M')
         i2 = Period('Jan 2005')
 
@@ -112,6 +132,21 @@ class TestPeriodProperties(TestCase):
         self.assertEquals(i1, i2)
         i2 = Period('1982', freq=('Min', 1))
         self.assertEquals(i1, i2)
+
+        expected = Period('2007-01', freq='M')
+        i1 = Period('200701', freq='M')
+        self.assertEqual(i1, expected)
+
+        i1 = Period('200701', freq='M')
+        self.assertEqual(i1, expected)
+
+        i1 = Period(200701, freq='M')
+        self.assertEqual(i1, expected)
+
+        i1 = Period(ordinal=200701, freq='M')
+        self.assertEqual(i1.year, 16726)
+
+        self.assertRaises(ValueError, Period, ordinal=200701)
 
     def test_freq_str(self):
         i1 = Period('1982', freq='Min')
@@ -911,6 +946,119 @@ class TestPeriodIndex(TestCase):
         exp_index = _get_with_delta(delta)
         self.assert_(result.index.equals(exp_index))
 
+    def test_as_frame_columns(self):
+        rng = period_range('1/1/2000', periods=5)
+        df = DataFrame(randn(10, 5), columns=rng)
+
+        ts = df[rng[0]]
+        assert_series_equal(ts, df.ix[:, 0])
+
+        # GH # 1211
+        repr(df)
+
+        ts = df['1/1/2000']
+        assert_series_equal(ts, df.ix[:, 0])
+
+    def test_nested_dict_frame_constructor(self):
+        rng = period_range('1/1/2000', periods=5)
+        df = DataFrame(randn(10, 5), columns=rng)
+
+        data = {}
+        for col in df.columns:
+            for row in df.index:
+                data.setdefault(col, {})[row] = df.get_value(row, col)
+
+        result = DataFrame(data, columns=rng)
+        tm.assert_frame_equal(result, df)
+
+        data = {}
+        for col in df.columns:
+            for row in df.index:
+                data.setdefault(row, {})[col] = df.get_value(row, col)
+
+        result = DataFrame(data, index=rng).T
+        tm.assert_frame_equal(result, df)
+
+    def test_frame_to_time_stamp(self):
+        K = 5
+        index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        df = DataFrame(randn(len(index), K), index=index)
+        df['mix'] = 'a'
+
+        exp_index = date_range('1/1/2001', end='12/31/2009', freq='A-DEC')
+        result = df.to_timestamp('D', 'end')
+        self.assert_(result.index.equals(exp_index))
+        assert_almost_equal(result.values, df.values)
+
+        exp_index = date_range('1/1/2001', end='1/1/2009', freq='AS-DEC')
+        result = df.to_timestamp('D', 'start')
+        self.assert_(result.index.equals(exp_index))
+
+        def _get_with_delta(delta, freq='A-DEC'):
+            return date_range(to_datetime('1/1/2001') + delta,
+                              to_datetime('12/31/2009') + delta, freq=freq)
+
+        delta = timedelta(hours=23)
+        result = df.to_timestamp('H', 'end')
+        exp_index = _get_with_delta(delta)
+        self.assert_(result.index.equals(exp_index))
+
+        delta = timedelta(hours=23, minutes=59)
+        result = df.to_timestamp('T', 'end')
+        exp_index = _get_with_delta(delta)
+        self.assert_(result.index.equals(exp_index))
+
+        result = df.to_timestamp('S', 'end')
+        delta = timedelta(hours=23, minutes=59, seconds=59)
+        exp_index = _get_with_delta(delta)
+        self.assert_(result.index.equals(exp_index))
+
+        # columns
+        df = df.T
+
+        exp_index = date_range('1/1/2001', end='12/31/2009', freq='A-DEC')
+        result = df.to_timestamp('D', 'end', axis=1)
+        self.assert_(result.columns.equals(exp_index))
+        assert_almost_equal(result.values, df.values)
+
+        exp_index = date_range('1/1/2001', end='1/1/2009', freq='AS-DEC')
+        result = df.to_timestamp('D', 'start', axis=1)
+        self.assert_(result.columns.equals(exp_index))
+
+        delta = timedelta(hours=23)
+        result = df.to_timestamp('H', 'end', axis=1)
+        exp_index = _get_with_delta(delta)
+        self.assert_(result.columns.equals(exp_index))
+
+        delta = timedelta(hours=23, minutes=59)
+        result = df.to_timestamp('T', 'end', axis=1)
+        exp_index = _get_with_delta(delta)
+        self.assert_(result.columns.equals(exp_index))
+
+        result = df.to_timestamp('S', 'end', axis=1)
+        delta = timedelta(hours=23, minutes=59, seconds=59)
+        exp_index = _get_with_delta(delta)
+        self.assert_(result.columns.equals(exp_index))
+
+    def test_index_duplicate_periods(self):
+        # monotonic
+        idx = PeriodIndex([2000, 2007, 2007, 2009, 2009], freq='A-JUN')
+        ts = Series(np.random.randn(len(idx)), index=idx)
+
+        result = ts[2007]
+        expected = ts[1:3]
+        assert_series_equal(result, expected)
+        result[:] = 1
+        self.assert_((ts[1:3] == 1).all())
+
+        # not monotonic
+        idx = PeriodIndex([2000, 2007, 2007, 2009, 2007], freq='A-JUN')
+        ts = Series(np.random.randn(len(idx)), index=idx)
+
+        result = ts[2007]
+        expected = ts[idx == 2007]
+        assert_series_equal(result, expected)
+
     def test_constructor(self):
         ii = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
         assert_equal(len(ii), 9)
@@ -1137,7 +1285,7 @@ class TestPeriodIndex(TestCase):
         # Todo: fix these accessors!
         self.assert_(s['05Q4'] == s[2])
 
-    def test_interval_dt64_round_trip(self):
+    def test_period_dt64_round_trip(self):
         dti = date_range('1/1/2000', '1/7/2002', freq='B')
         ii = dti.to_period()
         self.assert_(ii.to_timestamp().equals(dti))
@@ -1145,6 +1293,15 @@ class TestPeriodIndex(TestCase):
         dti = date_range('1/1/2000', '1/7/2002', freq='B')
         ii = dti.to_period(freq='H')
         self.assert_(ii.to_timestamp().equals(dti))
+
+    def test_to_period_quarterly(self):
+        # make sure we can make the round trip
+        for month in MONTHS:
+            freq = 'Q-%s' % month
+            rng = period_range('1989Q3', '1991Q3', freq=freq)
+            stamps = rng.to_timestamp()
+            result = stamps.to_period(freq)
+            self.assert_(rng.equals(result))
 
     def test_iindex_multiples(self):
         ii = PeriodIndex(start='1/1/10', end='12/31/12', freq='2M')
@@ -1257,8 +1414,54 @@ class TestPeriodIndex(TestCase):
         index2 = period_range('1/1/2000', '1/20/2000', freq='W-WED')
         self.assertRaises(Exception, index.intersection, index2)
 
+    def test_fields(self):
+        # year, month, day, hour, minute
+        # second, weekofyear, week, dayofweek, weekday, dayofyear, quarter
+        # qyear
+        ii = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        self._check_all_fields(ii)
+
+        ii = PeriodIndex(freq='Q', start='1/1/2001', end='12/1/2003')
+        self._check_all_fields(ii)
+
+        ii = PeriodIndex(freq='M', start='1/1/2001', end='1/1/2002')
+        self._check_all_fields(ii)
+
+        ii = PeriodIndex(freq='D', start='12/1/2001', end='1/1/2002')
+        self._check_all_fields(ii)
+
+        ii = PeriodIndex(freq='B', start='12/1/2001', end='1/1/2002')
+        self._check_all_fields(ii)
+
+        ii = PeriodIndex(freq='H', start='12/31/2001', end='1/1/2002 23:00')
+        self._check_all_fields(ii)
+
+        ii = PeriodIndex(freq='Min', start='12/31/2001', end='1/1/2002 00:59')
+        self._check_all_fields(ii)
+
+        ii = PeriodIndex(freq='S', start='12/31/2001', end='1/1/2001 00:00:01')
+        self._check_all_fields(ii)
+
+        end_intv = Period('2006-12-31', 'W')
+        i1 = PeriodIndex(end=end_intv, periods=10)
+        self._check_all_fields(ii)
+
+    def _check_all_fields(self, periodindex):
+        fields = ['year', 'month', 'day', 'hour', 'minute',
+                  'second', 'weekofyear', 'week', 'dayofweek',
+                  'weekday', 'dayofyear', 'quarter', 'qyear']
+        [self._check_field(periodindex, x) for x in fields]
+
+    def _check_field(self, periodindex, fieldname):
+        field_idx = getattr(periodindex, fieldname)
+        assert_equal(len(periodindex), len(field_idx))
+        for x, val in zip(periodindex, field_idx):
+            assert_equal(getattr(x, fieldname), val)
+
+
 def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
+
 
 class TestMethods(TestCase):
     "Base test class for MaskedArrays."

@@ -6,9 +6,11 @@
    :suppress:
 
    import numpy as np
+   import random
    np.random.seed(123456)
    from pandas import *
    randn = np.random.randn
+   randint = np.random.randint
    np.set_printoptions(precision=4, suppress=True)
 
 ***************************
@@ -50,7 +52,7 @@ indexing functionality:
 
 .. ipython:: python
 
-   dates = np.asarray(DateRange('1/1/2000', periods=8))
+   dates = np.asarray(date_range('1/1/2000', periods=8))
    df = DataFrame(randn(8, 4), index=dates, columns=['A', 'B', 'C', 'D'])
    df
    panel = Panel({'one' : df, 'two' : df - df.mean()})
@@ -179,6 +181,8 @@ Boolean indexing
 
 .. _indexing.boolean:
 
+Another common operation is the use of boolean vectors to filter the data.
+
 Using a boolean vector to index a Series works exactly as in a numpy ndarray:
 
 .. ipython:: python
@@ -202,8 +206,25 @@ select out rows where one or more columns have values you want:
 
    df2 = DataFrame({'a' : ['one', 'one', 'two', 'three', 'two', 'one', 'six'],
                     'b' : ['x', 'y', 'y', 'x', 'y', 'x', 'x'],
-                    'c' : np.random.randn(7)})
+                    'c' : randn(7)})
    df2[df2['a'].isin(['one', 'two'])]
+
+List comprehensions and ``map`` method of Series can also be used to produce
+more complex criteria:
+
+.. ipython:: python
+
+   # only want 'two' or 'three'
+   criterion = df2['a'].map(lambda x: x.startswith('t')
+
+   df2[criterion]
+
+   # equivalent but slower
+   df2[[x.startswith('t') for x in df2['a']]]
+
+   # Multiple criteria
+   df2[criterion & (df2['b'] == 'x')]
+
 
 Note, with the :ref:`advanced indexing <indexing.advanced>` ``ix`` method, you
 may select along more than one axis using boolean vectors combined with other
@@ -232,7 +253,66 @@ Take Methods
 
 .. _indexing.take:
 
-TODO: Fill Me In
+Similar to numpy ndarrays, pandas Index, Series, and DataFrame also provides
+the ``take`` method that retrieves elements along a given axis at the given
+indices. The given indices must be either a list or an ndarray of integer
+index positions.
+
+.. ipython:: python
+
+   index = Index(randint(0, 1000, 10))
+   index
+
+   positions = [0, 9, 3]
+
+   index[positions]
+   index.take(positions)
+
+   ser = Series(randn(10))
+
+   ser.ix[positions]
+   ser.take(positions)
+
+For DataFrames, the given indices should be a 1d list or ndarray that specifies
+row or column positions.
+
+.. ipython:: python
+
+   frm = DataFrame(randn(5, 3))
+
+   frm.take([1, 4, 3])
+
+   frm.take([0, 2], axis=1)
+
+It is important to note that the ``take`` method on pandas objects are not
+intended to work on boolean indices and may return unexpected results.
+
+.. ipython:: python
+
+   arr = randn(10)
+   arr.take([False, False, True, True])
+   arr[[0, 1]]
+
+   ser = Series(randn(10))
+   ser.take([False, False, True, True])
+   ser.ix[[0, 1]]
+
+Finally, as a small note on performance, because the ``take`` method handles
+a narrower range of inputs, it can offer performance that is a good deal
+faster than fancy indexing.
+
+.. ipython::
+
+   arr = randn(10000, 5)
+   indexer = np.arange(10000)
+   random.shuffle(indexer)
+
+   timeit arr[indexer]
+   timeit arr.take(indexer, axis=0)
+
+   ser = Series(arr[:, 0])
+   timeit ser.ix[indexer]
+   timeit ser.take(indexer)
 
 Duplicate Data
 ~~~~~~~~~~~~~~
@@ -274,7 +354,6 @@ default value.
    s = Series([1,2,3], index=['a','b','c'])
    s.get('a')               # equivalent to s['a']
    s.get('x', default=-1)
-
 
 .. _indexing.advanced:
 
@@ -528,6 +607,17 @@ can think of ``MultiIndex`` an array of tuples where each tuple is unique. A
    s = Series(randn(8), index=index)
    s
 
+As a convenience, you can pass a list of arrays directly into Series or
+DataFrame to construct a MultiIndex automatically:
+
+.. ipython:: python
+   arrays = [np.array(['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux']),
+             np.array(['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two'])]
+   s = Series(randn(8), index=arrays)
+   s
+   df = DataFrame(randn(8, 4), index=arrays)
+   df
+
 All of the ``MultiIndex`` constructors accept a ``names`` argument which stores
 string names for the levels themselves. If no names are provided, some
 arbitrary ones will be assigned:
@@ -561,6 +651,7 @@ subsequent areas of the documentation. As you will see in later sections, you
 can find yourself working with hierarchically-indexed data without creating a
 ``MultiIndex`` explicitly yourself. However, when loading data from a file, you
 may wish to generate your own ``MultiIndex`` when preparing the data set.
+
 
 Reconstructing the level labels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -890,7 +981,7 @@ containers for the axis labels:
   - ``Int64Index``: a version of ``Index`` highly optimized for 64-bit integer
     data, such as time stamps
   - ``MultiIndex``: the standard hierarchical index object
-  - ``DateRange``: fixed frequency date range generated from a time rule or
+  - ``date_range``: fixed frequency date range generated from a time rule or
     DateOffset. An ndarray of Python datetime objects
 
 The motivation for having an ``Index`` class in the first place was to enable

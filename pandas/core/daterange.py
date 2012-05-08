@@ -43,8 +43,3 @@ class DateRange(Index):
         self.offset = offset
         self.tzinfo = tzinfo
         Index.__setstate__(self, *index_state)
-
-def interval_range():
-    """
-    Return a fixed frequency interval index
-    """

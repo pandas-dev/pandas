@@ -53,6 +53,11 @@ date_parser : function
     dateutil.parser
 dayfirst : boolean, default False
     DD/MM format dates, international and European format
+thousands : str, default None
+    Thousands separator
+comment : str, default None
+    Indicates remainder of line should not be parsed
+    Does not support line commenting (will return empty line)
 nrows : int, default None
     Number of rows of file to read. Useful for reading pieces of large files
 iterator : boolean, default False
@@ -176,6 +181,8 @@ def read_csv(filepath_or_buffer,
              names=None,
              skiprows=None,
              na_values=None,
+             thousands=None,
+             comment=None,
              parse_dates=False,
              dayfirst=False,
              date_parser=None,
@@ -204,6 +211,8 @@ def read_table(filepath_or_buffer,
                names=None,
                skiprows=None,
                na_values=None,
+               thousands=None,
+               comment=None,
                parse_dates=False,
                dayfirst=False,
                date_parser=None,
@@ -236,6 +245,8 @@ def read_fwf(filepath_or_buffer,
              names=None,
              skiprows=None,
              na_values=None,
+             thousands=None,
+             comment=None,
              parse_dates=False,
              dayfirst=False,
              date_parser=None,
@@ -265,9 +276,8 @@ def read_fwf(filepath_or_buffer,
             col += w
         kwds['colspecs'] = colspecs
 
+    kwds['thousands'] = thousands
     return _read(FixedWidthFieldParser, filepath_or_buffer, kwds)
-
-
 
 def read_clipboard(**kwargs):  # pragma: no cover
     """
@@ -335,6 +345,10 @@ class TextParser(object):
         Column or columns to use as the (possibly hierarchical) index
     na_values : iterable, default None
         Custom NA values
+    thousands : str, default None
+        Thousands separator
+    comment : str, default None
+        Comment out remainder of line
     parse_dates : boolean, default False
     date_parser : function, default None
     skiprows : list of integers
@@ -346,7 +360,8 @@ class TextParser(object):
     """
 
     def __init__(self, f, delimiter=None, names=None, header=0,
-                 index_col=None, na_values=None, parse_dates=False,
+                 index_col=None, na_values=None, thousands=None,
+                 comment=None, parse_dates=False,
                  date_parser=None, dayfirst=False, chunksize=None,
                  skiprows=None, skip_footer=0, converters=None,
                  verbose=False, encoding=None):
@@ -392,6 +407,10 @@ class TextParser(object):
         else:
             self.na_values = set(list(na_values)) | _NA_VALUES
 
+        self.thousands = thousands
+        self.comment = comment
+        self._comment_lines = []
+
         if hasattr(f, 'readline'):
             self._make_reader(f)
         else:
@@ -403,6 +422,7 @@ class TextParser(object):
 
         self.index_name = self._get_index_name()
         self._first_chunk = True
+
 
     def _make_reader(self, f):
         import csv
@@ -422,6 +442,12 @@ class TextParser(object):
                 while self.pos in self.skiprows:
                     self.pos += 1
                     line = f.readline()
+
+                while self._is_commented(line):
+                    self.pos += 1
+                    line = f.readline()
+
+                line = self._check_comments([line])[0]
 
                 self.pos += 1
                 sniffed = csv.Sniffer().sniff(line)
@@ -491,18 +517,71 @@ class TextParser(object):
                 self.pos += 1
 
             try:
-                line = self.data[self.pos]
+                while True:
+                    line = self.data[self.pos]
+                    if not self._is_commented(line):
+                        break
+                    self.pos += 1
             except IndexError:
                 raise StopIteration
         else:
             while self.pos in self.skiprows:
                 next(self.data)
                 self.pos += 1
-            line = next(self.data)
+
+            while True:
+                line = next(self.data)
+                if not self._is_commented(line):
+                    break
+                self.pos += 1
+
+        line = self._check_comments([line])[0]
+        line = self._check_thousands([line])[0]
+
         self.pos += 1
         self.buf.append(line)
 
         return line
+
+    def _is_commented(self, line):
+        if self.comment is None or len(line) == 0:
+            return False
+        return line[0].startswith(self.comment)
+
+    def _check_comments(self, lines):
+        if self.comment is None:
+            return lines
+        ret = []
+        for l in lines:
+            rl = []
+            for x in l:
+                if (not isinstance(x, basestring) or
+                    self.comment not in x):
+                    rl.append(x)
+                else:
+                    x = x[:x.find(self.comment)]
+                    if len(x) > 0:
+                        rl.append(x)
+                    break
+            ret.append(rl)
+        return ret
+
+    def _check_thousands(self, lines):
+        if self.thousands is None:
+            return lines
+        nonnum = re.compile('[^-^0-9^%s^.]+' % self.thousands)
+        ret = []
+        for l in lines:
+            rl = []
+            for x in l:
+                if (not isinstance(x, basestring) or
+                    self.thousands not in x or
+                    nonnum.search(x.strip())):
+                    rl.append(x)
+                else:
+                    rl.append(x.replace(',', ''))
+            ret.append(rl)
+        return ret
 
     def _clear_buffer(self):
         self.buf = []
@@ -626,15 +705,28 @@ class TextParser(object):
         else:
             index = Index(np.arange(len(content)))
 
-        if not index.is_unique:
-            dups = index.get_duplicates()
-            idx_str = 'Index' if not self._implicit_index else 'Implicit index'
-            err_msg = ('%s (columns %s) have duplicate values %s'
-                       % (idx_str, self.index_col, str(dups)))
-            raise Exception(err_msg)
+        # if not index.is_unique:
+        #     dups = index.get_duplicates()
+        #     idx_str = 'Index' if not self._implicit_index else 'Implicit index'
+        #     err_msg = ('%s (columns %s) have duplicate values %s'
+        #                % (idx_str, self.index_col, str(dups)))
+        #     raise Exception(err_msg)
 
-        if len(self.columns) != len(zipped_content):
-            raise Exception('wrong number of columns')
+        col_len, zip_len = len(self.columns), len(zipped_content)
+        if col_len != zip_len:
+            row_num = -1
+            for (i, l) in enumerate(content):
+                if len(l) != col_len:
+                    break
+
+            footers = 0
+            if self.skip_footer:
+                footers = self.skip_footer
+            row_num = self.pos - (len(content) - i + footers)
+
+            msg = ('Expecting %d columns, got %d in row %d' %
+                   (col_len, zip_len, row_num))
+            raise ValueError(msg)
 
         data = dict((k, v) for k, v in izip(self.columns, zipped_content))
 
@@ -656,6 +748,24 @@ class TextParser(object):
         data = _convert_to_ndarrays(data, self.na_values, self.verbose)
 
         return DataFrame(data=data, columns=self.columns, index=index)
+
+    def _find_line_number(self, exp_len, chunk_len, chunk_i):
+        if exp_len is None:
+            prev_pos = 0
+        else:
+            prev_pos = self.pos - exp_len
+
+        # add in skip rows in this chunk appearing before chunk_i
+        if self.skiprows is not None and len(self.skiprows) > 0:
+            skipped = Index(self.skiprows)
+            skipped = skipped[skipped > prev_pos & skipped < self.pos]
+
+
+        row_num = prev_pos + chunk_i
+
+        # add in comments in this chunk appearing before chunk_i
+
+        return row_num
 
     def _should_parse_dates(self, i):
         if isinstance(self.parse_dates, bool):
@@ -686,24 +796,28 @@ class TextParser(object):
                 lines.extend(source[self.pos:self.pos+rows])
                 self.pos += rows
         else:
+            new_rows = []
             try:
                 if rows is not None:
                     for _ in xrange(rows):
-                        lines.append(next(source))
+                        new_rows.append(next(source))
+                    lines.extend(new_rows)
                 else:
                     while True:
-                        lines.append(next(source))
+                        new_rows.append(next(source))
             except StopIteration:
+                lines.extend(new_rows)
                 if len(lines) == 0:
                     raise
-            self.pos += len(lines)
+            self.pos += len(new_rows)
 
         self.buf = []
 
         if self.skip_footer:
             lines = lines[:-self.skip_footer]
 
-        return lines
+        lines = self._check_comments(lines)
+        return self._check_thousands(lines)
 
 def _convert_to_ndarrays(dct, na_values, verbose=False):
     def _get_na_values(col):
@@ -751,10 +865,11 @@ class FixedWidthReader(object):
     """
     A reader of fixed-width lines.
     """
-    def __init__(self, f, colspecs, filler):
+    def __init__(self, f, colspecs, filler, thousands=None):
         self.f = f
         self.colspecs = colspecs
         self.filler = filler # Empty characters between fields.
+        self.thousands = thousands
 
         assert isinstance(colspecs, (tuple, list))
         for colspec in colspecs:
@@ -768,7 +883,7 @@ class FixedWidthReader(object):
         # Note: 'colspecs' is a sequence of half-open intervals.
         return [line[fromm:to].strip(self.filler or ' ')
                 for (fromm, to) in self.colspecs]
-    
+
     # Iterator protocol in Python 3 uses __next__()
     __next__ = next
 
@@ -827,7 +942,7 @@ class ExcelFile(object):
 
     def parse(self, sheetname, header=0, skiprows=None, index_col=None,
               parse_dates=False, date_parser=None, na_values=None,
-              chunksize=None):
+              thousands=None, chunksize=None):
         """
         Read Excel table into DataFrame
 
@@ -855,11 +970,13 @@ class ExcelFile(object):
                                      skiprows=skiprows, index_col=index_col,
                                      parse_dates=parse_dates,
                                      date_parser=date_parser,
-                                     na_values=na_values, chunksize=chunksize)
+                                     na_values=na_values,
+                                     thousands=thousands,
+                                     chunksize=chunksize)
 
     def _parse_xlsx(self, sheetname, header=0, skiprows=None, index_col=None,
-              parse_dates=False, date_parser=None, na_values=None,
-              chunksize=None):
+                    parse_dates=False, date_parser=None, na_values=None,
+                    thousands=None, chunksize=None):
         sheet = self.book.get_sheet_by_name(name=sheetname)
         data = []
 
@@ -872,6 +989,7 @@ class ExcelFile(object):
 
         parser = TextParser(data, header=header, index_col=index_col,
                             na_values=na_values,
+                            thousands=thousands,
                             parse_dates=parse_dates,
                             date_parser=date_parser,
                             skiprows=skiprows,
@@ -880,8 +998,8 @@ class ExcelFile(object):
         return parser.get_chunk()
 
     def _parse_xls(self, sheetname, header=0, skiprows=None, index_col=None,
-              parse_dates=False, date_parser=None, na_values=None,
-              chunksize=None):
+                   parse_dates=False, date_parser=None, na_values=None,
+                   thousands=None, chunksize=None):
         from datetime import MINYEAR, time, datetime
         from xlrd import xldate_as_tuple, XL_CELL_DATE
 
@@ -907,6 +1025,7 @@ class ExcelFile(object):
 
         parser = TextParser(data, header=header, index_col=index_col,
                             na_values=na_values,
+                            thousands=thousands,
                             parse_dates=parse_dates,
                             date_parser=date_parser,
                             skiprows=skiprows,

@@ -2,11 +2,11 @@ from datetime import datetime, timedelta
 
 import numpy as np
 
-from pandas import Series, DataFrame, isnull, notnull
+from pandas import Series, TimeSeries, DataFrame, Panel, isnull, notnull
 
 from pandas.tseries.index import date_range
 from pandas.tseries.offsets import Minute, bday
-from pandas.tseries.period import period_range
+from pandas.tseries.period import period_range, PeriodIndex
 from pandas.tseries.resample import DatetimeIndex, TimeGrouper
 import pandas.tseries.offsets as offsets
 
@@ -46,6 +46,7 @@ class TestResample(unittest.TestCase):
         funcs = ['add', 'mean', 'prod', 'ohlc', 'min', 'max', 'var']
         for f in funcs:
             g._cython_agg_general(f)
+
 
         self.assertEquals(g.ngroups, 2593)
         self.assert_(notnull(g.mean()).all())
@@ -163,11 +164,20 @@ class TestResample(unittest.TestCase):
     def test_resample_loffset(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min')
         s = Series(np.random.randn(14), index=rng)
+
         result = s.resample('5min', how='mean', closed='right', label='right',
                             loffset=timedelta(minutes=1))
         idx = date_range('1/1/2000', periods=4, freq='5min')
         expected = Series([s[0], s[1:6].mean(), s[6:11].mean(), s[11:].mean()],
                           index=idx + timedelta(minutes=1))
+        assert_series_equal(result, expected)
+
+        expected = s.resample('5min', how='mean', closed='right', label='right',
+                              loffset='1min')
+        assert_series_equal(result, expected)
+
+        expected = s.resample('5min', how='mean', closed='right', label='right',
+                              loffset=Minute(1))
         assert_series_equal(result, expected)
 
         self.assert_(result.index.freq == Minute(5))
@@ -290,6 +300,53 @@ class TestResample(unittest.TestCase):
 
         self.assertRaises(Exception, ts.asfreq, 'B')
 
+    def test_resample_axis1(self):
+        rng = date_range('1/1/2000', '2/29/2000')
+        df = DataFrame(np.random.randn(3, len(rng)), columns=rng,
+                       index=['a', 'b', 'c'])
+
+        result = df.resample('M', axis=1)
+        expected = df.T.resample('M').T
+        tm.assert_frame_equal(result, expected)
+
+    def test_resample_panel(self):
+        rng = date_range('1/1/2000', '6/30/2000')
+        n = len(rng)
+
+        panel = Panel(np.random.randn(3, n, 5),
+                      items=['one', 'two', 'three'],
+                      major_axis=rng,
+                      minor_axis=['a', 'b', 'c', 'd', 'e'])
+
+        result = panel.resample('M', axis=1)
+
+        def apply(panel, f):
+            result = {}
+            for item in panel.items:
+                result[item] = f(panel[item])
+            return Panel(result, items=panel.items)
+
+        expected = apply(panel, lambda x: x.resample('M'))
+        tm.assert_panel_equal(result, expected)
+
+        panel2 = panel.swapaxes(1, 2)
+        result = panel2.resample('M', axis=2)
+        expected = apply(panel2, lambda x: x.resample('M', axis=1))
+        tm.assert_panel_equal(result, expected)
+
+    def test_resample_panel_numpy(self):
+        rng = date_range('1/1/2000', '6/30/2000')
+        n = len(rng)
+
+        panel = Panel(np.random.randn(3, n, 5),
+                      items=['one', 'two', 'three'],
+                      major_axis=rng,
+                      minor_axis=['a', 'b', 'c', 'd', 'e'])
+
+        result = panel.resample('M', how=lambda x: x.mean(), axis=1)
+        expected = panel.resample('M', how='mean', axis=1)
+        tm.assert_panel_equal(result, expected)
+
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
@@ -297,7 +354,7 @@ def _simple_ts(start, end, freq='D'):
 
 def _simple_pts(start, end, freq='D'):
     rng = period_range(start, end, freq=freq)
-    return Series(np.random.randn(len(rng)), index=rng)
+    return TimeSeries(np.random.randn(len(rng)), index=rng)
 
 
 from pandas.tseries.frequencies import MONTHS, DAYS
@@ -400,6 +457,50 @@ class TestResamplePeriodIndex(unittest.TestCase):
         result = ts.resample('A-DEC', kind='timestamp')
         expected = ts.to_timestamp(how='end').resample('A-DEC')
         assert_series_equal(result, expected)
+
+    def test_resample_to_quarterly(self):
+        for month in MONTHS:
+            ts = _simple_pts('1990', '1992', freq='A-%s' % month)
+            quar_ts = ts.resample('Q-%s' % month, fill_method='ffill')
+
+            stamps = ts.to_timestamp('D', how='end')
+            qdates = period_range(stamps.index[0], stamps.index[-1],
+                                  freq='Q-%s' % month)
+
+            expected = stamps.reindex(qdates.to_timestamp('D', 'e'),
+                                      method='ffill')
+            expected.index = qdates
+
+            assert_series_equal(quar_ts, expected)
+
+        # conforms, but different month
+        ts = _simple_pts('1990', '1992', freq='A-JUN')
+
+        for how in ['start', 'end']:
+            result = ts.resample('Q-MAR', convention=how, fill_method='ffill')
+            expected = ts.asfreq('Q-MAR', how=how).to_timestamp('D')
+            expected = expected.resample('Q-MAR', fill_method='ffill')
+            assert_series_equal(result, expected.to_period('Q-MAR'))
+
+    def test_resample_fill_missing(self):
+        rng = PeriodIndex([2000, 2005, 2007, 2009], freq='A')
+
+        s = TimeSeries(np.random.randn(4), index=rng)
+
+        stamps = s.to_timestamp()
+
+        filled = s.resample('A')
+        expected = stamps.resample('A').to_period('A')
+        assert_series_equal(filled, expected)
+
+        filled = s.resample('A', fill_method='ffill')
+        expected = stamps.resample('A', fill_method='ffill').to_period('A')
+        assert_series_equal(filled, expected)
+
+    def test_cant_fill_missing_dups(self):
+        rng = PeriodIndex([2000, 2005, 2005, 2007, 2007], freq='A')
+        s = TimeSeries(np.random.randn(5), index=rng)
+        self.assertRaises(Exception, s.resample, 'A')
 
 class TestTimeGrouper(unittest.TestCase):
 

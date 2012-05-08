@@ -69,6 +69,9 @@ cdef extern from "numpy/ndarrayobject.h":
                                           NPY_DATETIMEUNIT fr,
                                           npy_datetimestruct *result)
 
+cdef extern from "numpy_helper.h":
+    npy_datetime unbox_datetime64_scalar(object o)
+
 cdef extern from "numpy/npy_common.h":
 
     ctypedef unsigned char npy_bool
@@ -96,6 +99,8 @@ cdef extern from "np_datetime_strings.h":
 
     int get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base)
 
+    # int parse_python_string(object obj, npy_datetimestruct *out) except -1
+
 cdef extern from "period.h":
     ctypedef struct date_info:
         int64_t absdate
@@ -111,7 +116,21 @@ cdef extern from "period.h":
         int day_of_year
         int calendar
 
+    ctypedef struct asfreq_info:
+        int from_week_end
+        int to_week_end
+
+        int from_a_year_end
+        int to_a_year_end
+
+        int from_q_year_end
+        int to_q_year_end
+
+    ctypedef int64_t (*freq_conv_func)(int64_t, char, asfreq_info*)
+
     int64_t asfreq(int64_t dtordinal, int freq1, int freq2, char relation) except -1
+    freq_conv_func get_asfreq_func(int fromFreq, int toFreq, int forConvert)
+    void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info)
 
     int64_t get_period_ordinal(int year, int month, int day,
                           int hour, int minute, int second,

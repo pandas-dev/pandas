@@ -120,6 +120,30 @@ class TestGroupBy(unittest.TestCase):
         # corner cases
         self.assertRaises(Exception, grouped.aggregate, lambda x: x * 2)
 
+        # tests for first / last / nth
+        grouped = self.df.groupby('A')
+        first = grouped.first()
+        expected = grouped.get_group('bar')
+        expected = expected.xs(expected.index[0])[1:]
+        expected.name ='bar'
+        assert_series_equal(first.xs('bar'), expected)
+
+        last = grouped.last()
+        expected = grouped.get_group('bar')
+        expected = expected.xs(expected.index[-1])[1:]
+        expected.name ='bar'
+        assert_series_equal(last.xs('bar'), expected)
+
+        nth = grouped.nth(1)
+        expected = grouped.get_group('foo')
+        expected = expected.xs(expected.index[1])[1:]
+        expected.name ='foo'
+        assert_series_equal(nth.xs('foo'), expected)
+
+    def test_empty_groups(self):
+        # GH # 1048
+        self.assertRaises(ValueError, self.df.groupby, [])
+
     def test_groupby_dict_mapping(self):
         # GH #679
         from pandas import Series
@@ -1347,7 +1371,7 @@ class TestGroupBy(unittest.TestCase):
 
     def test_groupby_wrong_multi_labels(self):
         from pandas import read_csv
-        from cStringIO import StringIO
+        from pandas.util.py3compat import StringIO
         data = """index,foo,bar,baz,spam,data
 0,foo1,bar1,baz1,spam2,20
 1,foo1,bar2,baz1,spam3,30
@@ -1598,10 +1622,10 @@ class TestGroupBy(unittest.TestCase):
     def test_rank_apply(self):
         lev1 = np.array([rands(10) for _ in xrange(1000)], dtype=object)
         lev2 = np.array([rands(10) for _ in xrange(130)], dtype=object)
-        lab1 = np.random.randint(0, 1000, size=10000)
-        lab2 = np.random.randint(0, 130, size=10000)
+        lab1 = np.random.randint(0, 1000, size=5000)
+        lab2 = np.random.randint(0, 130, size=5000)
 
-        df = DataFrame({'value' : np.random.randn(10000),
+        df = DataFrame({'value' : np.random.randn(5000),
                         'key1' : lev1.take(lab1),
                         'key2' : lev2.take(lab2)})
 

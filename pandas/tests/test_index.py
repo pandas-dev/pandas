@@ -16,6 +16,7 @@ from pandas.util import py3compat
 import pandas.util.testing as tm
 
 from pandas.tseries.index import _to_m8
+import pandas.tseries.offsets as offsets
 
 class TestIndex(unittest.TestCase):
 
@@ -164,6 +165,9 @@ class TestIndex(unittest.TestCase):
 
         shifted = self.dateIndex.shift(5, timedelta(1))
         self.assert_(np.array_equal(shifted, self.dateIndex + timedelta(5)))
+
+        shifted = self.dateIndex.shift(1, 'B')
+        self.assert_(np.array_equal(shifted, self.dateIndex + offsets.bday))
 
     def test_intersection(self):
         first = self.strIndex[:20]

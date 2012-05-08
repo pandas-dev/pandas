@@ -8,22 +8,11 @@ from pandas.core.index import MultiIndex
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.offsets import DateOffset
 
-#-------------------------------------------------------------------------------
-# Picklable mixin
-
-class Picklable(object):
-
-    def save(self, path):
-        save(self, path)
-
-    @classmethod
-    def load(cls, path):
-        return load(path)
-
 class PandasError(Exception):
     pass
 
-class PandasObject(Picklable):
+
+class PandasObject(object):
 
     _AXIS_NUMBERS = {
         'index' : 0,
@@ -32,6 +21,13 @@ class PandasObject(Picklable):
 
     _AXIS_ALIASES = {}
     _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
+
+    def save(self, path):
+        save(self, path)
+
+    @classmethod
+    def load(cls, path):
+        return load(path)
 
     #----------------------------------------------------------------------
     # Axis name business
@@ -333,6 +329,40 @@ class PandasObject(Picklable):
 
     def reindex(self, *args, **kwds):
         raise NotImplementedError
+
+    def tshift(self, periods=1, freq=None, **kwds):
+        """
+        Shift the time index, using the index's frequency if available
+
+        Parameters
+        ----------
+        periods : int
+            Number of periods to move, can be positive or negative
+        freq : DateOffset, timedelta, or time rule string, default None
+            Increment to use from datetools module or time rule (e.g. 'EOM')
+
+        Notes
+        -----
+        If freq is not specified then tries to use the freq or inferred_freq
+        attributes of the index. If neither of those attributes exist, a
+        ValueError is thrown
+
+        Returns
+        -------
+        shifted : Series
+        """
+        if freq is None:
+            freq = getattr(self.index, 'freq', None)
+
+        if freq is None:
+            freq = getattr(self.index, 'inferred_freq', None)
+
+        if freq is None:
+            msg = 'Freq was not given and was not set in the index'
+            raise ValueError(msg)
+
+        return self.shift(periods, freq, **kwds)
+
 
 class NDFrame(PandasObject):
     """

@@ -137,6 +137,8 @@ char *period_to_string(int64_t value, int freq);
 char *period_to_string2(int64_t value, int freq, char *fmt);
 
 int get_date_info(int64_t ordinal, int freq, struct date_info *dinfo);
+freq_conv_func get_asfreq_func(int fromFreq, int toFreq, int forConvert);
+void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info);
 
 int pyear(int64_t ordinal, int freq);
 int pqyear(int64_t ordinal, int freq);

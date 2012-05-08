@@ -1,4 +1,5 @@
 from datetime import datetime
+import sys
 
 import unittest
 
@@ -149,7 +150,6 @@ def test_ensure_int32():
     values = np.arange(10, dtype=np.int64)
     result = com._ensure_int32(values)
     assert(result.dtype == np.int32)
-
 
 class TestTake(unittest.TestCase):
 

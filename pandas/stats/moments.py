@@ -33,8 +33,8 @@ Parameters
 window : Number of observations used for calculating statistic
 min_periods : int
     Minimum number of observations in window required to have a value
-time_rule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default=None
-    Name of time rule to conform to before computing statistic
+freq : None or string alias / date offset object, default=None
+    Frequency to conform to before computing statistic
 
 Returns
 -------
@@ -54,8 +54,8 @@ span : float, optional
 min_periods : int, default 0
     Number of observations in sample to require (only affects
     beginning)
-time_rule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default None
-    Name of time rule to conform to before computing statistic
+freq : None or string alias / date offset object, default=None
+    Frequency to conform to before computing statistic
 %s
 Notes
 -----
@@ -93,7 +93,7 @@ arg2 : Series, DataFrame, or ndarray"""
 _bias_doc = r"""bias : boolean, default False
     Use a standard estimation bias correction
 """
-def rolling_count(arg, window, time_rule=None):
+def rolling_count(arg, window, freq=None, time_rule=None):
     """
     Rolling count of number of non-NaN observations inside provided window.
 
@@ -101,12 +101,14 @@ def rolling_count(arg, window, time_rule=None):
     ----------
     arg :  DataFrame or numpy ndarray-like
     window : Number of observations used for calculating statistic
+    freq : None or string alias / date offset object, default=None
+        Frequency to conform to before computing statistic
 
     Returns
     -------
     rolling_count : type of caller
     """
-    arg = _conv_timerule(arg, time_rule)
+    arg = _conv_timerule(arg, freq, time_rule)
     window = min(window, len(arg))
 
     return_hook, values = _process_data_structure(arg, kill_inf=False)
@@ -195,7 +197,8 @@ def rolling_corr_pairwise(df, window, min_periods=None):
 
     return Panel.from_dict(all_results).swapaxes('items', 'major')
 
-def _rolling_moment(arg, window, func, minp, axis=0, time_rule=None):
+def _rolling_moment(arg, window, func, minp, axis=0, freq=None,
+                    time_rule=None):
     """
     Rolling statistical measure using supplied function. Designed to be
     used with passed-in Cython array-based functions.
@@ -208,14 +211,14 @@ def _rolling_moment(arg, window, func, minp, axis=0, time_rule=None):
     minp : int
         Minimum number of observations required to have a value
     axis : int, default 0
-    time_rule : string or DateOffset
-        Time rule to conform to before computing result
+    freq : None or string alias / date offset object, default=None
+        Frequency to conform to before computing statistic
 
     Returns
     -------
     y : type of input
     """
-    arg = _conv_timerule(arg, time_rule)
+    arg = _conv_timerule(arg, freq, time_rule)
     calc = lambda x: func(x, window, minp=minp)
     return_hook, values = _process_data_structure(arg)
     # actually calculate the moment. Faster way to do this?
@@ -262,9 +265,9 @@ def _get_center_of_mass(com, span):
 
 @Substitution("Exponentially-weighted moving average", _unary_arg, "")
 @Appender(_ewm_doc)
-def ewma(arg, com=None, span=None, min_periods=0, time_rule=None):
+def ewma(arg, com=None, span=None, min_periods=0, freq=None, time_rule=None):
     com = _get_center_of_mass(com, span)
-    arg = _conv_timerule(arg, time_rule)
+    arg = _conv_timerule(arg, freq, time_rule)
 
     def _ewma(v):
         result = _tseries.ewma(v, com)
@@ -283,9 +286,9 @@ def _first_valid_index(arr):
 @Substitution("Exponentially-weighted moving variance", _unary_arg, _bias_doc)
 @Appender(_ewm_doc)
 def ewmvar(arg, com=None, span=None, min_periods=0, bias=False,
-           time_rule=None):
+           freq=None, time_rule=None):
     com = _get_center_of_mass(com, span)
-    arg = _conv_timerule(arg, time_rule)
+    arg = _conv_timerule(arg, freq, time_rule)
     moment2nd = ewma(arg * arg, com=com, min_periods=min_periods)
     moment1st = ewma(arg, com=com, min_periods=min_periods)
 
@@ -308,11 +311,11 @@ ewmvol = ewmstd
 @Substitution("Exponentially-weighted moving covariance", _binary_arg, "")
 @Appender(_ewm_doc)
 def ewmcov(arg1, arg2, com=None, span=None, min_periods=0, bias=False,
-           time_rule=None):
+           freq=None, time_rule=None):
     X, Y = _prep_binary(arg1, arg2)
 
-    X = _conv_timerule(X, time_rule)
-    Y = _conv_timerule(Y, time_rule)
+    X = _conv_timerule(X, freq, time_rule)
+    Y = _conv_timerule(Y, freq, time_rule)
 
     mean = lambda x: ewma(x, com=com, span=span, min_periods=min_periods)
 
@@ -326,11 +329,11 @@ def ewmcov(arg1, arg2, com=None, span=None, min_periods=0, bias=False,
 @Substitution("Exponentially-weighted moving " "correlation", _binary_arg, "")
 @Appender(_ewm_doc)
 def ewmcorr(arg1, arg2, com=None, span=None, min_periods=0,
-            time_rule=None):
+            freq=None, time_rule=None):
     X, Y = _prep_binary(arg1, arg2)
 
-    X = _conv_timerule(X, time_rule)
-    Y = _conv_timerule(Y, time_rule)
+    X = _conv_timerule(X, freq, time_rule)
+    Y = _conv_timerule(Y, freq, time_rule)
 
     mean = lambda x: ewma(x, com=com, span=span, min_periods=min_periods)
     var = lambda x: ewmvar(x, com=com, span=span, min_periods=min_periods,
@@ -347,14 +350,21 @@ def _prep_binary(arg1, arg2):
 
     return X, Y
 
-#-------------------------------------------------------------------------------
+#----------------------------------------------------------------------
 # Python interface to Cython functions
 
-def _conv_timerule(arg, time_rule):
+def _conv_timerule(arg, freq, time_rule):
+    if time_rule is not None:
+        import warnings
+        warnings.warn("time_rule argument is deprecated, replace with freq",
+                       FutureWarning)
+
+        freq = time_rule
+
     types = (DataFrame, Series)
-    if time_rule is not None and isinstance(arg, types):
+    if freq is not None and isinstance(arg, types):
         # Conform to whatever frequency needed.
-        arg = arg.asfreq(time_rule)
+        arg = arg.resample(freq)
 
     return arg
 
@@ -376,12 +386,12 @@ def _rolling_func(func, desc, check_minp=_use_window):
     @Substitution(desc, _unary_arg, _type_of_input)
     @Appender(_doc_template)
     @wraps(func)
-    def f(arg, window, min_periods=None, time_rule=None):
+    def f(arg, window, min_periods=None, freq=None, time_rule=None):
         def call_cython(arg, window, minp):
             minp = check_minp(minp, window)
             return func(arg, window, minp)
         return _rolling_moment(arg, window, call_cython, min_periods,
-                               time_rule=time_rule)
+                               freq=freq, time_rule=time_rule)
 
     return f
 
@@ -401,7 +411,8 @@ rolling_skew = _rolling_func(_tseries.roll_skew, 'Unbiased moving skewness',
 rolling_kurt = _rolling_func(_tseries.roll_kurt, 'Unbiased moving kurtosis',
                              check_minp=_require_min_periods(4))
 
-def rolling_quantile(arg, window, quantile, min_periods=None, time_rule=None):
+def rolling_quantile(arg, window, quantile, min_periods=None, freq=None,
+                     time_rule=None):
     """Moving quantile
 
     Parameters
@@ -411,8 +422,8 @@ def rolling_quantile(arg, window, quantile, min_periods=None, time_rule=None):
     quantile : 0 <= quantile <= 1
     min_periods : int
         Minimum number of observations in window required to have a value
-    time_rule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default=None
-        Name of time rule to conform to before computing statistic
+    freq : None or string alias / date offset object, default=None
+        Frequency to conform to before computing statistic
 
     Returns
     -------
@@ -423,9 +434,10 @@ def rolling_quantile(arg, window, quantile, min_periods=None, time_rule=None):
         minp = _use_window(minp, window)
         return _tseries.roll_quantile(arg, window, minp, quantile)
     return _rolling_moment(arg, window, call_cython, min_periods,
-                           time_rule=time_rule)
+                           freq=freq, time_rule=time_rule)
 
-def rolling_apply(arg, window, func, min_periods=None, time_rule=None):
+def rolling_apply(arg, window, func, min_periods=None, freq=None,
+                  time_rule=None):
     """Generic moving function application
 
     Parameters
@@ -436,8 +448,8 @@ def rolling_apply(arg, window, func, min_periods=None, time_rule=None):
         Must produce a single value from an ndarray input
     min_periods : int
         Minimum number of observations in window required to have a value
-    time_rule : {None, 'WEEKDAY', 'EOM', 'W@MON', ...}, default=None
-        Name of time rule to conform to before computing statistic
+    freq : None or string alias / date offset object, default=None
+        Frequency to conform to before computing statistic
 
     Returns
     -------
@@ -447,4 +459,4 @@ def rolling_apply(arg, window, func, min_periods=None, time_rule=None):
         minp = _use_window(minp, window)
         return _tseries.roll_generic(arg, window, minp, func)
     return _rolling_moment(arg, window, call_cython, min_periods,
-                           time_rule=time_rule)
+                           freq=freq, time_rule=time_rule)

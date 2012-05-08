@@ -38,7 +38,7 @@ The ``plot`` method on Series and DataFrame is just a simple wrapper around
 
 .. ipython:: python
 
-   ts = Series(randn(1000), index=DateRange('1/1/2000', periods=1000))
+   ts = Series(randn(1000), index=date_range('1/1/2000', periods=1000))
    ts = ts.cumsum()
 
    @savefig series_plot_basic.png width=4.5in
@@ -85,7 +85,7 @@ You may pass ``logy`` to get a log-scale Y axis.
 
    plt.figure();
 
-   ts = Series(randn(1000), index=DateRange('1/1/2000', periods=1000))
+   ts = Series(randn(1000), index=date_range('1/1/2000', periods=1000))
    ts = np.exp(ts.cumsum())
 
    @savefig series_plot_logy.png width=4.5in

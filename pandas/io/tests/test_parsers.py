@@ -1,10 +1,4 @@
-try:
-    from io import BytesIO
-except ImportError:  # pragma: no cover
-    # Python < 2.6
-    from cStringIO import StringIO as BytesIO
-
-from cStringIO import StringIO
+from pandas.util.py3compat import StringIO, BytesIO
 from datetime import datetime
 import csv
 import os
@@ -46,6 +40,129 @@ bar2,12,13,14,15
 
     def test_read_csv(self):
         pass
+
+    def test_1000_sep(self):
+        data = """A|B|C
+1|2,334.0|5
+10|13|10.
+"""
+        expected = [[1, 2334., 5],
+                    [10, 13, 10]]
+
+        df = read_csv(StringIO(data), sep='|', thousands=',')
+        assert_almost_equal(df.values, expected)
+
+        df = read_table(StringIO(data), sep='|', thousands=',')
+        assert_almost_equal(df.values, expected)
+
+    def test_1000_fwf(self):
+        data = """
+ 1 2,334.0    5
+10   13     10.
+"""
+        expected = [[1, 2334., 5],
+                    [10, 13, 10]]
+        df = read_fwf(StringIO(data), colspecs=[(0,3),(3,11),(12,16)],
+                      thousands=',')
+        assert_almost_equal(df.values, expected)
+
+    def test_comment(self):
+        data = """A,B,C
+1,2.,4.#hello world
+5.,NaN,10.0
+"""
+        expected = [[1., 2., 4.],
+                    [5., np.nan, 10.]]
+        df = read_csv(StringIO(data), comment='#')
+        assert_almost_equal(df.values, expected)
+
+        df = read_table(StringIO(data), sep=',', comment='#', na_values=['NaN'])
+        assert_almost_equal(df.values, expected)
+
+    def test_comment_fwf(self):
+        data = """
+  1   2.   4  #hello world
+  5  NaN  10.0
+"""
+        expected = [[1, 2., 4],
+                    [5, np.nan, 10.]]
+        df = read_fwf(StringIO(data), colspecs=[(0,3),(4,9),(9,25)],
+                      comment='#')
+        assert_almost_equal(df.values, expected)
+
+    def test_malformed(self):
+        # all
+        data = """ignore
+A,B,C
+1,2,3 # comment
+1,2,3,4,5
+2,3,4
+footer
+"""
+
+        try:
+            df = read_table(StringIO(data), sep=',', header=1, comment='#')
+            self.assert_(False)
+        except ValueError, inst:
+            self.assert_('Expecting 3 columns, got 5 in row 3' in str(inst))
+
+        # first chunk
+        data = """ignore
+A,B,C
+skip
+1,2,3
+3,5,10 # comment
+1,2,3,4,5
+2,3,4
+"""
+        try:
+            it = read_table(StringIO(data), sep=',',
+                            header=1, comment='#', iterator=True, chunksize=1,
+                            skiprows=[2])
+            df = it.get_chunk(5)
+            self.assert_(False)
+        except ValueError, inst:
+            self.assert_('Expecting 3 columns, got 5 in row 5' in str(inst))
+
+
+        # middle chunk
+        data = """ignore
+A,B,C
+skip
+1,2,3
+3,5,10 # comment
+1,2,3,4,5
+2,3,4
+"""
+        try:
+            it = read_table(StringIO(data), sep=',',
+                            header=1, comment='#', iterator=True, chunksize=1,
+                            skiprows=[2])
+            df = it.get_chunk(1)
+            it.get_chunk(2)
+            self.assert_(False)
+        except ValueError, inst:
+            self.assert_('Expecting 3 columns, got 5 in row 5' in str(inst))
+
+
+        # last chunk
+        data = """ignore
+A,B,C
+skip
+1,2,3
+3,5,10 # comment
+1,2,3,4,5
+2,3,4
+"""
+        try:
+            it = read_table(StringIO(data), sep=',',
+                            header=1, comment='#', iterator=True, chunksize=1,
+                            skiprows=[2])
+            df = it.get_chunk(1)
+            it.get_chunk()
+            self.assert_(False)
+        except ValueError, inst:
+            self.assert_('Expecting 3 columns, got 5 in row 5' in str(inst))
 
     def test_custom_na_values(self):
         data = """A,B,C
@@ -306,8 +423,10 @@ foo,12,13,14,15
 bar,12,13,14,15
 """
 
-        self.assertRaises(Exception, read_csv, StringIO(data),
-                          index_col=0)
+        result = read_csv(StringIO(data), index_col=0)
+        expected = read_csv(StringIO(data)).set_index('index',
+                                                      verify_integrity=False)
+        assert_frame_equal(result, expected)
 
     def test_read_table_duplicate_index_implicit(self):
         data = """A,B,C,D
@@ -319,8 +438,8 @@ foo,12,13,14,15
 bar,12,13,14,15
 """
 
-        self.assertRaises(Exception, read_csv, StringIO(data),
-                          index_col=0)
+        # it works!
+        result = read_csv(StringIO(data))
 
     def test_parse_bools(self):
         data = """A,B

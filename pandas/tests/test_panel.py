@@ -888,12 +888,43 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         result = self.panel.swapaxes('major', 'minor')
         self.assert_(result.major_axis is self.panel.minor_axis)
 
+        panel = self.panel.copy()
+        result = panel.swapaxes('major', 'minor')
+        panel.values[0, 0, 1] = np.nan
+        expected = panel.swapaxes('major', 'minor')
+        assert_panel_equal(result, expected)
+
         # this should also work
         result = self.panel.swapaxes(0, 1)
         self.assert_(result.items is self.panel.major_axis)
 
-        # this should also work
+        # this should not work
         self.assertRaises(Exception, self.panel.swapaxes, 'items', 'items')
+
+    def test_transpose(self):
+        result = self.panel.transpose('minor', 'major', 'items')
+        expected = self.panel.swapaxes('items', 'minor')
+        assert_panel_equal(result, expected)
+
+        result = self.panel.transpose(2, 1, 0)
+        assert_panel_equal(result, expected)
+
+        result = self.panel.transpose('minor', 'items', 'major')
+        expected = self.panel.swapaxes('items', 'minor')
+        expected = expected.swapaxes('major', 'minor')
+        assert_panel_equal(result, expected)
+
+        result = self.panel.transpose(2, 0, 1)
+        assert_panel_equal(result, expected)
+
+        panel = self.panel.copy()
+        result = panel.transpose(2, 0, 1, copy=False)
+        panel.values[0, 0, 1] = np.nan
+        expected = panel.swapaxes('items', 'minor')
+        expected = expected.swapaxes('major', 'minor')
+        assert_panel_equal(result, expected)
+
+        self.assertRaises(ValueError, self.panel.transpose, 0, 0, 1)
 
     def test_to_frame(self):
         # filtered
@@ -1124,7 +1155,7 @@ class TestLongPanel(unittest.TestCase):
         self.assert_(is_sorted(sorted_major.index.labels[0]))
 
     def test_to_string(self):
-        from cStringIO import StringIO
+        from pandas.util.py3compat import StringIO
 
         buf = StringIO()
         self.panel.to_string(buf)

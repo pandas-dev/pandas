@@ -6,11 +6,6 @@ try:
 except ImportError:  # pragma: no cover
     import pickle
 
-try:
-    from io import BytesIO
-except ImportError:  # pragma: no cover
-    # Python < 2.6
-    from cStringIO import StringIO as BytesIO
 import itertools
 
 try:
@@ -20,8 +15,6 @@ except NameError:  # pragma: no cover
     def next(x):
         return x.next()
 
-from cStringIO import StringIO
-
 from numpy.lib.format import read_array, write_array
 import numpy as np
 
@@ -29,6 +22,8 @@ import pandas._tseries as lib
 from pandas.util import py3compat
 import codecs
 import csv
+
+from pandas.util.py3compat import StringIO, BytesIO
 
 # XXX: HACK for NumPy 1.5.1 to suppress warnings
 try:

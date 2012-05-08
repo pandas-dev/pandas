@@ -52,9 +52,6 @@ class TimeGrouper(CustomGrouper):
         self.fill_method = fill_method
         self.limit = limit
 
-        if axis != 0:
-            raise NotImplementedError
-
     def resample(self, obj):
         axis = obj._get_axis(self.axis)
         if isinstance(axis, DatetimeIndex):
@@ -101,7 +98,7 @@ class TimeGrouper(CustomGrouper):
         # downsamples
         if len(grouper.binlabels) < len(axlabels):
             grouped  = obj.groupby(grouper, axis=self.axis)
-            result = grouped.agg(self.how)
+            result = grouped.aggregate(self.how)
         else:
             assert(self.axis == 0)
             # upsampling
@@ -109,16 +106,24 @@ class TimeGrouper(CustomGrouper):
             # this is sort of a hack
             result = obj.reindex(binner[1:], method=self.fill_method)
 
-        if isinstance(self.loffset, (DateOffset, timedelta)):
+        loffset = self.loffset
+        if isinstance(loffset, basestring):
+            loffset = to_offset(self.loffset)
+
+        if isinstance(loffset, (DateOffset, timedelta)):
             if (isinstance(result.index, DatetimeIndex)
                 and len(result.index) > 0):
 
-                result.index = result.index + self.loffset
+                result.index = result.index + loffset
 
         return result
 
     def _resample_periods(self, obj):
         axlabels = obj._get_axis(self.axis)
+
+        start = axlabels[0].asfreq(self.freq, how=self.convention)
+        end = axlabels[-1].asfreq(self.freq, how=self.convention)
+        new_index = period_range(start, end, freq=self.freq)
 
         # Start vs. end of period
         memb = axlabels.asfreq(self.freq, how=self.convention)
@@ -131,15 +136,11 @@ class TimeGrouper(CustomGrouper):
             else:
                 bins = np.array([], dtype=np.int32)
 
-            index = period_range(memb[0], memb[-1], freq=self.freq)
-            grouper = BinGrouper(bins, index)
+            grouper = BinGrouper(bins, new_index)
 
             grouped = obj.groupby(grouper, axis=self.axis)
-            return grouped.agg(self.how)
+            return grouped.aggregate(self.how)
         elif is_superperiod(axlabels.freq, self.freq):
-            # Generate full range
-            new_index = period_range(memb[0], memb[-1], freq=self.freq)
-
             # Get the fill indexer
             indexer = memb.get_indexer(new_index, method=self.fill_method,
                                        limit=self.limit)

@@ -33,6 +33,11 @@ pandas 0.8.0
     on DatetimeIndex (#391)
   - Convert DatetimeIndexes to UTC if time zones are different in join/setops
     (#864)
+  - Add limit argument for forward/backward filling to reindex, fillna,
+    etc. (#825 and others)
+  - Add support for indexes (dates or otherwise) with duplicates and common
+    sense indexing/selection functionality
+  - Series/DataFrame.update methods, in-place variant of combine_first (#961)
 
 **Improvements to existing features**
 
@@ -40,9 +45,14 @@ pandas 0.8.0
     performance in many cases and lower memory footprint
   - Shipping some functions from scipy.stats to reduce dependency,
     e.g. Series.describe and DataFrame.describe (GH #1092)
+  - Can create MultiIndex by passing list of lists or list of arrays to Series,
+    DataFrame constructor, etc. (#831)
+  - Can pass arrays in addition to column names to DataFrame.set_index (#402)
 
 **API Changes**
 
+  - Raise ValueError in DataFrame.__nonzero__, so "if df" no longer works
+    (#1073)
   - Change BDay (business day) to not normalize dates by default
   - Remove deprecated DataMatrix name
 
@@ -51,6 +61,17 @@ pandas 0.8.0
   - Fix OverflowError from storing pre-1970 dates in HDFStore by switching to
     datetime64 (GH #179)
   - Fix logical error with February leap year end in YearEnd offset
+  - Series([False, nan]) was getting casted to float64 (GH #1074)
+  - Fix binary operations between boolean Series and object Series with
+    booleans and NAs (GH #1074)
+  - Couldn't assign whole array to column in mixed-type DataFrame via .ix
+    (#1142)
+  - Fix label slicing issues with float index values (#1167)
+  - Fix segfault caused by empty groups passed to groupby (#1048)
+  - Fix occasionally misbehaved reindexing in the presence of NaN labels (#522)
+  - Fix imprecise logic causing weird Series results from .apply (#1183)
+  - Unstack multiple levels in one shot, avoiding empty columns in some
+    cases. Fix pivot table bug (#1181)
 
 pandas 0.7.3
 ============

@@ -305,6 +305,41 @@ convert_datetimestruct_local_to_utc(npy_datetimestruct *out_dts_utc,
     return 0;
 }
 
+/* int */
+/* parse_python_string(PyObject* obj, npy_datetimestruct *dts) { */
+/*     PyObject *bytes = NULL; */
+/*     char *str = NULL; */
+/*     Py_ssize_t len = 0; */
+/*     NPY_DATETIMEUNIT bestunit = -1; */
+
+/*     /\* Convert to an ASCII string for the date parser *\/ */
+/*     if (PyUnicode_Check(obj)) { */
+/*         bytes = PyUnicode_AsASCIIString(obj); */
+/*         if (bytes == NULL) { */
+/*             return -1; */
+/*         } */
+/*     } */
+/*     else { */
+/*         bytes = obj; */
+/*         Py_INCREF(bytes); */
+/*     } */
+/*     if (PyBytes_AsStringAndSize(bytes, &str, &len) == -1) { */
+/*         Py_DECREF(bytes); */
+/*         return -1; */
+/*     } */
+
+/*     /\* Parse the ISO date *\/ */
+/*     if (parse_iso_8601_datetime(str, len, NPY_FR_us, NPY_UNSAFE_CASTING, */
+/*                             dts, NULL, &bestunit, NULL) < 0) { */
+/*         Py_DECREF(bytes); */
+/*         return -1; */
+/*     } */
+/*     Py_DECREF(bytes); */
+
+/*     return 0; */
+/* } */
+
+
 /*
  * Parses (almost) standard ISO 8601 date strings. The differences are:
  *
@@ -891,30 +926,43 @@ get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base)
         /*    return 4;*/
         case NPY_FR_as:
             len += 3;  /* "###" */
+            break;
         case NPY_FR_fs:
             len += 3;  /* "###" */
+            break;
         case NPY_FR_ps:
             len += 3;  /* "###" */
+            break;
         case NPY_FR_ns:
             len += 3;  /* "###" */
+            break;
         case NPY_FR_us:
             len += 3;  /* "###" */
+            break;
         case NPY_FR_ms:
             len += 4;  /* ".###" */
+            break;
         case NPY_FR_s:
             len += 3;  /* ":##" */
+            break;
         case NPY_FR_m:
             len += 3;  /* ":##" */
+            break;
         case NPY_FR_h:
             len += 3;  /* "T##" */
+            break;
         case NPY_FR_D:
-        case NPY_FR_B:
         case NPY_FR_W:
             len += 3;  /* "-##" */
+            break;
         case NPY_FR_M:
             len += 3;  /* "-##" */
+            break;
         case NPY_FR_Y:
             len += 21; /* 64-bit year */
+            break;
+        default:
+            len += 3; /* handle the now defunct NPY_FR_B */
             break;
     }
 

@@ -607,9 +607,6 @@ def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
         bins[bc] = j
         bc += 1
 
-    # if len(bins) > 0 and bins[-1] == lenidx:
-    #     bins = bins[:-1]
-
     return bins
 
 # add passing bin edges, instead of labels
@@ -927,8 +924,8 @@ def group_ohlc(ndarray[float64_t, ndim=2] out,
             out[b, 3] = vclose
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+# @cython.boundscheck(False)
+# @cython.wraparound(False)
 def group_mean_bin(ndarray[float64_t, ndim=2] out,
                    ndarray[int32_t] counts,
                    ndarray[float64_t, ndim=2] values,

@@ -117,13 +117,29 @@ def assert_dict_equal(a, b, compare_keys=True):
     for k in a_keys:
         assert_almost_equal(a[k], b[k])
 
-def assert_series_equal(left, right, check_dtype=True):
+def assert_series_equal(left, right, check_dtype=True,
+                        check_index_type=False,
+                        check_index_freq=False,
+                        check_series_type=False):
+    if check_series_type:
+        assert(type(left) == type(right))
     assert_almost_equal(left.values, right.values)
     if check_dtype:
         assert(left.dtype == right.dtype)
     assert(left.index.equals(right.index))
+    if check_index_type:
+        assert(type(left.index) == type(right.index))
+        assert(left.index.dtype == right.index.dtype)
+        assert(left.index.inferred_type == right.index.inferred_type)
+    if check_index_freq:
+        assert(getattr(left, 'freqstr', None) ==
+               getattr(right, 'freqstr', None))
 
-def assert_frame_equal(left, right):
+def assert_frame_equal(left, right, check_index_type=False,
+                       check_column_type=False,
+                       check_frame_type=False):
+    if check_frame_type:
+        assert(type(left) == type(right))
     assert(isinstance(left, DataFrame))
     assert(isinstance(right, DataFrame))
     for col, series in left.iterkv():
@@ -133,8 +149,19 @@ def assert_frame_equal(left, right):
         assert(col in left)
     assert(left.index.equals(right.index))
     assert(left.columns.equals(right.columns))
+    if check_index_type:
+        assert(type(left.index) == type(right.index))
+        assert(left.index.dtype == right.index.dtype)
+        assert(left.index.inferred_type == right.index.inferred_type)
+    if check_column_type:
+        assert(type(left.columns) == type(right.columns))
+        assert(left.columns.dtype == right.columns.dtype)
+        assert(left.columns.inferred_type == right.columns.inferred_type)
 
-def assert_panel_equal(left, right):
+def assert_panel_equal(left, right, check_panel_type=False):
+    if check_panel_type:
+        assert(type(left) == type(right))
+
     assert(left.items.equals(right.items))
     assert(left.major_axis.equals(right.major_axis))
     assert(left.minor_axis.equals(right.minor_axis))
@@ -221,6 +248,13 @@ def getTimeSeriesData():
 
 def makeTimeDataFrame():
     data = getTimeSeriesData()
+    return DataFrame(data)
+
+def getPeriodData():
+    return dict((c, makePeriodSeries()) for c in getCols(K))
+
+def makePeriodFrame():
+    data = getPeriodData()
     return DataFrame(data)
 
 def makePanel():

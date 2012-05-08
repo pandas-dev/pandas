@@ -1,14 +1,23 @@
 # being a bit too dynamic
 # pylint: disable=E1101
-
-from pandas.util.decorators import cache_readonly
-import pandas.core.common as com
+from itertools import izip
 
 import numpy as np
 from scipy import stats
 
+from pandas.util.decorators import cache_readonly
+import pandas.core.common as com
+from pandas.core.series import Series
+from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.period import PeriodIndex
+from pandas.tseries.offsets import DateOffset
 
+<<<<<<< HEAD
 def scatter_matrix(frame, alpha=0.5, figsize=None, diagonal='hist', **kwds):
+=======
+def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
+                   **kwds):
+>>>>>>> upstream/master
     """
     Draw a matrix of scatter plots.
 
@@ -24,13 +33,15 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, diagonal='hist', **kwds):
     """
     df = frame._get_numeric_data()
     n = df.columns.size
-    fig, axes = _subplots(nrows=n, ncols=n, figsize=figsize)
+    fig, axes = _subplots(nrows=n, ncols=n, figsize=figsize, ax=ax,
+                          squeeze=False)
 
     # no gaps between subplots
     fig.subplots_adjust(wspace=0, hspace=0)
 
     for i, a in zip(range(n), df.columns):
         for j, b in zip(range(n), df.columns):
+<<<<<<< HEAD
             if i == j:
                 # Deal with the diagonal by drawing a histogram there.
                 if diagonal == 'hist':
@@ -76,6 +87,58 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, diagonal='hist', **kwds):
                     axes[i, j].yaxis.set_visible(True)
                     axes[i, j].yaxis.set_ticks_position('right')
                     axes[i, j].yaxis.set_label_position('right')
+=======
+            axes[i, j].scatter(df[b], df[a], alpha=alpha, **kwds)
+            axes[i, j].set_xlabel('')
+            axes[i, j].set_ylabel('')
+            axes[i, j].set_xticklabels([])
+            axes[i, j].set_yticklabels([])
+            ticks = df.index
+
+            is_datetype = ticks.inferred_type in ('datetime', 'date',
+                                                  'datetime64')
+
+            if ticks.is_numeric() or is_datetype:
+                """
+                Matplotlib supports numeric values or datetime objects as
+                xaxis values. Taking LBYL approach here, by the time
+                matplotlib raises exception when using non numeric/datetime
+                values for xaxis, several actions are already taken by plt.
+                """
+                ticks = ticks._mpl_repr()
+
+            # setup labels
+            if i == 0 and j % 2 == 1:
+                axes[i, j].set_xlabel(b, visible=True)
+                #axes[i, j].xaxis.set_visible(True)
+                axes[i, j].set_xlabel(b)
+                axes[i, j].set_xticklabels(ticks)
+                axes[i, j].xaxis.set_ticks_position('top')
+                axes[i, j].xaxis.set_label_position('top')
+            if i == n - 1 and j % 2 == 0:
+                axes[i, j].set_xlabel(b, visible=True)
+                #axes[i, j].xaxis.set_visible(True)
+                axes[i, j].set_xlabel(b)
+                axes[i, j].set_xticklabels(ticks)
+                axes[i, j].xaxis.set_ticks_position('bottom')
+                axes[i, j].xaxis.set_label_position('bottom')
+            if j == 0 and i % 2 == 0:
+                axes[i, j].set_ylabel(a, visible=True)
+                #axes[i, j].yaxis.set_visible(True)
+                axes[i, j].set_ylabel(a)
+                axes[i, j].set_yticklabels(ticks)
+                axes[i, j].yaxis.set_ticks_position('left')
+                axes[i, j].yaxis.set_label_position('left')
+            if j == n - 1 and i % 2 == 1:
+                axes[i, j].set_ylabel(a, visible=True)
+                #axes[i, j].yaxis.set_visible(True)
+                axes[i, j].set_ylabel(a)
+                axes[i, j].set_yticklabels(ticks)
+                axes[i, j].yaxis.set_ticks_position('right')
+                axes[i, j].yaxis.set_label_position('right')
+>>>>>>> upstream/master
+
+            axes[i, j].grid(b=grid)
 
     # ensure {x,y}lim off diagonal are the same as diagonal
     #for i in range(n):
@@ -93,14 +156,6 @@ def _gca():
 def _gcf():
     import matplotlib.pyplot as plt
     return plt.gcf()
-
-def hist(data, column, by=None, ax=None, fontsize=None):
-    keys, values = zip(*data.groupby(by)[column])
-    if ax is None:
-        ax = _gca()
-    ax.boxplot(values)
-    ax.set_xticklabels(keys, rotation=0, fontsize=fontsize)
-    return ax
 
 def grouped_hist(data, column=None, by=None, ax=None, bins=50, log=False,
                  figsize=None, layout=None, sharex=False, sharey=False,
@@ -182,8 +237,6 @@ class MPLPlot(object):
 
     def _iter_data(self):
         from pandas.core.frame import DataFrame
-        from pandas.core.series import Series
-
         if isinstance(self.data, (Series, np.ndarray)):
             yield com._stringify(self.label), np.asarray(self.data)
         elif isinstance(self.data, DataFrame):
@@ -363,6 +416,18 @@ class LinePlot(MPLPlot):
     def __init__(self, data, **kwargs):
         MPLPlot.__init__(self, data, **kwargs)
 
+    @property
+    def has_ts_index(self):
+        from pandas.core.frame import DataFrame
+        if isinstance(self.data, (Series, DataFrame)):
+            if isinstance(self.data.index, (DatetimeIndex, PeriodIndex)):
+                has_freq = (hasattr(self.data.index, 'freq') and
+                            self.data.index.freq is not None)
+                has_inferred = (hasattr(self.data.index, 'inferred_freq') and
+                                self.data.index.inferred_freq is not None)
+                return has_freq or has_inferred
+        return False
+
     def _get_plot_function(self):
         if self.logy:
             plotf = self.plt.Axes.semilogy
@@ -377,31 +442,84 @@ class LinePlot(MPLPlot):
 
     def _make_plot(self):
         # this is slightly deceptive
-        x = self._get_xticks()
+        if self.use_index and self.has_ts_index:
+            data = self._maybe_convert_index(self.data)
+            self._make_ts_plot(data)
+        else:
+            x = self._get_xticks()
+
+            plotf = self._get_plot_function()
+
+            for i, (label, y) in enumerate(self._iter_data()):
+                if self.subplots:
+                    ax = self.axes[i]
+                    style = 'k'
+                else:
+                    style = ''  # empty string ignored
+                    ax = self.ax
+                if self.style:
+                    style = self.style
+
+                plotf(ax, x, y, style, label=label, **self.kwds)
+                ax.grid(self.grid)
+
+    def _maybe_convert_index(self, data):
+        # tsplot converts automatically, but don't want to convert index
+        # over and over for DataFrames
+        from pandas.core.frame import DataFrame
+        if (isinstance(data.index, DatetimeIndex) and
+            isinstance(data, DataFrame)):
+            freq = getattr(data.index, 'freq', None)
+            if freq is None and hasattr(data.index, 'inferred_freq'):
+                freq = data.index.inferred_freq
+
+            if isinstance(freq, DateOffset):
+                freq = freq.rule_code
+
+            data = DataFrame(data.values,
+                             index=data.index.to_period(freq=freq),
+                             columns=data.columns)
+        return data
+
+    def _make_ts_plot(self, data, **kwargs):
+        from pandas.tseries.plotting import tsplot
 
         plotf = self._get_plot_function()
 
-        for i, (label, y) in enumerate(self._iter_data()):
-            if self.subplots:
-                ax = self.axes[i]
-                style = 'k'
+        if isinstance(data, Series):
+            if self.subplots: # shouldn't even allow users to specify
+                ax = self.axes[0]
             else:
-                style = ''  # empty string ignored
                 ax = self.ax
-            if self.style:
-                style = self.style
 
-            plotf(ax, x, y, style, label=label, **self.kwds)
+            label = com._stringify(self.label)
+            tsplot(data, plotf, ax=ax, label=label, **kwargs)
             ax.grid(self.grid)
+        else:
+            for i, col in enumerate(data.columns):
+                if self.subplots:
+                    ax = self.axes[i]
+                else:
+                    ax = self.ax
+                label = com._stringify(col)
+                tsplot(data[col], plotf, ax=ax, label=label, **kwargs)
+                ax.grid(self.grid)
+
+        self.fig.subplots_adjust(wspace=0, hspace=0)
+
 
     def _post_plot_logic(self):
         df = self.data
 
-        if self.subplots and self.legend:
-            for ax in self.axes:
-                ax.legend(loc='best')
+        if self.legend:
+            if self.subplots:
+                for ax in self.axes:
+                    ax.legend(loc='best')
+            else:
+                self.axes[0].legend(loc='best')
 
-        condition = (df.index.is_all_dates
+        condition = (not self.has_ts_index
+                     and df.index.is_all_dates
                      and not self.subplots
                      or (self.subplots and self.sharex))
 
@@ -489,7 +607,7 @@ class BarPlot(MPLPlot):
 
             ax.legend(patches, labels, loc='best')
 
-        self.fig.subplots_adjust(top=0.8)
+        self.fig.subplots_adjust(top=0.8, wspace=0, hspace=0)
 
     def _post_plot_logic(self):
         for ax in self.axes:
@@ -659,24 +777,6 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
 
     return plot_obj.ax
 
-# if use_index:
-#     # custom datetime/interval plotting
-#     from pandas import IntervalIndex, DatetimeIndex
-#     if isinstance(self.index, IntervalIndex):
-#         return tsp.tsplot(self)
-#     if isinstance(self.index, DatetimeIndex):
-#         offset = self.index.freq
-#         name = datetools._newOffsetNames.get(offset, None)
-#         if name is not None:
-#             try:
-#                 code = datetools._interval_str_to_code(name)
-#                 s_ = Series(self.values,
-#                             index=self.index.to_interval(freq=code),
-#                             name=self.name)
-#                 tsp.tsplot(s_)
-#             except:
-#                 pass
-
 def boxplot(data, column=None, by=None, ax=None, fontsize=None,
             rot=0, grid=True, figsize=None):
     """
@@ -685,7 +785,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
 
     Parameters
     ----------
-    data : DataFrame
+    data : DataFrame or Series
     column : column name or list of names, or vector
         Can be any valid input to groupby
     by : string or sequence
@@ -696,6 +796,11 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
     -------
     ax : matplotlib.axes.AxesSubplot
     """
+    from pandas import Series, DataFrame
+    if isinstance(data, Series):
+        data = DataFrame({'x' : data})
+        column = 'x'
+
     def plot_group(grouped, ax):
         keys, values = zip(*grouped)
         keys = [_stringify(x) for x in keys]
@@ -761,7 +866,7 @@ def format_date_labels(ax):
         pass
 
 
-def scatter_plot(data, x, y, by=None, ax=None, figsize=None):
+def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False):
     """
 
     Returns
@@ -774,6 +879,7 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None):
         xvals = group[x].values
         yvals = group[y].values
         ax.scatter(xvals, yvals)
+        ax.grid(grid)
 
     if by is not None:
         fig = _grouped_plot(plot_group, data, by=by, figsize=figsize, ax=ax)
@@ -786,6 +892,8 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None):
         plot_group(data, ax)
         ax.set_ylabel(str(y))
         ax.set_xlabel(str(x))
+
+        ax.grid(grid)
 
     return fig
 
@@ -816,10 +924,12 @@ def hist_frame(data, grid=True, xlabelsize=None, xrot=None,
     k = 1
     while k ** 2 < n:
         k += 1
-    _, axes = _subplots(nrows=k, ncols=k, ax=ax)
+    _, axes = _subplots(nrows=k, ncols=k, ax=ax, squeeze=False)
 
     for i, col in enumerate(com._try_sort(data.columns)):
         ax = axes[i / k][i % k]
+        ax.xaxis.set_visible(True)
+        ax.yaxis.set_visible(True)
         ax.hist(data[col].dropna().values, **kwds)
         ax.set_title(col)
         ax.grid(grid)
@@ -832,6 +942,12 @@ def hist_frame(data, grid=True, xlabelsize=None, xrot=None,
             plt.setp(ax.get_yticklabels(), fontsize=ylabelsize)
         if yrot is not None:
             plt.setp(ax.get_yticklabels(), rotation=yrot)
+
+    for j in range(i + 1, k**2):
+        ax = axes[j / k, j % k]
+        ax.set_visible(False)
+
+    ax.get_figure().subplots_adjust(wspace=0.3, hspace=0.3)
 
     return axes
 
@@ -1057,6 +1173,7 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
         fig = plt.figure(**fig_kw)
     else:
         fig = ax.get_figure()
+        fig.clear()
 
     # Create empty object array to hold all axes.  It's easiest to make it 1-d
     # so we can just append subplots upon creation, and then
@@ -1076,17 +1193,29 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
     for i in range(1, nplots):
         axarr[i] = fig.add_subplot(nrows, ncols, i+1, **subplot_kw)
 
+    if nplots > 1:
+        if sharex and nrows > 1:
+            for i, ax in enumerate(axarr):
+                if np.ceil(float(i + 1) / ncols) < nrows: # only last row
+                    [label.set_visible(False) for label in ax.get_xticklabels()]
+        if sharey and ncols > 1:
+            for i, ax in enumerate(axarr):
+                if (i % ncols) != 0: # only first column
+                    [label.set_visible(False) for label in ax.get_yticklabels()]
+
     if squeeze:
         # Reshape the array to have the final desired dimension (nrow,ncol),
         # though discarding unneeded dimensions that equal 1.  If we only have
         # one subplot, just return it instead of a 1-element array.
         if nplots==1:
-            return fig, axarr[0]
+            axes = axarr[0]
         else:
-            return fig, axarr.reshape(nrows, ncols).squeeze()
+            axes = axarr.reshape(nrows, ncols).squeeze()
     else:
         # returned axis array will be always 2-d, even if nrows=ncols=1
-        return fig, axarr.reshape(nrows, ncols)
+        axes = axarr.reshape(nrows, ncols)
+
+    return fig, axes
 
 if __name__ == '__main__':
     # import pandas.rpy.common as com

@@ -8,6 +8,29 @@ from pandas.util.decorators import cache_readonly
 import pandas.tseries.offsets as offsets
 import pandas._tseries as lib
 
+class FreqGroup(object):
+    FR_ANN = 1000
+    FR_QTR = 2000
+    FR_MTH = 3000
+    FR_WK = 4000
+    FR_BUS = 5000
+    FR_DAY = 6000
+    FR_HR = 7000
+    FR_MIN = 8000
+    FR_SEC = 9000
+    FR_UND = -10000
+
+def get_freq_group(freq):
+    if isinstance(freq, basestring):
+        base, mult = get_freq_code(freq)
+        freq = base
+    return (freq // 1000) * 1000
+
+def get_freq(freq):
+    if isinstance(freq, basestring):
+        base, mult = get_freq_code(freq)
+        freq = base
+    return freq
 
 def get_freq_code(freqstr):
     """
@@ -218,6 +241,32 @@ _offset_map = {
     'W': Week()
 }
 
+_offset_to_period_map = {
+    'WEEKDAY' : 'D',
+    'EOM' : 'M',
+    'B' : 'D',
+    'BM' : 'M',
+    'BQS' : 'Q',
+    'QS' : 'Q',
+    'BQ' : 'Q',
+    'BA' : 'A',
+    'AS' : 'A',
+    'BAS' : 'A',
+    'MS' : 'M'
+}
+
+need_suffix = ['QS', 'BQ', 'BQS', 'AS', 'BA', 'BAS']
+months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP',
+          'OCT', 'NOV', 'DEC']
+for prefix in need_suffix:
+    for m in months:
+        _offset_to_period_map['%s-%s' % (prefix, m)] = \
+            _offset_to_period_map[prefix]
+
+def offset_to_period_alias(offset_str):
+    """ alias to closest period strings BQ->Q etc"""
+    return _offset_to_period_map.get(offset_str, offset_str)
+
 _rule_aliases = {
     # Legacy rules that will continue to map to their original values
     # essentially for the rest of time
@@ -312,12 +361,16 @@ def to_offset(freqstr):
         delta = get_offset(name) * stride
     else:
         delta = None
+        stride_sign = None
         try:
             for stride, name, _ in opattern.findall(freqstr):
                 offset = get_offset(name)
                 if not stride:
                     stride = 1
-                offset = offset * int(stride)
+                stride = int(stride)
+                if stride_sign is None:
+                    stride_sign = np.sign(stride)
+                offset = offset * int(np.fabs(stride) * stride_sign)
                 if delta is None:
                     delta = offset
                 else:
@@ -329,7 +382,7 @@ def to_offset(freqstr):
 
 
 # hack to handle WOM-1MON
-opattern = re.compile(r'(\d*)\s*([A-Za-z]+([\-@]\d*[A-Za-z]+)?)')
+opattern = re.compile(r'([\-]?\d*)\s*([A-Za-z]+([\-@]\d*[A-Za-z]+)?)')
 
 def _base_and_stride(freqstr):
     """
@@ -437,7 +490,6 @@ def get_standard_freq(freq):
 _period_code_map = {
     # Annual freqs with various fiscal year ends.
     # eg, 2005 for A-FEB runs Mar 1, 2004 to Feb 28, 2005
-    "A"     : 1000,  # Annual
     "A-DEC" : 1000,  # Annual - December year end
     "A-JAN" : 1001,  # Annual - January year end
     "A-FEB" : 1002,  # Annual - February year end
@@ -453,7 +505,6 @@ _period_code_map = {
 
     # Quarterly frequencies with various fiscal year ends.
     # eg, Q42005 for Q-OCT runs Aug 1, 2005 to Oct 31, 2005
-    "Q"     : 2000,    # Quarterly - December year end (default quarterly)
     "Q-DEC" : 2000 ,    # Quarterly - December year end
     "Q-JAN" : 2001,    # Quarterly - January year end
     "Q-FEB" : 2002,    # Quarterly - February year end
@@ -469,7 +520,6 @@ _period_code_map = {
 
     "M"     : 3000,   # Monthly
 
-    "W"     : 4000,    # Weekly
     "W-SUN" : 4000,    # Weekly - Sunday end of week
     "W-MON" : 4001,    # Weekly - Monday end of week
     "W-TUE" : 4002,    # Weekly - Tuesday end of week
@@ -484,7 +534,19 @@ _period_code_map = {
     "T"      : 8000,   # Minutely
     "S"      : 9000,   # Secondly
     None     : -10000  # Undefined
+
 }
+
+_reverse_period_code_map = {}
+for k, v in _period_code_map.iteritems():
+    _reverse_period_code_map[v] = k
+
+# Additional aliases
+_period_code_map.update({
+    "Q"     : 2000,    # Quarterly - December year end (default quarterly)
+    "A"     : 1000,  # Annual
+    "W"     : 4000,    # Weekly
+})
 
 def _period_alias_dictionary():
     """
@@ -580,10 +642,6 @@ def _period_alias_dictionary():
                 alias_dict[k + sep + d2] = 'W-' + d1
 
     return alias_dict
-
-_reverse_period_code_map = {}
-for k, v in _period_code_map.iteritems():
-    _reverse_period_code_map[v] = k
 
 _reso_period_map = {
     "year"    : "A",
@@ -869,6 +927,13 @@ def is_superperiod(source, target):
     target = target.upper()
     source = source.upper()
     if _is_annual(source):
+        if _is_annual(target):
+            return _get_rule_month(source) == _get_rule_month(target)
+
+        if _is_quarterly(target):
+            smonth = _get_rule_month(source)
+            tmonth = _get_rule_month(target)
+            return _quarter_months_conform(smonth, tmonth)
         return target in ['D', 'B', 'M', 'H', 'T', 'S']
     elif _is_quarterly(source):
         return target in ['D', 'B', 'M', 'H', 'T', 'S']
@@ -881,11 +946,21 @@ def is_superperiod(source, target):
     elif source == 'D':
         return target not in ['D', 'B', 'H', 'T', 'S']
 
+def _get_rule_month(source, default='DEC'):
+    source = source.upper()
+    if '-' not in source:
+        return default
+    else:
+        return source.split('-')[1]
 
 def _is_annual(rule):
     rule = rule.upper()
     return rule == 'A' or rule.startswith('A-')
 
+def _quarter_months_conform(source, target):
+    snum = _month_numbers[source]
+    tnum = _month_numbers[target]
+    return snum % 3 == tnum % 3
 
 def _is_quarterly(rule):
     return rule.upper().startswith('Q-')
@@ -899,6 +974,9 @@ DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
 MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
           'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+
+_month_numbers = dict((k, i) for i, k in enumerate(MONTHS))
+
 
 
 _weekday_rule_aliases = dict((k, v) for k, v in enumerate(DAYS))

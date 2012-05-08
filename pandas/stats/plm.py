@@ -149,7 +149,7 @@ class PanelOLS(OLS):
         x = data_long.filter(x_names)
         y = data_long['__y__']
 
-        if self._weights:
+        if self._weights is not None and not self._weights.empty:
             weights = data_long['__weights__']
         else:
             weights = None

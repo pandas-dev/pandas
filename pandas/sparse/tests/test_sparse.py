@@ -871,7 +871,7 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
 
     def test_op_corners(self):
         empty = self.empty + self.empty
-        self.assert_(not empty)
+        self.assert_(empty.empty)
 
         foo = self.frame + self.empty
         self.assert_(isinstance(foo.index, DatetimeIndex))

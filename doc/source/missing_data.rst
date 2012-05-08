@@ -204,7 +204,7 @@ for interpolation methods outside of the filling methods described above.
    :suppress:
 
    np.random.seed(123456)
-   ts = Series(randn(100), index=DateRange('1/1/2000', periods=100,
+   ts = Series(randn(100), index=date_range('1/1/2000', periods=100,
                                            timeRule='EOM'))
    ts[20:40] = np.nan
    ts[60:80] = np.nan
