@@ -1841,10 +1841,10 @@ def take_2d_axis0_float64(ndarray[float64_t, ndim=2] values,
         for i in range(n):
             idx = indexer[i]
             if idx == -1:
-                for j from 0 <= j < k:
+                for j in range(k):
                     outbuf[i, j] = fv
             else:
-                for j from 0 <= j < k:
+                for j in range(k):
                     outbuf[i, j] = values[idx, j]
 
 @cython.wraparound(False)
@@ -1879,10 +1879,10 @@ def take_2d_axis0_object(ndarray[object, ndim=2] values,
         for i in range(n):
             idx = indexer[i]
             if idx == -1:
-                for j from 0 <= j < k:
+                for j in range(k):
                     outbuf[i, j] = fv
             else:
-                for j from 0 <= j < k:
+                for j in range(k):
                     outbuf[i, j] = values[idx, j]
 
 @cython.wraparound(False)
@@ -1917,10 +1917,10 @@ def take_2d_axis0_int32(ndarray[int32_t, ndim=2] values,
         for i in range(n):
             idx = indexer[i]
             if idx == -1:
-                for j from 0 <= j < k:
+                for j in range(k):
                     outbuf[i, j] = fv
             else:
-                for j from 0 <= j < k:
+                for j in range(k):
                     outbuf[i, j] = values[idx, j]
 
 @cython.wraparound(False)
@@ -1955,10 +1955,10 @@ def take_2d_axis0_int64(ndarray[int64_t, ndim=2] values,
         for i in range(n):
             idx = indexer[i]
             if idx == -1:
-                for j from 0 <= j < k:
+                for j in range(k):
                     outbuf[i, j] = fv
             else:
-                for j from 0 <= j < k:
+                for j in range(k):
                     outbuf[i, j] = values[idx, j]
 
 @cython.wraparound(False)
@@ -1993,10 +1993,10 @@ def take_2d_axis0_bool(ndarray[uint8_t, ndim=2] values,
         for i in range(n):
             idx = indexer[i]
             if idx == -1:
-                for j from 0 <= j < k:
+                for j in range(k):
                     outbuf[i, j] = fv
             else:
-                for j from 0 <= j < k:
+                for j in range(k):
                     outbuf[i, j] = values[idx, j]
 
 
@@ -2199,6 +2199,237 @@ def take_2d_axis1_bool(ndarray[uint8_t, ndim=2] values,
             else:
                 for i in range(n):
                     outbuf[i, j] = values[i, idx]
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_2d_multi_float64(ndarray[float64_t, ndim=2] values,
+                           ndarray[int32_t] idx0,
+                           ndarray[int32_t] idx1,
+                           out=None, fill_value=np.nan):
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        ndarray[float64_t, ndim=2] outbuf
+        float64_t fv
+
+    n = len(idx0)
+    k = len(idx1)
+
+    if out is None:
+        outbuf = np.empty((n, k), dtype=values.dtype)
+    else:
+        outbuf = out
+
+
+    if False and _checknan(fill_value):
+        for i in range(n):
+            idx = idx0[i]
+            if idx == -1:
+                for j in range(k):
+                    raise ValueError('No NA values allowed')
+            else:
+                for j in range(k):
+                    if idx1[j] == -1:
+                        raise ValueError('No NA values allowed')
+                    else:
+                        outbuf[i, j] = values[idx, idx1[j]]
+    else:
+        fv = fill_value
+        for i in range(n):
+            idx = idx0[i]
+            if idx == -1:
+                for j in range(k):
+                    outbuf[i, j] = fv
+            else:
+                for j in range(k):
+                    if idx1[j] == -1:
+                        outbuf[i, j] = fv
+                    else:
+                        outbuf[i, j] = values[idx, idx1[j]]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_2d_multi_object(ndarray[object, ndim=2] values,
+                           ndarray[int32_t] idx0,
+                           ndarray[int32_t] idx1,
+                           out=None, fill_value=np.nan):
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        ndarray[object, ndim=2] outbuf
+        object fv
+
+    n = len(idx0)
+    k = len(idx1)
+
+    if out is None:
+        outbuf = np.empty((n, k), dtype=values.dtype)
+    else:
+        outbuf = out
+
+
+    if False and _checknan(fill_value):
+        for i in range(n):
+            idx = idx0[i]
+            if idx == -1:
+                for j in range(k):
+                    raise ValueError('No NA values allowed')
+            else:
+                for j in range(k):
+                    if idx1[j] == -1:
+                        raise ValueError('No NA values allowed')
+                    else:
+                        outbuf[i, j] = values[idx, idx1[j]]
+    else:
+        fv = fill_value
+        for i in range(n):
+            idx = idx0[i]
+            if idx == -1:
+                for j in range(k):
+                    outbuf[i, j] = fv
+            else:
+                for j in range(k):
+                    if idx1[j] == -1:
+                        outbuf[i, j] = fv
+                    else:
+                        outbuf[i, j] = values[idx, idx1[j]]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_2d_multi_int32(ndarray[int32_t, ndim=2] values,
+                           ndarray[int32_t] idx0,
+                           ndarray[int32_t] idx1,
+                           out=None, fill_value=np.nan):
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        ndarray[int32_t, ndim=2] outbuf
+        int32_t fv
+
+    n = len(idx0)
+    k = len(idx1)
+
+    if out is None:
+        outbuf = np.empty((n, k), dtype=values.dtype)
+    else:
+        outbuf = out
+
+
+    if True and _checknan(fill_value):
+        for i in range(n):
+            idx = idx0[i]
+            if idx == -1:
+                for j in range(k):
+                    raise ValueError('No NA values allowed')
+            else:
+                for j in range(k):
+                    if idx1[j] == -1:
+                        raise ValueError('No NA values allowed')
+                    else:
+                        outbuf[i, j] = values[idx, idx1[j]]
+    else:
+        fv = fill_value
+        for i in range(n):
+            idx = idx0[i]
+            if idx == -1:
+                for j in range(k):
+                    outbuf[i, j] = fv
+            else:
+                for j in range(k):
+                    if idx1[j] == -1:
+                        outbuf[i, j] = fv
+                    else:
+                        outbuf[i, j] = values[idx, idx1[j]]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_2d_multi_int64(ndarray[int64_t, ndim=2] values,
+                           ndarray[int32_t] idx0,
+                           ndarray[int32_t] idx1,
+                           out=None, fill_value=np.nan):
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        ndarray[int64_t, ndim=2] outbuf
+        int64_t fv
+
+    n = len(idx0)
+    k = len(idx1)
+
+    if out is None:
+        outbuf = np.empty((n, k), dtype=values.dtype)
+    else:
+        outbuf = out
+
+
+    if True and _checknan(fill_value):
+        for i in range(n):
+            idx = idx0[i]
+            if idx == -1:
+                for j in range(k):
+                    raise ValueError('No NA values allowed')
+            else:
+                for j in range(k):
+                    if idx1[j] == -1:
+                        raise ValueError('No NA values allowed')
+                    else:
+                        outbuf[i, j] = values[idx, idx1[j]]
+    else:
+        fv = fill_value
+        for i in range(n):
+            idx = idx0[i]
+            if idx == -1:
+                for j in range(k):
+                    outbuf[i, j] = fv
+            else:
+                for j in range(k):
+                    if idx1[j] == -1:
+                        outbuf[i, j] = fv
+                    else:
+                        outbuf[i, j] = values[idx, idx1[j]]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_2d_multi_bool(ndarray[uint8_t, ndim=2] values,
+                           ndarray[int32_t] idx0,
+                           ndarray[int32_t] idx1,
+                           out=None, fill_value=np.nan):
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        ndarray[uint8_t, ndim=2] outbuf
+        uint8_t fv
+
+    n = len(idx0)
+    k = len(idx1)
+
+    if out is None:
+        outbuf = np.empty((n, k), dtype=values.dtype)
+    else:
+        outbuf = out
+
+
+    if True and _checknan(fill_value):
+        for i in range(n):
+            idx = idx0[i]
+            if idx == -1:
+                for j in range(k):
+                    raise ValueError('No NA values allowed')
+            else:
+                for j in range(k):
+                    if idx1[j] == -1:
+                        raise ValueError('No NA values allowed')
+                    else:
+                        outbuf[i, j] = values[idx, idx1[j]]
+    else:
+        fv = fill_value
+        for i in range(n):
+            idx = idx0[i]
+            if idx == -1:
+                for j in range(k):
+                    outbuf[i, j] = fv
+            else:
+                for j in range(k):
+                    if idx1[j] == -1:
+                        outbuf[i, j] = fv
+                    else:
+                        outbuf[i, j] = values[idx, idx1[j]]
 
 
 @cython.wraparound(False)

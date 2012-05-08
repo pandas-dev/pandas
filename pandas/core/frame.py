@@ -1959,13 +1959,18 @@ class DataFrame(NDFrame):
         self._consolidate_inplace()
         frame = self
 
-        if index is not None:
-            frame = frame._reindex_index(index, method, copy, level,
-                                         fill_value, limit)
+        if (index is not None and columns is not None
+            and method is None and level is None
+            and not self._is_mixed_type):
+            return self._reindex_multi(index, columns, copy, fill_value)
 
         if columns is not None:
             frame = frame._reindex_columns(columns, copy, level,
                                            fill_value, limit)
+
+        if index is not None:
+            frame = frame._reindex_index(index, method, copy, level,
+                                         fill_value, limit)
 
         return frame
 
@@ -2019,6 +2024,24 @@ class DataFrame(NDFrame):
                                          limit=limit)
         else:  # pragma: no cover
             raise ValueError('Must specify axis=0 or 1')
+
+    def _reindex_multi(self, new_index, new_columns, copy, fill_value):
+        new_index, row_indexer = self.index.reindex(new_index)
+        new_columns, col_indexer = self.columns.reindex(new_columns)
+
+        if row_indexer is not None and col_indexer is not None:
+            new_values = com.take_2d_multi(self.values, row_indexer,
+                                           col_indexer, fill_value=fill_value)
+            return DataFrame(new_values, index=new_index, columns=new_columns)
+        elif row_indexer is not None:
+            return self._reindex_with_indexers(new_index, row_indexer,
+                                               None, None, copy, fill_value)
+        elif col_indexer is not None:
+            return self._reindex_with_indexers(None, None,
+                                               new_columns, col_indexer,
+                                               copy, fill_value)
+        else:
+            return self.copy() if copy else self
 
     def _reindex_index(self, new_index, method, copy, level, fill_value=np.nan,
                        limit=None):

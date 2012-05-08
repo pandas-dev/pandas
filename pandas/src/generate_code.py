@@ -67,10 +67,10 @@ def take_2d_axis0_%(name)s(ndarray[%(c_type)s, ndim=2] values,
         for i in range(n):
             idx = indexer[i]
             if idx == -1:
-                for j from 0 <= j < k:
+                for j in range(k):
                     outbuf[i, j] = fv
             else:
-                for j from 0 <= j < k:
+                for j in range(k):
                     outbuf[i, j] = values[idx, j]
 
 """
@@ -116,6 +116,55 @@ def take_2d_axis1_%(name)s(ndarray[%(c_type)s, ndim=2] values,
                     outbuf[i, j] = values[i, idx]
 
 """
+
+take_2d_multi_template = """@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_2d_multi_%(name)s(ndarray[%(c_type)s, ndim=2] values,
+                           ndarray[int32_t] idx0,
+                           ndarray[int32_t] idx1,
+                           out=None, fill_value=np.nan):
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        ndarray[%(c_type)s, ndim=2] outbuf
+        %(c_type)s fv
+
+    n = len(idx0)
+    k = len(idx1)
+
+    if out is None:
+        outbuf = np.empty((n, k), dtype=values.dtype)
+    else:
+        outbuf = out
+
+
+    if %(raise_on_na)s and _checknan(fill_value):
+        for i in range(n):
+            idx = idx0[i]
+            if idx == -1:
+                for j in range(k):
+                    raise ValueError('No NA values allowed')
+            else:
+                for j in range(k):
+                    if idx1[j] == -1:
+                        raise ValueError('No NA values allowed')
+                    else:
+                        outbuf[i, j] = values[idx, idx1[j]]
+    else:
+        fv = fill_value
+        for i in range(n):
+            idx = idx0[i]
+            if idx == -1:
+                for j in range(k):
+                    outbuf[i, j] = fv
+            else:
+                for j in range(k):
+                    if idx1[j] == -1:
+                        outbuf[i, j] = fv
+                    else:
+                        outbuf[i, j] = values[idx, idx1[j]]
+
+"""
+
 
 def set_na(na ="NaN"):
     return "outbuf[i] = %s" % na
@@ -791,7 +840,8 @@ nobool_1d_templates = [left_join_template,
                        inner_join_template]
 
 templates_2d = [take_2d_axis0_template,
-                take_2d_axis1_template]
+                take_2d_axis1_template,
+                take_2d_multi_template]
 
 
 # templates_1d_datetime = [take_1d_template]

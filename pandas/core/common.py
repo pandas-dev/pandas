@@ -163,11 +163,25 @@ _take2d_axis1_dict = {
                                      na_override=lib.NaT),
 }
 
+_take2d_multi_dict = {
+    'float64' : lib.take_2d_multi_float64,
+    'int32' : lib.take_2d_multi_int32,
+    'int64' : lib.take_2d_multi_int64,
+    'object' : lib.take_2d_multi_object,
+    'bool' : _view_wrapper(lib.take_2d_multi_bool, np.uint8),
+    'datetime64[us]' : _view_wrapper(lib.take_2d_multi_int64, np.int64,
+                                     na_override=lib.NaT),
+}
+
 def _get_take2d_function(dtype_str, axis=0):
     if axis == 0:
         return _take2d_axis0_dict[dtype_str]
-    else:
+    elif axis == 1:
         return _take2d_axis1_dict[dtype_str]
+    elif axis == 'multi':
+        return _take2d_multi_dict[dtype_str]
+    else:
+        raise ValueError('bad axis: %s' % axis)
 
 def take_1d(arr, indexer, out=None, fill_value=np.nan):
     """
@@ -218,6 +232,38 @@ def take_1d(arr, indexer, out=None, fill_value=np.nan):
             np.putmask(out, mask, fill_value)
 
     return out
+
+def take_2d_multi(arr, row_idx, col_idx, fill_value=np.nan):
+
+    dtype_str = arr.dtype.name
+
+    take_f = _get_take2d_function(dtype_str, axis='multi')
+
+    row_idx = _ensure_int32(row_idx)
+    col_idx = _ensure_int32(col_idx)
+
+    out_shape = len(row_idx), len(col_idx)
+
+    if dtype_str in ('int32', 'int64', 'bool'):
+        row_mask = row_idx == -1
+        col_mask=  col_idx == -1
+        needs_masking = row_mask.any() or col_mask.any()
+
+        if needs_masking:
+            return take_2d_multi(_maybe_upcast(arr), row_idx, col_idx,
+                                 fill_value=fill_value)
+        else:
+            out = np.empty(out_shape, dtype=arr.dtype)
+            take_f(arr, row_idx, col_idx, out=out, fill_value=fill_value)
+            return out
+    elif dtype_str in ('float64', 'object', 'datetime64[us]'):
+        out = np.empty(out_shape, dtype=arr.dtype)
+        take_f(arr, row_idx, col_idx, out=out, fill_value=fill_value)
+        return out
+    else:
+        return take_2d(take_2d(arr, row_idx, axis=0, fill_value=fill_value),
+                       col_idx, axis=1, fill_value=fill_value)
+
 
 def take_2d(arr, indexer, out=None, mask=None, needs_masking=None, axis=0,
             fill_value=np.nan):
