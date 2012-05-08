@@ -315,7 +315,7 @@ def test_convert_r_matrix():
     assert np.array_equal(convert_robj(r_dataframe.colnames), frame.columns)
 
     for column in r_dataframe.colnames:
-        coldata = r_dataframe.rx(True, column)
+        coldata = r_dataframe.rx2(column)
         original_data = frame[column]
         assert np.array_equal(convert_robj(coldata), original_data)
 
