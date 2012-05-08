@@ -2649,23 +2649,43 @@ class TestSeriesNonUnique(unittest.TestCase):
 
     def test_replace(self):
         N = 100
-        ser = Series(np.fabs(np.random.randn(len(N))), tm.makeDataIndex(N))
+        ser = Series(np.fabs(np.random.randn(N)), tm.makeDateIndex(N),
+                     dtype=object)
         ser[:5] = np.nan
         ser[6:10] = 'foo'
         ser[20:30] = 'bar'
 
+        # replace list with a single value
         rs = ser.replace([np.nan, 'foo', 'bar'], -1)
+
         self.assert_((rs[:5] == -1).all())
         self.assert_((rs[6:10] == -1).all())
         self.assert_((rs[20:30] == -1).all())
-        self.assert_((ser >= 0).all())
+        self.assert_((isnull(ser[:5])).all())
 
+        # replace with different values
         rs = ser.replace({np.nan : -1, 'foo' : -2, 'bar' : -3})
+
         self.assert_((rs[:5] == -1).all())
         self.assert_((rs[6:10] == -2).all())
         self.assert_((rs[20:30] == -3).all())
-        self.assert_((ser >= 0).all())
+        self.assert_((isnull(ser[:5])).all())
 
+        # replace with different values with 2 lists
+        rs2 = ser.replace([np.nan, 'foo', 'bar'], [-1, -2, -3])
+        assert_series_equal(rs, rs2)
+
+        # replace with forward fill not considering np.nan missing
+        s2 = ser.copy()
+        s2[5] = np.nan
+        rs3 = s2.replace(['foo', 'bar'])
+        self.assert_(isnull(rs3[6]))
+
+        # replace with back fill considering np.nan as missing
+        rs4 = ser.replace([np.nan, 'foo', 'bar'], method='bfill')
+        assert_almost_equal(rs4[4], ser[5])
+
+        # replace inplace
         ser.replace([np.nan, 'foo', 'bar'], -1, inplace=True)
         self.assert_((ser[:5] == -1).all())
         self.assert_((ser[6:10] == -1).all())
