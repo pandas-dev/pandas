@@ -99,6 +99,10 @@ class _NDFrameIndexer(object):
         except IndexingError:
             pass
 
+        # ugly hack for GH #836
+        if self._multi_take_opportunity(tup):
+            return self._multi_take(tup)
+
         # no shortcut needed
         retval = self.obj
         for i, key in enumerate(tup):
@@ -111,6 +115,47 @@ class _NDFrameIndexer(object):
             retval = retval.ix._getitem_axis(key, axis=i)
 
         return retval
+
+    def _multi_take_opportunity(self, tup):
+        from pandas.core.frame import DataFrame
+
+        # ugly hack for GH #836
+        if not isinstance(self.obj, DataFrame):
+            return False
+
+        if not all(_is_list_like(x) for x in tup):
+            return False
+
+        # just too complicated
+        if (isinstance(self.obj.index, MultiIndex) or
+            isinstance(self.obj.columns, MultiIndex)):
+            return False
+
+        return True
+
+    def _multi_take(self, tup):
+        index = self._convert_for_reindex(tup[0], axis=0)
+        columns = self._convert_for_reindex(tup[1], axis=1)
+        return self.obj.reindex(index=index, columns=columns)
+
+    def _convert_for_reindex(self, key, axis=0):
+        labels = self.obj._get_axis(axis)
+
+        if com._is_bool_indexer(key):
+            key = _check_bool_indexer(labels, key)
+            return np.asarray(key)
+        else:
+            if isinstance(key, Index):
+                # want Index objects to pass through untouched
+                keyarr = key
+            else:
+                # asarray can be unsafe, NumPy strings are weird
+                keyarr = _asarray_tuplesafe(key)
+
+            if _is_integer_dtype(keyarr) and not _is_integer_index(labels):
+                return labels.take(keyarr)
+
+            return keyarr
 
     def _getitem_lowerdim(self, tup):
         from pandas.core.frame import DataFrame
