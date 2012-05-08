@@ -286,6 +286,8 @@ class Series(np.ndarray, generic.PandasObject):
                     # coerce back to datetime objects for lookup
                     data = lib.fast_multiget(data, index.astype('O'),
                                              default=np.nan)
+                elif isinstance(index, PeriodIndex):
+                    data = [data.get(i, nan) for i in index]
                 else:
                     data = lib.fast_multiget(data, index, default=np.nan)
             except TypeError:

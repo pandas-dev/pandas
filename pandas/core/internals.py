@@ -1062,7 +1062,8 @@ def _stack_dict(dct, ref_items, dtype):
         else:
             return x.shape
 
-    items = [x for x in ref_items if x in dct]
+    # index may box values
+    items = ref_items[[x in dct for x in ref_items]]
 
     first = dct[items[0]]
     shape = (len(dct),) + _shape_compat(first)

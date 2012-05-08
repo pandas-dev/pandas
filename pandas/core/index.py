@@ -61,6 +61,8 @@ class Index(np.ndarray):
     _inner_indexer = lib.inner_join_indexer_object
     _outer_indexer = lib.outer_join_indexer_object
 
+    _box_scalars = False
+
     name = None
     asi8 = None
 
