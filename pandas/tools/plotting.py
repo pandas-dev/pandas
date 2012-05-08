@@ -12,12 +12,8 @@ from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.offsets import DateOffset
 
-<<<<<<< HEAD
-def scatter_matrix(frame, alpha=0.5, figsize=None, diagonal='hist', **kwds):
-=======
-def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
-                   **kwds):
->>>>>>> upstream/master
+
+def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False, **kwds):
     """
     Draw a matrix of scatter plots.
 
@@ -41,7 +37,6 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
 
     for i, a in zip(range(n), df.columns):
         for j, b in zip(range(n), df.columns):
-<<<<<<< HEAD
             if i == j:
                 # Deal with the diagonal by drawing a histogram there.
                 if diagonal == 'hist':
@@ -87,7 +82,6 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
                     axes[i, j].yaxis.set_visible(True)
                     axes[i, j].yaxis.set_ticks_position('right')
                     axes[i, j].yaxis.set_label_position('right')
-=======
             axes[i, j].scatter(df[b], df[a], alpha=alpha, **kwds)
             axes[i, j].set_xlabel('')
             axes[i, j].set_ylabel('')
@@ -136,8 +130,6 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
                 axes[i, j].set_yticklabels(ticks)
                 axes[i, j].yaxis.set_ticks_position('right')
                 axes[i, j].yaxis.set_label_position('right')
->>>>>>> upstream/master
-
             axes[i, j].grid(b=grid)
 
     # ensure {x,y}lim off diagonal are the same as diagonal
