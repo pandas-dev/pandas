@@ -2992,17 +2992,7 @@ class DataFrame(NDFrame):
         unstacked : DataFrame or Series
         """
         from pandas.core.reshape import unstack
-        if isinstance(level, (tuple, list)):
-            result = self
-            to_unstack = level
-            while to_unstack:
-                lev = to_unstack[0]
-                result = unstack(result, lev)
-                to_unstack = [other - 1 if other > lev else other
-                              for other in to_unstack[1:]]
-            return result
-        else:
-            return unstack(self, level)
+        return unstack(self, level)
 
     #----------------------------------------------------------------------
     # Time series-related

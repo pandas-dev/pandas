@@ -607,15 +607,15 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         # test that ints work
         unstacked = self.ymd.astype(int).unstack()
 
-    # def test_unstack_multiple_no_empty_columns(self):
-    #     index = MultiIndex.from_tuples([(0, 'foo', 0), (0, 'bar', 0),
-    #                                     (1, 'baz', 1), (1, 'qux', 1)])
+    def test_unstack_multiple_no_empty_columns(self):
+        index = MultiIndex.from_tuples([(0, 'foo', 0), (0, 'bar', 0),
+                                        (1, 'baz', 1), (1, 'qux', 1)])
 
-    #     s = Series(np.random.randn(4), index=index)
+        s = Series(np.random.randn(4), index=index)
 
-    #     unstacked = s.unstack([1, 2])
-    #     expected = unstacked.dropna(axis=1, how='all')
-    #     assert_frame_equal(unstacked, expected)
+        unstacked = s.unstack([1, 2])
+        expected = unstacked.dropna(axis=1, how='all')
+        assert_frame_equal(unstacked, expected)
 
     def test_stack(self):
         # regular roundtrip
@@ -738,12 +738,12 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         # GH #451
         unstacked = self.ymd.unstack([1, 2])
-        expected = self.ymd.unstack(1).unstack(1)
+        expected = self.ymd.unstack(1).unstack(1).dropna(axis=1, how='all')
         assert_frame_equal(unstacked, expected)
 
         unstacked = self.ymd.unstack([2, 1])
-        expected = self.ymd.unstack(2).unstack(1)
-        assert_frame_equal(unstacked, expected)
+        expected = self.ymd.unstack(2).unstack(1).dropna(axis=1, how='all')
+        assert_frame_equal(unstacked, expected.ix[:, unstacked.columns])
 
     def test_groupby_transform(self):
         s = self.frame['A']

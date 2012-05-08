@@ -98,12 +98,10 @@ def pivot_table(data, values=None, rows=None, cols=None, aggfunc='mean',
     grouped = data.groupby(keys)
     agged = grouped.agg(aggfunc)
 
-    table = _unstack_multiple(agged, range(len(rows), len(keys)))
+    to_unstack = [agged.index.names[i]
+                  for i in range(len(rows), len(keys))]
 
-    # table = agged
-    # for i in range(len(cols)):
-    #     name = table.index.names[len(rows)]
-    #     table = table.unstack(name)
+    table = agged.unstack(to_unstack)
 
     if fill_value is not None:
         table = table.fillna(value=fill_value)

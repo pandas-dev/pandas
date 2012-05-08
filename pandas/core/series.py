@@ -1814,13 +1814,7 @@ copy : boolean, default False
         unstacked : DataFrame
         """
         from pandas.core.reshape import unstack
-        if isinstance(level, (tuple, list)):
-            result = self
-            for lev in level:
-                result = unstack(result, lev)
-            return result
-        else:
-            return unstack(self, level)
+        return unstack(self, level)
 
     #----------------------------------------------------------------------
     # function application
