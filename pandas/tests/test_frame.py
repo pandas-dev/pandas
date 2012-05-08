@@ -2544,6 +2544,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(df[mask_b], df.ix[0:0,:])
         assert_frame_equal(df[-mask_b], df.ix[1:1,:])
 
+    def test_float_none_comparison(self):
+        df = DataFrame(np.random.randn(8, 3), index=range(8),
+                       columns=['A', 'B', 'C'])
+
+        self.assertRaises(TypeError, df.__eq__, None)
+
     def test_to_csv_from_csv(self):
         path = '__tmp__'
 

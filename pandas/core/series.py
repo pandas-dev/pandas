@@ -115,6 +115,10 @@ def _comp_method(op, name):
             return NotImplemented
         else:
             # scalars
+            res = na_op(self.values, other)
+            if np.isscalar(res):
+                raise TypeError('Could not compare %s type with Series'
+                                % type(other))
             return Series(na_op(self.values, other),
                           index=self.index, name=self.name)
     return wrapper
