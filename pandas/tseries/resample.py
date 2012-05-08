@@ -98,7 +98,7 @@ class TimeGrouper(CustomGrouper):
         # downsamples
         if len(grouper.binlabels) < len(axlabels):
             grouped  = obj.groupby(grouper, axis=self.axis)
-            result = grouped.agg(self.how)
+            result = grouped.aggregate(self.how)
         else:
             assert(self.axis == 0)
             # upsampling
@@ -139,7 +139,7 @@ class TimeGrouper(CustomGrouper):
             grouper = BinGrouper(bins, new_index)
 
             grouped = obj.groupby(grouper, axis=self.axis)
-            return grouped.agg(self.how)
+            return grouped.aggregate(self.how)
         elif is_superperiod(axlabels.freq, self.freq):
             # Get the fill indexer
             indexer = memb.get_indexer(new_index, method=self.fill_method,

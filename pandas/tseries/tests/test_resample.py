@@ -347,6 +347,7 @@ class TestResample(unittest.TestCase):
         expected = panel.resample('M', how='mean', axis=1)
         tm.assert_panel_equal(result, expected)
 
+
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
     return Series(np.random.randn(len(rng)), index=rng)

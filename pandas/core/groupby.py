@@ -1421,7 +1421,7 @@ class NDFrameGroupBy(GroupBy):
             try:
                 colg = SeriesGroupBy(obj[col], column=col,
                                      grouper=self.grouper)
-                results.append(colg.agg(arg))
+                results.append(colg.aggregate(arg))
                 keys.append(col)
             except (TypeError, GroupByError):
                 pass
@@ -1437,7 +1437,7 @@ class NDFrameGroupBy(GroupBy):
         obj = self._obj_with_exclusions
 
         result = {}
-        if axis == 0:
+        if axis != obj._het_axis:
             try:
                 for name in self.indices:
                     data = self.get_group(name, obj=obj)
@@ -1453,19 +1453,10 @@ class NDFrameGroupBy(GroupBy):
                     wrapper = lambda x: func(x, *args, **kwargs)
                     result[name] = data.apply(wrapper, axis=axis)
 
-        result_index = self.grouper.levels[0]
+        return self._wrap_generic_output(result, obj)
 
-        if result:
-            if axis == 0:
-                result = DataFrame(result, index=obj.columns,
-                                   columns=result_index).T
-            else:
-                result = DataFrame(result, index=obj.index,
-                                   columns=result_index)
-        else:
-            result = DataFrame(result)
-
-        return result
+    def _wrap_aggregated_output(self, output, names=None):
+        raise NotImplementedError
 
     def _aggregate_item_by_item(self, func, *args, **kwargs):
         # only for axis==0
@@ -1477,7 +1468,7 @@ class NDFrameGroupBy(GroupBy):
             try:
                 colg = SeriesGroupBy(obj[item], column=item,
                                      grouper=self.grouper)
-                result[item] = colg.agg(func, *args, **kwargs)
+                result[item] = colg.aggregate(func, *args, **kwargs)
             except (ValueError, TypeError):
                 cannot_agg.append(item)
                 continue
@@ -1488,12 +1479,9 @@ class NDFrameGroupBy(GroupBy):
 
         return DataFrame(result, columns=result_columns)
 
-    def _wrap_aggregated_output(self, output, names=None):
-        agg_axis = 0 if self.axis == 1 else 1
-        agg_labels = self._obj_with_exclusions._get_axis(agg_axis)
-
-        if len(output) == len(agg_labels):
-            output_keys = agg_labels
+    def _decide_output_index(self, output, labels):
+        if len(output) == len(labels):
+            output_keys = labels
         else:
             output_keys = sorted(output)
             try:
@@ -1501,26 +1489,11 @@ class NDFrameGroupBy(GroupBy):
             except Exception:  # pragma: no cover
                 pass
 
-            if isinstance(agg_labels, MultiIndex):
+            if isinstance(labels, MultiIndex):
                 output_keys = MultiIndex.from_tuples(output_keys,
-                                                     names=agg_labels.names)
+                                                     names=labels.names)
 
-        if not self.as_index:
-            result = DataFrame(output, columns=output_keys)
-            group_levels = self.grouper.get_group_levels()
-            zipped = zip(self.grouper.names, group_levels)
-
-            for i, (name, labels) in enumerate(zipped):
-                result.insert(i, name, labels)
-            result = result.consolidate()
-        else:
-            index = self.grouper.result_index
-            result = DataFrame(output, index=index, columns=output_keys)
-
-        if self.axis == 1:
-            result = result.T
-
-        return result
+        return output_keys
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         if len(keys) == 0:
@@ -1640,12 +1613,50 @@ class DataFrameGroupBy(NDFrameGroupBy):
                                     exclusions=self.exclusions,
                                     as_index=self.as_index)
 
+    def _wrap_generic_output(self, result, obj):
+        result_index = self.grouper.levels[0]
+
+        if result:
+            if self.axis == 0:
+                result = DataFrame(result, index=obj.columns,
+                                   columns=result_index).T
+            else:
+                result = DataFrame(result, index=obj.index,
+                                   columns=result_index)
+        else:
+            result = DataFrame(result)
+
+        return result
+
     def _get_data_to_aggregate(self):
         obj = self._obj_with_exclusions
         if self.axis == 1:
             return obj.T._data, 1
         else:
             return obj._data, 1
+
+    def _wrap_aggregated_output(self, output, names=None):
+        agg_axis = 0 if self.axis == 1 else 1
+        agg_labels = self._obj_with_exclusions._get_axis(agg_axis)
+
+        output_keys = self._decide_output_index(output, agg_labels)
+
+        if not self.as_index:
+            result = DataFrame(output, columns=output_keys)
+            group_levels = self.grouper.get_group_levels()
+            zipped = zip(self.grouper.names, group_levels)
+
+            for i, (name, labels) in enumerate(zipped):
+                result.insert(i, name, labels)
+            result = result.consolidate()
+        else:
+            index = self.grouper.result_index
+            result = DataFrame(output, index=index, columns=output_keys)
+
+        if self.axis == 1:
+            result = result.T
+
+        return result
 
     def _post_process_cython_aggregate(self, obj):
         # undoing kludge from below
@@ -1733,30 +1744,57 @@ class PanelGroupBy(NDFrameGroupBy):
 
         return self._aggregate_generic(arg, *args, **kwargs)
 
-    def _aggregate_generic(self, func, *args, **kwargs):
-        result = {}
+    def _wrap_generic_output(self, result, obj):
 
-        axis = self.axis
+        new_axes = list(obj.axes)
+        new_axes[self.axis] = self.grouper.result_index
 
-        obj = self._obj_with_exclusions
+        result = Panel._from_axes(result, new_axes)
 
-        for name in self.grouper:
-            data = self.get_group(name, obj=obj)
-            try:
-                result[name] = func(data, *args, **kwargs)
-            except Exception:
-                wrapper = lambda x: func(x, *args, **kwargs)
-                result[name] = data.apply(wrapper, axis=axis)
-
-        result = Panel(result)
-
-        if axis > 0:
-            result = result.swapaxes(0, axis)
+        if self.axis > 0:
+            result = result.swapaxes(0, self.axis)
 
         return result
 
+    def _aggregate_item_by_item(self, func, *args, **kwargs):
+        obj = self._obj_with_exclusions
+        result = {}
+        cannot_agg = []
+
+        if self.axis > 0:
+            for item in obj:
+                try:
+                    itemg = DataFrameGroupBy(obj[item],
+                                             axis=self.axis - 1,
+                                             grouper=self.grouper)
+                    result[item] = itemg.aggregate(func, *args, **kwargs)
+                except (ValueError, TypeError):
+                    raise
+                    # cannot_agg.append(item)
+                    # continue
+            new_axes = list(obj.axes)
+            new_axes[self.axis] = self.grouper.result_index
+            return Panel._from_axes(result, new_axes)
+        else:
+            raise NotImplementedError
+
+    def _wrap_aggregated_output(self, output, names=None):
+        raise NotImplementedError
+        new_axes = list(self._obj_with_exclusions.axes)
+        new_axes[self.axis] = self.grouper.result_index
+
+        result = Panel(output, index=self.grouper.result_index,
+                       columns=output_keys)
+
+        if self.axis > 0:
+            result = result.swapaxes(0, self.axis)
+
+        return result
+
+
 class NDArrayGroupBy(GroupBy):
     pass
+
 
 #----------------------------------------------------------------------
 # Grouping generator for BlockManager
