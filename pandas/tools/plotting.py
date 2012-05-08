@@ -832,13 +832,16 @@ def hist_frame(data, grid=True, xlabelsize=None, xrot=None,
     """
     import matplotlib.pyplot as plt
     n = len(data.columns)
-    k = 1
-    while k ** 2 < n:
-        k += 1
-    _, axes = _subplots(nrows=k, ncols=k, ax=ax, squeeze=False)
+    rows, cols = 1, 1
+    while rows * cols < n:
+        if cols > rows:
+            rows += 1
+        else:
+            cols += 1
+    _, axes = _subplots(nrows=rows, ncols=cols, ax=ax, squeeze=False)
 
     for i, col in enumerate(com._try_sort(data.columns)):
-        ax = axes[i / k][i % k]
+        ax = axes[i / cols][i % cols]
         ax.xaxis.set_visible(True)
         ax.yaxis.set_visible(True)
         ax.hist(data[col].dropna().values, **kwds)
@@ -854,8 +857,8 @@ def hist_frame(data, grid=True, xlabelsize=None, xrot=None,
         if yrot is not None:
             plt.setp(ax.get_yticklabels(), rotation=yrot)
 
-    for j in range(i + 1, k**2):
-        ax = axes[j / k, j % k]
+    for j in range(i + 1, rows * cols):
+        ax = axes[j / cols, j % cols]
         ax.set_visible(False)
 
     ax.get_figure().subplots_adjust(wspace=0.3, hspace=0.3)
