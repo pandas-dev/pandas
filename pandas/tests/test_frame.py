@@ -5441,6 +5441,31 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame([1, 2, 3])
         self.failUnlessRaises(ValueError, lambda: bool(df))
 
+    def test_replace(self):
+        N = 100
+        df = DataFrame(np.fabs(np.random.randn(len(N), 5)),
+                       index=tm.makeDataIndex(N))
+        df.ix[:5, 0] = np.nan
+        df[6:10, 1] = 'foo'
+        df[20:30, 2] = 'bar'
+
+        rs = df.replace([np.nan, 'foo', 'bar'], -1)
+        self.assert_((rs.ix[:5, 0] == -1).all())
+        self.assert_((rs.ix[6:10, 1] == -1).all())
+        self.assert_((rs.ix[20:30, 2] == -1).all())
+        self.assert_((df >= 0).all())
+
+        rs = df.replace({np.nan : -1, 'foo' : -2, 'bar' : -3})
+        self.assert_((rs.ix[:5, 0] == -1).all())
+        self.assert_((rs.ix[6:10, 1] == -2).all())
+        self.assert_((rs.ix[20:30, 2] == -3).all())
+        self.assert_((df >= 0).all())
+
+        df.replace([np.nan, 'foo', 'bar'], -1, inplace=True)
+        self.assert_((df.ix[:5, 0] == -1).all())
+        self.assert_((df.ix[6:10, 1] == -1).all())
+        self.assert_((df.ix[20:30, 2] == -1).all())
+
 if __name__ == '__main__':
     # unittest.main()
     import nose

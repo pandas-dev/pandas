@@ -2647,6 +2647,29 @@ class TestSeriesNonUnique(unittest.TestCase):
         self.assert_(isinstance(ser, TimeSeries))
         self.assert_(isinstance(ser.index, DatetimeIndex))
 
+    def test_replace(self):
+        N = 100
+        ser = Series(np.fabs(np.random.randn(len(N))), tm.makeDataIndex(N))
+        ser[:5] = np.nan
+        ser[6:10] = 'foo'
+        ser[20:30] = 'bar'
+
+        rs = ser.replace([np.nan, 'foo', 'bar'], -1)
+        self.assert_((rs[:5] == -1).all())
+        self.assert_((rs[6:10] == -1).all())
+        self.assert_((rs[20:30] == -1).all())
+        self.assert_((ser >= 0).all())
+
+        rs = ser.replace({np.nan : -1, 'foo' : -2, 'bar' : -3})
+        self.assert_((rs[:5] == -1).all())
+        self.assert_((rs[6:10] == -2).all())
+        self.assert_((rs[20:30] == -3).all())
+        self.assert_((ser >= 0).all())
+
+        ser.replace([np.nan, 'foo', 'bar'], -1, inplace=True)
+        self.assert_((ser[:5] == -1).all())
+        self.assert_((ser[6:10] == -1).all())
+        self.assert_((ser[20:30] == -1).all())
     def test_repeat(self):
         s = Series(np.random.randn(3), index=['a', 'b', 'c'])
 
