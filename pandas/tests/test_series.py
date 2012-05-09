@@ -164,6 +164,11 @@ class TestNanops(unittest.TestCase):
 
         assert_almost_equal(result, expected)
 
+    def test_none_comparison(self):
+        # bug brought up by #1079
+        s = Series(np.random.randn(10), index=range(0, 20, 2))
+        self.assertRaises(TypeError, s.__eq__, None)
+
     def test_sum_zero(self):
         arr = np.array([])
         self.assert_(nanops.nansum(arr) == 0)
@@ -863,6 +868,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         biggie = Series(tm.randn(1000), index=np.arange(1000),
                         name=('foo', 'bar', 'baz'))
         repr(biggie)
+
+    def test_timeseries_repr_object_dtype(self):
+        index = Index([datetime(2000, 1, 1) + timedelta(i)
+                       for i in range(1000)], dtype=object)
+        ts = Series(np.random.randn(len(index)), index)
+        repr(ts)
 
     def test_iter(self):
         for i, val in enumerate(self.series):
@@ -2248,7 +2259,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         reindexed2 = s2.reindex(s.index, method='ffill')
         assert_series_equal(reindexed, reindexed2)
 
-        expected = Series([0, 0, 2, 2, 4, 4, 6, 6, 8, 8], index=np.arange(10))
+        # used platform int above, need to pass int explicitly here per #1219
+        expected = Series([0, 0, 2, 2, 4, 4, 6, 6, 8, 8], dtype=int,
+                          index=np.arange(10))
         assert_series_equal(reindexed, expected)
 
     def test_reindex_backfill(self):

@@ -62,8 +62,8 @@ class TestMerge(unittest.TestCase):
                            index=['d', 'b', 'c', 'a'])
 
     def test_cython_left_outer_join(self):
-        left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype='i4')
-        right = a_([1, 1, 0, 4, 2, 2, 1], dtype='i4')
+        left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
+        right = a_([1, 1, 0, 4, 2, 2, 1], dtype=np.int64)
         max_group = 5
 
         ls, rs = lib.left_outer_join(left, right, max_group)
@@ -86,8 +86,8 @@ class TestMerge(unittest.TestCase):
         self.assert_(np.array_equal(rs, exp_rs))
 
     def test_cython_right_outer_join(self):
-        left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype='i4')
-        right = a_([1, 1, 0, 4, 2, 2, 1], dtype='i4')
+        left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
+        right = a_([1, 1, 0, 4, 2, 2, 1], dtype=np.int64)
         max_group = 5
 
         rs, ls  = lib.left_outer_join(right, left, max_group)
@@ -112,8 +112,8 @@ class TestMerge(unittest.TestCase):
         self.assert_(np.array_equal(rs, exp_rs))
 
     def test_cython_inner_join(self):
-        left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype='i4')
-        right = a_([1, 1, 0, 4, 2, 2, 1, 4], dtype='i4')
+        left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
+        right = a_([1, 1, 0, 4, 2, 2, 1, 4], dtype=np.int64)
         max_group = 5
 
         ls, rs = lib.inner_join(left, right, max_group)

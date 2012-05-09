@@ -63,7 +63,7 @@ def test_left_join_indexer():
     b = np.array([2, 2, 3, 4, 4], dtype=np.int64)
 
     result = lib.left_join_indexer_int64(b, a)
-    expected = np.array([1, 1, 2, 3, 3], dtype='i4')
+    expected = np.array([1, 1, 2, 3, 3], dtype=np.int64)
     assert(np.array_equal(result, expected))
 
 def test_left_outer_join_bug():
@@ -72,9 +72,9 @@ def test_left_outer_join_bug():
                      3, 0, 0, 1, 0, 3, 1, 0, 1, 0, 1, 1, 0, 2, 2, 2, 2, 2, 0,
                      3, 1, 2, 0, 0, 3, 1, 3, 2, 2, 0, 1, 3, 0, 2, 3, 2, 3, 3,
                      2, 3, 3, 1, 3, 2, 0, 0, 3, 1, 1, 1, 0, 2, 3, 3, 1, 2, 0,
-                     3, 1, 2, 0, 2], dtype=np.int32)
+                     3, 1, 2, 0, 2], dtype=np.int64)
 
-    right = np.array([3, 1], dtype=np.int32)
+    right = np.array([3, 1], dtype=np.int64)
     max_groups = 4
 
     lidx, ridx = lib.left_outer_join(left, right, max_groups, sort=False)
@@ -110,7 +110,7 @@ def test_outer_join_indexer():
     index_exp = np.array([0, 1, 2, 3, 4, 5, 7, 9], dtype=np.int64)
     assert_almost_equal(index, index_exp)
 
-    aexp = np.array([-1, 0, 1, 2, 3, 4, -1, -1], dtype=np.int32)
+    aexp = np.array([-1, 0, 1, 2, 3, 4, -1, -1], dtype=np.int64)
     bexp = np.array([0, -1, -1, 1, -1, 2, 3, 4])
     assert_almost_equal(ares, aexp)
     assert_almost_equal(bres, bexp)
@@ -138,17 +138,17 @@ def test_is_lexsorted():
     assert(not lib.is_lexsorted(failure))
 
 # def test_get_group_index():
-#     a = np.array([0, 1, 2, 0, 2, 1, 0, 0], dtype='i4')
-#     b = np.array([1, 0, 3, 2, 0, 2, 3, 0], dtype='i4')
-#     expected = np.array([1, 4, 11, 2, 8, 6, 3, 0], dtype='i4')
+#     a = np.array([0, 1, 2, 0, 2, 1, 0, 0], dtype=np.int64)
+#     b = np.array([1, 0, 3, 2, 0, 2, 3, 0], dtype=np.int64)
+#     expected = np.array([1, 4, 11, 2, 8, 6, 3, 0], dtype=np.int64)
 
 #     result = lib.get_group_index([a, b], (3, 4))
 
 #     assert(np.array_equal(result, expected))
 
 def test_groupsort_indexer():
-    a = np.random.randint(0, 1000, 100).astype('i4')
-    b = np.random.randint(0, 1000, 100).astype('i4')
+    a = np.random.randint(0, 1000, 100).astype(np.int64)
+    b = np.random.randint(0, 1000, 100).astype(np.int64)
 
     result = lib.groupsort_indexer(a, 1000)[0]
 
@@ -223,9 +223,9 @@ def test_rank():
     _check(np.array([4., nan, 5., 5., 5., nan, 1, 2, 4., nan]))
 
 def test_get_reverse_indexer():
-    indexer = np.array([-1, -1, 1, 2, 0, -1, 3, 4], dtype='i4')
+    indexer = np.array([-1, -1, 1, 2, 0, -1, 3, 4], dtype=np.int64)
     result = lib.get_reverse_indexer(indexer, 5)
-    expected = np.array([4, 2, 3, 6, 7], dtype='i4')
+    expected = np.array([4, 2, 3, 6, 7], dtype=np.int64)
     assert(np.array_equal(result, expected))
 
 def test_pad_backfill_object_segfault():
@@ -234,19 +234,19 @@ def test_pad_backfill_object_segfault():
     new = np.array([datetime(2010, 12, 31)], dtype='O')
 
     result = lib.pad_object(old, new)
-    expected = np.array([-1], dtype='i4')
+    expected = np.array([-1], dtype=np.int64)
     assert(np.array_equal(result, expected))
 
     result = lib.pad_object(new, old)
-    expected = np.array([], dtype='i4')
+    expected = np.array([], dtype=np.int64)
     assert(np.array_equal(result, expected))
 
     result = lib.backfill_object(old, new)
-    expected = np.array([-1], dtype='i4')
+    expected = np.array([-1], dtype=np.int64)
     assert(np.array_equal(result, expected))
 
     result = lib.backfill_object(new, old)
-    expected = np.array([], dtype='i4')
+    expected = np.array([], dtype=np.int64)
     assert(np.array_equal(result, expected))
 
 def test_arrmap():
@@ -259,7 +259,7 @@ def test_series_grouper():
     obj = Series(np.random.randn(10))
     dummy = obj[:0]
 
-    labels = np.array([-1, -1, -1, 0, 0, 0, 1, 1, 1, 1], dtype='i4')
+    labels = np.array([-1, -1, -1, 0, 0, 0, 1, 1, 1, 1], dtype=np.int64)
 
     grouper = lib.SeriesGrouper(obj, np.mean, labels, 2, dummy)
     result, counts = grouper.get_result()
@@ -267,7 +267,7 @@ def test_series_grouper():
     expected = np.array([obj[3:6].mean(), obj[6:].mean()])
     assert_almost_equal(result, expected)
 
-    exp_counts = np.array([3, 4], dtype=np.int32)
+    exp_counts = np.array([3, 4], dtype=np.int64)
     assert_almost_equal(counts, exp_counts)
 
 def test_series_bin_grouper():
@@ -283,7 +283,7 @@ def test_series_bin_grouper():
     expected = np.array([obj[:3].mean(), obj[3:6].mean(), obj[6:].mean()])
     assert_almost_equal(result, expected)
 
-    exp_counts = np.array([3, 3, 4], dtype=np.int32)
+    exp_counts = np.array([3, 3, 4], dtype=np.int64)
     assert_almost_equal(counts, exp_counts)
 
 def test_generate_bins():
@@ -309,8 +309,8 @@ class TestBinGroupers(unittest.TestCase):
 
     def setUp(self):
         self.obj = np.random.randn(10, 1)
-        self.labels = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 2], dtype=np.int32)
-        self.bins = np.array([3, 6], dtype=np.int32)
+        self.labels = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 2], dtype=np.int64)
+        self.bins = np.array([3, 6], dtype=np.int64)
 
     def test_group_bin_functions(self):
         funcs = ['add', 'mean', 'prod', 'min', 'max', 'var']
@@ -333,21 +333,21 @@ class TestBinGroupers(unittest.TestCase):
     def _check_versions(self, irr_func, bin_func, np_func):
         obj = self.obj
 
-        cts = np.zeros(3, dtype=np.int32)
+        cts = np.zeros(3, dtype=np.int64)
         exp = np.zeros((3, 1), np.float64)
         irr_func(exp, cts, obj, self.labels)
 
         # bin-based version
-        bins = np.array([3, 6], dtype=np.int32)
+        bins = np.array([3, 6], dtype=np.int64)
         out  = np.zeros((3, 1), np.float64)
-        counts = np.zeros(len(out), dtype=np.int32)
+        counts = np.zeros(len(out), dtype=np.int64)
         bin_func(out, counts, obj, bins)
 
         assert_almost_equal(out, exp)
 
-        bins = np.array([3, 9, 10], dtype=np.int32)
+        bins = np.array([3, 9, 10], dtype=np.int64)
         out  = np.zeros((3, 1), np.float64)
-        counts = np.zeros(len(out), dtype=np.int32)
+        counts = np.zeros(len(out), dtype=np.int64)
         bin_func(out, counts, obj, bins)
         exp = np.array([np_func(obj[:3]), np_func(obj[3:9]),
                         np_func(obj[9:])],
@@ -355,9 +355,9 @@ class TestBinGroupers(unittest.TestCase):
         assert_almost_equal(out.squeeze(), exp)
 
         # duplicate bins
-        bins = np.array([3, 6, 10, 10], dtype=np.int32)
+        bins = np.array([3, 6, 10, 10], dtype=np.int64)
         out  = np.zeros((4, 1), np.float64)
-        counts = np.zeros(len(out), dtype=np.int32)
+        counts = np.zeros(len(out), dtype=np.int64)
         bin_func(out, counts, obj, bins)
         exp = np.array([np_func(obj[:3]), np_func(obj[3:6]),
                         np_func(obj[6:10]), np.nan],
@@ -368,9 +368,9 @@ class TestBinGroupers(unittest.TestCase):
 def test_group_ohlc():
     obj = np.random.randn(20)
 
-    bins = np.array([6, 12], dtype=np.int32)
+    bins = np.array([6, 12], dtype=np.int64)
     out  = np.zeros((3, 4), np.float64)
-    counts = np.zeros(len(out), dtype=np.int32)
+    counts = np.zeros(len(out), dtype=np.int64)
 
     lib.group_ohlc(out, counts, obj[:, None], bins)
 

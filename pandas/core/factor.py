@@ -60,7 +60,7 @@ def unique_with_labels(values):
 
     try:
         sorter = uniques.argsort()
-        reverse_indexer = np.empty(len(sorter), dtype='i4')
+        reverse_indexer = np.empty(len(sorter), dtype=np.int64)
         reverse_indexer.put(sorter, np.arange(len(sorter)))
         labels = reverse_indexer.take(labels)
         uniques = uniques.take(sorter)

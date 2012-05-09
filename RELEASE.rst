@@ -48,6 +48,8 @@ pandas 0.8.0
   - Can create MultiIndex by passing list of lists or list of arrays to Series,
     DataFrame constructor, etc. (#831)
   - Can pass arrays in addition to column names to DataFrame.set_index (#402)
+  - Improve the speed of "square" reindexing of homogeneous DataFrame objects
+    by significant margin (#836)
 
 **API Changes**
 
@@ -70,6 +72,10 @@ pandas 0.8.0
   - Fix segfault caused by empty groups passed to groupby (#1048)
   - Fix occasionally misbehaved reindexing in the presence of NaN labels (#522)
   - Fix imprecise logic causing weird Series results from .apply (#1183)
+  - Unstack multiple levels in one shot, avoiding empty columns in some
+    cases. Fix pivot table bug (#1181)
+  - Fix formatting of MultiIndex on Series/DataFrame when index name coincides
+    with label (#1217)
 
 pandas 0.7.3
 ============

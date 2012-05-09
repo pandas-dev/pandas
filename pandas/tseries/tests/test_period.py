@@ -946,6 +946,39 @@ class TestPeriodIndex(TestCase):
         exp_index = _get_with_delta(delta)
         self.assert_(result.index.equals(exp_index))
 
+    def test_as_frame_columns(self):
+        rng = period_range('1/1/2000', periods=5)
+        df = DataFrame(randn(10, 5), columns=rng)
+
+        ts = df[rng[0]]
+        assert_series_equal(ts, df.ix[:, 0])
+
+        # GH # 1211
+        repr(df)
+
+        ts = df['1/1/2000']
+        assert_series_equal(ts, df.ix[:, 0])
+
+    def test_nested_dict_frame_constructor(self):
+        rng = period_range('1/1/2000', periods=5)
+        df = DataFrame(randn(10, 5), columns=rng)
+
+        data = {}
+        for col in df.columns:
+            for row in df.index:
+                data.setdefault(col, {})[row] = df.get_value(row, col)
+
+        result = DataFrame(data, columns=rng)
+        tm.assert_frame_equal(result, df)
+
+        data = {}
+        for col in df.columns:
+            for row in df.index:
+                data.setdefault(row, {})[col] = df.get_value(row, col)
+
+        result = DataFrame(data, index=rng).T
+        tm.assert_frame_equal(result, df)
+
     def test_frame_to_time_stamp(self):
         K = 5
         index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
@@ -1425,8 +1458,10 @@ class TestPeriodIndex(TestCase):
         for x, val in zip(periodindex, field_idx):
             assert_equal(getattr(x, fieldname), val)
 
+
 def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
+
 
 class TestMethods(TestCase):
     "Base test class for MaskedArrays."

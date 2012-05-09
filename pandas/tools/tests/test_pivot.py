@@ -157,6 +157,68 @@ class TestPivotTable(unittest.TestCase):
 
         tm.assert_frame_equal(table, table2)
 
+    def test_pivot_no_level_overlap(self):
+        # GH #1181
+
+        data = DataFrame({'a': ['a', 'a', 'a', 'a', 'b', 'b', 'b', 'b'] * 2,
+                          'b': [0, 0, 0, 0, 1, 1, 1, 1] * 2,
+                          'c': (['foo'] * 4 + ['bar'] * 4) * 2,
+                          'value': np.random.randn(16)})
+
+        table = data.pivot_table('value', rows='a', cols=['b', 'c'])
+
+        grouped = data.groupby(['a', 'b', 'c'])['value'].mean()
+        expected = grouped.unstack('b').unstack('c').dropna(axis=1, how='all')
+        tm.assert_frame_equal(table, expected)
+
+    def test_pivot_columns_lexsorted(self):
+        import datetime
+        import numpy as np
+        import pandas
+
+        n = 10000
+
+        dtype = np.dtype([
+            ("Index", object),
+            ("Symbol", object),
+            ("Year", int),
+            ("Month", int),
+            ("Day", int),
+            ("Quantity", int),
+            ("Price", float),
+        ])
+
+        products = np.array([
+            ('SP500', 'ADBE'),
+            ('SP500', 'NVDA'),
+            ('SP500', 'ORCL'),
+            ('NDQ100', 'AAPL'),
+            ('NDQ100', 'MSFT'),
+            ('NDQ100', 'GOOG'),
+            ('FTSE', 'DGE.L'),
+            ('FTSE', 'TSCO.L'),
+            ('FTSE', 'GSK.L'),
+        ], dtype=[('Index', object), ('Symbol', object)])
+        items = np.empty(n, dtype=dtype)
+        iproduct = np.random.randint(0, len(products), n)
+        items['Index'] = products['Index'][iproduct]
+        items['Symbol'] = products['Symbol'][iproduct]
+        dr = pandas.date_range(datetime.date(2000, 1, 1),
+                               datetime.date(2010, 12, 31))
+        dates = dr[np.random.randint(0, len(dr), n)]
+        items['Year'] = dates.year
+        items['Month'] = dates.month
+        items['Day'] = dates.day
+        items['Price'] = np.random.lognormal(4.0, 2.0, n)
+
+        df = DataFrame(items)
+
+        pivoted = df.pivot_table('Price', rows=['Month', 'Day'],
+                                 cols=['Index', 'Symbol', 'Year'],
+                                 aggfunc='mean')
+
+        self.assert_(pivoted.columns.is_monotonic)
+
 class TestCrosstab(unittest.TestCase):
 
     def setUp(self):

@@ -143,13 +143,13 @@ cdef class SeriesBinGrouper:
     def get_result(self):
         cdef:
             ndarray arr, result
-            ndarray[int32_t] counts
+            ndarray[int64_t] counts
             Py_ssize_t i, n, group_size
             object res, chunk
             bint initialized = 0
             Slider vslider, islider
 
-        counts = np.zeros(self.ngroups, dtype='i4')
+        counts = np.zeros(self.ngroups, dtype=np.int64)
 
         if self.ngroups > 0:
             counts[0] = self.bins[0]
@@ -246,14 +246,14 @@ cdef class SeriesGrouper:
     def get_result(self):
         cdef:
             ndarray arr, result
-            ndarray[int32_t] labels, counts
+            ndarray[int64_t] labels, counts
             Py_ssize_t i, n, group_size, lab
             object res, chunk
             bint initialized = 0
             Slider vslider, islider
 
         labels = self.labels
-        counts = np.zeros(self.ngroups, dtype='i4')
+        counts = np.zeros(self.ngroups, dtype=np.int64)
         chunk = self.dummy
         group_size = 0
         n = len(self.arr)

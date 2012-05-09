@@ -115,6 +115,10 @@ def _comp_method(op, name):
             return NotImplemented
         else:
             # scalars
+            res = na_op(self.values, other)
+            if np.isscalar(res):
+                raise TypeError('Could not compare %s type with Series'
+                                % type(other))
             return Series(na_op(self.values, other),
                           index=self.index, name=self.name)
     return wrapper
@@ -286,6 +290,8 @@ class Series(np.ndarray, generic.PandasObject):
                     # coerce back to datetime objects for lookup
                     data = lib.fast_multiget(data, index.astype('O'),
                                              default=np.nan)
+                elif isinstance(index, PeriodIndex):
+                    data = [data.get(i, nan) for i in index]
                 else:
                     data = lib.fast_multiget(data, index, default=np.nan)
             except TypeError:
@@ -1812,13 +1818,7 @@ copy : boolean, default False
         unstacked : DataFrame
         """
         from pandas.core.reshape import unstack
-        if isinstance(level, (tuple, list)):
-            result = self
-            for lev in level:
-                result = unstack(result, lev)
-            return result
-        else:
-            return unstack(self, level)
+        return unstack(self, level)
 
     #----------------------------------------------------------------------
     # function application

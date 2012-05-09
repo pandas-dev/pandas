@@ -1,10 +1,12 @@
 # pylint: disable=E1103
 
 from pandas import Series, DataFrame
+from pandas.core.index import MultiIndex
+from pandas.core.reshape import _unstack_multiple
 from pandas.tools.merge import concat
 import pandas.core.common as com
 import numpy as np
-import types
+
 
 def pivot_table(data, values=None, rows=None, cols=None, aggfunc='mean',
                 fill_value=None, margins=False):
@@ -97,10 +99,16 @@ def pivot_table(data, values=None, rows=None, cols=None, aggfunc='mean',
     grouped = data.groupby(keys)
     agged = grouped.agg(aggfunc)
 
-    table = agged
-    for i in range(len(cols)):
-        name = table.index.names[len(rows)]
-        table = table.unstack(name)
+    to_unstack = [agged.index.names[i]
+                  for i in range(len(rows), len(keys))]
+
+    table = agged.unstack(to_unstack)
+
+    if isinstance(table, DataFrame):
+        if isinstance(table.columns, MultiIndex):
+            table = table.sortlevel(axis=1)
+        else:
+            table = table.sort_index(axis=1)
 
     if fill_value is not None:
         table = table.fillna(value=fill_value)
@@ -114,6 +122,7 @@ def pivot_table(data, values=None, rows=None, cols=None, aggfunc='mean',
         table = table[values[0]]
 
     return table
+
 
 DataFrame.pivot_table = pivot_table
 

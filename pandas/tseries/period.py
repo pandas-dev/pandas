@@ -62,6 +62,8 @@ def _to_quarterly(year, month, freq='Q-DEC'):
 
 class Period(object):
 
+    __slots__ = ['freq', 'ordinal']
+
     def __init__(self, value=None, freq=None, ordinal=None,
                  year=None, month=1, quarter=None, day=1,
                  hour=0, minute=0, second=0):
@@ -507,6 +509,7 @@ class PeriodIndex(Int64Index):
         If periods is none, generated index will extend to first conforming
         period on or just past end argument
     """
+    _box_scalars = True
 
     def __new__(cls, data=None,
                 freq=None, start=None, end=None, periods=None,
@@ -591,6 +594,25 @@ class PeriodIndex(Int64Index):
         subarr.freq = freq
 
         return subarr
+
+    def __contains__(self, key):
+        if not isinstance(key, Period) or key.freq != self.freq:
+            if isinstance(key, basestring):
+                try:
+                    self.get_loc(key)
+                    return True
+                except Exception:
+                    return False
+            return False
+        return key.ordinal in self._engine
+
+    def astype(self, dtype):
+        dtype = np.dtype(dtype)
+        if dtype == np.object_:
+            result = np.empty(len(self), dtype=dtype)
+            result[:] = [x for x in self]
+            return result
+        return np.ndarray.astype(self.values, dtype)
 
     def __iter__(self):
         for val in self.values:

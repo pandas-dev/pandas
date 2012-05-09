@@ -9,7 +9,10 @@ from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 
 from pandas.core.common import notnull, _ensure_platform_int
-from pandas.core.groupby import get_group_index
+from pandas.core.groupby import (get_group_index, _compress_group_index,
+                                 decons_group_index)
+
+
 from pandas.core.index import MultiIndex
 
 
@@ -198,6 +201,70 @@ class _Unstacker(object):
         return new_index
 
 
+def _unstack_multiple(data, clocs):
+    if len(clocs) == 0:
+        return data
+
+    # NOTE: This doesn't deal with hierarchical columns yet
+
+    index = data.index
+
+    clocs = [index._get_level_number(i) for i in clocs]
+
+    rlocs = [i for i in range(index.nlevels) if i not in clocs]
+
+    clevels = [index.levels[i] for i in clocs]
+    clabels = [index.labels[i] for i in clocs]
+    cnames = [index.names[i] for i in clocs]
+    rlevels = [index.levels[i] for i in rlocs]
+    rlabels = [index.labels[i] for i in rlocs]
+    rnames = [index.names[i] for i in rlocs]
+
+    shape = [len(x) for x in clevels]
+    group_index = get_group_index(clabels, shape)
+
+    comp_ids, obs_ids = _compress_group_index(group_index, sort=False)
+    recons_labels = decons_group_index(obs_ids, shape)
+
+    dummy_index = MultiIndex(levels=rlevels + [obs_ids],
+                             labels=rlabels + [comp_ids],
+                             names=rnames + ['__placeholder__'])
+
+    if isinstance(data, Series):
+        dummy = Series(data.values, index=dummy_index)
+        unstacked = dummy.unstack('__placeholder__')
+        new_levels = clevels
+        new_names = cnames
+        new_labels = recons_labels
+    else:
+        if isinstance(data.columns, MultiIndex):
+            raise NotImplementedError('Unstacking multiple levels with '
+                                      'hierarchical columns not yet supported')
+
+        dummy = DataFrame(data.values, index=dummy_index,
+                          columns=data.columns)
+
+        unstacked = dummy.unstack('__placeholder__')
+        if isinstance(unstacked, Series):
+            unstcols = unstacked.index
+        else:
+            unstcols = unstacked.columns
+        new_levels = [unstcols.levels[0]] + clevels
+        new_names = [data.columns.name] + cnames
+
+        new_labels = [unstcols.labels[0]]
+        for rec in recons_labels:
+            new_labels.append(rec.take(unstcols.labels[-1]))
+
+    new_columns = MultiIndex(levels=new_levels, labels=new_labels,
+                             names=new_names)
+
+    if isinstance(unstacked, Series):
+        unstacked.index = new_columns
+    else:
+        unstacked.columns = new_columns
+
+    return unstacked
 
 def pivot(self, index=None, columns=None, values=None):
     """
@@ -283,6 +350,9 @@ def _slow_pivot(index, columns, values):
     return DataFrame(tree)
 
 def unstack(obj, level):
+    if isinstance(level, (tuple, list)):
+        return _unstack_multiple(obj, level)
+
     if isinstance(obj, DataFrame):
         if isinstance(obj.index, MultiIndex):
             return _unstack_frame(obj, level)

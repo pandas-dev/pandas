@@ -320,18 +320,18 @@ class TestResample(unittest.TestCase):
 
         result = panel.resample('M', axis=1)
 
-        def apply(panel, f):
+        def p_apply(panel, f):
             result = {}
             for item in panel.items:
                 result[item] = f(panel[item])
             return Panel(result, items=panel.items)
 
-        expected = apply(panel, lambda x: x.resample('M'))
+        expected = p_apply(panel, lambda x: x.resample('M'))
         tm.assert_panel_equal(result, expected)
 
         panel2 = panel.swapaxes(1, 2)
         result = panel2.resample('M', axis=2)
-        expected = apply(panel2, lambda x: x.resample('M', axis=1))
+        expected = p_apply(panel2, lambda x: x.resample('M', axis=1))
         tm.assert_panel_equal(result, expected)
 
     def test_resample_panel_numpy(self):
