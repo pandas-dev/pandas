@@ -321,11 +321,12 @@ class Index(np.ndarray):
 
         return Index(np.concatenate(to_concat), name=name)
 
-    def take(self, *args, **kwargs):
+    def take(self, indexer, axis=0):
         """
         Analogous to ndarray.take
         """
-        taken = self.view(np.ndarray).take(*args, **kwargs)
+        indexer = com._ensure_platform_int(indexer)
+        taken = self.view(np.ndarray).take(indexer)
         return self._constructor(taken, name=self.name)
 
     def format(self, name=False):
@@ -1500,6 +1501,7 @@ class MultiIndex(Index):
         """
         Analogous to ndarray.take
         """
+        indexer = com._ensure_platform_int(indexer)
         new_labels = [lab.take(indexer) for lab in self.labels]
         return MultiIndex(levels=self.levels, labels=new_labels,
                           names=self.names)
