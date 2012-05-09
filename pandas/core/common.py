@@ -191,11 +191,8 @@ def take_1d(arr, indexer, out=None, fill_value=np.nan):
 
     n = len(indexer)
 
-    if not isinstance(indexer, np.ndarray):
-        # Cython methods expects 32-bit integers
-        indexer = np.array(indexer, dtype=np.int32)
-
     indexer = _ensure_int64(indexer)
+
     out_passed = out is not None
     take_f = _take1d_dict.get(dtype_str)
 
@@ -203,14 +200,14 @@ def take_1d(arr, indexer, out=None, fill_value=np.nan):
         try:
             if out is None:
                 out = np.empty(n, dtype=arr.dtype)
-            take_f(arr, indexer, out=out, fill_value=fill_value)
+            take_f(arr, _ensure_int64(indexer), out=out, fill_value=fill_value)
         except ValueError:
             mask = indexer == -1
             if len(arr) == 0:
                 if not out_passed:
                     out = np.empty(n, dtype=arr.dtype)
             else:
-                out = arr.take(indexer, out=out)
+                out = _ndtake(arr, indexer, out=out)
             if mask.any():
                 if out_passed:
                     raise Exception('out with dtype %s does not support NA' %
@@ -220,9 +217,9 @@ def take_1d(arr, indexer, out=None, fill_value=np.nan):
     elif dtype_str in ('float64', 'object', 'datetime64[us]'):
         if out is None:
             out = np.empty(n, dtype=arr.dtype)
-        take_f(arr, indexer, out=out, fill_value=fill_value)
+        take_f(arr, _ensure_int64(indexer), out=out, fill_value=fill_value)
     else:
-        out = arr.take(indexer, out=out)
+        out = _ndtake(arr, indexer, out=out)
         mask = indexer == -1
         if mask.any():
             if out_passed:
@@ -239,9 +236,6 @@ def take_2d_multi(arr, row_idx, col_idx, fill_value=np.nan):
 
     take_f = _get_take2d_function(dtype_str, axis='multi')
 
-    row_idx = _ensure_int64(row_idx)
-    col_idx = _ensure_int64(col_idx)
-
     out_shape = len(row_idx), len(col_idx)
 
     if dtype_str in ('int32', 'int64', 'bool'):
@@ -254,11 +248,14 @@ def take_2d_multi(arr, row_idx, col_idx, fill_value=np.nan):
                                  fill_value=fill_value)
         else:
             out = np.empty(out_shape, dtype=arr.dtype)
-            take_f(arr, row_idx, col_idx, out=out, fill_value=fill_value)
+            take_f(arr, _ensure_int64(row_idx),
+                   _ensure_int64(col_idx), out=out,
+                   fill_value=fill_value)
             return out
     elif dtype_str in ('float64', 'object', 'datetime64[us]'):
         out = np.empty(out_shape, dtype=arr.dtype)
-        take_f(arr, row_idx, col_idx, out=out, fill_value=fill_value)
+        take_f(arr, _ensure_int64(row_idx), _ensure_int64(col_idx), out=out,
+               fill_value=fill_value)
         return out
     else:
         return take_2d(take_2d(arr, row_idx, axis=0, fill_value=fill_value),
@@ -277,10 +274,7 @@ def take_2d(arr, indexer, out=None, mask=None, needs_masking=None, axis=0,
     out_shape = tuple(out_shape)
 
     if not isinstance(indexer, np.ndarray):
-        # Cython methods expects 32-bit integers
-        indexer = np.array(indexer, dtype=np.int32)
-
-    indexer = _ensure_int64(indexer)
+        indexer = np.array(indexer, dtype=np.int64)
 
     if dtype_str in ('int32', 'int64', 'bool'):
         if mask is None:
@@ -289,7 +283,7 @@ def take_2d(arr, indexer, out=None, mask=None, needs_masking=None, axis=0,
 
         if needs_masking:
             # upcasting may be required
-            result = arr.take(indexer, axis=axis, out=out)
+            result = _ndtake(arr, indexer, axis=axis, out=out)
             result = _maybe_mask(result, mask, needs_masking, axis=axis,
                                  out_passed=out is not None,
                                  fill_value=fill_value)
@@ -298,13 +292,13 @@ def take_2d(arr, indexer, out=None, mask=None, needs_masking=None, axis=0,
             if out is None:
                 out = np.empty(out_shape, dtype=arr.dtype)
             take_f = _get_take2d_function(dtype_str, axis=axis)
-            take_f(arr, indexer, out=out, fill_value=fill_value)
+            take_f(arr, _ensure_int64(indexer), out=out, fill_value=fill_value)
             return out
     elif dtype_str in ('float64', 'object', 'datetime64[us]'):
         if out is None:
             out = np.empty(out_shape, dtype=arr.dtype)
         take_f = _get_take2d_function(dtype_str, axis=axis)
-        take_f(arr, indexer, out=out, fill_value=fill_value)
+        take_f(arr, _ensure_int64(indexer), out=out, fill_value=fill_value)
         return out
     else:
         if mask is None:
@@ -315,11 +309,14 @@ def take_2d(arr, indexer, out=None, mask=None, needs_masking=None, axis=0,
         if out is not None and arr.dtype != out.dtype:
             arr = arr.astype(out.dtype)
 
-        result = arr.take(indexer, axis=axis, out=out)
+        result = _ndtake(arr, indexer, axis=axis, out=out)
         result = _maybe_mask(result, mask, needs_masking, axis=axis,
                              out_passed=out is not None,
                              fill_value=fill_value)
         return result
+
+def _ndtake(arr, indexer, axis=0, out=None):
+    return arr.take(_ensure_platform_int(indexer), axis=axis, out=out)
 
 def mask_out_axis(arr, mask, axis, fill_value=np.nan):
     indexer = [slice(None)] * arr.ndim
@@ -334,7 +331,7 @@ def take_fast(arr, indexer, mask, needs_masking, axis=0, out=None,
                        needs_masking=needs_masking,
                        axis=axis, fill_value=fill_value)
     indexer = _ensure_platform_int(indexer)
-    result = arr.take(indexer, axis=axis, out=out)
+    result = _ndtake(arr, indexer, axis=axis, out=out)
     result = _maybe_mask(result, mask, needs_masking, axis=axis,
                          out_passed=out is not None, fill_value=fill_value)
     return result
@@ -727,9 +724,12 @@ def _ensure_int64(arr):
         return np.array(arr, dtype=np.int64)
 
 def _ensure_platform_int(labels):
-    if labels.dtype != np.int_:  # pragma: no cover
-        labels = labels.astype(np.int_)
-    return labels
+    try:
+        if labels.dtype != np.int_:  # pragma: no cover
+            labels = labels.astype(np.int_)
+        return labels
+    except AttributeError:
+        return np.array(labels, dtype=np.int_)
 
 def _ensure_int32(arr):
     if arr.dtype != np.int32:
