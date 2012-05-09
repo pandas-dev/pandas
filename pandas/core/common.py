@@ -207,7 +207,7 @@ def take_1d(arr, indexer, out=None, fill_value=np.nan):
                 if not out_passed:
                     out = np.empty(n, dtype=arr.dtype)
             else:
-                out = _ndtake(arr, indexer, out=out)
+                out = ndtake(arr, indexer, out=out)
             if mask.any():
                 if out_passed:
                     raise Exception('out with dtype %s does not support NA' %
@@ -219,7 +219,7 @@ def take_1d(arr, indexer, out=None, fill_value=np.nan):
             out = np.empty(n, dtype=arr.dtype)
         take_f(arr, _ensure_int64(indexer), out=out, fill_value=fill_value)
     else:
-        out = _ndtake(arr, indexer, out=out)
+        out = ndtake(arr, indexer, out=out)
         mask = indexer == -1
         if mask.any():
             if out_passed:
@@ -283,7 +283,7 @@ def take_2d(arr, indexer, out=None, mask=None, needs_masking=None, axis=0,
 
         if needs_masking:
             # upcasting may be required
-            result = _ndtake(arr, indexer, axis=axis, out=out)
+            result = ndtake(arr, indexer, axis=axis, out=out)
             result = _maybe_mask(result, mask, needs_masking, axis=axis,
                                  out_passed=out is not None,
                                  fill_value=fill_value)
@@ -309,13 +309,13 @@ def take_2d(arr, indexer, out=None, mask=None, needs_masking=None, axis=0,
         if out is not None and arr.dtype != out.dtype:
             arr = arr.astype(out.dtype)
 
-        result = _ndtake(arr, indexer, axis=axis, out=out)
+        result = ndtake(arr, indexer, axis=axis, out=out)
         result = _maybe_mask(result, mask, needs_masking, axis=axis,
                              out_passed=out is not None,
                              fill_value=fill_value)
         return result
 
-def _ndtake(arr, indexer, axis=0, out=None):
+def ndtake(arr, indexer, axis=0, out=None):
     return arr.take(_ensure_platform_int(indexer), axis=axis, out=out)
 
 def mask_out_axis(arr, mask, axis, fill_value=np.nan):
@@ -331,7 +331,7 @@ def take_fast(arr, indexer, mask, needs_masking, axis=0, out=None,
                        needs_masking=needs_masking,
                        axis=axis, fill_value=fill_value)
     indexer = _ensure_platform_int(indexer)
-    result = _ndtake(arr, indexer, axis=axis, out=out)
+    result = ndtake(arr, indexer, axis=axis, out=out)
     result = _maybe_mask(result, mask, needs_masking, axis=axis,
                          out_passed=out is not None, fill_value=fill_value)
     return result

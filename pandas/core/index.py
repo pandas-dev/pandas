@@ -7,6 +7,7 @@ import weakref
 
 import numpy as np
 
+from pandas.core.common import ndtake
 from pandas.util.decorators import cache_readonly
 from pandas.util import py3compat
 import pandas.core.common as com
@@ -507,7 +508,7 @@ class Index(np.ndarray):
             indexer = (indexer == -1).nonzero()[0]
 
             if len(indexer) > 0:
-                other_diff = other.values.take(indexer)
+                other_diff = ndtake(other.values, indexer)
                 result = np.concatenate((self.values, other_diff))
                 try:
                     result.sort()
@@ -890,7 +891,7 @@ class Index(np.ndarray):
             rev_indexer = lib.get_reverse_indexer(left_lev_indexer,
                                                   len(old_level))
 
-            new_lev_labels = rev_indexer.take(left.labels[level])
+            new_lev_labels = ndtake(rev_indexer, left.labels[level])
             omit_mask = new_lev_labels != -1
 
             new_labels = list(left.labels)
@@ -910,7 +911,8 @@ class Index(np.ndarray):
             left_indexer = None
 
         if right_lev_indexer is not None:
-            right_indexer = right_lev_indexer.take(join_index.labels[level])
+            right_indexer = ndtake(right_lev_indexer,
+                                   join_index.labels[level])
         else:
             right_indexer = join_index.labels[level]
 
@@ -1168,7 +1170,7 @@ class MultiIndex(Index):
         levels = [_ensure_index(lev) for lev in levels]
         labels = [np.asarray(labs, dtype=np.int64) for labs in labels]
 
-        values = [np.asarray(lev).take(lab)
+        values = [ndtake(np.asarray(lev), lab)
                   for lev, lab in zip(levels, labels)]
         subarr = lib.fast_zip(values).view(cls)
 
@@ -1247,7 +1249,7 @@ class MultiIndex(Index):
     def values(self):
         if self._is_legacy_format:
             # for legacy MultiIndex
-            values = [np.asarray(lev).take(lab)
+            values = [ndtake(np.asarray(lev), lab)
                       for lev, lab in zip(self.levels, self.labels)]
             return lib.fast_zip(values)
         else:
@@ -1345,7 +1347,7 @@ class MultiIndex(Index):
             if names:
                 level.append(str(name) if name is not None else '')
 
-            level.extend(np.array(lev, dtype=object).take(lab))
+            level.extend(ndtake(np.array(lev, dtype=object), lab))
             result_levels.append(level)
 
         if sparsify:
