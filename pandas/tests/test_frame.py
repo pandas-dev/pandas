@@ -3372,6 +3372,24 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = df.astype(float).fillna(axis=1)
         assert_frame_equal(result, expected)
 
+    def test_replace(self):
+        pass
+
+    def test_replace_inplace(self):
+        pass
+
+    def test_replace_method(self):
+        pass
+
+    def test_replace_col_dict(self):
+        pass
+
+    def test_replace_axis(self):
+        pass
+
+    def test_replace_limit(self):
+        pass
+
     def test_truncate(self):
         offset = datetools.bday
 

@@ -2095,14 +2095,14 @@ copy : boolean, default False
         return result
 
 
-    def replace(self, to_replace=None, value=None, method='pad', inplace=False,
+    def replace(self, to_replace, value=None, method='pad', inplace=False,
                 limit=None):
         """
         Replace arbitrary values in a Series
 
         Parameters
         ----------
-        to_replace : list or dict, default None
+        to_replace : list or dict
             list of values to be replaced or dict of replacement values
         value : anything
             if to_replace is a list then value is the replacement value
@@ -2133,8 +2133,7 @@ copy : boolean, default False
         single_val = False
 
         def _rep_one(s, to_rep, v): # replace single value
-            m = _mask_missing(s, to_rep)
-            np.putmask(s, m, v)
+            lib.replace(s.values, to_rep, v)
             return s
 
         def _rep_dict(rs, to_rep): # replace {[src] -> dest}
@@ -2152,7 +2151,6 @@ copy : boolean, default False
         if isinstance(to_replace, (list, np.ndarray)):
 
             if isinstance(value, (list, np.ndarray)): # check same length
-
                 vl, rl = len(value), len(to_replace)
                 if vl == rl:
                     return _rep_dict(result, dict(zip(to_replace, value)))

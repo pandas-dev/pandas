@@ -2,6 +2,10 @@ cimport numpy as np
 cimport cython
 
 from numpy cimport *
+from numpy cimport NPY_INT32 as NPY_int32
+from numpy cimport NPY_INT64 as NPY_int64
+from numpy cimport NPY_FLOAT32 as NPY_float32
+from numpy cimport NPY_FLOAT64 as NPY_float64
 
 from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
                       PyDict_Contains, PyDict_Keys,
@@ -665,6 +669,36 @@ def value_count_int64(ndarray[int64_t] values):
 
     return result_keys, result_counts
 
+def array_isnull(arr):
+    if np.isscalar(arr) or arr is None:
+        return checknull(arr)
+    if arr.dtype.kind in ('O', 'S'):
+        # Working around NumPy ticket 1542
+        shape = arr.shape
+        result = np.empty(shape, dtype=bool)
+        vec = isnullobj(arr.ravel())
+        result[:] = vec.reshape(shape)
+    elif arr.dtype == np.datetime64:
+        # this is the NaT pattern
+        result = np.array(arr).view('i8') == NaT
+    else:
+        result = -np.isfinite(arr)
+    return result
+
+def slow_replace(arr, old, new):
+    "Slow replace (inplace) used for unaccelerated ndim/dtype combinations."
+    if type(arr) is not np.ndarray:
+        raise TypeError("`arr` must be a numpy array.")
+    if not issubclass(arr.dtype.type, np.inexact):
+        if int(old) != old:
+            raise ValueError("Cannot safely cast `old` to int.")
+        if int(new) != new:
+            raise ValueError("Cannot safely cast `new` to int.")
+    if array_isnull(old):
+        mask = array_isnull(arr)
+    else:
+        mask = arr == old
+    np.putmask(arr, mask, new)
 
 include "hashtable.pyx"
 include "datetime.pyx"
