@@ -3,7 +3,7 @@ from pandas.util.py3compat import StringIO
 take_1d_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
 def take_1d_%(name)s(ndarray[%(c_type)s] values,
-                     ndarray[int32_t] indexer,
+                     ndarray[int64_t] indexer,
                      out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
@@ -38,7 +38,7 @@ def take_1d_%(name)s(ndarray[%(c_type)s] values,
 take_2d_axis0_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_axis0_%(name)s(ndarray[%(c_type)s, ndim=2] values,
-                           ndarray[int32_t] indexer,
+                           ndarray[int64_t] indexer,
                            out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, j, k, n, idx
@@ -78,7 +78,7 @@ def take_2d_axis0_%(name)s(ndarray[%(c_type)s, ndim=2] values,
 take_2d_axis1_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_axis1_%(name)s(ndarray[%(c_type)s, ndim=2] values,
-                           ndarray[int32_t] indexer,
+                           ndarray[int64_t] indexer,
                            out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, j, k, n, idx
@@ -120,8 +120,8 @@ def take_2d_axis1_%(name)s(ndarray[%(c_type)s, ndim=2] values,
 take_2d_multi_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_multi_%(name)s(ndarray[%(c_type)s, ndim=2] values,
-                           ndarray[int32_t] idx0,
-                           ndarray[int32_t] idx1,
+                           ndarray[int64_t] idx0,
+                           ndarray[int64_t] idx1,
                            out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, j, k, n, idx
@@ -204,13 +204,13 @@ backfill_template = """@cython.boundscheck(False)
 def backfill_%(name)s(ndarray[%(c_type)s] old, ndarray[%(c_type)s] new,
                       limit=None):
     cdef Py_ssize_t i, j, nleft, nright
-    cdef ndarray[int32_t, ndim=1] indexer
+    cdef ndarray[int64_t, ndim=1] indexer
     cdef %(c_type)s cur, prev
     cdef int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
-    indexer = np.empty(nright, dtype=np.int32)
+    indexer = np.empty(nright, dtype=np.int64)
     indexer.fill(-1)
 
     if limit is None:
@@ -269,13 +269,13 @@ pad_template = """@cython.boundscheck(False)
 def pad_%(name)s(ndarray[%(c_type)s] old, ndarray[%(c_type)s] new,
                    limit=None):
     cdef Py_ssize_t i, j, nleft, nright
-    cdef ndarray[int32_t, ndim=1] indexer
+    cdef ndarray[int64_t, ndim=1] indexer
     cdef %(c_type)s cur, next
     cdef int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
-    indexer = np.empty(nright, dtype=np.int32)
+    indexer = np.empty(nright, dtype=np.int64)
     indexer.fill(-1)
 
     if limit is None:
@@ -558,7 +558,7 @@ def left_join_indexer_%(name)s(ndarray[%(c_type)s] left,
                              ndarray[%(c_type)s] right):
     cdef:
         Py_ssize_t i, j, nleft, nright
-        ndarray[int32_t] indexer
+        ndarray[int64_t] indexer
         %(c_type)s lval, rval
 
     i = 0
@@ -566,7 +566,7 @@ def left_join_indexer_%(name)s(ndarray[%(c_type)s] left,
     nleft = len(left)
     nright = len(right)
 
-    indexer = np.empty(nleft, dtype=np.int32)
+    indexer = np.empty(nleft, dtype=np.int64)
     while True:
         if i == nleft:
             break
@@ -609,7 +609,7 @@ def inner_join_indexer_%(name)s(ndarray[%(c_type)s] left,
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
         %(c_type)s lval, rval
-        ndarray[int32_t] lindexer, rindexer
+        ndarray[int64_t] lindexer, rindexer
         ndarray[%(c_type)s] result
 
     nleft = len(left)
@@ -635,8 +635,8 @@ def inner_join_indexer_%(name)s(ndarray[%(c_type)s] left,
 
     # do it again now that result size is known
 
-    lindexer = np.empty(count, dtype=np.int32)
-    rindexer = np.empty(count, dtype=np.int32)
+    lindexer = np.empty(count, dtype=np.int64)
+    rindexer = np.empty(count, dtype=np.int64)
     result = np.empty(count, dtype=%(dtype)s)
 
     i = 0
@@ -671,7 +671,7 @@ def outer_join_indexer_%(name)s(ndarray[%(c_type)s] left,
     cdef:
         Py_ssize_t i, j, nright, nleft, count
         %(c_type)s lval, rval
-        ndarray[int32_t] lindexer, rindexer
+        ndarray[int64_t] lindexer, rindexer
         ndarray[%(c_type)s] result
 
     nleft = len(left)
@@ -706,8 +706,8 @@ def outer_join_indexer_%(name)s(ndarray[%(c_type)s] left,
 
             count += 1
 
-    lindexer = np.empty(count, dtype=np.int32)
-    rindexer = np.empty(count, dtype=np.int32)
+    lindexer = np.empty(count, dtype=np.int64)
+    rindexer = np.empty(count, dtype=np.int64)
     result = np.empty(count, dtype=%(dtype)s)
 
     # do it again, but populate the indexers / result
@@ -767,7 +767,7 @@ def outer_join_indexer_%(name)s(ndarray[%(c_type)s] left,
 
 put2d_template = """
 def put2d_%(name)s_%(dest_type)s(ndarray[%(c_type)s, ndim=2, cast=True] values,
-                              ndarray[int32_t] indexer, Py_ssize_t loc,
+                              ndarray[int64_t] indexer, Py_ssize_t loc,
                               ndarray[%(dest_type2)s] out):
     cdef:
         Py_ssize_t i, j, k

@@ -145,9 +145,11 @@ class _MergeOperation(object):
             # max groups = largest possible number of distinct groups
             left_key, right_key, max_groups = self._get_group_keys()
 
+            # left_key = com._ensure_int64(left_key)
+            # right_key = com._ensure_int64(right_key)
+
             join_func = _join_functions[self.how]
-            left_indexer, right_indexer = join_func(left_key.astype('i4'),
-                                                    right_key.astype('i4'),
+            left_indexer, right_indexer = join_func(left_key, right_key,
                                                     max_groups)
 
             if self.right_index:
@@ -339,8 +341,8 @@ def _get_multiindex_indexer(join_keys, index, sort=False):
                          sort=False)
 
     left_indexer, right_indexer = \
-        lib.left_outer_join(left_group_key.astype('i4'),
-                            right_group_key.astype('i4'),
+        lib.left_outer_join(com._ensure_int64(left_group_key),
+                            com._ensure_int64(right_group_key),
                             max_groups, sort=False)
 
     return left_indexer, right_indexer
@@ -349,7 +351,8 @@ def _get_single_indexer(join_key, index, sort=False):
     left_key, right_key, count = _factorize_objects(join_key, index, sort=sort)
 
     left_indexer, right_indexer = \
-        lib.left_outer_join(left_key.astype('i4'), right_key.astype('i4'),
+        lib.left_outer_join(com._ensure_int64(left_key),
+                            com._ensure_int64(right_key),
                             count, sort=sort)
 
     return left_indexer, right_indexer
@@ -395,11 +398,8 @@ def _factorize_int64(left_index, right_index, sort=True):
     rizer = lib.Int64Factorizer(max(len(left_index), len(right_index)))
 
     # 32-bit compatibility
-    if left_index.dtype != np.int64:  # pragma: no cover
-        left_index = left_index.astype('i8')
-
-    if right_index.dtype != np.int64:  # pragma: no cover
-        right_index = right_index.astype('i8')
+    left_index = com._ensure_int64(left_index)
+    right_index = com._ensure_int64(right_index)
 
     llab, _ = rizer.factorize(left_index)
     rlab, _ = rizer.factorize(right_index)
@@ -431,7 +431,7 @@ def _sort_labels(uniques, left, right):
 
     sorter = uniques.argsort()
 
-    reverse_indexer = np.empty(len(sorter), dtype=np.int32)
+    reverse_indexer = np.empty(len(sorter), dtype=np.int64)
     reverse_indexer.put(sorter, np.arange(len(sorter)))
 
     new_left = reverse_indexer.take(left)
@@ -538,7 +538,7 @@ class _BlockJoinOperation(object):
 
             if unit.indexer is None:
             # is this really faster than assigning to arr.flat?
-                com.take_fast(blk.values, np.arange(n, dtype='i4'),
+                com.take_fast(blk.values, np.arange(n, dtype=np.int64),
                               None, False,
                               axis=self.axis, out=out_chunk)
             else:

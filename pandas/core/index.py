@@ -886,7 +886,7 @@ class Index(np.ndarray):
             old_level.join(right, how=how, return_indexers=True)
 
         if left_lev_indexer is not None:
-            left_lev_indexer = com._ensure_int32(left_lev_indexer)
+            left_lev_indexer = com._ensure_int64(left_lev_indexer)
             rev_indexer = lib.get_reverse_indexer(left_lev_indexer,
                                                   len(old_level))
 
@@ -1166,7 +1166,7 @@ class MultiIndex(Index):
             return Index(levels[0], name=name).take(labels[0])
 
         levels = [_ensure_index(lev) for lev in levels]
-        labels = [np.asarray(labs, dtype=np.int32) for labs in labels]
+        labels = [np.asarray(labs, dtype=np.int64) for labs in labels]
 
         values = [np.asarray(lev).take(lab)
                   for lev, lab in zip(levels, labels)]

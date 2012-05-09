@@ -212,7 +212,7 @@ cdef class _Timestamp(datetime):
         else:
             return datetime.__sub__(self, other)
 
-    def _get_field(self, field):
+    cpdef _get_field(self, field):
         out = fast_field_accessor(np.array([self.value], dtype=np.int64),
                                   field)
         return out[0]

@@ -540,9 +540,9 @@ class TestInt64Index(unittest.TestCase):
 
         eres = Int64Index([0, 1, 2, 4, 5, 6, 7, 8, 10, 12, 14, 16, 18, 25])
         elidx = np.array([0, -1, 1, 2, -1, 3, -1, 4, 5, 6, 7, 8, 9, -1],
-                         dtype='i4')
+                         dtype=np.int64)
         eridx = np.array([-1, 3, 4, -1, 5, -1, 0, -1, -1, 1, -1, -1, -1, 2],
-                         dtype='i4')
+                         dtype=np.int64)
 
         self.assert_(isinstance(res, Int64Index))
         self.assert_(res.equals(eres))
@@ -556,7 +556,7 @@ class TestInt64Index(unittest.TestCase):
         self.assert_(res.equals(noidx_res))
 
         eridx = np.array([-1, 0, 1, -1, 2, -1, 3, -1, -1, 4, -1, -1, -1, 5],
-                         dtype='i4')
+                         dtype=np.int64)
         self.assert_(isinstance(res, Int64Index))
         self.assert_(res.equals(eres))
         self.assert_(np.array_equal(lidx, elidx))
@@ -607,7 +607,7 @@ class TestInt64Index(unittest.TestCase):
                                           return_indexers=True)
         eres = self.index
         eridx = np.array([-1, 4, -1, -1, -1, -1, 1, -1, -1, -1],
-                         dtype='i4')
+                         dtype=np.int64)
 
         self.assert_(isinstance(res, Int64Index))
         self.assert_(res.equals(eres))
@@ -618,7 +618,7 @@ class TestInt64Index(unittest.TestCase):
         res, lidx, ridx = self.index.join(other_mono, how='left',
                                           return_indexers=True)
         eridx = np.array([-1, 1, -1, -1, -1, -1, 4, -1, -1, -1],
-                         dtype='i4')
+                         dtype=np.int64)
         self.assert_(isinstance(res, Int64Index))
         self.assert_(res.equals(eres))
         self.assert_(lidx is None)
@@ -633,7 +633,7 @@ class TestInt64Index(unittest.TestCase):
                                           return_indexers=True)
         eres = other
         elidx = np.array([-1, 6, -1, -1, 1, -1],
-                         dtype='i4')
+                         dtype=np.int64)
 
         self.assert_(isinstance(other, Int64Index))
         self.assert_(res.equals(eres))
@@ -645,7 +645,7 @@ class TestInt64Index(unittest.TestCase):
                                           return_indexers=True)
         eres = other_mono
         elidx = np.array([-1, 1, -1, -1, 6, -1],
-                         dtype='i4')
+                         dtype=np.int64)
         self.assert_(isinstance(other, Int64Index))
         self.assert_(res.equals(eres))
         self.assert_(np.array_equal(lidx, elidx))

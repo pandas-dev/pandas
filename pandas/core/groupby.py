@@ -563,7 +563,7 @@ class Grouper(object):
         comp_ids, obs_group_ids = self._get_compressed_labels()
 
         ngroups = len(obs_group_ids)
-        comp_ids = com._ensure_int32(comp_ids)
+        comp_ids = com._ensure_int64(comp_ids)
         return comp_ids, obs_group_ids, ngroups
 
     def _get_compressed_labels(self):
@@ -653,7 +653,7 @@ class Grouper(object):
 
         # will be filled in Cython function
         result = np.empty(out_shape, dtype=np.float64)
-        counts = np.zeros(self.ngroups, dtype=np.int32)
+        counts = np.zeros(self.ngroups, dtype=np.int64)
 
         result = self._aggregate(result, counts, values, how)
 
@@ -773,7 +773,7 @@ def generate_bins_generic(values, binner, closed):
     if values[lenidx-1] > binner[lenbin-1]:
         raise ValueError("Values falls after last bin")
 
-    bins   = np.empty(lenbin - 1, dtype=np.int32)
+    bins   = np.empty(lenbin - 1, dtype=np.int64)
 
     j  = 0 # index into values
     bc = 0 # bin count
@@ -803,7 +803,7 @@ class CustomGrouper(object):
 class BinGrouper(Grouper):
 
     def __init__(self, bins, binlabels, filter_empty=False):
-        self.bins = com._ensure_int32(bins)
+        self.bins = com._ensure_int64(bins)
         self.binlabels = _ensure_index(binlabels)
         self._filter_empty_groups = filter_empty
 
@@ -1809,7 +1809,7 @@ def generate_groups(data, group_index, ngroups, axis=0, factory=lambda x: x):
     -------
     generator
     """
-    group_index = com._ensure_int32(group_index)
+    group_index = com._ensure_int64(group_index)
 
     indexer = lib.groupsort_indexer(group_index, ngroups)[0]
     group_index = group_index.take(indexer)
@@ -1906,7 +1906,7 @@ def _indexer_from_factorized(labels, shape, compress=True):
         comp_ids = group_index
         max_group = np.prod(shape)
 
-    indexer, _ = lib.groupsort_indexer(comp_ids.astype('i4'), max_group)
+    indexer, _ = lib.groupsort_indexer(comp_ids.astype(np.int64), max_group)
 
     return indexer
 
@@ -1932,7 +1932,7 @@ class _KeyMapper(object):
     def __init__(self, comp_ids, ngroups, labels, levels):
         self.levels = levels
         self.labels = labels
-        self.comp_ids = comp_ids.astype('i8')
+        self.comp_ids = comp_ids.astype(np.int64)
 
         self.k = len(labels)
         self.tables = [lib.Int64HashTable(ngroups) for _ in range(self.k)]
@@ -1941,7 +1941,7 @@ class _KeyMapper(object):
 
     def _populate_tables(self):
         for labs, table in zip(self.labels, self.tables):
-            table.map(self.comp_ids, labs.astype('i8'))
+            table.map(self.comp_ids, labs.astype(np.int64))
 
     def get_key(self, comp_id):
         return tuple(level[table.get_item(comp_id)]
@@ -1966,7 +1966,7 @@ def _compress_group_index(group_index, sort=True):
     comp_ids = table.get_labels_groupby(group_index, uniques)
 
     # these are the unique ones we observed, in the order we observed them
-    obs_group_ids = np.array(uniques, dtype='i8')
+    obs_group_ids = np.array(uniques, dtype=np.int64)
 
     if sort and len(obs_group_ids) > 0:
         obs_group_ids, comp_ids = _reorder_by_uniques(obs_group_ids, comp_ids)
@@ -1978,7 +1978,7 @@ def _reorder_by_uniques(uniques, labels):
     sorter = uniques.argsort()
 
     # reverse_indexer is where elements came from
-    reverse_indexer = np.empty(len(sorter), dtype='i4')
+    reverse_indexer = np.empty(len(sorter), dtype=np.int64)
     reverse_indexer.put(sorter, np.arange(len(sorter)))
 
     mask = labels < 0

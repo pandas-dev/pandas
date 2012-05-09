@@ -195,7 +195,7 @@ def take_1d(arr, indexer, out=None, fill_value=np.nan):
         # Cython methods expects 32-bit integers
         indexer = np.array(indexer, dtype=np.int32)
 
-    indexer = _ensure_int32(indexer)
+    indexer = _ensure_int64(indexer)
     out_passed = out is not None
     take_f = _take1d_dict.get(dtype_str)
 
@@ -239,8 +239,8 @@ def take_2d_multi(arr, row_idx, col_idx, fill_value=np.nan):
 
     take_f = _get_take2d_function(dtype_str, axis='multi')
 
-    row_idx = _ensure_int32(row_idx)
-    col_idx = _ensure_int32(col_idx)
+    row_idx = _ensure_int64(row_idx)
+    col_idx = _ensure_int64(col_idx)
 
     out_shape = len(row_idx), len(col_idx)
 
@@ -280,7 +280,7 @@ def take_2d(arr, indexer, out=None, mask=None, needs_masking=None, axis=0,
         # Cython methods expects 32-bit integers
         indexer = np.array(indexer, dtype=np.int32)
 
-    indexer = _ensure_int32(indexer)
+    indexer = _ensure_int64(indexer)
 
     if dtype_str in ('int32', 'int64', 'bool'):
         if mask is None:

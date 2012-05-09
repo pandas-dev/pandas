@@ -2061,7 +2061,7 @@ class DataFrame(NDFrame):
                                copy, fill_value):
         new_data = self._data
         if row_indexer is not None:
-            row_indexer = com._ensure_int32(row_indexer)
+            row_indexer = com._ensure_int64(row_indexer)
             new_data = new_data.reindex_indexer(index, row_indexer, axis=1,
                                                 fill_value=fill_value)
         elif index is not None and index is not new_data.axes[1]:
@@ -2070,7 +2070,7 @@ class DataFrame(NDFrame):
 
         if col_indexer is not None:
             # TODO: speed up on homogeneous DataFrame objects
-            col_indexer = com._ensure_int32(col_indexer)
+            col_indexer = com._ensure_int64(col_indexer)
             new_data = new_data.reindex_indexer(columns, col_indexer, axis=0,
                                                 fill_value=fill_value)
         elif columns is not None and columns is not new_data.axes[0]:
@@ -2239,7 +2239,7 @@ class DataFrame(NDFrame):
                 return self.reindex(columns=new_columns)
         else:
             new_values = com.take_2d(self.values,
-                                     com._ensure_int32(indices),
+                                     com._ensure_int64(indices),
                                      axis=axis)
             if axis == 0:
                 new_columns = self.columns
