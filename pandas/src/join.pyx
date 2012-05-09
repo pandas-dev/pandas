@@ -177,6 +177,8 @@ def full_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
             _get_result_indexer(right_sorter, right_indexer))
 
 def _get_result_indexer(sorter, indexer):
+    if indexer.dtype != np.int_:
+        indexer = indexer.astype(np.int_)
     res = sorter.take(indexer)
     np.putmask(res, indexer == -1, -1)
     return res

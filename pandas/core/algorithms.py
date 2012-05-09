@@ -97,6 +97,8 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
     table = hash_klass(len(values))
     labels, counts = table.get_labels(values, uniques, 0, na_sentinel)
 
+    labels = com._ensure_platform_int(labels)
+    
     uniques = com._asarray_tuplesafe(uniques)
     if sort and len(counts) > 0:
         sorter = uniques.argsort()

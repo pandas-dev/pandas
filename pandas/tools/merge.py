@@ -434,10 +434,10 @@ def _sort_labels(uniques, left, right):
     reverse_indexer = np.empty(len(sorter), dtype=np.int64)
     reverse_indexer.put(sorter, np.arange(len(sorter)))
 
-    new_left = reverse_indexer.take(left)
+    new_left = reverse_indexer.take(com._ensure_platform_int(left))
     np.putmask(new_left, left == -1, -1)
 
-    new_right = reverse_indexer.take(right)
+    new_right = reverse_indexer.take(com._ensure_platform_int(right))
     np.putmask(new_right, right == -1, -1)
 
     return new_left, new_right

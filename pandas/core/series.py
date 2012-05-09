@@ -970,8 +970,9 @@ copy : boolean, default False
 
             # call cython function
             max_bin = len(level_index)
+            labels = com._ensure_int64(self.index.labels[level])
             counts = lib.count_level_1d(mask.view(np.uint8),
-                                        self.index.labels[level], max_bin)
+                                        labels, max_bin)
             return Series(counts, index=level_index)
 
         return notnull(self.values).sum()

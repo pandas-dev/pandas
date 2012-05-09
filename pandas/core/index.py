@@ -1378,9 +1378,10 @@ class MultiIndex(Index):
                 return self.nlevels
             else:
                 return 0
-
+        
+        int64_labels = [com._ensure_int64(lab) for lab in self.labels]
         for k in range(self.nlevels, 0, -1):
-            if lib.is_lexsorted(self.labels[:k]):
+            if lib.is_lexsorted(int64_labels[:k]):
                 return k
 
         return 0
@@ -1690,6 +1691,7 @@ class MultiIndex(Index):
         if not ascending:
             indexer = indexer[::-1]
 
+        indexer = com._ensure_platform_int(indexer)
         new_labels = [lab.take(indexer) for lab in self.labels]
 
         new_index = MultiIndex._from_elements(self.values.take(indexer),
