@@ -2026,6 +2026,7 @@ copy : boolean, default False
         -------
         taken : Series
         """
+        indices = com._ensure_platform_int(indices)
         new_index = self.index.take(indices)
         new_values = self.values.take(indices)
         return Series(new_values, index=new_index, name=self.name)

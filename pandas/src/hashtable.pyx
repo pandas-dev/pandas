@@ -792,8 +792,11 @@ cdef class Factorizer:
 
         # sort on
         if sort:
+            if labels.dtype != np.int_:
+                labels = labels.astype(np.int_)
+
             sorter = list_to_object_array(self.uniques).argsort()
-            reverse_indexer = np.empty(len(sorter), dtype=np.int64)
+            reverse_indexer = np.empty(len(sorter), dtype=np.int_)
             reverse_indexer.put(sorter, np.arange(len(sorter)))
 
             labels = reverse_indexer.take(labels)
@@ -826,8 +829,11 @@ cdef class Int64Factorizer:
 
         # sort on
         if sort:
+            if labels.dtype != np.int_:
+                labels = labels.astype(np.int_)
+
             sorter = list_to_object_array(self.uniques).argsort()
-            reverse_indexer = np.empty(len(sorter), dtype=np.int64)
+            reverse_indexer = np.empty(len(sorter), dtype=np.int_)
             reverse_indexer.put(sorter, np.arange(len(sorter)))
 
             labels = reverse_indexer.take(labels)
@@ -893,8 +899,11 @@ cdef class DictFactorizer:
 
         # sort on
         if sort:
+            if labels.dtype != np.int_:
+                labels = labels.astype(np.int_)
+
             sorter = list_to_object_array(self.uniques).argsort()
-            reverse_indexer = np.empty(len(sorter), dtype=np.int64)
+            reverse_indexer = np.empty(len(sorter), dtype=np.int_)
             reverse_indexer.put(sorter, np.arange(len(sorter)))
 
             labels = reverse_indexer.take(labels)

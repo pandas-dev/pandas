@@ -582,6 +582,7 @@ class SparseDataFrame(DataFrame):
         -------
         taken : SparseDataFrame
         """
+        indices = com._ensure_platform_int(indices)
         new_values = self.values.take(indices, axis=axis)
         if axis == 0:
             new_columns = self.columns

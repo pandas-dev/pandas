@@ -709,7 +709,7 @@ class Grouper(object):
         dummy = obj[:0].copy()
         indexer = lib.groupsort_indexer(group_index, ngroups)[0]
         obj = obj.take(indexer)
-        group_index = group_index.take(indexer)
+        group_index = com.ndtake(group_index, indexer)
         grouper = lib.SeriesGrouper(obj, func, group_index, ngroups,
                                     dummy)
         result, counts = grouper.get_result()
@@ -986,7 +986,8 @@ class Grouping(object):
     def counts(self):
         if self._counts is None:
             if self._was_factor:
-                self._counts = lib.group_count(self.labels, self.ngroups)
+                self._counts = lib.group_count(com._ensure_int64(self.labels),
+                                               self.ngroups)
             else:
                 self._make_labels()
         return self._counts
@@ -1397,7 +1398,7 @@ class NDFrameGroupBy(GroupBy):
                 zipped = zip(result.index.levels, result.index.labels,
                              result.index.names)
                 for i, (lev, lab, name) in enumerate(zipped):
-                    result.insert(i, name, lev.values.take(lab))
+                    result.insert(i, name, com.ndtake(lev.values, lab))
                 result = result.consolidate()
             else:
                 values = result.index.values
@@ -1812,7 +1813,7 @@ def generate_groups(data, group_index, ngroups, axis=0, factory=lambda x: x):
     group_index = com._ensure_int64(group_index)
 
     indexer = lib.groupsort_indexer(group_index, ngroups)[0]
-    group_index = group_index.take(indexer)
+    group_index = com.ndtake(group_index, indexer)
 
     if isinstance(data, BlockManager):
         # this is sort of wasteful but...
@@ -1984,11 +1985,11 @@ def _reorder_by_uniques(uniques, labels):
     mask = labels < 0
 
     # move labels to right locations (ie, unsort ascending labels)
-    labels = reverse_indexer.take(labels)
+    labels = com.ndtake(reverse_indexer, labels)
     np.putmask(labels, mask, -1)
 
     # sort observed ids
-    uniques = uniques.take(sorter)
+    uniques = com.ndtake(uniques, sorter)
 
     return uniques, labels
 

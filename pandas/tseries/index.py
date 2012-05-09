@@ -614,6 +614,7 @@ class DatetimeIndex(Int64Index):
         maybe_slice = lib.maybe_indices_to_slice(com._ensure_int64(indices))
         if isinstance(maybe_slice, slice):
             return self[maybe_slice]
+        indices = com._ensure_platform_int(indices)
         taken = self.values.take(indices, axis=axis)
         return DatetimeIndex(taken, tz=self.tz, name=self.name)
 

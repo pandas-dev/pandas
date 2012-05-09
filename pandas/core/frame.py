@@ -3651,8 +3651,8 @@ class DataFrame(NDFrame):
             level = self.index._get_level_number(level)
 
         level_index = frame.index.levels[level]
-        counts = lib.count_level_2d(mask, frame.index.labels[level],
-                                    len(level_index))
+        labels = com._ensure_int64(frame.index.labels[level])
+        counts = lib.count_level_2d(mask, labels, len(level_index))
 
         result = DataFrame(counts, index=level_index,
                            columns=frame.columns)

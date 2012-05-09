@@ -329,8 +329,8 @@ def _daily_finder(vmin, vmax, freq):
     dates_ = PeriodIndex(start=vmin, end=vmax, freq=freq)
     # Initialize the output
     info = np.zeros(span,
-                    dtype=[('val', int), ('maj', bool), ('min', bool),
-                           ('fmt', '|S20')])
+                    dtype=[('val', np.int64), ('maj', bool),
+                           ('min', bool), ('fmt', '|S20')])
     info['val'][:] = dates_.values
     info['fmt'][:] = ''
     info['maj'][[0, -1]] = True

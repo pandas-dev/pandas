@@ -1117,7 +1117,7 @@ cdef inline int m8_weekday(int64_t val):
     ts = convert_to_tsobject(val)
     return ts_dayofweek(ts)
 
-cdef int64_t DAY_US = 24 * 60 * 60 * 1000000
+cdef int64_t DAY_US = 86400000000LL
 
 def values_at_time(ndarray[int64_t] stamps, int64_t time):
     cdef:

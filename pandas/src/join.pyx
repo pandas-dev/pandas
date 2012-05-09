@@ -54,7 +54,8 @@ def left_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
                     Py_ssize_t max_groups, sort=True):
     cdef:
         Py_ssize_t i, j, k, count = 0
-        ndarray[int64_t] left_count, right_count, left_sorter, right_sorter
+        ndarray[int64_t] left_count, right_count
+        ndarray left_sorter, right_sorter, rev
         ndarray[int64_t] left_indexer, right_indexer
         int64_t lc, rc
 
@@ -105,7 +106,10 @@ def left_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
     right_indexer = _get_result_indexer(right_sorter, right_indexer)
 
     if not sort:
-        rev = np.empty(len(left), dtype=np.int64)
+        if left_sorter.dtype != np.int_:
+            left_sorter = left_sorter.astype(np.int_)
+
+        rev = np.empty(len(left), dtype=np.int_)
         rev.put(left_sorter, np.arange(len(left)))
 
         right_indexer = right_indexer.take(rev)
