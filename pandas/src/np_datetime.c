@@ -9,11 +9,11 @@
 #include <Python.h>
 #include <datetime.h>
 
-#define __MSVCRT_VERSION__ 0x0700    /* whatever above 0x0601 */
-#include <time.h>
-#define time_t __time64_t
-#define localtime _localtime64
-#define time _time64
+/* #define __MSVCRT_VERSION__ 0x0700    /\* whatever above 0x0601 *\/ */
+/* #include <time.h> */
+/* #define time_t __time64_t */
+/* #define localtime _localtime64 */
+/* #define time _time64 */
 
 #include <numpy/ndarrayobject.h>
 #include "np_datetime.h"
