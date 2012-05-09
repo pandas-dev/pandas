@@ -1,4 +1,7 @@
+import os
 from pandas.util.py3compat import StringIO
+from pandas.src.codegen_template import template as pyx_template
+from pandas.src.codegen_replace import replace
 
 header = """
 cimport numpy as np
@@ -867,6 +870,10 @@ def put2d_%(name)s_%(dest_type)s(ndarray[%(c_type)s, ndim=2, cast=True] values,
         out[i] = values[j, loc]
 """
 
+
+#-------------------------------------------------------------------------
+# Generators
+
 def generate_put_functions():
     function_list = [
         ('float64', 'float64_t', 'object'),
@@ -936,7 +943,9 @@ templates_2d = [take_2d_axis0_template,
 # templates_1d_datetime = [take_1d_template]
 # templates_2d_datetime = [take_2d_axis0_template,
 #                          take_2d_axis1_template]
-
+def codegen_pyx(funcs):
+    for func in funcs:
+        pyx_template(funcs[func])
 
 def generate_take_cython_file(path='generated.pyx'):
     with open(path, 'w') as f:
@@ -960,6 +969,7 @@ def generate_take_cython_file(path='generated.pyx'):
         print >> f, generate_ensure_dtypes()
 
         # print >> f, generate_put_functions()
+        codegen_pyx({'replace': replace})
 
 if __name__ == '__main__':
     generate_take_cython_file()

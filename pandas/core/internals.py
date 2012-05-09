@@ -208,16 +208,18 @@ class Block(object):
         return left_block, right_block
 
     def fillna(self, value, inplace=False):
-        new_values = self.values if inplace else self.values.copy()
-        mask = com.isnull(new_values.ravel())
-        new_values.flat[mask] = value
+        return self.replace(np.nan, value, inplace)
 
+    def replace(self, to_replace, value, inplace=False):
+        new_values = self.values if inplace else self.values.copy()
+        lib.replace(new_values, to_replace, value)
         if inplace:
             return self
         else:
             return make_block(new_values, self.items, self.ref_items)
 
-    def interpolate(self, method='pad', axis=0, inplace=False, limit=None):
+    def interpolate(self, method='pad', axis=0, inplace=False,
+                    limit=None, missing=None):
         values = self.values if inplace else self.values.copy()
 
         if values.ndim != 2:
@@ -225,10 +227,15 @@ class Block(object):
 
         transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
 
+        if missing is None:
+            mask = None
+        else: # todo create faster fill func without masking
+            mask = _mask_missing(values, missing)
+
         if method == 'pad':
-            com.pad_2d(transf(values), limit=limit)
+            com.pad_2d(transf(values), limit=limit, mask=mask)
         else:
-            com.backfill_2d(transf(values), limit=limit)
+            com.backfill_2d(transf(values), limit=limit, mask=mask)
 
         return make_block(values, self.items, self.ref_items)
 
@@ -238,6 +245,18 @@ class Block(object):
                                    None, axis=axis,
                                    fill_value=fill_value)
         return make_block(new_values, self.items, self.ref_items)
+
+def _mask_missing(array, missing_values):
+    missing_values = np.array(list(missing_values), dtype=object)
+    if com.isnull(missing_values).any():
+        mask = com.isnull(array)
+        missing_values = missing_values[com.notnull(missing_values)]
+    for v in missing_values:
+        if mask is None:
+            mask = array == missing_values
+        else:
+            mask |= array == missing_values
+    return mask
 
 #-------------------------------------------------------------------------------
 # Is this even possible?
@@ -949,10 +968,10 @@ class BlockManager(object):
         return self.rename_items(f)
 
     def fillna(self, value, inplace=False):
-        """
+        return self.replace(np.nan, value, inplace)
 
-        """
-        new_blocks = [b.fillna(value, inplace=inplace)
+    def replace(self, to_replace, value, inplace=False):
+        new_blocks = [b.replace(to_replace, value, inplace=inplace)
                       if b._can_hold_na else b
                       for b in self.blocks]
         if inplace:
