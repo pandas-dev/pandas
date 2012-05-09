@@ -693,7 +693,6 @@ def infer_freq(index, warn=True):
     freq : string or None
         None if no discernable frequency
     """
-
     inferer = _FrequencyInferer(index, warn=warn)
     return inferer.get_freq()
 
@@ -704,6 +703,11 @@ class _FrequencyInferer(object):
     """
 
     def __init__(self, index, warn=True):
+        from pandas.tseries.index import DatetimeIndex
+
+        if not isinstance(index, DatetimeIndex):
+            index = DatetimeIndex(index)
+
         self.index = index
         self.values = np.asarray(index).view('i8')
         self.warn = warn
