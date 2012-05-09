@@ -1169,7 +1169,7 @@ class MultiIndex(Index):
             return Index(levels[0], name=name).take(labels[0])
 
         levels = [_ensure_index(lev) for lev in levels]
-        labels = [np.asarray(labs, dtype=np.int64) for labs in labels]
+        labels = [np.asarray(labs, dtype=np.int_) for labs in labels]
 
         values = [ndtake(np.asarray(lev), lab)
                   for lev, lab in zip(levels, labels)]
