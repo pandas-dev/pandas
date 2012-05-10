@@ -1391,8 +1391,7 @@ ctypedef int (*accessor)(int64_t ordinal, int freq) except -1
 def get_period_field(int code, int64_t value, int freq,
                      int64_t mult):
     cdef accessor f = _get_accessor_func(code)
-    value = remove_mult(value, mult)
-    return f(value, freq)
+    return f(remove_mult(value, mult), freq)
 
 def get_period_field_arr(int code, ndarray[int64_t] arr,
                          int freq, int64_t mult):
@@ -1411,31 +1410,6 @@ def get_period_field_arr(int code, ndarray[int64_t] arr,
 
     return out
 
-
-cdef int apply_accessor(accessor func, int64_t value, int freq,
-                        int64_t mult) except -1:
-    value = remove_mult(value, mult)
-    return func(value, freq)
-
-# same but for arrays
-
-cdef ndarray[int64_t] apply_accessor_arr(accessor func, ndarray[int64_t] arr,
-                                         int freq, int64_t mult):
-    cdef:
-        Py_ssize_t i, sz
-        ndarray[int64_t] out
-        # accessor f
-
-    # f = _get_accessor_func(code)
-
-    sz = len(arr)
-    out = np.empty(sz, dtype=np.int64)
-
-    for i in range(sz):
-        out[i] = remove_mult(arr[i], mult)
-        out[i] = func(out[i], freq)
-
-    return out
 
 
 cdef accessor _get_accessor_func(int code):
@@ -1464,79 +1438,3 @@ cdef accessor _get_accessor_func(int code):
     else:
         raise ValueError('Unrecognized code: %s' % code)
 
-
-# def get_period_year_arr(ndarray[int64_t] arr, int freq, int64_t mult):
-#     return apply_accessor_arr(pyear, arr, freq, mult)
-
-# def get_period_qyear_arr(ndarray[int64_t] arr, int freq, int64_t mult):
-#     return apply_accessor_arr(pqyear, arr, freq, mult)
-
-# def get_period_quarter_arr(ndarray[int64_t] arr, int freq, int64_t mult):
-#     return apply_accessor_arr(pquarter, arr, freq, mult)
-
-# def get_period_month_arr(ndarray[int64_t] arr, int freq, int64_t mult):
-#     return apply_accessor_arr(pmonth, arr, freq, mult)
-
-# def get_period_day_arr(ndarray[int64_t] arr, int freq, int64_t mult):
-#     return apply_accessor_arr(pday, arr, freq, mult)
-
-# def get_period_hour_arr(ndarray[int64_t] arr, int freq, int64_t mult):
-#     return apply_accessor_arr(phour, arr, freq, mult)
-
-# def get_period_minute_arr(ndarray[int64_t] arr, int freq, int64_t mult):
-#     return apply_accessor_arr(pminute, arr, freq, mult)
-
-# def get_period_second_arr(ndarray[int64_t] arr, int freq, int64_t mult):
-#     return apply_accessor_arr(psecond, arr, freq, mult)
-
-# def get_period_dow_arr(ndarray[int64_t] arr, int freq, int64_t mult):
-#     return apply_accessor_arr(pday_of_week, arr, freq, mult)
-
-# def get_period_week_arr(ndarray[int64_t] arr, int freq, int64_t mult):
-#     return apply_accessor_arr(pweek, arr, freq, mult)
-
-# def get_period_weekday_arr(ndarray[int64_t] arr, int freq, int64_t mult):
-#     return apply_accessor_arr(pweekday, arr, freq, mult)
-
-# def get_period_doy_arr(ndarray[int64_t] arr, int freq, int64_t mult):
-#     return apply_accessor_arr(pday_of_year, arr, freq, mult)
-
-# def get_abs_time(freq, dailyDate, originalDate):
-#     return getAbsTime(freq, dailyDate, originalDate)
-
-
-# cpdef int get_period_year(int64_t value, int freq, int64_t mult) except -1:
-#     return apply_accessor(pyear, value, freq, mult)
-
-# cpdef int get_period_qyear(int64_t value, int freq, int64_t mult) except -1:
-#     return apply_accessor(pqyear, value, freq, mult)
-
-# cpdef int get_period_quarter(int64_t value, int freq, int64_t mult) except -1:
-#     return apply_accessor(pquarter, value, freq, mult)
-
-# cpdef int get_period_month(int64_t value, int freq, int64_t mult) except -1:
-#     return apply_accessor(pmonth, value, freq, mult)
-
-# cpdef int get_period_day(int64_t value, int freq, int64_t mult) except -1:
-#     return apply_accessor(pday, value, freq, mult)
-
-# cpdef int get_period_hour(int64_t value, int freq, int64_t mult) except -1:
-#     return apply_accessor(phour, value, freq, mult)
-
-# cpdef int get_period_minute(int64_t value, int freq, int64_t mult) except -1:
-#     return apply_accessor(pminute, value, freq, mult)
-
-# cpdef int get_period_second(int64_t value, int freq, int64_t mult) except -1:
-#     return apply_accessor(psecond, value, freq, mult)
-
-# cpdef int get_period_dow(int64_t value, int freq, int64_t mult) except -1:
-#     return apply_accessor(pday_of_week, value, freq, mult)
-
-# cpdef int get_period_week(int64_t value, int freq, int64_t mult) except -1:
-#     return apply_accessor(pweek, value, freq, mult)
-
-# cpdef int get_period_weekday(int64_t value, int freq, int64_t mult) except -1:
-#     return apply_accessor(pweekday, value, freq, mult)
-
-# cpdef int get_period_doy(int64_t value, int freq, int64_t mult) except -1:
-#     return apply_accessor(pday_of_year, value, freq, mult)

@@ -744,7 +744,7 @@ class PeriodIndex(Int64Index):
         """
         try:
             return super(PeriodIndex, self).get_value(series, key)
-        except KeyError:
+        except (KeyError, IndexError):
             try:
                 asdt, parsed, reso = parse_time_string(key, self.freq)
                 grp = _freq_mod._infer_period_group(reso)

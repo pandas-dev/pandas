@@ -1304,27 +1304,27 @@ class TestPeriodIndex(TestCase):
             result = stamps.to_period(freq)
             self.assert_(rng.equals(result))
 
-    def test_iindex_multiples(self):
-        ii = PeriodIndex(start='1/1/10', end='12/31/12', freq='2M')
-        self.assertEquals(ii[0], Period('1/1/10', '2M'))
-        self.assertEquals(ii[1], Period('3/1/10', '2M'))
+    # def test_iindex_multiples(self):
+    #     ii = PeriodIndex(start='1/1/10', end='12/31/12', freq='2M')
+    #     self.assertEquals(ii[0], Period('1/1/10', '2M'))
+    #     self.assertEquals(ii[1], Period('3/1/10', '2M'))
 
-        self.assertEquals(ii[0].asfreq('6M'), ii[2].asfreq('6M'))
-        self.assertEquals(ii[0].asfreq('A'), ii[2].asfreq('A'))
+    #     self.assertEquals(ii[0].asfreq('6M'), ii[2].asfreq('6M'))
+    #     self.assertEquals(ii[0].asfreq('A'), ii[2].asfreq('A'))
 
-        self.assertEquals(ii[0].asfreq('M', how='S'),
-                          Period('Jan 2010', '1M'))
-        self.assertEquals(ii[0].asfreq('M', how='E'),
-                          Period('Feb 2010', '1M'))
-        self.assertEquals(ii[1].asfreq('M', how='S'),
-                          Period('Mar 2010', '1M'))
+    #     self.assertEquals(ii[0].asfreq('M', how='S'),
+    #                       Period('Jan 2010', '1M'))
+    #     self.assertEquals(ii[0].asfreq('M', how='E'),
+    #                       Period('Feb 2010', '1M'))
+    #     self.assertEquals(ii[1].asfreq('M', how='S'),
+    #                       Period('Mar 2010', '1M'))
 
-        i = Period('1/1/2010 12:05:18', '5S')
-        self.assertEquals(i, Period('1/1/2010 12:05:15', '5S'))
+    #     i = Period('1/1/2010 12:05:18', '5S')
+    #     self.assertEquals(i, Period('1/1/2010 12:05:15', '5S'))
 
-        i = Period('1/1/2010 12:05:18', '5S')
-        self.assertEquals(i.asfreq('1S', how='E'),
-                          Period('1/1/2010 12:05:19', '1S'))
+    #     i = Period('1/1/2010 12:05:18', '5S')
+    #     self.assertEquals(i.asfreq('1S', how='E'),
+    #                       Period('1/1/2010 12:05:19', '1S'))
 
     def test_iteration(self):
         index = PeriodIndex(start='1/1/10', periods=4, freq='B')
