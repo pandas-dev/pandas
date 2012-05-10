@@ -534,7 +534,7 @@ static int mod_compat(int x, int m) {
 
 static void MtoD_ym(npy_int64 ordinal, int *y, int *m) {
     *y = ordinal / 12 + BASE_YEAR;
-    *m = mod_compat(ordinal + 1, 12);
+    *m = mod_compat(ordinal, 12) + 1;
 }
 
 
@@ -548,7 +548,7 @@ static npy_int64 asfreq_MtoD(npy_int64 ordinal, char relation, asfreq_info *af_i
         if ((absdate = absdate_from_ymd(y, m, 1)) == INT_ERR_CODE) return INT_ERR_CODE;
         return absdate - ORD_OFFSET;
     } else {
-        MtoD_ym(ordinal+1, &y, &m);
+        MtoD_ym(ordinal + 1, &y, &m);
         if ((absdate = absdate_from_ymd(y, m, 1)) == INT_ERR_CODE) return INT_ERR_CODE;
         return absdate - 1 - ORD_OFFSET;
     }
@@ -1394,6 +1394,7 @@ static int _ISOWeek(struct date_info *dinfo)
 int get_date_info(npy_int64 ordinal, int freq, struct date_info *dinfo)
 {
     npy_int64 absdate = get_python_ordinal(ordinal, freq);
+	/* printf("freq: %d, absdate: %d\n", freq, (int) absdate); */
     double abstime = getAbsTime(freq, absdate, ordinal);
 
     if(dInfoCalc_SetFromAbsDateTime(dinfo, absdate,
