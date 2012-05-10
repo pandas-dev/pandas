@@ -1327,6 +1327,7 @@ class TestNewOffsets(unittest.TestCase):
                           datetime(2011,11,12), freq=offset)
 
 
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)

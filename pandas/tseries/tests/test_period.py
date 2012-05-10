@@ -8,6 +8,7 @@ Parts derived from scikits.timeseries code, original authors:
 
 from unittest import TestCase
 from datetime import datetime, timedelta
+import unittest
 
 from numpy.ma.testutils import assert_equal
 
@@ -1478,8 +1479,34 @@ class TestMethods(TestCase):
         self.assertRaises(ValueError, dt1.__add__, dt2)
 
 
-###############################################################################
-#------------------------------------------------------------------------------
+class TestPeriodRepresentation(unittest.TestCase):
+    """
+    Wish to match NumPy units
+    """
+
+    def test_annual(self):
+        self._check_freq('A', 1970)
+
+    def test_monthly(self):
+        self._check_freq('M', '1970-01')
+
+    def test_daily(self):
+        self._check_freq('D', '1970-01-01')
+
+    def test_hourly(self):
+        self._check_freq('D', '1970-01-01')
+
+    def test_minutely(self):
+        self._check_freq('H', '1970-01-01 00:00:00')
+
+    def test_secondly(self):
+        self._check_freq('T', '1970-01-01 00:00:00')
+
+    def _check_freq(self, freq, base_date):
+        rng = PeriodIndex(start=base_date, periods=10, freq=freq)
+        exp = np.arange(10, dtype=np.int64)
+        self.assert_(np.array_equal(rng.values, exp))
+
 
 if __name__ == '__main__':
     import nose

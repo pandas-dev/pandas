@@ -18,6 +18,7 @@ except NameError:  # pragma: no cover
 from numpy.lib.format import read_array, write_array
 import numpy as np
 
+import pandas._algos as _algos
 import pandas._tseries as lib
 from pandas.util import py3compat
 import codecs
@@ -111,17 +112,17 @@ def _unpickle_array(bytes):
 def _take_1d_datetime(arr, indexer, out, fill_value=np.nan):
     view = arr.view(np.int64)
     outview = out.view(np.int64)
-    lib.take_1d_bool(view, indexer, outview, fill_value=fill_value)
+    _algos.take_1d_bool(view, indexer, outview, fill_value=fill_value)
 
 def _take_2d_axis0_datetime(arr, indexer, out, fill_value=np.nan):
     view = arr.view(np.int64)
     outview = out.view(np.int64)
-    lib.take_1d_bool(view, indexer, outview, fill_value=fill_value)
+    _algos.take_1d_bool(view, indexer, outview, fill_value=fill_value)
 
 def _take_2d_axis1_datetime(arr, indexer, out, fill_value=np.nan):
     view = arr.view(np.uint8)
     outview = out.view(np.uint8)
-    lib.take_1d_bool(view, indexer, outview, fill_value=fill_value)
+    _algos.take_1d_bool(view, indexer, outview, fill_value=fill_value)
 
 def _view_wrapper(f, wrap_dtype, na_override=None):
     def wrapper(arr, indexer, out, fill_value=np.nan):
@@ -134,42 +135,42 @@ def _view_wrapper(f, wrap_dtype, na_override=None):
 
 
 _take1d_dict = {
-    'float64' : lib.take_1d_float64,
-    'int32' : lib.take_1d_int32,
-    'int64' : lib.take_1d_int64,
-    'object' : lib.take_1d_object,
-    'bool' : _view_wrapper(lib.take_1d_bool, np.uint8),
-    'datetime64[us]' : _view_wrapper(lib.take_1d_int64, np.int64,
+    'float64' : _algos.take_1d_float64,
+    'int32' : _algos.take_1d_int32,
+    'int64' : _algos.take_1d_int64,
+    'object' : _algos.take_1d_object,
+    'bool' : _view_wrapper(_algos.take_1d_bool, np.uint8),
+    'datetime64[us]' : _view_wrapper(_algos.take_1d_int64, np.int64,
                                      na_override=lib.NaT),
 }
 
 _take2d_axis0_dict = {
-    'float64' : lib.take_2d_axis0_float64,
-    'int32' : lib.take_2d_axis0_int32,
-    'int64' : lib.take_2d_axis0_int64,
-    'object' : lib.take_2d_axis0_object,
-    'bool' : _view_wrapper(lib.take_2d_axis0_bool, np.uint8),
-    'datetime64[us]' : _view_wrapper(lib.take_2d_axis0_int64, np.int64,
+    'float64' : _algos.take_2d_axis0_float64,
+    'int32' : _algos.take_2d_axis0_int32,
+    'int64' : _algos.take_2d_axis0_int64,
+    'object' : _algos.take_2d_axis0_object,
+    'bool' : _view_wrapper(_algos.take_2d_axis0_bool, np.uint8),
+    'datetime64[us]' : _view_wrapper(_algos.take_2d_axis0_int64, np.int64,
                                      na_override=lib.NaT),
 }
 
 _take2d_axis1_dict = {
-    'float64' : lib.take_2d_axis1_float64,
-    'int32' : lib.take_2d_axis1_int32,
-    'int64' : lib.take_2d_axis1_int64,
-    'object' : lib.take_2d_axis1_object,
-    'bool' : _view_wrapper(lib.take_2d_axis1_bool, np.uint8),
-    'datetime64[us]' : _view_wrapper(lib.take_2d_axis1_int64, np.int64,
+    'float64' : _algos.take_2d_axis1_float64,
+    'int32' : _algos.take_2d_axis1_int32,
+    'int64' : _algos.take_2d_axis1_int64,
+    'object' : _algos.take_2d_axis1_object,
+    'bool' : _view_wrapper(_algos.take_2d_axis1_bool, np.uint8),
+    'datetime64[us]' : _view_wrapper(_algos.take_2d_axis1_int64, np.int64,
                                      na_override=lib.NaT),
 }
 
 _take2d_multi_dict = {
-    'float64' : lib.take_2d_multi_float64,
-    'int32' : lib.take_2d_multi_int32,
-    'int64' : lib.take_2d_multi_int64,
-    'object' : lib.take_2d_multi_object,
-    'bool' : _view_wrapper(lib.take_2d_multi_bool, np.uint8),
-    'datetime64[us]' : _view_wrapper(lib.take_2d_multi_int64, np.int64,
+    'float64' : _algos.take_2d_multi_float64,
+    'int32' : _algos.take_2d_multi_int32,
+    'int64' : _algos.take_2d_multi_int64,
+    'object' : _algos.take_2d_multi_object,
+    'bool' : _view_wrapper(_algos.take_2d_multi_bool, np.uint8),
+    'datetime64[us]' : _view_wrapper(_algos.take_2d_multi_int64, np.int64,
                                      na_override=lib.NaT),
 }
 
@@ -366,18 +367,18 @@ def _interp_wrapper(f, wrap_dtype, na_override=None):
         f(view, mask, limit=limit)
     return wrapper
 
-_pad_1d_datetime = _interp_wrapper(lib.pad_inplace_int64, np.int64)
-_pad_2d_datetime = _interp_wrapper(lib.pad_2d_inplace_int64, np.int64)
-_backfill_1d_datetime = _interp_wrapper(lib.backfill_inplace_int64, np.int64)
-_backfill_2d_datetime = _interp_wrapper(lib.backfill_2d_inplace_int64, np.int64)
+_pad_1d_datetime = _interp_wrapper(_algos.pad_inplace_int64, np.int64)
+_pad_2d_datetime = _interp_wrapper(_algos.pad_2d_inplace_int64, np.int64)
+_backfill_1d_datetime = _interp_wrapper(_algos.backfill_inplace_int64, np.int64)
+_backfill_2d_datetime = _interp_wrapper(_algos.backfill_2d_inplace_int64, np.int64)
 
 def pad_1d(values, limit=None):
     if is_float_dtype(values):
-        _method = lib.pad_inplace_float64
+        _method = _algos.pad_inplace_float64
     elif is_datetime64_dtype(values):
         _method = _pad_1d_datetime
     elif values.dtype == np.object_:
-        _method = lib.pad_inplace_object
+        _method = _algos.pad_inplace_object
     else: # pragma: no cover
         raise ValueError('Invalid dtype for padding')
 
@@ -385,11 +386,11 @@ def pad_1d(values, limit=None):
 
 def backfill_1d(values, limit=None):
     if is_float_dtype(values):
-        _method = lib.backfill_inplace_float64
+        _method = _algos.backfill_inplace_float64
     elif is_datetime64_dtype(values):
         _method = _backfill_1d_datetime
     elif values.dtype == np.object_:
-        _method = lib.backfill_inplace_object
+        _method = _algos.backfill_inplace_object
     else: # pragma: no cover
         raise ValueError('Invalid dtype for padding')
 
@@ -397,11 +398,11 @@ def backfill_1d(values, limit=None):
 
 def pad_2d(values, limit=None):
     if is_float_dtype(values):
-        _method = lib.pad_2d_inplace_float64
+        _method = _algos.pad_2d_inplace_float64
     elif is_datetime64_dtype(values):
         _method = _pad_2d_datetime
     elif values.dtype == np.object_:
-        _method = lib.pad_2d_inplace_object
+        _method = _algos.pad_2d_inplace_object
     else: # pragma: no cover
         raise ValueError('Invalid dtype for padding')
 
@@ -409,11 +410,11 @@ def pad_2d(values, limit=None):
 
 def backfill_2d(values, limit=None):
     if is_float_dtype(values):
-        _method = lib.backfill_2d_inplace_float64
+        _method = _algos.backfill_2d_inplace_float64
     elif is_datetime64_dtype(values):
         _method = _backfill_2d_datetime
     elif values.dtype == np.object_:
-        _method = lib.backfill_2d_inplace_object
+        _method = _algos.backfill_2d_inplace_object
     else: # pragma: no cover
         raise ValueError('Invalid dtype for padding')
 

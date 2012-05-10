@@ -25,8 +25,7 @@ def _period_field_accessor(name, alias=None):
         alias = name
     def f(self):
         base, mult = _gfc(self.freq)
-        g = getattr(lib, 'get_period_%s' % alias)
-        return g(self.ordinal, base, mult)
+        return lib.get_period_field(alias, self.ordinal, base, mult)
     f.__name__ = name
     return property(f)
 
@@ -35,8 +34,7 @@ def _field_accessor(name, alias=None):
         alias = name
     def f(self):
         base, mult = _gfc(self.freq)
-        g = getattr(lib, 'get_period_%s_arr' % alias)
-        return g(self.values, base, mult)
+        return lib.get_period_field_arr(alias, self.values, base, mult)
     f.__name__ = name
     return property(f)
 
@@ -99,8 +97,6 @@ class Period(object):
         elif ordinal is not None:
             if not com.is_integer(ordinal):
                 raise ValueError("Ordinal must be an integer")
-            if ordinal <= 0:
-                raise ValueError("Ordinal must be positive")
             if freq is None:
                 raise ValueError('Must supply freq for ordinal value')
             self.ordinal = ordinal
@@ -259,19 +255,19 @@ class Period(object):
         ts_freq = _period_rule_to_timestamp_rule(new_val.freq, how=how)
         return Timestamp(dt64, offset=to_offset(ts_freq))
 
-    year = _period_field_accessor('year')
-    month = _period_field_accessor('month')
-    day = _period_field_accessor('day')
-    hour = _period_field_accessor('hour')
-    minute = _period_field_accessor('minute')
-    second = _period_field_accessor('second')
-    weekofyear = _period_field_accessor('week')
+    year = _period_field_accessor('year', 0)
+    month = _period_field_accessor('month', 3)
+    day = _period_field_accessor('day', 4)
+    hour = _period_field_accessor('hour', 5)
+    minute = _period_field_accessor('minute', 6)
+    second = _period_field_accessor('second', 7)
+    weekofyear = _period_field_accessor('week', 8)
     week = weekofyear
-    dayofweek = _period_field_accessor('dayofweek', 'dow')
+    dayofweek = _period_field_accessor('dayofweek', 10)
     weekday = dayofweek
-    dayofyear = day_of_year = _period_field_accessor('dayofyear', 'doy')
-    quarter = _period_field_accessor('quarter')
-    qyear = _period_field_accessor('qyear')
+    dayofyear = day_of_year = _period_field_accessor('dayofyear', 9)
+    quarter = _period_field_accessor('quarter', 2)
+    qyear = _period_field_accessor('qyear', 1)
 
     @classmethod
     def now(cls, freq=None):
@@ -650,19 +646,19 @@ class PeriodIndex(Int64Index):
         result.freq = freq
         return result
 
-    year = _field_accessor('year')
-    month = _field_accessor('month')
-    day = _field_accessor('day')
-    hour = _field_accessor('hour')
-    minute = _field_accessor('minute')
-    second = _field_accessor('second')
-    weekofyear = _field_accessor('week')
+    year = _field_accessor('year', 0)
+    month = _field_accessor('month', 3)
+    day = _field_accessor('day', 4)
+    hour = _field_accessor('hour', 5)
+    minute = _field_accessor('minute', 6)
+    second = _field_accessor('second', 7)
+    weekofyear = _field_accessor('week', 8)
     week = weekofyear
-    dayofweek = _field_accessor('dayofweek', 'dow')
+    dayofweek = _field_accessor('dayofweek', 10)
     weekday = dayofweek
-    dayofyear = day_of_year = _field_accessor('dayofyear', 'doy')
-    quarter = _field_accessor('quarter')
-    qyear = _field_accessor('qyear')
+    dayofyear = day_of_year = _field_accessor('dayofyear', 9)
+    quarter = _field_accessor('quarter', 2)
+    qyear = _field_accessor('qyear', 1)
 
     # Try to run function on index first, and then on elements of index
     # Especially important for group-by functionality

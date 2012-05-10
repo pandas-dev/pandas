@@ -12,6 +12,7 @@ from pandas.util.decorators import cache_readonly
 from pandas.util import py3compat
 import pandas.core.common as com
 import pandas._tseries as lib
+import pandas._algos as _algos
 
 
 __all__ = ['Index']
@@ -56,11 +57,11 @@ class Index(np.ndarray):
     _join_precedence = 1
 
     # Cython methods
-    _groupby = lib.groupby_object
-    _arrmap = lib.arrmap_object
-    _left_indexer = lib.left_join_indexer_object
-    _inner_indexer = lib.inner_join_indexer_object
-    _outer_indexer = lib.outer_join_indexer_object
+    _groupby = _algos.groupby_object
+    _arrmap = _algos.arrmap_object
+    _left_indexer = _algos.left_join_indexer_object
+    _inner_indexer = _algos.inner_join_indexer_object
+    _outer_indexer = _algos.outer_join_indexer_object
 
     _box_scalars = False
 
@@ -1067,11 +1068,11 @@ class Index(np.ndarray):
 
 class Int64Index(Index):
 
-    _groupby = lib.groupby_int64
-    _arrmap = lib.arrmap_int64
-    _left_indexer = lib.left_join_indexer_int64
-    _inner_indexer = lib.inner_join_indexer_int64
-    _outer_indexer = lib.outer_join_indexer_int64
+    _groupby = _algos.groupby_int64
+    _arrmap = _algos.arrmap_int64
+    _left_indexer = _algos.left_join_indexer_int64
+    _inner_indexer = _algos.inner_join_indexer_int64
+    _outer_indexer = _algos.outer_join_indexer_int64
 
     _engine_type = lib.Int64Engine
 
@@ -1378,7 +1379,7 @@ class MultiIndex(Index):
                 return self.nlevels
             else:
                 return 0
-        
+
         int64_labels = [com._ensure_int64(lab) for lab in self.labels]
         for k in range(self.nlevels, 0, -1):
             if lib.is_lexsorted(int64_labels[:k]):

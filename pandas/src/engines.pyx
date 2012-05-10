@@ -12,7 +12,7 @@ cimport util
 
 import numpy as np
 
-# import _tseries
+import _algos
 
 # include "hashtable.pyx"
 
@@ -243,14 +243,14 @@ cdef class Int64Engine(IndexEngine):
         return Int64HashTable(n)
 
     def _call_monotonic(self, values):
-        return is_monotonic_int64(values)
+        return _algos.is_monotonic_int64(values)
 
     def get_pad_indexer(self, other, limit=None):
-        return pad_int64(self._get_index_values(), other,
+        return _algos.pad_int64(self._get_index_values(), other,
                                   limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
-        return backfill_int64(self._get_index_values(), other,
+        return _algos.backfill_int64(self._get_index_values(), other,
                                        limit=limit)
 
     cdef _get_bool_indexer(self, object val):
@@ -292,26 +292,26 @@ cdef class Float64Engine(IndexEngine):
         return Float64HashTable(n)
 
     def _call_monotonic(self, values):
-        return is_monotonic_float64(values)
+        return _algos.is_monotonic_float64(values)
 
     def get_pad_indexer(self, other, limit=None):
-        return pad_float64(self._get_index_values(), other,
+        return _algos.pad_float64(self._get_index_values(), other,
                                     limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
-        return backfill_float64(self._get_index_values(), other,
+        return _algos.backfill_float64(self._get_index_values(), other,
                                          limit=limit)
 
 _pad_functions = {
-    'object' : pad_object,
-    'int64' : pad_int64,
-    'float64' : pad_float64
+    'object' : _algos.pad_object,
+    'int64' : _algos.pad_int64,
+    'float64' : _algos.pad_float64
 }
 
 _backfill_functions = {
-    'object': backfill_object,
-    'int64': backfill_int64,
-    'float64': backfill_float64
+    'object': _algos.backfill_object,
+    'int64': _algos.backfill_int64,
+    'float64': _algos.backfill_float64
 }
 
 cdef class ObjectEngine(IndexEngine):
@@ -322,14 +322,14 @@ cdef class ObjectEngine(IndexEngine):
         return PyObjectHashTable(n)
 
     def _call_monotonic(self, values):
-        return is_monotonic_object(values)
+        return _algos.is_monotonic_object(values)
 
     def get_pad_indexer(self, other, limit=None):
-        return pad_object(self._get_index_values(), other,
+        return _algos.pad_object(self._get_index_values(), other,
                                    limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
-        return backfill_object(self._get_index_values(), other,
+        return _algos.backfill_object(self._get_index_values(), other,
                                         limit=limit)
 
 
@@ -353,7 +353,7 @@ cdef class DatetimeEngine(Int64Engine):
         return self.index_weakref().values.view('i8')
 
     def _call_monotonic(self, values):
-        return is_monotonic_int64(values)
+        return _algos.is_monotonic_int64(values)
 
     cpdef get_loc(self, object val):
         if is_definitely_invalid_key(val):
@@ -404,15 +404,15 @@ cdef class DatetimeEngine(Int64Engine):
         if other.dtype != 'M8':
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
-        return pad_int64(self._get_index_values(), other,
-                                  limit=limit)
+        return _algos.pad_int64(self._get_index_values(), other,
+                                limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
         if other.dtype != 'M8':
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
-        return backfill_int64(self._get_index_values(), other,
-                                       limit=limit)
+        return _algos.backfill_int64(self._get_index_values(), other,
+                                     limit=limit)
 
 
 # ctypedef fused idxvalue_t:

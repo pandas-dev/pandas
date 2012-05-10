@@ -335,7 +335,7 @@ else:
     cmdclass['sdist'] =  CheckSDist
 
 tseries_depends = ['reindex', 'groupby', 'skiplist', 'moments',
-                   'generated', 'reduce', 'stats', 'datetime',
+                   'reduce', 'stats', 'datetime',
                    'hashtable', 'inference', 'properties', 'join', 'engines']
 
 def srcpath(name=None, suffix='.pyx', subdir='src'):
@@ -347,6 +347,11 @@ if suffix == '.pyx':
     tseries_depends.append('pandas/src/util.pxd')
 else:
     tseries_depends = []
+
+algos_ext = Extension('pandas._algos',
+                      sources=[srcpath('generated', suffix=suffix)],
+                      include_dirs=[np.get_include()],
+                      )
 
 tseries_ext = Extension('pandas._tseries',
                         depends=tseries_depends + ['pandas/src/numpy_helper.h'],
@@ -374,7 +379,7 @@ cppsandbox_ext = Extension('pandas._cppsandbox',
                            sources=[srcpath('cppsandbox', suffix=suffix)],
                            include_dirs=[np.get_include()])
 
-extensions = [tseries_ext, sparse_ext]
+extensions = [algos_ext, tseries_ext, sparse_ext]
 
 if not ISRELEASED:
     extensions.extend([sandbox_ext])
