@@ -1294,43 +1294,6 @@ class TestLongPanel(unittest.TestCase):
         # corner case, empty
         df = pivot(np.array([]), np.array([]), np.array([]))
 
-    def test_replace(self):
-        N = 100
-        df1 = DataFrame(np.fabs(np.random.randn(len(N), 5)),
-                        index=tm.makeDataIndex(N))
-        df1.ix[:5, 0] = np.nan
-        df1[6:10, 1] = 'foo'
-        df1[20:30, 2] = 'bar'
-
-        df2 = DataFrame(np.fabs(np.random.randn(len(N), 5)),
-                       index=tm.makeDataIndex(N))
-        df2.ix[:5, 0] = 'bar'
-        df2[6:10, 1] = np.nan
-        df2[20:30, 2] = 'foo'
-
-        panel = Panel({'x' : df1, 'y' : df2})
-        rs = panel.replace([np.nan, 'foo', 'bar'], -1)
-        self.assert_((rs.ix[:, :5, 0] == -1).all())
-        self.assert_((rs.ix[:, 6:10, 1] == -1).all())
-        self.assert_((rs.ix[:, 20:30, 2] == -1).all())
-        self.assert_((panel >= 0).all())
-
-        rs = panel.replace({np.nan : -1, 'foo' : -2, 'bar' : -3})
-        self.assert_((rs.ix[0, :5, 0] == -1).all())
-        self.assert_((rs.ix[0, 6:10, 1] == -2).all())
-        self.assert_((rs.ix[0, 20:30, 2] == -3).all())
-
-        self.assert_((rs.ix[1, :5, 0] == -3).all())
-        self.assert_((rs.ix[1, 6:10, 1] == -1).all())
-        self.assert_((rs.ix[1, 20:30, 2] == -2).all())
-
-        self.assert_((panel >= 0).all())
-
-        panel.replace([np.nan, 'foo', 'bar'], -1, inplace=True)
-        self.assert_((panel.ix[:5, 0] == -1).all())
-        self.assert_((panel.ix[6:10, 1] == -1).all())
-        self.assert_((panel.ix[20:30, 2] == -1).all())
-
 def test_monotonic():
     pos = np.array([1, 2, 3, 5])
 

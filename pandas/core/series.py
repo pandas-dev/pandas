@@ -2069,10 +2069,9 @@ copy : boolean, default False
         -------
         filled : Series
         """
-        mask = isnull(self.values)
-
         if value is not None:
             result = self.copy() if not inplace else self
+            mask = isnull(self.values)
             np.putmask(result, mask, value)
         else:
             if method is None:  # pragma: no cover
@@ -2130,9 +2129,11 @@ copy : boolean, default False
         replaced : Series
         """
         result = self.copy() if not inplace else self
-        single_val = False
 
         def _rep_one(s, to_rep, v): # replace single value
+            if isinstance(to_rep, (list, np.ndarray)):
+                to_rep = lib.maybe_convert_objects(np.array(to_rep,
+                                                            dtype=object))
             lib.replace(s.values, to_rep, v)
             return s
 
@@ -2144,6 +2145,9 @@ copy : boolean, default False
             for d, sset in dd.iteritems(): # now replace by each dest
                 rs = _rep_one(rs, sset, d)
             return rs
+
+        if np.isscalar(to_replace):
+            to_replace = [to_replace]
 
         if isinstance(to_replace, dict):
             return _rep_dict(result, to_replace)

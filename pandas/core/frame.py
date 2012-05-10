@@ -2655,6 +2655,10 @@ class DataFrame(NDFrame):
             method = com._clean_fill_method(method)
 
             if isinstance(to_replace, dict):
+                if axis == 1:
+                    return self.T.replace(to_replace, method=method,
+                                          limit=limit).T
+
                 rs = self if inplace else self.copy()
                 for k, v in to_replace.iteritems():
                     if k in rs:
@@ -2670,6 +2674,13 @@ class DataFrame(NDFrame):
                                              missing=to_replace)
                     new_blocks.append(newb)
                 new_data = BlockManager(new_blocks, self._data.axes)
+
+                if inplace:
+                    self._data = new_data
+                    return self
+                else:
+                    return self._constructor(new_data)
+
         else:
             # Float type values
             if len(self.columns) == 0:

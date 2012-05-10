@@ -208,11 +208,41 @@ class Block(object):
         return left_block, right_block
 
     def fillna(self, value, inplace=False):
-        return self.replace(np.nan, value, inplace)
+        new_values = self.values if inplace else self.values.copy()
+
+        mask = com.isnull(new_values)
+        np.putmask(new_values, mask, value)
+
+        if inplace:
+            return self
+        else:
+            return make_block(new_values, self.items, self.ref_items)
+
+    def _can_hold_element(self, value):
+        raise NotImplementedError()
+
+    def _try_cast(self, value):
+        raise NotImplementedError()
 
     def replace(self, to_replace, value, inplace=False):
         new_values = self.values if inplace else self.values.copy()
-        lib.replace(new_values, to_replace, value)
+        if self._can_hold_element(value):
+            value = self._try_cast(value)
+
+        if np.isscalar(to_replace):
+            if self._can_hold_element(to_replace):
+                to_replace = self._try_cast(to_replace)
+                lib.replace(new_values, to_replace, value)
+        else:
+            try:
+                to_replace = np.array(to_replace, dtype=self.dtype)
+                lib.replace(new_values, to_replace, value)
+            except:
+                to_replace = np.array(to_replace, dtype=object)
+                for r in to_replace:
+                    if self._can_hold_element(r):
+                        r = self._try_cast(r)
+                        lib.replace(new_values, r, value)
         if inplace:
             return self
         else:
@@ -230,7 +260,7 @@ class Block(object):
         if missing is None:
             mask = None
         else: # todo create faster fill func without masking
-            mask = _mask_missing(values, missing)
+            mask = _mask_missing(transf(values), missing)
 
         if method == 'pad':
             com.pad_2d(transf(values), limit=limit, mask=mask)
@@ -247,10 +277,14 @@ class Block(object):
         return make_block(new_values, self.items, self.ref_items)
 
 def _mask_missing(array, missing_values):
-    missing_values = np.array(list(missing_values), dtype=object)
+    if np.isscalar(missing_values):
+        missing_values = [missing_values]
+
+    missing_values = np.array(missing_values, dtype=object)
     if com.isnull(missing_values).any():
         mask = com.isnull(array)
         missing_values = missing_values[com.notnull(missing_values)]
+
     for v in missing_values:
         if mask is None:
             mask = array == missing_values
@@ -263,6 +297,15 @@ def _mask_missing(array, missing_values):
 
 class FloatBlock(Block):
     _can_hold_na = True
+
+    def _can_hold_element(self, element):
+        return isinstance(element, (float, int))
+
+    def _try_cast(self, element):
+        try:
+            return float(element)
+        except:
+            return element
 
     def should_store(self, value):
         # when inserting a column should not coerce integers to floats
@@ -278,17 +321,41 @@ class ComplexBlock(Block):
 class IntBlock(Block):
     _can_hold_na = False
 
+    def _can_hold_element(self, element):
+        return isinstance(element, int)
+
+    def _try_cast(self, element):
+        try:
+            return int(element)
+        except:
+            return element
+
     def should_store(self, value):
         return issubclass(value.dtype.type, np.integer)
 
 class BoolBlock(Block):
     _can_hold_na = False
 
+    def _can_hold_element(self, element):
+        return isinstance(element, (int, bool))
+
+    def _try_cast(self, element):
+        try:
+            return bool(element)
+        except:
+            return element
+
     def should_store(self, value):
         return issubclass(value.dtype.type, np.bool_)
 
 class ObjectBlock(Block):
     _can_hold_na = True
+
+    def _can_hold_element(self, element):
+        return True
+
+    def _try_cast(self, element):
+        return element
 
     def should_store(self, value):
         return not issubclass(value.dtype.type,
@@ -968,7 +1035,12 @@ class BlockManager(object):
         return self.rename_items(f)
 
     def fillna(self, value, inplace=False):
-        return self.replace(np.nan, value, inplace)
+        new_blocks = [b.fillna(value, inplace=inplace)
+                      if b._can_hold_na else b
+                      for b in self.blocks]
+        if inplace:
+            return self
+        return BlockManager(new_blocks, self.axes)
 
     def replace(self, to_replace, value, inplace=False):
         new_blocks = [b.replace(to_replace, value, inplace=inplace)

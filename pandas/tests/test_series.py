@@ -15,6 +15,7 @@ from pandas import (Index, Series, TimeSeries, DataFrame, isnull, notnull,
                     bdate_range, date_range)
 from pandas.core.index import MultiIndex
 from pandas.tseries.index import Timestamp, DatetimeIndex
+import pandas._tseries as lib
 
 import pandas.core.datetools as datetools
 import pandas.core.nanops as nanops
@@ -2471,6 +2472,72 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         expected = x.fillna(value=0)
         assert_series_equal(y2, expected)
+
+    def test_replace(self):
+        N = 100
+        ser = Series(np.random.randn(N))
+        ser[0:4] = np.nan
+        ser[6:10] = 0
+
+        # replace list with a single value
+        rs = ser.replace([np.nan], -1, inplace=True)
+        exp = ser.fillna(-1)
+        assert_series_equal(rs, exp)
+
+        rs = ser.replace(0., np.nan)
+        ser[ser == 0.] = np.nan
+        assert_series_equal(rs, ser)
+
+        ser = Series(np.fabs(np.random.randn(N)), tm.makeDateIndex(N),
+                     dtype=object)
+        ser[:5] = np.nan
+        ser[6:10] = 'foo'
+        ser[20:30] = 'bar'
+
+        # replace list with a single value
+        rs = ser.replace([np.nan, 'foo', 'bar'], -1)
+
+        self.assert_((rs[:5] == -1).all())
+        self.assert_((rs[6:10] == -1).all())
+        self.assert_((rs[20:30] == -1).all())
+        self.assert_((isnull(ser[:5])).all())
+
+        # replace with different values
+        rs = ser.replace({np.nan : -1, 'foo' : -2, 'bar' : -3})
+
+        self.assert_((rs[:5] == -1).all())
+        self.assert_((rs[6:10] == -2).all())
+        self.assert_((rs[20:30] == -3).all())
+        self.assert_((isnull(ser[:5])).all())
+
+        # replace with different values with 2 lists
+        rs2 = ser.replace([np.nan, 'foo', 'bar'], [-1, -2, -3])
+        assert_series_equal(rs, rs2)
+
+        # replace with forward fill not considering np.nan missing
+        s2 = ser.copy()
+        s2[5] = np.nan
+        rs3 = s2.replace(['foo', 'bar'])
+        self.assert_(isnull(rs3[6]))
+
+        # replace with back fill considering np.nan as missing
+        rs4 = ser.replace([np.nan, 'foo', 'bar'], method='bfill')
+        assert_almost_equal(rs4[4], ser[5])
+
+        # replace inplace
+        ser.replace([np.nan, 'foo', 'bar'], -1, inplace=True)
+        self.assert_((ser[:5] == -1).all())
+        self.assert_((ser[6:10] == -1).all())
+        self.assert_((ser[20:30] == -1).all())
+
+        ser = Series([np.nan, 0, 'foo', 'bar', np.inf, None, lib.NaT])
+        assert_series_equal(ser.replace(np.nan, 0), ser.fillna(0))
+        filled = ser.copy()
+        filled[4] = 0
+        assert_series_equal(ser.replace(np.inf, 0), filled)
+
+        ser = Series(self.ts.index)
+        assert_series_equal(ser.replace(np.nan, 0), ser.fillna(0))
 
     def test_asfreq(self):
         ts = Series([0., 1., 2.], index=[datetime(2009, 10, 30),
