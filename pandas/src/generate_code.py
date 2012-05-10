@@ -1,5 +1,51 @@
 from pandas.util.py3compat import StringIO
 
+header = """
+cimport numpy as np
+cimport cython
+
+from numpy cimport *
+
+from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
+                      PyDict_Contains, PyDict_Keys,
+                      Py_INCREF, PyTuple_SET_ITEM,
+                      PyTuple_SetItem,
+                      PyTuple_New)
+from cpython cimport PyFloat_Check
+cimport cpython
+
+import numpy as np
+isnan = np.isnan
+cdef double NaN = <double> np.NaN
+cdef double nan = NaN
+
+from datetime import datetime as pydatetime
+
+# this is our datetime.pxd
+from datetime cimport *
+
+from khash cimport *
+
+cdef inline int int_max(int a, int b): return a if a >= b else b
+cdef inline int int_min(int a, int b): return a if a <= b else b
+
+ctypedef unsigned char UChar
+
+cimport util
+from util cimport is_array, _checknull, _checknan
+
+cdef extern from "math.h":
+    double sqrt(double x)
+    double fabs(double)
+
+# import datetime C API
+PyDateTime_IMPORT
+
+# initialize numpy
+import_array()
+import_ufunc()
+"""
+
 take_1d_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
 def take_1d_%(name)s(ndarray[%(c_type)s] values,
@@ -540,6 +586,8 @@ def arrmap_%(name)s(ndarray[%(c_type)s] index, object func):
 
     cdef ndarray[object] result = np.empty(length, dtype=np.object_)
 
+    from _tseries import maybe_convert_objects
+
     for i in range(length):
         result[i] = func(index[i])
 
@@ -851,6 +899,8 @@ templates_2d = [take_2d_axis0_template,
 
 def generate_take_cython_file(path='generated.pyx'):
     with open(path, 'w') as f:
+        print >> f, header
+
         for template in templates_1d:
             print >> f, generate_from_template(template)
 

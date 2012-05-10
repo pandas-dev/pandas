@@ -14,6 +14,7 @@ import pandas.tseries.tools as tools
 
 from pandas._tseries import Timestamp
 import pandas._tseries as lib
+import pandas._algos as _algos
 
 def _utc():
     import pytz
@@ -144,13 +145,13 @@ class DatetimeIndex(Int64Index):
     """
     _join_precedence = 10
 
-    _inner_indexer = _join_i8_wrapper(lib.inner_join_indexer_int64)
-    _outer_indexer = _join_i8_wrapper(lib.outer_join_indexer_int64)
-    _left_indexer  = _join_i8_wrapper(lib.left_join_indexer_int64,
+    _inner_indexer = _join_i8_wrapper(_algos.inner_join_indexer_int64)
+    _outer_indexer = _join_i8_wrapper(_algos.outer_join_indexer_int64)
+    _left_indexer  = _join_i8_wrapper(_algos.left_join_indexer_int64,
                                       with_indexers=False)
     _groupby = lib.groupby_arrays # _wrap_i8_function(lib.groupby_int64)
 
-    _arrmap = _wrap_dt_function(lib.arrmap_object)
+    _arrmap = _wrap_dt_function(_algos.arrmap_object)
 
     __eq__ = _dt_index_cmp('__eq__')
     __ne__ = _dt_index_cmp('__ne__')

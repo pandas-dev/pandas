@@ -1,3 +1,48 @@
+
+cimport numpy as np
+cimport cython
+
+from numpy cimport *
+
+from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
+                      PyDict_Contains, PyDict_Keys,
+                      Py_INCREF, PyTuple_SET_ITEM,
+                      PyTuple_SetItem,
+                      PyTuple_New)
+from cpython cimport PyFloat_Check
+cimport cpython
+
+import numpy as np
+isnan = np.isnan
+cdef double NaN = <double> np.NaN
+cdef double nan = NaN
+
+from datetime import datetime as pydatetime
+
+# this is our datetime.pxd
+from datetime cimport *
+
+from khash cimport *
+
+cdef inline int int_max(int a, int b): return a if a >= b else b
+cdef inline int int_min(int a, int b): return a if a <= b else b
+
+ctypedef unsigned char UChar
+
+cimport util
+from util cimport is_array, _checknull, _checknan
+
+cdef extern from "math.h":
+    double sqrt(double x)
+    double fabs(double)
+
+# import datetime C API
+PyDateTime_IMPORT
+
+# initialize numpy
+import_array()
+import_ufunc()
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef map_indices_float64(ndarray[float64_t] index):
@@ -1751,6 +1796,8 @@ def arrmap_float64(ndarray[float64_t] index, object func):
 
     cdef ndarray[object] result = np.empty(length, dtype=np.object_)
 
+    from _tseries import maybe_convert_objects
+
     for i in range(length):
         result[i] = func(index[i])
 
@@ -1763,6 +1810,8 @@ def arrmap_object(ndarray[object] index, object func):
     cdef Py_ssize_t i = 0
 
     cdef ndarray[object] result = np.empty(length, dtype=np.object_)
+
+    from _tseries import maybe_convert_objects
 
     for i in range(length):
         result[i] = func(index[i])
@@ -1777,6 +1826,8 @@ def arrmap_int32(ndarray[int32_t] index, object func):
 
     cdef ndarray[object] result = np.empty(length, dtype=np.object_)
 
+    from _tseries import maybe_convert_objects
+
     for i in range(length):
         result[i] = func(index[i])
 
@@ -1790,6 +1841,8 @@ def arrmap_int64(ndarray[int64_t] index, object func):
 
     cdef ndarray[object] result = np.empty(length, dtype=np.object_)
 
+    from _tseries import maybe_convert_objects
+
     for i in range(length):
         result[i] = func(index[i])
 
@@ -1802,6 +1855,8 @@ def arrmap_bool(ndarray[uint8_t] index, object func):
     cdef Py_ssize_t i = 0
 
     cdef ndarray[object] result = np.empty(length, dtype=np.object_)
+
+    from _tseries import maybe_convert_objects
 
     for i in range(length):
         result[i] = func(index[i])
