@@ -24,7 +24,7 @@ def replace(arr, old, new):
         return func(arr, old, new)
     else:
         for o in old:
-            arr = func(arr, o, new)
+            func(arr, o, new)
         return arr
 
 def replace_selector(arr):

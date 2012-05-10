@@ -1,11 +1,32 @@
 cimport numpy as np
 cimport cython
+import numpy as np
 
 from numpy cimport *
 from numpy cimport NPY_INT32 as NPY_int32
 from numpy cimport NPY_INT64 as NPY_int64
 from numpy cimport NPY_FLOAT32 as NPY_float32
 from numpy cimport NPY_FLOAT64 as NPY_float64
+
+int32 = np.dtype(np.int32)
+int64 = np.dtype(np.int64)
+float32 = np.dtype(np.float32)
+float64 = np.dtype(np.float64)
+
+cdef np.int32_t MINint32 = np.iinfo(np.int32).min
+cdef np.int64_t MINint64 = np.iinfo(np.int64).min
+cdef np.float32_t MINfloat32 = np.NINF
+cdef np.float64_t MINfloat64 = np.NINF
+
+cdef np.int32_t MAXint32 = np.iinfo(np.int32).max
+cdef np.int64_t MAXint64 = np.iinfo(np.int64).max
+cdef np.float32_t MAXfloat32 = np.inf
+cdef np.float64_t MAXfloat64 = np.inf
+
+
+cdef extern from "numpy/arrayobject.h":
+    cdef enum NPY_TYPES:
+        NPY_intp "NPY_INTP"
 
 from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
                       PyDict_Contains, PyDict_Keys,
@@ -15,10 +36,10 @@ from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
 from cpython cimport PyFloat_Check
 cimport cpython
 
-import numpy as np
 isnan = np.isnan
 cdef double NaN = <double> np.NaN
 cdef double nan = NaN
+cdef double NAN = nan
 
 from datetime import datetime as pydatetime
 
@@ -671,7 +692,7 @@ def value_count_int64(ndarray[int64_t] values):
 
 def array_isnull(arr):
     if np.isscalar(arr) or arr is None:
-        return checknull(arr)
+        return _checknull(arr)
     if arr.dtype.kind in ('O', 'S'):
         # Working around NumPy ticket 1542
         shape = arr.shape
@@ -685,19 +706,50 @@ def array_isnull(arr):
         result = -np.isfinite(arr)
     return result
 
+def typed_null_check(obj, arr):
+    if np.isscalar(arr) or arr is None:
+        return _checknull(obj)
+    if arr.dtype.kind in ('O', 'S'):
+        # Working around NumPy ticket 1542
+        if np.isscalar(obj):
+            result = isnullobj(np.array([obj], dtype=object))
+        else:
+            result = isnullobj(np.array(obj, dtype=object))
+    elif arr.dtype == np.datetime64:
+        # this is the NaT pattern
+        result = obj == NaT
+    else:
+        result = -np.isfinite(obj)
+    return result
+
 def slow_replace(arr, old, new):
     "Slow replace (inplace) used for unaccelerated ndim/dtype combinations."
-    if type(arr) is not np.ndarray:
+    if not isinstance(arr, np.ndarray):
         raise TypeError("`arr` must be a numpy array.")
-    if not issubclass(arr.dtype.type, np.inexact):
-        if int(old) != old:
-            raise ValueError("Cannot safely cast `old` to int.")
-        if int(new) != new:
-            raise ValueError("Cannot safely cast `new` to int.")
-    if array_isnull(old):
-        mask = array_isnull(arr)
+
+    if np.isscalar(old) or old is None:
+        if typed_null_check(old, arr):
+            mask = array_isnull(arr)
+        else:
+            if arr.dtype == np.datetime64:
+                mask = np.array(arr).view('i8') == old
+            else:
+                mask = arr == old
     else:
-        mask = arr == old
+        mask = None
+        old_null = typed_null_check(old, arr)
+        others = old[-old_null]
+        if len(others) > 1:
+            mask = ismember(arr, set(others))
+        elif len(others) == 1:
+            if arr.dtype == np.datetime64:
+                mask = np.array(arr).view('i8') == others[0]
+            else:
+                mask = arr == others[0]
+        if old_null.any():
+            null_mask = array_isnull(arr)
+            mask = null_mask if mask is None else (null_mask | mask)
+
     np.putmask(arr, mask, new)
 
 include "hashtable.pyx"
