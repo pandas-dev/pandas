@@ -2377,7 +2377,7 @@ copy : boolean, default False
 
         return Series(result, index=self.index, name=self.name)
 
-    def rename(self, mapper):
+    def rename(self, mapper, inplace=False):
         """
         Alter Series index using dict or function
 
@@ -2412,7 +2412,7 @@ copy : boolean, default False
         renamed : Series (new object)
         """
         mapper_f = _get_rename_function(mapper)
-        result = self.copy()
+        result = self if inplace else self.copy()
         result.index = [mapper_f(x) for x in self.index]
 
         return result

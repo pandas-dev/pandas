@@ -103,18 +103,22 @@ class Block(object):
         return _merge_blocks([self, other], self.ref_items)
 
     def reindex_axis(self, indexer, mask, needs_masking, axis=0,
-                     fill_value=np.nan):
+                     fill_value=np.nan, out=None):
         """
         Reindex using pre-computed indexer information
         """
         if self.values.size > 0:
             new_values = com.take_fast(self.values, indexer, mask,
                                        needs_masking, axis=axis,
-                                       fill_value=fill_value)
+                                       fill_value=fill_value,
+                                       out=out)
         else:
             shape = list(self.shape)
             shape[axis] = len(indexer)
-            new_values = np.empty(shape)
+            if out is not None and (out.shape == shape):
+                new_values = out
+            else:
+                new_values = np.empty(shape)
             new_values.fill(fill_value)
         return make_block(new_values, self.items, self.ref_items)
 
