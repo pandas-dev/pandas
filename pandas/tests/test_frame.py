@@ -4094,6 +4094,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         renamed['foo'] = 1.
         self.assert_((self.frame['C'] == 1.).all())
 
+    def test_rename_inplace(self):
+        self.frame.rename(columns={'C' : 'foo'})
+        self.assert_('C' in self.frame)
+        self.assert_('foo' not in self.frame)
+
+        self.frame.rename(columns={'C' : 'foo'}, inplace=True)
+        self.assert_('C' not in self.frame)
+        self.assert_('foo' in self.frame)
+
     #----------------------------------------------------------------------
     # Time series related
 
