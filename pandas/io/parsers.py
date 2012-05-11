@@ -1001,7 +1001,7 @@ class ExcelFile(object):
                    parse_dates=False, date_parser=None, na_values=None,
                    thousands=None, chunksize=None):
         from datetime import MINYEAR, time, datetime
-        from xlrd import xldate_as_tuple, XL_CELL_DATE
+        from xlrd import xldate_as_tuple, XL_CELL_DATE, XL_CELL_ERROR
 
         datemode = self.book.datemode
         sheet = self.book.sheet_by_name(sheetname)
@@ -1017,6 +1017,8 @@ class ExcelFile(object):
                         value = time(*dt[3:])
                     else:
                         value = datetime(*dt)
+				if typ == XL_CELL_ERROR:
+					value = np.nan
                 row.append(value)
             data.append(row)
 
