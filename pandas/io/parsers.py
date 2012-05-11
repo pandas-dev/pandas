@@ -1017,8 +1017,8 @@ class ExcelFile(object):
                         value = time(*dt[3:])
                     else:
                         value = datetime(*dt)
-				if typ == XL_CELL_ERROR:
-					value = np.nan
+                if typ == XL_CELL_ERROR:
+                    value = np.nan
                 row.append(value)
             data.append(row)
 
