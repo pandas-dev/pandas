@@ -106,8 +106,8 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
 
         df = read_table(StringIO(data), sep=',', header=None,
                         date_parser=func,
-                        date_conversion={'nominal' : [1, 2],
-                                         'actual' : [1,3]})
+                        parse_dates={'nominal' : [1, 2],
+                                     'actual' : [1,3]})
         self.assert_('nominal' in df)
         self.assert_('actual' in df)
         from datetime import datetime
@@ -123,7 +123,7 @@ KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
 """
         df = read_table(StringIO(data), sep=',', header=None,
-                        date_conversion=[[1, 2], [1,3]])
+                        parse_dates=[[1, 2], [1,3]])
         self.assert_('X.2_X.3' in df)
         self.assert_('X.2_X.4' in df)
         from datetime import datetime
