@@ -376,8 +376,8 @@ baz,7,8,9
         parsed = excel_data.parse('Sheet1')
         expected = DataFrame([['aaaa','bbbbb']], columns=['Test', 'Test1'])
         assert_frame_equal(parsed, expected)
-		
-	def test_excel_cell_error_na(self):
+        
+    def test_excel_cell_error_na(self):
         try:
             import xlrd
         except ImportError:
