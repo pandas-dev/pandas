@@ -12,6 +12,7 @@ from numpy import nan
 import numpy as np
 
 from pandas import DataFrame, Index, isnull
+import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                ExcelFile, TextParser)
 from pandas.util.testing import assert_almost_equal, assert_frame_equal, network
@@ -89,6 +90,45 @@ bar2,12,13,14,15
         df = read_fwf(StringIO(data), colspecs=[(0,3),(4,9),(9,25)],
                       comment='#')
         assert_almost_equal(df.values, expected)
+
+    def test_multiple_date_col(self):
+        # Can use multiple date parsers
+        data = """\
+KORD,19990127, 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
+KORD,19990127, 20:00:00, 19:56:00, 0.0100, 2.2100, 7.2000, 0.0000, 260.0000
+KORD,19990127, 21:00:00, 20:56:00, -0.5900, 2.2100, 5.7000, 0.0000, 280.0000
+KORD,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
+KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
+KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
+"""
+        def func(*date_cols):
+            return lib.try_parse_dates(parsers._concat_date_cols(date_cols))
+
+        df = read_table(StringIO(data), sep=',', header=None,
+                        date_parser=func,
+                        date_conversion={'nominal' : [1, 2],
+                                         'actual' : [1,3]})
+        self.assert_('nominal' in df)
+        self.assert_('actual' in df)
+        from datetime import datetime
+        d = datetime(1999, 1, 27, 19, 0)
+        self.assert_(df.ix[0, 'nominal'] == d)
+
+        data = """\
+KORD,19990127, 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
+KORD,19990127, 20:00:00, 19:56:00, 0.0100, 2.2100, 7.2000, 0.0000, 260.0000
+KORD,19990127, 21:00:00, 20:56:00, -0.5900, 2.2100, 5.7000, 0.0000, 280.0000
+KORD,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
+KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
+KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
+"""
+        df = read_table(StringIO(data), sep=',', header=None,
+                        date_conversion=[[1, 2], [1,3]])
+        self.assert_('X.2_X.3' in df)
+        self.assert_('X.2_X.4' in df)
+        from datetime import datetime
+        d = datetime(1999, 1, 27, 19, 0)
+        self.assert_(df.ix[0, 'X.2_X.3'] == d)
 
     def test_malformed(self):
         # all
