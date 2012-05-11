@@ -6,6 +6,7 @@ from pandas import Index, isnull
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as common
 import pandas._tseries as lib
+import pandas._algos as algos
 from datetime import datetime
 
 class TestTseriesUtil(unittest.TestCase):
@@ -29,7 +30,7 @@ class TestTseriesUtil(unittest.TestCase):
         old = Index([1, 5, 10])
         new = Index(range(12))
 
-        filler = lib.backfill_int64(old, new)
+        filler = algos.backfill_int64(old, new)
 
         expect_filler = [0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, -1]
         self.assert_(np.array_equal(filler, expect_filler))
@@ -37,7 +38,7 @@ class TestTseriesUtil(unittest.TestCase):
         # corner case
         old = Index([1, 4])
         new = Index(range(5, 10))
-        filler = lib.backfill_int64(old, new)
+        filler = algos.backfill_int64(old, new)
 
         expect_filler = [-1, -1, -1, -1, -1]
         self.assert_(np.array_equal(filler, expect_filler))
@@ -46,7 +47,7 @@ class TestTseriesUtil(unittest.TestCase):
         old = Index([1, 5, 10])
         new = Index(range(12))
 
-        filler = lib.pad_int64(old, new)
+        filler = algos.pad_int64(old, new)
 
         expect_filler = [-1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2]
         self.assert_(np.array_equal(filler, expect_filler))
@@ -54,7 +55,7 @@ class TestTseriesUtil(unittest.TestCase):
         # corner case
         old = Index([5, 10])
         new = Index(range(5))
-        filler = lib.pad_int64(old, new)
+        filler = algos.pad_int64(old, new)
         expect_filler = [-1, -1, -1, -1, -1]
         self.assert_(np.array_equal(filler, expect_filler))
 
@@ -62,7 +63,7 @@ def test_left_join_indexer():
     a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
     b = np.array([2, 2, 3, 4, 4], dtype=np.int64)
 
-    result = lib.left_join_indexer_int64(b, a)
+    result = algos.left_join_indexer_int64(b, a)
     expected = np.array([1, 1, 2, 3, 3], dtype=np.int64)
     assert(np.array_equal(result, expected))
 
@@ -91,7 +92,7 @@ def test_inner_join_indexer():
     a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
     b = np.array([0, 3, 5, 7, 9], dtype=np.int64)
 
-    index, ares, bres = lib.inner_join_indexer_int64(a, b)
+    index, ares, bres = algos.inner_join_indexer_int64(a, b)
 
     index_exp = np.array([3, 5], dtype=np.int64)
     assert_almost_equal(index, index_exp)
@@ -105,7 +106,7 @@ def test_outer_join_indexer():
     a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
     b = np.array([0, 3, 5, 7, 9], dtype=np.int64)
 
-    index, ares, bres = lib.outer_join_indexer_int64(a, b)
+    index, ares, bres = algos.outer_join_indexer_int64(a, b)
 
     index_exp = np.array([0, 1, 2, 3, 4, 5, 7, 9], dtype=np.int64)
     assert_almost_equal(index, index_exp)
@@ -233,25 +234,25 @@ def test_pad_backfill_object_segfault():
     old = np.array([], dtype='O')
     new = np.array([datetime(2010, 12, 31)], dtype='O')
 
-    result = lib.pad_object(old, new)
+    result = algos.pad_object(old, new)
     expected = np.array([-1], dtype=np.int64)
     assert(np.array_equal(result, expected))
 
-    result = lib.pad_object(new, old)
+    result = algos.pad_object(new, old)
     expected = np.array([], dtype=np.int64)
     assert(np.array_equal(result, expected))
 
-    result = lib.backfill_object(old, new)
+    result = algos.backfill_object(old, new)
     expected = np.array([-1], dtype=np.int64)
     assert(np.array_equal(result, expected))
 
-    result = lib.backfill_object(new, old)
+    result = algos.backfill_object(new, old)
     expected = np.array([], dtype=np.int64)
     assert(np.array_equal(result, expected))
 
 def test_arrmap():
     values = np.array(['foo', 'foo', 'bar', 'bar', 'baz', 'qux'], dtype='O')
-    result = lib.arrmap_object(values, lambda x: x in ['foo', 'bar'])
+    result = algos.arrmap_object(values, lambda x: x in ['foo', 'bar'])
     assert(result.dtype == np.bool_)
 
 def test_series_grouper():
