@@ -145,7 +145,7 @@ class TestPeriodProperties(TestCase):
         self.assertEqual(i1, expected)
 
         i1 = Period(ordinal=200701, freq='M')
-        self.assertEqual(i1.year, 16726)
+        self.assertEqual(i1.year, 18695)
 
         self.assertRaises(ValueError, Period, ordinal=200701)
 
@@ -1494,13 +1494,13 @@ class TestPeriodRepresentation(unittest.TestCase):
         self._check_freq('D', '1970-01-01')
 
     def test_hourly(self):
-        self._check_freq('D', '1970-01-01')
+        self._check_freq('H', '1970-01-01')
 
     def test_minutely(self):
-        self._check_freq('H', '1970-01-01 00:00:00')
+        self._check_freq('T', '1970-01-01')
 
     def test_secondly(self):
-        self._check_freq('T', '1970-01-01 00:00:00')
+        self._check_freq('S', '1970-01-01')
 
     def _check_freq(self, freq, base_date):
         rng = PeriodIndex(start=base_date, periods=10, freq=freq)

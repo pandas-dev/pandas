@@ -10,7 +10,6 @@ from pandas.tseries.tools import parse_time_string
 import pandas.tseries.frequencies as _freq_mod
 
 import pandas.core.common as com
-from pandas.util import py3compat
 
 from pandas._tseries import Timestamp
 import pandas._tseries as lib
@@ -470,6 +469,30 @@ def dt64arr_to_periodarr(data, freq):
 
 # --- Period index sketch
 
+
+def _period_index_cmp(opname):
+    """
+    Wrap comparison operations to convert datetime-like to datetime64
+    """
+    def wrapper(self, other):
+        if isinstance(other, Period):
+            func = getattr(self.values, opname)
+            assert(other.freq == self.freq)
+            result = func(other.ordinal)
+        elif isinstance(other, PeriodIndex):
+            assert(other.freq == self.freq)
+            return getattr(self.values, opname)(other.values)
+        else:
+            other = Period(other, freq=self.freq)
+            func = getattr(self.values, opname)
+            result = func(other.ordinal)
+        try:
+            return result.view(np.ndarray)
+        except:
+            return result
+    return wrapper
+
+
 class PeriodIndex(Int64Index):
     """
     Immutable ndarray holding ordinal values indicating regular periods in
@@ -506,6 +529,13 @@ class PeriodIndex(Int64Index):
         period on or just past end argument
     """
     _box_scalars = True
+
+    __eq__ = _period_index_cmp('__eq__')
+    __ne__ = _period_index_cmp('__ne__')
+    __lt__ = _period_index_cmp('__lt__')
+    __gt__ = _period_index_cmp('__gt__')
+    __le__ = _period_index_cmp('__le__')
+    __ge__ = _period_index_cmp('__ge__')
 
     def __new__(cls, data=None,
                 freq=None, start=None, end=None, periods=None,

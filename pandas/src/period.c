@@ -1024,14 +1024,14 @@ npy_int64 get_period_ordinal(int year, int month, int day,
 
     if (freq == FR_SEC) {
         absdays = absdate_from_ymd(year, month, day);
-        delta = (absdays - ORD_OFFSET - HIGHFREQ_ORIG);
-        return (npy_int64)(delta*86400 + hour*3600 + minute*60 + second + 1);
+        delta = (absdays - ORD_OFFSET + HIGHFREQ_ORIG);
+        return (npy_int64)(delta*86400 + hour*3600 + minute*60 + second);
     }
 
     if (freq == FR_MIN) {
         absdays = absdate_from_ymd(year, month, day);
-        delta = (absdays - ORD_OFFSET - HIGHFREQ_ORIG);
-        return (npy_int64)(delta*1440 + hour*60 + minute + 1);
+        delta = (absdays - ORD_OFFSET + HIGHFREQ_ORIG);
+        return (npy_int64)(delta*1440 + hour*60 + minute);
     }
 
     if (freq == FR_HR) {
@@ -1039,8 +1039,8 @@ npy_int64 get_period_ordinal(int year, int month, int day,
         {
             goto onError;
         }
-        delta = (absdays - ORD_OFFSET - HIGHFREQ_ORIG);
-        return (npy_int64)(delta*24 + hour + 1);
+        delta = (absdays - ORD_OFFSET + HIGHFREQ_ORIG);
+        return (npy_int64)(delta*24 + hour);
     }
 
     if (freq == FR_DAY)
@@ -1347,7 +1347,7 @@ static int _quarter_year(npy_int64 ordinal, int freq, int *year, int *quarter) {
     asfreq_info af_info;
     int qtr_freq;
 
-    ordinal = get_python_ordinal(ordinal, freq);
+    ordinal = get_python_ordinal(ordinal, freq) - ORD_OFFSET;
 
     if (get_freq_group(freq) == FR_QTR)
         qtr_freq = freq;
