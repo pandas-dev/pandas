@@ -367,13 +367,13 @@ static npy_int64 asfreq_DtoB_forConvert(npy_int64 ordinal, char relation, asfreq
 // needed for getDateInfo function
 static npy_int64 asfreq_DtoD(npy_int64 ordinal, char relation, asfreq_info *af_info) { return ordinal; }
 
-static npy_int64 asfreq_DtoHIGHFREQ(npy_int64 ordinal, char relation, npy_int64 periodsPerDay) {
+static npy_int64 asfreq_DtoHIGHFREQ(npy_int64 ordinal, char relation, npy_int64 per_day) {
     if (ordinal >= HIGHFREQ_ORIG) {
         if (relation == 'S') {
-		  return (ordinal - HIGHFREQ_ORIG)*(periodsPerDay) + 1;
+		  return (ordinal - HIGHFREQ_ORIG) * per_day;
 		}
         else {
-		  return (ordinal - HIGHFREQ_ORIG + 1)*(periodsPerDay);
+		  return (ordinal - HIGHFREQ_ORIG + 1) * per_day - 1;
 		}
     } else { return INT_ERR_CODE; }
 }
@@ -388,7 +388,7 @@ static npy_int64 asfreq_DtoS(npy_int64 ordinal, char relation, asfreq_info *af_i
 //************ FROM SECONDLY ***************
 
 static npy_int64 asfreq_StoD(npy_int64 ordinal, char relation, asfreq_info *af_info)
-    { return (ordinal - 1)/(60*60*24) + HIGHFREQ_ORIG; }
+    { return (ordinal)/(60*60*24) + HIGHFREQ_ORIG; }
 
 static npy_int64 asfreq_StoA(npy_int64 ordinal, char relation, asfreq_info *af_info)
     { return asfreq_DtoA(asfreq_StoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
@@ -410,7 +410,7 @@ static npy_int64 asfreq_StoH(npy_int64 ordinal, char relation, asfreq_info *af_i
 //************ FROM MINUTELY ***************
 
 static npy_int64 asfreq_TtoD(npy_int64 ordinal, char relation, asfreq_info *af_info)
-    { return (ordinal - 1)/(60*24) + HIGHFREQ_ORIG; }
+    { return (ordinal)/(60*24) + HIGHFREQ_ORIG; }
 
 static npy_int64 asfreq_TtoA(npy_int64 ordinal, char relation, asfreq_info *af_info)
     { return asfreq_DtoA(asfreq_TtoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
@@ -435,7 +435,7 @@ static npy_int64 asfreq_TtoS(npy_int64 ordinal, char relation, asfreq_info *af_i
 //************ FROM HOURLY ***************
 
 static npy_int64 asfreq_HtoD(npy_int64 ordinal, char relation, asfreq_info *af_info)
-    { return (ordinal - 1)/24 + HIGHFREQ_ORIG; }
+    { return ordinal / 24 + HIGHFREQ_ORIG; }
 static npy_int64 asfreq_HtoA(npy_int64 ordinal, char relation, asfreq_info *af_info)
     { return asfreq_DtoA(asfreq_HtoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
 static npy_int64 asfreq_HtoQ(npy_int64 ordinal, char relation, asfreq_info *af_info)
@@ -907,28 +907,27 @@ freq_conv_func get_asfreq_func(int fromFreq, int toFreq, int forConvert)
     }
 }
 
-double getAbsTime(int freq, npy_int64 dailyDate, npy_int64 originalDate) {
+double get_abs_time(int freq, npy_int64 daily_ord, npy_int64 ordinal) {
 
-    npy_int64 startOfDay, periodsPerDay;
+    npy_int64 start_ord, per_day;
 
     switch(freq)
     {
         case FR_HR:
-            periodsPerDay = 24;
+            per_day = 24;
             break;
         case FR_MIN:
-            periodsPerDay = 24*60;
+            per_day = 24*60;
             break;
         case FR_SEC:
-            periodsPerDay = 24*60*60;
+            per_day = 24*60*60;
             break;
         default:
 		  return 0; // 24*60*60 - 1;
     }
 
-    startOfDay = asfreq_DtoHIGHFREQ(dailyDate- ORD_OFFSET, 'S',
-									periodsPerDay);
-    return (24*60*60)*((double)(originalDate - startOfDay))/((double)periodsPerDay);
+    start_ord = asfreq_DtoHIGHFREQ(daily_ord, 'S', per_day);
+    return (24*60*60)*((double) (ordinal - start_ord)) / ((double) per_day);
 }
 
 /* Sets the time part of the DateTime object. */
@@ -971,15 +970,10 @@ int dInfoCalc_SetFromAbsDateTime(struct date_info *dinfo,
              abstime);
 
     /* Calculate the date */
-    if (dInfoCalc_SetFromAbsDate(dinfo,
-                  absdate,
-                  calendar))
-    goto onError;
+    if (dInfoCalc_SetFromAbsDate(dinfo, absdate, calendar)) goto onError;
 
     /* Calculate the time */
-    if (dInfoCalc_SetFromAbsTime(dinfo,
-                  abstime))
-    goto onError;
+    if (dInfoCalc_SetFromAbsTime(dinfo, abstime)) goto onError;
 
     return 0;
  onError:
@@ -1193,9 +1187,9 @@ char *skts_strftime(npy_int64 ordinal, int freq, PyObject *args)
     get_asfreq_info(freq, FR_DAY, &af_info);
 
     daily_ord = toDaily(ordinal, 'E', &af_info);
-    abstime = getAbsTime(freq, daily_ord + ORD_OFFSET, ordinal);
+    abstime = get_abs_time(freq, daily_ord, ordinal);
 
-	// printf("daily_ord: %d\n", (int) daily_ord);
+	printf("daily_ord: %d, abstime: %f \n", (int) daily_ord, abstime);
 
     if(dInfoCalc_SetFromAbsDateTime(&tempDate, daily_ord + ORD_OFFSET, abstime,
                                     GREGORIAN_CALENDAR)) return NULL;
@@ -1395,7 +1389,7 @@ int get_date_info(npy_int64 ordinal, int freq, struct date_info *dinfo)
 {
     npy_int64 absdate = get_python_ordinal(ordinal, freq);
 	/* printf("freq: %d, absdate: %d\n", freq, (int) absdate); */
-    double abstime = getAbsTime(freq, absdate, ordinal);
+    double abstime = get_abs_time(freq, absdate - ORD_OFFSET, ordinal);
 
     if(dInfoCalc_SetFromAbsDateTime(dinfo, absdate,
 									abstime, GREGORIAN_CALENDAR))

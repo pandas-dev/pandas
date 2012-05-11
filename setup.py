@@ -354,15 +354,24 @@ algos_ext = Extension('pandas._algos',
                       )
 
 tseries_ext = Extension('pandas._tseries',
-                        depends=tseries_depends + ['pandas/src/numpy_helper.h'],
-                        sources=[srcpath('tseries', suffix=suffix),
-                                 'pandas/src/period.c',
-                                 'pandas/src/np_datetime.c',
-                                 'pandas/src/np_datetime_strings.c'],
-                        include_dirs=[np.get_include()],
-                        # pyrex_gdb=True,
-                        # extra_compile_args=['-Wconversion']
-                        )
+                      depends=tseries_depends + ['pandas/src/numpy_helper.h'],
+                      sources=[srcpath('tseries', suffix=suffix),
+                               'pandas/src/period.c',
+                               'pandas/src/np_datetime.c',
+                               'pandas/src/np_datetime_strings.c'],
+                      include_dirs=[np.get_include()],
+                      # pyrex_gdb=True,
+                      # extra_compile_args=['-Wconversion']
+                      )
+
+# tseries_ext = Extension('pandas._tseries',
+#                         depends=tseries_depends + ['pandas/src/numpy_helper.h'],
+#                         sources=[srcpath('datetime', suffix=suffix)],
+#                         include_dirs=[np.get_include()],
+#                         # pyrex_gdb=True,
+#                         # extra_compile_args=['-Wconversion']
+#                         )
+
 
 sparse_ext = Extension('pandas._sparse',
                        sources=[srcpath('sparse', suffix=suffix)],
