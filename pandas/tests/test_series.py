@@ -2375,6 +2375,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         renamed = s.rename({'b' : 'foo', 'd' : 'bar'})
         self.assert_(np.array_equal(renamed.index, ['a', 'foo', 'c', 'bar']))
 
+    def test_rename_inplace(self):
+        renamer = lambda x: x.strftime('%Y%m%d')
+        expected = renamer(self.ts.index[0])
+        self.ts.rename(renamer, inplace=True)
+        self.assertEqual(self.ts.index[0], expected)
+
     def test_preserveRefs(self):
         seq = self.ts[[5,10,15]]
         seq[1] = np.NaN
