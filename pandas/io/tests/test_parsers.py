@@ -376,6 +376,17 @@ baz,7,8,9
         parsed = excel_data.parse('Sheet1')
         expected = DataFrame([['aaaa','bbbbb']], columns=['Test', 'Test1'])
         assert_frame_equal(parsed, expected)
+		
+	def test_excel_cell_error_na(self):
+        try:
+            import xlrd
+        except ImportError:
+            raise nose.SkipTest('xlrd not installed, skipping')
+
+        excel_data = ExcelFile(os.path.join(self.dirpath, 'test3.xls'))
+        parsed = excel_data.parse('Sheet1')
+        expected = DataFrame([[np.nan]], columns=['Test'])
+        assert_frame_equal(parsed, expected)
 
     def test_excel_table(self):
         try:
