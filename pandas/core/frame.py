@@ -2610,7 +2610,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Rename
 
-    def rename(self, index=None, columns=None, copy=True):
+    def rename(self, index=None, columns=None, copy=True, inplace=False):
         """
         Alter index and / or columns using input function or
         functions. Function / dict values must be unique (1-to-1). Labels not
@@ -2624,6 +2624,9 @@ class DataFrame(NDFrame):
             Transformation to apply to column values
         copy : boolean, default True
             Also copy underlying data
+        inplace : boolean, default False
+            Whether to return a new DataFrame. If True then value of copy is
+            ignored.
 
         See also
         --------
@@ -2643,7 +2646,7 @@ class DataFrame(NDFrame):
 
         self._consolidate_inplace()
 
-        result = self.copy(deep=copy)
+        result = self if inplace else self.copy(deep=copy)
 
         if index is not None:
             result._rename_index_inplace(index_f)
