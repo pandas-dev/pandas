@@ -1601,6 +1601,73 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         frame = DataFrame(ma.masked_all((3, 0)))
         self.assert_(len(frame.columns) == 0)
 
+    def test_constructor_maskedarray_nonfloat(self):
+        # masked int promoted to float
+        mat = ma.masked_all((2, 3), dtype=int)
+        # 2-D input
+        frame = DataFrame(mat, columns=['A', 'B', 'C'], index=[1, 2])
+
+        self.assertEqual(len(frame.index), 2)
+        self.assertEqual(len(frame.columns), 3)
+        self.assertTrue(np.all(~np.asarray(frame == frame)))
+
+        # cast type
+        frame = DataFrame(mat, columns=['A', 'B', 'C'],
+                          index=[1, 2], dtype=float)
+        self.assert_(frame.values.dtype == np.float64)
+
+        # Check non-masked values
+        mat2 = ma.copy(mat)
+        mat2[0,0] = 1
+        mat2[1,2] = 2
+        frame = DataFrame(mat2, columns=['A', 'B', 'C'], index=[1, 2])
+        self.assertEqual(1, frame['A'][1])
+        self.assertEqual(2, frame['C'][2])
+
+        # masked np.datetime64 stays (use lib.NaT as null)
+        mat = ma.masked_all((2, 3), dtype=np.datetime64)
+        # 2-D input
+        frame = DataFrame(mat, columns=['A', 'B', 'C'], index=[1, 2])
+
+        self.assertEqual(len(frame.index), 2)
+        self.assertEqual(len(frame.columns), 3)
+        self.assertTrue(isnull(frame).values.all())
+
+        # cast type
+        frame = DataFrame(mat, columns=['A', 'B', 'C'],
+                           index=[1, 2], dtype=int)
+        self.assert_(frame.values.dtype == int)
+
+        # Check non-masked values
+        mat2 = ma.copy(mat)
+        mat2[0,0] = 1
+        mat2[1,2] = 2
+        frame = DataFrame(mat2, columns=['A', 'B', 'C'], index=[1, 2])
+        self.assertEqual(1, frame['A'].view('i8')[1])
+        self.assertEqual(2, frame['C'].view('i8')[2])
+
+        # masked bool promoted to object
+        mat = ma.masked_all((2, 3), dtype=bool)
+        # 2-D input
+        frame = DataFrame(mat, columns=['A', 'B', 'C'], index=[1, 2])
+
+        self.assertEqual(len(frame.index), 2)
+        self.assertEqual(len(frame.columns), 3)
+        self.assertTrue(np.all(~np.asarray(frame == frame)))
+
+        # cast type
+        frame = DataFrame(mat, columns=['A', 'B', 'C'],
+                           index=[1, 2], dtype=object)
+        self.assert_(frame.values.dtype == object)
+
+        # Check non-masked values
+        mat2 = ma.copy(mat)
+        mat2[0,0] = True
+        mat2[1,2] = False
+        frame = DataFrame(mat2, columns=['A', 'B', 'C'], index=[1, 2])
+        self.assertEqual(True, frame['A'][1])
+        self.assertEqual(False, frame['C'][2])
+
     def test_constructor_corner(self):
         df = DataFrame(index=[])
         self.assertEqual(df.values.shape, (0, 0))
