@@ -304,7 +304,11 @@ class DataFrame(NDFrame):
         elif isinstance(data, ma.MaskedArray):
             mask = ma.getmaskarray(data)
             datacopy = ma.copy(data)
-            datacopy[mask] = np.nan
+            if issubclass(data.dtype.type, np.datetime64):
+                datacopy[mask] = lib.NaT
+            else:
+                datacopy = com._maybe_upcast(datacopy)
+                datacopy[mask] = np.nan
             mgr = self._init_ndarray(datacopy, index, columns, dtype=dtype,
                                      copy=copy)
         elif isinstance(data, np.ndarray):
