@@ -392,20 +392,29 @@ static npy_int64 asfreq_StoD(npy_int64 ordinal, char relation, asfreq_info *af_i
 
 static npy_int64 asfreq_StoA(npy_int64 ordinal, char relation, asfreq_info *af_info)
     { return asfreq_DtoA(asfreq_StoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
+
 static npy_int64 asfreq_StoQ(npy_int64 ordinal, char relation, asfreq_info *af_info)
     { return asfreq_DtoQ(asfreq_StoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
+
 static npy_int64 asfreq_StoM(npy_int64 ordinal, char relation, asfreq_info *af_info)
     { return asfreq_DtoM(asfreq_StoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
+
 static npy_int64 asfreq_StoW(npy_int64 ordinal, char relation, asfreq_info *af_info)
     { return asfreq_DtoW(asfreq_StoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
+
 static npy_int64 asfreq_StoB(npy_int64 ordinal, char relation, asfreq_info *af_info)
     { return asfreq_DtoB(asfreq_StoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
+
 static npy_int64 asfreq_StoB_forConvert(npy_int64 ordinal, char relation, asfreq_info *af_info)
     { return asfreq_DtoB_forConvert(asfreq_StoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
-static npy_int64 asfreq_StoT(npy_int64 ordinal, char relation, asfreq_info *af_info)
-    { return (ordinal - 1)/60 + 1; }
-static npy_int64 asfreq_StoH(npy_int64 ordinal, char relation, asfreq_info *af_info)
-    { return (ordinal - 1)/(60*60) + 1; }
+
+static npy_int64 asfreq_StoT(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+	return ordinal / 60;
+}
+
+static npy_int64 asfreq_StoH(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+	return ordinal / (60*60);
+}
 
 //************ FROM MINUTELY ***************
 
@@ -426,11 +435,17 @@ static npy_int64 asfreq_TtoB(npy_int64 ordinal, char relation, asfreq_info *af_i
 static npy_int64 asfreq_TtoB_forConvert(npy_int64 ordinal, char relation, asfreq_info *af_info)
     { return asfreq_DtoB_forConvert(asfreq_TtoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
 
-static npy_int64 asfreq_TtoH(npy_int64 ordinal, char relation, asfreq_info *af_info)
-    { return (ordinal - 1)/60 + 1; }
+static npy_int64 asfreq_TtoH(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+	return ordinal / 60;
+}
+
 static npy_int64 asfreq_TtoS(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-    if (relation == 'S') {  return ordinal*60 - 59; }
-    else                 {  return ordinal*60;      }}
+    if (relation == 'S') {
+		return ordinal*60; }
+    else                 {
+		return ordinal*60 + 59;
+	}
+}
 
 //************ FROM HOURLY ***************
 
@@ -453,9 +468,15 @@ static npy_int64 asfreq_HtoB_forConvert(npy_int64 ordinal, char relation, asfreq
 // calculation works out the same as TtoS, so we just call that function for HtoT
 static npy_int64 asfreq_HtoT(npy_int64 ordinal, char relation, asfreq_info *af_info)
     { return asfreq_TtoS(ordinal, relation, &NULL_AF_INFO); }
+
 static npy_int64 asfreq_HtoS(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-    if (relation == 'S') {  return ordinal*60*60 - 60*60 + 1; }
-    else                 {  return ordinal*60*60;             }}
+    if (relation == 'S') {
+		return ordinal*60*60;
+	}
+    else {
+		return (ordinal + 1)*60*60 - 1;
+	}
+}
 
 //************ FROM BUSINESS ***************
 
@@ -1189,7 +1210,7 @@ char *skts_strftime(npy_int64 ordinal, int freq, PyObject *args)
     daily_ord = toDaily(ordinal, 'E', &af_info);
     abstime = get_abs_time(freq, daily_ord, ordinal);
 
-	printf("daily_ord: %d, abstime: %f \n", (int) daily_ord, abstime);
+	/* printf("daily_ord: %d, abstime: %f \n", (int) daily_ord, abstime); */
 
     if(dInfoCalc_SetFromAbsDateTime(&tempDate, daily_ord + ORD_OFFSET, abstime,
                                     GREGORIAN_CALENDAR)) return NULL;
