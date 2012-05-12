@@ -1138,7 +1138,7 @@ def _generate_regular_range(start, end, periods, offset):
         raise ValueError('Must specify two of start, end, or periods')
 
     if isinstance(offset, Tick):
-        stride = offset.us_stride()
+        stride = offset.micros
         if periods is None:
             b = Timestamp(start).value
             e = Timestamp(end).value

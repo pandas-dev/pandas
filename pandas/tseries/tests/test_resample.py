@@ -347,6 +347,31 @@ class TestResample(unittest.TestCase):
         expected = panel.resample('M', how='mean', axis=1)
         tm.assert_panel_equal(result, expected)
 
+    def test_resample_anchored_ticks(self):
+        # If a fixed delta (5 minute, 4 hour) evenly divides a day, we should
+        # "anchor" the origin at midnight so we get regular intervals rather
+        # than starting from the first timestamp which might start in the middle
+        # of a desired interval
+
+        rng = date_range('1/1/2000 04:00:00', periods=86400, freq='s')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+        ts[:2] = np.nan # so results are the same
+
+        freqs = ['t', '5t', '15t', '30t', '4h', '12h']
+        for freq in freqs:
+            result = ts[2:].resample(freq, closed='left', label='left')
+            expected = ts.resample(freq, closed='left', label='left')
+            assert_series_equal(result, expected)
+
+    def test_resample_daily_anchored(self):
+        rng = date_range('1/1/2000 0:00:00', periods=10000, freq='T')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+        ts[:2] = np.nan # so results are the same
+
+        result = ts[2:].resample('D', closed='left', label='left')
+        expected = ts.resample('D', closed='left', label='left')
+        assert_series_equal(result, expected)
+
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
