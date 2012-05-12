@@ -68,7 +68,7 @@ def get_freq_code(freqstr):
     return code, stride
 
 
-def _get_freq_str(base, mult):
+def _get_freq_str(base, mult=1):
     code = _reverse_period_code_map.get(base)
     if code is None:
         return _unknown_freq
@@ -693,7 +693,6 @@ def infer_freq(index, warn=True):
     freq : string or None
         None if no discernable frequency
     """
-
     inferer = _FrequencyInferer(index, warn=warn)
     return inferer.get_freq()
 
@@ -704,6 +703,11 @@ class _FrequencyInferer(object):
     """
 
     def __init__(self, index, warn=True):
+        from pandas.tseries.index import DatetimeIndex
+
+        if not isinstance(index, DatetimeIndex):
+            index = DatetimeIndex(index)
+
         self.index = index
         self.values = np.asarray(index).view('i8')
         self.warn = warn
@@ -947,6 +951,8 @@ def is_superperiod(source, target):
         return target not in ['D', 'B', 'H', 'T', 'S']
 
 def _get_rule_month(source, default='DEC'):
+    if isinstance(source, offsets.DateOffset):
+        source = source.rule_code
     source = source.upper()
     if '-' not in source:
         return default

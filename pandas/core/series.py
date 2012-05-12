@@ -609,6 +609,14 @@ copy : boolean, default False
         casted = com._astype_nansafe(self.values, dtype)
         return self._constructor(casted, index=self.index, name=self.name)
 
+    def repeat(self, reps):
+        """
+        See ndarray.repeat
+        """
+        new_index = self.index.repeat(reps)
+        new_values = self.values.repeat(reps)
+        return Series(new_values, index=new_index, name=self.name)
+
     def reshape(self, newshape, order='C'):
         """
         See numpy.ndarray.reshape
@@ -970,8 +978,9 @@ copy : boolean, default False
 
             # call cython function
             max_bin = len(level_index)
+            labels = com._ensure_int64(self.index.labels[level])
             counts = lib.count_level_1d(mask.view(np.uint8),
-                                        self.index.labels[level], max_bin)
+                                        labels, max_bin)
             return Series(counts, index=level_index)
 
         return notnull(self.values).sum()
@@ -2025,6 +2034,7 @@ copy : boolean, default False
         -------
         taken : Series
         """
+        indices = com._ensure_platform_int(indices)
         new_index = self.index.take(indices)
         new_values = self.values.take(indices)
         return Series(new_values, index=new_index, name=self.name)

@@ -379,6 +379,23 @@ def fast_zip(list ndarrays):
 
     return result
 
+
+def get_reverse_indexer(ndarray[int64_t] indexer, Py_ssize_t length):
+    cdef:
+        Py_ssize_t i, n = len(indexer)
+        ndarray[int64_t] rev_indexer
+        int64_t idx
+
+    rev_indexer = np.empty(length, dtype=np.int64)
+    rev_indexer.fill(-1)
+    for i in range(n):
+        idx = indexer[i]
+        if idx != -1:
+            rev_indexer[idx] = i
+
+    return rev_indexer
+
+
 def has_infs_f4(ndarray[float32_t] arr):
     cdef:
         Py_ssize_t i, n = len(arr)
@@ -648,17 +665,16 @@ def value_count_int64(ndarray[int64_t] values):
 
     return result_keys, result_counts
 
+
 include "hashtable.pyx"
 include "datetime.pyx"
 include "skiplist.pyx"
 include "groupby.pyx"
 include "moments.pyx"
 include "reindex.pyx"
-include "generated.pyx"
 include "reduce.pyx"
 include "stats.pyx"
 include "properties.pyx"
 include "inference.pyx"
-include "internals.pyx"
 include "join.pyx"
 include "engines.pyx"

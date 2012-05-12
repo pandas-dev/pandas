@@ -1,3 +1,48 @@
+
+cimport numpy as np
+cimport cython
+
+from numpy cimport *
+
+from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
+                      PyDict_Contains, PyDict_Keys,
+                      Py_INCREF, PyTuple_SET_ITEM,
+                      PyTuple_SetItem,
+                      PyTuple_New)
+from cpython cimport PyFloat_Check
+cimport cpython
+
+import numpy as np
+isnan = np.isnan
+cdef double NaN = <double> np.NaN
+cdef double nan = NaN
+
+from datetime import datetime as pydatetime
+
+# this is our datetime.pxd
+from datetime cimport *
+
+from khash cimport *
+
+cdef inline int int_max(int a, int b): return a if a >= b else b
+cdef inline int int_min(int a, int b): return a if a <= b else b
+
+ctypedef unsigned char UChar
+
+cimport util
+from util cimport is_array, _checknull, _checknan
+
+cdef extern from "math.h":
+    double sqrt(double x)
+    double fabs(double)
+
+# import datetime C API
+PyDateTime_IMPORT
+
+# initialize numpy
+import_array()
+import_ufunc()
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef map_indices_float64(ndarray[float64_t] index):
@@ -114,13 +159,13 @@ cpdef map_indices_bool(ndarray[uint8_t] index):
 def pad_float64(ndarray[float64_t] old, ndarray[float64_t] new,
                    limit=None):
     cdef Py_ssize_t i, j, nleft, nright
-    cdef ndarray[int32_t, ndim=1] indexer
+    cdef ndarray[int64_t, ndim=1] indexer
     cdef float64_t cur, next
     cdef int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
-    indexer = np.empty(nright, dtype=np.int32)
+    indexer = np.empty(nright, dtype=np.int64)
     indexer.fill(-1)
 
     if limit is None:
@@ -175,13 +220,13 @@ def pad_float64(ndarray[float64_t] old, ndarray[float64_t] new,
 def pad_object(ndarray[object] old, ndarray[object] new,
                    limit=None):
     cdef Py_ssize_t i, j, nleft, nright
-    cdef ndarray[int32_t, ndim=1] indexer
+    cdef ndarray[int64_t, ndim=1] indexer
     cdef object cur, next
     cdef int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
-    indexer = np.empty(nright, dtype=np.int32)
+    indexer = np.empty(nright, dtype=np.int64)
     indexer.fill(-1)
 
     if limit is None:
@@ -236,13 +281,13 @@ def pad_object(ndarray[object] old, ndarray[object] new,
 def pad_int32(ndarray[int32_t] old, ndarray[int32_t] new,
                    limit=None):
     cdef Py_ssize_t i, j, nleft, nright
-    cdef ndarray[int32_t, ndim=1] indexer
+    cdef ndarray[int64_t, ndim=1] indexer
     cdef int32_t cur, next
     cdef int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
-    indexer = np.empty(nright, dtype=np.int32)
+    indexer = np.empty(nright, dtype=np.int64)
     indexer.fill(-1)
 
     if limit is None:
@@ -297,13 +342,13 @@ def pad_int32(ndarray[int32_t] old, ndarray[int32_t] new,
 def pad_int64(ndarray[int64_t] old, ndarray[int64_t] new,
                    limit=None):
     cdef Py_ssize_t i, j, nleft, nright
-    cdef ndarray[int32_t, ndim=1] indexer
+    cdef ndarray[int64_t, ndim=1] indexer
     cdef int64_t cur, next
     cdef int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
-    indexer = np.empty(nright, dtype=np.int32)
+    indexer = np.empty(nright, dtype=np.int64)
     indexer.fill(-1)
 
     if limit is None:
@@ -358,13 +403,13 @@ def pad_int64(ndarray[int64_t] old, ndarray[int64_t] new,
 def pad_bool(ndarray[uint8_t] old, ndarray[uint8_t] new,
                    limit=None):
     cdef Py_ssize_t i, j, nleft, nright
-    cdef ndarray[int32_t, ndim=1] indexer
+    cdef ndarray[int64_t, ndim=1] indexer
     cdef uint8_t cur, next
     cdef int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
-    indexer = np.empty(nright, dtype=np.int32)
+    indexer = np.empty(nright, dtype=np.int64)
     indexer.fill(-1)
 
     if limit is None:
@@ -420,13 +465,13 @@ def pad_bool(ndarray[uint8_t] old, ndarray[uint8_t] new,
 def backfill_float64(ndarray[float64_t] old, ndarray[float64_t] new,
                       limit=None):
     cdef Py_ssize_t i, j, nleft, nright
-    cdef ndarray[int32_t, ndim=1] indexer
+    cdef ndarray[int64_t, ndim=1] indexer
     cdef float64_t cur, prev
     cdef int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
-    indexer = np.empty(nright, dtype=np.int32)
+    indexer = np.empty(nright, dtype=np.int64)
     indexer.fill(-1)
 
     if limit is None:
@@ -482,13 +527,13 @@ def backfill_float64(ndarray[float64_t] old, ndarray[float64_t] new,
 def backfill_object(ndarray[object] old, ndarray[object] new,
                       limit=None):
     cdef Py_ssize_t i, j, nleft, nright
-    cdef ndarray[int32_t, ndim=1] indexer
+    cdef ndarray[int64_t, ndim=1] indexer
     cdef object cur, prev
     cdef int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
-    indexer = np.empty(nright, dtype=np.int32)
+    indexer = np.empty(nright, dtype=np.int64)
     indexer.fill(-1)
 
     if limit is None:
@@ -544,13 +589,13 @@ def backfill_object(ndarray[object] old, ndarray[object] new,
 def backfill_int32(ndarray[int32_t] old, ndarray[int32_t] new,
                       limit=None):
     cdef Py_ssize_t i, j, nleft, nright
-    cdef ndarray[int32_t, ndim=1] indexer
+    cdef ndarray[int64_t, ndim=1] indexer
     cdef int32_t cur, prev
     cdef int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
-    indexer = np.empty(nright, dtype=np.int32)
+    indexer = np.empty(nright, dtype=np.int64)
     indexer.fill(-1)
 
     if limit is None:
@@ -606,13 +651,13 @@ def backfill_int32(ndarray[int32_t] old, ndarray[int32_t] new,
 def backfill_int64(ndarray[int64_t] old, ndarray[int64_t] new,
                       limit=None):
     cdef Py_ssize_t i, j, nleft, nright
-    cdef ndarray[int32_t, ndim=1] indexer
+    cdef ndarray[int64_t, ndim=1] indexer
     cdef int64_t cur, prev
     cdef int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
-    indexer = np.empty(nright, dtype=np.int32)
+    indexer = np.empty(nright, dtype=np.int64)
     indexer.fill(-1)
 
     if limit is None:
@@ -668,13 +713,13 @@ def backfill_int64(ndarray[int64_t] old, ndarray[int64_t] new,
 def backfill_bool(ndarray[uint8_t] old, ndarray[uint8_t] new,
                       limit=None):
     cdef Py_ssize_t i, j, nleft, nright
-    cdef ndarray[int32_t, ndim=1] indexer
+    cdef ndarray[int64_t, ndim=1] indexer
     cdef uint8_t cur, prev
     cdef int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
-    indexer = np.empty(nright, dtype=np.int32)
+    indexer = np.empty(nright, dtype=np.int64)
     indexer.fill(-1)
 
     if limit is None:
@@ -1318,7 +1363,7 @@ def backfill_2d_inplace_bool(ndarray[uint8_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def take_1d_float64(ndarray[float64_t] values,
-                     ndarray[int32_t] indexer,
+                     ndarray[int64_t] indexer,
                      out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
@@ -1351,7 +1396,7 @@ def take_1d_float64(ndarray[float64_t] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def take_1d_object(ndarray[object] values,
-                     ndarray[int32_t] indexer,
+                     ndarray[int64_t] indexer,
                      out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
@@ -1384,7 +1429,7 @@ def take_1d_object(ndarray[object] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def take_1d_int32(ndarray[int32_t] values,
-                     ndarray[int32_t] indexer,
+                     ndarray[int64_t] indexer,
                      out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
@@ -1417,7 +1462,7 @@ def take_1d_int32(ndarray[int32_t] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def take_1d_int64(ndarray[int64_t] values,
-                     ndarray[int32_t] indexer,
+                     ndarray[int64_t] indexer,
                      out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
@@ -1450,7 +1495,7 @@ def take_1d_int64(ndarray[int64_t] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def take_1d_bool(ndarray[uint8_t] values,
-                     ndarray[int32_t] indexer,
+                     ndarray[int64_t] indexer,
                      out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
@@ -1751,6 +1796,8 @@ def arrmap_float64(ndarray[float64_t] index, object func):
 
     cdef ndarray[object] result = np.empty(length, dtype=np.object_)
 
+    from _tseries import maybe_convert_objects
+
     for i in range(length):
         result[i] = func(index[i])
 
@@ -1763,6 +1810,8 @@ def arrmap_object(ndarray[object] index, object func):
     cdef Py_ssize_t i = 0
 
     cdef ndarray[object] result = np.empty(length, dtype=np.object_)
+
+    from _tseries import maybe_convert_objects
 
     for i in range(length):
         result[i] = func(index[i])
@@ -1777,6 +1826,8 @@ def arrmap_int32(ndarray[int32_t] index, object func):
 
     cdef ndarray[object] result = np.empty(length, dtype=np.object_)
 
+    from _tseries import maybe_convert_objects
+
     for i in range(length):
         result[i] = func(index[i])
 
@@ -1789,6 +1840,8 @@ def arrmap_int64(ndarray[int64_t] index, object func):
     cdef Py_ssize_t i = 0
 
     cdef ndarray[object] result = np.empty(length, dtype=np.object_)
+
+    from _tseries import maybe_convert_objects
 
     for i in range(length):
         result[i] = func(index[i])
@@ -1803,6 +1856,8 @@ def arrmap_bool(ndarray[uint8_t] index, object func):
 
     cdef ndarray[object] result = np.empty(length, dtype=np.object_)
 
+    from _tseries import maybe_convert_objects
+
     for i in range(length):
         result[i] = func(index[i])
 
@@ -1812,7 +1867,7 @@ def arrmap_bool(ndarray[uint8_t] index, object func):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_axis0_float64(ndarray[float64_t, ndim=2] values,
-                           ndarray[int32_t] indexer,
+                           ndarray[int64_t] indexer,
                            out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, j, k, n, idx
@@ -1841,16 +1896,16 @@ def take_2d_axis0_float64(ndarray[float64_t, ndim=2] values,
         for i in range(n):
             idx = indexer[i]
             if idx == -1:
-                for j from 0 <= j < k:
+                for j in range(k):
                     outbuf[i, j] = fv
             else:
-                for j from 0 <= j < k:
+                for j in range(k):
                     outbuf[i, j] = values[idx, j]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_axis0_object(ndarray[object, ndim=2] values,
-                           ndarray[int32_t] indexer,
+                           ndarray[int64_t] indexer,
                            out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, j, k, n, idx
@@ -1879,16 +1934,16 @@ def take_2d_axis0_object(ndarray[object, ndim=2] values,
         for i in range(n):
             idx = indexer[i]
             if idx == -1:
-                for j from 0 <= j < k:
+                for j in range(k):
                     outbuf[i, j] = fv
             else:
-                for j from 0 <= j < k:
+                for j in range(k):
                     outbuf[i, j] = values[idx, j]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_axis0_int32(ndarray[int32_t, ndim=2] values,
-                           ndarray[int32_t] indexer,
+                           ndarray[int64_t] indexer,
                            out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, j, k, n, idx
@@ -1917,16 +1972,16 @@ def take_2d_axis0_int32(ndarray[int32_t, ndim=2] values,
         for i in range(n):
             idx = indexer[i]
             if idx == -1:
-                for j from 0 <= j < k:
+                for j in range(k):
                     outbuf[i, j] = fv
             else:
-                for j from 0 <= j < k:
+                for j in range(k):
                     outbuf[i, j] = values[idx, j]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_axis0_int64(ndarray[int64_t, ndim=2] values,
-                           ndarray[int32_t] indexer,
+                           ndarray[int64_t] indexer,
                            out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, j, k, n, idx
@@ -1955,16 +2010,16 @@ def take_2d_axis0_int64(ndarray[int64_t, ndim=2] values,
         for i in range(n):
             idx = indexer[i]
             if idx == -1:
-                for j from 0 <= j < k:
+                for j in range(k):
                     outbuf[i, j] = fv
             else:
-                for j from 0 <= j < k:
+                for j in range(k):
                     outbuf[i, j] = values[idx, j]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_axis0_bool(ndarray[uint8_t, ndim=2] values,
-                           ndarray[int32_t] indexer,
+                           ndarray[int64_t] indexer,
                            out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, j, k, n, idx
@@ -1993,17 +2048,17 @@ def take_2d_axis0_bool(ndarray[uint8_t, ndim=2] values,
         for i in range(n):
             idx = indexer[i]
             if idx == -1:
-                for j from 0 <= j < k:
+                for j in range(k):
                     outbuf[i, j] = fv
             else:
-                for j from 0 <= j < k:
+                for j in range(k):
                     outbuf[i, j] = values[idx, j]
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_axis1_float64(ndarray[float64_t, ndim=2] values,
-                           ndarray[int32_t] indexer,
+                           ndarray[int64_t] indexer,
                            out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, j, k, n, idx
@@ -2043,7 +2098,7 @@ def take_2d_axis1_float64(ndarray[float64_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_axis1_object(ndarray[object, ndim=2] values,
-                           ndarray[int32_t] indexer,
+                           ndarray[int64_t] indexer,
                            out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, j, k, n, idx
@@ -2083,7 +2138,7 @@ def take_2d_axis1_object(ndarray[object, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_axis1_int32(ndarray[int32_t, ndim=2] values,
-                           ndarray[int32_t] indexer,
+                           ndarray[int64_t] indexer,
                            out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, j, k, n, idx
@@ -2123,7 +2178,7 @@ def take_2d_axis1_int32(ndarray[int32_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_axis1_int64(ndarray[int64_t, ndim=2] values,
-                           ndarray[int32_t] indexer,
+                           ndarray[int64_t] indexer,
                            out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, j, k, n, idx
@@ -2163,7 +2218,7 @@ def take_2d_axis1_int64(ndarray[int64_t, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_axis1_bool(ndarray[uint8_t, ndim=2] values,
-                           ndarray[int32_t] indexer,
+                           ndarray[int64_t] indexer,
                            out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, j, k, n, idx
@@ -2203,11 +2258,242 @@ def take_2d_axis1_bool(ndarray[uint8_t, ndim=2] values,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+def take_2d_multi_float64(ndarray[float64_t, ndim=2] values,
+                           ndarray[int64_t] idx0,
+                           ndarray[int64_t] idx1,
+                           out=None, fill_value=np.nan):
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        ndarray[float64_t, ndim=2] outbuf
+        float64_t fv
+
+    n = len(idx0)
+    k = len(idx1)
+
+    if out is None:
+        outbuf = np.empty((n, k), dtype=values.dtype)
+    else:
+        outbuf = out
+
+
+    if False and _checknan(fill_value):
+        for i in range(n):
+            idx = idx0[i]
+            if idx == -1:
+                for j in range(k):
+                    raise ValueError('No NA values allowed')
+            else:
+                for j in range(k):
+                    if idx1[j] == -1:
+                        raise ValueError('No NA values allowed')
+                    else:
+                        outbuf[i, j] = values[idx, idx1[j]]
+    else:
+        fv = fill_value
+        for i in range(n):
+            idx = idx0[i]
+            if idx == -1:
+                for j in range(k):
+                    outbuf[i, j] = fv
+            else:
+                for j in range(k):
+                    if idx1[j] == -1:
+                        outbuf[i, j] = fv
+                    else:
+                        outbuf[i, j] = values[idx, idx1[j]]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_2d_multi_object(ndarray[object, ndim=2] values,
+                           ndarray[int64_t] idx0,
+                           ndarray[int64_t] idx1,
+                           out=None, fill_value=np.nan):
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        ndarray[object, ndim=2] outbuf
+        object fv
+
+    n = len(idx0)
+    k = len(idx1)
+
+    if out is None:
+        outbuf = np.empty((n, k), dtype=values.dtype)
+    else:
+        outbuf = out
+
+
+    if False and _checknan(fill_value):
+        for i in range(n):
+            idx = idx0[i]
+            if idx == -1:
+                for j in range(k):
+                    raise ValueError('No NA values allowed')
+            else:
+                for j in range(k):
+                    if idx1[j] == -1:
+                        raise ValueError('No NA values allowed')
+                    else:
+                        outbuf[i, j] = values[idx, idx1[j]]
+    else:
+        fv = fill_value
+        for i in range(n):
+            idx = idx0[i]
+            if idx == -1:
+                for j in range(k):
+                    outbuf[i, j] = fv
+            else:
+                for j in range(k):
+                    if idx1[j] == -1:
+                        outbuf[i, j] = fv
+                    else:
+                        outbuf[i, j] = values[idx, idx1[j]]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_2d_multi_int32(ndarray[int32_t, ndim=2] values,
+                           ndarray[int64_t] idx0,
+                           ndarray[int64_t] idx1,
+                           out=None, fill_value=np.nan):
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        ndarray[int32_t, ndim=2] outbuf
+        int32_t fv
+
+    n = len(idx0)
+    k = len(idx1)
+
+    if out is None:
+        outbuf = np.empty((n, k), dtype=values.dtype)
+    else:
+        outbuf = out
+
+
+    if True and _checknan(fill_value):
+        for i in range(n):
+            idx = idx0[i]
+            if idx == -1:
+                for j in range(k):
+                    raise ValueError('No NA values allowed')
+            else:
+                for j in range(k):
+                    if idx1[j] == -1:
+                        raise ValueError('No NA values allowed')
+                    else:
+                        outbuf[i, j] = values[idx, idx1[j]]
+    else:
+        fv = fill_value
+        for i in range(n):
+            idx = idx0[i]
+            if idx == -1:
+                for j in range(k):
+                    outbuf[i, j] = fv
+            else:
+                for j in range(k):
+                    if idx1[j] == -1:
+                        outbuf[i, j] = fv
+                    else:
+                        outbuf[i, j] = values[idx, idx1[j]]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_2d_multi_int64(ndarray[int64_t, ndim=2] values,
+                           ndarray[int64_t] idx0,
+                           ndarray[int64_t] idx1,
+                           out=None, fill_value=np.nan):
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        ndarray[int64_t, ndim=2] outbuf
+        int64_t fv
+
+    n = len(idx0)
+    k = len(idx1)
+
+    if out is None:
+        outbuf = np.empty((n, k), dtype=values.dtype)
+    else:
+        outbuf = out
+
+
+    if True and _checknan(fill_value):
+        for i in range(n):
+            idx = idx0[i]
+            if idx == -1:
+                for j in range(k):
+                    raise ValueError('No NA values allowed')
+            else:
+                for j in range(k):
+                    if idx1[j] == -1:
+                        raise ValueError('No NA values allowed')
+                    else:
+                        outbuf[i, j] = values[idx, idx1[j]]
+    else:
+        fv = fill_value
+        for i in range(n):
+            idx = idx0[i]
+            if idx == -1:
+                for j in range(k):
+                    outbuf[i, j] = fv
+            else:
+                for j in range(k):
+                    if idx1[j] == -1:
+                        outbuf[i, j] = fv
+                    else:
+                        outbuf[i, j] = values[idx, idx1[j]]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_2d_multi_bool(ndarray[uint8_t, ndim=2] values,
+                           ndarray[int64_t] idx0,
+                           ndarray[int64_t] idx1,
+                           out=None, fill_value=np.nan):
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        ndarray[uint8_t, ndim=2] outbuf
+        uint8_t fv
+
+    n = len(idx0)
+    k = len(idx1)
+
+    if out is None:
+        outbuf = np.empty((n, k), dtype=values.dtype)
+    else:
+        outbuf = out
+
+
+    if True and _checknan(fill_value):
+        for i in range(n):
+            idx = idx0[i]
+            if idx == -1:
+                for j in range(k):
+                    raise ValueError('No NA values allowed')
+            else:
+                for j in range(k):
+                    if idx1[j] == -1:
+                        raise ValueError('No NA values allowed')
+                    else:
+                        outbuf[i, j] = values[idx, idx1[j]]
+    else:
+        fv = fill_value
+        for i in range(n):
+            idx = idx0[i]
+            if idx == -1:
+                for j in range(k):
+                    outbuf[i, j] = fv
+            else:
+                for j in range(k):
+                    if idx1[j] == -1:
+                        outbuf[i, j] = fv
+                    else:
+                        outbuf[i, j] = values[idx, idx1[j]]
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def left_join_indexer_float64(ndarray[float64_t] left,
                              ndarray[float64_t] right):
     cdef:
         Py_ssize_t i, j, nleft, nright
-        ndarray[int32_t] indexer
+        ndarray[int64_t] indexer
         float64_t lval, rval
 
     i = 0
@@ -2215,7 +2501,7 @@ def left_join_indexer_float64(ndarray[float64_t] left,
     nleft = len(left)
     nright = len(right)
 
-    indexer = np.empty(nleft, dtype=np.int32)
+    indexer = np.empty(nleft, dtype=np.int64)
     while True:
         if i == nleft:
             break
@@ -2252,7 +2538,7 @@ def left_join_indexer_object(ndarray[object] left,
                              ndarray[object] right):
     cdef:
         Py_ssize_t i, j, nleft, nright
-        ndarray[int32_t] indexer
+        ndarray[int64_t] indexer
         object lval, rval
 
     i = 0
@@ -2260,7 +2546,7 @@ def left_join_indexer_object(ndarray[object] left,
     nleft = len(left)
     nright = len(right)
 
-    indexer = np.empty(nleft, dtype=np.int32)
+    indexer = np.empty(nleft, dtype=np.int64)
     while True:
         if i == nleft:
             break
@@ -2297,7 +2583,7 @@ def left_join_indexer_int32(ndarray[int32_t] left,
                              ndarray[int32_t] right):
     cdef:
         Py_ssize_t i, j, nleft, nright
-        ndarray[int32_t] indexer
+        ndarray[int64_t] indexer
         int32_t lval, rval
 
     i = 0
@@ -2305,7 +2591,7 @@ def left_join_indexer_int32(ndarray[int32_t] left,
     nleft = len(left)
     nright = len(right)
 
-    indexer = np.empty(nleft, dtype=np.int32)
+    indexer = np.empty(nleft, dtype=np.int64)
     while True:
         if i == nleft:
             break
@@ -2342,7 +2628,7 @@ def left_join_indexer_int64(ndarray[int64_t] left,
                              ndarray[int64_t] right):
     cdef:
         Py_ssize_t i, j, nleft, nright
-        ndarray[int32_t] indexer
+        ndarray[int64_t] indexer
         int64_t lval, rval
 
     i = 0
@@ -2350,7 +2636,7 @@ def left_join_indexer_int64(ndarray[int64_t] left,
     nleft = len(left)
     nright = len(right)
 
-    indexer = np.empty(nleft, dtype=np.int32)
+    indexer = np.empty(nleft, dtype=np.int64)
     while True:
         if i == nleft:
             break
@@ -2389,7 +2675,7 @@ def outer_join_indexer_float64(ndarray[float64_t] left,
     cdef:
         Py_ssize_t i, j, nright, nleft, count
         float64_t lval, rval
-        ndarray[int32_t] lindexer, rindexer
+        ndarray[int64_t] lindexer, rindexer
         ndarray[float64_t] result
 
     nleft = len(left)
@@ -2424,8 +2710,8 @@ def outer_join_indexer_float64(ndarray[float64_t] left,
 
             count += 1
 
-    lindexer = np.empty(count, dtype=np.int32)
-    rindexer = np.empty(count, dtype=np.int32)
+    lindexer = np.empty(count, dtype=np.int64)
+    rindexer = np.empty(count, dtype=np.int64)
     result = np.empty(count, dtype=np.float64)
 
     # do it again, but populate the indexers / result
@@ -2485,7 +2771,7 @@ def outer_join_indexer_object(ndarray[object] left,
     cdef:
         Py_ssize_t i, j, nright, nleft, count
         object lval, rval
-        ndarray[int32_t] lindexer, rindexer
+        ndarray[int64_t] lindexer, rindexer
         ndarray[object] result
 
     nleft = len(left)
@@ -2520,8 +2806,8 @@ def outer_join_indexer_object(ndarray[object] left,
 
             count += 1
 
-    lindexer = np.empty(count, dtype=np.int32)
-    rindexer = np.empty(count, dtype=np.int32)
+    lindexer = np.empty(count, dtype=np.int64)
+    rindexer = np.empty(count, dtype=np.int64)
     result = np.empty(count, dtype=object)
 
     # do it again, but populate the indexers / result
@@ -2581,7 +2867,7 @@ def outer_join_indexer_int32(ndarray[int32_t] left,
     cdef:
         Py_ssize_t i, j, nright, nleft, count
         int32_t lval, rval
-        ndarray[int32_t] lindexer, rindexer
+        ndarray[int64_t] lindexer, rindexer
         ndarray[int32_t] result
 
     nleft = len(left)
@@ -2616,8 +2902,8 @@ def outer_join_indexer_int32(ndarray[int32_t] left,
 
             count += 1
 
-    lindexer = np.empty(count, dtype=np.int32)
-    rindexer = np.empty(count, dtype=np.int32)
+    lindexer = np.empty(count, dtype=np.int64)
+    rindexer = np.empty(count, dtype=np.int64)
     result = np.empty(count, dtype=np.int32)
 
     # do it again, but populate the indexers / result
@@ -2677,7 +2963,7 @@ def outer_join_indexer_int64(ndarray[int64_t] left,
     cdef:
         Py_ssize_t i, j, nright, nleft, count
         int64_t lval, rval
-        ndarray[int32_t] lindexer, rindexer
+        ndarray[int64_t] lindexer, rindexer
         ndarray[int64_t] result
 
     nleft = len(left)
@@ -2712,8 +2998,8 @@ def outer_join_indexer_int64(ndarray[int64_t] left,
 
             count += 1
 
-    lindexer = np.empty(count, dtype=np.int32)
-    rindexer = np.empty(count, dtype=np.int32)
+    lindexer = np.empty(count, dtype=np.int64)
+    rindexer = np.empty(count, dtype=np.int64)
     result = np.empty(count, dtype=np.int64)
 
     # do it again, but populate the indexers / result
@@ -2777,7 +3063,7 @@ def inner_join_indexer_float64(ndarray[float64_t] left,
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
         float64_t lval, rval
-        ndarray[int32_t] lindexer, rindexer
+        ndarray[int64_t] lindexer, rindexer
         ndarray[float64_t] result
 
     nleft = len(left)
@@ -2803,8 +3089,8 @@ def inner_join_indexer_float64(ndarray[float64_t] left,
 
     # do it again now that result size is known
 
-    lindexer = np.empty(count, dtype=np.int32)
-    rindexer = np.empty(count, dtype=np.int32)
+    lindexer = np.empty(count, dtype=np.int64)
+    rindexer = np.empty(count, dtype=np.int64)
     result = np.empty(count, dtype=np.float64)
 
     i = 0
@@ -2840,7 +3126,7 @@ def inner_join_indexer_object(ndarray[object] left,
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
         object lval, rval
-        ndarray[int32_t] lindexer, rindexer
+        ndarray[int64_t] lindexer, rindexer
         ndarray[object] result
 
     nleft = len(left)
@@ -2866,8 +3152,8 @@ def inner_join_indexer_object(ndarray[object] left,
 
     # do it again now that result size is known
 
-    lindexer = np.empty(count, dtype=np.int32)
-    rindexer = np.empty(count, dtype=np.int32)
+    lindexer = np.empty(count, dtype=np.int64)
+    rindexer = np.empty(count, dtype=np.int64)
     result = np.empty(count, dtype=object)
 
     i = 0
@@ -2903,7 +3189,7 @@ def inner_join_indexer_int32(ndarray[int32_t] left,
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
         int32_t lval, rval
-        ndarray[int32_t] lindexer, rindexer
+        ndarray[int64_t] lindexer, rindexer
         ndarray[int32_t] result
 
     nleft = len(left)
@@ -2929,8 +3215,8 @@ def inner_join_indexer_int32(ndarray[int32_t] left,
 
     # do it again now that result size is known
 
-    lindexer = np.empty(count, dtype=np.int32)
-    rindexer = np.empty(count, dtype=np.int32)
+    lindexer = np.empty(count, dtype=np.int64)
+    rindexer = np.empty(count, dtype=np.int64)
     result = np.empty(count, dtype=np.int32)
 
     i = 0
@@ -2966,7 +3252,7 @@ def inner_join_indexer_int64(ndarray[int64_t] left,
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
         int64_t lval, rval
-        ndarray[int32_t] lindexer, rindexer
+        ndarray[int64_t] lindexer, rindexer
         ndarray[int64_t] result
 
     nleft = len(left)
@@ -2992,8 +3278,8 @@ def inner_join_indexer_int64(ndarray[int64_t] left,
 
     # do it again now that result size is known
 
-    lindexer = np.empty(count, dtype=np.int32)
-    rindexer = np.empty(count, dtype=np.int32)
+    lindexer = np.empty(count, dtype=np.int64)
+    rindexer = np.empty(count, dtype=np.int64)
     result = np.empty(count, dtype=np.int64)
 
     i = 0
@@ -3018,5 +3304,56 @@ def inner_join_indexer_int64(ndarray[int64_t] left,
                 j += 1
 
     return result, lindexer, rindexer
+
+
+
+cpdef ensure_float64(object arr):
+    if util.is_array(arr):
+        if (<ndarray> arr).descr.type_num == NPY_FLOAT64:
+            return arr
+        else:
+            return arr.astype(np.float64)
+    else:
+        return np.array(arr, dtype=np.float64)
+
+
+cpdef ensure_int32(object arr):
+    if util.is_array(arr):
+        if (<ndarray> arr).descr.type_num == NPY_INT32:
+            return arr
+        else:
+            return arr.astype(np.int32)
+    else:
+        return np.array(arr, dtype=np.int32)
+
+
+cpdef ensure_int64(object arr):
+    if util.is_array(arr):
+        if (<ndarray> arr).descr.type_num == NPY_INT64:
+            return arr
+        else:
+            return arr.astype(np.int64)
+    else:
+        return np.array(arr, dtype=np.int64)
+
+
+cpdef ensure_platform_int(object arr):
+    if util.is_array(arr):
+        if (<ndarray> arr).descr.type_num == NPY_INT:
+            return arr
+        else:
+            return arr.astype(np.int_)
+    else:
+        return np.array(arr, dtype=np.int_)
+
+
+cpdef ensure_object(object arr):
+    if util.is_array(arr):
+        if (<ndarray> arr).descr.type_num == NPY_OBJECT:
+            return arr
+        else:
+            return arr.astype(np.object_)
+    else:
+        return np.array(arr, dtype=np.object_)
 
 

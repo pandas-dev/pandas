@@ -173,6 +173,15 @@ class TestMultiLevel(unittest.TestCase):
         self.frame.T.to_string(buf=buf)
         self.ymd.T.to_string(buf=buf)
 
+    def test_repr_name_coincide(self):
+        index = MultiIndex.from_tuples([('a', 0, 'foo'), ('b', 1, 'bar')],
+                                       names=['a', 'b', 'c'])
+
+        df = DataFrame({'value': [0, 1]}, index=index)
+
+        lines = repr(df).split('\n')
+        self.assert_(lines[2].startswith('a 0 foo'))
+
     def test_getitem_simple(self):
         df = self.frame.T
 

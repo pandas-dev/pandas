@@ -60,4 +60,3 @@ cdef inline bint _checknull(object val):
 
 cdef inline bint _checknan(object val):
     return not cnp.PyArray_Check(val) and val != val
-

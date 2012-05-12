@@ -611,6 +611,7 @@ As a convenience, you can pass a list of arrays directly into Series or
 DataFrame to construct a MultiIndex automatically:
 
 .. ipython:: python
+
    arrays = [np.array(['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux']),
              np.array(['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two'])]
    s = Series(randn(8), index=arrays)

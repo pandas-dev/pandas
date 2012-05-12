@@ -18,6 +18,7 @@ from collections import defaultdict
 import pandas.core.common as com
 import pandas.core.datetools as dt
 import numpy as np
+from numpy.testing import assert_equal
 
 import pandas.util.testing as tm
 
@@ -120,25 +121,23 @@ class TestGroupBy(unittest.TestCase):
         # corner cases
         self.assertRaises(Exception, grouped.aggregate, lambda x: x * 2)
 
+    def test_first_last_nth(self):
         # tests for first / last / nth
         grouped = self.df.groupby('A')
         first = grouped.first()
-        expected = grouped.get_group('bar')
-        expected = expected.xs(expected.index[0])[1:]
-        expected.name ='bar'
-        assert_series_equal(first.xs('bar'), expected)
+        expected = self.df.ix[[1, 0], ['C', 'D']]
+        expected.index = ['bar', 'foo']
+        assert_frame_equal(first, expected)
 
         last = grouped.last()
-        expected = grouped.get_group('bar')
-        expected = expected.xs(expected.index[-1])[1:]
-        expected.name ='bar'
-        assert_series_equal(last.xs('bar'), expected)
+        expected = self.df.ix[[5, 7], ['C', 'D']]
+        expected.index = ['bar', 'foo']
+        assert_frame_equal(last, expected)
 
         nth = grouped.nth(1)
-        expected = grouped.get_group('foo')
-        expected = expected.xs(expected.index[1])[1:]
-        expected.name ='foo'
-        assert_series_equal(nth.xs('foo'), expected)
+        expected = self.df.ix[[3, 2], ['B', 'C', 'D']]
+        expected.index = ['bar', 'foo']
+        assert_frame_equal(nth, expected)
 
     def test_empty_groups(self):
         # GH # 1048
@@ -484,7 +483,7 @@ class TestGroupBy(unittest.TestCase):
                           'F' : np.random.randn(11)})
 
         def bad(x):
-            assert(len(x.base) == len(x))
+            assert_equal(len(x.base), len(x))
             return 'foo'
 
         result = data.groupby(['A', 'B']).agg(bad)
@@ -1700,6 +1699,19 @@ class TestGroupBy(unittest.TestCase):
         grouped = x.groupby('test')
         result = grouped.agg({'fl':'sum',2:'size'})
         self.assert_(result['fl'].dtype == np.float64)
+
+    def test_handle_dict_return_value(self):
+        def f(group):
+            return {'min': group.min(), 'max': group.max()}
+
+        def g(group):
+            return Series({'min': group.min(), 'max': group.max()})
+
+        result = self.df.groupby('A')['C'].apply(f)
+        expected = self.df.groupby('A')['C'].apply(g)
+
+        self.assert_(isinstance(result, Series))
+        assert_series_equal(result, expected)
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     tups = map(tuple, df[keys].values)

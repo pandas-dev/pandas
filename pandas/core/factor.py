@@ -1,5 +1,5 @@
 import numpy as np
-
+import pandas.core.common as com
 import pandas._tseries as lib
 
 
@@ -57,10 +57,10 @@ def unique_with_labels(values):
     rizer = lib.Factorizer(len(values))
     labels, _ = rizer.factorize(values, sort=False)
     uniques = Index(rizer.uniques)
-
+    labels = com._ensure_platform_int(labels)
     try:
         sorter = uniques.argsort()
-        reverse_indexer = np.empty(len(sorter), dtype='i4')
+        reverse_indexer = np.empty(len(sorter), dtype=np.int_)
         reverse_indexer.put(sorter, np.arange(len(sorter)))
         labels = reverse_indexer.take(labels)
         uniques = uniques.take(sorter)
