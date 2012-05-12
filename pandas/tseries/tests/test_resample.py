@@ -527,6 +527,15 @@ class TestResamplePeriodIndex(unittest.TestCase):
         s = TimeSeries(np.random.randn(5), index=rng)
         self.assertRaises(Exception, s.resample, 'A')
 
+    def test_resample_5minute(self):
+        rng = period_range('1/1/2000', '1/5/2000', freq='T')
+        ts = TimeSeries(np.random.randn(len(rng)), index=rng)
+
+        result = ts.resample('5min')
+        expected = ts.to_timestamp().resample('5min')
+        assert_series_equal(result, expected)
+
+
 class TestTimeGrouper(unittest.TestCase):
 
     def setUp(self):
