@@ -3286,6 +3286,59 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = df2.drop_duplicates(['A', 'B'], take_last=True)
         assert_frame_equal(result, expected)
 
+    def test_drop_duplicates_NA(self):
+        # none
+        df = DataFrame({'A' : [None, None, 'foo', 'bar',
+                               'foo', 'bar', 'bar', 'foo'],
+                        'B' : ['one', 'one', 'two', 'two',
+                               'two', 'two', 'one', 'two'],
+                        'C' : [1.0, np.nan, np.nan, np.nan, 1., 1., 1, 1.],
+                        'D' : range(8)})
+
+        # single column
+        result = df.drop_duplicates('A')
+        expected = df.ix[[0, 2, 3]]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates('A', take_last=True)
+        expected = df.ix[[1, 6, 7]]
+        assert_frame_equal(result, expected)
+
+        # multi column
+        result = df.drop_duplicates(['A', 'B'])
+        expected = df.ix[[0, 2, 3, 6]]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates(['A', 'B'], take_last=True)
+        expected = df.ix[[1, 5, 6, 7]]
+        assert_frame_equal(result, expected)
+
+        # nan
+        df = DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+                               'foo', 'bar', 'bar', 'foo'],
+                        'B' : ['one', 'one', 'two', 'two',
+                               'two', 'two', 'one', 'two'],
+                        'C' : [1.0, np.nan, np.nan, np.nan, 1., 1., 1, 1.],
+                        'D' : range(8)})
+
+        # single column
+        result = df.drop_duplicates('C')
+        expected = df[:2]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates('C', take_last=True)
+        expected = df.ix[[3, 7]]
+        assert_frame_equal(result, expected)
+
+        # multi column
+        result = df.drop_duplicates(['C', 'B'])
+        expected = df.ix[[0, 1, 2, 4]]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates(['C', 'B'], take_last=True)
+        expected = df.ix[[1, 3, 6, 7]]
+        assert_frame_equal(result, expected)
+
     def test_drop_col_still_multiindex(self):
         arrays = [[  'a',   'b',   'c',    'top'],
                   [  '',    '',    '',     'OD' ],

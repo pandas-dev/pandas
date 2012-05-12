@@ -1306,6 +1306,7 @@ def duplicated(list values, take_last=False):
     cdef:
         Py_ssize_t i, n
         dict seen = {}
+        int has_nan = 0
         object row
 
     n = len(values)
@@ -1316,6 +1317,12 @@ def duplicated(list values, take_last=False):
             row = values[i]
             if row in seen:
                 result[i] = 1
+            elif row != row:
+                if has_nan == 1:
+                    result[i] = 1
+                else:
+                    has_nan = 1
+                    result[i] = 0
             else:
                 seen[row] = None
                 result[i] = 0
@@ -1324,6 +1331,12 @@ def duplicated(list values, take_last=False):
             row = values[i]
             if row in seen:
                 result[i] = 1
+            elif row != row:
+                if has_nan == 1:
+                    result[i] = 1
+                else:
+                    has_nan = 1
+                    result[i] = 0
             else:
                 seen[row] = None
                 result[i] = 0
