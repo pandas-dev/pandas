@@ -36,6 +36,7 @@ class TestPeriodProperties(TestCase):
         for month in MONTHS:
             freq = 'Q-%s' % month
             exp = Period('1989Q3', freq=freq)
+            self.assert_('1989Q3' in str(exp))
             stamp = exp.to_timestamp('D', how='end')
             p = Period(stamp, freq=freq)
             self.assertEquals(p, exp)
@@ -1058,29 +1059,29 @@ class TestPeriodIndex(TestCase):
         assert_series_equal(result, expected)
 
     def test_constructor(self):
-        ii = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
-        assert_equal(len(ii), 9)
+        pi = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        assert_equal(len(pi), 9)
 
-        ii = PeriodIndex(freq='Q', start='1/1/2001', end='12/1/2009')
-        assert_equal(len(ii), 4 * 9)
+        pi = PeriodIndex(freq='Q', start='1/1/2001', end='12/1/2009')
+        assert_equal(len(pi), 4 * 9)
 
-        ii = PeriodIndex(freq='M', start='1/1/2001', end='12/1/2009')
-        assert_equal(len(ii), 12 * 9)
+        pi = PeriodIndex(freq='M', start='1/1/2001', end='12/1/2009')
+        assert_equal(len(pi), 12 * 9)
 
-        ii = PeriodIndex(freq='D', start='1/1/2001', end='12/31/2009')
-        assert_equal(len(ii), 365 * 9 + 2)
+        pi = PeriodIndex(freq='D', start='1/1/2001', end='12/31/2009')
+        assert_equal(len(pi), 365 * 9 + 2)
 
-        ii = PeriodIndex(freq='B', start='1/1/2001', end='12/31/2009')
-        assert_equal(len(ii), 261 * 9)
+        pi = PeriodIndex(freq='B', start='1/1/2001', end='12/31/2009')
+        assert_equal(len(pi), 261 * 9)
 
-        ii = PeriodIndex(freq='H', start='1/1/2001', end='12/31/2001 23:00')
-        assert_equal(len(ii), 365 * 24)
+        pi = PeriodIndex(freq='H', start='1/1/2001', end='12/31/2001 23:00')
+        assert_equal(len(pi), 365 * 24)
 
-        ii = PeriodIndex(freq='Min', start='1/1/2001', end='1/1/2001 23:59')
-        assert_equal(len(ii), 24 * 60)
+        pi = PeriodIndex(freq='Min', start='1/1/2001', end='1/1/2001 23:59')
+        assert_equal(len(pi), 24 * 60)
 
-        ii = PeriodIndex(freq='S', start='1/1/2001', end='1/1/2001 23:59:59')
-        assert_equal(len(ii), 24 * 60 * 60)
+        pi = PeriodIndex(freq='S', start='1/1/2001', end='1/1/2001 23:59:59')
+        assert_equal(len(pi), 24 * 60 * 60)
 
         start = Period('02-Apr-2005', 'B')
         i1 = PeriodIndex(start=start, periods=20)
@@ -1137,96 +1138,96 @@ class TestPeriodIndex(TestCase):
         self.assertRaises(ValueError, PeriodIndex, vals)
 
     def test_shift(self):
-        ii1 = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
-        ii2 = PeriodIndex(freq='A', start='1/1/2002', end='12/1/2010')
-        assert_equal(len(ii1), len(ii2))
-        assert_equal(ii1.shift(1).values, ii2.values)
+        pi1 = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        pi2 = PeriodIndex(freq='A', start='1/1/2002', end='12/1/2010')
+        assert_equal(len(pi1), len(pi2))
+        assert_equal(pi1.shift(1).values, pi2.values)
 
-        ii1 = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
-        ii2 = PeriodIndex(freq='A', start='1/1/2000', end='12/1/2008')
-        assert_equal(len(ii1), len(ii2))
-        assert_equal(ii1.shift(-1).values, ii2.values)
+        pi1 = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        pi2 = PeriodIndex(freq='A', start='1/1/2000', end='12/1/2008')
+        assert_equal(len(pi1), len(pi2))
+        assert_equal(pi1.shift(-1).values, pi2.values)
 
-        ii1 = PeriodIndex(freq='M', start='1/1/2001', end='12/1/2009')
-        ii2 = PeriodIndex(freq='M', start='2/1/2001', end='1/1/2010')
-        assert_equal(len(ii1), len(ii2))
-        assert_equal(ii1.shift(1).values, ii2.values)
+        pi1 = PeriodIndex(freq='M', start='1/1/2001', end='12/1/2009')
+        pi2 = PeriodIndex(freq='M', start='2/1/2001', end='1/1/2010')
+        assert_equal(len(pi1), len(pi2))
+        assert_equal(pi1.shift(1).values, pi2.values)
 
-        ii1 = PeriodIndex(freq='M', start='1/1/2001', end='12/1/2009')
-        ii2 = PeriodIndex(freq='M', start='12/1/2000', end='11/1/2009')
-        assert_equal(len(ii1), len(ii2))
-        assert_equal(ii1.shift(-1).values, ii2.values)
+        pi1 = PeriodIndex(freq='M', start='1/1/2001', end='12/1/2009')
+        pi2 = PeriodIndex(freq='M', start='12/1/2000', end='11/1/2009')
+        assert_equal(len(pi1), len(pi2))
+        assert_equal(pi1.shift(-1).values, pi2.values)
 
-        ii1 = PeriodIndex(freq='D', start='1/1/2001', end='12/1/2009')
-        ii2 = PeriodIndex(freq='D', start='1/2/2001', end='12/2/2009')
-        assert_equal(len(ii1), len(ii2))
-        assert_equal(ii1.shift(1).values, ii2.values)
+        pi1 = PeriodIndex(freq='D', start='1/1/2001', end='12/1/2009')
+        pi2 = PeriodIndex(freq='D', start='1/2/2001', end='12/2/2009')
+        assert_equal(len(pi1), len(pi2))
+        assert_equal(pi1.shift(1).values, pi2.values)
 
-        ii1 = PeriodIndex(freq='D', start='1/1/2001', end='12/1/2009')
-        ii2 = PeriodIndex(freq='D', start='12/31/2000', end='11/30/2009')
-        assert_equal(len(ii1), len(ii2))
-        assert_equal(ii1.shift(-1).values, ii2.values)
+        pi1 = PeriodIndex(freq='D', start='1/1/2001', end='12/1/2009')
+        pi2 = PeriodIndex(freq='D', start='12/31/2000', end='11/30/2009')
+        assert_equal(len(pi1), len(pi2))
+        assert_equal(pi1.shift(-1).values, pi2.values)
 
     def test_asfreq(self):
-        ii1 = PeriodIndex(freq='A', start='1/1/2001', end='1/1/2001')
-        ii2 = PeriodIndex(freq='Q', start='1/1/2001', end='1/1/2001')
-        ii3 = PeriodIndex(freq='M', start='1/1/2001', end='1/1/2001')
-        ii4 = PeriodIndex(freq='D', start='1/1/2001', end='1/1/2001')
-        ii5 = PeriodIndex(freq='H', start='1/1/2001', end='1/1/2001 00:00')
-        ii6 = PeriodIndex(freq='Min', start='1/1/2001', end='1/1/2001 00:00')
-        ii7 = PeriodIndex(freq='S', start='1/1/2001', end='1/1/2001 00:00:00')
+        pi1 = PeriodIndex(freq='A', start='1/1/2001', end='1/1/2001')
+        pi2 = PeriodIndex(freq='Q', start='1/1/2001', end='1/1/2001')
+        pi3 = PeriodIndex(freq='M', start='1/1/2001', end='1/1/2001')
+        pi4 = PeriodIndex(freq='D', start='1/1/2001', end='1/1/2001')
+        pi5 = PeriodIndex(freq='H', start='1/1/2001', end='1/1/2001 00:00')
+        pi6 = PeriodIndex(freq='Min', start='1/1/2001', end='1/1/2001 00:00')
+        pi7 = PeriodIndex(freq='S', start='1/1/2001', end='1/1/2001 00:00:00')
 
-        self.assertEquals(ii1.asfreq('Q', 'S'), ii2)
-        self.assertEquals(ii1.asfreq('Q', 's'), ii2)
-        self.assertEquals(ii1.asfreq('M', 'start'), ii3)
-        self.assertEquals(ii1.asfreq('D', 'StarT'), ii4)
-        self.assertEquals(ii1.asfreq('H', 'beGIN'), ii5)
-        self.assertEquals(ii1.asfreq('Min', 'S'), ii6)
-        self.assertEquals(ii1.asfreq('S', 'S'), ii7)
+        self.assertEquals(pi1.asfreq('Q', 'S'), pi2)
+        self.assertEquals(pi1.asfreq('Q', 's'), pi2)
+        self.assertEquals(pi1.asfreq('M', 'start'), pi3)
+        self.assertEquals(pi1.asfreq('D', 'StarT'), pi4)
+        self.assertEquals(pi1.asfreq('H', 'beGIN'), pi5)
+        self.assertEquals(pi1.asfreq('Min', 'S'), pi6)
+        self.assertEquals(pi1.asfreq('S', 'S'), pi7)
 
-        self.assertEquals(ii2.asfreq('A', 'S'), ii1)
-        self.assertEquals(ii2.asfreq('M', 'S'), ii3)
-        self.assertEquals(ii2.asfreq('D', 'S'), ii4)
-        self.assertEquals(ii2.asfreq('H', 'S'), ii5)
-        self.assertEquals(ii2.asfreq('Min', 'S'), ii6)
-        self.assertEquals(ii2.asfreq('S', 'S'), ii7)
+        self.assertEquals(pi2.asfreq('A', 'S'), pi1)
+        self.assertEquals(pi2.asfreq('M', 'S'), pi3)
+        self.assertEquals(pi2.asfreq('D', 'S'), pi4)
+        self.assertEquals(pi2.asfreq('H', 'S'), pi5)
+        self.assertEquals(pi2.asfreq('Min', 'S'), pi6)
+        self.assertEquals(pi2.asfreq('S', 'S'), pi7)
 
-        self.assertEquals(ii3.asfreq('A', 'S'), ii1)
-        self.assertEquals(ii3.asfreq('Q', 'S'), ii2)
-        self.assertEquals(ii3.asfreq('D', 'S'), ii4)
-        self.assertEquals(ii3.asfreq('H', 'S'), ii5)
-        self.assertEquals(ii3.asfreq('Min', 'S'), ii6)
-        self.assertEquals(ii3.asfreq('S', 'S'), ii7)
+        self.assertEquals(pi3.asfreq('A', 'S'), pi1)
+        self.assertEquals(pi3.asfreq('Q', 'S'), pi2)
+        self.assertEquals(pi3.asfreq('D', 'S'), pi4)
+        self.assertEquals(pi3.asfreq('H', 'S'), pi5)
+        self.assertEquals(pi3.asfreq('Min', 'S'), pi6)
+        self.assertEquals(pi3.asfreq('S', 'S'), pi7)
 
-        self.assertEquals(ii4.asfreq('A', 'S'), ii1)
-        self.assertEquals(ii4.asfreq('Q', 'S'), ii2)
-        self.assertEquals(ii4.asfreq('M', 'S'), ii3)
-        self.assertEquals(ii4.asfreq('H', 'S'), ii5)
-        self.assertEquals(ii4.asfreq('Min', 'S'), ii6)
-        self.assertEquals(ii4.asfreq('S', 'S'), ii7)
+        self.assertEquals(pi4.asfreq('A', 'S'), pi1)
+        self.assertEquals(pi4.asfreq('Q', 'S'), pi2)
+        self.assertEquals(pi4.asfreq('M', 'S'), pi3)
+        self.assertEquals(pi4.asfreq('H', 'S'), pi5)
+        self.assertEquals(pi4.asfreq('Min', 'S'), pi6)
+        self.assertEquals(pi4.asfreq('S', 'S'), pi7)
 
-        self.assertEquals(ii5.asfreq('A', 'S'), ii1)
-        self.assertEquals(ii5.asfreq('Q', 'S'), ii2)
-        self.assertEquals(ii5.asfreq('M', 'S'), ii3)
-        self.assertEquals(ii5.asfreq('D', 'S'), ii4)
-        self.assertEquals(ii5.asfreq('Min', 'S'), ii6)
-        self.assertEquals(ii5.asfreq('S', 'S'), ii7)
+        self.assertEquals(pi5.asfreq('A', 'S'), pi1)
+        self.assertEquals(pi5.asfreq('Q', 'S'), pi2)
+        self.assertEquals(pi5.asfreq('M', 'S'), pi3)
+        self.assertEquals(pi5.asfreq('D', 'S'), pi4)
+        self.assertEquals(pi5.asfreq('Min', 'S'), pi6)
+        self.assertEquals(pi5.asfreq('S', 'S'), pi7)
 
-        self.assertEquals(ii6.asfreq('A', 'S'), ii1)
-        self.assertEquals(ii6.asfreq('Q', 'S'), ii2)
-        self.assertEquals(ii6.asfreq('M', 'S'), ii3)
-        self.assertEquals(ii6.asfreq('D', 'S'), ii4)
-        self.assertEquals(ii6.asfreq('H', 'S'), ii5)
-        self.assertEquals(ii6.asfreq('S', 'S'), ii7)
+        self.assertEquals(pi6.asfreq('A', 'S'), pi1)
+        self.assertEquals(pi6.asfreq('Q', 'S'), pi2)
+        self.assertEquals(pi6.asfreq('M', 'S'), pi3)
+        self.assertEquals(pi6.asfreq('D', 'S'), pi4)
+        self.assertEquals(pi6.asfreq('H', 'S'), pi5)
+        self.assertEquals(pi6.asfreq('S', 'S'), pi7)
 
-        self.assertEquals(ii7.asfreq('A', 'S'), ii1)
-        self.assertEquals(ii7.asfreq('Q', 'S'), ii2)
-        self.assertEquals(ii7.asfreq('M', 'S'), ii3)
-        self.assertEquals(ii7.asfreq('D', 'S'), ii4)
-        self.assertEquals(ii7.asfreq('H', 'S'), ii5)
-        self.assertEquals(ii7.asfreq('Min', 'S'), ii6)
+        self.assertEquals(pi7.asfreq('A', 'S'), pi1)
+        self.assertEquals(pi7.asfreq('Q', 'S'), pi2)
+        self.assertEquals(pi7.asfreq('M', 'S'), pi3)
+        self.assertEquals(pi7.asfreq('D', 'S'), pi4)
+        self.assertEquals(pi7.asfreq('H', 'S'), pi5)
+        self.assertEquals(pi7.asfreq('Min', 'S'), pi6)
 
-        #self.assertEquals(ii7.asfreq('A', 'E'), i_end)
+        #self.assertEquals(pi7.asfreq('A', 'E'), i_end)
 
     def test_ts_repr(self):
         index = PeriodIndex(freq='A', start='1/1/2001', end='12/31/2010')
@@ -1258,18 +1259,18 @@ class TestPeriodIndex(TestCase):
 
     def test_dti_to_period(self):
         dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
-        ii1 = dti.to_period()
-        ii2 = dti.to_period(freq='D')
+        pi1 = dti.to_period()
+        pi2 = dti.to_period(freq='D')
 
-        self.assertEquals(ii1[0], Period('Jan 2005', freq='M'))
-        self.assertEquals(ii2[0], Period('1/31/2005', freq='D'))
+        self.assertEquals(pi1[0], Period('Jan 2005', freq='M'))
+        self.assertEquals(pi2[0], Period('1/31/2005', freq='D'))
 
-        self.assertEquals(ii1[-1], Period('Nov 2005', freq='M'))
-        self.assertEquals(ii2[-1], Period('11/30/2005', freq='D'))
+        self.assertEquals(pi1[-1], Period('Nov 2005', freq='M'))
+        self.assertEquals(pi2[-1], Period('11/30/2005', freq='D'))
 
-    def test_iindex_slice_index(self):
-        ii = PeriodIndex(start='1/1/10', end='12/31/12', freq='M')
-        s = Series(np.random.rand(len(ii)), index=ii)
+    def test_pindex_slice_index(self):
+        pi = PeriodIndex(start='1/1/10', end='12/31/12', freq='M')
+        s = Series(np.random.rand(len(pi)), index=pi)
         res = s['2010']
         exp = s[0:12]
         assert_series_equal(res, exp)
@@ -1277,20 +1278,20 @@ class TestPeriodIndex(TestCase):
         exp = s[12:24]
         assert_series_equal(res, exp)
 
-    def test_iindex_qaccess(self):
-        ii = PeriodIndex(['2Q05', '3Q05', '4Q05', '1Q06', '2Q06'], freq='Q')
-        s = Series(np.random.rand(len(ii)), index=ii).cumsum()
+    def test_pindex_qaccess(self):
+        pi = PeriodIndex(['2Q05', '3Q05', '4Q05', '1Q06', '2Q06'], freq='Q')
+        s = Series(np.random.rand(len(pi)), index=pi).cumsum()
         # Todo: fix these accessors!
         self.assert_(s['05Q4'] == s[2])
 
     def test_period_dt64_round_trip(self):
         dti = date_range('1/1/2000', '1/7/2002', freq='B')
-        ii = dti.to_period()
-        self.assert_(ii.to_timestamp().equals(dti))
+        pi = dti.to_period()
+        self.assert_(pi.to_timestamp().equals(dti))
 
         dti = date_range('1/1/2000', '1/7/2002', freq='B')
-        ii = dti.to_period(freq='H')
-        self.assert_(ii.to_timestamp().equals(dti))
+        pi = dti.to_period(freq='H')
+        self.assert_(pi.to_timestamp().equals(dti))
 
     def test_to_period_quarterly(self):
         # make sure we can make the round trip
@@ -1309,19 +1310,19 @@ class TestPeriodIndex(TestCase):
                           freq='2A')
         self.assertRaises(ValueError, Period, '1989', freq='2A')
 
-    # def test_iindex_multiples(self):
-    #     ii = PeriodIndex(start='1/1/10', end='12/31/12', freq='2M')
-    #     self.assertEquals(ii[0], Period('1/1/10', '2M'))
-    #     self.assertEquals(ii[1], Period('3/1/10', '2M'))
+    # def test_pindex_multiples(self):
+    #     pi = PeriodIndex(start='1/1/10', end='12/31/12', freq='2M')
+    #     self.assertEquals(pi[0], Period('1/1/10', '2M'))
+    #     self.assertEquals(pi[1], Period('3/1/10', '2M'))
 
-    #     self.assertEquals(ii[0].asfreq('6M'), ii[2].asfreq('6M'))
-    #     self.assertEquals(ii[0].asfreq('A'), ii[2].asfreq('A'))
+    #     self.assertEquals(pi[0].asfreq('6M'), pi[2].asfreq('6M'))
+    #     self.assertEquals(pi[0].asfreq('A'), pi[2].asfreq('A'))
 
-    #     self.assertEquals(ii[0].asfreq('M', how='S'),
+    #     self.assertEquals(pi[0].asfreq('M', how='S'),
     #                       Period('Jan 2010', '1M'))
-    #     self.assertEquals(ii[0].asfreq('M', how='E'),
+    #     self.assertEquals(pi[0].asfreq('M', how='E'),
     #                       Period('Feb 2010', '1M'))
-    #     self.assertEquals(ii[1].asfreq('M', how='S'),
+    #     self.assertEquals(pi[1].asfreq('M', how='S'),
     #                       Period('Mar 2010', '1M'))
 
     #     i = Period('1/1/2010 12:05:18', '5S')
@@ -1424,33 +1425,33 @@ class TestPeriodIndex(TestCase):
         # year, month, day, hour, minute
         # second, weekofyear, week, dayofweek, weekday, dayofyear, quarter
         # qyear
-        ii = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
-        self._check_all_fields(ii)
+        pi = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        self._check_all_fields(pi)
 
-        ii = PeriodIndex(freq='Q', start='1/1/2001', end='12/1/2003')
-        self._check_all_fields(ii)
+        pi = PeriodIndex(freq='Q', start='1/1/2001', end='12/1/2003')
+        self._check_all_fields(pi)
 
-        ii = PeriodIndex(freq='M', start='1/1/2001', end='1/1/2002')
-        self._check_all_fields(ii)
+        pi = PeriodIndex(freq='M', start='1/1/2001', end='1/1/2002')
+        self._check_all_fields(pi)
 
-        ii = PeriodIndex(freq='D', start='12/1/2001', end='1/1/2002')
-        self._check_all_fields(ii)
+        pi = PeriodIndex(freq='D', start='12/1/2001', end='1/1/2002')
+        self._check_all_fields(pi)
 
-        ii = PeriodIndex(freq='B', start='12/1/2001', end='1/1/2002')
-        self._check_all_fields(ii)
+        pi = PeriodIndex(freq='B', start='12/1/2001', end='1/1/2002')
+        self._check_all_fields(pi)
 
-        ii = PeriodIndex(freq='H', start='12/31/2001', end='1/1/2002 23:00')
-        self._check_all_fields(ii)
+        pi = PeriodIndex(freq='H', start='12/31/2001', end='1/1/2002 23:00')
+        self._check_all_fields(pi)
 
-        ii = PeriodIndex(freq='Min', start='12/31/2001', end='1/1/2002 00:59')
-        self._check_all_fields(ii)
+        pi = PeriodIndex(freq='Min', start='12/31/2001', end='1/1/2002 00:59')
+        self._check_all_fields(pi)
 
-        ii = PeriodIndex(freq='S', start='12/31/2001', end='1/1/2001 00:00:01')
-        self._check_all_fields(ii)
+        pi = PeriodIndex(freq='S', start='12/31/2001', end='1/1/2001 00:00:01')
+        self._check_all_fields(pi)
 
         end_intv = Period('2006-12-31', 'W')
         i1 = PeriodIndex(end=end_intv, periods=10)
-        self._check_all_fields(ii)
+        self._check_all_fields(pi)
 
     def _check_all_fields(self, periodindex):
         fields = ['year', 'month', 'day', 'hour', 'minute',

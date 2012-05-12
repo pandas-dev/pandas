@@ -135,6 +135,8 @@ def parse_time_string(arg, freq=None):
     """
     from pandas.core.format import print_config
     from pandas.tseries.offsets import DateOffset
+    from pandas.tseries.frequencies import (_get_rule_month, _month_numbers,
+                                            _get_freq_str)
 
     if not isinstance(arg, basestring):
         return arg
@@ -165,7 +167,17 @@ def parse_time_string(arg, freq=None):
                     y = int(y_str)
                     if add_century:
                         y += 2000
-                    ret = default.replace(year=y, month=(q-1)*3+1)
+
+                    if freq is not None:
+                        # hack attack, #1228
+                        mnum = _month_numbers[_get_rule_month(freq)] + 1
+                        month = (mnum + (q - 1) * 3) % 12 + 1
+                        if month > mnum:
+                            y -= 1
+                    else:
+                        month = (q - 1) * 3 + 1
+
+                    ret = default.replace(year=y, month=month)
                     return ret, ret, 'quarter'
 
             is_mo_str = freq is not None and freq == 'M'
