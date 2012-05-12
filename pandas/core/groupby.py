@@ -537,7 +537,6 @@ class Grouper(object):
             return self.groupings[0].indices
         else:
             # TODO: this is massively inefficient
-            foo
             to_groupby = zip(*(ping.grouper for ping in self.groupings))
             to_groupby = Index(to_groupby)
             return lib.groupby_indices(to_groupby)
