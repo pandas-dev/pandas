@@ -155,3 +155,20 @@ f = lambda x: {'first': x.values[0], 'last': x.values[-1]}
 
 groupby_apply_dict_return = Benchmark('data.groupby(labels).apply(f)',
                                       setup, start_date=datetime(2011, 12, 15))
+
+#----------------------------------------------------------------------
+# First / last functions
+
+setup = common_setup + """
+labels = np.arange(10000).repeat(10)
+data = Series(randn(len(labels)))
+data[::3] = np.nan
+data[1::3] = np.nan
+labels = labels.take(np.random.permutation(len(labels)))
+"""
+
+groupby_first = Benchmark('data.groupby(labels).first()', setup,
+                          start_date=datetime(2012, 5, 1))
+
+groupby_last = Benchmark('data.groupby(labels).last()', setup,
+                          start_date=datetime(2012, 5, 1))
