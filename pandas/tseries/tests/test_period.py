@@ -1464,6 +1464,23 @@ class TestPeriodIndex(TestCase):
         for x, val in zip(periodindex, field_idx):
             assert_equal(getattr(x, fieldname), val)
 
+    def test_is_full(self):
+        index = PeriodIndex([2005, 2007, 2009], freq='A')
+        self.assert_(not index.is_full)
+
+        index = PeriodIndex([2005, 2006, 2007], freq='A')
+        self.assert_(index.is_full)
+
+        index = PeriodIndex([2005, 2005, 2007], freq='A')
+        self.assert_(not index.is_full)
+
+        index = PeriodIndex([2005, 2005, 2006], freq='A')
+        self.assert_(index.is_full)
+
+        index = PeriodIndex([2006, 2005, 2005], freq='A')
+        self.assertRaises(ValueError, getattr, index, 'is_full')
+
+        self.assert_(index[:0].is_full)
 
 def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
