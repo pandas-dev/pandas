@@ -1213,7 +1213,11 @@ class SeriesGroupBy(GroupBy):
                 index = Index(keys, name=self.grouper.names[0])
             return index
 
-        if isinstance(values[0], Series):
+        if isinstance(values[0], dict):
+            # # GH #823
+            return DataFrame(values, index=keys).stack()
+
+        if isinstance(values[0], (Series, dict)):
             return self._concat_objects(keys, values,
                                         not_indexed_same=not_indexed_same)
         elif isinstance(values[0], DataFrame):

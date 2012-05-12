@@ -144,3 +144,14 @@ stmt = "df.pivot_table(rows='key1', cols=['key2', 'key3'])"
 groupby_pivot_table = Benchmark(stmt, setup, start_date=datetime(2011, 12, 15))
 
 
+#----------------------------------------------------------------------
+# dict return values
+
+setup = common_setup + """
+labels = np.arange(1000).repeat(10)
+data = Series(randn(len(labels)))
+f = lambda x: {'first': x.values[0], 'last': x.values[-1]}
+"""
+
+groupby_apply_dict_return = Benchmark('data.groupby(labels).apply(f)',
+                                      setup, start_date=datetime(2011, 12, 15))
