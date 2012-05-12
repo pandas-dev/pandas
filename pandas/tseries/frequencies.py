@@ -951,6 +951,8 @@ def is_superperiod(source, target):
         return target not in ['D', 'B', 'H', 'T', 'S']
 
 def _get_rule_month(source, default='DEC'):
+    if isinstance(source, offsets.DateOffset):
+        source = source.rule_code
     source = source.upper()
     if '-' not in source:
         return default
