@@ -737,19 +737,18 @@ def string_to_datetime(ndarray[object] strings, raise_=False, dayfirst=False):
 
     from dateutil.parser import parse
 
-
     try:
         result = np.empty(n, dtype='M8[us]')
         iresult = result.view('i8')
         for i in range(n):
             val = strings[i]
             if util._checknull(val):
-                result[i] = 'NaT'
+                iresult[i] = NaT
             elif PyDateTime_Check(val):
                 result[i] = val
             else:
                 if len(val) == 0:
-                    result[i] = 'NaT'
+                    iresult[i] = NaT
                     continue
                 try:
                     result[i] = parse(val, dayfirst=dayfirst)
