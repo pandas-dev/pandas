@@ -57,6 +57,13 @@ class TimeGrouper(CustomGrouper):
         if isinstance(axis, DatetimeIndex):
             return self._resample_timestamps(obj)
         elif isinstance(axis, PeriodIndex):
+            offset = to_offset(self.freq)
+            if offset.n > 1:
+                if self.kind == 'period':  # pragma: no cover
+                    print 'Warning: multiple of frequency -> timestamps'
+                # Cannot have multiple of periods, convert to timestamp
+                self.kind = 'timestamp'
+
             if self.kind is None or self.kind == 'period':
                 return self._resample_periods(obj)
             else:
@@ -248,7 +255,6 @@ def _get_range_edges(axis, begin, end, offset, closed='left'):
             return _adjust_dates_anchored(axis[0], axis[-1], offset,
                                           closed=closed)
 
-
     if begin is None:
         if closed == 'left':
             first = Timestamp(offset.rollback(axis[0]))
@@ -259,7 +265,6 @@ def _get_range_edges(axis, begin, end, offset, closed='left'):
 
     if end is None:
         last = Timestamp(axis[-1] + offset)
-        # last = Timestamp(offset.rollforward(axis[-1]))
     else:
         last = Timestamp(offset.rollforward(end))
 
