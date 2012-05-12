@@ -24,7 +24,7 @@ def _period_field_accessor(name, alias=None):
         alias = name
     def f(self):
         base, mult = _gfc(self.freq)
-        return lib.get_period_field(alias, self.ordinal, base, mult)
+        return lib.get_period_field(alias, self.ordinal, base)
     f.__name__ = name
     return property(f)
 
@@ -33,7 +33,7 @@ def _field_accessor(name, alias=None):
         alias = name
     def f(self):
         base, mult = _gfc(self.freq)
-        return lib.get_period_field_arr(alias, self.values, base, mult)
+        return lib.get_period_field_arr(alias, self.values, base)
     f.__name__ = name
     return property(f)
 
@@ -108,6 +108,8 @@ class Period(object):
                 raise ValueError("If value is None, year cannot be None")
 
             base, mult = _gfc(freq)
+            if mult != 1:
+                raise ValueError('Only mult == 1 supported')
 
             if quarter is not None:
                 mnum = _month_numbers[_freq_mod._get_rule_month(freq)] + 1
@@ -116,7 +118,7 @@ class Period(object):
                     year -= 1
 
             self.ordinal = lib.period_ordinal(year, month, day, hour, minute,
-                                            second, base, mult)
+                                              second, base)
 
         elif isinstance(value, Period):
             other = value
@@ -163,12 +165,15 @@ class Period(object):
             raise ValueError(msg)
 
         base, mult = _gfc(freq)
+        if mult != 1:
+            raise ValueError('Only mult == 1 supported')
 
         if self.ordinal is None:
-            self.ordinal = lib.period_ordinal(dt.year, dt.month, dt.day, dt.hour,
-                                            dt.minute, dt.second, base, mult)
+            self.ordinal = lib.period_ordinal(dt.year, dt.month, dt.day,
+                                              dt.hour, dt.minute, dt.second,
+                                              base)
 
-        self.freq = _freq_mod._get_freq_str(base, mult)
+        self.freq = _freq_mod._get_freq_str(base)
 
     def __eq__(self, other):
         if isinstance(other, Period):
@@ -210,14 +215,16 @@ class Period(object):
         base1, mult1 = _gfc(self.freq)
         base2, mult2 = _gfc(freq)
 
+        if mult2 != 1:
+            raise ValueError('Only mult == 1 supported')
+
         if how not in ('S', 'E'):
             raise ValueError('relation argument must be one of S or E')
 
         end = how == 'E'
-        new_ordinal = lib.period_asfreq(self.ordinal, base1, mult1,
-                                        base2, mult2, end)
+        new_ordinal = lib.period_asfreq(self.ordinal, base1, base2, end)
 
-        return Period(ordinal=new_ordinal, freq=(base2, mult2))
+        return Period(ordinal=new_ordinal, freq=base2)
 
     @property
     def start_time(self):
@@ -250,7 +257,11 @@ class Period(object):
         else:
             base, mult = _gfc(freq)
             new_val = self.asfreq(freq, how)
-        dt64 = lib.period_ordinal_to_dt64(new_val.ordinal, base, mult)
+
+        if mult != 1:
+            raise ValueError('Only mult == 1 supported')
+
+        dt64 = lib.period_ordinal_to_dt64(new_val.ordinal, base)
         ts_freq = _period_rule_to_timestamp_rule(new_val.freq, how=how)
         return Timestamp(dt64, offset=to_offset(ts_freq))
 
@@ -274,15 +285,13 @@ class Period(object):
 
     def __repr__(self):
         base, mult = _gfc(self.freq)
-        formatted = lib.period_ordinal_to_string(self.ordinal, base, mult)
+        formatted = lib.period_ordinal_to_string(self.ordinal, base)
         freqstr = _freq_mod._reverse_period_code_map[base]
-        if mult == 1:
-            return "Period('%s', '%s')" % (formatted, freqstr)
-        return ("Period('%s', '%d%s')" % (formatted, mult, freqstr))
+        return "Period('%s', '%s')" % (formatted, freqstr)
 
     def __str__(self):
         base, mult = _gfc(self.freq)
-        formatted = lib.period_ordinal_to_string(self.ordinal, base, mult)
+        formatted = lib.period_ordinal_to_string(self.ordinal, base)
         return ("%s" % formatted)
 
     def strftime(self, fmt):
@@ -424,9 +433,9 @@ class Period(object):
         """
         base, mult = _gfc(self.freq)
         if fmt is not None:
-            return lib.period_strftime(self.ordinal, base, mult, fmt)
+            return lib.period_strftime(self.ordinal, base, fmt)
         else:
-            return lib.period_ordinal_to_string(self.ordinal, base, mult)
+            return lib.period_ordinal_to_string(self.ordinal, base)
 
 def _period_unbox(key, check=None):
     '''
@@ -465,7 +474,7 @@ def dt64arr_to_periodarr(data, freq):
     else:
         base, mult = freq
 
-    return lib.dt64arr_to_periodarr(data.view('i8'), base, mult)
+    return lib.dt64arr_to_periodarr(data.view('i8'), base)
 
 # --- Period index sketch
 
@@ -589,8 +598,7 @@ class PeriodIndex(Int64Index):
                 else:
                     base1, mult1 = _gfc(data.freq)
                     base2, mult2 = _gfc(freq)
-                    data = lib.period_asfreq_arr(data.values, base1, mult1,
-                                                 base2, mult2, 1)
+                    data = lib.period_asfreq_arr(data.values, base1, base2, 1)
             else:
                 if freq is None and len(data) > 0:
                     freq = getattr(data[0], 'freq')
@@ -664,12 +672,14 @@ class PeriodIndex(Int64Index):
         else:
             base2, mult2 = freq
 
+        if mult2 != 1:
+            raise ValueError('Only mult == 1 supported')
+
         if how not in ('S', 'E'):
             raise ValueError('relation argument must be one of S or E')
 
         end = how == 'E'
-        new_data = lib.period_asfreq_arr(self.values, base1, mult1,
-                                         base2, mult2, end)
+        new_data = lib.period_asfreq_arr(self.values, base1, base2, end)
 
         result = new_data.view(PeriodIndex)
         result.name = self.name
@@ -719,12 +729,14 @@ class PeriodIndex(Int64Index):
         if freq is None:
             base, mult = _gfc(self.freq)
             new_data = self
-            # freq = self.freq
         else:
             base, mult = _gfc(freq)
             new_data = self.asfreq(freq, how)
-            # freq = 'infer'
-        new_data = lib.periodarr_to_dt64arr(new_data.values, base, mult)
+
+        if mult != 1:
+            raise ValueError('Only mult == 1 supported')
+
+        new_data = lib.periodarr_to_dt64arr(new_data.values, base)
         return DatetimeIndex(new_data, freq='infer')
 
     def shift(self, n):

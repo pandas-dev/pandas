@@ -153,9 +153,6 @@ class TestPeriodProperties(TestCase):
         i1 = Period('1982', freq='Min')
         self.assert_(i1.freq[0] != '1')
 
-        i2 = Period('11/30/2005', freq='2Q')
-        self.assertEquals(i2.freq[0], '2')
-
     def test_to_timestamp(self):
         p = Period('1982', freq='A')
         start_ts = p.to_timestamp(how='S')
@@ -1303,6 +1300,14 @@ class TestPeriodIndex(TestCase):
             stamps = rng.to_timestamp()
             result = stamps.to_period(freq)
             self.assert_(rng.equals(result))
+
+    def test_no_multiples(self):
+        self.assertRaises(ValueError, period_range, '1989Q3', periods=10,
+                          freq='2Q')
+
+        self.assertRaises(ValueError, period_range, '1989', periods=10,
+                          freq='2A')
+        self.assertRaises(ValueError, Period, '1989', freq='2A')
 
     # def test_iindex_multiples(self):
     #     ii = PeriodIndex(start='1/1/10', end='12/31/12', freq='2M')
