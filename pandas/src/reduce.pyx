@@ -85,7 +85,6 @@ cdef class Reducer:
         except Exception, e:
             if hasattr(e, 'args'):
                 e.args = e.args + (i,)
-            print e
         finally:
             # so we don't free the wrong memory
             chunk.data = dummy_buf

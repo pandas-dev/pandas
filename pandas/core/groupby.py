@@ -537,6 +537,7 @@ class Grouper(object):
             return self.groupings[0].indices
         else:
             # TODO: this is massively inefficient
+            foo
             to_groupby = zip(*(ping.grouper for ping in self.groupings))
             to_groupby = Index(to_groupby)
             return lib.groupby_indices(to_groupby)
@@ -2039,9 +2040,7 @@ def _intercept_cython(func):
     return _cython_table.get(func)
 
 def _groupby_indices(values):
-    if values.dtype != np.object_:
-        values = values.astype('O')
-    return lib.groupby_indices(values)
+    return lib.groupby_indices(com._ensure_object(values))
 
 def numpy_groupby(data, labels, axis=0):
     s = np.argsort(labels)
