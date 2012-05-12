@@ -250,7 +250,7 @@ alias parsing is case sensitive.
 .. _timeseries.daterange:
 
 Generating date ranges (date_range)
-----------------------------------
+-----------------------------------
 
 The ``date_range`` class utilizes these offsets (and any ones that we might add)
 to generate fixed-frequency date ranges:
@@ -260,9 +260,9 @@ to generate fixed-frequency date ranges:
    start = datetime(2009, 1, 1)
    end = datetime(2010, 1, 1)
 
-   rng = date_range(start, end, offset=BDay())
+   rng = date_range(start, end, freq=BDay())
    rng
-   date_range(start, end, offset=BMonthEnd())
+   date_range(start, end, freq=BMonthEnd())
 
 **Business day frequency** is the default for ``date_range``. You can also
 strictly generate a ``date_range`` of a certain length by providing either a
@@ -277,7 +277,7 @@ The start and end dates are strictly inclusive. So it will not generate any
 dates outside of those dates if specified.
 
 date_range is a valid Index
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 One of the main uses for ``date_range`` is as an index for pandas objects. When
 working with a lot of time series data, there are several reasons to use
@@ -295,7 +295,7 @@ slicing, etc.
 
 .. ipython:: python
 
-   rng = date_range(start, end, offset=BMonthEnd())
+   rng = date_range(start, end, freq=BMonthEnd())
    ts = Series(randn(len(rng)), index=rng)
    ts.index
    ts[:5].index
@@ -339,8 +339,8 @@ rule <timeseries.timerule>`:
 
 .. ipython:: python
 
-   ts.shift(5, offset=datetools.bday)
-   ts.shift(5, offset='EOM')
+   ts.shift(5, freq=datetools.bday)
+   ts.shift(5, freq='EOM')
 
 Frequency conversion
 ~~~~~~~~~~~~~~~~~~~~
@@ -351,7 +351,7 @@ generates a ``date_range`` and calls ``reindex``.
 
 .. ipython:: python
 
-   dr = date_range('1/1/2010', periods=3, offset=3 * datetools.bday)
+   dr = date_range('1/1/2010', periods=3, freq=3 * datetools.bday)
    ts = Series(randn(3), index=dr)
    ts
    ts.asfreq(BDay())
@@ -377,9 +377,9 @@ view) application of GroupBy. Carry out the following steps:
 
 .. code-block:: python
 
-   dr1hour = date_range(start, end, offset=Hour())
-   dr5day = date_range(start, end, offset=5 * datetools.day)
-   dr10day = date_range(start, end, offset=10 * datetools.day)
+   dr1hour = date_range(start, end, freq=Hour())
+   dr5day = date_range(start, end, freq=5 * datetools.day)
+   dr10day = date_range(start, end, freq=10 * datetools.day)
 
 
 2. Use the ``asof`` function ("as of") of the date_range to do a groupby
@@ -396,11 +396,11 @@ Here is a fully-worked example:
 
    # some minutely data
    minutely = date_range('1/3/2000 00:00:00', '1/3/2000 12:00:00',
-                        offset=datetools.Minute())
+                        freq=datetools.Minute())
    ts = Series(randn(len(minutely)), index=minutely)
    ts.index
 
-   hourly = date_range('1/3/2000', '1/4/2000', offset=datetools.Hour())
+   hourly = date_range('1/3/2000', '1/4/2000', freq=datetools.Hour())
 
    grouped = ts.groupby(hourly.asof)
    grouped.mean()
