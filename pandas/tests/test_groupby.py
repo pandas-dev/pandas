@@ -1701,6 +1701,19 @@ class TestGroupBy(unittest.TestCase):
         result = grouped.agg({'fl':'sum',2:'size'})
         self.assert_(result['fl'].dtype == np.float64)
 
+    def test_handle_dict_return_value(self):
+        def f(group):
+            return {'min': group.min(), 'max': group.max()}
+
+        def g(group):
+            return Series({'min': group.min(), 'max': group.max()})
+
+        result = self.df.groupby('A')['C'].apply(f)
+        expected = self.df.groupby('A')['C'].apply(g)
+
+        self.assert_(isinstance(result, Series))
+        assert_series_equal(result, expected)
+
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     tups = map(tuple, df[keys].values)
     tups = com._asarray_tuplesafe(tups)
