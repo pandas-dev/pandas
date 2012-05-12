@@ -38,6 +38,7 @@ pandas 0.8.0
   - Add support for indexes (dates or otherwise) with duplicates and common
     sense indexing/selection functionality
   - Series/DataFrame.update methods, in-place variant of combine_first (#961)
+  - Add ``match`` function to API (#502)
 
 **Improvements to existing features**
 
