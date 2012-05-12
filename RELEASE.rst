@@ -39,6 +39,8 @@ pandas 0.8.0
     sense indexing/selection functionality
   - Series/DataFrame.update methods, in-place variant of combine_first (#961)
   - Add ``match`` function to API (#502)
+  - Add Cython-optimized first, last, min, max, prod functions to GroupBy (#994,
+    #1043)
 
 **Improvements to existing features**
 

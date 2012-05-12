@@ -30,6 +30,20 @@ def _groupby_function(name, alias, npfunc):
 
     return f
 
+def _first_compat(x, axis=0):
+    x = np.asarray(x)
+    x = x[com.notnull(x)]
+    if len(x) == 0:
+        return np.nan
+    return x[0]
+
+def _last_compat(x, axis=0):
+    x = np.asarray(x)
+    x = x[com.notnull(x)]
+    if len(x) == 0:
+        return np.nan
+    return x[-1]
+
 
 class GroupBy(object):
     """
@@ -314,6 +328,8 @@ class GroupBy(object):
     prod = _groupby_function('prod', 'prod', np.prod)
     min = _groupby_function('min', 'min', np.min)
     max = _groupby_function('max', 'max', np.max)
+    first = _groupby_function('first', 'first', _first_compat)
+    last = _groupby_function('last', 'last', _last_compat)
 
     def ohlc(self):
         """
@@ -323,11 +339,11 @@ class GroupBy(object):
         """
         return self._cython_agg_general('ohlc')
 
-    def last(self):
-        return self.nth(-1)
+    # def last(self):
+    #     return self.nth(-1)
 
-    def first(self):
-        return self.nth(0)
+    # def first(self):
+    #     return self.nth(0)
 
     def nth(self, n):
         def picker(arr):
@@ -621,7 +637,9 @@ class Grouper(object):
         'max' : lib.group_max,
         'mean' : lib.group_mean,
         'var' : lib.group_var,
-        'std' : lib.group_var
+        'std' : lib.group_var,
+        'first': lambda a, b, c, d: lib.group_nth(a, b, c, d, 1),
+        'last': lib.group_last
     }
 
     _cython_transforms = {
@@ -858,7 +876,9 @@ class BinGrouper(Grouper):
         'max' : lib.group_max_bin,
         'var' : lib.group_var_bin,
         'std' : lib.group_var_bin,
-        'ohlc' : lib.group_ohlc
+        'ohlc' : lib.group_ohlc,
+        'first': lambda a, b, c, d: lib.group_nth_bin(a, b, c, d, 1),
+        'last': lib.group_last_bin
     }
 
     _name_functions = {
