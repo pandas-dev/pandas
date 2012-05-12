@@ -665,6 +665,7 @@ def value_count_int64(ndarray[int64_t] values):
 
     return result_keys, result_counts
 
+
 include "hashtable.pyx"
 include "datetime.pyx"
 include "skiplist.pyx"
