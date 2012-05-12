@@ -35,6 +35,8 @@
 // #define HIGHFREQ_ORIG 62135683200LL
 #define BASE_YEAR 1970
 #define ORD_OFFSET 719163LL // days until 1970-01-01
+#define BDAY_OFFSET 513689LL // days until 1970-01-01
+#define WEEK_OFFSET 102737LL
 #define HIGHFREQ_ORIG 0 // ORD_OFFSET * 86400LL // days until 1970-01-01
 
 #define FR_ANN  1000  /* Annual */
@@ -86,7 +88,7 @@
 
 #define FR_UND  -10000 /* Undefined */
 
-#define INT_ERR_CODE -1
+#define INT_ERR_CODE INT32_MIN
 
 #define MEM_CHECK(item) if (item == NULL) { return PyErr_NoMemory(); }
 #define ERR_CHECK(item) if (item == NULL) { return NULL; }
@@ -138,7 +140,7 @@ char *period_to_string(npy_int64 value, int freq);
 char *period_to_string2(npy_int64 value, int freq, char *fmt);
 
 int get_date_info(npy_int64 ordinal, int freq, struct date_info *dinfo);
-freq_conv_func get_asfreq_func(int fromFreq, int toFreq, int forConvert);
+freq_conv_func get_asfreq_func(int fromFreq, int toFreq);
 void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info);
 
 int pyear(npy_int64 ordinal, int freq);

@@ -1490,8 +1490,14 @@ class TestPeriodRepresentation(unittest.TestCase):
     def test_monthly(self):
         self._check_freq('M', '1970-01')
 
+    def test_weekly(self):
+        self._check_freq('W-THU', '1970-01-01')
+
     def test_daily(self):
         self._check_freq('D', '1970-01-01')
+
+    def test_business_daily(self):
+        self._check_freq('B', '1970-01-01')
 
     def test_hourly(self):
         self._check_freq('H', '1970-01-01')
@@ -1506,6 +1512,23 @@ class TestPeriodRepresentation(unittest.TestCase):
         rng = PeriodIndex(start=base_date, periods=10, freq=freq)
         exp = np.arange(10, dtype=np.int64)
         self.assert_(np.array_equal(rng.values, exp))
+
+    def test_negone_ordinals(self):
+        freqs = ['A', 'M', 'Q', 'D','H', 'T', 'S']
+
+        period = Period(ordinal=-1, freq='D')
+        for freq in freqs:
+            repr(period.asfreq(freq))
+
+        for freq in freqs:
+            period = Period(ordinal=-1, freq=freq)
+            repr(period)
+            self.assertEquals(period.year, 1969)
+
+        period = Period(ordinal=-1, freq='B')
+        repr(period)
+        period = Period(ordinal=-1, freq='W')
+        repr(period)
 
 
 if __name__ == '__main__':

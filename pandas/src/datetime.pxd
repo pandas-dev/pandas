@@ -1,6 +1,13 @@
 from numpy cimport int64_t
 from cpython cimport PyObject
 
+
+cdef extern from "stdint.h":
+    enum: INT64_MIN
+    enum: INT32_MIN
+
+
+
 cdef extern from "datetime.h":
 
     ctypedef class datetime.date [object PyDateTime_Date]:
@@ -128,36 +135,32 @@ cdef extern from "period.h":
 
     ctypedef int64_t (*freq_conv_func)(int64_t, char, asfreq_info*)
 
-    int64_t asfreq(int64_t dtordinal, int freq1, int freq2, char relation) except -1
-    freq_conv_func get_asfreq_func(int fromFreq, int toFreq, int forConvert)
+    int64_t asfreq(int64_t dtordinal, int freq1, int freq2, char relation) except INT32_MIN
+    freq_conv_func get_asfreq_func(int fromFreq, int toFreq)
     void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info)
 
     int64_t get_period_ordinal(int year, int month, int day,
                           int hour, int minute, int second,
-                          int freq) except -1
+                          int freq) except INT32_MIN
 
-    int64_t get_python_ordinal(int64_t period_ordinal, int freq) except -1
+    int64_t get_python_ordinal(int64_t period_ordinal, int freq) except INT32_MIN
 
     char *skts_strftime(int64_t value, int freq, PyObject *args)
     char *period_to_string(int64_t value, int freq)
     char *period_to_string2(int64_t value, int freq, char *fmt)
 
-    int get_date_info(int64_t ordinal, int freq, date_info *dinfo) except -1
+    int get_date_info(int64_t ordinal, int freq, date_info *dinfo) except INT32_MIN
     double getAbsTime(int, int64_t, int64_t)
 
-    int pyear(int64_t ordinal, int freq) except -1
-    int pqyear(int64_t ordinal, int freq) except -1
-    int pquarter(int64_t ordinal, int freq) except -1
-    int pmonth(int64_t ordinal, int freq) except -1
-    int pday(int64_t ordinal, int freq) except -1
-    int pweekday(int64_t ordinal, int freq) except -1
-    int pday_of_week(int64_t ordinal, int freq) except -1
-    int pday_of_year(int64_t ordinal, int freq) except -1
-    int pweek(int64_t ordinal, int freq) except -1
-    int phour(int64_t ordinal, int freq) except -1
-    int pminute(int64_t ordinal, int freq) except -1
-    int psecond(int64_t ordinal, int freq) except -1
-
-cdef extern from "stdint.h":
-    enum: INT64_MIN
-
+    int pyear(int64_t ordinal, int freq) except INT32_MIN
+    int pqyear(int64_t ordinal, int freq) except INT32_MIN
+    int pquarter(int64_t ordinal, int freq) except INT32_MIN
+    int pmonth(int64_t ordinal, int freq) except INT32_MIN
+    int pday(int64_t ordinal, int freq) except INT32_MIN
+    int pweekday(int64_t ordinal, int freq) except INT32_MIN
+    int pday_of_week(int64_t ordinal, int freq) except INT32_MIN
+    int pday_of_year(int64_t ordinal, int freq) except INT32_MIN
+    int pweek(int64_t ordinal, int freq) except INT32_MIN
+    int phour(int64_t ordinal, int freq) except INT32_MIN
+    int pminute(int64_t ordinal, int freq) except INT32_MIN
+    int psecond(int64_t ordinal, int freq) except INT32_MIN
