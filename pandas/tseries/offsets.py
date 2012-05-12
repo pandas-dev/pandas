@@ -962,7 +962,8 @@ class Tick(DateOffset):
 
         return self._delta
 
-    def us_stride(self):
+    @property
+    def micros(self):
         return _delta_to_microseconds(self.delta)
 
     def apply(self, other):

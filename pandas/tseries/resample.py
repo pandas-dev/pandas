@@ -233,11 +233,21 @@ def _make_time_bins(axis, freq, begin=None, end=None,
     return binner, bins, labels
 
 def _get_range_edges(axis, begin, end, offset, closed='left'):
+    from pandas.tseries.offsets import Tick, _delta_to_microseconds
     if isinstance(offset, basestring):
         offset = to_offset(offset)
 
     if not isinstance(offset, DateOffset):
         raise ValueError("Rule not a recognized offset")
+
+    if isinstance(offset, Tick):
+        day_micros = _delta_to_microseconds(timedelta(1))
+        # #1165
+        if ((day_micros % offset.micros) == 0 and begin is None
+            and end is None):
+            return _adjust_dates_anchored(axis[0], axis[-1], offset,
+                                          closed=closed)
+
 
     if begin is None:
         if closed == 'left':
@@ -254,6 +264,45 @@ def _get_range_edges(axis, begin, end, offset, closed='left'):
         last = Timestamp(offset.rollforward(end))
 
     return first, last
+
+
+def _adjust_dates_anchored(first, last, offset, closed='right'):
+    from pandas.tseries.tools import normalize_date
+
+    start_day_micros = Timestamp(normalize_date(first)).value
+    last_day_micros = Timestamp(normalize_date(last)).value
+
+    foffset = (first.value - start_day_micros) % offset.micros
+    loffset = (last.value - last_day_micros) % offset.micros
+
+    if closed == 'right':
+        if foffset > 0:
+            # roll back
+            fresult = first.value - foffset
+        else:
+            fresult = first.value - offset.micros
+
+        if loffset > 0:
+            # roll forward
+            lresult = last.value + (offset.micros - loffset)
+        else:
+            # already the end of the road
+            lresult = last.value
+    else:  # closed == 'left'
+        if foffset > 0:
+            fresult = first.value - foffset
+        else:
+            # start of the road
+            fresult = first.value
+
+        if loffset > 0:
+            # roll forward
+            lresult = last.value + (offset.micros - loffset)
+        else:
+            lresult = last.value + offset.micros
+
+    return Timestamp(fresult), Timestamp(lresult)
+
 
 def asfreq(obj, freq, method=None, how=None):
     """

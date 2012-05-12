@@ -3,7 +3,7 @@ import numpy as np
 from pandas.core.frame import DataFrame
 import pandas.core.nanops as nanops
 
-def convert_to_annual(series, freq=None):
+def pivot_annual(series, freq=None):
     """
     Group a series by years, taking leap years into account.
 
