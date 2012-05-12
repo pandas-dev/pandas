@@ -1233,7 +1233,7 @@ cdef inline int64_t remove_mult(int64_t period_ord_w_mult, int64_t mult):
 
     return period_ord_w_mult * mult + 1;
 
-def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int freq, int64_t mult):
+def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int freq):
     """
     Convert array of datetime64 values (passed in as 'i8' dtype) to a set of
     periods corresponding to desired frequency, per period convention.
@@ -1251,10 +1251,9 @@ def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int freq, int64_t mult):
         PyArray_DatetimeToDatetimeStruct(dtarr[i], NPY_FR_us, &dts)
         out[i] = get_period_ordinal(dts.year, dts.month, dts.day,
                                   dts.hour, dts.min, dts.sec, freq)
-        out[i] = apply_mult(out[i], mult)
     return out
 
-def periodarr_to_dt64arr(ndarray[int64_t] periodarr, int freq, int64_t mult):
+def periodarr_to_dt64arr(ndarray[int64_t] periodarr, int freq):
     """
     Convert array to datetime64 values from a set of ordinals corresponding to
     periods per period convention.
@@ -1268,15 +1267,15 @@ def periodarr_to_dt64arr(ndarray[int64_t] periodarr, int freq, int64_t mult):
     out = np.empty(l, dtype='i8')
 
     for i in range(l):
-        out[i] = period_ordinal_to_dt64(periodarr[i], freq, mult)
+        out[i] = period_ordinal_to_dt64(periodarr[i], freq)
 
     return out
 
 cdef char START = 'S'
 cdef char END = 'E'
 
-cpdef int64_t period_asfreq(int64_t period_ordinal, int freq1, int64_t mult1,
-                            int freq2, int64_t mult2, bint end):
+cpdef int64_t period_asfreq(int64_t period_ordinal, int freq1, int freq2,
+                            bint end):
     """
     Convert period ordinal from one frequency to another, and if upsampling,
     choose to use start ('S') or end ('E') of period.
@@ -1284,24 +1283,17 @@ cpdef int64_t period_asfreq(int64_t period_ordinal, int freq1, int64_t mult1,
     cdef:
         int64_t retval
 
-    period_ordinal = remove_mult(period_ordinal, mult1)
-
-    if mult1 != 1 and end:
-        period_ordinal += (mult1 - 1)
-
     if end:
         retval = asfreq(period_ordinal, freq1, freq2, END)
     else:
         retval = asfreq(period_ordinal, freq1, freq2, START)
-    retval = apply_mult(retval, mult2)
 
     if retval == INT32_MIN:
         raise ValueError('Frequency conversion failed')
 
     return retval
 
-def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int64_t mult1,
-                      int freq2, int64_t mult2, bint end):
+def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
     """
     Convert int64-array of period ordinals from one frequency to another, and
     if upsampling, choose to use start ('S') or end ('E') of period.
@@ -1326,31 +1318,24 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int64_t mult1,
         relation = START
 
     for i in range(n):
-        ordinal = remove_mult(arr[i], mult1)
         val = func(arr[i], relation, &finfo)
         if val == -1:
             raise ValueError("Unable to convert to desired frequency.")
-        result[i] = apply_mult(val, mult2)
+        result[i] = val
 
     return result
 
-def period_ordinal(int y, int m, int d, int h, int min, int s,
-                   int freq, int64_t mult):
+def period_ordinal(int y, int m, int d, int h, int min, int s, int freq):
     cdef:
         int64_t ordinal
 
-    ordinal = get_period_ordinal(y, m, d, h, min, s, freq)
+    return get_period_ordinal(y, m, d, h, min, s, freq)
 
-    return apply_mult(ordinal, mult)
 
-cpdef int64_t period_ordinal_to_dt64(int64_t period_ordinal, int freq,
-                                     int64_t mult):
+cpdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq):
     cdef:
-        int64_t ordinal
         npy_datetimestruct dts
         date_info dinfo
-
-    ordinal = remove_mult(period_ordinal, mult)
 
     get_date_info(ordinal, freq, &dinfo)
 
@@ -1364,22 +1349,21 @@ cpdef int64_t period_ordinal_to_dt64(int64_t period_ordinal, int freq,
 
     return PyArray_DatetimeStructToDatetime(NPY_FR_us, &dts)
 
-def period_ordinal_to_string(int64_t value, int freq, int64_t mult):
+def period_ordinal_to_string(int64_t value, int freq):
     cdef:
         char *ptr
 
-    ptr = period_to_string(remove_mult(value, mult), freq)
+    ptr = period_to_string(value, freq)
 
     if ptr == NULL:
         raise ValueError("Could not create string from ordinal '%s'" % value)
 
     return <object> ptr
 
-def period_strftime(int64_t value, int freq, int64_t mult, object fmt):
+def period_strftime(int64_t value, int freq, object fmt):
     cdef:
         char *ptr
 
-    value = remove_mult(value, mult)
     ptr = period_to_string2(value, freq, <char*>fmt)
 
     if ptr == NULL:
@@ -1391,13 +1375,11 @@ def period_strftime(int64_t value, int freq, int64_t mult, object fmt):
 
 ctypedef int (*accessor)(int64_t ordinal, int freq) except INT32_MIN
 
-def get_period_field(int code, int64_t value, int freq,
-                     int64_t mult):
+def get_period_field(int code, int64_t value, int freq):
     cdef accessor f = _get_accessor_func(code)
-    return f(remove_mult(value, mult), freq)
+    return f(value, freq)
 
-def get_period_field_arr(int code, ndarray[int64_t] arr,
-                         int freq, int64_t mult):
+def get_period_field_arr(int code, ndarray[int64_t] arr, int freq):
     cdef:
         Py_ssize_t i, sz
         ndarray[int64_t] out
@@ -1409,7 +1391,7 @@ def get_period_field_arr(int code, ndarray[int64_t] arr,
     out = np.empty(sz, dtype=np.int64)
 
     for i in range(sz):
-        out[i] = f(remove_mult(arr[i], mult), freq)
+        out[i] = f(arr[i], freq)
 
     return out
 

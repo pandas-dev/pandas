@@ -68,7 +68,7 @@ def get_freq_code(freqstr):
     return code, stride
 
 
-def _get_freq_str(base, mult):
+def _get_freq_str(base, mult=1):
     code = _reverse_period_code_map.get(base)
     if code is None:
         return _unknown_freq
