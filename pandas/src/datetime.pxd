@@ -1,4 +1,4 @@
-from numpy cimport int64_t
+from numpy cimport int64_t, int32_t, npy_int64, npy_int32
 from cpython cimport PyObject
 
 
@@ -75,15 +75,19 @@ cdef extern from "np_datetime.h":
         PANDAS_FR_as
 
     ctypedef struct pandas_datetimestruct:
-        int64_t year
-        int month, day, hour, min, sec, us, ps, as
+        npy_int64 year
+        npy_int32 month, day, hour, min, sec, us, ps, as
 
-    int convert_pydatetime_to_datetimestruct(PyObject *obj, pandas_datetimestruct *out,
+    int convert_pydatetime_to_datetimestruct(PyObject *obj,
+                                             pandas_datetimestruct *out,
                                              PANDAS_DATETIMEUNIT *out_bestunit,
                                              int apply_tzinfo)
 
-    npy_datetime pandas_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT fr, pandas_datetimestruct *d)
-    void pandas_datetime_to_datetimestruct(npy_datetime val, PANDAS_DATETIMEUNIT fr, pandas_datetimestruct *result)
+    npy_datetime pandas_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT fr,
+                                                   pandas_datetimestruct *d)
+    void pandas_datetime_to_datetimestruct(npy_datetime val,
+                                           PANDAS_DATETIMEUNIT fr,
+                                           pandas_datetimestruct *result)
     int _days_per_month_table[2][12]
 
     int dayofweek(int y, int m, int d)
