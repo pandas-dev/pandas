@@ -1295,6 +1295,9 @@ cpdef int64_t period_asfreq(int64_t period_ordinal, int freq1, int64_t mult1,
         retval = asfreq(period_ordinal, freq1, freq2, START)
     retval = apply_mult(retval, mult2)
 
+    if retval == INT32_MIN:
+        raise ValueError('Frequency conversion failed')
+
     return retval
 
 def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int64_t mult1,
@@ -1314,7 +1317,7 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int64_t mult1,
     n = len(arr)
     result = np.empty(n, dtype=np.int64)
 
-    func = get_asfreq_func(freq1, freq2, 0)
+    func = get_asfreq_func(freq1, freq2)
     get_asfreq_info(freq1, freq2, &finfo)
 
     if end:
@@ -1368,9 +1371,9 @@ def period_ordinal_to_string(int64_t value, int freq, int64_t mult):
     ptr = period_to_string(remove_mult(value, mult), freq)
 
     if ptr == NULL:
-        raise ValueError("Could not create string from ordinal '%d'" % value)
+        raise ValueError("Could not create string from ordinal '%s'" % value)
 
-    return <object>ptr
+    return <object> ptr
 
 def period_strftime(int64_t value, int freq, int64_t mult, object fmt):
     cdef:
@@ -1382,11 +1385,11 @@ def period_strftime(int64_t value, int freq, int64_t mult, object fmt):
     if ptr == NULL:
         raise ValueError("Could not create string with fmt '%s'" % fmt)
 
-    return <object>ptr
+    return <object> ptr
 
 # period accessors
 
-ctypedef int (*accessor)(int64_t ordinal, int freq) except -1
+ctypedef int (*accessor)(int64_t ordinal, int freq) except INT32_MIN
 
 def get_period_field(int code, int64_t value, int freq,
                      int64_t mult):
