@@ -3306,3 +3306,54 @@ def inner_join_indexer_int64(ndarray[int64_t] left,
     return result, lindexer, rindexer
 
 
+
+cpdef ensure_float64(object arr):
+    if util.is_array(arr):
+        if (<ndarray> arr).descr.type_num == NPY_FLOAT64:
+            return arr
+        else:
+            return arr.astype(np.float64)
+    else:
+        return np.array(arr, dtype=np.float64)
+
+
+cpdef ensure_int32(object arr):
+    if util.is_array(arr):
+        if (<ndarray> arr).descr.type_num == NPY_INT32:
+            return arr
+        else:
+            return arr.astype(np.int32)
+    else:
+        return np.array(arr, dtype=np.int32)
+
+
+cpdef ensure_int64(object arr):
+    if util.is_array(arr):
+        if (<ndarray> arr).descr.type_num == NPY_INT64:
+            return arr
+        else:
+            return arr.astype(np.int64)
+    else:
+        return np.array(arr, dtype=np.int64)
+
+
+cpdef ensure_platform_int(object arr):
+    if util.is_array(arr):
+        if (<ndarray> arr).descr.type_num == NPY_INT:
+            return arr
+        else:
+            return arr.astype(np.int_)
+    else:
+        return np.array(arr, dtype=np.int_)
+
+
+cpdef ensure_object(object arr):
+    if util.is_array(arr):
+        if (<ndarray> arr).descr.type_num == NPY_OBJECT:
+            return arr
+        else:
+            return arr.astype(np.object_)
+    else:
+        return np.array(arr, dtype=np.object_)
+
+

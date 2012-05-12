@@ -810,6 +810,35 @@ def outer_join_indexer_%(name)s(ndarray[%(c_type)s] left,
 
 """
 
+# ensure_dtype functions
+
+ensure_dtype_template = """
+cpdef ensure_%(name)s(object arr):
+    if util.is_array(arr):
+        if (<ndarray> arr).descr.type_num == NPY_%(ctype)s:
+            return arr
+        else:
+            return arr.astype(np.%(dtype)s)
+    else:
+        return np.array(arr, dtype=np.%(dtype)s)
+
+"""
+
+ensure_functions = [
+    ('float64', 'FLOAT64', 'float64'),
+    ('int32', 'INT32', 'int32'),
+    ('int64', 'INT64', 'int64'),
+    ('platform_int', 'INT', 'int_'),
+    ('object', 'OBJECT', 'object_'),
+]
+
+def generate_ensure_dtypes():
+    output = StringIO()
+    for name, ctype, dtype in ensure_functions:
+        filled = ensure_dtype_template % locals()
+        output.write(filled)
+    return output.getvalue()
+
 #----------------------------------------------------------------------
 # Fast "put" logic for speeding up interleaving logic
 
@@ -915,6 +944,8 @@ def generate_take_cython_file(path='generated.pyx'):
 
         for template in nobool_1d_templates:
             print >> f, generate_from_template(template, exclude=['bool'])
+
+        print >> f, generate_ensure_dtypes()
 
         # print >> f, generate_put_functions()
 

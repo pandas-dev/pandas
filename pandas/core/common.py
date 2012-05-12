@@ -711,36 +711,12 @@ def is_float_dtype(arr_or_dtype):
     return issubclass(tipo, np.floating)
 
 
-def _ensure_float64(arr):
-    if arr.dtype != np.float64:
-        arr = arr.astype(np.float64)
-    return arr
+_ensure_float64 = _algos.ensure_float64
+_ensure_int64 = _algos.ensure_int64
+_ensure_int32 = _algos.ensure_int32
+_ensure_platform_int = _algos.ensure_platform_int
+_ensure_object = _algos.ensure_object
 
-def _ensure_int64(arr):
-    try:
-        if arr.dtype != np.int64:
-            arr = arr.astype(np.int64)
-        return arr
-    except AttributeError:
-        return np.array(arr, dtype=np.int64)
-
-def _ensure_platform_int(labels):
-    try:
-        if labels.dtype != np.int_:  # pragma: no cover
-            labels = labels.astype(np.int_)
-        return labels
-    except AttributeError:
-        return np.array(labels, dtype=np.int_)
-
-def _ensure_int32(arr):
-    if arr.dtype != np.int32:
-        arr = arr.astype(np.int32)
-    return arr
-
-def _ensure_object(arr):
-    if arr.dtype != np.object_:
-        arr = arr.astype('O')
-    return arr
 
 def _astype_nansafe(arr, dtype):
     if (np.issubdtype(arr.dtype, np.floating) and
