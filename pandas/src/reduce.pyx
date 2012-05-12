@@ -9,6 +9,7 @@ cdef class Reducer:
     cdef:
         Py_ssize_t increment, chunksize, nresults
         object arr, dummy, f, labels
+        bint can_set_name
 
     def __init__(self, object arr, object f, axis=1, dummy=None,
                  labels=None):
@@ -37,12 +38,14 @@ cdef class Reducer:
     def _check_dummy(self, dummy=None):
         if dummy is None:
             dummy = np.empty(self.chunksize, dtype=self.arr.dtype)
+            self.can_set_name = 0
         else:
             if dummy.dtype != self.arr.dtype:
                 raise ValueError('Dummy array must be same dtype')
             if len(dummy) != self.chunksize:
                 raise ValueError('Dummy array must be length %d' %
                                  self.chunksize)
+            self.can_set_name = type(dummy) != np.ndarray
 
         return dummy
 
@@ -54,7 +57,7 @@ cdef class Reducer:
             flatiter it
             object res
             bint set_label = 0
-            ndarray[object] labels
+            ndarray labels
 
         arr = self.arr
         chunk = self.dummy
@@ -62,18 +65,14 @@ cdef class Reducer:
         dummy_buf = chunk.data
         chunk.data = arr.data
 
-        set_label = self.labels is not None
-
+        set_label = self.labels is not None and self.can_set_name
         if set_label:
-            if not np.issubdtype(self.labels.dtype, object):
-                labels = self.labels.astype('O')
-            else:
-                labels = self.labels
+            labels = self.labels
 
         try:
             for i in range(self.nresults):
                 if set_label:
-                    chunk.name = labels[i]
+                    chunk.name = util.get_value_at(labels, i)
 
                 res = self.f(chunk)
                 if i == 0:
@@ -86,6 +85,7 @@ cdef class Reducer:
         except Exception, e:
             if hasattr(e, 'args'):
                 e.args = e.args + (i,)
+            print e
         finally:
             # so we don't free the wrong memory
             chunk.data = dummy_buf

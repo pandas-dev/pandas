@@ -492,8 +492,36 @@ class TestTypeInference(unittest.TestCase):
         except ImportError:
             pass
 
+
 class TestMoments(unittest.TestCase):
     pass
+
+
+class TestReducer(unittest.TestCase):
+
+    def test_int_index(self):
+        from pandas.core.series import Series
+
+        arr = np.random.randn(100, 4)
+
+        result = lib.reduce(arr, np.sum, labels=np.arange(4))
+        expected = arr.sum(0)
+        assert_almost_equal(result, expected)
+
+        result = lib.reduce(arr, np.sum, axis=1, labels=np.arange(100))
+        expected = arr.sum(1)
+        assert_almost_equal(result, expected)
+
+        dummy = Series(0., index=np.arange(100))
+        result = lib.reduce(arr, np.sum, dummy=dummy, labels=np.arange(4))
+        expected = arr.sum(0)
+        assert_almost_equal(result, expected)
+
+        dummy = Series(0., index=np.arange(4))
+        result = lib.reduce(arr, np.sum, axis=1,
+                            dummy=dummy, labels=np.arange(100))
+        expected = arr.sum(1)
+        assert_almost_equal(result, expected)
 
 if __name__ == '__main__':
     import nose
