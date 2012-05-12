@@ -609,6 +609,14 @@ copy : boolean, default False
         casted = com._astype_nansafe(self.values, dtype)
         return self._constructor(casted, index=self.index, name=self.name)
 
+    def repeat(self, reps):
+        """
+        See ndarray.repeat
+        """
+        new_index = self.index.repeat(reps)
+        new_values = self.values.repeat(reps)
+        return Series(new_values, index=new_index, name=self.name)
+
     def reshape(self, newshape, order='C'):
         """
         See numpy.ndarray.reshape
