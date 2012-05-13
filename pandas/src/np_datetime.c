@@ -494,7 +494,8 @@ npy_datetime pandas_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT fr, pandas_da
     return result;
 }
 
-void pandas_datetime_to_datetimestruct(npy_datetime val, PANDAS_DATETIMEUNIT fr, npy_datetimestruct *result)
+void pandas_datetime_to_datetimestruct(npy_datetime val, PANDAS_DATETIMEUNIT fr,
+                                       pandas_datetimestruct *result)
 {
     pandas_datetime_metadata meta;
 
