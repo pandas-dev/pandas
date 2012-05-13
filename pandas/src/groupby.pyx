@@ -746,7 +746,6 @@ def group_var(ndarray[float64_t, ndim=2] out,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-
 def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
                        object closed='left'):
     """
@@ -1107,8 +1106,8 @@ def group_ohlc(ndarray[float64_t, ndim=2] out,
             out[b, 3] = vclose
 
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def group_mean_bin(ndarray[float64_t, ndim=2] out,
                    ndarray[int64_t] counts,
                    ndarray[float64_t, ndim=2] values,
@@ -1268,62 +1267,6 @@ def lookup_values(ndarray[object] values, dict mapping):
         result[i] = mapping[values[i]]
     return maybe_convert_objects(result)
 
-def reduce_mean(ndarray[object] indices,
-                ndarray[object] buckets,
-                ndarray[float64_t] values,
-                inclusive=False):
-    cdef:
-        Py_ssize_t i, j, nbuckets, nvalues
-        ndarray[float64_t] output
-        float64_t the_sum, val, nobs
-
-
-
-    nbuckets = len(buckets)
-    nvalues = len(indices)
-
-    assert(len(values) == len(indices))
-
-    output = np.empty(nbuckets, dtype=float)
-    output.fill(np.NaN)
-
-    j = 0
-    for i from 0 <= i < nbuckets:
-        next_bound = buckets[i]
-        the_sum = 0
-        nobs = 0
-        if inclusive:
-            while j < nvalues and indices[j] <= next_bound:
-                val = values[j]
-                # not NaN
-                if val == val:
-                    the_sum += val
-                    nobs += 1
-                j += 1
-        else:
-            while j < nvalues and indices[j] < next_bound:
-                val = values[j]
-                # not NaN
-                if val == val:
-                    the_sum += val
-                    nobs += 1
-                j += 1
-
-        if nobs > 0:
-            output[i] = the_sum / nobs
-
-        if j >= nvalues:
-            break
-
-    return output
-
-def _bucket_locs(index, buckets, inclusive=False):
-    if inclusive:
-        locs = index.searchsorted(buckets, side='left')
-    else:
-        locs = index.searchsorted(buckets, side='right')
-
-    return locs
 
 def count_level_1d(ndarray[uint8_t, cast=True] mask,
                    ndarray[int64_t] labels, Py_ssize_t max_bin):
@@ -1341,6 +1284,7 @@ def count_level_1d(ndarray[uint8_t, cast=True] mask,
 
     return counts
 
+
 def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
                    ndarray[int64_t] labels, Py_ssize_t max_bin):
     cdef:
@@ -1356,6 +1300,7 @@ def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
                 counts[labels[i], j] += 1
 
     return counts
+
 
 def duplicated(list values, take_last=False):
     cdef:
@@ -1411,7 +1356,7 @@ def generate_slices(ndarray[int64_t] labels, Py_ssize_t ngroups):
     return starts, ends
 
 
-def groupby_arrays(ndarray index, ndarray[int64_t] labels):
+def groupby_arrays(ndarray index, ndarray[int64_t] labels, sort=True):
     cdef:
         Py_ssize_t i, lab, cur, start, n = len(index)
         dict result = {}
@@ -1419,10 +1364,11 @@ def groupby_arrays(ndarray index, ndarray[int64_t] labels):
     index = np.asarray(index)
 
     # this is N log N. If this is a bottleneck may we worth fixing someday
-    indexer = labels.argsort(kind='mergesort')
+    if sort:
+        indexer = labels.argsort(kind='mergesort')
 
-    labels = labels.take(indexer)
-    index = index.take(indexer)
+        labels = labels.take(indexer)
+        index = index.take(indexer)
 
     if n == 0:
         return result
@@ -1437,5 +1383,46 @@ def groupby_arrays(ndarray index, ndarray[int64_t] labels):
                 result[cur] = index[start:i]
             start = i
         cur = lab
+
+    result[cur] = index[start:]
+    return result
+
+def indices_fast(object index, ndarray[int64_t] labels, list keys,
+                 list sorted_labels):
+    cdef:
+        Py_ssize_t i, j, k, lab, cur, start, n = len(labels)
+        dict result = {}
+        object tup
+
+    k = len(keys)
+
+    if n == 0:
+        return result
+
+    start = 0
+    cur = labels[0]
+    for i in range(1, n):
+        lab = labels[i]
+
+        if lab != cur:
+            if lab != -1:
+                tup = PyTuple_New(k)
+                for j in range(k):
+                    val = util.get_value_at(keys[j],
+                                            sorted_labels[j][i-1])
+                    PyTuple_SET_ITEM(tup, j, val)
+                    Py_INCREF(val)
+
+                result[tup] = index[start:i]
+            start = i
+        cur = lab
+
+    tup = PyTuple_New(k)
+    for j in range(k):
+        val = util.get_value_at(keys[j],
+                                sorted_labels[j][n - 1])
+        PyTuple_SET_ITEM(tup, j, val)
+        Py_INCREF(val)
+    result[tup] = index[start:]
 
     return result
