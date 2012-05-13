@@ -48,7 +48,8 @@ int convert_pydatetime_to_datetimestruct(PyObject *obj, pandas_datetimestruct *o
 
 npy_datetime pandas_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT fr, pandas_datetimestruct *d);
 
-void pandas_datetime_to_datetimestruct(npy_datetime val, PANDAS_DATETIMEUNIT fr, npy_datetimestruct *result);
+void pandas_datetime_to_datetimestruct(npy_datetime val, PANDAS_DATETIMEUNIT fr,
+                                       pandas_datetimestruct *result);
 
 int dayofweek(int y, int m, int d);
 
@@ -107,8 +108,8 @@ can_cast_datetime64_units(PANDAS_DATETIMEUNIT src_unit,
 
 int
 convert_datetime_to_datetimestruct(pandas_datetime_metadata *meta,
-                                    npy_datetime dt,
-                                    pandas_datetimestruct *out);
+                                   npy_datetime dt,
+                                   pandas_datetimestruct *out);
 
 
 
