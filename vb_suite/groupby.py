@@ -172,3 +172,23 @@ groupby_first = Benchmark('data.groupby(labels).first()', setup,
 
 groupby_last = Benchmark('data.groupby(labels).last()', setup,
                           start_date=datetime(2012, 5, 1))
+
+
+#----------------------------------------------------------------------
+# groupby_indices replacement, chop up Series
+
+setup = common_setup + """
+try:
+    rng = date_range('1/1/2000', '12/31/2005', freq='H')
+    year, month, day = rng.year, rng.month, rng.day
+except:
+    rng = date_range('1/1/2000', '12/31/2000', offset=datetools.Hour())
+    year = rng.map(lambda x: x.year)
+    month = rng.map(lambda x: x.month)
+    day = rng.map(lambda x: x.day)
+
+ts = Series(np.random.randn(len(rng)), index=rng)
+"""
+
+groupby_indices = Benchmark('len(ts.groupby([year, month, day]))',
+                            setup, start_date=datetime(2012, 1, 1))

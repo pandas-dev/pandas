@@ -536,10 +536,9 @@ class Grouper(object):
         if len(self.groupings) == 1:
             return self.groupings[0].indices
         else:
-            # TODO: this is massively inefficient
-            to_groupby = zip(*(ping.grouper for ping in self.groupings))
-            to_groupby = Index(to_groupby)
-            return lib.groupby_indices(to_groupby)
+            label_list = [ping.labels for ping in self.groupings]
+            keys = [ping.group_index for ping in self.groupings]
+            return _get_indices_dict(label_list, keys)
 
     @property
     def labels(self):
@@ -1971,6 +1970,20 @@ class _KeyMapper(object):
     def get_key(self, comp_id):
         return tuple(level[table.get_item(comp_id)]
                      for table, level in zip(self.tables, self.levels))
+
+
+def _get_indices_dict(label_list, keys):
+    shape = [len(x) for x in keys]
+    group_index = get_group_index(label_list, shape)
+
+    sorter, _ = lib.groupsort_indexer(com._ensure_int64(group_index),
+                                      np.prod(shape))
+
+    sorted_labels = [lab.take(sorter) for lab in label_list]
+    group_index = group_index.take(sorter)
+    index = np.arange(len(group_index)).take(sorter)
+
+    return lib.indices_fast(index, group_index, keys, sorted_labels)
 
 #----------------------------------------------------------------------
 # sorting levels...cleverly?

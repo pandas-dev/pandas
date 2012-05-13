@@ -94,6 +94,7 @@ def _unique_generic(values, table_type, type_caster):
     uniques = table.unique(values)
     return uniques
 
+
 def factorize(values, sort=False, order=None, na_sentinel=-1):
     """
     Encode input values as an enumerated type or categorical variable
@@ -118,7 +119,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
     uniques = com._asarray_tuplesafe(uniques)
     if sort and len(counts) > 0:
         sorter = uniques.argsort()
-        reverse_indexer = np.empty(len(sorter), dtype=np.int32)
+        reverse_indexer = np.empty(len(sorter), dtype=np.int_)
         reverse_indexer.put(sorter, np.arange(len(sorter)))
 
         mask = labels < 0
