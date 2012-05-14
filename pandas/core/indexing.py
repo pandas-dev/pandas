@@ -171,7 +171,7 @@ class _NDFrameIndexer(object):
             except Exception:
                 if isinstance(tup[0], slice):
                     raise IndexingError
-                if tup[0] not in ax0:
+                if tup[0] not in ax0: # and tup[0] not in ax0.levels[0]:
                     raise
 
         # to avoid wasted computation
