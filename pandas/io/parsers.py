@@ -24,6 +24,9 @@ from pandas.util import py3compat
 
 from pandas.util.decorators import Appender
 
+class DateConversionError(Exception):
+    pass
+
 _parser_params = """Also supports optionally iterating or breaking of the file
 into chunks.
 
@@ -155,7 +158,8 @@ def _read(cls, filepath_or_buffer, kwds):
             f = com._get_handle(filepath_or_buffer, 'r', encoding=encoding)
 
     if kwds.get('date_parser', None) is not None:
-        kwds['parse_dates'] = True
+        if isinstance(kwds['parse_dates'], bool):
+            kwds['parse_dates'] = True
 
     # Extract some of the arguments (pass chunksize on).
     kwds.pop('filepath_or_buffer')
@@ -362,8 +366,8 @@ class TextParser(object):
     def __init__(self, f, delimiter=None, names=None, header=0,
                  index_col=None, na_values=None, thousands=None,
                  comment=None, parse_dates=False,
-                 date_parser=None, dayfirst=False, chunksize=None,
-                 skiprows=None, skip_footer=0, converters=None,
+                 date_parser=None, dayfirst=False,
+                 chunksize=None, skiprows=None, skip_footer=0, converters=None,
                  verbose=False, encoding=None):
         """
         Workhorse function for processing nested list into DataFrame
@@ -672,7 +676,6 @@ class TextParser(object):
 
         zipped_content = list(lib.to_object_array(content).T)
 
-        # no index column specified, so infer that's what is wanted
         if self.index_col is not None:
             if np.isscalar(self.index_col):
                 index = zipped_content.pop(self.index_col)
@@ -686,9 +689,8 @@ class TextParser(object):
                     zipped_content.pop(i)
 
             if np.isscalar(self.index_col):
-                if self._should_parse_dates(0):
-                    index = lib.try_parse_dates(index, parser=self.date_parser,
-                                                dayfirst=self.dayfirst)
+                if self._should_parse_dates(self.index_col):
+                    index = self._conv_date(index)
                 index, na_count = _convert_types(index, self.na_values)
                 index = Index(index, name=self.index_name)
                 if self.verbose and na_count:
@@ -696,9 +698,8 @@ class TextParser(object):
             else:
                 arrays = []
                 for i, arr in enumerate(index):
-                    if self._should_parse_dates(i):
-                        arr = lib.try_parse_dates(arr, parser=self.date_parser,
-                                                  dayfirst=self.dayfirst)
+                    if self._should_parse_dates(self.index_col[i]):
+                        arr = self._conv_date(arr)
                     arr, _ = _convert_types(arr, self.na_values)
                     arrays.append(arr)
                 index = MultiIndex.from_arrays(arrays, names=self.index_name)
@@ -736,18 +737,13 @@ class TextParser(object):
                 col = self.columns[col]
             data[col] = lib.map_infer(data[col], f)
 
-        if not isinstance(self.parse_dates, bool):
-            for x in self.parse_dates:
-                if isinstance(x, int) and x not in data:
-                    x = self.orig_columns[x]
-                if x in self.index_col or x in self.index_name:
-                    continue
-                data[x] = lib.try_parse_dates(data[x], parser=self.date_parser,
-                                              dayfirst=self.dayfirst)
+        columns = self.columns
+        if self.parse_dates is not None:
+            data, columns = self._process_date_conversion(data)
 
         data = _convert_to_ndarrays(data, self.na_values, self.verbose)
 
-        return DataFrame(data=data, columns=self.columns, index=index)
+        return DataFrame(data=data, columns=columns, index=index)
 
     def _find_line_number(self, exp_len, chunk_len, chunk_i):
         if exp_len is None:
@@ -777,6 +773,68 @@ class TextParser(object):
             else:
                 name = self.index_name[i]
             return i in to_parse or name in to_parse
+
+    def _conv_date(self, *date_cols):
+        if self.date_parser is None:
+            return lib.try_parse_dates(_concat_date_cols(date_cols),
+                                       dayfirst=self.dayfirst)
+        else:
+            try:
+                return self.date_parser(*date_cols)
+            except:
+                return lib.try_parse_dates(_concat_date_cols(date_cols),
+                                           parser=self.date_parser,
+                                           dayfirst=self.dayfirst)
+
+    def _process_date_conversion(self, data_dict):
+        new_cols = []
+        new_data = {}
+        columns = self.columns
+
+        if self.parse_dates is None or isinstance(self.parse_dates, bool):
+            return data_dict, columns
+
+        if isinstance(self.parse_dates, list):
+            # list of column lists
+            for colspec in self.parse_dates:
+                if np.isscalar(colspec):
+                    if isinstance(colspec, int) and colspec not in data_dict:
+                        colspec = self.orig_columns[colspec]
+                    if self._isindex(colspec):
+                        continue
+                    data_dict[colspec] = self._conv_date(data_dict[colspec])
+                else:
+                    new_name, col = _try_convert_dates(self._conv_date, colspec,
+                                        data_dict, self.orig_columns)
+                    if new_name in data_dict:
+                        raise ValueError('New date column already in dict %s' %
+                                         new_name)
+                    new_data[new_name] = col
+                    new_cols.append(new_name)
+
+        elif isinstance(self.parse_dates, dict):
+            # dict of new name to column list
+            for new_name, colspec in self.parse_dates.iteritems():
+                if new_name in data_dict:
+                    raise ValueError('Date column %s already in dict' %
+                                     new_name)
+
+                _, col = _try_convert_dates(self._conv_date, colspec, data_dict,
+                                            self.orig_columns)
+                new_data[new_name] = col
+                new_cols.append(new_name)
+
+        data_dict.update(new_data)
+        new_cols.extend(columns)
+        return data_dict, new_cols
+
+    def _isindex(self, colspec):
+        return (colspec == self.index_col or
+                (isinstance(self.index_col, list) and
+                 colspec in self.index_col) or
+                (colspec == self.index_name or
+                 (isinstance(self.index_name, list) and
+                  colspec in self.index_name)))
 
     def _get_lines(self, rows=None):
         source = self.data
@@ -860,6 +918,33 @@ def _convert_types(values, na_values):
 
     return result, na_count
 
+def _get_col_names(colspec, columns):
+    colset = set(columns)
+    colnames = []
+    for c in colspec:
+        if c in colset:
+            colnames.append(str(c))
+        elif isinstance(c, int):
+            colnames.append(str(columns[c]))
+    return colnames
+
+def _try_convert_dates(parser, colspec, data_dict, columns):
+    colspec = _get_col_names(colspec, columns)
+    new_name = '_'.join(colspec)
+
+    to_parse = [data_dict[c] for c in colspec if c in data_dict]
+    try:
+        new_col = parser(*to_parse)
+    except DateConversionError:
+        new_col = _concat_date_cols(to_parse)
+    return new_name, new_col
+
+def _concat_date_cols(date_cols):
+    if len(date_cols) == 1:
+        return date_cols[0]
+    concat = lambda x: ' '.join(x)
+    return np.array(np.apply_along_axis(concat, 0, np.vstack(date_cols)),
+                    dtype=object)
 
 class FixedWidthReader(object):
     """
