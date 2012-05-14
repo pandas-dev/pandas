@@ -580,7 +580,7 @@ class HDFStore(object):
             node._v_attrs.name = index.name
 
             if isinstance(index, (DatetimeIndex, PeriodIndex, IntIndex)):
-                node._v_attrs.index_class = type(index)
+                node._v_attrs.index_class = _class_to_alias(type(index))
 
             if hasattr(index, 'freq'):
                 node._v_attrs.freq = index.freq
@@ -670,9 +670,7 @@ class HDFStore(object):
         if 'name' in node._v_attrs:
             name = node._v_attrs.name
 
-        index_class = getattr(node._v_attrs, 'index_class', Index)
-
-        factory = _get_index_factory(index_class)
+        index_class = _alias_to_class(getattr(node._v_attrs, 'index_class', ''))
 
         kwargs = {}
         if 'freq' in node._v_attrs:
@@ -1011,6 +1009,22 @@ def _is_table_type(group):
     except AttributeError:
         # new node, e.g.
         return False
+
+_index_type_map = {DatetimeIndex : 'datetime',
+                   PeriodIndex : 'period',
+                   IntIndex : 'sparse integer'}
+
+_reverse_index_map = {}
+for k, v in _index_type_map.iteritems():
+    _reverse_index_map[v] = k
+
+def _class_to_alias(cls):
+    return _index_type_map.get(cls, '')
+
+def _alias_to_class(alias):
+    if isinstance(alias, type):
+        return alias
+    return _reverse_index_map.get(alias, Index)
 
 class Selection(object):
     """
