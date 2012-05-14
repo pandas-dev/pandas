@@ -1100,18 +1100,6 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         self.assertRaises(Exception, self.ymd.ix.__getitem__, (2000, 6))
         self.assertRaises(Exception, self.ymd.ix.__getitem__, (2000, 6), 0)
 
-    def test_fancy_2d(self):
-        raise nose.SkipTest
-
-        result = self.frame.ix['foo', 'B']
-        expected = self.frame.xs('foo')['B']
-        assert_series_equal(result, expected)
-
-        ft = self.frame.T
-        result = ft.ix['B', 'foo']
-        expected = ft.xs('B')['foo']
-        assert_series_equal(result, expected)
-
     #----------------------------------------------------------------------
 
     def test_to_html(self):
