@@ -1635,8 +1635,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # cast type
         frame = DataFrame(mat, columns=['A', 'B', 'C'],
-                           index=[1, 2], dtype=int)
-        self.assert_(frame.values.dtype == int)
+                           index=[1, 2], dtype=np.int64)
+        self.assert_(frame.values.dtype == np.int64)
 
         # Check non-masked values
         mat2 = ma.copy(mat)

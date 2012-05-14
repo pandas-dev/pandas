@@ -1730,12 +1730,46 @@ class TestGroupBy(unittest.TestCase):
         assert_frame_equal(result2, expected)
 
     def test_agg_multiple_functions_maintain_order(self):
-
+        # GH #610
         funcs = [('mean', np.mean), ('max', np.max), ('min', np.min)]
         result = self.df.groupby('A')['C'].agg(funcs)
         exp_cols = ['mean', 'max', 'min']
 
         self.assert_(np.array_equal(result.columns, exp_cols))
+
+    def test_more_flexible_frame_multi_function(self):
+        from pandas import concat
+
+        grouped = self.df.groupby('A')
+
+        exmean = grouped.agg({'C' : np.mean, 'D' : np.mean})
+        exstd = grouped.agg({'C' : np.std, 'D' : np.std})
+
+        expected = concat([exmean, exstd], keys=['mean', 'std'], axis=1)
+        expected = expected.swaplevel(0, 1, axis=1).sortlevel(0, axis=1)
+
+        result = grouped.aggregate({'C' : [np.mean, np.std],
+                                    'D' : [np.mean, np.std]})
+
+        assert_frame_equal(result, expected)
+
+        # be careful
+        result = grouped.aggregate({'C' : np.mean,
+                                     'D' : [np.mean, np.std]})
+        expected = grouped.aggregate({'C' : [np.mean],
+                                      'D' : [np.mean, np.std]})
+        assert_frame_equal(result, expected)
+
+
+        def foo(x): return np.mean(x)
+        def bar(x): return np.std(x, ddof=1)
+        result = grouped.aggregate({'C' : np.mean,
+                                    'D' : {'foo': np.mean,
+                                           'bar': np.std}})
+        expected = grouped.aggregate({'C' : [np.mean],
+                                      'D' : [foo, bar]})
+        assert_frame_equal(result, expected)
+
 
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
