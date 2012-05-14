@@ -1713,6 +1713,22 @@ class TestGroupBy(unittest.TestCase):
         self.assert_(isinstance(result, Series))
         assert_series_equal(result, expected)
 
+    def test_getitem_list_of_columns(self):
+        df = DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
+                              'foo', 'bar', 'foo', 'foo'],
+                        'B': ['one', 'one', 'two', 'three',
+                              'two', 'two', 'one', 'three'],
+                        'C': np.random.randn(8),
+                        'D': np.random.randn(8),
+                        'E': np.random.randn(8)})
+
+        result = df.groupby('A')[['C', 'D']].mean()
+        result2 = df.groupby('A')['C', 'D'].mean()
+        expected = df.ix[:, ['A', 'C', 'D']].groupby('A').mean()
+
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result2, expected)
+
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     tups = map(tuple, df[keys].values)
     tups = com._asarray_tuplesafe(tups)

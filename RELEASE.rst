@@ -58,6 +58,8 @@ pandas 0.8.0
     by significant margin (#836)
   - Handle more dtypes when passed MaskedArrays in DataFrame constructor (#406)
   - Improved performance of join operations on integer keys (#682)
+  - Can pass multiple columns to GroupBy object, e.g. grouped[[col1, col2]] to
+    only aggregate a subset of the value columns (#383)
 
 **API Changes**
 
