@@ -104,7 +104,7 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         def func(*date_cols):
             return lib.try_parse_dates(parsers._concat_date_cols(date_cols))
 
-        df = read_table(StringIO(data), sep=',', header=None,
+        df = read_csv(StringIO(data), header=None,
                         date_parser=func,
                         parse_dates={'nominal' : [1, 2],
                                      'actual' : [1,3]})
@@ -122,7 +122,7 @@ KORD,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
 KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
 """
-        df = read_table(StringIO(data), sep=',', header=None,
+        df = read_csv(StringIO(data), header=None,
                         parse_dates=[[1, 2], [1,3]])
         self.assert_('X.2_X.3' in df)
         self.assert_('X.2_X.4' in df)
@@ -137,11 +137,24 @@ KORD,19990127 21:00:00, 20:56:00, -0.5900, 2.2100, 5.7000, 0.0000, 280.0000
 KORD,19990127 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
 KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 '''
-        df = read_table(StringIO(data), sep=',', header=None,
-                        parse_dates=[1], index_col=1)
+        df = read_csv(StringIO(data), sep=',', header=None,
+                      parse_dates=[1], index_col=1)
         from datetime import datetime
         d = datetime(1999, 1, 27, 19, 0)
         self.assert_(df.index[0] == d)
+
+    def test_multiple_date_cols_with_header(self):
+        data = """\
+ID,date,NominalTime,ActualTime,TDew,TAir,Windspeed,Precip,WindDir
+KORD,19990127, 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
+KORD,19990127, 20:00:00, 19:56:00, 0.0100, 2.2100, 7.2000, 0.0000, 260.0000
+KORD,19990127, 21:00:00, 20:56:00, -0.5900, 2.2100, 5.7000, 0.0000, 280.0000
+KORD,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
+KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
+KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
+
+        df = read_csv(StringIO(data), parse_dates={'nominal': [1, 2]})
+        self.assert_(not isinstance(df.nominal[0], basestring))
 
     def test_malformed(self):
         # all
@@ -429,7 +442,7 @@ baz,7,8,9
         parsed = excel_data.parse('Sheet1')
         expected = DataFrame([['aaaa','bbbbb']], columns=['Test', 'Test1'])
         assert_frame_equal(parsed, expected)
-        
+
     def test_excel_cell_error_na(self):
         try:
             import xlrd

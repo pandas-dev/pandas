@@ -49,8 +49,12 @@ names : array-like
 na_values : list-like or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values
-parse_dates : boolean or list of column numbers/name, default False
-    Attempt to parse dates in the indicated columns
+parse_dates : boolean, list of ints or names, list of lists, or dict
+    True -> try parsing all columns
+    [1, 2, 3] -> try parsing columns 1, 2, 3
+    [[1, 3]] -> combine columns 1 and 3 and parse as date (for dates split
+                across multiple columns), and munge column names
+    {'foo' : [1, 3]} -> parse columns 1, 3 as date and call result 'foo'
 date_parser : function
     Function to use for converting dates to strings. Defaults to
     dateutil.parser
@@ -936,15 +940,16 @@ def _try_convert_dates(parser, colspec, data_dict, columns):
     try:
         new_col = parser(*to_parse)
     except DateConversionError:
-        new_col = _concat_date_cols(to_parse)
+        new_col = parser(_concat_date_cols(to_parse))
     return new_name, new_col
 
 def _concat_date_cols(date_cols):
     if len(date_cols) == 1:
         return date_cols[0]
-    concat = lambda x: ' '.join(x)
-    return np.array(np.apply_along_axis(concat, 0, np.vstack(date_cols)),
-                    dtype=object)
+
+    # stripped = [map(str.strip, x) for x in date_cols]
+    return np.array([' '.join(x) for x in zip(*date_cols)], dtype=object)
+
 
 class FixedWidthReader(object):
     """
