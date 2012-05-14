@@ -49,7 +49,6 @@ cdef extern from "numpy/ndarrayobject.h":
             NPY_SAME_KIND_CASTING
             NPY_UNSAFE_CASTING
 
-cdef extern from "numpy/ndarraytypes
 
 cdef extern from "numpy_helper.h":
     npy_datetime unbox_datetime64_scalar(object o)
