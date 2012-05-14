@@ -8,7 +8,8 @@ import sys
 from datetime import datetime
 import numpy as np
 
-from pandas import Series, DataFrame, Panel, MultiIndex, bdate_range
+from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
+                    date_range)
 from pandas.io.pytables import HDFStore, get_store
 import pandas.util.testing as tm
 from pandas.tests.test_series import assert_series_equal
@@ -337,6 +338,19 @@ class TestHDFStore(unittest.TestCase):
         rng = [x.date() for x in bdate_range('1/1/2000', '1/30/2000')]
         frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
         self._check_roundtrip(frame, tm.assert_frame_equal)
+
+    def test_timezones(self):
+        rng = date_range('1/1/2000', '1/30/2000', tz='US/Eastern')
+        frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
+        try:
+            store = HDFStore(self.scratchpath)
+            store['frame'] = frame
+            recons = store['frame']
+            self.assert_(recons.index.equals(rng))
+            self.assertEquals(rng.tz, recons.index.tz)
+        finally:
+            store.close()
+            os.remove(self.scratchpath)
 
     def test_store_hierarchical(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
