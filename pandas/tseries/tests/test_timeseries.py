@@ -132,6 +132,12 @@ class TestTimeSeries(unittest.TestCase):
         expected = s[indexer[0]]
         assert_series_equal(result, expected)
 
+    def test_series_box_timestamp(self):
+        rng = date_range('20090415', '20090519', freq='B')
+        s = Series(rng)
+
+        self.assert_(isinstance(s[5], Timestamp))
+
     def test_series_ctor_plus_datetimeindex(self):
         rng = date_range('20090415', '20090519', freq='B')
         data = dict((k, 1) for k in rng)

@@ -2593,17 +2593,15 @@ class DataFrame(NDFrame):
             # Float type values
             if len(self.columns) == 0:
                 return self
-            if np.isscalar(value):
-                new_data = self._data.fillna(value, inplace=inplace)
-            elif isinstance(value, dict):
+            if isinstance(value, dict):
                 result = self if inplace else self.copy()
                 for k, v in value.iteritems():
                     if k not in result:
                         continue
                     result[k].fillna(v, inplace=True)
                 return result
-            else:  # pragma: no cover
-                raise TypeError('Invalid fill value type: %s' % type(value))
+            else:
+                new_data = self._data.fillna(value, inplace=inplace)
 
         if inplace:
             self._data = new_data

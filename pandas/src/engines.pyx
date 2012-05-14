@@ -79,6 +79,8 @@ cdef class IndexEngine:
         if PySlice_Check(loc) or cnp.PyArray_Check(loc):
             return arr[loc]
         else:
+            if arr.descr.type_num == NPY_DATETIME:
+                return Timestamp(util.get_value_at(arr, loc))
             return util.get_value_at(arr, loc)
 
     cpdef set_value(self, ndarray arr, object key, object value):
