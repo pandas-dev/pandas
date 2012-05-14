@@ -79,6 +79,7 @@ pandas 0.8.0
     cases. Fix pivot table bug (#1181)
   - Fix formatting of MultiIndex on Series/DataFrame when index name coincides
     with label (#1217)
+  - Handle Excel 2003 #N/A as NaN from xlrd (#1213, #1225)
 
 pandas 0.7.3
 ============
