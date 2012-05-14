@@ -57,6 +57,7 @@ pandas 0.8.0
   - Improve the speed of "square" reindexing of homogeneous DataFrame objects
     by significant margin (#836)
   - Handle more dtypes when passed MaskedArrays in DataFrame constructor (#406)
+  - Improved performance of join operations on integer keys (#682)
 
 **API Changes**
 
