@@ -214,6 +214,8 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(scat)
         _check_plot_works(scat, marker='+')
         _check_plot_works(scat, vmin=0)
+        _check_plot_works(scat, diagonal='kde')
+        _check_plot_works(scat, diagonal='hist')
 
         def scat2(x, y, by=None, ax=None, figsize=None):
             return plt.scatter_plot(df, x, y, by, ax, figsize=None)
