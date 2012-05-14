@@ -44,6 +44,8 @@ pandas 0.8.0
   - Dates can be split across multiple columns (#1227, #1186)
   - Add experimental support for converting pandas DataFrame to R data.frame
     via rpy2 (#350, #1212)
+  - Can pass list of (name, function) to GroupBy.aggregate to get aggregates in
+    a particular order (#610)
 
 **Improvements to existing features**
 
