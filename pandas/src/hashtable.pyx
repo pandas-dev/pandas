@@ -823,9 +823,10 @@ cdef class Int64Factorizer:
     def get_count(self):
         return self.count
 
-    def factorize(self, ndarray[int64_t] values, sort=False):
+    def factorize(self, ndarray[int64_t] values, sort=False,
+                  na_sentinel=-1):
         labels, counts = self.table.get_labels(values, self.uniques,
-                                               self.count, -1)
+                                               self.count, na_sentinel)
 
         # sort on
         if sort:

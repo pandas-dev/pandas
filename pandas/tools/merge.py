@@ -304,7 +304,7 @@ class _MergeOperation(object):
         group_sizes = []
 
         for lk, rk in zip(left_keys, right_keys):
-            llab, rlab, count = _factorize_objects(lk, rk, sort=self.sort)
+            llab, rlab, count = _factorize_keys(lk, rk, sort=self.sort)
 
             left_labels.append(llab)
             right_labels.append(rlab)
@@ -321,7 +321,7 @@ class _MergeOperation(object):
             raise Exception('Combinatorial explosion! (boom)')
 
         left_group_key, right_group_key, max_groups = \
-            _factorize_int64(left_group_key, right_group_key,
+            _factorize_keys(left_group_key, right_group_key,
                              sort=self.sort)
         return left_group_key, right_group_key, max_groups
 
@@ -329,7 +329,7 @@ def _get_multiindex_indexer(join_keys, index, sort=False):
     shape = []
     labels = []
     for level, key in zip(index.levels, join_keys):
-        llab, rlab, count = _factorize_objects(level, key, sort=False)
+        llab, rlab, count = _factorize_keys(level, key, sort=False)
         labels.append(rlab)
         shape.append(count)
 
@@ -337,8 +337,8 @@ def _get_multiindex_indexer(join_keys, index, sort=False):
     right_group_key = get_group_index(index.labels, shape)
 
     left_group_key, right_group_key, max_groups = \
-        _factorize_int64(left_group_key, right_group_key,
-                         sort=False)
+        _factorize_keys(left_group_key, right_group_key,
+                        sort=False)
 
     left_indexer, right_indexer = \
         lib.left_outer_join(com._ensure_int64(left_group_key),
@@ -348,7 +348,7 @@ def _get_multiindex_indexer(join_keys, index, sort=False):
     return left_indexer, right_indexer
 
 def _get_single_indexer(join_key, index, sort=False):
-    left_key, right_key, count = _factorize_objects(join_key, index, sort=sort)
+    left_key, right_key, count = _factorize_keys(join_key, index, sort=sort)
 
     left_indexer, right_indexer = \
         lib.left_outer_join(com._ensure_int64(left_key),
@@ -394,26 +394,21 @@ _join_functions = {
     'outer' : lib.full_outer_join,
 }
 
-def _factorize_int64(left_index, right_index, sort=True):
-    rizer = lib.Int64Factorizer(max(len(left_index), len(right_index)))
 
-    # 32-bit compatibility
-    left_index = com._ensure_int64(left_index)
-    right_index = com._ensure_int64(right_index)
+def _factorize_keys(lk, rk, sort=True):
+    if com.is_integer_dtype(lk) and com.is_integer_dtype(rk):
+        klass = lib.Int64Factorizer
+        lk = com._ensure_int64(lk)
+        rk = com._ensure_int64(rk)
+    else:
+        klass = lib.Factorizer
+        lk = com._ensure_object(lk)
+        rk = com._ensure_object(rk)
 
-    llab, _ = rizer.factorize(left_index)
-    rlab, _ = rizer.factorize(right_index)
+    rizer = klass(max(len(lk), len(rk)))
 
-    if sort:
-        llab, rlab = _sort_labels(np.array(rizer.uniques), llab, rlab)
-
-    return llab, rlab, rizer.get_count()
-
-def _factorize_objects(left_index, right_index, sort=True):
-    rizer = lib.Factorizer(max(len(left_index), len(right_index)))
-
-    llab, _ = rizer.factorize(left_index.astype('O'))
-    rlab, _ = rizer.factorize(right_index.astype('O'))
+    llab, _ = rizer.factorize(lk)
+    rlab, _ = rizer.factorize(rk)
 
     count = rizer.get_count()
 

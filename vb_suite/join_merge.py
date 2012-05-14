@@ -67,6 +67,12 @@ join_dataframe_index_multi = \
               start_date=datetime(2011, 10, 20))
 
 #----------------------------------------------------------------------
+# Joins on integer keys
+
+join_dataframe_integer_key = Benchmark("merge(df, df2, on='key')", setup,
+                                       start_date=datetime(2011, 10, 20))
+
+#----------------------------------------------------------------------
 # DataFrame joins on index
 
 
