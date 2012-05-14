@@ -322,11 +322,11 @@ class DatetimeIndex(Int64Index):
         return index
 
     @classmethod
-    def _simple_new(cls, values, name, offset, tz):
+    def _simple_new(cls, values, name, freq=None, tz=None):
         result = values.view(cls)
         result.name = name
-        result.offset = offset
-        result.tz = tz
+        result.offset = freq
+        result.tz = tools._maybe_get_tz(tz)
 
         return result
 

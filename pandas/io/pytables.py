@@ -585,6 +585,9 @@ class HDFStore(object):
             if hasattr(index, 'freq'):
                 node._v_attrs.freq = index.freq
 
+            if hasattr(index, 'tz') and index.tz is not None:
+                node._v_attrs.tz = index.tz.zone
+
     def _read_index(self, group, key):
         variety = getattr(group._v_attrs, '%s_variety' % key)
 
@@ -668,15 +671,21 @@ class HDFStore(object):
             name = node._v_attrs.name
 
         index_class = getattr(node._v_attrs, 'index_class', Index)
+
+        factory = _get_index_factory(index_class)
+
         kwargs = {}
         if 'freq' in node._v_attrs:
             kwargs['freq'] = node._v_attrs['freq']
 
+        if 'tz' in node._v_attrs:
+            kwargs['tz'] = node._v_attrs['tz']
+
         if kind in ('date', 'datetime'):
-            index = index_class(_unconvert_index(data, kind), dtype=object,
-                                **kwargs)
+            index = factory(_unconvert_index(data, kind), dtype=object,
+                            **kwargs)
         else:
-            index = index_class(_unconvert_index(data, kind), **kwargs)
+            index = factory(_unconvert_index(data, kind), **kwargs)
 
         index.name = name
 
@@ -1084,4 +1093,12 @@ class Selection(object):
         generate the selection
         """
         self.values = self.table.getWhereList(self.the_condition)
+
+def _get_index_factory(klass):
+    if klass == DatetimeIndex:
+        def f(values, freq=None, tz=None):
+            return DatetimeIndex._simple_new(values, None, freq=freq,
+                                             tz=tz)
+        return f
+    return klass
 
