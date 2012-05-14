@@ -1212,7 +1212,7 @@ class SeriesGroupBy(GroupBy):
             arg = arg.items()
         elif isinstance(arg[0], (tuple, list)):
             # indicated column order
-            columns = zip(*arg)[0]
+            columns = list(zip(*arg))[0]
         else:
             # list of functions
             columns = [func.__name__ for func in arg]
@@ -1405,22 +1405,38 @@ class NDFrameGroupBy(GroupBy):
 
             obj = self._obj_with_exclusions
 
+            if any(isinstance(x, (list, tuple, dict)) for x in arg.values()):
+                new_arg = {}
+                for k, v in arg.iteritems():
+                    if not isinstance(v, (tuple, list, dict)):
+                        new_arg[k] = [v]
+                    else:
+                        new_arg[k] = v
+                arg = new_arg
+
+            keys = []
             if self._selection is not None:
                 subset = obj[self._selection]
                 if isinstance(subset, DataFrame):
                     raise NotImplementedError
 
-                for fname, func in arg.iteritems():
+                for fname, agg_how in arg.iteritems():
                     colg = SeriesGroupBy(subset, selection=self._selection,
                                          grouper=self.grouper)
-                    result[fname] = colg.aggregate(func)
+                    result[fname] = colg.aggregate(agg_how)
+                    keys.append(fname)
             else:
-                for col, func in arg.iteritems():
+                for col, agg_how in arg.iteritems():
                     colg = SeriesGroupBy(obj[col], selection=col,
                                          grouper=self.grouper)
-                    result[col] = colg.aggregate(func)
+                    result[col] = colg.aggregate(agg_how)
+                    keys.append(col)
 
-            result = DataFrame(result)
+            if isinstance(result.values()[0], DataFrame):
+                from pandas.tools.merge import concat
+                result = concat([result[k] for k in keys], keys=keys, axis=1)
+            else:
+                result = DataFrame(result)
         elif isinstance(arg, list):
             return self._aggregate_multiple_funcs(arg)
         else:
