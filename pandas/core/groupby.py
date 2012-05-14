@@ -113,9 +113,9 @@ class GroupBy(object):
     """
 
     def __init__(self, obj, keys=None, axis=0, level=None,
-                 grouper=None, exclusions=None, column=None, as_index=True,
+                 grouper=None, exclusions=None, selection=None, as_index=True,
                  sort=True, group_keys=True):
-        self._column = column
+        self._selection = selection
 
         if isinstance(obj, NDFrame):
             obj._consolidate_inplace()
@@ -159,10 +159,16 @@ class GroupBy(object):
 
     @property
     def name(self):
-        if self._column is None:
+        if self._selection is None:
             return None # 'result'
         else:
-            return self._column
+            return self._selection
+
+    @property
+    def _selection_list(self):
+        if not isinstance(self._selection, (list, tuple, np.ndarray)):
+            return [self._selection]
+        return self._selection
 
     @property
     def _obj_with_exclusions(self):
@@ -1291,10 +1297,10 @@ class NDFrameGroupBy(GroupBy):
     def _iterate_slices(self):
         if self.axis == 0:
             # kludge
-            if self._column is None:
+            if self._selection is None:
                 slice_axis = self.obj.columns
             else:
-                slice_axis = [self._column]
+                slice_axis = self._selection_list
             slicer = lambda x: self.obj[x]
         else:
             slice_axis = self.obj.index
@@ -1358,8 +1364,8 @@ class NDFrameGroupBy(GroupBy):
 
     @cache_readonly
     def _obj_with_exclusions(self):
-        if self._column is not None:
-            return self.obj.reindex(columns=[self._column])
+        if self._selection is not None:
+            return self.obj.reindex(columns=self._selection_list)
 
         if len(self.exclusions) > 0:
             return self.obj.drop(self.exclusions, axis=1)
@@ -1391,15 +1397,18 @@ class NDFrameGroupBy(GroupBy):
 
             obj = self._obj_with_exclusions
 
-            if self._column is not None:
-                series_obj = obj[self._column]
+            if self._selection is not None:
+                subset = obj[self._selection]
+                if isinstance(subset, DataFrame):
+                    raise NotImplementedError
+
                 for fname, func in arg.iteritems():
-                    colg = SeriesGroupBy(series_obj, column=self._column,
+                    colg = SeriesGroupBy(subset, selection=self._selection,
                                          grouper=self.grouper)
                     result[fname] = colg.aggregate(func)
             else:
                 for col, func in arg.iteritems():
-                    colg = SeriesGroupBy(obj[col], column=col,
+                    colg = SeriesGroupBy(obj[col], selection=col,
                                          grouper=self.grouper)
                     result[col] = colg.aggregate(func)
 
@@ -1443,7 +1452,7 @@ class NDFrameGroupBy(GroupBy):
         keys = []
         for col in obj:
             try:
-                colg = SeriesGroupBy(obj[col], column=col,
+                colg = SeriesGroupBy(obj[col], selection=col,
                                      grouper=self.grouper)
                 results.append(colg.aggregate(arg))
                 keys.append(col)
@@ -1490,7 +1499,7 @@ class NDFrameGroupBy(GroupBy):
         cannot_agg = []
         for item in obj:
             try:
-                colg = SeriesGroupBy(obj[item], column=item,
+                colg = SeriesGroupBy(obj[item], selection=item,
                                      grouper=self.grouper)
                 result[item] = colg.aggregate(func, *args, **kwargs)
             except (ValueError, TypeError):
@@ -1620,22 +1629,21 @@ class DataFrameGroupBy(NDFrameGroupBy):
     _block_agg_axis = 1
 
     def __getitem__(self, key):
-        if self._column is not None:
-            raise Exception('Column %s already selected' % self._column)
+        if self._selection is not None:
+            raise Exception('Column(s) %s already selected' % self._selection)
 
-        if key not in self.obj:  # pragma: no cover
-            raise KeyError(str(key))
-
-        # kind of a kludge
-        if self.as_index:
-            return SeriesGroupBy(self.obj[key], column=key,
-                                 grouper=self.grouper,
-                                 exclusions=self.exclusions)
-        else:
-            return DataFrameGroupBy(self.obj, self.grouper, column=key,
+        if isinstance(key, (list, tuple)) or not self.as_index:
+            return DataFrameGroupBy(self.obj, self.grouper, selection=key,
                                     grouper=self.grouper,
                                     exclusions=self.exclusions,
                                     as_index=self.as_index)
+        else:
+            if key not in self.obj:  # pragma: no cover
+                raise KeyError(str(key))
+            # kind of a kludge
+            return SeriesGroupBy(self.obj[key], selection=key,
+                                 grouper=self.grouper,
+                                 exclusions=self.exclusions)
 
     def _wrap_generic_output(self, result, obj):
         result_index = self.grouper.levels[0]
@@ -1733,14 +1741,15 @@ class PanelGroupBy(NDFrameGroupBy):
     def _iterate_slices(self):
         if self.axis == 0:
             # kludge
-            if self._column is None:
+            if self._selection is None:
                 slice_axis = self.obj.items
             else:
-                slice_axis = [self._column]
+                slice_axis = self._selection_list
             slicer = lambda x: self.obj[x]
-        elif foo:
-            slice_axis = self.obj.index
-            slicer = lambda x: self.obj.xs(x, axis=self.axis)
+        else:
+            raise NotImplementedError
+            # slice_axis = self.obj.index
+            # slicer = lambda x: self.obj.xs(x, axis=self.axis)
 
         for val in slice_axis:
             if val in self.exclusions:
