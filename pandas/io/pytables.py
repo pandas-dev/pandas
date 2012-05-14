@@ -671,6 +671,7 @@ class HDFStore(object):
             name = node._v_attrs.name
 
         index_class = _alias_to_class(getattr(node._v_attrs, 'index_class', ''))
+        factory = _get_index_factory(index_class)
 
         kwargs = {}
         if 'freq' in node._v_attrs:
