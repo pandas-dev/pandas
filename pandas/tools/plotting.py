@@ -46,65 +46,56 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
                     gkde = stats.gaussian_kde(y)
                     ind = np.linspace(min(y), max(y), 1000)
                     axes[i, j].plot(ind, gkde.evaluate(ind), **kwds)
-                axes[i, j].yaxis.set_visible(False)
-                axes[i, j].xaxis.set_visible(False)
-                if i == 0 and j == 0:
-                    axes[i, j].yaxis.set_ticks_position('left')
-                    axes[i, j].yaxis.set_label_position('left')
-                    axes[i, j].yaxis.set_visible(True)
-                if i == n - 1 and j == n - 1:
-                    axes[i, j].yaxis.set_ticks_position('right')
-                    axes[i, j].yaxis.set_label_position('right')
-                    axes[i, j].yaxis.set_visible(True)
             else:
                 axes[i, j].scatter(df[b], df[a], alpha=alpha, **kwds)
-                axes[i, j].set_xlabel('')
-                axes[i, j].set_ylabel('')
-                axes[i, j].set_xticklabels([])
-                axes[i, j].set_yticklabels([])
-                ticks = df.index
+                
+            axes[i, j].set_xlabel('')
+            axes[i, j].set_ylabel('')
+            axes[i, j].set_xticklabels([])
+            axes[i, j].set_yticklabels([])
+            ticks = df.index
 
-                is_datetype = ticks.inferred_type in ('datetime', 'date',
-                                                  'datetime64')
+            is_datetype = ticks.inferred_type in ('datetime', 'date',
+                                              'datetime64')
 
-                if ticks.is_numeric() or is_datetype:
-                    """
-                    Matplotlib supports numeric values or datetime objects as
-                    xaxis values. Taking LBYL approach here, by the time
-                    matplotlib raises exception when using non numeric/datetime
-                    values for xaxis, several actions are already taken by plt.
-                    """
-                    ticks = ticks._mpl_repr()
+            if ticks.is_numeric() or is_datetype:
+                """
+                Matplotlib supports numeric values or datetime objects as
+                xaxis values. Taking LBYL approach here, by the time
+                matplotlib raises exception when using non numeric/datetime
+                values for xaxis, several actions are already taken by plt.
+                """
+                ticks = ticks._mpl_repr()
 
-                # setup labels
-                if i == 0 and j % 2 == 1:
-                    axes[i, j].set_xlabel(b, visible=True)
-                    #axes[i, j].xaxis.set_visible(True)
-                    axes[i, j].set_xlabel(b)
-                    axes[i, j].set_xticklabels(ticks)
-                    axes[i, j].xaxis.set_ticks_position('top')
-                    axes[i, j].xaxis.set_label_position('top')
-                if i == n - 1 and j % 2 == 0:
-                    axes[i, j].set_xlabel(b, visible=True)
-                    #axes[i, j].xaxis.set_visible(True)
-                    axes[i, j].set_xlabel(b)
-                    axes[i, j].set_xticklabels(ticks)
-                    axes[i, j].xaxis.set_ticks_position('bottom')
-                    axes[i, j].xaxis.set_label_position('bottom')
-                if j == 0 and i % 2 == 0:
-                    axes[i, j].set_ylabel(a, visible=True)
-                    #axes[i, j].yaxis.set_visible(True)
-                    axes[i, j].set_ylabel(a)
-                    axes[i, j].set_yticklabels(ticks)
-                    axes[i, j].yaxis.set_ticks_position('left')
-                    axes[i, j].yaxis.set_label_position('left')
-                if j == n - 1 and i % 2 == 1:
-                    axes[i, j].set_ylabel(a, visible=True)
-                    #axes[i, j].yaxis.set_visible(True)
-                    axes[i, j].set_ylabel(a)
-                    axes[i, j].set_yticklabels(ticks)
-                    axes[i, j].yaxis.set_ticks_position('right')
-                    axes[i, j].yaxis.set_label_position('right')
+            # setup labels
+            if i == 0 and j % 2 == 1:
+                axes[i, j].set_xlabel(b, visible=True)
+                #axes[i, j].xaxis.set_visible(True)
+                axes[i, j].set_xlabel(b)
+                axes[i, j].set_xticklabels(ticks)
+                axes[i, j].xaxis.set_ticks_position('top')
+                axes[i, j].xaxis.set_label_position('top')
+            if i == n - 1 and j % 2 == 0:
+                axes[i, j].set_xlabel(b, visible=True)
+                #axes[i, j].xaxis.set_visible(True)
+                axes[i, j].set_xlabel(b)
+                axes[i, j].set_xticklabels(ticks)
+                axes[i, j].xaxis.set_ticks_position('bottom')
+                axes[i, j].xaxis.set_label_position('bottom')
+            if j == 0 and i % 2 == 0:
+                axes[i, j].set_ylabel(a, visible=True)
+                #axes[i, j].yaxis.set_visible(True)
+                axes[i, j].set_ylabel(a)
+                axes[i, j].set_yticklabels(ticks)
+                axes[i, j].yaxis.set_ticks_position('left')
+                axes[i, j].yaxis.set_label_position('left')
+            if j == n - 1 and i % 2 == 1:
+                axes[i, j].set_ylabel(a, visible=True)
+                #axes[i, j].yaxis.set_visible(True)
+                axes[i, j].set_ylabel(a)
+                axes[i, j].set_yticklabels(ticks)
+                axes[i, j].yaxis.set_ticks_position('right')
+                axes[i, j].yaxis.set_label_position('right')
 
             axes[i, j].grid(b=grid)
 
