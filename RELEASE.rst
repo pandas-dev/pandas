@@ -46,6 +46,8 @@ pandas 0.8.0
     via rpy2 (#350, #1212)
   - Can pass list of (name, function) to GroupBy.aggregate to get aggregates in
     a particular order (#610)
+  - Can pass dicts with lists of functions or dicts to GroupBy aggregate to do
+    much more flexible multiple function aggregation (#642)
 
 **Improvements to existing features**
 
