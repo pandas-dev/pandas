@@ -156,6 +156,10 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         df = read_csv(StringIO(data), parse_dates={'nominal': [1, 2]})
         self.assert_(not isinstance(df.nominal[0], basestring))
 
+    def test_multiple_skts_example(self):
+        data = "year, month, a, b\n 2001, 01, 0.0, 10.\n 2001, 02, 1.1, 11."
+        pass
+
     def test_malformed(self):
         # all
         data = """ignore

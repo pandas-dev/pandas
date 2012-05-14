@@ -41,6 +41,9 @@ pandas 0.8.0
   - Add ``match`` function to API (#502)
   - Add Cython-optimized first, last, min, max, prod functions to GroupBy (#994,
     #1043)
+  - Dates can be split across multiple columns (#1227, #1186)
+  - Add experimental support for converting pandas DataFrame to R data.frame
+    via rpy2 (#350, #1212)
 
 **Improvements to existing features**
 
@@ -53,6 +56,7 @@ pandas 0.8.0
   - Can pass arrays in addition to column names to DataFrame.set_index (#402)
   - Improve the speed of "square" reindexing of homogeneous DataFrame objects
     by significant margin (#836)
+  - Handle more dtypes when passed MaskedArrays in DataFrame constructor (#406)
 
 **API Changes**
 
