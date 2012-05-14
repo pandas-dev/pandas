@@ -579,7 +579,7 @@ class HDFStore(object):
             node._v_attrs.kind = kind
             node._v_attrs.name = index.name
 
-            if isinstance(index, (DatetimeIndex, PeriodIndex, IntIndex)):
+            if isinstance(index, (DatetimeIndex, PeriodIndex)):
                 node._v_attrs.index_class = _class_to_alias(type(index))
 
             if hasattr(index, 'freq'):
@@ -1011,8 +1011,7 @@ def _is_table_type(group):
         return False
 
 _index_type_map = {DatetimeIndex : 'datetime',
-                   PeriodIndex : 'period',
-                   IntIndex : 'sparse integer'}
+                   PeriodIndex : 'period'}
 
 _reverse_index_map = {}
 for k, v in _index_type_map.iteritems():
