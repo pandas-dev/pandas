@@ -1729,6 +1729,15 @@ class TestGroupBy(unittest.TestCase):
         assert_frame_equal(result, expected)
         assert_frame_equal(result2, expected)
 
+    def test_agg_multiple_functions_maintain_order(self):
+
+        funcs = [('mean', np.mean), ('max', np.max), ('min', np.min)]
+        result = self.df.groupby('A')['C'].agg(funcs)
+        exp_cols = ['mean', 'max', 'min']
+
+        self.assert_(np.array_equal(result.columns, exp_cols))
+
+
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     tups = map(tuple, df[keys].values)
     tups = com._asarray_tuplesafe(tups)

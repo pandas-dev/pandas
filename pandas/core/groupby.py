@@ -1207,15 +1207,23 @@ class SeriesGroupBy(GroupBy):
         return ret
 
     def _aggregate_multiple_funcs(self, arg):
-        if not isinstance(arg, dict):
-            arg = dict((func.__name__, func) for func in arg)
+        if isinstance(arg, dict):
+            columns = arg.keys()
+            arg = arg.items()
+        elif isinstance(arg[0], (tuple, list)):
+            # indicated column order
+            columns = zip(*arg)[0]
+        else:
+            # list of functions
+            columns = [func.__name__ for func in arg]
+            arg = zip(columns, arg)
 
         results = {}
 
-        for name, func in arg.iteritems():
+        for name, func in arg:
             results[name] = self.aggregate(func)
 
-        return DataFrame(results)
+        return DataFrame(results, columns=columns)
 
     def _wrap_aggregated_output(self, output, names=None):
         # sort of a kludge
