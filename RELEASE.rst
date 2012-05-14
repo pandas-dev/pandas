@@ -85,6 +85,8 @@ pandas 0.8.0
   - Fix formatting of MultiIndex on Series/DataFrame when index name coincides
     with label (#1217)
   - Handle Excel 2003 #N/A as NaN from xlrd (#1213, #1225)
+  - Fix timestamp locale-related deserialization issues with HDFStore by moving
+    to datetime64 representation (#1081, #809)
 
 pandas 0.7.3
 ============
