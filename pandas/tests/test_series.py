@@ -2530,6 +2530,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_((ser[6:10] == -1).all())
         self.assert_((ser[20:30] == -1).all())
 
+        ser = Series([np.nan, 0, np.inf])
+        assert_series_equal(ser.replace(np.nan, 0), ser.fillna(0))
+
         ser = Series([np.nan, 0, 'foo', 'bar', np.inf, None, lib.NaT])
         assert_series_equal(ser.replace(np.nan, 0), ser.fillna(0))
         filled = ser.copy()
