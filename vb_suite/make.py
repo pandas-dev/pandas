@@ -79,8 +79,64 @@ def check_build():
             pass
 
 def all():
-    # clean()
     html()
+
+def auto_update():
+    msg = ''
+    try:
+        clean()
+        html()
+        latex()
+        upload()
+        uploadpdf()
+    except Exception, inst:
+        msg += str(inst) + '\n'
+
+    if len(msg) == 0:
+        sendmail()
+    else:
+        sendmail(msg)
+
+def sendmail(err_msg=None):
+    from_name = 'drzoidberg@lambdafoundry.com'
+    to_name = 'dev@lambdafoundry.com'
+
+    if err_msg is None:
+        msgstr = 'Daily vbench uploaded successfully'
+        subject = "VB: daily update successful"
+    else:
+        msgstr = err_msg
+        subject = "VB: daily update failed"
+
+    import smtplib
+    from email.MIMEText import MIMEText
+    msg = MIMEText(msgstr)
+    msg['Subject'] = subject
+    msg['From'] = from_name
+    msg['To'] = to_name
+
+    server_str, port, login, pwd = _get_credentials()
+    server = smtplib.SMTP(server_str, port)
+    server.ehlo()
+    server.starttls()
+    server.ehlo()
+
+    server.login(login, pwd)
+    server.sendmail(from_name, to_name, msg.as_string())
+    server.close()
+
+def _get_credentials():
+    cred = '~/tmp/credentials'
+    with open(cred, 'r') as fh:
+        server, port, un, domain = fh.read().split(',')
+    port = int(port)
+    login = un + '@' + domain + '.com'
+
+    import base64
+    with open('~/tmp/cron_email_pwd', 'r') as fh:
+        pwd = base64.b64decode(fh.read())
+
+    return server, port, login, pwd
 
 funcd = {
     'html'     : html,
@@ -88,6 +144,7 @@ funcd = {
     'clean'    : clean,
     'upload'       : upload,
     'uploadpdf'    : uploadpdf,
+    'auto_update' : auto_update,
     'all'      : all,
     }
 
