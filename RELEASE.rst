@@ -48,6 +48,8 @@ pandas 0.8.0
     a particular order (#610)
   - Can pass dicts with lists of functions or dicts to GroupBy aggregate to do
     much more flexible multiple function aggregation (#642)
+  - New ordered_merge functions for merging DataFrames with ordered
+    data. Also supports group-wise merging for panel data (#813)
 
 **Improvements to existing features**
 

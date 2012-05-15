@@ -191,6 +191,27 @@ def _get_result_indexer(sorter, indexer):
     return res
 
 
+
+def ffill_indexer(ndarray[int64_t] indexer):
+    cdef:
+        Py_ssize_t i, n = len(indexer)
+        ndarray[int64_t] result
+        int64_t val, last_obs
+
+    result = np.empty(n, dtype=np.int64)
+    last_obs = -1
+
+    for i in range(n):
+        val = indexer[i]
+        if val == -1:
+            result[i] = last_obs
+        else:
+            result[i] = val
+            last_obs = val
+
+    return result
+
+
 def ffill_by_group(ndarray[int64_t] indexer, ndarray[int64_t] group_ids,
                    int64_t max_group):
     cdef:
