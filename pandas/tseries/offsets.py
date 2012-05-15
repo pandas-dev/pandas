@@ -963,8 +963,8 @@ class Tick(DateOffset):
         return self._delta
 
     @property
-    def micros(self):
-        return _delta_to_microseconds(self.delta)
+    def nanos(self):
+        return _delta_to_nanoseconds(self.delta)
 
     def apply(self, other):
         if isinstance(other, (datetime, timedelta)):
@@ -990,18 +990,18 @@ def _delta_to_tick(delta):
             else:
                 return Second(seconds)
     else:
-        mus = _delta_to_microseconds(delta)
+        mus = _delta_to_nanoseconds(delta)
         if mus % 1000 == 0:
             return Milli(mus // 1000)
         else:
             return Micro(mus)
 
-def _delta_to_microseconds(delta):
+def _delta_to_nanoseconds(delta):
     if isinstance(delta, Tick):
         delta = delta.delta
     return (delta.days * 24 * 60 * 60 * 1000000
             + delta.seconds * 1000000
-            + delta.microseconds)
+            + delta.microseconds) * 1000
 
 class Day(Tick, CacheableOffset):
     _inc = timedelta(1)

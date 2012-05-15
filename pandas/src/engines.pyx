@@ -415,20 +415,20 @@ cdef class DatetimeEngine(Int64Engine):
 
     def get_indexer(self, values):
         self._ensure_mapping_populated()
-        if values.dtype != 'M8':
+        if values.dtype != 'M8[ns]':
             return np.repeat(-1, len(values)).astype('i4')
         values = np.asarray(values).view('i8')
         return self.mapping.lookup(values)
 
     def get_pad_indexer(self, other, limit=None):
-        if other.dtype != 'M8':
+        if other.dtype != 'M8[ns]':
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
         return _algos.pad_int64(self._get_index_values(), other,
                                 limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
-        if other.dtype != 'M8':
+        if other.dtype != 'M8[ns]':
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
         return _algos.backfill_int64(self._get_index_values(), other,

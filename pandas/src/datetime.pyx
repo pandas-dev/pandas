@@ -47,10 +47,9 @@ except NameError: # py3
 # This serves as the box for datetime64
 class Timestamp(_Timestamp):
 
-    __slots__ = ['value', 'offset']
-
     def __new__(cls, object ts_input, object offset=None, tz=None):
         cdef _TSObject ts
+        cdef _Timestamp ts_base
 
         if isinstance(ts_input, float):
             # to do, do we want to support this, ie with fractional seconds?
@@ -72,6 +71,7 @@ class Timestamp(_Timestamp):
         # fill out rest of data
         ts_base.value = ts.value
         ts_base.offset = offset
+        ts_base.nanosecond = ts.dts.ps / 1000
 
         return ts_base
 
@@ -185,7 +185,7 @@ def apply_offset(ndarray[object] values, object offset):
         ndarray[int64_t] new_values
         object boxed
 
-    result = np.empty(n, dtype='M8[us]')
+    result = np.empty(n, dtype='M8[ns]')
     new_values = result.view('i8')
     pass
 
@@ -194,8 +194,8 @@ def apply_offset(ndarray[object] values, object offset):
 # (see Timestamp class above). This will serve as a C extension type that
 # shadows the python class, where we do any heavy lifting.
 cdef class _Timestamp(datetime):
-    cdef:
-        int64_t value       # numpy int64
+    cdef public:
+        int64_t value, nanosecond
         object offset       # frequency reference
 
     def __add__(self, other):
@@ -250,13 +250,13 @@ cpdef convert_to_tsobject(object ts, object tz=None):
 
     if is_datetime64_object(ts):
         obj.value = unbox_datetime64_scalar(ts)
-        pandas_datetime_to_datetimestruct(obj.value, PANDAS_FR_us, &obj.dts)
+        pandas_datetime_to_datetimestruct(obj.value, PANDAS_FR_ns, &obj.dts)
     elif is_integer_object(ts):
         obj.value = ts
-        pandas_datetime_to_datetimestruct(ts, PANDAS_FR_us, &obj.dts)
+        pandas_datetime_to_datetimestruct(ts, PANDAS_FR_ns, &obj.dts)
     elif util.is_string_object(ts):
         _string_to_dts(ts, &obj.dts)
-        obj.value = pandas_datetimestruct_to_datetime(PANDAS_FR_us, &obj.dts)
+        obj.value = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &obj.dts)
     elif PyDateTime_Check(ts):
         obj.value = _pydatetime_to_dts(ts, &obj.dts)
         obj.tzinfo = ts.tzinfo
@@ -280,7 +280,7 @@ cpdef convert_to_tsobject(object ts, object tz=None):
             obj.value = obj.value + deltas[pos]
 
             if utc_convert:
-                pandas_datetime_to_datetimestruct(obj.value, PANDAS_FR_us,
+                pandas_datetime_to_datetimestruct(obj.value, PANDAS_FR_ns,
                                                  &obj.dts)
                 obj.tzinfo = tz._tzinfos[inf]
 
@@ -297,7 +297,7 @@ cpdef convert_to_tsobject(object ts, object tz=None):
 
 cdef inline object _datetime64_to_datetime(int64_t val):
     cdef pandas_datetimestruct dts
-    pandas_datetime_to_datetimestruct(val, PANDAS_FR_us, &dts)
+    pandas_datetime_to_datetimestruct(val, PANDAS_FR_ns, &dts)
     return _dts_to_pydatetime(&dts)
 
 cdef inline object _dts_to_pydatetime(pandas_datetimestruct *dts):
@@ -313,7 +313,7 @@ cdef inline int64_t _pydatetime_to_dts(object val, pandas_datetimestruct *dts):
     dts.min = PyDateTime_DATE_GET_MINUTE(val)
     dts.sec = PyDateTime_DATE_GET_SECOND(val)
     dts.us = PyDateTime_DATE_GET_MICROSECOND(val)
-    return pandas_datetimestruct_to_datetime(PANDAS_FR_us, dts)
+    return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, dts)
 
 cdef inline int64_t _dtlike_to_datetime64(object val,
                                           pandas_datetimestruct *dts):
@@ -324,7 +324,7 @@ cdef inline int64_t _dtlike_to_datetime64(object val,
     dts.min = val.minute
     dts.sec = val.second
     dts.us = val.microsecond
-    return pandas_datetimestruct_to_datetime(PANDAS_FR_us, dts)
+    return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, dts)
 
 cdef inline int64_t _date_to_datetime64(object val,
                                         pandas_datetimestruct *dts):
@@ -335,7 +335,7 @@ cdef inline int64_t _date_to_datetime64(object val,
     dts.min = 0
     dts.sec = 0
     dts.us = 0
-    return pandas_datetimestruct_to_datetime(PANDAS_FR_us, dts)
+    return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, dts)
 
 
 cdef inline int _string_to_dts(object val, pandas_datetimestruct* dts) except -1:
@@ -345,7 +345,7 @@ cdef inline int _string_to_dts(object val, pandas_datetimestruct* dts) except -1
 
     if PyUnicode_Check(val):
         val = PyUnicode_AsASCIIString(val);
-    parse_iso_8601_datetime(val, len(val), PANDAS_FR_us, NPY_UNSAFE_CASTING,
+    parse_iso_8601_datetime(val, len(val), PANDAS_FR_ns, NPY_UNSAFE_CASTING,
                             dts, &islocal, &out_bestunit, &special)
     return 0
 
@@ -738,7 +738,7 @@ def string_to_datetime(ndarray[object] strings, raise_=False, dayfirst=False):
     from dateutil.parser import parse
 
     try:
-        result = np.empty(n, dtype='M8[us]')
+        result = np.empty(n, dtype='M8[ns]')
         iresult = result.view('i8')
         for i in range(n):
             val = strings[i]
@@ -903,7 +903,7 @@ def _get_transitions(tz):
     Get UTC times of DST transitions
     """
     if tz not in trans_cache:
-        arr = np.array(tz._utc_transition_times, dtype='M8[us]')
+        arr = np.array(tz._utc_transition_times, dtype='M8[ns]')
         trans_cache[tz] = arr.view('i8')
     return trans_cache[tz]
 
@@ -1009,7 +1009,7 @@ def build_field_sarray(ndarray[int64_t] dtindex):
     mus = out['u']
 
     for i in range(count):
-        pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_us, &dts)
+        pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
         years[i] = dts.year
         months[i] = dts.month
         days[i] = dts.day
@@ -1044,49 +1044,49 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
 
     if field == 'Y':
         for i in range(count):
-            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_us, &dts)
+            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
             out[i] = dts.year
         return out
 
     elif field == 'M':
         for i in range(count):
-            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_us, &dts)
+            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
             out[i] = dts.month
         return out
 
     elif field == 'D':
         for i in range(count):
-            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_us, &dts)
+            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
             out[i] = dts.day
         return out
 
     elif field == 'h':
         for i in range(count):
-            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_us, &dts)
+            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
             out[i] = dts.hour
         return out
 
     elif field == 'm':
         for i in range(count):
-            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_us, &dts)
+            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
             out[i] = dts.min
         return out
 
     elif field == 's':
         for i in range(count):
-            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_us, &dts)
+            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
             out[i] = dts.sec
         return out
 
     elif field == 'us':
         for i in range(count):
-            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_us, &dts)
+            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
             out[i] = dts.us
         return out
 
     elif field == 'doy':
         for i in range(count):
-            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_us, &dts)
+            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
             isleap = is_leapyear(dts.year)
             out[i] = _month_offset[isleap, dts.month-1] + dts.day
         return out
@@ -1099,7 +1099,7 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
 
     elif field == 'woy':
         for i in range(count):
-            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_us, &dts)
+            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
             isleap = is_leapyear(dts.year)
             out[i] = _month_offset[isleap, dts.month - 1] + dts.day
             out[i] = ((out[i] - 1) / 7) + 1
@@ -1107,7 +1107,7 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
 
     elif field == 'q':
         for i in range(count):
-            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_us, &dts)
+            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
             out[i] = dts.month
             out[i] = ((out[i] - 1) / 3) + 1
         return out
@@ -1119,7 +1119,7 @@ cdef inline int m8_weekday(int64_t val):
     ts = convert_to_tsobject(val)
     return ts_dayofweek(ts)
 
-cdef int64_t DAY_US = 86400000000LL
+cdef int64_t DAY_NS = 86400000000000LL
 
 def values_at_time(ndarray[int64_t] stamps, int64_t time):
     cdef:
@@ -1133,18 +1133,14 @@ def values_at_time(ndarray[int64_t] stamps, int64_t time):
         return np.empty(0, dtype=np.int64)
 
     # is this OK?
-    # days = stamps // DAY_US
-    times = stamps % DAY_US
+    # days = stamps // DAY_NS
+    times = stamps % DAY_NS
 
-    # Microsecond resolution
+    # Nanosecond resolution
     count = 0
     for i in range(1, n):
         if times[i] == time:
             count += 1
-        # cur = days[i]
-        # if cur > last:
-        #     count += 1
-        #     last = cur
 
     indexer = np.empty(count, dtype=np.int64)
 
@@ -1154,11 +1150,6 @@ def values_at_time(ndarray[int64_t] stamps, int64_t time):
         if times[i] == time:
             indexer[j] = i
             j += 1
-
-        # cur = days[i]
-        # if cur > last:
-        #     j += 1
-        #     last = cur
 
     return indexer
 
@@ -1170,12 +1161,12 @@ def date_normalize(ndarray[int64_t] stamps):
         pandas_datetimestruct dts
 
     for i in range(n):
-        pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_us, &dts)
+        pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns, &dts)
         dts.hour = 0
         dts.min = 0
         dts.sec = 0
         dts.us = 0
-        result[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_us, &dts)
+        result[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
 
     return result
 
@@ -1185,7 +1176,7 @@ def dates_normalized(ndarray[int64_t] stamps):
         pandas_datetimestruct dts
 
     for i in range(n):
-        pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_us, &dts)
+        pandas_datetime_to_datetimestruct(stamps[i], PANDAS_FR_ns, &dts)
         if (dts.hour + dts.min + dts.sec + dts.us) > 0:
             return False
 
@@ -1250,7 +1241,7 @@ def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int freq):
     out = np.empty(l, dtype='i8')
 
     for i in range(l):
-        pandas_datetime_to_datetimestruct(dtarr[i], PANDAS_FR_us, &dts)
+        pandas_datetime_to_datetimestruct(dtarr[i], PANDAS_FR_ns, &dts)
         out[i] = get_period_ordinal(dts.year, dts.month, dts.day,
                                   dts.hour, dts.min, dts.sec, freq)
     return out
@@ -1349,7 +1340,7 @@ cpdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq):
     dts.sec = int(dinfo.second)
     dts.us = 0
 
-    return pandas_datetimestruct_to_datetime(PANDAS_FR_us, &dts)
+    return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
 
 def period_ordinal_to_string(int64_t value, int freq):
     cdef:

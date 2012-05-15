@@ -963,7 +963,7 @@ def _read_array(group, key):
 
 def _unconvert_index(data, kind):
     if kind == 'datetime64':
-        index = np.array(data, dtype='M8[us]')
+        index = np.array(data, dtype='M8[ns]')
     elif kind == 'datetime':
         index = np.array([datetime.fromtimestamp(v) for v in data],
                          dtype=object)
