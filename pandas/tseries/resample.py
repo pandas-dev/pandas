@@ -37,7 +37,7 @@ class TimeGrouper(CustomGrouper):
     def __init__(self, freq='Min', closed='right', label='right', how='mean',
                  begin=None, end=None, nperiods=None, axis=0,
                  fill_method=None, limit=None, loffset=None, kind=None,
-                 convention=None):
+                 convention=None, base=0):
         self.freq = freq
         self.closed = closed
         self.label = label
@@ -51,6 +51,7 @@ class TimeGrouper(CustomGrouper):
         self.how = how
         self.fill_method = fill_method
         self.limit = limit
+        self.base = base
 
     def resample(self, obj):
         axis = obj._get_axis(self.axis)
@@ -88,9 +89,33 @@ class TimeGrouper(CustomGrouper):
         return binner, grouper
 
     def _get_time_bins(self, axis):
-        return _make_time_bins(axis, self.freq, begin=self.begin,
-                               end=self.end, closed=self.closed,
-                               label=self.label)
+        assert(isinstance(axis, DatetimeIndex))
+
+        if len(axis) == 0:
+            # TODO: Should we be a bit more careful here?
+            return [], [], []
+
+        first, last = _get_range_edges(axis, self.begin, self.end, self.freq,
+                                       closed=self.closed, base=self.base)
+        binner = DatetimeIndex(freq=self.freq, start=first, end=last)
+
+        # a little hack
+        trimmed = False
+        if len(binner) > 2 and binner[-2] == axis[-1]:
+            binner = binner[:-1]
+            trimmed = True
+
+        # general version, knowing nothing about relative frequencies
+        bins = lib.generate_bins_dt64(axis.asi8, binner.asi8, self.closed)
+
+        if self.label == 'right':
+            labels = binner[1:]
+        elif not trimmed:
+            labels = binner[:-1]
+        else:
+            labels = binner
+
+        return binner, bins, labels
 
     def _get_time_period_bins(self, axis):
         return _make_period_bins(axis, self.freq, begin=self.begin,
@@ -210,36 +235,8 @@ def _make_period_bins(axis, freq, begin=None, end=None,
     return binner, bins, labels
 
 
-def _make_time_bins(axis, freq, begin=None, end=None,
-                    closed='right', label='right'):
-    assert(isinstance(axis, DatetimeIndex))
-
-    if len(axis) == 0:
-        # TODO: Should we be a bit more careful here?
-        return [], [], []
-
-    first, last = _get_range_edges(axis, begin, end, freq, closed=closed)
-    binner = DatetimeIndex(freq=freq, start=first, end=last)
-
-    # a little hack
-    trimmed = False
-    if len(binner) > 2 and binner[-2] == axis[-1]:
-        binner = binner[:-1]
-        trimmed = True
-
-    # general version, knowing nothing about relative frequencies
-    bins = lib.generate_bins_dt64(axis.asi8, binner.asi8, closed)
-
-    if label == 'right':
-        labels = binner[1:]
-    elif not trimmed:
-        labels = binner[:-1]
-    else:
-        labels = binner
-
-    return binner, bins, labels
-
-def _get_range_edges(axis, begin, end, offset, closed='left'):
+def _get_range_edges(axis, begin, end, offset, closed='left',
+                     base=0):
     from pandas.tseries.offsets import Tick, _delta_to_microseconds
     if isinstance(offset, basestring):
         offset = to_offset(offset)
@@ -253,7 +250,7 @@ def _get_range_edges(axis, begin, end, offset, closed='left'):
         if ((day_micros % offset.micros) == 0 and begin is None
             and end is None):
             return _adjust_dates_anchored(axis[0], axis[-1], offset,
-                                          closed=closed)
+                                          closed=closed, base=base)
 
     if begin is None:
         if closed == 'left':
@@ -271,11 +268,15 @@ def _get_range_edges(axis, begin, end, offset, closed='left'):
     return first, last
 
 
-def _adjust_dates_anchored(first, last, offset, closed='right'):
+def _adjust_dates_anchored(first, last, offset, closed='right', base=0):
     from pandas.tseries.tools import normalize_date
 
     start_day_micros = Timestamp(normalize_date(first)).value
     last_day_micros = Timestamp(normalize_date(last)).value
+
+    base_micros = (base % offset.n) * offset.micros / offset.n
+    start_day_micros += base_micros
+    last_day_micros += base_micros
 
     foffset = (first.value - start_day_micros) % offset.micros
     loffset = (last.value - last_day_micros) % offset.micros
