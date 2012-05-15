@@ -43,6 +43,18 @@ PyDateTime_IMPORT
 import_array()
 import_ufunc()
 
+cdef int PLATFORM_INT = (<ndarray> np.arange(0, dtype=np.int_)).descr.type_num
+
+cpdef ensure_platform_int(object arr):
+    if util.is_array(arr):
+        if (<ndarray> arr).descr.type_num == PLATFORM_INT:
+            return arr
+        else:
+            return arr.astype(np.int_)
+    else:
+        return np.array(arr, dtype=np.int_)
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef map_indices_float64(ndarray[float64_t] index):
@@ -3335,16 +3347,6 @@ cpdef ensure_int64(object arr):
             return arr.astype(np.int64)
     else:
         return np.array(arr, dtype=np.int64)
-
-
-cpdef ensure_platform_int(object arr):
-    if util.is_array(arr):
-        if (<ndarray> arr).descr.type_num == NPY_INT:
-            return arr
-        else:
-            return arr.astype(np.int_)
-    else:
-        return np.array(arr, dtype=np.int_)
 
 
 cpdef ensure_object(object arr):

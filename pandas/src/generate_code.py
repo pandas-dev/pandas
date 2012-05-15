@@ -44,6 +44,18 @@ PyDateTime_IMPORT
 # initialize numpy
 import_array()
 import_ufunc()
+
+cdef int PLATFORM_INT = (<ndarray> np.arange(0, dtype=np.int_)).descr.type_num
+
+cpdef ensure_platform_int(object arr):
+    if util.is_array(arr):
+        if (<ndarray> arr).descr.type_num == PLATFORM_INT:
+            return arr
+        else:
+            return arr.astype(np.int_)
+    else:
+        return np.array(arr, dtype=np.int_)
+
 """
 
 take_1d_template = """@cython.wraparound(False)
@@ -828,7 +840,7 @@ ensure_functions = [
     ('float64', 'FLOAT64', 'float64'),
     ('int32', 'INT32', 'int32'),
     ('int64', 'INT64', 'int64'),
-    ('platform_int', 'INT', 'int_'),
+    # ('platform_int', 'INT', 'int_'),
     ('object', 'OBJECT', 'object_'),
 ]
 
