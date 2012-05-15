@@ -163,6 +163,11 @@ def test_groupsort_indexer():
     expected = np.lexsort((b, a))
     assert(np.array_equal(result, expected))
 
+def test_ensure_platform_int():
+    arr = np.arange(100)
+
+    result = algos.ensure_platform_int(arr)
+    assert(result is arr)
 
 def test_duplicated_with_nas():
     keys = [0, 1, nan, 0, 2, nan]
