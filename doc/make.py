@@ -177,8 +177,6 @@ funcd = {
     'upload_stable_pdf' : upload_stable_pdf,
     'latex'    : latex,
     'clean'    : clean,
-    'sf'       : sf,
-    'sfpdf'    : sfpdf,
     'auto_dev' : auto_dev_build,
     'all'      : all,
     }
