@@ -64,12 +64,9 @@ def auto_update():
         clean()
         html()
         upload()
-    except Exception, inst:
-        msg += str(inst) + '\n'
-
-    if len(msg) == 0:
         sendmail()
-    else:
+    except (Exception, SystemExit), inst:
+        msg += str(inst) + '\n'
         sendmail(msg)
 
 def sendmail(err_msg=None):
