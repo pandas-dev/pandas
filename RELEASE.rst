@@ -50,6 +50,7 @@ pandas 0.8.0
     much more flexible multiple function aggregation (#642)
   - New ordered_merge functions for merging DataFrames with ordered
     data. Also supports group-wise merging for panel data (#813)
+  - Add keys() method to DataFrame
 
 **Improvements to existing features**
 
