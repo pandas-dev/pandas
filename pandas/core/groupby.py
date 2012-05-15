@@ -2012,11 +2012,12 @@ def _get_indices_dict(label_list, keys):
     sorter, _ = lib.groupsort_indexer(com._ensure_int64(group_index),
                                       np.prod(shape))
 
-    sorted_labels = [lab.take(sorter) for lab in label_list]
-    group_index = group_index.take(sorter)
-    index = np.arange(len(group_index)).take(sorter)
+    sorter_int = com._ensure_platform_int(sorter)
 
-    return lib.indices_fast(index, group_index, keys, sorted_labels)
+    sorted_labels = [lab.take(sorter_int) for lab in label_list]
+    group_index = group_index.take(sorter_int)
+
+    return lib.indices_fast(sorter, group_index, keys, sorted_labels)
 
 #----------------------------------------------------------------------
 # sorting levels...cleverly?
