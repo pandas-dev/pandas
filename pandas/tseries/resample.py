@@ -274,7 +274,7 @@ def _adjust_dates_anchored(first, last, offset, closed='right', base=0):
     start_day_micros = Timestamp(normalize_date(first)).value
     last_day_micros = Timestamp(normalize_date(last)).value
 
-    base_micros = (base % offset.n) * offset.micros / offset.n
+    base_micros = (base % offset.n) * offset.micros // offset.n
     start_day_micros += base_micros
     last_day_micros += base_micros
 
