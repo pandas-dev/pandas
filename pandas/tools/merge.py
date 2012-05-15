@@ -33,17 +33,107 @@ def merge(left, right, how='inner', on=None, left_on=None, right_on=None,
 if __debug__: merge.__doc__ = _merge_doc % '\nleft : DataFrame'
 
 
-def ordered_merge(left, right, on=None, by=None, left_on=None, right_on=None,
-                  left_index=False, right_index=False, fill_method=None,
-                  suffixes=('_x', '_y')):
-    """
+def ordered_merge(left, right, on=None, left_by=None, right_by=None,
+                  left_on=None, right_on=None,
+                  fill_method=None, suffixes=('_x', '_y')):
+    """Perform merge with optional filling/interpolation designed for ordered
+    data like time series data. Optionally perform group-wise merge (see
+    examples)
 
+    Parameters
+    ----------
+    left : DataFrame
+    right : DataFrame
+    fill_method : {'ffill', None}, default None
+        Interpolation method for data
+    on : label or list
+        Field names to join on. Must be found in both DataFrames.
+    left_on : label or list, or array-like
+        Field names to join on in left DataFrame. Can be a vector or list of
+        vectors of the length of the DataFrame to use a particular vector as
+        the join key instead of columns
+    right_on : label or list, or array-like
+        Field names to join on in right DataFrame or vector/list of vectors per
+        left_on docs
+    left_by : column name or list of column names
+        Group left DataFrame by group columns and merge piece by piece with
+        right DataFrame
+    right_by : column name or list of column names
+        Group right DataFrame by group columns and merge piece by piece with
+        left DataFrame
+    suffixes : 2-length sequence (tuple, list, ...)
+        Suffix to apply to overlapping column names in the left and right
+        side, respectively
+
+    Examples
+    --------
+    >>> A                      >>> B
+          key  lvalue group        key  rvalue
+    0   a       1     a        0     b       1
+    1   c       2     a        1     c       2
+    2   e       3     a        2     d       3
+    3   a       1     b
+    4   c       2     b
+    5   e       3     b
+
+    >>> ordered_merge(A, B, fill_method='ffill', left_by='group')
+       key  lvalue group  rvalue
+    0    a       1     a     NaN
+    1    b       1     a       1
+    2    c       2     a       2
+    3    d       2     a       3
+    4    e       3     a       3
+    5    f       3     a       4
+    6    a       1     b     NaN
+    7    b       1     b       1
+    8    c       2     b       2
+    9    d       2     b       3
+    10   e       3     b       3
+    11   f       3     b       4
+
+    Returns
+    -------
+    merged : DataFrame
     """
-    op = _OrderedMerge(left, right, on=on, left_on=left_on,
-                       right_on=right_on, left_index=left_index,
-                       right_index=right_index, suffixes=suffixes,
-                       fill_method=fill_method, by=by)
-    return op.get_result()
+    def _merger(x, y):
+        op = _OrderedMerge(x, y, on=on, left_on=left_on, right_on=right_on,
+                           # left_index=left_index, right_index=right_index,
+                           suffixes=suffixes, fill_method=fill_method)
+        return op.get_result()
+
+    if left_by is not None and right_by is not None:
+        raise ValueError('Can only group either left or right frames')
+    elif left_by is not None:
+        if not isinstance(left_by, (list, tuple)):
+            left_by = [left_by]
+        pieces = []
+        for key, xpiece in left.groupby(left_by):
+            merged = _merger(xpiece, right)
+            for k in left_by:
+                # May have passed ndarray
+                try:
+                    if k in merged:
+                        merged[k] = key
+                except:
+                    pass
+            pieces.append(merged)
+        return concat(pieces, ignore_index=True)
+    elif right_by is not None:
+        if not isinstance(right_by, (list, tuple)):
+            right_by = [right_by]
+        pieces = []
+        for key, ypiece in right.groupby(right_by):
+            merged = _merger(left, ypiece)
+            for k in right_by:
+                try:
+                    if k in merged:
+                        merged[k] = key
+                except:
+                    pass
+            pieces.append(merged)
+        return concat(pieces, ignore_index=True)
+    else:
+        return _merger(left, right)
 
 
 
@@ -157,9 +247,6 @@ class _MergeOperation(object):
         else:
             # max groups = largest possible number of distinct groups
             left_key, right_key, max_groups = self._get_group_keys()
-
-            # left_key = com._ensure_int64(left_key)
-            # right_key = com._ensure_int64(right_key)
 
             join_func = _join_functions[self.how]
             left_indexer, right_indexer = join_func(left_key, right_key,
@@ -346,7 +433,6 @@ class _OrderedMerge(_MergeOperation):
                  suffixes=('_x', '_y'), copy=True,
                  fill_method=None):
 
-        self.by = by
         self.fill_method = fill_method
 
         _MergeOperation.__init__(self, left, right, on=on, left_on=left_on,
@@ -365,15 +451,8 @@ class _OrderedMerge(_MergeOperation):
         ldata, rdata = self._get_merge_data()
 
         if self.fill_method == 'ffill':
-            # group_index, max_group = self._get_group_index()
-
-            group_index = np.repeat(0, len(left_indexer))
-            max_group = 1
-
-            left_join_indexer = lib.ffill_by_group(left_indexer, group_index,
-                                                   max_group)
-            right_join_indexer = lib.ffill_by_group(right_indexer, group_index,
-                                                    max_group)
+            left_join_indexer = lib.ffill_indexer(left_indexer)
+            right_join_indexer = lib.ffill_indexer(right_indexer)
         else:
             left_join_indexer = left_indexer
             right_join_indexer = right_indexer
@@ -388,9 +467,6 @@ class _OrderedMerge(_MergeOperation):
         self._maybe_add_join_keys(result, left_indexer, right_indexer)
 
         return result
-
-    def _get_group_index(self):
-        pass
 
 def _get_multiindex_indexer(join_keys, index, sort=False):
     shape = []

@@ -1277,22 +1277,27 @@ class TestOrderedMerge(unittest.TestCase):
         assert_frame_equal(result, expected)
 
     def test_multigroup(self):
-        raise nose.SkipTest
         left = concat([self.left, self.left], ignore_index=True)
-        right = concat([self.right, self.right], ignore_index=True)
+        # right = concat([self.right, self.right], ignore_index=True)
 
         left['group'] = ['a'] * 3 + ['b'] * 3
-        right['group'] = ['a'] * 4 + ['b'] * 4
+        # right['group'] = ['a'] * 4 + ['b'] * 4
 
-        result = ordered_merge(left, right, on='key', by='group',
+        result = ordered_merge(left, self.right, on='key', left_by='group',
                                fill_method='ffill')
-
-        expected = DataFrame({'key': ['a', 'b', 'c', 'd', 'e', 'f'],
-                              'lvalue': [1., 1, 2, 2, 3, 3.],
-                              'rvalue': [nan, 1, 2, 3, 3, 4]})
+        expected = DataFrame({'key': ['a', 'b', 'c', 'd', 'e', 'f'] * 2,
+                              'lvalue': [1., 1, 2, 2, 3, 3.] * 2,
+                              'rvalue': [nan, 1, 2, 3, 3, 4] * 2})
         expected['group'] = ['a'] * 6 + ['b'] * 6
 
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected.ix[:, result.columns])
+
+        result2 = ordered_merge(self.right, left, on='key', right_by='group',
+                                fill_method='ffill')
+        assert_frame_equal(result, result2.ix[:, result.columns])
+
+        result = ordered_merge(left, self.right, on='key', left_by='group')
+        self.assert_(result['group'].notnull().all())
 
 if __name__ == '__main__':
     import nose
