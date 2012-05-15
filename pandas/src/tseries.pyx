@@ -404,6 +404,57 @@ def fast_zip(list ndarrays):
 
     return result
 
+cdef class _PandasNull:
+    pass
+
+pandas_null = _PandasNull()
+
+def fast_zip_fillna(list ndarrays, fill_value=pandas_null):
+    '''
+    For zipping multiple ndarrays into an ndarray of tuples
+    '''
+    cdef:
+        Py_ssize_t i, j, k, n
+        ndarray[object] result
+        flatiter it
+        object val, tup
+
+    k = len(ndarrays)
+    n = len(ndarrays[0])
+
+    result = np.empty(n, dtype=object)
+
+    # initialize tuples on first pass
+    arr = ndarrays[0]
+    it = <flatiter> PyArray_IterNew(arr)
+    for i in range(n):
+        val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
+        tup = PyTuple_New(k)
+
+        if val != val:
+            val = fill_value
+
+        PyTuple_SET_ITEM(tup, 0, val)
+        Py_INCREF(val)
+        result[i] = tup
+        PyArray_ITER_NEXT(it)
+
+    for j in range(1, k):
+        arr = ndarrays[j]
+        it = <flatiter> PyArray_IterNew(arr)
+        if len(arr) != n:
+            raise ValueError('all arrays must be same length')
+
+        for i in range(n):
+            val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
+            if val != val:
+                val = fill_value
+
+            PyTuple_SET_ITEM(result[i], j, val)
+            Py_INCREF(val)
+            PyArray_ITER_NEXT(it)
+
+    return result
 
 def get_reverse_indexer(ndarray[int64_t] indexer, Py_ssize_t length):
     cdef:

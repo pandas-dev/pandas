@@ -1301,12 +1301,39 @@ def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
 
     return counts
 
+def duplicated_skipna(list values, take_last=False):
+    cdef:
+        Py_ssize_t i, n
+        dict seen = {}
+        object row
+
+    n = len(values)
+    cdef ndarray[uint8_t] result = np.zeros(n, dtype=np.uint8)
+
+    if take_last:
+        for i from n > i >= 0:
+            row = values[i]
+            if row in seen:
+                result[i] = 1
+            else:
+                seen[row] = None
+                result[i] = 0
+    else:
+        for i from 0 <= i < n:
+            row = values[i]
+            if row in seen:
+                result[i] = 1
+            else:
+                seen[row] = None
+                result[i] = 0
+
+    return result.view(np.bool_)
 
 def duplicated(list values, take_last=False):
     cdef:
         Py_ssize_t i, n
         dict seen = {}
-        int has_nan = 0
+        bint has_nan = 0
         object row
 
     n = len(values)
@@ -1318,7 +1345,7 @@ def duplicated(list values, take_last=False):
             if row in seen:
                 result[i] = 1
             elif row != row:
-                if has_nan == 1:
+                if has_nan:
                     result[i] = 1
                 else:
                     has_nan = 1
@@ -1332,7 +1359,7 @@ def duplicated(list values, take_last=False):
             if row in seen:
                 result[i] = 1
             elif row != row:
-                if has_nan == 1:
+                if has_nan:
                     result[i] = 1
                 else:
                     has_nan = 1
@@ -1342,7 +1369,6 @@ def duplicated(list values, take_last=False):
                 result[i] = 0
 
     return result.view(np.bool_)
-
 
 def generate_slices(ndarray[int64_t] labels, Py_ssize_t ngroups):
     cdef:

@@ -1,3 +1,4 @@
+
 # pylint: disable-msg=W0612,E1101
 from copy import deepcopy
 from datetime import datetime, timedelta
@@ -3322,20 +3323,20 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                         'D' : range(8)})
 
         # single column
-        result = df.drop_duplicates('C')
+        result = df.drop_duplicates('C', skipna=False)
         expected = df[:2]
         assert_frame_equal(result, expected)
 
-        result = df.drop_duplicates('C', take_last=True)
+        result = df.drop_duplicates('C', take_last=True, skipna=False)
         expected = df.ix[[3, 7]]
         assert_frame_equal(result, expected)
 
         # multi column
-        result = df.drop_duplicates(['C', 'B'])
+        result = df.drop_duplicates(['C', 'B'], skipna=False)
         expected = df.ix[[0, 1, 2, 4]]
         assert_frame_equal(result, expected)
 
-        result = df.drop_duplicates(['C', 'B'], take_last=True)
+        result = df.drop_duplicates(['C', 'B'], take_last=True, skipna=False)
         expected = df.ix[[1, 3, 6, 7]]
         assert_frame_equal(result, expected)
 
