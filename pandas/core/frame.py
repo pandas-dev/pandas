@@ -530,6 +530,9 @@ class DataFrame(NDFrame):
         """
         return iter(self.columns)
 
+    def keys(self):
+        return self.columns
+
     def iteritems(self):
         """Iterator over (column, series) pairs"""
         return ((k, self[k]) for k in self.columns)

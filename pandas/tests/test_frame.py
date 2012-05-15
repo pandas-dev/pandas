@@ -1322,6 +1322,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertRaises(Exception, setattr, self.mixed_frame, 'columns',
                           cols[::2])
 
+    def test_keys(self):
+        self.assert_(self.frame.keys() is self.frame.columns)
+
     def test_column_contains_typeerror(self):
         try:
             self.frame.columns in self.frame
