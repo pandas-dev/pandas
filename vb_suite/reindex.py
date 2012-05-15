@@ -135,6 +135,11 @@ frame_drop_duplicates = Benchmark(statement, setup,
                                   name='frame_drop_duplicates',
                                   start_date=datetime(2011, 11, 15))
 
+statement2 = "df.drop_duplicates(['key1', 'key2'], skipna=False)"
+frame_drop_duplicates_na = Benchmark(statement, setup,
+                                     name='frame_drop_duplicates',
+                                     start_date=datetime(2012, 5, 15))
+
 #----------------------------------------------------------------------
 # fillna, many columns
 
