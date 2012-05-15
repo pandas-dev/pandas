@@ -114,6 +114,7 @@ reindex_frame_level_reindex = \
 
 # pathological, but realistic
 setup = common_setup + """
+import pandas._tseries as lib
 N = 10000
 K = 10
 
@@ -135,10 +136,21 @@ frame_drop_duplicates = Benchmark(statement, setup,
                                   name='frame_drop_duplicates',
                                   start_date=datetime(2011, 11, 15))
 
-statement2 = "df.drop_duplicates(['key1', 'key2'], skipna=False)"
-frame_drop_duplicates_na = Benchmark(statement, setup,
-                                     name='frame_drop_duplicates',
+lib_fast_zip = Benchmark('lib.fast_zip(df.values.T)', setup,
+                         name='lib_fast_zip',
+                         start_date=datetime(2012, 1, 1))
+
+setup = setup + """
+df.ix[:10000, :] = np.nan
+"""
+statement2 = "df.drop_duplicates(['key1', 'key2'])"
+frame_drop_duplicates_na = Benchmark(statement2, setup,
+                                     name='frame_drop_duplicates_na',
                                      start_date=datetime(2012, 5, 15))
+
+lib_fast_zip_fillna = Benchmark('lib.fast_zip_fillna(df.values.T)', setup,
+                                name='lib_fast_zip_fillna',
+                                start_date=datetime(2012, 5, 15))
 
 #----------------------------------------------------------------------
 # fillna, many columns
