@@ -232,17 +232,21 @@ class Block(object):
         if np.isscalar(to_replace):
             if self._can_hold_element(to_replace):
                 to_replace = self._try_cast(to_replace)
-                lib.replace(new_values, to_replace, value)
+                np.putmask(new_values, com.mask_missing(new_values, to_replace),
+                           value)
         else:
             try:
                 to_replace = np.array(to_replace, dtype=self.dtype)
-                lib.replace(new_values, to_replace, value)
+                np.putmask(new_values, com.mask_missing(new_values, to_replace),
+                           value)
             except:
                 to_replace = np.array(to_replace, dtype=object)
                 for r in to_replace:
                     if self._can_hold_element(r):
                         r = self._try_cast(r)
-                        lib.replace(new_values, r, value)
+                np.putmask(new_values, com.mask_missing(new_values, to_replace),
+                           value)
+
         if inplace:
             return self
         else:

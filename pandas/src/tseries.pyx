@@ -690,68 +690,6 @@ def value_count_int64(ndarray[int64_t] values):
 
     return result_keys, result_counts
 
-def array_isnull(arr):
-    if np.isscalar(arr) or arr is None:
-        return _checknull(arr)
-    if arr.dtype.kind in ('O', 'S'):
-        # Working around NumPy ticket 1542
-        shape = arr.shape
-        result = np.empty(shape, dtype=bool)
-        vec = isnullobj(arr.ravel())
-        result[:] = vec.reshape(shape)
-    elif arr.dtype == np.datetime64:
-        # this is the NaT pattern
-        result = np.array(arr).view('i8') == NaT
-    else:
-        result = -np.isfinite(arr)
-    return result
-
-def typed_null_check(obj, arr):
-    if np.isscalar(arr) or arr is None:
-        return _checknull(obj)
-    if arr.dtype.kind in ('O', 'S'):
-        # Working around NumPy ticket 1542
-        if np.isscalar(obj):
-            result = isnullobj(np.array([obj], dtype=object))
-        else:
-            result = isnullobj(np.array(obj, dtype=object))
-    elif arr.dtype == np.datetime64:
-        # this is the NaT pattern
-        result = obj == NaT
-    else:
-        result = -np.isfinite(obj)
-    return result
-
-def slow_replace(arr, old, new):
-    "Slow replace (inplace) used for unaccelerated ndim/dtype combinations."
-    if not isinstance(arr, np.ndarray):
-        raise TypeError("`arr` must be a numpy array.")
-
-    if np.isscalar(old) or old is None:
-        if typed_null_check(old, arr):
-            mask = array_isnull(arr)
-        else:
-            if arr.dtype == np.datetime64:
-                mask = np.array(arr).view('i8') == old
-            else:
-                mask = arr == old
-    else:
-        mask = None
-        old_null = typed_null_check(old, arr)
-        others = old[-old_null]
-        if len(others) > 1:
-            mask = ismember(arr, set(others))
-        elif len(others) == 1:
-            if arr.dtype == np.datetime64:
-                mask = np.array(arr).view('i8') == others[0]
-            else:
-                mask = arr == others[0]
-        if old_null.any():
-            null_mask = array_isnull(arr)
-            mask = null_mask if mask is None else (null_mask | mask)
-
-    np.putmask(arr, mask, new)
-
 include "hashtable.pyx"
 include "datetime.pyx"
 include "skiplist.pyx"
