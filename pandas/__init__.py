@@ -34,7 +34,7 @@ from pandas.io.parsers import (read_csv, read_table, read_clipboard,
 from pandas.io.pytables import HDFStore
 from pandas.util.testing import debug
 
-from pandas.tools.merge import merge, concat
+from pandas.tools.merge import merge, concat, ordered_merge
 from pandas.tools.pivot import pivot_table, crosstab
 from pandas.tools.plotting import scatter_matrix
 from pandas.tools.describe import value_range

@@ -24,13 +24,26 @@ import pandas._tseries as lib
 @Appender(_merge_doc, indents=0)
 def merge(left, right, how='inner', on=None, left_on=None, right_on=None,
           left_index=False, right_index=False, sort=True,
-          suffixes=('.x', '.y'), copy=True):
+          suffixes=('_x', '_y'), copy=True):
     op = _MergeOperation(left, right, how=how, on=on, left_on=left_on,
                          right_on=right_on, left_index=left_index,
                          right_index=right_index, sort=sort, suffixes=suffixes,
                          copy=copy)
     return op.get_result()
 if __debug__: merge.__doc__ = _merge_doc % '\nleft : DataFrame'
+
+
+def ordered_merge(left, right, on=None, by=None, left_on=None, right_on=None,
+                  left_index=False, right_index=False, fill_method=None,
+                  suffixes=('_x', '_y')):
+    """
+
+    """
+    op = _OrderedMerge(left, right, on=on, left_on=left_on,
+                       right_on=right_on, left_index=left_index,
+                       right_index=right_index, suffixes=suffixes,
+                       fill_method=fill_method, by=by)
+    return op.get_result()
 
 
 
@@ -47,7 +60,7 @@ class _MergeOperation(object):
     def __init__(self, left, right, how='inner', on=None,
                  left_on=None, right_on=None, axis=1,
                  left_index=False, right_index=False, sort=True,
-                 suffixes=('.x', '.y'), copy=True):
+                 suffixes=('_x', '_y'), copy=True):
         self.left = self.orig_left = left
         self.right = self.orig_right = right
         self.how = how
@@ -325,6 +338,60 @@ class _MergeOperation(object):
                              sort=self.sort)
         return left_group_key, right_group_key, max_groups
 
+
+class _OrderedMerge(_MergeOperation):
+
+    def __init__(self, left, right, on=None, by=None, left_on=None,
+                 right_on=None, axis=1, left_index=False, right_index=False,
+                 suffixes=('_x', '_y'), copy=True,
+                 fill_method=None):
+
+        self.by = by
+        self.fill_method = fill_method
+
+        _MergeOperation.__init__(self, left, right, on=on, left_on=left_on,
+                                 right_on=right_on, axis=axis,
+                                 left_index=left_index,
+                                 right_index=right_index,
+                                 how='outer', suffixes=suffixes,
+                                 sort=True # sorts when factorizing
+                                 )
+
+
+    def get_result(self):
+        join_index, left_indexer, right_indexer = self._get_join_info()
+
+        # this is a bit kludgy
+        ldata, rdata = self._get_merge_data()
+
+        if self.fill_method == 'ffill':
+            # group_index, max_group = self._get_group_index()
+
+            group_index = np.repeat(0, len(left_indexer))
+            max_group = 1
+
+            left_join_indexer = lib.ffill_by_group(left_indexer, group_index,
+                                                   max_group)
+            right_join_indexer = lib.ffill_by_group(right_indexer, group_index,
+                                                    max_group)
+        else:
+            left_join_indexer = left_indexer
+            right_join_indexer = right_indexer
+
+        join_op = _BlockJoinOperation([ldata, rdata], join_index,
+                                      [left_join_indexer, right_join_indexer],
+                                      axis=1, copy=self.copy)
+
+        result_data = join_op.get_result()
+        result = DataFrame(result_data)
+
+        self._maybe_add_join_keys(result, left_indexer, right_indexer)
+
+        return result
+
+    def _get_group_index(self):
+        pass
+
 def _get_multiindex_indexer(join_keys, index, sort=False):
     shape = []
     labels = []
@@ -357,10 +424,6 @@ def _get_single_indexer(join_key, index, sort=False):
 
     return left_indexer, right_indexer
 
-def _right_outer_join(x, y, max_groups):
-    right_indexer, left_indexer = lib.left_outer_join(y, x, max_groups)
-    return left_indexer, right_indexer
-
 def _left_join_on_index(left_ax, right_ax, join_keys, sort=False):
     join_index = left_ax
     left_indexer = None
@@ -386,6 +449,10 @@ def _left_join_on_index(left_ax, right_ax, join_keys, sort=False):
 
     return join_index, left_indexer, right_indexer
 
+
+def _right_outer_join(x, y, max_groups):
+    right_indexer, left_indexer = lib.left_outer_join(y, x, max_groups)
+    return left_indexer, right_indexer
 
 _join_functions = {
     'inner' : lib.inner_join,
