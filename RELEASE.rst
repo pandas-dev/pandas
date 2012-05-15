@@ -73,6 +73,8 @@ pandas 0.8.0
     (#1073)
   - Change BDay (business day) to not normalize dates by default
   - Remove deprecated DataMatrix name
+  - Default merge suffixes for overlap now have underscores instead of periods
+    to facilitate tab completion, etc. (#1239)
 
 **Bug fixes**
 
