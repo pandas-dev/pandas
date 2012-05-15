@@ -36,4 +36,5 @@ from pandas.util.testing import debug
 
 from pandas.tools.merge import merge, concat
 from pandas.tools.pivot import pivot_table, crosstab
+from pandas.tools.plotting import scatter_matrix
 from pandas.tools.describe import value_range

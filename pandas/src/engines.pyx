@@ -44,11 +44,17 @@ def get_value_at(ndarray arr, object loc):
 def set_value_at(ndarray arr, object loc, object val):
     return util.set_value_at(arr, loc, val)
 
+
+# Don't populate hash tables in monotonic indexes larger than this
+cdef int _SIZE_CUTOFF = 1000000
+
+
 cdef class IndexEngine:
 
     cdef readonly:
         object index_weakref
         HashTable mapping
+        bint over_size_threshold
 
     cdef:
         bint unique, monotonic
@@ -56,6 +62,9 @@ cdef class IndexEngine:
 
     def __init__(self, index_weakref):
         self.index_weakref = index_weakref
+
+        self.over_size_threshold = len(index_weakref()) >= _SIZE_CUTOFF
+
         self.initialized = 0
         self.monotonic_check = 0
 
@@ -100,6 +109,15 @@ cdef class IndexEngine:
     cpdef get_loc(self, object val):
         if is_definitely_invalid_key(val):
             raise TypeError
+
+        if self.over_size_threshold and self.is_monotonic:
+            if not self.is_unique:
+                return self._get_loc_duplicates(val)
+            values = self._get_index_values()
+            loc = values.searchsorted(val, side='left')
+            if util.get_value_at(values, loc) != val:
+                raise KeyError(val)
+            return loc
 
         self._ensure_mapping_populated()
         if not self.unique:
@@ -337,19 +355,17 @@ cdef class ObjectEngine(IndexEngine):
 
 cdef class DatetimeEngine(Int64Engine):
 
-    # cdef Int64HashTable mapping
-
     def __contains__(self, object val):
+        if self.over_size_threshold and self.is_monotonic:
+            if not self.is_unique:
+                return self._get_loc_duplicates(val)
+            values = self._get_index_values()
+            conv = _to_i8(val)
+            loc = values.searchsorted(conv, side='left')
+            return util.get_value_at(values, loc) == conv
+
         self._ensure_mapping_populated()
-
-        if util.is_datetime64_object(val):
-            return val.view('i8') in self.mapping
-
-        if PyDateTime_Check(val):
-            key = np.datetime64(val)
-            return key.view('i8') in self.mapping
-
-        return val in self.mapping
+        return _to_i8(val) in self.mapping
 
     cdef _get_index_values(self):
         return self.index_weakref().values.view('i8')
@@ -363,13 +379,19 @@ cdef class DatetimeEngine(Int64Engine):
 
         # Welcome to the spaghetti factory
 
+        if self.over_size_threshold and self.is_monotonic:
+            if not self.is_unique:
+                return self._get_loc_duplicates(val)
+            values = self._get_index_values()
+            conv = _to_i8(val)
+            loc = values.searchsorted(conv, side='left')
+            if util.get_value_at(values, loc) != conv:
+                raise KeyError(val)
+            return loc
+
         self._ensure_mapping_populated()
         if not self.unique:
-            if util.is_datetime64_object(val):
-                val = val.view('i8')
-            elif PyDateTime_Check(val):
-                val = np.datetime64(val)
-                val = val.view('i8')
+            val = _to_i8(val)
             return self._get_loc_duplicates(val)
 
         try:
@@ -380,11 +402,7 @@ cdef class DatetimeEngine(Int64Engine):
             pass
 
         try:
-            if util.is_datetime64_object(val):
-                val = val.view('i8')
-            elif PyDateTime_Check(val):
-                val = np.datetime64(val)
-                val = val.view('i8')
+            val = _to_i8(val)
             return self.mapping.get_item(val)
         except TypeError:
             self._date_check_type(val)
@@ -416,6 +434,14 @@ cdef class DatetimeEngine(Int64Engine):
         return _algos.backfill_int64(self._get_index_values(), other,
                                      limit=limit)
 
+
+cdef inline _to_i8(object val):
+    if util.is_datetime64_object(val):
+        val = unbox_datetime64_scalar(val)
+    elif PyDateTime_Check(val):
+        val = np.datetime64(val)
+        val = unbox_datetime64_scalar(val)
+    return val
 
 # ctypedef fused idxvalue_t:
 #     object
