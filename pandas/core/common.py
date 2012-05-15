@@ -67,7 +67,7 @@ def isnull(obj):
 
             if isinstance(obj, Series):
                 result = Series(result, index=obj.index, copy=False)
-        elif obj.dtype == np.datetime64:
+        elif obj.dtype == np.dtype('M8[ns]'):
             # this is the NaT pattern
             result = np.array(obj).view('i8') == lib.NaT
         else:

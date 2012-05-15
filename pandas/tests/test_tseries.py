@@ -197,6 +197,8 @@ def test_maybe_booleans_to_slice():
     result = lib.maybe_booleans_to_slice(arr)
     assert(result.dtype == np.bool_)
 
+    result = lib.maybe_booleans_to_slice(arr[:0])
+    assert(result == slice(0, 0))
 
 def test_convert_objects():
     arr = np.array(['a', 'b', nan, nan, 'd', 'e', 'f'], dtype='O')

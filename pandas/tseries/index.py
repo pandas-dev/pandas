@@ -1,3 +1,5 @@
+# pylint: disable=E1101
+
 from datetime import time, datetime
 from datetime import timedelta
 
@@ -64,7 +66,7 @@ def _join_i8_wrapper(joinf, with_indexers=True):
         results = joinf(left, right)
         if with_indexers:
             join_index, left_indexer, right_indexer = results
-            join_index = join_index.view('M8')
+            join_index = join_index.view('M8[ns]')
             return join_index, left_indexer, right_indexer
         return results
     return wrapper
@@ -128,7 +130,6 @@ class DatetimeIndex(Int64Index):
     ----------
     data  : array-like (1-dimensional), optional
         Optional datetime-like data to construct index with
-    dtype : NumPy dtype (default: M8[us])
     copy  : bool
         Make a copy of input ndarray
     freq : string or pandas offset object, optional
@@ -169,7 +170,7 @@ class DatetimeIndex(Int64Index):
 
     def __new__(cls, data=None,
                 freq=None, start=None, end=None, periods=None,
-                dtype=None, copy=False, name=None, tz=None,
+                copy=False, name=None, tz=None,
                 verify_integrity=True, normalize=False, **kwds):
 
         warn = False
@@ -225,7 +226,7 @@ class DatetimeIndex(Int64Index):
             if lib.is_string_array(data):
                 data = _str_to_dt_array(data, offset)
             else:
-                data = np.asarray(data, dtype='M8[us]')
+                data = np.asarray(data, dtype='M8[ns]')
 
         if issubclass(data.dtype.type, basestring):
             subarr = _str_to_dt_array(data, offset)
@@ -235,11 +236,11 @@ class DatetimeIndex(Int64Index):
                 offset = data.offset
                 verify_integrity = False
             else:
-                subarr = np.array(data, dtype='M8[us]', copy=copy)
+                subarr = np.array(data, dtype='M8[ns]', copy=copy)
         elif issubclass(data.dtype.type, np.integer):
-            subarr = np.array(data, dtype='M8[us]', copy=copy)
+            subarr = np.array(data, dtype='M8[ns]', copy=copy)
         else:
-            subarr = np.array(data, dtype='M8[us]', copy=copy)
+            subarr = np.array(data, dtype='M8[ns]', copy=copy)
 
         if tz is not None:
             tz = tools._maybe_get_tz(tz)
@@ -247,7 +248,7 @@ class DatetimeIndex(Int64Index):
             ints = subarr.view('i8')
             lib.tz_localize_check(ints, tz)
             subarr = lib.tz_convert(ints, tz, _utc())
-            subarr = subarr.view('M8[us]')
+            subarr = subarr.view('M8[ns]')
 
         subarr = subarr.view(cls)
         subarr.name = name
@@ -312,7 +313,7 @@ class DatetimeIndex(Int64Index):
             ints = index.view('i8')
             lib.tz_localize_check(ints, tz)
             index = lib.tz_convert(ints, tz, _utc())
-            index = index.view('M8[us]')
+            index = index.view('M8[ns]')
 
         index = index.view(cls)
         index.name = name
@@ -354,7 +355,7 @@ class DatetimeIndex(Int64Index):
                                  end=_CACHE_END)
 
             arr = np.array(_to_m8_array(list(xdr)),
-                           dtype='M8[us]', copy=False)
+                           dtype='M8[ns]', copy=False)
 
             cachedRange = arr.view(DatetimeIndex)
             cachedRange.offset = offset
@@ -448,7 +449,7 @@ class DatetimeIndex(Int64Index):
             # extract the raw datetime data, turn into datetime64
             index_state = state[0]
             raw_data = index_state[0][4]
-            raw_data = np.array(raw_data, dtype='M8[us]')
+            raw_data = np.array(raw_data, dtype='M8[ns]')
             new_state = raw_data.__reduce__()
             np.ndarray.__setstate__(self, new_state[2])
         else:  # pragma: no cover
@@ -476,8 +477,8 @@ class DatetimeIndex(Int64Index):
 
     def _add_delta(self, delta):
         if isinstance(delta, (Tick, timedelta)):
-            inc = offsets._delta_to_microseconds(delta)
-            new_values = (self.asi8 + inc).view('M8[us]')
+            inc = offsets._delta_to_nanoseconds(delta)
+            new_values = (self.asi8 + inc).view('M8[ns]')
         else:
             new_values = self.astype('O') + delta
         return DatetimeIndex(new_values, tz=self.tz, freq='infer')
@@ -495,6 +496,13 @@ class DatetimeIndex(Int64Index):
             result += '\nFreq: %s' % self.freqstr
 
         return result
+
+    def astype(self, dtype):
+        dtype = np.dtype(dtype)
+
+        if dtype == np.object_:
+            return self.asobject
+        return Index.astype(self, dtype)
 
     @property
     def asi8(self):
@@ -545,7 +553,6 @@ class DatetimeIndex(Int64Index):
             return self._simple_new(sorted_values, self.name, None,
                                     self.tz)
 
-
     def snap(self, freq='S'):
         """
         Snap time stamps to nearest occuring frequency
@@ -554,7 +561,7 @@ class DatetimeIndex(Int64Index):
         # Superdumb, punting on any optimizing
         freq = to_offset(freq)
 
-        snapped = np.empty(len(self), dtype='M8[us]')
+        snapped = np.empty(len(self), dtype='M8[ns]')
 
         for i, v in enumerate(self):
             s = v
@@ -565,7 +572,7 @@ class DatetimeIndex(Int64Index):
                     s = t0
                 else:
                     s = t1
-            snapped[i] = np.datetime64(s)
+            snapped[i] = s
 
         # we know it conforms; skip check
         return DatetimeIndex(snapped, freq=freq, verify_integrity=False)
@@ -633,6 +640,12 @@ class DatetimeIndex(Int64Index):
         -------
         y : Index or DatetimeIndex
         """
+        if not isinstance(other, DatetimeIndex):
+            try:
+                other = DatetimeIndex(other)
+            except TypeError:
+                pass
+
         this, other = self._maybe_utc_convert(other)
 
         if this._can_fast_union(other):
@@ -879,8 +892,8 @@ class DatetimeIndex(Int64Index):
 
         # TODO: time object with tzinfo?
 
-        mus = _time_to_microsecond(key)
-        indexer = lib.values_at_time(self.asi8, mus)
+        nanos = _time_to_nanosecond(key)
+        indexer = lib.values_at_time(self.asi8, nanos)
         return com._ensure_platform_int(indexer)
 
     def _get_string_slice(self, key):
@@ -990,7 +1003,7 @@ class DatetimeIndex(Int64Index):
 
     def searchsorted(self, key, side='left'):
         if isinstance(key, np.ndarray):
-            key = np.array(key, dtype='M8[us]', copy=False)
+            key = np.array(key, dtype='M8[ns]', copy=False)
         else:
             key = _to_m8(key)
 
@@ -1015,7 +1028,7 @@ class DatetimeIndex(Int64Index):
 
     @property
     def dtype(self):
-        return np.dtype('M8')
+        return np.dtype('M8[ns]')
 
     @property
     def is_all_dates(self):
@@ -1107,7 +1120,7 @@ class DatetimeIndex(Int64Index):
 
         # Convert to UTC
         new_dates = lib.tz_convert(self.asi8, tz, _utc())
-        new_dates = new_dates.view('M8[us]')
+        new_dates = new_dates.view('M8[ns]')
         return self._simple_new(new_dates, self.name, self.offset, tz)
 
     def tz_validate(self):
@@ -1138,7 +1151,7 @@ def _generate_regular_range(start, end, periods, offset):
         raise ValueError('Must specify two of start, end, or periods')
 
     if isinstance(offset, Tick):
-        stride = offset.micros
+        stride = offset.nanos
         if periods is None:
             b = Timestamp(start).value
             e = Timestamp(end).value
@@ -1153,12 +1166,12 @@ def _generate_regular_range(start, end, periods, offset):
             raise NotImplementedError
 
         data = np.arange(b, e, stride, dtype=np.int64)
-        data = data.view('M8[us]')
+        data = data.view('M8[ns]')
     else:
         xdr = generate_range(start=start, end=end,
             periods=periods, offset=offset)
 
-        data = np.array(list(xdr), dtype='M8[us]')
+        data = np.array(list(xdr), dtype='M8[ns]')
 
     return data
 
@@ -1247,7 +1260,7 @@ def _str_to_dt_array(arr, offset=None):
 
     p_ufunc = np.frompyfunc(parser, 1, 1)
     data = p_ufunc(arr)
-    return np.array(data, dtype='M8[us]')
+    return np.array(data, dtype='M8[ns]')
 
 
 _CACHE_START = Timestamp(datetime(1950, 1, 1))
@@ -1265,6 +1278,6 @@ def _naive_in_cache_range(start, end):
 def _in_range(start, end, rng_start, rng_end):
     return start > rng_start and end < rng_end
 
-def _time_to_microsecond(time):
+def _time_to_nanosecond(time):
     seconds = time.hour * 60 * 60 + 60 * time.minute + time.second
-    return 1000000 * seconds + time.microsecond
+    return (1000000 * seconds + time.microsecond) * 1000

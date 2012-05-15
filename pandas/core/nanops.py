@@ -406,7 +406,7 @@ def unique1d(values):
                            dtype=np.int64)
 
         if values.dtype == np.datetime64:
-            uniques = uniques.view('M8[us]')
+            uniques = uniques.view('M8[ns]')
     else:
         table = lib.PyObjectHashTable(len(values))
         uniques = table.unique(com._ensure_object(values))

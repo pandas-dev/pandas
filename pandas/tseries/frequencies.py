@@ -696,6 +696,12 @@ def infer_freq(index, warn=True):
     inferer = _FrequencyInferer(index, warn=warn)
     return inferer.get_freq()
 
+_ONE_MICRO = 1000L
+_ONE_MILLI = _ONE_MICRO * 1000
+_ONE_SECOND = _ONE_MILLI * 1000
+_ONE_MINUTE = 60 * _ONE_SECOND
+_ONE_HOUR = 60 * _ONE_MINUTE
+_ONE_DAY = 24 * _ONE_HOUR
 
 class _FrequencyInferer(object):
     """
@@ -727,31 +733,34 @@ class _FrequencyInferer(object):
     def get_freq(self):
 
         delta = self.deltas[0]
-        if _is_multiple(delta, _day_us):
+        if _is_multiple(delta, _ONE_DAY):
             return self._infer_daily_rule()
         else:
             # Possibly intraday frequency
             if not self.is_unique:
                 return None
-            if _is_multiple(delta, 60 * 60 * 1000000):
+            if _is_multiple(delta, _ONE_HOUR):
                 # Hours
-                return _maybe_add_count('H', delta / (60 * 60 * 1000000))
-            elif _is_multiple(delta, 60 * 1000000):
+                return _maybe_add_count('H', delta / _ONE_HOUR)
+            elif _is_multiple(delta, _ONE_MINUTE):
                 # Minutes
-                return _maybe_add_count('T', delta / (60 * 1000000))
-            elif _is_multiple(delta, 1000000):
+                return _maybe_add_count('T', delta / _ONE_MINUTE)
+            elif _is_multiple(delta, _ONE_SECOND):
                 # Seconds
-                return _maybe_add_count('S', delta / 1000000)
-            elif _is_multiple(delta, 1000):
+                return _maybe_add_count('S', delta / _ONE_SECOND)
+            elif _is_multiple(delta, _ONE_MILLI):
                 # Milliseconds
-                return _maybe_add_count('L', delta / 1000)
-            else:
+                return _maybe_add_count('L', delta / _ONE_MILLI)
+            elif _is_multiple(delta, _ONE_MICRO):
                 # Microseconds
+                return _maybe_add_count('L', delta / _ONE_MICRO)
+            else:
+                # Nanoseconds
                 return _maybe_add_count('U', delta)
 
     @cache_readonly
     def day_deltas(self):
-        return [x / _day_us for x in self.deltas]
+        return [x / _ONE_DAY for x in self.deltas]
 
     @cache_readonly
     def fields(self):
@@ -828,7 +837,7 @@ class _FrequencyInferer(object):
             return monthly_rule
 
         if self.is_unique:
-            days = self.deltas[0] / _day_us
+            days = self.deltas[0] / _ONE_DAY
             if days % 7 == 0:
                 # Weekly
                 alias = _weekday_rule_aliases[self.rep_stamp.weekday()]
@@ -990,5 +999,3 @@ _month_aliases = dict((k + 1, v) for k, v in enumerate(MONTHS))
 
 def _is_multiple(us, mult):
     return us % mult == 0
-
-_day_us = 24 * 60 * 60 * 1000000

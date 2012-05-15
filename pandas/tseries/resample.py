@@ -237,7 +237,7 @@ def _make_period_bins(axis, freq, begin=None, end=None,
 
 def _get_range_edges(axis, begin, end, offset, closed='left',
                      base=0):
-    from pandas.tseries.offsets import Tick, _delta_to_microseconds
+    from pandas.tseries.offsets import Tick, _delta_to_nanoseconds
     if isinstance(offset, basestring):
         offset = to_offset(offset)
 
@@ -245,9 +245,9 @@ def _get_range_edges(axis, begin, end, offset, closed='left',
         raise ValueError("Rule not a recognized offset")
 
     if isinstance(offset, Tick):
-        day_micros = _delta_to_microseconds(timedelta(1))
+        day_nanos = _delta_to_nanoseconds(timedelta(1))
         # #1165
-        if ((day_micros % offset.micros) == 0 and begin is None
+        if ((day_nanos % offset.nanos) == 0 and begin is None
             and end is None):
             return _adjust_dates_anchored(axis[0], axis[-1], offset,
                                           closed=closed, base=base)
@@ -271,26 +271,26 @@ def _get_range_edges(axis, begin, end, offset, closed='left',
 def _adjust_dates_anchored(first, last, offset, closed='right', base=0):
     from pandas.tseries.tools import normalize_date
 
-    start_day_micros = Timestamp(normalize_date(first)).value
-    last_day_micros = Timestamp(normalize_date(last)).value
+    start_day_nanos = Timestamp(normalize_date(first)).value
+    last_day_nanos = Timestamp(normalize_date(last)).value
 
-    base_micros = (base % offset.n) * offset.micros // offset.n
-    start_day_micros += base_micros
-    last_day_micros += base_micros
+    base_nanos = (base % offset.n) * offset.nanos // offset.n
+    start_day_nanos += base_nanos
+    last_day_nanos += base_nanos
 
-    foffset = (first.value - start_day_micros) % offset.micros
-    loffset = (last.value - last_day_micros) % offset.micros
+    foffset = (first.value - start_day_nanos) % offset.nanos
+    loffset = (last.value - last_day_nanos) % offset.nanos
 
     if closed == 'right':
         if foffset > 0:
             # roll back
             fresult = first.value - foffset
         else:
-            fresult = first.value - offset.micros
+            fresult = first.value - offset.nanos
 
         if loffset > 0:
             # roll forward
-            lresult = last.value + (offset.micros - loffset)
+            lresult = last.value + (offset.nanos - loffset)
         else:
             # already the end of the road
             lresult = last.value
@@ -303,9 +303,9 @@ def _adjust_dates_anchored(first, last, offset, closed='right', base=0):
 
         if loffset > 0:
             # roll forward
-            lresult = last.value + (offset.micros - loffset)
+            lresult = last.value + (offset.nanos - loffset)
         else:
-            lresult = last.value + offset.micros
+            lresult = last.value + offset.nanos
 
     return Timestamp(fresult), Timestamp(lresult)
 
@@ -361,11 +361,11 @@ def values_at_time(obj, time, tz=None, asof=False):
 
     # TODO: time object with tzinfo?
 
-    mus = _time_to_microsecond(time)
+    mus = _time_to_nanosecond(time)
     indexer = lib.values_at_time(obj.index.asi8, mus)
     indexer = com._ensure_platform_int(indexer)
     return obj.take(indexer)
 
-def _time_to_microsecond(time):
+def _time_to_nanosecond(time):
     seconds = time.hour * 60 * 60 + 60 * time.minute + time.second
-    return 1000000 * seconds + time.microsecond
+    return 1000000000L * seconds + time.microsecond * 1000
