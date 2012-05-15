@@ -2344,7 +2344,7 @@ class DataFrame(NDFrame):
         new_labels = labels[mask]
         return self.reindex(**{axis_name: new_labels})
 
-    def drop_duplicates(self, cols=None, take_last=False, skipna=True):
+    def drop_duplicates(self, cols=None, take_last=False):
         """
         Return DataFrame with duplicate rows removed, optionally only
         considering certain columns
@@ -2363,10 +2363,10 @@ class DataFrame(NDFrame):
         -------
         deduplicated : DataFrame
         """
-        duplicated = self.duplicated(cols, take_last=take_last, skipna=skipna)
+        duplicated = self.duplicated(cols, take_last=take_last)
         return self[-duplicated]
 
-    def duplicated(self, cols=None, take_last=False, skipna=True):
+    def duplicated(self, cols=None, take_last=False):
         """
         Return boolean Series denoting duplicate rows, optionally only
         considering certain columns
@@ -2378,29 +2378,22 @@ class DataFrame(NDFrame):
             default use all of the columns
         take_last : boolean, default False
             Take the last observed row in a row. Defaults to the first row
-        skipna : boolean, default True
-            If True then NaN are not marked as duplicates
 
         Returns
         -------
         duplicated : Series
         """
-        zip_func = lib.fast_zip if skipna else lib.fast_zip_fillna
-
         if cols is not None:
             if isinstance(cols, list):
                 values = [self[x].values for x in cols]
-                keys = zip_func(values)
-                dup_func = lib.duplicated_skipna
+                keys = lib.fast_zip_fillna(values)
             else:
-                keys = self[cols]
-                dup_func = lib.duplicated_skipna if skipna else lib.duplicated
+                keys = lib.fast_zip_fillna([self[cols]])
         else:
             values = list(self.values.T)
-            keys = zip_func(values)
-            dup_func = lib.duplicated_skipna
+            keys = lib.fast_zip_fillna(values)
 
-        duplicated = dup_func(list(keys), take_last=take_last)
+        duplicated = lib.duplicated(keys, take_last=take_last)
         return Series(duplicated, index=self.index)
 
     #----------------------------------------------------------------------

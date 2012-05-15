@@ -170,7 +170,7 @@ def test_ensure_platform_int():
     assert(result is arr)
 
 def test_duplicated_with_nas():
-    keys = [0, 1, nan, 0, 2, nan]
+    keys = np.array([0, 1, nan, 0, 2, nan], dtype=object)
 
     result = lib.duplicated(keys)
     expected = [False, False, False, True, False, True]
@@ -180,7 +180,9 @@ def test_duplicated_with_nas():
     expected = [True, False, True, False, False, False]
     assert(np.array_equal(result, expected))
 
-    keys = [(0, 0), (0, nan), (nan, 0), (nan, nan)] * 2
+    keys = np.empty(8, dtype=object)
+    for i, t in enumerate(zip([0, 0, nan, nan]*2, [0, nan, 0, nan]*2)):
+        keys[i] = t
 
     result = lib.duplicated(keys)
     falses = [False] * 4

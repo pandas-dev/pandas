@@ -1301,7 +1301,69 @@ def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
 
     return counts
 
-def duplicated_skipna(list values, take_last=False):
+cdef class _PandasNull:
+
+    def __richcmp__(_PandasNull self, object other, int op):
+        if op == 2: # ==
+            return isinstance(other, _PandasNull)
+        elif op == 3: # !=
+            return not isinstance(other, _PandasNull)
+        else:
+            return False
+
+    def __hash__(self):
+        return 0
+
+pandas_null = _PandasNull()
+
+def fast_zip_fillna(list ndarrays, fill_value=pandas_null):
+    '''
+    For zipping multiple ndarrays into an ndarray of tuples
+    '''
+    cdef:
+        Py_ssize_t i, j, k, n
+        ndarray[object] result
+        flatiter it
+        object val, tup
+
+    k = len(ndarrays)
+    n = len(ndarrays[0])
+
+    result = np.empty(n, dtype=object)
+
+    # initialize tuples on first pass
+    arr = ndarrays[0]
+    it = <flatiter> PyArray_IterNew(arr)
+    for i in range(n):
+        val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
+        tup = PyTuple_New(k)
+
+        if val != val:
+            val = fill_value
+
+        PyTuple_SET_ITEM(tup, 0, val)
+        Py_INCREF(val)
+        result[i] = tup
+        PyArray_ITER_NEXT(it)
+
+    for j in range(1, k):
+        arr = ndarrays[j]
+        it = <flatiter> PyArray_IterNew(arr)
+        if len(arr) != n:
+            raise ValueError('all arrays must be same length')
+
+        for i in range(n):
+            val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
+            if val != val:
+                val = fill_value
+
+            PyTuple_SET_ITEM(result[i], j, val)
+            Py_INCREF(val)
+            PyArray_ITER_NEXT(it)
+
+    return result
+
+def duplicated(ndarray[object] values, take_last=False):
     cdef:
         Py_ssize_t i, n
         dict seen = {}
@@ -1313,6 +1375,7 @@ def duplicated_skipna(list values, take_last=False):
     if take_last:
         for i from n > i >= 0:
             row = values[i]
+
             if row in seen:
                 result[i] = 1
             else:
@@ -1323,47 +1386,6 @@ def duplicated_skipna(list values, take_last=False):
             row = values[i]
             if row in seen:
                 result[i] = 1
-            else:
-                seen[row] = None
-                result[i] = 0
-
-    return result.view(np.bool_)
-
-def duplicated(list values, take_last=False):
-    cdef:
-        Py_ssize_t i, n
-        dict seen = {}
-        bint has_nan = 0
-        object row
-
-    n = len(values)
-    cdef ndarray[uint8_t] result = np.zeros(n, dtype=np.uint8)
-
-    if take_last:
-        for i from n > i >= 0:
-            row = values[i]
-            if row in seen:
-                result[i] = 1
-            elif row != row:
-                if has_nan:
-                    result[i] = 1
-                else:
-                    has_nan = 1
-                    result[i] = 0
-            else:
-                seen[row] = None
-                result[i] = 0
-    else:
-        for i from 0 <= i < n:
-            row = values[i]
-            if row in seen:
-                result[i] = 1
-            elif row != row:
-                if has_nan:
-                    result[i] = 1
-                else:
-                    has_nan = 1
-                    result[i] = 0
             else:
                 seen[row] = None
                 result[i] = 0
