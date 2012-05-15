@@ -363,6 +363,15 @@ class TestResample(unittest.TestCase):
             expected = ts.resample(freq, closed='left', label='left')
             assert_series_equal(result, expected)
 
+    def test_resample_base(self):
+        rng = date_range('1/1/2000 00:00:00', '1/1/2000 02:00', freq='s')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        resampled = ts.resample('5min', base=2)
+        exp_rng = date_range('1/1/2000 00:02:00', '1/1/2000 02:02',
+                             freq='5min')
+        self.assert_(resampled.index.equals(exp_rng))
+
     def test_resample_daily_anchored(self):
         rng = date_range('1/1/2000 0:00:00', periods=10000, freq='T')
         ts = Series(np.random.randn(len(rng)), index=rng)
