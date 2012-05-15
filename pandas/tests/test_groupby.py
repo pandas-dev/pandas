@@ -1770,6 +1770,32 @@ class TestGroupBy(unittest.TestCase):
                                       'D' : [foo, bar]})
         assert_frame_equal(result, expected)
 
+    def test_set_group_name(self):
+        def f(group):
+            assert group.name is not None
+            return group
+
+        def freduce(group):
+            assert group.name is not None
+            return group.sum()
+
+        def foo(x):
+            return freduce(x)
+
+        def _check_all(grouped):
+            # make sure all these work
+            grouped.apply(f)
+            grouped.aggregate(freduce)
+            grouped.aggregate({'C': freduce, 'D': freduce})
+            grouped.transform(f)
+
+            grouped['C'].apply(f)
+            grouped['C'].aggregate(freduce)
+            grouped['C'].aggregate([freduce, foo])
+            grouped['C'].transform(f)
+
+        _check_all(self.df.groupby('A'))
+        _check_all(self.df.groupby(['A', 'B']))
 
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
