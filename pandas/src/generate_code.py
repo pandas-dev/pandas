@@ -1,7 +1,5 @@
 import os
 from pandas.util.py3compat import StringIO
-from pandas.src.codegen_template import template as pyx_template
-from pandas.src.codegen_replace import replace
 
 take_1d_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
@@ -850,14 +848,6 @@ templates_2d = [take_2d_axis0_template,
                 take_2d_axis1_template,
                 take_2d_multi_template]
 
-
-# templates_1d_datetime = [take_1d_template]
-# templates_2d_datetime = [take_2d_axis0_template,
-#                          take_2d_axis1_template]
-def codegen_pyx(funcs):
-    for func in funcs:
-        pyx_template(funcs[func])
-
 def generate_take_cython_file(path='generated.pyx'):
     with open(path, 'w') as f:
         for template in templates_1d:
@@ -874,9 +864,6 @@ def generate_take_cython_file(path='generated.pyx'):
 
         for template in nobool_1d_templates:
             print >> f, generate_from_template(template, exclude=['bool'])
-
-        # print >> f, generate_put_functions()
-        codegen_pyx({'replace': replace})
 
 if __name__ == '__main__':
     generate_take_cython_file()
