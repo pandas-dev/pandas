@@ -3372,6 +3372,117 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = df.astype(float).fillna(axis=1)
         assert_frame_equal(result, expected)
 
+    def test_replace_inplace(self):
+        self.tsframe['A'][:5] = nan
+        self.tsframe['A'][-5:] = nan
+
+        tsframe = self.tsframe.copy()
+        tsframe.replace(nan, 0, inplace=True)
+        assert_frame_equal(tsframe, self.tsframe.fillna(0))
+
+        tsframe = self.tsframe.copy()
+        tsframe.replace(nan, method='pad', inplace=True)
+        assert_frame_equal(tsframe, self.tsframe.fillna(method='pad'))
+
+        # mixed type
+        self.mixed_frame['foo'][5:20] = nan
+        self.mixed_frame['A'][-10:] = nan
+
+        result = self.mixed_frame.replace(np.nan, 0)
+        expected = self.mixed_frame.fillna(value=0)
+        assert_frame_equal(result, expected)
+
+    def test_replace(self):
+        self.tsframe['A'][:5] = nan
+        self.tsframe['A'][-5:] = nan
+
+        zero_filled = self.tsframe.replace(nan, -1e8)
+        assert_frame_equal(zero_filled, self.tsframe.fillna(-1e8))
+
+        assert_frame_equal(zero_filled.replace(-1e8, nan), self.tsframe)
+
+        padded = self.tsframe.replace(nan, method='pad')
+        assert_frame_equal(padded, self.tsframe.fillna(method='pad'))
+
+        # mixed type
+        self.mixed_frame['foo'][5:20] = nan
+        self.mixed_frame['A'][-10:] = nan
+
+        result = self.mixed_frame.replace(np.nan, -1e8)
+        expected = self.mixed_frame.fillna(value=-1e8)
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result.replace(-1e8, nan), self.mixed_frame)
+
+    def test_replace_input_formats(self):
+        to_rep = {'A' : np.nan, 'B' : 0, 'C' : ''}
+        values = {'A' : 0, 'B' : -1, 'C' : 'missing'}
+        df = DataFrame({'A' : [np.nan, 0, np.inf], 'B' : [0, 2, 5],
+                        'C' : ['', 'asdf', 'fd']})
+        filled = df.replace(to_rep, values)
+        expected = {}
+        for k, v in df.iteritems():
+            expected[k] = v.replace(to_rep[k], values[k])
+        assert_frame_equal(filled, DataFrame(expected))
+
+        values = {'A' : 0, 'B' : -1, 'C' : 'missing'}
+        df = DataFrame({'A' : [np.nan, 0, np.nan], 'B' : [0, 2, 5],
+                        'C' : ['', 'asdf', 'fd']})
+        filled = df.replace(np.nan, values)
+        expected = {}
+        for k, v in df.iteritems():
+            expected[k] = v.replace(np.nan, values[k])
+        assert_frame_equal(filled, DataFrame(expected))
+
+        to_rep = [np.nan, 0, '']
+        values = [-2, -1, 'missing']
+        result = df.replace(to_rep, values)
+        expected = df.copy()
+        for i in range(len(to_rep)):
+            expected.replace(to_rep[i], values[i], inplace=True)
+        assert_frame_equal(result, expected)
+
+        to_rep = [np.nan, 0, '']
+        result = df.replace(to_rep, -1)
+        expected = df.copy()
+        for i in range(len(to_rep)):
+            expected.replace(to_rep[i], -1, inplace=True)
+        assert_frame_equal(result, expected)
+
+    def test_replace_axis(self):
+        self.tsframe['A'][:5] = nan
+        self.tsframe['A'][-5:] = nan
+
+        zero_filled = self.tsframe.replace(nan, 0, axis=1)
+        assert_frame_equal(zero_filled, self.tsframe.fillna(0, axis=1))
+
+        padded = self.tsframe.replace(nan, method='pad', axis=1)
+        assert_frame_equal(padded, self.tsframe.fillna(method='pad', axis=1))
+
+        # mixed type
+        self.mixed_frame['foo'][5:20] = nan
+        self.mixed_frame['A'][-10:] = nan
+
+        result = self.mixed_frame.replace(np.nan, -1e8, axis=1)
+        expected = self.mixed_frame.fillna(value=-1e8, axis=1)
+        assert_frame_equal(result, expected)
+
+    def test_replace_limit(self):
+        padded = self.tsframe.replace(nan, method='pad', limit=2)
+        assert_frame_equal(padded, self.tsframe.fillna(method='pad',
+                                                       limit=2))
+
+        bfilled = self.tsframe.replace(nan, method='bfill', limit=2)
+        assert_frame_equal(padded, self.tsframe.fillna(method='bfill',
+                                                       limit=2))
+
+        padded = self.tsframe.replace(nan, method='pad', axis=1, limit=2)
+        assert_frame_equal(padded, self.tsframe.fillna(method='pad',
+                                                       axis=1, limit=2))
+
+        bfill = self.tsframe.replace(nan, method='bfill', axis=1, limit=2)
+        assert_frame_equal(padded, self.tsframe.fillna(method='bfill',
+                                                       axis=1, limit=2))
+
     def test_truncate(self):
         offset = datetools.bday
 

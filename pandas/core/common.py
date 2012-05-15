@@ -97,6 +97,37 @@ def notnull(obj):
         return not res
     return -res
 
+def mask_missing(arr, values_to_mask):
+    """
+    Return a masking array of same size/shape as arr
+    with entries equaling any member of values_to_mask set to True
+    """
+    if np.isscalar(values_to_mask):
+        values_to_mask = [values_to_mask]
+
+    try:
+        values_to_mask = np.array(values_to_mask, dtype=arr.dtype)
+    except Exception:
+        values_to_mask = np.array(values_to_mask, dtype=object)
+
+    na_mask = isnull(values_to_mask)
+    nonna = values_to_mask[-na_mask]
+
+    mask = None
+    for x in nonna:
+        if mask is None:
+            mask = arr == x
+        else:
+            mask = mask | (arr == x)
+
+    if na_mask.any():
+        if mask is None:
+            mask = isnull(arr)
+        else:
+            mask = mask | isnull(arr)
+
+    return mask
+
 def _pickle_array(arr):
     arr = arr.view(np.ndarray)
 
@@ -372,7 +403,7 @@ _pad_2d_datetime = _interp_wrapper(_algos.pad_2d_inplace_int64, np.int64)
 _backfill_1d_datetime = _interp_wrapper(_algos.backfill_inplace_int64, np.int64)
 _backfill_2d_datetime = _interp_wrapper(_algos.backfill_2d_inplace_int64, np.int64)
 
-def pad_1d(values, limit=None):
+def pad_1d(values, limit=None, mask=None):
     if is_float_dtype(values):
         _method = _algos.pad_inplace_float64
     elif is_datetime64_dtype(values):
@@ -382,9 +413,12 @@ def pad_1d(values, limit=None):
     else: # pragma: no cover
         raise ValueError('Invalid dtype for padding')
 
-    _method(values, isnull(values).view(np.uint8), limit=limit)
+    if mask is None:
+        mask = isnull(values)
+    mask = mask.view(np.uint8)
+    _method(values, mask, limit=limit)
 
-def backfill_1d(values, limit=None):
+def backfill_1d(values, limit=None, mask=None):
     if is_float_dtype(values):
         _method = _algos.backfill_inplace_float64
     elif is_datetime64_dtype(values):
@@ -394,9 +428,13 @@ def backfill_1d(values, limit=None):
     else: # pragma: no cover
         raise ValueError('Invalid dtype for padding')
 
-    _method(values, isnull(values).view(np.uint8), limit=limit)
+    if mask is None:
+        mask = isnull(values)
+    mask = mask.view(np.uint8)
 
-def pad_2d(values, limit=None):
+    _method(values, mask, limit=limit)
+
+def pad_2d(values, limit=None, mask=None):
     if is_float_dtype(values):
         _method = _algos.pad_2d_inplace_float64
     elif is_datetime64_dtype(values):
@@ -406,9 +444,13 @@ def pad_2d(values, limit=None):
     else: # pragma: no cover
         raise ValueError('Invalid dtype for padding')
 
-    _method(values, isnull(values).view(np.uint8), limit=limit)
+    if mask is None:
+        mask = isnull(values)
+    mask = mask.view(np.uint8)
 
-def backfill_2d(values, limit=None):
+    _method(values, mask, limit=limit)
+
+def backfill_2d(values, limit=None, mask=None):
     if is_float_dtype(values):
         _method = _algos.backfill_2d_inplace_float64
     elif is_datetime64_dtype(values):
@@ -418,8 +460,11 @@ def backfill_2d(values, limit=None):
     else: # pragma: no cover
         raise ValueError('Invalid dtype for padding')
 
-    _method(values, isnull(values).view(np.uint8), limit=limit)
+    if mask is None:
+        mask = isnull(values)
+    mask = mask.view(np.uint8)
 
+    _method(values, mask, limit=limit)
 
 def _consensus_name_attr(objs):
     name = objs[0].name

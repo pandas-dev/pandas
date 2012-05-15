@@ -2069,20 +2069,15 @@ copy : boolean, default False
         -------
         filled : Series
         """
-        mask = isnull(self.values)
-
         if value is not None:
             result = self.copy() if not inplace else self
+            mask = isnull(self.values)
             np.putmask(result, mask, value)
         else:
             if method is None:  # pragma: no cover
                 raise ValueError('must specify a fill method')
 
-            method = com._clean_fill_method(method)
-            if method == 'pad':
-                fill_f = com.pad_1d
-            elif method == 'backfill':
-                fill_f = com.backfill_1d
+            fill_f = _get_fill_func(method)
 
             if inplace:
                 values = self.values
@@ -2097,6 +2092,92 @@ copy : boolean, default False
                 result = Series(values, index=self.index, name=self.name)
 
         return result
+
+
+    def replace(self, to_replace, value=None, method='pad', inplace=False,
+                limit=None):
+        """
+        Replace arbitrary values in a Series
+
+        Parameters
+        ----------
+        to_replace : list or dict
+            list of values to be replaced or dict of replacement values
+        value : anything
+            if to_replace is a list then value is the replacement value
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default 'pad'
+            Method to use for filling holes in reindexed Series
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap
+        inplace : boolean, default False
+            If True, fill the Series in place. Note: this will modify any other
+            views on this Series, for example a column in a DataFrame. Returns
+            a reference to the filled object, which is self if inplace=True
+        limit : int, default None
+            Maximum size gap to forward or backward fill
+
+        Notes
+        -----
+        replace does not distinguish between NaN and None
+
+        See also
+        --------
+        fillna, reindex, asfreq
+
+        Returns
+        -------
+        replaced : Series
+        """
+        result = self.copy() if not inplace else self
+
+        def _rep_one(s, to_rep, v): # replace single value
+            mask = com.mask_missing(s.values, to_rep)
+            np.putmask(s.values, mask, v)
+            return s
+
+        def _rep_dict(rs, to_rep): # replace {[src] -> dest}
+
+            dd = {} # group by unique destination value
+            [dd.setdefault(d, []).append(s) for s, d in to_rep.iteritems()]
+
+            for d, sset in dd.iteritems(): # now replace by each dest
+                rs = _rep_one(rs, sset, d)
+            return rs
+
+        if np.isscalar(to_replace):
+            to_replace = [to_replace]
+
+        if isinstance(to_replace, dict):
+            return _rep_dict(result, to_replace)
+
+        if isinstance(to_replace, (list, np.ndarray)):
+
+            if isinstance(value, (list, np.ndarray)): # check same length
+                vl, rl = len(value), len(to_replace)
+                if vl == rl:
+                    return _rep_dict(result, dict(zip(to_replace, value)))
+                raise ValueError('Got %d to replace but %d values' % (rl, vl))
+
+            elif value is not None: # otherwise all replaced with same value
+
+                return _rep_one(result, to_replace, value)
+
+            else: # method
+                if method is None:  # pragma: no cover
+                    raise ValueError('must specify a fill method')
+                fill_f = _get_fill_func(method)
+
+                mask = com.mask_missing(result, to_replace)
+                fill_f(result.values, limit=limit, mask=mask)
+
+                if not inplace:
+                    result = Series(result.values, index=self.index,
+                                    name=self.name)
+                return result
+
+
+        raise ValueError('Unrecognized to_replace type %s' %
+                         type(to_replace))
 
     def isin(self, values):
         """
@@ -2549,6 +2630,13 @@ def _resolve_offset(freq, kwds):
 
     return offset
 
+def _get_fill_func(method):
+    method = com._clean_fill_method(method)
+    if method == 'pad':
+        fill_f = com.pad_1d
+    elif method == 'backfill':
+        fill_f = com.backfill_1d
+    return fill_f
 
 #----------------------------------------------------------------------
 # Add plotting methods to Series
