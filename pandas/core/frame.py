@@ -2431,7 +2431,7 @@ class DataFrame(NDFrame):
         new_labels = labels[mask]
         return self.reindex(**{axis_name: new_labels})
 
-    def drop_duplicates(self, cols=None, take_last=False):
+    def drop_duplicates(self, cols=None, take_last=False, skipna=True):
         """
         Return DataFrame with duplicate rows removed, optionally only
         considering certain columns
@@ -2443,15 +2443,17 @@ class DataFrame(NDFrame):
             default use all of the columns
         take_last : boolean, default False
             Take the last observed row in a row. Defaults to the first row
+        skipna : boolean, default True
+            If True then keep NaN
 
         Returns
         -------
         deduplicated : DataFrame
         """
-        duplicated = self.duplicated(cols, take_last=take_last)
+        duplicated = self.duplicated(cols, take_last=take_last, skipna=skipna)
         return self[-duplicated]
 
-    def duplicated(self, cols=None, take_last=False):
+    def duplicated(self, cols=None, take_last=False, skipna=True):
         """
         Return boolean Series denoting duplicate rows, optionally only
         considering certain columns
@@ -2463,20 +2465,29 @@ class DataFrame(NDFrame):
             default use all of the columns
         take_last : boolean, default False
             Take the last observed row in a row. Defaults to the first row
+        skipna : boolean, default True
+            If True then NaN are not marked as duplicates
 
         Returns
         -------
         duplicated : Series
         """
+        zip_func = lib.fast_zip if skipna else lib.fast_zip_fillna
+
         if cols is not None:
             if isinstance(cols, list):
-                keys = zip(*[self[x] for x in cols])
+                values = [self[x].values for x in cols]
+                keys = zip_func(values)
+                dup_func = lib.duplicated_skipna
             else:
-                keys = list(self[cols])
+                keys = self[cols]
+                dup_func = lib.duplicated_skipna if skipna else lib.duplicated
         else:
-            keys = zip(*self.values.T)
+            values = list(self.values.T)
+            keys = zip_func(values)
+            dup_func = lib.duplicated_skipna
 
-        duplicated = lib.duplicated(keys, take_last=take_last)
+        duplicated = dup_func(list(keys), take_last=take_last)
         return Series(duplicated, index=self.index)
 
     #----------------------------------------------------------------------
@@ -4613,7 +4624,6 @@ def _homogenize(data, index, columns, dtype=None):
 
 def _put_str(s, space):
     return ('%s' % s)[:space].ljust(space)
-
 
 def _is_sequence(x):
     try:
