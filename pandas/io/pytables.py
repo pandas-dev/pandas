@@ -850,7 +850,8 @@ class HDFStore(object):
         key = major.labels * K + minor.labels
 
         if len(unique(key)) == len(key):
-            sorter, _ = lib.groupsort_indexer(key, J * K)
+            sorter, _ = lib.groupsort_indexer(com._ensure_int64(key), J * K)
+            sorter = com._ensure_platform_int(sorter)
 
             # the data need to be sorted
             sorted_values = values.take(sorter, axis=0)
@@ -879,6 +880,7 @@ class HDFStore(object):
             unique_tuples = _asarray_tuplesafe(unique_tuples)
 
             indexer = match(unique_tuples, tuple_index)
+            indexer = com._ensure_platform_int(indexer)
 
             new_index = long_index.take(indexer)
             new_values = lp.values.take(indexer, axis=0)
