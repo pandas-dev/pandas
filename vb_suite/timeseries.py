@@ -9,10 +9,23 @@ try:
     rng = date_range('1/1/2000', periods=N, freq='min')
 except NameError:
     rng = DateRange('1/1/2000', periods=N, offset=datetools.Minute())
-    date_range = DateRange
+    def date_range(start=None, end=None, periods=None, freq=None):
+        return DateRange(start, end, periods=periods, offset=freq)
 
 ts = Series(np.random.randn(N), index=rng)
 """
+
+#----------------------------------------------------------------------
+# Lookup value in large time series, hash map population
+
+setup = common_setup + """
+rng = date_range('1/1/2000', periods=1500000, freq='s')
+ts = Series(1, index=rng)
+"""
+
+stmt = "ts[ts.index[len(ts) // 2]]; ts.index._cleanup()"
+timeseries_large_lookup_value = Benchmark(stmt, setup,
+                                          start_date=datetime(2012, 1, 1))
 
 #----------------------------------------------------------------------
 # Test slice minutely series
