@@ -2167,7 +2167,7 @@ copy : boolean, default False
                     raise ValueError('must specify a fill method')
                 fill_f = _get_fill_func(method)
 
-                mask = _mask_missing(result, to_replace)
+                mask = com.mask_missing(result, to_replace)
                 fill_f(result.values, limit=limit, mask=mask)
 
                 if not inplace:
@@ -2637,16 +2637,6 @@ def _get_fill_func(method):
     elif method == 'backfill':
         fill_f = com.backfill_1d
     return fill_f
-
-def _mask_missing(series, missing_values):
-    missing_values = np.array(list(missing_values), dtype=object)
-    if isnull(missing_values).any():
-        missing_values = missing_values[notnull(missing_values)]
-        mask = isnull(series) | series.isin(missing_values)
-    else:
-        mask = series.isin(missing_values)
-    return mask
-
 
 #----------------------------------------------------------------------
 # Add plotting methods to Series
