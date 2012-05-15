@@ -51,6 +51,8 @@ pandas 0.8.0
   - New ordered_merge functions for merging DataFrames with ordered
     data. Also supports group-wise merging for panel data (#813)
   - Add keys() method to DataFrame
+  - Add flexible replace method for replacing potentially values to Series and
+    DataFrame (#929, #1241)
 
 **Improvements to existing features**
 
