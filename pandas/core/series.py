@@ -2131,10 +2131,8 @@ copy : boolean, default False
         result = self.copy() if not inplace else self
 
         def _rep_one(s, to_rep, v): # replace single value
-            if isinstance(to_rep, (list, np.ndarray)):
-                to_rep = lib.maybe_convert_objects(np.array(to_rep,
-                                                            dtype=object))
-            lib.replace(s.values, to_rep, v)
+            mask = com.mask_missing(s.values, to_rep)
+            np.putmask(s.values, mask, v)
             return s
 
         def _rep_dict(rs, to_rep): # replace {[src] -> dest}

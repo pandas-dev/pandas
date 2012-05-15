@@ -2649,44 +2649,14 @@ class DataFrame(NDFrame):
         self._consolidate_inplace()
 
         if value is None:
-            if self._is_mixed_type and axis == 1:
-                return self.T.replace(to_replace, method=method, limit=limit).T
-
-            method = com._clean_fill_method(method)
-
-            if isinstance(to_replace, dict):
-                if axis == 1:
-                    return self.T.replace(to_replace, method=method,
-                                          limit=limit).T
-
-                rs = self if inplace else self.copy()
-                for k, v in to_replace.iteritems():
-                    if k in rs:
-                        rs[k].replace(v, method=method, limit=limit,
-                                      inplace=True)
-                return rs
-
-            else:
-                new_blocks = []
-                for block in self._data.blocks:
-                    newb = block.interpolate(method, axis=axis,
-                                             limit=limit, inplace=inplace,
-                                             missing=to_replace)
-                    new_blocks.append(newb)
-                new_data = BlockManager(new_blocks, self._data.axes)
-
-                if inplace:
-                    self._data = new_data
-                    return self
-                else:
-                    return self._constructor(new_data)
-
+            return self._interpolate(to_replace, method, axis, inplace, limit)
         else:
             # Float type values
             if len(self.columns) == 0:
                 return self
 
             if np.isscalar(to_replace):
+
                 if np.isscalar(value): # np.nan -> 0
                     new_data = self._data.replace(to_replace, value,
                                                   inplace=inplace)
@@ -2699,14 +2669,17 @@ class DataFrame(NDFrame):
                 elif isinstance(value, dict): # np.nan -> {'A' : 0, 'B' : -1}
                     return self._replace_dest_dict(to_replace, value, inplace)
 
+
             elif isinstance(to_replace, dict):
+
                 if np.isscalar(value): # {'A' : np.nan, 'B' : ''} -> 0
                     return self._replace_src_dict(to_replace, value, inplace)
+
                 elif isinstance(value, dict): # {'A' : np.nan} -> {'A' : 0}
                     return self._replace_both_dict(to_replace, value, inplace)
-                else:
-                    raise ValueError('Fill value must be scalar or dict')
-                return rs
+
+                raise ValueError('Fill value must be scalar or dict')
+
 
             elif isinstance(to_replace, (list, np.ndarray)):
                 # [np.nan, ''] -> [0, 'missing']
@@ -2723,14 +2696,48 @@ class DataFrame(NDFrame):
                 else: # [np.nan, ''] -> 0
                     new_data = self._data.replace(to_replace, value,
                                                   inplace=inplace)
+
                 if inplace:
                     self._data = new_data
                     return self
                 else:
                     return self._constructor(new_data)
+
+            raise ValueError('Invalid to_replace type: %s' % type(to_replace))
+
+    def _interpolate(self, to_replace, method, axis, inplace, limit):
+        if self._is_mixed_type and axis == 1:
+            return self.T.replace(to_replace, method=method, limit=limit).T
+
+        method = com._clean_fill_method(method)
+
+        if isinstance(to_replace, dict):
+            if axis == 1:
+                return self.T.replace(to_replace, method=method,
+                                      limit=limit).T
+
+            rs = self if inplace else self.copy()
+            for k, v in to_replace.iteritems():
+                if k in rs:
+                    rs[k].replace(v, method=method, limit=limit,
+                                  inplace=True)
+            return rs
+
+        else:
+            new_blocks = []
+            for block in self._data.blocks:
+                newb = block.interpolate(method, axis=axis,
+                                         limit=limit, inplace=inplace,
+                                         missing=to_replace)
+                new_blocks.append(newb)
+            new_data = BlockManager(new_blocks, self._data.axes)
+
+            if inplace:
+                self._data = new_data
+                return self
             else:
-                raise ValueError('Invalid to_replace type: %s' %
-                                 type(to_replace))
+                return self._constructor(new_data)
+
 
     def _replace_dest_dict(self, to_replace, value, inplace):
         rs = self if inplace else self.copy()
