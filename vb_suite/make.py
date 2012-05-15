@@ -98,8 +98,7 @@ def auto_update():
         sendmail(msg)
 
 def sendmail(err_msg=None):
-    from_name = 'drzoidberg@lambdafoundry.com'
-    to_name = 'dev@lambdafoundry.com'
+    from_name, to_name = _get_config()
 
     if err_msg is None:
         msgstr = 'Daily vbench uploaded successfully'
@@ -137,6 +136,11 @@ def _get_credentials():
         pwd = base64.b64decode(fh.read())
 
     return server, port, login, pwd
+
+def _get_config():
+    with open('~/tmp/config', 'r') as fh:
+        from_name, to_name = fh.read().split(',')
+    return from_name, to_name
 
 funcd = {
     'html'     : html,
