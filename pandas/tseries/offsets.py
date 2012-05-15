@@ -1007,6 +1007,10 @@ class Day(Tick, CacheableOffset):
     _inc = timedelta(1)
     _rule_base = 'D'
 
+    def isAnchored(self):
+
+        return False
+
 class Hour(Tick):
     _inc = timedelta(0, 3600)
     _rule_base = 'H'
