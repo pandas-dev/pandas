@@ -27,7 +27,7 @@ def get_float_ex(cols=['a', 'c', 'e']):
     return make_block(floats, cols, TEST_COLS)
 
 def get_complex_ex(cols=['h']):
-    complexes = (get_float_mat(N, 1).T * 1j).astype(np.complex64)
+    complexes = (get_float_mat(N, 1).T * 1j).astype(np.complex128)
     return make_block(complexes, cols, TEST_COLS)
 
 def get_obj_ex(cols=['b', 'd']):
@@ -211,7 +211,7 @@ class TestBlockManager(unittest.TestCase):
 
         result = self.mgr.item_dtypes
         expected = ['float64', 'object', 'float64', 'object', 'float64',
-                    'bool', 'int64', 'complex64']
+                    'bool', 'int64', 'complex128']
         self.assert_(np.array_equal(result, expected))
 
     def test_union_block_items(self):

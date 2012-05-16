@@ -11,7 +11,7 @@ _TYPE_MAP = {
     np.uint64: 'integer',
     np.float32: 'floating',
     np.float64: 'floating',
-    np.complex64: 'complex',
+    np.complex128: 'complex',
     np.complex128: 'complex',
     np.string_: 'string',
     np.unicode_: 'unicode',
@@ -223,7 +223,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values):
     cdef:
         Py_ssize_t i, n
         ndarray[float64_t] floats
-        ndarray[complex64_t] complexes
+        ndarray[complex128_t] complexes
         ndarray[int64_t] ints
         bint seen_float = 0
         bint seen_complex = 0
@@ -233,7 +233,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values):
     n = len(values)
 
     floats = np.empty(n, dtype='f8')
-    complexes = np.empty(n, dtype='c8')
+    complexes = np.empty(n, dtype='c16')
     ints = np.empty(n, dtype='i8')
 
     for i from 0 <= i < n:
@@ -278,7 +278,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
     cdef:
         Py_ssize_t i, n
         ndarray[float64_t] floats
-        ndarray[complex64_t] complexes
+        ndarray[complex128_t] complexes
         ndarray[int64_t] ints
         ndarray[uint8_t] bools
         bint seen_float = 0
@@ -293,7 +293,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
     n = len(objects)
 
     floats = np.empty(n, dtype='f8')
-    complexes = np.empty(n, dtype='c8')
+    complexes = np.empty(n, dtype='c16')
     ints = np.empty(n, dtype='i8')
     bools = np.empty(n, dtype=np.uint8)
 
