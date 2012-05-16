@@ -1116,7 +1116,7 @@ def form_blocks(data, axes):
         blocks.append(float_block)
 
     if len(complex_dict):
-        complex_block = _simple_blockify(complex_dict, items, np.complex64)
+        complex_block = _simple_blockify(complex_dict, items, np.complex128)
         blocks.append(complex_block)
 
     if len(int_dict):
@@ -1222,7 +1222,7 @@ def _interleaved_dtype(blocks):
     elif have_dt64 and not have_float and not have_complex:
         return np.datetime64
     elif have_complex:
-        return np.complex64
+        return np.complex128
     else:
         return np.float64
 
