@@ -241,5 +241,8 @@ Scatter plot matrix
    from pandas.tools.plotting import scatter_matrix
    df = DataFrame(np.random.randn(1000, 4), columns=['a', 'b', 'c', 'd'])
 
-   @savefig scatter_matrix_ex.png width=6in
-   scatter_matrix(df, alpha=0.2, figsize=(8, 8))
+   @savefig scatter_matrix_kde.png width=6in
+   scatter_matrix(df, alpha=0.2, figsize=(8, 8), diagonal='kde')
+
+   @savefig scatter_matrix_hist.png width=6in
+   scatter_matrix(df, alpha=0.2, figsize=(8, 8), diagonal='hist')
