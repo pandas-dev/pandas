@@ -2344,7 +2344,7 @@ class DataFrame(NDFrame):
         new_labels = labels[mask]
         return self.reindex(**{axis_name: new_labels})
 
-    def drop_duplicates(self, cols=None, take_last=False):
+    def drop_duplicates(self, cols=None, take_last=False, inplace=False):
         """
         Return DataFrame with duplicate rows removed, optionally only
         considering certain columns
@@ -2358,13 +2358,23 @@ class DataFrame(NDFrame):
             Take the last observed row in a row. Defaults to the first row
         skipna : boolean, default True
             If True then keep NaN
+        inplace : boolean, default False
+            Whether to drop duplicates in place or to return a copy
 
         Returns
         -------
         deduplicated : DataFrame
         """
+
         duplicated = self.duplicated(cols, take_last=take_last)
-        return self[-duplicated]
+
+        if inplace:
+            inds, = (-duplicated).nonzero()
+            self._data = self._data.take(inds)
+            self._clear_item_cache()
+            return self
+        else:
+            return self[-duplicated]
 
     def duplicated(self, cols=None, take_last=False):
         """

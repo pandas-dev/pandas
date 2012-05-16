@@ -3340,6 +3340,56 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = df.ix[[1, 3, 6, 7]]
         assert_frame_equal(result, expected)
 
+    def test_drop_duplicates_inplace(self):
+        orig = DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+                                 'foo', 'bar', 'bar', 'foo'],
+                          'B' : ['one', 'one', 'two', 'two',
+                                 'two', 'two', 'one', 'two'],
+                          'C' : [1, 1, 2, 2, 2, 2, 1, 2],
+                          'D' : range(8)})
+
+        # single column
+        df = orig.copy()
+        df.drop_duplicates('A', inplace=True)
+        expected = orig[:2]
+        result = df
+        assert_frame_equal(result, expected)
+
+        df = orig.copy()
+        df.drop_duplicates('A', take_last=True, inplace=True)
+        expected = orig.ix[[6, 7]]
+        result = df
+        assert_frame_equal(result, expected)
+
+        # multi column
+        df = orig.copy()
+        df.drop_duplicates(['A', 'B'], inplace=True)
+        expected = orig.ix[[0, 1, 2, 3]]
+        result = df
+        assert_frame_equal(result, expected)
+
+        df = orig.copy()
+        df.drop_duplicates(['A', 'B'], take_last=True, inplace=True)
+        expected = orig.ix[[0, 5, 6, 7]]
+        result = df
+        assert_frame_equal(result, expected)
+
+        # consider everything
+        orig2 = orig.ix[:, ['A', 'B', 'C']].copy()
+
+        df2 = orig2.copy()
+        df2.drop_duplicates(inplace=True)
+        # in this case only
+        expected = orig2.drop_duplicates(['A', 'B'])
+        result = df2
+        assert_frame_equal(result, expected)
+
+        df2 = orig2.copy()
+        df2.drop_duplicates(take_last=True, inplace=True)
+        expected = orig2.drop_duplicates(['A', 'B'], take_last=True)
+        result = df2
+        assert_frame_equal(result, expected)
+
     def test_drop_col_still_multiindex(self):
         arrays = [[  'a',   'b',   'c',    'top'],
                   [  '',    '',    '',     'OD' ],
