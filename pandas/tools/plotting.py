@@ -19,6 +19,13 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
 
     Parameters
     ----------
+    alpha : amount of transparency applied
+    figsize : a tuple (width, height) in inches
+    ax : Matplotlib axis object
+    grid : setting this to True will show the grid
+    diagonal : pick between 'kde' and 'hist' for
+        either Kernel Density Estimation or Histogram
+        plon in the diagonal
     kwds : other plotting keyword arguments
         To be passed to scatter function
 
@@ -48,7 +55,7 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
                     axes[i, j].plot(ind, gkde.evaluate(ind), **kwds)
             else:
                 axes[i, j].scatter(df[b], df[a], alpha=alpha, **kwds)
-                
+
             axes[i, j].set_xlabel('')
             axes[i, j].set_ylabel('')
             axes[i, j].set_xticklabels([])
