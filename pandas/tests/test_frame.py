@@ -4557,6 +4557,53 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = frame.take(indexer)
         assert_frame_equal(result, expected)
 
+    def test_sort_index_inplace(self):
+        frame = DataFrame(np.random.randn(4, 4), index=[1, 2, 3, 4],
+                          columns=['A', 'B', 'C', 'D'])
+
+        # axis=0
+        unordered = frame.ix[[3, 2, 4, 1]]
+        df = unordered.copy()
+        df.sort_index(inplace=True)
+        expected = frame
+        assert_frame_equal(df, expected)
+
+        df = unordered.copy()
+        df.sort_index(ascending=False, inplace=True)
+        expected = frame[::-1]
+        assert_frame_equal(df, expected)
+
+        # axis=1
+        unordered = frame.ix[:, ['D', 'B', 'C', 'A']]
+        df = unordered.copy()
+        df.sort_index(axis=1, inplace=True)
+        expected = frame
+        assert_frame_equal(df, expected)
+
+        df = unordered.copy()
+        df.sort_index(axis=1, ascending=False, inplace=True)
+        expected = frame.ix[:, ::-1]
+        assert_frame_equal(df, expected)
+
+    def test_sort_inplace(self):
+        frame = DataFrame(np.random.randn(4, 4), index=[1, 2, 3, 4],
+                          columns=['A', 'B', 'C', 'D'])
+
+        sorted_df = frame.copy()
+        sorted_df.sort(columns='A', inplace=True)
+        expected = frame.sort_index(by='A')
+        assert_frame_equal(sorted_df, expected)
+
+        sorted_df = frame.copy()
+        sorted_df.sort(columns='A', ascending=False, inplace=True)
+        expected = frame.sort_index(by='A', ascending=False)
+        assert_frame_equal(sorted_df, expected)
+
+        sorted_df = frame.copy()
+        sorted_df.sort(columns=['A', 'B'], ascending=False, inplace=True)
+        expected = frame.sort_index(by=['A', 'B'], ascending=False)
+        assert_frame_equal(sorted_df, expected)
+
     def test_frame_column_inplace_sort_exception(self):
         s = self.frame['A']
         self.assertRaises(Exception, s.sort)

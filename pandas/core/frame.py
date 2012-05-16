@@ -2409,7 +2409,8 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Sorting
 
-    def sort(self, columns=None, column=None, axis=0, ascending=True):
+    def sort(self, columns=None, column=None, axis=0, ascending=True,
+             inplace=False):
         """
         Sort DataFrame either by labels (along either axis) or by the values in
         column(s)
@@ -2423,6 +2424,8 @@ class DataFrame(NDFrame):
             Sort ascending vs. descending
         axis : {0, 1}
             Sort index/rows versus columns
+        inplace : boolean, default False
+            Sort the DataFrame without creating a new instance
 
         Returns
         -------
@@ -2432,9 +2435,10 @@ class DataFrame(NDFrame):
             import warnings
             warnings.warn("column is deprecated, use columns", FutureWarning)
             columns = column
-        return self.sort_index(by=columns, axis=axis, ascending=ascending)
+        return self.sort_index(by=columns, axis=axis, ascending=ascending,
+                               inplace=inplace)
 
-    def sort_index(self, axis=0, by=None, ascending=True):
+    def sort_index(self, axis=0, by=None, ascending=True, inplace=False):
         """
         Sort DataFrame either by labels (along either axis) or by the values in
         a column
@@ -2448,6 +2452,8 @@ class DataFrame(NDFrame):
             for a nested sort.
         ascending : boolean, default True
             Sort ascending vs. descending
+        inplace : boolean, default False
+            Sort the DataFrame without creating a new instance
 
         Returns
         -------
@@ -2470,7 +2476,18 @@ class DataFrame(NDFrame):
         if not ascending:
             indexer = indexer[::-1]
 
-        return self.take(indexer, axis=axis)
+        if inplace:
+            if axis == 1:
+                self._data = self._data.reindex_items(self._data.items[indexer],
+                                                      copy=False)
+            elif axis == 0:
+                self._data = self._data.take(indexer)
+            else:
+                raise ValueError('Axis must be 0 or 1, got %s' % str(axis))
+            self._clear_item_cache()
+            return self
+        else:
+            return self.take(indexer, axis=axis)
 
     def sortlevel(self, level=0, axis=0, ascending=True):
         """
