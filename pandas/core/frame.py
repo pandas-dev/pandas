@@ -222,6 +222,57 @@ def _arith_method(op, name, default_axis='columns'):
 
     return f
 
+def flex_comp_method(op, name, default_axis='columns'):
+
+    @Appender('Wrapper for flexible comparison methods %s' % name)
+    def f(self, other, axis=default_axis, level=None):
+        if isinstance(other, DataFrame):    # Another DataFrame
+            return self._flex_compare_frame(other, op, level)
+
+        elif isinstance(other, Series):
+            try:
+                return self._combine_series(other, op, None, axis, level)
+            except Exception:
+                return self._combine_series_infer(other, op)
+
+        elif isinstance(other, (list, tuple)):
+            if axis is not None and self._get_axis_name(axis) == 'index':
+                casted = Series(other, index=self.index)
+            else:
+                casted = Series(other, index=self.columns)
+
+            try:
+                return self._combine_series(casted, op, None, axis, level)
+            except Exception:
+                return self._combine_series_infer(casted, op)
+
+        elif isinstance(other, np.ndarray):
+            if other.ndim == 1:
+                if axis is not None and self._get_axis_name(axis) == 'index':
+                    casted = Series(other, index=self.index)
+                else:
+                    casted = Series(other, index=self.columns)
+
+                try:
+                    return self._combine_series(casted, op, None, axis, level)
+                except Exception:
+                    return self._combine_series_infer(casted, op)
+
+            elif other.ndim == 2:
+                casted = DataFrame(other, index=self.index,
+                                   columns=self.columns)
+                return self._flex_compare_frame(casted, op, level)
+
+            else:  # pragma: no cover
+                raise ValueError("Bad argument shape")
+
+        else:
+            return self._combine_const(other, op)
+
+    f.__name__ = name
+
+    return f
+
 
 def comp_method(func, name):
     @Appender('Wrapper for comparison method %s' % name)
@@ -621,6 +672,13 @@ class DataFrame(NDFrame):
     __gt__ = comp_method(operator.gt, '__gt__')
     __le__ = comp_method(operator.le, '__le__')
     __ge__ = comp_method(operator.ge, '__ge__')
+
+    eq = flex_comp_method(operator.eq, 'eq')
+    ne = flex_comp_method(operator.ne, 'ne')
+    gt = flex_comp_method(operator.gt, 'gt')
+    lt = flex_comp_method(operator.lt, 'lt')
+    ge = flex_comp_method(operator.ge, 'ge')
+    le = flex_comp_method(operator.le, 'le')
 
     def dot(self, other):
         """
@@ -2937,6 +2995,17 @@ class DataFrame(NDFrame):
         if not self._indexed_same(other):
             raise Exception('Can only compare identically-labeled '
                             'DataFrame objects')
+
+        new_data = {}
+        for col in self.columns:
+            new_data[col] = func(self[col], other[col])
+
+        return self._constructor(data=new_data, index=self.index,
+                                 columns=self.columns, copy=False)
+
+    def _flex_compare_frame(self, other, func, level):
+        if not self._indexed_same(other):
+            self, other = self.align(other, 'outer', level=level)
 
         new_data = {}
         for col in self.columns:
