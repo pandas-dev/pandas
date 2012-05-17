@@ -567,9 +567,9 @@ Hierarchical indexing (MultiIndex)
 Hierarchical indexing (also referred to as "multi-level" indexing) is brand new
 in the pandas 0.4 release. It is very exciting as it opens the door to some
 quite sophisticated data analysis and manipulation, especially for working with
-higher dimensional data. In essence, it enables you to effectively store and
-manipulate arbitrarily high dimension data in a 2-dimensional tabular structure
-(DataFrame), for example. It is not limited to DataFrames.
+higher dimensional data. In essence, it enables you to store and manipulate
+data with an arbitrary number of dimensions in lower dimensional data
+structures like Series (1d) and DataFrame (2d).
 
 In this section, we will show what exactly we mean by "hierarchical" indexing
 and how it integrates with the all of the pandas indexing functionality
