@@ -685,6 +685,10 @@ Series, it need only contain a subset of the labels as keys:
    df.rename(columns={'one' : 'foo', 'two' : 'bar'},
              index={'a' : 'apple', 'b' : 'banana', 'd' : 'durian'})
 
+The ``rename`` method also provides an ``inplace`` named parameter that is by
+default ``False`` and copies the underlying data. Pass ``inplace=True`` to
+rename the data in place.
+
 .. _basics.rename_axis:
 
 The Panel class has a related ``rename_axis`` class which can rename any of
@@ -693,11 +697,13 @@ its three axes.
 Iteration
 ---------
 
-Considering the pandas as somewhat dict-like structure, basic iteration
-produces the "keys" of the objects, namely:
+Because Series is array-like, basic iteration produces the values. Other data
+structures follow the dict-like convention of iterating over the "keys" of the
+objects. In short:
 
-  * **DataFrame**: the column labels
-  * **Panel**: the item labels
+  * **Series**: values
+  * **DataFrame**: column labels
+  * **Panel**: item labels
 
 Thus, for example:
 
