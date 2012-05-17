@@ -197,6 +197,9 @@ class TestIndex(unittest.TestCase):
         union = first.union([])
         self.assert_(union is first)
 
+        union = Index([]).union(first)
+        self.assert_(union is first)
+
         # non-iterable input
         self.assertRaises(Exception, first.union, 0.5)
 
@@ -393,6 +396,11 @@ class TestIndex(unittest.TestCase):
 
         dropped = self.strIndex.drop(self.strIndex[0])
         expected = self.strIndex[1:]
+        self.assert_(dropped.equals(expected))
+
+        ser = Index([1,2,3])
+        dropped = ser.drop(1)
+        expected = Index([1,3])
         self.assert_(dropped.equals(expected))
 
     def test_tuple_union_bug(self):
@@ -1467,6 +1475,12 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(target2.equals(exp_index2))
         exp_indexer2 = np.array([0, -1, 0, -1, 0, -1])
         self.assert_(np.array_equal(indexer2, exp_indexer2))
+
+        self.assertRaises(ValueError, self.index.reindex,
+                          self.index, method='pad', level='second')
+
+        self.assertRaises(ValueError, idx.reindex,
+                          idx, method='bfill', level='first')
 
     def test_has_duplicates(self):
         self.assert_(not self.index.has_duplicates)

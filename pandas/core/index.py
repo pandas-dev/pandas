@@ -28,7 +28,7 @@ def _indexOp(opname):
         result = func(other)
         try:
             return result.view(np.ndarray)
-        except:
+        except: # pragma: no cover
             return result
     return wrapper
 
@@ -525,7 +525,7 @@ class Index(np.ndarray):
                 # contained in
                 try:
                     result = np.sort(self.values)
-                except TypeError:
+                except TypeError: # pragma: no cover
                     result = self.values
 
         # for subclasses

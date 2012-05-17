@@ -237,11 +237,11 @@ def makePeriodIndex(k):
     dr = PeriodIndex(start=dt, periods=k, freq='B')
     return dr
 
-def makeTimeSeries():
-    return Series(randn(N), index=makeDateIndex(N))
+def makeTimeSeries(nper=N):
+    return Series(randn(nper), index=makeDateIndex(nper))
 
-def makePeriodSeries():
-    return Series(randn(N), index=makePeriodIndex(N))
+def makePeriodSeries(nper=N):
+    return Series(randn(nper), index=makePeriodIndex(nper))
 
 def getTimeSeriesData():
     return dict((c, makeTimeSeries()) for c in getCols(K))
