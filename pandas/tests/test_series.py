@@ -284,6 +284,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series([1, 2, nan, 0], index=['b', 'c', 'd', 'a'])
         assert_series_equal(result, expected)
 
+        pidx = tm.makePeriodIndex(100)
+        d = {pidx[0] : 0, pidx[1] : 1}
+        result = Series(d, index=pidx)
+        expected = Series(np.nan, pidx)
+        expected.ix[0] = 0
+        expected.ix[1] = 1
+        assert_series_equal(result, expected)
+
     def test_constructor_subclass_dict(self):
         data = tm.TestSubDict((x, 10.0 * x) for x in xrange(10))
         series = Series(data)
@@ -929,6 +937,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         ts = Series(np.random.randn(len(index)), index)
         repr(ts)
 
+        ts = tm.makeTimeSeries(1000)
+        self.assert_(repr(ts).splitlines()[-1].startswith('Freq:'))
+
+        ts2 = ts.ix[np.random.randint(0, len(ts)-1, 400)]
+        repr(ts).splitlines()[-1]
+
     def test_iter(self):
         for i, val in enumerate(self.series):
             self.assertEqual(val, self.series[i])
@@ -1202,10 +1216,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(bool_series.any())
 
     def test_operators(self):
-        series = self.ts
-        other = self.ts[::2]
 
-        def _check_op(other, op, pos_only=False):
+        def _check_op(series, other, op, pos_only=False):
             left = np.abs(series) if pos_only else series
             right = np.abs(other) if pos_only else other
 
@@ -1213,35 +1225,39 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             python = left.combine(right, op)
             tm.assert_almost_equal(cython_or_numpy, python)
 
-        def check(other):
+        def check(series, other):
             simple_ops = ['add', 'sub', 'mul', 'truediv', 'floordiv']
 
             for opname in simple_ops:
-                _check_op(other, getattr(operator, opname))
-            _check_op(other, operator.pow, pos_only=True)
+                _check_op(series, other, getattr(operator, opname))
 
-            _check_op(other, lambda x, y: operator.add(y, x))
-            _check_op(other, lambda x, y: operator.sub(y, x))
-            _check_op(other, lambda x, y: operator.truediv(y, x))
-            _check_op(other, lambda x, y: operator.floordiv(y, x))
-            _check_op(other, lambda x, y: operator.mul(y, x))
-            _check_op(other, lambda x, y: operator.pow(y, x),
+            _check_op(series, other, operator.pow, pos_only=True)
+
+            _check_op(series, other, lambda x, y: operator.add(y, x))
+            _check_op(series, other, lambda x, y: operator.sub(y, x))
+            _check_op(series, other, lambda x, y: operator.truediv(y, x))
+            _check_op(series, other, lambda x, y: operator.floordiv(y, x))
+            _check_op(series, other, lambda x, y: operator.mul(y, x))
+            _check_op(series, other, lambda x, y: operator.pow(y, x),
                       pos_only=True)
 
-        check(self.ts * 2)
-        check(self.ts * 0)
-        check(self.ts[::2])
-        check(5)
+        check(self.ts, self.ts * 2)
+        check(self.ts, self.ts * 0)
+        check(self.ts, self.ts[::2])
+        check(self.ts, 5)
 
-        def check_comparators(other):
-            _check_op(other, operator.gt)
-            _check_op(other, operator.ge)
-            _check_op(other, operator.eq)
-            _check_op(other, operator.lt)
-            _check_op(other, operator.le)
+        def check_comparators(series, other):
+            _check_op(series, other, operator.gt)
+            _check_op(series, other, operator.ge)
+            _check_op(series, other, operator.eq)
+            _check_op(series, other, operator.lt)
+            _check_op(series, other, operator.le)
 
-        check_comparators(5)
-        check_comparators(self.ts + 1)
+        check_comparators(self.ts, 5)
+        check_comparators(self.ts, self.ts + 1)
+        bool_ser = self.ts > 0
+        check_comparators(bool_ser, bool_ser[::2])
+
 
     def test_operators_empty_int_corner(self):
         s1 = Series([], [], dtype=np.int32)
@@ -1941,6 +1957,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         self.assertRaises(ValueError, ps.shift, freq='D')
 
+        #legacy support
+        shifted4 = ps.shift(1, timeRule='B')
+        assert_series_equal(shifted2, shifted4)
+
+        shifted5 = ps.shift(1, offset=datetools.bday)
+        assert_series_equal(shifted5, shifted4)
+
     def test_tshift(self):
         # PeriodIndex
         ps = tm.makePeriodSeries()
@@ -2046,6 +2069,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         dates = date_range('1/1/1990', periods=N * 3, freq='25s')
 
         result = ts.asof(dates)
+        self.assert_(notnull(result).all())
+        lb = ts.index[14]
+        ub = ts.index[30]
+
+        result = ts.asof(list(dates))
         self.assert_(notnull(result).all())
         lb = ts.index[14]
         ub = ts.index[30]
@@ -2614,6 +2642,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         ser = Series(self.ts.index)
         assert_series_equal(ser.replace(np.nan, 0), ser.fillna(0))
+
+        # malformed
+        self.assertRaises(ValueError, ser.replace, [1,2,3], [np.nan, 0])
+        self.assertRaises(ValueError, ser.replace, xrange(1,3), [np.nan, 0])
 
     def test_asfreq(self):
         ts = Series([0., 1., 2.], index=[datetime(2009, 10, 30),

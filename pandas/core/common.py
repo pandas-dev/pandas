@@ -140,21 +140,6 @@ def _unpickle_array(bytes):
     arr = read_array(BytesIO(bytes))
     return arr
 
-def _take_1d_datetime(arr, indexer, out, fill_value=np.nan):
-    view = arr.view(np.int64)
-    outview = out.view(np.int64)
-    _algos.take_1d_bool(view, indexer, outview, fill_value=fill_value)
-
-def _take_2d_axis0_datetime(arr, indexer, out, fill_value=np.nan):
-    view = arr.view(np.int64)
-    outview = out.view(np.int64)
-    _algos.take_1d_bool(view, indexer, outview, fill_value=fill_value)
-
-def _take_2d_axis1_datetime(arr, indexer, out, fill_value=np.nan):
-    view = arr.view(np.uint8)
-    outview = out.view(np.uint8)
-    _algos.take_1d_bool(view, indexer, outview, fill_value=fill_value)
-
 def _view_wrapper(f, wrap_dtype, na_override=None):
     def wrapper(arr, indexer, out, fill_value=np.nan):
         if na_override is not None and np.isnan(fill_value):
@@ -212,7 +197,7 @@ def _get_take2d_function(dtype_str, axis=0):
         return _take2d_axis1_dict[dtype_str]
     elif axis == 'multi':
         return _take2d_multi_dict[dtype_str]
-    else:
+    else: # pragma: no cover
         raise ValueError('bad axis: %s' % axis)
 
 def take_1d(arr, indexer, out=None, fill_value=np.nan):

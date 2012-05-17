@@ -2702,7 +2702,7 @@ def _resolve_offset(freq, kwds):
     from pandas.core.datetools import getOffset
 
     if 'timeRule' in kwds or 'offset' in kwds:
-        offset = kwds.get('offset')
+        offset = kwds.get('offset', None)
         offset = kwds.get('timeRule', offset)
         if isinstance(offset, basestring):
             offset = datetools.getOffset(offset)
