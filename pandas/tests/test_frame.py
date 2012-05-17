@@ -1323,7 +1323,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                           cols[::2])
 
     def test_keys(self):
-        self.assert_(self.frame.keys() is self.frame.columns)
+        getkeys = self.frame.keys
+        self.assert_(getkeys() is self.frame.columns)
 
     def test_column_contains_typeerror(self):
         try:

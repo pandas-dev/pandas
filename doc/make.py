@@ -96,7 +96,7 @@ def all():
     # clean()
     html()
 
-def auto_dev_build():
+def auto_dev_build(debug=False):
     msg = ''
     try:
         clean()
@@ -104,7 +104,8 @@ def auto_dev_build():
         latex()
         upload_dev()
         upload_dev_pdf()
-        sendmail()
+        if not debug:
+            sendmail()
     except (Exception, SystemExit), inst:
         msg += str(inst) + '\n'
         sendmail(msg)
@@ -178,6 +179,7 @@ funcd = {
     'latex'    : latex,
     'clean'    : clean,
     'auto_dev' : auto_dev_build,
+    'auto_debug' : lambda: auto_dev_build(True),
     'all'      : all,
     }
 
