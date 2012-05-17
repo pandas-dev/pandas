@@ -512,7 +512,6 @@ copy : boolean, default False
             if 'unorderable' in str(e):  # pragma: no cover
                 raise IndexError(key)
             # Could not hash item
-            pass
 
         if _is_bool_indexer(key):
             key = self._check_bool_indexer(key)
@@ -2645,6 +2644,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             except Exception:
                 if raise_cast_failure:
                     raise
+                subarr = np.array(data, dtype=object, copy=copy)
                 subarr = lib.maybe_convert_objects(subarr)
         else:
             subarr = lib.list_to_object_array(data)
