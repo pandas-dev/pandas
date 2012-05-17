@@ -491,7 +491,7 @@ With a DataFrame, you can simultaneously reindex the index and columns:
    df.reindex(index=['c', 'f', 'b'], columns=['three', 'two', 'one'])
 
 For convenience, you may utilize the ``reindex_axis`` method, which takes the
-labels and a keyword ``axis`` paramater.
+labels and a keyword ``axis`` parameter.
 
 Note that the ``Index`` objects containing the actual axis labels can be
 **shared** between objects. So if we have a Series and a DataFrame, the
@@ -657,7 +657,7 @@ set of labels from an axis:
    df.drop(['a', 'd'], axis=0)
    df.drop(['one'], axis=1)
 
-Note that the following also works, but a bit less obvious / clean:
+Note that the following also works, but is a bit less obvious / clean:
 
 .. ipython:: python
 
@@ -685,13 +685,9 @@ Series, it need only contain a subset of the labels as keys:
    df.rename(columns={'one' : 'foo', 'two' : 'bar'},
              index={'a' : 'apple', 'b' : 'banana', 'd' : 'durian'})
 
-The ``rename`` method also provides a ``copy`` named parameter that is by
-default ``True`` and copies the underlying data. Pass ``copy=False`` to rename
-the data in place.
-
 .. _basics.rename_axis:
 
-The Panel class has an a related ``rename_axis`` class which can rename any of
+The Panel class has a related ``rename_axis`` class which can rename any of
 its three axes.
 
 Iteration
@@ -700,7 +696,6 @@ Iteration
 Considering the pandas as somewhat dict-like structure, basic iteration
 produces the "keys" of the objects, namely:
 
-  * **Series**: the index label
   * **DataFrame**: the column labels
   * **Panel**: the item labels
 
