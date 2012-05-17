@@ -1255,8 +1255,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         check_comparators(self.ts, 5)
         check_comparators(self.ts, self.ts + 1)
+
         bool_ser = self.ts > 0
-        check_comparators(bool_ser, bool_ser[::2])
+        check_comparators(bool_ser, list(bool_ser[::2]))
 
 
     def test_operators_empty_int_corner(self):
