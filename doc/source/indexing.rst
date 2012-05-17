@@ -200,7 +200,7 @@ of the DataFrame):
 
 Consider the ``isin`` method of Series, which returns a boolean vector that is
 true wherever the Series elements exist in the passed list. This allows you to
-select out rows where one or more columns have values you want:
+select rows where one or more columns have values you want:
 
 .. ipython:: python
 
@@ -215,7 +215,7 @@ more complex criteria:
 .. ipython:: python
 
    # only want 'two' or 'three'
-   criterion = df2['a'].map(lambda x: x.startswith('t')
+   criterion = df2['a'].map(lambda x: x.startswith('t'))
 
    df2[criterion]
 
@@ -319,7 +319,7 @@ Duplicate Data
 
 .. _indexing.duplicate:
 
-If you want to indentify and remove duplicate rows in a DataFrame,  there are
+If you want to identify and remove duplicate rows in a DataFrame,  there are
 two methods that will help: ``duplicated`` and ``drop_duplicates``. Each
 takes as an argument the columns to use to identify duplicated rows.
 
@@ -569,7 +569,7 @@ in the pandas 0.4 release. It is very exciting as it opens the door to some
 quite sophisticated data analysis and manipulation, especially for working with
 higher dimensional data. In essence, it enables you to effectively store and
 manipulate arbitrarily high dimension data in a 2-dimensional tabular structure
-(DataFrame), for example. It is not limited to DataFrame
+(DataFrame), for example. It is not limited to DataFrames.
 
 In this section, we will show what exactly we mean by "hierarchical" indexing
 and how it integrates with the all of the pandas indexing functionality
