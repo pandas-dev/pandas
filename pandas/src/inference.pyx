@@ -432,6 +432,96 @@ def try_parse_dates(ndarray[object] values, parser=None,
 
     return result
 
+def try_parse_date_and_time(ndarray[object] dates, ndarray[object] times,
+                            date_parser=None, time_parser=None,
+                            dayfirst=False):
+    cdef:
+        Py_ssize_t i, n
+        ndarray[object] result
+
+    from datetime import date, time, datetime
+
+    n = len(dates)
+    if len(times) != n:
+        raise ValueError('Length of dates and times must be equal')
+    result = np.empty(n, dtype='O')
+
+    if date_parser is None:
+        try:
+            from dateutil.parser import parse
+            parse_date = lambda x: parse(x, dayfirst=dayfirst)
+        except ImportError: # pragma: no cover
+            def parse_date(s):
+                try:
+                    return date.strptime(s, '%m/%d/%Y')
+                except Exception:
+                    return s
+    else:
+        parse_date = date_parser
+
+    if time_parser is None:
+        try:
+            from dateutil.parser import parse
+            parse_time = lambda x: parse(x)
+        except ImportError: # pragma: no cover
+            def parse_time(s):
+                try:
+                    return time.strptime(s, '%H:%M:%S')
+                except Exception:
+                    return s
+
+    else:
+        parse_time = time_parser
+
+    for i from 0 <= i < n:
+        d = parse_date(dates[i])
+        t = parse_time(times[i])
+        result[i] = datetime(d.year, d.month, d.day,
+                             t.hour, t.minute, t.second)
+
+    return result
+
+
+def try_parse_year_month_day(ndarray[object] years, ndarray[object] months,
+                             ndarray[object] days):
+    cdef:
+        Py_ssize_t i, n
+        ndarray[object] result
+
+    from datetime import datetime
+
+    n = len(years)
+    if len(months) != n or len(days) != n:
+        raise ValueError('Length of years/months/days must all be equal')
+    result = np.empty(n, dtype='O')
+
+    for i from 0 <= i < n:
+        result[i] = datetime(int(years[i]), int(months[i]), int(days[i]))
+
+    return result
+
+def try_parse_datetime_components(ndarray[object] years, ndarray[object] months,
+    ndarray[object] days, ndarray[object] hours, ndarray[object] minutes,
+    ndarray[object] seconds):
+
+    cdef:
+        Py_ssize_t i, n
+        ndarray[object] result
+
+    from datetime import datetime
+
+    n = len(years)
+    if (len(months) != n and len(days) != n and len(hours) != n and
+        len(minutes) != n and len(seconds) != n):
+        raise ValueError('Length of all datetime components must be equal')
+    result = np.empty(n, dtype='O')
+
+    for i from 0 <= i < n:
+        result[i] = datetime(int(years[i]), int(months[i]), int(days[i]),
+                             int(hours[i]), int(minutes[i]), int(seconds[i]))
+
+    return result
+
 def sanitize_objects(ndarray[object] values, set na_values):
     cdef:
         Py_ssize_t i, n
