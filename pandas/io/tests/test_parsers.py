@@ -105,14 +105,28 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
             return lib.try_parse_dates(parsers._concat_date_cols(date_cols))
 
         df = read_csv(StringIO(data), header=None,
-                        date_parser=func,
-                        parse_dates={'nominal' : [1, 2],
-                                     'actual' : [1,3]})
+                      date_parser=func,
+                      parse_dates={'nominal' : [1, 2],
+                                   'actual' : [1,3]})
         self.assert_('nominal' in df)
         self.assert_('actual' in df)
+        self.assert_('X.2' not in df)
+        self.assert_('X.3' not in df)
+        self.assert_('X.4' not in df)
         from datetime import datetime
         d = datetime(1999, 1, 27, 19, 0)
         self.assert_(df.ix[0, 'nominal'] == d)
+
+        df = read_csv(StringIO(data), header=None,
+                      date_parser=func,
+                      parse_dates={'nominal' : [1, 2],
+                                     'actual' : [1,3]},
+                      keep_date_col=True)
+        self.assert_('nominal' in df)
+        self.assert_('actual' in df)
+        self.assert_('X.2' in df)
+        self.assert_('X.3' in df)
+        self.assert_('X.4' in df)
 
         data = """\
 KORD,19990127, 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
@@ -126,9 +140,20 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
                         parse_dates=[[1, 2], [1,3]])
         self.assert_('X.2_X.3' in df)
         self.assert_('X.2_X.4' in df)
+        self.assert_('X.2' not in df)
+        self.assert_('X.3' not in df)
+        self.assert_('X.4' not in df)
         from datetime import datetime
         d = datetime(1999, 1, 27, 19, 0)
         self.assert_(df.ix[0, 'X.2_X.3'] == d)
+
+        df = read_csv(StringIO(data), header=None,
+                      parse_dates=[[1, 2], [1,3]], keep_date_col=True)
+        self.assert_('X.2_X.3' in df)
+        self.assert_('X.2_X.4' in df)
+        self.assert_('X.2' in df)
+        self.assert_('X.3' in df)
+        self.assert_('X.4' in df)
 
         data = '''\
 KORD,19990127 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000

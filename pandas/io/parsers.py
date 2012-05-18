@@ -55,6 +55,9 @@ parse_dates : boolean, list of ints or names, list of lists, or dict
     [[1, 3]] -> combine columns 1 and 3 and parse as date (for dates split
                 across multiple columns), and munge column names
     {'foo' : [1, 3]} -> parse columns 1, 3 as date and call result 'foo'
+keep_date_col : boolean, default False
+    If True and parse_dates specifies combining multiple columns then
+    keep the original columns.
 date_parser : function
     Function to use for converting dates to strings. Defaults to
     dateutil.parser
@@ -192,6 +195,7 @@ def read_csv(filepath_or_buffer,
              thousands=None,
              comment=None,
              parse_dates=False,
+             keep_date_col=False,
              dayfirst=False,
              date_parser=None,
              nrows=None,
@@ -222,6 +226,7 @@ def read_table(filepath_or_buffer,
                thousands=None,
                comment=None,
                parse_dates=False,
+               keep_date_col=False,
                dayfirst=False,
                date_parser=None,
                nrows=None,
@@ -256,6 +261,7 @@ def read_fwf(filepath_or_buffer,
              thousands=None,
              comment=None,
              parse_dates=False,
+             keep_date_col=False,
              dayfirst=False,
              date_parser=None,
              nrows=None,
@@ -358,6 +364,7 @@ class TextParser(object):
     comment : str, default None
         Comment out remainder of line
     parse_dates : boolean, default False
+    keep_date_col : boolean, default False
     date_parser : function, default None
     skiprows : list of integers
         Row numbers to skip
@@ -369,7 +376,7 @@ class TextParser(object):
 
     def __init__(self, f, delimiter=None, names=None, header=0,
                  index_col=None, na_values=None, thousands=None,
-                 comment=None, parse_dates=False,
+                 comment=None, parse_dates=False, keep_date_col=False,
                  date_parser=None, dayfirst=False,
                  chunksize=None, skiprows=None, skip_footer=0, converters=None,
                  verbose=False, encoding=None):
@@ -389,6 +396,7 @@ class TextParser(object):
         self.encoding = encoding
 
         self.parse_dates = parse_dates
+        self.keep_date_col = keep_date_col
         self.date_parser = date_parser
         self.dayfirst = dayfirst
 
@@ -794,6 +802,7 @@ class TextParser(object):
         new_cols = []
         new_data = {}
         columns = self.columns
+        date_cols = set()
 
         if self.parse_dates is None or isinstance(self.parse_dates, bool):
             return data_dict, columns
@@ -808,13 +817,14 @@ class TextParser(object):
                         continue
                     data_dict[colspec] = self._conv_date(data_dict[colspec])
                 else:
-                    new_name, col = _try_convert_dates(self._conv_date, colspec,
-                                        data_dict, self.orig_columns)
+                    new_name, col, old_names = _try_convert_dates(
+                        self._conv_date, colspec, data_dict, self.orig_columns)
                     if new_name in data_dict:
                         raise ValueError('New date column already in dict %s' %
                                          new_name)
                     new_data[new_name] = col
                     new_cols.append(new_name)
+                    date_cols.update(old_names)
 
         elif isinstance(self.parse_dates, dict):
             # dict of new name to column list
@@ -823,13 +833,20 @@ class TextParser(object):
                     raise ValueError('Date column %s already in dict' %
                                      new_name)
 
-                _, col = _try_convert_dates(self._conv_date, colspec, data_dict,
-                                            self.orig_columns)
+                _, col, old_names = _try_convert_dates(
+                    self._conv_date, colspec, data_dict, self.orig_columns)
+
                 new_data[new_name] = col
                 new_cols.append(new_name)
+                date_cols.update(old_names)
 
         data_dict.update(new_data)
         new_cols.extend(columns)
+
+        if not self.keep_date_col:
+            for c in list(date_cols):
+                data_dict.pop(c)
+                new_cols.remove(c)
         return data_dict, new_cols
 
     def _isindex(self, colspec):
@@ -941,7 +958,7 @@ def _try_convert_dates(parser, colspec, data_dict, columns):
         new_col = parser(*to_parse)
     except DateConversionError:
         new_col = parser(_concat_date_cols(to_parse))
-    return new_name, new_col
+    return new_name, new_col, colspec
 
 def _concat_date_cols(date_cols):
     if len(date_cols) == 1:
