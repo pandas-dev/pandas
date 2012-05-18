@@ -171,10 +171,10 @@ accept the following arguments:
   - ``window``: size of moving window
   - ``min_periods``: threshold of non-null data points to require (otherwise
     result is NA)
-  - ``freq``: optionally specify a :ref: `frequency string <timeseries.freq>` or :ref:`DateOffset <timeseries.offsets>`
-    to pre-conform the data to. Note that prior to pandas v0.8.0, a keyword
-    argument ``time_rule`` was used instead of ``freq`` that referred to
-    the legacy time rule constants
+  - ``freq``: optionally specify a :ref: `frequency string <timeseries.alias>`
+    or :ref:`DateOffset <timeseries.offsets>` to pre-conform the data to.
+    Note that prior to pandas v0.8.0, a keyword argument ``time_rule`` was used
+    instead of ``freq`` that referred to the legacy time rule constants
 
 These functions can be applied to ndarrays or Series objects:
 
