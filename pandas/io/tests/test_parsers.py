@@ -11,11 +11,12 @@ import nose
 from numpy import nan
 import numpy as np
 
-from pandas import DataFrame, Index, isnull
+from pandas import DataFrame, Series, Index, isnull
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                ExcelFile, TextParser)
-from pandas.util.testing import assert_almost_equal, assert_frame_equal, network
+from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
+                                 assert_series_equal, network)
 import pandas._tseries as lib
 from pandas.util import py3compat
 from pandas._tseries import Timestamp
@@ -90,6 +91,18 @@ bar2,12,13,14,15
         df = read_fwf(StringIO(data), colspecs=[(0,3),(4,9),(9,25)],
                       comment='#')
         assert_almost_equal(df.values, expected)
+
+    def test_squeeze(self):
+        data = """\
+a,1
+b,2
+c,3
+"""
+        expected = Series([1,2,3], ['a', 'b', 'c'])
+        result = read_table(StringIO(data), sep=',', index_col=0,
+                            header=None, squeeze=True)
+        self.assert_(isinstance(result, Series))
+        assert_series_equal(result, expected)
 
     def test_multiple_date_col(self):
         # Can use multiple date parsers

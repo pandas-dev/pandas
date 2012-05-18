@@ -85,6 +85,8 @@ delimiter : string, default None
     Alternative argument name for sep
 encoding : string, default None
     Encoding to use for UTF when reading/writing (ex. 'utf-8')
+squeeze : boolean, default False
+    If the parsed data only contains one column then return a Series
 
 Returns
 -------
@@ -205,7 +207,8 @@ def read_csv(filepath_or_buffer,
              converters=None,
              verbose=False,
              delimiter=None,
-             encoding=None):
+             encoding=None,
+             squeeze=False):
     kwds = locals()
 
     # Alias sep -> delimiter.
@@ -236,7 +239,8 @@ def read_table(filepath_or_buffer,
                converters=None,
                verbose=False,
                delimiter=None,
-               encoding=None):
+               encoding=None,
+               squeeze=False):
     kwds = locals()
 
     # Alias sep -> delimiter.
@@ -271,7 +275,8 @@ def read_fwf(filepath_or_buffer,
              converters=None,
              delimiter=None,
              verbose=False,
-             encoding=None):
+             encoding=None,
+             squeeze=False):
 
     kwds = locals()
 
@@ -372,6 +377,8 @@ class TextParser(object):
         Number of line at bottom of file to skip
     encoding : string, default None
         Encoding to use for UTF when reading/writing (ex. 'utf-8')
+    squeeze : boolean, default False
+        returns Series if only one column
     """
 
     def __init__(self, f, delimiter=None, names=None, header=0,
@@ -379,7 +386,7 @@ class TextParser(object):
                  comment=None, parse_dates=False, keep_date_col=False,
                  date_parser=None, dayfirst=False,
                  chunksize=None, skiprows=None, skip_footer=0, converters=None,
-                 verbose=False, encoding=None):
+                 verbose=False, encoding=None, squeeze=False):
         """
         Workhorse function for processing nested list into DataFrame
 
@@ -439,6 +446,7 @@ class TextParser(object):
         self.index_name = self._get_index_name()
         self._first_chunk = True
 
+        self.squeeze = squeeze
 
     def _make_reader(self, f):
         import csv
@@ -755,7 +763,10 @@ class TextParser(object):
 
         data = _convert_to_ndarrays(data, self.na_values, self.verbose)
 
-        return DataFrame(data=data, columns=columns, index=index)
+        df = DataFrame(data=data, columns=columns, index=index)
+        if self.squeeze and len(df.columns) == 1:
+            return df[df.columns[0]]
+        return df
 
     def _find_line_number(self, exp_len, chunk_len, chunk_i):
         if exp_len is None:
