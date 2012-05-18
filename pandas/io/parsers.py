@@ -21,6 +21,7 @@ import datetime
 import pandas.core.common as com
 import pandas._tseries as lib
 from pandas.util import py3compat
+from pandas.io.date_converters import generic_parser
 
 from pandas.util.decorators import Appender
 
@@ -804,10 +805,13 @@ class TextParser(object):
         else:
             try:
                 return self.date_parser(*date_cols)
-            except:
-                return lib.try_parse_dates(_concat_date_cols(date_cols),
-                                           parser=self.date_parser,
-                                           dayfirst=self.dayfirst)
+            except Exception, inst:
+                try:
+                    return generic_parser(self.date_parser, *date_cols)
+                except Exception, inst:
+                    return lib.try_parse_dates(_concat_date_cols(date_cols),
+                                               parser=self.date_parser,
+                                               dayfirst=self.dayfirst)
 
     def _process_date_conversion(self, data_dict):
         new_cols = []
