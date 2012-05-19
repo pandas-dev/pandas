@@ -49,10 +49,10 @@ And then import the data directly to a DataFrame by calling:
 
    clipdf
 
+.. _io.read_csv_table:
+
 CSV & Text files
 ----------------
-
-.. _io.parse_dates:
 
 The two workhorse functions for reading text files (a.k.a. flat files) are
 :func:`~pandas.io.parsers.read_csv` and :func:`~pandas.io.parsers.read_table`.
@@ -118,9 +118,16 @@ The default for `read_csv` is to create a DataFrame with simple numbered rows:
    read_csv('foo.csv')
 
 In the case of indexed data, you can pass the column number (or a list of
-column numbers, for a hierarchical index) you wish to use as the index. If the
-index values are dates and you want them to be converted to ``datetime``
-objects, pass ``parse_dates=True``:
+column numbers, for a hierarchical index) you wish to use as the index.
+
+.. _io.parse_dates:
+
+To better facilitate working with datetime data, :func:`~pandas.io.parsers.read_csv` and :func:`~pandas.io.parsers.read_table`
+uses the keyword arguments ``parse_dates`` and ``date_parser`` to allow users
+to specify a variety of columns and date/time formats to turn the input text
+data into ``datetime`` objects.
+
+The simplest case is to just pass in ``parse_dates=True``:
 
 .. ipython:: python
 
@@ -134,6 +141,31 @@ objects, pass ``parse_dates=True``:
    :suppress:
 
    os.remove('foo.csv')
+
+You can specify a custom ``date_parser`` function:
+
+.. ipython:: python
+   :suppress:
+   # data = """
+   with open('tmp.csv', 'w') as fh:
+       fh.write(data)
+
+.. ipython:: python
+
+   # read it in
+
+.. ipython:: python
+   :suppress:
+   os.remove('tmp.csv')
+
+It is often the case that we may want to store date and time data separately,
+or store various date fields separately. the ``parse_dates`` keyword can be
+used to specify a combination of columns to parse the dates and/or times from.
+
+You can specify a list of column lists to ``parse_dates``, the resulting date
+columns will be prepended to the output and the new column names will be the
+component column names
+
 
 The parsers make every attempt to "do the right thing" and not be very
 fragile. Type inference is a pretty big deal. So if a column can be coerced to
