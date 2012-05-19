@@ -104,6 +104,7 @@ pandas 0.8.0
   - Fix timestamp locale-related deserialization issues with HDFStore by moving
     to datetime64 representation (#1081, #809)
   - Fix DataFrame.duplicated/drop_duplicates NA value handling (#557)
+  - Actually raise exceptions in fast reducer (#1243)
 
 pandas 0.7.3
 ============
