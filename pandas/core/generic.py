@@ -215,7 +215,7 @@ class PandasObject(object):
         end_date = end = self.index[0] + offset
 
         # Tick-like, e.g. 3 weeks
-        if not offset.isAnchored() and hasattr(offset, 'delta'):
+        if not offset.isAnchored() and hasattr(offset, '_inc'):
             if end_date in self.index:
                 end = self.index.searchsorted(end_date, side='left')
 

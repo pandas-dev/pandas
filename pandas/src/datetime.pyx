@@ -9,6 +9,7 @@ from cpython cimport *
 from datetime cimport *
 from util cimport is_integer_object, is_datetime64_object
 
+from datetime import timedelta
 from dateutil.parser import parse as parse_date
 cimport util
 
@@ -240,7 +241,15 @@ cdef class _Timestamp(datetime):
             else:
                 return Timestamp((self.offset.__mul__(other)).apply(self))
         else:
-            return datetime.__add__(self, other)
+            if isinstance(other, timedelta) or hasattr(other, 'delta'):
+                nanos = _delta_to_nanoseconds(other)
+                return Timestamp(self.value + nanos)
+            else:
+                result = datetime.__add__(self, other)
+                if isinstance(result, datetime):
+                    result = Timestamp(result)
+                    result.nanosecond = self.nanosecond
+                return result
 
     def __sub__(self, other):
         if is_integer_object(other):
@@ -252,6 +261,16 @@ cdef class _Timestamp(datetime):
         out = fast_field_accessor(np.array([self.value], dtype=np.int64),
                                   field)
         return out[0]
+
+def _delta_to_nanoseconds(delta):
+    try:
+        delta = delta.delta
+    except:
+        pass
+    return (delta.days * 24 * 60 * 60 * 1000000
+            + delta.seconds * 1000000
+            + delta.microseconds) * 1000
+
 
 # lightweight C object to hold datetime & int64 pair
 cdef class _TSObject:

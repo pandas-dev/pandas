@@ -59,7 +59,7 @@ The two workhorse functions for reading text files (a.k.a. flat files) are
 They both use the same parsing code to intelligently convert tabular
 data into a DataFrame object. They can take a number of arguments:
 
-  - ``path_or_buffer``: Either a string path to a file, or any object with a
+  - ``filepath_or_buffer``: Either a string path to a file, or any object with a
     ``read`` method (such as an open file or ``StringIO``).
   - ``sep`` or ``delimiter``: A delimiter / separator to split fields
     on. `read_csv` is capable of inferring the delimiter automatically in some

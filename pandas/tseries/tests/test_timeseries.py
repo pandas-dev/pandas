@@ -1189,6 +1189,10 @@ class TestTimestamp(unittest.TestCase):
         self.assert_(other > val)
         self.assert_(other >= val)
 
+    def test_delta_preserve_nanos(self):
+        val = Timestamp(1337299200000000123L)
+        result = val + timedelta(1)
+        self.assert_(result.nanosecond == val.nanosecond)
 
 """
 
