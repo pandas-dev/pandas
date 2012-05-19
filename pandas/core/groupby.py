@@ -1656,7 +1656,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
         if self._selection is not None:
             raise Exception('Column(s) %s already selected' % self._selection)
 
-        if isinstance(key, (list, tuple)) or not self.as_index:
+        if isinstance(key, (list, tuple, np.ndarray)) or not self.as_index:
             return DataFrameGroupBy(self.obj, self.grouper, selection=key,
                                     grouper=self.grouper,
                                     exclusions=self.exclusions,

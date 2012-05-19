@@ -1724,10 +1724,13 @@ class TestGroupBy(unittest.TestCase):
 
         result = df.groupby('A')[['C', 'D']].mean()
         result2 = df.groupby('A')['C', 'D'].mean()
+        result3 = df.groupby('A')[df.columns[2:4]].mean()
+
         expected = df.ix[:, ['A', 'C', 'D']].groupby('A').mean()
 
         assert_frame_equal(result, expected)
         assert_frame_equal(result2, expected)
+        assert_frame_equal(result3, expected)
 
     def test_agg_multiple_functions_maintain_order(self):
         # GH #610
