@@ -69,6 +69,7 @@ pandas 0.8.0
   - Improved performance of join operations on integer keys (#682)
   - Can pass multiple columns to GroupBy object, e.g. grouped[[col1, col2]] to
     only aggregate a subset of the value columns (#383)
+  - Add histogram / kde plot options for scatter_matrix diagonals (#1237)
 
 **API Changes**
 
