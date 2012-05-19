@@ -53,6 +53,7 @@ pandas 0.8.0
   - Add keys() method to DataFrame
   - Add flexible replace method for replacing potentially values to Series and
     DataFrame (#929, #1241)
+  - Add 'kde' plot kind for Series/DataFrame.plot (#1059)
 
 **Improvements to existing features**
 
@@ -70,6 +71,7 @@ pandas 0.8.0
   - Can pass multiple columns to GroupBy object, e.g. grouped[[col1, col2]] to
     only aggregate a subset of the value columns (#383)
   - Add histogram / kde plot options for scatter_matrix diagonals (#1237)
+  - Add inplace option to DataFrame.drop_duplicates (#805)
 
 **API Changes**
 
@@ -101,6 +103,7 @@ pandas 0.8.0
   - Handle Excel 2003 #N/A as NaN from xlrd (#1213, #1225)
   - Fix timestamp locale-related deserialization issues with HDFStore by moving
     to datetime64 representation (#1081, #809)
+  - Fix DataFrame.duplicated/drop_duplicates NA value handling (#557)
 
 pandas 0.7.3
 ============
