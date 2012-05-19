@@ -324,11 +324,11 @@ class Series(np.ndarray, generic.PandasObject):
     def __init__(self, data=None, index=None, dtype=None, name=None,
                  copy=False):
         """One-dimensional ndarray with axis labels (including time
-series). Labels must be unique and can any hashable type. The object supports
-both integer- and label-based indexing and provides a host of methods for
-performing operations involving the index. Statistical methods from ndarray have
-been overridden to automatically exclude missing data (currently represented as
-NaN)
+series). Labels need not be unique but must be any hashable type. The object
+supports both integer- and label-based indexing and provides a host of methods
+for performing operations involving the index. Statistical methods from ndarray
+have been overridden to automatically exclude missing data (currently
+represented as NaN)
 
 Operations between Series (+, -, /, *, **) align values based on their
 associated index values-- they need not be the same length. The result
