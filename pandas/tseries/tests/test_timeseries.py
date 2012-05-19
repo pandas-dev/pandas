@@ -577,6 +577,13 @@ class TestTimeSeries(unittest.TestCase):
         expected = result_df[-1:]
         tm.assert_frame_equal(result, expected)
 
+        # midnight, everything
+        rng = date_range('1/1/2000', '1/31/2000')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        result = ts.at_time(time(0, 0))
+        assert_series_equal(result, ts)
+
     def test_dti_constructor_preserve_dti_freq(self):
         rng = date_range('1/1/2000', '1/2/2000', freq='5min')
 

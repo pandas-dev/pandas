@@ -1190,7 +1190,7 @@ def values_at_time(ndarray[int64_t] stamps, int64_t time):
 
     # Nanosecond resolution
     count = 0
-    for i in range(1, n):
+    for i in range(n):
         if times[i] == time:
             count += 1
 
