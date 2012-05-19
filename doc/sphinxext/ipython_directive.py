@@ -548,6 +548,9 @@ class EmbeddedSphinxShell(object):
 
         ct = 0
 
+        # nuke empty lines
+        content = [line for line in content if len(line.strip()) > 0]
+
         for lineno, line in enumerate(content):
 
             line_stripped = line.strip()
@@ -581,9 +584,17 @@ class EmbeddedSphinxShell(object):
             else:
                 modified = u'%s %s' % (continuation, line)
                 output.append(modified)
+
                 try:
                     ast.parse('\n'.join(content[multiline_start:lineno+1]))
-                    output.append(u'')
+
+                    if (lineno < len(content) - 1 and
+                        _count_indent(content[multiline_start]) <
+                        _count_indent(content[lineno + 1])):
+
+                        continue
+
+                    output.extend([continuation, u''])
                     multiline = False
                 except Exception:
                     pass
@@ -591,6 +602,13 @@ class EmbeddedSphinxShell(object):
             continue
 
         return output
+
+def _count_indent(x):
+    import re
+    m = re.match('(\s+)(.*)', x)
+    if not m:
+        return 0
+    return len(m.group(1))
 
 class IpythonDirective(Directive):
 

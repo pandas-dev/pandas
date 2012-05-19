@@ -97,10 +97,11 @@ data into a DataFrame object. They can take a number of arguments:
     non-ascii
   - ``verbose`` : show number of NA values inserted in non-numeric columns
 
+
 .. ipython:: python
    :suppress:
 
-   f = open('foo.csv', 'w')
+   f = open('foo.csv','w')
    f.write('date,A,B,C\n20090101,a,1,2\n20090102,b,3,4\n20090103,c,4,5')
    f.close()
 
@@ -198,7 +199,7 @@ so it's ok to have extra separation between the columns in the file.
 .. ipython:: python
    :suppress:
 
-   os.remove('bar.csv')
+   # os.remove('bar.csv')
 
 Files with an "implicit" index column
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -270,8 +271,9 @@ module.
 .. ipython:: python
    :suppress:
 
-   df[:7].to_csv('tmp.sv', sep='|')
-   df[:7].to_csv('tmp2.sv', sep=':')
+   df = DataFrame(np.random.randn(10, 4))
+   df.to_csv('tmp.sv', sep='|')
+   df.to_csv('tmp2.sv', sep=':')
 
 .. ipython:: python
 
@@ -299,15 +301,14 @@ rather than reading the entire file into memory, such as the following:
 By specifiying a ``chunksize`` to ``read_csv`` or ``read_table``, the return
 value will be an iterable object of type ``TextParser``:
 
-.. ipython::
+.. ipython:: python
 
-   In [1]: reader = read_table('tmp.sv', sep='|', chunksize=4)
+   reader = read_table('tmp.sv', sep='|', chunksize=4)
+   reader
 
-   In [1]: reader
+   for chunk in reader:
+       print chunk
 
-   In [2]: for chunk in reader:
-      ...:     print chunk
-      ...:
 
 Specifying ``iterator=True`` will also return the ``TextParser`` object:
 
