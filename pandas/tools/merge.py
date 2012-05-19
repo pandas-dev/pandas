@@ -924,6 +924,9 @@ class _Concatenator(object):
             if self.axis == 0 and self.ignore_index:
                 self.new_axes[0] = self._get_fresh_axis()
 
+            for blk in new_blocks:
+                blk.ref_items = self.new_axes[0]
+
             new_data = BlockManager(new_blocks, self.new_axes)
         except Exception:  # EAFP
             # should not be possible to fail here for the expected reason with
@@ -1028,12 +1031,12 @@ class _Concatenator(object):
         ndim = self._get_result_dim()
         new_axes = [None] * ndim
 
-        if self.ignore_index:
-            concat_axis = None
-        else:
-            concat_axis = self._get_concat_axis()
+        # if self.ignore_index:
+        #     concat_axis = None
+        # else:
+        #     concat_axis = self._get_concat_axis()
 
-        new_axes[self.axis] = concat_axis
+        # new_axes[self.axis] = concat_axis
 
         if self.join_axes is None:
             for i in range(ndim):
@@ -1049,6 +1052,13 @@ class _Concatenator(object):
 
             for i, ax in zip(indices, self.join_axes):
                 new_axes[i] = ax
+
+        if self.ignore_index:
+            concat_axis = None
+        else:
+            concat_axis = self._get_concat_axis()
+
+        new_axes[self.axis] = concat_axis
 
         return new_axes
 

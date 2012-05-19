@@ -860,7 +860,7 @@ class HDFStore(object):
             block = block2d_to_block3d(sorted_values, fields, (J, K),
                                        major_labels, minor_labels)
 
-            mgr = BlockManager([block], [block.items,
+            mgr = BlockManager([block], [block.ref_items,
                                          major.levels, minor.levels])
             wp = Panel(mgr)
         else:

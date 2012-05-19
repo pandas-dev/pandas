@@ -499,6 +499,7 @@ class BlockManager(object):
         _union_block_items(self.blocks)
         mgr_shape = self.shape
         for block in self.blocks:
+            assert(block.ref_items is self.items)
             assert(block.values.shape[1:] == mgr_shape[1:])
         tot_items = sum(len(x.items) for x in self.blocks)
         assert(len(self.items) == tot_items)
@@ -575,6 +576,8 @@ class BlockManager(object):
     def from_blocks(cls, blocks, index):
         # also checks for overlap
         items = _union_block_items(blocks)
+        for blk in blocks:
+            blk.ref_items = items
         return BlockManager(blocks, [items, index])
 
     def __contains__(self, item):
@@ -911,6 +914,7 @@ class BlockManager(object):
                 if copy:
                     new_blocks.append(blk.reindex_items_from(new_items))
                 else:
+                    blk.ref_items = new_items
                     new_blocks.append(blk)
         else:
             for block in self.blocks:
