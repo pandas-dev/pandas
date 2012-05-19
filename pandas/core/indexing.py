@@ -83,10 +83,6 @@ class _NDFrameIndexer(object):
             if isinstance(het_idx, (int, long)):
                 het_idx = [het_idx]
 
-            if not np.isscalar(value):
-                raise IndexingError('setting on mixed-type frames only '
-                                    'allowed with scalar values')
-
             plane_indexer = indexer[:het_axis] + indexer[het_axis + 1:]
             item_labels = self.obj._get_axis(het_axis)
             for item in item_labels[het_idx]:
@@ -103,6 +99,10 @@ class _NDFrameIndexer(object):
         except IndexingError:
             pass
 
+        # ugly hack for GH #836
+        if self._multi_take_opportunity(tup):
+            return self._multi_take(tup)
+
         # no shortcut needed
         retval = self.obj
         for i, key in enumerate(tup):
@@ -115,6 +115,47 @@ class _NDFrameIndexer(object):
             retval = retval.ix._getitem_axis(key, axis=i)
 
         return retval
+
+    def _multi_take_opportunity(self, tup):
+        from pandas.core.frame import DataFrame
+
+        # ugly hack for GH #836
+        if not isinstance(self.obj, DataFrame):
+            return False
+
+        if not all(_is_list_like(x) for x in tup):
+            return False
+
+        # just too complicated
+        if (isinstance(self.obj.index, MultiIndex) or
+            isinstance(self.obj.columns, MultiIndex)):
+            return False
+
+        return True
+
+    def _multi_take(self, tup):
+        index = self._convert_for_reindex(tup[0], axis=0)
+        columns = self._convert_for_reindex(tup[1], axis=1)
+        return self.obj.reindex(index=index, columns=columns)
+
+    def _convert_for_reindex(self, key, axis=0):
+        labels = self.obj._get_axis(axis)
+
+        if com._is_bool_indexer(key):
+            key = _check_bool_indexer(labels, key)
+            return np.asarray(key)
+        else:
+            if isinstance(key, Index):
+                # want Index objects to pass through untouched
+                keyarr = key
+            else:
+                # asarray can be unsafe, NumPy strings are weird
+                keyarr = _asarray_tuplesafe(key)
+
+            if _is_integer_dtype(keyarr) and not _is_integer_index(labels):
+                return labels.take(keyarr)
+
+            return keyarr
 
     def _getitem_lowerdim(self, tup):
         from pandas.core.frame import DataFrame
@@ -130,7 +171,7 @@ class _NDFrameIndexer(object):
             except Exception:
                 if isinstance(tup[0], slice):
                     raise IndexingError
-                if tup[0] not in ax0:
+                if tup[0] not in ax0: # and tup[0] not in ax0.levels[0]:
                     raise
 
         # to avoid wasted computation
@@ -216,8 +257,9 @@ class _NDFrameIndexer(object):
             else:
                 # asarray can be unsafe, NumPy strings are weird
                 keyarr = _asarray_tuplesafe(key)
+
             if _is_integer_dtype(keyarr) and not _is_integer_index(labels):
-                keyarr = labels.take(keyarr)
+                return self.obj.take(keyarr, axis=axis)
 
             # this is not the most robust, but...
             if (isinstance(labels, MultiIndex) and
@@ -255,26 +297,32 @@ class _NDFrameIndexer(object):
             pass
 
         if isinstance(obj, slice):
+            ltype = labels.inferred_type
 
-            int_slice = _is_index_slice(obj)
+            if ltype == 'floating':
+                int_slice = _is_int_slice(obj)
+            else:
+                # floats that are within tolerance of int used
+                int_slice = _is_index_slice(obj)
+
             null_slice = obj.start is None and obj.stop is None
             # could have integers in the first level of the MultiIndex
             position_slice = (int_slice
-                              and not labels.inferred_type == 'integer'
+                              and not ltype == 'integer'
                               and not isinstance(labels, MultiIndex))
 
             start, stop = obj.start, obj.stop
 
             # last ditch effort: if we are mixed and have integers
             try:
-                if 'mixed' in labels.inferred_type and int_slice:
+                if 'mixed' in ltype and int_slice:
                     if start is not None:
                         i = labels.get_loc(start)
                     if stop is not None:
                         j = labels.get_loc(stop)
                     position_slice = False
             except KeyError:
-                if labels.inferred_type == 'mixed-integer':
+                if ltype == 'mixed-integer':
                     raise
 
             if null_slice or position_slice:
@@ -341,8 +389,7 @@ class _NDFrameIndexer(object):
 
         # in case of providing all floats, use label-based indexing
         float_slice = (labels.inferred_type == 'floating'
-                       and (type(start) == float or start is None)
-                       and (type(stop) == float or stop is None))
+                       and _is_float_slice(slice_obj))
 
         null_slice = slice_obj.start is None and slice_obj.stop is None
 
@@ -391,6 +438,28 @@ def _is_index_slice(obj):
     def _is_valid_index(x):
         return (com.is_integer(x) or com.is_float(x)
                 and np.allclose(x, int(x), rtol=_eps, atol=0))
+
+    def _crit(v):
+        return v is None or _is_valid_index(v)
+
+    both_none = obj.start is None and obj.stop is None
+
+    return not both_none and (_crit(obj.start) and _crit(obj.stop))
+
+def _is_int_slice(obj):
+    def _is_valid_index(x):
+        return com.is_integer(x)
+
+    def _crit(v):
+        return v is None or _is_valid_index(v)
+
+    both_none = obj.start is None and obj.stop is None
+
+    return not both_none and (_crit(obj.start) and _crit(obj.stop))
+
+def _is_float_slice(obj):
+    def _is_valid_index(x):
+        return com.is_float(x)
 
     def _crit(v):
         return v is None or _is_valid_index(v)
@@ -472,7 +541,7 @@ def _is_null_slice(obj):
 
 
 def _is_integer_dtype(arr):
-    return (issubclass(arr.dtype.type, np.integer) and 
+    return (issubclass(arr.dtype.type, np.integer) and
             not arr.dtype.type == np.datetime64)
 
 
@@ -486,7 +555,10 @@ def _is_label_like(key):
 
 
 def _is_list_like(obj):
-    return np.iterable(obj) and not isinstance(obj, basestring)
+    # Consider namedtuples to be not list like as they are useful as indices
+    return (np.iterable(obj)
+            and not isinstance(obj, basestring)
+            and not (isinstance(obj, tuple) and type(obj) is not tuple))
 
 
 def _need_slice(obj):

@@ -1,4 +1,4 @@
-# pylint: disable=W0231
+# pylint: disable=W0231,E1101
 from datetime import timedelta
 
 import numpy as np
@@ -8,22 +8,11 @@ from pandas.core.index import MultiIndex
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.offsets import DateOffset
 
-#-------------------------------------------------------------------------------
-# Picklable mixin
-
-class Picklable(object):
-
-    def save(self, path):
-        save(self, path)
-
-    @classmethod
-    def load(cls, path):
-        return load(path)
-
 class PandasError(Exception):
     pass
 
-class PandasObject(Picklable):
+
+class PandasObject(object):
 
     _AXIS_NUMBERS = {
         'index' : 0,
@@ -32,6 +21,13 @@ class PandasObject(Picklable):
 
     _AXIS_ALIASES = {}
     _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
+
+    def save(self, path):
+        save(self, path)
+
+    @classmethod
+    def load(cls, path):
+        return load(path)
 
     #----------------------------------------------------------------------
     # Axis name business
@@ -159,9 +155,9 @@ class PandasObject(Picklable):
         from pandas.tseries.resample import asfreq
         return asfreq(self, freq, method=method, how=how)
 
-    def resample(self, rule, how='mean', axis=0, as_index=True,
-                 fill_method=None, closed='right', label='right', kind=None,
-                 loffset=None):
+    def resample(self, rule, how='mean', axis=0, fill_method=None,
+                 closed='right', label='right', convention=None,
+                 kind=None, loffset=None, limit=None, base=0):
         """
         Convenience method for frequency conversion and resampling of regular
         time-series data.
@@ -176,32 +172,20 @@ class PandasObject(Picklable):
             Which side of bin interval is closed
         label : {'right', 'left'}, default 'right'
             Which bin edge label to label bucket with
-        as_index : see synonymous argument of groupby
+        convention : {'start', 'end', 's', 'e'}
         loffset : timedelta
             Adjust the resampled time labels
+        base : int, default 0
+            For frequencies that evenly subdivide 1 day, the "origin" of the
+            aggregated intervals. For example, for '5min' frequency, base could
+            range from 0 through 4. Defaults to 0
         """
         from pandas.tseries.resample import TimeGrouper
-
-        idx = self._get_axis(axis)
-        if not isinstance(idx, DatetimeIndex):
-            raise ValueError("Cannot call resample with non-DatetimeIndex")
-
-        grouper = TimeGrouper(rule, label=label, closed=closed,
-                              axis=self.index, kind=kind)
-
-        # since binner extends endpoints
-        if grouper.downsamples:
-            # down- or re-sampling
-            grouped  = self.groupby(grouper, axis=axis, as_index=as_index)
-            result = grouped.agg(how)
-        else:
-            # upsampling
-            result = self.reindex(grouper.binner[1:], method=fill_method)
-
-        if isinstance(loffset, (DateOffset, timedelta)):
-            if len(result.index) > 0:
-                result.index = result.index + loffset
-        return result
+        sampler = TimeGrouper(rule, label=label, closed=closed, how=how,
+                              axis=axis, kind=kind, loffset=loffset,
+                              fill_method=fill_method, convention=convention,
+                              limit=limit, base=base)
+        return sampler.resample(self)
 
     def first(self, offset):
         """
@@ -349,6 +333,40 @@ class PandasObject(Picklable):
 
     def reindex(self, *args, **kwds):
         raise NotImplementedError
+
+    def tshift(self, periods=1, freq=None, **kwds):
+        """
+        Shift the time index, using the index's frequency if available
+
+        Parameters
+        ----------
+        periods : int
+            Number of periods to move, can be positive or negative
+        freq : DateOffset, timedelta, or time rule string, default None
+            Increment to use from datetools module or time rule (e.g. 'EOM')
+
+        Notes
+        -----
+        If freq is not specified then tries to use the freq or inferred_freq
+        attributes of the index. If neither of those attributes exist, a
+        ValueError is thrown
+
+        Returns
+        -------
+        shifted : Series
+        """
+        if freq is None:
+            freq = getattr(self.index, 'freq', None)
+
+        if freq is None:
+            freq = getattr(self.index, 'inferred_freq', None)
+
+        if freq is None:
+            msg = 'Freq was not given and was not set in the index'
+            raise ValueError(msg)
+
+        return self.shift(periods, freq, **kwds)
+
 
 class NDFrame(PandasObject):
     """

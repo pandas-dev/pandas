@@ -70,7 +70,8 @@ index is passed, one will be created having values ``[0, ..., len(data) - 1]``.
 
 .. note::
 
-    The values in the index must be unique. If they are not, an exception will
+    Starting in v0.8.0, pandas supports non-unique index values. In previous
+    version, if the index values are not unique an exception will
     **not** be raised immediately, but attempting any operation involving the
     index will later result in an exception. In other words, the Index object
     containing the labels "lazily" checks whether the values are unique. The
@@ -475,7 +476,7 @@ column-wise:
 
 .. ipython:: python
 
-   index = DateRange('1/1/2000', periods=8)
+   index = date_range('1/1/2000', periods=8)
    df = DataFrame(randn(8, 3), index=index,
                   columns=['A', 'B', 'C'])
    df
@@ -653,7 +654,7 @@ From 3D ndarray with optional axis labels
 .. ipython:: python
 
    wp = Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
-              major_axis=DateRange('1/1/2000', periods=5),
+              major_axis=date_range('1/1/2000', periods=5),
               minor_axis=['A', 'B', 'C', 'D'])
    wp
 
@@ -741,6 +742,16 @@ The API for insertion and deletion is the same as for DataFrame. And as with
 DataFrame, if the item is a valid python identifier, you can access it as an
 attribute and tab-complete it in IPython.
 
+Transposing
+~~~~~~~~~~~
+
+A Panel can be rearranged using its ``transpose`` method (which does not make a
+copy by default unless the data are heterogeneous):
+
+.. ipython:: python
+
+   wp.transpose(2, 0, 1)
+
 Indexing / Selection
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -772,6 +783,6 @@ method:
 .. ipython:: python
 
    panel = Panel(np.random.randn(3, 5, 4), items=['one', 'two', 'three'],
-                 major_axis=DateRange('1/1/2000', periods=5),
+                 major_axis=date_range('1/1/2000', periods=5),
                  minor_axis=['a', 'b', 'c', 'd'])
    panel.to_frame()

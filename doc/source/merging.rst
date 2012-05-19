@@ -6,6 +6,7 @@
 
    import numpy as np
    np.random.seed(123456)
+   from numpy import nan
    from pandas import *
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
@@ -161,7 +162,7 @@ need to be:
 
 .. ipython:: python
 
-   df = DataFrame(randn(6, 4), index=DateRange('1/1/2000', periods=6),
+   df = DataFrame(randn(6, 4), index=date_range('1/1/2000', periods=6),
                   columns=['A', 'B', 'C', 'D'])
    df1 = df.ix[:3]
    df2 = df.ix[3:, :3]
@@ -552,3 +553,33 @@ them together on their indexes. The same is true for ``Panel.join``.
    df1
    df1.join([df2, df3])
 
+.. _merging.multiple_join:
+
+Merging together values within Series or DataFrame columns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Another fairly common situation is to have two like-indexed (or similarly
+indexed) Series or DataFrame objects and wanting to "patch" values in one
+object from values for matching indices in the other. Here is an example:
+
+.. ipython:: python
+
+   df1 = DataFrame([[nan, 3., 5.], [-4.6, np.nan, nan],
+                    [nan, 7., nan]])
+   df2 = DataFrame([[-42.6, np.nan, -8.2], [-5., 1.6, 4]],
+                   index=[1, 2])
+
+For this, use the ``combine_first`` method:
+
+.. ipython:: python
+
+   df1.combine_first(df2)
+
+Note that this method only takes values from the right DataFrame if they are
+missing in the left DataFrame. A related method, ``update``, alters non-NA
+values inplace:
+
+.. ipython:: python
+
+   df1.update(df2)
+   df1

@@ -1,1 +1,1 @@
-nosetests -A "not slow" pandas
+nosetests -A "not slow" pandas $*

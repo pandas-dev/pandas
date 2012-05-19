@@ -9,6 +9,7 @@ cdef class Reducer:
     cdef:
         Py_ssize_t increment, chunksize, nresults
         object arr, dummy, f, labels
+        bint can_set_name
 
     def __init__(self, object arr, object f, axis=1, dummy=None,
                  labels=None):
@@ -37,12 +38,14 @@ cdef class Reducer:
     def _check_dummy(self, dummy=None):
         if dummy is None:
             dummy = np.empty(self.chunksize, dtype=self.arr.dtype)
+            self.can_set_name = 0
         else:
             if dummy.dtype != self.arr.dtype:
                 raise ValueError('Dummy array must be same dtype')
             if len(dummy) != self.chunksize:
                 raise ValueError('Dummy array must be length %d' %
                                  self.chunksize)
+            self.can_set_name = type(dummy) != np.ndarray
 
         return dummy
 
@@ -54,7 +57,7 @@ cdef class Reducer:
             flatiter it
             object res
             bint set_label = 0
-            ndarray[object] labels
+            ndarray labels
 
         arr = self.arr
         chunk = self.dummy
@@ -62,18 +65,14 @@ cdef class Reducer:
         dummy_buf = chunk.data
         chunk.data = arr.data
 
-        set_label = self.labels is not None
-
+        set_label = self.labels is not None and self.can_set_name
         if set_label:
-            if not np.issubdtype(self.labels.dtype, object):
-                labels = self.labels.astype('O')
-            else:
-                labels = self.labels
+            labels = self.labels
 
         try:
             for i in range(self.nresults):
                 if set_label:
-                    chunk.name = labels[i]
+                    chunk.name = util.get_value_at(labels, i)
 
                 res = self.f(chunk)
                 if i == 0:
@@ -143,13 +142,13 @@ cdef class SeriesBinGrouper:
     def get_result(self):
         cdef:
             ndarray arr, result
-            ndarray[int32_t] counts
+            ndarray[int64_t] counts
             Py_ssize_t i, n, group_size
             object res, chunk
             bint initialized = 0
             Slider vslider, islider
 
-        counts = np.zeros(self.ngroups, dtype='i4')
+        counts = np.zeros(self.ngroups, dtype=np.int64)
 
         if self.ngroups > 0:
             counts[0] = self.bins[0]
@@ -246,14 +245,14 @@ cdef class SeriesGrouper:
     def get_result(self):
         cdef:
             ndarray arr, result
-            ndarray[int32_t] labels, counts
+            ndarray[int64_t] labels, counts
             Py_ssize_t i, n, group_size, lab
             object res, chunk
             bint initialized = 0
             Slider vslider, islider
 
         labels = self.labels
-        counts = np.zeros(self.ngroups, dtype='i4')
+        counts = np.zeros(self.ngroups, dtype=np.int64)
         chunk = self.dummy
         group_size = 0
         n = len(self.arr)

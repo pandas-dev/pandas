@@ -24,13 +24,116 @@ import pandas._tseries as lib
 @Appender(_merge_doc, indents=0)
 def merge(left, right, how='inner', on=None, left_on=None, right_on=None,
           left_index=False, right_index=False, sort=True,
-          suffixes=('.x', '.y'), copy=True):
+          suffixes=('_x', '_y'), copy=True):
     op = _MergeOperation(left, right, how=how, on=on, left_on=left_on,
                          right_on=right_on, left_index=left_index,
                          right_index=right_index, sort=sort, suffixes=suffixes,
                          copy=copy)
     return op.get_result()
 if __debug__: merge.__doc__ = _merge_doc % '\nleft : DataFrame'
+
+
+def ordered_merge(left, right, on=None, left_by=None, right_by=None,
+                  left_on=None, right_on=None,
+                  fill_method=None, suffixes=('_x', '_y')):
+    """Perform merge with optional filling/interpolation designed for ordered
+    data like time series data. Optionally perform group-wise merge (see
+    examples)
+
+    Parameters
+    ----------
+    left : DataFrame
+    right : DataFrame
+    fill_method : {'ffill', None}, default None
+        Interpolation method for data
+    on : label or list
+        Field names to join on. Must be found in both DataFrames.
+    left_on : label or list, or array-like
+        Field names to join on in left DataFrame. Can be a vector or list of
+        vectors of the length of the DataFrame to use a particular vector as
+        the join key instead of columns
+    right_on : label or list, or array-like
+        Field names to join on in right DataFrame or vector/list of vectors per
+        left_on docs
+    left_by : column name or list of column names
+        Group left DataFrame by group columns and merge piece by piece with
+        right DataFrame
+    right_by : column name or list of column names
+        Group right DataFrame by group columns and merge piece by piece with
+        left DataFrame
+    suffixes : 2-length sequence (tuple, list, ...)
+        Suffix to apply to overlapping column names in the left and right
+        side, respectively
+
+    Examples
+    --------
+    >>> A                      >>> B
+          key  lvalue group        key  rvalue
+    0   a       1     a        0     b       1
+    1   c       2     a        1     c       2
+    2   e       3     a        2     d       3
+    3   a       1     b
+    4   c       2     b
+    5   e       3     b
+
+    >>> ordered_merge(A, B, fill_method='ffill', left_by='group')
+       key  lvalue group  rvalue
+    0    a       1     a     NaN
+    1    b       1     a       1
+    2    c       2     a       2
+    3    d       2     a       3
+    4    e       3     a       3
+    5    f       3     a       4
+    6    a       1     b     NaN
+    7    b       1     b       1
+    8    c       2     b       2
+    9    d       2     b       3
+    10   e       3     b       3
+    11   f       3     b       4
+
+    Returns
+    -------
+    merged : DataFrame
+    """
+    def _merger(x, y):
+        op = _OrderedMerge(x, y, on=on, left_on=left_on, right_on=right_on,
+                           # left_index=left_index, right_index=right_index,
+                           suffixes=suffixes, fill_method=fill_method)
+        return op.get_result()
+
+    if left_by is not None and right_by is not None:
+        raise ValueError('Can only group either left or right frames')
+    elif left_by is not None:
+        if not isinstance(left_by, (list, tuple)):
+            left_by = [left_by]
+        pieces = []
+        for key, xpiece in left.groupby(left_by):
+            merged = _merger(xpiece, right)
+            for k in left_by:
+                # May have passed ndarray
+                try:
+                    if k in merged:
+                        merged[k] = key
+                except:
+                    pass
+            pieces.append(merged)
+        return concat(pieces, ignore_index=True)
+    elif right_by is not None:
+        if not isinstance(right_by, (list, tuple)):
+            right_by = [right_by]
+        pieces = []
+        for key, ypiece in right.groupby(right_by):
+            merged = _merger(left, ypiece)
+            for k in right_by:
+                try:
+                    if k in merged:
+                        merged[k] = key
+                except:
+                    pass
+            pieces.append(merged)
+        return concat(pieces, ignore_index=True)
+    else:
+        return _merger(left, right)
 
 
 
@@ -47,7 +150,7 @@ class _MergeOperation(object):
     def __init__(self, left, right, how='inner', on=None,
                  left_on=None, right_on=None, axis=1,
                  left_index=False, right_index=False, sort=True,
-                 suffixes=('.x', '.y'), copy=True):
+                 suffixes=('_x', '_y'), copy=True):
         self.left = self.orig_left = left
         self.right = self.orig_right = right
         self.how = how
@@ -146,8 +249,7 @@ class _MergeOperation(object):
             left_key, right_key, max_groups = self._get_group_keys()
 
             join_func = _join_functions[self.how]
-            left_indexer, right_indexer = join_func(left_key.astype('i4'),
-                                                    right_key.astype('i4'),
+            left_indexer, right_indexer = join_func(left_key, right_key,
                                                     max_groups)
 
             if self.right_index:
@@ -302,7 +404,7 @@ class _MergeOperation(object):
         group_sizes = []
 
         for lk, rk in zip(left_keys, right_keys):
-            llab, rlab, count = _factorize_objects(lk, rk, sort=self.sort)
+            llab, rlab, count = _factorize_keys(lk, rk, sort=self.sort)
 
             left_labels.append(llab)
             right_labels.append(rlab)
@@ -319,15 +421,58 @@ class _MergeOperation(object):
             raise Exception('Combinatorial explosion! (boom)')
 
         left_group_key, right_group_key, max_groups = \
-            _factorize_int64(left_group_key, right_group_key,
+            _factorize_keys(left_group_key, right_group_key,
                              sort=self.sort)
         return left_group_key, right_group_key, max_groups
+
+
+class _OrderedMerge(_MergeOperation):
+
+    def __init__(self, left, right, on=None, by=None, left_on=None,
+                 right_on=None, axis=1, left_index=False, right_index=False,
+                 suffixes=('_x', '_y'), copy=True,
+                 fill_method=None):
+
+        self.fill_method = fill_method
+
+        _MergeOperation.__init__(self, left, right, on=on, left_on=left_on,
+                                 right_on=right_on, axis=axis,
+                                 left_index=left_index,
+                                 right_index=right_index,
+                                 how='outer', suffixes=suffixes,
+                                 sort=True # sorts when factorizing
+                                 )
+
+
+    def get_result(self):
+        join_index, left_indexer, right_indexer = self._get_join_info()
+
+        # this is a bit kludgy
+        ldata, rdata = self._get_merge_data()
+
+        if self.fill_method == 'ffill':
+            left_join_indexer = lib.ffill_indexer(left_indexer)
+            right_join_indexer = lib.ffill_indexer(right_indexer)
+        else:
+            left_join_indexer = left_indexer
+            right_join_indexer = right_indexer
+
+        join_op = _BlockJoinOperation([ldata, rdata], join_index,
+                                      [left_join_indexer, right_join_indexer],
+                                      axis=1, copy=self.copy)
+
+        result_data = join_op.get_result()
+        result = DataFrame(result_data)
+
+        self._maybe_add_join_keys(result, left_indexer, right_indexer)
+
+        return result
 
 def _get_multiindex_indexer(join_keys, index, sort=False):
     shape = []
     labels = []
     for level, key in zip(index.levels, join_keys):
-        llab, rlab, count = _factorize_objects(level, key, sort=False)
+        llab, rlab, count = _factorize_keys(level, key, sort=False)
         labels.append(rlab)
         shape.append(count)
 
@@ -335,27 +480,24 @@ def _get_multiindex_indexer(join_keys, index, sort=False):
     right_group_key = get_group_index(index.labels, shape)
 
     left_group_key, right_group_key, max_groups = \
-        _factorize_int64(left_group_key, right_group_key,
-                         sort=False)
+        _factorize_keys(left_group_key, right_group_key,
+                        sort=False)
 
     left_indexer, right_indexer = \
-        lib.left_outer_join(left_group_key.astype('i4'),
-                            right_group_key.astype('i4'),
+        lib.left_outer_join(com._ensure_int64(left_group_key),
+                            com._ensure_int64(right_group_key),
                             max_groups, sort=False)
 
     return left_indexer, right_indexer
 
 def _get_single_indexer(join_key, index, sort=False):
-    left_key, right_key, count = _factorize_objects(join_key, index, sort=sort)
+    left_key, right_key, count = _factorize_keys(join_key, index, sort=sort)
 
     left_indexer, right_indexer = \
-        lib.left_outer_join(left_key.astype('i4'), right_key.astype('i4'),
+        lib.left_outer_join(com._ensure_int64(left_key),
+                            com._ensure_int64(right_key),
                             count, sort=sort)
 
-    return left_indexer, right_indexer
-
-def _right_outer_join(x, y, max_groups):
-    right_indexer, left_indexer = lib.left_outer_join(y, x, max_groups)
     return left_indexer, right_indexer
 
 def _left_join_on_index(left_ax, right_ax, join_keys, sort=False):
@@ -384,6 +526,10 @@ def _left_join_on_index(left_ax, right_ax, join_keys, sort=False):
     return join_index, left_indexer, right_indexer
 
 
+def _right_outer_join(x, y, max_groups):
+    right_indexer, left_indexer = lib.left_outer_join(y, x, max_groups)
+    return left_indexer, right_indexer
+
 _join_functions = {
     'inner' : lib.inner_join,
     'left' : lib.left_outer_join,
@@ -391,29 +537,21 @@ _join_functions = {
     'outer' : lib.full_outer_join,
 }
 
-def _factorize_int64(left_index, right_index, sort=True):
-    rizer = lib.Int64Factorizer(max(len(left_index), len(right_index)))
 
-    # 32-bit compatibility
-    if left_index.dtype != np.int64:  # pragma: no cover
-        left_index = left_index.astype('i8')
+def _factorize_keys(lk, rk, sort=True):
+    if com.is_integer_dtype(lk) and com.is_integer_dtype(rk):
+        klass = lib.Int64Factorizer
+        lk = com._ensure_int64(lk)
+        rk = com._ensure_int64(rk)
+    else:
+        klass = lib.Factorizer
+        lk = com._ensure_object(lk)
+        rk = com._ensure_object(rk)
 
-    if right_index.dtype != np.int64:  # pragma: no cover
-        right_index = right_index.astype('i8')
+    rizer = klass(max(len(lk), len(rk)))
 
-    llab, _ = rizer.factorize(left_index)
-    rlab, _ = rizer.factorize(right_index)
-
-    if sort:
-        llab, rlab = _sort_labels(np.array(rizer.uniques), llab, rlab)
-
-    return llab, rlab, rizer.get_count()
-
-def _factorize_objects(left_index, right_index, sort=True):
-    rizer = lib.Factorizer(max(len(left_index), len(right_index)))
-
-    llab, _ = rizer.factorize(left_index.astype('O'))
-    rlab, _ = rizer.factorize(right_index.astype('O'))
+    llab, _ = rizer.factorize(lk)
+    rlab, _ = rizer.factorize(rk)
 
     count = rizer.get_count()
 
@@ -431,13 +569,13 @@ def _sort_labels(uniques, left, right):
 
     sorter = uniques.argsort()
 
-    reverse_indexer = np.empty(len(sorter), dtype=np.int32)
+    reverse_indexer = np.empty(len(sorter), dtype=np.int64)
     reverse_indexer.put(sorter, np.arange(len(sorter)))
 
-    new_left = reverse_indexer.take(left)
+    new_left = reverse_indexer.take(com._ensure_platform_int(left))
     np.putmask(new_left, left == -1, -1)
 
-    new_right = reverse_indexer.take(right)
+    new_right = reverse_indexer.take(com._ensure_platform_int(right))
     np.putmask(new_right, right == -1, -1)
 
     return new_left, new_right
@@ -538,7 +676,7 @@ class _BlockJoinOperation(object):
 
             if unit.indexer is None:
             # is this really faster than assigning to arr.flat?
-                com.take_fast(blk.values, np.arange(n, dtype='i4'),
+                com.take_fast(blk.values, np.arange(n, dtype=np.int64),
                               None, False,
                               axis=self.axis, out=out_chunk)
             else:

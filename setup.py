@@ -50,7 +50,7 @@ if sys.version_info[0] >= 3:
 else:
     setuptools_kwargs = {
         'install_requires': ['python-dateutil < 2',
-                             'numpy >= 1.4'],
+                             'numpy >= 1.6'],
         'zip_safe' : False,
     }
     if not _have_setuptools:
@@ -70,6 +70,9 @@ except ImportError:
     "    $ pip install numpy  # or easy_install numpy\n")
     sys.exit(nonumpy_msg)
 
+if np.__version__ < '1.6.1':
+    msg = "pandas requires NumPy >= 1.6 due to datetime64 dependency"
+    sys.exit(msg)
 
 from distutils.extension import Extension
 from distutils.command.build import build
@@ -332,9 +335,8 @@ else:
     cmdclass['sdist'] =  CheckSDist
 
 tseries_depends = ['reindex', 'groupby', 'skiplist', 'moments',
-                   'generated', 'reduce', 'stats', 'datetime',
-                   'inference', 'properties', 'internals',
-                   'join']
+                   'reduce', 'stats', 'datetime',
+                   'hashtable', 'inference', 'properties', 'join', 'engines']
 
 def srcpath(name=None, suffix='.pyx', subdir='src'):
     return pjoin('pandas', subdir, name+suffix)
@@ -346,34 +348,34 @@ if suffix == '.pyx':
 else:
     tseries_depends = []
 
-tseries_ext = Extension('pandas._tseries',
-                        depends=tseries_depends + ['pandas/src/numpy_helper.h'],
-                        sources=[srcpath('tseries', suffix=suffix),
-                                 'pandas/src/period.c',
-                                 'pandas/src/np_datetime.c',
-                                 'pandas/src/np_datetime_strings.c'],
-                        include_dirs=[np.get_include()],
-                        # pyrex_gdb=True,
-                        # extra_compile_args=['-Wconversion']
-                        )
+algos_ext = Extension('pandas._algos',
+                      sources=[srcpath('generated', suffix=suffix)],
+                      include_dirs=[np.get_include()],
+                      )
 
-# hashtable_ext = Extension('pandas._hashtable',
-#                        sources=[srcpath('hashtable', suffix=suffix)],
-#                        depends=['pandas/src/khash.pxd',
-#                                 'pandas/src/util.pxd',
-#                                 'pandas/src/khash.h'],
-#                        include_dirs=[np.get_include()])
+tseries_ext = Extension('pandas._tseries',
+                      depends=tseries_depends + ['pandas/src/numpy_helper.h'],
+                      sources=[srcpath('tseries', suffix=suffix),
+                               'pandas/src/period.c',
+                               'pandas/src/np_datetime.c',
+                               'pandas/src/np_datetime_strings.c'],
+                      include_dirs=[np.get_include()],
+                      # pyrex_gdb=True,
+                      # extra_compile_args=['-Wconversion']
+                      )
+
+# tseries_ext = Extension('pandas._tseries',
+#                         depends=tseries_depends + ['pandas/src/numpy_helper.h'],
+#                         sources=[srcpath('datetime', suffix=suffix)],
+#                         include_dirs=[np.get_include()],
+#                         # pyrex_gdb=True,
+#                         # extra_compile_args=['-Wconversion']
+#                         )
+
 
 sparse_ext = Extension('pandas._sparse',
                        sources=[srcpath('sparse', suffix=suffix)],
                        include_dirs=[np.get_include()])
-
-engines_ext = Extension('pandas._engines',
-                        depends=['pandas/src/numpy_helper.h',
-                                 'pandas/src/hashtable.pyx',
-                                 'pandas/src/util.pxd'],
-                        sources=[srcpath('engines', suffix=suffix)],
-                        include_dirs=[np.get_include()])
 
 sandbox_ext = Extension('pandas._sandbox',
                         sources=[srcpath('sandbox', suffix=suffix),
@@ -386,11 +388,7 @@ cppsandbox_ext = Extension('pandas._cppsandbox',
                            sources=[srcpath('cppsandbox', suffix=suffix)],
                            include_dirs=[np.get_include()])
 
-extensions = [tseries_ext,
-              engines_ext,
-              sparse_ext,
-              # hashtable_ext
-              ]
+extensions = [algos_ext, tseries_ext, sparse_ext]
 
 if not ISRELEASED:
     extensions.extend([sandbox_ext])

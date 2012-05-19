@@ -8,29 +8,45 @@ import numpy as np
 import pandas.core.common as com
 import pandas._tseries as lib
 
-def match(values, index):
+def match(to_match, values, na_sentinel=-1):
     """
-
+    Compute locations of to_match into values
 
     Parameters
     ----------
+    to_match : array-like
+        values to find positions of
+    values : array-like
+        Unique set of values
+    na_sentinel : int, default -1
+        Value to mark "not found"
+
+    Examples
+    --------
 
     Returns
     -------
-    match : ndarray
+    match : ndarray of integers
     """
-    f = lambda htype, caster: _match_generic(values, index, htype, caster)
-    return _hashtable_algo(f, index.dtype)
+    values = np.asarray(values)
+    if issubclass(values.dtype.type, basestring):
+        values = np.array(values, dtype='O')
+
+    f = lambda htype, caster: _match_generic(to_match, values, htype, caster)
+    return _hashtable_algo(f, values.dtype)
 
 def unique(values):
     """
+    Compute unique values (not necessarily sorted) efficiently from input array
+    of values
 
     Parameters
     ----------
+    values : array-like
 
     Returns
     -------
-
+    uniques
     """
     f = lambda htype, caster: _unique_generic(values, htype, caster)
     return _hashtable_algo(f, values.dtype)
@@ -78,6 +94,7 @@ def _unique_generic(values, table_type, type_caster):
     uniques = table.unique(values)
     return uniques
 
+
 def factorize(values, sort=False, order=None, na_sentinel=-1):
     """
     Encode input values as an enumerated type or categorical variable
@@ -97,10 +114,12 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
     table = hash_klass(len(values))
     labels, counts = table.get_labels(values, uniques, 0, na_sentinel)
 
+    labels = com._ensure_platform_int(labels)
+
     uniques = com._asarray_tuplesafe(uniques)
     if sort and len(counts) > 0:
         sorter = uniques.argsort()
-        reverse_indexer = np.empty(len(sorter), dtype=np.int32)
+        reverse_indexer = np.empty(len(sorter), dtype=np.int_)
         reverse_indexer.put(sorter, np.arange(len(sorter)))
 
         mask = labels < 0
@@ -139,6 +158,7 @@ def value_counts(values, sort=True, ascending=False):
             result = result[::-1]
 
     return result
+
 
 def rank(values, axis=0, method='average', na_option='keep',
          ascending=True):

@@ -10,6 +10,7 @@
 #include <Python.h>
 #include "numpy/ndarraytypes.h"
 #include "stdint.h"
+#include "limits.h"
 
 /*
  * declarations from period here
@@ -28,13 +29,15 @@
 // HIGHFREQ_ORIG is the datetime ordinal from which to begin the second
 // frequency ordinal sequence
 
-// begins second ordinal at 1/1/1AD gregorian proleptic calendar
-#define HIGHFREQ_ORIG 1
-
 // typedef int64_t npy_int64;
-
 // begins second ordinal at 1/1/1970 unix epoch
-// #define HIGHFREQ_ORIG 719163
+
+// #define HIGHFREQ_ORIG 62135683200LL
+#define BASE_YEAR 1970
+#define ORD_OFFSET 719163LL // days until 1970-01-01
+#define BDAY_OFFSET 513689LL // days until 1970-01-01
+#define WEEK_OFFSET 102737LL
+#define HIGHFREQ_ORIG 0 // ORD_OFFSET * 86400LL // days until 1970-01-01
 
 #define FR_ANN  1000  /* Annual */
 #define FR_ANNDEC  FR_ANN  /* Annual - December year end*/
@@ -85,7 +88,7 @@
 
 #define FR_UND  -10000 /* Undefined */
 
-#define INT_ERR_CODE -1
+#define INT_ERR_CODE INT32_MIN
 
 #define MEM_CHECK(item) if (item == NULL) { return PyErr_NoMemory(); }
 #define ERR_CHECK(item) if (item == NULL) { return NULL; }
@@ -103,7 +106,7 @@ typedef struct asfreq_info {
 
 
 typedef struct date_info {
-    int64_t absdate;
+    npy_int64 absdate;
     double abstime;
 
     double second;
@@ -118,38 +121,40 @@ typedef struct date_info {
     int calendar;
 } date_info;
 
-typedef int64_t (*freq_conv_func)(int64_t, char, asfreq_info*);
+typedef npy_int64 (*freq_conv_func)(npy_int64, char, asfreq_info*);
 
 /*
  * new pandas API helper functions here
  */
 
-int64_t asfreq(int64_t period_ordinal, int freq1, int freq2, char relation);
+npy_int64 asfreq(npy_int64 period_ordinal, int freq1, int freq2, char relation);
 
-int64_t get_period_ordinal(int year, int month, int day,
+npy_int64 get_period_ordinal(int year, int month, int day,
                       int hour, int minute, int second,
                       int freq);
 
-int64_t get_python_ordinal(int64_t period_ordinal, int freq);
+npy_int64 get_python_ordinal(npy_int64 period_ordinal, int freq);
 
-char *skts_strftime(int64_t value, int freq, PyObject *args);
-char *period_to_string(int64_t value, int freq);
-char *period_to_string2(int64_t value, int freq, char *fmt);
+char *skts_strftime(npy_int64 value, int freq, PyObject *args);
+char *period_to_string(npy_int64 value, int freq);
+char *period_to_string2(npy_int64 value, int freq, char *fmt);
 
-int get_date_info(int64_t ordinal, int freq, struct date_info *dinfo);
+int get_date_info(npy_int64 ordinal, int freq, struct date_info *dinfo);
+freq_conv_func get_asfreq_func(int fromFreq, int toFreq);
+void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info);
 
-int pyear(int64_t ordinal, int freq);
-int pqyear(int64_t ordinal, int freq);
-int pquarter(int64_t ordinal, int freq);
-int pmonth(int64_t ordinal, int freq);
-int pday(int64_t ordinal, int freq);
-int pweekday(int64_t ordinal, int freq);
-int pday_of_week(int64_t ordinal, int freq);
-int pday_of_year(int64_t ordinal, int freq);
-int pweek(int64_t ordinal, int freq);
-int phour(int64_t ordinal, int freq);
-int pminute(int64_t ordinal, int freq);
-int psecond(int64_t ordinal, int freq);
-double getAbsTime(int freq, int64_t dailyDate, int64_t originalDate);
+int pyear(npy_int64 ordinal, int freq);
+int pqyear(npy_int64 ordinal, int freq);
+int pquarter(npy_int64 ordinal, int freq);
+int pmonth(npy_int64 ordinal, int freq);
+int pday(npy_int64 ordinal, int freq);
+int pweekday(npy_int64 ordinal, int freq);
+int pday_of_week(npy_int64 ordinal, int freq);
+int pday_of_year(npy_int64 ordinal, int freq);
+int pweek(npy_int64 ordinal, int freq);
+int phour(npy_int64 ordinal, int freq);
+int pminute(npy_int64 ordinal, int freq);
+int psecond(npy_int64 ordinal, int freq);
+double getAbsTime(int freq, npy_int64 dailyDate, npy_int64 originalDate);
 
 #endif

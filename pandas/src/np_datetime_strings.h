@@ -42,11 +42,11 @@
  */
 int
 parse_iso_8601_datetime(char *str, int len,
-                    NPY_DATETIMEUNIT unit,
+                    PANDAS_DATETIMEUNIT unit,
                     NPY_CASTING casting,
-                    npy_datetimestruct *out,
+                    pandas_datetimestruct *out,
                     npy_bool *out_local,
-                    NPY_DATETIMEUNIT *out_bestunit,
+                    PANDAS_DATETIMEUNIT *out_bestunit,
                     npy_bool *out_special);
 
 /*
@@ -54,10 +54,10 @@ parse_iso_8601_datetime(char *str, int len,
  * objects with the given local and unit settings.
  */
 int
-get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base);
+get_datetime_iso_8601_strlen(int local, PANDAS_DATETIMEUNIT base);
 
 /*
- * Converts an npy_datetimestruct to an (almost) ISO 8601
+ * Converts an pandas_datetimestruct to an (almost) ISO 8601
  * NULL-terminated string.
  *
  * If 'local' is non-zero, it produces a string in local time with
@@ -79,8 +79,8 @@ get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base);
  *  string was too short).
  */
 int
-make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
-                    int local, NPY_DATETIMEUNIT base, int tzoffset,
+make_iso_8601_datetime(pandas_datetimestruct *dts, char *outstr, int outlen,
+                    int local, PANDAS_DATETIMEUNIT base, int tzoffset,
                     NPY_CASTING casting);
 
 #endif

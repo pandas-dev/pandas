@@ -14,7 +14,7 @@ from pandas.util import py3compat
 
 from pandas._sparse import BlockIndex, IntIndex
 import pandas._sparse as splib
-import pandas._engines as _gin
+import pandas._tseries as lib
 
 
 def _sparse_op_wrap(op, name):
@@ -261,7 +261,7 @@ to sparse
         if sp_loc == -1:
             return self.fill_value
         else:
-            return _gin.get_value_at(self, sp_loc)
+            return lib.get_value_at(self, sp_loc)
 
     def take(self, indices, axis=0):
         """

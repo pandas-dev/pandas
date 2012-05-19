@@ -3,6 +3,8 @@
 
 import numpy as np
 
+from pandas.core.algorithms import factorize, match, unique
+
 from pandas.core.common import isnull, notnull, save, load
 from pandas.core.factor import Factor
 from pandas.core.format import set_printoptions

@@ -1,9 +1,70 @@
-from cStringIO import StringIO
+import os
+from pandas.util.py3compat import StringIO
+from pandas.src.codegen_template import template as pyx_template
+from pandas.src.codegen_replace import replace
+
+header = """
+cimport numpy as np
+cimport cython
+
+from numpy cimport *
+
+from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
+                      PyDict_Contains, PyDict_Keys,
+                      Py_INCREF, PyTuple_SET_ITEM,
+                      PyTuple_SetItem,
+                      PyTuple_New)
+from cpython cimport PyFloat_Check
+cimport cpython
+
+import numpy as np
+isnan = np.isnan
+cdef double NaN = <double> np.NaN
+cdef double nan = NaN
+
+from datetime import datetime as pydatetime
+
+# this is our datetime.pxd
+from datetime cimport *
+
+from khash cimport *
+
+cdef inline int int_max(int a, int b): return a if a >= b else b
+cdef inline int int_min(int a, int b): return a if a <= b else b
+
+ctypedef unsigned char UChar
+
+cimport util
+from util cimport is_array, _checknull, _checknan
+
+cdef extern from "math.h":
+    double sqrt(double x)
+    double fabs(double)
+
+# import datetime C API
+PyDateTime_IMPORT
+
+# initialize numpy
+import_array()
+import_ufunc()
+
+cdef int PLATFORM_INT = (<ndarray> np.arange(0, dtype=np.int_)).descr.type_num
+
+cpdef ensure_platform_int(object arr):
+    if util.is_array(arr):
+        if (<ndarray> arr).descr.type_num == PLATFORM_INT:
+            return arr
+        else:
+            return arr.astype(np.int_)
+    else:
+        return np.array(arr, dtype=np.int_)
+
+"""
 
 take_1d_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
 def take_1d_%(name)s(ndarray[%(c_type)s] values,
-                     ndarray[int32_t] indexer,
+                     ndarray[int64_t] indexer,
                      out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
@@ -38,7 +99,7 @@ def take_1d_%(name)s(ndarray[%(c_type)s] values,
 take_2d_axis0_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_axis0_%(name)s(ndarray[%(c_type)s, ndim=2] values,
-                           ndarray[int32_t] indexer,
+                           ndarray[int64_t] indexer,
                            out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, j, k, n, idx
@@ -67,10 +128,10 @@ def take_2d_axis0_%(name)s(ndarray[%(c_type)s, ndim=2] values,
         for i in range(n):
             idx = indexer[i]
             if idx == -1:
-                for j from 0 <= j < k:
+                for j in range(k):
                     outbuf[i, j] = fv
             else:
-                for j from 0 <= j < k:
+                for j in range(k):
                     outbuf[i, j] = values[idx, j]
 
 """
@@ -78,7 +139,7 @@ def take_2d_axis0_%(name)s(ndarray[%(c_type)s, ndim=2] values,
 take_2d_axis1_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_axis1_%(name)s(ndarray[%(c_type)s, ndim=2] values,
-                           ndarray[int32_t] indexer,
+                           ndarray[int64_t] indexer,
                            out=None, fill_value=np.nan):
     cdef:
         Py_ssize_t i, j, k, n, idx
@@ -116,6 +177,55 @@ def take_2d_axis1_%(name)s(ndarray[%(c_type)s, ndim=2] values,
                     outbuf[i, j] = values[i, idx]
 
 """
+
+take_2d_multi_template = """@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_2d_multi_%(name)s(ndarray[%(c_type)s, ndim=2] values,
+                           ndarray[int64_t] idx0,
+                           ndarray[int64_t] idx1,
+                           out=None, fill_value=np.nan):
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        ndarray[%(c_type)s, ndim=2] outbuf
+        %(c_type)s fv
+
+    n = len(idx0)
+    k = len(idx1)
+
+    if out is None:
+        outbuf = np.empty((n, k), dtype=values.dtype)
+    else:
+        outbuf = out
+
+
+    if %(raise_on_na)s and _checknan(fill_value):
+        for i in range(n):
+            idx = idx0[i]
+            if idx == -1:
+                for j in range(k):
+                    raise ValueError('No NA values allowed')
+            else:
+                for j in range(k):
+                    if idx1[j] == -1:
+                        raise ValueError('No NA values allowed')
+                    else:
+                        outbuf[i, j] = values[idx, idx1[j]]
+    else:
+        fv = fill_value
+        for i in range(n):
+            idx = idx0[i]
+            if idx == -1:
+                for j in range(k):
+                    outbuf[i, j] = fv
+            else:
+                for j in range(k):
+                    if idx1[j] == -1:
+                        outbuf[i, j] = fv
+                    else:
+                        outbuf[i, j] = values[idx, idx1[j]]
+
+"""
+
 
 def set_na(na ="NaN"):
     return "outbuf[i] = %s" % na
@@ -155,13 +265,13 @@ backfill_template = """@cython.boundscheck(False)
 def backfill_%(name)s(ndarray[%(c_type)s] old, ndarray[%(c_type)s] new,
                       limit=None):
     cdef Py_ssize_t i, j, nleft, nright
-    cdef ndarray[int32_t, ndim=1] indexer
+    cdef ndarray[int64_t, ndim=1] indexer
     cdef %(c_type)s cur, prev
     cdef int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
-    indexer = np.empty(nright, dtype=np.int32)
+    indexer = np.empty(nright, dtype=np.int64)
     indexer.fill(-1)
 
     if limit is None:
@@ -220,13 +330,13 @@ pad_template = """@cython.boundscheck(False)
 def pad_%(name)s(ndarray[%(c_type)s] old, ndarray[%(c_type)s] new,
                    limit=None):
     cdef Py_ssize_t i, j, nleft, nright
-    cdef ndarray[int32_t, ndim=1] indexer
+    cdef ndarray[int64_t, ndim=1] indexer
     cdef %(c_type)s cur, next
     cdef int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
-    indexer = np.empty(nright, dtype=np.int32)
+    indexer = np.empty(nright, dtype=np.int64)
     indexer.fill(-1)
 
     if limit is None:
@@ -491,6 +601,8 @@ def arrmap_%(name)s(ndarray[%(c_type)s] index, object func):
 
     cdef ndarray[object] result = np.empty(length, dtype=np.object_)
 
+    from _tseries import maybe_convert_objects
+
     for i in range(length):
         result[i] = func(index[i])
 
@@ -509,7 +621,7 @@ def left_join_indexer_%(name)s(ndarray[%(c_type)s] left,
                              ndarray[%(c_type)s] right):
     cdef:
         Py_ssize_t i, j, nleft, nright
-        ndarray[int32_t] indexer
+        ndarray[int64_t] indexer
         %(c_type)s lval, rval
 
     i = 0
@@ -517,7 +629,7 @@ def left_join_indexer_%(name)s(ndarray[%(c_type)s] left,
     nleft = len(left)
     nright = len(right)
 
-    indexer = np.empty(nleft, dtype=np.int32)
+    indexer = np.empty(nleft, dtype=np.int64)
     while True:
         if i == nleft:
             break
@@ -560,7 +672,7 @@ def inner_join_indexer_%(name)s(ndarray[%(c_type)s] left,
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
         %(c_type)s lval, rval
-        ndarray[int32_t] lindexer, rindexer
+        ndarray[int64_t] lindexer, rindexer
         ndarray[%(c_type)s] result
 
     nleft = len(left)
@@ -586,8 +698,8 @@ def inner_join_indexer_%(name)s(ndarray[%(c_type)s] left,
 
     # do it again now that result size is known
 
-    lindexer = np.empty(count, dtype=np.int32)
-    rindexer = np.empty(count, dtype=np.int32)
+    lindexer = np.empty(count, dtype=np.int64)
+    rindexer = np.empty(count, dtype=np.int64)
     result = np.empty(count, dtype=%(dtype)s)
 
     i = 0
@@ -622,7 +734,7 @@ def outer_join_indexer_%(name)s(ndarray[%(c_type)s] left,
     cdef:
         Py_ssize_t i, j, nright, nleft, count
         %(c_type)s lval, rval
-        ndarray[int32_t] lindexer, rindexer
+        ndarray[int64_t] lindexer, rindexer
         ndarray[%(c_type)s] result
 
     nleft = len(left)
@@ -657,8 +769,8 @@ def outer_join_indexer_%(name)s(ndarray[%(c_type)s] left,
 
             count += 1
 
-    lindexer = np.empty(count, dtype=np.int32)
-    rindexer = np.empty(count, dtype=np.int32)
+    lindexer = np.empty(count, dtype=np.int64)
+    rindexer = np.empty(count, dtype=np.int64)
     result = np.empty(count, dtype=%(dtype)s)
 
     # do it again, but populate the indexers / result
@@ -713,12 +825,41 @@ def outer_join_indexer_%(name)s(ndarray[%(c_type)s] left,
 
 """
 
+# ensure_dtype functions
+
+ensure_dtype_template = """
+cpdef ensure_%(name)s(object arr):
+    if util.is_array(arr):
+        if (<ndarray> arr).descr.type_num == NPY_%(ctype)s:
+            return arr
+        else:
+            return arr.astype(np.%(dtype)s)
+    else:
+        return np.array(arr, dtype=np.%(dtype)s)
+
+"""
+
+ensure_functions = [
+    ('float64', 'FLOAT64', 'float64'),
+    ('int32', 'INT32', 'int32'),
+    ('int64', 'INT64', 'int64'),
+    # ('platform_int', 'INT', 'int_'),
+    ('object', 'OBJECT', 'object_'),
+]
+
+def generate_ensure_dtypes():
+    output = StringIO()
+    for name, ctype, dtype in ensure_functions:
+        filled = ensure_dtype_template % locals()
+        output.write(filled)
+    return output.getvalue()
+
 #----------------------------------------------------------------------
 # Fast "put" logic for speeding up interleaving logic
 
 put2d_template = """
 def put2d_%(name)s_%(dest_type)s(ndarray[%(c_type)s, ndim=2, cast=True] values,
-                              ndarray[int32_t] indexer, Py_ssize_t loc,
+                              ndarray[int64_t] indexer, Py_ssize_t loc,
                               ndarray[%(dest_type2)s] out):
     cdef:
         Py_ssize_t i, j, k
@@ -728,6 +869,10 @@ def put2d_%(name)s_%(dest_type)s(ndarray[%(c_type)s, ndim=2, cast=True] values,
         i = indexer[j]
         out[i] = values[j, loc]
 """
+
+
+#-------------------------------------------------------------------------
+# Generators
 
 def generate_put_functions():
     function_list = [
@@ -791,16 +936,13 @@ nobool_1d_templates = [left_join_template,
                        inner_join_template]
 
 templates_2d = [take_2d_axis0_template,
-                take_2d_axis1_template]
-
-
-# templates_1d_datetime = [take_1d_template]
-# templates_2d_datetime = [take_2d_axis0_template,
-#                          take_2d_axis1_template]
-
+                take_2d_axis1_template,
+                take_2d_multi_template]
 
 def generate_take_cython_file(path='generated.pyx'):
     with open(path, 'w') as f:
+        print >> f, header
+
         for template in templates_1d:
             print >> f, generate_from_template(template)
 
@@ -815,8 +957,6 @@ def generate_take_cython_file(path='generated.pyx'):
 
         for template in nobool_1d_templates:
             print >> f, generate_from_template(template, exclude=['bool'])
-
-        # print >> f, generate_put_functions()
 
 if __name__ == '__main__':
     generate_take_cython_file()

@@ -7,11 +7,12 @@ import weakref
 
 import numpy as np
 
+from pandas.core.common import ndtake
 from pandas.util.decorators import cache_readonly
 from pandas.util import py3compat
 import pandas.core.common as com
 import pandas._tseries as lib
-import pandas._engines as _gin
+import pandas._algos as _algos
 
 
 __all__ = ['Index']
@@ -56,16 +57,18 @@ class Index(np.ndarray):
     _join_precedence = 1
 
     # Cython methods
-    _groupby = lib.groupby_object
-    _arrmap = lib.arrmap_object
-    _left_indexer = lib.left_join_indexer_object
-    _inner_indexer = lib.inner_join_indexer_object
-    _outer_indexer = lib.outer_join_indexer_object
+    _groupby = _algos.groupby_object
+    _arrmap = _algos.arrmap_object
+    _left_indexer = _algos.left_join_indexer_object
+    _inner_indexer = _algos.inner_join_indexer_object
+    _outer_indexer = _algos.outer_join_indexer_object
+
+    _box_scalars = False
 
     name = None
     asi8 = None
 
-    _engine_type = _gin.ObjectEngine
+    _engine_type = lib.ObjectEngine
 
     def __new__(cls, data, dtype=None, copy=False, name=None):
         if isinstance(data, np.ndarray):
@@ -319,11 +322,12 @@ class Index(np.ndarray):
 
         return Index(np.concatenate(to_concat), name=name)
 
-    def take(self, *args, **kwargs):
+    def take(self, indexer, axis=0):
         """
         Analogous to ndarray.take
         """
-        taken = self.view(np.ndarray).take(*args, **kwargs)
+        indexer = com._ensure_platform_int(indexer)
+        taken = self.view(np.ndarray).take(indexer)
         return self._constructor(taken, name=self.name)
 
     def format(self, name=False):
@@ -384,6 +388,22 @@ class Index(np.ndarray):
                 return np.nan
 
         return label
+
+    def asof_locs(self, where, mask):
+        """
+        where : array of timestamps
+        mask : array of booleans where data is NA
+
+        """
+        locs = self.values[mask].searchsorted(where.values, side='right')
+
+        locs = np.where(locs > 0, locs - 1, 0)
+        result = np.arange(len(self))[mask].take(locs)
+
+        first = mask.argmax()
+        result[(locs == 0) & (where < self.values[first])] = -1
+
+        return result
 
     def order(self, return_indexer=False, ascending=True):
         """
@@ -490,7 +510,7 @@ class Index(np.ndarray):
             indexer = (indexer == -1).nonzero()[0]
 
             if len(indexer) > 0:
-                other_diff = other.values.take(indexer)
+                other_diff = ndtake(other.values, indexer)
                 result = np.concatenate((self.values, other_diff))
                 try:
                     result.sort()
@@ -611,7 +631,7 @@ class Index(np.ndarray):
                 raise
 
             try:
-                return _gin.get_value_at(series, key)
+                return lib.get_value_at(series, key)
             except IndexError:
                 raise
             except TypeError:
@@ -623,6 +643,9 @@ class Index(np.ndarray):
             except Exception:  # pragma: no cover
                 raise e1
         except TypeError:
+            # python 3
+            if np.isscalar(key):  # pragma: no cover
+                raise IndexError(key)
             raise InvalidIndexError(key)
 
     def set_value(self, arr, key, value):
@@ -866,11 +889,11 @@ class Index(np.ndarray):
             old_level.join(right, how=how, return_indexers=True)
 
         if left_lev_indexer is not None:
-            left_lev_indexer = com._ensure_int32(left_lev_indexer)
+            left_lev_indexer = com._ensure_int64(left_lev_indexer)
             rev_indexer = lib.get_reverse_indexer(left_lev_indexer,
                                                   len(old_level))
 
-            new_lev_labels = rev_indexer.take(left.labels[level])
+            new_lev_labels = ndtake(rev_indexer, left.labels[level])
             omit_mask = new_lev_labels != -1
 
             new_labels = list(left.labels)
@@ -890,7 +913,8 @@ class Index(np.ndarray):
             left_indexer = None
 
         if right_lev_indexer is not None:
-            right_indexer = right_lev_indexer.take(join_index.labels[level])
+            right_indexer = ndtake(right_lev_indexer,
+                                   join_index.labels[level])
         else:
             right_indexer = join_index.labels[level]
 
@@ -1044,13 +1068,13 @@ class Index(np.ndarray):
 
 class Int64Index(Index):
 
-    _groupby = lib.groupby_int64
-    _arrmap = lib.arrmap_int64
-    _left_indexer = lib.left_join_indexer_int64
-    _inner_indexer = lib.inner_join_indexer_int64
-    _outer_indexer = lib.outer_join_indexer_int64
+    _groupby = _algos.groupby_int64
+    _arrmap = _algos.arrmap_int64
+    _left_indexer = _algos.left_join_indexer_int64
+    _inner_indexer = _algos.inner_join_indexer_int64
+    _outer_indexer = _algos.outer_join_indexer_int64
 
-    _engine_type = _gin.Int64Engine
+    _engine_type = lib.Int64Engine
 
     def __new__(cls, data, dtype=None, copy=False, name=None):
         if not isinstance(data, np.ndarray):
@@ -1146,9 +1170,9 @@ class MultiIndex(Index):
             return Index(levels[0], name=name).take(labels[0])
 
         levels = [_ensure_index(lev) for lev in levels]
-        labels = [np.asarray(labs, dtype=np.int32) for labs in labels]
+        labels = [np.asarray(labs, dtype=np.int_) for labs in labels]
 
-        values = [np.asarray(lev).take(lab)
+        values = [ndtake(np.asarray(lev), lab)
                   for lev, lab in zip(levels, labels)]
         subarr = lib.fast_zip(values).view(cls)
 
@@ -1227,7 +1251,7 @@ class MultiIndex(Index):
     def values(self):
         if self._is_legacy_format:
             # for legacy MultiIndex
-            values = [np.asarray(lev).take(lab)
+            values = [ndtake(np.asarray(lev), lab)
                       for lev, lab in zip(self.levels, self.labels)]
             return lib.fast_zip(values)
         else:
@@ -1280,7 +1304,7 @@ class MultiIndex(Index):
                 pass
 
             try:
-                return _gin.get_value_at(series, key)
+                return lib.get_value_at(series, key)
             except IndexError:
                 raise
             except TypeError:
@@ -1325,11 +1349,13 @@ class MultiIndex(Index):
             if names:
                 level.append(str(name) if name is not None else '')
 
-            level.extend(np.array(lev, dtype=object).take(lab))
+            level.extend(ndtake(np.array(lev, dtype=object), lab))
             result_levels.append(level)
 
         if sparsify:
-            result_levels = _sparsify(result_levels)
+            # little bit of a kludge job for #1217
+            result_levels = _sparsify(result_levels,
+                                      start=int(names))
 
         if adjoin:
             return com.adjoin(space, *result_levels).split('\n')
@@ -1354,8 +1380,9 @@ class MultiIndex(Index):
             else:
                 return 0
 
+        int64_labels = [com._ensure_int64(lab) for lab in self.labels]
         for k in range(self.nlevels, 0, -1):
-            if lib.is_lexsorted(self.labels[:k]):
+            if lib.is_lexsorted(int64_labels[:k]):
                 return k
 
         return 0
@@ -1476,6 +1503,7 @@ class MultiIndex(Index):
         """
         Analogous to ndarray.take
         """
+        indexer = com._ensure_platform_int(indexer)
         new_labels = [lab.take(indexer) for lab in self.labels]
         return MultiIndex(levels=self.levels, labels=new_labels,
                           names=self.names)
@@ -1664,6 +1692,7 @@ class MultiIndex(Index):
         if not ascending:
             indexer = indexer[::-1]
 
+        indexer = com._ensure_platform_int(indexer)
         new_labels = [lab.take(indexer) for lab in self.labels]
 
         new_index = MultiIndex._from_elements(self.values.take(indexer),
@@ -2193,14 +2222,14 @@ class MultiIndex(Index):
 # For utility purposes
 
 
-def _sparsify(label_list):
+def _sparsify(label_list, start=0):
     pivoted = zip(*label_list)
     k = len(label_list)
 
-    result = [pivoted[0]]
-    prev = pivoted[0]
+    result = pivoted[:start + 1]
+    prev = pivoted[start]
 
-    for cur in pivoted[1:]:
+    for cur in pivoted[start + 1:]:
         sparse_cur = []
 
         for i, (p, t) in enumerate(zip(prev, cur)):
@@ -2224,6 +2253,11 @@ def _ensure_index(index_like):
         return index_like
     if hasattr(index_like, 'name'):
         return Index(index_like, name=index_like.name)
+
+    if isinstance(index_like, list):
+        if len(index_like) and isinstance(index_like[0], (list, np.ndarray)):
+            return MultiIndex.from_arrays(index_like)
+
     return Index(index_like)
 
 def _validate_join_method(method):
@@ -2337,3 +2371,4 @@ def _maybe_box_dtindex(idx):
     if isinstance(idx, DatetimeIndex):
         return Index(_dt_box_array(idx.asi8), dtype='object')
     return idx
+

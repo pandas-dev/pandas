@@ -1,5 +1,6 @@
 #include "Python.h"
 #include "numpy/ndarrayobject.h"
+#include "numpy/arrayscalars.h"
 
 #ifndef PANDAS_INLINE
   #if defined(__GNUC__)
@@ -47,6 +48,12 @@ get_nat() {
   return NPY_MIN_INT64;
 }
 
+PANDAS_INLINE npy_datetime
+unbox_datetime64_scalar(PyObject* obj) {
+  return ((PyDatetimeScalarObject*) obj)->obval;
+
+}
+
 PANDAS_INLINE int
 is_integer_object(PyObject* obj) {
   return (!PyBool_Check(obj)) && PyArray_IsIntegerScalar(obj);
@@ -56,6 +63,10 @@ is_integer_object(PyObject* obj) {
 PANDAS_INLINE int
 is_float_object(PyObject* obj) {
   return (PyFloat_Check(obj) || PyArray_IsScalar(obj, Floating));
+}
+PANDAS_INLINE int
+is_complex_object(PyObject* obj) {
+  return (PyComplex_Check(obj) || PyArray_IsScalar(obj, ComplexFloating));
 }
 
 PANDAS_INLINE int

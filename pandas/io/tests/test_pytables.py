@@ -8,9 +8,12 @@ import sys
 from datetime import datetime
 import numpy as np
 
-from pandas import Series, DataFrame, Panel, MultiIndex, bdate_range
+from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
+                    date_range)
 from pandas.io.pytables import HDFStore, get_store
 import pandas.util.testing as tm
+from pandas.tests.test_series import assert_series_equal
+from pandas.tests.test_frame import assert_frame_equal
 
 try:
     import tables
@@ -22,7 +25,7 @@ from distutils.version import LooseVersion
 _default_compressor = LooseVersion(tables.__version__) >= '2.2' \
                       and 'blosc' or 'zlib'
 
-class TesttHDFStore(unittest.TestCase):
+class TestHDFStore(unittest.TestCase):
     path = '__test__.h5'
     scratchpath = '__scratch__.h5'
 
@@ -199,6 +202,53 @@ class TesttHDFStore(unittest.TestCase):
         ts = tm.makeTimeSeries()
         self._check_roundtrip(ts, tm.assert_series_equal)
 
+    def test_sparse_series(self):
+        s = tm.makeStringSeries()
+        s[3:5] = np.nan
+        ss = s.to_sparse()
+        self._check_roundtrip(ss, tm.assert_series_equal,
+                              check_series_type=True)
+
+        ss2 = s.to_sparse(kind='integer')
+        self._check_roundtrip(ss2, tm.assert_series_equal,
+                              check_series_type=True)
+
+        ss3 = s.to_sparse(fill_value=0)
+        self._check_roundtrip(ss3, tm.assert_series_equal,
+                              check_series_type=True)
+
+    def test_sparse_frame(self):
+        s = tm.makeDataFrame()
+        s.ix[3:5, 1:3] = np.nan
+        s.ix[8:10, -2] = np.nan
+        ss = s.to_sparse()
+        self._check_roundtrip(ss, tm.assert_frame_equal,
+                              check_frame_type=True)
+
+        ss2 = s.to_sparse(kind='integer')
+        self._check_roundtrip(ss2, tm.assert_frame_equal,
+                              check_frame_type=True)
+
+        ss3 = s.to_sparse(fill_value=0)
+        self._check_roundtrip(ss3, tm.assert_frame_equal,
+                              check_frame_type=True)
+
+    def test_sparse_panel(self):
+        items = ['x', 'y', 'z']
+        p = Panel(dict((i, tm.makeDataFrame()) for i in items))
+        sp = p.to_sparse()
+
+        self._check_roundtrip(sp, tm.assert_panel_equal,
+                              check_panel_type=True)
+
+        sp2 = p.to_sparse(kind='integer')
+        self._check_roundtrip(sp2, tm.assert_panel_equal,
+                              check_panel_type=True)
+
+        sp3 = p.to_sparse(fill_value=0)
+        self._check_roundtrip(sp3, tm.assert_panel_equal,
+                              check_panel_type=True)
+
     def test_float_index(self):
         # GH #454
         index = np.random.randn(10)
@@ -212,6 +262,36 @@ class TesttHDFStore(unittest.TestCase):
         data = np.random.randn(30).reshape((3, 10))
         DF = DataFrame(data, index=idx, columns=col)
         self._check_roundtrip(DF, tm.assert_frame_equal)
+
+    def test_index_types(self):
+        values = np.random.randn(2)
+
+        func = lambda l, r : tm.assert_series_equal(l, r, True, True, True)
+
+        ser = Series(values, [0, 'y'])
+        self._check_roundtrip(ser, func)
+
+        ser = Series(values, [datetime.today(), 0])
+        self._check_roundtrip(ser, func)
+
+        ser = Series(values, ['y', 0])
+        self._check_roundtrip(ser, func)
+
+        from datetime import date
+        ser = Series(values, [date.today(), 'a'])
+        self._check_roundtrip(ser, func)
+
+        ser = Series(values, [1.23, 'b'])
+        self._check_roundtrip(ser, func)
+
+        ser = Series(values, [1, 1.53])
+        self._check_roundtrip(ser, func)
+
+        ser = Series(values, [1, 5])
+        self._check_roundtrip(ser, func)
+
+        ser = Series(values, [datetime(2012, 1, 1), datetime(2012, 1, 2)])
+        self._check_roundtrip(ser, func)
 
     def test_timeseries_preepoch(self):
         if sys.version_info[0] == 2 and sys.version_info[1] < 7:
@@ -258,6 +338,19 @@ class TesttHDFStore(unittest.TestCase):
         rng = [x.date() for x in bdate_range('1/1/2000', '1/30/2000')]
         frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
         self._check_roundtrip(frame, tm.assert_frame_equal)
+
+    def test_timezones(self):
+        rng = date_range('1/1/2000', '1/30/2000', tz='US/Eastern')
+        frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
+        try:
+            store = HDFStore(self.scratchpath)
+            store['frame'] = frame
+            recons = store['frame']
+            self.assert_(recons.index.equals(rng))
+            self.assertEquals(rng.tz, recons.index.tz)
+        finally:
+            store.close()
+            os.remove(self.scratchpath)
 
     def test_store_hierarchical(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
@@ -454,7 +547,7 @@ class TesttHDFStore(unittest.TestCase):
         result = self.store.select('frame', [crit])
         tm.assert_frame_equal(result, df.ix[:, df.columns[:75]])
 
-    def _check_roundtrip(self, obj, comparator, compression=False):
+    def _check_roundtrip(self, obj, comparator, compression=False, **kwargs):
         options = {}
         if compression:
             options['complib'] = _default_compressor
@@ -463,7 +556,7 @@ class TesttHDFStore(unittest.TestCase):
         try:
             store['obj'] = obj
             retrieved = store['obj']
-            comparator(retrieved, obj)
+            comparator(retrieved, obj, **kwargs)
         finally:
             store.close()
             os.remove(self.scratchpath)
@@ -498,6 +591,49 @@ class TesttHDFStore(unittest.TestCase):
         self.store['a'] = series
         self.assertEquals(self.store['a'].index[0], dt)
 
+    def test_tseries_indices_series(self):
+        idx = tm.makeDateIndex(10)
+        ser = Series(np.random.randn(len(idx)), idx)
+        self.store['a'] = ser
+        result = self.store['a']
+
+        assert_series_equal(result, ser)
+        self.assertEquals(type(result.index), type(ser.index))
+        self.assertEquals(result.index.freq, ser.index.freq)
+
+        idx = tm.makePeriodIndex(10)
+        ser = Series(np.random.randn(len(idx)), idx)
+        self.store['a'] = ser
+        result = self.store['a']
+
+        assert_series_equal(result, ser)
+        self.assertEquals(type(result.index), type(ser.index))
+        self.assertEquals(result.index.freq, ser.index.freq)
+
+    def test_tseries_indices_frame(self):
+        idx = tm.makeDateIndex(10)
+        df = DataFrame(np.random.randn(len(idx), 3), index=idx)
+        self.store['a'] = df
+        result = self.store['a']
+
+        assert_frame_equal(result, df)
+        self.assertEquals(type(result.index), type(df.index))
+        self.assertEquals(result.index.freq, df.index.freq)
+
+        idx = tm.makePeriodIndex(10)
+        df = DataFrame(np.random.randn(len(idx), 3), idx)
+        self.store['a'] = df
+        result = self.store['a']
+
+        assert_frame_equal(result, df)
+        self.assertEquals(type(result.index), type(df.index))
+        self.assertEquals(result.index.freq, df.index.freq)
+
+    def test_unicode_index(self):
+        unicode_values = [u'\u03c3', u'\u03c3\u03c3']
+
+        s = Series(np.random.randn(len(unicode_values)), unicode_values)
+        self._check_roundtrip(s, tm.assert_series_equal)
 
 
 def curpath():

@@ -44,7 +44,7 @@ Optional dependencies
   * `scikits.statsmodels <http://statsmodels.sourceforge.net/>`__
      * Needed for parts of :mod:`pandas.stats`
   * `pytz <http://pytz.sourceforge.net/>`__
-     * Needed for time zone support with ``DateRange``
+     * Needed for time zone support with ``date_range``
 
 .. note::
 

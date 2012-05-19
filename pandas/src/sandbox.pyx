@@ -421,117 +421,6 @@ def int64_unique(ndarray[int64_t] arr):
 
     return np.sort(uniques[:j])
 
-def group_add_bin(ndarray[float64_t, ndim=2] out,
-                  ndarray[int32_t] counts,
-                  ndarray[float64_t, ndim=2] values,
-                  ndarray[int32_t] bins):
-    '''
-    Only aggregates on axis=0
-    '''
-    cdef:
-        Py_ssize_t i, j, N, K, ngroups, b
-        float64_t val, count
-        ndarray[float64_t, ndim=2] sumx, nobs
-
-    nobs = np.zeros_like(out)
-    sumx = np.zeros_like(out)
-
-    ngroups = len(bins) + 1
-    N, K = (<object> values).shape
-
-    b = 0
-    if K > 1:
-        for i in range(N):
-            while b < ngroups - 1 and i >= bins[b]:
-                b += 1
-
-            counts[b] += 1
-            for j in range(K):
-                val = values[i, j]
-
-                # not nan
-                if val == val:
-                    nobs[b, j] += 1
-                    sumx[b, j] += val
-    else:
-        for i in range(N):
-            while b < ngroups - 1 and i >= bins[b]:
-                b += 1
-
-            counts[b] += 1
-            val = values[i, 0]
-
-            # not nan
-            if val == val:
-                nobs[b, 0] += 1
-                sumx[b, 0] += val
-            print i, b, counts, nobs.squeeze()
-
-    for i in range(ngroups):
-        print 'writing %d' % i
-        for j in range(K):
-            if nobs[i] == 0:
-                out[i, j] = nan
-            else:
-                out[i, j] = sumx[i, j]
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def group_add(ndarray[float64_t, ndim=2] out,
-              ndarray[int32_t] counts,
-              ndarray[float64_t, ndim=2] values,
-              ndarray[int32_t] labels):
-    '''
-    Only aggregates on axis=0
-    '''
-    cdef:
-        Py_ssize_t i, j, N, K, lab
-        float64_t val, count
-        ndarray[float64_t, ndim=2] sumx, nobs
-
-    nobs = np.zeros_like(out)
-    sumx = np.zeros_like(out)
-
-    N, K = (<object> values).shape
-
-    if K > 1:
-        for i in range(N):
-            lab = labels[i]
-            if lab < 0:
-                continue
-
-            counts[lab] += 1
-            for j in range(K):
-                val = values[i, j]
-
-                # not nan
-                if val == val:
-                    nobs[lab, j] += 1
-                    sumx[lab, j] += val
-    else:
-        for i in range(N):
-            lab = labels[i]
-            if lab < 0:
-                continue
-
-            counts[lab] += 1
-            val = values[i, 0]
-
-            # not nan
-            if val == val:
-                nobs[lab, 0] += 1
-                sumx[lab, 0] += val
-
-    for i in range(len(counts)):
-        for j in range(K):
-            if nobs[i, j] == 0:
-                out[i, j] = nan
-            else:
-                out[i, j] = sumx[i, j]
-
-
-from datetime cimport getAbsTime
-
 
 # cdef extern from "kvec.h":
 
@@ -546,88 +435,66 @@ def test_foo(ndarray[int64_t] values):
     val = values[0]
     print val
 
-def get_abs_time(freq, dailyDate, originalDate):
-    return getAbsTime(freq, dailyDate, originalDate)
+# cdef extern from "foo.h":
+#     double add_things(double *a, double *b, double *c, int n)
 
-have_pytz = 1
-import pytz
 
-def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
-    cdef:
-        ndarray[int64_t] utc_dates, result, trans, deltas
-        Py_ssize_t i, pos, n = len(vals)
-        int64_t v, offset
+# def cython_test(ndarray a, ndarray b, ndarray c):
+#     return add_things(<double*> a.data,
+#                       <double*> b.data,
+#                       <double*> c.data, len(a))
 
-    print 'int64 is: %d' % sizeof(int64_t)
 
-    if not have_pytz:
-        import pytz
+# def cython_test2(ndarray[float64_t] a, ndarray[float64_t] b,
+#                  ndarray[float64_t] c):
+#     cdef:
+#         Py_ssize_t i, n = len(a)
+#         float64_t result = 0
 
-    # Convert to UTC
+#     for i in range(n):
+#         result += a[i] + b[i] + c[i]
 
-    if tz1.zone != 'UTC':
-        utc_dates = np.empty(n, dtype=np.int64)
-        deltas = _get_deltas(tz1)
-        trans = _get_transitions(tz1)
-        pos = trans.searchsorted(vals[0])
-        offset = deltas[pos]
-        for i in range(n):
-            v = vals[i]
-            if v >= trans[pos + 1]:
-                pos += 1
-                offset = deltas[pos]
-            utc_dates[i] = v - offset
-    else:
-        utc_dates = vals
+#     return result
 
-    if tz2.zone == 'UTC':
-        return utc_dates
-
-    # Convert UTC to other timezone
-
-    result = np.empty(n, dtype=np.int64)
-    trans = _get_transitions(tz2)
-    deltas = _get_deltas(tz2)
-    offset = deltas[pos]
-    pos = max(0, trans.searchsorted(utc_dates[0], side='right') - 1)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def inner(ndarray[float64_t] x, ndarray[float64_t] y):
+    cdef Py_ssize_t i, n = len(x)
+    cdef float64_t result = 0
     for i in range(n):
-        v = utc_dates[i]
-        if v >= trans[pos + 1]:
-            pos += 1
-            offset = deltas[pos]
-        result[i] = v + offset
-
+        result += x[i] * y[i]
     return result
 
-trans_cache = {}
-utc_offset_cache = {}
-
-def _get_transitions(object tz):
-    """
-    Get UTC times of DST transitions
-    """
-    if tz not in trans_cache:
-        arr = np.array(tz._utc_transition_times, dtype='M8[us]')
-        trans_cache[tz] = arr.view('i8')
-    return trans_cache[tz]
-
-def _get_deltas(object tz):
-    """
-    Get UTC offsets in microseconds corresponding to DST transitions
-    """
-    if tz not in utc_offset_cache:
-        utc_offset_cache[tz] = _unbox_utcoffsets(tz._transition_info)
-    return utc_offset_cache[tz]
-
-cdef ndarray _unbox_utcoffsets(object transinfo):
+def indices_fast(ndarray[int64_t] labels, list keys,
+                 list sorted_labels):
     cdef:
-        Py_ssize_t i, sz
-        ndarray[int64_t] arr
+        Py_ssize_t i, j, k, lab, cur, start, n = len(labels)
+        dict result = {}
+        object tup
 
-    sz = len(transinfo)
-    arr = np.empty(sz, dtype='i8')
+    index = np.arange(n)
 
-    for i in range(sz):
-        arr[i] = int(transinfo[i][0].total_seconds()) * 1000000
+    k = len(keys)
 
-    return arr
+    if n == 0:
+        return result
+
+    start = 0
+    cur = labels[0]
+    for i in range(1, n):
+        lab = labels[i]
+
+        if lab != cur:
+            if lab != -1:
+                tup = PyTuple_New(k)
+                for j in range(k):
+                    val = util.get_value_at(keys[j],
+                                            sorted_labels[j][cur])
+                    PyTuple_SET_ITEM(tup, j, val)
+                    Py_INCREF(val)
+
+                result[tup] = index[start:i]
+            start = i
+        cur = lab
+
+    return result

@@ -415,7 +415,7 @@ class SparseDataFrame(DataFrame):
         if level is not None:
             raise NotImplementedError
 
-        if not self and not other:
+        if self.empty and other.empty:
             return SparseDataFrame(index=new_index)
 
         new_data = {}
@@ -582,6 +582,7 @@ class SparseDataFrame(DataFrame):
         -------
         taken : SparseDataFrame
         """
+        indices = com._ensure_platform_int(indices)
         new_values = self.values.take(indices, axis=axis)
         if axis == 0:
             new_columns = self.columns
@@ -741,10 +742,10 @@ class SparseDataFrame(DataFrame):
                 return self._apply_broadcast(func, axis)
 
     @Appender(DataFrame.fillna.__doc__)
-    def fillna(self, value=None, method='pad', inplace=False):
+    def fillna(self, value=None, method='pad', inplace=False, limit=None):
         new_series = {}
         for k, v in self.iterkv():
-            new_series[k] = v.fillna(value=value, method=method)
+            new_series[k] = v.fillna(value=value, method=method, limit=limit)
 
         if inplace:
             self._series = new_series

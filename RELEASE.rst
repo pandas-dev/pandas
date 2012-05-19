@@ -33,6 +33,26 @@ pandas 0.8.0
     on DatetimeIndex (#391)
   - Convert DatetimeIndexes to UTC if time zones are different in join/setops
     (#864)
+  - Add limit argument for forward/backward filling to reindex, fillna,
+    etc. (#825 and others)
+  - Add support for indexes (dates or otherwise) with duplicates and common
+    sense indexing/selection functionality
+  - Series/DataFrame.update methods, in-place variant of combine_first (#961)
+  - Add ``match`` function to API (#502)
+  - Add Cython-optimized first, last, min, max, prod functions to GroupBy (#994,
+    #1043)
+  - Dates can be split across multiple columns (#1227, #1186)
+  - Add experimental support for converting pandas DataFrame to R data.frame
+    via rpy2 (#350, #1212)
+  - Can pass list of (name, function) to GroupBy.aggregate to get aggregates in
+    a particular order (#610)
+  - Can pass dicts with lists of functions or dicts to GroupBy aggregate to do
+    much more flexible multiple function aggregation (#642)
+  - New ordered_merge functions for merging DataFrames with ordered
+    data. Also supports group-wise merging for panel data (#813)
+  - Add keys() method to DataFrame
+  - Add flexible replace method for replacing potentially values to Series and
+    DataFrame (#929, #1241)
 
 **Improvements to existing features**
 
@@ -40,17 +60,46 @@ pandas 0.8.0
     performance in many cases and lower memory footprint
   - Shipping some functions from scipy.stats to reduce dependency,
     e.g. Series.describe and DataFrame.describe (GH #1092)
+  - Can create MultiIndex by passing list of lists or list of arrays to Series,
+    DataFrame constructor, etc. (#831)
+  - Can pass arrays in addition to column names to DataFrame.set_index (#402)
+  - Improve the speed of "square" reindexing of homogeneous DataFrame objects
+    by significant margin (#836)
+  - Handle more dtypes when passed MaskedArrays in DataFrame constructor (#406)
+  - Improved performance of join operations on integer keys (#682)
+  - Can pass multiple columns to GroupBy object, e.g. grouped[[col1, col2]] to
+    only aggregate a subset of the value columns (#383)
 
 **API Changes**
 
+  - Raise ValueError in DataFrame.__nonzero__, so "if df" no longer works
+    (#1073)
   - Change BDay (business day) to not normalize dates by default
   - Remove deprecated DataMatrix name
+  - Default merge suffixes for overlap now have underscores instead of periods
+    to facilitate tab completion, etc. (#1239)
 
 **Bug fixes**
 
   - Fix OverflowError from storing pre-1970 dates in HDFStore by switching to
     datetime64 (GH #179)
   - Fix logical error with February leap year end in YearEnd offset
+  - Series([False, nan]) was getting casted to float64 (GH #1074)
+  - Fix binary operations between boolean Series and object Series with
+    booleans and NAs (GH #1074)
+  - Couldn't assign whole array to column in mixed-type DataFrame via .ix
+    (#1142)
+  - Fix label slicing issues with float index values (#1167)
+  - Fix segfault caused by empty groups passed to groupby (#1048)
+  - Fix occasionally misbehaved reindexing in the presence of NaN labels (#522)
+  - Fix imprecise logic causing weird Series results from .apply (#1183)
+  - Unstack multiple levels in one shot, avoiding empty columns in some
+    cases. Fix pivot table bug (#1181)
+  - Fix formatting of MultiIndex on Series/DataFrame when index name coincides
+    with label (#1217)
+  - Handle Excel 2003 #N/A as NaN from xlrd (#1213, #1225)
+  - Fix timestamp locale-related deserialization issues with HDFStore by moving
+    to datetime64 representation (#1081, #809)
 
 pandas 0.7.3
 ============

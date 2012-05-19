@@ -1,7 +1,32 @@
 cimport numpy as np
 cimport cython
+import numpy as np
 
 from numpy cimport *
+from numpy cimport NPY_INT32 as NPY_int32
+from numpy cimport NPY_INT64 as NPY_int64
+from numpy cimport NPY_FLOAT32 as NPY_float32
+from numpy cimport NPY_FLOAT64 as NPY_float64
+
+int32 = np.dtype(np.int32)
+int64 = np.dtype(np.int64)
+float32 = np.dtype(np.float32)
+float64 = np.dtype(np.float64)
+
+cdef np.int32_t MINint32 = np.iinfo(np.int32).min
+cdef np.int64_t MINint64 = np.iinfo(np.int64).min
+cdef np.float32_t MINfloat32 = np.NINF
+cdef np.float64_t MINfloat64 = np.NINF
+
+cdef np.int32_t MAXint32 = np.iinfo(np.int32).max
+cdef np.int64_t MAXint64 = np.iinfo(np.int64).max
+cdef np.float32_t MAXfloat32 = np.inf
+cdef np.float64_t MAXfloat64 = np.inf
+
+
+cdef extern from "numpy/arrayobject.h":
+    cdef enum NPY_TYPES:
+        NPY_intp "NPY_INTP"
 
 from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
                       PyDict_Contains, PyDict_Keys,
@@ -11,10 +36,10 @@ from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
 from cpython cimport PyFloat_Check
 cimport cpython
 
-import numpy as np
 isnan = np.isnan
 cdef double NaN = <double> np.NaN
 cdef double nan = NaN
+cdef double NAN = nan
 
 from datetime import datetime as pydatetime
 
@@ -156,7 +181,7 @@ cdef double INF = <double> np.inf
 cdef double NEGINF = -INF
 
 cpdef checknull(object val):
-    if util.is_float_object(val):
+    if util.is_float_object(val) or util.is_complex_object(val):
         return val != val or val == INF or val == NEGINF
     elif util.is_datetime64_object(val):
         return val.view('i8') == NaT
@@ -369,7 +394,7 @@ def fast_zip(list ndarrays):
         arr = ndarrays[j]
         it = <flatiter> PyArray_IterNew(arr)
         if len(arr) != n:
-            raise ValueError('all arrays but be same length')
+            raise ValueError('all arrays must be same length')
 
         for i in range(n):
             val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
@@ -378,6 +403,23 @@ def fast_zip(list ndarrays):
             PyArray_ITER_NEXT(it)
 
     return result
+
+
+def get_reverse_indexer(ndarray[int64_t] indexer, Py_ssize_t length):
+    cdef:
+        Py_ssize_t i, n = len(indexer)
+        ndarray[int64_t] rev_indexer
+        int64_t idx
+
+    rev_indexer = np.empty(length, dtype=np.int64)
+    rev_indexer.fill(-1)
+    for i in range(n):
+        idx = indexer[i]
+        if idx != -1:
+            rev_indexer[idx] = i
+
+    return rev_indexer
+
 
 def has_infs_f4(ndarray[float32_t] arr):
     cdef:
@@ -442,7 +484,7 @@ def maybe_indices_to_slice(ndarray[int64_t] indices):
     return slice(indices[0], indices[n - 1] + 1)
 
 
-def maybe_booleans_to_slice(ndarray[uint8_t, cast=True] mask):
+def maybe_booleans_to_slice(ndarray[uint8_t] mask):
     cdef:
         Py_ssize_t i, n = len(mask)
         Py_ssize_t start, end
@@ -451,7 +493,7 @@ def maybe_booleans_to_slice(ndarray[uint8_t, cast=True] mask):
     for i in range(n):
         if mask[i]:
             if finished:
-                return mask
+                return mask.view(np.bool_)
             if not started:
                 started = 1
                 start = i
@@ -654,10 +696,9 @@ include "skiplist.pyx"
 include "groupby.pyx"
 include "moments.pyx"
 include "reindex.pyx"
-include "generated.pyx"
 include "reduce.pyx"
 include "stats.pyx"
 include "properties.pyx"
 include "inference.pyx"
-include "internals.pyx"
 include "join.pyx"
+include "engines.pyx"

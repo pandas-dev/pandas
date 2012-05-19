@@ -412,4 +412,3 @@ def unique1d(values):
         uniques = table.unique(com._ensure_object(values))
         uniques = lib.list_to_object_array(uniques)
     return uniques
-

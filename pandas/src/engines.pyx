@@ -1,7 +1,5 @@
 from numpy cimport ndarray
 
-
-
 from numpy cimport float64_t, int32_t, int64_t, uint8_t
 cimport cython
 
@@ -14,9 +12,9 @@ cimport util
 
 import numpy as np
 
-import _tseries
+import _algos
 
-include "hashtable.pyx"
+# include "hashtable.pyx"
 
 cdef extern from "datetime.h":
     bint PyDateTime_Check(object o)
@@ -26,8 +24,9 @@ PyDateTime_IMPORT
 
 cdef extern from "Python.h":
     int PySlice_Check(object)
-    int PyList_Check(object)
-    int PyTuple_Check(object)
+
+#     int PyList_Check(object)
+#     int PyTuple_Check(object)
 
 cdef inline is_definitely_invalid_key(object val):
     if PyTuple_Check(val):
@@ -45,11 +44,17 @@ def get_value_at(ndarray arr, object loc):
 def set_value_at(ndarray arr, object loc, object val):
     return util.set_value_at(arr, loc, val)
 
+
+# Don't populate hash tables in monotonic indexes larger than this
+cdef int _SIZE_CUTOFF = 1000000
+
+
 cdef class IndexEngine:
 
     cdef readonly:
         object index_weakref
         HashTable mapping
+        bint over_size_threshold
 
     cdef:
         bint unique, monotonic
@@ -57,6 +62,9 @@ cdef class IndexEngine:
 
     def __init__(self, index_weakref):
         self.index_weakref = index_weakref
+
+        self.over_size_threshold = len(index_weakref()) >= _SIZE_CUTOFF
+
         self.initialized = 0
         self.monotonic_check = 0
 
@@ -80,6 +88,8 @@ cdef class IndexEngine:
         if PySlice_Check(loc) or cnp.PyArray_Check(loc):
             return arr[loc]
         else:
+            if arr.descr.type_num == NPY_DATETIME:
+                return Timestamp(util.get_value_at(arr, loc))
             return util.get_value_at(arr, loc)
 
     cpdef set_value(self, ndarray arr, object key, object value):
@@ -100,6 +110,15 @@ cdef class IndexEngine:
         if is_definitely_invalid_key(val):
             raise TypeError
 
+        if self.over_size_threshold and self.is_monotonic:
+            if not self.is_unique:
+                return self._get_loc_duplicates(val)
+            values = self._get_index_values()
+            loc = values.searchsorted(val, side='left')
+            if util.get_value_at(values, loc) != val:
+                raise KeyError(val)
+            return loc
+
         self._ensure_mapping_populated()
         if not self.unique:
             return self._get_loc_duplicates(val)
@@ -116,8 +135,10 @@ cdef class IndexEngine:
 
         if self.is_monotonic:
             values = self._get_index_values()
+
             left = values.searchsorted(val, side='left')
             right = values.searchsorted(val, side='right')
+
             diff = right - left
             if diff == 0:
                 raise KeyError(val)
@@ -130,7 +151,7 @@ cdef class IndexEngine:
 
     cdef _get_bool_indexer(self, object val):
         cdef:
-            ndarray[uint8_t, cast=True] indexer
+            ndarray[uint8_t] indexer
             ndarray[object] values
             int count = 0
             Py_ssize_t i, n
@@ -138,7 +159,8 @@ cdef class IndexEngine:
         values = self._get_index_values()
         n = len(values)
 
-        indexer = np.empty(n, dtype=bool)
+        result = np.empty(n, dtype=bool)
+        indexer = result.view(np.uint8)
 
         for i in range(n):
             if values[i] == val:
@@ -150,7 +172,7 @@ cdef class IndexEngine:
         if count == 0:
             raise KeyError(val)
 
-        return indexer
+        return result
 
     property is_unique:
 
@@ -241,14 +263,14 @@ cdef class Int64Engine(IndexEngine):
         return Int64HashTable(n)
 
     def _call_monotonic(self, values):
-        return _tseries.is_monotonic_int64(values)
+        return _algos.is_monotonic_int64(values)
 
     def get_pad_indexer(self, other, limit=None):
-        return _tseries.pad_int64(self._get_index_values(), other,
+        return _algos.pad_int64(self._get_index_values(), other,
                                   limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
-        return _tseries.backfill_int64(self._get_index_values(), other,
+        return _algos.backfill_int64(self._get_index_values(), other,
                                        limit=limit)
 
     cdef _get_bool_indexer(self, object val):
@@ -267,7 +289,8 @@ cdef class Int64Engine(IndexEngine):
         values = self._get_index_values()
         n = len(values)
 
-        indexer = np.empty(n, dtype=bool)
+        result = np.empty(n, dtype=bool)
+        indexer = result.view(np.uint8)
 
         for i in range(n):
             if values[i] == val:
@@ -279,7 +302,7 @@ cdef class Int64Engine(IndexEngine):
         if count == 0:
             raise KeyError(val)
 
-        return indexer
+        return result
 
 cdef class Float64Engine(IndexEngine):
 
@@ -289,26 +312,26 @@ cdef class Float64Engine(IndexEngine):
         return Float64HashTable(n)
 
     def _call_monotonic(self, values):
-        return _tseries.is_monotonic_float64(values)
+        return _algos.is_monotonic_float64(values)
 
     def get_pad_indexer(self, other, limit=None):
-        return _tseries.pad_float64(self._get_index_values(), other,
+        return _algos.pad_float64(self._get_index_values(), other,
                                     limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
-        return _tseries.backfill_float64(self._get_index_values(), other,
+        return _algos.backfill_float64(self._get_index_values(), other,
                                          limit=limit)
 
 _pad_functions = {
-    'object' : _tseries.pad_object,
-    'int64' : _tseries.pad_int64,
-    'float64' : _tseries.pad_float64
+    'object' : _algos.pad_object,
+    'int64' : _algos.pad_int64,
+    'float64' : _algos.pad_float64
 }
 
 _backfill_functions = {
-    'object': _tseries.backfill_object,
-    'int64': _tseries.backfill_int64,
-    'float64': _tseries.backfill_float64
+    'object': _algos.backfill_object,
+    'int64': _algos.backfill_int64,
+    'float64': _algos.backfill_float64
 }
 
 cdef class ObjectEngine(IndexEngine):
@@ -319,54 +342,67 @@ cdef class ObjectEngine(IndexEngine):
         return PyObjectHashTable(n)
 
     def _call_monotonic(self, values):
-        return _tseries.is_monotonic_object(values)
+        return _algos.is_monotonic_object(values)
 
     def get_pad_indexer(self, other, limit=None):
-        return _tseries.pad_object(self._get_index_values(), other,
+        return _algos.pad_object(self._get_index_values(), other,
                                    limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
-        return _tseries.backfill_object(self._get_index_values(), other,
+        return _algos.backfill_object(self._get_index_values(), other,
                                         limit=limit)
 
 
 cdef class DatetimeEngine(Int64Engine):
 
-    # cdef Int64HashTable mapping
-
     def __contains__(self, object val):
+        if self.over_size_threshold and self.is_monotonic:
+            if not self.is_unique:
+                return self._get_loc_duplicates(val)
+            values = self._get_index_values()
+            conv = _to_i8(val)
+            loc = values.searchsorted(conv, side='left')
+            return util.get_value_at(values, loc) == conv
+
         self._ensure_mapping_populated()
-
-        if util.is_datetime64_object(val):
-            return val.view('i8') in self.mapping
-
-        if PyDateTime_Check(val):
-            key = np.datetime64(val)
-            return key.view('i8') in self.mapping
-
-        return val in self.mapping
+        return _to_i8(val) in self.mapping
 
     cdef _get_index_values(self):
         return self.index_weakref().values.view('i8')
 
     def _call_monotonic(self, values):
-        return _tseries.is_monotonic_int64(values)
+        return _algos.is_monotonic_int64(values)
 
     cpdef get_loc(self, object val):
         if is_definitely_invalid_key(val):
             raise TypeError
 
-        if util.is_datetime64_object(val):
-            val = val.view('i8')
-        elif PyDateTime_Check(val):
-            val = np.datetime64(val)
-            val = val.view('i8')
+        # Welcome to the spaghetti factory
+
+        if self.over_size_threshold and self.is_monotonic:
+            if not self.is_unique:
+                return self._get_loc_duplicates(val)
+            values = self._get_index_values()
+            conv = _to_i8(val)
+            loc = values.searchsorted(conv, side='left')
+            if util.get_value_at(values, loc) != conv:
+                raise KeyError(val)
+            return loc
 
         self._ensure_mapping_populated()
         if not self.unique:
+            val = _to_i8(val)
             return self._get_loc_duplicates(val)
 
         try:
+            return self.mapping.get_item(val.value)
+        except KeyError:
+            raise KeyError(val)
+        except AttributeError:
+            pass
+
+        try:
+            val = _to_i8(val)
             return self.mapping.get_item(val)
         except TypeError:
             self._date_check_type(val)
@@ -388,16 +424,24 @@ cdef class DatetimeEngine(Int64Engine):
         if other.dtype != 'M8':
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
-        return _tseries.pad_int64(self._get_index_values(), other,
-                                  limit=limit)
+        return _algos.pad_int64(self._get_index_values(), other,
+                                limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
         if other.dtype != 'M8':
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
-        return _tseries.backfill_int64(self._get_index_values(), other,
-                                       limit=limit)
+        return _algos.backfill_int64(self._get_index_values(), other,
+                                     limit=limit)
 
+
+cdef inline _to_i8(object val):
+    if util.is_datetime64_object(val):
+        val = unbox_datetime64_scalar(val)
+    elif PyDateTime_Check(val):
+        val = np.datetime64(val)
+        val = unbox_datetime64_scalar(val)
+    return val
 
 # ctypedef fused idxvalue_t:
 #     object

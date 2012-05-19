@@ -1,5 +1,5 @@
 # pylint: disable-msg=W0612,E1101,W0141
-from cStringIO import StringIO
+from pandas.util.py3compat import StringIO
 import nose
 import unittest
 
@@ -58,6 +58,31 @@ class TestMultiLevel(unittest.TestCase):
 
         result = a['A'].append(b['A'])
         tm.assert_series_equal(result, self.frame['A'])
+
+    def test_dataframe_constructor(self):
+        multi = DataFrame(np.random.randn(4, 4),
+                          index=[np.array(['a', 'a', 'b', 'b']),
+                                 np.array(['x', 'y', 'x', 'y'])])
+        self.assert_(isinstance(multi.index, MultiIndex))
+        self.assert_(not isinstance(multi.columns, MultiIndex))
+
+        multi = DataFrame(np.random.randn(4, 4),
+                          columns=[['a', 'a', 'b', 'b'],
+                                   ['x', 'y', 'x', 'y']])
+        self.assert_(isinstance(multi.columns, MultiIndex))
+
+    def test_series_constructor(self):
+        multi = Series(1., index=[np.array(['a', 'a', 'b', 'b']),
+                                  np.array(['x', 'y', 'x', 'y'])])
+        self.assert_(isinstance(multi.index, MultiIndex))
+
+        multi = Series(1., index=[['a', 'a', 'b', 'b'],
+                                  ['x', 'y', 'x', 'y']])
+        self.assert_(isinstance(multi.index, MultiIndex))
+
+        multi = Series(range(4), index=[['a', 'a', 'b', 'b'],
+                                        ['x', 'y', 'x', 'y']])
+        self.assert_(isinstance(multi.index, MultiIndex))
 
     def test_reindex_level(self):
         # axis=0
@@ -147,6 +172,15 @@ class TestMultiLevel(unittest.TestCase):
         self.ymd.to_string(buf=buf)
         self.frame.T.to_string(buf=buf)
         self.ymd.T.to_string(buf=buf)
+
+    def test_repr_name_coincide(self):
+        index = MultiIndex.from_tuples([('a', 0, 'foo'), ('b', 1, 'bar')],
+                                       names=['a', 'b', 'c'])
+
+        df = DataFrame({'value': [0, 1]}, index=index)
+
+        lines = repr(df).split('\n')
+        self.assert_(lines[2].startswith('a 0 foo'))
 
     def test_getitem_simple(self):
         df = self.frame.T
@@ -582,6 +616,16 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         # test that ints work
         unstacked = self.ymd.astype(int).unstack()
 
+    def test_unstack_multiple_no_empty_columns(self):
+        index = MultiIndex.from_tuples([(0, 'foo', 0), (0, 'bar', 0),
+                                        (1, 'baz', 1), (1, 'qux', 1)])
+
+        s = Series(np.random.randn(4), index=index)
+
+        unstacked = s.unstack([1, 2])
+        expected = unstacked.dropna(axis=1, how='all')
+        assert_frame_equal(unstacked, expected)
+
     def test_stack(self):
         # regular roundtrip
         unstacked = self.ymd.unstack()
@@ -703,12 +747,12 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         # GH #451
         unstacked = self.ymd.unstack([1, 2])
-        expected = self.ymd.unstack(1).unstack(1)
+        expected = self.ymd.unstack(1).unstack(1).dropna(axis=1, how='all')
         assert_frame_equal(unstacked, expected)
 
         unstacked = self.ymd.unstack([2, 1])
-        expected = self.ymd.unstack(2).unstack(1)
-        assert_frame_equal(unstacked, expected)
+        expected = self.ymd.unstack(2).unstack(1).dropna(axis=1, how='all')
+        assert_frame_equal(unstacked, expected.ix[:, unstacked.columns])
 
     def test_groupby_transform(self):
         s = self.frame['A']
@@ -1055,18 +1099,6 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         self.assertRaises(Exception, self.ymd.ix.__getitem__, (2000, 6))
         self.assertRaises(Exception, self.ymd.ix.__getitem__, (2000, 6), 0)
-
-    def test_fancy_2d(self):
-        raise nose.SkipTest
-
-        result = self.frame.ix['foo', 'B']
-        expected = self.frame.xs('foo')['B']
-        assert_series_equal(result, expected)
-
-        ft = self.frame.T
-        result = ft.ix['B', 'foo']
-        expected = ft.xs('B')['foo']
-        assert_series_equal(result, expected)
 
     #----------------------------------------------------------------------
 

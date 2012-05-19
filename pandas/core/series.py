@@ -115,6 +115,10 @@ def _comp_method(op, name):
             return NotImplemented
         else:
             # scalars
+            res = na_op(self.values, other)
+            if np.isscalar(res):
+                raise TypeError('Could not compare %s type with Series'
+                                % type(other))
             return Series(na_op(self.values, other),
                           index=self.index, name=self.name)
     return wrapper
@@ -133,7 +137,12 @@ def _bool_method(op, name):
                 y = lib.list_to_object_array(y)
 
             if isinstance(y, np.ndarray):
-                result = lib.vec_binop(x, y, op)
+                if x.dtype == np.bool_ and y.dtype == np.bool_:
+                    result = op(x, y)
+                else:
+                    x = com._ensure_object(x)
+                    y = com._ensure_object(y)
+                    result = lib.vec_binop(x, y, op)
             else:
                 result = lib.scalar_binop(x, y, op)
 
@@ -219,7 +228,7 @@ def _unbox(func):
     return f
 
 _stat_doc = """
-Return %(name)s  of values
+Return %(name)s of values
 %(na_action)s
 
 Parameters
@@ -238,7 +247,21 @@ _doc_exclude_na = "NA/null values are excluded"
 _doc_ndarray_interface = ("Extra parameters are to preserve ndarray"
                           "interface.\n")
 
-#-------------------------------------------------------------------------------
+
+def _make_stat_func(nanop, name, shortname, na_action=_doc_exclude_na,
+                    extras=_doc_ndarray_interface):
+
+    @Substitution(name=name, shortname=shortname,
+                  na_action=na_action, extras=extras)
+    @Appender(_stat_doc)
+    def f(self, axis=0, dtype=None, out=None, skipna=True, level=None):
+        if level is not None:
+            return self._agg_by_level(shortname, level=level, skipna=skipna)
+        return nanop(self.values, skipna=skipna)
+    f.__name__ = shortname
+    return f
+
+#----------------------------------------------------------------------
 # Series class
 
 class Series(np.ndarray, generic.PandasObject):
@@ -248,12 +271,13 @@ class Series(np.ndarray, generic.PandasObject):
 
     _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
 
-    __slots__ = ['_index', 'name']
-
     def __new__(cls, data=None, index=None, dtype=None, name=None,
                 copy=False):
         if data is None:
             data = {}
+
+        if index is not None:
+            index = _ensure_index(index)
 
         if isinstance(data, Series):
             if index is None:
@@ -261,13 +285,13 @@ class Series(np.ndarray, generic.PandasObject):
         elif isinstance(data, dict):
             if index is None:
                 index = Index(sorted(data))
-            else:
-                index = _ensure_index(index)
             try:
                 if isinstance(index, DatetimeIndex):
                     # coerce back to datetime objects for lookup
                     data = lib.fast_multiget(data, index.astype('O'),
                                              default=np.nan)
+                elif isinstance(index, PeriodIndex):
+                    data = [data.get(i, nan) for i in index]
                 else:
                     data = lib.fast_multiget(data, index, default=np.nan)
             except TypeError:
@@ -284,11 +308,11 @@ class Series(np.ndarray, generic.PandasObject):
 
         if index is None:
             index = _default_index(len(subarr))
-        else:
-            index = _ensure_index(index)
 
         # Change the class of the array to be the subclass type.
         if index.is_all_dates:
+            if not isinstance(index, (DatetimeIndex, PeriodIndex)):
+                index = DatetimeIndex(index)
             subarr = subarr.view(TimeSeries)
         else:
             subarr = subarr.view(Series)
@@ -409,7 +433,10 @@ copy : boolean, default False
         if isinstance(key, slice):
             from pandas.core.indexing import _is_index_slice
 
-            if self.index.inferred_type == 'integer' or _is_index_slice(key):
+            idx_type = self.index.inferred_type
+            if idx_type == 'floating':
+                indexer = self.ix._convert_to_indexer(key, axis=0)
+            elif idx_type == 'integer' or _is_index_slice(key):
                 indexer = key
             else:
                 indexer = self.ix._convert_to_indexer(key, axis=0)
@@ -480,7 +507,10 @@ copy : boolean, default False
                 return
 
             raise KeyError('%s not in this series!' % str(key))
-        except TypeError:
+        except TypeError, e:
+            # python 3 type errors should be raised
+            if 'unorderable' in str(e):  # pragma: no cover
+                raise IndexError(key)
             # Could not hash item
             pass
 
@@ -579,6 +609,14 @@ copy : boolean, default False
         casted = com._astype_nansafe(self.values, dtype)
         return self._constructor(casted, index=self.index, name=self.name)
 
+    def repeat(self, reps):
+        """
+        See ndarray.repeat
+        """
+        new_index = self.index.repeat(reps)
+        new_values = self.values.repeat(reps)
+        return Series(new_values, index=new_index, name=self.name)
+
     def reshape(self, newshape, order='C'):
         """
         See numpy.ndarray.reshape
@@ -674,7 +712,7 @@ copy : boolean, default False
             new_values = np.concatenate([self.values, [value]])
             return Series(new_values, index=new_index, name=self.name)
 
-    def reset_index(self, drop=False):
+    def reset_index(self, drop=False, name=None):
         """
         Analagous to the DataFrame.reset_index function, see docstring there.
 
@@ -682,6 +720,8 @@ copy : boolean, default False
         ----------
         drop : boolean, default False
             Do not try to insert index into dataframe columns
+        name : object, default None
+            The name of the column corresponding to the Series values
 
         Returns
         ----------
@@ -691,7 +731,12 @@ copy : boolean, default False
             return Series(self, index=np.arange(len(self)), name=self.name)
         else:
             from pandas.core.frame import DataFrame
-            return DataFrame(self).reset_index(drop=drop)
+            if name is None:
+                df = DataFrame(self)
+            else:
+                df = DataFrame({name : self})
+
+            return df.reset_index(drop=drop)
 
     def __repr__(self):
         """Clean string representation of a Series"""
@@ -933,8 +978,9 @@ copy : boolean, default False
 
             # call cython function
             max_bin = len(level_index)
+            labels = com._ensure_int64(self.index.labels[level])
             counts = lib.count_level_1d(mask.view(np.uint8),
-                                        self.index.labels[level], max_bin)
+                                        labels, max_bin)
             return Series(counts, index=level_index)
 
         return notnull(self.values).sum()
@@ -973,21 +1019,10 @@ copy : boolean, default False
         """
         return len(self.value_counts())
 
-    @Substitution(name='sum', shortname='sum', na_action=_doc_exclude_na,
-                  extras=_doc_ndarray_interface)
-    @Appender(_stat_doc)
-    def sum(self, axis=0, dtype=None, out=None, skipna=True, level=None):
-        if level is not None:
-            return self._agg_by_level('sum', level=level, skipna=skipna)
-        return nanops.nansum(self.values, skipna=skipna)
-
-    @Substitution(name='mean', shortname='mean', na_action=_doc_exclude_na,
-                  extras=_doc_ndarray_interface)
-    @Appender(_stat_doc)
-    def mean(self, axis=0, dtype=None, out=None, skipna=True, level=None):
-        if level is not None:
-            return self._agg_by_level('mean', level=level, skipna=skipna)
-        return nanops.nanmean(self.values, skipna=skipna)
+    sum = _make_stat_func(nanops.nansum, 'sum', 'sum')
+    mean = _make_stat_func(nanops.nanmean, 'mean', 'mean')
+    median = _make_stat_func(nanops.nanmedian, 'median', 'median', extras='')
+    prod = _make_stat_func(nanops.nanprod, 'product', 'prod', extras='')
 
     @Substitution(name='mean absolute deviation', shortname='mad',
                   na_action=_doc_exclude_na, extras='')
@@ -998,22 +1033,6 @@ copy : boolean, default False
 
         demeaned = self - self.mean(skipna=skipna)
         return np.abs(demeaned).mean(skipna=skipna)
-
-    @Substitution(name='median', shortname='median',
-                  na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc)
-    def median(self, skipna=True, level=None):
-        if level is not None:
-            return self._agg_by_level('median', level=level, skipna=skipna)
-        return nanops.nanmedian(self.values, skipna=skipna)
-
-    @Substitution(name='product', shortname='product',
-                  na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc)
-    def prod(self, axis=None, dtype=None, out=None, skipna=True, level=None):
-        if level is not None:
-            return self._agg_by_level('prod', level=level, skipna=skipna)
-        return nanops.nanprod(self.values, skipna=skipna)
 
     @Substitution(name='minimum', shortname='min',
                   na_action=_doc_exclude_na, extras='')
@@ -1258,6 +1277,9 @@ copy : boolean, default False
         if len(valid_values) == 0:
             return np.nan
         return _quantile(valid_values, q * 100)
+
+    def ptp(self, axis=None, out=None):
+        return self.values.ptp(axis, out)
 
     def describe(self, percentile_width=50):
         """
@@ -1551,6 +1573,19 @@ copy : boolean, default False
         return Series(np.where(isnull(this), other, this), index=new_index,
                       name=name)
 
+    def update(self, other):
+        """
+        Modify Series in place using non-NA values from passed
+        Series. Aligns on index
+
+        Parameters
+        ----------
+        other : Series
+        """
+        other = other.reindex_like(self)
+        mask = notnull(other)
+        np.putmask(self.values, mask, other.values)
+
     #----------------------------------------------------------------------
     # Reindexing, sorting
 
@@ -1792,13 +1827,7 @@ copy : boolean, default False
         unstacked : DataFrame
         """
         from pandas.core.reshape import unstack
-        if isinstance(level, (tuple, list)):
-            result = self
-            for lev in level:
-                result = unstack(result, lev)
-            return result
-        else:
-            return unstack(self, level)
+        return unstack(self, level)
 
     #----------------------------------------------------------------------
     # function application
@@ -1864,15 +1893,17 @@ copy : boolean, default False
         """
         try:
             result = func(self)
-            if not isinstance(result, Series):
+            if isinstance(result, np.ndarray):
                 result = Series(result, index=self.index, name=self.name)
+            else:
+                raise ValueError('Must yield array')
             return result
         except Exception:
             mapped = lib.map_infer(self.values, func)
             return Series(mapped, index=self.index, name=self.name)
 
     def align(self, other, join='outer', level=None, copy=True,
-              fill_value=None, method=None):
+              fill_value=None, method=None, inplace=False, limit=None):
         """
         Align two Series object with the specified join method
 
@@ -1888,6 +1919,8 @@ copy : boolean, default False
             required, the same object will be returned (for better performance)
         fill_value : object, default None
         method : str, default 'pad'
+        limit : int, default None
+           fill_value, method, inplace, limit are passed to fillna
 
         Returns
         -------
@@ -1902,8 +1935,8 @@ copy : boolean, default False
         right = other._reindex_indexer(join_index, ridx, copy)
         fill_na = (fill_value is not None) or (method is not None)
         if fill_na:
-            return (left.fillna(fill_value, method=method),
-                    right.fillna(fill_value, method=method))
+            return (left.fillna(fill_value, method=method, limit=limit),
+                    right.fillna(fill_value, method=method, limit=limit))
         else:
             return left, right
 
@@ -2001,6 +2034,7 @@ copy : boolean, default False
         -------
         taken : Series
         """
+        indices = com._ensure_platform_int(indices)
         new_index = self.index.take(indices)
         new_values = self.values.take(indices)
         return Series(new_values, index=new_index, name=self.name)
@@ -2035,20 +2069,15 @@ copy : boolean, default False
         -------
         filled : Series
         """
-        mask = isnull(self.values)
-
         if value is not None:
             result = self.copy() if not inplace else self
+            mask = isnull(self.values)
             np.putmask(result, mask, value)
         else:
             if method is None:  # pragma: no cover
                 raise ValueError('must specify a fill method')
 
-            method = com._clean_fill_method(method)
-            if method == 'pad':
-                fill_f = com.pad_1d
-            elif method == 'backfill':
-                fill_f = com.backfill_1d
+            fill_f = _get_fill_func(method)
 
             if inplace:
                 values = self.values
@@ -2063,6 +2092,92 @@ copy : boolean, default False
                 result = Series(values, index=self.index, name=self.name)
 
         return result
+
+
+    def replace(self, to_replace, value=None, method='pad', inplace=False,
+                limit=None):
+        """
+        Replace arbitrary values in a Series
+
+        Parameters
+        ----------
+        to_replace : list or dict
+            list of values to be replaced or dict of replacement values
+        value : anything
+            if to_replace is a list then value is the replacement value
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default 'pad'
+            Method to use for filling holes in reindexed Series
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap
+        inplace : boolean, default False
+            If True, fill the Series in place. Note: this will modify any other
+            views on this Series, for example a column in a DataFrame. Returns
+            a reference to the filled object, which is self if inplace=True
+        limit : int, default None
+            Maximum size gap to forward or backward fill
+
+        Notes
+        -----
+        replace does not distinguish between NaN and None
+
+        See also
+        --------
+        fillna, reindex, asfreq
+
+        Returns
+        -------
+        replaced : Series
+        """
+        result = self.copy() if not inplace else self
+
+        def _rep_one(s, to_rep, v): # replace single value
+            mask = com.mask_missing(s.values, to_rep)
+            np.putmask(s.values, mask, v)
+            return s
+
+        def _rep_dict(rs, to_rep): # replace {[src] -> dest}
+
+            dd = {} # group by unique destination value
+            [dd.setdefault(d, []).append(s) for s, d in to_rep.iteritems()]
+
+            for d, sset in dd.iteritems(): # now replace by each dest
+                rs = _rep_one(rs, sset, d)
+            return rs
+
+        if np.isscalar(to_replace):
+            to_replace = [to_replace]
+
+        if isinstance(to_replace, dict):
+            return _rep_dict(result, to_replace)
+
+        if isinstance(to_replace, (list, np.ndarray)):
+
+            if isinstance(value, (list, np.ndarray)): # check same length
+                vl, rl = len(value), len(to_replace)
+                if vl == rl:
+                    return _rep_dict(result, dict(zip(to_replace, value)))
+                raise ValueError('Got %d to replace but %d values' % (rl, vl))
+
+            elif value is not None: # otherwise all replaced with same value
+
+                return _rep_one(result, to_replace, value)
+
+            else: # method
+                if method is None:  # pragma: no cover
+                    raise ValueError('must specify a fill method')
+                fill_f = _get_fill_func(method)
+
+                mask = com.mask_missing(result, to_replace)
+                fill_f(result.values, limit=limit, mask=mask)
+
+                if not inplace:
+                    result = Series(result.values, index=self.index,
+                                    name=self.name)
+                return result
+
+
+        raise ValueError('Unrecognized to_replace type %s' %
+                         type(to_replace))
 
     def isin(self, values):
         """
@@ -2252,11 +2367,18 @@ copy : boolean, default False
                 new_values[periods:] = nan
 
             return Series(new_values, index=self.index, name=self.name)
+        elif isinstance(self.index, PeriodIndex):
+            orig_offset = datetools.to_offset(self.index.freq)
+            if orig_offset == offset:
+                return Series(self, self.index.shift(periods), name=self.name)
+            msg = ('Given freq %s does not match PeriodIndex freq %s' %
+                   (offset.rule_code, orig_offset.rule_code))
+            raise ValueError(msg)
         else:
             return Series(self, index=self.index.shift(periods, offset),
                           name=self.name)
 
-    def asof(self, date):
+    def asof(self, where):
         """
         Return last good (non-NaN) value in TimeSeries if value is NaN for
         requested date.
@@ -2265,7 +2387,7 @@ copy : boolean, default False
 
         Parameters
         ----------
-        date : datetime or similar value
+        wehre : date or array of dates
 
         Notes
         -----
@@ -2275,25 +2397,27 @@ copy : boolean, default False
         -------
         value or NaN
         """
-        if isinstance(date, basestring):
-            date = datetools.to_datetime(date)
+        if isinstance(where, basestring):
+            where = datetools.to_datetime(where)
 
-        v = self.get(date)
+        values = self.values
 
-        if isnull(v):
-            # this will convert datetime -> datetime64 index
-            candidates = self.index[notnull(self)]
+        if not hasattr(where, '__iter__'):
+            if where < self.index[0]:
+                return np.nan
+            loc = self.index.searchsorted(where, side='right')
+            if loc > 0:
+                loc -= 1
+            while isnull(values[loc]) and loc > 0:
+                loc -= 1
+            return values[loc]
 
-            index = candidates.searchsorted(lib.Timestamp(date))
+        if not isinstance(where, Index):
+            where = Index(where)
 
-            if index > 0:
-                asOfDate = candidates[index - 1]
-            else:
-                return nan
-
-            return self.get(asOfDate)
-        else:
-            return v
+        locs = self.index.asof_locs(where, notnull(values))
+        new_values = com.take_1d(values, locs)
+        return Series(new_values, index=where, name=self.name)
 
     def interpolate(self, method='linear'):
         """
@@ -2425,6 +2549,17 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             subarr = data.copy()
         else:
             subarr = data
+    elif isinstance(data, list) and len(data) > 0:
+        if dtype is not None:
+            try:
+                subarr = _try_cast(data)
+            except Exception:
+                if raise_cast_failure:
+                    raise
+                subarr = lib.maybe_convert_objects(subarr)
+        else:
+            subarr = lib.list_to_object_array(data)
+            subarr = lib.maybe_convert_objects(subarr)
     else:
         subarr = _try_cast(data)
 
@@ -2495,6 +2630,13 @@ def _resolve_offset(freq, kwds):
 
     return offset
 
+def _get_fill_func(method):
+    method = com._clean_fill_method(method)
+    if method == 'pad':
+        fill_f = com.pad_1d
+    elif method == 'backfill':
+        fill_f = com.backfill_1d
+    return fill_f
 
 #----------------------------------------------------------------------
 # Add plotting methods to Series
@@ -2549,10 +2691,7 @@ class TimeSeries(Series):
         Returns
         -------
         """
-        if self.index.tz is None:
-            new_index = self.index.tz_localize(tz)
-        else:
-            new_index = self.index.tz_normalize(tz)
+        new_index = self.index.tz_convert(tz)
 
         new_values = self.values
         if copy:
@@ -2560,17 +2699,21 @@ class TimeSeries(Series):
 
         return Series(new_values, index=new_index, name=self.name)
 
-    def to_timestamp(self, freq='D', how='start', copy=True):
+    def to_timestamp(self, freq=None, how='start', copy=True):
         """
         Cast to datetimeindex of timestamps, at *beginning* of period
 
         Parameters
         ----------
+        freq : string, default frequency of PeriodIndex
+            Desired frequency
         how : {'s', 'e', 'start', 'end'}
+            Convention for converting period to timestamp; start of period
+            vs. end
 
         Returns
         -------
-        DatetimeIndex
+        ts : TimeSeries with DatetimeIndex
         """
         new_values = self.values
         if copy:
@@ -2579,4 +2722,24 @@ class TimeSeries(Series):
         new_index = self.index.to_timestamp(freq=freq, how=how)
         return Series(new_values, index=new_index, name=self.name)
 
+    def to_period(self, freq=None, copy=True):
+        """
+        Convert TimeSeries from DatetimeIndex to PeriodIndex with desired
+        frequency (inferred from index if not passed)
 
+        Parameters
+        ----------
+        freq : string, default
+
+        Returns
+        -------
+        ts : TimeSeries with PeriodIndex
+        """
+        new_values = self.values
+        if copy:
+            new_values = new_values.copy()
+
+        if freq is None:
+            freq = self.index.freqstr or self.index.inferred_freq
+        new_index = self.index.to_period(freq=freq)
+        return Series(new_values, index=new_index, name=self.name)

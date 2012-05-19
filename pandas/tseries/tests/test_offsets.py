@@ -1214,7 +1214,7 @@ def assertEq(offset, base, expected):
     actual = offset + base
     try:
         assert actual == expected
-    except AssertionError as err:
+    except AssertionError:
         raise AssertionError("\nExpected: %s\nActual: %s\nFor Offset: %s)"
                              "\nAt Date: %s"%
                 (expected, actual, offset, base))

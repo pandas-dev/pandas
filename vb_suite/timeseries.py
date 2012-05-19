@@ -9,10 +9,23 @@ try:
     rng = date_range('1/1/2000', periods=N, freq='min')
 except NameError:
     rng = DateRange('1/1/2000', periods=N, offset=datetools.Minute())
-    date_range = DateRange
+    def date_range(start=None, end=None, periods=None, freq=None):
+        return DateRange(start, end, periods=periods, offset=freq)
 
 ts = Series(np.random.randn(N), index=rng)
 """
+
+#----------------------------------------------------------------------
+# Lookup value in large time series, hash map population
+
+setup = common_setup + """
+rng = date_range('1/1/2000', periods=1500000, freq='s')
+ts = Series(1, index=rng)
+"""
+
+stmt = "ts[ts.index[len(ts) // 2]]; ts.index._cleanup()"
+timeseries_large_lookup_value = Benchmark(stmt, setup,
+                                          start_date=datetime(2012, 1, 1))
 
 #----------------------------------------------------------------------
 # Test slice minutely series
@@ -68,13 +81,49 @@ datetimeindex_add_offset = Benchmark('rng + timedelta(minutes=2)', setup,
                                      start_date=datetime(2012, 4, 1))
 
 setup = common_setup + """
-N = 1000
+N = 10000
 rng = date_range('1/1/1990', periods=N, freq='53s')
 ts = Series(np.random.randn(N), index=rng)
 dates = date_range('1/1/1990', periods=N * 10, freq='5s')
 """
-timeseries_asof_loop = Benchmark('[ts.asof(d) for d in dates]', setup,
+timeseries_asof_single = Benchmark('ts.asof(dates[0])', setup,
                                  start_date=datetime(2012, 4, 27))
 
 timeseries_asof = Benchmark('ts.asof(dates)', setup,
                             start_date=datetime(2012, 4, 27))
+
+setup = setup + 'ts[250:5000] = np.nan'
+
+timeseries_asof_nan = Benchmark('ts.asof(dates)', setup,
+                                start_date=datetime(2012, 4, 27))
+
+#----------------------------------------------------------------------
+# Time zone stuff
+
+setup = common_setup + """
+rng = date_range('1/1/2000', '3/1/2000', tz='US/Eastern')
+"""
+
+timeseries_timestamp_tzinfo_cons = \
+    Benchmark('rng[0]', setup, start_date=datetime(2012, 5, 5))
+
+#----------------------------------------------------------------------
+# Resampling period
+
+setup = common_setup + """
+rng = period_range('1/1/2000', '1/1/2001', freq='T')
+ts = Series(np.random.randn(len(rng)), index=rng)
+"""
+
+timeseries_period_downsample_mean = \
+    Benchmark("ts.resample('D', how='mean')", setup,
+              start_date=datetime(2012, 4, 25))
+
+setup = common_setup + """
+rng = date_range('1/1/2000', '1/1/2001', freq='T')
+ts = Series(np.random.randn(len(rng)), index=rng)
+"""
+
+timeseries_timestamp_downsample_mean = \
+    Benchmark("ts.resample('D', how='mean')", setup,
+              start_date=datetime(2012, 4, 25))

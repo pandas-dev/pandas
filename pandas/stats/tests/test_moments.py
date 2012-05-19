@@ -1,5 +1,6 @@
 import unittest
 import nose
+import sys
 
 from datetime import datetime
 from numpy.random import randn
@@ -61,21 +62,21 @@ class TestMoments(unittest.TestCase):
             return values[int(idx)]
 
         for q in qs:
-            def f(x, window, min_periods=None, time_rule=None):
+            def f(x, window, min_periods=None, freq=None):
                 return mom.rolling_quantile(x, window, q,
                                                 min_periods=min_periods,
-                                                time_rule=time_rule)
+                                                freq=freq)
             def alt(x):
                 return scoreatpercentile(x, q)
 
             self._check_moment_func(f, alt)
 
     def test_rolling_apply(self):
-        def roll_mean(x, window, min_periods=None, time_rule=None):
+        def roll_mean(x, window, min_periods=None, freq=None):
             return mom.rolling_apply(x, window,
                                          lambda x: x[np.isfinite(x)].mean(),
                                          min_periods=min_periods,
-                                         time_rule=time_rule)
+                                         freq=freq)
         self._check_moment_func(roll_mean, np.mean)
 
     def test_rolling_std(self):
@@ -167,12 +168,12 @@ class TestMoments(unittest.TestCase):
 
             if has_min_periods:
                 series_result = func(self.series[::2], win, min_periods=minp,
-                                     time_rule='WEEKDAY')
+                                     freq='B')
                 frame_result = func(self.frame[::2], win, min_periods=minp,
-                                    time_rule='WEEKDAY')
+                                    freq='B')
             else:
-                series_result = func(self.series[::2], win, time_rule='WEEKDAY')
-                frame_result = func(self.frame[::2], win, time_rule='WEEKDAY')
+                series_result = func(self.series[::2], win, freq='B')
+                frame_result = func(self.frame[::2], win, freq='B')
 
             last_date = series_result.index[-1]
             prev_date = last_date - 24 * datetools.bday
@@ -184,6 +185,28 @@ class TestMoments(unittest.TestCase):
 
             assert_almost_equal(frame_result.xs(last_date),
                                 trunc_frame.apply(static_comp))
+
+    def test_legacy_time_rule_arg(self):
+        from StringIO import StringIO
+        # suppress deprecation warnings
+        sys.stderr = StringIO()
+
+        rng = bdate_range('1/1/2000', periods=20)
+        ts = Series(np.random.randn(20), index=rng)
+        ts = ts.take(np.random.permutation(len(ts))[:12]).sort_index()
+
+        try:
+            result = mom.rolling_mean(ts, 1, min_periods=1, freq='B')
+            expected = mom.rolling_mean(ts, 1, min_periods=1,
+                                        time_rule='WEEKDAY')
+            tm.assert_series_equal(result, expected)
+
+            result = mom.ewma(ts, span=5, freq='B')
+            expected = mom.ewma(ts, span=5, time_rule='WEEKDAY')
+            tm.assert_series_equal(result, expected)
+
+        finally:
+            sys.stderr = sys.__stderr__
 
     def test_ewma(self):
         self._check_ew(mom.ewma)

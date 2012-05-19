@@ -912,7 +912,7 @@ class Panel(NDFrame):
         axis = self._get_axis_number(axis)
         return PanelGroupBy(self, function, axis=axis)
 
-    def swapaxes(self, axis1='major', axis2='minor'):
+    def swapaxes(self, axis1='major', axis2='minor', copy=True):
         """
         Interchange axes and swap values axes appropriately
 
@@ -930,8 +930,44 @@ class Panel(NDFrame):
 
         new_axes = (self._get_axis(mapping.get(k, k))
                     for k in range(3))
-        new_values = self.values.swapaxes(i, j).copy()
+        new_values = self.values.swapaxes(i, j)
+        if copy:
+            new_values = new_values.copy()
 
+        return self._constructor(new_values, *new_axes)
+
+    def transpose(self, items='items', major='major', minor='minor',
+                  copy=False):
+        """
+        Permute the dimensions of the Panel
+
+        Parameters
+        ----------
+        items : int or one of {'items', 'major', 'minor'}
+        major : int or one of {'items', 'major', 'minor'}
+        minor : int or one of {'items', 'major', 'minor'}
+        copy : boolean, default False
+            Make a copy of the underlying data. Mixed-dtype data will
+            always result in a copy
+
+        Examples
+        --------
+        >>> p.transpose(2, 0, 1)
+        >>> p.transpose(2, 0, 1, copy=True)
+
+        Returns
+        -------
+        y : Panel (new object)
+        """
+        i, j, k = [self._get_axis_number(x) for x in [items, major, minor]]
+
+        if i == j or i == k or j == k:
+            raise ValueError('Must specify 3 unique axes')
+
+        new_axes = [self._get_axis(x) for x in [i, j, k]]
+        new_values = self.values.transpose((i, j, k))
+        if copy:
+            new_values = new_values.copy()
         return self._constructor(new_values, *new_axes)
 
     def to_frame(self, filter_observations=True):

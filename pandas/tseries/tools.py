@@ -118,7 +118,7 @@ qpat1 = re.compile(r'(\d)Q(\d\d)')
 qpat2 = re.compile(r'(\d\d)Q(\d)')
 
 
-def parse_time_string(arg):
+def parse_time_string(arg, freq=None):
     """
     Try hard to parse datetime string, leveraging dateutil plus some extra
     goodies like quarter recognition.
@@ -126,12 +126,17 @@ def parse_time_string(arg):
     Parameters
     ----------
     arg : basestring
+    freq : str or DateOffset, default None
+        Helps with interpreting time string if supplied
 
     Returns
     -------
     datetime, datetime/dateutil.parser._result, str
     """
     from pandas.core.format import print_config
+    from pandas.tseries.offsets import DateOffset
+    from pandas.tseries.frequencies import (_get_rule_month, _month_numbers,
+                                            _get_freq_str)
 
     if not isinstance(arg, basestring):
         return arg
@@ -162,8 +167,29 @@ def parse_time_string(arg):
                     y = int(y_str)
                     if add_century:
                         y += 2000
-                    ret = default.replace(year=y, month=(q-1)*3+1)
+
+                    if freq is not None:
+                        # hack attack, #1228
+                        mnum = _month_numbers[_get_rule_month(freq)] + 1
+                        month = (mnum + (q - 1) * 3) % 12 + 1
+                        if month > mnum:
+                            y -= 1
+                    else:
+                        month = (q - 1) * 3 + 1
+
+                    ret = default.replace(year=y, month=month)
                     return ret, ret, 'quarter'
+
+            is_mo_str = freq is not None and freq == 'M'
+            is_mo_off = getattr(freq, 'rule_code', None) == 'M'
+            is_monthly = is_mo_str or is_mo_off
+            if len(arg) == 6 and is_monthly:
+                try:
+                    ret = _try_parse_monthly(arg)
+                    if ret is not None:
+                        return ret, ret, 'month'
+                except Exception:
+                    pass
 
         dayfirst = print_config.date_dayfirst
         yearfirst = print_config.date_yearfirst
@@ -191,6 +217,24 @@ def parse_time_string(arg):
         return ret, parsed, reso  # datetime, resolution
     except Exception, e:
         raise DateParseError(e)
+
+def _try_parse_monthly(arg):
+    base = 2000
+    add_base = False
+    default = datetime(1, 1, 1).replace(hour=0, minute=0, second=0,
+                                        microsecond=0)
+
+    if len(arg) == 4:
+        add_base = True
+        y = int(arg[:2])
+        m = int(arg[2:4])
+    elif len(arg) >= 6: # 201201
+        y = int(arg[:4])
+        m = int(arg[4:6])
+    if add_base:
+        y += base
+    ret = default.replace(year=y, month=m)
+    return ret
 
 def normalize_date(dt):
     if isinstance(dt, np.datetime64):

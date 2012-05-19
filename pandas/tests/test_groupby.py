@@ -18,6 +18,7 @@ from collections import defaultdict
 import pandas.core.common as com
 import pandas.core.datetools as dt
 import numpy as np
+from numpy.testing import assert_equal
 
 import pandas.util.testing as tm
 
@@ -119,6 +120,28 @@ class TestGroupBy(unittest.TestCase):
 
         # corner cases
         self.assertRaises(Exception, grouped.aggregate, lambda x: x * 2)
+
+    def test_first_last_nth(self):
+        # tests for first / last / nth
+        grouped = self.df.groupby('A')
+        first = grouped.first()
+        expected = self.df.ix[[1, 0], ['C', 'D']]
+        expected.index = ['bar', 'foo']
+        assert_frame_equal(first, expected)
+
+        last = grouped.last()
+        expected = self.df.ix[[5, 7], ['C', 'D']]
+        expected.index = ['bar', 'foo']
+        assert_frame_equal(last, expected)
+
+        nth = grouped.nth(1)
+        expected = self.df.ix[[3, 2], ['B', 'C', 'D']]
+        expected.index = ['bar', 'foo']
+        assert_frame_equal(nth, expected)
+
+    def test_empty_groups(self):
+        # GH # 1048
+        self.assertRaises(ValueError, self.df.groupby, [])
 
     def test_groupby_dict_mapping(self):
         # GH #679
@@ -460,7 +483,7 @@ class TestGroupBy(unittest.TestCase):
                           'F' : np.random.randn(11)})
 
         def bad(x):
-            assert(len(x.base) == len(x))
+            assert_equal(len(x.base), len(x))
             return 'foo'
 
         result = data.groupby(['A', 'B']).agg(bad)
@@ -1347,7 +1370,7 @@ class TestGroupBy(unittest.TestCase):
 
     def test_groupby_wrong_multi_labels(self):
         from pandas import read_csv
-        from cStringIO import StringIO
+        from pandas.util.py3compat import StringIO
         data = """index,foo,bar,baz,spam,data
 0,foo1,bar1,baz1,spam2,20
 1,foo1,bar2,baz1,spam3,30
@@ -1598,10 +1621,10 @@ class TestGroupBy(unittest.TestCase):
     def test_rank_apply(self):
         lev1 = np.array([rands(10) for _ in xrange(1000)], dtype=object)
         lev2 = np.array([rands(10) for _ in xrange(130)], dtype=object)
-        lab1 = np.random.randint(0, 1000, size=10000)
-        lab2 = np.random.randint(0, 130, size=10000)
+        lab1 = np.random.randint(0, 1000, size=5000)
+        lab2 = np.random.randint(0, 130, size=5000)
 
-        df = DataFrame({'value' : np.random.randn(10000),
+        df = DataFrame({'value' : np.random.randn(5000),
                         'key1' : lev1.take(lab1),
                         'key2' : lev2.take(lab2)})
 
@@ -1676,6 +1699,104 @@ class TestGroupBy(unittest.TestCase):
         grouped = x.groupby('test')
         result = grouped.agg({'fl':'sum',2:'size'})
         self.assert_(result['fl'].dtype == np.float64)
+
+    def test_handle_dict_return_value(self):
+        def f(group):
+            return {'min': group.min(), 'max': group.max()}
+
+        def g(group):
+            return Series({'min': group.min(), 'max': group.max()})
+
+        result = self.df.groupby('A')['C'].apply(f)
+        expected = self.df.groupby('A')['C'].apply(g)
+
+        self.assert_(isinstance(result, Series))
+        assert_series_equal(result, expected)
+
+    def test_getitem_list_of_columns(self):
+        df = DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
+                              'foo', 'bar', 'foo', 'foo'],
+                        'B': ['one', 'one', 'two', 'three',
+                              'two', 'two', 'one', 'three'],
+                        'C': np.random.randn(8),
+                        'D': np.random.randn(8),
+                        'E': np.random.randn(8)})
+
+        result = df.groupby('A')[['C', 'D']].mean()
+        result2 = df.groupby('A')['C', 'D'].mean()
+        expected = df.ix[:, ['A', 'C', 'D']].groupby('A').mean()
+
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result2, expected)
+
+    def test_agg_multiple_functions_maintain_order(self):
+        # GH #610
+        funcs = [('mean', np.mean), ('max', np.max), ('min', np.min)]
+        result = self.df.groupby('A')['C'].agg(funcs)
+        exp_cols = ['mean', 'max', 'min']
+
+        self.assert_(np.array_equal(result.columns, exp_cols))
+
+    def test_more_flexible_frame_multi_function(self):
+        from pandas import concat
+
+        grouped = self.df.groupby('A')
+
+        exmean = grouped.agg({'C' : np.mean, 'D' : np.mean})
+        exstd = grouped.agg({'C' : np.std, 'D' : np.std})
+
+        expected = concat([exmean, exstd], keys=['mean', 'std'], axis=1)
+        expected = expected.swaplevel(0, 1, axis=1).sortlevel(0, axis=1)
+
+        result = grouped.aggregate({'C' : [np.mean, np.std],
+                                    'D' : [np.mean, np.std]})
+
+        assert_frame_equal(result, expected)
+
+        # be careful
+        result = grouped.aggregate({'C' : np.mean,
+                                     'D' : [np.mean, np.std]})
+        expected = grouped.aggregate({'C' : [np.mean],
+                                      'D' : [np.mean, np.std]})
+        assert_frame_equal(result, expected)
+
+
+        def foo(x): return np.mean(x)
+        def bar(x): return np.std(x, ddof=1)
+        result = grouped.aggregate({'C' : np.mean,
+                                    'D' : {'foo': np.mean,
+                                           'bar': np.std}})
+        expected = grouped.aggregate({'C' : [np.mean],
+                                      'D' : [foo, bar]})
+        assert_frame_equal(result, expected)
+
+    def test_set_group_name(self):
+        def f(group):
+            assert group.name is not None
+            return group
+
+        def freduce(group):
+            assert group.name is not None
+            return group.sum()
+
+        def foo(x):
+            return freduce(x)
+
+        def _check_all(grouped):
+            # make sure all these work
+            grouped.apply(f)
+            grouped.aggregate(freduce)
+            grouped.aggregate({'C': freduce, 'D': freduce})
+            grouped.transform(f)
+
+            grouped['C'].apply(f)
+            grouped['C'].aggregate(freduce)
+            grouped['C'].aggregate([freduce, foo])
+            grouped['C'].transform(f)
+
+        _check_all(self.df.groupby('A'))
+        _check_all(self.df.groupby(['A', 'B']))
+
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     tups = map(tuple, df[keys].values)

@@ -57,21 +57,21 @@ typedef time_t NPY_TIME_T;
 /*}*/
 
 /* Exported as DATETIMEUNITS in multiarraymodule.c */
-static char *_datetime_strings[NPY_DATETIME_NUMUNITS] = {
-    NPY_STR_Y,
-    NPY_STR_M,
-    NPY_STR_W,
-    NPY_STR_D,
-    NPY_STR_h,
-    NPY_STR_m,
-    NPY_STR_s,
-    NPY_STR_ms,
-    NPY_STR_us,
-    NPY_STR_ns,
-    NPY_STR_ps,
-    NPY_STR_fs,
-    NPY_STR_as,
-    "generic"
+static char *_datetime_strings[PANDAS_DATETIME_NUMUNITS] = {
+    "Y",
+    "M",
+    "W",
+    "D",
+    "B",
+    "h",
+    "m",
+    "s",
+    "ms",
+    "us",
+    "ns",
+    "ps",
+    "fs",
+    "as",
 };
 /*
  * Wraps `localtime` functionality for multiple platforms. This
@@ -170,8 +170,8 @@ fail:
  * Returns 0 on success, -1 on failure.
  */
 static int
-convert_datetimestruct_utc_to_local(npy_datetimestruct *out_dts_local,
-                const npy_datetimestruct *dts_utc, int *out_timezone_offset)
+convert_datetimestruct_utc_to_local(pandas_datetimestruct *out_dts_local,
+                const pandas_datetimestruct *dts_utc, int *out_timezone_offset)
 {
     NPY_TIME_T rawtime = 0, localrawtime;
     struct tm tm_;
@@ -197,7 +197,7 @@ convert_datetimestruct_utc_to_local(npy_datetimestruct *out_dts_local,
     /*
      * Convert everything in 'dts' to a time_t, to minutes precision.
      * This is POSIX time, which skips leap-seconds, but because
-     * we drop the seconds value from the npy_datetimestruct, everything
+     * we drop the seconds value from the pandas_datetimestruct, everything
      * is ok for this operation.
      */
     rawtime = (time_t)get_datetimestruct_days(out_dts_local) * 24 * 60 * 60;
@@ -236,8 +236,8 @@ convert_datetimestruct_utc_to_local(npy_datetimestruct *out_dts_local,
  * Returns 0 on success, -1 on failure.
  */
 static int
-convert_datetimestruct_local_to_utc(npy_datetimestruct *out_dts_utc,
-                const npy_datetimestruct *dts_local)
+convert_datetimestruct_local_to_utc(pandas_datetimestruct *out_dts_utc,
+                const pandas_datetimestruct *dts_local)
 {
     npy_int64 year_correction = 0;
 
@@ -305,6 +305,41 @@ convert_datetimestruct_local_to_utc(npy_datetimestruct *out_dts_utc,
     return 0;
 }
 
+/* int */
+/* parse_python_string(PyObject* obj, pandas_datetimestruct *dts) { */
+/*     PyObject *bytes = NULL; */
+/*     char *str = NULL; */
+/*     Py_ssize_t len = 0; */
+/*     PANDAS_DATETIMEUNIT bestunit = -1; */
+
+/*     /\* Convert to an ASCII string for the date parser *\/ */
+/*     if (PyUnicode_Check(obj)) { */
+/*         bytes = PyUnicode_AsASCIIString(obj); */
+/*         if (bytes == NULL) { */
+/*             return -1; */
+/*         } */
+/*     } */
+/*     else { */
+/*         bytes = obj; */
+/*         Py_INCREF(bytes); */
+/*     } */
+/*     if (PyBytes_AsStringAndSize(bytes, &str, &len) == -1) { */
+/*         Py_DECREF(bytes); */
+/*         return -1; */
+/*     } */
+
+/*     /\* Parse the ISO date *\/ */
+/*     if (parse_iso_8601_datetime(str, len, PANDAS_FR_us, NPY_UNSAFE_CASTING, */
+/*                             dts, NULL, &bestunit, NULL) < 0) { */
+/*         Py_DECREF(bytes); */
+/*         return -1; */
+/*     } */
+/*     Py_DECREF(bytes); */
+
+/*     return 0; */
+/* } */
+
+
 /*
  * Parses (almost) standard ISO 8601 date strings. The differences are:
  *
@@ -342,20 +377,20 @@ convert_datetimestruct_local_to_utc(npy_datetimestruct *out_dts_utc,
  */
 int
 parse_iso_8601_datetime(char *str, int len,
-                    NPY_DATETIMEUNIT unit,
+                    PANDAS_DATETIMEUNIT unit,
                     NPY_CASTING casting,
-                    npy_datetimestruct *out,
+                    pandas_datetimestruct *out,
                     npy_bool *out_local,
-                    NPY_DATETIMEUNIT *out_bestunit,
+                    PANDAS_DATETIMEUNIT *out_bestunit,
                     npy_bool *out_special)
 {
     int year_leap = 0;
     int i, numdigits;
     char *substr, sublen;
-    NPY_DATETIMEUNIT bestunit;
+    PANDAS_DATETIMEUNIT bestunit;
 
     /* Initialize the output to all zeros */
-    memset(out, 0, sizeof(npy_datetimestruct));
+    memset(out, 0, sizeof(pandas_datetimestruct));
     out->month = 1;
     out->day = 1;
 
@@ -385,7 +420,7 @@ parse_iso_8601_datetime(char *str, int len,
         out->month = tm_.tm_mon + 1;
         out->day = tm_.tm_mday;
 
-        bestunit = NPY_FR_D;
+        bestunit = PANDAS_FR_D;
 
         /*
          * Indicate that this was a special value, and
@@ -419,15 +454,15 @@ parse_iso_8601_datetime(char *str, int len,
                     tolower(str[1]) == 'o' &&
                     tolower(str[2]) == 'w') {
         NPY_TIME_T rawtime = 0;
-        PyArray_DatetimeMetaData meta;
+        pandas_datetime_metadata meta;
 
         time(&rawtime);
 
         /* Set up a dummy metadata for the conversion */
-        meta.base = NPY_FR_s;
+        meta.base = PANDAS_FR_s;
         meta.num = 1;
 
-        bestunit = NPY_FR_s;
+        bestunit = PANDAS_FR_s;
 
         /*
          * Indicate that this was a special value, and
@@ -501,7 +536,7 @@ parse_iso_8601_datetime(char *str, int len,
         if (out_local != NULL) {
             *out_local = 0;
         }
-        bestunit = NPY_FR_Y;
+        bestunit = PANDAS_FR_Y;
         goto finish;
     }
     else if (*substr == '-') {
@@ -538,7 +573,7 @@ parse_iso_8601_datetime(char *str, int len,
         if (out_local != NULL) {
             *out_local = 0;
         }
-        bestunit = NPY_FR_M;
+        bestunit = PANDAS_FR_M;
         goto finish;
     }
     else if (*substr == '-') {
@@ -576,7 +611,7 @@ parse_iso_8601_datetime(char *str, int len,
         if (out_local != NULL) {
             *out_local = 0;
         }
-        bestunit = NPY_FR_D;
+        bestunit = PANDAS_FR_D;
         goto finish;
     }
     else if (*substr != 'T' && *substr != ' ') {
@@ -609,7 +644,7 @@ parse_iso_8601_datetime(char *str, int len,
         --sublen;
     }
     else {
-        bestunit = NPY_FR_h;
+        bestunit = PANDAS_FR_h;
         goto parse_timezone;
     }
 
@@ -640,7 +675,7 @@ parse_iso_8601_datetime(char *str, int len,
         --sublen;
     }
     else {
-        bestunit = NPY_FR_m;
+        bestunit = PANDAS_FR_m;
         goto parse_timezone;
     }
 
@@ -671,7 +706,7 @@ parse_iso_8601_datetime(char *str, int len,
         --sublen;
     }
     else {
-        bestunit = NPY_FR_s;
+        bestunit = PANDAS_FR_s;
         goto parse_timezone;
     }
 
@@ -689,10 +724,10 @@ parse_iso_8601_datetime(char *str, int len,
 
     if (sublen == 0 || !isdigit(*substr)) {
         if (numdigits > 3) {
-            bestunit = NPY_FR_us;
+            bestunit = PANDAS_FR_us;
         }
         else {
-            bestunit = NPY_FR_ms;
+            bestunit = PANDAS_FR_ms;
         }
         goto parse_timezone;
     }
@@ -711,10 +746,10 @@ parse_iso_8601_datetime(char *str, int len,
 
     if (sublen == 0 || !isdigit(*substr)) {
         if (numdigits > 3) {
-            bestunit = NPY_FR_ps;
+            bestunit = PANDAS_FR_ps;
         }
         else {
-            bestunit = NPY_FR_ns;
+            bestunit = PANDAS_FR_ns;
         }
         goto parse_timezone;
     }
@@ -732,10 +767,10 @@ parse_iso_8601_datetime(char *str, int len,
     }
 
     if (numdigits > 3) {
-        bestunit = NPY_FR_as;
+        bestunit = PANDAS_FR_as;
     }
     else {
-        bestunit = NPY_FR_fs;
+        bestunit = PANDAS_FR_fs;
     }
 
 parse_timezone:
@@ -876,49 +911,52 @@ error:
  * objects with the given local and unit settings.
  */
 int
-get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base)
+get_datetime_iso_8601_strlen(int local, PANDAS_DATETIMEUNIT base)
 {
     int len = 0;
 
     /* If no unit is provided, return the maximum length */
     if (base == -1) {
-        return NPY_DATETIME_MAX_ISO8601_STRLEN;
+        return PANDAS_DATETIME_MAX_ISO8601_STRLEN;
     }
 
     switch (base) {
         /* Generic units can only be used to represent NaT */
-        /*case NPY_FR_GENERIC:*/
+        /*case PANDAS_FR_GENERIC:*/
         /*    return 4;*/
-        case NPY_FR_as:
+        case PANDAS_FR_as:
             len += 3;  /* "###" */
-        case NPY_FR_fs:
+        case PANDAS_FR_fs:
             len += 3;  /* "###" */
-        case NPY_FR_ps:
+        case PANDAS_FR_ps:
             len += 3;  /* "###" */
-        case NPY_FR_ns:
+        case PANDAS_FR_ns:
             len += 3;  /* "###" */
-        case NPY_FR_us:
+        case PANDAS_FR_us:
             len += 3;  /* "###" */
-        case NPY_FR_ms:
+        case PANDAS_FR_ms:
             len += 4;  /* ".###" */
-        case NPY_FR_s:
+        case PANDAS_FR_s:
             len += 3;  /* ":##" */
-        case NPY_FR_m:
+        case PANDAS_FR_m:
             len += 3;  /* ":##" */
-        case NPY_FR_h:
+        case PANDAS_FR_h:
             len += 3;  /* "T##" */
-        case NPY_FR_D:
-        case NPY_FR_B:
-        case NPY_FR_W:
+        case PANDAS_FR_D:
+        case PANDAS_FR_B:
+        case PANDAS_FR_W:
             len += 3;  /* "-##" */
-        case NPY_FR_M:
+        case PANDAS_FR_M:
             len += 3;  /* "-##" */
-        case NPY_FR_Y:
+        case PANDAS_FR_Y:
             len += 21; /* 64-bit year */
+            break;
+        default:
+            len += 3; /* handle the now defunct NPY_FR_B */
             break;
     }
 
-    if (base >= NPY_FR_h) {
+    if (base >= PANDAS_FR_h) {
         if (local) {
             len += 5;  /* "+####" or "-####" */
         }
@@ -936,49 +974,49 @@ get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base)
  * Finds the largest unit whose value is nonzero, and for which
  * the remainder for the rest of the units is zero.
  */
-static NPY_DATETIMEUNIT
-lossless_unit_from_datetimestruct(npy_datetimestruct *dts)
+static PANDAS_DATETIMEUNIT
+lossless_unit_from_datetimestruct(pandas_datetimestruct *dts)
 {
     if (dts->as % 1000 != 0) {
-        return NPY_FR_as;
+        return PANDAS_FR_as;
     }
     else if (dts->as != 0) {
-        return NPY_FR_fs;
+        return PANDAS_FR_fs;
     }
     else if (dts->ps % 1000 != 0) {
-        return NPY_FR_ps;
+        return PANDAS_FR_ps;
     }
     else if (dts->ps != 0) {
-        return NPY_FR_ns;
+        return PANDAS_FR_ns;
     }
     else if (dts->us % 1000 != 0) {
-        return NPY_FR_us;
+        return PANDAS_FR_us;
     }
     else if (dts->us != 0) {
-        return NPY_FR_ms;
+        return PANDAS_FR_ms;
     }
     else if (dts->sec != 0) {
-        return NPY_FR_s;
+        return PANDAS_FR_s;
     }
     else if (dts->min != 0) {
-        return NPY_FR_m;
+        return PANDAS_FR_m;
     }
     else if (dts->hour != 0) {
-        return NPY_FR_h;
+        return PANDAS_FR_h;
     }
     else if (dts->day != 1) {
-        return NPY_FR_D;
+        return PANDAS_FR_D;
     }
     else if (dts->month != 1) {
-        return NPY_FR_M;
+        return PANDAS_FR_M;
     }
     else {
-        return NPY_FR_Y;
+        return PANDAS_FR_Y;
     }
 }
 
 /*
- * Converts an npy_datetimestruct to an (almost) ISO 8601
+ * Converts an pandas_datetimestruct to an (almost) ISO 8601
  * NULL-terminated string. If the string fits in the space exactly,
  * it leaves out the NULL terminator and returns success.
  *
@@ -1004,11 +1042,11 @@ lossless_unit_from_datetimestruct(npy_datetimestruct *dts)
  *  string was too short).
  */
 int
-make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
-                    int local, NPY_DATETIMEUNIT base, int tzoffset,
+make_iso_8601_datetime(pandas_datetimestruct *dts, char *outstr, int outlen,
+                    int local, PANDAS_DATETIMEUNIT base, int tzoffset,
                     NPY_CASTING casting)
 {
-    npy_datetimestruct dts_local;
+    pandas_datetimestruct dts_local;
     int timezone_offset = 0;
 
     char *substr = outstr, sublen = outlen;
@@ -1026,12 +1064,12 @@ make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
          * If there's a timezone, use at least minutes precision,
          * and never split up hours and minutes by default
          */
-        if ((base < NPY_FR_m && local) || base == NPY_FR_h) {
-            base = NPY_FR_m;
+        if ((base < PANDAS_FR_m && local) || base == PANDAS_FR_h) {
+            base = PANDAS_FR_m;
         }
         /* Don't split up dates by default */
-        else if (base < NPY_FR_D) {
-            base = NPY_FR_D;
+        else if (base < PANDAS_FR_D) {
+            base = PANDAS_FR_D;
         }
     }
     /*
@@ -1040,8 +1078,8 @@ make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
      * TODO: Could print weeks with YYYY-Www format if the week
      *       epoch is a Monday.
      */
-    else if (base == NPY_FR_W) {
-        base = NPY_FR_D;
+    else if (base == PANDAS_FR_W) {
+        base = PANDAS_FR_D;
     }
 
     /* Use the C API to convert from UTC to local time */
@@ -1056,7 +1094,7 @@ make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
     }
     /* Use the manually provided tzoffset */
     else if (local) {
-        /* Make a copy of the npy_datetimestruct we can modify */
+        /* Make a copy of the pandas_datetimestruct we can modify */
         dts_local = *dts;
         dts = &dts_local;
 
@@ -1072,7 +1110,7 @@ make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
      */
     if (casting != NPY_UNSAFE_CASTING) {
         /* Producing a date as a local time is always 'unsafe' */
-        if (base <= NPY_FR_D && local) {
+        if (base <= PANDAS_FR_D && local) {
             PyErr_SetString(PyExc_TypeError, "Cannot create a local "
                         "timezone-based date string from a NumPy "
                         "datetime without forcing 'unsafe' casting");
@@ -1080,7 +1118,7 @@ make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
         }
         /* Only 'unsafe' and 'same_kind' allow data loss */
         else {
-            NPY_DATETIMEUNIT unitprec;
+            PANDAS_DATETIMEUNIT unitprec;
 
             unitprec = lossless_unit_from_datetimestruct(dts);
             if (casting != NPY_SAME_KIND_CASTING && unitprec > base) {
@@ -1115,7 +1153,7 @@ make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
     sublen -= tmplen;
 
     /* Stop if the unit is years */
-    if (base == NPY_FR_Y) {
+    if (base == PANDAS_FR_Y) {
         if (sublen > 0) {
             *substr = '\0';
         }
@@ -1139,7 +1177,7 @@ make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
     sublen -= 3;
 
     /* Stop if the unit is months */
-    if (base == NPY_FR_M) {
+    if (base == PANDAS_FR_M) {
         if (sublen > 0) {
             *substr = '\0';
         }
@@ -1163,7 +1201,7 @@ make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
     sublen -= 3;
 
     /* Stop if the unit is days */
-    if (base == NPY_FR_D) {
+    if (base == PANDAS_FR_D) {
         if (sublen > 0) {
             *substr = '\0';
         }
@@ -1187,7 +1225,7 @@ make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
     sublen -= 3;
 
     /* Stop if the unit is hours */
-    if (base == NPY_FR_h) {
+    if (base == PANDAS_FR_h) {
         goto add_time_zone;
     }
 
@@ -1208,7 +1246,7 @@ make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
     sublen -= 3;
 
     /* Stop if the unit is minutes */
-    if (base == NPY_FR_m) {
+    if (base == PANDAS_FR_m) {
         goto add_time_zone;
     }
 
@@ -1229,7 +1267,7 @@ make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
     sublen -= 3;
 
     /* Stop if the unit is seconds */
-    if (base == NPY_FR_s) {
+    if (base == PANDAS_FR_s) {
         goto add_time_zone;
     }
 
@@ -1254,7 +1292,7 @@ make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
     sublen -= 4;
 
     /* Stop if the unit is milliseconds */
-    if (base == NPY_FR_ms) {
+    if (base == PANDAS_FR_ms) {
         goto add_time_zone;
     }
 
@@ -1275,7 +1313,7 @@ make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
     sublen -= 3;
 
     /* Stop if the unit is microseconds */
-    if (base == NPY_FR_us) {
+    if (base == PANDAS_FR_us) {
         goto add_time_zone;
     }
 
@@ -1296,7 +1334,7 @@ make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
     sublen -= 3;
 
     /* Stop if the unit is nanoseconds */
-    if (base == NPY_FR_ns) {
+    if (base == PANDAS_FR_ns) {
         goto add_time_zone;
     }
 
@@ -1317,7 +1355,7 @@ make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
     sublen -= 3;
 
     /* Stop if the unit is picoseconds */
-    if (base == NPY_FR_ps) {
+    if (base == PANDAS_FR_ps) {
         goto add_time_zone;
     }
 
@@ -1338,7 +1376,7 @@ make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
     sublen -= 3;
 
     /* Stop if the unit is femtoseconds */
-    if (base == NPY_FR_fs) {
+    if (base == PANDAS_FR_fs) {
         goto add_time_zone;
     }
 

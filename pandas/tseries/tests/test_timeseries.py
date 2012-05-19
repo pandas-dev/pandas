@@ -1,5 +1,5 @@
 # pylint: disable-msg=E1101,W0612
-
+from __future__ import with_statement # for Python 2.5
 from datetime import datetime, time, timedelta
 import sys
 import os
@@ -8,6 +8,7 @@ import unittest
 import nose
 
 import numpy as np
+randn = np.random.randn
 
 from pandas import (Index, Series, TimeSeries, DataFrame, isnull,
                     date_range, Timestamp)
@@ -26,17 +27,12 @@ import cPickle as pickle
 import pandas.core.datetools as dt
 from numpy.random import rand
 from pandas.util.testing import assert_frame_equal
-from pandas.tseries.resample import TimeGrouper
+import pandas.util.py3compat as py3compat
 from pandas.core.datetools import BDay
 import pandas.core.common as com
 
 NaT = lib.NaT
 
-
-try:
-    import pytz
-except ImportError:
-    pass
 
 class TestTimeSeriesDuplicates(unittest.TestCase):
 
@@ -64,7 +60,6 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
         ts = self.dups
 
         uniques = ts.index.unique()
-
         for date in uniques:
             result = ts[date]
 
@@ -136,6 +131,12 @@ class TestTimeSeries(unittest.TestCase):
         result = s[indexer]
         expected = s[indexer[0]]
         assert_series_equal(result, expected)
+
+    def test_series_box_timestamp(self):
+        rng = date_range('20090415', '20090519', freq='B')
+        s = Series(rng)
+
+        self.assert_(isinstance(s[5], Timestamp))
 
     def test_series_ctor_plus_datetimeindex(self):
         rng = date_range('20090415', '20090519', freq='B')
@@ -210,6 +211,89 @@ class TestTimeSeries(unittest.TestCase):
 
         expected = df[-2:].reindex(index).fillna(method='backfill')
         expected.values[:3] = np.nan
+        tm.assert_frame_equal(result, expected)
+
+    def test_sparse_series_fillna_limit(self):
+        index = np.arange(10)
+        s = Series(np.random.randn(10), index=index)
+
+        ss = s[:2].reindex(index).to_sparse()
+        result = ss.fillna(method='pad', limit=5)
+        expected = ss.fillna(method='pad', limit=5)
+        expected = expected.to_dense()
+        expected[-3:] = np.nan
+        expected = expected.to_sparse()
+        assert_series_equal(result, expected)
+
+        ss = s[-2:].reindex(index).to_sparse()
+        result = ss.fillna(method='backfill', limit=5)
+        expected = ss.fillna(method='backfill')
+        expected = expected.to_dense()
+        expected[:3] = np.nan
+        expected = expected.to_sparse()
+        assert_series_equal(result, expected)
+
+    def test_sparse_series_pad_backfill_limit(self):
+        index = np.arange(10)
+        s = Series(np.random.randn(10), index=index)
+        s = s.to_sparse()
+
+        result = s[:2].reindex(index, method='pad', limit=5)
+        expected = s[:2].reindex(index).fillna(method='pad')
+        expected = expected.to_dense()
+        expected[-3:] = np.nan
+        expected = expected.to_sparse()
+        assert_series_equal(result, expected)
+
+        result = s[-2:].reindex(index, method='backfill', limit=5)
+        expected = s[-2:].reindex(index).fillna(method='backfill')
+        expected = expected.to_dense()
+        expected[:3] = np.nan
+        expected = expected.to_sparse()
+        assert_series_equal(result, expected)
+
+    def test_sparse_frame_pad_backfill_limit(self):
+        index = np.arange(10)
+        df = DataFrame(np.random.randn(10, 4), index=index)
+        sdf = df.to_sparse()
+
+        result = sdf[:2].reindex(index, method='pad', limit=5)
+
+        expected = sdf[:2].reindex(index).fillna(method='pad')
+        expected = expected.to_dense()
+        expected.values[-3:] = np.nan
+        expected = expected.to_sparse()
+        tm.assert_frame_equal(result, expected)
+
+        result = sdf[-2:].reindex(index, method='backfill', limit=5)
+
+        expected = sdf[-2:].reindex(index).fillna(method='backfill')
+        expected = expected.to_dense()
+        expected.values[:3] = np.nan
+        expected = expected.to_sparse()
+        tm.assert_frame_equal(result, expected)
+
+    def test_sparse_frame_fillna_limit(self):
+        index = np.arange(10)
+        df = DataFrame(np.random.randn(10, 4), index=index)
+        sdf = df.to_sparse()
+
+        result = sdf[:2].reindex(index)
+        result = result.fillna(method='pad', limit=5)
+
+        expected = sdf[:2].reindex(index).fillna(method='pad')
+        expected = expected.to_dense()
+        expected.values[-3:] = np.nan
+        expected = expected.to_sparse()
+        tm.assert_frame_equal(result, expected)
+
+        result = sdf[-2:].reindex(index)
+        result = result.fillna(method='backfill', limit=5)
+
+        expected = sdf[-2:].reindex(index).fillna(method='backfill')
+        expected = expected.to_dense()
+        expected.values[:3] = np.nan
+        expected = expected.to_sparse()
         tm.assert_frame_equal(result, expected)
 
     def test_pad_require_monotonicity(self):
@@ -409,13 +493,6 @@ class TestTimeSeries(unittest.TestCase):
         expected = ts[5:].asfreq('4H', method='ffill')
         assert_series_equal(result, expected)
 
-    def test_take_dont_lose_meta(self):
-        rng = date_range('1/1/2000', periods=20, tz='US/Eastern')
-
-        result = rng.take(range(5))
-        self.assert_(result.tz == rng.tz)
-        self.assert_(result.freq == rng.freq)
-
     def test_date_range_gen_error(self):
         rng = date_range('1/1/2000 00:00', '1/1/2000 00:18', freq='5min')
         self.assertEquals(len(rng), 4)
@@ -495,6 +572,11 @@ class TestTimeSeries(unittest.TestCase):
         assert_series_equal(result, expected)
         tm.assert_frame_equal(result_df, exp_df)
 
+        chunk = df.ix['1/4/2000':]
+        result = chunk.ix[time(9, 30)]
+        expected = result_df[-1:]
+        tm.assert_frame_equal(result, expected)
+
     def test_dti_constructor_preserve_dti_freq(self):
         rng = date_range('1/1/2000', '1/2/2000', freq='5min')
 
@@ -511,21 +593,85 @@ class TestTimeSeries(unittest.TestCase):
         self.assert_(result.is_normalized)
         self.assert_(not rng.is_normalized)
 
+    def test_to_period(self):
+        from pandas.tseries.period import period_range
+
+        ts = _simple_ts('1/1/2000', '1/1/2001')
+
+        pts = ts.to_period()
+        exp = ts.copy()
+        exp.index = period_range('1/1/2000', '1/1/2001')
+        assert_series_equal(pts, exp)
+
+        pts = ts.to_period('M')
+        self.assert_(pts.index.equals(exp.index.asfreq('M')))
+
+    def test_frame_to_period(self):
+        K = 5
+        from pandas.tseries.period import period_range
+
+        dr = date_range('1/1/2000', '1/1/2001')
+        pr = period_range('1/1/2000', '1/1/2001')
+        df = DataFrame(randn(len(dr), K), index=dr)
+        df['mix'] = 'a'
+
+        pts = df.to_period()
+        exp = df.copy()
+        exp.index = pr
+        assert_frame_equal(pts, exp)
+
+        pts = df.to_period('M')
+        self.assert_(pts.index.equals(exp.index.asfreq('M')))
+
+        """ Put me back in after fixing DataFrame bug
+        df = df.T
+        pts = df.to_period(axis=1)
+        exp = df.copy()
+        exp.columns = pr
+        assert_frame_equal(pts, exp)
+
+        pts = df.to_period('M', axis=1)
+        self.assert_(pts.columns.equals(exp.columns.asfreq('M')))
+        """
+
+    def test_timestamp_fields(self):
+        # extra fields from DatetimeIndex like quarter and week
+        from pandas._tseries import Timestamp
+        idx = tm.makeDateIndex(10)
+
+        fields = ['dayofweek', 'dayofyear', 'week', 'weekofyear', 'quarter']
+        for f in fields:
+            expected = getattr(idx, f)[0]
+            result = getattr(Timestamp(idx[0]), f)
+            self.assertEqual(result, expected)
+
+        self.assertEqual(idx.freq, Timestamp(idx[0], idx.freq).freq)
+        self.assertEqual(idx.freqstr, Timestamp(idx[0], idx.freq).freqstr)
+
+    def test_datetimeindex_integers_shift(self):
+        rng = date_range('1/1/2000', periods=20)
+
+        result = rng + 5
+        expected = rng.shift(5)
+        self.assert_(result.equals(expected))
+
+        result = rng - 5
+        expected = rng.shift(-5)
+        self.assert_(result.equals(expected))
+
+
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
     return Series(np.random.randn(len(rng)), index=rng)
 
-def _skip_if_no_pytz():
-    try:
-        import pytz
-    except ImportError:
-        import nose
-        raise nose.SkipTest
 
 class TestLegacySupport(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        if py3compat.PY3:
+            raise nose.SkipTest
+
         pth, _ = os.path.split(os.path.abspath(__file__))
         filepath = os.path.join(pth, 'data', 'frame.pickle')
 
@@ -786,77 +932,6 @@ class TestLegacySupport(unittest.TestCase):
         result = rng[:50].intersection(nofreq)
         self.assert_(result.freq == rng.freq)
 
-class TestTimeZones(unittest.TestCase):
-
-    def setUp(self):
-        _skip_if_no_pytz()
-
-    def test_index_equals_with_tz(self):
-        left = date_range('1/1/2011', periods=100, freq='H', tz='utc')
-        right = date_range('1/1/2011', periods=100, freq='H',
-                           tz='US/Eastern')
-
-        self.assert_(not left.equals(right))
-
-    def test_tz_normalize_naive(self):
-        rng = date_range('1/1/2011', periods=100, freq='H')
-
-        conv = rng.tz_normalize('US/Pacific')
-        exp = rng.tz_localize('US/Pacific')
-        self.assert_(conv.equals(exp))
-
-    def test_tz_convert(self):
-        rng = date_range('1/1/2011', periods=100, freq='H')
-        ts = Series(1, index=rng)
-
-        result = ts.tz_convert('utc')
-        self.assert_(result.index.tz.zone == 'UTC')
-
-    def test_join_utc_convert(self):
-        rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')
-
-        left = rng.tz_normalize('US/Eastern')
-        right = rng.tz_normalize('Europe/Berlin')
-
-        for how in ['inner', 'outer', 'left', 'right']:
-            result = left.join(left[:-5], how=how)
-            self.assert_(isinstance(result, DatetimeIndex))
-            self.assert_(result.tz == left.tz)
-
-            result = left.join(right[:-5], how=how)
-            self.assert_(isinstance(result, DatetimeIndex))
-            self.assert_(result.tz.zone == 'UTC')
-
-    def test_arith_utc_convert(self):
-        rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')
-
-        perm = np.random.permutation(100)[:90]
-        ts1 = Series(np.random.randn(90),
-                     index=rng.take(perm).tz_normalize('US/Eastern'))
-
-        perm = np.random.permutation(100)[:90]
-        ts2 = Series(np.random.randn(90),
-                     index=rng.take(perm).tz_normalize('Europe/Berlin'))
-
-        result = ts1 + ts2
-
-        uts1 = ts1.tz_convert('utc')
-        uts2 = ts2.tz_convert('utc')
-        expected = uts1 + uts2
-
-        self.assert_(result.index.tz == pytz.UTC)
-        assert_series_equal(result, expected)
-
-    def test_intersection(self):
-        rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')
-
-        left = rng[10:90][::-1]
-        right = rng[20:80][::-1]
-
-        self.assert_(left.tz == rng.tz)
-        result = left.intersection(right)
-        self.assert_(result.tz == left.tz)
-
 
 class TestLegacyCompat(unittest.TestCase):
 
@@ -974,46 +1049,6 @@ class TestDatetime64(unittest.TestCase):
         self.assertEquals(s[48], -2)
         s['1/2/2009':'2009-06-05'] = -3
         self.assert_((s[48:54] == -3).all())
-
-    def test_tz_localize(self):
-        _skip_if_no_pytz()
-        from pandas.core.datetools import Hour
-
-        dti = DatetimeIndex(start='1/1/2005', end='1/1/2005 0:00:30.256',
-                            freq='L')
-        tz = pytz.timezone('US/Eastern')
-        dti2 = dti.tz_localize(tz)
-
-        self.assert_((dti.values == dti2.values).all())
-
-        tz2 = pytz.timezone('US/Pacific')
-        dti3 = dti2.tz_normalize(tz2)
-
-        self.assert_((dti2.shift(-3, Hour()).values == dti3.values).all())
-
-        dti = DatetimeIndex(start='11/6/2011 1:59', end='11/6/2011 2:00',
-                            freq='L')
-        self.assertRaises(pytz.AmbiguousTimeError, dti.tz_localize, tz)
-
-        dti = DatetimeIndex(start='3/13/2011 1:59', end='3/13/2011 2:00',
-                            freq='L')
-        self.assertRaises(pytz.AmbiguousTimeError, dti.tz_localize, tz)
-
-    def test_asobject_tz_box(self):
-        tz = pytz.timezone('US/Eastern')
-        index = DatetimeIndex(start='1/1/2005', periods=10, tz=tz,
-                              freq='B')
-
-        result = index.asobject
-        self.assert_(result[0].tz is tz)
-
-    def test_tz_string(self):
-        _skip_if_no_pytz()
-        result = date_range('1/1/2000', periods=10, tz='US/Eastern')
-        expected = date_range('1/1/2000', periods=10,
-                              tz=pytz.timezone('US/Eastern'))
-
-        self.assert_(result.equals(expected))
 
     def test_datetimeindex_constructor(self):
         arr = ['1/1/2005', '1/2/2005', 'Jn 3, 2005', '2005-01-04']
@@ -1296,6 +1331,7 @@ class TestNewOffsets(unittest.TestCase):
         # blow up, don't loop forever
         self.assertRaises(Exception, date_range, datetime(2011,11,11),
                           datetime(2011,11,12), freq=offset)
+
 
 
 if __name__ == '__main__':
