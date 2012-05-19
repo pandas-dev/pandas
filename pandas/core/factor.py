@@ -18,11 +18,17 @@ class Factor(np.ndarray):
       * levels : ndarray
     """
     def __new__(cls, data):
-        data = np.asarray(data, dtype=object)
-        levels, factor = unique_with_labels(data)
-        factor = factor.view(Factor)
-        factor.levels = levels
-        return factor
+        from pandas.core.index import _ensure_index
+        from pandas.core.algorithms import factorize
+
+        try:
+            labels, levels, _ = factorize(data, sort=True)
+        except TypeError:
+            labels, levels, _ = factorize(data, sort=False)
+
+        labels = labels.view(Factor)
+        labels.levels = _ensure_index(levels)
+        return labels
 
     levels = None
 
@@ -50,22 +56,4 @@ class Factor(np.ndarray):
             return self.levels[i]
         else:
             return np.ndarray.__getitem__(self, key)
-
-
-def unique_with_labels(values):
-    from pandas.core.index import Index
-    rizer = lib.Factorizer(len(values))
-    labels, _ = rizer.factorize(values, sort=False)
-    uniques = Index(rizer.uniques)
-    labels = com._ensure_platform_int(labels)
-    try:
-        sorter = uniques.argsort()
-        reverse_indexer = np.empty(len(sorter), dtype=np.int_)
-        reverse_indexer.put(sorter, np.arange(len(sorter)))
-        labels = reverse_indexer.take(labels)
-        uniques = uniques.take(sorter)
-    except TypeError:
-        pass
-
-    return uniques, labels
 

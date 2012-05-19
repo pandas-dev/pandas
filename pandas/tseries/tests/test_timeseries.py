@@ -351,7 +351,7 @@ class TestTimeSeries(unittest.TestCase):
         self.assert_(not mask[:-5].any())
 
     def test_series_repr_nat(self):
-        series = Series([0, 1, 2, NaT], dtype='M8[ns]')
+        series = Series([0, 1000, 2000, NaT], dtype='M8[ns]')
 
         result = repr(series)
         expected = ('0          1970-01-01 00:00:00\n'
@@ -1160,13 +1160,35 @@ class TestTimestamp(unittest.TestCase):
         self.assert_(stamp.nanosecond == 500)
 
     def test_comparison(self):
-        arr = np.array(['1/1/2000'], dtype='M8[ns]')
+        # 5-18-2012 00:00:00.000
+        stamp = 1337299200000000000L
 
-        x = Timestamp(arr[0].view('i8') + 500)
-        y = Timestamp(arr[0].view('i8'))
+        val = Timestamp(stamp)
 
-        self.assert_(arr[0].astype('O') == x)
-        self.assert_(x != y)
+        self.assert_(val == val)
+        self.assert_(not val != val)
+        self.assert_(not val < val)
+        self.assert_(val <= val)
+        self.assert_(not val > val)
+        self.assert_(val >= val)
+
+        other = datetime(2012, 5, 18)
+        self.assert_(val == other)
+        self.assert_(not val != other)
+        self.assert_(not val < other)
+        self.assert_(val <= other)
+        self.assert_(not val > other)
+        self.assert_(val >= other)
+
+        other = Timestamp(stamp + 100)
+
+        self.assert_(not val == other)
+        self.assert_(val != other)
+        self.assert_(val < other)
+        self.assert_(val <= other)
+        self.assert_(other > val)
+        self.assert_(other >= val)
+
 
 """
 

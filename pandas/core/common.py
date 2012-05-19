@@ -171,7 +171,7 @@ _take1d_dict = {
     'int64' : _algos.take_1d_int64,
     'object' : _algos.take_1d_object,
     'bool' : _view_wrapper(_algos.take_1d_bool, np.uint8),
-    'datetime64[us]' : _view_wrapper(_algos.take_1d_int64, np.int64,
+    'datetime64[ns]' : _view_wrapper(_algos.take_1d_int64, np.int64,
                                      na_override=lib.NaT),
 }
 
@@ -181,7 +181,7 @@ _take2d_axis0_dict = {
     'int64' : _algos.take_2d_axis0_int64,
     'object' : _algos.take_2d_axis0_object,
     'bool' : _view_wrapper(_algos.take_2d_axis0_bool, np.uint8),
-    'datetime64[us]' : _view_wrapper(_algos.take_2d_axis0_int64, np.int64,
+    'datetime64[ns]' : _view_wrapper(_algos.take_2d_axis0_int64, np.int64,
                                      na_override=lib.NaT),
 }
 
@@ -191,7 +191,7 @@ _take2d_axis1_dict = {
     'int64' : _algos.take_2d_axis1_int64,
     'object' : _algos.take_2d_axis1_object,
     'bool' : _view_wrapper(_algos.take_2d_axis1_bool, np.uint8),
-    'datetime64[us]' : _view_wrapper(_algos.take_2d_axis1_int64, np.int64,
+    'datetime64[ns]' : _view_wrapper(_algos.take_2d_axis1_int64, np.int64,
                                      na_override=lib.NaT),
 }
 
@@ -201,7 +201,7 @@ _take2d_multi_dict = {
     'int64' : _algos.take_2d_multi_int64,
     'object' : _algos.take_2d_multi_object,
     'bool' : _view_wrapper(_algos.take_2d_multi_bool, np.uint8),
-    'datetime64[us]' : _view_wrapper(_algos.take_2d_multi_int64, np.int64,
+    'datetime64[ns]' : _view_wrapper(_algos.take_2d_multi_int64, np.int64,
                                      na_override=lib.NaT),
 }
 
@@ -246,7 +246,7 @@ def take_1d(arr, indexer, out=None, fill_value=np.nan):
                                     out.dtype)
                 out = _maybe_upcast(out)
                 np.putmask(out, mask, fill_value)
-    elif dtype_str in ('float64', 'object', 'datetime64[us]'):
+    elif dtype_str in ('float64', 'object', 'datetime64[ns]'):
         if out is None:
             out = np.empty(n, dtype=arr.dtype)
         take_f(arr, _ensure_int64(indexer), out=out, fill_value=fill_value)
@@ -284,7 +284,7 @@ def take_2d_multi(arr, row_idx, col_idx, fill_value=np.nan):
                    _ensure_int64(col_idx), out=out,
                    fill_value=fill_value)
             return out
-    elif dtype_str in ('float64', 'object', 'datetime64[us]'):
+    elif dtype_str in ('float64', 'object', 'datetime64[ns]'):
         out = np.empty(out_shape, dtype=arr.dtype)
         take_f(arr, _ensure_int64(row_idx), _ensure_int64(col_idx), out=out,
                fill_value=fill_value)
@@ -326,7 +326,7 @@ def take_2d(arr, indexer, out=None, mask=None, needs_masking=None, axis=0,
             take_f = _get_take2d_function(dtype_str, axis=axis)
             take_f(arr, _ensure_int64(indexer), out=out, fill_value=fill_value)
             return out
-    elif dtype_str in ('float64', 'object', 'datetime64[us]'):
+    elif dtype_str in ('float64', 'object', 'datetime64[ns]'):
         if out is None:
             out = np.empty(out_shape, dtype=arr.dtype)
         take_f = _get_take2d_function(dtype_str, axis=axis)

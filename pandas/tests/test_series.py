@@ -1305,7 +1305,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(ValueError, a.__lt__, b)
 
     def test_between(self):
-        s = Series(bdate_range('1/1/2000', periods=20), dtype=object)
+        s = Series(bdate_range('1/1/2000', periods=20).asobject)
         s[::2] = np.nan
 
         result = s[s.between(s[3], s[17])]

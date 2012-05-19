@@ -990,11 +990,13 @@ def _delta_to_tick(delta):
             else:
                 return Second(seconds)
     else:
-        mus = _delta_to_nanoseconds(delta)
-        if mus % 1000 == 0:
-            return Milli(mus // 1000)
+        nanos = _delta_to_nanoseconds(delta)
+        if nanos % 1000000 == 0:
+            return Milli(nanos // 1000000)
+        elif nanos % 1000 == 0:
+            return Micro(nanos // 1000)
         else:
-            return Micro(mus)
+            return Nano(nanos)
 
 def _delta_to_nanoseconds(delta):
     if isinstance(delta, Tick):
@@ -1029,6 +1031,10 @@ class Milli(Tick):
 class Micro(Tick):
     _inc = timedelta(microseconds=1)
     _rule_base = 'U'
+
+class Nano(Tick):
+    _inc = 1
+    _rule_base = 'N'
 
 BDay = BusinessDay
 BMonthEnd = BusinessMonthEnd

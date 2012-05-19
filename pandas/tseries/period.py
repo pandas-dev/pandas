@@ -466,6 +466,9 @@ def _period_box_array(arr, freq):
     return boxer(arr)
 
 def dt64arr_to_periodarr(data, freq):
+    if data.dtype != np.dtype('M8[ns]'):
+        raise ValueError('Wrong dtype: %s' % data.dtype)
+
     if data is None:
         return data
 
@@ -607,7 +610,7 @@ class PeriodIndex(Int64Index):
                     raise ValueError(('freq not specified and cannot be '
                                       'inferred from first element'))
 
-                if data.dtype == np.datetime64:
+                if issubclass(data.dtype.type, np.datetime_):
                     data = dt64arr_to_periodarr(data, freq)
                 elif data.dtype == np.int64:
                     pass

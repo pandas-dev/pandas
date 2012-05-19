@@ -1229,8 +1229,7 @@ def _dt_box_array(arr, offset=None, tz=None):
         return arr
 
     boxfunc = lambda x: Timestamp(x, offset=offset, tz=tz)
-    boxer = np.frompyfunc(boxfunc, 1, 1)
-    return boxer(arr)
+    return lib.map_infer(arr, boxfunc)
 
 
 def _to_m8(key):

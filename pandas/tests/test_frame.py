@@ -1629,7 +1629,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertEqual(2, frame['C'][2])
 
         # masked np.datetime64 stays (use lib.NaT as null)
-        mat = ma.masked_all((2, 3), dtype=np.datetime64)
+        mat = ma.masked_all((2, 3), dtype='M8[ns]')
         # 2-D input
         frame = DataFrame(mat, columns=['A', 'B', 'C'], index=[1, 2])
 
@@ -5546,7 +5546,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         idx2 = IndexType("baz", "bof")
         index = Index([idx1, idx2], name="composite_index")
         df = DataFrame([(1, 2), (3, 4)], index=index, columns=["A", "B"])
-        print df.ix[IndexType("foo", "bar")]["A"]
         self.assertEqual(df.ix[IndexType("foo", "bar")]["A"], 1)
 
     def test_bool_raises_value_error_1069(self):

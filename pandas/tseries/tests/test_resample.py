@@ -54,7 +54,7 @@ class TestResample(unittest.TestCase):
         # construct expected val
         arr = [1] + [5] * 2592
         idx = dti[0:-1:5]
-        idx = idx.append(DatetimeIndex([np.datetime64(dti[-1])]))
+        idx = idx.append(dti[-1:])
         expect = Series(arr, index=idx)
 
         # cython returns float for now

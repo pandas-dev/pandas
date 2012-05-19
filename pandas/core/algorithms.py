@@ -108,6 +108,8 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
     Returns
     -------
     """
+    values = np.asarray(values)
+    is_datetime = com.is_datetime64_dtype(values)
     hash_klass, values = _get_data_algo(values, _hashtables)
 
     uniques = []
@@ -128,6 +130,9 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
 
         uniques = uniques.take(sorter)
         counts = counts.take(sorter)
+
+    if is_datetime:
+        uniques = np.array(uniques, dtype='M8[ns]')
 
     return labels, uniques, counts
 
@@ -179,6 +184,9 @@ def _get_data_algo(values, func_map):
     if com.is_float_dtype(values):
         f = func_map['float64']
         values = com._ensure_float64(values)
+    elif com.is_datetime64_dtype(values):
+        f = func_map['int64']
+        values = values.view('i8')
     elif com.is_integer_dtype(values):
         f = func_map['int64']
         values = com._ensure_int64(values)
