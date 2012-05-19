@@ -136,6 +136,11 @@ class Timestamp(_Timestamp):
         conv = tz.normalize(self)
         return Timestamp(conv)
 
+    def replace(self, **kwds):
+        return Timestamp(datetime.replace(self, **kwds),
+                         offset=self.offset)
+
+
 cdef inline bint is_timestamp(object o):
     return isinstance(o, Timestamp)
 
@@ -194,9 +199,37 @@ def apply_offset(ndarray[object] values, object offset):
 # (see Timestamp class above). This will serve as a C extension type that
 # shadows the python class, where we do any heavy lifting.
 cdef class _Timestamp(datetime):
-    cdef public:
+    cdef readonly:
         int64_t value, nanosecond
         object offset       # frequency reference
+
+    def __richcmp__(_Timestamp self, object other, int op):
+        cdef _Timestamp ots
+
+        if isinstance(other, _Timestamp):
+            ots = other
+        elif isinstance(other, datetime):
+            ots = Timestamp(other)
+        else:
+            if op == 2:
+                return False
+            elif op == 3:
+                return True
+            else:
+                raise TypeError('Cannot compare Timestamp with %s' % str(other))
+
+        if op == 2: # ==
+            return self.value == ots.value
+        elif op == 3: # !=
+            return self.value != ots.value
+        elif op == 0: # <
+            return self.value < ots.value
+        elif op == 1: # <=
+            return self.value <= ots.value
+        elif op == 4: # >
+            return self.value > ots.value
+        elif op == 5: # >=
+            return self.value >= ots.value
 
     def __add__(self, other):
         if is_integer_object(other):
@@ -313,6 +346,7 @@ cdef inline int64_t _pydatetime_to_dts(object val, pandas_datetimestruct *dts):
     dts.min = PyDateTime_DATE_GET_MINUTE(val)
     dts.sec = PyDateTime_DATE_GET_SECOND(val)
     dts.us = PyDateTime_DATE_GET_MICROSECOND(val)
+    dts.ps = dts.as = 0
     return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, dts)
 
 cdef inline int64_t _dtlike_to_datetime64(object val,
@@ -324,6 +358,7 @@ cdef inline int64_t _dtlike_to_datetime64(object val,
     dts.min = val.minute
     dts.sec = val.second
     dts.us = val.microsecond
+    dts.ps = dts.as = 0
     return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, dts)
 
 cdef inline int64_t _date_to_datetime64(object val,
@@ -331,10 +366,8 @@ cdef inline int64_t _date_to_datetime64(object val,
     dts.year = PyDateTime_GET_YEAR(val)
     dts.month = PyDateTime_GET_MONTH(val)
     dts.day = PyDateTime_GET_DAY(val)
-    dts.hour = 0
-    dts.min = 0
-    dts.sec = 0
-    dts.us = 0
+    dts.hour = dts.min = dts.sec = dts.us = 0
+    dts.ps = dts.as = 0
     return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, dts)
 
 
@@ -928,7 +961,7 @@ cpdef ndarray _unbox_utcoffsets(object transinfo):
     arr = np.empty(sz, dtype='i8')
 
     for i in range(sz):
-        arr[i] = int(total_seconds(transinfo[i][0])) * 1000000
+        arr[i] = int(total_seconds(transinfo[i][0])) * 1000000000
 
     return arr
 
@@ -1243,7 +1276,7 @@ def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int freq):
     for i in range(l):
         pandas_datetime_to_datetimestruct(dtarr[i], PANDAS_FR_ns, &dts)
         out[i] = get_period_ordinal(dts.year, dts.month, dts.day,
-                                  dts.hour, dts.min, dts.sec, freq)
+                                    dts.hour, dts.min, dts.sec, freq)
     return out
 
 def periodarr_to_dt64arr(ndarray[int64_t] periodarr, int freq):
@@ -1338,7 +1371,7 @@ cpdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq):
     dts.hour = dinfo.hour
     dts.min = dinfo.minute
     dts.sec = int(dinfo.second)
-    dts.us = 0
+    dts.us = dts.ps = 0
 
     return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
 

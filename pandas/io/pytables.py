@@ -839,8 +839,7 @@ class HDFStore(object):
 
         columns = _maybe_convert(sel.values['column'],
                                  table._v_attrs.columns_kind)
-        index = _maybe_convert(sel.values['index'],
-                               table._v_attrs.index_kind)
+        index = _maybe_convert(sel.values['index'], table._v_attrs.index_kind)
         values = sel.values['values']
 
         major = Factor(index)
@@ -995,7 +994,7 @@ def _maybe_convert(values, val_kind):
 
 def _get_converter(kind):
     if kind == 'datetime64':
-        return lambda x: np.datetime64(x)
+        return lambda x: np.array(x, dtype='M8[ns]')
     if kind == 'datetime':
         return lib.convert_timestamps
     else: # pragma: no cover
@@ -1069,7 +1068,7 @@ class Selection(object):
             field = c['field']
 
             if field == 'index' and self.index_kind == 'datetime64':
-                val = np.datetime64(value).view('i8')
+                val = lib.Timestamp(value).value
                 self.conditions.append('(%s %s %s)' % (field,op,val))
             elif field == 'index' and isinstance(value, datetime):
                 value = time.mktime(value.timetuple())

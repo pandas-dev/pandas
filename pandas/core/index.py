@@ -691,8 +691,8 @@ class Index(np.ndarray):
             return pself.get_indexer(ptarget, method=method, limit=limit)
 
         if self.dtype != target.dtype:
-            this = Index(self, dtype=object)
-            target = Index(target, dtype=object)
+            this = self.astype(object)
+            target = target.astype(object)
             return this.get_indexer(target, method=method, limit=limit)
 
         if not self.is_unique:
@@ -1172,8 +1172,12 @@ class MultiIndex(Index):
         levels = [_ensure_index(lev) for lev in levels]
         labels = [np.asarray(labs, dtype=np.int_) for labs in labels]
 
-        values = [ndtake(np.asarray(lev), lab)
+        values = [ndtake(lev.values, lab)
                   for lev, lab in zip(levels, labels)]
+
+        # Need to box timestamps, etc.
+        values = _clean_arrays(values)
+
         subarr = lib.fast_zip(values).view(cls)
 
         subarr.levels = levels
@@ -2371,4 +2375,14 @@ def _maybe_box_dtindex(idx):
     if isinstance(idx, DatetimeIndex):
         return Index(_dt_box_array(idx.asi8), dtype='object')
     return idx
+
+def _clean_arrays(values):
+    result = []
+    for arr in values:
+        if np.issubdtype(arr.dtype, np.datetime_):
+            result.append(lib.map_infer(arr, lib.Timestamp))
+        else:
+            result.append(arr)
+    return result
+
 

@@ -571,15 +571,29 @@ class Datetime64Formatter(GenericArrayFormatter):
         if self.formatter:
             formatter = self.formatter
         else:
-            def formatter(x):
-                if isnull(x):
-                    return 'NaT'
-                else:
-                    return str(x)
+            formatter = _format_datetime64
 
         fmt_values = [formatter(x) for x in self.values]
-
         return _make_fixed_width(fmt_values, self.justify)
+
+def _format_datetime64(x):
+    if isnull(x):
+        return 'NaT'
+
+    stamp = lib.Timestamp(x)
+    base = stamp.strftime('%Y-%m-%d %H:%M:%S')
+
+    fraction = stamp.microsecond * 1000 + stamp.nanosecond
+    digits = 9
+
+    if fraction == 0:
+        return base
+
+    while (fraction % 10) == 0:
+        fraction /= 10
+        digits -= 1
+
+    return base + ('.%%.%id' % digits) % fraction
 
 
 def _make_fixed_width(strings, justify='right'):

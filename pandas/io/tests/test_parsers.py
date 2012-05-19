@@ -376,7 +376,8 @@ c,4,5
         lev = expected.index.levels[0]
         expected.index.levels[0] = lev.to_datetime(dayfirst=True)
         expected['aux_date'] = to_datetime(expected['aux_date'],
-                                           dayfirst=True).astype('O')
+                                           dayfirst=True)
+        expected['aux_date'] = map(Timestamp, expected['aux_date'])
         self.assert_(isinstance(expected['aux_date'][0], datetime))
 
         df = read_csv(StringIO(data), sep=";", index_col = range(4),

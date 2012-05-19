@@ -491,15 +491,13 @@ def map_infer(ndarray arr, object f):
     '''
     cdef:
         Py_ssize_t i, n
-        flatiter it
         ndarray[object] result
         object val
 
-    it = <flatiter> PyArray_IterNew(arr)
     n = len(arr)
     result = np.empty(n, dtype=object)
     for i in range(n):
-        val = f(PyArray_GETITEM(arr, PyArray_ITER_DATA(it)))
+        val = f(util.get_value_at(arr, i))
 
         # unbox 0-dim arrays, GH #690
         if is_array(val) and PyArray_NDIM(val) == 0:
@@ -507,9 +505,6 @@ def map_infer(ndarray arr, object f):
             val = val.item()
 
         result[i] = val
-
-
-        PyArray_ITER_NEXT(it)
 
     return maybe_convert_objects(result, try_float=0)
 
