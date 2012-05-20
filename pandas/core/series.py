@@ -919,6 +919,77 @@ copy : boolean, default False
         """
         return dict(self.iteritems())
 
+    @classmethod
+    def from_json(cls, json, orient="index", dtype=None, numpy=True):
+        """
+        Convert JSON string to Series
+
+        Parameters
+        ----------
+        json : The JSON string to parse.
+        orient : {'split', 'records', 'index'}, default 'index'
+            The format of the JSON string
+            split : dict like
+                {index -> [index], name -> name, data -> [values]}
+            records : list like [value, ... , value]
+            index : dict like {index -> value}
+        dtype : dtype of the resulting Series
+        nupmpy: direct decoding to numpy arrays. default True but falls back
+            to standard decoding if a problem occurs.
+
+        Returns
+        -------
+        result : Series
+        """
+        from pandas._ujson import loads
+        s = None
+
+        if numpy:
+            try:
+                if orient == "split":
+                    s = Series(**loads(json, dtype=dtype, numpy=True))
+                elif orient == "columns" or orient == "index":
+                    s = Series(*loads(json, dtype=dtype, numpy=True,
+                                      labelled=True))
+                else:
+                    s = Series(loads(json, dtype=dtype, numpy=True))
+            except ValueError:
+                numpy = False
+        if not numpy:
+            if orient == "split":
+                s = Series(dtype=dtype, **loads(json))
+            else:
+                s = Series(loads(json), dtype=dtype)
+
+        return s
+
+    def to_json(self, orient="index", double_precision=10, force_ascii=True):
+        """
+        Convert Series to a JSON string
+
+        Note NaN's and None will be converted to null and datetime objects
+        will be converted to UNIX timestamps.
+
+        Parameters
+        ----------
+        orient : {'split', 'records', 'index'}, default 'index'
+            The format of the JSON string
+            split : dict like
+                {index -> [index], name -> name, data -> [values]}
+            records : list like [value, ... , value]
+            index : dict like {index -> value}
+        double_precision : The number of decimal places to use when encoding
+            floating point values, default 10.
+        force_ascii : force encoded string to be ASCII, default True.
+
+        Returns
+        -------
+        result : JSON compatible string
+        """
+        from pandas._ujson import dumps
+        return dumps(self, orient=orient, double_precision=double_precision,
+                     ensure_ascii=force_ascii)
+
     def to_sparse(self, kind='block', fill_value=None):
         """
         Convert Series to SparseSeries
