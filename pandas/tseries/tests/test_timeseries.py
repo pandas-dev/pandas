@@ -18,6 +18,7 @@ from pandas import DatetimeIndex, Int64Index, to_datetime
 from pandas.core.daterange import DateRange
 import pandas.core.datetools as datetools
 import pandas.tseries.offsets as offsets
+import pandas.tseries.frequencies as fmod
 
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
@@ -1200,6 +1201,22 @@ class TestTimestamp(unittest.TestCase):
         val = Timestamp(1337299200000000123L)
         result = val + timedelta(1)
         self.assert_(result.nanosecond == val.nanosecond)
+
+    def test_frequency_misc(self):
+        self.assertEquals(fmod.get_freq_group('T'),
+                          fmod.FreqGroup.FR_MIN)
+
+        code, stride = fmod.get_freq_code(offsets.Hour())
+        self.assertEquals(code, fmod.FreqGroup.FR_HR)
+
+        code, stride = fmod.get_freq_code((5, 'T'))
+        self.assertEquals(code, fmod.FreqGroup.FR_MIN)
+        self.assertEquals(stride, 5)
+
+    def test_hash_equivalent(self):
+        d = {datetime(2011, 1, 1) : 5}
+        stamp = Timestamp(datetime(2011, 1, 1))
+        self.assertEquals(d[stamp], 5)
 
 """
 

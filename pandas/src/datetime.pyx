@@ -204,6 +204,12 @@ cdef class _Timestamp(datetime):
         int64_t value, nanosecond
         object offset       # frequency reference
 
+    def __hash__(self):
+        if self.nanosecond:
+            return hash(self.value)
+        else:
+            return datetime.__hash__(self)
+
     def __richcmp__(_Timestamp self, object other, int op):
         cdef _Timestamp ots
 
