@@ -6,7 +6,7 @@ from pandas.core.groupby import BinGrouper, CustomGrouper
 from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
 from pandas.tseries.index import DatetimeIndex, date_range
 from pandas.tseries.offsets import DateOffset
-from pandas.tseries.period import PeriodIndex, period_range
+from pandas.tseries.period import Period, PeriodIndex, period_range
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 
@@ -118,9 +118,21 @@ class TimeGrouper(CustomGrouper):
         return binner, bins, labels
 
     def _get_time_period_bins(self, axis):
-        return _make_period_bins(axis, self.freq, begin=self.begin,
-                                 end=self.end, closed=self.closed,
-                                 label=self.label)
+        assert(isinstance(axis, DatetimeIndex))
+
+        if len(axis) == 0:
+            # TODO: Should we be a bit more careful here?
+            return [], [], []
+        labels = binner = PeriodIndex(start=axis[0], end=axis[-1],
+                                      freq=self.freq)
+
+        end_stamps = (labels + 1).asfreq('D', 's').to_timestamp()
+        bins = axis.searchsorted(end_stamps, side='left')
+
+        if bins[-1] < len(axis):
+            bins = np.concatenate([bins, [len(axis)]])
+
+        return binner, bins, labels
 
     def _resample_timestamps(self, obj):
         axlabels = obj._get_axis(self.axis)
@@ -203,36 +215,6 @@ def _take_new_index(obj, indexer, new_index, axis=0):
     else:
         raise NotImplementedError
 
-
-def _make_period_bins(axis, freq, begin=None, end=None,
-                    closed='right', label='right'):
-    assert(isinstance(axis, DatetimeIndex))
-
-    if len(axis) == 0:
-        # TODO: Should we be a bit more careful here?
-        return [], [], []
-
-    first, last = _get_range_edges(axis, begin, end, freq, closed=closed)
-    binlabels = binner = PeriodIndex(start=first, end=last, freq=freq)
-
-    # a little hack
-    trimmed = False
-    if len(binner) > 2 and binner[-2] == axis[-1]:
-        binner = binner[:-1]
-        trimmed = True
-
-    end_stamps = (binlabels + 1).asfreq('D', 's').to_timestamp()
-    bins = axis.searchsorted(end_stamps, side='left')
-
-    if label == 'right':
-        bins = bins[1:]
-        labels = binner[1:]
-    elif not trimmed:
-        labels = binner[:-1]
-    else:
-        labels = binner
-
-    return binner, bins, labels
 
 
 def _get_range_edges(axis, begin, end, offset, closed='left',

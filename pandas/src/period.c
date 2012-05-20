@@ -1069,9 +1069,8 @@ npy_int64 get_period_ordinal(int year, int month, int day,
         {
             goto onError;
         }
-        day_adj = (7 - (freq - FR_WK)) % 7;
-        adj_ordinal = ordinal + ((7 - day_adj) - ordinal % 7) % 7;
-        return adj_ordinal / 7 - WEEK_OFFSET;
+        day_adj = freq - FR_WK;
+        return (ordinal - (1 + day_adj)) / 7 + 1 - WEEK_OFFSET;
     }
 
     if (freq == FR_MTH)

@@ -50,6 +50,16 @@ class TestPeriodProperties(TestCase):
             p = Period(stamp, freq=freq)
             self.assertEquals(p, exp + 1)
 
+    def test_period_cons_weekly(self):
+        for num in range(10, 17):
+            daystr = '2011-02-%d' % num
+            for day in DAYS:
+                freq = 'W-%s' % day
+
+                result = Period(daystr, freq=freq)
+                expected = Period(daystr, freq='D').asfreq(freq)
+                self.assertEquals(result, expected)
+
     def test_period_constructor(self):
         i1 = Period('1/1/2005', freq='M')
         i2 = Period('Jan 2005')

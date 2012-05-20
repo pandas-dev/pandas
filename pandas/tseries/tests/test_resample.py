@@ -381,6 +381,16 @@ class TestResample(unittest.TestCase):
         expected = ts.resample('D', closed='left', label='left')
         assert_series_equal(result, expected)
 
+    def test_resample_to_period_monthly_buglet(self):
+        # GH #1259
+
+        rng = date_range('1/1/2000','12/31/2000')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        result = ts.resample('M', kind='period')
+        exp_index = period_range('Jan-2000', 'Dec-2000', freq='M')
+        self.assert_(result.index.equals(exp_index))
+
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
@@ -543,7 +553,6 @@ class TestResamplePeriodIndex(unittest.TestCase):
         result = ts.resample('5min')
         expected = ts.to_timestamp().resample('5min')
         assert_series_equal(result, expected)
-
 
 class TestTimeGrouper(unittest.TestCase):
 

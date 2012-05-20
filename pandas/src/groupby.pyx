@@ -1106,8 +1106,8 @@ def group_ohlc(ndarray[float64_t, ndim=2] out,
             out[b, 3] = vclose
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+# @cython.boundscheck(False)
+# @cython.wraparound(False)
 def group_mean_bin(ndarray[float64_t, ndim=2] out,
                    ndarray[int64_t] counts,
                    ndarray[float64_t, ndim=2] values,
