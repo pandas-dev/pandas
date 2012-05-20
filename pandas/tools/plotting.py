@@ -3,7 +3,6 @@
 from itertools import izip
 
 import numpy as np
-from scipy import stats
 
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
@@ -49,8 +48,9 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
                 if diagonal == 'hist':
                     axes[i, j].hist(df[a])
                 elif diagonal == 'kde':
+                    from scipy.stats import gaussian_kde
                     y = df[a]
-                    gkde = stats.gaussian_kde(y)
+                    gkde = gaussian_kde(y)
                     ind = np.linspace(min(y), max(y), 1000)
                     axes[i, j].plot(ind, gkde.evaluate(ind), **kwds)
             else:
@@ -346,6 +346,7 @@ class KdePlot(MPLPlot):
         return self.plt.Axes.plot
 
     def _make_plot(self):
+        from scipy.stats import gaussian_kde
         plotf = self._get_plot_function()
         for i, (label, y) in enumerate(self._iter_data()):
             if self.subplots:
@@ -356,7 +357,7 @@ class KdePlot(MPLPlot):
                 ax = self.ax
             if self.style:
                 style = self.style
-            gkde = stats.gaussian_kde(y)
+            gkde = gaussian_kde(y)
             sample_range = max(y) - min(y)
             ind = np.linspace(min(y) - 0.5 * sample_range,
                 max(y) + 0.5 * sample_range, 1000)
