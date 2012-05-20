@@ -74,6 +74,8 @@ if np.__version__ < '1.6.1':
     msg = "pandas requires NumPy >= 1.6 due to datetime64 dependency"
     sys.exit(msg)
 
+from numpy.distutils.misc_util import get_pkg_info
+
 from distutils.extension import Extension
 from distutils.command.build import build
 from distutils.command.build_ext import build_ext
@@ -219,7 +221,12 @@ class CleanCommand(Command):
         self._clean_trees = []
         self._clean_exclude = ['np_datetime.c',
                                'np_datetime_strings.c',
-                               'period.c']
+                               'period.c',
+                               'ujson.c',
+                               'objToJSON.c',
+                               'JSONtoObj.c',
+                               'ultrajsonenc.c',
+                               'ultrajsondec.c']
 
         for root, dirs, files in list(os.walk('pandas')):
             for f in files:
@@ -377,6 +384,17 @@ sparse_ext = Extension('pandas._sparse',
                        sources=[srcpath('sparse', suffix=suffix)],
                        include_dirs=[np.get_include()])
 
+ujson_ext = Extension('pandas._ujson',
+                      sources=['pandas/src/ujson/python/ujson.c',
+                               'pandas/src/ujson/python/objToJSON.c',
+                               'pandas/src/ujson/python/JSONtoObj.c',
+                               'pandas/src/ujson/lib/ultrajsonenc.c',
+                               'pandas/src/ujson/lib/ultrajsondec.c'],
+                      include_dirs=['pandas/src/ujson/python',
+                                    'pandas/src/ujson/lib',
+                                    np.get_include()],
+                      extra_link_args=[get_pkg_info('npymath').libs()])
+
 sandbox_ext = Extension('pandas._sandbox',
                         sources=[srcpath('sandbox', suffix=suffix),
                                  'pandas/src/period.c',
@@ -388,7 +406,7 @@ cppsandbox_ext = Extension('pandas._cppsandbox',
                            sources=[srcpath('cppsandbox', suffix=suffix)],
                            include_dirs=[np.get_include()])
 
-extensions = [algos_ext, tseries_ext, sparse_ext]
+extensions = [algos_ext, tseries_ext, sparse_ext, ujson_ext]
 
 if not ISRELEASED:
     extensions.extend([sandbox_ext])
