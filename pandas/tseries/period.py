@@ -610,7 +610,7 @@ class PeriodIndex(Int64Index):
                     raise ValueError(('freq not specified and cannot be '
                                       'inferred from first element'))
 
-                if issubclass(data.dtype.type, np.datetime_):
+                if np.issubdtype(data.dtype, np.datetime64):
                     data = dt64arr_to_periodarr(data, freq)
                 elif data.dtype == np.int64:
                     pass

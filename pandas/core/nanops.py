@@ -405,7 +405,7 @@ def unique1d(values):
         uniques = np.array(table.unique(com._ensure_int64(values)),
                            dtype=np.int64)
 
-        if issubclass(values.dtype.type, np.datetime_):
+        if np.issubdtype(values.dtype, np.datetime64):
             uniques = uniques.view('M8[ns]')
     else:
         table = lib.PyObjectHashTable(len(values))

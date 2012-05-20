@@ -127,6 +127,9 @@ class TestFrequencyInference(unittest.TestCase):
     def test_business_monthly(self):
         self._check_generated_range('1/1/2000', 'BM')
 
+    def test_business_start_monthly(self):
+        self._check_generated_range('1/1/2000', 'BMS')
+
     def test_quarterly(self):
         for month in ['JAN', 'FEB', 'MAR']:
             self._check_generated_range('1/1/2000', 'Q-%s' % month)
@@ -153,6 +156,11 @@ class TestFrequencyInference(unittest.TestCase):
         gen = date_range(start, periods=5, freq=freq)
         index = _dti(gen.values)
         self.assert_(infer_freq(index) == gen.freqstr)
+
+    def test_not_monotonic(self):
+        rng = _dti(['1/31/2000', '1/31/2001', '1/31/2002'])
+        rng = rng[::-1]
+        self.assert_(rng.inferred_freq is None)
 
 MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP',
           'OCT', 'NOV', 'DEC']

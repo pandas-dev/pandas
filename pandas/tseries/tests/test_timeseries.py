@@ -1213,6 +1213,23 @@ class TestTimestamp(unittest.TestCase):
         self.assertEquals(code, fmod.FreqGroup.FR_MIN)
         self.assertEquals(stride, 5)
 
+        offset = offsets.Hour()
+        result = fmod.to_offset(offset)
+        self.assertEquals(result, offset)
+
+        result = fmod.to_offset((5, 'T'))
+        expected = offsets.Minute(5)
+        self.assertEquals(result, expected)
+
+        self.assertRaises(KeyError, fmod.get_freq_code, (5, 'baz'))
+
+        self.assertRaises(ValueError, fmod.to_offset, '100foo')
+
+        self.assertRaises(ValueError, fmod.to_offset, ('', ''))
+
+        result = fmod.get_standard_freq(offsets.Hour())
+        self.assertEquals(result, 'H')
+
     def test_hash_equivalent(self):
         d = {datetime(2011, 1, 1) : 5}
         stamp = Timestamp(datetime(2011, 1, 1))

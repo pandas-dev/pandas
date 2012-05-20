@@ -370,7 +370,7 @@ def to_offset(freqstr):
                     delta = offset
                 else:
                     delta = delta + offset
-        except ValueError:
+        except Exception:
             raise ValueError("Could not evaluate %s" % freqstr)
 
     return delta
@@ -667,10 +667,7 @@ def _period_str_to_code(freqstr):
         return _period_code_map[freqstr]
     except:
         alias = _period_alias_dict[freqstr]
-        try:
-            return _period_code_map[alias]
-        except:
-            raise "Could not interpret frequency %s" % freqstr
+        return _period_code_map[alias]
 
 
 
@@ -718,14 +715,11 @@ class _FrequencyInferer(object):
 
         self.deltas = lib.unique_deltas(self.values)
         self.is_unique = len(self.deltas) == 1
-
-    def is_monotonic(self):
-        try:
-            return self.index.is_monotonic
-        except:
-            return lib.is_monotonic_int64(self.values)[0]
+        self.is_monotonic = self.index.is_monotonic
 
     def get_freq(self):
+        if not self.is_monotonic:
+            return None
 
         delta = self.deltas[0]
         if _is_multiple(delta, _ONE_DAY):
@@ -784,7 +778,7 @@ class _FrequencyInferer(object):
             if calendar_start:
                 calendar_start &= d == 1
             if business_start:
-                business_start &= d == 1 or (d < 3 and wd == 0)
+                business_start &= d == 1 or (d <= 3 and wd == 0)
 
             _, daysinmonth = monthrange(y, m)
             cal = d == daysinmonth
@@ -874,9 +868,6 @@ class _FrequencyInferer(object):
                 'ce': 'M', 'be': 'BM'}.get(pos_check)
 
 
-def _is_weekday(y, m, d):
-    return datetime(y, m, d).weekday() < 5
-
 import pandas.core.algorithms as algos
 
 def _maybe_add_count(base, count):
@@ -952,7 +943,7 @@ def is_superperiod(source, target):
     elif source == 'B':
         return target in ['D', 'B', 'H', 'T', 'S']
     elif source == 'D':
-        return target not in ['D', 'B', 'H', 'T', 'S']
+        return target in ['D', 'B', 'H', 'T', 'S']
 
 def _get_rule_month(source, default='DEC'):
     if isinstance(source, offsets.DateOffset):

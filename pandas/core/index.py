@@ -2379,7 +2379,7 @@ def _maybe_box_dtindex(idx):
 def _clean_arrays(values):
     result = []
     for arr in values:
-        if np.issubdtype(arr.dtype, np.datetime_):
+        if np.issubdtype(arr.dtype, np.datetime64):
             result.append(lib.map_infer(arr, lib.Timestamp))
         else:
             result.append(arr)

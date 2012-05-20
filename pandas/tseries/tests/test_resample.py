@@ -391,6 +391,17 @@ class TestResample(unittest.TestCase):
         exp_index = period_range('Jan-2000', 'Dec-2000', freq='M')
         self.assert_(result.index.equals(exp_index))
 
+    def test_upsample_daily_business_daily(self):
+        ts = _simple_ts('1/1/2000', '2/1/2000', freq='B')
+
+        result = ts.resample('D')
+        expected = ts.reindex(date_range('1/3/2000', '2/1/2000'))
+        assert_series_equal(result, expected)
+
+        ts = _simple_ts('1/1/2000', '2/1/2000')
+        result = ts.resample('H')
+        expected = ts.reindex(date_range('1/1/2000', '2/1/2000', freq='H'))
+        assert_series_equal(result, expected)
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
