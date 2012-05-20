@@ -483,7 +483,7 @@ class TestGroupBy(unittest.TestCase):
                           'F' : np.random.randn(11)})
 
         def bad(x):
-            assert_equal(len(x.base), len(x))
+            assert(len(x.base) > 0)
             return 'foo'
 
         result = data.groupby(['A', 'B']).agg(bad)

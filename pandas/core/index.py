@@ -80,7 +80,11 @@ class Index(np.ndarray):
                 if issubclass(data.dtype.type, np.integer):
                     return Int64Index(data, copy=copy, name=name)
 
-            subarr = np.array(data, dtype=object, copy=copy)
+            if not copy:
+                subarr = com._ensure_object(data)
+            else:
+                subarr = data.astype(object)
+            # subarr = np.array(data, dtype=object, copy=copy)
         elif np.isscalar(data):
             raise ValueError('Index(...) must be called with a collection '
                              'of some kind, %s was passed' % repr(data))

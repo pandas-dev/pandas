@@ -121,7 +121,8 @@ def _nanvar(values, axis=None, skipna=True, ddof=1):
 
 def _nanmin(values, axis=None, skipna=True):
     mask = isnull(values)
-    if skipna and not issubclass(values.dtype.type, np.integer):
+    if skipna and not issubclass(values.dtype.type,
+                                 (np.integer, np.datetime64)):
         values = values.copy()
         np.putmask(values, mask, np.inf)
     # numpy 1.6.1 workaround in Python 3.x
@@ -140,7 +141,8 @@ def _nanmin(values, axis=None, skipna=True):
 
 def _nanmax(values, axis=None, skipna=True):
     mask = isnull(values)
-    if skipna and not issubclass(values.dtype.type, np.integer):
+    if skipna and not issubclass(values.dtype.type,
+                                 (np.integer, np.datetime64)):
         values = values.copy()
         np.putmask(values, mask, -np.inf)
     # numpy 1.6.1 workaround in Python 3.x
@@ -400,13 +402,15 @@ def unique1d(values):
         table = lib.Float64HashTable(len(values))
         uniques = np.array(table.unique(com._ensure_float64(values)),
                            dtype=np.float64)
+    elif np.issubdtype(values.dtype, np.datetime64):
+        table = lib.Int64HashTable(len(values))
+        uniques = np.array(table.unique(com._ensure_int64(values)),
+                           dtype=np.int64)
+        uniques = uniques.view('M8[ns]')
     elif np.issubdtype(values.dtype, np.integer):
         table = lib.Int64HashTable(len(values))
         uniques = np.array(table.unique(com._ensure_int64(values)),
                            dtype=np.int64)
-
-        if np.issubdtype(values.dtype, np.datetime64):
-            uniques = uniques.view('M8[ns]')
     else:
         table = lib.PyObjectHashTable(len(values))
         uniques = table.unique(com._ensure_object(values))

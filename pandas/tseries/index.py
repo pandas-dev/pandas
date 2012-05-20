@@ -96,7 +96,7 @@ def _ensure_datetime64(other):
     if isinstance(other, np.datetime64):
         return other
     elif com.is_integer(other):
-        return np.datetime64(other)
+        return np.int64(other).view('M8[us]')
     else:
         raise TypeError(other)
 
@@ -226,6 +226,7 @@ class DatetimeIndex(Int64Index):
             if lib.is_string_array(data):
                 data = _str_to_dt_array(data, offset)
             else:
+                data = tools.to_datetime(data)
                 data = np.asarray(data, dtype='M8[ns]')
 
         if issubclass(data.dtype.type, basestring):
@@ -240,7 +241,10 @@ class DatetimeIndex(Int64Index):
         elif issubclass(data.dtype.type, np.integer):
             subarr = np.array(data, dtype='M8[ns]', copy=copy)
         else:
-            subarr = np.array(data, dtype='M8[ns]', copy=copy)
+            subarr = tools.to_datetime(data)
+            if not np.issubdtype(subarr.dtype, np.datetime64):
+                raise TypeError('Unable to convert %s to datetime dtype'
+                                % str(data))
 
         if tz is not None:
             tz = tools._maybe_get_tz(tz)

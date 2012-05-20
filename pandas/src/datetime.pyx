@@ -792,6 +792,7 @@ def string_to_datetime(ndarray[object] strings, raise_=False, dayfirst=False):
         object val
         ndarray[int64_t] iresult
         ndarray[object] oresult
+        pandas_datetimestruct dts
 
     from dateutil.parser import parse
 
@@ -803,6 +804,10 @@ def string_to_datetime(ndarray[object] strings, raise_=False, dayfirst=False):
             if util._checknull(val):
                 iresult[i] = NaT
             elif PyDateTime_Check(val):
+                result[i] = val
+            elif PyDate_Check(val):
+                iresult[i] = _date_to_datetime64(val, &dts)
+            elif util.is_datetime64_object(val):
                 result[i] = val
             else:
                 if len(val) == 0:
@@ -829,7 +834,8 @@ def string_to_datetime(ndarray[object] strings, raise_=False, dayfirst=False):
                 except Exception:
                     if raise_:
                         raise
-                    oresult[i] = val
+                    return strings
+                    # oresult[i] = val
 
         return oresult
 

@@ -1091,12 +1091,10 @@ class TestDatetime64(unittest.TestCase):
                         '2005-01-04'], dtype='O')
         idx4 = DatetimeIndex(arr)
 
-        arr = np.array(['1/1/2005', '1/2/2005', '1/3/2005',
-                        '2005-01-04'], dtype='M8[ns]')
+        arr = to_datetime(['1/1/2005', '1/2/2005', '1/3/2005', '2005-01-04'])
         idx5 = DatetimeIndex(arr)
 
-        arr = np.array(['1/1/2005', '1/2/2005', 'Jan 3, 2005',
-                        '2005-01-04'], dtype='M8[ns]')
+        arr = to_datetime(['1/1/2005', '1/2/2005', 'Jan 3, 2005', '2005-01-04'])
         idx6 = DatetimeIndex(arr)
 
         for other in [idx2, idx3, idx4, idx5, idx6]:
@@ -1160,8 +1158,8 @@ class TestDatetime64(unittest.TestCase):
 class TestTimestamp(unittest.TestCase):
 
     def test_basics_nanos(self):
-        arr = np.array(['1/1/2000'], dtype='M8[ns]')
-        stamp = Timestamp(arr[0].view('i8') + 500)
+        val = np.int64(946684800000000000).view('M8[ns]')
+        stamp = Timestamp(val.view('i8') + 500)
         self.assert_(stamp.year == 2000)
         self.assert_(stamp.month == 1)
         self.assert_(stamp.microsecond == 0)

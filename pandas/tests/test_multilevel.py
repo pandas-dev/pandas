@@ -970,7 +970,10 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
             grouped = frame.groupby(level=level, axis=axis)
 
-            aggf = lambda x: getattr(x, op)(skipna=skipna, axis=axis)
+            pieces = []
+            def aggf(x):
+                pieces.append(x)
+                return getattr(x, op)(skipna=skipna, axis=axis)
             leftside = grouped.agg(aggf)
             rightside = getattr(frame, op)(level=level, axis=axis,
                                            skipna=skipna)
