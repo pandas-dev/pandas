@@ -1147,7 +1147,11 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
             pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
             out[i] = dts.us
         return out
-
+    elif field == 'ns':
+        for i in range(count):
+            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+            out[i] = dts.ps / 1000
+        return out
     elif field == 'doy':
         for i in range(count):
             pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)

@@ -984,6 +984,7 @@ class DatetimeIndex(Int64Index):
     minute = _field_accessor('minute', 'm')
     second = _field_accessor('second', 's')
     microsecond = _field_accessor('microsecond', 'us')
+    nanosecond = _field_accessor('nanosecond', 'ns')
     weekofyear = _field_accessor('weekofyear', 'woy')
     week = weekofyear
     dayofweek = _field_accessor('dayofweek', 'dow')

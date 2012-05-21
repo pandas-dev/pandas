@@ -1038,6 +1038,11 @@ class TestDatetime64(unittest.TestCase):
         self.assertEquals(len(dti.weekofyear), 100)
         self.assertEquals(len(dti.quarter), 100)
 
+    def test_nanosecond_field(self):
+        dti = DatetimeIndex(np.arange(10))
+
+        self.assert_(np.array_equal(dti.nanosecond, np.arange(10)))
+
     def test_datetimeindex_diff(self):
         dti1 = DatetimeIndex(freq='Q-JAN', start=datetime(1997,12,31),
                              periods=100)
