@@ -4099,9 +4099,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_('C' in self.frame)
         self.assert_('foo' not in self.frame)
 
-        self.frame.rename(columns={'C' : 'foo'}, inplace=True)
-        self.assert_('C' not in self.frame)
-        self.assert_('foo' in self.frame)
+        c_id = id(self.frame['C'])
+        frame = self.frame.copy()
+        frame.rename(columns={'C' : 'foo'}, inplace=True)
+        self.assert_('C' not in frame)
+        self.assert_('foo' in frame)
+        self.assert_(id(frame['foo']) != c_id)
+
 
     #----------------------------------------------------------------------
     # Time series related
@@ -4563,10 +4567,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # axis=0
         unordered = frame.ix[[3, 2, 4, 1]]
+        a_id = id(unordered['A'])
         df = unordered.copy()
         df.sort_index(inplace=True)
         expected = frame
         assert_frame_equal(df, expected)
+        self.assert_(a_id != id(df['A']))
 
         df = unordered.copy()
         df.sort_index(ascending=False, inplace=True)
