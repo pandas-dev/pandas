@@ -1983,6 +1983,9 @@ copy : boolean, default False
         -------
         reindexed : Series
         """
+        if index is None:
+            raise ValueError('Must pass Index or sequence, not None')
+
         index = _ensure_index(index)
         if self.index.equals(index):
             if copy:

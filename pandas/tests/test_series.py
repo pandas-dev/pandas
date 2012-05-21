@@ -2236,6 +2236,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         for idx, val in subNonContig.iteritems():
             self.assertEqual(val, self.ts[idx])
 
+        self.assertRaises(ValueError, self.ts.reindex)
+
     def test_reindex_corner(self):
         # (don't forget to fix this) I think it's fixed
         reindexed_dep = self.empty.reindex(self.ts.index, method='pad')
