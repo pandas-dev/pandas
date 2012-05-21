@@ -1,4 +1,65 @@
+import os
 from pandas.util.py3compat import StringIO
+from pandas.src.codegen_template import template as pyx_template
+from pandas.src.codegen_replace import replace
+
+header = """
+cimport numpy as np
+cimport cython
+
+from numpy cimport *
+
+from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
+                      PyDict_Contains, PyDict_Keys,
+                      Py_INCREF, PyTuple_SET_ITEM,
+                      PyTuple_SetItem,
+                      PyTuple_New)
+from cpython cimport PyFloat_Check
+cimport cpython
+
+import numpy as np
+isnan = np.isnan
+cdef double NaN = <double> np.NaN
+cdef double nan = NaN
+
+from datetime import datetime as pydatetime
+
+# this is our datetime.pxd
+from datetime cimport *
+
+from khash cimport *
+
+cdef inline int int_max(int a, int b): return a if a >= b else b
+cdef inline int int_min(int a, int b): return a if a <= b else b
+
+ctypedef unsigned char UChar
+
+cimport util
+from util cimport is_array, _checknull, _checknan
+
+cdef extern from "math.h":
+    double sqrt(double x)
+    double fabs(double)
+
+# import datetime C API
+PyDateTime_IMPORT
+
+# initialize numpy
+import_array()
+import_ufunc()
+
+cdef int PLATFORM_INT = (<ndarray> np.arange(0, dtype=np.int_)).descr.type_num
+
+cpdef ensure_platform_int(object arr):
+    if util.is_array(arr):
+        if (<ndarray> arr).descr.type_num == PLATFORM_INT:
+            return arr
+        else:
+            return arr.astype(np.int_)
+    else:
+        return np.array(arr, dtype=np.int_)
+
+"""
 
 take_1d_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
@@ -540,6 +601,8 @@ def arrmap_%(name)s(ndarray[%(c_type)s] index, object func):
 
     cdef ndarray[object] result = np.empty(length, dtype=np.object_)
 
+    from _tseries import maybe_convert_objects
+
     for i in range(length):
         result[i] = func(index[i])
 
@@ -762,6 +825,35 @@ def outer_join_indexer_%(name)s(ndarray[%(c_type)s] left,
 
 """
 
+# ensure_dtype functions
+
+ensure_dtype_template = """
+cpdef ensure_%(name)s(object arr):
+    if util.is_array(arr):
+        if (<ndarray> arr).descr.type_num == NPY_%(ctype)s:
+            return arr
+        else:
+            return arr.astype(np.%(dtype)s)
+    else:
+        return np.array(arr, dtype=np.%(dtype)s)
+
+"""
+
+ensure_functions = [
+    ('float64', 'FLOAT64', 'float64'),
+    ('int32', 'INT32', 'int32'),
+    ('int64', 'INT64', 'int64'),
+    # ('platform_int', 'INT', 'int_'),
+    ('object', 'OBJECT', 'object_'),
+]
+
+def generate_ensure_dtypes():
+    output = StringIO()
+    for name, ctype, dtype in ensure_functions:
+        filled = ensure_dtype_template % locals()
+        output.write(filled)
+    return output.getvalue()
+
 #----------------------------------------------------------------------
 # Fast "put" logic for speeding up interleaving logic
 
@@ -777,6 +869,10 @@ def put2d_%(name)s_%(dest_type)s(ndarray[%(c_type)s, ndim=2, cast=True] values,
         i = indexer[j]
         out[i] = values[j, loc]
 """
+
+
+#-------------------------------------------------------------------------
+# Generators
 
 def generate_put_functions():
     function_list = [
@@ -843,14 +939,10 @@ templates_2d = [take_2d_axis0_template,
                 take_2d_axis1_template,
                 take_2d_multi_template]
 
-
-# templates_1d_datetime = [take_1d_template]
-# templates_2d_datetime = [take_2d_axis0_template,
-#                          take_2d_axis1_template]
-
-
 def generate_take_cython_file(path='generated.pyx'):
     with open(path, 'w') as f:
+        print >> f, header
+
         for template in templates_1d:
             print >> f, generate_from_template(template)
 
@@ -865,8 +957,6 @@ def generate_take_cython_file(path='generated.pyx'):
 
         for template in nobool_1d_templates:
             print >> f, generate_from_template(template, exclude=['bool'])
-
-        # print >> f, generate_put_functions()
 
 if __name__ == '__main__':
     generate_take_cython_file()

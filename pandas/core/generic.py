@@ -155,9 +155,9 @@ class PandasObject(object):
         from pandas.tseries.resample import asfreq
         return asfreq(self, freq, method=method, how=how)
 
-    def resample(self, rule, how='mean', axis=0,
-                 fill_method=None, closed='right', label='right',
-                 convention=None, kind=None, loffset=None, limit=None):
+    def resample(self, rule, how='mean', axis=0, fill_method=None,
+                 closed='right', label='right', convention=None,
+                 kind=None, loffset=None, limit=None, base=0):
         """
         Convenience method for frequency conversion and resampling of regular
         time-series data.
@@ -175,12 +175,16 @@ class PandasObject(object):
         convention : {'start', 'end', 's', 'e'}
         loffset : timedelta
             Adjust the resampled time labels
+        base : int, default 0
+            For frequencies that evenly subdivide 1 day, the "origin" of the
+            aggregated intervals. For example, for '5min' frequency, base could
+            range from 0 through 4. Defaults to 0
         """
         from pandas.tseries.resample import TimeGrouper
         sampler = TimeGrouper(rule, label=label, closed=closed, how=how,
                               axis=axis, kind=kind, loffset=loffset,
                               fill_method=fill_method, convention=convention,
-                              limit=limit)
+                              limit=limit, base=base)
         return sampler.resample(self)
 
     def first(self, offset):

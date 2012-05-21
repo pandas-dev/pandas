@@ -12,6 +12,7 @@ from pandas.util.decorators import cache_readonly
 from pandas.util import py3compat
 import pandas.core.common as com
 import pandas._tseries as lib
+import pandas._algos as _algos
 
 
 __all__ = ['Index']
@@ -56,11 +57,11 @@ class Index(np.ndarray):
     _join_precedence = 1
 
     # Cython methods
-    _groupby = lib.groupby_object
-    _arrmap = lib.arrmap_object
-    _left_indexer = lib.left_join_indexer_object
-    _inner_indexer = lib.inner_join_indexer_object
-    _outer_indexer = lib.outer_join_indexer_object
+    _groupby = _algos.groupby_object
+    _arrmap = _algos.arrmap_object
+    _left_indexer = _algos.left_join_indexer_object
+    _inner_indexer = _algos.inner_join_indexer_object
+    _outer_indexer = _algos.outer_join_indexer_object
 
     _box_scalars = False
 
@@ -1067,11 +1068,11 @@ class Index(np.ndarray):
 
 class Int64Index(Index):
 
-    _groupby = lib.groupby_int64
-    _arrmap = lib.arrmap_int64
-    _left_indexer = lib.left_join_indexer_int64
-    _inner_indexer = lib.inner_join_indexer_int64
-    _outer_indexer = lib.outer_join_indexer_int64
+    _groupby = _algos.groupby_int64
+    _arrmap = _algos.arrmap_int64
+    _left_indexer = _algos.left_join_indexer_int64
+    _inner_indexer = _algos.inner_join_indexer_int64
+    _outer_indexer = _algos.outer_join_indexer_int64
 
     _engine_type = lib.Int64Engine
 
@@ -1169,7 +1170,7 @@ class MultiIndex(Index):
             return Index(levels[0], name=name).take(labels[0])
 
         levels = [_ensure_index(lev) for lev in levels]
-        labels = [np.asarray(labs, dtype=np.int64) for labs in labels]
+        labels = [np.asarray(labs, dtype=np.int_) for labs in labels]
 
         values = [ndtake(np.asarray(lev), lab)
                   for lev, lab in zip(levels, labels)]
@@ -1379,8 +1380,9 @@ class MultiIndex(Index):
             else:
                 return 0
 
+        int64_labels = [com._ensure_int64(lab) for lab in self.labels]
         for k in range(self.nlevels, 0, -1):
-            if lib.is_lexsorted(self.labels[:k]):
+            if lib.is_lexsorted(int64_labels[:k]):
                 return k
 
         return 0
@@ -1690,6 +1692,7 @@ class MultiIndex(Index):
         if not ascending:
             indexer = indexer[::-1]
 
+        indexer = com._ensure_platform_int(indexer)
         new_labels = [lab.take(indexer) for lab in self.labels]
 
         new_index = MultiIndex._from_elements(self.values.take(indexer),

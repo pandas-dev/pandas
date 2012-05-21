@@ -432,7 +432,6 @@ class TestSparseSeries(TestCase,
         result = val - self.zbseries
         assert_sp_series_equal(result, 3 - self.zbseries)
 
-
     def test_binary_operators(self):
         def _check_inplace_op(op):
             tmp = self.bseries.copy()

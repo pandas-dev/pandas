@@ -32,7 +32,6 @@ from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _radd_compat
 from pandas.compat.scipy import scoreatpercentile as _quantile
-from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
 from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
@@ -153,7 +152,7 @@ Examples
 3   foo  4         3   bar  8
 
 >>> merge(A, B, left_on='lkey', right_on='rkey', how='outer')
-   lkey  value.x  rkey  value.y
+   lkey  value_x  rkey  value_y
 0  bar   2        bar   6
 1  bar   2        bar   8
 2  baz   3        NaN   NaN
@@ -305,7 +304,11 @@ class DataFrame(NDFrame):
         elif isinstance(data, ma.MaskedArray):
             mask = ma.getmaskarray(data)
             datacopy = ma.copy(data)
-            datacopy[mask] = np.nan
+            if issubclass(data.dtype.type, np.datetime64):
+                datacopy[mask] = lib.NaT
+            else:
+                datacopy = com._maybe_upcast(datacopy)
+                datacopy[mask] = np.nan
             mgr = self._init_ndarray(datacopy, index, columns, dtype=dtype,
                                      copy=copy)
         elif isinstance(data, np.ndarray):
@@ -526,6 +529,9 @@ class DataFrame(NDFrame):
         Iterate over columns of the frame.
         """
         return iter(self.columns)
+
+    def keys(self):
+        return self.columns
 
     def iteritems(self):
         """Iterator over (column, series) pairs"""
@@ -2590,23 +2596,169 @@ class DataFrame(NDFrame):
             # Float type values
             if len(self.columns) == 0:
                 return self
-            if np.isscalar(value):
-                new_data = self._data.fillna(value, inplace=inplace)
-            elif isinstance(value, dict):
+            if isinstance(value, dict):
                 result = self if inplace else self.copy()
                 for k, v in value.iteritems():
                     if k not in result:
                         continue
                     result[k].fillna(v, inplace=True)
                 return result
-            else:  # pragma: no cover
-                raise TypeError('Invalid fill value type: %s' % type(value))
+            else:
+                new_data = self._data.fillna(value, inplace=inplace)
 
         if inplace:
             self._data = new_data
             return self
         else:
             return self._constructor(new_data)
+
+    def replace(self, to_replace, value=None, method='pad', axis=0,
+                inplace=False, limit=None):
+        """
+        Replace values given in 'to_replace' with 'value' or using 'method'
+
+        Parameters
+        ----------
+        value : scalar or dict, default None
+            Value to use to fill holes (e.g. 0), alternately a dict of values
+            specifying which value to use for each column (columns not in the
+            dict will not be filled)
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default 'pad'
+            Method to use for filling holes in reindexed Series
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap
+        axis : {0, 1}, default 0
+            0: fill column-by-column
+            1: fill row-by-row
+        inplace : boolean, default False
+            If True, fill the DataFrame in place. Note: this will modify any
+            other views on this DataFrame, like if you took a no-copy slice of
+            an existing DataFrame, for example a column in a DataFrame. Returns
+            a reference to the filled object, which is self if inplace=True
+        limit : int, default None
+            Maximum size gap to forward or backward fill
+
+        See also
+        --------
+        reindex, asfreq
+
+        Returns
+        -------
+        filled : DataFrame
+        """
+        self._consolidate_inplace()
+
+        if value is None:
+            return self._interpolate(to_replace, method, axis, inplace, limit)
+        else:
+            # Float type values
+            if len(self.columns) == 0:
+                return self
+
+            if np.isscalar(to_replace):
+
+                if np.isscalar(value): # np.nan -> 0
+                    new_data = self._data.replace(to_replace, value,
+                                                  inplace=inplace)
+                    if inplace:
+                        self._data = new_data
+                        return self
+                    else:
+                        return self._constructor(new_data)
+
+                elif isinstance(value, dict): # np.nan -> {'A' : 0, 'B' : -1}
+                    return self._replace_dest_dict(to_replace, value, inplace)
+
+
+            elif isinstance(to_replace, dict):
+
+                if np.isscalar(value): # {'A' : np.nan, 'B' : ''} -> 0
+                    return self._replace_src_dict(to_replace, value, inplace)
+
+                elif isinstance(value, dict): # {'A' : np.nan} -> {'A' : 0}
+                    return self._replace_both_dict(to_replace, value, inplace)
+
+                raise ValueError('Fill value must be scalar or dict')
+
+
+            elif isinstance(to_replace, (list, np.ndarray)):
+                # [np.nan, ''] -> [0, 'missing']
+                if isinstance(value, (list, np.ndarray)):
+                    if len(to_replace) != len(value):
+                        raise ValueError('Replacement lists must match '
+                                         'in length. Expecting %d got %d ' %
+                                         (len(to_replace), len(value)))
+
+                    new_data = self._data if inplace else self.copy()._data
+                    for s, d in zip(to_replace, value):
+                        new_data = new_data.replace(s, d, inplace=True)
+
+                else: # [np.nan, ''] -> 0
+                    new_data = self._data.replace(to_replace, value,
+                                                  inplace=inplace)
+
+                if inplace:
+                    self._data = new_data
+                    return self
+                else:
+                    return self._constructor(new_data)
+
+            raise ValueError('Invalid to_replace type: %s' % type(to_replace))
+
+    def _interpolate(self, to_replace, method, axis, inplace, limit):
+        if self._is_mixed_type and axis == 1:
+            return self.T.replace(to_replace, method=method, limit=limit).T
+
+        method = com._clean_fill_method(method)
+
+        if isinstance(to_replace, dict):
+            if axis == 1:
+                return self.T.replace(to_replace, method=method,
+                                      limit=limit).T
+
+            rs = self if inplace else self.copy()
+            for k, v in to_replace.iteritems():
+                if k in rs:
+                    rs[k].replace(v, method=method, limit=limit,
+                                  inplace=True)
+            return rs
+
+        else:
+            new_blocks = []
+            for block in self._data.blocks:
+                newb = block.interpolate(method, axis=axis,
+                                         limit=limit, inplace=inplace,
+                                         missing=to_replace)
+                new_blocks.append(newb)
+            new_data = BlockManager(new_blocks, self._data.axes)
+
+            if inplace:
+                self._data = new_data
+                return self
+            else:
+                return self._constructor(new_data)
+
+
+    def _replace_dest_dict(self, to_replace, value, inplace):
+        rs = self if inplace else self.copy()
+        for k, v in value.iteritems():
+            if k in rs:
+                rs[k].replace(to_replace, v, inplace=True)
+        return rs
+
+    def _replace_src_dict(self, to_replace, value, inplace):
+        rs = self if inplace else self.copy()
+        for k, src in to_replace.iteritems():
+            if k in rs:
+                rs[k].replace(src, value, inplace=True)
+        return rs
+
+    def _replace_both_dict(self, to_replace, value, inplace):
+        rs = self if inplace else self.copy()
+        for c, src in to_replace.iteritems():
+            if c in value and c in rs:
+                rs[c].replace(src, value[c], inplace=True)
+        return rs
 
     #----------------------------------------------------------------------
     # Rename
@@ -3423,7 +3575,7 @@ class DataFrame(NDFrame):
     @Appender(_merge_doc, indents=2)
     def merge(self, right, how='inner', on=None, left_on=None, right_on=None,
               left_index=False, right_index=False, sort=True,
-              suffixes=('.x', '.y'), copy=True):
+              suffixes=('_x', '_y'), copy=True):
         from pandas.tools.merge import merge
         return merge(self, right, how=how, on=on,
                      left_on=left_on, right_on=right_on,
@@ -3651,8 +3803,8 @@ class DataFrame(NDFrame):
             level = self.index._get_level_number(level)
 
         level_index = frame.index.levels[level]
-        counts = lib.count_level_2d(mask, frame.index.labels[level],
-                                    len(level_index))
+        labels = com._ensure_int64(frame.index.labels[level])
+        counts = lib.count_level_2d(mask, labels, len(level_index))
 
         result = DataFrame(counts, index=level_index,
                            columns=frame.columns)
@@ -4383,7 +4535,6 @@ def _is_sequence(x):
         return True
     except Exception:
         return False
-
 
 def install_ipython_completers():  # pragma: no cover
     """Register the DataFrame type with IPython's tab completion machinery, so

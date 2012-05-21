@@ -579,11 +579,14 @@ class HDFStore(object):
             node._v_attrs.kind = kind
             node._v_attrs.name = index.name
 
-            if isinstance(index, (DatetimeIndex, PeriodIndex, IntIndex)):
-                node._v_attrs.index_class = type(index)
+            if isinstance(index, (DatetimeIndex, PeriodIndex)):
+                node._v_attrs.index_class = _class_to_alias(type(index))
 
             if hasattr(index, 'freq'):
                 node._v_attrs.freq = index.freq
+
+            if hasattr(index, 'tz') and index.tz is not None:
+                node._v_attrs.tz = index.tz.zone
 
     def _read_index(self, group, key):
         variety = getattr(group._v_attrs, '%s_variety' % key)
@@ -667,16 +670,21 @@ class HDFStore(object):
         if 'name' in node._v_attrs:
             name = node._v_attrs.name
 
-        index_class = getattr(node._v_attrs, 'index_class', Index)
+        index_class = _alias_to_class(getattr(node._v_attrs, 'index_class', ''))
+        factory = _get_index_factory(index_class)
+
         kwargs = {}
         if 'freq' in node._v_attrs:
             kwargs['freq'] = node._v_attrs['freq']
 
+        if 'tz' in node._v_attrs:
+            kwargs['tz'] = node._v_attrs['tz']
+
         if kind in ('date', 'datetime'):
-            index = index_class(_unconvert_index(data, kind), dtype=object,
-                                **kwargs)
+            index = factory(_unconvert_index(data, kind), dtype=object,
+                            **kwargs)
         else:
-            index = index_class(_unconvert_index(data, kind), **kwargs)
+            index = factory(_unconvert_index(data, kind), **kwargs)
 
         index.name = name
 
@@ -842,7 +850,8 @@ class HDFStore(object):
         key = major.labels * K + minor.labels
 
         if len(unique(key)) == len(key):
-            sorter, _ = lib.groupsort_indexer(key, J * K)
+            sorter, _ = lib.groupsort_indexer(com._ensure_int64(key), J * K)
+            sorter = com._ensure_platform_int(sorter)
 
             # the data need to be sorted
             sorted_values = values.take(sorter, axis=0)
@@ -871,6 +880,7 @@ class HDFStore(object):
             unique_tuples = _asarray_tuplesafe(unique_tuples)
 
             indexer = match(unique_tuples, tuple_index)
+            indexer = com._ensure_platform_int(indexer)
 
             new_index = long_index.take(indexer)
             new_values = lp.values.take(indexer, axis=0)
@@ -1003,6 +1013,21 @@ def _is_table_type(group):
         # new node, e.g.
         return False
 
+_index_type_map = {DatetimeIndex : 'datetime',
+                   PeriodIndex : 'period'}
+
+_reverse_index_map = {}
+for k, v in _index_type_map.iteritems():
+    _reverse_index_map[v] = k
+
+def _class_to_alias(cls):
+    return _index_type_map.get(cls, '')
+
+def _alias_to_class(alias):
+    if isinstance(alias, type):
+        return alias
+    return _reverse_index_map.get(alias, Index)
+
 class Selection(object):
     """
     Carries out a selection operation on a tables.Table object.
@@ -1084,4 +1109,12 @@ class Selection(object):
         generate the selection
         """
         self.values = self.table.getWhereList(self.the_condition)
+
+def _get_index_factory(klass):
+    if klass == DatetimeIndex:
+        def f(values, freq=None, tz=None):
+            return DatetimeIndex._simple_new(values, None, freq=freq,
+                                             tz=tz)
+        return f
+    return klass
 

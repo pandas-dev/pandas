@@ -38,6 +38,21 @@ pandas 0.8.0
   - Add support for indexes (dates or otherwise) with duplicates and common
     sense indexing/selection functionality
   - Series/DataFrame.update methods, in-place variant of combine_first (#961)
+  - Add ``match`` function to API (#502)
+  - Add Cython-optimized first, last, min, max, prod functions to GroupBy (#994,
+    #1043)
+  - Dates can be split across multiple columns (#1227, #1186)
+  - Add experimental support for converting pandas DataFrame to R data.frame
+    via rpy2 (#350, #1212)
+  - Can pass list of (name, function) to GroupBy.aggregate to get aggregates in
+    a particular order (#610)
+  - Can pass dicts with lists of functions or dicts to GroupBy aggregate to do
+    much more flexible multiple function aggregation (#642)
+  - New ordered_merge functions for merging DataFrames with ordered
+    data. Also supports group-wise merging for panel data (#813)
+  - Add keys() method to DataFrame
+  - Add flexible replace method for replacing potentially values to Series and
+    DataFrame (#929, #1241)
 
 **Improvements to existing features**
 
@@ -50,6 +65,10 @@ pandas 0.8.0
   - Can pass arrays in addition to column names to DataFrame.set_index (#402)
   - Improve the speed of "square" reindexing of homogeneous DataFrame objects
     by significant margin (#836)
+  - Handle more dtypes when passed MaskedArrays in DataFrame constructor (#406)
+  - Improved performance of join operations on integer keys (#682)
+  - Can pass multiple columns to GroupBy object, e.g. grouped[[col1, col2]] to
+    only aggregate a subset of the value columns (#383)
 
 **API Changes**
 
@@ -57,6 +76,8 @@ pandas 0.8.0
     (#1073)
   - Change BDay (business day) to not normalize dates by default
   - Remove deprecated DataMatrix name
+  - Default merge suffixes for overlap now have underscores instead of periods
+    to facilitate tab completion, etc. (#1239)
 
 **Bug fixes**
 
@@ -76,6 +97,9 @@ pandas 0.8.0
     cases. Fix pivot table bug (#1181)
   - Fix formatting of MultiIndex on Series/DataFrame when index name coincides
     with label (#1217)
+  - Handle Excel 2003 #N/A as NaN from xlrd (#1213, #1225)
+  - Fix timestamp locale-related deserialization issues with HDFStore by moving
+    to datetime64 representation (#1081, #809)
 
 pandas 0.7.3
 ============

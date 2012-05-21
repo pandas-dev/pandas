@@ -421,117 +421,6 @@ def int64_unique(ndarray[int64_t] arr):
 
     return np.sort(uniques[:j])
 
-def group_add_bin(ndarray[float64_t, ndim=2] out,
-                  ndarray[int32_t] counts,
-                  ndarray[float64_t, ndim=2] values,
-                  ndarray[int32_t] bins):
-    '''
-    Only aggregates on axis=0
-    '''
-    cdef:
-        Py_ssize_t i, j, N, K, ngroups, b
-        float64_t val, count
-        ndarray[float64_t, ndim=2] sumx, nobs
-
-    nobs = np.zeros_like(out)
-    sumx = np.zeros_like(out)
-
-    ngroups = len(bins) + 1
-    N, K = (<object> values).shape
-
-    b = 0
-    if K > 1:
-        for i in range(N):
-            while b < ngroups - 1 and i >= bins[b]:
-                b += 1
-
-            counts[b] += 1
-            for j in range(K):
-                val = values[i, j]
-
-                # not nan
-                if val == val:
-                    nobs[b, j] += 1
-                    sumx[b, j] += val
-    else:
-        for i in range(N):
-            while b < ngroups - 1 and i >= bins[b]:
-                b += 1
-
-            counts[b] += 1
-            val = values[i, 0]
-
-            # not nan
-            if val == val:
-                nobs[b, 0] += 1
-                sumx[b, 0] += val
-            print i, b, counts, nobs.squeeze()
-
-    for i in range(ngroups):
-        print 'writing %d' % i
-        for j in range(K):
-            if nobs[i] == 0:
-                out[i, j] = nan
-            else:
-                out[i, j] = sumx[i, j]
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def group_add(ndarray[float64_t, ndim=2] out,
-              ndarray[int32_t] counts,
-              ndarray[float64_t, ndim=2] values,
-              ndarray[int32_t] labels):
-    '''
-    Only aggregates on axis=0
-    '''
-    cdef:
-        Py_ssize_t i, j, N, K, lab
-        float64_t val, count
-        ndarray[float64_t, ndim=2] sumx, nobs
-
-    nobs = np.zeros_like(out)
-    sumx = np.zeros_like(out)
-
-    N, K = (<object> values).shape
-
-    if K > 1:
-        for i in range(N):
-            lab = labels[i]
-            if lab < 0:
-                continue
-
-            counts[lab] += 1
-            for j in range(K):
-                val = values[i, j]
-
-                # not nan
-                if val == val:
-                    nobs[lab, j] += 1
-                    sumx[lab, j] += val
-    else:
-        for i in range(N):
-            lab = labels[i]
-            if lab < 0:
-                continue
-
-            counts[lab] += 1
-            val = values[i, 0]
-
-            # not nan
-            if val == val:
-                nobs[lab, 0] += 1
-                sumx[lab, 0] += val
-
-    for i in range(len(counts)):
-        for j in range(K):
-            if nobs[i, j] == 0:
-                out[i, j] = nan
-            else:
-                out[i, j] = sumx[i, j]
-
-
-from datetime cimport getAbsTime
-
 
 # cdef extern from "kvec.h":
 
@@ -545,12 +434,6 @@ def test_foo(ndarray[int64_t] values):
 
     val = values[0]
     print val
-
-def get_abs_time(freq, dailyDate, originalDate):
-    return getAbsTime(freq, dailyDate, originalDate)
-
-have_pytz = 1
-import pytz
 
 # cdef extern from "foo.h":
 #     double add_things(double *a, double *b, double *c, int n)
@@ -580,4 +463,38 @@ def inner(ndarray[float64_t] x, ndarray[float64_t] y):
     cdef float64_t result = 0
     for i in range(n):
         result += x[i] * y[i]
+    return result
+
+def indices_fast(ndarray[int64_t] labels, list keys,
+                 list sorted_labels):
+    cdef:
+        Py_ssize_t i, j, k, lab, cur, start, n = len(labels)
+        dict result = {}
+        object tup
+
+    index = np.arange(n)
+
+    k = len(keys)
+
+    if n == 0:
+        return result
+
+    start = 0
+    cur = labels[0]
+    for i in range(1, n):
+        lab = labels[i]
+
+        if lab != cur:
+            if lab != -1:
+                tup = PyTuple_New(k)
+                for j in range(k):
+                    val = util.get_value_at(keys[j],
+                                            sorted_labels[j][cur])
+                    PyTuple_SET_ITEM(tup, j, val)
+                    Py_INCREF(val)
+
+                result[tup] = index[start:i]
+            start = i
+        cur = lab
+
     return result

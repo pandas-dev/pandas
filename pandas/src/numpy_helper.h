@@ -64,6 +64,10 @@ PANDAS_INLINE int
 is_float_object(PyObject* obj) {
   return (PyFloat_Check(obj) || PyArray_IsScalar(obj, Floating));
 }
+PANDAS_INLINE int
+is_complex_object(PyObject* obj) {
+  return (PyComplex_Check(obj) || PyArray_IsScalar(obj, ComplexFloating));
+}
 
 PANDAS_INLINE int
 is_bool_object(PyObject* obj) {

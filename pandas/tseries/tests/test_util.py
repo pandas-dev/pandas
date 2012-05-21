@@ -6,17 +6,17 @@ import numpy as np
 from pandas import Series, date_range
 import pandas.util.testing as tm
 
-from pandas.tseries.util import convert_to_annual, isleapyear
+from pandas.tseries.util import pivot_annual, isleapyear
 
-class TestConvertAnnual(unittest.TestCase):
+class TestPivotAnnual(unittest.TestCase):
     """
-    New pandas of scikits.timeseries convert_to_annual
+    New pandas of scikits.timeseries pivot_annual
     """
     def test_daily(self):
         rng = date_range('1/1/2000', '12/31/2004', freq='D')
         ts = Series(np.random.randn(len(rng)), index=rng)
 
-        annual = convert_to_annual(ts, 'D')
+        annual = pivot_annual(ts, 'D')
 
         doy = ts.index.dayofyear
         doy[(-isleapyear(ts.index.year)) & (doy >= 60)] += 1
@@ -40,7 +40,7 @@ class TestConvertAnnual(unittest.TestCase):
         rng = date_range('1/1/2000', '12/31/2004', freq='M')
         ts = Series(np.random.randn(len(rng)), index=rng)
 
-        annual = convert_to_annual(ts, 'M')
+        annual = pivot_annual(ts, 'M')
 
         month = ts.index.month
 
@@ -49,13 +49,13 @@ class TestConvertAnnual(unittest.TestCase):
             subset.index = [x.year for x in subset.index]
             tm.assert_series_equal(annual[i].dropna(), subset)
 
-    def test_interval_monthly(self):
+    def test_period_monthly(self):
         pass
 
-    def test_interval_daily(self):
+    def test_period_daily(self):
         pass
 
-    def test_interval_weekly(self):
+    def test_period_weekly(self):
         pass
 
 if __name__ == '__main__':
