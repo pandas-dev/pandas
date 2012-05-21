@@ -391,17 +391,17 @@ class TestResample(unittest.TestCase):
         exp_index = period_range('Jan-2000', 'Dec-2000', freq='M')
         self.assert_(result.index.equals(exp_index))
 
-    def test_upsample_daily_business_daily(self):
-        ts = _simple_ts('1/1/2000', '2/1/2000', freq='B')
+    def test_resample_empty(self):
+        ts = _simple_ts('1/1/2000', '2/1/2000')[:0]
 
-        result = ts.resample('D')
-        expected = ts.reindex(date_range('1/3/2000', '2/1/2000'))
-        assert_series_equal(result, expected)
+        result = ts.resample('A')
+        self.assert_(len(result) == 0)
+        self.assert_(result.index.freqstr == 'A-DEC')
 
-        ts = _simple_ts('1/1/2000', '2/1/2000')
-        result = ts.resample('H')
-        expected = ts.reindex(date_range('1/1/2000', '2/1/2000', freq='H'))
-        assert_series_equal(result, expected)
+        result = ts.resample('A', kind='period')
+        self.assert_(len(result) == 0)
+        self.assert_(result.index.freqstr == 'A-DEC')
+
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
@@ -564,6 +564,25 @@ class TestResamplePeriodIndex(unittest.TestCase):
         result = ts.resample('5min')
         expected = ts.to_timestamp().resample('5min')
         assert_series_equal(result, expected)
+
+    def test_upsample_daily_business_daily(self):
+        ts = _simple_pts('1/1/2000', '2/1/2000', freq='B')
+
+        result = ts.resample('D')
+        expected = ts.asfreq('D').reindex(period_range('1/3/2000', '2/1/2000'))
+        assert_series_equal(result, expected)
+
+        ts = _simple_pts('1/1/2000', '2/1/2000')
+        result = ts.resample('H', convention='s')
+        exp_rng = period_range('1/1/2000', '2/1/2000', freq='H')
+        expected = ts.asfreq('H', how='s').reindex(exp_rng)
+        assert_series_equal(result, expected)
+
+    def test_resample_empty(self):
+        ts = _simple_pts('1/1/2000', '2/1/2000')[:0]
+
+        result = ts.resample('A')
+        self.assert_(len(result) == 0)
 
 class TestTimeGrouper(unittest.TestCase):
 

@@ -259,7 +259,7 @@ class DatetimeIndex(Int64Index):
         subarr.offset = offset
         subarr.tz = tz
 
-        if verify_integrity:
+        if verify_integrity and len(subarr) > 0:
             if offset is not None and not infer_freq:
                 inferred = subarr.inferred_freq
                 if inferred != offset.freqstr:

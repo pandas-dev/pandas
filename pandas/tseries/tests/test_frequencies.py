@@ -92,6 +92,12 @@ class TestFrequencyInference(unittest.TestCase):
     def test_microsecond(self):
         self._check_tick(timedelta(microseconds=1), 'U')
 
+    def test_nanosecond(self):
+        idx = DatetimeIndex(np.arange(0, 100, 10))
+        inferred = idx.inferred_freq
+
+        self.assert_(inferred == '10N')
+
     def _check_tick(self, base_delta, code):
         b = datetime.now()
         for i in range(1, 5):

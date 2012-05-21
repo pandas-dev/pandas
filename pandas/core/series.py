@@ -1986,7 +1986,9 @@ copy : boolean, default False
         index = _ensure_index(index)
         if self.index.equals(index):
             if copy:
-                return self.copy()
+                result = self.copy()
+                result.index = index
+                return result
             else:
                 return self
 

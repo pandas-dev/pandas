@@ -70,7 +70,7 @@ class TimeGrouper(CustomGrouper):
             else:
                 obj = obj.to_timestamp(how=self.convention)
                 return self._resample_timestamps(obj)
-        else:
+        else:  # pragma: no cover
             raise TypeError('Only valid with DatetimeIndex or PeriodIndex')
 
     def get_grouper(self, obj):
@@ -92,8 +92,8 @@ class TimeGrouper(CustomGrouper):
         assert(isinstance(axis, DatetimeIndex))
 
         if len(axis) == 0:
-            # TODO: Should we be a bit more careful here?
-            return [], [], []
+            binner = labels = DatetimeIndex(data=[], freq=self.freq)
+            return binner, [], labels
 
         first, last = _get_range_edges(axis, self.begin, self.end, self.freq,
                                        closed=self.closed, base=self.base)
@@ -121,8 +121,9 @@ class TimeGrouper(CustomGrouper):
         assert(isinstance(axis, DatetimeIndex))
 
         if len(axis) == 0:
-            # TODO: Should we be a bit more careful here?
-            return [], [], []
+            binner = labels = PeriodIndex(data=[], freq=self.freq)
+            return binner, [], labels
+
         labels = binner = PeriodIndex(start=axis[0], end=axis[-1],
                                       freq=self.freq)
 
@@ -165,9 +166,13 @@ class TimeGrouper(CustomGrouper):
     def _resample_periods(self, obj):
         axlabels = obj._get_axis(self.axis)
 
-        start = axlabels[0].asfreq(self.freq, how=self.convention)
-        end = axlabels[-1].asfreq(self.freq, how=self.convention)
-        new_index = period_range(start, end, freq=self.freq)
+        if len(axlabels) == 0:
+            new_index = PeriodIndex(data=[], freq=self.freq)
+            return obj.reindex(new_index)
+        else:
+            start = axlabels[0].asfreq(self.freq, how=self.convention)
+            end = axlabels[-1].asfreq(self.freq, how=self.convention)
+            new_index = period_range(start, end, freq=self.freq)
 
         # Start vs. end of period
         memb = axlabels.asfreq(self.freq, how=self.convention)
