@@ -382,7 +382,7 @@ class TestTimeSeries(unittest.TestCase):
         assert_frame_equal(filled2, expected)
 
 
-        series = Series([NaT, 0, 1, 2], dtype='M8[us]')
+        series = Series([NaT, 0, 1, 2], dtype='M8[ns]')
 
         filled = series.fillna(method='bfill')
         filled2 = series.fillna(value=series[1])
@@ -396,7 +396,7 @@ class TestTimeSeries(unittest.TestCase):
         df = DataFrame({'A': series})
         filled = df.fillna(method='bfill')
         filled2 = df.fillna(value=series[1])
-        expected = DataFrame({'bfill': expected})
+        expected = DataFrame({'A': expected})
         assert_frame_equal(filled, expected)
         assert_frame_equal(filled2, expected)
 
@@ -488,9 +488,10 @@ class TestTimeSeries(unittest.TestCase):
         expected = DatetimeIndex(datetools.to_datetime(idx.values))
         self.assert_(result.equals(expected))
 
-        idx = Index([datetime.today()], dtype=object)
+        today = datetime.today()
+        idx = Index([today], dtype=object)
         result = idx.to_datetime()
-        expected = DatetimeIndex([datetime.today()])
+        expected = DatetimeIndex([today])
         self.assert_(result.equals(expected))
 
     def test_range_misspecified(self):
@@ -608,7 +609,10 @@ class TestTimeSeries(unittest.TestCase):
     def test_at_time(self):
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
         ts = Series(np.random.randn(len(rng)), index=rng)
-        self.assert_(ts.at_time(rng[0]), ts.ix[0])
+        rs = ts.at_time(rng[1])
+        self.assert_((rs.index.hour == rng[1].hour).all())
+        self.assert_((rs.index.minute == rng[1].minute).all())
+        self.assert_((rs.index.second == rng[1].second).all())
 
         df = DataFrame(np.random.randn(len(rng), 3), index=rng)
 
