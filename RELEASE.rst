@@ -71,7 +71,8 @@ pandas 0.8.0
   - Can pass multiple columns to GroupBy object, e.g. grouped[[col1, col2]] to
     only aggregate a subset of the value columns (#383)
   - Add histogram / kde plot options for scatter_matrix diagonals (#1237)
-  - Add inplace option to DataFrame.drop_duplicates (#805)
+  - Add inplace option to Series/DataFrame.rename and sort_index,
+    DataFrame.drop_duplicates (#805, #207)
 
 **API Changes**
 
