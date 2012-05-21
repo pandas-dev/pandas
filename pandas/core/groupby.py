@@ -1214,8 +1214,13 @@ class SeriesGroupBy(GroupBy):
             # indicated column order
             columns = list(zip(*arg))[0]
         else:
-            # list of functions
-            columns = [func.__name__ for func in arg]
+            # list of functions / function names
+            columns = []
+            for f in arg:
+                if isinstance(f, basestring):
+                    columns.append(f)
+                else:
+                    columns.append(f.__name__)
             arg = zip(columns, arg)
 
         results = {}

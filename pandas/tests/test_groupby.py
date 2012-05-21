@@ -1773,6 +1773,25 @@ class TestGroupBy(unittest.TestCase):
                                       'D' : [foo, bar]})
         assert_frame_equal(result, expected)
 
+    def test_multi_function_flexible_mix(self):
+        # GH #1268
+
+        grouped = self.df.groupby('A')
+
+        result = grouped.aggregate({'C' : {'foo' : 'mean',
+                                           'bar' : 'std'},
+                                    'D' : 'sum'})
+        result2 = grouped.aggregate({'C' : {'foo' : 'mean',
+                                           'bar' : 'std'},
+                                    'D' : ['sum']})
+
+        expected = grouped.aggregate({'C' : {'foo' : 'mean',
+                                             'bar' : 'std'},
+                                      'D' : {'sum' : 'sum'}})
+
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result2, expected)
+
     def test_set_group_name(self):
         def f(group):
             assert group.name is not None

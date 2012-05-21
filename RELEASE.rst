@@ -54,6 +54,7 @@ pandas 0.8.0
   - Add flexible replace method for replacing potentially values to Series and
     DataFrame (#929, #1241)
   - Add 'kde' plot kind for Series/DataFrame.plot (#1059)
+  - More flexible multiple function aggregation with GroupBy
 
 **Improvements to existing features**
 
