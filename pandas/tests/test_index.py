@@ -400,7 +400,7 @@ class TestIndex(unittest.TestCase):
 
         ser = Index([1,2,3])
         dropped = ser.drop(1)
-        expected = Index([1,3])
+        expected = Index([2,3])
         self.assert_(dropped.equals(expected))
 
     def test_tuple_union_bug(self):
