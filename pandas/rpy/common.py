@@ -207,7 +207,7 @@ def convert_to_r_dataframe(df, strings_as_factors=False):
     for column in df:
         value = df[column]
         value_type = value.dtype.type
-        value = [item if pn.notnull(item) else robj.NA_Logical
+        value = [item if pn.notnull(item) else robj.NA_Real
                  for item in value]
         value = VECTOR_TYPES[value_type](value)
 
