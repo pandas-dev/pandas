@@ -595,6 +595,13 @@ class TestTimeSeries(unittest.TestCase):
         close_open = itertools.product([True, False], [True, False])
         for inc_start, inc_end in close_open:
             filtered = ts.between_time(stime, etime, inc_start, inc_end)
+            exp_len = 13 * 4 + 1
+            if not inc_start:
+                exp_len -= 5
+            if not inc_end:
+                exp_len -= 4
+
+            self.assert_(len(filtered) == exp_len)
             for rs in filtered.index:
                 t = rs.time()
                 if inc_start:
