@@ -2354,7 +2354,7 @@ copy : boolean, default False
         ----------
         periods : int
             Number of periods to move, can be positive or negative
-        freq : DateOffset, timedelta, or time rule string, optional
+        freq : DateOffset, timedelta, or offset alias string, optional
             Increment to use from datetools module or time rule (e.g. 'EOM')
 
         Returns

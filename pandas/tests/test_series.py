@@ -2606,6 +2606,22 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # Just run the function
         self.ts.diff()
 
+    def test_pct_change(self):
+        rs = self.ts.pct_change(fill_method=None)
+        assert_series_equal(rs, self.ts / self.ts.shift(1) - 1)
+
+        rs = self.ts.pct_change(2)
+        filled = self.ts.fillna(method='pad')
+        assert_series_equal(rs, filled / filled.shift(2) - 1)
+
+        rs = self.ts.pct_change(fill_method='bfill', limit=1)
+        filled = self.ts.fillna(method='bfill', limit=1)
+        assert_series_equal(rs, filled / filled.shift(1) - 1)
+
+        rs = self.ts.pct_change(freq='M')
+        filled = self.ts.fillna(method='pad')
+        assert_series_equal(rs, filled / filled.shift(freq='M') - 1)
+
     def test_autocorr(self):
         # Just run the function
         self.ts.autocorr()

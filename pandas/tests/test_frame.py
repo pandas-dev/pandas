@@ -4116,6 +4116,23 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_series_equal(the_diff['A'],
                             self.tsframe['A'] - self.tsframe['A'].shift(1))
 
+    def test_pct_change(self):
+        rs = self.tsframe.pct_change(fill_method=None)
+        assert_frame_equal(rs, self.tsframe / self.tsframe.shift(1) - 1)
+
+        rs = self.tsframe.pct_change(2)
+        filled = self.tsframe.fillna(method='pad')
+        assert_frame_equal(rs, filled / filled.shift(2) - 1)
+
+        rs = self.tsframe.pct_change(fill_method='bfill', limit=1)
+        filled = self.tsframe.fillna(method='bfill', limit=1)
+        assert_frame_equal(rs, filled / filled.shift(1) - 1)
+
+        rs = self.tsframe.pct_change(freq='M')
+        filled = self.tsframe.fillna(method='pad')
+        assert_frame_equal(rs, filled / filled.shift(freq='M') - 1)
+
+
     def test_shift(self):
         # naive shift
         shiftedFrame = self.tsframe.shift(5)
