@@ -523,7 +523,8 @@ class BlockManager(object):
 
     def get_numeric_data(self, copy=False):
         num_blocks = [b for b in self.blocks
-                      if isinstance(b, (IntBlock, FloatBlock, ComplexBlock))]
+                      if (isinstance(b, (IntBlock, FloatBlock, ComplexBlock))
+                          and not isinstance(b, DatetimeBlock))]
 
         indexer = np.sort(np.concatenate([b.ref_locs for b in num_blocks]))
         new_items = self.items.take(indexer)

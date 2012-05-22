@@ -3771,6 +3771,7 @@ class DataFrame(NDFrame):
 
         for column in numdata.columns:
             series = self[column]
+            ser_desc = series.describe()
             destat.append([series.count(), series.mean(), series.std(),
                            series.min(), series.quantile(lb), series.median(),
                            series.quantile(ub), series.max()])
@@ -4059,7 +4060,8 @@ class DataFrame(NDFrame):
             num_data = self._data.get_numeric_data()
             return DataFrame(num_data, copy=False)
         else:
-            if self.values.dtype != np.object_:
+            if (self.values.dtype != np.object_ and
+                not issubclass(self.values.dtype.type, np.datetime64)):
                 return self
             else:
                 return self.ix[:, []]

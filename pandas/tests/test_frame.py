@@ -5248,6 +5248,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                              columns=df.columns)
         assert_frame_equal(desc, expected)
 
+        df = DataFrame({'time' : self.tsframe.index})
+        desc = df.describe()
+        assert(desc.time['first'] == min(self.tsframe.index))
+
     def test_get_axis_etc(self):
         f = self.frame
 
