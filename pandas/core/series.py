@@ -1310,11 +1310,20 @@ copy : boolean, default False
             top, freq = objcounts.most_common(1)[0]
             data = [self.count(), len(objcounts), top, freq]
 
+        elif issubclass(self.dtype.type, np.datetime64):
+            names = ['count', 'unique', 'first', 'last', 'top', 'freq']
+
+            asint = self.dropna().view('i8')
+            objcounts = Counter(asint)
+            top, freq = objcounts.most_common(1)[0]
+            data = [self.count(), len(objcounts),
+                    lib.Timestamp(asint.min()),
+                    lib.Timestamp(asint.max()),
+                    lib.Timestamp(top), freq]
         else:
 
             lb = .5 * (1. - percentile_width/100.)
             ub = 1. - lb
-
 
             def pretty_name(x):
                 x *= 100
