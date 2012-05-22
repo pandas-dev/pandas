@@ -353,6 +353,44 @@ def values_at_time(obj, time, tz=None, asof=False):
     indexer = com._ensure_platform_int(indexer)
     return obj.take(indexer)
 
+def values_between_time(obj, start_time, end_time, include_start=True,
+                        include_end=True, tz=None):
+    """
+    Select values between particular times of day (e.g., 9:00-9:30AM)
+
+    Parameters
+    ----------
+    start_time : datetime.time or string
+    end_time : datetime.time or string
+    include_start : boolean, default True
+    include_end : boolean, default True
+    tz : string or pytz.timezone, default None
+
+    Returns
+    -------
+    values_between_time : TimeSeries
+    """
+    from dateutil.parser import parse
+
+    if tz:
+        raise NotImplementedError
+
+    if not isinstance(obj.index, DatetimeIndex):
+        raise NotImplementedError
+
+    if isinstance(start_time, basestring):
+        start_time = parse(start_time).time()
+
+    if isinstance(end_time, basestring):
+        end_time = parse(end_time).time()
+
+    start_ns = _time_to_nanosecond(start_time)
+    end_ns = _time_to_nanosecond(end_time)
+    indexer = lib.values_between_time(obj.index.asi8, start_ns, end_ns,
+                                      include_start, include_end)
+    indexer = com._ensure_platform_int(indexer)
+    return obj.take(indexer)
+
 def _time_to_nanosecond(time):
     seconds = time.hour * 60 * 60 + 60 * time.minute + time.second
     return 1000000000L * seconds + time.microsecond * 1000

@@ -1,5 +1,6 @@
 # pylint: disable-msg=E1101,W0612
 from __future__ import with_statement # for Python 2.5
+import itertools
 from datetime import datetime, time, timedelta
 import sys
 import os
@@ -584,6 +585,27 @@ class TestTimeSeries(unittest.TestCase):
 
         result = ts.at_time(time(0, 0))
         assert_series_equal(result, ts)
+
+    def test_between_time(self):
+        rng = date_range('1/1/2000', '1/5/2000', freq='5min')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+        stime = time(0, 0)
+        etime = time(1, 0)
+
+        close_open = itertools.product([True, False], [True, False])
+        for inc_start, inc_end in close_open:
+            filtered = ts.between_time(stime, etime, inc_start, inc_end)
+            for rs in filtered.index:
+                t = rs.time()
+                if inc_start:
+                    self.assert_(t >= stime)
+                else:
+                    self.assert_(t > stime)
+
+                if inc_end:
+                    self.assert_(t <= etime)
+                else:
+                    self.assert_(t < etime)
 
     def test_dti_constructor_preserve_dti_freq(self):
         rng = date_range('1/1/2000', '1/2/2000', freq='5min')

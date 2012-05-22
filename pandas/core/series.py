@@ -2682,6 +2682,28 @@ class TimeSeries(Series):
         from pandas.tseries.resample import values_at_time
         return values_at_time(self, time, tz=tz, asof=asof)
 
+    def between_time(self, start_time, end_time, include_start=True,
+                     include_end=True, tz=None):
+        """
+        Select values between particular times of the day (e.g., 9:00-9:30 AM)
+
+        Parameters
+        ----------
+        start_time : datetime.time or string
+        end_time : datetime.time or string
+        include_start : boolean, default True
+        include_end : boolean, default True
+        tz : string or pytz.timezone, default None
+
+        Returns
+        -------
+        values_between_time : TimeSeries
+        """
+        from pandas.tseries.resample import values_between_time
+        return values_between_time(self, start_time, end_time, tz=tz,
+                                   include_start=include_start,
+                                   include_end=include_end)
+
     def tz_convert(self, tz, copy=True):
         """
         Convert TimeSeries to target time zone. If it is time zone naive, it
