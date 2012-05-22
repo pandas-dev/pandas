@@ -2449,6 +2449,117 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = self.frame[:0].add(self.frame)
         assert_frame_equal(result, self.frame * np.nan)
 
+    def test_bool_flex_frame(self):
+        data = np.random.randn(5, 3)
+        other_data = np.random.randn(5, 3)
+        df = DataFrame(data)
+        other = DataFrame(other_data)
+
+        # No NAs
+
+        # DataFrame
+        self.assert_(df.eq(df).values.all())
+        self.assert_(not df.ne(df).values.any())
+
+        assert_frame_equal((df == other), df.eq(other))
+        assert_frame_equal((df != other), df.ne(other))
+        assert_frame_equal((df > other), df.gt(other))
+        assert_frame_equal((df < other), df.lt(other))
+        assert_frame_equal((df >= other), df.ge(other))
+        assert_frame_equal((df <= other), df.le(other))
+
+        # Unaligned
+        def _check_unaligned_frame(meth, op, df, other, default=False):
+            part_o = other.ix[3:, 1:].copy()
+            rs = meth(df, part_o)
+            xp = op(df, part_o.reindex(index=df.index, columns=df.columns))
+            assert_frame_equal(rs, xp)
+
+        _check_unaligned_frame(DataFrame.eq, operator.eq, df, other)
+        _check_unaligned_frame(DataFrame.ne, operator.ne, df, other,
+                               default=True)
+        _check_unaligned_frame(DataFrame.gt, operator.gt, df, other)
+        _check_unaligned_frame(DataFrame.lt, operator.lt, df, other)
+        _check_unaligned_frame(DataFrame.ge, operator.ge, df, other)
+        _check_unaligned_frame(DataFrame.le, operator.le, df, other)
+
+        # Series
+        def _test_seq(df, idx_ser, col_ser):
+            idx_eq = df.eq(idx_ser, axis=0)
+            col_eq = df.eq(col_ser)
+            idx_ne = df.ne(idx_ser, axis=0)
+            col_ne = df.ne(col_ser)
+            assert_frame_equal(col_eq, df == Series(col_ser))
+            assert_frame_equal(col_eq, -col_ne)
+            assert_frame_equal(idx_eq, -idx_ne)
+            assert_frame_equal(idx_eq, df.T.eq(idx_ser).T)
+
+            idx_gt = df.gt(idx_ser, axis=0)
+            col_gt = df.gt(col_ser)
+            idx_le = df.le(idx_ser, axis=0)
+            col_le = df.le(col_ser)
+
+            assert_frame_equal(col_gt, df > Series(col_ser))
+            assert_frame_equal(col_gt, -col_le)
+            assert_frame_equal(idx_gt, -idx_le)
+            assert_frame_equal(idx_gt, df.T.gt(idx_ser).T)
+
+            idx_ge = df.ge(idx_ser, axis=0)
+            col_ge = df.ge(col_ser)
+            idx_lt = df.lt(idx_ser, axis=0)
+            col_lt = df.lt(col_ser)
+            assert_frame_equal(col_ge, df >= Series(col_ser))
+            assert_frame_equal(col_ge, -col_lt)
+            assert_frame_equal(idx_ge, -idx_lt)
+            assert_frame_equal(idx_ge, df.T.ge(idx_ser).T)
+
+        idx_ser = Series(np.random.randn(5))
+        col_ser = Series(np.random.randn(3))
+        _test_seq(df, idx_ser, col_ser)
+
+        # ndarray
+
+        assert_frame_equal((df == other.values), df.eq(other.values))
+        assert_frame_equal((df != other.values), df.ne(other.values))
+        assert_frame_equal((df > other.values), df.gt(other.values))
+        assert_frame_equal((df < other.values), df.lt(other.values))
+        assert_frame_equal((df >= other.values), df.ge(other.values))
+        assert_frame_equal((df <= other.values), df.le(other.values))
+
+        # list/tuple
+        _test_seq(df, idx_ser.values, col_ser.values)
+
+        # NA
+        df.ix[0, 0] = np.nan
+        rs = df.eq(df)
+        self.assert_(not rs.ix[0, 0])
+        rs = df.ne(df)
+        self.assert_(rs.ix[0, 0])
+        rs = df.gt(df)
+        self.assert_(not rs.ix[0, 0])
+        rs = df.lt(df)
+        self.assert_(not rs.ix[0, 0])
+        rs = df.ge(df)
+        self.assert_(not rs.ix[0, 0])
+        rs = df.le(df)
+        self.assert_(not rs.ix[0, 0])
+
+
+        # scalar
+        assert_frame_equal(df.eq(0), df == 0)
+        assert_frame_equal(df.ne(0), df != 0)
+        assert_frame_equal(df.gt(0), df > 0)
+        assert_frame_equal(df.lt(0), df < 0)
+        assert_frame_equal(df.ge(0), df >= 0)
+        assert_frame_equal(df.le(0), df <= 0)
+
+        assert_frame_equal(df.eq(np.nan), df == np.nan)
+        assert_frame_equal(df.ne(np.nan), df != np.nan)
+        assert_frame_equal(df.gt(np.nan), df > np.nan)
+        assert_frame_equal(df.lt(np.nan), df < np.nan)
+        assert_frame_equal(df.ge(np.nan), df >= np.nan)
+        assert_frame_equal(df.le(np.nan), df <= np.nan)
+
     def test_arith_flex_series(self):
         df = self.simple
 

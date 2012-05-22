@@ -222,18 +222,40 @@ def _arith_method(op, name, default_axis='columns'):
 
     return f
 
-def flex_comp_method(op, name, default_axis='columns'):
+def _flex_comp_method(op, name, default_axis='columns'):
+
+    def na_op(x, y):
+        try:
+            result = op(x, y)
+        except TypeError:
+            xrav = x.ravel()
+            result = np.empty(x.size, dtype=x.dtype)
+            if isinstance(y, np.ndarray):
+                yrav = y.ravel()
+                mask = notnull(xrav) & notnull(yrav)
+                result[mask] = op(xrav[mask], yrav[mask])
+            else:
+                mask = notnull(xrav)
+                result[mask] = op(xrav[mask], y)
+
+            if op == operator.ne:
+                np.putmask(result, -mask, False)
+            else:
+                np.putmask(result, -mask, False)
+            result = result.reshape(x.shape)
+
+        return result
 
     @Appender('Wrapper for flexible comparison methods %s' % name)
     def f(self, other, axis=default_axis, level=None):
         if isinstance(other, DataFrame):    # Another DataFrame
-            return self._flex_compare_frame(other, op, level)
+            return self._flex_compare_frame(other, na_op, level)
 
         elif isinstance(other, Series):
             try:
-                return self._combine_series(other, op, None, axis, level)
+                return self._combine_series(other, na_op, None, axis, level)
             except Exception:
-                return self._combine_series_infer(other, op)
+                return self._combine_series_infer(other, na_op)
 
         elif isinstance(other, (list, tuple)):
             if axis is not None and self._get_axis_name(axis) == 'index':
@@ -242,9 +264,9 @@ def flex_comp_method(op, name, default_axis='columns'):
                 casted = Series(other, index=self.columns)
 
             try:
-                return self._combine_series(casted, op, None, axis, level)
+                return self._combine_series(casted, na_op, None, axis, level)
             except Exception:
-                return self._combine_series_infer(casted, op)
+                return self._combine_series_infer(casted, na_op)
 
         elif isinstance(other, np.ndarray):
             if other.ndim == 1:
@@ -254,27 +276,28 @@ def flex_comp_method(op, name, default_axis='columns'):
                     casted = Series(other, index=self.columns)
 
                 try:
-                    return self._combine_series(casted, op, None, axis, level)
+                    return self._combine_series(casted, na_op, None, axis,
+                                                level)
                 except Exception:
-                    return self._combine_series_infer(casted, op)
+                    return self._combine_series_infer(casted, na_op)
 
             elif other.ndim == 2:
                 casted = DataFrame(other, index=self.index,
                                    columns=self.columns)
-                return self._flex_compare_frame(casted, op, level)
+                return self._flex_compare_frame(casted, na_op, level)
 
             else:  # pragma: no cover
                 raise ValueError("Bad argument shape")
 
         else:
-            return self._combine_const(other, op)
+            return self._combine_const(other, na_op)
 
     f.__name__ = name
 
     return f
 
 
-def comp_method(func, name):
+def _comp_method(func, name):
     @Appender('Wrapper for comparison method %s' % name)
     def f(self, other):
         if isinstance(other, DataFrame):    # Another DataFrame
@@ -666,19 +689,19 @@ class DataFrame(NDFrame):
         return self._wrap_array(arr, self.axes, copy=False)
 
     # Comparison methods
-    __eq__ = comp_method(operator.eq, '__eq__')
-    __ne__ = comp_method(operator.ne, '__ne__')
-    __lt__ = comp_method(operator.lt, '__lt__')
-    __gt__ = comp_method(operator.gt, '__gt__')
-    __le__ = comp_method(operator.le, '__le__')
-    __ge__ = comp_method(operator.ge, '__ge__')
+    __eq__ = _comp_method(operator.eq, '__eq__')
+    __ne__ = _comp_method(operator.ne, '__ne__')
+    __lt__ = _comp_method(operator.lt, '__lt__')
+    __gt__ = _comp_method(operator.gt, '__gt__')
+    __le__ = _comp_method(operator.le, '__le__')
+    __ge__ = _comp_method(operator.ge, '__ge__')
 
-    eq = flex_comp_method(operator.eq, 'eq')
-    ne = flex_comp_method(operator.ne, 'ne')
-    gt = flex_comp_method(operator.gt, 'gt')
-    lt = flex_comp_method(operator.lt, 'lt')
-    ge = flex_comp_method(operator.ge, 'ge')
-    le = flex_comp_method(operator.le, 'le')
+    eq = _flex_comp_method(operator.eq, 'eq')
+    ne = _flex_comp_method(operator.ne, 'ne')
+    gt = _flex_comp_method(operator.gt, 'gt')
+    lt = _flex_comp_method(operator.lt, 'lt')
+    ge = _flex_comp_method(operator.ge, 'ge')
+    le = _flex_comp_method(operator.le, 'le')
 
     def dot(self, other):
         """
