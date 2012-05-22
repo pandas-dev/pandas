@@ -367,6 +367,33 @@ class PandasObject(object):
 
         return self.shift(periods, freq, **kwds)
 
+    def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None,
+                   **kwds):
+        """
+        Percent change over given number of periods
+
+        Parameters
+        ----------
+        periods : int, default 1
+            Periods to shift for forming percent change
+        fill_method : str, default 'pad'
+            How to handle NAs before computing percent changes
+        limit : int, default None
+            The number of consecutive NAs to fill before stopping
+        freq : DateOffset, timedelta, or offset alias string, optional
+            Increment to use from time series API (e.g. 'M' or BDay())
+
+        Returns
+        -------
+        chg : Series or DataFrame
+        """
+        if fill_method is None:
+            data = self
+        else:
+            data = self.fillna(method=fill_method, limit=limit)
+        rs = data / data.shift(periods=periods, freq=freq, **kwds) - 1
+        return rs
+
 
 class NDFrame(PandasObject):
     """
