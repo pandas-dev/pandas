@@ -1234,6 +1234,75 @@ def values_at_time(ndarray[int64_t] stamps, int64_t time):
 
     return indexer
 
+def values_between_time(ndarray[int64_t] stamps, int64_t stime, int64_t etime,
+                        bint include_start, bint include_end):
+    cdef:
+        Py_ssize_t i, j, count, n = len(stamps)
+        ndarray[int64_t] indexer, times
+        int64_t last, cur
+
+    # Assumes stamps is sorted
+
+    if len(stamps) == 0:
+        return np.empty(0, dtype=np.int64)
+
+    # is this OK?
+    # days = stamps // DAY_NS
+    times = stamps % DAY_NS
+
+    # Nanosecond resolution
+    count = 0
+    if include_start and include_end:
+        for i in range(n):
+            cur = times[i]
+            if cur >= stime and cur <= etime:
+                count += 1
+    elif include_start:
+        for i in range(n):
+            cur = times[i]
+            if cur >= stime and cur < etime:
+                count += 1
+    elif include_end:
+        for i in range(n):
+            cur = times[i]
+            if cur > stime and cur <= etime:
+                count += 1
+    else:
+        for i in range(n):
+            cur = times[i]
+            if cur > stime and cur < etime:
+                count += 1
+
+    indexer = np.empty(count, dtype=np.int64)
+
+    j = 0
+    # last = days[0]
+    if include_start and include_end:
+        for i in range(n):
+            cur = times[i]
+            if cur >= stime and cur <= etime:
+                indexer[j] = i
+                j += 1
+    elif include_start:
+        for i in range(n):
+            cur = times[i]
+            if cur >= stime and cur < etime:
+                indexer[j] = i
+                j += 1
+    elif include_end:
+        for i in range(n):
+            cur = times[i]
+            if cur > stime and cur <= etime:
+                indexer[j] = i
+                j += 1
+    else:
+        for i in range(n):
+            cur = times[i]
+            if cur > stime and cur < etime:
+                indexer[j] = i
+                j += 1
+
+    return indexer
 
 def date_normalize(ndarray[int64_t] stamps):
     cdef:
