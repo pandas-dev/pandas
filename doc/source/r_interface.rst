@@ -79,7 +79,7 @@ data.frame instance.
 
 You can also use **convert_to_r_matrix** to obtain a ``Matrix`` instance, but
 bear in mind that it will only work with homogeneously-typed DataFrames (as
-R matrices bear information on the data type):
+R matrices bear no information on the data type):
 
 
 .. ipython:: python
