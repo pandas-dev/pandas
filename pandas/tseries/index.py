@@ -408,7 +408,7 @@ class DatetimeIndex(Int64Index):
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
-        return self.values.astype('O')
+        return lib.ints_to_pydatetime(self.asi8)
 
     def __repr__(self):
         if self.offset is not None:
