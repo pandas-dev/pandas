@@ -71,6 +71,7 @@ def tsplot(series, plotf, *args, **kwargs):
     freq = getattr(series.index, 'freq', None)
     if freq is None and hasattr(series.index, 'inferred_freq'):
         freq = series.index.inferred_freq
+
     if isinstance(freq, DateOffset):
         freq = freq.rule_code
 
@@ -80,7 +81,7 @@ def tsplot(series, plotf, *args, **kwargs):
         idx = series.index.to_period(freq=freq)
         series = Series(series.values, idx, name=series.name)
 
-    if not isinstance(series.index, PeriodIndex):
+    if not isinstance(series.index, PeriodIndex): # business freq
         raise TypeError('series argument to tsplot must have DatetimeIndex or '
                         'PeriodIndex')
 
@@ -230,6 +231,16 @@ def _handle_period_index(curr, remaining, series, xdata, freq):
     else:
         if series is None:
             raise ValueError(noinfo_msg)
+
+def infer_min_freq(series):
+    """
+    To be used for irregular DatetimeIndex
+    figure out minimum time span between points and map to some offset alias
+
+    Returns
+    -------
+    offset alias: str
+    """
 
 
 ##### -------------------------------------------------------------------------

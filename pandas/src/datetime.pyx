@@ -43,6 +43,19 @@ try:
 except NameError: # py3
     basestring = str
 
+def ints_to_pydatetime(ndarray[int64_t] arr):
+    cdef:
+        Py_ssize_t i, n = len(arr)
+        pandas_datetimestruct dts
+        ndarray[object] result = np.empty(n, dtype=object)
+
+    for i in range(n):
+        pandas_datetime_to_datetimestruct(arr[i], PANDAS_FR_ns, &dts)
+        result[i] = datetime(dts.year, dts.month, dts.day,
+                             dts.hour, dts.min, dts.sec, dts.us)
+
+    return result
+
 
 # Python front end to C extension type _Timestamp
 # This serves as the box for datetime64
