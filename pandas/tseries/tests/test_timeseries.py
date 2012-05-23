@@ -1,6 +1,6 @@
 # pylint: disable-msg=E1101,W0612
 from __future__ import with_statement # for Python 2.5
-import itertools
+import pandas.util.compat as itertools
 from datetime import datetime, time, timedelta
 import sys
 import os
