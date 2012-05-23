@@ -229,6 +229,17 @@ class TestDataFramePlots(unittest.TestCase):
         df = DataFrame(np.random.randn(100, 4)).cumsum()
         _check_plot_works(df.plot, legend=True)
 
+    @slow
+    def test_legend_name(self):
+        multi = DataFrame(np.random.randn(4, 4),
+                          columns=[np.array(['a', 'a', 'b', 'b']),
+                                   np.array(['x', 'y', 'x', 'y'])])
+        multi.columns.names = ['group', 'individual']
+
+        ax = multi.plot()
+        leg_title = ax.legend_.get_title()
+        self.assert_(leg_title.get_text(), 'group,individual')
+
     def _check_plot_fails(self, f, *args, **kwargs):
         self.assertRaises(Exception, f, *args, **kwargs)
 
