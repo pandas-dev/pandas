@@ -116,7 +116,7 @@ class SeriesFormatter(object):
         result = ['%s   %s'] * len(fmt_values)
         for i, (k, v) in enumerate(izip(fmt_index[1:], fmt_values)):
             try:
-                idx = k.ljust(pad_space + (len(k) - len(k.decode('utf-8'))))
+                idx = k.ljust(pad_space + _encode_diff(k))
             except UnicodeEncodeError:
                 idx = k.ljust(pad_space)
             result[i] = result[i] % (idx, v)
@@ -130,6 +130,11 @@ class SeriesFormatter(object):
 
         return '\n'.join(result)
 
+if py3compat.PY3:  # pragma: no cover
+    _encode_diff = lambda x: 0
+else:
+    def _encode_diff(x):
+        return len(x) - len(x.decode('utf-8'))
 
 class DataFrameFormatter(object):
     """
