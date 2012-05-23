@@ -3,7 +3,7 @@
 """
 Python script for building documentation.
 
-To build the docs you must have all optional dependencies for statsmodels
+To build the docs you must have all optional dependencies for pandas
 installed. See the installation instructions for a list of these.
 
 Note: currently latex builds do not work because of table formats that are not
