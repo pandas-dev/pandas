@@ -198,7 +198,7 @@ take full advantage of the flexiblity of the date parsing API:
 .. ipython:: python
 
    import pandas.io.date_converters as conv
-   df = read_cvs('tmp.csv', header=None, parse_dates=date_spec,
+   df = read_csv('tmp.csv', header=None, parse_dates=date_spec,
                  date_parser=conv.parse_date_time)
    df
 
