@@ -112,8 +112,14 @@ class SeriesFormatter(object):
 
         maxlen = max(len(x) for x in fmt_index)
         pad_space = min(maxlen, 60)
-        result = ['%s   %s' % (k.ljust(pad_space), v)
-                  for (k, v) in izip(fmt_index[1:], fmt_values)]
+
+        result = ['%s   %s'] * len(fmt_values)
+        for i, (k, v) in enumerate(izip(fmt_index[1:], fmt_values)):
+            try:
+                idx = k.ljust(pad_space + (len(k) - len(k.decode('utf-8'))))
+            except UnicodeEncodeError:
+                idx = k.ljust(pad_space)
+            result[i] = result[i] % (idx, v)
 
         if self.header and have_header:
             result.insert(0, fmt_index[0])
