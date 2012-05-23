@@ -1111,13 +1111,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                            'top' : 'a', 'freq' : 3}, index=result.index)
         assert_series_equal(result, expected)
 
-        ser = Series(self.ts.index)
+        dt = list(self.ts.index)
+        dt.append(dt[0])
+        ser = Series(dt)
         rs = ser.describe()
-        min_date = min(self.ts.index)
-        max_date = max(self.ts.index)
-        xp = Series({'count' : len(self.ts.index),
+        min_date = min(dt)
+        max_date = max(dt)
+        xp = Series({'count' : len(dt),
                      'unique' : len(self.ts.index),
-                     'first' : min_date, 'last' : max_date, 'freq' : 1,
+                     'first' : min_date, 'last' : max_date, 'freq' : 2,
                      'top' : min_date}, index=rs.index)
         assert_series_equal(rs, xp)
 
