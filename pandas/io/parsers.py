@@ -655,16 +655,29 @@ class TextParser(object):
                     self.index_col = range(implicit_first_cols)
             index_name = None
         elif np.isscalar(self.index_col):
+            if isinstance(self.index_col, basestring):
+                for i, c in enumerate(list(columns)):
+                    if c == self.index_col:
+                        self.index_col = i
             index_name = columns.pop(self.index_col)
+
             if index_name is not None and 'Unnamed' in index_name:
                 index_name = None
+
         elif self.index_col is not None:
             cp_cols = list(columns)
             index_name = []
-            for i in self.index_col:
-                name = cp_cols[i]
-                columns.remove(name)
-                index_name.append(name)
+            index_col = list(self.index_col)
+            for i, c in enumerate(index_col):
+                if isinstance(c, basestring):
+                    index_name = c
+                    for j, name in enumerate(cp_cols):
+                        if name == index_name:
+                            index_col[i] = j
+                else:
+                    name = cp_cols[c]
+                    columns.remove(name)
+                    index_name.append(name)
 
         return index_name
 
@@ -698,41 +711,9 @@ class TextParser(object):
         zipped_content = list(lib.to_object_array(content).T)
 
         if self.index_col is not None:
-            if np.isscalar(self.index_col):
-                index = zipped_content.pop(self.index_col)
-            else: # given a list of index
-                index = []
-                for idx in self.index_col:
-                    index.append(zipped_content[idx])
-                # remove index items from content and columns, don't pop in
-                # loop
-                for i in reversed(sorted(self.index_col)):
-                    zipped_content.pop(i)
-
-            if np.isscalar(self.index_col):
-                if self._should_parse_dates(self.index_col):
-                    index = self._conv_date(index)
-                index, na_count = _convert_types(index, self.na_values)
-                index = Index(index, name=self.index_name)
-                if self.verbose and na_count:
-                    print 'Found %d NA values in the index' % na_count
-            else:
-                arrays = []
-                for i, arr in enumerate(index):
-                    if self._should_parse_dates(self.index_col[i]):
-                        arr = self._conv_date(arr)
-                    arr, _ = _convert_types(arr, self.na_values)
-                    arrays.append(arr)
-                index = MultiIndex.from_arrays(arrays, names=self.index_name)
+            index = self._extract_index(zipped_content)
         else:
             index = Index(np.arange(len(content)))
-
-        # if not index.is_unique:
-        #     dups = index.get_duplicates()
-        #     idx_str = 'Index' if not self._implicit_index else 'Implicit index'
-        #     err_msg = ('%s (columns %s) have duplicate values %s'
-        #                % (idx_str, self.index_col, str(dups)))
-        #     raise Exception(err_msg)
 
         col_len, zip_len = len(self.columns), len(zipped_content)
         if col_len != zip_len:
@@ -768,6 +749,35 @@ class TextParser(object):
         if self.squeeze and len(df.columns) == 1:
             return df[df.columns[0]]
         return df
+
+    def _extract_index(self, zipped_content):
+        if np.isscalar(self.index_col):
+            index = zipped_content.pop(self.index_col)
+        else: # given a list of index
+            index = []
+            for idx in self.index_col:
+                index.append(zipped_content[idx])
+            # remove index items from content and columns, don't pop in
+            # loop
+            for i in reversed(sorted(self.index_col)):
+                zipped_content.pop(i)
+
+        if np.isscalar(self.index_col):
+            if self._should_parse_dates(self.index_col):
+                index = self._conv_date(index)
+            index, na_count = _convert_types(index, self.na_values)
+            index = Index(index, name=self.index_name)
+            if self.verbose and na_count:
+                print 'Found %d NA values in the index' % na_count
+        else:
+            arrays = []
+            for i, arr in enumerate(index):
+                if self._should_parse_dates(self.index_col[i]):
+                    arr = self._conv_date(arr)
+                arr, _ = _convert_types(arr, self.na_values)
+                arrays.append(arr)
+            index = MultiIndex.from_arrays(arrays, names=self.index_name)
+        return index
 
     def _find_line_number(self, exp_len, chunk_len, chunk_i):
         if exp_len is None:
