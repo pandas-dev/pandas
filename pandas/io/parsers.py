@@ -34,9 +34,9 @@ into chunks.
 Parameters
 ----------
 filepath_or_buffer : string or file handle / StringIO. The string could be
-    a URL. Valid URL schemes include http://, ftp://, and file://. For
-    file:// URLs, a host is expected. For instance, a local file could be
-    file://localhost/path/to/table.csv
+    a URL. Valid URL schemes include http, ftp, and file. For file URLs, a host
+    is expected. For instance, a local file could be
+    file ://localhost/path/to/table.csv
 %s
 header : int, default 0
     Row to use for the column labels of the parsed DataFrame
