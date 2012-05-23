@@ -197,7 +197,7 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         df = read_csv(StringIO(data), parse_dates={'nominal': [1, 2]})
         self.assert_(not isinstance(df.nominal[0], basestring))
 
-    def test_multiple_date_cols_index(self):
+    def test_index_col_named(self):
         data = """\
 ID,date,NominalTime,ActualTime,TDew,TAir,Windspeed,Precip,WindDir
 KORD1,19990127, 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
@@ -207,10 +207,10 @@ KORD4,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
 KORD5,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
 
-        df = read_csv(StringIO(data), index_col='ID')
-        df = read_csv(StringIO(data), parse_dates={'nominal': [1, 2]},
-                      index_col='nominal')
-        self.assert_(not isinstance(df.nominal[0], basestring))
+        rs = read_csv(StringIO(data), index_col='ID')
+        xp = read_csv(StringIO(data), header=0).set_index('ID')
+        assert_frame_equal(rs, xp)
+
 
     def test_multiple_skts_example(self):
         data = "year, month, a, b\n 2001, 01, 0.0, 10.\n 2001, 02, 1.1, 11."

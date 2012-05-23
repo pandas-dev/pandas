@@ -152,8 +152,9 @@ or store various date fields separately. the ``parse_dates`` keyword can be
 used to specify a combination of columns to parse the dates and/or times from.
 
 You can specify a list of column lists to ``parse_dates``, the resulting date
-columns will be prepended to the output and the new column names will be the
-concatenation of the component column names:
+columns will be prepended to the output (so as to not affect the existing column
+order) and the new column names will be the concatenation of the component
+column names:
 
 .. ipython:: python
    :suppress:
