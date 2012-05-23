@@ -8,6 +8,7 @@ import unittest
 import nose
 
 import numpy as np
+import pytz
 
 from pandas import (Index, Series, TimeSeries, DataFrame, isnull,
                     date_range, Timestamp)
@@ -317,6 +318,18 @@ class TestTimeZones(unittest.TestCase):
         result = left.intersection(right)
         self.assert_(result.tz == left.tz)
 
+    def test_tz_timestamp_eq(self):
+        dt = datetime.today()
+        utc = lib.Timestamp(dt, tz=pytz.timezone('UTC'))
+        for z in pytz.all_timezones:
+            zts = utc.tz_convert(pytz.timezone(z))
+            self.assert_(utc == zts)
+
+        rng = date_range('3/1/2001', '4/1/2001', freq='H', tz='utc')
+        for z in pytz.all_timezones:
+            rng_z = rng.tz_convert(z)
+            for k1, k2 in zip(rng, rng_z):
+                self.assert_(k1 == k2)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
