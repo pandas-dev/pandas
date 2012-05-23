@@ -105,7 +105,7 @@ def auto_dev_build(debug=False):
         html()
         step = 'upload dev'
         upload_dev()
-        if not debug():
+        if not debug:
             sendmail(step)
 
         step = 'latex'
@@ -115,8 +115,8 @@ def auto_dev_build(debug=False):
         if not debug:
             sendmail(step)
     except (Exception, SystemExit), inst:
-        msg += str(inst) + '\n'
-        sendmail(step, msg)
+        msg = str(inst) + '\n'
+        sendmail(step, '[ERROR] ' + msg)
 
 def sendmail(step=None, err_msg=None):
     from_name, to_name = _get_config()
