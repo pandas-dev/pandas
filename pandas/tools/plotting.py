@@ -12,7 +12,7 @@ from pandas.tseries.period import PeriodIndex
 from pandas.tseries.offsets import DateOffset
 
 def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
-                   diagonal='hist', **kwds):
+                   diagonal='hist', marker='.', **kwds):
     """
     Draw a matrix of scatter plots.
 
@@ -54,7 +54,8 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
                     ind = np.linspace(min(y), max(y), 1000)
                     axes[i, j].plot(ind, gkde.evaluate(ind), **kwds)
             else:
-                axes[i, j].scatter(df[b], df[a], alpha=alpha, **kwds)
+                axes[i, j].scatter(df[b], df[a], marker=marker, alpha=alpha,
+                                   **kwds)
 
             axes[i, j].set_xlabel('')
             axes[i, j].set_ylabel('')
@@ -295,7 +296,7 @@ class MPLPlot(object):
             ax.grid(self.grid)
 
         if self.legend and not self.subplots:
-            self.ax.legend(loc='best')
+            self.ax.legend(loc='best', title=self.legend_title)
 
         if self.title:
             if self.subplots:
@@ -308,6 +309,14 @@ class MPLPlot(object):
             for ax_ in self.axes:
                 # ax_.set_xticks(self.xticks)
                 ax_.set_xticklabels(xticklabels, rotation=self.rot)
+
+    @property
+    def legend_title(self):
+        if hasattr(self.data, 'columns'):
+            stringified = map(str, self.data.columns.names)
+            return ','.join(stringified)
+        else:
+            return None
 
     @cache_readonly
     def plt(self):
@@ -565,7 +574,8 @@ class BarPlot(MPLPlot):
             #           loc=2, borderaxespad=0.)
             # self.fig.subplots_adjust(right=0.80)
 
-            ax.legend(patches, labels, loc='best')
+            ax.legend(patches, labels, loc='best',
+                      title=self.legend_title)
 
         self.fig.subplots_adjust(top=0.8, wspace=0, hspace=0)
 
