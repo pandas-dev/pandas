@@ -215,6 +215,9 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
                       index_col=0)
         assert_frame_equal(df2, df)
 
+        df3 = read_csv(StringIO(data), parse_dates=[[1, 2]], index_col=0)
+        assert_frame_equal(df3, df)
+
     def test_index_col_named(self):
         data = """\
 ID,date,NominalTime,ActualTime,TDew,TAir,Windspeed,Precip,WindDir

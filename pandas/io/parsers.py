@@ -441,10 +441,17 @@ class TextParser(object):
             self.data = f
         self.columns = self._infer_columns()
 
+        # needs to be cleaned/refactored
+        # multiple date column thing turning into a real sphaghetti factory
+
         # get popped off for index
         self.orig_columns = list(self.columns)
 
-        self.index_name = self._get_index_name()
+        self.index_name = None
+        self._name_processed = False
+        if not self._has_complex_date_col:
+            self.index_name = self._get_index_name()
+            self._name_processed = True
         self._first_chunk = True
 
         self.squeeze = squeeze
@@ -533,6 +540,8 @@ class TextParser(object):
                 columns = ['X.%d' % (i + 1) for i in range(ncols)]
             else:
                 columns = names
+
+
 
         return columns
 
@@ -656,10 +665,14 @@ class TextParser(object):
             index_name = None
         elif np.isscalar(self.index_col):
             if isinstance(self.index_col, basestring):
+                index_names = self.index_col
                 for i, c in enumerate(list(columns)):
                     if c == self.index_col:
                         self.index_col = i
-            index_name = columns.pop(self.index_col)
+                        columns.pop(i)
+                        break
+            else:
+                index_name = columns.pop(self.index_col)
 
             if index_name is not None and 'Unnamed' in index_name:
                 index_name = None
@@ -670,10 +683,12 @@ class TextParser(object):
             index_col = list(self.index_col)
             for i, c in enumerate(index_col):
                 if isinstance(c, basestring):
-                    index_name = c
+                    index_name.append(c)
                     for j, name in enumerate(cp_cols):
-                        if name == index_name:
+                        if name == c:
                             index_col[i] = j
+                            columns.remove(name)
+                            break
                 else:
                     name = cp_cols[c]
                     columns.remove(name)
@@ -710,8 +725,8 @@ class TextParser(object):
 
         zipped_content = list(lib.to_object_array(content).T)
 
-        if self.index_col is not None:
-            index = self._extract_index(zipped_content)
+        if not self._has_complex_date_col and self.index_col is not None:
+            index = self._get_index(zipped_content)
         else:
             index = Index(np.arange(len(content)))
 
@@ -746,24 +761,110 @@ class TextParser(object):
         data = _convert_to_ndarrays(data, self.na_values, self.verbose)
 
         df = DataFrame(data=data, columns=columns, index=index)
+        if self._has_complex_date_col and self.index_col is not None:
+            if not self._name_processed:
+                self.index_name = self._get_index_name()
+                self._name_processed = True
+            data = dict(((k, v) for k, v in df.iteritems()))
+            columns = list(columns)
+            index = self._get_index(data, col_order=columns, parse_dates=False)
+            data = dict(((k, v.values) for k, v in data.iteritems()))
+            df = DataFrame(data=data, columns=columns, index=index)
+
         if self.squeeze and len(df.columns) == 1:
             return df[df.columns[0]]
         return df
 
-    def _extract_index(self, zipped_content):
+    @property
+    def _has_complex_date_col(self):
+        return (isinstance(self.parse_dates, dict) or
+                (isinstance(self.parse_dates, list) and
+                 len(self.parse_dates) > 0 and
+                 isinstance(self.parse_dates[0], list)))
+
+    def _get_index(self, data, col_order=None, parse_dates=True):
+        if isinstance(data, dict):
+            index = self._get_index_from_dict(data, col_order, parse_dates)
+            return self._agg_index(index, parse_dates)
+        else:
+            index = self._get_index_from_list(data, col_order, parse_dates)
+            return self._agg_index(index, parse_dates)
+
+    def _get_index_from_list(self, data, col_names=None, parse_dates=True):
+        def _get_ix(icol):
+            if not isinstance(icol, basestring):
+                return icol
+
+            if col_names is None:
+                raise ValueError(('Must supply column order to use %s as '
+                                  'index') % icol)
+
+            for i, c in enumerate(col_names):
+                if c == icol:
+                    return i
+
+        index = None
         if np.isscalar(self.index_col):
-            index = zipped_content.pop(self.index_col)
+            ix = _get_ix(self.index_col)
+            index = data.pop(ix)
+            if col_names is not None:
+                col_names.pop(ix)
         else: # given a list of index
+            to_remove = []
             index = []
             for idx in self.index_col:
-                index.append(zipped_content[idx])
+                i = _get_ix(idx)
+                to_remove.append(i)
+                index.append(data[i])
+
             # remove index items from content and columns, don't pop in
             # loop
-            for i in reversed(sorted(self.index_col)):
-                zipped_content.pop(i)
+            for i in reversed(sorted(to_remove)):
+                data.pop(i)
+                if col_names is not None:
+                    col_names.pop(i)
 
+        return index
+
+    def _get_index_from_dict(self, data, col_names=None, parse_dates=True):
+        def _get_name(icol):
+            if isinstance(icol, basestring):
+                return icol
+
+            if col_names is None:
+                raise ValueError(('Must supply column order to use %s as '
+                                  'index') % str(icol))
+
+            for i, c in enumerate(col_names):
+                if i == icol:
+                    return c
+
+        index = None
         if np.isscalar(self.index_col):
-            if self._should_parse_dates(self.index_col):
+            name = _get_name(self.index_col)
+            index = data.pop(name)
+            if col_names is not None:
+                col_names.remove(name)
+        else: # given a list of index
+            to_remove = []
+            index = []
+            for idx in self.index_col:
+                c = _get_name(idx)
+                to_remove.append(c)
+                index.append(data[c])
+
+            # remove index items from content and columns, don't pop in
+            # loop
+            for c in reversed(sorted(to_remove)):
+                data.pop(c)
+                if col_names is not None:
+                    col_names.remove(c)
+
+        return index
+
+    def _agg_index(self, index, parse_dates):
+        if np.isscalar(self.index_col):
+            if parse_dates and self._should_parse_dates(self.index_col):
                 index = self._conv_date(index)
             index, na_count = _convert_types(index, self.na_values)
             index = Index(index, name=self.index_name)
@@ -772,7 +873,7 @@ class TextParser(object):
         else:
             arrays = []
             for i, arr in enumerate(index):
-                if self._should_parse_dates(self.index_col[i]):
+                if parse_dates and self._should_parse_dates(self.index_col[i]):
                     arr = self._conv_date(arr)
                 arr, _ = _convert_types(arr, self.na_values)
                 arrays.append(arr)
@@ -801,11 +902,13 @@ class TextParser(object):
         if isinstance(self.parse_dates, bool):
             return self.parse_dates
         else:
-            to_parse = self.parse_dates
+            to_parse = self.parse_dates # int/string or list of int or string
+
             if np.isscalar(self.index_col):
                 name = self.index_name
             else:
                 name = self.index_name[i]
+
             return i in to_parse or name in to_parse
 
     def _conv_date(self, *date_cols):
