@@ -80,10 +80,12 @@ reindex_daterange_backfill = Benchmark(statement, setup,
                                        name="reindex_daterange_backfill")
 
 reindex_fillna_pad = Benchmark("ts3.fillna(method='pad')", setup,
-                               name="reindex_fillna_pad")
+                               name="reindex_fillna_pad",
+                               start_date=datetime(2011, 3, 1))
 
 reindex_fillna_backfill = Benchmark("ts3.fillna(method='backfill')", setup,
-                                    name="reindex_fillna_backfill")
+                                    name="reindex_fillna_backfill",
+                                    start_date=datetime(2011, 3, 1))
 
 #----------------------------------------------------------------------
 # align on level
@@ -173,4 +175,5 @@ df = DataFrame(values)
 """
 
 frame_fillna_many_columns_pad = Benchmark("df.fillna(method='pad')",
-                                          setup)
+                                          setup,
+                                          start_date=datetime(2011, 3, 1))

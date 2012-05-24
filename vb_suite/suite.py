@@ -3,10 +3,24 @@ from datetime import datetime
 
 import os
 
-modules = ['groupby', 'indexing', 'reindex',
-           'sparse', 'index_object', 'miscellaneous',
-           'stat_ops', 'join_merge', 'panel_ctor', 'frame_ctor',
-           'frame_methods', 'io_bench', 'attrs_caching']
+modules = ['attrs_caching',
+           'binary_ops',
+           'ctors',
+           'frame_ctor',
+           'frame_methods',
+           'groupby',
+           'index_object',
+           'indexing',
+           'io_bench',
+           'join_merge',
+           'miscellaneous',
+           'panel_ctor',
+           'parser',
+           'reindex',
+           'replacesparse',
+           'reshape',
+           'stat_ops',
+           'timeseries']
 
 by_module = {}
 benchmarks = []
