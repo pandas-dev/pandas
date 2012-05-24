@@ -8,6 +8,8 @@
 
 #define EPOCH_ORD 719163
 
+#define NPY_JSON_BUFSIZE 32768
+
 static PyObject* cls_dataframe;
 static PyObject* cls_series;
 static PyObject* cls_index;
@@ -400,9 +402,9 @@ JSOBJ NpyArr_iterGetValue(JSOBJ obj, JSONTypeContext *tc)
 char *NpyArr_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen)
 {
     NpyArrContext* npyarr;
+    npy_intp idx;
     PRINTMARK();
     npyarr = GET_TC(tc)->npyarr;
-    npy_intp idx;
     if (GET_TC(tc)->iterNext == NpyArr_iterNextItem)
     {
         idx = npyarr->index[npyarr->stridedim] - 1;
@@ -903,16 +905,16 @@ void NpyArr_freeLabels(char** labels, npy_intp len)
 char** NpyArr_encodeLabels(PyArrayObject* labels, JSONObjectEncoder* enc, npy_intp num)
 {
     // NOTE this function steals a reference to labels.
-    PRINTMARK();
     PyArray_Descr *dtype = NULL;
     PyArrayObject* labelsTmp = NULL;
     PyObject* item = NULL;
     npy_intp i, stride, len;
-    npy_intp bufsize = 32768;
+    // npy_intp bufsize = 32768;
     char** ret;
     char *dataptr, *cLabel, *origend, *origst, *origoffset;
-    char labelBuffer[bufsize];
+    char labelBuffer[NPY_JSON_BUFSIZE];
     PyArray_GetItemFunc* getitem;
+    PRINTMARK();
 
     if (PyArray_SIZE(labels) < num)
     {
@@ -959,7 +961,7 @@ char** NpyArr_encodeLabels(PyArrayObject* labels, JSONObjectEncoder* enc, npy_in
             break;
         }
 
-        cLabel = JSON_EncodeObject(item, enc, labelBuffer, bufsize);
+        cLabel = JSON_EncodeObject(item, enc, labelBuffer, NPY_JSON_BUFSIZE);
         Py_DECREF(item);
 
         if (PyErr_Occurred() || enc->errorMsg)
@@ -1001,18 +1003,21 @@ char** NpyArr_encodeLabels(PyArrayObject* labels, JSONObjectEncoder* enc, npy_in
 
 void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
 {
+    PyObject *obj, *exc, *toDictFunc;
+    TypeContext *pc;
+    PyObjectEncoder *enc;
+	int i;
+	double val;
     PRINTMARK();
     if (!_obj) {
         tc->type = JT_INVALID;
         return;
     }
 
-    PyObject* obj = (PyObject*) _obj;
-    TypeContext *pc = (TypeContext *) tc->prv;
-    PyObjectEncoder* enc = (PyObjectEncoder*) tc->encoder;
-    PyObject *toDictFunc;
+    obj = (PyObject*) _obj;
+    pc = (TypeContext *) tc->prv;
+    enc = (PyObjectEncoder*) tc->encoder;
 
-    int i;
     for (i = 0; i < 32; i++)
     {
         tc->prv[i] = 0;
@@ -1043,8 +1048,6 @@ void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
     else
     if (PyLong_Check(obj))
     {
-        PyObject *exc;
-
         PRINTMARK();
         pc->PyTypeToJSON = PyLongToINT64;
         tc->type = JT_LONG;
@@ -1064,12 +1067,10 @@ void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
     else
     if (PyArray_IsScalar(obj, Integer))
     {
-        PyObject *exc;
-
         PRINTMARK();
         pc->PyTypeToJSON = PyLongToINT64;
         tc->type = JT_LONG;
-        PyArray_CastScalarToCtype(obj, &(GET_TC(tc)->longValue), PyArray_DescrFromType(NPY_LONG));
+        PyArray_CastScalarToCtype(obj, &(GET_TC(tc)->longValue), PyArray_DescrFromType(NPY_INT64));
 
         exc = PyErr_Occurred();
 
@@ -1100,7 +1101,7 @@ void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
     if (PyFloat_Check(obj))
     {
         PRINTMARK();
-        double val = PyFloat_AS_DOUBLE (obj);
+        val = PyFloat_AS_DOUBLE (obj);
         if (npy_isnan(val) || npy_isinf(val))
         {
             tc->type = JT_NULL;

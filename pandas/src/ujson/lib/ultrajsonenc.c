@@ -604,9 +604,13 @@ Perhaps implement recursion detection */
 
 void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name, size_t cbName)
 {
+    const char *value;
+    char *objName;
+	int count;
+    JSOBJ iterObj;
+    size_t szlen;
     JSONTypeContext tc;
     tc.encoder = enc;
-    size_t szlen;
 
     if (enc->level > enc->recursionMax)
     {
@@ -664,8 +668,7 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name, size_t cbName)
 
         case JT_ARRAY:
         {
-            int count = 0;
-            JSOBJ iterObj;
+            count = 0;
             enc->iterBegin(obj, &tc);
 
             Buffer_AppendCharUnchecked (enc, '[');
@@ -694,10 +697,7 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name, size_t cbName)
 
         case JT_OBJECT:
         {
-            int count = 0;
-            JSOBJ iterObj;
-            char *objName;
-
+            count = 0;
             enc->iterBegin(obj, &tc);
 
             Buffer_AppendCharUnchecked (enc, '{');
@@ -779,7 +779,7 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name, size_t cbName)
 
         case JT_UTF8:
         {
-            const char *value = enc->getStringValue(obj, &tc, &szlen);
+            value = enc->getStringValue(obj, &tc, &szlen);
             Buffer_Reserve(enc, ((szlen / 4) + 1) * 12);
             Buffer_AppendCharUnchecked (enc, '\"');
 

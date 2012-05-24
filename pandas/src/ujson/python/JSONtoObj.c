@@ -8,7 +8,7 @@
 typedef struct __PyObjectDecoder
 {
     JSONObjectDecoder dec;
-
+	
     void* npyarr;       // Numpy context buffer
     npy_intp curdim;    // Current array dimension 
 
@@ -81,9 +81,9 @@ void Npy_releaseContext(NpyArrContext* npyarr)
 
 JSOBJ Object_npyNewArray(void* _decoder)
 {
-    PRINTMARK();
-    PyObjectDecoder* decoder = (PyObjectDecoder*) _decoder;
     NpyArrContext* npyarr;
+    PyObjectDecoder* decoder = (PyObjectDecoder*) _decoder;
+    PRINTMARK();
     if (decoder->curdim <= 0)
     {
         // start of array - initialise the context buffer
@@ -123,17 +123,19 @@ JSOBJ Object_npyNewArray(void* _decoder)
 
 JSOBJ Object_npyEndArray(JSOBJ obj)
 {
-    PRINTMARK();
+    PyObject *ret;
+    char* new_data;
     NpyArrContext* npyarr = (NpyArrContext*) obj;
+    int emptyType = NPY_DEFAULT_TYPE;
+    npy_intp i;
+    PRINTMARK();
     if (!npyarr)
     {
         return NULL;
     }
 
-    PyObject* ret = npyarr->ret;
-    int emptyType = NPY_DEFAULT_TYPE;
-    npy_intp i = npyarr->i;
-    char* new_data;
+    ret = npyarr->ret;
+    i = npyarr->i;
 
     npyarr->dec->curdim--;
 
@@ -195,17 +197,18 @@ JSOBJ Object_npyEndArray(JSOBJ obj)
 
 int Object_npyArrayAddItem(JSOBJ obj, JSOBJ value)
 {
-    PRINTMARK();
+    PyObject* type;
+    PyArray_Descr* dtype;
+    npy_intp i;
+    char *new_data, *item;
     NpyArrContext* npyarr = (NpyArrContext*) obj;
+    PRINTMARK();
     if (!npyarr)
     {
         return 0;
     }
 
-    PyObject* type;
-    PyArray_Descr* dtype;
-    npy_intp i = npyarr->i;
-    char *new_data, *item;
+    i = npyarr->i;
 
     npyarr->shape.ptr[npyarr->dec->curdim-1]++;
 
@@ -308,8 +311,8 @@ fail:
 
 JSOBJ Object_npyNewArrayList(void* _decoder)
 {
-    PRINTMARK();
     PyObjectDecoder* decoder = (PyObjectDecoder*) _decoder;
+    PRINTMARK();
     PyErr_SetString(PyExc_ValueError, "nesting not supported for object or variable length dtypes");
     Npy_releaseContext(decoder->npyarr);
     return NULL;
@@ -317,16 +320,17 @@ JSOBJ Object_npyNewArrayList(void* _decoder)
 
 JSOBJ Object_npyEndArrayList(JSOBJ obj)
 {
-    PRINTMARK();
+    PyObject *list, *ret;
     NpyArrContext* npyarr = (NpyArrContext*) obj;
+    PRINTMARK();
     if (!npyarr)
     {
         return NULL;
     }
 
     // convert decoded list to numpy array
-    PyObject* list = (PyObject *) npyarr->ret;
-    PyObject* ret = PyArray_FROM_O(list);
+    list = (PyObject *) npyarr->ret;
+    ret = PyArray_FROM_O(list);
 
     ((JSONObjectDecoder*)npyarr->dec)->newArray = Object_npyNewArray;
     ((JSONObjectDecoder*)npyarr->dec)->arrayAddItem = Object_npyArrayAddItem;
@@ -337,8 +341,8 @@ JSOBJ Object_npyEndArrayList(JSOBJ obj)
 
 int Object_npyArrayListAddItem(JSOBJ obj, JSOBJ value)
 {
-    PRINTMARK();
     NpyArrContext* npyarr = (NpyArrContext*) obj;
+    PRINTMARK();
     if (!npyarr)
     {
         return 0;
@@ -351,8 +355,8 @@ int Object_npyArrayListAddItem(JSOBJ obj, JSOBJ value)
 
 JSOBJ Object_npyNewObject(void* _decoder)
 {
-    PRINTMARK();
     PyObjectDecoder* decoder = (PyObjectDecoder*) _decoder;
+    PRINTMARK();
     if (decoder->curdim > 1)
     {
         PyErr_SetString(PyExc_ValueError, "labels only supported up to 2 dimensions");
@@ -364,16 +368,18 @@ JSOBJ Object_npyNewObject(void* _decoder)
 
 JSOBJ Object_npyEndObject(JSOBJ obj)
 {
-    PRINTMARK();
+    PyObject *list;
+    npy_intp labelidx;
     NpyArrContext* npyarr = (NpyArrContext*) obj;
+    PRINTMARK();
     if (!npyarr)
     {
         return NULL;
     }
 
-    npy_intp labelidx = npyarr->dec->curdim-1;
+    labelidx = npyarr->dec->curdim-1;
 
-    PyObject* list = npyarr->labels[labelidx];
+    list = npyarr->labels[labelidx];
     if (list)
     {
         npyarr->labels[labelidx] = PyArray_FROM_O(list);
@@ -385,16 +391,18 @@ JSOBJ Object_npyEndObject(JSOBJ obj)
 
 int Object_npyObjectAddKey(JSOBJ obj, JSOBJ name, JSOBJ value)
 {
-    PRINTMARK();
-    // add key to label array, value to values array
+    PyObject *label;
+	npy_intp labelidx;
+	// add key to label array, value to values array
     NpyArrContext* npyarr = (NpyArrContext*) obj;
+    PRINTMARK();
     if (!npyarr)
     {
         return 0;
     }
 
-    PyObject* label = (PyObject*) name;
-    npy_intp labelidx = npyarr->dec->curdim-1;
+    label = (PyObject*) name;
+    labelidx = npyarr->dec->curdim-1;
 
     if (!npyarr->labels[labelidx])
     {
@@ -498,17 +506,16 @@ static void Object_releaseObject(JSOBJ obj, void* _decoder)
 
 PyObject* JSONToObj(PyObject* self, PyObject *args, PyObject *kwargs)
 {
-    PRINTMARK();
-    static char *kwlist[] = { "obj", "numpy", "labelled", "dtype", NULL};
-
     PyObject *ret;
     PyObject *sarg;
+    JSONObjectDecoder *decoder;
+	PyObjectDecoder pyDecoder;
     PyArray_Descr *dtype = NULL;
+    static char *kwlist[] = { "obj", "numpy", "labelled", "dtype", NULL};
     int numpy = 0, labelled = 0, decref = 0;
-
-    PyObjectDecoder pyDecoder =
-    {
-        {
+    // PRINTMARK();
+	
+    JSONObjectDecoder dec = {
             Object_newString,
             Object_objectAddKey,
             Object_arrayAddItem,
@@ -526,13 +533,12 @@ PyObject* JSONToObj(PyObject* self, PyObject *args, PyObject *kwargs)
             PyObject_Malloc,
             PyObject_Free,
             PyObject_Realloc,
-        }
     };
-
+    pyDecoder.dec = dec;
     pyDecoder.curdim = 0;
     pyDecoder.npyarr = NULL;
 
-    JSONObjectDecoder* decoder = (JSONObjectDecoder*) &pyDecoder;
+    decoder = (JSONObjectDecoder*) &pyDecoder;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|iiO&", kwlist, &sarg, &numpy, &labelled, PyArray_DescrConverter, &dtype))
     {
