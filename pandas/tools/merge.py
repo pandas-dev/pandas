@@ -33,6 +33,10 @@ def merge(left, right, how='inner', on=None, left_on=None, right_on=None,
 if __debug__: merge.__doc__ = _merge_doc % '\nleft : DataFrame'
 
 
+class MergeError(Exception):
+    pass
+
+
 def ordered_merge(left, right, on=None, left_by=None, right_by=None,
                   left_on=None, right_on=None,
                   fill_method=None, suffixes=('_x', '_y')):
@@ -359,19 +363,19 @@ class _MergeOperation(object):
                 self.left_on, self.right_on = (), ()
             elif self.left_index:
                 if self.right_on is None:
-                    raise Exception('Must pass right_on or right_index=True')
+                    raise MergeError('Must pass right_on or right_index=True')
             elif self.right_index:
                 if self.left_on is None:
-                    raise Exception('Must pass left_on or left_index=True')
+                    raise MergeError('Must pass left_on or left_index=True')
             else:
                 # use the common columns
                 common_cols = self.left.columns.intersection(self.right.columns)
                 if len(common_cols) == 0:
-                    raise Exception('No common columns to perform merge on')
+                    raise MergeError('No common columns to perform merge on')
                 self.left_on = self.right_on = common_cols
         elif self.on is not None:
             if self.left_on is not None or self.right_on is not None:
-                raise Exception('Can only pass on OR left_on and '
+                raise MergeError('Can only pass on OR left_on and '
                                 'right_on')
             self.left_on = self.right_on = self.on
         elif self.left_on is not None:
@@ -420,7 +424,7 @@ class _MergeOperation(object):
             max_groups *= long(x)
 
         if max_groups > 2**63:  # pragma: no cover
-            raise Exception('Combinatorial explosion! (boom)')
+            raise MergeError('Combinatorial explosion! (boom)')
 
         left_group_key, right_group_key, max_groups = \
             _factorize_keys(left_group_key, right_group_key,
@@ -591,7 +595,7 @@ class _BlockJoinOperation(object):
     """
     def __init__(self, data_list, join_index, indexers, axis=1, copy=True):
         if axis <= 0:  # pragma: no cover
-            raise Exception('Only axis >= 1 supported for this operation')
+            raise MergeError('Only axis >= 1 supported for this operation')
 
         assert(len(data_list) == len(indexers))
 

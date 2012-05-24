@@ -3,6 +3,7 @@
 import nose
 import unittest
 
+from datetime import datetime
 from numpy.random import randn
 from numpy import nan
 import numpy as np
@@ -10,7 +11,7 @@ import random
 
 from pandas import *
 from pandas.tseries.index import DatetimeIndex
-from pandas.tools.merge import merge, concat, ordered_merge
+from pandas.tools.merge import merge, concat, ordered_merge, MergeError
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
                                  assert_almost_equal, rands)
 import pandas._tseries as lib
@@ -656,6 +657,27 @@ class TestMergeMulti(unittest.TestCase):
         expected = left.join(rdf)
         tm.assert_frame_equal(merged, expected)
 
+    def test_mixed_type_join_with_suffix(self):
+        # GH #916
+        df = DataFrame(np.random.randn(20, 6),
+                       columns=['a', 'b', 'c', 'd', 'e', 'f'])
+        df.insert(0, 'id', 0)
+        df.insert(5, 'dt', 'foo')
+
+        grouped = df.groupby('id')
+        mn = grouped.mean()
+        cn = grouped.count()
+
+        # it works!
+        mn.join(cn, rsuffix='_right')
+
+    def test_no_overlap_more_informative_error(self):
+        dt = datetime.now()
+        df1 = DataFrame({'x': ['a']}, index=[dt])
+
+        df2 = DataFrame({'y': ['b', 'c']}, index=[dt, dt])
+        self.assertRaises(MergeError, merge, df1, df2)
+
 def _check_join(left, right, result, join_col, how='left',
                 lsuffix='_x', rsuffix='_y'):
 
@@ -1234,20 +1256,6 @@ class TestConcatenate(unittest.TestCase):
         result = concat(pieces)
         tm.assert_frame_equal(result, df)
         self.assertRaises(Exception, concat, [None, None])
-
-    def test_mixed_type_join_with_suffix(self):
-        # GH #916
-        df = DataFrame(np.random.randn(20, 6),
-                       columns=['a', 'b', 'c', 'd', 'e', 'f'])
-        df.insert(0, 'id', 0)
-        df.insert(5, 'dt', 'foo')
-
-        grouped = df.groupby('id')
-        mn = grouped.mean()
-        cn = grouped.count()
-
-        # it works!
-        mn.join(cn, rsuffix='_right')
 
 
 class TestOrderedMerge(unittest.TestCase):
