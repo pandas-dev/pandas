@@ -5656,10 +5656,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         assert_frame_equal(result, expected)
 
-        df = df + 1j
+        df = DataFrame(np.random.randn(5, 3) + 1j, columns=['a','b','c'])
 
-        result = df.reindex(range(3), range(3))
-        expected = df.reindex(range(3)).reindex(columns=range(3))
+        result = df.reindex(index=[0,1], columns=['a', 'b'])
+        expected = df.reindex([0, 1]).reindex(columns=['a', 'b'])
 
         assert_frame_equal(result, expected)
 
