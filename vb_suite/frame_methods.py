@@ -33,7 +33,7 @@ df.values[::2] = np.nan
 """
 
 frame_fillna_inplace = Benchmark('df.fillna(0, inplace=True)', setup,
-                                 start_date=(2012, 4, 4))
+                                 start_date=datetime(2012, 4, 4))
 
 
 #----------------------------------------------------------------------
