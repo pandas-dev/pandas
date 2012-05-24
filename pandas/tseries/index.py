@@ -411,15 +411,22 @@ class DatetimeIndex(Int64Index):
         return lib.ints_to_pydatetime(self.asi8)
 
     def __repr__(self):
+        from pandas.core.format import _format_datetime64
+        values = self.values
+
+        freq = None
         if self.offset is not None:
-            output = str(self.__class__)
-            if len(self) > 0:
-                output += '\n[%s, ..., %s]' % (self[0], self[-1])
-            tagline = '\nLength: %d, Freq: %s, Timezone: %s'
-            output += tagline % (len(self), self.offset.freqstr, self.tz)
-            return output
-        else:
-            return Index.__repr__(self)
+            freq = self.offset.freqstr
+
+        summary = str(self.__class__)
+        if len(self) > 0:
+            first = _format_datetime64(values[0])
+            last = _format_datetime64(values[-1])
+            summary += '\n[%s, ..., %s]' % (first, last)
+        tagline = '\nLength: %d, Freq: %s, Timezone: %s'
+        summary += tagline % (len(self), freq, self.tz)
+
+        return summary
 
     __str__ = __repr__
 

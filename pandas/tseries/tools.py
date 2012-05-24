@@ -78,6 +78,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False):
     ret : datetime if parsing succeeded
     """
     from pandas.core.series import Series
+    from pandas.tseries.index import DatetimeIndex
     if arg is None:
         return arg
     elif isinstance(arg, datetime):
@@ -90,10 +91,12 @@ def to_datetime(arg, errors='ignore', dayfirst=False):
     elif isinstance(arg, (np.ndarray, list)):
         if isinstance(arg, list):
             arg = np.array(arg, dtype='O')
-        return lib.string_to_datetime(com._ensure_object(arg),
-                                      raise_=errors == 'raise',
-                                      dayfirst=dayfirst)
-
+        result = lib.string_to_datetime(com._ensure_object(arg),
+                                        raise_=errors == 'raise',
+                                        dayfirst=dayfirst)
+        if com.is_datetime64_dtype(result):
+            result = DatetimeIndex(result)
+        return result
     try:
         if not arg:
             return arg

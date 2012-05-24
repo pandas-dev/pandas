@@ -400,6 +400,7 @@ class TestTimeSeries(unittest.TestCase):
         assert_almost_equal(result, expected)
 
         result2 = to_datetime(strings)
+        self.assert_(isinstance(result2, DatetimeIndex))
         assert_almost_equal(result, result2)
 
         malformed = np.array(['1/100/2000', np.nan], dtype=object)
