@@ -366,6 +366,8 @@ class _MergeOperation(object):
             else:
                 # use the common columns
                 common_cols = self.left.columns.intersection(self.right.columns)
+                if len(common_cols) == 0:
+                    raise Exception('No common columns to perform merge on')
                 self.left_on = self.right_on = common_cols
         elif self.on is not None:
             if self.left_on is not None or self.right_on is not None:
