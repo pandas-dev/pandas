@@ -12,6 +12,9 @@ except NameError:
     def date_range(start=None, end=None, periods=None, freq=None):
         return DateRange(start, end, periods=periods, offset=freq)
 
+if hasattr(Series, 'convert'):
+    Series.resample = Series.convert
+
 ts = Series(np.random.randn(N), index=rng)
 """
 
@@ -39,11 +42,13 @@ setup = common_setup + """
 
 """
 
-timeseries_1min_5min_ohlc = Benchmark("ts[:10000].convert('5min', how='ohlc')",
-                                      common_setup)
+timeseries_1min_5min_ohlc = Benchmark("ts[:10000].resample('5min', how='ohlc')",
+                                      common_setup,
+                                      start_date=datetime(2012, 5, 1))
 
-timeseries_1min_5min_mean = Benchmark("ts[:10000].convert('5min', how='mean')",
-                                      common_setup)
+timeseries_1min_5min_mean = Benchmark("ts[:10000].resample('5min', how='mean')",
+                                      common_setup,
+                                      start_date=datetime(2012, 5, 1))
 
 #----------------------------------------------------------------------
 # Irregular alignment

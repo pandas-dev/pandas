@@ -100,9 +100,10 @@ enum PANDAS_FORMAT
 
 void initObjToJSON(void)
 {
+    PyObject *mod_frame;
     PyDateTime_IMPORT;
 
-    PyObject *mod_frame = PyImport_ImportModule("pandas.core.frame");
+    mod_frame = PyImport_ImportModule("pandas.core.frame");
     if (mod_frame)
     {
         cls_dataframe = PyObject_GetAttrString(mod_frame, "DataFrame");
@@ -941,7 +942,7 @@ char** NpyArr_encodeLabels(PyArrayObject* labels, JSONObjectEncoder* enc, npy_in
     for (i = 0; i < num; i++)
     {
         item = getitem(dataptr, labels);
-        if (!item) 
+        if (!item)
         {
             NpyArr_freeLabels(ret, num);
             ret = 0;
