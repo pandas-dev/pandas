@@ -302,6 +302,12 @@ void NpyArr_iterEnd(JSOBJ obj, JSONTypeContext *tc)
             Py_XDECREF(npyarr->array);
         }
 
+        if (GET_TC(tc)->itemValue != npyarr->array)
+        {
+            Py_XDECREF(GET_TC(tc)->itemValue);
+        }
+        GET_TC(tc)->itemValue = NULL;
+
         PyObject_Free(npyarr);
     }
     PRINTMARK();
@@ -323,12 +329,24 @@ void NpyArrPassThru_iterEnd(JSOBJ obj, JSONTypeContext *tc)
     npyarr->dim = PyArray_DIM(npyarr->array, npyarr->stridedim);
     npyarr->stride = PyArray_STRIDE(npyarr->array, npyarr->stridedim);
     npyarr->dataptr += npyarr->stride;
+
+    if (GET_TC(tc)->itemValue != npyarr->array)
+    {
+        Py_XDECREF(GET_TC(tc)->itemValue);
+        GET_TC(tc)->itemValue = NULL;
+    }
 }
 
 int NpyArr_iterNextItem(JSOBJ _obj, JSONTypeContext *tc)
 {
     PRINTMARK();
     NpyArrContext* npyarr = GET_TC(tc)->npyarr;
+
+    if (GET_TC(tc)->itemValue != npyarr->array)
+    {
+        Py_XDECREF(GET_TC(tc)->itemValue);
+        GET_TC(tc)->itemValue = NULL;
+    }
 
     if (npyarr->index[npyarr->stridedim] >= npyarr->dim)
     {
@@ -873,9 +891,12 @@ void NpyArr_freeLabels(char** labels, npy_intp len)
 
 char** NpyArr_encodeLabels(PyArrayObject* labels, JSONObjectEncoder* enc, npy_intp num)
 {
+    // NOTE this function steals a reference to labels.
     PRINTMARK();
     int was_datetime64 = 0;
     PyArray_Descr *dtype = NULL;
+    PyArrayObject* labelsTmp = NULL;
+    PyObject* item = NULL;
     npy_intp i, stride, len;
     npy_intp bufsize = 32768;
     char** ret;
@@ -886,6 +907,7 @@ char** NpyArr_encodeLabels(PyArrayObject* labels, JSONObjectEncoder* enc, npy_in
     if (PyArray_SIZE(labels) < num)
     {
         PyErr_SetString(PyExc_ValueError, "Label array sizes do not match corresponding data shape");
+        Py_DECREF(labels);
         return 0;
     }
 
@@ -893,6 +915,7 @@ char** NpyArr_encodeLabels(PyArrayObject* labels, JSONObjectEncoder* enc, npy_in
     if (!ret)
     {
         PyErr_NoMemory();
+        Py_DECREF(labels);
         return 0;
     }
 
@@ -909,7 +932,9 @@ char** NpyArr_encodeLabels(PyArrayObject* labels, JSONObjectEncoder* enc, npy_in
         was_datetime64 = 1;
 
         dtype = PyArray_DescrFromType(NPY_INT64);
+        labelsTmp = labels;
         labels = PyArray_CastToType(labels, dtype, 0);
+        Py_DECREF(labelsTmp);
     }
 
     stride = PyArray_STRIDE(labels, 0);
@@ -918,7 +943,16 @@ char** NpyArr_encodeLabels(PyArrayObject* labels, JSONObjectEncoder* enc, npy_in
 
     for (i = 0; i < num; i++)
     {
-        cLabel = JSON_EncodeObject(getitem(dataptr, labels), enc, labelBuffer, bufsize);
+        item = getitem(dataptr, labels);
+        if (!item) 
+        {
+            NpyArr_freeLabels(ret, num);
+            ret = 0;
+            break;
+        }
+
+        cLabel = JSON_EncodeObject(item, enc, labelBuffer, bufsize);
+        Py_DECREF(item);
 
         if (PyErr_Occurred() || enc->errorMsg)
         {
@@ -949,14 +983,11 @@ char** NpyArr_encodeLabels(PyArrayObject* labels, JSONObjectEncoder* enc, npy_in
         dataptr += stride;
     }
 
-    if (was_datetime64) {
-        Py_XDECREF(labels);
-    }
-
     enc->start = origst;
     enc->end = origend;
     enc->offset = origoffset;
 
+    Py_DECREF(labels);
     return ret;
 }
 
