@@ -612,6 +612,10 @@ def _make_fixed_width(strings, justify='right'):
         return strings
 
     max_len = max(len(x) for x in strings)
+    conf_max = print_config.max_colwidth
+    if conf_max is not None and max_len > conf_max:
+        max_len = conf_max
+
     if justify == 'left':
         justfunc = lambda self, x: self.ljust(x)
     else:
@@ -667,7 +671,7 @@ def _has_names(index):
 
 def set_printoptions(precision=None, column_space=None, max_rows=None,
                      max_columns=None, colheader_justify='right',
-                     notebook_repr_html=None,
+                     max_colwidth=50, notebook_repr_html=None,
                      date_dayfirst=None, date_yearfirst=None):
     """
     Alter default behavior of DataFrame.toString
@@ -699,6 +703,8 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
         print_config.column_space = column_space
     if max_rows is not None:
         print_config.max_rows = max_rows
+    if max_colwidth is not None:
+        print_config.max_colwidth = max_colwidth
     if max_columns is not None:
         print_config.max_columns = max_columns
     if colheader_justify is not None:
@@ -832,6 +838,7 @@ class _GlobalPrintConfig(object):
         self.float_format = None
         self.column_space = 12
         self.max_rows = 200
+        self.max_colwidth = 50
         self.max_columns = 0
         self.colheader_justify = 'right'
         self.notebook_repr_html = True
