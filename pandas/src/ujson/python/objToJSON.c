@@ -23,6 +23,7 @@ typedef struct __NpyArrContext
 {
 	PyObject *array;
 	char* dataptr;
+  int was_datetime64;
 	int curdim;         // current dimension in array's order
 	int stridedim;      // dimension we are striding over
 	int inc;            // stride dimension increment (+/- 1)
@@ -94,7 +95,7 @@ enum PANDAS_FORMAT
 	VALUES
 };
 
-//#define PRINTMARK() fprintf(stderr, "%s: MARK(%d)\n", __FILE__, __LINE__)		
+//#define PRINTMARK() fprintf(stderr, "%s: MARK(%d)\n", __FILE__, __LINE__)
 #define PRINTMARK()
 
 void initObjToJSON(void)
@@ -215,7 +216,7 @@ static void *PyDateToINT64(JSOBJ _obj, JSONTypeContext *tc, void *outValue, size
 }
 
 //=============================================================================
-// Numpy array iteration functions 
+// Numpy array iteration functions
 //=============================================================================
 int NpyArr_iterNextNone(JSOBJ _obj, JSONTypeContext *tc)
 {
@@ -225,6 +226,7 @@ int NpyArr_iterNextNone(JSOBJ _obj, JSONTypeContext *tc)
 void NpyArr_iterBegin(JSOBJ _obj, JSONTypeContext *tc)
 {
 	PyArrayObject *obj;
+  PyArray_Descr *dtype;
 
 	if (GET_TC(tc)->newObj)
 	{
@@ -247,6 +249,15 @@ void NpyArr_iterBegin(JSOBJ _obj, JSONTypeContext *tc)
 			GET_TC(tc)->iterNext = NpyArr_iterNextNone;
 			return;
 		}
+
+    // uber hack to support datetime64[ns] arrays
+    if (PyArray_DESCR(obj)->type_num == NPY_DATETIME) {
+      npyarr->was_datetime64 = 1;
+      dtype = PyArray_DescrFromType(NPY_INT64);
+      obj = PyArray_CastToType(obj, dtype, 0);
+    } else {
+      npyarr->was_datetime64 = 0;
+    }
 
 		npyarr->array = (PyObject*) obj;
 		npyarr->getitem = (PyArray_GetItemFunc*) PyArray_DESCR(obj)->f->getitem;
@@ -274,7 +285,7 @@ void NpyArr_iterBegin(JSOBJ _obj, JSONTypeContext *tc)
 		npyarr->columnLabels = GET_TC(tc)->columnLabels;
 		npyarr->rowLabels = GET_TC(tc)->rowLabels;
 	}
-	else 
+	else
 	{
 		GET_TC(tc)->iterNext = NpyArr_iterNextNone;
 	}
@@ -283,12 +294,18 @@ void NpyArr_iterBegin(JSOBJ _obj, JSONTypeContext *tc)
 
 void NpyArr_iterEnd(JSOBJ obj, JSONTypeContext *tc)
 {
-	if (GET_TC(tc)->npyarr)
-	{ 
-		PyObject_Free(GET_TC(tc)->npyarr);
+  NpyArrContext *npyarr = GET_TC(tc)->npyarr;
+
+	if (npyarr)
+	{
+    if (npyarr->was_datetime64) {
+      Py_XDECREF(npyarr->array);
+    }
+
+		PyObject_Free(npyarr);
 	}
 	PRINTMARK();
-}   
+}
 
 void NpyArrPassThru_iterBegin(JSOBJ obj, JSONTypeContext *tc)
 {
@@ -297,7 +314,7 @@ void NpyArrPassThru_iterBegin(JSOBJ obj, JSONTypeContext *tc)
 
 void NpyArrPassThru_iterEnd(JSOBJ obj, JSONTypeContext *tc)
 {
-	PRINTMARK();   
+	PRINTMARK();
 	// finished this dimension, reset the data pointer
 	NpyArrContext* npyarr = GET_TC(tc)->npyarr;
 	npyarr->curdim--;
@@ -305,15 +322,15 @@ void NpyArrPassThru_iterEnd(JSOBJ obj, JSONTypeContext *tc)
 	npyarr->stridedim -= npyarr->inc;
 	npyarr->dim = PyArray_DIM(npyarr->array, npyarr->stridedim);
 	npyarr->stride = PyArray_STRIDE(npyarr->array, npyarr->stridedim);
-	npyarr->dataptr += npyarr->stride;    
-}  
+	npyarr->dataptr += npyarr->stride;
+}
 
 int NpyArr_iterNextItem(JSOBJ _obj, JSONTypeContext *tc)
 {
 	PRINTMARK();
 	NpyArrContext* npyarr = GET_TC(tc)->npyarr;
 
-	if (npyarr->index[npyarr->stridedim] >= npyarr->dim) 
+	if (npyarr->index[npyarr->stridedim] >= npyarr->dim)
 	{
 		return 0;
 	}
@@ -377,7 +394,7 @@ char *NpyArr_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen)
 }
 
 //=============================================================================
-// Tuple iteration functions 
+// Tuple iteration functions
 // itemValue is borrowed reference, no ref counting
 //=============================================================================
 void Tuple_iterBegin(JSOBJ obj, JSONTypeContext *tc)
@@ -418,13 +435,13 @@ char *Tuple_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen)
 }
 
 //=============================================================================
-// Dir iteration functions 
+// Dir iteration functions
 // itemName ref is borrowed from PyObject_Dir (attrList). No refcount
 // itemValue ref is from PyObject_GetAttr. Ref counted
 //=============================================================================
 void Dir_iterBegin(JSOBJ obj, JSONTypeContext *tc)
 {
-	GET_TC(tc)->attrList = PyObject_Dir(obj); 
+	GET_TC(tc)->attrList = PyObject_Dir(obj);
 	GET_TC(tc)->index = 0;
 	GET_TC(tc)->size = PyList_GET_SIZE(GET_TC(tc)->attrList);
 	PRINTMARK();
@@ -496,7 +513,7 @@ int Dir_iterNext(JSOBJ _obj, JSONTypeContext *tc)
 	GET_TC(tc)->itemName = itemName;
 	GET_TC(tc)->itemValue = itemValue;
 	GET_TC(tc)->index ++;
-	
+
 	PRINTMARK();
 	return 1;
 }
@@ -520,7 +537,7 @@ char *Dir_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen)
 
 
 //=============================================================================
-// List iteration functions 
+// List iteration functions
 // itemValue is borrowed from object (which is list). No refcounting
 //=============================================================================
 void List_iterBegin(JSOBJ obj, JSONTypeContext *tc)
@@ -557,7 +574,7 @@ char *List_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen)
 }
 
 //=============================================================================
-// pandas Index iteration functions 
+// pandas Index iteration functions
 //=============================================================================
 void Index_iterBegin(JSOBJ obj, JSONTypeContext *tc)
 {
@@ -590,7 +607,7 @@ int Index_iterNext(JSOBJ obj, JSONTypeContext *tc)
 		memcpy(GET_TC(tc)->citemName, "data", sizeof(char)*5);
 		GET_TC(tc)->itemValue = PyObject_GetAttrString(obj, "values");
 	}
-	else 
+	else
 	{
 		PRINTMARK();
 		return 0;
@@ -619,10 +636,10 @@ char *Index_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen)
 {
 	*outLen = strlen(GET_TC(tc)->citemName);
 	return GET_TC(tc)->citemName;
-}       
+}
 
 //=============================================================================
-// pandas Series iteration functions 
+// pandas Series iteration functions
 //=============================================================================
 void Series_iterBegin(JSOBJ obj, JSONTypeContext *tc)
 {
@@ -663,7 +680,7 @@ int Series_iterNext(JSOBJ obj, JSONTypeContext *tc)
 		memcpy(GET_TC(tc)->citemName, "data", sizeof(char)*5);
 		GET_TC(tc)->itemValue = PyObject_GetAttrString(obj, "values");
 	}
-	else 
+	else
 	{
 		PRINTMARK();
 		return 0;
@@ -694,10 +711,10 @@ char *Series_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen)
 {
 	*outLen = strlen(GET_TC(tc)->citemName);
 	return GET_TC(tc)->citemName;
-}       
+}
 
 //=============================================================================
-// pandas DataFrame iteration functions 
+// pandas DataFrame iteration functions
 //=============================================================================
 void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc)
 {
@@ -738,7 +755,7 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc)
 		memcpy(GET_TC(tc)->citemName, "data", sizeof(char)*5);
 		GET_TC(tc)->itemValue = PyObject_GetAttrString(obj, "values");
 	}
-	else 
+	else
 	{
 		PRINTMARK();
 		return 0;
@@ -769,10 +786,10 @@ char *DataFrame_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen)
 {
 	*outLen = strlen(GET_TC(tc)->citemName);
 	return GET_TC(tc)->citemName;
-}       
+}
 
 //=============================================================================
-// Dict iteration functions 
+// Dict iteration functions
 // itemName might converted to string (Python_Str). Do refCounting
 // itemValue is borrowed from object (which is dict). No refCounting
 //=============================================================================
@@ -810,7 +827,7 @@ int Dict_iterNext(JSOBJ obj, JSONTypeContext *tc)
 	{
 		GET_TC(tc)->itemName = PyObject_Str(GET_TC(tc)->itemName);
 	}
-	else 
+	else
 	{
 		Py_INCREF(GET_TC(tc)->itemName);
 	}
@@ -844,7 +861,7 @@ void NpyArr_freeLabels(char** labels, npy_intp len)
 {
 	npy_intp i;
 
-	if (labels) 
+	if (labels)
 	{
 		for (i = 0; i < len; i++)
 		{
@@ -857,6 +874,8 @@ void NpyArr_freeLabels(char** labels, npy_intp len)
 char** NpyArr_encodeLabels(PyArrayObject* labels, JSONObjectEncoder* enc, npy_intp num)
 {
 	PRINTMARK();
+  int was_datetime64 = 0;
+  PyArray_Descr *dtype = NULL;
 	npy_intp i, stride, len;
 	npy_intp bufsize = 32768;
 	char** ret;
@@ -886,8 +905,15 @@ char** NpyArr_encodeLabels(PyArrayObject* labels, JSONObjectEncoder* enc, npy_in
 	origend = enc->end;
 	origoffset = enc->offset;
 
+  if (PyArray_DESCR(labels)->type_num == NPY_DATETIME) {
+    was_datetime64 = 1;
+
+    dtype = PyArray_DescrFromType(NPY_INT64);
+    labels = PyArray_CastToType(labels, dtype, 0);
+  }
+
 	stride = PyArray_STRIDE(labels, 0);
-	dataptr = PyArray_DATA(labels);  
+	dataptr = PyArray_DATA(labels);
 	getitem = PyArray_DESCR(labels)->f->getitem;
 
 	for (i = 0; i < num; i++)
@@ -903,7 +929,7 @@ char** NpyArr_encodeLabels(PyArrayObject* labels, JSONObjectEncoder* enc, npy_in
 
 		// trim off any quotes surrounding the result
 		if (*cLabel == '\"')
-		{    
+		{
 			cLabel++;
 			enc->offset -= 2;
 			*(enc->offset) = '\0';
@@ -922,6 +948,10 @@ char** NpyArr_encodeLabels(PyArrayObject* labels, JSONObjectEncoder* enc, npy_in
 		memcpy(ret[i], cLabel, sizeof(char)*len);
 		dataptr += stride;
 	}
+
+  if (was_datetime64) {
+    Py_XDECREF(labels);
+  }
 
 	enc->start = origst;
 	enc->end = origend;
@@ -944,7 +974,7 @@ void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
 	PyObject *toDictFunc;
 
 	int i;
-	for (i = 0; i < 32; i++) 
+	for (i = 0; i < 32; i++)
 	{
 		tc->prv[i] = 0;
 	}
@@ -971,13 +1001,13 @@ void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
 #endif
 		return;
 	}
-	else 
+	else
 	if (PyLong_Check(obj))
 	{
 		PyObject *exc;
 
 		PRINTMARK();
-		pc->PyTypeToJSON = PyLongToINT64; 
+		pc->PyTypeToJSON = PyLongToINT64;
 		tc->type = JT_LONG;
 		GET_TC(tc)->longValue = PyLong_AsLongLong(obj);
 
@@ -992,13 +1022,13 @@ void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
 
 		return;
 	}
-	else 
+	else
 	if (PyArray_IsScalar(obj, Integer))
 	{
 		PyObject *exc;
 
 		PRINTMARK();
-		pc->PyTypeToJSON = PyLongToINT64; 
+		pc->PyTypeToJSON = PyLongToINT64;
 		tc->type = JT_LONG;
 		PyArray_CastScalarToCtype(obj, &(GET_TC(tc)->longValue), PyArray_DescrFromType(NPY_LONG));
 
@@ -1036,7 +1066,7 @@ void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
 		{
 			tc->type = JT_NULL;
 		}
-		else 
+		else
 		{
 			pc->PyTypeToJSON = PyFloatToDOUBLE; tc->type = JT_DOUBLE;
 		}
@@ -1056,21 +1086,21 @@ void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
 		pc->PyTypeToJSON = NpyHalfToDOUBLE; tc->type = JT_DOUBLE;
 		return;
 	}
-	else 
+	else
 	if (PyArray_IsScalar(obj, Datetime))
 	{
 		PRINTMARK();
 		pc->PyTypeToJSON = NpyDateTimeToINT64; tc->type = JT_LONG;
 		return;
 	}
-	else 
+	else
 	if (PyDateTime_Check(obj))
 	{
 		PRINTMARK();
 		pc->PyTypeToJSON = PyDateTimeToINT64; tc->type = JT_LONG;
 		return;
 	}
-	else 
+	else
 	if (PyDate_Check(obj))
 	{
 		PRINTMARK();
@@ -1129,7 +1159,7 @@ ISITERABLE:
 	else
 	if (PyObject_TypeCheck(obj, (PyTypeObject*) cls_index))
 	{
-		if (enc->outputFormat == SPLIT) 
+		if (enc->outputFormat == SPLIT)
 		{
 			PRINTMARK();
 			tc->type = JT_OBJECT;
@@ -1154,7 +1184,7 @@ ISITERABLE:
 	else
 	if (PyObject_TypeCheck(obj, (PyTypeObject*) cls_series))
 	{
-		if (enc->outputFormat == SPLIT) 
+		if (enc->outputFormat == SPLIT)
 		{
 			PRINTMARK();
 			tc->type = JT_OBJECT;
@@ -1220,7 +1250,7 @@ ISITERABLE:
 	else
 	if (PyObject_TypeCheck(obj, (PyTypeObject*) cls_dataframe))
 	{
-		if (enc->outputFormat == SPLIT) 
+		if (enc->outputFormat == SPLIT)
 		{
 			PRINTMARK();
 			tc->type = JT_OBJECT;
@@ -1257,7 +1287,7 @@ ISITERABLE:
 				return;
 			}
 		}
-		else 
+		else
 		if (enc->outputFormat == INDEX)
 		{
 			PRINTMARK();
@@ -1279,7 +1309,7 @@ ISITERABLE:
 				return;
 			}
 		}
-		else 
+		else
 		{
 			PRINTMARK();
 			tc->type = JT_OBJECT;
@@ -1432,7 +1462,7 @@ PyObject* objToJSON(PyObject* self, PyObject *args, PyObject *kwargs)
 	char *sOrient = NULL;
 	int idoublePrecision = 5; // default double precision setting
 
-	PyObjectEncoder pyEncoder = 
+	PyObjectEncoder pyEncoder =
 	{
 		{
 			Object_beginTypeContext,	//void (*beginTypeContext)(JSOBJ obj, JSONTypeContext *tc);
@@ -1472,7 +1502,7 @@ PyObject* objToJSON(PyObject* self, PyObject *args, PyObject *kwargs)
 		if (strcmp(sOrient, "records") == 0)
 		{
 			pyEncoder.outputFormat = RECORDS;
-		} 
+		}
 		else
 		if (strcmp(sOrient, "index") == 0)
 		{
@@ -1598,7 +1628,7 @@ PyObject* objToJSONFile(PyObject* self, PyObject *args, PyObject *kwargs)
 	PRINTMARK();
 
 	Py_RETURN_NONE;
-	
+
 
 }
 

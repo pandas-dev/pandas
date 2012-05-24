@@ -326,8 +326,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                                      orient=orient, numpy=numpy, dtype=dtype)
             unser = unser.sort_index()
             if series.index.dtype.type == np.datetime64:
-                mktimestamp = date.fromtimestamp
-                unser.index = [mktimestamp(float(d)) for d in unser.index]
+                unser.index = DatetimeIndex(unser.index.values.astype('i8'))
             if orient == "records" or orient == "values":
                 assert_almost_equal(series.values, unser.values)
             else:

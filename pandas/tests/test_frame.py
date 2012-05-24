@@ -2005,9 +2005,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             unser = DataFrame.from_json(dfjson, orient=orient, dtype=dtype,
                                         numpy=numpy)
             unser = unser.sort()
-            mktimestamp = datetime.fromtimestamp
             if df.index.dtype.type == np.datetime64:
-                unser.index = [mktimestamp(float(d)) for d in unser.index]
+                unser.index = DatetimeIndex(unser.index.values.astype('i8'))
             if orient == "records":
                 # index is not captured in this orientation
                 assert_almost_equal(df.values, unser.values)
