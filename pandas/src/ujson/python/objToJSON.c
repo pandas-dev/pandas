@@ -254,7 +254,7 @@ void NpyArr_iterBegin(JSOBJ _obj, JSONTypeContext *tc)
         if (PyArray_DESCR(obj)->type_num == NPY_DATETIME) {
             npyarr->was_datetime64 = 1;
             dtype = PyArray_DescrFromType(NPY_INT64);
-            obj = PyArray_CastToType(obj, dtype, 0);
+            obj = (PyArrayObject *) PyArray_CastToType(obj, dtype, 0);
         } else {
             npyarr->was_datetime64 = 0;
         }
@@ -893,7 +893,6 @@ char** NpyArr_encodeLabels(PyArrayObject* labels, JSONObjectEncoder* enc, npy_in
 {
     // NOTE this function steals a reference to labels.
     PRINTMARK();
-    int was_datetime64 = 0;
     PyArray_Descr *dtype = NULL;
     PyArrayObject* labelsTmp = NULL;
     PyObject* item = NULL;
@@ -929,11 +928,9 @@ char** NpyArr_encodeLabels(PyArrayObject* labels, JSONObjectEncoder* enc, npy_in
     origoffset = enc->offset;
 
     if (PyArray_DESCR(labels)->type_num == NPY_DATETIME) {
-        was_datetime64 = 1;
-
         dtype = PyArray_DescrFromType(NPY_INT64);
         labelsTmp = labels;
-        labels = PyArray_CastToType(labels, dtype, 0);
+        labels = (PyArrayObject *) PyArray_CastToType(labels, dtype, 0);
         Py_DECREF(labelsTmp);
     }
 
