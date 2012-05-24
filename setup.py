@@ -388,6 +388,9 @@ sparse_ext = Extension('pandas._sparse',
 
 npymath_info = get_info('npymath')
                        
+npymath_libdir = npymath_info['library_dirs'][0]
+npymath_libdir = npymath_libdir.replace('\\\\', '\\')
+                       
 ujson_ext = Extension('pandas._ujson',
                       sources=['pandas/src/ujson/python/ujson.c',
                                'pandas/src/ujson/python/objToJSON.c',
@@ -398,8 +401,8 @@ ujson_ext = Extension('pandas._ujson',
                                     'pandas/src/ujson/lib',
                                     np.get_include()],
                       libraries=['npymath'],
-                      library_dirs=npymath_info['library_dirs'],
-                      #extra_link_args=[get_info('npymath').libs()]
+                      library_dirs=[npymath_libdir],
+                      # extra_link_args=[get_pkg_info('npymath').libs()]
                       #extra_info=get_info('npymath')
                       )
 
