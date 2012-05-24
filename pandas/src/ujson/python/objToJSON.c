@@ -228,6 +228,7 @@ void NpyArr_iterBegin(JSOBJ _obj, JSONTypeContext *tc)
 {
     PyArrayObject *obj;
     PyArray_Descr *dtype;
+    NpyArrContext *npyarr;
 
     if (GET_TC(tc)->newObj)
     {
@@ -241,7 +242,7 @@ void NpyArr_iterBegin(JSOBJ _obj, JSONTypeContext *tc)
     if (PyArray_SIZE(obj) > 0)
     {
         PRINTMARK();
-        NpyArrContext *npyarr = PyObject_Malloc(sizeof(NpyArrContext));
+        npyarr = PyObject_Malloc(sizeof(NpyArrContext));
         GET_TC(tc)->npyarr = npyarr;
 
         if (!npyarr)
@@ -321,9 +322,10 @@ void NpyArrPassThru_iterBegin(JSOBJ obj, JSONTypeContext *tc)
 
 void NpyArrPassThru_iterEnd(JSOBJ obj, JSONTypeContext *tc)
 {
+    NpyArrContext* npyarr;
     PRINTMARK();
     // finished this dimension, reset the data pointer
-    NpyArrContext* npyarr = GET_TC(tc)->npyarr;
+    npyarr = GET_TC(tc)->npyarr;
     npyarr->curdim--;
     npyarr->dataptr -= npyarr->stride * npyarr->index[npyarr->stridedim];
     npyarr->stridedim -= npyarr->inc;
@@ -340,8 +342,9 @@ void NpyArrPassThru_iterEnd(JSOBJ obj, JSONTypeContext *tc)
 
 int NpyArr_iterNextItem(JSOBJ _obj, JSONTypeContext *tc)
 {
+    NpyArrContext* npyarr;
     PRINTMARK();
-    NpyArrContext* npyarr = GET_TC(tc)->npyarr;
+    npyarr = GET_TC(tc)->npyarr;
 
     if (GET_TC(tc)->itemValue != npyarr->array)
     {
@@ -363,8 +366,9 @@ int NpyArr_iterNextItem(JSOBJ _obj, JSONTypeContext *tc)
 
 int NpyArr_iterNext(JSOBJ _obj, JSONTypeContext *tc)
 {
+    NpyArrContext* npyarr;
     PRINTMARK();
-    NpyArrContext *npyarr = GET_TC(tc)->npyarr;
+    npyarr = GET_TC(tc)->npyarr;
 
     if (npyarr->curdim >= npyarr->ndim || npyarr->index[npyarr->stridedim] >= npyarr->dim)
     {
@@ -395,8 +399,9 @@ JSOBJ NpyArr_iterGetValue(JSOBJ obj, JSONTypeContext *tc)
 
 char *NpyArr_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen)
 {
+    NpyArrContext* npyarr;
     PRINTMARK();
-    NpyArrContext *npyarr = GET_TC(tc)->npyarr;
+    npyarr = GET_TC(tc)->npyarr;
     npy_intp idx;
     if (GET_TC(tc)->iterNext == NpyArr_iterNextItem)
     {
@@ -483,6 +488,8 @@ int Dir_iterNext(JSOBJ _obj, JSONTypeContext *tc)
     PyObject *obj = (PyObject *) _obj;
     PyObject *itemValue = GET_TC(tc)->itemValue;
     PyObject *itemName = NULL;
+    PyObject* attr;
+    char* attrStr;
 
 
     if (itemValue)
@@ -493,8 +500,8 @@ int Dir_iterNext(JSOBJ _obj, JSONTypeContext *tc)
 
     for (; GET_TC(tc)->index  < GET_TC(tc)->size; GET_TC(tc)->index ++)
     {
-        PyObject* attr = PyList_GET_ITEM(GET_TC(tc)->attrList, GET_TC(tc)->index);
-        char* attrStr = PyString_AS_STRING(attr);
+        attr = PyList_GET_ITEM(GET_TC(tc)->attrList, GET_TC(tc)->index);
+        attrStr = PyString_AS_STRING(attr);
 
         if (attrStr[0] == '_')
         {
@@ -608,12 +615,13 @@ void Index_iterBegin(JSOBJ obj, JSONTypeContext *tc)
 
 int Index_iterNext(JSOBJ obj, JSONTypeContext *tc)
 {
+    Py_ssize_t index;
     if (!GET_TC(tc)->citemName)
     {
         return 0;
     }
 
-    Py_ssize_t index = GET_TC(tc)->index;
+    index = GET_TC(tc)->index;
     Py_XDECREF(GET_TC(tc)->itemValue);
     if (index == 0)
     {
@@ -675,12 +683,13 @@ void Series_iterBegin(JSOBJ obj, JSONTypeContext *tc)
 
 int Series_iterNext(JSOBJ obj, JSONTypeContext *tc)
 {
+    Py_ssize_t index;
     if (!GET_TC(tc)->citemName)
     {
         return 0;
     }
 
-    Py_ssize_t index = GET_TC(tc)->index;
+    index = GET_TC(tc)->index;
     Py_XDECREF(GET_TC(tc)->itemValue);
     if (index == 0)
     {
@@ -750,12 +759,13 @@ void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc)
 
 int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc)
 {
+    Py_ssize_t index;
     if (!GET_TC(tc)->citemName)
     {
         return 0;
     }
 
-    Py_ssize_t index = GET_TC(tc)->index;
+    index = GET_TC(tc)->index;
     Py_XDECREF(GET_TC(tc)->itemValue);
     if (index == 0)
     {
