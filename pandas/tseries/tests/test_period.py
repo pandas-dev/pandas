@@ -1049,6 +1049,9 @@ class TestPeriodIndex(TestCase):
         exp_index = _get_with_delta(delta)
         self.assert_(result.columns.equals(exp_index))
 
+        # invalid axis
+        self.assertRaises(ValueError, df.to_timestamp, axis=2)
+
     def test_index_duplicate_periods(self):
         # monotonic
         idx = PeriodIndex([2000, 2007, 2007, 2009, 2009], freq='A-JUN')

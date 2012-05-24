@@ -712,7 +712,6 @@ class TestTimeSeries(unittest.TestCase):
         pts = df.to_period('M')
         self.assert_(pts.index.equals(exp.index.asfreq('M')))
 
-        """ Put me back in after fixing DataFrame bug
         df = df.T
         pts = df.to_period(axis=1)
         exp = df.copy()
@@ -721,7 +720,6 @@ class TestTimeSeries(unittest.TestCase):
 
         pts = df.to_period('M', axis=1)
         self.assert_(pts.columns.equals(exp.columns.asfreq('M')))
-        """
 
     def test_timestamp_fields(self):
         # extra fields from DatetimeIndex like quarter and week
