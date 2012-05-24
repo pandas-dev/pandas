@@ -239,7 +239,7 @@ def _flex_comp_method(op, name, default_axis='columns'):
                 result[mask] = op(xrav[mask], y)
 
             if op == operator.ne:
-                np.putmask(result, -mask, False)
+                np.putmask(result, -mask, True)
             else:
                 np.putmask(result, -mask, False)
             result = result.reshape(x.shape)
@@ -1451,7 +1451,7 @@ class DataFrame(NDFrame):
                 return self
             return self._constructor(data=self.values.T, index=self.columns,
                                      columns=self.index, copy=False)
-        else:  # pragma: no cover
+        else:
             raise ValueError('Axis numbers must be in (0, 1)')
 
     #----------------------------------------------------------------------
@@ -2633,6 +2633,9 @@ class DataFrame(NDFrame):
         """
         from pandas.core.groupby import _lexsort_indexer
 
+        if axis not in [0, 1]:
+            raise ValueError('Axis must be 0 or 1, got %s' % str(axis))
+
         labels = self._get_axis(axis)
 
         if by is not None:
@@ -2654,8 +2657,7 @@ class DataFrame(NDFrame):
                                                       copy=False)
             elif axis == 0:
                 self._data = self._data.take(indexer)
-            else:
-                raise ValueError('Axis must be 0 or 1, got %s' % str(axis))
+
             self._clear_item_cache()
             return self
         else:
@@ -2906,7 +2908,8 @@ class DataFrame(NDFrame):
                 else:
                     return self._constructor(new_data)
 
-            raise ValueError('Invalid to_replace type: %s' % type(to_replace))
+            raise ValueError('Invalid to_replace type: %s' %
+                             type(to_replace)) # pragma: no cover
 
     def _interpolate(self, to_replace, method, axis, inplace, limit):
         if self._is_mixed_type and axis == 1:
@@ -3608,7 +3611,7 @@ class DataFrame(NDFrame):
                 try:
                     if hasattr(e, 'args'):
                         e.args = e.args + ('occurred at index %s' % str(k),)
-                except NameError:
+                except NameError: # pragma: no cover
                     # no k defined yet
                     pass
                 raise

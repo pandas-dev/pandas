@@ -137,8 +137,9 @@ def _bool_method(op, name):
                 y = lib.list_to_object_array(y)
 
             if isinstance(y, np.ndarray):
-                if x.dtype == np.bool_ and y.dtype == np.bool_:
-                    result = op(x, y)
+                if (x.dtype == np.bool_ and
+                    y.dtype == np.bool_): # pragma: no cover
+                    result = op(x, y) # when would this be hit?
                 else:
                     x = com._ensure_object(x)
                     y = com._ensure_object(y)
@@ -2642,7 +2643,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             try:
                 subarr = _try_cast(data)
             except Exception:
-                if raise_cast_failure:
+                if raise_cast_failure: # pragma: no cover
                     raise
                 subarr = np.array(data, dtype=object, copy=copy)
                 subarr = lib.maybe_convert_objects(subarr)

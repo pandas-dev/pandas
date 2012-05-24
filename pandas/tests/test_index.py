@@ -7,6 +7,7 @@ import unittest
 import nose
 
 import numpy as np
+from numpy.testing import assert_array_equal
 
 from pandas.core.factor import Factor
 from pandas.core.index import Index, Int64Index, MultiIndex
@@ -63,6 +64,13 @@ class TestIndex(unittest.TestCase):
         index = arr.view(Index)
         tm.assert_contains_all(arr, index)
         self.assert_(np.array_equal(self.strIndex, index))
+
+        # copy
+        arr = np.array(self.strIndex)
+        index = Index(arr, copy=True, name='name')
+        self.assert_(isinstance(index, Index))
+        self.assert_(index.name == 'name')
+        assert_array_equal(arr, index)
 
         # what to do here?
         # arr = np.array(5.)

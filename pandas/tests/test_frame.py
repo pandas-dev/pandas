@@ -2472,6 +2472,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = self.frame2 * 2
         assert_frame_equal(added, expected)
 
+        df = DataFrame({'a' : ['a', None, 'b']})
+        assert_frame_equal(df + df, DataFrame({'a' : ['aa', np.nan, 'bb']}))
+
     def test_operators_none_as_na(self):
         df = DataFrame({"col1": [2,5.0,123,None],
                         "col2": [1,2,3,4]})
@@ -2645,6 +2648,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             assert_frame_equal(col_eq, -col_ne)
             assert_frame_equal(idx_eq, -idx_ne)
             assert_frame_equal(idx_eq, df.T.eq(idx_ser).T)
+            assert_frame_equal(col_eq, df.eq(list(col_ser)))
+            assert_frame_equal(idx_eq, df.eq(Series(idx_ser), axis=0))
+            assert_frame_equal(idx_eq, df.eq(list(idx_ser), axis=0))
 
             idx_gt = df.gt(idx_ser, axis=0)
             col_gt = df.gt(col_ser)
@@ -2711,6 +2717,18 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(df.lt(np.nan), df < np.nan)
         assert_frame_equal(df.ge(np.nan), df >= np.nan)
         assert_frame_equal(df.le(np.nan), df <= np.nan)
+
+        # complex
+        arr = np.array([np.nan, 1j, 6, None])
+        arr2 = np.array([2j, np.nan, 7, None])
+        df = DataFrame({'a' : arr})
+        df2 = DataFrame({'a' : arr2})
+        rs = df.gt(df2)
+        self.assert_(not rs.values.any())
+        rs = df.ne(df2)
+        self.assert_(rs.values.all())
+
+
 
     def test_arith_flex_series(self):
         df = self.simple
@@ -3760,6 +3778,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = self.mixed_frame.fillna(value=0)
         assert_frame_equal(result, expected)
 
+        tsframe = self.tsframe.copy()
+        tsframe.replace([nan], [0], inplace=True)
+        assert_frame_equal(tsframe, self.tsframe.fillna(0))
+
     def test_replace(self):
         self.tsframe['A'][:5] = nan
         self.tsframe['A'][-5:] = nan
@@ -3781,7 +3803,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(result, expected)
         assert_frame_equal(result.replace(-1e8, nan), self.mixed_frame)
 
+        # empty
+        df = DataFrame(index=['a', 'b'])
+        assert_frame_equal(df, df.replace(5, 7))
+
     def test_replace_input_formats(self):
+        # both dicts
         to_rep = {'A' : np.nan, 'B' : 0, 'C' : ''}
         values = {'A' : 0, 'B' : -1, 'C' : 'missing'}
         df = DataFrame({'A' : [np.nan, 0, np.inf], 'B' : [0, 2, 5],
@@ -3792,6 +3819,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             expected[k] = v.replace(to_rep[k], values[k])
         assert_frame_equal(filled, DataFrame(expected))
 
+        # dict to scalar
+        filled = df.replace(to_rep, 0)
+        expected = {}
+        for k, v in df.iteritems():
+            expected[k] = v.replace(to_rep[k], 0)
+        assert_frame_equal(filled, DataFrame(expected))
+
+        self.assertRaises(ValueError, df.replace, to_rep, [np.nan, 0, ''])
+
+        # scalar to dict
         values = {'A' : 0, 'B' : -1, 'C' : 'missing'}
         df = DataFrame({'A' : [np.nan, 0, np.nan], 'B' : [0, 2, 5],
                         'C' : ['', 'asdf', 'fd']})
@@ -3801,6 +3838,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             expected[k] = v.replace(np.nan, values[k])
         assert_frame_equal(filled, DataFrame(expected))
 
+        # list to list
         to_rep = [np.nan, 0, '']
         values = [-2, -1, 'missing']
         result = df.replace(to_rep, values)
@@ -3809,6 +3847,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             expected.replace(to_rep[i], values[i], inplace=True)
         assert_frame_equal(result, expected)
 
+        self.assertRaises(ValueError, df.replace, to_rep, values[1:])
+
+        # list to scalar
         to_rep = [np.nan, 0, '']
         result = df.replace(to_rep, -1)
         expected = df.copy()
@@ -4680,6 +4721,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             self.assertEqual(len(e.args), 2)
             self.assertEqual(e.args[1], 'occurred at index 4')
 
+    def test_swapaxes(self):
+        df = DataFrame(np.random.randn(10, 5))
+        assert_frame_equal(df.T, df.swapaxes(0, 1))
+        assert_frame_equal(df.T, df.swapaxes(1, 0))
+        assert_frame_equal(df, df.swapaxes(0, 0))
+        self.assertRaises(ValueError, df.swapaxes, 2, 5)
 
     def test_apply_convert_objects(self):
         data = DataFrame({'A' : ['foo', 'foo', 'foo', 'foo',
@@ -4826,6 +4873,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         sorted_df = frame.sort(columns=['A', 'B'], ascending=False)
         expected = frame.sort_index(by=['A', 'B'], ascending=False)
         assert_frame_equal(sorted_df, expected)
+
+        self.assertRaises(ValueError, frame.sort_index, axis=2, inplace=True)
 
     def test_sort_index_multicolumn(self):
         import random
