@@ -1086,17 +1086,17 @@ void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
         return;
     }
     else
-    if (PyString_Check(obj))
-    {
-        PRINTMARK();
-        pc->PyTypeToJSON = PyStringToUTF8; tc->type = JT_UTF8;
-        return;
-    }
-    else
     if (PyUnicode_Check(obj))
     {
         PRINTMARK();
         pc->PyTypeToJSON = PyUnicodeToUTF8; tc->type = JT_UTF8;
+        return;
+    }
+    else
+    if (PyString_Check(obj))
+    {
+        PRINTMARK();
+        pc->PyTypeToJSON = PyStringToUTF8; tc->type = JT_UTF8;
         return;
     }
     else
