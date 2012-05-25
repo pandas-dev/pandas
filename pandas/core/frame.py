@@ -2848,35 +2848,17 @@ class DataFrame(NDFrame):
         if value is None:
             return self._interpolate(to_replace, method, axis, inplace, limit)
         else:
-            # Float type values
             if len(self.columns) == 0:
                 return self
 
-            if np.isscalar(to_replace):
-
-                if np.isscalar(value): # np.nan -> 0
-                    new_data = self._data.replace(to_replace, value,
-                                                  inplace=inplace)
-                    if inplace:
-                        self._data = new_data
-                        return self
-                    else:
-                        return self._constructor(new_data)
-
-                elif isinstance(value, dict): # np.nan -> {'A' : 0, 'B' : -1}
-                    return self._replace_dest_dict(to_replace, value, inplace)
-
-
-            elif isinstance(to_replace, dict):
-
-                if np.isscalar(value): # {'A' : np.nan, 'B' : ''} -> 0
-                    return self._replace_src_dict(to_replace, value, inplace)
-
-                elif isinstance(value, dict): # {'A' : np.nan} -> {'A' : 0}
+            if isinstance(to_replace, dict):
+                if isinstance(value, dict): # {'A' : np.nan} -> {'A' : 0}
                     return self._replace_both_dict(to_replace, value, inplace)
 
-                raise ValueError('Fill value must be scalar or dict')
+                elif not isinstance(value, (list, np.ndarray)):
+                    return self._replace_src_dict(to_replace, value, inplace)
 
+                raise ValueError('Fill value must be scalar or dict')
 
             elif isinstance(to_replace, (list, np.ndarray)):
                 # [np.nan, ''] -> [0, 'missing']
@@ -2899,6 +2881,17 @@ class DataFrame(NDFrame):
                     return self
                 else:
                     return self._constructor(new_data)
+            else:
+                if isinstance(value, dict): # np.nan -> {'A' : 0, 'B' : -1}
+                    return self._replace_dest_dict(to_replace, value, inplace)
+                elif not isinstance(value, (list, np.ndarray)): # np.nan -> 0
+                    new_data = self._data.replace(to_replace, value,
+                                                  inplace=inplace)
+                    if inplace:
+                        self._data = new_data
+                        return self
+                    else:
+                        return self._constructor(new_data)
 
             raise ValueError('Invalid to_replace type: %s' %
                              type(to_replace)) # pragma: no cover

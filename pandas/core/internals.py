@@ -1,4 +1,5 @@
 import itertools
+from datetime import datetime
 
 from numpy import nan
 import numpy as np
@@ -229,7 +230,7 @@ class Block(object):
         if self._can_hold_element(value):
             value = self._try_cast(value)
 
-        if np.isscalar(to_replace):
+        if not isinstance(to_replace, (list, np.ndarray)):
             if self._can_hold_element(to_replace):
                 to_replace = self._try_cast(to_replace)
                 np.putmask(new_values, com.mask_missing(new_values, to_replace),
@@ -281,7 +282,7 @@ class Block(object):
         return make_block(new_values, self.items, self.ref_items)
 
 def _mask_missing(array, missing_values):
-    if np.isscalar(missing_values):
+    if not isinstance(missing_values, (list, np.ndarray)):
         missing_values = [missing_values]
 
     mask = None
@@ -380,7 +381,7 @@ class DatetimeBlock(Block):
     _can_hold_na = True
 
     def _can_hold_element(self, element):
-        return com.is_integer(element)
+        return com.is_integer(element) or isinstance(element, datetime)
 
     def _try_cast(self, element):
         try:
@@ -1075,7 +1076,6 @@ class BlockManager(object):
 
     def replace(self, to_replace, value, inplace=False):
         new_blocks = [b.replace(to_replace, value, inplace=inplace)
-                      if b._can_hold_na else b
                       for b in self.blocks]
         if inplace:
             return self
