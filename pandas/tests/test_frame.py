@@ -634,6 +634,33 @@ class CheckIndexing(object):
         self.mixed_frame.ix[:, 'B'] = self.mixed_frame.ix[:, 'B'] + 1
         assert_series_equal(self.mixed_frame.B, orig + 1)
 
+    def test_ix_multi_take(self):
+        df = DataFrame(np.random.randn(3, 2))
+        rs = df.ix[df.index==0, :]
+        xp = df.reindex([0])
+        assert_frame_equal(rs, xp)
+
+        """ #1321
+        df = DataFrame(np.random.randn(3, 2))
+        rs = df.ix[df.index==0, df.columns==1]
+        xp = df.reindex([0], [1])
+        assert_frame_equal(rs, xp)
+        """
+
+    def test_ix_multi_take_nonint_index(self):
+        df = DataFrame(np.random.randn(3, 2), index=['x','y','z'],
+                       columns=['a','b'])
+        rs = df.ix[[0], [0]]
+        xp = df.reindex(['x'], columns=['a'])
+        assert_frame_equal(rs, xp)
+
+    def test_ix_multi_take_multiindex(self):
+        df = DataFrame(np.random.randn(3, 2), index=['x','y','z'],
+                       columns=[['a','b'], ['1','2']])
+        rs = df.ix[[0], [0]]
+        xp = df.reindex(['x'], columns=[('a', '1')])
+        assert_frame_equal(rs, xp)
+
     def test_getitem_fancy_1d(self):
         f = self.frame
         ix = f.ix
@@ -3795,13 +3822,26 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         zero_filled = self.tsframe.replace(nan, -1e8)
         assert_frame_equal(zero_filled, self.tsframe.fillna(-1e8))
-
         assert_frame_equal(zero_filled.replace(-1e8, nan), self.tsframe)
 
         self.tsframe['A'][:5] = nan
         self.tsframe['A'][-5:] = nan
         self.tsframe['B'][:5] = -1e8
 
+        # empty
+        df = DataFrame(index=['a', 'b'])
+        assert_frame_equal(df, df.replace(5, 7))
+
+    def test_replace_mixed(self):
+        self.mixed_frame['foo'][5:20] = nan
+        self.mixed_frame['A'][-10:] = nan
+
+        result = self.mixed_frame.replace(np.nan, -1e8)
+        expected = self.mixed_frame.fillna(value=-1e8)
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result.replace(-1e8, nan), self.mixed_frame)
+
+    def test_replace_interpolate(self):
         padded = self.tsframe.replace(nan, method='pad')
         assert_frame_equal(padded, self.tsframe.fillna(method='pad'))
 
@@ -3822,22 +3862,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         bfilled = self.tsframe.replace(nan, method='bfill')
         assert_frame_equal(bfilled, self.tsframe.fillna(method='bfill'))
 
-        # mixed type
-        self.mixed_frame['foo'][5:20] = nan
-        self.mixed_frame['A'][-10:] = nan
+        frame = self.tsframe.copy()
+        frame[frame == 0] = 1
+        frame.ix[-5:, 2] = 0
+        result = frame.replace([nan, 0], method='pad')
 
-        result = self.mixed_frame.replace(np.nan, -1e8)
-        expected = self.mixed_frame.fillna(value=-1e8)
+        expected = frame.copy()
+        expected[expected == 0] = nan
+        expected = expected.fillna(method='pad')
         assert_frame_equal(result, expected)
-        assert_frame_equal(result.replace(-1e8, nan), self.mixed_frame)
 
         result = self.mixed_frame.replace(nan, method='pad', axis=1)
         expected = self.mixed_frame.fillna(method='pad', axis=1)
         assert_frame_equal(result, expected)
-
-        # empty
-        df = DataFrame(index=['a', 'b'])
-        assert_frame_equal(df, df.replace(5, 7))
 
         # no nans
         self.tsframe['A'][:5] = 1e8
@@ -3846,11 +3883,30 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = self.tsframe.fillna(method='bfill')
         assert_frame_equal(result, expected)
 
-        # int and bool blocks
-        df = DataFrame({'ints': [1,2,3], 'bools': [True, False, True]})
-        result = df.replace({'ints' : 1, 'bools' : False},
-                            {'ints': 0, 'bools': True})
-        expected = DataFrame({'ints': [0,2,3], 'bools': [True]*3})
+    def test_replace_dtypes(self):
+        # int
+        df = DataFrame({'ints' : [1,2,3]})
+        result = df.replace(1, 0)
+        expected = DataFrame({'ints' : [0,2,3]})
+        assert_frame_equal(result, expected)
+
+        # bools
+        df = DataFrame({'bools': [True, False, True]})
+        result = df.replace(False, True)
+        self.assert_(result.values.all())
+
+        #complex blocks
+        df = DataFrame({'complex': [1j, 2j, 3j]})
+        result = df.replace(1j, 0j)
+        expected = DataFrame({'complex': [0j, 2j, 3j]})
+        assert_frame_equal(result, expected)
+
+        # datetime blocks
+        prev = datetime.today()
+        now = datetime.today()
+        df = DataFrame({'datetime64' : Index([prev, now, prev])})
+        result = df.replace(prev, now)
+        expected = DataFrame({'datetime64' : Index([now] * 3)})
         assert_frame_equal(result, expected)
 
     def test_replace_input_formats(self):

@@ -44,6 +44,10 @@ def get_int_ex(cols=['g']):
     mat = randn(N, 1).astype(int)
     return make_block(mat.T, cols, TEST_COLS)
 
+def get_int32_ex(cols):
+    mat = randn(N, 1).astype(np.int32)
+    return make_block(mat.T, cols, TEST_COLS)
+
 def get_dt_ex(cols=['h']):
     mat = randn(N, 1).astype(int).astype(np.datetime64)
     return make_block(mat.T, cols, TEST_COLS)
@@ -58,7 +62,8 @@ class TestBlock(unittest.TestCase):
         self.int_block = get_int_ex()
 
     def test_constructor(self):
-        pass
+        int32block = get_int32_ex(['a'])
+        self.assert_(int32block.dtype == np.int64)
 
     def test_pickle(self):
         import pickle
