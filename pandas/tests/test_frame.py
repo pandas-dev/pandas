@@ -4375,10 +4375,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         filled = self.tsframe.fillna(method='bfill', limit=1)
         assert_frame_equal(rs, filled / filled.shift(1) - 1)
 
-        rs = self.tsframe.pct_change(freq='M')
+        rs = self.tsframe.pct_change(freq='5D')
         filled = self.tsframe.fillna(method='pad')
-        assert_frame_equal(rs, filled / filled.shift(freq='M') - 1)
+        assert_frame_equal(rs, filled / filled.shift(freq='5D') - 1)
 
+    def test_pct_change_shift_over_nas(self):
+        s = Series([1., 1.5, np.nan, 2.5, 3.])
+
+        df = DataFrame({'a': s, 'b': s})
+
+        chg = df.pct_change()
+        expected = Series([np.nan, 0.5, np.nan, 2.5/1.5 -1, .2])
+        edf = DataFrame({'a': expected, 'b':expected})
+        assert_frame_equal(chg, edf)
 
     def test_shift(self):
         # naive shift

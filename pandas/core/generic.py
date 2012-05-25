@@ -3,10 +3,10 @@ from datetime import timedelta
 
 import numpy as np
 
-from pandas.core.common import save, load
 from pandas.core.index import MultiIndex
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.offsets import DateOffset
+import pandas.core.common as com
 
 class PandasError(Exception):
     pass
@@ -23,11 +23,11 @@ class PandasObject(object):
     _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
 
     def save(self, path):
-        save(self, path)
+        com.save(self, path)
 
     @classmethod
     def load(cls, path):
-        return load(path)
+        return com.load(path)
 
     #----------------------------------------------------------------------
     # Axis name business
@@ -392,6 +392,9 @@ class PandasObject(object):
         else:
             data = self.fillna(method=fill_method, limit=limit)
         rs = data / data.shift(periods=periods, freq=freq, **kwds) - 1
+        if freq is None:
+            mask = com.isnull(self.values)
+            np.putmask(rs.values, mask, np.nan)
         return rs
 
 
