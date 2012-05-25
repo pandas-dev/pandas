@@ -2396,8 +2396,13 @@ def _handle_legacy_indexes(indexes):
     converted = []
     for index in indexes:
         if isinstance(index, DateRange):
-            index = DatetimeIndex(start=index[0], end=index[-1],
-                                  freq=index.offset, tz=index.tzinfo)
+            if len(index) == 0:
+                kwds = dict(data=[], freq=index.offset, tz=index.tzinfo)
+            else:
+                kwds = dict(start=index[0], end=index[-1],
+                            freq=index.offset, tz=index.tzinfo)
+
+            index = DatetimeIndex(**kwds)
 
         converted.append(index)
 

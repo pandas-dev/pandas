@@ -782,6 +782,18 @@ class TestLegacySupport(unittest.TestCase):
         self.assert_((unpickled.index == dtindex).all())
         self.assertEquals(unpickled.index.offset, BDay(1, normalize=True))
 
+    def test_unpickle_legacy_len0_daterange(self):
+        pth, _ = os.path.split(os.path.abspath(__file__))
+        filepath = os.path.join(pth, 'data', 'series_daterange0.pickle')
+
+        result = com.load(filepath)
+
+        ex_index = DatetimeIndex([], freq='B')
+
+        self.assert_(result.index.equals(ex_index))
+        self.assert_(isinstance(result.index.freq, offsets.BDay))
+        self.assert_(len(result) == 0)
+
     def test_arithmetic_interaction(self):
         index = self.frame.index
         obj_index = index.asobject
