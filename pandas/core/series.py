@@ -2617,7 +2617,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         except (ValueError, TypeError):
             if dtype is not None and raise_cast_failure:
                 raise
-            else:  # pragma: no cover
+            else: # pragma: no cover
                 subarr = np.array(data, dtype=object, copy=copy)
         return subarr
 

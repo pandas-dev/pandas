@@ -81,9 +81,14 @@ def tsplot(series, plotf, *args, **kwargs):
         idx = series.index.to_period(freq=freq)
         series = Series(series.values, idx, name=series.name)
 
-    if not isinstance(series.index, PeriodIndex): # business freq
-        raise TypeError('series argument to tsplot must have DatetimeIndex or '
-                        'PeriodIndex')
+    if not isinstance(series.index, PeriodIndex):
+        # try to get it to DatetimeIndex then to period
+        if series.index.inferred_type == 'datetime':
+            idx = DatetimeIndex(series.index).to_period(freq=freq)
+            series = Series(series.values, idx, name=series.name)
+        else:
+            raise TypeError('series argument to tsplot must have '
+                            'DatetimeIndex or PeriodIndex')
 
     if 'ax' in kwargs:
         ax = kwargs.pop('ax')

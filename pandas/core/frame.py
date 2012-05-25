@@ -233,10 +233,11 @@ def _flex_comp_method(op, name, default_axis='columns'):
             if isinstance(y, np.ndarray):
                 yrav = y.ravel()
                 mask = notnull(xrav) & notnull(yrav)
-                result[mask] = op(xrav[mask], yrav[mask])
+                result[mask] = op(np.array(list(xrav[mask])),
+                                  np.array(list(yrav[mask])))
             else:
                 mask = notnull(xrav)
-                result[mask] = op(xrav[mask], y)
+                result[mask] = op(np.array(list(xrav[mask])), y)
 
             if op == operator.ne:
                 np.putmask(result, -mask, True)
@@ -252,10 +253,7 @@ def _flex_comp_method(op, name, default_axis='columns'):
             return self._flex_compare_frame(other, na_op, level)
 
         elif isinstance(other, Series):
-            try:
-                return self._combine_series(other, na_op, None, axis, level)
-            except Exception:
-                return self._combine_series_infer(other, na_op)
+            return self._combine_series(other, na_op, None, axis, level)
 
         elif isinstance(other, (list, tuple)):
             if axis is not None and self._get_axis_name(axis) == 'index':
@@ -263,10 +261,7 @@ def _flex_comp_method(op, name, default_axis='columns'):
             else:
                 casted = Series(other, index=self.columns)
 
-            try:
-                return self._combine_series(casted, na_op, None, axis, level)
-            except Exception:
-                return self._combine_series_infer(casted, na_op)
+            return self._combine_series(casted, na_op, None, axis, level)
 
         elif isinstance(other, np.ndarray):
             if other.ndim == 1:
@@ -275,15 +270,12 @@ def _flex_comp_method(op, name, default_axis='columns'):
                 else:
                     casted = Series(other, index=self.columns)
 
-                try:
-                    return self._combine_series(casted, na_op, None, axis,
-                                                level)
-                except Exception:
-                    return self._combine_series_infer(casted, na_op)
+                return self._combine_series(casted, na_op, None, axis, level)
 
             elif other.ndim == 2:
                 casted = DataFrame(other, index=self.index,
                                    columns=self.columns)
+
                 return self._flex_compare_frame(casted, na_op, level)
 
             else:  # pragma: no cover

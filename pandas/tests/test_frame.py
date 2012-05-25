@@ -2719,7 +2719,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(df.le(np.nan), df <= np.nan)
 
         # complex
-        arr = np.array([np.nan, 1j, 6, None])
+        arr = np.array([np.nan, 1, 6, np.nan])
         arr2 = np.array([2j, np.nan, 7, None])
         df = DataFrame({'a' : arr})
         df2 = DataFrame({'a' : arr2})
@@ -2728,7 +2728,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         rs = df.ne(df2)
         self.assert_(rs.values.all())
 
-
+        arr3 = np.array([2j, np.nan, None])
+        df3 = DataFrame({'a' : arr3})
+        rs = df3.gt(2j)
+        self.assert_(not rs.values.any())
 
     def test_arith_flex_series(self):
         df = self.simple
@@ -3344,6 +3347,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         mat = self.mixed_frame.as_matrix(['foo', 'A'])
         self.assertEqual(mat[0, 0], 'bar')
 
+        df = DataFrame({'real' : [1,2,3], 'complex' : [1j, 2j, 3j]})
+        mat = df.as_matrix()
+        self.assertEqual(mat[0, 0], 1j)
+
         # single block corner case
         mat = self.frame.as_matrix(['A', 'B'])
         expected = self.frame.reindex(columns=['A', 'B']).values
@@ -3791,8 +3798,29 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         assert_frame_equal(zero_filled.replace(-1e8, nan), self.tsframe)
 
+        self.tsframe['A'][:5] = nan
+        self.tsframe['A'][-5:] = nan
+        self.tsframe['B'][:5] = -1e8
+
         padded = self.tsframe.replace(nan, method='pad')
         assert_frame_equal(padded, self.tsframe.fillna(method='pad'))
+
+        result = self.tsframe.replace(to_replace={'A' : nan}, method='pad',
+                                      axis=1)
+        expected = self.tsframe.T.replace(to_replace={'A' : nan}, method='pad').T
+        assert_frame_equal(result, expected)
+
+        result = self.tsframe.replace(to_replace={'A' : nan, 'B' : -1e8},
+                                      method='bfill')
+        tsframe = self.tsframe.copy()
+        b = tsframe['B']
+        b[b == -1e8] = nan
+        tsframe['B'] = b
+        expected = tsframe.fillna(method='bfill')
+        assert_frame_equal(expected, result)
+
+        bfilled = self.tsframe.replace(nan, method='bfill')
+        assert_frame_equal(bfilled, self.tsframe.fillna(method='bfill'))
 
         # mixed type
         self.mixed_frame['foo'][5:20] = nan
@@ -3803,9 +3831,27 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(result, expected)
         assert_frame_equal(result.replace(-1e8, nan), self.mixed_frame)
 
+        result = self.mixed_frame.replace(nan, method='pad', axis=1)
+        expected = self.mixed_frame.fillna(method='pad', axis=1)
+        assert_frame_equal(result, expected)
+
         # empty
         df = DataFrame(index=['a', 'b'])
         assert_frame_equal(df, df.replace(5, 7))
+
+        # no nans
+        self.tsframe['A'][:5] = 1e8
+        result = self.tsframe.replace(1e8, method='bfill')
+        self.tsframe['A'].replace(1e8, nan, inplace=True)
+        expected = self.tsframe.fillna(method='bfill')
+        assert_frame_equal(result, expected)
+
+        # int and bool blocks
+        df = DataFrame({'ints': [1,2,3], 'bools': [True, False, True]})
+        result = df.replace({'ints' : 1, 'bools' : False},
+                            {'ints': 0, 'bools': True})
+        expected = DataFrame({'ints': [0,2,3], 'bools': [True]*3})
+        assert_frame_equal(result, expected)
 
     def test_replace_input_formats(self):
         # both dicts

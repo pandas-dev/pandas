@@ -721,6 +721,8 @@ class TestTimeSeries(unittest.TestCase):
         pts = df.to_period('M', axis=1)
         self.assert_(pts.columns.equals(exp.columns.asfreq('M')))
 
+        self.assertRaises(ValueError, df.to_period, axis=2)
+
     def test_timestamp_fields(self):
         # extra fields from DatetimeIndex like quarter and week
         from pandas._tseries import Timestamp
