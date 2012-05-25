@@ -102,7 +102,7 @@ def mask_missing(arr, values_to_mask):
     Return a masking array of same size/shape as arr
     with entries equaling any member of values_to_mask set to True
     """
-    if np.isscalar(values_to_mask):
+    if not isinstance(values_to_mask, (list, np.ndarray)):
         values_to_mask = [values_to_mask]
 
     try:
