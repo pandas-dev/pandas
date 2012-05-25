@@ -239,26 +239,35 @@ class UltraJSONTests(TestCase):
         self.assertEquals(input, ujson.decode(output))
         pass
 
-    def test_encodeDatetimeConversion(self):
-        ts = time.time()
-        input = datetime.datetime.fromtimestamp(ts)
-        output = ujson.encode(input)
-        expected = calendar.timegm(input.utctimetuple())
-        self.assertEquals(int(expected), json.loads(output))
-        self.assertEquals(int(expected), ujson.decode(output))
-        pass
+    # def test_encodeDatetimeConversion(self):
+    #     ts = time.time()
+    #     input = datetime.datetime.fromtimestamp(ts)
+    #     output = ujson.encode(input)
+    #     expected = calendar.timegm(input.utctimetuple())
+    #     self.assertEquals(int(expected), json.loads(output))
+    #     self.assertEquals(int(expected), ujson.decode(output))
+    #     pass
 
-    def test_encodeDateConversion(self):
-        ts = time.time()
-        input = datetime.date.fromtimestamp(ts)
+    # def test_encodeDateConversion(self):
+    #     ts = time.time()
+    #     input = datetime.date.fromtimestamp(ts)
 
-        output = ujson.encode(input)
-        tup = ( input.year, input.month, input.day, 0, 0, 0 )
+    #     output = ujson.encode(input)
+    #     tup = ( input.year, input.month, input.day, 0, 0, 0 )
 
-        expected = calendar.timegm(tup)
-        self.assertEquals(int(expected), json.loads(output))
-        self.assertEquals(int(expected), ujson.decode(output))
-        pass
+    #     expected = calendar.timegm(tup)
+    #     self.assertEquals(int(expected), json.loads(output))
+    #     self.assertEquals(int(expected), ujson.decode(output))
+
+    def test_datetime_nanosecond_unit(self):
+        from datetime import datetime
+        from pandas._tseries import Timestamp
+
+        val = datetime.now()
+        stamp = Timestamp(val)
+
+        roundtrip = ujson.decode(ujson.encode(val))
+        self.assert_(roundtrip == stamp.value)
 
     def test_encodeToUTF8(self):
         input = "\xe6\x97\xa5\xd1\x88"

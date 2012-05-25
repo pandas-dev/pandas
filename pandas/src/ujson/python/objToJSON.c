@@ -1,8 +1,8 @@
-#include <py_defines.h>
-
 #define PY_ARRAY_UNIQUE_SYMBOL UJSON_NUMPY
 
+#include <Python.h>
 #include <numpy/arrayobject.h>
+#include <np_datetime.h>
 #include <numpy/halffloat.h>
 #include <stdio.h>
 #include <datetime.h>
@@ -190,33 +190,31 @@ static void *NpyDateTimeToINT64(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
 
 static void *PyDateTimeToINT64(JSOBJ _obj, JSONTypeContext *tc, void *outValue, size_t *_outLen)
 {
+    pandas_datetimestruct dts;
     PyObject *obj = (PyObject *) _obj;
-    int y, m, d, h, mn, s, days;
 
-    y = PyDateTime_GET_YEAR(obj);
-    m = PyDateTime_GET_MONTH(obj);
-    d = PyDateTime_GET_DAY(obj);
-    h = PyDateTime_DATE_GET_HOUR(obj);
-    mn = PyDateTime_DATE_GET_MINUTE(obj);
-    s = PyDateTime_DATE_GET_SECOND(obj);
-
-    days = PyInt_AS_LONG(PyObject_CallMethod(PyDate_FromDate(y, m, 1), "toordinal", NULL)) - EPOCH_ORD + d - 1;
-    *( (JSINT64 *) outValue) = (((JSINT64) ((days * 24 + h) * 60 + mn)) * 60 + s);
+    dts.year = PyDateTime_GET_YEAR(obj);
+    dts.month = PyDateTime_GET_MONTH(obj);
+    dts.day = PyDateTime_GET_DAY(obj);
+    dts.hour = PyDateTime_DATE_GET_HOUR(obj);
+    dts.min = PyDateTime_DATE_GET_MINUTE(obj);
+    dts.sec = PyDateTime_DATE_GET_SECOND(obj);
+    dts.us = PyDateTime_DATE_GET_MICROSECOND(obj);
+    dts.ps = dts.as = 0;
+    *((JSINT64*)outValue) = (JSINT64) pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts);
     return NULL;
 }
 
 static void *PyDateToINT64(JSOBJ _obj, JSONTypeContext *tc, void *outValue, size_t *_outLen)
 {
+    pandas_datetimestruct dts;
     PyObject *obj = (PyObject *) _obj;
-    int y, m, d, days;
 
-    y = PyDateTime_GET_YEAR(obj);
-    m = PyDateTime_GET_MONTH(obj);
-    d = PyDateTime_GET_DAY(obj);
-
-    days = PyInt_AS_LONG(PyObject_CallMethod(PyDate_FromDate(y, m, 1), "toordinal", NULL)) - EPOCH_ORD + d - 1;
-    *( (JSINT64 *) outValue) = ((JSINT64) days * 86400);
-
+    dts.year = PyDateTime_GET_YEAR(obj);
+    dts.month = PyDateTime_GET_MONTH(obj);
+    dts.day = PyDateTime_GET_DAY(obj);
+    dts.hour = dts.min = dts.sec = dts.ps = dts.as = 0;
+    *((JSINT64*)outValue) = (JSINT64) pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts);
     return NULL;
 }
 

@@ -15,7 +15,7 @@
 /* #define localtime _localtime64 */
 /* #define time _time64 */
 
-#include <numpy/ndarrayobject.h>
+#include <numpy/arrayobject.h>
 #include <numpy/arrayscalars.h>
 #include "np_datetime.h"
 

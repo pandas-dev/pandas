@@ -57,7 +57,7 @@ cdef extern from "numpy/npy_common.h":
 
     ctypedef unsigned char npy_bool
 
-cdef extern from "np_datetime.h":
+cdef extern from "datetime/np_datetime.h":
 
     ctypedef enum PANDAS_DATETIMEUNIT:
         PANDAS_FR_Y
@@ -95,7 +95,7 @@ cdef extern from "np_datetime.h":
     int is_leapyear(int64_t year)
     PANDAS_DATETIMEUNIT get_datetime64_unit(object o)
 
-cdef extern from "np_datetime_strings.h":
+cdef extern from "datetime/np_datetime_strings.h":
 
     int parse_iso_8601_datetime(char *str, int len, PANDAS_DATETIMEUNIT unit,
                                 NPY_CASTING casting, pandas_datetimestruct *out,

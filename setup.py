@@ -366,8 +366,8 @@ tseries_ext = Extension('pandas._tseries',
                       depends=tseries_depends + ['pandas/src/numpy_helper.h'],
                       sources=[srcpath('tseries', suffix=suffix),
                                'pandas/src/period.c',
-                               'pandas/src/np_datetime.c',
-                               'pandas/src/np_datetime_strings.c'],
+                               'pandas/src/datetime/np_datetime.c',
+                               'pandas/src/datetime/np_datetime_strings.c'],
                       include_dirs=[np.get_include()],
                       # pyrex_gdb=True,
                       # extra_compile_args=['-Wconversion']
@@ -387,18 +387,21 @@ sparse_ext = Extension('pandas._sparse',
                        include_dirs=[np.get_include()])
 
 npymath_info = get_info('npymath')
-                       
+
 npymath_libdir = npymath_info['library_dirs'][0]
 npymath_libdir = npymath_libdir.replace('\\\\', '\\')
-                       
+
 ujson_ext = Extension('pandas._ujson',
                       sources=['pandas/src/ujson/python/ujson.c',
                                'pandas/src/ujson/python/objToJSON.c',
                                'pandas/src/ujson/python/JSONtoObj.c',
                                'pandas/src/ujson/lib/ultrajsonenc.c',
-                               'pandas/src/ujson/lib/ultrajsondec.c'],
+                               'pandas/src/ujson/lib/ultrajsondec.c',
+                               'pandas/src/datetime/np_datetime.c'
+                               ],
                       include_dirs=['pandas/src/ujson/python',
                                     'pandas/src/ujson/lib',
+                                    'pandas/src/datetime',
                                     np.get_include()],
                       libraries=['npymath'],
                       library_dirs=[npymath_libdir],

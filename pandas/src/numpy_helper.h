@@ -1,5 +1,5 @@
 #include "Python.h"
-#include "numpy/ndarrayobject.h"
+#include "numpy/arrayobject.h"
 #include "numpy/arrayscalars.h"
 
 #ifndef PANDAS_INLINE
