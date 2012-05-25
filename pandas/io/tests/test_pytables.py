@@ -9,7 +9,7 @@ from datetime import datetime
 import numpy as np
 
 from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
-                    date_range)
+                    date_range, Index)
 from pandas.io.pytables import HDFStore, get_store
 import pandas.util.testing as tm
 from pandas.tests.test_series import assert_series_equal
@@ -202,6 +202,13 @@ class TestHDFStore(unittest.TestCase):
         ts = tm.makeTimeSeries()
         self._check_roundtrip(ts, tm.assert_series_equal)
 
+        ts2 = Series(ts.index, Index(ts.index, dtype=object))
+        self._check_roundtrip(ts2, tm.assert_series_equal)
+
+        ts3 = Series(ts.values, Index(np.asarray(ts.index, dtype=object),
+                                      dtype=object))
+        self._check_roundtrip(ts3, tm.assert_series_equal)
+
     def test_sparse_series(self):
         s = tm.makeStringSeries()
         s[3:5] = np.nan
@@ -222,32 +229,32 @@ class TestHDFStore(unittest.TestCase):
         s.ix[3:5, 1:3] = np.nan
         s.ix[8:10, -2] = np.nan
         ss = s.to_sparse()
-        self._check_roundtrip(ss, tm.assert_frame_equal,
-                              check_frame_type=True)
+        self._check_double_roundtrip(ss, tm.assert_frame_equal,
+                                     check_frame_type=True)
 
         ss2 = s.to_sparse(kind='integer')
-        self._check_roundtrip(ss2, tm.assert_frame_equal,
-                              check_frame_type=True)
+        self._check_double_roundtrip(ss2, tm.assert_frame_equal,
+                                     check_frame_type=True)
 
         ss3 = s.to_sparse(fill_value=0)
-        self._check_roundtrip(ss3, tm.assert_frame_equal,
-                              check_frame_type=True)
+        self._check_double_roundtrip(ss3, tm.assert_frame_equal,
+                                     check_frame_type=True)
 
     def test_sparse_panel(self):
         items = ['x', 'y', 'z']
         p = Panel(dict((i, tm.makeDataFrame()) for i in items))
         sp = p.to_sparse()
 
-        self._check_roundtrip(sp, tm.assert_panel_equal,
-                              check_panel_type=True)
+        self._check_double_roundtrip(sp, tm.assert_panel_equal,
+                                     check_panel_type=True)
 
         sp2 = p.to_sparse(kind='integer')
-        self._check_roundtrip(sp2, tm.assert_panel_equal,
-                              check_panel_type=True)
+        self._check_double_roundtrip(sp2, tm.assert_panel_equal,
+                                     check_panel_type=True)
 
         sp3 = p.to_sparse(fill_value=0)
-        self._check_roundtrip(sp3, tm.assert_panel_equal,
-                              check_panel_type=True)
+        self._check_double_roundtrip(sp3, tm.assert_panel_equal,
+                                     check_panel_type=True)
 
     def test_float_index(self):
         # GH #454
@@ -557,6 +564,24 @@ class TestHDFStore(unittest.TestCase):
             store['obj'] = obj
             retrieved = store['obj']
             comparator(retrieved, obj, **kwargs)
+        finally:
+            store.close()
+            os.remove(self.scratchpath)
+
+    def _check_double_roundtrip(self, obj, comparator, compression=False,
+                                **kwargs):
+        options = {}
+        if compression:
+            options['complib'] = _default_compressor
+
+        store = HDFStore(self.scratchpath, 'w', **options)
+        try:
+            store['obj'] = obj
+            retrieved = store['obj']
+            comparator(retrieved, obj, **kwargs)
+            store['obj'] = retrieved
+            again = store['obj']
+            comparator(again, obj, **kwargs)
         finally:
             store.close()
             os.remove(self.scratchpath)

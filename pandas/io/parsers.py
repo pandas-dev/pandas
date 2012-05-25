@@ -475,10 +475,6 @@ class TextParser(object):
                     self.pos += 1
                     line = f.readline()
 
-                while self._is_commented(line):
-                    self.pos += 1
-                    line = f.readline()
-
                 line = self._check_comments([line])[0]
 
                 self.pos += 1
@@ -551,11 +547,7 @@ class TextParser(object):
                 self.pos += 1
 
             try:
-                while True:
-                    line = self.data[self.pos]
-                    if not self._is_commented(line):
-                        break
-                    self.pos += 1
+                line = self.data[self.pos]
             except IndexError:
                 raise StopIteration
         else:
@@ -563,11 +555,7 @@ class TextParser(object):
                 next(self.data)
                 self.pos += 1
 
-            while True:
-                line = next(self.data)
-                if not self._is_commented(line):
-                    break
-                self.pos += 1
+            line = next(self.data)
 
         line = self._check_comments([line])[0]
         line = self._check_thousands([line])[0]
@@ -576,11 +564,6 @@ class TextParser(object):
         self.buf.append(line)
 
         return line
-
-    def _is_commented(self, line):
-        if self.comment is None or len(line) == 0:
-            return False
-        return line[0].startswith(self.comment)
 
     def _check_comments(self, lines):
         if self.comment is None:
@@ -693,6 +676,7 @@ class TextParser(object):
                     name = cp_cols[c]
                     columns.remove(name)
                     index_name.append(name)
+            self.index_col = index_col
 
         return index_name
 
@@ -754,7 +738,7 @@ class TextParser(object):
                 col = self.columns[col]
             data[col] = lib.map_infer(data[col], f)
 
-        columns = self.columns
+        columns = list(self.columns)
         if self.parse_dates is not None:
             data, columns = self._process_date_conversion(data)
 
@@ -766,7 +750,6 @@ class TextParser(object):
                 self.index_name = self._get_index_name()
                 self._name_processed = True
             data = dict(((k, v) for k, v in df.iteritems()))
-            columns = list(columns)
             index = self._get_index(data, col_order=columns, parse_dates=False)
             data = dict(((k, v.values) for k, v in data.iteritems()))
             df = DataFrame(data=data, columns=columns, index=index)
