@@ -318,18 +318,20 @@ class TestTimeZones(unittest.TestCase):
         result = left.intersection(right)
         self.assert_(result.tz == left.tz)
 
-    def test_tz_timestamp_eq(self):
-        dt = datetime.today()
-        utc = lib.Timestamp(dt, tz=pytz.timezone('UTC'))
-        for z in pytz.all_timezones:
-            zts = utc.tz_convert(pytz.timezone(z))
-            self.assert_(utc == zts)
+    def test_timestamp_equality_different_timezones(self):
+        utc_range = date_range('1/1/2000', periods=20, tz='UTC')
 
-        rng = date_range('3/1/2001', '4/1/2001', freq='H', tz='utc')
-        for z in pytz.all_timezones:
-            rng_z = rng.tz_convert(z)
-            for k1, k2 in zip(rng, rng_z):
-                self.assert_(k1 == k2)
+        eastern_range = utc_range.tz_convert('US/Eastern')
+        berlin_range = utc_range.tz_convert('Europe/Berlin')
+
+        for a, b, c in zip(utc_range, eastern_range, berlin_range):
+            self.assertEquals(a, b)
+            self.assertEquals(b, c)
+            self.assertEquals(a, c)
+
+        self.assert_((utc_range == eastern_range).all())
+        self.assert_((utc_range == berlin_range).all())
+        self.assert_((berlin_range == eastern_range).all())
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

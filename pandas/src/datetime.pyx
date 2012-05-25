@@ -333,7 +333,8 @@ cpdef convert_to_tsobject(object ts, object tz=None):
     elif PyDateTime_Check(ts):
         obj.value = _pydatetime_to_dts(ts, &obj.dts)
         obj.tzinfo = ts.tzinfo
-        utc_convert = 0
+        if obj.tzinfo is not None:
+            obj.value -= _delta_to_nanoseconds(obj.tzinfo._utcoffset)
     elif PyDate_Check(ts):
         obj.value  = _date_to_datetime64(ts, &obj.dts)
     else:
@@ -350,12 +351,9 @@ cpdef convert_to_tsobject(object ts, object tz=None):
             pos = trans.searchsorted(obj.value) - 1
             inf = tz._transition_info[pos]
 
-            obj.value = obj.value + deltas[pos]
-
-            if utc_convert:
-                pandas_datetime_to_datetimestruct(obj.value, PANDAS_FR_ns,
-                                                 &obj.dts)
-                obj.tzinfo = tz._tzinfos[inf]
+            pandas_datetime_to_datetimestruct(obj.value + deltas[pos],
+                                              PANDAS_FR_ns, &obj.dts)
+            obj.tzinfo = tz._tzinfos[inf]
 
     return obj
 
