@@ -153,6 +153,51 @@ def test_left_join_indexer():
     assert_almost_equal(ares, [0])
     assert_almost_equal(bres, [0])
 
+def test_left_join_indexer2():
+    idx = Index([1,1,2,5])
+    idx2 = Index([1,2,5,7,9])
+
+    res, lidx, ridx = algos.left_join_indexer_int64(idx2, idx)
+
+    exp_res = np.array([1, 1, 2, 5, 7, 9], dtype=np.int64)
+    assert_almost_equal(res, exp_res)
+
+    exp_lidx = np.array([0, 0, 1, 2, 3, 4], dtype=np.int64)
+    assert_almost_equal(lidx, exp_lidx)
+
+    exp_ridx = np.array([0, 1, 2, 3, -1, -1], dtype=np.int64)
+    assert_almost_equal(ridx, exp_ridx)
+
+def test_outer_join_indexer2():
+    idx = Index([1,1,2,5])
+    idx2 = Index([1,2,5,7,9])
+
+    res, lidx, ridx = algos.outer_join_indexer_int64(idx2, idx)
+
+    exp_res = np.array([1, 1, 2, 5, 7, 9], dtype=np.int64)
+    assert_almost_equal(res, exp_res)
+
+    exp_lidx = np.array([0, 0, 1, 2, 3, 4], dtype=np.int64)
+    assert_almost_equal(lidx, exp_lidx)
+
+    exp_ridx = np.array([0, 1, 2, 3, -1, -1], dtype=np.int64)
+    assert_almost_equal(ridx, exp_ridx)
+
+def test_inner_join_indexer2():
+    idx = Index([1,1,2,5])
+    idx2 = Index([1,2,5,7,9])
+
+    res, lidx, ridx = algos.inner_join_indexer_int64(idx2, idx)
+
+    exp_res = np.array([1, 1, 2, 5], dtype=np.int64)
+    assert_almost_equal(res, exp_res)
+
+    exp_lidx = np.array([0, 0, 1, 2], dtype=np.int64)
+    assert_almost_equal(lidx, exp_lidx)
+
+    exp_ridx = np.array([0, 1, 2, 3], dtype=np.int64)
+    assert_almost_equal(ridx, exp_ridx)
+
 
 def test_is_lexsorted():
     failure = [

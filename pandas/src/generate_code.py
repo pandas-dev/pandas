@@ -660,8 +660,10 @@ def left_join_indexer_unique_%(name)s(ndarray[%(c_type)s] left,
 
 """
 
-left_join_template = """@cython.wraparound(False)
-@cython.boundscheck(False)
+# @cython.wraparound(False)
+# @cython.boundscheck(False)
+
+left_join_template = """
 def left_join_indexer_%(name)s(ndarray[%(c_type)s] left,
                               ndarray[%(c_type)s] right):
     '''
@@ -691,9 +693,12 @@ def left_join_indexer_%(name)s(ndarray[%(c_type)s] left,
             if lval == rval:
                 count += 1
                 if i < nleft - 1:
-                    i += 1
-                    if left[i] != rval:
+                    if j < nright - 1 and right[j + 1] == rval:
                         j += 1
+                    else:
+                        i += 1
+                        if left[i] != rval:
+                            j += 1
                 elif j < nright - 1:
                     j += 1
                     if lval != right[j]:
@@ -725,6 +730,7 @@ def left_join_indexer_%(name)s(ndarray[%(c_type)s] left,
                     result[count] = left[i]
                     i += 1
                     count += 1
+                break
 
             lval = left[i]
             rval = right[j]
@@ -735,9 +741,12 @@ def left_join_indexer_%(name)s(ndarray[%(c_type)s] left,
                 result[count] = lval
                 count += 1
                 if i < nleft - 1:
-                    i += 1
-                    if left[i] != rval:
+                    if j < nright - 1 and right[j + 1] == rval:
                         j += 1
+                    else:
+                        i += 1
+                        if left[i] != rval:
+                            j += 1
                 elif j < nright - 1:
                     j += 1
                     if lval != right[j]:
@@ -779,31 +788,34 @@ def inner_join_indexer_%(name)s(ndarray[%(c_type)s] left,
     j = 0
     count = 0
     if nleft > 0 and nright > 0:
-        lval = left[0]
-        rval = right[0]
         while True:
+            if i == nleft:
+                break
+            if j == nright:
+                break
+
+            lval = left[i]
+            rval = right[j]
             if lval == rval:
                 count += 1
                 if i < nleft - 1:
-                    i += 1
-                    lval = left[i]
+                    if j < nright - 1 and right[j + 1] == rval:
+                        j += 1
+                    else:
+                        i += 1
+                        if left[i] != rval:
+                            j += 1
                 elif j < nright - 1:
                     j += 1
-                    rval = right[j]
+                    if lval != right[j]:
+                        i += 1
                 else:
+                    # end of the road
                     break
             elif lval < rval:
-                if i < nleft - 1:
-                    i += 1
-                    lval = left[i]
-                else:
-                    break
+                i += 1
             else:
-                if j < nright - 1:
-                    j += 1
-                    rval = right[j]
-                else:
-                    break
+                j += 1
 
     # do it again now that result size is known
 
@@ -815,34 +827,37 @@ def inner_join_indexer_%(name)s(ndarray[%(c_type)s] left,
     j = 0
     count = 0
     if nleft > 0 and nright > 0:
-        lval = left[0]
-        rval = right[0]
         while True:
+            if i == nleft:
+                break
+            if j == nright:
+                break
+
+            lval = left[i]
+            rval = right[j]
             if lval == rval:
                 lindexer[count] = i
                 rindexer[count] = j
                 result[count] = rval
                 count += 1
                 if i < nleft - 1:
-                    i += 1
-                    lval = left[i]
+                    if j < nright - 1 and right[j + 1] == rval:
+                        j += 1
+                    else:
+                        i += 1
+                        if left[i] != rval:
+                            j += 1
                 elif j < nright - 1:
                     j += 1
-                    rval = right[j]
+                    if lval != right[j]:
+                        i += 1
                 else:
+                    # end of the road
                     break
             elif lval < rval:
-                if i < nleft - 1:
-                    i += 1
-                    lval = left[i]
-                else:
-                    break
+                i += 1
             else:
-                if j < nright - 1:
-                    j += 1
-                    rval = right[j]
-                else:
-                    break
+                j += 1
 
     return result, lindexer, rindexer
 
@@ -883,9 +898,12 @@ def outer_join_indexer_%(name)s(ndarray[%(c_type)s] left,
             if lval == rval:
                 count += 1
                 if i < nleft - 1:
-                    i += 1
-                    if left[i] != rval:
+                    if j < nright - 1 and right[j + 1] == rval:
                         j += 1
+                    else:
+                        i += 1
+                        if left[i] != rval:
+                            j += 1
                 elif j < nright - 1:
                     j += 1
                     if lval != right[j]:
@@ -947,14 +965,18 @@ def outer_join_indexer_%(name)s(ndarray[%(c_type)s] left,
                 result[count] = lval
                 count += 1
                 if i < nleft - 1:
-                    i += 1
-                    if left[i] != rval:
+                    if j < nright - 1 and right[j + 1] == rval:
                         j += 1
+                    else:
+                        i += 1
+                        if left[i] != rval:
+                            j += 1
                 elif j < nright - 1:
                     j += 1
                     if lval != right[j]:
                         i += 1
                 else:
+                    # end of the road
                     break
             elif lval < rval:
                 lindexer[count] = i
