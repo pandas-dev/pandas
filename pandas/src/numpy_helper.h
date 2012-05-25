@@ -49,10 +49,11 @@ get_nat() {
 }
 
 PANDAS_INLINE npy_datetime
-unbox_datetime64_scalar(PyObject* obj) {
+get_datetime64_value(PyObject* obj) {
   return ((PyDatetimeScalarObject*) obj)->obval;
 
 }
+
 
 PANDAS_INLINE int
 is_integer_object(PyObject* obj) {

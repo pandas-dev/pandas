@@ -320,7 +320,7 @@ cpdef convert_to_tsobject(object ts, object tz=None):
     obj = _TSObject()
 
     if is_datetime64_object(ts):
-        obj.value = unbox_datetime64_scalar(ts)
+        obj.value = _get_datetime64_nanos(ts)
         pandas_datetime_to_datetimestruct(obj.value, PANDAS_FR_ns, &obj.dts)
     elif is_integer_object(ts):
         obj.value = ts
@@ -821,7 +821,7 @@ def string_to_datetime(ndarray[object] strings, raise_=False, dayfirst=False):
             elif PyDate_Check(val):
                 iresult[i] = _date_to_datetime64(val, &dts)
             elif util.is_datetime64_object(val):
-                result[i] = val
+                iresult[i] = _get_datetime64_nanos(val)
             else:
                 if len(val) == 0:
                     iresult[i] = NaT
@@ -852,6 +852,20 @@ def string_to_datetime(ndarray[object] strings, raise_=False, dayfirst=False):
 
         return oresult
 
+cdef inline _get_datetime64_nanos(object val):
+    cdef:
+        pandas_datetimestruct dts
+        PANDAS_DATETIMEUNIT unit
+        npy_datetime ival
+
+    unit = get_datetime64_unit(val)
+    ival = get_datetime64_value(val)
+
+    if unit != PANDAS_FR_ns:
+        pandas_datetime_to_datetimestruct(ival, unit, &dts)
+        return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
+    else:
+        return ival
 
 #----------------------------------------------------------------------
 # Conversion routines

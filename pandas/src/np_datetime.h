@@ -112,5 +112,7 @@ convert_datetime_to_datetimestruct(pandas_datetime_metadata *meta,
                                    pandas_datetimestruct *out);
 
 
+PANDAS_DATETIMEUNIT get_datetime64_unit(PyObject *obj);
+
 
 #endif

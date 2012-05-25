@@ -16,6 +16,7 @@
 /* #define time _time64 */
 
 #include <numpy/ndarrayobject.h>
+#include <numpy/arrayscalars.h>
 #include "np_datetime.h"
 
 #if PY_MAJOR_VERSION >= 3
@@ -60,7 +61,7 @@ int dayofweek(int y, int m, int d)
 
 /*
  * Adjusts a datetimestruct based on a minutes offset. Assumes
- * the current values are valid.
+ * the current values are valid.g
  */
 void
 add_minutes_to_datetimestruct(pandas_datetimestruct *dts, int minutes)
@@ -504,6 +505,11 @@ void pandas_datetime_to_datetimestruct(npy_datetime val, PANDAS_DATETIMEUNIT fr,
 
     convert_datetime_to_datetimestruct(&meta, val, result);
 }
+
+PANDAS_DATETIMEUNIT get_datetime64_unit(PyObject *obj) {
+    return ((PyDatetimeScalarObject *) obj)->obmeta.base;
+}
+
 
 /*
  * Converts a datetime from a datetimestruct to a datetime based

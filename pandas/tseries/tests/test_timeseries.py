@@ -441,6 +441,17 @@ class TestTimeSeries(unittest.TestCase):
         result = to_datetime(['', ''])
         self.assert_(isnull(result).all())
 
+    def test_to_datetime_other_datetime64_units(self):
+        # 5/25/2012
+        scalar = np.int64(1337904000000000).view('M8[us]')
+        as_obj = scalar.astype('O')
+
+        index = DatetimeIndex([scalar])
+        self.assertEquals(index[0], scalar.astype('O'))
+
+        value = Timestamp(scalar)
+        self.assertEquals(value, as_obj)
+
     def test_index_to_datetime(self):
         idx = Index(['1/1/2000', '1/2/2000', '1/3/2000'])
 

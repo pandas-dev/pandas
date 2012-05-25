@@ -438,7 +438,7 @@ cdef class DatetimeEngine(Int64Engine):
 cdef inline _to_i8(object val):
     cdef pandas_datetimestruct dts
     if util.is_datetime64_object(val):
-        val = unbox_datetime64_scalar(val)
+        val = get_datetime64_value(val)
     elif PyDateTime_Check(val):
         return _pydatetime_to_dts(val, &dts)
     return val

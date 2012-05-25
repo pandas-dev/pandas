@@ -51,7 +51,7 @@ cdef extern from "numpy/ndarrayobject.h":
 
 
 cdef extern from "numpy_helper.h":
-    npy_datetime unbox_datetime64_scalar(object o)
+    npy_datetime get_datetime64_value(object o)
 
 cdef extern from "numpy/npy_common.h":
 
@@ -93,6 +93,7 @@ cdef extern from "np_datetime.h":
 
     int dayofweek(int y, int m, int d)
     int is_leapyear(int64_t year)
+    PANDAS_DATETIMEUNIT get_datetime64_unit(object o)
 
 cdef extern from "np_datetime_strings.h":
 
