@@ -135,7 +135,7 @@ stmt = "ts1.align(ts2, join='left')"
 series_align_left_monotonic = \
     Benchmark(stmt, setup,
               name="series_align_left_monotonic",
-              start_date=datetime(2011, 3, 1), logy=True)
+              start_date=datetime(2011, 12, 1), logy=True)
 
 #----------------------------------------------------------------------
 # Concat Series axis=1
