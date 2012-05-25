@@ -724,14 +724,6 @@ class Index(np.ndarray):
             return DatetimeIndex(self), other
         return self, other
 
-    def _get_indexer_standard(self, other):
-        if (self.dtype != np.object_ and
-            self.is_monotonic and other.is_monotonic):
-            # TODO: unique vs non unique
-            return self._left_indexer(other, self)
-        else:
-            return self._engine.get_indexer(other)
-
     def groupby(self, to_groupby):
         return self._groupby(self.values, to_groupby)
 
