@@ -1826,6 +1826,15 @@ class TestGroupBy(unittest.TestCase):
         _check_all(self.df.groupby('A'))
         _check_all(self.df.groupby(['A', 'B']))
 
+    def test_no_dummy_key_names(self):
+        # GH #1291
+
+        result = self.df.groupby(self.df['A'].values).sum()
+        self.assert_(result.index.name is None)
+
+        result = self.df.groupby([self.df['A'].values,
+                                  self.df['B'].values]).sum()
+        self.assert_(result.index.names == [None, None])
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     tups = map(tuple, df[keys].values)

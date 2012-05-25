@@ -152,6 +152,7 @@ pandas 0.7.3
   - Calling apply on grouped Series, e.g. describe(), will no longer yield
     DataFrame by default. Will have to call unstack() to get prior behavior
   - NA handling in non-numeric comparisons has been tightened up (#933, #953)
+  - No longer assign dummy names key_0, key_1, etc. to groupby index (#1291)
 
 **Bug fixes**
 

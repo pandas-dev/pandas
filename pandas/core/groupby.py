@@ -1099,8 +1099,6 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
             name = gpr
             gpr = obj[gpr]
         ping = Grouping(group_axis, gpr, name=name, level=level, sort=sort)
-        if ping.name is None:
-            ping.name = 'key_%d' % i
         groupings.append(ping)
 
     if len(groupings) == 0:
