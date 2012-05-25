@@ -710,12 +710,13 @@ class HDFStore(object):
                 ca[:] = value
                 return
 
-        if value.dtype == np.object_:
+        if value.dtype.type == np.object_:
             vlarr = self.handle.createVLArray(group, key,
                                               _tables().ObjectAtom())
             vlarr.append(value)
-        elif value.dtype == np.datetime64:
+        elif value.dtype.type == np.datetime64:
             self.handle.createArray(group, key, value.view('i8'))
+            group._v_attrs.value_type = 'datetime64'
         else:
             self.handle.createArray(group, key, value)
 
@@ -958,6 +959,9 @@ def _read_array(group, key):
     if isinstance(node, tables.VLArray):
         return data[0]
     else:
+        dtype = getattr(group._v_attrs, 'value_type', None)
+        if dtype == 'datetime64':
+            return np.array(data, dtype='M8[ns]')
         return data
 
 def _unconvert_index(data, kind):
@@ -1023,8 +1027,8 @@ def _class_to_alias(cls):
     return _index_type_map.get(cls, '')
 
 def _alias_to_class(alias):
-    if isinstance(alias, type):
-        return alias
+    if isinstance(alias, type): # pragma: no cover
+        return alias # compat: for a short period of time master stored types
     return _reverse_index_map.get(alias, Index)
 
 class Selection(object):
