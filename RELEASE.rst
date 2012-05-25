@@ -116,6 +116,8 @@ pandas 0.7.3
 
 **New features / modules**
 
+  - Support for non-unique indexes: indexing and selection, many-to-one and
+    many-to-many joins (#1306)
   - Added fixed-width file reader, read_fwf (PR #952)
   - Add group_keys argument to groupby to not add group names to MultiIndex in
     result of apply (GH #938)
