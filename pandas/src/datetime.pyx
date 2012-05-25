@@ -26,6 +26,8 @@ PyDateTime_IMPORT
 # in numpy 1.7, will prob need the following:
 # numpy_pydatetime_import
 
+cdef bint numpy_16 = np.__version__ < '1.7'
+
 ctypedef enum time_res:
     r_min = 0
     r_microsecond
@@ -859,6 +861,13 @@ cdef inline _get_datetime64_nanos(object val):
         npy_datetime ival
 
     unit = get_datetime64_unit(val)
+    if numpy_16:
+        if unit == 4:
+            raise ValueError('NumPy 1.6.1 business freq not supported')
+
+        if unit > 4:
+            unit = <PANDAS_DATETIMEUNIT> ((<int>unit) - 1)
+
     ival = get_datetime64_value(val)
 
     if unit != PANDAS_FR_ns:
