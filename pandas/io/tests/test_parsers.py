@@ -219,8 +219,7 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         assert_frame_equal(df3, df)
 
     def test_index_col_named(self):
-        data = """\
-ID,date,NominalTime,ActualTime,TDew,TAir,Windspeed,Precip,WindDir
+        no_header = """\
 KORD1,19990127, 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
 KORD2,19990127, 20:00:00, 19:56:00, 0.0100, 2.2100, 7.2000, 0.0000, 260.0000
 KORD3,19990127, 21:00:00, 20:56:00, -0.5900, 2.2100, 5.7000, 0.0000, 280.0000
@@ -228,10 +227,15 @@ KORD4,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
 KORD5,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
 
+        h = "ID,date,NominalTime,ActualTime,TDew,TAir,Windspeed,Precip,WindDir\n"
+        data = h + no_header
+        #import pdb; pdb.set_trace()
         rs = read_csv(StringIO(data), index_col='ID')
         xp = read_csv(StringIO(data), header=0).set_index('ID')
         assert_frame_equal(rs, xp)
 
+        self.assertRaises(ValueError, read_csv, StringIO(no_header),
+                          index_col='ID')
 
     def test_multiple_skts_example(self):
         data = "year, month, a, b\n 2001, 01, 0.0, 10.\n 2001, 02, 1.1, 11."
@@ -244,11 +248,26 @@ A,B,C
 1,2,3 # comment
 1,2,3,4,5
 2,3,4
-footer
 """
 
         try:
             df = read_table(StringIO(data), sep=',', header=1, comment='#')
+            self.assert_(False)
+        except ValueError, inst:
+            self.assert_('Expecting 3 columns, got 5 in row 3' in str(inst))
+
+        #skip_footer
+        data = """ignore
+A,B,C
+1,2,3 # comment
+1,2,3,4,5
+2,3,4
+footer
+"""
+
+        try:
+            df = read_table(StringIO(data), sep=',', header=1, comment='#',
+                            skip_footer=1)
             self.assert_(False)
         except ValueError, inst:
             self.assert_('Expecting 3 columns, got 5 in row 3' in str(inst))
@@ -764,6 +783,9 @@ bar,two,12,13,14,15
         names = ['index1', 'index2', 'A', 'B', 'C', 'D']
         df = read_csv(StringIO(no_header), index_col=[0, 1], names=names)
         expected = read_csv(StringIO(data), index_col=[0, 1])
+        assert_frame_equal(df, expected)
+
+        df = read_csv(StringIO(data), header=0, index_col=['index1', 'index2'])
         assert_frame_equal(df, expected)
 
     def test_multi_index_no_level_names(self):
