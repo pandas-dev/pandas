@@ -785,7 +785,7 @@ bar,two,12,13,14,15
         expected = read_csv(StringIO(data), index_col=[0, 1])
         assert_frame_equal(df, expected)
 
-        df = read_csv(StringIO(data), header=0, index_col=['index1', 'index2'])
+        df = read_csv(StringIO(data), index_col=['index1', 'index2'])
         assert_frame_equal(df, expected)
 
     def test_multi_index_no_level_names(self):
