@@ -284,6 +284,7 @@ def _mask_missing(array, missing_values):
     if np.isscalar(missing_values):
         missing_values = [missing_values]
 
+    mask = None
     missing_values = np.array(missing_values, dtype=object)
     if com.isnull(missing_values).any():
         mask = com.isnull(array)
@@ -308,7 +309,7 @@ class FloatBlock(Block):
     def _try_cast(self, element):
         try:
             return float(element)
-        except:
+        except: # pragma: no cover
             return element
 
     def should_store(self, value):
@@ -318,6 +319,15 @@ class FloatBlock(Block):
 
 class ComplexBlock(Block):
     _can_hold_na = True
+
+    def _can_hold_element(self, element):
+        return isinstance(element, complex)
+
+    def _try_cast(self, element):
+        try:
+            return complex(element)
+        except: # pragma: no cover
+            return element
 
     def should_store(self, value):
         return issubclass(value.dtype.type, np.complexfloating)
@@ -331,7 +341,7 @@ class IntBlock(Block):
     def _try_cast(self, element):
         try:
             return int(element)
-        except:
+        except: # pragma: no cover
             return element
 
     def should_store(self, value):
@@ -346,7 +356,7 @@ class BoolBlock(Block):
     def _try_cast(self, element):
         try:
             return bool(element)
-        except:
+        except: # pragma: no cover
             return element
 
     def should_store(self, value):
