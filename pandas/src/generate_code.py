@@ -1,7 +1,5 @@
 import os
-from pandas.util.py3compat import StringIO
-from pandas.src.codegen_template import template as pyx_template
-from pandas.src.codegen_replace import replace
+from cStringIO import StringIO
 
 header = """
 cimport numpy as np
@@ -615,10 +613,10 @@ def arrmap_%(name)s(ndarray[%(c_type)s] index, object func):
 
 # right might contain non-unique values
 
-left_join_template = """@cython.wraparound(False)
+left_join_unique_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
-def left_join_indexer_%(name)s(ndarray[%(c_type)s] left,
-                             ndarray[%(c_type)s] right):
+def left_join_indexer_unique_%(name)s(ndarray[%(c_type)s] left,
+                                      ndarray[%(c_type)s] right):
     cdef:
         Py_ssize_t i, j, nleft, nright
         ndarray[int64_t] indexer
@@ -662,12 +660,12 @@ def left_join_indexer_%(name)s(ndarray[%(c_type)s] left,
 
 """
 
-inner_join_template = """@cython.wraparound(False)
+left_join_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
-def inner_join_indexer_%(name)s(ndarray[%(c_type)s] left,
+def left_join_indexer_%(name)s(ndarray[%(c_type)s] left,
                               ndarray[%(c_type)s] right):
     '''
-    Two-pass algorithm?
+    Two-pass algorithm for monotonic indexes. Handles many-to-one merges
     '''
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
@@ -681,20 +679,35 @@ def inner_join_indexer_%(name)s(ndarray[%(c_type)s] left,
     i = 0
     j = 0
     count = 0
-    while True:
-        if i == nleft or j == nright:
-             break
-        else:
+    if nleft > 0:
+        while True:
+            if j == nright:
+                count += nleft - i
+                break
+
             lval = left[i]
             rval = right[j]
+
             if lval == rval:
-                i += 1
-                j += 1
                 count += 1
+                if i < nleft - 1:
+                    i += 1
+                    if left[i] != rval:
+                        j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if lval != right[j]:
+                        i += 1
+                else:
+                    # end of the road
+                    break
             elif lval < rval:
-                i += 1
+                count += 1
+                if i < nleft:
+                    i += 1
             else:
-                j += 1
+                if j < nright:
+                    j += 1
 
     # do it again now that result size is known
 
@@ -705,22 +718,259 @@ def inner_join_indexer_%(name)s(ndarray[%(c_type)s] left,
     i = 0
     j = 0
     count = 0
-    while True:
-        if i == nleft or j == nright:
-             break
-        else:
+    if nleft > 0:
+        while i < nleft:
+            if j == nright:
+                while i < nleft:
+                    lindexer[count] = i
+                    rindexer[count] = -1
+                    result[count] = left[i]
+                    i += 1
+                    count += 1
+
             lval = left[i]
             rval = right[j]
+
             if lval == rval:
                 lindexer[count] = i
                 rindexer[count] = j
                 result[count] = lval
-                i += 1
-                j += 1
                 count += 1
+                if i < nleft - 1:
+                    i += 1
+                    if left[i] != rval:
+                        j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if lval != right[j]:
+                        i += 1
+                else:
+                    # end of the road
+                    break
             elif lval < rval:
+                lindexer[count] = i
+                rindexer[count] = -1
+                result[count] = left[i]
+                count += 1
+                if i < nleft:
+                    i += 1
+            else:
+                if j < nright:
+                    j += 1
+
+    return result, lindexer, rindexer
+
+"""
+
+
+inner_join_template = """@cython.wraparound(False)
+@cython.boundscheck(False)
+def inner_join_indexer_%(name)s(ndarray[%(c_type)s] left,
+                              ndarray[%(c_type)s] right):
+    '''
+    Two-pass algorithm for monotonic indexes. Handles many-to-one merges
+    '''
+    cdef:
+        Py_ssize_t i, j, k, nright, nleft, count
+        %(c_type)s lval, rval
+        ndarray[int64_t] lindexer, rindexer
+        ndarray[%(c_type)s] result
+
+    nleft = len(left)
+    nright = len(right)
+
+    i = 0
+    j = 0
+    count = 0
+    if nleft > 0 and nright > 0:
+        lval = left[0]
+        rval = right[0]
+        while True:
+            if lval == rval:
+                count += 1
+                if i < nleft - 1:
+                    i += 1
+                    lval = left[i]
+                elif j < nright - 1:
+                    j += 1
+                    rval = right[j]
+                else:
+                    break
+            elif lval < rval:
+                if i < nleft - 1:
+                    i += 1
+                    lval = left[i]
+                else:
+                    break
+            else:
+                if j < nright - 1:
+                    j += 1
+                    rval = right[j]
+                else:
+                    break
+
+    # do it again now that result size is known
+
+    lindexer = np.empty(count, dtype=np.int64)
+    rindexer = np.empty(count, dtype=np.int64)
+    result = np.empty(count, dtype=%(dtype)s)
+
+    i = 0
+    j = 0
+    count = 0
+    if nleft > 0 and nright > 0:
+        lval = left[0]
+        rval = right[0]
+        while True:
+            if lval == rval:
+                lindexer[count] = i
+                rindexer[count] = j
+                result[count] = rval
+                count += 1
+                if i < nleft - 1:
+                    i += 1
+                    lval = left[i]
+                elif j < nright - 1:
+                    j += 1
+                    rval = right[j]
+                else:
+                    break
+            elif lval < rval:
+                if i < nleft - 1:
+                    i += 1
+                    lval = left[i]
+                else:
+                    break
+            else:
+                if j < nright - 1:
+                    j += 1
+                    rval = right[j]
+                else:
+                    break
+
+    return result, lindexer, rindexer
+
+"""
+
+
+outer_join_template2 = """@cython.wraparound(False)
+@cython.boundscheck(False)
+def outer_join_indexer_%(name)s(ndarray[%(c_type)s] left,
+                                ndarray[%(c_type)s] right):
+    cdef:
+        Py_ssize_t i, j, nright, nleft, count
+        %(c_type)s lval, rval
+        ndarray[int64_t] lindexer, rindexer
+        ndarray[%(c_type)s] result
+
+    nleft = len(left)
+    nright = len(right)
+
+    i = 0
+    j = 0
+    count = 0
+    if nleft == 0:
+        count = nright
+    elif nright == 0:
+        count = nleft
+    else:
+        while True:
+            if i == nleft:
+                count += nright - j
+                break
+            if j == nright:
+                count += nleft - i
+                break
+
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                count += 1
+                if i < nleft - 1:
+                    i += 1
+                    if left[i] != rval:
+                        j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if lval != right[j]:
+                        i += 1
+                else:
+                    # end of the road
+                    break
+            elif lval < rval:
+                count += 1
                 i += 1
             else:
+                count += 1
+                j += 1
+
+    lindexer = np.empty(count, dtype=np.int64)
+    rindexer = np.empty(count, dtype=np.int64)
+    result = np.empty(count, dtype=%(dtype)s)
+
+    # do it again, but populate the indexers / result
+
+    i = 0
+    j = 0
+    count = 0
+    if nleft == 0:
+        for j in range(nright):
+            lindexer[j] = -1
+            rindexer[j] = j
+            result[j] = right[j]
+    elif nright == 0:
+        for i in range(nright):
+            lindexer[i] = i
+            rindexer[i] = -1
+            result[i] = left[i]
+    else:
+        while True:
+            if i == nleft:
+                while j < nright:
+                    lindexer[count] = -1
+                    rindexer[count] = j
+                    result[count] = right[j]
+                    count += 1
+                    j += 1
+                break
+            if j == nright:
+                while i < nleft:
+                    lindexer[count] = i
+                    rindexer[count] = -1
+                    result[count] = left[i]
+                    count += 1
+                    i += 1
+                break
+
+            lval = left[i]
+            rval = right[j]
+
+            if lval == rval:
+                lindexer[count] = i
+                rindexer[count] = j
+                result[count] = lval
+                count += 1
+                if i < nleft - 1:
+                    i += 1
+                    if left[i] != rval:
+                        j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if lval != right[j]:
+                        i += 1
+                else:
+                    break
+            elif lval < rval:
+                lindexer[count] = i
+                rindexer[count] = -1
+                result[count] = lval
+                count += 1
+                i += 1
+            else:
+                lindexer[count] = -1
+                rindexer[count] = j
+                result[count] = rval
+                count += 1
                 j += 1
 
     return result, lindexer, rindexer
@@ -931,8 +1181,9 @@ templates_1d = [map_indices_template,
                 groupby_template,
                 arrmap_template]
 
-nobool_1d_templates = [left_join_template,
-                       outer_join_template,
+nobool_1d_templates = [left_join_unique_template,
+                       left_join_template,
+                       outer_join_template2,
                        inner_join_template]
 
 templates_2d = [take_2d_axis0_template,
@@ -942,6 +1193,8 @@ templates_2d = [take_2d_axis0_template,
 def generate_take_cython_file(path='generated.pyx'):
     with open(path, 'w') as f:
         print >> f, header
+
+        print >> f, generate_ensure_dtypes()
 
         for template in templates_1d:
             print >> f, generate_from_template(template)

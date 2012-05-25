@@ -561,6 +561,56 @@ class TestMerge(unittest.TestCase):
         merged = merge(left, right, left_index=True, right_on=key, how='outer')
         self.assert_(np.array_equal(merged['key_0'], key))
 
+    def test_mixed_type_join_with_suffix(self):
+        # GH #916
+        df = DataFrame(np.random.randn(20, 6),
+                       columns=['a', 'b', 'c', 'd', 'e', 'f'])
+        df.insert(0, 'id', 0)
+        df.insert(5, 'dt', 'foo')
+
+        grouped = df.groupby('id')
+        mn = grouped.mean()
+        cn = grouped.count()
+
+        # it works!
+        mn.join(cn, rsuffix='_right')
+
+    def test_no_overlap_more_informative_error(self):
+        dt = datetime.now()
+        df1 = DataFrame({'x': ['a']}, index=[dt])
+
+        df2 = DataFrame({'y': ['b', 'c']}, index=[dt, dt])
+        self.assertRaises(MergeError, merge, df1, df2)
+
+    def test_merge_non_unique_indexes(self):
+        dt = datetime.now()
+        df1 = DataFrame({'x': ['a']}, index=[dt])
+        df2 = DataFrame({'y': ['b', 'c']}, index=[dt, dt])
+
+        for how in ['inner', 'left', 'outer']:
+            result = df1.join(df2, how=how)
+
+            expected = merge(df1.reset_index(), df2.reset_index(),
+                             how=how)
+            expected = expected.set_index('index')
+
+            assert_frame_equal(result, expected)
+
+    # def test_merge_many_to_many(self):
+    #     dt = datetime.now()
+    #     df1 = DataFrame({'x': ['a', 'b']}, index=[dt, dt])
+    #     df2 = DataFrame({'y': ['c', 'd']}, index=[dt, dt])
+
+    #     for how in ['inner', 'left', 'outer']:
+    #         result = df1.join(df2, how=how)
+
+    #         expected = merge(df1.reset_index(), df2.reset_index(),
+    #                          how=how)
+    #         expected = expected.set_index('index')
+
+    #         assert_frame_equal(result, expected)
+
+
 class TestMergeMulti(unittest.TestCase):
 
     def setUp(self):
@@ -657,26 +707,6 @@ class TestMergeMulti(unittest.TestCase):
         expected = left.join(rdf)
         tm.assert_frame_equal(merged, expected)
 
-    def test_mixed_type_join_with_suffix(self):
-        # GH #916
-        df = DataFrame(np.random.randn(20, 6),
-                       columns=['a', 'b', 'c', 'd', 'e', 'f'])
-        df.insert(0, 'id', 0)
-        df.insert(5, 'dt', 'foo')
-
-        grouped = df.groupby('id')
-        mn = grouped.mean()
-        cn = grouped.count()
-
-        # it works!
-        mn.join(cn, rsuffix='_right')
-
-    def test_no_overlap_more_informative_error(self):
-        dt = datetime.now()
-        df1 = DataFrame({'x': ['a']}, index=[dt])
-
-        df2 = DataFrame({'y': ['b', 'c']}, index=[dt, dt])
-        self.assertRaises(MergeError, merge, df1, df2)
 
 def _check_join(left, right, result, join_col, how='left',
                 lsuffix='_x', rsuffix='_y'):

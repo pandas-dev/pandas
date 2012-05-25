@@ -55,6 +55,47 @@ cpdef ensure_platform_int(object arr):
         return np.array(arr, dtype=np.int_)
 
 
+
+cpdef ensure_float64(object arr):
+    if util.is_array(arr):
+        if (<ndarray> arr).descr.type_num == NPY_FLOAT64:
+            return arr
+        else:
+            return arr.astype(np.float64)
+    else:
+        return np.array(arr, dtype=np.float64)
+
+
+cpdef ensure_int32(object arr):
+    if util.is_array(arr):
+        if (<ndarray> arr).descr.type_num == NPY_INT32:
+            return arr
+        else:
+            return arr.astype(np.int32)
+    else:
+        return np.array(arr, dtype=np.int32)
+
+
+cpdef ensure_int64(object arr):
+    if util.is_array(arr):
+        if (<ndarray> arr).descr.type_num == NPY_INT64:
+            return arr
+        else:
+            return arr.astype(np.int64)
+    else:
+        return np.array(arr, dtype=np.int64)
+
+
+cpdef ensure_object(object arr):
+    if util.is_array(arr):
+        if (<ndarray> arr).descr.type_num == NPY_OBJECT:
+            return arr
+        else:
+            return arr.astype(np.object_)
+    else:
+        return np.array(arr, dtype=np.object_)
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef map_indices_float64(ndarray[float64_t] index):
@@ -2501,8 +2542,8 @@ def take_2d_multi_bool(ndarray[uint8_t, ndim=2] values,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def left_join_indexer_float64(ndarray[float64_t] left,
-                             ndarray[float64_t] right):
+def left_join_indexer_unique_float64(ndarray[float64_t] left,
+                                      ndarray[float64_t] right):
     cdef:
         Py_ssize_t i, j, nleft, nright
         ndarray[int64_t] indexer
@@ -2546,8 +2587,8 @@ def left_join_indexer_float64(ndarray[float64_t] left,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def left_join_indexer_object(ndarray[object] left,
-                             ndarray[object] right):
+def left_join_indexer_unique_object(ndarray[object] left,
+                                      ndarray[object] right):
     cdef:
         Py_ssize_t i, j, nleft, nright
         ndarray[int64_t] indexer
@@ -2591,8 +2632,8 @@ def left_join_indexer_object(ndarray[object] left,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def left_join_indexer_int32(ndarray[int32_t] left,
-                             ndarray[int32_t] right):
+def left_join_indexer_unique_int32(ndarray[int32_t] left,
+                                      ndarray[int32_t] right):
     cdef:
         Py_ssize_t i, j, nleft, nright
         ndarray[int64_t] indexer
@@ -2636,8 +2677,8 @@ def left_join_indexer_int32(ndarray[int32_t] left,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def left_join_indexer_int64(ndarray[int64_t] left,
-                             ndarray[int64_t] right):
+def left_join_indexer_unique_int64(ndarray[int64_t] left,
+                                      ndarray[int64_t] right):
     cdef:
         Py_ssize_t i, j, nleft, nright
         ndarray[int64_t] indexer
@@ -2682,6 +2723,407 @@ def left_join_indexer_int64(ndarray[int64_t] left,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+def left_join_indexer_float64(ndarray[float64_t] left,
+                              ndarray[float64_t] right):
+    '''
+    Two-pass algorithm for monotonic indexes. Handles many-to-one merges
+    '''
+    cdef:
+        Py_ssize_t i, j, k, nright, nleft, count
+        float64_t lval, rval
+        ndarray[int64_t] lindexer, rindexer
+        ndarray[float64_t] result
+
+    nleft = len(left)
+    nright = len(right)
+
+    i = 0
+    j = 0
+    count = 0
+    if nleft > 0:
+        while True:
+            if j == nright:
+                count += nleft - i
+                break
+
+            lval = left[i]
+            rval = right[j]
+
+            if lval == rval:
+                count += 1
+                if i < nleft - 1:
+                    i += 1
+                    if left[i] != rval:
+                        j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if lval != right[j]:
+                        i += 1
+                else:
+                    # end of the road
+                    break
+            elif lval < rval:
+                count += 1
+                if i < nleft:
+                    i += 1
+            else:
+                if j < nright:
+                    j += 1
+
+    # do it again now that result size is known
+
+    lindexer = np.empty(count, dtype=np.int64)
+    rindexer = np.empty(count, dtype=np.int64)
+    result = np.empty(count, dtype=np.float64)
+
+    i = 0
+    j = 0
+    count = 0
+    if nleft > 0:
+        while i < nleft:
+            if j == nright:
+                while i < nleft:
+                    lindexer[count] = i
+                    rindexer[count] = -1
+                    result[count] = left[i]
+                    i += 1
+                    count += 1
+
+            lval = left[i]
+            rval = right[j]
+
+            if lval == rval:
+                lindexer[count] = i
+                rindexer[count] = j
+                result[count] = lval
+                count += 1
+                if i < nleft - 1:
+                    i += 1
+                    if left[i] != rval:
+                        j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if lval != right[j]:
+                        i += 1
+                else:
+                    # end of the road
+                    break
+            elif lval < rval:
+                lindexer[count] = i
+                rindexer[count] = -1
+                result[count] = left[i]
+                count += 1
+                if i < nleft:
+                    i += 1
+            else:
+                if j < nright:
+                    j += 1
+
+    return result, lindexer, rindexer
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def left_join_indexer_object(ndarray[object] left,
+                              ndarray[object] right):
+    '''
+    Two-pass algorithm for monotonic indexes. Handles many-to-one merges
+    '''
+    cdef:
+        Py_ssize_t i, j, k, nright, nleft, count
+        object lval, rval
+        ndarray[int64_t] lindexer, rindexer
+        ndarray[object] result
+
+    nleft = len(left)
+    nright = len(right)
+
+    i = 0
+    j = 0
+    count = 0
+    if nleft > 0:
+        while True:
+            if j == nright:
+                count += nleft - i
+                break
+
+            lval = left[i]
+            rval = right[j]
+
+            if lval == rval:
+                count += 1
+                if i < nleft - 1:
+                    i += 1
+                    if left[i] != rval:
+                        j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if lval != right[j]:
+                        i += 1
+                else:
+                    # end of the road
+                    break
+            elif lval < rval:
+                count += 1
+                if i < nleft:
+                    i += 1
+            else:
+                if j < nright:
+                    j += 1
+
+    # do it again now that result size is known
+
+    lindexer = np.empty(count, dtype=np.int64)
+    rindexer = np.empty(count, dtype=np.int64)
+    result = np.empty(count, dtype=object)
+
+    i = 0
+    j = 0
+    count = 0
+    if nleft > 0:
+        while i < nleft:
+            if j == nright:
+                while i < nleft:
+                    lindexer[count] = i
+                    rindexer[count] = -1
+                    result[count] = left[i]
+                    i += 1
+                    count += 1
+
+            lval = left[i]
+            rval = right[j]
+
+            if lval == rval:
+                lindexer[count] = i
+                rindexer[count] = j
+                result[count] = lval
+                count += 1
+                if i < nleft - 1:
+                    i += 1
+                    if left[i] != rval:
+                        j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if lval != right[j]:
+                        i += 1
+                else:
+                    # end of the road
+                    break
+            elif lval < rval:
+                lindexer[count] = i
+                rindexer[count] = -1
+                result[count] = left[i]
+                count += 1
+                if i < nleft:
+                    i += 1
+            else:
+                if j < nright:
+                    j += 1
+
+    return result, lindexer, rindexer
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def left_join_indexer_int32(ndarray[int32_t] left,
+                              ndarray[int32_t] right):
+    '''
+    Two-pass algorithm for monotonic indexes. Handles many-to-one merges
+    '''
+    cdef:
+        Py_ssize_t i, j, k, nright, nleft, count
+        int32_t lval, rval
+        ndarray[int64_t] lindexer, rindexer
+        ndarray[int32_t] result
+
+    nleft = len(left)
+    nright = len(right)
+
+    i = 0
+    j = 0
+    count = 0
+    if nleft > 0:
+        while True:
+            if j == nright:
+                count += nleft - i
+                break
+
+            lval = left[i]
+            rval = right[j]
+
+            if lval == rval:
+                count += 1
+                if i < nleft - 1:
+                    i += 1
+                    if left[i] != rval:
+                        j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if lval != right[j]:
+                        i += 1
+                else:
+                    # end of the road
+                    break
+            elif lval < rval:
+                count += 1
+                if i < nleft:
+                    i += 1
+            else:
+                if j < nright:
+                    j += 1
+
+    # do it again now that result size is known
+
+    lindexer = np.empty(count, dtype=np.int64)
+    rindexer = np.empty(count, dtype=np.int64)
+    result = np.empty(count, dtype=np.int32)
+
+    i = 0
+    j = 0
+    count = 0
+    if nleft > 0:
+        while i < nleft:
+            if j == nright:
+                while i < nleft:
+                    lindexer[count] = i
+                    rindexer[count] = -1
+                    result[count] = left[i]
+                    i += 1
+                    count += 1
+
+            lval = left[i]
+            rval = right[j]
+
+            if lval == rval:
+                lindexer[count] = i
+                rindexer[count] = j
+                result[count] = lval
+                count += 1
+                if i < nleft - 1:
+                    i += 1
+                    if left[i] != rval:
+                        j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if lval != right[j]:
+                        i += 1
+                else:
+                    # end of the road
+                    break
+            elif lval < rval:
+                lindexer[count] = i
+                rindexer[count] = -1
+                result[count] = left[i]
+                count += 1
+                if i < nleft:
+                    i += 1
+            else:
+                if j < nright:
+                    j += 1
+
+    return result, lindexer, rindexer
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def left_join_indexer_int64(ndarray[int64_t] left,
+                              ndarray[int64_t] right):
+    '''
+    Two-pass algorithm for monotonic indexes. Handles many-to-one merges
+    '''
+    cdef:
+        Py_ssize_t i, j, k, nright, nleft, count
+        int64_t lval, rval
+        ndarray[int64_t] lindexer, rindexer
+        ndarray[int64_t] result
+
+    nleft = len(left)
+    nright = len(right)
+
+    i = 0
+    j = 0
+    count = 0
+    if nleft > 0:
+        while True:
+            if j == nright:
+                count += nleft - i
+                break
+
+            lval = left[i]
+            rval = right[j]
+
+            if lval == rval:
+                count += 1
+                if i < nleft - 1:
+                    i += 1
+                    if left[i] != rval:
+                        j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if lval != right[j]:
+                        i += 1
+                else:
+                    # end of the road
+                    break
+            elif lval < rval:
+                count += 1
+                if i < nleft:
+                    i += 1
+            else:
+                if j < nright:
+                    j += 1
+
+    # do it again now that result size is known
+
+    lindexer = np.empty(count, dtype=np.int64)
+    rindexer = np.empty(count, dtype=np.int64)
+    result = np.empty(count, dtype=np.int64)
+
+    i = 0
+    j = 0
+    count = 0
+    if nleft > 0:
+        while i < nleft:
+            if j == nright:
+                while i < nleft:
+                    lindexer[count] = i
+                    rindexer[count] = -1
+                    result[count] = left[i]
+                    i += 1
+                    count += 1
+
+            lval = left[i]
+            rval = right[j]
+
+            if lval == rval:
+                lindexer[count] = i
+                rindexer[count] = j
+                result[count] = lval
+                count += 1
+                if i < nleft - 1:
+                    i += 1
+                    if left[i] != rval:
+                        j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if lval != right[j]:
+                        i += 1
+                else:
+                    # end of the road
+                    break
+            elif lval < rval:
+                lindexer[count] = i
+                rindexer[count] = -1
+                result[count] = left[i]
+                count += 1
+                if i < nleft:
+                    i += 1
+            else:
+                if j < nright:
+                    j += 1
+
+    return result, lindexer, rindexer
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def outer_join_indexer_float64(ndarray[float64_t] left,
                                 ndarray[float64_t] right):
     cdef:
@@ -2696,31 +3138,40 @@ def outer_join_indexer_float64(ndarray[float64_t] left,
     i = 0
     j = 0
     count = 0
-    while True:
-        if i == nleft:
+    if nleft == 0:
+        count = nright
+    elif nright == 0:
+        count = nleft
+    else:
+        while True:
+            if i == nleft:
+                count += nright - j
+                break
             if j == nright:
-                # we are done
+                count += nleft - i
                 break
-            else:
-                while j < nright:
-                    j += 1
-                    count += 1
-                break
-        elif j == nright:
-            while i < nleft:
-                i += 1
-                count += 1
-            break
-        else:
-            if left[i] == right[j]:
-                i += 1
-                j += 1
-            elif left[i] < right[j]:
-                i += 1
-            else:
-                j += 1
 
-            count += 1
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                count += 1
+                if i < nleft - 1:
+                    i += 1
+                    if left[i] != rval:
+                        j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if lval != right[j]:
+                        i += 1
+                else:
+                    # end of the road
+                    break
+            elif lval < rval:
+                count += 1
+                i += 1
+            else:
+                count += 1
+                j += 1
 
     lindexer = np.empty(count, dtype=np.int64)
     rindexer = np.empty(count, dtype=np.int64)
@@ -2731,48 +3182,65 @@ def outer_join_indexer_float64(ndarray[float64_t] left,
     i = 0
     j = 0
     count = 0
-    while True:
-        if i == nleft:
-            if j == nright:
-                # we are done
-                break
-            else:
+    if nleft == 0:
+        for j in range(nright):
+            lindexer[j] = -1
+            rindexer[j] = j
+            result[j] = right[j]
+    elif nright == 0:
+        for i in range(nright):
+            lindexer[i] = i
+            rindexer[i] = -1
+            result[i] = left[i]
+    else:
+        while True:
+            if i == nleft:
                 while j < nright:
                     lindexer[count] = -1
                     rindexer[count] = j
                     result[count] = right[j]
-                    j += 1
                     count += 1
+                    j += 1
                 break
-        elif j == nright:
-            while i < nleft:
-                lindexer[count] = i
-                rindexer[count] = -1
-                result[count] = left[i]
-                i += 1
-                count += 1
-            break
-        else:
+            if j == nright:
+                while i < nleft:
+                    lindexer[count] = i
+                    rindexer[count] = -1
+                    result[count] = left[i]
+                    count += 1
+                    i += 1
+                break
+
             lval = left[i]
             rval = right[j]
+
             if lval == rval:
                 lindexer[count] = i
                 rindexer[count] = j
                 result[count] = lval
-                i += 1
-                j += 1
+                count += 1
+                if i < nleft - 1:
+                    i += 1
+                    if left[i] != rval:
+                        j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if lval != right[j]:
+                        i += 1
+                else:
+                    break
             elif lval < rval:
                 lindexer[count] = i
                 rindexer[count] = -1
                 result[count] = lval
+                count += 1
                 i += 1
             else:
                 lindexer[count] = -1
                 rindexer[count] = j
                 result[count] = rval
+                count += 1
                 j += 1
-
-            count += 1
 
     return result, lindexer, rindexer
 
@@ -2792,31 +3260,40 @@ def outer_join_indexer_object(ndarray[object] left,
     i = 0
     j = 0
     count = 0
-    while True:
-        if i == nleft:
+    if nleft == 0:
+        count = nright
+    elif nright == 0:
+        count = nleft
+    else:
+        while True:
+            if i == nleft:
+                count += nright - j
+                break
             if j == nright:
-                # we are done
+                count += nleft - i
                 break
-            else:
-                while j < nright:
-                    j += 1
-                    count += 1
-                break
-        elif j == nright:
-            while i < nleft:
-                i += 1
-                count += 1
-            break
-        else:
-            if left[i] == right[j]:
-                i += 1
-                j += 1
-            elif left[i] < right[j]:
-                i += 1
-            else:
-                j += 1
 
-            count += 1
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                count += 1
+                if i < nleft - 1:
+                    i += 1
+                    if left[i] != rval:
+                        j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if lval != right[j]:
+                        i += 1
+                else:
+                    # end of the road
+                    break
+            elif lval < rval:
+                count += 1
+                i += 1
+            else:
+                count += 1
+                j += 1
 
     lindexer = np.empty(count, dtype=np.int64)
     rindexer = np.empty(count, dtype=np.int64)
@@ -2827,48 +3304,65 @@ def outer_join_indexer_object(ndarray[object] left,
     i = 0
     j = 0
     count = 0
-    while True:
-        if i == nleft:
-            if j == nright:
-                # we are done
-                break
-            else:
+    if nleft == 0:
+        for j in range(nright):
+            lindexer[j] = -1
+            rindexer[j] = j
+            result[j] = right[j]
+    elif nright == 0:
+        for i in range(nright):
+            lindexer[i] = i
+            rindexer[i] = -1
+            result[i] = left[i]
+    else:
+        while True:
+            if i == nleft:
                 while j < nright:
                     lindexer[count] = -1
                     rindexer[count] = j
                     result[count] = right[j]
-                    j += 1
                     count += 1
+                    j += 1
                 break
-        elif j == nright:
-            while i < nleft:
-                lindexer[count] = i
-                rindexer[count] = -1
-                result[count] = left[i]
-                i += 1
-                count += 1
-            break
-        else:
+            if j == nright:
+                while i < nleft:
+                    lindexer[count] = i
+                    rindexer[count] = -1
+                    result[count] = left[i]
+                    count += 1
+                    i += 1
+                break
+
             lval = left[i]
             rval = right[j]
+
             if lval == rval:
                 lindexer[count] = i
                 rindexer[count] = j
                 result[count] = lval
-                i += 1
-                j += 1
+                count += 1
+                if i < nleft - 1:
+                    i += 1
+                    if left[i] != rval:
+                        j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if lval != right[j]:
+                        i += 1
+                else:
+                    break
             elif lval < rval:
                 lindexer[count] = i
                 rindexer[count] = -1
                 result[count] = lval
+                count += 1
                 i += 1
             else:
                 lindexer[count] = -1
                 rindexer[count] = j
                 result[count] = rval
+                count += 1
                 j += 1
-
-            count += 1
 
     return result, lindexer, rindexer
 
@@ -2888,31 +3382,40 @@ def outer_join_indexer_int32(ndarray[int32_t] left,
     i = 0
     j = 0
     count = 0
-    while True:
-        if i == nleft:
+    if nleft == 0:
+        count = nright
+    elif nright == 0:
+        count = nleft
+    else:
+        while True:
+            if i == nleft:
+                count += nright - j
+                break
             if j == nright:
-                # we are done
+                count += nleft - i
                 break
-            else:
-                while j < nright:
-                    j += 1
-                    count += 1
-                break
-        elif j == nright:
-            while i < nleft:
-                i += 1
-                count += 1
-            break
-        else:
-            if left[i] == right[j]:
-                i += 1
-                j += 1
-            elif left[i] < right[j]:
-                i += 1
-            else:
-                j += 1
 
-            count += 1
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                count += 1
+                if i < nleft - 1:
+                    i += 1
+                    if left[i] != rval:
+                        j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if lval != right[j]:
+                        i += 1
+                else:
+                    # end of the road
+                    break
+            elif lval < rval:
+                count += 1
+                i += 1
+            else:
+                count += 1
+                j += 1
 
     lindexer = np.empty(count, dtype=np.int64)
     rindexer = np.empty(count, dtype=np.int64)
@@ -2923,48 +3426,65 @@ def outer_join_indexer_int32(ndarray[int32_t] left,
     i = 0
     j = 0
     count = 0
-    while True:
-        if i == nleft:
-            if j == nright:
-                # we are done
-                break
-            else:
+    if nleft == 0:
+        for j in range(nright):
+            lindexer[j] = -1
+            rindexer[j] = j
+            result[j] = right[j]
+    elif nright == 0:
+        for i in range(nright):
+            lindexer[i] = i
+            rindexer[i] = -1
+            result[i] = left[i]
+    else:
+        while True:
+            if i == nleft:
                 while j < nright:
                     lindexer[count] = -1
                     rindexer[count] = j
                     result[count] = right[j]
-                    j += 1
                     count += 1
+                    j += 1
                 break
-        elif j == nright:
-            while i < nleft:
-                lindexer[count] = i
-                rindexer[count] = -1
-                result[count] = left[i]
-                i += 1
-                count += 1
-            break
-        else:
+            if j == nright:
+                while i < nleft:
+                    lindexer[count] = i
+                    rindexer[count] = -1
+                    result[count] = left[i]
+                    count += 1
+                    i += 1
+                break
+
             lval = left[i]
             rval = right[j]
+
             if lval == rval:
                 lindexer[count] = i
                 rindexer[count] = j
                 result[count] = lval
-                i += 1
-                j += 1
+                count += 1
+                if i < nleft - 1:
+                    i += 1
+                    if left[i] != rval:
+                        j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if lval != right[j]:
+                        i += 1
+                else:
+                    break
             elif lval < rval:
                 lindexer[count] = i
                 rindexer[count] = -1
                 result[count] = lval
+                count += 1
                 i += 1
             else:
                 lindexer[count] = -1
                 rindexer[count] = j
                 result[count] = rval
+                count += 1
                 j += 1
-
-            count += 1
 
     return result, lindexer, rindexer
 
@@ -2984,31 +3504,40 @@ def outer_join_indexer_int64(ndarray[int64_t] left,
     i = 0
     j = 0
     count = 0
-    while True:
-        if i == nleft:
+    if nleft == 0:
+        count = nright
+    elif nright == 0:
+        count = nleft
+    else:
+        while True:
+            if i == nleft:
+                count += nright - j
+                break
             if j == nright:
-                # we are done
+                count += nleft - i
                 break
-            else:
-                while j < nright:
-                    j += 1
-                    count += 1
-                break
-        elif j == nright:
-            while i < nleft:
-                i += 1
-                count += 1
-            break
-        else:
-            if left[i] == right[j]:
-                i += 1
-                j += 1
-            elif left[i] < right[j]:
-                i += 1
-            else:
-                j += 1
 
-            count += 1
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                count += 1
+                if i < nleft - 1:
+                    i += 1
+                    if left[i] != rval:
+                        j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if lval != right[j]:
+                        i += 1
+                else:
+                    # end of the road
+                    break
+            elif lval < rval:
+                count += 1
+                i += 1
+            else:
+                count += 1
+                j += 1
 
     lindexer = np.empty(count, dtype=np.int64)
     rindexer = np.empty(count, dtype=np.int64)
@@ -3019,48 +3548,65 @@ def outer_join_indexer_int64(ndarray[int64_t] left,
     i = 0
     j = 0
     count = 0
-    while True:
-        if i == nleft:
-            if j == nright:
-                # we are done
-                break
-            else:
+    if nleft == 0:
+        for j in range(nright):
+            lindexer[j] = -1
+            rindexer[j] = j
+            result[j] = right[j]
+    elif nright == 0:
+        for i in range(nright):
+            lindexer[i] = i
+            rindexer[i] = -1
+            result[i] = left[i]
+    else:
+        while True:
+            if i == nleft:
                 while j < nright:
                     lindexer[count] = -1
                     rindexer[count] = j
                     result[count] = right[j]
-                    j += 1
                     count += 1
+                    j += 1
                 break
-        elif j == nright:
-            while i < nleft:
-                lindexer[count] = i
-                rindexer[count] = -1
-                result[count] = left[i]
-                i += 1
-                count += 1
-            break
-        else:
+            if j == nright:
+                while i < nleft:
+                    lindexer[count] = i
+                    rindexer[count] = -1
+                    result[count] = left[i]
+                    count += 1
+                    i += 1
+                break
+
             lval = left[i]
             rval = right[j]
+
             if lval == rval:
                 lindexer[count] = i
                 rindexer[count] = j
                 result[count] = lval
-                i += 1
-                j += 1
+                count += 1
+                if i < nleft - 1:
+                    i += 1
+                    if left[i] != rval:
+                        j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if lval != right[j]:
+                        i += 1
+                else:
+                    break
             elif lval < rval:
                 lindexer[count] = i
                 rindexer[count] = -1
                 result[count] = lval
+                count += 1
                 i += 1
             else:
                 lindexer[count] = -1
                 rindexer[count] = j
                 result[count] = rval
+                count += 1
                 j += 1
-
-            count += 1
 
     return result, lindexer, rindexer
 
@@ -3070,7 +3616,7 @@ def outer_join_indexer_int64(ndarray[int64_t] left,
 def inner_join_indexer_float64(ndarray[float64_t] left,
                               ndarray[float64_t] right):
     '''
-    Two-pass algorithm?
+    Two-pass algorithm for monotonic indexes. Handles many-to-one merges
     '''
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
@@ -3084,20 +3630,32 @@ def inner_join_indexer_float64(ndarray[float64_t] left,
     i = 0
     j = 0
     count = 0
-    while True:
-        if i == nleft or j == nright:
-             break
-        else:
-            lval = left[i]
-            rval = right[j]
+    if nleft > 0 and nright > 0:
+        lval = left[0]
+        rval = right[0]
+        while True:
             if lval == rval:
-                i += 1
-                j += 1
                 count += 1
+                if i < nleft - 1:
+                    i += 1
+                    lval = left[i]
+                elif j < nright - 1:
+                    j += 1
+                    rval = right[j]
+                else:
+                    break
             elif lval < rval:
-                i += 1
+                if i < nleft - 1:
+                    i += 1
+                    lval = left[i]
+                else:
+                    break
             else:
-                j += 1
+                if j < nright - 1:
+                    j += 1
+                    rval = right[j]
+                else:
+                    break
 
     # do it again now that result size is known
 
@@ -3108,23 +3666,35 @@ def inner_join_indexer_float64(ndarray[float64_t] left,
     i = 0
     j = 0
     count = 0
-    while True:
-        if i == nleft or j == nright:
-             break
-        else:
-            lval = left[i]
-            rval = right[j]
+    if nleft > 0 and nright > 0:
+        lval = left[0]
+        rval = right[0]
+        while True:
             if lval == rval:
                 lindexer[count] = i
                 rindexer[count] = j
-                result[count] = lval
-                i += 1
-                j += 1
+                result[count] = rval
                 count += 1
+                if i < nleft - 1:
+                    i += 1
+                    lval = left[i]
+                elif j < nright - 1:
+                    j += 1
+                    rval = right[j]
+                else:
+                    break
             elif lval < rval:
-                i += 1
+                if i < nleft - 1:
+                    i += 1
+                    lval = left[i]
+                else:
+                    break
             else:
-                j += 1
+                if j < nright - 1:
+                    j += 1
+                    rval = right[j]
+                else:
+                    break
 
     return result, lindexer, rindexer
 
@@ -3133,7 +3703,7 @@ def inner_join_indexer_float64(ndarray[float64_t] left,
 def inner_join_indexer_object(ndarray[object] left,
                               ndarray[object] right):
     '''
-    Two-pass algorithm?
+    Two-pass algorithm for monotonic indexes. Handles many-to-one merges
     '''
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
@@ -3147,20 +3717,32 @@ def inner_join_indexer_object(ndarray[object] left,
     i = 0
     j = 0
     count = 0
-    while True:
-        if i == nleft or j == nright:
-             break
-        else:
-            lval = left[i]
-            rval = right[j]
+    if nleft > 0 and nright > 0:
+        lval = left[0]
+        rval = right[0]
+        while True:
             if lval == rval:
-                i += 1
-                j += 1
                 count += 1
+                if i < nleft - 1:
+                    i += 1
+                    lval = left[i]
+                elif j < nright - 1:
+                    j += 1
+                    rval = right[j]
+                else:
+                    break
             elif lval < rval:
-                i += 1
+                if i < nleft - 1:
+                    i += 1
+                    lval = left[i]
+                else:
+                    break
             else:
-                j += 1
+                if j < nright - 1:
+                    j += 1
+                    rval = right[j]
+                else:
+                    break
 
     # do it again now that result size is known
 
@@ -3171,23 +3753,35 @@ def inner_join_indexer_object(ndarray[object] left,
     i = 0
     j = 0
     count = 0
-    while True:
-        if i == nleft or j == nright:
-             break
-        else:
-            lval = left[i]
-            rval = right[j]
+    if nleft > 0 and nright > 0:
+        lval = left[0]
+        rval = right[0]
+        while True:
             if lval == rval:
                 lindexer[count] = i
                 rindexer[count] = j
-                result[count] = lval
-                i += 1
-                j += 1
+                result[count] = rval
                 count += 1
+                if i < nleft - 1:
+                    i += 1
+                    lval = left[i]
+                elif j < nright - 1:
+                    j += 1
+                    rval = right[j]
+                else:
+                    break
             elif lval < rval:
-                i += 1
+                if i < nleft - 1:
+                    i += 1
+                    lval = left[i]
+                else:
+                    break
             else:
-                j += 1
+                if j < nright - 1:
+                    j += 1
+                    rval = right[j]
+                else:
+                    break
 
     return result, lindexer, rindexer
 
@@ -3196,7 +3790,7 @@ def inner_join_indexer_object(ndarray[object] left,
 def inner_join_indexer_int32(ndarray[int32_t] left,
                               ndarray[int32_t] right):
     '''
-    Two-pass algorithm?
+    Two-pass algorithm for monotonic indexes. Handles many-to-one merges
     '''
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
@@ -3210,20 +3804,32 @@ def inner_join_indexer_int32(ndarray[int32_t] left,
     i = 0
     j = 0
     count = 0
-    while True:
-        if i == nleft or j == nright:
-             break
-        else:
-            lval = left[i]
-            rval = right[j]
+    if nleft > 0 and nright > 0:
+        lval = left[0]
+        rval = right[0]
+        while True:
             if lval == rval:
-                i += 1
-                j += 1
                 count += 1
+                if i < nleft - 1:
+                    i += 1
+                    lval = left[i]
+                elif j < nright - 1:
+                    j += 1
+                    rval = right[j]
+                else:
+                    break
             elif lval < rval:
-                i += 1
+                if i < nleft - 1:
+                    i += 1
+                    lval = left[i]
+                else:
+                    break
             else:
-                j += 1
+                if j < nright - 1:
+                    j += 1
+                    rval = right[j]
+                else:
+                    break
 
     # do it again now that result size is known
 
@@ -3234,23 +3840,35 @@ def inner_join_indexer_int32(ndarray[int32_t] left,
     i = 0
     j = 0
     count = 0
-    while True:
-        if i == nleft or j == nright:
-             break
-        else:
-            lval = left[i]
-            rval = right[j]
+    if nleft > 0 and nright > 0:
+        lval = left[0]
+        rval = right[0]
+        while True:
             if lval == rval:
                 lindexer[count] = i
                 rindexer[count] = j
-                result[count] = lval
-                i += 1
-                j += 1
+                result[count] = rval
                 count += 1
+                if i < nleft - 1:
+                    i += 1
+                    lval = left[i]
+                elif j < nright - 1:
+                    j += 1
+                    rval = right[j]
+                else:
+                    break
             elif lval < rval:
-                i += 1
+                if i < nleft - 1:
+                    i += 1
+                    lval = left[i]
+                else:
+                    break
             else:
-                j += 1
+                if j < nright - 1:
+                    j += 1
+                    rval = right[j]
+                else:
+                    break
 
     return result, lindexer, rindexer
 
@@ -3259,7 +3877,7 @@ def inner_join_indexer_int32(ndarray[int32_t] left,
 def inner_join_indexer_int64(ndarray[int64_t] left,
                               ndarray[int64_t] right):
     '''
-    Two-pass algorithm?
+    Two-pass algorithm for monotonic indexes. Handles many-to-one merges
     '''
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
@@ -3273,20 +3891,32 @@ def inner_join_indexer_int64(ndarray[int64_t] left,
     i = 0
     j = 0
     count = 0
-    while True:
-        if i == nleft or j == nright:
-             break
-        else:
-            lval = left[i]
-            rval = right[j]
+    if nleft > 0 and nright > 0:
+        lval = left[0]
+        rval = right[0]
+        while True:
             if lval == rval:
-                i += 1
-                j += 1
                 count += 1
+                if i < nleft - 1:
+                    i += 1
+                    lval = left[i]
+                elif j < nright - 1:
+                    j += 1
+                    rval = right[j]
+                else:
+                    break
             elif lval < rval:
-                i += 1
+                if i < nleft - 1:
+                    i += 1
+                    lval = left[i]
+                else:
+                    break
             else:
-                j += 1
+                if j < nright - 1:
+                    j += 1
+                    rval = right[j]
+                else:
+                    break
 
     # do it again now that result size is known
 
@@ -3297,65 +3927,36 @@ def inner_join_indexer_int64(ndarray[int64_t] left,
     i = 0
     j = 0
     count = 0
-    while True:
-        if i == nleft or j == nright:
-             break
-        else:
-            lval = left[i]
-            rval = right[j]
+    if nleft > 0 and nright > 0:
+        lval = left[0]
+        rval = right[0]
+        while True:
             if lval == rval:
                 lindexer[count] = i
                 rindexer[count] = j
-                result[count] = lval
-                i += 1
-                j += 1
+                result[count] = rval
                 count += 1
+                if i < nleft - 1:
+                    i += 1
+                    lval = left[i]
+                elif j < nright - 1:
+                    j += 1
+                    rval = right[j]
+                else:
+                    break
             elif lval < rval:
-                i += 1
+                if i < nleft - 1:
+                    i += 1
+                    lval = left[i]
+                else:
+                    break
             else:
-                j += 1
+                if j < nright - 1:
+                    j += 1
+                    rval = right[j]
+                else:
+                    break
 
     return result, lindexer, rindexer
-
-
-
-cpdef ensure_float64(object arr):
-    if util.is_array(arr):
-        if (<ndarray> arr).descr.type_num == NPY_FLOAT64:
-            return arr
-        else:
-            return arr.astype(np.float64)
-    else:
-        return np.array(arr, dtype=np.float64)
-
-
-cpdef ensure_int32(object arr):
-    if util.is_array(arr):
-        if (<ndarray> arr).descr.type_num == NPY_INT32:
-            return arr
-        else:
-            return arr.astype(np.int32)
-    else:
-        return np.array(arr, dtype=np.int32)
-
-
-cpdef ensure_int64(object arr):
-    if util.is_array(arr):
-        if (<ndarray> arr).descr.type_num == NPY_INT64:
-            return arr
-        else:
-            return arr.astype(np.int64)
-    else:
-        return np.array(arr, dtype=np.int64)
-
-
-cpdef ensure_object(object arr):
-    if util.is_array(arr):
-        if (<ndarray> arr).descr.type_num == NPY_OBJECT:
-            return arr
-        else:
-            return arr.astype(np.object_)
-    else:
-        return np.array(arr, dtype=np.object_)
 
 

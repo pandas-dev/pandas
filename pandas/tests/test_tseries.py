@@ -59,11 +59,11 @@ class TestTseriesUtil(unittest.TestCase):
         expect_filler = [-1, -1, -1, -1, -1]
         self.assert_(np.array_equal(filler, expect_filler))
 
-def test_left_join_indexer():
+def test_left_join_indexer_unique():
     a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
     b = np.array([2, 2, 3, 4, 4], dtype=np.int64)
 
-    result = algos.left_join_indexer_int64(b, a)
+    result = algos.left_join_indexer_unique_int64(b, a)
     expected = np.array([1, 1, 2, 3, 3], dtype=np.int64)
     assert(np.array_equal(result, expected))
 
@@ -102,6 +102,14 @@ def test_inner_join_indexer():
     assert_almost_equal(ares, aexp)
     assert_almost_equal(bres, bexp)
 
+    a = np.array([5], dtype=np.int64)
+    b = np.array([5], dtype=np.int64)
+
+    index, ares, bres = algos.inner_join_indexer_int64(a, b)
+    assert_almost_equal(index, [5])
+    assert_almost_equal(ares, [0])
+    assert_almost_equal(bres, [0])
+
 def test_outer_join_indexer():
     a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
     b = np.array([0, 3, 5, 7, 9], dtype=np.int64)
@@ -115,6 +123,20 @@ def test_outer_join_indexer():
     bexp = np.array([0, -1, -1, 1, -1, 2, 3, 4])
     assert_almost_equal(ares, aexp)
     assert_almost_equal(bres, bexp)
+
+def test_left_join_indexer():
+    a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
+    b = np.array([0, 3, 5, 7, 9], dtype=np.int64)
+
+    index, ares, bres = algos.left_join_indexer_int64(a, b)
+
+    assert_almost_equal(index, a)
+
+    aexp = np.array([0, 1, 2, 3, 4], dtype=np.int64)
+    bexp = np.array([-1, -1, 1, -1, 2], dtype=np.int64)
+    assert_almost_equal(ares, aexp)
+    assert_almost_equal(bres, bexp)
+
 
 def test_is_lexsorted():
     failure = [

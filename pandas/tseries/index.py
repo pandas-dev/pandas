@@ -148,8 +148,9 @@ class DatetimeIndex(Int64Index):
 
     _inner_indexer = _join_i8_wrapper(_algos.inner_join_indexer_int64)
     _outer_indexer = _join_i8_wrapper(_algos.outer_join_indexer_int64)
-    _left_indexer  = _join_i8_wrapper(_algos.left_join_indexer_int64,
-                                      with_indexers=False)
+    _left_indexer  = _join_i8_wrapper(_algos.left_join_indexer_int64)
+    _left_indexer_unique  = _join_i8_wrapper(
+        _algos.left_join_indexer_unique_int64, with_indexers=False)
     _groupby = lib.groupby_arrays # _wrap_i8_function(lib.groupby_int64)
 
     _arrmap = _wrap_dt_function(_algos.arrmap_object)

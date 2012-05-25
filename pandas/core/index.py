@@ -59,6 +59,7 @@ class Index(np.ndarray):
     # Cython methods
     _groupby = _algos.groupby_object
     _arrmap = _algos.arrmap_object
+    _left_indexer_unique = _algos.left_join_indexer_unique_object
     _left_indexer = _algos.left_join_indexer_object
     _inner_indexer = _algos.inner_join_indexer_object
     _outer_indexer = _algos.outer_join_indexer_object
@@ -726,6 +727,7 @@ class Index(np.ndarray):
     def _get_indexer_standard(self, other):
         if (self.dtype != np.object_ and
             self.is_monotonic and other.is_monotonic):
+            # TODO: unique vs non unique
             return self._left_indexer(other, self)
         else:
             return self._engine.get_indexer(other)
@@ -938,21 +940,35 @@ class Index(np.ndarray):
             else:
                 return ret_index
 
-        if how == 'left':
-            join_index = self
-            lidx = None
-            ridx = self._left_indexer(self, other)
-        elif how == 'right':
-            join_index = other
-            lidx = self._left_indexer(other, self)
-            ridx = None
-        elif how == 'inner':
-            join_index, lidx, ridx = self._inner_indexer(self.values,
-                                                         other.values)
-            join_index = self._wrap_joined_index(join_index, other)
-        elif how == 'outer':
-            join_index, lidx, ridx = self._outer_indexer(self.values,
-                                                         other.values)
+        if self.is_unique and other.is_unique:
+            # We can perform much better than the general case
+            if how == 'left':
+                join_index = self
+                lidx = None
+                ridx = self._left_indexer_unique(self, other)
+            elif how == 'right':
+                join_index = other
+                lidx = self._left_indexer_unique(other, self)
+                ridx = None
+            elif how == 'inner':
+                join_index, lidx, ridx = self._inner_indexer(self.values,
+                                                             other.values)
+                join_index = self._wrap_joined_index(join_index, other)
+            elif how == 'outer':
+                join_index, lidx, ridx = self._outer_indexer(self.values,
+                                                             other.values)
+                join_index = self._wrap_joined_index(join_index, other)
+        else:
+            if how == 'left':
+                join_index, lidx, ridx = self._left_indexer(self, other)
+            elif how == 'right':
+                join_index, ridx, lidx = self._left_indexer(other, self)
+            elif how == 'inner':
+                join_index, lidx, ridx = self._inner_indexer(self.values,
+                                                             other.values)
+            elif how == 'outer':
+                join_index, lidx, ridx = self._outer_indexer(self.values,
+                                                             other.values)
             join_index = self._wrap_joined_index(join_index, other)
 
         if return_indexers:
@@ -1074,6 +1090,7 @@ class Int64Index(Index):
 
     _groupby = _algos.groupby_int64
     _arrmap = _algos.arrmap_int64
+    _left_indexer_unique = _algos.left_join_indexer_unique_int64
     _left_indexer = _algos.left_join_indexer_int64
     _inner_indexer = _algos.inner_join_indexer_int64
     _outer_indexer = _algos.outer_join_indexer_int64
