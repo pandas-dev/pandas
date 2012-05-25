@@ -249,12 +249,10 @@ class _MergeOperation(object):
                 _left_join_on_index(right_ax, left_ax, self.right_join_keys,
                                     sort=self.sort)
         else:
-            # max groups = largest possible number of distinct groups
-            left_key, right_key, max_groups = self._get_group_keys()
-
-            join_func = _join_functions[self.how]
-            left_indexer, right_indexer = join_func(left_key, right_key,
-                                                    max_groups)
+            (left_indexer,
+             right_indexer) = _get_join_indexers(self.left_join_keys,
+                                                 self.right_join_keys,
+                                                 sort=self.sort, how=self.how)
 
             if self.right_index:
                 join_index = self.left.index.take(left_indexer)
@@ -348,6 +346,9 @@ class _MergeOperation(object):
                                                  self.left.index.labels)]
             else:
                 left_keys = [self.left.index.values]
+        # else:
+        #     left_keys.append(self.left.index)
+        #     right_keys.append(self.right.index)
 
         if right_drop:
             self.right = self.right.drop(right_drop, axis=1)
@@ -390,46 +391,46 @@ class _MergeOperation(object):
                 self.left_on = [None] * n
         assert(len(self.right_on) == len(self.left_on))
 
-    def _get_group_keys(self):
-        """
 
-        Parameters
-        ----------
+def _get_join_indexers(left_keys, right_keys, sort=False, how='inner'):
+    """
 
-        Returns
-        -------
+    Parameters
+    ----------
 
-        """
-        left_keys = self.left_join_keys
-        right_keys = self.right_join_keys
+    Returns
+    -------
 
-        assert(len(left_keys) == len(right_keys))
+    """
+    assert(len(left_keys) == len(right_keys))
 
-        left_labels = []
-        right_labels = []
-        group_sizes = []
+    left_labels = []
+    right_labels = []
+    group_sizes = []
 
-        for lk, rk in zip(left_keys, right_keys):
-            llab, rlab, count = _factorize_keys(lk, rk, sort=self.sort)
+    for lk, rk in zip(left_keys, right_keys):
+        llab, rlab, count = _factorize_keys(lk, rk, sort=sort)
 
-            left_labels.append(llab)
-            right_labels.append(rlab)
-            group_sizes.append(count)
+        left_labels.append(llab)
+        right_labels.append(rlab)
+        group_sizes.append(count)
 
-        left_group_key = get_group_index(left_labels, group_sizes)
-        right_group_key = get_group_index(right_labels, group_sizes)
+    left_group_key = get_group_index(left_labels, group_sizes)
+    right_group_key = get_group_index(right_labels, group_sizes)
 
-        max_groups = 1L
-        for x in group_sizes:
-            max_groups *= long(x)
+    max_groups = 1L
+    for x in group_sizes:
+        max_groups *= long(x)
 
-        if max_groups > 2**63:  # pragma: no cover
-            raise MergeError('Combinatorial explosion! (boom)')
+    if max_groups > 2**63:  # pragma: no cover
+        raise MergeError('Combinatorial explosion! (boom)')
 
-        left_group_key, right_group_key, max_groups = \
-            _factorize_keys(left_group_key, right_group_key,
-                             sort=self.sort)
-        return left_group_key, right_group_key, max_groups
+    left_group_key, right_group_key, max_groups = \
+        _factorize_keys(left_group_key, right_group_key, sort=sort)
+
+    join_func = _join_functions[how]
+    return join_func(left_group_key, right_group_key, max_groups)
+
 
 
 class _OrderedMerge(_MergeOperation):

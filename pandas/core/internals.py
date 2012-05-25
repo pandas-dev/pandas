@@ -326,7 +326,7 @@ class IntBlock(Block):
     _can_hold_na = False
 
     def _can_hold_element(self, element):
-        return isinstance(element, int)
+        return com.is_integer(element)
 
     def _try_cast(self, element):
         try:
@@ -366,8 +366,20 @@ class ObjectBlock(Block):
                               (np.integer, np.floating, np.complexfloating,
                                np.bool_))
 
-class DatetimeBlock(IntBlock):
+class DatetimeBlock(Block):
     _can_hold_na = True
+
+    def _can_hold_element(self, element):
+        return com.is_integer(element)
+
+    def _try_cast(self, element):
+        try:
+            return int(element)
+        except:
+            return element
+
+    def should_store(self, value):
+        return issubclass(value.dtype.type, np.datetime64)
 
 
 def make_block(values, items, ref_items, do_integrity_check=False):

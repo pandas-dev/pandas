@@ -583,33 +583,44 @@ class TestMerge(unittest.TestCase):
         self.assertRaises(MergeError, merge, df1, df2)
 
     def test_merge_non_unique_indexes(self):
-        dt = datetime.now()
+
+        dt = datetime(2012, 5, 1)
+        dt2 = datetime(2012, 5, 2)
+        dt3 = datetime(2012, 5, 3)
+        dt4 = datetime(2012, 5, 4)
+
         df1 = DataFrame({'x': ['a']}, index=[dt])
         df2 = DataFrame({'y': ['b', 'c']}, index=[dt, dt])
+        _check_merge(df1, df2)
 
-        for how in ['inner', 'left', 'outer']:
-            result = df1.join(df2, how=how)
+        # Not monotonic
+        df1 = DataFrame({'x': ['a', 'b', 'q']}, index=[dt2, dt, dt4])
+        df2 = DataFrame({'y': ['c', 'd', 'e', 'f', 'g', 'h']},
+                        index=[dt3, dt3, dt2, dt2, dt, dt])
+        _check_merge(df1, df2)
 
-            expected = merge(df1.reset_index(), df2.reset_index(),
-                             how=how)
-            expected = expected.set_index('index')
+        df1 = DataFrame({'x': ['a', 'b']}, index=[dt, dt])
+        df2 = DataFrame({'y': ['c', 'd']}, index=[dt, dt])
+        _check_merge(df1, df2)
 
-            assert_frame_equal(result, expected)
+    def test_merge_non_unique_index_many_to_many(self):
+        dt = datetime(2012, 5, 1)
+        dt2 = datetime(2012, 5, 2)
+        dt3 = datetime(2012, 5, 3)
+        df1 = DataFrame({'x': ['a', 'b', 'c', 'd']},
+                        index=[dt2, dt2, dt, dt])
+        df2 = DataFrame({'y': ['e', 'f', 'g',' h', 'i']},
+                        index=[dt2, dt2, dt3, dt, dt])
+        _check_merge(df1, df2)
 
-    # def test_merge_many_to_many(self):
-    #     dt = datetime.now()
-    #     df1 = DataFrame({'x': ['a', 'b']}, index=[dt, dt])
-    #     df2 = DataFrame({'y': ['c', 'd']}, index=[dt, dt])
+def _check_merge(x, y):
+    for how in ['inner', 'left', 'outer']:
+        result = x.join(y, how=how)
 
-    #     for how in ['inner', 'left', 'outer']:
-    #         result = df1.join(df2, how=how)
+        expected = merge(x.reset_index(), y.reset_index(), how=how)
+        expected = expected.set_index('index')
 
-    #         expected = merge(df1.reset_index(), df2.reset_index(),
-    #                          how=how)
-    #         expected = expected.set_index('index')
-
-    #         assert_frame_equal(result, expected)
-
+        assert_frame_equal(result, expected)
 
 class TestMergeMulti(unittest.TestCase):
 

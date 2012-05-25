@@ -844,7 +844,17 @@ class Index(np.ndarray):
 
         _validate_join_method(how)
 
-        if self.is_monotonic and other.is_monotonic:
+        if not self.is_unique and not other.is_unique:
+            return self._join_non_unique(other, how=how,
+                                         return_indexers=return_indexers)
+        elif not self.is_unique or not other.is_unique:
+            if self.is_monotonic and other.is_monotonic:
+                return self._join_monotonic(other, how=how,
+                                            return_indexers=return_indexers)
+            else:
+                return self._join_non_unique(other, how=how,
+                                             return_indexers=return_indexers)
+        elif self.is_monotonic and other.is_monotonic:
             return self._join_monotonic(other, how=how,
                                         return_indexers=return_indexers)
 
@@ -867,6 +877,23 @@ class Index(np.ndarray):
             else:
                 rindexer = other.get_indexer(join_index)
             return join_index, lindexer, rindexer
+        else:
+            return join_index
+
+    def _join_non_unique(self, other, how='left', return_indexers=False):
+        from pandas.tools.merge import _get_join_indexers
+
+        left_idx, right_idx = _get_join_indexers([self.values], [other.values],
+                                                 how=how, sort=True)
+
+        join_index = self.values.take(left_idx)
+        mask = left_idx == -1
+        np.putmask(join_index, mask, other.values.take(right_idx))
+
+        join_index = self._wrap_joined_index(join_index, other)
+
+        if return_indexers:
+            return join_index, left_idx, right_idx
         else:
             return join_index
 
