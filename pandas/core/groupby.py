@@ -944,7 +944,7 @@ class Grouping(object):
         self.sort = sort
 
         # right place for this?
-        if isinstance(grouper, Series) and name is None:
+        if isinstance(grouper, (Series, Index)) and name is None:
             self.name = grouper.name
 
         # pre-computed

@@ -175,6 +175,7 @@ pandas 0.7.3
   - Improper int dtype DataFrame construction from data with NaN (GH #846)
   - Removes default 'result' name in grouby results (GH #995)
   - DataFrame.from_records no longer mutate input columns (PR #975)
+  - Use Index name when grouping by it (#1313)
 
 pandas 0.7.2
 ============

@@ -1134,6 +1134,13 @@ class TestGroupBy(unittest.TestCase):
         assert_frame_equal(result0, expected0)
         assert_frame_equal(result1, expected1)
 
+    def test_groupby_level_0_nonmulti(self):
+        # #1313
+        a = Series([1,2,3,10,4,5,20,6], Index([1,2,3,1,4,5,2,6], name='foo'))
+
+        result = a.groupby(level=0).sum()
+        self.assertEquals(result.index.name, a.index.name)
+
     def test_level_preserve_order(self):
         grouped = self.mframe.groupby(level=0)
         exp_labels = np.array([0, 0, 0, 1, 1, 2, 2, 3, 3, 3])
