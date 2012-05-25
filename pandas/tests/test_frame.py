@@ -1524,7 +1524,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # can't cast to float
         test_data = {
-                'A' : dict(zip(range(20), tm.makeDateIndex(20))),
+                'A' : dict(zip(range(20), tm.makeStringIndex(20))),
                 'B' : dict(zip(range(15), randn(15)))
         }
         frame = DataFrame(test_data, dtype=float)

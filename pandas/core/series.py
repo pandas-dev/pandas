@@ -2623,21 +2623,27 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
     # GH #846
     if isinstance(data, np.ndarray):
+        subarr = data
         if dtype is not None:
+
             # possibility of nan -> garbage
             if com.is_float_dtype(data.dtype) and com.is_integer_dtype(dtype):
                 if not isnull(data).any():
                     subarr = _try_cast(data)
                 elif copy:
                     subarr = data.copy()
-                else:
-                    subarr = data
             else:
-                subarr = _try_cast(data)
+                if (com.is_datetime64_dtype(data.dtype) and
+                    not com.is_datetime64_dtype(dtype)):
+                    if dtype == object:
+                        ints = np.asarray(data).view('i8')
+                        subarr = lib.ints_to_pydatetime(ints)
+                    elif raise_cast_failure:
+                        raise TypeError('Cannot cast datetime64 to %s' % dtype)
+                else:
+                    subarr = _try_cast(data)
         elif copy:
             subarr = data.copy()
-        else:
-            subarr = data
     elif isinstance(data, list) and len(data) > 0:
         if dtype is not None:
             try:

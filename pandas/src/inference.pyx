@@ -271,7 +271,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values):
         return ints
 
 def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
-                          bint safe=0):
+                          bint safe=0, bint convert_datetime=1):
     '''
     Type inference function-- convert object array to proper dtype
     '''
@@ -281,8 +281,10 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         ndarray[complex128_t] complexes
         ndarray[int64_t] ints
         ndarray[uint8_t] bools
+        ndarray[int64_t] idatetimes
         bint seen_float = 0
         bint seen_complex = 0
+        bint seen_datetime = 0
         bint seen_int = 0
         bint seen_bool = 0
         bint seen_object = 0
@@ -296,6 +298,8 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
     complexes = np.empty(n, dtype='c16')
     ints = np.empty(n, dtype='i8')
     bools = np.empty(n, dtype=np.uint8)
+    datetimes = np.empty(n, dtype='M8[ns]')
+    idatetimes = datetimes.view(np.int64)
 
     onan = np.nan
     fnan = np.nan
@@ -309,10 +313,6 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         elif util.is_bool_object(val):
             seen_bool = 1
             bools[i] = val
-        elif util.is_datetime64_object(val):
-            # convert to datetime.datetime for now
-            seen_object = 1
-            objects[i] = val.astype('O')
         elif util.is_integer_object(val):
             seen_int = 1
             floats[i] = <float64_t> val
@@ -325,6 +325,19 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         elif util.is_complex_object(val):
             complexes[i] = val
             seen_complex = 1
+        elif util.is_datetime64_object(val):
+            if convert_datetime:
+                idatetimes[i] = convert_to_tsobject(val).value
+                seen_datetime = 1
+            else:
+                seen_object = 1
+                # objects[i] = val.astype('O')
+        elif PyDateTime_Check(val):
+            if convert_datetime:
+                seen_datetime = 1
+                idatetimes[i] = convert_to_tsobject(val).value
+            else:
+                seen_object = 1
         elif try_float and not util.is_string_object(val):
             # this will convert Decimal objects
             try:
@@ -349,12 +362,18 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             if seen_object:
                 return objects
             elif not seen_bool:
-                if seen_complex:
-                    return complexes
-                elif seen_float:
-                    return floats
-                elif seen_int:
-                    return ints
+                if seen_datetime:
+                    if seen_complex or seen_float or seen_int:
+                        return objects
+                    else:
+                        return datetimes
+                else:
+                    if seen_complex:
+                        return complexes
+                    elif seen_float:
+                        return floats
+                    elif seen_int:
+                        return ints
             else:
                 if not seen_float and not seen_int:
                     return bools.view(np.bool_)
@@ -374,14 +393,20 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             if seen_object:
                 return objects
             elif not seen_bool:
-                if seen_int and seen_float:
-                    return objects
-                elif seen_complex:
-                    return complexes
-                elif seen_float:
-                    return floats
-                elif seen_int:
-                    return ints
+                if seen_datetime:
+                    if seen_complex or seen_float or seen_int:
+                        return objects
+                    else:
+                        return datetimes
+                else:
+                    if seen_int and seen_float:
+                        return objects
+                    elif seen_complex:
+                        return complexes
+                    elif seen_float:
+                        return floats
+                    elif seen_int:
+                        return ints
             else:
                 if not seen_float and not seen_int:
                     return bools.view(np.bool_)
@@ -596,7 +621,8 @@ def map_infer(ndarray arr, object f):
 
         result[i] = val
 
-    return maybe_convert_objects(result, try_float=0)
+    return maybe_convert_objects(result, try_float=0,
+                                 convert_datetime=0)
 
 def to_object_array(list rows):
     cdef:
