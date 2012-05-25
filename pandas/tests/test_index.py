@@ -679,6 +679,20 @@ class TestInt64Index(unittest.TestCase):
         right2 = other.join(self.index, how='right')
         self.assert_(right2.equals(self.index))
 
+    def test_join_non_unique(self):
+        left = Index([4, 4, 3, 3])
+
+        joined, lidx, ridx = left.join(left, return_indexers=True)
+
+        exp_joined = Index([3, 3, 3, 3, 4, 4, 4, 4])
+        self.assert_(joined.equals(exp_joined))
+
+        exp_lidx = np.array([2, 2, 3, 3, 0, 0, 1, 1], dtype=np.int64)
+        self.assert_(np.array_equal(lidx, exp_lidx))
+
+        exp_ridx = np.array([2, 3, 2, 3, 0, 1, 0, 1], dtype=np.int64)
+        self.assert_(np.array_equal(ridx, exp_ridx))
+
     def test_intersection(self):
         other = Index([1, 2, 3, 4, 5])
         result = self.index.intersection(other)
