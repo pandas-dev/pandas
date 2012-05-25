@@ -801,9 +801,9 @@ cdef class DayOffset(_Offset):
 #        offset.next()
 #    return i
 
-def string_to_datetime(ndarray[object] strings, raise_=False, dayfirst=False):
+def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False):
     cdef:
-        Py_ssize_t i, n = len(strings)
+        Py_ssize_t i, n = len(values)
         object val
         ndarray[int64_t] iresult
         ndarray[object] oresult
@@ -815,7 +815,7 @@ def string_to_datetime(ndarray[object] strings, raise_=False, dayfirst=False):
         result = np.empty(n, dtype='M8[ns]')
         iresult = result.view('i8')
         for i in range(n):
-            val = strings[i]
+            val = values[i]
             if util._checknull(val):
                 iresult[i] = NaT
             elif PyDateTime_Check(val):
@@ -824,6 +824,8 @@ def string_to_datetime(ndarray[object] strings, raise_=False, dayfirst=False):
                 iresult[i] = _date_to_datetime64(val, &dts)
             elif util.is_datetime64_object(val):
                 iresult[i] = _get_datetime64_nanos(val)
+            elif util.is_integer_object(val):
+                iresult[i] = val
             else:
                 if len(val) == 0:
                     iresult[i] = NaT
@@ -837,7 +839,7 @@ def string_to_datetime(ndarray[object] strings, raise_=False, dayfirst=False):
         oresult = np.empty(n, dtype=object)
 
         for i in range(n):
-            val = strings[i]
+            val = values[i]
             if util._checknull(val):
                 oresult[i] = val
             else:
@@ -849,7 +851,7 @@ def string_to_datetime(ndarray[object] strings, raise_=False, dayfirst=False):
                 except Exception:
                     if raise_:
                         raise
-                    return strings
+                    return values
                     # oresult[i] = val
 
         return oresult

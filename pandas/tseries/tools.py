@@ -84,16 +84,16 @@ def to_datetime(arg, errors='ignore', dayfirst=False):
     elif isinstance(arg, datetime):
         return arg
     elif isinstance(arg, Series):
-        values = lib.string_to_datetime(com._ensure_object(arg.values),
-                                        raise_=errors == 'raise',
-                                        dayfirst=dayfirst)
+        values = lib.array_to_datetime(com._ensure_object(arg.values),
+                                       raise_=errors == 'raise',
+                                       dayfirst=dayfirst)
         return Series(values, index=arg.index, name=arg.name)
     elif isinstance(arg, (np.ndarray, list)):
         if isinstance(arg, list):
             arg = np.array(arg, dtype='O')
-        result = lib.string_to_datetime(com._ensure_object(arg),
-                                        raise_=errors == 'raise',
-                                        dayfirst=dayfirst)
+        result = lib.array_to_datetime(com._ensure_object(arg),
+                                       raise_=errors == 'raise',
+                                       dayfirst=dayfirst)
         if com.is_datetime64_dtype(result):
             result = DatetimeIndex(result)
         return result

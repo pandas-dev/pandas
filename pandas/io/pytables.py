@@ -962,7 +962,7 @@ def _read_array(group, key):
 
 def _unconvert_index(data, kind):
     if kind == 'datetime64':
-        index = np.array(data, dtype='M8[ns]')
+        index = np.asarray(data, dtype='M8[ns]')
     elif kind == 'datetime':
         index = np.array([datetime.fromtimestamp(v) for v in data],
                          dtype=object)
@@ -978,7 +978,7 @@ def _unconvert_index(data, kind):
 
 def _unconvert_index_legacy(data, kind, legacy=False):
     if kind == 'datetime':
-        index = lib.array_to_datetime(data)
+        index = lib.time64_to_datetime(data)
     elif kind in ('string', 'integer'):
         index = np.array(data, dtype=object)
     else: # pragma: no cover

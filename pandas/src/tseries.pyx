@@ -162,7 +162,7 @@ def array_to_timestamp(ndarray[object, ndim=1] arr):
 
     return result
 
-def array_to_datetime(ndarray[int64_t, ndim=1] arr):
+def time64_to_datetime(ndarray[int64_t, ndim=1] arr):
     cdef int i, n
     cdef ndarray[object, ndim=1] result
 

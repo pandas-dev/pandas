@@ -396,7 +396,7 @@ class TestTimeSeries(unittest.TestCase):
             else:
                 expected[i] = parse(val)
 
-        result = lib.string_to_datetime(strings)
+        result = lib.array_to_datetime(strings)
         assert_almost_equal(result, expected)
 
         result2 = to_datetime(strings)
@@ -451,6 +451,16 @@ class TestTimeSeries(unittest.TestCase):
 
         value = Timestamp(scalar)
         self.assertEquals(value, as_obj)
+
+    def test_to_datetime_list_of_integers(self):
+        rng = date_range('1/1/2000', periods=20)
+        rng = DatetimeIndex(rng.values)
+
+        ints = list(rng.asi8)
+
+        result = DatetimeIndex(ints)
+
+        self.assert_(rng.equals(result))
 
     def test_index_to_datetime(self):
         idx = Index(['1/1/2000', '1/2/2000', '1/3/2000'])
