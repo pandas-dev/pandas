@@ -2741,7 +2741,7 @@ def left_join_indexer_float64(ndarray[float64_t] left,
     j = 0
     count = 0
     if nleft > 0:
-        while True:
+        while i < nleft:
             if j == nright:
                 count += nleft - i
                 break
@@ -2764,11 +2764,9 @@ def left_join_indexer_float64(ndarray[float64_t] left,
                     break
             elif lval < rval:
                 count += 1
-                if i < nleft:
-                    i += 1
+                i += 1
             else:
-                if j < nright:
-                    j += 1
+                j += 1
 
     # do it again now that result size is known
 
@@ -2813,11 +2811,9 @@ def left_join_indexer_float64(ndarray[float64_t] left,
                 rindexer[count] = -1
                 result[count] = left[i]
                 count += 1
-                if i < nleft:
-                    i += 1
+                i += 1
             else:
-                if j < nright:
-                    j += 1
+                j += 1
 
     return result, lindexer, rindexer
 
@@ -2841,7 +2837,7 @@ def left_join_indexer_object(ndarray[object] left,
     j = 0
     count = 0
     if nleft > 0:
-        while True:
+        while i < nleft:
             if j == nright:
                 count += nleft - i
                 break
@@ -2864,11 +2860,9 @@ def left_join_indexer_object(ndarray[object] left,
                     break
             elif lval < rval:
                 count += 1
-                if i < nleft:
-                    i += 1
+                i += 1
             else:
-                if j < nright:
-                    j += 1
+                j += 1
 
     # do it again now that result size is known
 
@@ -2913,11 +2907,9 @@ def left_join_indexer_object(ndarray[object] left,
                 rindexer[count] = -1
                 result[count] = left[i]
                 count += 1
-                if i < nleft:
-                    i += 1
+                i += 1
             else:
-                if j < nright:
-                    j += 1
+                j += 1
 
     return result, lindexer, rindexer
 
@@ -2941,7 +2933,7 @@ def left_join_indexer_int32(ndarray[int32_t] left,
     j = 0
     count = 0
     if nleft > 0:
-        while True:
+        while i < nleft:
             if j == nright:
                 count += nleft - i
                 break
@@ -2964,11 +2956,9 @@ def left_join_indexer_int32(ndarray[int32_t] left,
                     break
             elif lval < rval:
                 count += 1
-                if i < nleft:
-                    i += 1
+                i += 1
             else:
-                if j < nright:
-                    j += 1
+                j += 1
 
     # do it again now that result size is known
 
@@ -3013,11 +3003,9 @@ def left_join_indexer_int32(ndarray[int32_t] left,
                 rindexer[count] = -1
                 result[count] = left[i]
                 count += 1
-                if i < nleft:
-                    i += 1
+                i += 1
             else:
-                if j < nright:
-                    j += 1
+                j += 1
 
     return result, lindexer, rindexer
 
@@ -3041,7 +3029,7 @@ def left_join_indexer_int64(ndarray[int64_t] left,
     j = 0
     count = 0
     if nleft > 0:
-        while True:
+        while i < nleft:
             if j == nright:
                 count += nleft - i
                 break
@@ -3064,11 +3052,9 @@ def left_join_indexer_int64(ndarray[int64_t] left,
                     break
             elif lval < rval:
                 count += 1
-                if i < nleft:
-                    i += 1
+                i += 1
             else:
-                if j < nright:
-                    j += 1
+                j += 1
 
     # do it again now that result size is known
 
@@ -3113,11 +3099,9 @@ def left_join_indexer_int64(ndarray[int64_t] left,
                 rindexer[count] = -1
                 result[count] = left[i]
                 count += 1
-                if i < nleft:
-                    i += 1
+                i += 1
             else:
-                if j < nright:
-                    j += 1
+                j += 1
 
     return result, lindexer, rindexer
 

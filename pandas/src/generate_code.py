@@ -680,7 +680,7 @@ def left_join_indexer_%(name)s(ndarray[%(c_type)s] left,
     j = 0
     count = 0
     if nleft > 0:
-        while True:
+        while i < nleft:
             if j == nright:
                 count += nleft - i
                 break
@@ -703,11 +703,9 @@ def left_join_indexer_%(name)s(ndarray[%(c_type)s] left,
                     break
             elif lval < rval:
                 count += 1
-                if i < nleft:
-                    i += 1
+                i += 1
             else:
-                if j < nright:
-                    j += 1
+                j += 1
 
     # do it again now that result size is known
 
@@ -752,11 +750,9 @@ def left_join_indexer_%(name)s(ndarray[%(c_type)s] left,
                 rindexer[count] = -1
                 result[count] = left[i]
                 count += 1
-                if i < nleft:
-                    i += 1
+                i += 1
             else:
-                if j < nright:
-                    j += 1
+                j += 1
 
     return result, lindexer, rindexer
 
