@@ -15,6 +15,7 @@ from pandas import (Index, Series, TimeSeries, DataFrame, isnull, notnull,
                     bdate_range, date_range)
 from pandas.core.index import MultiIndex
 from pandas.tseries.index import Timestamp, DatetimeIndex
+import pandas.core.series as smod
 import pandas._tseries as lib
 
 import pandas.core.datetools as datetools
@@ -1954,12 +1955,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         self.assertRaises(ValueError, ps.shift, freq='D')
 
-        #legacy support
+        # legacy support
+        smod._SHOW_WARNINGS = False
         shifted4 = ps.shift(1, timeRule='B')
         assert_series_equal(shifted2, shifted4)
 
         shifted5 = ps.shift(1, offset=datetools.bday)
         assert_series_equal(shifted5, shifted4)
+        smod._SHOW_WARNINGS = True
 
     def test_tshift(self):
         # PeriodIndex

@@ -38,6 +38,8 @@ __all__ = ['Series', 'TimeSeries']
 _np_version = np.version.short_version
 _np_version_under1p6 = LooseVersion(_np_version) < '1.6'
 
+_SHOW_WARNINGS = True
+
 #----------------------------------------------------------------------
 # Wrapper function for Series arithmetic methods
 
@@ -498,10 +500,14 @@ copy : boolean, default False
             return self.values[indexer]
 
     def __setitem__(self, key, value):
-        values = self.values
         try:
-            values[self.index.get_loc(key)] = value
-            return
+            try:
+                self.index._engine.set_value(self, key, value)
+                return
+            except KeyError:
+                values = self.values
+                values[self.index.get_loc(key)] = value
+                return
         except KeyError:
             if (com.is_integer(key)
                 and not self.index.inferred_type == 'integer'):
@@ -2723,7 +2729,7 @@ def _resolve_offset(freq, kwds):
         offset = freq
         warn = False
 
-    if warn:
+    if warn and _SHOW_WARNINGS:
         import warnings
         warnings.warn("'timeRule' and 'offset' parameters are deprecated,"
                       " please use 'freq' instead",
