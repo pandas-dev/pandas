@@ -212,7 +212,7 @@ int Object_npyArrayAddItem(JSOBJ obj, JSOBJ value)
 
     npyarr->shape.ptr[npyarr->dec->curdim-1]++;
 
-    if (PyArray_Check(value))
+    if (PyArray_Check((PyObject*)value))
     {
         // multidimensional array, keep decoding values.
         return 1;

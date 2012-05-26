@@ -304,15 +304,15 @@ class UltraJSONTests(TestCase):
             pass
 
     def test_encodeDoubleNan(self):
-        input = float('nan')
+        input = np.nan
         assert ujson.encode(input) == 'null', "Expected null"
 
     def test_encodeDoubleInf(self):
-        input = float('inf')
+        input = np.inf
         assert ujson.encode(input) == 'null', "Expected null"
 
     def test_encodeDoubleNegInf(self):
-        input = -float('inf')
+        input = -np.inf
         assert ujson.encode(input) == 'null', "Expected null"
 
 
@@ -959,7 +959,8 @@ class PandasJSONTests(TestCase):
         assert_array_equal(df.columns, outp.columns)
         assert_array_equal(df.index, outp.index)
 
-        outp = DataFrame(**ujson.decode(ujson.encode(df, orient="split")))
+        dec = _clean_dict(ujson.decode(ujson.encode(df, orient="split")))
+        outp = DataFrame(**dec)
         self.assertTrue((df == outp).values.all())
         assert_array_equal(df.columns, outp.columns)
         assert_array_equal(df.index, outp.index)
@@ -987,8 +988,10 @@ class PandasJSONTests(TestCase):
         self.assertTrue((df == outp).values.all())
         assert_array_equal(df.columns, outp.columns)
         assert_array_equal(df.index, outp.index)
-
-        outp = DataFrame(**ujson.decode(ujson.encode(df, orient="split"), numpy=True))
+    
+        dec = _clean_dict(ujson.decode(ujson.encode(df, orient="split"), 
+                          numpy=True))
+        outp = DataFrame(**dec)
         self.assertTrue((df == outp).values.all())
         assert_array_equal(df.columns, outp.columns)
         assert_array_equal(df.index, outp.index)
@@ -1055,11 +1058,14 @@ class PandasJSONTests(TestCase):
         outp.sort()
         self.assertTrue((s == outp).values.all())
 
-        outp = Series(**ujson.decode(ujson.encode(s, orient="split")))
+        dec = _clean_dict(ujson.decode(ujson.encode(s, orient="split")))
+        outp = Series(**dec)
         self.assertTrue((s == outp).values.all())
         self.assertTrue(s.name == outp.name)
 
-        outp = Series(**ujson.decode(ujson.encode(s, orient="split"), numpy=True))
+        dec = _clean_dict(ujson.decode(ujson.encode(s, orient="split"), 
+                          numpy=True))
+        outp = Series(**dec)
         self.assertTrue((s == outp).values.all())
         self.assertTrue(s.name == outp.name)
 
@@ -1119,11 +1125,14 @@ class PandasJSONTests(TestCase):
         outp = Index(ujson.decode(ujson.encode(i), numpy=True))
         assert_array_equal(i, outp)
 
-        outp = Index(**ujson.decode(ujson.encode(i, orient="split")))
+        dec = _clean_dict(ujson.decode(ujson.encode(i, orient="split")))
+        outp = Index(**dec)
         assert_array_equal(i, outp)
         self.assertTrue(i.name == outp.name)
 
-        outp = Index(**ujson.decode(ujson.encode(i, orient="split"), numpy=True))
+        dec = _clean_dict(ujson.decode(ujson.encode(i, orient="split"), 
+                          numpy=True))
+        outp = Index(**dec)
         assert_array_equal(i, outp)
         self.assertTrue(i.name == outp.name)
 
@@ -1186,6 +1195,10 @@ raise NotImplementedError("Implement this test!")
 
 
 """
+
+def _clean_dict(d):
+    return dict((str(k), v) for k, v in d.iteritems())
+    
 if __name__ == '__main__':
     # unittest.main()
     import nose

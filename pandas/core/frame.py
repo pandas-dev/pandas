@@ -802,7 +802,9 @@ class DataFrame(NDFrame):
                         args = (args[0].T, args[2], args[1])
                     df = DataFrame(*args)
                 elif orient == "split":
-                    df = DataFrame(**loads(json, dtype=dtype, numpy=True))
+                    decoded = loads(json, dtype=dtype, numpy=True)
+                    decoded = dict((str(k), v) for k, v in decoded.iteritems())
+                    df = DataFrame(**decoded)
                 elif orient == "values":
                     df = DataFrame(loads(json, dtype=dtype, numpy=True))
                 else:
@@ -814,7 +816,9 @@ class DataFrame(NDFrame):
             if orient == "columns":
                 df = DataFrame(loads(json), dtype=dtype)
             elif orient == "split":
-                df = DataFrame(dtype=dtype, **loads(json))
+                decoded = dict((str(k), v) 
+                               for k, v in loads(json).iteritems())
+                df = DataFrame(dtype=dtype, **decoded)
             elif orient == "index":
                 df = DataFrame(loads(json), dtype=dtype).T
             else:

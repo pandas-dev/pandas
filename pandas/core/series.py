@@ -947,7 +947,9 @@ copy : boolean, default False
         if numpy:
             try:
                 if orient == "split":
-                    s = Series(**loads(json, dtype=dtype, numpy=True))
+                    decoded = loads(json, dtype=dtype, numpy=True)
+                    decoded = dict((str(k), v) for k, v in decoded.iteritems())
+                    s = Series(**decoded)
                 elif orient == "columns" or orient == "index":
                     s = Series(*loads(json, dtype=dtype, numpy=True,
                                       labelled=True))
@@ -957,7 +959,9 @@ copy : boolean, default False
                 numpy = False
         if not numpy:
             if orient == "split":
-                s = Series(dtype=dtype, **loads(json))
+                decoded = dict((str(k), v) 
+                               for k, v in loads(json).iteritems())
+                s = Series(dtype=dtype, **decoded)
             else:
                 s = Series(loads(json), dtype=dtype)
 
