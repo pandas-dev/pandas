@@ -9,6 +9,7 @@ except ImportError:
     import simplejson as json
 import math
 import platform
+import sys
 import time
 import datetime
 import calendar
@@ -21,6 +22,13 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal_nulp,
 from pandas import DataFrame, Series, Index
 import pandas.util.testing as tm
 
+
+def _skip_if_python25():
+    import nose
+    major, minor = sys.version_info[:2]
+    if major == 2 and minor == 5:
+        raise nose.SkipTest
+        
 class UltraJSONTests(TestCase):
     def test_encodeDictWithUnicodeKeys(self):
         input = { u"key1": u"value1", u"key1": u"value1", u"key1": u"value1", u"key1": u"value1", u"key1": u"value1", u"key1": u"value1" }
@@ -135,6 +143,7 @@ class UltraJSONTests(TestCase):
         self.assertEquals(dec, json.loads(enc))
 
     def test_encodeUnicodeSurrogatePair(self):
+        _skip_if_python25()
         input = "\xf0\x90\x8d\x86"
         enc = ujson.encode(input)
         dec = ujson.decode(enc)
@@ -143,6 +152,7 @@ class UltraJSONTests(TestCase):
         self.assertEquals(dec, json.loads(enc))
 
     def test_encodeUnicode4BytesUTF8(self):
+        _skip_if_python25()
         input = "\xf0\x91\x80\xb0TRAILINGNORMAL"
         enc = ujson.encode(input)
         dec = ujson.decode(enc)
@@ -151,6 +161,7 @@ class UltraJSONTests(TestCase):
         self.assertEquals(dec, json.loads(enc))
 
     def test_encodeUnicode4BytesUTF8Highest(self):
+        _skip_if_python25()
         input = "\xf3\xbf\xbf\xbfTRAILINGNORMAL"
         enc = ujson.encode(input)
 
@@ -270,6 +281,7 @@ class UltraJSONTests(TestCase):
         self.assert_(roundtrip == stamp.value)
 
     def test_encodeToUTF8(self):
+        _skip_if_python25()    
         input = "\xe6\x97\xa5\xd1\x88"
         enc = ujson.encode(input, ensure_ascii=False)
         dec = ujson.decode(enc)
