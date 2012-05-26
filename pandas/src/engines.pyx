@@ -435,6 +435,13 @@ cdef class DatetimeEngine(Int64Engine):
                                      limit=limit)
 
 
+cpdef convert_scalar(ndarray arr, object scalar):
+    if arr.descr.type_num == NPY_DATETIME:
+        if not isinstance(scalar, _Timestamp):
+            scalar = Timestamp(scalar)
+        return scalar.asm8
+    return scalar
+
 cdef inline _to_i8(object val):
     cdef pandas_datetimestruct dts
     if util.is_datetime64_object(val):
@@ -442,6 +449,7 @@ cdef inline _to_i8(object val):
     elif PyDateTime_Check(val):
         return _pydatetime_to_dts(val, &dts)
     return val
+
 
 # ctypedef fused idxvalue_t:
 #     object

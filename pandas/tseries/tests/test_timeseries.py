@@ -1092,6 +1092,10 @@ class TestLegacyCompat(unittest.TestCase):
 
 
 class TestDatetime64(unittest.TestCase):
+    """
+    Also test supoprt for datetime64[ns] in Series / DataFrame
+    """
+
 
     def setUp(self):
         dti = DatetimeIndex(start=datetime(2005,1,1),
@@ -1251,6 +1255,33 @@ class TestDatetime64(unittest.TestCase):
         self.assert_(isinstance(result, DatetimeIndex))
 
     # TODO: test merge & concat with datetime64 block
+
+
+class TestSeriesDatetime64(unittest.TestCase):
+
+    def setUp(self):
+        self.series = Series(list(date_range('1/1/2000', periods=10)))
+
+    def test_series_comparison_scalars(self):
+        val = datetime(2000, 1, 4)
+        result = self.series > val
+        expected = np.array([x > val for x in self.series])
+        self.assert_(np.array_equal(result, expected))
+
+        val = self.series[5]
+        result = self.series > val
+        expected = np.array([x > val for x in self.series])
+        self.assert_(np.array_equal(result, expected))
+
+    def test_between(self):
+        left, right = self.series[[2, 7]]
+
+        result = self.series.between(left, right)
+        expected = (self.series >= left) & (self.series <= right)
+        assert_series_equal(result, expected)
+
+    #----------------------------------------------------------------------
+    # NaT support
 
 
 class TestTimestamp(unittest.TestCase):

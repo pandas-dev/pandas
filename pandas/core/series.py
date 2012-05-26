@@ -114,12 +114,14 @@ def _comp_method(op, name):
         elif isinstance(other, DataFrame): # pragma: no cover
             return NotImplemented
         else:
+            values = self.values
+            other = lib.convert_scalar(values, other)
             # scalars
-            res = na_op(self.values, other)
+            res = na_op(values, other)
             if np.isscalar(res):
                 raise TypeError('Could not compare %s type with Series'
                                 % type(other))
-            return Series(na_op(self.values, other),
+            return Series(na_op(values, other),
                           index=self.index, name=self.name)
     return wrapper
 
@@ -815,7 +817,10 @@ copy : boolean, default False
         return repr(self)
 
     def __iter__(self):
-        return iter(self.values)
+        if np.issubdtype(self.dtype, np.datetime64):
+            return (lib.Timestamp(x) for x in self.values)
+        else:
+            return iter(self.values)
 
     def iteritems(self, index=True):
         """
@@ -959,7 +964,7 @@ copy : boolean, default False
                 numpy = False
         if not numpy:
             if orient == "split":
-                decoded = dict((str(k), v) 
+                decoded = dict((str(k), v)
                                for k, v in loads(json).iteritems())
                 s = Series(dtype=dtype, **decoded)
             else:

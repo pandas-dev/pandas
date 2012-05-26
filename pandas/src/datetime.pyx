@@ -144,6 +144,10 @@ class Timestamp(_Timestamp):
     def freqstr(self):
         return getattr(self.offset, 'freqstr', self.offset)
 
+    @property
+    def asm8(self):
+        return np.int64(self.value).view('M8[ns]')
+
     def tz_convert(self, tz):
         if isinstance(tz, basestring):
             import pytz
