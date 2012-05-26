@@ -886,6 +886,9 @@ class Index(np.ndarray):
         left_idx, right_idx = _get_join_indexers([self.values], [other.values],
                                                  how=how, sort=True)
 
+        left_idx = com._ensure_platform_int(left_idx)
+        right_idx = com._ensure_platform_int(right_idx)
+
         join_index = self.values.take(left_idx)
         mask = left_idx == -1
         np.putmask(join_index, mask, other.values.take(right_idx))
