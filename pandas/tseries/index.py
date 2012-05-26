@@ -228,7 +228,7 @@ class DatetimeIndex(Int64Index):
                 data = _str_to_dt_array(data, offset)
             else:
                 data = tools.to_datetime(data)
-                data = np.asarray(data, dtype='M8[ns]')
+                data.offset = offset
 
         if issubclass(data.dtype.type, basestring):
             subarr = _str_to_dt_array(data, offset)
