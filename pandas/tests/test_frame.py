@@ -822,6 +822,22 @@ class CheckIndexing(object):
         expected.ix[mask] = 0
         assert_frame_equal(cp, expected)
 
+    def test_getitem_setitem_boolean_multi(self):
+        df = DataFrame(np.random.randn(3, 2))
+
+        # get
+        k1 = np.array([True, False, True])
+        k2 = np.array([False, True])
+        result = df.ix[k1, k2]
+        expected = df.ix[[0, 2], [1]]
+        assert_frame_equal(result, expected)
+
+        expected = df.copy()
+        df.ix[np.array([True, False, True]),
+              np.array([False, True])] = 5
+        expected.ix[[0, 2], [1]] = 5
+        assert_frame_equal(df, expected)
+
     def test_getitem_setitem_float_labels(self):
         index = Index([1.5, 2, 3, 4, 5])
         df = DataFrame(np.random.randn(5, 5), index=index)

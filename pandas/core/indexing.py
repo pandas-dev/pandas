@@ -143,7 +143,7 @@ class _NDFrameIndexer(object):
 
         if com._is_bool_indexer(key):
             key = _check_bool_indexer(labels, key)
-            return np.asarray(key)
+            return labels[np.asarray(key)]
         else:
             if isinstance(key, Index):
                 # want Index objects to pass through untouched
