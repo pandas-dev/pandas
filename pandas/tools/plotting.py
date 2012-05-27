@@ -129,7 +129,7 @@ def _gcf():
     import matplotlib.pyplot as plt
     return plt.gcf()
 
-def andrews_curves(data, class_column, samples=200):
+def andrews_curves(data, class_column, ax=None, samples=200):
     """
     Parameters:
     data: A DataFrame containing data to be plotted, preferably
@@ -160,6 +160,8 @@ def andrews_curves(data, class_column, samples=200):
     columns = [data[col] for col in data.columns if (col != class_column)]
     x = [-pi + 2.0 * pi * (t / float(samples)) for t in range(samples)]
     used_legends = set([])
+    if ax == None:
+        ax = plt.gca(xlim=(-pi, pi))
     for i in range(n):
         row = [columns[c][i] for c in range(len(columns))]
         f = function(row)
@@ -168,10 +170,10 @@ def andrews_curves(data, class_column, samples=200):
         if class_col[i] not in used_legends:
             label = class_col[i]
             used_legends.add(class_col[i])
-        plt.plot(x, y, color=random_color(class_col[i]), label=label)
-    plt.xlim(xmin=-pi, xmax=pi)
-    plt.legend(loc='upper right')
-    plt.grid()
+        ax.plot(x, y, color=random_color(class_col[i]), label=label)
+    ax.legend(loc='upper right')
+    ax.grid()
+    return ax
 
 def grouped_hist(data, column=None, by=None, ax=None, bins=50, log=False,
                  figsize=None, layout=None, sharex=False, sharey=False,
