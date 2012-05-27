@@ -24,7 +24,7 @@ from pandas.core.internals import BlockManager, make_block
 from pandas.core.reshape import block2d_to_block3d
 import pandas.core.common as com
 
-import pandas._tseries as lib
+import pandas.lib as lib
 from contextlib import contextmanager
 
 # reading and writing the full object in one go

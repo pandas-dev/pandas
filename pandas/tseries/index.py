@@ -14,8 +14,8 @@ import pandas.core.common as com
 import pandas.tseries.offsets as offsets
 import pandas.tseries.tools as tools
 
-from pandas._tseries import Timestamp
-import pandas._tseries as lib
+from pandas.lib import Timestamp
+import pandas.lib as lib
 import pandas._algos as _algos
 
 def _utc():

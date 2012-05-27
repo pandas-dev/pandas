@@ -1,6 +1,6 @@
 import numpy as np
 import pandas.core.common as com
-import pandas._tseries as lib
+import pandas.lib as lib
 
 
 class Factor(np.ndarray):

@@ -10,7 +10,7 @@ from numpy import NaN
 import numpy as np
 
 from pandas.core.api import DataFrame, Series, notnull
-import pandas._tseries as _tseries
+import pandas.lib as _tseries
 
 from pandas.util.decorators import Substitution, Appender
 

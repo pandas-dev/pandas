@@ -272,7 +272,7 @@ class UltraJSONTests(TestCase):
 
     def test_datetime_nanosecond_unit(self):
         from datetime import datetime
-        from pandas._tseries import Timestamp
+        from pandas.lib import Timestamp
 
         val = datetime.now()
         stamp = Timestamp(val)

@@ -24,7 +24,7 @@ import pandas.tseries.tools as tools
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
 
-import pandas._tseries as lib
+import pandas.lib as lib
 import cPickle as pickle
 import pandas.core.datetools as dt
 from numpy.random import rand

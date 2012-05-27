@@ -11,7 +11,7 @@ from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly, Appender
 import pandas.core.algorithms as algos
 import pandas.core.common as com
-import pandas._tseries as lib
+import pandas.lib as lib
 
 
 class GroupByError(Exception):

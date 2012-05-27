@@ -10,7 +10,7 @@ from pandas.core.index import MultiIndex, _ensure_index
 from pandas.util import py3compat
 
 import pandas.core.common as com
-import pandas._tseries as lib
+import pandas.lib as lib
 
 import numpy as np
 

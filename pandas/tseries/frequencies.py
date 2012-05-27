@@ -6,7 +6,7 @@ import numpy as np
 from pandas.tseries.offsets import DateOffset
 from pandas.util.decorators import cache_readonly
 import pandas.tseries.offsets as offsets
-import pandas._tseries as lib
+import pandas.lib as lib
 
 class FreqGroup(object):
     FR_ANN = 1000

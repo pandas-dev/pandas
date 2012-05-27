@@ -19,7 +19,7 @@ from pandas.core.index import Index, MultiIndex
 from pandas.core.frame import DataFrame
 import datetime
 import pandas.core.common as com
-import pandas._tseries as lib
+import pandas.lib as lib
 from pandas.util import py3compat
 from pandas.io.date_converters import generic_parser
 

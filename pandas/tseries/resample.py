@@ -10,8 +10,8 @@ from pandas.tseries.period import Period, PeriodIndex, period_range
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 
-from pandas._tseries import Timestamp
-import pandas._tseries as lib
+from pandas.lib import Timestamp
+import pandas.lib as lib
 
 
 class TimeGrouper(CustomGrouper):

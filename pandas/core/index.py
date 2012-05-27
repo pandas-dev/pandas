@@ -11,7 +11,7 @@ from pandas.core.common import ndtake
 from pandas.util.decorators import cache_readonly
 from pandas.util import py3compat
 import pandas.core.common as com
-import pandas._tseries as lib
+import pandas.lib as lib
 import pandas._algos as _algos
 
 

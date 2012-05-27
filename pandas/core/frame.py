@@ -43,7 +43,7 @@ import pandas.core.nanops as nanops
 import pandas.core.common as com
 import pandas.core.generic as generic
 import pandas.core.datetools as datetools
-import pandas._tseries as lib
+import pandas.lib as lib
 
 #----------------------------------------------------------------------
 # Docstring templates

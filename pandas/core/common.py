@@ -19,7 +19,7 @@ from numpy.lib.format import read_array, write_array
 import numpy as np
 
 import pandas._algos as _algos
-import pandas._tseries as lib
+import pandas.lib as lib
 from pandas.util import py3compat
 import codecs
 import csv

@@ -1,6 +1,6 @@
 """This module is designed for community supported date conversion functions"""
 import numpy as np
-import pandas._tseries as lib
+import pandas.lib as lib
 
 def parse_date_time(date_col, time_col):
     date_col = _maybe_cast(date_col)

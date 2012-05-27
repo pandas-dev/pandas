@@ -24,7 +24,7 @@ import pandas.tseries.frequencies as fmod
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
 
-import pandas._tseries as lib
+import pandas.lib as lib
 import cPickle as pickle
 import pandas.core.datetools as dt
 from numpy.random import rand
@@ -725,7 +725,7 @@ class TestTimeSeries(unittest.TestCase):
 
     def test_timestamp_fields(self):
         # extra fields from DatetimeIndex like quarter and week
-        from pandas._tseries import Timestamp
+        from pandas.lib import Timestamp
         idx = tm.makeDateIndex(10)
 
         fields = ['dayofweek', 'dayofyear', 'week', 'weekofyear', 'quarter']

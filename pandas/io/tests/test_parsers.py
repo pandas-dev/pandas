@@ -17,9 +17,9 @@ from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                ExcelFile, TextParser)
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
                                  assert_series_equal, network)
-import pandas._tseries as lib
+import pandas.lib as lib
 from pandas.util import py3compat
-from pandas._tseries import Timestamp
+from pandas.lib import Timestamp
 
 from numpy.testing.decorators import slow
 from pandas.io.date_converters import (

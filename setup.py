@@ -362,24 +362,16 @@ algos_ext = Extension('pandas._algos',
                       include_dirs=[np.get_include()],
                       )
 
-tseries_ext = Extension('pandas._tseries',
-                      depends=tseries_depends + ['pandas/src/numpy_helper.h'],
-                      sources=[srcpath('tseries', suffix=suffix),
-                               'pandas/src/period.c',
-                               'pandas/src/datetime/np_datetime.c',
-                               'pandas/src/datetime/np_datetime_strings.c'],
-                      include_dirs=[np.get_include()],
-                      # pyrex_gdb=True,
-                      # extra_compile_args=['-Wconversion']
-                      )
-
-# tseries_ext = Extension('pandas._tseries',
-#                         depends=tseries_depends + ['pandas/src/numpy_helper.h'],
-#                         sources=[srcpath('datetime', suffix=suffix)],
-#                         include_dirs=[np.get_include()],
-#                         # pyrex_gdb=True,
-#                         # extra_compile_args=['-Wconversion']
-#                         )
+lib_ext = Extension('pandas.lib',
+                    depends=tseries_depends + ['pandas/src/numpy_helper.h'],
+                    sources=[srcpath('tseries', suffix=suffix),
+                             'pandas/src/period.c',
+                             'pandas/src/datetime/np_datetime.c',
+                             'pandas/src/datetime/np_datetime_strings.c'],
+                    include_dirs=[np.get_include()],
+                    # pyrex_gdb=True,
+                    # extra_compile_args=['-Wconversion']
+                    )
 
 
 sparse_ext = Extension('pandas._sparse',
@@ -420,7 +412,7 @@ cppsandbox_ext = Extension('pandas._cppsandbox',
                            sources=[srcpath('cppsandbox', suffix=suffix)],
                            include_dirs=[np.get_include()])
 
-extensions = [algos_ext, tseries_ext, sparse_ext, ujson_ext]
+extensions = [algos_ext, lib_ext, sparse_ext, ujson_ext]
 
 if not ISRELEASED:
     extensions.extend([sandbox_ext])

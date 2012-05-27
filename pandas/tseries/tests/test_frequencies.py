@@ -13,7 +13,7 @@ from pandas.tseries.frequencies import to_offset, infer_freq
 from pandas.tseries.tools import to_datetime
 import pandas.tseries.offsets as offsets
 
-import pandas._tseries as lib
+import pandas.lib as lib
 
 def test_to_offset_multiple():
     freqstr = '2h30min'

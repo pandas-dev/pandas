@@ -9,8 +9,8 @@ from pandas.util.decorators import cache_readonly
 # import after tools, dateutil check
 from dateutil.relativedelta import relativedelta
 
-from pandas._tseries import Timestamp
-import pandas._tseries as lib
+from pandas.lib import Timestamp
+import pandas.lib as lib
 
 #----------------------------------------------------------------------
 # DateOffset

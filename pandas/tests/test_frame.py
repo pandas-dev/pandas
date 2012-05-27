@@ -30,7 +30,7 @@ from pandas.util.testing import (assert_almost_equal,
                                  assert_frame_equal)
 
 import pandas.util.testing as tm
-import pandas._tseries as lib
+import pandas.lib as lib
 
 #-------------------------------------------------------------------------------
 # DataFrame test cases

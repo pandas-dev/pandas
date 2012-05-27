@@ -11,8 +11,8 @@ import pandas.tseries.frequencies as _freq_mod
 
 import pandas.core.common as com
 
-from pandas._tseries import Timestamp
-import pandas._tseries as lib
+from pandas.lib import Timestamp
+import pandas.lib as lib
 
 
 #---------------

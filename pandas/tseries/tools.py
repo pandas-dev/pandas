@@ -4,7 +4,7 @@ import sys
 
 import numpy as np
 
-import pandas._tseries as lib
+import pandas.lib as lib
 import pandas.core.common as com
 
 try:

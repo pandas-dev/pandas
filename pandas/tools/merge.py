@@ -18,7 +18,7 @@ from pandas.util.decorators import cache_readonly, Appender, Substitution
 from pandas.sparse.frame import SparseDataFrame
 import pandas.core.common as com
 
-import pandas._tseries as lib
+import pandas.lib as lib
 
 @Substitution('\nleft : DataFrame')
 @Appender(_merge_doc, indents=0)

@@ -7,7 +7,7 @@ from datetime import datetime
 import numpy as np
 
 try:
-    import pandas._tseries as lib
+    import pandas.lib as lib
 except Exception:  # pragma: no cover
     import sys
     e = sys.exc_info()[1] # Py25 and Py3 current exception syntax conflict
@@ -25,7 +25,7 @@ from pandas.core.api import *
 from pandas.sparse.api import *
 from pandas.stats.api import *
 from pandas.tseries.api import *
-from pandas._tseries import NaT
+from pandas.lib import NaT
 
 from pandas.core.format import (set_printoptions, reset_printoptions,
                                 set_eng_float_format)

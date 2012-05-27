@@ -4,7 +4,7 @@ import numpy as np
 
 from pandas.core.common import isnull, notnull
 import pandas.core.common as com
-import pandas._tseries as lib
+import pandas.lib as lib
 
 try:
     import bottleneck as bn

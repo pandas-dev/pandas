@@ -28,7 +28,7 @@ import pandas.core.datetools as datetools
 import pandas.core.format as fmt
 import pandas.core.generic as generic
 import pandas.core.nanops as nanops
-import pandas._tseries as lib
+import pandas.lib as lib
 from pandas.util.decorators import Appender, Substitution
 
 from pandas.compat.scipy import scoreatpercentile as _quantile

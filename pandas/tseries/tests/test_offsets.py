@@ -16,8 +16,8 @@ from pandas.tseries.tools import parse_time_string
 
 from nose.tools import assert_raises
 
-import pandas._tseries as lib
-from pandas._tseries import Timestamp
+import pandas.lib as lib
+from pandas.lib import Timestamp
 
 def test_monthrange():
     import calendar

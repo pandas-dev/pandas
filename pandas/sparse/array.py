@@ -14,7 +14,7 @@ from pandas.util import py3compat
 
 from pandas._sparse import BlockIndex, IntIndex
 import pandas._sparse as splib
-import pandas._tseries as lib
+import pandas.lib as lib
 
 
 def _sparse_op_wrap(op, name):

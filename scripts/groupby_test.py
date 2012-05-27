@@ -5,7 +5,7 @@ import numpy as np
 
 from pandas import *
 
-import pandas._tseries as tseries
+import pandas.lib as tseries
 import pandas.core.groupby as gp
 import pandas.util.testing as tm
 reload(gp)

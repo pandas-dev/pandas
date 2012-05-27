@@ -20,7 +20,7 @@ from pandas.util import py3compat
 from pandas.util.decorators import deprecate, Appender, Substitution
 import pandas.core.common as com
 import pandas.core.nanops as nanops
-import pandas._tseries as lib
+import pandas.lib as lib
 
 
 def _ensure_like_indices(time, panels):

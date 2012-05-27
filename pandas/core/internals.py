@@ -6,7 +6,7 @@ import numpy as np
 
 from pandas.core.index import Index, _ensure_index, _handle_legacy_indexes
 import pandas.core.common as com
-import pandas._tseries as lib
+import pandas.lib as lib
 
 class Block(object):
     """

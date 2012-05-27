@@ -16,7 +16,7 @@ from pandas import (Index, Series, TimeSeries, DataFrame, isnull, notnull,
 from pandas.core.index import MultiIndex
 from pandas.tseries.index import Timestamp, DatetimeIndex
 import pandas.core.series as smod
-import pandas._tseries as lib
+import pandas.lib as lib
 
 import pandas.core.datetools as datetools
 import pandas.core.nanops as nanops
