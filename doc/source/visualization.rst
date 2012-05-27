@@ -246,3 +246,26 @@ Scatter plot matrix
 
    @savefig scatter_matrix_hist.png width=6in
    scatter_matrix(df, alpha=0.2, figsize=(8, 8), diagonal='hist')
+
+.. _visualization.andrews_curves:
+
+Andrews Curves
+~~~~~~~~~~~~~~
+
+Andrews curves allow one to plot multivariate data as a large number
+of curves that are created using the attributes of samples as coefficients
+for Fourier series. By coloring these curves differently for each class
+it is possible to visualize data clustering. Curves belonging to samples
+of the same class will usually be closer together and form larger structures.
+
+.. ipython:: python
+
+   from pandas import read_csv
+   from pandas.tools.plotting import andrews_curves
+
+   data = read_csv('data/iris.data')
+
+   plt.figure()
+
+   @savefig andrews_curves.png width=6in
+   andrews_curves(data, 'Name')
