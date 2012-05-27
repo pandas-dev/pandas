@@ -118,6 +118,10 @@ def _comp_method(op, name):
         else:
             values = self.values
             other = lib.convert_scalar(values, other)
+
+            if issubclass(values.dtype.type, np.datetime64):
+                values = values.view('i8')
+
             # scalars
             res = na_op(values, other)
             if np.isscalar(res):
@@ -569,11 +573,8 @@ copy : boolean, default False
         self._set_values(indexer, value)
 
     def _set_values(self, key, value):
-        if issubclass(self.dtype.type, (np.integer, np.bool_)):
-            if np.isscalar(value) and isnull(value):
-                raise ValueError('Cannot assign nan to integer series')
-
-        self.values[key] = value
+        values = self.values
+        values[key] = lib.convert_scalar(values, value)
 
     # help out SparseSeries
     _get_val_at = ndarray.__getitem__
@@ -604,11 +605,12 @@ copy : boolean, default False
 
     def __setslice__(self, i, j, value):
         """Set slice equal to given value(s)"""
-        if issubclass(self.dtype.type, (np.integer, np.bool_)):
-            if np.isscalar(value) and isnull(value):
-                raise ValueError('Cannot assign nan to integer series')
-
-        ndarray.__setslice__(self, i, j, value)
+        if i < 0:
+            i = 0
+        if j < 0:
+            j = 0
+        slobj = slice(i, j)
+        return self.__setitem__(slobj, value)
 
     def astype(self, dtype):
         """

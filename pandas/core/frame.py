@@ -371,7 +371,7 @@ class DataFrame(NDFrame):
             mask = ma.getmaskarray(data)
             datacopy = ma.copy(data)
             if issubclass(data.dtype.type, np.datetime64):
-                datacopy[mask] = lib.NaT
+                datacopy[mask] = lib.iNaT
             else:
                 datacopy = com._maybe_upcast(datacopy)
                 datacopy[mask] = np.nan
@@ -808,7 +808,7 @@ class DataFrame(NDFrame):
             if orient == "columns":
                 df = DataFrame(loads(json), dtype=dtype)
             elif orient == "split":
-                decoded = dict((str(k), v) 
+                decoded = dict((str(k), v)
                                for k, v in loads(json).iteritems())
                 df = DataFrame(dtype=dtype, **decoded)
             elif orient == "index":

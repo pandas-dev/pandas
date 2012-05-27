@@ -52,7 +52,7 @@ def isnull(obj):
     -------
     boolean ndarray or boolean
     '''
-    if np.isscalar(obj) or obj is None:
+    if lib.isscalar(obj):
         return lib.checknull(obj)
 
     from pandas.core.generic import PandasObject
@@ -69,7 +69,7 @@ def isnull(obj):
                 result = Series(result, index=obj.index, copy=False)
         elif obj.dtype == np.dtype('M8[ns]'):
             # this is the NaT pattern
-            result = np.array(obj).view('i8') == lib.NaT
+            result = np.array(obj).view('i8') == lib.iNaT
         else:
             result = -np.isfinite(obj)
         return result
@@ -157,7 +157,7 @@ _take1d_dict = {
     'object' : _algos.take_1d_object,
     'bool' : _view_wrapper(_algos.take_1d_bool, np.uint8),
     'datetime64[ns]' : _view_wrapper(_algos.take_1d_int64, np.int64,
-                                     na_override=lib.NaT),
+                                     na_override=lib.iNaT),
 }
 
 _take2d_axis0_dict = {
@@ -167,7 +167,7 @@ _take2d_axis0_dict = {
     'object' : _algos.take_2d_axis0_object,
     'bool' : _view_wrapper(_algos.take_2d_axis0_bool, np.uint8),
     'datetime64[ns]' : _view_wrapper(_algos.take_2d_axis0_int64, np.int64,
-                                     na_override=lib.NaT),
+                                     na_override=lib.iNaT),
 }
 
 _take2d_axis1_dict = {
@@ -177,7 +177,7 @@ _take2d_axis1_dict = {
     'object' : _algos.take_2d_axis1_object,
     'bool' : _view_wrapper(_algos.take_2d_axis1_bool, np.uint8),
     'datetime64[ns]' : _view_wrapper(_algos.take_2d_axis1_int64, np.int64,
-                                     na_override=lib.NaT),
+                                     na_override=lib.iNaT),
 }
 
 _take2d_multi_dict = {
@@ -187,7 +187,7 @@ _take2d_multi_dict = {
     'object' : _algos.take_2d_multi_object,
     'bool' : _view_wrapper(_algos.take_2d_multi_bool, np.uint8),
     'datetime64[ns]' : _view_wrapper(_algos.take_2d_multi_int64, np.int64,
-                                     na_override=lib.NaT),
+                                     na_override=lib.iNaT),
 }
 
 def _get_take2d_function(dtype_str, axis=0):

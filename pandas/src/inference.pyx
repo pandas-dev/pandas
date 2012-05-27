@@ -271,7 +271,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values):
         return ints
 
 def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
-                          bint safe=0, bint convert_datetime=1):
+                          bint safe=0, bint convert_datetime=0):
     '''
     Type inference function-- convert object array to proper dtype
     '''

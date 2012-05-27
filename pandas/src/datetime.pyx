@@ -79,10 +79,13 @@ class Timestamp(_Timestamp):
 
         ts = convert_to_tsobject(ts_input, tz)
 
+        if ts.value == NPY_NAT:
+            return NaT
+
         # make datetime happy
-        ts_base = _Timestamp.__new__(
-            cls, ts.dts.year, ts.dts.month, ts.dts.day,
-            ts.dts.hour, ts.dts.min, ts.dts.sec, ts.dts.us, ts.tzinfo)
+        ts_base = _Timestamp.__new__(cls, ts.dts.year, ts.dts.month,
+                                     ts.dts.day, ts.dts.hour, ts.dts.min,
+                                     ts.dts.sec, ts.dts.us, ts.tzinfo)
 
         # fill out rest of data
         ts_base.value = ts.value
@@ -160,6 +163,24 @@ class Timestamp(_Timestamp):
         return Timestamp(datetime.replace(self, **kwds),
                          offset=self.offset)
 
+class NaTType(_NaT):
+
+    def __new__(cls):
+        cdef _NaT base
+
+        base = _NaT.__new__(cls, 1, 1, 1)
+        mangle_nat(base)
+        base.value = NPY_NAT
+
+        return base
+
+    def __repr__(self):
+        return 'NaT'
+
+NaT = NaTType()
+
+iNaT = util.get_nat()
+
 
 cdef inline bint is_timestamp(object o):
     return isinstance(o, Timestamp)
@@ -213,6 +234,7 @@ def apply_offset(ndarray[object] values, object offset):
     result = np.empty(n, dtype='M8[ns]')
     new_values = result.view('i8')
     pass
+
 
 # This is PITA. Because we inherit from datetime, which has very specific
 # construction requirements, we need to do object instantiation in python
@@ -286,6 +308,28 @@ cdef class _Timestamp(datetime):
         out = fast_field_accessor(np.array([self.value], dtype=np.int64),
                                   field)
         return out[0]
+
+
+cdef class _NaT(_Timestamp):
+
+    def __richcmp__(_NaT self, object other, int op):
+        # if not isinstance(other, (_NaT, _Timestamp)):
+        #     raise TypeError('Cannot compare %s with NaT' % type(other))
+
+        if op == 2: # ==
+            return False
+        elif op == 3: # !=
+            return True
+        elif op == 0: # <
+            return False
+        elif op == 1: # <=
+            return False
+        elif op == 4: # >
+            return False
+        elif op == 5: # >=
+            return False
+
+
 
 def _delta_to_nanoseconds(delta):
     try:
@@ -819,7 +863,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False):
         for i in range(n):
             val = values[i]
             if util._checknull(val):
-                iresult[i] = NaT
+                iresult[i] = iNaT
             elif PyDateTime_Check(val):
                 result[i] = val
             elif PyDate_Check(val):
@@ -830,7 +874,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False):
                 iresult[i] = val
             else:
                 if len(val) == 0:
-                    iresult[i] = NaT
+                    iresult[i] = iNaT
                     continue
                 try:
                     result[i] = parse(val, dayfirst=dayfirst)
@@ -846,6 +890,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False):
                 oresult[i] = val
             else:
                 if len(val) == 0:
+                    # TODO: ??
                     oresult[i] = 'NaT'
                     continue
                 try:

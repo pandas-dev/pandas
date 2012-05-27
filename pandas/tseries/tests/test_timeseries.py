@@ -33,7 +33,7 @@ import pandas.util.py3compat as py3compat
 from pandas.core.datetools import BDay
 import pandas.core.common as com
 
-NaT = lib.NaT
+iNaT = lib.iNaT
 
 
 class TestTimeSeriesDuplicates(unittest.TestCase):
@@ -353,7 +353,7 @@ class TestTimeSeries(unittest.TestCase):
         self.assert_(not mask[:-5].any())
 
     def test_series_repr_nat(self):
-        series = Series([0, 1000, 2000, NaT], dtype='M8[ns]')
+        series = Series([0, 1000, 2000, iNaT], dtype='M8[ns]')
 
         result = repr(series)
         expected = ('0          1970-01-01 00:00:00\n'
@@ -363,7 +363,7 @@ class TestTimeSeries(unittest.TestCase):
         self.assertEquals(result, expected)
 
     def test_fillna_nat(self):
-        series = Series([0, 1, 2, NaT], dtype='M8[ns]')
+        series = Series([0, 1, 2, iNaT], dtype='M8[ns]')
 
         filled = series.fillna(method='pad')
         filled2 = series.fillna(value=series.values[2])
@@ -382,7 +382,7 @@ class TestTimeSeries(unittest.TestCase):
         assert_frame_equal(filled2, expected)
 
 
-        series = Series([NaT, 0, 1, 2], dtype='M8[ns]')
+        series = Series([iNaT, 0, 1, 2], dtype='M8[ns]')
 
         filled = series.fillna(method='bfill')
         filled2 = series.fillna(value=series[1])
@@ -411,7 +411,7 @@ class TestTimeSeries(unittest.TestCase):
         expected = np.empty(4, dtype='M8[ns]')
         for i, val in enumerate(strings):
             if com.isnull(val):
-                expected[i] = NaT
+                expected[i] = iNaT
             else:
                 expected[i] = parse(val)
 
@@ -443,7 +443,7 @@ class TestTimeSeries(unittest.TestCase):
         for i in range(5):
             x = series[i]
             if isnull(x):
-                expected[i] = NaT
+                expected[i] = iNaT
             else:
                 expected[i] = to_datetime(x)
 
@@ -1260,7 +1260,11 @@ class TestDatetime64(unittest.TestCase):
 class TestSeriesDatetime64(unittest.TestCase):
 
     def setUp(self):
-        self.series = Series(list(date_range('1/1/2000', periods=10)))
+        self.series = Series(date_range('1/1/2000', periods=10))
+
+    def test_auto_conversion(self):
+        series = Series(list(date_range('1/1/2000', periods=10)))
+        self.assert_(series.dtype == object)
 
     def test_series_comparison_scalars(self):
         val = datetime(2000, 1, 4)
@@ -1282,6 +1286,28 @@ class TestSeriesDatetime64(unittest.TestCase):
 
     #----------------------------------------------------------------------
     # NaT support
+
+    def test_NaT_scalar(self):
+        series = Series([0, 1000, 2000, iNaT], dtype='M8[ns]')
+
+        val = series[3]
+        self.assert_(com.isnull(val))
+
+        series[2] = val
+        self.assert_(com.isnull(series[2]))
+
+    def test_set_none_nan(self):
+        self.series[3] = None
+        self.assert_(self.series[3] is lib.NaT)
+
+        self.series[3:5] = None
+        self.assert_(self.series[4] is lib.NaT)
+
+        self.series[5] = np.nan
+        self.assert_(self.series[5] is lib.NaT)
+
+        self.series[5:7] = np.nan
+        self.assert_(self.series[6] is lib.NaT)
 
 
 class TestTimestamp(unittest.TestCase):

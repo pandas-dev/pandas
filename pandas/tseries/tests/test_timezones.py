@@ -33,8 +33,6 @@ import pandas.util.py3compat as py3compat
 from pandas.core.datetools import BDay
 import pandas.core.common as com
 
-NaT = lib.NaT
-
 
 def _skip_if_no_pytz():
     try:

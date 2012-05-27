@@ -50,7 +50,7 @@ def test_isnull_datetime():
 
     import pandas._tseries as lib
     idx = np.asarray(idx)
-    idx[0] = lib.NaT
+    idx[0] = lib.iNaT
     idx = DatetimeIndex(idx)
     mask = isnull(idx)
     assert(mask[0])
