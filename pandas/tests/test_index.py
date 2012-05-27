@@ -175,7 +175,7 @@ class TestIndex(unittest.TestCase):
         self.assert_(np.array_equal(shifted, self.dateIndex + timedelta(5)))
 
         shifted = self.dateIndex.shift(1, 'B')
-        self.assert_(np.array_equal(shifted, self.dateIndex + offsets.bday))
+        self.assert_(np.array_equal(shifted, self.dateIndex + offsets.BDay()))
 
     def test_intersection(self):
         first = self.strIndex[:20]

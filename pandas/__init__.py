@@ -25,10 +25,7 @@ from pandas.core.api import *
 from pandas.sparse.api import *
 from pandas.stats.api import *
 from pandas.tseries.api import *
-from pandas.lib import NaT
 
-from pandas.core.format import (set_printoptions, reset_printoptions,
-                                set_eng_float_format)
 from pandas.io.parsers import (read_csv, read_table, read_clipboard,
                                read_fwf, to_clipboard, ExcelFile,
                                ExcelWriter)

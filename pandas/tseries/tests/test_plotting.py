@@ -10,7 +10,7 @@ from numpy.testing.decorators import slow
 from pandas import Index, Series, DataFrame, isnull, notnull
 
 from pandas.tseries.index import date_range
-from pandas.tseries.offsets import Minute, bday, DateOffset
+from pandas.tseries.offsets import Minute, DateOffset
 from pandas.tseries.period import period_range
 from pandas.tseries.resample import DatetimeIndex, TimeGrouper
 import pandas.tseries.offsets as offsets

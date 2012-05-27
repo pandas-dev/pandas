@@ -5,7 +5,7 @@ import numpy as np
 from pandas import Series, TimeSeries, DataFrame, Panel, isnull, notnull
 
 from pandas.tseries.index import date_range
-from pandas.tseries.offsets import Minute, bday
+from pandas.tseries.offsets import Minute, BDay
 from pandas.tseries.period import period_range, PeriodIndex
 from pandas.tseries.resample import DatetimeIndex, TimeGrouper
 import pandas.tseries.offsets as offsets
@@ -15,6 +15,8 @@ import nose
 
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
+
+bday = BDay()
 
 class TestResample(unittest.TestCase):
 
