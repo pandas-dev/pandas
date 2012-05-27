@@ -129,6 +129,50 @@ def _gcf():
     import matplotlib.pyplot as plt
     return plt.gcf()
 
+def andrews_curves(data, class_column, samples=200):
+    """
+    Parameters:
+    data: A DataFrame containing data to be plotted, preferably
+    normalized to (0.0, 1.0).
+    class_column: Name of the column containing class names.
+    samples: Number of points to plot in each curve.
+    """
+    from math import sqrt, pi, sin, cos
+    import matplotlib.pyplot as plt
+    import random
+    def function(amplitudes):
+        def f(x):
+            x1 = amplitudes[0]
+            result = x1 / sqrt(2.0)
+            harmonic = 1.0
+            for x_even, x_odd in zip(amplitudes[1::2], amplitudes[2::2]):
+                result += (x_even * sin(harmonic * x) +
+                            x_odd * cos(harmonic * x))
+                harmonic += 1.0
+            return result
+        return f
+    def random_color(column):
+        random.seed(column)
+        return [random.random() for _ in range(3)]
+    n = len(data)
+    classes = set(data[class_column])
+    class_col = data[class_column]
+    columns = [data[col] for col in data.columns if (col != class_column)]
+    x = [-pi + 2.0 * pi * (t / float(samples)) for t in range(samples)]
+    used_legends = set([])
+    for i in range(n):
+        row = [columns[c][i] for c in range(len(columns))]
+        f = function(row)
+        y = [f(t) for t in x]
+        label = None
+        if class_col[i] not in used_legends:
+            label = class_col[i]
+            used_legends.add(class_col[i])
+        plt.plot(x, y, color=random_color(class_col[i]), label=label)
+    plt.xlim(xmin=-pi, xmax=pi)
+    plt.legend(loc='upper right')
+    plt.grid()
+
 def grouped_hist(data, column=None, by=None, ax=None, bins=50, log=False,
                  figsize=None, layout=None, sharex=False, sharey=False,
                  rot=90):
