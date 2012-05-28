@@ -971,6 +971,12 @@ class TestLegacySupport(unittest.TestCase):
         expected = df[df.index.year == 2005]
         assert_frame_equal(result, expected)
 
+        rng = date_range('1/1/2000', '1/1/2010')
+
+        result = rng.get_loc('2009')
+        expected = slice(3288, 3653)
+        self.assert_(result == expected)
+
     def test_slice_quarter(self):
         dti = DatetimeIndex(freq='D', start=datetime(2000,6,1), periods=500)
 

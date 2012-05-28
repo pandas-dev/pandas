@@ -6,7 +6,9 @@ import numpy as np
 
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
+from pandas.core.index import MultiIndex
 from pandas.core.series import Series
+from pandas.tseries.frequencies import to_calendar_freq
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.offsets import DateOffset
@@ -313,8 +315,14 @@ class MPLPlot(object):
     @property
     def legend_title(self):
         if hasattr(self.data, 'columns'):
-            stringified = map(str, self.data.columns.names)
-            return ','.join(stringified)
+            if not isinstance(self.data.columns, MultiIndex):
+                name = self.data.columns.name
+                if name is not None:
+                    name = str(name)
+                return name
+            else:
+                stringified = map(str, self.data.columns.names)
+                return ','.join(stringified)
         else:
             return None
 
@@ -438,7 +446,10 @@ class LinePlot(MPLPlot):
         from pandas.core.frame import DataFrame
         if (isinstance(data.index, DatetimeIndex) and
             isinstance(data, DataFrame)):
-            freq = getattr(data.index, 'freq', None)
+            freq = getattr(data.index, 'freqstr', None)
+
+            freq = to_calendar_freq(freq)
+
             if freq is None and hasattr(data.index, 'inferred_freq'):
                 freq = data.index.inferred_freq
 

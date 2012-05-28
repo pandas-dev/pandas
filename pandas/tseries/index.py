@@ -855,11 +855,7 @@ class DatetimeIndex(Int64Index):
         except KeyError:
 
             try:
-                freq = getattr(self, 'freq', getattr(self, 'inferred_freq',
-                                                     None))
-                asdt, parsed, reso = parse_time_string(key, freq)
-                key = asdt
-                loc = self._partial_date_slice(reso, parsed)
+                loc = self._get_string_slice(key)
                 return series[loc]
             except (TypeError, ValueError, KeyError):
                 pass
@@ -909,7 +905,8 @@ class DatetimeIndex(Int64Index):
         return com._ensure_platform_int(indexer)
 
     def _get_string_slice(self, key):
-        freq = getattr(self, 'freq', getattr(self, 'inferred_freq', None))
+        freq = getattr(self, 'freqstr',
+                       getattr(self, 'inferred_freq', None))
         asdt, parsed, reso = parse_time_string(key, freq)
         key = asdt
         loc = self._partial_date_slice(reso, parsed)
