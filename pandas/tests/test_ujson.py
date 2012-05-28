@@ -8,6 +8,7 @@ try:
 except ImportError:
     import simplejson as json
 import math
+import nose
 import platform
 import sys
 import time
@@ -15,6 +16,7 @@ import datetime
 import calendar
 import StringIO
 import re
+from functools import partial
 
 import numpy as np
 from numpy.testing import (assert_array_equal, assert_array_almost_equal_nulp,
@@ -23,12 +25,15 @@ from pandas import DataFrame, Series, Index
 import pandas.util.testing as tm
 
 
-def _skip_if_python25():
-    import nose
+def _skip_if_python_ver(skip_major, skip_minor=None):
     major, minor = sys.version_info[:2]
-    if major == 2 and minor == 5:
+    if major == skip_major and (skip_minor is None or minor == skip_minor):
         raise nose.SkipTest
-        
+
+json_unicode = (json.dumps if sys.version_info[0] >= 3
+                else partial(json.dumps, encoding="utf-8"))
+
+
 class UltraJSONTests(TestCase):
     def test_encodeDictWithUnicodeKeys(self):
         input = { u"key1": u"value1", u"key1": u"value1", u"key1": u"value1", u"key1": u"value1", u"key1": u"value1", u"key1": u"value1" }
@@ -124,7 +129,7 @@ class UltraJSONTests(TestCase):
         input = "Räksmörgås اسامة بن محمد بن عوض بن لادن"
         enc = ujson.encode(input)
         dec = ujson.decode(enc)
-        self.assertEquals(enc, json.dumps(input, encoding="utf-8"))
+        self.assertEquals(enc, json_unicode(input))
         self.assertEquals(dec, json.loads(enc))
 
     def test_encodeControlEscaping(self):
@@ -132,42 +137,45 @@ class UltraJSONTests(TestCase):
         enc = ujson.encode(input)
         dec = ujson.decode(enc)
         self.assertEquals(input, dec)
-        self.assertEquals(enc, json.dumps(input, encoding="utf-8"))
+        self.assertEquals(enc, json_unicode(input))
 
 
     def test_encodeUnicodeConversion2(self):
         input = "\xe6\x97\xa5\xd1\x88"
         enc = ujson.encode(input)
         dec = ujson.decode(enc)
-        self.assertEquals(enc, json.dumps(input, encoding="utf-8"))
+        self.assertEquals(enc, json_unicode(input))
         self.assertEquals(dec, json.loads(enc))
 
     def test_encodeUnicodeSurrogatePair(self):
-        _skip_if_python25()
+        _skip_if_python_ver(2, 5)
+        _skip_if_python_ver(2, 6)
         input = "\xf0\x90\x8d\x86"
         enc = ujson.encode(input)
         dec = ujson.decode(enc)
 
-        self.assertEquals(enc, json.dumps(input, encoding="utf-8"))
+        self.assertEquals(enc, json_unicode(input))
         self.assertEquals(dec, json.loads(enc))
 
     def test_encodeUnicode4BytesUTF8(self):
-        _skip_if_python25()
+        _skip_if_python_ver(2, 5)
+        _skip_if_python_ver(2, 6)
         input = "\xf0\x91\x80\xb0TRAILINGNORMAL"
         enc = ujson.encode(input)
         dec = ujson.decode(enc)
 
-        self.assertEquals(enc, json.dumps(input, encoding="utf-8"))
+        self.assertEquals(enc, json_unicode(input))
         self.assertEquals(dec, json.loads(enc))
 
     def test_encodeUnicode4BytesUTF8Highest(self):
-        _skip_if_python25()
+        _skip_if_python_ver(2, 5)
+        _skip_if_python_ver(2, 6)
         input = "\xf3\xbf\xbf\xbfTRAILINGNORMAL"
         enc = ujson.encode(input)
 
         dec = ujson.decode(enc)
 
-        self.assertEquals(enc, json.dumps(input, encoding="utf-8"))
+        self.assertEquals(enc, json_unicode(input))
         self.assertEquals(dec, json.loads(enc))
 
 
@@ -281,11 +289,11 @@ class UltraJSONTests(TestCase):
         self.assert_(roundtrip == stamp.value)
 
     def test_encodeToUTF8(self):
-        _skip_if_python25()    
+        _skip_if_python_ver(2, 5)
         input = "\xe6\x97\xa5\xd1\x88"
         enc = ujson.encode(input, ensure_ascii=False)
         dec = ujson.decode(enc)
-        self.assertEquals(enc, json.dumps(input, encoding="utf-8", ensure_ascii=False))
+        self.assertEquals(enc, json_unicode(input, ensure_ascii=False))
         self.assertEquals(dec, json.loads(enc))
 
     def test_decodeFromUnicode(self):
@@ -500,6 +508,7 @@ class UltraJSONTests(TestCase):
         self.assertEquals (-31337, ujson.decode(input))
 
     def test_encodeUnicode4BytesUTF8Fail(self):
+        _skip_if_python_ver(3)
         input = "\xfd\xbf\xbf\xbf\xbf\xbf"
         try:
             enc = ujson.encode(input)
@@ -534,7 +543,8 @@ class UltraJSONTests(TestCase):
         output = ujson.encode(input)
         self.assertEquals(input, json.loads(output))
         self.assertEquals(input, ujson.decode(output))
-        assert_array_equal(np.array(input), ujson.decode(output, numpy=True))
+        assert_array_equal(np.array(input), ujson.decode(output, numpy=True,
+                                                         dtype=np.int64))
         pass
 
     def test_encodeLongConversion(self):
