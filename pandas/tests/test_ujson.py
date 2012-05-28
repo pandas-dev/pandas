@@ -17,9 +17,12 @@ import calendar
 import StringIO
 import re
 from functools import partial
+import pandas.util.py3compat as py3compat
 
 import numpy as np
-from numpy.testing import (assert_array_equal, assert_array_almost_equal_nulp,
+from pandas.util.testing import assert_almost_equal
+from numpy.testing import (assert_array_equal,
+                           assert_array_almost_equal_nulp,
                            assert_approx_equal)
 from pandas import DataFrame, Series, Index
 import pandas.util.testing as tm
@@ -32,7 +35,6 @@ def _skip_if_python_ver(skip_major, skip_minor=None):
 
 json_unicode = (json.dumps if sys.version_info[0] >= 3
                 else partial(json.dumps, encoding="utf-8"))
-
 
 class UltraJSONTests(TestCase):
     def test_encodeDictWithUnicodeKeys(self):
@@ -688,12 +690,21 @@ class UltraJSONTests(TestCase):
 
     def test_encodeBigEscape(self):
         for x in xrange(10):
-            input = "\xc3\xa5" * 1024 * 1024 * 10
+            if py3compat.PY3:
+                base = '\u00e5'.encode('utf-8')
+            else:
+                base = "\xc3\xa5"
+            input = base * 1024 * 1024 * 2
             output = ujson.encode(input)
 
     def test_decodeBigEscape(self):
         for x in xrange(10):
-            input = "\"" + ("\xc3\xa5" * 1024 * 1024 * 10) + "\""
+            if py3compat.PY3:
+                base = '\u00e5'.encode('utf-8')
+            else:
+                base = "\xc3\xa5"
+            quote = py3compat.str_to_bytes("\"")
+            input = quote + (base * 1024 * 1024 * 2) + quote
             output = ujson.decode(input)
 
     def test_toDict(self):
@@ -1010,8 +1021,8 @@ class PandasJSONTests(TestCase):
         self.assertTrue((df == outp).values.all())
         assert_array_equal(df.columns, outp.columns)
         assert_array_equal(df.index, outp.index)
-    
-        dec = _clean_dict(ujson.decode(ujson.encode(df, orient="split"), 
+
+        dec = _clean_dict(ujson.decode(ujson.encode(df, orient="split"),
                           numpy=True))
         outp = DataFrame(**dec)
         self.assertTrue((df == outp).values.all())
@@ -1085,7 +1096,7 @@ class PandasJSONTests(TestCase):
         self.assertTrue((s == outp).values.all())
         self.assertTrue(s.name == outp.name)
 
-        dec = _clean_dict(ujson.decode(ujson.encode(s, orient="split"), 
+        dec = _clean_dict(ujson.decode(ujson.encode(s, orient="split"),
                           numpy=True))
         outp = Series(**dec)
         self.assertTrue((s == outp).values.all())
@@ -1142,39 +1153,39 @@ class PandasJSONTests(TestCase):
 
         # column indexed
         outp = Index(ujson.decode(ujson.encode(i)))
-        assert_array_equal(i, outp)
+        self.assert_(i.equals(outp))
 
         outp = Index(ujson.decode(ujson.encode(i), numpy=True))
-        assert_array_equal(i, outp)
+        self.assert_(i.equals(outp))
 
         dec = _clean_dict(ujson.decode(ujson.encode(i, orient="split")))
         outp = Index(**dec)
-        assert_array_equal(i, outp)
+        self.assert_(i.equals(outp))
         self.assertTrue(i.name == outp.name)
 
-        dec = _clean_dict(ujson.decode(ujson.encode(i, orient="split"), 
+        dec = _clean_dict(ujson.decode(ujson.encode(i, orient="split"),
                           numpy=True))
         outp = Index(**dec)
-        assert_array_equal(i, outp)
+        self.assert_(i.equals(outp))
         self.assertTrue(i.name == outp.name)
 
         outp = Index(ujson.decode(ujson.encode(i, orient="values")))
-        assert_array_equal(i, outp)
+        self.assert_(i.equals(outp))
 
         outp = Index(ujson.decode(ujson.encode(i, orient="values"), numpy=True))
-        assert_array_equal(i, outp)
+        self.assert_(i.equals(outp))
 
         outp = Index(ujson.decode(ujson.encode(i, orient="records")))
-        assert_array_equal(i, outp)
+        self.assert_(i.equals(outp))
 
         outp = Index(ujson.decode(ujson.encode(i, orient="records"), numpy=True))
-        assert_array_equal(i, outp)
+        self.assert_(i.equals(outp))
 
         outp = Index(ujson.decode(ujson.encode(i, orient="index")))
-        assert_array_equal(i, outp)
+        self.assert_(i.equals(outp))
 
         outp = Index(ujson.decode(ujson.encode(i, orient="index"), numpy=True))
-        assert_array_equal(i, outp)
+        self.assert_(i.equals(outp))
 
     def test_datetimeindex(self):
         from pandas.tseries.index import date_range, DatetimeIndex
@@ -1220,7 +1231,7 @@ raise NotImplementedError("Implement this test!")
 
 def _clean_dict(d):
     return dict((str(k), v) for k, v in d.iteritems())
-    
+
 if __name__ == '__main__':
     # unittest.main()
     import nose

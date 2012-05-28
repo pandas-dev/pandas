@@ -8,7 +8,6 @@ import unittest
 import nose
 
 import numpy as np
-import pytz
 
 from pandas import (Index, Series, TimeSeries, DataFrame, isnull,
                     date_range, Timestamp)
