@@ -149,6 +149,8 @@ def andrews_curves(data, class_column, ax=None, samples=200):
                 result += (x_even * sin(harmonic * x) +
                             x_odd * cos(harmonic * x))
                 harmonic += 1.0
+            if len(amplitudes) % 2 != 0:
+                result += amplitudes[-1] * sin(harmonic * x)
             return result
         return f
     def random_color(column):
@@ -167,9 +169,9 @@ def andrews_curves(data, class_column, ax=None, samples=200):
         f = function(row)
         y = [f(t) for t in x]
         label = None
-        if class_col[i] not in used_legends:
-            label = class_col[i]
-            used_legends.add(class_col[i])
+        if str(class_col[i]) not in used_legends:
+            label = str(class_col[i])
+            used_legends.add(label)
         ax.plot(x, y, color=random_color(class_col[i]), label=label)
     ax.legend(loc='upper right')
     ax.grid()
