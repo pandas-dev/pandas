@@ -1,4 +1,4 @@
-#include <Python.h>
+#include "py_defines.h"
 #include "version.h"
 
 /* objToJSON */
@@ -25,17 +25,49 @@ static PyMethodDef ujsonMethods[] = {
     {NULL, NULL, 0, NULL}       /* Sentinel */
 };
 
+#if PY_MAJOR_VERSION >= 3
 
+static struct PyModuleDef moduledef = {
+    PyModuleDef_HEAD_INIT,
+    "_ujson",
+    0,              /* m_doc */
+    -1,             /* m_size */
+    ujsonMethods,   /* m_methods */
+    NULL,           /* m_reload */
+    NULL,           /* m_traverse */
+    NULL,           /* m_clear */
+    NULL            /* m_free */
+};
 
-PyMODINIT_FUNC
-init_ujson(void)
+#define PYMODINITFUNC       PyObject *PyInit__ujson(void)
+#define PYMODULE_CREATE()   PyModule_Create(&moduledef)
+#define MODINITERROR        return NULL
+
+#else
+
+#define PYMODINITFUNC       PyMODINIT_FUNC init_ujson(void)
+#define PYMODULE_CREATE()   Py_InitModule("_ujson", ujsonMethods)
+#define MODINITERROR        return
+
+#endif
+
+PYMODINITFUNC
 {
     PyObject *module;
     PyObject *version_string;
 
-    initObjToJSON();
-    module = Py_InitModule("_ujson", ujsonMethods);
+    initObjToJSON();   
+    module = PYMODULE_CREATE();
+
+    if (module == NULL)
+    {
+        MODINITERROR;
+    }
 
     version_string = PyString_FromString (UJSON_VERSION);
     PyModule_AddObject (module, "__version__", version_string);
+
+#if PY_MAJOR_VERSION >= 3
+    return module;
+#endif
 }
