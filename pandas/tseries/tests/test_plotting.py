@@ -115,6 +115,24 @@ class TestTSPlot(unittest.TestCase):
         for rs, xp in zip(ax.get_lines()[0].get_xdata(), ser.index):
             assert(rs == xp)
 
+    @slow
+    def test_business_freq(self):
+        bts = tm.makePeriodSeries()
+        ts = bts.asfreq('D')
+        ax = bts.plot()
+        self.assert_(ax.get_lines()[0].get_xydata()[0, 0], ts.index[0].ordinal)
+        idx = ax.get_lines()[0].get_xdata()
+        self.assert_(idx.freqstr == 'D')
+
+    @slow
+    def test_dataframe(self):
+        bts = DataFrame({'a': tm.makePeriodSeries()})
+        ts = bts.asfreq('D')
+        ax = bts.plot()
+        self.assert_(ax.get_lines()[0].get_xydata()[0, 0], ts.index[0].ordinal)
+        idx = ax.get_lines()[0].get_xdata()
+        self.assert_(idx.freqstr == 'D')
+
 PNG_PATH = 'tmp.png'
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     import matplotlib.pyplot as plt
