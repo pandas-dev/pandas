@@ -40,23 +40,12 @@ performing the above tasks.
 Time Stamps vs. Time Spans
 --------------------------
 
-While most time series representations of data associates values with a time
-stamp, in many cases it is more natural to associate the values with a given
-time span. For example, it is easy to think of level variables at a
-particular point in time, but much more intuitive to think of change variables
-over spans of time. Starting with 0.8, pandas allows you to capture both
-representations and convert between them. Under the hood, pandas represents
-timestamps using instances of ``Timestamp`` and sequences of timestamps using
-instances of ``DatetimeIndex``. For regular time spans, pandas uses ``Period``
-objects for scalar values and ``PeriodIndex`` for sequences of spans.
-Better support for irregular intervals with arbitrary start and end points are
-forth-coming in future releases.
-
-For example:
+Time-stamped data is the most basic type of timeseries data that associates
+values with points in time. For pandas objects it means using the points in
+time to create the index
 
 .. ipython:: python
 
-   # Time stamped data
    dates = [datetime(2012, 5, 1), datetime(2012, 5, 2), datetime(2012, 5, 3)]
    ts = Series(np.random.randn(3), dates)
 
@@ -64,16 +53,31 @@ For example:
 
    ts
 
-   # Time span data
+However, in many cases it is more natural to associate things like change
+variables with a time span instead.
+
+For example:
+
+.. ipython:: python
+
    periods = PeriodIndex([Period('2012-01'), Period('2012-02'),
                           Period('2012-03')])
+
    ts = Series(np.random.randn(3), periods)
 
    type(ts.index)
 
    ts
 
-.. _timeseries.timestamprange:
+Starting with 0.8, pandas allows you to capture both representations and
+convert between them. Under the hood, pandas represents timestamps using
+instances of ``Timestamp`` and sequences of timestamps using instances of
+``DatetimeIndex``. For regular time spans, pandas uses ``Period`` objects for
+scalar values and ``PeriodIndex`` for sequences of spans. Better support for
+irregular intervals with arbitrary start and end points are forth-coming in
+future releases.
+
+.. _timeseries.daterange:
 
 Generating Ranges of Timestamps
 -------------------------------
@@ -103,17 +107,121 @@ to create timestamp indexes.
    index = bdate_range('2012-1-1', periods=250)
    index
 
+Convenience functions like ``date_range`` and ``bdate_range`` utilizes a
+variety of frequency aliases. The default frequency for ``date_range`` is a
+**calendar day** while the default for ``bdate_range`` is a **business day**
+
+.. ipython:: python
+
+   start = datetime(2011, 1, 1)
+   end = datetime(2012, 1, 1)
+
+   rng = date_range(start, end)
+   rng
+
+   rng = bdate_range(start, end)
+   rng
+
+``date_range`` and ``bdate_range`` makes it easy to generate a range of dates
+using various combinations of its parameters like ``start``, ``end``,
+``periods``, and ``freq``:
+
+   date_range(start, end, freq='BM')
+
+   date_range(start, end, freq='W')
+
+   bdate_range(end=end, periods=20)
+
+   bdate_range(start=start, periods=20)
+
+The start and end dates are strictly inclusive. So it will not generate any
+dates outside of those dates if specified.
+
+.. _timeseries.datetimeindex:
+
+DatetimeIndex
+~~~~~~~~~~~~~
+
+One of the main uses for ``DatetimeIndex`` is as an index for pandas objects.
+The ``DatetimeIndex`` class contains many timeseries related optimizations:
+
+  - A large range of dates for various offsets are pre-computed and cached
+    under the hood in order to make generating subsequent date ranges very fast
+    (just have to grab a slice)
+  - Fast shifting using the ``shift`` and ``tshift`` method on pandas objects
+  - Unioning of overlapping DatetimeIndex objects with the same frequency is
+    very fast (important for fast data alignment)
+  - Quick access to date fields via properties such as ``year``, ``month``, etc.
+  - Regularization functions like ``snap`` and very fast ``asof`` logic
+
+``DatetimeIndex`` can be used like a regular index and offers all of its
+intelligent functionality like selection, slicing, etc.
+
+.. ipython:: python
+
+   rng = date_range(start, end, freq='BM')
+   ts = Series(randn(len(rng)), index=rng)
+   ts.index
+   ts[:5].index
+   ts[::2].index
+
+You can pass in dates and strings that parses to dates as indexing parameters:
+
+.. ipython:: python
+
+   ts['1/7/2011']
+
+   ts[datetime(2011, 12, 25):]
+
+   ts['10/31/2011':'11/30/2011']
+
+A ``truncate`` convenience function is provided that is equivalent to slicing:
+
+.. ipython:: python
+
+   ts.truncate(after='10/31/2011', before='11/30/2011')
+
+To provide convenience for accessing longer time series, you can also pass in
+the year or year and month as strings:
+
+.. ipython:: python
+
+   ts['2011']
+
+   ts['2011-6']
+
+Even complicated fancy indexing that breaks the DatetimeIndex's frequency
+regularity will result in a ``DatetimeIndex`` (but frequency is lost):
+
+.. ipython:: python
+
+   ts[[0, 2, 6]].index
+
+DatetimeIndex objects has all the basic functionality of regular Index objects
+and a smorgasbord of advanced timeseries-specific methods for easy frequency
+processing.
+
+.. seealso::
+    :ref:`Reindexing methods <basics.reindexing>`
+
+.. note::
+
+    While pandas does not force you to have a sorted date index, some of these
+    methods may have unexpected or incorrect behavior if the dates are
+    unsorted. So please be careful.
+
+
 .. _timeseries.offsets:
 
 DateOffset objects
 ------------------
 
-In order to create the sequence of dates with a monthly frequency in the
-previous example, we used the ``freq`` keyword and gave it 'M' as the input.
-Under the hood, the string 'M' is being interpreted into an instance of pandas
-``DateOffset``. ``DateOffset`` represents a regular frequency increment.
-Specific offset logic like "business day" or "one hour" is represented in its
-various subclasses.
+In the preceding examples, we created DatetimeIndex objects at various
+frequencies by passing in frequency strings like 'M', 'W', and 'BM to the
+``freq`` keyword. Under the hood, these frequency strings are being translated
+into an instance of pandas ``DateOffset``, which represents a regular
+frequency increment. Specific offset logic like "month", "business day", or
+"one hour" is represented in its various subclasses.
 
 .. csv-table::
     :header: "Class name", "Description"
@@ -330,85 +438,10 @@ and business year ends. Please also note the legacy time rule for milliseconds
 ``ms`` versus the new offset alias for month start ``MS``. This means that
 offset alias parsing is case sensitive.
 
-.. _timeseries.daterange:
-
-More on date ranges
--------------------
-
-Convenience functions like ``date_range`` and ``bdate_range`` utilizes the
-offsets described above to generate fixed-frequency date ranges. The default
-frequency for ``date_range`` is a **calendar day** while the default for
-``bdate_range`` is a **business day**
-
-.. ipython:: python
-
-   start = datetime(2009, 1, 1)
-   end = datetime(2010, 1, 1)
-
-   rng = date_range(start, end)
-   rng
-
-   rng = bdate_range(start, end)
-   rng
-
-``date_range`` and ``bdate_range`` makes it easy to generate a range of dates
-using various combinations of its parameters like ``start``, ``end``,
-``periods``, and ``freq``:
-
-   date_range(start, end, freq=BMonthEnd())
-
-   date_range(start, end, freq=3 * Week())
-
-   bdate_range(end=end, periods=20)
-
-   bdate_range(start=start, periods=20)
-
-The start and end dates are strictly inclusive. So it will not generate any
-dates outside of those dates if specified.
-
-
-DatetimeIndex
-~~~~~~~~~~~~~
-
-One of the main uses for ``DatetimeIndex`` is as an index for pandas objects.
-The ``DatetimeIndex`` class contains many timeseries related optimizations:
-
-  - A large range of dates for various offsets are pre-computed and cached
-    under the hood in order to make generating subsequent date ranges very fast
-    (just have to grab a slice)
-  - Fast shifting using the ``shift`` and ``tshift`` method on pandas objects
-  - Unioning of overlapping DatetimeIndex objects with the same frequency is
-    very fast (important for fast data alignment)
-
-``DatetimeIndex`` can be used like a regular index and offers all of its
-intelligent functionality like selection, slicing, etc.
-
-.. ipython:: python
-
-   rng = date_range(start, end, freq=BMonthEnd())
-   ts = Series(randn(len(rng)), index=rng)
-   ts.index
-   ts[:5].index
-   ts[::2].index
-
-However, complicated fancy indexing that breaks the DatetimeIndex's frequency
-regularity will result in an ``Index`` that is no longer a ``DatetimeIndex``:
-
-.. ipython:: python
-
-   ts[[0, 2, 6]].index
+.. _timeseries.advanced_datetime:
 
 Time series-related instance methods
 ------------------------------------
-
-.. seealso::
-    :ref:`Reindexing methods <basics.reindexing>`
-
-.. note::
-
-    While pandas does not force you to have a sorted date index, some of these
-    methods may have unexpected or incorrect behavior if the dates are
-    unsorted. So please be careful.
 
 Shifting / lagging
 ~~~~~~~~~~~~~~~~~~
@@ -423,7 +456,7 @@ and in Panel along the ``major_axis``.
    ts = ts[:5]
    ts.shift(1)
 
-The shift method accepts an ``offset`` argument which can accept a
+The shift method accepts an ``freq`` argument which can accept a
 ``DateOffset`` class or other ``timedelta``-like object or also a :ref:`time
 rule <timeseries.alias>`:
 
