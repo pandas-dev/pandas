@@ -76,6 +76,7 @@ pandas 0.8.0
   - Add inplace option to Series/DataFrame.rename and sort_index,
     DataFrame.drop_duplicates (#805, #207)
   - More helpful error message when nothing passed to Series.reindex (#1267)
+  - Can mix array and scalars as dict-value inputs to DataFrame ctor (#1329)
 
 **API Changes**
 

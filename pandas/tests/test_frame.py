@@ -1739,6 +1739,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(df['complex'].dtype == np.complex128)
         self.assert_(df['object'].dtype == np.object_)
 
+    def test_constructor_arrays_and_scalars(self):
+        df = DataFrame({'a': randn(10), 'b': True})
+        exp = DataFrame({'a': df['a'].values, 'b': [True] * 10})
+
+        assert_frame_equal(df, exp)
+
+        self.assertRaises(ValueError, DataFrame, {'a': False, 'b': True})
+
     def test_constructor_DataFrame(self):
         df = DataFrame(self.frame)
         assert_frame_equal(df, self.frame)

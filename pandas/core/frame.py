@@ -4537,9 +4537,12 @@ def extract_index(data):
             elif isinstance(v, dict):
                 have_dicts = True
                 indexes.append(v.keys())
-            else:
+            elif isinstance(v, (list, np.ndarray)):
                 have_raw_arrays = True
                 raw_lengths.append(len(v))
+
+        if not indexes and not raw_lengths:
+            raise ValueError('If use all scalar values, must pass index')
 
         if have_series or have_dicts:
             index = _union_indexes(indexes)
