@@ -1330,6 +1330,27 @@ class TestSeriesDatetime64(unittest.TestCase):
         self.series[5:7] = np.nan
         self.assert_(self.series[6] is lib.NaT)
 
+    def test_intercept_astype_object(self):
+        # Work around NumPy 1.6 bugs
+        result = self.series.astype(object)
+        result2 = self.series.astype('O')
+        expected = Series([x for x in self.series], dtype=object)
+
+        assert_series_equal(result, expected)
+        assert_series_equal(result2, expected)
+
+        df = DataFrame({'a': self.series,
+                        'b' : np.random.randn(len(self.series))})
+
+        result = df.values.squeeze()
+        self.assert_((result[:, 0] == expected.values).all())
+
+        df = DataFrame({'a': self.series,
+                        'b' : ['foo'] * len(self.series)})
+
+        result = df.values.squeeze()
+        self.assert_((result[:, 0] == expected.values).all())
+
 
 class TestTimestamp(unittest.TestCase):
 

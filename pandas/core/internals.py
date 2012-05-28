@@ -281,6 +281,9 @@ class Block(object):
                                    fill_value=fill_value)
         return make_block(new_values, self.items, self.ref_items)
 
+    def get_values(self, dtype):
+        return self.values
+
 def _mask_missing(array, missing_values):
     if not isinstance(missing_values, (list, np.ndarray)):
         missing_values = [missing_values]
@@ -391,6 +394,13 @@ class DatetimeBlock(Block):
 
     def should_store(self, value):
         return issubclass(value.dtype.type, np.datetime64)
+
+    def get_values(self, dtype):
+        if dtype == object:
+            flat_i8 = self.values.ravel().view(np.int64)
+            res = lib.ints_to_pydatetime(flat_i8)
+            return res.reshape(self.values.shape)
+        return self.values
 
 
 def make_block(values, items, ref_items, do_integrity_check=False):
@@ -663,7 +673,7 @@ class BlockManager(object):
         for block in self.blocks:
             indexer = items.get_indexer(block.items)
             assert((indexer != -1).all())
-            result[indexer] = block.values
+            result[indexer] = block.get_values(dtype)
             itemmask[indexer] = 1
         assert(itemmask.all())
         return result
@@ -1238,20 +1248,20 @@ def _interleaved_dtype(blocks):
     have_dt64 = counts[DatetimeBlock] > 0
     have_numeric = have_float or have_complex or have_int
 
-    if have_object:
-        return np.object_
-    elif have_bool and have_numeric:
-        return np.object_
+    if (have_object or
+        (have_bool and have_numeric) or
+        (have_numeric and have_dt64)):
+        return np.dtype(object)
     elif have_bool:
-        return np.bool_
+        return np.dtype(bool)
     elif have_int and not have_float and not have_complex:
-        return np.int64
+        return np.dtype('i8')
     elif have_dt64 and not have_float and not have_complex:
-        return np.datetime64
+        return np.dtype('M8[ns]')
     elif have_complex:
-        return np.complex128
+        return np.dtype('c16')
     else:
-        return np.float64
+        return np.dtype('f8')
 
 def _consolidate(blocks, items):
     """

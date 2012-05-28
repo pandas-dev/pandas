@@ -49,7 +49,7 @@ def get_int32_ex(cols):
     return make_block(mat.T, cols, TEST_COLS)
 
 def get_dt_ex(cols=['h']):
-    mat = randn(N, 1).astype(int).astype(np.datetime64)
+    mat = randn(N, 1).astype(int).astype('M8[ns]')
     return make_block(mat.T, cols, TEST_COLS)
 
 class TestBlock(unittest.TestCase):
@@ -301,7 +301,7 @@ class TestBlockManager(unittest.TestCase):
         blocks = [get_dt_ex(['h']), get_dt_ex(['g'])]
         index_sz = blocks[0].values.shape[1]
         mgr = BlockManager.from_blocks(blocks, np.arange(index_sz))
-        self.assert_(mgr.as_matrix().dtype == np.datetime64)
+        self.assert_(mgr.as_matrix().dtype == 'M8[ns]')
 
     def test_xs(self):
         pass
