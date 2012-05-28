@@ -1,14 +1,12 @@
 #define PY_ARRAY_UNIQUE_SYMBOL UJSON_NUMPY
 
-#include <Python.h>
+#include "py_defines.h"
 #include <numpy/arrayobject.h>
 #include <np_datetime.h>
 #include <numpy/halffloat.h>
 #include <stdio.h>
 #include <datetime.h>
 #include <ultrajson.h>
-
-#define EPOCH_ORD 719163
 
 #define NPY_JSON_BUFSIZE 32768
 
@@ -173,7 +171,7 @@ static void *PyStringToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue, siz
 static void *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue, size_t *_outLen)
 {
     PyObject *obj = (PyObject *) _obj;
-    PyObject *newObj = PyUnicode_EncodeUTF8 (PyUnicode_AS_UNICODE(obj), PyUnicode_GET_SIZE(obj), NULL);
+    PyObject *newObj = PyUnicode_AsUTF8String (obj);
 
     GET_TC(tc)->newObj = newObj;
 
@@ -481,6 +479,12 @@ void Dir_iterEnd(JSOBJ obj, JSONTypeContext *tc)
         GET_TC(tc)->itemValue = NULL;
     }
 
+    if (GET_TC(tc)->itemName)
+    {
+        Py_DECREF(GET_TC(tc)->itemName);
+        GET_TC(tc)->itemName = NULL;
+    }
+
     Py_DECREF( (PyObject *) GET_TC(tc)->attrList);
     PRINTMARK();
 }
@@ -489,8 +493,9 @@ int Dir_iterNext(JSOBJ _obj, JSONTypeContext *tc)
 {
     PyObject *obj = (PyObject *) _obj;
     PyObject *itemValue = GET_TC(tc)->itemValue;
-    PyObject *itemName = NULL;
+    PyObject *itemName = GET_TC(tc)->itemName;
     PyObject* attr;
+    PyObject* attrName;
     char* attrStr;
 
 
@@ -500,21 +505,35 @@ int Dir_iterNext(JSOBJ _obj, JSONTypeContext *tc)
         GET_TC(tc)->itemValue = itemValue = NULL;
     }
 
+    if (itemName)
+    {
+        Py_DECREF(GET_TC(tc)->itemName);
+        GET_TC(tc)->itemName = itemName = NULL;
+    }
+
     for (; GET_TC(tc)->index  < GET_TC(tc)->size; GET_TC(tc)->index ++)
     {
-        attr = PyList_GET_ITEM(GET_TC(tc)->attrList, GET_TC(tc)->index);
+        attrName = PyList_GET_ITEM(GET_TC(tc)->attrList, GET_TC(tc)->index);
+#if PY_MAJOR_VERSION >= 3
+        attr = PyUnicode_AsUTF8String(attrName);
+#else 
+        attr = attrName;
+        Py_INCREF(attr);
+#endif
         attrStr = PyString_AS_STRING(attr);
 
         if (attrStr[0] == '_')
         {
             PRINTMARK();
+            Py_DECREF(attr);
             continue;
         }
 
-        itemValue = PyObject_GetAttr(obj, attr);
+        itemValue = PyObject_GetAttr(obj, attrName);
         if (itemValue == NULL)
         {
             PyErr_Clear();
+            Py_DECREF(attr);
             PRINTMARK();
             continue;
         }
@@ -522,6 +541,7 @@ int Dir_iterNext(JSOBJ _obj, JSONTypeContext *tc)
         if (PyCallable_Check(itemValue))
         {
             Py_DECREF(itemValue);
+            Py_DECREF(attr);
             PRINTMARK();
             continue;
         }
@@ -832,6 +852,10 @@ void Dict_iterBegin(JSOBJ obj, JSONTypeContext *tc)
 
 int Dict_iterNext(JSOBJ obj, JSONTypeContext *tc)
 {
+#if PY_MAJOR_VERSION >= 3
+    PyObject* itemNameTmp;
+#endif
+
     if (GET_TC(tc)->itemName)
     {
         Py_DECREF(GET_TC(tc)->itemName);
@@ -847,16 +871,17 @@ int Dict_iterNext(JSOBJ obj, JSONTypeContext *tc)
 
     if (PyUnicode_Check(GET_TC(tc)->itemName))
     {
-        GET_TC(tc)->itemName = PyUnicode_EncodeUTF8 (
-            PyUnicode_AS_UNICODE(GET_TC(tc)->itemName),
-            PyUnicode_GET_SIZE(GET_TC(tc)->itemName),
-            NULL
-        );
+        GET_TC(tc)->itemName = PyUnicode_AsUTF8String (GET_TC(tc)->itemName);
     }
     else
     if (!PyString_Check(GET_TC(tc)->itemName))
     {
         GET_TC(tc)->itemName = PyObject_Str(GET_TC(tc)->itemName);
+#if PY_MAJOR_VERSION >= 3
+        itemNameTmp = GET_TC(tc)->itemName; 
+        GET_TC(tc)->itemName = PyUnicode_AsUTF8String (GET_TC(tc)->itemName);
+        Py_DECREF(itemNameTmp);
+#endif
     }
     else
     {
@@ -1035,17 +1060,6 @@ void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
         return;
     }
     else
-    if (PyInt_Check(obj))
-    {
-        PRINTMARK();
-#ifdef _LP64
-        pc->PyTypeToJSON = PyIntToINT64; tc->type = JT_LONG;
-#else
-        pc->PyTypeToJSON = PyIntToINT32; tc->type = JT_INT;
-#endif
-        return;
-    }
-    else
     if (PyLong_Check(obj))
     {
         PRINTMARK();
@@ -1062,6 +1076,17 @@ void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
             return;
         }
 
+        return;
+    }
+    else
+    if (PyInt_Check(obj))
+    {
+        PRINTMARK();
+#ifdef _LP64
+        pc->PyTypeToJSON = PyIntToINT64; tc->type = JT_LONG;
+#else
+        pc->PyTypeToJSON = PyIntToINT32; tc->type = JT_INT;
+#endif
         return;
     }
     else

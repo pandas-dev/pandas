@@ -1,4 +1,4 @@
-#include <Python.h>
+#include "py_defines.h"
 #define PY_ARRAY_UNIQUE_SYMBOL UJSON_NUMPY
 #define NO_IMPORT_ARRAY
 #include <numpy/arrayobject.h>
