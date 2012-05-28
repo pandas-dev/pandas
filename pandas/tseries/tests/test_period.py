@@ -922,6 +922,19 @@ class TestPeriodIndex(TestCase):
         expected = PeriodIndex(start='4/2/2012', periods=10, freq='B')
         self.assert_(index.equals(expected))
 
+    def test_constructor_field_arrays(self):
+        # GH #1264
+
+        years = np.arange(1990, 2010).repeat(4)[2:-2]
+        quarters = np.tile(np.arange(1, 5), 20)[2:-2]
+
+        index = PeriodIndex(year=years, quarter=quarters, freq='Q-DEC')
+        expected = period_range('1990Q3', '2009Q2', freq='Q-DEC')
+        self.assert_(index.equals(expected))
+
+        index = PeriodIndex(year=years, quarter=quarters)
+        self.assert_(index.equals(expected))
+
     def test_to_timestamp(self):
         index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
         series = Series(1, index=index, name='foo')
@@ -1265,10 +1278,16 @@ class TestPeriodIndex(TestCase):
 
     def test_badinput(self):
         self.assertRaises(datetools.DateParseError, Period, '1/1/-2000', 'A')
-        self.assertRaises(ValueError, Period, -2000, 'A')
-        self.assertRaises(ValueError, Period, 0, 'A')
-        self.assertRaises(ValueError, PeriodIndex, [-1, 0, 1], 'A')
-        self.assertRaises(ValueError, PeriodIndex, np.array([-1, 0, 1]), 'A')
+        # self.assertRaises(datetools.DateParseError, Period, '-2000', 'A')
+        # self.assertRaises(datetools.DateParseError, Period, '0', 'A')
+
+    def test_negative_ordinals(self):
+        p = Period(ordinal=-1000, freq='A')
+
+        p = Period(ordinal=0, freq='A')
+
+        idx = PeriodIndex(ordinal=[-1, 0, 1], freq='A')
+        idx = PeriodIndex(ordinal=np.array([-1, 0, 1]), freq='A')
 
     def test_dti_to_period(self):
         dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')

@@ -4,7 +4,7 @@ from datetime import datetime
 import numpy as np
 
 from pandas.tseries.frequencies import (get_freq_code as _gfc, to_offset,
-                                        _month_numbers)
+                                        _month_numbers, FreqGroup)
 from pandas.tseries.index import DatetimeIndex, Int64Index
 from pandas.tseries.tools import parse_time_string
 import pandas.tseries.frequencies as _freq_mod
@@ -107,18 +107,8 @@ class Period(object):
             if year is None:
                 raise ValueError("If value is None, year cannot be None")
 
-            base, mult = _gfc(freq)
-            if mult != 1:
-                raise ValueError('Only mult == 1 supported')
-
-            if quarter is not None:
-                mnum = _month_numbers[_freq_mod._get_rule_month(freq)] + 1
-                month = (mnum + (quarter - 1) * 3) % 12 + 1
-                if month > mnum:
-                    year -= 1
-
-            self.ordinal = lib.period_ordinal(year, month, day, hour, minute,
-                                              second, base)
+            self.ordinal = _ordinal_from_fields(year, month, quarter, day,
+                                                hour, minute, second, freq)
 
         elif isinstance(value, Period):
             other = value
@@ -131,30 +121,9 @@ class Period(object):
 
         elif isinstance(value, basestring) or com.is_integer(value):
             if com.is_integer(value):
-                if value <= 0:
-                    raise ValueError('Value must be greater than 0')
                 value = str(value)
 
-            value = value.upper()
-            dt, parsed, reso = parse_time_string(value, freq)
-
-            if freq is None:
-                if reso == 'year':
-                    freq = 'A'
-                elif reso == 'quarter':
-                    freq = 'Q'
-                elif reso == 'month':
-                    freq = 'M'
-                elif reso == 'day':
-                    freq = 'D'
-                elif reso == 'hour':
-                    freq = 'H'
-                elif reso == 'minute':
-                    freq = 'T'
-                elif reso == 'second':
-                    freq = 'S'
-                else:
-                    raise ValueError("Could not infer frequency for period")
+            dt, freq = _get_date_and_freq(value, freq)
 
         elif isinstance(value, datetime):
             dt = value
@@ -437,6 +406,32 @@ class Period(object):
         else:
             return lib.period_ordinal_to_string(self.ordinal, base)
 
+
+def _get_date_and_freq(value, freq):
+    value = value.upper()
+    dt, _, reso = parse_time_string(value, freq)
+
+    if freq is None:
+        if reso == 'year':
+            freq = 'A'
+        elif reso == 'quarter':
+            freq = 'Q'
+        elif reso == 'month':
+            freq = 'M'
+        elif reso == 'day':
+            freq = 'D'
+        elif reso == 'hour':
+            freq = 'H'
+        elif reso == 'minute':
+            freq = 'T'
+        elif reso == 'second':
+            freq = 'S'
+        else:
+            raise ValueError("Could not infer frequency for period")
+
+    return dt, freq
+
+
 def _period_unbox(key, check=None):
     '''
     Period-like => int64
@@ -539,6 +534,19 @@ class PeriodIndex(Int64Index):
     end   : end value, period-like, optional
         If periods is none, generated index will extend to first conforming
         period on or just past end argument
+    year : int or array, default None
+    month : int or array, default None
+    quarter : int or array, default None
+    day : int or array, default None
+    hour : int or array, default None
+    minute : int or array, default None
+    second : int or array, default None
+
+    Examples
+    --------
+    >>> idx = PeriodIndex(year=year_arr, quarter=q_arr)
+
+    >>> idx2 = PeriodIndex(start='2000', end='2010', freq='A')
     """
     _box_scalars = True
 
@@ -549,9 +557,11 @@ class PeriodIndex(Int64Index):
     __le__ = _period_index_cmp('__le__')
     __ge__ = _period_index_cmp('__ge__')
 
-    def __new__(cls, data=None,
+    def __new__(cls, data=None, ordinal=None,
                 freq=None, start=None, end=None, periods=None,
-                copy=False, name=None):
+                copy=False, name=None,
+                year=None, month=None, quarter=None, day=None,
+                hour=None, minute=None, second=None):
 
         if isinstance(freq, Period):
             freq = freq.freq
@@ -559,13 +569,43 @@ class PeriodIndex(Int64Index):
             freq = _freq_mod.get_standard_freq(freq)
 
         if data is None:
+            if ordinal is not None:
+                data = np.asarray(ordinal, dtype=np.int64)
+            else:
+                fields = [year, month, quarter, day, hour, minute, second]
+                data, freq = cls._generate_range(start, end, periods,
+                                                    freq, fields)
+        else:
+            ordinal, freq = cls._from_arraylike(data, freq)
+            data = np.array(ordinal, dtype=np.int64, copy=False)
+
+        subarr = data.view(cls)
+        subarr.name = name
+        subarr.freq = freq
+
+        return subarr
+
+    @classmethod
+    def _generate_range(cls, start, end, periods, freq, fields):
+        field_count = com._count_not_none(*fields)
+        if com._count_not_none(start, end) > 0:
+            if field_count > 0:
+                raise ValueError('Can either instantiate from fields '
+                                 'or endpoints, but not both')
             subarr, freq = _get_ordinal_range(start, end, periods, freq)
-            subarr = subarr.view(cls)
-            subarr.name = name
-            subarr.freq = freq
+        elif field_count > 0:
+            y, m, q, d, h, m, s = fields
+            subarr, freq = _range_from_fields(year=y, month=m, quarter=q,
+                                              day=d, hour=h, minute=m,
+                                              second=s, freq=freq)
+        else:
+            raise ValueError('Not enough parameters to construct '
+                             'Period range')
 
-            return subarr
+        return subarr, freq
 
+    @classmethod
+    def _from_arraylike(cls, data, freq):
         if not isinstance(data, np.ndarray):
             if np.isscalar(data):
                 raise ValueError('PeriodIndex() must be called with a '
@@ -582,7 +622,7 @@ class PeriodIndex(Int64Index):
 
             try:
                 data = np.array(data, dtype='i8')
-            except:
+            except (TypeError, ValueError):
                 data = np.array(data, dtype='O')
 
             if freq is None and len(data) > 0:
@@ -599,8 +639,8 @@ class PeriodIndex(Int64Index):
                     freq = data.freq
                     data = data.values
                 else:
-                    base1, mult1 = _gfc(data.freq)
-                    base2, mult2 = _gfc(freq)
+                    base1, _ = _gfc(data.freq)
+                    base2, _ = _gfc(freq)
                     data = lib.period_asfreq_arr(data.values, base1, base2, 1)
             else:
                 if freq is None and len(data) > 0:
@@ -617,20 +657,11 @@ class PeriodIndex(Int64Index):
                 else:
                     try:
                         data = data.astype('i8')
-                    except:
+                    except (TypeError, ValueError):
                         data = data.astype('O')
                         data = _period_unbox_array(data, check=freq)
 
-        data = np.array(data, dtype=np.int64, copy=False)
-
-        if (data <= 0).any():
-            raise ValueError("Found illegal (<= 0) values in data")
-
-        subarr = data.view(cls)
-        subarr.name = name
-        subarr.freq = freq
-
-        return subarr
+        return data, freq
 
     def __contains__(self, key):
         if not isinstance(key, Period) or key.freq != self.freq:
@@ -776,12 +807,12 @@ class PeriodIndex(Int64Index):
 
     def __add__(self, other):
         if isinstance(other, (int, long)):
-            return PeriodIndex(self.values + other, self.freq)
+            return PeriodIndex(ordinal=self.values + other, freq=self.freq)
         return super(PeriodIndex, self).__add__(other)
 
     def __sub__(self, other):
         if isinstance(other, (int, long)):
-            return PeriodIndex(self.values - other, self.freq)
+            return PeriodIndex(ordinal=self.values - other, freq=self.freq)
         if isinstance(other, Period):
             if other.freq != self.freq:
                 raise ValueError("Cannot do arithmetic with "
@@ -985,6 +1016,79 @@ def _get_ordinal_range(start, end, periods, freq):
         data = np.arange(start.ordinal, end.ordinal+1, dtype=np.int64)
 
     return data, freq
+
+def _range_from_fields(year=None, month=None, quarter=None, day=None,
+                       hour=None, minute=None, second=None, freq=None):
+    if hour is None:
+        hour = 0
+    if minute is None:
+        minute = 0
+    if second is None:
+        second = 0
+    if day is None:
+        day = 1
+
+    ordinals = []
+
+    if quarter is not None:
+        if freq is None:
+            freq = 'Q'
+            base = FreqGroup.FR_QTR
+        else:
+            base, mult = _gfc(freq)
+            if mult != 1:
+                raise ValueError('Only mult == 1 supported')
+            assert(base == FreqGroup.FR_QTR)
+
+        year, quarter = _make_field_arrays(year, quarter)
+        for y, q in zip(year, quarter):
+            y, m = _quarter_to_myear(y, q, freq)
+            val = lib.period_ordinal(y, m, 1, 1, 1, 1, base)
+            ordinals.append(val)
+    else:
+        base, mult = _gfc(freq)
+        if mult != 1:
+            raise ValueError('Only mult == 1 supported')
+
+        arrays = _make_field_arrays(year, month, day, hour, minute, second)
+        for y, m, d, h, m, s in zip(*arrays):
+            ordinals.append(lib.period_ordinal(y, m, d, h, m, s, base))
+
+    return np.array(ordinals, dtype=np.int64), freq
+
+def _make_field_arrays(*fields):
+    length = None
+    for x in fields:
+        if isinstance(x, (list, np.ndarray)):
+            if length is not None and len(x) != length:
+                raise ValueError('Mismatched Period array lengths')
+
+    arrays = [x if isinstance(x, np.ndarray) else np.repeat(x, length)
+              for x in fields]
+
+    return arrays
+
+
+def _ordinal_from_fields(year, month, quarter, day, hour, minute,
+                         second, freq):
+    base, mult = _gfc(freq)
+    if mult != 1:
+        raise ValueError('Only mult == 1 supported')
+
+    if quarter is not None:
+        year, month = _quarter_to_myear(year, quarter, freq)
+
+    return lib.period_ordinal(year, month, day, hour,
+                              minute, second, base)
+
+def _quarter_to_myear(year, quarter, freq):
+    if quarter is not None:
+        mnum = _month_numbers[_freq_mod._get_rule_month(freq)] + 1
+        month = (mnum + (quarter - 1) * 3) % 12 + 1
+        if month > mnum:
+            year -= 1
+
+    return year, month
 
 
 def _validate_end_alias(how):
