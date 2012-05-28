@@ -652,11 +652,48 @@ the new pandas timeseries API.
 
 Time Span Representation
 ------------------------
-FILL ME IN
+
+Regular intervals of time are represented by ``Period`` objects in pandas while
+sequences of ``Period`` objects are collected in a ``PeriodIndex``, which can
+be created with the convenience function ``period_range``.
 
 Period
 ~~~~~~
-FILL ME IN
+A ``Period`` represents a span of time (e.g., a day, a month, a quarter, etc).
+It can be created using a frequency alias:
+
+.. ipython:: python
+
+   Period('2012', freq='A-DEC')
+
+   Period('2012-1-1', freq='D')
+
+   Period('2012-1-1 19:00', freq='H')
+
+Unlike time stamped data, pandas does not support frequencies at multiples of
+DateOffsets (e.g., '3Min') for periods:
+
+.. ipython:: python
+
+   Period('2012', freq='3A')
+
+Adding and subtracting integers from periods shifts the period by its own
+frequency.
+
+.. ipython:: python
+
+   p = Period('2012', freq='A-DEC')
+
+   p + 1
+
+   p - 3
+
+Taking the difference of ``Period`` instances with the same frequency will
+return the number of frequency units between them:
+
+.. ipython:: python
+
+   Period('2012', freq='A-DEC') - Period(2002', freq='A-DEC')
 
 PeriodIndex and period_range
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -670,10 +707,34 @@ FILL ME IN
 
 Time Zone Handling
 ------------------
-FILL ME IN
 
-.. _timeseries.plotting:
+Using ``pytz``, pandas provides rich support for working with timestamps in
+different time zones. By default, pandas objects are time zone unaware:
 
-Plotting
---------
-FILL ME IN
+.. ipython:: python
+
+   rng = date_range('1/1/2012 00:00', periods=10, freq='D')
+   print(rng.tz)
+
+To supply the time zone, you can use the ``tz`` keyword to ``date_range`` and
+other functions:
+
+.. ipython:: python
+
+   rng_utc = date_range('1/1/2012 00:00', periods=10, freq='D', tz='UTC')
+   print(rng_utc.tz)
+
+You can use the ``tz_convert`` method to convert pandas objects to a particular
+time zone:
+
+.. ipython:: python
+
+   ts = Series(randn(len(rng)), rng)
+
+   ts_utc = ts.tz_convert('UTC')
+   ts_utc
+
+   ts_utc.tz_convert('US/Eastern')
+
+Under the hood, pandas stores everything in UTC value to make zone and DST
+conversions simpler to implement.
