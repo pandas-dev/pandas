@@ -374,6 +374,9 @@ def to_offset(freqstr):
         except Exception:
             raise ValueError("Could not evaluate %s" % freqstr)
 
+    if delta is None:
+        raise ValueError('Unable to understand %s as a frequency' % freqstr)
+
     return delta
 
 

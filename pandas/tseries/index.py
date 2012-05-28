@@ -871,7 +871,7 @@ class DatetimeIndex(Int64Index):
                 raise KeyError(stamp)
 
     def get_loc(self, key):
-        """y
+        """
         Get integer location for requested label
 
         Returns

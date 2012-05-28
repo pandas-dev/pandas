@@ -44,6 +44,14 @@ def test_to_offset_multiple():
     expected = offsets.Milli(10075)
     assert(result == expected)
 
+    # malformed
+    try:
+        to_offset('2h20m')
+    except ValueError:
+        pass
+    else:
+        assert(False)
+
 def test_to_offset_negative():
     freqstr = '-1S'
     result = to_offset(freqstr)
