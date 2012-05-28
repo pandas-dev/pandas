@@ -671,11 +671,7 @@ It can be created using a frequency alias:
    Period('2012-1-1 19:00', freq='H')
 
 Unlike time stamped data, pandas does not support frequencies at multiples of
-DateOffsets (e.g., '3Min') for periods:
-
-.. ipython:: python
-
-   Period('2012', freq='3A')
+DateOffsets (e.g., '3Min') for periods.
 
 Adding and subtracting integers from periods shifts the period by its own
 frequency.
@@ -697,11 +693,139 @@ return the number of frequency units between them:
 
 PeriodIndex and period_range
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-FILL ME IN
+Regular sequences of ``Period`` objects can be collected in a ``PeriodIndex``,
+which can be constructed using the ``period_range`` convenience function:
 
-Frequency Conversion and Resampling of Periods
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-FILL ME IN
+.. ipython:: python
+
+   prng = period_range('1/1/2011', '1/1/2012', freq='M')
+   prng
+
+The ``PeriodIndex`` constructor can also be used directly:
+
+.. ipython:: python
+
+   PeriodIndex(['2011-1', '2011-2', '2011-3'], freq='M')
+
+Just like ``DatetimeIndex``, a ``PeriodIndex`` can also be used to index pandas
+objects:
+
+.. ipython:: python
+
+   Series(randn(len(prng)), prng)
+
+Frequency Conversion and Resampling with PeriodIndex
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The frequency of Periods and PeriodIndex can be converted via the ``asfreq``
+method. Let's start with the fiscal year 2011, ending in December:
+
+.. ipython:: python
+
+   p = Period('2011' freq='A-DEC')
+   p
+
+We can convert it to a monthly frequency. Using the ``how`` parameter, we can
+specify whether to return the starting or ending month:
+
+.. ipython:: python
+
+   p.asfreq('M', how='start')
+
+   p.asfreq('M', how='end')
+
+The shorthands 's' and 'e' are provided for convenience:
+
+.. ipython:: python
+
+   p.asfreq('M', 's')
+   p.asfreq('M', 'e')
+
+Converting to a "super-period" (e.g., annual frequency is a super-period of
+quarterly frequency) automatically returns the super-period that includes the
+input period:
+
+.. ipython:: python
+
+   p = Period('2011-12', freq='M')
+
+   p.asfreq('A-NOV')
+
+Note that since we converted to an annual frequency that ends the year in
+November, the monthly period of December 2011 is actually in the 2012 A-NOV
+period.
+
+.. _timeseries.quarterly:
+
+Period conversions with anchored frequencies are particularly useful for
+working with various quarterly data common to economics, business, and other
+fields. Many organizations define quarters relative to the month in which their
+fiscal year start and ends. Thus, first quarter of 2011 could start in 2010 or
+a few months into 2011. Via anchored frequencies, pandas works all quarterly
+frequencies ``Q-JAN`` through ``Q-DEC``.
+
+``Q-DEC`` define regular calendar quarters:
+
+.. ipython:: python
+
+   p = Period('2012Q1', freq='Q-DEC')
+
+   p.asfreq('D', 's')
+
+   p.asfreq('D', 'e')
+
+``Q-MAR`` defines fiscal year end in March:
+
+.. ipython:: python
+
+   p = Period('2011Q4', freq='Q-MAR')
+
+   p.asfreq('D', 's')
+
+   p.asfreq('D', 'e')
+
+.. _timeseries.interchange:
+
+Converting between Representations
+----------------------------------
+
+Timestamped data can be converted to PeriodIndex-ed data using ``to_period``
+and vice-versa using ``to_timestamp``:
+
+.. ipython:: python
+
+   rng = date_range('1/1/2012', periods=5, freq='M')
+
+   ts = Series(randn(len(rng)), index=rng)
+
+   ts
+
+   ps = ts.to_period()
+
+   ps
+
+   ps.to_timestamp()
+
+Remember that 's' and 'e' can be used to return the timestamps at the start or
+end of the period:
+
+.. ipython:: python
+
+   ps.to_timestamp('D', how='s')
+
+Converting between period and timestamp enables some convenient arithmetic
+functions to be used. In the following example, we convert a quarterly
+frequency with year ending in November to 9am of the end of the month following
+the quarter end:
+
+.. ipython:: python
+
+   prng = period_range('1990Q1', '2000Q4', freq='Q-NOV')
+
+   ts = Series(randn(len(prng)), prng)
+
+   ts.index = (prng.asfreq('M', 'e') + 1).asfreq('H', 's') + 9
+
+   ts.head()
 
 .. _timeseries.timezone:
 
