@@ -177,6 +177,20 @@ class NaTType(_NaT):
     def __repr__(self):
         return 'NaT'
 
+    def weekday(self):
+        return -1
+
+    def toordinal(self):
+        return -1
+
+fields = ['year', 'quarter', 'month', 'day', 'hour',
+          'minute', 'second', 'microsecond', 'nanosecond',
+          'week', 'dayofyear']
+for field in fields:
+    prop = property(fget=lambda self: -1)
+    setattr(NaTType, field, prop)
+
+
 NaT = NaTType()
 
 iNaT = util.get_nat()
@@ -328,6 +342,7 @@ cdef class _NaT(_Timestamp):
             return False
         elif op == 5: # >=
             return False
+
 
 
 
@@ -1193,52 +1208,70 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
 
     if field == 'Y':
         for i in range(count):
+            if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
             pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
             out[i] = dts.year
         return out
 
     elif field == 'M':
         for i in range(count):
+            if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
             pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
             out[i] = dts.month
         return out
 
     elif field == 'D':
         for i in range(count):
+            if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
             pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
             out[i] = dts.day
         return out
 
     elif field == 'h':
         for i in range(count):
+            if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
             pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
             out[i] = dts.hour
         return out
 
     elif field == 'm':
         for i in range(count):
+            if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
             pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
             out[i] = dts.min
         return out
 
     elif field == 's':
         for i in range(count):
+            if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
             pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
             out[i] = dts.sec
         return out
 
     elif field == 'us':
         for i in range(count):
+            if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
             pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
             out[i] = dts.us
         return out
     elif field == 'ns':
         for i in range(count):
+            if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
             pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
             out[i] = dts.ps / 1000
         return out
     elif field == 'doy':
         for i in range(count):
+            if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
             pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
             isleap = is_leapyear(dts.year)
             out[i] = _month_offset[isleap, dts.month-1] + dts.day
@@ -1246,12 +1279,16 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
 
     elif field == 'dow':
         for i in range(count):
+            if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
             ts = convert_to_tsobject(dtindex[i])
             out[i] = ts_dayofweek(ts)
         return out
 
     elif field == 'woy':
         for i in range(count):
+            if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
             pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
             isleap = is_leapyear(dts.year)
             out[i] = _month_offset[isleap, dts.month - 1] + dts.day
@@ -1260,6 +1297,8 @@ def fast_field_accessor(ndarray[int64_t] dtindex, object field):
 
     elif field == 'q':
         for i in range(count):
+            if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
             pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
             out[i] = dts.month
             out[i] = ((out[i] - 1) / 3) + 1

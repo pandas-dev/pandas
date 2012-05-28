@@ -24,6 +24,7 @@ import pandas.tseries.frequencies as fmod
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
 
+from pandas.lib import NaT, iNaT
 import pandas.lib as lib
 import cPickle as pickle
 import pandas.core.datetools as dt
@@ -32,8 +33,6 @@ from pandas.util.testing import assert_frame_equal
 import pandas.util.py3compat as py3compat
 from pandas.core.datetools import BDay
 import pandas.core.common as com
-
-iNaT = lib.iNaT
 
 
 class TestTimeSeriesDuplicates(unittest.TestCase):
@@ -452,6 +451,28 @@ class TestTimeSeries(unittest.TestCase):
 
         assert_series_equal(dresult, expected)
         self.assertEquals(dresult.name, 'foo')
+
+    def test_nat_vector_field_access(self):
+        idx = DatetimeIndex(['1/1/2000', None, None, '1/4/2000'])
+
+        fields = ['year', 'quarter', 'month', 'day', 'hour',
+                  'minute', 'second', 'microsecond', 'nanosecond',
+                  'week', 'dayofyear']
+        for field in fields:
+            result = getattr(idx, field)
+            expected = [getattr(x, field) if x is not NaT else -1
+                        for x in idx]
+            self.assert_(np.array_equal(result, expected))
+
+    def test_nat_scalar_field_access(self):
+        fields = ['year', 'quarter', 'month', 'day', 'hour',
+                  'minute', 'second', 'microsecond', 'nanosecond',
+                  'week', 'dayofyear']
+        for field in fields:
+            result = getattr(NaT, field)
+            self.assertEquals(result, -1)
+
+        self.assertEquals(NaT.weekday(), -1)
 
     def test_to_datetime_empty_string(self):
         result = to_datetime('')
