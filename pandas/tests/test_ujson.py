@@ -1,5 +1,4 @@
-﻿
-import unittest
+﻿import unittest
 from unittest import TestCase
 
 import pandas._ujson as ujson

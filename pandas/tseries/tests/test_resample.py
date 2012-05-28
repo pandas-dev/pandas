@@ -404,6 +404,14 @@ class TestResample(unittest.TestCase):
         self.assert_(len(result) == 0)
         self.assert_(result.index.freqstr == 'A-DEC')
 
+    def test_weekly_resample_buglet(self):
+        # #1327
+        rng = date_range('1/1/2000', freq='B', periods=20)
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        resampled = ts.resample('W')
+        expected = ts.resample('W-SUN')
+        assert_series_equal(resampled, expected)
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)

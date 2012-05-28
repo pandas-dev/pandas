@@ -580,8 +580,8 @@ class TestTimeSeries(unittest.TestCase):
         expected = ts[:'3/31/2000']
         assert_series_equal(result, expected)
 
-        result = ts.first('3W')
-        expected = ts.first('21D')
+        result = ts.first('21D')
+        expected = ts[:21]
         assert_series_equal(result, expected)
 
         result = ts[:0].first('3M')
@@ -596,12 +596,12 @@ class TestTimeSeries(unittest.TestCase):
         result = ts.last('10d')
         self.assert_(len(result) == 10)
 
-        result = ts.last('3M')
-        expected = ts['11/1/2009':]
+        result = ts.last('21D')
+        expected = ts['12/12/2009':]
         assert_series_equal(result, expected)
 
-        result = ts.last('3W')
-        expected = ts.last('21D')
+        result = ts.last('21D')
+        expected = ts[-21:]
         assert_series_equal(result, expected)
 
         result = ts[:0].last('3M')

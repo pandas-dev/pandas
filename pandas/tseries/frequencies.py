@@ -233,7 +233,6 @@ _offset_map = {
     'W-SAT' : Week(weekday=5),
     'W-SUN' : Week(weekday=6),
 
-    'W': Week()
 }
 
 _offset_to_period_map = {
@@ -276,10 +275,12 @@ _rule_aliases = {
     'W@FRI': 'W-FRI',
     'W@SAT': 'W-SAT',
     'W@SUN': 'W-SUN',
+    'W': 'W-SUN',
 
     'Q@JAN': 'BQ-JAN',
     'Q@FEB': 'BQ-FEB',
     'Q@MAR': 'BQ-MAR',
+    'Q' : 'Q-DEC',
 
     'A@JAN' : 'BA-JAN',
     'A@FEB' : 'BA-FEB',

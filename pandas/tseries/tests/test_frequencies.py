@@ -54,6 +54,16 @@ def test_to_offset_negative():
     assert(result.n == -310)
 
 
+def test_anchored_shortcuts():
+    result = to_offset('W')
+    expected = to_offset('W-SUN')
+    assert(result == expected)
+
+    result = to_offset('Q')
+    expected = to_offset('Q-DEC')
+    assert(result == expected)
+
+
 _dti = DatetimeIndex
 
 class TestFrequencyInference(unittest.TestCase):
