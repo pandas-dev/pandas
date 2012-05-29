@@ -167,7 +167,7 @@ class MPLPlot(object):
                  figsize=None, grid=True, legend=True, rot=None,
                  ax=None, fig=None, title=None, xlim=None, ylim=None,
                  xticks=None, yticks=None,
-                 sort_columns=True, fontsize=None, **kwds):
+                 sort_columns=False, fontsize=None, **kwds):
 
         self.data = data
         self.by = by
@@ -362,12 +362,21 @@ class MPLPlot(object):
 
         return x
 
+    def _get_plot_function(self):
+        if self.logy:
+            plotf = self.plt.Axes.semilogy
+        elif self.logx:
+            plotf = self.plt.Axes.semilogx
+        elif self.loglog:
+            plotf = self.plt.Axes.loglog
+        else:
+            plotf = self.plt.Axes.plot
+
+        return plotf
+
 class KdePlot(MPLPlot):
     def __init__(self, data, **kwargs):
         MPLPlot.__init__(self, data, **kwargs)
-
-    def _get_plot_function(self):
-        return self.plt.Axes.plot
 
     def _make_plot(self):
         from scipy.stats import gaussian_kde
@@ -411,18 +420,6 @@ class LinePlot(MPLPlot):
                                 self.data.index.inferred_freq is not None)
                 return has_freq or has_inferred
         return False
-
-    def _get_plot_function(self):
-        if self.logy:
-            plotf = self.plt.Axes.semilogy
-        elif self.logx:
-            plotf = self.plt.Axes.semilogx
-        elif self.loglog:
-            plotf = self.plt.Axes.loglog
-        else:
-            plotf = self.plt.Axes.plot
-
-        return plotf
 
     def _make_plot(self):
         # this is slightly deceptive
@@ -492,7 +489,7 @@ class LinePlot(MPLPlot):
                 tsplot(data[col], plotf, ax=ax, label=label, **kwargs)
                 ax.grid(self.grid)
 
-        self.fig.subplots_adjust(wspace=0, hspace=0)
+        # self.fig.subplots_adjust(wspace=0, hspace=0)
 
 
     def _post_plot_logic(self):
@@ -595,7 +592,7 @@ class BarPlot(MPLPlot):
             ax.legend(patches, labels, loc='best',
                       title=self.legend_title)
 
-        self.fig.subplots_adjust(top=0.8, wspace=0, hspace=0)
+        # self.fig.subplots_adjust(top=0.8, wspace=0, hspace=0)
 
     def _post_plot_logic(self):
         for ax in self.axes:
@@ -629,7 +626,7 @@ def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
                xlim=None, ylim=None, logy=False,
                xticks=None, yticks=None,
                kind='line',
-               sort_columns=True, fontsize=None, **kwds):
+               sort_columns=False, fontsize=None, **kwds):
     """
     Make line or bar plot of DataFrame's series with the index on the x-axis
     using matplotlib / pylab.
@@ -646,7 +643,7 @@ def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
         Use index as ticks for x axis
     stacked : boolean, default False
         If True, create stacked bar plot. Only valid for DataFrame input
-    sort_columns: boolean, default True
+    sort_columns: boolean, default False
         Sort column names to determine plot ordering
     title : string
         Title to use for the plot
