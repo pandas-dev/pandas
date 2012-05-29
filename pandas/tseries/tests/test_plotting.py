@@ -11,7 +11,7 @@ from pandas import Index, Series, DataFrame, isnull, notnull
 
 from pandas.tseries.index import date_range
 from pandas.tseries.offsets import Minute, DateOffset
-from pandas.tseries.period import period_range
+from pandas.tseries.period import period_range, Period
 from pandas.tseries.resample import DatetimeIndex, TimeGrouper
 import pandas.tseries.offsets as offsets
 import pandas.tseries.frequencies as frequencies
@@ -132,6 +132,33 @@ class TestTSPlot(unittest.TestCase):
         self.assert_(ax.get_lines()[0].get_xydata()[0, 0], ts.index[0].ordinal)
         idx = ax.get_lines()[0].get_xdata()
         self.assert_(idx.freqstr == 'D')
+
+    @slow
+    def test_set_xlim(self):
+        ser = tm.makeTimeSeries()
+        ax = ser.plot()
+        xlim = ax.get_xlim()
+        ax.set_xlim(xlim[0] - 5, xlim[1] + 10)
+        ax.get_figure().canvas.draw()
+        result = ax.get_xlim()
+        self.assertEqual(result[0], xlim[0] - 5)
+        self.assertEqual(result[1], xlim[1] + 10)
+
+        # string
+        expected = (Period('1/1/2000', ax.freq), Period('4/1/2000', ax.freq))
+        ax.set_xlim('1/1/2000', '4/1/2000')
+        ax.get_figure().canvas.draw()
+        result = ax.get_xlim()
+        self.assertEqual(int(result[0]), expected[0].ordinal)
+        self.assertEqual(int(result[1]), expected[1].ordinal)
+
+        # datetim
+        expected = (Period('1/1/2000', ax.freq), Period('4/1/2000', ax.freq))
+        ax.set_xlim(datetime(2000, 1, 1), datetime(2000, 4, 1))
+        ax.get_figure().canvas.draw()
+        result = ax.get_xlim()
+        self.assertEqual(int(result[0]), expected[0].ordinal)
+        self.assertEqual(int(result[1]), expected[1].ordinal)
 
 PNG_PATH = 'tmp.png'
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
