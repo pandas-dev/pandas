@@ -277,6 +277,18 @@ class TestTimeZones(unittest.TestCase):
         result = ts.tz_convert('utc')
         self.assert_(result.index.tz.zone == 'UTC')
 
+        df = DataFrame({'a': 1}, index=rng)
+        result = df.tz_convert('utc')
+        expected = DataFrame({'a': 1}, rng.tz_convert('UTC'))
+        self.assert_(result.index.tz.zone == 'UTC')
+        assert_frame_equal(result, expected)
+        foo
+
+        df = df.T
+        result = df.tz_convert('utc', axis=1)
+        self.assert_(result.columns.tz.zone == 'UTC')
+        assert_frame_equal(result, expected.T)
+
     def test_join_utc_convert(self):
         rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')
 
