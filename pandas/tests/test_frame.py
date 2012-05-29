@@ -3800,6 +3800,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = df.astype(float).fillna(axis=1)
         assert_frame_equal(result, expected)
 
+    def test_fillna_invalid_method(self):
+        try:
+            self.frame.fillna(method='ffil')
+        except ValueError, inst:
+            self.assert_('ffil' in str(inst))
+
     def test_replace_inplace(self):
         self.tsframe['A'][:5] = nan
         self.tsframe['A'][-5:] = nan
