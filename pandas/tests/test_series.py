@@ -2685,6 +2685,21 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # try time interpolation on a non-TimeSeries
         self.assertRaises(Exception, self.series.interpolate, method='time')
 
+    def test_interpolate_index_values(self):
+        s = Series(np.nan, index=np.sort(np.random.rand(30)))
+        s[::3] = np.random.randn(10)
+
+        vals = s.index.values.astype(float)
+
+        result = s.interpolate(method='values')
+
+        expected = s.copy()
+        bad = isnull(expected.values)
+        good = -bad
+        expected[bad] = np.interp(vals[bad], vals[good], s.values[good])
+
+        assert_series_equal(result, expected)
+
     def test_weekday(self):
         # Just run the function
         weekdays = self.ts.weekday

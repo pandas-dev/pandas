@@ -2527,10 +2527,11 @@ copy : boolean, default False
 
         Parameters
         ----------
-        method : {'linear', 'time'}
+        method : {'linear', 'time', 'values'}
             Interpolation method.
-            Time interpolation works on daily and higher resolution
+            'time' interpolation works on daily and higher resolution
             data to interpolate given length of interval
+            'values' using the actual index numeric values
 
         Returns
         -------
@@ -2541,6 +2542,10 @@ copy : boolean, default False
                 raise Exception('time-weighted interpolation only works'
                                 'on TimeSeries')
             inds = np.array([d.toordinal() for d in self.index])
+        elif method == 'values':
+            inds = self.index.values
+            if inds.dtype == np.object_:
+                inds = lib.maybe_convert_objects(inds)
         else:
             inds = np.arange(len(self))
 

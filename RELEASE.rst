@@ -55,7 +55,8 @@ pandas 0.8.0
     DataFrame (#929, #1241)
   - Add 'kde' plot kind for Series/DataFrame.plot (#1059)
   - More flexible multiple function aggregation with GroupBy
-  - Add pct_chagne function
+  - Add pct_change function to Series/DataFrame
+  - Add option to interpolate by Index values in Series.interpolate (#1206)
 
 **Improvements to existing features**
 

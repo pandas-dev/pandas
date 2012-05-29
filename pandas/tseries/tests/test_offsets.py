@@ -1319,7 +1319,6 @@ class TestOffsetAliases(unittest.TestCase):
         for k, v in _offset_map.iteritems():
             if v is None:
                 continue
-            foo
             self.assertEqual(k, v.copy())
 
     def test_rule_code(self):

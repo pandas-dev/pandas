@@ -282,7 +282,6 @@ class TestTimeZones(unittest.TestCase):
         expected = DataFrame({'a': 1}, rng.tz_convert('UTC'))
         self.assert_(result.index.tz.zone == 'UTC')
         assert_frame_equal(result, expected)
-        foo
 
         df = df.T
         result = df.tz_convert('utc', axis=1)
