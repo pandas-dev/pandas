@@ -121,3 +121,74 @@ s = Series(np.random.randint(0, 1000, size=100000))
 
 series_value_counts_int64 = Benchmark('s.value_counts()', setup,
                                       start_date=datetime(2011, 10, 21))
+
+#----------------------------------------------------------------------
+# pivot_table
+
+setup = common_setup + """
+fac1 = np.array(['A', 'B', 'C'], dtype='O')
+fac2 = np.array(['one', 'two'], dtype='O')
+
+ind1 = np.random.randint(0, 3, size=100000)
+ind2 = np.random.randint(0, 2, size=100000)
+
+df = DataFrame({'key1': fac1.take(ind1),
+                'key2': fac2.take(ind2),
+                'key3': fac2.take(ind2),
+                'value1' : np.random.randn(100000),
+                'value2' : np.random.randn(100000),
+                'value3' : np.random.randn(100000)})
+"""
+
+stmt = "df.pivot_table(rows='key1', cols=['key2', 'key3'])"
+groupby_pivot_table = Benchmark(stmt, setup, start_date=datetime(2011, 12, 15))
+
+
+#----------------------------------------------------------------------
+# dict return values
+
+setup = common_setup + """
+labels = np.arange(1000).repeat(10)
+data = Series(randn(len(labels)))
+f = lambda x: {'first': x.values[0], 'last': x.values[-1]}
+"""
+
+groupby_apply_dict_return = Benchmark('data.groupby(labels).apply(f)',
+                                      setup, start_date=datetime(2011, 12, 15))
+
+#----------------------------------------------------------------------
+# First / last functions
+
+setup = common_setup + """
+labels = np.arange(10000).repeat(10)
+data = Series(randn(len(labels)))
+data[::3] = np.nan
+data[1::3] = np.nan
+labels = labels.take(np.random.permutation(len(labels)))
+"""
+
+groupby_first = Benchmark('data.groupby(labels).first()', setup,
+                          start_date=datetime(2012, 5, 1))
+
+groupby_last = Benchmark('data.groupby(labels).last()', setup,
+                          start_date=datetime(2012, 5, 1))
+
+
+#----------------------------------------------------------------------
+# groupby_indices replacement, chop up Series
+
+setup = common_setup + """
+try:
+    rng = date_range('1/1/2000', '12/31/2005', freq='H')
+    year, month, day = rng.year, rng.month, rng.day
+except:
+    rng = date_range('1/1/2000', '12/31/2000', offset=datetools.Hour())
+    year = rng.map(lambda x: x.year)
+    month = rng.map(lambda x: x.month)
+    day = rng.map(lambda x: x.day)
+
+ts = Series(np.random.randn(len(rng)), index=rng)
+"""
+
+groupby_indices = Benchmark('len(ts.groupby([year, month, day]))',
+                            setup, start_date=datetime(2012, 1, 1))

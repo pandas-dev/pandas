@@ -56,26 +56,6 @@ def bench_typecheck1(ndarray[object] arr):
 #         PyArray_Check(buf[i])
 
 
-def foo(object _chunk, object _arr):
-    cdef:
-        char* dummy_buf
-        ndarray arr, result, chunk
-
-    arr = _arr
-    chunk = _chunk
-
-    dummy_buf = chunk.data
-    chunk.data = arr.data
-
-    shape = chunk.shape
-    group_size = 0
-    n = len(arr)
-
-    inc = arr.dtype.itemsize
-
-    # chunk.shape[0] = 100
-    return chunk
-
 
 from skiplist cimport *
 
@@ -284,3 +264,237 @@ tiebreakers = {
     'max' : TIEBREAK_MAX,
     'first' : TIEBREAK_FIRST
 }
+
+from khash cimport *
+
+def test(ndarray arr, Py_ssize_t size_hint):
+    cdef:
+        kh_pymap_t *table
+        int ret = 0
+        khiter_t k
+        PyObject **data
+        Py_ssize_t i, n
+        ndarray[Py_ssize_t] indexer
+
+    table = kh_init_pymap()
+    kh_resize_pymap(table, size_hint)
+
+    data = <PyObject**> arr.data
+    n = len(arr)
+
+    indexer = np.empty(n, dtype=np.int_)
+
+    for i in range(n):
+        k = kh_put_pymap(table, data[i], &ret)
+
+        # if not ret:
+        #     kh_del_pymap(table, k)
+
+        table.vals[k] = i
+
+    for i in range(n):
+        k = kh_get_pymap(table, data[i])
+        indexer[i] = table.vals[k]
+
+    kh_destroy_pymap(table)
+
+    return indexer
+
+
+def test_str(ndarray arr, Py_ssize_t size_hint):
+    cdef:
+        kh_str_t *table
+        kh_cstr_t val
+        int ret = 0
+        khiter_t k
+        PyObject **data
+        Py_ssize_t i, n
+        ndarray[Py_ssize_t] indexer
+
+    table = kh_init_str()
+    kh_resize_str(table, size_hint)
+
+    data = <PyObject**> arr.data
+    n = len(arr)
+
+    indexer = np.empty(n, dtype=np.int_)
+
+    for i in range(n):
+        k = kh_put_str(table, util.get_c_string(<object> data[i]), &ret)
+
+        # if not ret:
+        #     kh_del_str(table, k)
+
+        table.vals[k] = i
+
+    # for i in range(n):
+    #     k = kh_get_str(table, PyString_AsString(<object> data[i]))
+    #     indexer[i] = table.vals[k]
+
+    kh_destroy_str(table)
+
+    return indexer
+
+# def test2(ndarray[object] arr):
+#     cdef:
+#         dict table
+#         object obj
+#         Py_ssize_t i, loc, n
+#         ndarray[Py_ssize_t] indexer
+
+#     n = len(arr)
+#     indexer = np.empty(n, dtype=np.int_)
+
+#     table = {}
+#     for i in range(n):
+#         table[arr[i]] = i
+
+#     for i in range(n):
+#         indexer[i] =  table[arr[i]]
+
+#     return indexer
+
+def obj_unique(ndarray[object] arr):
+    cdef:
+        kh_pyset_t *table
+        # PyObject *obj
+        object obj
+        PyObject **data
+        int ret = 0
+        khiter_t k
+        Py_ssize_t i, n
+        list uniques
+
+    n = len(arr)
+    uniques = []
+
+    table = kh_init_pyset()
+
+    data = <PyObject**> arr.data
+
+    # size hint
+    kh_resize_pyset(table, n // 10)
+
+    for i in range(n):
+        obj = arr[i]
+
+        k = kh_get_pyset(table, <PyObject*> obj)
+        if not kh_exist_pyset(table, k):
+            k = kh_put_pyset(table, <PyObject*> obj, &ret)
+            # uniques.append(obj)
+            # Py_INCREF(<object> obj)
+
+    kh_destroy_pyset(table)
+
+    return None
+
+def int64_unique(ndarray[int64_t] arr):
+    cdef:
+        kh_int64_t *table
+        # PyObject *obj
+        int64_t obj
+        PyObject **data
+        int ret = 0
+        khiter_t k
+        Py_ssize_t i, j, n
+        ndarray[int64_t] uniques
+
+    n = len(arr)
+    uniques = np.empty(n, dtype='i8')
+
+    table = kh_init_int64()
+    kh_resize_int64(table, n)
+
+    j = 0
+
+    for i in range(n):
+        obj = arr[i]
+
+        k = kh_get_int64(table, obj)
+        if not kh_exist_int64(table, k):
+            k = kh_put_int64(table, obj, &ret)
+            uniques[j] = obj
+            j += 1
+            # Py_INCREF(<object> obj)
+
+    kh_destroy_int64(table)
+
+    return np.sort(uniques[:j])
+
+
+# cdef extern from "kvec.h":
+
+#     ctypedef struct kv_int64_t:
+#         size_t n, m
+#         int64_t *a
+
+
+def test_foo(ndarray[int64_t] values):
+    cdef int64_t val
+
+    val = values[0]
+    print val
+
+# cdef extern from "foo.h":
+#     double add_things(double *a, double *b, double *c, int n)
+
+
+# def cython_test(ndarray a, ndarray b, ndarray c):
+#     return add_things(<double*> a.data,
+#                       <double*> b.data,
+#                       <double*> c.data, len(a))
+
+
+# def cython_test2(ndarray[float64_t] a, ndarray[float64_t] b,
+#                  ndarray[float64_t] c):
+#     cdef:
+#         Py_ssize_t i, n = len(a)
+#         float64_t result = 0
+
+#     for i in range(n):
+#         result += a[i] + b[i] + c[i]
+
+#     return result
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def inner(ndarray[float64_t] x, ndarray[float64_t] y):
+    cdef Py_ssize_t i, n = len(x)
+    cdef float64_t result = 0
+    for i in range(n):
+        result += x[i] * y[i]
+    return result
+
+def indices_fast(ndarray[int64_t] labels, list keys,
+                 list sorted_labels):
+    cdef:
+        Py_ssize_t i, j, k, lab, cur, start, n = len(labels)
+        dict result = {}
+        object tup
+
+    index = np.arange(n)
+
+    k = len(keys)
+
+    if n == 0:
+        return result
+
+    start = 0
+    cur = labels[0]
+    for i in range(1, n):
+        lab = labels[i]
+
+        if lab != cur:
+            if lab != -1:
+                tup = PyTuple_New(k)
+                for j in range(k):
+                    val = util.get_value_at(keys[j],
+                                            sorted_labels[j][cur])
+                    PyTuple_SET_ITEM(tup, j, val)
+                    Py_INCREF(val)
+
+                result[tup] = index[start:i]
+            start = i
+        cur = lab
+
+    return result

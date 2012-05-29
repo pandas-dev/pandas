@@ -9,9 +9,12 @@ Series
 DataFrame
 Panel
 Index
-DateRange
+DatetimeIndex
 HDFStore
+bdate_range
+date_range
 read_csv
-read_talbe
+read_fwf
+read_table
 ols
 """

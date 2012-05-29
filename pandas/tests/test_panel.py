@@ -1,8 +1,6 @@
 # pylint: disable=W0612,E1101
 
-
 from datetime import datetime
-import os
 import operator
 import unittest
 import nose
@@ -15,9 +13,7 @@ from pandas.core.frame import group_agg
 from pandas.core.panel import Panel
 from pandas.core.series import remove_na
 import pandas.core.common as com
-import pandas.core.panel as panelmod
 from pandas.util import py3compat
-from pandas.io.parsers import (ExcelFile, ExcelWriter)
 
 from pandas.util.testing import (assert_panel_equal,
                                  assert_frame_equal,
@@ -241,7 +237,7 @@ class SafeForSparse(object):
         tm.equalContents(self.panel.keys(), self.panel.items)
 
     def test_iteritems(self):
-        """Test panel.iteritems(), aka panel.iterkv()"""
+        # Test panel.iteritems(), aka panel.iterkv()
         # just test that it works
         for k, v in self.panel.iterkv():
             pass
@@ -410,14 +406,15 @@ class CheckIndexing(object):
         self.assert_(self.panel['ItemP'].values.dtype == np.bool_)
 
     def test_setitem_ndarray(self):
-        from pandas import DateRange, datetools
+        from pandas import date_range, datetools
 
-        timeidx = DateRange(start=datetime(2009,1,1),
-                            end=datetime(2009,12,31),
-                            offset=datetools.MonthEnd())
+        timeidx = date_range(start=datetime(2009,1,1),
+                             end=datetime(2009,12,31),
+                             freq=datetools.MonthEnd())
         lons_coarse = np.linspace(-177.5, 177.5, 72)
         lats_coarse = np.linspace(-87.5, 87.5, 36)
-        P = Panel(items=timeidx, major_axis=lons_coarse, minor_axis=lats_coarse)
+        P = Panel(items=timeidx, major_axis=lons_coarse,
+                  minor_axis=lats_coarse)
         data = np.random.randn(72*36).reshape((72,36))
         key = datetime(2009,2,28)
         P[key] = data
@@ -891,12 +888,46 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         result = self.panel.swapaxes('major', 'minor')
         self.assert_(result.major_axis is self.panel.minor_axis)
 
+        panel = self.panel.copy()
+        result = panel.swapaxes('major', 'minor')
+        panel.values[0, 0, 1] = np.nan
+        expected = panel.swapaxes('major', 'minor')
+        assert_panel_equal(result, expected)
+
         # this should also work
         result = self.panel.swapaxes(0, 1)
         self.assert_(result.items is self.panel.major_axis)
 
-        # this should also work
+        # this should not work
         self.assertRaises(Exception, self.panel.swapaxes, 'items', 'items')
+
+    def test_transpose(self):
+        result = self.panel.transpose('minor', 'major', 'items')
+        expected = self.panel.swapaxes('items', 'minor')
+        assert_panel_equal(result, expected)
+
+        result = self.panel.transpose(2, 1, 0)
+        assert_panel_equal(result, expected)
+
+        result = self.panel.transpose('minor', 'items', 'major')
+        expected = self.panel.swapaxes('items', 'minor')
+        expected = expected.swapaxes('major', 'minor')
+        assert_panel_equal(result, expected)
+
+        result = self.panel.transpose(2, 0, 1)
+        assert_panel_equal(result, expected)
+
+        self.assertRaises(ValueError, self.panel.transpose, 0, 0, 1)
+
+    def test_transpose_copy(self):
+        panel = self.panel.copy()
+        result = panel.transpose(2, 0, 1, copy=True)
+        expected = panel.swapaxes('items', 'minor')
+        expected = expected.swapaxes('major', 'minor')
+        assert_panel_equal(result, expected)
+
+        panel.values[0, 1, 1] = np.nan
+        self.assert_(notnull(result.values[1, 0, 1]))
 
     def test_to_frame(self):
         # filtered
@@ -1033,9 +1064,11 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 
     def test_to_excel(self):
         try:
+            import os
             import xlwt
             import xlrd
             import openpyxl
+            from pandas.io.parsers import ExcelFile
         except ImportError:
             raise nose.SkipTest
 
@@ -1125,7 +1158,7 @@ class TestLongPanel(unittest.TestCase):
         self.assert_(is_sorted(sorted_major.index.labels[0]))
 
     def test_to_string(self):
-        from cStringIO import StringIO
+        from pandas.util.py3compat import StringIO
 
         buf = StringIO()
         self.panel.to_string(buf)

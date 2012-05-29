@@ -1,4 +1,8 @@
-from StringIO import StringIO
+try:
+    from StringIO import StringIO
+except:
+    from io import StringIO
+
 import os
 import sys
 import unittest
@@ -64,6 +68,17 @@ class TestDataFrameFormatting(unittest.TestCase):
 
         # it works!
         repr(df)
+
+        idx = Index(['abc', u'\u03c3a', 'aegdvg'])
+        ser = Series(np.random.randn(len(idx)), idx)
+        rs = repr(ser).split('\n')
+        line_len = len(rs[0])
+        for line in rs[1:]:
+            try:
+                line = line.decode('utf-8')
+            except:
+                pass
+            self.assert_(len(line) == line_len)
 
         # it works even if sys.stdin in None
         sys.stdin = None
@@ -386,6 +401,83 @@ class TestDataFrameFormatting(unittest.TestCase):
         result = self.frame.to_html(columns=['A'])
         self.assert_('<th>B</th>' not in result)
 
+    def test_to_html_multiindex(self):
+        columns = pandas.MultiIndex.from_tuples(zip(range(4),
+                                                    np.mod(range(4), 2)),
+                                                names=['CL0', 'CL1'])
+        df = pandas.DataFrame([list('abcd'), list('efgh')], columns=columns)
+        result = df.to_html()
+        expected = ('<table border="1">\n'
+                    '  <thead>\n'
+                    '    <tr>\n'
+                    '      <th><table><tbody><tr><td>CL0</td></tr><tr>'
+                    '<td>CL1</td></tr></tbody></table></th>\n'
+                    '      <th><table><tbody><tr><td>0</td></tr><tr>'
+                    '<td>0</td></tr></tbody></table></th>\n'
+                    '      <th><table><tbody><tr><td>1</td></tr><tr>'
+                    '<td>1</td></tr></tbody></table></th>\n'
+                    '      <th><table><tbody><tr><td>2</td></tr><tr>'
+                    '<td>0</td></tr></tbody></table></th>\n'
+                    '      <th><table><tbody><tr><td>3</td></tr><tr>'
+                    '<td>1</td></tr></tbody></table></th>\n'
+                    '    </tr>\n'
+                    '  </thead>\n'
+                    '  <tbody>\n'
+                    '    <tr>\n'
+                    '      <td><strong>0</strong></td>\n'
+                    '      <td> a</td>\n'
+                    '      <td> b</td>\n'
+                    '      <td> c</td>\n'
+                    '      <td> d</td>\n'
+                    '    </tr>\n'
+                    '    <tr>\n'
+                    '      <td><strong>1</strong></td>\n'
+                    '      <td> e</td>\n'
+                    '      <td> f</td>\n'
+                    '      <td> g</td>\n'
+                    '      <td> h</td>\n'
+                    '    </tr>\n'
+                    '  </tbody>\n'
+                    '</table>')
+        self.assertEqual(result, expected)
+
+        columns = pandas.MultiIndex.from_tuples(zip(range(4),
+                                                    np.mod(range(4), 2)))
+        df = pandas.DataFrame([list('abcd'), list('efgh')], columns=columns)
+        result = df.to_html()
+        expected = ('<table border="1">\n'
+                    '  <thead>\n'
+                    '    <tr>\n'
+                    '      <th></th>\n'
+                    '      <th><table><tbody><tr><td>0</td></tr>'
+                    '<tr><td>0</td></tr></tbody></table></th>\n'
+                    '      <th><table><tbody><tr><td>1</td></tr>'
+                    '<tr><td>1</td></tr></tbody></table></th>\n'
+                    '      <th><table><tbody><tr><td>2</td></tr>'
+                    '<tr><td>0</td></tr></tbody></table></th>\n'
+                    '      <th><table><tbody><tr><td>3</td></tr>'
+                    '<tr><td>1</td></tr></tbody></table></th>\n'
+                    '    </tr>\n'
+                    '  </thead>\n'
+                    '  <tbody>\n'
+                    '    <tr>\n'
+                    '      <td><strong>0</strong></td>\n'
+                    '      <td> a</td>\n'
+                    '      <td> b</td>\n'
+                    '      <td> c</td>\n'
+                    '      <td> d</td>\n'
+                    '    </tr>\n'
+                    '    <tr>\n'
+                    '      <td><strong>1</strong></td>\n'
+                    '      <td> e</td>\n'
+                    '      <td> f</td>\n'
+                    '      <td> g</td>\n'
+                    '      <td> h</td>\n'
+                    '    </tr>\n'
+                    '  </tbody>\n'
+                    '</table>')
+        self.assertEqual(result, expected)
+
     def test_repr_html(self):
         self.frame._repr_html_()
 
@@ -407,7 +499,6 @@ class TestSeriesFormatting(unittest.TestCase):
         repr(s)
 
     def test_to_string(self):
-        from cStringIO import StringIO
         buf = StringIO()
 
         s = self.ts.to_string()
@@ -435,7 +526,7 @@ class TestSeriesFormatting(unittest.TestCase):
         cp.name = 'foo'
         result = cp.to_string(length=True, name=True)
         last_line = result.split('\n')[-1].strip()
-        self.assertEqual(last_line, "Name: foo, Length: %d" % len(cp))
+        self.assertEqual(last_line, "Freq: B, Name: foo, Length: %d" % len(cp))
 
     def test_to_string_mixed(self):
         s = Series(['foo', np.nan, -1.23, 4.56])

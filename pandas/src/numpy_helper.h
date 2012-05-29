@@ -1,5 +1,6 @@
 #include "Python.h"
-#include "numpy/ndarrayobject.h"
+#include "numpy/arrayobject.h"
+#include "numpy/arrayscalars.h"
 
 #ifndef PANDAS_INLINE
   #if defined(__GNUC__)
@@ -18,6 +19,7 @@
 #define PANDAS_BOOL 2
 #define PANDAS_STRING 3
 #define PANDAS_OBJECT 4
+#define PANDAS_DATETIME 5
 
 PANDAS_INLINE int
 infer_type(PyObject* obj) {
@@ -26,6 +28,9 @@ infer_type(PyObject* obj) {
   }
   else if (PyArray_IsIntegerScalar(obj)) {
     return PANDAS_INT;
+  }
+  else if (PyArray_IsScalar(obj, Datetime)) {
+    return PANDAS_DATETIME;
   }
   else if (PyFloat_Check(obj) || PyArray_IsScalar(obj, Floating)) {
     return PANDAS_FLOAT;
@@ -38,6 +43,18 @@ infer_type(PyObject* obj) {
   }
 }
 
+PANDAS_INLINE npy_int64
+get_nat() {
+  return NPY_MIN_INT64;
+}
+
+PANDAS_INLINE npy_datetime
+get_datetime64_value(PyObject* obj) {
+  return ((PyDatetimeScalarObject*) obj)->obval;
+
+}
+
+
 PANDAS_INLINE int
 is_integer_object(PyObject* obj) {
   return (!PyBool_Check(obj)) && PyArray_IsIntegerScalar(obj);
@@ -48,6 +65,10 @@ PANDAS_INLINE int
 is_float_object(PyObject* obj) {
   return (PyFloat_Check(obj) || PyArray_IsScalar(obj, Floating));
 }
+PANDAS_INLINE int
+is_complex_object(PyObject* obj) {
+  return (PyComplex_Check(obj) || PyArray_IsScalar(obj, ComplexFloating));
+}
 
 PANDAS_INLINE int
 is_bool_object(PyObject* obj) {
@@ -57,6 +78,11 @@ is_bool_object(PyObject* obj) {
 PANDAS_INLINE int
 is_string_object(PyObject* obj) {
   return (PyString_Check(obj) || PyUnicode_Check(obj));
+}
+
+PANDAS_INLINE int
+is_datetime64_object(PyObject *obj) {
+  return PyArray_IsScalar(obj, Datetime);
 }
 
 PANDAS_INLINE int
@@ -125,3 +151,4 @@ PANDAS_INLINE PyObject* floatify(PyObject* str) {
 //   }
 //   return ap;
 // }
+

@@ -7,13 +7,13 @@ import nose
 
 import numpy as np
 
-from pandas.core.api import DataFrame, DateRange
+from pandas import DataFrame, bdate_range
 from pandas.util.testing import assert_almost_equal # imported in other tests
 N = 100
 K = 4
 
 start = datetime(2007, 1, 1)
-DATE_RANGE = DateRange(start, periods=N)
+DATE_RANGE = bdate_range(start, periods=N)
 
 COLS = ['Col' + c for c in string.ascii_uppercase[:K]]
 

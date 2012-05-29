@@ -1,27 +1,18 @@
-# pylint: disable=W0231
+# pylint: disable=W0231,E1101
+from datetime import timedelta
 
 import numpy as np
 
-from pandas.core.common import save, load
 from pandas.core.index import MultiIndex
-import pandas.core.datetools as datetools
-
-#-------------------------------------------------------------------------------
-# Picklable mixin
-
-class Picklable(object):
-
-    def save(self, path):
-        save(self, path)
-
-    @classmethod
-    def load(cls, path):
-        return load(path)
+from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.offsets import DateOffset
+import pandas.core.common as com
 
 class PandasError(Exception):
     pass
 
-class PandasObject(Picklable):
+
+class PandasObject(object):
 
     _AXIS_NUMBERS = {
         'index' : 0,
@@ -30,6 +21,13 @@ class PandasObject(Picklable):
 
     _AXIS_ALIASES = {}
     _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
+
+    def save(self, path):
+        com.save(self, path)
+
+    @classmethod
+    def load(cls, path):
+        return com.load(path)
 
     #----------------------------------------------------------------------
     # Axis name business
@@ -135,6 +133,124 @@ class PandasObject(Picklable):
         return groupby(self, by, axis=axis, level=level, as_index=as_index,
                        sort=sort, group_keys=group_keys)
 
+    def asfreq(self, freq, method=None, how=None):
+        """
+        Convert all TimeSeries inside to specified frequency using DateOffset
+        objects. Optionally provide fill method to pad/backfill missing values.
+
+        Parameters
+        ----------
+        freq : DateOffset object, or string
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}
+            Method to use for filling holes in reindexed Series
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill methdo
+        how : {'start', 'end'}, default end
+            For PeriodIndex only, see PeriodIndex.asfreq
+
+        Returns
+        -------
+        converted : type of caller
+        """
+        from pandas.tseries.resample import asfreq
+        return asfreq(self, freq, method=method, how=how)
+
+    def resample(self, rule, how='mean', axis=0, fill_method=None,
+                 closed='right', label='right', convention=None,
+                 kind=None, loffset=None, limit=None, base=0):
+        """
+        Convenience method for frequency conversion and resampling of regular
+        time-series data.
+
+        Parameters
+        ----------
+        rule : the offset string or object representing target conversion
+        how : string, method for down- or re-sampling, default 'mean'
+        fill_method : string, fill_method for upsampling, default None
+        axis : int, optional, default 0
+        closed : {'right', 'left'}, default 'right'
+            Which side of bin interval is closed
+        label : {'right', 'left'}, default 'right'
+            Which bin edge label to label bucket with
+        convention : {'start', 'end', 's', 'e'}
+        loffset : timedelta
+            Adjust the resampled time labels
+        base : int, default 0
+            For frequencies that evenly subdivide 1 day, the "origin" of the
+            aggregated intervals. For example, for '5min' frequency, base could
+            range from 0 through 4. Defaults to 0
+        """
+        from pandas.tseries.resample import TimeGrouper
+        sampler = TimeGrouper(rule, label=label, closed=closed, how=how,
+                              axis=axis, kind=kind, loffset=loffset,
+                              fill_method=fill_method, convention=convention,
+                              limit=limit, base=base)
+        return sampler.resample(self)
+
+    def first(self, offset):
+        """
+        Convenience method for subsetting initial periods of time series data
+        based on a date offset
+
+        Parameters
+        ----------
+        offset : string, DateOffset, dateutil.relativedelta
+
+        Examples
+        --------
+        ts.last('10D') -> First 10 days
+
+        Returns
+        -------
+        subset : type of caller
+        """
+        from pandas.tseries.frequencies import to_offset
+        if not isinstance(self.index, DatetimeIndex):
+            raise NotImplementedError
+
+        if len(self.index) == 0:
+            return self
+
+        offset = to_offset(offset)
+        end_date = end = self.index[0] + offset
+
+        # Tick-like, e.g. 3 weeks
+        if not offset.isAnchored() and hasattr(offset, '_inc'):
+            if end_date in self.index:
+                end = self.index.searchsorted(end_date, side='left')
+
+        return self.ix[:end]
+
+    def last(self, offset):
+        """
+        Convenience method for subsetting final periods of time series data
+        based on a date offset
+
+        Parameters
+        ----------
+        offset : string, DateOffset, dateutil.relativedelta
+
+        Examples
+        --------
+        ts.last('5M') -> Last 5 months
+
+        Returns
+        -------
+        subset : type of caller
+        """
+        from pandas.tseries.frequencies import to_offset
+        if not isinstance(self.index, DatetimeIndex):
+            raise NotImplementedError
+
+        if len(self.index) == 0:
+            return self
+
+        offset = to_offset(offset)
+
+        start_date = start = self.index[-1] - offset
+        start = self.index.searchsorted(start_date, side='right')
+        return self.ix[start:]
+
     def select(self, crit, axis=0):
         """
         Return data corresponding to axis labels matching criteria
@@ -217,6 +333,70 @@ class PandasObject(Picklable):
 
     def reindex(self, *args, **kwds):
         raise NotImplementedError
+
+    def tshift(self, periods=1, freq=None, **kwds):
+        """
+        Shift the time index, using the index's frequency if available
+
+        Parameters
+        ----------
+        periods : int
+            Number of periods to move, can be positive or negative
+        freq : DateOffset, timedelta, or time rule string, default None
+            Increment to use from datetools module or time rule (e.g. 'EOM')
+
+        Notes
+        -----
+        If freq is not specified then tries to use the freq or inferred_freq
+        attributes of the index. If neither of those attributes exist, a
+        ValueError is thrown
+
+        Returns
+        -------
+        shifted : Series
+        """
+        if freq is None:
+            freq = getattr(self.index, 'freq', None)
+
+        if freq is None:
+            freq = getattr(self.index, 'inferred_freq', None)
+
+        if freq is None:
+            msg = 'Freq was not given and was not set in the index'
+            raise ValueError(msg)
+
+        return self.shift(periods, freq, **kwds)
+
+    def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None,
+                   **kwds):
+        """
+        Percent change over given number of periods
+
+        Parameters
+        ----------
+        periods : int, default 1
+            Periods to shift for forming percent change
+        fill_method : str, default 'pad'
+            How to handle NAs before computing percent changes
+        limit : int, default None
+            The number of consecutive NAs to fill before stopping
+        freq : DateOffset, timedelta, or offset alias string, optional
+            Increment to use from time series API (e.g. 'M' or BDay())
+
+        Returns
+        -------
+        chg : Series or DataFrame
+        """
+        if fill_method is None:
+            data = self
+        else:
+            data = self.fillna(method=fill_method, limit=limit)
+        rs = data / data.shift(periods=periods, freq=freq, **kwds) - 1
+        if freq is None:
+            mask = com.isnull(self.values)
+            np.putmask(rs.values, mask, np.nan)
+        return rs
+
 
 class NDFrame(PandasObject):
     """
@@ -361,6 +541,8 @@ class NDFrame(PandasObject):
         new_axes = []
         for k, ax in zip(key, self.axes):
             if k not in ax:
+                if type(k) != ax.dtype.type:
+                    ax = ax.astype('O')
                 new_axes.append(ax.insert(len(ax), k))
             else:
                 new_axes.append(ax)
@@ -676,6 +858,42 @@ class NDFrame(PandasObject):
             new_data = self._data.take(indices, axis=axis)
         return self._constructor(new_data)
 
+    def tz_convert(self, tz, axis=0, copy=True):
+        """
+        Convert TimeSeries to target time zone. If it is time zone naive, it
+        will be localized to the passed time zone.
+
+        Parameters
+        ----------
+        tz : string or pytz.timezone object
+        copy : boolean, default True
+            Also make a copy of the underlying data
+
+        Returns
+        -------
+        """
+        axis = self._get_axis_number(axis)
+        ax = self._get_axis(axis)
+
+        if not hasattr(ax, 'tz_convert'):
+            ax_name = self._get_axis_name(axis)
+            raise TypeError('%s is not a valid DatetimeIndex or PeriodIndex' %
+                            ax_name)
+
+        new_data = self._data
+        if copy:
+            new_data = new_data.copy()
+
+        new_obj = self._constructor(new_data)
+        new_ax = ax.tz_convert(tz)
+
+        if axis == 0:
+            new_obj._set_axis(1, new_ax)
+        elif axis == 1:
+            new_obj._set_axis(0, new_ax)
+
+        return new_obj
+
 # Good for either Series or DataFrame
 
 def truncate(self, before=None, after=None, copy=True):
@@ -693,8 +911,9 @@ def truncate(self, before=None, after=None, copy=True):
     -------
     truncated : type of caller
     """
-    before = datetools.to_datetime(before)
-    after = datetools.to_datetime(after)
+    from pandas.tseries.tools import to_datetime
+    before = to_datetime(before)
+    after = to_datetime(after)
 
     if before is not None and after is not None:
         assert(before <= after)

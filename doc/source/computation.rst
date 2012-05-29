@@ -171,14 +171,16 @@ accept the following arguments:
   - ``window``: size of moving window
   - ``min_periods``: threshold of non-null data points to require (otherwise
     result is NA)
-  - ``time_rule``: optionally specify a :ref:`time rule <timeseries.timerule>`
-    to pre-conform the data to
+  - ``freq``: optionally specify a :ref: `frequency string <timeseries.alias>`
+    or :ref:`DateOffset <timeseries.offsets>` to pre-conform the data to.
+    Note that prior to pandas v0.8.0, a keyword argument ``time_rule`` was used
+    instead of ``freq`` that referred to the legacy time rule constants
 
 These functions can be applied to ndarrays or Series objects:
 
 .. ipython:: python
 
-   ts = Series(randn(1000), index=DateRange('1/1/2000', periods=1000))
+   ts = Series(randn(1000), index=date_range('1/1/2000', periods=1000))
    ts = ts.cumsum()
 
    ts.plot(style='k--')
@@ -202,6 +204,17 @@ sugar for applying the moving window operator to all of the DataFrame's columns:
 
    @savefig rolling_mean_frame.png width=4.5in
    rolling_sum(df, 60).plot(subplots=True)
+
+The ``rolling_apply`` function takes an extra ``func`` argument and performs
+generic rolling computations. The ``func`` argument should be a single function
+that produces a single value from an ndarray input. Suppose we wanted to
+compute the mean absolute deviation on a rolling basis:
+
+.. ipython:: python
+
+   mad = lambda x: np.fabs(x - x.mean()).mean()
+   @savefig rolling_apply_ex.png width=4.5in
+   rolling_apply(ts, 60, mad).plot(style='k')
 
 .. _stats.moments.binary:
 

@@ -3,7 +3,7 @@ from pandas import *
 import numpy as np
 from itertools import izip
 from pandas.util.testing import rands
-import pandas._tseries as lib
+import pandas.lib as lib
 
 N = 100000
 

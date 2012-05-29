@@ -9,26 +9,44 @@ from datetime import datetime, date
 import time
 
 import numpy as np
-from pandas import Series, TimeSeries, DataFrame, Panel, Index, MultiIndex
+from pandas import (
+    Series, TimeSeries, DataFrame, Panel, Index, MultiIndex, Int64Index
+)
+from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
+from pandas.sparse.array import BlockIndex, IntIndex
+from pandas.tseries.api import PeriodIndex, DatetimeIndex
 from pandas.core.common import adjoin
+from pandas.core.algorithms import match, unique
+
+from pandas.core.factor import Factor
+from pandas.core.common import _asarray_tuplesafe
+from pandas.core.internals import BlockManager, make_block
+from pandas.core.reshape import block2d_to_block3d
 import pandas.core.common as com
-import pandas._tseries as lib
+
+import pandas.lib as lib
 from contextlib import contextmanager
 
 # reading and writing the full object in one go
 _TYPE_MAP = {
     Series     : 'series',
+    SparseSeries : 'sparse_series',
     TimeSeries : 'series',
     DataFrame  : 'frame',
-    Panel  : 'wide'
+    SparseDataFrame : 'sparse_frame',
+    Panel  : 'wide',
+    SparsePanel : 'sparse_panel'
 }
 
 _NAME_MAP = {
     'series' : 'Series',
     'time_series' : 'TimeSeries',
+    'sparse_series' : 'SparseSeries',
     'frame' : 'DataFrame',
+    'sparse_frame' : 'SparseDataFrame',
     'frame_table' : 'DataFrame (Table)',
     'wide' : 'Panel',
+    'sparse_panel' : 'SparsePanel',
     'wide_table' : 'Panel (Table)',
     'long' : 'LongPanel',
     # legacy h5 files
@@ -166,6 +184,9 @@ class HDFStore(object):
 
     def __setitem__(self, key, value):
         self.put(key, value)
+
+    def __contains__(self, key):
+        return hasattr(self.handle.root, key)
 
     def __len__(self):
         return len(self.handle.root._v_children)
@@ -341,7 +362,7 @@ class HDFStore(object):
         if where is None:
             self.handle.removeNode(self.handle.root, key, recursive=True)
         else:
-            group = getattr(self.handle.root, key,None)
+            group = getattr(self.handle.root, key, None)
             if group is not None:
                 self._delete_from_table(group, where)
 
@@ -393,6 +414,78 @@ class HDFStore(object):
         self._write_array(group, 'values', series.values)
         group._v_attrs.name = series.name
 
+    def _write_sparse_series(self, group, series):
+        self._write_index(group, 'index', series.index)
+        self._write_index(group, 'sp_index', series.sp_index)
+        self._write_array(group, 'sp_values', series.sp_values)
+        group._v_attrs.name = series.name
+        group._v_attrs.fill_value = series.fill_value
+        group._v_attrs.kind = series.kind
+
+    def _read_sparse_series(self, group, where=None):
+        index = self._read_index(group, 'index')
+        sp_values = _read_array(group, 'sp_values')
+        sp_index = self._read_index(group, 'sp_index')
+        name = getattr(group._v_attrs, 'name', None)
+        fill_value = getattr(group._v_attrs, 'fill_value', None)
+        kind = getattr(group._v_attrs, 'kind', 'block')
+        return SparseSeries(sp_values, index=index, sparse_index=sp_index,
+                            kind=kind, fill_value=fill_value,
+                            name=name)
+
+    def _write_sparse_frame(self, group, sdf):
+        for name, ss in sdf.iteritems():
+            key = 'sparse_series_%s' % name
+            if key not in group._v_children:
+                node = self.handle.createGroup(group, key)
+            else:
+                node = getattr(group, key)
+            self._write_sparse_series(node, ss)
+        setattr(group._v_attrs, 'default_fill_value',
+                sdf.default_fill_value)
+        setattr(group._v_attrs, 'default_kind',
+                sdf.default_kind)
+        self._write_index(group, 'columns', sdf.columns)
+
+    def _read_sparse_frame(self, group, where=None):
+        columns = self._read_index(group, 'columns')
+        sdict = {}
+        for c in columns:
+            key = 'sparse_series_%s' % c
+            node = getattr(group, key)
+            sdict[c] = self._read_sparse_series(node)
+        default_kind = getattr(group._v_attrs, 'default_kind')
+        default_fill_value = getattr(group._v_attrs, 'default_fill_value')
+        return SparseDataFrame(sdict, columns=columns,
+                               default_kind=default_kind,
+                               default_fill_value=default_fill_value)
+
+    def _write_sparse_panel(self, group, swide):
+        setattr(group._v_attrs, 'default_fill_value', swide.default_fill_value)
+        setattr(group._v_attrs, 'default_kind', swide.default_kind)
+        self._write_index(group, 'items', swide.items)
+
+        for name, sdf in swide.iteritems():
+            key = 'sparse_frame_%s' % name
+            if key not in group._v_children:
+                node = self.handle.createGroup(group, key)
+            else:
+                node = getattr(group, key)
+            self._write_sparse_frame(node, sdf)
+
+    def _read_sparse_panel(self, group, where=None):
+        default_fill_value = getattr(group._v_attrs, 'default_fill_value')
+        default_kind = getattr(group._v_attrs, 'default_kind')
+        items = self._read_index(group, 'items')
+
+        sdict = {}
+        for name in items:
+            key = 'sparse_frame_%s' % name
+            node = getattr(group, key)
+            sdict[name] = self._read_sparse_frame(node)
+        return SparsePanel(sdict, items=items, default_kind=default_kind,
+                           default_fill_value=default_fill_value)
+
     def _write_frame(self, group, df):
         self._write_block_manager(group, df._data)
 
@@ -416,10 +509,7 @@ class HDFStore(object):
             self._write_array(group, 'block%d_values' % i, blk.values)
 
     def _read_block_manager(self, group):
-        from pandas.core.internals import BlockManager, make_block
-
         ndim = group._v_attrs.ndim
-        nblocks = group._v_attrs.nblocks
 
         axes = []
         for i in xrange(ndim):
@@ -464,13 +554,24 @@ class HDFStore(object):
         return self._read_panel_table(group, where)
 
     def _write_index(self, group, key, index):
-        if len(index) == 0:
-            raise ValueError('Can not write empty structure, axis length was 0')
-
         if isinstance(index, MultiIndex):
+            if len(index) == 0:
+                raise ValueError('Can not write empty structure, '
+                                 'axis length was 0')
+
             setattr(group._v_attrs, '%s_variety' % key, 'multi')
             self._write_multi_index(group, key, index)
+        elif isinstance(index, BlockIndex):
+            setattr(group._v_attrs, '%s_variety' % key, 'block')
+            self._write_block_index(group, key, index)
+        elif isinstance(index, IntIndex):
+            setattr(group._v_attrs, '%s_variety' % key, 'sparseint')
+            self._write_sparse_intindex(group, key, index)
         else:
+            if len(index) == 0:
+                raise ValueError('Can not write empty structure, '
+                                 'axis length was 0')
+
             setattr(group._v_attrs, '%s_variety' % key, 'regular')
             converted, kind, _ = _convert_index(index)
             self._write_array(group, key, converted)
@@ -478,16 +579,49 @@ class HDFStore(object):
             node._v_attrs.kind = kind
             node._v_attrs.name = index.name
 
+            if isinstance(index, (DatetimeIndex, PeriodIndex)):
+                node._v_attrs.index_class = _class_to_alias(type(index))
+
+            if hasattr(index, 'freq'):
+                node._v_attrs.freq = index.freq
+
+            if hasattr(index, 'tz') and index.tz is not None:
+                node._v_attrs.tz = index.tz.zone
+
     def _read_index(self, group, key):
         variety = getattr(group._v_attrs, '%s_variety' % key)
 
         if variety == 'multi':
             return self._read_multi_index(group, key)
+        elif variety == 'block':
+            return self._read_block_index(group, key)
+        elif variety == 'sparseint':
+            return self._read_sparse_intindex(group, key)
         elif variety == 'regular':
             _, index = self._read_index_node(getattr(group, key))
             return index
         else:  # pragma: no cover
             raise Exception('unrecognized index variety: %s' % variety)
+
+    def _write_block_index(self, group, key, index):
+        self._write_array(group, '%s_blocs' % key, index.blocs)
+        self._write_array(group, '%s_blengths' % key, index.blengths)
+        setattr(group._v_attrs, '%s_length' % key, index.length)
+
+    def _read_block_index(self, group, key):
+        length = getattr(group._v_attrs, '%s_length' % key)
+        blocs = _read_array(group, '%s_blocs' % key)
+        blengths = _read_array(group, '%s_blengths' % key)
+        return BlockIndex(length, blocs, blengths)
+
+    def _write_sparse_intindex(self, group, key, index):
+        self._write_array(group, '%s_indices' % key, index.indices)
+        setattr(group._v_attrs, '%s_length' % key, index.length)
+
+    def _read_sparse_intindex(self, group, key):
+        length = getattr(group._v_attrs, '%s_length' % key)
+        indices = _read_array(group, '%s_indices' % key)
+        return IntIndex(length, indices)
 
     def _write_multi_index(self, group, key, index):
         setattr(group._v_attrs, '%s_nlevels' % key, index.nlevels)
@@ -536,7 +670,22 @@ class HDFStore(object):
         if 'name' in node._v_attrs:
             name = node._v_attrs.name
 
-        index = Index(_unconvert_index(data, kind))
+        index_class = _alias_to_class(getattr(node._v_attrs, 'index_class', ''))
+        factory = _get_index_factory(index_class)
+
+        kwargs = {}
+        if 'freq' in node._v_attrs:
+            kwargs['freq'] = node._v_attrs['freq']
+
+        if 'tz' in node._v_attrs:
+            kwargs['tz'] = node._v_attrs['tz']
+
+        if kind in ('date', 'datetime'):
+            index = factory(_unconvert_index(data, kind), dtype=object,
+                            **kwargs)
+        else:
+            index = factory(_unconvert_index(data, kind), **kwargs)
+
         index.name = name
 
         return name, index
@@ -561,10 +710,13 @@ class HDFStore(object):
                 ca[:] = value
                 return
 
-        if value.dtype == np.object_:
+        if value.dtype.type == np.object_:
             vlarr = self.handle.createVLArray(group, key,
                                               _tables().ObjectAtom())
             vlarr.append(value)
+        elif value.dtype.type == np.datetime64:
+            self.handle.createArray(group, key, value.view('i8'))
+            group._v_attrs.value_type = 'datetime64'
         else:
             self.handle.createArray(group, key, value)
 
@@ -678,22 +830,17 @@ class HDFStore(object):
         return self._read_panel_table(group, where)['value']
 
     def _read_panel_table(self, group, where=None):
-        from pandas.core.index import unique_int64, Factor
-        from pandas.core.common import _asarray_tuplesafe
-        from pandas.core.internals import BlockManager
-        from pandas.core.reshape import block2d_to_block3d
-
         table = getattr(group, 'table')
+        fields = table._v_attrs.fields
 
         # create the selection
-        sel = Selection(table, where)
+        sel = Selection(table, where, table._v_attrs.index_kind)
         sel.select()
         fields = table._v_attrs.fields
 
         columns = _maybe_convert(sel.values['column'],
                                  table._v_attrs.columns_kind)
-        index = _maybe_convert(sel.values['index'],
-                               table._v_attrs.index_kind)
+        index = _maybe_convert(sel.values['index'], table._v_attrs.index_kind)
         values = sel.values['values']
 
         major = Factor(index)
@@ -702,8 +849,9 @@ class HDFStore(object):
         J, K = len(major.levels), len(minor.levels)
         key = major.labels * K + minor.labels
 
-        if len(unique_int64(key)) == len(key):
-            sorter, _ = lib.groupsort_indexer(key, J * K)
+        if len(unique(key)) == len(key):
+            sorter, _ = lib.groupsort_indexer(com._ensure_int64(key), J * K)
+            sorter = com._ensure_platform_int(sorter)
 
             # the data need to be sorted
             sorted_values = values.take(sorter, axis=0)
@@ -713,7 +861,7 @@ class HDFStore(object):
             block = block2d_to_block3d(sorted_values, fields, (J, K),
                                        major_labels, minor_labels)
 
-            mgr = BlockManager([block], [block.items,
+            mgr = BlockManager([block], [block.ref_items,
                                          major.levels, minor.levels])
             wp = Panel(mgr)
         else:
@@ -727,12 +875,12 @@ class HDFStore(object):
 
             # need a better algorithm
             tuple_index = long_index.get_tuple_index()
-            index_map = lib.map_indices_object(tuple_index)
 
             unique_tuples = lib.fast_unique(tuple_index)
             unique_tuples = _asarray_tuplesafe(unique_tuples)
 
-            indexer = lib.merge_indexer_object(unique_tuples, index_map)
+            indexer = match(unique_tuples, tuple_index)
+            indexer = com._ensure_platform_int(indexer)
 
             new_index = long_index.take(indexer)
             new_values = lp.values.take(indexer, axis=0)
@@ -749,7 +897,7 @@ class HDFStore(object):
         table = getattr(group, 'table')
 
         # create the selection
-        s = Selection(table,where)
+        s = Selection(table, where, table._v_attrs.index_kind)
         s.select_coords()
 
         # delete the rows in reverse order
@@ -761,27 +909,42 @@ class HDFStore(object):
         return len(s.values)
 
 def _convert_index(index):
-    # Let's assume the index is homogeneous
+    if isinstance(index, DatetimeIndex):
+        converted = np.asarray(index, dtype='i8')
+        return converted, 'datetime64', _tables().Int64Col()
+    elif isinstance(index, (Int64Index, PeriodIndex)):
+        atom = _tables().Int64Col()
+        return np.asarray(index, dtype=np.int64), 'integer', atom
+
+    inferred_type = lib.infer_dtype(index)
+
     values = np.asarray(index)
 
-    if isinstance(values[0], datetime):
+    if inferred_type == 'datetime64':
+        converted = values.view('i8')
+        return converted, 'datetime64', _tables().Int64Col()
+    elif inferred_type == 'datetime':
         converted = np.array([(time.mktime(v.timetuple()) +
-                               v.microsecond / 1E6) for v in values],
-                               dtype=np.float64)
+                            v.microsecond / 1E6) for v in values],
+                            dtype=np.float64)
         return converted, 'datetime', _tables().Time64Col()
-    elif isinstance(values[0], date):
+    elif inferred_type == 'date':
         converted = np.array([time.mktime(v.timetuple()) for v in values],
-                             dtype=np.int32)
+                            dtype=np.int32)
         return converted, 'date', _tables().Time32Col()
-    elif isinstance(values[0], basestring):
-        converted = np.array(list(values), dtype=np.str_)
-        itemsize = converted.dtype.itemsize
-        return converted, 'string', _tables().StringCol(itemsize)
-    elif com.is_integer(values[0]):
+    elif inferred_type =='string':
+        try:
+            converted = np.array(list(values), dtype=np.str_)
+            itemsize = converted.dtype.itemsize
+            return converted, 'string', _tables().StringCol(itemsize)
+        except UnicodeError: # Write an all unicode index as object array
+            atom = _tables().ObjectAtom()
+            return np.asarray(values, dtype='O'), 'object', atom
+    elif inferred_type == 'integer':
         # take a guess for now, hope the values fit
         atom = _tables().Int64Col()
         return np.asarray(values, dtype=np.int64), 'integer', atom
-    elif com.is_float(values[0]):
+    elif inferred_type == 'floating':
         atom = _tables().Float64Col()
         return np.asarray(values, dtype=np.float64), 'float', atom
     else: # pragma: no cover
@@ -796,16 +959,19 @@ def _read_array(group, key):
     if isinstance(node, tables.VLArray):
         return data[0]
     else:
+        dtype = getattr(group._v_attrs, 'value_type', None)
+        if dtype == 'datetime64':
+            return np.array(data, dtype='M8[ns]')
         return data
 
 def _unconvert_index(data, kind):
-    if kind == 'datetime':
+    if kind == 'datetime64':
+        index = np.asarray(data, dtype='M8[ns]')
+    elif kind == 'datetime':
         index = np.array([datetime.fromtimestamp(v) for v in data],
                          dtype=object)
     elif kind == 'date':
-        index = np.array([date.fromtimestamp(v) for v in data],
-                         dtype=object)
-
+        index = np.array([date.fromtimestamp(v) for v in data], dtype=object)
     elif kind in ('string', 'integer', 'float'):
         index = np.array(data)
     elif kind == 'object':
@@ -816,7 +982,7 @@ def _unconvert_index(data, kind):
 
 def _unconvert_index_legacy(data, kind, legacy=False):
     if kind == 'datetime':
-        index = lib.array_to_datetime(data)
+        index = lib.time64_to_datetime(data)
     elif kind in ('string', 'integer'):
         index = np.array(data, dtype=object)
     else: # pragma: no cover
@@ -831,13 +997,15 @@ def _maybe_convert(values, val_kind):
     return values
 
 def _get_converter(kind):
+    if kind == 'datetime64':
+        return lambda x: np.array(x, dtype='M8[ns]')
     if kind == 'datetime':
         return lib.convert_timestamps
     else: # pragma: no cover
         raise ValueError('invalid kind %s' % kind)
 
 def _need_convert(kind):
-    if kind == 'datetime':
+    if kind in ('datetime', 'datetime64'):
         return True
     return False
 
@@ -847,6 +1015,21 @@ def _is_table_type(group):
     except AttributeError:
         # new node, e.g.
         return False
+
+_index_type_map = {DatetimeIndex : 'datetime',
+                   PeriodIndex : 'period'}
+
+_reverse_index_map = {}
+for k, v in _index_type_map.iteritems():
+    _reverse_index_map[v] = k
+
+def _class_to_alias(cls):
+    return _index_type_map.get(cls, '')
+
+def _alias_to_class(alias):
+    if isinstance(alias, type): # pragma: no cover
+        return alias # compat: for a short period of time master stored types
+    return _reverse_index_map.get(alias, Index)
 
 class Selection(object):
     """
@@ -870,9 +1053,10 @@ class Selection(object):
            {'field' : 'index',
             'value' : [v1, v2, v3]}
     """
-    def __init__(self, table, where=None):
+    def __init__(self, table, where=None, index_kind=None):
         self.table = table
         self.where = where
+        self.index_kind = index_kind
         self.column_filter = None
         self.the_condition = None
         self.conditions = []
@@ -887,7 +1071,10 @@ class Selection(object):
             value = c['value']
             field = c['field']
 
-            if field == 'index' and isinstance(value, datetime):
+            if field == 'index' and self.index_kind == 'datetime64':
+                val = lib.Timestamp(value).value
+                self.conditions.append('(%s %s %s)' % (field,op,val))
+            elif field == 'index' and isinstance(value, datetime):
                 value = time.mktime(value.timetuple())
                 self.conditions.append('(%s %s %s)' % (field,op,value))
             else:
@@ -925,4 +1112,12 @@ class Selection(object):
         generate the selection
         """
         self.values = self.table.getWhereList(self.the_condition)
+
+def _get_index_factory(klass):
+    if klass == DatetimeIndex:
+        def f(values, freq=None, tz=None):
+            return DatetimeIndex._simple_new(values, None, freq=freq,
+                                             tz=tz)
+        return f
+    return klass
 

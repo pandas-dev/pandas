@@ -1,10 +1,4 @@
-try:
-    from io import BytesIO
-except ImportError:  # pragma: no cover
-    # Python < 2.6
-    from cStringIO import StringIO as BytesIO
-
-from cStringIO import StringIO
+from pandas.util.py3compat import StringIO, BytesIO
 from datetime import datetime
 import csv
 import os
@@ -17,14 +11,20 @@ import nose
 from numpy import nan
 import numpy as np
 
-from pandas import DataFrame, Index, isnull
+from pandas import DataFrame, Series, Index, isnull
+import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                ExcelFile, TextParser)
-from pandas.util.testing import assert_almost_equal, assert_frame_equal
-import pandas._tseries as lib
+from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
+                                 assert_series_equal, network)
+import pandas.lib as lib
 from pandas.util import py3compat
+from pandas.lib import Timestamp
 
 from numpy.testing.decorators import slow
+from pandas.io.date_converters import (
+    parse_date_time, parse_date_fields, parse_all_fields
+)
 
 
 class TestParsers(unittest.TestCase):
@@ -45,6 +45,290 @@ bar2,12,13,14,15
 
     def test_read_csv(self):
         pass
+
+    def test_1000_sep(self):
+        data = """A|B|C
+1|2,334.0|5
+10|13|10.
+"""
+        expected = [[1, 2334., 5],
+                    [10, 13, 10]]
+
+        df = read_csv(StringIO(data), sep='|', thousands=',')
+        assert_almost_equal(df.values, expected)
+
+        df = read_table(StringIO(data), sep='|', thousands=',')
+        assert_almost_equal(df.values, expected)
+
+    def test_1000_fwf(self):
+        data = """
+ 1 2,334.0    5
+10   13     10.
+"""
+        expected = [[1, 2334., 5],
+                    [10, 13, 10]]
+        df = read_fwf(StringIO(data), colspecs=[(0,3),(3,11),(12,16)],
+                      thousands=',')
+        assert_almost_equal(df.values, expected)
+
+    def test_comment(self):
+        data = """A,B,C
+1,2.,4.#hello world
+5.,NaN,10.0
+"""
+        expected = [[1., 2., 4.],
+                    [5., np.nan, 10.]]
+        df = read_csv(StringIO(data), comment='#')
+        assert_almost_equal(df.values, expected)
+
+        df = read_table(StringIO(data), sep=',', comment='#', na_values=['NaN'])
+        assert_almost_equal(df.values, expected)
+
+    def test_comment_fwf(self):
+        data = """
+  1   2.   4  #hello world
+  5  NaN  10.0
+"""
+        expected = [[1, 2., 4],
+                    [5, np.nan, 10.]]
+        df = read_fwf(StringIO(data), colspecs=[(0,3),(4,9),(9,25)],
+                      comment='#')
+        assert_almost_equal(df.values, expected)
+
+    def test_squeeze(self):
+        data = """\
+a,1
+b,2
+c,3
+"""
+        expected = Series([1,2,3], ['a', 'b', 'c'])
+        result = read_table(StringIO(data), sep=',', index_col=0,
+                            header=None, squeeze=True)
+        self.assert_(isinstance(result, Series))
+        assert_series_equal(result, expected)
+
+    def test_multiple_date_col(self):
+        # Can use multiple date parsers
+        data = """\
+KORD,19990127, 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
+KORD,19990127, 20:00:00, 19:56:00, 0.0100, 2.2100, 7.2000, 0.0000, 260.0000
+KORD,19990127, 21:00:00, 20:56:00, -0.5900, 2.2100, 5.7000, 0.0000, 280.0000
+KORD,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
+KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
+KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
+"""
+        def func(*date_cols):
+            return lib.try_parse_dates(parsers._concat_date_cols(date_cols))
+
+        df = read_csv(StringIO(data), header=None,
+                      date_parser=func,
+                      parse_dates={'nominal' : [1, 2],
+                                   'actual' : [1,3]})
+        self.assert_('nominal' in df)
+        self.assert_('actual' in df)
+        self.assert_('X.2' not in df)
+        self.assert_('X.3' not in df)
+        self.assert_('X.4' not in df)
+        from datetime import datetime
+        d = datetime(1999, 1, 27, 19, 0)
+        self.assert_(df.ix[0, 'nominal'] == d)
+
+        df = read_csv(StringIO(data), header=None,
+                      date_parser=func,
+                      parse_dates={'nominal' : [1, 2],
+                                     'actual' : [1,3]},
+                      keep_date_col=True)
+        self.assert_('nominal' in df)
+        self.assert_('actual' in df)
+        self.assert_('X.2' in df)
+        self.assert_('X.3' in df)
+        self.assert_('X.4' in df)
+
+        data = """\
+KORD,19990127, 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
+KORD,19990127, 20:00:00, 19:56:00, 0.0100, 2.2100, 7.2000, 0.0000, 260.0000
+KORD,19990127, 21:00:00, 20:56:00, -0.5900, 2.2100, 5.7000, 0.0000, 280.0000
+KORD,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
+KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
+KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
+"""
+        df = read_csv(StringIO(data), header=None,
+                      parse_dates=[[1, 2], [1,3]])
+        self.assert_('X.2_X.3' in df)
+        self.assert_('X.2_X.4' in df)
+        self.assert_('X.2' not in df)
+        self.assert_('X.3' not in df)
+        self.assert_('X.4' not in df)
+        from datetime import datetime
+        d = datetime(1999, 1, 27, 19, 0)
+        self.assert_(df.ix[0, 'X.2_X.3'] == d)
+
+        df = read_csv(StringIO(data), header=None,
+                      parse_dates=[[1, 2], [1,3]], keep_date_col=True)
+        self.assert_('X.2_X.3' in df)
+        self.assert_('X.2_X.4' in df)
+        self.assert_('X.2' in df)
+        self.assert_('X.3' in df)
+        self.assert_('X.4' in df)
+
+        data = '''\
+KORD,19990127 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
+KORD,19990127 20:00:00, 19:56:00, 0.0100, 2.2100, 7.2000, 0.0000, 260.0000
+KORD,19990127 21:00:00, 20:56:00, -0.5900, 2.2100, 5.7000, 0.0000, 280.0000
+KORD,19990127 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
+KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
+'''
+        df = read_csv(StringIO(data), sep=',', header=None,
+                      parse_dates=[1], index_col=1)
+        from datetime import datetime
+        d = datetime(1999, 1, 27, 19, 0)
+        self.assert_(df.index[0] == d)
+
+    def test_multiple_date_cols_with_header(self):
+        data = """\
+ID,date,NominalTime,ActualTime,TDew,TAir,Windspeed,Precip,WindDir
+KORD,19990127, 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
+KORD,19990127, 20:00:00, 19:56:00, 0.0100, 2.2100, 7.2000, 0.0000, 260.0000
+KORD,19990127, 21:00:00, 20:56:00, -0.5900, 2.2100, 5.7000, 0.0000, 280.0000
+KORD,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
+KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
+KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
+
+        df = read_csv(StringIO(data), parse_dates={'nominal': [1, 2]})
+        self.assert_(not isinstance(df.nominal[0], basestring))
+
+    def test_multiple_date_cols_index(self):
+        data = """\
+ID,date,NominalTime,ActualTime,TDew,TAir,Windspeed,Precip,WindDir
+KORD1,19990127, 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
+KORD2,19990127, 20:00:00, 19:56:00, 0.0100, 2.2100, 7.2000, 0.0000, 260.0000
+KORD3,19990127, 21:00:00, 20:56:00, -0.5900, 2.2100, 5.7000, 0.0000, 280.0000
+KORD4,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
+KORD5,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
+KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
+
+        xp = read_csv(StringIO(data), parse_dates={'nominal': [1, 2]})
+        df = read_csv(StringIO(data), parse_dates={'nominal': [1, 2]},
+                      index_col='nominal')
+        assert_frame_equal(xp.set_index('nominal'), df)
+        df2 = read_csv(StringIO(data), parse_dates={'nominal': [1, 2]},
+                      index_col=0)
+        assert_frame_equal(df2, df)
+
+        df3 = read_csv(StringIO(data), parse_dates=[[1, 2]], index_col=0)
+        assert_frame_equal(df3, df)
+
+    def test_index_col_named(self):
+        no_header = """\
+KORD1,19990127, 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
+KORD2,19990127, 20:00:00, 19:56:00, 0.0100, 2.2100, 7.2000, 0.0000, 260.0000
+KORD3,19990127, 21:00:00, 20:56:00, -0.5900, 2.2100, 5.7000, 0.0000, 280.0000
+KORD4,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
+KORD5,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
+KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
+
+        h = "ID,date,NominalTime,ActualTime,TDew,TAir,Windspeed,Precip,WindDir\n"
+        data = h + no_header
+        #import pdb; pdb.set_trace()
+        rs = read_csv(StringIO(data), index_col='ID')
+        xp = read_csv(StringIO(data), header=0).set_index('ID')
+        assert_frame_equal(rs, xp)
+
+        self.assertRaises(ValueError, read_csv, StringIO(no_header),
+                          index_col='ID')
+
+    def test_multiple_skts_example(self):
+        data = "year, month, a, b\n 2001, 01, 0.0, 10.\n 2001, 02, 1.1, 11."
+        pass
+
+    def test_malformed(self):
+        # all
+        data = """ignore
+A,B,C
+1,2,3 # comment
+1,2,3,4,5
+2,3,4
+"""
+
+        try:
+            df = read_table(StringIO(data), sep=',', header=1, comment='#')
+            self.assert_(False)
+        except ValueError, inst:
+            self.assert_('Expecting 3 columns, got 5 in row 3' in str(inst))
+
+        #skip_footer
+        data = """ignore
+A,B,C
+1,2,3 # comment
+1,2,3,4,5
+2,3,4
+footer
+"""
+
+        try:
+            df = read_table(StringIO(data), sep=',', header=1, comment='#',
+                            skip_footer=1)
+            self.assert_(False)
+        except ValueError, inst:
+            self.assert_('Expecting 3 columns, got 5 in row 3' in str(inst))
+
+        # first chunk
+        data = """ignore
+A,B,C
+skip
+1,2,3
+3,5,10 # comment
+1,2,3,4,5
+2,3,4
+"""
+        try:
+            it = read_table(StringIO(data), sep=',',
+                            header=1, comment='#', iterator=True, chunksize=1,
+                            skiprows=[2])
+            df = it.get_chunk(5)
+            self.assert_(False)
+        except ValueError, inst:
+            self.assert_('Expecting 3 columns, got 5 in row 5' in str(inst))
+
+
+        # middle chunk
+        data = """ignore
+A,B,C
+skip
+1,2,3
+3,5,10 # comment
+1,2,3,4,5
+2,3,4
+"""
+        try:
+            it = read_table(StringIO(data), sep=',',
+                            header=1, comment='#', iterator=True, chunksize=1,
+                            skiprows=[2])
+            df = it.get_chunk(1)
+            it.get_chunk(2)
+            self.assert_(False)
+        except ValueError, inst:
+            self.assert_('Expecting 3 columns, got 5 in row 5' in str(inst))
+
+
+        # last chunk
+        data = """ignore
+A,B,C
+skip
+1,2,3
+3,5,10 # comment
+1,2,3,4,5
+2,3,4
+"""
+        try:
+            it = read_table(StringIO(data), sep=',',
+                            header=1, comment='#', iterator=True, chunksize=1,
+                            skiprows=[2])
+            df = it.get_chunk(1)
+            it.get_chunk()
+            self.assert_(False)
+        except ValueError, inst:
+            self.assert_('Expecting 3 columns, got 5 in row 5' in str(inst))
 
     def test_custom_na_values(self):
         data = """A,B,C
@@ -171,7 +455,33 @@ c,4,5
 """
         df = read_csv(StringIO(data), parse_dates=True)
         expected = read_csv(StringIO(data), index_col=0, parse_dates=True)
-        self.assert_(isinstance(df.index[0], datetime))
+        self.assert_(isinstance(df.index[0], (datetime, np.datetime64, Timestamp)))
+        assert_frame_equal(df, expected)
+
+    def test_parse_dates_column_list(self):
+        from pandas.core.datetools import to_datetime
+
+        data = '''date;destination;ventilationcode;unitcode;units;aux_date
+01/01/2010;P;P;50;1;12/1/2011
+01/01/2010;P;R;50;1;13/1/2011
+15/01/2010;P;P;50;1;14/1/2011
+01/05/2010;P;P;50;1;15/1/2011'''
+
+        expected = read_csv(StringIO(data), sep=";", index_col=range(4))
+
+        lev = expected.index.levels[0]
+        expected.index.levels[0] = lev.to_datetime(dayfirst=True)
+        expected['aux_date'] = to_datetime(expected['aux_date'],
+                                           dayfirst=True)
+        expected['aux_date'] = map(Timestamp, expected['aux_date'])
+        self.assert_(isinstance(expected['aux_date'][0], datetime))
+
+        df = read_csv(StringIO(data), sep=";", index_col = range(4),
+                      parse_dates=[0, 5], dayfirst=True)
+        assert_frame_equal(df, expected)
+
+        df = read_csv(StringIO(data), sep=";", index_col = range(4),
+                      parse_dates=['date', 'aux_date'], dayfirst=True)
         assert_frame_equal(df, expected)
 
     def test_no_header(self):
@@ -211,7 +521,7 @@ baz,7,8,9
         df2 = read_table(self.csv1, sep=',', index_col=0, parse_dates=True)
         self.assert_(np.array_equal(df.columns, ['A', 'B', 'C', 'D']))
         self.assert_(df.index.name == 'index')
-        self.assert_(isinstance(df.index[0], datetime))
+        self.assert_(isinstance(df.index[0], (datetime, np.datetime64, Timestamp)))
         self.assert_(df.values.dtype == np.float64)
         assert_frame_equal(df, df2)
 
@@ -219,7 +529,7 @@ baz,7,8,9
         df = read_csv(self.csv2, index_col=0, parse_dates=True)
         df2 = read_table(self.csv2, sep=',', index_col=0, parse_dates=True)
         self.assert_(np.array_equal(df.columns, ['A', 'B', 'C', 'D', 'E']))
-        self.assert_(isinstance(df.index[0], datetime))
+        self.assert_(isinstance(df.index[0], (datetime, np.datetime64, Timestamp)))
         self.assert_(df.ix[:, ['A', 'B', 'C', 'D']].values.dtype == np.float64)
         assert_frame_equal(df, df2)
 
@@ -232,6 +542,17 @@ baz,7,8,9
         excel_data = ExcelFile(os.path.join(self.dirpath, 'test2.xls'))
         parsed = excel_data.parse('Sheet1')
         expected = DataFrame([['aaaa','bbbbb']], columns=['Test', 'Test1'])
+        assert_frame_equal(parsed, expected)
+
+    def test_excel_cell_error_na(self):
+        try:
+            import xlrd
+        except ImportError:
+            raise nose.SkipTest('xlrd not installed, skipping')
+
+        excel_data = ExcelFile(os.path.join(self.dirpath, 'test3.xls'))
+        parsed = excel_data.parse('Sheet1')
+        expected = DataFrame([[np.nan]], columns=['Test'])
         assert_frame_equal(parsed, expected)
 
     def test_excel_table(self):
@@ -280,8 +601,10 @@ foo,12,13,14,15
 bar,12,13,14,15
 """
 
-        self.assertRaises(Exception, read_csv, StringIO(data),
-                          index_col=0)
+        result = read_csv(StringIO(data), index_col=0)
+        expected = read_csv(StringIO(data)).set_index('index',
+                                                      verify_integrity=False)
+        assert_frame_equal(result, expected)
 
     def test_read_table_duplicate_index_implicit(self):
         data = """A,B,C,D
@@ -293,8 +616,8 @@ foo,12,13,14,15
 bar,12,13,14,15
 """
 
-        self.assertRaises(Exception, read_csv, StringIO(data),
-                          index_col=0)
+        # it works!
+        result = read_csv(StringIO(data))
 
     def test_parse_bools(self):
         data = """A,B
@@ -462,6 +785,9 @@ bar,two,12,13,14,15
         expected = read_csv(StringIO(data), index_col=[0, 1])
         assert_frame_equal(df, expected)
 
+        df = read_csv(StringIO(data), index_col=['index1', 'index2'])
+        assert_frame_equal(df, expected)
+
     def test_multi_index_no_level_names(self):
         data = """index1,index2,A,B,C,D
 foo,one,2,3,4,5
@@ -503,11 +829,13 @@ bar,two,12,13,14,15
 20090103,three,c,4,5
 """
         df = read_csv(StringIO(data), index_col=[0, 1], parse_dates=True)
-        self.assert_(isinstance(df.index.levels[0][0], datetime))
+        self.assert_(isinstance(df.index.levels[0][0],
+                     (datetime, np.datetime64, Timestamp)))
 
         # specify columns out of order!
         df2 = read_csv(StringIO(data), index_col=[1, 0], parse_dates=True)
-        self.assert_(isinstance(df2.index.levels[1][0], datetime))
+        self.assert_(isinstance(df2.index.levels[1][0],
+                     (datetime, np.datetime64, Timestamp)))
 
     def test_skip_footer(self):
         data = """A,B,C
@@ -547,7 +875,7 @@ c,4,5,01/03/2009
         expected = read_csv(StringIO(data))
         expected['D'] = expected['D'].map(parser.parse)
 
-        self.assert_(isinstance(result['D'][0], datetime))
+        self.assert_(isinstance(result['D'][0], (datetime, Timestamp)))
         assert_frame_equal(result, expected)
         assert_frame_equal(result2, expected)
 
@@ -798,6 +1126,7 @@ bar,foo,foo"""
         assert_frame_equal(df, expected)
 
     @slow
+    @network
     def test_url(self):
         # HTTP(S)
         url = 'https://raw.github.com/pydata/pandas/master/pandas/io/tests/salary.table'
@@ -806,10 +1135,20 @@ bar,foo,foo"""
         localtable = os.path.join(dirpath, 'salary.table')
         local_table = read_table(localtable)
         assert_frame_equal(url_table, local_table)
+        #TODO: ftp testing
+
+    @slow
+    def test_file(self):
         # FILE
+        if sys.version_info[:2] < (2, 6):
+            raise nose.SkipTest("file:// not supported with Python < 2.6")
+        dirpath = curpath()
+        localtable = os.path.join(dirpath, 'salary.table')
+        local_table = read_table(localtable)
+
         url_table = read_table('file://localhost/'+localtable)
         assert_frame_equal(url_table, local_table)
-        #TODO: ftp testing
+
 
 class TestParseSQL(unittest.TestCase):
 

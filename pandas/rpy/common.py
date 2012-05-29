@@ -12,7 +12,8 @@ from rpy2.robjects.packages import importr
 from rpy2.robjects import r
 import rpy2.robjects as robj
 
-__all__ = ['convert_robj', 'load_data']
+__all__ = ['convert_robj', 'load_data', 'convert_to_r_dataframe',
+           'convert_to_r_matrix']
 
 def load_data(name, package=None, convert=True):
     if package:
@@ -173,6 +174,98 @@ def convert_robj(obj, use_pandas=True):
 
     raise Exception('Do not know what to do with %s object' % type(obj))
 
+VECTOR_TYPES = {np.float64: robj.FloatVector,
+               np.float32: robj.FloatVector,
+               np.float: robj.FloatVector,
+               np.int: robj.IntVector,
+               np.int32: robj.IntVector,
+               np.int64: robj.IntVector,
+               np.object_: robj.StrVector,
+               np.str: robj.StrVector,
+               np.bool: robj.BoolVector}
+
+NA_TYPES = {np.float64: robj.NA_Real,
+            np.float32: robj.NA_Real,
+            np.float: robj.NA_Real,
+            np.int: robj.NA_Integer,
+            np.int32: robj.NA_Integer,
+            np.int64: robj.NA_Integer,
+            np.object_: robj.NA_Character,
+            np.str: robj.NA_Character,
+            np.bool: robj.NA_Logical}
+
+def convert_to_r_dataframe(df, strings_as_factors=False):
+    """
+    Convert a pandas DataFrame to a R data.frame.
+
+    Parameters
+    ----------
+    df: The DataFrame being converted
+    strings_as_factors: Whether to turn strings into R factors (default: False)
+
+    Returns
+    -------
+    A R data.frame
+
+    """
+
+    import rpy2.rlike.container as rlc
+
+    columns = rlc.OrdDict()
+
+    #FIXME: This doesn't handle MultiIndex
+
+    for column in df:
+        value = df[column]
+        value_type = value.dtype.type
+        value = [item if pn.notnull(item) else NA_TYPES[value_type]
+                 for item in value]
+
+        value = VECTOR_TYPES[value_type](value)
+
+        if not strings_as_factors:
+            I = robj.baseenv.get("I")
+            value = I(value)
+
+        columns[column] = value
+
+    r_dataframe = robj.DataFrame(columns)
+
+    del columns
+
+    r_dataframe.rownames = robj.StrVector(df.index)
+
+    return r_dataframe
+
+
+def convert_to_r_matrix(df, strings_as_factors=False):
+
+    """
+    Convert a pandas DataFrame to a R matrix.
+
+    Parameters
+    ----------
+    df: The DataFrame being converted
+    strings_as_factors: Whether to turn strings into R factors (default: False)
+
+    Returns
+    -------
+    A R matrix
+
+    """
+
+    if df._is_mixed_type:
+        raise TypeError("Conversion to matrix only possible with non-mixed "
+                        "type DataFrames")
+
+
+    r_dataframe = convert_to_r_dataframe(df, strings_as_factors)
+    as_matrix = robj.baseenv.get("as.matrix")
+    r_matrix = as_matrix(r_dataframe)
+
+    return r_matrix
+
+
 def test_convert_list():
     obj = r('list(a=1, b=2, c=3)')
 
@@ -212,6 +305,70 @@ def test_convert_matrix():
 
     assert np.array_equal(converted.index, ['a', 'b', 'c'])
     assert np.array_equal(converted.columns, ['one', 'two', 'three'])
+
+def test_convert_r_dataframe():
+
+    is_na = robj.baseenv.get("is.na")
+
+    seriesd = _test.getSeriesData()
+    frame = pn.DataFrame(seriesd, columns=['D', 'C', 'B', 'A'])
+
+    #Null data
+    frame["E"] = [np.nan for item in frame["A"]]
+    # Some mixed type data
+    frame["F"] = ["text" if item % 2 == 0 else np.nan for item in range(30)]
+
+    r_dataframe = convert_to_r_dataframe(frame)
+
+    assert np.array_equal(convert_robj(r_dataframe.rownames), frame.index)
+    assert np.array_equal(convert_robj(r_dataframe.colnames), frame.columns)
+    assert all(is_na(item) for item in r_dataframe.rx2("E"))
+
+    for column in frame[["A", "B", "C", "D"]]:
+        coldata = r_dataframe.rx2(column)
+        original_data = frame[column]
+        assert np.array_equal(convert_robj(coldata), original_data)
+
+    for column in frame[["D", "E"]]:
+        for original, converted in zip(frame[column],
+                                       r_dataframe.rx2(column)):
+
+            if pn.isnull(original):
+                assert is_na(converted)
+            else:
+                assert original == converted
+
+def test_convert_r_matrix():
+
+    is_na = robj.baseenv.get("is.na")
+
+    seriesd = _test.getSeriesData()
+    frame = pn.DataFrame(seriesd, columns=['D', 'C', 'B', 'A'])
+    #Null data
+    frame["E"] = [np.nan for item in frame["A"]]
+
+    r_dataframe = convert_to_r_matrix(frame)
+
+    assert np.array_equal(convert_robj(r_dataframe.rownames), frame.index)
+    assert np.array_equal(convert_robj(r_dataframe.colnames), frame.columns)
+    assert all(is_na(item) for item in r_dataframe.rx(True, "E"))
+
+    for column in frame[["A", "B", "C", "D"]]:
+        coldata = r_dataframe.rx(True, column)
+        original_data = frame[column]
+        assert np.array_equal(convert_robj(coldata),
+                              original_data)
+
+    # Pandas bug 1282
+    frame["F"] = ["text" if item % 2 == 0 else np.nan for item in range(30)]
+
+    #FIXME: Ugly, this whole module needs to be ported to nose/unittest
+    try:
+        wrong_matrix = convert_to_r_matrix(frame)
+    except TypeError:
+        pass
+    except Exception:
+        raise
 
 
 if __name__ == '__main__':

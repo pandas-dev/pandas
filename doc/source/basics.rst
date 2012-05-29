@@ -19,12 +19,12 @@ the previous section:
 
 .. ipython:: python
 
-   index = DateRange('1/1/2000', periods=8)
+   index = date_range('1/1/2000', periods=8)
    s = Series(randn(5), index=['a', 'b', 'c', 'd', 'e'])
    df = DataFrame(randn(8, 3), index=index,
                   columns=['A', 'B', 'C'])
    wp = Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
-              major_axis=DateRange('1/1/2000', periods=5),
+              major_axis=date_range('1/1/2000', periods=5),
               minor_axis=['A', 'B', 'C', 'D'])
 
 .. _basics.head_tail:
@@ -385,7 +385,7 @@ maximum value for each column occurred:
 .. ipython:: python
 
    tsdf = DataFrame(randn(1000, 3), columns=['A', 'B', 'C'],
-                    index=DateRange('1/1/2000', periods=1000))
+                    index=date_range('1/1/2000', periods=1000))
    tsdf.apply(lambda x: x.index[x.dropna().argmax()])
 
 You may also pass additional arguments and keyword arguments to the ``apply``
@@ -409,7 +409,7 @@ Series operation on each column or row:
    :suppress:
 
    tsdf = DataFrame(randn(10, 3), columns=['A', 'B', 'C'],
-                    index=DateRange('1/1/2000', periods=10))
+                    index=date_range('1/1/2000', periods=10))
    tsdf.values[3:7] = np.nan
 
 .. ipython:: python
@@ -491,7 +491,7 @@ With a DataFrame, you can simultaneously reindex the index and columns:
    df.reindex(index=['c', 'f', 'b'], columns=['three', 'two', 'one'])
 
 For convenience, you may utilize the ``reindex_axis`` method, which takes the
-labels and a keyword ``axis`` paramater.
+labels and a keyword ``axis`` parameter.
 
 Note that the ``Index`` objects containing the actual axis labels can be
 **shared** between objects. So if we have a Series and a DataFrame, the
@@ -622,7 +622,7 @@ We illustrate these fill methods on a simple TimeSeries:
 
 .. ipython:: python
 
-   rng = DateRange('1/3/2000', periods=8)
+   rng = date_range('1/3/2000', periods=8)
    ts = Series(randn(8), index=rng)
    ts2 = ts[[0, 3, 6]]
    ts
@@ -657,7 +657,7 @@ set of labels from an axis:
    df.drop(['a', 'd'], axis=0)
    df.drop(['one'], axis=1)
 
-Note that the following also works, but a bit less obvious / clean:
+Note that the following also works, but is a bit less obvious / clean:
 
 .. ipython:: python
 
@@ -685,24 +685,25 @@ Series, it need only contain a subset of the labels as keys:
    df.rename(columns={'one' : 'foo', 'two' : 'bar'},
              index={'a' : 'apple', 'b' : 'banana', 'd' : 'durian'})
 
-The ``rename`` method also provides a ``copy`` named parameter that is by
-default ``True`` and copies the underlying data. Pass ``copy=False`` to rename
-the data in place.
+The ``rename`` method also provides an ``inplace`` named parameter that is by
+default ``False`` and copies the underlying data. Pass ``inplace=True`` to
+rename the data in place.
 
 .. _basics.rename_axis:
 
-The Panel class has an a related ``rename_axis`` class which can rename any of
+The Panel class has a related ``rename_axis`` class which can rename any of
 its three axes.
 
 Iteration
 ---------
 
-Considering the pandas as somewhat dict-like structure, basic iteration
-produces the "keys" of the objects, namely:
+Because Series is array-like, basic iteration produces the values. Other data
+structures follow the dict-like convention of iterating over the "keys" of the
+objects. In short:
 
-  * **Series**: the index label
-  * **DataFrame**: the column labels
-  * **Panel**: the item labels
+  * **Series**: values
+  * **DataFrame**: column labels
+  * **Panel**: item labels
 
 Thus, for example:
 

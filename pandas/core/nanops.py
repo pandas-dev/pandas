@@ -4,7 +4,7 @@ import numpy as np
 
 from pandas.core.common import isnull, notnull
 import pandas.core.common as com
-import pandas._tseries as lib
+import pandas.lib as lib
 
 try:
     import bottleneck as bn
@@ -117,11 +117,12 @@ def _nanvar(values, axis=None, skipna=True, ddof=1):
 
     X = _ensure_numeric(values.sum(axis))
     XX = _ensure_numeric((values ** 2).sum(axis))
-    return (XX - X ** 2 / count) / (count - ddof)
+    return np.fabs((XX - X ** 2 / count) / (count - ddof))
 
 def _nanmin(values, axis=None, skipna=True):
     mask = isnull(values)
-    if skipna and not issubclass(values.dtype.type, np.integer):
+    if skipna and not issubclass(values.dtype.type,
+                                 (np.integer, np.datetime64)):
         values = values.copy()
         np.putmask(values, mask, np.inf)
     # numpy 1.6.1 workaround in Python 3.x
@@ -140,7 +141,8 @@ def _nanmin(values, axis=None, skipna=True):
 
 def _nanmax(values, axis=None, skipna=True):
     mask = isnull(values)
-    if skipna and not issubclass(values.dtype.type, np.integer):
+    if skipna and not issubclass(values.dtype.type,
+                                 (np.integer, np.datetime64)):
         values = values.copy()
         np.putmask(values, mask, -np.inf)
     # numpy 1.6.1 workaround in Python 3.x
@@ -396,20 +398,21 @@ def unique1d(values):
     """
     Hash table-based unique
     """
-    if issubclass(values.dtype.type, np.floating):
-        if values.dtype != np.float64:
-            values = values.astype(np.float64)
+    if np.issubdtype(values.dtype, np.floating):
         table = lib.Float64HashTable(len(values))
-        uniques = np.array(table.unique(values), dtype=np.float64)
-    elif issubclass(values.dtype.type, np.integer):
-        if values.dtype != np.int64:
-            values = values.astype(np.int64)
+        uniques = np.array(table.unique(com._ensure_float64(values)),
+                           dtype=np.float64)
+    elif np.issubdtype(values.dtype, np.datetime64):
         table = lib.Int64HashTable(len(values))
-        uniques = np.array(table.unique(values), dtype=np.int64)
+        uniques = np.array(table.unique(com._ensure_int64(values)),
+                           dtype=np.int64)
+        uniques = uniques.view('M8[ns]')
+    elif np.issubdtype(values.dtype, np.integer):
+        table = lib.Int64HashTable(len(values))
+        uniques = np.array(table.unique(com._ensure_int64(values)),
+                           dtype=np.int64)
     else:
-        if not values.dtype == np.object_:
-            values = values.astype(np.object_)
         table = lib.PyObjectHashTable(len(values))
-        uniques = lib.list_to_object_array(table.unique(values))
+        uniques = table.unique(com._ensure_object(values))
+        uniques = lib.list_to_object_array(uniques)
     return uniques
-

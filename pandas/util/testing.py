@@ -14,16 +14,16 @@ import numpy as np
 
 from pandas.core.common import isnull
 import pandas.core.index as index
-import pandas.core.daterange as daterange
 import pandas.core.series as series
 import pandas.core.frame as frame
 import pandas.core.panel as panel
 
-# to_reload = ['index', 'daterange', 'series', 'frame', 'matrix', 'panel']
-# for mod in to_reload:
-#     reload(locals()[mod])
+from pandas import bdate_range
+from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.period import PeriodIndex
+from pandas.tseries.interval import IntervalIndex
 
-DateRange = daterange.DateRange
+
 Index = index.Index
 Series = series.Series
 DataFrame = frame.DataFrame
@@ -117,13 +117,29 @@ def assert_dict_equal(a, b, compare_keys=True):
     for k in a_keys:
         assert_almost_equal(a[k], b[k])
 
-def assert_series_equal(left, right, check_dtype=True):
+def assert_series_equal(left, right, check_dtype=True,
+                        check_index_type=False,
+                        check_index_freq=False,
+                        check_series_type=False):
+    if check_series_type:
+        assert(type(left) == type(right))
     assert_almost_equal(left.values, right.values)
     if check_dtype:
         assert(left.dtype == right.dtype)
     assert(left.index.equals(right.index))
+    if check_index_type:
+        assert(type(left.index) == type(right.index))
+        assert(left.index.dtype == right.index.dtype)
+        assert(left.index.inferred_type == right.index.inferred_type)
+    if check_index_freq:
+        assert(getattr(left, 'freqstr', None) ==
+               getattr(right, 'freqstr', None))
 
-def assert_frame_equal(left, right):
+def assert_frame_equal(left, right, check_index_type=False,
+                       check_column_type=False,
+                       check_frame_type=False):
+    if check_frame_type:
+        assert(type(left) == type(right))
     assert(isinstance(left, DataFrame))
     assert(isinstance(right, DataFrame))
     for col, series in left.iterkv():
@@ -133,8 +149,19 @@ def assert_frame_equal(left, right):
         assert(col in left)
     assert(left.index.equals(right.index))
     assert(left.columns.equals(right.columns))
+    if check_index_type:
+        assert(type(left.index) == type(right.index))
+        assert(left.index.dtype == right.index.dtype)
+        assert(left.index.inferred_type == right.index.inferred_type)
+    if check_column_type:
+        assert(type(left.columns) == type(right.columns))
+        assert(left.columns.dtype == right.columns.dtype)
+        assert(left.columns.inferred_type == right.columns.inferred_type)
 
-def assert_panel_equal(left, right):
+def assert_panel_equal(left, right, check_panel_type=False):
+    if check_panel_type:
+        assert(type(left) == type(right))
+
     assert(left.items.equals(right.items))
     assert(left.major_axis.equals(right.major_axis))
     assert(left.minor_axis.equals(right.minor_axis))
@@ -163,10 +190,6 @@ def makeFloatIndex(k):
     values = sorted(np.random.random_sample(k)) - np.random.random_sample(1)
     return Index(values * (10 ** np.random.randint(0, 9)))
 
-def makeDateIndex(k):
-    dates = list(DateRange(datetime(2000, 1, 1), periods=k))
-    return Index(dates)
-
 def makeFloatSeries():
     index = makeStringIndex(N)
     return Series(randn(N), index=index)
@@ -177,22 +200,20 @@ def makeStringSeries():
 
 def makeObjectSeries():
     dateIndex = makeDateIndex(N)
+    dateIndex = Index(dateIndex, dtype=object)
     index = makeStringIndex(N)
     return Series(dateIndex, index=index)
 
-def makeTimeSeries():
-    return Series(randn(N), index=makeDateIndex(N))
+def getSeriesData():
+    index = makeStringIndex(N)
+    return dict((c, Series(randn(N), index=index)) for c in getCols(K))
+
+def makeDataFrame():
+    data = getSeriesData()
+    return DataFrame(data)
 
 def getArangeMat():
     return np.arange(N * K).reshape((N, K))
-
-def getSeriesData():
-    index = makeStringIndex(N)
-
-    return dict((c, Series(randn(N), index=index)) for c in getCols(K))
-
-def getTimeSeriesData():
-    return dict((c, makeTimeSeries()) for c in getCols(K))
 
 def getMixedTypeDict():
     index = Index(['a', 'b', 'c', 'd', 'e'])
@@ -201,17 +222,43 @@ def getMixedTypeDict():
         'A' : [0., 1., 2., 3., 4.],
         'B' : [0., 1., 0., 1., 0.],
         'C' : ['foo1', 'foo2', 'foo3', 'foo4', 'foo5'],
-        'D' : DateRange('1/1/2009', periods=5)
+        'D' : bdate_range('1/1/2009', periods=5)
     }
 
     return index, data
 
-def makeDataFrame():
-    data = getSeriesData()
-    return DataFrame(data)
+def makeDateIndex(k):
+    dt = datetime(2000,1,1)
+    dr = bdate_range(dt, periods=k)
+    return DatetimeIndex(dr)
+
+def makePeriodIndex(k):
+    dt = datetime(2000,1,1)
+    dr = PeriodIndex(start=dt, periods=k, freq='B')
+    return dr
+
+def makeTimeSeries(nper=None):
+    if nper is None:
+        nper = N
+    return Series(randn(nper), index=makeDateIndex(nper))
+
+def makePeriodSeries(nper=None):
+    if nper is None:
+        nper = N
+    return Series(randn(nper), index=makePeriodIndex(nper))
+
+def getTimeSeriesData():
+    return dict((c, makeTimeSeries()) for c in getCols(K))
 
 def makeTimeDataFrame():
     data = getTimeSeriesData()
+    return DataFrame(data)
+
+def getPeriodData():
+    return dict((c, makePeriodSeries()) for c in getCols(K))
+
+def makePeriodFrame():
+    data = getPeriodData()
     return DataFrame(data)
 
 def makePanel():
@@ -294,3 +341,40 @@ def skip_if_no_package(*args, **kwargs):
     package_check(exc_failed_import=SkipTest,
                   exc_failed_check=SkipTest,
                   *args, **kwargs)
+
+#
+# Additional tags decorators for nose
+#
+def network(t):
+    """
+    Label a test as requiring network connection.
+
+    In some cases it is not possible to assume network presence (e.g. Debian
+    build hosts).
+
+    Parameters
+    ----------
+    t : callable
+        The test requiring network connectivity.
+
+    Returns
+    -------
+    t : callable
+        The decorated test `t`.
+
+    Examples
+    --------
+    A test can be decorated as requiring network like this::
+
+      from pandas.util.testing import *
+
+      @network
+      def test_network(self):
+          print 'Fetch the stars from http://'
+
+    And use ``nosetests -a '!network'`` to exclude running tests requiring
+    network connectivity.
+    """
+
+    t.network = True
+    return t

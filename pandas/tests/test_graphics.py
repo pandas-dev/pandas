@@ -3,7 +3,7 @@ import os
 import string
 import unittest
 
-from pandas import Series, DataFrame, MultiIndex
+from pandas import Series, DataFrame, MultiIndex, PeriodIndex
 import pandas.util.testing as tm
 
 import numpy as np
@@ -31,6 +31,9 @@ class TestSeriesPlots(unittest.TestCase):
 
         self.series = tm.makeStringSeries()
         self.series.name = 'series'
+
+        self.iseries = tm.makePeriodSeries()
+        self.iseries.name = 'iseries'
 
     @slow
     def test_plot(self):
@@ -94,6 +97,35 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(df.plot, use_index=True)
 
     @slow
+    def test_subplots(self):
+        df = DataFrame(np.random.rand(10, 3),
+                       index=list(string.ascii_letters[:10]))
+
+        axes = df.plot(subplots=True, sharex=True, legend=True)
+
+        for ax in axes:
+            self.assert_(ax.get_legend() is not None)
+
+        axes = df.plot(subplots=True, sharex=True)
+        for ax in axes[:-2]:
+            [self.assert_(not label.get_visible())
+             for label in ax.get_xticklabels()]
+            [self.assert_(label.get_visible())
+             for label in ax.get_yticklabels()]
+
+        [self.assert_(label.get_visible())
+         for label in axes[-1].get_xticklabels()]
+        [self.assert_(label.get_visible())
+         for label in axes[-1].get_yticklabels()]
+
+        axes = df.plot(subplots=True, sharex=False)
+        for ax in axes:
+            [self.assert_(label.get_visible())
+             for label in ax.get_xticklabels()]
+            [self.assert_(label.get_visible())
+             for label in ax.get_yticklabels()]
+
+    @slow
     def test_plot_bar(self):
         df = DataFrame(np.random.randn(6, 4),
                        index=list(string.ascii_letters[:6]),
@@ -128,6 +160,8 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(df.boxplot, by='indic')
         _check_plot_works(df.boxplot, by=['indic', 'indic2'])
 
+        _check_plot_works(lambda x: plotting.boxplot(x), df['one'])
+
     @slow
     def test_hist(self):
         df = DataFrame(np.random.randn(100, 4))
@@ -136,6 +170,11 @@ class TestDataFramePlots(unittest.TestCase):
 
         #make sure layout is handled
         df = DataFrame(np.random.randn(100, 3))
+        _check_plot_works(df.hist)
+        axes = df.hist(grid=False)
+        self.assert_(not axes[1, 1].get_visible())
+
+        df = DataFrame(np.random.randn(100, 1))
         _check_plot_works(df.hist)
 
         #make sure layout is handled
@@ -175,6 +214,8 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(scat)
         _check_plot_works(scat, marker='+')
         _check_plot_works(scat, vmin=0)
+        _check_plot_works(scat, diagonal='kde')
+        _check_plot_works(scat, diagonal='hist')
 
         def scat2(x, y, by=None, ax=None, figsize=None):
             return plt.scatter_plot(df, x, y, by, ax, figsize=None)
@@ -187,6 +228,17 @@ class TestDataFramePlots(unittest.TestCase):
     def test_plot_int_columns(self):
         df = DataFrame(np.random.randn(100, 4)).cumsum()
         _check_plot_works(df.plot, legend=True)
+
+    @slow
+    def test_legend_name(self):
+        multi = DataFrame(np.random.randn(4, 4),
+                          columns=[np.array(['a', 'a', 'b', 'b']),
+                                   np.array(['x', 'y', 'x', 'y'])])
+        multi.columns.names = ['group', 'individual']
+
+        ax = multi.plot()
+        leg_title = ax.legend_.get_title()
+        self.assert_(leg_title.get_text(), 'group,individual')
 
     def _check_plot_fails(self, f, *args, **kwargs):
         self.assertRaises(Exception, f, *args, **kwargs)

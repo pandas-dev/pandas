@@ -80,10 +80,12 @@ reindex_daterange_backfill = Benchmark(statement, setup,
                                        name="reindex_daterange_backfill")
 
 reindex_fillna_pad = Benchmark("ts3.fillna(method='pad')", setup,
-                               name="reindex_fillna_pad")
+                               name="reindex_fillna_pad",
+                               start_date=datetime(2011, 3, 1))
 
 reindex_fillna_backfill = Benchmark("ts3.fillna(method='backfill')", setup,
-                                    name="reindex_fillna_backfill")
+                                    name="reindex_fillna_backfill",
+                                    start_date=datetime(2011, 3, 1))
 
 #----------------------------------------------------------------------
 # align on level
@@ -114,6 +116,7 @@ reindex_frame_level_reindex = \
 
 # pathological, but realistic
 setup = common_setup + """
+import pandas._tseries as lib
 N = 10000
 K = 10
 
@@ -135,6 +138,32 @@ frame_drop_duplicates = Benchmark(statement, setup,
                                   name='frame_drop_duplicates',
                                   start_date=datetime(2011, 11, 15))
 
+statement = "df.drop_duplicates(['key1', 'key2'], inplace=True)"
+frame_drop_dup_inplace = Benchmark(statement, setup,
+                                  name='frame_drop_dup_inplace',
+                                  start_date=datetime(2012, 5, 16))
+
+lib_fast_zip = Benchmark('lib.fast_zip(df.values.T)', setup,
+                         name='lib_fast_zip',
+                         start_date=datetime(2012, 1, 1))
+
+setup = setup + """
+df.ix[:10000, :] = np.nan
+"""
+statement2 = "df.drop_duplicates(['key1', 'key2'])"
+frame_drop_duplicates_na = Benchmark(statement2, setup,
+                                     name='frame_drop_duplicates_na',
+                                     start_date=datetime(2012, 5, 15))
+
+lib_fast_zip_fillna = Benchmark('lib.fast_zip_fillna(df.values.T)', setup,
+                                name='lib_fast_zip_fillna',
+                                start_date=datetime(2012, 5, 15))
+
+statement2 = "df.drop_duplicates(['key1', 'key2'], inplace=True)"
+frame_drop_dup_na_inplace = Benchmark(statement2, setup,
+                                  name='frame_drop_dup_na_inplace',
+                                  start_date=datetime(2012, 5, 16))
+
 #----------------------------------------------------------------------
 # fillna, many columns
 
@@ -146,4 +175,5 @@ df = DataFrame(values)
 """
 
 frame_fillna_many_columns_pad = Benchmark("df.fillna(method='pad')",
-                                          setup)
+                                          setup,
+                                          start_date=datetime(2011, 3, 1))

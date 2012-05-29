@@ -67,6 +67,12 @@ join_dataframe_index_multi = \
               start_date=datetime(2011, 10, 20))
 
 #----------------------------------------------------------------------
+# Joins on integer keys
+
+join_dataframe_integer_key = Benchmark("merge(df, df2, on='key')", setup,
+                                       start_date=datetime(2011, 10, 20))
+
+#----------------------------------------------------------------------
 # DataFrame joins on index
 
 
@@ -129,7 +135,7 @@ stmt = "ts1.align(ts2, join='left')"
 series_align_left_monotonic = \
     Benchmark(stmt, setup,
               name="series_align_left_monotonic",
-              start_date=datetime(2011, 3, 1), logy=True)
+              start_date=datetime(2011, 12, 1), logy=True)
 
 #----------------------------------------------------------------------
 # Concat Series axis=1
@@ -144,3 +150,20 @@ pieces = pieces * 50
 
 concat_series_axis1 = Benchmark('concat(pieces, axis=1)', setup,
                                 start_date=datetime(2012, 2, 27))
+
+#----------------------------------------------------------------------
+# Ordered merge
+
+setup = common_setup + """
+groups = np.array([rands(10) for _ in xrange(10)], dtype='O')
+
+left = DataFrame({'group': groups.repeat(5000),
+                  'key' : np.tile(np.arange(0, 10000, 2), 10),
+                  'lvalue': np.random.randn(50000)})
+
+right = DataFrame({'key' : np.arange(10000),
+                   'rvalue' : np.random.randn(10000)})
+
+"""
+
+stmt = "ordered_merge(left, right, on='key', left_by='group')"

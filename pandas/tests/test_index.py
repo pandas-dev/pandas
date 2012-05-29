@@ -7,13 +7,17 @@ import unittest
 import nose
 
 import numpy as np
+from numpy.testing import assert_array_equal
 
-from pandas.core.index import Index, Int64Index, Factor, MultiIndex
+from pandas.core.factor import Factor
+from pandas.core.index import Index, Int64Index, MultiIndex
 from pandas.util.testing import assert_almost_equal
 from pandas.util import py3compat
 
 import pandas.util.testing as tm
-import pandas._tseries as tseries
+
+from pandas.tseries.index import _to_m8
+import pandas.tseries.offsets as offsets
 
 class TestIndex(unittest.TestCase):
 
@@ -41,8 +45,7 @@ class TestIndex(unittest.TestCase):
 
     def test_duplicates(self):
         idx = Index([0, 0, 0])
-        self.assert_(not idx._verify_integrity())
-        self.assertRaises(Exception, getattr, idx, 'indexMap')
+        self.assert_(not idx.is_unique)
 
     def test_sort(self):
         self.assertRaises(Exception, self.strIndex.sort)
@@ -61,6 +64,13 @@ class TestIndex(unittest.TestCase):
         index = arr.view(Index)
         tm.assert_contains_all(arr, index)
         self.assert_(np.array_equal(self.strIndex, index))
+
+        # copy
+        arr = np.array(self.strIndex)
+        index = Index(arr, copy=True, name='name')
+        self.assert_(isinstance(index, Index))
+        self.assert_(index.name == 'name')
+        assert_array_equal(arr, index)
 
         # what to do here?
         # arr = np.array(5.)
@@ -103,7 +113,7 @@ class TestIndex(unittest.TestCase):
         self.assert_(np.isnan(self.dateIndex.asof(d - timedelta(1))))
 
         d = self.dateIndex[-1]
-        self.assert_(self.dateIndex.asof(d + timedelta(1)) is d)
+        self.assert_(self.dateIndex.asof(d + timedelta(1)) == d)
 
     def test_argsort(self):
         result = self.strIndex.argsort()
@@ -113,6 +123,8 @@ class TestIndex(unittest.TestCase):
     def test_comparators(self):
         index = self.dateIndex
         element = index[len(index) // 2]
+        element = _to_m8(element)
+
         arr = np.array(index)
 
         def _check(op):
@@ -135,21 +147,25 @@ class TestIndex(unittest.TestCase):
         boolIdx[5:30:2] = False
 
         subIndex = self.strIndex[boolIdx]
-        tm.assert_dict_equal(tseries.map_indices_object(subIndex),
-                             subIndex.indexMap)
+
+        for i, val in enumerate(subIndex):
+            self.assertEqual(subIndex.get_loc(val), i)
 
         subIndex = self.strIndex[list(boolIdx)]
-        tm.assert_dict_equal(tseries.map_indices_object(subIndex),
-                             subIndex.indexMap)
+        for i, val in enumerate(subIndex):
+            self.assertEqual(subIndex.get_loc(val), i)
 
     def test_fancy(self):
         sl = self.strIndex[[1,2,3]]
         for i in sl:
-            self.assertEqual(i, sl[sl.indexMap[i]])
+            self.assertEqual(i, sl[sl.get_loc(i)])
 
     def test_getitem(self):
         arr = np.array(self.dateIndex)
-        self.assertEquals(self.dateIndex[5], arr[5])
+        exp = self.dateIndex[5]
+        exp = _to_m8(exp)
+
+        self.assertEquals(exp, arr[5])
 
     def test_shift(self):
         shifted = self.dateIndex.shift(0, timedelta(1))
@@ -157,6 +173,9 @@ class TestIndex(unittest.TestCase):
 
         shifted = self.dateIndex.shift(5, timedelta(1))
         self.assert_(np.array_equal(shifted, self.dateIndex + timedelta(5)))
+
+        shifted = self.dateIndex.shift(1, 'B')
+        self.assert_(np.array_equal(shifted, self.dateIndex + offsets.BDay()))
 
     def test_intersection(self):
         first = self.strIndex[:20]
@@ -186,6 +205,9 @@ class TestIndex(unittest.TestCase):
         union = first.union([])
         self.assert_(union is first)
 
+        union = Index([]).union(first)
+        self.assert_(union is first)
+
         # non-iterable input
         self.assertRaises(Exception, first.union, 0.5)
 
@@ -203,15 +225,16 @@ class TestIndex(unittest.TestCase):
         firstCat = self.strIndex + self.dateIndex
         secondCat = self.strIndex + self.strIndex
 
-        self.assert_(tm.equalContents(np.append(self.strIndex,
-                                                self.dateIndex), firstCat))
-        self.assert_(tm.equalContents(secondCat, self.strIndex))
-        tm.assert_contains_all(self.strIndex, firstCat.indexMap)
-        tm.assert_contains_all(self.strIndex, secondCat.indexMap)
-        tm.assert_contains_all(self.dateIndex, firstCat.indexMap)
+        if self.dateIndex.dtype == np.object_:
+            appended = np.append(self.strIndex, self.dateIndex)
+        else:
+            appended = np.append(self.strIndex, self.dateIndex.astype('O'))
 
-        # this is valid too
-        shifted = self.dateIndex + timedelta(1)
+        self.assert_(tm.equalContents(firstCat, appended))
+        self.assert_(tm.equalContents(secondCat, self.strIndex))
+        tm.assert_contains_all(self.strIndex, firstCat)
+        tm.assert_contains_all(self.strIndex, secondCat)
+        tm.assert_contains_all(self.dateIndex, firstCat)
 
     def test_append_multiple(self):
         index = Index(['a', 'b', 'c', 'd', 'e', 'f'])
@@ -242,8 +265,8 @@ class TestIndex(unittest.TestCase):
         index = Index(['a', 'b', 'c'])
         index2 = index + 'foo'
 
-        self.assert_('a' not in index2.indexMap)
-        self.assert_('afoo' in index2.indexMap)
+        self.assert_('a' not in index2)
+        self.assert_('afoo' in index2)
 
     def test_diff(self):
         first = self.strIndex[5:20]
@@ -268,7 +291,7 @@ class TestIndex(unittest.TestCase):
             self.assert_(np.array_equal(unpickled, index))
             self.assertEquals(unpickled.name, index.name)
 
-            tm.assert_dict_equal(unpickled.indexMap, index.indexMap)
+            # tm.assert_dict_equal(unpickled.indexMap, index.indexMap)
 
         testit(self.strIndex)
         self.strIndex.name = 'foo'
@@ -378,6 +401,15 @@ class TestIndex(unittest.TestCase):
         self.assert_(dropped.equals(expected))
 
         self.assertRaises(ValueError, self.strIndex.drop, ['foo', 'bar'])
+
+        dropped = self.strIndex.drop(self.strIndex[0])
+        expected = self.strIndex[1:]
+        self.assert_(dropped.equals(expected))
+
+        ser = Index([1,2,3])
+        dropped = ser.drop(1)
+        expected = Index([2,3])
+        self.assert_(dropped.equals(expected))
 
     def test_tuple_union_bug(self):
         import pandas
@@ -524,9 +556,9 @@ class TestInt64Index(unittest.TestCase):
 
         eres = Int64Index([0, 1, 2, 4, 5, 6, 7, 8, 10, 12, 14, 16, 18, 25])
         elidx = np.array([0, -1, 1, 2, -1, 3, -1, 4, 5, 6, 7, 8, 9, -1],
-                         dtype='i4')
+                         dtype=np.int64)
         eridx = np.array([-1, 3, 4, -1, 5, -1, 0, -1, -1, 1, -1, -1, -1, 2],
-                         dtype='i4')
+                         dtype=np.int64)
 
         self.assert_(isinstance(res, Int64Index))
         self.assert_(res.equals(eres))
@@ -540,7 +572,7 @@ class TestInt64Index(unittest.TestCase):
         self.assert_(res.equals(noidx_res))
 
         eridx = np.array([-1, 0, 1, -1, 2, -1, 3, -1, -1, 4, -1, -1, -1, 5],
-                         dtype='i4')
+                         dtype=np.int64)
         self.assert_(isinstance(res, Int64Index))
         self.assert_(res.equals(eres))
         self.assert_(np.array_equal(lidx, elidx))
@@ -591,7 +623,7 @@ class TestInt64Index(unittest.TestCase):
                                           return_indexers=True)
         eres = self.index
         eridx = np.array([-1, 4, -1, -1, -1, -1, 1, -1, -1, -1],
-                         dtype='i4')
+                         dtype=np.int64)
 
         self.assert_(isinstance(res, Int64Index))
         self.assert_(res.equals(eres))
@@ -602,11 +634,24 @@ class TestInt64Index(unittest.TestCase):
         res, lidx, ridx = self.index.join(other_mono, how='left',
                                           return_indexers=True)
         eridx = np.array([-1, 1, -1, -1, -1, -1, 4, -1, -1, -1],
-                         dtype='i4')
+                         dtype=np.int64)
         self.assert_(isinstance(res, Int64Index))
         self.assert_(res.equals(eres))
         self.assert_(lidx is None)
         self.assert_(np.array_equal(ridx, eridx))
+
+        # non-unique
+        """
+        idx = Index([1,1,2,5])
+        idx2 = Index([1,2,5,7,9])
+        res, lidx, ridx = idx2.join(idx, how='left', return_indexers=True)
+        eres = idx2
+        eridx = np.array([0, 2, 3, -1, -1])
+        elidx = np.array([0, 1, 2, 3, 4])
+        self.assert_(res.equals(eres))
+        self.assert_(np.array_equal(lidx, elidx))
+        self.assert_(np.array_equal(ridx, eridx))
+        """
 
     def test_join_right(self):
         other = Int64Index([7, 12, 25, 1, 2, 5])
@@ -617,7 +662,7 @@ class TestInt64Index(unittest.TestCase):
                                           return_indexers=True)
         eres = other
         elidx = np.array([-1, 6, -1, -1, 1, -1],
-                         dtype='i4')
+                         dtype=np.int64)
 
         self.assert_(isinstance(other, Int64Index))
         self.assert_(res.equals(eres))
@@ -629,11 +674,30 @@ class TestInt64Index(unittest.TestCase):
                                           return_indexers=True)
         eres = other_mono
         elidx = np.array([-1, 1, -1, -1, 6, -1],
-                         dtype='i4')
+                         dtype=np.int64)
         self.assert_(isinstance(other, Int64Index))
         self.assert_(res.equals(eres))
         self.assert_(np.array_equal(lidx, elidx))
         self.assert_(ridx is None)
+
+        # non-unique
+        """
+        idx = Index([1,1,2,5])
+        idx2 = Index([1,2,5,7,9])
+        res, lidx, ridx = idx.join(idx2, how='right', return_indexers=True)
+        eres = idx2
+        elidx = np.array([0, 2, 3, -1, -1])
+        eridx = np.array([0, 1, 2, 3, 4])
+        self.assert_(res.equals(eres))
+        self.assert_(np.array_equal(lidx, elidx))
+        self.assert_(np.array_equal(ridx, eridx))
+
+        idx = Index([1,1,2,5])
+        idx2 = Index([1,2,5,9,7])
+        res = idx.join(idx2, how='right', return_indexers=False)
+        eres = idx2
+        self.assert(res.equals(eres))
+        """
 
     def test_join_non_int_index(self):
         other = Index([3, 6, 7, 8, 10], dtype=object)
@@ -663,6 +727,20 @@ class TestInt64Index(unittest.TestCase):
         right2 = other.join(self.index, how='right')
         self.assert_(right2.equals(self.index))
 
+    def test_join_non_unique(self):
+        left = Index([4, 4, 3, 3])
+
+        joined, lidx, ridx = left.join(left, return_indexers=True)
+
+        exp_joined = Index([3, 3, 3, 3, 4, 4, 4, 4])
+        self.assert_(joined.equals(exp_joined))
+
+        exp_lidx = np.array([2, 2, 3, 3, 0, 0, 1, 1], dtype=np.int64)
+        self.assert_(np.array_equal(lidx, exp_lidx))
+
+        exp_ridx = np.array([2, 3, 2, 3, 0, 1, 0, 1], dtype=np.int64)
+        self.assert_(np.array_equal(ridx, exp_ridx))
+
     def test_intersection(self):
         other = Index([1, 2, 3, 4, 5])
         result = self.index.intersection(other)
@@ -687,7 +765,7 @@ class TestInt64Index(unittest.TestCase):
         from datetime import datetime, timedelta
         # corner case, non-Int64Index
         now = datetime.now()
-        other = Index([now + timedelta(i) for i in xrange(4)])
+        other = Index([now + timedelta(i) for i in xrange(4)], dtype=object)
         result = self.index.union(other)
         expected = np.concatenate((self.index, other))
         self.assert_(np.array_equal(result, expected))
@@ -830,6 +908,10 @@ class TestMultiIndex(unittest.TestCase):
         obj2 = MultiIndex.from_tuples(obj.values)
         self.assert_(obj.equals(obj2))
 
+        res = obj.get_indexer(obj)
+        exp = np.arange(len(obj))
+        assert_almost_equal(res, exp)
+
         res = obj.get_indexer(obj2[::-1])
         exp = obj.get_indexer(obj[::-1])
         exp2 = obj2.get_indexer(obj2[::-1])
@@ -887,7 +969,10 @@ class TestMultiIndex(unittest.TestCase):
 
     def test_get_loc_duplicates(self):
         index = Index([2, 2, 2, 2])
-        self.assertRaises(Exception, index.get_loc, 2)
+        result = index.get_loc(2)
+        expected = slice(0, 4)
+        assert(result == expected)
+        # self.assertRaises(Exception, index.get_loc, 2)
 
     def test_get_loc_level(self):
         index = MultiIndex(levels=[Index(range(4)),
@@ -1009,7 +1094,7 @@ class TestMultiIndex(unittest.TestCase):
         index = MultiIndex(levels=[major_axis, minor_axis],
                            labels=[major_labels, minor_labels])
 
-        self.assertRaises(Exception, getattr, index, 'indexMap')
+        self.assert_(not index.is_unique)
 
     def test_truncate(self):
         major_axis = Index(range(4))
@@ -1430,6 +1515,12 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(target2.equals(exp_index2))
         exp_indexer2 = np.array([0, -1, 0, -1, 0, -1])
         self.assert_(np.array_equal(indexer2, exp_indexer2))
+
+        self.assertRaises(ValueError, self.index.reindex,
+                          self.index, method='pad', level='second')
+
+        self.assertRaises(ValueError, idx.reindex,
+                          idx, method='bfill', level='first')
 
     def test_has_duplicates(self):
         self.assert_(not self.index.has_duplicates)

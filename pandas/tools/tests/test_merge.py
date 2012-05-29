@@ -3,15 +3,18 @@
 import nose
 import unittest
 
+from datetime import datetime
 from numpy.random import randn
+from numpy import nan
 import numpy as np
 import random
 
 from pandas import *
-from pandas.tools.merge import merge, concat
+from pandas.tseries.index import DatetimeIndex
+from pandas.tools.merge import merge, concat, ordered_merge, MergeError
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
                                  assert_almost_equal, rands)
-import pandas._tseries as lib
+import pandas.lib as lib
 import pandas.util.testing as tm
 
 a_ = np.array
@@ -61,8 +64,8 @@ class TestMerge(unittest.TestCase):
                            index=['d', 'b', 'c', 'a'])
 
     def test_cython_left_outer_join(self):
-        left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype='i4')
-        right = a_([1, 1, 0, 4, 2, 2, 1], dtype='i4')
+        left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
+        right = a_([1, 1, 0, 4, 2, 2, 1], dtype=np.int64)
         max_group = 5
 
         ls, rs = lib.left_outer_join(left, right, max_group)
@@ -85,8 +88,8 @@ class TestMerge(unittest.TestCase):
         self.assert_(np.array_equal(rs, exp_rs))
 
     def test_cython_right_outer_join(self):
-        left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype='i4')
-        right = a_([1, 1, 0, 4, 2, 2, 1], dtype='i4')
+        left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
+        right = a_([1, 1, 0, 4, 2, 2, 1], dtype=np.int64)
         max_group = 5
 
         rs, ls  = lib.left_outer_join(right, left, max_group)
@@ -111,8 +114,8 @@ class TestMerge(unittest.TestCase):
         self.assert_(np.array_equal(rs, exp_rs))
 
     def test_cython_inner_join(self):
-        left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype='i4')
-        right = a_([1, 1, 0, 4, 2, 2, 1, 4], dtype='i4')
+        left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
+        right = a_([1, 1, 0, 4, 2, 2, 1, 4], dtype=np.int64)
         max_group = 5
 
         ls, rs = lib.inner_join(left, right, max_group)
@@ -278,7 +281,6 @@ class TestMerge(unittest.TestCase):
         tm.assert_frame_equal(result, expected)
 
     def test_join_index_mixed(self):
-
         df1 = DataFrame({'A': 1., 'B': 2, 'C': 'foo', 'D': True},
                         index=np.arange(10),
                         columns=['A', 'B', 'C', 'D'])
@@ -463,8 +465,8 @@ class TestMerge(unittest.TestCase):
         merged = merge(self.left, self.left, on='key')
         exp_len = (self.left['key'].value_counts() ** 2).sum()
         self.assertEqual(len(merged), exp_len)
-        self.assert_('v1.x' in merged)
-        self.assert_('v1.y' in merged)
+        self.assert_('v1_x' in merged)
+        self.assert_('v1_y' in merged)
 
     def test_merge_different_column_key_names(self):
         left = DataFrame({'lkey': ['foo', 'bar', 'baz', 'foo'],
@@ -479,8 +481,8 @@ class TestMerge(unittest.TestCase):
                             ['bar', 'baz', 'foo', 'foo', 'foo', 'foo', np.nan])
         assert_almost_equal(merged['rkey'],
                             ['bar', np.nan, 'foo', 'foo', 'foo', 'foo', 'qux'])
-        assert_almost_equal(merged['value.x'], [2, 3, 1, 1, 4, 4, np.nan])
-        assert_almost_equal(merged['value.y'], [6, np.nan, 5, 8, 5, 8, 7])
+        assert_almost_equal(merged['value_x'], [2, 3, 1, 1, 4, 4, np.nan])
+        assert_almost_equal(merged['value_y'], [6, np.nan, 5, 8, 5, 8, 7])
 
     def test_merge_nocopy(self):
         left = DataFrame({'a' : 0, 'b' : 1}, index=range(10))
@@ -558,6 +560,67 @@ class TestMerge(unittest.TestCase):
         key = np.array([0, 1, 1, 2, 2, 3])
         merged = merge(left, right, left_index=True, right_on=key, how='outer')
         self.assert_(np.array_equal(merged['key_0'], key))
+
+    def test_mixed_type_join_with_suffix(self):
+        # GH #916
+        df = DataFrame(np.random.randn(20, 6),
+                       columns=['a', 'b', 'c', 'd', 'e', 'f'])
+        df.insert(0, 'id', 0)
+        df.insert(5, 'dt', 'foo')
+
+        grouped = df.groupby('id')
+        mn = grouped.mean()
+        cn = grouped.count()
+
+        # it works!
+        mn.join(cn, rsuffix='_right')
+
+    def test_no_overlap_more_informative_error(self):
+        dt = datetime.now()
+        df1 = DataFrame({'x': ['a']}, index=[dt])
+
+        df2 = DataFrame({'y': ['b', 'c']}, index=[dt, dt])
+        self.assertRaises(MergeError, merge, df1, df2)
+
+    def test_merge_non_unique_indexes(self):
+
+        dt = datetime(2012, 5, 1)
+        dt2 = datetime(2012, 5, 2)
+        dt3 = datetime(2012, 5, 3)
+        dt4 = datetime(2012, 5, 4)
+
+        df1 = DataFrame({'x': ['a']}, index=[dt])
+        df2 = DataFrame({'y': ['b', 'c']}, index=[dt, dt])
+        _check_merge(df1, df2)
+
+        # Not monotonic
+        df1 = DataFrame({'x': ['a', 'b', 'q']}, index=[dt2, dt, dt4])
+        df2 = DataFrame({'y': ['c', 'd', 'e', 'f', 'g', 'h']},
+                        index=[dt3, dt3, dt2, dt2, dt, dt])
+        _check_merge(df1, df2)
+
+        df1 = DataFrame({'x': ['a', 'b']}, index=[dt, dt])
+        df2 = DataFrame({'y': ['c', 'd']}, index=[dt, dt])
+        _check_merge(df1, df2)
+
+    def test_merge_non_unique_index_many_to_many(self):
+        dt = datetime(2012, 5, 1)
+        dt2 = datetime(2012, 5, 2)
+        dt3 = datetime(2012, 5, 3)
+        df1 = DataFrame({'x': ['a', 'b', 'c', 'd']},
+                        index=[dt2, dt2, dt, dt])
+        df2 = DataFrame({'y': ['e', 'f', 'g',' h', 'i']},
+                        index=[dt2, dt2, dt3, dt, dt])
+        _check_merge(df1, df2)
+
+def _check_merge(x, y):
+    for how in ['inner', 'left', 'outer']:
+        result = x.join(y, how=how)
+
+        expected = merge(x.reset_index(), y.reset_index(), how=how)
+        expected = expected.set_index('index')
+
+        assert_frame_equal(result, expected)
 
 class TestMergeMulti(unittest.TestCase):
 
@@ -655,8 +718,9 @@ class TestMergeMulti(unittest.TestCase):
         expected = left.join(rdf)
         tm.assert_frame_equal(merged, expected)
 
+
 def _check_join(left, right, result, join_col, how='left',
-                lsuffix='.x', rsuffix='.y'):
+                lsuffix='_x', rsuffix='_y'):
 
     # some smoke tests
     for c in join_col:
@@ -1197,6 +1261,8 @@ class TestConcatenate(unittest.TestCase):
         result = concat(pieces, keys=[0, 1, 2])
         expected = ts.copy()
 
+        ts.index = DatetimeIndex(np.array(ts.index.values, dtype='M8[ns]'))
+
         exp_labels = [np.repeat([0, 1, 2], [len(x) for x in pieces]),
                       np.arange(len(ts))]
         exp_index = MultiIndex(levels=[[0, 1, 2], ts.index],
@@ -1232,19 +1298,55 @@ class TestConcatenate(unittest.TestCase):
         tm.assert_frame_equal(result, df)
         self.assertRaises(Exception, concat, [None, None])
 
-    def test_mixed_type_join_with_suffix(self):
-        # GH #916
-        df = DataFrame(np.random.randn(20, 6),
-                       columns=['a', 'b', 'c', 'd', 'e', 'f'])
-        df.insert(0, 'id', 0)
-        df.insert(5, 'dt', 'foo')
 
-        grouped = df.groupby('id')
-        mn = grouped.mean()
-        cn = grouped.count()
+class TestOrderedMerge(unittest.TestCase):
 
-        # it works!
-        mn.join(cn, rsuffix='_right')
+    def setUp(self):
+        self.left = DataFrame({'key': ['a', 'c', 'e'],
+                               'lvalue': [1, 2., 3]})
+
+        self.right = DataFrame({'key': ['b', 'c', 'd', 'f'],
+                                'rvalue': [1, 2, 3., 4]})
+
+    # GH #813
+
+    def test_basic(self):
+        result = ordered_merge(self.left, self.right, on='key')
+        expected = DataFrame({'key': ['a', 'b', 'c', 'd', 'e', 'f'],
+                              'lvalue': [1, nan, 2, nan, 3, nan],
+                              'rvalue': [nan, 1, 2, 3, nan, 4]})
+
+        assert_frame_equal(result, expected)
+
+    def test_ffill(self):
+        result = ordered_merge(self.left, self.right, on='key', fill_method='ffill')
+        expected = DataFrame({'key': ['a', 'b', 'c', 'd', 'e', 'f'],
+                              'lvalue': [1., 1, 2, 2, 3, 3.],
+                              'rvalue': [nan, 1, 2, 3, 3, 4]})
+        assert_frame_equal(result, expected)
+
+    def test_multigroup(self):
+        left = concat([self.left, self.left], ignore_index=True)
+        # right = concat([self.right, self.right], ignore_index=True)
+
+        left['group'] = ['a'] * 3 + ['b'] * 3
+        # right['group'] = ['a'] * 4 + ['b'] * 4
+
+        result = ordered_merge(left, self.right, on='key', left_by='group',
+                               fill_method='ffill')
+        expected = DataFrame({'key': ['a', 'b', 'c', 'd', 'e', 'f'] * 2,
+                              'lvalue': [1., 1, 2, 2, 3, 3.] * 2,
+                              'rvalue': [nan, 1, 2, 3, 3, 4] * 2})
+        expected['group'] = ['a'] * 6 + ['b'] * 6
+
+        assert_frame_equal(result, expected.ix[:, result.columns])
+
+        result2 = ordered_merge(self.right, left, on='key', right_by='group',
+                                fill_method='ffill')
+        assert_frame_equal(result, result2.ix[:, result.columns])
+
+        result = ordered_merge(left, self.right, on='key', left_by='group')
+        self.assert_(result['group'].notnull().all())
 
 if __name__ == '__main__':
     import nose

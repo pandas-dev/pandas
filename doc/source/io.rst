@@ -49,17 +49,17 @@ And then import the data directly to a DataFrame by calling:
 
    clipdf
 
+.. _io.read_csv_table:
+
 CSV & Text files
 ----------------
-
-.. _io.parse_dates:
 
 The two workhorse functions for reading text files (a.k.a. flat files) are
 :func:`~pandas.io.parsers.read_csv` and :func:`~pandas.io.parsers.read_table`.
 They both use the same parsing code to intelligently convert tabular
 data into a DataFrame object. They can take a number of arguments:
 
-  - ``path_or_buffer``: Either a string path to a file, or any object with a
+  - ``filepath_or_buffer``: Either a string path to a file, or any object with a
     ``read`` method (such as an open file or ``StringIO``).
   - ``sep`` or ``delimiter``: A delimiter / separator to split fields
     on. `read_csv` is capable of inferring the delimiter automatically in some
@@ -97,10 +97,11 @@ data into a DataFrame object. They can take a number of arguments:
     non-ascii
   - ``verbose`` : show number of NA values inserted in non-numeric columns
 
+
 .. ipython:: python
    :suppress:
 
-   f = open('foo.csv', 'w')
+   f = open('foo.csv','w')
    f.write('date,A,B,C\n20090101,a,1,2\n20090102,b,3,4\n20090103,c,4,5')
    f.close()
 
@@ -117,9 +118,21 @@ The default for `read_csv` is to create a DataFrame with simple numbered rows:
    read_csv('foo.csv')
 
 In the case of indexed data, you can pass the column number (or a list of
-column numbers, for a hierarchical index) you wish to use as the index. If the
-index values are dates and you want them to be converted to ``datetime``
-objects, pass ``parse_dates=True``:
+column numbers, for a hierarchical index) you wish to use as the index.
+
+The parsers make every attempt to "do the right thing" and not be very
+fragile. Type inference is a pretty big deal. So if a column can be coerced to
+integer dtype without altering the contents, it will do so. Any non-numeric
+columns will come through as object dtype as with the rest of pandas objects.
+
+.. _io.parse_dates:
+
+To better facilitate working with datetime data, :func:`~pandas.io.parsers.read_csv` and :func:`~pandas.io.parsers.read_table`
+uses the keyword arguments ``parse_dates`` and ``date_parser`` to allow users
+to specify a variety of columns and date/time formats to turn the input text
+data into ``datetime`` objects.
+
+The simplest case is to just pass in ``parse_dates=True``:
 
 .. ipython:: python
 
@@ -134,10 +147,69 @@ objects, pass ``parse_dates=True``:
 
    os.remove('foo.csv')
 
-The parsers make every attempt to "do the right thing" and not be very
-fragile. Type inference is a pretty big deal. So if a column can be coerced to
-integer dtype without altering the contents, it will do so. Any non-numeric
-columns will come through as object dtype as with the rest of pandas objects.
+It is often the case that we may want to store date and time data separately,
+or store various date fields separately. the ``parse_dates`` keyword can be
+used to specify a combination of columns to parse the dates and/or times from.
+
+You can specify a list of column lists to ``parse_dates``, the resulting date
+columns will be prepended to the output (so as to not affect the existing column
+order) and the new column names will be the concatenation of the component
+column names:
+
+.. ipython:: python
+   :suppress:
+
+   data =  ("KORD,19990127, 19:00:00, 18:56:00, 0.8100\n"
+            "KORD,19990127, 20:00:00, 19:56:00, 0.0100\n"
+            "KORD,19990127, 21:00:00, 20:56:00, -0.5900\n"
+            "KORD,19990127, 21:00:00, 21:18:00, -0.9900\n"
+            "KORD,19990127, 22:00:00, 21:56:00, -0.5900\n"
+            "KORD,19990127, 23:00:00, 22:56:00, -0.5900")
+
+   with open('tmp.csv', 'w') as fh:
+       fh.write(data)
+
+.. ipython:: python
+
+    print open('tmp.csv').read()
+    df = read_csv('tmp.csv', header=None, parse_dates=[[1, 2], [1, 3]])
+    df
+
+By default the parser removes the component date columns, but you can choose
+to retain them via the ``keep_date_col`` keyword:
+
+.. ipython:: python
+
+   df = read_csv('tmp.csv', header=None, parse_dates=[[1, 2], [1, 3]],
+                 keep_date_col=True)
+   df
+
+You can also use a dict to specify custom name columns:
+
+.. ipython:: python
+
+   date_spec = {'nominal': [1, 2], 'actual': [1, 3]}
+   df = read_csv('tmp.csv', header=None, parse_dates=date_spec)
+   df
+
+Finally, the parser allows you can specify a custom ``date_parser`` function to
+take full advantage of the flexiblity of the date parsing API:
+
+.. ipython:: python
+
+   import pandas.io.date_converters as conv
+   df = read_csv('tmp.csv', header=None, parse_dates=date_spec,
+                 date_parser=conv.parse_date_time)
+   df
+
+You can explore the date parsing functionality in ``date_converters.py`` and
+add your own. We would love to turn this module into a community supported set
+of date/time parsers.
+
+.. ipython:: python
+   :suppress:
+
+   os.remove('tmp.csv')
 
 .. _io.fwf:
 
@@ -198,7 +270,7 @@ so it's ok to have extra separation between the columns in the file.
 .. ipython:: python
    :suppress:
 
-   os.remove('bar.csv')
+   # os.remove('bar.csv')
 
 Files with an "implicit" index column
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -270,8 +342,9 @@ module.
 .. ipython:: python
    :suppress:
 
-   df[:7].to_csv('tmp.sv', sep='|')
-   df[:7].to_csv('tmp2.sv', sep=':')
+   df = DataFrame(np.random.randn(10, 4))
+   df.to_csv('tmp.sv', sep='|')
+   df.to_csv('tmp2.sv', sep=':')
 
 .. ipython:: python
 
@@ -299,15 +372,14 @@ rather than reading the entire file into memory, such as the following:
 By specifiying a ``chunksize`` to ``read_csv`` or ``read_table``, the return
 value will be an iterable object of type ``TextParser``:
 
-.. ipython::
+.. ipython:: python
 
-   In [1]: reader = read_table('tmp.sv', sep='|', chunksize=4)
+   reader = read_table('tmp.sv', sep='|', chunksize=4)
+   reader
 
-   In [1]: reader
+   for chunk in reader:
+       print chunk
 
-   In [2]: for chunk in reader:
-      ...:     print chunk
-      ...:
 
 Specifying ``iterator=True`` will also return the ``TextParser`` object:
 
@@ -453,12 +525,12 @@ Objects can be written to the file just like adding key-value pairs to a dict:
 
 .. ipython:: python
 
-   index = DateRange('1/1/2000', periods=8)
+   index = date_range('1/1/2000', periods=8)
    s = Series(randn(5), index=['a', 'b', 'c', 'd', 'e'])
    df = DataFrame(randn(8, 3), index=index,
                   columns=['A', 'B', 'C'])
    wp = Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
-              major_axis=DateRange('1/1/2000', periods=5),
+              major_axis=date_range('1/1/2000', periods=5),
               minor_axis=['A', 'B', 'C', 'D'])
 
    store['s'] = s

@@ -38,7 +38,7 @@ The ``plot`` method on Series and DataFrame is just a simple wrapper around
 
 .. ipython:: python
 
-   ts = Series(randn(1000), index=DateRange('1/1/2000', periods=1000))
+   ts = Series(randn(1000), index=date_range('1/1/2000', periods=1000))
    ts = ts.cumsum()
 
    @savefig series_plot_basic.png width=4.5in
@@ -85,7 +85,7 @@ You may pass ``logy`` to get a log-scale Y axis.
 
    plt.figure();
 
-   ts = Series(randn(1000), index=DateRange('1/1/2000', periods=1000))
+   ts = Series(randn(1000), index=date_range('1/1/2000', periods=1000))
    ts = np.exp(ts.cumsum())
 
    @savefig series_plot_logy.png width=4.5in
@@ -241,5 +241,8 @@ Scatter plot matrix
    from pandas.tools.plotting import scatter_matrix
    df = DataFrame(np.random.randn(1000, 4), columns=['a', 'b', 'c', 'd'])
 
-   @savefig scatter_matrix_ex.png width=6in
-   scatter_matrix(df, alpha=0.2, figsize=(8, 8))
+   @savefig scatter_matrix_kde.png width=6in
+   scatter_matrix(df, alpha=0.2, figsize=(8, 8), diagonal='kde')
+
+   @savefig scatter_matrix_hist.png width=6in
+   scatter_matrix(df, alpha=0.2, figsize=(8, 8), diagonal='hist')

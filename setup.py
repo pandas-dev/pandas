@@ -6,8 +6,6 @@ Parts of this file were taken from the pyzmq project
 BSD license. Parts are from lxml (https://github.com/lxml/lxml)
 """
 
-from datetime import datetime
-from glob import glob
 import os
 import sys
 import shutil
@@ -42,6 +40,8 @@ if sys.version_info[0] >= 3:
                          'zip_safe': False,
                          'install_requires': ['python-dateutil >= 2',
                                               'numpy >= 1.4'],
+                         'use_2to3_exclude_fixers': ['lib2to3.fixes.fix_next',
+                                                    ],
                         }
     if not _have_setuptools:
         sys.exit("need setuptools/distribute for Py3k"
@@ -50,7 +50,7 @@ if sys.version_info[0] >= 3:
 else:
     setuptools_kwargs = {
         'install_requires': ['python-dateutil < 2',
-                             'numpy >= 1.4'],
+                             'numpy >= 1.6'],
         'zip_safe' : False,
     }
     if not _have_setuptools:
@@ -70,6 +70,11 @@ except ImportError:
     "    $ pip install numpy  # or easy_install numpy\n")
     sys.exit(nonumpy_msg)
 
+if np.__version__ < '1.6.1':
+    msg = "pandas requires NumPy >= 1.6 due to datetime64 dependency"
+    sys.exit(msg)
+
+from numpy.distutils.misc_util import get_pkg_info, get_info
 
 from distutils.extension import Extension
 from distutils.command.build import build
@@ -78,15 +83,17 @@ from distutils.command.sdist import sdist
 
 from os.path import splitext, basename, join as pjoin
 
-DESCRIPTION = "Powerful data structures for data analysis and statistics"
+DESCRIPTION = ("Powerful data structures for data analysis, time series,"
+               "and statistics")
 LONG_DESCRIPTION = """
 **pandas** is a Python package providing fast, flexible, and expressive data
-structures designed to make working with "relational" or "labeled" data both
-easy and intuitive. It aims to be the fundamental high-level building block for
-doing practical, **real world** data analysis in Python. Additionally, it has
-the broader goal of becoming **the most powerful and flexible open source data
-analysis / manipulation tool available in any language**. It is already well on
-its way toward this goal.
+structures designed to make working with structured (tabular, multidimensional,
+potentially heterogeneous) and time series data both easy and intuitive. It
+aims to be the fundamental high-level building block for doing practical,
+**real world** data analysis in Python. Additionally, it has the broader goal
+of becoming **the most powerful and flexible open source data analysis /
+manipulation tool available in any language**. It is already well on its way
+toward this goal.
 
 pandas is well suited for many different kinds of data:
 
@@ -165,11 +172,11 @@ CLASSIFIERS = [
 ]
 
 MAJOR = 0
-MINOR = 7
-MICRO = 3
+MINOR = 8
+MICRO = 0
 ISRELEASED = True
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
-QUALIFIER = ''
+QUALIFIER = 'b1'
 
 FULLVERSION = VERSION
 if not ISRELEASED:
@@ -214,8 +221,19 @@ class CleanCommand(Command):
         self.all = True
         self._clean_me = []
         self._clean_trees = []
+        self._clean_exclude = ['np_datetime.c',
+                               'np_datetime_strings.c',
+                               'period.c',
+                               'ujson.c',
+                               'objToJSON.c',
+                               'JSONtoObj.c',
+                               'ultrajsonenc.c',
+                               'ultrajsondec.c']
+
         for root, dirs, files in list(os.walk('pandas')):
             for f in files:
+                if f in self._clean_exclude:
+                    continue
                 if os.path.splitext(f)[-1] in ('.pyc', '.so', '.o',
                                                '.pyd', '.c'):
                     self._clean_me.append(pjoin(root, f))
@@ -271,7 +289,7 @@ class CheckSDist(sdist):
         sdist.run(self)
 
 class CheckingBuildExt(build_ext):
-    """Subclass build_ext to get clearer report if Cython is neccessary."""
+    """Subclass build_ext to get clearer report if Cython is necessary."""
 
     def check_cython_extensions(self, extensions):
         for ext in extensions:
@@ -294,6 +312,7 @@ cmdclass = {'clean': CleanCommand,
 
 try:
     from Cython.Distutils import build_ext
+    #from Cython.Distutils import Extension # to get pyrex debugging symbols
     cython=True
 except ImportError:
     cython=False
@@ -325,9 +344,9 @@ else:
     cmdclass['sdist'] =  CheckSDist
 
 tseries_depends = ['reindex', 'groupby', 'skiplist', 'moments',
-                   'generated', 'reduce', 'stats',
-                   'inference', 'properties', 'internals',
-                   'hashtable', 'join']
+                   'reduce', 'stats', 'datetime',
+                   'hashtable', 'inference', 'properties', 'join', 'engines']
+
 def srcpath(name=None, suffix='.pyx', subdir='src'):
     return pjoin('pandas', subdir, name+suffix)
 
@@ -338,25 +357,54 @@ if suffix == '.pyx':
 else:
     tseries_depends = []
 
-tseries_ext = Extension('pandas._tseries',
-                        depends=tseries_depends + ['pandas/src/numpy_helper.h'],
-                        sources=[srcpath('tseries', suffix=suffix)],
-                        include_dirs=[np.get_include()],
-                        # extra_compile_args=['-Wconversion']
-                        )
+algos_ext = Extension('pandas._algos',
+                      sources=[srcpath('generated', suffix=suffix)],
+                      include_dirs=[np.get_include()],
+                      )
+
+lib_ext = Extension('pandas.lib',
+                    depends=tseries_depends + ['pandas/src/numpy_helper.h'],
+                    sources=[srcpath('tseries', suffix=suffix),
+                             'pandas/src/period.c',
+                             'pandas/src/datetime/np_datetime.c',
+                             'pandas/src/datetime/np_datetime_strings.c'],
+                    include_dirs=[np.get_include()],
+                    # pyrex_gdb=True,
+                    # extra_compile_args=['-Wconversion']
+                    )
+
 
 sparse_ext = Extension('pandas._sparse',
                        sources=[srcpath('sparse', suffix=suffix)],
                        include_dirs=[np.get_include()])
 
-engines_ext = Extension('pandas._engines',
-                        depends=['pandas/src/numpy_helper.h',
-                                 'pandas/src/util.pxd'],
-                        sources=[srcpath('engines', suffix=suffix)],
-                        include_dirs=[np.get_include()])
+npymath_info = get_info('npymath')
+
+npymath_libdir = npymath_info['library_dirs'][0]
+npymath_libdir = npymath_libdir.replace('\\\\', '\\')
+
+ujson_ext = Extension('pandas._ujson',
+                      sources=['pandas/src/ujson/python/ujson.c',
+                               'pandas/src/ujson/python/objToJSON.c',
+                               'pandas/src/ujson/python/JSONtoObj.c',
+                               'pandas/src/ujson/lib/ultrajsonenc.c',
+                               'pandas/src/ujson/lib/ultrajsondec.c',
+                               'pandas/src/datetime/np_datetime.c'
+                               ],
+                      include_dirs=['pandas/src/ujson/python',
+                                    'pandas/src/ujson/lib',
+                                    'pandas/src/datetime',
+                                    np.get_include()],
+                      libraries=['npymath'],
+                      library_dirs=[npymath_libdir],
+                      # extra_link_args=[get_pkg_info('npymath').libs()]
+                      #extra_info=get_info('npymath')
+                      )
 
 sandbox_ext = Extension('pandas._sandbox',
-                        sources=[srcpath('sandbox', suffix=suffix)],
+                        sources=[srcpath('sandbox', suffix=suffix),
+                                 'pandas/src/period.c',
+                                 ],
                         include_dirs=[np.get_include()])
 
 cppsandbox_ext = Extension('pandas._cppsandbox',
@@ -364,7 +412,7 @@ cppsandbox_ext = Extension('pandas._cppsandbox',
                            sources=[srcpath('cppsandbox', suffix=suffix)],
                            include_dirs=[np.get_include()])
 
-extensions = [tseries_ext, engines_ext, sparse_ext]
+extensions = [algos_ext, lib_ext, sparse_ext, ujson_ext]
 
 if not ISRELEASED:
     extensions.extend([sandbox_ext])
@@ -377,6 +425,7 @@ setup(name=DISTNAME,
       version=FULLVERSION,
       maintainer=AUTHOR,
       packages=['pandas',
+                'pandas.compat',
                 'pandas.core',
                 'pandas.io',
                 'pandas.rpy',
@@ -388,6 +437,8 @@ setup(name=DISTNAME,
                 'pandas.tests',
                 'pandas.tools',
                 'pandas.tools.tests',
+                'pandas.tseries',
+                'pandas.tseries.tests',
                 'pandas.io.tests',
                 'pandas.stats.tests',
                 ],
@@ -397,7 +448,9 @@ setup(name=DISTNAME,
                                    'tests/*.xlsx',
                                    'tests/*.table'],
                     'pandas.tests' : ['data/*.pickle',
-                                      'data/*.csv']
+                                      'data/*.csv'],
+                    'pandas.tseries.tests' : ['data/*.pickle',
+                                              'data/*.csv']
                    },
       ext_modules=extensions,
       maintainer_email=EMAIL,

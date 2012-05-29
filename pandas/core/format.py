@@ -1,12 +1,16 @@
 from itertools import izip
 
-from StringIO import StringIO
+try:
+    from StringIO import StringIO
+except:
+    from io import StringIO
+
 from pandas.core.common import adjoin, isnull, notnull, _stringify
 from pandas.core.index import MultiIndex, _ensure_index
 from pandas.util import py3compat
 
 import pandas.core.common as com
-import pandas._tseries as lib
+import pandas.lib as lib
 
 import numpy as np
 
@@ -65,7 +69,13 @@ class SeriesFormatter(object):
 
     def _get_footer(self):
         footer = ''
+
         if self.name:
+            if getattr(self.series.index, 'freq', None):
+                footer += 'Freq: %s' % self.series.index.freqstr
+
+            if footer and self.series.name:
+                footer += ', '
             footer += ("Name: %s" % str(self.series.name)
                        if self.series.name else '')
 
@@ -102,8 +112,14 @@ class SeriesFormatter(object):
 
         maxlen = max(len(x) for x in fmt_index)
         pad_space = min(maxlen, 60)
-        result = ['%s   %s' % (k.ljust(pad_space), v)
-                  for (k, v) in izip(fmt_index[1:], fmt_values)]
+
+        result = ['%s   %s'] * len(fmt_values)
+        for i, (k, v) in enumerate(izip(fmt_index[1:], fmt_values)):
+            try:
+                idx = k.ljust(pad_space + _encode_diff(k))
+            except UnicodeEncodeError:
+                idx = k.ljust(pad_space)
+            result[i] = result[i] % (idx, v)
 
         if self.header and have_header:
             result.insert(0, fmt_index[0])
@@ -114,6 +130,11 @@ class SeriesFormatter(object):
 
         return '\n'.join(result)
 
+if py3compat.PY3:  # pragma: no cover
+    _encode_diff = lambda x: 0
+else:
+    def _encode_diff(x):
+        return len(x) - len(x.decode('utf-8'))
 
 class DataFrameFormatter(object):
     """
@@ -262,6 +283,8 @@ class DataFrameFormatter(object):
             if isinstance(self.columns, MultiIndex):
                 if self.has_column_names:
                     row.append(single_column_table(self.columns.names))
+                else:
+                    row.append('')
                 row.extend([single_column_table(c) for c in self.columns])
             else:
                 row.append(self.columns.name or '')
@@ -290,9 +313,11 @@ class DataFrameFormatter(object):
                     row = frame.index.names + [''] * len(self.columns)
                     write_tr(row, indent, indent_delta, header=True)
 
+                indent -= indent_delta
                 write('</thead>', indent)
 
             write('<tbody>', indent)
+            indent += indent_delta
 
             _bold_row = self.kwds.get('bold_rows', False)
             def _maybe_bold_row(x):
@@ -413,6 +438,8 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
         fmt_klass = FloatArrayFormatter
     elif com.is_integer_dtype(values.dtype):
         fmt_klass = IntArrayFormatter
+    elif com.is_datetime64_dtype(values.dtype):
+        fmt_klass = Datetime64Formatter
     else:
         fmt_klass = GenericArrayFormatter
 
@@ -549,11 +576,46 @@ class IntArrayFormatter(GenericArrayFormatter):
         return _make_fixed_width(fmt_values, self.justify)
 
 
+class Datetime64Formatter(GenericArrayFormatter):
+
+    def get_result(self):
+        if self.formatter:
+            formatter = self.formatter
+        else:
+            formatter = _format_datetime64
+
+        fmt_values = [formatter(x) for x in self.values]
+        return _make_fixed_width(fmt_values, self.justify)
+
+def _format_datetime64(x, tz=None):
+    if isnull(x):
+        return 'NaT'
+
+    stamp = lib.Timestamp(x, tz=tz)
+    base = stamp.strftime('%Y-%m-%d %H:%M:%S')
+
+    fraction = stamp.microsecond * 1000 + stamp.nanosecond
+    digits = 9
+
+    if fraction == 0:
+        return base
+
+    while (fraction % 10) == 0:
+        fraction /= 10
+        digits -= 1
+
+    return base + ('.%%.%id' % digits) % fraction
+
+
 def _make_fixed_width(strings, justify='right'):
     if len(strings) == 0:
         return strings
 
     max_len = max(len(x) for x in strings)
+    conf_max = print_config.max_colwidth
+    if conf_max is not None and max_len > conf_max:
+        max_len = conf_max
+
     if justify == 'left':
         justfunc = lambda self, x: self.ljust(x)
     else:
@@ -609,7 +671,8 @@ def _has_names(index):
 
 def set_printoptions(precision=None, column_space=None, max_rows=None,
                      max_columns=None, colheader_justify='right',
-                     notebook_repr_html=None):
+                     max_colwidth=50, notebook_repr_html=None,
+                     date_dayfirst=None, date_yearfirst=None):
     """
     Alter default behavior of DataFrame.toString
 
@@ -629,6 +692,10 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
     notebook_repr_html : boolean
         When True (default), IPython notebook will use html representation for
         pandas objects (if it is available).
+    date_dayfirst : boolean
+        When True, prints and parses dates with the day first, eg 20/01/2005
+    date_yearfirst : boolean
+        When True, prints and parses dates with the year first, eg 2005/01/20
     """
     if precision is not None:
         print_config.precision = precision
@@ -636,12 +703,18 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
         print_config.column_space = column_space
     if max_rows is not None:
         print_config.max_rows = max_rows
+    if max_colwidth is not None:
+        print_config.max_colwidth = max_colwidth
     if max_columns is not None:
         print_config.max_columns = max_columns
     if colheader_justify is not None:
         print_config.colheader_justify = colheader_justify
     if notebook_repr_html is not None:
         print_config.notebook_repr_html = notebook_repr_html
+    if date_dayfirst is not None:
+        print_config.date_dayfirst = date_dayfirst
+    if date_yearfirst is not None:
+        print_config.date_yearfirst = date_yearfirst
 
 def reset_printoptions():
     print_config.reset()
@@ -765,9 +838,12 @@ class _GlobalPrintConfig(object):
         self.float_format = None
         self.column_space = 12
         self.max_rows = 200
+        self.max_colwidth = 50
         self.max_columns = 0
         self.colheader_justify = 'right'
         self.notebook_repr_html = True
+        self.date_dayfirst = False
+        self.date_yearfirst = False
 
     def reset(self):
         self.__init__()

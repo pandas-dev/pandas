@@ -1,12 +1,12 @@
 import time
 
-def inner_join(ndarray[int32_t] left, ndarray[int32_t] right,
+def inner_join(ndarray[int64_t] left, ndarray[int64_t] right,
                Py_ssize_t max_groups):
     cdef:
         Py_ssize_t i, j, k, count = 0
-        ndarray[int32_t] left_count, right_count, left_sorter, right_sorter
-        ndarray[int32_t] left_indexer, right_indexer
-        int32_t lc, rc
+        ndarray[int64_t] left_count, right_count, left_sorter, right_sorter
+        ndarray[int64_t] left_indexer, right_indexer
+        int64_t lc, rc
 
     # NA group in location 0
 
@@ -30,8 +30,8 @@ def inner_join(ndarray[int32_t] left, ndarray[int32_t] right,
     left_pos = left_count[0]
     right_pos = right_count[0]
 
-    left_indexer = np.empty(count, dtype='i4')
-    right_indexer = np.empty(count, dtype='i4')
+    left_indexer = np.empty(count, dtype=np.int64)
+    right_indexer = np.empty(count, dtype=np.int64)
 
     for i in range(1, max_groups + 1):
         lc = left_count[i]
@@ -50,13 +50,14 @@ def inner_join(ndarray[int32_t] left, ndarray[int32_t] right,
     return (_get_result_indexer(left_sorter, left_indexer),
             _get_result_indexer(right_sorter, right_indexer))
 
-def left_outer_join(ndarray[int32_t] left, ndarray[int32_t] right,
+def left_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
                     Py_ssize_t max_groups, sort=True):
     cdef:
         Py_ssize_t i, j, k, count = 0
-        ndarray[int32_t] left_count, right_count, left_sorter, right_sorter
-        ndarray[int32_t] left_indexer, right_indexer
-        int32_t lc, rc
+        ndarray[int64_t] left_count, right_count
+        ndarray left_sorter, right_sorter, rev
+        ndarray[int64_t] left_indexer, right_indexer
+        int64_t lc, rc
 
     # NA group in location 0
 
@@ -79,8 +80,8 @@ def left_outer_join(ndarray[int32_t] left, ndarray[int32_t] right,
     left_pos = left_count[0]
     right_pos = right_count[0]
 
-    left_indexer = np.empty(count, dtype='i4')
-    right_indexer = np.empty(count, dtype='i4')
+    left_indexer = np.empty(count, dtype=np.int64)
+    right_indexer = np.empty(count, dtype=np.int64)
 
     for i in range(1, max_groups + 1):
         lc = left_count[i]
@@ -105,7 +106,10 @@ def left_outer_join(ndarray[int32_t] left, ndarray[int32_t] right,
     right_indexer = _get_result_indexer(right_sorter, right_indexer)
 
     if not sort:
-        rev = np.empty(len(left), dtype='i4')
+        if left_sorter.dtype != np.int_:
+            left_sorter = left_sorter.astype(np.int_)
+
+        rev = np.empty(len(left), dtype=np.int_)
         rev.put(left_sorter, np.arange(len(left)))
 
         right_indexer = right_indexer.take(rev)
@@ -114,13 +118,14 @@ def left_outer_join(ndarray[int32_t] left, ndarray[int32_t] right,
     return left_indexer, right_indexer
 
 
-def full_outer_join(ndarray[int32_t] left, ndarray[int32_t] right,
-                    Py_ssize_t max_groups):
+
+def full_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
+                          Py_ssize_t max_groups):
     cdef:
         Py_ssize_t i, j, k, count = 0
-        ndarray[int32_t] left_count, right_count, left_sorter, right_sorter
-        ndarray[int32_t] left_indexer, right_indexer
-        int32_t lc, rc
+        ndarray[int64_t] left_count, right_count, left_sorter, right_sorter
+        ndarray[int64_t] left_indexer, right_indexer
+        int64_t lc, rc
 
     # NA group in location 0
 
@@ -139,15 +144,15 @@ def full_outer_join(ndarray[int32_t] left, ndarray[int32_t] right,
 
     # group 0 is the NA group
     cdef:
-        Py_ssize_t loc, left_pos = 0, right_pos = 0, position = 0
-        Py_ssize_t offset
+        int64_t left_pos = 0, right_pos = 0
+        Py_ssize_t offset, position = 0
 
     # exclude the NA group
     left_pos = left_count[0]
     right_pos = right_count[0]
 
-    left_indexer = np.empty(count, dtype='i4')
-    right_indexer = np.empty(count, dtype='i4')
+    left_indexer = np.empty(count, dtype=np.int64)
+    right_indexer = np.empty(count, dtype=np.int64)
 
     for i in range(1, max_groups + 1):
         lc = left_count[i]
@@ -176,32 +181,81 @@ def full_outer_join(ndarray[int32_t] left, ndarray[int32_t] right,
     return (_get_result_indexer(left_sorter, left_indexer),
             _get_result_indexer(right_sorter, right_indexer))
 
+
+
 def _get_result_indexer(sorter, indexer):
+    if indexer.dtype != np.int_:
+        indexer = indexer.astype(np.int_)
     res = sorter.take(indexer)
     np.putmask(res, indexer == -1, -1)
     return res
 
 
+
+def ffill_indexer(ndarray[int64_t] indexer):
+    cdef:
+        Py_ssize_t i, n = len(indexer)
+        ndarray[int64_t] result
+        int64_t val, last_obs
+
+    result = np.empty(n, dtype=np.int64)
+    last_obs = -1
+
+    for i in range(n):
+        val = indexer[i]
+        if val == -1:
+            result[i] = last_obs
+        else:
+            result[i] = val
+            last_obs = val
+
+    return result
+
+
+def ffill_by_group(ndarray[int64_t] indexer, ndarray[int64_t] group_ids,
+                   int64_t max_group):
+    cdef:
+        Py_ssize_t i, n = len(indexer)
+        ndarray[int64_t] result, last_obs
+        int64_t gid, val
+
+    result = np.empty(n, dtype=np.int64)
+
+    last_obs = np.empty(max_group, dtype=np.int64)
+    last_obs.fill(-1)
+
+    for i in range(n):
+        gid = group_ids[i]
+        val = indexer[i]
+        if val == -1:
+            result[i] = last_obs[gid]
+        else:
+            result[i] = val
+            last_obs[gid] = val
+
+    return result
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def join_sorter(ndarray[int32_t] index, Py_ssize_t ngroups):
+def join_sorter(ndarray[int64_t] index, Py_ssize_t ngroups):
     cdef:
         Py_ssize_t i, loc, label, n
-        ndarray[int32_t] counts, where, result
+        ndarray[int64_t] counts, where, result
 
     # count group sizes, location 0 for NA
-    counts = np.zeros(ngroups + 1, dtype='i4')
+    counts = np.zeros(ngroups + 1, dtype=np.int64)
     n = len(index)
     for i from 0 <= i < n:
         counts[index[i] + 1] += 1
 
     # mark the start of each contiguous group of like-indexed data
-    where = np.zeros(ngroups + 1, dtype='i4')
+    where = np.zeros(ngroups + 1, dtype=np.int64)
     for i from 1 <= i < ngroups + 1:
         where[i] = where[i - 1] + counts[i - 1]
 
     # this is our indexer
-    result = np.zeros(n, dtype='i4')
+    result = np.zeros(n, dtype=np.int64)
     for i from 0 <= i < n:
         label = index[i] + 1
         result[where[label]] = i
