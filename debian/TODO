@@ -2,3 +2,4 @@
 * IPython 0.11 seems to be required to build docs
   - there was a bug report requesting -doc iirc
 * adjust copyright to mention code in setup.py borrowed from pyzmq
+* gather more of copyright/license added in 0.8.
