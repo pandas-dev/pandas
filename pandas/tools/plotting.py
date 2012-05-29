@@ -13,6 +13,7 @@ from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.offsets import DateOffset
 
+
 def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
                    diagonal='hist', marker='.', **kwds):
     """
@@ -43,21 +44,27 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
     # no gaps between subplots
     fig.subplots_adjust(wspace=0, hspace=0)
 
+    mask = com.notnull(df)
+
     for i, a in zip(range(n), df.columns):
         for j, b in zip(range(n), df.columns):
             if i == j:
+                values = df[a].values[mask[a].values]
+
                 # Deal with the diagonal by drawing a histogram there.
                 if diagonal == 'hist':
-                    axes[i, j].hist(df[a])
+                    axes[i, j].hist(values)
                 elif diagonal == 'kde':
                     from scipy.stats import gaussian_kde
-                    y = df[a]
+                    y = values
                     gkde = gaussian_kde(y)
-                    ind = np.linspace(min(y), max(y), 1000)
+                    ind = np.linspace(y.min(), y.max(), 1000)
                     axes[i, j].plot(ind, gkde.evaluate(ind), **kwds)
             else:
-                axes[i, j].scatter(df[b], df[a], marker=marker, alpha=alpha,
-                                   **kwds)
+                common = (mask[a] & mask[b]).values
+
+                axes[i, j].scatter(df[b][common], df[a][common],
+                                   marker=marker, alpha=alpha, **kwds)
 
             axes[i, j].set_xlabel('')
             axes[i, j].set_ylabel('')
