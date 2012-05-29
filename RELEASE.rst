@@ -25,6 +25,8 @@ Where to get it
 pandas 0.8.0
 ============
 
+**Release date:** NOT YET RELEASED
+
 **New features**
 
   - Add GroupBy.prod optimized aggregation function and 'prod' fast time series
