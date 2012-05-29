@@ -753,7 +753,7 @@ class PeriodIndex(Int64Index):
         try:
             return func_to_map(self)
         except:
-            return super(DatetimeIndex, self).map(func_to_map)
+            return super(PeriodIndex, self).map(func_to_map)
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
