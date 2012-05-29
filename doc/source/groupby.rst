@@ -118,6 +118,25 @@ columns:
 
     In [5]: grouped = df.groupby(get_letter_type, axis=1)
 
+Starting with 0.8, pandas Index objects now supports duplicate values. If a
+non-unique index is used as the group key in a groupby operation, all values for
+the same index value will be considered to be in one group and thus the output
+of aggregation functions will only contain unique index values:
+
+.. ipython:: python
+
+   lst = [1, 2, 3, 1, 2, 3]
+
+   s = Series([1, 2, 3, 10, 20, 30], lst)
+
+   grouped = s.groupby(level=0)
+
+   grouped.first()
+
+   grouped.last()
+
+   grouped.sum()
+
 Note that **no splitting occurs** until it's needed. Creating the GroupBy object
 only verifies that you've passed a valid mapping.
 
