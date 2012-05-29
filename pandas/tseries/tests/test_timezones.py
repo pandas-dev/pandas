@@ -243,6 +243,13 @@ class TestTimeZoneSupport(unittest.TestCase):
         self.assert_(result.tz == rng.tz)
         self.assert_(result.freq == rng.freq)
 
+    def test_index_with_timezone_repr(self):
+        rng = date_range('4/13/2010', '5/6/2010')
+
+        rng_eastern = rng.tz_convert('US/Eastern')
+
+        rng_repr = repr(rng)
+        self.assert_('2010-04-13 00:00:00' in rng_repr)
 
 class TestTimeZones(unittest.TestCase):
 

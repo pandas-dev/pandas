@@ -587,11 +587,11 @@ class Datetime64Formatter(GenericArrayFormatter):
         fmt_values = [formatter(x) for x in self.values]
         return _make_fixed_width(fmt_values, self.justify)
 
-def _format_datetime64(x):
+def _format_datetime64(x, tz=None):
     if isnull(x):
         return 'NaT'
 
-    stamp = lib.Timestamp(x)
+    stamp = lib.Timestamp(x, tz=tz)
     base = stamp.strftime('%Y-%m-%d %H:%M:%S')
 
     fraction = stamp.microsecond * 1000 + stamp.nanosecond

@@ -421,8 +421,8 @@ class DatetimeIndex(Int64Index):
 
         summary = str(self.__class__)
         if len(self) > 0:
-            first = _format_datetime64(values[0])
-            last = _format_datetime64(values[-1])
+            first = _format_datetime64(values[0], tz=self.tz)
+            last = _format_datetime64(values[-1], tz=self.tz)
             summary += '\n[%s, ..., %s]' % (first, last)
         tagline = '\nLength: %d, Freq: %s, Timezone: %s'
         summary += tagline % (len(self), freq, self.tz)
