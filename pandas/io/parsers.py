@@ -709,7 +709,8 @@ class TextParser(object):
         zipped_content = list(lib.to_object_array(content).T)
 
         if not self._has_complex_date_col and self.index_col is not None:
-            index = self._get_index(zipped_content)
+            index = self._get_simple_index(zipped_content)
+            index = self._agg_index(index)
         else:
             index = Index(np.arange(len(content)))
 
@@ -749,7 +750,9 @@ class TextParser(object):
                 self.index_name = self._get_index_name()
                 self._name_processed = True
             data = dict(((k, v) for k, v in df.iteritems()))
-            index = self._get_index(data, col_order=columns, parse_dates=False)
+            index = self._get_complex_date_index(data, col_names=columns,
+                                                 parse_dates=False)
+            index = self._agg_index(index, False)
             data = dict(((k, v.values) for k, v in data.iteritems()))
             df = DataFrame(data=data, columns=columns, index=index)
 
@@ -764,51 +767,30 @@ class TextParser(object):
                  len(self.parse_dates) > 0 and
                  isinstance(self.parse_dates[0], list)))
 
-    def _get_index(self, data, col_order=None, parse_dates=True):
-        if isinstance(data, dict):
-            index = self._get_index_from_dict(data, col_order, parse_dates)
-            return self._agg_index(index, parse_dates)
-        else:
-            index = self._get_index_from_list(data, col_order, parse_dates)
-            return self._agg_index(index, parse_dates)
-
-    def _get_index_from_list(self, data, col_names=None, parse_dates=True):
-        def _get_ix(icol):
-            if not isinstance(icol, basestring):
-                return icol
-
-            if col_names is None:
-                raise ValueError(('Must supply column order to use %s as '
-                                  'index') % icol)
-
-            for i, c in enumerate(col_names):
-                if c == icol:
-                    return i
-
+    def _get_simple_index(self, data):
+        def ix(col):
+            if not isinstance(col, basestring):
+                return col
+            raise ValueError('Index %s invalid' % col)
         index = None
         if np.isscalar(self.index_col):
-            ix = _get_ix(self.index_col)
-            index = data.pop(ix)
-            if col_names is not None:
-                col_names.pop(ix)
+            index = data.pop(ix(self.index_col))
         else: # given a list of index
             to_remove = []
             index = []
             for idx in self.index_col:
-                i = _get_ix(idx)
+                i = ix(idx)
                 to_remove.append(i)
-                index.append(data[i])
+                index.append(data[idx])
 
             # remove index items from content and columns, don't pop in
             # loop
             for i in reversed(sorted(to_remove)):
                 data.pop(i)
-                if col_names is not None:
-                    col_names.pop(i)
 
         return index
 
-    def _get_index_from_dict(self, data, col_names=None, parse_dates=True):
+    def _get_complex_date_index(self, data, col_names=None, parse_dates=True):
         def _get_name(icol):
             if isinstance(icol, basestring):
                 return icol
@@ -844,9 +826,9 @@ class TextParser(object):
 
         return index
 
-    def _agg_index(self, index, parse_dates):
+    def _agg_index(self, index, try_parse_dates=True):
         if np.isscalar(self.index_col):
-            if parse_dates and self._should_parse_dates(self.index_col):
+            if try_parse_dates and self._should_parse_dates(self.index_col):
                 index = self._conv_date(index)
             index, na_count = _convert_types(index, self.na_values)
             index = Index(index, name=self.index_name)
@@ -855,7 +837,8 @@ class TextParser(object):
         else:
             arrays = []
             for i, arr in enumerate(index):
-                if parse_dates and self._should_parse_dates(self.index_col[i]):
+                if (try_parse_dates and
+                    self._should_parse_dates(self.index_col[i])):
                     arr = self._conv_date(arr)
                 arr, _ = _convert_types(arr, self.na_values)
                 arrays.append(arr)
