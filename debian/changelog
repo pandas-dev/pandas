@@ -1,3 +1,9 @@
+pandas (0.8.0~rc1-1) unstable; urgency=low
+
+  * Fresh upstream release candidate
+
+ -- Yaroslav Halchenko <debian@onerussian.com>  Mon, 28 May 2012 22:15:49 -0400
+
 pandas (0.7.3-1) unstable; urgency=low
 
   * Fresh upstream release
