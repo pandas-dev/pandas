@@ -1,6 +1,7 @@
 pandas (0.8.0~rc1-1) unstable; urgency=low
 
   * Fresh upstream release candidate
+    - all patches dropped (upstreamed)
 
  -- Yaroslav Halchenko <debian@onerussian.com>  Mon, 28 May 2012 22:15:49 -0400
 
