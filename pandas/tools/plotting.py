@@ -678,6 +678,8 @@ def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
         klass = LinePlot
     elif kind in ('bar', 'barh'):
         klass = BarPlot
+    elif kind == 'kde':
+        klass = KdePlot
     else:
         raise ValueError('Invalid chart type given %s' % kind)
 
