@@ -252,7 +252,7 @@ def ewma(ndarray[double_t] input, double_t com):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def nancorr(ndarray[float64_t, ndim=2] mat, na_ok=False):
+def nancorr(ndarray[float64_t, ndim=2] mat):
     cdef:
         Py_ssize_t i, j, xi, yi, N, K
         ndarray[float64_t, ndim=2] result
@@ -276,27 +276,30 @@ def nancorr(ndarray[float64_t, ndim=2] mat, na_ok=False):
                     sumx += vx
                     sumy += vy
 
-            meanx = sumx / nobs
-            meany = sumy / nobs
-
-            # now the cov numerator
-            sumx = 0
-
-            for i in range(N):
-                if mask[i, xi] and mask[i, yi]:
-                    vx = mat[i, xi] - meanx
-                    vy = mat[i, yi] - meany
-
-                    sumx += vx * vy
-                    sumxx += vx * vx
-                    sumyy += vy * vy
-
-            divisor = sqrt(sumxx * sumyy)
-
-            if na_ok == 0:
-                result[xi, yi] = result[yi, xi] = sumx / divisor if divisor != 0 else np.NaN
+            if nobs == 0:
+                result[xi, yi] = result[yi, xi] = np.NaN
             else:
-                result[xi, yi] = result[yi, xi] = sumx / divisor
+                meanx = sumx / nobs
+                meany = sumy / nobs
+
+                # now the cov numerator
+                sumx = 0
+
+                for i in range(N):
+                    if mask[i, xi] and mask[i, yi]:
+                        vx = mat[i, xi] - meanx
+                        vy = mat[i, yi] - meany
+
+                        sumx += vx * vy
+                        sumxx += vx * vx
+                        sumyy += vy * vy
+
+                divisor = sqrt(sumxx * sumyy)
+
+                if divisor != 0:
+                    result[xi, yi] = result[yi, xi] = sumx / divisor
+                else:
+                    result[xi, yi] = result[yi, xi] = np.NaN
 
     return result
 
