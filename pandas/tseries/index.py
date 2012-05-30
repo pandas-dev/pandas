@@ -5,6 +5,7 @@ from datetime import timedelta
 
 import numpy as np
 
+from pandas.core.common import isnull
 from pandas.core.index import Index, Int64Index
 from pandas.tseries.frequencies import infer_freq, to_offset
 from pandas.tseries.offsets import DateOffset, generate_range, Tick
@@ -513,6 +514,9 @@ class DatetimeIndex(Int64Index):
         dtype = np.dtype(dtype)
 
         if dtype == np.object_:
+            if isnull(self).any():
+                msg = 'DatetimeIndex with NaT cannot be converted to object'
+                raise ValueError(msg)
             return self.asobject
         return Index.astype(self, dtype)
 
