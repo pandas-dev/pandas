@@ -64,7 +64,9 @@ Time series changes and improvements
   DatetimeIndex objects with time zone set will be localized to localtime. Time
   zone conversions are therefore essentially free. User needs to know very
   little about pytz library now; only time zone names as as strings are
-  required. Timestamps are equal if and only if their UTC timestamps match
+  required. Timestamps are equal if and only if their UTC timestamps
+  match. Operations between time series with different time zones will result
+  in a UTC-indexed time series
 - Time series **string indexing conveniences** / shortcuts: slice years, year
   and month, and index values with strings
 - Enhanced time series **plotting**; adaptation of scikits.timeseries
@@ -72,8 +74,11 @@ Time series changes and improvements
 - New ``date_range``, ``bdate_range``, and ``period_range`` **factory
   functions**
 - Robust **frequency inference** function `infer_freq` and ``inferred_freq``
-  property of DatetimeIndex
-- to_datetime function efficiently **parses array of strings** to DatetimeIndex
+  property of DatetimeIndex, with option to infer frequency on construction of
+  DatetimeIndex
+- to_datetime function efficiently **parses array of strings** to
+  DatetimeIndex. DatetimeIndex will parse array or list of strings to
+  datetime64
 - **Optimized** support for datetime64-dtype data in Series and DataFrame
   columns
 - New NaT (Not-a-Time) type to represent **NA** in timestamp arrays
@@ -83,6 +88,8 @@ Time series changes and improvements
 - Can index time series with datetime.time objects to select all data at
   particular **time of day** (``TimeSeries.at_time``) or **between two times**
   (``TimeSeries.between_time``)
+- Add tshift method for leading/lagging using the frequency (if any) of the
+  index, as opposed to a naive lead/lag using shift
 
 Support for non-unique indexes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -94,12 +101,15 @@ index duplication in many-to-many joins)
 Other new features
 ~~~~~~~~~~~~~~~~~~
 
+- Add limit argument to fillna/reindex
 - More flexible multiple function application in GroupBy, and can pass list
   (name, function) tuples to get result in particular order with given names
 - Add flexible ``replace`` method for efficiently substituting values
 - Enhanced read_csv/read_table for reading time series data and converting
   multiple columns to dates
 - Add comments option to parser functions: read_csv, etc.
+- Add ``dayfirst`` option to parser functions for parsing international
+  DD/MM/YYYY dates
 - Enable unstacking of multiple levels in one shot. Alleviate ``pivot_table``
   bugs (empty columns being introduced)
 - Move to klib-based hash tables for indexing; better performance and less
@@ -116,6 +126,8 @@ Other new features
 - Add ``pct_change`` method to all data structures
 - Add max_colwidth configuration option for DataFrame console output
 - Interpolate Series values using index values
+- Can select multiple columns from GroupBy
+- Add Series/DataFrame.update methods for updating values in place
 
 Other API changes
 ~~~~~~~~~~~~~~~~~

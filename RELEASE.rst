@@ -36,12 +36,14 @@ pandas 0.8.0
   - High performance resampling of timestamp and period data. New `resample`
     method of all pandas data structures
   - New frequency names plus shortcut string aliases like '15h', '1h30min'
+  - Time series string indexing shorthand (#222)
   - Add week, dayofyear array and other timestamp array-valued field accessor
     functions to DatetimeIndex
   - Add GroupBy.prod optimized aggregation function and 'prod' fast time series
     conversion method (#1018)
   - Implement robust frequency inference function and `inferred_freq` attribute
     on DatetimeIndex (#391)
+  - New ``tz_convert`` methods in Series / DataFrame
   - Convert DatetimeIndexes to UTC if time zones are different in join/setops
     (#864)
   - Add limit argument for forward/backward filling to reindex, fillna,
@@ -58,7 +60,7 @@ pandas 0.8.0
   - Can pass list of (name, function) to GroupBy.aggregate to get aggregates in
     a particular order (#610)
   - Can pass dicts with lists of functions or dicts to GroupBy aggregate to do
-    much more flexible multiple function aggregation (#642)
+    much more flexible multiple function aggregation (#642, #610)
   - New ordered_merge functions for merging DataFrames with ordered
     data. Also supports group-wise merging for panel data (#813)
   - Add keys() method to DataFrame
@@ -69,6 +71,13 @@ pandas 0.8.0
   - Add pct_change function to Series/DataFrame
   - Add option to interpolate by Index values in Series.interpolate (#1206)
   - Add ``max_colwidth`` option for DataFrame, defaulting to 50
+  - Conversion of DataFrame through rpy2 to R data.frame (#1282, )
+  - Add keys() method on DataFrame (#1240)
+  - Add new ``match`` function to API (similar to R) (#502)
+  - Add dayfirst option to parsers (#854)
+  - Add ``method`` argument to ``align`` method for forward/backward fillin
+    (#216)
+  - Add Panel.transpose method for rearranging axes (#695)
 
 **Improvements to existing features**
 
@@ -93,6 +102,12 @@ pandas 0.8.0
   - Use DataFrame columns' name for legend title in plots
   - Preserve frequency in DatetimeIndex when possible in boolean indexing
     operations
+  - Promote datetime.date values in data alignment operations (#867)
+  - Add ``order`` method to Index classes (#1028)
+  - Avoid hash table creation in large monotonic hash table indexes (#1160)
+  - Store time zones in HDFStore (#1232)
+  - Enable storage of sparse data structures in HDFStore (#85)
+  - Enable Series.asof to work with arrays of timestamp inputs
 
 **API Changes**
 
@@ -100,11 +115,11 @@ pandas 0.8.0
     deprecated. get_legacy_offset_name backwards compatibility function added
   - Raise ValueError in DataFrame.__nonzero__, so "if df" no longer works
     (#1073)
-  - Change BDay (business day) to not normalize dates by default
+  - Change BDay (business day) to not normalize dates by default (#506)
   - Remove deprecated DataMatrix name
   - Default merge suffixes for overlap now have underscores instead of periods
     to facilitate tab completion, etc. (#1239)
-  - Deprecation of offset, timeRule parameters throughout codebaes
+  - Deprecation of offset, time_rule timeRule parameters throughout codebase
 
 **Bug fixes**
 
@@ -113,7 +128,7 @@ pandas 0.8.0
   - Fix logical error with February leap year end in YearEnd offset
   - Series([False, nan]) was getting casted to float64 (GH #1074)
   - Fix binary operations between boolean Series and object Series with
-    booleans and NAs (GH #1074)
+    booleans and NAs (GH #1074, #1079)
   - Couldn't assign whole array to column in mixed-type DataFrame via .ix
     (#1142)
   - Fix label slicing issues with float index values (#1167)
@@ -129,6 +144,23 @@ pandas 0.8.0
     to datetime64 representation (#1081, #809)
   - Fix DataFrame.duplicated/drop_duplicates NA value handling (#557)
   - Actually raise exceptions in fast reducer (#1243)
+  - Fix various timezone-handling bugs from 0.7.3 (#969)
+  - GroupBy on level=0 discarded index name (#1313)
+  - Better error message with unmergeable DataFrames (#1307)
+  - Series.__repr__ alignment fix with unicode index values (#1279)
+  - Better error message if nothing passed to reindex (#1267)
+  - More robust NA handling in DataFrame.drop_duplicates (#557)
+  - Resolve locale-based and pre-epoch HDF5 timestamp deserialization issues
+    (#973, #1081, #179)
+  - Implement Series.repeat (#1229)
+  - Fix indexing with namedtuple and other tuple subclasses (#1026)
+  - Fix float64 slicing bug (#1167)
+  - Parsing integers with commas (#796)
+  - Fix groupby improper data type when group consists of one value (#1065)
+  - Fix negative variance possibility in nanvar resulting from floating point
+    error (#1090)
+  - Consistently set name on groupby pieces (#184)
+  - Treat dict return values as Series in GroupBy.apply (#823)
 
 pandas 0.7.3
 ============
