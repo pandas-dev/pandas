@@ -114,7 +114,7 @@ Other new features
 - Support for converting DataFrame to R data.frame through rpy2
 - Improved support for complex numbers in Series and DataFrame
 - Add ``pct_change`` method to all data structures
-- Add max_colwidth
+- Add max_colwidth configuration option for DataFrame console output
 - Interpolate Series values using index values
 
 Other API changes
