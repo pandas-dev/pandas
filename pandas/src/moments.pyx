@@ -252,13 +252,13 @@ def ewma(ndarray[double_t] input, double_t com):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def nancorr(ndarray[float64_t, ndim=2] mat):
+def nancorr(ndarray[float64_t, ndim=2] mat, na_ok=False):
     cdef:
         Py_ssize_t i, j, xi, yi, N, K
         ndarray[float64_t, ndim=2] result
         ndarray[uint8_t, ndim=2] mask
         int64_t nobs = 0
-        float64_t vx, vy, sumx, sumy, sumxx, sumyy, meanx, meany
+        float64_t vx, vy, sumx, sumy, sumxx, sumyy, meanx, meany, divisor
 
     N, K = (<object> mat).shape
 
@@ -291,7 +291,12 @@ def nancorr(ndarray[float64_t, ndim=2] mat):
                     sumxx += vx * vx
                     sumyy += vy * vy
 
-            result[xi, yi] = result[yi, xi] = sumx / sqrt(sumxx * sumyy)
+            divisor = sqrt(sumxx * sumyy)
+
+            if na_ok == 0:
+                result[xi, yi] = result[yi, xi] = sumx / divisor if divisor != 0 else np.NaN
+            else:
+                result[xi, yi] = result[yi, xi] = sumx / divisor
 
     return result
 
