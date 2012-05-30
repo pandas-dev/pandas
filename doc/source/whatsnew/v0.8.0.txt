@@ -1,14 +1,16 @@
 .. _whatsnew_080:
 
-v.0.8.0 (TBD June, 2012)
+v0.8.0 (TBD June, 2012)
 ------------------------
 
 This is a major release from 0.7.3 and includes extensive work on the time
 series handling and processing infrastructure as well as a great deal of new
 functionality throughout the library. It includes over 700 commits from more
 than 20 distinct authors. Most pandas 0.7.3 and earlier users should not
-experience any issues upgrading, but due to the migration to the NumPy See the
-`full release notes
+experience any issues upgrading, but due to the migration to the NumPy
+datetime64 dtype, there may be a number of bugs and incompatibilities
+lurking. Lingering incompatibilities will be fixed ASAP in a 0.8.1 release if
+necessary. See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
 on GitHub for a complete list.
 
@@ -37,44 +39,49 @@ Time series changes and improvements
     With this release, legacy scikits.timeseries users should be able to port
     their code to use pandas.
 
-- datetime64 dtype representation speeds up join operations and data alignment,
-  reduces memory usage significantly over datetime.datetime
+- New datetime64 representation **speeds up join operations and data
+  alignment**, **reduces memory usage**, and improve serialization /
+  deserialization performance significantly over datetime.datetime
 - High performance and flexible **resample** method for converting from
   high-to-low and low-to-high frequency. Supports interpolation, user-defined
   aggregation functions, and control over how the intervals and result labeling
   are defined. A suite of high performance Cython/C-based resampling functions
   (including Open-High-Low-Close) have also been implemented.
-- Revamp of frequency aliases and support for frequency multiple shortcuts like
+- Revamp of **frequency aliases** and support for **frequency shortcuts** like
   '15min', or '1h30min'
-- New DatetimeIndex class supports both fixed frequency and irregular time
+- New **DatetimeIndex class** supports both fixed frequency and irregular time
   series. Replaces now deprecated DateRange class
-- New PeriodIndex and Period classes for representing time spans and performing
-  calendar logic. This is a partial port of, and a substantial enhancement to,
+- New PeriodIndex and Period classes for representing **time spans** and
+  performing **calendar logic**, including the **12 fiscal quarterly
+  frequencies**. This is a partial port of, and a substantial enhancement to,
   elements of the scikits.timeseries codebase. Support for conversion between
   PeriodIndex and DatetimeIndex
 - New Timestamp data type subclasses `datetime.datetime`, providing the same
   interface while enabling working with nanosecond-resolution data. Also
-  provides easy time zone conversions
+  provides **easy time zone conversions**
 - Enhanced support for **time zones**. Add `tz_convert` methods to TimeSeries
   and DataFrame. All timestamps are stored as UTC; Timestamps from
   DatetimeIndex objects with time zone set will be localized to localtime. Time
   zone conversions are therefore essentially free. User needs to know very
   little about pytz library now; only time zone names as as strings are
   required. Timestamps are equal if and only if their UTC timestamps match
-- Time series string indexing conveniences / shortcuts: slice years, year and
-  month, and index values with strings
-- Enhanced time series plotting; adaptation of scikits.timeseries
+- Time series **string indexing conveniences** / shortcuts: slice years, year
+  and month, and index values with strings
+- Enhanced time series **plotting**; adaptation of scikits.timeseries
   matplotlib-based plotting code
-- New ``date_range``, ``bdate_range``, and ``period_range`` factory functions
-- Robust frequency inference function `infer_freq` and ``inferred_freq``
+- New ``date_range``, ``bdate_range``, and ``period_range`` **factory
+  functions**
+- Robust **frequency inference** function `infer_freq` and ``inferred_freq``
   property of DatetimeIndex
-- to_datetime function efficiently parses array-of-strings to DatetimeIndex
-- Optimized support for datetime64-dtype data in Series and DataFrame columns
-- New NaT (Not-a-Time) type to represent NA in timestamp arrays
-- Optimize Series.asof for looking up "as of" values for arrays of timestamps
+- to_datetime function efficiently **parses array of strings** to DatetimeIndex
+- **Optimized** support for datetime64-dtype data in Series and DataFrame
+  columns
+- New NaT (Not-a-Time) type to represent **NA** in timestamp arrays
+- Optimize Series.asof for looking up **"as of" values** for arrays of
+  timestamps
 - Milli, Micro, Nano date offset objects
 - Can index time series with datetime.time objects to select all data at
-  particular time of day (``TimeSeries.at_time``) or between two times
+  particular **time of day** (``TimeSeries.at_time``) or **between two times**
   (``TimeSeries.between_time``)
 
 Support for non-unique indexes
