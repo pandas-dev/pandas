@@ -611,8 +611,9 @@ class TextParser(object):
 
     _implicit_index = False
 
-    def _get_index_name(self):
-        columns = self.columns
+    def _get_index_name(self, columns=None):
+        if columns is None:
+            columns = self.columns
 
         try:
             line = self._next_line()
@@ -747,7 +748,7 @@ class TextParser(object):
         df = DataFrame(data=data, columns=columns, index=index)
         if self._has_complex_date_col and self.index_col is not None:
             if not self._name_processed:
-                self.index_name = self._get_index_name()
+                self.index_name = self._get_index_name(list(columns))
                 self._name_processed = True
             data = dict(((k, v) for k, v in df.iteritems()))
             index = self._get_complex_date_index(data, col_names=columns,
@@ -844,24 +845,6 @@ class TextParser(object):
                 arrays.append(arr)
             index = MultiIndex.from_arrays(arrays, names=self.index_name)
         return index
-
-    def _find_line_number(self, exp_len, chunk_len, chunk_i):
-        if exp_len is None:
-            prev_pos = 0
-        else:
-            prev_pos = self.pos - exp_len
-
-        # add in skip rows in this chunk appearing before chunk_i
-        if self.skiprows is not None and len(self.skiprows) > 0:
-            skipped = Index(self.skiprows)
-            skipped = skipped[skipped > prev_pos & skipped < self.pos]
-
-
-        row_num = prev_pos + chunk_i
-
-        # add in comments in this chunk appearing before chunk_i
-
-        return row_num
 
     def _should_parse_dates(self, i):
         if isinstance(self.parse_dates, bool):
