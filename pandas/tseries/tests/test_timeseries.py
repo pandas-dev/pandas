@@ -945,6 +945,10 @@ class TestLegacySupport(unittest.TestCase):
 
         self.assertRaises(ValueError, DatetimeIndex, ['a', 'b', 'c', 'd'])
 
+    def test_object_convert_fail(self):
+        idx = DatetimeIndex([NaT])
+        self.assertRaises(ValueError, idx.astype, 'O')
+
     def test_setops_conversion_fail(self):
         index = self.frame.index
 
