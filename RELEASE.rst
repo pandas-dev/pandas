@@ -29,6 +29,15 @@ pandas 0.8.0
 
 **New features**
 
+  - New unified DatetimeIndex class for nanosecond-level timestamp data
+  - New Timestamp datetime.datetime subclass with easy time zone conversions,
+    and support for nanoseconds
+  - New PeriodIndex class for timespans, calendar logic, and Period scalar object
+  - High performance resampling of timestamp and period data. New `resample`
+    method of all pandas data structures
+  - New frequency names plus shortcut string aliases like '15h', '1h30min'
+  - Add week, dayofyear array and other timestamp array-valued field accessor
+    functions to DatetimeIndex
   - Add GroupBy.prod optimized aggregation function and 'prod' fast time series
     conversion method (#1018)
   - Implement robust frequency inference function and `inferred_freq` attribute
@@ -59,6 +68,7 @@ pandas 0.8.0
   - More flexible multiple function aggregation with GroupBy
   - Add pct_change function to Series/DataFrame
   - Add option to interpolate by Index values in Series.interpolate (#1206)
+  - Add ``max_colwidth`` option for DataFrame, defaulting to 50
 
 **Improvements to existing features**
 
@@ -80,15 +90,21 @@ pandas 0.8.0
     DataFrame.drop_duplicates (#805, #207)
   - More helpful error message when nothing passed to Series.reindex (#1267)
   - Can mix array and scalars as dict-value inputs to DataFrame ctor (#1329)
+  - Use DataFrame columns' name for legend title in plots
+  - Preserve frequency in DatetimeIndex when possible in boolean indexing
+    operations
 
 **API Changes**
 
+  - Frequency name overhaul, WEEKDAY/EOM and rules with @
+    deprecated. get_legacy_offset_name backwards compatibility function added
   - Raise ValueError in DataFrame.__nonzero__, so "if df" no longer works
     (#1073)
   - Change BDay (business day) to not normalize dates by default
   - Remove deprecated DataMatrix name
   - Default merge suffixes for overlap now have underscores instead of periods
     to facilitate tab completion, etc. (#1239)
+  - Deprecation of offset, timeRule parameters throughout codebaes
 
 **Bug fixes**
 

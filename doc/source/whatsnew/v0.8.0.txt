@@ -1,4 +1,117 @@
 .. _whatsnew_080:
 
-v.0.8.0 (TDB May, 2012)
------------------------
+v.0.8.0 (TBD June, 2012)
+------------------------
+
+This is a major release from 0.7.3 and includes extensive work on the time
+series handling and processing infrastructure as well as a great deal of new
+functionality throughout the library. It includes over 700 commits from more
+than 20 distinct authors. Most pandas 0.7.3 and earlier users should not
+experience any issues upgrading, but due to the migration to the NumPy See the
+`full release notes
+<https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
+on GitHub for a complete list.
+
+TODO: contributor list
+
+NumPy datetime64 dtype and 1.6 dependency
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Time series data are now represented using NumPy's datetime64 dtype; thus,
+pandas 0.8.0 now requires at least NumPy 1.6. It has been tested and verified
+to work with the development version (1.7+) of NumPy as well which includes
+some significant user-facing API changes. NumPy 1.6 also has a number of bugs
+having to do with nanosecond resolution data, so I recommend that you steer
+clear of NumPy 1.6's datetime64 API functions (though limited as they are) and
+only interact with this data using the interface that pandas provides.
+
+Bug fixes to the 0.7.x series for legacy NumPy < 1.6 users will be provided as
+they arise. There will be no more further development in 1.7.x beyond bug
+fixes.
+
+Time series changes and improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. note::
+
+    With this release, legacy scikits.timeseries users should be able to port
+    their code to use pandas.
+
+- datetime64 dtype representation speeds up join operations and data alignment,
+  reduces memory usage significantly over datetime.datetime
+- High performance and flexible **resample** method for converting from
+  high-to-low and low-to-high frequency. Supports interpolation, user-defined
+  aggregation functions, and control over how the intervals and result labeling
+  are defined. A suite of high performance Cython/C-based resampling functions
+  (including Open-High-Low-Close) have also been implemented.
+- Revamp of frequency aliases and support for frequency multiple shortcuts like
+  '15min', or '1h30min'
+- New DatetimeIndex class supports both fixed frequency and irregular time
+  series. Replaces now deprecated DateRange class
+- New PeriodIndex and Period classes for representing time spans and performing
+  calendar logic. This is a partial port of, and a substantial enhancement to,
+  elements of the scikits.timeseries codebase. Support for conversion between
+  PeriodIndex and DatetimeIndex
+- New Timestamp data type subclasses `datetime.datetime`, providing the same
+  interface while enabling working with nanosecond-resolution data. Also
+  provides easy time zone conversions
+- Enhanced support for **time zones**. Add `tz_convert` methods to TimeSeries
+  and DataFrame. All timestamps are stored as UTC; Timestamps from
+  DatetimeIndex objects with time zone set will be localized to localtime. Time
+  zone conversions are therefore essentially free. User needs to know very
+  little about pytz library now; only time zone names as as strings are
+  required. Timestamps are equal if and only if their UTC timestamps match
+- Time series string indexing conveniences / shortcuts: slice years, year and
+  month, and index values with strings
+- Enhanced time series plotting; adaptation of scikits.timeseries
+  matplotlib-based plotting code
+- New ``date_range``, ``bdate_range``, and ``period_range`` factory functions
+- Robust frequency inference function `infer_freq` and ``inferred_freq``
+  property of DatetimeIndex
+- to_datetime function efficiently parses array-of-strings to DatetimeIndex
+- Optimized support for datetime64-dtype data in Series and DataFrame columns
+- New NaT (Not-a-Time) type to represent NA in timestamp arrays
+- Optimize Series.asof for looking up "as of" values for arrays of timestamps
+- Milli, Micro, Nano date offset objects
+- Can index time series with datetime.time objects to select all data at
+  particular time of day (``TimeSeries.at_time``) or between two times
+  (``TimeSeries.between_time``)
+
+Support for non-unique indexes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+All objects can now work with non-unique indexes. Data alignment / join
+operations work according to SQL join semantics (including, if application,
+index duplication in many-to-many joins)
+
+Other new features
+~~~~~~~~~~~~~~~~~~
+
+- More flexible multiple function application in GroupBy, and can pass list
+  (name, function) tuples to get result in particular order with given names
+- Add flexible ``replace`` method for efficiently substituting values
+- Enhanced read_csv/read_table for reading time series data and converting
+  multiple columns to dates
+- Add comments option to parser functions: read_csv, etc.
+- Enable unstacking of multiple levels in one shot. Alleviate ``pivot_table``
+  bugs (empty columns being introduced)
+- Move to klib-based hash tables for indexing; better performance and less
+  memory usage than Python's dict
+- Add first, last, min, max, and prod optimized GroupBy functions
+- New ordered_merge function
+- Add flexible comparison instance methods eq, ne, lt, gt, etc. to DataFrame,
+  Series
+- Improve scatter_matrix plotting function and add histogram or kernel density
+  estimates to diagonal
+- Add ``'kde'`` plot option for density plots
+- Support for converting DataFrame to R data.frame through rpy2
+- Improved support for complex numbers in Series and DataFrame
+- Add ``pct_change`` method to all data structures
+- Add max_colwidth
+- Interpolate Series values using index values
+
+Other API changes
+~~~~~~~~~~~~~~~~~
+
+- Deprecation of ``offset``, ``time_rule``, and ``timeRule`` arguments names in
+  time series functions. Warnings will be printed until pandas 0.9 or 1.0.
