@@ -76,6 +76,8 @@ def tsplot(series, plotf, *args, **kwargs):
 
     if isinstance(freq, DateOffset):
         freq = freq.rule_code
+    else:
+        freq = frequencies.get_base_alias(freq)
 
     freq = frequencies.to_calendar_freq(freq)
     # Convert DatetimeIndex to PeriodIndex

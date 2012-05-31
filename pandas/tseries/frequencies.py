@@ -407,6 +407,11 @@ def _base_and_stride(freqstr):
 
     return (base, stride)
 
+def get_base_alias(freqstr):
+    """
+    Returns the base frequency alias, e.g., '5D' -> 'D'
+    """
+    return _base_and_stride(freqstr)[0]
 
 _dont_uppercase = ['MS', 'ms']
 

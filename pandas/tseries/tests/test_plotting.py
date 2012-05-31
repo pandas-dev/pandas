@@ -101,6 +101,14 @@ class TestTSPlot(unittest.TestCase):
         _check_plot_works(ser.plot)
 
     @slow
+    def test_plot_multiple_inferred_freq(self):
+        dr = Index([datetime(2000, 1, 1),
+                    datetime(2000, 1, 6),
+                    datetime(2000, 1, 11)])
+        ser = Series(np.random.randn(len(dr)), dr)
+        _check_plot_works(ser.plot)
+
+    @slow
     def test_irregular_datetime64_repr_bug(self):
         ser = tm.makeTimeSeries()
         ser = ser[[0,1,2,7]]
