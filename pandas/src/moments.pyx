@@ -248,11 +248,11 @@ def ewma(ndarray[double_t] input, double_t com):
     return output
 
 #----------------------------------------------------------------------
-# Pairwise covariance
+# Pairwise correlation/covariance
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def nancorr(ndarray[float64_t, ndim=2] mat):
+def nancorr(ndarray[float64_t, ndim=2] mat, cov=False):
     cdef:
         Py_ssize_t i, j, xi, yi, N, K
         ndarray[float64_t, ndim=2] result
@@ -294,7 +294,7 @@ def nancorr(ndarray[float64_t, ndim=2] mat):
                         sumxx += vx * vx
                         sumyy += vy * vy
 
-                divisor = sqrt(sumxx * sumyy)
+                divisor = (nobs - 1.0) if cov else sqrt(sumxx * sumyy)
 
                 if divisor != 0:
                     result[xi, yi] = result[yi, xi] = sumx / divisor
