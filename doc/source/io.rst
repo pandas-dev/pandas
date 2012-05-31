@@ -466,7 +466,7 @@ so it's ok to have extra separation between the columns in the file.
 .. ipython:: python
    :suppress:
 
-   # os.remove('bar.csv')
+   os.remove('bar.csv')
 
 Files with an "implicit" index column
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
