@@ -769,6 +769,10 @@ def _clean_fill_method(method):
         method = 'pad'
     if method == 'bfill':
         method = 'backfill'
+    if method not in ['pad', 'backfill']:
+        msg = ('Invalid fill method. Expecting pad (ffill) or backfill (bfill).'
+               ' Got %s' % method)
+        raise ValueError(msg)
     return method
 
 def _all_none(*args):

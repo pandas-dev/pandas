@@ -2574,6 +2574,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = x.fillna(value=0)
         assert_series_equal(y2, expected)
 
+    def test_fillna_invalid_method(self):
+        try:
+            self.ts.fillna(method='ffil')
+        except ValueError, inst:
+            self.assert_('ffil' in str(inst))
+
     def test_replace(self):
         N = 100
         ser = Series(np.random.randn(N))

@@ -68,35 +68,53 @@ data into a DataFrame object. They can take a number of arguments:
     whitespace.
   - ``header``: row number to use as the column names, and the start of the data.
     Defaults to 0 (first row); specify None if there is no header row.
-  - ``names``: List of column names to use. If passed, header will be
-    implicitly set to None.
   - ``skiprows``: A collection of numbers for rows in the file to skip. Can
     also be an integer to skip the first ``n`` rows
-  - ``index_col``: column number, or list of column numbers, to use as the
-    ``index`` (row labels) of the resulting DataFrame. By default, it will number
-    the rows without using any column, unless there is one more data column than
-    there are headers, in which case the first column is taken as the index.
-  - ``parse_dates``: If True, attempt to parse the index column as dates. False
-    by default.
+  - ``index_col``: column number, column name, or list of column numbers/names,
+    to use as the ``index`` (row labels) of the resulting DataFrame. By default,
+    it will number the rows without using any column, unless there is one more
+    data column than there are headers, in which case the first column is taken
+    as the index.
+  - ``names``: List of column names to use. If passed, header will be
+    implicitly set to None.
+  - ``na_values``: optional list of strings to recognize as NaN (missing values),
+    in addition to a default set.
+  - ``parse_dates``: if True then index will be parsed as dates
+    (False by default). You can specify more complicated options to parse
+    a subset of columns or a combination of columns into a single date column
+    (list of ints or names, list of lists, or dict)
+    [1, 2, 3] -> try parsing columns 1, 2, 3 each as a separate date column
+    [[1, 3]] -> combine columns 1 and 3 and parse as a single date column
+    {'foo' : [1, 3]} -> parse columns 1, 3 as date and call result 'foo'
+  - ``keep_date_col``: if True, then date component columns passed into
+    ``parse_dates`` will be retained in the output (False by default).
   - ``date_parser``: function to use to parse strings into datetime
     objects. If ``parse_dates`` is True, it defaults to the very robust
     ``dateutil.parser``. Specifying this implicitly sets ``parse_dates`` as True.
-  - ``na_values``: optional list of strings to recognize as NaN (missing values),
-    in addition to a default set.
+    You can also use functions from community supported date converters from
+    date_converters.py
+  - ``dayfirst``: if True then uses the DD/MM international/European date format
+    (This is False by default)
+  - ``thousands``: sepcifies the thousands separator. If not None, then parser
+    will try to look for it in the output and parse relevant data to integers.
+    Because it has to essentially scan through the data again, this causes a
+    significant performance hit so only use if necessary.
+  - ``comment``: denotes the start of a comment and ignores the rest of the line.
+    Currently line commenting is not supported.
   - ``nrows``: Number of rows to read out of the file. Useful to only read a
     small portion of a large file
+  - ``iterator``: If True, return a ``TextParser`` to enable reading a file
+    into memory piece by piece
   - ``chunksize``: An number of rows to be used to "chunk" a file into
     pieces. Will cause an ``TextParser`` object to be returned. More on this
     below in the section on :ref:`iterating and chunking <io.chunking>`
-  - ``iterator``: If True, return a ``TextParser`` to enable reading a file
-    into memory piece by piece
   - ``skip_footer``: number of lines to skip at bottom of file (default 0)
   - ``converters``: a dictionary of functions for converting values in certain
     columns, where keys are either integers or column labels
   - ``encoding``: a string representing the encoding to use if the contents are
     non-ascii
-  - ``verbose`` : show number of NA values inserted in non-numeric columns
-
+  - ``verbose``: show number of NA values inserted in non-numeric columns
+  - ``squeeze``: if True then output with only one column is turned into Series
 
 .. ipython:: python
    :suppress:
@@ -117,8 +135,22 @@ The default for `read_csv` is to create a DataFrame with simple numbered rows:
 
    read_csv('foo.csv')
 
-In the case of indexed data, you can pass the column number (or a list of
-column numbers, for a hierarchical index) you wish to use as the index.
+In the case of indexed data, you can pass the column number or column name you
+wish to use as the index:
+
+.. ipython:: python
+
+   read_csv('foo.csv', index_col=0)
+
+.. ipython:: python
+
+   read_csv('foo.csv', index_col='date')
+
+You can also use a list of columns to create a hierarchical index:
+
+.. ipython:: python
+
+   read_csv('foo.csv', index_col=[0, 'A'])
 
 The parsers make every attempt to "do the right thing" and not be very
 fragile. Type inference is a pretty big deal. So if a column can be coerced to
@@ -126,6 +158,9 @@ integer dtype without altering the contents, it will do so. Any non-numeric
 columns will come through as object dtype as with the rest of pandas objects.
 
 .. _io.parse_dates:
+
+Specifying Date Columns
+~~~~~~~~~~~~~~~~~~~~~~~
 
 To better facilitate working with datetime data, :func:`~pandas.io.parsers.read_csv` and :func:`~pandas.io.parsers.read_table`
 uses the keyword arguments ``parse_dates`` and ``date_parser`` to allow users
@@ -139,6 +174,7 @@ The simplest case is to just pass in ``parse_dates=True``:
    # Use a column as an index, and parse it as dates.
    df = read_csv('foo.csv', index_col=0, parse_dates=True)
    df
+
    # These are python datetime objects
    df.index
 
@@ -184,6 +220,12 @@ to retain them via the ``keep_date_col`` keyword:
                  keep_date_col=True)
    df
 
+Note that if you wish to combine multiple columns into a single date column, a
+nested list must be used. In other words, ``parse_dates=[1, 2]`` indicates that
+the second and third columns should each be parsed as separate date columns
+while ``parse_dates=[[1, 2]]`` means the two columns should be parsed into a
+single column.
+
 You can also use a dict to specify custom name columns:
 
 .. ipython:: python
@@ -192,6 +234,8 @@ You can also use a dict to specify custom name columns:
    df = read_csv('tmp.csv', header=None, parse_dates=date_spec)
    df
 
+Date Parsing Functions
+~~~~~~~~~~~~~~~~~~~~~~
 Finally, the parser allows you can specify a custom ``date_parser`` function to
 take full advantage of the flexiblity of the date parsing API:
 
@@ -204,7 +248,124 @@ take full advantage of the flexiblity of the date parsing API:
 
 You can explore the date parsing functionality in ``date_converters.py`` and
 add your own. We would love to turn this module into a community supported set
-of date/time parsers.
+of date/time parsers. To get you started, ``date_converters.py`` contains
+functions to parse dual date and time columns, year/month/day columns,
+and year/month/day/hour/minute/second columns. It also contains a
+``generic_parser`` function so you can curry it with a function that deals with
+a single date rather than the entire array.
+
+.. ipython:: python
+   :suppress:
+
+   os.remove('tmp.csv')
+
+.. _io.convenience:
+
+Thousand Separators
+~~~~~~~~~~~~~~~~~~~
+For large integers that have been written with a thousands separator, you can
+set the ``thousands`` keyword to ``True`` so that integers will be parsed
+correctly:
+
+.. ipython:: python
+   :suppress:
+
+   data =  ("ID|level|category\n"
+            "Patient1|123,000|x\n"
+            "Patient2|23,000|y\n"
+            "Patient3|1,234,018|z")
+
+   with open('tmp.csv', 'w') as fh:
+       fh.write(data)
+
+By default, integers with a thousands separator will be parsed as strings
+
+.. ipython:: python
+
+    print open('tmp.csv').read()
+    df = read_csv('tmp.csv', sep='|')
+    df
+
+    df.level.dtype
+
+The ``thousands`` keyword allows integers to be parsed correctly
+
+.. ipython:: python
+
+    print open('tmp.csv').read()
+    df = read_csv('tmp.csv', sep='|', thousands=',')
+    df
+
+    df.level.dtype
+
+.. ipython:: python
+   :suppress:
+
+   os.remove('tmp.csv')
+
+Comments
+~~~~~~~~
+Sometimes comments or meta data may be included in a file:
+
+.. ipython:: python
+   :suppress:
+
+   data =  ("ID,level,category\n"
+            "Patient1,123000,x # really unpleasant\n"
+            "Patient2,23000,y # wouldn't take his medicine\n"
+            "Patient3,1234018,z # awesome")
+
+   with open('tmp.csv', 'w') as fh:
+       fh.write(data)
+
+.. ipython:: python
+
+   print open('tmp.csv').read()
+
+By default, the parse includes the comments in the output:
+
+.. ipython:: python
+
+   df = read_csv('tmp.csv')
+   df
+
+We can suppress the comments using the ``comment`` keyword:
+
+.. ipython:: python
+
+   df = read_csv('tmp.csv', comment='#')
+   df
+
+.. ipython:: python
+   :suppress:
+
+   os.remove('tmp.csv')
+
+Returning Series
+~~~~~~~~~~~~~~~~
+
+Using the ``squeeze`` keyword, the parser will return output with a single column
+as a ``Series``:
+
+.. ipython:: python
+   :suppress:
+
+   data =  ("level\n"
+            "Patient1,123000\n"
+            "Patient2,23000\n"
+            "Patient3,1234018")
+
+   with open('tmp.csv', 'w') as fh:
+       fh.write(data)
+
+.. ipython:: python
+
+   print open('tmp.csv').read()
+
+   output =  read_csv('tmp.csv', squeeze=True)
+   output
+
+   type(output)
 
 .. ipython:: python
    :suppress:

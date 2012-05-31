@@ -14,7 +14,7 @@ def parse_date_fields(year_col, month_col, day_col):
     return lib.try_parse_year_month_day(year_col, month_col, day_col)
 
 def parse_all_fields(year_col, month_col, day_col, hour_col, minute_col,
-                 second_col):
+                     second_col):
     year_col = _maybe_cast(year_col)
     month_col = _maybe_cast(month_col)
     day_col = _maybe_cast(day_col)

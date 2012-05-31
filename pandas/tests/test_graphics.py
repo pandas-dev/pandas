@@ -56,6 +56,11 @@ class TestSeriesPlots(unittest.TestCase):
         _check_plot_works(self.ts.hist)
         _check_plot_works(self.ts.hist, grid=False)
 
+    @slow
+    def test_kde(self):
+        _check_plot_works(self.ts.plot, kind='kde')
+        ax = self.ts.plot(kind='kde', logy=True)
+        self.assert_(ax.get_yscale() == 'log')
 
 class TestDataFramePlots(unittest.TestCase):
 
@@ -161,6 +166,15 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(df.boxplot, by=['indic', 'indic2'])
 
         _check_plot_works(lambda x: plotting.boxplot(x), df['one'])
+
+    @slow
+    def test_kde(self):
+        df = DataFrame(np.random.randn(100, 4))
+        _check_plot_works(df.plot, kind='kde')
+        _check_plot_works(df.plot, kind='kde', subplots=True)
+        axes = df.plot(kind='kde', logy=True, subplots=True)
+        for ax in axes:
+            self.assert_(ax.get_yscale() == 'log')
 
     @slow
     def test_hist(self):

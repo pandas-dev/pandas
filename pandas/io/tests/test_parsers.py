@@ -36,6 +36,15 @@ qux,12,13,14,15
 foo2,12,13,14,15
 bar2,12,13,14,15
 """
+    ts_data = """\
+ID,date,nominalTime,actualTime,A,B,C,D,E
+KORD,19990127, 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
+KORD,19990127, 20:00:00, 19:56:00, 0.0100, 2.2100, 7.2000, 0.0000, 260.0000
+KORD,19990127, 21:00:00, 20:56:00, -0.5900, 2.2100, 5.7000, 0.0000, 280.0000
+KORD,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
+KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
+KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
+"""
 
     def setUp(self):
         self.dirpath = curpath()
@@ -217,6 +226,48 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
 
         df3 = read_csv(StringIO(data), parse_dates=[[1, 2]], index_col=0)
         assert_frame_equal(df3, df)
+
+    def test_multiple_date_cols_chunked(self):
+        df = read_csv(StringIO(self.ts_data), parse_dates={'nominal': [1,2]},
+                      index_col='nominal')
+        reader = read_csv(StringIO(self.ts_data), parse_dates={'nominal': [1,2]},
+                          index_col='nominal', chunksize=2)
+
+        chunks = list(reader)
+
+        assert_frame_equal(chunks[0], df[:2])
+        assert_frame_equal(chunks[1], df[2:4])
+        assert_frame_equal(chunks[2], df[4:])
+
+    def test_multiple_date_col_multiple_index(self):
+        df = read_csv(StringIO(self.ts_data), parse_dates={'nominal' : [1, 2]},
+                      index_col=['nominal', 'ID'])
+        xp = read_csv(StringIO(self.ts_data), parse_dates={'nominal' : [1, 2]})
+        assert_frame_equal(xp.set_index(['nominal', 'ID']), df)
+
+    def test_multiple_date_col_name_collision(self):
+        self.assertRaises(ValueError, read_csv, StringIO(self.ts_data),
+                          parse_dates={'ID' : [1, 2]})
+
+        data = """\
+date_NominalTime,date,NominalTime,ActualTime,TDew,TAir,Windspeed,Precip,WindDir
+KORD1,19990127, 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
+KORD2,19990127, 20:00:00, 19:56:00, 0.0100, 2.2100, 7.2000, 0.0000, 260.0000
+KORD3,19990127, 21:00:00, 20:56:00, -0.5900, 2.2100, 5.7000, 0.0000, 280.0000
+KORD4,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
+KORD5,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
+KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
+
+        self.assertRaises(ValueError, read_csv, StringIO(data),
+                          parse_dates=[[1, 2]])
+
+    def test_multiple_date_col_named_components(self):
+        xp = read_csv(StringIO(self.ts_data), parse_dates={'nominal': [1,2]},
+                      index_col='nominal')
+        colspec = {'nominal' : ['date', 'nominalTime']}
+        df = read_csv(StringIO(self.ts_data), parse_dates=colspec,
+                      index_col='nominal')
+        assert_frame_equal(df, xp)
 
     def test_index_col_named(self):
         no_header = """\
@@ -690,6 +741,16 @@ baz|7|8|9
     def test_read_chunksize(self):
         reader = read_csv(StringIO(self.data1), index_col=0, chunksize=2)
         df = read_csv(StringIO(self.data1), index_col=0)
+
+        chunks = list(reader)
+
+        assert_frame_equal(chunks[0], df[:2])
+        assert_frame_equal(chunks[1], df[2:4])
+        assert_frame_equal(chunks[2], df[4:])
+
+    def test_read_chunksize_named(self):
+        reader = read_csv(StringIO(self.data1), index_col='index', chunksize=2)
+        df = read_csv(StringIO(self.data1), index_col='index')
 
         chunks = list(reader)
 

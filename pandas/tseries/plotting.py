@@ -3,7 +3,8 @@ Adapted from scikits.timeseries by Pierre GF Gerard-Marchant & Matt Knox
 """
 
 #!!! TODO: Use the fact that axis can have units to simplify the process
-
+import datetime as pydt
+from datetime import datetime
 
 from matplotlib import pylab
 from matplotlib.ticker import Formatter, Locator
@@ -17,6 +18,7 @@ from pandas.tseries.frequencies import FreqGroup
 
 from pandas.tseries.period import Period, PeriodIndex
 from pandas.tseries.index import DatetimeIndex
+from pandas.core.index import Index
 from pandas.core.series import Series
 
 import warnings
@@ -102,6 +104,9 @@ def tsplot(series, plotf, *args, **kwargs):
 
     # Specialized ts plotting attributes for Axes
     ax.freq = freq
+    xaxis = ax.get_xaxis()
+    xaxis.freq = freq
+    xaxis.converter = DateConverter
     ax.legendlabels = [kwargs.get('label', None)]
     ax.view_interval = None
     ax.date_axis_info = None
@@ -119,8 +124,8 @@ def tsplot(series, plotf, *args, **kwargs):
         # if xlim still at default values, autoscale the axis
         ax.autoscale_view()
 
-    left = get_datevalue(series.index[0], freq)
-    right = get_datevalue(series.index[-1], freq)
+    left = series.index[0] #get_datevalue(series.index[0], freq)
+    right = series.index[-1] #get_datevalue(series.index[-1], freq)
     ax.set_xlim(left, right)
 
     return plotted
@@ -130,7 +135,7 @@ tsplot.__doc__ %= _doc_parameters
 def get_datevalue(date, freq):
     if isinstance(date, Period):
         return date.asfreq(freq).ordinal
-    elif isinstance(date, str):
+    elif isinstance(date, (str, datetime, pydt.date, pydt.time)):
         return Period(date, freq).ordinal
     elif isinstance(date, (int, float)) or \
             (isinstance(date, np.ndarray) and (date.size == 1)):
@@ -929,35 +934,12 @@ def add_yaxis(fsp=None, position='right', yscale=None, basey=10, subsy=None):
     pylab.draw_if_interactive()
     return fsp_alt
 
-def set_dlim(subplot, start_date=None, end_date=None):
-    """
-    Sets the date limits of the plot to ``start_date`` and ``end_date``.
-    The dates can be given as :class:`~Period` objects, strings or
-    integers.
+class DateConverter(object):
 
-    Parameters
-    ----------
-    start_date : {var}
-        Starting date of the plot. If None, the current left limit
-        (earliest date) is used.
-    end_date : {var}
-        Ending date of the plot. If None, the current right limit (latest
-        date) is used.
-    """
-    freq = getattr(subplot, 'freq', None)
-    if freq is None:
-        raise ValueError("Undefined frequency! Date limits can't be set!")
-    xleft = get_datevalue(start_date, freq)
-    xright = get_datevalue(end_date, freq)
-    subplot.set_xlim(xleft, xright)
-    return (xleft, xright)
-
-def get_dlim(subplot):
-    """
-    Returns the limits of the x axis as a :class:`~PeriodIndex`.
-    """
-    freq = getattr(subplot, 'freq', None)
-    xlims = subplot.get_xlim()
-    if freq is None:
-        return xlims
-    return PeriodIndex(xlims, freq=freq)
+    @classmethod
+    def convert(cls, values, units, axis):
+        if isinstance(values, (int, float, str, datetime, Period)):
+            return get_datevalue(values, axis.freq)
+        if isinstance(values, Index):
+            return values.map(lambda x: get_datevalue(x, axis.freq))
+        return map(lambda x: get_datevalue(x, axis.freq), values)

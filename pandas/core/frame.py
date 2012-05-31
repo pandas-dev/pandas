@@ -3806,22 +3806,26 @@ class DataFrame(NDFrame):
         y : DataFrame
         """
         numeric_df = self._get_numeric_data()
-        mat = numeric_df.values.T
         cols = numeric_df.columns
+        mat = numeric_df.values
 
-        corrf = nanops.get_corr_func(method)
-        K = len(cols)
-        correl = np.empty((K, K), dtype=float)
-        mask = np.isfinite(mat)
-        for i, ac in enumerate(mat):
-            for j, bc  in enumerate(mat):
-                valid = mask[i] & mask[j]
-                if not valid.all():
-                    c = corrf(ac[valid], bc[valid])
-                else:
-                    c = corrf(ac, bc)
-                correl[i, j] = c
-                correl[j, i] = c
+        if method == 'pearson':
+            correl = lib.nancorr(mat)
+        else:
+            mat = mat.T
+            corrf = nanops.get_corr_func(method)
+            K = len(cols)
+            correl = np.empty((K, K), dtype=float)
+            mask = np.isfinite(mat)
+            for i, ac in enumerate(mat):
+                for j, bc  in enumerate(mat):
+                    valid = mask[i] & mask[j]
+                    if not valid.all():
+                        c = corrf(ac[valid], bc[valid])
+                    else:
+                        c = corrf(ac, bc)
+                    correl[i, j] = c
+                    correl[j, i] = c
 
         return self._constructor(correl, index=cols, columns=cols)
 

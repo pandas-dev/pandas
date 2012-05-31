@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 import unittest
 
 from numpy.ma.testutils import assert_equal
+from numpy.testing import assert_array_equal
 
 from pandas.tseries.frequencies import MONTHS, DAYS
 from pandas.tseries.period import Period, PeriodIndex, period_range
@@ -1514,6 +1515,12 @@ class TestPeriodIndex(TestCase):
         self.assertRaises(ValueError, getattr, index, 'is_full')
 
         self.assert_(index[:0].is_full)
+
+    def test_map(self):
+        index = PeriodIndex([2005, 2007, 2009], freq='A')
+        result = index.map(lambda x: x + 1)
+        expected = index + 1
+        assert_array_equal(result, expected)
 
 def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
