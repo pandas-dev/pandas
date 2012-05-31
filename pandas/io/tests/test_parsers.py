@@ -55,6 +55,26 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
     def test_read_csv(self):
         pass
 
+    def test_dialect(self):
+        data = """\
+label1,label2,label3
+index1,"a,c,e
+index2,b,d,f
+"""
+
+        dia = csv.excel()
+        dia.quoting = csv.QUOTE_NONE
+        df = read_csv(StringIO(data), dialect=dia)
+
+        data = '''\
+label1,label2,label3
+index1,a,c,e
+index2,b,d,f
+'''
+        exp = read_csv(StringIO(data))
+        exp.replace('a', '"a', inplace=True)
+        assert_frame_equal(df, exp)
+
     def test_1000_sep(self):
         data = """A|B|C
 1|2,334.0|5

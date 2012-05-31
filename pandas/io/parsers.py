@@ -38,6 +38,9 @@ filepath_or_buffer : string or file handle / StringIO. The string could be
     is expected. For instance, a local file could be
     file ://localhost/path/to/table.csv
 %s
+dialect : string or csv.Dialect instance, default None
+    If None defaults to Excel dialect. Ignored if sep longer than 1 char
+    See csv.Dialect documentation for more details
 header : int, default 0
     Row to use for the column labels of the parsed DataFrame
 skiprows : list-like or integer
@@ -95,7 +98,8 @@ result : DataFrame or TextParser
 
 _csv_sep = """sep : string, default ','
     Delimiter to use. If sep is None, will try to automatically determine
-    this"""
+    this
+"""
 
 _table_sep = """sep : string, default \\t (tab-stop)
     Delimiter to use"""
@@ -189,6 +193,7 @@ def _read(cls, filepath_or_buffer, kwds):
 @Appender(_read_csv_doc)
 def read_csv(filepath_or_buffer,
              sep=',',
+             dialect=None,
              header=0,
              index_col=None,
              names=None,
@@ -221,6 +226,7 @@ def read_csv(filepath_or_buffer,
 @Appender(_read_table_doc)
 def read_table(filepath_or_buffer,
                sep='\t',
+               dialect=None,
                header=0,
                index_col=None,
                names=None,
@@ -356,6 +362,8 @@ class TextParser(object):
     ----------
     data : file-like object or list
     delimiter : separator character to use
+    dialect : str or csv.Dialect instance, default None
+        Ignored if delimiter is longer than 1 character
     names : sequence, default
     header : int, default 0
         Row to use to parse column labels. Defaults to the first row. Prior
@@ -381,7 +389,7 @@ class TextParser(object):
         returns Series if only one column
     """
 
-    def __init__(self, f, delimiter=None, names=None, header=0,
+    def __init__(self, f, delimiter=None, dialect=None, names=None, header=0,
                  index_col=None, na_values=None, thousands=None,
                  comment=None, parse_dates=False, keep_date_col=False,
                  date_parser=None, dayfirst=False,
@@ -413,6 +421,7 @@ class TextParser(object):
 
         self.skip_footer = skip_footer
         self.delimiter = delimiter
+        self.dialect = dialect
         self.verbose = verbose
 
         if converters is not None:
@@ -463,7 +472,13 @@ class TextParser(object):
         if sep is None or len(sep) == 1:
             sniff_sep = True
             # default dialect
-            dia = csv.excel()
+            if self.dialect is None:
+                dia = csv.excel()
+            elif isinstance(self.dialect, basestring):
+                dia = csv.get_dialect(self.dialect)
+            else:
+                dia = self.dialect
+
             if sep is not None:
                 sniff_sep = False
                 dia.delimiter = sep
