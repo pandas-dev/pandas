@@ -3838,26 +3838,15 @@ class DataFrame(NDFrame):
         y : DataFrame
         """
         numeric_df = self._get_numeric_data()
-        mat = numeric_df.values.T
         cols = numeric_df.columns
-        baseCov = np.cov(mat)
+        mat = numeric_df.values
 
-        for i, j, ac, bc in self._cov_helper(mat):
-            c = np.cov(ac, bc)[0, 1]
-            baseCov[i, j] = c
-            baseCov[j, i] = c
+        if notnull(mat).all():
+            baseCov = np.cov(mat.T)
+        else:
+            baseCov = lib.nancorr(mat, cov=True)
 
         return self._constructor(baseCov, index=cols, columns=cols)
-
-    def _cov_helper(self, mat):
-        # Get the covariance with items that have NaN values
-        mask = np.isfinite(mat)
-        for i, A in enumerate(mat):
-            if not mask[i].all():
-                for j, B in enumerate(mat):
-                    in_common = mask[i] & mask[j]
-                    if in_common.any():
-                        yield i, j, A[in_common], B[in_common]
 
     def corrwith(self, other, axis=0, drop=False):
         """
