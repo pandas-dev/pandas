@@ -59,6 +59,7 @@ class TestSeriesPlots(unittest.TestCase):
     @slow
     def test_kde(self):
         _check_plot_works(self.ts.plot, kind='kde')
+        _check_plot_works(self.ts.plot, kind='density')
         ax = self.ts.plot(kind='kde', logy=True)
         self.assert_(ax.get_yscale() == 'log')
 
@@ -229,6 +230,7 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(scat, marker='+')
         _check_plot_works(scat, vmin=0)
         _check_plot_works(scat, diagonal='kde')
+        _check_plot_works(scat, diagonal='density')
         _check_plot_works(scat, diagonal='hist')
 
         def scat2(x, y, by=None, ax=None, figsize=None):

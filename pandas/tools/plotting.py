@@ -13,6 +13,9 @@ from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.offsets import DateOffset
 
+def _get_standard_kind(kind):
+    return {'density' : 'kde'}.get(kind, kind)
+
 
 def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
                    diagonal='hist', marker='.', **kwds):
@@ -54,7 +57,7 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
                 # Deal with the diagonal by drawing a histogram there.
                 if diagonal == 'hist':
                     axes[i, j].hist(values)
-                elif diagonal == 'kde':
+                elif diagonal in ('kde', 'density'):
                     from scipy.stats import gaussian_kde
                     y = values
                     gkde = gaussian_kde(y)
@@ -673,7 +676,7 @@ def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
     -------
     ax_or_axes : matplotlib.AxesSubplot or list of them
     """
-    kind = kind.lower().strip()
+    kind = _get_standard_kind(kind.lower().strip())
     if kind == 'line':
         klass = LinePlot
     elif kind in ('bar', 'barh'):
@@ -738,6 +741,7 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     -----
     See matplotlib documentation online for more on this subject
     """
+    kind = _get_standard_kind(kind.lower().strip())
     if kind == 'line':
         klass = LinePlot
     elif kind in ('bar', 'barh'):
