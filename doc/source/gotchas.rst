@@ -129,9 +129,9 @@ Endpoints are inclusive
 
 Compared with standard Python sequence slicing in which the slice endpoint is
 not inclusive, label-based slicing in pandas **is inclusive**. The primary
-reason for this is that it is often not possible to easily the "successor" or
-next element after a particular label in an index. For example, consider the
-following Series:
+reason for this is that it is often not possible to easily determine the
+"successor" or next element after a particular label in an index. For example,
+consider the following Series:
 
 .. ipython:: python
 
@@ -160,7 +160,7 @@ slicing include both endpoints:
     s.ix['c':'e']
 
 This is most definitely a "practicality beats purity" sort of thing, but it is
-something to watch out for is you expect label-based slicing to behave exactly
+something to watch out for if you expect label-based slicing to behave exactly
 in the way that standard Python integer slicing works.
 
 Miscellaneous indexing gotchas
