@@ -802,9 +802,6 @@ class NumpyJSONTests(TestCase):
         num = np.float(256.2013)
         self.assertEqual(np.float(ujson.decode(ujson.encode(num))), num)
 
-        num = np.float16(256.2013)
-        self.assertEqual(np.float16(ujson.decode(ujson.encode(num))), num)
-
         num = np.float32(256.2013)
         self.assertEqual(np.float32(ujson.decode(ujson.encode(num))), num)
 
@@ -820,16 +817,9 @@ class NumpyJSONTests(TestCase):
             outp = np.array(ujson.decode(ujson.encode(inpt, double_precision=15)), dtype=dtype)
             assert_array_almost_equal_nulp(inpt, outp)
 
-        inpt = np.arange(1.5, 21.5, 0.2, dtype=np.float16)
-        outp = np.array(ujson.decode(ujson.encode(inpt)), dtype=np.float16)
-        assert_array_almost_equal_nulp(inpt, outp)
-
     def testFloatMax(self):
         num = np.float(np.finfo(np.float).max/10)
         assert_approx_equal(np.float(ujson.decode(ujson.encode(num))), num, 15)
-
-        num = np.float16(np.finfo(np.float16).max/10)
-        assert_approx_equal(np.float16(ujson.decode(ujson.encode(num))), num, 15)
 
         num = np.float32(np.finfo(np.float32).max/10)
         assert_approx_equal(np.float32(ujson.decode(ujson.encode(num))), num, 15)
