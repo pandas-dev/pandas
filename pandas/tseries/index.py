@@ -514,9 +514,6 @@ class DatetimeIndex(Int64Index):
         dtype = np.dtype(dtype)
 
         if dtype == np.object_:
-            if isnull(self).any():
-                msg = 'DatetimeIndex with NaT cannot be converted to object'
-                raise ValueError(msg)
             return self.asobject
         return Index.astype(self, dtype)
 
@@ -536,6 +533,12 @@ class DatetimeIndex(Int64Index):
         """
         Convert to Index of datetime objects
         """
+        if isnull(self).any():
+            msg = 'DatetimeIndex with NaT cannot be converted to object'
+            raise ValueError(msg)
+        return self._get_object_index()
+
+    def _get_object_index(self):
         boxed_values = _dt_box_array(self.asi8, self.offset, self.tz)
         return Index(boxed_values, dtype=object)
 
@@ -1013,7 +1016,7 @@ class DatetimeIndex(Int64Index):
         return DatetimeIndex(new_values, freq='infer', name=self.name)
 
     def __iter__(self):
-        return iter(self.asobject)
+        return iter(self._get_object_index())
 
     def searchsorted(self, key, side='left'):
         if isinstance(key, np.ndarray):
