@@ -550,6 +550,7 @@ class TestSparseSeries(TestCase,
                 _compare_with_dense(obj, op)
 
         _compare_all(self.bseries)
+
         self.bseries.sp_values[5:10] = np.NaN
         _compare_all(self.bseries)
 
@@ -560,6 +561,12 @@ class TestSparseSeries(TestCase,
         series = self.zbseries.copy()
         series.fill_value = 2
         _compare_all(series)
+
+        nonna = Series(np.random.randn(20)).to_sparse()
+        _compare_all(nonna)
+
+        nonna2 = Series(np.random.randn(20)).to_sparse(fill_value=0)
+        _compare_all(nonna2)
 
     def test_dropna(self):
         sp = SparseSeries([0, 0, 0, nan, nan, 5, 6],
