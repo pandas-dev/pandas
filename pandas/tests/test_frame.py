@@ -3500,6 +3500,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = df1.ix[:, cols].corrwith(df2.ix[:, cols], axis=1)
         assert_series_equal(result, expected)
 
+    def test_corrwith_series(self):
+        result = self.tsframe.corrwith(self.tsframe['A'])
+        expected = self.tsframe.apply(self.tsframe['A'].corr)
+
+        assert_series_equal(result, expected)
+
     def test_dropEmptyRows(self):
         N = len(self.frame.index)
         mat = randn(N)

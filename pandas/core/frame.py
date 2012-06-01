@@ -3876,6 +3876,9 @@ class DataFrame(NDFrame):
         -------
         correls : Series
         """
+        if isinstance(other, Series):
+            return self.apply(other.corr, axis=axis)
+
         this = self._get_numeric_data()
         other = other._get_numeric_data()
 
