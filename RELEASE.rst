@@ -78,6 +78,8 @@ pandas 0.8.0
   - Add ``method`` argument to ``align`` method for forward/backward fillin
     (#216)
   - Add Panel.transpose method for rearranging axes (#695)
+  - Add new ``cut`` function (patterned after R) for discretizing data into
+    equal range-length bins or arbitrary breaks of your choosing (#415)
 
 **Improvements to existing features**
 

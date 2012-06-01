@@ -2,37 +2,159 @@
 Quantilization functions and related stuff
 """
 
+from pandas.core.api import DataFrame, Series
+import pandas.core.common as com
+import pandas.core.nanops as nanops
+
 import numpy as np
 
-
-def cut(data, bins, closed='right', labels=None,
-        precision=3):
+def cut(x, bins, right=True, labels=None, retbins=False, precision=3):
     """
+    Return indices of half-open bins to which each value of `x` belongs.
 
     Parameters
     ----------
-    data : Series or ndarray
-    bins : array or integer
-        Integer number of bins (equal-size) or array of break points
-    closed : {'right', 'left'}, default 'right'
-        Side of half-open interval which is closed
-    precision : integer, default 3
+    x : array-like
+        Input array to be binned. It has to be 1-dimensional.
+    bins : int or sequence of scalars
+        If `bins` is an int, it defines the number of equal-width bins in the
+        range of `x`. However, in this case, the range of `x` is extended
+        by .1% on each side to include the min or max values of `x`. If
+        `bins` is a sequence it defines the bin edges allowing for
+        non-uniform bin width. No extension of the range of `x` is done in
+        this case.
+    right : bool, optional
+        Indicates whether the bins include the rightmost edge or not. If
+        right == True (the default), then the bins [1,2,3,4] indicate
+        (1,2], (2,3], (3,4].
+    labels : array or boolean, default None
+        Labels to use for bin edges, or False to return integer bin labels
+    retbins : bool, optional
+        Whether to return the bins or not. Can be useful if bins is given
+        as a scalar.
 
+    Returns
+    -------
+    out : ndarray of labels
+        Same shape as `x`. Array of strings by default, integers if
+        labels=False
+    bins : ndarray of floats
+        Returned only if `retbins` is True.
 
+    Notes
+    -----
+    The `cut` function can be useful for going from a continuous variable to
+    a categorical variable. For example, `cut` could convert ages to groups
+    of age ranges.
+
+    Examples
+    --------
+    >>> cut(np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1]), 3, retbins=True)
+    (array([(0.191, 3.367], (0.191, 3.367], (0.191, 3.367], (3.367, 6.533],
+           (6.533, 9.7], (0.191, 3.367]], dtype=object),
+     array([ 0.1905    ,  3.36666667,  6.53333333,  9.7       ]))
+    >>> cut(np.ones(5), 4, labels=False)
+    array([2, 2, 2, 2, 2])
     """
-    bins = np.asarray(bins)
-    labels = bins.searchsorted(data.values, side=closed)
-
-    if labels is None or labels is not False:
-        if closed == 'left':
-            strings = ['[%s, %s)' % tup for tup in zip(bins, bins[1:])]
+    #NOTE: this binning code is changed a bit from histogram for var(x) == 0
+    if not np.iterable(bins):
+        if np.isscalar(bins) and bins < 1:
+            raise ValueError("`bins` should be a positive integer.")
+        try: # for array-like
+            sz = x.size
+        except AttributeError:
+            x = np.asarray(x)
+            sz = x.size
+        if sz == 0:
+            # handle empty arrays. Can't determine range, so use 0-1.
+            rng = (0, 1)
         else:
-            strings = ['(%s, %s]' % tup for tup in zip(bins, bins[1:])]
+            rng = (nanops.nanmin(x), nanops.nanmax(x))
+        mn, mx = [mi + 0.0 for mi in rng]
+
+        if mn == mx: # adjust end points before binning
+            mn -= .001 * mn
+            mx += .001 * mx
+            bins = np.linspace(mn, mx, bins+1, endpoint=True)
+        else: # adjust end points after binning
+            bins = np.linspace(mn, mx, bins+1, endpoint=True)
+            adj = (mx - mn) * 0.001 # 0.1% of the range
+            if right:
+                bins[0] -= adj
+            else:
+                bins[-1] += adj
+
+    else:
+        bins = np.asarray(bins)
+        if (np.diff(bins) < 0).any():
+            raise ValueError('bins must increase monotonically.')
+
+    side = 'left' if right else 'right'
+    ids = bins.searchsorted(x, side=side)
+
+    mask = com.isnull(x)
+    has_nas = mask.any()
+
+
+    if labels is not False:
+        if labels is None:
+            labels = bins
+        else:
+            if len(labels) != len(bins):
+                raise ValueError('labels must be same length as bins')
+
+        fmt = lambda v: _format_label(v, precision=precision)
+        if right:
+            strings = ['(%s, %s]' % (fmt(x), fmt(y))
+                       for x, y in zip(labels, labels[1:])]
+        else:
+            strings = ['[%s, %s)' % (fmt(x), fmt(y))
+                       for x, y in zip(labels, labels[1:])]
+
         strings = np.asarray(strings, dtype=object)
-        return strings.take(labels - 1)
 
-    return labels, data.values
+        if has_nas:
+            np.putmask(ids, mask, 0)
 
+        labels = com.take_1d(strings, ids - 1)
+    else:
+        labels = ids
+        if has_nas:
+            labels = labels.astype(np.float64)
+            np.putmask(labels, mask, np.nan)
+
+    if not retbins:
+        return labels
+
+    return labels, bins
+
+def _format_label(x, precision=3):
+    fmt_str = '%%.%dg' % precision
+    if com.is_float(x):
+        frac, whole = np.modf(x)
+        sgn = '-' if x < 0 else ''
+        whole = abs(whole)
+        if frac != 0.0:
+            val = fmt_str % frac
+            if 'e' in val:
+                return _trim_zeros(fmt_str % x)
+            else:
+                val = _trim_zeros(val)
+                if '.' in val:
+                    return sgn + '.'.join(('%d' % whole, val.split('.')[1]))
+                else:
+                    return sgn + '.'.join(('%d' % whole, val))
+        else:
+            return sgn + '%d' % whole
+    else:
+        return str(x)
+
+def _trim_zeros(x):
+    while len(x) > 1 and x[-1] == '0':
+        x = x[:-1]
+    if len(x) > 1 and x[-1] == '.':
+        x = x[:-1]
+    return x
 
 def bucket(series, k, by=None):
     """
