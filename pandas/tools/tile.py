@@ -47,6 +47,8 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3):
     a categorical variable. For example, `cut` could convert ages to groups
     of age ranges.
 
+    Any NA values will be NA in the result
+
     Examples
     --------
     >>> cut(np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1]), 3, retbins=True)
@@ -127,6 +129,36 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3):
         return labels
 
     return labels, bins
+
+
+def qcut(x, n, ties_method='average'):
+    """
+    Quantile-based discretization function. Discretize variable into
+    equal-sized buckets based on rank. For example 1000 values for 10 quantiles
+    would produce 1000 integers from 0 to 9 indicating the
+
+    Parameters
+    ----------
+    x : ndarray or Series
+    n : integer
+        Number of quantiles. 10 for deciles, 4 for quartiles, etc.
+    ties_method : {'average', 'min', 'max', 'first'}, default 'average'
+        average: average rank of group
+        min: lowest rank in group
+        max: highest rank in group
+        first: ranks assigned in order they appear in the array
+
+    Returns
+    -------
+
+    Notes
+    -----
+
+    Examples
+    --------
+    """
+    pass
+
 
 def _format_label(x, precision=3):
     fmt_str = '%%.%dg' % precision

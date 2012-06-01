@@ -36,4 +36,4 @@ from pandas.tools.describe import value_range
 from pandas.tools.merge import merge, concat, ordered_merge
 from pandas.tools.pivot import pivot_table, crosstab
 from pandas.tools.plotting import scatter_matrix
-from pandas.tools.tile import cut
+from pandas.tools.tile import cut, qcut
