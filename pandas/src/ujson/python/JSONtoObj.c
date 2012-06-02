@@ -156,7 +156,7 @@ JSOBJ Object_npyEndArray(JSOBJ obj)
             Npy_releaseContext(npyarr);
             return NULL;
         }
-        ((char*)PyArray_DATA(ret)) = new_data;
+        PyArray_BYTES(ret) = new_data;
     }
 
     if (npyarr->dec->curdim <= 0)
@@ -289,7 +289,7 @@ int Object_npyArrayAddItem(JSOBJ obj, JSOBJ value)
             PyErr_NoMemory();
             goto fail;
         }
-        ((char*)PyArray_DATA(npyarr->ret)) = new_data;
+        PyArray_BYTES(npyarr->ret) = new_data;
     }
 
     PyArray_DIMS(npyarr->ret)[0] = i + 1;
