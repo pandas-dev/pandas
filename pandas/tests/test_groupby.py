@@ -410,6 +410,16 @@ class TestGroupBy(unittest.TestCase):
         expected = df.groupby(lambda x: x.month).transform(fillit)
         assert_frame_equal(filled, expected)
 
+    def test_transform_select_columns(self):
+        f = lambda x: x.mean()
+        result = self.df.groupby('A')['C', 'D'].transform(f)
+
+        selection = self.df[['C', 'D']]
+        expected = selection.groupby(self.df['A']).transform(f)
+
+        assert_frame_equal(result, expected)
+
+
     def test_with_na(self):
         index = Index(np.arange(10))
         values = Series(np.ones(10), index)

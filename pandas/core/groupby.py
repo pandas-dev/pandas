@@ -1624,7 +1624,9 @@ class NDFrameGroupBy(GroupBy):
         applied = []
 
         obj = self._obj_with_exclusions
-        for name, group in self:
+        gen = self.grouper.get_iterator(obj, axis=self.axis)
+
+        for name, group in gen:
             object.__setattr__(group, 'name', name)
 
             try:
