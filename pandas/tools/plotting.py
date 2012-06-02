@@ -528,7 +528,8 @@ class LinePlot(MPLPlot):
                 ax = self.ax
 
             label = com._stringify(self.label)
-            tsplot(data, plotf, ax=ax, label=label, **kwargs)
+            tsplot(data, plotf, ax=ax, label=label, style=self.style,
+                   **kwargs)
             ax.grid(self.grid)
         else:
             for i, col in enumerate(data.columns):

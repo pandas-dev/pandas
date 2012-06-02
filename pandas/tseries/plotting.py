@@ -99,6 +99,8 @@ def tsplot(series, plotf, *args, **kwargs):
 
     series = series.dropna()
 
+    style = kwargs.pop('style', None)
+
     if 'ax' in kwargs:
         ax = kwargs.pop('ax')
     else:
@@ -114,7 +116,7 @@ def tsplot(series, plotf, *args, **kwargs):
     ax.date_axis_info = None
 
     # format args and lot
-    args = _check_plot_params(series, series.index, freq, *args)
+    args = _check_plot_params(series, series.index, freq, style, *args)
     plotted = plotf(ax, *args,  **kwargs)
 
     format_dateaxis(ax, ax.freq)
@@ -149,7 +151,7 @@ def get_datevalue(date, freq):
 
 # Check and format plotting parameters
 
-def _check_plot_params(series, xdata, freq, *args):
+def _check_plot_params(series, xdata, freq, style, *args):
     """
     Defines the plot coordinates (and basic plotting arguments).
     """
@@ -160,7 +162,10 @@ def _check_plot_params(series, xdata, freq, *args):
     if len(args) == 0:
         if xdata is None:
             raise ValueError(noinfo_msg)
-        return (xdata, series)
+        if style is not None:
+            return (xdata, series, style)
+        else:
+            return (xdata, series)
 
     output = []
     while len(remaining) > 0:
