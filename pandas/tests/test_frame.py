@@ -34,7 +34,7 @@ import pandas.lib as lib
 
 def _skip_if_no_scipy():
     try:
-        import scipy
+        import scipy.stats
     except ImportError:
         raise nose.SkipTest
 
