@@ -1626,14 +1626,17 @@ class NDFrameGroupBy(GroupBy):
         obj = self._obj_with_exclusions
         gen = self.grouper.get_iterator(obj, axis=self.axis)
 
+        wrapper = lambda x: func(x, *args, **kwargs)
+
         for name, group in gen:
             object.__setattr__(group, 'name', name)
 
             try:
-                wrapper = lambda x: func(x, *args, **kwargs)
                 res = group.apply(wrapper, axis=self.axis)
+            except TypeError:
+                return self._transform_item_by_item(obj, wrapper)
             except Exception: # pragma: no cover
-                res = func(group, *args, **kwargs)
+                res = wrapper(group)
 
             # broadcasting
             if isinstance(res, Series):
@@ -1651,6 +1654,25 @@ class NDFrameGroupBy(GroupBy):
                               axis=self.axis, verify_integrity=False)
         return concatenated.reindex_like(obj)
 
+    def _transform_item_by_item(self, obj, wrapper):
+        # iterate through columns
+        output = {}
+        inds = []
+        for i, col in enumerate(obj):
+            try:
+                output[col] = self[col].transform(wrapper)
+                inds.append(i)
+            except Exception:
+                pass
+
+        if len(output) == 0:
+            raise TypeError('Transform function invalid for data types')
+
+        columns = obj.columns
+        if len(output) < len(obj.columns):
+            columns = columns.take(inds)
+
+        return DataFrame(output, index=obj.index, columns=columns)
 
 
 class DataFrameGroupBy(NDFrameGroupBy):

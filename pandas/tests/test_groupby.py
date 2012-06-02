@@ -419,6 +419,16 @@ class TestGroupBy(unittest.TestCase):
 
         assert_frame_equal(result, expected)
 
+    def test_transform_exclude_nuisance(self):
+        expected = {}
+        grouped = self.df.groupby('A')
+        expected['C'] = grouped['C'].transform(np.mean)
+        expected['D'] = grouped['D'].transform(np.mean)
+        expected = DataFrame(expected)
+
+        result = self.df.groupby('A').transform(np.mean)
+
+        assert_frame_equal(result, expected)
 
     def test_with_na(self):
         index = Index(np.arange(10))
