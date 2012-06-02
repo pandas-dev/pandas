@@ -80,7 +80,9 @@ Dictates and limits how much stack space for buffers UltraJSON will use before r
 typedef __int64 JSINT64;
 typedef unsigned __int64 JSUINT64;
 
+#ifndef __MINGW32__
 typedef unsigned __int32 uint32_t;
+#endif
 typedef __int32 JSINT32;
 typedef uint32_t JSUINT32;
 typedef unsigned __int8 JSUINT8;

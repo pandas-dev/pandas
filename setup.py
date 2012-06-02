@@ -74,8 +74,6 @@ if np.__version__ < '1.6.1':
     msg = "pandas requires NumPy >= 1.6 due to datetime64 dependency"
     sys.exit(msg)
 
-from numpy.distutils.misc_util import get_pkg_info, get_info
-
 from distutils.extension import Extension
 from distutils.command.build import build
 from distutils.command.build_ext import build_ext
@@ -378,11 +376,6 @@ sparse_ext = Extension('pandas._sparse',
                        sources=[srcpath('sparse', suffix=suffix)],
                        include_dirs=[np.get_include()])
 
-npymath_info = get_info('npymath')
-
-npymath_libdir = npymath_info['library_dirs'][0]
-npymath_libdir = npymath_libdir.replace('\\\\', '\\')
-
 ujson_ext = Extension('pandas._ujson',
                       sources=['pandas/src/ujson/python/ujson.c',
                                'pandas/src/ujson/python/objToJSON.c',
@@ -395,10 +388,6 @@ ujson_ext = Extension('pandas._ujson',
                                     'pandas/src/ujson/lib',
                                     'pandas/src/datetime',
                                     np.get_include()],
-                      libraries=['npymath'],
-                      library_dirs=[npymath_libdir],
-                      # extra_link_args=[get_pkg_info('npymath').libs()]
-                      #extra_info=get_info('npymath')
                       )
 
 sandbox_ext = Extension('pandas._sandbox',

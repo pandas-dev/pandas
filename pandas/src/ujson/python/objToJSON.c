@@ -2,8 +2,8 @@
 
 #include "py_defines.h"
 #include <numpy/arrayobject.h>
+#include <numpy/npy_math.h>
 #include <np_datetime.h>
-#include <numpy/halffloat.h>
 #include <stdio.h>
 #include <datetime.h>
 #include <ultrajson.h>
@@ -135,15 +135,6 @@ static void *PyIntToINT64(JSOBJ _obj, JSONTypeContext *tc, void *outValue, size_
 static void *PyLongToINT64(JSOBJ _obj, JSONTypeContext *tc, void *outValue, size_t *_outLen)
 {
     *((JSINT64 *) outValue) = GET_TC(tc)->longValue;
-    return NULL;
-}
-
-static void *NpyHalfToDOUBLE(JSOBJ _obj, JSONTypeContext *tc, void *outValue, size_t *_outLen)
-{
-    PyObject *obj = (PyObject *) _obj;
-    unsigned long ctype;
-    PyArray_ScalarAsCtype(obj, &ctype);
-    *((double *) outValue) = npy_half_to_double (ctype);
     return NULL;
 }
 
@@ -1142,13 +1133,6 @@ void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
     {
         PRINTMARK();
         pc->PyTypeToJSON = NpyFloatToDOUBLE; tc->type = JT_DOUBLE;
-        return;
-    }
-    else
-    if (PyArray_IsScalar(obj, Half))
-    {
-        PRINTMARK();
-        pc->PyTypeToJSON = NpyHalfToDOUBLE; tc->type = JT_DOUBLE;
         return;
     }
     else
