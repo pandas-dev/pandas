@@ -110,7 +110,7 @@ pandas 0.8.0
   - Store time zones in HDFStore (#1232)
   - Enable storage of sparse data structures in HDFStore (#85)
   - Enable Series.asof to work with arrays of timestamp inputs
-  - Cython implementation of DataFrame.corr speeds up by > 100x (#1349)
+  - Cython implementation of DataFrame.corr speeds up by > 100x (#1349, #1354)
 
 
 **API Changes**
