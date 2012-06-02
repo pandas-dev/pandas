@@ -330,7 +330,7 @@ class TestTimeSeries(unittest.TestCase):
 
         for unit in units:
             dtype = np.dtype('M8[%s]' % unit)
-            vals = np.arange(n, dtype=dtype)
+            vals = np.arange(n, dtype=np.int64).view(dtype)
 
             df = DataFrame({'ints' : np.arange(n)}, index=np.arange(n))
             df[unit] = vals
@@ -342,11 +342,11 @@ class TestTimeSeries(unittest.TestCase):
 
         # Test insertion into existing datetime64 column
         df = DataFrame({'ints' : np.arange(n)}, index=np.arange(n))
-        df['dates'] = np.arange(n, dtype=ns_dtype)
+        df['dates'] = np.arange(n, dtype=np.int64).view(ns_dtype)
 
         for unit in units:
             dtype = np.dtype('M8[%s]' % unit)
-            vals = np.arange(n, dtype=dtype)
+            vals = np.arange(n, dtype=np.int64).view(dtype)
 
             tmp = df.copy()
 

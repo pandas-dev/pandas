@@ -26,6 +26,13 @@ from pandas.util import py3compat
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
 
+def _skip_if_no_scipy():
+    try:
+        import scipy
+    except ImportError:
+        raise nose.SkipTest
+
+
 #-------------------------------------------------------------------------------
 # Series test cases
 
@@ -1019,11 +1026,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_almost_equal(result, expected)
 
     def test_skew(self):
+        _skip_if_no_scipy()
+
         from scipy.stats import skew
         alt =lambda x: skew(x, bias=False)
         self._check_stat_op('skew', alt)
 
     def test_kurt(self):
+        _skip_if_no_scipy()
+
         from scipy.stats import kurtosis
         alt = lambda x: kurtosis(x, bias=False)
         self._check_stat_op('kurt', alt)
@@ -1627,6 +1638,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(s, expected)
 
     def test_corr(self):
+        _skip_if_no_scipy()
+
         import scipy.stats as stats
 
         # full overlap
@@ -1650,6 +1663,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertAlmostEqual(result, expected)
 
     def test_corr_rank(self):
+        _skip_if_no_scipy()
+
         import scipy
         import scipy.stats as stats
 

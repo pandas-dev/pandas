@@ -32,6 +32,12 @@ from pandas.util.testing import (assert_almost_equal,
 import pandas.util.testing as tm
 import pandas.lib as lib
 
+def _skip_if_no_scipy():
+    try:
+        import scipy
+    except ImportError:
+        raise nose.SkipTest
+
 #-------------------------------------------------------------------------------
 # DataFrame test cases
 
@@ -3422,6 +3428,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     #     self.assert_(self.frame.columns.name is None)
 
     def test_corr(self):
+        _skip_if_no_scipy()
         self.frame['A'][:5] = nan
         self.frame['B'][:10] = nan
 
@@ -5427,6 +5434,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             nanops._USE_BOTTLENECK = True
 
     def test_skew(self):
+        _skip_if_no_scipy()
         from scipy.stats import skew
 
         def alt(x):
@@ -5437,6 +5445,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self._check_stat_op('skew', alt)
 
     def test_kurt(self):
+        _skip_if_no_scipy()
+
         from scipy.stats import kurtosis
 
         def alt(x):
