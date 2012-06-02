@@ -345,12 +345,6 @@ class GroupBy(object):
         """
         return self._cython_agg_general('ohlc')
 
-    # def last(self):
-    #     return self.nth(-1)
-
-    # def first(self):
-    #     return self.nth(0)
-
     def nth(self, n):
         def picker(arr):
             if arr is not None:
@@ -1295,9 +1289,14 @@ class SeriesGroupBy(GroupBy):
         """
         result = self.obj.copy()
 
+        if isinstance(func, basestring):
+            wrapper = lambda x: getattr(x, func)(*args, **kwargs)
+        else:
+            wrapper = lambda x: func(x, *args, **kwargs)
+
         for name, group in self:
             object.__setattr__(group, 'name', name)
-            res = func(group, *args, **kwargs)
+            res = wrapper(group)
             indexer = self.obj.index.get_indexer(group.index)
             np.put(result, indexer, res)
 
@@ -1626,7 +1625,10 @@ class NDFrameGroupBy(GroupBy):
         obj = self._obj_with_exclusions
         gen = self.grouper.get_iterator(obj, axis=self.axis)
 
-        wrapper = lambda x: func(x, *args, **kwargs)
+        if isinstance(func, basestring):
+            wrapper = lambda x: getattr(x, func)(*args, **kwargs)
+        else:
+            wrapper = lambda x: func(x, *args, **kwargs)
 
         for name, group in gen:
             object.__setattr__(group, 'name', name)

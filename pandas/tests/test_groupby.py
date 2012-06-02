@@ -430,6 +430,15 @@ class TestGroupBy(unittest.TestCase):
 
         assert_frame_equal(result, expected)
 
+    def test_transform_function_aliases(self):
+        result = self.df.groupby('A').transform('mean')
+        expected = self.df.groupby('A').transform(np.mean)
+        assert_frame_equal(result, expected)
+
+        result = self.df.groupby('A')['C'].transform('mean')
+        expected = self.df.groupby('A')['C'].transform(np.mean)
+        assert_series_equal(result, expected)
+
     def test_with_na(self):
         index = Index(np.arange(10))
         values = Series(np.ones(10), index)

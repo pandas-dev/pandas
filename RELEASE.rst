@@ -113,6 +113,7 @@ pandas 0.8.0
   - Enable Series.asof to work with arrays of timestamp inputs
   - Cython implementation of DataFrame.corr speeds up by > 100x (#1349, #1354)
   - Exclude "nuisance" columns automatically in GroupBy.transform (#1364)
+  - Support functions-as-strings in GroupBy.transform (#1362)
 
 **API Changes**
 
