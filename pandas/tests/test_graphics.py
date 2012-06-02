@@ -244,7 +244,8 @@ class TestDataFramePlots(unittest.TestCase):
     def test_andrews_curves(self):
         from pandas import read_csv
         from pandas.tools.plotting import andrews_curves
-        df = read_csv('data/iris.csv')
+        path = os.path.join(curpath(), 'data/iris.csv')
+        df = read_csv(path)
         _check_plot_works(andrews_curves, df, 'Name')
 
     @slow
@@ -286,6 +287,10 @@ def _check_plot_works(f, *args, **kwargs):
         pass
     plt.savefig(PNG_PATH)
     os.remove(PNG_PATH)
+
+def curpath():
+    pth, _ = os.path.split(os.path.abspath(__file__))
+    return pth
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
