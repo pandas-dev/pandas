@@ -8,9 +8,9 @@
 typedef struct __PyObjectDecoder
 {
     JSONObjectDecoder dec;
-	
+
     void* npyarr;       // Numpy context buffer
-    npy_intp curdim;    // Current array dimension 
+    npy_intp curdim;    // Current array dimension
 
     PyArray_Descr* dtype;
 } PyObjectDecoder;
@@ -28,7 +28,7 @@ typedef struct __NpyArrContext
     npy_intp elcount;
 } NpyArrContext;
 
-//#define PRINTMARK() fprintf(stderr, "%s: MARK(%d)\n", __FILE__, __LINE__)     
+//#define PRINTMARK() fprintf(stderr, "%s: MARK(%d)\n", __FILE__, __LINE__)
 #define PRINTMARK()
 
 // Numpy handling based on numpy internal code, specifically the function
@@ -56,10 +56,10 @@ int Object_npyObjectAddKey(JSOBJ obj, JSOBJ name, JSOBJ value);
 
 
 // free the numpy context buffer
-void Npy_releaseContext(NpyArrContext* npyarr) 
+void Npy_releaseContext(NpyArrContext* npyarr)
 {
     PRINTMARK();
-    if (npyarr) 
+    if (npyarr)
     {
         if (npyarr->shape.ptr)
         {
@@ -108,7 +108,7 @@ JSOBJ Object_npyNewArray(void* _decoder)
     }
     else
     {
-        // starting a new dimension continue the current array (and reshape after) 
+        // starting a new dimension continue the current array (and reshape after)
         npyarr = (NpyArrContext*) decoder->npyarr;
         if (decoder->curdim >= npyarr->shape.len)
         {
@@ -149,14 +149,15 @@ JSOBJ Object_npyEndArray(JSOBJ obj)
     }
     else if (npyarr->dec->curdim <= 0)
     {
-        // realloc to final size 
+        // realloc to final size
         new_data = PyDataMem_RENEW(PyArray_DATA(ret), i * npyarr->elsize);
         if (new_data == NULL) {
             PyErr_NoMemory();
             Npy_releaseContext(npyarr);
             return NULL;
         }
-        PyArray_BYTES(ret) = new_data;
+        ((PyArrayObject*) ret)->data = (void*) new_data;
+        // PyArray_BYTES(ret) = new_data;
     }
 
     if (npyarr->dec->curdim <= 0)
@@ -191,7 +192,7 @@ JSOBJ Object_npyEndArray(JSOBJ obj)
         npyarr->ret = NULL;
         Npy_releaseContext(npyarr);
     }
-    
+
     return ret;
 }
 
@@ -225,7 +226,7 @@ int Object_npyArrayAddItem(JSOBJ obj, JSOBJ value)
         if (!npyarr->dec->dtype)
         {
             type = PyObject_Type(value);
-            if(!PyArray_DescrConverter(type, &dtype)) 
+            if(!PyArray_DescrConverter(type, &dtype))
             {
                 Py_DECREF(type);
                 goto fail;
@@ -233,26 +234,26 @@ int Object_npyArrayAddItem(JSOBJ obj, JSOBJ value)
             Py_INCREF(dtype);
             Py_DECREF(type);
         }
-        else 
+        else
         {
             dtype = PyArray_DescrNew(npyarr->dec->dtype);
         }
 
-        // If it's an object or string then fill a Python list and subsequently 
-        // convert. Otherwise we would need to somehow mess about with 
+        // If it's an object or string then fill a Python list and subsequently
+        // convert. Otherwise we would need to somehow mess about with
         // reference counts when renewing memory.
         npyarr->elsize = dtype->elsize;
-        if (PyDataType_REFCHK(dtype) || npyarr->elsize == 0) 
+        if (PyDataType_REFCHK(dtype) || npyarr->elsize == 0)
         {
             Py_XDECREF(dtype);
 
-            if (npyarr->dec->curdim > 1) 
+            if (npyarr->dec->curdim > 1)
             {
                 PyErr_SetString(PyExc_ValueError, "Cannot decode multidimensional arrays with variable length elements to numpy");
                 goto fail;
             }
             npyarr->ret = PyList_New(0);
-            if (!npyarr->ret) 
+            if (!npyarr->ret)
             {
                 goto fail;
             }
@@ -265,7 +266,7 @@ int Object_npyArrayAddItem(JSOBJ obj, JSOBJ value)
         npyarr->ret = PyArray_NewFromDescr(&PyArray_Type, dtype, 1,
                                            &npyarr->elcount, NULL,NULL, 0, NULL);
 
-        if (!npyarr->ret) 
+        if (!npyarr->ret)
         {
             goto fail;
         }
@@ -289,7 +290,9 @@ int Object_npyArrayAddItem(JSOBJ obj, JSOBJ value)
             PyErr_NoMemory();
             goto fail;
         }
-        PyArray_BYTES(npyarr->ret) = new_data;
+        ((PyArrayObject*) npyarr->ret)->data = (void*) new_data;
+
+        // PyArray_BYTES(npyarr->ret) = new_data;
     }
 
     PyArray_DIMS(npyarr->ret)[0] = i + 1;
@@ -336,7 +339,7 @@ JSOBJ Object_npyEndArrayList(JSOBJ obj)
     ((JSONObjectDecoder*)npyarr->dec)->arrayAddItem = Object_npyArrayAddItem;
     ((JSONObjectDecoder*)npyarr->dec)->endArray = Object_npyEndArray;
     Npy_releaseContext(npyarr);
-    return ret; 
+    return ret;
 }
 
 int Object_npyArrayListAddItem(JSOBJ obj, JSOBJ value)
@@ -445,7 +448,7 @@ JSOBJ Object_newString(wchar_t *start, wchar_t *end)
 }
 
 JSOBJ Object_newTrue(void)
-{ 
+{
     Py_RETURN_TRUE;
 }
 
@@ -490,7 +493,7 @@ JSOBJ Object_newLong(JSINT64 value)
 }
 
 JSOBJ Object_newDouble(double value)
-{ 
+{
     return PyFloat_FromDouble(value);
 }
 
@@ -514,7 +517,7 @@ PyObject* JSONToObj(PyObject* self, PyObject *args, PyObject *kwargs)
     static char *kwlist[] = { "obj", "numpy", "labelled", "dtype", NULL};
     int numpy = 0, labelled = 0, decref = 0;
     // PRINTMARK();
-	
+
     JSONObjectDecoder dec = {
             Object_newString,
             Object_objectAddKey,
