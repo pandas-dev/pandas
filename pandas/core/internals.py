@@ -380,8 +380,18 @@ class ObjectBlock(Block):
                               (np.integer, np.floating, np.complexfloating,
                                np.bool_))
 
+_NS_DTYPE = np.dtype('M8[ns]')
+
 class DatetimeBlock(Block):
     _can_hold_na = True
+
+    def __init__(self, values, items, ref_items, ndim=2,
+                 do_integrity_check=False):
+        if values.dtype != _NS_DTYPE:
+            values = lib.cast_to_nanoseconds(values)
+
+        Block.__init__(self, values, items, ref_items, ndim=ndim,
+                       do_integrity_check=do_integrity_check)
 
     def _can_hold_element(self, element):
         return com.is_integer(element) or isinstance(element, datetime)
@@ -394,6 +404,21 @@ class DatetimeBlock(Block):
 
     def should_store(self, value):
         return issubclass(value.dtype.type, np.datetime64)
+
+    def set(self, item, value):
+        """
+        Modify Block in-place with new item value
+
+        Returns
+        -------
+        None
+        """
+        loc = self.items.get_loc(item)
+
+        if value.dtype != _NS_DTYPE:
+            value = lib.cast_to_nanoseconds(value)
+
+        self.values[loc] = value
 
     def get_values(self, dtype):
         if dtype == object:

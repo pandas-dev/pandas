@@ -8,6 +8,7 @@ import pandas.core.nanops as nanops
 
 import numpy as np
 
+
 def cut(x, bins, right=True, labels=None, retbins=False, precision=3):
     """
     Return indices of half-open bins to which each value of `x` belongs.

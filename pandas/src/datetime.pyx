@@ -926,10 +926,10 @@ cdef inline _get_datetime64_nanos(object val):
 
     unit = get_datetime64_unit(val)
     if numpy_16:
-        if unit == 4:
+        if unit == 3:
             raise ValueError('NumPy 1.6.1 business freq not supported')
 
-        if unit > 4:
+        if unit > 3:
             unit = <PANDAS_DATETIMEUNIT> ((<int>unit) - 1)
 
     ival = get_datetime64_value(val)
@@ -939,6 +939,35 @@ cdef inline _get_datetime64_nanos(object val):
         return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
     else:
         return ival
+
+
+def cast_to_nanoseconds(ndarray arr):
+    cdef:
+        Py_ssize_t i, n = arr.size
+        ndarray[int64_t] ivalues, iresult
+        PANDAS_DATETIMEUNIT unit
+        pandas_datetimestruct dts
+
+    shape = (<object> arr).shape
+
+    ivalues = arr.view(np.int64).ravel()
+
+    result = np.empty(shape, dtype='M8[ns]')
+    iresult = result.ravel().view(np.int64)
+
+    unit = get_datetime64_unit(arr.flat[0])
+    if numpy_16:
+        if unit == 3:
+            raise ValueError('NumPy 1.6.1 business freq not supported')
+
+        if unit > 3:
+            unit = <PANDAS_DATETIMEUNIT> ((<int>unit) - 1)
+
+    for i in range(n):
+        pandas_datetime_to_datetimestruct(ivalues[i], unit, &dts)
+        iresult[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
+
+    return result
 
 #----------------------------------------------------------------------
 # Conversion routines

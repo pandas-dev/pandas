@@ -321,6 +321,41 @@ class TestTimeSeries(unittest.TestCase):
         df['A'] = rng
         self.assert_(np.issubdtype(df['A'].dtype, np.dtype('M8[ns]')))
 
+    def test_frame_add_datetime64_col_other_units(self):
+        n = 100
+
+        units = ['h', 'm', 's', 'ms', 'D', 'M', 'Y']
+
+        ns_dtype = np.dtype('M8[ns]')
+
+        for unit in units:
+            dtype = np.dtype('M8[%s]' % unit)
+            vals = np.arange(n, dtype=dtype)
+
+            df = DataFrame({'ints' : np.arange(n)}, index=np.arange(n))
+            df[unit] = vals
+
+            ex_vals = to_datetime(vals.astype('O'))
+
+            self.assert_(df[unit].dtype == ns_dtype)
+            self.assert_((df[unit].values == ex_vals).all())
+
+        # Test insertion into existing datetime64 column
+        df = DataFrame({'ints' : np.arange(n)}, index=np.arange(n))
+        df['dates'] = np.arange(n, dtype=ns_dtype)
+
+        for unit in units:
+            dtype = np.dtype('M8[%s]' % unit)
+            vals = np.arange(n, dtype=dtype)
+
+            tmp = df.copy()
+
+            tmp['dates'] = vals
+            ex_vals = to_datetime(vals.astype('O'))
+
+            self.assert_((tmp['dates'].values == ex_vals).all())
+
+
     def test_series_ctor_datetime64(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 1:59:50',
                          freq='10s')
