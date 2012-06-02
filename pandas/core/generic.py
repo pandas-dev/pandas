@@ -470,16 +470,10 @@ class NDFrame(PandasObject):
         try:
             return cache[item]
         except Exception:
-            try:
-                values = self._data.get(item)
-                res = self._box_item_values(item, values)
-                cache[item] = res
-                return res
-            except Exception: # pragma: no cover
-                from pandas.core.frame import DataFrame
-                if isinstance(item, DataFrame):
-                    raise ValueError('Cannot index using (boolean) dataframe')
-                raise
+            values = self._data.get(item)
+            res = self._box_item_values(item, values)
+            cache[item] = res
+            return res
 
     def _box_item_values(self, key, values):
         raise NotImplementedError

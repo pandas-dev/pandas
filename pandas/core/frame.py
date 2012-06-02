@@ -1653,6 +1653,12 @@ class DataFrame(NDFrame):
             return self._getitem_array(key)
         elif isinstance(self.columns, MultiIndex):
             return self._getitem_multilevel(key)
+        elif isinstance(key, DataFrame):
+            values = key.values
+            if values.dtype == bool:
+                return self.values[values]
+            else:
+                raise ValueError('Cannot index using non-boolean DataFrame')
         else:
             return self._get_item_cache(key)
 

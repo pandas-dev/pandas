@@ -151,6 +151,16 @@ class CheckIndexing(object):
         _checkit([True, True, True])
         _checkit([False, False, False])
 
+    def test_getitem_boolean_iadd(self):
+        arr = randn(5, 5)
+
+        df = DataFrame(arr.copy())
+        df[df < 0] += 1
+
+        arr[arr < 0] += 1
+
+        assert_almost_equal(df.values, arr)
+
     def test_getattr(self):
         tm.assert_series_equal(self.frame.A, self.frame['A'])
         self.assertRaises(AttributeError, getattr, self.frame,
