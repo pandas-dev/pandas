@@ -542,6 +542,16 @@ class DatetimeIndex(Int64Index):
         boxed_values = _dt_box_array(self.asi8, self.offset, self.tz)
         return Index(boxed_values, dtype=object)
 
+    def to_pydatetime(self):
+        """
+        Return DatetimeIndex as object ndarray of datetime.datetime objects
+
+        Returns
+        -------
+        datetimes : ndarray
+        """
+        return lib.ints_to_pydatetime(self.asi8, tz=self.tz)
+
     def to_period(self, freq=None):
         """
         Cast to PeriodIndex at a particular frequency

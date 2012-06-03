@@ -139,6 +139,32 @@ class TestTimeSeries(unittest.TestCase):
 
         self.assert_(isinstance(s[5], Timestamp))
 
+    def test_timestamp_to_datetime(self):
+        rng = date_range('20090415', '20090519',
+                         tz='US/Eastern')
+
+        stamp = rng[0]
+        dtval = stamp.to_pydatetime()
+        self.assertEquals(stamp, dtval)
+        self.assertEquals(stamp.tzinfo, dtval.tzinfo)
+
+    def test_index_convert_to_datetime_array(self):
+        def _check_rng(rng):
+            converted = rng.to_pydatetime()
+            self.assert_(isinstance(converted, np.ndarray))
+            for x, stamp in zip(converted, rng):
+                self.assert_(type(x) is datetime)
+                self.assertEquals(x, stamp.to_pydatetime())
+                self.assertEquals(x.tzinfo, stamp.tzinfo)
+
+        rng = date_range('20090415', '20090519')
+        rng_eastern = date_range('20090415', '20090519', tz='US/Eastern')
+        rng_utc = date_range('20090415', '20090519', tz='utc')
+
+        _check_rng(rng)
+        _check_rng(rng_eastern)
+        _check_rng(rng_utc)
+
     def test_series_ctor_plus_datetimeindex(self):
         rng = date_range('20090415', '20090519', freq='B')
         data = dict((k, 1) for k in rng)

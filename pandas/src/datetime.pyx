@@ -45,16 +45,36 @@ try:
 except NameError: # py3
     basestring = str
 
-def ints_to_pydatetime(ndarray[int64_t] arr):
+def ints_to_pydatetime(ndarray[int64_t] arr, tz=None):
     cdef:
         Py_ssize_t i, n = len(arr)
         pandas_datetimestruct dts
         ndarray[object] result = np.empty(n, dtype=object)
 
-    for i in range(n):
-        pandas_datetime_to_datetimestruct(arr[i], PANDAS_FR_ns, &dts)
-        result[i] = datetime(dts.year, dts.month, dts.day,
-                             dts.hour, dts.min, dts.sec, dts.us)
+    if tz is not None:
+        if tz is pytz.utc:
+            for i in range(n):
+                pandas_datetime_to_datetimestruct(arr[i], PANDAS_FR_ns, &dts)
+                result[i] = datetime(dts.year, dts.month, dts.day, dts.hour,
+                                     dts.min, dts.sec, dts.us, tz)
+        else:
+            trans = _get_transitions(tz)
+            deltas = _get_deltas(tz)
+            for i in range(n):
+                # Adjust datetime64 timestamp, recompute datetimestruct
+                pos = trans.searchsorted(arr[i]) - 1
+                inf = tz._transition_info[pos]
+
+                pandas_datetime_to_datetimestruct(arr[i] + deltas[pos],
+                                                  PANDAS_FR_ns, &dts)
+                result[i] = datetime(dts.year, dts.month, dts.day, dts.hour,
+                                     dts.min, dts.sec, dts.us,
+                                     tz._tzinfos[inf])
+    else:
+        for i in range(n):
+            pandas_datetime_to_datetimestruct(arr[i], PANDAS_FR_ns, &dts)
+            result[i] = datetime(dts.year, dts.month, dts.day, dts.hour,
+                                 dts.min, dts.sec, dts.us)
 
     return result
 
@@ -162,6 +182,23 @@ class Timestamp(_Timestamp):
     def replace(self, **kwds):
         return Timestamp(datetime.replace(self, **kwds),
                          offset=self.offset)
+
+    def to_pydatetime(self, warn=True):
+        """
+        If warn=True, issue warning if nanoseconds is nonzero
+        """
+        cdef:
+            pandas_datetimestruct dts
+            _TSObject ts
+
+        if self.nanosecond != 0 and warn:
+            print 'Warning: discarding nonzero nanoseconds'
+        ts = convert_to_tsobject(self, self.tzinfo)
+
+        return datetime(ts.dts.year, ts.dts.month, ts.dts.day,
+                        ts.dts.hour, ts.dts.min, ts.dts.sec,
+                        ts.dts.us, ts.tzinfo)
+
 
 class NaTType(_NaT):
 
