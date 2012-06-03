@@ -2956,7 +2956,6 @@ class DataFrame(NDFrame):
             else:
                 return self._constructor(new_data)
 
-
     def _replace_dest_dict(self, to_replace, value, inplace):
         rs = self if inplace else self.copy()
         for k, v in value.iteritems():

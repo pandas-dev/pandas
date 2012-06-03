@@ -2242,8 +2242,12 @@ copy : boolean, default False
             dd = {} # group by unique destination value
             [dd.setdefault(d, []).append(s) for s, d in to_rep.iteritems()]
 
+            masks = {}
             for d, sset in dd.iteritems(): # now replace by each dest
-                rs = _rep_one(rs, sset, d)
+                masks[d] = com.mask_missing(rs.values, sset)
+
+            for d, m in masks.iteritems():
+                np.putmask(rs.values, m, d)
             return rs
 
         if np.isscalar(to_replace):

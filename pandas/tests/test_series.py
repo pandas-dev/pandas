@@ -2668,6 +2668,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(ValueError, ser.replace, [1,2,3], [np.nan, 0])
         self.assertRaises(ValueError, ser.replace, xrange(1,3), [np.nan, 0])
 
+        ser = Series([0, 1, 2, 3, 4])
+        result = ser.replace([0, 1, 2, 3, 4], [4, 3, 2, 1, 0])
+        assert_series_equal(result, Series([4, 3, 2, 1, 0]))
+
     def test_asfreq(self):
         ts = Series([0., 1., 2.], index=[datetime(2009, 10, 30),
                                          datetime(2009, 11, 30),
