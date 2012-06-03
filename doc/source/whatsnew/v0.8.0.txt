@@ -27,6 +27,9 @@ having to do with nanosecond resolution data, so I recommend that you steer
 clear of NumPy 1.6's datetime64 API functions (though limited as they are) and
 only interact with this data using the interface that pandas provides.
 
+See the end of the 0.8.0 section for a "porting" guide listing potential issues
+for users migrating legacy codebases from pandas 0.7 or earlier to 0.8.0.
+
 Bug fixes to the 0.7.x series for legacy NumPy < 1.6 users will be provided as
 they arise. There will be no more further development in 0.7.x beyond bug
 fixes.
@@ -146,3 +149,85 @@ Other API changes
 
 - Deprecation of ``offset``, ``time_rule``, and ``timeRule`` arguments names in
   time series functions. Warnings will be printed until pandas 0.9 or 1.0.
+
+Potential porting issues for pandas <= 0.7.3 users
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The major change that may affect you in pandas 0.8.0 is that time series
+indexes use NumPy's ``datetime64`` data type instead of ``dtype=object`` arrays
+of Python's built-in ``datetime.datetime`` objects. ``DateRange`` has been
+replaced by ``DatetimeIndex`` but otherwise behaved identically. But, if you
+have code that converts ``DateRange`` or ``Index`` objects that used to contain
+``datetime.datetime`` values to plain NumPy arrays, you may have bugs lurking
+with code using scalar values because you are handing control over to NumPy:
+
+.. ipython:: python
+
+   import datetime
+   rng = date_range('1/1/2000', periods=10)
+   rng[5]
+   isinstance(rng[5], datetime.datetime)
+   rng_asarray = np.asarray(rng)
+   scalar_val = rng_asarray[5]
+   type(scalar_val)
+
+pandas's ``Timestamp`` object is a subclass of ``datetime.datetime`` that has
+nanosecond support (the ``nanosecond`` field store the nanosecond value between
+0 and 999). It should substitute directly into any code that used
+``datetime.datetime`` values before. Thus, I recommend not casting
+``DatetimeIndex`` to regular NumPy arrays.
+
+If you have code that requires an array of ``datetime.datetime`` objects, you
+have a couple of options. First, the ``asobject`` property of ``DatetimeIndex``
+produces an array of ``Timestamp`` objects:
+
+.. ipython:: python
+
+   stamp_array = rng.asobject
+   stamp_array
+   stamp_array[5]
+
+To get an array of proper ``datetime.datetime`` objects, use the
+``to_pydatetime`` method:
+
+.. ipython:: python
+
+   dt_array = rng.to_pydatetime()
+   dt_array
+   dt_array[5]
+
+matplotlib knows how to handle ``datetime.datetime`` but not Timestamp
+objects. While I recommend that you plot time series using ``TimeSeries.plot``,
+you can either use ``to_pydatetime`` or register a converter for the Timestamp
+type. See `matplotlib documentation
+<http://matplotlib.sourceforge.net/api/units_api.html>`__ for more on this.
+
+.. warning::
+
+    There are bugs in the user-facing API with the nanosecond datetime64 unit
+    in NumPy 1.6. In particular, the string version of the array shows garbage
+    values, and conversion to ``dtype=object`` is similarly broken.
+
+    .. ipython:: python
+
+       rng = date_range('1/1/2000', periods=10)
+       rng
+       np.asarray(rng)
+       converted = np.asarray(rng, dtype=object)
+       converted[5]
+
+    **Trust me: don't panic**. If you are using NumPy 1.6 and restrict your
+    interaction with ``datetime64`` values to pandas's API you will be just
+    fine. There is nothing wrong with the data-type (a 64-bit integer
+    internally); all of the important data processing happens in pandas and is
+    heavily tested. I strongly recommend that you **do not work directly with
+    datetime64 arrays in NumPy 1.6** and only use the pandas API.
+
+
+**Support for non-unique indexes**: In the latter case, you may have code
+inside a ``try:... catch:`` block that failed due to the index not being
+unique. In many cases it will no longer fail (some method like ``append`` still
+check for uniqueness unless disabled). However, all is not lost: you can
+inspect ``index.is_unique`` and raise an exception explicitly if it is
+``False`` or go to a different code branch.
+
