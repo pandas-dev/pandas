@@ -20,6 +20,7 @@ from pandas.tseries.period import Period, PeriodIndex
 from pandas.tseries.index import DatetimeIndex
 from pandas.core.index import Index
 from pandas.core.series import Series
+import pandas.core.common as com
 
 import warnings
 
@@ -141,8 +142,8 @@ def get_datevalue(date, freq):
         return date.asfreq(freq).ordinal
     elif isinstance(date, (str, datetime, pydt.date, pydt.time)):
         return Period(date, freq).ordinal
-    elif isinstance(date, (int, float)) or \
-            (isinstance(date, np.ndarray) and (date.size == 1)):
+    elif (com.is_integer(date) or com.is_float(date) or
+          (isinstance(date, np.ndarray) and (date.size == 1))):
         return date
     elif date is None:
         return None
