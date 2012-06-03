@@ -505,7 +505,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         expected = df.ix[('a', 'y')][[1, 0]]
         assert_frame_equal(result, expected)
 
-        self.assertRaises(KeyError, df.ix.__getitem__, (('a', 'foo'), :))
+        key = (('a', 'foo'), slice(None, None, None))
+        self.assertRaises(KeyError, df.ix.__getitem__, key)
 
     def test_sortlevel(self):
         df = self.frame.copy()
