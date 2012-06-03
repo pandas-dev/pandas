@@ -250,6 +250,11 @@ Scatter plot matrix
 setting `kind='kde'`:
 
 .. ipython:: python
+   :suppress:
+
+   plt.figure();
+
+.. ipython:: python
 
    ser = Series(np.random.randn(1000))
 

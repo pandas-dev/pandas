@@ -237,6 +237,51 @@ for interpolation methods outside of the filling methods described above.
 
    plt.close('all')
 
+.. _missing_data.replace:
+
+Replacing Generic Values
+~~~~~~~~~~~~~~~~~~~~~~~~
+Often times we want to replace arbitrary values with other values. New in v0.8
+is the ``replace`` method in Series/DataFrame that provides an efficient yet
+flexible way to perform such replacements.
+
+For a Series, you can replace a single value or a list of values by another
+value:
+
+.. ipython:: python
+
+   ser = Series([0., 1., 2., 3., 4.])
+
+   ser.replace(0, 5)
+
+You can replace a list of values by a list of other values:
+
+.. ipython:: python
+
+   ser.replace([0, 1, 2, 3, 4], [4, 3, 2, 1, 0])
+
+You can also specify a mapping dict:
+
+.. ipython:: python
+
+   ser.replace({0: 10, 1: 100})
+
+For a DataFrame, you can specify individual values by column:
+
+.. ipython:: python
+
+   df = DataFrame({'a': [0, 1, 2, 3, 4], 'b': [5, 6, 7, 8, 9]})
+
+   df.replace({'a': 0, 'b': 5}, 100)
+
+Instead of replacing with specified values, you can treat all given values as
+missing and interpolate over them:
+
+.. ipython:: python
+
+   ser.replace([1, 2, 3], method='pad')
+
+
 Missing data casting rules and indexing
 ---------------------------------------
 

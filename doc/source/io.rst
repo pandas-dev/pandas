@@ -296,6 +296,28 @@ a single date rather than the entire array.
 
    os.remove('tmp.csv')
 
+.. _io.dayfirst:
+
+International Date Formats
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+While US date formats tend to be MM/DD/YYYY, many international formats use
+DD/MM/YYYY instead. For convenience, a ``dayfirst`` keyword is provided:
+
+.. ipython:: python
+   :suppress:
+
+   data = "date,value,cat\n1/6/2000,5,a\n2/6/2000,10,b\n3/6/2000,15,c"
+   with open('tmp.csv', 'w') as fh:
+        fh.write(data)
+
+.. ipython:: python
+
+   print open('tmp.csv').read()
+
+   read_csv('tmp.csv', parse_dates=[0])
+
+   read_csv('tmp.csv', dayfirst=True, parse_dates=[0])
+
 .. _io.thousands:
 
 Thousand Separators

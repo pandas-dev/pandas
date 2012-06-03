@@ -110,12 +110,13 @@ Other new features
 - Add :ref:`limit <missing_data.fillna.limit>` argument to fillna/reindex
 - More flexible multiple function application in GroupBy, and can pass list
   (name, function) tuples to get result in particular order with given names
-- Add flexible ``replace`` method for efficiently substituting values
+- Add flexible :ref:`replace <missing_data.replace>` method for efficiently
+  substituting values
 - Enhanced :ref:`read_csv/read_table <io.parse_dates>` for reading time series
   data and converting multiple columns to dates
 - Add :ref:`comments <io.comments>` option to parser functions: read_csv, etc.
-- Add ``dayfirst`` option to parser functions for parsing international
-  DD/MM/YYYY dates
+- Add :ref`dayfirst <io.dayfirst>` option to parser functions for parsing
+  international DD/MM/YYYY dates
 - Allow the user to specify the CSV reader :ref:`dialect <io.dialect>` to
   control quoting etc.
 - Handling :ref:`thousands <io.thousands>` separators in read_csv to improve
@@ -125,7 +126,7 @@ Other new features
 - Move to klib-based hash tables for indexing; better performance and less
   memory usage than Python's dict
 - Add first, last, min, max, and prod optimized GroupBy functions
-- New ordered_merge function
+- New :ref:`ordered_merge <merging.ordered_merge>` function
 - Add flexible comparison instance methods eq, ne, lt, gt, etc. to DataFrame,
   Series
 - Improve :ref:`scatter_matrix <visualization.scatter_matrix>` plotting
@@ -137,7 +138,8 @@ Other new features
 - Add max_colwidth configuration option for DataFrame console output
 - Interpolate Series values using index values
 - Can select multiple columns from GroupBy
-- Add Series/DataFrame.:ref:`update <merging.combine_first.update>` methods for updating values in place
+- Add :ref:`update <merging.combine_first.update>` methods to Series/DataFrame
+  for updating values in place
 
 Other API changes
 ~~~~~~~~~~~~~~~~~
