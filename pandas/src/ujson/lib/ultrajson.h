@@ -42,8 +42,8 @@ Encoder notes:
 ------------------
 
 :: Cyclic references ::
-Cyclic referenced objects are not detected. 
-Set JSONObjectEncoder.recursionMax to suitable value or make sure input object 
+Cyclic referenced objects are not detected.
+Set JSONObjectEncoder.recursionMax to suitable value or make sure input object
 tree doesn't have cyclic references.
 
 */
@@ -80,9 +80,7 @@ Dictates and limits how much stack space for buffers UltraJSON will use before r
 typedef __int64 JSINT64;
 typedef unsigned __int64 JSUINT64;
 
-#ifndef __MINGW32__
 typedef unsigned __int32 uint32_t;
-#endif
 typedef __int32 JSINT32;
 typedef uint32_t JSUINT32;
 typedef unsigned __int8 JSUINT8;
@@ -93,7 +91,7 @@ typedef __int64 JSLONG;
 #define EXPORTFUNCTION __declspec(dllexport)
 
 #define FASTCALL_MSVC __fastcall
-#define FASTCALL_ATTR 
+#define FASTCALL_ATTR
 #define INLINE_PREFIX __inline
 
 #else
@@ -105,7 +103,7 @@ typedef u_int64_t JSUINT64;
 typedef int32_t JSINT32;
 typedef u_int32_t JSUINT32;
 
-#define FASTCALL_MSVC 
+#define FASTCALL_MSVC
 #define FASTCALL_ATTR __attribute__((fastcall))
 #define INLINE_PREFIX inline
 
@@ -144,7 +142,7 @@ enum JSTYPES
     JT_DOUBLE,  //(double)
     JT_UTF8,        //(char 8-bit)
     JT_ARRAY,       // Array structure
-    JT_OBJECT,  // Key/Value structure 
+    JT_OBJECT,  // Key/Value structure
     JT_INVALID, // Internal, do not return nor expect
 };
 
@@ -179,8 +177,8 @@ typedef struct __JSONObjectEncoder
     double (*getDoubleValue)(JSOBJ obj, JSONTypeContext *tc);
 
     /*
-    Begin iteration of an iteratable object (JS_ARRAY or JS_OBJECT) 
-    Implementor should setup iteration state in ti->prv 
+    Begin iteration of an iteratable object (JS_ARRAY or JS_OBJECT)
+    Implementor should setup iteration state in ti->prv
     */
     JSPFN_ITERBEGIN iterBegin;
 
@@ -201,20 +199,20 @@ typedef struct __JSONObjectEncoder
     The is responsible for the life-cycle of the returned string. Use iterNext/iterEnd and ti->prv to keep track of current object
     */
     JSPFN_ITERGETVALUE iterGetValue;
-    
+
     /*
-    Return name of iterator. 
+    Return name of iterator.
     The is responsible for the life-cycle of the returned string. Use iterNext/iterEnd and ti->prv to keep track of current object
     */
     JSPFN_ITERGETNAME iterGetName;
-    
+
     /*
     Release a value as indicated by setting ti->release = 1 in the previous getValue call.
     The ti->prv array should contain the necessary context to release the value
     */
     void (*releaseObject)(JSOBJ obj);
 
-    /* Library functions 
+    /* Library functions
     Set to NULL to use STDLIB malloc,realloc,free */
     JSPFN_MALLOC malloc;
     JSPFN_REALLOC realloc;
@@ -258,11 +256,11 @@ buffer - Preallocated buffer to store result in. If NULL function allocates own 
 cbBuffer - Length of buffer (ignored if buffer is NULL)
 
 Returns:
-Encoded JSON object as a null terminated char string. 
+Encoded JSON object as a null terminated char string.
 
 NOTE:
-If the supplied buffer wasn't enough to hold the result the function will allocate a new buffer. 
-Life cycle of the provided buffer must still be handled by caller. 
+If the supplied buffer wasn't enough to hold the result the function will allocate a new buffer.
+Life cycle of the provided buffer must still be handled by caller.
 
 If the return value doesn't equal the specified buffer caller must release the memory using
 JSONObjectEncoder.free or free() as specified when calling this function.
