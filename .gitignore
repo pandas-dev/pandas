@@ -22,3 +22,4 @@ scikits
 .coverage
 pandas.egg-info
 *\#*\#
+.tox
