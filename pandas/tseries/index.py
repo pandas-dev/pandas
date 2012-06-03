@@ -253,13 +253,13 @@ class DatetimeIndex(Int64Index):
             # Convert local to UTC
             ints = subarr.view('i8')
             lib.tz_localize_check(ints, tz)
-            subarr = lib.tz_convert(ints, tz, _utc())
+            subarr = lib.tz_convert(ints, tz, getattr(data, 'tz', _utc()))
             subarr = subarr.view('M8[ns]')
 
         subarr = subarr.view(cls)
         subarr.name = name
         subarr.offset = offset
-        subarr.tz = tz
+        subarr.tz = getattr(data, 'tz', tz)
 
         if verify_integrity and len(subarr) > 0:
             if offset is not None and not infer_freq:
@@ -540,7 +540,9 @@ class DatetimeIndex(Int64Index):
 
     def _get_object_index(self):
         boxed_values = _dt_box_array(self.asi8, self.offset, self.tz)
-        return Index(boxed_values, dtype=object)
+        idx = Index(boxed_values, dtype=object)
+        idx.tz = self.tz
+        return idx
 
     def to_period(self, freq=None):
         """
