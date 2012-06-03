@@ -251,6 +251,22 @@ class TestTimeZoneSupport(unittest.TestCase):
         rng_repr = repr(rng)
         self.assert_('2010-04-13 00:00:00' in rng_repr)
 
+    def test_index_astype_asobject_tzinfos(self):
+        # #1345
+        rng = date_range('4/13/2010', '5/6/2010', tz='US/Eastern')
+
+        objs = rng.asobject
+        for i, x in enumerate(objs):
+            exval = rng[i]
+            self.assertEquals(x, exval)
+            self.assertEquals(x.tzinfo, exval.tzinfo)
+
+        objs = rng.astype(object)
+        for i, x in enumerate(objs):
+            exval = rng[i]
+            self.assertEquals(x, exval)
+            self.assertEquals(x.tzinfo, exval.tzinfo)
+
 class TestTimeZones(unittest.TestCase):
 
     def setUp(self):
