@@ -841,7 +841,7 @@ different time zones. By default, pandas objects are time zone unaware:
 
 .. ipython:: python
 
-   rng = date_range('1/1/2012 00:00', periods=10, freq='D')
+   rng = date_range('3/6/2012 00:00', periods=15, freq='D')
    print(rng.tz)
 
 To supply the time zone, you can use the ``tz`` keyword to ``date_range`` and
@@ -849,7 +849,7 @@ other functions:
 
 .. ipython:: python
 
-   rng_utc = date_range('1/1/2012 00:00', periods=10, freq='D', tz='UTC')
+   rng_utc = date_range('3/6/2012 00:00', periods=10, freq='D', tz='UTC')
    print(rng_utc.tz)
 
 You can use the ``tz_convert`` method to convert pandas objects to a particular
@@ -864,5 +864,25 @@ time zone:
 
    ts_utc.tz_convert('US/Eastern')
 
-Under the hood, pandas stores everything in UTC value to make zone and DST
-conversions simpler to implement.
+Under the hood, all timestamps are stored in UTC. Scalar values from a
+``DatetimeIndex`` with a time zone will have their fields (day, hour, minute)
+localized to the time zone. However, timestamps with the same UTC value are
+still considered to be equal even if they are in different time zones:
+
+.. ipython:: python
+
+   rng_eastern = rng_utc.tz_convert('US/Eastern')
+   rng_berlin = rng_utc.tz_convert('Europe/Berlin')
+
+   rng_eastern[5]
+   rng_berlin[5]
+   rng_eastern[5] == rng_berlin[5]
+
+Like Series, DataFrame, and DatetimeIndex, Timestamps can be converted to other
+time zones using ``tz_convert``:
+
+.. ipython:: python
+
+   rng_eastern[5]
+   rng_berlin[5]
+   rng_eastern[5].tz_convert('Europe/Berlin')
