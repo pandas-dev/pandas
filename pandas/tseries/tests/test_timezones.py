@@ -220,14 +220,6 @@ class TestTimeZoneSupport(unittest.TestCase):
         self.assertRaises(Exception, tools._infer_tzinfo, start, end)
         self.assertRaises(Exception, tools._infer_tzinfo, end, start)
 
-    def test_asobject_tz_box(self):
-        tz = pytz.timezone('US/Eastern')
-        index = DatetimeIndex(start='1/1/2005', periods=10, tz=tz,
-                              freq='B')
-
-        result = index.asobject
-        self.assert_(result[0].tz is tz)
-
     def test_tz_string(self):
         result = date_range('1/1/2000', periods=10, tz='US/Eastern')
         expected = date_range('1/1/2000', periods=10,
@@ -253,7 +245,9 @@ class TestTimeZoneSupport(unittest.TestCase):
 
     def test_index_astype_asobject_tzinfos(self):
         # #1345
-        rng = date_range('4/13/2010', '5/6/2010', tz='US/Eastern')
+
+        # dates around a dst transition
+        rng = date_range('2/13/2010', '5/6/2010', tz='US/Eastern')
 
         objs = rng.asobject
         for i, x in enumerate(objs):
