@@ -1202,7 +1202,10 @@ class SeriesGroupBy(GroupBy):
         if isinstance(arg, dict):
             columns = arg.keys()
             arg = arg.items()
-        elif isinstance(arg[0], (tuple, list)):
+        elif any(isinstance(x, (tuple, list)) for x in arg):
+            arg = [(x, x) if not isinstance(x, (tuple, list)) else x
+                   for x in arg]
+
             # indicated column order
             columns = list(zip(*arg))[0]
         else:

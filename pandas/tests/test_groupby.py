@@ -1776,6 +1776,20 @@ class TestGroupBy(unittest.TestCase):
 
         self.assert_(np.array_equal(result.columns, exp_cols))
 
+    def test_multiple_functions_tuples_and_non_tuples(self):
+        # #1359
+
+        funcs = [('foo', 'mean'), 'std']
+        ex_funcs = [('foo', 'mean'), ('std', 'std')]
+
+        result = self.df.groupby('A')['C'].agg(funcs)
+        expected = self.df.groupby('A')['C'].agg(ex_funcs)
+        assert_frame_equal(result, expected)
+
+        result = self.df.groupby('A').agg(funcs)
+        expected = self.df.groupby('A').agg(ex_funcs)
+        assert_frame_equal(result, expected)
+
     def test_more_flexible_frame_multi_function(self):
         from pandas import concat
 
