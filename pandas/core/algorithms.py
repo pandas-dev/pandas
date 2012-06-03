@@ -92,7 +92,7 @@ def _unique_generic(values, table_type, type_caster):
     values = type_caster(values)
     table = table_type(len(values))
     uniques = table.unique(values)
-    return uniques
+    return type_caster(uniques)
 
 
 def factorize(values, sort=False, order=None, na_sentinel=-1):

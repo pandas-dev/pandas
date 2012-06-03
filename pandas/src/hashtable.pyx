@@ -29,6 +29,64 @@ def list_to_object_array(list obj):
     return arr
 
 
+cdef extern from "kvec.h":
+
+    ctypedef struct kv_int64_t:
+        size_t n, m
+        int64_t* a
+
+    ctypedef struct kv_object_t:
+        size_t n, m
+        PyObject** a
+
+    inline void kv_object_push(kv_object_t *v, PyObject* x)
+    inline void kv_object_destroy(kv_object_t *v)
+    inline void kv_int64_push(kv_int64_t *v, int64_t x)
+
+
+cdef class ObjectVector:
+
+    cdef:
+        kv_object_t vec
+
+    def __array__(self):
+        """ Here we use the __array__ method, that is called when numpy
+            tries to get an array from the object."""
+        cdef npy_intp shape[1]
+        shape[0] = <npy_intp> self.vec.n
+
+        # Create a 1D array, of length 'size'
+        return PyArray_SimpleNewFromData(1, shape, np.NPY_OBJECT, self.vec.a)
+
+    cdef inline append(self, object o):
+        kv_object_push(&self.vec, <PyObject*> o)
+
+    def __dealloc__(self):
+        kv_object_destroy(&self.vec)
+
+
+cdef class Int64Vector:
+
+    cdef:
+        kv_int64_t vec
+
+    def __array__(self):
+        """ Here we use the __array__ method, that is called when numpy
+            tries to get an array from the object."""
+        cdef npy_intp shape[1]
+        shape[0] = <npy_intp> self.vec.n
+
+        # Create a 1D array, of length 'size'
+        return PyArray_SimpleNewFromData(1, shape, np.NPY_INT64,
+                                         self.vec.a)
+
+    cdef inline append(self, int64_t x):
+        kv_int64_push(&self.vec, x)
+
+    def __dealloc__(self):
+        free(self.vec.a)
+
+
 cdef class HashTable:
     pass
 
@@ -449,9 +507,10 @@ cdef class Int64HashTable(HashTable):
             Py_ssize_t i, n = len(values)
             Py_ssize_t idx, count = 0
             int ret = 0
+            ndarray result
             int64_t val
             khiter_t k
-            list uniques = []
+            Int64Vector uniques = Int64Vector()
 
         # TODO: kvec
 
@@ -463,7 +522,11 @@ cdef class Int64HashTable(HashTable):
                 uniques.append(val)
                 count += 1
 
-        return uniques
+        result = np.array(uniques, copy=False)
+        result.base = <PyObject*> uniques
+        Py_INCREF(uniques)
+
+        return result
 
 def value_count_int64(ndarray[int64_t] values):
     cdef:
@@ -717,8 +780,9 @@ cdef class PyObjectHashTable(HashTable):
             Py_ssize_t idx, count = 0
             int ret = 0
             object val
+            ndarray result
             khiter_t k
-            list uniques = []
+            ObjectVector uniques = ObjectVector()
             bint seen_na = 0
 
         for i in range(n):
@@ -733,7 +797,11 @@ cdef class PyObjectHashTable(HashTable):
                 seen_na = 1
                 uniques.append(ONAN)
 
-        return uniques
+        result = np.array(uniques, copy=False)
+        result.base = <PyObject*> uniques
+        Py_INCREF(uniques)
+
+        return result
 
     cpdef get_labels(self, ndarray[object] values, list uniques,
                      Py_ssize_t count_prior, int64_t na_sentinel):
