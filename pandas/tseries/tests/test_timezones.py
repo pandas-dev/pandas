@@ -228,6 +228,14 @@ class TestTimeZoneSupport(unittest.TestCase):
         result = index.asobject
         self.assert_(result[0].tz is tz)
 
+    def test_asobject_tz(self):
+        tz = pytz.timezone('US/Eastern')
+        index = DatetimeIndex(start='1/1/2005', periods=10, tz=tz,
+                              freq='B')
+
+        result = DatetimeIndex(index.asobject)
+        self.assert_(result.tz is tz)
+
     def test_tz_string(self):
         result = date_range('1/1/2000', periods=10, tz='US/Eastern')
         expected = date_range('1/1/2000', periods=10,
