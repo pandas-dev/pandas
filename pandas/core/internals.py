@@ -554,7 +554,7 @@ class BlockManager(object):
         return tuple(len(ax) for ax in self.axes)
 
     def _verify_integrity(self):
-        _union_block_items(self.blocks)
+        # _union_block_items(self.blocks)
         mgr_shape = self.shape
         for block in self.blocks:
             assert(block.ref_items is self.items)
@@ -630,14 +630,6 @@ class BlockManager(object):
     def get_series_dict(self):
         # For DataFrame
         return _blocks_to_series_dict(self.blocks, self.axes[1])
-
-    @classmethod
-    def from_blocks(cls, blocks, index):
-        # also checks for overlap
-        items = _union_block_items(blocks)
-        for blk in blocks:
-            blk.ref_items = items
-        return BlockManager(blocks, [items, index])
 
     def __contains__(self, item):
         return item in self.items
@@ -782,6 +774,25 @@ class BlockManager(object):
     def get(self, item):
         _, block = self._find_block(item)
         return block.get(item)
+
+    def iget(self, i):
+        item = self.items[i]
+        if self.items.is_unique:
+            return self.get(item)
+        else:
+            # ugh
+            inds, = (self.items == item).nonzero()
+
+            _, block = self._find_block(item)
+
+            binds, = (block.items == item).nonzero()
+
+            for j, (k, b) in enumerate(zip(inds, binds)):
+                if i == k:
+                    return block.values[b]
+
+            raise Exception('Cannot have duplicate column names '
+                            'split across dtypes')
 
     def get_scalar(self, tup):
         """

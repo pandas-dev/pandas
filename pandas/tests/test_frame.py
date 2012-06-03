@@ -1095,6 +1095,22 @@ class CheckIndexing(object):
         expected = df.reindex(columns=df.columns[[1, 2, 4, 6]])
         assert_frame_equal(result, expected)
 
+    def test_irow_icol_duplicates(self):
+        df = DataFrame(np.random.rand(3,3), columns=list('ABC'),
+                       index=list('aab'))
+
+        result = df.irow(0)
+        result2 = df.ix[0]
+        self.assert_(isinstance(result, Series))
+        assert_almost_equal(result.values, df.values[0])
+        assert_series_equal(result, result2)
+
+        result = df.T.icol(0)
+        result2 = df.T.ix[:, 0]
+        self.assert_(isinstance(result, Series))
+        assert_almost_equal(result.values, df.values[0])
+        assert_series_equal(result, result2)
+
     def test_iget_value(self):
         for i, row in enumerate(self.frame.index):
             for j, col in enumerate(self.frame.columns):
@@ -4490,12 +4506,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             'C' : 'c',
             'D' : 'd'
         }
-        bad_mapping = {
-            'A' : 'a',
-            'B' : 'b',
-            'C' : 'b',
-            'D' : 'd'
-        }
 
         renamed = self.frame.rename(columns=mapping)
         renamed2 = self.frame.rename(columns=str.lower)
@@ -4503,9 +4513,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(renamed, renamed2)
         assert_frame_equal(renamed2.rename(columns=str.upper),
                            self.frame)
-
-        self.assertRaises(Exception, self.frame.rename,
-                          columns=bad_mapping)
 
         # index
 

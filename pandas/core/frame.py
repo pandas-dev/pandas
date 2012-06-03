@@ -1562,7 +1562,7 @@ class DataFrame(NDFrame):
 
             return result.set_value(index, col, value)
 
-    def irow(self, i):
+    def irow(self, i, copy=False):
         """
         Retrieve the i-th row or rows of the DataFrame by location
 
@@ -1585,7 +1585,12 @@ class DataFrame(NDFrame):
             if isinstance(label, Index):
                 return self.reindex(label)
             else:
-                return self.xs(label)
+                try:
+                    new_values = self._data.fast_2d_xs(i, copy=copy)
+                except:
+                    new_values = self._data.fast_2d_xs(i, copy=True)
+                return Series(new_values, index=self.columns,
+                              name=self.index[i])
 
     def icol(self, i):
         """
@@ -1609,7 +1614,18 @@ class DataFrame(NDFrame):
             lab_slice = slice(label[0], label[-1])
             return self.ix[:, lab_slice]
         else:
-            return self[label]
+            label = self.columns[i]
+            if isinstance(label, Index):
+                return self.reindex(columns=label)
+
+            values = self._data.iget(i)
+            return Series(values, index=self.index, name=label)
+
+    def _ixs(self, i, axis=0):
+        if axis == 0:
+            return self.irow(i)
+        else:
+            return self.icol(i)
 
     def iget_value(self, i, j):
         """
@@ -1714,7 +1730,12 @@ class DataFrame(NDFrame):
             return self._get_item_cache(key)
 
     def _box_item_values(self, key, values):
-        return Series(values, index=self.index, name=key)
+        if values.ndim == 2:
+            item_cols = self.columns[self.columns.get_loc(key)]
+            return DataFrame(values.T, columns=item_cols,
+                             index=self.index)
+        else:
+            return Series(values, index=self.index, name=key)
 
     def __getattr__(self, name):
         """After regular attribute access, try looking up the name of a column.

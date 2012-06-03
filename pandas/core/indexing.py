@@ -40,6 +40,9 @@ class _NDFrameIndexer(object):
         except Exception:
             return self.obj.xs(label, axis=axis, copy=True)
 
+    def _get_loc(self, key, axis=0):
+        return self.obj._ixs(key, axis=axis)
+
     def _slice(self, obj, axis=0):
         return self.obj._slice(obj, axis=axis)
 
@@ -228,14 +231,14 @@ class _NDFrameIndexer(object):
                             raise
 
                 if not is_int_index:
-                    idx = labels[key]
+                    return self._get_loc(key, axis=0)
 
             return self._get_label(idx, axis=0)
         else:
             labels = self.obj._get_axis(axis)
             lab = key
             if com.is_integer(key) and not _is_integer_index(labels):
-                lab = labels[key]
+                return self._get_loc(key, axis=axis)
             return self._get_label(lab, axis=axis)
 
     def _getitem_iterable(self, key, axis=0):
