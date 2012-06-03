@@ -6,7 +6,7 @@ Uploaders: Yaroslav Halchenko <debian@onerussian.com>, Michael Hanke <michael.ha
 Build-Depends: debhelper (>= 7.0.50),
                python-all-dev (>= 2.5), python-support (>= 0.6),
                python-setuptools, cython (>= 0.12~),
-               python-numpy, python-dateutil,
+               python-numpy (>= 1:1.6~), python-dateutil,
                python-scipy,
                python-scikits.statsmodels,
                python-tz,
@@ -24,7 +24,7 @@ Vcs-Git: git://github.com/neurodebian/pandas.git
 Package: python-pandas
 Architecture: all
 Depends: ${misc:Depends}, ${python:Depends},
-         python-numpy,
+         python-numpy (>= 1:1.6~),
          python-dateutil,
          python-pandas-lib(>= ${source:Version})
 Recommends: python-scipy,

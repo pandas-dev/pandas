@@ -2,6 +2,7 @@ pandas (0.8.0~rc1+git18-g8948f49-1) unstable; urgency=low
 
   * Fresh upstream release candidate
     - all patches dropped (upstreamed)
+    - requires numpy >= 1.6
 
  -- Yaroslav Halchenko <debian@onerussian.com>  Mon, 28 May 2012 22:15:49 -0400
 
