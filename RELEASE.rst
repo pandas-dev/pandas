@@ -168,6 +168,7 @@ pandas 0.8.0
   - Consistently set name on groupby pieces (#184)
   - Treat dict return values as Series in GroupBy.apply (#823)
   - Respect column selection for DataFrame in in GroupBy.transform (#1365)
+  - Fix MultiIndex partial indexing bug (#1352)
 
 pandas 0.7.3
 ============

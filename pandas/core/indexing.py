@@ -168,11 +168,13 @@ class _NDFrameIndexer(object):
             except TypeError:
                 # slices are unhashable
                 pass
-            except Exception:
+            except Exception, e1:
                 if isinstance(tup[0], slice):
                     raise IndexingError
-                if tup[0] not in ax0: # and tup[0] not in ax0.levels[0]:
-                    raise
+                try:
+                    loc = ax0.get_loc(tup[0])
+                except KeyError:
+                    raise e1
 
         # to avoid wasted computation
         # df.ix[d1:d2, 0] -> columns first (True)
