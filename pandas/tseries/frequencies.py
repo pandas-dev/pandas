@@ -47,7 +47,7 @@ def get_freq_code(freqstr):
 
     if isinstance(freqstr, tuple):
         if (com.is_integer(freqstr[0]) and
-            com.is_integer(freqstr[1]))
+            com.is_integer(freqstr[1])):
             #e.g., freqstr = (2000, 1)
             return freqstr
         else:
