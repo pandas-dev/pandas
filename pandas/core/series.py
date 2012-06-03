@@ -2239,15 +2239,23 @@ copy : boolean, default False
 
         def _rep_dict(rs, to_rep): # replace {[src] -> dest}
 
+            all_src = set()
             dd = {} # group by unique destination value
-            [dd.setdefault(d, []).append(s) for s, d in to_rep.iteritems()]
+            for s, d in to_rep.iteritems():
+                dd.setdefault(d, []).append(s)
+                all_src.add(s)
 
-            masks = {}
-            for d, sset in dd.iteritems(): # now replace by each dest
-                masks[d] = com.mask_missing(rs.values, sset)
+            if any(d in all_src for d in dd.keys()):
+                # don't clobber each other at the cost of temporaries
+                masks = {}
+                for d, sset in dd.iteritems(): # now replace by each dest
+                    masks[d] = com.mask_missing(rs.values, sset)
 
-            for d, m in masks.iteritems():
-                np.putmask(rs.values, m, d)
+                for d, m in masks.iteritems():
+                    np.putmask(rs.values, m, d)
+            else: # if no risk of clobbering then simple
+                for d, sset in dd.iteritems():
+                    _rep_one(rs, sset, d)
             return rs
 
         if np.isscalar(to_replace):

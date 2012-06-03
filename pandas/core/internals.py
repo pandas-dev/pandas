@@ -253,6 +253,16 @@ class Block(object):
         else:
             return make_block(new_values, self.items, self.ref_items)
 
+    def putmask(self, mask, new, inplace=False):
+        new_values = self.values if inplace else self.values.copy()
+        if self._can_hold_element(new):
+            new = self._try_cast(new)
+            np.putmask(new_values, mask, new)
+        if inplace:
+            return self
+        else:
+            return make_block(new_values, self.items, self.ref_items)
+
     def interpolate(self, method='pad', axis=0, inplace=False,
                     limit=None, missing=None):
         values = self.values if inplace else self.values.copy()
@@ -1126,6 +1136,22 @@ class BlockManager(object):
         if inplace:
             return self
         return BlockManager(new_blocks, self.axes)
+
+    def _replace_list(self, src_lst, dest_lst):
+        sset = set(src_lst)
+        if any([k in sset for k in dest_lst]):
+            masks = {}
+            for s in src_lst:
+                masks[s] = [b.values == s for b in self.blocks]
+
+            for s, d in zip(src_lst, dest_lst):
+                [b.putmask(masks[s][i], d, inplace=True) for i, b in
+                 enumerate(self.blocks)]
+        else:
+            for s, d in zip(src_lst, dest_lst):
+                self.replace(s, d, inplace=True)
+
+        return self
 
     @property
     def block_id_vector(self):

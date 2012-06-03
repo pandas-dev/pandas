@@ -3974,6 +3974,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             expected[k] = v.replace(to_rep[k], values[k])
         assert_frame_equal(filled, DataFrame(expected))
 
+        result = df.replace([0, 2, 5], [5, 2, 0])
+        expected = DataFrame({'A' : [np.nan, 5, np.inf], 'B' : [5, 2, 0],
+                              'C' : ['', 'asdf', 'fd']})
+        assert_frame_equal(result, expected)
+
         # dict to scalar
         filled = df.replace(to_rep, 0)
         expected = {}

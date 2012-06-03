@@ -2896,8 +2896,7 @@ class DataFrame(NDFrame):
                                          (len(to_replace), len(value)))
 
                     new_data = self._data if inplace else self.copy()._data
-                    for s, d in zip(to_replace, value):
-                        new_data = new_data.replace(s, d, inplace=True)
+                    new_data._replace_list(to_replace, value)
 
                 else: # [np.nan, ''] -> 0
                     new_data = self._data.replace(to_replace, value,
