@@ -28,7 +28,7 @@ clear of NumPy 1.6's datetime64 API functions (though limited as they are) and
 only interact with this data using the interface that pandas provides.
 
 Bug fixes to the 0.7.x series for legacy NumPy < 1.6 users will be provided as
-they arise. There will be no more further development in 1.7.x beyond bug
+they arise. There will be no more further development in 0.7.x beyond bug
 fixes.
 
 Time series changes and improvements
@@ -38,6 +38,10 @@ Time series changes and improvements
 
     With this release, legacy scikits.timeseries users should be able to port
     their code to use pandas.
+
+.. note::
+
+    See :ref:`documentation <timeseries>` for overview of pandas timeseries API.
 
 - New datetime64 representation **speeds up join operations and data
   alignment**, **reduces memory usage**, and improve serialization /
@@ -133,7 +137,7 @@ Other new features
 - Add max_colwidth configuration option for DataFrame console output
 - Interpolate Series values using index values
 - Can select multiple columns from GroupBy
-- Add Series/DataFrame.update methods for updating values in place
+- Add Series/DataFrame.:ref:`update <merging.combine_first.update>` methods for updating values in place
 
 Other API changes
 ~~~~~~~~~~~~~~~~~
