@@ -154,12 +154,12 @@ class Period(object):
         return hash((self.ordinal, self.freq))
 
     def __add__(self, other):
-        if isinstance(other, (int, long)):
+        if com.is_integer(other):
             return Period(ordinal=self.ordinal + other, freq=self.freq)
         raise ValueError("Cannot add with non-integer value")
 
     def __sub__(self, other):
-        if isinstance(other, (int, long)):
+        if com.is_integer(other):
             return Period(ordinal=self.ordinal - other, freq=self.freq)
         if isinstance(other, Period):
             if other.freq != self.freq:
@@ -806,12 +806,12 @@ class PeriodIndex(Int64Index):
         return PeriodIndex(data=self.values + n, freq=self.freq)
 
     def __add__(self, other):
-        if isinstance(other, (int, long)):
+        if com.is_integer(other):
             return PeriodIndex(ordinal=self.values + other, freq=self.freq)
         return super(PeriodIndex, self).__add__(other)
 
     def __sub__(self, other):
-        if isinstance(other, (int, long)):
+        if com.is_integer(other):
             return PeriodIndex(ordinal=self.values - other, freq=self.freq)
         if isinstance(other, Period):
             if other.freq != self.freq:
