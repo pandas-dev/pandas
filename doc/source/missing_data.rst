@@ -155,6 +155,23 @@ can propagate non-null values forward or backward:
    df
    df.fillna(method='pad')
 
+.. _missing_data.fillna.limit:
+
+**Limit the amount of filling**
+
+If we only want consecutive gaps filled up to a certain number of data points,
+we can use the `limit` keyword:
+
+.. ipython:: python
+   :suppress:
+
+   df.ix[2:4, :] = np.nan
+
+.. ipython:: python
+
+   df
+   df.fillna(method='pad', limit=1)
+
 To remind you, these are the available filling methods:
 
 .. csv-table::

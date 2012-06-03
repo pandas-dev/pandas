@@ -158,6 +158,8 @@ You can also use a list of columns to create a hierarchical index:
 
    read_csv('foo.csv', index_col=[0, 'A'])
 
+.. _io.dialect:
+
 The ``dialect`` keyword gives greater flexibility in specifying the file format.
 By default it uses the Excel dialect but you can specify either the dialect name
 or a `csv.Dialect <docs.python.org/library/csv.html#csv.Dialect>`_ instance.
@@ -294,7 +296,7 @@ a single date rather than the entire array.
 
    os.remove('tmp.csv')
 
-.. _io.convenience:
+.. _io.thousands:
 
 Thousand Separators
 ~~~~~~~~~~~~~~~~~~~
@@ -337,6 +339,8 @@ The ``thousands`` keyword allows integers to be parsed correctly
    :suppress:
 
    os.remove('tmp.csv')
+
+.. _io.comments:
 
 Comments
 ~~~~~~~~

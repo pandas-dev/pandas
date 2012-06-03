@@ -244,8 +244,17 @@ Scatter plot matrix
    @savefig scatter_matrix_kde.png width=6in
    scatter_matrix(df, alpha=0.2, figsize=(8, 8), diagonal='kde')
 
-   @savefig scatter_matrix_hist.png width=6in
-   scatter_matrix(df, alpha=0.2, figsize=(8, 8), diagonal='hist')
+.. _visualization.kde:
+
+*New in 0.8.0* You can create density plots using the Series/DataFrame.plot and
+setting `kind='kde'`:
+
+.. ipython:: python
+
+   ser = Series(np.random.randn(1000))
+
+   @savefig kde_plot.png width=6in
+   ser.plot(kind='kde')
 
 .. _visualization.andrews_curves:
 

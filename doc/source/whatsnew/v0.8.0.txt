@@ -103,15 +103,19 @@ Other new features
 
 - New ``cut`` function (like R's cut function) for computing a categorical
   variable from a continuous variable by binning values
-- Add limit argument to fillna/reindex
+- Add :ref:`limit <missing_data.fillna.limit>` argument to fillna/reindex
 - More flexible multiple function application in GroupBy, and can pass list
   (name, function) tuples to get result in particular order with given names
 - Add flexible ``replace`` method for efficiently substituting values
-- Enhanced read_csv/read_table for reading time series data and converting
-  multiple columns to dates
-- Add comments option to parser functions: read_csv, etc.
+- Enhanced :ref:`read_csv/read_table <io.parse_dates>` for reading time series
+  data and converting multiple columns to dates
+- Add :ref:`comments <io.comments>` option to parser functions: read_csv, etc.
 - Add ``dayfirst`` option to parser functions for parsing international
   DD/MM/YYYY dates
+- Allow the user to specify the CSV reader :ref:`dialect <io.dialect>` to
+  control quoting etc.
+- Handling :ref:`thousands <io.thousands>` separators in read_csv to improve
+  integer parsing.
 - Enable unstacking of multiple levels in one shot. Alleviate ``pivot_table``
   bugs (empty columns being introduced)
 - Move to klib-based hash tables for indexing; better performance and less
@@ -120,12 +124,12 @@ Other new features
 - New ordered_merge function
 - Add flexible comparison instance methods eq, ne, lt, gt, etc. to DataFrame,
   Series
-- Improve scatter_matrix plotting function and add histogram or kernel density
-  estimates to diagonal
-- Add ``'kde'`` plot option for density plots
+- Improve :ref:`scatter_matrix <visualization.scatter_matrix>` plotting
+  function and add histogram or kernel density estimates to diagonal
+- Add :ref:`'kde' <visualization.kde>` plot option for density plots
 - Support for converting DataFrame to R data.frame through rpy2
 - Improved support for complex numbers in Series and DataFrame
-- Add ``pct_change`` method to all data structures
+- Add :ref:`pct_change <computation.pct_change>` method to all data structures
 - Add max_colwidth configuration option for DataFrame console output
 - Interpolate Series values using index values
 - Can select multiple columns from GroupBy
