@@ -55,7 +55,7 @@ pandas ``Period`` and ``PeriodIndex``:
     Date, Period, "A span of time, from yearly through to secondly"
     DateArray, PeriodIndex, "An array of timespans"
     convert, resample, "Frequency conversion in scikits.timeseries"
-    convert_to_annual, pivot_annual,
+    convert_to_annual, pivot_annual, "currently supports up to daily frequency, see :issue:`736`"
 
 Converting to and from period format
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

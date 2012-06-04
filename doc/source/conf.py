@@ -34,6 +34,8 @@ sys.path.extend([
 
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.doctest',
+              'sphinx.ext.extlinks',
+              'sphinx.ext.todo',
               'numpydoc',
               'ipython_directive',
               'ipython_console_highlighting',
@@ -234,3 +236,13 @@ latex_documents = [
 # intersphinx_mapping = {'http://docs.scipy.org/': None}
 import glob
 autosummary_generate = glob.glob("*.rst")
+
+# extlinks alias
+extlinks = {'issue': ('https://github.com/pydata/pandas/issues/%s',
+                      'issue ')}
+
+extlinks = {'pull request': ('https://github.com/pydata/pandas/pulls/%s',
+                      'pull request ')}
+                      
+extlinks = {'wiki': ('https://github.com/pydata/pandas/pulls/%s',
+                      'wiki ')}
