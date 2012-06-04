@@ -168,6 +168,11 @@ class TestPeriodProperties(TestCase):
         p = Period('Jan-2000')
         self.assert_('Jan-2000' in repr(p))
 
+    def test_strftime(self):
+        p = Period('2000-1-1 12:34:12', freq='S')
+        self.assert_(p.strftime('%Y-%m-%d %H:%M:%S') ==
+                     '2000-01-01 12:34:12')
+
     def test_to_timestamp(self):
         p = Period('1982', freq='A')
         start_ts = p.to_timestamp(how='S')
