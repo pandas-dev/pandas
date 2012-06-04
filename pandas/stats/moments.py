@@ -198,7 +198,7 @@ def rolling_corr_pairwise(df, window, min_periods=None):
     return Panel.from_dict(all_results).swapaxes('items', 'major')
 
 def _rolling_moment(arg, window, func, minp, axis=0, freq=None,
-                    time_rule=None):
+                    time_rule=None, **kwargs):
     """
     Rolling statistical measure using supplied function. Designed to be
     used with passed-in Cython array-based functions.
@@ -219,7 +219,7 @@ def _rolling_moment(arg, window, func, minp, axis=0, freq=None,
     y : type of input
     """
     arg = _conv_timerule(arg, freq, time_rule)
-    calc = lambda x: func(x, window, minp=minp)
+    calc = lambda x: func(x, window, minp=minp, **kwargs)
     return_hook, values = _process_data_structure(arg)
     # actually calculate the moment. Faster way to do this?
     result = np.apply_along_axis(calc, axis, values)
@@ -386,12 +386,12 @@ def _rolling_func(func, desc, check_minp=_use_window):
     @Substitution(desc, _unary_arg, _type_of_input)
     @Appender(_doc_template)
     @wraps(func)
-    def f(arg, window, min_periods=None, freq=None, time_rule=None):
-        def call_cython(arg, window, minp):
+    def f(arg, window, min_periods=None, freq=None, time_rule=None, **kwargs):
+        def call_cython(arg, window, minp, **kwds):
             minp = check_minp(minp, window)
-            return func(arg, window, minp)
+            return func(arg, window, minp, **kwds)
         return _rolling_moment(arg, window, call_cython, min_periods,
-                               freq=freq, time_rule=time_rule)
+                               freq=freq, time_rule=time_rule, **kwargs)
 
     return f
 
