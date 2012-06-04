@@ -315,7 +315,7 @@ def _check_minp(minp, N):
         raise ValueError('min_periods must be >= 0')
     return minp
 
-def roll_var(ndarray[double_t] input, int win, int minp):
+def roll_var(ndarray[double_t] input, int win, int minp, int ddof=1):
     cdef double val, prev, sum_x = 0, sum_xx = 0, nobs = 0
     cdef Py_ssize_t i
     cdef Py_ssize_t N = len(input)
@@ -351,7 +351,7 @@ def roll_var(ndarray[double_t] input, int win, int minp):
             sum_xx += val * val
 
         if nobs >= minp:
-            output[i] = (nobs * sum_xx - sum_x * sum_x) / (nobs * nobs - nobs)
+            output[i] = (nobs * sum_xx - sum_x * sum_x) / (nobs * (nobs - ddof))
         else:
             output[i] = NaN
 

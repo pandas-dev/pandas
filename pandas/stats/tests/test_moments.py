@@ -1,6 +1,7 @@
 import unittest
 import nose
 import sys
+import functools
 
 from datetime import datetime
 from numpy.random import randn
@@ -82,10 +83,14 @@ class TestMoments(unittest.TestCase):
     def test_rolling_std(self):
         self._check_moment_func(mom.rolling_std,
                                 lambda x: np.std(x, ddof=1))
+        self._check_moment_func(functools.partial(mom.rolling_std, ddof=0),
+                                lambda x: np.std(x, ddof=0))
 
     def test_rolling_var(self):
         self._check_moment_func(mom.rolling_var,
                                 lambda x: np.var(x, ddof=1))
+        self._check_moment_func(functools.partial(mom.rolling_var, ddof=0),
+                                lambda x: np.var(x, ddof=0))
 
     def test_rolling_skew(self):
         try:
