@@ -363,13 +363,19 @@ algos_ext = Extension('pandas._algos',
 lib_ext = Extension('pandas.lib',
                     depends=tseries_depends + ['pandas/src/numpy_helper.h'],
                     sources=[srcpath('tseries', suffix=suffix),
-                             'pandas/src/period.c',
                              'pandas/src/datetime/np_datetime.c',
                              'pandas/src/datetime/np_datetime_strings.c'],
                     include_dirs=[np.get_include()],
                     # pyrex_gdb=True,
                     # extra_compile_args=['-Wconversion']
                     )
+
+period_ext = Extension('pandas._period',
+                       depends=tseries_depends + ['pandas/src/numpy_helper.h'],
+                       sources=[srcpath('plib', suffix=suffix),
+                                'pandas/src/datetime/np_datetime.c',
+                                'pandas/src/period.c'],
+                       include_dirs=[np.get_include()])
 
 
 sparse_ext = Extension('pandas._sparse',
@@ -391,9 +397,7 @@ ujson_ext = Extension('pandas._ujson',
                       )
 
 sandbox_ext = Extension('pandas._sandbox',
-                        sources=[srcpath('sandbox', suffix=suffix),
-                                 'pandas/src/period.c',
-                                 ],
+                        sources=[srcpath('sandbox', suffix=suffix)],
                         include_dirs=[np.get_include()])
 
 cppsandbox_ext = Extension('pandas._cppsandbox',
@@ -401,7 +405,7 @@ cppsandbox_ext = Extension('pandas._cppsandbox',
                            sources=[srcpath('cppsandbox', suffix=suffix)],
                            include_dirs=[np.get_include()])
 
-extensions = [algos_ext, lib_ext, sparse_ext, ujson_ext]
+extensions = [algos_ext, lib_ext, period_ext, sparse_ext, ujson_ext]
 
 if not ISRELEASED:
     extensions.extend([sandbox_ext])

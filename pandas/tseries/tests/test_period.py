@@ -1457,28 +1457,29 @@ class TestPeriodIndex(TestCase):
         # year, month, day, hour, minute
         # second, weekofyear, week, dayofweek, weekday, dayofyear, quarter
         # qyear
-        pi = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        pi = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2005')
         self._check_all_fields(pi)
 
-        pi = PeriodIndex(freq='Q', start='1/1/2001', end='12/1/2003')
+        pi = PeriodIndex(freq='Q', start='1/1/2001', end='12/1/2002')
         self._check_all_fields(pi)
 
         pi = PeriodIndex(freq='M', start='1/1/2001', end='1/1/2002')
         self._check_all_fields(pi)
 
-        pi = PeriodIndex(freq='D', start='12/1/2001', end='1/1/2002')
+        pi = PeriodIndex(freq='D', start='12/1/2001', end='6/1/2001')
         self._check_all_fields(pi)
 
-        pi = PeriodIndex(freq='B', start='12/1/2001', end='1/1/2002')
+        pi = PeriodIndex(freq='B', start='12/1/2001', end='6/1/2001')
         self._check_all_fields(pi)
 
         pi = PeriodIndex(freq='H', start='12/31/2001', end='1/1/2002 23:00')
         self._check_all_fields(pi)
 
-        pi = PeriodIndex(freq='Min', start='12/31/2001', end='1/1/2002 00:59')
+        pi = PeriodIndex(freq='Min', start='12/31/2001', end='1/1/2002 00:20')
         self._check_all_fields(pi)
 
-        pi = PeriodIndex(freq='S', start='12/31/2001', end='1/1/2001 00:00:01')
+        pi = PeriodIndex(freq='S', start='12/31/2001 00:00:00',
+                         end='12/31/2001 00:05:00')
         self._check_all_fields(pi)
 
         end_intv = Period('2006-12-31', 'W')
@@ -1489,13 +1490,14 @@ class TestPeriodIndex(TestCase):
         fields = ['year', 'month', 'day', 'hour', 'minute',
                   'second', 'weekofyear', 'week', 'dayofweek',
                   'weekday', 'dayofyear', 'quarter', 'qyear']
-        [self._check_field(periodindex, x) for x in fields]
 
-    def _check_field(self, periodindex, fieldname):
-        field_idx = getattr(periodindex, fieldname)
-        assert_equal(len(periodindex), len(field_idx))
-        for x, val in zip(periodindex, field_idx):
-            assert_equal(getattr(x, fieldname), val)
+        periods = list(periodindex)
+
+        for field in fields:
+            field_idx = getattr(periodindex, field)
+            assert_equal(len(periodindex), len(field_idx))
+            for x, val in zip(periods, field_idx):
+                assert_equal(getattr(x, field), val)
 
     def test_is_full(self):
         index = PeriodIndex([2005, 2007, 2009], freq='A')
