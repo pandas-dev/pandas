@@ -63,12 +63,12 @@ class TestCut(unittest.TestCase):
         self.assertEqual(distinct_labels, ex_labels)
 
     def test_label_precision(self):
-        arr = np.arange(0, 0.75, 0.01)
+        arr = np.arange(0, 0.73, 0.01)
 
         labels = cut(arr, 4, precision=2)
         distinct_labels = sorted(unique(labels))
-        ex_labels = ['(-0.00074, 0.18]', '(0.18, 0.37]', '(0.37, 0.55]',
-                     '(0.55, 0.74]']
+        ex_labels = ['(-0.00072, 0.18]', '(0.18, 0.36]', '(0.36, 0.54]',
+                     '(0.54, 0.72]']
         self.assertEqual(distinct_labels, ex_labels)
 
     def test_na_handling(self):
