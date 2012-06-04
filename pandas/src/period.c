@@ -1162,190 +1162,54 @@ char *str_replace(const char *s, const char *old, const char *new) {
 // function to generate a nice string representation of the period
 // object, originally from DateObject_strftime
 
-char *skts_strftime(npy_int64 ordinal, int freq, PyObject *args)
-{
-    char *orig_fmt_str, *fmt_str;
-    char *result;
-
-    int num_extra_fmts = 3;
-
-    char extra_fmts[3][2][10] = {{"%q", "^`AB`^"},
-                                 {"%f", "^`CD`^"},
-                                 {"%F", "^`EF`^"}};
-
-    int extra_fmts_found[3] = {0,0,0};
-    int extra_fmts_found_one = 0;
+char* c_strftime(struct date_info *tmp, char *fmt) {
     struct tm c_date;
-    struct date_info tempDate;
-    npy_int64 absdate, daily_ord;
-    double abstime;
-    int i, result_len;
-    PyObject *py_result;
+    char* result;
+    struct date_info dinfo = *tmp;
+    int result_len = strlen(fmt) + 50;
 
-    npy_int64 (*toDaily)(npy_int64, char, asfreq_info*) = NULL;
+    c_date.tm_sec = (int)dinfo.second;
+    c_date.tm_min = dinfo.minute;
+    c_date.tm_hour = dinfo.hour;
+    c_date.tm_mday = dinfo.day;
+    c_date.tm_mon = dinfo.month - 1;
+    c_date.tm_year = dinfo.year - 1900;
+    c_date.tm_wday = (dinfo.day_of_week + 1) % 7;
+    c_date.tm_yday = dinfo.day_of_year - 1;
+    c_date.tm_isdst = -1;
+
+    result = malloc(result_len * sizeof(char));
+
+    strftime(result, result_len, fmt, &c_date);
+
+    return result;
+}
+
+int get_yq(npy_int64 ordinal, int freq, int *quarter, int *year) {
     asfreq_info af_info;
-
-    if (!PyArg_ParseTuple(args, "s:strftime(fmt)", &orig_fmt_str))
-        return NULL;
+    int qtr_freq;
+    npy_int64 daily_ord;
+    npy_int64 (*toDaily)(npy_int64, char, asfreq_info*) = NULL;
 
     toDaily = get_asfreq_func(freq, FR_DAY);
     get_asfreq_info(freq, FR_DAY, &af_info);
 
     daily_ord = toDaily(ordinal, 'E', &af_info);
-    abstime = get_abs_time(freq, daily_ord, ordinal);
 
-	if (abstime < 0) {
-		abstime += 86400;
-		daily_ord -= 1;
-	}
+    if (get_freq_group(freq) == FR_QTR) {
+        qtr_freq = freq;
+    } else { qtr_freq = FR_QTR; }
+    get_asfreq_info(FR_DAY, qtr_freq, &af_info);
 
-	/* printf("daily_ord: %d, abstime: %f \n", (int) daily_ord, abstime); */
+    if(DtoQ_yq(daily_ord, &af_info, year, quarter) == INT_ERR_CODE)
+        return -1;
 
-    if(dInfoCalc_SetFromAbsDateTime(&tempDate, daily_ord + ORD_OFFSET, abstime,
-                                    GREGORIAN_CALENDAR)) return NULL;
-
-    // populate standard C date struct with info from our date_info struct
-    c_date.tm_sec = (int)tempDate.second;
-    c_date.tm_min = tempDate.minute;
-    c_date.tm_hour = tempDate.hour;
-    c_date.tm_mday = tempDate.day;
-    c_date.tm_mon = tempDate.month - 1;
-    c_date.tm_year = tempDate.year - 1900;
-    c_date.tm_wday = (tempDate.day_of_week + 1) % 7;
-    c_date.tm_yday = tempDate.day_of_year - 1;
-    c_date.tm_isdst = -1;
-
-    result_len = strlen(orig_fmt_str) + 50;
-    if ((result = PyArray_malloc(result_len * sizeof(char))) == NULL) {
-        return (char*)PyErr_NoMemory();
-    }
-
-    fmt_str = orig_fmt_str;
-
-    // replace any special format characters with their place holder
-    for(i=0; i < num_extra_fmts; i++) {
-        char *special_loc;
-        if ((special_loc = strstr(fmt_str,extra_fmts[i][0])) != NULL) {
-            char *tmp_str = fmt_str;
-            fmt_str = str_replace(fmt_str, extra_fmts[i][0],
-                                           extra_fmts[i][1]);
-            /* only free the previous loop value if this is not the first
-               special format string found */
-            if (extra_fmts_found_one) { free(tmp_str); }
-
-            if (fmt_str == NULL) {return NULL;}
-
-            extra_fmts_found[i] = 1;
-            extra_fmts_found_one = 1;
-        }
-    }
-
-    strftime(result, result_len, fmt_str, &c_date);
-    if (extra_fmts_found_one) { free(fmt_str); }
-
-    // replace any place holders with the appropriate value
-    for(i=0; i < num_extra_fmts; i++) {
-        if (extra_fmts_found[i]) {
-            char *tmp_str = result;
-            char *extra_str;
-
-            if (strcmp(extra_fmts[i][0], "%q") == 0 ||
-                strcmp(extra_fmts[i][0], "%f") == 0 ||
-                strcmp(extra_fmts[i][0], "%F") == 0) {
-
-                asfreq_info af_info;
-                int qtr_freq, year, quarter, year_len;
-
-                if (get_freq_group(freq) == FR_QTR) {
-                    qtr_freq = freq;
-                } else { qtr_freq = FR_QTR; }
-                get_asfreq_info(FR_DAY, qtr_freq, &af_info);
-
-                if(DtoQ_yq(daily_ord, &af_info, &year, &quarter) == INT_ERR_CODE)
-                { return NULL; }
-
-                if(strcmp(extra_fmts[i][0], "%q") == 0) {
-                    if ((extra_str = PyArray_malloc(2 * sizeof(char))) == NULL) {
-                        free(tmp_str);
-                        return (char *)PyErr_NoMemory();
-                    }
-                    sprintf(extra_str, "%i", quarter);
-                } else {
-                    if ((qtr_freq % 1000) > 12) { year -= 1; }
-
-                    if (strcmp(extra_fmts[i][0], "%f") == 0) {
-                        year_len = 2;
-                        year = year % 100;
-                    } else { year_len = 4; }
-
-                    if ((extra_str = PyArray_malloc((year_len+1) * sizeof(char))) == NULL) {
-                        free(tmp_str);
-                        return (char *)PyErr_NoMemory();
-                    }
-
-                    if (year_len == 2 && year < 10) {
-                        sprintf(extra_str, "0%i", year);
-                    } else { sprintf(extra_str, "%i", year); }
-                }
-
-            } else {
-                PyErr_SetString(PyExc_RuntimeError,"Unrecognized format string");
-                return NULL;
-            }
-
-            result = str_replace(result, extra_fmts[i][1], extra_str);
-            free(tmp_str);
-            free(extra_str);
-            if (result == NULL) { return NULL; }
-        }
-    }
-
-    return result;
+    return 0;
 }
 
-char *period_to_string(npy_int64 value, int freq)
-{
-    int freq_group = get_freq_group(freq);
-    PyObject *string_arg;
-    char *retval;
 
-    string_arg = NULL;
-    if (freq_group == FR_UND) {
-        int digits = log10(value) + 1;
-        if ((retval = PyArray_malloc(digits * sizeof(char))) == NULL) {
-            return (char *)PyErr_NoMemory();
-        }
-        sprintf(retval, "%ld", (long int) value);
-        return retval;
-    }
-    else if (freq_group == FR_ANN) { string_arg = Py_BuildValue("(s)", "%Y"); }
-    else if (freq_group == FR_QTR) { string_arg = Py_BuildValue("(s)", "%FQ%q"); }
-    else if (freq_group == FR_MTH) { string_arg = Py_BuildValue("(s)", "%b-%Y"); }
-    else if (freq_group == FR_DAY ||
-             freq_group == FR_BUS ||
-             freq_group == FR_WK) { string_arg = Py_BuildValue("(s)", "%d-%b-%Y"); }
-    else if (freq_group == FR_HR) { string_arg = Py_BuildValue("(s)", "%d-%b-%Y %H:00"); }
-    else if (freq_group == FR_MIN) { string_arg = Py_BuildValue("(s)", "%d-%b-%Y %H:%M"); }
-    else if (freq_group == FR_SEC) { string_arg = Py_BuildValue("(s)", "%d-%b-%Y %H:%M:%S"); }
 
-    if (string_arg == NULL) { return (char *)NULL; }
 
-    retval = skts_strftime(value, freq, string_arg);
-    Py_DECREF(string_arg);
-
-    return retval;
-}
-
-char *period_to_string2(npy_int64 value, int freq, char *fmt)
-{
-    PyObject *string_arg;
-    char *retval;
-    string_arg = Py_BuildValue("(s)", fmt);
-    if (string_arg == NULL) { return (char *)NULL; }
-    retval = skts_strftime(value, freq, string_arg);
-    Py_DECREF(string_arg);
-    return retval;
-}
 
 static int _quarter_year(npy_int64 ordinal, int freq, int *year, int *quarter) {
     asfreq_info af_info;

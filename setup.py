@@ -345,6 +345,8 @@ tseries_depends = ['reindex', 'groupby', 'skiplist', 'moments',
                    'reduce', 'stats', 'datetime',
                    'hashtable', 'inference', 'properties', 'join', 'engines']
 
+plib_depends = ['period']
+
 def srcpath(name=None, suffix='.pyx', subdir='src'):
     return pjoin('pandas', subdir, name+suffix)
 
@@ -352,8 +354,12 @@ if suffix == '.pyx':
     tseries_depends = [srcpath(f, suffix='.pyx')
                        for f in tseries_depends]
     tseries_depends.append('pandas/src/util.pxd')
+    plib_depends = [srcpath(f, suffix='.pyx')
+                    for f in plib_depends]
+    plib_depends.append('pandas/src/util.pxd')
 else:
     tseries_depends = []
+    plib_depends = []
 
 algos_ext = Extension('pandas._algos',
                       sources=[srcpath('generated', suffix=suffix)],
@@ -371,7 +377,7 @@ lib_ext = Extension('pandas.lib',
                     )
 
 period_ext = Extension('pandas._period',
-                       depends=tseries_depends + ['pandas/src/numpy_helper.h'],
+                       depends=plib_depends + ['pandas/src/numpy_helper.h'],
                        sources=[srcpath('plib', suffix=suffix),
                                 'pandas/src/datetime/np_datetime.c',
                                 'pandas/src/period.c'],

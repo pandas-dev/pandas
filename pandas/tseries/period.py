@@ -255,13 +255,13 @@ class Period(object):
 
     def __repr__(self):
         base, mult = _gfc(self.freq)
-        formatted = plib.period_ordinal_to_string(self.ordinal, base)
+        formatted = plib.period_format(self.ordinal, base)
         freqstr = _freq_mod._reverse_period_code_map[base]
         return "Period('%s', '%s')" % (formatted, freqstr)
 
     def __str__(self):
         base, mult = _gfc(self.freq)
-        formatted = plib.period_ordinal_to_string(self.ordinal, base)
+        formatted = plib.period_format(self.ordinal, base)
         return ("%s" % formatted)
 
     def strftime(self, fmt):
@@ -402,10 +402,7 @@ class Period(object):
             'Jan. 01, 2001 was a Monday'
         """
         base, mult = _gfc(self.freq)
-        if fmt is not None:
-            return plib.period_strftime(self.ordinal, base, fmt)
-        else:
-            return plib.period_ordinal_to_string(self.ordinal, base)
+        plib.period_format(self.ordinal, base, fmt)
 
 
 def _get_date_and_freq(value, freq):

@@ -135,10 +135,6 @@ npy_int64 get_period_ordinal(int year, int month, int day,
 
 npy_int64 get_python_ordinal(npy_int64 period_ordinal, int freq);
 
-char *skts_strftime(npy_int64 value, int freq, PyObject *args);
-char *period_to_string(npy_int64 value, int freq);
-char *period_to_string2(npy_int64 value, int freq, char *fmt);
-
 int get_date_info(npy_int64 ordinal, int freq, struct date_info *dinfo);
 freq_conv_func get_asfreq_func(int fromFreq, int toFreq);
 void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info);
@@ -155,6 +151,9 @@ int pweek(npy_int64 ordinal, int freq);
 int phour(npy_int64 ordinal, int freq);
 int pminute(npy_int64 ordinal, int freq);
 int psecond(npy_int64 ordinal, int freq);
+
 double getAbsTime(int freq, npy_int64 dailyDate, npy_int64 originalDate);
+char *c_strftime(struct date_info *dinfo, char *fmt);
+int get_yq(int64_t ordinal, int freq, int *quarter, int *year);
 
 #endif
