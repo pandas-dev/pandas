@@ -752,6 +752,8 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         # assert level parameter breaks reindex
         self.assertRaises(Exception, self.frame.reindex, idx, level=0)
 
+        repr(self.frame)
+
     def test_constructor_ndarray(self):
         # no index or columns
         sp = SparseDataFrame(self.frame.values)

@@ -381,7 +381,6 @@ class TestTimeSeries(unittest.TestCase):
 
             self.assert_((tmp['dates'].values == ex_vals).all())
 
-
     def test_series_ctor_datetime64(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 1:59:50',
                          freq='10s')
@@ -389,6 +388,21 @@ class TestTimeSeries(unittest.TestCase):
 
         series = Series(dates)
         self.assert_(np.issubdtype(series.dtype, np.dtype('M8[ns]')))
+
+    def test_index_cast_datetime64_other_units(self):
+        arr = np.arange(0, 100, 10, dtype=np.int64).view('M8[D]')
+
+        idx = Index(arr)
+
+        self.assert_((idx.values == lib.cast_to_nanoseconds(arr)).all())
+
+    def test_index_astype_datetime64(self):
+        idx = Index([datetime(2012, 1, 1)], dtype=object)
+
+        casted = idx.astype(np.dtype('M8[D]'))
+        expected = DatetimeIndex(idx.values)
+        self.assert_(isinstance(casted, DatetimeIndex))
+        self.assert_(casted.equals(expected))
 
     def test_reindex_series_add_nat(self):
         rng = date_range('1/1/2000 00:00:00', periods=10, freq='10s')

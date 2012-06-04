@@ -73,19 +73,20 @@ class Index(np.ndarray):
 
     def __new__(cls, data, dtype=None, copy=False, name=None):
         if isinstance(data, np.ndarray):
-            if dtype is None:
-                if issubclass(data.dtype.type, np.datetime64):
-                    from pandas.tseries.index import DatetimeIndex
-                    return DatetimeIndex(data, copy=copy, name=name)
+            if dtype is not None:
+                try:
+                    data = np.array(data, dtype=dtype, copy=copy)
+                except TypeError:
+                    pass
 
-                if issubclass(data.dtype.type, np.integer):
-                    return Int64Index(data, copy=copy, name=name)
+            if issubclass(data.dtype.type, np.datetime64):
+                from pandas.tseries.index import DatetimeIndex
+                return DatetimeIndex(data, copy=copy, name=name)
 
-            if not copy:
-                subarr = com._ensure_object(data)
-            else:
-                subarr = data.astype(object)
-            # subarr = np.array(data, dtype=object, copy=copy)
+            if issubclass(data.dtype.type, np.integer):
+                return Int64Index(data, copy=copy, name=name)
+
+            subarr = com._ensure_object(data)
         elif np.isscalar(data):
             raise ValueError('Index(...) must be called with a collection '
                              'of some kind, %s was passed' % repr(data))
