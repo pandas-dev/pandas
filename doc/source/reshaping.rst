@@ -11,6 +11,7 @@
    import pandas.util.testing as tm
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
+   from pandas.tools.tile import *
 
 **************************
 Reshaping and Pivot Tables
@@ -330,3 +331,27 @@ rows and columns:
 
    df.pivot_table(rows=['A', 'B'], cols='C', margins=True, aggfunc=np.std)
 
+.. _reshaping.tile:
+
+Tiling
+------
+
+.. _reshaping.tile.cut:
+
+The ``cut`` function computes groupings for the values of the input array and
+is often used to transform continuous variables to discrete or categorical
+variables:
+
+.. ipython:: python
+
+   ages = np.array([10, 15, 13, 12, 23, 25, 28, 59, 60])
+
+
+   cut(ages, bins=3)
+
+If the ``bins`` keyword is an integer, then equal-width bins are formed.
+Alternatively we can specify custom bin-edges:
+
+.. ipython:: python
+
+   cut(ages, bins=[0, 18, 35, 70])

@@ -11,7 +11,7 @@ pandas.
 .. ipython:: python
    :suppress:
 
-   import numpy as np; randn = np.random.randn
+   import numpy as np; randn = np.random.randn; randint =np.random.randint
    from pandas import *
    import matplotlib.pyplot as plt
 
@@ -210,32 +210,70 @@ eventually added to Panel. Series.dropna is a simpler method as it only has one
 axis to consider. DataFrame.dropna has considerably more options, which can be
 examined :ref:`in the API <api.dataframe.missing>`.
 
+.. _missing_data.interpolate:
+
 Interpolation
 ~~~~~~~~~~~~~
 
-A basic linear **interpolate** method has been implemented on Series with
-intended use for time series data. There has not been a great deal of demand
-for interpolation methods outside of the filling methods described above.
+A linear **interpolate** method has been implemented on Series. The default
+interpolation assumes equally spaced points.
 
 .. ipython:: python
    :suppress:
 
    np.random.seed(123456)
-   ts = Series(randn(100), index=date_range('1/1/2000', periods=100, freq='BM'))
-   ts[20:40] = np.nan
+   idx = date_range('1/1/2000', periods=100, freq='BM')
+   ts = Series(randn(100), index=idx)
+   ts[1:20] = np.nan
    ts[60:80] = np.nan
    ts = ts.cumsum()
 
 .. ipython:: python
 
-   fig, axes = plt.subplots(ncols=2, figsize=(8, 4))
-   ts.plot(ax=axes[0])
-   ts.interpolate().plot(ax=axes[1])
-   axes[0].set_title('Not interpolated')
+   ts.count()
+
+   ts.head()
+
+   ts.interpolate().count()
+
+   ts.interpolate().head()
+
    @savefig series_interpolate.png width=6in
-   axes[1].set_title('Interpolated')
+   fig = plt.figure()
+   ts.interpolate().plot()
 
    plt.close('all')
+
+Index aware interpolation is available via the ``method`` keyword:
+
+.. ipython:: python
+   :suppress:
+
+   ts = ts[[0, 1, 30, 60, 99]]
+
+.. ipython:: python
+
+   ts
+
+   ts.interpolate()
+
+   ts.interpolate(method='time')
+
+For a floating-point index, use ``method='values'``:
+
+.. ipython:: python
+   :suppress:
+
+   idx = [0., 1., 10.]
+   ser = Series([0., np.nan, 10.], idx)
+
+.. ipython:: python
+
+   ser
+
+   ser.interpolate()
+
+   ser.interpolate(method='values')
 
 .. _missing_data.replace:
 
