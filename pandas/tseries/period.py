@@ -402,8 +402,7 @@ class Period(object):
             'Jan. 01, 2001 was a Monday'
         """
         base, mult = _gfc(self.freq)
-        plib.period_format(self.ordinal, base, fmt)
-
+        return plib.period_format(self.ordinal, base, fmt)
 
 def _get_date_and_freq(value, freq):
     value = value.upper()
