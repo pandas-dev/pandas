@@ -230,7 +230,7 @@ def period_format(int64_t value, int freq, object fmt=None):
         elif freq_group == 2000: # FR_QTR
             fmt = b'%FQ%q'
         elif freq_group == 3000: # FR_MTH
-            fmt = b'%b-Y'
+            fmt = b'%b-%Y'
         elif (freq_group == 4000 # WK
               or freq_group == 5000 # BUS
               or freq_group == 6000): # DAY

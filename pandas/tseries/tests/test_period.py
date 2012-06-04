@@ -164,6 +164,10 @@ class TestPeriodProperties(TestCase):
         i1 = Period('1982', freq='Min')
         self.assert_(i1.freq[0] != '1')
 
+    def test_repr(self):
+        p = Period('Jan-2000')
+        self.assert_('Jan-2000' in repr(p))
+
     def test_to_timestamp(self):
         p = Period('1982', freq='A')
         start_ts = p.to_timestamp(how='S')
