@@ -696,6 +696,9 @@ def roll_generic(ndarray[float64_t, cast=True] input, int win,
     buf = <float64_t*> input.data
 
     n = len(input)
+    if n == 0:
+        return input
+
     minp = _check_minp(minp, n)
     output = np.empty(n, dtype=float)
     counts = roll_sum(np.isfinite(input).astype(float), win, minp)

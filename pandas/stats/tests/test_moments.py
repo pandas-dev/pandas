@@ -8,7 +8,7 @@ from numpy.random import randn
 import numpy as np
 
 from pandas import Series, DataFrame, bdate_range
-from pandas.util.testing import assert_almost_equal
+from pandas.util.testing import assert_almost_equal, assert_series_equal
 import pandas.core.datetools as datetools
 import pandas.stats.moments as mom
 import pandas.util.testing as tm
@@ -73,6 +73,9 @@ class TestMoments(unittest.TestCase):
             self._check_moment_func(f, alt)
 
     def test_rolling_apply(self):
+        ser = Series([])
+        assert_series_equal(ser, mom.rolling_apply(ser, 10, lambda x:x.mean()))
+
         def roll_mean(x, window, min_periods=None, freq=None):
             return mom.rolling_apply(x, window,
                                          lambda x: x[np.isfinite(x)].mean(),
