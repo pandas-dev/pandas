@@ -7,7 +7,7 @@ from numpy import nan
 from pandas import bdate_range
 from pandas.core.index import Index, MultiIndex
 from pandas.core.common import rands
-from pandas.core.frame import DataFrame
+from pandas.core.api import Factor, DataFrame
 from pandas.core.groupby import GroupByError
 from pandas.core.series import Series
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
@@ -1878,6 +1878,33 @@ class TestGroupBy(unittest.TestCase):
         result = self.df.groupby([self.df['A'].values,
                                   self.df['B'].values]).sum()
         self.assert_(result.index.names == [None, None])
+
+    def test_groupby_factor(self):
+        levels = ['foo', 'bar', 'baz', 'qux']
+        labels = np.random.randint(0, 4, size=100)
+
+        factor = Factor(labels, levels, name='myfactor')
+
+        data = DataFrame(np.random.randn(100, 4))
+
+        result = data.groupby(factor).mean()
+
+        expected = data.groupby(np.asarray(factor)).mean()
+        expected = expected.reindex(levels)
+
+        assert_frame_equal(result, expected)
+        self.assert_(result.index.name == factor.name)
+
+        grouped = data.groupby(factor)
+        desc_result = grouped.describe()
+
+        idx = factor.labels.argsort()
+        ord_labels = np.asarray(factor).take(idx)
+        ord_data = data.take(idx)
+        expected = ord_data.groupby(ord_labels, sort=False).describe()
+        assert_frame_equal(desc_result, expected)
+
+
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     tups = map(tuple, df[keys].values)

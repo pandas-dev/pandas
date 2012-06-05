@@ -21,7 +21,7 @@ class Factor(object):
       * labels : ndarray
       * levels : ndarray
     """
-    def __init__(self, labels, levels):
+    def __init__(self, labels, levels, name=None):
         from pandas.core.index import _ensure_index
 
         levels = _ensure_index(levels)
@@ -30,6 +30,7 @@ class Factor(object):
 
         self.labels = labels
         self.levels = levels
+        self.name = name
 
     @classmethod
     def from_array(cls, data):
@@ -51,9 +52,10 @@ class Factor(object):
         return len(self.labels)
 
     def __repr__(self):
-        temp = 'Factor:\n%s\nLevels (%d): %s'
+        temp = 'Factor:%s\n%s\nLevels (%d): %s'
         values = np.asarray(self)
-        return temp % (repr(values), len(self.levels), self.levels)
+        return temp % ('' if self.name is None else self.name,
+                       repr(values), len(self.levels), self.levels)
 
     def __getitem__(self, key):
         if isinstance(key, (int, np.integer)):

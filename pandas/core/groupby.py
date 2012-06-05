@@ -2,6 +2,7 @@ from itertools import izip
 import types
 import numpy as np
 
+from pandas.core.factor import Factor
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
@@ -972,6 +973,17 @@ class Grouping(object):
         else:
             if isinstance(self.grouper, (list, tuple)):
                 self.grouper = com._asarray_tuplesafe(self.grouper)
+            elif isinstance(self.grouper, Factor):
+                factor = self.grouper
+                self._was_factor = True
+
+                # Is there any way to avoid this?
+                self.grouper = np.asarray(factor)
+
+                self._labels = factor.labels
+                self._group_index = factor.levels
+                if self.name is None:
+                    self.name = factor.name
 
             # no level passed
             if not isinstance(self.grouper, np.ndarray):
