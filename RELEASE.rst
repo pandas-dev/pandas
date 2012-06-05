@@ -131,6 +131,7 @@ pandas 0.8.0
   - Deprecation of offset, time_rule timeRule parameters throughout codebase
   - Series.append and DataFrame.append no longer check for duplicate indexes
     by default, add verify_integrity parameter (#1394)
+  - Refactor Factor class, old constructor moved to Factor.from_array
 
 **Bug fixes**
 

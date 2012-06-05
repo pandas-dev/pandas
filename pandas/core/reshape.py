@@ -586,7 +586,7 @@ def convert_dummies(data, cat_variables, prefix_sep='_'):
 
 def make_column_dummies(data, column, prefix=False, prefix_sep='_'):
     from pandas import Factor
-    factor = Factor(data[column].values)
+    factor = Factor.from_array(data[column].values)
     dummy_mat = np.eye(len(factor.levels)).take(factor.labels, axis=0)
 
     if prefix:
@@ -628,7 +628,7 @@ def make_axis_dummies(frame, axis='minor', transform=None):
     labels = frame.index.labels[num]
     if transform is not None:
         mapped_items = items.map(transform)
-        factor = Factor(mapped_items.take(labels))
+        factor = Factor.from_array(mapped_items.take(labels))
         labels = factor.labels
         items = factor.levels
 

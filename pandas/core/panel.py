@@ -77,8 +77,8 @@ def panel_index(time, panels, names=['time', 'panel']):
                 (1962, 'C')], dtype=object)
     """
     time, panels = _ensure_like_indices(time, panels)
-    time_factor = Factor(time)
-    panel_factor = Factor(panels)
+    time_factor = Factor.from_array(time)
+    panel_factor = Factor.from_array(panels)
 
     labels = [time_factor.labels, panel_factor.labels]
     levels = [time_factor.levels, panel_factor.levels]

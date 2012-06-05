@@ -843,8 +843,8 @@ class HDFStore(object):
         index = _maybe_convert(sel.values['index'], table._v_attrs.index_kind)
         values = sel.values['values']
 
-        major = Factor(index)
-        minor = Factor(columns)
+        major = Factor.from_array(index)
+        minor = Factor.from_array(columns)
 
         J, K = len(major.levels), len(minor.levels)
         key = major.labels * K + minor.labels

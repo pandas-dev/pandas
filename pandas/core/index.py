@@ -1460,7 +1460,7 @@ class MultiIndex(Index):
         levels = []
         labels = []
         for arr in arrays:
-            factor = Factor(arr)
+            factor = Factor.from_array(arr)
             levels.append(factor.levels)
             labels.append(factor.labels)
 

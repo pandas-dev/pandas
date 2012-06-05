@@ -3,6 +3,7 @@ Quantilization functions and related stuff
 """
 
 from pandas.core.api import DataFrame, Series
+from pandas.core.factor import Factor
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 import pandas.core.nanops as nanops

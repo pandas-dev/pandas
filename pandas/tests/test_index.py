@@ -1534,7 +1534,8 @@ class TestMultiIndex(unittest.TestCase):
 class TestFactor(unittest.TestCase):
 
     def setUp(self):
-        self.factor = Factor(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c'])
+        self.factor = Factor.from_array(['a', 'b', 'b', 'a',
+                                         'a', 'c', 'c', 'c'])
 
     def test_getitem(self):
         self.assertEqual(self.factor[0], 'a')
@@ -1543,14 +1544,14 @@ class TestFactor(unittest.TestCase):
         subf = self.factor[[0, 1, 2]]
         tm.assert_almost_equal(subf.labels, [0, 1, 1])
 
-        subf = self.factor[self.factor.asarray() == 'c']
+        subf = self.factor[np.asarray(self.factor) == 'c']
         tm.assert_almost_equal(subf.labels, [2, 2, 2])
 
     def test_constructor_unsortable(self):
         arr = np.array([1, 2, 3, datetime.now()], dtype='O')
 
         # it works!
-        factor = Factor(arr)
+        factor = Factor.from_array(arr)
 
     def test_factor_agg(self):
         import pandas.core.frame as frame
