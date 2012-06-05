@@ -581,6 +581,8 @@ them together on their indexes. The same is true for ``Panel.join``.
 
 .. _merging.combine_first:
 
+.. _merging.combine_first.update:
+
 Merging together values within Series or DataFrame columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -601,7 +603,6 @@ For this, use the ``combine_first`` method:
 
    df1.combine_first(df2)
 
-.. _merging.combine_first.update:
 Note that this method only takes values from the right DataFrame if they are
 missing in the left DataFrame. A related method, ``update``, alters non-NA
 values inplace:

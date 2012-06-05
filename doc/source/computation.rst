@@ -20,6 +20,7 @@ Statistical functions
 ---------------------
 
 .. _computation.pct_change:
+
 Percent Change
 ~~~~~~~~~~~~~~
 

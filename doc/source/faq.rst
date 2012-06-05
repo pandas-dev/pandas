@@ -126,8 +126,8 @@ adopted to pandas's data structures. For example:
 
 .. ipython:: python
 
-   rng = period_range('1987Q2', periods=20, freq='Q-DEC')
-   data = Series(np.random.randn(20), index=rng)
+   rng = period_range('1987Q2', periods=10, freq='Q-DEC')
+   data = Series(np.random.randn(10), index=rng)
 
    @savefig skts_ts_plot.png width=4.5in
    plt.figure(); data.plot()
