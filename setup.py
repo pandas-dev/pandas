@@ -380,6 +380,7 @@ period_ext = Extension('pandas._period',
                        depends=plib_depends + ['pandas/src/numpy_helper.h'],
                        sources=[srcpath('plib', suffix=suffix),
                                 'pandas/src/datetime/np_datetime.c',
+                                'pandas/src/period.h',
                                 'pandas/src/period.c'],
                        include_dirs=[np.get_include()])
 
