@@ -165,6 +165,24 @@ class Timestamp(_Timestamp):
     def asm8(self):
         return np.int64(self.value).view('M8[ns]')
 
+    def tz_localize(self, tz):
+        """
+        Convert naive Timestamp to local time zone
+
+        Parameters
+        ----------
+        tz : pytz.timezone
+
+        Returns
+        -------
+        localized : Timestamp
+        """
+        if self.tzinfo is None:
+            # tz naive, localize
+            return Timestamp(self.to_pydatetime(), tz=tz)
+        else:
+            raise Exception('Cannot localize tz-aware Timestamp')
+
     def tz_convert(self, tz):
         """
         Convert Timestamp to another time zone or localize to requested time
@@ -445,12 +463,15 @@ cpdef convert_to_tsobject(object ts, object tz=None):
             # sort of a temporary hack
             if ts.tzinfo is not None:
                 ts = tz.normalize(ts)
+                obj.value = _pydatetime_to_dts(ts, &obj.dts)
             elif tz is not pytz.utc:
                 ts = tz.localize(ts)
-
-            obj.value = _pydatetime_to_dts(ts, &obj.dts)
+                obj.value = _pydatetime_to_dts(ts, &obj.dts)
+                obj.value -= _delta_to_nanoseconds(ts.tzinfo._utcoffset)
+            else:
+                # UTC
+                obj.value = _pydatetime_to_dts(ts, &obj.dts)
             obj.tzinfo = ts.tzinfo
-            obj.value -= _delta_to_nanoseconds(obj.tzinfo._utcoffset)
         else:
             obj.value = _pydatetime_to_dts(ts, &obj.dts)
             obj.tzinfo = ts.tzinfo

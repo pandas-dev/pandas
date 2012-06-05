@@ -1507,6 +1507,9 @@ class TestTimestamp(unittest.TestCase):
 
         self.assertEquals(stamp, rng[1])
 
+        utc_stamp = Timestamp('3/11/2012 05:00', tz='utc')
+        self.assertEquals(utc_stamp.hour, 5)
+
     def test_tz_convert_localize(self):
         stamp = Timestamp('3/11/2012 04:00')
 
