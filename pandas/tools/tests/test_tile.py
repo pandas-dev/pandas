@@ -7,7 +7,8 @@ from pandas import DataFrame, Series, unique
 import pandas.util.testing as tm
 import pandas.core.common as com
 
-from pandas.tools.tile import cut
+from pandas.core.algorithms import quantile
+from pandas.tools.tile import cut, qcut
 
 from numpy.testing import assert_equal, assert_almost_equal
 
@@ -83,6 +84,20 @@ class TestCut(unittest.TestCase):
         labels = cut(arr, 4, labels=False)
         ex_labels = np.where(com.isnull(arr), np.nan, labels)
         tm.assert_almost_equal(labels, ex_labels)
+
+    def test_qcut(self):
+        arr = np.random.randn(1000)
+
+        labels, bins = qcut(arr, 4, retbins=True)
+
+        ex_bins = quantile(arr, [0, .25, .5, .75, 1.])
+
+        assert_almost_equal(bins, ex_bins)
+
+        ex_labels = cut(arr, ex_bins)
+
+        self.assert_(np.array_equal(labels, ex_labels))
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

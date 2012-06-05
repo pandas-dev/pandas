@@ -3,6 +3,7 @@ Quantilization functions and related stuff
 """
 
 from pandas.core.api import DataFrame, Series
+import pandas.core.algorithms as algos
 import pandas.core.common as com
 import pandas.core.nanops as nanops
 
@@ -92,12 +93,55 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3):
         if (np.diff(bins) < 0).any():
             raise ValueError('bins must increase monotonically.')
 
+    return _bins_to_cuts(x, bins, right=right, labels=labels,
+                         retbins=retbins, precision=precision)
+
+
+
+def qcut(x, q=4, labels=None, retbins=False, precision=3):
+    """
+    Quantile-based discretization function. Discretize variable into
+    equal-sized buckets based on rank or based on sample quantiles. For example
+    1000 values for 10 quantiles would produce 1000 integers from 0 to 9
+    indicating the
+
+    Parameters
+    ----------
+    x : ndarray or Series
+    q : integer or array of quantiles
+        Number of quantiles. 10 for deciles, 4 for quartiles, etc. Alternately
+        array of quantiles, e.g. [0, .25, .5, .75, 1.] for quartiles
+    labels : array or boolean, default None
+        Labels to use for bin edges, or False to return integer bin labels
+    retbins : bool, optional
+        Whether to return the bins or not. Can be useful if bins is given
+        as a scalar.
+
+    Returns
+    -------
+
+    Notes
+    -----
+
+    Examples
+    --------
+    """
+    if com.is_integer(q):
+        quantiles = np.linspace(0, 1, q + 1)
+        bins = algos.quantile(x, quantiles)
+        return _bins_to_cuts(x, bins, labels=labels, retbins=retbins,
+                             precision=precision)
+    else:
+        raise NotImplementedError
+
+
+def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
+                  precision=3):
     side = 'left' if right else 'right'
     ids = bins.searchsorted(x, side=side)
 
     mask = com.isnull(x)
     has_nas = mask.any()
-
 
     if labels is not False:
         if labels is None:
@@ -130,35 +174,6 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3):
         return labels
 
     return labels, bins
-
-
-def qcut(x, n, ties_method='average'):
-    """
-    Quantile-based discretization function. Discretize variable into
-    equal-sized buckets based on rank. For example 1000 values for 10 quantiles
-    would produce 1000 integers from 0 to 9 indicating the
-
-    Parameters
-    ----------
-    x : ndarray or Series
-    n : integer
-        Number of quantiles. 10 for deciles, 4 for quartiles, etc.
-    ties_method : {'average', 'min', 'max', 'first'}, default 'average'
-        average: average rank of group
-        min: lowest rank in group
-        max: highest rank in group
-        first: ranks assigned in order they appear in the array
-
-    Returns
-    -------
-
-    Notes
-    -----
-
-    Examples
-    --------
-    """
-    pass
 
 
 def _format_label(x, precision=3):

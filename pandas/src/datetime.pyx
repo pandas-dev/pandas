@@ -887,8 +887,8 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz):
     result_b.fill(NPY_NAT)
 
     # left side
-    idx_shifted = np.maximum(0, trans.searchsorted(vals - DAY_NS,
-                                                   side='right') - 1)
+    idx_shifted = _ensure_int64(
+        np.maximum(0, trans.searchsorted(vals - DAY_NS, side='right') - 1))
 
     for i in range(n):
         v = vals[i] - deltas[idx_shifted[i]]
@@ -899,8 +899,8 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz):
             result_a[i] = v
 
     # right side
-    idx_shifted = np.maximum(0, trans.searchsorted(vals + DAY_NS,
-                                                   side='right') - 1)
+    idx_shifted = _ensure_int64(
+        np.maximum(0, trans.searchsorted(vals + DAY_NS, side='right') - 1))
 
     for i in range(n):
         v = vals[i] - deltas[idx_shifted[i]]
@@ -928,6 +928,16 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz):
             raise pytz.NonExistentTimeError(stamp)
 
     return result
+
+cdef _ensure_int64(object arr):
+    if util.is_array(arr):
+        if (<ndarray> arr).descr.type_num == NPY_INT64:
+            return arr
+        else:
+            return arr.astype(np.int64)
+    else:
+        return np.array(arr, dtype=np.int64)
+
 
 cdef inline bisect_right_i8(int64_t *data, int64_t val, Py_ssize_t n):
     cdef Py_ssize_t pivot, left = 0, right = n

@@ -80,6 +80,7 @@ pandas 0.8.0
   - Add Panel.transpose method for rearranging axes (#695)
   - Add new ``cut`` function (patterned after R) for discretizing data into
     equal range-length bins or arbitrary breaks of your choosing (#415)
+  - Add new ``qcut`` for cutting with quantiles (#1378)
   - Added Andrews curves plot tupe (#1325)
   - Add support for tox and Travis CI (#1382)
 

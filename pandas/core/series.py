@@ -1083,8 +1083,8 @@ copy : boolean, default False
         -------
         counts : Series
         """
-        import pandas.core.algorithms as algos
-        return algos.value_counts(self.values, sort=True, ascending=False)
+        from pandas.core.algorithms import value_counts
+        return value_counts(self.values, sort=True, ascending=False)
 
     def unique(self):
         """
