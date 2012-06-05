@@ -256,8 +256,8 @@ class DatetimeIndex(Int64Index):
             tz = tools._maybe_get_tz(tz)
             # Convert local to UTC
             ints = subarr.view('i8')
-            lib.tz_localize_check(ints, tz)
-            subarr = lib.tz_convert(ints, tz, _utc())
+
+            subarr = lib.tz_localize_to_utc(ints, tz)
             subarr = subarr.view(_NS_DTYPE)
 
         subarr = subarr.view(cls)
@@ -321,8 +321,11 @@ class DatetimeIndex(Int64Index):
         if tz is not None:
             # Convert local to UTC
             ints = index.view('i8')
-            lib.tz_localize_check(ints, tz)
-            index = lib.tz_convert(ints, tz, _utc())
+            index = lib.tz_localize_to_utc(ints, tz)
+
+            # lib.tz_localize_check(ints, tz)
+            # index = lib.tz_convert(ints, tz, _utc())
+
             index = index.view(_NS_DTYPE)
 
         index = index.view(cls)
@@ -1346,3 +1349,113 @@ def _in_range(start, end, rng_start, rng_end):
 def _time_to_nanosecond(time):
     seconds = time.hour * 60 * 60 + 60 * time.minute + time.second
     return (1000000 * seconds + time.microsecond) * 1000
+
+
+
+def tz_localize_to_utc(vals, tz):
+    """
+    Localize tzinfo-naive DateRange to given time zone (using pytz). If
+    there are ambiguities in the values, raise AmbiguousTimeError.
+
+    Returns
+    -------
+    localized : DatetimeIndex
+    """
+    # Vectorized version of DstTzInfo.localize
+
+    # if not have_pytz:
+    #     raise Exception("Could not find pytz module")
+    import pytz
+
+    n = len(vals)
+    DAY_NS = 86400000000000L
+    NPY_NAT = lib.iNaT
+
+    if tz == pytz.utc or tz is None:
+        return vals
+
+    trans = _get_transitions(tz)  # transition dates
+    deltas = _get_deltas(tz)      # utc offsets
+
+    result = np.empty(n, dtype=np.int64)
+    result_a = np.empty(n, dtype=np.int64)
+    result_b = np.empty(n, dtype=np.int64)
+    result_a.fill(NPY_NAT)
+    result_b.fill(NPY_NAT)
+
+    # left side
+    idx_shifted = np.maximum(0, trans.searchsorted(vals - DAY_NS,
+                                                   side='right') - 1)
+
+    for i in range(n):
+        v = vals[i] - deltas[idx_shifted[i]]
+        pos = trans.searchsorted(v, side='right') - 1
+
+        # timestamp falls to the left side of the DST transition
+        if v + deltas[pos] == vals[i]:
+            result_a[i] = v
+
+    # right side
+    idx_shifted = np.maximum(0, trans.searchsorted(vals + DAY_NS,
+                                                   side='right') - 1)
+
+    for i in range(n):
+        v = vals[i] - deltas[idx_shifted[i]]
+        pos = trans.searchsorted(v, side='right') - 1
+
+        # timestamp falls to the right side of the DST transition
+        if v + deltas[pos] == vals[i]:
+            result_b[i] = v
+
+    for i in range(n):
+        left = result_a[i]
+        right = result_b[i]
+        if left != NPY_NAT and right != NPY_NAT:
+            if left == right:
+                result[i] = left
+            else:
+                stamp = Timestamp(vals[i])
+                raise pytz.AmbiguousTimeError(stamp)
+        elif left != NPY_NAT:
+            result[i] = left
+        elif right != NPY_NAT:
+            result[i] = right
+        else:
+            stamp = Timestamp(vals[i])
+            raise pytz.NonExistentTimeError(stamp)
+
+    return result
+
+
+trans_cache = {}
+utc_offset_cache = {}
+
+def _get_transitions(tz):
+    """
+    Get UTC times of DST transitions
+    """
+    if tz not in trans_cache:
+        arr = np.array(tz._utc_transition_times, dtype='M8[ns]')
+        trans_cache[tz] = arr.view('i8')
+    return trans_cache[tz]
+
+def _get_deltas(tz):
+    """
+    Get UTC offsets in microseconds corresponding to DST transitions
+    """
+    if tz not in utc_offset_cache:
+        utc_offset_cache[tz] = _unbox_utcoffsets(tz._transition_info)
+    return utc_offset_cache[tz]
+
+def total_seconds(td): # Python 2.6 compat
+    return ((td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) //
+            10**6)
+
+def _unbox_utcoffsets(transinfo):
+    sz = len(transinfo)
+    arr = np.empty(sz, dtype='i8')
+
+    for i in range(sz):
+        arr[i] = int(total_seconds(transinfo[i][0])) * 1000000000
+
+    return arr

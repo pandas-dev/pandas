@@ -100,6 +100,35 @@ class TestTimeZoneSupport(unittest.TestCase):
         self.assertRaises(pytz.AmbiguousTimeError, dti.tz_localize,
                           'US/Eastern')
 
+    def test_date_range_localize(self):
+        rng = date_range('3/11/2012 03:00', periods=15, freq='H', tz='US/Eastern')
+        rng2 = DatetimeIndex(['3/11/2012 03:00', '3/11/2012 04:00'],
+                             tz='US/Eastern')
+
+        # DST transition time
+        val = rng[0]
+        exp = Timestamp('3/11/2012 03:00', tz='US/Eastern')
+
+        self.assertEquals(val.hour, 3)
+        self.assertEquals(exp.hour, 3)
+        self.assertEquals(val, exp)  # same UTC value
+        self.assert_(rng[:2].equals(rng2))
+
+        # Right before the DST transition
+        rng = date_range('3/11/2012 00:00', periods=2, freq='H', tz='US/Eastern')
+        rng2 = DatetimeIndex(['3/11/2012 00:00', '3/11/2012 01:00'],
+                             tz='US/Eastern')
+        self.assert_(rng.equals(rng2))
+        exp = Timestamp('3/11/2012 00:00', tz='US/Eastern')
+        self.assertEquals(exp.hour, 0)
+        self.assertEquals(rng[0], exp)
+        exp = Timestamp('3/11/2012 01:00', tz='US/Eastern')
+        self.assertEquals(exp.hour, 1)
+        self.assertEquals(rng[1], exp)
+
+        self.assertRaises(pytz.NonExistentTimeError, date_range,
+                          '3/11/2012 00:00', periods=10, freq='H', tz='US/Eastern')
+
     def test_utc_box_timestamp_and_localize(self):
         rng = date_range('3/11/2012', '3/12/2012', freq='H', tz='utc')
         rng_eastern = rng.tz_convert('US/Eastern')

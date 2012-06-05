@@ -48,6 +48,8 @@ def _maybe_get_tz(tz):
 
 def _figure_out_timezone(start, end, tzinfo):
     inferred_tz = _infer_tzinfo(start, end)
+    tzinfo = _maybe_get_tz(tzinfo)
+
     tz = inferred_tz
     if inferred_tz is None and tzinfo is not None:
         tz = tzinfo
@@ -55,7 +57,7 @@ def _figure_out_timezone(start, end, tzinfo):
         assert(inferred_tz == tzinfo)
         # make tz naive for now
 
-    tz = _maybe_get_tz(tz)
+    # tz = _maybe_get_tz(tz)
 
     start = start if start is None else start.replace(tzinfo=None)
     end = end if end is None else end.replace(tzinfo=None)

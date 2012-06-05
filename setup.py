@@ -345,7 +345,7 @@ tseries_depends = ['reindex', 'groupby', 'skiplist', 'moments',
                    'reduce', 'stats', 'datetime',
                    'hashtable', 'inference', 'properties', 'join', 'engines']
 
-plib_depends = ['period']
+plib_depends = ['plib']
 
 def srcpath(name=None, suffix='.pyx', subdir='src'):
     return pjoin('pandas', subdir, name+suffix)

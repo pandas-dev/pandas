@@ -1482,6 +1482,35 @@ class TestTimestamp(unittest.TestCase):
         result = val + timedelta(1)
         self.assert_(result.nanosecond == val.nanosecond)
 
+    def test_create_with_tz(self):
+        stamp = Timestamp('3/11/2012 05:00', tz='US/Eastern')
+        self.assertEquals(stamp.hour, 5)
+
+        rng = date_range('3/11/2012 04:00', periods=10, freq='H', tz='US/Eastern')
+
+        self.assertEquals(stamp, rng[1])
+
+    def test_tz_convert_localize(self):
+        stamp = Timestamp('3/11/2012 04:00')
+
+        result = stamp.tz_convert('US/Eastern')
+        expected = Timestamp('3/11/2012 04:00', tz='US/Eastern')
+        self.assertEquals(result.hour, expected.hour)
+        self.assertEquals(result, expected)
+
+    def test_timedelta_push_over_dst_boundary(self):
+        # #1389
+
+        # 4 hours before DST transition
+        stamp = Timestamp('3/10/2012 22:00', tz='US/Eastern')
+
+        result = stamp + timedelta(hours=6)
+
+        # spring forward, + "7" hours
+        expected = Timestamp('3/11/2012 05:00', tz='US/Eastern')
+
+        self.assertEquals(result, expected)
+
     def test_frequency_misc(self):
         self.assertEquals(fmod.get_freq_group('T'),
                           fmod.FreqGroup.FR_MIN)
