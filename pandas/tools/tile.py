@@ -138,6 +138,8 @@ def qcut(x, q=4, labels=None, retbins=False, precision=3):
 
 def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
                   precision=3):
+    x = np.asarray(x)
+
     side = 'left' if right else 'right'
     ids = bins.searchsorted(x, side=side)
 
@@ -153,11 +155,11 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
 
         fmt = lambda v: _format_label(v, precision=precision)
         if right:
-            levels = ['(%s, %s]' % (fmt(x), fmt(y))
-                       for x, y in zip(labels, labels[1:])]
+            levels = ['(%s, %s]' % (fmt(a), fmt(b))
+                       for a, b in zip(labels, labels[1:])]
         else:
-            levels = ['[%s, %s)' % (fmt(x), fmt(y))
-                       for x, y in zip(labels, labels[1:])]
+            levels = ['[%s, %s)' % (fmt(a), fmt(b))
+                       for a, b in zip(labels, labels[1:])]
 
         levels = np.asarray(levels, dtype=object)
 

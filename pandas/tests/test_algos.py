@@ -2,6 +2,7 @@ import unittest
 
 import numpy as np
 
+from pandas.core.api import Series
 
 import pandas.core.algorithms as algos
 import pandas.util.testing as tm
@@ -40,6 +41,13 @@ class TestUnique(unittest.TestCase):
         result = algos.unique(arr)
         self.assert_(isinstance(result, np.ndarray))
 
+
+def test_quantile():
+    s = Series(np.random.randn(100))
+
+    result = algos.quantile(s, [0, .25, .5, .75, 1.])
+    expected = algos.quantile(s.values, [0, .25, .5, .75, 1.])
+    tm.assert_almost_equal(result, expected)
 
 if __name__ == '__main__':
     import nose

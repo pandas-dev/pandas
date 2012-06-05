@@ -59,6 +59,7 @@ cpdef ensure_platform_int(object arr):
 
 """
 
+
 take_1d_template = """@cython.wraparound(False)
 @cython.boundscheck(False)
 def take_1d_%(name)s(ndarray[%(c_type)s] values,
