@@ -102,6 +102,12 @@ class Timestamp(_Timestamp):
 
         return ts_base
 
+    def __repr__(self):
+        result = self.strftime('<Timestamp: %Y-%m-%d %H:%M:%S%z')
+        if self.tzinfo:
+            result += self.strftime(' %%Z, tz=%s' % self.tzinfo.zone)
+        return result + '>'
+
     @property
     def tz(self):
         """
