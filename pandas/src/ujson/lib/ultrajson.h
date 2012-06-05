@@ -80,9 +80,8 @@ Dictates and limits how much stack space for buffers UltraJSON will use before r
 typedef __int64 JSINT64;
 typedef unsigned __int64 JSUINT64;
 
-typedef unsigned __int32 uint32_t;
 typedef __int32 JSINT32;
-typedef uint32_t JSUINT32;
+typedef unsigned __int32 JSUINT32;
 typedef unsigned __int8 JSUINT8;
 typedef unsigned __int16 JSUTF16;
 typedef unsigned __int32 JSUTF32;
@@ -106,8 +105,6 @@ typedef u_int32_t JSUINT32;
 #define FASTCALL_MSVC
 #define FASTCALL_ATTR __attribute__((fastcall))
 #define INLINE_PREFIX inline
-
-typedef u_int32_t uint32_t;
 
 typedef u_int8_t JSUINT8;
 typedef u_int16_t JSUTF16;
