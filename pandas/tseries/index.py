@@ -322,10 +322,6 @@ class DatetimeIndex(Int64Index):
             # Convert local to UTC
             ints = index.view('i8')
             index = lib.tz_localize_to_utc(ints, tz)
-
-            # lib.tz_localize_check(ints, tz)
-            # index = lib.tz_convert(ints, tz, _utc())
-
             index = index.view(_NS_DTYPE)
 
         index = index.view(cls)
@@ -1174,7 +1170,9 @@ class DatetimeIndex(Int64Index):
         tz = tools._maybe_get_tz(tz)
 
         if self.tz is None:
-            return self.tz_localize(tz)
+            # tz naive, use tz_localize
+            raise Exception('Cannot convert tz-naive timestamps, use '
+                            'tz_localize to localize')
 
         # No conversion since timestamps are all UTC to begin with
         return self._simple_new(self.values, self.name, self.offset, tz)
@@ -1188,15 +1186,13 @@ class DatetimeIndex(Int64Index):
         localized : DatetimeIndex
         """
         if self.tz is not None:
-            raise ValueError("Already have timezone info, "
-                             "use tz_convert to convert.")
+            raise ValueError("Already tz-aware, use tz_convert to convert.")
         tz = tools._maybe_get_tz(tz)
 
-        lib.tz_localize_check(self.asi8, tz)
-
         # Convert to UTC
-        new_dates = lib.tz_convert(self.asi8, tz, _utc())
+        new_dates = lib.tz_localize_to_utc(self.asi8, tz)
         new_dates = new_dates.view(_NS_DTYPE)
+
         return self._simple_new(new_dates, self.name, self.offset, tz)
 
     def tz_validate(self):
@@ -1355,111 +1351,3 @@ def _time_to_nanosecond(time):
     return (1000000 * seconds + time.microsecond) * 1000
 
 
-
-def tz_localize_to_utc(vals, tz):
-    """
-    Localize tzinfo-naive DateRange to given time zone (using pytz). If
-    there are ambiguities in the values, raise AmbiguousTimeError.
-
-    Returns
-    -------
-    localized : DatetimeIndex
-    """
-    # Vectorized version of DstTzInfo.localize
-
-    # if not have_pytz:
-    #     raise Exception("Could not find pytz module")
-    import pytz
-
-    n = len(vals)
-    DAY_NS = 86400000000000L
-    NPY_NAT = lib.iNaT
-
-    if tz == pytz.utc or tz is None:
-        return vals
-
-    trans = _get_transitions(tz)  # transition dates
-    deltas = _get_deltas(tz)      # utc offsets
-
-    result = np.empty(n, dtype=np.int64)
-    result_a = np.empty(n, dtype=np.int64)
-    result_b = np.empty(n, dtype=np.int64)
-    result_a.fill(NPY_NAT)
-    result_b.fill(NPY_NAT)
-
-    # left side
-    idx_shifted = np.maximum(0, trans.searchsorted(vals - DAY_NS,
-                                                   side='right') - 1)
-
-    for i in range(n):
-        v = vals[i] - deltas[idx_shifted[i]]
-        pos = trans.searchsorted(v, side='right') - 1
-
-        # timestamp falls to the left side of the DST transition
-        if v + deltas[pos] == vals[i]:
-            result_a[i] = v
-
-    # right side
-    idx_shifted = np.maximum(0, trans.searchsorted(vals + DAY_NS,
-                                                   side='right') - 1)
-
-    for i in range(n):
-        v = vals[i] - deltas[idx_shifted[i]]
-        pos = trans.searchsorted(v, side='right') - 1
-
-        # timestamp falls to the right side of the DST transition
-        if v + deltas[pos] == vals[i]:
-            result_b[i] = v
-
-    for i in range(n):
-        left = result_a[i]
-        right = result_b[i]
-        if left != NPY_NAT and right != NPY_NAT:
-            if left == right:
-                result[i] = left
-            else:
-                stamp = Timestamp(vals[i])
-                raise pytz.AmbiguousTimeError(stamp)
-        elif left != NPY_NAT:
-            result[i] = left
-        elif right != NPY_NAT:
-            result[i] = right
-        else:
-            stamp = Timestamp(vals[i])
-            raise pytz.NonExistentTimeError(stamp)
-
-    return result
-
-
-trans_cache = {}
-utc_offset_cache = {}
-
-def _get_transitions(tz):
-    """
-    Get UTC times of DST transitions
-    """
-    if tz not in trans_cache:
-        arr = np.array(tz._utc_transition_times, dtype='M8[ns]')
-        trans_cache[tz] = arr.view('i8')
-    return trans_cache[tz]
-
-def _get_deltas(tz):
-    """
-    Get UTC offsets in microseconds corresponding to DST transitions
-    """
-    if tz not in utc_offset_cache:
-        utc_offset_cache[tz] = _unbox_utcoffsets(tz._transition_info)
-    return utc_offset_cache[tz]
-
-def total_seconds(td): # Python 2.6 compat
-    return ((td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) //
-            10**6)
-
-def _unbox_utcoffsets(transinfo):
-    sz = len(transinfo)
-    arr = np.empty(sz, dtype='i8')
-
-    for i in range(sz):
-        arr[i] = int(total_seconds(transinfo[i][0])) * 1000000000
-
-    return arr

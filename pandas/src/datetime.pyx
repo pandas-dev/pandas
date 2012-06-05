@@ -181,7 +181,8 @@ class Timestamp(_Timestamp):
             # tz naive, localize
             return Timestamp(self.to_pydatetime(), tz=tz)
         else:
-            raise Exception('Cannot localize tz-aware Timestamp')
+            raise Exception('Cannot localize tz-aware Timestamp, use '
+                            'tz_convert for conversions')
 
     def tz_convert(self, tz):
         """
@@ -197,7 +198,10 @@ class Timestamp(_Timestamp):
         converted : Timestamp
         """
         if self.tzinfo is None:
-            # tz naive, localize
+            # tz naive, use tz_localize
+            raise Exception('Cannot convert tz-naive Timestamp, use '
+                            'tz_localize to localize')
+
             return Timestamp(self.to_pydatetime(), tz=tz)
         else:
             # Same UTC timestamp, different time zone

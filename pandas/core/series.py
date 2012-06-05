@@ -2830,8 +2830,7 @@ class TimeSeries(Series):
 
     def tz_convert(self, tz, copy=True):
         """
-        Convert TimeSeries to target time zone. If it is time zone naive, it
-        will be localized to the passed time zone.
+        Convert TimeSeries to target time zone
 
         Parameters
         ----------
@@ -2841,8 +2840,31 @@ class TimeSeries(Series):
 
         Returns
         -------
+        converted : TimeSeries
         """
         new_index = self.index.tz_convert(tz)
+
+        new_values = self.values
+        if copy:
+            new_values = new_values.copy()
+
+        return Series(new_values, index=new_index, name=self.name)
+
+    def tz_localize(self, tz, copy=True):
+        """
+        Localize tz-naive TimeSeries to target time zone
+
+        Parameters
+        ----------
+        tz : string or pytz.timezone object
+        copy : boolean, default True
+            Also make a copy of the underlying data
+
+        Returns
+        -------
+        localized : TimeSeries
+        """
+        new_index = self.index.tz_localize(tz)
 
         new_values = self.values
         if copy:

@@ -92,6 +92,13 @@ def assert_range_equal(left, right):
     assert(left.tz == right.tz)
 
 
+def _skip_if_no_pytz():
+    try:
+        import pytz
+    except ImportError:
+        raise nose.SkipTest
+
+
 class TestTimeSeries(unittest.TestCase):
 
     def test_dti_slicing(self):
@@ -140,6 +147,7 @@ class TestTimeSeries(unittest.TestCase):
         self.assert_(isinstance(s[5], Timestamp))
 
     def test_timestamp_to_datetime(self):
+        _skip_if_no_pytz()
         rng = date_range('20090415', '20090519',
                          tz='US/Eastern')
 
@@ -149,6 +157,8 @@ class TestTimeSeries(unittest.TestCase):
         self.assertEquals(stamp.tzinfo, dtval.tzinfo)
 
     def test_index_convert_to_datetime_array(self):
+        _skip_if_no_pytz()
+
         def _check_rng(rng):
             converted = rng.to_pydatetime()
             self.assert_(isinstance(converted, np.ndarray))
@@ -1495,6 +1505,7 @@ class TestTimestamp(unittest.TestCase):
         self.assert_(other >= val)
 
     def test_cant_compare_tz_naive_w_aware(self):
+        _skip_if_no_pytz()
         # #1404
         a = Timestamp('3/12/2012')
         b = Timestamp('3/12/2012', tz='utc')
@@ -1515,27 +1526,6 @@ class TestTimestamp(unittest.TestCase):
         val = Timestamp(1337299200000000123L)
         result = val + timedelta(1)
         self.assert_(result.nanosecond == val.nanosecond)
-
-    def test_tz_convert_localize(self):
-        stamp = Timestamp('3/11/2012 04:00')
-
-        result = stamp.tz_convert('US/Eastern')
-        expected = Timestamp('3/11/2012 04:00', tz='US/Eastern')
-        self.assertEquals(result.hour, expected.hour)
-        self.assertEquals(result, expected)
-
-    def test_timedelta_push_over_dst_boundary(self):
-        # #1389
-
-        # 4 hours before DST transition
-        stamp = Timestamp('3/10/2012 22:00', tz='US/Eastern')
-
-        result = stamp + timedelta(hours=6)
-
-        # spring forward, + "7" hours
-        expected = Timestamp('3/11/2012 05:00', tz='US/Eastern')
-
-        self.assertEquals(result, expected)
 
     def test_frequency_misc(self):
         self.assertEquals(fmod.get_freq_group('T'),
