@@ -377,10 +377,10 @@ lib_ext = Extension('pandas.lib',
                     )
 
 period_ext = Extension('pandas._period',
-                       depends=plib_depends + ['pandas/src/numpy_helper.h'],
+                       depends=plib_depends + ['pandas/src/numpy_helper.h',
+                                               'pandas/src/period.h'],
                        sources=[srcpath('plib', suffix=suffix),
                                 'pandas/src/datetime/np_datetime.c',
-                                'pandas/src/period.h',
                                 'pandas/src/period.c'],
                        include_dirs=[np.get_include()])
 
@@ -390,6 +390,7 @@ sparse_ext = Extension('pandas._sparse',
                        include_dirs=[np.get_include()])
 
 ujson_ext = Extension('pandas._ujson',
+                      depends=['pandas/src/ujson/lib/ultrajson.h'],
                       sources=['pandas/src/ujson/python/ujson.c',
                                'pandas/src/ujson/python/objToJSON.c',
                                'pandas/src/ujson/python/JSONtoObj.c',
