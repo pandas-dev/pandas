@@ -141,6 +141,14 @@ def value_counts(values, sort=True, ascending=False):
     """
     Compute a histogram of the counts of non-null values
 
+    Parameters
+    ----------
+    values : ndarray (1-d)
+    sort : boolean, default True
+        Sort by values
+    ascending : boolean, default False
+        Sort in ascending order
+
     Returns
     -------
     value_counts : Series
