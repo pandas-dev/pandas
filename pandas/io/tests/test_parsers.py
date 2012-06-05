@@ -401,6 +401,20 @@ skip
         except ValueError, inst:
             self.assert_('Expecting 3 columns, got 5 in row 5' in str(inst))
 
+    def test_quoting(self):
+        bad_line_small = """printer\tresult\tvariant_name
+Klosterdruckerei\tKlosterdruckerei <Salem> (1611-1804)\tMuller, Jacob
+Klosterdruckerei\tKlosterdruckerei <Salem> (1611-1804)\tMuller, Jakob
+Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\t"Furststiftische Hofdruckerei,  <Kempten""
+Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tGaller, Alois
+Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tHochfurstliche Buchhandlung <Kempten>"""
+        self.assertRaises(Exception, read_table, StringIO(bad_line_small),
+                          sep='\t')
+
+        good_line_small = bad_line_small + '"'
+        df = read_table(StringIO(good_line_small), sep='\t')
+        self.assert_(len(df) == 3)
+
     def test_custom_na_values(self):
         data = """A,B,C
 ignore,this,row

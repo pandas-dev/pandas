@@ -5,6 +5,7 @@ from StringIO import StringIO
 import re
 from itertools import izip
 from urlparse import urlparse
+import csv
 
 try:
     next
@@ -551,8 +552,6 @@ class TextParser(object):
             else:
                 columns = names
 
-
-
         return columns
 
     def _next_line(self):
@@ -973,8 +972,18 @@ class TextParser(object):
                         new_rows.append(next(source))
                     lines.extend(new_rows)
                 else:
+                    rows = 0
                     while True:
-                        new_rows.append(next(source))
+                        try:
+                            new_rows.append(next(source))
+                            rows += 1
+                        except csv.Error, inst:
+                            if 'newline inside string' in inst.message:
+                                row_num = str(self.pos + rows)
+                                msg = ('EOF inside string starting with line '
+                                       + row_num)
+                                raise Exception(msg)
+                            raise
             except StopIteration:
                 lines.extend(new_rows)
                 if len(lines) == 0:
