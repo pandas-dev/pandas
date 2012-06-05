@@ -100,6 +100,21 @@ class TestTimeZoneSupport(unittest.TestCase):
         self.assertRaises(pytz.AmbiguousTimeError, dti.tz_localize,
                           'US/Eastern')
 
+    def test_create_with_tz(self):
+        stamp = Timestamp('3/11/2012 05:00', tz='US/Eastern')
+        self.assertEquals(stamp.hour, 5)
+
+        rng = date_range('3/11/2012 04:00', periods=10, freq='H', tz='US/Eastern')
+
+        self.assertEquals(stamp, rng[1])
+
+        utc_stamp = Timestamp('3/11/2012 05:00', tz='utc')
+        self.assert_(utc_stamp.tzinfo is pytz.utc)
+        self.assertEquals(utc_stamp.hour, 5)
+
+        stamp = Timestamp('3/11/2012 05:00').tz_localize('utc')
+        self.assertEquals(utc_stamp.hour, 5)
+
     def test_date_range_localize(self):
         rng = date_range('3/11/2012 03:00', periods=15, freq='H', tz='US/Eastern')
         rng2 = DatetimeIndex(['3/11/2012 03:00', '3/11/2012 04:00'],

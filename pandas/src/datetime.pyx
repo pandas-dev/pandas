@@ -341,6 +341,12 @@ cdef class _Timestamp(datetime):
             else:
                 raise TypeError('Cannot compare Timestamp with %s' % str(other))
 
+        if self.tzinfo is None:
+            if other.tzinfo is not None:
+                raise Exception('Cannot compare tz-naive and tz-aware timestamps')
+        elif other.tzinfo is None:
+            raise Exception('Cannot compare tz-naive and tz-aware timestamps')
+
         if op == 2: # ==
             return self.value == ots.value
         elif op == 3: # !=
@@ -464,14 +470,16 @@ cpdef convert_to_tsobject(object ts, object tz=None):
             if ts.tzinfo is not None:
                 ts = tz.normalize(ts)
                 obj.value = _pydatetime_to_dts(ts, &obj.dts)
+                obj.tzinfo = ts.tzinfo
             elif tz is not pytz.utc:
                 ts = tz.localize(ts)
                 obj.value = _pydatetime_to_dts(ts, &obj.dts)
                 obj.value -= _delta_to_nanoseconds(ts.tzinfo._utcoffset)
+                obj.tzinfo = ts.tzinfo
             else:
                 # UTC
                 obj.value = _pydatetime_to_dts(ts, &obj.dts)
-            obj.tzinfo = ts.tzinfo
+                obj.tzinfo = tz
         else:
             obj.value = _pydatetime_to_dts(ts, &obj.dts)
             obj.tzinfo = ts.tzinfo

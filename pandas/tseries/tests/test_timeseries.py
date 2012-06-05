@@ -1494,21 +1494,27 @@ class TestTimestamp(unittest.TestCase):
         self.assert_(other > val)
         self.assert_(other >= val)
 
+    def test_cant_compare_tz_naive_w_aware(self):
+        # #1404
+        a = Timestamp('3/12/2012')
+        b = Timestamp('3/12/2012', tz='utc')
+
+        self.assertRaises(Exception, a.__eq__, b)
+        self.assertRaises(Exception, a.__ne__, b)
+        self.assertRaises(Exception, a.__lt__, b)
+        self.assertRaises(Exception, a.__gt__, b)
+        self.assertRaises(Exception, b.__eq__, a)
+        self.assertRaises(Exception, b.__ne__, a)
+        self.assertRaises(Exception, b.__lt__, a)
+        self.assertRaises(Exception, b.__gt__, a)
+
+        self.assertRaises(Exception, a.__eq__, b.to_pydatetime())
+        self.assertRaises(Exception, a.to_pydatetime().__eq__, b)
+
     def test_delta_preserve_nanos(self):
         val = Timestamp(1337299200000000123L)
         result = val + timedelta(1)
         self.assert_(result.nanosecond == val.nanosecond)
-
-    def test_create_with_tz(self):
-        stamp = Timestamp('3/11/2012 05:00', tz='US/Eastern')
-        self.assertEquals(stamp.hour, 5)
-
-        rng = date_range('3/11/2012 04:00', periods=10, freq='H', tz='US/Eastern')
-
-        self.assertEquals(stamp, rng[1])
-
-        utc_stamp = Timestamp('3/11/2012 05:00', tz='utc')
-        self.assertEquals(utc_stamp.hour, 5)
 
     def test_tz_convert_localize(self):
         stamp = Timestamp('3/11/2012 04:00')
