@@ -1,5 +1,5 @@
 from pandas.util.py3compat import StringIO
-from pandas._tseries import cache_readonly
+from pandas.lib import cache_readonly
 import sys
 import warnings
 

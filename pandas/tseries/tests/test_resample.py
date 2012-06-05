@@ -5,7 +5,7 @@ import numpy as np
 from pandas import Series, TimeSeries, DataFrame, Panel, isnull, notnull
 
 from pandas.tseries.index import date_range
-from pandas.tseries.offsets import Minute, bday
+from pandas.tseries.offsets import Minute, BDay
 from pandas.tseries.period import period_range, PeriodIndex
 from pandas.tseries.resample import DatetimeIndex, TimeGrouper
 import pandas.tseries.offsets as offsets
@@ -15,6 +15,8 @@ import nose
 
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
+
+bday = BDay()
 
 class TestResample(unittest.TestCase):
 
@@ -402,6 +404,14 @@ class TestResample(unittest.TestCase):
         self.assert_(len(result) == 0)
         self.assert_(result.index.freqstr == 'A-DEC')
 
+    def test_weekly_resample_buglet(self):
+        # #1327
+        rng = date_range('1/1/2000', freq='B', periods=20)
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        resampled = ts.resample('W')
+        expected = ts.resample('W-SUN')
+        assert_series_equal(resampled, expected)
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
@@ -414,6 +424,7 @@ def _simple_pts(start, end, freq='D'):
 
 from pandas.tseries.frequencies import MONTHS, DAYS
 from pandas.util.compat import product
+
 
 class TestResamplePeriodIndex(unittest.TestCase):
 

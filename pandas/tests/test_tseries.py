@@ -5,7 +5,7 @@ import numpy as np
 from pandas import Index, isnull
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as common
-import pandas._tseries as lib
+import pandas.lib as lib
 import pandas._algos as algos
 from datetime import datetime
 

@@ -5,7 +5,7 @@ import unittest
 import numpy as np
 
 import pandas.core.datetools as datetools
-from pandas.core.datetools import generate_range
+from pandas.tseries.offsets import generate_range
 from pandas.core.index import Index
 from pandas.tseries.index import DatetimeIndex
 

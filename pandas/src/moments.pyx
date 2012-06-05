@@ -247,7 +247,63 @@ def ewma(ndarray[double_t] input, double_t com):
 
     return output
 
-#-------------------------------------------------------------------------------
+#----------------------------------------------------------------------
+# Pairwise correlation/covariance
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def nancorr(ndarray[float64_t, ndim=2] mat, cov=False):
+    cdef:
+        Py_ssize_t i, j, xi, yi, N, K
+        ndarray[float64_t, ndim=2] result
+        ndarray[uint8_t, ndim=2] mask
+        int64_t nobs = 0
+        float64_t vx, vy, sumx, sumy, sumxx, sumyy, meanx, meany, divisor
+
+    N, K = (<object> mat).shape
+
+    result = np.empty((K, K), dtype=np.float64)
+    mask = np.isfinite(mat).view(np.uint8)
+
+    for xi in range(K):
+        for yi in range(xi + 1):
+            nobs = sumxx = sumyy = sumx = sumy = 0
+            for i in range(N):
+                if mask[i, xi] and mask[i, yi]:
+                    vx = mat[i, xi]
+                    vy = mat[i, yi]
+                    nobs += 1
+                    sumx += vx
+                    sumy += vy
+
+            if nobs == 0:
+                result[xi, yi] = result[yi, xi] = np.NaN
+            else:
+                meanx = sumx / nobs
+                meany = sumy / nobs
+
+                # now the cov numerator
+                sumx = 0
+
+                for i in range(N):
+                    if mask[i, xi] and mask[i, yi]:
+                        vx = mat[i, xi] - meanx
+                        vy = mat[i, yi] - meany
+
+                        sumx += vx * vy
+                        sumxx += vx * vx
+                        sumyy += vy * vy
+
+                divisor = (nobs - 1.0) if cov else sqrt(sumxx * sumyy)
+
+                if divisor != 0:
+                    result[xi, yi] = result[yi, xi] = sumx / divisor
+                else:
+                    result[xi, yi] = result[yi, xi] = np.NaN
+
+    return result
+
+#----------------------------------------------------------------------
 # Rolling variance
 
 def _check_minp(minp, N):
@@ -259,7 +315,7 @@ def _check_minp(minp, N):
         raise ValueError('min_periods must be >= 0')
     return minp
 
-def roll_var(ndarray[double_t] input, int win, int minp):
+def roll_var(ndarray[double_t] input, int win, int minp, int ddof=1):
     cdef double val, prev, sum_x = 0, sum_xx = 0, nobs = 0
     cdef Py_ssize_t i
     cdef Py_ssize_t N = len(input)
@@ -295,7 +351,7 @@ def roll_var(ndarray[double_t] input, int win, int minp):
             sum_xx += val * val
 
         if nobs >= minp:
-            output[i] = (nobs * sum_xx - sum_x * sum_x) / (nobs * nobs - nobs)
+            output[i] = (nobs * sum_xx - sum_x * sum_x) / (nobs * (nobs - ddof))
         else:
             output[i] = NaN
 
@@ -640,6 +696,9 @@ def roll_generic(ndarray[float64_t, cast=True] input, int win,
     buf = <float64_t*> input.data
 
     n = len(input)
+    if n == 0:
+        return input
+
     minp = _check_minp(minp, n)
     output = np.empty(n, dtype=float)
     counts = roll_sum(np.isfinite(input).astype(float), win, minp)

@@ -29,6 +29,9 @@ class _SparseMockBlockManager(object):
     def get(self, item):
         return self.sp_frame[item].values
 
+    def iget(self, i):
+        return self.get(self.sp_frame.columns[i])
+
     @property
     def shape(self):
         x, y = self.sp_frame.shape
@@ -184,16 +187,24 @@ class SparseDataFrame(DataFrame):
     def __getstate__(self):
         series = dict((k, (v.sp_index, v.sp_values))
                       for k, v in self.iteritems())
-        columns = _pickle_array(self.columns)
-        index = _pickle_array(self.index)
+        columns = self.columns
+        index = self.index
 
         return (series, columns, index, self.default_fill_value,
                 self.default_kind)
 
     def __setstate__(self, state):
         series, cols, idx, fv, kind = state
-        columns = _unpickle_array(cols)
-        index = _unpickle_array(idx)
+
+        if not isinstance(cols, Index):  # pragma: no cover
+            columns = _unpickle_array(cols)
+        else:
+            columns = cols
+
+        if not isinstance(idx, Index):  # pragma: no cover
+            index = _unpickle_array(idx)
+        else:
+            index = idx
 
         series_dict = {}
         for col, (sp_index, sp_values) in series.iteritems():

@@ -599,7 +599,7 @@ def arrmap_%(name)s(ndarray[%(c_type)s] index, object func):
 
     cdef ndarray[object] result = np.empty(length, dtype=np.object_)
 
-    from _tseries import maybe_convert_objects
+    from pandas.lib import maybe_convert_objects
 
     for i in range(length):
         result[i] = func(index[i])

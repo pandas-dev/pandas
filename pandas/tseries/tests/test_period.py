@@ -164,6 +164,15 @@ class TestPeriodProperties(TestCase):
         i1 = Period('1982', freq='Min')
         self.assert_(i1.freq[0] != '1')
 
+    def test_repr(self):
+        p = Period('Jan-2000')
+        self.assert_('Jan-2000' in repr(p))
+
+    def test_strftime(self):
+        p = Period('2000-1-1 12:34:12', freq='S')
+        self.assert_(p.strftime('%Y-%m-%d %H:%M:%S') ==
+                     '2000-01-01 12:34:12')
+
     def test_to_timestamp(self):
         p = Period('1982', freq='A')
         start_ts = p.to_timestamp(how='S')
@@ -922,6 +931,19 @@ class TestPeriodIndex(TestCase):
         expected = PeriodIndex(start='4/2/2012', periods=10, freq='B')
         self.assert_(index.equals(expected))
 
+    def test_constructor_field_arrays(self):
+        # GH #1264
+
+        years = np.arange(1990, 2010).repeat(4)[2:-2]
+        quarters = np.tile(np.arange(1, 5), 20)[2:-2]
+
+        index = PeriodIndex(year=years, quarter=quarters, freq='Q-DEC')
+        expected = period_range('1990Q3', '2009Q2', freq='Q-DEC')
+        self.assert_(index.equals(expected))
+
+        index = PeriodIndex(year=years, quarter=quarters)
+        self.assert_(index.equals(expected))
+
     def test_to_timestamp(self):
         index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
         series = Series(1, index=index, name='foo')
@@ -1048,6 +1070,9 @@ class TestPeriodIndex(TestCase):
         delta = timedelta(hours=23, minutes=59, seconds=59)
         exp_index = _get_with_delta(delta)
         self.assert_(result.columns.equals(exp_index))
+
+        # invalid axis
+        self.assertRaises(ValueError, df.to_timestamp, axis=2)
 
     def test_index_duplicate_periods(self):
         # monotonic
@@ -1262,10 +1287,16 @@ class TestPeriodIndex(TestCase):
 
     def test_badinput(self):
         self.assertRaises(datetools.DateParseError, Period, '1/1/-2000', 'A')
-        self.assertRaises(ValueError, Period, -2000, 'A')
-        self.assertRaises(ValueError, Period, 0, 'A')
-        self.assertRaises(ValueError, PeriodIndex, [-1, 0, 1], 'A')
-        self.assertRaises(ValueError, PeriodIndex, np.array([-1, 0, 1]), 'A')
+        # self.assertRaises(datetools.DateParseError, Period, '-2000', 'A')
+        # self.assertRaises(datetools.DateParseError, Period, '0', 'A')
+
+    def test_negative_ordinals(self):
+        p = Period(ordinal=-1000, freq='A')
+
+        p = Period(ordinal=0, freq='A')
+
+        idx = PeriodIndex(ordinal=[-1, 0, 1], freq='A')
+        idx = PeriodIndex(ordinal=np.array([-1, 0, 1]), freq='A')
 
     def test_dti_to_period(self):
         dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
@@ -1435,28 +1466,29 @@ class TestPeriodIndex(TestCase):
         # year, month, day, hour, minute
         # second, weekofyear, week, dayofweek, weekday, dayofyear, quarter
         # qyear
-        pi = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        pi = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2005')
         self._check_all_fields(pi)
 
-        pi = PeriodIndex(freq='Q', start='1/1/2001', end='12/1/2003')
+        pi = PeriodIndex(freq='Q', start='1/1/2001', end='12/1/2002')
         self._check_all_fields(pi)
 
         pi = PeriodIndex(freq='M', start='1/1/2001', end='1/1/2002')
         self._check_all_fields(pi)
 
-        pi = PeriodIndex(freq='D', start='12/1/2001', end='1/1/2002')
+        pi = PeriodIndex(freq='D', start='12/1/2001', end='6/1/2001')
         self._check_all_fields(pi)
 
-        pi = PeriodIndex(freq='B', start='12/1/2001', end='1/1/2002')
+        pi = PeriodIndex(freq='B', start='12/1/2001', end='6/1/2001')
         self._check_all_fields(pi)
 
         pi = PeriodIndex(freq='H', start='12/31/2001', end='1/1/2002 23:00')
         self._check_all_fields(pi)
 
-        pi = PeriodIndex(freq='Min', start='12/31/2001', end='1/1/2002 00:59')
+        pi = PeriodIndex(freq='Min', start='12/31/2001', end='1/1/2002 00:20')
         self._check_all_fields(pi)
 
-        pi = PeriodIndex(freq='S', start='12/31/2001', end='1/1/2001 00:00:01')
+        pi = PeriodIndex(freq='S', start='12/31/2001 00:00:00',
+                         end='12/31/2001 00:05:00')
         self._check_all_fields(pi)
 
         end_intv = Period('2006-12-31', 'W')
@@ -1467,13 +1499,14 @@ class TestPeriodIndex(TestCase):
         fields = ['year', 'month', 'day', 'hour', 'minute',
                   'second', 'weekofyear', 'week', 'dayofweek',
                   'weekday', 'dayofyear', 'quarter', 'qyear']
-        [self._check_field(periodindex, x) for x in fields]
 
-    def _check_field(self, periodindex, fieldname):
-        field_idx = getattr(periodindex, fieldname)
-        assert_equal(len(periodindex), len(field_idx))
-        for x, val in zip(periodindex, field_idx):
-            assert_equal(getattr(x, fieldname), val)
+        periods = list(periodindex)
+
+        for field in fields:
+            field_idx = getattr(periodindex, field)
+            assert_equal(len(periodindex), len(field_idx))
+            for x, val in zip(periods, field_idx):
+                assert_equal(getattr(x, field), val)
 
     def test_is_full(self):
         index = PeriodIndex([2005, 2007, 2009], freq='A')
@@ -1492,6 +1525,12 @@ class TestPeriodIndex(TestCase):
         self.assertRaises(ValueError, getattr, index, 'is_full')
 
         self.assert_(index[:0].is_full)
+
+    def test_map(self):
+        index = PeriodIndex([2005, 2007, 2009], freq='A')
+        result = index.map(lambda x: x + 1)
+        expected = index + 1
+        self.assert_(result.equals(expected))
 
 def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))

@@ -6,7 +6,8 @@ import numpy as np
 from pandas.tseries.offsets import DateOffset
 from pandas.util.decorators import cache_readonly
 import pandas.tseries.offsets as offsets
-import pandas._tseries as lib
+import pandas.core.common as com
+import pandas.lib as lib
 
 class FreqGroup(object):
     FR_ANN = 1000
@@ -45,8 +46,8 @@ def get_freq_code(freqstr):
         freqstr = (get_offset_name(freqstr), freqstr.n)
 
     if isinstance(freqstr, tuple):
-        if (isinstance(freqstr[0], (int, long)) and
-            isinstance(freqstr[1], (int, long))):
+        if (com.is_integer(freqstr[0]) and
+            com.is_integer(freqstr[1])):
             #e.g., freqstr = (2000, 1)
             return freqstr
         else:
@@ -59,7 +60,7 @@ def get_freq_code(freqstr):
                 stride = freqstr[0]
             return code, stride
 
-    if isinstance(freqstr, (int, long)):
+    if com.is_integer(freqstr):
         return (freqstr, 1)
 
     base, stride = _base_and_stride(freqstr)
@@ -233,7 +234,6 @@ _offset_map = {
     'W-SAT' : Week(weekday=5),
     'W-SUN' : Week(weekday=6),
 
-    'W': Week()
 }
 
 _offset_to_period_map = {
@@ -258,7 +258,7 @@ for prefix in need_suffix:
         _offset_to_period_map['%s-%s' % (prefix, m)] = \
             _offset_to_period_map[prefix]
 
-def offset_to_period_alias(offset_str):
+def to_calendar_freq(offset_str):
     """ alias to closest period strings BQ->Q etc"""
     return _offset_to_period_map.get(offset_str, offset_str)
 
@@ -276,10 +276,12 @@ _rule_aliases = {
     'W@FRI': 'W-FRI',
     'W@SAT': 'W-SAT',
     'W@SUN': 'W-SUN',
+    'W': 'W-SUN',
 
     'Q@JAN': 'BQ-JAN',
     'Q@FEB': 'BQ-FEB',
     'Q@MAR': 'BQ-MAR',
+    'Q' : 'Q-DEC',
 
     'A@JAN' : 'BA-JAN',
     'A@FEB' : 'BA-FEB',
@@ -373,6 +375,9 @@ def to_offset(freqstr):
         except Exception:
             raise ValueError("Could not evaluate %s" % freqstr)
 
+    if delta is None:
+        raise ValueError('Unable to understand %s as a frequency' % freqstr)
+
     return delta
 
 
@@ -403,6 +408,11 @@ def _base_and_stride(freqstr):
 
     return (base, stride)
 
+def get_base_alias(freqstr):
+    """
+    Returns the base frequency alias, e.g., '5D' -> 'D'
+    """
+    return _base_and_stride(freqstr)[0]
 
 _dont_uppercase = ['MS', 'ms']
 

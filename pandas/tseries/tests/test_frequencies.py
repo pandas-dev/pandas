@@ -13,7 +13,7 @@ from pandas.tseries.frequencies import to_offset, infer_freq
 from pandas.tseries.tools import to_datetime
 import pandas.tseries.offsets as offsets
 
-import pandas._tseries as lib
+import pandas.lib as lib
 
 def test_to_offset_multiple():
     freqstr = '2h30min'
@@ -44,6 +44,14 @@ def test_to_offset_multiple():
     expected = offsets.Milli(10075)
     assert(result == expected)
 
+    # malformed
+    try:
+        to_offset('2h20m')
+    except ValueError:
+        pass
+    else:
+        assert(False)
+
 def test_to_offset_negative():
     freqstr = '-1S'
     result = to_offset(freqstr)
@@ -52,6 +60,16 @@ def test_to_offset_negative():
     freqstr='-5min10s'
     result = to_offset(freqstr)
     assert(result.n == -310)
+
+
+def test_anchored_shortcuts():
+    result = to_offset('W')
+    expected = to_offset('W-SUN')
+    assert(result == expected)
+
+    result = to_offset('Q')
+    expected = to_offset('Q-DEC')
+    assert(result == expected)
 
 
 _dti = DatetimeIndex

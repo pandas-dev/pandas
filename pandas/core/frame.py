@@ -43,7 +43,7 @@ import pandas.core.nanops as nanops
 import pandas.core.common as com
 import pandas.core.generic as generic
 import pandas.core.datetools as datetools
-import pandas._tseries as lib
+import pandas.lib as lib
 
 #----------------------------------------------------------------------
 # Docstring templates
@@ -233,13 +233,14 @@ def _flex_comp_method(op, name, default_axis='columns'):
             if isinstance(y, np.ndarray):
                 yrav = y.ravel()
                 mask = notnull(xrav) & notnull(yrav)
-                result[mask] = op(xrav[mask], yrav[mask])
+                result[mask] = op(np.array(list(xrav[mask])),
+                                  np.array(list(yrav[mask])))
             else:
                 mask = notnull(xrav)
-                result[mask] = op(xrav[mask], y)
+                result[mask] = op(np.array(list(xrav[mask])), y)
 
             if op == operator.ne:
-                np.putmask(result, -mask, False)
+                np.putmask(result, -mask, True)
             else:
                 np.putmask(result, -mask, False)
             result = result.reshape(x.shape)
@@ -252,10 +253,7 @@ def _flex_comp_method(op, name, default_axis='columns'):
             return self._flex_compare_frame(other, na_op, level)
 
         elif isinstance(other, Series):
-            try:
-                return self._combine_series(other, na_op, None, axis, level)
-            except Exception:
-                return self._combine_series_infer(other, na_op)
+            return self._combine_series(other, na_op, None, axis, level)
 
         elif isinstance(other, (list, tuple)):
             if axis is not None and self._get_axis_name(axis) == 'index':
@@ -263,10 +261,7 @@ def _flex_comp_method(op, name, default_axis='columns'):
             else:
                 casted = Series(other, index=self.columns)
 
-            try:
-                return self._combine_series(casted, na_op, None, axis, level)
-            except Exception:
-                return self._combine_series_infer(casted, na_op)
+            return self._combine_series(casted, na_op, None, axis, level)
 
         elif isinstance(other, np.ndarray):
             if other.ndim == 1:
@@ -275,15 +270,12 @@ def _flex_comp_method(op, name, default_axis='columns'):
                 else:
                     casted = Series(other, index=self.columns)
 
-                try:
-                    return self._combine_series(casted, na_op, None, axis,
-                                                level)
-                except Exception:
-                    return self._combine_series_infer(casted, na_op)
+                return self._combine_series(casted, na_op, None, axis, level)
 
             elif other.ndim == 2:
                 casted = DataFrame(other, index=self.index,
                                    columns=self.columns)
+
                 return self._flex_compare_frame(casted, na_op, level)
 
             else:  # pragma: no cover
@@ -379,7 +371,7 @@ class DataFrame(NDFrame):
             mask = ma.getmaskarray(data)
             datacopy = ma.copy(data)
             if issubclass(data.dtype.type, np.datetime64):
-                datacopy[mask] = lib.NaT
+                datacopy[mask] = lib.iNaT
             else:
                 datacopy = com._maybe_upcast(datacopy)
                 datacopy[mask] = np.nan
@@ -802,7 +794,9 @@ class DataFrame(NDFrame):
                         args = (args[0].T, args[2], args[1])
                     df = DataFrame(*args)
                 elif orient == "split":
-                    df = DataFrame(**loads(json, dtype=dtype, numpy=True))
+                    decoded = loads(json, dtype=dtype, numpy=True)
+                    decoded = dict((str(k), v) for k, v in decoded.iteritems())
+                    df = DataFrame(**decoded)
                 elif orient == "values":
                     df = DataFrame(loads(json, dtype=dtype, numpy=True))
                 else:
@@ -814,7 +808,9 @@ class DataFrame(NDFrame):
             if orient == "columns":
                 df = DataFrame(loads(json), dtype=dtype)
             elif orient == "split":
-                df = DataFrame(dtype=dtype, **loads(json))
+                decoded = dict((str(k), v)
+                               for k, v in loads(json).iteritems())
+                df = DataFrame(dtype=dtype, **decoded)
             elif orient == "index":
                 df = DataFrame(loads(json), dtype=dtype).T
             else:
@@ -1447,7 +1443,7 @@ class DataFrame(NDFrame):
                 return self
             return self._constructor(data=self.values.T, index=self.columns,
                                      columns=self.index, copy=False)
-        else:  # pragma: no cover
+        else:
             raise ValueError('Axis numbers must be in (0, 1)')
 
     #----------------------------------------------------------------------
@@ -1566,7 +1562,7 @@ class DataFrame(NDFrame):
 
             return result.set_value(index, col, value)
 
-    def irow(self, i):
+    def irow(self, i, copy=False):
         """
         Retrieve the i-th row or rows of the DataFrame by location
 
@@ -1589,7 +1585,12 @@ class DataFrame(NDFrame):
             if isinstance(label, Index):
                 return self.reindex(label)
             else:
-                return self.xs(label)
+                try:
+                    new_values = self._data.fast_2d_xs(i, copy=copy)
+                except:
+                    new_values = self._data.fast_2d_xs(i, copy=True)
+                return Series(new_values, index=self.columns,
+                              name=self.index[i])
 
     def icol(self, i):
         """
@@ -1613,7 +1614,18 @@ class DataFrame(NDFrame):
             lab_slice = slice(label[0], label[-1])
             return self.ix[:, lab_slice]
         else:
-            return self[label]
+            label = self.columns[i]
+            if isinstance(label, Index):
+                return self.reindex(columns=label)
+
+            values = self._data.iget(i)
+            return Series(values, index=self.index, name=label)
+
+    def _ixs(self, i, axis=0):
+        if axis == 0:
+            return self.irow(i)
+        else:
+            return self.icol(i)
 
     def iget_value(self, i, j):
         """
@@ -1657,6 +1669,12 @@ class DataFrame(NDFrame):
             return self._getitem_array(key)
         elif isinstance(self.columns, MultiIndex):
             return self._getitem_multilevel(key)
+        elif isinstance(key, DataFrame):
+            values = key.values
+            if values.dtype == bool:
+                return self.values[values]
+            else:
+                raise ValueError('Cannot index using non-boolean DataFrame')
         else:
             return self._get_item_cache(key)
 
@@ -1712,7 +1730,12 @@ class DataFrame(NDFrame):
             return self._get_item_cache(key)
 
     def _box_item_values(self, key, values):
-        return Series(values, index=self.index, name=key)
+        if values.ndim == 2:
+            item_cols = self.columns[self.columns.get_loc(key)]
+            return DataFrame(values.T, columns=item_cols,
+                             index=self.index)
+        else:
+            return Series(values, index=self.index, name=key)
 
     def __getattr__(self, name):
         """After regular attribute access, try looking up the name of a column.
@@ -2629,6 +2652,9 @@ class DataFrame(NDFrame):
         """
         from pandas.core.groupby import _lexsort_indexer
 
+        if axis not in [0, 1]:
+            raise ValueError('Axis must be 0 or 1, got %s' % str(axis))
+
         labels = self._get_axis(axis)
 
         if by is not None:
@@ -2650,8 +2676,7 @@ class DataFrame(NDFrame):
                                                       copy=False)
             elif axis == 0:
                 self._data = self._data.take(indexer)
-            else:
-                raise ValueError('Axis must be 0 or 1, got %s' % str(axis))
+
             self._clear_item_cache()
             return self
         else:
@@ -2850,35 +2875,17 @@ class DataFrame(NDFrame):
         if value is None:
             return self._interpolate(to_replace, method, axis, inplace, limit)
         else:
-            # Float type values
             if len(self.columns) == 0:
                 return self
 
-            if np.isscalar(to_replace):
-
-                if np.isscalar(value): # np.nan -> 0
-                    new_data = self._data.replace(to_replace, value,
-                                                  inplace=inplace)
-                    if inplace:
-                        self._data = new_data
-                        return self
-                    else:
-                        return self._constructor(new_data)
-
-                elif isinstance(value, dict): # np.nan -> {'A' : 0, 'B' : -1}
-                    return self._replace_dest_dict(to_replace, value, inplace)
-
-
-            elif isinstance(to_replace, dict):
-
-                if np.isscalar(value): # {'A' : np.nan, 'B' : ''} -> 0
-                    return self._replace_src_dict(to_replace, value, inplace)
-
-                elif isinstance(value, dict): # {'A' : np.nan} -> {'A' : 0}
+            if isinstance(to_replace, dict):
+                if isinstance(value, dict): # {'A' : np.nan} -> {'A' : 0}
                     return self._replace_both_dict(to_replace, value, inplace)
 
-                raise ValueError('Fill value must be scalar or dict')
+                elif not isinstance(value, (list, np.ndarray)):
+                    return self._replace_src_dict(to_replace, value, inplace)
 
+                raise ValueError('Fill value must be scalar or dict')
 
             elif isinstance(to_replace, (list, np.ndarray)):
                 # [np.nan, ''] -> [0, 'missing']
@@ -2889,8 +2896,7 @@ class DataFrame(NDFrame):
                                          (len(to_replace), len(value)))
 
                     new_data = self._data if inplace else self.copy()._data
-                    for s, d in zip(to_replace, value):
-                        new_data = new_data.replace(s, d, inplace=True)
+                    new_data._replace_list(to_replace, value)
 
                 else: # [np.nan, ''] -> 0
                     new_data = self._data.replace(to_replace, value,
@@ -2901,8 +2907,20 @@ class DataFrame(NDFrame):
                     return self
                 else:
                     return self._constructor(new_data)
+            else:
+                if isinstance(value, dict): # np.nan -> {'A' : 0, 'B' : -1}
+                    return self._replace_dest_dict(to_replace, value, inplace)
+                elif not isinstance(value, (list, np.ndarray)): # np.nan -> 0
+                    new_data = self._data.replace(to_replace, value,
+                                                  inplace=inplace)
+                    if inplace:
+                        self._data = new_data
+                        return self
+                    else:
+                        return self._constructor(new_data)
 
-            raise ValueError('Invalid to_replace type: %s' % type(to_replace))
+            raise ValueError('Invalid to_replace type: %s' %
+                             type(to_replace)) # pragma: no cover
 
     def _interpolate(self, to_replace, method, axis, inplace, limit):
         if self._is_mixed_type and axis == 1:
@@ -2936,7 +2954,6 @@ class DataFrame(NDFrame):
                 return self
             else:
                 return self._constructor(new_data)
-
 
     def _replace_dest_dict(self, to_replace, value, inplace):
         rs = self if inplace else self.copy()
@@ -3604,7 +3621,7 @@ class DataFrame(NDFrame):
                 try:
                     if hasattr(e, 'args'):
                         e.args = e.args + ('occurred at index %s' % str(k),)
-                except NameError:
+                except NameError: # pragma: no cover
                     # no k defined yet
                     pass
                 raise
@@ -3664,7 +3681,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Merging / joining methods
 
-    def append(self, other, ignore_index=False, verify_integrity=True):
+    def append(self, other, ignore_index=False, verify_integrity=False):
         """
         Append columns of other to end of this frame's columns and index,
         returning a new object.  Columns not in this frame are added as new
@@ -3676,6 +3693,8 @@ class DataFrame(NDFrame):
         ignore_index : boolean, default False
             If True do not use the index labels. Useful for gluing together
             record arrays
+        verify_integrity : boolean, default False
+            If True, raise Exception on creating index with duplicates
 
         Notes
         -----
@@ -3814,22 +3833,26 @@ class DataFrame(NDFrame):
         y : DataFrame
         """
         numeric_df = self._get_numeric_data()
-        mat = numeric_df.values.T
         cols = numeric_df.columns
+        mat = numeric_df.values
 
-        corrf = nanops.get_corr_func(method)
-        K = len(cols)
-        correl = np.empty((K, K), dtype=float)
-        mask = np.isfinite(mat)
-        for i, ac in enumerate(mat):
-            for j, bc  in enumerate(mat):
-                valid = mask[i] & mask[j]
-                if not valid.all():
-                    c = corrf(ac[valid], bc[valid])
-                else:
-                    c = corrf(ac, bc)
-                correl[i, j] = c
-                correl[j, i] = c
+        if method == 'pearson':
+            correl = lib.nancorr(mat)
+        else:
+            mat = mat.T
+            corrf = nanops.get_corr_func(method)
+            K = len(cols)
+            correl = np.empty((K, K), dtype=float)
+            mask = np.isfinite(mat)
+            for i, ac in enumerate(mat):
+                for j, bc  in enumerate(mat):
+                    valid = mask[i] & mask[j]
+                    if not valid.all():
+                        c = corrf(ac[valid], bc[valid])
+                    else:
+                        c = corrf(ac, bc)
+                    correl[i, j] = c
+                    correl[j, i] = c
 
         return self._constructor(correl, index=cols, columns=cols)
 
@@ -3842,26 +3865,15 @@ class DataFrame(NDFrame):
         y : DataFrame
         """
         numeric_df = self._get_numeric_data()
-        mat = numeric_df.values.T
         cols = numeric_df.columns
-        baseCov = np.cov(mat)
+        mat = numeric_df.values
 
-        for i, j, ac, bc in self._cov_helper(mat):
-            c = np.cov(ac, bc)[0, 1]
-            baseCov[i, j] = c
-            baseCov[j, i] = c
+        if notnull(mat).all():
+            baseCov = np.cov(mat.T)
+        else:
+            baseCov = lib.nancorr(mat, cov=True)
 
         return self._constructor(baseCov, index=cols, columns=cols)
-
-    def _cov_helper(self, mat):
-        # Get the covariance with items that have NaN values
-        mask = np.isfinite(mat)
-        for i, A in enumerate(mat):
-            if not mask[i].all():
-                for j, B in enumerate(mat):
-                    in_common = mask[i] & mask[j]
-                    if in_common.any():
-                        yield i, j, A[in_common], B[in_common]
 
     def corrwith(self, other, axis=0, drop=False):
         """
@@ -3880,6 +3892,9 @@ class DataFrame(NDFrame):
         -------
         correls : Series
         """
+        if isinstance(other, Series):
+            return self.apply(other.corr, axis=axis)
+
         this = self._get_numeric_data()
         other = other._get_numeric_data()
 
@@ -4545,9 +4560,12 @@ def extract_index(data):
             elif isinstance(v, dict):
                 have_dicts = True
                 indexes.append(v.keys())
-            else:
+            elif isinstance(v, (list, np.ndarray)):
                 have_raw_arrays = True
                 raw_lengths.append(len(v))
+
+        if not indexes and not raw_lengths:
+            raise ValueError('If use all scalar values, must pass index')
 
         if have_series or have_dicts:
             index = _union_indexes(indexes)

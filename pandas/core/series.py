@@ -28,7 +28,7 @@ import pandas.core.datetools as datetools
 import pandas.core.format as fmt
 import pandas.core.generic as generic
 import pandas.core.nanops as nanops
-import pandas._tseries as lib
+import pandas.lib as lib
 from pandas.util.decorators import Appender, Substitution
 
 from pandas.compat.scipy import scoreatpercentile as _quantile
@@ -37,6 +37,8 @@ __all__ = ['Series', 'TimeSeries']
 
 _np_version = np.version.short_version
 _np_version_under1p6 = LooseVersion(_np_version) < '1.6'
+
+_SHOW_WARNINGS = True
 
 #----------------------------------------------------------------------
 # Wrapper function for Series arithmetic methods
@@ -114,12 +116,18 @@ def _comp_method(op, name):
         elif isinstance(other, DataFrame): # pragma: no cover
             return NotImplemented
         else:
+            values = self.values
+            other = lib.convert_scalar(values, other)
+
+            if issubclass(values.dtype.type, np.datetime64):
+                values = values.view('i8')
+
             # scalars
-            res = na_op(self.values, other)
+            res = na_op(values, other)
             if np.isscalar(res):
                 raise TypeError('Could not compare %s type with Series'
                                 % type(other))
-            return Series(na_op(self.values, other),
+            return Series(na_op(values, other),
                           index=self.index, name=self.name)
     return wrapper
 
@@ -137,8 +145,9 @@ def _bool_method(op, name):
                 y = lib.list_to_object_array(y)
 
             if isinstance(y, np.ndarray):
-                if x.dtype == np.bool_ and y.dtype == np.bool_:
-                    result = op(x, y)
+                if (x.dtype == np.bool_ and
+                    y.dtype == np.bool_): # pragma: no cover
+                    result = op(x, y) # when would this be hit?
                 else:
                     x = com._ensure_object(x)
                     y = com._ensure_object(y)
@@ -495,10 +504,14 @@ copy : boolean, default False
             return self.values[indexer]
 
     def __setitem__(self, key, value):
-        values = self.values
         try:
-            values[self.index.get_loc(key)] = value
-            return
+            try:
+                self.index._engine.set_value(self, key, value)
+                return
+            except KeyError:
+                values = self.values
+                values[self.index.get_loc(key)] = value
+                return
         except KeyError:
             if (com.is_integer(key)
                 and not self.index.inferred_type == 'integer'):
@@ -512,7 +525,6 @@ copy : boolean, default False
             if 'unorderable' in str(e):  # pragma: no cover
                 raise IndexError(key)
             # Could not hash item
-            pass
 
         if _is_bool_indexer(key):
             key = self._check_bool_indexer(key)
@@ -561,11 +573,8 @@ copy : boolean, default False
         self._set_values(indexer, value)
 
     def _set_values(self, key, value):
-        if issubclass(self.dtype.type, (np.integer, np.bool_)):
-            if np.isscalar(value) and isnull(value):
-                raise ValueError('Cannot assign nan to integer series')
-
-        self.values[key] = value
+        values = self.values
+        values[key] = lib.convert_scalar(values, value)
 
     # help out SparseSeries
     _get_val_at = ndarray.__getitem__
@@ -596,11 +605,12 @@ copy : boolean, default False
 
     def __setslice__(self, i, j, value):
         """Set slice equal to given value(s)"""
-        if issubclass(self.dtype.type, (np.integer, np.bool_)):
-            if np.isscalar(value) and isnull(value):
-                raise ValueError('Cannot assign nan to integer series')
-
-        ndarray.__setslice__(self, i, j, value)
+        if i < 0:
+            i = 0
+        if j < 0:
+            j = 0
+        slobj = slice(i, j)
+        return self.__setitem__(slobj, value)
 
     def astype(self, dtype):
         """
@@ -815,7 +825,10 @@ copy : boolean, default False
         return repr(self)
 
     def __iter__(self):
-        return iter(self.values)
+        if np.issubdtype(self.dtype, np.datetime64):
+            return (lib.Timestamp(x) for x in self.values)
+        else:
+            return iter(self.values)
 
     def iteritems(self, index=True):
         """
@@ -947,7 +960,9 @@ copy : boolean, default False
         if numpy:
             try:
                 if orient == "split":
-                    s = Series(**loads(json, dtype=dtype, numpy=True))
+                    decoded = loads(json, dtype=dtype, numpy=True)
+                    decoded = dict((str(k), v) for k, v in decoded.iteritems())
+                    s = Series(**decoded)
                 elif orient == "columns" or orient == "index":
                     s = Series(*loads(json, dtype=dtype, numpy=True,
                                       labelled=True))
@@ -957,7 +972,9 @@ copy : boolean, default False
                 numpy = False
         if not numpy:
             if orient == "split":
-                s = Series(dtype=dtype, **loads(json))
+                decoded = dict((str(k), v)
+                               for k, v in loads(json).iteritems())
+                s = Series(dtype=dtype, **decoded)
             else:
                 s = Series(loads(json), dtype=dtype)
 
@@ -1066,8 +1083,8 @@ copy : boolean, default False
         -------
         counts : Series
         """
-        import pandas.core.algorithms as algos
-        return algos.value_counts(self.values, sort=True, ascending=False)
+        from pandas.core.algorithms import value_counts
+        return value_counts(self.values, sort=True, ascending=False)
 
     def unique(self):
         """
@@ -1529,13 +1546,15 @@ copy : boolean, default False
 #-------------------------------------------------------------------------------
 # Combination
 
-    def append(self, to_append):
+    def append(self, to_append, verify_integrity=False):
         """
         Concatenate two or more Series. The indexes must not overlap
 
         Parameters
         ----------
         to_append : Series or list/tuple of Series
+        verify_integrity : boolean, default False
+            If True, raise Exception on creating index with duplicates
 
         Returns
         -------
@@ -1546,7 +1565,8 @@ copy : boolean, default False
             to_concat = [self] + to_append
         else:
             to_concat = [self, to_append]
-        return concat(to_concat, ignore_index=False, verify_integrity=True)
+        return concat(to_concat, ignore_index=False,
+                      verify_integrity=verify_integrity)
 
     def _binop(self, other, func, level=None, fill_value=None):
         """
@@ -2222,11 +2242,23 @@ copy : boolean, default False
 
         def _rep_dict(rs, to_rep): # replace {[src] -> dest}
 
+            all_src = set()
             dd = {} # group by unique destination value
-            [dd.setdefault(d, []).append(s) for s, d in to_rep.iteritems()]
+            for s, d in to_rep.iteritems():
+                dd.setdefault(d, []).append(s)
+                all_src.add(s)
 
-            for d, sset in dd.iteritems(): # now replace by each dest
-                rs = _rep_one(rs, sset, d)
+            if any(d in all_src for d in dd.keys()):
+                # don't clobber each other at the cost of temporaries
+                masks = {}
+                for d, sset in dd.iteritems(): # now replace by each dest
+                    masks[d] = com.mask_missing(rs.values, sset)
+
+                for d, m in masks.iteritems():
+                    np.putmask(rs.values, m, d)
+            else: # if no risk of clobbering then simple
+                for d, sset in dd.iteritems():
+                    _rep_one(rs, sset, d)
             return rs
 
         if np.isscalar(to_replace):
@@ -2510,10 +2542,11 @@ copy : boolean, default False
 
         Parameters
         ----------
-        method : {'linear', 'time'}
+        method : {'linear', 'time', 'values'}
             Interpolation method.
-            Time interpolation works on daily and higher resolution
+            'time' interpolation works on daily and higher resolution
             data to interpolate given length of interval
+            'values' using the actual index numeric values
 
         Returns
         -------
@@ -2524,6 +2557,10 @@ copy : boolean, default False
                 raise Exception('time-weighted interpolation only works'
                                 'on TimeSeries')
             inds = np.array([d.toordinal() for d in self.index])
+        elif method == 'values':
+            inds = self.index.values
+            if inds.dtype == np.object_:
+                inds = lib.maybe_convert_objects(inds)
         else:
             inds = np.arange(len(self))
 
@@ -2613,34 +2650,41 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         except (ValueError, TypeError):
             if dtype is not None and raise_cast_failure:
                 raise
-            else:  # pragma: no cover
+            else: # pragma: no cover
                 subarr = np.array(data, dtype=object, copy=copy)
         return subarr
 
     # GH #846
     if isinstance(data, np.ndarray):
+        subarr = data
         if dtype is not None:
+
             # possibility of nan -> garbage
             if com.is_float_dtype(data.dtype) and com.is_integer_dtype(dtype):
                 if not isnull(data).any():
                     subarr = _try_cast(data)
                 elif copy:
                     subarr = data.copy()
-                else:
-                    subarr = data
             else:
-                subarr = _try_cast(data)
+                if (com.is_datetime64_dtype(data.dtype) and
+                    not com.is_datetime64_dtype(dtype)):
+                    if dtype == object:
+                        ints = np.asarray(data).view('i8')
+                        subarr = lib.ints_to_pydatetime(ints)
+                    elif raise_cast_failure:
+                        raise TypeError('Cannot cast datetime64 to %s' % dtype)
+                else:
+                    subarr = _try_cast(data)
         elif copy:
             subarr = data.copy()
-        else:
-            subarr = data
     elif isinstance(data, list) and len(data) > 0:
         if dtype is not None:
             try:
                 subarr = _try_cast(data)
             except Exception:
-                if raise_cast_failure:
+                if raise_cast_failure: # pragma: no cover
                     raise
+                subarr = np.array(data, dtype=object, copy=copy)
                 subarr = lib.maybe_convert_objects(subarr)
         else:
             subarr = lib.list_to_object_array(data)
@@ -2698,7 +2742,7 @@ def _resolve_offset(freq, kwds):
     from pandas.core.datetools import getOffset
 
     if 'timeRule' in kwds or 'offset' in kwds:
-        offset = kwds.get('offset')
+        offset = kwds.get('offset', None)
         offset = kwds.get('timeRule', offset)
         if isinstance(offset, basestring):
             offset = datetools.getOffset(offset)
@@ -2707,7 +2751,7 @@ def _resolve_offset(freq, kwds):
         offset = freq
         warn = False
 
-    if warn:
+    if warn and _SHOW_WARNINGS:
         import warnings
         warnings.warn("'timeRule' and 'offset' parameters are deprecated,"
                       " please use 'freq' instead",
@@ -2786,8 +2830,7 @@ class TimeSeries(Series):
 
     def tz_convert(self, tz, copy=True):
         """
-        Convert TimeSeries to target time zone. If it is time zone naive, it
-        will be localized to the passed time zone.
+        Convert TimeSeries to target time zone
 
         Parameters
         ----------
@@ -2797,8 +2840,31 @@ class TimeSeries(Series):
 
         Returns
         -------
+        converted : TimeSeries
         """
         new_index = self.index.tz_convert(tz)
+
+        new_values = self.values
+        if copy:
+            new_values = new_values.copy()
+
+        return Series(new_values, index=new_index, name=self.name)
+
+    def tz_localize(self, tz, copy=True):
+        """
+        Localize tz-naive TimeSeries to target time zone
+
+        Parameters
+        ----------
+        tz : string or pytz.timezone object
+        copy : boolean, default True
+            Also make a copy of the underlying data
+
+        Returns
+        -------
+        localized : TimeSeries
+        """
+        new_index = self.index.tz_localize(tz)
 
         new_values = self.values
         if copy:

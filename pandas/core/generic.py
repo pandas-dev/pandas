@@ -470,16 +470,10 @@ class NDFrame(PandasObject):
         try:
             return cache[item]
         except Exception:
-            try:
-                values = self._data.get(item)
-                res = self._box_item_values(item, values)
-                cache[item] = res
-                return res
-            except Exception: # pragma: no cover
-                from pandas.core.frame import DataFrame
-                if isinstance(item, DataFrame):
-                    raise ValueError('Cannot index using (boolean) dataframe')
-                raise
+            values = self._data.get(item)
+            res = self._box_item_values(item, values)
+            cache[item] = res
+            return res
 
     def _box_item_values(self, key, values):
         raise NotImplementedError
@@ -857,6 +851,79 @@ class NDFrame(PandasObject):
         else:
             new_data = self._data.take(indices, axis=axis)
         return self._constructor(new_data)
+
+    def tz_convert(self, tz, axis=0, copy=True):
+        """
+        Convert TimeSeries to target time zone. If it is time zone naive, it
+        will be localized to the passed time zone.
+
+        Parameters
+        ----------
+        tz : string or pytz.timezone object
+        copy : boolean, default True
+            Also make a copy of the underlying data
+
+        Returns
+        -------
+        """
+        axis = self._get_axis_number(axis)
+        ax = self._get_axis(axis)
+
+        if not hasattr(ax, 'tz_convert'):
+            ax_name = self._get_axis_name(axis)
+            raise TypeError('%s is not a valid DatetimeIndex or PeriodIndex' %
+                            ax_name)
+
+        new_data = self._data
+        if copy:
+            new_data = new_data.copy()
+
+        new_obj = self._constructor(new_data)
+        new_ax = ax.tz_convert(tz)
+
+        if axis == 0:
+            new_obj._set_axis(1, new_ax)
+        elif axis == 1:
+            new_obj._set_axis(0, new_ax)
+            self._clear_item_cache()
+
+        return new_obj
+
+    def tz_localize(self, tz, axis=0, copy=True):
+        """
+        Localize tz-naive TimeSeries to target time zone
+
+        Parameters
+        ----------
+        tz : string or pytz.timezone object
+        copy : boolean, default True
+            Also make a copy of the underlying data
+
+        Returns
+        -------
+        """
+        axis = self._get_axis_number(axis)
+        ax = self._get_axis(axis)
+
+        if not hasattr(ax, 'tz_localize'):
+            ax_name = self._get_axis_name(axis)
+            raise TypeError('%s is not a valid DatetimeIndex or PeriodIndex' %
+                            ax_name)
+
+        new_data = self._data
+        if copy:
+            new_data = new_data.copy()
+
+        new_obj = self._constructor(new_data)
+        new_ax = ax.tz_localize(tz)
+
+        if axis == 0:
+            new_obj._set_axis(1, new_ax)
+        elif axis == 1:
+            new_obj._set_axis(0, new_ax)
+            self._clear_item_cache()
+
+        return new_obj
 
 # Good for either Series or DataFrame
 

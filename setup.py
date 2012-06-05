@@ -74,8 +74,6 @@ if np.__version__ < '1.6.1':
     msg = "pandas requires NumPy >= 1.6 due to datetime64 dependency"
     sys.exit(msg)
 
-from numpy.distutils.misc_util import get_pkg_info, get_info
-
 from distutils.extension import Extension
 from distutils.command.build import build
 from distutils.command.build_ext import build_ext
@@ -176,7 +174,7 @@ MINOR = 8
 MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
-QUALIFIER = ''
+QUALIFIER = 'b1'
 
 FULLVERSION = VERSION
 if not ISRELEASED:
@@ -347,6 +345,8 @@ tseries_depends = ['reindex', 'groupby', 'skiplist', 'moments',
                    'reduce', 'stats', 'datetime',
                    'hashtable', 'inference', 'properties', 'join', 'engines']
 
+plib_depends = ['plib']
+
 def srcpath(name=None, suffix='.pyx', subdir='src'):
     return pjoin('pandas', subdir, name+suffix)
 
@@ -354,44 +354,43 @@ if suffix == '.pyx':
     tseries_depends = [srcpath(f, suffix='.pyx')
                        for f in tseries_depends]
     tseries_depends.append('pandas/src/util.pxd')
+    plib_depends = [srcpath(f, suffix='.pyx')
+                    for f in plib_depends]
+    plib_depends.append('pandas/src/util.pxd')
 else:
     tseries_depends = []
+    plib_depends = []
 
 algos_ext = Extension('pandas._algos',
                       sources=[srcpath('generated', suffix=suffix)],
                       include_dirs=[np.get_include()],
                       )
 
-tseries_ext = Extension('pandas._tseries',
-                      depends=tseries_depends + ['pandas/src/numpy_helper.h'],
-                      sources=[srcpath('tseries', suffix=suffix),
-                               'pandas/src/period.c',
-                               'pandas/src/datetime/np_datetime.c',
-                               'pandas/src/datetime/np_datetime_strings.c'],
-                      include_dirs=[np.get_include()],
-                      # pyrex_gdb=True,
-                      # extra_compile_args=['-Wconversion']
-                      )
+lib_ext = Extension('pandas.lib',
+                    depends=tseries_depends + ['pandas/src/numpy_helper.h'],
+                    sources=[srcpath('tseries', suffix=suffix),
+                             'pandas/src/datetime/np_datetime.c',
+                             'pandas/src/datetime/np_datetime_strings.c'],
+                    include_dirs=[np.get_include()],
+                    # pyrex_gdb=True,
+                    # extra_compile_args=['-Wconversion']
+                    )
 
-# tseries_ext = Extension('pandas._tseries',
-#                         depends=tseries_depends + ['pandas/src/numpy_helper.h'],
-#                         sources=[srcpath('datetime', suffix=suffix)],
-#                         include_dirs=[np.get_include()],
-#                         # pyrex_gdb=True,
-#                         # extra_compile_args=['-Wconversion']
-#                         )
+period_ext = Extension('pandas._period',
+                       depends=plib_depends + ['pandas/src/numpy_helper.h',
+                                               'pandas/src/period.h'],
+                       sources=[srcpath('plib', suffix=suffix),
+                                'pandas/src/datetime/np_datetime.c',
+                                'pandas/src/period.c'],
+                       include_dirs=[np.get_include()])
 
 
 sparse_ext = Extension('pandas._sparse',
                        sources=[srcpath('sparse', suffix=suffix)],
                        include_dirs=[np.get_include()])
 
-npymath_info = get_info('npymath')
-
-npymath_libdir = npymath_info['library_dirs'][0]
-npymath_libdir = npymath_libdir.replace('\\\\', '\\')
-
 ujson_ext = Extension('pandas._ujson',
+                      depends=['pandas/src/ujson/lib/ultrajson.h'],
                       sources=['pandas/src/ujson/python/ujson.c',
                                'pandas/src/ujson/python/objToJSON.c',
                                'pandas/src/ujson/python/JSONtoObj.c',
@@ -403,16 +402,10 @@ ujson_ext = Extension('pandas._ujson',
                                     'pandas/src/ujson/lib',
                                     'pandas/src/datetime',
                                     np.get_include()],
-                      libraries=['npymath'],
-                      library_dirs=[npymath_libdir],
-                      # extra_link_args=[get_pkg_info('npymath').libs()]
-                      #extra_info=get_info('npymath')
                       )
 
 sandbox_ext = Extension('pandas._sandbox',
-                        sources=[srcpath('sandbox', suffix=suffix),
-                                 'pandas/src/period.c',
-                                 ],
+                        sources=[srcpath('sandbox', suffix=suffix)],
                         include_dirs=[np.get_include()])
 
 cppsandbox_ext = Extension('pandas._cppsandbox',
@@ -420,7 +413,7 @@ cppsandbox_ext = Extension('pandas._cppsandbox',
                            sources=[srcpath('cppsandbox', suffix=suffix)],
                            include_dirs=[np.get_include()])
 
-extensions = [algos_ext, tseries_ext, sparse_ext, ujson_ext]
+extensions = [algos_ext, lib_ext, period_ext, sparse_ext, ujson_ext]
 
 if not ISRELEASED:
     extensions.extend([sandbox_ext])

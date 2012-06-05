@@ -15,7 +15,8 @@ from pandas import (Index, Series, TimeSeries, DataFrame, isnull, notnull,
                     bdate_range, date_range)
 from pandas.core.index import MultiIndex
 from pandas.tseries.index import Timestamp, DatetimeIndex
-import pandas._tseries as lib
+import pandas.core.series as smod
+import pandas.lib as lib
 
 import pandas.core.datetools as datetools
 import pandas.core.nanops as nanops
@@ -24,6 +25,13 @@ from pandas.util.py3compat import StringIO
 from pandas.util import py3compat
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
+
+def _skip_if_no_scipy():
+    try:
+        import scipy.stats
+    except ImportError:
+        raise nose.SkipTest
+
 
 #-------------------------------------------------------------------------------
 # Series test cases
@@ -282,6 +290,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         d = {'a' : 0., 'b' : 1., 'c' : 2.}
         result = Series(d, index=['b', 'c', 'd', 'a'])
         expected = Series([1, 2, nan, 0], index=['b', 'c', 'd', 'a'])
+        assert_series_equal(result, expected)
+
+        pidx = tm.makePeriodIndex(100)
+        d = {pidx[0] : 0, pidx[1] : 1}
+        result = Series(d, index=pidx)
+        expected = Series(np.nan, pidx)
+        expected.ix[0] = 0
+        expected.ix[1] = 1
         assert_series_equal(result, expected)
 
     def test_constructor_subclass_dict(self):
@@ -929,6 +945,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         ts = Series(np.random.randn(len(index)), index)
         repr(ts)
 
+        ts = tm.makeTimeSeries(1000)
+        self.assert_(repr(ts).splitlines()[-1].startswith('Freq:'))
+
+        ts2 = ts.ix[np.random.randint(0, len(ts)-1, 400)]
+        repr(ts).splitlines()[-1]
+
     def test_iter(self):
         for i, val in enumerate(self.series):
             self.assertEqual(val, self.series[i])
@@ -1004,11 +1026,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_almost_equal(result, expected)
 
     def test_skew(self):
+        _skip_if_no_scipy()
+
         from scipy.stats import skew
         alt =lambda x: skew(x, bias=False)
         self._check_stat_op('skew', alt)
 
     def test_kurt(self):
+        _skip_if_no_scipy()
+
         from scipy.stats import kurtosis
         alt = lambda x: kurtosis(x, bias=False)
         self._check_stat_op('kurt', alt)
@@ -1186,7 +1212,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             else:
                 self.fail("orphaned index!")
 
-        self.assertRaises(Exception, self.ts.append, self.ts)
+        self.assertRaises(Exception, self.ts.append, self.ts,
+                          verify_integrity=True)
 
     def test_append_many(self):
         pieces = [self.ts[:5], self.ts[5:10], self.ts[10:]]
@@ -1202,10 +1229,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(bool_series.any())
 
     def test_operators(self):
-        series = self.ts
-        other = self.ts[::2]
 
-        def _check_op(other, op, pos_only=False):
+        def _check_op(series, other, op, pos_only=False):
             left = np.abs(series) if pos_only else series
             right = np.abs(other) if pos_only else other
 
@@ -1213,35 +1238,36 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             python = left.combine(right, op)
             tm.assert_almost_equal(cython_or_numpy, python)
 
-        def check(other):
+        def check(series, other):
             simple_ops = ['add', 'sub', 'mul', 'truediv', 'floordiv']
 
             for opname in simple_ops:
-                _check_op(other, getattr(operator, opname))
-            _check_op(other, operator.pow, pos_only=True)
+                _check_op(series, other, getattr(operator, opname))
 
-            _check_op(other, lambda x, y: operator.add(y, x))
-            _check_op(other, lambda x, y: operator.sub(y, x))
-            _check_op(other, lambda x, y: operator.truediv(y, x))
-            _check_op(other, lambda x, y: operator.floordiv(y, x))
-            _check_op(other, lambda x, y: operator.mul(y, x))
-            _check_op(other, lambda x, y: operator.pow(y, x),
+            _check_op(series, other, operator.pow, pos_only=True)
+
+            _check_op(series, other, lambda x, y: operator.add(y, x))
+            _check_op(series, other, lambda x, y: operator.sub(y, x))
+            _check_op(series, other, lambda x, y: operator.truediv(y, x))
+            _check_op(series, other, lambda x, y: operator.floordiv(y, x))
+            _check_op(series, other, lambda x, y: operator.mul(y, x))
+            _check_op(series, other, lambda x, y: operator.pow(y, x),
                       pos_only=True)
 
-        check(self.ts * 2)
-        check(self.ts * 0)
-        check(self.ts[::2])
-        check(5)
+        check(self.ts, self.ts * 2)
+        check(self.ts, self.ts * 0)
+        check(self.ts, self.ts[::2])
+        check(self.ts, 5)
 
-        def check_comparators(other):
-            _check_op(other, operator.gt)
-            _check_op(other, operator.ge)
-            _check_op(other, operator.eq)
-            _check_op(other, operator.lt)
-            _check_op(other, operator.le)
+        def check_comparators(series, other):
+            _check_op(series, other, operator.gt)
+            _check_op(series, other, operator.ge)
+            _check_op(series, other, operator.eq)
+            _check_op(series, other, operator.lt)
+            _check_op(series, other, operator.le)
 
-        check_comparators(5)
-        check_comparators(self.ts + 1)
+        check_comparators(self.ts, 5)
+        check_comparators(self.ts, self.ts + 1)
 
     def test_operators_empty_int_corner(self):
         s1 = Series([], [], dtype=np.int32)
@@ -1613,6 +1639,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(s, expected)
 
     def test_corr(self):
+        _skip_if_no_scipy()
+
         import scipy.stats as stats
 
         # full overlap
@@ -1636,6 +1664,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertAlmostEqual(result, expected)
 
     def test_corr_rank(self):
+        _skip_if_no_scipy()
+
         import scipy
         import scipy.stats as stats
 
@@ -1941,6 +1971,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         self.assertRaises(ValueError, ps.shift, freq='D')
 
+        # legacy support
+        smod._SHOW_WARNINGS = False
+        shifted4 = ps.shift(1, timeRule='B')
+        assert_series_equal(shifted2, shifted4)
+
+        shifted5 = ps.shift(1, offset=datetools.bday)
+        assert_series_equal(shifted5, shifted4)
+        smod._SHOW_WARNINGS = True
+
     def test_tshift(self):
         # PeriodIndex
         ps = tm.makePeriodSeries()
@@ -2046,6 +2085,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         dates = date_range('1/1/1990', periods=N * 3, freq='25s')
 
         result = ts.asof(dates)
+        self.assert_(notnull(result).all())
+        lb = ts.index[14]
+        ub = ts.index[30]
+
+        result = ts.asof(list(dates))
         self.assert_(notnull(result).all())
         lb = ts.index[14]
         ub = ts.index[30]
@@ -2546,6 +2590,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = x.fillna(value=0)
         assert_series_equal(y2, expected)
 
+    def test_fillna_invalid_method(self):
+        try:
+            self.ts.fillna(method='ffil')
+        except ValueError, inst:
+            self.assert_('ffil' in str(inst))
+
     def test_replace(self):
         N = 100
         ser = Series(np.random.randn(N))
@@ -2615,6 +2665,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         ser = Series(self.ts.index)
         assert_series_equal(ser.replace(np.nan, 0), ser.fillna(0))
 
+        # malformed
+        self.assertRaises(ValueError, ser.replace, [1,2,3], [np.nan, 0])
+        self.assertRaises(ValueError, ser.replace, xrange(1,3), [np.nan, 0])
+
+        ser = Series([0, 1, 2, 3, 4])
+        result = ser.replace([0, 1, 2, 3, 4], [4, 3, 2, 1, 0])
+        assert_series_equal(result, Series([4, 3, 2, 1, 0]))
+
     def test_asfreq(self):
         ts = Series([0., 1., 2.], index=[datetime(2009, 10, 30),
                                          datetime(2009, 11, 30),
@@ -2652,6 +2710,21 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         # try time interpolation on a non-TimeSeries
         self.assertRaises(Exception, self.series.interpolate, method='time')
+
+    def test_interpolate_index_values(self):
+        s = Series(np.nan, index=np.sort(np.random.rand(30)))
+        s[::3] = np.random.randn(10)
+
+        vals = s.index.values.astype(float)
+
+        result = s.interpolate(method='values')
+
+        expected = s.copy()
+        bad = isnull(expected.values)
+        good = -bad
+        expected[bad] = np.interp(vals[bad], vals[good], s.values[good])
+
+        assert_series_equal(result, expected)
 
     def test_weekday(self):
         # Just run the function

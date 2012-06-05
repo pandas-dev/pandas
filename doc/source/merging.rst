@@ -537,6 +537,32 @@ columns:
 ``DataFrame.join`` has ``lsuffix`` and ``rsuffix`` arguments which behave
 similarly.
 
+.. _merging.ordered_merge:
+
+Merging Ordered Data
+~~~~~~~~~~~~~~~~~~~~
+
+New in v0.8.0 is the ordered_merge function for combining time series and other
+ordered data. In particular it has an optional ``fill_method`` keyword to
+fill/interpolate missing data:
+
+.. ipython:: python
+   :suppress:
+
+   A = DataFrame({'key' : ['a', 'c', 'e'] * 2,
+                  'lvalue' : [1, 2, 3] * 2,
+                  'group' : ['a', 'a', 'a', 'b', 'b', 'b']})
+   B = DataFrame({'key' : ['b', 'c', 'd'],
+                  'rvalue' : [1, 2, 3]})
+
+.. ipython:: python
+
+   A
+
+   B
+
+   ordered_merge(A, B, fill_method='ffill', left_by='group')
+
 .. _merging.multiple_join:
 
 Joining multiple DataFrame or Panel objects
@@ -554,6 +580,8 @@ them together on their indexes. The same is true for ``Panel.join``.
    df1.join([df2, df3])
 
 .. _merging.combine_first:
+
+.. _merging.combine_first.update:
 
 Merging together values within Series or DataFrame columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -5,6 +5,8 @@ import operator
 import pickle
 import unittest
 
+from pandas.core.series import Series
+from pandas.core.common import notnull
 from pandas.sparse.api import SparseArray
 from pandas.util.testing import assert_almost_equal
 

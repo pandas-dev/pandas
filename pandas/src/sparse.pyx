@@ -76,6 +76,10 @@ cdef class IntIndex(SparseIndex):
         same_indices = np.array_equal(self.indices, other.indices)
         return same_length and same_indices
 
+    @property
+    def ngaps(self):
+        return self.length - self.npoints
+
     def to_int_index(self):
         return self
 
@@ -295,6 +299,10 @@ cdef class BlockIndex(SparseIndex):
         output += 'Block lengths: %s' % repr(self.blengths)
 
         return output
+
+    @property
+    def ngaps(self):
+        return self.length - self.npoints
 
     cpdef check_integrity(self):
         '''

@@ -25,6 +25,22 @@ class TestMatch(unittest.TestCase):
         expected = np.array([1, 0, -1, 0, 1, 2, -1])
         self.assert_(np.array_equal(result, expected))
 
+
+class TestUnique(unittest.TestCase):
+
+    def test_ints(self):
+        arr = np.random.randint(0, 100, size=50)
+
+        result = algos.unique(arr)
+        self.assert_(isinstance(result, np.ndarray))
+
+    def test_objects(self):
+        arr = np.random.randint(0, 100, size=50).astype('O')
+
+        result = algos.unique(arr)
+        self.assert_(isinstance(result, np.ndarray))
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

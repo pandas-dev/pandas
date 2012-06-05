@@ -48,9 +48,9 @@ def test_isnull_datetime():
     idx = date_range('1/1/1990', periods=20)
     assert(notnull(idx).all())
 
-    import pandas._tseries as lib
+    import pandas.lib as lib
     idx = np.asarray(idx)
-    idx[0] = lib.NaT
+    idx[0] = lib.iNaT
     idx = DatetimeIndex(idx)
     mask = isnull(idx)
     assert(mask[0])

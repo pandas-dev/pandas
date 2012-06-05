@@ -24,7 +24,7 @@ from pandas.core.internals import BlockManager, make_block
 from pandas.core.reshape import block2d_to_block3d
 import pandas.core.common as com
 
-import pandas._tseries as lib
+import pandas.lib as lib
 from contextlib import contextmanager
 
 # reading and writing the full object in one go
@@ -710,12 +710,13 @@ class HDFStore(object):
                 ca[:] = value
                 return
 
-        if value.dtype == np.object_:
+        if value.dtype.type == np.object_:
             vlarr = self.handle.createVLArray(group, key,
                                               _tables().ObjectAtom())
             vlarr.append(value)
-        elif value.dtype == np.datetime64:
+        elif value.dtype.type == np.datetime64:
             self.handle.createArray(group, key, value.view('i8'))
+            group._v_attrs.value_type = 'datetime64'
         else:
             self.handle.createArray(group, key, value)
 
@@ -842,8 +843,8 @@ class HDFStore(object):
         index = _maybe_convert(sel.values['index'], table._v_attrs.index_kind)
         values = sel.values['values']
 
-        major = Factor(index)
-        minor = Factor(columns)
+        major = Factor.from_array(index)
+        minor = Factor.from_array(columns)
 
         J, K = len(major.levels), len(minor.levels)
         key = major.labels * K + minor.labels
@@ -932,13 +933,12 @@ def _convert_index(index):
                             dtype=np.int32)
         return converted, 'date', _tables().Time32Col()
     elif inferred_type =='string':
-        try:
-            converted = np.array(list(values), dtype=np.str_)
-            itemsize = converted.dtype.itemsize
-            return converted, 'string', _tables().StringCol(itemsize)
-        except UnicodeError: # Write an all unicode index as object array
-            atom = _tables().ObjectAtom()
-            return np.asarray(values, dtype='O'), 'object', atom
+        converted = np.array(list(values), dtype=np.str_)
+        itemsize = converted.dtype.itemsize
+        return converted, 'string', _tables().StringCol(itemsize)
+    elif inferred_type == 'unicode':
+        atom = _tables().ObjectAtom()
+        return np.asarray(values, dtype='O'), 'object', atom
     elif inferred_type == 'integer':
         # take a guess for now, hope the values fit
         atom = _tables().Int64Col()
@@ -958,6 +958,9 @@ def _read_array(group, key):
     if isinstance(node, tables.VLArray):
         return data[0]
     else:
+        dtype = getattr(group._v_attrs, 'value_type', None)
+        if dtype == 'datetime64':
+            return np.array(data, dtype='M8[ns]')
         return data
 
 def _unconvert_index(data, kind):
@@ -1023,8 +1026,8 @@ def _class_to_alias(cls):
     return _index_type_map.get(cls, '')
 
 def _alias_to_class(alias):
-    if isinstance(alias, type):
-        return alias
+    if isinstance(alias, type): # pragma: no cover
+        return alias # compat: for a short period of time master stored types
     return _reverse_index_map.get(alias, Index)
 
 class Selection(object):

@@ -1,5 +1,5 @@
 import numpy as np
-import pandas._tseries as lib
+import pandas.lib as lib
 from pandas import *
 from copy import deepcopy
 import time

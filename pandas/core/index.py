@@ -11,7 +11,7 @@ from pandas.core.common import ndtake
 from pandas.util.decorators import cache_readonly
 from pandas.util import py3compat
 import pandas.core.common as com
-import pandas._tseries as lib
+import pandas.lib as lib
 import pandas._algos as _algos
 
 
@@ -28,7 +28,7 @@ def _indexOp(opname):
         result = func(other)
         try:
             return result.view(np.ndarray)
-        except:
+        except: # pragma: no cover
             return result
     return wrapper
 
@@ -73,19 +73,20 @@ class Index(np.ndarray):
 
     def __new__(cls, data, dtype=None, copy=False, name=None):
         if isinstance(data, np.ndarray):
-            if dtype is None:
-                if issubclass(data.dtype.type, np.datetime64):
-                    from pandas.tseries.index import DatetimeIndex
-                    return DatetimeIndex(data, copy=copy, name=name)
+            if dtype is not None:
+                try:
+                    data = np.array(data, dtype=dtype, copy=copy)
+                except TypeError:
+                    pass
 
-                if issubclass(data.dtype.type, np.integer):
-                    return Int64Index(data, copy=copy, name=name)
+            if issubclass(data.dtype.type, np.datetime64):
+                from pandas.tseries.index import DatetimeIndex
+                return DatetimeIndex(data, copy=copy, name=name)
 
-            if not copy:
-                subarr = com._ensure_object(data)
-            else:
-                subarr = data.astype(object)
-            # subarr = np.array(data, dtype=object, copy=copy)
+            if issubclass(data.dtype.type, np.integer):
+                return Int64Index(data, copy=copy, name=name)
+
+            subarr = com._ensure_object(data)
         elif np.isscalar(data):
             raise ValueError('Index(...) must be called with a collection '
                              'of some kind, %s was passed' % repr(data))
@@ -525,7 +526,7 @@ class Index(np.ndarray):
                 # contained in
                 try:
                     result = np.sort(self.values)
-                except TypeError:
+                except TypeError: # pragma: no cover
                     result = self.values
 
         # for subclasses
@@ -724,14 +725,6 @@ class Index(np.ndarray):
             return DatetimeIndex(self), other
         return self, other
 
-    def _get_indexer_standard(self, other):
-        if (self.dtype != np.object_ and
-            self.is_monotonic and other.is_monotonic):
-            # TODO: unique vs non unique
-            return self._left_indexer(other, self)
-        else:
-            return self._engine.get_indexer(other)
-
     def groupby(self, to_groupby):
         return self._groupby(self.values, to_groupby)
 
@@ -885,6 +878,9 @@ class Index(np.ndarray):
 
         left_idx, right_idx = _get_join_indexers([self.values], [other.values],
                                                  how=how, sort=True)
+
+        left_idx = com._ensure_platform_int(left_idx)
+        right_idx = com._ensure_platform_int(right_idx)
 
         join_index = self.values.take(left_idx)
         mask = left_idx == -1
@@ -1464,7 +1460,7 @@ class MultiIndex(Index):
         levels = []
         labels = []
         for arr in arrays:
-            factor = Factor(arr)
+            factor = Factor.from_array(arr)
             levels.append(factor.levels)
             labels.append(factor.labels)
 

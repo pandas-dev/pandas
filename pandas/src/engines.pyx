@@ -101,6 +101,8 @@ cdef class IndexEngine:
             void* data_ptr
 
         loc = self.get_loc(key)
+        value = convert_scalar(arr, value)
+
         if PySlice_Check(loc) or cnp.PyArray_Check(loc):
             arr[loc] = value
         else:
@@ -435,13 +437,32 @@ cdef class DatetimeEngine(Int64Engine):
                                      limit=limit)
 
 
+cpdef convert_scalar(ndarray arr, object value):
+    if arr.descr.type_num == NPY_DATETIME:
+        if isinstance(value, _Timestamp):
+            return (<_Timestamp> value).value
+        elif value is None or value != value:
+            return iNaT
+        else:
+            return Timestamp(value).value
+
+    if issubclass(arr.dtype.type, (np.integer, np.bool_)):
+        if util.is_float_object(value) and value != value:
+            raise ValueError('Cannot assign nan to integer series')
+
+    return value
+
 cdef inline _to_i8(object val):
     cdef pandas_datetimestruct dts
-    if util.is_datetime64_object(val):
-        val = get_datetime64_value(val)
-    elif PyDateTime_Check(val):
-        return _pydatetime_to_dts(val, &dts)
-    return val
+    try:
+        return val.value
+    except AttributeError:
+        if util.is_datetime64_object(val):
+            return get_datetime64_value(val)
+        elif PyDateTime_Check(val):
+            return _pydatetime_to_dts(val, &dts)
+        return val
+
 
 # ctypedef fused idxvalue_t:
 #     object

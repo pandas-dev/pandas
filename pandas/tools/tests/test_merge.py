@@ -14,7 +14,7 @@ from pandas.tseries.index import DatetimeIndex
 from pandas.tools.merge import merge, concat, ordered_merge, MergeError
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
                                  assert_almost_equal, rands)
-import pandas._tseries as lib
+import pandas.lib as lib
 import pandas.util.testing as tm
 
 a_ = np.array
@@ -848,7 +848,8 @@ class TestConcatenate(unittest.TestCase):
         self.assert_(appended is not self.frame)
 
         # overlap
-        self.assertRaises(Exception, self.frame.append, self.frame)
+        self.assertRaises(Exception, self.frame.append, self.frame,
+                          verify_integrity=True)
 
     def test_append_length0_frame(self):
         df = DataFrame(columns=['A', 'B', 'C'])

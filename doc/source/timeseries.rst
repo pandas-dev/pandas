@@ -9,9 +9,11 @@
    np.random.seed(123456)
    from pandas import *
    randn = np.random.randn
+   randint = np.random.randint
    np.set_printoptions(precision=4, suppress=True)
-   from dateutil import relativedelta
+   from dateutil.relativedelta import relativedelta
    from pandas.tseries.api import *
+   from pandas.tseries.offsets import *
 
 ********************************
 Time Series / Date functionality
@@ -35,28 +37,48 @@ In working with time series data, we will frequently seek to:
 pandas provides a relatively compact and self-contained set of tools for
 performing the above tasks.
 
+Create a range of dates:
+
+.. ipython:: python
+
+   # 72 hours starting with midnight Jan 1st, 2011
+   rng = date_range('1/1/2011', periods=72, freq='H')
+   rng[:5]
+
+Index pandas objects with dates:
+
+.. ipython:: python
+
+   ts = Series(randn(len(rng)), index=rng)
+   ts.head()
+
+Change frequency and fill gaps:
+
+.. ipython:: python
+
+   # to 45 minute frequency and forward fill
+   converted = ts.asfreq('45Min', method='pad')
+   converted.head()
+
+Resample:
+
+.. ipython:: python
+
+   # Daily means
+   ts.resample('D', how='mean')
+
+
 .. _timeseries.representation:
 
 Time Stamps vs. Time Spans
 --------------------------
 
-While most time series representations of data associates values with a time
-stamp, in many cases it is more natural to associate the values with a given
-time span. For example, it is easy to think of level variables at a
-particular point in time, but much more intuitive to think of change variables
-over spans of time. Starting with 0.8, pandas allows you to capture both
-representations and convert between them. Under the hood, pandas represents
-timestamps using instances of ``Timestamp`` and sequences of timestamps using
-instances of ``DatetimeIndex``. For regular time spans, pandas uses ``Period``
-objects for scalar values and ``PeriodIndex`` for sequences of spans.
-Better support for irregular intervals with arbitrary start and end points are
-forth-coming in future releases.
-
-For example:
+Time-stamped data is the most basic type of timeseries data that associates
+values with points in time. For pandas objects it means using the points in
+time to create the index
 
 .. ipython:: python
 
-   # Time stamped data
    dates = [datetime(2012, 5, 1), datetime(2012, 5, 2), datetime(2012, 5, 3)]
    ts = Series(np.random.randn(3), dates)
 
@@ -64,16 +86,31 @@ For example:
 
    ts
 
-   # Time span data
+However, in many cases it is more natural to associate things like change
+variables with a time span instead.
+
+For example:
+
+.. ipython:: python
+
    periods = PeriodIndex([Period('2012-01'), Period('2012-02'),
                           Period('2012-03')])
+
    ts = Series(np.random.randn(3), periods)
 
    type(ts.index)
 
    ts
 
-.. _timeseries.timestamprange:
+Starting with 0.8, pandas allows you to capture both representations and
+convert between them. Under the hood, pandas represents timestamps using
+instances of ``Timestamp`` and sequences of timestamps using instances of
+``DatetimeIndex``. For regular time spans, pandas uses ``Period`` objects for
+scalar values and ``PeriodIndex`` for sequences of spans. Better support for
+irregular intervals with arbitrary start and end points are forth-coming in
+future releases.
+
+.. _timeseries.daterange:
 
 Generating Ranges of Timestamps
 -------------------------------
@@ -103,17 +140,123 @@ to create timestamp indexes.
    index = bdate_range('2012-1-1', periods=250)
    index
 
+Convenience functions like ``date_range`` and ``bdate_range`` utilizes a
+variety of frequency aliases. The default frequency for ``date_range`` is a
+**calendar day** while the default for ``bdate_range`` is a **business day**
+
+.. ipython:: python
+
+   start = datetime(2011, 1, 1)
+   end = datetime(2012, 1, 1)
+
+   rng = date_range(start, end)
+   rng
+
+   rng = bdate_range(start, end)
+   rng
+
+``date_range`` and ``bdate_range`` makes it easy to generate a range of dates
+using various combinations of its parameters like ``start``, ``end``,
+``periods``, and ``freq``:
+
+.. ipython:: python
+
+   date_range(start, end, freq='BM')
+
+   date_range(start, end, freq='W')
+
+   bdate_range(end=end, periods=20)
+
+   bdate_range(start=start, periods=20)
+
+The start and end dates are strictly inclusive. So it will not generate any
+dates outside of those dates if specified.
+
+.. _timeseries.datetimeindex:
+
+DatetimeIndex
+~~~~~~~~~~~~~
+
+One of the main uses for ``DatetimeIndex`` is as an index for pandas objects.
+The ``DatetimeIndex`` class contains many timeseries related optimizations:
+
+  - A large range of dates for various offsets are pre-computed and cached
+    under the hood in order to make generating subsequent date ranges very fast
+    (just have to grab a slice)
+  - Fast shifting using the ``shift`` and ``tshift`` method on pandas objects
+  - Unioning of overlapping DatetimeIndex objects with the same frequency is
+    very fast (important for fast data alignment)
+  - Quick access to date fields via properties such as ``year``, ``month``, etc.
+  - Regularization functions like ``snap`` and very fast ``asof`` logic
+
+``DatetimeIndex`` can be used like a regular index and offers all of its
+intelligent functionality like selection, slicing, etc.
+
+.. ipython:: python
+
+   rng = date_range(start, end, freq='BM')
+   ts = Series(randn(len(rng)), index=rng)
+   ts.index
+   ts[:5].index
+   ts[::2].index
+
+You can pass in dates and strings that parses to dates as indexing parameters:
+
+.. ipython:: python
+
+   ts['1/31/2011']
+
+   ts[datetime(2011, 12, 25):]
+
+   ts['10/31/2011':'12/31/2011']
+
+A ``truncate`` convenience function is provided that is equivalent to slicing:
+
+.. ipython:: python
+
+   ts.truncate(before='10/31/2011', after='12/31/2011')
+
+To provide convenience for accessing longer time series, you can also pass in
+the year or year and month as strings:
+
+.. ipython:: python
+
+   ts['2011']
+
+   ts['2011-6']
+
+Even complicated fancy indexing that breaks the DatetimeIndex's frequency
+regularity will result in a ``DatetimeIndex`` (but frequency is lost):
+
+.. ipython:: python
+
+   ts[[0, 2, 6]].index
+
+DatetimeIndex objects has all the basic functionality of regular Index objects
+and a smorgasbord of advanced timeseries-specific methods for easy frequency
+processing.
+
+.. seealso::
+    :ref:`Reindexing methods <basics.reindexing>`
+
+.. note::
+
+    While pandas does not force you to have a sorted date index, some of these
+    methods may have unexpected or incorrect behavior if the dates are
+    unsorted. So please be careful.
+
+
 .. _timeseries.offsets:
 
 DateOffset objects
 ------------------
 
-In order to create the sequence of dates with a monthly frequency in the
-previous example, we used the ``freq`` keyword and gave it 'M' as the input.
-Under the hood, the string 'M' is being interpreted into an instance of pandas
-``DateOffset``. ``DateOffset`` represents a regular frequency increment.
-Specific offset logic like "business day" or "one hour" is represented in its
-various subclasses.
+In the preceding examples, we created DatetimeIndex objects at various
+frequencies by passing in frequency strings like 'M', 'W', and 'BM to the
+``freq`` keyword. Under the hood, these frequency strings are being translated
+into an instance of pandas ``DateOffset``, which represents a regular
+frequency increment. Specific offset logic like "month", "business day", or
+"one hour" is represented in its various subclasses.
 
 .. csv-table::
     :header: "Class name", "Description"
@@ -140,6 +283,7 @@ various subclasses.
     Second, "one second"
     Milli, "one millisecond"
     Micro, "one microsecond"
+
 
 The basic ``DateOffset`` takes the same arguments as
 ``dateutil.relativedelta``, which works like:
@@ -224,7 +368,7 @@ frequencies. We will refer to these aliases as *offset aliases*
 
 .. csv-table::
     :header: "Alias", "Description"
-    :widths: 15, 65
+    :widths: 15, 100
 
     "B", "business day frequency"
     "D", "calendar day frequency"
@@ -247,11 +391,34 @@ frequencies. We will refer to these aliases as *offset aliases*
     "L", "milliseonds"
     "U", "microseconds"
 
+Combining Aliases
+~~~~~~~~~~~~~~~~~
+
+As we have seen previously, the alias and the offset instance are fungible in
+most functions:
+
+.. ipython:: python
+
+   date_range(start, periods=5, freq='B')
+
+   date_range(start, periods=5, freq=BDay())
+
+You can combine together day and intraday offsets:
+
+.. ipython:: python
+
+   date_range(start, periods=10, freq='2h20min')
+
+   date_range(start, periods=10, freq='1D10U')
+
+Anchored Offsets
+~~~~~~~~~~~~~~~~
+
 For some frequencies you can specify an anchoring suffix:
 
 .. csv-table::
     :header: "Alias", "Description"
-    :widths: 15, 65
+    :widths: 15, 100
 
     "W\-SUN", "weekly frequency (sundays). Same as 'W'"
     "W\-MON", "weekly frequency (mondays)"
@@ -289,13 +456,15 @@ These can be used as arguments to ``date_range``, ``bdate_range``, constructors
 for ``DatetimeIndex``, as well as various other timeseries-related functions
 in pandas.
 
+Legacy Aliases
+~~~~~~~~~~~~~~
 Note that prior to v0.8.0, time rules had a slightly different look. Pandas
 will continue to support the legacy time rules for the time being but it is
 strongly recommended that you switch to using the new offset aliases.
 
 .. csv-table::
     :header: "Legacy Time Rule", "Offset Alias"
-    :widths: 15, 15
+    :widths: 15, 65
 
     "WEEKDAY", "B"
     "EOM", "BM"
@@ -330,85 +499,10 @@ and business year ends. Please also note the legacy time rule for milliseconds
 ``ms`` versus the new offset alias for month start ``MS``. This means that
 offset alias parsing is case sensitive.
 
-.. _timeseries.daterange:
-
-More on date ranges
--------------------
-
-Convenience functions like ``date_range`` and ``bdate_range`` utilizes the
-offsets described above to generate fixed-frequency date ranges. The default
-frequency for ``date_range`` is a **calendar day** while the default for
-``bdate_range`` is a **business day**
-
-.. ipython:: python
-
-   start = datetime(2009, 1, 1)
-   end = datetime(2010, 1, 1)
-
-   rng = date_range(start, end)
-   rng
-
-   rng = bdate_range(start, end)
-   rng
-
-``date_range`` and ``bdate_range`` makes it easy to generate a range of dates
-using various combinations of its parameters like ``start``, ``end``,
-``periods``, and ``freq``:
-
-   date_range(start, end, freq=BMonthEnd())
-
-   date_range(start, end, freq=3 * Week())
-
-   bdate_range(end=end, periods=20)
-
-   bdate_range(start=start, periods=20)
-
-The start and end dates are strictly inclusive. So it will not generate any
-dates outside of those dates if specified.
-
-
-DatetimeIndex
-~~~~~~~~~~~~~
-
-One of the main uses for ``DatetimeIndex`` is as an index for pandas objects.
-The ``DatetimeIndex`` class contains many timeseries related optimizations:
-
-  - A large range of dates for various offsets are pre-computed and cached
-    under the hood in order to make generating subsequent date ranges very fast
-    (just have to grab a slice)
-  - Fast shifting using the ``shift`` and ``tshift`` method on pandas objects
-  - Unioning of overlapping DatetimeIndex objects with the same frequency is
-    very fast (important for fast data alignment)
-
-``DatetimeIndex`` can be used like a regular index and offers all of its
-intelligent functionality like selection, slicing, etc.
-
-.. ipython:: python
-
-   rng = date_range(start, end, freq=BMonthEnd())
-   ts = Series(randn(len(rng)), index=rng)
-   ts.index
-   ts[:5].index
-   ts[::2].index
-
-However, complicated fancy indexing that breaks the DatetimeIndex's frequency
-regularity will result in an ``Index`` that is no longer a ``DatetimeIndex``:
-
-.. ipython:: python
-
-   ts[[0, 2, 6]].index
+.. _timeseries.advanced_datetime:
 
 Time series-related instance methods
 ------------------------------------
-
-.. seealso::
-    :ref:`Reindexing methods <basics.reindexing>`
-
-.. note::
-
-    While pandas does not force you to have a sorted date index, some of these
-    methods may have unexpected or incorrect behavior if the dates are
-    unsorted. So please be careful.
 
 Shifting / lagging
 ~~~~~~~~~~~~~~~~~~
@@ -423,21 +517,31 @@ and in Panel along the ``major_axis``.
    ts = ts[:5]
    ts.shift(1)
 
-The shift method accepts an ``offset`` argument which can accept a
-``DateOffset`` class or other ``timedelta``-like object or also a :ref:`time
-rule <timeseries.alias>`:
+The shift method accepts an ``freq`` argument which can accept a
+``DateOffset`` class or other ``timedelta``-like object or also a :ref:`offset alias <timeseries.alias>`:
 
 .. ipython:: python
 
    ts.shift(5, freq=datetools.bday)
-   ts.shift(5, freq='EOM')
+   ts.shift(5, freq='BM')
+
+Rather than changing the alignment of the data and the index, ``DataFrame`` and
+``TimeSeries`` objects also have a ``tshift`` convenience method that changes
+all the dates in the index by a specified number of offsets:
+
+.. ipython:: python
+
+   ts.tshift(5, freq='D')
+
+Note that with ``tshift``, the leading entry is no longer NaN because the data
+is not being realigned.
 
 Frequency conversion
 ~~~~~~~~~~~~~~~~~~~~
 
-The primary function for changing frequencies is the ``asfreq`` function. This
-is basically just a thin, but convenient wrapper around ``reindex`` which
-generates a ``date_range`` and calls ``reindex``.
+The primary function for changing frequencies is the ``asfreq`` function.
+For a ``DatetimeIndex``, this is basically just a thin, but convenient wrapper
+around ``reindex`` which generates a ``date_range`` and calls ``reindex``.
 
 .. ipython:: python
 
@@ -445,6 +549,12 @@ generates a ``date_range`` and calls ``reindex``.
    ts = Series(randn(3), index=dr)
    ts
    ts.asfreq(BDay())
+
+``asfreq`` provides a further convenience so you can specify an interpolation
+method for any gaps that may appear after the frequency conversion
+
+.. ipython:: python
+
    ts.asfreq(BDay(), method='pad')
 
 Filling forward / backward
@@ -453,54 +563,326 @@ Filling forward / backward
 Related to ``asfreq`` and ``reindex`` is the ``fillna`` function documented in
 the :ref:`missing data section <missing_data.fillna>`.
 
+.. _timeseries.resampling:
+
 Up- and downsampling
 --------------------
 
-We plan to add some efficient methods for doing resampling during frequency
-conversion. For example, converting secondly data into 5-minutely data. This is
-extremely common in, but not limited to, financial applications.
-
-Until then, your best bet is a clever (or kludgy, depending on your point of
-view) application of GroupBy. Carry out the following steps:
-
-1. Generate the target ``date_range`` of interest
-
-.. code-block:: python
-
-   dr1hour = date_range(start, end, freq=Hour())
-   dr5day = date_range(start, end, freq=5 * datetools.day)
-   dr10day = date_range(start, end, freq=10 * datetools.day)
-
-
-2. Use the ``asof`` function ("as of") of the date_range to do a groupby
-   expression
-
-.. code-block:: python
-
-   grouped = data.groupby(dr5day.asof)
-   means = grouped.mean()
-
-Here is a fully-worked example:
+With 0.8, pandas introduces simple, powerful, and efficient functionality for
+performing resampling operations during frequency conversion (e.g., converting
+secondly data into 5-minutely data). This is extremely common in, but not
+limited to, financial applications.
 
 .. ipython:: python
 
-   # some minutely data
-   minutely = date_range('1/3/2000 00:00:00', '1/3/2000 12:00:00',
-                        freq=datetools.Minute())
-   ts = Series(randn(len(minutely)), index=minutely)
-   ts.index
+   rng = date_range('1/1/2012', periods=100, freq='S')
 
-   hourly = date_range('1/3/2000', '1/4/2000', freq=datetools.Hour())
+   ts = Series(randint(0, 500, len(rng)), index=rng)
 
-   grouped = ts.groupby(hourly.asof)
-   grouped.mean()
+   ts.resample('5Min', how='sum')
 
-Some things to note about this method:
+The ``resample`` function is very flexible and allows you to specify many
+different parameters to control the frequency conversion and resampling
+operation.
 
-  - This is rather inefficient because we haven't exploited the orderedness of
-    the data at all. Calling the ``asof`` function on every date in the
-    minutely time series is not strictly necessary. We'll be writing some
-    significantly more efficient methods in the near future
-  - The dates in the result mark the **beginning of the period**. Be careful
-    about which convention you use; you don't want to end up misaligning data
-    because you used the wrong upsampling convention
+The ``how`` parameter can be a function name or numpy array function that takes
+and array and produces an aggregated values:
+
+.. ipython:: python
+
+   ts.resample('5Min') # default is mean
+
+   ts.resample('5Min', how='ohlc')
+
+   ts.resample('5Min', how=np.max)
+
+Any function available via :ref:`dispatching <groupby.dispatch>` can be given to
+the ``how`` parameter by name, including ``sum``, ``mean``, ``std``, ``max``,
+``min``, ``median``, ``first``, ``last``, ``ohlc``.
+
+For downsampling, ``closed`` can be set to 'left' or 'right' to specify which
+end of the interval is closed:
+
+.. ipython:: python
+
+   ts.resample('5Min', closed='right')
+
+   ts.resample('5Min', closed='left')
+
+For upsampling, the ``fill_method`` and ``limit`` parameters can be specified
+to interpolate over the gaps that are created:
+
+.. ipython:: python
+
+   # from secondly to every 250 milliseconds
+
+   ts[:2].resample('250L')
+
+   ts[:2].resample('250L', fill_method='pad')
+
+   ts[:2].resample('250L', fill_method='pad', limit=2)
+
+Parameters like ``label`` and ``loffset`` are used to manipulate the resulting
+labels. ``label`` specifies whether the result is labeled with the beginning or
+the end of the interval. ``loffset`` performs a time adjustment on the output
+labels.
+
+.. ipython:: python
+
+   ts.resample('5Min') # by default label='right'
+
+   ts.resample('5Min', label='left')
+
+   ts.resample('5Min', label='left', loffset='1s')
+
+The ``axis`` parameter can be set to 0 or 1 and allows you to resample the
+specified axis for a DataFrame.
+
+``kind`` can be set to 'timestamp' or 'period' to convert the resulting index
+to/from time-stamp and time-span representations. By default ``resample``
+retains the input representation.
+
+``convention`` can be set to 'start' or 'end' when resampling period data
+(detail below). It specifies how low frequency periods are converted to higher
+frequency periods.
+
+Note that 0.8 marks a watershed in the timeseries functionality in pandas. In
+previous versions, resampling had to be done using a combination of
+``date_range``, ``groupby`` with ``asof``, and then calling an aggregation
+function on the grouped object. This was not nearly convenient or performant as
+the new pandas timeseries API.
+
+.. _timeseries.periods:
+
+Time Span Representation
+------------------------
+
+Regular intervals of time are represented by ``Period`` objects in pandas while
+sequences of ``Period`` objects are collected in a ``PeriodIndex``, which can
+be created with the convenience function ``period_range``.
+
+Period
+~~~~~~
+A ``Period`` represents a span of time (e.g., a day, a month, a quarter, etc).
+It can be created using a frequency alias:
+
+.. ipython:: python
+
+   Period('2012', freq='A-DEC')
+
+   Period('2012-1-1', freq='D')
+
+   Period('2012-1-1 19:00', freq='H')
+
+Unlike time stamped data, pandas does not support frequencies at multiples of
+DateOffsets (e.g., '3Min') for periods.
+
+Adding and subtracting integers from periods shifts the period by its own
+frequency.
+
+.. ipython:: python
+
+   p = Period('2012', freq='A-DEC')
+
+   p + 1
+
+   p - 3
+
+Taking the difference of ``Period`` instances with the same frequency will
+return the number of frequency units between them:
+
+.. ipython:: python
+
+   Period('2012', freq='A-DEC') - Period(2002', freq='A-DEC')
+
+PeriodIndex and period_range
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Regular sequences of ``Period`` objects can be collected in a ``PeriodIndex``,
+which can be constructed using the ``period_range`` convenience function:
+
+.. ipython:: python
+
+   prng = period_range('1/1/2011', '1/1/2012', freq='M')
+   prng
+
+The ``PeriodIndex`` constructor can also be used directly:
+
+.. ipython:: python
+
+   PeriodIndex(['2011-1', '2011-2', '2011-3'], freq='M')
+
+Just like ``DatetimeIndex``, a ``PeriodIndex`` can also be used to index pandas
+objects:
+
+.. ipython:: python
+
+   Series(randn(len(prng)), prng)
+
+Frequency Conversion and Resampling with PeriodIndex
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The frequency of Periods and PeriodIndex can be converted via the ``asfreq``
+method. Let's start with the fiscal year 2011, ending in December:
+
+.. ipython:: python
+
+   p = Period('2011' freq='A-DEC')
+   p
+
+We can convert it to a monthly frequency. Using the ``how`` parameter, we can
+specify whether to return the starting or ending month:
+
+.. ipython:: python
+
+   p.asfreq('M', how='start')
+
+   p.asfreq('M', how='end')
+
+The shorthands 's' and 'e' are provided for convenience:
+
+.. ipython:: python
+
+   p.asfreq('M', 's')
+   p.asfreq('M', 'e')
+
+Converting to a "super-period" (e.g., annual frequency is a super-period of
+quarterly frequency) automatically returns the super-period that includes the
+input period:
+
+.. ipython:: python
+
+   p = Period('2011-12', freq='M')
+
+   p.asfreq('A-NOV')
+
+Note that since we converted to an annual frequency that ends the year in
+November, the monthly period of December 2011 is actually in the 2012 A-NOV
+period.
+
+.. _timeseries.quarterly:
+
+Period conversions with anchored frequencies are particularly useful for
+working with various quarterly data common to economics, business, and other
+fields. Many organizations define quarters relative to the month in which their
+fiscal year start and ends. Thus, first quarter of 2011 could start in 2010 or
+a few months into 2011. Via anchored frequencies, pandas works all quarterly
+frequencies ``Q-JAN`` through ``Q-DEC``.
+
+``Q-DEC`` define regular calendar quarters:
+
+.. ipython:: python
+
+   p = Period('2012Q1', freq='Q-DEC')
+
+   p.asfreq('D', 's')
+
+   p.asfreq('D', 'e')
+
+``Q-MAR`` defines fiscal year end in March:
+
+.. ipython:: python
+
+   p = Period('2011Q4', freq='Q-MAR')
+
+   p.asfreq('D', 's')
+
+   p.asfreq('D', 'e')
+
+.. _timeseries.interchange:
+
+Converting between Representations
+----------------------------------
+
+Timestamped data can be converted to PeriodIndex-ed data using ``to_period``
+and vice-versa using ``to_timestamp``:
+
+.. ipython:: python
+
+   rng = date_range('1/1/2012', periods=5, freq='M')
+
+   ts = Series(randn(len(rng)), index=rng)
+
+   ts
+
+   ps = ts.to_period()
+
+   ps
+
+   ps.to_timestamp()
+
+Remember that 's' and 'e' can be used to return the timestamps at the start or
+end of the period:
+
+.. ipython:: python
+
+   ps.to_timestamp('D', how='s')
+
+Converting between period and timestamp enables some convenient arithmetic
+functions to be used. In the following example, we convert a quarterly
+frequency with year ending in November to 9am of the end of the month following
+the quarter end:
+
+.. ipython:: python
+
+   prng = period_range('1990Q1', '2000Q4', freq='Q-NOV')
+
+   ts = Series(randn(len(prng)), prng)
+
+   ts.index = (prng.asfreq('M', 'e') + 1).asfreq('H', 's') + 9
+
+   ts.head()
+
+.. _timeseries.timezone:
+
+Time Zone Handling
+------------------
+
+Using ``pytz``, pandas provides rich support for working with timestamps in
+different time zones. By default, pandas objects are time zone unaware:
+
+.. ipython:: python
+
+   rng = date_range('3/6/2012 00:00', periods=15, freq='D')
+   print(rng.tz)
+
+To supply the time zone, you can use the ``tz`` keyword to ``date_range`` and
+other functions:
+
+.. ipython:: python
+
+   rng_utc = date_range('3/6/2012 00:00', periods=10, freq='D', tz='UTC')
+   print(rng_utc.tz)
+
+You can use the ``tz_convert`` method to convert pandas objects to a particular
+time zone:
+
+.. ipython:: python
+
+   ts = Series(randn(len(rng)), rng)
+
+   ts_utc = ts.tz_convert('UTC')
+   ts_utc
+
+   ts_utc.tz_convert('US/Eastern')
+
+Under the hood, all timestamps are stored in UTC. Scalar values from a
+``DatetimeIndex`` with a time zone will have their fields (day, hour, minute)
+localized to the time zone. However, timestamps with the same UTC value are
+still considered to be equal even if they are in different time zones:
+
+.. ipython:: python
+
+   rng_eastern = rng_utc.tz_convert('US/Eastern')
+   rng_berlin = rng_utc.tz_convert('Europe/Berlin')
+
+   rng_eastern[5]
+   rng_berlin[5]
+   rng_eastern[5] == rng_berlin[5]
+
+Like Series, DataFrame, and DatetimeIndex, Timestamps can be converted to other
+time zones using ``tz_convert``:
+
+.. ipython:: python
+
+   rng_eastern[5]
+   rng_berlin[5]
+   rng_eastern[5].tz_convert('Europe/Berlin')

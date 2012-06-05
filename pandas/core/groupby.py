@@ -2,6 +2,7 @@ from itertools import izip
 import types
 import numpy as np
 
+from pandas.core.factor import Factor
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
@@ -11,7 +12,7 @@ from pandas.core.panel import Panel
 from pandas.util.decorators import cache_readonly, Appender
 import pandas.core.algorithms as algos
 import pandas.core.common as com
-import pandas._tseries as lib
+import pandas.lib as lib
 
 
 class GroupByError(Exception):
@@ -344,12 +345,6 @@ class GroupBy(object):
         For multiple groupings, the result index will be a MultiIndex
         """
         return self._cython_agg_general('ohlc')
-
-    # def last(self):
-    #     return self.nth(-1)
-
-    # def first(self):
-    #     return self.nth(0)
 
     def nth(self, n):
         def picker(arr):
@@ -978,6 +973,17 @@ class Grouping(object):
         else:
             if isinstance(self.grouper, (list, tuple)):
                 self.grouper = com._asarray_tuplesafe(self.grouper)
+            elif isinstance(self.grouper, Factor):
+                factor = self.grouper
+                self._was_factor = True
+
+                # Is there any way to avoid this?
+                self.grouper = np.asarray(factor)
+
+                self._labels = factor.labels
+                self._group_index = factor.levels
+                if self.name is None:
+                    self.name = factor.name
 
             # no level passed
             if not isinstance(self.grouper, np.ndarray):
@@ -1208,7 +1214,10 @@ class SeriesGroupBy(GroupBy):
         if isinstance(arg, dict):
             columns = arg.keys()
             arg = arg.items()
-        elif isinstance(arg[0], (tuple, list)):
+        elif any(isinstance(x, (tuple, list)) for x in arg):
+            arg = [(x, x) if not isinstance(x, (tuple, list)) else x
+                   for x in arg]
+
             # indicated column order
             columns = list(zip(*arg))[0]
         else:
@@ -1295,9 +1304,14 @@ class SeriesGroupBy(GroupBy):
         """
         result = self.obj.copy()
 
+        if isinstance(func, basestring):
+            wrapper = lambda x: getattr(x, func)(*args, **kwargs)
+        else:
+            wrapper = lambda x: func(x, *args, **kwargs)
+
         for name, group in self:
             object.__setattr__(group, 'name', name)
-            res = func(group, *args, **kwargs)
+            res = wrapper(group)
             indexer = self.obj.index.get_indexer(group.index)
             np.put(result, indexer, res)
 
@@ -1624,14 +1638,22 @@ class NDFrameGroupBy(GroupBy):
         applied = []
 
         obj = self._obj_with_exclusions
-        for name, group in self:
+        gen = self.grouper.get_iterator(obj, axis=self.axis)
+
+        if isinstance(func, basestring):
+            wrapper = lambda x: getattr(x, func)(*args, **kwargs)
+        else:
+            wrapper = lambda x: func(x, *args, **kwargs)
+
+        for name, group in gen:
             object.__setattr__(group, 'name', name)
 
             try:
-                wrapper = lambda x: func(x, *args, **kwargs)
                 res = group.apply(wrapper, axis=self.axis)
+            except TypeError:
+                return self._transform_item_by_item(obj, wrapper)
             except Exception: # pragma: no cover
-                res = func(group, *args, **kwargs)
+                res = wrapper(group)
 
             # broadcasting
             if isinstance(res, Series):
@@ -1649,6 +1671,25 @@ class NDFrameGroupBy(GroupBy):
                               axis=self.axis, verify_integrity=False)
         return concatenated.reindex_like(obj)
 
+    def _transform_item_by_item(self, obj, wrapper):
+        # iterate through columns
+        output = {}
+        inds = []
+        for i, col in enumerate(obj):
+            try:
+                output[col] = self[col].transform(wrapper)
+                inds.append(i)
+            except Exception:
+                pass
+
+        if len(output) == 0:
+            raise TypeError('Transform function invalid for data types')
+
+        columns = obj.columns
+        if len(output) < len(obj.columns):
+            columns = columns.take(inds)
+
+        return DataFrame(output, index=obj.index, columns=columns)
 
 
 class DataFrameGroupBy(NDFrameGroupBy):

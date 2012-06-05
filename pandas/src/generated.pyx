@@ -1849,7 +1849,7 @@ def arrmap_float64(ndarray[float64_t] index, object func):
 
     cdef ndarray[object] result = np.empty(length, dtype=np.object_)
 
-    from _tseries import maybe_convert_objects
+    from pandas.lib import maybe_convert_objects
 
     for i in range(length):
         result[i] = func(index[i])
@@ -1864,7 +1864,7 @@ def arrmap_object(ndarray[object] index, object func):
 
     cdef ndarray[object] result = np.empty(length, dtype=np.object_)
 
-    from _tseries import maybe_convert_objects
+    from pandas.lib import maybe_convert_objects
 
     for i in range(length):
         result[i] = func(index[i])
@@ -1879,7 +1879,7 @@ def arrmap_int32(ndarray[int32_t] index, object func):
 
     cdef ndarray[object] result = np.empty(length, dtype=np.object_)
 
-    from _tseries import maybe_convert_objects
+    from pandas.lib import maybe_convert_objects
 
     for i in range(length):
         result[i] = func(index[i])
@@ -1894,7 +1894,7 @@ def arrmap_int64(ndarray[int64_t] index, object func):
 
     cdef ndarray[object] result = np.empty(length, dtype=np.object_)
 
-    from _tseries import maybe_convert_objects
+    from pandas.lib import maybe_convert_objects
 
     for i in range(length):
         result[i] = func(index[i])
@@ -1909,7 +1909,7 @@ def arrmap_bool(ndarray[uint8_t] index, object func):
 
     cdef ndarray[object] result = np.empty(length, dtype=np.object_)
 
-    from _tseries import maybe_convert_objects
+    from pandas.lib import maybe_convert_objects
 
     for i in range(length):
         result[i] = func(index[i])
