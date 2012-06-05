@@ -44,8 +44,8 @@ class Factor(object):
 
     levels = None
 
-    def __array__(self):
-        return self.levels.values.take(self.labels)
+    def __array__(self, dtype=None):
+        return com.take_1d(self.levels, self.labels)
 
     def __len__(self):
         return len(self.labels)
@@ -58,7 +58,10 @@ class Factor(object):
     def __getitem__(self, key):
         if isinstance(key, (int, np.integer)):
             i = self.labels[key]
-            return self.levels[i]
+            if i == -1:
+                return np.nan
+            else:
+                return self.levels[i]
         else:
             return Factor(self.labels[key], self.levels)
 

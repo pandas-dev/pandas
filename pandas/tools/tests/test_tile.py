@@ -22,26 +22,26 @@ class TestCut(unittest.TestCase):
 
     def test_bins(self):
         data = np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1])
-        result, bins = cut(data, 3, labels=False, retbins=True)
-        assert_equal(result, [1, 1, 1, 2, 3, 1])
+        result, bins = cut(data, 3, retbins=True)
+        assert_equal(result.labels, [0, 0, 0, 1, 2, 0])
         assert_almost_equal(bins, [ 0.1905, 3.36666667, 6.53333333, 9.7])
 
     def test_right(self):
         data = np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1, 2.575])
-        result, bins = cut(data, 4, right=True, labels=False, retbins=True)
-        assert_equal(result, [1, 1, 1, 3, 4, 1, 1])
+        result, bins = cut(data, 4, right=True, retbins=True)
+        assert_equal(result.labels, [0, 0, 0, 2, 3, 0, 0])
         assert_almost_equal(bins, [0.1905, 2.575, 4.95, 7.325, 9.7])
 
     def test_noright(self):
         data = np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1, 2.575])
-        result, bins = cut(data, 4, right=False, labels=False, retbins=True)
-        assert_equal(result, [1, 1, 1, 3, 4, 1, 2])
+        result, bins = cut(data, 4, right=False, retbins=True)
+        assert_equal(result.labels, [0, 0, 0, 2, 3, 0, 1])
         assert_almost_equal(bins, [ 0.2, 2.575, 4.95, 7.325, 9.7095])
 
     def test_arraylike(self):
         data = [.2, 1.4, 2.5, 6.2, 9.7, 2.1]
-        result, bins = cut(data, 3, labels=False, retbins=True)
-        assert_equal(result, [1, 1, 1, 2, 3, 1])
+        result, bins = cut(data, 3, retbins=True)
+        assert_equal(result.labels, [0, 0, 0, 1, 2, 0])
         assert_almost_equal(bins, [ 0.1905, 3.36666667, 6.53333333, 9.7])
 
     def test_bins_not_monotonic(self):
@@ -51,39 +51,39 @@ class TestCut(unittest.TestCase):
     def test_labels(self):
         arr = np.tile(np.arange(0, 1.01, 0.1), 4)
 
-        labels, bins = cut(arr, 4, retbins=True)
-        distinct_labels = sorted(unique(labels))
-        ex_labels = ['(-0.001, 0.25]', '(0.25, 0.5]', '(0.5, 0.75]',
+        result, bins = cut(arr, 4, retbins=True)
+        ex_levels = ['(-0.001, 0.25]', '(0.25, 0.5]', '(0.5, 0.75]',
                      '(0.75, 1]']
-        self.assertEqual(distinct_labels, ex_labels)
+        self.assert_(np.array_equal(result.levels, ex_levels))
 
-        labels, bins = cut(arr, 4, retbins=True, right=False)
-        distinct_labels = sorted(unique(labels))
-        ex_labels = ['[0, 0.25)', '[0.25, 0.5)', '[0.5, 0.75)',
+        result, bins = cut(arr, 4, retbins=True, right=False)
+        ex_levels = ['[0, 0.25)', '[0.25, 0.5)', '[0.5, 0.75)',
                      '[0.75, 1.001)']
-        self.assertEqual(distinct_labels, ex_labels)
+        self.assert_(np.array_equal(result.levels, ex_levels))
 
     def test_label_precision(self):
         arr = np.arange(0, 0.73, 0.01)
 
-        labels = cut(arr, 4, precision=2)
-        distinct_labels = sorted(unique(labels))
-        ex_labels = ['(-0.00072, 0.18]', '(0.18, 0.36]', '(0.36, 0.54]',
+        result = cut(arr, 4, precision=2)
+        ex_levels = ['(-0.00072, 0.18]', '(0.18, 0.36]', '(0.36, 0.54]',
                      '(0.54, 0.72]']
-        self.assertEqual(distinct_labels, ex_labels)
+        self.assert_(np.array_equal(result.levels, ex_levels))
 
     def test_na_handling(self):
         arr = np.arange(0, 0.75, 0.01)
         arr[::3] = np.nan
 
-        labels = cut(arr, 4)
-        ex_labels = np.where(com.isnull(arr), np.nan, labels)
+        result = cut(arr, 4)
 
-        tm.assert_almost_equal(labels, ex_labels)
+        result_arr = np.asarray(result)
 
-        labels = cut(arr, 4, labels=False)
-        ex_labels = np.where(com.isnull(arr), np.nan, labels)
-        tm.assert_almost_equal(labels, ex_labels)
+        ex_arr = np.where(com.isnull(arr), np.nan, result_arr)
+
+        tm.assert_almost_equal(result_arr, ex_arr)
+
+        result = cut(arr, 4, labels=False)
+        ex_result = np.where(com.isnull(arr), np.nan, result)
+        tm.assert_almost_equal(result, ex_result)
 
     def test_qcut(self):
         arr = np.random.randn(1000)
@@ -94,9 +94,9 @@ class TestCut(unittest.TestCase):
 
         assert_almost_equal(bins, ex_bins)
 
-        ex_labels = cut(arr, ex_bins)
+        ex_levels = cut(arr, ex_bins)
 
-        self.assert_(np.array_equal(labels, ex_labels))
+        self.assert_(np.array_equal(labels, ex_levels))
 
 
 if __name__ == '__main__':

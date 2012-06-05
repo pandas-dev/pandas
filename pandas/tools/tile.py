@@ -153,28 +153,28 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
 
         fmt = lambda v: _format_label(v, precision=precision)
         if right:
-            strings = ['(%s, %s]' % (fmt(x), fmt(y))
+            levels = ['(%s, %s]' % (fmt(x), fmt(y))
                        for x, y in zip(labels, labels[1:])]
         else:
-            strings = ['[%s, %s)' % (fmt(x), fmt(y))
+            levels = ['[%s, %s)' % (fmt(x), fmt(y))
                        for x, y in zip(labels, labels[1:])]
 
-        strings = np.asarray(strings, dtype=object)
+        levels = np.asarray(levels, dtype=object)
 
         if has_nas:
             np.putmask(ids, mask, 0)
 
-        labels = com.take_1d(strings, ids - 1)
+        fac = Factor(ids - 1, levels)
     else:
-        labels = ids
+        fac = ids
         if has_nas:
-            labels = labels.astype(np.float64)
-            np.putmask(labels, mask, np.nan)
+            fac = ids.astype(np.float64)
+            np.putmask(fac, mask, np.nan)
 
     if not retbins:
-        return labels
+        return fac
 
-    return labels, bins
+    return fac, bins
 
 
 def _format_label(x, precision=3):
