@@ -555,6 +555,10 @@ class DatetimeIndex(Int64Index):
         else:
             return Index(np.concatenate(to_concat), name=name)
 
+    def get_duplicates(self):
+        values = Index.get_duplicates(self)
+        return DatetimeIndex(values)
+
     def astype(self, dtype):
         dtype = np.dtype(dtype)
 

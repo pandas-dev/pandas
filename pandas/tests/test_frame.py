@@ -3328,12 +3328,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                        columns=['foo', 'bar', 'baz', 'qux'])
 
         series = df.ix[4]
-        self.assertRaises(Exception, df.append, series)
+        self.assertRaises(Exception, df.append, series, verify_integrity=True)
         series.name = None
-        self.assertRaises(Exception, df.append, series)
+        self.assertRaises(Exception, df.append, series, verify_integrity=True)
 
         result = df.append(series[::-1], ignore_index=True)
-        expected = df.append(DataFrame({0 : series[::-1]}, index=df.columns).T, ignore_index=True)
+        expected = df.append(DataFrame({0 : series[::-1]}, index=df.columns).T,
+                             ignore_index=True)
         assert_frame_equal(result, expected)
 
         # dict

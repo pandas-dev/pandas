@@ -1212,7 +1212,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             else:
                 self.fail("orphaned index!")
 
-        self.assertRaises(Exception, self.ts.append, self.ts)
+        self.assertRaises(Exception, self.ts.append, self.ts,
+                          verify_integrity=True)
 
     def test_append_many(self):
         pieces = [self.ts[:5], self.ts[5:10], self.ts[10:]]

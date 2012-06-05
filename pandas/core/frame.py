@@ -3681,7 +3681,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Merging / joining methods
 
-    def append(self, other, ignore_index=False, verify_integrity=True):
+    def append(self, other, ignore_index=False, verify_integrity=False):
         """
         Append columns of other to end of this frame's columns and index,
         returning a new object.  Columns not in this frame are added as new
@@ -3693,6 +3693,8 @@ class DataFrame(NDFrame):
         ignore_index : boolean, default False
             If True do not use the index labels. Useful for gluing together
             record arrays
+        verify_integrity : boolean, default False
+            If True, raise Exception on creating index with duplicates
 
         Notes
         -----

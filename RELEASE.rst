@@ -129,6 +129,8 @@ pandas 0.8.0
   - Default merge suffixes for overlap now have underscores instead of periods
     to facilitate tab completion, etc. (#1239)
   - Deprecation of offset, time_rule timeRule parameters throughout codebase
+  - Series.append and DataFrame.append no longer check for duplicate indexes
+    by default, add verify_integrity parameter (#1394)
 
 **Bug fixes**
 
