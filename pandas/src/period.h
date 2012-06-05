@@ -154,6 +154,6 @@ int psecond(npy_int64 ordinal, int freq);
 
 double getAbsTime(int freq, npy_int64 dailyDate, npy_int64 originalDate);
 char *c_strftime(struct date_info *dinfo, char *fmt);
-int get_yq(int64_t ordinal, int freq, int *quarter, int *year);
+int get_yq(npy_int64 ordinal, int freq, int *quarter, int *year);
 
 #endif
