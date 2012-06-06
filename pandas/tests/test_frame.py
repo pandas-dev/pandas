@@ -3015,6 +3015,22 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         recons = DataFrame.from_csv(path)
         assert_frame_equal(dm, recons)
 
+
+
+        #duplicate index
+        df = DataFrame(np.random.randn(3, 3), index=['a', 'a', 'b'],
+                       columns=['x', 'y', 'z'])
+        df.to_csv(path)
+        result = DataFrame.from_csv(path)
+        assert_frame_equal(result, df)
+
+        midx = MultiIndex.from_tuples([('A', 1, 2), ('A', 1, 2), ('B', 1, 2)])
+        df = DataFrame(np.random.randn(3, 3), index=midx,
+                       columns=['x', 'y', 'z'])
+        df.to_csv(path)
+        result = DataFrame.from_csv(path, index_col=[0, 1, 2],
+                                    parse_dates=False)
+        assert_frame_equal(result, df)
         os.remove(path)
 
     def test_to_csv_multiindex(self):

@@ -1092,7 +1092,9 @@ class DataFrame(NDFrame):
         if cols is None:
             cols = self.columns
 
-        series = self._series
+        series = {}
+        for k, v in self._series.iteritems():
+            series[k] = v.values
         if header:
             if index:
                 # should write something for index label
@@ -1122,7 +1124,7 @@ class DataFrame(NDFrame):
                 writer.writerow(encoded_cols)
 
         nlevels = getattr(self.index, 'nlevels', 1)
-        for idx in self.index:
+        for j, idx in enumerate(self.index):
             row_fields = []
             if index:
                 if nlevels == 1:
@@ -1130,7 +1132,7 @@ class DataFrame(NDFrame):
                 else:  # handle MultiIndex
                     row_fields = list(idx)
             for i, col in enumerate(cols):
-                val = series[col].get(idx)
+                val = series[col][j]
                 if isnull(val):
                     val = na_rep
 
