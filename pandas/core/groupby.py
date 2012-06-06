@@ -2,6 +2,7 @@ from itertools import izip
 import types
 import numpy as np
 
+from pandas.core.algorithms import unique
 from pandas.core.factor import Factor
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
@@ -1570,6 +1571,8 @@ class NDFrameGroupBy(GroupBy):
         return output_keys
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
+        from pandas.core.index import _all_indexes_same
+
         if len(keys) == 0:
             # XXX
             return DataFrame({})
@@ -1597,6 +1600,11 @@ class NDFrameGroupBy(GroupBy):
                     key_index = Index(keys, name=key_names[0])
 
             if isinstance(values[0], np.ndarray):
+                if (isinstance(values[0], Series) and
+                    not _all_indexes_same([x.index for x in values])):
+                    return self._concat_objects(keys, values,
+                                                not_indexed_same=not_indexed_same)
+
                 if self.axis == 0:
                     stacked_values = np.vstack([np.asarray(x)
                                                 for x in values])

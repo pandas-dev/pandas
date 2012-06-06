@@ -1211,6 +1211,22 @@ class TestGroupBy(unittest.TestCase):
         self.assert_(result.index.equals(expected.index))
         self.assert_(np.array_equal(result.values, expected.values))
 
+    def test_apply_frame_concat_series(self):
+        def trans(group):
+            return group.groupby('B')['C'].sum().order()[:2]
+
+        def trans2(group):
+            grouped = group.groupby(df.reindex(group.index)['B'])
+            return grouped.sum().order()[:2]
+
+        df = DataFrame({'A': np.random.randint(0, 5, 1000),
+                        'B': np.random.randint(0, 5, 1000),
+                        'C': np.random.randn(1000)})
+
+        result = df.groupby('A').apply(trans)
+        exp = df.groupby('A')['C'].apply(trans2)
+        assert_series_equal(result, exp)
+
     def test_apply_transform(self):
         grouped = self.ts.groupby(lambda x: x.month)
         result = grouped.apply(lambda x: x * 2)

@@ -10,7 +10,8 @@ from pandas.core.generic import NDFrame
 from pandas.core.groupby import get_group_index
 from pandas.core.series import Series
 from pandas.core.index import (Index, MultiIndex, _get_combined_index,
-                               _ensure_index, _get_consensus_names)
+                               _ensure_index, _get_consensus_names,
+                               _all_indexes_same)
 from pandas.core.internals import (IntBlock, BoolBlock, BlockManager,
                                    make_block, _consolidate)
 from pandas.util.decorators import cache_readonly, Appender, Substitution
@@ -1193,13 +1194,6 @@ def _should_fill(lname, rname):
         return True
     return lname == rname
 
-
-def _all_indexes_same(indexes):
-    first = indexes[0]
-    for index in indexes[1:]:
-        if not first.equals(index):
-            return False
-    return True
 
 
 def _any(x):
