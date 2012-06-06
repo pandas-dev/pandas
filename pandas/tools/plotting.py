@@ -425,6 +425,20 @@ class MPLPlot(object):
 
         return plotf
 
+    def _get_index_name(self):
+        if isinstance(self.data.index, MultiIndex):
+            name = self.data.index.names
+            if any(x is not None for x in name):
+                name = ','.join([str(x) for x in name])
+            else:
+                name = None
+        else:
+            name = self.data.index.name
+            if name is not None:
+                name = str(name)
+
+        return name
+
 class KdePlot(MPLPlot):
     def __init__(self, data, **kwargs):
         MPLPlot.__init__(self, data, **kwargs)
@@ -454,6 +468,7 @@ class KdePlot(MPLPlot):
 
         if self.subplots and self.legend:
             self.axes[0].legend(loc='best')
+
 
 class LinePlot(MPLPlot):
 
@@ -559,10 +574,14 @@ class LinePlot(MPLPlot):
                      and not self.subplots
                      or (self.subplots and self.sharex))
 
+        index_name = self._get_index_name()
+
         for ax in self.axes:
             if condition:
                 format_date_labels(ax)
 
+            if index_name is not None:
+                ax.set_xlabel(index_name)
 
 class BarPlot(MPLPlot):
     _default_rot = {'bar' : 90, 'barh' : 0}
@@ -649,12 +668,16 @@ class BarPlot(MPLPlot):
     def _post_plot_logic(self):
         for ax in self.axes:
             str_index = [_stringify(key) for key in self.data.index]
+
+            name = self._get_index_name()
             if self.kind == 'bar':
                 ax.set_xlim([self.ax_pos[0] - 0.25, self.ax_pos[-1] + 1])
                 ax.set_xticks(self.ax_pos + 0.375)
                 ax.set_xticklabels(str_index, rotation=self.rot,
                                    fontsize=self.fontsize)
                 ax.axhline(0, color='k', linestyle='--')
+                if name is not None:
+                    ax.set_xlabel(name)
             else:
                 # horizontal bars
                 ax.set_ylim([self.ax_pos[0] - 0.25, self.ax_pos[-1] + 1])
@@ -662,6 +685,8 @@ class BarPlot(MPLPlot):
                 ax.set_yticklabels(str_index, rotation=self.rot,
                                    fontsize=self.fontsize)
                 ax.axvline(0, color='k', linestyle='--')
+                if name is not None:
+                    ax.set_ylabel(name)
 
 class BoxPlot(MPLPlot):
     pass
