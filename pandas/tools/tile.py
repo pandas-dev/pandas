@@ -137,7 +137,9 @@ def qcut(x, q=4, labels=None, retbins=False, precision=3):
 
 
 def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
-                  precision=3):
+                  precision=3, name=None):
+    if name is None and isinstance(x, Series):
+        name = x.name
     x = np.asarray(x)
 
     side = 'left' if right else 'right'
@@ -166,7 +168,7 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
         if has_nas:
             np.putmask(ids, mask, 0)
 
-        fac = Factor(ids - 1, levels)
+        fac = Factor(ids - 1, levels, name=name)
     else:
         fac = ids
         if has_nas:

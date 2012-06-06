@@ -61,6 +61,12 @@ class TestCut(unittest.TestCase):
                      '[0.75, 1.001)']
         self.assert_(np.array_equal(result.levels, ex_levels))
 
+    def test_cut_pass_series_name_to_factor(self):
+        s = Series(np.random.randn(100), name='foo')
+
+        factor = cut(s, 4)
+        self.assertEquals(factor.name, 'foo')
+
     def test_label_precision(self):
         arr = np.arange(0, 0.73, 0.01)
 
