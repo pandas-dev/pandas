@@ -137,6 +137,8 @@ class Index(np.ndarray):
             parser = lambda x: parse(x, dayfirst=dayfirst)
             parsed = lib.try_parse_dates(self.values, parser=parser)
             return DatetimeIndex(parsed)
+        elif isinstance(self, DatetimeIndex):
+            return self.copy()
         else:
             return DatetimeIndex(self.values)
 

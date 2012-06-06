@@ -12,9 +12,8 @@ import numpy as np
 randn = np.random.randn
 
 from pandas import (Index, Series, TimeSeries, DataFrame, isnull,
-                    date_range, Timestamp)
-
-from pandas import DatetimeIndex, Int64Index, to_datetime
+                    date_range, Timestamp, DatetimeIndex, Int64Index,
+                    to_datetime, bdate_range)
 
 from pandas.core.daterange import DateRange
 import pandas.core.datetools as datetools
@@ -599,6 +598,12 @@ class TestTimeSeries(unittest.TestCase):
         result = idx.to_datetime()
         expected = DatetimeIndex([today])
         self.assert_(result.equals(expected))
+
+    def test_to_datetime_freq(self):
+        xp = bdate_range('2000-1-1', periods=10, tz='UTC')
+        rs = xp.to_datetime()
+        self.assert_(xp.freq == rs.freq)
+        self.assert_(xp.tzinfo == rs.tzinfo)
 
     def test_range_misspecified(self):
         # GH #1095
