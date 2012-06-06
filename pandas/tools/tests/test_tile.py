@@ -95,15 +95,19 @@ class TestCut(unittest.TestCase):
         arr = np.random.randn(1000)
 
         labels, bins = qcut(arr, 4, retbins=True)
-
         ex_bins = quantile(arr, [0, .25, .5, .75, 1.])
-
+        ex_bins[0] -= (arr.max() - arr.min()) * 0.001
         assert_almost_equal(bins, ex_bins)
 
         ex_levels = cut(arr, ex_bins)
-
         self.assert_(np.array_equal(labels, ex_levels))
 
+    def test_qcut_bounds(self):
+        np.random.seed(12345)
+        arr = np.random.randn(1000)
+
+        factor = qcut(arr, 10, labels=False)
+        self.assert_(len(np.unique(factor)) == 10)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

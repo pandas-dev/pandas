@@ -130,6 +130,7 @@ def qcut(x, q=4, labels=None, retbins=False, precision=3):
     if com.is_integer(q):
         quantiles = np.linspace(0, 1, q + 1)
         bins = algos.quantile(x, quantiles)
+        bins[0] -= 0.001 * (x.max() - x.min())
         return _bins_to_cuts(x, bins, labels=labels, retbins=retbins,
                              precision=precision)
     else:
@@ -170,7 +171,7 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
 
         fac = Factor(ids - 1, levels, name=name)
     else:
-        fac = ids
+        fac = ids - 1
         if has_nas:
             fac = ids.astype(np.float64)
             np.putmask(fac, mask, np.nan)
