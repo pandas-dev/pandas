@@ -168,6 +168,30 @@ class TestTSPlot(unittest.TestCase):
         self.assertEqual(int(result[0]), expected[0].ordinal)
         self.assertEqual(int(result[1]), expected[1].ordinal)
 
+    @slow
+    def test_finder_quarterly(self):
+        xp = Period('1988Q1').ordinal
+        yrs = [3.5, 11]
+        for n in yrs:
+            rng = period_range('1987Q2', periods=int(n * 4), freq='Q')
+            ser = Series(np.random.randn(len(rng)), rng)
+            ax = ser.plot()
+            xaxis = ax.get_xaxis()
+            rs = xaxis.get_majorticklocs()[0]
+            self.assert_(rs == xp)
+
+    @slow
+    def test_finder_monthly(self):
+        xp = Period('1988-1').ordinal
+        yrs = [1.15, 2.5, 4, 11]
+        for n in yrs:
+            rng = period_range('1987Q2', periods=int(n * 12), freq='M')
+            ser = Series(np.random.randn(len(rng)), rng)
+            ax = ser.plot()
+            xaxis = ax.get_xaxis()
+            rs = xaxis.get_majorticklocs()[0]
+            self.assert_(rs == xp)
+
 PNG_PATH = 'tmp.png'
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     import matplotlib.pyplot as plt
