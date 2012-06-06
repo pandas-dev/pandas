@@ -17,7 +17,7 @@ class TestCut(unittest.TestCase):
     def test_simple(self):
         data = np.ones(5)
         result = cut(data, 4, labels=False)
-        desired = [2, 2, 2, 2, 2]
+        desired = [1, 1, 1, 1, 1]
         assert_equal(result, desired)
 
     def test_bins(self):
