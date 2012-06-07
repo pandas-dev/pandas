@@ -20,6 +20,17 @@ static int mod_compat(int x, int m) {
   return result;
 }
 
+static int floordiv(int x, int divisor) {
+    if (x < 0) {
+        if (mod_compat(x, divisor)) {
+            return x / divisor - 1;
+        }
+        else return x / divisor;
+    } else {
+        return x / divisor;
+    }
+}
+
 static asfreq_info NULL_AF_INFO;
 
 /* Table with day offsets for each month (0-based, without and with leap) */
@@ -590,8 +601,8 @@ static npy_int64 asfreq_MtoS(npy_int64 ordinal, char relation, asfreq_info *af_i
 //************ FROM QUARTERLY ***************
 
 static void QtoD_ym(npy_int64 ordinal, int *y, int *m, asfreq_info *af_info) {
-    *y = ordinal / 4 + BASE_YEAR;
-    *m = (ordinal % 4) * 3 + 1;
+    *y = floordiv(ordinal, 4) + BASE_YEAR;
+    *m = mod_compat(ordinal, 4) * 3 + 1;
 
     if (af_info->from_q_year_end != 12) {
         *m += af_info->from_q_year_end;
@@ -612,7 +623,7 @@ static npy_int64 asfreq_QtoD(npy_int64 ordinal, char relation, asfreq_info *af_i
         return absdate - ORD_OFFSET;
     } else {
         QtoD_ym(ordinal+1, &y, &m, af_info);
-		// printf("ordinal: %d, year: %d, month: %d\n", (int) ordinal, y, m);
+		/* printf("ordinal: %d, year: %d, month: %d\n", (int) ordinal, y, m); */
         if ((absdate = absdate_from_ymd(y, m, 1)) == INT_ERR_CODE) return INT_ERR_CODE;
         return absdate - 1 - ORD_OFFSET;
     }

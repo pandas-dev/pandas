@@ -31,6 +31,15 @@ class TestPeriodProperties(TestCase):
     def __init__(self, *args, **kwds):
         TestCase.__init__(self, *args, **kwds)
 
+    def test_quarterly_negative_ordinals(self):
+        p = Period(ordinal=-1, freq='Q-DEC')
+        self.assertEquals(p.year, 1969)
+        self.assertEquals(p.quarter, 4)
+
+        p = Period(ordinal=-2, freq='Q-DEC')
+        self.assertEquals(p.year, 1969)
+        self.assertEquals(p.quarter, 3)
+
     def test_period_cons_quarterly(self):
         # bugs in scikits.timeseries
         for month in MONTHS:
@@ -943,6 +952,19 @@ class TestPeriodIndex(TestCase):
         index = PeriodIndex(year=years, quarter=quarters)
         self.assert_(index.equals(expected))
 
+    def test_constructor_arrays_negative_year(self):
+        years = np.arange(1960, 2000).repeat(4)
+        quarters = np.tile(range(1, 5), 40)
+
+        pindex = PeriodIndex(year=years, quarter=quarters)
+
+        self.assert_(np.array_equal(pindex.year, years))
+        self.assert_(np.array_equal(pindex.quarter, quarters))
+
+    def test_constructor_invalid_quarters(self):
+        self.assertRaises(ValueError, PeriodIndex, year=range(2000, 2004),
+                          quarter=range(4), freq='Q-DEC')
+
     def test_to_timestamp(self):
         index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
         series = Series(1, index=index, name='foo')
@@ -978,7 +1000,7 @@ class TestPeriodIndex(TestCase):
 
     def test_to_timestamp_quarterly_bug(self):
         years = np.arange(1960, 2000).repeat(4)
-        quarters = np.tile(range(4), 40)
+        quarters = np.tile(range(1, 5), 40)
 
         pindex = PeriodIndex(year=years, quarter=quarters)
 

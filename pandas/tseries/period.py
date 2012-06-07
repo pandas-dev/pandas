@@ -1060,8 +1060,8 @@ def _make_field_arrays(*fields):
             if length is not None and len(x) != length:
                 raise ValueError('Mismatched Period array lengths')
 
-    arrays = [x if isinstance(x, np.ndarray) else np.repeat(x, length)
-              for x in fields]
+    arrays = [np.asarray(x) if isinstance(x, (np.ndarray, list))
+              else np.repeat(x, length) for x in fields]
 
     return arrays
 
@@ -1079,6 +1079,9 @@ def _ordinal_from_fields(year, month, quarter, day, hour, minute,
 
 def _quarter_to_myear(year, quarter, freq):
     if quarter is not None:
+        if quarter <= 0 or quarter > 4:
+            raise ValueError('Quarter must be 1 <= q <= 4')
+
         mnum = _month_numbers[_freq_mod._get_rule_month(freq)] + 1
         month = (mnum + (quarter - 1) * 3) % 12 + 1
         if month > mnum:
