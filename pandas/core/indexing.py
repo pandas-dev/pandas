@@ -496,6 +496,9 @@ class _SeriesIndexer(_NDFrameIndexer):
     def _get_label(self, key, axis=0):
         return self.obj[key]
 
+    def _get_loc(self, key, axis=0):
+        return self.obj.values[key]
+
     def _slice(self, indexer, axis=0):
         return self.obj._get_values(indexer)
 

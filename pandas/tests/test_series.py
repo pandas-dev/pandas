@@ -568,6 +568,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s = Series([])
         self.assertRaises(IndexError, s.__getitem__, -1)
 
+    def test_getitem_setitem_integers(self):
+        # caused bug without test
+        s = Series([1,2,3], ['a','b','c'])
+
+        self.assertEqual(s.ix[0], s['a'])
+        s.ix[0] = 5
+        self.assertAlmostEqual(s['a'], 5)
+
     def test_getitem_box_float64(self):
         value = self.ts[5]
         self.assert_(isinstance(value, np.float64))

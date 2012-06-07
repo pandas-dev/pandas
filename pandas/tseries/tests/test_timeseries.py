@@ -408,6 +408,9 @@ class TestTimeSeries(unittest.TestCase):
     def test_index_astype_datetime64(self):
         idx = Index([datetime(2012, 1, 1)], dtype=object)
 
+        if np.__version__ >= '1.7':
+            raise nose.SkipTest
+
         casted = idx.astype(np.dtype('M8[D]'))
         expected = DatetimeIndex(idx.values)
         self.assert_(isinstance(casted, DatetimeIndex))
