@@ -115,6 +115,16 @@ class TestTimeSeries(unittest.TestCase):
         # don't carry freq through irregular slicing
         self.assert_(dti2.freq is None)
 
+    def test_pass_datetimeindex_to_index(self):
+        # Bugs in #1396
+
+        rng = date_range('1/1/2000', '3/1/2000')
+        idx = Index(rng, dtype=object)
+
+        expected = Index(rng.to_pydatetime(), dtype=object)
+
+        self.assert_(np.array_equal(idx.values, expected.values))
+
     def test_contiguous_boolean_preserve_freq(self):
         rng = date_range('1/1/2000', '3/1/2000', freq='B')
 

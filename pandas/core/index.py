@@ -36,6 +36,7 @@ def _indexOp(opname):
 class InvalidIndexError(Exception):
     pass
 
+_o_dtype = np.dtype(object)
 
 class Index(np.ndarray):
     """
@@ -73,15 +74,19 @@ class Index(np.ndarray):
 
     def __new__(cls, data, dtype=None, copy=False, name=None):
         if isinstance(data, np.ndarray):
+            if issubclass(data.dtype.type, np.datetime64):
+                from pandas.tseries.index import DatetimeIndex
+                result = DatetimeIndex(data, copy=copy, name=name)
+                if dtype is not None and _o_dtype == dtype:
+                    return Index(result.to_pydatetime(), dtype=_o_dtype)
+                else:
+                    return result
+
             if dtype is not None:
                 try:
                     data = np.array(data, dtype=dtype, copy=copy)
                 except TypeError:
                     pass
-
-            if issubclass(data.dtype.type, np.datetime64):
-                from pandas.tseries.index import DatetimeIndex
-                return DatetimeIndex(data, copy=copy, name=name)
 
             if issubclass(data.dtype.type, np.integer):
                 return Int64Index(data, copy=copy, name=name)
