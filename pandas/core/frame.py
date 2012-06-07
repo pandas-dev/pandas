@@ -997,7 +997,7 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        path : string
+        path : string file path or file handle / StringIO
         header : int, default 0
             Row to use at header (skip prior rows)
         sep : string, default ','

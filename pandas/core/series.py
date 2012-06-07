@@ -2346,7 +2346,7 @@ copy : boolean, default False
 
         Parameters
         ----------
-        path : string
+        path : string file path or file handle / StringIO
         sep : string, default ','
             Field delimiter
         parse_dates : boolean, default True
@@ -2377,8 +2377,7 @@ copy : boolean, default False
 
         Parameters
         ----------
-        path : string
-            File path
+        path : string file path or file handle / StringIO
         nanRep : string, default ''
             Missing data rep'n
         header : boolean, default False
