@@ -986,6 +986,14 @@ class TestPeriodIndex(TestCase):
         expected = DatetimeIndex([x.to_timestamp('D', 'end') for x in pindex])
         self.assert_(stamps.equals(expected))
 
+    def test_to_timestamp_preserve_name(self):
+        index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009',
+                            name='foo')
+        self.assertEquals(index.name, 'foo')
+
+        conv = index.to_timestamp('D')
+        self.assertEquals(conv.name, 'foo')
+
     def test_as_frame_columns(self):
         rng = period_range('1/1/2000', periods=5)
         df = DataFrame(randn(10, 5), columns=rng)

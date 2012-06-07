@@ -781,7 +781,7 @@ class PeriodIndex(Int64Index):
             raise ValueError('Only mult == 1 supported')
 
         new_data = plib.periodarr_to_dt64arr(new_data.values, base)
-        return DatetimeIndex(new_data, freq='infer')
+        return DatetimeIndex(new_data, freq='infer', name=self.name)
 
     def shift(self, n):
         """
