@@ -105,12 +105,22 @@ void Buffer_Realloc (JSONObjectEncoder *enc, size_t cbNeeded)
     if (enc->heap)
     {
         enc->start = (char *) enc->realloc (enc->start, newSize);
+        if (!enc->start)
+        {
+            SetError (NULL, enc, "Could not reserve memory block");
+            return;
+        }
     }
     else
     {
         char *oldStart = enc->start;
         enc->heap = 1;
         enc->start = (char *) enc->malloc (newSize);
+        if (!enc->start)
+        {
+            SetError (NULL, enc, "Could not reserve memory block");
+            return;
+        }
         memcpy (enc->start, oldStart, offset);
     }
     enc->offset = enc->start + offset;
@@ -630,6 +640,10 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name, size_t cbName)
     */
 
     Buffer_Reserve(enc, 256 + (((cbName / 4) + 1) * 12));
+    if (enc->errorMsg)
+    {
+        return;
+    }
 
     if (name)
     {
@@ -781,6 +795,10 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name, size_t cbName)
         {
             value = enc->getStringValue(obj, &tc, &szlen);
             Buffer_Reserve(enc, ((szlen / 4) + 1) * 12);
+            if (enc->errorMsg)
+            {
+                return;
+            }
             Buffer_AppendCharUnchecked (enc, '\"');
 
 
@@ -837,6 +855,11 @@ char *JSON_EncodeObject(JSOBJ obj, JSONObjectEncoder *enc, char *_buffer, size_t
     {
         _cbBuffer = 32768;
         enc->start = (char *) enc->malloc (_cbBuffer);
+        if (!enc->start)
+        {
+            SetError(obj, enc, "Could not reserve memory block");
+            return NULL;
+        }
         enc->heap = 1;
     }
     else
@@ -852,6 +875,10 @@ char *JSON_EncodeObject(JSOBJ obj, JSONObjectEncoder *enc, char *_buffer, size_t
     encode (obj, enc, NULL, 0);
     
     Buffer_Reserve(enc, 1);
+    if (enc->errorMsg)
+    {
+        return NULL;
+    }
     Buffer_AppendCharUnchecked(enc, '\0');
 
     return enc->start;
