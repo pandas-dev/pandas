@@ -470,7 +470,6 @@ class TestFreqConversion(TestCase):
 
         assert_equal(ival_Q.asfreq('Q'), ival_Q)
 
-
     def test_conv_monthly(self):
         # frequency conversion tests: from Monthly Frequency
 
@@ -976,6 +975,16 @@ class TestPeriodIndex(TestCase):
         delta = timedelta(hours=23, minutes=59, seconds=59)
         exp_index = _get_with_delta(delta)
         self.assert_(result.index.equals(exp_index))
+
+    def test_to_timestamp_quarterly_bug(self):
+        years = np.arange(1960, 2000).repeat(4)
+        quarters = np.tile(range(4), 40)
+
+        pindex = PeriodIndex(year=years, quarter=quarters)
+
+        stamps = pindex.to_timestamp('D', 'end')
+        expected = DatetimeIndex([x.to_timestamp('D', 'end') for x in pindex])
+        self.assert_(stamps.equals(expected))
 
     def test_as_frame_columns(self):
         rng = period_range('1/1/2000', periods=5)

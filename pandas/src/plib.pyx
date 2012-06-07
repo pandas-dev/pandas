@@ -189,7 +189,7 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
 
     for i in range(n):
         val = func(arr[i], relation, &finfo)
-        if val == -1:
+        if val == INT32_MIN:
             raise ValueError("Unable to convert to desired frequency.")
         result[i] = val
 
