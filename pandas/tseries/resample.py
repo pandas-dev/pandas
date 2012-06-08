@@ -149,7 +149,8 @@ class TimeGrouper(CustomGrouper):
             # upsampling
 
             # this is sort of a hack
-            result = obj.reindex(binner[1:], method=self.fill_method)
+            result = obj.reindex(binner[1:], method=self.fill_method,
+                                 limit=self.limit)
 
         loffset = self.loffset
         if isinstance(loffset, basestring):

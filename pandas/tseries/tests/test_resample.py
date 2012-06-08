@@ -207,6 +207,14 @@ class TestResample(unittest.TestCase):
         self.assertEquals(result[0], s[0])
         self.assertEquals(result[-1], s[-1])
 
+    def test_upsample_with_limit(self):
+        rng = date_range('1/1/2000', periods=3, freq='5t')
+        ts = Series(np.random.randn(len(rng)), rng)
+
+        result = ts.resample('t', fill_method='ffill', limit=2)
+        expected = ts.reindex(result.index, method='ffill', limit=2)
+        assert_series_equal(result, expected)
+
     def test_resample_ohlc(self):
         s = self.series
 
@@ -459,6 +467,15 @@ class TestResamplePeriodIndex(unittest.TestCase):
         expected = expected.asfreq('D', 'ffill').to_period()
 
         assert_series_equal(resampled, expected)
+
+    def test_upsample_with_limit(self):
+        rng = period_range('1/1/2000', periods=5, freq='A')
+        ts = Series(np.random.randn(len(rng)), rng)
+
+        result = ts.resample('M', fill_method='ffill', limit=2)
+        expected = ts.asfreq('M').reindex(result.index, method='ffill',
+                                          limit=2)
+        assert_series_equal(result, expected)
 
     def test_annual_upsample(self):
         targets = ['D', 'B', 'M']
