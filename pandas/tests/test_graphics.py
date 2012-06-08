@@ -3,7 +3,9 @@ import os
 import string
 import unittest
 
-from pandas import Series, DataFrame, MultiIndex, PeriodIndex
+from datetime import datetime
+
+from pandas import Series, DataFrame, MultiIndex, PeriodIndex, date_range
 import pandas.util.testing as tm
 
 import numpy as np
@@ -50,6 +52,16 @@ class TestSeriesPlots(unittest.TestCase):
         _check_plot_works(self.series[:10].plot, kind='barh')
 
         Series(np.random.randn(10)).plot(kind='bar',color='black')
+
+    @slow
+    def test_irregular_datetime(self):
+        rng = date_range('1/1/2000', '3/1/2000')
+        rng = rng[[0,1,2,3,5,9,10,11,12]]
+        ser = Series(np.random.randn(len(rng)), rng)
+        ax = ser.plot()
+        xp = datetime(1999, 1, 1).toordinal()
+        ax.set_xlim('1/1/1999', '1/1/2001')
+        self.assert_(xp == ax.get_xlim()[0])
 
     @slow
     def test_hist(self):
