@@ -6,12 +6,13 @@ import numpy as np
 
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
-from pandas.core.index import MultiIndex
+from pandas.core.index import Index, MultiIndex
 from pandas.core.series import Series
 from pandas.tseries.frequencies import to_calendar_freq
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.offsets import DateOffset
+import pandas.tseries.tools as datetools
 
 def _get_standard_kind(kind):
     return {'density' : 'kde'}.get(kind, kind)
@@ -469,6 +470,24 @@ class KdePlot(MPLPlot):
         if self.subplots and self.legend:
             self.axes[0].legend(loc='best')
 
+class DatetimeConverter(object):
+
+    @classmethod
+    def convert(cls, values, units, axis):
+        def try_parse(values):
+            try:
+                return datetools.to_datetime(values).toordinal()
+            except Exception:
+                return values
+
+        if (com.is_integer(values) or
+            com.is_float(values)):
+            return values
+        elif isinstance(values, str):
+            return try_parse(values)
+        elif isinstance(values, Index):
+            return values.map(try_parse)
+        return map(try_parse, values)
 
 class LinePlot(MPLPlot):
 
@@ -509,6 +528,10 @@ class LinePlot(MPLPlot):
 
                 plotf(ax, x, y, style, label=label, **self.kwds)
                 ax.grid(self.grid)
+                idx = getattr(self.data, 'index', None)
+                if isinstance(idx, DatetimeIndex) or (idx is not None and
+                    idx.inferred_type == 'datetime'):
+                    ax.get_xaxis().converter = DatetimeConverter
 
     def _maybe_convert_index(self, data):
         # tsplot converts automatically, but don't want to convert index
