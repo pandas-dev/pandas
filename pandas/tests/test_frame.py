@@ -6262,6 +6262,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertRaises(ValueError, df.any)
         self.assertRaises(ValueError, df.all)
 
+        df = DataFrame([[1, 2, 3], [True, True, False]])
+        self.assertRaises(ValueError, df.any)
+        self.assertRaises(ValueError, df.all)
+
 if __name__ == '__main__':
     # unittest.main()
     import nose
