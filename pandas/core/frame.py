@@ -528,6 +528,18 @@ class DataFrame(NDFrame):
     def empty(self):
         return not (len(self.columns) > 0 and len(self.index) > 0)
 
+    def any(self):
+        if not self._is_mixed_type:
+            if self.dtypes[0] == np.bool_:
+                return self.values.any()
+        raise ValueError('Cannot call any() on mixed or non-boolean DataFrame')
+
+    def all(self):
+        if not self._is_mixed_type:
+            if self.dtypes[0] == np.bool_:
+                return self.values.all()
+        raise ValueError('Cannot call all() on mixed or non-boolean DataFrame')
+
     def __nonzero__(self):
         raise ValueError("Cannot call bool() on DataFrame.")
 
