@@ -1531,38 +1531,6 @@ class TestMultiIndex(unittest.TestCase):
                                    [0, 1, 2, 0, 0, 1, 2]])
         self.assert_(index.has_duplicates)
 
-class TestFactor(unittest.TestCase):
-
-    def setUp(self):
-        self.factor = Factor.from_array(['a', 'b', 'b', 'a',
-                                         'a', 'c', 'c', 'c'])
-
-    def test_getitem(self):
-        self.assertEqual(self.factor[0], 'a')
-        self.assertEqual(self.factor[-1], 'c')
-
-        subf = self.factor[[0, 1, 2]]
-        tm.assert_almost_equal(subf.labels, [0, 1, 1])
-
-        subf = self.factor[np.asarray(self.factor) == 'c']
-        tm.assert_almost_equal(subf.labels, [2, 2, 2])
-
-    def test_constructor_unsortable(self):
-        arr = np.array([1, 2, 3, datetime.now()], dtype='O')
-
-        # it works!
-        factor = Factor.from_array(arr)
-
-    def test_factor_agg(self):
-        import pandas.core.frame as frame
-
-        arr = np.arange(len(self.factor))
-
-        f = np.sum
-        agged = frame.factor_agg(self.factor, arr, f)
-        labels = self.factor.labels
-        for i, idx in enumerate(self.factor.levels):
-            self.assertEqual(f(arr[labels == i]), agged[i])
 
 
 def test_get_combined_index():

@@ -4,6 +4,23 @@ import numpy as np
 import pandas.core.common as com
 
 
+def _factor_compare_op(op):
+    def f(self, other):
+        if isinstance(other, (Factor, np.ndarray)):
+            values = np.asarray(self)
+            f = getattr(values, op)
+            return f(np.asarray(other))
+        else:
+            if other in self.levels:
+                i = self.levels.get_loc(other)
+                return getattr(self.labels, op)(i)
+            else:
+                return np.repeat(False, len(self))
+
+    f.__name__ = op
+
+    return f
+
 class Factor(object):
     """
     Represents a categorical variable in classic R / S-plus fashion
@@ -45,6 +62,13 @@ class Factor(object):
 
     levels = None
 
+    __eq__ = _factor_compare_op('__eq__')
+    __ne__ = _factor_compare_op('__ne__')
+    __lt__ = _factor_compare_op('__lt__')
+    __gt__ = _factor_compare_op('__gt__')
+    __le__ = _factor_compare_op('__le__')
+    __ge__ = _factor_compare_op('__ge__')
+
     def __array__(self, dtype=None):
         return com.take_1d(self.levels, self.labels)
 
@@ -67,4 +91,20 @@ class Factor(object):
         else:
             return Factor(self.labels[key], self.levels)
 
+    def equals(self, other):
+        """
+        Returns True if factors are equal
 
+        Parameters
+        ----------
+        other : Factor
+
+        Returns
+        -------
+        are_equal : boolean
+        """
+        if not isinstance(other, Factor):
+            return False
+
+        return (self.levels.equals(other.levels) and
+                np.array_equal(self.labels, other.labels))
