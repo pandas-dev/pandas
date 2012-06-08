@@ -1271,6 +1271,11 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         expected = df.add(df2, fill_value=0).to_sparse()
         assert_sp_frame_equal(result, expected)
 
+    def test_isin(self):
+        sparse_df = DataFrame({'flag': [1., 0., 1.]}).to_sparse(fill_value=0.)
+        xp = sparse_df[sparse_df.flag == 1.]
+        rs = sparse_df[sparse_df.flag.isin([1.])]
+        assert_frame_equal(xp, rs)
 
 def _dense_series_compare(s, f):
     result = f(s)

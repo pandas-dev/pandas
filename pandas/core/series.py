@@ -2310,7 +2310,7 @@ copy : boolean, default False
         isin : Series (boolean dtype)
         """
         value_set = set(values)
-        result = lib.ismember(self, value_set)
+        result = lib.ismember(self.values, value_set)
         return Series(result, self.index, name=self.name)
 
     def between(self, left, right, inclusive=True):
