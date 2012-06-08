@@ -6245,6 +6245,23 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame([1, 2, 3])
         self.failUnlessRaises(ValueError, lambda: bool(df))
 
+    def test_any_all(self):
+        df = DataFrame([[True, True, False]])
+        self.assert_(df.any())
+        self.assert_(not df.all())
+
+        df = DataFrame([[True, True, True]])
+        self.assert_(df.any())
+        self.assert_(df.all())
+
+        df = -df
+        self.assert_(not df.any())
+        self.assert_(not df.all())
+
+        df = DataFrame([[1, 2, 3]])
+        self.assertRaises(ValueError, df.any)
+        self.assertRaises(ValueError, df.all)
+
 if __name__ == '__main__':
     # unittest.main()
     import nose
