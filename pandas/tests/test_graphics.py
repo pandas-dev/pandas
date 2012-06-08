@@ -245,13 +245,6 @@ class TestDataFramePlots(unittest.TestCase):
         grouper = Series(np.repeat([1, 2, 3, 4, 5], 20), df.index)
         _check_plot_works(scat2, 0, 1, by=grouper)
 
-    @slow 
-    def test_andrews_curves(self):
-        from pandas import read_csv
-        from pandas.tools.plotting import andrews_curves
-        df = read_csv('data/iris.data')
-        _check_plot_works(andrews_curves, df, 'Name')
-
     @slow
     def test_andrews_curves(self):
         from pandas import read_csv
