@@ -576,7 +576,7 @@ class TestGroupBy(unittest.TestCase):
 
         for k, v in groups.iteritems():
             samething = self.tsframe.index.take(indices[k])
-            self.assert_(np.array_equal(v, samething.values))
+            self.assert_((samething == v).all())
 
     def test_grouping_is_iterable(self):
         # this code path isn't used anywhere else
@@ -1920,6 +1920,18 @@ class TestGroupBy(unittest.TestCase):
         expected = ord_data.groupby(ord_labels, sort=False).describe()
         assert_frame_equal(desc_result, expected)
 
+    def test_groupby_groups_datetimeindex(self):
+        # #1430
+        from pandas.tseries.api import DatetimeIndex
+        periods = 1000
+        ind = DatetimeIndex(start='2012/1/1', freq='5min', periods=periods)
+        df = DataFrame({'high': np.arange(periods),
+                        'low': np.arange(periods)}, index=ind)
+        grouped = df.groupby(lambda x: datetime(x.year, x.month, x.day))
+
+        # it works!
+        groups = grouped.groups
+        self.assert_(isinstance(groups.keys()[0], datetime))
 
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):

@@ -77,16 +77,16 @@ def _dt_index_cmp(opname):
     Wrap comparison operations to convert datetime-like to datetime64
     """
     def wrapper(self, other):
+        func = getattr(super(DatetimeIndex, self), opname)
         if isinstance(other, datetime):
             func = getattr(self, opname)
-            result = func(_to_m8(other))
-        elif isinstance(other, np.ndarray):
-            func = getattr(super(DatetimeIndex, self), opname)
-            result = func(other)
-        else:
+            other = _to_m8(other)
+        elif isinstance(other, list):
+            other = DatetimeIndex(other)
+        elif not isinstance(other, np.ndarray):
             other = _ensure_datetime64(other)
-            func = getattr(super(DatetimeIndex, self), opname)
-            result = func(other)
+        result = func(other)
+
         try:
             return result.view(np.ndarray)
         except:
@@ -153,7 +153,6 @@ class DatetimeIndex(Int64Index):
     _left_indexer  = _join_i8_wrapper(_algos.left_join_indexer_int64)
     _left_indexer_unique  = _join_i8_wrapper(
         _algos.left_join_indexer_unique_int64, with_indexers=False)
-    _groupby = lib.groupby_arrays # _wrap_i8_function(lib.groupby_int64)
 
     _arrmap = _wrap_dt_function(_algos.arrmap_object)
 
@@ -498,6 +497,10 @@ class DatetimeIndex(Int64Index):
         else:
             new_values = self.astype('O') + delta
         return DatetimeIndex(new_values, tz=self.tz, freq='infer')
+
+    def groupby(self, f):
+        objs = self.asobject
+        return _algos.groupby_object(objs, f)
 
     def summary(self, name=None):
         if len(self) > 0:
