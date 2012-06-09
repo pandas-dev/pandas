@@ -283,3 +283,22 @@ of the same class will usually be closer together and form larger structures.
 
    @savefig andrews_curves.png width=6in
    andrews_curves(data, 'Name')
+
+Lag Plot
+~~~~~~~~
+
+Lag plots are used to check if a data set or time series is random. Random
+data should not exhibit any structure in the lag plot. Non-random structure
+implies that the underlying data are not random.
+
+.. ipython:: python
+
+   from pandas.tools.plotting import lag_plot
+
+   plt.figure()
+
+   data = Series(0.1 * np.random.random(1000) + 
+      0.9 * np.sin(np.linspace(-99 * np.pi, 99 * np.pi, num=1000)))
+
+   @savefig lag_plot.png width=6in
+   lag_plot(data)
