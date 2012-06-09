@@ -965,6 +965,9 @@ class TestPeriodIndex(TestCase):
         self.assertRaises(ValueError, PeriodIndex, year=range(2000, 2004),
                           quarter=range(4), freq='Q-DEC')
 
+    def test_periods_number_check(self):
+        self.assertRaises(ValueError, period_range, '2011-1-1', '2012-1-1', 'B')
+
     def test_to_timestamp(self):
         index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
         series = Series(1, index=index, name='foo')

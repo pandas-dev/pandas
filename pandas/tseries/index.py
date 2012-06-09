@@ -201,6 +201,13 @@ class DatetimeIndex(Int64Index):
 
         offset = freq
 
+        if periods is not None:
+            if com.is_float(periods):
+                periods = int(periods)
+            elif not com.is_integer(periods):
+                raise ValueError('Periods must be a number, got %s' %
+                                 str(periods))
+
         if data is None and offset is None:
             raise ValueError("Must provide freq argument if no data is "
                              "supplied")

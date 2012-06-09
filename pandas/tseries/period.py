@@ -565,6 +565,13 @@ class PeriodIndex(Int64Index):
         else:
             freq = _freq_mod.get_standard_freq(freq)
 
+        if periods is not None:
+            if com.is_float(periods):
+                periods = int(periods)
+            elif not com.is_integer(periods):
+                raise ValueError('Periods must be a number, got %s' %
+                                 str(periods))
+
         if data is None:
             if ordinal is not None:
                 data = np.asarray(ordinal, dtype=np.int64)
