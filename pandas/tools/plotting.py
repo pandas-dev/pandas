@@ -178,6 +178,30 @@ def andrews_curves(data, class_column, ax=None, samples=200):
     ax.grid()
     return ax
 
+def lag_plot(series, ax=None, **kwds):
+    """Lag plot for time series.
+
+    Parameters:
+    -----------
+    series: Time series
+    ax: Matplotlib axis object, optional
+    kwds: Matplotlib scatter method keyword arguments, optional
+
+    Returns:
+    --------
+    ax: Matplotlib axis object
+    """
+    import matplotlib.pyplot as plt
+    data = series.values
+    y1 = data[:-1]
+    y2 = data[1:]
+    if ax == None:
+        ax = plt.gca()
+    ax.set_xlabel("y(t)")
+    ax.set_ylabel("y(t + 1)")
+    ax.scatter(y1, y2, **kwds)
+    return ax
+
 def grouped_hist(data, column=None, by=None, ax=None, bins=50, log=False,
                  figsize=None, layout=None, sharex=False, sharey=False,
                  rot=90):
