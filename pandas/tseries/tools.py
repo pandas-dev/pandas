@@ -4,7 +4,7 @@ import sys
 
 import numpy as np
 
-import pandas._tseries as lib
+import pandas.lib as lib
 import pandas.core.common as com
 
 try:
@@ -48,6 +48,8 @@ def _maybe_get_tz(tz):
 
 def _figure_out_timezone(start, end, tzinfo):
     inferred_tz = _infer_tzinfo(start, end)
+    tzinfo = _maybe_get_tz(tzinfo)
+
     tz = inferred_tz
     if inferred_tz is None and tzinfo is not None:
         tz = tzinfo
@@ -55,7 +57,7 @@ def _figure_out_timezone(start, end, tzinfo):
         assert(inferred_tz == tzinfo)
         # make tz naive for now
 
-    tz = _maybe_get_tz(tz)
+    # tz = _maybe_get_tz(tz)
 
     start = start if start is None else start.replace(tzinfo=None)
     end = end if end is None else end.replace(tzinfo=None)
@@ -78,22 +80,25 @@ def to_datetime(arg, errors='ignore', dayfirst=False):
     ret : datetime if parsing succeeded
     """
     from pandas.core.series import Series
+    from pandas.tseries.index import DatetimeIndex
     if arg is None:
         return arg
     elif isinstance(arg, datetime):
         return arg
     elif isinstance(arg, Series):
-        values = lib.string_to_datetime(com._ensure_object(arg.values),
-                                        raise_=errors == 'raise',
-                                        dayfirst=dayfirst)
+        values = lib.array_to_datetime(com._ensure_object(arg.values),
+                                       raise_=errors == 'raise',
+                                       dayfirst=dayfirst)
         return Series(values, index=arg.index, name=arg.name)
     elif isinstance(arg, (np.ndarray, list)):
         if isinstance(arg, list):
             arg = np.array(arg, dtype='O')
-        return lib.string_to_datetime(com._ensure_object(arg),
-                                      raise_=errors == 'raise',
-                                      dayfirst=dayfirst)
-
+        result = lib.array_to_datetime(com._ensure_object(arg),
+                                       raise_=errors == 'raise',
+                                       dayfirst=dayfirst)
+        if com.is_datetime64_dtype(result):
+            result = DatetimeIndex(result)
+        return result
     try:
         if not arg:
             return arg

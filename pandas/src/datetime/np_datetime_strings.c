@@ -62,7 +62,6 @@ static char *_datetime_strings[PANDAS_DATETIME_NUMUNITS] = {
     "M",
     "W",
     "D",
-    "B",
     "h",
     "m",
     "s",
@@ -943,7 +942,6 @@ get_datetime_iso_8601_strlen(int local, PANDAS_DATETIMEUNIT base)
         case PANDAS_FR_h:
             len += 3;  /* "T##" */
         case PANDAS_FR_D:
-        case PANDAS_FR_B:
         case PANDAS_FR_W:
             len += 3;  /* "-##" */
         case PANDAS_FR_M:

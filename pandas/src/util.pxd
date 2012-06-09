@@ -13,6 +13,7 @@ cdef extern from "numpy_helper.h":
     inline object get_value_1d(ndarray, Py_ssize_t)
     inline char *get_c_string(object)
     inline object floatify(object)
+    inline object char_to_string(char*)
 
 cdef inline object get_value_at(ndarray arr, object loc):
     cdef:

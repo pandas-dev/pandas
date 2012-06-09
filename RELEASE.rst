@@ -25,12 +25,25 @@ Where to get it
 pandas 0.8.0
 ============
 
+**Release date:** NOT YET RELEASED
+
 **New features**
 
+  - New unified DatetimeIndex class for nanosecond-level timestamp data
+  - New Timestamp datetime.datetime subclass with easy time zone conversions,
+    and support for nanoseconds
+  - New PeriodIndex class for timespans, calendar logic, and Period scalar object
+  - High performance resampling of timestamp and period data. New `resample`
+    method of all pandas data structures
+  - New frequency names plus shortcut string aliases like '15h', '1h30min'
+  - Time series string indexing shorthand (#222)
+  - Add week, dayofyear array and other timestamp array-valued field accessor
+    functions to DatetimeIndex
   - Add GroupBy.prod optimized aggregation function and 'prod' fast time series
     conversion method (#1018)
   - Implement robust frequency inference function and `inferred_freq` attribute
     on DatetimeIndex (#391)
+  - New ``tz_convert`` methods in Series / DataFrame
   - Convert DatetimeIndexes to UTC if time zones are different in join/setops
     (#864)
   - Add limit argument for forward/backward filling to reindex, fillna,
@@ -47,12 +60,31 @@ pandas 0.8.0
   - Can pass list of (name, function) to GroupBy.aggregate to get aggregates in
     a particular order (#610)
   - Can pass dicts with lists of functions or dicts to GroupBy aggregate to do
-    much more flexible multiple function aggregation (#642)
+    much more flexible multiple function aggregation (#642, #610)
   - New ordered_merge functions for merging DataFrames with ordered
     data. Also supports group-wise merging for panel data (#813)
   - Add keys() method to DataFrame
   - Add flexible replace method for replacing potentially values to Series and
     DataFrame (#929, #1241)
+  - Add 'kde' plot kind for Series/DataFrame.plot (#1059)
+  - More flexible multiple function aggregation with GroupBy
+  - Add pct_change function to Series/DataFrame
+  - Add option to interpolate by Index values in Series.interpolate (#1206)
+  - Add ``max_colwidth`` option for DataFrame, defaulting to 50
+  - Conversion of DataFrame through rpy2 to R data.frame (#1282, )
+  - Add keys() method on DataFrame (#1240)
+  - Add new ``match`` function to API (similar to R) (#502)
+  - Add dayfirst option to parsers (#854)
+  - Add ``method`` argument to ``align`` method for forward/backward fillin
+    (#216)
+  - Add Panel.transpose method for rearranging axes (#695)
+  - Add new ``cut`` function (patterned after R) for discretizing data into
+    equal range-length bins or arbitrary breaks of your choosing (#415)
+  - Add new ``qcut`` for cutting with quantiles (#1378)
+  - Add ``value_counts`` top level array method (#1392)
+  - Added Andrews curves plot tupe (#1325)
+  - Add support for tox and Travis CI (#1382)
+  - Add support for ordered factors and use in GroupBy (#292)
 
 **Improvements to existing features**
 
@@ -69,15 +101,39 @@ pandas 0.8.0
   - Improved performance of join operations on integer keys (#682)
   - Can pass multiple columns to GroupBy object, e.g. grouped[[col1, col2]] to
     only aggregate a subset of the value columns (#383)
+  - Add histogram / kde plot options for scatter_matrix diagonals (#1237)
+  - Add inplace option to Series/DataFrame.rename and sort_index,
+    DataFrame.drop_duplicates (#805, #207)
+  - More helpful error message when nothing passed to Series.reindex (#1267)
+  - Can mix array and scalars as dict-value inputs to DataFrame ctor (#1329)
+  - Use DataFrame columns' name for legend title in plots
+  - Preserve frequency in DatetimeIndex when possible in boolean indexing
+    operations
+  - Promote datetime.date values in data alignment operations (#867)
+  - Add ``order`` method to Index classes (#1028)
+  - Avoid hash table creation in large monotonic hash table indexes (#1160)
+  - Store time zones in HDFStore (#1232)
+  - Enable storage of sparse data structures in HDFStore (#85)
+  - Enable Series.asof to work with arrays of timestamp inputs
+  - Cython implementation of DataFrame.corr speeds up by > 100x (#1349, #1354)
+  - Exclude "nuisance" columns automatically in GroupBy.transform (#1364)
+  - Support functions-as-strings in GroupBy.transform (#1362)
+  - Use index name as xlabel/ylabel in plots (#1415)
 
 **API Changes**
 
+  - Frequency name overhaul, WEEKDAY/EOM and rules with @
+    deprecated. get_legacy_offset_name backwards compatibility function added
   - Raise ValueError in DataFrame.__nonzero__, so "if df" no longer works
     (#1073)
-  - Change BDay (business day) to not normalize dates by default
+  - Change BDay (business day) to not normalize dates by default (#506)
   - Remove deprecated DataMatrix name
   - Default merge suffixes for overlap now have underscores instead of periods
     to facilitate tab completion, etc. (#1239)
+  - Deprecation of offset, time_rule timeRule parameters throughout codebase
+  - Series.append and DataFrame.append no longer check for duplicate indexes
+    by default, add verify_integrity parameter (#1394)
+  - Refactor Factor class, old constructor moved to Factor.from_array
 
 **Bug fixes**
 
@@ -86,7 +142,7 @@ pandas 0.8.0
   - Fix logical error with February leap year end in YearEnd offset
   - Series([False, nan]) was getting casted to float64 (GH #1074)
   - Fix binary operations between boolean Series and object Series with
-    booleans and NAs (GH #1074)
+    booleans and NAs (GH #1074, #1079)
   - Couldn't assign whole array to column in mixed-type DataFrame via .ix
     (#1142)
   - Fix label slicing issues with float index values (#1167)
@@ -100,6 +156,27 @@ pandas 0.8.0
   - Handle Excel 2003 #N/A as NaN from xlrd (#1213, #1225)
   - Fix timestamp locale-related deserialization issues with HDFStore by moving
     to datetime64 representation (#1081, #809)
+  - Fix DataFrame.duplicated/drop_duplicates NA value handling (#557)
+  - Actually raise exceptions in fast reducer (#1243)
+  - Fix various timezone-handling bugs from 0.7.3 (#969)
+  - GroupBy on level=0 discarded index name (#1313)
+  - Better error message with unmergeable DataFrames (#1307)
+  - Series.__repr__ alignment fix with unicode index values (#1279)
+  - Better error message if nothing passed to reindex (#1267)
+  - More robust NA handling in DataFrame.drop_duplicates (#557)
+  - Resolve locale-based and pre-epoch HDF5 timestamp deserialization issues
+    (#973, #1081, #179)
+  - Implement Series.repeat (#1229)
+  - Fix indexing with namedtuple and other tuple subclasses (#1026)
+  - Fix float64 slicing bug (#1167)
+  - Parsing integers with commas (#796)
+  - Fix groupby improper data type when group consists of one value (#1065)
+  - Fix negative variance possibility in nanvar resulting from floating point
+    error (#1090)
+  - Consistently set name on groupby pieces (#184)
+  - Treat dict return values as Series in GroupBy.apply (#823)
+  - Respect column selection for DataFrame in in GroupBy.transform (#1365)
+  - Fix MultiIndex partial indexing bug (#1352)
 
 pandas 0.7.3
 ============
@@ -108,6 +185,8 @@ pandas 0.7.3
 
 **New features / modules**
 
+  - Support for non-unique indexes: indexing and selection, many-to-one and
+    many-to-many joins (#1306)
   - Added fixed-width file reader, read_fwf (PR #952)
   - Add group_keys argument to groupby to not add group names to MultiIndex in
     result of apply (GH #938)
@@ -142,6 +221,7 @@ pandas 0.7.3
   - Calling apply on grouped Series, e.g. describe(), will no longer yield
     DataFrame by default. Will have to call unstack() to get prior behavior
   - NA handling in non-numeric comparisons has been tightened up (#933, #953)
+  - No longer assign dummy names key_0, key_1, etc. to groupby index (#1291)
 
 **Bug fixes**
 
@@ -165,6 +245,7 @@ pandas 0.7.3
   - Improper int dtype DataFrame construction from data with NaN (GH #846)
   - Removes default 'result' name in grouby results (GH #995)
   - DataFrame.from_records no longer mutate input columns (PR #975)
+  - Use Index name when grouping by it (#1313)
 
 pandas 0.7.2
 ============

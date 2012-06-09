@@ -5,7 +5,7 @@ import unittest
 import numpy as np
 
 import pandas.core.datetools as datetools
-from pandas.core.datetools import generate_range
+from pandas.tseries.offsets import generate_range
 from pandas.core.index import Index
 from pandas.tseries.index import DatetimeIndex
 
@@ -49,6 +49,8 @@ class TestDateRange(unittest.TestCase):
         rng = bdate_range(START, END, freq=datetools.bday)
         rng = bdate_range(START, periods=20, freq=datetools.bday)
         rng = bdate_range(end=START, periods=20, freq=datetools.bday)
+        self.assertRaises(ValueError, date_range, '2011-1-1', '2012-1-1', 'B')
+        self.assertRaises(ValueError, bdate_range, '2011-1-1', '2012-1-1', 'B')
 
     def test_cached_range(self):
         rng = DatetimeIndex._cached_range(START, END,
@@ -287,6 +289,7 @@ class TestDateRange(unittest.TestCase):
         start = datetime(2011, 1, 1)
         exp_values = [start + i * offset for i in range(5)]
         self.assert_(np.array_equal(result, DatetimeIndex(exp_values)))
+
 
 
 

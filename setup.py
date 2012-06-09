@@ -81,15 +81,17 @@ from distutils.command.sdist import sdist
 
 from os.path import splitext, basename, join as pjoin
 
-DESCRIPTION = "Powerful data structures for data analysis and statistics"
+DESCRIPTION = ("Powerful data structures for data analysis, time series,"
+               "and statistics")
 LONG_DESCRIPTION = """
 **pandas** is a Python package providing fast, flexible, and expressive data
-structures designed to make working with "relational" or "labeled" data both
-easy and intuitive. It aims to be the fundamental high-level building block for
-doing practical, **real world** data analysis in Python. Additionally, it has
-the broader goal of becoming **the most powerful and flexible open source data
-analysis / manipulation tool available in any language**. It is already well on
-its way toward this goal.
+structures designed to make working with structured (tabular, multidimensional,
+potentially heterogeneous) and time series data both easy and intuitive. It
+aims to be the fundamental high-level building block for doing practical,
+**real world** data analysis in Python. Additionally, it has the broader goal
+of becoming **the most powerful and flexible open source data analysis /
+manipulation tool available in any language**. It is already well on its way
+toward this goal.
 
 pandas is well suited for many different kinds of data:
 
@@ -172,7 +174,7 @@ MINOR = 8
 MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
-QUALIFIER = ''
+QUALIFIER = 'b1'
 
 FULLVERSION = VERSION
 if not ISRELEASED:
@@ -219,7 +221,12 @@ class CleanCommand(Command):
         self._clean_trees = []
         self._clean_exclude = ['np_datetime.c',
                                'np_datetime_strings.c',
-                               'period.c']
+                               'period.c',
+                               'ujson.c',
+                               'objToJSON.c',
+                               'JSONtoObj.c',
+                               'ultrajsonenc.c',
+                               'ultrajsondec.c']
 
         for root, dirs, files in list(os.walk('pandas')):
             for f in files:
@@ -338,6 +345,8 @@ tseries_depends = ['reindex', 'groupby', 'skiplist', 'moments',
                    'reduce', 'stats', 'datetime',
                    'hashtable', 'inference', 'properties', 'join', 'engines']
 
+plib_depends = ['plib']
+
 def srcpath(name=None, suffix='.pyx', subdir='src'):
     return pjoin('pandas', subdir, name+suffix)
 
@@ -345,42 +354,58 @@ if suffix == '.pyx':
     tseries_depends = [srcpath(f, suffix='.pyx')
                        for f in tseries_depends]
     tseries_depends.append('pandas/src/util.pxd')
+    plib_depends = [srcpath(f, suffix='.pyx')
+                    for f in plib_depends]
+    plib_depends.append('pandas/src/util.pxd')
 else:
     tseries_depends = []
+    plib_depends = []
 
 algos_ext = Extension('pandas._algos',
                       sources=[srcpath('generated', suffix=suffix)],
                       include_dirs=[np.get_include()],
                       )
 
-tseries_ext = Extension('pandas._tseries',
-                      depends=tseries_depends + ['pandas/src/numpy_helper.h'],
-                      sources=[srcpath('tseries', suffix=suffix),
-                               'pandas/src/period.c',
-                               'pandas/src/np_datetime.c',
-                               'pandas/src/np_datetime_strings.c'],
-                      include_dirs=[np.get_include()],
-                      # pyrex_gdb=True,
-                      # extra_compile_args=['-Wconversion']
-                      )
+lib_ext = Extension('pandas.lib',
+                    depends=tseries_depends + ['pandas/src/numpy_helper.h'],
+                    sources=[srcpath('tseries', suffix=suffix),
+                             'pandas/src/datetime/np_datetime.c',
+                             'pandas/src/datetime/np_datetime_strings.c'],
+                    include_dirs=[np.get_include()],
+                    # pyrex_gdb=True,
+                    # extra_compile_args=['-Wconversion']
+                    )
 
-# tseries_ext = Extension('pandas._tseries',
-#                         depends=tseries_depends + ['pandas/src/numpy_helper.h'],
-#                         sources=[srcpath('datetime', suffix=suffix)],
-#                         include_dirs=[np.get_include()],
-#                         # pyrex_gdb=True,
-#                         # extra_compile_args=['-Wconversion']
-#                         )
+period_ext = Extension('pandas._period',
+                       depends=plib_depends + ['pandas/src/numpy_helper.h',
+                                               'pandas/src/period.h'],
+                       sources=[srcpath('plib', suffix=suffix),
+                                'pandas/src/datetime/np_datetime.c',
+                                'pandas/src/period.c'],
+                       include_dirs=[np.get_include()])
 
 
 sparse_ext = Extension('pandas._sparse',
                        sources=[srcpath('sparse', suffix=suffix)],
                        include_dirs=[np.get_include()])
 
+ujson_ext = Extension('pandas._ujson',
+                      depends=['pandas/src/ujson/lib/ultrajson.h'],
+                      sources=['pandas/src/ujson/python/ujson.c',
+                               'pandas/src/ujson/python/objToJSON.c',
+                               'pandas/src/ujson/python/JSONtoObj.c',
+                               'pandas/src/ujson/lib/ultrajsonenc.c',
+                               'pandas/src/ujson/lib/ultrajsondec.c',
+                               'pandas/src/datetime/np_datetime.c'
+                               ],
+                      include_dirs=['pandas/src/ujson/python',
+                                    'pandas/src/ujson/lib',
+                                    'pandas/src/datetime',
+                                    np.get_include()],
+                      )
+
 sandbox_ext = Extension('pandas._sandbox',
-                        sources=[srcpath('sandbox', suffix=suffix),
-                                 'pandas/src/period.c',
-                                 ],
+                        sources=[srcpath('sandbox', suffix=suffix)],
                         include_dirs=[np.get_include()])
 
 cppsandbox_ext = Extension('pandas._cppsandbox',
@@ -388,7 +413,7 @@ cppsandbox_ext = Extension('pandas._cppsandbox',
                            sources=[srcpath('cppsandbox', suffix=suffix)],
                            include_dirs=[np.get_include()])
 
-extensions = [algos_ext, tseries_ext, sparse_ext]
+extensions = [algos_ext, lib_ext, period_ext, sparse_ext, ujson_ext]
 
 if not ISRELEASED:
     extensions.extend([sandbox_ext])

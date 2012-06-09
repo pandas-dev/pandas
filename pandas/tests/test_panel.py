@@ -71,7 +71,10 @@ class SafeForLongAndSparse(object):
         self._check_stat_op('max', np.max)
 
     def test_skew(self):
-        from scipy.stats import skew
+        try:
+            from scipy.stats import skew
+        except ImportError:
+            raise nose.SkipTest
         def this_skew(x):
             if len(x) < 3:
                 return np.nan
@@ -917,14 +920,17 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         result = self.panel.transpose(2, 0, 1)
         assert_panel_equal(result, expected)
 
+        self.assertRaises(ValueError, self.panel.transpose, 0, 0, 1)
+
+    def test_transpose_copy(self):
         panel = self.panel.copy()
-        result = panel.transpose(2, 0, 1, copy=False)
-        panel.values[0, 0, 1] = np.nan
+        result = panel.transpose(2, 0, 1, copy=True)
         expected = panel.swapaxes('items', 'minor')
         expected = expected.swapaxes('major', 'minor')
         assert_panel_equal(result, expected)
 
-        self.assertRaises(ValueError, self.panel.transpose, 0, 0, 1)
+        panel.values[0, 1, 1] = np.nan
+        self.assert_(notnull(result.values[1, 0, 1]))
 
     def test_to_frame(self):
         # filtered

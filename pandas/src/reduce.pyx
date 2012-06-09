@@ -85,11 +85,14 @@ cdef class Reducer:
         except Exception, e:
             if hasattr(e, 'args'):
                 e.args = e.args + (i,)
+            raise
         finally:
             # so we don't free the wrong memory
             chunk.data = dummy_buf
+
         if result.dtype == np.object_:
             result = maybe_convert_objects(result)
+
         return result
 
     def _get_result_array(self, object res):

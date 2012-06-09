@@ -1,3 +1,4 @@
+
 # pylint: disable-msg=W0612,E1101
 from copy import deepcopy
 from datetime import datetime, timedelta
@@ -29,7 +30,13 @@ from pandas.util.testing import (assert_almost_equal,
                                  assert_frame_equal)
 
 import pandas.util.testing as tm
-import pandas._tseries as lib
+import pandas.lib as lib
+
+def _skip_if_no_scipy():
+    try:
+        import scipy.stats
+    except ImportError:
+        raise nose.SkipTest
 
 #-------------------------------------------------------------------------------
 # DataFrame test cases
@@ -143,6 +150,16 @@ class CheckIndexing(object):
         _checkit([True, False, True])
         _checkit([True, True, True])
         _checkit([False, False, False])
+
+    def test_getitem_boolean_iadd(self):
+        arr = randn(5, 5)
+
+        df = DataFrame(arr.copy())
+        df[df < 0] += 1
+
+        arr[arr < 0] += 1
+
+        assert_almost_equal(df.values, arr)
 
     def test_getattr(self):
         tm.assert_series_equal(self.frame.A, self.frame['A'])
@@ -633,6 +650,33 @@ class CheckIndexing(object):
         self.mixed_frame.ix[:, 'B'] = self.mixed_frame.ix[:, 'B'] + 1
         assert_series_equal(self.mixed_frame.B, orig + 1)
 
+    def test_ix_multi_take(self):
+        df = DataFrame(np.random.randn(3, 2))
+        rs = df.ix[df.index==0, :]
+        xp = df.reindex([0])
+        assert_frame_equal(rs, xp)
+
+        """ #1321
+        df = DataFrame(np.random.randn(3, 2))
+        rs = df.ix[df.index==0, df.columns==1]
+        xp = df.reindex([0], [1])
+        assert_frame_equal(rs, xp)
+        """
+
+    def test_ix_multi_take_nonint_index(self):
+        df = DataFrame(np.random.randn(3, 2), index=['x','y','z'],
+                       columns=['a','b'])
+        rs = df.ix[[0], [0]]
+        xp = df.reindex(['x'], columns=['a'])
+        assert_frame_equal(rs, xp)
+
+    def test_ix_multi_take_multiindex(self):
+        df = DataFrame(np.random.randn(3, 2), index=['x','y','z'],
+                       columns=[['a','b'], ['1','2']])
+        rs = df.ix[[0], [0]]
+        xp = df.reindex(['x'], columns=[('a', '1')])
+        assert_frame_equal(rs, xp)
+
     def test_getitem_fancy_1d(self):
         f = self.frame
         ix = f.ix
@@ -820,6 +864,22 @@ class CheckIndexing(object):
         cp.ix[mask] = 0
         expected.ix[mask] = 0
         assert_frame_equal(cp, expected)
+
+    def test_getitem_setitem_boolean_multi(self):
+        df = DataFrame(np.random.randn(3, 2))
+
+        # get
+        k1 = np.array([True, False, True])
+        k2 = np.array([False, True])
+        result = df.ix[k1, k2]
+        expected = df.ix[[0, 2], [1]]
+        assert_frame_equal(result, expected)
+
+        expected = df.copy()
+        df.ix[np.array([True, False, True]),
+              np.array([False, True])] = 5
+        expected.ix[[0, 2], [1]] = 5
+        assert_frame_equal(df, expected)
 
     def test_getitem_setitem_float_labels(self):
         index = Index([1.5, 2, 3, 4, 5])
@@ -1034,6 +1094,22 @@ class CheckIndexing(object):
         result = df.icol([1, 2, 4, 6])
         expected = df.reindex(columns=df.columns[[1, 2, 4, 6]])
         assert_frame_equal(result, expected)
+
+    def test_irow_icol_duplicates(self):
+        df = DataFrame(np.random.rand(3,3), columns=list('ABC'),
+                       index=list('aab'))
+
+        result = df.irow(0)
+        result2 = df.ix[0]
+        self.assert_(isinstance(result, Series))
+        assert_almost_equal(result.values, df.values[0])
+        assert_series_equal(result, result2)
+
+        result = df.T.icol(0)
+        result2 = df.T.ix[:, 0]
+        self.assert_(isinstance(result, Series))
+        assert_almost_equal(result.values, df.values[0])
+        assert_series_equal(result, result2)
 
     def test_iget_value(self):
         for i, row in enumerate(self.frame.index):
@@ -1480,7 +1556,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # can't cast to float
         test_data = {
-                'A' : dict(zip(range(20), tm.makeDateIndex(20))),
+                'A' : dict(zip(range(20), tm.makeStringIndex(20))),
                 'B' : dict(zip(range(15), randn(15)))
         }
         frame = DataFrame(test_data, dtype=float)
@@ -1629,7 +1705,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertEqual(2, frame['C'][2])
 
         # masked np.datetime64 stays (use lib.NaT as null)
-        mat = ma.masked_all((2, 3), dtype=np.datetime64)
+        mat = ma.masked_all((2, 3), dtype='M8[ns]')
         # 2-D input
         frame = DataFrame(mat, columns=['A', 'B', 'C'], index=[1, 2])
 
@@ -1692,8 +1768,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(df['int'].dtype == np.int64)
         self.assert_(df['bool'].dtype == np.bool_)
         self.assert_(df['float'].dtype == np.float64)
-        self.assert_(df['complex'].dtype == np.complex64)
+        self.assert_(df['complex'].dtype == np.complex128)
         self.assert_(df['object'].dtype == np.object_)
+
+    def test_constructor_arrays_and_scalars(self):
+        df = DataFrame({'a': randn(10), 'b': True})
+        exp = DataFrame({'a': df['a'].values, 'b': [True] * 10})
+
+        assert_frame_equal(df, exp)
+
+        self.assertRaises(ValueError, DataFrame, {'a': False, 'b': True})
 
     def test_constructor_DataFrame(self):
         df = DataFrame(self.frame)
@@ -1995,6 +2079,142 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         for k, v in test_data.iteritems():
             for k2, v2 in v.iteritems():
                 self.assertEqual(v2, recons_data[k][k2])
+
+    def test_from_json_to_json(self):
+
+        def _check_orient(df, orient, dtype=None, numpy=True):
+            df = df.sort()
+            dfjson = df.to_json(orient=orient)
+            unser = DataFrame.from_json(dfjson, orient=orient, dtype=dtype,
+                                        numpy=numpy)
+            unser = unser.sort()
+            if df.index.dtype.type == np.datetime64:
+                unser.index = DatetimeIndex(unser.index.values.astype('i8'))
+            if orient == "records":
+                # index is not captured in this orientation
+                assert_almost_equal(df.values, unser.values)
+                self.assert_(df.columns.equals(unser.columns))
+            elif orient == "values":
+                # index and cols are not captured in this orientation
+                assert_almost_equal(df.values, unser.values)
+            elif orient == "split":
+                # index and col labels might not be strings
+                unser.index = [str(i) for i in unser.index]
+                unser.columns = [str(i) for i in unser.columns]
+                unser = unser.sort()
+                assert_almost_equal(df.values, unser.values)
+            else:
+                assert_frame_equal(df, unser)
+
+        def _check_all_orients(df, dtype=None):
+            _check_orient(df, "columns", dtype=dtype)
+            _check_orient(df, "records", dtype=dtype)
+            _check_orient(df, "split", dtype=dtype)
+            _check_orient(df, "index", dtype=dtype)
+            _check_orient(df, "values", dtype=dtype)
+
+            _check_orient(df, "columns", dtype=dtype, numpy=False)
+            _check_orient(df, "records", dtype=dtype, numpy=False)
+            _check_orient(df, "split", dtype=dtype, numpy=False)
+            _check_orient(df, "index", dtype=dtype, numpy=False)
+            _check_orient(df, "values", dtype=dtype, numpy=False)
+
+        # basic
+        _check_all_orients(self.frame)
+        self.assertEqual(self.frame.to_json(),
+                         self.frame.to_json(orient="columns"))
+
+        _check_all_orients(self.intframe, dtype=self.intframe.values.dtype)
+
+        # big one
+        # index and columns are strings as all unserialised JSON object keys
+        # are assumed to be strings
+        biggie = DataFrame(np.zeros((200, 4)),
+                           columns=[str(i) for i in range(4)],
+                           index=[str(i) for i in range(200)])
+        _check_all_orients(biggie)
+
+        # dtypes
+        _check_all_orients(DataFrame(biggie, dtype=np.float64),
+                           dtype=np.float64)
+        _check_all_orients(DataFrame(biggie, dtype=np.int), dtype=np.int)
+        _check_all_orients(DataFrame(biggie, dtype='<U3'), dtype='<U3')
+
+        # empty
+        _check_all_orients(self.empty)
+
+        # time series data
+        _check_all_orients(self.tsframe)
+
+        # mixed data
+        index = Index(['a', 'b', 'c', 'd', 'e'])
+        data = {
+            'A': [0., 1., 2., 3., 4.],
+            'B': [0., 1., 0., 1., 0.],
+            'C': ['foo1', 'foo2', 'foo3', 'foo4', 'foo5'],
+            'D': [True, False, True, False, True]
+        }
+        df = DataFrame(data=data, index=index)
+        _check_orient(df, "split")
+        _check_orient(df, "records")
+        _check_orient(df, "values")
+        _check_orient(df, "columns")
+        # index oriented is problematic as it is read back in in a transposed
+        # state, so the columns are interpreted as having mixed data and
+        # given object dtypes.
+        # force everything to have object dtype beforehand
+        _check_orient(df.transpose().transpose(), "index")
+
+    def test_from_json_bad_data(self):
+        self.assertRaises(ValueError, DataFrame.from_json, '{"key":b:a:d}')
+
+        # too few indices
+        json = ('{"columns":["A","B"],'
+                '"index":["2","3"],'
+                '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}"')
+        self.assertRaises(AssertionError, DataFrame.from_json, json,
+                          orient="split")
+
+        # too many columns
+        json = ('{"columns":["A","B","C"],'
+                '"index":["1","2","3"],'
+                '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}"')
+        self.assertRaises(AssertionError, DataFrame.from_json, json,
+                          orient="split")
+
+        # bad key
+        json = ('{"badkey":["A","B"],'
+                '"index":["2","3"],'
+                '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}"')
+        self.assertRaises(TypeError, DataFrame.from_json, json,
+                          orient="split")
+
+    def test_from_json_nones(self):
+        df = DataFrame([[1, 2], [4, 5, 6]])
+        unser = DataFrame.from_json(df.to_json())
+        self.assert_(np.isnan(unser['2'][0]))
+
+        df = DataFrame([['1', '2'], ['4', '5', '6']])
+        unser = DataFrame.from_json(df.to_json())
+        self.assert_(np.isnan(unser['2'][0]))
+
+        unser = DataFrame.from_json(df.to_json(), numpy=False)
+        self.assert_(unser['2'][0] is None)
+
+        # infinities get mapped to nulls which get mapped to NaNs during
+        # deserialisation
+        df = DataFrame([[1, 2], [4, 5, 6]])
+        df[2][0] = np.inf
+        unser = DataFrame.from_json(df.to_json())
+        self.assert_(np.isnan(unser['2'][0]))
+
+        df[2][0] = np.NINF
+        unser = DataFrame.from_json(df.to_json())
+        self.assert_(np.isnan(unser['2'][0]))
+
+    def test_to_json_except(self):
+        df = DataFrame([1, 2, 3])
+        self.assertRaises(ValueError, df.to_json, orient="garbage")
 
     def test_from_records_to_records(self):
         # from numpy documentation
@@ -2319,6 +2539,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = self.frame2 * 2
         assert_frame_equal(added, expected)
 
+        df = DataFrame({'a' : ['a', None, 'b']})
+        assert_frame_equal(df + df, DataFrame({'a' : ['aa', np.nan, 'bb']}))
+
     def test_operators_none_as_na(self):
         df = DataFrame({"col1": [2,5.0,123,None],
                         "col2": [1,2,3,4]})
@@ -2447,6 +2670,135 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         result = self.frame[:0].add(self.frame)
         assert_frame_equal(result, self.frame * np.nan)
+
+    def test_bool_flex_frame(self):
+        data = np.random.randn(5, 3)
+        other_data = np.random.randn(5, 3)
+        df = DataFrame(data)
+        other = DataFrame(other_data)
+
+        # No NAs
+
+        # DataFrame
+        self.assert_(df.eq(df).values.all())
+        self.assert_(not df.ne(df).values.any())
+
+        assert_frame_equal((df == other), df.eq(other))
+        assert_frame_equal((df != other), df.ne(other))
+        assert_frame_equal((df > other), df.gt(other))
+        assert_frame_equal((df < other), df.lt(other))
+        assert_frame_equal((df >= other), df.ge(other))
+        assert_frame_equal((df <= other), df.le(other))
+
+        # Unaligned
+        def _check_unaligned_frame(meth, op, df, other, default=False):
+            part_o = other.ix[3:, 1:].copy()
+            rs = meth(df, part_o)
+            xp = op(df, part_o.reindex(index=df.index, columns=df.columns))
+            assert_frame_equal(rs, xp)
+
+        _check_unaligned_frame(DataFrame.eq, operator.eq, df, other)
+        _check_unaligned_frame(DataFrame.ne, operator.ne, df, other,
+                               default=True)
+        _check_unaligned_frame(DataFrame.gt, operator.gt, df, other)
+        _check_unaligned_frame(DataFrame.lt, operator.lt, df, other)
+        _check_unaligned_frame(DataFrame.ge, operator.ge, df, other)
+        _check_unaligned_frame(DataFrame.le, operator.le, df, other)
+
+        # Series
+        def _test_seq(df, idx_ser, col_ser):
+            idx_eq = df.eq(idx_ser, axis=0)
+            col_eq = df.eq(col_ser)
+            idx_ne = df.ne(idx_ser, axis=0)
+            col_ne = df.ne(col_ser)
+            assert_frame_equal(col_eq, df == Series(col_ser))
+            assert_frame_equal(col_eq, -col_ne)
+            assert_frame_equal(idx_eq, -idx_ne)
+            assert_frame_equal(idx_eq, df.T.eq(idx_ser).T)
+            assert_frame_equal(col_eq, df.eq(list(col_ser)))
+            assert_frame_equal(idx_eq, df.eq(Series(idx_ser), axis=0))
+            assert_frame_equal(idx_eq, df.eq(list(idx_ser), axis=0))
+
+            idx_gt = df.gt(idx_ser, axis=0)
+            col_gt = df.gt(col_ser)
+            idx_le = df.le(idx_ser, axis=0)
+            col_le = df.le(col_ser)
+
+            assert_frame_equal(col_gt, df > Series(col_ser))
+            assert_frame_equal(col_gt, -col_le)
+            assert_frame_equal(idx_gt, -idx_le)
+            assert_frame_equal(idx_gt, df.T.gt(idx_ser).T)
+
+            idx_ge = df.ge(idx_ser, axis=0)
+            col_ge = df.ge(col_ser)
+            idx_lt = df.lt(idx_ser, axis=0)
+            col_lt = df.lt(col_ser)
+            assert_frame_equal(col_ge, df >= Series(col_ser))
+            assert_frame_equal(col_ge, -col_lt)
+            assert_frame_equal(idx_ge, -idx_lt)
+            assert_frame_equal(idx_ge, df.T.ge(idx_ser).T)
+
+        idx_ser = Series(np.random.randn(5))
+        col_ser = Series(np.random.randn(3))
+        _test_seq(df, idx_ser, col_ser)
+
+        # ndarray
+
+        assert_frame_equal((df == other.values), df.eq(other.values))
+        assert_frame_equal((df != other.values), df.ne(other.values))
+        assert_frame_equal((df > other.values), df.gt(other.values))
+        assert_frame_equal((df < other.values), df.lt(other.values))
+        assert_frame_equal((df >= other.values), df.ge(other.values))
+        assert_frame_equal((df <= other.values), df.le(other.values))
+
+        # list/tuple
+        _test_seq(df, idx_ser.values, col_ser.values)
+
+        # NA
+        df.ix[0, 0] = np.nan
+        rs = df.eq(df)
+        self.assert_(not rs.ix[0, 0])
+        rs = df.ne(df)
+        self.assert_(rs.ix[0, 0])
+        rs = df.gt(df)
+        self.assert_(not rs.ix[0, 0])
+        rs = df.lt(df)
+        self.assert_(not rs.ix[0, 0])
+        rs = df.ge(df)
+        self.assert_(not rs.ix[0, 0])
+        rs = df.le(df)
+        self.assert_(not rs.ix[0, 0])
+
+
+        # scalar
+        assert_frame_equal(df.eq(0), df == 0)
+        assert_frame_equal(df.ne(0), df != 0)
+        assert_frame_equal(df.gt(0), df > 0)
+        assert_frame_equal(df.lt(0), df < 0)
+        assert_frame_equal(df.ge(0), df >= 0)
+        assert_frame_equal(df.le(0), df <= 0)
+
+        assert_frame_equal(df.eq(np.nan), df == np.nan)
+        assert_frame_equal(df.ne(np.nan), df != np.nan)
+        assert_frame_equal(df.gt(np.nan), df > np.nan)
+        assert_frame_equal(df.lt(np.nan), df < np.nan)
+        assert_frame_equal(df.ge(np.nan), df >= np.nan)
+        assert_frame_equal(df.le(np.nan), df <= np.nan)
+
+        # complex
+        arr = np.array([np.nan, 1, 6, np.nan])
+        arr2 = np.array([2j, np.nan, 7, None])
+        df = DataFrame({'a' : arr})
+        df2 = DataFrame({'a' : arr2})
+        rs = df.gt(df2)
+        self.assert_(not rs.values.any())
+        rs = df.ne(df2)
+        self.assert_(rs.values.all())
+
+        arr3 = np.array([2j, np.nan, None])
+        df3 = DataFrame({'a' : arr3})
+        rs = df3.gt(2j)
+        self.assert_(not rs.values.any())
 
     def test_arith_flex_series(self):
         df = self.simple
@@ -2663,6 +3015,22 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         recons = DataFrame.from_csv(path)
         assert_frame_equal(dm, recons)
 
+
+
+        #duplicate index
+        df = DataFrame(np.random.randn(3, 3), index=['a', 'a', 'b'],
+                       columns=['x', 'y', 'z'])
+        df.to_csv(path)
+        result = DataFrame.from_csv(path)
+        assert_frame_equal(result, df)
+
+        midx = MultiIndex.from_tuples([('A', 1, 2), ('A', 1, 2), ('B', 1, 2)])
+        df = DataFrame(np.random.randn(3, 3), index=midx,
+                       columns=['x', 'y', 'z'])
+        df.to_csv(path)
+        result = DataFrame.from_csv(path, index_col=[0, 1, 2],
+                                    parse_dates=False)
+        assert_frame_equal(result, df)
         os.remove(path)
 
     def test_to_csv_multiindex(self):
@@ -2976,12 +3344,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                        columns=['foo', 'bar', 'baz', 'qux'])
 
         series = df.ix[4]
-        self.assertRaises(Exception, df.append, series)
+        self.assertRaises(Exception, df.append, series, verify_integrity=True)
         series.name = None
-        self.assertRaises(Exception, df.append, series)
+        self.assertRaises(Exception, df.append, series, verify_integrity=True)
 
         result = df.append(series[::-1], ignore_index=True)
-        expected = df.append(DataFrame({0 : series[::-1]}, index=df.columns).T, ignore_index=True)
+        expected = df.append(DataFrame({0 : series[::-1]}, index=df.columns).T,
+                             ignore_index=True)
         assert_frame_equal(result, expected)
 
         # dict
@@ -3062,6 +3431,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         mat = self.mixed_frame.as_matrix(['foo', 'A'])
         self.assertEqual(mat[0, 0], 'bar')
 
+        df = DataFrame({'real' : [1,2,3], 'complex' : [1j, 2j, 3j]})
+        mat = df.as_matrix()
+        self.assertEqual(mat[0, 0], 1j)
+
         # single block corner case
         mat = self.frame.as_matrix(['A', 'B'])
         expected = self.frame.reindex(columns=['A', 'B']).values
@@ -3098,6 +3471,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     #     self.assert_(self.frame.columns.name is None)
 
     def test_corr(self):
+        _skip_if_no_scipy()
         self.frame['A'][:5] = nan
         self.frame['B'][:10] = nan
 
@@ -3174,6 +3548,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         result = df1.corrwith(df2, axis=1)
         expected = df1.ix[:, cols].corrwith(df2.ix[:, cols], axis=1)
+        assert_series_equal(result, expected)
+
+    def test_corrwith_series(self):
+        result = self.tsframe.corrwith(self.tsframe['A'])
+        expected = self.tsframe.apply(self.tsframe['A'].corr)
+
         assert_series_equal(result, expected)
 
     def test_dropEmptyRows(self):
@@ -3286,6 +3666,109 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = df2.drop_duplicates(['A', 'B'], take_last=True)
         assert_frame_equal(result, expected)
 
+    def test_drop_duplicates_NA(self):
+        # none
+        df = DataFrame({'A' : [None, None, 'foo', 'bar',
+                               'foo', 'bar', 'bar', 'foo'],
+                        'B' : ['one', 'one', 'two', 'two',
+                               'two', 'two', 'one', 'two'],
+                        'C' : [1.0, np.nan, np.nan, np.nan, 1., 1., 1, 1.],
+                        'D' : range(8)})
+
+        # single column
+        result = df.drop_duplicates('A')
+        expected = df.ix[[0, 2, 3]]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates('A', take_last=True)
+        expected = df.ix[[1, 6, 7]]
+        assert_frame_equal(result, expected)
+
+        # multi column
+        result = df.drop_duplicates(['A', 'B'])
+        expected = df.ix[[0, 2, 3, 6]]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates(['A', 'B'], take_last=True)
+        expected = df.ix[[1, 5, 6, 7]]
+        assert_frame_equal(result, expected)
+
+        # nan
+        df = DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+                               'foo', 'bar', 'bar', 'foo'],
+                        'B' : ['one', 'one', 'two', 'two',
+                               'two', 'two', 'one', 'two'],
+                        'C' : [1.0, np.nan, np.nan, np.nan, 1., 1., 1, 1.],
+                        'D' : range(8)})
+
+        # single column
+        result = df.drop_duplicates('C')
+        expected = df[:2]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates('C', take_last=True)
+        expected = df.ix[[3, 7]]
+        assert_frame_equal(result, expected)
+
+        # multi column
+        result = df.drop_duplicates(['C', 'B'])
+        expected = df.ix[[0, 1, 2, 4]]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates(['C', 'B'], take_last=True)
+        expected = df.ix[[1, 3, 6, 7]]
+        assert_frame_equal(result, expected)
+
+    def test_drop_duplicates_inplace(self):
+        orig = DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+                                 'foo', 'bar', 'bar', 'foo'],
+                          'B' : ['one', 'one', 'two', 'two',
+                                 'two', 'two', 'one', 'two'],
+                          'C' : [1, 1, 2, 2, 2, 2, 1, 2],
+                          'D' : range(8)})
+
+        # single column
+        df = orig.copy()
+        df.drop_duplicates('A', inplace=True)
+        expected = orig[:2]
+        result = df
+        assert_frame_equal(result, expected)
+
+        df = orig.copy()
+        df.drop_duplicates('A', take_last=True, inplace=True)
+        expected = orig.ix[[6, 7]]
+        result = df
+        assert_frame_equal(result, expected)
+
+        # multi column
+        df = orig.copy()
+        df.drop_duplicates(['A', 'B'], inplace=True)
+        expected = orig.ix[[0, 1, 2, 3]]
+        result = df
+        assert_frame_equal(result, expected)
+
+        df = orig.copy()
+        df.drop_duplicates(['A', 'B'], take_last=True, inplace=True)
+        expected = orig.ix[[0, 5, 6, 7]]
+        result = df
+        assert_frame_equal(result, expected)
+
+        # consider everything
+        orig2 = orig.ix[:, ['A', 'B', 'C']].copy()
+
+        df2 = orig2.copy()
+        df2.drop_duplicates(inplace=True)
+        # in this case only
+        expected = orig2.drop_duplicates(['A', 'B'])
+        result = df2
+        assert_frame_equal(result, expected)
+
+        df2 = orig2.copy()
+        df2.drop_duplicates(take_last=True, inplace=True)
+        expected = orig2.drop_duplicates(['A', 'B'], take_last=True)
+        result = df2
+        assert_frame_equal(result, expected)
+
     def test_drop_col_still_multiindex(self):
         arrays = [[  'a',   'b',   'c',    'top'],
                   [  '',    '',    '',     'OD' ],
@@ -3373,6 +3856,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = df.astype(float).fillna(axis=1)
         assert_frame_equal(result, expected)
 
+    def test_fillna_invalid_method(self):
+        try:
+            self.frame.fillna(method='ffil')
+        except ValueError, inst:
+            self.assert_('ffil' in str(inst))
+
     def test_replace_inplace(self):
         self.tsframe['A'][:5] = nan
         self.tsframe['A'][-5:] = nan
@@ -3393,19 +3882,27 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = self.mixed_frame.fillna(value=0)
         assert_frame_equal(result, expected)
 
+        tsframe = self.tsframe.copy()
+        tsframe.replace([nan], [0], inplace=True)
+        assert_frame_equal(tsframe, self.tsframe.fillna(0))
+
     def test_replace(self):
         self.tsframe['A'][:5] = nan
         self.tsframe['A'][-5:] = nan
 
         zero_filled = self.tsframe.replace(nan, -1e8)
         assert_frame_equal(zero_filled, self.tsframe.fillna(-1e8))
-
         assert_frame_equal(zero_filled.replace(-1e8, nan), self.tsframe)
 
-        padded = self.tsframe.replace(nan, method='pad')
-        assert_frame_equal(padded, self.tsframe.fillna(method='pad'))
+        self.tsframe['A'][:5] = nan
+        self.tsframe['A'][-5:] = nan
+        self.tsframe['B'][:5] = -1e8
 
-        # mixed type
+        # empty
+        df = DataFrame(index=['a', 'b'])
+        assert_frame_equal(df, df.replace(5, 7))
+
+    def test_replace_mixed(self):
         self.mixed_frame['foo'][5:20] = nan
         self.mixed_frame['A'][-10:] = nan
 
@@ -3414,7 +3911,76 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(result, expected)
         assert_frame_equal(result.replace(-1e8, nan), self.mixed_frame)
 
+    def test_replace_interpolate(self):
+        padded = self.tsframe.replace(nan, method='pad')
+        assert_frame_equal(padded, self.tsframe.fillna(method='pad'))
+
+        result = self.tsframe.replace(to_replace={'A' : nan}, method='pad',
+                                      axis=1)
+        expected = self.tsframe.T.replace(to_replace={'A' : nan}, method='pad').T
+        assert_frame_equal(result, expected)
+
+        result = self.tsframe.replace(to_replace={'A' : nan, 'B' : -1e8},
+                                      method='bfill')
+        tsframe = self.tsframe.copy()
+        b = tsframe['B']
+        b[b == -1e8] = nan
+        tsframe['B'] = b
+        expected = tsframe.fillna(method='bfill')
+        assert_frame_equal(expected, result)
+
+        bfilled = self.tsframe.replace(nan, method='bfill')
+        assert_frame_equal(bfilled, self.tsframe.fillna(method='bfill'))
+
+        frame = self.tsframe.copy()
+        frame[frame == 0] = 1
+        frame.ix[-5:, 2] = 0
+        result = frame.replace([nan, 0], method='pad')
+
+        expected = frame.copy()
+        expected[expected == 0] = nan
+        expected = expected.fillna(method='pad')
+        assert_frame_equal(result, expected)
+
+        result = self.mixed_frame.replace(nan, method='pad', axis=1)
+        expected = self.mixed_frame.fillna(method='pad', axis=1)
+        assert_frame_equal(result, expected)
+
+        # no nans
+        self.tsframe['A'][:5] = 1e8
+        result = self.tsframe.replace(1e8, method='bfill')
+        self.tsframe['A'].replace(1e8, nan, inplace=True)
+        expected = self.tsframe.fillna(method='bfill')
+        assert_frame_equal(result, expected)
+
+    def test_replace_dtypes(self):
+        # int
+        df = DataFrame({'ints' : [1,2,3]})
+        result = df.replace(1, 0)
+        expected = DataFrame({'ints' : [0,2,3]})
+        assert_frame_equal(result, expected)
+
+        # bools
+        df = DataFrame({'bools': [True, False, True]})
+        result = df.replace(False, True)
+        self.assert_(result.values.all())
+
+        #complex blocks
+        df = DataFrame({'complex': [1j, 2j, 3j]})
+        result = df.replace(1j, 0j)
+        expected = DataFrame({'complex': [0j, 2j, 3j]})
+        assert_frame_equal(result, expected)
+
+        # datetime blocks
+        prev = datetime.today()
+        now = datetime.today()
+        df = DataFrame({'datetime64' : Index([prev, now, prev])})
+        result = df.replace(prev, now)
+        expected = DataFrame({'datetime64' : Index([now] * 3)})
+        assert_frame_equal(result, expected)
+
     def test_replace_input_formats(self):
+        # both dicts
         to_rep = {'A' : np.nan, 'B' : 0, 'C' : ''}
         values = {'A' : 0, 'B' : -1, 'C' : 'missing'}
         df = DataFrame({'A' : [np.nan, 0, np.inf], 'B' : [0, 2, 5],
@@ -3425,6 +3991,21 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             expected[k] = v.replace(to_rep[k], values[k])
         assert_frame_equal(filled, DataFrame(expected))
 
+        result = df.replace([0, 2, 5], [5, 2, 0])
+        expected = DataFrame({'A' : [np.nan, 5, np.inf], 'B' : [5, 2, 0],
+                              'C' : ['', 'asdf', 'fd']})
+        assert_frame_equal(result, expected)
+
+        # dict to scalar
+        filled = df.replace(to_rep, 0)
+        expected = {}
+        for k, v in df.iteritems():
+            expected[k] = v.replace(to_rep[k], 0)
+        assert_frame_equal(filled, DataFrame(expected))
+
+        self.assertRaises(ValueError, df.replace, to_rep, [np.nan, 0, ''])
+
+        # scalar to dict
         values = {'A' : 0, 'B' : -1, 'C' : 'missing'}
         df = DataFrame({'A' : [np.nan, 0, np.nan], 'B' : [0, 2, 5],
                         'C' : ['', 'asdf', 'fd']})
@@ -3434,6 +4015,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             expected[k] = v.replace(np.nan, values[k])
         assert_frame_equal(filled, DataFrame(expected))
 
+        # list to list
         to_rep = [np.nan, 0, '']
         values = [-2, -1, 'missing']
         result = df.replace(to_rep, values)
@@ -3442,6 +4024,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             expected.replace(to_rep[i], values[i], inplace=True)
         assert_frame_equal(result, expected)
 
+        self.assertRaises(ValueError, df.replace, to_rep, values[1:])
+
+        # list to scalar
         to_rep = [np.nan, 0, '']
         result = df.replace(to_rep, -1)
         expected = df.copy()
@@ -3943,12 +4528,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             'C' : 'c',
             'D' : 'd'
         }
-        bad_mapping = {
-            'A' : 'a',
-            'B' : 'b',
-            'C' : 'b',
-            'D' : 'd'
-        }
 
         renamed = self.frame.rename(columns=mapping)
         renamed2 = self.frame.rename(columns=str.lower)
@@ -3956,9 +4535,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(renamed, renamed2)
         assert_frame_equal(renamed2.rename(columns=str.upper),
                            self.frame)
-
-        self.assertRaises(Exception, self.frame.rename,
-                          columns=bad_mapping)
 
         # index
 
@@ -3990,6 +4566,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         renamed['foo'] = 1.
         self.assert_((self.frame['C'] == 1.).all())
 
+    def test_rename_inplace(self):
+        self.frame.rename(columns={'C' : 'foo'})
+        self.assert_('C' in self.frame)
+        self.assert_('foo' not in self.frame)
+
+        c_id = id(self.frame['C'])
+        frame = self.frame.copy()
+        frame.rename(columns={'C' : 'foo'}, inplace=True)
+        self.assert_('C' not in frame)
+        self.assert_('foo' in frame)
+        self.assert_(id(frame['foo']) != c_id)
+
+
     #----------------------------------------------------------------------
     # Time series related
 
@@ -3998,6 +4587,32 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         assert_series_equal(the_diff['A'],
                             self.tsframe['A'] - self.tsframe['A'].shift(1))
+
+    def test_pct_change(self):
+        rs = self.tsframe.pct_change(fill_method=None)
+        assert_frame_equal(rs, self.tsframe / self.tsframe.shift(1) - 1)
+
+        rs = self.tsframe.pct_change(2)
+        filled = self.tsframe.fillna(method='pad')
+        assert_frame_equal(rs, filled / filled.shift(2) - 1)
+
+        rs = self.tsframe.pct_change(fill_method='bfill', limit=1)
+        filled = self.tsframe.fillna(method='bfill', limit=1)
+        assert_frame_equal(rs, filled / filled.shift(1) - 1)
+
+        rs = self.tsframe.pct_change(freq='5D')
+        filled = self.tsframe.fillna(method='pad')
+        assert_frame_equal(rs, filled / filled.shift(freq='5D') - 1)
+
+    def test_pct_change_shift_over_nas(self):
+        s = Series([1., 1.5, np.nan, 2.5, 3.])
+
+        df = DataFrame({'a': s, 'b': s})
+
+        chg = df.pct_change()
+        expected = Series([np.nan, 0.5, np.nan, 2.5/1.5 -1, .2])
+        edf = DataFrame({'a': expected, 'b':expected})
+        assert_frame_equal(chg, edf)
 
     def test_shift(self):
         # naive shift
@@ -4274,6 +4889,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             self.assertEqual(len(e.args), 2)
             self.assertEqual(e.args[1], 'occurred at index 4')
 
+    def test_swapaxes(self):
+        df = DataFrame(np.random.randn(10, 5))
+        assert_frame_equal(df.T, df.swapaxes(0, 1))
+        assert_frame_equal(df.T, df.swapaxes(1, 0))
+        assert_frame_equal(df, df.swapaxes(0, 0))
+        self.assertRaises(ValueError, df.swapaxes, 2, 5)
 
     def test_apply_convert_objects(self):
         data = DataFrame({'A' : ['foo', 'foo', 'foo', 'foo',
@@ -4421,6 +5042,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = frame.sort_index(by=['A', 'B'], ascending=False)
         assert_frame_equal(sorted_df, expected)
 
+        self.assertRaises(ValueError, frame.sort_index, axis=2, inplace=True)
+
     def test_sort_index_multicolumn(self):
         import random
         A = np.arange(5).repeat(20)
@@ -4443,6 +5066,55 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         indexer = np.lexsort((frame['A'], frame['B']))
         expected = frame.take(indexer)
         assert_frame_equal(result, expected)
+
+    def test_sort_index_inplace(self):
+        frame = DataFrame(np.random.randn(4, 4), index=[1, 2, 3, 4],
+                          columns=['A', 'B', 'C', 'D'])
+
+        # axis=0
+        unordered = frame.ix[[3, 2, 4, 1]]
+        a_id = id(unordered['A'])
+        df = unordered.copy()
+        df.sort_index(inplace=True)
+        expected = frame
+        assert_frame_equal(df, expected)
+        self.assert_(a_id != id(df['A']))
+
+        df = unordered.copy()
+        df.sort_index(ascending=False, inplace=True)
+        expected = frame[::-1]
+        assert_frame_equal(df, expected)
+
+        # axis=1
+        unordered = frame.ix[:, ['D', 'B', 'C', 'A']]
+        df = unordered.copy()
+        df.sort_index(axis=1, inplace=True)
+        expected = frame
+        assert_frame_equal(df, expected)
+
+        df = unordered.copy()
+        df.sort_index(axis=1, ascending=False, inplace=True)
+        expected = frame.ix[:, ::-1]
+        assert_frame_equal(df, expected)
+
+    def test_sort_inplace(self):
+        frame = DataFrame(np.random.randn(4, 4), index=[1, 2, 3, 4],
+                          columns=['A', 'B', 'C', 'D'])
+
+        sorted_df = frame.copy()
+        sorted_df.sort(columns='A', inplace=True)
+        expected = frame.sort_index(by='A')
+        assert_frame_equal(sorted_df, expected)
+
+        sorted_df = frame.copy()
+        sorted_df.sort(columns='A', ascending=False, inplace=True)
+        expected = frame.sort_index(by='A', ascending=False)
+        assert_frame_equal(sorted_df, expected)
+
+        sorted_df = frame.copy()
+        sorted_df.sort(columns=['A', 'B'], ascending=False, inplace=True)
+        expected = frame.sort_index(by=['A', 'B'], ascending=False)
+        assert_frame_equal(sorted_df, expected)
 
     def test_frame_column_inplace_sort_exception(self):
         s = self.frame['A']
@@ -4801,6 +5473,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             nanops._USE_BOTTLENECK = True
 
     def test_skew(self):
+        _skip_if_no_scipy()
         from scipy.stats import skew
 
         def alt(x):
@@ -4811,6 +5484,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self._check_stat_op('skew', alt)
 
     def test_kurt(self):
+        _skip_if_no_scipy()
+
         from scipy.stats import kurtosis
 
         def alt(x):
@@ -5082,6 +5757,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                              columns=df.columns)
         assert_frame_equal(desc, expected)
 
+        df = DataFrame({'time' : self.tsframe.index})
+        desc = df.describe()
+        assert(desc.time['first'] == min(self.tsframe.index))
+
     def test_get_axis_etc(self):
         f = self.frame
 
@@ -5187,6 +5866,20 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         result = df.reindex(range(4), range(4))
         expected = df.reindex(range(4)).reindex(columns=range(4))
+
+        assert_frame_equal(result, expected)
+
+        df = DataFrame(np.random.randint(0, 10, (3, 3)))
+
+        result = df.reindex(range(2), range(2))
+        expected = df.reindex(range(2)).reindex(columns=range(2))
+
+        assert_frame_equal(result, expected)
+
+        df = DataFrame(np.random.randn(5, 3) + 1j, columns=['a','b','c'])
+
+        result = df.reindex(index=[0,1], columns=['a', 'b'])
+        expected = df.reindex([0, 1]).reindex(columns=['a', 'b'])
 
         assert_frame_equal(result, expected)
 
@@ -5546,7 +6239,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         idx2 = IndexType("baz", "bof")
         index = Index([idx1, idx2], name="composite_index")
         df = DataFrame([(1, 2), (3, 4)], index=index, columns=["A", "B"])
-        print df.ix[IndexType("foo", "bar")]["A"]
         self.assertEqual(df.ix[IndexType("foo", "bar")]["A"], 1)
 
     def test_bool_raises_value_error_1069(self):

@@ -492,6 +492,22 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         expected = self.ymd[(lev >= 1) & (lev <= 3)]
         assert_frame_equal(result, expected)
 
+    def test_getitem_partial_column_select(self):
+        idx = MultiIndex(labels=[[0,0,0],[0,1,1],[1,0,1]],
+                         levels=[['a','b'],['x','y'],['p','q']])
+        df = DataFrame(np.random.rand(3,2),index=idx)
+
+        result = df.ix[('a', 'y'), :]
+        expected = df.ix[('a', 'y')]
+        assert_frame_equal(result, expected)
+
+        result = df.ix[('a', 'y'), [1, 0]]
+        expected = df.ix[('a', 'y')][[1, 0]]
+        assert_frame_equal(result, expected)
+
+        self.assertRaises(KeyError, df.ix.__getitem__,
+                          (('a', 'foo'), slice(None, None)))
+
     def test_sortlevel(self):
         df = self.frame.copy()
         df.index = np.arange(len(df))
@@ -970,7 +986,10 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
             grouped = frame.groupby(level=level, axis=axis)
 
-            aggf = lambda x: getattr(x, op)(skipna=skipna, axis=axis)
+            pieces = []
+            def aggf(x):
+                pieces.append(x)
+                return getattr(x, op)(skipna=skipna, axis=axis)
             leftside = grouped.agg(aggf)
             rightside = getattr(frame, op)(level=level, axis=axis,
                                            skipna=skipna)

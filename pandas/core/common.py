@@ -19,7 +19,7 @@ from numpy.lib.format import read_array, write_array
 import numpy as np
 
 import pandas._algos as _algos
-import pandas._tseries as lib
+import pandas.lib as lib
 from pandas.util import py3compat
 import codecs
 import csv
@@ -52,7 +52,7 @@ def isnull(obj):
     -------
     boolean ndarray or boolean
     '''
-    if np.isscalar(obj) or obj is None:
+    if lib.isscalar(obj):
         return lib.checknull(obj)
 
     from pandas.core.generic import PandasObject
@@ -67,9 +67,9 @@ def isnull(obj):
 
             if isinstance(obj, Series):
                 result = Series(result, index=obj.index, copy=False)
-        elif obj.dtype == np.datetime64:
+        elif obj.dtype == np.dtype('M8[ns]'):
             # this is the NaT pattern
-            result = np.array(obj).view('i8') == lib.NaT
+            result = np.array(obj).view('i8') == lib.iNaT
         else:
             result = -np.isfinite(obj)
         return result
@@ -102,7 +102,7 @@ def mask_missing(arr, values_to_mask):
     Return a masking array of same size/shape as arr
     with entries equaling any member of values_to_mask set to True
     """
-    if np.isscalar(values_to_mask):
+    if not isinstance(values_to_mask, (list, np.ndarray)):
         values_to_mask = [values_to_mask]
 
     try:
@@ -140,21 +140,6 @@ def _unpickle_array(bytes):
     arr = read_array(BytesIO(bytes))
     return arr
 
-def _take_1d_datetime(arr, indexer, out, fill_value=np.nan):
-    view = arr.view(np.int64)
-    outview = out.view(np.int64)
-    _algos.take_1d_bool(view, indexer, outview, fill_value=fill_value)
-
-def _take_2d_axis0_datetime(arr, indexer, out, fill_value=np.nan):
-    view = arr.view(np.int64)
-    outview = out.view(np.int64)
-    _algos.take_1d_bool(view, indexer, outview, fill_value=fill_value)
-
-def _take_2d_axis1_datetime(arr, indexer, out, fill_value=np.nan):
-    view = arr.view(np.uint8)
-    outview = out.view(np.uint8)
-    _algos.take_1d_bool(view, indexer, outview, fill_value=fill_value)
-
 def _view_wrapper(f, wrap_dtype, na_override=None):
     def wrapper(arr, indexer, out, fill_value=np.nan):
         if na_override is not None and np.isnan(fill_value):
@@ -171,8 +156,8 @@ _take1d_dict = {
     'int64' : _algos.take_1d_int64,
     'object' : _algos.take_1d_object,
     'bool' : _view_wrapper(_algos.take_1d_bool, np.uint8),
-    'datetime64[us]' : _view_wrapper(_algos.take_1d_int64, np.int64,
-                                     na_override=lib.NaT),
+    'datetime64[ns]' : _view_wrapper(_algos.take_1d_int64, np.int64,
+                                     na_override=lib.iNaT),
 }
 
 _take2d_axis0_dict = {
@@ -181,8 +166,8 @@ _take2d_axis0_dict = {
     'int64' : _algos.take_2d_axis0_int64,
     'object' : _algos.take_2d_axis0_object,
     'bool' : _view_wrapper(_algos.take_2d_axis0_bool, np.uint8),
-    'datetime64[us]' : _view_wrapper(_algos.take_2d_axis0_int64, np.int64,
-                                     na_override=lib.NaT),
+    'datetime64[ns]' : _view_wrapper(_algos.take_2d_axis0_int64, np.int64,
+                                     na_override=lib.iNaT),
 }
 
 _take2d_axis1_dict = {
@@ -191,8 +176,8 @@ _take2d_axis1_dict = {
     'int64' : _algos.take_2d_axis1_int64,
     'object' : _algos.take_2d_axis1_object,
     'bool' : _view_wrapper(_algos.take_2d_axis1_bool, np.uint8),
-    'datetime64[us]' : _view_wrapper(_algos.take_2d_axis1_int64, np.int64,
-                                     na_override=lib.NaT),
+    'datetime64[ns]' : _view_wrapper(_algos.take_2d_axis1_int64, np.int64,
+                                     na_override=lib.iNaT),
 }
 
 _take2d_multi_dict = {
@@ -201,8 +186,8 @@ _take2d_multi_dict = {
     'int64' : _algos.take_2d_multi_int64,
     'object' : _algos.take_2d_multi_object,
     'bool' : _view_wrapper(_algos.take_2d_multi_bool, np.uint8),
-    'datetime64[us]' : _view_wrapper(_algos.take_2d_multi_int64, np.int64,
-                                     na_override=lib.NaT),
+    'datetime64[ns]' : _view_wrapper(_algos.take_2d_multi_int64, np.int64,
+                                     na_override=lib.iNaT),
 }
 
 def _get_take2d_function(dtype_str, axis=0):
@@ -212,7 +197,7 @@ def _get_take2d_function(dtype_str, axis=0):
         return _take2d_axis1_dict[dtype_str]
     elif axis == 'multi':
         return _take2d_multi_dict[dtype_str]
-    else:
+    else: # pragma: no cover
         raise ValueError('bad axis: %s' % axis)
 
 def take_1d(arr, indexer, out=None, fill_value=np.nan):
@@ -246,7 +231,7 @@ def take_1d(arr, indexer, out=None, fill_value=np.nan):
                                     out.dtype)
                 out = _maybe_upcast(out)
                 np.putmask(out, mask, fill_value)
-    elif dtype_str in ('float64', 'object', 'datetime64[us]'):
+    elif dtype_str in ('float64', 'object', 'datetime64[ns]'):
         if out is None:
             out = np.empty(n, dtype=arr.dtype)
         take_f(arr, _ensure_int64(indexer), out=out, fill_value=fill_value)
@@ -266,8 +251,6 @@ def take_2d_multi(arr, row_idx, col_idx, fill_value=np.nan):
 
     dtype_str = arr.dtype.name
 
-    take_f = _get_take2d_function(dtype_str, axis='multi')
-
     out_shape = len(row_idx), len(col_idx)
 
     if dtype_str in ('int32', 'int64', 'bool'):
@@ -280,12 +263,14 @@ def take_2d_multi(arr, row_idx, col_idx, fill_value=np.nan):
                                  fill_value=fill_value)
         else:
             out = np.empty(out_shape, dtype=arr.dtype)
+            take_f = _get_take2d_function(dtype_str, axis='multi')
             take_f(arr, _ensure_int64(row_idx),
                    _ensure_int64(col_idx), out=out,
                    fill_value=fill_value)
             return out
-    elif dtype_str in ('float64', 'object', 'datetime64[us]'):
+    elif dtype_str in ('float64', 'object', 'datetime64[ns]'):
         out = np.empty(out_shape, dtype=arr.dtype)
+        take_f = _get_take2d_function(dtype_str, axis='multi')
         take_f(arr, _ensure_int64(row_idx), _ensure_int64(col_idx), out=out,
                fill_value=fill_value)
         return out
@@ -326,7 +311,7 @@ def take_2d(arr, indexer, out=None, mask=None, needs_masking=None, axis=0,
             take_f = _get_take2d_function(dtype_str, axis=axis)
             take_f(arr, _ensure_int64(indexer), out=out, fill_value=fill_value)
             return out
-    elif dtype_str in ('float64', 'object', 'datetime64[us]'):
+    elif dtype_str in ('float64', 'object', 'datetime64[ns]'):
         if out is None:
             out = np.empty(out_shape, dtype=arr.dtype)
         take_f = _get_take2d_function(dtype_str, axis=axis)
@@ -764,7 +749,13 @@ _ensure_object = _algos.ensure_object
 
 
 def _astype_nansafe(arr, dtype):
-    if (np.issubdtype(arr.dtype, np.floating) and
+    if isinstance(dtype, basestring):
+        dtype = np.dtype(dtype)
+
+    if issubclass(arr.dtype.type, np.datetime64):
+        if dtype == object:
+            return lib.ints_to_pydatetime(arr.view(np.int64))
+    elif (np.issubdtype(arr.dtype, np.floating) and
         np.issubdtype(dtype, np.integer)):
 
         if np.isnan(arr).any():
@@ -778,6 +769,10 @@ def _clean_fill_method(method):
         method = 'pad'
     if method == 'bfill':
         method = 'backfill'
+    if method not in ['pad', 'backfill']:
+        msg = ('Invalid fill method. Expecting pad (ffill) or backfill (bfill).'
+               ' Got %s' % method)
+        raise ValueError(msg)
     return method
 
 def _all_none(*args):

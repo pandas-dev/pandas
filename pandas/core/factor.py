@@ -1,14 +1,35 @@
+# pylint: disable=E1101,W0232
+
 import numpy as np
 import pandas.core.common as com
-import pandas._tseries as lib
 
 
-class Factor(np.ndarray):
+def _factor_compare_op(op):
+    def f(self, other):
+        if isinstance(other, (Factor, np.ndarray)):
+            values = np.asarray(self)
+            f = getattr(values, op)
+            return f(np.asarray(other))
+        else:
+            if other in self.levels:
+                i = self.levels.get_loc(other)
+                return getattr(self.labels, op)(i)
+            else:
+                return np.repeat(False, len(self))
+
+    f.__name__ = op
+
+    return f
+
+class Factor(object):
     """
     Represents a categorical variable in classic R / S-plus fashion
 
     Parameters
     ----------
+    labels : ndarray of integers
+    levels : Index-like (unique)
+
     data : array-like
 
     Returns
@@ -17,55 +38,73 @@ class Factor(np.ndarray):
       * labels : ndarray
       * levels : ndarray
     """
-    def __new__(cls, data):
-        data = np.asarray(data, dtype=object)
-        levels, factor = unique_with_labels(data)
-        factor = factor.view(Factor)
-        factor.levels = levels
-        return factor
+    def __init__(self, labels, levels, name=None):
+        from pandas.core.index import _ensure_index
+
+        levels = _ensure_index(levels)
+        if not levels.is_unique:
+            raise ValueError('Factor levels must be unique')
+
+        self.labels = labels
+        self.levels = levels
+        self.name = name
+
+    @classmethod
+    def from_array(cls, data):
+        from pandas.core.algorithms import factorize
+
+        try:
+            labels, levels, _ = factorize(data, sort=True)
+        except TypeError:
+            labels, levels, _ = factorize(data, sort=False)
+
+        return Factor(labels, levels)
 
     levels = None
 
-    def __array_finalize__(self, obj):
-        self.levels = getattr(obj, 'levels', None)
+    __eq__ = _factor_compare_op('__eq__')
+    __ne__ = _factor_compare_op('__ne__')
+    __lt__ = _factor_compare_op('__lt__')
+    __gt__ = _factor_compare_op('__gt__')
+    __le__ = _factor_compare_op('__le__')
+    __ge__ = _factor_compare_op('__ge__')
 
-    @property
-    def labels(self):
-        return self.view(np.ndarray)
-
-    def asarray(self):
-        return np.asarray(self.levels).take(self.labels)
+    def __array__(self, dtype=None):
+        return com.take_1d(self.levels, self.labels)
 
     def __len__(self):
         return len(self.labels)
 
     def __repr__(self):
-        temp = 'Factor:\n%s\nLevels (%d): %s'
-        values = self.asarray()
-        return temp % (repr(values), len(self.levels), self.levels)
+        temp = 'Factor:%s\n%s\nLevels (%d): %s'
+        values = np.asarray(self)
+        return temp % ('' if self.name is None else self.name,
+                       repr(values), len(self.levels), self.levels)
 
     def __getitem__(self, key):
         if isinstance(key, (int, np.integer)):
             i = self.labels[key]
-            return self.levels[i]
+            if i == -1:
+                return np.nan
+            else:
+                return self.levels[i]
         else:
-            return np.ndarray.__getitem__(self, key)
+            return Factor(self.labels[key], self.levels)
 
+    def equals(self, other):
+        """
+        Returns True if factors are equal
 
-def unique_with_labels(values):
-    from pandas.core.index import Index
-    rizer = lib.Factorizer(len(values))
-    labels, _ = rizer.factorize(values, sort=False)
-    uniques = Index(rizer.uniques)
-    labels = com._ensure_platform_int(labels)
-    try:
-        sorter = uniques.argsort()
-        reverse_indexer = np.empty(len(sorter), dtype=np.int_)
-        reverse_indexer.put(sorter, np.arange(len(sorter)))
-        labels = reverse_indexer.take(labels)
-        uniques = uniques.take(sorter)
-    except TypeError:
-        pass
+        Parameters
+        ----------
+        other : Factor
 
-    return uniques, labels
+        Returns
+        -------
+        are_equal : boolean
+        """
+        if not isinstance(other, Factor):
+            return False
 
+        return (self.levels.equals(other.levels) and
+                np.array_equal(self.labels, other.labels))

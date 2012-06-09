@@ -11,7 +11,7 @@ from pandas.core.common import ndtake
 from pandas.util.decorators import cache_readonly
 from pandas.util import py3compat
 import pandas.core.common as com
-import pandas._tseries as lib
+import pandas.lib as lib
 import pandas._algos as _algos
 
 
@@ -28,7 +28,7 @@ def _indexOp(opname):
         result = func(other)
         try:
             return result.view(np.ndarray)
-        except:
+        except: # pragma: no cover
             return result
     return wrapper
 
@@ -36,6 +36,7 @@ def _indexOp(opname):
 class InvalidIndexError(Exception):
     pass
 
+_o_dtype = np.dtype(object)
 
 class Index(np.ndarray):
     """
@@ -59,6 +60,7 @@ class Index(np.ndarray):
     # Cython methods
     _groupby = _algos.groupby_object
     _arrmap = _algos.arrmap_object
+    _left_indexer_unique = _algos.left_join_indexer_unique_object
     _left_indexer = _algos.left_join_indexer_object
     _inner_indexer = _algos.inner_join_indexer_object
     _outer_indexer = _algos.outer_join_indexer_object
@@ -72,15 +74,24 @@ class Index(np.ndarray):
 
     def __new__(cls, data, dtype=None, copy=False, name=None):
         if isinstance(data, np.ndarray):
-            if dtype is None:
-                if issubclass(data.dtype.type, np.datetime64):
-                    from pandas.tseries.index import DatetimeIndex
-                    return DatetimeIndex(data, copy=copy, name=name)
+            if issubclass(data.dtype.type, np.datetime64):
+                from pandas.tseries.index import DatetimeIndex
+                result = DatetimeIndex(data, copy=copy, name=name)
+                if dtype is not None and _o_dtype == dtype:
+                    return Index(result.to_pydatetime(), dtype=_o_dtype)
+                else:
+                    return result
 
-                if issubclass(data.dtype.type, np.integer):
-                    return Int64Index(data, copy=copy, name=name)
+            if dtype is not None:
+                try:
+                    data = np.array(data, dtype=dtype, copy=copy)
+                except TypeError:
+                    pass
 
-            subarr = np.array(data, dtype=object, copy=copy)
+            if issubclass(data.dtype.type, np.integer):
+                return Int64Index(data, copy=copy, name=name)
+
+            subarr = com._ensure_object(data)
         elif np.isscalar(data):
             raise ValueError('Index(...) must be called with a collection '
                              'of some kind, %s was passed' % repr(data))
@@ -131,6 +142,8 @@ class Index(np.ndarray):
             parser = lambda x: parse(x, dayfirst=dayfirst)
             parsed = lib.try_parse_dates(self.values, parser=parser)
             return DatetimeIndex(parsed)
+        elif isinstance(self, DatetimeIndex):
+            return self.copy()
         else:
             return DatetimeIndex(self.values)
 
@@ -520,7 +533,7 @@ class Index(np.ndarray):
                 # contained in
                 try:
                     result = np.sort(self.values)
-                except TypeError:
+                except TypeError: # pragma: no cover
                     result = self.values
 
         # for subclasses
@@ -691,8 +704,8 @@ class Index(np.ndarray):
             return pself.get_indexer(ptarget, method=method, limit=limit)
 
         if self.dtype != target.dtype:
-            this = Index(self, dtype=object)
-            target = Index(target, dtype=object)
+            this = self.astype(object)
+            target = target.astype(object)
             return this.get_indexer(target, method=method, limit=limit)
 
         if not self.is_unique:
@@ -718,13 +731,6 @@ class Index(np.ndarray):
         if self.inferred_type == 'date' and isinstance(other, DatetimeIndex):
             return DatetimeIndex(self), other
         return self, other
-
-    def _get_indexer_standard(self, other):
-        if (self.dtype != np.object_ and
-            self.is_monotonic and other.is_monotonic):
-            return self._left_indexer(other, self)
-        else:
-            return self._engine.get_indexer(other)
 
     def groupby(self, to_groupby):
         return self._groupby(self.values, to_groupby)
@@ -838,7 +844,17 @@ class Index(np.ndarray):
 
         _validate_join_method(how)
 
-        if self.is_monotonic and other.is_monotonic:
+        if not self.is_unique and not other.is_unique:
+            return self._join_non_unique(other, how=how,
+                                         return_indexers=return_indexers)
+        elif not self.is_unique or not other.is_unique:
+            if self.is_monotonic and other.is_monotonic:
+                return self._join_monotonic(other, how=how,
+                                            return_indexers=return_indexers)
+            else:
+                return self._join_non_unique(other, how=how,
+                                             return_indexers=return_indexers)
+        elif self.is_monotonic and other.is_monotonic:
             return self._join_monotonic(other, how=how,
                                         return_indexers=return_indexers)
 
@@ -861,6 +877,26 @@ class Index(np.ndarray):
             else:
                 rindexer = other.get_indexer(join_index)
             return join_index, lindexer, rindexer
+        else:
+            return join_index
+
+    def _join_non_unique(self, other, how='left', return_indexers=False):
+        from pandas.tools.merge import _get_join_indexers
+
+        left_idx, right_idx = _get_join_indexers([self.values], [other.values],
+                                                 how=how, sort=True)
+
+        left_idx = com._ensure_platform_int(left_idx)
+        right_idx = com._ensure_platform_int(right_idx)
+
+        join_index = self.values.take(left_idx)
+        mask = left_idx == -1
+        np.putmask(join_index, mask, other.values.take(right_idx))
+
+        join_index = self._wrap_joined_index(join_index, other)
+
+        if return_indexers:
+            return join_index, left_idx, right_idx
         else:
             return join_index
 
@@ -934,21 +970,35 @@ class Index(np.ndarray):
             else:
                 return ret_index
 
-        if how == 'left':
-            join_index = self
-            lidx = None
-            ridx = self._left_indexer(self, other)
-        elif how == 'right':
-            join_index = other
-            lidx = self._left_indexer(other, self)
-            ridx = None
-        elif how == 'inner':
-            join_index, lidx, ridx = self._inner_indexer(self.values,
-                                                         other.values)
-            join_index = self._wrap_joined_index(join_index, other)
-        elif how == 'outer':
-            join_index, lidx, ridx = self._outer_indexer(self.values,
-                                                         other.values)
+        if self.is_unique and other.is_unique:
+            # We can perform much better than the general case
+            if how == 'left':
+                join_index = self
+                lidx = None
+                ridx = self._left_indexer_unique(self, other)
+            elif how == 'right':
+                join_index = other
+                lidx = self._left_indexer_unique(other, self)
+                ridx = None
+            elif how == 'inner':
+                join_index, lidx, ridx = self._inner_indexer(self.values,
+                                                             other.values)
+                join_index = self._wrap_joined_index(join_index, other)
+            elif how == 'outer':
+                join_index, lidx, ridx = self._outer_indexer(self.values,
+                                                             other.values)
+                join_index = self._wrap_joined_index(join_index, other)
+        else:
+            if how == 'left':
+                join_index, lidx, ridx = self._left_indexer(self, other)
+            elif how == 'right':
+                join_index, ridx, lidx = self._left_indexer(other, self)
+            elif how == 'inner':
+                join_index, lidx, ridx = self._inner_indexer(self.values,
+                                                             other.values)
+            elif how == 'outer':
+                join_index, lidx, ridx = self._outer_indexer(self.values,
+                                                             other.values)
             join_index = self._wrap_joined_index(join_index, other)
 
         if return_indexers:
@@ -1070,6 +1120,7 @@ class Int64Index(Index):
 
     _groupby = _algos.groupby_int64
     _arrmap = _algos.arrmap_int64
+    _left_indexer_unique = _algos.left_join_indexer_unique_int64
     _left_indexer = _algos.left_join_indexer_int64
     _inner_indexer = _algos.inner_join_indexer_int64
     _outer_indexer = _algos.outer_join_indexer_int64
@@ -1172,8 +1223,12 @@ class MultiIndex(Index):
         levels = [_ensure_index(lev) for lev in levels]
         labels = [np.asarray(labs, dtype=np.int_) for labs in labels]
 
-        values = [ndtake(np.asarray(lev), lab)
+        values = [ndtake(lev.values, lab)
                   for lev, lab in zip(levels, labels)]
+
+        # Need to box timestamps, etc.
+        values = _clean_arrays(values)
+
         subarr = lib.fast_zip(values).view(cls)
 
         subarr.levels = levels
@@ -1412,7 +1467,7 @@ class MultiIndex(Index):
         levels = []
         labels = []
         for arr in arrays:
-            factor = Factor(arr)
+            factor = Factor.from_array(arr)
             levels.append(factor.levels)
             labels.append(factor.labels)
 
@@ -2344,8 +2399,13 @@ def _handle_legacy_indexes(indexes):
     converted = []
     for index in indexes:
         if isinstance(index, DateRange):
-            index = DatetimeIndex(start=index[0], end=index[-1],
-                                  freq=index.offset, tz=index.tzinfo)
+            if len(index) == 0:
+                kwds = dict(data=[], freq=index.offset, tz=index.tzinfo)
+            else:
+                kwds = dict(start=index[0], end=index[-1],
+                            freq=index.offset, tz=index.tzinfo)
+
+            index = DatetimeIndex(**kwds)
 
         converted.append(index)
 
@@ -2372,3 +2432,19 @@ def _maybe_box_dtindex(idx):
         return Index(_dt_box_array(idx.asi8), dtype='object')
     return idx
 
+def _clean_arrays(values):
+    result = []
+    for arr in values:
+        if np.issubdtype(arr.dtype, np.datetime64):
+            result.append(lib.map_infer(arr, lib.Timestamp))
+        else:
+            result.append(arr)
+    return result
+
+
+def _all_indexes_same(indexes):
+    first = indexes[0]
+    for index in indexes[1:]:
+        if not first.equals(index):
+            return False
+    return True

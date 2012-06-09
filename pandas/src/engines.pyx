@@ -101,6 +101,8 @@ cdef class IndexEngine:
             void* data_ptr
 
         loc = self.get_loc(key)
+        value = convert_scalar(arr, value)
+
         if PySlice_Check(loc) or cnp.PyArray_Check(loc):
             arr[loc] = value
         else:
@@ -415,33 +417,52 @@ cdef class DatetimeEngine(Int64Engine):
 
     def get_indexer(self, values):
         self._ensure_mapping_populated()
-        if values.dtype != 'M8':
+        if values.dtype != 'M8[ns]':
             return np.repeat(-1, len(values)).astype('i4')
         values = np.asarray(values).view('i8')
         return self.mapping.lookup(values)
 
     def get_pad_indexer(self, other, limit=None):
-        if other.dtype != 'M8':
+        if other.dtype != 'M8[ns]':
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
         return _algos.pad_int64(self._get_index_values(), other,
                                 limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
-        if other.dtype != 'M8':
+        if other.dtype != 'M8[ns]':
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
         return _algos.backfill_int64(self._get_index_values(), other,
                                      limit=limit)
 
 
+cpdef convert_scalar(ndarray arr, object value):
+    if arr.descr.type_num == NPY_DATETIME:
+        if isinstance(value, _Timestamp):
+            return (<_Timestamp> value).value
+        elif value is None or value != value:
+            return iNaT
+        else:
+            return Timestamp(value).value
+
+    if issubclass(arr.dtype.type, (np.integer, np.bool_)):
+        if util.is_float_object(value) and value != value:
+            raise ValueError('Cannot assign nan to integer series')
+
+    return value
+
 cdef inline _to_i8(object val):
-    if util.is_datetime64_object(val):
-        val = unbox_datetime64_scalar(val)
-    elif PyDateTime_Check(val):
-        val = np.datetime64(val)
-        val = unbox_datetime64_scalar(val)
-    return val
+    cdef pandas_datetimestruct dts
+    try:
+        return val.value
+    except AttributeError:
+        if util.is_datetime64_object(val):
+            return get_datetime64_value(val)
+        elif PyDateTime_Check(val):
+            return _pydatetime_to_dts(val, &dts)
+        return val
+
 
 # ctypedef fused idxvalue_t:
 #     object

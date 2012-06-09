@@ -5,6 +5,7 @@ from StringIO import StringIO
 import re
 from itertools import izip
 from urlparse import urlparse
+import csv
 
 try:
     next
@@ -19,8 +20,9 @@ from pandas.core.index import Index, MultiIndex
 from pandas.core.frame import DataFrame
 import datetime
 import pandas.core.common as com
-import pandas._tseries as lib
+import pandas.lib as lib
 from pandas.util import py3compat
+from pandas.io.date_converters import generic_parser
 
 from pandas.util.decorators import Appender
 
@@ -33,10 +35,13 @@ into chunks.
 Parameters
 ----------
 filepath_or_buffer : string or file handle / StringIO. The string could be
-    a URL. Valid URL schemes include http://, ftp://, and file://. For
-    file:// URLs, a host is expected. For instance, a local file could be
-    file://localhost/path/to/table.csv
+    a URL. Valid URL schemes include http, ftp, and file. For file URLs, a host
+    is expected. For instance, a local file could be
+    file ://localhost/path/to/table.csv
 %s
+dialect : string or csv.Dialect instance, default None
+    If None defaults to Excel dialect. Ignored if sep longer than 1 char
+    See csv.Dialect documentation for more details
 header : int, default 0
     Row to use for the column labels of the parsed DataFrame
 skiprows : list-like or integer
@@ -51,10 +56,12 @@ na_values : list-like or dict, default None
     per-column NA values
 parse_dates : boolean, list of ints or names, list of lists, or dict
     True -> try parsing all columns
-    [1, 2, 3] -> try parsing columns 1, 2, 3
-    [[1, 3]] -> combine columns 1 and 3 and parse as date (for dates split
-                across multiple columns), and munge column names
+    [1, 2, 3] -> try parsing columns 1, 2, 3 each as a separate date column
+    [[1, 3]] -> combine columns 1 and 3 and parse as a single date column
     {'foo' : [1, 3]} -> parse columns 1, 3 as date and call result 'foo'
+keep_date_col : boolean, default False
+    If True and parse_dates specifies combining multiple columns then
+    keep the original columns.
 date_parser : function
     Function to use for converting dates to strings. Defaults to
     dateutil.parser
@@ -82,6 +89,8 @@ delimiter : string, default None
     Alternative argument name for sep
 encoding : string, default None
     Encoding to use for UTF when reading/writing (ex. 'utf-8')
+squeeze : boolean, default False
+    If the parsed data only contains one column then return a Series
 
 Returns
 -------
@@ -90,7 +99,8 @@ result : DataFrame or TextParser
 
 _csv_sep = """sep : string, default ','
     Delimiter to use. If sep is None, will try to automatically determine
-    this"""
+    this
+"""
 
 _table_sep = """sep : string, default \\t (tab-stop)
     Delimiter to use"""
@@ -184,6 +194,7 @@ def _read(cls, filepath_or_buffer, kwds):
 @Appender(_read_csv_doc)
 def read_csv(filepath_or_buffer,
              sep=',',
+             dialect=None,
              header=0,
              index_col=None,
              names=None,
@@ -192,6 +203,7 @@ def read_csv(filepath_or_buffer,
              thousands=None,
              comment=None,
              parse_dates=False,
+             keep_date_col=False,
              dayfirst=False,
              date_parser=None,
              nrows=None,
@@ -201,7 +213,8 @@ def read_csv(filepath_or_buffer,
              converters=None,
              verbose=False,
              delimiter=None,
-             encoding=None):
+             encoding=None,
+             squeeze=False):
     kwds = locals()
 
     # Alias sep -> delimiter.
@@ -214,6 +227,7 @@ def read_csv(filepath_or_buffer,
 @Appender(_read_table_doc)
 def read_table(filepath_or_buffer,
                sep='\t',
+               dialect=None,
                header=0,
                index_col=None,
                names=None,
@@ -222,6 +236,7 @@ def read_table(filepath_or_buffer,
                thousands=None,
                comment=None,
                parse_dates=False,
+               keep_date_col=False,
                dayfirst=False,
                date_parser=None,
                nrows=None,
@@ -231,7 +246,8 @@ def read_table(filepath_or_buffer,
                converters=None,
                verbose=False,
                delimiter=None,
-               encoding=None):
+               encoding=None,
+               squeeze=False):
     kwds = locals()
 
     # Alias sep -> delimiter.
@@ -256,6 +272,7 @@ def read_fwf(filepath_or_buffer,
              thousands=None,
              comment=None,
              parse_dates=False,
+             keep_date_col=False,
              dayfirst=False,
              date_parser=None,
              nrows=None,
@@ -265,7 +282,8 @@ def read_fwf(filepath_or_buffer,
              converters=None,
              delimiter=None,
              verbose=False,
-             encoding=None):
+             encoding=None,
+             squeeze=False):
 
     kwds = locals()
 
@@ -345,6 +363,8 @@ class TextParser(object):
     ----------
     data : file-like object or list
     delimiter : separator character to use
+    dialect : str or csv.Dialect instance, default None
+        Ignored if delimiter is longer than 1 character
     names : sequence, default
     header : int, default 0
         Row to use to parse column labels. Defaults to the first row. Prior
@@ -358,6 +378,7 @@ class TextParser(object):
     comment : str, default None
         Comment out remainder of line
     parse_dates : boolean, default False
+    keep_date_col : boolean, default False
     date_parser : function, default None
     skiprows : list of integers
         Row numbers to skip
@@ -365,14 +386,16 @@ class TextParser(object):
         Number of line at bottom of file to skip
     encoding : string, default None
         Encoding to use for UTF when reading/writing (ex. 'utf-8')
+    squeeze : boolean, default False
+        returns Series if only one column
     """
 
-    def __init__(self, f, delimiter=None, names=None, header=0,
+    def __init__(self, f, delimiter=None, dialect=None, names=None, header=0,
                  index_col=None, na_values=None, thousands=None,
-                 comment=None, parse_dates=False,
+                 comment=None, parse_dates=False, keep_date_col=False,
                  date_parser=None, dayfirst=False,
                  chunksize=None, skiprows=None, skip_footer=0, converters=None,
-                 verbose=False, encoding=None):
+                 verbose=False, encoding=None, squeeze=False):
         """
         Workhorse function for processing nested list into DataFrame
 
@@ -389,6 +412,7 @@ class TextParser(object):
         self.encoding = encoding
 
         self.parse_dates = parse_dates
+        self.keep_date_col = keep_date_col
         self.date_parser = date_parser
         self.dayfirst = dayfirst
 
@@ -398,6 +422,7 @@ class TextParser(object):
 
         self.skip_footer = skip_footer
         self.delimiter = delimiter
+        self.dialect = dialect
         self.verbose = verbose
 
         if converters is not None:
@@ -425,12 +450,20 @@ class TextParser(object):
             self.data = f
         self.columns = self._infer_columns()
 
+        # needs to be cleaned/refactored
+        # multiple date column thing turning into a real sphaghetti factory
+
         # get popped off for index
         self.orig_columns = list(self.columns)
 
-        self.index_name = self._get_index_name()
+        self.index_name = None
+        self._name_processed = False
+        if not self._has_complex_date_col:
+            self.index_name = self._get_index_name()
+            self._name_processed = True
         self._first_chunk = True
 
+        self.squeeze = squeeze
 
     def _make_reader(self, f):
         import csv
@@ -440,7 +473,13 @@ class TextParser(object):
         if sep is None or len(sep) == 1:
             sniff_sep = True
             # default dialect
-            dia = csv.excel()
+            if self.dialect is None:
+                dia = csv.excel()
+            elif isinstance(self.dialect, basestring):
+                dia = csv.get_dialect(self.dialect)
+            else:
+                dia = self.dialect
+
             if sep is not None:
                 sniff_sep = False
                 dia.delimiter = sep
@@ -448,10 +487,6 @@ class TextParser(object):
             if sniff_sep:
                 line = f.readline()
                 while self.pos in self.skiprows:
-                    self.pos += 1
-                    line = f.readline()
-
-                while self._is_commented(line):
                     self.pos += 1
                     line = f.readline()
 
@@ -525,11 +560,7 @@ class TextParser(object):
                 self.pos += 1
 
             try:
-                while True:
-                    line = self.data[self.pos]
-                    if not self._is_commented(line):
-                        break
-                    self.pos += 1
+                line = self.data[self.pos]
             except IndexError:
                 raise StopIteration
         else:
@@ -537,11 +568,7 @@ class TextParser(object):
                 next(self.data)
                 self.pos += 1
 
-            while True:
-                line = next(self.data)
-                if not self._is_commented(line):
-                    break
-                self.pos += 1
+            line = next(self.data)
 
         line = self._check_comments([line])[0]
         line = self._check_thousands([line])[0]
@@ -550,11 +577,6 @@ class TextParser(object):
         self.buf.append(line)
 
         return line
-
-    def _is_commented(self, line):
-        if self.comment is None or len(line) == 0:
-            return False
-        return line[0].startswith(self.comment)
 
     def _check_comments(self, lines):
         if self.comment is None:
@@ -603,8 +625,9 @@ class TextParser(object):
 
     _implicit_index = False
 
-    def _get_index_name(self):
-        columns = self.columns
+    def _get_index_name(self, columns=None):
+        if columns is None:
+            columns = self.columns
 
         try:
             line = self._next_line()
@@ -638,16 +661,36 @@ class TextParser(object):
                     self.index_col = range(implicit_first_cols)
             index_name = None
         elif np.isscalar(self.index_col):
-            index_name = columns.pop(self.index_col)
+            if isinstance(self.index_col, basestring):
+                index_names = self.index_col
+                for i, c in enumerate(list(columns)):
+                    if c == self.index_col:
+                        self.index_col = i
+                        columns.pop(i)
+                        break
+            else:
+                index_name = columns.pop(self.index_col)
+
             if index_name is not None and 'Unnamed' in index_name:
                 index_name = None
+
         elif self.index_col is not None:
             cp_cols = list(columns)
             index_name = []
-            for i in self.index_col:
-                name = cp_cols[i]
-                columns.remove(name)
-                index_name.append(name)
+            index_col = list(self.index_col)
+            for i, c in enumerate(index_col):
+                if isinstance(c, basestring):
+                    index_name.append(c)
+                    for j, name in enumerate(cp_cols):
+                        if name == c:
+                            index_col[i] = j
+                            columns.remove(name)
+                            break
+                else:
+                    name = cp_cols[c]
+                    columns.remove(name)
+                    index_name.append(name)
+            self.index_col = index_col
 
         return index_name
 
@@ -680,42 +723,11 @@ class TextParser(object):
 
         zipped_content = list(lib.to_object_array(content).T)
 
-        if self.index_col is not None:
-            if np.isscalar(self.index_col):
-                index = zipped_content.pop(self.index_col)
-            else: # given a list of index
-                index = []
-                for idx in self.index_col:
-                    index.append(zipped_content[idx])
-                # remove index items from content and columns, don't pop in
-                # loop
-                for i in reversed(sorted(self.index_col)):
-                    zipped_content.pop(i)
-
-            if np.isscalar(self.index_col):
-                if self._should_parse_dates(self.index_col):
-                    index = self._conv_date(index)
-                index, na_count = _convert_types(index, self.na_values)
-                index = Index(index, name=self.index_name)
-                if self.verbose and na_count:
-                    print 'Found %d NA values in the index' % na_count
-            else:
-                arrays = []
-                for i, arr in enumerate(index):
-                    if self._should_parse_dates(self.index_col[i]):
-                        arr = self._conv_date(arr)
-                    arr, _ = _convert_types(arr, self.na_values)
-                    arrays.append(arr)
-                index = MultiIndex.from_arrays(arrays, names=self.index_name)
+        if not self._has_complex_date_col and self.index_col is not None:
+            index = self._get_simple_index(zipped_content)
+            index = self._agg_index(index)
         else:
             index = Index(np.arange(len(content)))
-
-        # if not index.is_unique:
-        #     dups = index.get_duplicates()
-        #     idx_str = 'Index' if not self._implicit_index else 'Implicit index'
-        #     err_msg = ('%s (columns %s) have duplicate values %s'
-        #                % (idx_str, self.index_col, str(dups)))
-        #     raise Exception(err_msg)
 
         col_len, zip_len = len(self.columns), len(zipped_content)
         if col_len != zip_len:
@@ -741,41 +753,124 @@ class TextParser(object):
                 col = self.columns[col]
             data[col] = lib.map_infer(data[col], f)
 
-        columns = self.columns
+        columns = list(self.columns)
         if self.parse_dates is not None:
             data, columns = self._process_date_conversion(data)
 
         data = _convert_to_ndarrays(data, self.na_values, self.verbose)
 
-        return DataFrame(data=data, columns=columns, index=index)
+        df = DataFrame(data=data, columns=columns, index=index)
+        if self._has_complex_date_col and self.index_col is not None:
+            if not self._name_processed:
+                self.index_name = self._get_index_name(list(columns))
+                self._name_processed = True
+            data = dict(((k, v) for k, v in df.iteritems()))
+            index = self._get_complex_date_index(data, col_names=columns,
+                                                 parse_dates=False)
+            index = self._agg_index(index, False)
+            data = dict(((k, v.values) for k, v in data.iteritems()))
+            df = DataFrame(data=data, columns=columns, index=index)
 
-    def _find_line_number(self, exp_len, chunk_len, chunk_i):
-        if exp_len is None:
-            prev_pos = 0
+        if self.squeeze and len(df.columns) == 1:
+            return df[df.columns[0]]
+        return df
+
+    @property
+    def _has_complex_date_col(self):
+        return (isinstance(self.parse_dates, dict) or
+                (isinstance(self.parse_dates, list) and
+                 len(self.parse_dates) > 0 and
+                 isinstance(self.parse_dates[0], list)))
+
+    def _get_simple_index(self, data):
+        def ix(col):
+            if not isinstance(col, basestring):
+                return col
+            raise ValueError('Index %s invalid' % col)
+        index = None
+        if np.isscalar(self.index_col):
+            index = data.pop(ix(self.index_col))
+        else: # given a list of index
+            to_remove = []
+            index = []
+            for idx in self.index_col:
+                i = ix(idx)
+                to_remove.append(i)
+                index.append(data[idx])
+
+            # remove index items from content and columns, don't pop in
+            # loop
+            for i in reversed(sorted(to_remove)):
+                data.pop(i)
+
+        return index
+
+    def _get_complex_date_index(self, data, col_names=None, parse_dates=True):
+        def _get_name(icol):
+            if isinstance(icol, basestring):
+                return icol
+
+            if col_names is None:
+                raise ValueError(('Must supply column order to use %s as '
+                                  'index') % str(icol))
+
+            for i, c in enumerate(col_names):
+                if i == icol:
+                    return c
+
+        index = None
+        if np.isscalar(self.index_col):
+            name = _get_name(self.index_col)
+            index = data.pop(name)
+            if col_names is not None:
+                col_names.remove(name)
+        else: # given a list of index
+            to_remove = []
+            index = []
+            for idx in self.index_col:
+                c = _get_name(idx)
+                to_remove.append(c)
+                index.append(data[c])
+
+            # remove index items from content and columns, don't pop in
+            # loop
+            for c in reversed(sorted(to_remove)):
+                data.pop(c)
+                if col_names is not None:
+                    col_names.remove(c)
+
+        return index
+
+    def _agg_index(self, index, try_parse_dates=True):
+        if np.isscalar(self.index_col):
+            if try_parse_dates and self._should_parse_dates(self.index_col):
+                index = self._conv_date(index)
+            index, na_count = _convert_types(index, self.na_values)
+            index = Index(index, name=self.index_name)
+            if self.verbose and na_count:
+                print 'Found %d NA values in the index' % na_count
         else:
-            prev_pos = self.pos - exp_len
-
-        # add in skip rows in this chunk appearing before chunk_i
-        if self.skiprows is not None and len(self.skiprows) > 0:
-            skipped = Index(self.skiprows)
-            skipped = skipped[skipped > prev_pos & skipped < self.pos]
-
-
-        row_num = prev_pos + chunk_i
-
-        # add in comments in this chunk appearing before chunk_i
-
-        return row_num
+            arrays = []
+            for i, arr in enumerate(index):
+                if (try_parse_dates and
+                    self._should_parse_dates(self.index_col[i])):
+                    arr = self._conv_date(arr)
+                arr, _ = _convert_types(arr, self.na_values)
+                arrays.append(arr)
+            index = MultiIndex.from_arrays(arrays, names=self.index_name)
+        return index
 
     def _should_parse_dates(self, i):
         if isinstance(self.parse_dates, bool):
             return self.parse_dates
         else:
-            to_parse = self.parse_dates
+            to_parse = self.parse_dates # int/string or list of int or string
+
             if np.isscalar(self.index_col):
                 name = self.index_name
             else:
                 name = self.index_name[i]
+
             return i in to_parse or name in to_parse
 
     def _conv_date(self, *date_cols):
@@ -785,15 +880,19 @@ class TextParser(object):
         else:
             try:
                 return self.date_parser(*date_cols)
-            except:
-                return lib.try_parse_dates(_concat_date_cols(date_cols),
-                                           parser=self.date_parser,
-                                           dayfirst=self.dayfirst)
+            except Exception, inst:
+                try:
+                    return generic_parser(self.date_parser, *date_cols)
+                except Exception, inst:
+                    return lib.try_parse_dates(_concat_date_cols(date_cols),
+                                               parser=self.date_parser,
+                                               dayfirst=self.dayfirst)
 
     def _process_date_conversion(self, data_dict):
         new_cols = []
         new_data = {}
         columns = self.columns
+        date_cols = set()
 
         if self.parse_dates is None or isinstance(self.parse_dates, bool):
             return data_dict, columns
@@ -808,13 +907,14 @@ class TextParser(object):
                         continue
                     data_dict[colspec] = self._conv_date(data_dict[colspec])
                 else:
-                    new_name, col = _try_convert_dates(self._conv_date, colspec,
-                                        data_dict, self.orig_columns)
+                    new_name, col, old_names = _try_convert_dates(
+                        self._conv_date, colspec, data_dict, self.orig_columns)
                     if new_name in data_dict:
                         raise ValueError('New date column already in dict %s' %
                                          new_name)
                     new_data[new_name] = col
                     new_cols.append(new_name)
+                    date_cols.update(old_names)
 
         elif isinstance(self.parse_dates, dict):
             # dict of new name to column list
@@ -823,13 +923,20 @@ class TextParser(object):
                     raise ValueError('Date column %s already in dict' %
                                      new_name)
 
-                _, col = _try_convert_dates(self._conv_date, colspec, data_dict,
-                                            self.orig_columns)
+                _, col, old_names = _try_convert_dates(
+                    self._conv_date, colspec, data_dict, self.orig_columns)
+
                 new_data[new_name] = col
                 new_cols.append(new_name)
+                date_cols.update(old_names)
 
         data_dict.update(new_data)
         new_cols.extend(columns)
+
+        if not self.keep_date_col:
+            for c in list(date_cols):
+                data_dict.pop(c)
+                new_cols.remove(c)
         return data_dict, new_cols
 
     def _isindex(self, colspec):
@@ -865,8 +972,18 @@ class TextParser(object):
                         new_rows.append(next(source))
                     lines.extend(new_rows)
                 else:
+                    rows = 0
                     while True:
-                        new_rows.append(next(source))
+                        try:
+                            new_rows.append(next(source))
+                            rows += 1
+                        except csv.Error, inst:
+                            if 'newline inside string' in inst.message:
+                                row_num = str(self.pos + rows)
+                                msg = ('EOF inside string starting with line '
+                                       + row_num)
+                                raise Exception(msg)
+                            raise
             except StopIteration:
                 lines.extend(new_rows)
                 if len(lines) == 0:
@@ -941,7 +1058,7 @@ def _try_convert_dates(parser, colspec, data_dict, columns):
         new_col = parser(*to_parse)
     except DateConversionError:
         new_col = parser(_concat_date_cols(to_parse))
-    return new_name, new_col
+    return new_name, new_col, colspec
 
 def _concat_date_cols(date_cols):
     if len(date_cols) == 1:

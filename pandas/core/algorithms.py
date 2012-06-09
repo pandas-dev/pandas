@@ -6,7 +6,8 @@ intended for public consumption
 import numpy as np
 
 import pandas.core.common as com
-import pandas._tseries as lib
+import pandas.lib as lib
+import pandas._algos as _algos
 
 def match(to_match, values, na_sentinel=-1):
     """
@@ -92,7 +93,7 @@ def _unique_generic(values, table_type, type_caster):
     values = type_caster(values)
     table = table_type(len(values))
     uniques = table.unique(values)
-    return uniques
+    return type_caster(uniques)
 
 
 def factorize(values, sort=False, order=None, na_sentinel=-1):
@@ -108,6 +109,8 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
     Returns
     -------
     """
+    values = np.asarray(values)
+    is_datetime = com.is_datetime64_dtype(values)
     hash_klass, values = _get_data_algo(values, _hashtables)
 
     uniques = []
@@ -129,11 +132,22 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
         uniques = uniques.take(sorter)
         counts = counts.take(sorter)
 
+    if is_datetime:
+        uniques = np.array(uniques, dtype='M8[ns]')
+
     return labels, uniques, counts
 
 def value_counts(values, sort=True, ascending=False):
     """
     Compute a histogram of the counts of non-null values
+
+    Parameters
+    ----------
+    values : ndarray (1-d)
+    sort : boolean, default True
+        Sort by values
+    ascending : boolean, default False
+        Sort in ascending order
 
     Returns
     -------
@@ -174,11 +188,85 @@ def rank(values, axis=0, method='average', na_option='keep',
                   ascending=ascending)
     return ranks
 
+def quantile(x, q, interpolation_method='fraction'):
+    """
+    Compute sample quantile or quantiles of the input array. For example, q=0.5
+    computes the median.
+
+    The `interpolation_method` parameter supports three values, namely
+    `fraction` (default), `lower` and `higher`. Interpolation is done only,
+    if the desired quantile lies between two data points `i` and `j`. For
+    `fraction`, the result is an interpolated value between `i` and `j`;
+    for `lower`, the result is `i`, for `higher` the result is `j`.
+
+    Parameters
+    ----------
+    a : ndarray
+        Values from which to extract score.
+    q : scalar or array
+        Percentile at which to extract score.
+    interpolation : {'fraction', 'lower', 'higher'}, optional
+        This optional parameter specifies the interpolation method to use,
+        when the desired quantile lies between two data points `i` and `j`:
+
+        - fraction: `i + (j - i)*fraction`, where `fraction` is the
+                    fractional part of the index surrounded by `i` and `j`.
+        -lower: `i`.
+        - higher: `j`.
+
+    Returns
+    -------
+    score : float
+        Score at percentile.
+
+    Examples
+    --------
+    >>> from scipy import stats
+    >>> a = np.arange(100)
+    >>> stats.scoreatpercentile(a, 50)
+    49.5
+
+    """
+    values = np.sort(np.asarray(x))
+
+    def _get_score(at):
+        idx = at * (len(values) - 1)
+        if (idx % 1 == 0):
+            score = values[idx]
+        else:
+            if interpolation_method == 'fraction':
+                score = _interpolate(values[int(idx)], values[int(idx) + 1],
+                                     idx % 1)
+            elif interpolation_method == 'lower':
+                score = values[np.floor(idx)]
+            elif interpolation_method == 'higher':
+                score = values[np.ceil(idx)]
+            else:
+                raise ValueError("interpolation_method can only be 'fraction', " \
+                                 "'lower' or 'higher'")
+
+        return score
+
+    if np.isscalar(q):
+        return _get_score(q)
+    else:
+        q = np.asarray(q, np.float64)
+        return _algos.arrmap_float64(q, _get_score)
+
+def _interpolate(a, b, fraction):
+    """Returns the point at the given fraction between a and b, where
+    'fraction' must be between 0 and 1.
+    """
+    return a + (b - a)*fraction
+
 
 def _get_data_algo(values, func_map):
     if com.is_float_dtype(values):
         f = func_map['float64']
         values = com._ensure_float64(values)
+    elif com.is_datetime64_dtype(values):
+        f = func_map['int64']
+        values = values.view('i8')
     elif com.is_integer_dtype(values):
         f = func_map['int64']
         values = com._ensure_int64(values)

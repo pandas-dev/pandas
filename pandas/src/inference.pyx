@@ -11,7 +11,7 @@ _TYPE_MAP = {
     np.uint64: 'integer',
     np.float32: 'floating',
     np.float64: 'floating',
-    np.complex64: 'complex',
+    np.complex128: 'complex',
     np.complex128: 'complex',
     np.string_: 'string',
     np.unicode_: 'unicode',
@@ -76,9 +76,13 @@ def infer_dtype(object _values):
         if is_bool_array(values):
             return 'boolean'
 
-    elif util.is_string_object(val):
+    elif PyString_Check(val):
         if is_string_array(values):
             return 'string'
+
+    elif PyUnicode_Check(val):
+        if is_unicode_array(values):
+            return 'unicode'
 
     for i in range(n):
         val = util.get_value_1d(values, i)
@@ -180,11 +184,33 @@ def is_string_array(ndarray values):
             return False
 
         for i in range(n):
-            if not util.is_string_object(objbuf[i]):
+            if not PyString_Check(objbuf[i]):
                 return False
         return True
     else:
         return False
+
+def is_unicode_array(ndarray values):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[object] objbuf
+        object obj
+
+    if issubclass(values.dtype.type, np.unicode_):
+        return True
+    elif values.dtype == np.object_:
+        objbuf = values
+
+        if n == 0:
+            return False
+
+        for i in range(n):
+            if not PyUnicode_Check(objbuf[i]):
+                return False
+        return True
+    else:
+        return False
+
 
 def is_datetime_array(ndarray[object] values):
     cdef int i, n = len(values)
@@ -223,7 +249,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values):
     cdef:
         Py_ssize_t i, n
         ndarray[float64_t] floats
-        ndarray[complex64_t] complexes
+        ndarray[complex128_t] complexes
         ndarray[int64_t] ints
         bint seen_float = 0
         bint seen_complex = 0
@@ -233,7 +259,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values):
     n = len(values)
 
     floats = np.empty(n, dtype='f8')
-    complexes = np.empty(n, dtype='c8')
+    complexes = np.empty(n, dtype='c16')
     ints = np.empty(n, dtype='i8')
 
     for i from 0 <= i < n:
@@ -271,18 +297,20 @@ def maybe_convert_numeric(ndarray[object] values, set na_values):
         return ints
 
 def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
-                          bint safe=0):
+                          bint safe=0, bint convert_datetime=0):
     '''
     Type inference function-- convert object array to proper dtype
     '''
     cdef:
         Py_ssize_t i, n
         ndarray[float64_t] floats
-        ndarray[complex64_t] complexes
+        ndarray[complex128_t] complexes
         ndarray[int64_t] ints
         ndarray[uint8_t] bools
+        ndarray[int64_t] idatetimes
         bint seen_float = 0
         bint seen_complex = 0
+        bint seen_datetime = 0
         bint seen_int = 0
         bint seen_bool = 0
         bint seen_object = 0
@@ -293,9 +321,11 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
     n = len(objects)
 
     floats = np.empty(n, dtype='f8')
-    complexes = np.empty(n, dtype='c8')
+    complexes = np.empty(n, dtype='c16')
     ints = np.empty(n, dtype='i8')
     bools = np.empty(n, dtype=np.uint8)
+    datetimes = np.empty(n, dtype='M8[ns]')
+    idatetimes = datetimes.view(np.int64)
 
     onan = np.nan
     fnan = np.nan
@@ -309,10 +339,6 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         elif util.is_bool_object(val):
             seen_bool = 1
             bools[i] = val
-        elif util.is_datetime64_object(val):
-            # convert to datetime.datetime for now
-            seen_object = 1
-            objects[i] = val.astype('O')
         elif util.is_integer_object(val):
             seen_int = 1
             floats[i] = <float64_t> val
@@ -325,6 +351,19 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         elif util.is_complex_object(val):
             complexes[i] = val
             seen_complex = 1
+        elif util.is_datetime64_object(val):
+            if convert_datetime:
+                idatetimes[i] = convert_to_tsobject(val).value
+                seen_datetime = 1
+            else:
+                seen_object = 1
+                # objects[i] = val.astype('O')
+        elif PyDateTime_Check(val):
+            if convert_datetime:
+                seen_datetime = 1
+                idatetimes[i] = convert_to_tsobject(val).value
+            else:
+                seen_object = 1
         elif try_float and not util.is_string_object(val):
             # this will convert Decimal objects
             try:
@@ -349,12 +388,18 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             if seen_object:
                 return objects
             elif not seen_bool:
-                if seen_complex:
-                    return complexes
-                elif seen_float:
-                    return floats
-                elif seen_int:
-                    return ints
+                if seen_datetime:
+                    if seen_complex or seen_float or seen_int:
+                        return objects
+                    else:
+                        return datetimes
+                else:
+                    if seen_complex:
+                        return complexes
+                    elif seen_float:
+                        return floats
+                    elif seen_int:
+                        return ints
             else:
                 if not seen_float and not seen_int:
                     return bools.view(np.bool_)
@@ -374,14 +419,20 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             if seen_object:
                 return objects
             elif not seen_bool:
-                if seen_int and seen_float:
-                    return objects
-                elif seen_complex:
-                    return complexes
-                elif seen_float:
-                    return floats
-                elif seen_int:
-                    return ints
+                if seen_datetime:
+                    if seen_complex or seen_float or seen_int:
+                        return objects
+                    else:
+                        return datetimes
+                else:
+                    if seen_int and seen_float:
+                        return objects
+                    elif seen_complex:
+                        return complexes
+                    elif seen_float:
+                        return floats
+                    elif seen_int:
+                        return ints
             else:
                 if not seen_float and not seen_int:
                     return bools.view(np.bool_)
@@ -429,6 +480,96 @@ def try_parse_dates(ndarray[object] values, parser=None,
         except Exception:
             # raise if passed parser and it failed
             raise
+
+    return result
+
+def try_parse_date_and_time(ndarray[object] dates, ndarray[object] times,
+                            date_parser=None, time_parser=None,
+                            dayfirst=False):
+    cdef:
+        Py_ssize_t i, n
+        ndarray[object] result
+
+    from datetime import date, time, datetime
+
+    n = len(dates)
+    if len(times) != n:
+        raise ValueError('Length of dates and times must be equal')
+    result = np.empty(n, dtype='O')
+
+    if date_parser is None:
+        try:
+            from dateutil.parser import parse
+            parse_date = lambda x: parse(x, dayfirst=dayfirst)
+        except ImportError: # pragma: no cover
+            def parse_date(s):
+                try:
+                    return date.strptime(s, '%m/%d/%Y')
+                except Exception:
+                    return s
+    else:
+        parse_date = date_parser
+
+    if time_parser is None:
+        try:
+            from dateutil.parser import parse
+            parse_time = lambda x: parse(x)
+        except ImportError: # pragma: no cover
+            def parse_time(s):
+                try:
+                    return time.strptime(s, '%H:%M:%S')
+                except Exception:
+                    return s
+
+    else:
+        parse_time = time_parser
+
+    for i from 0 <= i < n:
+        d = parse_date(dates[i])
+        t = parse_time(times[i])
+        result[i] = datetime(d.year, d.month, d.day,
+                             t.hour, t.minute, t.second)
+
+    return result
+
+
+def try_parse_year_month_day(ndarray[object] years, ndarray[object] months,
+                             ndarray[object] days):
+    cdef:
+        Py_ssize_t i, n
+        ndarray[object] result
+
+    from datetime import datetime
+
+    n = len(years)
+    if len(months) != n or len(days) != n:
+        raise ValueError('Length of years/months/days must all be equal')
+    result = np.empty(n, dtype='O')
+
+    for i from 0 <= i < n:
+        result[i] = datetime(int(years[i]), int(months[i]), int(days[i]))
+
+    return result
+
+def try_parse_datetime_components(ndarray[object] years, ndarray[object] months,
+    ndarray[object] days, ndarray[object] hours, ndarray[object] minutes,
+    ndarray[object] seconds):
+
+    cdef:
+        Py_ssize_t i, n
+        ndarray[object] result
+
+    from datetime import datetime
+
+    n = len(years)
+    if (len(months) != n and len(days) != n and len(hours) != n and
+        len(minutes) != n and len(seconds) != n):
+        raise ValueError('Length of all datetime components must be equal')
+    result = np.empty(n, dtype='O')
+
+    for i from 0 <= i < n:
+        result[i] = datetime(int(years[i]), int(months[i]), int(days[i]),
+                             int(hours[i]), int(minutes[i]), int(seconds[i]))
 
     return result
 
@@ -491,15 +632,13 @@ def map_infer(ndarray arr, object f):
     '''
     cdef:
         Py_ssize_t i, n
-        flatiter it
         ndarray[object] result
         object val
 
-    it = <flatiter> PyArray_IterNew(arr)
     n = len(arr)
     result = np.empty(n, dtype=object)
     for i in range(n):
-        val = f(PyArray_GETITEM(arr, PyArray_ITER_DATA(it)))
+        val = f(util.get_value_at(arr, i))
 
         # unbox 0-dim arrays, GH #690
         if is_array(val) and PyArray_NDIM(val) == 0:
@@ -508,10 +647,8 @@ def map_infer(ndarray arr, object f):
 
         result[i] = val
 
-
-        PyArray_ITER_NEXT(it)
-
-    return maybe_convert_objects(result, try_float=0)
+    return maybe_convert_objects(result, try_float=0,
+                                 convert_datetime=0)
 
 def to_object_array(list rows):
     cdef:

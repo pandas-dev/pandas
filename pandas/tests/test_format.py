@@ -69,6 +69,17 @@ class TestDataFrameFormatting(unittest.TestCase):
         # it works!
         repr(df)
 
+        idx = Index(['abc', u'\u03c3a', 'aegdvg'])
+        ser = Series(np.random.randn(len(idx)), idx)
+        rs = repr(ser).split('\n')
+        line_len = len(rs[0])
+        for line in rs[1:]:
+            try:
+                line = line.decode('utf-8')
+            except:
+                pass
+            self.assert_(len(line) == line_len)
+
         # it works even if sys.stdin in None
         sys.stdin = None
         repr(df)

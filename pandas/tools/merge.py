@@ -10,7 +10,8 @@ from pandas.core.generic import NDFrame
 from pandas.core.groupby import get_group_index
 from pandas.core.series import Series
 from pandas.core.index import (Index, MultiIndex, _get_combined_index,
-                               _ensure_index, _get_consensus_names)
+                               _ensure_index, _get_consensus_names,
+                               _all_indexes_same)
 from pandas.core.internals import (IntBlock, BoolBlock, BlockManager,
                                    make_block, _consolidate)
 from pandas.util.decorators import cache_readonly, Appender, Substitution
@@ -18,7 +19,7 @@ from pandas.util.decorators import cache_readonly, Appender, Substitution
 from pandas.sparse.frame import SparseDataFrame
 import pandas.core.common as com
 
-import pandas._tseries as lib
+import pandas.lib as lib
 
 @Substitution('\nleft : DataFrame')
 @Appender(_merge_doc, indents=0)
@@ -31,6 +32,10 @@ def merge(left, right, how='inner', on=None, left_on=None, right_on=None,
                          copy=copy)
     return op.get_result()
 if __debug__: merge.__doc__ = _merge_doc % '\nleft : DataFrame'
+
+
+class MergeError(Exception):
+    pass
 
 
 def ordered_merge(left, right, on=None, left_by=None, right_by=None,
@@ -245,12 +250,10 @@ class _MergeOperation(object):
                 _left_join_on_index(right_ax, left_ax, self.right_join_keys,
                                     sort=self.sort)
         else:
-            # max groups = largest possible number of distinct groups
-            left_key, right_key, max_groups = self._get_group_keys()
-
-            join_func = _join_functions[self.how]
-            left_indexer, right_indexer = join_func(left_key, right_key,
-                                                    max_groups)
+            (left_indexer,
+             right_indexer) = _get_join_indexers(self.left_join_keys,
+                                                 self.right_join_keys,
+                                                 sort=self.sort, how=self.how)
 
             if self.right_index:
                 join_index = self.left.index.take(left_indexer)
@@ -344,6 +347,9 @@ class _MergeOperation(object):
                                                  self.left.index.labels)]
             else:
                 left_keys = [self.left.index.values]
+        # else:
+        #     left_keys.append(self.left.index)
+        #     right_keys.append(self.right.index)
 
         if right_drop:
             self.right = self.right.drop(right_drop, axis=1)
@@ -359,17 +365,19 @@ class _MergeOperation(object):
                 self.left_on, self.right_on = (), ()
             elif self.left_index:
                 if self.right_on is None:
-                    raise Exception('Must pass right_on or right_index=True')
+                    raise MergeError('Must pass right_on or right_index=True')
             elif self.right_index:
                 if self.left_on is None:
-                    raise Exception('Must pass left_on or left_index=True')
+                    raise MergeError('Must pass left_on or left_index=True')
             else:
                 # use the common columns
                 common_cols = self.left.columns.intersection(self.right.columns)
+                if len(common_cols) == 0:
+                    raise MergeError('No common columns to perform merge on')
                 self.left_on = self.right_on = common_cols
         elif self.on is not None:
             if self.left_on is not None or self.right_on is not None:
-                raise Exception('Can only pass on OR left_on and '
+                raise MergeError('Can only pass on OR left_on and '
                                 'right_on')
             self.left_on = self.right_on = self.on
         elif self.left_on is not None:
@@ -384,46 +392,46 @@ class _MergeOperation(object):
                 self.left_on = [None] * n
         assert(len(self.right_on) == len(self.left_on))
 
-    def _get_group_keys(self):
-        """
 
-        Parameters
-        ----------
+def _get_join_indexers(left_keys, right_keys, sort=False, how='inner'):
+    """
 
-        Returns
-        -------
+    Parameters
+    ----------
 
-        """
-        left_keys = self.left_join_keys
-        right_keys = self.right_join_keys
+    Returns
+    -------
 
-        assert(len(left_keys) == len(right_keys))
+    """
+    assert(len(left_keys) == len(right_keys))
 
-        left_labels = []
-        right_labels = []
-        group_sizes = []
+    left_labels = []
+    right_labels = []
+    group_sizes = []
 
-        for lk, rk in zip(left_keys, right_keys):
-            llab, rlab, count = _factorize_keys(lk, rk, sort=self.sort)
+    for lk, rk in zip(left_keys, right_keys):
+        llab, rlab, count = _factorize_keys(lk, rk, sort=sort)
 
-            left_labels.append(llab)
-            right_labels.append(rlab)
-            group_sizes.append(count)
+        left_labels.append(llab)
+        right_labels.append(rlab)
+        group_sizes.append(count)
 
-        left_group_key = get_group_index(left_labels, group_sizes)
-        right_group_key = get_group_index(right_labels, group_sizes)
+    left_group_key = get_group_index(left_labels, group_sizes)
+    right_group_key = get_group_index(right_labels, group_sizes)
 
-        max_groups = 1L
-        for x in group_sizes:
-            max_groups *= long(x)
+    max_groups = 1L
+    for x in group_sizes:
+        max_groups *= long(x)
 
-        if max_groups > 2**63:  # pragma: no cover
-            raise Exception('Combinatorial explosion! (boom)')
+    if max_groups > 2**63:  # pragma: no cover
+        raise MergeError('Combinatorial explosion! (boom)')
 
-        left_group_key, right_group_key, max_groups = \
-            _factorize_keys(left_group_key, right_group_key,
-                             sort=self.sort)
-        return left_group_key, right_group_key, max_groups
+    left_group_key, right_group_key, max_groups = \
+        _factorize_keys(left_group_key, right_group_key, sort=sort)
+
+    join_func = _join_functions[how]
+    return join_func(left_group_key, right_group_key, max_groups)
+
 
 
 class _OrderedMerge(_MergeOperation):
@@ -589,7 +597,7 @@ class _BlockJoinOperation(object):
     """
     def __init__(self, data_list, join_index, indexers, axis=1, copy=True):
         if axis <= 0:  # pragma: no cover
-            raise Exception('Only axis >= 1 supported for this operation')
+            raise MergeError('Only axis >= 1 supported for this operation')
 
         assert(len(data_list) == len(indexers))
 
@@ -924,6 +932,9 @@ class _Concatenator(object):
             if self.axis == 0 and self.ignore_index:
                 self.new_axes[0] = self._get_fresh_axis()
 
+            for blk in new_blocks:
+                blk.ref_items = self.new_axes[0]
+
             new_data = BlockManager(new_blocks, self.new_axes)
         except Exception:  # EAFP
             # should not be possible to fail here for the expected reason with
@@ -1028,12 +1039,12 @@ class _Concatenator(object):
         ndim = self._get_result_dim()
         new_axes = [None] * ndim
 
-        if self.ignore_index:
-            concat_axis = None
-        else:
-            concat_axis = self._get_concat_axis()
+        # if self.ignore_index:
+        #     concat_axis = None
+        # else:
+        #     concat_axis = self._get_concat_axis()
 
-        new_axes[self.axis] = concat_axis
+        # new_axes[self.axis] = concat_axis
 
         if self.join_axes is None:
             for i in range(ndim):
@@ -1049,6 +1060,13 @@ class _Concatenator(object):
 
             for i, ax in zip(indices, self.join_axes):
                 new_axes[i] = ax
+
+        if self.ignore_index:
+            concat_axis = None
+        else:
+            concat_axis = self._get_concat_axis()
+
+        new_axes[self.axis] = concat_axis
 
         return new_axes
 
@@ -1100,7 +1118,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             names = [None] * len(zipped)
 
         if levels is None:
-            levels = [Factor(zp).levels for zp in zipped]
+            levels = [Factor.from_array(zp).levels for zp in zipped]
         else:
             levels = [_ensure_index(x) for x in levels]
     else:
@@ -1133,7 +1151,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             levels.extend(concat_index.levels)
             label_list.extend(concat_index.labels)
         else:
-            factor = Factor(concat_index)
+            factor = Factor.from_array(concat_index)
             levels.append(factor.levels)
             label_list.append(factor.labels)
 
@@ -1176,13 +1194,6 @@ def _should_fill(lname, rname):
         return True
     return lname == rname
 
-
-def _all_indexes_same(indexes):
-    first = indexes[0]
-    for index in indexes[1:]:
-        if not first.equals(index):
-            return False
-    return True
 
 
 def _any(x):

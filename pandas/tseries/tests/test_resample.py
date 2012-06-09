@@ -5,7 +5,7 @@ import numpy as np
 from pandas import Series, TimeSeries, DataFrame, Panel, isnull, notnull
 
 from pandas.tseries.index import date_range
-from pandas.tseries.offsets import Minute, bday
+from pandas.tseries.offsets import Minute, BDay
 from pandas.tseries.period import period_range, PeriodIndex
 from pandas.tseries.resample import DatetimeIndex, TimeGrouper
 import pandas.tseries.offsets as offsets
@@ -15,6 +15,8 @@ import nose
 
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
+
+bday = BDay()
 
 class TestResample(unittest.TestCase):
 
@@ -54,7 +56,7 @@ class TestResample(unittest.TestCase):
         # construct expected val
         arr = [1] + [5] * 2592
         idx = dti[0:-1:5]
-        idx = idx.append(DatetimeIndex([np.datetime64(dti[-1])]))
+        idx = idx.append(dti[-1:])
         expect = Series(arr, index=idx)
 
         # cython returns float for now
@@ -204,6 +206,14 @@ class TestResample(unittest.TestCase):
         self.assertEquals(len(result), 12961)
         self.assertEquals(result[0], s[0])
         self.assertEquals(result[-1], s[-1])
+
+    def test_upsample_with_limit(self):
+        rng = date_range('1/1/2000', periods=3, freq='5t')
+        ts = Series(np.random.randn(len(rng)), rng)
+
+        result = ts.resample('t', fill_method='ffill', limit=2)
+        expected = ts.reindex(result.index, method='ffill', limit=2)
+        assert_series_equal(result, expected)
 
     def test_resample_ohlc(self):
         s = self.series
@@ -381,6 +391,35 @@ class TestResample(unittest.TestCase):
         expected = ts.resample('D', closed='left', label='left')
         assert_series_equal(result, expected)
 
+    def test_resample_to_period_monthly_buglet(self):
+        # GH #1259
+
+        rng = date_range('1/1/2000','12/31/2000')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        result = ts.resample('M', kind='period')
+        exp_index = period_range('Jan-2000', 'Dec-2000', freq='M')
+        self.assert_(result.index.equals(exp_index))
+
+    def test_resample_empty(self):
+        ts = _simple_ts('1/1/2000', '2/1/2000')[:0]
+
+        result = ts.resample('A')
+        self.assert_(len(result) == 0)
+        self.assert_(result.index.freqstr == 'A-DEC')
+
+        result = ts.resample('A', kind='period')
+        self.assert_(len(result) == 0)
+        self.assert_(result.index.freqstr == 'A-DEC')
+
+    def test_weekly_resample_buglet(self):
+        # #1327
+        rng = date_range('1/1/2000', freq='B', periods=20)
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        resampled = ts.resample('W')
+        expected = ts.resample('W-SUN')
+        assert_series_equal(resampled, expected)
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
@@ -393,6 +432,7 @@ def _simple_pts(start, end, freq='D'):
 
 from pandas.tseries.frequencies import MONTHS, DAYS
 from pandas.util.compat import product
+
 
 class TestResamplePeriodIndex(unittest.TestCase):
 
@@ -427,6 +467,15 @@ class TestResamplePeriodIndex(unittest.TestCase):
         expected = expected.asfreq('D', 'ffill').to_period()
 
         assert_series_equal(resampled, expected)
+
+    def test_upsample_with_limit(self):
+        rng = period_range('1/1/2000', periods=5, freq='A')
+        ts = Series(np.random.randn(len(rng)), rng)
+
+        result = ts.resample('M', fill_method='ffill', limit=2)
+        expected = ts.asfreq('M').reindex(result.index, method='ffill',
+                                          limit=2)
+        assert_series_equal(result, expected)
 
     def test_annual_upsample(self):
         targets = ['D', 'B', 'M']
@@ -544,6 +593,24 @@ class TestResamplePeriodIndex(unittest.TestCase):
         expected = ts.to_timestamp().resample('5min')
         assert_series_equal(result, expected)
 
+    def test_upsample_daily_business_daily(self):
+        ts = _simple_pts('1/1/2000', '2/1/2000', freq='B')
+
+        result = ts.resample('D')
+        expected = ts.asfreq('D').reindex(period_range('1/3/2000', '2/1/2000'))
+        assert_series_equal(result, expected)
+
+        ts = _simple_pts('1/1/2000', '2/1/2000')
+        result = ts.resample('H', convention='s')
+        exp_rng = period_range('1/1/2000', '2/1/2000', freq='H')
+        expected = ts.asfreq('H', how='s').reindex(exp_rng)
+        assert_series_equal(result, expected)
+
+    def test_resample_empty(self):
+        ts = _simple_pts('1/1/2000', '2/1/2000')[:0]
+
+        result = ts.resample('A')
+        self.assert_(len(result) == 0)
 
 class TestTimeGrouper(unittest.TestCase):
 

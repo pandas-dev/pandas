@@ -1,5 +1,5 @@
 #include "Python.h"
-#include "numpy/ndarrayobject.h"
+#include "numpy/arrayobject.h"
 #include "numpy/arrayscalars.h"
 
 #ifndef PANDAS_INLINE
@@ -49,10 +49,11 @@ get_nat() {
 }
 
 PANDAS_INLINE npy_datetime
-unbox_datetime64_scalar(PyObject* obj) {
+get_datetime64_value(PyObject* obj) {
   return ((PyDatetimeScalarObject*) obj)->obval;
 
 }
+
 
 PANDAS_INLINE int
 is_integer_object(PyObject* obj) {
@@ -112,6 +113,15 @@ get_c_string(PyObject* obj) {
   return ret;
 #else
   return PyString_AsString(obj);
+#endif
+}
+
+PANDAS_INLINE PyObject*
+char_to_string(char* data) {
+#if PY_VERSION_HEX >= 0x03000000
+    return PyUnicode_FromString(data);
+#else
+    return PyString_FromString(data);
 #endif
 }
 

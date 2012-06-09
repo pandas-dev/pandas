@@ -3,7 +3,7 @@
 """
 Python script for building documentation.
 
-To build the docs you must have all optional dependencies for statsmodels
+To build the docs you must have all optional dependencies for pandas
 installed. See the installation instructions for a list of these.
 
 Note: currently latex builds do not work because of table formats that are not
@@ -99,26 +99,37 @@ def all():
 def auto_dev_build(debug=False):
     msg = ''
     try:
+        step = 'clean'
         clean()
+        step = 'html'
         html()
-        latex()
+        step = 'upload dev'
         upload_dev()
+        if not debug:
+            sendmail(step)
+
+        step = 'latex'
+        latex()
+        step = 'upload pdf'
         upload_dev_pdf()
         if not debug:
-            sendmail()
+            sendmail(step)
     except (Exception, SystemExit), inst:
-        msg += str(inst) + '\n'
-        sendmail(msg)
+        msg = str(inst) + '\n'
+        sendmail(step, '[ERROR] ' + msg)
 
-def sendmail(err_msg=None):
+def sendmail(step=None, err_msg=None):
     from_name, to_name = _get_config()
 
-    if err_msg is None:
-        msgstr = 'Daily docs build completed successfully'
-        subject = "DOC: daily build successful"
+    if step is None:
+        step = ''
+
+    if err_msg is None or '[ERROR]' not in err_msg:
+        msgstr = 'Daily docs %s completed successfully' % step
+        subject = "DOC: %s successful" % step
     else:
         msgstr = err_msg
-        subject = "DOC: daily build failed"
+        subject = "DOC: %s failed" % step
 
     import smtplib
     from email.MIMEText import MIMEText

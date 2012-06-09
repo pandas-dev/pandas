@@ -40,6 +40,9 @@ class _NDFrameIndexer(object):
         except Exception:
             return self.obj.xs(label, axis=axis, copy=True)
 
+    def _get_loc(self, key, axis=0):
+        return self.obj._ixs(key, axis=axis)
+
     def _slice(self, obj, axis=0):
         return self.obj._slice(obj, axis=axis)
 
@@ -143,7 +146,7 @@ class _NDFrameIndexer(object):
 
         if com._is_bool_indexer(key):
             key = _check_bool_indexer(labels, key)
-            return np.asarray(key)
+            return labels[np.asarray(key)]
         else:
             if isinstance(key, Index):
                 # want Index objects to pass through untouched
@@ -168,11 +171,13 @@ class _NDFrameIndexer(object):
             except TypeError:
                 # slices are unhashable
                 pass
-            except Exception:
+            except Exception, e1:
                 if isinstance(tup[0], slice):
                     raise IndexingError
-                if tup[0] not in ax0: # and tup[0] not in ax0.levels[0]:
-                    raise
+                try:
+                    loc = ax0.get_loc(tup[0])
+                except KeyError:
+                    raise e1
 
         # to avoid wasted computation
         # df.ix[d1:d2, 0] -> columns first (True)
@@ -226,14 +231,14 @@ class _NDFrameIndexer(object):
                             raise
 
                 if not is_int_index:
-                    idx = labels[key]
+                    return self._get_loc(key, axis=0)
 
             return self._get_label(idx, axis=0)
         else:
             labels = self.obj._get_axis(axis)
             lab = key
             if com.is_integer(key) and not _is_integer_index(labels):
-                lab = labels[key]
+                return self._get_loc(key, axis=axis)
             return self._get_label(lab, axis=axis)
 
     def _getitem_iterable(self, key, axis=0):
@@ -490,6 +495,9 @@ class _SeriesIndexer(_NDFrameIndexer):
 
     def _get_label(self, key, axis=0):
         return self.obj[key]
+
+    def _get_loc(self, key, axis=0):
+        return self.obj.values[key]
 
     def _slice(self, indexer, axis=0):
         return self.obj._get_values(indexer)

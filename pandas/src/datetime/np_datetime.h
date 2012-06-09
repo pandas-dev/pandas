@@ -6,12 +6,13 @@
 #ifndef _PANDAS_DATETIME_H_
 #define _PANDAS_DATETIME_H_
 
+#include <numpy/ndarraytypes.h>
+
 typedef enum {
         PANDAS_FR_Y, /* Years */
         PANDAS_FR_M, /* Months */
         PANDAS_FR_W, /* Weeks */
         PANDAS_FR_D, /* Days */
-        PANDAS_FR_B, /* Business days */
         PANDAS_FR_h, /* hours */
         PANDAS_FR_m, /* minutes */
         PANDAS_FR_s, /* seconds */
@@ -21,9 +22,10 @@ typedef enum {
         PANDAS_FR_ps,/* picoseconds */
         PANDAS_FR_fs,/* femtoseconds */
         PANDAS_FR_as,/* attoseconds */
+        PANDAS_FR_GENERIC /* Generic, unbound units, can convert to anything */
 } PANDAS_DATETIMEUNIT;
 
-#define PANDAS_DATETIME_NUMUNITS 14
+#define PANDAS_DATETIME_NUMUNITS 13
 
 #define PANDAS_DATETIME_MAX_ISO8601_STRLEN (21+3*5+1+3*6+6+1)
 
@@ -46,7 +48,8 @@ int convert_pydatetime_to_datetimestruct(PyObject *obj, pandas_datetimestruct *o
                                          PANDAS_DATETIMEUNIT *out_bestunit,
                                          int apply_tzinfo);
 
-npy_datetime pandas_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT fr, pandas_datetimestruct *d);
+npy_datetime pandas_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT fr,
+                                               pandas_datetimestruct *d);
 
 void pandas_datetime_to_datetimestruct(npy_datetime val, PANDAS_DATETIMEUNIT fr,
                                        pandas_datetimestruct *result);
@@ -111,6 +114,8 @@ convert_datetime_to_datetimestruct(pandas_datetime_metadata *meta,
                                    npy_datetime dt,
                                    pandas_datetimestruct *out);
 
+
+PANDAS_DATETIMEUNIT get_datetime64_unit(PyObject *obj);
 
 
 #endif

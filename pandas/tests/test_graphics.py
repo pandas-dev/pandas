@@ -3,7 +3,9 @@ import os
 import string
 import unittest
 
-from pandas import Series, DataFrame, MultiIndex, PeriodIndex
+from datetime import datetime
+
+from pandas import Series, DataFrame, MultiIndex, PeriodIndex, date_range
 import pandas.util.testing as tm
 
 import numpy as np
@@ -52,10 +54,26 @@ class TestSeriesPlots(unittest.TestCase):
         Series(np.random.randn(10)).plot(kind='bar',color='black')
 
     @slow
+    def test_irregular_datetime(self):
+        rng = date_range('1/1/2000', '3/1/2000')
+        rng = rng[[0,1,2,3,5,9,10,11,12]]
+        ser = Series(np.random.randn(len(rng)), rng)
+        ax = ser.plot()
+        xp = datetime(1999, 1, 1).toordinal()
+        ax.set_xlim('1/1/1999', '1/1/2001')
+        self.assert_(xp == ax.get_xlim()[0])
+
+    @slow
     def test_hist(self):
         _check_plot_works(self.ts.hist)
         _check_plot_works(self.ts.hist, grid=False)
 
+    @slow
+    def test_kde(self):
+        _check_plot_works(self.ts.plot, kind='kde')
+        _check_plot_works(self.ts.plot, kind='density')
+        ax = self.ts.plot(kind='kde', logy=True)
+        self.assert_(ax.get_yscale() == 'log')
 
 class TestDataFramePlots(unittest.TestCase):
 
@@ -163,6 +181,15 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(lambda x: plotting.boxplot(x), df['one'])
 
     @slow
+    def test_kde(self):
+        df = DataFrame(np.random.randn(100, 4))
+        _check_plot_works(df.plot, kind='kde')
+        _check_plot_works(df.plot, kind='kde', subplots=True)
+        axes = df.plot(kind='kde', logy=True, subplots=True)
+        for ax in axes:
+            self.assert_(ax.get_yscale() == 'log')
+
+    @slow
     def test_hist(self):
         df = DataFrame(np.random.randn(100, 4))
         _check_plot_works(df.hist)
@@ -214,6 +241,9 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(scat)
         _check_plot_works(scat, marker='+')
         _check_plot_works(scat, vmin=0)
+        _check_plot_works(scat, diagonal='kde')
+        _check_plot_works(scat, diagonal='density')
+        _check_plot_works(scat, diagonal='hist')
 
         def scat2(x, y, by=None, ax=None, figsize=None):
             return plt.scatter_plot(df, x, y, by, ax, figsize=None)
@@ -223,9 +253,28 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(scat2, 0, 1, by=grouper)
 
     @slow
+    def test_andrews_curves(self):
+        from pandas import read_csv
+        from pandas.tools.plotting import andrews_curves
+        path = os.path.join(curpath(), 'data/iris.csv')
+        df = read_csv(path)
+        _check_plot_works(andrews_curves, df, 'Name')
+
+    @slow
     def test_plot_int_columns(self):
         df = DataFrame(np.random.randn(100, 4)).cumsum()
         _check_plot_works(df.plot, legend=True)
+
+    @slow
+    def test_legend_name(self):
+        multi = DataFrame(np.random.randn(4, 4),
+                          columns=[np.array(['a', 'a', 'b', 'b']),
+                                   np.array(['x', 'y', 'x', 'y'])])
+        multi.columns.names = ['group', 'individual']
+
+        ax = multi.plot()
+        leg_title = ax.legend_.get_title()
+        self.assert_(leg_title.get_text(), 'group,individual')
 
     def _check_plot_fails(self, f, *args, **kwargs):
         self.assertRaises(Exception, f, *args, **kwargs)
@@ -250,6 +299,10 @@ def _check_plot_works(f, *args, **kwargs):
         pass
     plt.savefig(PNG_PATH)
     os.remove(PNG_PATH)
+
+def curpath():
+    pth, _ = os.path.split(os.path.abspath(__file__))
+    return pth
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

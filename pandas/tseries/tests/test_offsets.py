@@ -16,8 +16,8 @@ from pandas.tseries.tools import parse_time_string
 
 from nose.tools import assert_raises
 
-import pandas._tseries as lib
-from pandas._tseries import Timestamp
+import pandas.lib as lib
+from pandas.lib import Timestamp
 
 def test_monthrange():
     import calendar
@@ -1307,27 +1307,41 @@ def test_quarterly_dont_normalize():
         result = date + klass()
         assert(result.time() == date.time())
 
-def test_rule_code():
-    lst = ['M', 'MS', 'BM', 'BMS', 'D', 'B', 'H', 'T', 'S', 'L', 'U']
-    for k in lst:
-        assert k == _offset_map[k].rule_code
-        assert k == (_offset_map[k] * 3).rule_code
 
-    suffix_lst = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
-    base = 'W'
-    for v in suffix_lst:
-        alias = '-'.join([base, v])
-        assert alias == _offset_map[alias].rule_code
-        assert alias == (_offset_map[alias] * 5).rule_code
+class TestOffsetAliases(unittest.TestCase):
 
-    suffix_lst = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG',
-                  'SEP', 'OCT', 'NOV', 'DEC']
-    base_lst = ['A', 'AS', 'BA', 'BAS', 'Q', 'QS', 'BQ', 'BQS']
-    for base in base_lst:
+    def setUp(self):
+        pass
+
+    def test_alias_equality(self):
+        from pandas.tseries.frequencies import _offset_map
+
+        for k, v in _offset_map.iteritems():
+            if v is None:
+                continue
+            self.assertEqual(k, v.copy())
+
+    def test_rule_code(self):
+        lst = ['M', 'MS', 'BM', 'BMS', 'D', 'B', 'H', 'T', 'S', 'L', 'U']
+        for k in lst:
+            assert k == _offset_map[k].rule_code
+            assert k == (_offset_map[k] * 3).rule_code
+
+        suffix_lst = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
+        base = 'W'
         for v in suffix_lst:
             alias = '-'.join([base, v])
             assert alias == _offset_map[alias].rule_code
             assert alias == (_offset_map[alias] * 5).rule_code
+
+        suffix_lst = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG',
+                      'SEP', 'OCT', 'NOV', 'DEC']
+        base_lst = ['A', 'AS', 'BA', 'BAS', 'Q', 'QS', 'BQ', 'BQS']
+        for base in base_lst:
+            for v in suffix_lst:
+                alias = '-'.join([base, v])
+                assert alias == _offset_map[alias].rule_code
+                assert alias == (_offset_map[alias] * 5).rule_code
 
 
 

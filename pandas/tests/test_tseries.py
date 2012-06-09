@@ -5,7 +5,7 @@ import numpy as np
 from pandas import Index, isnull
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as common
-import pandas._tseries as lib
+import pandas.lib as lib
 import pandas._algos as algos
 from datetime import datetime
 
@@ -59,11 +59,11 @@ class TestTseriesUtil(unittest.TestCase):
         expect_filler = [-1, -1, -1, -1, -1]
         self.assert_(np.array_equal(filler, expect_filler))
 
-def test_left_join_indexer():
+def test_left_join_indexer_unique():
     a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
     b = np.array([2, 2, 3, 4, 4], dtype=np.int64)
 
-    result = algos.left_join_indexer_int64(b, a)
+    result = algos.left_join_indexer_unique_int64(b, a)
     expected = np.array([1, 1, 2, 3, 3], dtype=np.int64)
     assert(np.array_equal(result, expected))
 
@@ -102,6 +102,14 @@ def test_inner_join_indexer():
     assert_almost_equal(ares, aexp)
     assert_almost_equal(bres, bexp)
 
+    a = np.array([5], dtype=np.int64)
+    b = np.array([5], dtype=np.int64)
+
+    index, ares, bres = algos.inner_join_indexer_int64(a, b)
+    assert_almost_equal(index, [5])
+    assert_almost_equal(ares, [0])
+    assert_almost_equal(bres, [0])
+
 def test_outer_join_indexer():
     a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
     b = np.array([0, 3, 5, 7, 9], dtype=np.int64)
@@ -115,6 +123,81 @@ def test_outer_join_indexer():
     bexp = np.array([0, -1, -1, 1, -1, 2, 3, 4])
     assert_almost_equal(ares, aexp)
     assert_almost_equal(bres, bexp)
+
+    a = np.array([5], dtype=np.int64)
+    b = np.array([5], dtype=np.int64)
+
+    index, ares, bres = algos.outer_join_indexer_int64(a, b)
+    assert_almost_equal(index, [5])
+    assert_almost_equal(ares, [0])
+    assert_almost_equal(bres, [0])
+
+def test_left_join_indexer():
+    a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
+    b = np.array([0, 3, 5, 7, 9], dtype=np.int64)
+
+    index, ares, bres = algos.left_join_indexer_int64(a, b)
+
+    assert_almost_equal(index, a)
+
+    aexp = np.array([0, 1, 2, 3, 4], dtype=np.int64)
+    bexp = np.array([-1, -1, 1, -1, 2], dtype=np.int64)
+    assert_almost_equal(ares, aexp)
+    assert_almost_equal(bres, bexp)
+
+    a = np.array([5], dtype=np.int64)
+    b = np.array([5], dtype=np.int64)
+
+    index, ares, bres = algos.left_join_indexer_int64(a, b)
+    assert_almost_equal(index, [5])
+    assert_almost_equal(ares, [0])
+    assert_almost_equal(bres, [0])
+
+def test_left_join_indexer2():
+    idx = Index([1,1,2,5])
+    idx2 = Index([1,2,5,7,9])
+
+    res, lidx, ridx = algos.left_join_indexer_int64(idx2, idx)
+
+    exp_res = np.array([1, 1, 2, 5, 7, 9], dtype=np.int64)
+    assert_almost_equal(res, exp_res)
+
+    exp_lidx = np.array([0, 0, 1, 2, 3, 4], dtype=np.int64)
+    assert_almost_equal(lidx, exp_lidx)
+
+    exp_ridx = np.array([0, 1, 2, 3, -1, -1], dtype=np.int64)
+    assert_almost_equal(ridx, exp_ridx)
+
+def test_outer_join_indexer2():
+    idx = Index([1,1,2,5])
+    idx2 = Index([1,2,5,7,9])
+
+    res, lidx, ridx = algos.outer_join_indexer_int64(idx2, idx)
+
+    exp_res = np.array([1, 1, 2, 5, 7, 9], dtype=np.int64)
+    assert_almost_equal(res, exp_res)
+
+    exp_lidx = np.array([0, 0, 1, 2, 3, 4], dtype=np.int64)
+    assert_almost_equal(lidx, exp_lidx)
+
+    exp_ridx = np.array([0, 1, 2, 3, -1, -1], dtype=np.int64)
+    assert_almost_equal(ridx, exp_ridx)
+
+def test_inner_join_indexer2():
+    idx = Index([1,1,2,5])
+    idx2 = Index([1,2,5,7,9])
+
+    res, lidx, ridx = algos.inner_join_indexer_int64(idx2, idx)
+
+    exp_res = np.array([1, 1, 2, 5], dtype=np.int64)
+    assert_almost_equal(res, exp_res)
+
+    exp_lidx = np.array([0, 0, 1, 2], dtype=np.int64)
+    assert_almost_equal(lidx, exp_lidx)
+
+    exp_ridx = np.array([0, 1, 2, 3], dtype=np.int64)
+    assert_almost_equal(ridx, exp_ridx)
+
 
 def test_is_lexsorted():
     failure = [
@@ -170,7 +253,7 @@ def test_ensure_platform_int():
     assert(result is arr)
 
 def test_duplicated_with_nas():
-    keys = [0, 1, nan, 0, 2, nan]
+    keys = np.array([0, 1, nan, 0, 2, nan], dtype=object)
 
     result = lib.duplicated(keys)
     expected = [False, False, False, True, False, True]
@@ -180,7 +263,9 @@ def test_duplicated_with_nas():
     expected = [True, False, True, False, False, False]
     assert(np.array_equal(result, expected))
 
-    keys = [(0, 0), (0, nan), (nan, 0), (nan, nan)] * 2
+    keys = np.empty(8, dtype=object)
+    for i, t in enumerate(zip([0, 0, nan, nan]*2, [0, nan, 0, nan]*2)):
+        keys[i] = t
 
     result = lib.duplicated(keys)
     falses = [False] * 4
@@ -197,6 +282,8 @@ def test_maybe_booleans_to_slice():
     result = lib.maybe_booleans_to_slice(arr)
     assert(result.dtype == np.bool_)
 
+    result = lib.maybe_booleans_to_slice(arr[:0])
+    assert(result == slice(0, 0))
 
 def test_convert_objects():
     arr = np.array(['a', 'b', nan, nan, 'd', 'e', 'f'], dtype='O')

@@ -11,7 +11,7 @@ pandas.
 .. ipython:: python
    :suppress:
 
-   import numpy as np; randn = np.random.randn
+   import numpy as np; randn = np.random.randn; randint =np.random.randint
    from pandas import *
    import matplotlib.pyplot as plt
 
@@ -155,6 +155,23 @@ can propagate non-null values forward or backward:
    df
    df.fillna(method='pad')
 
+.. _missing_data.fillna.limit:
+
+**Limit the amount of filling**
+
+If we only want consecutive gaps filled up to a certain number of data points,
+we can use the `limit` keyword:
+
+.. ipython:: python
+   :suppress:
+
+   df.ix[2:4, :] = np.nan
+
+.. ipython:: python
+
+   df
+   df.fillna(method='pad', limit=1)
+
 To remind you, these are the available filling methods:
 
 .. csv-table::
@@ -193,32 +210,115 @@ eventually added to Panel. Series.dropna is a simpler method as it only has one
 axis to consider. DataFrame.dropna has considerably more options, which can be
 examined :ref:`in the API <api.dataframe.missing>`.
 
+.. _missing_data.interpolate:
+
 Interpolation
 ~~~~~~~~~~~~~
 
-A basic linear **interpolate** method has been implemented on Series with
-intended use for time series data. There has not been a great deal of demand
-for interpolation methods outside of the filling methods described above.
+A linear **interpolate** method has been implemented on Series. The default
+interpolation assumes equally spaced points.
 
 .. ipython:: python
    :suppress:
 
    np.random.seed(123456)
-   ts = Series(randn(100), index=date_range('1/1/2000', periods=100, freq='BM'))
-   ts[20:40] = np.nan
+   idx = date_range('1/1/2000', periods=100, freq='BM')
+   ts = Series(randn(100), index=idx)
+   ts[1:20] = np.nan
    ts[60:80] = np.nan
    ts = ts.cumsum()
 
 .. ipython:: python
 
-   fig, axes = plt.subplots(ncols=2, figsize=(8, 4))
-   ts.plot(ax=axes[0])
-   ts.interpolate().plot(ax=axes[1])
-   axes[0].set_title('Not interpolated')
+   ts.count()
+
+   ts.head()
+
+   ts.interpolate().count()
+
+   ts.interpolate().head()
+
    @savefig series_interpolate.png width=6in
-   axes[1].set_title('Interpolated')
+   fig = plt.figure()
+   ts.interpolate().plot()
 
    plt.close('all')
+
+Index aware interpolation is available via the ``method`` keyword:
+
+.. ipython:: python
+   :suppress:
+
+   ts = ts[[0, 1, 30, 60, 99]]
+
+.. ipython:: python
+
+   ts
+
+   ts.interpolate()
+
+   ts.interpolate(method='time')
+
+For a floating-point index, use ``method='values'``:
+
+.. ipython:: python
+   :suppress:
+
+   idx = [0., 1., 10.]
+   ser = Series([0., np.nan, 10.], idx)
+
+.. ipython:: python
+
+   ser
+
+   ser.interpolate()
+
+   ser.interpolate(method='values')
+
+.. _missing_data.replace:
+
+Replacing Generic Values
+~~~~~~~~~~~~~~~~~~~~~~~~
+Often times we want to replace arbitrary values with other values. New in v0.8
+is the ``replace`` method in Series/DataFrame that provides an efficient yet
+flexible way to perform such replacements.
+
+For a Series, you can replace a single value or a list of values by another
+value:
+
+.. ipython:: python
+
+   ser = Series([0., 1., 2., 3., 4.])
+
+   ser.replace(0, 5)
+
+You can replace a list of values by a list of other values:
+
+.. ipython:: python
+
+   ser.replace([0, 1, 2, 3, 4], [4, 3, 2, 1, 0])
+
+You can also specify a mapping dict:
+
+.. ipython:: python
+
+   ser.replace({0: 10, 1: 100})
+
+For a DataFrame, you can specify individual values by column:
+
+.. ipython:: python
+
+   df = DataFrame({'a': [0, 1, 2, 3, 4], 'b': [5, 6, 7, 8, 9]})
+
+   df.replace({'a': 0, 'b': 5}, 100)
+
+Instead of replacing with specified values, you can treat all given values as
+missing and interpolate over them:
+
+.. ipython:: python
+
+   ser.replace([1, 2, 3], method='pad')
+
 
 Missing data casting rules and indexing
 ---------------------------------------

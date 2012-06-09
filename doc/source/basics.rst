@@ -172,6 +172,18 @@ replace NaN with some other value using ``fillna`` if you wish).
    df + df2
    df.add(df2, fill_value=0)
 
+Flexible Comparisons
+~~~~~~~~~~~~~~~~~~~~
+Starting in v0.8, pandas introduced binary comparison methods eq, ne, lt, gt,
+le, and ge to Series and DataFrame whose behavior is analogous to the binary
+arithmetic operations described above:
+
+.. ipython:: python
+
+   df.gt(df2)
+
+   df2.ne(df)
+
 Combining overlapping data sets
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

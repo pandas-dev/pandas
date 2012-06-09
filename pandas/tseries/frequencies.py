@@ -6,7 +6,8 @@ import numpy as np
 from pandas.tseries.offsets import DateOffset
 from pandas.util.decorators import cache_readonly
 import pandas.tseries.offsets as offsets
-import pandas._tseries as lib
+import pandas.core.common as com
+import pandas.lib as lib
 
 class FreqGroup(object):
     FR_ANN = 1000
@@ -45,8 +46,8 @@ def get_freq_code(freqstr):
         freqstr = (get_offset_name(freqstr), freqstr.n)
 
     if isinstance(freqstr, tuple):
-        if (isinstance(freqstr[0], (int, long)) and
-            isinstance(freqstr[1], (int, long))):
+        if (com.is_integer(freqstr[0]) and
+            com.is_integer(freqstr[1])):
             #e.g., freqstr = (2000, 1)
             return freqstr
         else:
@@ -59,7 +60,7 @@ def get_freq_code(freqstr):
                 stride = freqstr[0]
             return code, stride
 
-    if isinstance(freqstr, (int, long)):
+    if com.is_integer(freqstr):
         return (freqstr, 1)
 
     base, stride = _base_and_stride(freqstr)
@@ -70,14 +71,9 @@ def get_freq_code(freqstr):
 
 def _get_freq_str(base, mult=1):
     code = _reverse_period_code_map.get(base)
-    if code is None:
-        return _unknown_freq
     if mult == 1:
         return code
     return str(mult) + code
-
-
-_unknown_freq = 'Unknown'
 
 
 #----------------------------------------------------------------------
@@ -238,7 +234,6 @@ _offset_map = {
     'W-SAT' : Week(weekday=5),
     'W-SUN' : Week(weekday=6),
 
-    'W': Week()
 }
 
 _offset_to_period_map = {
@@ -263,7 +258,7 @@ for prefix in need_suffix:
         _offset_to_period_map['%s-%s' % (prefix, m)] = \
             _offset_to_period_map[prefix]
 
-def offset_to_period_alias(offset_str):
+def to_calendar_freq(offset_str):
     """ alias to closest period strings BQ->Q etc"""
     return _offset_to_period_map.get(offset_str, offset_str)
 
@@ -281,10 +276,12 @@ _rule_aliases = {
     'W@FRI': 'W-FRI',
     'W@SAT': 'W-SAT',
     'W@SUN': 'W-SUN',
+    'W': 'W-SUN',
 
     'Q@JAN': 'BQ-JAN',
     'Q@FEB': 'BQ-FEB',
     'Q@MAR': 'BQ-MAR',
+    'Q' : 'Q-DEC',
 
     'A@JAN' : 'BA-JAN',
     'A@FEB' : 'BA-FEB',
@@ -375,8 +372,11 @@ def to_offset(freqstr):
                     delta = offset
                 else:
                     delta = delta + offset
-        except ValueError:
+        except Exception:
             raise ValueError("Could not evaluate %s" % freqstr)
+
+    if delta is None:
+        raise ValueError('Unable to understand %s as a frequency' % freqstr)
 
     return delta
 
@@ -408,6 +408,11 @@ def _base_and_stride(freqstr):
 
     return (base, stride)
 
+def get_base_alias(freqstr):
+    """
+    Returns the base frequency alias, e.g., '5D' -> 'D'
+    """
+    return _base_and_stride(freqstr)[0]
 
 _dont_uppercase = ['MS', 'ms']
 
@@ -672,10 +677,7 @@ def _period_str_to_code(freqstr):
         return _period_code_map[freqstr]
     except:
         alias = _period_alias_dict[freqstr]
-        try:
-            return _period_code_map[alias]
-        except:
-            raise "Could not interpret frequency %s" % freqstr
+        return _period_code_map[alias]
 
 
 
@@ -696,6 +698,12 @@ def infer_freq(index, warn=True):
     inferer = _FrequencyInferer(index, warn=warn)
     return inferer.get_freq()
 
+_ONE_MICRO = 1000L
+_ONE_MILLI = _ONE_MICRO * 1000
+_ONE_SECOND = _ONE_MILLI * 1000
+_ONE_MINUTE = 60 * _ONE_SECOND
+_ONE_HOUR = 60 * _ONE_MINUTE
+_ONE_DAY = 24 * _ONE_HOUR
 
 class _FrequencyInferer(object):
     """
@@ -717,41 +725,41 @@ class _FrequencyInferer(object):
 
         self.deltas = lib.unique_deltas(self.values)
         self.is_unique = len(self.deltas) == 1
-
-    def is_monotonic(self):
-        try:
-            return self.index.is_monotonic
-        except:
-            return lib.is_monotonic_int64(self.values)[0]
+        self.is_monotonic = self.index.is_monotonic
 
     def get_freq(self):
+        if not self.is_monotonic:
+            return None
 
         delta = self.deltas[0]
-        if _is_multiple(delta, _day_us):
+        if _is_multiple(delta, _ONE_DAY):
             return self._infer_daily_rule()
         else:
             # Possibly intraday frequency
             if not self.is_unique:
                 return None
-            if _is_multiple(delta, 60 * 60 * 1000000):
+            if _is_multiple(delta, _ONE_HOUR):
                 # Hours
-                return _maybe_add_count('H', delta / (60 * 60 * 1000000))
-            elif _is_multiple(delta, 60 * 1000000):
+                return _maybe_add_count('H', delta / _ONE_HOUR)
+            elif _is_multiple(delta, _ONE_MINUTE):
                 # Minutes
-                return _maybe_add_count('T', delta / (60 * 1000000))
-            elif _is_multiple(delta, 1000000):
+                return _maybe_add_count('T', delta / _ONE_MINUTE)
+            elif _is_multiple(delta, _ONE_SECOND):
                 # Seconds
-                return _maybe_add_count('S', delta / 1000000)
-            elif _is_multiple(delta, 1000):
+                return _maybe_add_count('S', delta / _ONE_SECOND)
+            elif _is_multiple(delta, _ONE_MILLI):
                 # Milliseconds
-                return _maybe_add_count('L', delta / 1000)
-            else:
+                return _maybe_add_count('L', delta / _ONE_MILLI)
+            elif _is_multiple(delta, _ONE_MICRO):
                 # Microseconds
-                return _maybe_add_count('U', delta)
+                return _maybe_add_count('U', delta / _ONE_MICRO)
+            else:
+                # Nanoseconds
+                return _maybe_add_count('N', delta)
 
     @cache_readonly
     def day_deltas(self):
-        return [x / _day_us for x in self.deltas]
+        return [x / _ONE_DAY for x in self.deltas]
 
     @cache_readonly
     def fields(self):
@@ -780,7 +788,7 @@ class _FrequencyInferer(object):
             if calendar_start:
                 calendar_start &= d == 1
             if business_start:
-                business_start &= d == 1 or (d < 3 and wd == 0)
+                business_start &= d == 1 or (d <= 3 and wd == 0)
 
             _, daysinmonth = monthrange(y, m)
             cal = d == daysinmonth
@@ -828,7 +836,7 @@ class _FrequencyInferer(object):
             return monthly_rule
 
         if self.is_unique:
-            days = self.deltas[0] / _day_us
+            days = self.deltas[0] / _ONE_DAY
             if days % 7 == 0:
                 # Weekly
                 alias = _weekday_rule_aliases[self.rep_stamp.weekday()]
@@ -869,9 +877,6 @@ class _FrequencyInferer(object):
         return {'cs': 'MS', 'bs': 'BMS',
                 'ce': 'M', 'be': 'BM'}.get(pos_check)
 
-
-def _is_weekday(y, m, d):
-    return datetime(y, m, d).weekday() < 5
 
 import pandas.core.algorithms as algos
 
@@ -948,7 +953,7 @@ def is_superperiod(source, target):
     elif source == 'B':
         return target in ['D', 'B', 'H', 'T', 'S']
     elif source == 'D':
-        return target not in ['D', 'B', 'H', 'T', 'S']
+        return target in ['D', 'B', 'H', 'T', 'S']
 
 def _get_rule_month(source, default='DEC'):
     if isinstance(source, offsets.DateOffset):
@@ -990,5 +995,3 @@ _month_aliases = dict((k + 1, v) for k, v in enumerate(MONTHS))
 
 def _is_multiple(us, mult):
     return us % mult == 0
-
-_day_us = 24 * 60 * 60 * 1000000

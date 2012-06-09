@@ -4,12 +4,20 @@ import numpy as np
 
 from pandas.core.common import _count_not_none
 from pandas.tseries.tools import to_datetime
+from pandas.util.decorators import cache_readonly
 
 # import after tools, dateutil check
 from dateutil.relativedelta import relativedelta
 
-from pandas._tseries import Timestamp
-import pandas._tseries as lib
+from pandas.lib import Timestamp
+import pandas.lib as lib
+
+__all__ = ['Day', 'BusinessDay', 'BDay',
+           'MonthBegin', 'BMonthBegin', 'MonthEnd', 'BMonthEnd',
+           'YearBegin', 'BYearBegin', 'YearEnd', 'BYearEnd',
+           'QuarterBegin', 'BQuarterBegin', 'QuarterEnd', 'BQuarterEnd',
+           'Week', 'WeekOfMonth',
+           'Hour', 'Minute', 'Second', 'Milli', 'Micro', 'Nano']
 
 #----------------------------------------------------------------------
 # DateOffset
@@ -408,7 +416,7 @@ class Week(DateOffset, CacheableOffset):
                 raise Exception('Day must be 0<=day<=6, got %d' %
                                 self.weekday)
 
-        self.delta = timedelta(weeks=1)
+        self._inc = timedelta(weeks=1)
         self.kwds = kwds
 
     def isAnchored(self):
@@ -416,7 +424,7 @@ class Week(DateOffset, CacheableOffset):
 
     def apply(self, other):
         if self.weekday is None:
-            return other + self.n * self.delta
+            return other + self.n * self._inc
 
         if self.n > 0:
             k = self.n
@@ -425,14 +433,14 @@ class Week(DateOffset, CacheableOffset):
                 other = other + timedelta((self.weekday - otherDay) % 7)
                 k = k - 1
             for i in xrange(k):
-                other = other + self.delta
+                other = other + self._inc
         else:
             k = self.n
             otherDay = other.weekday()
             if otherDay != self.weekday:
                 other = other + timedelta((self.weekday - otherDay) % 7)
             for i in xrange(-k):
-                other = other - self.delta
+                other = other - self._inc
         return other
 
     def onOffset(self, dt):
@@ -919,7 +927,6 @@ class YearBegin(DateOffset, CacheableOffset):
 # Ticks
 
 class Tick(DateOffset):
-    _delta = None
     _inc = timedelta(microseconds=1000)
 
     def __add__(self, other):
@@ -955,16 +962,13 @@ class Tick(DateOffset):
         else:
             return DateOffset.__ne__(self, other)
 
-    @property
+    @cache_readonly
     def delta(self):
-        if self._delta is None:
-            self._delta = self.n * self._inc
-
-        return self._delta
+        return self.n * self._inc
 
     @property
-    def micros(self):
-        return _delta_to_microseconds(self.delta)
+    def nanos(self):
+        return _delta_to_nanoseconds(self.delta)
 
     def apply(self, other):
         if isinstance(other, (datetime, timedelta)):
@@ -990,22 +994,28 @@ def _delta_to_tick(delta):
             else:
                 return Second(seconds)
     else:
-        mus = _delta_to_microseconds(delta)
-        if mus % 1000 == 0:
-            return Milli(mus // 1000)
+        nanos = _delta_to_nanoseconds(delta)
+        if nanos % 1000000 == 0:
+            return Milli(nanos // 1000000)
+        elif nanos % 1000 == 0:
+            return Micro(nanos // 1000)
         else:
-            return Micro(mus)
+            return Nano(nanos)
 
-def _delta_to_microseconds(delta):
+def _delta_to_nanoseconds(delta):
     if isinstance(delta, Tick):
         delta = delta.delta
     return (delta.days * 24 * 60 * 60 * 1000000
             + delta.seconds * 1000000
-            + delta.microseconds)
+            + delta.microseconds) * 1000
 
 class Day(Tick, CacheableOffset):
     _inc = timedelta(1)
     _rule_base = 'D'
+
+    def isAnchored(self):
+
+        return False
 
 class Hour(Tick):
     _inc = timedelta(0, 3600)
@@ -1026,36 +1036,13 @@ class Micro(Tick):
     _inc = timedelta(microseconds=1)
     _rule_base = 'U'
 
+class Nano(Tick):
+    _inc = 1
+    _rule_base = 'N'
+
 BDay = BusinessDay
 BMonthEnd = BusinessMonthEnd
 BMonthBegin = BusinessMonthBegin
-
-day = DateOffset()
-bday = BDay()
-businessDay = bday
-monthEnd = MonthEnd()
-yearEnd = YearEnd()
-yearBegin = YearBegin()
-bmonthEnd = BMonthEnd()
-businessMonthEnd = bmonthEnd
-bquarterEnd = BQuarterEnd()
-quarterEnd = QuarterEnd()
-byearEnd = BYearEnd()
-week = Week()
-
-
-# Functions/offsets to roll dates forward
-thisMonthEnd = MonthEnd(0)
-thisBMonthEnd = BMonthEnd(0)
-thisYearEnd = YearEnd(0)
-thisYearBegin = YearBegin(0)
-thisBQuarterEnd = BQuarterEnd(0)
-thisQuarterEnd = QuarterEnd(0)
-
-# Functions to check where a date lies
-isBusinessDay = BDay().onOffset
-isMonthEnd = MonthEnd().onOffset
-isBMonthEnd = BMonthEnd().onOffset
 
 
 def _get_firstbday(wkday):

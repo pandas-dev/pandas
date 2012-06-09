@@ -3,6 +3,7 @@
 import nose
 import unittest
 
+from datetime import datetime
 from numpy.random import randn
 from numpy import nan
 import numpy as np
@@ -10,10 +11,10 @@ import random
 
 from pandas import *
 from pandas.tseries.index import DatetimeIndex
-from pandas.tools.merge import merge, concat, ordered_merge
+from pandas.tools.merge import merge, concat, ordered_merge, MergeError
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
                                  assert_almost_equal, rands)
-import pandas._tseries as lib
+import pandas.lib as lib
 import pandas.util.testing as tm
 
 a_ = np.array
@@ -560,6 +561,67 @@ class TestMerge(unittest.TestCase):
         merged = merge(left, right, left_index=True, right_on=key, how='outer')
         self.assert_(np.array_equal(merged['key_0'], key))
 
+    def test_mixed_type_join_with_suffix(self):
+        # GH #916
+        df = DataFrame(np.random.randn(20, 6),
+                       columns=['a', 'b', 'c', 'd', 'e', 'f'])
+        df.insert(0, 'id', 0)
+        df.insert(5, 'dt', 'foo')
+
+        grouped = df.groupby('id')
+        mn = grouped.mean()
+        cn = grouped.count()
+
+        # it works!
+        mn.join(cn, rsuffix='_right')
+
+    def test_no_overlap_more_informative_error(self):
+        dt = datetime.now()
+        df1 = DataFrame({'x': ['a']}, index=[dt])
+
+        df2 = DataFrame({'y': ['b', 'c']}, index=[dt, dt])
+        self.assertRaises(MergeError, merge, df1, df2)
+
+    def test_merge_non_unique_indexes(self):
+
+        dt = datetime(2012, 5, 1)
+        dt2 = datetime(2012, 5, 2)
+        dt3 = datetime(2012, 5, 3)
+        dt4 = datetime(2012, 5, 4)
+
+        df1 = DataFrame({'x': ['a']}, index=[dt])
+        df2 = DataFrame({'y': ['b', 'c']}, index=[dt, dt])
+        _check_merge(df1, df2)
+
+        # Not monotonic
+        df1 = DataFrame({'x': ['a', 'b', 'q']}, index=[dt2, dt, dt4])
+        df2 = DataFrame({'y': ['c', 'd', 'e', 'f', 'g', 'h']},
+                        index=[dt3, dt3, dt2, dt2, dt, dt])
+        _check_merge(df1, df2)
+
+        df1 = DataFrame({'x': ['a', 'b']}, index=[dt, dt])
+        df2 = DataFrame({'y': ['c', 'd']}, index=[dt, dt])
+        _check_merge(df1, df2)
+
+    def test_merge_non_unique_index_many_to_many(self):
+        dt = datetime(2012, 5, 1)
+        dt2 = datetime(2012, 5, 2)
+        dt3 = datetime(2012, 5, 3)
+        df1 = DataFrame({'x': ['a', 'b', 'c', 'd']},
+                        index=[dt2, dt2, dt, dt])
+        df2 = DataFrame({'y': ['e', 'f', 'g',' h', 'i']},
+                        index=[dt2, dt2, dt3, dt, dt])
+        _check_merge(df1, df2)
+
+def _check_merge(x, y):
+    for how in ['inner', 'left', 'outer']:
+        result = x.join(y, how=how)
+
+        expected = merge(x.reset_index(), y.reset_index(), how=how)
+        expected = expected.set_index('index')
+
+        assert_frame_equal(result, expected)
+
 class TestMergeMulti(unittest.TestCase):
 
     def setUp(self):
@@ -655,6 +717,7 @@ class TestMergeMulti(unittest.TestCase):
         rdf = right.drop(['id'], axis=1)
         expected = left.join(rdf)
         tm.assert_frame_equal(merged, expected)
+
 
 def _check_join(left, right, result, join_col, how='left',
                 lsuffix='_x', rsuffix='_y'):
@@ -785,7 +848,8 @@ class TestConcatenate(unittest.TestCase):
         self.assert_(appended is not self.frame)
 
         # overlap
-        self.assertRaises(Exception, self.frame.append, self.frame)
+        self.assertRaises(Exception, self.frame.append, self.frame,
+                          verify_integrity=True)
 
     def test_append_length0_frame(self):
         df = DataFrame(columns=['A', 'B', 'C'])
@@ -1198,7 +1262,7 @@ class TestConcatenate(unittest.TestCase):
         result = concat(pieces, keys=[0, 1, 2])
         expected = ts.copy()
 
-        ts.index = DatetimeIndex(np.array(ts.index.values, dtype='M8[us]'))
+        ts.index = DatetimeIndex(np.array(ts.index.values, dtype='M8[ns]'))
 
         exp_labels = [np.repeat([0, 1, 2], [len(x) for x in pieces]),
                       np.arange(len(ts))]
@@ -1234,20 +1298,6 @@ class TestConcatenate(unittest.TestCase):
         result = concat(pieces)
         tm.assert_frame_equal(result, df)
         self.assertRaises(Exception, concat, [None, None])
-
-    def test_mixed_type_join_with_suffix(self):
-        # GH #916
-        df = DataFrame(np.random.randn(20, 6),
-                       columns=['a', 'b', 'c', 'd', 'e', 'f'])
-        df.insert(0, 'id', 0)
-        df.insert(5, 'dt', 'foo')
-
-        grouped = df.groupby('id')
-        mn = grouped.mean()
-        cn = grouped.count()
-
-        # it works!
-        mn.join(cn, rsuffix='_right')
 
 
 class TestOrderedMerge(unittest.TestCase):

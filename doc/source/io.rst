@@ -5,16 +5,20 @@
 .. ipython:: python
    :suppress:
 
-   import numpy as np
    import os
-   np.random.seed(123456)
-   from pandas import *
+   import csv
    from StringIO import StringIO
-   import pandas.util.testing as tm
+
+   import numpy as np
+   np.random.seed(123456)
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
+
    import matplotlib.pyplot as plt
    plt.close('all')
+
+   from pandas import *
+   import pandas.util.testing as tm
    clipdf = DataFrame({'A':[1,2,3],'B':[4,5,6],'C':['p','q','r']},
                       index=['x','y','z'])
 
@@ -49,58 +53,79 @@ And then import the data directly to a DataFrame by calling:
 
    clipdf
 
+.. _io.read_csv_table:
+
 CSV & Text files
 ----------------
-
-.. _io.parse_dates:
 
 The two workhorse functions for reading text files (a.k.a. flat files) are
 :func:`~pandas.io.parsers.read_csv` and :func:`~pandas.io.parsers.read_table`.
 They both use the same parsing code to intelligently convert tabular
 data into a DataFrame object. They can take a number of arguments:
 
-  - ``path_or_buffer``: Either a string path to a file, or any object with a
+  - ``filepath_or_buffer``: Either a string path to a file, or any object with a
     ``read`` method (such as an open file or ``StringIO``).
   - ``sep`` or ``delimiter``: A delimiter / separator to split fields
     on. `read_csv` is capable of inferring the delimiter automatically in some
     cases by "sniffing." The separator may be specified as a regular
     expression; for instance you may use '\s*' to indicate arbitrary
     whitespace.
+  - ``dialect``: string or csv.Dialect instance to expose more ways to specify
+    the file format
   - ``header``: row number to use as the column names, and the start of the data.
     Defaults to 0 (first row); specify None if there is no header row.
-  - ``names``: List of column names to use. If passed, header will be
-    implicitly set to None.
   - ``skiprows``: A collection of numbers for rows in the file to skip. Can
     also be an integer to skip the first ``n`` rows
-  - ``index_col``: column number, or list of column numbers, to use as the
-    ``index`` (row labels) of the resulting DataFrame. By default, it will number
-    the rows without using any column, unless there is one more data column than
-    there are headers, in which case the first column is taken as the index.
-  - ``parse_dates``: If True, attempt to parse the index column as dates. False
-    by default.
+  - ``index_col``: column number, column name, or list of column numbers/names,
+    to use as the ``index`` (row labels) of the resulting DataFrame. By default,
+    it will number the rows without using any column, unless there is one more
+    data column than there are headers, in which case the first column is taken
+    as the index.
+  - ``names``: List of column names to use. If passed, header will be
+    implicitly set to None.
+  - ``na_values``: optional list of strings to recognize as NaN (missing values),
+    in addition to a default set.
+  - ``parse_dates``: if True then index will be parsed as dates
+    (False by default). You can specify more complicated options to parse
+    a subset of columns or a combination of columns into a single date column
+    (list of ints or names, list of lists, or dict)
+    [1, 2, 3] -> try parsing columns 1, 2, 3 each as a separate date column
+    [[1, 3]] -> combine columns 1 and 3 and parse as a single date column
+    {'foo' : [1, 3]} -> parse columns 1, 3 as date and call result 'foo'
+  - ``keep_date_col``: if True, then date component columns passed into
+    ``parse_dates`` will be retained in the output (False by default).
   - ``date_parser``: function to use to parse strings into datetime
     objects. If ``parse_dates`` is True, it defaults to the very robust
     ``dateutil.parser``. Specifying this implicitly sets ``parse_dates`` as True.
-  - ``na_values``: optional list of strings to recognize as NaN (missing values),
-    in addition to a default set.
+    You can also use functions from community supported date converters from
+    date_converters.py
+  - ``dayfirst``: if True then uses the DD/MM international/European date format
+    (This is False by default)
+  - ``thousands``: sepcifies the thousands separator. If not None, then parser
+    will try to look for it in the output and parse relevant data to integers.
+    Because it has to essentially scan through the data again, this causes a
+    significant performance hit so only use if necessary.
+  - ``comment``: denotes the start of a comment and ignores the rest of the line.
+    Currently line commenting is not supported.
   - ``nrows``: Number of rows to read out of the file. Useful to only read a
     small portion of a large file
+  - ``iterator``: If True, return a ``TextParser`` to enable reading a file
+    into memory piece by piece
   - ``chunksize``: An number of rows to be used to "chunk" a file into
     pieces. Will cause an ``TextParser`` object to be returned. More on this
     below in the section on :ref:`iterating and chunking <io.chunking>`
-  - ``iterator``: If True, return a ``TextParser`` to enable reading a file
-    into memory piece by piece
   - ``skip_footer``: number of lines to skip at bottom of file (default 0)
   - ``converters``: a dictionary of functions for converting values in certain
     columns, where keys are either integers or column labels
   - ``encoding``: a string representing the encoding to use if the contents are
     non-ascii
-  - ``verbose`` : show number of NA values inserted in non-numeric columns
+  - ``verbose``: show number of NA values inserted in non-numeric columns
+  - ``squeeze``: if True then output with only one column is turned into Series
 
 .. ipython:: python
    :suppress:
 
-   f = open('foo.csv', 'w')
+   f = open('foo.csv','w')
    f.write('date,A,B,C\n20090101,a,1,2\n20090102,b,3,4\n20090103,c,4,5')
    f.close()
 
@@ -116,16 +141,77 @@ The default for `read_csv` is to create a DataFrame with simple numbered rows:
 
    read_csv('foo.csv')
 
-In the case of indexed data, you can pass the column number (or a list of
-column numbers, for a hierarchical index) you wish to use as the index. If the
-index values are dates and you want them to be converted to ``datetime``
-objects, pass ``parse_dates=True``:
+In the case of indexed data, you can pass the column number or column name you
+wish to use as the index:
+
+.. ipython:: python
+
+   read_csv('foo.csv', index_col=0)
+
+.. ipython:: python
+
+   read_csv('foo.csv', index_col='date')
+
+You can also use a list of columns to create a hierarchical index:
+
+.. ipython:: python
+
+   read_csv('foo.csv', index_col=[0, 'A'])
+
+.. _io.dialect:
+
+The ``dialect`` keyword gives greater flexibility in specifying the file format.
+By default it uses the Excel dialect but you can specify either the dialect name
+or a `csv.Dialect <docs.python.org/library/csv.html#csv.Dialect>`_ instance.
+
+.. ipython:: python
+   :suppress:
+
+   data = ('label1,label2,label3\n'
+           'index1,"a,c,e\n'
+           'index2,b,d,f')
+
+Suppose you had data with unenclosed quotes:
+
+.. ipython:: python
+
+   print data
+
+By default, ``read_csv`` uses the Excel dialect and treats the double quote as
+the quote character, which causes it to fail when it finds a newline before it
+finds the closing double quote.
+
+We can get around this using ``dialect``
+
+.. ipython:: python
+
+   dia = csv.excel()
+   dia.quoting = csv.QUOTE_NONE
+   read_csv(StringIO(data), dialect=dia)
+
+The parsers make every attempt to "do the right thing" and not be very
+fragile. Type inference is a pretty big deal. So if a column can be coerced to
+integer dtype without altering the contents, it will do so. Any non-numeric
+columns will come through as object dtype as with the rest of pandas objects.
+
+.. _io.parse_dates:
+
+Specifying Date Columns
+~~~~~~~~~~~~~~~~~~~~~~~
+
+To better facilitate working with datetime data, :func:`~pandas.io.parsers.read_csv` and :func:`~pandas.io.parsers.read_table`
+uses the keyword arguments ``parse_dates`` and ``date_parser`` to allow users
+to specify a variety of columns and date/time formats to turn the input text
+data into ``datetime`` objects.
+
+The simplest case is to just pass in ``parse_dates=True``:
 
 .. ipython:: python
 
    # Use a column as an index, and parse it as dates.
    df = read_csv('foo.csv', index_col=0, parse_dates=True)
    df
+
    # These are python datetime objects
    df.index
 
@@ -134,10 +220,218 @@ objects, pass ``parse_dates=True``:
 
    os.remove('foo.csv')
 
-The parsers make every attempt to "do the right thing" and not be very
-fragile. Type inference is a pretty big deal. So if a column can be coerced to
-integer dtype without altering the contents, it will do so. Any non-numeric
-columns will come through as object dtype as with the rest of pandas objects.
+It is often the case that we may want to store date and time data separately,
+or store various date fields separately. the ``parse_dates`` keyword can be
+used to specify a combination of columns to parse the dates and/or times from.
+
+You can specify a list of column lists to ``parse_dates``, the resulting date
+columns will be prepended to the output (so as to not affect the existing column
+order) and the new column names will be the concatenation of the component
+column names:
+
+.. ipython:: python
+   :suppress:
+
+   data =  ("KORD,19990127, 19:00:00, 18:56:00, 0.8100\n"
+            "KORD,19990127, 20:00:00, 19:56:00, 0.0100\n"
+            "KORD,19990127, 21:00:00, 20:56:00, -0.5900\n"
+            "KORD,19990127, 21:00:00, 21:18:00, -0.9900\n"
+            "KORD,19990127, 22:00:00, 21:56:00, -0.5900\n"
+            "KORD,19990127, 23:00:00, 22:56:00, -0.5900")
+
+   with open('tmp.csv', 'w') as fh:
+       fh.write(data)
+
+.. ipython:: python
+
+    print open('tmp.csv').read()
+    df = read_csv('tmp.csv', header=None, parse_dates=[[1, 2], [1, 3]])
+    df
+
+By default the parser removes the component date columns, but you can choose
+to retain them via the ``keep_date_col`` keyword:
+
+.. ipython:: python
+
+   df = read_csv('tmp.csv', header=None, parse_dates=[[1, 2], [1, 3]],
+                 keep_date_col=True)
+   df
+
+Note that if you wish to combine multiple columns into a single date column, a
+nested list must be used. In other words, ``parse_dates=[1, 2]`` indicates that
+the second and third columns should each be parsed as separate date columns
+while ``parse_dates=[[1, 2]]`` means the two columns should be parsed into a
+single column.
+
+You can also use a dict to specify custom name columns:
+
+.. ipython:: python
+
+   date_spec = {'nominal': [1, 2], 'actual': [1, 3]}
+   df = read_csv('tmp.csv', header=None, parse_dates=date_spec)
+   df
+
+Date Parsing Functions
+~~~~~~~~~~~~~~~~~~~~~~
+Finally, the parser allows you can specify a custom ``date_parser`` function to
+take full advantage of the flexiblity of the date parsing API:
+
+.. ipython:: python
+
+   import pandas.io.date_converters as conv
+   df = read_csv('tmp.csv', header=None, parse_dates=date_spec,
+                 date_parser=conv.parse_date_time)
+   df
+
+You can explore the date parsing functionality in ``date_converters.py`` and
+add your own. We would love to turn this module into a community supported set
+of date/time parsers. To get you started, ``date_converters.py`` contains
+functions to parse dual date and time columns, year/month/day columns,
+and year/month/day/hour/minute/second columns. It also contains a
+``generic_parser`` function so you can curry it with a function that deals with
+a single date rather than the entire array.
+
+.. ipython:: python
+   :suppress:
+
+   os.remove('tmp.csv')
+
+.. _io.dayfirst:
+
+International Date Formats
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+While US date formats tend to be MM/DD/YYYY, many international formats use
+DD/MM/YYYY instead. For convenience, a ``dayfirst`` keyword is provided:
+
+.. ipython:: python
+   :suppress:
+
+   data = "date,value,cat\n1/6/2000,5,a\n2/6/2000,10,b\n3/6/2000,15,c"
+   with open('tmp.csv', 'w') as fh:
+        fh.write(data)
+
+.. ipython:: python
+
+   print open('tmp.csv').read()
+
+   read_csv('tmp.csv', parse_dates=[0])
+
+   read_csv('tmp.csv', dayfirst=True, parse_dates=[0])
+
+.. _io.thousands:
+
+Thousand Separators
+~~~~~~~~~~~~~~~~~~~
+For large integers that have been written with a thousands separator, you can
+set the ``thousands`` keyword to ``True`` so that integers will be parsed
+correctly:
+
+.. ipython:: python
+   :suppress:
+
+   data =  ("ID|level|category\n"
+            "Patient1|123,000|x\n"
+            "Patient2|23,000|y\n"
+            "Patient3|1,234,018|z")
+
+   with open('tmp.csv', 'w') as fh:
+       fh.write(data)
+
+By default, integers with a thousands separator will be parsed as strings
+
+.. ipython:: python
+
+    print open('tmp.csv').read()
+    df = read_csv('tmp.csv', sep='|')
+    df
+
+    df.level.dtype
+
+The ``thousands`` keyword allows integers to be parsed correctly
+
+.. ipython:: python
+
+    print open('tmp.csv').read()
+    df = read_csv('tmp.csv', sep='|', thousands=',')
+    df
+
+    df.level.dtype
+
+.. ipython:: python
+   :suppress:
+
+   os.remove('tmp.csv')
+
+.. _io.comments:
+
+Comments
+~~~~~~~~
+Sometimes comments or meta data may be included in a file:
+
+.. ipython:: python
+   :suppress:
+
+   data =  ("ID,level,category\n"
+            "Patient1,123000,x # really unpleasant\n"
+            "Patient2,23000,y # wouldn't take his medicine\n"
+            "Patient3,1234018,z # awesome")
+
+   with open('tmp.csv', 'w') as fh:
+       fh.write(data)
+
+.. ipython:: python
+
+   print open('tmp.csv').read()
+
+By default, the parse includes the comments in the output:
+
+.. ipython:: python
+
+   df = read_csv('tmp.csv')
+   df
+
+We can suppress the comments using the ``comment`` keyword:
+
+.. ipython:: python
+
+   df = read_csv('tmp.csv', comment='#')
+   df
+
+.. ipython:: python
+   :suppress:
+
+   os.remove('tmp.csv')
+
+Returning Series
+~~~~~~~~~~~~~~~~
+
+Using the ``squeeze`` keyword, the parser will return output with a single column
+as a ``Series``:
+
+.. ipython:: python
+   :suppress:
+
+   data =  ("level\n"
+            "Patient1,123000\n"
+            "Patient2,23000\n"
+            "Patient3,1234018")
+
+   with open('tmp.csv', 'w') as fh:
+       fh.write(data)
+
+.. ipython:: python
+
+   print open('tmp.csv').read()
+
+   output =  read_csv('tmp.csv', squeeze=True)
+   output
+
+   type(output)
+
+.. ipython:: python
+   :suppress:
+
+   os.remove('tmp.csv')
 
 .. _io.fwf:
 
@@ -270,8 +564,9 @@ module.
 .. ipython:: python
    :suppress:
 
-   df[:7].to_csv('tmp.sv', sep='|')
-   df[:7].to_csv('tmp2.sv', sep=':')
+   df = DataFrame(np.random.randn(10, 4))
+   df.to_csv('tmp.sv', sep='|')
+   df.to_csv('tmp2.sv', sep=':')
 
 .. ipython:: python
 
@@ -299,15 +594,14 @@ rather than reading the entire file into memory, such as the following:
 By specifiying a ``chunksize`` to ``read_csv`` or ``read_table``, the return
 value will be an iterable object of type ``TextParser``:
 
-.. ipython::
+.. ipython:: python
 
-   In [1]: reader = read_table('tmp.sv', sep='|', chunksize=4)
+   reader = read_table('tmp.sv', sep='|', chunksize=4)
+   reader
 
-   In [1]: reader
+   for chunk in reader:
+       print chunk
 
-   In [2]: for chunk in reader:
-      ...:     print chunk
-      ...:
 
 Specifying ``iterator=True`` will also return the ``TextParser`` object:
 

@@ -53,6 +53,43 @@ appropriate pandas object (most likely a DataFrame):
 
    infert.head()
 
+
+Converting DataFrames into R objects
+------------------------------------
+
+.. versionadded:: 0.8
+
+Starting from pandas 0.8, there is **experimental** support to convert
+DataFrames into the equivalent R object (that is, **data.frame**):
+
+.. ipython:: python
+
+   from pandas import DataFrame
+
+   df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C':[7,8,9]},
+                  index=["one", "two", "three"])
+   r_dataframe = com.convert_to_r_dataframe(df)
+
+   print type(r_dataframe)
+   print r_dataframe
+
+
+The DataFrame's index is stored as the ``rownames`` attribute of the
+data.frame instance.
+
+You can also use **convert_to_r_matrix** to obtain a ``Matrix`` instance, but
+bear in mind that it will only work with homogeneously-typed DataFrames (as
+R matrices bear no information on the data type):
+
+
+.. ipython:: python
+
+   r_matrix = com.convert_to_r_matrix(df)
+
+   print type(r_matrix)
+   print r_matrix
+
+
 Calling R functions with pandas objects
 ---------------------------------------
 

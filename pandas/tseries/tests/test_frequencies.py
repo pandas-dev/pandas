@@ -13,7 +13,7 @@ from pandas.tseries.frequencies import to_offset, infer_freq
 from pandas.tseries.tools import to_datetime
 import pandas.tseries.offsets as offsets
 
-import pandas._tseries as lib
+import pandas.lib as lib
 
 def test_to_offset_multiple():
     freqstr = '2h30min'
@@ -44,6 +44,14 @@ def test_to_offset_multiple():
     expected = offsets.Milli(10075)
     assert(result == expected)
 
+    # malformed
+    try:
+        to_offset('2h20m')
+    except ValueError:
+        pass
+    else:
+        assert(False)
+
 def test_to_offset_negative():
     freqstr = '-1S'
     result = to_offset(freqstr)
@@ -52,6 +60,16 @@ def test_to_offset_negative():
     freqstr='-5min10s'
     result = to_offset(freqstr)
     assert(result.n == -310)
+
+
+def test_anchored_shortcuts():
+    result = to_offset('W')
+    expected = to_offset('W-SUN')
+    assert(result == expected)
+
+    result = to_offset('Q')
+    expected = to_offset('Q-DEC')
+    assert(result == expected)
 
 
 _dti = DatetimeIndex
@@ -92,6 +110,12 @@ class TestFrequencyInference(unittest.TestCase):
     def test_microsecond(self):
         self._check_tick(timedelta(microseconds=1), 'U')
 
+    def test_nanosecond(self):
+        idx = DatetimeIndex(np.arange(0, 100, 10))
+        inferred = idx.inferred_freq
+
+        self.assert_(inferred == '10N')
+
     def _check_tick(self, base_delta, code):
         b = datetime.now()
         for i in range(1, 5):
@@ -127,6 +151,9 @@ class TestFrequencyInference(unittest.TestCase):
     def test_business_monthly(self):
         self._check_generated_range('1/1/2000', 'BM')
 
+    def test_business_start_monthly(self):
+        self._check_generated_range('1/1/2000', 'BMS')
+
     def test_quarterly(self):
         for month in ['JAN', 'FEB', 'MAR']:
             self._check_generated_range('1/1/2000', 'Q-%s' % month)
@@ -153,6 +180,11 @@ class TestFrequencyInference(unittest.TestCase):
         gen = date_range(start, periods=5, freq=freq)
         index = _dti(gen.values)
         self.assert_(infer_freq(index) == gen.freqstr)
+
+    def test_not_monotonic(self):
+        rng = _dti(['1/31/2000', '1/31/2001', '1/31/2002'])
+        rng = rng[::-1]
+        self.assert_(rng.inferred_freq is None)
 
 MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP',
           'OCT', 'NOV', 'DEC']

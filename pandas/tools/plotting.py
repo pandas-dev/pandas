@@ -6,18 +6,32 @@ import numpy as np
 
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
+from pandas.core.index import Index, MultiIndex
 from pandas.core.series import Series
+from pandas.tseries.frequencies import to_calendar_freq
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.offsets import DateOffset
+import pandas.tseries.tools as datetools
+
+def _get_standard_kind(kind):
+    return {'density' : 'kde'}.get(kind, kind)
+
 
 def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
-                   **kwds):
+                   diagonal='hist', marker='.', **kwds):
     """
     Draw a matrix of scatter plots.
 
     Parameters
     ----------
+    alpha : amount of transparency applied
+    figsize : a tuple (width, height) in inches
+    ax : Matplotlib axis object
+    grid : setting this to True will show the grid
+    diagonal : pick between 'kde' and 'hist' for
+        either Kernel Density Estimation or Histogram
+        plon in the diagonal
     kwds : other plotting keyword arguments
         To be passed to scatter function
 
@@ -34,9 +48,28 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
     # no gaps between subplots
     fig.subplots_adjust(wspace=0, hspace=0)
 
+    mask = com.notnull(df)
+
     for i, a in zip(range(n), df.columns):
         for j, b in zip(range(n), df.columns):
-            axes[i, j].scatter(df[b], df[a], alpha=alpha, **kwds)
+            if i == j:
+                values = df[a].values[mask[a].values]
+
+                # Deal with the diagonal by drawing a histogram there.
+                if diagonal == 'hist':
+                    axes[i, j].hist(values)
+                elif diagonal in ('kde', 'density'):
+                    from scipy.stats import gaussian_kde
+                    y = values
+                    gkde = gaussian_kde(y)
+                    ind = np.linspace(y.min(), y.max(), 1000)
+                    axes[i, j].plot(ind, gkde.evaluate(ind), **kwds)
+            else:
+                common = (mask[a] & mask[b]).values
+
+                axes[i, j].scatter(df[b][common], df[a][common],
+                                   marker=marker, alpha=alpha, **kwds)
+
             axes[i, j].set_xlabel('')
             axes[i, j].set_ylabel('')
             axes[i, j].set_xticklabels([])
@@ -44,7 +77,7 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
             ticks = df.index
 
             is_datetype = ticks.inferred_type in ('datetime', 'date',
-                                                  'datetime64')
+                                              'datetime64')
 
             if ticks.is_numeric() or is_datetype:
                 """
@@ -87,13 +120,6 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
 
             axes[i, j].grid(b=grid)
 
-    # ensure {x,y}lim off diagonal are the same as diagonal
-    for i in range(n):
-        for j in range(n):
-            if i != j:
-                axes[i, j].set_xlim(axes[j, j].get_xlim())
-                axes[i, j].set_ylim(axes[i, i].get_ylim())
-
     return axes
 
 def _gca():
@@ -103,6 +129,54 @@ def _gca():
 def _gcf():
     import matplotlib.pyplot as plt
     return plt.gcf()
+
+def andrews_curves(data, class_column, ax=None, samples=200):
+    """
+    Parameters:
+    data: A DataFrame containing data to be plotted, preferably
+    normalized to (0.0, 1.0).
+    class_column: Name of the column containing class names.
+    samples: Number of points to plot in each curve.
+    """
+    from math import sqrt, pi, sin, cos
+    import matplotlib.pyplot as plt
+    import random
+    def function(amplitudes):
+        def f(x):
+            x1 = amplitudes[0]
+            result = x1 / sqrt(2.0)
+            harmonic = 1.0
+            for x_even, x_odd in zip(amplitudes[1::2], amplitudes[2::2]):
+                result += (x_even * sin(harmonic * x) +
+                            x_odd * cos(harmonic * x))
+                harmonic += 1.0
+            if len(amplitudes) % 2 != 0:
+                result += amplitudes[-1] * sin(harmonic * x)
+            return result
+        return f
+    def random_color(column):
+        random.seed(column)
+        return [random.random() for _ in range(3)]
+    n = len(data)
+    classes = set(data[class_column])
+    class_col = data[class_column]
+    columns = [data[col] for col in data.columns if (col != class_column)]
+    x = [-pi + 2.0 * pi * (t / float(samples)) for t in range(samples)]
+    used_legends = set([])
+    if ax == None:
+        ax = plt.gca(xlim=(-pi, pi))
+    for i in range(n):
+        row = [columns[c][i] for c in range(len(columns))]
+        f = function(row)
+        y = [f(t) for t in x]
+        label = None
+        if str(class_col[i]) not in used_legends:
+            label = str(class_col[i])
+            used_legends.add(label)
+        ax.plot(x, y, color=random_color(class_col[i]), label=label)
+    ax.legend(loc='upper right')
+    ax.grid()
+    return ax
 
 def grouped_hist(data, column=None, by=None, ax=None, bins=50, log=False,
                  figsize=None, layout=None, sharex=False, sharey=False,
@@ -145,7 +219,7 @@ class MPLPlot(object):
                  figsize=None, grid=True, legend=True, rot=None,
                  ax=None, fig=None, title=None, xlim=None, ylim=None,
                  xticks=None, yticks=None,
-                 sort_columns=True, fontsize=None, **kwds):
+                 sort_columns=False, fontsize=None, **kwds):
 
         self.data = data
         self.by = by
@@ -283,7 +357,7 @@ class MPLPlot(object):
             ax.grid(self.grid)
 
         if self.legend and not self.subplots:
-            self.ax.legend(loc='best')
+            self.ax.legend(loc='best', title=self.legend_title)
 
         if self.title:
             if self.subplots:
@@ -296,6 +370,20 @@ class MPLPlot(object):
             for ax_ in self.axes:
                 # ax_.set_xticks(self.xticks)
                 ax_.set_xticklabels(xticklabels, rotation=self.rot)
+
+    @property
+    def legend_title(self):
+        if hasattr(self.data, 'columns'):
+            if not isinstance(self.data.columns, MultiIndex):
+                name = self.data.columns.name
+                if name is not None:
+                    name = str(name)
+                return name
+            else:
+                stringified = map(str, self.data.columns.names)
+                return ','.join(stringified)
+        else:
+            return None
 
     @cache_readonly
     def plt(self):
@@ -326,6 +414,81 @@ class MPLPlot(object):
 
         return x
 
+    def _get_plot_function(self):
+        if self.logy:
+            plotf = self.plt.Axes.semilogy
+        elif self.logx:
+            plotf = self.plt.Axes.semilogx
+        elif self.loglog:
+            plotf = self.plt.Axes.loglog
+        else:
+            plotf = self.plt.Axes.plot
+
+        return plotf
+
+    def _get_index_name(self):
+        if isinstance(self.data.index, MultiIndex):
+            name = self.data.index.names
+            if any(x is not None for x in name):
+                name = ','.join([str(x) for x in name])
+            else:
+                name = None
+        else:
+            name = self.data.index.name
+            if name is not None:
+                name = str(name)
+
+        return name
+
+class KdePlot(MPLPlot):
+    def __init__(self, data, **kwargs):
+        MPLPlot.__init__(self, data, **kwargs)
+
+    def _make_plot(self):
+        from scipy.stats import gaussian_kde
+        plotf = self._get_plot_function()
+        for i, (label, y) in enumerate(self._iter_data()):
+            if self.subplots:
+                ax = self.axes[i]
+                style = 'k'
+            else:
+                style = ''  # empty string ignored
+                ax = self.ax
+            if self.style:
+                style = self.style
+            gkde = gaussian_kde(y)
+            sample_range = max(y) - min(y)
+            ind = np.linspace(min(y) - 0.5 * sample_range,
+                max(y) + 0.5 * sample_range, 1000)
+            ax.set_ylabel("Density")
+            plotf(ax, ind, gkde.evaluate(ind), style, label=label, **self.kwds)
+            ax.grid(self.grid)
+
+    def _post_plot_logic(self):
+        df = self.data
+
+        if self.subplots and self.legend:
+            self.axes[0].legend(loc='best')
+
+class DatetimeConverter(object):
+
+    @classmethod
+    def convert(cls, values, units, axis):
+        def try_parse(values):
+            try:
+                return datetools.to_datetime(values).toordinal()
+            except Exception:
+                return values
+
+        if (com.is_integer(values) or
+            com.is_float(values)):
+            return values
+        elif isinstance(values, str):
+            return try_parse(values)
+        elif isinstance(values, Index):
+            return values.map(try_parse)
+        return map(try_parse, values)
+
 class LinePlot(MPLPlot):
 
     def __init__(self, data, **kwargs):
@@ -342,18 +505,6 @@ class LinePlot(MPLPlot):
                                 self.data.index.inferred_freq is not None)
                 return has_freq or has_inferred
         return False
-
-    def _get_plot_function(self):
-        if self.logy:
-            plotf = self.plt.Axes.semilogy
-        elif self.logx:
-            plotf = self.plt.Axes.semilogx
-        elif self.loglog:
-            plotf = self.plt.Axes.loglog
-        else:
-            plotf = self.plt.Axes.plot
-
-        return plotf
 
     def _make_plot(self):
         # this is slightly deceptive
@@ -377,6 +528,10 @@ class LinePlot(MPLPlot):
 
                 plotf(ax, x, y, style, label=label, **self.kwds)
                 ax.grid(self.grid)
+                idx = getattr(self.data, 'index', None)
+                if isinstance(idx, DatetimeIndex) or (idx is not None and
+                    idx.inferred_type == 'datetime'):
+                    ax.get_xaxis().converter = DatetimeConverter
 
     def _maybe_convert_index(self, data):
         # tsplot converts automatically, but don't want to convert index
@@ -384,7 +539,10 @@ class LinePlot(MPLPlot):
         from pandas.core.frame import DataFrame
         if (isinstance(data.index, DatetimeIndex) and
             isinstance(data, DataFrame)):
-            freq = getattr(data.index, 'freq', None)
+            freq = getattr(data.index, 'freqstr', None)
+
+            freq = to_calendar_freq(freq)
+
             if freq is None and hasattr(data.index, 'inferred_freq'):
                 freq = data.index.inferred_freq
 
@@ -408,7 +566,8 @@ class LinePlot(MPLPlot):
                 ax = self.ax
 
             label = com._stringify(self.label)
-            tsplot(data, plotf, ax=ax, label=label, **kwargs)
+            tsplot(data, plotf, ax=ax, label=label, style=self.style,
+                   **kwargs)
             ax.grid(self.grid)
         else:
             for i, col in enumerate(data.columns):
@@ -420,7 +579,7 @@ class LinePlot(MPLPlot):
                 tsplot(data[col], plotf, ax=ax, label=label, **kwargs)
                 ax.grid(self.grid)
 
-        self.fig.subplots_adjust(wspace=0, hspace=0)
+        # self.fig.subplots_adjust(wspace=0, hspace=0)
 
 
     def _post_plot_logic(self):
@@ -438,10 +597,14 @@ class LinePlot(MPLPlot):
                      and not self.subplots
                      or (self.subplots and self.sharex))
 
+        index_name = self._get_index_name()
+
         for ax in self.axes:
             if condition:
                 format_date_labels(ax)
 
+            if index_name is not None:
+                ax.set_xlabel(index_name)
 
 class BarPlot(MPLPlot):
     _default_rot = {'bar' : 90, 'barh' : 0}
@@ -520,19 +683,24 @@ class BarPlot(MPLPlot):
             #           loc=2, borderaxespad=0.)
             # self.fig.subplots_adjust(right=0.80)
 
-            ax.legend(patches, labels, loc='best')
+            ax.legend(patches, labels, loc='best',
+                      title=self.legend_title)
 
-        self.fig.subplots_adjust(top=0.8, wspace=0, hspace=0)
+        # self.fig.subplots_adjust(top=0.8, wspace=0, hspace=0)
 
     def _post_plot_logic(self):
         for ax in self.axes:
             str_index = [_stringify(key) for key in self.data.index]
+
+            name = self._get_index_name()
             if self.kind == 'bar':
                 ax.set_xlim([self.ax_pos[0] - 0.25, self.ax_pos[-1] + 1])
                 ax.set_xticks(self.ax_pos + 0.375)
                 ax.set_xticklabels(str_index, rotation=self.rot,
                                    fontsize=self.fontsize)
                 ax.axhline(0, color='k', linestyle='--')
+                if name is not None:
+                    ax.set_xlabel(name)
             else:
                 # horizontal bars
                 ax.set_ylim([self.ax_pos[0] - 0.25, self.ax_pos[-1] + 1])
@@ -540,6 +708,8 @@ class BarPlot(MPLPlot):
                 ax.set_yticklabels(str_index, rotation=self.rot,
                                    fontsize=self.fontsize)
                 ax.axvline(0, color='k', linestyle='--')
+                if name is not None:
+                    ax.set_ylabel(name)
 
 class BoxPlot(MPLPlot):
     pass
@@ -556,7 +726,7 @@ def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
                xlim=None, ylim=None, logy=False,
                xticks=None, yticks=None,
                kind='line',
-               sort_columns=True, fontsize=None, **kwds):
+               sort_columns=False, fontsize=None, **kwds):
     """
     Make line or bar plot of DataFrame's series with the index on the x-axis
     using matplotlib / pylab.
@@ -573,7 +743,7 @@ def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
         Use index as ticks for x axis
     stacked : boolean, default False
         If True, create stacked bar plot. Only valid for DataFrame input
-    sort_columns: boolean, default True
+    sort_columns: boolean, default False
         Sort column names to determine plot ordering
     title : string
         Title to use for the plot
@@ -603,11 +773,13 @@ def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
     -------
     ax_or_axes : matplotlib.AxesSubplot or list of them
     """
-    kind = kind.lower().strip()
+    kind = _get_standard_kind(kind.lower().strip())
     if kind == 'line':
         klass = LinePlot
     elif kind in ('bar', 'barh'):
         klass = BarPlot
+    elif kind == 'kde':
+        klass = KdePlot
     else:
         raise ValueError('Invalid chart type given %s' % kind)
 
@@ -666,10 +838,13 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     -----
     See matplotlib documentation online for more on this subject
     """
+    kind = _get_standard_kind(kind.lower().strip())
     if kind == 'line':
         klass = LinePlot
     elif kind in ('bar', 'barh'):
         klass = BarPlot
+    elif kind == 'kde':
+        klass = KdePlot
 
     if ax is None:
         ax = _gca()
