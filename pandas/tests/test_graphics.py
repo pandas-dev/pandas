@@ -63,6 +63,11 @@ class TestSeriesPlots(unittest.TestCase):
         ax = self.ts.plot(kind='kde', logy=True)
         self.assert_(ax.get_yscale() == 'log')
 
+    @slow
+    def test_lag_plot(self):
+        from pandas.tools.plotting import lag_plot
+        _check_plot_works(lag_plot, self.ts)
+
 class TestDataFramePlots(unittest.TestCase):
 
     @classmethod
@@ -239,13 +244,6 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(scat2, 0, 1)
         grouper = Series(np.repeat([1, 2, 3, 4, 5], 20), df.index)
         _check_plot_works(scat2, 0, 1, by=grouper)
-
-    @slow 
-    def test_andrews_curves(self):
-        from pandas import read_csv
-        from pandas.tools.plotting import andrews_curves
-        df = read_csv('data/iris.data')
-        _check_plot_works(andrews_curves, df, 'Name')
 
     @slow
     def test_andrews_curves(self):
