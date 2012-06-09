@@ -75,6 +75,11 @@ class TestSeriesPlots(unittest.TestCase):
         ax = self.ts.plot(kind='kde', logy=True)
         self.assert_(ax.get_yscale() == 'log')
 
+    @slow
+    def test_lag_plot(self):
+        from pandas.tools.plotting import lag_plot
+        _check_plot_works(lag_plot, self.ts)
+
 class TestDataFramePlots(unittest.TestCase):
 
     @classmethod
