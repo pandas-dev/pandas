@@ -1022,7 +1022,6 @@ void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
     PyObject *obj, *exc, *toDictFunc;
     TypeContext *pc;
     PyObjectEncoder *enc;
-	int i;
 	double val;
     PRINTMARK();
     if (!_obj) {
@@ -1033,7 +1032,8 @@ void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
     obj = (PyObject*) _obj;
     enc = (PyObjectEncoder*) tc->encoder;
 
-    pc = (TypeContext *) tc->prv = PyObject_Malloc(sizeof(TypeContext));
+    tc->prv = PyObject_Malloc(sizeof(TypeContext));
+    pc = (TypeContext *) tc->prv;
     if (!pc)
     {
         tc->type = JT_INVALID;
