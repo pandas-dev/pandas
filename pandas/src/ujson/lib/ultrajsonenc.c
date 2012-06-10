@@ -263,6 +263,7 @@ int Buffer_EscapeStringValidated (JSOBJ obj, JSONObjectEncoder *enc, const char 
             case 2:
             {
                 JSUTF32 in;
+                JSUTF16 in16;
 
                 if (end - io < 1)
                 {
@@ -271,7 +272,8 @@ int Buffer_EscapeStringValidated (JSOBJ obj, JSONObjectEncoder *enc, const char 
                     return FALSE;
                 }
 
-                in = *((JSUTF16 *) io);
+                memcpy(&in16, io, sizeof(JSUTF16));
+                in = (JSUTF32) in16;
 
 #ifdef __LITTLE_ENDIAN__
                 ucs = ((in & 0x1f) << 6) | ((in >> 8) & 0x3f);
@@ -293,6 +295,8 @@ int Buffer_EscapeStringValidated (JSOBJ obj, JSONObjectEncoder *enc, const char 
             case 3:
             {
                 JSUTF32 in;
+                JSUTF16 in16;
+                JSUINT8 in8;
 
                 if (end - io < 2)
                 {
@@ -301,13 +305,15 @@ int Buffer_EscapeStringValidated (JSOBJ obj, JSONObjectEncoder *enc, const char 
                     return FALSE;
                 }
 
+                memcpy(&in16, io, sizeof(JSUTF16));
+                memcpy(&in8, io + 2, sizeof(JSUINT8));
 #ifdef __LITTLE_ENDIAN__
-                in = *((JSUTF16 *) io);
-                in |= *((JSUINT8 *) io + 2) << 16;
+                in = (JSUTF32) in16;
+                in |= in8 << 16;
                 ucs = ((in & 0x0f) << 12) | ((in & 0x3f00) >> 2) | ((in & 0x3f0000) >> 16);
 #else
-                in = *((JSUTF16 *) io) << 8;
-                in |= *((JSUINT8 *) io + 2);
+                in = in16 << 8;
+                in |= in8;
                 ucs = ((in & 0x0f0000) >> 4) | ((in & 0x3f00) >> 2) | (in & 0x3f);
 #endif
 
@@ -333,11 +339,10 @@ int Buffer_EscapeStringValidated (JSOBJ obj, JSONObjectEncoder *enc, const char 
                     return FALSE;
                 }
 
+                memcpy(&in, io, sizeof(JSUTF32));
 #ifdef __LITTLE_ENDIAN__
-                in = *((JSUTF32 *) io);
                 ucs = ((in & 0x07) << 18) | ((in & 0x3f00) << 4) | ((in & 0x3f0000) >> 10) | ((in & 0x3f000000) >> 24);
 #else
-                in = *((JSUTF32 *) io);
                 ucs = ((in & 0x07000000) >> 6) | ((in & 0x3f0000) >> 4) | ((in & 0x3f00) >> 2) | (in & 0x3f);
 #endif
                 if (ucs < 0x10000)
@@ -797,6 +802,7 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name, size_t cbName)
             Buffer_Reserve(enc, ((szlen / 4) + 1) * 12);
             if (enc->errorMsg)
             {
+                enc->endTypeContext(obj, &tc);
                 return;
             }
             Buffer_AppendCharUnchecked (enc, '\"');
