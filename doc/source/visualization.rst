@@ -283,3 +283,26 @@ of the same class will usually be closer together and form larger structures.
 
    @savefig andrews_curves.png width=6in
    andrews_curves(data, 'Name')
+
+Autocorrelation Plot
+~~~~~~~~~~~~~~
+
+Autocorrelation plots are often used for checking randomness in time series.
+This is done by computing autocorrelations for data values at varying time lags.
+If time series is random, such autocorrelations should be near zero for any and
+all time-lag separations. If time series is non-random then one or more of the 
+autocorrelations will be significantly non-zero. The horizontal lines displayed
+in the plot correspond to 95% and 99% confidence bands. The dashed line is 99%
+confidence band.
+
+.. ipython:: python
+
+   from pandas.tools.plotting import autocorrelation_plot
+
+   plt.figure()
+
+   data = Series(0.7 * np.random.random(1000) + 
+      0.3 * np.sin(np.linspace(-9 * np.pi, 9 * np.pi, num=1000)))
+
+   @savefig autocorrelation_plot.png width=6in
+   autocorrelation_plot(data)
