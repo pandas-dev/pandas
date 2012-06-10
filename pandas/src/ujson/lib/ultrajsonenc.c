@@ -105,12 +105,22 @@ void Buffer_Realloc (JSONObjectEncoder *enc, size_t cbNeeded)
     if (enc->heap)
     {
         enc->start = (char *) enc->realloc (enc->start, newSize);
+        if (!enc->start)
+        {
+            SetError (NULL, enc, "Could not reserve memory block");
+            return;
+        }
     }
     else
     {
         char *oldStart = enc->start;
         enc->heap = 1;
         enc->start = (char *) enc->malloc (newSize);
+        if (!enc->start)
+        {
+            SetError (NULL, enc, "Could not reserve memory block");
+            return;
+        }
         memcpy (enc->start, oldStart, offset);
     }
     enc->offset = enc->start + offset;
@@ -253,15 +263,17 @@ int Buffer_EscapeStringValidated (JSOBJ obj, JSONObjectEncoder *enc, const char 
             case 2:
             {
                 JSUTF32 in;
+                JSUTF16 in16;
 
-                if (io + 1 > end)
+                if (end - io < 1)
                 {
                     enc->offset += (of - enc->offset);
                     SetError (obj, enc, "Unterminated UTF-8 sequence when encoding string");
                     return FALSE;
                 }
 
-                in = *((JSUTF16 *) io);
+                memcpy(&in16, io, sizeof(JSUTF16));
+                in = (JSUTF32) in16;
 
 #ifdef __LITTLE_ENDIAN__
                 ucs = ((in & 0x1f) << 6) | ((in >> 8) & 0x3f);
@@ -283,21 +295,25 @@ int Buffer_EscapeStringValidated (JSOBJ obj, JSONObjectEncoder *enc, const char 
             case 3:
             {
                 JSUTF32 in;
+                JSUTF16 in16;
+                JSUINT8 in8;
 
-                if (io + 2 > end)
+                if (end - io < 2)
                 {
                     enc->offset += (of - enc->offset);
                     SetError (obj, enc, "Unterminated UTF-8 sequence when encoding string");
                     return FALSE;
                 }
 
+                memcpy(&in16, io, sizeof(JSUTF16));
+                memcpy(&in8, io + 2, sizeof(JSUINT8));
 #ifdef __LITTLE_ENDIAN__
-                in = *((JSUTF16 *) io);
-                in |= *((JSUINT8 *) io + 2) << 16;
+                in = (JSUTF32) in16;
+                in |= in8 << 16;
                 ucs = ((in & 0x0f) << 12) | ((in & 0x3f00) >> 2) | ((in & 0x3f0000) >> 16);
 #else
-                in = *((JSUTF16 *) io) << 8;
-                in |= *((JSUINT8 *) io + 2);
+                in = in16 << 8;
+                in |= in8;
                 ucs = ((in & 0x0f0000) >> 4) | ((in & 0x3f00) >> 2) | (in & 0x3f);
 #endif
 
@@ -316,18 +332,17 @@ int Buffer_EscapeStringValidated (JSOBJ obj, JSONObjectEncoder *enc, const char 
             {
                 JSUTF32 in;
                 
-                if (io + 3 > end)
+                if (end - io < 3)
                 {
                     enc->offset += (of - enc->offset);
                     SetError (obj, enc, "Unterminated UTF-8 sequence when encoding string");
                     return FALSE;
                 }
 
+                memcpy(&in, io, sizeof(JSUTF32));
 #ifdef __LITTLE_ENDIAN__
-                in = *((JSUTF32 *) io);
                 ucs = ((in & 0x07) << 18) | ((in & 0x3f00) << 4) | ((in & 0x3f0000) >> 10) | ((in & 0x3f000000) >> 24);
 #else
-                in = *((JSUTF32 *) io);
                 ucs = ((in & 0x07000000) >> 6) | ((in & 0x3f0000) >> 4) | ((in & 0x3f00) >> 2) | (in & 0x3f);
 #endif
                 if (ucs < 0x10000)
@@ -401,7 +416,7 @@ int Buffer_EscapeStringValidated (JSOBJ obj, JSONObjectEncoder *enc, const char 
 }
 
 #define Buffer_Reserve(__enc, __len) \
-    if ((__enc)->offset + (__len) > (__enc)->end)   \
+    if ((__enc)->end - (__enc)->offset < (__len))  \
     {   \
         Buffer_Realloc((__enc), (__len));\
     }   \
@@ -630,6 +645,10 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name, size_t cbName)
     */
 
     Buffer_Reserve(enc, 256 + (((cbName / 4) + 1) * 12));
+    if (enc->errorMsg)
+    {
+        return;
+    }
 
     if (name)
     {
@@ -781,6 +800,11 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name, size_t cbName)
         {
             value = enc->getStringValue(obj, &tc, &szlen);
             Buffer_Reserve(enc, ((szlen / 4) + 1) * 12);
+            if (enc->errorMsg)
+            {
+                enc->endTypeContext(obj, &tc);
+                return;
+            }
             Buffer_AppendCharUnchecked (enc, '\"');
 
 
@@ -837,6 +861,11 @@ char *JSON_EncodeObject(JSOBJ obj, JSONObjectEncoder *enc, char *_buffer, size_t
     {
         _cbBuffer = 32768;
         enc->start = (char *) enc->malloc (_cbBuffer);
+        if (!enc->start)
+        {
+            SetError(obj, enc, "Could not reserve memory block");
+            return NULL;
+        }
         enc->heap = 1;
     }
     else
@@ -852,6 +881,10 @@ char *JSON_EncodeObject(JSOBJ obj, JSONObjectEncoder *enc, char *_buffer, size_t
     encode (obj, enc, NULL, 0);
     
     Buffer_Reserve(enc, 1);
+    if (enc->errorMsg)
+    {
+        return NULL;
+    }
     Buffer_AppendCharUnchecked(enc, '\0');
 
     return enc->start;
