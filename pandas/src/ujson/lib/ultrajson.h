@@ -150,7 +150,7 @@ typedef struct __JSONTypeContext
 {
     int type;
     void *encoder;
-    void *prv[32];
+    void *prv;
 } JSONTypeContext;
 
 /*

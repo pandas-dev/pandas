@@ -1031,13 +1031,30 @@ void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
     }
 
     obj = (PyObject*) _obj;
-    pc = (TypeContext *) tc->prv;
     enc = (PyObjectEncoder*) tc->encoder;
 
-    for (i = 0; i < 32; i++)
+    pc = (TypeContext *) tc->prv = PyObject_Malloc(sizeof(TypeContext));
+    if (!pc)
     {
-        tc->prv[i] = 0;
+        tc->type = JT_INVALID;
+        PyErr_NoMemory();
+        return;
     }
+    pc->newObj = NULL;
+    pc->dictObj = NULL;
+    pc->itemValue = NULL;
+    pc->itemName = NULL;
+    pc->attrList = NULL;
+    pc->citemName = NULL;
+    pc->npyarr = NULL;
+    pc->rowLabels = NULL;
+    pc->columnLabels = NULL;
+    pc->index = 0;
+    pc->size = 0;
+    pc->longValue = 0;
+    pc->transpose = 0;
+    pc->rowLabelsLen = 0;
+    pc->columnLabelsLen = 0;
 
     if (PyIter_Check(obj) || PyArray_Check(obj))
     {
@@ -1063,8 +1080,7 @@ void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
         if (exc && PyErr_ExceptionMatches(PyExc_OverflowError))
         {
             PRINTMARK();
-            tc->type = JT_INVALID;
-            return;
+            goto INVALID;
         }
 
         return;
@@ -1093,8 +1109,7 @@ void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
         if (exc && PyErr_ExceptionMatches(PyExc_OverflowError))
         {
             PRINTMARK();
-            tc->type = JT_INVALID;
-            return;
+            goto INVALID;
         }
 
         return;
@@ -1253,8 +1268,7 @@ ISITERABLE:
             pc->columnLabels = NpyArr_encodeLabels((PyArrayObject*) PyObject_GetAttrString(obj, "index"), (JSONObjectEncoder*) enc, pc->columnLabelsLen);
             if (!pc->columnLabels)
             {
-                tc->type = JT_INVALID;
-                return;
+                goto INVALID;
             }
         }
         else
@@ -1332,8 +1346,7 @@ ISITERABLE:
             pc->columnLabels = NpyArr_encodeLabels((PyArrayObject*) PyObject_GetAttrString(obj, "columns"), (JSONObjectEncoder*) enc, pc->columnLabelsLen);
             if (!pc->columnLabels)
             {
-                tc->type = JT_INVALID;
-                return;
+                goto INVALID;
             }
         }
         else
@@ -1345,8 +1358,7 @@ ISITERABLE:
             pc->rowLabels = NpyArr_encodeLabels((PyArrayObject*) PyObject_GetAttrString(obj, "index"), (JSONObjectEncoder*) enc, pc->rowLabelsLen);
             if (!pc->rowLabels)
             {
-                tc->type = JT_INVALID;
-                return;
+                goto INVALID;
             }
             pc->columnLabelsLen = PyArray_DIM(pc->newObj, 1);
             pc->columnLabels = NpyArr_encodeLabels((PyArrayObject*) PyObject_GetAttrString(obj, "columns"), (JSONObjectEncoder*) enc, pc->columnLabelsLen);
@@ -1354,8 +1366,7 @@ ISITERABLE:
             {
                 NpyArr_freeLabels(pc->rowLabels, pc->rowLabelsLen);
                 pc->rowLabels = NULL;
-                tc->type = JT_INVALID;
-                return;
+                goto INVALID;
             }
         }
         else
@@ -1366,8 +1377,7 @@ ISITERABLE:
             pc->rowLabels = NpyArr_encodeLabels((PyArrayObject*) PyObject_GetAttrString(obj, "columns"), (JSONObjectEncoder*) enc, pc->rowLabelsLen);
             if (!pc->rowLabels)
             {
-                tc->type = JT_INVALID;
-                return;
+                goto INVALID;
             }
             pc->columnLabelsLen = PyArray_DIM(pc->newObj, 0);
             pc->columnLabels = NpyArr_encodeLabels((PyArrayObject*) PyObject_GetAttrString(obj, "index"), (JSONObjectEncoder*) enc, pc->columnLabelsLen);
@@ -1375,8 +1385,7 @@ ISITERABLE:
             {
                 NpyArr_freeLabels(pc->rowLabels, pc->rowLabelsLen);
                 pc->rowLabels = NULL;
-                tc->type = JT_INVALID;
-                return;
+                goto INVALID;
             }
             pc->transpose = 1;
         }
@@ -1428,6 +1437,12 @@ ISITERABLE:
     pc->iterGetName = Dir_iterGetName;
 
     return;
+
+INVALID:
+    tc->type = JT_INVALID;
+    PyObject_Free(tc->prv);
+    tc->prv = NULL;
+    return;
 }
 
 
@@ -1436,6 +1451,9 @@ void Object_endTypeContext(JSOBJ obj, JSONTypeContext *tc)
     Py_XDECREF(GET_TC(tc)->newObj);
     NpyArr_freeLabels(GET_TC(tc)->rowLabels, GET_TC(tc)->rowLabelsLen);
     NpyArr_freeLabels(GET_TC(tc)->columnLabels, GET_TC(tc)->columnLabelsLen);
+
+    PyObject_Free(tc->prv);
+    tc->prv = NULL;
 }
 
 const char *Object_getStringValue(JSOBJ obj, JSONTypeContext *tc, size_t *_outLen)
