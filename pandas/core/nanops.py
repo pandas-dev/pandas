@@ -57,6 +57,22 @@ def _has_infs(result):
     else:
         return np.isinf(result) or np.isneginf(result)
 
+def nanany(values, axis=None, skipna=True):
+    mask = isnull(values)
+
+    if skipna:
+        values = values.copy()
+        np.putmask(values, mask, False)
+    return values.any(axis)
+
+def nanall(values, axis=None, skipna=True):
+    mask = isnull(values)
+
+    if skipna:
+        values = values.copy()
+        np.putmask(values, mask, True)
+    return values.all(axis)
+
 def _nansum(values, axis=None, skipna=True):
     mask = isnull(values)
 

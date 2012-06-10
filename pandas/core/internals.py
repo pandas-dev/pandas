@@ -492,6 +492,10 @@ class BlockManager(object):
         if do_integrity_check:
             self._verify_integrity()
 
+    @classmethod
+    def make_empty(self):
+        return BlockManager([], [[], []])
+
     def __nonzero__(self):
         return True
 
@@ -589,10 +593,28 @@ class BlockManager(object):
         dtypes = [blk.dtype.type for blk in self.blocks]
         return len(dtypes) == len(set(dtypes))
 
-    def get_numeric_data(self, copy=False):
-        num_blocks = [b for b in self.blocks
-                      if (isinstance(b, (IntBlock, FloatBlock, ComplexBlock))
-                          and not isinstance(b, DatetimeBlock))]
+    def get_numeric_data(self, copy=False, type_list=None):
+        """
+        Parameters
+        ----------
+        copy : boolean, default False
+            Whether to copy the blocks
+        type_list : tuple of type, default None
+            Numeric types by default (Float/Complex/Int but not Datetime)
+        """
+        if type_list is None:
+            def filter_blocks(block):
+                return (isinstance(block, (IntBlock, FloatBlock, ComplexBlock))
+                        and not isinstance(block, DatetimeBlock))
+        else:
+            type_list = self._get_clean_block_types(type_list)
+            filter_blocks = lambda block: isinstance(block, type_list)
+
+        maybe_copy = lambda b: b.copy() if copy else b
+        num_blocks = [maybe_copy(b) for b in self.blocks if filter_blocks(b)]
+
+        if len(num_blocks) == 0:
+            return BlockManager.make_empty()
 
         indexer = np.sort(np.concatenate([b.ref_locs for b in num_blocks]))
         new_items = self.items.take(indexer)
@@ -605,6 +627,26 @@ class BlockManager(object):
         new_axes = list(self.axes)
         new_axes[0] = new_items
         return BlockManager(new_blocks, new_axes, do_integrity_check=False)
+
+    def _get_clean_block_types(self, type_list):
+        if not isinstance(type_list, tuple):
+            try:
+                type_list = tuple(type_list)
+            except TypeError:
+                type_list = (type_list,)
+
+        type_map = {int : IntBlock, float : FloatBlock,
+                    complex : ComplexBlock,
+                    np.datetime64 : DatetimeBlock,
+                    datetime : DatetimeBlock,
+                    bool : BoolBlock,
+                    object : ObjectBlock}
+
+        type_list = tuple([type_map.get(t, t) for t in type_list])
+        return type_list
+
+    def get_bool_data(self, copy=False):
+        return self.get_numeric_data(copy=copy, type_list=(BoolBlock,))
 
     def get_slice(self, slobj, axis=0):
         new_axes = list(self.axes)
