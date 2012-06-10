@@ -67,9 +67,9 @@ def _sanitize_dates(start, end):
     return start, end
 
 def get_quote_yahoo(symbols):
-    """ 
+    """
     Get current yahoo quote
-    
+
     Returns a DataFrame
     """
     if not isinstance(symbols,list):
@@ -77,19 +77,19 @@ def get_quote_yahoo(symbols):
     # for codes see: http://www.gummy-stuff.org/Yahoo-data.htm
     codes = {'symbol':'s','last':'l1','change_pct':'p2','PE':'r','time':'t1','short_ratio':'s7'}
     request = str.join('',codes.values()) # code request string
-    header = codes.keys()   
-    
+    header = codes.keys()
+
     data = dict(zip(codes.keys(),[[] for i in range(len(codes))]))
-    
+
     urlStr = 'http://finance.yahoo.com/d/quotes.csv?s=%s&f=%s' % (str.join('+',symbols), request)
-    
+
     try:
         lines = urllib2.urlopen(urlStr).readlines()
     except Exception, e:
         s = "Failed to download:\n{0}".format(e);
         print s
         return None
-        
+
     for line in lines:
         fields = line.strip().split(',')
         #print fields
@@ -103,7 +103,7 @@ def get_quote_yahoo(symbols):
                     data[header[i]].append(np.nan)
 
     idx = data.pop('symbol')
-    
+
     return DataFrame(data,index=idx)
 
 def get_data_yahoo(name=None, start=None, end=None):
@@ -130,9 +130,15 @@ def get_data_yahoo(name=None, start=None, end=None):
       '&f=%s' % end.year + \
       '&g=d' + \
       '&ignore=.csv'
+    for i in range(0,3):
+        resp =  urllib.urlopen(url)
+        if resp.code == 200:
+            lines = resp.read()
+            return read_csv(
+                StringIO(lines), index_col=0, parse_dates=True)[::-1]
+    raise Exception("after 3 tries, Yahoo did not return a 200 for url %s" %url)
 
-    lines = urllib.urlopen(url).read()
-    return read_csv(StringIO(lines), index_col=0, parse_dates=True)[::-1]
+
 
 def get_data_fred(name=None, start=dt.datetime(2010, 1, 1),
                   end=dt.datetime.today()):
@@ -181,4 +187,3 @@ def get_data_famafrench(name, start=None, end=None):
             datasets[i] = DataFrame(dataset, index, columns=header)
 
     return datasets
-
