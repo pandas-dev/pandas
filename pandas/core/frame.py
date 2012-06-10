@@ -528,18 +528,6 @@ class DataFrame(NDFrame):
     def empty(self):
         return not (len(self.columns) > 0 and len(self.index) > 0)
 
-    def any(self):
-        if not self._is_mixed_type:
-            if self.dtypes[0] == np.bool_:
-                return self.values.any()
-        raise ValueError('Cannot call any() on mixed or non-boolean DataFrame')
-
-    def all(self):
-        if not self._is_mixed_type:
-            if self.dtypes[0] == np.bool_:
-                return self.values.all()
-        raise ValueError('Cannot call all() on mixed or non-boolean DataFrame')
-
     def __nonzero__(self):
         raise ValueError("Cannot call bool() on DataFrame.")
 
@@ -4057,6 +4045,62 @@ class DataFrame(NDFrame):
         else:
             return result
 
+    def any(self, axis=0, bool_only=None, skipna=True, level=None):
+        """
+        Return whether any element is True over requested axis.
+        %(na_action)s
+
+        Parameters
+        ----------
+        axis : {0, 1}
+            0 for row-wise, 1 for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA
+        level : int, default None
+            If the axis is a MultiIndex (hierarchical), count along a
+            particular level, collapsing into a DataFrame
+        bool_only : boolean, default None
+            Only include boolean data.
+
+        Returns
+        -------
+        any : Series (or DataFrame if level specified)
+        """
+        if level is not None:
+            return self._agg_by_level('any', axis=axis, level=level,
+                                      skipna=skipna)
+        return self._reduce(nanops.nanany, axis=axis, skipna=skipna,
+                            numeric_only=bool_only, filter_type='bool')
+
+    def all(self, axis=0, bool_only=None, skipna=True, level=None):
+        """
+        Return whether any element is True over requested axis.
+        %(na_action)s
+
+        Parameters
+        ----------
+        axis : {0, 1}
+            0 for row-wise, 1 for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA
+        level : int, default None
+            If the axis is a MultiIndex (hierarchical), count along a
+            particular level, collapsing into a DataFrame
+        bool_only : boolean, default None
+            Only include boolean data.
+
+        Returns
+        -------
+        any : Series (or DataFrame if level specified)
+        """
+        if level is not None:
+            return self._agg_by_level('all', axis=axis, level=level,
+                                      skipna=skipna)
+        return self._reduce(nanops.nanall, axis=axis, skipna=skipna,
+                            numeric_only=bool_only, filter_type='bool')
+
     @Substitution(name='sum', shortname='sum', na_action=_doc_exclude_na,
                   extras=_numeric_only_doc)
     @Appender(_stat_doc)
@@ -4183,7 +4227,8 @@ class DataFrame(NDFrame):
         applyf = lambda x: method(x, axis=axis, skipna=skipna, **kwds)
         return grouped.aggregate(applyf)
 
-    def _reduce(self, op, axis=0, skipna=True, numeric_only=None, **kwds):
+    def _reduce(self, op, axis=0, skipna=True, numeric_only=None,
+                filter_type=None, **kwds):
         f = lambda x: op(x, axis=axis, skipna=skipna, **kwds)
         labels = self._get_agg_axis(axis)
         if numeric_only is None:
@@ -4191,12 +4236,24 @@ class DataFrame(NDFrame):
                 values = self.values
                 result = f(values)
             except Exception:
-                data = self._get_numeric_data()
+                if filter_type is None or filter_type == 'numeric':
+                    data = self._get_numeric_data()
+                elif filter_type == 'bool':
+                    data = self._get_bool_data()
+                else:
+                    raise ValueError('Invalid filter_type %s ' %
+                                     str(filter_type))
                 result = f(data.values)
                 labels = data._get_agg_axis(axis)
         else:
             if numeric_only:
-                data = self._get_numeric_data()
+                if filter_type is None or filter_type == 'numeric':
+                    data = self._get_numeric_data()
+                elif filter_type == 'bool':
+                    data = self._get_bool_data()
+                else:
+                    raise ValueError('Invalid filter_type %s ' %
+                                     str(filter_type))
                 values = data.values
                 labels = data._get_agg_axis(axis)
             else:
@@ -4205,7 +4262,13 @@ class DataFrame(NDFrame):
 
         if result.dtype == np.object_:
             try:
-                result = result.astype('f8')
+                if filter_type is None or filter_type == 'numeric':
+                    result = result.astype('f8')
+                elif filter_type == 'bool':
+                    result = result.astype('b')
+                else:
+                    raise ValueError('Invalid dtype %s ' % str(filter_type))
+
             except (ValueError, TypeError):
                 pass
 
@@ -4270,6 +4333,16 @@ class DataFrame(NDFrame):
         else:
             if (self.values.dtype != np.object_ and
                 not issubclass(self.values.dtype.type, np.datetime64)):
+                return self
+            else:
+                return self.ix[:, []]
+
+    def _get_bool_data(self):
+        if self._is_mixed_type:
+            bool_data = self._data.get_bool_data()
+            return DataFrame(bool_data, copy=False)
+        else:
+            if self.values.dtype == np.bool_:
                 return self
             else:
                 return self.ix[:, []]

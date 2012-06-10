@@ -1,4 +1,3 @@
-
 # pylint: disable-msg=W0612,E1101
 from copy import deepcopy
 from datetime import datetime, timedelta
@@ -2768,7 +2767,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(not rs.ix[0, 0])
         rs = df.le(df)
         self.assert_(not rs.ix[0, 0])
-
 
         # scalar
         assert_frame_equal(df.eq(0), df == 0)
@@ -6246,25 +6244,73 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.failUnlessRaises(ValueError, lambda: bool(df))
 
     def test_any_all(self):
-        df = DataFrame([[True, True, False]])
-        self.assert_(df.any())
-        self.assert_(not df.all())
+        self._check_bool_op('any', np.any, has_skipna=True, has_bool_only=True)
+        self._check_bool_op('all', np.all, has_skipna=True, has_bool_only=True)
 
-        df = DataFrame([[True, True, True]])
-        self.assert_(df.any())
-        self.assert_(df.all())
+    def _check_bool_op(self, name, alternative, frame=None, has_skipna=True,
+                       has_bool_only=False):
+        if frame is None:
+            frame = self.frame > 0
+            # set some NAs
+            frame = DataFrame(frame.values.astype(object), frame.index,
+                              frame.columns)
+            frame.ix[5:10] = np.nan
+            frame.ix[15:20, -2:] = np.nan
 
-        df = -df
-        self.assert_(not df.any())
-        self.assert_(not df.all())
+        f = getattr(frame, name)
 
-        df = DataFrame([[1, 2, 3]])
-        self.assertRaises(ValueError, df.any)
-        self.assertRaises(ValueError, df.all)
+        if has_skipna:
+            def skipna_wrapper(x):
+                nona = x.dropna().values
+                return alternative(nona)
 
-        df = DataFrame([[1, 2, 3], [True, True, False]])
-        self.assertRaises(ValueError, df.any)
-        self.assertRaises(ValueError, df.all)
+            def wrapper(x):
+                return alternative(x.values)
+
+            result0 = f(axis=0, skipna=False)
+            result1 = f(axis=1, skipna=False)
+            assert_series_equal(result0, frame.apply(wrapper))
+            assert_series_equal(result1, frame.apply(wrapper, axis=1),
+                                check_dtype=False) # HACK: win32
+        else:
+            skipna_wrapper = alternative
+            wrapper = alternative
+
+        result0 = f(axis=0)
+        result1 = f(axis=1)
+        assert_series_equal(result0, frame.apply(skipna_wrapper))
+        assert_series_equal(result1, frame.apply(skipna_wrapper, axis=1),
+                            check_dtype=False)
+
+        # result = f(axis=1)
+        # comp = frame.apply(alternative, axis=1).reindex(result.index)
+        # assert_series_equal(result, comp)
+
+        self.assertRaises(Exception, f, axis=2)
+
+        # make sure works on mixed-type frame
+        mixed = self.mixed_frame
+        mixed['_bool_'] = np.random.randn(len(mixed)) > 0
+        getattr(mixed, name)(axis=0)
+        getattr(mixed, name)(axis=1)
+
+        if has_bool_only:
+            getattr(mixed, name)(axis=0, bool_only=True)
+            getattr(mixed, name)(axis=1, bool_only=True)
+            getattr(frame, name)(axis=0, bool_only=False)
+            getattr(frame, name)(axis=1, bool_only=False)
+
+        # all NA case
+        if has_skipna:
+            all_na = frame * np.NaN
+            r0 = getattr(all_na, name)(axis=0)
+            r1 = getattr(all_na, name)(axis=1)
+            if name == 'any':
+                self.assert_(not r0.any())
+                self.assert_(not r1.any())
+            else:
+                self.assert_(r0.all())
+                self.assert_(r1.all())
 
 if __name__ == '__main__':
     # unittest.main()
