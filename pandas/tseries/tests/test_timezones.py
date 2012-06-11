@@ -401,6 +401,15 @@ class TestTimeZones(unittest.TestCase):
             self.assert_(isinstance(result, DatetimeIndex))
             self.assert_(result.tz.zone == 'UTC')
 
+    def test_join_naive_with_aware(self):
+        rng = date_range('1/1/2011', periods=10, freq='H')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        ts_utc = ts.tz_localize('utc')
+
+        self.assertRaises(Exception, ts.__add__, ts_utc)
+        self.assertRaises(Exception, ts_utc.__add__, ts)
+
     def test_arith_utc_convert(self):
         rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')
 
