@@ -202,6 +202,42 @@ def lag_plot(series, ax=None, **kwds):
     ax.scatter(y1, y2, **kwds)
     return ax
 
+def autocorrelation_plot(series, ax=None):
+    """Autocorrelation plot for time series.
+
+    Parameters:
+    -----------
+    series: Time series
+    ax: Matplotlib axis object, optional
+
+    Returns:
+    -----------
+    ax: Matplotlib axis object
+    """
+    import matplotlib.pyplot as plt
+    n = len(series)
+    data = series.values
+    if ax == None:
+        ax = plt.gca(xlim=(1, n), ylim=(-1.0, 1.0))
+    mean = np.mean(data)
+    c0 = np.sum((data - mean) ** 2) / float(n)
+    def r(h):
+        return ((data[:n - h] - mean) * (data[h:] - mean)).sum() / float(n) / c0
+    x = np.arange(n) + 1
+    y = map(r, x)
+    z95 = 1.959963984540054
+    z99 = 2.5758293035489004
+    ax.axhline(y=z99/np.sqrt(n), linestyle='--', color='grey')
+    ax.axhline(y=z95/np.sqrt(n), color='grey')
+    ax.axhline(y=0.0, color='black')
+    ax.axhline(y=-z95/np.sqrt(n), color='grey')
+    ax.axhline(y=-z99/np.sqrt(n), linestyle='--', color='grey')
+    ax.set_xlabel("Lag")
+    ax.set_ylabel("Autocorrelation")
+    ax.plot(x, y)
+    ax.grid()
+    return ax
+
 def grouped_hist(data, column=None, by=None, ax=None, bins=50, log=False,
                  figsize=None, layout=None, sharex=False, sharey=False,
                  rot=90):

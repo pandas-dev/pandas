@@ -83,6 +83,8 @@ pandas 0.8.0
   - Add new ``qcut`` for cutting with quantiles (#1378)
   - Add ``value_counts`` top level array method (#1392)
   - Added Andrews curves plot tupe (#1325)
+  - Add lag plot (#1440)
+  - Add autocorrelation_plot (#1425)
   - Add support for tox and Travis CI (#1382)
   - Add support for ordered factors and use in GroupBy (#292)
 
