@@ -787,6 +787,9 @@ class DataFrame(NDFrame):
         from pandas._ujson import loads
         df = None
 
+        if dtype is not None and orient == "split":
+            numpy = False
+
         if numpy:
             try:
                 if orient == "columns":

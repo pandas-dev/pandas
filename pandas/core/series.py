@@ -967,6 +967,9 @@ copy : boolean, default False
         from pandas._ujson import loads
         s = None
 
+        if dtype is not None and orient == "split":
+            numpy = False
+
         if numpy:
             try:
                 if orient == "split":

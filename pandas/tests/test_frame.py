@@ -2197,7 +2197,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         df = DataFrame([['1', '2'], ['4', '5', '6']])
         unser = DataFrame.from_json(df.to_json())
-        self.assert_(np.isnan(unser['2'][0]))
+        self.assert_(unser['2'][0] is None)
 
         unser = DataFrame.from_json(df.to_json(), numpy=False)
         self.assert_(unser['2'][0] is None)
