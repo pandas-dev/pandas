@@ -1933,6 +1933,35 @@ class TestGroupBy(unittest.TestCase):
         groups = grouped.groups
         self.assert_(isinstance(groups.keys()[0], datetime))
 
+    def test_groupby_reindex_inside_function(self):
+        from pandas.tseries.api import DatetimeIndex
+
+        periods = 1000
+        ind = DatetimeIndex(start='2012/1/1', freq='5min', periods=periods)
+        df = DataFrame({'high': np.arange(periods), 'low': np.arange(periods)}, index=ind)
+
+        def agg_before(hour, func, fix=False):
+            """
+                Run an aggregate func on the subset of data.
+            """
+            def _func(data):
+                d = data.select(lambda x: x.hour < 11).dropna()
+                if fix:
+                    data[data.index[0]]
+                if len(d) == 0:
+                    return None
+                return func(d)
+            return _func
+
+        def afunc(data):
+            d = data.select(lambda x: x.hour < 11).dropna()
+            return np.max(d)
+
+        grouped = df.groupby(lambda x: datetime(x.year, x.month, x.day))
+        closure_bad = grouped.agg({'high': agg_before(11, np.max)})
+        closure_good = grouped.agg({'high': agg_before(11, np.max, True)})
+
+        assert_frame_equal(closure_bad, closure_good)
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     tups = map(tuple, df[keys].values)

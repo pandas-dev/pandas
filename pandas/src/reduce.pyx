@@ -150,6 +150,7 @@ cdef class SeriesBinGrouper:
             object res, chunk
             bint initialized = 0
             Slider vslider, islider
+            IndexEngine gin
 
         counts = np.zeros(self.ngroups, dtype=np.int64)
 
@@ -168,6 +169,8 @@ cdef class SeriesBinGrouper:
         vslider = Slider(self.arr, self.dummy)
         islider = Slider(self.index, self.dummy.index)
 
+        gin = <IndexEngine> self.dummy.index._engine
+
         try:
             for i in range(self.ngroups):
                 group_size = counts[i]
@@ -185,6 +188,8 @@ cdef class SeriesBinGrouper:
 
                 islider.advance(group_size)
                 vslider.advance(group_size)
+
+                gin.clear_mapping()
         except:
             raise
         finally:
@@ -253,6 +258,7 @@ cdef class SeriesGrouper:
             object res, chunk
             bint initialized = 0
             Slider vslider, islider
+            IndexEngine gin
 
         labels = self.labels
         counts = np.zeros(self.ngroups, dtype=np.int64)
@@ -263,6 +269,7 @@ cdef class SeriesGrouper:
         vslider = Slider(self.arr, self.dummy)
         islider = Slider(self.index, self.dummy.index)
 
+        gin = <IndexEngine> self.dummy.index._engine
         try:
             for i in range(n):
                 group_size += 1
@@ -291,6 +298,9 @@ cdef class SeriesGrouper:
                     vslider.advance(group_size)
 
                     group_size = 0
+
+                    gin.clear_mapping()
+
         except:
             raise
         finally:
