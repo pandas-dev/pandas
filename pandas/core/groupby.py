@@ -1101,7 +1101,13 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
     exclusions = []
     for i, (gpr, level) in enumerate(zip(keys, levels)):
         name = None
-        if _is_label_like(gpr):
+        try:
+            obj._data.items.get_loc(gpr)
+            in_axis = True
+        except Exception:
+            in_axis = False
+
+        if _is_label_like(gpr) or in_axis:
             exclusions.append(gpr)
             name = gpr
             gpr = obj[gpr]

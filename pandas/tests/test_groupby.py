@@ -1963,6 +1963,31 @@ class TestGroupBy(unittest.TestCase):
 
         assert_frame_equal(closure_bad, closure_good)
 
+    def test_multiindex_columns_empty_level(self):
+        l = [['count', 'values'], ['to filter', '']]
+        midx = MultiIndex.from_tuples(l)
+
+        df = DataFrame([[1L, 'A']], columns=midx)
+
+        grouped = df.groupby('to filter').groups
+        self.assert_(np.array_equal(grouped['A'], [0]))
+
+        grouped = df.groupby([('to filter', '')]).groups
+        self.assert_(np.array_equal(grouped['A'], [0]))
+
+        df = DataFrame([[1L, 'A'], [2L, 'B']], columns=midx)
+
+        expected = df.groupby('to filter').groups
+        result = df.groupby([('to filter', '')]).groups
+        self.assertEquals(result, expected)
+
+        df = DataFrame([[1L, 'A'], [2L, 'A']], columns=midx)
+
+        expected = df.groupby('to filter').groups
+        result = df.groupby([('to filter', '')]).groups
+        self.assertEquals(result, expected)
+
+
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     tups = map(tuple, df[keys].values)
     tups = com._asarray_tuplesafe(tups)
