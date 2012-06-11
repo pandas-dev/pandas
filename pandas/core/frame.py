@@ -3809,8 +3809,21 @@ class DataFrame(NDFrame):
             else:
                 join_axes = None
 
-            return concat([self] + list(other), axis=1, join=how,
-                          join_axes=join_axes, verify_integrity=True)
+            frames = [self] + list(other)
+
+            can_concat = all(df.index.is_unique for df in frames)
+
+            if can_concat:
+                return concat(frames, axis=1, join=how, join_axes=join_axes,
+                              verify_integrity=True)
+
+            joined = frames[0]
+
+            for frame in frames[1:]:
+                joined = merge(joined, frame, how=how,
+                               left_index=True, right_index=True)
+
+            return joined
 
     @Substitution('')
     @Appender(_merge_doc, indents=2)

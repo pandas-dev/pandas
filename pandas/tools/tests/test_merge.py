@@ -414,6 +414,41 @@ class TestMerge(unittest.TestCase):
         expected = a.join(b.astype('f8'))
         assert_frame_equal(joined, expected)
 
+    def test_join_many_non_unique_index(self):
+        df1 = DataFrame({"a": [1,1], "b": [1,1], "c": [10,20]})
+        df2 = DataFrame({"a": [1,1], "b": [1,2], "d": [100,200]})
+        df3 = DataFrame({"a": [1,1], "b": [1,2], "e": [1000,2000]})
+        idf1 = df1.set_index(["a", "b"])
+        idf2 = df2.set_index(["a", "b"])
+        idf3 = df3.set_index(["a", "b"])
+
+        result = idf1.join([idf2, idf3], how='outer')
+
+        df_partially_merged = merge(df1, df2, on=['a', 'b'], how='outer')
+        expected = merge(df_partially_merged, df3, on=['a', 'b'], how='outer')
+
+        result = result.reset_index()
+
+        result['a'] = result['a'].astype(np.float64)
+        result['b'] = result['b'].astype(np.float64)
+
+        assert_frame_equal(result, expected.ix[:, result.columns])
+
+        df1 = DataFrame({"a": [1, 1, 1], "b": [1,1, 1], "c": [10,20, 30]})
+        df2 = DataFrame({"a": [1, 1, 1], "b": [1,1, 2], "d": [100,200, 300]})
+        df3 = DataFrame({"a": [1, 1, 1], "b": [1,1, 2], "e": [1000,2000, 3000]})
+        idf1 = df1.set_index(["a", "b"])
+        idf2 = df2.set_index(["a", "b"])
+        idf3 = df3.set_index(["a", "b"])
+        result = idf1.join([idf2, idf3], how='inner')
+
+        df_partially_merged = merge(df1, df2, on=['a', 'b'], how='inner')
+        expected = merge(df_partially_merged, df3, on=['a', 'b'], how='inner')
+
+        result = result.reset_index()
+
+        assert_frame_equal(result, expected.ix[:, result.columns])
+
     def test_merge_index_singlekey_right_vs_left(self):
         left = DataFrame({'key': ['a', 'b', 'c', 'd', 'e', 'e', 'a'],
                           'v1': np.random.randn(7)})

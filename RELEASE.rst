@@ -182,6 +182,7 @@ pandas 0.8.0
   - Respect column selection for DataFrame in in GroupBy.transform (#1365)
   - Fix MultiIndex partial indexing bug (#1352)
   - Enable assignment of rows in mixed-type DataFrame via .ix (#1432)
+  - Reset index mapping when grouping Series in Cython (#1423)
 
 pandas 0.7.3
 ============

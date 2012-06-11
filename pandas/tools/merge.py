@@ -347,9 +347,6 @@ class _MergeOperation(object):
                                                  self.left.index.labels)]
             else:
                 left_keys = [self.left.index.values]
-        # else:
-        #     left_keys.append(self.left.index)
-        #     right_keys.append(self.right.index)
 
         if right_drop:
             self.right = self.right.drop(right_drop, axis=1)
@@ -1038,13 +1035,6 @@ class _Concatenator(object):
     def _get_new_axes(self):
         ndim = self._get_result_dim()
         new_axes = [None] * ndim
-
-        # if self.ignore_index:
-        #     concat_axis = None
-        # else:
-        #     concat_axis = self._get_concat_axis()
-
-        # new_axes[self.axis] = concat_axis
 
         if self.join_axes is None:
             for i in range(ndim):
