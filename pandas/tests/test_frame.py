@@ -2273,6 +2273,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(df['a'].dtype == np.float64)
         self.assert_(np.isnan(df['a'].values[-1]))
 
+    def test_from_records_duplicates(self):
+        self.assertRaises(ValueError, DataFrame.from_records,
+                          [(1,2,3), (4,5,6)], columns=['a','b','a'])
+
     def test_to_records_floats(self):
         df = DataFrame(np.random.rand(10,10))
         df.to_records()

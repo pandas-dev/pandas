@@ -32,17 +32,18 @@ from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _radd_compat
 from pandas.compat.scipy import scoreatpercentile as _quantile
-from pandas.tseries.period import PeriodIndex
 from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
 from pandas.util.decorators import deprecate, Appender, Substitution
 
-import pandas.core.format as fmt
+from pandas.tseries.period import PeriodIndex
 
-import pandas.core.nanops as nanops
-import pandas.core.common as com
-import pandas.core.generic as generic
+import pandas.core.algorithms as algos
 import pandas.core.datetools as datetools
+import pandas.core.common as com
+import pandas.core.format as fmt
+import pandas.core.generic as generic
+import pandas.core.nanops as nanops
 import pandas.lib as lib
 
 #----------------------------------------------------------------------
@@ -878,6 +879,9 @@ class DataFrame(NDFrame):
         # Make a copy of the input columns so we can modify it
         if columns is not None:
             columns = list(columns)
+
+            if len(algos.unique(columns)) < len(columns):
+                raise ValueError('Non-unique columns not yet supported in from_records')
 
         if names is not None:  # pragma: no cover
             columns = names
@@ -4438,12 +4442,10 @@ class DataFrame(NDFrame):
         -------
         ranks : DataFrame
         """
-        from pandas.core.algorithms import rank
-
         if numeric_only is None:
             try:
-                ranks = rank(self.values, axis=axis, method=method,
-                             ascending=ascending)
+                ranks = algos.rank(self.values, axis=axis, method=method,
+                                   ascending=ascending)
                 return DataFrame(ranks, index=self.index, columns=self.columns)
             except TypeError:
                 numeric_only = True
@@ -4452,8 +4454,8 @@ class DataFrame(NDFrame):
             data = self._get_numeric_data()
         else:
             data = self
-        ranks = rank(data.values, axis=axis, method=method,
-                     ascending=ascending)
+        ranks = algos.rank(data.values, axis=axis, method=method,
+                           ascending=ascending)
         return DataFrame(ranks, index=data.index, columns=data.columns)
 
     def to_timestamp(self, freq=None, how='start', axis=0, copy=True):

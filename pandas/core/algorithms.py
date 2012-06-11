@@ -49,6 +49,7 @@ def unique(values):
     -------
     uniques
     """
+    values = com._asarray_tuplesafe(values)
     f = lambda htype, caster: _unique_generic(values, htype, caster)
     return _hashtable_algo(f, values.dtype)
 
