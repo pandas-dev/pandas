@@ -72,12 +72,22 @@ def _arith_method(op, name):
                 return Series(na_op(self.values, other.values),
                               index=self.index, name=name)
 
-            this_reindexed, other_reindexed = self.align(other, join='outer',
-                                                         copy=False)
-            arr = na_op(this_reindexed.values, other_reindexed.values)
+            join_idx, lidx, ridx = self.index.join(other.index, how='outer',
+                                                   return_indexers=True)
+
+            lvalues = self.values
+            rvalues = other.values
+
+            if lidx is not None:
+                lvalues = com.take_1d(lvalues, lidx)
+
+            if ridx is not None:
+                rvalues = com.take_1d(rvalues, ridx)
+
+            arr = na_op(lvalues, rvalues)
 
             name = _maybe_match_name(self, other)
-            return Series(arr, index=this_reindexed.index, name=name)
+            return Series(arr, index=join_idx, name=name)
         elif isinstance(other, DataFrame):
             return NotImplemented
         else:
@@ -2045,9 +2055,10 @@ copy : boolean, default False
             new_values = com.take_1d(self.values, indexer)
         else:
             if copy:
-                return self.copy()
+                result = self.copy()
             else:
-                return self
+                result = self
+            return result
 
         # be subclass-friendly
         return self._constructor(new_values, new_index, name=self.name)

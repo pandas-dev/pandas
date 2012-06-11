@@ -410,6 +410,26 @@ class TestTimeZones(unittest.TestCase):
         self.assertRaises(Exception, ts.__add__, ts_utc)
         self.assertRaises(Exception, ts_utc.__add__, ts)
 
+    def test_equal_join_ensure_utc(self):
+        rng = date_range('1/1/2011', periods=10, freq='H', tz='US/Eastern')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        ts_moscow = ts.tz_convert('Europe/Moscow')
+
+        result = ts + ts_moscow
+        self.assert_(result.index.tz is pytz.utc)
+
+        result = ts_moscow + ts
+        self.assert_(result.index.tz is pytz.utc)
+
+        df = DataFrame({'a': ts})
+        df_moscow = df.tz_convert('Europe/Moscow')
+        result = df + df_moscow
+        self.assert_(result.index.tz is pytz.utc)
+
+        result = df_moscow + df
+        self.assert_(result.index.tz is pytz.utc)
+
     def test_arith_utc_convert(self):
         rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')
 
