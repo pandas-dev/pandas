@@ -564,37 +564,37 @@ class UltraJSONTests(TestCase):
     def test_numericIntFrcExp(self):
         input = "1.337E40"
         output = ujson.decode(input)
-        self.assertEquals(output, json.loads(input))
+        self.assertAlmostEqual(output, json.loads(input))
 
     def test_decodeNumericIntExpEPLUS(self):
         input = "1337E+40"
         output = ujson.decode(input)
-        self.assertEquals(output, json.loads(input))
+        self.assertAlmostEqual(output, json.loads(input))
 
     def test_decodeNumericIntExpePLUS(self):
         input = "1.337e+40"
         output = ujson.decode(input)
-        self.assertEquals(output, json.loads(input))
+        self.assertAlmostEqual(output, json.loads(input))
 
     def test_decodeNumericIntExpE(self):
         input = "1337E40"
         output = ujson.decode(input)
-        self.assertEquals(output, json.loads(input))
+        self.assertAlmostEqual(output, json.loads(input))
 
     def test_decodeNumericIntExpe(self):
         input = "1337e40"
         output = ujson.decode(input)
-        self.assertEquals(output, json.loads(input))
+        self.assertAlmostEqual(output, json.loads(input))
 
     def test_decodeNumericIntExpEMinus(self):
         input = "1.337E-4"
         output = ujson.decode(input)
-        self.assertEquals(output, json.loads(input))
+        self.assertAlmostEqual(output, json.loads(input))
 
     def test_decodeNumericIntExpeMinus(self):
         input = "1.337e-4"
         output = ujson.decode(input)
-        self.assertEquals(output, json.loads(input))
+        self.assertAlmostEqual(output, json.loads(input))
 
     def test_dumpToFile(self):
         f = StringIO.StringIO()
