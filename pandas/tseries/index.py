@@ -593,6 +593,12 @@ class DatetimeIndex(Int64Index):
             raise ValueError(msg)
         return self._get_object_index()
 
+    def tolist(self):
+        """
+        See ndarray.tolist
+        """
+        return list(self.asobject)
+
     def _get_object_index(self):
         boxed_values = _dt_box_array(self.asi8, self.offset, self.tz)
         return Index(boxed_values, dtype=object)

@@ -1030,6 +1030,12 @@ class TestLegacySupport(unittest.TestCase):
 
         self.assertRaises(ValueError, DatetimeIndex, ['a', 'b', 'c', 'd'])
 
+    def test_tolist(self):
+        rng = date_range('1/1/2000', periods=10)
+
+        result = rng.tolist()
+        self.assert_(isinstance(result[0], Timestamp))
+
     def test_object_convert_fail(self):
         idx = DatetimeIndex([NaT])
         self.assertRaises(ValueError, idx.astype, 'O')
