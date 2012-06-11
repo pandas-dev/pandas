@@ -121,6 +121,8 @@ pandas 0.8.0
   - Exclude "nuisance" columns automatically in GroupBy.transform (#1364)
   - Support functions-as-strings in GroupBy.transform (#1362)
   - Use index name as xlabel/ylabel in plots (#1415)
+  - Add ``convert_dtype`` option to Series.apply to be able to leave data as
+    dtype=object (#1414)
 
 **API Changes**
 

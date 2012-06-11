@@ -2219,6 +2219,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = s.map(f)
         assert_series_equal(result, expected)
 
+    def test_apply_dont_convert_dtype(self):
+        s = Series(np.random.randn(10))
+
+        f = lambda x: x if x > 0 else np.nan
+        result = s.apply(f, convert_dtype=False)
+        self.assert_(result.dtype == object)
+
     def test_align(self):
         def _check_align(a, b, how='left', fill=None):
             aa, ab = a.align(b, join=how, fill_value=fill)

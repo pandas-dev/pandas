@@ -1987,7 +1987,7 @@ copy : boolean, default False
             mapped = lib.map_infer(self.values, arg)
             return Series(mapped, index=self.index, name=self.name)
 
-    def apply(self, func):
+    def apply(self, func, convert_dtype=True):
         """
         Invoke function on values of Series. Can be ufunc or Python function
         expecting only single values
@@ -1995,6 +1995,9 @@ copy : boolean, default False
         Parameters
         ----------
         func : function
+        convert_dtype : boolean, default True
+            Try to find better dtype for elementwise function results. If
+            False, leave as dtype=object
 
         See also
         --------
@@ -2012,7 +2015,7 @@ copy : boolean, default False
                 raise ValueError('Must yield array')
             return result
         except Exception:
-            mapped = lib.map_infer(self.values, func)
+            mapped = lib.map_infer(self.values, func, convert=convert_dtype)
             return Series(mapped, index=self.index, name=self.name)
 
     def align(self, other, join='outer', level=None, copy=True,

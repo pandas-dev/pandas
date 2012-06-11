@@ -617,7 +617,7 @@ def maybe_convert_bool(ndarray[object] arr):
     return result.view(np.bool_)
 
 
-def map_infer(ndarray arr, object f):
+def map_infer(ndarray arr, object f, bint convert=1):
     '''
     Substitute for np.vectorize with pandas-friendly dtype inference
 
@@ -647,8 +647,11 @@ def map_infer(ndarray arr, object f):
 
         result[i] = val
 
-    return maybe_convert_objects(result, try_float=0,
-                                 convert_datetime=0)
+    if convert:
+        return maybe_convert_objects(result, try_float=0,
+                                     convert_datetime=0)
+
+    return result
 
 def to_object_array(list rows):
     cdef:
