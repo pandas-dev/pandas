@@ -177,6 +177,7 @@ pandas 0.8.0
   - Treat dict return values as Series in GroupBy.apply (#823)
   - Respect column selection for DataFrame in in GroupBy.transform (#1365)
   - Fix MultiIndex partial indexing bug (#1352)
+  - Enable assignment of rows in mixed-type DataFrame via .ix (#1432)
 
 pandas 0.7.3
 ============

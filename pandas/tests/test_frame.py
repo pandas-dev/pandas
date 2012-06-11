@@ -640,8 +640,31 @@ class CheckIndexing(object):
         self.mixed_frame.ix[5] = np.nan
         self.assert_(isnull(self.mixed_frame.ix[5]).all())
 
-        self.assertRaises(Exception, self.mixed_frame.ix.__setitem__,
-                          5, self.mixed_frame.ix[6])
+        self.mixed_frame.ix[5] = self.mixed_frame.ix[6]
+        assert_series_equal(self.mixed_frame.ix[5], self.mixed_frame.ix[6])
+
+        # #1432
+        df = DataFrame({1: [1., 2., 3.],
+                        2: [3, 4, 5]})
+        self.assert_(df._is_mixed_type)
+
+        df.ix[1] = [5, 10]
+
+        expected = DataFrame({1: [1., 5., 3.],
+                              2: [3, 10, 5]})
+
+        assert_frame_equal(df, expected)
+
+    def test_getitem_setitem_non_ix_labels(self):
+        df = tm.makeTimeDataFrame()
+
+        start, end = df.index[[5, 10]]
+
+        result = df.ix[start:end]
+        result2 = df[start:end]
+        expected = df[5:11]
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result2, expected)
 
     def test_ix_assign_column_mixed(self):
         # GH #1142
@@ -905,27 +928,6 @@ class CheckIndexing(object):
         df.ix[::2, 'str'] = nan
         expected = [nan, 'qux', nan, 'qux', nan]
         assert_almost_equal(df['str'].values, expected)
-
-    def test_getitem_setitem_non_ix_labels(self):
-        df = tm.makeTimeDataFrame()
-
-        start, end = df.index[[5, 10]]
-
-        result = df.ix[start:end]
-        result2 = df[start:end]
-        expected = df[5:11]
-        assert_frame_equal(result, expected)
-        assert_frame_equal(result2, expected)
-
-        # not implementing this yet
-
-        # exp = df.copy()
-        # exp[5:10] = exp[-5:].values
-
-        # # setting
-
-        # df[start:end] = df[-5:].values
-        # assert_frame_equal(df, exp)
 
     def test_setitem_fancy_exceptions(self):
         pass
