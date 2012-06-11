@@ -216,7 +216,7 @@ def autocorrelation_plot(series, ax=None):
     """
     import matplotlib.pyplot as plt
     n = len(series)
-    data = series.values
+    data = np.asarray(series)
     if ax == None:
         ax = plt.gca(xlim=(1, n), ylim=(-1.0, 1.0))
     mean = np.mean(data)
