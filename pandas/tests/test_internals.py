@@ -4,9 +4,10 @@ import unittest
 
 import numpy as np
 
-from pandas import Index, MultiIndex, DataFrame
+from pandas import Index, MultiIndex, DataFrame, Series
 from pandas.core.internals import *
 import pandas.core.internals as internals
+import pandas.util.testing as tm
 
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal, randn)
 
@@ -23,7 +24,7 @@ TEST_COLS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 N = 10
 
 def get_float_ex(cols=['a', 'c', 'e']):
-    floats = get_float_mat(N, 3).T
+    floats = get_float_mat(N, len(cols)).T
     return make_block(floats, cols, TEST_COLS)
 
 def get_complex_ex(cols=['h']):
@@ -192,7 +193,15 @@ class TestBlockManager(unittest.TestCase):
                        get_bool_ex(),
                        get_int_ex(),
                        get_complex_ex()]
-        self.mgr = BlockManager.from_blocks(self.blocks, np.arange(N))
+
+        all_items = [b.items for b in self.blocks]
+
+        items = sorted(all_items[0].append(all_items[1:]))
+        items = Index(items)
+        for b in self.blocks:
+            b.ref_items = items
+
+        self.mgr = BlockManager(self.blocks, [items, np.arange(N)])
 
     def test_constructor_corner(self):
         pass
@@ -204,8 +213,12 @@ class TestBlockManager(unittest.TestCase):
     def test_is_mixed_dtype(self):
         self.assert_(self.mgr.is_mixed_dtype())
 
+        items = Index(['a', 'b'])
         blocks = [get_bool_ex(['a']), get_bool_ex(['b'])]
-        mgr = BlockManager.from_blocks(blocks, np.arange(N))
+        for b in blocks:
+            b.ref_items = items
+
+        mgr = BlockManager(blocks, [items,  np.arange(N)])
         self.assert_(not mgr.is_mixed_dtype())
 
     def test_is_indexed_like(self):
@@ -232,6 +245,15 @@ class TestBlockManager(unittest.TestCase):
                   get_float_ex(['f', 'e', 'd'])]
         self.assert_(np.array_equal(internals._union_block_items(blocks),
                                     ['a', 'b', 'c', 'd', 'e', 'f']))
+
+    def test_duplicate_item_failure(self):
+        items = Index(['a', 'a'])
+        blocks = [get_bool_ex(['a']), get_float_ex(['a'])]
+        for b in blocks:
+            b.ref_items = items
+
+        mgr = BlockManager(blocks, [items, np.arange(N)])
+        self.assertRaises(Exception, mgr.iget, 1)
 
     def test_contains(self):
         self.assert_('a' in self.mgr)
@@ -288,26 +310,34 @@ class TestBlockManager(unittest.TestCase):
         pass
 
     def test_as_matrix_int_bool(self):
+        items = Index(['a', 'b'])
+
         blocks = [get_bool_ex(['a']), get_bool_ex(['b'])]
+        for b in blocks:
+            b.ref_items = items
         index_sz = blocks[0].values.shape[1]
-        mgr = BlockManager.from_blocks(blocks, np.arange(index_sz))
+        mgr = BlockManager(blocks, [items, np.arange(index_sz)])
         self.assert_(mgr.as_matrix().dtype == np.bool_)
 
         blocks = [get_int_ex(['a']), get_int_ex(['b'])]
-        mgr = BlockManager.from_blocks(blocks, np.arange(index_sz))
+        for b in blocks:
+            b.ref_items = items
+
+        mgr = BlockManager(blocks, [items, np.arange(index_sz)])
         self.assert_(mgr.as_matrix().dtype == np.int64)
 
     def test_as_matrix_datetime(self):
+        items = Index(['h', 'g'])
         blocks = [get_dt_ex(['h']), get_dt_ex(['g'])]
+        for b in blocks:
+            b.ref_items = items
+
         index_sz = blocks[0].values.shape[1]
-        mgr = BlockManager.from_blocks(blocks, np.arange(index_sz))
+        mgr = BlockManager(blocks, [items, np.arange(index_sz)])
         self.assert_(mgr.as_matrix().dtype == 'M8[ns]')
 
     def test_xs(self):
         pass
-
-    def test_from_blocks(self):
-        self.assert_(np.array_equal(self.mgr.items, TEST_COLS))
 
     def test_interleave(self):
         pass
@@ -355,6 +385,38 @@ class TestBlockManager(unittest.TestCase):
         expected = self.mgr.get_slice(slice(3, 5), axis=1)
 
         assert_frame_equal(DataFrame(result), DataFrame(expected))
+
+    def test_get_numeric_data(self):
+        int_ser = Series(np.array([0, 1, 2]))
+        float_ser = Series(np.array([0., 1., 2.]))
+        complex_ser = Series(np.array([0j, 1j, 2j]))
+        str_ser = Series(np.array(['a', 'b', 'c']))
+        bool_ser = Series(np.array([True, False, True]))
+        obj_ser = Series(np.array([1, 'a', 5]))
+        dt_ser = Series(tm.makeDateIndex(3))
+        #check types
+        df = DataFrame({'int' : int_ser, 'float' : float_ser,
+                        'complex' : complex_ser, 'str' : str_ser,
+                        'bool' : bool_ser, 'obj' : obj_ser,
+                        'dt' : dt_ser})
+        xp = DataFrame({'int' : int_ser, 'float' : float_ser,
+                        'complex' : complex_ser})
+        rs = DataFrame(df._data.get_numeric_data())
+        assert_frame_equal(xp, rs)
+
+        xp = DataFrame({'bool' : bool_ser})
+        rs = DataFrame(df._data.get_numeric_data(type_list=bool))
+        assert_frame_equal(xp, rs)
+
+        rs = DataFrame(df._data.get_numeric_data(type_list=bool))
+        df.ix[0, 'bool'] = not df.ix[0, 'bool']
+
+        self.assertEqual(rs.ix[0, 'bool'], df.ix[0, 'bool'])
+
+        rs = DataFrame(df._data.get_numeric_data(type_list=bool, copy=True))
+        df.ix[0, 'bool'] = not df.ix[0, 'bool']
+
+        self.assertEqual(rs.ix[0, 'bool'], not df.ix[0, 'bool'])
 
 if __name__ == '__main__':
     # unittest.main()

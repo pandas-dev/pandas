@@ -454,11 +454,14 @@ cpdef convert_scalar(ndarray arr, object value):
 
 cdef inline _to_i8(object val):
     cdef pandas_datetimestruct dts
-    if util.is_datetime64_object(val):
-        val = get_datetime64_value(val)
-    elif PyDateTime_Check(val):
-        return _pydatetime_to_dts(val, &dts)
-    return val
+    try:
+        return val.value
+    except AttributeError:
+        if util.is_datetime64_object(val):
+            return get_datetime64_value(val)
+        elif PyDateTime_Check(val):
+            return _pydatetime_to_dts(val, &dts)
+        return val
 
 
 # ctypedef fused idxvalue_t:

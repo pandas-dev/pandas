@@ -6,6 +6,7 @@ import numpy as np
 from pandas.tseries.offsets import DateOffset
 from pandas.util.decorators import cache_readonly
 import pandas.tseries.offsets as offsets
+import pandas.core.common as com
 import pandas.lib as lib
 
 class FreqGroup(object):
@@ -45,8 +46,8 @@ def get_freq_code(freqstr):
         freqstr = (get_offset_name(freqstr), freqstr.n)
 
     if isinstance(freqstr, tuple):
-        if (isinstance(freqstr[0], (int, long)) and
-            isinstance(freqstr[1], (int, long))):
+        if (com.is_integer(freqstr[0]) and
+            com.is_integer(freqstr[1])):
             #e.g., freqstr = (2000, 1)
             return freqstr
         else:
@@ -59,7 +60,7 @@ def get_freq_code(freqstr):
                 stride = freqstr[0]
             return code, stride
 
-    if isinstance(freqstr, (int, long)):
+    if com.is_integer(freqstr):
         return (freqstr, 1)
 
     base, stride = _base_and_stride(freqstr)
@@ -407,6 +408,11 @@ def _base_and_stride(freqstr):
 
     return (base, stride)
 
+def get_base_alias(freqstr):
+    """
+    Returns the base frequency alias, e.g., '5D' -> 'D'
+    """
+    return _base_and_stride(freqstr)[0]
 
 _dont_uppercase = ['MS', 'ms']
 

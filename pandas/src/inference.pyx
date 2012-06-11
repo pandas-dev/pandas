@@ -76,9 +76,13 @@ def infer_dtype(object _values):
         if is_bool_array(values):
             return 'boolean'
 
-    elif util.is_string_object(val):
+    elif PyString_Check(val):
         if is_string_array(values):
             return 'string'
+
+    elif PyUnicode_Check(val):
+        if is_unicode_array(values):
+            return 'unicode'
 
     for i in range(n):
         val = util.get_value_1d(values, i)
@@ -180,11 +184,33 @@ def is_string_array(ndarray values):
             return False
 
         for i in range(n):
-            if not util.is_string_object(objbuf[i]):
+            if not PyString_Check(objbuf[i]):
                 return False
         return True
     else:
         return False
+
+def is_unicode_array(ndarray values):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[object] objbuf
+        object obj
+
+    if issubclass(values.dtype.type, np.unicode_):
+        return True
+    elif values.dtype == np.object_:
+        objbuf = values
+
+        if n == 0:
+            return False
+
+        for i in range(n):
+            if not PyUnicode_Check(objbuf[i]):
+                return False
+        return True
+    else:
+        return False
+
 
 def is_datetime_array(ndarray[object] values):
     cdef int i, n = len(values)

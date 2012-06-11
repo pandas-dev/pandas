@@ -29,7 +29,6 @@ def pivot_annual(series, freq=None):
     series : TimeSeries
     freq : string or None, default None
 
-
     Returns
     -------
     annual : DataFrame
@@ -40,6 +39,8 @@ def pivot_annual(series, freq=None):
 
     if freq is not None:
         freq = freq.upper()
+    else:
+        freq = series.index.freq
 
     if freq == 'D':
         width = 366

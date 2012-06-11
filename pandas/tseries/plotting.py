@@ -20,6 +20,7 @@ from pandas.tseries.period import Period, PeriodIndex
 from pandas.tseries.index import DatetimeIndex
 from pandas.core.index import Index
 from pandas.core.series import Series
+import pandas.core.common as com
 
 import warnings
 
@@ -76,6 +77,8 @@ def tsplot(series, plotf, *args, **kwargs):
 
     if isinstance(freq, DateOffset):
         freq = freq.rule_code
+    else:
+        freq = frequencies.get_base_alias(freq)
 
     freq = frequencies.to_calendar_freq(freq)
     # Convert DatetimeIndex to PeriodIndex
@@ -97,6 +100,8 @@ def tsplot(series, plotf, *args, **kwargs):
 
     series = series.dropna()
 
+    style = kwargs.pop('style', None)
+
     if 'ax' in kwargs:
         ax = kwargs.pop('ax')
     else:
@@ -112,7 +117,7 @@ def tsplot(series, plotf, *args, **kwargs):
     ax.date_axis_info = None
 
     # format args and lot
-    args = _check_plot_params(series, series.index, freq, *args)
+    args = _check_plot_params(series, series.index, freq, style, *args)
     plotted = plotf(ax, *args,  **kwargs)
 
     format_dateaxis(ax, ax.freq)
@@ -137,8 +142,8 @@ def get_datevalue(date, freq):
         return date.asfreq(freq).ordinal
     elif isinstance(date, (str, datetime, pydt.date, pydt.time)):
         return Period(date, freq).ordinal
-    elif isinstance(date, (int, float)) or \
-            (isinstance(date, np.ndarray) and (date.size == 1)):
+    elif (com.is_integer(date) or com.is_float(date) or
+          (isinstance(date, np.ndarray) and (date.size == 1))):
         return date
     elif date is None:
         return None
@@ -147,7 +152,7 @@ def get_datevalue(date, freq):
 
 # Check and format plotting parameters
 
-def _check_plot_params(series, xdata, freq, *args):
+def _check_plot_params(series, xdata, freq, style, *args):
     """
     Defines the plot coordinates (and basic plotting arguments).
     """
@@ -158,7 +163,10 @@ def _check_plot_params(series, xdata, freq, *args):
     if len(args) == 0:
         if xdata is None:
             raise ValueError(noinfo_msg)
-        return (xdata, series)
+        if style is not None:
+            return (xdata, series, style)
+        else:
+            return (xdata, series)
 
     output = []
     while len(remaining) > 0:
@@ -246,17 +254,6 @@ def _handle_period_index(curr, remaining, series, xdata, freq):
     else:
         if series is None:
             raise ValueError(noinfo_msg)
-
-def infer_min_freq(series):
-    """
-    To be used for irregular DatetimeIndex
-    figure out minimum time span between points and map to some offset alias
-
-    Returns
-    -------
-    offset alias: str
-    """
-
 
 ##### -------------------------------------------------------------------------
 #---- --- Locators ---
@@ -543,7 +540,7 @@ def _monthly_finder(vmin, vmax, freq):
     info['val'] = np.arange(vmin, vmax + 1)
     dates_ = info['val']
     info['fmt'] = ''
-    year_start = (dates_ % 12 == 1).nonzero()[0]
+    year_start = (dates_ % 12 == 0).nonzero()[0]
     info_maj = info['maj']
     info_fmt = info['fmt']
     #..............
@@ -562,7 +559,7 @@ def _monthly_finder(vmin, vmax, freq):
             info_fmt[idx] = '%b\n%Y'
     #..............
     elif span <= 2.5 * periodsperyear:
-        quarter_start = (dates_ % 3 == 1).nonzero()
+        quarter_start = (dates_ % 3 == 0).nonzero()
         info_maj[year_start] = True
         # TODO: Check the following : is it really info['fmt'] ?
         info['fmt'][quarter_start] = True
@@ -575,12 +572,12 @@ def _monthly_finder(vmin, vmax, freq):
         info_maj[year_start] = True
         info['min'] = True
 
-        jan_or_jul = (dates_ % 12 == 1) | (dates_ % 12 == 7)
+        jan_or_jul = (dates_ % 12 == 0) | (dates_ % 12 == 6)
         info_fmt[jan_or_jul] = '%b'
         info_fmt[year_start] = '%b\n%Y'
     #..............
     elif span <= 11 * periodsperyear:
-        quarter_start = (dates_ % 3 == 1).nonzero()
+        quarter_start = (dates_ % 3 == 0).nonzero()
         info_maj[year_start] = True
         info['min'][quarter_start] = True
 
@@ -618,7 +615,7 @@ def _quarterly_finder(vmin, vmax, freq):
     dates_ = info['val']
     info_maj = info['maj']
     info_fmt = info['fmt']
-    year_start = (dates_ % 4 == 1).nonzero()[0]
+    year_start = (dates_ % 4 == 0).nonzero()[0]
     #..............
     if span <= 3.5 * periodsperyear:
         info_maj[year_start] = True
@@ -648,7 +645,6 @@ def _quarterly_finder(vmin, vmax, freq):
         info_fmt[major_idx] = '%F'
     #..............
     return info
-
 
 def _annual_finder(vmin, vmax, freq):
     if isinstance(freq, basestring):
@@ -743,7 +739,6 @@ class TimeSeries_DateLocator(Locator):
             self.plot_obj.date_axis_info = None
         self.plot_obj.view_interval = vi
         vmin, vmax = vi
-
         if vmax < vmin:
             vmin, vmax = vmax, vmin
         if self.isdynamic:

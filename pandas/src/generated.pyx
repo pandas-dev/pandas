@@ -1414,7 +1414,6 @@ def backfill_2d_inplace_bool(ndarray[uint8_t, ndim=2] values,
                 val = values[j, i]
 
 @cython.wraparound(False)
-@cython.boundscheck(False)
 def take_1d_float64(ndarray[float64_t] values,
                      ndarray[int64_t] indexer,
                      out=None, fill_value=np.nan):
@@ -1447,7 +1446,6 @@ def take_1d_float64(ndarray[float64_t] values,
                 outbuf[i] = values[idx]
 
 @cython.wraparound(False)
-@cython.boundscheck(False)
 def take_1d_object(ndarray[object] values,
                      ndarray[int64_t] indexer,
                      out=None, fill_value=np.nan):
@@ -1480,7 +1478,6 @@ def take_1d_object(ndarray[object] values,
                 outbuf[i] = values[idx]
 
 @cython.wraparound(False)
-@cython.boundscheck(False)
 def take_1d_int32(ndarray[int32_t] values,
                      ndarray[int64_t] indexer,
                      out=None, fill_value=np.nan):
@@ -1513,7 +1510,6 @@ def take_1d_int32(ndarray[int32_t] values,
                 outbuf[i] = values[idx]
 
 @cython.wraparound(False)
-@cython.boundscheck(False)
 def take_1d_int64(ndarray[int64_t] values,
                      ndarray[int64_t] indexer,
                      out=None, fill_value=np.nan):
@@ -1546,7 +1542,6 @@ def take_1d_int64(ndarray[int64_t] values,
                 outbuf[i] = values[idx]
 
 @cython.wraparound(False)
-@cython.boundscheck(False)
 def take_1d_bool(ndarray[uint8_t] values,
                      ndarray[int64_t] indexer,
                      out=None, fill_value=np.nan):

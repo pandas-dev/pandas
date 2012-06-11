@@ -27,8 +27,11 @@ having to do with nanosecond resolution data, so I recommend that you steer
 clear of NumPy 1.6's datetime64 API functions (though limited as they are) and
 only interact with this data using the interface that pandas provides.
 
+See the end of the 0.8.0 section for a "porting" guide listing potential issues
+for users migrating legacy codebases from pandas 0.7 or earlier to 0.8.0.
+
 Bug fixes to the 0.7.x series for legacy NumPy < 1.6 users will be provided as
-they arise. There will be no more further development in 1.7.x beyond bug
+they arise. There will be no more further development in 0.7.x beyond bug
 fixes.
 
 Time series changes and improvements
@@ -39,6 +42,10 @@ Time series changes and improvements
     With this release, legacy scikits.timeseries users should be able to port
     their code to use pandas.
 
+.. note::
+
+    See :ref:`documentation <timeseries>` for overview of pandas timeseries API.
+
 - New datetime64 representation **speeds up join operations and data
   alignment**, **reduces memory usage**, and improve serialization /
   deserialization performance significantly over datetime.datetime
@@ -47,13 +54,15 @@ Time series changes and improvements
   aggregation functions, and control over how the intervals and result labeling
   are defined. A suite of high performance Cython/C-based resampling functions
   (including Open-High-Low-Close) have also been implemented.
-- Revamp of **frequency aliases** and support for **frequency shortcuts** like
-  '15min', or '1h30min'
-- New **DatetimeIndex class** supports both fixed frequency and irregular time
+- Revamp of :ref:`frequency aliases <timeseries.alias>` and support for
+  **frequency shortcuts** like '15min', or '1h30min'
+- New :ref:`DatetimeIndex class <timeseries.datetimeindex>` supports both fixed
+  frequency and irregular time
   series. Replaces now deprecated DateRange class
-- New PeriodIndex and Period classes for representing **time spans** and
-  performing **calendar logic**, including the **12 fiscal quarterly
-  frequencies**. This is a partial port of, and a substantial enhancement to,
+- New ``PeriodIndex`` and ``Period`` classes for representing
+  :ref:`time spans <timeseries.periods>` and performing **calendar logic**,
+  including the `12 fiscal quarterly frequencies <timeseries.quarterly>`.
+  This is a partial port of, and a substantial enhancement to,
   elements of the scikits.timeseries codebase. Support for conversion between
   PeriodIndex and DatetimeIndex
 - New Timestamp data type subclasses `datetime.datetime`, providing the same
@@ -71,8 +80,8 @@ Time series changes and improvements
   and month, and index values with strings
 - Enhanced time series **plotting**; adaptation of scikits.timeseries
   matplotlib-based plotting code
-- New ``date_range``, ``bdate_range``, and ``period_range`` **factory
-  functions**
+- New ``date_range``, ``bdate_range``, and ``period_range`` :ref:`factory
+  functions <timeseries.daterange>`
 - Robust **frequency inference** function `infer_freq` and ``inferred_freq``
   property of DatetimeIndex, with option to infer frequency on construction of
   DatetimeIndex
@@ -88,8 +97,9 @@ Time series changes and improvements
 - Can index time series with datetime.time objects to select all data at
   particular **time of day** (``TimeSeries.at_time``) or **between two times**
   (``TimeSeries.between_time``)
-- Add tshift method for leading/lagging using the frequency (if any) of the
-  index, as opposed to a naive lead/lag using shift
+- Add :ref:`tshift <timeseries.advanced_datetime>` method for leading/lagging
+  using the frequency (if any) of the index, as opposed to a naive lead/lag
+  using shift
 
 Support for non-unique indexes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -101,36 +111,126 @@ index duplication in many-to-many joins)
 Other new features
 ~~~~~~~~~~~~~~~~~~
 
-- Add limit argument to fillna/reindex
+- New :ref:`cut <reshaping.tile.cut>` function (like R's cut function) for
+  computing a categorical variable from a continuous variable by binning values
+- Add :ref:`limit <missing_data.fillna.limit>` argument to fillna/reindex
 - More flexible multiple function application in GroupBy, and can pass list
   (name, function) tuples to get result in particular order with given names
-- Add flexible ``replace`` method for efficiently substituting values
-- Enhanced read_csv/read_table for reading time series data and converting
-  multiple columns to dates
-- Add comments option to parser functions: read_csv, etc.
-- Add ``dayfirst`` option to parser functions for parsing international
-  DD/MM/YYYY dates
+- Add flexible :ref:`replace <missing_data.replace>` method for efficiently
+  substituting values
+- Enhanced :ref:`read_csv/read_table <io.parse_dates>` for reading time series
+  data and converting multiple columns to dates
+- Add :ref:`comments <io.comments>` option to parser functions: read_csv, etc.
+- Add :ref`dayfirst <io.dayfirst>` option to parser functions for parsing
+  international DD/MM/YYYY dates
+- Allow the user to specify the CSV reader :ref:`dialect <io.dialect>` to
+  control quoting etc.
+- Handling :ref:`thousands <io.thousands>` separators in read_csv to improve
+  integer parsing.
 - Enable unstacking of multiple levels in one shot. Alleviate ``pivot_table``
   bugs (empty columns being introduced)
 - Move to klib-based hash tables for indexing; better performance and less
   memory usage than Python's dict
 - Add first, last, min, max, and prod optimized GroupBy functions
-- New ordered_merge function
-- Add flexible comparison instance methods eq, ne, lt, gt, etc. to DataFrame,
+- New :ref:`ordered_merge <merging.ordered_merge>` function
+- Add flexible :ref:`comparison <basics.binop>` instance methods eq, ne, lt, gt, etc. to DataFrame,
   Series
-- Improve scatter_matrix plotting function and add histogram or kernel density
-  estimates to diagonal
-- Add ``'kde'`` plot option for density plots
+- Improve :ref:`scatter_matrix <visualization.scatter_matrix>` plotting
+  function and add histogram or kernel density estimates to diagonal
+- Add :ref:`'kde' <visualization.kde>` plot option for density plots
 - Support for converting DataFrame to R data.frame through rpy2
 - Improved support for complex numbers in Series and DataFrame
-- Add ``pct_change`` method to all data structures
+- Add :ref:`pct_change <computation.pct_change>` method to all data structures
 - Add max_colwidth configuration option for DataFrame console output
-- Interpolate Series values using index values
+- :ref:`Interpolate <missing_data.interpolate>` Series values using index values
 - Can select multiple columns from GroupBy
-- Add Series/DataFrame.update methods for updating values in place
+- Add :ref:`update <merging.combine_first.update>` methods to Series/DataFrame
+  for updating values in place
 
 Other API changes
 ~~~~~~~~~~~~~~~~~
 
 - Deprecation of ``offset``, ``time_rule``, and ``timeRule`` arguments names in
   time series functions. Warnings will be printed until pandas 0.9 or 1.0.
+
+Potential porting issues for pandas <= 0.7.3 users
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The major change that may affect you in pandas 0.8.0 is that time series
+indexes use NumPy's ``datetime64`` data type instead of ``dtype=object`` arrays
+of Python's built-in ``datetime.datetime`` objects. ``DateRange`` has been
+replaced by ``DatetimeIndex`` but otherwise behaved identically. But, if you
+have code that converts ``DateRange`` or ``Index`` objects that used to contain
+``datetime.datetime`` values to plain NumPy arrays, you may have bugs lurking
+with code using scalar values because you are handing control over to NumPy:
+
+.. ipython:: python
+
+   import datetime
+   rng = date_range('1/1/2000', periods=10)
+   rng[5]
+   isinstance(rng[5], datetime.datetime)
+   rng_asarray = np.asarray(rng)
+   scalar_val = rng_asarray[5]
+   type(scalar_val)
+
+pandas's ``Timestamp`` object is a subclass of ``datetime.datetime`` that has
+nanosecond support (the ``nanosecond`` field store the nanosecond value between
+0 and 999). It should substitute directly into any code that used
+``datetime.datetime`` values before. Thus, I recommend not casting
+``DatetimeIndex`` to regular NumPy arrays.
+
+If you have code that requires an array of ``datetime.datetime`` objects, you
+have a couple of options. First, the ``asobject`` property of ``DatetimeIndex``
+produces an array of ``Timestamp`` objects:
+
+.. ipython:: python
+
+   stamp_array = rng.asobject
+   stamp_array
+   stamp_array[5]
+
+To get an array of proper ``datetime.datetime`` objects, use the
+``to_pydatetime`` method:
+
+.. ipython:: python
+
+   dt_array = rng.to_pydatetime()
+   dt_array
+   dt_array[5]
+
+matplotlib knows how to handle ``datetime.datetime`` but not Timestamp
+objects. While I recommend that you plot time series using ``TimeSeries.plot``,
+you can either use ``to_pydatetime`` or register a converter for the Timestamp
+type. See `matplotlib documentation
+<http://matplotlib.sourceforge.net/api/units_api.html>`__ for more on this.
+
+.. warning::
+
+    There are bugs in the user-facing API with the nanosecond datetime64 unit
+    in NumPy 1.6. In particular, the string version of the array shows garbage
+    values, and conversion to ``dtype=object`` is similarly broken.
+
+    .. ipython:: python
+
+       rng = date_range('1/1/2000', periods=10)
+       rng
+       np.asarray(rng)
+       converted = np.asarray(rng, dtype=object)
+       converted[5]
+
+    **Trust me: don't panic**. If you are using NumPy 1.6 and restrict your
+    interaction with ``datetime64`` values to pandas's API you will be just
+    fine. There is nothing wrong with the data-type (a 64-bit integer
+    internally); all of the important data processing happens in pandas and is
+    heavily tested. I strongly recommend that you **do not work directly with
+    datetime64 arrays in NumPy 1.6** and only use the pandas API.
+
+
+**Support for non-unique indexes**: In the latter case, you may have code
+inside a ``try:... catch:`` block that failed due to the index not being
+unique. In many cases it will no longer fail (some method like ``append`` still
+check for uniqueness unless disabled). However, all is not lost: you can
+inspect ``index.is_unique`` and raise an exception explicitly if it is
+``False`` or go to a different code branch.
+

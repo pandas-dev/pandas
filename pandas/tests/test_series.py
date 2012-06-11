@@ -26,6 +26,13 @@ from pandas.util import py3compat
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
 
+def _skip_if_no_scipy():
+    try:
+        import scipy.stats
+    except ImportError:
+        raise nose.SkipTest
+
+
 #-------------------------------------------------------------------------------
 # Series test cases
 
@@ -561,6 +568,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s = Series([])
         self.assertRaises(IndexError, s.__getitem__, -1)
 
+    def test_getitem_setitem_integers(self):
+        # caused bug without test
+        s = Series([1,2,3], ['a','b','c'])
+
+        self.assertEqual(s.ix[0], s['a'])
+        s.ix[0] = 5
+        self.assertAlmostEqual(s['a'], 5)
+
     def test_getitem_box_float64(self):
         value = self.ts[5]
         self.assert_(isinstance(value, np.float64))
@@ -1019,11 +1034,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_almost_equal(result, expected)
 
     def test_skew(self):
+        _skip_if_no_scipy()
+
         from scipy.stats import skew
         alt =lambda x: skew(x, bias=False)
         self._check_stat_op('skew', alt)
 
     def test_kurt(self):
+        _skip_if_no_scipy()
+
         from scipy.stats import kurtosis
         alt = lambda x: kurtosis(x, bias=False)
         self._check_stat_op('kurt', alt)
@@ -1201,7 +1220,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             else:
                 self.fail("orphaned index!")
 
-        self.assertRaises(Exception, self.ts.append, self.ts)
+        self.assertRaises(Exception, self.ts.append, self.ts,
+                          verify_integrity=True)
 
     def test_append_many(self):
         pieces = [self.ts[:5], self.ts[5:10], self.ts[10:]]
@@ -1627,6 +1647,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(s, expected)
 
     def test_corr(self):
+        _skip_if_no_scipy()
+
         import scipy.stats as stats
 
         # full overlap
@@ -1650,6 +1672,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertAlmostEqual(result, expected)
 
     def test_corr_rank(self):
+        _skip_if_no_scipy()
+
         import scipy
         import scipy.stats as stats
 
@@ -2652,6 +2676,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # malformed
         self.assertRaises(ValueError, ser.replace, [1,2,3], [np.nan, 0])
         self.assertRaises(ValueError, ser.replace, xrange(1,3), [np.nan, 0])
+
+        ser = Series([0, 1, 2, 3, 4])
+        result = ser.replace([0, 1, 2, 3, 4], [4, 3, 2, 1, 0])
+        assert_series_equal(result, Series([4, 3, 2, 1, 0]))
 
     def test_asfreq(self):
         ts = Series([0., 1., 2.], index=[datetime(2009, 10, 30),

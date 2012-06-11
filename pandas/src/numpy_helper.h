@@ -116,6 +116,15 @@ get_c_string(PyObject* obj) {
 #endif
 }
 
+PANDAS_INLINE PyObject*
+char_to_string(char* data) {
+#if PY_VERSION_HEX >= 0x03000000
+    return PyUnicode_FromString(data);
+#else
+    return PyString_FromString(data);
+#endif
+}
+
 // PANDAS_INLINE int
 // is_string(PyObject* obj) {
 // #if PY_VERSION_HEX >= 0x03000000

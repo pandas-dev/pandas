@@ -1083,8 +1083,8 @@ copy : boolean, default False
         -------
         counts : Series
         """
-        import pandas.core.algorithms as algos
-        return algos.value_counts(self.values, sort=True, ascending=False)
+        from pandas.core.algorithms import value_counts
+        return value_counts(self.values, sort=True, ascending=False)
 
     def unique(self):
         """
@@ -1546,13 +1546,15 @@ copy : boolean, default False
 #-------------------------------------------------------------------------------
 # Combination
 
-    def append(self, to_append):
+    def append(self, to_append, verify_integrity=False):
         """
         Concatenate two or more Series. The indexes must not overlap
 
         Parameters
         ----------
         to_append : Series or list/tuple of Series
+        verify_integrity : boolean, default False
+            If True, raise Exception on creating index with duplicates
 
         Returns
         -------
@@ -1563,7 +1565,8 @@ copy : boolean, default False
             to_concat = [self] + to_append
         else:
             to_concat = [self, to_append]
-        return concat(to_concat, ignore_index=False, verify_integrity=True)
+        return concat(to_concat, ignore_index=False,
+                      verify_integrity=verify_integrity)
 
     def _binop(self, other, func, level=None, fill_value=None):
         """
@@ -2239,11 +2242,23 @@ copy : boolean, default False
 
         def _rep_dict(rs, to_rep): # replace {[src] -> dest}
 
+            all_src = set()
             dd = {} # group by unique destination value
-            [dd.setdefault(d, []).append(s) for s, d in to_rep.iteritems()]
+            for s, d in to_rep.iteritems():
+                dd.setdefault(d, []).append(s)
+                all_src.add(s)
 
-            for d, sset in dd.iteritems(): # now replace by each dest
-                rs = _rep_one(rs, sset, d)
+            if any(d in all_src for d in dd.keys()):
+                # don't clobber each other at the cost of temporaries
+                masks = {}
+                for d, sset in dd.iteritems(): # now replace by each dest
+                    masks[d] = com.mask_missing(rs.values, sset)
+
+                for d, m in masks.iteritems():
+                    np.putmask(rs.values, m, d)
+            else: # if no risk of clobbering then simple
+                for d, sset in dd.iteritems():
+                    _rep_one(rs, sset, d)
             return rs
 
         if np.isscalar(to_replace):
@@ -2295,7 +2310,7 @@ copy : boolean, default False
         isin : Series (boolean dtype)
         """
         value_set = set(values)
-        result = lib.ismember(self, value_set)
+        result = lib.ismember(self.values, value_set)
         return Series(result, self.index, name=self.name)
 
     def between(self, left, right, inclusive=True):
@@ -2331,7 +2346,7 @@ copy : boolean, default False
 
         Parameters
         ----------
-        path : string
+        path : string file path or file handle / StringIO
         sep : string, default ','
             Field delimiter
         parse_dates : boolean, default True
@@ -2362,8 +2377,7 @@ copy : boolean, default False
 
         Parameters
         ----------
-        path : string
-            File path
+        path : string file path or file handle / StringIO
         nanRep : string, default ''
             Missing data rep'n
         header : boolean, default False
@@ -2815,8 +2829,7 @@ class TimeSeries(Series):
 
     def tz_convert(self, tz, copy=True):
         """
-        Convert TimeSeries to target time zone. If it is time zone naive, it
-        will be localized to the passed time zone.
+        Convert TimeSeries to target time zone
 
         Parameters
         ----------
@@ -2826,8 +2839,31 @@ class TimeSeries(Series):
 
         Returns
         -------
+        converted : TimeSeries
         """
         new_index = self.index.tz_convert(tz)
+
+        new_values = self.values
+        if copy:
+            new_values = new_values.copy()
+
+        return Series(new_values, index=new_index, name=self.name)
+
+    def tz_localize(self, tz, copy=True):
+        """
+        Localize tz-naive TimeSeries to target time zone
+
+        Parameters
+        ----------
+        tz : string or pytz.timezone object
+        copy : boolean, default True
+            Also make a copy of the underlying data
+
+        Returns
+        -------
+        localized : TimeSeries
+        """
+        new_index = self.index.tz_localize(tz)
 
         new_values = self.values
         if copy:

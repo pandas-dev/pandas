@@ -36,6 +36,7 @@ def _indexOp(opname):
 class InvalidIndexError(Exception):
     pass
 
+_o_dtype = np.dtype(object)
 
 class Index(np.ndarray):
     """
@@ -73,19 +74,24 @@ class Index(np.ndarray):
 
     def __new__(cls, data, dtype=None, copy=False, name=None):
         if isinstance(data, np.ndarray):
-            if dtype is None:
-                if issubclass(data.dtype.type, np.datetime64):
-                    from pandas.tseries.index import DatetimeIndex
-                    return DatetimeIndex(data, copy=copy, name=name)
+            if issubclass(data.dtype.type, np.datetime64):
+                from pandas.tseries.index import DatetimeIndex
+                result = DatetimeIndex(data, copy=copy, name=name)
+                if dtype is not None and _o_dtype == dtype:
+                    return Index(result.to_pydatetime(), dtype=_o_dtype)
+                else:
+                    return result
 
-                if issubclass(data.dtype.type, np.integer):
-                    return Int64Index(data, copy=copy, name=name)
+            if dtype is not None:
+                try:
+                    data = np.array(data, dtype=dtype, copy=copy)
+                except TypeError:
+                    pass
 
-            if not copy:
-                subarr = com._ensure_object(data)
-            else:
-                subarr = data.astype(object)
-            # subarr = np.array(data, dtype=object, copy=copy)
+            if issubclass(data.dtype.type, np.integer):
+                return Int64Index(data, copy=copy, name=name)
+
+            subarr = com._ensure_object(data)
         elif np.isscalar(data):
             raise ValueError('Index(...) must be called with a collection '
                              'of some kind, %s was passed' % repr(data))
@@ -136,6 +142,8 @@ class Index(np.ndarray):
             parser = lambda x: parse(x, dayfirst=dayfirst)
             parsed = lib.try_parse_dates(self.values, parser=parser)
             return DatetimeIndex(parsed)
+        elif isinstance(self, DatetimeIndex):
+            return self.copy()
         else:
             return DatetimeIndex(self.values)
 
@@ -1459,7 +1467,7 @@ class MultiIndex(Index):
         levels = []
         labels = []
         for arr in arrays:
-            factor = Factor(arr)
+            factor = Factor.from_array(arr)
             levels.append(factor.levels)
             labels.append(factor.labels)
 
@@ -2434,3 +2442,9 @@ def _clean_arrays(values):
     return result
 
 
+def _all_indexes_same(indexes):
+    first = indexes[0]
+    for index in indexes[1:]:
+        if not first.equals(index):
+            return False
+    return True

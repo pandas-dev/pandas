@@ -997,7 +997,7 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        path : string
+        path : string file path or file handle / StringIO
         header : int, default 0
             Row to use at header (skip prior rows)
         sep : string, default ','
@@ -1092,7 +1092,9 @@ class DataFrame(NDFrame):
         if cols is None:
             cols = self.columns
 
-        series = self._series
+        series = {}
+        for k, v in self._series.iteritems():
+            series[k] = v.values
         if header:
             if index:
                 # should write something for index label
@@ -1122,7 +1124,7 @@ class DataFrame(NDFrame):
                 writer.writerow(encoded_cols)
 
         nlevels = getattr(self.index, 'nlevels', 1)
-        for idx in self.index:
+        for j, idx in enumerate(self.index):
             row_fields = []
             if index:
                 if nlevels == 1:
@@ -1130,7 +1132,7 @@ class DataFrame(NDFrame):
                 else:  # handle MultiIndex
                     row_fields = list(idx)
             for i, col in enumerate(cols):
-                val = series[col].get(idx)
+                val = series[col][j]
                 if isnull(val):
                     val = na_rep
 
@@ -1562,7 +1564,7 @@ class DataFrame(NDFrame):
 
             return result.set_value(index, col, value)
 
-    def irow(self, i):
+    def irow(self, i, copy=False):
         """
         Retrieve the i-th row or rows of the DataFrame by location
 
@@ -1585,7 +1587,12 @@ class DataFrame(NDFrame):
             if isinstance(label, Index):
                 return self.reindex(label)
             else:
-                return self.xs(label)
+                try:
+                    new_values = self._data.fast_2d_xs(i, copy=copy)
+                except:
+                    new_values = self._data.fast_2d_xs(i, copy=True)
+                return Series(new_values, index=self.columns,
+                              name=self.index[i])
 
     def icol(self, i):
         """
@@ -1609,7 +1616,18 @@ class DataFrame(NDFrame):
             lab_slice = slice(label[0], label[-1])
             return self.ix[:, lab_slice]
         else:
-            return self[label]
+            label = self.columns[i]
+            if isinstance(label, Index):
+                return self.reindex(columns=label)
+
+            values = self._data.iget(i)
+            return Series(values, index=self.index, name=label)
+
+    def _ixs(self, i, axis=0):
+        if axis == 0:
+            return self.irow(i)
+        else:
+            return self.icol(i)
 
     def iget_value(self, i, j):
         """
@@ -1653,6 +1671,12 @@ class DataFrame(NDFrame):
             return self._getitem_array(key)
         elif isinstance(self.columns, MultiIndex):
             return self._getitem_multilevel(key)
+        elif isinstance(key, DataFrame):
+            values = key.values
+            if values.dtype == bool:
+                return self.values[values]
+            else:
+                raise ValueError('Cannot index using non-boolean DataFrame')
         else:
             return self._get_item_cache(key)
 
@@ -1708,7 +1732,12 @@ class DataFrame(NDFrame):
             return self._get_item_cache(key)
 
     def _box_item_values(self, key, values):
-        return Series(values, index=self.index, name=key)
+        if values.ndim == 2:
+            item_cols = self.columns[self.columns.get_loc(key)]
+            return DataFrame(values.T, columns=item_cols,
+                             index=self.index)
+        else:
+            return Series(values, index=self.index, name=key)
 
     def __getattr__(self, name):
         """After regular attribute access, try looking up the name of a column.
@@ -2869,8 +2898,7 @@ class DataFrame(NDFrame):
                                          (len(to_replace), len(value)))
 
                     new_data = self._data if inplace else self.copy()._data
-                    for s, d in zip(to_replace, value):
-                        new_data = new_data.replace(s, d, inplace=True)
+                    new_data._replace_list(to_replace, value)
 
                 else: # [np.nan, ''] -> 0
                     new_data = self._data.replace(to_replace, value,
@@ -2928,7 +2956,6 @@ class DataFrame(NDFrame):
                 return self
             else:
                 return self._constructor(new_data)
-
 
     def _replace_dest_dict(self, to_replace, value, inplace):
         rs = self if inplace else self.copy()
@@ -3656,7 +3683,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Merging / joining methods
 
-    def append(self, other, ignore_index=False, verify_integrity=True):
+    def append(self, other, ignore_index=False, verify_integrity=False):
         """
         Append columns of other to end of this frame's columns and index,
         returning a new object.  Columns not in this frame are added as new
@@ -3668,6 +3695,8 @@ class DataFrame(NDFrame):
         ignore_index : boolean, default False
             If True do not use the index labels. Useful for gluing together
             record arrays
+        verify_integrity : boolean, default False
+            If True, raise Exception on creating index with duplicates
 
         Notes
         -----
@@ -3838,26 +3867,15 @@ class DataFrame(NDFrame):
         y : DataFrame
         """
         numeric_df = self._get_numeric_data()
-        mat = numeric_df.values.T
         cols = numeric_df.columns
-        baseCov = np.cov(mat)
+        mat = numeric_df.values
 
-        for i, j, ac, bc in self._cov_helper(mat):
-            c = np.cov(ac, bc)[0, 1]
-            baseCov[i, j] = c
-            baseCov[j, i] = c
+        if notnull(mat).all():
+            baseCov = np.cov(mat.T)
+        else:
+            baseCov = lib.nancorr(mat, cov=True)
 
         return self._constructor(baseCov, index=cols, columns=cols)
-
-    def _cov_helper(self, mat):
-        # Get the covariance with items that have NaN values
-        mask = np.isfinite(mat)
-        for i, A in enumerate(mat):
-            if not mask[i].all():
-                for j, B in enumerate(mat):
-                    in_common = mask[i] & mask[j]
-                    if in_common.any():
-                        yield i, j, A[in_common], B[in_common]
 
     def corrwith(self, other, axis=0, drop=False):
         """
@@ -3876,6 +3894,9 @@ class DataFrame(NDFrame):
         -------
         correls : Series
         """
+        if isinstance(other, Series):
+            return self.apply(other.corr, axis=axis)
+
         this = self._get_numeric_data()
         other = other._get_numeric_data()
 
@@ -4024,6 +4045,62 @@ class DataFrame(NDFrame):
         else:
             return result
 
+    def any(self, axis=0, bool_only=None, skipna=True, level=None):
+        """
+        Return whether any element is True over requested axis.
+        %(na_action)s
+
+        Parameters
+        ----------
+        axis : {0, 1}
+            0 for row-wise, 1 for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA
+        level : int, default None
+            If the axis is a MultiIndex (hierarchical), count along a
+            particular level, collapsing into a DataFrame
+        bool_only : boolean, default None
+            Only include boolean data.
+
+        Returns
+        -------
+        any : Series (or DataFrame if level specified)
+        """
+        if level is not None:
+            return self._agg_by_level('any', axis=axis, level=level,
+                                      skipna=skipna)
+        return self._reduce(nanops.nanany, axis=axis, skipna=skipna,
+                            numeric_only=bool_only, filter_type='bool')
+
+    def all(self, axis=0, bool_only=None, skipna=True, level=None):
+        """
+        Return whether any element is True over requested axis.
+        %(na_action)s
+
+        Parameters
+        ----------
+        axis : {0, 1}
+            0 for row-wise, 1 for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA
+        level : int, default None
+            If the axis is a MultiIndex (hierarchical), count along a
+            particular level, collapsing into a DataFrame
+        bool_only : boolean, default None
+            Only include boolean data.
+
+        Returns
+        -------
+        any : Series (or DataFrame if level specified)
+        """
+        if level is not None:
+            return self._agg_by_level('all', axis=axis, level=level,
+                                      skipna=skipna)
+        return self._reduce(nanops.nanall, axis=axis, skipna=skipna,
+                            numeric_only=bool_only, filter_type='bool')
+
     @Substitution(name='sum', shortname='sum', na_action=_doc_exclude_na,
                   extras=_numeric_only_doc)
     @Appender(_stat_doc)
@@ -4150,7 +4227,8 @@ class DataFrame(NDFrame):
         applyf = lambda x: method(x, axis=axis, skipna=skipna, **kwds)
         return grouped.aggregate(applyf)
 
-    def _reduce(self, op, axis=0, skipna=True, numeric_only=None, **kwds):
+    def _reduce(self, op, axis=0, skipna=True, numeric_only=None,
+                filter_type=None, **kwds):
         f = lambda x: op(x, axis=axis, skipna=skipna, **kwds)
         labels = self._get_agg_axis(axis)
         if numeric_only is None:
@@ -4158,12 +4236,24 @@ class DataFrame(NDFrame):
                 values = self.values
                 result = f(values)
             except Exception:
-                data = self._get_numeric_data()
+                if filter_type is None or filter_type == 'numeric':
+                    data = self._get_numeric_data()
+                elif filter_type == 'bool':
+                    data = self._get_bool_data()
+                else:
+                    raise ValueError('Invalid filter_type %s ' %
+                                     str(filter_type))
                 result = f(data.values)
                 labels = data._get_agg_axis(axis)
         else:
             if numeric_only:
-                data = self._get_numeric_data()
+                if filter_type is None or filter_type == 'numeric':
+                    data = self._get_numeric_data()
+                elif filter_type == 'bool':
+                    data = self._get_bool_data()
+                else:
+                    raise ValueError('Invalid filter_type %s ' %
+                                     str(filter_type))
                 values = data.values
                 labels = data._get_agg_axis(axis)
             else:
@@ -4172,7 +4262,13 @@ class DataFrame(NDFrame):
 
         if result.dtype == np.object_:
             try:
-                result = result.astype('f8')
+                if filter_type is None or filter_type == 'numeric':
+                    result = result.astype('f8')
+                elif filter_type == 'bool':
+                    result = result.astype('b')
+                else:
+                    raise ValueError('Invalid dtype %s ' % str(filter_type))
+
             except (ValueError, TypeError):
                 pass
 
@@ -4237,6 +4333,16 @@ class DataFrame(NDFrame):
         else:
             if (self.values.dtype != np.object_ and
                 not issubclass(self.values.dtype.type, np.datetime64)):
+                return self
+            else:
+                return self.ix[:, []]
+
+    def _get_bool_data(self):
+        if self._is_mixed_type:
+            bool_data = self._data.get_bool_data()
+            return DataFrame(bool_data, copy=False)
+        else:
+            if self.values.dtype == np.bool_:
                 return self
             else:
                 return self.ix[:, []]

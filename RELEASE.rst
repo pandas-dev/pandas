@@ -78,6 +78,13 @@ pandas 0.8.0
   - Add ``method`` argument to ``align`` method for forward/backward fillin
     (#216)
   - Add Panel.transpose method for rearranging axes (#695)
+  - Add new ``cut`` function (patterned after R) for discretizing data into
+    equal range-length bins or arbitrary breaks of your choosing (#415)
+  - Add new ``qcut`` for cutting with quantiles (#1378)
+  - Add ``value_counts`` top level array method (#1392)
+  - Added Andrews curves plot tupe (#1325)
+  - Add support for tox and Travis CI (#1382)
+  - Add support for ordered factors and use in GroupBy (#292)
 
 **Improvements to existing features**
 
@@ -108,8 +115,10 @@ pandas 0.8.0
   - Store time zones in HDFStore (#1232)
   - Enable storage of sparse data structures in HDFStore (#85)
   - Enable Series.asof to work with arrays of timestamp inputs
-  - Cython implementation of DataFrame.corr speeds up by > 100x (#1349)
-
+  - Cython implementation of DataFrame.corr speeds up by > 100x (#1349, #1354)
+  - Exclude "nuisance" columns automatically in GroupBy.transform (#1364)
+  - Support functions-as-strings in GroupBy.transform (#1362)
+  - Use index name as xlabel/ylabel in plots (#1415)
 
 **API Changes**
 
@@ -122,6 +131,9 @@ pandas 0.8.0
   - Default merge suffixes for overlap now have underscores instead of periods
     to facilitate tab completion, etc. (#1239)
   - Deprecation of offset, time_rule timeRule parameters throughout codebase
+  - Series.append and DataFrame.append no longer check for duplicate indexes
+    by default, add verify_integrity parameter (#1394)
+  - Refactor Factor class, old constructor moved to Factor.from_array
 
 **Bug fixes**
 
@@ -163,6 +175,8 @@ pandas 0.8.0
     error (#1090)
   - Consistently set name on groupby pieces (#184)
   - Treat dict return values as Series in GroupBy.apply (#823)
+  - Respect column selection for DataFrame in in GroupBy.transform (#1365)
+  - Fix MultiIndex partial indexing bug (#1352)
 
 pandas 0.7.3
 ============

@@ -171,6 +171,7 @@ class DataFrameFormatter(object):
 
         if columns is not None:
             self.columns = _ensure_index(columns)
+            self.frame = self.frame[self.columns]
         else:
             self.columns = frame.columns
 
@@ -196,7 +197,7 @@ class DataFrameFormatter(object):
 
             for i, c in enumerate(self.columns):
                 if self.header:
-                    fmt_values = self._format_col(c)
+                    fmt_values = self._format_col(i)
                     cheader = str_columns[i]
                     max_len = max(max(len(x) for x in fmt_values),
                                   max(len(x) for x in cheader))
@@ -208,9 +209,9 @@ class DataFrameFormatter(object):
                     stringified.append(_make_fixed_width(fmt_values,
                                                          self.justify))
                 else:
-                    stringified = [_make_fixed_width(self._format_col(c),
+                    stringified = [_make_fixed_width(self._format_col(i),
                                                      self.justify)
-                                   for c in self.columns]
+                                   for i, c in enumerate(self.columns)]
 
             if self.index:
                 to_write.append(adjoin(1, str_index, *stringified))
@@ -232,9 +233,10 @@ class DataFrameFormatter(object):
 
         self.buf.writelines(to_write)
 
-    def _format_col(self, col):
+    def _format_col(self, i):
+        col = self.columns[i]
         formatter = self.formatters.get(col)
-        return format_array(self.frame[col].values, formatter,
+        return format_array(self.frame.icol(i).values, formatter,
                             float_format=self.float_format,
                             na_rep=self.na_rep,
                             space=self.col_space)
@@ -329,8 +331,8 @@ class DataFrameFormatter(object):
                     return x
 
             fmt_values = {}
-            for col in self.columns:
-                fmt_values[col] = self._format_col(col)
+            for i in range(len(self.columns)):
+                fmt_values[i] = self._format_col(i)
 
             # write values
             for i in range(len(frame)):
@@ -339,8 +341,8 @@ class DataFrameFormatter(object):
                     row.extend(_maybe_bold_row(frame.index[i]))
                 else:
                     row.append(_maybe_bold_row(frame.index[i]))
-                for col in self.columns:
-                    row.append(fmt_values[col][i])
+                for j in range(len(self.columns)):
+                    row.append(fmt_values[j][i])
                 write_tr(row, indent, indent_delta)
             indent -= indent_delta
             write('</tbody>', indent)

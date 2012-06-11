@@ -19,6 +19,27 @@ Computational tools
 Statistical functions
 ---------------------
 
+.. _computation.pct_change:
+
+Percent Change
+~~~~~~~~~~~~~~
+
+Both ``Series`` and ``DataFrame`` has a method ``pct_change`` to compute the
+percent change over a given number of periods (using ``fill_method`` to fill
+NA/null values).
+
+.. ipython:: python
+
+   ser = Series(randn(8))
+
+   ser.pct_change()
+
+.. ipython:: python
+
+   df = DataFrame(randn(10, 4))
+
+   df.pct_change(periods=3)
+
 .. _computation.covariance:
 
 Covariance

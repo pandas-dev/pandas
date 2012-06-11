@@ -57,6 +57,22 @@ def _has_infs(result):
     else:
         return np.isinf(result) or np.isneginf(result)
 
+def nanany(values, axis=None, skipna=True):
+    mask = isnull(values)
+
+    if skipna:
+        values = values.copy()
+        np.putmask(values, mask, False)
+    return values.any(axis)
+
+def nanall(values, axis=None, skipna=True):
+    mask = isnull(values)
+
+    if skipna:
+        values = values.copy()
+        np.putmask(values, mask, True)
+    return values.all(axis)
+
 def _nansum(values, axis=None, skipna=True):
     mask = isnull(values)
 
@@ -404,15 +420,12 @@ def unique1d(values):
                            dtype=np.float64)
     elif np.issubdtype(values.dtype, np.datetime64):
         table = lib.Int64HashTable(len(values))
-        uniques = np.array(table.unique(com._ensure_int64(values)),
-                           dtype=np.int64)
+        uniques = table.unique(com._ensure_int64(values))
         uniques = uniques.view('M8[ns]')
     elif np.issubdtype(values.dtype, np.integer):
         table = lib.Int64HashTable(len(values))
-        uniques = np.array(table.unique(com._ensure_int64(values)),
-                           dtype=np.int64)
+        uniques = table.unique(com._ensure_int64(values))
     else:
         table = lib.PyObjectHashTable(len(values))
         uniques = table.unique(com._ensure_object(values))
-        uniques = lib.list_to_object_array(uniques)
     return uniques

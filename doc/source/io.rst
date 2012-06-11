@@ -5,16 +5,20 @@
 .. ipython:: python
    :suppress:
 
-   import numpy as np
    import os
-   np.random.seed(123456)
-   from pandas import *
+   import csv
    from StringIO import StringIO
-   import pandas.util.testing as tm
+
+   import numpy as np
+   np.random.seed(123456)
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
+
    import matplotlib.pyplot as plt
    plt.close('all')
+
+   from pandas import *
+   import pandas.util.testing as tm
    clipdf = DataFrame({'A':[1,2,3],'B':[4,5,6],'C':['p','q','r']},
                       index=['x','y','z'])
 
@@ -66,6 +70,8 @@ data into a DataFrame object. They can take a number of arguments:
     cases by "sniffing." The separator may be specified as a regular
     expression; for instance you may use '\s*' to indicate arbitrary
     whitespace.
+  - ``dialect``: string or csv.Dialect instance to expose more ways to specify
+    the file format
   - ``header``: row number to use as the column names, and the start of the data.
     Defaults to 0 (first row); specify None if there is no header row.
   - ``skiprows``: A collection of numbers for rows in the file to skip. Can
@@ -151,6 +157,37 @@ You can also use a list of columns to create a hierarchical index:
 .. ipython:: python
 
    read_csv('foo.csv', index_col=[0, 'A'])
+
+.. _io.dialect:
+
+The ``dialect`` keyword gives greater flexibility in specifying the file format.
+By default it uses the Excel dialect but you can specify either the dialect name
+or a `csv.Dialect <docs.python.org/library/csv.html#csv.Dialect>`_ instance.
+
+.. ipython:: python
+   :suppress:
+
+   data = ('label1,label2,label3\n'
+           'index1,"a,c,e\n'
+           'index2,b,d,f')
+
+Suppose you had data with unenclosed quotes:
+
+.. ipython:: python
+
+   print data
+
+By default, ``read_csv`` uses the Excel dialect and treats the double quote as
+the quote character, which causes it to fail when it finds a newline before it
+finds the closing double quote.
+
+We can get around this using ``dialect``
+
+.. ipython:: python
+
+   dia = csv.excel()
+   dia.quoting = csv.QUOTE_NONE
+   read_csv(StringIO(data), dialect=dia)
 
 The parsers make every attempt to "do the right thing" and not be very
 fragile. Type inference is a pretty big deal. So if a column can be coerced to
@@ -259,7 +296,29 @@ a single date rather than the entire array.
 
    os.remove('tmp.csv')
 
-.. _io.convenience:
+.. _io.dayfirst:
+
+International Date Formats
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+While US date formats tend to be MM/DD/YYYY, many international formats use
+DD/MM/YYYY instead. For convenience, a ``dayfirst`` keyword is provided:
+
+.. ipython:: python
+   :suppress:
+
+   data = "date,value,cat\n1/6/2000,5,a\n2/6/2000,10,b\n3/6/2000,15,c"
+   with open('tmp.csv', 'w') as fh:
+        fh.write(data)
+
+.. ipython:: python
+
+   print open('tmp.csv').read()
+
+   read_csv('tmp.csv', parse_dates=[0])
+
+   read_csv('tmp.csv', dayfirst=True, parse_dates=[0])
+
+.. _io.thousands:
 
 Thousand Separators
 ~~~~~~~~~~~~~~~~~~~
@@ -302,6 +361,8 @@ The ``thousands`` keyword allows integers to be parsed correctly
    :suppress:
 
    os.remove('tmp.csv')
+
+.. _io.comments:
 
 Comments
 ~~~~~~~~
@@ -431,7 +492,7 @@ so it's ok to have extra separation between the columns in the file.
 .. ipython:: python
    :suppress:
 
-   # os.remove('bar.csv')
+   os.remove('bar.csv')
 
 Files with an "implicit" index column
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

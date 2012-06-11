@@ -336,7 +336,7 @@ to sparse
         if self._null_fill_value:
             return valid_spvals
         else:
-            return valid_spvals + (len(self) - len(sp_values))
+            return valid_spvals + self.sp_index.ngaps
 
     @property
     def _null_fill_value(self):
@@ -361,7 +361,7 @@ to sparse
         if self._null_fill_value:
             return sp_sum
         else:
-            nsparse = self.sp_index.npoints
+            nsparse = self.sp_index.ngaps
             return sp_sum + self.fill_value * nsparse
 
     def cumsum(self, axis=0, dtype=None, out=None):
@@ -396,10 +396,8 @@ to sparse
         if self._null_fill_value:
             return sp_sum / ct
         else:
-            nsparse = self.sp_index.npoints
+            nsparse = self.sp_index.ngaps
             return (sp_sum + self.fill_value * nsparse) / (ct + nsparse)
-
-
 
 def make_sparse(arr, kind='block', fill_value=nan):
     """

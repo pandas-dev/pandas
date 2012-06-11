@@ -253,6 +253,16 @@ class Block(object):
         else:
             return make_block(new_values, self.items, self.ref_items)
 
+    def putmask(self, mask, new, inplace=False):
+        new_values = self.values if inplace else self.values.copy()
+        if self._can_hold_element(new):
+            new = self._try_cast(new)
+            np.putmask(new_values, mask, new)
+        if inplace:
+            return self
+        else:
+            return make_block(new_values, self.items, self.ref_items)
+
     def interpolate(self, method='pad', axis=0, inplace=False,
                     limit=None, missing=None):
         values = self.values if inplace else self.values.copy()
@@ -380,8 +390,18 @@ class ObjectBlock(Block):
                               (np.integer, np.floating, np.complexfloating,
                                np.bool_))
 
+_NS_DTYPE = np.dtype('M8[ns]')
+
 class DatetimeBlock(Block):
     _can_hold_na = True
+
+    def __init__(self, values, items, ref_items, ndim=2,
+                 do_integrity_check=False):
+        if values.dtype != _NS_DTYPE:
+            values = lib.cast_to_nanoseconds(values)
+
+        Block.__init__(self, values, items, ref_items, ndim=ndim,
+                       do_integrity_check=do_integrity_check)
 
     def _can_hold_element(self, element):
         return com.is_integer(element) or isinstance(element, datetime)
@@ -394,6 +414,21 @@ class DatetimeBlock(Block):
 
     def should_store(self, value):
         return issubclass(value.dtype.type, np.datetime64)
+
+    def set(self, item, value):
+        """
+        Modify Block in-place with new item value
+
+        Returns
+        -------
+        None
+        """
+        loc = self.items.get_loc(item)
+
+        if value.dtype != _NS_DTYPE:
+            value = lib.cast_to_nanoseconds(value)
+
+        self.values[loc] = value
 
     def get_values(self, dtype):
         if dtype == object:
@@ -456,6 +491,10 @@ class BlockManager(object):
 
         if do_integrity_check:
             self._verify_integrity()
+
+    @classmethod
+    def make_empty(self):
+        return BlockManager([], [[], []])
 
     def __nonzero__(self):
         return True
@@ -529,7 +568,7 @@ class BlockManager(object):
         return tuple(len(ax) for ax in self.axes)
 
     def _verify_integrity(self):
-        _union_block_items(self.blocks)
+        # _union_block_items(self.blocks)
         mgr_shape = self.shape
         for block in self.blocks:
             assert(block.ref_items is self.items)
@@ -554,10 +593,28 @@ class BlockManager(object):
         dtypes = [blk.dtype.type for blk in self.blocks]
         return len(dtypes) == len(set(dtypes))
 
-    def get_numeric_data(self, copy=False):
-        num_blocks = [b for b in self.blocks
-                      if (isinstance(b, (IntBlock, FloatBlock, ComplexBlock))
-                          and not isinstance(b, DatetimeBlock))]
+    def get_numeric_data(self, copy=False, type_list=None):
+        """
+        Parameters
+        ----------
+        copy : boolean, default False
+            Whether to copy the blocks
+        type_list : tuple of type, default None
+            Numeric types by default (Float/Complex/Int but not Datetime)
+        """
+        if type_list is None:
+            def filter_blocks(block):
+                return (isinstance(block, (IntBlock, FloatBlock, ComplexBlock))
+                        and not isinstance(block, DatetimeBlock))
+        else:
+            type_list = self._get_clean_block_types(type_list)
+            filter_blocks = lambda block: isinstance(block, type_list)
+
+        maybe_copy = lambda b: b.copy() if copy else b
+        num_blocks = [maybe_copy(b) for b in self.blocks if filter_blocks(b)]
+
+        if len(num_blocks) == 0:
+            return BlockManager.make_empty()
 
         indexer = np.sort(np.concatenate([b.ref_locs for b in num_blocks]))
         new_items = self.items.take(indexer)
@@ -570,6 +627,26 @@ class BlockManager(object):
         new_axes = list(self.axes)
         new_axes[0] = new_items
         return BlockManager(new_blocks, new_axes, do_integrity_check=False)
+
+    def _get_clean_block_types(self, type_list):
+        if not isinstance(type_list, tuple):
+            try:
+                type_list = tuple(type_list)
+            except TypeError:
+                type_list = (type_list,)
+
+        type_map = {int : IntBlock, float : FloatBlock,
+                    complex : ComplexBlock,
+                    np.datetime64 : DatetimeBlock,
+                    datetime : DatetimeBlock,
+                    bool : BoolBlock,
+                    object : ObjectBlock}
+
+        type_list = tuple([type_map.get(t, t) for t in type_list])
+        return type_list
+
+    def get_bool_data(self, copy=False):
+        return self.get_numeric_data(copy=copy, type_list=(BoolBlock,))
 
     def get_slice(self, slobj, axis=0):
         new_axes = list(self.axes)
@@ -605,14 +682,6 @@ class BlockManager(object):
     def get_series_dict(self):
         # For DataFrame
         return _blocks_to_series_dict(self.blocks, self.axes[1])
-
-    @classmethod
-    def from_blocks(cls, blocks, index):
-        # also checks for overlap
-        items = _union_block_items(blocks)
-        for blk in blocks:
-            blk.ref_items = items
-        return BlockManager(blocks, [items, index])
 
     def __contains__(self, item):
         return item in self.items
@@ -757,6 +826,25 @@ class BlockManager(object):
     def get(self, item):
         _, block = self._find_block(item)
         return block.get(item)
+
+    def iget(self, i):
+        item = self.items[i]
+        if self.items.is_unique:
+            return self.get(item)
+        else:
+            # ugh
+            inds, = (self.items == item).nonzero()
+
+            _, block = self._find_block(item)
+
+            binds, = (block.items == item).nonzero()
+
+            for j, (k, b) in enumerate(zip(inds, binds)):
+                if i == k:
+                    return block.values[b]
+
+            raise Exception('Cannot have duplicate column names '
+                            'split across dtypes')
 
     def get_scalar(self, tup):
         """
@@ -1090,6 +1178,22 @@ class BlockManager(object):
         if inplace:
             return self
         return BlockManager(new_blocks, self.axes)
+
+    def _replace_list(self, src_lst, dest_lst):
+        sset = set(src_lst)
+        if any([k in sset for k in dest_lst]):
+            masks = {}
+            for s in src_lst:
+                masks[s] = [b.values == s for b in self.blocks]
+
+            for s, d in zip(src_lst, dest_lst):
+                [b.putmask(masks[s][i], d, inplace=True) for i, b in
+                 enumerate(self.blocks)]
+        else:
+            for s, d in zip(src_lst, dest_lst):
+                self.replace(s, d, inplace=True)
+
+        return self
 
     @property
     def block_id_vector(self):

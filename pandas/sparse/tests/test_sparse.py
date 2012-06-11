@@ -550,6 +550,7 @@ class TestSparseSeries(TestCase,
                 _compare_with_dense(obj, op)
 
         _compare_all(self.bseries)
+
         self.bseries.sp_values[5:10] = np.NaN
         _compare_all(self.bseries)
 
@@ -560,6 +561,12 @@ class TestSparseSeries(TestCase,
         series = self.zbseries.copy()
         series.fill_value = 2
         _compare_all(series)
+
+        nonna = Series(np.random.randn(20)).to_sparse()
+        _compare_all(nonna)
+
+        nonna2 = Series(np.random.randn(20)).to_sparse(fill_value=0)
+        _compare_all(nonna2)
 
     def test_dropna(self):
         sp = SparseSeries([0, 0, 0, nan, nan, 5, 6],
@@ -744,6 +751,8 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
 
         # assert level parameter breaks reindex
         self.assertRaises(Exception, self.frame.reindex, idx, level=0)
+
+        repr(self.frame)
 
     def test_constructor_ndarray(self):
         # no index or columns
@@ -1262,6 +1271,11 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         expected = df.add(df2, fill_value=0).to_sparse()
         assert_sp_frame_equal(result, expected)
 
+    def test_isin(self):
+        sparse_df = DataFrame({'flag': [1., 0., 1.]}).to_sparse(fill_value=0.)
+        xp = sparse_df[sparse_df.flag == 1.]
+        rs = sparse_df[sparse_df.flag.isin([1.])]
+        assert_frame_equal(xp, rs)
 
 def _dense_series_compare(s, f):
     result = f(s)

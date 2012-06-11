@@ -843,8 +843,8 @@ class HDFStore(object):
         index = _maybe_convert(sel.values['index'], table._v_attrs.index_kind)
         values = sel.values['values']
 
-        major = Factor(index)
-        minor = Factor(columns)
+        major = Factor.from_array(index)
+        minor = Factor.from_array(columns)
 
         J, K = len(major.levels), len(minor.levels)
         key = major.labels * K + minor.labels
@@ -933,13 +933,12 @@ def _convert_index(index):
                             dtype=np.int32)
         return converted, 'date', _tables().Time32Col()
     elif inferred_type =='string':
-        try:
-            converted = np.array(list(values), dtype=np.str_)
-            itemsize = converted.dtype.itemsize
-            return converted, 'string', _tables().StringCol(itemsize)
-        except UnicodeError: # Write an all unicode index as object array
-            atom = _tables().ObjectAtom()
-            return np.asarray(values, dtype='O'), 'object', atom
+        converted = np.array(list(values), dtype=np.str_)
+        itemsize = converted.dtype.itemsize
+        return converted, 'string', _tables().StringCol(itemsize)
+    elif inferred_type == 'unicode':
+        atom = _tables().ObjectAtom()
+        return np.asarray(values, dtype='O'), 'object', atom
     elif inferred_type == 'integer':
         # take a guess for now, hope the values fit
         atom = _tables().Int64Col()

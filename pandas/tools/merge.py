@@ -10,7 +10,8 @@ from pandas.core.generic import NDFrame
 from pandas.core.groupby import get_group_index
 from pandas.core.series import Series
 from pandas.core.index import (Index, MultiIndex, _get_combined_index,
-                               _ensure_index, _get_consensus_names)
+                               _ensure_index, _get_consensus_names,
+                               _all_indexes_same)
 from pandas.core.internals import (IntBlock, BoolBlock, BlockManager,
                                    make_block, _consolidate)
 from pandas.util.decorators import cache_readonly, Appender, Substitution
@@ -1117,7 +1118,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             names = [None] * len(zipped)
 
         if levels is None:
-            levels = [Factor(zp).levels for zp in zipped]
+            levels = [Factor.from_array(zp).levels for zp in zipped]
         else:
             levels = [_ensure_index(x) for x in levels]
     else:
@@ -1150,7 +1151,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             levels.extend(concat_index.levels)
             label_list.extend(concat_index.labels)
         else:
-            factor = Factor(concat_index)
+            factor = Factor.from_array(concat_index)
             levels.append(factor.levels)
             label_list.append(factor.labels)
 
@@ -1193,13 +1194,6 @@ def _should_fill(lname, rname):
         return True
     return lname == rname
 
-
-def _all_indexes_same(indexes):
-    first = indexes[0]
-    for index in indexes[1:]:
-        if not first.equals(index):
-            return False
-    return True
 
 
 def _any(x):

@@ -1,4 +1,3 @@
-
 # pylint: disable-msg=W0612,E1101
 from copy import deepcopy
 from datetime import datetime, timedelta
@@ -31,6 +30,12 @@ from pandas.util.testing import (assert_almost_equal,
 
 import pandas.util.testing as tm
 import pandas.lib as lib
+
+def _skip_if_no_scipy():
+    try:
+        import scipy.stats
+    except ImportError:
+        raise nose.SkipTest
 
 #-------------------------------------------------------------------------------
 # DataFrame test cases
@@ -144,6 +149,16 @@ class CheckIndexing(object):
         _checkit([True, False, True])
         _checkit([True, True, True])
         _checkit([False, False, False])
+
+    def test_getitem_boolean_iadd(self):
+        arr = randn(5, 5)
+
+        df = DataFrame(arr.copy())
+        df[df < 0] += 1
+
+        arr[arr < 0] += 1
+
+        assert_almost_equal(df.values, arr)
 
     def test_getattr(self):
         tm.assert_series_equal(self.frame.A, self.frame['A'])
@@ -1078,6 +1093,22 @@ class CheckIndexing(object):
         result = df.icol([1, 2, 4, 6])
         expected = df.reindex(columns=df.columns[[1, 2, 4, 6]])
         assert_frame_equal(result, expected)
+
+    def test_irow_icol_duplicates(self):
+        df = DataFrame(np.random.rand(3,3), columns=list('ABC'),
+                       index=list('aab'))
+
+        result = df.irow(0)
+        result2 = df.ix[0]
+        self.assert_(isinstance(result, Series))
+        assert_almost_equal(result.values, df.values[0])
+        assert_series_equal(result, result2)
+
+        result = df.T.icol(0)
+        result2 = df.T.ix[:, 0]
+        self.assert_(isinstance(result, Series))
+        assert_almost_equal(result.values, df.values[0])
+        assert_series_equal(result, result2)
 
     def test_iget_value(self):
         for i, row in enumerate(self.frame.index):
@@ -2737,7 +2768,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         rs = df.le(df)
         self.assert_(not rs.ix[0, 0])
 
-
         # scalar
         assert_frame_equal(df.eq(0), df == 0)
         assert_frame_equal(df.ne(0), df != 0)
@@ -2983,6 +3013,22 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         recons = DataFrame.from_csv(path)
         assert_frame_equal(dm, recons)
 
+
+
+        #duplicate index
+        df = DataFrame(np.random.randn(3, 3), index=['a', 'a', 'b'],
+                       columns=['x', 'y', 'z'])
+        df.to_csv(path)
+        result = DataFrame.from_csv(path)
+        assert_frame_equal(result, df)
+
+        midx = MultiIndex.from_tuples([('A', 1, 2), ('A', 1, 2), ('B', 1, 2)])
+        df = DataFrame(np.random.randn(3, 3), index=midx,
+                       columns=['x', 'y', 'z'])
+        df.to_csv(path)
+        result = DataFrame.from_csv(path, index_col=[0, 1, 2],
+                                    parse_dates=False)
+        assert_frame_equal(result, df)
         os.remove(path)
 
     def test_to_csv_multiindex(self):
@@ -3296,12 +3342,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                        columns=['foo', 'bar', 'baz', 'qux'])
 
         series = df.ix[4]
-        self.assertRaises(Exception, df.append, series)
+        self.assertRaises(Exception, df.append, series, verify_integrity=True)
         series.name = None
-        self.assertRaises(Exception, df.append, series)
+        self.assertRaises(Exception, df.append, series, verify_integrity=True)
 
         result = df.append(series[::-1], ignore_index=True)
-        expected = df.append(DataFrame({0 : series[::-1]}, index=df.columns).T, ignore_index=True)
+        expected = df.append(DataFrame({0 : series[::-1]}, index=df.columns).T,
+                             ignore_index=True)
         assert_frame_equal(result, expected)
 
         # dict
@@ -3422,6 +3469,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     #     self.assert_(self.frame.columns.name is None)
 
     def test_corr(self):
+        _skip_if_no_scipy()
         self.frame['A'][:5] = nan
         self.frame['B'][:10] = nan
 
@@ -3498,6 +3546,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         result = df1.corrwith(df2, axis=1)
         expected = df1.ix[:, cols].corrwith(df2.ix[:, cols], axis=1)
+        assert_series_equal(result, expected)
+
+    def test_corrwith_series(self):
+        result = self.tsframe.corrwith(self.tsframe['A'])
+        expected = self.tsframe.apply(self.tsframe['A'].corr)
+
         assert_series_equal(result, expected)
 
     def test_dropEmptyRows(self):
@@ -3934,6 +3988,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         for k, v in df.iteritems():
             expected[k] = v.replace(to_rep[k], values[k])
         assert_frame_equal(filled, DataFrame(expected))
+
+        result = df.replace([0, 2, 5], [5, 2, 0])
+        expected = DataFrame({'A' : [np.nan, 5, np.inf], 'B' : [5, 2, 0],
+                              'C' : ['', 'asdf', 'fd']})
+        assert_frame_equal(result, expected)
 
         # dict to scalar
         filled = df.replace(to_rep, 0)
@@ -4467,12 +4526,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             'C' : 'c',
             'D' : 'd'
         }
-        bad_mapping = {
-            'A' : 'a',
-            'B' : 'b',
-            'C' : 'b',
-            'D' : 'd'
-        }
 
         renamed = self.frame.rename(columns=mapping)
         renamed2 = self.frame.rename(columns=str.lower)
@@ -4480,9 +4533,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(renamed, renamed2)
         assert_frame_equal(renamed2.rename(columns=str.upper),
                            self.frame)
-
-        self.assertRaises(Exception, self.frame.rename,
-                          columns=bad_mapping)
 
         # index
 
@@ -5421,6 +5471,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             nanops._USE_BOTTLENECK = True
 
     def test_skew(self):
+        _skip_if_no_scipy()
         from scipy.stats import skew
 
         def alt(x):
@@ -5431,6 +5482,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self._check_stat_op('skew', alt)
 
     def test_kurt(self):
+        _skip_if_no_scipy()
+
         from scipy.stats import kurtosis
 
         def alt(x):
@@ -6189,6 +6242,75 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_bool_raises_value_error_1069(self):
         df = DataFrame([1, 2, 3])
         self.failUnlessRaises(ValueError, lambda: bool(df))
+
+    def test_any_all(self):
+        self._check_bool_op('any', np.any, has_skipna=True, has_bool_only=True)
+        self._check_bool_op('all', np.all, has_skipna=True, has_bool_only=True)
+
+    def _check_bool_op(self, name, alternative, frame=None, has_skipna=True,
+                       has_bool_only=False):
+        if frame is None:
+            frame = self.frame > 0
+            # set some NAs
+            frame = DataFrame(frame.values.astype(object), frame.index,
+                              frame.columns)
+            frame.ix[5:10] = np.nan
+            frame.ix[15:20, -2:] = np.nan
+
+        f = getattr(frame, name)
+
+        if has_skipna:
+            def skipna_wrapper(x):
+                nona = x.dropna().values
+                return alternative(nona)
+
+            def wrapper(x):
+                return alternative(x.values)
+
+            result0 = f(axis=0, skipna=False)
+            result1 = f(axis=1, skipna=False)
+            assert_series_equal(result0, frame.apply(wrapper))
+            assert_series_equal(result1, frame.apply(wrapper, axis=1),
+                                check_dtype=False) # HACK: win32
+        else:
+            skipna_wrapper = alternative
+            wrapper = alternative
+
+        result0 = f(axis=0)
+        result1 = f(axis=1)
+        assert_series_equal(result0, frame.apply(skipna_wrapper))
+        assert_series_equal(result1, frame.apply(skipna_wrapper, axis=1),
+                            check_dtype=False)
+
+        # result = f(axis=1)
+        # comp = frame.apply(alternative, axis=1).reindex(result.index)
+        # assert_series_equal(result, comp)
+
+        self.assertRaises(Exception, f, axis=2)
+
+        # make sure works on mixed-type frame
+        mixed = self.mixed_frame
+        mixed['_bool_'] = np.random.randn(len(mixed)) > 0
+        getattr(mixed, name)(axis=0)
+        getattr(mixed, name)(axis=1)
+
+        if has_bool_only:
+            getattr(mixed, name)(axis=0, bool_only=True)
+            getattr(mixed, name)(axis=1, bool_only=True)
+            getattr(frame, name)(axis=0, bool_only=False)
+            getattr(frame, name)(axis=1, bool_only=False)
+
+        # all NA case
+        if has_skipna:
+            all_na = frame * np.NaN
+            r0 = getattr(all_na, name)(axis=0)
+            r1 = getattr(all_na, name)(axis=1)
+            if name == 'any':
+                self.assert_(not r0.any())
+                self.assert_(not r1.any())
+            else:
+                self.assert_(r0.all())
+                self.assert_(r1.all())
 
 if __name__ == '__main__':
     # unittest.main()
