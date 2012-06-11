@@ -1,4 +1,4 @@
-pandas (0.8.0~rc1+git18-g8948f49-1) unstable; urgency=low
+pandas (0.8.0~rc1+git137-gf733f10-1) unstable; urgency=low
 
   * Fresh upstream release candidate
     - all patches dropped (upstreamed)
