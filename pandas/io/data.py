@@ -8,13 +8,15 @@ import numpy as np
 import datetime as dt
 import urllib
 import urllib2
+import time
 
 from zipfile import ZipFile
 from StringIO import StringIO
 
 from pandas import DataFrame, read_csv
 
-def DataReader(name, data_source=None, start=None, end=None):
+def DataReader(name, data_source=None, start=None, end=None,
+        retry_count=3, pause=0):
     """
     Imports data from a number of online sources.
 
@@ -50,7 +52,8 @@ def DataReader(name, data_source=None, start=None, end=None):
     start, end = _sanitize_dates(start, end)
 
     if(data_source == "yahoo"):
-        return get_data_yahoo(name=name, start=start, end=end)
+        return get_data_yahoo(name=name, start=start, end=end,
+                   retry_count=retry_count, pause=pause)
     elif(data_source == "fred"):
         return get_data_fred(name=name, start=start, end=end)
     elif(data_source == "famafrench"):
@@ -106,7 +109,7 @@ def get_quote_yahoo(symbols):
 
     return DataFrame(data,index=idx)
 
-def get_data_yahoo(name=None, start=None, end=None):
+def get_data_yahoo(name=None, start=None, end=None, retry_count=3, pause=0):
     """
     Get historical data for the given name from yahoo.
     Date format is datetime
@@ -130,13 +133,15 @@ def get_data_yahoo(name=None, start=None, end=None):
       '&f=%s' % end.year + \
       '&g=d' + \
       '&ignore=.csv'
-    for i in range(0,3):
+    for i in range(0, retry_count):
         resp =  urllib.urlopen(url)
         if resp.code == 200:
             lines = resp.read()
             return read_csv(
                 StringIO(lines), index_col=0, parse_dates=True)[::-1]
-    raise Exception("after 3 tries, Yahoo did not return a 200 for url %s" %url)
+        time.sleep(pause)
+    raise Exception(
+              "after %d tries, Yahoo did not return a 200 for url %s" % (pause, url))
 
 
 
