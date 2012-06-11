@@ -121,6 +121,34 @@ JSOBJ Object_npyNewArray(void* _decoder)
     return npyarr;
 }
 
+PyObject* Npy_returnLabelled(NpyArrContext* npyarr)
+{
+    PyObject* ret = npyarr->ret;
+    npy_intp i;
+
+    if (npyarr->labels[0] || npyarr->labels[1])
+    {
+        // finished decoding, build tuple with values and labels
+        ret = PyTuple_New(npyarr->shape.len+1);
+        for (i = 0; i < npyarr->shape.len; i++)
+        {
+            if (npyarr->labels[i])
+            {
+                PyTuple_SET_ITEM(ret, i+1, npyarr->labels[i]);
+                npyarr->labels[i] = NULL;
+            }
+            else
+            {
+                Py_INCREF(Py_None);
+                PyTuple_SET_ITEM(ret, i+1, Py_None);
+            }
+        }
+        PyTuple_SET_ITEM(ret, 0, npyarr->ret);
+    }
+
+    return ret;
+}
+
 JSOBJ Object_npyEndArray(JSOBJ obj)
 {
     PyObject *ret;
@@ -167,28 +195,10 @@ JSOBJ Object_npyEndArray(JSOBJ obj)
         {
             npyarr->ret = PyArray_Newshape((PyArrayObject*) ret, &npyarr->shape, NPY_ANYORDER);
             Py_DECREF(ret);
-            ret = npyarr->ret;
         }
 
-        if (npyarr->labels[0] || npyarr->labels[1])
-        {
-            // finished decoding, build tuple with values and labels
-            ret = PyTuple_New(npyarr->shape.len+1);
-            for (i = 0; i < npyarr->shape.len; i++)
-            {
-                if (npyarr->labels[i])
-                {
-                    PyTuple_SET_ITEM(ret, i+1, npyarr->labels[i]);
-                    npyarr->labels[i] = NULL;
-                }
-                else
-                {
-                    Py_INCREF(Py_None);
-                    PyTuple_SET_ITEM(ret, i+1, Py_None);
-                }
-            }
-            PyTuple_SET_ITEM(ret, 0, npyarr->ret);
-        }
+        ret = Npy_returnLabelled(npyarr);
+
         npyarr->ret = NULL;
         Npy_releaseContext(npyarr);
     }
@@ -252,6 +262,7 @@ int Object_npyArrayAddItem(JSOBJ obj, JSOBJ value)
                 PyErr_SetString(PyExc_ValueError, "Cannot decode multidimensional arrays with variable length elements to numpy");
                 goto fail;
             }
+            npyarr->elcount = 0;
             npyarr->ret = PyList_New(0);
             if (!npyarr->ret)
             {
@@ -333,7 +344,10 @@ JSOBJ Object_npyEndArrayList(JSOBJ obj)
 
     // convert decoded list to numpy array
     list = (PyObject *) npyarr->ret;
-    ret = PyArray_FROM_O(list);
+    npyarr->ret = PyArray_FROM_O(list);
+
+    ret = Npy_returnLabelled(npyarr);
+    npyarr->ret = list;
 
     ((JSONObjectDecoder*)npyarr->dec)->newArray = Object_npyNewArray;
     ((JSONObjectDecoder*)npyarr->dec)->arrayAddItem = Object_npyArrayAddItem;
@@ -352,6 +366,7 @@ int Object_npyArrayListAddItem(JSOBJ obj, JSOBJ value)
     }
     PyList_Append((PyObject*) npyarr->ret, value);
     Py_DECREF( (PyObject *) value);
+    npyarr->elcount++;
     return 1;
 }
 
@@ -543,7 +558,7 @@ PyObject* JSONToObj(PyObject* self, PyObject *args, PyObject *kwargs)
 
     decoder = (JSONObjectDecoder*) &pyDecoder;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|iiO&", kwlist, &sarg, &numpy, &labelled, PyArray_DescrConverter, &dtype))
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|iiO&", kwlist, &sarg, &numpy, &labelled, PyArray_DescrConverter2, &dtype))
     {
         return NULL;
     }
