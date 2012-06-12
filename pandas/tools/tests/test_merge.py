@@ -1155,8 +1155,6 @@ class TestConcatenate(unittest.TestCase):
         self.assertRaises(ValueError, concat, [df, df2],
                           keys=['one', 'two'], levels=[['foo', 'bar', 'baz']])
 
-        concat([df, df], keys=['one', 'two'], levels=[['foo', 'bar', 'baz']])
-
     def test_concat_rename_index(self):
         a = DataFrame(np.random.rand(3,3),
                       columns=list('ABC'),
