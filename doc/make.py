@@ -79,7 +79,7 @@ def latex():
 
         os.chdir('../..')
     else:
-        print 'latex build has not been tested on windows'
+        print('latex build has not been tested on windows')
 
 def check_build():
     build_dirs = [
