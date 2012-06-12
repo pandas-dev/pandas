@@ -11,7 +11,7 @@ import urllib2
 import time
 
 from zipfile import ZipFile
-from pandas.util.py3compat import StringIO, BytesIO
+from pandas.util.py3compat import StringIO, BytesIO, bytes_to_str
 
 from pandas import DataFrame, read_csv
 
@@ -137,7 +137,8 @@ def get_data_yahoo(name=None, start=None, end=None, retry_count=3, pause=0):
         resp =  urllib2.urlopen(url)
         if resp.code == 200:
             lines = resp.read()
-            rs = read_csv(BytesIO(lines), index_col=0, parse_dates=True)
+            rs = read_csv(StringIO(bytes_to_str(lines)), index_col=0,
+                          parse_dates=True)
             return rs[::-1]
         time.sleep(pause)
     raise Exception(
