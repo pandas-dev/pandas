@@ -2081,6 +2081,18 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             for k2, v2 in v.iteritems():
                 self.assertEqual(v2, recons_data[k][k2])
 
+        recons_data = DataFrame(test_data).to_dict("l")
+
+        for k,v in test_data.iteritems():
+            for k2, v2 in v.iteritems():
+                self.assertEqual(v2, recons_data[k][int(k2) - 1])
+
+        recons_data = DataFrame(test_data).to_dict("s")
+
+        for k,v in test_data.iteritems():
+            for k2, v2 in v.iteritems():
+                self.assertEqual(v2, recons_data[k][k2])
+
     def test_from_json_to_json(self):
         raise nose.SkipTest
 
