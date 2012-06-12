@@ -852,8 +852,9 @@ other functions:
    rng_utc = date_range('3/6/2012 00:00', periods=10, freq='D', tz='UTC')
    print(rng_utc.tz)
 
-You can use the ``tz_convert`` method to convert pandas objects to a particular
-time zone:
+Timestamps, like Python's ``datetime.datetime`` object can be either time zone
+naive or time zone aware. Naive time series and DatetimeIndex objects can be
+*localized* using ``tz_localize``:
 
 .. ipython:: python
 
@@ -861,6 +862,11 @@ time zone:
 
    ts_utc = ts.tz_localize('UTC')
    ts_utc
+
+You can use the ``tz_convert`` method to convert pandas objects to convert
+tz-aware data to another time zone:
+
+.. ipython:: python
 
    ts_utc.tz_convert('US/Eastern')
 
@@ -886,3 +892,22 @@ time zones using ``tz_convert``:
    rng_eastern[5]
    rng_berlin[5]
    rng_eastern[5].tz_convert('Europe/Berlin')
+
+Localization of Timestamps functions just like DatetimeIndex and TimeSeries:
+
+.. ipython:: python
+
+   rng[5]
+   rng[5].tz_localize('Asia/Shanghai')
+
+
+Operations between TimeSeries in difficult time zones will yield UTC
+TimeSeries, aligning the data on the UTC timestamps:
+
+.. ipython:: python
+
+   eastern = ts_utc.tz_convert('US/Eastern')
+   berlin = ts_utc.tz_convert('Europe/Berlin')
+   result = eastern + berlin
+   result
+   result.index
