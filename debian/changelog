@@ -1,10 +1,10 @@
-pandas (0.8.0~rc1+git137-gf733f10-1) unstable; urgency=low
+pandas (0.8.0~b2-1) experimental; urgency=low
 
   * Fresh upstream release candidate
     - all patches dropped (upstreamed)
     - requires numpy >= 1.6
 
- -- Yaroslav Halchenko <debian@onerussian.com>  Mon, 28 May 2012 22:15:49 -0400
+ -- Yaroslav Halchenko <debian@onerussian.com>  Tue, 12 Jun 2012 13:23:27 -0400
 
 pandas (0.7.3-1) unstable; urgency=low
 
