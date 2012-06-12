@@ -172,10 +172,6 @@ class GroupBy(object):
             return [self._selection]
         return self._selection
 
-    @property
-    def _obj_with_exclusions(self):
-        return self.obj
-
     def __getattr__(self, attr):
         if attr in self.obj:
             return self[attr]

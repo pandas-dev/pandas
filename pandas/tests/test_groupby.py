@@ -139,6 +139,11 @@ class TestGroupBy(unittest.TestCase):
         expected.index = ['bar', 'foo']
         assert_frame_equal(nth, expected)
 
+        # it works!
+        grouped['B'].first()
+        grouped['B'].last()
+        grouped['B'].nth(0)
+
     def test_empty_groups(self):
         # GH # 1048
         self.assertRaises(ValueError, self.df.groupby, [])
