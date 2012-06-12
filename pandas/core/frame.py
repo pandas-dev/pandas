@@ -1601,9 +1601,6 @@ class DataFrame(NDFrame):
 
             inds, = key.nonzero()
             return self.take(inds)
-
-            # new_index = self.index[key]
-            # return self.reindex(new_index)
         else:
             indexer = self.columns.get_indexer(key)
             mask = indexer == -1
