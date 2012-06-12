@@ -501,9 +501,15 @@ class NDFrame(PandasObject):
         Delete item
         """
         deleted = False
-        if (hasattr(self,'columns') and
-                isinstance(self.columns, MultiIndex)
-                and key not in self.columns):
+
+        maybe_shortcut = False
+        if hasattr(self,'columns') and isinstance(self.columns, MultiIndex):
+            try:
+                maybe_shortcut = key not in self.columns._engine
+            except TypeError:
+                pass
+
+        if maybe_shortcut:
             # Allow shorthand to delete all columns whose first len(key)
             # elements match key:
             if not isinstance(key,tuple):

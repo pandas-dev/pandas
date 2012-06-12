@@ -910,11 +910,11 @@ class HDFStore(object):
 
 def _convert_index(index):
     if isinstance(index, DatetimeIndex):
-        converted = np.asarray(index, dtype='i8')
+        converted = index.asi8
         return converted, 'datetime64', _tables().Int64Col()
     elif isinstance(index, (Int64Index, PeriodIndex)):
         atom = _tables().Int64Col()
-        return np.asarray(index, dtype=np.int64), 'integer', atom
+        return index.values, 'integer', atom
 
     inferred_type = lib.infer_dtype(index)
 
@@ -965,7 +965,7 @@ def _read_array(group, key):
 
 def _unconvert_index(data, kind):
     if kind == 'datetime64':
-        index = np.asarray(data, dtype='M8[ns]')
+        index = DatetimeIndex(data)
     elif kind == 'datetime':
         index = np.array([datetime.fromtimestamp(v) for v in data],
                          dtype=object)

@@ -72,12 +72,22 @@ def _arith_method(op, name):
                 return Series(na_op(self.values, other.values),
                               index=self.index, name=name)
 
-            this_reindexed, other_reindexed = self.align(other, join='outer',
-                                                         copy=False)
-            arr = na_op(this_reindexed.values, other_reindexed.values)
+            join_idx, lidx, ridx = self.index.join(other.index, how='outer',
+                                                   return_indexers=True)
+
+            lvalues = self.values
+            rvalues = other.values
+
+            if lidx is not None:
+                lvalues = com.take_1d(lvalues, lidx)
+
+            if ridx is not None:
+                rvalues = com.take_1d(rvalues, ridx)
+
+            arr = na_op(lvalues, rvalues)
 
             name = _maybe_match_name(self, other)
-            return Series(arr, index=this_reindexed.index, name=name)
+            return Series(arr, index=join_idx, name=name)
         elif isinstance(other, DataFrame):
             return NotImplemented
         else:
@@ -931,81 +941,6 @@ copy : boolean, default False
         value_dict : dict
         """
         return dict(self.iteritems())
-
-    @classmethod
-    def from_json(cls, json, orient="index", dtype=None, numpy=True):
-        """
-        Convert JSON string to Series
-
-        Parameters
-        ----------
-        json : The JSON string to parse.
-        orient : {'split', 'records', 'index'}, default 'index'
-            The format of the JSON string
-            split : dict like
-                {index -> [index], name -> name, data -> [values]}
-            records : list like [value, ... , value]
-            index : dict like {index -> value}
-        dtype : dtype of the resulting Series
-        nupmpy: direct decoding to numpy arrays. default True but falls back
-            to standard decoding if a problem occurs.
-
-        Returns
-        -------
-        result : Series
-        """
-        from pandas._ujson import loads
-        s = None
-
-        if numpy:
-            try:
-                if orient == "split":
-                    decoded = loads(json, dtype=dtype, numpy=True)
-                    decoded = dict((str(k), v) for k, v in decoded.iteritems())
-                    s = Series(**decoded)
-                elif orient == "columns" or orient == "index":
-                    s = Series(*loads(json, dtype=dtype, numpy=True,
-                                      labelled=True))
-                else:
-                    s = Series(loads(json, dtype=dtype, numpy=True))
-            except ValueError:
-                numpy = False
-        if not numpy:
-            if orient == "split":
-                decoded = dict((str(k), v)
-                               for k, v in loads(json).iteritems())
-                s = Series(dtype=dtype, **decoded)
-            else:
-                s = Series(loads(json), dtype=dtype)
-
-        return s
-
-    def to_json(self, orient="index", double_precision=10, force_ascii=True):
-        """
-        Convert Series to a JSON string
-
-        Note NaN's and None will be converted to null and datetime objects
-        will be converted to UNIX timestamps.
-
-        Parameters
-        ----------
-        orient : {'split', 'records', 'index'}, default 'index'
-            The format of the JSON string
-            split : dict like
-                {index -> [index], name -> name, data -> [values]}
-            records : list like [value, ... , value]
-            index : dict like {index -> value}
-        double_precision : The number of decimal places to use when encoding
-            floating point values, default 10.
-        force_ascii : force encoded string to be ASCII, default True.
-
-        Returns
-        -------
-        result : JSON compatible string
-        """
-        from pandas._ujson import dumps
-        return dumps(self, orient=orient, double_precision=double_precision,
-                     ensure_ascii=force_ascii)
 
     def to_sparse(self, kind='block', fill_value=None):
         """
@@ -1974,7 +1909,7 @@ copy : boolean, default False
             mapped = lib.map_infer(self.values, arg)
             return Series(mapped, index=self.index, name=self.name)
 
-    def apply(self, func):
+    def apply(self, func, convert_dtype=True):
         """
         Invoke function on values of Series. Can be ufunc or Python function
         expecting only single values
@@ -1982,6 +1917,9 @@ copy : boolean, default False
         Parameters
         ----------
         func : function
+        convert_dtype : boolean, default True
+            Try to find better dtype for elementwise function results. If
+            False, leave as dtype=object
 
         See also
         --------
@@ -1999,7 +1937,7 @@ copy : boolean, default False
                 raise ValueError('Must yield array')
             return result
         except Exception:
-            mapped = lib.map_infer(self.values, func)
+            mapped = lib.map_infer(self.values, func, convert=convert_dtype)
             return Series(mapped, index=self.index, name=self.name)
 
     def align(self, other, join='outer', level=None, copy=True,
@@ -2045,9 +1983,10 @@ copy : boolean, default False
             new_values = com.take_1d(self.values, indexer)
         else:
             if copy:
-                return self.copy()
+                result = self.copy()
             else:
-                return self
+                result = self
+            return result
 
         # be subclass-friendly
         return self._constructor(new_values, new_index, name=self.name)

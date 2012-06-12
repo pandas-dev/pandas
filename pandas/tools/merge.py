@@ -347,9 +347,6 @@ class _MergeOperation(object):
                                                  self.left.index.labels)]
             else:
                 left_keys = [self.left.index.values]
-        # else:
-        #     left_keys.append(self.left.index)
-        #     right_keys.append(self.right.index)
 
         if right_drop:
             self.right = self.right.drop(right_drop, axis=1)
@@ -475,6 +472,7 @@ class _OrderedMerge(_MergeOperation):
         self._maybe_add_join_keys(result, left_indexer, right_indexer)
 
         return result
+
 
 def _get_multiindex_indexer(join_keys, index, sort=False):
     shape = []
@@ -1039,13 +1037,6 @@ class _Concatenator(object):
         ndim = self._get_result_dim()
         new_axes = [None] * ndim
 
-        # if self.ignore_index:
-        #     concat_axis = None
-        # else:
-        #     concat_axis = self._get_concat_axis()
-
-        # new_axes[self.axis] = concat_axis
-
         if self.join_axes is None:
             for i in range(ndim):
                 if i == self.axis:
@@ -1140,7 +1131,11 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
         for hlevel, level in zip(zipped, levels):
             to_concat = []
             for key, index in zip(hlevel, indexes):
-                i = level.get_loc(key)
+                try:
+                    i = level.get_loc(key)
+                except KeyError:
+                    raise ValueError('Key %s not in level %s' % (str(key), str(level)))
+
                 to_concat.append(np.repeat(i, len(index)))
             label_list.append(np.concatenate(to_concat))
 
@@ -1155,8 +1150,11 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             levels.append(factor.levels)
             label_list.append(factor.labels)
 
-        # also copies
-        names = names + _get_consensus_names(indexes)
+        if len(names) == len(levels):
+            names = list(names)
+        else:
+            # also copies
+            names = names + _get_consensus_names(indexes)
 
         return MultiIndex(levels=levels, labels=label_list, names=names)
 
@@ -1174,17 +1172,25 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
     # do something a bit more speedy
 
     for hlevel, level in zip(zipped, levels):
+        hlevel = _ensure_index(hlevel)
         mapped = level.get_indexer(hlevel)
+
+        mask = mapped == -1
+        if mask.any():
+            raise ValueError('Values not found in passed level: %s'
+                             % str(hlevel[mask]))
+
         new_labels.append(np.repeat(mapped, n))
 
     if isinstance(new_index, MultiIndex):
         new_levels.extend(new_index.levels)
         new_labels.extend([np.tile(lab, kpieces) for lab in new_index.labels])
-        new_names.extend(new_index.names)
     else:
         new_levels.append(new_index)
-        new_names.append(new_index.name)
         new_labels.append(np.tile(np.arange(n), kpieces))
+
+    if len(new_names) < len(new_levels):
+        new_names.extend(new_index.names)
 
     return MultiIndex(levels=new_levels, labels=new_labels, names=new_names)
 

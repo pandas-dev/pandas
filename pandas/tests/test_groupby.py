@@ -139,6 +139,11 @@ class TestGroupBy(unittest.TestCase):
         expected.index = ['bar', 'foo']
         assert_frame_equal(nth, expected)
 
+        # it works!
+        grouped['B'].first()
+        grouped['B'].last()
+        grouped['B'].nth(0)
+
     def test_empty_groups(self):
         # GH # 1048
         self.assertRaises(ValueError, self.df.groupby, [])
@@ -1932,6 +1937,60 @@ class TestGroupBy(unittest.TestCase):
         # it works!
         groups = grouped.groups
         self.assert_(isinstance(groups.keys()[0], datetime))
+
+    def test_groupby_reindex_inside_function(self):
+        from pandas.tseries.api import DatetimeIndex
+
+        periods = 1000
+        ind = DatetimeIndex(start='2012/1/1', freq='5min', periods=periods)
+        df = DataFrame({'high': np.arange(periods), 'low': np.arange(periods)}, index=ind)
+
+        def agg_before(hour, func, fix=False):
+            """
+                Run an aggregate func on the subset of data.
+            """
+            def _func(data):
+                d = data.select(lambda x: x.hour < 11).dropna()
+                if fix:
+                    data[data.index[0]]
+                if len(d) == 0:
+                    return None
+                return func(d)
+            return _func
+
+        def afunc(data):
+            d = data.select(lambda x: x.hour < 11).dropna()
+            return np.max(d)
+
+        grouped = df.groupby(lambda x: datetime(x.year, x.month, x.day))
+        closure_bad = grouped.agg({'high': agg_before(11, np.max)})
+        closure_good = grouped.agg({'high': agg_before(11, np.max, True)})
+
+        assert_frame_equal(closure_bad, closure_good)
+
+    def test_multiindex_columns_empty_level(self):
+        l = [['count', 'values'], ['to filter', '']]
+        midx = MultiIndex.from_tuples(l)
+
+        df = DataFrame([[1L, 'A']], columns=midx)
+
+        grouped = df.groupby('to filter').groups
+        self.assert_(np.array_equal(grouped['A'], [0]))
+
+        grouped = df.groupby([('to filter', '')]).groups
+        self.assert_(np.array_equal(grouped['A'], [0]))
+
+        df = DataFrame([[1L, 'A'], [2L, 'B']], columns=midx)
+
+        expected = df.groupby('to filter').groups
+        result = df.groupby([('to filter', '')]).groups
+        self.assertEquals(result, expected)
+
+        df = DataFrame([[1L, 'A'], [2L, 'A']], columns=midx)
+
+        expected = df.groupby('to filter').groups
+        result = df.groupby([('to filter', '')]).groups
+        self.assertEquals(result, expected)
 
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):

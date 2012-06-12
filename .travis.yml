@@ -4,6 +4,7 @@ python:
   - 2.5
   - 2.6
   - 2.7
+  - 3.1
   - 3.2
 
 install:
@@ -11,6 +12,5 @@ install:
   - pip install --use-mirrors cython numpy nose pytz
 
 script:
-  - python setup.py build_ext --inplace
-  - python setup.py install
-  - nosetests pandas
+  - python setup.py build_ext install
+  - nosetests --exe -w /tmp pandas.tests

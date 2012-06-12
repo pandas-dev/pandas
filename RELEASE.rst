@@ -83,6 +83,8 @@ pandas 0.8.0
   - Add new ``qcut`` for cutting with quantiles (#1378)
   - Add ``value_counts`` top level array method (#1392)
   - Added Andrews curves plot tupe (#1325)
+  - Add lag plot (#1440)
+  - Add autocorrelation_plot (#1425)
   - Add support for tox and Travis CI (#1382)
   - Add support for ordered factors and use in GroupBy (#292)
 
@@ -119,6 +121,9 @@ pandas 0.8.0
   - Exclude "nuisance" columns automatically in GroupBy.transform (#1364)
   - Support functions-as-strings in GroupBy.transform (#1362)
   - Use index name as xlabel/ylabel in plots (#1415)
+  - Add ``convert_dtype`` option to Series.apply to be able to leave data as
+    dtype=object (#1414)
+  - Can specify all index level names in concat (#1419)
 
 **API Changes**
 
@@ -177,6 +182,10 @@ pandas 0.8.0
   - Treat dict return values as Series in GroupBy.apply (#823)
   - Respect column selection for DataFrame in in GroupBy.transform (#1365)
   - Fix MultiIndex partial indexing bug (#1352)
+  - Enable assignment of rows in mixed-type DataFrame via .ix (#1432)
+  - Reset index mapping when grouping Series in Cython (#1423)
+  - Fix outer/inner DataFrame.join with non-unique indexes (#1421)
+  - Fix MultiIndex groupby bugs with empty lower levels (#1401)
 
 pandas 0.7.3
 ============

@@ -32,17 +32,18 @@ from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
 from pandas.core.internals import BlockManager, make_block, form_blocks
 from pandas.core.series import Series, _radd_compat
 from pandas.compat.scipy import scoreatpercentile as _quantile
-from pandas.tseries.period import PeriodIndex
 from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
 from pandas.util.decorators import deprecate, Appender, Substitution
 
-import pandas.core.format as fmt
+from pandas.tseries.period import PeriodIndex
 
-import pandas.core.nanops as nanops
-import pandas.core.common as com
-import pandas.core.generic as generic
+import pandas.core.algorithms as algos
 import pandas.core.datetools as datetools
+import pandas.core.common as com
+import pandas.core.format as fmt
+import pandas.core.generic as generic
+import pandas.core.nanops as nanops
 import pandas.lib as lib
 
 #----------------------------------------------------------------------
@@ -759,97 +760,6 @@ class DataFrame(NDFrame):
         return dict((k, v.to_dict()) for k, v in self.iteritems())
 
     @classmethod
-    def from_json(cls, json, orient="columns", dtype=None, numpy=True):
-        """
-        Convert JSON string to DataFrame
-
-        Parameters
-        ----------
-        json : The JSON string to parse.
-        orient : {'split', 'records', 'index', 'columns', 'values'},
-                 default 'columns'
-            The format of the JSON string
-            split : dict like
-                {index -> [index], columns -> [columns], data -> [values]}
-            records : list like [{column -> value}, ... , {column -> value}]
-            index : dict like {index -> {column -> value}}
-            columns : dict like {column -> {index -> value}}
-            values : just the values array
-        dtype : dtype of the resulting DataFrame
-        nupmpy: direct decoding to numpy arrays. default True but falls back
-            to standard decoding if a problem occurs.
-
-        Returns
-        -------
-        result : DataFrame
-        """
-        from pandas._ujson import loads
-        df = None
-
-        if numpy:
-            try:
-                if orient == "columns":
-                    args = loads(json, dtype=dtype, numpy=True, labelled=True)
-                    if args:
-                        args = (args[0].T, args[2], args[1])
-                    df = DataFrame(*args)
-                elif orient == "split":
-                    decoded = loads(json, dtype=dtype, numpy=True)
-                    decoded = dict((str(k), v) for k, v in decoded.iteritems())
-                    df = DataFrame(**decoded)
-                elif orient == "values":
-                    df = DataFrame(loads(json, dtype=dtype, numpy=True))
-                else:
-                    df = DataFrame(*loads(json, dtype=dtype, numpy=True,
-                                          labelled=True))
-            except ValueError:
-                numpy = False
-        if not numpy:
-            if orient == "columns":
-                df = DataFrame(loads(json), dtype=dtype)
-            elif orient == "split":
-                decoded = dict((str(k), v)
-                               for k, v in loads(json).iteritems())
-                df = DataFrame(dtype=dtype, **decoded)
-            elif orient == "index":
-                df = DataFrame(loads(json), dtype=dtype).T
-            else:
-                df = DataFrame(loads(json), dtype=dtype)
-
-        return df
-
-    def to_json(self, orient="columns", double_precision=10,
-                force_ascii=True):
-        """
-        Convert DataFrame to a JSON string.
-
-        Note NaN's and None will be converted to null and datetime objects
-        will be converted to UNIX timestamps.
-
-        Parameters
-        ----------
-        orient : {'split', 'records', 'index', 'columns', 'values'},
-                 default 'columns'
-            The format of the JSON string
-            split : dict like
-                {index -> [index], columns -> [columns], data -> [values]}
-            records : list like [{column -> value}, ... , {column -> value}]
-            index : dict like {index -> {column -> value}}
-            columns : dict like {column -> {index -> value}}
-            values : just the values array
-        double_precision : The number of decimal places to use when encoding
-            floating point values, default 10.
-        force_ascii : force encoded string to be ASCII, default True.
-
-        Returns
-        -------
-        result : JSON compatible string
-        """
-        from pandas._ujson import dumps
-        return dumps(self, orient=orient, double_precision=double_precision,
-                     ensure_ascii=force_ascii)
-
-    @classmethod
     def from_records(cls, data, index=None, exclude=None, columns=None,
                      names=None, coerce_float=False):
         """
@@ -878,6 +788,9 @@ class DataFrame(NDFrame):
         # Make a copy of the input columns so we can modify it
         if columns is not None:
             columns = list(columns)
+
+            if len(algos.unique(columns)) < len(columns):
+                raise ValueError('Non-unique columns not yet supported in from_records')
 
         if names is not None:  # pragma: no cover
             columns = names
@@ -3802,8 +3715,21 @@ class DataFrame(NDFrame):
             else:
                 join_axes = None
 
-            return concat([self] + list(other), axis=1, join=how,
-                          join_axes=join_axes, verify_integrity=True)
+            frames = [self] + list(other)
+
+            can_concat = all(df.index.is_unique for df in frames)
+
+            if can_concat:
+                return concat(frames, axis=1, join=how, join_axes=join_axes,
+                              verify_integrity=True)
+
+            joined = frames[0]
+
+            for frame in frames[1:]:
+                joined = merge(joined, frame, how=how,
+                               left_index=True, right_index=True)
+
+            return joined
 
     @Substitution('')
     @Appender(_merge_doc, indents=2)
@@ -4438,12 +4364,10 @@ class DataFrame(NDFrame):
         -------
         ranks : DataFrame
         """
-        from pandas.core.algorithms import rank
-
         if numeric_only is None:
             try:
-                ranks = rank(self.values, axis=axis, method=method,
-                             ascending=ascending)
+                ranks = algos.rank(self.values, axis=axis, method=method,
+                                   ascending=ascending)
                 return DataFrame(ranks, index=self.index, columns=self.columns)
             except TypeError:
                 numeric_only = True
@@ -4452,8 +4376,8 @@ class DataFrame(NDFrame):
             data = self._get_numeric_data()
         else:
             data = self
-        ranks = rank(data.values, axis=axis, method=method,
-                     ascending=ascending)
+        ranks = algos.rank(data.values, axis=axis, method=method,
+                           ascending=ascending)
         return DataFrame(ranks, index=data.index, columns=data.columns)
 
     def to_timestamp(self, freq=None, how='start', axis=0, copy=True):

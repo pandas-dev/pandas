@@ -1,6 +1,8 @@
 # pylint: disable=E1101,W0232
 
 import numpy as np
+
+from pandas.core.algorithms import factorize
 import pandas.core.common as com
 
 
@@ -51,8 +53,6 @@ class Factor(object):
 
     @classmethod
     def from_array(cls, data):
-        from pandas.core.algorithms import factorize
-
         try:
             labels, levels, _ = factorize(data, sort=True)
         except TypeError:

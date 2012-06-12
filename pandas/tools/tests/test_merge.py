@@ -414,6 +414,41 @@ class TestMerge(unittest.TestCase):
         expected = a.join(b.astype('f8'))
         assert_frame_equal(joined, expected)
 
+    def test_join_many_non_unique_index(self):
+        df1 = DataFrame({"a": [1,1], "b": [1,1], "c": [10,20]})
+        df2 = DataFrame({"a": [1,1], "b": [1,2], "d": [100,200]})
+        df3 = DataFrame({"a": [1,1], "b": [1,2], "e": [1000,2000]})
+        idf1 = df1.set_index(["a", "b"])
+        idf2 = df2.set_index(["a", "b"])
+        idf3 = df3.set_index(["a", "b"])
+
+        result = idf1.join([idf2, idf3], how='outer')
+
+        df_partially_merged = merge(df1, df2, on=['a', 'b'], how='outer')
+        expected = merge(df_partially_merged, df3, on=['a', 'b'], how='outer')
+
+        result = result.reset_index()
+
+        result['a'] = result['a'].astype(np.float64)
+        result['b'] = result['b'].astype(np.float64)
+
+        assert_frame_equal(result, expected.ix[:, result.columns])
+
+        df1 = DataFrame({"a": [1, 1, 1], "b": [1,1, 1], "c": [10,20, 30]})
+        df2 = DataFrame({"a": [1, 1, 1], "b": [1,1, 2], "d": [100,200, 300]})
+        df3 = DataFrame({"a": [1, 1, 1], "b": [1,1, 2], "e": [1000,2000, 3000]})
+        idf1 = df1.set_index(["a", "b"])
+        idf2 = df2.set_index(["a", "b"])
+        idf3 = df3.set_index(["a", "b"])
+        result = idf1.join([idf2, idf3], how='inner')
+
+        df_partially_merged = merge(df1, df2, on=['a', 'b'], how='inner')
+        expected = merge(df_partially_merged, df3, on=['a', 'b'], how='inner')
+
+        result = result.reset_index()
+
+        assert_frame_equal(result, expected.ix[:, result.columns])
+
     def test_merge_index_singlekey_right_vs_left(self):
         left = DataFrame({'key': ['a', 'b', 'c', 'd', 'e', 'e', 'a'],
                           'v1': np.random.randn(7)})
@@ -1109,6 +1144,34 @@ class TestConcatenate(unittest.TestCase):
         self.assertEqual(result.index.names, ['first', 'second'] + [None])
         self.assert_(np.array_equal(result.index.levels[0], ['baz', 'foo']))
 
+    def test_concat_keys_levels_no_overlap(self):
+        # GH #1406
+        df = DataFrame(np.random.randn(1, 3), index=['a'])
+        df2 = DataFrame(np.random.randn(1, 4), index=['b'])
+
+        self.assertRaises(ValueError, concat, [df, df],
+                          keys=['one', 'two'], levels=[['foo', 'bar', 'baz']])
+
+        self.assertRaises(ValueError, concat, [df, df2],
+                          keys=['one', 'two'], levels=[['foo', 'bar', 'baz']])
+
+    def test_concat_rename_index(self):
+        a = DataFrame(np.random.rand(3,3),
+                      columns=list('ABC'),
+                      index=Index(list('abc'), name='index_a'))
+        b = DataFrame(np.random.rand(3,3),
+                      columns=list('ABC'),
+                      index=Index(list('abc'), name='index_b'))
+
+        result = concat([a, b], keys=['key0', 'key1'],
+                        names=['lvl0', 'lvl1'])
+
+        exp = concat([a, b], keys=['key0', 'key1'], names=['lvl0'])
+        exp.index.names[1] = 'lvl1'
+
+        tm.assert_frame_equal(result, exp)
+        self.assertEqual(result.index.names, exp.index.names)
+
     def test_crossed_dtypes_weird_corner(self):
         columns = ['A', 'B', 'C', 'D']
         df1 = DataFrame({'A' : np.array([1, 2, 3, 4], dtype='f8'),
@@ -1127,6 +1190,11 @@ class TestConcatenate(unittest.TestCase):
         expected = DataFrame(np.concatenate([df1.values, df2.values], axis=0),
                              columns=columns)
         tm.assert_frame_equal(appended, expected)
+
+        df = DataFrame(np.random.randn(1, 3), index=['a'])
+        df2 = DataFrame(np.random.randn(1, 4), index=['b'])
+        result = concat([df, df2], keys=['one', 'two'], names=['first', 'second'])
+        self.assertEqual(result.index.names, ['first', 'second'])
 
     def test_handle_empty_objects(self):
         df = DataFrame(np.random.randn(10, 4), columns=list('abcd'))
@@ -1298,7 +1366,6 @@ class TestConcatenate(unittest.TestCase):
         result = concat(pieces)
         tm.assert_frame_equal(result, df)
         self.assertRaises(Exception, concat, [None, None])
-
 
 class TestOrderedMerge(unittest.TestCase):
 

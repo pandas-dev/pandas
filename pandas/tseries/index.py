@@ -121,6 +121,7 @@ class TimeSeriesError(Exception):
 
 _midnight = time(0, 0)
 _NS_DTYPE = np.dtype('M8[ns]')
+_INT64_DTYPE = np.dtype(np.int64)
 
 class DatetimeIndex(Int64Index):
     """
@@ -250,6 +251,8 @@ class DatetimeIndex(Int64Index):
                     subarr = lib.cast_to_nanoseconds(data)
                 else:
                     subarr = data
+        elif data.dtype == _INT64_DTYPE:
+            subarr = data.view(_NS_DTYPE)
         elif issubclass(data.dtype.type, np.integer):
             subarr = np.array(data, dtype=_NS_DTYPE, copy=copy)
         else:
@@ -593,6 +596,12 @@ class DatetimeIndex(Int64Index):
             raise ValueError(msg)
         return self._get_object_index()
 
+    def tolist(self):
+        """
+        See ndarray.tolist
+        """
+        return list(self.asobject)
+
     def _get_object_index(self):
         boxed_values = _dt_box_array(self.asi8, self.offset, self.tz)
         return Index(boxed_values, dtype=object)
@@ -759,6 +768,12 @@ class DatetimeIndex(Int64Index):
     def _maybe_utc_convert(self, other):
         this = self
         if isinstance(other, DatetimeIndex):
+            if self.tz is not None:
+                if other.tz is None:
+                    raise Exception('Cannot join tz-naive with tz-aware DatetimeIndex')
+            elif other.tz is not None:
+                raise Exception('Cannot join tz-naive with tz-aware DatetimeIndex')
+
             if self.tz != other.tz:
                 this = self.tz_convert('UTC')
                 other = other.tz_convert('UTC')

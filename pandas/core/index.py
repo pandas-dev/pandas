@@ -1511,6 +1511,15 @@ class MultiIndex(Index):
     def levshape(self):
         return tuple(len(x) for x in self.levels)
 
+    def __contains__(self, key):
+        hash(key)
+        # work around some kind of odd cython bug
+        try:
+            self.get_loc(key)
+            return True
+        except KeyError:
+            return False
+
     def __reduce__(self):
         """Necessary for making this object picklable"""
         object_state = list(np.ndarray.__reduce__(self))

@@ -88,9 +88,15 @@ class _NDFrameIndexer(object):
 
             plane_indexer = indexer[:het_axis] + indexer[het_axis + 1:]
             item_labels = self.obj._get_axis(het_axis)
-            for item in item_labels[het_idx]:
-                data = self.obj[item]
-                data.values[plane_indexer] = value
+
+            try:
+                for item in item_labels[het_idx]:
+                    data = self.obj[item]
+                    data.values[plane_indexer] = value
+            except ValueError:
+                for item, v in zip(item_labels[het_idx], value):
+                    data = self.obj[item]
+                    data.values[plane_indexer] = v
         else:
             if isinstance(indexer, tuple):
                 indexer = _maybe_convert_ix(*indexer)

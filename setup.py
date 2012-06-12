@@ -174,9 +174,9 @@ CLASSIFIERS = [
 MAJOR = 0
 MINOR = 8
 MICRO = 0
-ISRELEASED = False
+ISRELEASED = True
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
-QUALIFIER = 'b1'
+QUALIFIER = 'b2'
 
 FULLVERSION = VERSION
 if not ISRELEASED:
@@ -201,11 +201,14 @@ if not ISRELEASED:
 else:
     FULLVERSION += QUALIFIER
 
-def write_version_py(filename='pandas/version.py'):
+def write_version_py(filename=None):
     cnt = """\
 version = '%s'
 short_version = '%s'
 """
+    if not filename:
+        filename = os.path.join(os.path.dirname(__file__), 'pandas', 'version.py')
+
     a = open(filename, 'w')
     try:
         a.write(cnt % (FULLVERSION, VERSION))
@@ -223,12 +226,7 @@ class CleanCommand(Command):
         self._clean_trees = []
         self._clean_exclude = ['np_datetime.c',
                                'np_datetime_strings.c',
-                               'period.c',
-                               'ujson.c',
-                               'objToJSON.c',
-                               'JSONtoObj.c',
-                               'ultrajsonenc.c',
-                               'ultrajsondec.c']
+                               'period.c']
 
         for root, dirs, files in list(os.walk('pandas')):
             for f in files:
@@ -391,21 +389,6 @@ sparse_ext = Extension('pandas._sparse',
                        sources=[srcpath('sparse', suffix=suffix)],
                        include_dirs=[np.get_include()])
 
-ujson_ext = Extension('pandas._ujson',
-                      depends=['pandas/src/ujson/lib/ultrajson.h'],
-                      sources=['pandas/src/ujson/python/ujson.c',
-                               'pandas/src/ujson/python/objToJSON.c',
-                               'pandas/src/ujson/python/JSONtoObj.c',
-                               'pandas/src/ujson/lib/ultrajsonenc.c',
-                               'pandas/src/ujson/lib/ultrajsondec.c',
-                               'pandas/src/datetime/np_datetime.c'
-                               ],
-                      include_dirs=['pandas/src/ujson/python',
-                                    'pandas/src/ujson/lib',
-                                    'pandas/src/datetime',
-                                    np.get_include()],
-                      )
-
 sandbox_ext = Extension('pandas._sandbox',
                         sources=[srcpath('sandbox', suffix=suffix)],
                         include_dirs=[np.get_include()])
@@ -415,7 +398,7 @@ cppsandbox_ext = Extension('pandas._cppsandbox',
                            sources=[srcpath('cppsandbox', suffix=suffix)],
                            include_dirs=[np.get_include()])
 
-extensions = [algos_ext, lib_ext, period_ext, sparse_ext, ujson_ext]
+extensions = [algos_ext, lib_ext, period_ext, sparse_ext]
 
 if not ISRELEASED:
     extensions.extend([sandbox_ext])

@@ -369,6 +369,47 @@ index labels with the minimum and maximum corresponding values:
    df1.idxmin(axis=0)
    df1.idxmax(axis=1)
 
+Value counts (histogramming)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``value_counts`` Series method and top-level function computes a histogram
+of a 1D array of values. It can also be used as a function on regular arrays:
+
+.. ipython:: python
+
+   data = np.random.randint(0, 7, size=50)
+   data
+   s = Series(data)
+   s.value_counts()
+   value_counts(data)
+
+
+Discretization and quantiling
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Continuous values can be discretized using the ``cut`` (bins based on values)
+and ``qcut`` (bins based on sample quantiles) functions:
+
+.. ipython:: python
+
+   arr = np.random.randn(20)
+   factor = cut(arr, 4)
+   factor
+
+   factor = cut(arr, [-5, -1, 0, 1, 5])
+   factor
+
+``qcut`` computes sample quantiles. For example, we could slice up some
+normally distributed data into equal-size quartiles like so:
+
+.. ipython:: python
+
+   arr = np.random.randn(30)
+   factor = qcut(arr, [0, .25, .5, .75, 1])
+   factor
+   value_counts(factor)
+
+
 .. _basics.apply:
 
 Function application
