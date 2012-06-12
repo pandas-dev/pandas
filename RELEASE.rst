@@ -123,6 +123,7 @@ pandas 0.8.0
   - Use index name as xlabel/ylabel in plots (#1415)
   - Add ``convert_dtype`` option to Series.apply to be able to leave data as
     dtype=object (#1414)
+  - Can specify all index level names in concat (#1419)
 
 **API Changes**
 

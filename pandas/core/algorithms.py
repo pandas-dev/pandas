@@ -156,6 +156,9 @@ def value_counts(values, sort=True, ascending=False):
     """
     from pandas.core.series import Series
     from collections import defaultdict
+
+    values = np.asarray(values)
+
     if com.is_integer_dtype(values.dtype):
         values = com._ensure_int64(values)
         keys, counts = lib.value_count_int64(values)

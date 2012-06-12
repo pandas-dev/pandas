@@ -109,6 +109,15 @@ class TestCut(unittest.TestCase):
         factor = qcut(arr, 10, labels=False)
         self.assert_(len(np.unique(factor)) == 10)
 
+    def test_cut_out_of_bounds(self):
+        np.random.seed(12345)
+
+        arr = np.random.randn(100)
+        self.assertRaises(ValueError, cut, arr, [-1, 0, 1])
+
+        arr = np.where(arr < -1, 0, arr)
+        self.assertRaises(ValueError, cut, arr, [-1, 0, 1])
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)

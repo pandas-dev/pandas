@@ -146,6 +146,16 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
     side = 'left' if right else 'right'
     ids = bins.searchsorted(x, side=side)
 
+    na_mask = com.notnull(x)
+    above = na_mask & (ids == len(bins))
+    below = na_mask & (ids == 0)
+
+    if above.any():
+        raise ValueError('Values fall past last bin: %s' % str(x[above]))
+
+    if below.any():
+        raise ValueError('Values fall before first bin: %s' % str(x[below]))
+
     mask = com.isnull(x)
     has_nas = mask.any()
 

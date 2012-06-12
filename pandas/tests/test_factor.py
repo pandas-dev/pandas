@@ -6,6 +6,7 @@ import nose
 
 import numpy as np
 
+from pandas.core.api import value_counts
 from pandas.core.factor import Factor
 from pandas.core.index import Index, Int64Index, MultiIndex
 from pandas.util.testing import assert_almost_equal
@@ -81,6 +82,18 @@ class TestFactor(unittest.TestCase):
         result = self.factor == 'd'
         expected = np.repeat(False, len(self.factor))
         self.assert_(np.array_equal(result, expected))
+
+    def test_value_counts(self):
+        from pandas.tools.tile import cut
+
+        arr = np.random.randn(4)
+        factor = cut(arr, 4)
+
+        self.assert_(isinstance(factor, Factor))
+
+        result = value_counts(factor)
+        expected = value_counts(np.asarray(factor))
+        tm.assert_series_equal(result, expected)
 
 if __name__ == '__main__':
     import nose
