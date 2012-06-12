@@ -121,6 +121,7 @@ class TimeSeriesError(Exception):
 
 _midnight = time(0, 0)
 _NS_DTYPE = np.dtype('M8[ns]')
+_INT64_DTYPE = np.dtype(np.int64)
 
 class DatetimeIndex(Int64Index):
     """
@@ -250,6 +251,8 @@ class DatetimeIndex(Int64Index):
                     subarr = lib.cast_to_nanoseconds(data)
                 else:
                     subarr = data
+        elif data.dtype == _INT64_DTYPE:
+            subarr = data.view(_NS_DTYPE)
         elif issubclass(data.dtype.type, np.integer):
             subarr = np.array(data, dtype=_NS_DTYPE, copy=copy)
         else:
