@@ -1131,7 +1131,11 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
         for hlevel, level in zip(zipped, levels):
             to_concat = []
             for key, index in zip(hlevel, indexes):
-                i = level.get_loc(key)
+                try:
+                    i = level.get_loc(key)
+                except KeyError:
+                    raise ValueError('Key %s not in level %s' % (str(key), str(level)))
+
                 to_concat.append(np.repeat(i, len(index)))
             label_list.append(np.concatenate(to_concat))
 
@@ -1146,8 +1150,11 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             levels.append(factor.levels)
             label_list.append(factor.labels)
 
-        # also copies
-        names = names + _get_consensus_names(indexes)
+        if len(names) == len(levels):
+            names = list(names)
+        else:
+            # also copies
+            names = names + _get_consensus_names(indexes)
 
         return MultiIndex(levels=levels, labels=label_list, names=names)
 
@@ -1165,7 +1172,14 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
     # do something a bit more speedy
 
     for hlevel, level in zip(zipped, levels):
+        hlevel = _ensure_index(hlevel)
         mapped = level.get_indexer(hlevel)
+
+        mask = mapped == -1
+        if mask.any():
+            raise ValueError('Values not found in passed level: %s'
+                             % str(hlevel[mask]))
+
         new_labels.append(np.repeat(mapped, n))
 
     if isinstance(new_index, MultiIndex):

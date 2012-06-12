@@ -1144,6 +1144,35 @@ class TestConcatenate(unittest.TestCase):
         self.assertEqual(result.index.names, ['first', 'second'] + [None])
         self.assert_(np.array_equal(result.index.levels[0], ['baz', 'foo']))
 
+    def test_concat_keys_levels_no_overlap(self):
+        # GH #1406
+        df = DataFrame(np.random.randn(1, 3), index=['a'])
+        df2 = DataFrame(np.random.randn(1, 4), index=['b'])
+
+        self.assertRaises(ValueError, concat, [df, df],
+                          keys=['one', 'two'], levels=[['foo', 'bar', 'baz']])
+
+        self.assertRaises(ValueError, concat, [df, df2],
+                          keys=['one', 'two'], levels=[['foo', 'bar', 'baz']])
+
+
+    def test_concat_rename_index(self):
+        a = DataFrame(np.random.rand(3,3),
+                      columns=list('ABC'),
+                      index=Index(list('abc'), name='index_a'))
+        b = DataFrame(np.random.rand(3,3),
+                      columns=list('ABC'),
+                      index=Index(list('abc'), name='index_b'))
+
+        result = concat([a, b], keys=['key0', 'key1'],
+                        names=['lvl0', 'lvl1'])
+
+        exp = concat([a, b], keys=['key0', 'key1'], names=['lvl0'])
+        exp.index.names[1] = 'lvl1'
+
+        tm.assert_frame_equal(result, exp)
+        self.assertEqual(result.index.names, exp.index.names)
+
     def test_crossed_dtypes_weird_corner(self):
         columns = ['A', 'B', 'C', 'D']
         df1 = DataFrame({'A' : np.array([1, 2, 3, 4], dtype='f8'),
@@ -1162,6 +1191,11 @@ class TestConcatenate(unittest.TestCase):
         expected = DataFrame(np.concatenate([df1.values, df2.values], axis=0),
                              columns=columns)
         tm.assert_frame_equal(appended, expected)
+
+        df = DataFrame(np.random.randn(1, 3), index=['a'])
+        df2 = DataFrame(np.random.randn(1, 4), index=['b'])
+        result = concat([df, df2], keys=['one', 'two'], names=['first', 'second'])
+        self.assertEqual(result.index.names, ['first', 'second'])
 
     def test_handle_empty_objects(self):
         df = DataFrame(np.random.randn(10, 4), columns=list('abcd'))
@@ -1333,23 +1367,6 @@ class TestConcatenate(unittest.TestCase):
         result = concat(pieces)
         tm.assert_frame_equal(result, df)
         self.assertRaises(Exception, concat, [None, None])
-
-    def test_concat_rename_index(self):
-        a = DataFrame(np.random.rand(3,3),
-                      columns=list('ABC'),
-                      index=Index(list('abc'), name='index_a'))
-        b = DataFrame(np.random.rand(3,3),
-                      columns=list('ABC'),
-                      index=Index(list('abc'), name='index_b'))
-
-        result = concat([a, b], keys=['key0', 'key1'],
-                        names=['lvl0', 'lvl1'])
-
-        exp = concat([a, b], keys=['key0', 'key1'], names=['lvl0'])
-        exp.index.names[1] = 'lvl1'
-
-        tm.assert_frame_equal(result, exp)
-        self.assertEqual(result.index.names, exp.index.names)
 
 class TestOrderedMerge(unittest.TestCase):
 
