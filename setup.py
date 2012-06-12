@@ -201,11 +201,14 @@ if not ISRELEASED:
 else:
     FULLVERSION += QUALIFIER
 
-def write_version_py(filename='pandas/version.py'):
+def write_version_py(filename=None):
     cnt = """\
 version = '%s'
 short_version = '%s'
 """
+    if not filename:
+        filename = os.path.join(os.path.dirname(__file__), 'pandas', 'version.py')
+
     a = open(filename, 'w')
     try:
         a.write(cnt % (FULLVERSION, VERSION))
