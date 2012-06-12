@@ -473,6 +473,7 @@ class _OrderedMerge(_MergeOperation):
 
         return result
 
+
 def _get_multiindex_indexer(join_keys, index, sort=False):
     shape = []
     labels = []
@@ -1170,11 +1171,12 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
     if isinstance(new_index, MultiIndex):
         new_levels.extend(new_index.levels)
         new_labels.extend([np.tile(lab, kpieces) for lab in new_index.labels])
-        new_names.extend(new_index.names)
     else:
         new_levels.append(new_index)
-        new_names.append(new_index.name)
         new_labels.append(np.tile(np.arange(n), kpieces))
+
+    if len(new_names) < len(new_levels):
+        new_names.extend(new_index.names)
 
     return MultiIndex(levels=new_levels, labels=new_labels, names=new_names)
 

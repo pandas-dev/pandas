@@ -1334,6 +1334,22 @@ class TestConcatenate(unittest.TestCase):
         tm.assert_frame_equal(result, df)
         self.assertRaises(Exception, concat, [None, None])
 
+    def test_concat_rename_index(self):
+        a = DataFrame(np.random.rand(3,3),
+                      columns=list('ABC'),
+                      index=Index(list('abc'), name='index_a'))
+        b = DataFrame(np.random.rand(3,3),
+                      columns=list('ABC'),
+                      index=Index(list('abc'), name='index_b'))
+
+        result = concat([a, b], keys=['key0', 'key1'],
+                        names=['lvl0', 'lvl1'])
+
+        exp = concat([a, b], keys=['key0', 'key1'], names=['lvl0'])
+        exp.index.names[1] = 'lvl1'
+
+        tm.assert_frame_equal(result, exp)
+        self.assertEqual(result.index.names, exp.index.names)
 
 class TestOrderedMerge(unittest.TestCase):
 
