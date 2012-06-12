@@ -592,7 +592,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False):
             if util._checknull(val):
                 iresult[i] = iNaT
             elif PyDateTime_Check(val):
-                result[i] = val
+                iresult[i] = _pydatetime_to_dts(val, &dts)
             elif PyDate_Check(val):
                 iresult[i] = _date_to_datetime64(val, &dts)
             elif util.is_datetime64_object(val):
