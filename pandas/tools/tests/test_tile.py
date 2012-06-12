@@ -109,6 +109,13 @@ class TestCut(unittest.TestCase):
         factor = qcut(arr, 10, labels=False)
         self.assert_(len(np.unique(factor)) == 10)
 
+    def test_qcut_specify_quantiles(self):
+        arr = np.random.randn(100)
+
+        factor = qcut(arr, [0, .25, .5, .75, 1.])
+        expected = qcut(arr, 4)
+        self.assert_(factor.equals(expected))
+
     def test_cut_out_of_bounds(self):
         np.random.seed(12345)
 

@@ -859,7 +859,7 @@ time zone:
 
    ts = Series(randn(len(rng)), rng)
 
-   ts_utc = ts.tz_convert('UTC')
+   ts_utc = ts.tz_localize('UTC')
    ts_utc
 
    ts_utc.tz_convert('US/Eastern')

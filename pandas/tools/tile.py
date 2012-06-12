@@ -111,7 +111,8 @@ def qcut(x, q=4, labels=None, retbins=False, precision=3):
     x : ndarray or Series
     q : integer or array of quantiles
         Number of quantiles. 10 for deciles, 4 for quartiles, etc. Alternately
-        array of quantiles, e.g. [0, .25, .5, .75, 1.] for quartiles
+        array of quantiles, e.g. [0, .25, .5, .75, 1.] for quartiles. Array of
+        quantiles must span [0, 1]
     labels : array or boolean, default None
         Labels to use for bin edges, or False to return integer bin labels
     retbins : bool, optional
@@ -129,12 +130,13 @@ def qcut(x, q=4, labels=None, retbins=False, precision=3):
     """
     if com.is_integer(q):
         quantiles = np.linspace(0, 1, q + 1)
-        bins = algos.quantile(x, quantiles)
-        bins[0] -= 0.001 * (x.max() - x.min())
-        return _bins_to_cuts(x, bins, labels=labels, retbins=retbins,
-                             precision=precision)
     else:
-        raise NotImplementedError
+        quantiles = q
+    bins = algos.quantile(x, quantiles)
+    bins[0] -= 0.001 * (x.max() - x.min())
+
+    return _bins_to_cuts(x, bins, labels=labels, retbins=retbins,
+                         precision=precision)
 
 
 def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
