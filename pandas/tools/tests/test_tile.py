@@ -125,6 +125,18 @@ class TestCut(unittest.TestCase):
         arr = np.where(arr < -1, 0, arr)
         self.assertRaises(ValueError, cut, arr, [-1, 0, 1])
 
+    def test_cut_pass_labels(self):
+        arr = [50, 5, 10, 15, 20, 30, 70]
+        bins = [0, 25, 50, 100]
+        labels = ['Small', 'Medium', 'Large']
+
+        result = cut(arr, bins, labels=labels)
+
+        exp = cut(arr, bins)
+        exp.levels = labels
+
+        self.assert_(result.equals(exp))
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)

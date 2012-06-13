@@ -163,18 +163,18 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
 
     if labels is not False:
         if labels is None:
-            labels = bins
+            fmt = lambda v: _format_label(v, precision=precision)
+            if right:
+                levels = ['(%s, %s]' % (fmt(a), fmt(b))
+                           for a, b in zip(bins, bins[1:])]
+            else:
+                levels = ['[%s, %s)' % (fmt(a), fmt(b))
+                           for a, b in zip(bins, bins[1:])]
         else:
-            if len(labels) != len(bins):
-                raise ValueError('labels must be same length as bins')
-
-        fmt = lambda v: _format_label(v, precision=precision)
-        if right:
-            levels = ['(%s, %s]' % (fmt(a), fmt(b))
-                       for a, b in zip(labels, labels[1:])]
-        else:
-            levels = ['[%s, %s)' % (fmt(a), fmt(b))
-                       for a, b in zip(labels, labels[1:])]
+            if len(labels) != len(bins) - 1:
+                raise ValueError('Bin labels must be one fewer than '
+                                 'the number of bin edges')
+            levels = labels
 
         levels = np.asarray(levels, dtype=object)
 

@@ -6,7 +6,7 @@ import numpy as np
 from pandas.core.algorithms import factorize, match, unique, value_counts
 
 from pandas.core.common import isnull, notnull, save, load
-from pandas.core.factor import Factor
+from pandas.core.factor import Categorical, Factor
 from pandas.core.format import (set_printoptions, reset_printoptions,
                                 set_eng_float_format)
 from pandas.core.index import Index, Int64Index, MultiIndex
