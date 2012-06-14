@@ -11,6 +11,7 @@ from pandas.core.frame import DataFrame
 from pandas.core.common import notnull, _ensure_platform_int
 from pandas.core.groupby import (get_group_index, _compress_group_index,
                                  decons_group_index)
+import pandas.lib as lib
 
 
 from pandas.core.index import MultiIndex
@@ -80,8 +81,20 @@ class _Unstacker(object):
         v = self.level
 
         labs = self.index.labels
-        to_sort = labs[:v] + labs[v+1:] + [labs[v]]
-        indexer = np.lexsort(to_sort[::-1])
+        levs = self.index.levels
+        to_sort =  labs[:v] + labs[v+1:] + [labs[v]]
+        sizes = [len(x) for x in levs[:v] + levs[v+1:] + [levs[v]]]
+
+        group_index = get_group_index(to_sort, sizes)
+        max_groups = np.prod(sizes)
+        if max_groups > 1000000:
+            comp_index, obs_ids = _compress_group_index(group_index)
+            ngroups = len(obs_ids)
+        else:
+            comp_index, ngroups  = group_index, max_groups
+
+        indexer = lib.groupsort_indexer(comp_index, ngroups)[0]
+        indexer = _ensure_platform_int(indexer)
 
         self.sorted_values = self.values.take(indexer, axis=0)
         self.sorted_labels = [l.take(indexer) for l in to_sort]
@@ -90,7 +103,7 @@ class _Unstacker(object):
         new_levels = self.new_index_levels
 
         # make the mask
-        group_index = get_group_index(self.sorted_labels,
+        group_index = get_group_index(self.sorted_labels[:-1],
                                       [len(x) for x in new_levels])
 
         group_index = _ensure_platform_int(group_index)
