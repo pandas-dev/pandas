@@ -913,6 +913,21 @@ class TestTimeSeries(unittest.TestCase):
         x[0] = to_datetime(x[0])
         self.assert_(x[0].dtype == np.dtype('M8[ns]'))
 
+    def test_groupby_count_dateparseerror(self):
+        from pandas import *
+
+        dr = date_range(start='1/1/2012', freq='5min', periods=10)
+
+        # BAD Example, datetimes first
+        s = Series(np.arange(10), index=[dr, range(10)])
+        grouped = s.groupby(lambda x: x[1] % 2 == 0)
+        result = grouped.count()
+
+        s = Series(np.arange(10), index=[range(10), dr])
+        grouped = s.groupby(lambda x: x[0] % 2 == 0)
+        expected = grouped.count()
+
+        assert_series_equal(result, expected)
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
