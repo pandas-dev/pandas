@@ -11,7 +11,8 @@ import pandas.core.nanops as nanops
 import numpy as np
 
 
-def cut(x, bins, right=True, labels=None, retbins=False, precision=3):
+def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
+        include_lowest=False):
     """
     Return indices of half-open bins to which each value of `x` belongs.
 
@@ -38,9 +39,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3):
 
     Returns
     -------
-    out : ndarray of labels
-        Same shape as `x`. Array of strings by default, integers if
-        labels=False
+    out : Categorical or array of integers if labels is False
     bins : ndarray of floats
         Returned only if `retbins` is True.
 
@@ -50,7 +49,9 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3):
     a categorical variable. For example, `cut` could convert ages to groups
     of age ranges.
 
-    Any NA values will be NA in the result
+    Any NA values will be NA in the result.  Out of bounds values will be NA in
+    the resulting Categorical object
+
 
     Examples
     --------
@@ -95,11 +96,12 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3):
             raise ValueError('bins must increase monotonically.')
 
     return _bins_to_cuts(x, bins, right=right, labels=labels,
-                         retbins=retbins, precision=precision)
+                         retbins=retbins, precision=precision,
+                         include_lowest=include_lowest)
 
 
 
-def qcut(x, q=4, labels=None, retbins=False, precision=3):
+def qcut(x, q, labels=None, retbins=False, precision=3):
     """
     Quantile-based discretization function. Discretize variable into
     equal-sized buckets based on rank or based on sample quantiles. For example
@@ -111,8 +113,7 @@ def qcut(x, q=4, labels=None, retbins=False, precision=3):
     x : ndarray or Series
     q : integer or array of quantiles
         Number of quantiles. 10 for deciles, 4 for quartiles, etc. Alternately
-        array of quantiles, e.g. [0, .25, .5, .75, 1.] for quartiles. Array of
-        quantiles must span [0, 1]
+        array of quantiles, e.g. [0, .25, .5, .75, 1.] for quartiles
     labels : array or boolean, default None
         Labels to use for bin edges, or False to return integer bin labels
     retbins : bool, optional
@@ -121,9 +122,11 @@ def qcut(x, q=4, labels=None, retbins=False, precision=3):
 
     Returns
     -------
+    cat : Categorical
 
     Notes
     -----
+    Out of bounds values will be NA in the resulting Categorical object
 
     Examples
     --------
@@ -133,20 +136,21 @@ def qcut(x, q=4, labels=None, retbins=False, precision=3):
     else:
         quantiles = q
     bins = algos.quantile(x, quantiles)
-    bins[0] -= 0.001 * (x.max() - x.min())
-
     return _bins_to_cuts(x, bins, labels=labels, retbins=retbins,
-                         precision=precision)
+                         precision=precision, include_lowest=True)
 
 
 def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
-                  precision=3, name=None):
+                  precision=3, name=None, include_lowest=False):
     if name is None and isinstance(x, Series):
         name = x.name
     x = np.asarray(x)
 
     side = 'left' if right else 'right'
     ids = bins.searchsorted(x, side=side)
+
+    if include_lowest:
+        ids[x == bins[0]] = 1
 
     na_mask = com.isnull(x) | (ids == len(bins)) | (ids == 0)
     has_nas = na_mask.any()
@@ -157,9 +161,12 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
             if right:
                 levels = ['(%s, %s]' % (fmt(a), fmt(b))
                            for a, b in zip(bins, bins[1:])]
+                if include_lowest:
+                    levels[0] = '[' + levels[0][1:]
             else:
                 levels = ['[%s, %s)' % (fmt(a), fmt(b))
                            for a, b in zip(bins, bins[1:])]
+
         else:
             if len(labels) != len(bins) - 1:
                 raise ValueError('Bin labels must be one fewer than '

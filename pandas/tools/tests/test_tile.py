@@ -96,10 +96,9 @@ class TestCut(unittest.TestCase):
 
         labels, bins = qcut(arr, 4, retbins=True)
         ex_bins = quantile(arr, [0, .25, .5, .75, 1.])
-        ex_bins[0] -= (arr.max() - arr.min()) * 0.001
         assert_almost_equal(bins, ex_bins)
 
-        ex_levels = cut(arr, ex_bins)
+        ex_levels = cut(arr, ex_bins, include_lowest=True)
         self.assert_(np.array_equal(labels, ex_levels))
 
     def test_qcut_bounds(self):
@@ -138,6 +137,14 @@ class TestCut(unittest.TestCase):
         exp.levels = labels
 
         self.assert_(result.equals(exp))
+
+    def test_qcut_include_lowest(self):
+        values = np.arange(10)
+
+        cats = qcut(values, 4)
+
+        ex_levels = ['[0, 2.25]', '(2.25, 4.5]', '(4.5, 6.75]', '(6.75, 9]']
+        self.assert_((cats.levels == ex_levels).all())
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
