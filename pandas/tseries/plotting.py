@@ -99,7 +99,7 @@ def tsplot(series, plotf, *args, **kwargs):
     if freq != series.index.freq:
         series = series.asfreq(freq)
 
-    mask = isnull(series)
+
 
     style = kwargs.pop('style', None)
 
@@ -118,9 +118,15 @@ def tsplot(series, plotf, *args, **kwargs):
     ax.date_axis_info = None
 
     # format args and lot
-    masked_array = np.ma.array(series.values)
-    masked_array = np.ma.masked_where(mask, masked_array)
-    args = _check_plot_params(masked_array, series.index, freq, style, *args)
+    mask = isnull(series)
+    if mask.any():
+        masked_array = np.ma.array(series.values)
+        masked_array = np.ma.masked_where(mask, masked_array)
+        args = _check_plot_params(masked_array, series.index, freq, style,
+                                  *args)
+    else:
+        args = _check_plot_params(series, series.index, freq, style, *args)
+
     plotted = plotf(ax, *args,  **kwargs)
 
     format_dateaxis(ax, ax.freq)

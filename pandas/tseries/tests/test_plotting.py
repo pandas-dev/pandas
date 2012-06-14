@@ -193,6 +193,21 @@ class TestTSPlot(unittest.TestCase):
             self.assert_(rs == xp)
 
     @slow
+    def test_gaps(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        ts = tm.makeTimeSeries()
+        ts[5:25] = np.nan
+        ax = ts.plot()
+        lines = ax.get_lines()
+        self.assert_(len(lines) == 1)
+        l = lines[0]
+        data = l.get_xydata()
+        self.assert_(isinstance(data, np.ma.core.MaskedArray))
+        mask = data.mask
+        self.assert_(mask[5:25, 1].all())
+
+    @slow
     def test_secondary_y(self):
         import matplotlib.pyplot as plt
         plt.close('all')
