@@ -148,18 +148,8 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
     side = 'left' if right else 'right'
     ids = bins.searchsorted(x, side=side)
 
-    na_mask = com.notnull(x)
-    above = na_mask & (ids == len(bins))
-    below = na_mask & (ids == 0)
-
-    if above.any():
-        raise ValueError('Values fall past last bin: %s' % str(x[above]))
-
-    if below.any():
-        raise ValueError('Values fall before first bin: %s' % str(x[below]))
-
-    mask = com.isnull(x)
-    has_nas = mask.any()
+    na_mask = com.isnull(x) | (ids == len(bins)) | (ids == 0)
+    has_nas = na_mask.any()
 
     if labels is not False:
         if labels is None:
@@ -177,16 +167,13 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
             levels = labels
 
         levels = np.asarray(levels, dtype=object)
-
-        if has_nas:
-            np.putmask(ids, mask, 0)
-
+        np.putmask(ids, na_mask, 0)
         fac = Categorical(ids - 1, levels, name=name)
     else:
         fac = ids - 1
         if has_nas:
             fac = ids.astype(np.float64)
-            np.putmask(fac, mask, np.nan)
+            np.putmask(fac, na_mask, np.nan)
 
     if not retbins:
         return fac

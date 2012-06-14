@@ -120,10 +120,12 @@ class TestCut(unittest.TestCase):
         np.random.seed(12345)
 
         arr = np.random.randn(100)
-        self.assertRaises(ValueError, cut, arr, [-1, 0, 1])
 
-        arr = np.where(arr < -1, 0, arr)
-        self.assertRaises(ValueError, cut, arr, [-1, 0, 1])
+        result = cut(arr, [-1, 0, 1])
+
+        mask = result.labels == -1
+        ex_mask = (arr < -1) | (arr > 1)
+        self.assert_(np.array_equal(mask, ex_mask))
 
     def test_cut_pass_labels(self):
         arr = [50, 5, 10, 15, 20, 30, 70]
