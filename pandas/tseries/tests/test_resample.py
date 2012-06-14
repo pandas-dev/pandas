@@ -660,6 +660,21 @@ class TestResamplePeriodIndex(unittest.TestCase):
 
         assert_series_equal(result, exp)
 
+    def test_closed_left_corner(self):
+        # #1465
+        s = Series(np.random.randn(21),
+                   index=date_range(start='1/1/2012 9:30',
+                                    freq='1min', periods=21))
+        s[0] = np.nan
+
+        result = s.resample('10min', how='mean',closed='left', label='right')
+        exp = s[1:].resample('10min', how='mean',closed='left', label='right')
+        assert_series_equal(result, exp)
+
+        result = s.resample('10min', how='mean',closed='left', label='left')
+        exp = s[1:].resample('10min', how='mean',closed='left', label='left')
+        assert_series_equal(result, exp)
+
 class TestTimeGrouper(unittest.TestCase):
 
     def setUp(self):

@@ -97,7 +97,7 @@ class TimeGrouper(CustomGrouper):
 
         first, last = _get_range_edges(axis, self.begin, self.end, self.freq,
                                        closed=self.closed, base=self.base)
-        binner = DatetimeIndex(freq=self.freq, start=first, end=last)
+        binner = labels = DatetimeIndex(freq=self.freq, start=first, end=last)
 
         # a little hack
         trimmed = False
@@ -108,12 +108,17 @@ class TimeGrouper(CustomGrouper):
         # general version, knowing nothing about relative frequencies
         bins = lib.generate_bins_dt64(axis.asi8, binner.asi8, self.closed)
 
-        if self.label == 'right':
-            labels = binner[1:]
-        elif not trimmed:
-            labels = binner[:-1]
-        else:
+        if self.closed == 'right':
             labels = binner
+            if self.label == 'right':
+                labels = labels[1:]
+            elif not trimmed:
+                labels = labels[:-1]
+        else:
+            if self.label == 'right':
+                labels = labels[1:]
+            elif not trimmed:
+                labels = labels[:-1]
 
         return binner, bins, labels
 
