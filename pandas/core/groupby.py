@@ -2084,7 +2084,7 @@ def _compress_group_index(group_index, sort=True):
     """
 
     uniques = []
-    table = lib.Int64HashTable(len(group_index))
+    table = lib.Int64HashTable(min(1000000, len(group_index)))
 
     group_index = com._ensure_int64(group_index)
 

@@ -489,6 +489,8 @@ def _possibly_cast_item(obj, item, dtype):
 
 def _is_bool_indexer(key):
     if isinstance(key, np.ndarray) and key.dtype == np.object_:
+        key = np.asarray(key)
+
         if not lib.is_bool_array(key):
             if isnull(key).any():
                 raise ValueError('cannot index with vector containing '

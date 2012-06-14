@@ -312,7 +312,7 @@ class Series(np.ndarray, generic.PandasObject):
                 elif isinstance(index, PeriodIndex):
                     data = [data.get(i, nan) for i in index]
                 else:
-                    data = lib.fast_multiget(data, index, default=np.nan)
+                    data = lib.fast_multiget(data, index.values, default=np.nan)
             except TypeError:
                 data = [data.get(i, nan) for i in index]
 
@@ -763,7 +763,7 @@ copy : boolean, default False
         width, height = get_terminal_size()
         max_rows = (height if fmt.print_config.max_rows == 0
                     else fmt.print_config.max_rows)
-        if len(self.index) > max_rows:
+        if len(self.index) > (max_rows or 1000):
             result = self._tidy_repr(min(30, max_rows - 4))
         elif len(self.index) > 0:
             result = self._get_repr(print_header=True,

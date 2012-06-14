@@ -603,22 +603,22 @@ class TestReducer(unittest.TestCase):
 
         arr = np.random.randn(100, 4)
 
-        result = lib.reduce(arr, np.sum, labels=np.arange(4))
+        result = lib.reduce(arr, np.sum, labels=Index(np.arange(4)))
         expected = arr.sum(0)
         assert_almost_equal(result, expected)
 
-        result = lib.reduce(arr, np.sum, axis=1, labels=np.arange(100))
+        result = lib.reduce(arr, np.sum, axis=1, labels=Index(np.arange(100)))
         expected = arr.sum(1)
         assert_almost_equal(result, expected)
 
         dummy = Series(0., index=np.arange(100))
-        result = lib.reduce(arr, np.sum, dummy=dummy, labels=np.arange(4))
+        result = lib.reduce(arr, np.sum, dummy=dummy, labels=Index(np.arange(4)))
         expected = arr.sum(0)
         assert_almost_equal(result, expected)
 
         dummy = Series(0., index=np.arange(4))
         result = lib.reduce(arr, np.sum, axis=1,
-                            dummy=dummy, labels=np.arange(100))
+                            dummy=dummy, labels=Index(np.arange(100)))
         expected = arr.sum(1)
         assert_almost_equal(result, expected)
 

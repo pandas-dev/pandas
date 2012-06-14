@@ -358,5 +358,8 @@ cdef class Slider:
         self.buf.data = self.orig_data
 
 def reduce(arr, f, axis=0, dummy=None, labels=None):
+    if labels._has_complex_internals:
+        raise Exception('Cannot use shortcut')
+
     reducer = Reducer(arr, f, axis=axis, dummy=dummy, labels=labels)
     return reducer.get_result()

@@ -5,6 +5,7 @@ import operator
 import pickle
 import unittest
 import nose
+import os
 
 import numpy as np
 from numpy.testing import assert_array_equal
@@ -13,6 +14,7 @@ from pandas.core.categorical import Factor
 from pandas.core.index import Index, Int64Index, MultiIndex
 from pandas.util.testing import assert_almost_equal
 from pandas.util import py3compat
+import pandas.core.common as com
 
 import pandas.util.testing as tm
 
@@ -895,7 +897,6 @@ class TestMultiIndex(unittest.TestCase):
         if py3compat.PY3:
             raise nose.SkipTest
 
-        import os
         def curpath():
             pth, _ = os.path.split(os.path.abspath(__file__))
             return pth
@@ -903,7 +904,27 @@ class TestMultiIndex(unittest.TestCase):
         ppath = os.path.join(curpath(), 'data/multiindex_v1.pickle')
         obj = pickle.load(open(ppath, 'r'))
 
-        self.assert_(obj._is_legacy_format)
+        self.assert_(obj._is_v1)
+
+        obj2 = MultiIndex.from_tuples(obj.values)
+        self.assert_(obj.equals(obj2))
+
+        res = obj.get_indexer(obj)
+        exp = np.arange(len(obj))
+        assert_almost_equal(res, exp)
+
+        res = obj.get_indexer(obj2[::-1])
+        exp = obj.get_indexer(obj[::-1])
+        exp2 = obj2.get_indexer(obj2[::-1])
+        assert_almost_equal(res, exp)
+        assert_almost_equal(exp, exp2)
+
+    def test_legacy_v2_unpickle(self):
+        # 0.7.3 -> 0.8.0 format manage
+        pth, _ = os.path.split(os.path.abspath(__file__))
+        filepath = os.path.join(pth, 'data', 'mindex_073.pickle')
+
+        obj = com.load(filepath)
 
         obj2 = MultiIndex.from_tuples(obj.values)
         self.assert_(obj.equals(obj2))
