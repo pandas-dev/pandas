@@ -612,6 +612,29 @@ class TestResamplePeriodIndex(unittest.TestCase):
         result = ts.resample('A')
         self.assert_(len(result) == 0)
 
+    def test_resample_irregular_sparse(self):
+        dr = date_range(start='1/1/2012', freq='5min', periods=1000)
+        s = Series(np.array(100), index=dr)
+        # subset the data.
+        subset = s[:'2012-01-04 07:00']
+
+        result = subset.resample('10min', how=len)
+        expected = s.resample('10min', how=len).ix[result.index]
+        assert_series_equal(result, expected)
+
+    def test_resample_weekly_all_na(self):
+        rng = date_range('1/1/2000', periods=10, freq='W-WED')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        result = ts.resample('W-THU')
+
+        self.assert_(result.isnull().all())
+
+        result = ts.resample('W-THU', fill_method='ffill')[:-1]
+        expected = ts.asfreq('W-THU', method='ffill')
+        assert_series_equal(result, expected)
+
+
 class TestTimeGrouper(unittest.TestCase):
 
     def setUp(self):

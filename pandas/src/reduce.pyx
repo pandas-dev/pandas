@@ -154,7 +154,7 @@ cdef class SeriesBinGrouper:
 
         counts = np.zeros(self.ngroups, dtype=np.int64)
 
-        if self.ngroups > 0:
+        if self.ngroups > 1:
             counts[0] = self.bins[0]
             for i in range(1, self.ngroups):
                 if i == self.ngroups - 1:

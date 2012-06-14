@@ -140,17 +140,23 @@ class TimeGrouper(CustomGrouper):
 
         binner, grouper = self._get_time_grouper(obj)
 
-        # downsamples
-        if len(grouper.binlabels) < len(axlabels):
+        # Determine if we're downsampling
+        if axlabels.freq is not None or axlabels.inferred_freq is not None:
+            if len(grouper.binlabels) < len(axlabels):
+                grouped  = obj.groupby(grouper, axis=self.axis)
+                result = grouped.aggregate(self.how)
+            else:
+                # upsampling shortcut
+                assert(self.axis == 0)
+                result = obj.reindex(binner[1:], method=self.fill_method,
+                                     limit=self.limit)
+        else:
+            # Irregular data, have to use groupby
             grouped  = obj.groupby(grouper, axis=self.axis)
             result = grouped.aggregate(self.how)
-        else:
-            assert(self.axis == 0)
-            # upsampling
 
-            # this is sort of a hack
-            result = obj.reindex(binner[1:], method=self.fill_method,
-                                 limit=self.limit)
+            if self.fill_method is not None:
+                result = result.fillna(method=self.fill_method, limit=self.limit)
 
         loffset = self.loffset
         if isinstance(loffset, basestring):
