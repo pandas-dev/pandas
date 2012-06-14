@@ -139,6 +139,9 @@ pandas 0.8.0
   - Series.append and DataFrame.append no longer check for duplicate indexes
     by default, add verify_integrity parameter (#1394)
   - Refactor Factor class, old constructor moved to Factor.from_array
+  - Modified internals of MultiIndex to use less memory (no longer represented
+    as array of tuples) internally, speed up construction time and many methods
+    which construct intermediate hierarchical indexes (#1467)
 
 **Bug fixes**
 
