@@ -9,6 +9,7 @@ from pandas.tseries.offsets import Minute, BDay
 from pandas.tseries.period import period_range, PeriodIndex
 from pandas.tseries.resample import DatetimeIndex, TimeGrouper
 import pandas.tseries.offsets as offsets
+import pandas as pd
 
 import unittest
 import nose
@@ -429,6 +430,41 @@ class TestResample(unittest.TestCase):
         expected = ts.resample('W-SUN')
         assert_series_equal(resampled, expected)
 
+    def test_monthly_resample_error(self):
+        # #1451
+        dates = date_range('4/16/2012 20:00', periods=5000, freq='h')
+        ts = Series(np.random.randn(len(dates)), index=dates)
+        # it works!
+        result = ts.resample('M')
+
+    def test_resample_anchored_intraday(self):
+        # #1471, #1458
+
+        rng = pd.date_range('1/1/2012', '4/1/2012', freq='10min')
+        df = DataFrame(rng.month, index=rng)
+
+        result = df.resample('M')
+        expected = df.resample('M', kind='period').to_timestamp()
+        tm.assert_frame_equal(result, expected)
+
+        result = df.resample('M', closed='left')
+        expected = df.resample('M', kind='period', closed='left').to_timestamp()
+        tm.assert_frame_equal(result, expected)
+
+        rng = pd.date_range('1/1/2012', '4/1/2013', freq='10min')
+        df = DataFrame(rng.month, index=rng)
+
+        result = df.resample('Q')
+        expected = df.resample('Q', kind='period').to_timestamp()
+        tm.assert_frame_equal(result, expected)
+
+        result = df.resample('Q', closed='left')
+        expected = df.resample('Q', kind='period', closed='left').to_timestamp()
+        tm.assert_frame_equal(result, expected)
+
+
+rng = pd.date_range('1/1/2012', '4/1/2015', freq='10min')
+df = DataFrame(rng.month, index=rng)
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)

@@ -927,12 +927,6 @@ class TestTimeSeries(unittest.TestCase):
 
         assert_series_equal(result, expected)
 
-    def test_monthly_resample_error(self):
-        # #1451
-        dates = date_range('4/16/2012 20:00', periods=5000, freq='h')
-        ts = Series(randn(len(dates)), index=dates)
-        # it works!
-        result = ts.resample('M')
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)

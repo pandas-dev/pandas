@@ -5,7 +5,7 @@ import numpy as np
 from pandas.core.groupby import BinGrouper, CustomGrouper
 from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
 from pandas.tseries.index import DatetimeIndex, date_range
-from pandas.tseries.offsets import DateOffset
+from pandas.tseries.offsets import DateOffset, Tick, _delta_to_nanoseconds
 from pandas.tseries.period import Period, PeriodIndex, period_range
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
@@ -105,8 +105,24 @@ class TimeGrouper(CustomGrouper):
             binner = binner[:-1]
             trimmed = True
 
+        ax_values = axis.asi8
+        bin_edges = binner.asi8
+
+        # Some hacks for > daily data, see #1471, #1458
+        if self.freq != 'D' and is_superperiod(self.freq, 'D'):
+            day_nanos = _delta_to_nanoseconds(timedelta(1))
+            if self.closed == 'right':
+                bin_edges = bin_edges + day_nanos - 1
+            else:
+                bin_edges = bin_edges + day_nanos
+
+            # intraday values on last day
+            if bin_edges[-2] > ax_values[-1]:
+                bin_edges = bin_edges[:-1]
+                binner = binner[:-1]
+
         # general version, knowing nothing about relative frequencies
-        bins = lib.generate_bins_dt64(axis.asi8, binner.asi8, self.closed)
+        bins = lib.generate_bins_dt64(ax_values, bin_edges, self.closed)
 
         if self.closed == 'right':
             labels = binner
@@ -236,7 +252,6 @@ def _take_new_index(obj, indexer, new_index, axis=0):
 
 def _get_range_edges(axis, begin, end, offset, closed='left',
                      base=0):
-    from pandas.tseries.offsets import Tick, _delta_to_nanoseconds
     if isinstance(offset, basestring):
         offset = to_offset(offset)
 

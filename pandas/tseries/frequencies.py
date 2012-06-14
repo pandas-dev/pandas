@@ -902,6 +902,12 @@ def is_subperiod(source, target):
     -------
     is_subperiod : boolean
     """
+    if isinstance(source, offsets.DateOffset):
+        source = source.rule_code
+
+    if isinstance(target, offsets.DateOffset):
+        target = target.rule_code
+
     target = target.upper()
     source = source.upper()
     if _is_annual(target):
@@ -933,6 +939,12 @@ def is_superperiod(source, target):
     -------
     is_superperiod : boolean
     """
+    if isinstance(source, offsets.DateOffset):
+        source = source.rule_code
+
+    if isinstance(target, offsets.DateOffset):
+        target = target.rule_code
+
     target = target.upper()
     source = source.upper()
     if _is_annual(source):
@@ -974,11 +986,13 @@ def _quarter_months_conform(source, target):
     return snum % 3 == tnum % 3
 
 def _is_quarterly(rule):
-    return rule.upper().startswith('Q-')
+    rule = rule.upper()
+    return rule == 'Q' or rule.startswith('Q-')
 
 
 def _is_weekly(rule):
-    return rule.upper().startswith('W-')
+    rule = rule.upper()
+    return rule == 'W' or rule.startswith('W-')
 
 
 DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
