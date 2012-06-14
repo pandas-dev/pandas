@@ -7,17 +7,18 @@ import nose
 import numpy as np
 
 from pandas.core.api import value_counts
-from pandas.core.factor import Factor
+from pandas.core.factor import Categorical
 from pandas.core.index import Index, Int64Index, MultiIndex
 from pandas.util.testing import assert_almost_equal
+import pandas.core.common as com
 
 import pandas.util.testing as tm
 
 
-class TestFactor(unittest.TestCase):
+class TestCategorical(unittest.TestCase):
 
     def setUp(self):
-        self.factor = Factor.from_array(['a', 'b', 'b', 'a',
+        self.factor = Categorical.from_array(['a', 'b', 'b', 'a',
                                          'a', 'c', 'c', 'c'])
 
     def test_getitem(self):
@@ -34,7 +35,7 @@ class TestFactor(unittest.TestCase):
         arr = np.array([1, 2, 3, datetime.now()], dtype='O')
 
         # it works!
-        factor = Factor.from_array(arr)
+        factor = Categorical.from_array(arr)
 
     def test_factor_agg(self):
         import pandas.core.frame as frame
@@ -89,11 +90,23 @@ class TestFactor(unittest.TestCase):
         arr = np.random.randn(4)
         factor = cut(arr, 4)
 
-        self.assert_(isinstance(factor, Factor))
+        self.assert_(isinstance(factor, Categorical))
 
         result = value_counts(factor)
         expected = value_counts(np.asarray(factor))
         tm.assert_series_equal(result, expected)
+
+    def test_na_flags_int_levels(self):
+        # #1457
+
+        levels = range(10)
+        labels = np.random.randint(0, 10, 20)
+        labels[::5] = -1
+
+        cat = Categorical(labels, levels)
+        repr(cat)
+
+        self.assert_(np.array_equal(com.isnull(cat), labels == -1))
 
 if __name__ == '__main__':
     import nose

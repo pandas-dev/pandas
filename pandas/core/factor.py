@@ -76,7 +76,7 @@ class Categorical(object):
     __ge__ = _cat_compare_op('__ge__')
 
     def __array__(self, dtype=None):
-        return com.take_1d(self.levels, self.labels)
+        return com.take_1d(self.levels.values, self.labels)
 
     def __len__(self):
         return len(self.labels)
