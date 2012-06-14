@@ -12,6 +12,7 @@ from matplotlib.transforms import nonsingular
 
 import numpy as np
 
+from pandas import isnull
 from pandas.tseries.offsets import DateOffset
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import FreqGroup
@@ -98,7 +99,7 @@ def tsplot(series, plotf, *args, **kwargs):
     if freq != series.index.freq:
         series = series.asfreq(freq)
 
-    series = series.dropna()
+    mask = isnull(series)
 
     style = kwargs.pop('style', None)
 
@@ -117,7 +118,9 @@ def tsplot(series, plotf, *args, **kwargs):
     ax.date_axis_info = None
 
     # format args and lot
-    args = _check_plot_params(series, series.index, freq, style, *args)
+    masked_array = np.ma.array(series.values)
+    masked_array = np.ma.masked_where(mask, masked_array)
+    args = _check_plot_params(masked_array, series.index, freq, style, *args)
     plotted = plotf(ax, *args,  **kwargs)
 
     format_dateaxis(ax, ax.freq)
