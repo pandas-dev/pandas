@@ -192,6 +192,21 @@ class TestTSPlot(unittest.TestCase):
             rs = xaxis.get_majorticklocs()[0]
             self.assert_(rs == xp)
 
+    @slow
+    def test_gaps(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        ts = tm.makeTimeSeries()
+        ts[5:25] = np.nan
+        ax = ts.plot()
+        lines = ax.get_lines()
+        self.assert_(len(lines) == 1)
+        l = lines[0]
+        data = l.get_xydata()
+        self.assert_(isinstance(data, np.ma.core.MaskedArray))
+        mask = data.mask
+        self.assert_(mask[5:25, 1].all())
+
 PNG_PATH = 'tmp.png'
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     import matplotlib.pyplot as plt
