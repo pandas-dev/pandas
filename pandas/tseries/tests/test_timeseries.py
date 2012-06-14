@@ -906,6 +906,14 @@ class TestTimeSeries(unittest.TestCase):
         ex_index = DatetimeIndex(np.tile(rng.values, 3))
         self.assert_(appended.equals(ex_index))
 
+    def test_set_dataframe_column_ns_dtype(self):
+        x = DataFrame([datetime.now(), datetime.now()])
+        self.assert_(x[0].dtype == object)
+
+        x[0] = to_datetime(x[0])
+        self.assert_(x[0].dtype == np.dtype('M8[ns]'))
+
+
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
     return Series(np.random.randn(len(rng)), index=rng)

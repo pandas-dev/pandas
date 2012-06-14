@@ -388,7 +388,7 @@ class ObjectBlock(Block):
     def should_store(self, value):
         return not issubclass(value.dtype.type,
                               (np.integer, np.floating, np.complexfloating,
-                               np.bool_))
+                               np.datetime64, np.bool_))
 
 _NS_DTYPE = np.dtype('M8[ns]')
 
