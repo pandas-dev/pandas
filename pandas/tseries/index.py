@@ -1154,7 +1154,16 @@ class DatetimeIndex(Int64Index):
             except:
                 return False
 
-        return self.tz == other.tz and np.array_equal(self.asi8, other.asi8)
+        if self.tz is not None:
+            if other.tz is None:
+                return False
+            same_zone = self.tz.zone == other.tz.zone
+        else:
+            if other.tz is not None:
+                return False
+            same_zone = True
+
+        return same_zone and np.array_equal(self.asi8, other.asi8)
 
     def insert(self, loc, item):
         """

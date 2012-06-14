@@ -18,6 +18,14 @@ import pandas.util.testing as tm
 
 bday = BDay()
 
+
+def _skip_if_no_pytz():
+    try:
+        import pytz
+    except ImportError:
+        raise nose.SkipTest
+
+
 class TestResample(unittest.TestCase):
 
     def setUp(self):
@@ -421,6 +429,7 @@ class TestResample(unittest.TestCase):
         expected = ts.resample('W-SUN')
         assert_series_equal(resampled, expected)
 
+
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
     return Series(np.random.randn(len(rng)), index=rng)
@@ -634,6 +643,22 @@ class TestResamplePeriodIndex(unittest.TestCase):
         expected = ts.asfreq('W-THU', method='ffill')
         assert_series_equal(result, expected)
 
+    def test_resample_tz_localized(self):
+        dr = date_range(start='2012-4-13', end='2012-5-1')
+        ts = Series(range(len(dr)), dr)
+
+        ts_utc = ts.tz_localize('UTC')
+        ts_local = ts_utc.tz_convert('America/Los_Angeles')
+
+        result = ts_local.resample('W')
+
+        ts_local_naive = ts_local.copy()
+        ts_local_naive.index = [x.replace(tzinfo=None)
+                                for x in ts_local_naive.index.to_pydatetime()]
+
+        exp = ts_local_naive.resample('W').tz_localize('America/Los_Angeles')
+
+        assert_series_equal(result, exp)
 
 class TestTimeGrouper(unittest.TestCase):
 

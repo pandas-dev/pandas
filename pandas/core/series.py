@@ -2562,6 +2562,50 @@ copy : boolean, default False
     def weekday(self):
         return Series([d.weekday() for d in self.index], index=self.index)
 
+    def tz_convert(self, tz, copy=True):
+        """
+        Convert TimeSeries to target time zone
+
+        Parameters
+        ----------
+        tz : string or pytz.timezone object
+        copy : boolean, default True
+            Also make a copy of the underlying data
+
+        Returns
+        -------
+        converted : TimeSeries
+        """
+        new_index = self.index.tz_convert(tz)
+
+        new_values = self.values
+        if copy:
+            new_values = new_values.copy()
+
+        return Series(new_values, index=new_index, name=self.name)
+
+    def tz_localize(self, tz, copy=True):
+        """
+        Localize tz-naive TimeSeries to target time zone
+
+        Parameters
+        ----------
+        tz : string or pytz.timezone object
+        copy : boolean, default True
+            Also make a copy of the underlying data
+
+        Returns
+        -------
+        localized : TimeSeries
+        """
+        new_index = self.index.tz_localize(tz)
+
+        new_values = self.values
+        if copy:
+            new_values = new_values.copy()
+
+        return Series(new_values, index=new_index, name=self.name)
+
 
 _INDEX_TYPES = ndarray, Index, list, tuple
 
@@ -2765,50 +2809,6 @@ class TimeSeries(Series):
         return values_between_time(self, start_time, end_time, tz=tz,
                                    include_start=include_start,
                                    include_end=include_end)
-
-    def tz_convert(self, tz, copy=True):
-        """
-        Convert TimeSeries to target time zone
-
-        Parameters
-        ----------
-        tz : string or pytz.timezone object
-        copy : boolean, default True
-            Also make a copy of the underlying data
-
-        Returns
-        -------
-        converted : TimeSeries
-        """
-        new_index = self.index.tz_convert(tz)
-
-        new_values = self.values
-        if copy:
-            new_values = new_values.copy()
-
-        return Series(new_values, index=new_index, name=self.name)
-
-    def tz_localize(self, tz, copy=True):
-        """
-        Localize tz-naive TimeSeries to target time zone
-
-        Parameters
-        ----------
-        tz : string or pytz.timezone object
-        copy : boolean, default True
-            Also make a copy of the underlying data
-
-        Returns
-        -------
-        localized : TimeSeries
-        """
-        new_index = self.index.tz_localize(tz)
-
-        new_values = self.values
-        if copy:
-            new_values = new_values.copy()
-
-        return Series(new_values, index=new_index, name=self.name)
 
     def to_timestamp(self, freq=None, how='start', copy=True):
         """
