@@ -306,6 +306,8 @@ class MonthEnd(DateOffset, CacheableOffset):
     """DateOffset of one month end"""
 
     def apply(self, other):
+        other = datetime(other.year, other.month, other.day)
+
         n = self.n
         _, days_in_month = lib.monthrange(other.year, other.month)
         if other.day != days_in_month:
@@ -317,7 +319,7 @@ class MonthEnd(DateOffset, CacheableOffset):
 
     @classmethod
     def onOffset(cls, dt):
-        __junk, days_in_month = lib.monthrange(dt.year, dt.month)
+        days_in_month = lib.monthrange(dt.year, dt.month)[1]
         return dt.day == days_in_month
 
     @property
@@ -354,6 +356,8 @@ class BusinessMonthEnd(DateOffset, CacheableOffset):
         return (self.n == 1)
 
     def apply(self, other):
+        other = datetime(other.year, other.month, other.day)
+
         n = self.n
 
         wkday, days_in_month = lib.monthrange(other.year, other.month)

@@ -914,8 +914,6 @@ class TestTimeSeries(unittest.TestCase):
         self.assert_(x[0].dtype == np.dtype('M8[ns]'))
 
     def test_groupby_count_dateparseerror(self):
-        from pandas import *
-
         dr = date_range(start='1/1/2012', freq='5min', periods=10)
 
         # BAD Example, datetimes first
@@ -928,6 +926,13 @@ class TestTimeSeries(unittest.TestCase):
         expected = grouped.count()
 
         assert_series_equal(result, expected)
+
+    def test_monthly_resample_error(self):
+        # #1451
+        dates = date_range('4/16/2012 20:00', periods=5000, freq='h')
+        ts = Series(randn(len(dates)), index=dates)
+        # it works!
+        result = ts.resample('M')
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)

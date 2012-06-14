@@ -474,6 +474,13 @@ class TestBMonthEnd(unittest.TestCase):
             for base, expected in cases.iteritems():
                 assertEq(offset, base, expected)
 
+    def test_normalize(self):
+        dt = datetime(2007, 1, 1, 3)
+
+        result = dt + BMonthEnd()
+        expected = dt.replace(hour=0) + BMonthEnd()
+        self.assertEqual(result, expected)
+
     def test_onOffset(self):
 
         tests = [(BMonthEnd(), datetime(2007, 12, 31), True),
@@ -566,6 +573,13 @@ class TestMonthEnd(unittest.TestCase):
         for offset, cases in tests:
             for base, expected in cases.iteritems():
                 assertEq(offset, base, expected)
+
+    def test_normalize(self):
+        dt = datetime(2007, 1, 1, 3)
+
+        result = dt + MonthEnd()
+        expected = dt.replace(hour=0) + MonthEnd()
+        self.assertEqual(result, expected)
 
     def test_onOffset(self):
 
