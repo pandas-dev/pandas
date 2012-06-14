@@ -44,7 +44,7 @@ The ``plot`` method on Series and DataFrame is just a simple wrapper around
    @savefig series_plot_basic.png width=4.5in
    ts.plot()
 
-If the index consists of dates, it calls ``gca().autofmt_xdate()`` to try to
+If the index consists of dates, it calls ``gcf().autofmt_xdate()`` to try to
 format the x-axis nicely as per above. The method takes a number of arguments
 for controlling the look of the plot:
 
