@@ -3,10 +3,9 @@ import numpy as np
 
 from pandas.core.api import Series, DataFrame, isnull, notnull
 from pandas.core.series import remove_na
-from pandas.compat.scipy import scoreatpercentile
 
 from pandas.tools.tile import (bucket, bucketcat, bucketpanel,
-                               quantileTS, makeQuantiles)
+                               quantileTS)
 
 
 def zscore(series):

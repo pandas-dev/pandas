@@ -279,12 +279,12 @@ def bucketcat(series, cats):
     cats = np.asarray(cats)
 
     unique_labels = np.unique(cats)
-    unique_labels = unique_labels[notnull(unique_labels)]
+    unique_labels = unique_labels[com.notnull(unique_labels)]
 
     # group by
     data = {}
 
-    for i, label in enumerate(unique_labels):
+    for label in unique_labels:
         data[label] = series[cats == label]
 
     return DataFrame(data, columns=unique_labels)
@@ -331,15 +331,12 @@ def _bucketpanel_by(series, xby, yby, xbins, ybins):
     xby = xby.reindex(series.index)
     yby = yby.reindex(series.index)
 
-    n = len(series)
-    # indices = np.arange(n)
-
     xlabels = _bucket_labels(xby.reindex(series.index), xbins)
     ylabels = _bucket_labels(yby.reindex(series.index), ybins)
 
     labels = _uniquify(xlabels, ylabels, xbins, ybins)
 
-    mask = isnull(labels)
+    mask = com.isnull(labels)
     labels[mask] = -1
 
     unique_labels = np.unique(labels)
@@ -354,8 +351,8 @@ def _bucketpanel_by(series, xby, yby, xbins, ybins):
         xlab = xlabels[pos]
         ylab = ylabels[pos]
 
-        return '%sx%s' % (int(xlab) if notnull(xlab) else 'NULL',
-                          int(ylab) if notnull(ylab) else 'NULL')
+        return '%sx%s' % (int(xlab) if com.notnull(xlab) else 'NULL',
+                          int(ylab) if com.notnull(ylab) else 'NULL')
 
     return bucketed.rename(columns=relabel)
 
@@ -372,7 +369,7 @@ def _bucketpanel_cat(series, xcat, ycat):
     sorted_ylabels = ylabels.take(sorter)
 
     unique_labels = np.unique(labels)
-    unique_labels = unique_labels[notnull(unique_labels)]
+    unique_labels = unique_labels[com.notnull(unique_labels)]
 
     locs = sorted_labels.searchsorted(unique_labels)
     xkeys = sorted_xlabels.take(locs)
@@ -394,8 +391,6 @@ def _intern(values):
     labels = uniqued.searchsorted(values)
     return labels, uniqued
 
-def _intern_fast(values):
-    pass
 
 def _uniquify(xlabels, ylabels, xbins, ybins):
     # encode the stuff, create unique label
@@ -405,19 +400,6 @@ def _uniquify(xlabels, ylabels, xbins, ybins):
 
     return _xpiece + _ypiece
 
-def _cat_labels(labels):
-    # group by
-    data = {}
-
-    unique_labels = np.unique(labels)
-    unique_labels = unique_labels[notnull(unique_labels)]
-
-    for label in unique_labels:
-        mask = labels == label
-        data[stringified] = series[mask]
-
-    return DataFrame(data, index=series.index)
-
 def _bucket_labels(series, k):
     arr = np.asarray(series)
     mask = np.isfinite(arr)
@@ -426,42 +408,11 @@ def _bucket_labels(series, k):
 
     split = np.array_split(np.arange(n)[mask].take(order), k)
 
-    bucketsize = n / k
-
     mat = np.empty(n, dtype=float) * np.NaN
     for i, v in enumerate(split):
         mat[v] = i
 
     return mat + 1
-
-def makeQuantiles(series, n):
-    """
-    Compute quantiles of input series.
-
-    Parameters
-    ----------
-    series: Series
-        Must have 'order' method and index
-    n: int
-        Number of quantile buckets
-
-    Returns
-    -------
-    (edges, quantiles)
-       edges: ith bucket --> (left edge, right edge)
-       quantiles: ith bucket --> set of values
-    """
-    series = remove_na(series).copy()
-    series = series.order()
-    quantiles = {}
-    edges = {}
-    T = float(len(series))
-    inc = T / n
-    for i in range(n):
-        theSlice = series[inc*i:(i+1)*inc]
-        quantiles[i+1] = theSlice
-        edges[i+1] = theSlice[0], theSlice[-1]
-    return edges, quantiles
 
 def quantileTS(frame, percentile):
     """
@@ -477,10 +428,12 @@ def quantileTS(frame, percentile):
     -------
     Series (or TimeSeries)
     """
+    from pandas.compat.scipy import scoreatpercentile
+
     def func(x):
         x = np.asarray(x.valid())
         if x.any():
             return scoreatpercentile(x, percentile)
         else:
-            return NaN
+            return np.nan
     return frame.apply(func, axis=1)
