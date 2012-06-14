@@ -7,7 +7,7 @@ import nose
 import numpy as np
 
 from pandas.core.api import value_counts
-from pandas.core.factor import Categorical
+from pandas.core.categorical import Categorical
 from pandas.core.index import Index, Int64Index, MultiIndex
 from pandas.util.testing import assert_almost_equal
 import pandas.core.common as com

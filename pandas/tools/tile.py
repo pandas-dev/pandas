@@ -3,7 +3,7 @@ Quantilization functions and related stuff
 """
 
 from pandas.core.api import DataFrame, Series
-from pandas.core.factor import Factor
+from pandas.core.categorical import Categorical
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 import pandas.core.nanops as nanops
@@ -181,7 +181,7 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
         if has_nas:
             np.putmask(ids, mask, 0)
 
-        fac = Factor(ids - 1, levels, name=name)
+        fac = Categorical(ids - 1, levels, name=name)
     else:
         fac = ids - 1
         if has_nas:

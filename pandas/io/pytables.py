@@ -18,7 +18,7 @@ from pandas.tseries.api import PeriodIndex, DatetimeIndex
 from pandas.core.common import adjoin
 from pandas.core.algorithms import match, unique
 
-from pandas.core.factor import Factor
+from pandas.core.categorical import Factor
 from pandas.core.common import _asarray_tuplesafe
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.reshape import block2d_to_block3d

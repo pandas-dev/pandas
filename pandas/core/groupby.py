@@ -3,7 +3,7 @@ import types
 import numpy as np
 
 from pandas.core.algorithms import unique
-from pandas.core.factor import Factor
+from pandas.core.categorical import Factor
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index

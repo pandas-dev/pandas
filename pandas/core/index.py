@@ -1458,7 +1458,7 @@ class MultiIndex(Index):
         -------
         index : MultiIndex
         """
-        from pandas.core.factor import Factor
+        from pandas.core.categorical import Factor
 
         if len(arrays) == 1:
             name = None if names is None else names[0]
