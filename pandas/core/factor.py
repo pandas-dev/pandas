@@ -82,10 +82,18 @@ class Categorical(object):
         return len(self.labels)
 
     def __repr__(self):
-        temp = 'Categorical: %s\n%s\nLevels (%d): %s'
+        temp = 'Categorical: %s\n%s\n%s'
         values = np.asarray(self)
+        levheader = 'Levels (%d): ' % len(self.levels)
+        levstring = np.array_repr(self.levels,
+                                  max_line_width=60)
+
+        indent = ' ' * (levstring.find('[') + len(levheader) + 1)
+        lines = levstring.split('\n')
+        levstring = '\n'.join([lines[0]] + [indent + x.lstrip() for x in lines[1:]])
+
         return temp % ('' if self.name is None else self.name,
-                       repr(values), len(self.levels), self.levels)
+                       repr(values), levheader + levstring)
 
     def __getitem__(self, key):
         if isinstance(key, (int, np.integer)):
