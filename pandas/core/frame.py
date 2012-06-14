@@ -749,15 +749,32 @@ class DataFrame(NDFrame):
 
         return DataFrame(data, dtype=dtype)
 
-    def to_dict(self):
+    def to_dict(self, outtype='dict'):
         """
-        Convert DataFrame to nested dictionary
+        Convert DataFrame to dictionary.
+
+        Parameters
+        ----------
+        outtype : str {'dict', 'list', 'series'}
+            Determines the type of the values of the dictionary. The
+            default `dict` is a nested dictionary {column -> {index -> value}}.
+            `list` returns {column -> list(values)}. `series` returns
+            {column -> Series(values)}.
+            Abbreviations are allowed.
+
 
         Returns
         -------
         result : dict like {column -> {index -> value}}
         """
-        return dict((k, v.to_dict()) for k, v in self.iteritems())
+        if outtype.lower().startswith('d'):
+            return dict((k, v.to_dict()) for k, v in self.iteritems())
+        elif outtype.lower().startswith('l'):
+            return dict((k, v.tolist()) for k, v in self.iteritems())
+        elif outtype.lower().startswith('s'):
+            return dict((k, v) for k,v in self.iteritems())
+        else: # pragma: no cover
+            raise ValueError("outtype %s not understood" % outtype)
 
     @classmethod
     def from_records(cls, data, index=None, exclude=None, columns=None,
