@@ -2140,8 +2140,8 @@ class MultiIndex(Index):
             return False
 
         for i in xrange(self.nlevels):
-            svalues = np.asarray(self.levels[i]).take(self.labels[i])
-            ovalues = np.asarray(other.levels[i]).take(other.labels[i])
+            svalues = ndtake(self.levels[i].values, self.labels[i])
+            ovalues = ndtake(other.levels[i].values, other.labels[i])
             if not np.array_equal(svalues, ovalues):
                 return False
 
