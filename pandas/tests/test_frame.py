@@ -5235,6 +5235,23 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                               [1.5, nan, 7.]])
         assert_frame_equal(df, expected)
 
+    def test_update_nooverwrite(self):
+        df = DataFrame([[1.5, nan, 3.],
+                        [1.5, nan, 3.],
+                        [1.5, nan, 3],
+                        [1.5, nan, 3]])
+
+        other = DataFrame([[3.6, 2., np.nan],
+                           [np.nan, np.nan, 7]], index=[1, 3])
+
+        df.update(other, overwrite=False)
+
+        expected = DataFrame([[1.5, nan, 3],
+                              [1.5, 2, 3],
+                              [1.5, nan, 3],
+                              [1.5, nan, 3.]])
+        assert_frame_equal(df, expected)
+
     def test_combineAdd(self):
         # trivial
         comb = self.frame.combineAdd(self.frame)
