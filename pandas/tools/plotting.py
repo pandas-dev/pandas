@@ -8,9 +8,9 @@ from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 from pandas.core.index import Index, MultiIndex
 from pandas.core.series import Series
-from pandas.tseries.frequencies import to_calendar_freq
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
+from pandas.tseries.frequencies import get_period_alias
 from pandas.tseries.offsets import DateOffset
 import pandas.tseries.tools as datetools
 
@@ -634,7 +634,7 @@ class LinePlot(MPLPlot):
             isinstance(data, DataFrame)):
             freq = getattr(data.index, 'freqstr', None)
 
-            freq = to_calendar_freq(freq)
+            freq = get_period_alias(freq)
 
             if freq is None and hasattr(data.index, 'inferred_freq'):
                 freq = data.index.inferred_freq
