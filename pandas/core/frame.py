@@ -3143,7 +3143,7 @@ class DataFrame(NDFrame):
         combiner = lambda x, y: np.where(isnull(x), y, x)
         return self.combine(other, combiner)
 
-    def update(self, other, join='left', overwrite=True):
+    def update(self, other, join='left', overwrite=True, filter_func=None):
         """
         Modify DataFrame in place using non-NA values from passed
         DataFrame. Aligns on indices
@@ -3153,8 +3153,10 @@ class DataFrame(NDFrame):
         other : DataFrame
         join : {'left', 'right', 'outer', 'inner'}, default 'left'
         overwrite : boolean, default True
-            If True then overwrite values for common keys in the calling
-            frame
+            If True then overwrite values for common keys in the calling frame
+        filter_func : callable(1d-array) -> 1d-array<boolean>, default None
+            Can choose to replace values other than NA. Return True for values
+            that should be updated
         """
         if join != 'left':
             raise NotImplementedError
@@ -3163,10 +3165,13 @@ class DataFrame(NDFrame):
         for col in self.columns:
             this = self[col].values
             that = other[col].values
-            if overwrite:
-                mask = isnull(that)
+            if filter_func is not None:
+                mask = -filter_func(this) | isnull(that)
             else:
-                mask = notnull(this)
+                if overwrite:
+                    mask = isnull(that)
+                else:
+                    mask = notnull(this)
             self[col] = np.where(mask, this, that)
 
     #----------------------------------------------------------------------
