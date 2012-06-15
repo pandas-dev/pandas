@@ -81,11 +81,10 @@ def tsplot(series, plotf, *args, **kwargs):
     else:
         freq = frequencies.get_base_alias(freq)
 
-    freq = frequencies.to_calendar_freq(freq)
+    freq = frequencies.get_period_alias(freq)
     # Convert DatetimeIndex to PeriodIndex
     if isinstance(series.index, DatetimeIndex):
-        idx = series.index.to_period(freq=freq)
-        series = Series(series.values, idx, name=series.name)
+        series = series.to_period(freq=freq)
 
     if not isinstance(series.index, PeriodIndex):
         #try to get it to DatetimeIndex then to period
@@ -98,8 +97,6 @@ def tsplot(series, plotf, *args, **kwargs):
 
     if freq != series.index.freq:
         series = series.asfreq(freq)
-
-
 
     style = kwargs.pop('style', None)
 
