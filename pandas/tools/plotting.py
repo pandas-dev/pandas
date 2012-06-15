@@ -615,6 +615,10 @@ class LinePlot(MPLPlot):
                 if self.style:
                     style = self.style
 
+                mask = com.isnull(y)
+                if mask.any():
+                    y = np.ma.array(y)
+                    y = np.ma.masked_where(mask, y)
                 plotf(ax, x, y, style, label=label, **self.kwds)
                 ax.grid(self.grid)
                 idx = getattr(self.data, 'index', None)
