@@ -283,27 +283,13 @@ def pivot(self, index=None, columns=None, values=None):
     """
     See DataFrame.pivot
     """
-    index_vals = self[index]
-    column_vals = self[columns]
-    mindex = MultiIndex.from_arrays([index_vals, column_vals],
-                                    names=[index, columns])
-
     if values is None:
-        items = self.columns - [index, columns]
-        mat = self.reindex(columns=items).values
+        indexed = self.set_index([index, columns])
+        return indexed.unstack(columns)
     else:
-        items = [values]
-        mat = np.atleast_2d(self[values].values).T
-
-    stacked = DataFrame(mat, index=mindex, columns=items)
-
-    if not mindex.is_lexsorted():
-        stacked = stacked.sortlevel(level=0)
-
-    unstacked = stacked.unstack()
-    if values is not None:
-        unstacked.columns = unstacked.columns.droplevel(0)
-    return unstacked
+        indexed = Series(self[values],
+                         index=[self[index], self[columns]])
+        return indexed.unstack(columns)
 
 def pivot_simple(index, columns, values):
     """

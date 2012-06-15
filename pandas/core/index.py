@@ -1503,15 +1503,14 @@ class MultiIndex(Index):
             name = None if names is None else names[0]
             return Index(arrays[0], name=name)
 
-        levels = []
-        labels = []
-        for arr in arrays:
-            factor = Categorical.from_array(arr)
-            levels.append(factor.levels)
-            labels.append(factor.labels)
+        cats = [Categorical.from_array(arr) for arr in arrays]
+        levels = [c.levels for c in cats]
+        labels = [c.labels for c in cats]
+        if names is None:
+            names = [c.name for c in cats]
 
-        return MultiIndex(levels=levels, labels=labels, sortorder=sortorder,
-                          names=names)
+        return MultiIndex(levels=levels, labels=labels,
+                          sortorder=sortorder, names=names)
 
     @classmethod
     def from_tuples(cls, tuples, sortorder=None, names=None):

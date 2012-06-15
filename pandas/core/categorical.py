@@ -52,7 +52,8 @@ class Categorical(object):
         except TypeError:
             labels, levels, _ = factorize(data, sort=False)
 
-        return Categorical(labels, levels)
+        return Categorical(labels, levels,
+                           name=getattr(data, 'name', None))
 
     _levels = None
     def _set_levels(self, levels):
