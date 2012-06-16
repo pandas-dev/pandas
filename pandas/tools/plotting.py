@@ -178,6 +178,40 @@ def andrews_curves(data, class_column, ax=None, samples=200):
     ax.grid()
     return ax
 
+def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
+    import random
+    import matplotlib.pyplot as plt
+    data = series.values
+    samplings = [random.sample(data, size) for _ in range(samples)]
+    means = np.array([np.mean(sampling) for sampling in samplings])
+    medians = np.array([np.median(sampling) for sampling in samplings])
+    midranges = np.array([(min(sampling) + max(sampling)) * 0.5 for sampling in samplings])
+    if fig == None:
+        fig = plt.figure()
+    x = range(samples)
+    ax1 = fig.add_subplot(2, 3, 1)
+    ax1.set_xlabel("Sample")
+    ax1.set_ylabel("Mean")
+    ax1.plot(x, means, **kwds)
+    ax2 = fig.add_subplot(2, 3, 2)
+    ax2.set_xlabel("Sample")
+    ax2.set_ylabel("Median")
+    ax2.plot(x, medians, **kwds)
+    ax3 = fig.add_subplot(2, 3, 3)
+    ax3.set_xlabel("Sample")
+    ax3.set_ylabel("Midrange")
+    ax3.plot(x, midranges, **kwds)
+    ax4 = fig.add_subplot(2, 3, 4)
+    ax4.set_xlabel("Mean")
+    ax4.hist(means, **kwds)
+    ax5 = fig.add_subplot(2, 3, 5)
+    ax5.set_xlabel("Median")
+    ax5.hist(medians, **kwds)
+    ax6 = fig.add_subplot(2, 3, 6)
+    ax6.set_xlabel("Midrange")
+    ax6.hist(midranges, **kwds)
+    return fig
+
 def lag_plot(series, ax=None, **kwds):
     """Lag plot for time series.
 
