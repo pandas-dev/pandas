@@ -9,20 +9,21 @@
 #include <numpy/ndarraytypes.h>
 
 typedef enum {
-        PANDAS_FR_Y, /* Years */
-        PANDAS_FR_M, /* Months */
-        PANDAS_FR_W, /* Weeks */
-        PANDAS_FR_D, /* Days */
-        PANDAS_FR_h, /* hours */
-        PANDAS_FR_m, /* minutes */
-        PANDAS_FR_s, /* seconds */
-        PANDAS_FR_ms,/* milliseconds */
-        PANDAS_FR_us,/* microseconds */
-        PANDAS_FR_ns,/* nanoseconds */
-        PANDAS_FR_ps,/* picoseconds */
-        PANDAS_FR_fs,/* femtoseconds */
-        PANDAS_FR_as,/* attoseconds */
-        PANDAS_FR_GENERIC /* Generic, unbound units, can convert to anything */
+        PANDAS_FR_Y = 0, /* Years */
+        PANDAS_FR_M = 1, /* Months */
+        PANDAS_FR_W = 2, /* Weeks */
+        /* Gap where NPY_FR_B was */
+        PANDAS_FR_D = 4, /* Days */
+        PANDAS_FR_h = 5, /* hours */
+        PANDAS_FR_m = 6, /* minutes */
+        PANDAS_FR_s = 7, /* seconds */
+        PANDAS_FR_ms = 8,/* milliseconds */
+        PANDAS_FR_us = 9,/* microseconds */
+        PANDAS_FR_ns = 10,/* nanoseconds */
+        PANDAS_FR_ps = 11,/* picoseconds */
+        PANDAS_FR_fs = 12,/* femtoseconds */
+        PANDAS_FR_as = 13,/* attoseconds */
+        PANDAS_FR_GENERIC = 14 /* Generic, unbound units, can convert to anything */
 } PANDAS_DATETIMEUNIT;
 
 #define PANDAS_DATETIME_NUMUNITS 13

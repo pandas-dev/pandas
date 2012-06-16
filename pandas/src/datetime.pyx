@@ -26,8 +26,6 @@ PyDateTime_IMPORT
 # in numpy 1.7, will prob need the following:
 # numpy_pydatetime_import
 
-cdef bint numpy_16 = np.__version__ < '1.7'
-
 try:
     basestring
 except NameError: # py3
@@ -637,12 +635,8 @@ cdef inline _get_datetime64_nanos(object val):
         npy_datetime ival
 
     unit = get_datetime64_unit(val)
-    if numpy_16:
-        if unit == 3:
-            raise ValueError('NumPy 1.6.1 business freq not supported')
-
-        if unit > 3:
-            unit = <PANDAS_DATETIMEUNIT> ((<int>unit) - 1)
+    if unit == 3:
+        raise ValueError('NumPy 1.6.1 business freq not supported')
 
     ival = get_datetime64_value(val)
 
@@ -668,12 +662,8 @@ def cast_to_nanoseconds(ndarray arr):
     iresult = result.ravel().view(np.int64)
 
     unit = get_datetime64_unit(arr.flat[0])
-    if numpy_16:
-        if unit == 3:
-            raise ValueError('NumPy 1.6.1 business freq not supported')
-
-        if unit > 3:
-            unit = <PANDAS_DATETIMEUNIT> ((<int>unit) - 1)
+    if unit == 3:
+        raise ValueError('NumPy 1.6.1 business freq not supported')
 
     for i in range(n):
         pandas_datetime_to_datetimestruct(ivalues[i], unit, &dts)
