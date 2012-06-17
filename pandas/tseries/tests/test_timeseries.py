@@ -1509,6 +1509,18 @@ class TestSeriesDatetime64(unittest.TestCase):
         result = df.values.squeeze()
         self.assert_((result[:, 0] == expected.values).all())
 
+    def test_union(self):
+        from pandas import Series, DataFrame
+        import pandas as pd
+
+        rng1 = pd.date_range('1/1/1999', '1/1/2012', freq='MS')
+        s1 = Series(np.random.randn(len(rng1)), rng1)
+
+        rng2 = pd.date_range('1/1/1980', '12/1/2001', freq='MS')
+        s2 = Series(np.random.randn(len(rng2)), rng2)
+        df = DataFrame({'s1' : s1, 's2' : s2})
+        self.assert_(df.index.values.dtype == np.dtype('M8[ns]'))
+
 
 class TestTimestamp(unittest.TestCase):
 
