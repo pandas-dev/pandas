@@ -146,6 +146,13 @@ class TestCut(unittest.TestCase):
         ex_levels = ['[0, 2.25]', '(2.25, 4.5]', '(4.5, 6.75]', '(6.75, 9]']
         self.assert_((cats.levels == ex_levels).all())
 
+    def test_qcut_nas(self):
+        arr = np.random.randn(100)
+        arr[:20] = np.nan
+
+        result = qcut(arr, 4)
+        self.assert_(com.isnull(result[:20]).all())
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)

@@ -231,9 +231,17 @@ def quantile(x, q, interpolation_method='fraction'):
     49.5
 
     """
-    values = np.sort(np.asarray(x))
+    x = np.asarray(x)
+    mask = com.isnull(x)
+
+    x = x[-mask]
+
+    values = np.sort(x)
 
     def _get_score(at):
+        if len(values) == 0:
+            return np.nan
+
         idx = at * (len(values) - 1)
         if (idx % 1 == 0):
             score = values[idx]
