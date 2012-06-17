@@ -178,6 +178,53 @@ def andrews_curves(data, class_column, ax=None, samples=200):
     ax.grid()
     return ax
 
+def parallel_coordinates(data, class_column, cols=None, ax=None, **kwds):
+    """Parallel coordinates plotting.
+
+    Parameters:
+    -----------
+    data: A DataFrame containing data to be plotted
+    class_column: Column name containing class names
+    cols: A list of column names to use, optional
+    ax: matplotlib axis object, optional
+    kwds: A list of keywords for matplotlib plot method
+
+    Returns:
+    --------
+    ax: matplotlib axis object
+    """
+    import matplotlib.pyplot as plt
+    import random
+    def random_color(column):
+        random.seed(column)
+        return [random.random() for _ in range(3)]
+    n = len(data)
+    classes = set(data[class_column])
+    class_col = data[class_column]
+    if cols == None:
+        columns = [data[col] for col in data.columns if (col != class_column)]
+    else:
+        columns = [data[col] for col in cols]
+    used_legends = set([])
+    x = range(len(columns))
+    if ax == None:
+        ax = plt.gca()
+    for i in range(n):
+        row = [columns[c][i] for c in range(len(columns))]
+        y = row
+        label = None
+        if str(class_col[i]) not in used_legends:
+            label = str(class_col[i])
+            used_legends.add(label)
+        ax.plot(x, y, color=random_color(class_col[i]), label=label, **kwds)
+    for i, col in enumerate(columns):
+        ax.axvline(i, linewidth=1, color='black')
+    ax.set_xticks(range(len(columns)))
+    ax.set_xticklabels([col for col in data.columns if col != class_column])
+    ax.legend(loc='upper right')
+    ax.grid()
+    return ax
+
 def lag_plot(series, ax=None, **kwds):
     """Lag plot for time series.
 
