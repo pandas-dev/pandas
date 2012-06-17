@@ -194,7 +194,9 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     fig: matplotlib figure
     """
     import random
+    import matplotlib
     import matplotlib.pyplot as plt
+    matplotlib.rcParams.update({'font.size': 8})
     data = series.values
     samplings = [random.sample(data, size) for _ in range(samples)]
     means = np.array([np.mean(sampling) for sampling in samplings])
@@ -205,15 +207,12 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     x = range(samples)
     ax1 = fig.add_subplot(2, 3, 1)
     ax1.set_xlabel("Sample")
-    ax1.set_ylabel("Mean")
     ax1.plot(x, means, **kwds)
     ax2 = fig.add_subplot(2, 3, 2)
     ax2.set_xlabel("Sample")
-    ax2.set_ylabel("Median")
     ax2.plot(x, medians, **kwds)
     ax3 = fig.add_subplot(2, 3, 3)
     ax3.set_xlabel("Sample")
-    ax3.set_ylabel("Midrange")
     ax3.plot(x, midranges, **kwds)
     ax4 = fig.add_subplot(2, 3, 4)
     ax4.set_xlabel("Mean")
