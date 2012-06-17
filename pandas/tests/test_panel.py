@@ -1226,11 +1226,11 @@ class TestLongPanel(unittest.TestCase):
         # TODO: test correctness
 
     def test_get_dummies(self):
-        from pandas.core.reshape import make_column_dummies, make_axis_dummies
+        from pandas.core.reshape import get_dummies, make_axis_dummies
 
         self.panel['Label'] = self.panel.index.labels[1]
         minor_dummies = make_axis_dummies(self.panel, 'minor')
-        dummies = make_column_dummies(self.panel, 'Label')
+        dummies = get_dummies(self.panel['Label'])
         self.assert_(np.array_equal(dummies.values, minor_dummies.values))
 
     def test_apply(self):

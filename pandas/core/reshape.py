@@ -8,6 +8,7 @@ import numpy as np
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 
+from pandas.core.categorical import Categorical
 from pandas.core.common import notnull, _ensure_platform_int
 from pandas.core.groupby import (get_group_index, _compress_group_index,
                                  decons_group_index)
@@ -578,23 +579,44 @@ def convert_dummies(data, cat_variables, prefix_sep='_'):
     """
     result = data.drop(cat_variables, axis=1)
     for variable in cat_variables:
-        dummies = make_column_dummies(data, variable, prefix=True,
-                                      prefix_sep=prefix_sep)
+        dummies = get_dummies(data[variable], prefix=variable,
+                              prefix_sep=prefix_sep)
         result = result.join(dummies)
     return result
 
-def make_column_dummies(data, column, prefix=False, prefix_sep='_'):
-    from pandas import Factor
-    factor = Factor.from_array(data[column].values)
-    dummy_mat = np.eye(len(factor.levels)).take(factor.labels, axis=0)
 
-    if prefix:
-        dummy_cols = ['%s%s%s' % (column, prefix_sep, str(v))
-                      for v in factor.levels]
+def get_dummies(data, prefix=None, prefix_sep='_'):
+    """
+    Convert categorical variable into dummy/indicator variables
+
+    Parameters
+    ----------
+    data : array-like or Series
+    prefix : string, default None
+        String to append DataFrame column names
+    prefix_sep : string, default '_'
+        If appending prefix, separator/delimiter to use
+
+    Returns
+    -------
+    dummies : DataFrame
+    """
+    cat = Categorical.from_array(np.asarray(data))
+    dummy_mat = np.eye(len(cat.levels)).take(cat.labels, axis=0)
+
+    if prefix is not None:
+        dummy_cols = ['%s%s%s' % (prefix, prefix_sep, str(v))
+                      for v in cat.levels]
     else:
-        dummy_cols = factor.levels
-    dummies = DataFrame(dummy_mat, index=data.index, columns=dummy_cols)
-    return dummies
+        dummy_cols = cat.levels
+
+    if isinstance(data, Series):
+        index = data.index
+    else:
+        index = None
+
+    return DataFrame(dummy_mat, index=index, columns=dummy_cols)
+
 
 def make_axis_dummies(frame, axis='minor', transform=None):
     """
@@ -615,8 +637,6 @@ def make_axis_dummies(frame, axis='minor', transform=None):
     dummies : DataFrame
         Column names taken from chosen axis
     """
-    from pandas import Factor
-
     numbers = {
         'major' : 0,
         'minor' : 1
@@ -627,9 +647,9 @@ def make_axis_dummies(frame, axis='minor', transform=None):
     labels = frame.index.labels[num]
     if transform is not None:
         mapped_items = items.map(transform)
-        factor = Factor.from_array(mapped_items.take(labels))
-        labels = factor.labels
-        items = factor.levels
+        cat = Categorical.from_array(mapped_items.take(labels))
+        labels = cat.labels
+        items = cat.levels
 
     values = np.eye(len(items), dtype=float)
     values = values.take(labels, axis=0)

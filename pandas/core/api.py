@@ -15,7 +15,7 @@ from pandas.core.series import Series, TimeSeries
 from pandas.core.frame import DataFrame
 from pandas.core.panel import Panel
 from pandas.core.groupby import groupby
-from pandas.core.reshape import pivot_simple as pivot
+from pandas.core.reshape import pivot_simple as pivot, get_dummies
 
 WidePanel = Panel
 
