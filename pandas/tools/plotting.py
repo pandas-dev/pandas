@@ -179,6 +179,20 @@ def andrews_curves(data, class_column, ax=None, samples=200):
     return ax
 
 def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
+    """Bootstrap plot.
+
+    Parameters:
+    -----------
+    series: Time series
+    fig: matplotlib figure object, optional
+    size: number of data points to consider during each sampling
+    samples: number of times the bootstrap procedure is performed
+    kwds: optional keyword arguments for plotting commands, must be accepted by both hist and plot
+
+    Returns:
+    --------
+    fig: matplotlib figure
+    """
     import random
     import matplotlib.pyplot as plt
     data = series.values
