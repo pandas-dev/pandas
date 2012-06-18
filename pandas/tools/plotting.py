@@ -314,6 +314,8 @@ class MPLPlot(object):
         self.fig = fig
         self.axes = None
 
+        self.secondary_y = kwds.pop('secondary_y', False)
+
         self.kwds = kwds
 
     def _iter_data(self):
@@ -363,18 +365,26 @@ class MPLPlot(object):
             if self.ax is None:
                 fig, axes = _subplots(nrows=nrows, ncols=ncols,
                                       sharex=self.sharex, sharey=self.sharey,
-                                      figsize=self.figsize)
+                                      figsize=self.figsize,
+                                      secondary_y=self.secondary_y)
             else:
                 fig, axes = _subplots(nrows=nrows, ncols=ncols,
                                       sharex=self.sharex, sharey=self.sharey,
-                                      figsize=self.figsize, ax=self.ax)
-
+                                      figsize=self.figsize, ax=self.ax,
+                                      secondary_y=self.secondary_y)
         else:
             if self.ax is None:
                 fig = self.plt.figure(figsize=self.figsize)
-                self.ax = fig.add_subplot(111)
+                ax = fig.add_subplot(111)
+                if self.secondary_y:
+                    ax = ax.twinx()
+                self.ax = ax
             else:
+                ax = self.ax
                 fig = self.ax.get_figure()
+                if self.secondary_y:
+                    ax = ax.twinx()
+                self.ax = ax
 
             axes = [self.ax]
 
@@ -500,6 +510,16 @@ class MPLPlot(object):
 
         return name
 
+    def _get_ax_and_style(self, i):
+        if self.subplots:
+            ax = self.axes[i]
+            style = 'k'
+        else:
+            style = ''  # empty string ignored
+            ax = self.ax
+
+        return ax, style
+
 class KdePlot(MPLPlot):
     def __init__(self, data, **kwargs):
         MPLPlot.__init__(self, data, **kwargs)
@@ -508,12 +528,9 @@ class KdePlot(MPLPlot):
         from scipy.stats import gaussian_kde
         plotf = self._get_plot_function()
         for i, (label, y) in enumerate(self._iter_data()):
-            if self.subplots:
-                ax = self.axes[i]
-                style = 'k'
-            else:
-                style = ''  # empty string ignored
-                ax = self.ax
+
+            ax, style = self._get_ax_and_style(i)
+
             if self.style:
                 style = self.style
             gkde = gaussian_kde(y)
@@ -577,12 +594,9 @@ class LinePlot(MPLPlot):
             plotf = self._get_plot_function()
 
             for i, (label, y) in enumerate(self._iter_data()):
-                if self.subplots:
-                    ax = self.axes[i]
-                    style = 'k'
-                else:
-                    style = ''  # empty string ignored
-                    ax = self.ax
+
+                ax, style = self._get_ax_and_style(i)
+
                 if self.style:
                     style = self.style
 
@@ -1253,7 +1267,7 @@ def _get_layout(nplots):
 # copied from matplotlib/pyplot.py for compatibility with matplotlib < 1.0
 
 def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
-              subplot_kw=None, ax=None, **fig_kw):
+              subplot_kw=None, ax=None, secondary_y=False, **fig_kw):
     """Create a figure with a set of subplots already made.
 
     This utility wrapper makes it convenient to create common layouts of
@@ -1294,6 +1308,9 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
       not recognized above will be automatically included here.
 
     ax : Matplotlib axis object, default None
+
+    secondary_y : boolean, default False
+        If True then y-axis will be on the right
 
     Returns:
 
@@ -1340,6 +1357,9 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
 
     # Create first subplot separately, so we can share it if requested
     ax0 = fig.add_subplot(nrows, ncols, 1, **subplot_kw)
+    if secondary_y:
+        ax0 = ax0.twinx()
+
     if sharex:
         subplot_kw['sharex'] = ax0
     if sharey:
@@ -1349,7 +1369,10 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
     # Note off-by-one counting because add_subplot uses the MATLAB 1-based
     # convention.
     for i in range(1, nplots):
-        axarr[i] = fig.add_subplot(nrows, ncols, i+1, **subplot_kw)
+        ax = fig.add_subplot(nrows, ncols, i+1, **subplot_kw)
+        if secondary_y:
+            ax = ax.twinx()
+        axarr[i] = ax
 
     if nplots > 1:
         if sharex and nrows > 1:
