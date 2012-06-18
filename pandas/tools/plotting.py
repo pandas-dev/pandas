@@ -954,7 +954,10 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         keys, values = zip(*grouped)
         keys = [_stringify(x) for x in keys]
         ax.boxplot(values, **kwds)
-        ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
+        if kwds.get('vert', 1) == 1:
+            ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
+        else:
+            ax.set_yticklabels(keys, rotation=rot, fontsize=fontsize)
 
     if column == None:
         columns = None
@@ -987,7 +990,10 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         # Return boxplot dict in single plot case
 
         bp = ax.boxplot(list(data[cols].values.T), **kwds)
-        ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
+        if kwds.get('vert', 1) == 1:
+            ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
+        else:
+            ax.set_yticklabels(keys, rotation=rot, fontsize=fontsize)
         ax.grid(grid)
 
         ret = bp
