@@ -924,7 +924,7 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     return plot_obj.ax
 
 def boxplot(data, column=None, by=None, ax=None, fontsize=None,
-            rot=0, grid=True, figsize=None):
+            rot=0, grid=True, figsize=None, **kwds):
     """
     Make a box plot from DataFrame column optionally grouped b ysome columns or
     other inputs
@@ -937,6 +937,9 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
     by : string or sequence
         Column in the DataFrame to group by
     fontsize : int or string
+    rot : label rotation angle
+    kwds : other plotting keyword arguments to be passed to matplotlib boxplot
+           function
 
     Returns
     -------
@@ -950,7 +953,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
     def plot_group(grouped, ax):
         keys, values = zip(*grouped)
         keys = [_stringify(x) for x in keys]
-        ax.boxplot(values)
+        ax.boxplot(values, **kwds)
         ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
 
     if column == None:
@@ -983,7 +986,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
 
         # Return boxplot dict in single plot case
 
-        bp = ax.boxplot(list(data[cols].values.T))
+        bp = ax.boxplot(list(data[cols].values.T), **kwds)
         ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
         ax.grid(grid)
 
