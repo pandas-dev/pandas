@@ -279,7 +279,8 @@ class MPLPlot(object):
                  figsize=None, grid=True, legend=True, rot=None,
                  ax=None, fig=None, title=None, xlim=None, ylim=None,
                  xticks=None, yticks=None,
-                 sort_columns=False, fontsize=None, **kwds):
+                 sort_columns=False, fontsize=None,
+                 secondary_y=False, **kwds):
 
         self.data = data
         self.by = by
@@ -314,7 +315,7 @@ class MPLPlot(object):
         self.fig = fig
         self.axes = None
 
-        self.secondary_y = kwds.pop('secondary_y', False)
+        self.secondary_y = secondary_y
 
         self.kwds = kwds
 
@@ -938,7 +939,7 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     return plot_obj.ax
 
 def boxplot(data, column=None, by=None, ax=None, fontsize=None,
-            rot=0, grid=True, figsize=None, **kwds):
+            rot=0, grid=True, figsize=None, **kwargs):
     """
     Make a box plot from DataFrame column optionally grouped b ysome columns or
     other inputs
