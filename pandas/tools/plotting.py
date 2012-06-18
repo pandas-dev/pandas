@@ -363,6 +363,19 @@ class MPLPlot(object):
     def _args_adjust(self):
         pass
 
+    def _maybe_right_yaxis(self, ax):
+        ypos = ax.get_yaxis().get_ticks_position().strip().lower()
+
+        if self.secondary_y and ypos != 'right':
+            orig_ax = ax
+            ax = ax.twinx()
+            if len(orig_ax.get_lines()) == 0: # no data on left y
+                orig_ax.get_yaxis().set_visible(False)
+        else:
+            ax.get_yaxis().set_visible(True)
+
+        return ax
+
     def _setup_subplots(self):
         if self.subplots:
             nrows, ncols = self._get_layout()
@@ -370,27 +383,23 @@ class MPLPlot(object):
                 fig, axes = _subplots(nrows=nrows, ncols=ncols,
                                       sharex=self.sharex, sharey=self.sharey,
                                       figsize=self.figsize,
-                                      secondary_y=self.secondary_y)
+                                      secondary_y=self.secondary_y,
+                                      data=self.data)
             else:
                 fig, axes = _subplots(nrows=nrows, ncols=ncols,
                                       sharex=self.sharex, sharey=self.sharey,
                                       figsize=self.figsize, ax=self.ax,
-                                      secondary_y=self.secondary_y)
+                                      secondary_y=self.secondary_y,
+                                      data=self.data)
         else:
             if self.ax is None:
                 fig = self.plt.figure(figsize=self.figsize)
                 ax = fig.add_subplot(111)
-                ypos = ax.get_yaxis().get_ticks_position().strip().lower()
-                if self.secondary_y and ypos != 'right':
-                    ax = ax.twinx()
+                ax = self._maybe_right_yaxis(ax)
                 self.ax = ax
             else:
-                ax = self.ax
                 fig = self.ax.get_figure()
-                ypos = ax.get_yaxis().get_ticks_position().strip().lower()
-                if self.secondary_y and ypos != 'right':
-                    ax = ax.twinx()
-                self.ax = ax
+                self.ax = self._maybe_right_yaxis(self.ax)
 
             axes = [self.ax]
 
@@ -640,10 +649,7 @@ class LinePlot(MPLPlot):
         plotf = self._get_plot_function()
 
         if isinstance(data, Series):
-            if self.subplots: # shouldn't even allow users to specify
-                ax = self.axes[0]
-            else:
-                ax = self.ax
+            ax, _ = self._get_ax_and_style(0) #self.axes[0]
 
             label = com._stringify(self.label)
             tsplot(data, plotf, ax=ax, label=label, style=self.style,
@@ -651,10 +657,7 @@ class LinePlot(MPLPlot):
             ax.grid(self.grid)
         else:
             for i, col in enumerate(data.columns):
-                if self.subplots:
-                    ax = self.axes[i]
-                else:
-                    ax = self.ax
+                ax, _ = self._get_ax_and_style(i)
                 label = com._stringify(col)
                 tsplot(data[col], plotf, ax=ax, label=label, **kwargs)
                 ax.grid(self.grid)
@@ -722,7 +725,7 @@ class BarPlot(MPLPlot):
         rects = []
         labels = []
 
-        ax = self.axes[0]
+        ax, _ = self._get_ax_and_style(0) #self.axes[0]
 
         bar_f = self.bar_f
 
@@ -737,7 +740,7 @@ class BarPlot(MPLPlot):
                 kwds['color'] = colors[i % len(colors)]
 
             if self.subplots:
-                ax = self.axes[i]
+                ax, _ = self._get_ax_and_style(i) #self.axes[i]
                 rect = bar_f(ax, self.ax_pos, y, 0.5, start=pos_prior,
                              linewidth=1, **kwds)
                 ax.set_title(label)
@@ -846,6 +849,9 @@ def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
     ylim : 2-tuple/list
     rot : int, default None
         Rotation for ticks
+    secondary_y : boolean or sequence, default False
+        Whether to plot on the secondary y-axis
+        If dict then can select which columns to plot on secondary y-axis
     kwds : keywords
         Options to pass to matplotlib plotting method
 
@@ -868,7 +874,8 @@ def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
                      use_index=use_index, sharex=sharex, sharey=sharey,
                      xticks=xticks, yticks=yticks, xlim=xlim, ylim=ylim,
                      title=title, grid=grid, figsize=figsize, logy=logy,
-                     sort_columns=sort_columns, **kwds)
+                     sort_columns=sort_columns, secondary_y=secondary_y,
+                     **kwds)
     plot_obj.generate()
     plot_obj.draw()
     if subplots:
@@ -929,6 +936,14 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
 
     if ax is None:
         ax = _gca()
+        if ax.get_yaxis().get_ticks_position().strip().lower() == 'right':
+            fig = _gcf()
+            axes = fig.get_axes()
+            for i in range(len(axes))[::-1]:
+                ax = axes[i]
+                ypos = ax.get_yaxis().get_ticks_position().strip().lower()
+                if ypos == 'left':
+                    break
 
     # is there harm in this?
     if label is None:
@@ -1275,7 +1290,8 @@ def _get_layout(nplots):
 # copied from matplotlib/pyplot.py for compatibility with matplotlib < 1.0
 
 def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
-              subplot_kw=None, ax=None, secondary_y=False, **fig_kw):
+              subplot_kw=None, ax=None, secondary_y=False, data=None,
+              **fig_kw):
     """Create a figure with a set of subplots already made.
 
     This utility wrapper makes it convenient to create common layouts of
@@ -1317,7 +1333,7 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
 
     ax : Matplotlib axis object, default None
 
-    secondary_y : boolean, default False
+    secondary_y : boolean or sequence of ints, default False
         If True then y-axis will be on the right
 
     Returns:
@@ -1348,6 +1364,7 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
     plt.subplots(2, 2, subplot_kw=dict(polar=True))
     """
     import matplotlib.pyplot as plt
+    from pandas.core.frame import DataFrame
 
     if subplot_kw is None:
         subplot_kw = {}
@@ -1363,10 +1380,18 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
     nplots = nrows*ncols
     axarr = np.empty(nplots, dtype=object)
 
+    def on_right(i):
+        if isinstance(secondary_y, bool):
+            return secondary_y
+        if isinstance(data, DataFrame):
+            return data.columns[i] in secondary_y
+
     # Create first subplot separately, so we can share it if requested
     ax0 = fig.add_subplot(nrows, ncols, 1, **subplot_kw)
-    if secondary_y:
+    if on_right(0):
+        orig_ax = ax0
         ax0 = ax0.twinx()
+        orig_ax.get_yaxis().set_visible(False)
 
     if sharex:
         subplot_kw['sharex'] = ax0
@@ -1378,8 +1403,11 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
     # convention.
     for i in range(1, nplots):
         ax = fig.add_subplot(nrows, ncols, i+1, **subplot_kw)
-        if secondary_y:
+        if on_right(i):
+            print 'on right ', data.columns[i]
+            orig_ax = ax
             ax = ax.twinx()
+            orig_ax.get_yaxis().set_visible(False)
         axarr[i] = ax
 
     if nplots > 1:
