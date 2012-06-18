@@ -197,13 +197,77 @@ class TestTSPlot(unittest.TestCase):
         import matplotlib.pyplot as plt
         plt.close('all')
         ser = Series(np.random.randn(10))
+        ser2 = Series(np.random.randn(10))
         ax = ser.plot(secondary_y=True)
         fig = ax.get_figure()
         axes = fig.get_axes()
         l = ax.get_lines()[0]
         xp = Series(l.get_ydata(), l.get_xdata())
         assert_series_equal(ser, xp)
+        self.assert_(ax.get_yaxis().get_ticks_position() == 'right')
+        self.assert_(not axes[0].get_yaxis().get_visible())
+
+        ax2 = ser2.plot()
+        self.assert_(ax2.get_yaxis().get_ticks_position() == 'left')
+
+        plt.close('all')
+        ax = ser2.plot()
+        ax2 = ser.plot(secondary_y=True)
+        self.assert_(ax.get_yaxis().get_visible())
+
+    @slow
+    def test_secondary_y_ts(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        idx = date_range('1/1/2000', periods=10)
+        ser = Series(np.random.randn(10), idx)
+        ser2 = Series(np.random.randn(10), idx)
+        ax = ser.plot(secondary_y=True)
+        fig = ax.get_figure()
+        axes = fig.get_axes()
+        l = ax.get_lines()[0]
+        xp = Series(l.get_ydata(), l.get_xdata()).to_timestamp()
+        assert_series_equal(ser, xp)
+        self.assert_(ax.get_yaxis().get_ticks_position() == 'right')
+        self.assert_(not axes[0].get_yaxis().get_visible())
+
+        ax2 = ser2.plot()
+        self.assert_(ax2.get_yaxis().get_ticks_position() == 'left')
+
+        plt.close('all')
+        ax = ser2.plot()
+        ax2 = ser.plot(secondary_y=True)
+        self.assert_(ax.get_yaxis().get_visible())
+
+    @slow
+    def test_secondary_kde(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        ser = Series(np.random.randn(10))
+        ax = ser.plot(secondary_y=True, kind='density')
+        fig = ax.get_figure()
+        axes = fig.get_axes()
         self.assert_(axes[1].get_yaxis().get_ticks_position() == 'right')
+
+    @slow
+    def test_secondary_bar(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        ser = Series(np.random.randn(10))
+        ax = ser.plot(secondary_y=True, kind='bar')
+        fig = ax.get_figure()
+        axes = fig.get_axes()
+        self.assert_(axes[1].get_yaxis().get_ticks_position() == 'right')
+
+    @slow
+    def test_secondary_frame(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        df = DataFrame(np.random.randn(5, 3), columns=['a', 'b', 'c'])
+        axes = df.plot(secondary_y=['a', 'c'], subplots=True)
+        self.assert_(axes[0].get_yaxis().get_ticks_position() == 'right')
+        self.assert_(axes[1].get_yaxis().get_ticks_position() == 'default')
+        self.assert_(axes[2].get_yaxis().get_ticks_position() == 'right')
 
 PNG_PATH = 'tmp.png'
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
