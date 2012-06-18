@@ -110,9 +110,9 @@ class TestTSPlot(unittest.TestCase):
 
     @slow
     def test_irregular_datetime64_repr_bug(self):
+        import matplotlib.pyplot as plt
         ser = tm.makeTimeSeries()
         ser = ser[[0,1,2,7]]
-        import matplotlib.pyplot as plt
 
         fig = plt.gcf()
         plt.clf()
@@ -125,21 +125,34 @@ class TestTSPlot(unittest.TestCase):
 
     @slow
     def test_business_freq(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
         bts = tm.makePeriodSeries()
-        ts = bts.asfreq('D')
+        ax = bts.plot()
+        self.assert_(ax.get_lines()[0].get_xydata()[0, 0],
+                     bts.index[0].ordinal)
+        idx = ax.get_lines()[0].get_xdata()
+        self.assert_(idx.freqstr == 'B')
+
+    @slow
+    def test_business_freq_convert(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        n = tm.N
+        tm.N = 300
+        bts = tm.makeTimeSeries().asfreq('BM')
+        tm.N = n
+        ts = bts.to_period('M')
         ax = bts.plot()
         self.assert_(ax.get_lines()[0].get_xydata()[0, 0], ts.index[0].ordinal)
         idx = ax.get_lines()[0].get_xdata()
-        self.assert_(idx.freqstr == 'D')
+        self.assert_(idx.freqstr == 'M')
 
     @slow
     def test_dataframe(self):
-        bts = DataFrame({'a': tm.makePeriodSeries()})
-        ts = bts.asfreq('D')
+        bts = DataFrame({'a': tm.makeTimeSeries()})
         ax = bts.plot()
-        self.assert_(ax.get_lines()[0].get_xydata()[0, 0], ts.index[0].ordinal)
         idx = ax.get_lines()[0].get_xdata()
-        self.assert_(idx.freqstr == 'D')
 
     @slow
     def test_set_xlim(self):
@@ -191,6 +204,50 @@ class TestTSPlot(unittest.TestCase):
             xaxis = ax.get_xaxis()
             rs = xaxis.get_majorticklocs()[0]
             self.assert_(rs == xp)
+
+    @slow
+    def test_gaps(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        ts = tm.makeTimeSeries()
+        ts[5:25] = np.nan
+        ax = ts.plot()
+        lines = ax.get_lines()
+        self.assert_(len(lines) == 1)
+        l = lines[0]
+        data = l.get_xydata()
+        self.assert_(isinstance(data, np.ma.core.MaskedArray))
+        mask = data.mask
+        self.assert_(mask[5:25, 1].all())
+
+        # irregular
+        plt.close('all')
+        ts = tm.makeTimeSeries()
+        ts = ts[[0, 1, 2, 5, 7, 9, 12, 15, 20]]
+        ts[2:5] = np.nan
+        ax = ts.plot()
+        lines = ax.get_lines()
+        self.assert_(len(lines) == 1)
+        l = lines[0]
+        data = l.get_xydata()
+        self.assert_(isinstance(data, np.ma.core.MaskedArray))
+        mask = data.mask
+        self.assert_(mask[2:5, 1].all())
+
+        # non-ts
+        plt.close('all')
+        idx = [0, 1, 2, 5, 7, 9, 12, 15, 20]
+        ser = Series(np.random.randn(len(idx)), idx)
+        ser[2:5] = np.nan
+        ax = ser.plot()
+        lines = ax.get_lines()
+        self.assert_(len(lines) == 1)
+        l = lines[0]
+        data = l.get_xydata()
+        self.assert_(isinstance(data, np.ma.core.MaskedArray))
+        mask = data.mask
+        self.assert_(mask[2:5, 1].all())
+
 
 PNG_PATH = 'tmp.png'
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):

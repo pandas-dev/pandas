@@ -239,7 +239,6 @@ _offset_map = {
 _offset_to_period_map = {
     'WEEKDAY' : 'D',
     'EOM' : 'M',
-    'B' : 'D',
     'BM' : 'M',
     'BQS' : 'Q',
     'QS' : 'Q',
@@ -258,7 +257,7 @@ for prefix in need_suffix:
         _offset_to_period_map['%s-%s' % (prefix, m)] = \
             _offset_to_period_map[prefix]
 
-def to_calendar_freq(offset_str):
+def get_period_alias(offset_str):
     """ alias to closest period strings BQ->Q etc"""
     return _offset_to_period_map.get(offset_str, offset_str)
 

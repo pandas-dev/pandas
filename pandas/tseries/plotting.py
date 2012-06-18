@@ -12,6 +12,7 @@ from matplotlib.transforms import nonsingular
 
 import numpy as np
 
+from pandas import isnull
 from pandas.tseries.offsets import DateOffset
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import FreqGroup
@@ -80,11 +81,10 @@ def tsplot(series, plotf, *args, **kwargs):
     else:
         freq = frequencies.get_base_alias(freq)
 
-    freq = frequencies.to_calendar_freq(freq)
+    freq = frequencies.get_period_alias(freq)
     # Convert DatetimeIndex to PeriodIndex
     if isinstance(series.index, DatetimeIndex):
-        idx = series.index.to_period(freq=freq)
-        series = Series(series.values, idx, name=series.name)
+        series = series.to_period(freq=freq)
 
     if not isinstance(series.index, PeriodIndex):
         #try to get it to DatetimeIndex then to period
@@ -97,8 +97,6 @@ def tsplot(series, plotf, *args, **kwargs):
 
     if freq != series.index.freq:
         series = series.asfreq(freq)
-
-    series = series.dropna()
 
     style = kwargs.pop('style', None)
 
@@ -117,7 +115,15 @@ def tsplot(series, plotf, *args, **kwargs):
     ax.date_axis_info = None
 
     # format args and lot
-    args = _check_plot_params(series, series.index, freq, style, *args)
+    mask = isnull(series)
+    if mask.any():
+        masked_array = np.ma.array(series.values)
+        masked_array = np.ma.masked_where(mask, masked_array)
+        args = _check_plot_params(masked_array, series.index, freq, style,
+                                  *args)
+    else:
+        args = _check_plot_params(series, series.index, freq, style, *args)
+
     plotted = plotf(ax, *args,  **kwargs)
 
     format_dateaxis(ax, ax.freq)
