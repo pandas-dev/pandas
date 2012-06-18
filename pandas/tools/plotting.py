@@ -276,7 +276,7 @@ class MPLPlot(object):
 
     def __init__(self, data, kind=None, by=None, subplots=False, sharex=True,
                  sharey=False, use_index=True,
-                 figsize=None, grid=True, legend=True, rot=None,
+                 figsize=None, grid=None, legend=True, rot=None,
                  ax=None, fig=None, title=None, xlim=None, ylim=None,
                  xticks=None, yticks=None,
                  sort_columns=False, fontsize=None,
@@ -303,6 +303,9 @@ class MPLPlot(object):
 
         self.fontsize = fontsize
         self.rot = rot
+
+        if grid is None:
+            grid = False if secondary_y else True
 
         self.grid = grid
         self.legend = legend
@@ -377,13 +380,15 @@ class MPLPlot(object):
             if self.ax is None:
                 fig = self.plt.figure(figsize=self.figsize)
                 ax = fig.add_subplot(111)
-                if self.secondary_y:
+                ypos = ax.get_yaxis().get_ticks_position().strip().lower()
+                if self.secondary_y and ypos != 'right':
                     ax = ax.twinx()
                 self.ax = ax
             else:
                 ax = self.ax
                 fig = self.ax.get_figure()
-                if self.secondary_y:
+                ypos = ax.get_yaxis().get_ticks_position().strip().lower()
+                if self.secondary_y and ypos != 'right':
                     ax = ax.twinx()
                 self.ax = ax
 
@@ -796,12 +801,12 @@ class HistPlot(MPLPlot):
 
 def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
                use_index=True,
-               figsize=None, grid=True, legend=True, rot=None,
+               figsize=None, grid=False, legend=True, rot=None,
                ax=None, title=None,
                xlim=None, ylim=None, logy=False,
                xticks=None, yticks=None,
                kind='line',
-               sort_columns=False, fontsize=None, **kwds):
+               sort_columns=False, fontsize=None, secondary_y=False, **kwds):
     """
     Make line or bar plot of DataFrame's series with the index on the x-axis
     using matplotlib / pylab.
@@ -874,7 +879,8 @@ def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
 
 def plot_series(series, label=None, kind='line', use_index=True, rot=None,
                 xticks=None, yticks=None, xlim=None, ylim=None,
-                ax=None, style=None, grid=True, logy=False, **kwds):
+                ax=None, style=None, grid=None, logy=False, secondary_y=False,
+                **kwds):
     """
     Plot the input series with the index on the x-axis using matplotlib
 
@@ -931,7 +937,8 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     plot_obj = klass(series, kind=kind, rot=rot, logy=logy,
                      ax=ax, use_index=use_index, style=style,
                      xticks=xticks, yticks=yticks, xlim=xlim, ylim=ylim,
-                     legend=False, grid=grid, label=label, **kwds)
+                     legend=False, grid=grid, label=label,
+                     secondary_y=secondary_y, **kwds)
 
     plot_obj.generate()
     plot_obj.draw()
