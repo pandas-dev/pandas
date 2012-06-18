@@ -192,6 +192,7 @@ class TestTSPlot(unittest.TestCase):
             rs = xaxis.get_majorticklocs()[0]
             self.assert_(rs == xp)
 
+    @slow
     def test_secondary_y(self):
         import matplotlib.pyplot as plt
         plt.close('all')
@@ -203,7 +204,6 @@ class TestTSPlot(unittest.TestCase):
         xp = Series(l.get_ydata(), l.get_xdata())
         assert_series_equal(ser, xp)
         self.assert_(axes[1].get_yaxis().get_ticks_position() == 'right')
-
 
 PNG_PATH = 'tmp.png'
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
