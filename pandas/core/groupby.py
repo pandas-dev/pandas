@@ -1315,6 +1315,7 @@ class SeriesGroupBy(GroupBy):
         for name, group in self:
             object.__setattr__(group, 'name', name)
             res = wrapper(group)
+            # result[group.index] = res
             indexer = self.obj.index.get_indexer(group.index)
             np.put(result, indexer, res)
 

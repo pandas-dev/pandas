@@ -874,7 +874,7 @@ class HDFStore(object):
             lp = DataFrame(values, index=long_index, columns=fields)
 
             # need a better algorithm
-            tuple_index = long_index.get_tuple_index()
+            tuple_index = long_index._tuple_index
 
             unique_tuples = lib.fast_unique(tuple_index)
             unique_tuples = _asarray_tuplesafe(unique_tuples)

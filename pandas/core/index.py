@@ -1834,12 +1834,12 @@ class MultiIndex(Index):
 
         target_index = target
         if isinstance(target, MultiIndex):
-            target_index = target.get_tuple_index()
+            target_index = target._tuple_index
 
         if target_index.dtype != object:
             return np.ones(len(target_index)) * -1
 
-        self_index = self.get_tuple_index()
+        self_index = self._tuple_index
 
         if method == 'pad':
             assert(self.is_unique and self.is_monotonic)
@@ -1887,7 +1887,8 @@ class MultiIndex(Index):
 
         return target, indexer
 
-    def get_tuple_index(self):
+    @cache_readonly
+    def _tuple_index(self):
         """
         Convert MultiIndex to an Index of tuples
 

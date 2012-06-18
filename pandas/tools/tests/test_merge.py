@@ -352,7 +352,7 @@ class TestMerge(unittest.TestCase):
         df2 = df2.sortlevel(0)
 
         joined = df1.join(df2, how='outer')
-        ex_index = index1.get_tuple_index() + index2.get_tuple_index()
+        ex_index = index1._tuple_index + index2._tuple_index
         expected = df1.reindex(ex_index).join(df2.reindex(ex_index))
         assert_frame_equal(joined, expected)
         self.assertEqual(joined.index.names, index1.names)
@@ -361,7 +361,7 @@ class TestMerge(unittest.TestCase):
         df2 = df2.sortlevel(1)
 
         joined = df1.join(df2, how='outer').sortlevel(0)
-        ex_index = index1.get_tuple_index() + index2.get_tuple_index()
+        ex_index = index1._tuple_index + index2._tuple_index
         expected = df1.reindex(ex_index).join(df2.reindex(ex_index))
 
         assert_frame_equal(joined, expected)

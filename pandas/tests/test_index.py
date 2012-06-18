@@ -1169,7 +1169,7 @@ class TestMultiIndex(unittest.TestCase):
         assert_almost_equal(r1, rbfill1)
 
         # pass non-MultiIndex
-        r1 = idx1.get_indexer(idx2.get_tuple_index())
+        r1 = idx1.get_indexer(idx2._tuple_index)
         rexp1 = idx1.get_indexer(idx2)
         assert_almost_equal(r1, rexp1)
 
@@ -1177,7 +1177,7 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_( (r1 == [-1, -1, -1]).all() )
 
         # self.assertRaises(Exception, idx1.get_indexer,
-        #                   list(list(zip(*idx2.get_tuple_index()))[0]))
+        #                   list(list(zip(*idx2._tuple_index))[0]))
 
     def test_format(self):
         self.index.format()
@@ -1198,7 +1198,7 @@ class TestMultiIndex(unittest.TestCase):
 
         self.assert_(not self.index.equals(self.index[:-1]))
 
-        self.assert_(self.index.equals(self.index.get_tuple_index()))
+        self.assert_(self.index.equals(self.index._tuple_index))
 
         # different number of levels
         index = MultiIndex(levels=[Index(range(4)),
@@ -1242,7 +1242,7 @@ class TestMultiIndex(unittest.TestCase):
 
         the_union = piece1 | piece2
 
-        tups = sorted(self.index.get_tuple_index())
+        tups = sorted(self.index._tuple_index)
         expected = MultiIndex.from_tuples(tups)
 
         self.assert_(the_union.equals(expected))
@@ -1255,7 +1255,7 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(the_union is self.index)
 
         # won't work in python 3
-        # tuples = self.index.get_tuple_index()
+        # tuples = self.index._tuple_index
         # result = self.index[:4] | tuples[4:]
         # self.assert_(result.equals(tuples))
 
@@ -1275,7 +1275,7 @@ class TestMultiIndex(unittest.TestCase):
         piece2 = self.index[3:]
 
         the_int = piece1 & piece2
-        tups = sorted(self.index[3:5].get_tuple_index())
+        tups = sorted(self.index[3:5]._tuple_index)
         expected = MultiIndex.from_tuples(tups)
         self.assert_(the_int.equals(expected))
 
@@ -1289,7 +1289,7 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(empty.equals(expected))
 
         # can't do in python 3
-        # tuples = self.index.get_tuple_index()
+        # tuples = self.index._tuple_index
         # result = self.index & tuples
         # self.assert_(result.equals(tuples))
 
@@ -1333,7 +1333,7 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(len(result) == 0)
 
         # raise Exception called with non-MultiIndex
-        self.assertRaises(Exception, first.diff, first.get_tuple_index())
+        self.assertRaises(Exception, first.diff, first._tuple_index)
 
     def test_from_tuples(self):
         self.assertRaises(Exception, MultiIndex.from_tuples, [])
@@ -1343,7 +1343,7 @@ class TestMultiIndex(unittest.TestCase):
 
     def test_argsort(self):
         result = self.index.argsort()
-        expected = self.index.get_tuple_index().argsort()
+        expected = self.index._tuple_index.argsort()
         self.assert_(np.array_equal(result, expected))
 
     def test_sortlevel(self):

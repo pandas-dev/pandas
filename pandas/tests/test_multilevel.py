@@ -899,7 +899,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         df = self.frame.T
         df['foo', 'four'] = 'foo'
 
-        arrays = [np.array(x) for x in zip(*df.columns.get_tuple_index())]
+        arrays = [np.array(x) for x in zip(*df.columns._tuple_index)]
 
         result = df['foo']
         result2 = df.ix[:, 'foo']
@@ -923,7 +923,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         index = MultiIndex.from_tuples(tuples)
         s = Series(randn(8), index=index)
 
-        arrays = [np.array(x) for x in zip(*index.get_tuple_index())]
+        arrays = [np.array(x) for x in zip(*index._tuple_index)]
 
         result = s['qux']
         result2 = s.ix['qux']

@@ -879,7 +879,7 @@ class TestGroupBy(unittest.TestCase):
         result = grouped.mean()
         expected = data.groupby(['A', 'B']).mean()
 
-        arrays = zip(*expected.index.get_tuple_index())
+        arrays = zip(*expected.index._tuple_index)
         expected.insert(0, 'A', arrays[0])
         expected.insert(1, 'B', arrays[1])
         expected.index = np.arange(len(expected))
