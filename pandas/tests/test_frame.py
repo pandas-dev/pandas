@@ -5,13 +5,12 @@ from StringIO import StringIO
 import cPickle as pickle
 import operator
 import os
-import sys
 import unittest
 
 import nose
 
 from numpy import random, nan
-from numpy.random import randn, randint
+from numpy.random import randn
 import numpy as np
 import numpy.ma as ma
 
@@ -3867,6 +3866,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = df.fillna(df.max())
         expected = df.fillna(df.max().to_dict())
         assert_frame_equal(result, expected)
+
+        # disable this for now
+        self.assertRaises(Exception, df.fillna, df.max(1), axis=1)
 
     def test_fillna_columns(self):
         df = DataFrame(np.random.randn(10, 10))

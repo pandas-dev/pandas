@@ -2750,6 +2750,11 @@ class DataFrame(NDFrame):
             if len(self.columns) == 0:
                 return self
             if isinstance(value, (dict, Series)):
+                if axis == 1:
+                    raise NotImplementedError('Currently only can fill '
+                                              'with dict/Series column '
+                                              'by column')
+
                 result = self if inplace else self.copy()
                 for k, v in value.iteritems():
                     if k not in result:
