@@ -644,7 +644,7 @@ class Index(np.ndarray):
                 raise
 
             try:
-                return lib.get_value_at(series, key)
+                return lib.get_value_box(series, key)
             except IndexError:
                 raise
             except TypeError:

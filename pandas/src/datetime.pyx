@@ -269,6 +269,29 @@ def is_timestamp_array(ndarray[object] values):
             return False
     return True
 
+
+cpdef object get_value_box(ndarray arr, object loc):
+    cdef:
+        Py_ssize_t i, sz
+        void* data_ptr
+    if util.is_float_object(loc):
+        casted = int(loc)
+        if casted == loc:
+            loc = casted
+    i = <Py_ssize_t> loc
+    sz = cnp.PyArray_SIZE(arr)
+
+    if i < 0 and sz > 0:
+        i += sz
+    elif i >= sz or sz == 0:
+        raise IndexError('index out of bounds')
+
+    if arr.descr.type_num == NPY_DATETIME:
+        return Timestamp(util.get_value_1d(arr, i))
+    else:
+        return util.get_value_1d(arr, i)
+
+
 #----------------------------------------------------------------------
 # Frequency inference
 
