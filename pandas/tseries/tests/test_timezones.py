@@ -329,6 +329,26 @@ class TestTimeZoneSupport(unittest.TestCase):
             self.assertEquals(x, exval)
             self.assertEquals(x.tzinfo, exval.tzinfo)
 
+    def test_localized_at_time_between_time(self):
+        from datetime import time
+
+        rng = date_range('4/16/2012', '5/1/2012', freq='H')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        ts_local = ts.tz_localize('US/Eastern')
+
+        result = ts_local.at_time(time(10, 0))
+        expected = ts.at_time(time(10, 0)).tz_localize('US/Eastern')
+        assert_series_equal(result, expected)
+        self.assert_(result.index.tz.zone == 'US/Eastern')
+
+        t1, t2 = time(10, 0), time(11, 0)
+        result = ts_local.between_time(t1, t2)
+        expected = ts.between_time(t1, t2).tz_localize('US/Eastern')
+        assert_series_equal(result, expected)
+        self.assert_(result.index.tz.zone == 'US/Eastern')
+
+
 class TestTimeZones(unittest.TestCase):
 
     def setUp(self):

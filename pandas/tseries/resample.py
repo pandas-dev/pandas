@@ -6,8 +6,7 @@ from pandas.core.groupby import BinGrouper, CustomGrouper
 from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
 from pandas.tseries.index import DatetimeIndex, date_range
 from pandas.tseries.offsets import DateOffset, Tick, _delta_to_nanoseconds
-from pandas.tseries.period import Period, PeriodIndex, period_range
-from pandas.util.decorators import cache_readonly
+from pandas.tseries.period import PeriodIndex, period_range
 import pandas.core.common as com
 
 from pandas.lib import Timestamp
@@ -344,80 +343,3 @@ def asfreq(obj, freq, method=None, how=None):
             return obj.copy()
         dti = date_range(obj.index[0], obj.index[-1], freq=freq)
         return obj.reindex(dti, method=method)
-
-def values_at_time(obj, time, tz=None, asof=False):
-    """
-    Select values at particular time of day (e.g. 9:30AM)
-
-    Parameters
-    ----------
-    time : datetime.time or string
-    tz : string or pytz.timezone
-        Time zone for time. Corresponding timestamps would be converted to
-        time zone of the TimeSeries
-
-    Returns
-    -------
-    values_at_time : TimeSeries
-    """
-    from dateutil.parser import parse
-
-    if asof:
-        raise NotImplementedError
-    if tz:
-        raise NotImplementedError
-
-    if not isinstance(obj.index, DatetimeIndex):
-        raise NotImplementedError
-
-    if isinstance(time, basestring):
-        time = parse(time).time()
-
-    # TODO: time object with tzinfo?
-
-    mus = _time_to_nanosecond(time)
-    indexer = lib.values_at_time(obj.index.asi8, mus)
-    indexer = com._ensure_platform_int(indexer)
-    return obj.take(indexer)
-
-def values_between_time(obj, start_time, end_time, include_start=True,
-                        include_end=True, tz=None):
-    """
-    Select values between particular times of day (e.g., 9:00-9:30AM)
-
-    Parameters
-    ----------
-    start_time : datetime.time or string
-    end_time : datetime.time or string
-    include_start : boolean, default True
-    include_end : boolean, default True
-    tz : string or pytz.timezone, default None
-
-    Returns
-    -------
-    values_between_time : TimeSeries
-    """
-    from dateutil.parser import parse
-
-    if tz:
-        raise NotImplementedError
-
-    if not isinstance(obj.index, DatetimeIndex):
-        raise NotImplementedError
-
-    if isinstance(start_time, basestring):
-        start_time = parse(start_time).time()
-
-    if isinstance(end_time, basestring):
-        end_time = parse(end_time).time()
-
-    start_ns = _time_to_nanosecond(start_time)
-    end_ns = _time_to_nanosecond(end_time)
-    indexer = lib.values_between_time(obj.index.asi8, start_ns, end_ns,
-                                      include_start, include_end)
-    indexer = com._ensure_platform_int(indexer)
-    return obj.take(indexer)
-
-def _time_to_nanosecond(time):
-    seconds = time.hour * 60 * 60 + 60 * time.minute + time.second
-    return 1000000000L * seconds + time.microsecond * 1000

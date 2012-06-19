@@ -39,7 +39,7 @@ def _field_accessor(name, field):
             utc = _utc()
             if self.tz is not utc:
                 values = lib.tz_convert(values, utc, self.tz)
-        return lib.fast_field_accessor(values, field)
+        return lib.get_date_field(values, field)
     f.__name__ = name
     return property(f)
 
@@ -578,8 +578,22 @@ class DatetimeIndex(Int64Index):
     @property
     def asstruct(self):
         if self._sarr_cache is None:
-            self._sarr_cache = lib.build_field_sarray(self.asi8)
+            self._sarr_cache = self._get_field_sarr()
         return self._sarr_cache
+
+    def _get_field_sarr(self):
+        utc = _utc()
+        values = self.asi8
+        if self.tz is not None and self.tz is not utc:
+            values = lib.tz_convert(values, utc, self.tz)
+        return lib.build_field_sarray(values)
+
+    def _get_time_micros(self):
+        utc = _utc()
+        values = self.asi8
+        if self.tz is not None and self.tz is not utc:
+            values = lib.tz_convert(values, utc, self.tz)
+        return lib.get_time_micros(values)
 
     @property
     def asobject(self):
@@ -712,7 +726,7 @@ class DatetimeIndex(Int64Index):
             return self[maybe_slice]
         indices = com._ensure_platform_int(indices)
         taken = self.values.take(indices, axis=axis)
-        return DatetimeIndex(taken, tz=self.tz, name=self.name)
+        return self._simple_new(taken, self.name, None, self.tz)
 
     def union(self, other):
         """
@@ -943,7 +957,7 @@ class DatetimeIndex(Int64Index):
                 pass
 
             if isinstance(key, time):
-                locs = self._indices_at_time(key)
+                locs = self.indexer_at_time(key)
                 return series.take(locs)
 
             stamp = Timestamp(key)
@@ -969,21 +983,12 @@ class DatetimeIndex(Int64Index):
                 pass
 
             if isinstance(key, time):
-                return self._indices_at_time(key)
+                return self.indexer_at_time(key)
 
             try:
                 return self._engine.get_loc(Timestamp(key))
             except (KeyError, ValueError):
                 raise KeyError(key)
-
-    def _indices_at_time(self, key):
-        from dateutil.parser import parse
-
-        # TODO: time object with tzinfo?
-
-        nanos = _time_to_nanosecond(key)
-        indexer = lib.values_at_time(self.asi8, nanos)
-        return com._ensure_platform_int(indexer)
 
     def _get_string_slice(self, key):
         freq = getattr(self, 'freqstr',
@@ -1246,6 +1251,84 @@ class DatetimeIndex(Int64Index):
 
         return True
 
+    def indexer_at_time(self, time, asof=False):
+        """
+        Select values at particular time of day (e.g. 9:30AM)
+
+        Parameters
+        ----------
+        time : datetime.time or string
+        tz : string or pytz.timezone
+            Time zone for time. Corresponding timestamps would be converted to
+            time zone of the TimeSeries
+
+        Returns
+        -------
+        values_at_time : TimeSeries
+        """
+        from dateutil.parser import parse
+
+        if asof:
+            raise NotImplementedError
+
+        if isinstance(time, basestring):
+            time = parse(time).time()
+
+        if time.tzinfo:
+            # TODO
+            raise NotImplementedError
+
+        time_micros = self._get_time_micros()
+        micros = _time_to_micros(time)
+        return (micros == time_micros).nonzero()[0]
+
+    def indexer_between_time(self, start_time, end_time, include_start=True,
+                             include_end=True):
+        """
+        Select values between particular times of day (e.g., 9:00-9:30AM)
+
+        Parameters
+        ----------
+        start_time : datetime.time or string
+        end_time : datetime.time or string
+        include_start : boolean, default True
+        include_end : boolean, default True
+        tz : string or pytz.timezone, default None
+
+        Returns
+        -------
+        values_between_time : TimeSeries
+        """
+        from dateutil.parser import parse
+
+        if isinstance(start_time, basestring):
+            start_time = parse(start_time).time()
+
+        if isinstance(end_time, basestring):
+            end_time = parse(end_time).time()
+
+        if start_time.tzinfo or end_time.tzinfo:
+            raise NotImplementedError
+
+        time_micros = self._get_time_micros()
+        start_micros = _time_to_micros(start_time)
+        end_micros = _time_to_micros(end_time)
+
+        if include_start and include_end:
+            mask = ((start_micros <= time_micros) &
+                    (time_micros <= end_micros))
+        elif include_start:
+            mask = ((start_micros <= time_micros) &
+                    (time_micros < end_micros))
+        elif include_end:
+            mask = ((start_micros < time_micros) &
+                    (time_micros <= end_micros))
+        else:
+            mask = ((start_micros < time_micros) &
+                    (time_micros < end_micros))
+
+        return mask.nonzero()[0]
+
 def _generate_regular_range(start, end, periods, offset):
     if com._count_not_none(start, end, periods) < 2:
         raise ValueError('Must specify two of start, end, or periods')
@@ -1399,8 +1482,11 @@ def _in_range(start, end, rng_start, rng_end):
     return start > rng_start and end < rng_end
 
 def _time_to_nanosecond(time):
+    return _time_to_micros(time) * 1000
+
+def _time_to_micros(time):
     seconds = time.hour * 60 * 60 + 60 * time.minute + time.second
-    return (1000000 * seconds + time.microsecond) * 1000
+    return 1000000 * seconds + time.microsecond
 
 
 def _concat(to_concat):
@@ -1410,3 +1496,4 @@ def _concat(to_concat):
         return new_values.view(_NS_DTYPE)
     else:
         return np.concatenate(to_concat)
+

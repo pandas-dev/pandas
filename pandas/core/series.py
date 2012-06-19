@@ -2773,26 +2773,23 @@ class TimeSeries(Series):
         namestr = "Name: %s, " % str(self.name) if self.name else ""
         return '%s%sLength: %d' % (freqstr, namestr, len(self))
 
-    def at_time(self, time, tz=None, asof=False):
+    def at_time(self, time, asof=False):
         """
         Select values at particular time of day (e.g. 9:30AM)
 
         Parameters
         ----------
         time : datetime.time or string
-        tz : string or pytz.timezone
-            Time zone for time. Corresponding timestamps would be converted to
-            time zone of the TimeSeries
 
         Returns
         -------
         values_at_time : TimeSeries
         """
-        from pandas.tseries.resample import values_at_time
-        return values_at_time(self, time, tz=tz, asof=asof)
+        indexer = self.index.indexer_at_time(time, asof=asof)
+        return self.take(indexer)
 
     def between_time(self, start_time, end_time, include_start=True,
-                     include_end=True, tz=None):
+                     include_end=True):
         """
         Select values between particular times of the day (e.g., 9:00-9:30 AM)
 
@@ -2802,16 +2799,15 @@ class TimeSeries(Series):
         end_time : datetime.time or string
         include_start : boolean, default True
         include_end : boolean, default True
-        tz : string or pytz.timezone, default None
 
         Returns
         -------
         values_between_time : TimeSeries
         """
-        from pandas.tseries.resample import values_between_time
-        return values_between_time(self, start_time, end_time, tz=tz,
-                                   include_start=include_start,
-                                   include_end=include_end)
+        indexer = self.index.indexer_between_time(
+            start_time, end_time, include_start=include_start,
+            include_end=include_end)
+        return self.take(indexer)
 
     def to_timestamp(self, freq=None, how='start', copy=True):
         """
