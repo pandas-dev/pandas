@@ -951,6 +951,74 @@ def _simple_ts(start, end, freq='D'):
     return Series(np.random.randn(len(rng)), index=rng)
 
 
+class TestDatetimeIndex(unittest.TestCase):
+
+    def test_append_nondatetimeindex(self):
+        rng = date_range('1/1/2000', periods=10)
+        idx = Index(['a', 'b', 'c', 'd'])
+
+        result = rng.append(idx)
+        self.assert_(isinstance(result[0], Timestamp))
+
+    def test_constructor_coverage(self):
+        rng = date_range('1/1/2000', periods=10.5)
+        exp = date_range('1/1/2000', periods=10)
+        self.assert_(rng.equals(exp))
+
+        self.assertRaises(ValueError, DatetimeIndex, start='1/1/2000',
+                          periods='foo', freq='D')
+
+        self.assertRaises(ValueError, DatetimeIndex, start='1/1/2000',
+                          end='1/10/2000')
+
+        self.assertRaises(ValueError, DatetimeIndex, '1/1/2000')
+
+        # generator expression
+        gen = (datetime(2000, 1, 1) + timedelta(i) for i in range(10))
+        result = DatetimeIndex(gen)
+        expected = DatetimeIndex([datetime(2000, 1, 1) + timedelta(i)
+                                  for i in range(10)])
+        self.assert_(result.equals(expected))
+
+        # NumPy string array
+        strings = np.array(['2000-01-01', '2000-01-02', '2000-01-03'])
+        result = DatetimeIndex(strings)
+        expected = DatetimeIndex(strings.astype('O'))
+        self.assert_(result.equals(expected))
+
+        from_ints = DatetimeIndex(expected.asi8)
+        self.assert_(from_ints.equals(expected))
+
+        # non-conforming
+        self.assertRaises(ValueError, DatetimeIndex,
+                          ['2000-01-01', '2000-01-02', '2000-01-04'],
+                          freq='D')
+
+        self.assertRaises(ValueError, DatetimeIndex,
+                          start='2011-01-01', freq='b')
+        self.assertRaises(ValueError, DatetimeIndex,
+                          end='2011-01-01', freq='B')
+        self.assertRaises(ValueError, DatetimeIndex, periods=10, freq='D')
+
+    def test_comparisons_coverage(self):
+        rng = date_range('1/1/2000', periods=10)
+
+        # raise TypeError for now
+        self.assertRaises(TypeError, rng.__lt__, rng[3].value)
+
+        result = rng == list(rng)
+        exp = rng == rng
+        self.assert_(np.array_equal(result, exp))
+
+    def test_map(self):
+        rng = date_range('1/1/2000', periods=10)
+
+        f = lambda x: x.strftime('%Y%m%d')
+        result = rng.map(f)
+        exp = [f(x) for x in rng]
+        self.assert_(np.array_equal(result, exp))
+
+
 class TestLegacySupport(unittest.TestCase):
 
     @classmethod
@@ -967,6 +1035,15 @@ class TestLegacySupport(unittest.TestCase):
         filepath = os.path.join(pth, 'data', 'series.pickle')
         with open(filepath, 'rb') as f:
             cls.series = pickle.load(f)
+
+    def test_pass_offset_warn(self):
+        from StringIO import StringIO
+        import sys
+        buf = StringIO()
+
+        sys.stderr = buf
+        DatetimeIndex(start='1/1/2000', periods=10, offset='H')
+        sys.stderr = sys.__stderr__
 
     def test_unpickle_legacy_frame(self):
         dtindex = DatetimeIndex(start='1/3/2005', end='1/14/2005',

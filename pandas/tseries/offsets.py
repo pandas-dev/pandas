@@ -228,7 +228,7 @@ class DateOffset(object):
             return code
 
 
-class BusinessDay(DateOffset, CacheableOffset):
+class BusinessDay(CacheableOffset, DateOffset):
     """
     DateOffset subclass representing possibly n business days
     """
@@ -348,7 +348,7 @@ class MonthBegin(DateOffset, CacheableOffset):
         return 'MS'
 
 
-class BusinessMonthEnd(DateOffset, CacheableOffset):
+class BusinessMonthEnd(CacheableOffset, DateOffset):
     """DateOffset increments between business EOM dates"""
 
     def isAnchored(self):

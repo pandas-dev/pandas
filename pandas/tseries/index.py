@@ -25,12 +25,6 @@ def _utc():
 
 # -------- some conversion wrapper functions
 
-def _as_i8(arg):
-    if isinstance(arg, np.ndarray) and arg.dtype == np.datetime64:
-        return arg.view('i8', type=np.ndarray)
-    else:
-        return arg
-
 
 def _field_accessor(name, field):
     def f(self):
@@ -43,19 +37,6 @@ def _field_accessor(name, field):
     f.__name__ = name
     return property(f)
 
-def _wrap_i8_function(f):
-    @staticmethod
-    def wrapper(*args, **kwargs):
-        view_args = [_as_i8(arg) for arg in args]
-        return f(*view_args, **kwargs)
-    return wrapper
-
-def _wrap_dt_function(f):
-    @staticmethod
-    def wrapper(*args, **kwargs):
-        view_args = [_dt_box_array(_as_i8(arg)) for arg in args]
-        return f(*view_args, **kwargs)
-    return wrapper
 
 def _join_i8_wrapper(joinf, with_indexers=True):
     @staticmethod
@@ -72,6 +53,7 @@ def _join_i8_wrapper(joinf, with_indexers=True):
         return results
     return wrapper
 
+
 def _dt_index_cmp(opname):
     """
     Wrap comparison operations to convert datetime-like to datetime64
@@ -87,32 +69,14 @@ def _dt_index_cmp(opname):
             other = _ensure_datetime64(other)
         result = func(other)
 
-        try:
-            return result.view(np.ndarray)
-        except:
-            return result
+        return result.view(np.ndarray)
+
     return wrapper
 
 def _ensure_datetime64(other):
     if isinstance(other, np.datetime64):
         return other
-    elif com.is_integer(other):
-        return np.int64(other).view('M8[us]')
-    else:
-        raise TypeError(other)
-
-def _dt_index_op(opname):
-    """
-    Wrap arithmetic operations to convert timedelta to a timedelta64.
-    """
-    def wrapper(self, other):
-        if isinstance(other, timedelta):
-            func = getattr(self, opname)
-            return func(np.timedelta64(other))
-        else:
-            func = getattr(super(DatetimeIndex, self), opname)
-            return func(other)
-    return wrapper
+    raise TypeError('%s type object %s' % (type(other), str(other)))
 
 
 class TimeSeriesError(Exception):
@@ -154,8 +118,7 @@ class DatetimeIndex(Int64Index):
     _left_indexer  = _join_i8_wrapper(_algos.left_join_indexer_int64)
     _left_indexer_unique  = _join_i8_wrapper(
         _algos.left_join_indexer_unique_int64, with_indexers=False)
-
-    _arrmap = _wrap_dt_function(_algos.arrmap_object)
+    _arrmap = None
 
     __eq__ = _dt_index_cmp('__eq__')
     __ne__ = _dt_index_cmp('__ne__')
@@ -194,11 +157,6 @@ class DatetimeIndex(Int64Index):
             warnings.warn("parameter 'offset' is deprecated, "
                           "please use 'freq' instead",
                           FutureWarning)
-            if isinstance(freq, basestring):
-                freq = to_offset(freq)
-        else:
-            if isinstance(freq, basestring):
-                freq = to_offset(freq)
 
         offset = freq
 
@@ -223,9 +181,6 @@ class DatetimeIndex(Int64Index):
                                  'collection of some kind, %s was passed'
                                  % repr(data))
 
-            if isinstance(data, datetime):
-                data = [data]
-
             # other iterable of some kind
             if not isinstance(data, (list, tuple)):
                 data = list(data)
@@ -244,17 +199,16 @@ class DatetimeIndex(Int64Index):
         elif issubclass(data.dtype.type, np.datetime64):
             if isinstance(data, DatetimeIndex):
                 subarr = data.values
-                offset = data.offset
-                verify_integrity = False
+                if offset is None:
+                    offset = data.offset
+                    verify_integrity = False
             else:
                 if data.dtype != _NS_DTYPE:
                     subarr = lib.cast_to_nanoseconds(data)
                 else:
                     subarr = data
         elif data.dtype == _INT64_DTYPE:
-            subarr = data.view(_NS_DTYPE)
-        elif issubclass(data.dtype.type, np.integer):
-            subarr = np.array(data, dtype=_NS_DTYPE, copy=copy)
+            subarr = np.asarray(data, dtype=_NS_DTYPE)
         else:
             subarr = tools.to_datetime(data)
             if not np.issubdtype(subarr.dtype, np.datetime64):
@@ -295,10 +249,6 @@ class DatetimeIndex(Int64Index):
 
         if start is not None:
             start = Timestamp(start)
-            if not isinstance(start, Timestamp):
-                raise ValueError('Failed to convert %s to timestamp'
-                                 % start)
-
             if normalize:
                 start = normalize_date(start)
                 _normalized = True
@@ -307,9 +257,6 @@ class DatetimeIndex(Int64Index):
 
         if end is not None:
             end = Timestamp(end)
-            if not isinstance(end, Timestamp):
-                raise ValueError('Failed to convert %s to timestamp'
-                                 % end)
 
             if normalize:
                 end = normalize_date(end)
@@ -318,6 +265,9 @@ class DatetimeIndex(Int64Index):
                 _normalized = _normalized and end.time() == _midnight
 
         start, end, tz = tools._figure_out_timezone(start, end, tz)
+
+        if com._count_not_none(start, end, periods) < 2:
+            raise ValueError('Must specify two of start, end, or periods')
 
         if (offset._should_cache() and
             not (offset._normalize_cache and not _normalized) and
@@ -329,7 +279,7 @@ class DatetimeIndex(Int64Index):
 
         if tz is not None:
             # Convert local to UTC
-            ints = index.view('i8')
+            ints = index.view('i8', type=np.ndarray)
             index = lib.tz_localize_to_utc(ints, tz)
             index = index.view(_NS_DTYPE)
 
@@ -384,11 +334,6 @@ class DatetimeIndex(Int64Index):
             cachedRange = drc[offset]
 
         if start is None:
-            if end is None:
-                raise Exception('Must provide start or end date!')
-            if periods is None:
-                raise Exception('Must provide number of periods!')
-
             assert(isinstance(end, Timestamp))
 
             end = offset.rollback(end)
@@ -400,9 +345,6 @@ class DatetimeIndex(Int64Index):
             start = offset.rollforward(start)
 
             startLoc = cachedRange.get_loc(start)
-            if periods is None:
-                raise Exception('Must provide number of periods!')
-
             endLoc = startLoc + periods
         else:
             if not offset.onOffset(start):
@@ -1050,7 +992,7 @@ class DatetimeIndex(Int64Index):
         try:
             return f(self)
         except:
-            return Index.map(self, f)
+            return _algos.arrmap_object(self.asobject, f)
 
     # alias to offset
     @property
@@ -1330,9 +1272,6 @@ class DatetimeIndex(Int64Index):
         return mask.nonzero()[0]
 
 def _generate_regular_range(start, end, periods, offset):
-    if com._count_not_none(start, end, periods) < 2:
-        raise ValueError('Must specify two of start, end, or periods')
-
     if isinstance(offset, Tick):
         stride = offset.nanos
         if periods is None:
@@ -1461,9 +1400,9 @@ def _str_to_dt_array(arr, offset=None):
         result = parse_time_string(x, offset)
         return result[0]
 
-    p_ufunc = np.frompyfunc(parser, 1, 1)
-    data = p_ufunc(arr)
-    return np.array(data, dtype=_NS_DTYPE)
+    arr = np.asarray(arr, dtype=object)
+    data = _algos.arrmap_object(arr, parser)
+    return tools.to_datetime(data)
 
 
 _CACHE_START = Timestamp(datetime(1950, 1, 1))
@@ -1480,9 +1419,6 @@ def _naive_in_cache_range(start, end):
 
 def _in_range(start, end, rng_start, rng_end):
     return start > rng_start and end < rng_end
-
-def _time_to_nanosecond(time):
-    return _time_to_micros(time) * 1000
 
 def _time_to_micros(time):
     seconds = time.hour * 60 * 60 + 60 * time.minute + time.second
