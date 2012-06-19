@@ -422,6 +422,7 @@ class TestBMonthBegin(unittest.TestCase):
 
         tests = [(BMonthBegin(), datetime(2007, 12, 31), False),
                  (BMonthBegin(), datetime(2008, 1, 1), True),
+                 (BMonthBegin(), datetime(2001, 4, 2), True),
                  (BMonthBegin(), datetime(2008, 3, 3), True)]
 
         for offset, date, expected in tests:

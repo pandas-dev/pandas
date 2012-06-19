@@ -341,8 +341,7 @@ class MonthBegin(DateOffset, CacheableOffset):
 
     @classmethod
     def onOffset(cls, dt):
-        firstDay, _ = lib.monthrange(dt.year, dt.month)
-        return dt.day == (firstDay + 1)
+        return dt.day == 1
 
     @property
     def rule_code(self):
@@ -396,6 +395,16 @@ class BusinessMonthBegin(DateOffset, CacheableOffset):
         first = _get_firstbday(wkday)
         result = datetime(other.year, other.month, first)
         return result
+
+    @classmethod
+    def onOffset(cls, dt):
+        first_weekday, _ = lib.monthrange(dt.year, dt.month)
+        if first_weekday == 5:
+            return dt.day == 3
+        elif first_weekday == 6:
+            return dt.day == 2
+        else:
+            return dt.day == 1
 
     @property
     def rule_code(self):

@@ -105,20 +105,7 @@ class TimeGrouper(CustomGrouper):
             trimmed = True
 
         ax_values = axis.asi8
-        bin_edges = binner.asi8
-
-        # Some hacks for > daily data, see #1471, #1458
-        if self.freq != 'D' and is_superperiod(self.freq, 'D'):
-            day_nanos = _delta_to_nanoseconds(timedelta(1))
-            if self.closed == 'right':
-                bin_edges = bin_edges + day_nanos - 1
-            else:
-                bin_edges = bin_edges + day_nanos
-
-            # intraday values on last day
-            if bin_edges[-2] > ax_values[-1]:
-                bin_edges = bin_edges[:-1]
-                binner = binner[:-1]
+        binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
 
         # general version, knowing nothing about relative frequencies
         bins = lib.generate_bins_dt64(ax_values, bin_edges, self.closed)
@@ -136,6 +123,25 @@ class TimeGrouper(CustomGrouper):
                 labels = labels[:-1]
 
         return binner, bins, labels
+
+    def _adjust_bin_edges(self, binner, ax_values):
+        # Some hacks for > daily data, see #1471, #1458, #1483
+
+        bin_edges = binner.asi8
+
+        if self.freq != 'D' and is_superperiod(self.freq, 'D'):
+            day_nanos = _delta_to_nanoseconds(timedelta(1))
+            if self.closed == 'right':
+                bin_edges = bin_edges + day_nanos - 1
+            else:
+                bin_edges = bin_edges + day_nanos
+
+            # intraday values on last day
+            if bin_edges[-2] > ax_values[-1]:
+                bin_edges = bin_edges[:-1]
+                binner = binner[:-1]
+
+        return binner, bin_edges
 
     def _get_time_period_bins(self, axis):
         assert(isinstance(axis, DatetimeIndex))

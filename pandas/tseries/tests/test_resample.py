@@ -440,7 +440,7 @@ class TestResample(unittest.TestCase):
     def test_resample_anchored_intraday(self):
         # #1471, #1458
 
-        rng = pd.date_range('1/1/2012', '4/1/2012', freq='10min')
+        rng = date_range('1/1/2012', '4/1/2012', freq='10min')
         df = DataFrame(rng.month, index=rng)
 
         result = df.resample('M')
@@ -451,7 +451,7 @@ class TestResample(unittest.TestCase):
         expected = df.resample('M', kind='period', closed='left').to_timestamp()
         tm.assert_frame_equal(result, expected)
 
-        rng = pd.date_range('1/1/2012', '4/1/2013', freq='10min')
+        rng = date_range('1/1/2012', '4/1/2013', freq='10min')
         df = DataFrame(rng.month, index=rng)
 
         result = df.resample('Q')
@@ -462,9 +462,14 @@ class TestResample(unittest.TestCase):
         expected = df.resample('Q', kind='period', closed='left').to_timestamp()
         tm.assert_frame_equal(result, expected)
 
+    def test_resample_anchored_monthstart(self):
+        ts = _simple_ts('1/1/2000', '12/31/2002')
 
-rng = pd.date_range('1/1/2012', '4/1/2015', freq='10min')
-df = DataFrame(rng.month, index=rng)
+        freqs = ['MS', 'BMS', 'QS-MAR', 'AS-DEC', 'AS-JUN']
+
+        for freq in freqs:
+            result = ts.resample(freq, how='mean')
+
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
