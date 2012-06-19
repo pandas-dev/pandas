@@ -961,7 +961,7 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     return plot_obj.ax
 
 def boxplot(data, column=None, by=None, ax=None, fontsize=None,
-            rot=0, grid=True, figsize=None, **kwargs):
+            rot=0, grid=True, figsize=None, **kwds):
     """
     Make a box plot from DataFrame column optionally grouped b ysome columns or
     other inputs
@@ -991,7 +991,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         keys, values = zip(*grouped)
         keys = [_stringify(x) for x in keys]
         ax.boxplot(values, **kwds)
-        if kwds.get('vert', 1) == 1:
+        if kwds.get('vert', 1):
             ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
         else:
             ax.set_yticklabels(keys, rotation=rot, fontsize=fontsize)
@@ -1027,7 +1027,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         # Return boxplot dict in single plot case
 
         bp = ax.boxplot(list(data[cols].values.T), **kwds)
-        if kwds.get('vert', 1) == 1:
+        if kwds.get('vert', 1):
             ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
         else:
             ax.set_yticklabels(keys, rotation=rot, fontsize=fontsize)
