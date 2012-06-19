@@ -79,6 +79,20 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
         self.assertRaises(KeyError, ts.__getitem__, datetime(2000, 1, 6))
         self.assertRaises(KeyError, ts.__setitem__, datetime(2000, 1, 6), 0)
 
+    def test_range_slice(self):
+        idx = DatetimeIndex(['1/1/2000', '1/2/2000', '1/2/2000', '1/3/2000',
+                             '1/4/2000'])
+
+        ts = Series(np.random.randn(len(idx)), index=idx)
+
+        result = ts['1/2/2000':]
+        expected = ts[1:]
+        assert_series_equal(result, expected)
+
+        result = ts['1/2/2000':'1/3/2000']
+        expected = ts[1:4]
+        assert_series_equal(result, expected)
+
     def test_groupby_average_dup_values(self):
         result = self.dups.groupby(level=0).mean()
         expected = self.dups.groupby(self.dups.index).mean()
