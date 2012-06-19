@@ -189,6 +189,7 @@ pandas 0.8.0
   - Reset index mapping when grouping Series in Cython (#1423)
   - Fix outer/inner DataFrame.join with non-unique indexes (#1421)
   - Fix MultiIndex groupby bugs with empty lower levels (#1401)
+  - Calling fillna with a Series will have same behavior as with dict (#1486)
 
 pandas 0.7.3
 ============

@@ -2749,7 +2749,7 @@ class DataFrame(NDFrame):
             # Float type values
             if len(self.columns) == 0:
                 return self
-            if isinstance(value, dict):
+            if isinstance(value, (dict, Series)):
                 result = self if inplace else self.copy()
                 for k, v in value.iteritems():
                     if k not in result:

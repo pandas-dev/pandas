@@ -3848,7 +3848,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(df2 is df)
         assert_frame_equal(df2, expected)
 
-    def test_fillna_dict(self):
+    def test_fillna_dict_series(self):
         df = DataFrame({'a': [nan, 1, 2, nan, nan],
                         'b': [1, 2, 3, nan, nan],
                         'c': [nan, 1, 2, 3, 4]})
@@ -3862,6 +3862,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # it works
         result = df.fillna({'a': 0, 'b': 5, 'd' : 7})
+
+        # Series treated same as dict
+        result = df.fillna(df.max())
+        expected = df.fillna(df.max().to_dict())
+        assert_frame_equal(result, expected)
 
     def test_fillna_columns(self):
         df = DataFrame(np.random.randn(10, 10))
