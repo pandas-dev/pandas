@@ -1408,7 +1408,6 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
     for i in range(1, nplots):
         ax = fig.add_subplot(nrows, ncols, i+1, **subplot_kw)
         if on_right(i):
-            print 'on right ', data.columns[i]
             orig_ax = ax
             ax = ax.twinx()
             orig_ax.get_yaxis().set_visible(False)
