@@ -13,7 +13,7 @@ from pandas.core.index import (Index, MultiIndex, _get_combined_index,
                                _ensure_index, _get_consensus_names,
                                _all_indexes_same)
 from pandas.core.internals import (IntBlock, BoolBlock, BlockManager,
-                                   make_block, _consolidate)
+                                   DatetimeBlock, make_block, _consolidate)
 from pandas.util.decorators import cache_readonly, Appender, Substitution
 
 from pandas.sparse.frame import SparseDataFrame
@@ -965,9 +965,15 @@ class _Concatenator(object):
         return reindexed_data
 
     def _concat_blocks(self, blocks):
-        concat_values = np.concatenate([b.values for b in blocks
-                                        if b is not None],
-                                       axis=self.axis)
+        values_list = [b.values for b in blocks if b is not None]
+        if isinstance(blocks[0], DatetimeBlock):
+            # hack around NumPy 1.6 bug
+            concat_values = np.concatenate([x.view(np.int64)
+                                            for x in values_list],
+                                           axis=self.axis)
+            concat_values = concat_values.view(np.dtype('M8[ns]'))
+        else:
+            concat_values = np.concatenate(values_list, axis=self.axis)
 
         if self.axis > 0:
             # Not safe to remove this check, need to profile

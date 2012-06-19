@@ -223,7 +223,7 @@ def quantile(x, q, interpolation_method='fraction'):
     score : float
         Score at percentile.
 
-    Examples
+    Examplesb
     --------
     >>> from scipy import stats
     >>> a = np.arange(100)

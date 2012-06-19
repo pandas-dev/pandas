@@ -1367,6 +1367,16 @@ class TestConcatenate(unittest.TestCase):
         tm.assert_frame_equal(result, df)
         self.assertRaises(Exception, concat, [None, None])
 
+    def test_concat_datetime64_block(self):
+        from pandas.tseries.index import date_range
+
+        rng = date_range('1/1/2000', periods=10)
+
+        df = DataFrame({'time': rng})
+
+        result = concat([df, df])
+        self.assert_((result[:10]['time'] == rng).all())
+
 class TestOrderedMerge(unittest.TestCase):
 
     def setUp(self):

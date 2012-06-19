@@ -125,6 +125,9 @@ def _comp_method(op, name):
                           index=self.index, name=name)
         elif isinstance(other, DataFrame): # pragma: no cover
             return NotImplemented
+        elif isinstance(other, np.ndarray):
+            return Series(na_op(self.values, np.asarray(other)),
+                          index=self.index, name=self.name)
         else:
             values = self.values
             other = lib.convert_scalar(values, other)
