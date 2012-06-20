@@ -2707,6 +2707,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         monthly_ts = daily_ts.asfreq(datetools.bmonthEnd)
         self.assert_(np.array_equal(monthly_ts, ts))
 
+        result = ts[:0].asfreq('M')
+        self.assert_(len(result) == 0)
+        self.assert_(result is not ts)
+
     def test_interpolate(self):
         ts = Series(np.arange(len(self.ts), dtype=float), self.ts.index)
 

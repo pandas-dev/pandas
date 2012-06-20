@@ -210,7 +210,7 @@ def parse_time_string(arg, freq=None):
                      "minute", "second", "microsecond"]:
             can_be_zero = ['hour', 'minute', 'second', 'microsecond']
             value = getattr(parsed, attr)
-            if value is not None and (value != 0 or attr in can_be_zero):
+            if value is not None and value != 0: # or attr in can_be_zero):
                 repl[attr] = value
                 if not stopped:
                     reso = attr
@@ -218,6 +218,7 @@ def parse_time_string(arg, freq=None):
                     raise DateParseError("Missing attribute before %s" % attr)
             else:
                 stopped = True
+                break
         ret = default.replace(**repl)
         return ret, parsed, reso  # datetime, resolution
     except Exception, e:

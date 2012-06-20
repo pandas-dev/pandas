@@ -184,8 +184,12 @@ class TestPeriodProperties(TestCase):
                      '2000-01-01 12:34:12')
 
     def test_sub_delta(self):
-        result = Period('2011', freq='A') - Period('2007', freq='A')
+        left, right = Period('2011', freq='A'), Period('2007', freq='A')
+        result = left - right
         self.assertEqual(result, 4)
+
+        self.assertRaises(ValueError, left.__sub__,
+                          Period('2007-01', freq='M'))
 
     def test_to_timestamp(self):
         p = Period('1982', freq='A')
@@ -233,6 +237,8 @@ class TestPeriodProperties(TestCase):
         self.assertEquals(result, expected)
         result = p.to_timestamp('S', how='start')
         self.assertEquals(result, expected)
+
+        self.assertRaises(ValueError, p.to_timestamp, '5t')
 
     def test_properties_annually(self):
         # Test properties on Periods with annually frequency.
@@ -354,6 +360,39 @@ class TestPeriodProperties(TestCase):
         self.assertRaises(ValueError, Period, year=2007, month=1,
                           freq='2M')
 
+        self.assertRaises(ValueError, Period, datetime.now())
+        self.assertRaises(ValueError, Period, 1.6, freq='D')
+        self.assertRaises(ValueError, Period, ordinal=1.6, freq='D')
+        self.assertRaises(ValueError, Period, ordinal=2, value=1, freq='D')
+        self.assertRaises(ValueError, Period)
+        self.assertRaises(ValueError, Period, month=1)
+
+        p = Period('2007-01-01', freq='D')
+
+        result = Period(p, freq='A')
+        exp = Period('2007', freq='A')
+        self.assertEquals(result, exp)
+
+    def test_constructor_infer_freq(self):
+        p = Period('2007-01-01')
+        self.assert_(p.freq == 'D')
+
+        p = Period('2007-01-01 07')
+        self.assert_(p.freq == 'H')
+
+        p = Period('2007-01-01 07:10')
+        self.assert_(p.freq == 'T')
+
+        p = Period('2007-01-01 07:10:15')
+        self.assert_(p.freq == 'S')
+
+        self.assertRaises(ValueError, Period, '2007-01-01 07:10:15.123456')
+
+    def test_comparisons(self):
+        p = Period('2007-01-01')
+        self.assertEquals(p, p)
+        self.assert_(not p == 1)
+
 def noWrap(item):
     return item
 
@@ -362,6 +401,10 @@ class TestFreqConversion(TestCase):
 
     def __init__(self, *args, **kwds):
         TestCase.__init__(self, *args, **kwds)
+
+    def test_asfreq_corner(self):
+        val = Period(freq='A', year=2007)
+        self.assertRaises(ValueError, val.asfreq, '5t')
 
     def test_conv_annual(self):
         # frequency conversion tests: from Annual Frequency
@@ -1038,6 +1081,12 @@ class TestPeriodIndex(TestCase):
         result = PeriodIndex(idx, freq='D')
         exp = idx.asfreq('D', 'e')
         self.assert_(result.equals(exp))
+
+    def test_constructor_datetime64arr(self):
+        vals = np.arange(100000, 100000 + 10000, 100, dtype=np.int64)
+        vals = vals.view(np.dtype('M8[us]'))
+
+        self.assertRaises(ValueError, PeriodIndex, vals, freq='D')
 
     def test_comp_period(self):
         idx = period_range('2007-01', periods=20, freq='M')

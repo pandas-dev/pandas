@@ -6,7 +6,7 @@ from pandas import Series, TimeSeries, DataFrame, Panel, isnull, notnull
 
 from pandas.tseries.index import date_range
 from pandas.tseries.offsets import Minute, BDay
-from pandas.tseries.period import period_range, PeriodIndex
+from pandas.tseries.period import period_range, PeriodIndex, Period
 from pandas.tseries.resample import DatetimeIndex, TimeGrouper
 import pandas.tseries.offsets as offsets
 import pandas as pd
@@ -462,6 +462,10 @@ class TestResample(unittest.TestCase):
         expected = df.resample('Q', kind='period', closed='left').to_timestamp()
         tm.assert_frame_equal(result, expected)
 
+        ts = _simple_ts('2012-04-29 23:00', '2012-04-30 5:00', freq='h')
+        resampled = ts.resample('M')
+        self.assert_(len(resampled) == 1)
+
     def test_resample_anchored_monthstart(self):
         ts = _simple_ts('1/1/2000', '12/31/2002')
 
@@ -469,6 +473,27 @@ class TestResample(unittest.TestCase):
 
         for freq in freqs:
             result = ts.resample(freq, how='mean')
+
+    def test_corner_cases(self):
+        # miscellaneous test coverage
+
+        rng = date_range('1/1/2000', periods=12, freq='t')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        result = ts.resample('5t', closed='right', label='left')
+        ex_index = date_range('1999-12-31 23:55', periods=4, freq='5t')
+        self.assert_(result.index.equals(ex_index))
+
+        len0pts = _simple_pts('2007-01', '2010-05', freq='M')[:0]
+        # it works
+        result = len0pts.resample('A-DEC')
+        self.assert_(len(result) == 0)
+
+        # resample to periods
+        ts = _simple_ts('2000-04-28', '2000-04-30 11:00', freq='h')
+        result = ts.resample('M', kind='period')
+        self.assert_(len(result) == 1)
+        self.assert_(result.index[0] == Period('2000-04', freq='M'))
 
 
 def _simple_ts(start, end, freq='D'):
@@ -719,6 +744,7 @@ class TestResamplePeriodIndex(unittest.TestCase):
 
         self.assert_(result.index.equals(ex_index))
         assert_series_equal(result, exp)
+
 
 class TestTimeGrouper(unittest.TestCase):
 

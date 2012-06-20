@@ -22,8 +22,6 @@ class TimeGrouper(CustomGrouper):
     rule : pandas offset string or object for identifying bin edges
     closed : closed end of interval; left (default) or right
     label : interval boundary to use for labeling; left (default) or right
-    begin : optional, timestamp-like
-    end : optional, timestamp-like
     nperiods : optional, integer
     convention : {'start', 'end', 'e', 's'}
         If axis is PeriodIndex
@@ -34,14 +32,12 @@ class TimeGrouper(CustomGrouper):
     directly from the associated object
     """
     def __init__(self, freq='Min', closed='right', label='right', how='mean',
-                 begin=None, end=None, nperiods=None, axis=0,
+                 nperiods=None, axis=0,
                  fill_method=None, limit=None, loffset=None, kind=None,
                  convention=None, base=0):
         self.freq = freq
         self.closed = closed
         self.label = label
-        self.begin = begin
-        self.end = end
         self.nperiods = nperiods
         self.kind = kind
         self.convention = convention or 'E'
@@ -94,8 +90,8 @@ class TimeGrouper(CustomGrouper):
             binner = labels = DatetimeIndex(data=[], freq=self.freq)
             return binner, [], labels
 
-        first, last = _get_range_edges(axis, self.begin, self.end, self.freq,
-                                       closed=self.closed, base=self.base)
+        first, last = _get_range_edges(axis, self.freq, closed=self.closed,
+                                       base=self.base)
         binner = labels = DatetimeIndex(freq=self.freq, start=first, end=last)
 
         # a little hack
@@ -156,9 +152,6 @@ class TimeGrouper(CustomGrouper):
         end_stamps = (labels + 1).asfreq('D', 's').to_timestamp()
         bins = axis.searchsorted(end_stamps, side='left')
 
-        if bins[-1] < len(axis):
-            bins = np.concatenate([bins, [len(axis)]])
-
         return binner, bins, labels
 
     def _resample_timestamps(self, obj):
@@ -212,12 +205,8 @@ class TimeGrouper(CustomGrouper):
 
         if is_subperiod(axlabels.freq, self.freq):
             # Downsampling
-            if len(memb) > 1:
-                rng = np.arange(memb.values[0], memb.values[-1])
-                bins = memb.searchsorted(rng, side='right')
-            else:
-                bins = np.array([], dtype=np.int32)
-
+            rng = np.arange(memb.values[0], memb.values[-1])
+            bins = memb.searchsorted(rng, side='right')
             grouper = BinGrouper(bins, new_index)
 
             grouped = obj.groupby(grouper, axis=self.axis)
@@ -255,34 +244,23 @@ def _take_new_index(obj, indexer, new_index, axis=0):
 
 
 
-def _get_range_edges(axis, begin, end, offset, closed='left',
-                     base=0):
+def _get_range_edges(axis, offset, closed='left', base=0):
     if isinstance(offset, basestring):
         offset = to_offset(offset)
-
-    if not isinstance(offset, DateOffset):
-        raise ValueError("Rule not a recognized offset")
 
     if isinstance(offset, Tick):
         day_nanos = _delta_to_nanoseconds(timedelta(1))
         # #1165
-        if ((day_nanos % offset.nanos) == 0 and begin is None
-            and end is None):
+        if (day_nanos % offset.nanos) == 0:
             return _adjust_dates_anchored(axis[0], axis[-1], offset,
                                           closed=closed, base=base)
 
-    if begin is None:
-        if closed == 'left':
-            first = Timestamp(offset.rollback(axis[0]))
-        else:
-            first = Timestamp(axis[0] - offset)
+    if closed == 'left':
+        first = Timestamp(offset.rollback(axis[0]))
     else:
-        first = Timestamp(offset.rollback(begin))
+        first = Timestamp(axis[0] - offset)
 
-    if end is None:
-        last = Timestamp(axis[-1] + offset)
-    else:
-        last = Timestamp(offset.rollforward(end))
+    last = Timestamp(axis[-1] + offset)
 
     return first, last
 

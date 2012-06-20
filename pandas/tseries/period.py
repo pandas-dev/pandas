@@ -21,43 +21,19 @@ import pandas._algos as _algos
 # Period logic
 
 
-def _period_field_accessor(name, alias=None):
-    if alias is None:
-        alias = name
+def _period_field_accessor(name, alias):
     def f(self):
         base, mult = _gfc(self.freq)
         return plib.get_period_field(alias, self.ordinal, base)
     f.__name__ = name
     return property(f)
 
-def _field_accessor(name, alias=None):
-    if alias is None:
-        alias = name
+def _field_accessor(name, alias):
     def f(self):
         base, mult = _gfc(self.freq)
         return plib.get_period_field_arr(alias, self.values, base)
     f.__name__ = name
     return property(f)
-
-def to_period(arg, freq=None):
-    """ Attempts to convert arg to timestamp """
-    if arg is None:
-        return arg
-
-    if type(arg) == float:
-        raise TypeError("Cannot convert a float to period")
-
-    return Period(arg, freq=freq)
-
-def _to_quarterly(year, month, freq='Q-DEC'):
-    fmonth = _freq_mod._month_numbers[_freq_mod._get_rule_month(freq)] + 1
-    print fmonth
-    mdiff = (month - fmonth) % 12
-    if month >= fmonth:
-        mdiff += 12
-
-    ordin = 1 + (year - 1) * 4 + (mdiff - 1) / 3
-    return Period(ordin, freq=freq)
 
 class Period(object):
 
@@ -105,9 +81,6 @@ class Period(object):
         elif value is None:
             if freq is None:
                 raise ValueError("If value is None, freq cannot be None")
-
-            if year is None:
-                raise ValueError("If value is None, year cannot be None")
 
             self.ordinal = _ordinal_from_fields(year, month, quarter, day,
                                                 hour, minute, second, freq)
@@ -172,13 +145,16 @@ class Period(object):
         else:  # pragma: no cover
             raise TypeError(other)
 
-    def asfreq(self, freq=None, how='E'):
+    def asfreq(self, freq, how='E'):
         """
+        Convert Period to desired frequency, either at the start or end of the
+        interval
 
         Parameters
         ----------
-        freq :
-        how :
+        freq : string
+        how : {'E', 'S', 'end', 'start'}, default 'end'
+            Start or end of the timespan
 
         Returns
         -------
@@ -220,16 +196,12 @@ class Period(object):
         -------
         Timestamp
         """
-        # how = _validate_end_alias(how)
         if freq is None:
             base, mult = _gfc(self.freq)
             new_val = self
         else:
             base, mult = _gfc(freq)
             new_val = self.asfreq(freq, how)
-
-        if mult != 1:
-            raise ValueError('Only mult == 1 supported')
 
         dt64 = plib.period_ordinal_to_dt64(new_val.ordinal, base)
         ts_freq = _period_rule_to_timestamp_rule(new_val.freq, how=how)
@@ -424,7 +396,7 @@ def _get_date_and_freq(value, freq):
         elif reso == 'second':
             freq = 'S'
         else:
-            raise ValueError("Could not infer frequency for period")
+            raise ValueError("Invalid frequency or could not infer: %s" % reso)
 
     return dt, freq
 
@@ -443,11 +415,6 @@ def _period_unbox(key, check=None):
 def _period_unbox_array(arr, check=None):
     unboxer = np.frompyfunc(lambda x: _period_unbox(x, check=check), 1, 1)
     return unboxer(arr)
-
-def _period_box_array(arr, freq):
-    boxfunc = lambda x: Period(ordinal=x, freq=freq)
-    boxer = np.frompyfunc(boxfunc, 1, 1)
-    return boxer(arr)
 
 def dt64arr_to_periodarr(data, freq):
     if data.dtype != np.dtype('M8[ns]'):
@@ -479,7 +446,10 @@ def _period_index_cmp(opname):
         return result
     return wrapper
 
+
 _INT64_DTYPE = np.dtype(np.int64)
+_NS_DTYPE = np.dtype('M8[ns]')
+
 
 class PeriodIndex(Int64Index):
     """
@@ -730,12 +700,18 @@ class PeriodIndex(Int64Index):
         try:
             return f(self)
         except:
-            values = np.asarray(list(self), dtype=object)
+            values = self._get_object_array()
             return _algos.arrmap_object(values, f)
+
+    def _get_object_array(self):
+        freq = self.freq
+        boxfunc = lambda x: Period(ordinal=x, freq=freq)
+        boxer = np.frompyfunc(boxfunc, 1, 1)
+        return boxer(self.values)
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
-        return _period_box_array(self, self.freq)
+        return self._get_object_array()
 
     def to_timestamp(self, freq=None, how='start'):
         """
@@ -757,9 +733,6 @@ class PeriodIndex(Int64Index):
         else:
             base, mult = _gfc(freq)
             new_data = self.asfreq(freq, how)
-
-        if mult != 1:
-            raise ValueError('Only mult == 1 supported')
 
         new_data = plib.periodarr_to_dt64arr(new_data.values, base)
         return DatetimeIndex(new_data, freq='infer', name=self.name)
@@ -823,14 +796,14 @@ class PeriodIndex(Int64Index):
                     key = slice(pos[0], pos[1]+1)
                     return series[key]
                 else:
-                    key = to_period(asdt, freq=self.freq)
+                    key = Period(asdt, freq=self.freq)
                     return self._engine.get_value(series, key.ordinal)
             except TypeError:
                 pass
             except KeyError:
                 pass
 
-            key = to_period(key, self.freq)
+            key = Period(key, self.freq)
             return self._engine.get_value(series, key.ordinal)
 
     def get_loc(self, key):
@@ -850,7 +823,7 @@ class PeriodIndex(Int64Index):
             except TypeError:
                 pass
 
-            key = to_period(key, self.freq).ordinal
+            key = Period(key, self.freq).ordinal
             return self._engine.get_loc(key)
 
     def join(self, other, how='left', level=None, return_indexers=False):
@@ -946,8 +919,10 @@ def _get_ordinal_range(start, end, periods, freq):
     if com._count_not_none(start, end, periods) < 2:
         raise ValueError('Must specify 2 of start, end, periods')
 
-    start = to_period(start, freq)
-    end = to_period(end, freq)
+    if start is not None:
+        start = Period(start, freq)
+    if end is not None:
+        end = Period(end, freq)
 
     is_start_per = isinstance(start, Period)
     is_end_per = isinstance(end, Period)
