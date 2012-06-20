@@ -16,6 +16,7 @@ from pandas.tseries.frequencies import MONTHS, DAYS
 from pandas.tseries.period import Period, PeriodIndex, period_range
 from pandas.tseries.index import DatetimeIndex, date_range
 from pandas.tseries.tools import to_datetime
+import pandas.tseries.period as pmod
 
 import pandas.core.datetools as datetools
 import numpy as np
@@ -182,6 +183,10 @@ class TestPeriodProperties(TestCase):
         self.assert_(p.strftime('%Y-%m-%d %H:%M:%S') ==
                      '2000-01-01 12:34:12')
 
+    def test_sub_delta(self):
+        result = Period('2011', freq='A') - Period('2007', freq='A')
+        self.assertEqual(result, 4)
+
     def test_to_timestamp(self):
         p = Period('1982', freq='A')
         start_ts = p.to_timestamp(how='S')
@@ -337,6 +342,17 @@ class TestPeriodProperties(TestCase):
         assert_equal(s_date.hour, 0)
         assert_equal(s_date.minute, 0)
         assert_equal(s_date.second, 0)
+
+    def test_pnow(self):
+        dt = datetime.now()
+
+        val = pmod.pnow('D')
+        exp = Period(dt, freq='D')
+        self.assertEquals(val, exp)
+
+    def test_constructor_corner(self):
+        self.assertRaises(ValueError, Period, year=2007, month=1,
+                          freq='2M')
 
 def noWrap(item):
     return item
@@ -932,6 +948,12 @@ class TestPeriodIndex(TestCase):
         series = Series(1, index=index)
         self.assert_(isinstance(series, TimeSeries))
 
+    def test_astype(self):
+        idx = period_range('1990', '2009', freq='A')
+
+        result = idx.astype('i8')
+        self.assert_(np.array_equal(result, idx.values))
+
     def test_constructor_use_start_freq(self):
         # GH #1118
         p = Period('4/2/2012', freq='B')
@@ -949,8 +971,26 @@ class TestPeriodIndex(TestCase):
         expected = period_range('1990Q3', '2009Q2', freq='Q-DEC')
         self.assert_(index.equals(expected))
 
+        self.assertRaises(ValueError, PeriodIndex, year=years, quarter=quarters,
+                          freq='2Q-DEC')
+
         index = PeriodIndex(year=years, quarter=quarters)
         self.assert_(index.equals(expected))
+
+        years = [2007, 2007, 2007]
+        months = [1, 2]
+        self.assertRaises(ValueError, PeriodIndex, year=years, month=months,
+                          freq='M')
+        self.assertRaises(ValueError, PeriodIndex, year=years, month=months,
+                          freq='2M')
+        self.assertRaises(ValueError, PeriodIndex, year=years, month=months,
+                          freq='M', start=Period('2007-01', freq='M'))
+
+        years = [2007, 2007, 2007]
+        months = [1, 2, 3]
+        idx = PeriodIndex(year=years, month=months, freq='M')
+        exp = period_range('2007-01', periods=3, freq='M')
+        self.assert_(idx.equals(exp))
 
     def test_constructor_arrays_negative_year(self):
         years = np.arange(1960, 2000).repeat(4)
@@ -964,6 +1004,67 @@ class TestPeriodIndex(TestCase):
     def test_constructor_invalid_quarters(self):
         self.assertRaises(ValueError, PeriodIndex, year=range(2000, 2004),
                           quarter=range(4), freq='Q-DEC')
+
+    def test_constructor_corner(self):
+        self.assertRaises(ValueError, PeriodIndex, periods=10, freq='A')
+
+        start = Period('2007', freq='A-JUN')
+        end = Period('2010', freq='A-DEC')
+        self.assertRaises(ValueError, PeriodIndex, start=start, end=end)
+        self.assertRaises(ValueError, PeriodIndex, start=start)
+        self.assertRaises(ValueError, PeriodIndex, end=end)
+
+        result = period_range('2007-01', periods=10.5, freq='M')
+        exp = period_range('2007-01', periods=10, freq='M')
+        self.assert_(result.equals(exp))
+
+    def test_constructor_fromarraylike(self):
+        idx = period_range('2007-01', periods=20, freq='M')
+
+        self.assertRaises(ValueError, PeriodIndex, idx.values)
+        self.assertRaises(ValueError, PeriodIndex, list(idx.values))
+        self.assertRaises(ValueError, PeriodIndex,
+                          data=Period('2007', freq='A'))
+
+        result = PeriodIndex(iter(idx))
+        self.assert_(result.equals(idx))
+
+        result = PeriodIndex(idx)
+        self.assert_(result.equals(idx))
+
+        result = PeriodIndex(idx, freq='M')
+        self.assert_(result.equals(idx))
+
+        result = PeriodIndex(idx, freq='D')
+        exp = idx.asfreq('D', 'e')
+        self.assert_(result.equals(exp))
+
+    def test_comp_period(self):
+        idx = period_range('2007-01', periods=20, freq='M')
+
+        result = idx < idx[10]
+        exp = idx.values < idx.values[10]
+        self.assert_(np.array_equal(result, exp))
+
+    def test_getitem_ndim2(self):
+        idx = period_range('2007-01', periods=3, freq='M')
+
+        result = idx[:, None]
+        self.assert_(type(result) == np.ndarray)
+        self.assert_(isinstance(result[0, 0], Period))
+
+    def test_getitem_partial(self):
+        rng = period_range('2007-01', periods=50)
+        ts = Series(np.random.randn(len(rng)), rng)
+
+        self.assertRaises(KeyError, ts.__getitem__, '2006')
+
+    def test_sub(self):
+        rng = period_range('2007-01', periods=50)
+
+        result = rng - 5
+        exp = rng + (-5)
+        self.assert_(result.equals(exp))
 
     def test_periods_number_check(self):
         self.assertRaises(ValueError, period_range, '2011-1-1', '2012-1-1', 'B')
@@ -1000,6 +1101,8 @@ class TestPeriodIndex(TestCase):
         delta = timedelta(hours=23, minutes=59, seconds=59)
         exp_index = _get_with_delta(delta)
         self.assert_(result.index.equals(exp_index))
+
+        self.assertRaises(ValueError, index.to_timestamp, '5t')
 
     def test_to_timestamp_quarterly_bug(self):
         years = np.arange(1960, 2000).repeat(4)
@@ -1217,6 +1320,9 @@ class TestPeriodIndex(TestCase):
     def test_shift(self):
         pi1 = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
         pi2 = PeriodIndex(freq='A', start='1/1/2002', end='12/1/2010')
+
+        self.assert_(pi1.shift(0).equals(pi1))
+
         assert_equal(len(pi1), len(pi2))
         assert_equal(pi1.shift(1).values, pi2.values)
 
@@ -1304,7 +1410,8 @@ class TestPeriodIndex(TestCase):
         self.assertEquals(pi7.asfreq('H', 'S'), pi5)
         self.assertEquals(pi7.asfreq('Min', 'S'), pi6)
 
-        #self.assertEquals(pi7.asfreq('A', 'E'), i_end)
+        self.assertRaises(ValueError, pi7.asfreq, 'T', 'foo')
+        self.assertRaises(ValueError, pi1.asfreq, '5t')
 
     def test_ts_repr(self):
         index = PeriodIndex(freq='A', start='1/1/2001', end='12/31/2010')
@@ -1487,6 +1594,8 @@ class TestPeriodIndex(TestCase):
         index2 = period_range('1/1/2000', '1/20/2000', freq='W-WED')
         self.assertRaises(Exception, index.union, index2)
 
+        self.assertRaises(ValueError, index.join, index.to_timestamp())
+
     def test_intersection(self):
         index = period_range('1/1/2000', '1/20/2000', freq='D')
 
@@ -1574,6 +1683,10 @@ class TestPeriodIndex(TestCase):
         expected = index + 1
         self.assert_(result.equals(expected))
 
+        result = index.map(lambda x: x.ordinal)
+        exp = [x.ordinal for x in index]
+        self.assert_(np.array_equal(result, exp))
+
 def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
 
@@ -1589,8 +1702,8 @@ class TestMethods(TestCase):
         dt2 = Period(freq='D', year=2008, month=1, day=2)
         assert_equal(dt1 + 1, dt2)
         #
-        self.assertRaises(ValueError, dt1.__add__, "str")
-        self.assertRaises(ValueError, dt1.__add__, dt2)
+        self.assertRaises(TypeError, dt1.__add__, "str")
+        self.assertRaises(TypeError, dt1.__add__, dt2)
 
 
 class TestPeriodRepresentation(unittest.TestCase):
