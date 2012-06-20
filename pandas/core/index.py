@@ -2471,9 +2471,9 @@ def _ensure_compat_concat(indexes):
     return indexes
 
 def _maybe_box_dtindex(idx):
-    from pandas.tseries.index import DatetimeIndex, _dt_box_array
+    from pandas.tseries.index import DatetimeIndex
     if isinstance(idx, DatetimeIndex):
-        return Index(_dt_box_array(idx.asi8), dtype='object')
+        return idx.asobject
     return idx
 
 def _clean_arrays(values):

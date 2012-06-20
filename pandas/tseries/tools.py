@@ -65,7 +65,7 @@ def _figure_out_timezone(start, end, tzinfo):
     return start, end, tz
 
 
-def to_datetime(arg, errors='ignore', dayfirst=False):
+def to_datetime(arg, errors='ignore', dayfirst=False, box=True):
     """
     Convert argument to datetime
 
@@ -96,7 +96,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False):
         result = lib.array_to_datetime(com._ensure_object(arg),
                                        raise_=errors == 'raise',
                                        dayfirst=dayfirst)
-        if com.is_datetime64_dtype(result):
+        if com.is_datetime64_dtype(result) and box:
             result = DatetimeIndex(result)
         return result
     try:

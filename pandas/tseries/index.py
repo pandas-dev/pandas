@@ -322,8 +322,7 @@ class DatetimeIndex(Int64Index):
             xdr = generate_range(offset=offset, start=_CACHE_START,
                                  end=_CACHE_END)
 
-            arr = np.array(_to_m8_array(list(xdr)),
-                           dtype=_NS_DTYPE, copy=False)
+            arr = tools.to_datetime(list(xdr), box=False)
 
             cachedRange = arr.view(DatetimeIndex)
             cachedRange.offset = offset
@@ -538,7 +537,8 @@ class DatetimeIndex(Int64Index):
         return list(self.asobject)
 
     def _get_object_index(self):
-        boxed_values = _dt_box_array(self.asi8, self.offset, self.tz)
+        boxfunc = lambda x: Timestamp(x, offset=self.offset, tz=self.tz)
+        boxed_values = lib.map_infer(self.asi8, boxfunc)
         return Index(boxed_values, dtype=object)
 
     def to_pydatetime(self):
@@ -1047,10 +1047,6 @@ class DatetimeIndex(Int64Index):
         return 'datetime64'
 
     @property
-    def _constructor(self):
-        return DatetimeIndex
-
-    @property
     def dtype(self):
         return _NS_DTYPE
 
@@ -1108,10 +1104,10 @@ class DatetimeIndex(Int64Index):
         if type(item) == datetime:
             item = _to_m8(item)
 
-        if self.offset is not None and not self.offset.onOffset(item):
-            raise ValueError("Cannot insert value at non-conforming time")
-
-        return super(DatetimeIndex, self).insert(loc, item)
+        new_index = np.concatenate((self[:loc].asi8,
+                                    [item.view(np.int64)],
+                                    self[loc:].asi8))
+        return DatetimeIndex(new_index, freq='infer')
 
     def _view_like(self, ndarray):
         result = ndarray.view(type(self))
@@ -1155,29 +1151,6 @@ class DatetimeIndex(Int64Index):
         new_dates = new_dates.view(_NS_DTYPE)
 
         return self._simple_new(new_dates, self.name, self.offset, tz)
-
-    def tz_validate(self):
-        """
-        For a localized time zone, verify that there are no DST ambiguities
-        (using pytz)
-
-        Returns
-        -------
-        result : boolean
-            True if there are no DST ambiguities
-        """
-        import pytz
-
-        if self.tz is None or self.tz is pytz.utc:
-            return True
-
-        # See if there are any DST resolution problems
-        try:
-            lib.tz_localize_check(self.asi8, self.tz)
-        except:
-            return False
-
-        return True
 
     def indexer_at_time(self, time, asof=False):
         """
@@ -1353,17 +1326,6 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
                          freq=freq, tz=tz, normalize=normalize)
 
 
-def _dt_box_array(arr, offset=None, tz=None):
-    if arr is None:
-        return arr
-
-    if not isinstance(arr, np.ndarray):
-        return arr
-
-    boxfunc = lambda x: Timestamp(x, offset=offset, tz=tz)
-    return lib.map_infer(arr, boxfunc)
-
-
 def _to_m8(key):
     '''
     Timestamp-like => dt64
@@ -1374,11 +1336,6 @@ def _to_m8(key):
 
     return np.int64(lib.pydt_to_i8(key)).view(_NS_DTYPE)
 
-
-def _to_m8_array(arr):
-    if arr is None:
-        return arr
-    return np.frompyfunc(_to_m8, 1, 1)(arr)
 
 
 def _str_to_dt_array(arr, offset=None):
