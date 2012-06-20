@@ -789,6 +789,12 @@ class TestTimeSeries(unittest.TestCase):
         result = ts.at_time(time(0, 0))
         assert_series_equal(result, ts)
 
+        # time doesn't exist
+        rng = date_range('1/1/2012', freq='23Min', periods=384)
+        ts = Series(np.random.randn(len(rng)), rng)
+        rs = ts.at_time('16:00')
+        self.assert_(len(rs) == 0)
+
     def test_between_time(self):
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
         ts = Series(np.random.randn(len(rng)), index=rng)
