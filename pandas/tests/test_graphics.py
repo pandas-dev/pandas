@@ -86,6 +86,13 @@ class TestSeriesPlots(unittest.TestCase):
         from pandas.tools.plotting import lag_plot
         _check_plot_works(lag_plot, self.ts)
 
+    @slow
+    def test_probability_plot(self):
+        from pandas.tools.plotting import probability_plot
+        _check_plot_works(probability_plot, self.ts)
+        _check_plot_works(probability_plot, self.ts, marker='+', color='black')
+        _check_plot_works(probability_plot, self.ts, dist='cauchy', sparams=(1.0, 0.01), marker='+', color='black')
+
 class TestDataFramePlots(unittest.TestCase):
 
     @classmethod
