@@ -1036,9 +1036,12 @@ class DatetimeIndex(Int64Index):
     def is_type_compatible(self, typ):
         return typ == self.inferred_type or typ == 'datetime'
 
-    # hack to workaround argmin failure
     def argmin(self):
-        return (-self).argmax()
+        # hack to workaround argmin failure
+        try:
+            return self.values.argmin()
+        except Exception:  # pragma: no cover
+            return self.asi8.argmin()
 
     @property
     def inferred_type(self):

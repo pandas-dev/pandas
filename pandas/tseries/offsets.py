@@ -194,8 +194,6 @@ class DateOffset(object):
 
     def rollforward(self, dt):
         """Roll provided date forward to next offset only if not on offset"""
-        if isinstance(dt, np.datetime64):
-            dt = Timestamp(dt)
         if not self.onOffset(dt):
             dt = dt + self.__class__(1, **self.kwds)
         return dt
@@ -297,8 +295,6 @@ class BusinessDay(CacheableOffset, DateOffset):
                             'datetime or timedelta!')
     @classmethod
     def onOffset(cls, dt):
-        if isinstance(dt, np.datetime64):
-             dt = Timestamp(dt)
         return dt.weekday() < 5
 
 
@@ -636,8 +632,6 @@ class BQuarterBegin(DateOffset, CacheableOffset):
         first = _get_firstbday(wkday)
 
         monthsSince = (other.month - self.startingMonth) % 3
-        if monthsSince == 3: # on offset
-            monthsSince = 0
 
         if n <= 0 and monthsSince != 0: # make sure to roll forward so negate
             monthsSince = monthsSince - 3
@@ -728,9 +722,6 @@ class QuarterBegin(DateOffset, CacheableOffset):
 
         monthsSince = (other.month - self.startingMonth) % 3
 
-        if monthsSince == 3: # on an offset
-            monthsSince = 0
-
         if n <= 0 and monthsSince != 0:
             # make sure you roll forward, so negate
             monthsSince = monthsSince - 3
@@ -756,7 +747,7 @@ class BYearEnd(DateOffset, CacheableOffset):
         self.month = kwds.get('month', 12)
 
         if self.month < 1 or self.month > 12:
-            raise Exception('Month must go from 1 to 12')
+            raise ValueError('Month must go from 1 to 12')
 
         DateOffset.__init__(self, n=n, **kwds)
 
@@ -803,7 +794,7 @@ class BYearBegin(DateOffset, CacheableOffset):
         self.month = kwds.get('month', 1)
 
         if self.month < 1 or self.month > 12:
-            raise Exception('Month must go from 1 to 12')
+            raise ValueError('Month must go from 1 to 12')
 
         DateOffset.__init__(self, n=n, **kwds)
 
@@ -845,7 +836,7 @@ class YearEnd(DateOffset, CacheableOffset):
         self.month = kwds.get('month', 12)
 
         if self.month < 1 or self.month > 12:
-            raise Exception('Month must go from 1 to 12')
+            raise ValueError('Month must go from 1 to 12')
 
         DateOffset.__init__(self, n=n, **kwds)
 
@@ -911,7 +902,7 @@ class YearBegin(DateOffset, CacheableOffset):
         self.month = kwds.get('month', 12)
 
         if self.month < 1 or self.month > 12:
-            raise Exception('Month must go from 1 to 12')
+            raise ValueError('Month must go from 1 to 12')
 
         DateOffset.__init__(self, n=n, **kwds)
 
@@ -1012,7 +1003,7 @@ def _delta_to_tick(delta):
             return Milli(nanos // 1000000)
         elif nanos % 1000 == 0:
             return Micro(nanos // 1000)
-        else:
+        else:  # pragma: no cover
             return Nano(nanos)
 
 def _delta_to_nanoseconds(delta):
@@ -1113,9 +1104,6 @@ def generate_range(start=None, end=None, periods=None,
         if periods is None and end < start:
             end = None
             periods = 0
-
-    if _count_not_none(start, end, periods) < 2:
-        raise ValueError('Must specify 2 of start, end, periods')
 
     if end is None:
         end = start + (periods - 1) * offset

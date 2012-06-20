@@ -21,10 +21,6 @@ except ImportError: # pragma: no cover
     print 'Please install python-dateutil via easy_install or some method!'
     raise # otherwise a 2nd import won't show the message
 
-def _delta_to_microseconds(delta):
-    return (delta.days * 24 * 60 * 60 * 1000000
-            + delta.seconds * 1000000
-            + delta.microseconds)
 
 def _infer_tzinfo(start, end):
     def _infer(a, b):
@@ -214,8 +210,6 @@ def parse_time_string(arg, freq=None):
                 repl[attr] = value
                 if not stopped:
                     reso = attr
-                else:
-                    raise DateParseError("Missing attribute before %s" % attr)
             else:
                 stopped = True
                 break
@@ -243,8 +237,6 @@ def _try_parse_monthly(arg):
     return ret
 
 def normalize_date(dt):
-    if isinstance(dt, np.datetime64):
-        dt = lib.Timestamp(dt)
     return dt.replace(hour=0, minute=0, second=0, microsecond=0)
 
 

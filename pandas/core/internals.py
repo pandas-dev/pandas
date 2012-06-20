@@ -898,7 +898,7 @@ class BlockManager(object):
         # new block
         self._add_new_block(item, value, loc=loc)
 
-        if len(self.blocks) > 20:
+        if len(self.blocks) > 100:
             self._consolidate_inplace()
 
     def set_items_norename(self, value):

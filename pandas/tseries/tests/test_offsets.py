@@ -13,6 +13,7 @@ from pandas.core.datetools import (
 from pandas.tseries.frequencies import _offset_map
 from pandas.tseries.index import _to_m8
 from pandas.tseries.tools import parse_time_string
+import pandas.tseries.offsets as offsets
 
 from nose.tools import assert_raises
 
@@ -953,6 +954,11 @@ class TestQuarterEnd(unittest.TestCase):
             assertOnOffset(offset, date, expected)
 
 class TestBYearBegin(unittest.TestCase):
+
+    def test_misspecified(self):
+        self.assertRaises(ValueError, BYearBegin, month=13)
+        self.assertRaises(ValueError, BYearEnd, month=13)
+
     def test_offset(self):
         tests = []
 
@@ -995,6 +1001,9 @@ class TestBYearBegin(unittest.TestCase):
 
 
 class TestYearBegin(unittest.TestCase):
+
+    def test_misspecified(self):
+        self.assertRaises(ValueError, YearBegin, month=13)
 
     def test_offset(self):
         tests = []
@@ -1133,6 +1142,9 @@ class TestBYearEnd(unittest.TestCase):
 
 class TestYearEnd(unittest.TestCase):
 
+    def test_misspecified(self):
+        self.assertRaises(ValueError, YearEnd, month=13)
+
     def test_offset(self):
         tests = []
 
@@ -1188,7 +1200,8 @@ class TestYearEndDiffMonth(unittest.TestCase):
                        datetime(2008, 2, 15): datetime(2008, 3, 31),
                        datetime(2008, 3, 31): datetime(2009, 3, 31),
                        datetime(2008, 3, 30): datetime(2008, 3, 31),
-                       datetime(2005, 3, 31): datetime(2006, 3, 31),}))
+                       datetime(2005, 3, 31): datetime(2006, 3, 31),
+                       datetime(2006, 7, 30): datetime(2007, 3, 31)}))
 
         tests.append((YearEnd(0, month=3),
                       {datetime(2008, 1, 1): datetime(2008, 3, 31),
@@ -1358,8 +1371,23 @@ class TestOffsetAliases(unittest.TestCase):
                 assert alias == _offset_map[alias].rule_code
                 assert alias == (_offset_map[alias] * 5).rule_code
 
+def test_apply_ticks():
+    result = offsets.Hour(3).apply(offsets.Hour(4))
+    exp = offsets.Hour(7)
+    assert(result == exp)
 
+def test_delta_to_tick():
+    delta = timedelta(3)
 
+    tick = offsets._delta_to_tick(delta)
+    assert(tick == offsets.Day(3))
+
+def test_dateoffset_misc():
+    oset = offsets.DateOffset(months=2, days=4)
+    # it works
+    result = oset.freqstr
+
+    assert(not offsets.DateOffset(months=2) == 2)
 
 if __name__ == '__main__':
     import nose
