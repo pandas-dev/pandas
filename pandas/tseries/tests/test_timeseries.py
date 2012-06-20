@@ -924,6 +924,14 @@ class TestTimeSeries(unittest.TestCase):
         ex_index = DatetimeIndex(np.tile(rng.values, 3))
         self.assert_(appended.equals(ex_index))
 
+        # different index names
+        rng1 = rng.copy()
+        rng2 = rng.copy()
+        rng1.name = 'foo'
+        rng2.name = 'bar'
+        self.assert_(rng1.append(rng1).name == 'foo')
+        self.assert_(rng1.append(rng2).name is None)
+
     def test_set_dataframe_column_ns_dtype(self):
         x = DataFrame([datetime.now(), datetime.now()])
         self.assert_(x[0].dtype == object)
@@ -953,12 +961,29 @@ def _simple_ts(start, end, freq='D'):
 
 class TestDatetimeIndex(unittest.TestCase):
 
-    def test_append_nondatetimeindex(self):
+    def test_append_join_nondatetimeindex(self):
         rng = date_range('1/1/2000', periods=10)
         idx = Index(['a', 'b', 'c', 'd'])
 
         result = rng.append(idx)
         self.assert_(isinstance(result[0], Timestamp))
+
+        # it works
+        rng.join(idx, how='outer')
+
+    def test_astype(self):
+        rng = date_range('1/1/2000', periods=10)
+
+        result = rng.astype('i8')
+        self.assert_(np.array_equal(result, rng.asi8))
+
+    def test_to_period_nofreq(self):
+        idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-04'])
+        self.assertRaises(ValueError, idx.to_period)
+
+        idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-03'],
+                            freq='infer')
+        idx.to_period()
 
     def test_constructor_coverage(self):
         rng = date_range('1/1/2000', periods=10.5)
@@ -1017,6 +1042,62 @@ class TestDatetimeIndex(unittest.TestCase):
         result = rng.map(f)
         exp = [f(x) for x in rng]
         self.assert_(np.array_equal(result, exp))
+
+    def test_add_union(self):
+        rng = date_range('1/1/2000', periods=5)
+        rng2 = date_range('1/6/2000', periods=5)
+
+        result = rng + rng2
+        expected = rng.union(rng2)
+        self.assert_(result.equals(expected))
+
+    def test_misc_coverage(self):
+        rng = date_range('1/1/2000', periods=5)
+        result = rng.groupby(rng.day)
+        self.assert_(isinstance(result.values()[0][0], Timestamp))
+
+    def test_union_coverage(self):
+        idx = DatetimeIndex(['2000-01-03', '2000-01-01', '2000-01-02'])
+        ordered = DatetimeIndex(idx.order(), freq='infer')
+        result = ordered.union(idx)
+        self.assert_(result.equals(ordered))
+
+        result = ordered[:0].union(ordered)
+        self.assert_(result.equals(ordered))
+        self.assert_(result.freq == ordered.freq)
+
+    # def test_add_timedelta64(self):
+    #     rng = date_range('1/1/2000', periods=5)
+    #     delta = rng.values[3] - rng.values[1]
+
+    #     result = rng + delta
+    #     expected = rng + timedelta(2)
+    #     self.assert_(result.equals(expected))
+
+    def test_get_duplicates(self):
+        idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-02',
+                             '2000-01-03', '2000-01-03', '2000-01-04'])
+
+        result = idx.get_duplicates()
+        ex = DatetimeIndex(['2000-01-02', '2000-01-03'])
+        self.assert_(result.equals(ex))
+
+    def test_order(self):
+        idx = DatetimeIndex(['2000-01-04', '2000-01-01', '2000-01-02'])
+
+        ordered = idx.order()
+        self.assert_(ordered.is_monotonic)
+
+        ordered = idx.order(ascending=False)
+        self.assert_(ordered[::-1].is_monotonic)
+
+        ordered, dexer = idx.order(return_indexer=True)
+        self.assert_(ordered.is_monotonic)
+        self.assert_(np.array_equal(dexer, [1, 2, 0]))
+
+        ordered, dexer = idx.order(return_indexer=True, ascending=False)
+        self.assert_(ordered[::-1].is_monotonic)
+        self.assert_(np.array_equal(dexer, [0, 2, 1]))
 
 
 class TestLegacySupport(unittest.TestCase):
@@ -1118,6 +1199,15 @@ class TestLegacySupport(unittest.TestCase):
         _check_join(index[:15], obj_index[5:], how='outer')
         _check_join(index[:15], obj_index[5:], how='right')
         _check_join(index[:15], obj_index[5:], how='left')
+
+    def test_unpickle_daterange(self):
+        pth, _ = os.path.split(os.path.abspath(__file__))
+        filepath = os.path.join(pth, 'data', 'daterange_073.pickle')
+
+        rng = com.load(filepath)
+        self.assert_(type(rng[0]) == datetime)
+        self.assert_(isinstance(rng.offset, offsets.BDay))
+        self.assert_(rng.values.dtype == object)
 
     def test_setops(self):
         index = self.frame.index
@@ -1290,16 +1380,25 @@ class TestLegacySupport(unittest.TestCase):
         self.assertEqual(shifted.freq, index.freq)
         self.assertEqual(shifted.freq, back.freq)
 
-    def test_shift_multiple_of_same_base(self):
-        # GH #1063
+        result = index - timedelta(1)
+        expected = index + timedelta(-1)
+        self.assert_(result.equals(expected))
+
+    def test_shift(self):
         ts = Series(np.random.randn(5),
                     index=date_range('1/1/2000', periods=5, freq='H'))
 
-        result = ts.shift(1, freq='4H')
-
-        exp_index = ts.index + datetools.Hour(4)
-
+        result = ts.shift(1, freq='5T')
+        exp_index = ts.index.shift(1, freq='5T')
         self.assert_(result.index.equals(exp_index))
+
+        # GH #1063, multiple of same base
+        result = ts.shift(1, freq='4H')
+        exp_index = ts.index + datetools.Hour(4)
+        self.assert_(result.index.equals(exp_index))
+
+        idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-04'])
+        self.assertRaises(ValueError, idx.shift, 1)
 
     def test_setops_preserve_freq(self):
         rng = date_range('1/1/2000', '1/1/2002')

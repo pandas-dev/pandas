@@ -714,6 +714,10 @@ class TestResamplePeriodIndex(unittest.TestCase):
 
         result = s.resample('10min', how='mean',closed='left', label='left')
         exp = s[1:].resample('10min', how='mean',closed='left', label='left')
+
+        ex_index = date_range(start='1/1/2012 9:30', freq='10min', periods=3)
+
+        self.assert_(result.index.equals(ex_index))
         assert_series_equal(result, exp)
 
 class TestTimeGrouper(unittest.TestCase):

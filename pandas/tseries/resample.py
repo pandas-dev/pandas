@@ -100,7 +100,7 @@ class TimeGrouper(CustomGrouper):
 
         # a little hack
         trimmed = False
-        if len(binner) > 2 and binner[-2] == axis[-1]:
+        if len(binner) > 2 and binner[-2] == axis[-1] and self.closed == 'right':
             binner = binner[:-1]
             trimmed = True
 

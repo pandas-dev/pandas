@@ -401,24 +401,6 @@ class DatetimeIndex(Int64Index):
             self.offset = own_state[1]
             self.tz = own_state[2]
             np.ndarray.__setstate__(self, nd_state)
-        elif len(state) == 3:
-            # legacy format: daterange
-            offset = state[1]
-
-            if len(state) > 2:
-                tzinfo = state[2]
-            else: # pragma: no cover
-                tzinfo = None
-
-            self.offset = offset
-            self.tzinfo = tzinfo
-
-            # extract the raw datetime data, turn into datetime64
-            index_state = state[0]
-            raw_data = index_state[0][4]
-            raw_data = np.array(raw_data, dtype=_NS_DTYPE)
-            new_state = raw_data.__reduce__()
-            np.ndarray.__setstate__(self, new_state[2])
         else:  # pragma: no cover
             np.ndarray.__setstate__(self, state)
 
@@ -427,20 +409,24 @@ class DatetimeIndex(Int64Index):
             return self.union(other)
         elif isinstance(other, (DateOffset, timedelta)):
             return self._add_delta(other)
+        elif isinstance(other, np.timedelta64):
+            raise NotImplementedError
         elif com.is_integer(other):
             return self.shift(other)
-        else:
-            return Index(self.view(np.ndarray) + other)
+        else:  # pragma: no cover
+            raise TypeError(other)
 
     def __sub__(self, other):
         if isinstance(other, Index):
             return self.diff(other)
         elif isinstance(other, (DateOffset, timedelta)):
             return self._add_delta(-other)
+        elif isinstance(other, np.timedelta64):
+            raise NotImplementedError
         elif com.is_integer(other):
             return self.shift(-other)
-        else:
-            return Index(self.view(np.ndarray) - other)
+        else:  # pragma: no cover
+            raise TypeError(other)
 
     def _add_delta(self, delta):
         if isinstance(delta, (Tick, timedelta)):
@@ -510,25 +496,23 @@ class DatetimeIndex(Int64Index):
 
         if dtype == np.object_:
             return self.asobject
-        return Index.astype(self, dtype)
+        elif dtype == _INT64_DTYPE:
+            return self.asi8.copy()
+        else:  # pragma: no cover
+            raise ValueError('Cannot cast DatetimeIndex to dtype %s' % dtype)
 
     @property
     def asi8(self):
         # do not cache or you'll create a memory leak
         return self.values.view('i8')
 
-    @property
-    def asstruct(self):
-        if self._sarr_cache is None:
-            self._sarr_cache = self._get_field_sarr()
-        return self._sarr_cache
-
-    def _get_field_sarr(self):
-        utc = _utc()
-        values = self.asi8
-        if self.tz is not None and self.tz is not utc:
-            values = lib.tz_convert(values, utc, self.tz)
-        return lib.build_field_sarray(values)
+    # @property
+    # def asstruct(self):
+    #     utc = _utc()
+    #     values = self.asi8
+    #     if self.tz is not None and self.tz is not utc:
+    #         values = lib.tz_convert(values, utc, self.tz)
+    #     return lib.build_field_sarray(values)
 
     def _get_time_micros(self):
         utc = _utc()
@@ -594,6 +578,8 @@ class DatetimeIndex(Int64Index):
             return sorted_index, _as
         else:
             sorted_values = np.sort(self.values)
+            if not ascending:
+                sorted_values = sorted_values[::-1]
             return self._simple_new(sorted_values, self.name, None,
                                     self.tz)
 
@@ -709,7 +695,7 @@ class DatetimeIndex(Int64Index):
         if not isinstance(other, DatetimeIndex) and len(other) > 0:
             try:
                 other = DatetimeIndex(other)
-            except ValueError:
+            except TypeError:
                 pass
 
         this, other = self._maybe_utc_convert(other)

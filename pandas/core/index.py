@@ -858,8 +858,11 @@ class Index(np.ndarray):
                 return self._join_non_unique(other, how=how,
                                              return_indexers=return_indexers)
         elif self.is_monotonic and other.is_monotonic:
-            return self._join_monotonic(other, how=how,
-                                        return_indexers=return_indexers)
+            try:
+                return self._join_monotonic(other, how=how,
+                                            return_indexers=return_indexers)
+            except TypeError:
+                pass
 
         if how == 'left':
             join_index = self
