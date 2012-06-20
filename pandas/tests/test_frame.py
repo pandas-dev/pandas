@@ -138,6 +138,9 @@ class CheckIndexing(object):
         subframe_obj = self.tsframe[indexer_obj]
         assert_frame_equal(subframe_obj, subframe)
 
+        self.assertRaises(ValueError, self.tsframe.__getitem__, self.tsframe)
+
+
     def test_getitem_boolean_list(self):
         df = DataFrame(np.arange(12).reshape(3,4))
         def _checkit(lst):
@@ -1433,6 +1436,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         unindexed_frame = DataFrame(data)
 
         self.assertEqual(self.mixed_frame['foo'].dtype, np.object_)
+
+    def test_constructor_cast_failure(self):
+        foo = DataFrame({'a': ['a', 'b', 'c']}, dtype=np.float64)
+        self.assert_(foo['a'].dtype == object)
 
     def test_constructor_rec(self):
         rec = self.frame.to_records(index=False)
@@ -2818,6 +2825,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df3 = DataFrame({'a' : arr3})
         rs = df3.gt(2j)
         self.assert_(not rs.values.any())
+
+        # corner, dtype=object
+        df1 = DataFrame({'col' : ['foo', np.nan, 'bar']})
+        df2 = DataFrame({'col' : ['foo', datetime.now(), 'bar']})
+        result = df1.ne(df2)
+        exp = DataFrame({'col' : [False, True, False]})
+        assert_frame_equal(result, exp)
 
     def test_arith_flex_series(self):
         df = self.simple
@@ -6357,6 +6371,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         mixed['_bool_'] = np.random.randn(len(mixed)) > 0
         getattr(mixed, name)(axis=0)
         getattr(mixed, name)(axis=1)
+
+        class NonzeroFail:
+
+            def __nonzero__(self):
+                raise ValueError
+
+        mixed['_nonzero_fail_'] = NonzeroFail()
 
         if has_bool_only:
             getattr(mixed, name)(axis=0, bool_only=True)

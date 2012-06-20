@@ -240,7 +240,7 @@ def _flex_comp_method(op, name, default_axis='columns'):
                 mask = notnull(xrav)
                 result[mask] = op(np.array(list(xrav[mask])), y)
 
-            if op == operator.ne:
+            if op == operator.ne:  # pragma: no cover
                 np.putmask(result, -mask, True)
             else:
                 np.putmask(result, -mask, False)
@@ -1869,12 +1869,12 @@ class DataFrame(NDFrame):
         if np.isscalar(loc):
             new_values = self._data.fast_2d_xs(loc, copy=copy)
             return Series(new_values, index=self.columns, name=key)
-        elif isinstance(loc, slice) or loc.dtype == np.bool_:
+        else: # isinstance(loc, slice) or loc.dtype == np.bool_:
             result = self[loc]
             result.index = new_index
             return result
-        else:
-            return self.take(loc)
+        # else:
+        #     return self.take(loc)
 
     def lookup(self, row_labels, col_labels):
         """

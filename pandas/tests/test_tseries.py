@@ -386,31 +386,41 @@ def test_series_bin_grouper():
     exp_counts = np.array([3, 3, 4], dtype=np.int64)
     assert_almost_equal(counts, exp_counts)
 
-def test_generate_bins():
-    from pandas.core.groupby import generate_bins_generic
-    values = np.array([1,2,3,4,5,6], dtype=np.int64)
-    binner = np.array([0,3,6,9], dtype=np.int64)
-
-    for func in [lib.generate_bins_dt64, generate_bins_generic]:
-        bins = func(values, binner, closed='left')
-        assert((bins == np.array([2, 5, 6])).all())
-
-        bins = func(values, binner, closed='right')
-        assert((bins == np.array([3, 6, 6])).all())
-
-    for func in [lib.generate_bins_dt64, generate_bins_generic]:
-        values = np.array([1,2,3,4,5,6], dtype=np.int64)
-        binner = np.array([0,3,6], dtype=np.int64)
-
-        bins = func(values, binner, closed='right')
-        assert((bins == np.array([3, 6])).all())
-
 class TestBinGroupers(unittest.TestCase):
 
     def setUp(self):
         self.obj = np.random.randn(10, 1)
         self.labels = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 2], dtype=np.int64)
         self.bins = np.array([3, 6], dtype=np.int64)
+
+    def test_generate_bins(self):
+        from pandas.core.groupby import generate_bins_generic
+        values = np.array([1,2,3,4,5,6], dtype=np.int64)
+        binner = np.array([0,3,6,9], dtype=np.int64)
+
+        for func in [lib.generate_bins_dt64, generate_bins_generic]:
+            bins = func(values, binner, closed='left')
+            assert((bins == np.array([2, 5, 6])).all())
+
+            bins = func(values, binner, closed='right')
+            assert((bins == np.array([3, 6, 6])).all())
+
+        for func in [lib.generate_bins_dt64, generate_bins_generic]:
+            values = np.array([1,2,3,4,5,6], dtype=np.int64)
+            binner = np.array([0,3,6], dtype=np.int64)
+
+            bins = func(values, binner, closed='right')
+            assert((bins == np.array([3, 6])).all())
+
+        self.assertRaises(ValueError, generate_bins_generic, values, [],
+                          'right')
+        self.assertRaises(ValueError, generate_bins_generic, values[:0],
+                          binner, 'right')
+
+        self.assertRaises(ValueError, generate_bins_generic,
+                          values, [4], 'right')
+        self.assertRaises(ValueError, generate_bins_generic,
+                          values, [-3, -1], 'right')
 
     def test_group_bin_functions(self):
         funcs = ['add', 'mean', 'prod', 'min', 'max', 'var']

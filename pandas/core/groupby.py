@@ -345,12 +345,11 @@ class GroupBy(object):
 
     def nth(self, n):
         def picker(arr):
-            if arr is not None:
-                n_ok_pos = n >= 0 and len(arr) > n
-                n_ok_neg = n < 0 and len(arr) >= n
-                if n_ok_pos or n_ok_neg:
-                    return arr.iget(n)
-            return np.nan
+            arr = arr[com.notnull(arr)]
+            if len(arr) >= n + 1:
+                return arr.iget(n)
+            else:
+                return np.nan
         return self.agg(picker)
 
     def _cython_agg_general(self, how):
@@ -656,11 +655,13 @@ class Grouper(object):
         arity = self._cython_arity.get(how, 1)
 
         vdim = values.ndim
+        swapped = False
         if vdim == 1:
             values = values[:, None]
             out_shape = (self.ngroups, arity)
         else:
             if axis > 0:
+                swapped = True
                 values = values.swapaxes(0, axis)
             if arity > 1:
                 raise NotImplementedError
@@ -673,8 +674,11 @@ class Grouper(object):
         result = self._aggregate(result, counts, values, how)
 
         if self._filter_empty_groups:
-            result = lib.row_bool_subset(result,
-                                         (counts > 0).view(np.uint8))
+            if result.ndim == 2:
+                result = lib.row_bool_subset(result,
+                                             (counts > 0).view(np.uint8))
+            else:
+                result = result[counts > 0]
 
         if vdim == 1 and arity == 1:
             result = result[:, 0]
@@ -685,7 +689,7 @@ class Grouper(object):
         else:
             names = None
 
-        if axis > 0:
+        if swapped:
             result = result.swapaxes(0, axis)
 
         return result, names
@@ -700,7 +704,8 @@ class Grouper(object):
             raise NotImplementedError
         elif values.ndim > 2:
             for i, chunk in enumerate(values.transpose(2, 0, 1)):
-                agg_func(result[:, :, i], counts, chunk, comp_ids)
+                agg_func(result[:, :, i], counts, chunk.squeeze(),
+                         comp_ids)
         else:
             agg_func(result, counts, values, comp_ids)
 
@@ -941,10 +946,6 @@ class Grouping(object):
 
         # pre-computed
         self._was_factor = False
-
-        # did we pass a custom grouper object? Do nothing
-        if isinstance(grouper, Grouper):
-            return
 
         if level is not None:
             if not isinstance(level, int):
@@ -1349,7 +1350,13 @@ class NDFrameGroupBy(GroupBy):
         obj = self._obj_with_exclusions
 
         new_axes = list(obj._data.axes)
-        new_axes[self.axis] = self.grouper.result_index
+
+        # more kludge
+        if self.axis == 0:
+            new_axes[0], new_axes[1] = new_axes[1], self.grouper.result_index
+        else:
+            new_axes[self.axis] = self.grouper.result_index
+
         mgr = BlockManager(blocks, new_axes)
 
         new_obj = type(obj)(mgr)
@@ -1693,7 +1700,7 @@ class NDFrameGroupBy(GroupBy):
             except Exception:
                 pass
 
-        if len(output) == 0:
+        if len(output) == 0:  # pragma: no cover
             raise TypeError('Transform function invalid for data types')
 
         columns = obj.columns
@@ -1769,12 +1776,6 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
         return result
 
-    def _post_process_cython_aggregate(self, obj):
-        # undoing kludge from below
-        if self.axis == 0:
-            obj = obj.T
-        return obj
-
     def _wrap_agged_blocks(self, blocks):
         obj = self._obj_with_exclusions
 
@@ -1827,8 +1828,6 @@ class PanelGroupBy(NDFrameGroupBy):
             slicer = lambda x: self.obj[x]
         else:
             raise NotImplementedError
-            # slice_axis = self.obj.index
-            # slicer = lambda x: self.obj.xs(x, axis=self.axis)
 
         for val in slice_axis:
             if val in self.exclusions:
@@ -1857,7 +1856,6 @@ class PanelGroupBy(NDFrameGroupBy):
         return self._aggregate_generic(arg, *args, **kwargs)
 
     def _wrap_generic_output(self, result, obj):
-
         new_axes = list(obj.axes)
         new_axes[self.axis] = self.grouper.result_index
 
@@ -1882,8 +1880,6 @@ class PanelGroupBy(NDFrameGroupBy):
                     result[item] = itemg.aggregate(func, *args, **kwargs)
                 except (ValueError, TypeError):
                     raise
-                    # cannot_agg.append(item)
-                    # continue
             new_axes = list(obj.axes)
             new_axes[self.axis] = self.grouper.result_index
             return Panel._from_axes(result, new_axes)
@@ -1892,16 +1888,6 @@ class PanelGroupBy(NDFrameGroupBy):
 
     def _wrap_aggregated_output(self, output, names=None):
         raise NotImplementedError
-        new_axes = list(self._obj_with_exclusions.axes)
-        new_axes[self.axis] = self.grouper.result_index
-
-        result = Panel(output, index=self.grouper.result_index,
-                       columns=output_keys)
-
-        if self.axis > 0:
-            result = result.swapaxes(0, self.axis)
-
-        return result
 
 
 class NDArrayGroupBy(GroupBy):

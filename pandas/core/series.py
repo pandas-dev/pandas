@@ -2736,7 +2736,7 @@ def _resolve_offset(freq, kwds):
         offset = freq
         warn = False
 
-    if warn and _SHOW_WARNINGS:
+    if warn and _SHOW_WARNINGS:  # pragma: no cover
         import warnings
         warnings.warn("'timeRule' and 'offset' parameters are deprecated,"
                       " please use 'freq' instead",

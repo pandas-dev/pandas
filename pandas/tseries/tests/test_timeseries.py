@@ -1680,6 +1680,10 @@ class TestSeriesDatetime64(unittest.TestCase):
         series = Series(list(date_range('1/1/2000', periods=10)))
         self.assert_(series.dtype == object)
 
+    def test_constructor_cant_cast_datetime64(self):
+        self.assertRaises(TypeError, Series,
+                          date_range('1/1/2000', periods=10), dtype=float)
+
     def test_series_comparison_scalars(self):
         val = datetime(2000, 1, 4)
         result = self.series > val

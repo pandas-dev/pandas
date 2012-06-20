@@ -9,6 +9,7 @@ import pandas.core.common as com
 
 from pandas.core.algorithms import quantile
 from pandas.tools.tile import cut, qcut
+import pandas.tools.tile as tmod
 
 from numpy.testing import assert_equal, assert_almost_equal
 
@@ -47,6 +48,18 @@ class TestCut(unittest.TestCase):
     def test_bins_not_monotonic(self):
         data = [.2, 1.4, 2.5, 6.2, 9.7, 2.1]
         self.assertRaises(ValueError, cut, data, [0.1, 1.5, 1, 10])
+
+    def test_wrong_num_labels(self):
+        data = [.2, 1.4, 2.5, 6.2, 9.7, 2.1]
+        self.assertRaises(ValueError, cut, data, [0, 1, 10],
+                          labels=['foo', 'bar', 'baz'])
+
+    def test_cut_corner(self):
+        # h3h
+        self.assertRaises(ValueError, cut, [], 2)
+
+        self.assertRaises(ValueError, cut, [1, 2, 3], 0.5)
+
 
     def test_labels(self):
         arr = np.tile(np.arange(0, 1.01, 0.1), 4)
@@ -152,6 +165,14 @@ class TestCut(unittest.TestCase):
 
         result = qcut(arr, 4)
         self.assert_(com.isnull(result[:20]).all())
+
+    def test_label_formatting(self):
+        self.assertEquals(tmod._trim_zeros('1.000'), '1')
+
+        # it works
+        result = cut(np.arange(11.), 2)
+
+        result = cut(np.arange(11.) / 1e10, 2)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
