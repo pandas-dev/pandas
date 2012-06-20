@@ -872,10 +872,11 @@ class PeriodIndex(Int64Index):
 
             result = arr_idx[key]
             if result.ndim > 1:
-                values = PeriodIndex(result.squeeze(), name=self.name,
-                                     freq=self.freq)
-                values = np.asarray(list(values), dtype=object)
-                return values.reshape(result.shape)
+                # MPL kludge
+                # values = np.asarray(list(values), dtype=object)
+                # return values.reshape(result.shape)
+
+                return PeriodIndex(result, name=self.name, freq=self.freq)
 
             return PeriodIndex(result, name=self.name, freq=self.freq)
 

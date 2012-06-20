@@ -1099,8 +1099,8 @@ class TestPeriodIndex(TestCase):
         idx = period_range('2007-01', periods=3, freq='M')
 
         result = idx[:, None]
-        self.assert_(type(result) == np.ndarray)
-        self.assert_(isinstance(result[0, 0], Period))
+        # MPL kludge
+        self.assert_(type(result) == PeriodIndex)
 
     def test_getitem_partial(self):
         rng = period_range('2007-01', periods=50)
