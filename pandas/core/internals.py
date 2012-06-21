@@ -388,7 +388,7 @@ class ObjectBlock(Block):
     def should_store(self, value):
         return not issubclass(value.dtype.type,
                               (np.integer, np.floating, np.complexfloating,
-                               np.bool_))
+                               np.datetime64, np.bool_))
 
 _NS_DTYPE = np.dtype('M8[ns]')
 
@@ -863,8 +863,7 @@ class BlockManager(object):
         i, _ = self._find_block(item)
         loc = self.items.get_loc(item)
 
-        new_items = self.items._constructor(
-                np.delete(np.asarray(self.items), loc))
+        new_items = self.items.delete(loc)
 
         self._delete_from_block(i, item)
         self.set_items_norename(new_items)
@@ -899,7 +898,7 @@ class BlockManager(object):
         # new block
         self._add_new_block(item, value, loc=loc)
 
-        if len(self.blocks) > 20:
+        if len(self.blocks) > 100:
             self._consolidate_inplace()
 
     def set_items_norename(self, value):

@@ -5,13 +5,12 @@ from StringIO import StringIO
 import cPickle as pickle
 import operator
 import os
-import sys
 import unittest
 
 import nose
 
 from numpy import random, nan
-from numpy.random import randn, randint
+from numpy.random import randn
 import numpy as np
 import numpy.ma as ma
 
@@ -138,6 +137,9 @@ class CheckIndexing(object):
 
         subframe_obj = self.tsframe[indexer_obj]
         assert_frame_equal(subframe_obj, subframe)
+
+        self.assertRaises(ValueError, self.tsframe.__getitem__, self.tsframe)
+
 
     def test_getitem_boolean_list(self):
         df = DataFrame(np.arange(12).reshape(3,4))
@@ -1435,6 +1437,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         self.assertEqual(self.mixed_frame['foo'].dtype, np.object_)
 
+    def test_constructor_cast_failure(self):
+        foo = DataFrame({'a': ['a', 'b', 'c']}, dtype=np.float64)
+        self.assert_(foo['a'].dtype == object)
+
     def test_constructor_rec(self):
         rec = self.frame.to_records(index=False)
 
@@ -2078,6 +2084,18 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         recons_data = DataFrame(test_data).to_dict()
 
         for k, v in test_data.iteritems():
+            for k2, v2 in v.iteritems():
+                self.assertEqual(v2, recons_data[k][k2])
+
+        recons_data = DataFrame(test_data).to_dict("l")
+
+        for k,v in test_data.iteritems():
+            for k2, v2 in v.iteritems():
+                self.assertEqual(v2, recons_data[k][int(k2) - 1])
+
+        recons_data = DataFrame(test_data).to_dict("s")
+
+        for k,v in test_data.iteritems():
             for k2, v2 in v.iteritems():
                 self.assertEqual(v2, recons_data[k][k2])
 
@@ -2807,6 +2825,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df3 = DataFrame({'a' : arr3})
         rs = df3.gt(2j)
         self.assert_(not rs.values.any())
+
+        # corner, dtype=object
+        df1 = DataFrame({'col' : ['foo', np.nan, 'bar']})
+        df2 = DataFrame({'col' : ['foo', datetime.now(), 'bar']})
+        result = df1.ne(df2)
+        exp = DataFrame({'col' : [False, True, False]})
+        assert_frame_equal(result, exp)
 
     def test_arith_flex_series(self):
         df = self.simple
@@ -3836,7 +3861,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(df2 is df)
         assert_frame_equal(df2, expected)
 
-    def test_fillna_dict(self):
+    def test_fillna_dict_series(self):
         df = DataFrame({'a': [nan, 1, 2, nan, nan],
                         'b': [1, 2, 3, nan, nan],
                         'c': [nan, 1, 2, 3, 4]})
@@ -3850,6 +3875,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # it works
         result = df.fillna({'a': 0, 'b': 5, 'd' : 7})
+
+        # Series treated same as dict
+        result = df.fillna(df.max())
+        expected = df.fillna(df.max().to_dict())
+        assert_frame_equal(result, expected)
+
+        # disable this for now
+        self.assertRaises(Exception, df.fillna, df.max(1), axis=1)
 
     def test_fillna_columns(self):
         df = DataFrame(np.random.randn(10, 10))
@@ -5223,6 +5256,41 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                               [1.5, nan, 7.]])
         assert_frame_equal(df, expected)
 
+    def test_update_nooverwrite(self):
+        df = DataFrame([[1.5, nan, 3.],
+                        [1.5, nan, 3.],
+                        [1.5, nan, 3],
+                        [1.5, nan, 3]])
+
+        other = DataFrame([[3.6, 2., np.nan],
+                           [np.nan, np.nan, 7]], index=[1, 3])
+
+        df.update(other, overwrite=False)
+
+        expected = DataFrame([[1.5, nan, 3],
+                              [1.5, 2, 3],
+                              [1.5, nan, 3],
+                              [1.5, nan, 3.]])
+        assert_frame_equal(df, expected)
+
+    def test_update_filtered(self):
+        df = DataFrame([[1.5, nan, 3.],
+                        [1.5, nan, 3.],
+                        [1.5, nan, 3],
+                        [1.5, nan, 3]])
+
+        other = DataFrame([[3.6, 2., np.nan],
+                           [np.nan, np.nan, 7]], index=[1, 3])
+
+        df.update(other, filter_func=lambda x: x > 2)
+
+        expected = DataFrame([[1.5, nan, 3],
+                              [1.5, nan, 3],
+                              [1.5, nan, 3],
+                              [1.5, nan, 7.]])
+        assert_frame_equal(df, expected)
+
+
     def test_combineAdd(self):
         # trivial
         comb = self.frame.combineAdd(self.frame)
@@ -6303,6 +6371,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         mixed['_bool_'] = np.random.randn(len(mixed)) > 0
         getattr(mixed, name)(axis=0)
         getattr(mixed, name)(axis=1)
+
+        class NonzeroFail:
+
+            def __nonzero__(self):
+                raise ValueError
+
+        mixed['_nonzero_fail_'] = NonzeroFail()
 
         if has_bool_only:
             getattr(mixed, name)(axis=0, bool_only=True)

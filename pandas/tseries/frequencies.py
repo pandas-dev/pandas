@@ -239,7 +239,6 @@ _offset_map = {
 _offset_to_period_map = {
     'WEEKDAY' : 'D',
     'EOM' : 'M',
-    'B' : 'D',
     'BM' : 'M',
     'BQS' : 'Q',
     'QS' : 'Q',
@@ -258,7 +257,7 @@ for prefix in need_suffix:
         _offset_to_period_map['%s-%s' % (prefix, m)] = \
             _offset_to_period_map[prefix]
 
-def to_calendar_freq(offset_str):
+def get_period_alias(offset_str):
     """ alias to closest period strings BQ->Q etc"""
     return _offset_to_period_map.get(offset_str, offset_str)
 
@@ -695,6 +694,11 @@ def infer_freq(index, warn=True):
     freq : string or None
         None if no discernable frequency
     """
+    from pandas.tseries.index import DatetimeIndex
+
+    if not isinstance(index, DatetimeIndex):
+        index = DatetimeIndex(index)
+
     inferer = _FrequencyInferer(index, warn=warn)
     return inferer.get_freq()
 
@@ -711,11 +715,6 @@ class _FrequencyInferer(object):
     """
 
     def __init__(self, index, warn=True):
-        from pandas.tseries.index import DatetimeIndex
-
-        if not isinstance(index, DatetimeIndex):
-            index = DatetimeIndex(index)
-
         self.index = index
         self.values = np.asarray(index).view('i8')
         self.warn = warn
@@ -902,6 +901,12 @@ def is_subperiod(source, target):
     -------
     is_subperiod : boolean
     """
+    if isinstance(source, offsets.DateOffset):
+        source = source.rule_code
+
+    if isinstance(target, offsets.DateOffset):
+        target = target.rule_code
+
     target = target.upper()
     source = source.upper()
     if _is_annual(target):
@@ -933,6 +938,12 @@ def is_superperiod(source, target):
     -------
     is_superperiod : boolean
     """
+    if isinstance(source, offsets.DateOffset):
+        source = source.rule_code
+
+    if isinstance(target, offsets.DateOffset):
+        target = target.rule_code
+
     target = target.upper()
     source = source.upper()
     if _is_annual(source):
@@ -956,8 +967,6 @@ def is_superperiod(source, target):
         return target in ['D', 'B', 'H', 'T', 'S']
 
 def _get_rule_month(source, default='DEC'):
-    if isinstance(source, offsets.DateOffset):
-        source = source.rule_code
     source = source.upper()
     if '-' not in source:
         return default
@@ -974,11 +983,13 @@ def _quarter_months_conform(source, target):
     return snum % 3 == tnum % 3
 
 def _is_quarterly(rule):
-    return rule.upper().startswith('Q-')
+    rule = rule.upper()
+    return rule == 'Q' or rule.startswith('Q-')
 
 
 def _is_weekly(rule):
-    return rule.upper().startswith('W-')
+    rule = rule.upper()
+    return rule == 'W' or rule.startswith('W-')
 
 
 DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']

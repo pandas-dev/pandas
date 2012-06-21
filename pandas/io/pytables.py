@@ -18,7 +18,7 @@ from pandas.tseries.api import PeriodIndex, DatetimeIndex
 from pandas.core.common import adjoin
 from pandas.core.algorithms import match, unique
 
-from pandas.core.factor import Factor
+from pandas.core.categorical import Factor
 from pandas.core.common import _asarray_tuplesafe
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.reshape import block2d_to_block3d
@@ -874,7 +874,7 @@ class HDFStore(object):
             lp = DataFrame(values, index=long_index, columns=fields)
 
             # need a better algorithm
-            tuple_index = long_index.get_tuple_index()
+            tuple_index = long_index._tuple_index
 
             unique_tuples = lib.fast_unique(tuple_index)
             unique_tuples = _asarray_tuplesafe(unique_tuples)

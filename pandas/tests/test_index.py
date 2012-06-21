@@ -5,14 +5,16 @@ import operator
 import pickle
 import unittest
 import nose
+import os
 
 import numpy as np
 from numpy.testing import assert_array_equal
 
-from pandas.core.factor import Factor
+from pandas.core.categorical import Factor
 from pandas.core.index import Index, Int64Index, MultiIndex
 from pandas.util.testing import assert_almost_equal
 from pandas.util import py3compat
+import pandas.core.common as com
 
 import pandas.util.testing as tm
 
@@ -895,7 +897,6 @@ class TestMultiIndex(unittest.TestCase):
         if py3compat.PY3:
             raise nose.SkipTest
 
-        import os
         def curpath():
             pth, _ = os.path.split(os.path.abspath(__file__))
             return pth
@@ -903,7 +904,27 @@ class TestMultiIndex(unittest.TestCase):
         ppath = os.path.join(curpath(), 'data/multiindex_v1.pickle')
         obj = pickle.load(open(ppath, 'r'))
 
-        self.assert_(obj._is_legacy_format)
+        self.assert_(obj._is_v1)
+
+        obj2 = MultiIndex.from_tuples(obj.values)
+        self.assert_(obj.equals(obj2))
+
+        res = obj.get_indexer(obj)
+        exp = np.arange(len(obj))
+        assert_almost_equal(res, exp)
+
+        res = obj.get_indexer(obj2[::-1])
+        exp = obj.get_indexer(obj[::-1])
+        exp2 = obj2.get_indexer(obj2[::-1])
+        assert_almost_equal(res, exp)
+        assert_almost_equal(exp, exp2)
+
+    def test_legacy_v2_unpickle(self):
+        # 0.7.3 -> 0.8.0 format manage
+        pth, _ = os.path.split(os.path.abspath(__file__))
+        filepath = os.path.join(pth, 'data', 'mindex_073.pickle')
+
+        obj = com.load(filepath)
 
         obj2 = MultiIndex.from_tuples(obj.values)
         self.assert_(obj.equals(obj2))
@@ -1148,7 +1169,7 @@ class TestMultiIndex(unittest.TestCase):
         assert_almost_equal(r1, rbfill1)
 
         # pass non-MultiIndex
-        r1 = idx1.get_indexer(idx2.get_tuple_index())
+        r1 = idx1.get_indexer(idx2._tuple_index)
         rexp1 = idx1.get_indexer(idx2)
         assert_almost_equal(r1, rexp1)
 
@@ -1156,7 +1177,7 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_( (r1 == [-1, -1, -1]).all() )
 
         # self.assertRaises(Exception, idx1.get_indexer,
-        #                   list(list(zip(*idx2.get_tuple_index()))[0]))
+        #                   list(list(zip(*idx2._tuple_index))[0]))
 
     def test_format(self):
         self.index.format()
@@ -1177,7 +1198,7 @@ class TestMultiIndex(unittest.TestCase):
 
         self.assert_(not self.index.equals(self.index[:-1]))
 
-        self.assert_(self.index.equals(self.index.get_tuple_index()))
+        self.assert_(self.index.equals(self.index._tuple_index))
 
         # different number of levels
         index = MultiIndex(levels=[Index(range(4)),
@@ -1221,7 +1242,7 @@ class TestMultiIndex(unittest.TestCase):
 
         the_union = piece1 | piece2
 
-        tups = sorted(self.index.get_tuple_index())
+        tups = sorted(self.index._tuple_index)
         expected = MultiIndex.from_tuples(tups)
 
         self.assert_(the_union.equals(expected))
@@ -1234,7 +1255,7 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(the_union is self.index)
 
         # won't work in python 3
-        # tuples = self.index.get_tuple_index()
+        # tuples = self.index._tuple_index
         # result = self.index[:4] | tuples[4:]
         # self.assert_(result.equals(tuples))
 
@@ -1254,7 +1275,7 @@ class TestMultiIndex(unittest.TestCase):
         piece2 = self.index[3:]
 
         the_int = piece1 & piece2
-        tups = sorted(self.index[3:5].get_tuple_index())
+        tups = sorted(self.index[3:5]._tuple_index)
         expected = MultiIndex.from_tuples(tups)
         self.assert_(the_int.equals(expected))
 
@@ -1268,7 +1289,7 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(empty.equals(expected))
 
         # can't do in python 3
-        # tuples = self.index.get_tuple_index()
+        # tuples = self.index._tuple_index
         # result = self.index & tuples
         # self.assert_(result.equals(tuples))
 
@@ -1312,7 +1333,7 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(len(result) == 0)
 
         # raise Exception called with non-MultiIndex
-        self.assertRaises(Exception, first.diff, first.get_tuple_index())
+        self.assertRaises(Exception, first.diff, first._tuple_index)
 
     def test_from_tuples(self):
         self.assertRaises(Exception, MultiIndex.from_tuples, [])
@@ -1322,7 +1343,7 @@ class TestMultiIndex(unittest.TestCase):
 
     def test_argsort(self):
         result = self.index.argsort()
-        expected = self.index.get_tuple_index().argsort()
+        expected = self.index._tuple_index.argsort()
         self.assert_(np.array_equal(result, expected))
 
     def test_sortlevel(self):

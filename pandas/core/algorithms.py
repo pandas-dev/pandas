@@ -78,7 +78,7 @@ def _count_generic(values, table_type, type_caster):
     from pandas.core.series import Series
 
     values = type_caster(values)
-    table = table_type(len(values))
+    table = table_type(min(len(values), 1000000))
     uniques, labels, counts = table.factorize(values)
 
     return Series(counts, index=uniques)
@@ -86,13 +86,13 @@ def _count_generic(values, table_type, type_caster):
 def _match_generic(values, index, table_type, type_caster):
     values = type_caster(values)
     index = type_caster(index)
-    table = table_type(len(index))
+    table = table_type(min(len(index), 1000000))
     table.map_locations(index)
     return table.lookup(values)
 
 def _unique_generic(values, table_type, type_caster):
     values = type_caster(values)
-    table = table_type(len(values))
+    table = table_type(min(len(values), 1000000))
     uniques = table.unique(values)
     return type_caster(uniques)
 
@@ -223,7 +223,7 @@ def quantile(x, q, interpolation_method='fraction'):
     score : float
         Score at percentile.
 
-    Examples
+    Examplesb
     --------
     >>> from scipy import stats
     >>> a = np.arange(100)
@@ -231,9 +231,17 @@ def quantile(x, q, interpolation_method='fraction'):
     49.5
 
     """
-    values = np.sort(np.asarray(x))
+    x = np.asarray(x)
+    mask = com.isnull(x)
+
+    x = x[-mask]
+
+    values = np.sort(x)
 
     def _get_score(at):
+        if len(values) == 0:
+            return np.nan
+
         idx = at * (len(values) - 1)
         if (idx % 1 == 0):
             score = values[idx]

@@ -341,6 +341,10 @@ class _NDFrameIndexer(object):
             else:
                 try:
                     i, j = labels.slice_locs(start, stop)
+                    if isinstance(i, slice):
+                        i = i.start
+                    if isinstance(j, slice):
+                        j = j.stop
                     slicer = slice(i, j, obj.step)
                 except Exception:
                     if _is_index_slice(obj):

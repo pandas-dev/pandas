@@ -7,7 +7,7 @@ from numpy import nan
 from pandas import bdate_range
 from pandas.core.index import Index, MultiIndex
 from pandas.core.common import rands
-from pandas.core.api import Factor, DataFrame
+from pandas.core.api import Categorical, DataFrame
 from pandas.core.groupby import GroupByError
 from pandas.core.series import Series
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
@@ -144,9 +144,24 @@ class TestGroupBy(unittest.TestCase):
         grouped['B'].last()
         grouped['B'].nth(0)
 
+        self.df['B'][self.df['A'] == 'foo'] = np.nan
+        self.assert_(com.isnull(grouped['B'].first()['foo']))
+        self.assert_(com.isnull(grouped['B'].last()['foo']))
+        self.assert_(com.isnull(grouped['B'].nth(0)['foo']))
+
+    def test_grouper_iter(self):
+        self.assertEqual(sorted(self.df.groupby('A').grouper), ['bar', 'foo'])
+
     def test_empty_groups(self):
         # GH # 1048
         self.assertRaises(ValueError, self.df.groupby, [])
+
+    def test_groupby_grouper(self):
+        grouped = self.df.groupby('A')
+
+        result = self.df.groupby(grouped.grouper).mean()
+        expected = grouped.mean()
+        assert_frame_equal(result, expected)
 
     def test_groupby_dict_mapping(self):
         # GH #679
@@ -879,7 +894,7 @@ class TestGroupBy(unittest.TestCase):
         result = grouped.mean()
         expected = data.groupby(['A', 'B']).mean()
 
-        arrays = zip(*expected.index.get_tuple_index())
+        arrays = zip(*expected.index._tuple_index)
         expected.insert(0, 'A', arrays[0])
         expected.insert(1, 'B', arrays[1])
         expected.index = np.arange(len(expected))
@@ -1208,6 +1223,10 @@ class TestGroupBy(unittest.TestCase):
 
         self.assert_(isinstance(result, DataFrame))
         self.assert_(result.index.equals(ts.index))
+
+    def test_apply_series_yield_constant(self):
+        result = self.df.groupby(['A', 'B'])['C'].apply(len)
+        self.assertEquals(result.index.names[:2], ['A', 'B'])
 
     def test_apply_frame_to_series(self):
         grouped = self.df.groupby(['A', 'B'])
@@ -1541,17 +1560,21 @@ class TestGroupBy(unittest.TestCase):
         tm.add_nans(self.panel)
         grouped = self.panel.groupby({'ItemA' : 0, 'ItemB' : 0, 'ItemC' : 1},
                                      axis='items')
-        agged = grouped.agg(np.mean)
+        agged = grouped.mean()
+        agged2 = grouped.agg(lambda x: x.mean('items'))
+
+        tm.assert_panel_equal(agged, agged2)
+
         self.assert_(np.array_equal(agged.items, [0, 1]))
 
         grouped = self.panel.groupby(lambda x: x.month, axis='major')
-        agged = grouped.agg(np.mean)
+        agged = grouped.mean()
 
         self.assert_(np.array_equal(agged.major_axis, [1, 2]))
 
         grouped = self.panel.groupby({'A' : 0, 'B' : 0, 'C' : 1, 'D' : 1},
                                      axis='minor')
-        agged = grouped.agg(np.mean)
+        agged = grouped.mean()
         self.assert_(np.array_equal(agged.minor_axis, [0, 1]))
 
     def test_numpy_groupby(self):
@@ -1900,27 +1923,27 @@ class TestGroupBy(unittest.TestCase):
                                   self.df['B'].values]).sum()
         self.assert_(result.index.names == [None, None])
 
-    def test_groupby_factor(self):
+    def test_groupby_categorical(self):
         levels = ['foo', 'bar', 'baz', 'qux']
         labels = np.random.randint(0, 4, size=100)
 
-        factor = Factor(labels, levels, name='myfactor')
+        cats = Categorical(labels, levels, name='myfactor')
 
         data = DataFrame(np.random.randn(100, 4))
 
-        result = data.groupby(factor).mean()
+        result = data.groupby(cats).mean()
 
-        expected = data.groupby(np.asarray(factor)).mean()
+        expected = data.groupby(np.asarray(cats)).mean()
         expected = expected.reindex(levels)
 
         assert_frame_equal(result, expected)
-        self.assert_(result.index.name == factor.name)
+        self.assert_(result.index.name == cats.name)
 
-        grouped = data.groupby(factor)
+        grouped = data.groupby(cats)
         desc_result = grouped.describe()
 
-        idx = factor.labels.argsort()
-        ord_labels = np.asarray(factor).take(idx)
+        idx = cats.labels.argsort()
+        ord_labels = np.asarray(cats).take(idx)
         ord_data = data.take(idx)
         expected = ord_data.groupby(ord_labels, sort=False).describe()
         assert_frame_equal(desc_result, expected)

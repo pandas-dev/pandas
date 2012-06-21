@@ -26,8 +26,6 @@ PyDateTime_IMPORT
 # in numpy 1.7, will prob need the following:
 # numpy_pydatetime_import
 
-cdef bint numpy_16 = np.__version__ < '1.7'
-
 try:
     basestring
 except NameError: # py3
@@ -271,6 +269,29 @@ def is_timestamp_array(ndarray[object] values):
             return False
     return True
 
+
+cpdef object get_value_box(ndarray arr, object loc):
+    cdef:
+        Py_ssize_t i, sz
+        void* data_ptr
+    if util.is_float_object(loc):
+        casted = int(loc)
+        if casted == loc:
+            loc = casted
+    i = <Py_ssize_t> loc
+    sz = cnp.PyArray_SIZE(arr)
+
+    if i < 0 and sz > 0:
+        i += sz
+    elif i >= sz or sz == 0:
+        raise IndexError('index out of bounds')
+
+    if arr.descr.type_num == NPY_DATETIME:
+        return Timestamp(util.get_value_1d(arr, i))
+    else:
+        return util.get_value_1d(arr, i)
+
+
 #----------------------------------------------------------------------
 # Frequency inference
 
@@ -388,8 +409,7 @@ cdef class _Timestamp(datetime):
             return datetime.__sub__(self, other)
 
     cpdef _get_field(self, field):
-        out = fast_field_accessor(np.array([self.value], dtype=np.int64),
-                                  field)
+        out = get_date_field(np.array([self.value], dtype=np.int64), field)
         return out[0]
 
 
@@ -637,12 +657,8 @@ cdef inline _get_datetime64_nanos(object val):
         npy_datetime ival
 
     unit = get_datetime64_unit(val)
-    if numpy_16:
-        if unit == 3:
-            raise ValueError('NumPy 1.6.1 business freq not supported')
-
-        if unit > 3:
-            unit = <PANDAS_DATETIMEUNIT> ((<int>unit) - 1)
+    if unit == 3:
+        raise ValueError('NumPy 1.6.1 business freq not supported')
 
     ival = get_datetime64_value(val)
 
@@ -668,12 +684,8 @@ def cast_to_nanoseconds(ndarray arr):
     iresult = result.ravel().view(np.int64)
 
     unit = get_datetime64_unit(arr.flat[0])
-    if numpy_16:
-        if unit == 3:
-            raise ValueError('NumPy 1.6.1 business freq not supported')
-
-        if unit > 3:
-            unit = <PANDAS_DATETIMEUNIT> ((<int>unit) - 1)
+    if unit == 3:
+        raise ValueError('NumPy 1.6.1 business freq not supported')
 
     for i in range(n):
         pandas_datetime_to_datetimestruct(ivalues[i], unit, &dts)
@@ -1036,8 +1048,26 @@ def build_field_sarray(ndarray[int64_t] dtindex):
 
     return out
 
+def get_time_micros(ndarray[int64_t] dtindex):
+    '''
+    Datetime as int64 representation to a structured array of fields
+    '''
+    cdef:
+        Py_ssize_t i, n = len(dtindex)
+        pandas_datetimestruct dts
+        ndarray[int64_t] micros
+
+    micros = np.empty(n, dtype=np.int64)
+
+    for i in range(n):
+        pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+        micros[i] = 1000000LL * (dts.hour * 60 * 60 +
+                                 60 * dts.min + dts.sec) + dts.us
+
+    return micros
+
 @cython.wraparound(False)
-def fast_field_accessor(ndarray[int64_t] dtindex, object field):
+def get_date_field(ndarray[int64_t] dtindex, object field):
     '''
     Given a int64-based datetime index, extract the year, month, etc.,
     field and return an array of these values.
@@ -1165,107 +1195,6 @@ cdef inline int m8_weekday(int64_t val):
 
 cdef int64_t DAY_NS = 86400000000000LL
 
-def values_at_time(ndarray[int64_t] stamps, int64_t time):
-    cdef:
-        Py_ssize_t i, j, count, n = len(stamps)
-        ndarray[int64_t] indexer, times
-        int64_t last, cur
-
-    # Assumes stamps is sorted
-
-    if len(stamps) == 0:
-        return np.empty(0, dtype=np.int64)
-
-    # is this OK?
-    # days = stamps // DAY_NS
-    times = stamps % DAY_NS
-
-    # Nanosecond resolution
-    count = 0
-    for i in range(n):
-        if times[i] == time:
-            count += 1
-
-    indexer = np.empty(count, dtype=np.int64)
-
-    j = 0
-    # last = days[0]
-    for i in range(n):
-        if times[i] == time:
-            indexer[j] = i
-            j += 1
-
-    return indexer
-
-def values_between_time(ndarray[int64_t] stamps, int64_t stime, int64_t etime,
-                        bint include_start, bint include_end):
-    cdef:
-        Py_ssize_t i, j, count, n = len(stamps)
-        ndarray[int64_t] indexer, times
-        int64_t last, cur
-
-    # Assumes stamps is sorted
-
-    if len(stamps) == 0:
-        return np.empty(0, dtype=np.int64)
-
-    # is this OK?
-    # days = stamps // DAY_NS
-    times = stamps % DAY_NS
-
-    # Nanosecond resolution
-    count = 0
-    if include_start and include_end:
-        for i in range(n):
-            cur = times[i]
-            if cur >= stime and cur <= etime:
-                count += 1
-    elif include_start:
-        for i in range(n):
-            cur = times[i]
-            if cur >= stime and cur < etime:
-                count += 1
-    elif include_end:
-        for i in range(n):
-            cur = times[i]
-            if cur > stime and cur <= etime:
-                count += 1
-    else:
-        for i in range(n):
-            cur = times[i]
-            if cur > stime and cur < etime:
-                count += 1
-
-    indexer = np.empty(count, dtype=np.int64)
-
-    j = 0
-    # last = days[0]
-    if include_start and include_end:
-        for i in range(n):
-            cur = times[i]
-            if cur >= stime and cur <= etime:
-                indexer[j] = i
-                j += 1
-    elif include_start:
-        for i in range(n):
-            cur = times[i]
-            if cur >= stime and cur < etime:
-                indexer[j] = i
-                j += 1
-    elif include_end:
-        for i in range(n):
-            cur = times[i]
-            if cur > stime and cur <= etime:
-                indexer[j] = i
-                j += 1
-    else:
-        for i in range(n):
-            cur = times[i]
-            if cur > stime and cur < etime:
-                indexer[j] = i
-                j += 1
-
-    return indexer
 
 def date_normalize(ndarray[int64_t] stamps):
     cdef:

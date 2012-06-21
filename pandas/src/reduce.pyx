@@ -154,7 +154,7 @@ cdef class SeriesBinGrouper:
 
         counts = np.zeros(self.ngroups, dtype=np.int64)
 
-        if self.ngroups > 0:
+        if self.ngroups > 1:
             counts[0] = self.bins[0]
             for i in range(1, self.ngroups):
                 if i == self.ngroups - 1:
@@ -358,5 +358,8 @@ cdef class Slider:
         self.buf.data = self.orig_data
 
 def reduce(arr, f, axis=0, dummy=None, labels=None):
+    if labels._has_complex_internals:
+        raise Exception('Cannot use shortcut')
+
     reducer = Reducer(arr, f, axis=axis, dummy=dummy, labels=labels)
     return reducer.get_result()

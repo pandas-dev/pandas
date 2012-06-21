@@ -8,9 +8,9 @@ from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 from pandas.core.index import Index, MultiIndex
 from pandas.core.series import Series
-from pandas.tseries.frequencies import to_calendar_freq
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
+from pandas.tseries.frequencies import get_period_alias
 from pandas.tseries.offsets import DateOffset
 import pandas.tseries.tools as datetools
 
@@ -276,10 +276,11 @@ class MPLPlot(object):
 
     def __init__(self, data, kind=None, by=None, subplots=False, sharex=True,
                  sharey=False, use_index=True,
-                 figsize=None, grid=True, legend=True, rot=None,
+                 figsize=None, grid=None, legend=True, rot=None,
                  ax=None, fig=None, title=None, xlim=None, ylim=None,
                  xticks=None, yticks=None,
-                 sort_columns=False, fontsize=None, **kwds):
+                 sort_columns=False, fontsize=None,
+                 secondary_y=False, **kwds):
 
         self.data = data
         self.by = by
@@ -303,6 +304,9 @@ class MPLPlot(object):
         self.fontsize = fontsize
         self.rot = rot
 
+        if grid is None:
+            grid = False if secondary_y else True
+
         self.grid = grid
         self.legend = legend
 
@@ -313,6 +317,8 @@ class MPLPlot(object):
         self.ax = ax
         self.fig = fig
         self.axes = None
+
+        self.secondary_y = secondary_y
 
         self.kwds = kwds
 
@@ -357,24 +363,43 @@ class MPLPlot(object):
     def _args_adjust(self):
         pass
 
+    def _maybe_right_yaxis(self, ax):
+        ypos = ax.get_yaxis().get_ticks_position().strip().lower()
+
+        if self.secondary_y and ypos != 'right':
+            orig_ax = ax
+            ax = ax.twinx()
+            if len(orig_ax.get_lines()) == 0: # no data on left y
+                orig_ax.get_yaxis().set_visible(False)
+        else:
+            ax.get_yaxis().set_visible(True)
+
+        return ax
+
     def _setup_subplots(self):
         if self.subplots:
             nrows, ncols = self._get_layout()
             if self.ax is None:
                 fig, axes = _subplots(nrows=nrows, ncols=ncols,
                                       sharex=self.sharex, sharey=self.sharey,
-                                      figsize=self.figsize)
+                                      figsize=self.figsize,
+                                      secondary_y=self.secondary_y,
+                                      data=self.data)
             else:
                 fig, axes = _subplots(nrows=nrows, ncols=ncols,
                                       sharex=self.sharex, sharey=self.sharey,
-                                      figsize=self.figsize, ax=self.ax)
-
+                                      figsize=self.figsize, ax=self.ax,
+                                      secondary_y=self.secondary_y,
+                                      data=self.data)
         else:
             if self.ax is None:
                 fig = self.plt.figure(figsize=self.figsize)
-                self.ax = fig.add_subplot(111)
+                ax = fig.add_subplot(111)
+                ax = self._maybe_right_yaxis(ax)
+                self.ax = ax
             else:
                 fig = self.ax.get_figure()
+                self.ax = self._maybe_right_yaxis(self.ax)
 
             axes = [self.ax]
 
@@ -500,6 +525,16 @@ class MPLPlot(object):
 
         return name
 
+    def _get_ax_and_style(self, i):
+        if self.subplots:
+            ax = self.axes[i]
+            style = 'k'
+        else:
+            style = ''  # empty string ignored
+            ax = self.ax
+
+        return ax, style
+
 class KdePlot(MPLPlot):
     def __init__(self, data, **kwargs):
         MPLPlot.__init__(self, data, **kwargs)
@@ -508,12 +543,9 @@ class KdePlot(MPLPlot):
         from scipy.stats import gaussian_kde
         plotf = self._get_plot_function()
         for i, (label, y) in enumerate(self._iter_data()):
-            if self.subplots:
-                ax = self.axes[i]
-                style = 'k'
-            else:
-                style = ''  # empty string ignored
-                ax = self.ax
+
+            ax, style = self._get_ax_and_style(i)
+
             if self.style:
                 style = self.style
             gkde = gaussian_kde(y)
@@ -577,15 +609,16 @@ class LinePlot(MPLPlot):
             plotf = self._get_plot_function()
 
             for i, (label, y) in enumerate(self._iter_data()):
-                if self.subplots:
-                    ax = self.axes[i]
-                    style = 'k'
-                else:
-                    style = ''  # empty string ignored
-                    ax = self.ax
+
+                ax, style = self._get_ax_and_style(i)
+
                 if self.style:
                     style = self.style
 
+                mask = com.isnull(y)
+                if mask.any():
+                    y = np.ma.array(y)
+                    y = np.ma.masked_where(mask, y)
                 plotf(ax, x, y, style, label=label, **self.kwds)
                 ax.grid(self.grid)
                 idx = getattr(self.data, 'index', None)
@@ -601,7 +634,7 @@ class LinePlot(MPLPlot):
             isinstance(data, DataFrame)):
             freq = getattr(data.index, 'freqstr', None)
 
-            freq = to_calendar_freq(freq)
+            freq = get_period_alias(freq)
 
             if freq is None and hasattr(data.index, 'inferred_freq'):
                 freq = data.index.inferred_freq
@@ -620,10 +653,7 @@ class LinePlot(MPLPlot):
         plotf = self._get_plot_function()
 
         if isinstance(data, Series):
-            if self.subplots: # shouldn't even allow users to specify
-                ax = self.axes[0]
-            else:
-                ax = self.ax
+            ax, _ = self._get_ax_and_style(0) #self.axes[0]
 
             label = com._stringify(self.label)
             tsplot(data, plotf, ax=ax, label=label, style=self.style,
@@ -631,10 +661,7 @@ class LinePlot(MPLPlot):
             ax.grid(self.grid)
         else:
             for i, col in enumerate(data.columns):
-                if self.subplots:
-                    ax = self.axes[i]
-                else:
-                    ax = self.ax
+                ax, _ = self._get_ax_and_style(i)
                 label = com._stringify(col)
                 tsplot(data[col], plotf, ax=ax, label=label, **kwargs)
                 ax.grid(self.grid)
@@ -702,7 +729,7 @@ class BarPlot(MPLPlot):
         rects = []
         labels = []
 
-        ax = self.axes[0]
+        ax, _ = self._get_ax_and_style(0) #self.axes[0]
 
         bar_f = self.bar_f
 
@@ -717,7 +744,7 @@ class BarPlot(MPLPlot):
                 kwds['color'] = colors[i % len(colors)]
 
             if self.subplots:
-                ax = self.axes[i]
+                ax, _ = self._get_ax_and_style(i) #self.axes[i]
                 rect = bar_f(ax, self.ax_pos, y, 0.5, start=pos_prior,
                              linewidth=1, **kwds)
                 ax.set_title(label)
@@ -781,12 +808,12 @@ class HistPlot(MPLPlot):
 
 def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
                use_index=True,
-               figsize=None, grid=True, legend=True, rot=None,
+               figsize=None, grid=False, legend=True, rot=None,
                ax=None, title=None,
                xlim=None, ylim=None, logy=False,
                xticks=None, yticks=None,
                kind='line',
-               sort_columns=False, fontsize=None, **kwds):
+               sort_columns=False, fontsize=None, secondary_y=False, **kwds):
     """
     Make line or bar plot of DataFrame's series with the index on the x-axis
     using matplotlib / pylab.
@@ -826,6 +853,9 @@ def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
     ylim : 2-tuple/list
     rot : int, default None
         Rotation for ticks
+    secondary_y : boolean or sequence, default False
+        Whether to plot on the secondary y-axis
+        If dict then can select which columns to plot on secondary y-axis
     kwds : keywords
         Options to pass to matplotlib plotting method
 
@@ -848,7 +878,8 @@ def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
                      use_index=use_index, sharex=sharex, sharey=sharey,
                      xticks=xticks, yticks=yticks, xlim=xlim, ylim=ylim,
                      title=title, grid=grid, figsize=figsize, logy=logy,
-                     sort_columns=sort_columns, **kwds)
+                     sort_columns=sort_columns, secondary_y=secondary_y,
+                     **kwds)
     plot_obj.generate()
     plot_obj.draw()
     if subplots:
@@ -859,7 +890,8 @@ def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
 
 def plot_series(series, label=None, kind='line', use_index=True, rot=None,
                 xticks=None, yticks=None, xlim=None, ylim=None,
-                ax=None, style=None, grid=True, logy=False, **kwds):
+                ax=None, style=None, grid=None, logy=False, secondary_y=False,
+                **kwds):
     """
     Plot the input series with the index on the x-axis using matplotlib
 
@@ -908,6 +940,14 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
 
     if ax is None:
         ax = _gca()
+        if ax.get_yaxis().get_ticks_position().strip().lower() == 'right':
+            fig = _gcf()
+            axes = fig.get_axes()
+            for i in range(len(axes))[::-1]:
+                ax = axes[i]
+                ypos = ax.get_yaxis().get_ticks_position().strip().lower()
+                if ypos == 'left':
+                    break
 
     # is there harm in this?
     if label is None:
@@ -916,7 +956,8 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     plot_obj = klass(series, kind=kind, rot=rot, logy=logy,
                      ax=ax, use_index=use_index, style=style,
                      xticks=xticks, yticks=yticks, xlim=xlim, ylim=ylim,
-                     legend=False, grid=grid, label=label, **kwds)
+                     legend=False, grid=grid, label=label,
+                     secondary_y=secondary_y, **kwds)
 
     plot_obj.generate()
     plot_obj.draw()
@@ -924,7 +965,7 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     return plot_obj.ax
 
 def boxplot(data, column=None, by=None, ax=None, fontsize=None,
-            rot=0, grid=True, figsize=None):
+            rot=0, grid=True, figsize=None, **kwds):
     """
     Make a box plot from DataFrame column optionally grouped b ysome columns or
     other inputs
@@ -937,6 +978,9 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
     by : string or sequence
         Column in the DataFrame to group by
     fontsize : int or string
+    rot : label rotation angle
+    kwds : other plotting keyword arguments to be passed to matplotlib boxplot
+           function
 
     Returns
     -------
@@ -950,8 +994,11 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
     def plot_group(grouped, ax):
         keys, values = zip(*grouped)
         keys = [_stringify(x) for x in keys]
-        ax.boxplot(values)
-        ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
+        ax.boxplot(values, **kwds)
+        if kwds.get('vert', 1):
+            ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
+        else:
+            ax.set_yticklabels(keys, rotation=rot, fontsize=fontsize)
 
     if column == None:
         columns = None
@@ -983,8 +1030,11 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
 
         # Return boxplot dict in single plot case
 
-        bp = ax.boxplot(list(data[cols].values.T))
-        ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
+        bp = ax.boxplot(list(data[cols].values.T), **kwds)
+        if kwds.get('vert', 1):
+            ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
+        else:
+            ax.set_yticklabels(keys, rotation=rot, fontsize=fontsize)
         ax.grid(grid)
 
         ret = bp
@@ -1244,7 +1294,8 @@ def _get_layout(nplots):
 # copied from matplotlib/pyplot.py for compatibility with matplotlib < 1.0
 
 def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
-              subplot_kw=None, ax=None, **fig_kw):
+              subplot_kw=None, ax=None, secondary_y=False, data=None,
+              **fig_kw):
     """Create a figure with a set of subplots already made.
 
     This utility wrapper makes it convenient to create common layouts of
@@ -1286,6 +1337,9 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
 
     ax : Matplotlib axis object, default None
 
+    secondary_y : boolean or sequence of ints, default False
+        If True then y-axis will be on the right
+
     Returns:
 
     fig, ax : tuple
@@ -1314,6 +1368,7 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
     plt.subplots(2, 2, subplot_kw=dict(polar=True))
     """
     import matplotlib.pyplot as plt
+    from pandas.core.frame import DataFrame
 
     if subplot_kw is None:
         subplot_kw = {}
@@ -1329,8 +1384,19 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
     nplots = nrows*ncols
     axarr = np.empty(nplots, dtype=object)
 
+    def on_right(i):
+        if isinstance(secondary_y, bool):
+            return secondary_y
+        if isinstance(data, DataFrame):
+            return data.columns[i] in secondary_y
+
     # Create first subplot separately, so we can share it if requested
     ax0 = fig.add_subplot(nrows, ncols, 1, **subplot_kw)
+    if on_right(0):
+        orig_ax = ax0
+        ax0 = ax0.twinx()
+        orig_ax.get_yaxis().set_visible(False)
+
     if sharex:
         subplot_kw['sharex'] = ax0
     if sharey:
@@ -1340,7 +1406,12 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
     # Note off-by-one counting because add_subplot uses the MATLAB 1-based
     # convention.
     for i in range(1, nplots):
-        axarr[i] = fig.add_subplot(nrows, ncols, i+1, **subplot_kw)
+        ax = fig.add_subplot(nrows, ncols, i+1, **subplot_kw)
+        if on_right(i):
+            orig_ax = ax
+            ax = ax.twinx()
+            orig_ax.get_yaxis().set_visible(False)
+        axarr[i] = ax
 
     if nplots > 1:
         if sharex and nrows > 1:

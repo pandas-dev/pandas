@@ -125,6 +125,9 @@ def _comp_method(op, name):
                           index=self.index, name=name)
         elif isinstance(other, DataFrame): # pragma: no cover
             return NotImplemented
+        elif isinstance(other, np.ndarray):
+            return Series(na_op(self.values, np.asarray(other)),
+                          index=self.index, name=self.name)
         else:
             values = self.values
             other = lib.convert_scalar(values, other)
@@ -312,7 +315,7 @@ class Series(np.ndarray, generic.PandasObject):
                 elif isinstance(index, PeriodIndex):
                     data = [data.get(i, nan) for i in index]
                 else:
-                    data = lib.fast_multiget(data, index, default=np.nan)
+                    data = lib.fast_multiget(data, index.values, default=np.nan)
             except TypeError:
                 data = [data.get(i, nan) for i in index]
 
@@ -763,7 +766,7 @@ copy : boolean, default False
         width, height = get_terminal_size()
         max_rows = (height if fmt.print_config.max_rows == 0
                     else fmt.print_config.max_rows)
-        if len(self.index) > max_rows:
+        if len(self.index) > (max_rows or 1000):
             result = self._tidy_repr(min(30, max_rows - 4))
         elif len(self.index) > 0:
             result = self._get_repr(print_header=True,
@@ -2562,6 +2565,50 @@ copy : boolean, default False
     def weekday(self):
         return Series([d.weekday() for d in self.index], index=self.index)
 
+    def tz_convert(self, tz, copy=True):
+        """
+        Convert TimeSeries to target time zone
+
+        Parameters
+        ----------
+        tz : string or pytz.timezone object
+        copy : boolean, default True
+            Also make a copy of the underlying data
+
+        Returns
+        -------
+        converted : TimeSeries
+        """
+        new_index = self.index.tz_convert(tz)
+
+        new_values = self.values
+        if copy:
+            new_values = new_values.copy()
+
+        return Series(new_values, index=new_index, name=self.name)
+
+    def tz_localize(self, tz, copy=True):
+        """
+        Localize tz-naive TimeSeries to target time zone
+
+        Parameters
+        ----------
+        tz : string or pytz.timezone object
+        copy : boolean, default True
+            Also make a copy of the underlying data
+
+        Returns
+        -------
+        localized : TimeSeries
+        """
+        new_index = self.index.tz_localize(tz)
+
+        new_values = self.values
+        if copy:
+            new_values = new_values.copy()
+
+        return Series(new_values, index=new_index, name=self.name)
+
 
 _INDEX_TYPES = ndarray, Index, list, tuple
 
@@ -2689,7 +2736,7 @@ def _resolve_offset(freq, kwds):
         offset = freq
         warn = False
 
-    if warn and _SHOW_WARNINGS:
+    if warn and _SHOW_WARNINGS:  # pragma: no cover
         import warnings
         warnings.warn("'timeRule' and 'offset' parameters are deprecated,"
                       " please use 'freq' instead",
@@ -2726,26 +2773,23 @@ class TimeSeries(Series):
         namestr = "Name: %s, " % str(self.name) if self.name else ""
         return '%s%sLength: %d' % (freqstr, namestr, len(self))
 
-    def at_time(self, time, tz=None, asof=False):
+    def at_time(self, time, asof=False):
         """
         Select values at particular time of day (e.g. 9:30AM)
 
         Parameters
         ----------
         time : datetime.time or string
-        tz : string or pytz.timezone
-            Time zone for time. Corresponding timestamps would be converted to
-            time zone of the TimeSeries
 
         Returns
         -------
         values_at_time : TimeSeries
         """
-        from pandas.tseries.resample import values_at_time
-        return values_at_time(self, time, tz=tz, asof=asof)
+        indexer = self.index.indexer_at_time(time, asof=asof)
+        return self.take(indexer)
 
     def between_time(self, start_time, end_time, include_start=True,
-                     include_end=True, tz=None):
+                     include_end=True):
         """
         Select values between particular times of the day (e.g., 9:00-9:30 AM)
 
@@ -2755,60 +2799,15 @@ class TimeSeries(Series):
         end_time : datetime.time or string
         include_start : boolean, default True
         include_end : boolean, default True
-        tz : string or pytz.timezone, default None
 
         Returns
         -------
         values_between_time : TimeSeries
         """
-        from pandas.tseries.resample import values_between_time
-        return values_between_time(self, start_time, end_time, tz=tz,
-                                   include_start=include_start,
-                                   include_end=include_end)
-
-    def tz_convert(self, tz, copy=True):
-        """
-        Convert TimeSeries to target time zone
-
-        Parameters
-        ----------
-        tz : string or pytz.timezone object
-        copy : boolean, default True
-            Also make a copy of the underlying data
-
-        Returns
-        -------
-        converted : TimeSeries
-        """
-        new_index = self.index.tz_convert(tz)
-
-        new_values = self.values
-        if copy:
-            new_values = new_values.copy()
-
-        return Series(new_values, index=new_index, name=self.name)
-
-    def tz_localize(self, tz, copy=True):
-        """
-        Localize tz-naive TimeSeries to target time zone
-
-        Parameters
-        ----------
-        tz : string or pytz.timezone object
-        copy : boolean, default True
-            Also make a copy of the underlying data
-
-        Returns
-        -------
-        localized : TimeSeries
-        """
-        new_index = self.index.tz_localize(tz)
-
-        new_values = self.values
-        if copy:
-            new_values = new_values.copy()
-
-        return Series(new_values, index=new_index, name=self.name)
+        indexer = self.index.indexer_between_time(
+            start_time, end_time, include_start=include_start,
+            include_end=include_end)
+        return self.take(indexer)
 
     def to_timestamp(self, freq=None, how='start', copy=True):
         """

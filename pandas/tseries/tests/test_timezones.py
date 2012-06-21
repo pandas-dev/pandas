@@ -245,9 +245,6 @@ class TestTimeZoneSupport(unittest.TestCase):
 
         rng = bdate_range(datetime(2009, 1, 1), datetime(2010, 1, 1))
 
-        # regular no problem
-        self.assert_(rng.tz_validate())
-
         # March 13, 2011, spring forward, skip from 2 AM to 3 AM
         dr = date_range(datetime(2011, 3, 13, 1, 30), periods=3,
                         freq=datetools.Hour())
@@ -329,6 +326,26 @@ class TestTimeZoneSupport(unittest.TestCase):
             self.assertEquals(x, exval)
             self.assertEquals(x.tzinfo, exval.tzinfo)
 
+    def test_localized_at_time_between_time(self):
+        from datetime import time
+
+        rng = date_range('4/16/2012', '5/1/2012', freq='H')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        ts_local = ts.tz_localize('US/Eastern')
+
+        result = ts_local.at_time(time(10, 0))
+        expected = ts.at_time(time(10, 0)).tz_localize('US/Eastern')
+        assert_series_equal(result, expected)
+        self.assert_(result.index.tz.zone == 'US/Eastern')
+
+        t1, t2 = time(10, 0), time(11, 0)
+        result = ts_local.between_time(t1, t2)
+        expected = ts.between_time(t1, t2).tz_localize('US/Eastern')
+        assert_series_equal(result, expected)
+        self.assert_(result.index.tz.zone == 'US/Eastern')
+
+
 class TestTimeZones(unittest.TestCase):
 
     def setUp(self):
@@ -350,6 +367,7 @@ class TestTimeZones(unittest.TestCase):
         self.assert_(conv.equals(exp))
 
     def test_series_frame_tz_localize(self):
+
         rng = date_range('1/1/2011', periods=100, freq='H')
         ts = Series(1, index=rng)
 
@@ -366,6 +384,11 @@ class TestTimeZones(unittest.TestCase):
         result = df.tz_localize('utc', axis=1)
         self.assert_(result.columns.tz.zone == 'UTC')
         assert_frame_equal(result, expected.T)
+
+        # Can't localize if already tz-aware
+        rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')
+        ts = Series(1, index=rng)
+        self.assertRaises(Exception, ts.tz_localize, 'US/Eastern')
 
     def test_series_frame_tz_convert(self):
         rng = date_range('1/1/2011', periods=200, freq='D',
@@ -385,6 +408,11 @@ class TestTimeZones(unittest.TestCase):
         result = df.tz_convert('Europe/Berlin', axis=1)
         self.assert_(result.columns.tz.zone == 'Europe/Berlin')
         assert_frame_equal(result, expected.T)
+
+        # can't convert tz-naive
+        rng = date_range('1/1/2011', periods=200, freq='D')
+        ts = Series(1, index=rng)
+        self.assertRaises(Exception, ts.tz_convert, 'US/Eastern')
 
     def test_join_utc_convert(self):
         rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')

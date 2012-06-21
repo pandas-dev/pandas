@@ -95,9 +95,10 @@ def get_quote_yahoo(symbols):
 
     for line in lines:
         fields = line.strip().split(',')
-        #print fields
         for i,field in enumerate(fields):
-            if field[0] == '"':
+            if field[-2:] == '%"':
+                data[header[i]].append(float(field.strip('"%')))
+            elif field[0] == '"':
                 data[header[i]].append( field.strip('"'))
             else:
                 try:

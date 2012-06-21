@@ -352,7 +352,7 @@ class TestMerge(unittest.TestCase):
         df2 = df2.sortlevel(0)
 
         joined = df1.join(df2, how='outer')
-        ex_index = index1.get_tuple_index() + index2.get_tuple_index()
+        ex_index = index1._tuple_index + index2._tuple_index
         expected = df1.reindex(ex_index).join(df2.reindex(ex_index))
         assert_frame_equal(joined, expected)
         self.assertEqual(joined.index.names, index1.names)
@@ -361,7 +361,7 @@ class TestMerge(unittest.TestCase):
         df2 = df2.sortlevel(1)
 
         joined = df1.join(df2, how='outer').sortlevel(0)
-        ex_index = index1.get_tuple_index() + index2.get_tuple_index()
+        ex_index = index1._tuple_index + index2._tuple_index
         expected = df1.reindex(ex_index).join(df2.reindex(ex_index))
 
         assert_frame_equal(joined, expected)
@@ -1366,6 +1366,16 @@ class TestConcatenate(unittest.TestCase):
         result = concat(pieces)
         tm.assert_frame_equal(result, df)
         self.assertRaises(Exception, concat, [None, None])
+
+    def test_concat_datetime64_block(self):
+        from pandas.tseries.index import date_range
+
+        rng = date_range('1/1/2000', periods=10)
+
+        df = DataFrame({'time': rng})
+
+        result = concat([df, df])
+        self.assert_((result[:10]['time'] == rng).all())
 
 class TestOrderedMerge(unittest.TestCase):
 

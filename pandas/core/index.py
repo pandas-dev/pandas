@@ -230,7 +230,7 @@ class Index(np.ndarray):
     @cache_readonly
     def _engine(self):
         # property, for now, slow to look up
-        return self._engine_type(weakref.ref(self))
+        return self._engine_type(lambda: self.values, len(self))
 
     def _get_level_number(self, level):
         if not isinstance(level, int):
@@ -644,7 +644,7 @@ class Index(np.ndarray):
                 raise
 
             try:
-                return lib.get_value_at(series, key)
+                return lib.get_value_box(series, key)
             except IndexError:
                 raise
             except TypeError:
@@ -752,7 +752,10 @@ class Index(np.ndarray):
         is_contained : ndarray (boolean dtype)
         """
         value_set = set(values)
-        return lib.ismember(self, value_set)
+        return lib.ismember(self._array_values(), value_set)
+
+    def _array_values(self):
+        return self
 
     def _get_method(self, method):
         if method:
@@ -855,8 +858,11 @@ class Index(np.ndarray):
                 return self._join_non_unique(other, how=how,
                                              return_indexers=return_indexers)
         elif self.is_monotonic and other.is_monotonic:
-            return self._join_monotonic(other, how=how,
-                                        return_indexers=return_indexers)
+            try:
+                return self._join_monotonic(other, how=how,
+                                            return_indexers=return_indexers)
+            except TypeError:
+                pass
 
         if how == 'left':
             join_index = self
@@ -1223,14 +1229,8 @@ class MultiIndex(Index):
         levels = [_ensure_index(lev) for lev in levels]
         labels = [np.asarray(labs, dtype=np.int_) for labs in labels]
 
-        values = [ndtake(lev.values, lab)
-                  for lev, lab in zip(levels, labels)]
-
-        # Need to box timestamps, etc.
-        values = _clean_arrays(values)
-
-        subarr = lib.fast_zip(values).view(cls)
-
+        # v3, 0.8.0
+        subarr = np.empty(0, dtype=object).view(cls)
         subarr.levels = levels
         subarr.labels = labels
 
@@ -1267,13 +1267,41 @@ class MultiIndex(Index):
         cp.sortorder = self.sortorder
         return cp
 
+    def _array_values(self):
+        # hack for various methods
+        return self.values
+
     @property
     def dtype(self):
         return np.dtype('O')
 
+    def __repr__(self):
+        output = 'MultiIndex\n%s'
+
+        options = np.get_printoptions()
+        np.set_printoptions(threshold=50)
+
+        if len(self) > 100:
+            values = np.concatenate([self[:50].values,
+                                     self[-50:].values])
+        else:
+            values = self.values
+        summary = np.array2string(values, max_line_width=70)
+
+        np.set_printoptions(threshold=options['threshold'])
+
+        return output % summary
+
+    def __len__(self):
+        return len(self.labels[0])
+
     @property
     def _constructor(self):
         return MultiIndex.from_tuples
+
+    @cache_readonly
+    def inferred_type(self):
+        return 'mixed'
 
     @staticmethod
     def _from_elements(values, labels=None, levels=None, names=None,
@@ -1302,20 +1330,34 @@ class MultiIndex(Index):
                                  % (self.nlevels, level))
         return level
 
-    @property
-    def values(self):
-        if self._is_legacy_format:
-            # for legacy MultiIndex
-            values = [ndtake(np.asarray(lev), lab)
-                      for lev, lab in zip(self.levels, self.labels)]
-            return lib.fast_zip(values)
-        else:
-            return self.view(np.ndarray)
+    _tuples = None
 
     @property
-    def _is_legacy_format(self):
+    def values(self):
+        if self._is_v2:
+            return self.view(np.ndarray)
+        else:
+            if self._tuples is not None:
+                return self._tuples
+
+            values = [ndtake(lev.values, lab)
+                      for lev, lab in zip(self.levels, self.labels)]
+
+            # Need to box timestamps, etc.
+            values = _clean_arrays(values)
+            self._tuples = lib.fast_zip(values)
+            return self._tuples
+
+    # fml
+    @property
+    def _is_v1(self):
         contents = self.view(np.ndarray)
         return len(contents) > 0 and not isinstance(contents[0], tuple)
+
+    @property
+    def _is_v2(self):
+        contents = self.view(np.ndarray)
+        return len(contents) > 0 and isinstance(contents[0], tuple)
 
     @property
     def _has_complex_internals(self):
@@ -1458,21 +1500,20 @@ class MultiIndex(Index):
         -------
         index : MultiIndex
         """
-        from pandas.core.factor import Factor
+        from pandas.core.categorical import Categorical
 
         if len(arrays) == 1:
             name = None if names is None else names[0]
             return Index(arrays[0], name=name)
 
-        levels = []
-        labels = []
-        for arr in arrays:
-            factor = Factor.from_array(arr)
-            levels.append(factor.levels)
-            labels.append(factor.labels)
+        cats = [Categorical.from_array(arr) for arr in arrays]
+        levels = [c.levels for c in cats]
+        labels = [c.labels for c in cats]
+        if names is None:
+            names = [c.name for c in cats]
 
-        return MultiIndex(levels=levels, labels=labels, sortorder=sortorder,
-                          names=names)
+        return MultiIndex(levels=levels, labels=labels,
+                          sortorder=sortorder, names=names)
 
     @classmethod
     def from_tuples(cls, tuples, sortorder=None, names=None):
@@ -1539,7 +1580,6 @@ class MultiIndex(Index):
         self.sortorder = sortorder
 
     def __getitem__(self, key):
-        arr_idx = self.view(np.ndarray)
         if np.isscalar(key):
             return tuple(lev[lab[key]]
                          for lev, lab in zip(self.levels, self.labels))
@@ -1551,11 +1591,10 @@ class MultiIndex(Index):
                 # cannot be sure whether the result will be sorted
                 sortorder = None
 
-            new_tuples = arr_idx[key]
+            result = np.empty(0, dtype=object).view(type(self))
             new_labels = [lab[key] for lab in self.labels]
 
             # an optimization
-            result = new_tuples.view(MultiIndex)
             result.levels = list(self.levels)
             result.labels = new_labels
             result.sortorder = sortorder
@@ -1759,11 +1798,8 @@ class MultiIndex(Index):
         indexer = com._ensure_platform_int(indexer)
         new_labels = [lab.take(indexer) for lab in self.labels]
 
-        new_index = MultiIndex._from_elements(self.values.take(indexer),
-                                              labels=new_labels,
-                                              levels=self.levels,
-                                              names=self.names,
-                                              sortorder=level)
+        new_index = MultiIndex(labels=new_labels, levels=self.levels,
+                               names=self.names, sortorder=level)
 
         return new_index, indexer
 
@@ -1800,15 +1836,13 @@ class MultiIndex(Index):
         target = _ensure_index(target)
 
         target_index = target
-        if isinstance(target, MultiIndex) and target._is_legacy_format:
-            target_index = target.get_tuple_index()
+        if isinstance(target, MultiIndex):
+            target_index = target._tuple_index
 
         if target_index.dtype != object:
             return np.ones(len(target_index)) * -1
 
-        self_index = self
-        if self._is_legacy_format:
-            self_index = self.get_tuple_index()
+        self_index = self._tuple_index
 
         if method == 'pad':
             assert(self.is_unique and self.is_monotonic)
@@ -1856,7 +1890,8 @@ class MultiIndex(Index):
 
         return target, indexer
 
-    def get_tuple_index(self):
+    @cache_readonly
+    def _tuple_index(self):
         """
         Convert MultiIndex to an Index of tuples
 
@@ -2108,8 +2143,8 @@ class MultiIndex(Index):
             return False
 
         for i in xrange(self.nlevels):
-            svalues = np.asarray(self.levels[i]).take(self.labels[i])
-            ovalues = np.asarray(other.levels[i]).take(other.labels[i])
+            svalues = ndtake(self.levels[i].values, self.labels[i])
+            ovalues = ndtake(other.levels[i].values, other.labels[i])
             if not np.array_equal(svalues, ovalues):
                 return False
 
@@ -2436,9 +2471,9 @@ def _ensure_compat_concat(indexes):
     return indexes
 
 def _maybe_box_dtindex(idx):
-    from pandas.tseries.index import DatetimeIndex, _dt_box_array
+    from pandas.tseries.index import DatetimeIndex
     if isinstance(idx, DatetimeIndex):
-        return Index(_dt_box_array(idx.asi8), dtype='object')
+        return idx.asobject
     return idx
 
 def _clean_arrays(values):

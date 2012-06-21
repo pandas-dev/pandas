@@ -5,9 +5,8 @@ import numpy as np
 from pandas.core.groupby import BinGrouper, CustomGrouper
 from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
 from pandas.tseries.index import DatetimeIndex, date_range
-from pandas.tseries.offsets import DateOffset
-from pandas.tseries.period import Period, PeriodIndex, period_range
-from pandas.util.decorators import cache_readonly
+from pandas.tseries.offsets import DateOffset, Tick, _delta_to_nanoseconds
+from pandas.tseries.period import PeriodIndex, period_range
 import pandas.core.common as com
 
 from pandas.lib import Timestamp
@@ -23,8 +22,6 @@ class TimeGrouper(CustomGrouper):
     rule : pandas offset string or object for identifying bin edges
     closed : closed end of interval; left (default) or right
     label : interval boundary to use for labeling; left (default) or right
-    begin : optional, timestamp-like
-    end : optional, timestamp-like
     nperiods : optional, integer
     convention : {'start', 'end', 'e', 's'}
         If axis is PeriodIndex
@@ -35,14 +32,12 @@ class TimeGrouper(CustomGrouper):
     directly from the associated object
     """
     def __init__(self, freq='Min', closed='right', label='right', how='mean',
-                 begin=None, end=None, nperiods=None, axis=0,
+                 nperiods=None, axis=0,
                  fill_method=None, limit=None, loffset=None, kind=None,
                  convention=None, base=0):
         self.freq = freq
         self.closed = closed
         self.label = label
-        self.begin = begin
-        self.end = end
         self.nperiods = nperiods
         self.kind = kind
         self.convention = convention or 'E'
@@ -95,27 +90,54 @@ class TimeGrouper(CustomGrouper):
             binner = labels = DatetimeIndex(data=[], freq=self.freq)
             return binner, [], labels
 
-        first, last = _get_range_edges(axis, self.begin, self.end, self.freq,
-                                       closed=self.closed, base=self.base)
-        binner = DatetimeIndex(freq=self.freq, start=first, end=last)
+        first, last = _get_range_edges(axis, self.freq, closed=self.closed,
+                                       base=self.base)
+        binner = labels = DatetimeIndex(freq=self.freq, start=first, end=last)
 
         # a little hack
         trimmed = False
-        if len(binner) > 2 and binner[-2] == axis[-1]:
+        if len(binner) > 2 and binner[-2] == axis[-1] and self.closed == 'right':
             binner = binner[:-1]
             trimmed = True
 
-        # general version, knowing nothing about relative frequencies
-        bins = lib.generate_bins_dt64(axis.asi8, binner.asi8, self.closed)
+        ax_values = axis.asi8
+        binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
 
-        if self.label == 'right':
-            labels = binner[1:]
-        elif not trimmed:
-            labels = binner[:-1]
-        else:
+        # general version, knowing nothing about relative frequencies
+        bins = lib.generate_bins_dt64(ax_values, bin_edges, self.closed)
+
+        if self.closed == 'right':
             labels = binner
+            if self.label == 'right':
+                labels = labels[1:]
+            elif not trimmed:
+                labels = labels[:-1]
+        else:
+            if self.label == 'right':
+                labels = labels[1:]
+            elif not trimmed:
+                labels = labels[:-1]
 
         return binner, bins, labels
+
+    def _adjust_bin_edges(self, binner, ax_values):
+        # Some hacks for > daily data, see #1471, #1458, #1483
+
+        bin_edges = binner.asi8
+
+        if self.freq != 'D' and is_superperiod(self.freq, 'D'):
+            day_nanos = _delta_to_nanoseconds(timedelta(1))
+            if self.closed == 'right':
+                bin_edges = bin_edges + day_nanos - 1
+            else:
+                bin_edges = bin_edges + day_nanos
+
+            # intraday values on last day
+            if bin_edges[-2] > ax_values[-1]:
+                bin_edges = bin_edges[:-1]
+                binner = binner[:-1]
+
+        return binner, bin_edges
 
     def _get_time_period_bins(self, axis):
         assert(isinstance(axis, DatetimeIndex))
@@ -130,9 +152,6 @@ class TimeGrouper(CustomGrouper):
         end_stamps = (labels + 1).asfreq('D', 's').to_timestamp()
         bins = axis.searchsorted(end_stamps, side='left')
 
-        if bins[-1] < len(axis):
-            bins = np.concatenate([bins, [len(axis)]])
-
         return binner, bins, labels
 
     def _resample_timestamps(self, obj):
@@ -140,17 +159,23 @@ class TimeGrouper(CustomGrouper):
 
         binner, grouper = self._get_time_grouper(obj)
 
-        # downsamples
-        if len(grouper.binlabels) < len(axlabels):
+        # Determine if we're downsampling
+        if axlabels.freq is not None or axlabels.inferred_freq is not None:
+            if len(grouper.binlabels) < len(axlabels):
+                grouped  = obj.groupby(grouper, axis=self.axis)
+                result = grouped.aggregate(self.how)
+            else:
+                # upsampling shortcut
+                assert(self.axis == 0)
+                result = obj.reindex(binner[1:], method=self.fill_method,
+                                     limit=self.limit)
+        else:
+            # Irregular data, have to use groupby
             grouped  = obj.groupby(grouper, axis=self.axis)
             result = grouped.aggregate(self.how)
-        else:
-            assert(self.axis == 0)
-            # upsampling
 
-            # this is sort of a hack
-            result = obj.reindex(binner[1:], method=self.fill_method,
-                                 limit=self.limit)
+            if self.fill_method is not None:
+                result = result.fillna(method=self.fill_method, limit=self.limit)
 
         loffset = self.loffset
         if isinstance(loffset, basestring):
@@ -180,12 +205,8 @@ class TimeGrouper(CustomGrouper):
 
         if is_subperiod(axlabels.freq, self.freq):
             # Downsampling
-            if len(memb) > 1:
-                rng = np.arange(memb.values[0], memb.values[-1])
-                bins = memb.searchsorted(rng, side='right')
-            else:
-                bins = np.array([], dtype=np.int32)
-
+            rng = np.arange(memb.values[0], memb.values[-1])
+            bins = memb.searchsorted(rng, side='right')
             grouper = BinGrouper(bins, new_index)
 
             grouped = obj.groupby(grouper, axis=self.axis)
@@ -223,35 +244,23 @@ def _take_new_index(obj, indexer, new_index, axis=0):
 
 
 
-def _get_range_edges(axis, begin, end, offset, closed='left',
-                     base=0):
-    from pandas.tseries.offsets import Tick, _delta_to_nanoseconds
+def _get_range_edges(axis, offset, closed='left', base=0):
     if isinstance(offset, basestring):
         offset = to_offset(offset)
-
-    if not isinstance(offset, DateOffset):
-        raise ValueError("Rule not a recognized offset")
 
     if isinstance(offset, Tick):
         day_nanos = _delta_to_nanoseconds(timedelta(1))
         # #1165
-        if ((day_nanos % offset.nanos) == 0 and begin is None
-            and end is None):
+        if (day_nanos % offset.nanos) == 0:
             return _adjust_dates_anchored(axis[0], axis[-1], offset,
                                           closed=closed, base=base)
 
-    if begin is None:
-        if closed == 'left':
-            first = Timestamp(offset.rollback(axis[0]))
-        else:
-            first = Timestamp(axis[0] - offset)
+    if closed == 'left':
+        first = Timestamp(offset.rollback(axis[0]))
     else:
-        first = Timestamp(offset.rollback(begin))
+        first = Timestamp(axis[0] - offset)
 
-    if end is None:
-        last = Timestamp(axis[-1] + offset)
-    else:
-        last = Timestamp(offset.rollforward(end))
+    last = Timestamp(axis[-1] + offset)
 
     return first, last
 
@@ -318,80 +327,3 @@ def asfreq(obj, freq, method=None, how=None):
             return obj.copy()
         dti = date_range(obj.index[0], obj.index[-1], freq=freq)
         return obj.reindex(dti, method=method)
-
-def values_at_time(obj, time, tz=None, asof=False):
-    """
-    Select values at particular time of day (e.g. 9:30AM)
-
-    Parameters
-    ----------
-    time : datetime.time or string
-    tz : string or pytz.timezone
-        Time zone for time. Corresponding timestamps would be converted to
-        time zone of the TimeSeries
-
-    Returns
-    -------
-    values_at_time : TimeSeries
-    """
-    from dateutil.parser import parse
-
-    if asof:
-        raise NotImplementedError
-    if tz:
-        raise NotImplementedError
-
-    if not isinstance(obj.index, DatetimeIndex):
-        raise NotImplementedError
-
-    if isinstance(time, basestring):
-        time = parse(time).time()
-
-    # TODO: time object with tzinfo?
-
-    mus = _time_to_nanosecond(time)
-    indexer = lib.values_at_time(obj.index.asi8, mus)
-    indexer = com._ensure_platform_int(indexer)
-    return obj.take(indexer)
-
-def values_between_time(obj, start_time, end_time, include_start=True,
-                        include_end=True, tz=None):
-    """
-    Select values between particular times of day (e.g., 9:00-9:30AM)
-
-    Parameters
-    ----------
-    start_time : datetime.time or string
-    end_time : datetime.time or string
-    include_start : boolean, default True
-    include_end : boolean, default True
-    tz : string or pytz.timezone, default None
-
-    Returns
-    -------
-    values_between_time : TimeSeries
-    """
-    from dateutil.parser import parse
-
-    if tz:
-        raise NotImplementedError
-
-    if not isinstance(obj.index, DatetimeIndex):
-        raise NotImplementedError
-
-    if isinstance(start_time, basestring):
-        start_time = parse(start_time).time()
-
-    if isinstance(end_time, basestring):
-        end_time = parse(end_time).time()
-
-    start_ns = _time_to_nanosecond(start_time)
-    end_ns = _time_to_nanosecond(end_time)
-    indexer = lib.values_between_time(obj.index.asi8, start_ns, end_ns,
-                                      include_start, include_end)
-    indexer = com._ensure_platform_int(indexer)
-    return obj.take(indexer)
-
-def _time_to_nanosecond(time):
-    seconds = time.hour * 60 * 60 + 60 * time.minute + time.second
-    return 1000000000L * seconds + time.microsecond * 1000

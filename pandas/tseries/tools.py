@@ -21,10 +21,6 @@ except ImportError: # pragma: no cover
     print 'Please install python-dateutil via easy_install or some method!'
     raise # otherwise a 2nd import won't show the message
 
-def _delta_to_microseconds(delta):
-    return (delta.days * 24 * 60 * 60 * 1000000
-            + delta.seconds * 1000000
-            + delta.microseconds)
 
 def _infer_tzinfo(start, end):
     def _infer(a, b):
@@ -65,7 +61,7 @@ def _figure_out_timezone(start, end, tzinfo):
     return start, end, tz
 
 
-def to_datetime(arg, errors='ignore', dayfirst=False):
+def to_datetime(arg, errors='ignore', dayfirst=False, box=True):
     """
     Convert argument to datetime
 
@@ -96,7 +92,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False):
         result = lib.array_to_datetime(com._ensure_object(arg),
                                        raise_=errors == 'raise',
                                        dayfirst=dayfirst)
-        if com.is_datetime64_dtype(result):
+        if com.is_datetime64_dtype(result) and box:
             result = DatetimeIndex(result)
         return result
     try:
@@ -210,14 +206,13 @@ def parse_time_string(arg, freq=None):
                      "minute", "second", "microsecond"]:
             can_be_zero = ['hour', 'minute', 'second', 'microsecond']
             value = getattr(parsed, attr)
-            if value is not None and (value != 0 or attr in can_be_zero):
+            if value is not None and value != 0: # or attr in can_be_zero):
                 repl[attr] = value
                 if not stopped:
                     reso = attr
-                else:
-                    raise DateParseError("Missing attribute before %s" % attr)
             else:
                 stopped = True
+                break
         ret = default.replace(**repl)
         return ret, parsed, reso  # datetime, resolution
     except Exception, e:
@@ -242,8 +237,6 @@ def _try_parse_monthly(arg):
     return ret
 
 def normalize_date(dt):
-    if isinstance(dt, np.datetime64):
-        dt = lib.Timestamp(dt)
     return dt.replace(hour=0, minute=0, second=0, microsecond=0)
 
 

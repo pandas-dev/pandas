@@ -476,11 +476,12 @@ def convert_timestamps(ndarray values):
 
     return out
 
-
-
 def maybe_indices_to_slice(ndarray[int64_t] indices):
     cdef:
         Py_ssize_t i, n = len(indices)
+
+    if n == 0:
+        return indices
 
     for i in range(1, n):
         if indices[i] - indices[i - 1] != 1:

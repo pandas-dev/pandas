@@ -672,8 +672,8 @@ def _has_names(index):
 # Global formatting options
 
 def set_printoptions(precision=None, column_space=None, max_rows=None,
-                     max_columns=None, colheader_justify='right',
-                     max_colwidth=50, notebook_repr_html=None,
+                     max_columns=None, colheader_justify=None,
+                     max_colwidth=None, notebook_repr_html=None,
                      date_dayfirst=None, date_yearfirst=None):
     """
     Alter default behavior of DataFrame.toString

@@ -86,7 +86,7 @@ converters : dict. optional
 verbose : boolean, default False
     Indicate number of NA values placed in non-numeric columns
 delimiter : string, default None
-    Alternative argument name for sep
+    Alternative argument name for sep. Regular expressions are accepted.
 encoding : string, default None
     Encoding to use for UTF when reading/writing (ex. 'utf-8')
 squeeze : boolean, default False
@@ -99,11 +99,11 @@ result : DataFrame or TextParser
 
 _csv_sep = """sep : string, default ','
     Delimiter to use. If sep is None, will try to automatically determine
-    this
+    this. Regular expressions are accepted.
 """
 
 _table_sep = """sep : string, default \\t (tab-stop)
-    Delimiter to use"""
+    Delimiter to use. Regular expressions are accepted."""
 
 _read_csv_doc = """
 Read CSV (comma-separated) file into DataFrame

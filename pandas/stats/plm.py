@@ -12,6 +12,7 @@ import numpy as np
 
 from pandas.core.panel import Panel
 from pandas.core.frame import DataFrame
+from pandas.core.reshape import get_dummies
 from pandas.core.series import Series
 from pandas.core.sparse import SparsePanel
 from pandas.stats.ols import OLS, MovingOLS
@@ -244,8 +245,6 @@ class PanelOLS(OLS):
         -------
         DataFrame
         """
-        from pandas.core.reshape import make_column_dummies
-
         if not self._x_effects:
             return panel
 
@@ -254,7 +253,7 @@ class PanelOLS(OLS):
         for effect in self._x_effects:
             self.log('-- Adding fixed effect dummies for %s' % effect)
 
-            dummies = make_column_dummies(panel, effect, prefix=False)
+            dummies = get_dummies(panel[effect])
 
             val_map = cat_mappings.get(effect)
             if val_map:

@@ -9,7 +9,7 @@ from numpy.testing.decorators import slow
 
 from pandas import Index, Series, DataFrame, isnull, notnull
 
-from pandas.tseries.index import date_range
+from pandas.tseries.index import date_range, bdate_range
 from pandas.tseries.offsets import Minute, DateOffset
 from pandas.tseries.period import period_range, Period
 from pandas.tseries.resample import DatetimeIndex, TimeGrouper
@@ -53,6 +53,9 @@ class TestTSPlot(unittest.TestCase):
         from pandas.tseries.plotting import tsplot
         import matplotlib.pyplot as plt
         ax = plt.gca()
+        ts = tm.makeTimeSeries()
+        plot_ax = tsplot(ts, plt.Axes.plot)
+        self.assert_(plot_ax == ax)
 
         f = lambda *args, **kwds: tsplot(s, plt.Axes.plot, *args, **kwds)
 
@@ -60,6 +63,19 @@ class TestTSPlot(unittest.TestCase):
             _check_plot_works(f, s.index.freq, ax=ax, series=s)
         for s in self.datetime_ser:
             _check_plot_works(f, s.index.freq.rule_code, ax=ax, series=s)
+
+        plt.close('all')
+        ax = ts.plot(style='k')
+        self.assert_((0., 0., 0.) == ax.get_lines()[0].get_color())
+
+    def test_get_datevalue(self):
+        from pandas.tseries.plotting import get_datevalue
+        self.assert_(get_datevalue(None, 'D') is None)
+        self.assert_(get_datevalue(1987, 'A') == 1987)
+        self.assert_(get_datevalue(Period(1987, 'A'), 'M') ==
+                     Period('1987-12', 'M').ordinal)
+        self.assert_(get_datevalue('1/1/1987', 'D') ==
+                     Period('1987-1-1', 'D').ordinal)
 
     @slow
     def test_line_plot_period_series(self):
@@ -110,9 +126,9 @@ class TestTSPlot(unittest.TestCase):
 
     @slow
     def test_irregular_datetime64_repr_bug(self):
+        import matplotlib.pyplot as plt
         ser = tm.makeTimeSeries()
         ser = ser[[0,1,2,7]]
-        import matplotlib.pyplot as plt
 
         fig = plt.gcf()
         plt.clf()
@@ -125,21 +141,34 @@ class TestTSPlot(unittest.TestCase):
 
     @slow
     def test_business_freq(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
         bts = tm.makePeriodSeries()
-        ts = bts.asfreq('D')
+        ax = bts.plot()
+        self.assert_(ax.get_lines()[0].get_xydata()[0, 0],
+                     bts.index[0].ordinal)
+        idx = ax.get_lines()[0].get_xdata()
+        self.assert_(idx.freqstr == 'B')
+
+    @slow
+    def test_business_freq_convert(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        n = tm.N
+        tm.N = 300
+        bts = tm.makeTimeSeries().asfreq('BM')
+        tm.N = n
+        ts = bts.to_period('M')
         ax = bts.plot()
         self.assert_(ax.get_lines()[0].get_xydata()[0, 0], ts.index[0].ordinal)
         idx = ax.get_lines()[0].get_xdata()
-        self.assert_(idx.freqstr == 'D')
+        self.assert_(idx.freqstr == 'M')
 
     @slow
     def test_dataframe(self):
-        bts = DataFrame({'a': tm.makePeriodSeries()})
-        ts = bts.asfreq('D')
+        bts = DataFrame({'a': tm.makeTimeSeries()})
         ax = bts.plot()
-        self.assert_(ax.get_lines()[0].get_xydata()[0, 0], ts.index[0].ordinal)
         idx = ax.get_lines()[0].get_xdata()
-        self.assert_(idx.freqstr == 'D')
 
     @slow
     def test_set_xlim(self):
@@ -169,6 +198,33 @@ class TestTSPlot(unittest.TestCase):
         self.assertEqual(int(result[1]), expected[1].ordinal)
 
     @slow
+    def test_get_finder(self):
+        import pandas.tseries.plotting as plt
+
+        self.assertEqual(plt.get_finder('B'), plt._daily_finder)
+        self.assertEqual(plt.get_finder('D'), plt._daily_finder)
+        self.assertEqual(plt.get_finder('M'), plt._monthly_finder)
+        self.assertEqual(plt.get_finder('Q'), plt._quarterly_finder)
+        self.assertEqual(plt.get_finder('A'), plt._annual_finder)
+        self.assertEqual(plt.get_finder('W'), plt._daily_finder)
+
+    @slow
+    def test_finder_daily(self):
+        xp = Period('1999-1-1', freq='B').ordinal
+        day_lst = [10, 40, 252, 400, 950, 2750, 10000]
+        for n in day_lst:
+            rng = bdate_range('1999-1-1', periods=n)
+            ser = Series(np.random.randn(len(rng)), rng)
+            ax = ser.plot()
+            xaxis = ax.get_xaxis()
+            rs = xaxis.get_majorticklocs()[0]
+            self.assertEqual(xp, rs)
+            (vmin, vmax) = ax.get_xlim()
+            ax.set_xlim(vmin + 0.9, vmax)
+            rs = xaxis.get_majorticklocs()[0]
+            self.assertEqual(xp, rs)
+
+    @slow
     def test_finder_quarterly(self):
         xp = Period('1988Q1').ordinal
         yrs = [3.5, 11]
@@ -179,6 +235,10 @@ class TestTSPlot(unittest.TestCase):
             xaxis = ax.get_xaxis()
             rs = xaxis.get_majorticklocs()[0]
             self.assert_(rs == xp)
+            (vmin, vmax) = ax.get_xlim()
+            ax.set_xlim(vmin + 0.9, vmax)
+            rs = xaxis.get_majorticklocs()[0]
+            self.assertEqual(xp, rs)
 
     @slow
     def test_finder_monthly(self):
@@ -191,6 +251,178 @@ class TestTSPlot(unittest.TestCase):
             xaxis = ax.get_xaxis()
             rs = xaxis.get_majorticklocs()[0]
             self.assert_(rs == xp)
+            (vmin, vmax) = ax.get_xlim()
+            ax.set_xlim(vmin + 0.9, vmax)
+            rs = xaxis.get_majorticklocs()[0]
+            self.assertEqual(xp, rs)
+
+
+        rng = period_range('1988Q1', periods=24*12, freq='M')
+        ser = Series(np.random.randn(len(rng)), rng)
+        ax = ser.plot()
+        xaxis = ax.get_xaxis()
+        rs = xaxis.get_majorticklocs()[0]
+        xp = Period('1989Q1', 'M').ordinal
+        self.assert_(rs == xp)
+
+    @slow
+    def test_finder_annual(self):
+        import matplotlib.pyplot as plt
+        xp = [1987, 1988, 1990, 1990, 1995, 2020, 2070, 2170]
+        for i, nyears in enumerate([5, 10, 19, 49, 99, 199, 599, 1001]):
+            rng = period_range('1987', periods=nyears, freq='A')
+            ser = Series(np.random.randn(len(rng)), rng)
+            ax = ser.plot()
+            xaxis = ax.get_xaxis()
+            rs = xaxis.get_majorticklocs()[0]
+            self.assert_(rs == Period(xp[i], freq='A').ordinal)
+            plt.close('all')
+
+    @slow
+    def test_finder_minutely(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        nminutes = 50 * 24 * 60
+        rng = date_range('1/1/1999', freq='Min', periods=nminutes)
+        ser = Series(np.random.randn(len(rng)), rng)
+        ax = ser.plot()
+        xaxis = ax.get_xaxis()
+        rs = xaxis.get_majorticklocs()[0]
+        xp = Period('1/1/1999', freq='Min').ordinal
+        self.assertEqual(rs, xp)
+
+    @slow
+    def test_finder_hourly(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        nhours = 23
+        rng = date_range('1/1/1999', freq='H', periods=nhours)
+        ser = Series(np.random.randn(len(rng)), rng)
+        ax = ser.plot()
+        xaxis = ax.get_xaxis()
+        rs = xaxis.get_majorticklocs()[0]
+        xp = Period('1/1/1999', freq='H').ordinal
+        self.assertEqual(rs, xp)
+
+    @slow
+    def test_gaps(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        ts = tm.makeTimeSeries()
+        ts[5:25] = np.nan
+        ax = ts.plot()
+        lines = ax.get_lines()
+        self.assert_(len(lines) == 1)
+        l = lines[0]
+        data = l.get_xydata()
+        self.assert_(isinstance(data, np.ma.core.MaskedArray))
+        mask = data.mask
+        self.assert_(mask[5:25, 1].all())
+
+        # irregular
+        plt.close('all')
+        ts = tm.makeTimeSeries()
+        ts = ts[[0, 1, 2, 5, 7, 9, 12, 15, 20]]
+        ts[2:5] = np.nan
+        ax = ts.plot()
+        lines = ax.get_lines()
+        self.assert_(len(lines) == 1)
+        l = lines[0]
+        data = l.get_xydata()
+        self.assert_(isinstance(data, np.ma.core.MaskedArray))
+        mask = data.mask
+        self.assert_(mask[2:5, 1].all())
+
+        # non-ts
+        plt.close('all')
+        idx = [0, 1, 2, 5, 7, 9, 12, 15, 20]
+        ser = Series(np.random.randn(len(idx)), idx)
+        ser[2:5] = np.nan
+        ax = ser.plot()
+        lines = ax.get_lines()
+        self.assert_(len(lines) == 1)
+        l = lines[0]
+        data = l.get_xydata()
+        self.assert_(isinstance(data, np.ma.core.MaskedArray))
+        mask = data.mask
+        self.assert_(mask[2:5, 1].all())
+
+    @slow
+    def test_secondary_y(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        ser = Series(np.random.randn(10))
+        ser2 = Series(np.random.randn(10))
+        ax = ser.plot(secondary_y=True)
+        fig = ax.get_figure()
+        axes = fig.get_axes()
+        l = ax.get_lines()[0]
+        xp = Series(l.get_ydata(), l.get_xdata())
+        assert_series_equal(ser, xp)
+        self.assert_(ax.get_yaxis().get_ticks_position() == 'right')
+        self.assert_(not axes[0].get_yaxis().get_visible())
+
+        ax2 = ser2.plot()
+        self.assert_(ax2.get_yaxis().get_ticks_position() == 'left')
+
+        plt.close('all')
+        ax = ser2.plot()
+        ax2 = ser.plot(secondary_y=True)
+        self.assert_(ax.get_yaxis().get_visible())
+
+    @slow
+    def test_secondary_y_ts(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        idx = date_range('1/1/2000', periods=10)
+        ser = Series(np.random.randn(10), idx)
+        ser2 = Series(np.random.randn(10), idx)
+        ax = ser.plot(secondary_y=True)
+        fig = ax.get_figure()
+        axes = fig.get_axes()
+        l = ax.get_lines()[0]
+        xp = Series(l.get_ydata(), l.get_xdata()).to_timestamp()
+        assert_series_equal(ser, xp)
+        self.assert_(ax.get_yaxis().get_ticks_position() == 'right')
+        self.assert_(not axes[0].get_yaxis().get_visible())
+
+        ax2 = ser2.plot()
+        self.assert_(ax2.get_yaxis().get_ticks_position() == 'left')
+
+        plt.close('all')
+        ax = ser2.plot()
+        ax2 = ser.plot(secondary_y=True)
+        self.assert_(ax.get_yaxis().get_visible())
+
+    @slow
+    def test_secondary_kde(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        ser = Series(np.random.randn(10))
+        ax = ser.plot(secondary_y=True, kind='density')
+        fig = ax.get_figure()
+        axes = fig.get_axes()
+        self.assert_(axes[1].get_yaxis().get_ticks_position() == 'right')
+
+    @slow
+    def test_secondary_bar(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        ser = Series(np.random.randn(10))
+        ax = ser.plot(secondary_y=True, kind='bar')
+        fig = ax.get_figure()
+        axes = fig.get_axes()
+        self.assert_(axes[1].get_yaxis().get_ticks_position() == 'right')
+
+    @slow
+    def test_secondary_frame(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        df = DataFrame(np.random.randn(5, 3), columns=['a', 'b', 'c'])
+        axes = df.plot(secondary_y=['a', 'c'], subplots=True)
+        self.assert_(axes[0].get_yaxis().get_ticks_position() == 'right')
+        self.assert_(axes[1].get_yaxis().get_ticks_position() == 'default')
+        self.assert_(axes[2].get_yaxis().get_ticks_position() == 'right')
 
 PNG_PATH = 'tmp.png'
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):

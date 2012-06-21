@@ -6,9 +6,10 @@ from pandas import Series, TimeSeries, DataFrame, Panel, isnull, notnull
 
 from pandas.tseries.index import date_range
 from pandas.tseries.offsets import Minute, BDay
-from pandas.tseries.period import period_range, PeriodIndex
+from pandas.tseries.period import period_range, PeriodIndex, Period
 from pandas.tseries.resample import DatetimeIndex, TimeGrouper
 import pandas.tseries.offsets as offsets
+import pandas as pd
 
 import unittest
 import nose
@@ -17,6 +18,14 @@ from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
 
 bday = BDay()
+
+
+def _skip_if_no_pytz():
+    try:
+        import pytz
+    except ImportError:
+        raise nose.SkipTest
+
 
 class TestResample(unittest.TestCase):
 
@@ -421,6 +430,72 @@ class TestResample(unittest.TestCase):
         expected = ts.resample('W-SUN')
         assert_series_equal(resampled, expected)
 
+    def test_monthly_resample_error(self):
+        # #1451
+        dates = date_range('4/16/2012 20:00', periods=5000, freq='h')
+        ts = Series(np.random.randn(len(dates)), index=dates)
+        # it works!
+        result = ts.resample('M')
+
+    def test_resample_anchored_intraday(self):
+        # #1471, #1458
+
+        rng = date_range('1/1/2012', '4/1/2012', freq='10min')
+        df = DataFrame(rng.month, index=rng)
+
+        result = df.resample('M')
+        expected = df.resample('M', kind='period').to_timestamp()
+        tm.assert_frame_equal(result, expected)
+
+        result = df.resample('M', closed='left')
+        expected = df.resample('M', kind='period', closed='left').to_timestamp()
+        tm.assert_frame_equal(result, expected)
+
+        rng = date_range('1/1/2012', '4/1/2013', freq='10min')
+        df = DataFrame(rng.month, index=rng)
+
+        result = df.resample('Q')
+        expected = df.resample('Q', kind='period').to_timestamp()
+        tm.assert_frame_equal(result, expected)
+
+        result = df.resample('Q', closed='left')
+        expected = df.resample('Q', kind='period', closed='left').to_timestamp()
+        tm.assert_frame_equal(result, expected)
+
+        ts = _simple_ts('2012-04-29 23:00', '2012-04-30 5:00', freq='h')
+        resampled = ts.resample('M')
+        self.assert_(len(resampled) == 1)
+
+    def test_resample_anchored_monthstart(self):
+        ts = _simple_ts('1/1/2000', '12/31/2002')
+
+        freqs = ['MS', 'BMS', 'QS-MAR', 'AS-DEC', 'AS-JUN']
+
+        for freq in freqs:
+            result = ts.resample(freq, how='mean')
+
+    def test_corner_cases(self):
+        # miscellaneous test coverage
+
+        rng = date_range('1/1/2000', periods=12, freq='t')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        result = ts.resample('5t', closed='right', label='left')
+        ex_index = date_range('1999-12-31 23:55', periods=4, freq='5t')
+        self.assert_(result.index.equals(ex_index))
+
+        len0pts = _simple_pts('2007-01', '2010-05', freq='M')[:0]
+        # it works
+        result = len0pts.resample('A-DEC')
+        self.assert_(len(result) == 0)
+
+        # resample to periods
+        ts = _simple_ts('2000-04-28', '2000-04-30 11:00', freq='h')
+        result = ts.resample('M', kind='period')
+        self.assert_(len(result) == 1)
+        self.assert_(result.index[0] == Period('2000-04', freq='M'))
+
+
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
     return Series(np.random.randn(len(rng)), index=rng)
@@ -611,6 +686,65 @@ class TestResamplePeriodIndex(unittest.TestCase):
 
         result = ts.resample('A')
         self.assert_(len(result) == 0)
+
+    def test_resample_irregular_sparse(self):
+        dr = date_range(start='1/1/2012', freq='5min', periods=1000)
+        s = Series(np.array(100), index=dr)
+        # subset the data.
+        subset = s[:'2012-01-04 07:00']
+
+        result = subset.resample('10min', how=len)
+        expected = s.resample('10min', how=len).ix[result.index]
+        assert_series_equal(result, expected)
+
+    def test_resample_weekly_all_na(self):
+        rng = date_range('1/1/2000', periods=10, freq='W-WED')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        result = ts.resample('W-THU')
+
+        self.assert_(result.isnull().all())
+
+        result = ts.resample('W-THU', fill_method='ffill')[:-1]
+        expected = ts.asfreq('W-THU', method='ffill')
+        assert_series_equal(result, expected)
+
+    def test_resample_tz_localized(self):
+        dr = date_range(start='2012-4-13', end='2012-5-1')
+        ts = Series(range(len(dr)), dr)
+
+        ts_utc = ts.tz_localize('UTC')
+        ts_local = ts_utc.tz_convert('America/Los_Angeles')
+
+        result = ts_local.resample('W')
+
+        ts_local_naive = ts_local.copy()
+        ts_local_naive.index = [x.replace(tzinfo=None)
+                                for x in ts_local_naive.index.to_pydatetime()]
+
+        exp = ts_local_naive.resample('W').tz_localize('America/Los_Angeles')
+
+        assert_series_equal(result, exp)
+
+    def test_closed_left_corner(self):
+        # #1465
+        s = Series(np.random.randn(21),
+                   index=date_range(start='1/1/2012 9:30',
+                                    freq='1min', periods=21))
+        s[0] = np.nan
+
+        result = s.resample('10min', how='mean',closed='left', label='right')
+        exp = s[1:].resample('10min', how='mean',closed='left', label='right')
+        assert_series_equal(result, exp)
+
+        result = s.resample('10min', how='mean',closed='left', label='left')
+        exp = s[1:].resample('10min', how='mean',closed='left', label='left')
+
+        ex_index = date_range(start='1/1/2012 9:30', freq='10min', periods=3)
+
+        self.assert_(result.index.equals(ex_index))
+        assert_series_equal(result, exp)
+
 
 class TestTimeGrouper(unittest.TestCase):
 

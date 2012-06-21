@@ -139,6 +139,9 @@ pandas 0.8.0
   - Series.append and DataFrame.append no longer check for duplicate indexes
     by default, add verify_integrity parameter (#1394)
   - Refactor Factor class, old constructor moved to Factor.from_array
+  - Modified internals of MultiIndex to use less memory (no longer represented
+    as array of tuples) internally, speed up construction time and many methods
+    which construct intermediate hierarchical indexes (#1467)
 
 **Bug fixes**
 
@@ -186,6 +189,7 @@ pandas 0.8.0
   - Reset index mapping when grouping Series in Cython (#1423)
   - Fix outer/inner DataFrame.join with non-unique indexes (#1421)
   - Fix MultiIndex groupby bugs with empty lower levels (#1401)
+  - Calling fillna with a Series will have same behavior as with dict (#1486)
 
 pandas 0.7.3
 ============

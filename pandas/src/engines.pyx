@@ -52,7 +52,7 @@ cdef int _SIZE_CUTOFF = 1000000
 cdef class IndexEngine:
 
     cdef readonly:
-        object index_weakref
+        object vgetter
         HashTable mapping
         bint over_size_threshold
 
@@ -60,10 +60,10 @@ cdef class IndexEngine:
         bint unique, monotonic
         bint initialized, monotonic_check, unique_check
 
-    def __init__(self, index_weakref):
-        self.index_weakref = index_weakref
+    def __init__(self, vgetter, n):
+        self.vgetter = vgetter
 
-        self.over_size_threshold = len(index_weakref()) >= _SIZE_CUTOFF
+        self.over_size_threshold = n >= _SIZE_CUTOFF
 
         self.initialized = 0
         self.monotonic_check = 0
@@ -206,7 +206,7 @@ cdef class IndexEngine:
         self.monotonic_check = 1
 
     cdef _get_index_values(self):
-        return self.index_weakref().values
+        return self.vgetter()
 
     cdef inline _do_unique_check(self):
         self._ensure_mapping_populated()
@@ -370,7 +370,7 @@ cdef class DatetimeEngine(Int64Engine):
         return _to_i8(val) in self.mapping
 
     cdef _get_index_values(self):
-        return self.index_weakref().values.view('i8')
+        return self.vgetter().view('i8')
 
     def _call_monotonic(self, values):
         return _algos.is_monotonic_int64(values)

@@ -240,7 +240,7 @@ def _flex_comp_method(op, name, default_axis='columns'):
                 mask = notnull(xrav)
                 result[mask] = op(np.array(list(xrav[mask])), y)
 
-            if op == operator.ne:
+            if op == operator.ne:  # pragma: no cover
                 np.putmask(result, -mask, True)
             else:
                 np.putmask(result, -mask, False)
@@ -749,15 +749,32 @@ class DataFrame(NDFrame):
 
         return DataFrame(data, dtype=dtype)
 
-    def to_dict(self):
+    def to_dict(self, outtype='dict'):
         """
-        Convert DataFrame to nested dictionary
+        Convert DataFrame to dictionary.
+
+        Parameters
+        ----------
+        outtype : str {'dict', 'list', 'series'}
+            Determines the type of the values of the dictionary. The
+            default `dict` is a nested dictionary {column -> {index -> value}}.
+            `list` returns {column -> list(values)}. `series` returns
+            {column -> Series(values)}.
+            Abbreviations are allowed.
+
 
         Returns
         -------
         result : dict like {column -> {index -> value}}
         """
-        return dict((k, v.to_dict()) for k, v in self.iteritems())
+        if outtype.lower().startswith('d'):
+            return dict((k, v.to_dict()) for k, v in self.iteritems())
+        elif outtype.lower().startswith('l'):
+            return dict((k, v.tolist()) for k, v in self.iteritems())
+        elif outtype.lower().startswith('s'):
+            return dict((k, v) for k,v in self.iteritems())
+        else: # pragma: no cover
+            raise ValueError("outtype %s not understood" % outtype)
 
     @classmethod
     def from_records(cls, data, index=None, exclude=None, columns=None,
@@ -1601,9 +1618,6 @@ class DataFrame(NDFrame):
 
             inds, = key.nonzero()
             return self.take(inds)
-
-            # new_index = self.index[key]
-            # return self.reindex(new_index)
         else:
             indexer = self.columns.get_indexer(key)
             mask = indexer == -1
@@ -1855,12 +1869,12 @@ class DataFrame(NDFrame):
         if np.isscalar(loc):
             new_values = self._data.fast_2d_xs(loc, copy=copy)
             return Series(new_values, index=self.columns, name=key)
-        elif isinstance(loc, slice) or loc.dtype == np.bool_:
+        else: # isinstance(loc, slice) or loc.dtype == np.bool_:
             result = self[loc]
             result.index = new_index
             return result
-        else:
-            return self.take(loc)
+        # else:
+        #     return self.take(loc)
 
     def lookup(self, row_labels, col_labels):
         """
@@ -2735,7 +2749,12 @@ class DataFrame(NDFrame):
             # Float type values
             if len(self.columns) == 0:
                 return self
-            if isinstance(value, dict):
+            if isinstance(value, (dict, Series)):
+                if axis == 1:
+                    raise NotImplementedError('Currently only can fill '
+                                              'with dict/Series column '
+                                              'by column')
+
                 result = self if inplace else self.copy()
                 for k, v in value.iteritems():
                     if k not in result:
@@ -3129,7 +3148,7 @@ class DataFrame(NDFrame):
         combiner = lambda x, y: np.where(isnull(x), y, x)
         return self.combine(other, combiner)
 
-    def update(self, other, join='left'):
+    def update(self, other, join='left', overwrite=True, filter_func=None):
         """
         Modify DataFrame in place using non-NA values from passed
         DataFrame. Aligns on indices
@@ -3138,6 +3157,11 @@ class DataFrame(NDFrame):
         ----------
         other : DataFrame
         join : {'left', 'right', 'outer', 'inner'}, default 'left'
+        overwrite : boolean, default True
+            If True then overwrite values for common keys in the calling frame
+        filter_func : callable(1d-array) -> 1d-array<boolean>, default None
+            Can choose to replace values other than NA. Return True for values
+            that should be updated
         """
         if join != 'left':
             raise NotImplementedError
@@ -3146,7 +3170,14 @@ class DataFrame(NDFrame):
         for col in self.columns:
             this = self[col].values
             that = other[col].values
-            self[col] = np.where(isnull(that), this, that)
+            if filter_func is not None:
+                mask = -filter_func(this) | isnull(that)
+            else:
+                if overwrite:
+                    mask = isnull(that)
+                else:
+                    mask = notnull(this)
+            self[col] = np.where(mask, this, that)
 
     #----------------------------------------------------------------------
     # Misc methods
@@ -3500,8 +3531,10 @@ class DataFrame(NDFrame):
             values = self.values
             dummy = Series(np.nan, index=self._get_axis(axis),
                            dtype=values.dtype)
+
+            labels = self._get_agg_axis(axis)
             result = lib.reduce(values, func, axis=axis, dummy=dummy,
-                                labels=self._get_agg_axis(axis))
+                                labels=labels)
             return Series(result, index=self._get_agg_axis(axis))
         except Exception:
             pass

@@ -899,7 +899,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         df = self.frame.T
         df['foo', 'four'] = 'foo'
 
-        arrays = [np.array(x) for x in zip(*df.columns.get_tuple_index())]
+        arrays = [np.array(x) for x in zip(*df.columns._tuple_index)]
 
         result = df['foo']
         result2 = df.ix[:, 'foo']
@@ -923,7 +923,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         index = MultiIndex.from_tuples(tuples)
         s = Series(randn(8), index=index)
 
-        arrays = [np.array(x) for x in zip(*index.get_tuple_index())]
+        arrays = [np.array(x) for x in zip(*index._tuple_index)]
 
         result = s['qux']
         result2 = s.ix['qux']
@@ -1001,6 +1001,19 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
             self.assert_(rightside._get_axis(axis).equals(level_index))
 
             assert_frame_equal(leftside, rightside)
+
+    def test_frame_any_all_group(self):
+        df = DataFrame({'data': [False, False, True, False, True, False, True]},
+                       index=[['one', 'one', 'two', 'one', 'two', 'two', 'two'],
+                              [0, 1, 0, 2, 1, 2, 3]])
+
+        result = df.any(level=0)
+        ex = DataFrame({'data': [False, True]}, index=['one', 'two'])
+        assert_frame_equal(result, ex)
+
+        result = df.all(level=0)
+        ex = DataFrame({'data': [False, False]}, index=['one', 'two'])
+        assert_frame_equal(result, ex)
 
     def test_std_var_pass_ddof(self):
         index = MultiIndex.from_arrays([np.arange(5).repeat(10),
