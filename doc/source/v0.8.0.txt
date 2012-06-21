@@ -67,15 +67,16 @@ Time series changes and improvements
   PeriodIndex and DatetimeIndex
 - New Timestamp data type subclasses `datetime.datetime`, providing the same
   interface while enabling working with nanosecond-resolution data. Also
-  provides **easy time zone conversions**
-- Enhanced support for **time zones**. Add `tz_convert` methods to TimeSeries
-  and DataFrame. All timestamps are stored as UTC; Timestamps from
-  DatetimeIndex objects with time zone set will be localized to localtime. Time
-  zone conversions are therefore essentially free. User needs to know very
-  little about pytz library now; only time zone names as as strings are
-  required. Timestamps are equal if and only if their UTC timestamps
-  match. Operations between time series with different time zones will result
-  in a UTC-indexed time series
+  provides :ref:`easy time zone conversions <timeseries.timezone>`.
+- Enhanced support for :ref:`time zones <timeseries.timezone>`. Add
+  `tz_convert` and ``tz_lcoalize`` methods to TimeSeries and DataFrame. All
+  timestamps are stored as UTC; Timestamps from DatetimeIndex objects with time
+  zone set will be localized to localtime. Time zone conversions are therefore
+  essentially free. User needs to know very little about pytz library now; only
+  time zone names as as strings are required. Time zone-aware timestamps are
+  equal if and only if their UTC timestamps match. Operations between time
+  zone-aware time series with different time zones will result in a UTC-indexed
+  time series.
 - Time series **string indexing conveniences** / shortcuts: slice years, year
   and month, and index values with strings
 - Enhanced time series **plotting**; adaptation of scikits.timeseries
@@ -115,6 +116,7 @@ Other new features
   function) for computing a categorical variable from a continuous variable by
   binning values either into value-based (``cut``) or quantile-based (``qcut``)
   bins
+- Rename ``Factor`` to ``Categorical`` and add a number of usability features
 - Add :ref:`limit <missing_data.fillna.limit>` argument to fillna/reindex
 - More flexible multiple function application in GroupBy, and can pass list
   (name, function) tuples to get result in particular order with given names
@@ -135,8 +137,8 @@ Other new features
   memory usage than Python's dict
 - Add first, last, min, max, and prod optimized GroupBy functions
 - New :ref:`ordered_merge <merging.ordered_merge>` function
-- Add flexible :ref:`comparison <basics.binop>` instance methods eq, ne, lt, gt, etc. to DataFrame,
-  Series
+- Add flexible :ref:`comparison <basics.binop>` instance methods eq, ne, lt,
+  gt, etc. to DataFrame, Series
 - Improve :ref:`scatter_matrix <visualization.scatter_matrix>` plotting
   function and add histogram or kernel density estimates to diagonal
 - Add :ref:`'kde' <visualization.kde>` plot option for density plots
@@ -148,6 +150,42 @@ Other new features
 - Can select multiple columns from GroupBy
 - Add :ref:`update <merging.combine_first.update>` methods to Series/DataFrame
   for updating values in place
+- Add ``any`` and ``all method to DataFrame
+
+New plotting methods
+~~~~~~~~~~~~~~~~~~~~
+
+.. ipython:: python
+   :suppress:
+
+   import pandas as pd
+   fx = pd.load('data/fx_prices')
+   import matplotlib.pyplot as plt
+
+``Series.plot`` now supports a ``secondary_y`` option:
+
+.. ipython:: python
+
+   plt.figure()
+
+   fx['FR'].plot(style='g')
+
+   @savefig whatsnew_secondary_y.png width=4.5in
+   fx['IT'].plot(style='k--', secondary_y=True)
+
+Vytautas Jancauskas, the 2012 GSOC participant, has added many new plot
+types. For example, ``'kde'`` is a new option:
+
+.. ipython:: python
+
+   s = Series(np.concatenate((np.random.randn(1000),
+                              np.random.randn(1000) * 0.5 + 3)))
+   plt.figure()
+   s.hist(normed=True, alpha=0.2)
+   @savefig whatsnew_kde.png width=4.5in
+   s.plot(kind='kde')
+
+See :ref:`the plotting page <visualization.other>` for much more.
 
 Other API changes
 ~~~~~~~~~~~~~~~~~

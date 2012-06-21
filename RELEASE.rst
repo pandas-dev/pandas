@@ -43,7 +43,7 @@ pandas 0.8.0
     conversion method (#1018)
   - Implement robust frequency inference function and `inferred_freq` attribute
     on DatetimeIndex (#391)
-  - New ``tz_convert`` methods in Series / DataFrame
+  - New ``tz_convert`` and ``tz_localize`` methods in Series / DataFrame
   - Convert DatetimeIndexes to UTC if time zones are different in join/setops
     (#864)
   - Add limit argument for forward/backward filling to reindex, fillna,

@@ -121,6 +121,7 @@ You can pass an ``ax`` argument to ``Series.plot`` to plot on a particular axis:
    @savefig series_plot_multi.png width=4.5in
    df['D'].plot(ax=axes[1,1]); axes[1,1].set_title('D')
 
+.. _visualization.other:
 
 Other plotting features
 -----------------------
