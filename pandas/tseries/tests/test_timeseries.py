@@ -902,6 +902,10 @@ class TestTimeSeries(unittest.TestCase):
         self.assertRaises(ValueError, Timestamp, '1676-01-01')
         self.assertRaises(ValueError, Timestamp, '2263-01-01')
 
+        # 1475
+        self.assertRaises(ValueError, DatetimeIndex, ['1400-01-01'])
+        self.assertRaises(ValueError, DatetimeIndex, [datetime(1400, 1, 1)])
+
     def test_timestamp_repr(self):
         # pre-1900
         stamp = Timestamp('1850-01-01', tz='US/Eastern')

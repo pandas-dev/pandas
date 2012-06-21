@@ -560,7 +560,11 @@ cdef inline _check_dts_bounds(int64_t value, pandas_datetimestruct *dts):
     if dts.year <= 1677 or dts.year >= 2262:
         pandas_datetime_to_datetimestruct(value, PANDAS_FR_ns, &dts2)
         if dts2.year != dts.year:
-            raise ValueError('Out of bounds timestamp in year: %s' % dts.year)
+            fmt = '%d-%.2d-%.2d %.2d:%.2d:%.2d' % (dts.year, dts.month,
+                                                   dts.day, dts.hour,
+                                                   dts.min, dts.sec)
+
+            raise ValueError('Out of bounds nanosecond timestamp: %s' % fmt)
 
 # elif isinstance(ts, _Timestamp):
 #     tmp = ts
@@ -645,8 +649,10 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False):
                 iresult[i] = iNaT
             elif PyDateTime_Check(val):
                 iresult[i] = _pydatetime_to_dts(val, &dts)
+                _check_dts_bounds(iresult[i], &dts)
             elif PyDate_Check(val):
                 iresult[i] = _date_to_datetime64(val, &dts)
+                _check_dts_bounds(iresult[i], &dts)
             elif util.is_datetime64_object(val):
                 iresult[i] = _get_datetime64_nanos(val)
             elif util.is_integer_object(val):
@@ -659,6 +665,9 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False):
                     result[i] = parse(val, dayfirst=dayfirst)
                 except Exception:
                     raise TypeError
+                pandas_datetime_to_datetimestruct(iresult[i], PANDAS_FR_ns,
+                                                  &dts)
+                _check_dts_bounds(iresult[i], &dts)
         return result
     except TypeError:
         oresult = np.empty(n, dtype=object)
