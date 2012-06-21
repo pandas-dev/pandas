@@ -111,8 +111,10 @@ index duplication in many-to-many joins)
 Other new features
 ~~~~~~~~~~~~~~~~~~
 
-- New :ref:`cut <reshaping.tile.cut>` function (like R's cut function) for
-  computing a categorical variable from a continuous variable by binning values
+- New :ref:`cut <reshaping.tile.cut>` and ``qcut`` functions (like R's cut
+  function) for computing a categorical variable from a continuous variable by
+  binning values either into value-based (``cut``) or quantile-based (``qcut``)
+  bins
 - Add :ref:`limit <missing_data.fillna.limit>` argument to fillna/reindex
 - More flexible multiple function application in GroupBy, and can pass list
   (name, function) tuples to get result in particular order with given names
