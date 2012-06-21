@@ -136,7 +136,6 @@ def _get_default_annual_spacing(nyears):
         (min_spacing, maj_spacing) = (factor * 20, factor * 100)
     return (min_spacing, maj_spacing)
 
-
 def period_break(dates, period):
     """
     Returns the indices where the given period changes.

@@ -68,6 +68,14 @@ class TestTSPlot(unittest.TestCase):
         ax = ts.plot(style='k')
         self.assert_((0., 0., 0.) == ax.get_lines()[0].get_color())
 
+    @slow
+    def test_high_freq(self):
+        freaks = ['ms', 'us']
+        for freq in freaks:
+            rng = date_range('1/1/2012', periods=100000, freq=freq)
+            ser = Series(np.random.randn(len(rng)), rng)
+            _check_plot_works(ser.plot)
+
     def test_get_datevalue(self):
         from pandas.tseries.plotting import get_datevalue
         self.assert_(get_datevalue(None, 'D') is None)
@@ -268,6 +276,7 @@ class TestTSPlot(unittest.TestCase):
     @slow
     def test_finder_annual(self):
         import matplotlib.pyplot as plt
+        plt.close('all')
         xp = [1987, 1988, 1990, 1990, 1995, 2020, 2070, 2170]
         for i, nyears in enumerate([5, 10, 19, 49, 99, 199, 599, 1001]):
             rng = period_range('1987', periods=nyears, freq='A')

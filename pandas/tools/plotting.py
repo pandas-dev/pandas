@@ -10,7 +10,7 @@ from pandas.core.index import Index, MultiIndex
 from pandas.core.series import Series
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
-from pandas.tseries.frequencies import get_period_alias
+from pandas.tseries.frequencies import get_period_alias, get_base_alias
 from pandas.tseries.offsets import DateOffset
 import pandas.tseries.tools as datetools
 
@@ -590,13 +590,18 @@ class LinePlot(MPLPlot):
     def has_ts_index(self):
         from pandas.core.frame import DataFrame
         if isinstance(self.data, (Series, DataFrame)):
-            if isinstance(self.data.index, (DatetimeIndex, PeriodIndex)):
-                has_freq = (hasattr(self.data.index, 'freq') and
-                            self.data.index.freq is not None)
-                has_inferred = (hasattr(self.data.index, 'inferred_freq') and
-                                self.data.index.inferred_freq is not None)
-                return has_freq or has_inferred
+            freq = (getattr(self.data.index, 'freq', None)
+                    or getattr(self.data.index, 'inferred_freq', None))
+            return (freq is not None) and  self._has_dynamic_index_freq(freq)
         return False
+
+    def _has_dynamic_index_freq(self, freq):
+        if isinstance(freq, DateOffset):
+            freq = freq.rule_code
+        else:
+            freq = get_base_alias(freq)
+        freq = get_period_alias(freq)
+        return freq is not None
 
     def _make_plot(self):
         # this is slightly deceptive
