@@ -50,6 +50,8 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
 
     mask = com.notnull(df)
 
+    marker = _get_marker_compat(marker)
+
     for i, a in zip(range(n), df.columns):
         for j, b in zip(range(n), df.columns):
             if i == j:
@@ -129,6 +131,12 @@ def _gca():
 def _gcf():
     import matplotlib.pyplot as plt
     return plt.gcf()
+
+def _get_marker_compat(marker):
+    import matplotlib.lines as mlines
+    if marker not in mlines.lineMarkers:
+        return 'o'
+    return marker
 
 def andrews_curves(data, class_column, ax=None, samples=200):
     """
