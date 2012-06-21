@@ -246,7 +246,16 @@ _offset_to_period_map = {
     'BA' : 'A',
     'AS' : 'A',
     'BAS' : 'A',
-    'MS' : 'M'
+    'MS' : 'M',
+    'D' : 'D',
+    'B' : 'B',
+    'T' : 'T',
+    'S' : 'S',
+    'H' : 'H',
+    'Q' : 'Q',
+    'A' : 'A',
+    'W' : 'W',
+    'M' : 'M'
 }
 
 need_suffix = ['QS', 'BQ', 'BQS', 'AS', 'BA', 'BAS']
@@ -257,9 +266,20 @@ for prefix in need_suffix:
         _offset_to_period_map['%s-%s' % (prefix, m)] = \
             _offset_to_period_map[prefix]
 
+months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP',
+          'OCT', 'NOV', 'DEC']
+for prefix in ['A', 'Q']:
+    for m in months:
+        alias = '%s-%s' % (prefix, m)
+        _offset_to_period_map[alias] = alias
+
+_days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
+for d in _days:
+    _offset_to_period_map['W-%s' % d] = 'W-%s' % d
+
 def get_period_alias(offset_str):
     """ alias to closest period strings BQ->Q etc"""
-    return _offset_to_period_map.get(offset_str, offset_str)
+    return _offset_to_period_map.get(offset_str, None)
 
 _rule_aliases = {
     # Legacy rules that will continue to map to their original values
