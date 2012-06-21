@@ -615,12 +615,16 @@ class DataFrame(NDFrame):
             s.name = k
             yield k, s
 
-    def itertuples(self):
+    def itertuples(self, index=True):
         """
         Iterate over rows of DataFrame as tuples, with index value
         as first element of the tuple
         """
-        return izip(self.index, *self.values.T)
+        arrays = []
+        if index:
+            arrays.append(self.index)
+        arrays.extend(self[k] for k in self.columns)
+        return izip(*arrays)
 
     iterkv = iteritems
     if py3compat.PY3:  # pragma: no cover

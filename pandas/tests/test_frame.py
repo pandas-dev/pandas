@@ -2544,6 +2544,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             expected = self.frame.ix[i,:].reset_index(drop=True)
             assert_series_equal(s, expected)
 
+        df = DataFrame({'floats': np.random.randn(5),
+                        'ints': range(5)}, columns=['floats', 'ints'])
+
+        for tup in df.itertuples(index=False):
+            self.assert_(isinstance(tup[1], np.integer))
+
     def test_len(self):
         self.assertEqual(len(self.frame), len(self.frame.index))
 
