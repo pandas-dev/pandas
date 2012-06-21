@@ -217,3 +217,27 @@ passed in the index, thus finding the integers ``0`` and ``1``. While it would
 be possible to insert some logic to check whether a passed sequence is all
 contained in the index, that logic would exact a very high cost in large data
 sets.
+
+Timestamp limitations
+---------------------
+
+Minimum and maximum timestamps
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Since pandas represents timestamps in nanosecond resolution, the timespan that
+can be represented using a 64-bit integer is limited to approximately 584 years:
+
+.. ipython:: python
+
+   begin = Timestamp(-9223285636854775809L)
+   begin
+   end = Timestamp(np.iinfo(np.int64).max)
+   end
+
+If you need to represent time series data outside the nanosecond timespan, use
+PeriodIndex:
+
+.. ipython:: python
+
+   span = period_range('1215-01-01', '1381-01-01', freq='D')
+   span

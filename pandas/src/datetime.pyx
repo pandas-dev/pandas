@@ -65,6 +65,7 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None):
     return result
 
 
+
 # Python front end to C extension type _Timestamp
 # This serves as the box for datetime64
 class Timestamp(_Timestamp):
@@ -101,10 +102,27 @@ class Timestamp(_Timestamp):
         return ts_base
 
     def __repr__(self):
-        result = self.strftime('<Timestamp: %Y-%m-%d %H:%M:%S%z')
-        if self.tzinfo:
-            result += self.strftime(' %%Z, tz=%s' % self.tzinfo.zone)
-        return result + '>'
+        result = '%d-%.2d-%.2d %.2d:%.2d:%.2d' % (self.year, self.month,
+                                                  self.day, self.hour,
+                                                  self.minute, self.second)
+
+        if self.nanosecond != 0:
+            nanos = self.nanosecond + 1000 * self.microsecond
+            result += '.%.9d' % nanos
+        elif self.microsecond != 0:
+            result += '.%.6d' % self.microsecond
+
+        try:
+            result += self.strftime('%z')
+            if self.tzinfo:
+                result += self.strftime(' %%Z, tz=%s' % self.tzinfo.zone)
+        except ValueError:
+            year2000 = self.replace(year=2000)
+            result += year2000.strftime('%z')
+            if self.tzinfo:
+                result += year2000.strftime(' %%Z, tz=%s' % self.tzinfo.zone)
+
+        return '<Timestamp: %s>' % result
 
     @property
     def tz(self):
@@ -507,12 +525,16 @@ cpdef convert_to_tsobject(object ts, object tz=None):
             obj.tzinfo = ts.tzinfo
             if obj.tzinfo is not None:
                 obj.value -= _delta_to_nanoseconds(obj.tzinfo._utcoffset)
+        _check_dts_bounds(obj.value, &obj.dts)
         return obj
     elif PyDate_Check(ts):
         obj.value  = _date_to_datetime64(ts, &obj.dts)
     else:
         raise ValueError("Could not construct Timestamp from argument %s" %
                          type(ts))
+
+    if obj.value != NPY_NAT:
+        _check_dts_bounds(obj.value, &obj.dts)
 
     if tz is not None:
         if tz is pytz.utc:
@@ -529,6 +551,16 @@ cpdef convert_to_tsobject(object ts, object tz=None):
             obj.tzinfo = tz._tzinfos[inf]
 
     return obj
+
+cdef int64_t _NS_LOWER_BOUND = -9223285636854775809LL
+cdef int64_t _NS_UPPER_BOUND = -9223372036854775807LL
+
+cdef inline _check_dts_bounds(int64_t value, pandas_datetimestruct *dts):
+    cdef pandas_datetimestruct dts2
+    if dts.year <= 1677 or dts.year >= 2262:
+        pandas_datetime_to_datetimestruct(value, PANDAS_FR_ns, &dts2)
+        if dts2.year != dts.year:
+            raise ValueError('Out of bounds timestamp in year: %s' % dts.year)
 
 # elif isinstance(ts, _Timestamp):
 #     tmp = ts

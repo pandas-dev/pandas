@@ -898,6 +898,20 @@ class TestTimeSeries(unittest.TestCase):
         self.assertEqual(idx.freq, Timestamp(idx[0], idx.freq).freq)
         self.assertEqual(idx.freqstr, Timestamp(idx[0], idx.freq).freqstr)
 
+    def test_timestamp_date_out_of_range(self):
+        self.assertRaises(ValueError, Timestamp, '1676-01-01')
+        self.assertRaises(ValueError, Timestamp, '2263-01-01')
+
+    def test_timestamp_repr(self):
+        # pre-1900
+        stamp = Timestamp('1850-01-01', tz='US/Eastern')
+        repr(stamp)
+
+        iso8601 = '1850-01-01 01:23:45.012345'
+        stamp = Timestamp(iso8601, tz='US/Eastern')
+        result = repr(stamp)
+        self.assert_(iso8601 in result)
+
     def test_datetimeindex_integers_shift(self):
         rng = date_range('1/1/2000', periods=20)
 
@@ -917,7 +931,6 @@ class TestTimeSeries(unittest.TestCase):
         exp_values = list(rng)
 
         self.assert_(np.array_equal(casted, exp_values))
-
 
     def test_catch_infinite_loop(self):
         offset = datetools.DateOffset(minute=5)
