@@ -91,6 +91,20 @@ You may pass ``logy`` to get a log-scale Y axis.
    @savefig series_plot_logy.png width=4.5in
    ts.plot(logy=True)
 
+Plotting on a Secondary Y-axis
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To plot data on a secondary y-axis, use the ``secondary_y`` keyword:
+
+.. ipython:: python
+
+   plt.figure()
+
+   df.A.plot()
+
+   @savefig series_plot_secondary_y.png width=4.5in
+   df.B.plot(secondary_y=True, style='g')
+
 
 Targeting different subplots
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -106,6 +120,7 @@ You can pass an ``ax`` argument to ``Series.plot`` to plot on a particular axis:
 
    @savefig series_plot_multi.png width=4.5in
    df['D'].plot(ax=axes[1,1]); axes[1,1].set_title('D')
+
 
 Other plotting features
 -----------------------
