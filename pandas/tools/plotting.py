@@ -1316,7 +1316,7 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
     sharex : bool
       If True, the X axis will be shared amongst all subplots.
 
-    sharex : bool
+    sharey : bool
       If True, the Y axis will be shared amongst all subplots.
 
     squeeze : bool
