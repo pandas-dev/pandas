@@ -4604,7 +4604,7 @@ def extract_index(data):
             elif isinstance(v, dict):
                 have_dicts = True
                 indexes.append(v.keys())
-            elif isinstance(v, (list, np.ndarray)):
+            elif isinstance(v, (list, tuple, np.ndarray)):
                 have_raw_arrays = True
                 raw_lengths.append(len(v))
 

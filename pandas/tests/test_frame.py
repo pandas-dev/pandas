@@ -1579,6 +1579,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         dm = DataFrame([[1,2],['a','b']], index=[1,2], columns=[1,2])
         self.assert_(isinstance(dm[1][1], int))
 
+    def test_constructor_dict_of_tuples(self):
+        # GH #1491
+        data = {'a': (1, 2, 3), 'b': (4, 5, 6)}
+
+        result = DataFrame(data)
+        expected = DataFrame(dict((k, list(v)) for k, v in data.iteritems()))
+        assert_frame_equal(result, expected)
+
     def test_constructor_ndarray(self):
         mat = np.zeros((2, 3), dtype=float)
 
