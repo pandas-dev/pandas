@@ -26,40 +26,11 @@ import pandas.core.common as com
 import warnings
 
 #----------------------------------------------------------------------
-# Generic documentation
-
-_doc_parameters = dict(
-figsize="""figsize : {None, tuple}
-        Size of the figure, as a tuple (width, height) in inches.
-        If None, defaults to rc figure.figsize.""",
-dpi="""dpi : {None, int}, optional
-        Resolution in dots per inches.
-        If None, defaults to rc figure.dpi.""",
-facecolor="""facecolor : {None, string}, optional
-        Background color.
-        If None, defaults to rc figure.facecolor.""",
-edgecolor="""edgecolor : {None, string}, optional
-        Border color.
-        If None, defaults to rc figure.edgecolor.""",
-linewidth="""linewidth : {float, None}
-        Width of the patch edge line.""",
-frameon="""frameon : {True, False}
-        Whether to draw the frame around the figure.""",
-subplotpars="""subplotpars : {None, var}
-        A :class:`SubplotParams` instance, defaults to rc""",
-mandatoryplotargs="""args : var
-        Mandatory arguments for the creation of the subplot.
-        These arguments should be given as ``nb_of_rows``, ``nb_of_columns``,
-        ``plot_number``, or as a single 3-digit number if the 3 previous numbers
-        are all lower than 10.""" )
-
-
-#----------------------------------------------------------------------
 # Plotting functions and monkey patches
 
-def tsplot(series, plotf, *args, **kwargs):
+def tsplot(series, plotf, **kwargs):
     """
-    Plots a Series on the given Matplotlib axes object
+    Plots a Series on the given Matplotlib axes or the current axes
 
     Parameters
     ----------
@@ -68,7 +39,7 @@ def tsplot(series, plotf, *args, **kwargs):
 
     Notes
     _____
-    Supports same args and kwargs as Axes.plot
+    Supports same kwargs as Axes.plot
 
     """
     # Used inferred freq is possible, need a test case for inferred
@@ -86,15 +57,6 @@ def tsplot(series, plotf, *args, **kwargs):
     if isinstance(series.index, DatetimeIndex):
         series = series.to_period(freq=freq)
 
-    if not isinstance(series.index, PeriodIndex):
-        #try to get it to DatetimeIndex then to period
-        if series.index.inferred_type == 'datetime':
-            idx = DatetimeIndex(series.index).to_period(freq=freq)
-            series = Series(series.values, idx, name=series.name)
-        else:
-            raise TypeError('series argument to tsplot must have '
-                            'DatetimeIndex or PeriodIndex')
-
     if freq != series.index.freq:
         series = series.asfreq(freq)
 
@@ -103,6 +65,7 @@ def tsplot(series, plotf, *args, **kwargs):
     if 'ax' in kwargs:
         ax = kwargs.pop('ax')
     else:
+        import matplotlib.pyplot as plt
         ax = plt.gca()
 
     # Specialized ts plotting attributes for Axes
@@ -119,29 +82,22 @@ def tsplot(series, plotf, *args, **kwargs):
     if mask.any():
         masked_array = np.ma.array(series.values)
         masked_array = np.ma.masked_where(mask, masked_array)
-        args = _check_plot_params(masked_array, series.index, freq, style,
-                                  *args)
+        args = [series.index, masked_array]
     else:
-        args = _check_plot_params(series, series.index, freq, style, *args)
+        args = [series.index, series]
 
-    plotted = plotf(ax, *args,  **kwargs)
+    if style is not None:
+        args.append(style)
+
+    plotf(ax, *args,  **kwargs)
 
     format_dateaxis(ax, ax.freq)
-
-    # when adding a right axis (using add_yaxis), for some reason the
-    # x axis limits don't get properly set. This gets around the problem
-    xlim = ax.get_xlim()
-    if xlim[0] == 0.0 and xlim[1] == 1.0:
-        # if xlim still at default values, autoscale the axis
-        ax.autoscale_view()
 
     left = series.index[0] #get_datevalue(series.index[0], freq)
     right = series.index[-1] #get_datevalue(series.index[-1], freq)
     ax.set_xlim(left, right)
 
-    return plotted
-
-tsplot.__doc__ %= _doc_parameters
+    return ax
 
 def get_datevalue(date, freq):
     if isinstance(date, Period):
@@ -154,112 +110,6 @@ def get_datevalue(date, freq):
     elif date is None:
         return None
     raise ValueError("Unrecognizable date '%s'" % date)
-
-
-# Check and format plotting parameters
-
-def _check_plot_params(series, xdata, freq, style, *args):
-    """
-    Defines the plot coordinates (and basic plotting arguments).
-    """
-    remaining = list(args)
-    noinfo_msg = "No date information available!"
-
-    # No args ? Use defaults, if any
-    if len(args) == 0:
-        if xdata is None:
-            raise ValueError(noinfo_msg)
-        if style is not None:
-            return (xdata, series, style)
-        else:
-            return (xdata, series)
-
-    output = []
-    while len(remaining) > 0:
-        a = remaining.pop(0)
-        output.extend(_handle_param(a, remaining, series, xdata, freq))
-
-    # Reinitialize the plot if needed ...........
-    if xdata is None:
-        xdata = output[0]
-
-    # Force the xdata to the current frequency
-    elif output[0].freq != freq:
-        output = list(output)
-        output[0] = output[0].asfreq(freq)
-
-    return output
-
-def _handle_param(curr, remaining, series, xdata, freq):
-    # The argument is a format: use default dates/
-    noinfo_msg = "No date information available!"
-    if isinstance(curr, str):
-        if xdata is None:
-            raise ValueError(noinfo_msg)
-        else:
-            return [xdata, series, curr]
-
-    # The argument is a Series: use its dates for x
-    elif isinstance(curr, Series):
-        (x, y) = (curr.index, curr.values)
-        if len(remaining) > 0 and isinstance(remaining[0], str):
-            b = remaining.pop(0)
-            return [x, y, b]
-        else:
-            return [x, y]
-
-    # The argument is a PeriodIndex............
-    elif isinstance(curr, PeriodIndex):
-        return _handle_period_index(curr, remaining, series, xdata, freq)
-
-    # Otherwise..............................
-    elif len(remaining) > 0 and isinstance(remaining[0], str):
-        b = remaining.pop(0)
-        if xdata is None:
-            raise ValueError(noinfo_msg)
-        else:
-            return [xdata, curr, b]
-    elif xdata is None:
-        raise ValueError(noinfo_msg)
-    else:
-        return [xdata, curr]
-
-def _handle_period_index(curr, remaining, series, xdata, freq):
-    # Force to current freq
-    noinfo_msg = "No date information available!"
-    if freq is not None:
-        if curr.freq != freq:
-            curr = curr.asfreq(freq)
-
-    # There's an argument after
-    if len(remaining) > 0:
-        #...and it's a format string
-        if isinstance(remaining[0], str):
-            b = remaining.pop(0)
-            if series is None:
-                raise ValueError(noinfo_msg)
-            else:
-                return [curr, series, b]
-
-        #... and it's another date: use the default
-        elif isinstance(remaining[0], PeriodIndex):
-            if series is None:
-                raise ValueError(noinfo_msg)
-            else:
-                return [curr, series]
-
-        #... and it must be some data
-        else:
-            b = remaining.pop(0)
-            if len(remaining) > 0:
-                if isinstance(remaining[0], str):
-                    c = remaining.pop(0)
-                    return [curr, b, c]
-                else:
-                    return [curr, b]
-    else:
-        if series is None:
-            raise ValueError(noinfo_msg)
 
 ##### -------------------------------------------------------------------------
 #---- --- Locators ---
@@ -302,7 +152,6 @@ def period_break(dates, period):
     previous = getattr(dates - 1, period)
     return (current - previous).nonzero()[0]
 
-
 def has_level_label(label_flags, vmin):
     """
     Returns true if the ``label_flags`` indicate there is at least one label
@@ -318,7 +167,6 @@ def has_level_label(label_flags, vmin):
     else:
         return True
 
-
 def _daily_finder(vmin, vmax, freq):
     periodsperday = -1
 
@@ -329,7 +177,7 @@ def _daily_finder(vmin, vmax, freq):
             periodsperday = 24 * 60
         elif freq == FreqGroup.FR_HR:
             periodsperday = 24
-        else:
+        else: # pragma: no cover
             raise ValueError("unexpected frequency: %s" % freq)
         periodsperyear = 365 * periodsperday
         periodspermonth = 28 * periodsperday
@@ -346,7 +194,7 @@ def _daily_finder(vmin, vmax, freq):
     elif freq == FreqGroup.FR_UND:
         periodsperyear = 100
         periodspermonth = 10
-    else:
+    else: # pragma: no cover
         raise ValueError("unexpected frequency")
 
     # save this for later usage
@@ -377,7 +225,6 @@ def _daily_finder(vmin, vmax, freq):
 
     # Case 1. Less than a month
     if span <= periodspermonth:
-
         day_start = period_break(dates_, 'day')
         month_start = period_break(dates_, 'month')
 
@@ -528,11 +375,6 @@ def _daily_finder(vmin, vmax, freq):
 
 
 def _monthly_finder(vmin, vmax, freq):
-    if isinstance(freq, basestring):
-        freq = frequencies.get_freq(freq)
-
-    if freq != FreqGroup.FR_MTH:
-        raise ValueError("Unexpected frequency")
     periodsperyear = 12
 
     vmin_orig = vmin
@@ -603,11 +445,6 @@ def _monthly_finder(vmin, vmax, freq):
 
 
 def _quarterly_finder(vmin, vmax, freq):
-    if isinstance(freq, basestring):
-        freq = frequencies.get_freq(freq)
-
-    if frequencies.get_freq_group(freq) != FreqGroup.FR_QTR:
-        raise ValueError("Unexpected frequency")
     periodsperyear = 4
     vmin_orig = vmin
     (vmin, vmax) = (int(vmin), int(vmax))
@@ -653,10 +490,6 @@ def _quarterly_finder(vmin, vmax, freq):
     return info
 
 def _annual_finder(vmin, vmax, freq):
-    if isinstance(freq, basestring):
-        freq = frequencies.get_freq(freq)
-    if frequencies.get_freq_group(freq) != FreqGroup.FR_ANN:
-        raise ValueError("Unexpected frequency")
     (vmin, vmax) = (int(vmin), int(vmax + 1))
     span = vmax - vmin + 1
     #..............
@@ -675,7 +508,6 @@ def _annual_finder(vmin, vmax, freq):
     #..............
     return info
 
-
 def get_finder(freq):
     if isinstance(freq, basestring):
         freq = frequencies.get_freq(freq)
@@ -690,7 +522,7 @@ def get_finder(freq):
     elif ((freq >= FreqGroup.FR_BUS) or (freq == FreqGroup.FR_UND) or
           fgroup == FreqGroup.FR_WK):
         return _daily_finder
-    else:
+    else: # pragma: no cover
         errmsg = "Unsupported frequency: %s" % (freq)
         raise NotImplementedError(errmsg)
 
@@ -749,7 +581,7 @@ class TimeSeries_DateLocator(Locator):
             vmin, vmax = vmax, vmin
         if self.isdynamic:
             locs = self._get_default_locs(vmin, vmax)
-        else:
+        else: # pragma: no cover
             base = self.base
             (d, m) = divmod(vmin, base)
             vmin = (d + 1) * base
@@ -869,7 +701,6 @@ def format_dateaxis(subplot, freq):
     subplot.xaxis.set_major_formatter(majformatter)
     subplot.xaxis.set_minor_formatter(minformatter)
     pylab.draw_if_interactive()
-
 
 class DateConverter(object):
 
