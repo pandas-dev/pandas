@@ -1095,7 +1095,8 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False):
 
 
 def hist_frame(data, grid=True, xlabelsize=None, xrot=None,
-               ylabelsize=None, yrot=None, ax=None, **kwds):
+               ylabelsize=None, yrot=None, ax=None,
+               sharex=False, sharey=False, **kwds):
     """
     Draw Histogram the DataFrame's series using matplotlib / pylab.
 
@@ -1112,6 +1113,8 @@ def hist_frame(data, grid=True, xlabelsize=None, xrot=None,
     yrot : float, default None
         rotation of y axis labels
     ax : matplotlib axes object, default None
+    sharex : bool, if True, the X axis will be shared amongst all subplots.
+    sharey : bool, if True, the Y axis will be shared amongst all subplots.
     kwds : other plotting keyword arguments
         To be passed to hist function
     """
@@ -1123,7 +1126,8 @@ def hist_frame(data, grid=True, xlabelsize=None, xrot=None,
             rows += 1
         else:
             cols += 1
-    _, axes = _subplots(nrows=rows, ncols=cols, ax=ax, squeeze=False)
+    _, axes = _subplots(nrows=rows, ncols=cols, ax=ax, squeeze=False,
+                        sharex=sharex, sharey=sharey)
 
     for i, col in enumerate(com._try_sort(data.columns)):
         ax = axes[i / cols][i % cols]

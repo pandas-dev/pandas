@@ -223,6 +223,9 @@ class TestDataFramePlots(unittest.TestCase):
         df = DataFrame(np.random.randn(100, 6))
         _check_plot_works(df.hist)
 
+        #make sure sharex, sharey is handled
+        _check_plot_works(df.hist, sharex=True, sharey=True)
+
         #make sure kwargs are handled
         ser = df[0]
         xf, yf = 20, 20
