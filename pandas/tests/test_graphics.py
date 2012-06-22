@@ -194,6 +194,9 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(df.boxplot, notch=1)
         _check_plot_works(df.boxplot, by='indic', notch=1)
 
+        df = DataFrame(np.random.rand(10,2), columns=['Col1', 'Col2'] )
+        df['X'] = Series(['A','A','A','A','A','B','B','B','B','B'])
+        _check_plot_works(df.boxplot, by='X')
 
     @slow
     def test_kde(self):

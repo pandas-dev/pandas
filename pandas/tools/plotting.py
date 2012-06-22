@@ -1007,7 +1007,8 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
     def plot_group(grouped, ax):
         keys, values = zip(*grouped)
         keys = [_stringify(x) for x in keys]
-        ax.boxplot(remove_na(values), **kwds)
+        values = [remove_na(v) for v in values]
+        ax.boxplot(values, **kwds)
         if kwds.get('vert', 1):
             ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
         else:
