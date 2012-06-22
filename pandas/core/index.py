@@ -2295,7 +2295,8 @@ class MultiIndex(Index):
         new_index : MultiIndex
         """
         new_labels = [np.delete(lab, loc) for lab in self.labels]
-        return MultiIndex(levels=self.levels, labels=new_labels)
+        return MultiIndex(levels=self.levels, labels=new_labels,
+                          names=self.names)
 
     get_major_bounds = slice_locs
 
