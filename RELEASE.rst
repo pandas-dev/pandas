@@ -25,7 +25,7 @@ Where to get it
 pandas 0.8.0
 ============
 
-**Release date:** NOT YET RELEASED
+**Release date:** 6/22/2012
 
 **New features**
 
@@ -203,6 +203,7 @@ pandas 0.8.0
   - Fix unicode serialization issue in HDFStore (#1361)
   - Pass keywords to pyplot.boxplot in DataFrame.boxplot (#1493)
   - Bug fixes in MonthBegin (#1483)
+  - Preserve MultiIndex names in drop (#1513)
 
 pandas 0.7.3
 ============
