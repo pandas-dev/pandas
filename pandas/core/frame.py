@@ -4226,9 +4226,9 @@ class DataFrame(NDFrame):
         if result.dtype == np.object_:
             try:
                 if filter_type is None or filter_type == 'numeric':
-                    result = result.astype('f8')
-                elif filter_type == 'bool':
-                    result = result.astype('b')
+                    result = result.astype(np.float64)
+                elif filter_type == 'bool' and notnull(result).all():
+                    result = result.astype(np.bool_)
                 else:
                     raise ValueError('Invalid dtype %s ' % str(filter_type))
 

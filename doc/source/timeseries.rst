@@ -297,7 +297,7 @@ We could have done the same thing with ``DateOffset``:
 
 .. ipython:: python
 
-   from pandas.core.datetools import *
+   from pandas.tseries.offsets import *
    d + DateOffset(months=4, days=5)
 
 The key features of a ``DateOffset`` object are:

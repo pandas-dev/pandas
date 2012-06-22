@@ -405,7 +405,7 @@ class Index(np.ndarray):
     def asof_locs(self, where, mask):
         """
         where : array of timestamps
-        mask : array of booleans where data is NA
+        mask : array of booleans where data is not NA
 
         """
         locs = self.values[mask].searchsorted(where.values, side='right')
