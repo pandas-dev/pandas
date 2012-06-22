@@ -7,7 +7,7 @@ import numpy as np
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 from pandas.core.index import Index, MultiIndex
-from pandas.core.series import Series
+from pandas.core.series import Series, remove_na
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.frequencies import get_period_alias, get_base_alias
@@ -1007,7 +1007,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
     def plot_group(grouped, ax):
         keys, values = zip(*grouped)
         keys = [_stringify(x) for x in keys]
-        ax.boxplot(values, **kwds)
+        ax.boxplot(remove_na(values), **kwds)
         if kwds.get('vert', 1):
             ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
         else:
@@ -1043,7 +1043,8 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
 
         # Return boxplot dict in single plot case
 
-        bp = ax.boxplot(list(data[cols].values.T), **kwds)
+        clean_values = [remove_na(x) for x in data[cols].values.T]
+        bp = ax.boxplot(clean_values, **kwds)
         if kwds.get('vert', 1):
             ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
         else:
