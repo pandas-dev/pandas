@@ -389,6 +389,9 @@ class DataFrame(NDFrame):
                                          copy=copy)
         elif isinstance(data, list):
             if len(data) > 0:
+                if index is None and isinstance(data[0], Series):
+                    index = _get_names_from_index(data)
+
                 if isinstance(data[0], (list, tuple, dict, Series)):
                     conv_data, columns = _to_sdict(data, columns)
                     if isinstance(conv_data, dict):
@@ -4758,6 +4761,22 @@ def _convert_object_array(content, columns, coerce_float=False):
                  for c, vals in zip(columns, content))
     return sdict, columns
 
+def _get_names_from_index(data):
+    index = range(len(data))
+    has_some_name = any([s.name is not None for s in data])
+    if not has_some_name:
+        return index
+
+    count = 0
+    for i, s in enumerate(data):
+        n = s.name
+        if n is not None:
+            index[i] = n
+        else:
+            index[i] = 'Unnamed %d' % count
+            count += 1
+
+    return index
 
 def _homogenize(data, index, columns, dtype=None):
     from pandas.core.series import _sanitize_array

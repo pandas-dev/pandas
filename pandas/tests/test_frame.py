@@ -1871,6 +1871,28 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(result, expected)
 
     def test_constructor_list_of_series(self):
+        data = [{'a': 1.5, 'b': 3.0, 'c':4.0},
+                {'a': 1.5, 'b': 3.0, 'c':6.0}]
+        sdict = dict(zip(['x', 'y'], data))
+        idx = Index(['a', 'b', 'c'])
+
+        # all named
+        data2 = [Series([1.5, 3, 4], idx, dtype='O', name='x'),
+                 Series([1.5, 3, 6], idx, name='y')]
+        result = DataFrame(data2)
+        expected = DataFrame.from_dict(sdict, orient='index')
+        assert_frame_equal(result, expected)
+
+        # some unnamed
+        data2 = [Series([1.5, 3, 4], idx, dtype='O', name='x'),
+                 Series([1.5, 3, 6], idx)]
+        result = DataFrame(data2)
+
+        sdict = dict(zip(['x', 'Unnamed 0'], data))
+        expected = DataFrame.from_dict(sdict, orient='index')
+        assert_frame_equal(result.sort_index(), expected)
+
+        # none named
         data = [{'a': 1.5, 'b': 3, 'c':4, 'd':6},
                 {'a': 1.5, 'b': 3, 'd':6},
                 {'a': 1.5, 'd':6},
