@@ -1029,9 +1029,9 @@ def _convert_types(values, na_values):
         return values, na_count
 
     try:
-        result = lib.maybe_convert_numeric(values, na_values)
+        result = lib.maybe_convert_numeric(values, na_values, False)
     except Exception:
-        na_count = lib.sanitize_objects(values, na_values)
+        na_count = lib.sanitize_objects(values, na_values, False)
         result = values
 
     if result.dtype == np.object_:
