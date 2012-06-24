@@ -485,13 +485,16 @@ class MPLPlot(object):
 
     _need_to_set_index = False
 
-    def _get_xticks(self):
+    def _get_xticks(self, convert_period=False):
         index = self.data.index
         is_datetype = index.inferred_type in ('datetime', 'date',
                                               'datetime64')
 
         if self.use_index:
-            if index.is_numeric() or is_datetype:
+            if convert_period and isinstance(index, PeriodIndex):
+                index = index.to_timestamp()
+                x = index._mpl_repr()
+            elif index.is_numeric() or is_datetype:
                 """
                 Matplotlib supports numeric values or datetime objects as
                 xaxis values. Taking LBYL approach here, by the time
@@ -594,19 +597,14 @@ class LinePlot(MPLPlot):
     def __init__(self, data, **kwargs):
         MPLPlot.__init__(self, data, **kwargs)
 
-    @property
-    def has_ts_index(self):
-        # TODO refactor this whole regular/irregular kludge
+    def _index_freq(self):
         from pandas.core.frame import DataFrame
         if isinstance(self.data, (Series, DataFrame)):
-            ax, _ = self._get_ax_and_style(0)
             freq = (getattr(self.data.index, 'freq', None)
-                    or getattr(self.data.index, 'inferred_freq', None)
-                    or getattr(ax, 'freq', None))
-            return (freq is not None) and  self._has_dynamic_index_freq(freq)
-        return False
+                    or getattr(self.data.index, 'inferred_freq', None))
+            return freq
 
-    def _has_dynamic_index_freq(self, freq):
+    def _is_dynamic_freq(self, freq):
         if isinstance(freq, DateOffset):
             freq = freq.rule_code
         else:
@@ -614,13 +612,26 @@ class LinePlot(MPLPlot):
         freq = get_period_alias(freq)
         return freq is not None
 
+    def _use_dynamic_x(self):
+        freq = self._index_freq()
+
+        ax, _ = self._get_ax_and_style(0)
+        ax_freq = getattr(ax, 'freq', None)
+        if freq is None: # convert irregular if axes has freq info
+            freq = ax_freq
+        else: # do not use tsplot if irregular was plotted first
+            if (ax_freq is None) and (len(ax.get_lines()) > 0):
+                return False
+
+        return (freq is not None) and self._is_dynamic_freq(freq)
+
     def _make_plot(self):
         # this is slightly deceptive
-        if self.use_index and self.has_ts_index:
+        if self.use_index and self._use_dynamic_x():
             data = self._maybe_convert_index(self.data)
             self._make_ts_plot(data)
         else:
-            x = self._get_xticks()
+            x = self._get_xticks(convert_period=True)
 
             plotf = self._get_plot_function()
 
@@ -649,6 +660,8 @@ class LinePlot(MPLPlot):
         if (isinstance(data.index, DatetimeIndex) and
             isinstance(data, DataFrame)):
             freq = getattr(data.index, 'freqstr', None)
+            if isinstance(freq, DateOffset):
+                freq = freq.rule_code
 
             freq = get_period_alias(freq)
 
@@ -658,9 +671,6 @@ class LinePlot(MPLPlot):
             if freq is None:
                 ax, _ = self._get_ax_and_style(0)
                 freq = getattr(ax, 'freq', None)
-
-            if isinstance(freq, DateOffset):
-                freq = freq.rule_code
 
             data = DataFrame(data.values,
                              index=data.index.to_period(freq=freq),
@@ -699,7 +709,7 @@ class LinePlot(MPLPlot):
             else:
                 self.axes[0].legend(loc='best')
 
-        condition = (not self.has_ts_index
+        condition = (not self._use_dynamic_x
                      and df.index.is_all_dates
                      and not self.subplots
                      or (self.subplots and self.sharex))

@@ -6,6 +6,7 @@ import nose
 
 import numpy as np
 from numpy.testing.decorators import slow
+from numpy.testing import assert_array_equal
 
 from pandas import Index, Series, DataFrame, isnull, notnull
 
@@ -52,17 +53,22 @@ class TestTSPlot(unittest.TestCase):
     def test_tsplot(self):
         from pandas.tseries.plotting import tsplot
         import matplotlib.pyplot as plt
+        plt.close('all')
+
         ax = plt.gca()
         ts = tm.makeTimeSeries()
         plot_ax = tsplot(ts, plt.Axes.plot)
         self.assert_(plot_ax == ax)
 
         f = lambda *args, **kwds: tsplot(s, plt.Axes.plot, *args, **kwds)
+        plt.close('all')
 
         for s in self.period_ser:
             _check_plot_works(f, s.index.freq, ax=ax, series=s)
+            plt.close('all')
         for s in self.datetime_ser:
             _check_plot_works(f, s.index.freq.rule_code, ax=ax, series=s)
+            plt.close('all')
 
         plt.close('all')
         ax = ts.plot(style='k')
@@ -442,7 +448,7 @@ class TestTSPlot(unittest.TestCase):
         self.assert_(axes[2].get_yaxis().get_ticks_position() == 'right')
 
     @slow
-    def test_mixed_freq(self):
+    def test_mixed_freq_regular_first(self):
         import matplotlib.pyplot as plt
         plt.close('all')
         s1 = tm.makeTimeSeries()
@@ -458,6 +464,58 @@ class TestTSPlot(unittest.TestCase):
         pidx = s1.index.to_period()
         self.assert_(left == pidx[0].ordinal)
         self.assert_(right == pidx[-1].ordinal)
+        plt.close('all')
+
+    @slow
+    def test_mixed_freq_irregular_first(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        s1 = tm.makeTimeSeries()
+        s2 = s1[[0, 5, 10, 11, 12, 13, 14, 15]]
+        s2.plot(style='g')
+        ax = s1.plot()
+        self.assert_(not hasattr(ax, 'freq'))
+        lines = ax.get_lines()
+        x1 = lines[0].get_xdata()
+        assert_array_equal(x1, s2.index.asobject.values)
+        x2 = lines[1].get_xdata()
+        assert_array_equal(x2, s1.index.asobject.values)
+        plt.close('all')
+
+    @slow
+    def test_mixed_freq_hf_first(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        idxh = date_range('1/1/1999', periods=365, freq='D')
+        idxl = date_range('1/1/1999', periods=12, freq='M')
+        high = Series(np.random.randn(len(idxh)), idxh)
+        low = Series(np.random.randn(len(idxl)), idxl)
+        high.plot()
+        ax = low.plot()
+        for l in ax.get_lines():
+            self.assert_(l.get_xdata().freq == 'D')
+
+    @slow
+    def test_mixed_freq_lf_first(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        idxh = date_range('1/1/1999', periods=365, freq='D')
+        idxl = date_range('1/1/1999', periods=12, freq='M')
+        high = Series(np.random.randn(len(idxh)), idxh)
+        low = Series(np.random.randn(len(idxl)), idxl)
+        low.plot()
+        ax = high.plot()
+        for l in ax.get_lines():
+            self.assert_(l.get_xdata().freq == 'M')
+
+    @slow
+    def test_mixed_freq_irreg_period(self):
+        ts = tm.makeTimeSeries()
+        irreg = ts[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 16, 17, 18, 29]]
+        rng = period_range('1/3/2000', periods=30, freq='B')
+        ps = Series(np.random.randn(len(rng)), rng)
+        irreg.plot()
+        ps.plot()
 
 PNG_PATH = 'tmp.png'
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
@@ -466,19 +524,22 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     fig = plt.gcf()
     plt.clf()
     ax = fig.add_subplot(211)
+    orig_ax = kwargs.pop('ax', plt.gca())
+    orig_axfreq = getattr(orig_ax, 'freq', None)
+
     ret = f(*args, **kwargs)
     assert(ret is not None)  # do something more intelligent
 
-    orig_ax = kwargs.pop('ax', plt.gca())
-    if series is not None: # non-business
+    ax = kwargs.pop('ax', plt.gca())
+    if series is not None:
         dfreq = series.index.freq
         if isinstance(dfreq, DateOffset):
             dfreq = dfreq.rule_code
-        #dfreq = frequencies.offset_to_period_alias(dfreq)
-        assert(orig_ax.freq == dfreq)
+        if orig_axfreq is None:
+            assert(ax.freq == dfreq)
 
-    if freq is not None:
-        assert(orig_ax.freq == freq)
+    if freq is not None and orig_axfreq is None:
+        assert(ax.freq == freq)
 
     ax = fig.add_subplot(212)
     try:
