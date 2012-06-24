@@ -517,6 +517,32 @@ class TestTSPlot(unittest.TestCase):
         irreg.plot()
         ps.plot()
 
+    @slow
+    def test_to_weekly_resampling(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        idxh = date_range('1/1/1999', periods=52, freq='W')
+        idxl = date_range('1/1/1999', periods=12, freq='M')
+        high = Series(np.random.randn(len(idxh)), idxh)
+        low = Series(np.random.randn(len(idxl)), idxl)
+        high.plot()
+        ax = low.plot()
+        for l in ax.get_lines():
+            self.assert_(l.get_xdata().freq.startswith('W'))
+
+    @slow
+    def test_from_weekly_resampling(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        idxh = date_range('1/1/1999', periods=52, freq='W')
+        idxl = date_range('1/1/1999', periods=12, freq='M')
+        high = Series(np.random.randn(len(idxh)), idxh)
+        low = Series(np.random.randn(len(idxl)), idxl)
+        low.plot()
+        ax = high.plot()
+        for l in ax.get_lines():
+            self.assert_(l.get_xdata().freq == 'M')
+
 PNG_PATH = 'tmp.png'
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     import matplotlib.pyplot as plt

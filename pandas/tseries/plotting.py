@@ -57,10 +57,14 @@ def tsplot(series, plotf, **kwargs):
         ax_freq = getattr(ax, 'freq', None)
         if (ax_freq is not None) and (freq != ax_freq):
             if frequencies.is_subperiod(freq, ax_freq): # downsample
-                how = kwargs.pop('how', 'first')
+                how = kwargs.pop('how', 'last')
                 series = series.resample(ax_freq, how=how)
             elif frequencies.is_superperiod(freq, ax_freq):
                 series = series.resample(ax_freq)
+            else: # one freq is weekly
+                how = kwargs.pop('how', 'last')
+                series = series.resample('D', how=how, fill_method='pad')
+                series = series.resample(ax_freq, how=how, fill_method='pad')
             freq = ax_freq
 
     # Convert DatetimeIndex to PeriodIndex
