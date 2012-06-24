@@ -241,7 +241,8 @@ def is_date_array(ndarray[object] values):
     return True
 
 
-def maybe_convert_numeric(ndarray[object] values, set na_values):
+def maybe_convert_numeric(ndarray[object] values, set na_values,
+                          convert_empty=True):
     '''
     Type inference function-- convert strings to numeric (potentially) and
     convert to proper dtype array
@@ -275,8 +276,11 @@ def maybe_convert_numeric(ndarray[object] values, set na_values):
             floats[i] = complexes[i] = nan
             seen_float = 1
         elif len(val) == 0:
-            floats[i] = complexes[i] = nan
-            seen_float = 1
+            if convert_empty:
+                floats[i] = complexes[i] = nan
+                seen_float = 1
+            else:
+                raise ValueError('Empty string encountered')
         elif util.is_complex_object(val):
             complexes[i] = val
             seen_complex = 1
@@ -573,7 +577,8 @@ def try_parse_datetime_components(ndarray[object] years, ndarray[object] months,
 
     return result
 
-def sanitize_objects(ndarray[object] values, set na_values):
+def sanitize_objects(ndarray[object] values, set na_values,
+                     convert_empty=True):
     cdef:
         Py_ssize_t i, n
         object val, onan
@@ -585,7 +590,7 @@ def sanitize_objects(ndarray[object] values, set na_values):
 
     for i from 0 <= i < n:
         val = values[i]
-        if val == '' or val in na_values:
+        if (convert_empty and val == '') or (val in na_values):
             values[i] = onan
             na_count += 1
         elif val in memo:
