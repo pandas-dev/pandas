@@ -596,10 +596,13 @@ class LinePlot(MPLPlot):
 
     @property
     def has_ts_index(self):
+        # TODO refactor this whole regular/irregular kludge
         from pandas.core.frame import DataFrame
         if isinstance(self.data, (Series, DataFrame)):
+            ax, _ = self._get_ax_and_style(0)
             freq = (getattr(self.data.index, 'freq', None)
-                    or getattr(self.data.index, 'inferred_freq', None))
+                    or getattr(self.data.index, 'inferred_freq', None)
+                    or getattr(ax, 'freq', None))
             return (freq is not None) and  self._has_dynamic_index_freq(freq)
         return False
 
@@ -649,8 +652,12 @@ class LinePlot(MPLPlot):
 
             freq = get_period_alias(freq)
 
-            if freq is None and hasattr(data.index, 'inferred_freq'):
-                freq = data.index.inferred_freq
+            if freq is None:
+                freq = getattr(data.index, 'inferred_freq', None)
+
+            if freq is None:
+                ax, _ = self._get_ax_and_style(0)
+                freq = getattr(ax, 'freq', None)
 
             if isinstance(freq, DateOffset):
                 freq = freq.rule_code
