@@ -44,8 +44,17 @@ def tsplot(series, plotf, **kwargs):
     """
     # Used inferred freq is possible, need a test case for inferred
     freq = getattr(series.index, 'freq', None)
-    if freq is None and hasattr(series.index, 'inferred_freq'):
-        freq = series.index.inferred_freq
+    if freq is None:
+        freq = getattr(series.index, 'inferred_freq', None)
+
+    if 'ax' in kwargs:
+        ax = kwargs.pop('ax')
+    else:
+        import matplotlib.pyplot as plt
+        ax = plt.gca()
+
+    if freq is None:
+        freq = getattr(ax, 'freq', None)
 
     if isinstance(freq, DateOffset):
         freq = freq.rule_code
@@ -61,12 +70,6 @@ def tsplot(series, plotf, **kwargs):
         series = series.asfreq(freq)
 
     style = kwargs.pop('style', None)
-
-    if 'ax' in kwargs:
-        ax = kwargs.pop('ax')
-    else:
-        import matplotlib.pyplot as plt
-        ax = plt.gca()
 
     # Specialized ts plotting attributes for Axes
     ax.freq = freq
@@ -93,11 +96,18 @@ def tsplot(series, plotf, **kwargs):
 
     format_dateaxis(ax, ax.freq)
 
-    left = series.index[0] #get_datevalue(series.index[0], freq)
-    right = series.index[-1] #get_datevalue(series.index[-1], freq)
+    left, right = _get_xlim(ax.get_lines())
     ax.set_xlim(left, right)
 
     return ax
+
+def _get_xlim(lines):
+    left, right = np.inf, -np.inf
+    for l in lines:
+        x = l.get_xdata()
+        left = min(x[0].ordinal, left)
+        right = max(x[-1].ordinal, right)
+    return left, right
 
 def get_datevalue(date, freq):
     if isinstance(date, Period):

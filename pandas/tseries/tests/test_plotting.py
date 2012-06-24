@@ -234,8 +234,10 @@ class TestTSPlot(unittest.TestCase):
 
     @slow
     def test_finder_quarterly(self):
+        import matplotlib.pyplot as plt
         xp = Period('1988Q1').ordinal
         yrs = [3.5, 11]
+        plt.close('all')
         for n in yrs:
             rng = period_range('1987Q2', periods=int(n * 4), freq='Q')
             ser = Series(np.random.randn(len(rng)), rng)
@@ -250,8 +252,10 @@ class TestTSPlot(unittest.TestCase):
 
     @slow
     def test_finder_monthly(self):
+        import matplotlib.pyplot as plt
         xp = Period('1988-1').ordinal
         yrs = [1.15, 2.5, 4, 11]
+        plt.close('all')
         for n in yrs:
             rng = period_range('1987Q2', periods=int(n * 12), freq='M')
             ser = Series(np.random.randn(len(rng)), rng)
@@ -263,8 +267,12 @@ class TestTSPlot(unittest.TestCase):
             ax.set_xlim(vmin + 0.9, vmax)
             rs = xaxis.get_majorticklocs()[0]
             self.assertEqual(xp, rs)
+            plt.close('all')
 
-
+    @slow
+    def test_finder_monthly_long(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
         rng = period_range('1988Q1', periods=24*12, freq='M')
         ser = Series(np.random.randn(len(rng)), rng)
         ax = ser.plot()
@@ -432,6 +440,24 @@ class TestTSPlot(unittest.TestCase):
         self.assert_(axes[0].get_yaxis().get_ticks_position() == 'right')
         self.assert_(axes[1].get_yaxis().get_ticks_position() == 'default')
         self.assert_(axes[2].get_yaxis().get_ticks_position() == 'right')
+
+    @slow
+    def test_mixed_freq(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        s1 = tm.makeTimeSeries()
+        s2 = s1[[0, 5, 10, 11, 12, 13, 14, 15]]
+        s1.plot()
+        ax2 = s2.plot(style='g')
+        lines = ax2.get_lines()
+        idx1 = lines[0].get_xdata()
+        idx2 = lines[1].get_xdata()
+        self.assert_(idx1.equals(s1.index.to_period('B')))
+        self.assert_(idx2.equals(s2.index.to_period('B')))
+        left, right = ax2.get_xlim()
+        pidx = s1.index.to_period()
+        self.assert_(left == pidx[0].ordinal)
+        self.assert_(right == pidx[-1].ordinal)
 
 PNG_PATH = 'tmp.png'
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
