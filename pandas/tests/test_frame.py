@@ -13,6 +13,7 @@ from numpy import random, nan
 from numpy.random import randn
 import numpy as np
 import numpy.ma as ma
+from numpy.testing import assert_array_equal
 
 import pandas as pan
 import pandas.core.nanops as nanops
@@ -21,7 +22,7 @@ import pandas.core.format as fmt
 import pandas.core.datetools as datetools
 from pandas.core.api import (DataFrame, Index, Series, notnull, isnull,
                              MultiIndex, DatetimeIndex)
-from pandas.io.parsers import (ExcelFile, ExcelWriter)
+from pandas.io.parsers import (ExcelFile, ExcelWriter, read_csv)
 
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
@@ -6392,6 +6393,35 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_any_all(self):
         self._check_bool_op('any', np.any, has_skipna=True, has_bool_only=True)
         self._check_bool_op('all', np.all, has_skipna=True, has_bool_only=True)
+
+    def test_consolidate_datetime64(self):
+        # numpy vstack bug
+
+        data = """\
+starting,ending,measure
+2012-06-21 00:00,2012-06-23 07:00,77
+2012-06-23 07:00,2012-06-23 16:30,65
+2012-06-23 16:30,2012-06-25 08:00,77
+2012-06-25 08:00,2012-06-26 12:00,0
+2012-06-26 12:00,2012-06-27 08:00,77
+"""
+        df = read_csv(StringIO(data), parse_dates=[0,1])
+
+        ser_starting = df.starting
+        ser_starting.index = ser_starting.values
+        ser_starting = ser_starting.tz_localize('US/Eastern')
+        ser_starting = ser_starting.tz_convert('UTC')
+
+        ser_ending = df.ending
+        ser_ending.index = ser_ending.values
+        ser_ending = ser_ending.tz_localize('US/Eastern')
+        ser_ending = ser_ending.tz_convert('UTC')
+
+        df.starting = ser_starting.index
+        df.ending = ser_ending.index
+
+        assert_array_equal(df.starting.values, ser_starting.index.values)
+        assert_array_equal(df.ending.values, ser_ending.index.values)
 
     def _check_bool_op(self, name, alternative, frame=None, has_skipna=True,
                        has_bool_only=False):

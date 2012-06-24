@@ -1389,7 +1389,7 @@ def _consolidate(blocks, items):
 def _merge_blocks(blocks, items):
     if len(blocks) == 1:
         return blocks[0]
-    new_values = np.vstack([b.values for b in blocks])
+    new_values = _vstack([b.values for b in blocks])
     new_items = blocks[0].items.append([b.items for b in blocks[1:]])
     new_block = make_block(new_values, new_items, items,
                            do_integrity_check=True)
@@ -1422,3 +1422,11 @@ def _union_items_slow(all_items):
         else:
             seen = seen.union(items)
     return seen
+
+def _vstack(to_stack):
+    if all(x.dtype == _NS_DTYPE for x in to_stack):
+        # work around NumPy 1.6 bug
+        new_values = np.vstack([x.view('i8') for x in to_stack])
+        return new_values.view(_NS_DTYPE)
+    else:
+        return np.vstack(to_stack)
