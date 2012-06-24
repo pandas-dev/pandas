@@ -3100,6 +3100,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = DataFrame.from_csv(path, index_col=[0, 1, 2],
                                     parse_dates=False)
         assert_frame_equal(result, df)
+
+        # column aliases
+        col_aliases = Index(['AA', 'X', 'Y', 'Z'])
+        self.frame2.to_csv(path, header=True, col_aliases=col_aliases)
+        rs = DataFrame.from_csv(path)
+        xp = self.frame2.copy()
+        xp.columns = col_aliases
+
+        assert_frame_equal(xp, rs)
+
         os.remove(path)
 
     def test_to_csv_multiindex(self):
@@ -3284,6 +3294,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             np.testing.assert_equal('test1', reader.sheet_names[0])
             np.testing.assert_equal('test2', reader.sheet_names[1])
 
+            # column aliases
+            col_aliases = Index(['AA', 'X', 'Y', 'Z'])
+            self.frame2.to_excel(path, 'test1', header=True,
+                                 col_aliases=col_aliases)
+            reader = ExcelFile(path)
+            rs = reader.parse('test1')
+            xp = self.frame2.copy()
+            xp.columns = col_aliases
+            assert_frame_equal(xp, rs)
 
             os.remove(path)
 

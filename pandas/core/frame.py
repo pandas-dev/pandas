@@ -1024,7 +1024,8 @@ class DataFrame(NDFrame):
 
     to_wide = deprecate('to_wide', to_panel)
 
-    def _helper_csvexcel(self, writer, na_rep=None, cols=None, header=True,
+    def _helper_csvexcel(self, writer, na_rep=None, cols=None,
+                         col_aliases=None, header=True,
                          index=True, index_label=None):
         if cols is None:
             cols = self.columns
@@ -1053,7 +1054,15 @@ class DataFrame(NDFrame):
                     index_label = [index_label]
 
                 encoded_labels = list(index_label)
-                encoded_cols = list(cols)
+                if col_aliases is not None:
+                    if len(col_aliases) != len(cols):
+                        raise ValueError(('Writing %d cols but got %d aliases'
+                                          % (len(cols), len(col_aliases))))
+                    else:
+                        write_cols = col_aliases
+                else:
+                    write_cols = cols
+                encoded_cols = list(write_cols)
 
                 writer.writerow(encoded_labels + encoded_cols)
             else:
@@ -1078,8 +1087,8 @@ class DataFrame(NDFrame):
             writer.writerow(row_fields)
 
     def to_csv(self, path_or_buf, sep=",", na_rep='', cols=None,
-               header=True, index=True, index_label=None, mode='w',
-               nanRep=None, encoding=None):
+               col_aliases=None, header=True, index=True, index_label=None,
+               mode='w', nanRep=None, encoding=None):
         """
         Write DataFrame to a comma-separated values (csv) file
 
@@ -1091,6 +1100,8 @@ class DataFrame(NDFrame):
             Missing data representation
         cols : sequence, optional
             Columns to write
+        col_aliases : sequence, default None
+            Optional column aliases to be written instead of column names
         header : boolean, default True
             Write out column names
         index : boolean, default True
@@ -1126,14 +1137,16 @@ class DataFrame(NDFrame):
             else:
                 csvout = csv.writer(f, lineterminator='\n', delimiter=sep)
             self._helper_csvexcel(csvout, na_rep=na_rep, cols=cols,
-                                  header=header, index=index,
-                                  index_label=index_label)
+                                  col_aliases=col_aliases, header=header,
+                                  index=index, index_label=index_label)
+
         finally:
             if close:
                 f.close()
 
     def to_excel(self, excel_writer, sheet_name='sheet1', na_rep='',
-                 cols=None, header=True, index=True, index_label=None):
+                 cols=None, col_aliases=None, header=True, index=True,
+                 index_label=None):
         """
         Write DataFrame to a excel sheet
 
@@ -1173,8 +1186,8 @@ class DataFrame(NDFrame):
             need_save = True
         excel_writer.cur_sheet = sheet_name
         self._helper_csvexcel(excel_writer, na_rep=na_rep, cols=cols,
-                              header=header, index=index,
-                              index_label=index_label)
+                              col_aliases=col_aliases, header=header,
+                              index=index, index_label=index_label)
         if need_save:
             excel_writer.save()
 
