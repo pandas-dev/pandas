@@ -664,14 +664,7 @@ class TestHDFStore(unittest.TestCase):
         df = DataFrame({'a': [1,2,3], 'b': [1.,2.,3.], 'c': ['a', 'b', 'c']})
         ts = tm.makeTimeSeries()
         df['d'] = ts.index[:3]
-        store = HDFStore('data.h5')
-        store['df'] = df
-        store.close()
-        store = HDFStore('data.h5')
-        test = store['df']
-        assert_series_equal(df.dtypes, test.dtypes)
-        store.close()
-        os.remove('data.h5')
+        self._check_roundtrip(df, tm.assert_frame_equal)
 
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))
