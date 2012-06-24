@@ -660,6 +660,18 @@ class TestHDFStore(unittest.TestCase):
         s = Series(np.random.randn(len(unicode_values)), unicode_values)
         self._check_roundtrip(s, tm.assert_series_equal)
 
+    def test_store_datetime_mixed(self):
+        df = DataFrame({'a': [1,2,3], 'b': [1.,2.,3.], 'c': ['a', 'b', 'c']})
+        ts = tm.makeTimeSeries()
+        df['d'] = ts.index[:3]
+        store = HDFStore('data.h5')
+        store['df'] = df
+        store.close()
+        store = HDFStore('data.h5')
+        test = store['df']
+        assert_series_equal(df.dtypes, test.dtypes)
+        store.close()
+        os.remove('data.h5')
 
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))

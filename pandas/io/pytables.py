@@ -716,7 +716,7 @@ class HDFStore(object):
             vlarr.append(value)
         elif value.dtype.type == np.datetime64:
             self.handle.createArray(group, key, value.view('i8'))
-            group._v_attrs.value_type = 'datetime64'
+            getattr(group, key)._v_attrs.value_type = 'datetime64'
         else:
             self.handle.createArray(group, key, value)
 
@@ -958,7 +958,7 @@ def _read_array(group, key):
     if isinstance(node, tables.VLArray):
         return data[0]
     else:
-        dtype = getattr(group._v_attrs, 'value_type', None)
+        dtype = getattr(node._v_attrs, 'value_type', None)
         if dtype == 'datetime64':
             return np.array(data, dtype='M8[ns]')
         return data
