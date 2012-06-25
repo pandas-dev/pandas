@@ -25,7 +25,7 @@ Where to get it
 pandas 0.8.0
 ============
 
-**Release date:** 6/22/2012
+**Release date:** 6/26/2012
 
 **New features**
 
@@ -131,6 +131,7 @@ pandas 0.8.0
   - Add ``retries`` argument to ``get_data_yahoo`` to try to prevent Yahoo! API
     404s (#826)
   - Improve performance of reshaping by using O(N) categorical sorting
+  - Series names will be used for index of DataFrame if no index passed (#1494)
 
 **API Changes**
 
