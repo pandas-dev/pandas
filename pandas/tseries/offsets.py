@@ -280,7 +280,6 @@ class BusinessDay(CacheableOffset, DateOffset):
         return fstr
 
     def _offset_str(self):
-
         def get_str(td):
             off_str = ''
             if td.days > 0:
@@ -302,10 +301,10 @@ class BusinessDay(CacheableOffset, DateOffset):
             return off_str
 
         if isinstance(self.offset, timedelta):
-            tot_sec = self.offset.total_seconds()
-            if tot_sec > 0:
+            zero = timedelta(0, 0, 0)
+            if self.offset >= zero:
                 off_str = '+' + get_str(self.offset)
-            if tot_sec < 0:
+            else:
                 off_str = '-' + get_str(-self.offset)
             return off_str
         else:
