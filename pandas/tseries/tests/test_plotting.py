@@ -50,6 +50,22 @@ class TestTSPlot(unittest.TestCase):
                                     for x in idx]
 
     @slow
+    def test_frame_inferred(self):
+        # inferred freq
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        idx = date_range('1/1/1987', freq='MS', periods=100)
+        idx = DatetimeIndex(idx.values, freq=None)
+        df = DataFrame(np.random.randn(len(idx), 3), index=idx)
+        df.plot()
+
+        # axes freq
+        idx = idx[0:40] + idx[45:99]
+        df2 = DataFrame(np.random.randn(len(idx), 3), index=idx)
+        df2.plot()
+        plt.close('all')
+
+    @slow
     def test_tsplot(self):
         from pandas.tseries.plotting import tsplot
         import matplotlib.pyplot as plt
