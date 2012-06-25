@@ -42,7 +42,7 @@ class TestTSPlot(unittest.TestCase):
                                     columns=['A', 'B', 'C'])
                                     for x in idx]
 
-        freq = ['S', 'T', 'H', 'D', 'W', 'M', 'Q-DEC', 'A']
+        freq = ['S', 'T', 'H', 'D', 'W', 'M', 'Q-DEC', 'A', '1B30Min']
         idx = [date_range('12/31/1999', freq=x, periods=100) for x in freq]
         self.datetime_ser = [Series(np.random.randn(len(x)), x) for x in idx]
         self.datetime_df = [DataFrame(np.random.randn(len(x), 3), index=x,

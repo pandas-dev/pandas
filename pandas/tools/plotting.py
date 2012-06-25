@@ -659,7 +659,7 @@ class LinePlot(MPLPlot):
         from pandas.core.frame import DataFrame
         if (isinstance(data.index, DatetimeIndex) and
             isinstance(data, DataFrame)):
-            freq = getattr(data.index, 'freqstr', None)
+            freq = getattr(data.index, 'freq', None)
 
             if freq is None:
                 freq = getattr(data.index, 'inferred_freq', None)
