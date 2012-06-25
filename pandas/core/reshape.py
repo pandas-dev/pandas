@@ -12,6 +12,7 @@ from pandas.core.categorical import Categorical
 from pandas.core.common import notnull, _ensure_platform_int
 from pandas.core.groupby import (get_group_index, _compress_group_index,
                                  decons_group_index)
+import pandas.core.common as com
 import pandas.lib as lib
 
 
@@ -558,6 +559,56 @@ def melt(frame, id_vars=None, value_vars=None):
     mdata['value'] = frame.values.ravel('F')
     mdata['variable'] = np.asarray(frame.columns).repeat(N)
     return DataFrame(mdata, columns=mcolumns)
+
+
+def lreshape(data, groups, dropna=True, label=None):
+    """
+    Reshape long-format data to wide. Generalized inverse of DataFrame.pivot
+
+    Parameters
+    ----------
+    data :
+    groups : dict
+    na_action :
+
+    Returns
+    -------
+    reshaped : DataFrame
+    """
+    if isinstance(groups, dict):
+        keys = groups.keys()
+        values = groups.values()
+    else:
+        keys, values = zip(*groups)
+
+    all_cols = list(set.union(*[set(x) for x in values]))
+    id_cols = list(data.columns.diff(all_cols))
+
+    K = len(values[0])
+
+    for seq in values:
+        if len(seq) != K:
+            raise ValueError('All column lists must be same length')
+
+    mdata = {}
+    pivot_cols = []
+
+    for target, names in zip(keys, values):
+        mdata[target] = com._concat_compat([data[col].values for col in names])
+        pivot_cols.append(target)
+
+    for col in id_cols:
+        mdata[col] = np.tile(data[col].values, K)
+
+    if dropna:
+        mask = np.ones(len(mdata[pivot_cols[0]]), dtype=bool)
+        for c in pivot_cols:
+            mask &= notnull(mdata[c])
+        if not mask.all():
+            mdata = dict((k, v[mask]) for k, v in mdata.iteritems())
+
+    return DataFrame(mdata, columns=id_cols + pivot_cols)
+
 
 def convert_dummies(data, cat_variables, prefix_sep='_'):
     """

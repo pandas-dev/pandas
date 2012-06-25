@@ -914,3 +914,15 @@ else:
             self.stream.write(data)
             # empty queue
             self.queue.truncate(0)
+
+
+_NS_DTYPE = np.dtype('M8[ns]')
+
+def _concat_compat(to_concat):
+    if all(x.dtype == _NS_DTYPE for x in to_concat):
+        # work around NumPy 1.6 bug
+        new_values = np.concatenate([x.view(np.int64) for x in to_concat])
+        return new_values.view(_NS_DTYPE)
+    else:
+        return np.concatenate(to_concat)
+
