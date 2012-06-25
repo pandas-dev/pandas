@@ -484,7 +484,7 @@ class DatetimeIndex(Int64Index):
         to_concat = [x.values if isinstance(x, Index) else x
                      for x in to_concat]
 
-        return Index(_concat(to_concat), name=name)
+        return Index(com._concat_compat(to_concat), name=name)
 
     def get_duplicates(self):
         values = Index.get_duplicates(self)
@@ -775,7 +775,7 @@ class DatetimeIndex(Int64Index):
             if left_end < right_end:
                 loc = right.searchsorted(left_end, side='right')
                 right_chunk = right.values[loc:]
-                dates = _concat((left.values, right_chunk))
+                dates = com._concat_compat((left.values, right_chunk))
                 return self._view_like(dates)
             else:
                 return left
@@ -1370,12 +1370,4 @@ def _time_to_micros(time):
     seconds = time.hour * 60 * 60 + 60 * time.minute + time.second
     return 1000000 * seconds + time.microsecond
 
-
-def _concat(to_concat):
-    if all(x.dtype == _NS_DTYPE for x in to_concat):
-        # work around NumPy 1.6 bug
-        new_values = np.concatenate([x.view('i8') for x in to_concat])
-        return new_values.view(_NS_DTYPE)
-    else:
-        return np.concatenate(to_concat)
 

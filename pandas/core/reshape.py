@@ -567,9 +567,25 @@ def lreshape(data, groups, dropna=True, label=None):
 
     Parameters
     ----------
-    data :
+    data : DataFrame
     groups : dict
-    na_action :
+        {new_name : list_of_columns}
+    dropna : boolean, default True
+
+    Examples
+    --------
+    >>> data
+       hr1  hr2     team  year1  year2
+    0  514  545  Red Sox   2007   2008
+    1  573  526  Yankees   2007   2008
+
+    >>> pd.lreshape(data, {'year': ['year1', 'year2'],
+                           'hr': ['hr1', 'hr2']})
+          team   hr  year
+    0  Red Sox  514  2007
+    1  Yankees  573  2007
+    2  Red Sox  545  2008
+    3  Yankees  526  2008
 
     Returns
     -------

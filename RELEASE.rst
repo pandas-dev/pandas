@@ -89,6 +89,7 @@ pandas 0.8.0
   - Add support for Categorical use in GroupBy (#292)
   - Add ``any`` and ``all`` methods to DataFrame (#1416)
   - Add ``secondary_y`` option to Series.plot
+  - Add experimental ``lreshape`` function for reshaping wide to long
 
 **Improvements to existing features**
 
