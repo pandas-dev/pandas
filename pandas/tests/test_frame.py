@@ -3103,12 +3103,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # column aliases
         col_aliases = Index(['AA', 'X', 'Y', 'Z'])
-        self.frame2.to_csv(path, header=True, col_aliases=col_aliases)
+        self.frame2.to_csv(path, header=col_aliases)
         rs = DataFrame.from_csv(path)
         xp = self.frame2.copy()
         xp.columns = col_aliases
 
         assert_frame_equal(xp, rs)
+
+        self.assertRaises(ValueError, self.frame2.to_csv, path,
+                          header=['AA', 'X'])
 
         os.remove(path)
 
@@ -3296,10 +3299,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
             # column aliases
             col_aliases = Index(['AA', 'X', 'Y', 'Z'])
-            self.frame2.to_excel(path, 'test1', header=True,
-                                 col_aliases=col_aliases)
+            self.frame2.to_excel(path, 'test1', header=col_aliases)
             reader = ExcelFile(path)
-            rs = reader.parse('test1')
+            rs = reader.parse('test1', index_col=0)
             xp = self.frame2.copy()
             xp.columns = col_aliases
             assert_frame_equal(xp, rs)
