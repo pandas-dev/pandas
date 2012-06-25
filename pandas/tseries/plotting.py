@@ -43,30 +43,35 @@ def tsplot(series, plotf, **kwargs):
 
     """
     # Used inferred freq is possible, need a test case for inferred
-    freq = getattr(series.index, 'freq', None)
-    if freq is None and hasattr(series.index, 'inferred_freq'):
-        freq = series.index.inferred_freq
-
-    if isinstance(freq, DateOffset):
-        freq = freq.rule_code
-    else:
-        freq = frequencies.get_base_alias(freq)
-
-    freq = frequencies.get_period_alias(freq)
-    # Convert DatetimeIndex to PeriodIndex
-    if isinstance(series.index, DatetimeIndex):
-        series = series.to_period(freq=freq)
-
-    if freq != series.index.freq:
-        series = series.asfreq(freq)
-
-    style = kwargs.pop('style', None)
-
     if 'ax' in kwargs:
         ax = kwargs.pop('ax')
     else:
         import matplotlib.pyplot as plt
         ax = plt.gca()
+
+    freq = _get_freq(ax, series)
+    # resample against axes freq if necessary
+    if freq is None: # pragma: no cover
+        raise ValueError('Cannot use dynamic axis without frequency info')
+    else:
+        ax_freq = getattr(ax, 'freq', None)
+        if (ax_freq is not None) and (freq != ax_freq):
+            if frequencies.is_subperiod(freq, ax_freq): # downsample
+                how = kwargs.pop('how', 'last')
+                series = series.resample(ax_freq, how=how)
+            elif frequencies.is_superperiod(freq, ax_freq):
+                series = series.resample(ax_freq)
+            else: # one freq is weekly
+                how = kwargs.pop('how', 'last')
+                series = series.resample('D', how=how, fill_method='pad')
+                series = series.resample(ax_freq, how=how, fill_method='pad')
+            freq = ax_freq
+
+    # Convert DatetimeIndex to PeriodIndex
+    if isinstance(series.index, DatetimeIndex):
+        series = series.to_period(freq=freq)
+
+    style = kwargs.pop('style', None)
 
     # Specialized ts plotting attributes for Axes
     ax.freq = freq
@@ -78,13 +83,7 @@ def tsplot(series, plotf, **kwargs):
     ax.date_axis_info = None
 
     # format args and lot
-    mask = isnull(series)
-    if mask.any():
-        masked_array = np.ma.array(series.values)
-        masked_array = np.ma.masked_where(mask, masked_array)
-        args = [series.index, masked_array]
-    else:
-        args = [series.index, series]
+    args = _maybe_mask(series)
 
     if style is not None:
         args.append(style)
@@ -93,11 +92,50 @@ def tsplot(series, plotf, **kwargs):
 
     format_dateaxis(ax, ax.freq)
 
-    left = series.index[0] #get_datevalue(series.index[0], freq)
-    right = series.index[-1] #get_datevalue(series.index[-1], freq)
+    left, right = _get_xlim(ax.get_lines())
     ax.set_xlim(left, right)
 
     return ax
+
+def _maybe_mask(series):
+    mask = isnull(series)
+    if mask.any():
+        masked_array = np.ma.array(series.values)
+        masked_array = np.ma.masked_where(mask, masked_array)
+        args = [series.index, masked_array]
+    else:
+        args = [series.index, series]
+    return args
+
+def _get_freq(ax, series):
+    # get frequency from data
+    freq = getattr(series.index, 'freq', None)
+    if freq is None:
+        freq = getattr(series.index, 'inferred_freq', None)
+
+    ax_freq = getattr(ax, 'freq', None)
+
+    # use axes freq if no data freq
+    if freq is None:
+        freq = ax_freq
+
+    # get the period frequency
+    if isinstance(freq, DateOffset):
+        freq = freq.rule_code
+    else:
+        freq = frequencies.get_base_alias(freq)
+
+    freq = frequencies.get_period_alias(freq)
+
+    return freq
+
+def _get_xlim(lines):
+    left, right = np.inf, -np.inf
+    for l in lines:
+        x = l.get_xdata()
+        left = min(x[0].ordinal, left)
+        right = max(x[-1].ordinal, right)
+    return left, right
 
 def get_datevalue(date, freq):
     if isinstance(date, Period):
