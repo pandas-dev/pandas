@@ -384,6 +384,12 @@ class TestTimeSeries(unittest.TestCase):
         df['A'] = rng
         self.assert_(np.issubdtype(df['A'].dtype, np.dtype('M8[ns]')))
 
+    def test_frame_datetime64_pre1900_repr(self):
+        df = DataFrame({'year': date_range('1/1/1700', periods=50,
+                                           freq='A-DEC')})
+        # it works!
+        repr(df)
+
     def test_frame_add_datetime64_col_other_units(self):
         n = 100
 

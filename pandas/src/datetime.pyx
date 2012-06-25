@@ -102,15 +102,7 @@ class Timestamp(_Timestamp):
         return ts_base
 
     def __repr__(self):
-        result = '%d-%.2d-%.2d %.2d:%.2d:%.2d' % (self.year, self.month,
-                                                  self.day, self.hour,
-                                                  self.minute, self.second)
-
-        if self.nanosecond != 0:
-            nanos = self.nanosecond + 1000 * self.microsecond
-            result += '.%.9d' % nanos
-        elif self.microsecond != 0:
-            result += '.%.6d' % self.microsecond
+        result = self._repr_base
 
         try:
             result += self.strftime('%z')
@@ -123,6 +115,20 @@ class Timestamp(_Timestamp):
                 result += year2000.strftime(' %%Z, tz=%s' % self.tzinfo.zone)
 
         return '<Timestamp: %s>' % result
+
+    @property
+    def _repr_base(self):
+        result = '%d-%.2d-%.2d %.2d:%.2d:%.2d' % (self.year, self.month,
+                                                  self.day, self.hour,
+                                                  self.minute, self.second)
+
+        if self.nanosecond != 0:
+            nanos = self.nanosecond + 1000 * self.microsecond
+            result += '.%.9d' % nanos
+        elif self.microsecond != 0:
+            result += '.%.6d' % self.microsecond
+
+        return result
 
     @property
     def tz(self):
