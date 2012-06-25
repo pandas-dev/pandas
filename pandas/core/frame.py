@@ -166,6 +166,9 @@ Returns
 merged : DataFrame
 """
 
+# Custom error class for update
+
+class DataConflictError(Exception): pass
 
 #----------------------------------------------------------------------
 # Factory helper methods
@@ -3168,7 +3171,8 @@ class DataFrame(NDFrame):
         combiner = lambda x, y: np.where(isnull(x), y, x)
         return self.combine(other, combiner)
 
-    def update(self, other, join='left', overwrite=True, filter_func=None):
+    def update(self, other, join='left', overwrite=True, filter_func=None,
+                     raise_conflict=False):
         """
         Modify DataFrame in place using non-NA values from passed
         DataFrame. Aligns on indices
@@ -3182,6 +3186,9 @@ class DataFrame(NDFrame):
         filter_func : callable(1d-array) -> 1d-array<boolean>, default None
             Can choose to replace values other than NA. Return True for values
             that should be updated
+        raise_conflict : bool
+            If True, will raise an error if the DataFrame and other both
+            contain data in the same place.
         """
         if join != 'left':
             raise NotImplementedError
@@ -3193,6 +3200,12 @@ class DataFrame(NDFrame):
             if filter_func is not None:
                 mask = -filter_func(this) | isnull(that)
             else:
+                if raise_conflict:
+                    mask_this = notnull(that)
+                    mask_that = notnull(this)
+                    if any(mask_this & mask_that):
+                        raise DataConflictError("Data overlaps.")
+
                 if overwrite:
                     mask = isnull(that)
                 else:

@@ -5347,6 +5347,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                               [1.5, nan, 7.]])
         assert_frame_equal(df, expected)
 
+    def test_update_raise(self):
+        df = DataFrame([[1.5, 1, 3.],
+                        [1.5, nan, 3.],
+                        [1.5, nan, 3],
+                        [1.5, nan, 3]])
+
+        other = DataFrame([[2., nan],
+                           [nan, 7]], index=[1, 3], columns=[1,2])
+
+        np.testing.assert_raises(Exception, df.update, *(other,),
+                **{'raise_conflict' : True})
 
     def test_combineAdd(self):
         # trivial
