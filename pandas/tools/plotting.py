@@ -1,6 +1,7 @@
 # being a bit too dynamic
 # pylint: disable=E1101
 from itertools import izip
+import datetime
 
 import numpy as np
 
@@ -13,6 +14,7 @@ from pandas.tseries.period import PeriodIndex
 from pandas.tseries.frequencies import get_period_alias, get_base_alias
 from pandas.tseries.offsets import DateOffset
 import pandas.tseries.tools as datetools
+import pandas.lib as lib
 
 def _get_standard_kind(kind):
     return {'density' : 'kde'}.get(kind, kind)
@@ -573,24 +575,39 @@ class KdePlot(MPLPlot):
         if self.subplots and self.legend:
             self.axes[0].legend(loc='best')
 
-class DatetimeConverter(object):
+try:
+    import matplotlib.units as units
+    import matplotlib.dates as dates
 
-    @classmethod
-    def convert(cls, values, units, axis):
-        def try_parse(values):
-            try:
-                return datetools.to_datetime(values).toordinal()
-            except Exception:
+    class DatetimeConverter(dates.DateConverter):
+
+        @staticmethod
+        def convert(values, unit, axis):
+            def try_parse(values):
+                try:
+                    return datetools.to_datetime(values).toordinal()
+                except Exception:
+                    return values
+
+            if isinstance(values, (datetime.datetime, datetime.date)):
+                return values.toordinal()
+            elif isinstance(values, (datetime.time)):
+                return dates.date2num(values)
+            elif (com.is_integer(values) or com.is_float(values)):
                 return values
-
-        if (com.is_integer(values) or
-            com.is_float(values)):
+            elif isinstance(values, str):
+                return try_parse(values)
+            elif isinstance(values, Index):
+                return values.map(try_parse)
+            elif isinstance(values, (list, tuple, np.ndarray)):
+                return [try_parse(x) for x in values]
             return values
-        elif isinstance(values, str):
-            return try_parse(values)
-        elif isinstance(values, Index):
-            return values.map(try_parse)
-        return map(try_parse, values)
+
+    units.registry[lib.Timestamp] = DatetimeConverter()
+    units.registry[datetime.date] = DatetimeConverter()
+    units.registry[datetime.datetime] = DatetimeConverter()
+except ImportError:
+    pass
 
 class LinePlot(MPLPlot):
 
@@ -648,10 +665,6 @@ class LinePlot(MPLPlot):
                     y = np.ma.masked_where(mask, y)
                 plotf(ax, x, y, style, label=label, **self.kwds)
                 ax.grid(self.grid)
-                idx = getattr(self.data, 'index', None)
-                if isinstance(idx, DatetimeIndex) or (idx is not None and
-                    idx.inferred_type == 'datetime'):
-                    ax.get_xaxis().converter = DatetimeConverter
 
     def _maybe_convert_index(self, data):
         # tsplot converts automatically, but don't want to convert index

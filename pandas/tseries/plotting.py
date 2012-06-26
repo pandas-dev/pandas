@@ -77,7 +77,6 @@ def tsplot(series, plotf, **kwargs):
     ax.freq = freq
     xaxis = ax.get_xaxis()
     xaxis.freq = freq
-    xaxis.converter = DateConverter
     ax.legendlabels = [kwargs.get('label', None)]
     ax.view_interval = None
     ax.date_axis_info = None
@@ -739,12 +738,24 @@ def format_dateaxis(subplot, freq):
     subplot.xaxis.set_minor_formatter(minformatter)
     pylab.draw_if_interactive()
 
-class DateConverter(object):
 
-    @classmethod
-    def convert(cls, values, units, axis):
-        if isinstance(values, (int, float, str, datetime, Period)):
+import matplotlib.units as units
+import matplotlib.dates as dates
+
+class PeriodConverter(dates.DateConverter):
+
+    @staticmethod
+    def convert(values, units, axis):
+        if not hasattr(axis, 'freq'):
+            raise TypeError('Axis must have `freq` set to convert to Periods')
+        valid_types = (str, datetime, Period, pydt.date, pydt.time)
+        if (isinstance(values, valid_types) or com.is_integer(values) or
+            com.is_float(values)):
             return get_datevalue(values, axis.freq)
         if isinstance(values, Index):
             return values.map(lambda x: get_datevalue(x, axis.freq))
-        return map(lambda x: get_datevalue(x, axis.freq), values)
+        if isinstance(values, (list, tuple, np.ndarray)):
+            return [get_datevalue(x, axis.freq) for x in values]
+        return values
+
+units.registry[Period] = PeriodConverter()

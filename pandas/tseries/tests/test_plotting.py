@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date, time
 
 import unittest
 import nose
@@ -558,6 +558,25 @@ class TestTSPlot(unittest.TestCase):
         ax = high.plot()
         for l in ax.get_lines():
             self.assert_(l.get_xdata().freq == 'M')
+
+    @slow
+    def test_irreg_dtypes(self):
+        #date
+        idx = [date(2000, 1, 1), date(2000, 1, 5), date(2000, 1, 20)]
+        df = DataFrame(np.random.randn(len(idx), 3), Index(idx, dtype=object))
+        _check_plot_works(df.plot)
+
+        #np.datetime64
+        idx = date_range('1/1/2000', periods=10)
+        idx = idx[[0, 2, 5, 9]].asobject
+        df = DataFrame(np.random.randn(len(idx), 3), idx)
+        _check_plot_works(df.plot)
+
+        #time
+        inc = Series(np.random.randint(1, 6, 9)).cumsum().values
+        idx = [time(1, 1, i) for i in inc]
+        df = DataFrame(np.random.randn(len(idx), 3), idx)
+        _check_plot_works(df.plot)
 
 PNG_PATH = 'tmp.png'
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
