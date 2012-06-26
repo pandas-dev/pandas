@@ -1816,6 +1816,9 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
         return result
 
+from pandas.tools.plotting import boxplot_frame_groupby
+DataFrameGroupBy.boxplot = boxplot_frame_groupby
+
 class PanelGroupBy(NDFrameGroupBy):
 
     def _iterate_slices(self):

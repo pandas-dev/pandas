@@ -1226,6 +1226,70 @@ def hist_series(self, ax=None, grid=True, xlabelsize=None, xrot=None,
 
     return ax
 
+def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
+                          rot=0, grid=True, figsize=None, **kwds):
+    """
+    Make box plots from DataFrameGroupBy data.
+
+    Parameters
+    ----------
+    subplots :
+        * ``False`` - no subplots will be used
+        * ``True`` - create a subplot for each group
+    column : column name or list of names, or vector
+        Can be any valid input to groupby
+    fontsize : int or string
+    rot : label rotation angle
+    kwds : other plotting keyword arguments to be passed to matplotlib boxplot
+           function
+
+    Returns
+    -------
+    dict of key/value = group key/DataFrame.boxplot return value
+    or DataFrame.boxplot return value in case subplots=figures=False
+
+    Examples
+    --------
+    >>> import pandas
+    >>> import numpy as np
+    >>> import itertools
+    >>>
+    >>> tuples = [t for t in itertools.product(range(1000), range(4))]
+    >>> index = pandas.MultiIndex.from_tuples(tuples, names=['lvl0', 'lvl1'])
+    >>> data = np.random.randn(len(index),4)
+    >>> df = pandas.DataFrame(data, columns=list('ABCD'), index=index)
+    >>>
+    >>> grouped = df.groupby(level='lvl1')
+    >>> boxplot_frame_groupby(grouped)
+    >>>
+    >>> grouped = df.unstack(level='lvl1').groupby(level=0, axis=1)
+    >>> boxplot_frame_groupby(grouped, subplots=False)
+    """
+    if subplots is True:
+        nrows, ncols = _get_layout(len(grouped))
+        _, axes = _subplots(nrows=nrows, ncols=ncols, squeeze=False,
+                            sharex=False, sharey=True)
+        axes = axes.reshape(-1) if len(grouped) > 1 else axes
+
+        ret = {}
+        for (key, group), ax in zip(grouped, axes):
+            d = group.boxplot(ax=ax, column=column, fontsize=fontsize,
+                              rot=rot, grid=grid, figsize=figsize, **kwds)
+            ax.set_title(_stringify(key))
+            ret[key] = d
+    else:
+        from pandas.tools.merge import concat
+        keys, frames = zip(*grouped)
+        if grouped.axis == 0:
+            df = concat(frames, keys=keys, axis=1)
+        else:
+            if len(frames) > 1:
+                df = frames[0].join(frames[1::])
+            else:
+                df = frames[0]
+        ret = df.boxplot(column=column, fontsize=fontsize, rot=rot,
+                         grid=grid, figsize=figsize, **kwds)
+    return ret
 
 def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
                   figsize=None, sharex=True, sharey=True, layout=None,

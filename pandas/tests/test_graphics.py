@@ -333,6 +333,38 @@ class TestDataFramePlots(unittest.TestCase):
     def _check_plot_fails(self, f, *args, **kwargs):
         self.assertRaises(Exception, f, *args, **kwargs)
 
+class TestDataFrameGroupByPlots(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        import sys
+        if 'IPython' in sys.modules:
+            raise nose.SkipTest
+
+        try:
+            import matplotlib as mpl
+            mpl.use('Agg', warn=False)
+        except ImportError:
+            raise nose.SkipTest
+
+    @slow
+    def test_boxplot(self):
+        df = DataFrame(np.random.rand(10,2), columns=['Col1', 'Col2'] )
+        df['X'] = Series(['A','A','A','A','A','B','B','B','B','B'])
+        grouped = df.groupby(by='X')
+        _check_plot_works(grouped.boxplot)
+        _check_plot_works(grouped.boxplot, subplots=False)
+
+        tuples = zip(list(string.ascii_letters[:10]), range(10))
+        df = DataFrame(np.random.rand(10, 3),
+                       index=MultiIndex.from_tuples(tuples))
+        grouped = df.groupby(level=1)
+        _check_plot_works(grouped.boxplot)
+        _check_plot_works(grouped.boxplot, subplots=False)
+        grouped = df.unstack(level=1).groupby(level=0, axis=1)
+        _check_plot_works(grouped.boxplot)
+        _check_plot_works(grouped.boxplot, subplots=False)
+
 PNG_PATH = 'tmp.png'
 
 def _check_plot_works(f, *args, **kwargs):
