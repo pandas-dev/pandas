@@ -461,9 +461,12 @@ class MPLPlot(object):
                 self.ax.set_title(self.title)
 
         if self._need_to_set_index:
-            xticklabels = [_stringify(key) for key in self.data.index]
+            labels = [_stringify(key) for key in self.data.index]
+            labels = dict(zip(range(len(self.data.index)), labels))
+
             for ax_ in self.axes:
                 # ax_.set_xticks(self.xticks)
+                xticklabels = [labels.get(x, '') for x in ax_.get_xticks()]
                 ax_.set_xticklabels(xticklabels, rotation=self.rot)
 
     @property
@@ -575,7 +578,7 @@ class KdePlot(MPLPlot):
         if self.subplots and self.legend:
             self.axes[0].legend(loc='best')
 
-try:
+try: # matplotlib is optional dependency
     import matplotlib.units as units
     import matplotlib.dates as dates
 
@@ -663,6 +666,7 @@ class LinePlot(MPLPlot):
                 if mask.any():
                     y = np.ma.array(y)
                     y = np.ma.masked_where(mask, y)
+
                 plotf(ax, x, y, style, label=label, **self.kwds)
                 ax.grid(self.grid)
 

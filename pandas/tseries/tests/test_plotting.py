@@ -561,6 +561,7 @@ class TestTSPlot(unittest.TestCase):
 
     @slow
     def test_irreg_dtypes(self):
+        import matplotlib.pyplot as plt
         #date
         idx = [date(2000, 1, 1), date(2000, 1, 5), date(2000, 1, 20)]
         df = DataFrame(np.random.randn(len(idx), 3), Index(idx, dtype=object))
@@ -573,10 +574,16 @@ class TestTSPlot(unittest.TestCase):
         _check_plot_works(df.plot)
 
         #time
-        inc = Series(np.random.randint(1, 6, 9)).cumsum().values
+        plt.close('all')
+        inc = Series(np.random.randint(1, 15, 3)).cumsum().values
         idx = [time(1, 1, i) for i in inc]
         df = DataFrame(np.random.randn(len(idx), 3), idx)
-        _check_plot_works(df.plot)
+        ax = df.plot()
+        ticks = ax.get_xticks()
+        labels = ax.get_xticklabels()
+        td = dict(zip(ticks, labels))
+        for i in range(3):
+            self.assert_(td[i].get_text() == str(idx[i]))
 
 PNG_PATH = 'tmp.png'
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
