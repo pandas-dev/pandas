@@ -16,6 +16,12 @@ from pandas.tseries.offsets import DateOffset
 import pandas.tseries.tools as datetools
 import pandas.lib as lib
 
+try: # mpl optional
+    import pandas.tseries.converter as conv
+    conv.register()
+except ImportError:
+    pass
+
 def _get_standard_kind(kind):
     return {'density' : 'kde'}.get(kind, kind)
 
@@ -492,8 +498,9 @@ class MPLPlot(object):
 
     def _get_xticks(self, convert_period=False):
         index = self.data.index
-        is_datetype = index.inferred_type in ('datetime', 'date',
-                                              'datetime64')
+        is_datetype = (index.inferred_type in ('datetime', 'date',
+                                               'datetime64')
+                       or lib.is_time_array(index))
 
         if self.use_index:
             if convert_period and isinstance(index, PeriodIndex):
@@ -508,6 +515,7 @@ class MPLPlot(object):
                 """
                 x = index._mpl_repr()
             else:
+                foo
                 self._need_to_set_index = True
                 x = range(len(index))
         else:
@@ -577,40 +585,6 @@ class KdePlot(MPLPlot):
 
         if self.subplots and self.legend:
             self.axes[0].legend(loc='best')
-
-try: # matplotlib is optional dependency
-    import matplotlib.units as units
-    import matplotlib.dates as dates
-
-    class DatetimeConverter(dates.DateConverter):
-
-        @staticmethod
-        def convert(values, unit, axis):
-            def try_parse(values):
-                try:
-                    return datetools.to_datetime(values).toordinal()
-                except Exception:
-                    return values
-
-            if isinstance(values, (datetime.datetime, datetime.date)):
-                return values.toordinal()
-            elif isinstance(values, (datetime.time)):
-                return dates.date2num(values)
-            elif (com.is_integer(values) or com.is_float(values)):
-                return values
-            elif isinstance(values, str):
-                return try_parse(values)
-            elif isinstance(values, Index):
-                return values.map(try_parse)
-            elif isinstance(values, (list, tuple, np.ndarray)):
-                return [try_parse(x) for x in values]
-            return values
-
-    units.registry[lib.Timestamp] = DatetimeConverter()
-    units.registry[datetime.date] = DatetimeConverter()
-    units.registry[datetime.datetime] = DatetimeConverter()
-except ImportError:
-    pass
 
 class LinePlot(MPLPlot):
 
