@@ -662,7 +662,7 @@ class TextParser(object):
             index_name = None
         elif np.isscalar(self.index_col):
             if isinstance(self.index_col, basestring):
-                index_names = self.index_col
+                index_name = self.index_col
                 for i, c in enumerate(list(columns)):
                     if c == self.index_col:
                         self.index_col = i

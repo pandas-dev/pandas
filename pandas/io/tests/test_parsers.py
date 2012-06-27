@@ -334,6 +334,23 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         self.assertRaises(ValueError, read_csv, StringIO(no_header),
                           index_col='ID')
 
+        data = """\
+1,2,3,4,hello
+5,6,7,8,world
+9,10,11,12,foo
+"""
+        names = ['a', 'b', 'c', 'd', 'message']
+        xp = DataFrame({'a' : [1, 5, 9], 'b' : [2, 6, 10], 'c' : [3, 7, 11],
+                        'd' : [4, 8, 12]},
+                       index=Index(['hello', 'world', 'foo'], name='message'))
+        rs = read_csv(StringIO(data), names=names, index_col=['message'])
+        assert_frame_equal(xp, rs)
+        self.assert_(xp.index.name == rs.index.name)
+
+        rs = read_csv(StringIO(data), names=names, index_col='message')
+        assert_frame_equal(xp, rs)
+        self.assert_(xp.index.name == rs.index.name)
+
     def test_multiple_skts_example(self):
         data = "year, month, a, b\n 2001, 01, 0.0, 10.\n 2001, 02, 1.1, 11."
         pass
