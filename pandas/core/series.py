@@ -2310,7 +2310,9 @@ copy : boolean, default False
         df = DataFrame.from_csv(path, header=header, index_col=index_col,
                                 sep=sep, parse_dates=parse_dates,
                                 encoding=encoding)
-        return df.ix[:, 0]
+        result = df.ix[:, 0]
+        result.index.name = result.name = None
+        return result
 
     def to_csv(self, path, index=True, sep=",", na_rep='', header=False,
                index_label=None, mode='w', nanRep=None, encoding=None):
