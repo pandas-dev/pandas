@@ -201,42 +201,54 @@ class TestTSPlot(unittest.TestCase):
         idx = ax.get_lines()[0].get_xdata()
 
     @slow
-    def test_set_xlim(self):
+    def test_axis_limits(self):
+        def _test(ax):
+            xlim = ax.get_xlim()
+            ax.set_xlim(xlim[0] - 5, xlim[1] + 10)
+            ax.get_figure().canvas.draw()
+            result = ax.get_xlim()
+            self.assertEqual(result[0], xlim[0] - 5)
+            self.assertEqual(result[1], xlim[1] + 10)
+
+            # string
+            expected = (Period('1/1/2000', ax.freq),
+                        Period('4/1/2000', ax.freq))
+            ax.set_xlim('1/1/2000', '4/1/2000')
+            ax.get_figure().canvas.draw()
+            result = ax.get_xlim()
+            self.assertEqual(int(result[0]), expected[0].ordinal)
+            self.assertEqual(int(result[1]), expected[1].ordinal)
+
+            # datetim
+            expected = (Period('1/1/2000', ax.freq),
+                        Period('4/1/2000', ax.freq))
+            ax.set_xlim(datetime(2000, 1, 1), datetime(2000, 4, 1))
+            ax.get_figure().canvas.draw()
+            result = ax.get_xlim()
+            self.assertEqual(int(result[0]), expected[0].ordinal)
+            self.assertEqual(int(result[1]), expected[1].ordinal)
+
         ser = tm.makeTimeSeries()
         ax = ser.plot()
-        xlim = ax.get_xlim()
-        ax.set_xlim(xlim[0] - 5, xlim[1] + 10)
-        ax.get_figure().canvas.draw()
-        result = ax.get_xlim()
-        self.assertEqual(result[0], xlim[0] - 5)
-        self.assertEqual(result[1], xlim[1] + 10)
+        _test(ax)
 
-        # string
-        expected = (Period('1/1/2000', ax.freq), Period('4/1/2000', ax.freq))
-        ax.set_xlim('1/1/2000', '4/1/2000')
-        ax.get_figure().canvas.draw()
-        result = ax.get_xlim()
-        self.assertEqual(int(result[0]), expected[0].ordinal)
-        self.assertEqual(int(result[1]), expected[1].ordinal)
+        df = DataFrame({'a' : ser, 'b' : ser + 1})
+        ax = df.plot()
+        _test(ax)
 
-        # datetim
-        expected = (Period('1/1/2000', ax.freq), Period('4/1/2000', ax.freq))
-        ax.set_xlim(datetime(2000, 1, 1), datetime(2000, 4, 1))
-        ax.get_figure().canvas.draw()
-        result = ax.get_xlim()
-        self.assertEqual(int(result[0]), expected[0].ordinal)
-        self.assertEqual(int(result[1]), expected[1].ordinal)
+        df = DataFrame({'a' : ser, 'b' : ser + 1})
+        axes = df.plot(subplots=True)
+        [_test(ax) for ax in axes]
 
-    @slow
     def test_get_finder(self):
-        import pandas.tseries.plotting as plt
+        import pandas.tseries.converter as conv
 
-        self.assertEqual(plt.get_finder('B'), plt._daily_finder)
-        self.assertEqual(plt.get_finder('D'), plt._daily_finder)
-        self.assertEqual(plt.get_finder('M'), plt._monthly_finder)
-        self.assertEqual(plt.get_finder('Q'), plt._quarterly_finder)
-        self.assertEqual(plt.get_finder('A'), plt._annual_finder)
-        self.assertEqual(plt.get_finder('W'), plt._daily_finder)
+        self.assertEqual(conv.get_finder('B'), conv._daily_finder)
+        self.assertEqual(conv.get_finder('D'), conv._daily_finder)
+        self.assertEqual(conv.get_finder('M'), conv._monthly_finder)
+        self.assertEqual(conv.get_finder('Q'), conv._quarterly_finder)
+        self.assertEqual(conv.get_finder('A'), conv._annual_finder)
+        self.assertEqual(conv.get_finder('W'), conv._daily_finder)
 
     @slow
     def test_finder_daily(self):
@@ -408,6 +420,8 @@ class TestTSPlot(unittest.TestCase):
         ax = ser2.plot()
         ax2 = ser.plot(secondary_y=True)
         self.assert_(ax.get_yaxis().get_visible())
+
+        plt.close('all')
 
     @slow
     def test_secondary_y_ts(self):
@@ -584,6 +598,38 @@ class TestTSPlot(unittest.TestCase):
         td = dict(zip(ticks, labels))
         for i in range(3):
             self.assert_(td[i].get_text() == str(idx[i]))
+
+    @slow
+    def test_time(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+
+        t = datetime(1, 1, 1, 3, 30, 0)
+        deltas = np.random.randint(1, 20, 3).cumsum()
+        ts = np.array([(t + timedelta(minutes=int(x))).time() for x in deltas])
+        df = DataFrame({'a' : np.random.randn(len(ts)),
+                        'b' : np.random.randn(len(ts))},
+                       index=ts)
+        ax = df.plot()
+
+        # verify tick labels
+        ticks = ax.get_xticks()
+        labels = ax.get_xticklabels()
+        for t, l in zip(ticks, labels):
+            m, s = divmod(int(t), 60)
+            h, m = divmod(m, 60)
+            self.assert_(time(h, m, s).strftime('%H:%M:%S') == t.get_text())
+
+        # change xlim
+        ax.set_xlim('1:30', '5:00')
+
+        # check tick labels again
+        ticks = ax.get_xticks()
+        labels = ax.get_xticklabels()
+        for t, l in zip(ticks, labels):
+            m, s = divmod(int(t), 60)
+            h, m = divmod(m, 60)
+            self.assert_(time(h, m, s).strftime('%H:%M:%S') == t.get_text())
 
 PNG_PATH = 'tmp.png'
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
