@@ -62,8 +62,7 @@ And via ``easy_install`` or ``pip``::
 Dependencies
 ============
 
-  * `NumPy <http://www.numpy.org>`__: 1.6.1 or higher. Older versions will work
-    but may not pass all of the unit tests. Bare minimum is NumPy 1.4.0.
+  * `NumPy <http://www.numpy.org>`__: 1.6.1 or higher
   * `python-dateutil <http://labix.org/python-dateutil>`__ 1.5
 
 Optional dependencies

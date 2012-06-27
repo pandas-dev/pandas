@@ -2320,7 +2320,7 @@ copy : boolean, default False
         Parameters
         ----------
         path : string file path or file handle / StringIO
-        nanRep : string, default ''
+        na_rep : string, default ''
             Missing data rep'n
         header : boolean, default False
             Write out series name
