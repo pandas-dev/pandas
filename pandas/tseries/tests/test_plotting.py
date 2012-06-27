@@ -587,18 +587,6 @@ class TestTSPlot(unittest.TestCase):
         df = DataFrame(np.random.randn(len(idx), 3), idx)
         _check_plot_works(df.plot)
 
-        #time
-        plt.close('all')
-        inc = Series(np.random.randint(1, 15, 3)).cumsum().values
-        idx = [time(1, 1, i) for i in inc]
-        df = DataFrame(np.random.randn(len(idx), 3), idx)
-        ax = df.plot()
-        ticks = ax.get_xticks()
-        labels = ax.get_xticklabels()
-        td = dict(zip(ticks, labels))
-        for i in range(3):
-            self.assert_(td[i].get_text() == str(idx[i]))
-
     @slow
     def test_time(self):
         import matplotlib.pyplot as plt
@@ -618,7 +606,10 @@ class TestTSPlot(unittest.TestCase):
         for t, l in zip(ticks, labels):
             m, s = divmod(int(t), 60)
             h, m = divmod(m, 60)
-            self.assert_(time(h, m, s).strftime('%H:%M:%S') == t.get_text())
+            xp = l.get_text()
+            if len(xp) > 0:
+                rs = time(h, m, s).strftime('%H:%M:%S')
+                self.assert_(xp, rs)
 
         # change xlim
         ax.set_xlim('1:30', '5:00')
@@ -629,7 +620,10 @@ class TestTSPlot(unittest.TestCase):
         for t, l in zip(ticks, labels):
             m, s = divmod(int(t), 60)
             h, m = divmod(m, 60)
-            self.assert_(time(h, m, s).strftime('%H:%M:%S') == t.get_text())
+            xp = l.get_text()
+            if len(xp) > 0:
+                rs = time(h, m, s).strftime('%H:%M:%S')
+                self.assert_(xp, rs)
 
 PNG_PATH = 'tmp.png'
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
