@@ -405,7 +405,7 @@ class Index(np.ndarray):
     def asof_locs(self, where, mask):
         """
         where : array of timestamps
-        mask : array of booleans where data is NA
+        mask : array of booleans where data is not NA
 
         """
         locs = self.values[mask].searchsorted(where.values, side='right')
@@ -2295,7 +2295,8 @@ class MultiIndex(Index):
         new_index : MultiIndex
         """
         new_labels = [np.delete(lab, loc) for lab in self.labels]
-        return MultiIndex(levels=self.levels, labels=new_labels)
+        return MultiIndex(levels=self.levels, labels=new_labels,
+                          names=self.names)
 
     get_major_bounds = slice_locs
 

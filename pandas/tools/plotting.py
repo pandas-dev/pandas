@@ -1,18 +1,20 @@
 # being a bit too dynamic
 # pylint: disable=E1101
 from itertools import izip
+import datetime
 
 import numpy as np
 
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 from pandas.core.index import Index, MultiIndex
-from pandas.core.series import Series
+from pandas.core.series import Series, remove_na
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
-from pandas.tseries.frequencies import get_period_alias
+from pandas.tseries.frequencies import get_period_alias, get_base_alias
 from pandas.tseries.offsets import DateOffset
 import pandas.tseries.tools as datetools
+import pandas.lib as lib
 
 def _get_standard_kind(kind):
     return {'density' : 'kde'}.get(kind, kind)
@@ -49,6 +51,8 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
     fig.subplots_adjust(wspace=0, hspace=0)
 
     mask = com.notnull(df)
+
+    marker = _get_marker_compat(marker)
 
     for i, a in zip(range(n), df.columns):
         for j, b in zip(range(n), df.columns):
@@ -129,6 +133,12 @@ def _gca():
 def _gcf():
     import matplotlib.pyplot as plt
     return plt.gcf()
+
+def _get_marker_compat(marker):
+    import matplotlib.lines as mlines
+    if marker not in mlines.lineMarkers:
+        return 'o'
+    return marker
 
 def andrews_curves(data, class_column, ax=None, samples=200):
     """
@@ -451,9 +461,12 @@ class MPLPlot(object):
                 self.ax.set_title(self.title)
 
         if self._need_to_set_index:
-            xticklabels = [_stringify(key) for key in self.data.index]
+            labels = [_stringify(key) for key in self.data.index]
+            labels = dict(zip(range(len(self.data.index)), labels))
+
             for ax_ in self.axes:
                 # ax_.set_xticks(self.xticks)
+                xticklabels = [labels.get(x, '') for x in ax_.get_xticks()]
                 ax_.set_xticklabels(xticklabels, rotation=self.rot)
 
     @property
@@ -477,13 +490,16 @@ class MPLPlot(object):
 
     _need_to_set_index = False
 
-    def _get_xticks(self):
+    def _get_xticks(self, convert_period=False):
         index = self.data.index
         is_datetype = index.inferred_type in ('datetime', 'date',
                                               'datetime64')
 
         if self.use_index:
-            if index.is_numeric() or is_datetype:
+            if convert_period and isinstance(index, PeriodIndex):
+                index = index.to_timestamp()
+                x = index._mpl_repr()
+            elif index.is_numeric() or is_datetype:
                 """
                 Matplotlib supports numeric values or datetime objects as
                 xaxis values. Taking LBYL approach here, by the time
@@ -562,49 +578,80 @@ class KdePlot(MPLPlot):
         if self.subplots and self.legend:
             self.axes[0].legend(loc='best')
 
-class DatetimeConverter(object):
+try: # matplotlib is optional dependency
+    import matplotlib.units as units
+    import matplotlib.dates as dates
 
-    @classmethod
-    def convert(cls, values, units, axis):
-        def try_parse(values):
-            try:
-                return datetools.to_datetime(values).toordinal()
-            except Exception:
+    class DatetimeConverter(dates.DateConverter):
+
+        @staticmethod
+        def convert(values, unit, axis):
+            def try_parse(values):
+                try:
+                    return datetools.to_datetime(values).toordinal()
+                except Exception:
+                    return values
+
+            if isinstance(values, (datetime.datetime, datetime.date)):
+                return values.toordinal()
+            elif isinstance(values, (datetime.time)):
+                return dates.date2num(values)
+            elif (com.is_integer(values) or com.is_float(values)):
                 return values
-
-        if (com.is_integer(values) or
-            com.is_float(values)):
+            elif isinstance(values, str):
+                return try_parse(values)
+            elif isinstance(values, Index):
+                return values.map(try_parse)
+            elif isinstance(values, (list, tuple, np.ndarray)):
+                return [try_parse(x) for x in values]
             return values
-        elif isinstance(values, str):
-            return try_parse(values)
-        elif isinstance(values, Index):
-            return values.map(try_parse)
-        return map(try_parse, values)
+
+    units.registry[lib.Timestamp] = DatetimeConverter()
+    units.registry[datetime.date] = DatetimeConverter()
+    units.registry[datetime.datetime] = DatetimeConverter()
+except ImportError:
+    pass
 
 class LinePlot(MPLPlot):
 
     def __init__(self, data, **kwargs):
         MPLPlot.__init__(self, data, **kwargs)
 
-    @property
-    def has_ts_index(self):
+    def _index_freq(self):
         from pandas.core.frame import DataFrame
         if isinstance(self.data, (Series, DataFrame)):
-            if isinstance(self.data.index, (DatetimeIndex, PeriodIndex)):
-                has_freq = (hasattr(self.data.index, 'freq') and
-                            self.data.index.freq is not None)
-                has_inferred = (hasattr(self.data.index, 'inferred_freq') and
-                                self.data.index.inferred_freq is not None)
-                return has_freq or has_inferred
-        return False
+            freq = (getattr(self.data.index, 'freq', None)
+                    or getattr(self.data.index, 'inferred_freq', None))
+            return freq
+
+    def _is_dynamic_freq(self, freq):
+        if isinstance(freq, DateOffset):
+            freq = freq.rule_code
+        else:
+            freq = get_base_alias(freq)
+        freq = get_period_alias(freq)
+        return freq is not None
+
+    def _use_dynamic_x(self):
+        freq = self._index_freq()
+
+        ax, _ = self._get_ax_and_style(0)
+        ax_freq = getattr(ax, 'freq', None)
+        if freq is None: # convert irregular if axes has freq info
+            freq = ax_freq
+        else: # do not use tsplot if irregular was plotted first
+            if (ax_freq is None) and (len(ax.get_lines()) > 0):
+                return False
+
+        return (freq is not None) and self._is_dynamic_freq(freq)
 
     def _make_plot(self):
         # this is slightly deceptive
-        if self.use_index and self.has_ts_index:
+        if self.use_index and self._use_dynamic_x():
             data = self._maybe_convert_index(self.data)
             self._make_ts_plot(data)
         else:
-            x = self._get_xticks()
+            x = self._get_xticks(convert_period=True)
 
             plotf = self._get_plot_function()
 
@@ -619,12 +666,9 @@ class LinePlot(MPLPlot):
                 if mask.any():
                     y = np.ma.array(y)
                     y = np.ma.masked_where(mask, y)
+
                 plotf(ax, x, y, style, label=label, **self.kwds)
                 ax.grid(self.grid)
-                idx = getattr(self.data, 'index', None)
-                if isinstance(idx, DatetimeIndex) or (idx is not None and
-                    idx.inferred_type == 'datetime'):
-                    ax.get_xaxis().converter = DatetimeConverter
 
     def _maybe_convert_index(self, data):
         # tsplot converts automatically, but don't want to convert index
@@ -632,15 +676,22 @@ class LinePlot(MPLPlot):
         from pandas.core.frame import DataFrame
         if (isinstance(data.index, DatetimeIndex) and
             isinstance(data, DataFrame)):
-            freq = getattr(data.index, 'freqstr', None)
+            freq = getattr(data.index, 'freq', None)
 
-            freq = get_period_alias(freq)
-
-            if freq is None and hasattr(data.index, 'inferred_freq'):
-                freq = data.index.inferred_freq
+            if freq is None:
+                freq = getattr(data.index, 'inferred_freq', None)
 
             if isinstance(freq, DateOffset):
                 freq = freq.rule_code
+
+            freq = get_period_alias(freq)
+
+            if freq is None:
+                ax, _ = self._get_ax_and_style(0)
+                freq = getattr(ax, 'freq', None)
+
+            if freq is None:
+                raise ValueError('Could not get frequency alias for plotting')
 
             data = DataFrame(data.values,
                              index=data.index.to_period(freq=freq),
@@ -679,7 +730,7 @@ class LinePlot(MPLPlot):
             else:
                 self.axes[0].legend(loc='best')
 
-        condition = (not self.has_ts_index
+        condition = (not self._use_dynamic_x
                      and df.index.is_all_dates
                      and not self.subplots
                      or (self.subplots and self.sharex))
@@ -994,6 +1045,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
     def plot_group(grouped, ax):
         keys, values = zip(*grouped)
         keys = [_stringify(x) for x in keys]
+        values = [remove_na(v) for v in values]
         ax.boxplot(values, **kwds)
         if kwds.get('vert', 1):
             ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
@@ -1030,7 +1082,8 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
 
         # Return boxplot dict in single plot case
 
-        bp = ax.boxplot(list(data[cols].values.T), **kwds)
+        clean_values = [remove_na(x) for x in data[cols].values.T]
+        bp = ax.boxplot(clean_values, **kwds)
         if kwds.get('vert', 1):
             ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
         else:
@@ -1095,7 +1148,8 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False):
 
 
 def hist_frame(data, grid=True, xlabelsize=None, xrot=None,
-               ylabelsize=None, yrot=None, ax=None, **kwds):
+               ylabelsize=None, yrot=None, ax=None,
+               sharex=False, sharey=False, **kwds):
     """
     Draw Histogram the DataFrame's series using matplotlib / pylab.
 
@@ -1112,6 +1166,8 @@ def hist_frame(data, grid=True, xlabelsize=None, xrot=None,
     yrot : float, default None
         rotation of y axis labels
     ax : matplotlib axes object, default None
+    sharex : bool, if True, the X axis will be shared amongst all subplots.
+    sharey : bool, if True, the Y axis will be shared amongst all subplots.
     kwds : other plotting keyword arguments
         To be passed to hist function
     """
@@ -1123,7 +1179,8 @@ def hist_frame(data, grid=True, xlabelsize=None, xrot=None,
             rows += 1
         else:
             cols += 1
-    _, axes = _subplots(nrows=rows, ncols=cols, ax=ax, squeeze=False)
+    _, axes = _subplots(nrows=rows, ncols=cols, ax=ax, squeeze=False,
+                        sharex=sharex, sharey=sharey)
 
     for i, col in enumerate(com._try_sort(data.columns)):
         ax = axes[i / cols][i % cols]
@@ -1312,7 +1369,7 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
     sharex : bool
       If True, the X axis will be shared amongst all subplots.
 
-    sharex : bool
+    sharey : bool
       If True, the Y axis will be shared amongst all subplots.
 
     squeeze : bool

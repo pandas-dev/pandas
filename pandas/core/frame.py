@@ -166,6 +166,9 @@ Returns
 merged : DataFrame
 """
 
+# Custom error class for update
+
+class DataConflictError(Exception): pass
 
 #----------------------------------------------------------------------
 # Factory helper methods
@@ -389,6 +392,9 @@ class DataFrame(NDFrame):
                                          copy=copy)
         elif isinstance(data, list):
             if len(data) > 0:
+                if index is None and isinstance(data[0], Series):
+                    index = _get_names_from_index(data)
+
                 if isinstance(data[0], (list, tuple, dict, Series)):
                     conv_data, columns = _to_sdict(data, columns)
                     if isinstance(conv_data, dict):
@@ -615,12 +621,16 @@ class DataFrame(NDFrame):
             s.name = k
             yield k, s
 
-    def itertuples(self):
+    def itertuples(self, index=True):
         """
         Iterate over rows of DataFrame as tuples, with index value
         as first element of the tuple
         """
-        return izip(self.index, *self.values.T)
+        arrays = []
+        if index:
+            arrays.append(self.index)
+        arrays.extend(self[k] for k in self.columns)
+        return izip(*arrays)
 
     iterkv = iteritems
     if py3compat.PY3:  # pragma: no cover
@@ -1017,15 +1027,17 @@ class DataFrame(NDFrame):
 
     to_wide = deprecate('to_wide', to_panel)
 
-    def _helper_csvexcel(self, writer, na_rep=None, cols=None, header=True,
-                         index=True, index_label=None):
+    def _helper_csvexcel(self, writer, na_rep=None, cols=None,
+                         header=True, index=True, index_label=None):
         if cols is None:
             cols = self.columns
 
         series = {}
         for k, v in self._series.iteritems():
             series[k] = v.values
-        if header:
+
+        has_aliases = isinstance(header, (tuple, list, np.ndarray))
+        if has_aliases or header:
             if index:
                 # should write something for index label
                 if index_label is None:
@@ -1046,7 +1058,15 @@ class DataFrame(NDFrame):
                     index_label = [index_label]
 
                 encoded_labels = list(index_label)
-                encoded_cols = list(cols)
+                if has_aliases:
+                    if len(header) != len(cols):
+                        raise ValueError(('Writing %d cols but got %d aliases'
+                                          % (len(cols), len(header))))
+                    else:
+                        write_cols = header
+                else:
+                    write_cols = cols
+                encoded_cols = list(write_cols)
 
                 writer.writerow(encoded_labels + encoded_cols)
             else:
@@ -1071,8 +1091,8 @@ class DataFrame(NDFrame):
             writer.writerow(row_fields)
 
     def to_csv(self, path_or_buf, sep=",", na_rep='', cols=None,
-               header=True, index=True, index_label=None, mode='w',
-               nanRep=None, encoding=None):
+               header=True, index=True, index_label=None,
+               mode='w', nanRep=None, encoding=None):
         """
         Write DataFrame to a comma-separated values (csv) file
 
@@ -1084,8 +1104,9 @@ class DataFrame(NDFrame):
             Missing data representation
         cols : sequence, optional
             Columns to write
-        header : boolean, default True
-            Write out column names
+        header : boolean or list of string, default True
+            Write out column names. If a list of string is given it is
+            assumed to be aliases for the column names
         index : boolean, default True
             Write row names (index)
         index_label : string or sequence, default None
@@ -1121,6 +1142,7 @@ class DataFrame(NDFrame):
             self._helper_csvexcel(csvout, na_rep=na_rep, cols=cols,
                                   header=header, index=index,
                                   index_label=index_label)
+
         finally:
             if close:
                 f.close()
@@ -1140,8 +1162,9 @@ class DataFrame(NDFrame):
             Missing data rep'n
         cols : sequence, optional
             Columns to write
-        header : boolean, default True
-            Write out column names
+        header : boolean or list of string, default True
+            Write out column names. If a list of string is given it is
+            assumed to be aliases for the column names
         index : boolean, default True
             Write row names (index)
         index_label : string or sequence, default None
@@ -3148,7 +3171,8 @@ class DataFrame(NDFrame):
         combiner = lambda x, y: np.where(isnull(x), y, x)
         return self.combine(other, combiner)
 
-    def update(self, other, join='left', overwrite=True, filter_func=None):
+    def update(self, other, join='left', overwrite=True, filter_func=None,
+                     raise_conflict=False):
         """
         Modify DataFrame in place using non-NA values from passed
         DataFrame. Aligns on indices
@@ -3162,6 +3186,9 @@ class DataFrame(NDFrame):
         filter_func : callable(1d-array) -> 1d-array<boolean>, default None
             Can choose to replace values other than NA. Return True for values
             that should be updated
+        raise_conflict : bool
+            If True, will raise an error if the DataFrame and other both
+            contain data in the same place.
         """
         if join != 'left':
             raise NotImplementedError
@@ -3173,6 +3200,12 @@ class DataFrame(NDFrame):
             if filter_func is not None:
                 mask = -filter_func(this) | isnull(that)
             else:
+                if raise_conflict:
+                    mask_this = notnull(that)
+                    mask_that = notnull(this)
+                    if any(mask_this & mask_that):
+                        raise DataConflictError("Data overlaps.")
+
                 if overwrite:
                     mask = isnull(that)
                 else:
@@ -4222,9 +4255,9 @@ class DataFrame(NDFrame):
         if result.dtype == np.object_:
             try:
                 if filter_type is None or filter_type == 'numeric':
-                    result = result.astype('f8')
-                elif filter_type == 'bool':
-                    result = result.astype('b')
+                    result = result.astype(np.float64)
+                elif filter_type == 'bool' and notnull(result).all():
+                    result = result.astype(np.bool_)
                 else:
                     raise ValueError('Invalid dtype %s ' % str(filter_type))
 
@@ -4604,7 +4637,7 @@ def extract_index(data):
             elif isinstance(v, dict):
                 have_dicts = True
                 indexes.append(v.keys())
-            elif isinstance(v, (list, np.ndarray)):
+            elif isinstance(v, (list, tuple, np.ndarray)):
                 have_raw_arrays = True
                 raw_lengths.append(len(v))
 
@@ -4754,6 +4787,22 @@ def _convert_object_array(content, columns, coerce_float=False):
                  for c, vals in zip(columns, content))
     return sdict, columns
 
+def _get_names_from_index(data):
+    index = range(len(data))
+    has_some_name = any([s.name is not None for s in data])
+    if not has_some_name:
+        return index
+
+    count = 0
+    for i, s in enumerate(data):
+        n = s.name
+        if n is not None:
+            index[i] = n
+        else:
+            index[i] = 'Unnamed %d' % count
+            count += 1
+
+    return index
 
 def _homogenize(data, index, columns, dtype=None):
     from pandas.core.series import _sanitize_array

@@ -25,7 +25,7 @@ Where to get it
 pandas 0.8.0
 ============
 
-**Release date:** NOT YET RELEASED
+**Release date:** 6/26/2012
 
 **New features**
 
@@ -43,7 +43,7 @@ pandas 0.8.0
     conversion method (#1018)
   - Implement robust frequency inference function and `inferred_freq` attribute
     on DatetimeIndex (#391)
-  - New ``tz_convert`` methods in Series / DataFrame
+  - New ``tz_convert`` and ``tz_localize`` methods in Series / DataFrame
   - Convert DatetimeIndexes to UTC if time zones are different in join/setops
     (#864)
   - Add limit argument for forward/backward filling to reindex, fillna,
@@ -86,7 +86,10 @@ pandas 0.8.0
   - Add lag plot (#1440)
   - Add autocorrelation_plot (#1425)
   - Add support for tox and Travis CI (#1382)
-  - Add support for ordered factors and use in GroupBy (#292)
+  - Add support for Categorical use in GroupBy (#292)
+  - Add ``any`` and ``all`` methods to DataFrame (#1416)
+  - Add ``secondary_y`` option to Series.plot
+  - Add experimental ``lreshape`` function for reshaping wide to long
 
 **Improvements to existing features**
 
@@ -124,9 +127,20 @@ pandas 0.8.0
   - Add ``convert_dtype`` option to Series.apply to be able to leave data as
     dtype=object (#1414)
   - Can specify all index level names in concat (#1419)
+  - Add ``dialect`` keyword to parsers for quoting conventions (#1363)
+  - Enable DataFrame[bool_DataFrame] += value (#1366)
+  - Add ``retries`` argument to ``get_data_yahoo`` to try to prevent Yahoo! API
+    404s (#826)
+  - Improve performance of reshaping by using O(N) categorical sorting
+  - Series names will be used for index of DataFrame if no index passed (#1494)
+  - Header argument in DataFrame.to_csv can accept a list of column names to
+    use instead of the object's columns (#921)
+  - Add ``raise_conflict`` argument to DataFrame.update (#1526)
 
 **API Changes**
 
+  - Rename Factor to Categorical and add improvements. Numerous Categorical bug
+    fixes
   - Frequency name overhaul, WEEKDAY/EOM and rules with @
     deprecated. get_legacy_offset_name backwards compatibility function added
   - Raise ValueError in DataFrame.__nonzero__, so "if df" no longer works
@@ -190,6 +204,11 @@ pandas 0.8.0
   - Fix outer/inner DataFrame.join with non-unique indexes (#1421)
   - Fix MultiIndex groupby bugs with empty lower levels (#1401)
   - Calling fillna with a Series will have same behavior as with dict (#1486)
+  - SparseSeries reduction bug (#1375)
+  - Fix unicode serialization issue in HDFStore (#1361)
+  - Pass keywords to pyplot.boxplot in DataFrame.boxplot (#1493)
+  - Bug fixes in MonthBegin (#1483)
+  - Preserve MultiIndex names in drop (#1513)
 
 pandas 0.7.3
 ============

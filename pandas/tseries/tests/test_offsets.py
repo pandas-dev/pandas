@@ -1389,6 +1389,13 @@ def test_dateoffset_misc():
 
     assert(not offsets.DateOffset(months=2) == 2)
 
+def test_freq_offsets():
+    off = BDay(1, offset=timedelta(0, 1800))
+    assert(off.freqstr == 'B+30Min')
+
+    off = BDay(1, offset=timedelta(0, -1800))
+    assert(off.freqstr == 'B-30Min')
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

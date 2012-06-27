@@ -13,6 +13,7 @@ from numpy import random, nan
 from numpy.random import randn
 import numpy as np
 import numpy.ma as ma
+from numpy.testing import assert_array_equal
 
 import pandas as pan
 import pandas.core.nanops as nanops
@@ -21,7 +22,7 @@ import pandas.core.format as fmt
 import pandas.core.datetools as datetools
 from pandas.core.api import (DataFrame, Index, Series, notnull, isnull,
                              MultiIndex, DatetimeIndex)
-from pandas.io.parsers import (ExcelFile, ExcelWriter)
+from pandas.io.parsers import (ExcelFile, ExcelWriter, read_csv)
 
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
@@ -1579,6 +1580,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         dm = DataFrame([[1,2],['a','b']], index=[1,2], columns=[1,2])
         self.assert_(isinstance(dm[1][1], int))
 
+    def test_constructor_dict_of_tuples(self):
+        # GH #1491
+        data = {'a': (1, 2, 3), 'b': (4, 5, 6)}
+
+        result = DataFrame(data)
+        expected = DataFrame(dict((k, list(v)) for k, v in data.iteritems()))
+        assert_frame_equal(result, expected)
+
     def test_constructor_ndarray(self):
         mat = np.zeros((2, 3), dtype=float)
 
@@ -1863,6 +1872,28 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(result, expected)
 
     def test_constructor_list_of_series(self):
+        data = [{'a': 1.5, 'b': 3.0, 'c':4.0},
+                {'a': 1.5, 'b': 3.0, 'c':6.0}]
+        sdict = dict(zip(['x', 'y'], data))
+        idx = Index(['a', 'b', 'c'])
+
+        # all named
+        data2 = [Series([1.5, 3, 4], idx, dtype='O', name='x'),
+                 Series([1.5, 3, 6], idx, name='y')]
+        result = DataFrame(data2)
+        expected = DataFrame.from_dict(sdict, orient='index')
+        assert_frame_equal(result, expected)
+
+        # some unnamed
+        data2 = [Series([1.5, 3, 4], idx, dtype='O', name='x'),
+                 Series([1.5, 3, 6], idx)]
+        result = DataFrame(data2)
+
+        sdict = dict(zip(['x', 'Unnamed 0'], data))
+        expected = DataFrame.from_dict(sdict, orient='index')
+        assert_frame_equal(result.sort_index(), expected)
+
+        # none named
         data = [{'a': 1.5, 'b': 3, 'c':4, 'd':6},
                 {'a': 1.5, 'b': 3, 'd':6},
                 {'a': 1.5, 'd':6},
@@ -2536,6 +2567,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             expected = self.frame.ix[i,:].reset_index(drop=True)
             assert_series_equal(s, expected)
 
+        df = DataFrame({'floats': np.random.randn(5),
+                        'ints': range(5)}, columns=['floats', 'ints'])
+
+        for tup in df.itertuples(index=False):
+            self.assert_(isinstance(tup[1], np.integer))
+
     def test_len(self):
         self.assertEqual(len(self.frame), len(self.frame.index))
 
@@ -3064,6 +3101,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = DataFrame.from_csv(path, index_col=[0, 1, 2],
                                     parse_dates=False)
         assert_frame_equal(result, df)
+
+        # column aliases
+        col_aliases = Index(['AA', 'X', 'Y', 'Z'])
+        self.frame2.to_csv(path, header=col_aliases)
+        rs = DataFrame.from_csv(path)
+        xp = self.frame2.copy()
+        xp.columns = col_aliases
+
+        assert_frame_equal(xp, rs)
+
+        self.assertRaises(ValueError, self.frame2.to_csv, path,
+                          header=['AA', 'X'])
+
         os.remove(path)
 
     def test_to_csv_multiindex(self):
@@ -3248,6 +3298,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             np.testing.assert_equal('test1', reader.sheet_names[0])
             np.testing.assert_equal('test2', reader.sheet_names[1])
 
+            # column aliases
+            col_aliases = Index(['AA', 'X', 'Y', 'Z'])
+            self.frame2.to_excel(path, 'test1', header=col_aliases)
+            reader = ExcelFile(path)
+            rs = reader.parse('test1', index_col=0)
+            xp = self.frame2.copy()
+            xp.columns = col_aliases
+            assert_frame_equal(xp, rs)
 
             os.remove(path)
 
@@ -5290,6 +5348,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                               [1.5, nan, 7.]])
         assert_frame_equal(df, expected)
 
+    def test_update_raise(self):
+        df = DataFrame([[1.5, 1, 3.],
+                        [1.5, nan, 3.],
+                        [1.5, nan, 3],
+                        [1.5, nan, 3]])
+
+        other = DataFrame([[2., nan],
+                           [nan, 7]], index=[1, 3], columns=[1,2])
+
+        np.testing.assert_raises(Exception, df.update, *(other,),
+                **{'raise_conflict' : True})
 
     def test_combineAdd(self):
         # trivial
@@ -6324,6 +6393,35 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_any_all(self):
         self._check_bool_op('any', np.any, has_skipna=True, has_bool_only=True)
         self._check_bool_op('all', np.all, has_skipna=True, has_bool_only=True)
+
+    def test_consolidate_datetime64(self):
+        # numpy vstack bug
+
+        data = """\
+starting,ending,measure
+2012-06-21 00:00,2012-06-23 07:00,77
+2012-06-23 07:00,2012-06-23 16:30,65
+2012-06-23 16:30,2012-06-25 08:00,77
+2012-06-25 08:00,2012-06-26 12:00,0
+2012-06-26 12:00,2012-06-27 08:00,77
+"""
+        df = read_csv(StringIO(data), parse_dates=[0,1])
+
+        ser_starting = df.starting
+        ser_starting.index = ser_starting.values
+        ser_starting = ser_starting.tz_localize('US/Eastern')
+        ser_starting = ser_starting.tz_convert('UTC')
+
+        ser_ending = df.ending
+        ser_ending.index = ser_ending.values
+        ser_ending = ser_ending.tz_localize('US/Eastern')
+        ser_ending = ser_ending.tz_convert('UTC')
+
+        df.starting = ser_starting.index
+        df.ending = ser_ending.index
+
+        assert_array_equal(df.starting.values, ser_starting.index.values)
+        assert_array_equal(df.ending.values, ser_ending.index.values)
 
     def _check_bool_op(self, name, alternative, frame=None, has_skipna=True,
                        has_bool_only=False):

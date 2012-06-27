@@ -246,20 +246,37 @@ _offset_to_period_map = {
     'BA' : 'A',
     'AS' : 'A',
     'BAS' : 'A',
-    'MS' : 'M'
+    'MS' : 'M',
+    'D' : 'D',
+    'B' : 'B',
+    'T' : 'T',
+    'S' : 'S',
+    'H' : 'H',
+    'Q' : 'Q',
+    'A' : 'A',
+    'W' : 'W',
+    'M' : 'M'
 }
 
 need_suffix = ['QS', 'BQ', 'BQS', 'AS', 'BA', 'BAS']
-months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP',
-          'OCT', 'NOV', 'DEC']
-for prefix in need_suffix:
-    for m in months:
-        _offset_to_period_map['%s-%s' % (prefix, m)] = \
-            _offset_to_period_map[prefix]
+_months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP',
+           'OCT', 'NOV', 'DEC']
+for __prefix in need_suffix:
+    for _m in _months:
+        _offset_to_period_map['%s-%s' % (__prefix, _m)] = \
+            _offset_to_period_map[__prefix]
+for __prefix in ['A', 'Q']:
+    for _m in _months:
+        _alias = '%s-%s' % (__prefix, _m)
+        _offset_to_period_map[_alias] = _alias
+
+_days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
+for _d in _days:
+    _offset_to_period_map['W-%s' % _d] = 'W-%s' % _d
 
 def get_period_alias(offset_str):
     """ alias to closest period strings BQ->Q etc"""
-    return _offset_to_period_map.get(offset_str, offset_str)
+    return _offset_to_period_map.get(offset_str, None)
 
 _rule_aliases = {
     # Legacy rules that will continue to map to their original values
@@ -302,11 +319,11 @@ _rule_aliases = {
     'us': 'U'
 }
 
-for i, weekday in enumerate(['MON', 'TUE', 'WED', 'THU', 'FRI']):
-    for iweek in xrange(4):
-        name = 'WOM-%d%s' % (iweek + 1, weekday)
-        _offset_map[name] = offsets.WeekOfMonth(week=iweek, weekday=i)
-        _rule_aliases[name.replace('-', '@')] = name
+for _i, _weekday in enumerate(['MON', 'TUE', 'WED', 'THU', 'FRI']):
+    for _iweek in xrange(4):
+        _name = 'WOM-%d%s' % (_iweek + 1, _weekday)
+        _offset_map[_name] = offsets.WeekOfMonth(week=_iweek, weekday=_i)
+        _rule_aliases[_name.replace('-', '@')] = _name
 
 _legacy_reverse_map = dict((v, k) for k, v in _rule_aliases.iteritems())
 
@@ -542,8 +559,8 @@ _period_code_map = {
 }
 
 _reverse_period_code_map = {}
-for k, v in _period_code_map.iteritems():
-    _reverse_period_code_map[v] = k
+for _k, _v in _period_code_map.iteritems():
+    _reverse_period_code_map[_v] = _k
 
 # Additional aliases
 _period_code_map.update({

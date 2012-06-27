@@ -194,6 +194,9 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(df.boxplot, notch=1)
         _check_plot_works(df.boxplot, by='indic', notch=1)
 
+        df = DataFrame(np.random.rand(10,2), columns=['Col1', 'Col2'] )
+        df['X'] = Series(['A','A','A','A','A','B','B','B','B','B'])
+        _check_plot_works(df.boxplot, by='X')
 
     @slow
     def test_kde(self):
@@ -222,6 +225,9 @@ class TestDataFramePlots(unittest.TestCase):
         #make sure layout is handled
         df = DataFrame(np.random.randn(100, 6))
         _check_plot_works(df.hist)
+
+        #make sure sharex, sharey is handled
+        _check_plot_works(df.hist, sharex=True, sharey=True)
 
         #make sure kwargs are handled
         ser = df[0]

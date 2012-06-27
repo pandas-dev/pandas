@@ -1355,6 +1355,16 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         expected = self.frame.ix[[0, 2, 3, 6, 7, 9]].T
         assert_frame_equal(result, expected)
 
+    def test_drop_preserve_names(self):
+        index = MultiIndex.from_arrays([[0, 0, 0, 1, 1, 1],
+                                        [1, 2, 3, 1, 2, 3]],
+                                       names=['one', 'two'])
+
+        df = DataFrame(np.random.randn(6, 3), index=index)
+
+        result = df.drop([(0, 2)])
+        self.assert_(result.index.names == ['one', 'two'])
+
     def test_unicode_repr_issues(self):
         levels = [Index([u'a/\u03c3', u'b/\u03c3',u'c/\u03c3']),
                   Index([0, 1])]

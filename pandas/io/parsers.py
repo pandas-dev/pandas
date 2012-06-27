@@ -662,7 +662,7 @@ class TextParser(object):
             index_name = None
         elif np.isscalar(self.index_col):
             if isinstance(self.index_col, basestring):
-                index_names = self.index_col
+                index_name = self.index_col
                 for i, c in enumerate(list(columns)):
                     if c == self.index_col:
                         self.index_col = i
@@ -1029,9 +1029,9 @@ def _convert_types(values, na_values):
         return values, na_count
 
     try:
-        result = lib.maybe_convert_numeric(values, na_values)
+        result = lib.maybe_convert_numeric(values, na_values, False)
     except Exception:
-        na_count = lib.sanitize_objects(values, na_values)
+        na_count = lib.sanitize_objects(values, na_values, False)
         result = values
 
     if result.dtype == np.object_:

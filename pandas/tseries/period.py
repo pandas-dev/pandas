@@ -1,6 +1,5 @@
 # pylint: disable=E1101,E1103,W0232
-
-from datetime import datetime
+from datetime import datetime, date
 import numpy as np
 
 from pandas.tseries.frequencies import (get_freq_code as _gfc, to_offset,
@@ -102,6 +101,10 @@ class Period(object):
 
         elif isinstance(value, datetime):
             dt = value
+            if freq is None:
+                raise ValueError('Must supply freq for datetime value')
+        elif isinstance(value, date):
+            dt = datetime(year=value.year, month=value.month, day=value.day)
             if freq is None:
                 raise ValueError('Must supply freq for datetime value')
         else:

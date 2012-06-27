@@ -7,7 +7,7 @@ Parts derived from scikits.timeseries code, original authors:
 """
 
 from unittest import TestCase
-from datetime import datetime, timedelta
+from datetime import datetime, date, timedelta
 import unittest
 
 from numpy.ma.testutils import assert_equal
@@ -167,6 +167,14 @@ class TestPeriodProperties(TestCase):
 
         i1 = Period(ordinal=200701, freq='M')
         self.assertEqual(i1.year, 18695)
+
+        i1 = Period(datetime(2007, 1, 1), freq='M')
+        i2 = Period('200701', freq='M')
+        self.assertEqual(i1, i2)
+
+        i1 = Period(date(2007, 1, 1), freq='M')
+        i2 = Period(datetime(2007, 1, 1), freq='M')
+        self.assertEqual(i1, i2)
 
         self.assertRaises(ValueError, Period, ordinal=200701)
 
