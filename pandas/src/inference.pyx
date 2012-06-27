@@ -68,6 +68,10 @@ def infer_dtype(object _values):
         if is_date_array(values):
             return 'date'
 
+    elif is_time(val):
+        if is_time_array(values):
+            return 'time'
+
     elif util.is_float_object(val):
         if is_float_array(values):
             return 'floating'
