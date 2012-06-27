@@ -39,6 +39,8 @@ class TestSeriesPlots(unittest.TestCase):
 
     @slow
     def test_plot(self):
+        import matplotlib.pyplot as plt
+        import matplotlib.colors as colors
         _check_plot_works(self.ts.plot, label='foo')
         _check_plot_works(self.ts.plot, use_index=False)
         _check_plot_works(self.ts.plot, rot=0)
@@ -52,6 +54,34 @@ class TestSeriesPlots(unittest.TestCase):
         _check_plot_works(self.series[:10].plot, kind='barh')
 
         Series(np.random.randn(10)).plot(kind='bar',color='black')
+
+        default_colors = 'brgyk'
+        custom_colors = 'rgcby'
+
+        plt.close('all')
+        df = DataFrame(np.random.randn(5, 5))
+        ax = df.plot(kind='bar')
+
+        rects = ax.patches
+
+        conv = colors.colorConverter
+        for i, rect in enumerate(rects[:5]):
+            xp = conv.to_rgba(default_colors[i])
+            rs = rect.get_facecolor()
+            self.assert_(xp, rs)
+
+        plt.close('all')
+
+        ax = df.plot(kind='bar', color=custom_colors)
+
+        rects = ax.patches
+
+        conv = colors.colorConverter
+        for i, rect in enumerate(rects[:5]):
+            xp = conv.to_rgba(custom_colors[i])
+            rs = rect.get_facecolor()
+            self.assert_(xp, rs)
+
 
     @slow
     def test_irregular_datetime(self):

@@ -498,9 +498,8 @@ class MPLPlot(object):
 
     def _get_xticks(self, convert_period=False):
         index = self.data.index
-        is_datetype = (index.inferred_type in ('datetime', 'date',
-                                               'datetime64')
-                       or lib.is_time_array(index))
+        is_datetype = index.inferred_type in ('datetime', 'date',
+                                              'datetime64', 'time')
 
         if self.use_index:
             if convert_period and isinstance(index, PeriodIndex):
@@ -515,7 +514,6 @@ class MPLPlot(object):
                 """
                 x = index._mpl_repr()
             else:
-                foo
                 self._need_to_set_index = True
                 x = range(len(index))
         else:
@@ -750,7 +748,7 @@ class BarPlot(MPLPlot):
         return f
 
     def _make_plot(self):
-        colors = 'brgyk'
+        colors = self.kwds.get('color', 'brgyk')
         rects = []
         labels = []
 
@@ -765,8 +763,7 @@ class BarPlot(MPLPlot):
         for i, (label, y) in enumerate(self._iter_data()):
 
             kwds = self.kwds.copy()
-            if 'color' not in kwds:
-                kwds['color'] = colors[i % len(colors)]
+            kwds['color'] = colors[i % len(colors)]
 
             if self.subplots:
                 ax, _ = self._get_ax_and_style(i) #self.axes[i]
