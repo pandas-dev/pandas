@@ -27,6 +27,18 @@ from pandas.io.date_converters import (
     parse_date_time, parse_date_fields, parse_all_fields
 )
 
+def _skip_if_no_xlrd():
+    try:
+        import xlrd
+    except ImportError:
+        raise nose.SkipTest('xlrd not installed, skipping')
+
+def _skip_if_no_openpyxl():
+    try:
+        import openpyxl
+    except ImportError:
+        raise nose.SkipTest('openpyxl not installed, skipping')
+
 
 class TestParsers(unittest.TestCase):
     data1 = """index,A,B,C,D
@@ -678,10 +690,7 @@ baz,7,8,9
         assert_frame_equal(df, df2)
 
     def test_excel_stop_iterator(self):
-        try:
-            import xlrd
-        except ImportError:
-            raise nose.SkipTest('xlrd not installed, skipping')
+        _skip_if_no_xlrd()
 
         excel_data = ExcelFile(os.path.join(self.dirpath, 'test2.xls'))
         parsed = excel_data.parse('Sheet1')
@@ -689,10 +698,7 @@ baz,7,8,9
         assert_frame_equal(parsed, expected)
 
     def test_excel_cell_error_na(self):
-        try:
-            import xlrd
-        except ImportError:
-            raise nose.SkipTest('xlrd not installed, skipping')
+        _skip_if_no_xlrd()
 
         excel_data = ExcelFile(os.path.join(self.dirpath, 'test3.xls'))
         parsed = excel_data.parse('Sheet1')
@@ -700,10 +706,7 @@ baz,7,8,9
         assert_frame_equal(parsed, expected)
 
     def test_excel_table(self):
-        try:
-            import xlrd
-        except ImportError:
-            raise nose.SkipTest('xlrd not installed, skipping')
+        _skip_if_no_xlrd()
 
         pth = os.path.join(self.dirpath, 'test.xls')
         xls = ExcelFile(pth)
@@ -713,11 +716,23 @@ baz,7,8,9
         assert_frame_equal(df, df2)
         assert_frame_equal(df3, df2)
 
+    def test_excel_read_buffer(self):
+        _skip_if_no_xlrd()
+        _skip_if_no_openpyxl()
+
+        pth = os.path.join(self.dirpath, 'test.xls')
+        f = open(pth, 'rb')
+        xls = ExcelFile(f)
+        # it works
+        xls.parse('Sheet1', index_col=0, parse_dates=True)
+
+        pth = os.path.join(self.dirpath, 'test.xlsx')
+        f = open(pth, 'rb')
+        xl = ExcelFile(f)
+        df = xl.parse('Sheet1', index_col=0, parse_dates=True)
+
     def test_xlsx_table(self):
-        try:
-            import openpyxl
-        except ImportError:
-            raise nose.SkipTest('openpyxl not installed, skipping')
+        _skip_if_no_openpyxl()
 
         pth = os.path.join(self.dirpath, 'test.xlsx')
         xlsx = ExcelFile(pth)

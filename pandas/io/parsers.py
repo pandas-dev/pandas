@@ -1128,22 +1128,48 @@ class ExcelFile(object):
 
     Parameters
     ----------
-    path : string
+    path : string or file-like object
         Path to xls file
+    kind : {'xls', 'xlsx', None}, default None
     """
-    def __init__(self, path):
+    def __init__(self, path_or_buf):
         self.use_xlsx = True
-        if path.endswith('.xls'):
-            self.use_xlsx = False
-            import xlrd
-            self.book = xlrd.open_workbook(path)
+        self.path_or_buf = path_or_buf
+        self.tmpfile = None
+
+        if isinstance(path_or_buf, basestring):
+            if path_or_buf.endswith('.xls'):
+                self.use_xlsx = False
+                import xlrd
+                self.book = xlrd.open_workbook(path_or_buf)
+            else:
+                try:
+                    from openpyxl.reader.excel import load_workbook
+                    self.book = load_workbook(path_or_buf, use_iterators=True)
+                except ImportError:  # pragma: no cover
+                    raise ImportError(_openpyxl_msg)
         else:
+            import tempfile
+            fd  = tempfile.NamedTemporaryFile(delete=False)
+            fd.write(path_or_buf.read())
+            fd.close()
+
             try:
+                import xlrd
+                self.book = xlrd.open_workbook(fd.name)
+                self.use_xlsx = False
+            except Exception:
                 from openpyxl.reader.excel import load_workbook
-                self.book = load_workbook(path, use_iterators=True)
-            except ImportError:  # pragma: no cover
-                raise ImportError(_openpyxl_msg)
-        self.path = path
+                self.book = load_workbook(fd.name, use_iterators=True)
+
+            self.tmpfile = fd.name
+
+    def __name__(self):
+        if self.tmpfile:
+            try:
+                os.remove(self.tmpfile)
+            except Exception:
+                pass
 
     def __repr__(self):
         return object.__repr__(self)

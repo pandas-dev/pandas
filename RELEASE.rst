@@ -136,6 +136,7 @@ pandas 0.8.0
   - Header argument in DataFrame.to_csv can accept a list of column names to
     use instead of the object's columns (#921)
   - Add ``raise_conflict`` argument to DataFrame.update (#1526)
+  - Support file-like objects in ExcelFile (#1529)
 
 **API Changes**
 
