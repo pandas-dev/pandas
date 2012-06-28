@@ -20,6 +20,7 @@ from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
 import pandas.lib as lib
 from pandas.util import py3compat
 from pandas.lib import Timestamp
+from pandas.tseries.index import date_range
 
 from numpy.testing.decorators import slow
 from pandas.io.date_converters import (
@@ -585,6 +586,21 @@ c,4,5
         expected = read_csv(StringIO(data), index_col=0, parse_dates=True)
         self.assert_(isinstance(df.index[0], (datetime, np.datetime64, Timestamp)))
         assert_frame_equal(df, expected)
+
+    def test_parse_dates_string(self):
+        data = """date,A,B,C
+20090101,a,1,2
+20090102,b,3,4
+20090103,c,4,5
+"""
+        rs = read_csv(StringIO(data), index_col='date', parse_dates='date')
+        idx = date_range('1/1/2009', periods=3).asobject
+        idx.name = 'date'
+        xp = DataFrame({'A': ['a', 'b', 'c'],
+                        'B': [1, 3, 4],
+                        'C': [2, 4, 5]}, idx)
+        assert_frame_equal(rs, xp)
+
 
     def test_parse_dates_column_list(self):
         from pandas.core.datetools import to_datetime

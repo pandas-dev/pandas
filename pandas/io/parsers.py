@@ -864,14 +864,15 @@ class TextParser(object):
         if isinstance(self.parse_dates, bool):
             return self.parse_dates
         else:
-            to_parse = self.parse_dates # int/string or list of int or string
-
             if np.isscalar(self.index_col):
                 name = self.index_name
             else:
                 name = self.index_name[i]
 
-            return i in to_parse or name in to_parse
+            if np.isscalar(self.parse_dates):
+                return (i == self.parse_dates) or (name == self.parse_dates)
+            else:
+                return (i in self.parse_dates) or (name in self.parse_dates)
 
     def _conv_date(self, *date_cols):
         if self.date_parser is None:
