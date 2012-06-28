@@ -976,35 +976,34 @@ class Index(np.ndarray):
             else:
                 return ret_index
 
+        sv = self.values
+        ov = other.values
+
         if self.is_unique and other.is_unique:
             # We can perform much better than the general case
             if how == 'left':
                 join_index = self
                 lidx = None
-                ridx = self._left_indexer_unique(self, other)
+                ridx = self._left_indexer_unique(sv, ov)
             elif how == 'right':
                 join_index = other
-                lidx = self._left_indexer_unique(other, self)
+                lidx = self._left_indexer_unique(ov, sv)
                 ridx = None
             elif how == 'inner':
-                join_index, lidx, ridx = self._inner_indexer(self.values,
-                                                             other.values)
+                join_index, lidx, ridx = self._inner_indexer(sv,ov)
                 join_index = self._wrap_joined_index(join_index, other)
             elif how == 'outer':
-                join_index, lidx, ridx = self._outer_indexer(self.values,
-                                                             other.values)
+                join_index, lidx, ridx = self._outer_indexer(sv, ov)
                 join_index = self._wrap_joined_index(join_index, other)
         else:
             if how == 'left':
-                join_index, lidx, ridx = self._left_indexer(self, other)
+                join_index, lidx, ridx = self._left_indexer(sv, ov)
             elif how == 'right':
                 join_index, ridx, lidx = self._left_indexer(other, self)
             elif how == 'inner':
-                join_index, lidx, ridx = self._inner_indexer(self.values,
-                                                             other.values)
+                join_index, lidx, ridx = self._inner_indexer(sv, ov)
             elif how == 'outer':
-                join_index, lidx, ridx = self._outer_indexer(self.values,
-                                                             other.values)
+                join_index, lidx, ridx = self._outer_indexer(sv, ov)
             join_index = self._wrap_joined_index(join_index, other)
 
         if return_indexers:

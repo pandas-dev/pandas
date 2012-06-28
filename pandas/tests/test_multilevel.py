@@ -1384,6 +1384,16 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         df['new'] = s
         self.assert_(df['new'].isnull().all())
 
+    def test_join_segfault(self):
+        # 1532
+        df1 = DataFrame({'a': [1, 1], 'b': [1, 2], 'x': [1, 2]})
+        df2 = DataFrame({'a': [2, 2], 'b': [1, 2], 'y': [1, 2]})
+        df1 = df1.set_index(['a', 'b'])
+        df2 = df2.set_index(['a', 'b'])
+        # it works!
+        for how in ['left', 'right', 'outer']:
+            df1.join(df2, how=how)
+
 if __name__ == '__main__':
 
     # unittest.main()
