@@ -180,7 +180,7 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
     else:
         fac = ids - 1
         if has_nas:
-            fac = ids.astype(np.float64)
+            fac = fac.astype(np.float64)
             np.putmask(fac, na_mask, np.nan)
 
     if not retbins:
