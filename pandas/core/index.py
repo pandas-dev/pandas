@@ -714,12 +714,12 @@ class Index(np.ndarray):
 
         if method == 'pad':
             assert(self.is_monotonic)
-            indexer = self._engine.get_pad_indexer(target, limit)
+            indexer = self._engine.get_pad_indexer(target.values, limit)
         elif method == 'backfill':
             assert(self.is_monotonic)
-            indexer = self._engine.get_backfill_indexer(target, limit)
+            indexer = self._engine.get_backfill_indexer(target.values, limit)
         elif method is None:
-            indexer = self._engine.get_indexer(target)
+            indexer = self._engine.get_indexer(target.values)
         else:
             raise ValueError('unrecognized method: %s' % method)
 
@@ -1535,6 +1535,9 @@ class MultiIndex(Index):
             raise Exception('Cannot infer number of levels from empty list')
 
         if isinstance(tuples, np.ndarray):
+            if isinstance(tuples, Index):
+               tuples = tuples.values
+
             arrays = list(lib.tuples_to_object_array(tuples).T)
         elif isinstance(tuples, list):
             arrays = list(lib.to_object_array_tuples(tuples).T)

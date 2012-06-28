@@ -1376,6 +1376,13 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         # NumPy bug
         # repr(index.get_level_values(1))
 
+    def test_dataframe_insert_column_all_na(self):
+        # GH #1534
+        mix = MultiIndex.from_tuples([('1a', '2a'), ('1a', '2b'), ('1a', '2c')])
+        df = DataFrame([[1,2],[3,4],[5,6]], index=mix)
+        s = Series({(1,1): 1, (1,2): 2})
+        df['new'] = s
+        self.assert_(df['new'].isnull().all())
 
 if __name__ == '__main__':
 
