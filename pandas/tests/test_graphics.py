@@ -39,8 +39,6 @@ class TestSeriesPlots(unittest.TestCase):
 
     @slow
     def test_plot(self):
-        import matplotlib.pyplot as plt
-        import matplotlib.colors as colors
         _check_plot_works(self.ts.plot, label='foo')
         _check_plot_works(self.ts.plot, use_index=False)
         _check_plot_works(self.ts.plot, rot=0)
@@ -54,6 +52,11 @@ class TestSeriesPlots(unittest.TestCase):
         _check_plot_works(self.series[:10].plot, kind='barh')
 
         Series(np.random.randn(10)).plot(kind='bar',color='black')
+
+    @slow
+    def test_bar_colors(self):
+        import matplotlib.pyplot as plt
+        import matplotlib.colors as colors
 
         default_colors = 'brgyk'
         custom_colors = 'rgcby'
