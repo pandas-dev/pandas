@@ -7,14 +7,12 @@ import numpy as np
 
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
-from pandas.core.index import Index, MultiIndex
+from pandas.core.index import MultiIndex
 from pandas.core.series import Series, remove_na
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.frequencies import get_period_alias, get_base_alias
 from pandas.tseries.offsets import DateOffset
-import pandas.tseries.tools as datetools
-import pandas.lib as lib
 
 try: # mpl optional
     import pandas.tseries.converter as conv

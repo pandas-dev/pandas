@@ -4,8 +4,6 @@ import numpy as np
 
 import matplotlib.units as units
 import matplotlib.dates as dates
-import matplotlib.cbook as cbook
-from matplotlib import pylab
 from matplotlib.ticker import Formatter, AutoLocator, Locator
 from matplotlib.transforms import nonsingular
 

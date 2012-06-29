@@ -519,6 +519,7 @@ class CheckIndexing(object):
     def test_getitem_fancy_xs(self):
         p = self.panel
         item = 'ItemB'
+
         date = p.major_axis[5]
         col = 'C'
 
@@ -564,6 +565,16 @@ class CheckIndexing(object):
         self._check_view((item, date, NS), comp)
         self._check_view((item, NS, 'C'), comp)
         self._check_view((NS, date, 'C'), comp)
+
+    def test_ix_setitem_slice_dataframe(self):
+        a = Panel(items=[1,2,3],major_axis=[11,22,33],minor_axis=[111,222,333])
+        b = DataFrame(np.random.randn(2,3), index=[111,333],
+                      columns=[1,2,3])
+
+        a.ix[:, 22, [111, 333]] = b
+
+        assert_frame_equal(a.ix[:, 22, [111, 333]], b)
+
 
     def _check_view(self, indexer, comp):
         cp = self.panel.copy()
