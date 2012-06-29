@@ -153,7 +153,6 @@ def _read(cls, filepath_or_buffer, kwds):
         from urllib2 import urlopen
         filepath_or_buffer = urlopen(filepath_or_buffer)
         if py3compat.PY3:  # pragma: no cover
-            from io import TextIOWrapper
             if encoding:
                 errors = 'strict'
             else:
@@ -215,7 +214,19 @@ def read_csv(filepath_or_buffer,
              delimiter=None,
              encoding=None,
              squeeze=False):
-    kwds = locals()
+    kwds = dict(filepath_or_buffer=filepath_or_buffer,
+                sep=sep, dialect=dialect,
+                header=header, index_col=index_col,
+                names=names, skiprows=skiprows,
+                na_values=na_values, thousands=thousands,
+                comment=comment, parse_dates=parse_dates,
+                keep_date_col=keep_date_col,
+                dayfirst=dayfirst, date_parser=date_parser,
+                nrows=nrows, iterator=iterator,
+                chunksize=chunksize, skip_footer=skip_footer,
+                converters=converters, verbose=verbose,
+                delimiter=delimiter, encoding=encoding,
+                squeeze=squeeze)
 
     # Alias sep -> delimiter.
     sep = kwds.pop('sep')
@@ -248,7 +259,19 @@ def read_table(filepath_or_buffer,
                delimiter=None,
                encoding=None,
                squeeze=False):
-    kwds = locals()
+    kwds = dict(filepath_or_buffer=filepath_or_buffer,
+                sep=sep, dialect=dialect,
+                header=header, index_col=index_col,
+                names=names, skiprows=skiprows,
+                na_values=na_values, thousands=thousands,
+                comment=comment, parse_dates=parse_dates,
+                keep_date_col=keep_date_col,
+                dayfirst=dayfirst, date_parser=date_parser,
+                nrows=nrows, iterator=iterator,
+                chunksize=chunksize, skip_footer=skip_footer,
+                converters=converters, verbose=verbose,
+                delimiter=delimiter, encoding=encoding,
+                squeeze=squeeze)
 
     # Alias sep -> delimiter.
     sep = kwds.pop('sep')
@@ -284,8 +307,19 @@ def read_fwf(filepath_or_buffer,
              verbose=False,
              encoding=None,
              squeeze=False):
-
-    kwds = locals()
+    kwds = dict(filepath_or_buffer=filepath_or_buffer,
+                colspecs=colspecs, widths=widths,
+                header=header, index_col=index_col,
+                names=names, skiprows=skiprows,
+                na_values=na_values, thousands=thousands,
+                comment=comment, parse_dates=parse_dates,
+                keep_date_col=keep_date_col,
+                dayfirst=dayfirst, date_parser=date_parser,
+                nrows=nrows, iterator=iterator,
+                chunksize=chunksize, skip_footer=skip_footer,
+                converters=converters, verbose=verbose,
+                delimiter=delimiter, encoding=encoding,
+                squeeze=squeeze)
 
     # Check input arguments.
     colspecs = kwds.get('colspecs', None)
@@ -466,8 +500,6 @@ class TextParser(object):
         self.squeeze = squeeze
 
     def _make_reader(self, f):
-        import csv
-
         sep = self.delimiter
 
         if sep is None or len(sep) == 1:
