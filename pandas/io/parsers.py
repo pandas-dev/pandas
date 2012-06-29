@@ -1149,20 +1149,16 @@ class ExcelFile(object):
                 except ImportError:  # pragma: no cover
                     raise ImportError(_openpyxl_msg)
         else:
-            import tempfile
-            fd  = tempfile.NamedTemporaryFile()
-            fd.write(path_or_buf.read())
-            fd.seek(0)
+            data = path_or_buf.read()
 
             try:
                 import xlrd
-                self.book = xlrd.open_workbook(fd.name)
+                self.book = xlrd.open_workbook(file_contents=data)
                 self.use_xlsx = False
             except Exception:
                 from openpyxl.reader.excel import load_workbook
-                self.book = load_workbook(fd.name, use_iterators=True)
-
-            self.tmpfile = fd
+                buf = py3compat.BytesIO(data)
+                self.book = load_workbook(buf, use_iterators=True)
 
     def __repr__(self):
         return object.__repr__(self)
