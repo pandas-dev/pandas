@@ -361,7 +361,10 @@ class _NDFrameIndexer(object):
                 objarr = _check_bool_indexer(labels, obj)
                 return objarr
             else:
-                objarr = _asarray_tuplesafe(obj)
+                if isinstance(obj, Index):
+                    objarr = obj.values
+                else:
+                    objarr = _asarray_tuplesafe(obj)
 
                 # If have integer labels, defer to label-based indexing
                 if _is_integer_dtype(objarr) and not is_int_index:

@@ -1394,6 +1394,16 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         for how in ['left', 'right', 'outer']:
             df1.join(df2, how=how)
 
+    def test_set_column_scalar_with_ix(self):
+        subset = self.frame.index[[1, 4, 5]]
+
+        self.frame.ix[subset] = 99
+        self.assert_((self.frame.ix[subset].values == 99).all())
+
+        col = self.frame['B']
+        col[subset] = 97
+        self.assert_((self.frame.ix[subset, 'B'] == 97).all())
+
 if __name__ == '__main__':
 
     # unittest.main()

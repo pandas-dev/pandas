@@ -477,7 +477,10 @@ copy : boolean, default False
             if not isinstance(key, (list, np.ndarray)):  # pragma: no cover
                 key = list(key)
 
-            key_type = lib.infer_dtype(key)
+            if isinstance(key, Index):
+                key_type = lib.infer_dtype(key.values)
+            else:
+                key_type = lib.infer_dtype(key)
 
             if key_type == 'integer':
                 if self.index.inferred_type == 'integer':
@@ -564,7 +567,10 @@ copy : boolean, default False
             if not isinstance(key, (list, np.ndarray)):
                 key = list(key)
 
-            key_type = lib.infer_dtype(key)
+            if isinstance(key, Index):
+                key_type = lib.infer_dtype(key.values)
+            else:
+                key_type = lib.infer_dtype(key)
 
             if key_type == 'integer':
                 if self.index.inferred_type == 'integer':
@@ -577,7 +583,10 @@ copy : boolean, default False
                 self._set_labels(key, value)
 
     def _set_labels(self, key, value):
-        key = _asarray_tuplesafe(key)
+        if isinstance(key, Index):
+            key = key.values
+        else:
+            key = _asarray_tuplesafe(key)
         indexer = self.index.get_indexer(key)
         mask = indexer == -1
         if mask.any():

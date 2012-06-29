@@ -1150,9 +1150,9 @@ class ExcelFile(object):
                     raise ImportError(_openpyxl_msg)
         else:
             import tempfile
-            fd  = tempfile.NamedTemporaryFile(delete=False)
+            fd  = tempfile.NamedTemporaryFile()
             fd.write(path_or_buf.read())
-            fd.close()
+            fd.seek(0)
 
             try:
                 import xlrd
@@ -1162,14 +1162,7 @@ class ExcelFile(object):
                 from openpyxl.reader.excel import load_workbook
                 self.book = load_workbook(fd.name, use_iterators=True)
 
-            self.tmpfile = fd.name
-
-    def __name__(self):
-        if self.tmpfile:
-            try:
-                os.remove(self.tmpfile)
-            except Exception:
-                pass
+            self.tmpfile = fd
 
     def __repr__(self):
         return object.__repr__(self)
