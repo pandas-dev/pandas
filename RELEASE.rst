@@ -211,6 +211,7 @@ pandas 0.8.0
   - Bug fixes in MonthBegin (#1483)
   - Preserve MultiIndex names in drop (#1513)
   - Fix Panel DataFrame slice-assignment bug (#1533)
+  - Don't use locals() in read_* functions (#1547)
 
 pandas 0.7.3
 ============
