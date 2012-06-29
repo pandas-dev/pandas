@@ -7,14 +7,18 @@ import numpy as np
 
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
-from pandas.core.index import Index, MultiIndex
+from pandas.core.index import MultiIndex
 from pandas.core.series import Series, remove_na
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.frequencies import get_period_alias, get_base_alias
 from pandas.tseries.offsets import DateOffset
-import pandas.tseries.tools as datetools
-import pandas.lib as lib
+
+try: # mpl optional
+    import pandas.tseries.converter as conv
+    conv.register()
+except ImportError:
+    pass
 
 def _get_standard_kind(kind):
     return {'density' : 'kde'}.get(kind, kind)
@@ -136,6 +140,9 @@ def _gcf():
 
 def _get_marker_compat(marker):
     import matplotlib.lines as mlines
+    import matplotlib as mpl
+    if mpl.__version__ < '1.1.0' and marker == '.':
+        return 'o'
     if marker not in mlines.lineMarkers:
         return 'o'
     return marker
@@ -493,7 +500,7 @@ class MPLPlot(object):
     def _get_xticks(self, convert_period=False):
         index = self.data.index
         is_datetype = index.inferred_type in ('datetime', 'date',
-                                              'datetime64')
+                                              'datetime64', 'time')
 
         if self.use_index:
             if convert_period and isinstance(index, PeriodIndex):
@@ -577,40 +584,6 @@ class KdePlot(MPLPlot):
 
         if self.subplots and self.legend:
             self.axes[0].legend(loc='best')
-
-try: # matplotlib is optional dependency
-    import matplotlib.units as units
-    import matplotlib.dates as dates
-
-    class DatetimeConverter(dates.DateConverter):
-
-        @staticmethod
-        def convert(values, unit, axis):
-            def try_parse(values):
-                try:
-                    return datetools.to_datetime(values).toordinal()
-                except Exception:
-                    return values
-
-            if isinstance(values, (datetime.datetime, datetime.date)):
-                return values.toordinal()
-            elif isinstance(values, (datetime.time)):
-                return dates.date2num(values)
-            elif (com.is_integer(values) or com.is_float(values)):
-                return values
-            elif isinstance(values, str):
-                return try_parse(values)
-            elif isinstance(values, Index):
-                return values.map(try_parse)
-            elif isinstance(values, (list, tuple, np.ndarray)):
-                return [try_parse(x) for x in values]
-            return values
-
-    units.registry[lib.Timestamp] = DatetimeConverter()
-    units.registry[datetime.date] = DatetimeConverter()
-    units.registry[datetime.datetime] = DatetimeConverter()
-except ImportError:
-    pass
 
 class LinePlot(MPLPlot):
 
@@ -776,7 +749,7 @@ class BarPlot(MPLPlot):
         return f
 
     def _make_plot(self):
-        colors = 'brgyk'
+        colors = self.kwds.get('color', 'brgyk')
         rects = []
         labels = []
 
@@ -791,8 +764,7 @@ class BarPlot(MPLPlot):
         for i, (label, y) in enumerate(self._iter_data()):
 
             kwds = self.kwds.copy()
-            if 'color' not in kwds:
-                kwds['color'] = colors[i % len(colors)]
+            kwds['color'] = colors[i % len(colors)]
 
             if self.subplots:
                 ax, _ = self._get_ax_and_style(i) #self.axes[i]
@@ -1255,6 +1227,70 @@ def hist_series(self, ax=None, grid=True, xlabelsize=None, xrot=None,
 
     return ax
 
+def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
+                          rot=0, grid=True, figsize=None, **kwds):
+    """
+    Make box plots from DataFrameGroupBy data.
+
+    Parameters
+    ----------
+    subplots :
+        * ``False`` - no subplots will be used
+        * ``True`` - create a subplot for each group
+    column : column name or list of names, or vector
+        Can be any valid input to groupby
+    fontsize : int or string
+    rot : label rotation angle
+    kwds : other plotting keyword arguments to be passed to matplotlib boxplot
+           function
+
+    Returns
+    -------
+    dict of key/value = group key/DataFrame.boxplot return value
+    or DataFrame.boxplot return value in case subplots=figures=False
+
+    Examples
+    --------
+    >>> import pandas
+    >>> import numpy as np
+    >>> import itertools
+    >>>
+    >>> tuples = [t for t in itertools.product(range(1000), range(4))]
+    >>> index = pandas.MultiIndex.from_tuples(tuples, names=['lvl0', 'lvl1'])
+    >>> data = np.random.randn(len(index),4)
+    >>> df = pandas.DataFrame(data, columns=list('ABCD'), index=index)
+    >>>
+    >>> grouped = df.groupby(level='lvl1')
+    >>> boxplot_frame_groupby(grouped)
+    >>>
+    >>> grouped = df.unstack(level='lvl1').groupby(level=0, axis=1)
+    >>> boxplot_frame_groupby(grouped, subplots=False)
+    """
+    if subplots is True:
+        nrows, ncols = _get_layout(len(grouped))
+        _, axes = _subplots(nrows=nrows, ncols=ncols, squeeze=False,
+                            sharex=False, sharey=True)
+        axes = axes.reshape(-1) if len(grouped) > 1 else axes
+
+        ret = {}
+        for (key, group), ax in zip(grouped, axes):
+            d = group.boxplot(ax=ax, column=column, fontsize=fontsize,
+                              rot=rot, grid=grid, figsize=figsize, **kwds)
+            ax.set_title(_stringify(key))
+            ret[key] = d
+    else:
+        from pandas.tools.merge import concat
+        keys, frames = zip(*grouped)
+        if grouped.axis == 0:
+            df = concat(frames, keys=keys, axis=1)
+        else:
+            if len(frames) > 1:
+                df = frames[0].join(frames[1::])
+            else:
+                df = frames[0]
+        ret = df.boxplot(column=column, fontsize=fontsize, rot=rot,
+                         grid=grid, figsize=figsize, **kwds)
+    return ret
 
 def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
                   figsize=None, sharex=True, sharey=True, layout=None,

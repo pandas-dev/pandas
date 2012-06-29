@@ -1376,6 +1376,33 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         # NumPy bug
         # repr(index.get_level_values(1))
 
+    def test_dataframe_insert_column_all_na(self):
+        # GH #1534
+        mix = MultiIndex.from_tuples([('1a', '2a'), ('1a', '2b'), ('1a', '2c')])
+        df = DataFrame([[1,2],[3,4],[5,6]], index=mix)
+        s = Series({(1,1): 1, (1,2): 2})
+        df['new'] = s
+        self.assert_(df['new'].isnull().all())
+
+    def test_join_segfault(self):
+        # 1532
+        df1 = DataFrame({'a': [1, 1], 'b': [1, 2], 'x': [1, 2]})
+        df2 = DataFrame({'a': [2, 2], 'b': [1, 2], 'y': [1, 2]})
+        df1 = df1.set_index(['a', 'b'])
+        df2 = df2.set_index(['a', 'b'])
+        # it works!
+        for how in ['left', 'right', 'outer']:
+            df1.join(df2, how=how)
+
+    def test_set_column_scalar_with_ix(self):
+        subset = self.frame.index[[1, 4, 5]]
+
+        self.frame.ix[subset] = 99
+        self.assert_((self.frame.ix[subset].values == 99).all())
+
+        col = self.frame['B']
+        col[subset] = 97
+        self.assert_((self.frame.ix[subset, 'B'] == 97).all())
 
 if __name__ == '__main__':
 

@@ -68,6 +68,10 @@ def infer_dtype(object _values):
         if is_date_array(values):
             return 'date'
 
+    elif is_time(val):
+        if is_time_array(values):
+            return 'time'
+
     elif util.is_float_object(val):
         if is_float_array(values):
             return 'floating'
@@ -102,6 +106,9 @@ cdef inline bint is_datetime(object o):
 
 cdef inline bint is_date(object o):
     return PyDate_Check(o)
+
+cdef inline bint is_time(object o):
+    return PyTime_Check(o)
 
 def is_bool_array(ndarray values):
     cdef:
@@ -240,6 +247,14 @@ def is_date_array(ndarray[object] values):
             return False
     return True
 
+def is_time_array(ndarray[object] values):
+    cdef int i, n = len(values)
+    if n == 0:
+        return False
+    for i in range(n):
+        if not is_time(values[i]):
+            return False
+    return True
 
 def maybe_convert_numeric(ndarray[object] values, set na_values,
                           convert_empty=True):

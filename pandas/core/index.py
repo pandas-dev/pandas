@@ -714,12 +714,12 @@ class Index(np.ndarray):
 
         if method == 'pad':
             assert(self.is_monotonic)
-            indexer = self._engine.get_pad_indexer(target, limit)
+            indexer = self._engine.get_pad_indexer(target.values, limit)
         elif method == 'backfill':
             assert(self.is_monotonic)
-            indexer = self._engine.get_backfill_indexer(target, limit)
+            indexer = self._engine.get_backfill_indexer(target.values, limit)
         elif method is None:
-            indexer = self._engine.get_indexer(target)
+            indexer = self._engine.get_indexer(target.values)
         else:
             raise ValueError('unrecognized method: %s' % method)
 
@@ -976,35 +976,34 @@ class Index(np.ndarray):
             else:
                 return ret_index
 
+        sv = self.values
+        ov = other.values
+
         if self.is_unique and other.is_unique:
             # We can perform much better than the general case
             if how == 'left':
                 join_index = self
                 lidx = None
-                ridx = self._left_indexer_unique(self, other)
+                ridx = self._left_indexer_unique(sv, ov)
             elif how == 'right':
                 join_index = other
-                lidx = self._left_indexer_unique(other, self)
+                lidx = self._left_indexer_unique(ov, sv)
                 ridx = None
             elif how == 'inner':
-                join_index, lidx, ridx = self._inner_indexer(self.values,
-                                                             other.values)
+                join_index, lidx, ridx = self._inner_indexer(sv,ov)
                 join_index = self._wrap_joined_index(join_index, other)
             elif how == 'outer':
-                join_index, lidx, ridx = self._outer_indexer(self.values,
-                                                             other.values)
+                join_index, lidx, ridx = self._outer_indexer(sv, ov)
                 join_index = self._wrap_joined_index(join_index, other)
         else:
             if how == 'left':
-                join_index, lidx, ridx = self._left_indexer(self, other)
+                join_index, lidx, ridx = self._left_indexer(sv, ov)
             elif how == 'right':
                 join_index, ridx, lidx = self._left_indexer(other, self)
             elif how == 'inner':
-                join_index, lidx, ridx = self._inner_indexer(self.values,
-                                                             other.values)
+                join_index, lidx, ridx = self._inner_indexer(sv, ov)
             elif how == 'outer':
-                join_index, lidx, ridx = self._outer_indexer(self.values,
-                                                             other.values)
+                join_index, lidx, ridx = self._outer_indexer(sv, ov)
             join_index = self._wrap_joined_index(join_index, other)
 
         if return_indexers:
@@ -1535,6 +1534,9 @@ class MultiIndex(Index):
             raise Exception('Cannot infer number of levels from empty list')
 
         if isinstance(tuples, np.ndarray):
+            if isinstance(tuples, Index):
+               tuples = tuples.values
+
             arrays = list(lib.tuples_to_object_array(tuples).T)
         elif isinstance(tuples, list):
             arrays = list(lib.to_object_array_tuples(tuples).T)

@@ -1879,6 +1879,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         self.series.to_csv('_foo')
         series = Series.from_csv('_foo')
+        self.assert_(series.name is None)
+        self.assert_(series.index.name is None)
         assert_series_equal(self.series, series)
 
         outfile = open('_foo', 'w')

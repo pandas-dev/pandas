@@ -25,7 +25,7 @@ Where to get it
 pandas 0.8.0
 ============
 
-**Release date:** 6/26/2012
+**Release date:** 6/29/2012
 
 **New features**
 
@@ -136,6 +136,7 @@ pandas 0.8.0
   - Header argument in DataFrame.to_csv can accept a list of column names to
     use instead of the object's columns (#921)
   - Add ``raise_conflict`` argument to DataFrame.update (#1526)
+  - Support file-like objects in ExcelFile (#1529)
 
 **API Changes**
 
@@ -209,6 +210,8 @@ pandas 0.8.0
   - Pass keywords to pyplot.boxplot in DataFrame.boxplot (#1493)
   - Bug fixes in MonthBegin (#1483)
   - Preserve MultiIndex names in drop (#1513)
+  - Fix Panel DataFrame slice-assignment bug (#1533)
+  - Don't use locals() in read_* functions (#1547)
 
 pandas 0.7.3
 ============

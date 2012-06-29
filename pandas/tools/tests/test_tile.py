@@ -60,6 +60,12 @@ class TestCut(unittest.TestCase):
 
         self.assertRaises(ValueError, cut, [1, 2, 3], 0.5)
 
+    def test_cut_out_of_range_more(self):
+        # #1511
+        s = Series([0, -1, 0, 1, -3])
+        ind = cut(s, [0, 1], labels=False)
+        exp = [np.nan, np.nan, np.nan, 0, np.nan]
+        assert_almost_equal(ind, exp)
 
     def test_labels(self):
         arr = np.tile(np.arange(0, 1.01, 0.1), 4)

@@ -477,7 +477,10 @@ copy : boolean, default False
             if not isinstance(key, (list, np.ndarray)):  # pragma: no cover
                 key = list(key)
 
-            key_type = lib.infer_dtype(key)
+            if isinstance(key, Index):
+                key_type = lib.infer_dtype(key.values)
+            else:
+                key_type = lib.infer_dtype(key)
 
             if key_type == 'integer':
                 if self.index.inferred_type == 'integer':
@@ -564,7 +567,10 @@ copy : boolean, default False
             if not isinstance(key, (list, np.ndarray)):
                 key = list(key)
 
-            key_type = lib.infer_dtype(key)
+            if isinstance(key, Index):
+                key_type = lib.infer_dtype(key.values)
+            else:
+                key_type = lib.infer_dtype(key)
 
             if key_type == 'integer':
                 if self.index.inferred_type == 'integer':
@@ -577,7 +583,10 @@ copy : boolean, default False
                 self._set_labels(key, value)
 
     def _set_labels(self, key, value):
-        key = _asarray_tuplesafe(key)
+        if isinstance(key, Index):
+            key = key.values
+        else:
+            key = _asarray_tuplesafe(key)
         indexer = self.index.get_indexer(key)
         mask = indexer == -1
         if mask.any():
@@ -2310,7 +2319,9 @@ copy : boolean, default False
         df = DataFrame.from_csv(path, header=header, index_col=index_col,
                                 sep=sep, parse_dates=parse_dates,
                                 encoding=encoding)
-        return df.ix[:, 0]
+        result = df.ix[:, 0]
+        result.index.name = result.name = None
+        return result
 
     def to_csv(self, path, index=True, sep=",", na_rep='', header=False,
                index_label=None, mode='w', nanRep=None, encoding=None):
@@ -2320,7 +2331,7 @@ copy : boolean, default False
         Parameters
         ----------
         path : string file path or file handle / StringIO
-        nanRep : string, default ''
+        na_rep : string, default ''
             Missing data rep'n
         header : boolean, default False
             Write out series name

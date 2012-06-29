@@ -153,7 +153,6 @@ def _read(cls, filepath_or_buffer, kwds):
         from urllib2 import urlopen
         filepath_or_buffer = urlopen(filepath_or_buffer)
         if py3compat.PY3:  # pragma: no cover
-            from io import TextIOWrapper
             if encoding:
                 errors = 'strict'
             else:
@@ -215,7 +214,19 @@ def read_csv(filepath_or_buffer,
              delimiter=None,
              encoding=None,
              squeeze=False):
-    kwds = locals()
+    kwds = dict(filepath_or_buffer=filepath_or_buffer,
+                sep=sep, dialect=dialect,
+                header=header, index_col=index_col,
+                names=names, skiprows=skiprows,
+                na_values=na_values, thousands=thousands,
+                comment=comment, parse_dates=parse_dates,
+                keep_date_col=keep_date_col,
+                dayfirst=dayfirst, date_parser=date_parser,
+                nrows=nrows, iterator=iterator,
+                chunksize=chunksize, skip_footer=skip_footer,
+                converters=converters, verbose=verbose,
+                delimiter=delimiter, encoding=encoding,
+                squeeze=squeeze)
 
     # Alias sep -> delimiter.
     sep = kwds.pop('sep')
@@ -248,7 +259,19 @@ def read_table(filepath_or_buffer,
                delimiter=None,
                encoding=None,
                squeeze=False):
-    kwds = locals()
+    kwds = dict(filepath_or_buffer=filepath_or_buffer,
+                sep=sep, dialect=dialect,
+                header=header, index_col=index_col,
+                names=names, skiprows=skiprows,
+                na_values=na_values, thousands=thousands,
+                comment=comment, parse_dates=parse_dates,
+                keep_date_col=keep_date_col,
+                dayfirst=dayfirst, date_parser=date_parser,
+                nrows=nrows, iterator=iterator,
+                chunksize=chunksize, skip_footer=skip_footer,
+                converters=converters, verbose=verbose,
+                delimiter=delimiter, encoding=encoding,
+                squeeze=squeeze)
 
     # Alias sep -> delimiter.
     sep = kwds.pop('sep')
@@ -284,8 +307,19 @@ def read_fwf(filepath_or_buffer,
              verbose=False,
              encoding=None,
              squeeze=False):
-
-    kwds = locals()
+    kwds = dict(filepath_or_buffer=filepath_or_buffer,
+                colspecs=colspecs, widths=widths,
+                header=header, index_col=index_col,
+                names=names, skiprows=skiprows,
+                na_values=na_values, thousands=thousands,
+                comment=comment, parse_dates=parse_dates,
+                keep_date_col=keep_date_col,
+                dayfirst=dayfirst, date_parser=date_parser,
+                nrows=nrows, iterator=iterator,
+                chunksize=chunksize, skip_footer=skip_footer,
+                converters=converters, verbose=verbose,
+                delimiter=delimiter, encoding=encoding,
+                squeeze=squeeze)
 
     # Check input arguments.
     colspecs = kwds.get('colspecs', None)
@@ -466,8 +500,6 @@ class TextParser(object):
         self.squeeze = squeeze
 
     def _make_reader(self, f):
-        import csv
-
         sep = self.delimiter
 
         if sep is None or len(sep) == 1:
@@ -864,14 +896,15 @@ class TextParser(object):
         if isinstance(self.parse_dates, bool):
             return self.parse_dates
         else:
-            to_parse = self.parse_dates # int/string or list of int or string
-
             if np.isscalar(self.index_col):
                 name = self.index_name
             else:
                 name = self.index_name[i]
 
-            return i in to_parse or name in to_parse
+            if np.isscalar(self.parse_dates):
+                return (i == self.parse_dates) or (name == self.parse_dates)
+            else:
+                return (i in self.parse_dates) or (name in self.parse_dates)
 
     def _conv_date(self, *date_cols):
         if self.date_parser is None:
@@ -1127,22 +1160,37 @@ class ExcelFile(object):
 
     Parameters
     ----------
-    path : string
+    path : string or file-like object
         Path to xls file
+    kind : {'xls', 'xlsx', None}, default None
     """
-    def __init__(self, path):
+    def __init__(self, path_or_buf):
         self.use_xlsx = True
-        if path.endswith('.xls'):
-            self.use_xlsx = False
-            import xlrd
-            self.book = xlrd.open_workbook(path)
+        self.path_or_buf = path_or_buf
+        self.tmpfile = None
+
+        if isinstance(path_or_buf, basestring):
+            if path_or_buf.endswith('.xls'):
+                self.use_xlsx = False
+                import xlrd
+                self.book = xlrd.open_workbook(path_or_buf)
+            else:
+                try:
+                    from openpyxl.reader.excel import load_workbook
+                    self.book = load_workbook(path_or_buf, use_iterators=True)
+                except ImportError:  # pragma: no cover
+                    raise ImportError(_openpyxl_msg)
         else:
+            data = path_or_buf.read()
+
             try:
+                import xlrd
+                self.book = xlrd.open_workbook(file_contents=data)
+                self.use_xlsx = False
+            except Exception:
                 from openpyxl.reader.excel import load_workbook
-                self.book = load_workbook(path, use_iterators=True)
-            except ImportError:  # pragma: no cover
-                raise ImportError(_openpyxl_msg)
-        self.path = path
+                buf = py3compat.BytesIO(data)
+                self.book = load_workbook(buf, use_iterators=True)
 
     def __repr__(self):
         return object.__repr__(self)

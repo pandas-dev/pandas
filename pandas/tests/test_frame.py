@@ -932,6 +932,17 @@ class CheckIndexing(object):
         expected = [nan, 'qux', nan, 'qux', nan]
         assert_almost_equal(df['str'].values, expected)
 
+    def test_setitem_frame(self):
+        piece = self.frame.ix[:2, ['A', 'B']]
+        self.frame.ix[-2:, ['A', 'B']] = piece
+        assert_almost_equal(self.frame.ix[-2:, ['A', 'B']].values,
+                           piece.values)
+
+        piece = self.mixed_frame.ix[:2, ['A', 'B']]
+        f = self.mixed_frame.ix.__setitem__
+        key = (slice(-2, None), ['A', 'B'])
+        self.assertRaises(ValueError, f, key, piece)
+
     def test_setitem_fancy_exceptions(self):
         pass
 

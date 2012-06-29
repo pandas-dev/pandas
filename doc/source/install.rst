@@ -38,7 +38,7 @@ Preliminary builds and installers on the `Pandas download page <http://pandas.py
 Overview
 ___________
 
-   
+
 
 .. csv-table::
     :header: "Platform", "Distribution", "Status", "Download / Repository Link", "Install method"
@@ -65,8 +65,7 @@ ___________
 Dependencies
 ~~~~~~~~~~~~
 
-  * `NumPy <http://www.numpy.org>`__: 1.4.0 or higher. Recommend 1.5.1 or
-    higher
+  * `NumPy <http://www.numpy.org>`__: 1.6.1 or higher
   * `python-dateutil <http://labix.org/python-dateutil>`__ 1.5
 
 Optional dependencies

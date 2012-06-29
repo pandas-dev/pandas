@@ -939,6 +939,10 @@ class TestMultiIndex(unittest.TestCase):
         assert_almost_equal(res, exp)
         assert_almost_equal(exp, exp2)
 
+    def test_from_tuples_index_values(self):
+        result = MultiIndex.from_tuples(self.index)
+        self.assert_((result.values == self.index.values).all())
+
     def test_contains(self):
         self.assert_(('foo', 'two') in self.index)
         self.assert_(('bar', 'two') not in self.index)

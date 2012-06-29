@@ -14,7 +14,12 @@ necessary. See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
 on GitHub for a complete list.
 
-TODO: contributor list
+Support for non-unique indexes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+All objects can now work with non-unique indexes. Data alignment / join
+operations work according to SQL join semantics (including, if application,
+index duplication in many-to-many joins)
 
 NumPy datetime64 dtype and 1.6 dependency
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -101,13 +106,6 @@ Time series changes and improvements
 - Add :ref:`tshift <timeseries.advanced_datetime>` method for leading/lagging
   using the frequency (if any) of the index, as opposed to a naive lead/lag
   using shift
-
-Support for non-unique indexes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-All objects can now work with non-unique indexes. Data alignment / join
-operations work according to SQL join semantics (including, if application,
-index duplication in many-to-many joins)
 
 Other new features
 ~~~~~~~~~~~~~~~~~~

@@ -75,7 +75,12 @@ class _NDFrameIndexer(object):
         return tuple(keyidx)
 
     def _setitem_with_indexer(self, indexer, value):
+        from pandas.core.frame import DataFrame
+
         # also has the side effect of consolidating in-place
+
+        # mmm, spaghetti
+
         if self.obj._is_mixed_type:
             if not isinstance(indexer, tuple):
                 indexer = self._tuplify(indexer)
@@ -89,6 +94,10 @@ class _NDFrameIndexer(object):
             plane_indexer = indexer[:het_axis] + indexer[het_axis + 1:]
             item_labels = self.obj._get_axis(het_axis)
 
+            if isinstance(value, (np.ndarray, DataFrame)) and value.ndim > 1:
+                raise ValueError('Setting mixed-type DataFrames with '
+                                 'array/DataFrame pieces not yet supported')
+
             try:
                 for item in item_labels[het_idx]:
                     data = self.obj[item]
@@ -100,6 +109,12 @@ class _NDFrameIndexer(object):
         else:
             if isinstance(indexer, tuple):
                 indexer = _maybe_convert_ix(*indexer)
+
+            if isinstance(value, DataFrame):
+                value = value.values
+                if not isinstance(self.obj, DataFrame):
+                    value = value.T
+
             self.obj.values[indexer] = value
 
     def _getitem_tuple(self, tup):
@@ -361,7 +376,10 @@ class _NDFrameIndexer(object):
                 objarr = _check_bool_indexer(labels, obj)
                 return objarr
             else:
-                objarr = _asarray_tuplesafe(obj)
+                if isinstance(obj, Index):
+                    objarr = obj.values
+                else:
+                    objarr = _asarray_tuplesafe(obj)
 
                 # If have integer labels, defer to label-based indexing
                 if _is_integer_dtype(objarr) and not is_int_index:
