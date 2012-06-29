@@ -1,6 +1,11 @@
 pandas (0.8.0-1) unstable; urgency=low
 
   * Fresh upstream release
+  * debian/control
+    - drop python-statsmodels from Build-Depends since it might not be yet
+      available on some architectures and is not critical for the test
+    - recommend python-statsmodels instead of deprecated
+      python-scikits.statsmodels
 
  -- Yaroslav Halchenko <debian@onerussian.com>  Fri, 29 Jun 2012 13:02:28 -0400
 
