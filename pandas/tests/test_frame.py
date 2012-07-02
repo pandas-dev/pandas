@@ -4325,6 +4325,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = DataFrame({})
         assert_frame_equal(result, expected)
 
+    def test_pivot_integer_bug(self):
+        df = DataFrame(data=[("A", "1", "A1"), ("B", "2", "B2")])
+
+        result = df.pivot(index=1, columns=0, values=2)
+        repr(result)
+        self.assert_(np.array_equal(result.columns, ['A', 'B']))
+
     def test_reindex(self):
         newFrame = self.frame.reindex(self.ts1.index)
 
