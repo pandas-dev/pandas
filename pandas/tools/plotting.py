@@ -342,7 +342,7 @@ class MPLPlot(object):
     def _iter_data(self):
         from pandas.core.frame import DataFrame
         if isinstance(self.data, (Series, np.ndarray)):
-            yield com._stringify(self.label), np.asarray(self.data)
+            yield self.label, np.asarray(self.data)
         elif isinstance(self.data, DataFrame):
             df = self.data
 
@@ -356,7 +356,7 @@ class MPLPlot(object):
                 # is this right?
                 values = df[col].values if not empty else np.zeros(len(df))
 
-                col = com._stringify(col)
+
                 yield col, values
 
     @property
@@ -548,13 +548,28 @@ class MPLPlot(object):
 
         return name
 
-    def _get_ax_and_style(self, i):
+    def _get_ax(self, i):
         if self.subplots:
             ax = self.axes[i]
+        else:
+            ax = self.ax
+        return ax
+
+    def _get_ax_and_style(self, i, col_name):
+        ax = self._get_ax(i)
+
+        if self.subplots:
             style = 'k'
         else:
-            style = ''  # empty string ignored
-            ax = self.ax
+            style = ''
+
+        if self.style is not None:
+            if isinstance(self.style, list):
+                style = self.style[i]
+            elif isinstance(self.style, dict):
+                style = self.style[col_name]
+            else:
+                style = self.style
 
         return ax, style
 
@@ -566,11 +581,10 @@ class KdePlot(MPLPlot):
         from scipy.stats import gaussian_kde
         plotf = self._get_plot_function()
         for i, (label, y) in enumerate(self._iter_data()):
+            ax, style = self._get_ax_and_style(i, label)
 
-            ax, style = self._get_ax_and_style(i)
+            label = com._stringify(label)
 
-            if self.style:
-                style = self.style
             gkde = gaussian_kde(y)
             sample_range = max(y) - min(y)
             ind = np.linspace(min(y) - 0.5 * sample_range,
@@ -608,7 +622,7 @@ class LinePlot(MPLPlot):
     def _use_dynamic_x(self):
         freq = self._index_freq()
 
-        ax, _ = self._get_ax_and_style(0)
+        ax = self._get_ax(0)
         ax_freq = getattr(ax, 'freq', None)
         if freq is None: # convert irregular if axes has freq info
             freq = ax_freq
@@ -629,11 +643,9 @@ class LinePlot(MPLPlot):
             plotf = self._get_plot_function()
 
             for i, (label, y) in enumerate(self._iter_data()):
+                ax, style = self._get_ax_and_style(i, label)
 
-                ax, style = self._get_ax_and_style(i)
-
-                if self.style:
-                    style = self.style
+                label = com._stringify(label)
 
                 mask = com.isnull(y)
                 if mask.any():
@@ -660,7 +672,7 @@ class LinePlot(MPLPlot):
             freq = get_period_alias(freq)
 
             if freq is None:
-                ax, _ = self._get_ax_and_style(0)
+                ax = self._get_ax(0)
                 freq = getattr(ax, 'freq', None)
 
             if freq is None:
@@ -677,17 +689,16 @@ class LinePlot(MPLPlot):
         plotf = self._get_plot_function()
 
         if isinstance(data, Series):
-            ax, _ = self._get_ax_and_style(0) #self.axes[0]
-
+            ax = self._get_ax(0) #self.axes[0]
+            style = self.style or ''
             label = com._stringify(self.label)
             tsplot(data, plotf, ax=ax, label=label, style=self.style,
                    **kwargs)
             ax.grid(self.grid)
         else:
             for i, col in enumerate(data.columns):
-                ax, _ = self._get_ax_and_style(i)
-                label = com._stringify(col)
-                tsplot(data[col], plotf, ax=ax, label=label, **kwargs)
+                ax, style = self._get_ax_and_style(i, col)
+                tsplot(data[col], plotf, ax=ax, label=col, style=style, **kwargs)
                 ax.grid(self.grid)
 
         # self.fig.subplots_adjust(wspace=0, hspace=0)
@@ -753,7 +764,7 @@ class BarPlot(MPLPlot):
         rects = []
         labels = []
 
-        ax, _ = self._get_ax_and_style(0) #self.axes[0]
+        ax = self._get_ax(0) #self.axes[0]
 
         bar_f = self.bar_f
 
@@ -762,12 +773,12 @@ class BarPlot(MPLPlot):
         K = self.nseries
 
         for i, (label, y) in enumerate(self._iter_data()):
-
+            label = com._stringify(label)
             kwds = self.kwds.copy()
             kwds['color'] = colors[i % len(colors)]
 
             if self.subplots:
-                ax, _ = self._get_ax_and_style(i) #self.axes[i]
+                ax = self._get_ax(i) #self.axes[i]
                 rect = bar_f(ax, self.ax_pos, y, 0.5, start=pos_prior,
                              linewidth=1, **kwds)
                 ax.set_title(label)
@@ -830,13 +841,10 @@ class HistPlot(MPLPlot):
 
 
 def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
-               use_index=True,
-               figsize=None, grid=False, legend=True, rot=None,
-               ax=None, title=None,
-               xlim=None, ylim=None, logy=False,
-               xticks=None, yticks=None,
-               kind='line',
-               sort_columns=False, fontsize=None, secondary_y=False, **kwds):
+               use_index=True, figsize=None, grid=False, legend=True, rot=None,
+               ax=None, style=None, title=None, xlim=None, ylim=None, logy=False,
+               xticks=None, yticks=None, kind='line', sort_columns=False,
+               fontsize=None, secondary_y=False, **kwds):
     """
     Make line or bar plot of DataFrame's series with the index on the x-axis
     using matplotlib / pylab.
@@ -863,6 +871,8 @@ def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
         Place legend on axis subplots
 
     ax : matplotlib axis object, default None
+    style : list or dict
+        matplotlib line style per column
     kind : {'line', 'bar', 'barh'}
         bar : vertical bar plot
         barh : horizontal bar plot
@@ -897,7 +907,7 @@ def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
         raise ValueError('Invalid chart type given %s' % kind)
 
     plot_obj = klass(frame, kind=kind, subplots=subplots, rot=rot,
-                     legend=legend, ax=ax, fontsize=fontsize,
+                     legend=legend, ax=ax, style=style, fontsize=fontsize,
                      use_index=use_index, sharex=sharex, sharey=sharey,
                      xticks=xticks, yticks=yticks, xlim=xlim, ylim=ylim,
                      title=title, grid=grid, figsize=figsize, logy=logy,
@@ -930,7 +940,6 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
         If not passed, uses gca()
     style : string, default matplotlib default
         matplotlib line style to use
-
     ax : matplotlib axis object
         If not passed, uses gca()
     kind : {'line', 'bar', 'barh'}
