@@ -1046,7 +1046,8 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
             by = [by]
 
         fig, axes = _grouped_plot_by_column(plot_group, data, columns=columns,
-                                            by=by, grid=grid, figsize=figsize)
+                                            by=by, grid=grid, figsize=figsize,
+                                            ax=ax)
 
         # Return axes in multiplot case, maybe revisit later # 985
         ret = axes
