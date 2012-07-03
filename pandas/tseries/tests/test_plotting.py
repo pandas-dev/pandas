@@ -155,6 +155,31 @@ class TestTSPlot(unittest.TestCase):
         _check_plot_works(ser.plot)
 
     @slow
+    def test_irreg_hf(self):
+        import matplotlib.pyplot as plt
+        fig = plt.gcf()
+        plt.clf()
+        fig.add_subplot(111)
+
+        idx = date_range('2012-6-22 21:59:51', freq='S', periods=100)
+        df = DataFrame(np.random.randn(len(idx), 2), idx)
+
+        irreg = df.ix[[0, 1, 3, 4]]
+        ax = irreg.plot()
+        diffs = Series(ax.get_lines()[0].get_xydata()[:, 0]).diff()
+
+        sec = 1. / 24 / 60 / 60
+        self.assert_((np.fabs(diffs[1:] - [sec, sec*2, sec]) < 1e-8).all())
+
+        plt.clf()
+        fig.add_subplot(111)
+        df2 = df.copy()
+        df2.index = df.index.asobject
+        ax = df2.plot()
+        diffs = Series(ax.get_lines()[0].get_xydata()[:, 0]).diff()
+        self.assert_((np.fabs(diffs[1:] - sec) < 1e-8).all())
+
+    @slow
     def test_irregular_datetime64_repr_bug(self):
         import matplotlib.pyplot as plt
         ser = tm.makeTimeSeries()

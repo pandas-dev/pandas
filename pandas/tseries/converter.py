@@ -108,6 +108,30 @@ def get_datevalue(date, freq):
         return None
     raise ValueError("Unrecognizable date '%s'" % date)
 
+HOURS_PER_DAY = 24.
+MINUTES_PER_DAY  = 60.*HOURS_PER_DAY
+SECONDS_PER_DAY =  60.*MINUTES_PER_DAY
+MUSECONDS_PER_DAY = 1e6*SECONDS_PER_DAY
+
+def _dt_to_float_ordinal(dt):
+    """
+    Convert :mod:`datetime` to the Gregorian date as UTC float days,
+    preserving hours, minutes, seconds and microseconds.  Return value
+    is a :func:`float`.
+    """
+
+    if hasattr(dt, 'tzinfo') and dt.tzinfo is not None:
+        delta = dt.tzinfo.utcoffset(dt)
+        if delta is not None:
+            dt -= delta
+
+    base =  float(dt.toordinal())
+    if hasattr(dt, 'hour'):
+        base += (dt.hour/HOURS_PER_DAY + dt.minute/MINUTES_PER_DAY +
+                 dt.second/SECONDS_PER_DAY + dt.microsecond/MUSECONDS_PER_DAY
+                 )
+    return base
+
 ### Datetime Conversion
 class DatetimeConverter(dates.DateConverter):
 
@@ -115,12 +139,12 @@ class DatetimeConverter(dates.DateConverter):
     def convert(values, unit, axis):
         def try_parse(values):
             try:
-                return tools.to_datetime(values).toordinal()
+                return _dt_to_float_ordinal(tools.to_datetime(values))
             except Exception:
                 return values
 
         if isinstance(values, (datetime, pydt.date)):
-            return values.toordinal()
+            return _dt_to_float_ordinal(values)
         elif isinstance(values, pydt.time):
             return dates.date2num(values)
         elif (com.is_integer(values) or com.is_float(values)):

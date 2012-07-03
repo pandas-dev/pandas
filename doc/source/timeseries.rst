@@ -725,7 +725,7 @@ method. Let's start with the fiscal year 2011, ending in December:
 
 .. ipython:: python
 
-   p = Period('2011' freq='A-DEC')
+   p = Period('2011', freq='A-DEC')
    p
 
 We can convert it to a monthly frequency. Using the ``how`` parameter, we can
