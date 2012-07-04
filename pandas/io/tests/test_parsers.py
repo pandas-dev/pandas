@@ -11,7 +11,7 @@ import nose
 from numpy import nan
 import numpy as np
 
-from pandas import DataFrame, Series, Index, isnull
+from pandas import DataFrame, Series, Index, isnull, MultiIndex
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                ExcelFile, TextParser)
@@ -1293,6 +1293,25 @@ bar,foo,foo"""
                               'B': [np.nan, 'foo', np.nan, 'foo'],
                               'C': [np.nan, 'foo', np.nan, 'foo']})
         assert_frame_equal(df, expected)
+
+        data = """\
+a,b,c,d
+0,NA,1,5
+"""
+        xp = DataFrame({'b': [np.nan], 'c': [1], 'd': [5]}, index=[0])
+        xp.index.name = 'a'
+        df = read_csv(StringIO(data), na_values={}, index_col=0)
+        assert_frame_equal(df, xp)
+
+        xp = DataFrame({'b': [np.nan], 'd': [5]},
+                       MultiIndex.from_tuples([(0, 1)]))
+        df = read_csv(StringIO(data), na_values={}, index_col=[0, 2])
+        assert_frame_equal(df, xp)
+
+        xp = DataFrame({'b': [np.nan], 'd': [5]},
+                       MultiIndex.from_tuples([(0, 1)]))
+        df = read_csv(StringIO(data), na_values={}, index_col=['a', 'c'])
+        assert_frame_equal(df, xp)
 
     @slow
     @network

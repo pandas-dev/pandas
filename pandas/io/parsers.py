@@ -877,7 +877,10 @@ class TextParser(object):
         if np.isscalar(self.index_col):
             if try_parse_dates and self._should_parse_dates(self.index_col):
                 index = self._conv_date(index)
-            index, na_count = _convert_types(index, self.na_values)
+            na_values = self.na_values
+            if isinstance(na_values, dict):
+                na_values = _get_na_values(self.index_name, na_values)
+            index, na_count = _convert_types(index, na_values)
             index = Index(index, name=self.index_name)
             if self.verbose and na_count:
                 print 'Found %d NA values in the index' % na_count
@@ -887,7 +890,13 @@ class TextParser(object):
                 if (try_parse_dates and
                     self._should_parse_dates(self.index_col[i])):
                     arr = self._conv_date(arr)
-                arr, _ = _convert_types(arr, self.na_values)
+                col_na_values = self.na_values
+                if isinstance(self.na_values, dict):
+                    col_name = self.index_name[i]
+                    if col_name is not None:
+                        col_na_values = _get_na_values(col_name,
+                                                       self.na_values)
+                arr, _ = _convert_types(arr, col_na_values)
                 arrays.append(arr)
             index = MultiIndex.from_arrays(arrays, names=self.index_name)
         return index
@@ -1031,19 +1040,19 @@ class TextParser(object):
         lines = self._check_comments(lines)
         return self._check_thousands(lines)
 
-def _convert_to_ndarrays(dct, na_values, verbose=False):
-    def _get_na_values(col):
-        if isinstance(na_values, dict):
-            if col in na_values:
-                return set(list(na_values[col]))
-            else:
-                return _NA_VALUES
+def _get_na_values(col, na_values):
+    if isinstance(na_values, dict):
+        if col in na_values:
+            return set(list(na_values[col]))
         else:
-            return na_values
+            return _NA_VALUES
+    else:
+        return na_values
 
+def _convert_to_ndarrays(dct, na_values, verbose=False):
     result = {}
     for c, values in dct.iteritems():
-        col_na_values = _get_na_values(c)
+        col_na_values = _get_na_values(c, na_values)
         cvals, na_count = _convert_types(values, col_na_values)
         result[c] = cvals
         if verbose and na_count:
