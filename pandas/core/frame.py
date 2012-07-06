@@ -2317,7 +2317,7 @@ class DataFrame(NDFrame):
         frame.index = index
         return frame
 
-    def reset_index(self, drop=False):
+    def reset_index(self, level=None, drop=False):
         """
         For DataFrame with multi-level index, return new DataFrame with
         labeling information in the columns under the index names, defaulting
@@ -2327,6 +2327,9 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
+        level : int, str, tuple, or list, default None
+            Only remove the given levels from the index. Removes all levels by
+            default
         drop : boolean, default False
             Do not try to insert index into dataframe columns
 
@@ -2341,10 +2344,18 @@ class DataFrame(NDFrame):
                 values = lib.maybe_convert_objects(values)
             return values
 
+        new_index = np.arange(len(new_obj))
         if not drop:
             if isinstance(self.index, MultiIndex):
                 names = self.index.names
                 zipped = zip(self.index.levels, self.index.labels)
+
+                if level is not None:
+                    if not isinstance(level, (tuple, list)):
+                        level = [level]
+
+                    level = [self.index._get_level_number(lev) for lev in level]
+
                 for i, (lev, lab) in reversed(list(enumerate(zipped))):
                     col_name = names[i]
                     if col_name is None:
@@ -2352,13 +2363,17 @@ class DataFrame(NDFrame):
 
                     # to ndarray and maybe infer different dtype
                     level_values = _maybe_cast(lev.values)
-                    new_obj.insert(0, col_name, level_values.take(lab))
+                    if level is None or i in level:
+                        new_obj.insert(0, col_name, level_values.take(lab))
+
+                if level is not None and len(level) < len(self.index.levels):
+                    new_index = self.index.droplevel(level)
             else:
                 name = self.index.name
                 if name is None or name == 'index':
                     name = 'index' if 'index' not in self else 'level_0'
                 new_obj.insert(0, name, _maybe_cast(self.index.values))
-        new_obj.index = np.arange(len(new_obj))
+        new_obj.index = new_index
         return new_obj
 
     delevel = deprecate('delevel', reset_index)

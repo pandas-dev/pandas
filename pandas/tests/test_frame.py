@@ -6178,6 +6178,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         resetted = self.frame.reset_index()
         self.assertEqual(resetted.columns.name, 'columns')
 
+        # only remove certain columns
+        frame = self.frame.reset_index().set_index(['index', 'A', 'B'])
+        rs = frame.reset_index(['A', 'B'])
+        assert_frame_equal(rs, self.frame)
+
     def test_reset_index_right_dtype(self):
         time = np.arange(0.0, 10, np.sqrt(2)/2)
         s1 = Series((9.81 * time ** 2) /2,
