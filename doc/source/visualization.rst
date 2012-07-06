@@ -341,3 +341,28 @@ confidence band.
 
    @savefig autocorrelation_plot.png width=6in
    autocorrelation_plot(data)
+
+Probability Plot
+~~~~~~~~~~~~~~~~
+
+Probability plots are used to check if given data follows some probability 
+distribution. With default parameters it plots against normal distribution.
+The data are plotted against the theoretical distribution in such a way that
+if the data follow the distribution it should display a straight line.
+
+.. ipython:: python
+   
+   from pandas.tools.plotting import probability_plot
+
+   plt.figure()
+
+   u_data = Series(np.random.random(1000))
+   n_data = Series(np.random.randn(1000))
+
+   @savefig probability_plot_u.png width=6in
+   probability_plot(u_data, dist='norm', marker='+', color='black')
+
+   plt.figure()
+
+   @savefig probability_plot_n.png width=6in
+   probability_plot(n_data, dist='norm', marker='+', color='black')
