@@ -2258,7 +2258,7 @@ class DataFrame(NDFrame):
 
     truncate = generic.truncate
 
-    def set_index(self, keys, drop=True, inplace=False,
+    def set_index(self, keys, drop=True, append=False, inplace=False,
                   verify_integrity=False):
         """
         Set the DataFrame index (row labels) using one or more existing
@@ -2269,6 +2269,8 @@ class DataFrame(NDFrame):
         keys : column label or list of column labels / arrays
         drop : boolean, default True
             Delete columns to be used as the new index
+        append : boolean, default False
+            Whether to append columns to existing index
         inplace : boolean, default False
             Modify the DataFrame in place (do not create a new object)
         verify_integrity : boolean, default False
@@ -2295,7 +2297,18 @@ class DataFrame(NDFrame):
         else:
             frame = self.copy()
 
+        names = keys
+
         arrays = []
+        if append:
+            names = [x for x in self.index.names]
+            if isinstance(self.index, MultiIndex):
+                for i in range(self.index.nlevels):
+                    arrays.append(self.index.get_level_values(i))
+            else:
+                arrays.append(np.asarray(self.index))
+            names.extend(keys)
+
         for col in keys:
             if isinstance(col, (list, Series, np.ndarray)):
                 level = col
@@ -2305,7 +2318,7 @@ class DataFrame(NDFrame):
                     del frame[col]
             arrays.append(level)
 
-        index = MultiIndex.from_arrays(arrays, names=keys)
+        index = MultiIndex.from_arrays(arrays, names=names)
 
         if verify_integrity and not index.is_unique:
             duplicates = index.get_duplicates()

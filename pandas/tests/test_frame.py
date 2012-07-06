@@ -1386,6 +1386,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # corner case
         self.assertRaises(Exception, df.set_index, 'A', verify_integrity=True)
 
+        # append
+        result = df.set_index(['A', 'B'], append=True)
+        xp = df.reset_index().set_index(['index', 'A', 'B'])
+        xp.index.names = [None, 'A', 'B']
+        assert_frame_equal(result, xp)
+
     def test_set_index_pass_arrays(self):
         df = DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
                                'foo', 'bar', 'foo', 'foo'],
@@ -6182,6 +6188,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         frame = self.frame.reset_index().set_index(['index', 'A', 'B'])
         rs = frame.reset_index(['A', 'B'])
         assert_frame_equal(rs, self.frame)
+
+        rs = frame.reset_index(['index', 'A', 'B'])
+        assert_frame_equal(rs, self.frame.reset_index())
+
+        rs = frame.reset_index(['index', 'A', 'B'])
+        assert_frame_equal(rs, self.frame.reset_index())
+
+        rs = frame.reset_index('A')
+        xp = self.frame.reset_index().set_index(['index', 'B'])
+        assert_frame_equal(rs, xp)
 
     def test_reset_index_right_dtype(self):
         time = np.arange(0.0, 10, np.sqrt(2)/2)
