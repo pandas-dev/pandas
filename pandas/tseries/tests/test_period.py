@@ -41,6 +41,10 @@ class TestPeriodProperties(TestCase):
         self.assertEquals(p.year, 1969)
         self.assertEquals(p.quarter, 3)
 
+        p = Period(ordinal=-2, freq='M')
+        self.assertEquals(p.year, 1969)
+        self.assertEquals(p.month, 11)
+
     def test_period_cons_quarterly(self):
         # bugs in scikits.timeseries
         for month in MONTHS:
