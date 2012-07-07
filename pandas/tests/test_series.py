@@ -237,6 +237,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(Exception, Series, np.random.randn(3, 3),
                           index=np.arange(3))
 
+        mixed.name = 'Series'
+        rs = Series(mixed).name
+        xp = 'Series'
+        self.assertEqual(rs, xp)
+
     def test_constructor_empty(self):
         empty = Series()
         empty2 = Series([])
@@ -2975,4 +2980,3 @@ class TestSeriesNonUnique(unittest.TestCase):
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-
