@@ -1015,7 +1015,7 @@ class Tick(DateOffset):
         else:
             return DateOffset.__ne__(self, other)
 
-    @cache_readonly
+    @property
     def delta(self):
         return self.n * self._inc
 

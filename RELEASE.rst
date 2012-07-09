@@ -31,6 +31,7 @@ pandas 0.8.1
 
   - Handle TypeError issues inside PyObject_RichCompareBool calls in khash
     (#1318)
+  - Fix resampling bug to lower case daily frequency (#1588)
 
 pandas 0.8.0
 ============

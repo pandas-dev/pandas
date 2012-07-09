@@ -495,6 +495,11 @@ class TestResample(unittest.TestCase):
         self.assert_(len(result) == 1)
         self.assert_(result.index[0] == Period('2000-04', freq='M'))
 
+    def test_anchored_lowercase_buglet(self):
+        dates = date_range('4/16/2012 20:00', periods=50000, freq='s')
+        ts = Series(np.random.randn(len(dates)), index=dates)
+        # it works!
+        ts.resample('d')
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)

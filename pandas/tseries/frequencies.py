@@ -117,11 +117,9 @@ _offset_map = {
     'A-OCT' : YearEnd(month=10),
     'A-NOV' : YearEnd(month=11),
     'A-DEC' : YearEnd(month=12),
-    'A'     : YearEnd(month=12),
 
     # Annual - Calendar (start)
     'AS-JAN' : YearBegin(month=1),
-    'AS'     : YearBegin(month=1),
     'AS-FEB' : YearBegin(month=2),
     'AS-MAR' : YearBegin(month=3),
     'AS-APR' : YearBegin(month=4),
@@ -147,11 +145,9 @@ _offset_map = {
     'BA-OCT' : BYearEnd(month=10),
     'BA-NOV' : BYearEnd(month=11),
     'BA-DEC' : BYearEnd(month=12),
-    'BA'     : BYearEnd(month=12),
 
     # Annual - Business (Start)
     'BAS-JAN' : BYearBegin(month=1),
-    'BAS'     : BYearBegin(month=1),
     'BAS-FEB' : BYearBegin(month=2),
     'BAS-MAR' : BYearBegin(month=3),
     'BAS-APR' : BYearBegin(month=4),
@@ -298,6 +294,11 @@ _rule_aliases = {
     'Q@FEB': 'BQ-FEB',
     'Q@MAR': 'BQ-MAR',
     'Q' : 'Q-DEC',
+
+    'A'     : 'A-DEC', # YearEnd(month=12),
+    'AS'     : 'AS-JAN', # YearBegin(month=1),
+    'BA'     : 'BA-DEC', # BYearEnd(month=12),
+    'BAS'     : 'BAS-JAN', # BYearBegin(month=1),
 
     'A@JAN' : 'BA-JAN',
     'A@FEB' : 'BA-FEB',

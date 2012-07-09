@@ -35,7 +35,7 @@ class TimeGrouper(CustomGrouper):
                  nperiods=None, axis=0,
                  fill_method=None, limit=None, loffset=None, kind=None,
                  convention=None, base=0):
-        self.freq = freq
+        self.freq = to_offset(freq)
         self.closed = closed
         self.label = label
         self.nperiods = nperiods
