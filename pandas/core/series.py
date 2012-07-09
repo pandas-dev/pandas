@@ -304,6 +304,8 @@ class Series(np.ndarray, generic.PandasObject):
         if isinstance(data, Series):
             if index is None:
                 index = data.index
+            if name is None:
+                name = data.name
         elif isinstance(data, dict):
             if index is None:
                 index = Index(sorted(data))
