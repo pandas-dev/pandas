@@ -2,8 +2,7 @@ from itertools import izip
 import types
 import numpy as np
 
-from pandas.core.algorithms import unique
-from pandas.core.categorical import Factor
+from pandas.core.categorical import Categorical
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
@@ -971,7 +970,7 @@ class Grouping(object):
         else:
             if isinstance(self.grouper, (list, tuple)):
                 self.grouper = com._asarray_tuplesafe(self.grouper)
-            elif isinstance(self.grouper, Factor):
+            elif isinstance(self.grouper, Categorical):
                 factor = self.grouper
                 self._was_factor = True
 

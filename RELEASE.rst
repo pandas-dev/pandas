@@ -22,6 +22,16 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.8.1
+============
+
+**Release date:** NOT YET RELEASED
+
+**Bug fixes**
+
+  - Handle TypeError issues inside PyObject_RichCompareBool calls in khash
+    (#1318)
+
 pandas 0.8.0
 ============
 
