@@ -333,6 +333,27 @@ class TestDataFramePlots(unittest.TestCase):
     def _check_plot_fails(self, f, *args, **kwargs):
         self.assertRaises(Exception, f, *args, **kwargs)
 
+    @slow
+    def test_style_by_column(self):
+        import matplotlib.pyplot as plt
+        fig = plt.gcf()
+        fig.clf()
+        fig.add_subplot(111)
+
+        df = DataFrame(np.random.randn(100, 3))
+        markers = {0: '^', 1: '+', 2: 'o'}
+        ax = df.plot(style=markers)
+        for i, l in enumerate(ax.get_lines()):
+            self.assertEqual(l.get_marker(), markers[i])
+
+        fig.clf()
+        fig.add_subplot(111)
+        df = DataFrame(np.random.randn(100, 3))
+        markers = ['^', '+', 'o']
+        ax = df.plot(style=markers)
+        for i, l in enumerate(ax.get_lines()):
+            self.assertEqual(l.get_marker(), markers[i])
+
 class TestDataFrameGroupByPlots(unittest.TestCase):
 
     @classmethod
