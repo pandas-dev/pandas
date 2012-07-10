@@ -1386,6 +1386,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # corner case
         self.assertRaises(Exception, df.set_index, 'A', verify_integrity=True)
 
+    def test_set_index_bug(self):
+        #GH1590
+        df = DataFrame({'val' : [0, 1, 2], 'key': ['a', 'b', 'c']})
+        df2 = df.select(lambda indx:indx>=1)
+        rs = df2.set_index('key')
+        xp = DataFrame({'val': [1, 2]},
+                       Index(['b', 'c'], name='key'))
+        assert_frame_equal(rs, xp)
+
     def test_set_index_pass_arrays(self):
         df = DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
                                'foo', 'bar', 'foo', 'foo'],
