@@ -3591,6 +3591,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = self.mixed_frame.ix[:, ['A', 'B', 'C', 'D']].corr()
         assert_frame_equal(result, expected)
 
+        # nothing in common
+        for meth in ['pearson', 'kendall', 'spearman']:
+            df = DataFrame({'A': [1, 1, 1, np.nan, np.nan, np.nan],
+                            'B': [np.nan, np.nan, np.nan, 1, 1, 1]})
+            rs = df.corr(meth)
+            self.assert_(isnull(rs.ix['A', 'B']))
+            self.assert_(isnull(rs.ix['B', 'A']))
+
     def test_cov(self):
         self.frame['A'][:5] = nan
         self.frame['B'][:10] = nan
