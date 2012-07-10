@@ -2300,6 +2300,7 @@ class DataFrame(NDFrame):
         names = keys
 
         arrays = []
+        names = []
         if append:
             names = [x for x in self.index.names]
             if isinstance(self.index, MultiIndex):
@@ -2310,10 +2311,15 @@ class DataFrame(NDFrame):
             names.extend(keys)
 
         for col in keys:
-            if isinstance(col, (list, Series, np.ndarray)):
+            if isinstance(col, Series):
+                level = col.values
+                names.append(col.name)
+            elif isinstance(col, (list, np.ndarray)):
                 level = col
+                names.append(None)
             else:
-                level = frame[col]
+                level = frame[col].values
+                names.append(col)
                 if drop:
                     del frame[col]
             arrays.append(level)
