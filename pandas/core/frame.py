@@ -3841,7 +3841,9 @@ class DataFrame(NDFrame):
             for i, ac in enumerate(mat):
                 for j, bc  in enumerate(mat):
                     valid = mask[i] & mask[j]
-                    if not valid.all():
+                    if not valid.any():
+                        c = np.nan
+                    elif not valid.all():
                         c = corrf(ac[valid], bc[valid])
                     else:
                         c = corrf(ac, bc)
