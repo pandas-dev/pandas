@@ -347,7 +347,10 @@ def get_corr_func(method):
     def _pearson(a, b):
         return np.corrcoef(a, b)[0, 1]
     def _kendall(a, b):
-        return kendalltau(a, b)[0]
+        rs = kendalltau(a, b)
+        if isinstance(rs, tuple):
+            return rs[0]
+        return rs
     def _spearman(a, b):
         return spearmanr(a, b)[0]
 
