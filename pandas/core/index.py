@@ -2343,7 +2343,9 @@ def _sparsify(label_list, start=0):
             if p == t:
                 sparse_cur.append('')
             else:
-                sparse_cur.append(t)
+                sparse_cur.extend(cur[i:])
+                result.append(sparse_cur)
+                break
 
         prev = cur
 

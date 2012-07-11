@@ -49,6 +49,7 @@ pandas 0.8.1
   - Don't ignore axes in boxplot if by specified (#1565)
   - Fix Panel .ix indexing with integers bug (#1603)
   - Fix Partial indexing bugs (years, months, ...) with PeriodIndex (#1601)
+  - Fix MultiIndex console formatting issue (#1606)
 
 pandas 0.8.0
 ============

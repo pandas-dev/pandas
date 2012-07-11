@@ -1193,6 +1193,16 @@ class TestMultiIndex(unittest.TestCase):
                            names=[0, 1])
         index.format(names=True)
 
+    def test_format_sparse_display(self):
+        index = MultiIndex(levels=[[0, 1], [0, 1], [0, 1], [0]],
+                           labels=[[0, 0, 0, 1, 1, 1],
+                                   [0, 0, 1, 0, 0, 1],
+                                   [0, 1, 0, 0, 1, 0],
+                                   [0, 0, 0, 0, 0, 0]])
+
+        result = index.format()
+        self.assertEqual(result[3], '1  0  0  0')
+
     def test_bounds(self):
         self.index._bounds
 
