@@ -961,6 +961,17 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                         name=('foo', 'bar', 'baz'))
         repr(biggie)
 
+        # 0 as name
+        ser = Series(np.random.randn(100), name=0)
+        rep_str = repr(ser)
+        self.assert_("Name: 0" in rep_str)
+
+        # tidy repr
+        ser = Series(np.random.randn(1001), name=0)
+        rep_str = repr(ser)
+        self.assert_("Name: 0" in rep_str)
+
+
     def test_timeseries_repr_object_dtype(self):
         index = Index([datetime(2000, 1, 1) + timedelta(i)
                        for i in range(1000)], dtype=object)

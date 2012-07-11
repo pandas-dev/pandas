@@ -799,7 +799,7 @@ copy : boolean, default False
         return '%s\n%s' % (result, self._repr_footer())
 
     def _repr_footer(self):
-        namestr = "Name: %s, " % str(self.name) if self.name else ""
+        namestr = "Name: %s, " % str(self.name) if self.name is not None else ""
         return '%sLength: %d' % (namestr, len(self))
 
     def to_string(self, buf=None, na_rep='NaN', float_format=None,
@@ -2783,7 +2783,7 @@ class TimeSeries(Series):
         else:
             freqstr = ''
 
-        namestr = "Name: %s, " % str(self.name) if self.name else ""
+        namestr = "Name: %s, " % str(self.name) if self.name is not None else ""
         return '%s%sLength: %d' % (freqstr, namestr, len(self))
 
     def at_time(self, time, asof=False):
