@@ -3593,11 +3593,21 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # nothing in common
         for meth in ['pearson', 'kendall', 'spearman']:
-            df = DataFrame({'A': [1, 1, 1, np.nan, np.nan, np.nan],
-                            'B': [np.nan, np.nan, np.nan, 1, 1, 1]})
+            df = DataFrame({'A': [1, 1.5, 1, np.nan, np.nan, np.nan],
+                            'B': [np.nan, np.nan, np.nan, 1, 1.5, 1]})
             rs = df.corr(meth)
             self.assert_(isnull(rs.ix['A', 'B']))
             self.assert_(isnull(rs.ix['B', 'A']))
+            self.assert_(rs.ix['A', 'A'] == 1)
+            self.assert_(rs.ix['B', 'B'] == 1)
+
+        # constant --> all NA
+
+        for meth in ['pearson', 'spearman']:
+            df = DataFrame({'A': [1, 1, 1, np.nan, np.nan, np.nan],
+                            'B': [np.nan, np.nan, np.nan, 1, 1, 1]})
+            rs = df.corr(meth)
+            self.assert_(isnull(rs.values).all())
 
     def test_cov(self):
         self.frame['A'][:5] = nan

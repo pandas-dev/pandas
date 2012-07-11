@@ -27,11 +27,22 @@ pandas 0.8.1
 
 **Release date:** NOT YET RELEASED
 
+**New features**
+
+  - Can pass dict of per-column line styles to DataFrame.plot (#1559)
+
+**Improvements to existing features**
+
+  - Add ability to append hierarchical index levels with ``set_index`` and to
+    drop single levels with ``reset_index`` (#1569, #1577)
+
 **Bug fixes**
 
   - Handle TypeError issues inside PyObject_RichCompareBool calls in khash
     (#1318)
   - Fix resampling bug to lower case daily frequency (#1588)
+  - Fix kendall/spearman DataFrame.corr bug with no overlap (#1595)
+
 
 pandas 0.8.0
 ============
