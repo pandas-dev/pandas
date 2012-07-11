@@ -19,6 +19,7 @@ import pandas.core.datetools as datetools
 
 from pandas.sparse.series import SparseSeries
 from pandas.util.decorators import Appender
+import pandas.lib as lib
 
 
 class _SparseMockBlockManager(object):
@@ -314,26 +315,28 @@ class SparseDataFrame(DataFrame):
     index = property(fget=_get_index, fset=_set_index)
     columns = property(fget=_get_columns, fset=_set_columns)
 
-    def __getitem__(self, item):
+    def __getitem__(self, key):
         """
         Retrieve column or slice from DataFrame
         """
         try:
             # unsure about how kludgy this is
-            s = self._series[item]
-            s.name = item
+            s = self._series[key]
+            s.name = key
             return s
         except (TypeError, KeyError):
-            if isinstance(item, slice):
-                date_rng = self.index[item]
+            if isinstance(key, slice):
+                date_rng = self.index[key]
                 return self.reindex(date_rng)
 
-            elif isinstance(item, np.ndarray):
-                if len(item) != len(self.index):
-                    raise Exception('Item wrong length %d instead of %d!' %
-                                    (len(item), len(self.index)))
-                newIndex = self.index[item]
-                return self.reindex(newIndex)
+            elif isinstance(key, (np.ndarray, list)):
+                if isinstance(key, list):
+                    key = lib.list_to_object_array(key)
+
+                # also raises Exception if object array with NA values
+                if com._is_bool_indexer(key):
+                    key = np.asarray(key, dtype=bool)
+                return self._getitem_array(key)
             else: # pragma: no cover
                 raise
 

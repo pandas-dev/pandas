@@ -892,7 +892,14 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         pass
 
     def test_getitem(self):
-        pass
+        # #1585 select multiple columns
+        sdf = SparseDataFrame(index=[0, 1, 2], columns=['a', 'b','c'])
+
+        result = sdf[['a', 'b']]
+        exp = sdf.reindex(columns=['a', 'b'])
+        assert_sp_frame_equal(result, exp)
+
+        self.assertRaises(Exception, sdf.__getitem__, ['a', 'd'])
 
     def test_set_value(self):
         res = self.frame.set_value('foobar', 'B', 1.5)
