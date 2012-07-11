@@ -829,6 +829,55 @@ class PeriodIndex(Int64Index):
             key = Period(key, self.freq).ordinal
             return self._engine.get_loc(key)
 
+    def slice_locs(self, start=None, end=None):
+        """
+        Index.slice_locs, customized to handle partial ISO-8601 string slicing
+        """
+        if isinstance(start, basestring) or isinstance(end, basestring):
+            try:
+                if start:
+                    start_loc = self._get_string_slice(start).start
+                else:
+                    start_loc = 0
+
+                if end:
+                    end_loc = self._get_string_slice(end).stop
+                else:
+                    end_loc = len(self)
+
+                return start_loc, end_loc
+            except KeyError:
+                pass
+
+        return Int64Index.slice_locs(self, start, end)
+
+    def _get_string_slice(self, key):
+        if not self.is_monotonic:
+            raise ValueError('Partial indexing only valid for '
+                             'ordered time series')
+
+        asdt, parsed, reso = parse_time_string(key, self.freq)
+        key = asdt
+
+        if reso == 'year':
+            t1 = Period(year=parsed.year, freq='A')
+        elif reso == 'month':
+            t1 = Period(year=parsed.year, motnh=parsed.month, freq='M')
+        elif reso == 'quarter':
+            q = (parsed.month - 1) // 4 + 1
+            t1 = Period(year=parsed.year, quarter=q, freq='Q-DEC')
+        else:
+            raise KeyError(key)
+
+        ordinals = self.values
+
+        t2 = t1.asfreq(self.freq, how='end')
+        t1 = t1.asfreq(self.freq, how='start')
+
+        left = ordinals.searchsorted(t1.ordinal, side='left')
+        right = ordinals.searchsorted(t2.ordinal, side='right')
+        return slice(left, right)
+
     def join(self, other, how='left', level=None, return_indexers=False):
         """
         See Index.join

@@ -1115,10 +1115,16 @@ class TestPeriodIndex(TestCase):
         self.assert_(type(result) == PeriodIndex)
 
     def test_getitem_partial(self):
-        rng = period_range('2007-01', periods=50)
+        rng = period_range('2007-01', periods=50, freq='M')
         ts = Series(np.random.randn(len(rng)), rng)
 
         self.assertRaises(KeyError, ts.__getitem__, '2006')
+
+        result = ts['2008']
+        self.assert_((result.index.year == 2008).all())
+
+        result = ts['2008':'2009']
+        self.assertEquals(len(result), 24)
 
     def test_sub(self):
         rng = period_range('2007-01', periods=50)

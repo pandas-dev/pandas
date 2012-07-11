@@ -48,6 +48,7 @@ pandas 0.8.1
   - Fix bug in DataFrame.set_index (#1592)
   - Don't ignore axes in boxplot if by specified (#1565)
   - Fix Panel .ix indexing with integers bug (#1603)
+  - Fix Partial indexing bugs (years, months, ...) with PeriodIndex (#1601)
 
 pandas 0.8.0
 ============
