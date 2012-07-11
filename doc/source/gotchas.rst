@@ -118,6 +118,25 @@ integer arrays to floating when NAs must be introduced.
 Integer indexing
 ----------------
 
+Label-based indexing with integer axis labels is a thorny topic. It has been
+discussed heavily on mailing lists and among various members of the scientific
+Python community. In pandas, our general viewpoint is that labels matter more
+than integer locations. Therefore, with an integer axis index *only*
+label-based indexing is possible with the standard tools like ``.ix``. The
+following code will generate exceptions:
+
+.. code-block:: python
+
+   s = Series(range(5))
+   s[-1]
+   df = DataFrame(np.random.randn(5, 4))
+   df
+   df.ix[-2:]
+
+This deliberate decision was made to prevent ambiguities and subtle bugs (many
+users reported finding bugs when the API change was made to stop "falling back"
+on position-based indexing).
+
 Label-based slicing conventions
 -------------------------------
 
