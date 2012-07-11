@@ -514,7 +514,12 @@ class CheckIndexing(object):
         pass
 
     def test_getitem_fancy_ints(self):
-        pass
+        p = self.panel
+
+        # #1603
+        result = p.ix[:, -1, :]
+        expected = p.ix[:, p.major_axis[-1], :]
+        assert_frame_equal(result, expected)
 
     def test_getitem_fancy_xs(self):
         p = self.panel

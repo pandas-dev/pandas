@@ -894,6 +894,12 @@ class Panel(NDFrame):
         new_data = self._data.xs(key, axis=axis_number, copy=copy)
         return DataFrame(new_data)
 
+    def _ixs(self, i, axis=0):
+        # for compatibility with .ix indexing
+        # Won't work with hierarchical indexing yet
+        key = self._get_axis(axis)[i]
+        return self.xs(key, axis=axis)
+
     def groupby(self, function, axis='major'):
         """
         Group data on given axis, returning GroupBy object

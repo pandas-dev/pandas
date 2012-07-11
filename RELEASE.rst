@@ -32,6 +32,7 @@ pandas 0.8.1
   - Can pass dict of per-column line styles to DataFrame.plot (#1559)
   - Add new ``bootstrap_plot`` plot function
   - Add new ``parallel_coordinates`` plot function (#1488)
+  - Add ``radviz`` plot function (#1566)
 
 **Improvements to existing features**
 
@@ -46,6 +47,7 @@ pandas 0.8.1
   - Fix kendall/spearman DataFrame.corr bug with no overlap (#1595)
   - Fix bug in DataFrame.set_index (#1592)
   - Don't ignore axes in boxplot if by specified (#1565)
+  - Fix Panel .ix indexing with integers bug (#1603)
 
 pandas 0.8.0
 ============
