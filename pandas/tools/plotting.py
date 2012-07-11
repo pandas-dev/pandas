@@ -894,7 +894,9 @@ class LinePlot(MPLPlot):
         else:
             for i, col in enumerate(data.columns):
                 ax, style = self._get_ax_and_style(i, col)
-                tsplot(data[col], plotf, ax=ax, label=col, style=style, **kwargs)
+                label = com._stringify(col)
+                tsplot(data[col], plotf, ax=ax, label=label, style=style,
+                       **kwargs)
                 ax.grid(self.grid)
 
         # self.fig.subplots_adjust(wspace=0, hspace=0)
