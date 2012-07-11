@@ -24,7 +24,8 @@ def register():
     units.registry[Period] = PeriodConverter()
 
 def _to_ordinalf(tm):
-    tot_sec = tm.hour * 3600 + tm.minute * 60 + tm.second + tm.microsecond
+    tot_sec = (tm.hour * 3600 + tm.minute * 60 + tm.second +
+               float(tm.microsecond / 1e6))
     return tot_sec
 
 def time2num(d):
@@ -76,6 +77,8 @@ class TimeFormatter(Formatter):
         us = int((x - s) * 1e6)
         m, s = divmod(s, 60)
         h, m = divmod(m, 60)
+        if us != 0:
+            fmt += '.%f'
         return pydt.time(h, m, s, us).strftime(fmt)
 
 ### Period Conversion

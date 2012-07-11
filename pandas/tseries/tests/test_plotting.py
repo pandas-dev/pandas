@@ -650,6 +650,32 @@ class TestTSPlot(unittest.TestCase):
                 rs = time(h, m, s).strftime('%H:%M:%S')
                 self.assert_(xp, rs)
 
+    @slow
+    def test_time_musec(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+
+        t = datetime(1, 1, 1, 3, 30, 0)
+        deltas = np.random.randint(1, 20, 3).cumsum()
+        ts = np.array([(t + timedelta(microseconds=int(x))).time()
+                       for x in deltas])
+        df = DataFrame({'a' : np.random.randn(len(ts)),
+                        'b' : np.random.randn(len(ts))},
+                       index=ts)
+        ax = df.plot()
+
+        # verify tick labels
+        ticks = ax.get_xticks()
+        labels = ax.get_xticklabels()
+        for t, l in zip(ticks, labels):
+            m, s = divmod(int(t), 60)
+            us = int((t - int(t)) * 1e6)
+            h, m = divmod(m, 60)
+            xp = l.get_text()
+            if len(xp) > 0:
+                rs = time(h, m, s).strftime('%H:%M:%S.%f')
+                self.assert_(xp, rs)
+
 PNG_PATH = 'tmp.png'
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     import matplotlib.pyplot as plt
