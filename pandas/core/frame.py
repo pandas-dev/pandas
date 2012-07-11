@@ -2297,8 +2297,6 @@ class DataFrame(NDFrame):
         else:
             frame = self.copy()
 
-        names = keys
-
         arrays = []
         names = []
         if append:
@@ -2308,7 +2306,6 @@ class DataFrame(NDFrame):
                     arrays.append(self.index.get_level_values(i))
             else:
                 arrays.append(np.asarray(self.index))
-            names.extend(keys)
 
         for col in keys:
             if isinstance(col, Series):

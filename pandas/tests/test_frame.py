@@ -1391,6 +1391,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         xp = df.reset_index().set_index(['index', 'A', 'B'])
         xp.index.names = [None, 'A', 'B']
         assert_frame_equal(result, xp)
+
     def test_set_index_bug(self):
         #GH1590
         df = DataFrame({'val' : [0, 1, 2], 'key': ['a', 'b', 'c']})

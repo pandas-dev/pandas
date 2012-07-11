@@ -42,7 +42,7 @@ pandas 0.8.1
     (#1318)
   - Fix resampling bug to lower case daily frequency (#1588)
   - Fix kendall/spearman DataFrame.corr bug with no overlap (#1595)
-
+  - Fix bug in DataFrame.set_index (#1592)
 
 pandas 0.8.0
 ============
