@@ -41,6 +41,7 @@ pandas 0.8.1
 
 **Bug fixes**
 
+  - Fix NA handling in DataFrame.to_panel (#1582)
   - Handle TypeError issues inside PyObject_RichCompareBool calls in khash
     (#1318)
   - Fix resampling bug to lower case daily frequency (#1588)
@@ -50,6 +51,8 @@ pandas 0.8.1
   - Fix Panel .ix indexing with integers bug (#1603)
   - Fix Partial indexing bugs (years, months, ...) with PeriodIndex (#1601)
   - Fix MultiIndex console formatting issue (#1606)
+  - Unordered index with duplicates doesn't yield scalar location for single
+    entry (#1586)
 
 pandas 0.8.0
 ============
