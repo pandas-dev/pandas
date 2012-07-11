@@ -291,6 +291,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_constructor_cast(self):
         self.assertRaises(ValueError, Series, ['a', 'b', 'c'], dtype=float)
 
+    def test_constructor_dtype_nocast(self):
+        # #1572
+        s = Series([1, 2, 3])
+
+        s2 = Series(s, dtype=np.int64)
+
+        s2[1] = 5
+        self.assertEquals(s[1], 5)
+
     def test_constructor_dict(self):
         d = {'a' : 0., 'b' : 1., 'c' : 2.}
         result = Series(d, index=['b', 'c', 'd', 'a'])

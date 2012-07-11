@@ -1468,6 +1468,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         foo = DataFrame({'a': ['a', 'b', 'c']}, dtype=np.float64)
         self.assert_(foo['a'].dtype == object)
 
+    def test_constructor_dtype_nocast_view(self):
+        df = DataFrame([[1, 2]])
+        should_be_view = DataFrame(df, dtype=df[0].dtype)
+        should_be_view[0][0] = 99
+        self.assertEqual(df.values[0, 0], 99)
+
+        should_be_view = DataFrame(df.values, dtype=df[0].dtype)
+        should_be_view[0][0] = 97
+        self.assertEqual(df.values[0, 0], 97)
+
     def test_constructor_rec(self):
         rec = self.frame.to_records(index=False)
 

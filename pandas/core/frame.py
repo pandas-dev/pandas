@@ -434,8 +434,9 @@ class DataFrame(NDFrame):
         if copy and dtype is None:
             mgr = mgr.copy()
         elif dtype is not None:
-            # no choice but to copy
-            mgr = mgr.astype(dtype)
+            # avoid copy if we can
+            if len(mgr.blocks) > 1 or mgr.blocks[0].values.dtype != dtype:
+                mgr = mgr.astype(dtype)
         return mgr
 
     def _init_dict(self, data, index, columns, dtype=None):
@@ -482,10 +483,11 @@ class DataFrame(NDFrame):
         values = _prep_ndarray(values, copy=copy)
 
         if dtype is not None:
-            try:
-                values = values.astype(dtype)
-            except Exception:
-                raise ValueError('failed to cast to %s' % dtype)
+            if values.dtype != dtype:
+                try:
+                    values = values.astype(dtype)
+                except Exception:
+                    raise ValueError('failed to cast to %s' % dtype)
 
         N, K = values.shape
 
