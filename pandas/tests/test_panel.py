@@ -971,6 +971,14 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         self.assertEqual(wp['bool'].values.dtype, np.bool_)
         assert_frame_equal(wp['bool'], panel['bool'])
 
+    def test_to_panel_na_handling(self):
+        df = DataFrame(np.random.randint(0, 10, size=20).reshape((10, 2)),
+                       index=[[0, 0, 0, 0, 0, 0, 1, 1, 1, 1],
+                              [0, 1, 2, 3, 4, 5, 2, 3, 4, 5]])
+
+        panel = df.to_panel()
+        self.assert_(isnull(panel[0].ix[1, [0, 1]]).all())
+
     def test_filter(self):
         pass
 

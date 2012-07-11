@@ -741,7 +741,10 @@ def block2d_to_block3d(values, items, shape, major_labels, minor_labels,
     mask.put(selector, True)
 
     pvalues = np.empty(panel_shape, dtype=values.dtype)
-    if not issubclass(pvalues.dtype.type, np.integer):
+    if not issubclass(pvalues.dtype.type, (np.integer, np.bool_)):
+        pvalues.fill(np.nan)
+    elif not mask.all():
+        pvalues = com._maybe_upcast(pvalues)
         pvalues.fill(np.nan)
 
     values = values
