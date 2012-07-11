@@ -328,6 +328,14 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(parallel_coordinates, df, 'Name')
 
     @slow
+    def test_radviz(self):
+        from pandas import read_csv
+        from pandas.tools.plotting import radviz
+        path = os.path.join(curpath(), 'data/iris.csv')
+        df = read_csv(path)
+        _check_plot_works(radviz, df, 'Name')
+
+    @slow
     def test_plot_int_columns(self):
         df = DataFrame(np.random.randn(100, 4)).cumsum()
         _check_plot_works(df.plot, legend=True)

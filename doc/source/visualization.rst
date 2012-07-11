@@ -368,7 +368,7 @@ Bootstrap Plot
 
 Bootstrap plots are used to visually assess the uncertainty of a statistic, such
 as mean, median, midrange, etc. A random subset of a specified size is selected
-from a data set, the statistic in question is computed for this subset and the 
+from a data set, the statistic in question is computed for this subset and the
 process is repeated a specified number of times. Resulting plots and histograms
 are what constitutes the bootstrap plot.
 
@@ -380,3 +380,29 @@ are what constitutes the bootstrap plot.
 
    @savefig bootstrap_plot.png width=8in
    bootstrap_plot(data, size=50, samples=500, color='grey')
+
+RadViz
+~~~~~~
+
+RadViz is a way of visualizing multi-variate data. It is based on a simple
+spring tension minimization algorithm. Basically you set up a bunch of points in
+a plane. In our case they are equally spaced on a unit circle. Each point
+represents a single attribute. You then pretend that each sample in the data set
+is attached to each of these points by a spring, the stiffness of which is
+proportional to the numerical value of that attribute (they are normalized to
+unit interval). The point in the plane, where our sample settles to (where the
+forces acting on our sample are at an equilibrium) is where a dot representing
+our sample will be drawn. Depending on which class that sample belongs it will
+be colored differently.
+
+.. ipython:: python
+
+   from pandas import read_csv
+   from pandas.tools.plotting import radviz
+
+   data = read_csv('data/iris.data')
+
+   plt.figure()
+
+   @savefig radviz.png width=6in
+   radviz(data, 'Name')

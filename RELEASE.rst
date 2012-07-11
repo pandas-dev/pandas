@@ -30,7 +30,8 @@ pandas 0.8.1
 **New features**
 
   - Can pass dict of per-column line styles to DataFrame.plot (#1559)
-  - Add new ``bootstrap_plot`` function
+  - Add new ``bootstrap_plot`` plot function
+  - Add new ``parallel_coordinates`` plot function (#1488)
 
 **Improvements to existing features**
 
