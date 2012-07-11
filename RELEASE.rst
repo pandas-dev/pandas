@@ -30,6 +30,7 @@ pandas 0.8.1
 **New features**
 
   - Can pass dict of per-column line styles to DataFrame.plot (#1559)
+  - Add new ``bootstrap_plot`` function
 
 **Improvements to existing features**
 
@@ -43,6 +44,7 @@ pandas 0.8.1
   - Fix resampling bug to lower case daily frequency (#1588)
   - Fix kendall/spearman DataFrame.corr bug with no overlap (#1595)
   - Fix bug in DataFrame.set_index (#1592)
+  - Don't ignore axes in boxplot if by specified (#1565)
 
 pandas 0.8.0
 ============

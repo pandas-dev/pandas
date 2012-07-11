@@ -300,6 +300,27 @@ of the same class will usually be closer together and form larger structures.
    @savefig andrews_curves.png width=6in
    andrews_curves(data, 'Name')
 
+Parallel Coordinates
+~~~~~~~~~~~~~~~~~~~~
+
+Parallel coordinates is a plotting technique for plotting multivariate data.
+It allows one to see clusters in data and to estimate other statistics visually.
+Using parallel coordinates points are represented as connected line segments.
+Each vertical line represents one attribute. One set of connected line segments
+represents one data point. Points that tend to cluster will appear closer together.
+
+.. ipython:: python
+
+   from pandas import read_csv
+   from pandas.tools.plotting import parallel_coordinates
+
+   data = read_csv('data/iris.data')
+
+   plt.figure()
+
+   @savefig parallel_coordinates.png width=6in
+   parallel_coordinates(data, 'Name')
+
 Lag Plot
 ~~~~~~~~
 
