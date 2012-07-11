@@ -137,7 +137,6 @@ cdef class IndexEngine:
 
         if self.is_monotonic:
             values = self._get_index_values()
-
             left = values.searchsorted(val, side='left')
             right = values.searchsorted(val, side='right')
 
@@ -149,14 +148,15 @@ cdef class IndexEngine:
             else:
                 return slice(left, right)
         else:
-            return self._get_bool_indexer(val)
+            return self._maybe_get_bool_indexer(val)
 
-    cdef _get_bool_indexer(self, object val):
+    cdef _maybe_get_bool_indexer(self, object val):
         cdef:
             ndarray[uint8_t] indexer
             ndarray[object] values
             int count = 0
             Py_ssize_t i, n
+            int last_true
 
         values = self._get_index_values()
         n = len(values)
@@ -168,11 +168,14 @@ cdef class IndexEngine:
             if values[i] == val:
                 count += 1
                 indexer[i] = 1
+                last_true = i
             else:
                 indexer[i] = 0
 
         if count == 0:
             raise KeyError(val)
+        if count == 1:
+            return last_true
 
         return result
 
@@ -275,13 +278,14 @@ cdef class Int64Engine(IndexEngine):
         return _algos.backfill_int64(self._get_index_values(), other,
                                        limit=limit)
 
-    cdef _get_bool_indexer(self, object val):
+    cdef _maybe_get_bool_indexer(self, object val):
         cdef:
             ndarray[uint8_t, cast=True] indexer
             ndarray[int64_t] values
             int count = 0
             Py_ssize_t i, n
             int64_t ival
+            int last_true
 
         if not util.is_integer_object(val):
             raise KeyError(val)
@@ -298,11 +302,14 @@ cdef class Int64Engine(IndexEngine):
             if values[i] == val:
                 count += 1
                 indexer[i] = 1
+                last_true = i
             else:
                 indexer[i] = 0
 
         if count == 0:
             raise KeyError(val)
+        if count == 1:
+            return last_true
 
         return result
 
