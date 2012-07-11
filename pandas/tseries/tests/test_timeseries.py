@@ -1691,8 +1691,22 @@ class TestDatetime64(unittest.TestCase):
         result = dti.join(empty)
         self.assert_(isinstance(result, DatetimeIndex))
 
-    # TODO: test merge & concat with datetime64 block
+    def test_series_set_value(self):
+        # #1561
 
+        dates = [datetime(2001, 1, 1), datetime(2001, 1, 2)]
+        index = DatetimeIndex(dates)
+
+        s = Series().set_value(dates[0], 1.)
+        s2 = s.set_value(dates[1], np.nan)
+
+        exp = Series([1., np.nan], index=index)
+
+        assert_series_equal(s2, exp)
+
+        # s = Series(index[:1], index[:1])
+        # s2 = s.set_value(dates[1], index[1])
+        # self.assert_(s2.values.dtype == 'M8[ns]')
 
 class TestSeriesDatetime64(unittest.TestCase):
 

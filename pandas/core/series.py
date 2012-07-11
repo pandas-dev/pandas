@@ -742,7 +742,11 @@ copy : boolean, default False
             self.index._engine.set_value(self, label, value)
             return self
         except KeyError:
-            new_index = np.concatenate([self.index.values, [label]])
+            if len(self.index) == 0:
+                new_index = Index([label])
+            else:
+                new_index = self.index.insert(len(self), label)
+
             new_values = np.concatenate([self.values, [value]])
             return Series(new_values, index=new_index, name=self.name)
 
