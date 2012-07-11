@@ -53,6 +53,13 @@ class TimeGrouper(CustomGrouper):
 
     def resample(self, obj):
         axis = obj._get_axis(self.axis)
+
+        if not axis.is_monotonic:
+            try:
+                obj = obj.sort_index(axis=self.axis)
+            except TypeError:
+                obj = obj.sort_index()
+
         if isinstance(axis, DatetimeIndex):
             return self._resample_timestamps(obj)
         elif isinstance(axis, PeriodIndex):

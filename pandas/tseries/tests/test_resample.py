@@ -510,6 +510,16 @@ class TestResample(unittest.TestCase):
         result = ts.resample('20min', how=['mean', 'sum'])
         self.assert_(isinstance(result, DataFrame))
 
+    def test_resample_not_monotonic(self):
+        rng = pd.date_range('2012-06-12', periods=200, freq='h')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        ts = ts.take(np.random.permutation(len(ts)))
+
+        result = ts.resample('D', how='sum')
+        exp = ts.sort_index().resample('D', how='sum')
+        assert_series_equal(result, exp)
+
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
     return Series(np.random.randn(len(rng)), index=rng)

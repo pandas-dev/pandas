@@ -62,6 +62,7 @@ pandas 0.8.1
   - Override Index.tolist for compatibility with MultiIndex (#1576)
   - Fix hierarchical summing bug with MultiIndex of length 1 (#1568)
   - Work around numpy.concatenate use/bug in Series.set_value (#1561)
+  - Ensure Series/DataFrame are sorted before resampling (#1580)
 
 pandas 0.8.0
 ============
