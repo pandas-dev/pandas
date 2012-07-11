@@ -53,6 +53,7 @@ pandas 0.8.1
   - Fix MultiIndex console formatting issue (#1606)
   - Unordered index with duplicates doesn't yield scalar location for single
     entry (#1586)
+  - Fix resampling of tz-aware time series with "anchored" freq (#1591)
 
 pandas 0.8.0
 ============

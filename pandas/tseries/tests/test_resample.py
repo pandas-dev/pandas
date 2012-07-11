@@ -731,6 +731,9 @@ class TestResamplePeriodIndex(unittest.TestCase):
 
         assert_series_equal(result, exp)
 
+        # it works
+        result = ts_local.resample('D')
+
     def test_closed_left_corner(self):
         # #1465
         s = Series(np.random.randn(21),

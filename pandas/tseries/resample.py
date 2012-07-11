@@ -90,8 +90,7 @@ class TimeGrouper(CustomGrouper):
             binner = labels = DatetimeIndex(data=[], freq=self.freq)
             return binner, [], labels
 
-        first, last = _get_range_edges(axis, self.freq, closed=self.closed,
-                                       base=self.base)
+        first, last = _get_range_edges(axis, self.freq, closed=self.closed, base=self.base)
         binner = labels = DatetimeIndex(freq=self.freq, start=first, end=last)
 
         # a little hack
@@ -304,7 +303,8 @@ def _adjust_dates_anchored(first, last, offset, closed='right', base=0):
         else:
             lresult = last.value + offset.nanos
 
-    return Timestamp(fresult), Timestamp(lresult)
+    return (Timestamp(fresult, tz=first.tz),
+            Timestamp(lresult, tz=last.tz))
 
 
 def asfreq(obj, freq, method=None, how=None):
