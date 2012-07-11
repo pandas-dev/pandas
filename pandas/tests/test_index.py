@@ -999,6 +999,11 @@ class TestMultiIndex(unittest.TestCase):
         assert(result == expected)
         # self.assertRaises(Exception, index.get_loc, 2)
 
+        index = Index(['c', 'a', 'a', 'b', 'b'])
+        rs = index.get_loc('c')
+        xp = 0
+        assert(rs == xp)
+
     def test_get_loc_level(self):
         index = MultiIndex(levels=[Index(range(4)),
                                    Index(range(4)),

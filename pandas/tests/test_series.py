@@ -599,6 +599,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(KeyError, s.__getitem__, 1)
         self.assertRaises(KeyError, s.ix.__getitem__, 1)
 
+    def test_getitem_unordered_dup(self):
+        obj = Series(range(5), index=['c', 'a', 'a', 'b', 'b'])
+        self.assert_(np.isscalar(obj['c']))
+        self.assert_(obj['c'] == 0)
+
     def test_setitem_ambiguous_keyerror(self):
         s = Series(range(10), index=range(0, 20, 2))
         self.assertRaises(KeyError, s.__setitem__, 1, 5)
