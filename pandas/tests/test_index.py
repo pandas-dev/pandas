@@ -1571,6 +1571,10 @@ class TestMultiIndex(unittest.TestCase):
                                    [0, 1, 2, 0, 0, 1, 2]])
         self.assert_(index.has_duplicates)
 
+    def test_tolist(self):
+        result = self.index.tolist()
+        exp = list(self.index.values)
+        self.assertEqual(result, exp)
 
 
 def test_get_combined_index():

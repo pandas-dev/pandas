@@ -57,6 +57,7 @@ pandas 0.8.1
   - Fix resampling of tz-aware time series with "anchored" freq (#1591)
   - Fix DataFrame.rank error on integer data (#1589)
   - Selection of multiple SparseDataFrame columns by list in __getitem__ (#1585)
+  - Override Index.tolist for compatibility with MultiIndex (#1576)
 
 pandas 0.8.0
 ============

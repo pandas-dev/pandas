@@ -150,6 +150,12 @@ class Index(np.ndarray):
     def _assert_can_do_setop(self, other):
         return True
 
+    def tolist(self):
+        """
+        Overridden version of ndarray.tolist
+        """
+        return list(self.values)
+
     @property
     def dtype(self):
         return self.values.dtype
