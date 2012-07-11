@@ -274,26 +274,35 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, **kwds):
     n = len(data)
     classes = set(data[class_column])
     class_col = data[class_column]
-    if cols == None:
-        columns = [data[col] for col in data.columns if (col != class_column)]
+
+    if cols is None:
+        df = data.drop(class_column, axis=1)
     else:
-        columns = [data[col] for col in cols]
+        df = data[cols]
+
     used_legends = set([])
-    x = range(len(columns))
+
+    ncols = len(df.columns)
+    x = range(ncols)
+
     if ax == None:
         ax = plt.gca()
+
     for i in range(n):
-        row = [columns[c][i] for c in range(len(columns))]
+        row = df.irow(i).values
         y = row
         label = None
-        if str(class_col[i]) not in used_legends:
-            label = str(class_col[i])
+        kls = class_col.iget_value(i)
+        if str(kls) not in used_legends:
+            label = str(kls)
             used_legends.add(label)
-        ax.plot(x, y, color=random_color(class_col[i]), label=label, **kwds)
-    for i, col in enumerate(columns):
+        ax.plot(x, y, color=random_color(kls), label=label, **kwds)
+
+    for i in range(ncols):
         ax.axvline(i, linewidth=1, color='black')
-    ax.set_xticks(range(len(columns)))
-    ax.set_xticklabels([col for col in data.columns if col != class_column])
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(df.columns)
     ax.legend(loc='upper right')
     ax.grid()
     return ax
