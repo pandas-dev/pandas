@@ -19,7 +19,6 @@ class FreqGroup(object):
     FR_HR = 7000
     FR_MIN = 8000
     FR_SEC = 9000
-    FR_UND = -10000
 
 def get_freq_group(freq):
     if isinstance(freq, basestring):
@@ -555,8 +554,6 @@ _period_code_map = {
     "H"      : 7000,   # Hourly
     "T"      : 8000,   # Minutely
     "S"      : 9000,   # Secondly
-    None     : -10000  # Undefined
-
 }
 
 _reverse_period_code_map = {}
@@ -583,7 +580,6 @@ def _period_alias_dictionary():
     H_aliases = ["H", "HR", "HOUR", "HRLY", "HOURLY"]
     T_aliases = ["T", "MIN", "MINUTE", "MINUTELY"]
     S_aliases = ["S", "SEC", "SECOND", "SECONDLY"]
-    U_aliases = ["U", "UND", "UNDEF", "UNDEFINED"]
 
     for k in M_aliases:
         alias_dict[k] = 'M'
@@ -602,9 +598,6 @@ def _period_alias_dictionary():
 
     for k in S_aliases:
         alias_dict[k] = 'S'
-
-    for k in U_aliases:
-        alias_dict[k] = None
 
     A_prefixes = ["A", "Y", "ANN", "ANNUAL", "ANNUALLY", "YR", "YEAR",
                   "YEARLY"]

@@ -241,9 +241,6 @@ def _daily_finder(vmin, vmax, freq):
     elif frequencies.get_freq_group(freq) == FreqGroup.FR_WK:
         periodsperyear = 52
         periodspermonth = 3
-    elif freq == FreqGroup.FR_UND:
-        periodsperyear = 100
-        periodspermonth = 10
     else: # pragma: no cover
         raise ValueError("unexpected frequency")
 
@@ -569,8 +566,7 @@ def get_finder(freq):
         return _quarterly_finder
     elif freq ==FreqGroup.FR_MTH:
         return _monthly_finder
-    elif ((freq >= FreqGroup.FR_BUS) or (freq == FreqGroup.FR_UND) or
-          fgroup == FreqGroup.FR_WK):
+    elif ((freq >= FreqGroup.FR_BUS) or fgroup == FreqGroup.FR_WK):
         return _daily_finder
     else: # pragma: no cover
         errmsg = "Unsupported frequency: %s" % (freq)
