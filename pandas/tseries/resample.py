@@ -13,6 +13,9 @@ from pandas.lib import Timestamp
 import pandas.lib as lib
 
 
+_DEFAULT_METHOD = 'mean'
+
+
 class TimeGrouper(CustomGrouper):
     """
     Custom groupby class for time-interval grouping
@@ -153,6 +156,10 @@ class TimeGrouper(CustomGrouper):
 
         return binner, bins, labels
 
+    @property
+    def _agg_method(self):
+        return self.how if self.how else _DEFAULT_METHOD
+
     def _resample_timestamps(self, obj):
         axlabels = obj._get_axis(self.axis)
 
@@ -160,9 +167,9 @@ class TimeGrouper(CustomGrouper):
 
         # Determine if we're downsampling
         if axlabels.freq is not None or axlabels.inferred_freq is not None:
-            if len(grouper.binlabels) < len(axlabels):
+            if len(grouper.binlabels) < len(axlabels) or self.how is not None:
                 grouped  = obj.groupby(grouper, axis=self.axis)
-                result = grouped.aggregate(self.how)
+                result = grouped.aggregate(self._agg_method)
             else:
                 # upsampling shortcut
                 assert(self.axis == 0)
@@ -171,7 +178,7 @@ class TimeGrouper(CustomGrouper):
         else:
             # Irregular data, have to use groupby
             grouped  = obj.groupby(grouper, axis=self.axis)
-            result = grouped.aggregate(self.how)
+            result = grouped.aggregate(self._agg_method)
 
             if self.fill_method is not None:
                 result = result.fillna(method=self.fill_method, limit=self.limit)
@@ -202,14 +209,14 @@ class TimeGrouper(CustomGrouper):
         # Start vs. end of period
         memb = axlabels.asfreq(self.freq, how=self.convention)
 
-        if is_subperiod(axlabels.freq, self.freq):
+        if is_subperiod(axlabels.freq, self.freq) or self.how is not None:
             # Downsampling
             rng = np.arange(memb.values[0], memb.values[-1])
             bins = memb.searchsorted(rng, side='right')
             grouper = BinGrouper(bins, new_index)
 
             grouped = obj.groupby(grouper, axis=self.axis)
-            return grouped.aggregate(self.how)
+            return grouped.aggregate(self._agg_method)
         elif is_superperiod(axlabels.freq, self.freq):
             # Get the fill indexer
             indexer = memb.get_indexer(new_index, method=self.fill_method,

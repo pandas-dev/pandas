@@ -501,6 +501,15 @@ class TestResample(unittest.TestCase):
         # it works!
         ts.resample('d')
 
+    def test_upsample_apply_functions(self):
+        # #1596
+        rng = pd.date_range('2012-06-12', periods=4, freq='h')
+
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        result = ts.resample('20min', how=['mean', 'sum'])
+        self.assert_(isinstance(result, DataFrame))
+
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
     return Series(np.random.randn(len(rng)), index=rng)

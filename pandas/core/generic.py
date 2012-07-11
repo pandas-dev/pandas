@@ -155,7 +155,7 @@ class PandasObject(object):
         from pandas.tseries.resample import asfreq
         return asfreq(self, freq, method=method, how=how)
 
-    def resample(self, rule, how='mean', axis=0, fill_method=None,
+    def resample(self, rule, how=None, axis=0, fill_method=None,
                  closed='right', label='right', convention=None,
                  kind=None, loffset=None, limit=None, base=0):
         """
@@ -165,7 +165,8 @@ class PandasObject(object):
         Parameters
         ----------
         rule : the offset string or object representing target conversion
-        how : string, method for down- or re-sampling, default 'mean'
+        how : string, method for down- or re-sampling, default to 'mean' for
+              downsampling
         fill_method : string, fill_method for upsampling, default None
         axis : int, optional, default 0
         closed : {'right', 'left'}, default 'right'
