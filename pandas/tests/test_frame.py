@@ -5893,6 +5893,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_almost_equal(ranks0.values, exp0)
         assert_almost_equal(ranks1.values, exp1)
 
+        # integers
+        df = DataFrame(np.random.randint(0, 5, size=40).reshape((10, 4)))
+
+        result = df.rank()
+        exp = df.astype(float).rank()
+        assert_frame_equal(result, exp)
+
+        result = df.rank(1)
+        exp = df.astype(float).rank(1)
+        assert_frame_equal(result, exp)
+
     def test_rank2(self):
         from datetime import datetime
 

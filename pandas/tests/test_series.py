@@ -1893,6 +1893,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         assert_almost_equal(ranks, exp)
 
+        iseries = Series(np.arange(5).repeat(2))
+
+        iranks = iseries.rank()
+        exp = iseries.astype(float).rank()
+        assert_series_equal(iranks, exp)
+
     def test_from_csv(self):
         self.ts.to_csv('_foo')
         ts = Series.from_csv('_foo')

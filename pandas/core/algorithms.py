@@ -310,6 +310,7 @@ _rank1d_functions = {
 
 _rank2d_functions = {
     'float64' : lib.rank_2d_float64,
+    'int64' : lib.rank_2d_int64,
     'generic' : lib.rank_2d_generic
 }
 

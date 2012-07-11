@@ -54,6 +54,7 @@ pandas 0.8.1
   - Unordered index with duplicates doesn't yield scalar location for single
     entry (#1586)
   - Fix resampling of tz-aware time series with "anchored" freq (#1591)
+  - Fix DataFrame.rank error on integer data (#1589)
 
 pandas 0.8.0
 ============
