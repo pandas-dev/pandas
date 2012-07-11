@@ -1083,7 +1083,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
 
     if (not any_callable and not all_in_columns
         and not any_arraylike and match_axis_length
-        and not level):
+        and level is None):
         keys = [com._asarray_tuplesafe(keys)]
 
     if isinstance(level, (tuple, list)):

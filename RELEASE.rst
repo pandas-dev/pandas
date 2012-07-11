@@ -60,6 +60,7 @@ pandas 0.8.1
   - Fix DataFrame.rank error on integer data (#1589)
   - Selection of multiple SparseDataFrame columns by list in __getitem__ (#1585)
   - Override Index.tolist for compatibility with MultiIndex (#1576)
+  - Fix hierarchical summing bug with MultiIndex of length 1 (#1568)
 
 pandas 0.8.0
 ============
