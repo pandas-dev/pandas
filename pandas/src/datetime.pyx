@@ -637,7 +637,8 @@ cdef inline _string_to_dts(object val, pandas_datetimestruct* dts):
     if result == -1:
         raise ValueError('Unable to parse %s' % str(val))
 
-def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False):
+def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
+                      format=None):
     cdef:
         Py_ssize_t i, n = len(values)
         object val
@@ -668,12 +669,18 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False):
                 if len(val) == 0:
                     iresult[i] = iNaT
                     continue
+
                 try:
-                    result[i] = parse(val, dayfirst=dayfirst)
-                except Exception:
-                    raise TypeError
-                pandas_datetime_to_datetimestruct(iresult[i], PANDAS_FR_ns,
-                                                  &dts)
+                    _string_to_dts(val, &dts)
+                    iresult[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns,
+                                                                   &dts)
+                except ValueError:
+                    try:
+                        result[i] = parse(val, dayfirst=dayfirst)
+                    except Exception:
+                        raise TypeError
+                    pandas_datetime_to_datetimestruct(iresult[i], PANDAS_FR_ns,
+                                                      &dts)
                 _check_dts_bounds(iresult[i], &dts)
         return result
     except TypeError:

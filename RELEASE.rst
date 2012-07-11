@@ -36,6 +36,8 @@ pandas 0.8.1
 
 **Improvements to existing features**
 
+  - Drastically improve ``to_datetime`` performance on ISO8601 datetime strings
+    (with no time zones) (#1571)
   - Add ability to append hierarchical index levels with ``set_index`` and to
     drop single levels with ``reset_index`` (#1569, #1577)
   - Always apply passed functions in ``resample``, even if upsampling (#1596)

@@ -132,3 +132,15 @@ ts = Series(np.random.randn(len(rng)), index=rng)
 timeseries_timestamp_downsample_mean = \
     Benchmark("ts.resample('D', how='mean')", setup,
               start_date=datetime(2012, 4, 25))
+
+#----------------------------------------------------------------------
+# to_datetime
+
+setup = common_setup + """
+rng = date_range('1/1/2000', periods=20000, freq='h')
+strings = [x.strftime('%Y-%m-%d %H:%M:%S') for x in rng]
+"""
+
+timeseries_to_datetime_iso8601 = \
+    Benchmark('to_datetime(strings)', setup,
+              start_date=datetime(2012, 7, 11))
