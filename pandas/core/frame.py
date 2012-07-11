@@ -2296,16 +2296,22 @@ class DataFrame(NDFrame):
             frame = self.copy()
 
         arrays = []
+        names = []
         for col in keys:
-            if isinstance(col, (list, Series, np.ndarray)):
+            if isinstance(col, Series):
+                level = col.values
+                names.append(col.name)
+            elif isinstance(col, (list, np.ndarray)):
                 level = col
+                names.append(None)
             else:
-                level = frame[col]
+                level = frame[col].values
+                names.append(col)
                 if drop:
                     del frame[col]
             arrays.append(level)
 
-        index = MultiIndex.from_arrays(arrays, names=keys)
+        index = MultiIndex.from_arrays(arrays, names=names)
 
         if verify_integrity and not index.is_unique:
             duplicates = index.get_duplicates()
