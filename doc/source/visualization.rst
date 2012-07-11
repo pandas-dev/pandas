@@ -341,3 +341,21 @@ confidence band.
 
    @savefig autocorrelation_plot.png width=6in
    autocorrelation_plot(data)
+
+Bootstrap Plot
+~~~~~~~~~~~~~~
+
+Bootstrap plots are used to visually assess the uncertainty of a statistic, such
+as mean, median, midrange, etc. A random subset of a specified size is selected
+from a data set, the statistic in question is computed for this subset and the 
+process is repeated a specified number of times. Resulting plots and histograms
+are what constitutes the bootstrap plot.
+
+.. ipython:: python
+
+   from pandas.tools.plotting import bootstrap_plot
+
+   data = Series(np.random.random(1000))
+
+   @savefig bootstrap_plot.png width=8in
+   bootstrap_plot(data, size=50, samples=500, color='grey')
