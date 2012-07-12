@@ -19,6 +19,7 @@ from pandas.tseries.tools import to_datetime
 import pandas.tseries.period as pmod
 
 import pandas.core.datetools as datetools
+import pandas as pd
 import numpy as np
 randn = np.random.randn
 
@@ -1760,6 +1761,13 @@ class TestPeriodIndex(TestCase):
         result = index.map(lambda x: x.ordinal)
         exp = [x.ordinal for x in index]
         self.assert_(np.array_equal(result, exp))
+
+    def test_convert_array_of_periods(self):
+        rng = period_range('1/1/2000', periods=20, freq='D')
+        periods = list(rng)
+
+        result = pd.Index(periods)
+        self.assert_(isinstance(result, PeriodIndex))
 
 def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))

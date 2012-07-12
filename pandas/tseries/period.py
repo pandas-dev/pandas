@@ -404,20 +404,12 @@ def _get_date_and_freq(value, freq):
     return dt, freq
 
 
-def _period_unbox(key, check=None):
-    '''
-    Period-like => int64
-    '''
-    if not isinstance(key, Period):
-        key = Period(key, freq=check)
-    elif check is not None:
-        if key.freq != check:
-            raise ValueError("%s is wrong freq" % key)
-    return np.int64(key.ordinal)
-
-def _period_unbox_array(arr, check=None):
-    unboxer = np.frompyfunc(lambda x: _period_unbox(x, check=check), 1, 1)
-    return unboxer(arr)
+def _get_ordinals(data, freq):
+    f = lambda x: Period(x, freq=freq).ordinal
+    if isinstance(data[0], Period):
+        return lib.extract_ordinals(data, freq)
+    else:
+        return lib.map_infer(data, f)
 
 def dt64arr_to_periodarr(data, freq):
     if data.dtype != np.dtype('M8[ns]'):
@@ -575,18 +567,22 @@ class PeriodIndex(Int64Index):
                 data = list(data)
 
             try:
-                data = np.array(data, dtype='i8')
+                data = com._ensure_int64(data)
+                if freq is None:
+                    raise ValueError('freq not specified')
+                data = np.array([Period(x, freq=freq).ordinal for x in data],
+                                dtype=np.int64)
             except (TypeError, ValueError):
-                data = np.array(data, dtype='O')
+                data = com._ensure_object(data)
 
-            if freq is None and len(data) > 0:
-                freq = getattr(data[0], 'freq', None)
+                if freq is None and len(data) > 0:
+                    freq = getattr(data[0], 'freq', None)
 
-            if freq is None:
-                raise ValueError(('freq not specified and cannot be inferred '
-                                  'from first element'))
+                if freq is None:
+                    raise ValueError('freq not specified and cannot be '
+                                     'inferred from first element')
 
-            data = _period_unbox_array(data, check=freq)
+                data = _get_ordinals(data, freq)
         else:
             if isinstance(data, PeriodIndex):
                 if freq is None or freq == data.freq:
@@ -610,10 +606,10 @@ class PeriodIndex(Int64Index):
                     pass
                 else:
                     try:
-                        data = data.astype('i8')
+                        data = com._ensure_int64(data)
                     except (TypeError, ValueError):
-                        data = data.astype('O')
-                        data = _period_unbox_array(data, check=freq)
+                        data = com._ensure_object(data)
+                        data = _get_ordinals(data, freq)
 
         return data, freq
 

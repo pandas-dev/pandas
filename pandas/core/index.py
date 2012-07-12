@@ -38,6 +38,12 @@ class InvalidIndexError(Exception):
 
 _o_dtype = np.dtype(object)
 
+
+def _shouldbe_timestamp(obj):
+    return (lib.is_datetime_array(obj) or lib.is_datetime64_array(obj)
+            or lib.is_timestamp_array(obj))
+
+
 class Index(np.ndarray):
     """
     Immutable ndarray implementing an ordered, sliceable set. The basic object
@@ -100,11 +106,13 @@ class Index(np.ndarray):
             subarr = com._asarray_tuplesafe(data, dtype=object)
 
         if dtype is None:
-            if (lib.is_datetime_array(subarr)
-                or lib.is_datetime64_array(subarr)
-                or lib.is_timestamp_array(subarr)):
+            if _shouldbe_timestamp(subarr):
                 from pandas.tseries.index import DatetimeIndex
                 return DatetimeIndex(subarr, copy=copy, name=name)
+
+            if lib.is_period_array(subarr):
+                from pandas.tseries.period import PeriodIndex
+                return PeriodIndex(subarr, name=name)
 
             if lib.is_integer_array(subarr):
                 return Int64Index(subarr.astype('i8'), name=name)

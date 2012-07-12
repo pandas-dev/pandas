@@ -48,6 +48,8 @@ pandas 0.8.1
   - Always apply passed functions in ``resample``, even if upsampling (#1596)
   - Avoid unnecessary copies in DataFrame constructor with explicit dtype (#1572)
   - Cleaner DatetimeIndex string representation with 1 or 2 elements (#1611)
+  - Improve performance of array-of-Period to PeriodIndex, convert such arrays
+    to PeriodIndex inside Index (#1215)
 
 **Bug fixes**
 
