@@ -91,7 +91,7 @@ class TestHDFStore(unittest.TestCase):
         right = self.store['a']
         tm.assert_series_equal(left, right)
 
-        self.assertRaises(AttributeError, self.store.get, 'b')
+        self.assertRaises(KeyError, self.store.get, 'b')
 
     def test_put(self):
         ts = tm.makeTimeSeries()
