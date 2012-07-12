@@ -14,7 +14,7 @@ try:
 
     # raise exception if dateutil 2.0 install on 2.x platform
     if (sys.version_info[0] == 2 and
-        dateutil.__version__ == '2.0'):  # pragma: no cover
+        dateutil.__version__ >= '2.0'):  # pragma: no cover
         raise Exception('dateutil 2.0 incompatible with Python 2.x, you must '
                         'install version 1.5!')
 except ImportError: # pragma: no cover
