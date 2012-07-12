@@ -276,7 +276,7 @@ class SparseDataFrame(DataFrame):
             self._insert_column(key)
 
     def _insert_column(self, key):
-        self.columns = Index(np.concatenate((self.columns, [key])))
+        self.columns = self.columns.insert(len(self.columns), key)
 
     def __delitem__(self, key):
         """
