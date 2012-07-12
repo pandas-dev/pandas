@@ -744,6 +744,41 @@ class Panel(NDFrame):
         return self.reindex(major=other.major_axis, items=other.items,
                             minor=other.minor_axis, method=method)
 
+    def dropna(self, axis=0, how='any'):
+        """
+        Drop 2D from panel, holding passed axis constant
+
+        Parameters
+        ----------
+        axis : int, default 0
+            Axis to hold constant. E.g. axis=1 will drop major_axis entries
+            having a certain amount of NA data
+        how : {'all', 'any'}, default 'any'
+            'any': one or more values are NA in the DataFrame along the
+            axis. For 'all' they all must be.
+
+        Returns
+        -------
+        dropped : Panel
+        """
+        axis = self._get_axis_number(axis)
+
+        values = self.values
+        mask = com.notnull(values)
+
+        for ax in reversed(sorted(set(range(3)) - set([axis]))):
+            mask = mask.sum(ax)
+
+        per_slice = np.prod(values.shape[:axis] + values.shape[axis + 1:])
+
+        if how == 'all':
+            cond = mask > 0
+        else:
+            cond = mask == per_slice
+
+        new_ax = self._get_axis(axis)[cond]
+        return self.reindex_axis(new_ax, axis=axis)
+
     def _combine(self, other, func, axis=0):
         if isinstance(other, Panel):
             return self._combine_panel(other, func)

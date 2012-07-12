@@ -35,6 +35,7 @@ pandas 0.8.1
   - Add ``radviz`` plot function (#1566)
   - Add ``multi_sparse`` option to ``set_printoptions`` to modify display of
     hierarchical indexes (#1538)
+  - Add ``dropna`` method to Panel (#171)
 
 **Improvements to existing features**
 

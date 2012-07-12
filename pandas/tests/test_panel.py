@@ -1108,6 +1108,38 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                 assert_frame_equal(df, recdf)
             os.remove(path)
 
+    def test_dropna(self):
+        p = Panel(np.random.randn(4, 5, 6), major_axis=list('abcde'))
+        p.ix[:, ['b', 'd'], 0] = np.nan
+
+        result = p.dropna(axis=1)
+        exp = p.ix[:, ['a', 'c', 'e'], :]
+        assert_panel_equal(result, exp)
+
+        result = p.dropna(axis=1, how='all')
+        assert_panel_equal(result, p)
+
+        p.ix[:, ['b', 'd'], :] = np.nan
+        result = p.dropna(axis=1, how='all')
+        exp = p.ix[:, ['a', 'c', 'e'], :]
+        assert_panel_equal(result, exp)
+
+        p = Panel(np.random.randn(4, 5, 6), items=list('abcd'))
+        p.ix[['b'], :, 0] = np.nan
+
+        result = p.dropna()
+        exp = p.ix[['a', 'c', 'd']]
+        assert_panel_equal(result, exp)
+
+        result = p.dropna(how='all')
+        assert_panel_equal(result, p)
+
+        p.ix['b'] = np.nan
+        result = p.dropna(how='all')
+        exp = p.ix[['a', 'c', 'd']]
+        assert_panel_equal(result, exp)
+
+
 class TestLongPanel(unittest.TestCase):
     """
     LongPanel no longer exists, but...
