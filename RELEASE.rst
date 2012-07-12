@@ -67,6 +67,7 @@ pandas 0.8.1
   - Ensure Series/DataFrame are sorted before resampling (#1580)
   - Fix unhandled IndexError when indexing very large time series (#1562)
   - Fix DatetimeIndex intersection logic error with irregular indexes (#1551)
+  - Fix unit test errors on Python 3 (#1550)
 
 pandas 0.8.0
 ============
