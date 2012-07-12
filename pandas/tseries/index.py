@@ -815,8 +815,9 @@ class DatetimeIndex(Int64Index):
                     result.offset = to_offset(result.inferred_freq)
             return result
 
-        elif other.offset != self.offset or (not self.is_monotonic or
-                                             not other.is_monotonic):
+        elif (other.offset is None or self.offset is None or
+              other.offset != self.offset or
+              (not self.is_monotonic or not other.is_monotonic)):
             result = Index.intersection(self, other)
             if isinstance(result, DatetimeIndex):
                 if result.freq is None:

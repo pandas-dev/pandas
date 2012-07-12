@@ -1802,6 +1802,15 @@ class TestSeriesDatetime64(unittest.TestCase):
         df = DataFrame({'s1' : s1, 's2' : s2})
         self.assert_(df.index.values.dtype == np.dtype('M8[ns]'))
 
+    def test_intersection(self):
+        rng = date_range('6/1/2000', '6/15/2000', freq='D')
+        rng = rng.delete(5)
+
+        rng2 = date_range('5/15/2000', '6/20/2000', freq='D')
+        rng2 = DatetimeIndex(rng2.values)
+
+        result = rng.intersection(rng2)
+        self.assert_(result.equals(rng))
 
 class TestTimestamp(unittest.TestCase):
 

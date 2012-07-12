@@ -65,6 +65,7 @@ pandas 0.8.1
   - Work around numpy.concatenate use/bug in Series.set_value (#1561)
   - Ensure Series/DataFrame are sorted before resampling (#1580)
   - Fix unhandled IndexError when indexing very large time series (#1562)
+  - Fix DatetimeIndex intersection logic error with irregular indexes (#1551)
 
 pandas 0.8.0
 ============
