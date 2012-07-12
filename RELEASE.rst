@@ -41,6 +41,7 @@ pandas 0.8.1
   - Add ability to append hierarchical index levels with ``set_index`` and to
     drop single levels with ``reset_index`` (#1569, #1577)
   - Always apply passed functions in ``resample``, even if upsampling (#1596)
+  - Avoid unnecessary copies in DataFrame constructor with explicit dtype (#1572)
 
 **Bug fixes**
 
@@ -63,6 +64,7 @@ pandas 0.8.1
   - Fix hierarchical summing bug with MultiIndex of length 1 (#1568)
   - Work around numpy.concatenate use/bug in Series.set_value (#1561)
   - Ensure Series/DataFrame are sorted before resampling (#1580)
+  - Fix unhandled IndexError when indexing very large time series (#1562)
 
 pandas 0.8.0
 ============

@@ -33,6 +33,8 @@ import pandas.util.py3compat as py3compat
 from pandas.core.datetools import BDay
 import pandas.core.common as com
 
+from numpy.testing.decorators import slow
+
 
 class TestTimeSeriesDuplicates(unittest.TestCase):
 
@@ -1707,6 +1709,12 @@ class TestDatetime64(unittest.TestCase):
         # s = Series(index[:1], index[:1])
         # s2 = s.set_value(dates[1], index[1])
         # self.assert_(s2.values.dtype == 'M8[ns]')
+
+    @slow
+    def test_slice_locs_indexerror(self):
+        times = [datetime(2000, 1, 1) + timedelta(minutes=i) for i in range(1000000)]
+        s = Series(range(1000000), times)
+        s.ix[datetime(1900,1,1):datetime(2100,1,1)]
 
 class TestSeriesDatetime64(unittest.TestCase):
 

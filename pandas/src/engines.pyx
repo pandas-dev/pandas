@@ -394,7 +394,7 @@ cdef class DatetimeEngine(Int64Engine):
             values = self._get_index_values()
             conv = _to_i8(val)
             loc = values.searchsorted(conv, side='left')
-            if util.get_value_at(values, loc) != conv:
+            if loc == len(values) or util.get_value_at(values, loc) != conv:
                 raise KeyError(val)
             return loc
 
