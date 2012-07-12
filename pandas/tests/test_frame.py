@@ -969,6 +969,23 @@ class CheckIndexing(object):
         expected = df.ix[3]
         assert_series_equal(result, expected)
 
+    def test_getitem_ix_boolean_duplicates_multiple(self):
+        # #1201
+        df = DataFrame(np.random.randn(5, 3),
+                       index=['foo', 'foo', 'bar', 'baz', 'bar'])
+
+        result = df.ix[['bar']]
+        exp = df.ix[[2, 4]]
+        assert_frame_equal(result, exp)
+
+        result = df.ix[df[1] > 0]
+        exp = df[df[1] > 0]
+        assert_frame_equal(result, exp)
+
+        result = df.ix[df[0] > 0]
+        exp = df[df[0] > 0]
+        assert_frame_equal(result, exp)
+
     def test_get_value(self):
         for idx in self.frame.index:
             for col in self.frame.columns:

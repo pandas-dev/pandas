@@ -275,7 +275,8 @@ class _NDFrameIndexer(object):
 
         if com._is_bool_indexer(key):
             key = _check_bool_indexer(labels, key)
-            return _reindex(labels[np.asarray(key)])
+            inds, = np.asarray(key, dtype=bool).nonzero()
+            return self.obj.take(inds, axis=axis)
         else:
             if isinstance(key, Index):
                 # want Index objects to pass through untouched
@@ -294,7 +295,11 @@ class _NDFrameIndexer(object):
             else:
                 level = None
 
-            return _reindex(keyarr, level=level)
+            if labels.is_unique:
+                return _reindex(keyarr, level=level)
+            else:
+                mask = labels.isin(keyarr)
+                return self.obj.take(mask.nonzero()[0], axis=axis)
 
     def _convert_to_indexer(self, obj, axis=0):
         """

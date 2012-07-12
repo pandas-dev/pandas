@@ -7,13 +7,15 @@ import re
 import unittest
 import pandas.io.data as pd
 import nose
+from pandas.util.testing import network
 
 class TestYahoo(unittest.TestCase):
 
+    @network
     def test_yahoo(self):
-        """asserts that yahoo is minimally working and that it throws
-        an excecption when DataReader can't get a 200 response from
-        yahoo """
+        # asserts that yahoo is minimally working and that it throws
+        # an excecption when DataReader can't get a 200 response from
+        # yahoo
         start = datetime(2010,1,1)
         end = datetime(2012,1,24)
         self.assertEquals(

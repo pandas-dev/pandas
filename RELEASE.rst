@@ -76,6 +76,7 @@ pandas 0.8.1
   - Fix unhandled IndexError when indexing very large time series (#1562)
   - Fix DatetimeIndex intersection logic error with irregular indexes (#1551)
   - Fix unit test errors on Python 3 (#1550)
+  - Fix .ix indexing bugs in duplicate DataFrame index (#1201)
 
 pandas 0.8.0
 ============
