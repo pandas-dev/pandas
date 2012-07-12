@@ -296,6 +296,20 @@ class GroupBy(object):
             f = lambda x: x.mean(axis=self.axis)
             return self._python_agg_general(f)
 
+    def median(self):
+        """
+        Compute mean of groups, excluding missing values
+
+        For multiple groupings, the result index will be a MultiIndex
+        """
+        try:
+            return self._cython_agg_general('median')
+        except GroupByError:
+            raise
+        except Exception:  # pragma: no cover
+            f = lambda x: x.median(axis=self.axis)
+            return self._python_agg_general(f)
+
     def std(self, ddof=1):
         """
         Compute standard deviation of groups, excluding missing values
@@ -631,6 +645,7 @@ class Grouper(object):
         'min' : lib.group_min,
         'max' : lib.group_max,
         'mean' : lib.group_mean,
+        'median' : lib.group_median,
         'var' : lib.group_var,
         'std' : lib.group_var,
         'first': lambda a, b, c, d: lib.group_nth(a, b, c, d, 1),
