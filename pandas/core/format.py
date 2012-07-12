@@ -149,12 +149,17 @@ class DataFrameFormatter(object):
 
     def __init__(self, frame, buf=None, columns=None, col_space=None,
                  header=True, index=True, na_rep='NaN', formatters=None,
-                 justify=None, float_format=None, sparsify=True,
+                 justify=None, float_format=None, sparsify=None,
                  index_names=True, **kwds):
         self.frame = frame
         self.buf = buf if buf is not None else StringIO()
         self.show_index_names = index_names
+
+        if sparsify is None:
+            sparsify = print_config.multi_sparse
+
         self.sparsify = sparsify
+
         self.float_format = float_format
         self.formatters = formatters if formatters is not None else {}
         self.na_rep = na_rep
@@ -662,7 +667,8 @@ def _has_names(index):
 def set_printoptions(precision=None, column_space=None, max_rows=None,
                      max_columns=None, colheader_justify=None,
                      max_colwidth=None, notebook_repr_html=None,
-                     date_dayfirst=None, date_yearfirst=None):
+                     date_dayfirst=None, date_yearfirst=None,
+                     multi_sparse=None):
     """
     Alter default behavior of DataFrame.toString
 
@@ -686,6 +692,9 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
         When True, prints and parses dates with the day first, eg 20/01/2005
     date_yearfirst : boolean
         When True, prints and parses dates with the year first, eg 2005/01/20
+    multi_sparse : boolean
+        Default True, "sparsify" MultiIndex display (don't display repeated
+        elements in outer levels within groups)
     """
     if precision is not None:
         print_config.precision = precision
@@ -705,6 +714,8 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
         print_config.date_dayfirst = date_dayfirst
     if date_yearfirst is not None:
         print_config.date_yearfirst = date_yearfirst
+    if multi_sparse is not None:
+        print_config.multi_sparse = multi_sparse
 
 def reset_printoptions():
     print_config.reset()
@@ -834,6 +845,7 @@ class _GlobalPrintConfig(object):
         self.notebook_repr_html = True
         self.date_dayfirst = False
         self.date_yearfirst = False
+        self.multi_sparse = True
 
     def reset(self):
         self.__init__()

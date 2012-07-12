@@ -1199,7 +1199,7 @@ class DataFrame(NDFrame):
     @Appender(fmt.docstring_to_string, indents=1)
     def to_string(self, buf=None, columns=None, col_space=None, colSpace=None,
                   header=True, index=True, na_rep='NaN', formatters=None,
-                  float_format=None, sparsify=True, nanRep=None,
+                  float_format=None, sparsify=None, nanRep=None,
                   index_names=True, justify=None, force_unicode=False):
         """
         Render a DataFrame to a console-friendly tabular output.
@@ -1239,7 +1239,7 @@ class DataFrame(NDFrame):
     @Appender(fmt.docstring_to_string, indents=1)
     def to_html(self, buf=None, columns=None, col_space=None, colSpace=None,
                 header=True, index=True, na_rep='NaN', formatters=None,
-                float_format=None, sparsify=True, index_names=True,
+                float_format=None, sparsify=None, index_names=True,
                 bold_rows=True):
         """
         to_html-specific options

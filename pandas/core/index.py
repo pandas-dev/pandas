@@ -1438,7 +1438,7 @@ class MultiIndex(Index):
         labels = self.labels[num]
         return unique_vals.take(labels)
 
-    def format(self, space=2, sparsify=True, adjoin=True, names=False):
+    def format(self, space=2, sparsify=None, adjoin=True, names=False):
         if len(self) == 0:
             return []
 
@@ -1453,6 +1453,10 @@ class MultiIndex(Index):
 
             level.extend(ndtake(np.array(lev, dtype=object), lab))
             result_levels.append(level)
+
+        if sparsify is None:
+            import pandas.core.format as fmt
+            sparsify = fmt.print_config.multi_sparse
 
         if sparsify:
             # little bit of a kludge job for #1217

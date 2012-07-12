@@ -33,6 +33,8 @@ pandas 0.8.1
   - Add new ``bootstrap_plot`` plot function
   - Add new ``parallel_coordinates`` plot function (#1488)
   - Add ``radviz`` plot function (#1566)
+  - Add ``multi_sparse`` option to ``set_printoptions`` to modify display of
+    hierarchical indexes (#1538)
 
 **Improvements to existing features**
 

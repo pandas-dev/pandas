@@ -21,6 +21,8 @@ import pandas.util.testing as tm
 from pandas.tseries.index import _to_m8
 import pandas.tseries.offsets as offsets
 
+import pandas as pd
+
 class TestIndex(unittest.TestCase):
 
     def setUp(self):
@@ -1207,6 +1209,15 @@ class TestMultiIndex(unittest.TestCase):
 
         result = index.format()
         self.assertEqual(result[3], '1  0  0  0')
+
+    def test_format_sparse_config(self):
+        # #1538
+        pd.set_printoptions(multi_sparse=False)
+
+        result = self.index.format()
+        self.assertEqual(result[1], 'foo  two')
+
+        pd.reset_printoptions()
 
     def test_bounds(self):
         self.index._bounds
