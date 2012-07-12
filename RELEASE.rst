@@ -42,6 +42,7 @@ pandas 0.8.1
     drop single levels with ``reset_index`` (#1569, #1577)
   - Always apply passed functions in ``resample``, even if upsampling (#1596)
   - Avoid unnecessary copies in DataFrame constructor with explicit dtype (#1572)
+  - Cleaner DatetimeIndex string representation with 1 or 2 elements (#1611)
 
 **Bug fixes**
 

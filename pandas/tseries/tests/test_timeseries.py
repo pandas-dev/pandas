@@ -997,6 +997,16 @@ class TestTimeSeries(unittest.TestCase):
 
         assert_series_equal(result, expected)
 
+    def test_datetimeindex_repr_short(self):
+        dr = date_range(start='1/1/2012', periods=1)
+        repr(dr)
+
+        dr = date_range(start='1/1/2012', periods=2)
+        repr(dr)
+
+        dr = date_range(start='1/1/2012', periods=3)
+        repr(dr)
+
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
