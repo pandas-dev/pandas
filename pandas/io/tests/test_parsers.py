@@ -252,6 +252,10 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
         d = datetime(1999, 1, 27, 19, 0)
         self.assert_(df.index[0] == d)
 
+    def test_single_line(self):
+        df = read_csv(StringIO('1,2'), names=['a', 'b'], sep=None)
+        assert_frame_equal(DataFrame({'a': [1], 'b': [2]}), df)
+
     def test_multiple_date_cols_with_header(self):
         data = """\
 ID,date,NominalTime,ActualTime,TDew,TAir,Windspeed,Precip,WindDir

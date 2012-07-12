@@ -576,7 +576,10 @@ class TextParser(object):
                 counts[col] = cur_count + 1
             self._clear_buffer()
         else:
-            line = self._next_line()
+            if len(self.buf) > 0:
+                line = self.buf[0]
+            else:
+                line = self._next_line()
 
             ncols = len(line)
             if not names:
