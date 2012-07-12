@@ -273,6 +273,19 @@ You can also use a dict to specify custom name columns:
    df = read_csv('tmp.csv', header=None, parse_dates=date_spec)
    df
 
+It is important to remember that if multiple text columns are to be parsed into
+a single date column, then a new column is prepended to the data. The `index_col`
+specification is based off of this new set of columns rather than the original
+data columns:
+
+
+.. ipython:: python
+
+   date_spec = {'nominal': [1, 2], 'actual': [1, 3]}
+   df = read_csv('tmp.csv', header=None, parse_dates=date_spec,
+                 index_col=0) #index is the nominal column
+   df
+
 Date Parsing Functions
 ~~~~~~~~~~~~~~~~~~~~~~
 Finally, the parser allows you can specify a custom ``date_parser`` function to
