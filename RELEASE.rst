@@ -38,6 +38,8 @@ pandas 0.8.1
 
 **Improvements to existing features**
 
+  - Use moving min/max algorithms from Bottleneck in rolling_min/rolling_max
+    for > 100x speedup. (#1504, #50)
   - Drastically improve ``to_datetime`` performance on ISO8601 datetime strings
     (with no time zones) (#1571)
   - Add ability to append hierarchical index levels with ``set_index`` and to

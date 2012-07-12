@@ -395,8 +395,8 @@ def _rolling_func(func, desc, check_minp=_use_window):
 
     return f
 
-rolling_max = _rolling_func(_tseries.roll_max, 'Moving maximum')
-rolling_min = _rolling_func(_tseries.roll_min, 'Moving minimum')
+rolling_max = _rolling_func(_tseries.roll_max2, 'Moving maximum')
+rolling_min = _rolling_func(_tseries.roll_min2, 'Moving minimum')
 rolling_sum = _rolling_func(_tseries.roll_sum, 'Moving sum')
 rolling_mean = _rolling_func(_tseries.roll_mean, 'Moving mean')
 rolling_median = _rolling_func(_tseries.roll_median_cython, 'Moving median')
