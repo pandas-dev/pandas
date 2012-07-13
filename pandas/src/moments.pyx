@@ -227,7 +227,7 @@ def roll_mean(ndarray[double_t] input,
 #-------------------------------------------------------------------------------
 # Exponentially weighted moving average
 
-def ewma(ndarray[double_t] input, double_t com):
+def ewma(ndarray[double_t] input, double_t com, int adjust):
     '''
     Compute exponentially-weighted moving average using center-of-mass.
 
@@ -266,12 +266,13 @@ def ewma(ndarray[double_t] input, double_t com):
         else:
             output[i] = prev
 
-    for i from 0 <= i < N:
-        cur = input[i]
-        output[i] = output[i] / (1. - adj)
+    if adjust:
+        for i from 0 <= i < N:
+            cur = input[i]
+            output[i] = output[i] / (1. - adj)
 
-        if cur == cur:
-            adj *= oldw
+            if cur == cur:
+                adj *= oldw
 
     return output
 

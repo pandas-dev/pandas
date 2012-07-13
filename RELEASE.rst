@@ -53,6 +53,7 @@ pandas 0.8.1
     to PeriodIndex inside Index (#1215)
   - More informative string representation for weekly Period objects (#1503)
   - Accelerate 3-axis multi data selection from homogeneous Panel (#979)
+  - Add ``adjust`` option to ewma to disable adjustment factor (#1584)
 
 **Bug fixes**
 
