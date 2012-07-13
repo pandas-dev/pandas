@@ -1,0 +1,30 @@
+From: Wes McKinney <wesmckinn@gmail.com>
+Date: Thu, 12 Jul 2012 17:36:23 -0400
+Subject: [PATCH] BUG: fix duplicate index indexing problems close #1201
+
+Partially taken from
+4406d37b71cc3303b40847010299534c03723651 
+
+diff --git a/pandas/io/tests/test_yahoo.py b/pandas/io/tests/test_yahoo.py
+index 9f123e0..1f10a86 100644
+--- a/pandas/io/tests/test_yahoo.py
++++ b/pandas/io/tests/test_yahoo.py
+@@ -7,13 +7,15 @@ import re
+ import unittest
+ import pandas.io.data as pd
+ import nose
++from pandas.util.testing import network
+ 
+ class TestYahoo(unittest.TestCase):
+ 
++    @network
+     def test_yahoo(self):
+-        """asserts that yahoo is minimally working and that it throws
+-        an excecption when DataReader can't get a 200 response from
+-        yahoo """
++        # asserts that yahoo is minimally working and that it throws
++        # an excecption when DataReader can't get a 200 response from
++        # yahoo
+         start = datetime(2010,1,1)
+         end = datetime(2012,1,24)
+         self.assertEquals(

@@ -1,3 +1,11 @@
+pandas (0.8.0-2) unstable; urgency=medium
+
+  * up_tag_yahoo_test_requiring_network patch cherry-picked from upstream
+    GIT so that tests would not be excercised at package build time
+    (Closes: #681449)
+
+ -- Yaroslav Halchenko <debian@onerussian.com>  Fri, 13 Jul 2012 08:54:41 -0400
+
 pandas (0.8.0-1) unstable; urgency=low
 
   * Fresh upstream release
