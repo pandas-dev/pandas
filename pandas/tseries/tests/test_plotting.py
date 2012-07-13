@@ -16,7 +16,6 @@ from pandas.tseries.period import period_range, Period
 from pandas.tseries.resample import DatetimeIndex, TimeGrouper
 import pandas.tseries.offsets as offsets
 import pandas.tseries.frequencies as frequencies
-import pandas.tseries.converter as conv
 
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
@@ -157,6 +156,7 @@ class TestTSPlot(unittest.TestCase):
 
     @slow
     def test_uhf(self):
+        import pandas.tseries.converter as conv
         import matplotlib.pyplot as plt
         fig = plt.gcf()
         plt.clf()
