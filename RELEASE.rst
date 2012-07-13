@@ -51,6 +51,7 @@ pandas 0.8.1
   - Cleaner DatetimeIndex string representation with 1 or 2 elements (#1611)
   - Improve performance of array-of-Period to PeriodIndex, convert such arrays
     to PeriodIndex inside Index (#1215)
+  - More informative string representation for weekly Period objects (#1503)
 
 **Bug fixes**
 
@@ -77,6 +78,7 @@ pandas 0.8.1
   - Fix DatetimeIndex intersection logic error with irregular indexes (#1551)
   - Fix unit test errors on Python 3 (#1550)
   - Fix .ix indexing bugs in duplicate DataFrame index (#1201)
+  - Better handle errors with non-existing objects in HDFStore (#1254)
 
 pandas 0.8.0
 ============
