@@ -16,6 +16,7 @@ from pandas.tseries.period import period_range, Period
 from pandas.tseries.resample import DatetimeIndex, TimeGrouper
 import pandas.tseries.offsets as offsets
 import pandas.tseries.frequencies as frequencies
+import pandas.tseries.converter as conv
 
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
@@ -153,6 +154,27 @@ class TestTSPlot(unittest.TestCase):
                     datetime(2000, 1, 11)])
         ser = Series(np.random.randn(len(dr)), dr)
         _check_plot_works(ser.plot)
+
+    @slow
+    def test_uhf(self):
+        import matplotlib.pyplot as plt
+        fig = plt.gcf()
+        plt.clf()
+        fig.add_subplot(111)
+
+        idx = date_range('2012-6-22 21:59:51.960928', freq='L', periods=500)
+        df = DataFrame(np.random.randn(len(idx), 2), idx)
+
+        ax = df.plot()
+        axis = ax.get_xaxis()
+
+        tlocs = axis.get_ticklocs()
+        tlabels = axis.get_ticklabels()
+        for loc, label in zip(tlocs, tlabels):
+            xp = conv._from_ordinal(loc).strftime('%H:%M:%S.%f')
+            rs = str(label.get_text())
+            if len(rs) != 0:
+                self.assert_(xp == rs)
 
     @slow
     def test_irreg_hf(self):
