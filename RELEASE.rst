@@ -54,6 +54,7 @@ pandas 0.8.1
   - More informative string representation for weekly Period objects (#1503)
   - Accelerate 3-axis multi data selection from homogeneous Panel (#979)
   - Add ``adjust`` option to ewma to disable adjustment factor (#1584)
+  - Add new matplotlib converters for high frequency time series plotting (#1599)
 
 **Bug fixes**
 
