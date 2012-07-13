@@ -4,7 +4,6 @@ import numpy as np
 
 from dateutil.relativedelta import relativedelta
 
-import matplotlib
 import matplotlib.units as units
 import matplotlib.dates as dates
 
