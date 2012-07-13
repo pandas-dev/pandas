@@ -10,6 +10,7 @@ import pandas.util.testing as tm
 
 import numpy as np
 
+from numpy.testing import assert_array_equal
 from numpy.testing.decorators import slow
 import pandas.tools.plotting as plotting
 
@@ -162,6 +163,34 @@ class TestDataFramePlots(unittest.TestCase):
         df = DataFrame(np.random.rand(10, 3),
                        index=MultiIndex.from_tuples(tuples))
         _check_plot_works(df.plot, use_index=True)
+
+    @slow
+    def test_plot_xy(self):
+        df = tm.makeTimeDataFrame()
+        self._check_data(df.plot(x=0, y=1),
+                         df.set_index('A').sort_index()['B'].plot())
+
+        self._check_data(df.plot(x=0), df.set_index('A').sort_index().plot())
+
+        self._check_data(df.plot(y=0), df.B.plot())
+
+        self._check_data(df.plot(x='A', y='B'),
+                         df.set_index('A').sort_index().B.plot())
+
+        self._check_data(df.plot(x='A'), df.set_index('A').sort_index().plot())
+
+        self._check_data(df.plot(y='B'), df.B.plot())
+
+    def _check_data(self, xp, rs):
+        xp_lines = xp.get_lines()
+        rs_lines = rs.get_lines()
+
+        def check_line(xpl, rsl):
+            xpdata = xpl.get_xydata()
+            rsdata = rsl.get_xydata()
+            assert_array_equal(xpdata, rsdata)
+
+        [check_line(xpl, rsl) for xpl, rsl in zip(xp_lines, rs_lines)]
 
     @slow
     def test_subplots(self):

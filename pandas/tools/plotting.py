@@ -1038,17 +1038,21 @@ class HistPlot(MPLPlot):
     pass
 
 
-def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
-               use_index=True, figsize=None, grid=False, legend=True, rot=None,
-               ax=None, style=None, title=None, xlim=None, ylim=None, logy=False,
-               xticks=None, yticks=None, kind='line', sort_columns=False,
-               fontsize=None, secondary_y=False, **kwds):
+def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
+               sharey=False, use_index=True, figsize=None, grid=False,
+               legend=True, rot=None, ax=None, style=None, title=None, xlim=None,
+               ylim=None, logy=False, xticks=None, yticks=None, kind='line',
+               sort_columns=False, fontsize=None, secondary_y=False, **kwds):
+
     """
     Make line or bar plot of DataFrame's series with the index on the x-axis
     using matplotlib / pylab.
 
     Parameters
     ----------
+    x : int or str, default None
+    y : int or str, default None
+        Allows plotting of one column versus another
     subplots : boolean, default False
         Make separate subplots for each time series
     sharex : boolean, default True
@@ -1104,6 +1108,20 @@ def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
     else:
         raise ValueError('Invalid chart type given %s' % kind)
 
+    if isinstance(x, int):
+        x = frame.columns[x]
+    if x is not None:
+        frame = frame.set_index(x).sort_index()
+
+    if isinstance(y, int):
+        y = frame.columns[y]
+    if y is not None:
+        return plot_series(frame[y], label=y, kind=kind, use_index=True,
+                           rot=rot, xticks=xticks, yticks=yticks,
+                           xlim=xlim, ylim=ylim, ax=ax, style=style,
+                           grid=grid, logy=logy, secondary_y=secondary_y,
+                           **kwds)
+
     plot_obj = klass(frame, kind=kind, subplots=subplots, rot=rot,
                      legend=legend, ax=ax, style=style, fontsize=fontsize,
                      use_index=use_index, sharex=sharex, sharey=sharey,
@@ -1117,7 +1135,6 @@ def plot_frame(frame=None, subplots=False, sharex=True, sharey=False,
         return plot_obj.axes
     else:
         return plot_obj.axes[0]
-
 
 def plot_series(series, label=None, kind='line', use_index=True, rot=None,
                 xticks=None, yticks=None, xlim=None, ylim=None,
