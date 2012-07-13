@@ -632,7 +632,9 @@ cdef inline _string_to_dts(object val, pandas_datetimestruct* dts):
 
     if PyUnicode_Check(val):
         val = PyUnicode_AsASCIIString(val);
-    result = parse_iso_8601_datetime(val, len(val), PANDAS_FR_ns, NPY_UNSAFE_CASTING,
+
+    result = parse_iso_8601_datetime(val, len(val), PANDAS_FR_ns,
+                                     NPY_UNSAFE_CASTING,
                                      dts, &islocal, &out_bestunit, &special)
     if result == -1:
         raise ValueError('Unable to parse %s' % str(val))

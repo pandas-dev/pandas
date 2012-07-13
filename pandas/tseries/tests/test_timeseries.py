@@ -575,6 +575,11 @@ class TestTimeSeries(unittest.TestCase):
         assert_series_equal(dresult, expected)
         self.assertEquals(dresult.name, 'foo')
 
+    def test_to_datetime_iso8601(self):
+        result = to_datetime(["2012-01-01 00:00:00"])
+        exp = Timestamp("2012-01-01 00:00:00")
+        self.assert_(result[0] == exp)
+
     def test_nat_vector_field_access(self):
         idx = DatetimeIndex(['1/1/2000', None, None, '1/4/2000'])
 
