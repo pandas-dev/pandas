@@ -52,6 +52,7 @@ pandas 0.8.1
   - Improve performance of array-of-Period to PeriodIndex, convert such arrays
     to PeriodIndex inside Index (#1215)
   - More informative string representation for weekly Period objects (#1503)
+  - Accelerate 3-axis multi data selection from homogeneous Panel (#979)
 
 **Bug fixes**
 

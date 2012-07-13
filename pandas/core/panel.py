@@ -682,6 +682,10 @@ class Panel(NDFrame):
         major = _mut_exclusive(major, major_axis)
         minor = _mut_exclusive(minor, minor_axis)
 
+        if (method is None and not self._is_mixed_type and
+            com._count_not_none(items, major, minor) == 3):
+            return self._reindex_multi(items, major, minor)
+
         if major is not None:
             result = result._reindex_axis(major, method, 1, copy)
 
@@ -695,6 +699,32 @@ class Panel(NDFrame):
             raise ValueError('Must specify at least one axis')
 
         return result
+
+    def _reindex_multi(self, items, major, minor):
+        a0, a1, a2 = len(items), len(major), len(minor)
+
+        values = self.values
+        new_values = np.empty((a0, a1, a2), dtype=values.dtype)
+
+        new_items, indexer0 = self.items.reindex(items)
+        new_major, indexer1 = self.major_axis.reindex(major)
+        new_minor, indexer2 = self.minor_axis.reindex(minor)
+
+        if indexer0 is None:
+            indexer0 = range(len(new_items))
+
+        if indexer1 is None:
+            indexer1 = range(len(new_major))
+
+        if indexer2 is None:
+            indexer2 = range(len(new_minor))
+
+        for i, ind in enumerate(indexer0):
+            com.take_2d_multi(values[ind], indexer1, indexer2,
+                              out=new_values[i])
+
+        return Panel(new_values, items=new_items, major_axis=new_major,
+                     minor_axis=new_minor)
 
     def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True):
         """Conform Panel to new index with optional filling logic, placing

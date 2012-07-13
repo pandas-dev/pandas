@@ -141,26 +141,34 @@ class _NDFrameIndexer(object):
         return retval
 
     def _multi_take_opportunity(self, tup):
-        from pandas.core.frame import DataFrame
+        from pandas.core.generic import NDFrame
 
         # ugly hack for GH #836
-        if not isinstance(self.obj, DataFrame):
+        if not isinstance(self.obj, NDFrame):
             return False
 
         if not all(_is_list_like(x) for x in tup):
             return False
 
         # just too complicated
-        if (isinstance(self.obj.index, MultiIndex) or
-            isinstance(self.obj.columns, MultiIndex)):
-            return False
+        for ax in self.obj._data.axes:
+            if isinstance(ax, MultiIndex):
+                return False
 
         return True
 
     def _multi_take(self, tup):
-        index = self._convert_for_reindex(tup[0], axis=0)
-        columns = self._convert_for_reindex(tup[1], axis=1)
-        return self.obj.reindex(index=index, columns=columns)
+        from pandas.core.frame import DataFrame
+        from pandas.core.panel import Panel
+
+        if isinstance(self.obj, DataFrame):
+            index = self._convert_for_reindex(tup[0], axis=0)
+            columns = self._convert_for_reindex(tup[1], axis=1)
+            return self.obj.reindex(index=index, columns=columns)
+        elif isinstance(self.obj, Panel):
+            conv = [self._convert_for_reindex(x, axis=i)
+                    for i, x in enumerate(tup)]
+            return self.obj.reindex(items=tup[0], major=tup[1], minor=tup[2])
 
     def _convert_for_reindex(self, key, axis=0):
         labels = self.obj._get_axis(axis)
