@@ -1110,11 +1110,12 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
 
     if isinstance(x, int):
         x = frame.columns[x]
+    if isinstance(y, int):
+        y = frame.columns[y]
+
     if x is not None:
         frame = frame.set_index(x).sort_index()
 
-    if isinstance(y, int):
-        y = frame.columns[y]
     if y is not None:
         return plot_series(frame[y], label=y, kind=kind, use_index=True,
                            rot=rot, xticks=xticks, yticks=yticks,

@@ -91,6 +91,20 @@ You may pass ``logy`` to get a log-scale Y axis.
    @savefig series_plot_logy.png width=4.5in
    ts.plot(logy=True)
 
+You can plot one column versus another using the `x` and `y` keywords in
+`DataFrame.plot`:
+
+.. ipython:: python
+
+   plt.figure()
+
+   df = DataFrame(np.random.randn(1000, 2), columns=['B', 'C']).cumsum()
+   df['A'] = Series(range(len(df)))
+
+   @savefig df_plot_xy.png width=4.5in
+   df.plot(x='A', y='B')
+
+
 Plotting on a Secondary Y-axis
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
