@@ -746,6 +746,42 @@ baz,7,8,9
         assert_frame_equal(df, df2)
         assert_frame_equal(df3, df2)
 
+    def test_parse_cols_int(self):
+        _skip_if_no_openpyxl()
+
+        suffix = ['', 'x']
+
+        for s in suffix:
+            pth = os.path.join(self.dirpath, 'test.xls%s' % s)
+            xls = ExcelFile(pth)
+            df = xls.parse('Sheet1', index_col=0, parse_dates=True,
+                            parse_cols=3)
+            df2 = read_csv(self.csv1, index_col=0, parse_dates=True)
+            df2 = df2.reindex(columns=['A', 'B', 'C'])
+            df3 = xls.parse('Sheet2', skiprows=[1], index_col=0,
+                            parse_dates=True, parse_cols=3)
+            assert_frame_equal(df, df2)
+            assert_frame_equal(df3, df2)
+
+    def test_parse_cols_list(self):
+        _skip_if_no_openpyxl()
+
+        suffix = ['', 'x']
+
+        for s in suffix:
+
+            pth = os.path.join(self.dirpath, 'test.xls%s' % s)
+            xlsx = ExcelFile(pth)
+            df = xlsx.parse('Sheet1', index_col=0, parse_dates=True,
+                            parse_cols=[0, 2, 3])
+            df2 = read_csv(self.csv1, index_col=0, parse_dates=True)
+            df2 = df2.reindex(columns=['B', 'C'])
+            df3 = xlsx.parse('Sheet2', skiprows=[1], index_col=0,
+                             parse_dates=True,
+                             parse_cols=[0, 2, 3])
+            assert_frame_equal(df, df2)
+            assert_frame_equal(df3, df2)
+
     def test_read_table_wrong_num_columns(self):
         data = """A,B,C,D,E,F
 1,2,3,4,5

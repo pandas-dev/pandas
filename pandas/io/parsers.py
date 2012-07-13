@@ -1208,8 +1208,8 @@ class ExcelFile(object):
         return object.__repr__(self)
 
     def parse(self, sheetname, header=0, skiprows=None, index_col=None,
-              parse_dates=False, date_parser=None, na_values=None,
-              thousands=None, chunksize=None):
+              parse_cols=None, parse_dates=False, date_parser=None,
+              na_values=None, thousands=None, chunksize=None):
         """
         Read Excel table into DataFrame
 
@@ -1224,6 +1224,10 @@ class ExcelFile(object):
         index_col : int, default None
             Column to use as the row labels of the DataFrame. Pass None if
             there is no such column
+        parse_cols : int or list, default None
+            If None then parse all columns,
+            If int then indicates last column to be parsed
+            If list of ints then indicates list of column numbers to be parsed
         na_values : list-like, default None
             List of additional strings to recognize as NA/NaN
 
@@ -1235,21 +1239,38 @@ class ExcelFile(object):
                   False:self._parse_xls}
         return choose[self.use_xlsx](sheetname, header=header,
                                      skiprows=skiprows, index_col=index_col,
+                                     parse_cols=parse_cols,
                                      parse_dates=parse_dates,
                                      date_parser=date_parser,
                                      na_values=na_values,
                                      thousands=thousands,
                                      chunksize=chunksize)
 
+    def _should_parse(self, i, parse_cols):
+        if isinstance(parse_cols, int):
+            return i <= parse_cols
+        else:
+            return i in parse_cols
+
     def _parse_xlsx(self, sheetname, header=0, skiprows=None, index_col=None,
-                    parse_dates=False, date_parser=None, na_values=None,
-                    thousands=None, chunksize=None):
+                    parse_cols=None, parse_dates=False, date_parser=None,
+                    na_values=None, thousands=None, chunksize=None):
         sheet = self.book.get_sheet_by_name(name=sheetname)
         data = []
 
         # it brings a new method: iter_rows()
+        should_parse = {}
+
         for row in sheet.iter_rows():
-            data.append([cell.internal_value for cell in row])
+            row_data = []
+            for j, cell in enumerate(row):
+
+                if parse_cols is not None and j not in should_parse:
+                    should_parse[j] = self._should_parse(j, parse_cols)
+
+                if parse_cols is None or should_parse[j]:
+                    row_data.append(cell.internal_value)
+            data.append(row_data)
 
         if header is not None:
             data[header] = _trim_excel_header(data[header])
@@ -1265,8 +1286,8 @@ class ExcelFile(object):
         return parser.get_chunk()
 
     def _parse_xls(self, sheetname, header=0, skiprows=None, index_col=None,
-                   parse_dates=False, date_parser=None, na_values=None,
-                   thousands=None, chunksize=None):
+                   parse_cols=None, parse_dates=False, date_parser=None,
+                   na_values=None, thousands=None, chunksize=None):
         from datetime import MINYEAR, time, datetime
         from xlrd import xldate_as_tuple, XL_CELL_DATE, XL_CELL_ERROR
 
@@ -1274,19 +1295,25 @@ class ExcelFile(object):
         sheet = self.book.sheet_by_name(sheetname)
 
         data = []
+        should_parse = {}
         for i in range(sheet.nrows):
             row = []
-            for value, typ in izip(sheet.row_values(i), sheet.row_types(i)):
-                if typ == XL_CELL_DATE:
-                    dt = xldate_as_tuple(value, datemode)
-                    # how to produce this first case?
-                    if dt[0] < MINYEAR: # pragma: no cover
-                        value = time(*dt[3:])
-                    else:
-                        value = datetime(*dt)
-                if typ == XL_CELL_ERROR:
-                    value = np.nan
-                row.append(value)
+            for j, (value, typ) in enumerate(izip(sheet.row_values(i),
+                                                  sheet.row_types(i))):
+                if parse_cols is not None and j not in should_parse:
+                    should_parse[j] = self._should_parse(j, parse_cols)
+
+                if parse_cols is None or should_parse[j]:
+                    if typ == XL_CELL_DATE:
+                        dt = xldate_as_tuple(value, datemode)
+                        # how to produce this first case?
+                        if dt[0] < MINYEAR: # pragma: no cover
+                            value = time(*dt[3:])
+                        else:
+                            value = datetime(*dt)
+                    if typ == XL_CELL_ERROR:
+                        value = np.nan
+                    row.append(value)
             data.append(row)
 
         if header is not None:
