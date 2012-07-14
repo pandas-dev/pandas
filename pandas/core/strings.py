@@ -7,6 +7,7 @@ from pandas.core.series import Series
 import re
 import pandas.lib as lib
 import pandas.core.common as com
+import operator
 
 class repeat(object):
     def __init__(self, obj):
@@ -196,13 +197,16 @@ def _length_check(others):
 
     return n
 
-def _na_map(f, arr):
+
+def _na_map(f, arr, na_result=np.nan):
+    # should really _check_ for NA
     def g(x):
         try:
             return f(x)
-        except TypeError:
-            return np.nan
+        except (TypeError, AttributeError):
+            return na_result
     return _map(g, arr)
+
 
 def _map(f, arr):
     if not isinstance(arr, np.ndarray):
@@ -243,29 +247,36 @@ def str_contains(arr, pat):
     f = lambda x: bool(regex.search(x))
     return _na_map(f, arr)
 
+
 def str_startswith(arr, pat):
     """
 
     Parameters
     ----------
+    pat :
 
     Returns
     -------
-
+    startswith : array (boolean)
     """
-    pass
+    f = lambda x: x.startswith(pat)
+    return _na_map(f, arr)
+
 
 def str_endswith(arr, pat):
     """
 
     Parameters
     ----------
+    pat :
 
     Returns
     -------
-
+    endswith : array (boolean)
     """
-    pass
+    f = lambda x: x.endswith(pat)
+    return _na_map(f, arr)
+
 
 def str_lower(arr):
     """
@@ -282,139 +293,213 @@ def str_lower(arr):
 
 def str_upper(arr):
     """
-
-    Parameters
-    ----------
+    Convert strings in array to uppercase
 
     Returns
     -------
-
+    uppercase : array
     """
     return _na_map(str.upper, arr)
 
 
-def str_replace(arr, pat, repl, n=None):
+def str_replace(arr, pat, repl, n=0):
     """
 
     Parameters
     ----------
+    pat :
+    repl :
+    n :
 
     Returns
     -------
-
+    replaced : array
     """
-    pass
+    regex = re.compile(pat)
+    def f(x):
+        return regex.sub(repl, x, count=n)
 
+    return _na_map(f, arr)
 
 def str_repeat(arr, repeats):
     """
+    Duplicate each string in the array by indicated number of times
 
     Parameters
     ----------
+    repeats : int or array
+        Same value for all (int) or different value per (array)
 
     Returns
     -------
-
+    repeated : array
     """
-    pass
+    if np.isscalar(repeats):
+        f = lambda x: x * repeats
+        return _na_map(f, arr)
+    else:
+        repeats = np.asarray(repeats, dtype=object)
+        result = lib.vec_binop(arr, repeats, operator.mul)
+        return result
 
 
 def str_match(arr, pat):
     """
+    Find groups in each string (from beginning) using passed regular expression
 
     Parameters
     ----------
+    pat : string
+        Pattern or regular expression
+
+    Examples
+    --------
 
     Returns
     -------
-
+    matches : array
     """
-    pass
+    regex = re.compile(pat)
+    def f(x):
+        m = regex.match(x)
+        if m:
+            return m.groups()
+        else:
+            return []
+
+    return _na_map(f, arr)
 
 
-def str_matchall(arr, pat):
+
+def str_join(arr, sep):
     """
+    Join lists contained as elements in array, a la str.join
 
     Parameters
     ----------
+    sep : string
+        Delimiter
 
     Returns
     -------
-
+    joined : array
     """
-    pass
-
-
-def str_join(arr, joiner):
-    """
-
-    Parameters
-    ----------
-
-    Returns
-    -------
-
-    """
-    pass
+    return _na_map(sep.join, arr)
 
 
 def str_len(arr):
     """
-
-    Parameters
-    ----------
+    Compute length of each string in array.
 
     Returns
     -------
-
+    lengths : array
     """
-    pass
+    return _na_map(len, arr)
 
-
-def str_find(arr, pat):
-    """
-
-    Parameters
-    ----------
-
-    Returns
-    -------
-
-    """
-    pass
 
 
 def str_findall(arr, pat):
     """
+    Find all occurrences of pattern or regular expression
 
     Parameters
     ----------
+    pat : string
+        Pattern or regular expressino
 
     Returns
     -------
-
+    matches : array
     """
-    pass
+    regex = re.compile(pat)
+    return _na_map(regex.findall, arr)
 
 
-def str_pad(arr, side='left'):
+def str_pad(arr, width, side='left'):
     """
+    Pad strings with whitespace
 
     Parameters
     ----------
+    arr : list or array-like
+    width : int
+        Minimum width of resulting string; additional characters will be filled
+        with spaces
+    side : {'left', 'right', 'both'}, default 'left'
 
     Returns
     -------
-
+    padded : array
     """
-    pass
+    if side == 'left':
+        f = lambda x: x.rjust(width)
+    elif side == 'right':
+        f = lambda x: x.ljust(width)
+    elif side == 'both':
+        f = lambda x: x.center(width)
+    else:  # pragma: no cover
+        raise ValueError('Invalid side')
+
+    return _na_map(f, arr)
 
 
 def str_center(arr, width):
-    pass
+    """
+    "Center" strings, filling left and right side with additional whitespace
+
+    Parameters
+    ----------
+    width : int
+        Minimum width of resulting string; additional characters will be filled
+        with spaces
+
+    Returns
+    -------
+    centered : array
+    """
+    return str_pad(arr, width, side='both')
 
 
-def str_split(arr, pat, n=None):
+def str_split(arr, pat, n=0):
+    """
+    Split each string (a la re.split) in array by given pattern, propagating NA
+    values
+
+    Parameters
+    ----------
+    pat : string
+        String or regular expression to split on
+    n : int, default 0 (all)
+
+    Returns
+    -------
+    split : array
+    """
+    regex = re.compile(pat)
+    f = lambda x: regex.split(x, maxsplit=n)
+    return _na_map(f, arr)
+
+
+def str_slice(arr, start=None, stop=None):
+    """
+    Slice substrings from each element in array
+
+    Parameters
+    ----------
+    start : int or None
+    stop : int or None
+
+    Returns
+    -------
+    sliced : array
+    """
+    obj = slice(start, stop)
+    f = lambda x: x[obj]
+    return _na_map(f, arr)
+
+
+def str_slice_replace(arr, start=None, stop=None, repl=None):
     """
 
     Parameters
@@ -424,89 +509,107 @@ def str_split(arr, pat, n=None):
     -------
 
     """
-    pass
-
-
-def str_slice(arr, i=None, j=None):
-    """
-
-    Parameters
-    ----------
-
-    Returns
-    -------
-
-    """
-    pass
-
-
-def str_slice_replace(arr, i=None, j=None, repl=None):
-    """
-
-    Parameters
-    ----------
-
-    Returns
-    -------
-
-    """
-    pass
+    raise NotImplementedError
 
 
 def str_strip(arr):
     """
-
-    Parameters
-    ----------
+    Strip whitespace (including newlines) from each string in the array
 
     Returns
     -------
-
+    stripped : list or array-like
     """
-    pass
+    return _na_map(str.strip, arr)
 
 
 def str_lstrip(arr):
     """
-
-    Parameters
-    ----------
+    Strip whitespace (including newlines) from left side of each string in the
+    array
 
     Returns
     -------
-
+    stripped : list or array-like
     """
-    pass
+    return _na_map(str.lstrip, arr)
 
 
 def str_rstrip(arr):
     """
-
-    Parameters
-    ----------
-
-    Returns
-    -------
-
-    """
-    pass
-
-
-def str_wrap(arr, width=80, indent=0):
-    """
-
-    Parameters
-    ----------
+    Strip whitespace (including newlines) from right side of each string in the
+    array
 
     Returns
     -------
-
+    stripped : list or array-like
     """
-    pass
+    return _na_map(str.rstrip, arr)
 
+
+def str_wrap(arr, width=80):
+    """
+    Wrap long strings to be formatted in paragraphs
+
+    Parameters
+    ----------
+    width : int
+        Maximum line-width
+
+    Returns
+    -------
+    wrapped : array
+    """
+    raise NotImplementedError
+
+def str_get(arr, i):
+    """
+    Extract element from lists, tuples, or strings in each element in the array
+
+    Parameters
+    ----------
+    i : int
+        Integer index (location)
+
+    Returns
+    -------
+    items : array
+    """
+    f = lambda x: x[i]
+    return _na_map(f, arr)
+
+def _noarg_wrapper(f):
+    def wrapper(self):
+        result = f(self.series)
+        return self._wrap_result(result)
+
+    wrapper.__name__ = f.__name__
+    wrapper.__doc__ = f.__doc__
+
+    return wrapper
+
+
+def _pat_wrapper(f):
+    def wrapper(self, pat):
+        result = f(self.series, pat)
+        return self._wrap_result(result)
+
+    wrapper.__name__ = f.__name__
+    wrapper.__doc__ = f.__doc__
+
+    return wrapper
 
 class StringMethods(object):
+    """
+    Vectorized string functions for Series. NAs stay NA unless handled
+    otherwise by a particular method. Patterned after Python's string methods,
+    with some inspiration from R's stringr package.
 
+    Examples
+    --------
+    >>> s.str.split('_')
+    >>> s.str.replace('_', '')
+    """
     def __init__(self, series):
         self.series = series
 
@@ -518,27 +621,51 @@ class StringMethods(object):
         result = str_cat(self.series, others=others, sep=sep, na_rep=na_rep)
         return self._wrap_result(result)
 
-    def count(self, pat):
-        result = str_count(self.series, pat)
+    def split(self, pat, n=0):
+        result = str_split(self.series, pat, n=n)
         return self._wrap_result(result)
 
-    contains = str_contains
-    lower = str_lower
-    upper = str_upper
-    replace = str_replace
-    repeat = str_repeat
-    match = str_match
-    matchall = str_matchall
-    join = str_join
-    len = str_len
-    find = str_find
-    findall = str_findall
-    pad = str_pad
-    split = str_split
+    def get(self, i):
+        result = str_get(self.series, i)
+        return self._wrap_result(result)
 
-    slice = str_slice
-    slice_replace = str_slice_replace
+    def join(self, sep):
+        result = str_join(self.series, sep)
+        return self._wrap_result(result)
 
-    strip = str_strip
-    rstrip = str_rstrip
-    lstrip = str_lstrip
+    def replace(self, pat, repl, n=0):
+        result = str_replace(self.series, pat, repl, n=n)
+        return self._wrap_result(result)
+
+    def repeat(self, repeats):
+        result = str_repeat(self.series, repeats)
+        return self._wrap_result(result)
+
+    def pad(self, width, side='left'):
+        result = str_pad(self.series, width, side=side)
+        return self._wrap_result(result)
+
+    def center(self, width):
+        result = str_center(self.series, width)
+        return self._wrap_result(result)
+
+    def slice(self, start=None, stop=None):
+        result = str_slice(self.series, start, stop)
+        return self._wrap_result(result)
+
+    def slice_replace(self, i=None, j=None):
+        raise NotImplementedError
+
+    count = _pat_wrapper(str_count)
+    contains = _pat_wrapper(str_contains)
+    startswith = _pat_wrapper(str_startswith)
+    endswith = _pat_wrapper(str_endswith)
+    findall = _pat_wrapper(str_findall)
+    match = _pat_wrapper(str_match)
+
+    len = _noarg_wrapper(str_len)
+    strip = _noarg_wrapper(str_strip)
+    rstrip = _noarg_wrapper(str_rstrip)
+    lstrip = _noarg_wrapper(str_lstrip)
+    lower = _noarg_wrapper(str_lower)
+    upper = _noarg_wrapper(str_upper)
