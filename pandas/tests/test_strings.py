@@ -179,7 +179,6 @@ class TestStringMethods(unittest.TestCase):
         exp = Series(['a', 'bb', NA, 'cccc', NA, 'dddddd'])
         tm.assert_series_equal(result, exp)
 
-        """
         #mixed
         mixed = Series(['a', NA, 'b', True, datetime.today(), 'foo',
                         None, 1, 2.])
@@ -188,7 +187,6 @@ class TestStringMethods(unittest.TestCase):
         xp = ['aaa', NA, 'bbb', NA, NA, 'foofoofoo', NA, NA, NA]
         self.assert_(isinstance(rs, Series))
         tm.assert_almost_equal(rs, xp)
-        """
 
     def test_match(self):
         values = Series(['fooBAD__barBAD', NA, 'foo'])

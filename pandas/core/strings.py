@@ -345,13 +345,21 @@ def str_repeat(arr, repeats):
     repeated : array
     """
     if np.isscalar(repeats):
-        f = lambda x: x * repeats
-        return _na_map(f, arr)
+        def rep(x):
+            try:
+                return str.__mul__(x, repeats)
+            except TypeError:
+                return unicode.__mul__(x, repeats)
+        return _na_map(rep, arr)
     else:
+        def rep(x, r):
+            try:
+                return str.__mul__(x, r)
+            except TypeError:
+                return unicode.__mul__(x, r)
         repeats = np.asarray(repeats, dtype=object)
-        result = lib.vec_binop(arr, repeats, operator.mul)
+        result = lib.vec_binop(arr, repeats, str.__mul__)
         return result
-
 
 def str_match(arr, pat):
     """
