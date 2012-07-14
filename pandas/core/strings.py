@@ -238,6 +238,8 @@ def str_contains(arr, pat):
 
     Parameters
     ----------
+    pat : string
+        Character sequence or regular expression
 
     Returns
     -------
@@ -250,10 +252,13 @@ def str_contains(arr, pat):
 
 def str_startswith(arr, pat):
     """
+    Return boolean array indicating whether each string starts with passed
+    pattern
 
     Parameters
     ----------
-    pat :
+    pat : string
+        Character sequence
 
     Returns
     -------
@@ -265,10 +270,13 @@ def str_startswith(arr, pat):
 
 def str_endswith(arr, pat):
     """
+    Return boolean array indicating whether each string ends with passed
+    pattern
 
     Parameters
     ----------
-    pat :
+    pat : string
+        Character sequence
 
     Returns
     -------
@@ -280,13 +288,11 @@ def str_endswith(arr, pat):
 
 def str_lower(arr):
     """
-
-    Parameters
-    ----------
+    Convert strings in array to lowercase
 
     Returns
     -------
-
+    lowercase : array
     """
     return _na_map(str.lower, arr)
 
@@ -304,12 +310,16 @@ def str_upper(arr):
 
 def str_replace(arr, pat, repl, n=0):
     """
+    Replace
 
     Parameters
     ----------
-    pat :
-    repl :
-    n :
+    pat : string
+        Character sequence or regular expression
+    repl : string
+        Replacement sequence
+    n : int, default 0 (all)
+        Number of replacements to make from start
 
     Returns
     -------
@@ -351,9 +361,6 @@ def str_match(arr, pat):
     ----------
     pat : string
         Pattern or regular expression
-
-    Examples
-    --------
 
     Returns
     -------
@@ -507,7 +514,7 @@ def str_slice_replace(arr, start=None, stop=None, repl=None):
 
     Returns
     -------
-
+    replaced : array
     """
     raise NotImplementedError
 
@@ -518,7 +525,7 @@ def str_strip(arr):
 
     Returns
     -------
-    stripped : list or array-like
+    stripped : array
     """
     return _na_map(str.strip, arr)
 
@@ -530,7 +537,7 @@ def str_lstrip(arr):
 
     Returns
     -------
-    stripped : list or array-like
+    stripped : array
     """
     return _na_map(str.lstrip, arr)
 
@@ -542,7 +549,7 @@ def str_rstrip(arr):
 
     Returns
     -------
-    stripped : list or array-like
+    stripped : array
     """
     return _na_map(str.rstrip, arr)
 
