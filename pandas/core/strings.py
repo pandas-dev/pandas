@@ -83,10 +83,10 @@ def mapwrap(f, n_results_default=1, required='all'):
 
     return wrapped
 
-startswith = mapwrap(str.startswith)
-contains = mapwrap(str.__contains__)
-upper = mapwrap(str.upper)
-lower = mapwrap(str.lower)
+startswith = mapwrap(lambda x, p: x.startswith(p))
+contains = mapwrap(lambda x, p: x.__contains__(p))
+upper = mapwrap(lambda x: x.upper())
+lower = mapwrap(lambda x: x.lower())
 
 def _re_get_groups(pattern, n):
     def inner(s, *groups):
@@ -294,7 +294,7 @@ def str_lower(arr):
     -------
     lowercase : array
     """
-    return _na_map(str.lower, arr)
+    return _na_map(lambda x: x.lower(), arr)
 
 
 def str_upper(arr):
@@ -305,7 +305,7 @@ def str_upper(arr):
     -------
     uppercase : array
     """
-    return _na_map(str.upper, arr)
+    return _na_map(lambda x: x.upper(), arr)
 
 
 def str_replace(arr, pat, repl, n=0):
@@ -358,7 +358,7 @@ def str_repeat(arr, repeats):
             except TypeError:
                 return unicode.__mul__(x, r)
         repeats = np.asarray(repeats, dtype=object)
-        result = lib.vec_binop(arr, repeats, str.__mul__)
+        result = lib.vec_binop(arr, repeats, rep)
         return result
 
 def str_match(arr, pat):
@@ -535,7 +535,7 @@ def str_strip(arr):
     -------
     stripped : array
     """
-    return _na_map(str.strip, arr)
+    return _na_map(lambda x: x.strip(), arr)
 
 
 def str_lstrip(arr):
@@ -547,7 +547,7 @@ def str_lstrip(arr):
     -------
     stripped : array
     """
-    return _na_map(str.lstrip, arr)
+    return _na_map(lambda x: x.lstrip(), arr)
 
 
 def str_rstrip(arr):
@@ -559,7 +559,7 @@ def str_rstrip(arr):
     -------
     stripped : array
     """
-    return _na_map(str.rstrip, arr)
+    return _na_map(lambda x: x.rstrip(), arr)
 
 
 def str_wrap(arr, width=80):

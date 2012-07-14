@@ -71,6 +71,17 @@ class TestStringMethods(unittest.TestCase):
         self.assert_(isinstance(rs, Series))
         tm.assert_almost_equal(rs, xp)
 
+        #unicode
+        values = [u'foo', u'foofoo', NA, u'foooofooofommmfoo']
+
+        result = strings.str_count(values, 'f[o]+')
+        exp = [1, 2, NA, 4]
+        tm.assert_almost_equal(result, exp)
+
+        result = Series(values).str.count('f[o]+')
+        self.assert_(isinstance(result, Series))
+        tm.assert_almost_equal(result, exp)
+
     def test_contains(self):
         values = ['foo', NA, 'fooommm__foo', 'mmm_']
         pat = 'mmm[_]+'
@@ -95,6 +106,20 @@ class TestStringMethods(unittest.TestCase):
         self.assert_(isinstance(rs, Series))
         tm.assert_almost_equal(rs, xp)
 
+        #unicode
+        values = [u'foo', NA, u'fooommm__foo', u'mmm_']
+        pat = 'mmm[_]+'
+
+        result = strings.str_contains(values, pat)
+        expected = [False, np.nan, True, True]
+        tm.assert_almost_equal(result, expected)
+
+        values = ['foo', 'xyz', 'fooommm__foo', 'mmm_']
+        result = strings.str_contains(values, pat)
+        expected = [False, False, True, True]
+        self.assert_(result.dtype == np.bool_)
+        tm.assert_almost_equal(result, expected)
+
     def test_startswith(self):
         values = Series(['om', NA, 'foo_nom', 'nom', 'bar_foo', NA, 'foo'])
 
@@ -112,6 +137,14 @@ class TestStringMethods(unittest.TestCase):
         self.assert_(isinstance(rs, Series))
         tm.assert_almost_equal(rs, xp)
 
+        #unicode
+        values = Series([u'om', NA, u'foo_nom', u'nom', u'bar_foo', NA,
+                         u'foo'])
+
+        result = values.str.startswith('foo')
+        exp = Series([False, NA, True, False, False, NA, True])
+        tm.assert_series_equal(result, exp)
+
     def test_endswith(self):
         values = Series(['om', NA, 'foo_nom', 'nom', 'bar_foo', NA, 'foo'])
 
@@ -128,6 +161,14 @@ class TestStringMethods(unittest.TestCase):
         rs = Series(mixed).str.endswith('f')
         self.assert_(isinstance(rs, Series))
         tm.assert_almost_equal(rs, xp)
+
+        #unicode
+        values = Series([u'om', NA, u'foo_nom', u'nom', u'bar_foo', NA,
+                         u'foo'])
+
+        result = values.str.endswith('foo')
+        exp = Series([False, NA, False, False, True, NA, True])
+        tm.assert_series_equal(result, exp)
 
     def test_lower_upper(self):
         values = Series(['om', NA, 'nom', 'nom'])
@@ -147,6 +188,16 @@ class TestStringMethods(unittest.TestCase):
         xp = ['a', NA, 'b', NA, NA, 'foo', NA, NA, NA]
         self.assert_(isinstance(rs, Series))
         tm.assert_almost_equal(rs, xp)
+
+        #unicode
+        values = Series([u'om', NA, u'nom', u'nom'])
+
+        result = values.str.upper()
+        exp = Series([u'OM', NA, u'NOM', u'NOM'])
+        tm.assert_series_equal(result, exp)
+
+        result = result.str.lower()
+        tm.assert_series_equal(result, values)
 
     def test_replace(self):
         values = Series(['fooBAD__barBAD', NA])
@@ -168,6 +219,17 @@ class TestStringMethods(unittest.TestCase):
         self.assert_(isinstance(rs, Series))
         tm.assert_almost_equal(rs, xp)
 
+        #unicode
+        values = Series([u'fooBAD__barBAD', NA])
+
+        result = values.str.replace('BAD[_]*', '')
+        exp = Series([u'foobar', NA])
+        tm.assert_series_equal(result, exp)
+
+        result = values.str.replace('BAD[_]*', '', n=1)
+        exp = Series([u'foobarBAD', NA])
+        tm.assert_series_equal(result, exp)
+
     def test_repeat(self):
         values = Series(['a', 'b', NA, 'c', NA, 'd'])
 
@@ -188,6 +250,18 @@ class TestStringMethods(unittest.TestCase):
         self.assert_(isinstance(rs, Series))
         tm.assert_almost_equal(rs, xp)
 
+        #unicode
+        values = Series([u'a', u'b', NA, u'c', NA, u'd'])
+
+        result = values.str.repeat(3)
+        exp = Series([u'aaa', u'bbb', NA, u'ccc', NA, u'ddd'])
+        tm.assert_series_equal(result, exp)
+
+        result = values.str.repeat([1, 2, 3, 4, 5, 6])
+        exp = Series([u'a', u'bb', NA, u'cccc', NA, u'dddddd'])
+        tm.assert_series_equal(result, exp)
+
+
     def test_match(self):
         values = Series(['fooBAD__barBAD', NA, 'foo'])
 
@@ -204,6 +278,13 @@ class TestStringMethods(unittest.TestCase):
         self.assert_(isinstance(rs, Series))
         tm.assert_almost_equal(rs, xp)
 
+        #unicode
+        values = Series([u'fooBAD__barBAD', NA, u'foo'])
+
+        result = values.str.match('.*(BAD[_]+).*(BAD)')
+        exp = Series([(u'BAD__', u'BAD'), NA, []])
+        tm.assert_series_equal(result, exp)
+
     def test_join(self):
         values = Series(['a_b_c', 'c_d_e', np.nan, 'f_g_h'])
         result = values.str.split('_').str.join('_')
@@ -218,6 +299,11 @@ class TestStringMethods(unittest.TestCase):
 
         self.assert_(isinstance(rs, Series))
         tm.assert_almost_equal(rs, xp)
+
+        #unicode
+        values = Series([u'a_b_c', u'c_d_e', np.nan, u'f_g_h'])
+        result = values.str.split('_').str.join('_')
+        tm.assert_series_equal(values, result)
 
     def test_len(self):
         values = Series(['foo', 'fooo', 'fooooo', np.nan, 'fooooooo'])
@@ -236,6 +322,13 @@ class TestStringMethods(unittest.TestCase):
         self.assert_(isinstance(rs, Series))
         tm.assert_almost_equal(rs, xp)
 
+        #unicode
+        values = Series([u'foo', u'fooo', u'fooooo', np.nan, u'fooooooo'])
+
+        result = values.str.len()
+        exp = values.map(lambda x: len(x) if com.notnull(x) else NA)
+        tm.assert_series_equal(result, exp)
+
     def test_findall(self):
         values = Series(['fooBAD__barBAD', NA, 'foo', 'BAD'])
 
@@ -252,6 +345,13 @@ class TestStringMethods(unittest.TestCase):
 
         self.assert_(isinstance(rs, Series))
         tm.assert_almost_equal(rs, xp)
+
+        #unicode
+        values = Series([u'fooBAD__barBAD', NA, u'foo', u'BAD'])
+
+        result = values.str.findall('BAD[_]*')
+        exp = Series([[u'BAD__', u'BAD'], NA, [], [u'BAD']])
+        tm.assert_almost_equal(result, exp)
 
     def test_pad(self):
         values = Series(['a', 'b', NA, 'c', NA, 'eeeeee'])
@@ -296,6 +396,21 @@ class TestStringMethods(unittest.TestCase):
         self.assert_(isinstance(rs, Series))
         tm.assert_almost_equal(rs, xp)
 
+        #unicode
+        values = Series([u'a', u'b', NA, u'c', NA, u'eeeeee'])
+
+        result = values.str.pad(5, side='left')
+        exp = Series([u'    a', u'    b', NA, u'    c', NA, u'eeeeee'])
+        tm.assert_almost_equal(result, exp)
+
+        result = values.str.pad(5, side='right')
+        exp = Series([u'a    ', u'b    ', NA, u'c    ', NA, u'eeeeee'])
+        tm.assert_almost_equal(result, exp)
+
+        result = values.str.pad(5, side='both')
+        exp = Series([u'  a  ', u'  b  ', NA, u'  c  ', NA, u'eeeeee'])
+        tm.assert_almost_equal(result, exp)
+
     def test_center(self):
         values = Series(['a', 'b', NA, 'c', NA, 'eeeeee'])
 
@@ -313,6 +428,13 @@ class TestStringMethods(unittest.TestCase):
 
         self.assert_(isinstance(rs, Series))
         tm.assert_almost_equal(rs, xp)
+
+        #unicode
+        values = Series([u'a', u'b', NA, u'c', NA, u'eeeeee'])
+
+        result = values.str.center(5)
+        exp = Series([u'  a  ', u'  b  ', NA, u'  c  ', NA, u'eeeeee'])
+        tm.assert_almost_equal(result, exp)
 
     def test_split(self):
         values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h'])
@@ -332,6 +454,14 @@ class TestStringMethods(unittest.TestCase):
         self.assert_(isinstance(rs, Series))
         tm.assert_almost_equal(rs, xp)
 
+        #unicode
+        values = Series([u'a_b_c', u'c_d_e', NA, u'f_g_h'])
+
+        result = values.str.split('_')
+        exp = Series([[u'a', u'b', u'c'], [u'c', u'd', u'e'], NA,
+                      [u'f', u'g', u'h']])
+        tm.assert_series_equal(result, exp)
+
     def test_slice(self):
         values = Series(['aafootwo','aabartwo', NA, 'aabazqux'])
 
@@ -349,6 +479,13 @@ class TestStringMethods(unittest.TestCase):
 
         self.assert_(isinstance(rs, Series))
         tm.assert_almost_equal(rs, xp)
+
+        #unicode
+        values = Series([u'aafootwo', u'aabartwo', NA, u'aabazqux'])
+
+        result = values.str.slice(2, 5)
+        exp = Series([u'foo', u'bar', NA, u'baz'])
+        tm.assert_series_equal(result, exp)
 
     def test_slice_replace(self):
         pass
@@ -393,6 +530,21 @@ class TestStringMethods(unittest.TestCase):
         self.assert_(isinstance(rs, Series))
         tm.assert_almost_equal(rs, xp)
 
+        #unicode
+        values = Series([u'  aa   ', u' bb \n', NA, u'cc  '])
+
+        result = values.str.strip()
+        exp = Series([u'aa', u'bb', NA, u'cc'])
+        tm.assert_series_equal(result, exp)
+
+        result = values.str.lstrip()
+        exp = Series([u'aa   ', u'bb \n', NA, u'cc  '])
+        tm.assert_series_equal(result, exp)
+
+        result = values.str.rstrip()
+        exp = Series([u'  aa', u' bb', NA, u'cc'])
+        tm.assert_series_equal(result, exp)
+
     def test_wrap(self):
         pass
 
@@ -413,6 +565,13 @@ class TestStringMethods(unittest.TestCase):
 
         self.assert_(isinstance(rs, Series))
         tm.assert_almost_equal(rs, xp)
+
+        #unicode
+        values = Series([u'a_b_c', u'c_d_e', np.nan, u'f_g_h'])
+
+        result = values.str.split('_').str.get(1)
+        expected = Series([u'b', u'd', np.nan, u'g'])
+        tm.assert_series_equal(result, expected)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
