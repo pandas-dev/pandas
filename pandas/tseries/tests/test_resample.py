@@ -1,3 +1,5 @@
+# pylint: disable=E1101
+
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -772,6 +774,13 @@ class TestResamplePeriodIndex(unittest.TestCase):
         self.assert_(result.index.equals(ex_index))
         assert_series_equal(result, exp)
 
+    def test_quarterly_resampling(self):
+        rng = period_range('2000Q1', periods=10, freq='Q-DEC')
+        ts = Series(np.arange(10), index=rng)
+
+        result = ts.resample('A')
+        exp = ts.to_timestamp().resample('A').to_period()
+        assert_series_equal(result, exp)
 
 class TestTimeGrouper(unittest.TestCase):
 

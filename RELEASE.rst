@@ -84,6 +84,7 @@ pandas 0.8.1
   - Fix .ix indexing bugs in duplicate DataFrame index (#1201)
   - Better handle errors with non-existing objects in HDFStore (#1254)
   - Don't copy int64 array data in DatetimeIndex when copy=False (#1624)
+  - Fix resampling of conforming periods quarterly to annual (#1622)
 
 pandas 0.8.0
 ============
