@@ -29,7 +29,7 @@ import pandas.core.format as fmt
 import pandas.core.generic as generic
 import pandas.core.nanops as nanops
 import pandas.lib as lib
-from pandas.util.decorators import Appender, Substitution
+from pandas.util.decorators import Appender, Substitution, cache_readonly
 
 from pandas.compat.scipy import scoreatpercentile as _quantile
 
@@ -2626,6 +2626,10 @@ copy : boolean, default False
 
         return Series(new_values, index=new_index, name=self.name)
 
+    @cache_readonly
+    def str(self):
+        from pandas.core.strings import StringMethods
+        return StringMethods(self)
 
 _INDEX_TYPES = ndarray, Index, list, tuple
 
