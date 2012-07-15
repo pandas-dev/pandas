@@ -1012,6 +1012,19 @@ class TestTimeSeries(unittest.TestCase):
         dr = date_range(start='1/1/2012', periods=3)
         repr(dr)
 
+    def test_constructor_int64_nocopy(self):
+        # #1624
+        arr = np.arange(1000)
+        index = DatetimeIndex(arr)
+
+        arr[50:100] = -1
+        self.assert_((index.asi8[50:100] == -1).all())
+
+        arr = np.arange(1000)
+        index = DatetimeIndex(arr, copy=True)
+
+        arr[50:100] = -1
+        self.assert_((index.asi8[50:100] != -1).all())
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)

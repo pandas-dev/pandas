@@ -208,7 +208,10 @@ class DatetimeIndex(Int64Index):
                 else:
                     subarr = data
         elif data.dtype == _INT64_DTYPE:
-            subarr = np.asarray(data, dtype=_NS_DTYPE)
+            if copy:
+                subarr = np.asarray(data, dtype=_NS_DTYPE)
+            else:
+                subarr = data.view(_NS_DTYPE)
         else:
             subarr = tools.to_datetime(data)
             if not np.issubdtype(subarr.dtype, np.datetime64):

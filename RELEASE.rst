@@ -29,6 +29,7 @@ pandas 0.8.1
 
 **New features**
 
+  - Add vectorized, NA-friendly string methods to Series (#1621, #620)
   - Can pass dict of per-column line styles to DataFrame.plot (#1559)
   - Add new ``bootstrap_plot`` plot function
   - Add new ``parallel_coordinates`` plot function (#1488)
@@ -82,6 +83,7 @@ pandas 0.8.1
   - Fix unit test errors on Python 3 (#1550)
   - Fix .ix indexing bugs in duplicate DataFrame index (#1201)
   - Better handle errors with non-existing objects in HDFStore (#1254)
+  - Don't copy int64 array data in DatetimeIndex when copy=False (#1624)
 
 pandas 0.8.0
 ============
