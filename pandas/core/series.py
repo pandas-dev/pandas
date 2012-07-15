@@ -33,6 +33,8 @@ from pandas.util.decorators import Appender, Substitution, cache_readonly
 
 from pandas.compat.scipy import scoreatpercentile as _quantile
 
+import re
+
 __all__ = ['Series', 'TimeSeries']
 
 _np_version = np.version.short_version
@@ -2269,6 +2271,64 @@ copy : boolean, default False
         value_set = set(values)
         result = lib.ismember(self.values, value_set)
         return Series(result, self.index, name=self.name)
+
+    
+    def str_find(self, pattern, case=re.IGNORECASE):
+        """                                                                          
+        Return boolean vector showing whether each element matches regex 
+        pattern contained in passed string of pattern
+                                                                                    
+        Parameters                                                                        
+        ----------
+        pattern : string
+        case : int (defined in re module)                                                                           
+        Returns                                                                            
+        -------
+        str_find : Series (boolean dtype)
+        """        
+       
+        regex = re.compile(pattern, case)
+        vfunc  = np.vectorize(lambda x:bool(regex.search(x)))
+        
+        try:
+            result = vfunc(self.values)
+        except TypeError:
+            s = self.copy()
+            mask = isnull(self.values)
+            s[mask] = ''
+            result = vfunc(s)
+        return Series(result, self.index, name=self.name)
+    
+
+    def str_sub(self, pattern, repl, case=0):
+        """                                                                          
+        Return modified Series with regex substitution performed at each element based on regex 
+        pattern contained in passed string
+                                                                                    
+        Parameters                                                                        
+        ----------
+        pattern : string
+        repl: string
+                                                                                   
+        Returns                                                                            
+        -------
+        str_sub : Series
+        """        
+       
+        regex = re.compile(pattern, case)
+        def perform_sub(string, sub_string, regex):
+            return regex.sub(sub_string, string)
+        vfunc = np.vectorize(perform_sub, otypes=[object])
+        try:
+            result = vfunc(self.values, repl, regex)
+        except TypeError:
+            mask = isnull(self.values)
+            s = self.copy()
+            s[mask] = ''
+            result = vfunc(s, repl, regex)
+            result[mask] = np.NAN
+        return Series(result, self.index, name=self.name)   
+               
 
     def between(self, left, right, inclusive=True):
         """
