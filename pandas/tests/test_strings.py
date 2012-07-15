@@ -573,6 +573,59 @@ class TestStringMethods(unittest.TestCase):
         expected = Series([u'b', u'd', np.nan, u'g'])
         tm.assert_series_equal(result, expected)
 
+    def test_more_contains(self):
+        # PR #1179
+        import re
+
+        s = Series(['A', 'B', 'C', 'Aaba', 'Baca', '', NA,
+                    'CABA', 'dog', 'cat'])
+
+        result = s.str.contains('a')
+        expected = Series([False, False, False, True, True, False, np.nan,
+                           False, False, True])
+        assert_series_equal(result, expected)
+
+        result = s.str.contains('a', case=False)
+        expected = Series([True, False, False, True, True, False, np.nan,
+                           True, False, True])
+        assert_series_equal(result, expected)
+
+        result = s.str.contains('Aa')
+        expected = Series([False, False, False, True, False, False, np.nan,
+                           False, False, False])
+        assert_series_equal(result, expected)
+
+        result = s.str.contains('ba')
+        expected = Series([False, False, False, True, False, False, np.nan,
+                           False, False, False])
+        assert_series_equal(result, expected)
+
+        result = s.str.contains('ba', case=False)
+        expected = Series([False, False, False, True, True, False, np.nan,
+                           True, False, False])
+        assert_series_equal(result, expected)
+
+    def test_more_replace(self):
+        # PR #1179
+        import re
+        s = Series(['A', 'B', 'C', 'Aaba', 'Baca',
+                    '', NA, 'CABA', 'dog', 'cat'])
+
+        result = s.str.replace('A', 'YYY')
+        expected = Series(['YYY', 'B', 'C', 'YYYaba', 'Baca', '', NA,
+                           'CYYYBYYY', 'dog', 'cat'])
+        assert_series_equal(result, expected)
+
+        result = s.str.replace('A', 'YYY', case=False)
+        expected = Series(['YYY', 'B', 'C', 'YYYYYYbYYY', 'BYYYcYYY', '', NA,
+                           'CYYYBYYY', 'dog', 'cYYYt'])
+        assert_series_equal(result, expected)
+
+        result = s.str.replace('^.a|dog', 'XX-XX ', case=False)
+        expected = Series(['A',  'B', 'C', 'XX-XX ba', 'XX-XX ca', '', NA,
+                           'XX-XX BA', 'XX-XX ', 'XX-XX t'])
+        assert_series_equal(result, expected)
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)

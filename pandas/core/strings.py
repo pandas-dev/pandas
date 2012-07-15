@@ -232,7 +232,7 @@ def str_count(arr, pat):
     return _na_map(f, arr)
 
 
-def str_contains(arr, pat):
+def str_contains(arr, pat, case=True):
     """
     Check whether given pattern is contained in each string in the array
 
@@ -240,12 +240,17 @@ def str_contains(arr, pat):
     ----------
     pat : string
         Character sequence or regular expression
+    case : boolean, default True
+        If True, case sensitive
 
     Returns
     -------
 
     """
-    regex = re.compile(pat)
+    if not case:
+        regex = re.compile(pat, re.IGNORECASE)
+    else:
+        regex = re.compile(pat)
     f = lambda x: bool(regex.search(x))
     return _na_map(f, arr)
 
@@ -308,7 +313,7 @@ def str_upper(arr):
     return _na_map(lambda x: x.upper(), arr)
 
 
-def str_replace(arr, pat, repl, n=0):
+def str_replace(arr, pat, repl, n=0, case=True):
     """
     Replace
 
@@ -320,12 +325,17 @@ def str_replace(arr, pat, repl, n=0):
         Replacement sequence
     n : int, default 0 (all)
         Number of replacements to make from start
+    case : boolean, default True
+        If True, case sensitive
 
     Returns
     -------
     replaced : array
     """
-    regex = re.compile(pat)
+    if not case:
+        regex = re.compile(pat, re.IGNORECASE)
+    else:
+        regex = re.compile(pat)
     def f(x):
         return regex.sub(repl, x, count=n)
 
@@ -599,7 +609,8 @@ def _noarg_wrapper(f):
         return self._wrap_result(result)
 
     wrapper.__name__ = f.__name__
-    wrapper.__doc__ = f.__doc__
+    if f.__doc__:
+        wrapper.__doc__ = f.__doc__
 
     return wrapper
 
@@ -610,9 +621,19 @@ def _pat_wrapper(f):
         return self._wrap_result(result)
 
     wrapper.__name__ = f.__name__
-    wrapper.__doc__ = f.__doc__
+    if f.__doc__:
+        wrapper.__doc__ = f.__doc__
 
     return wrapper
+
+def copy(source):
+    "Copy a docstring from another source function (if present)"
+    def do_copy(target):
+        if source.__doc__:
+            target.__doc__ = source.__doc__
+        return target
+    return do_copy
+
 
 class StringMethods(object):
     """
@@ -632,47 +653,61 @@ class StringMethods(object):
         return Series(result, index=self.series.index,
                       name=self.series.name)
 
+    @copy(str_cat)
     def cat(self, others=None, sep=None, na_rep=None):
         result = str_cat(self.series, others=others, sep=sep, na_rep=na_rep)
         return self._wrap_result(result)
 
+    @copy(str_split)
     def split(self, pat, n=0):
         result = str_split(self.series, pat, n=n)
         return self._wrap_result(result)
 
+    @copy(str_get)
     def get(self, i):
         result = str_get(self.series, i)
         return self._wrap_result(result)
 
+    @copy(str_join)
     def join(self, sep):
         result = str_join(self.series, sep)
         return self._wrap_result(result)
 
-    def replace(self, pat, repl, n=0):
-        result = str_replace(self.series, pat, repl, n=n)
+    @copy(str_contains)
+    def contains(self, pat, case=True):
+        result = str_contains(self.series, pat, case=case)
         return self._wrap_result(result)
 
+    @copy(str_replace)
+    def replace(self, pat, repl, n=0, case=True):
+        result = str_replace(self.series, pat, repl, n=n, case=case)
+        return self._wrap_result(result)
+
+    @copy(str_repeat)
     def repeat(self, repeats):
         result = str_repeat(self.series, repeats)
         return self._wrap_result(result)
 
+    @copy(str_pad)
     def pad(self, width, side='left'):
         result = str_pad(self.series, width, side=side)
         return self._wrap_result(result)
 
+    @copy(str_center)
     def center(self, width):
         result = str_center(self.series, width)
         return self._wrap_result(result)
 
+    @copy(str_slice)
     def slice(self, start=None, stop=None):
         result = str_slice(self.series, start, stop)
         return self._wrap_result(result)
 
+    @copy(str_slice)
     def slice_replace(self, i=None, j=None):
         raise NotImplementedError
 
     count = _pat_wrapper(str_count)
-    contains = _pat_wrapper(str_contains)
     startswith = _pat_wrapper(str_startswith)
     endswith = _pat_wrapper(str_endswith)
     findall = _pat_wrapper(str_findall)
