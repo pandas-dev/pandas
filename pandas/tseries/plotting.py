@@ -51,47 +51,99 @@ def tsplot(series, plotf, **kwargs):
     if freq is None: # pragma: no cover
         raise ValueError('Cannot use dynamic axis without frequency info')
     else:
-        ax_freq = getattr(ax, 'freq', None)
-        if (ax_freq is not None) and (freq != ax_freq):
-            if frequencies.is_subperiod(freq, ax_freq): # downsample
-                how = kwargs.pop('how', 'last')
-                series = series.resample(ax_freq, how=how)
-            elif frequencies.is_superperiod(freq, ax_freq):
-                series = series.resample(ax_freq)
-            else: # one freq is weekly
-                how = kwargs.pop('how', 'last')
-                series = series.resample('D', how=how, fill_method='pad')
-                series = series.resample(ax_freq, how=how, fill_method='pad')
-            freq = ax_freq
+        freq, ax_freq, series = _maybe_resample(series, ax, freq, plotf,
+                                                kwargs)
 
     # Convert DatetimeIndex to PeriodIndex
     if isinstance(series.index, DatetimeIndex):
         series = series.to_period(freq=freq)
 
-    style = kwargs.pop('style', None)
+    # Set ax with freq info
+    _decorate_axes(ax, freq, kwargs)
 
-    # Specialized ts plotting attributes for Axes
-    ax.freq = freq
-    xaxis = ax.get_xaxis()
-    xaxis.freq = freq
-    ax.legendlabels = [kwargs.get('label', None)]
-    ax.view_interval = None
-    ax.date_axis_info = None
-
-    # format args and lot
+    # mask missing values
     args = _maybe_mask(series)
 
+    # how to make sure ax.clear() flows through?
+    if not hasattr(ax, '_plot_data'):
+        ax._plot_data = []
+    ax._plot_data.append((series, kwargs))
+
+    # styles
+    style = kwargs.pop('style', None)
     if style is not None:
         args.append(style)
 
     plotf(ax, *args,  **kwargs)
 
-    format_dateaxis(ax, ax.freq)
+    if (ax.get_legend() is None and kwargs.get('legend', True)
+        and len(ax._plot_data) > 1):
+        ax.legend(loc='best')
 
+    # set date formatter, locators and rescale limits
+    format_dateaxis(ax, ax.freq)
     left, right = _get_xlim(ax.get_lines())
     ax.set_xlim(left, right)
 
     return ax
+
+def _maybe_resample(series, ax, freq, plotf, kwargs):
+    ax_freq = getattr(ax, 'freq', None)
+    if (ax_freq is not None) and (freq != ax_freq):
+        if frequencies.is_subperiod(freq, ax_freq): # upsample existing
+            _upsample_others(series, ax, freq, ax_freq, plotf, kwargs)
+            ax_freq = freq
+        elif frequencies.is_superperiod(freq, ax_freq): # upsample input
+            series = series.asfreq(ax_freq).dropna()
+            freq = ax_freq
+        elif _is_sup(freq, ax_freq): # one is weekly
+            how = kwargs.pop('how', 'last')
+            series = series.resample('D', how=how).dropna()
+            series = series.resample(ax_freq, how=how).dropna()
+            freq = ax_freq
+        elif _is_sub(freq, ax_freq):
+            _upsample_others(series, ax, freq, ax_freq, plotf, kwargs, True)
+            ax_freq = freq
+        else:
+            raise ValueError('Incompatible frequency conversion')
+    return freq, ax_freq, series
+
+def _is_sub(f1, f2):
+    return ((f1.startswith('W') and frequencies.is_subperiod('D', f2)) or
+            (f2.startswith('W') and frequencies.is_subperiod(f1, 'D')))
+
+def _is_sup(f1, f2):
+    return ((f1.startswith('W') and frequencies.is_superperiod('D', f2)) or
+            (f2.startswith('W') and frequencies.is_superperiod(f1, 'D')))
+
+def _upsample_others(series, ax, freq, ax_freq, plotf, kwargs,
+                     via_daily=False):
+    data = ax._plot_data
+    ax._plot_data = []
+    ax.clear()
+    _decorate_axes(ax, freq, kwargs)
+    for series, kwds in data:
+        series = _upsample(series, freq, via_daily)
+        ax._plot_data.append(series)
+        args = _maybe_mask(series)
+        plotf(ax, *args, **kwds)
+
+def _upsample(series, freq, via_daily):
+    if not via_daily:
+        return series.resample(freq).dropna()
+    else:
+        return series.resample('D').resample(freq).dropna()
+
+def _decorate_axes(ax, freq, kwargs):
+    ax.freq = freq
+    xaxis = ax.get_xaxis()
+    xaxis.freq = freq
+    if not hasattr(ax, 'legendlabels'):
+        ax.legendlabels = [kwargs.get('label', None)]
+    else:
+        ax.legendlabels.append(kwargs.get('label', None))
+    ax.view_interval = None
+    ax.date_axis_info = None
 
 def _maybe_mask(series):
     mask = isnull(series)
@@ -175,7 +227,3 @@ def format_dateaxis(subplot, freq):
     subplot.xaxis.set_major_formatter(majformatter)
     subplot.xaxis.set_minor_formatter(minformatter)
     pylab.draw_if_interactive()
-
-
-
-

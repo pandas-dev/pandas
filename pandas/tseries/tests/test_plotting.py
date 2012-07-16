@@ -583,7 +583,7 @@ class TestTSPlot(unittest.TestCase):
         low.plot()
         ax = high.plot()
         for l in ax.get_lines():
-            self.assert_(l.get_xdata().freq == 'M')
+            self.assert_(l.get_xdata().freq == 'D')
 
     @slow
     def test_mixed_freq_irreg_period(self):
@@ -618,7 +618,7 @@ class TestTSPlot(unittest.TestCase):
         low.plot()
         ax = high.plot()
         for l in ax.get_lines():
-            self.assert_(l.get_xdata().freq == 'M')
+            self.assert_(l.get_xdata().freq.startswith('W'))
 
     @slow
     def test_irreg_dtypes(self):
@@ -735,4 +735,3 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-
