@@ -78,7 +78,8 @@ class TimeGrouper(CustomGrouper):
         else:  # pragma: no cover
             raise TypeError('Only valid with DatetimeIndex or PeriodIndex')
 
-        rs.index.name = obj.index.name
+        rs_axis = rs._get_axis(self.axis)
+        rs_axis.name = axis.name
         return rs
 
     def get_grouper(self, obj):

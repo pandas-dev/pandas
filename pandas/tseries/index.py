@@ -1273,7 +1273,7 @@ def _generate_regular_range(start, end, periods, offset):
 
 
 def date_range(start=None, end=None, periods=None, freq='D', tz=None,
-               normalize=False):
+               normalize=False, name=None):
     """
     Return a fixed frequency datetime index, with day (calendar) as the default
     frequency
@@ -1293,6 +1293,8 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
         Asia/Beijing
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range
+    name : str, default None
+        Name of the resulting index
 
     Notes
     -----
@@ -1303,11 +1305,11 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
     rng : DatetimeIndex
     """
     return DatetimeIndex(start=start, end=end, periods=periods,
-                         freq=freq, tz=tz, normalize=normalize)
+                         freq=freq, tz=tz, normalize=normalize, name=name)
 
 
 def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
-                normalize=True):
+                normalize=True, name=None):
     """
     Return a fixed frequency datetime index, with business day as the default
     frequency
@@ -1327,6 +1329,8 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
         Asia/Beijing
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range
+    name : str, default None
+        Name for the resulting index
 
     Notes
     -----
@@ -1338,7 +1342,7 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
     """
 
     return DatetimeIndex(start=start, end=end, periods=periods,
-                         freq=freq, tz=tz, normalize=normalize)
+                         freq=freq, tz=tz, normalize=normalize, name=name)
 
 
 def _to_m8(key):
@@ -1381,5 +1385,3 @@ def _in_range(start, end, rng_start, rng_end):
 def _time_to_micros(time):
     seconds = time.hour * 60 * 60 + 60 * time.minute + time.second
     return 1000000 * seconds + time.microsecond
-
-
