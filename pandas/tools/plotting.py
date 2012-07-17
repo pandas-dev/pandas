@@ -531,6 +531,8 @@ class MPLPlot(object):
         self.fig = fig
         self.axes = None
 
+        if not isinstance(secondary_y, (bool, tuple, list, np.ndarray)):
+            secondary_y = [secondary_y]
         self.secondary_y = secondary_y
 
         self.kwds = kwds
@@ -577,13 +579,25 @@ class MPLPlot(object):
         pass
 
     def _maybe_right_yaxis(self, ax):
-        ypos = ax.get_yaxis().get_ticks_position().strip().lower()
+        _types = (list, tuple, np.ndarray)
+        need_second = ((isinstance(self.secondary_y, bool) and self.secondary_y)
+                       or (isinstance(self.secondary_y, _types)
+                           and len(self.secondary_y) > 0))
 
-        if self.secondary_y and ypos != 'right':
-            orig_ax = ax
-            ax = ax.twinx()
+        if need_second and not hasattr(ax, 'right_ax'):
+            orig_ax, new_ax = ax, ax.twinx()
+            orig_ax.right_ax, new_ax.left_ax = new_ax, orig_ax
             if len(orig_ax.get_lines()) == 0: # no data on left y
                 orig_ax.get_yaxis().set_visible(False)
+            if len(new_ax.get_lines()) == 0:
+                new_ax.get_yaxis().set_visible(False)
+
+            if ((isinstance(self.secondary_y, bool) and self.secondary_y) or
+                (isinstance(self.secondary_y, _types) and
+                 (len(self.secondary_y) == self.nseries))):
+                ax = new_ax
+            else:
+                ax = orig_ax
         else:
             ax.get_yaxis().set_visible(True)
 
@@ -749,7 +763,22 @@ class MPLPlot(object):
             ax = self.axes[i]
         else:
             ax = self.ax
+            if self.on_right(i):
+                if hasattr(ax, 'right_ax'):
+                    ax = ax.right_ax
+            elif hasattr(ax, 'left_ax'):
+                    ax = ax.left_ax
+
+        ax.get_yaxis().set_visible(True)
         return ax
+
+    def on_right(self, i):
+        from pandas.core.frame import DataFrame
+        if isinstance(self.secondary_y, bool):
+            return self.secondary_y
+        if (isinstance(self.data, DataFrame) and
+            isinstance(self.secondary_y, (tuple, list, np.ndarray))):
+            return self.data.columns[i] in self.secondary_y
 
     def _get_ax_and_style(self, i, col_name):
         ax = self._get_ax(i)
@@ -834,6 +863,8 @@ class LinePlot(MPLPlot):
             data = self._maybe_convert_index(self.data)
             self._make_ts_plot(data)
         else:
+            lines = []
+            labels = []
             x = self._get_xticks(convert_period=True)
 
             plotf = self._get_plot_function()
@@ -848,8 +879,13 @@ class LinePlot(MPLPlot):
                     y = np.ma.array(y)
                     y = np.ma.masked_where(mask, y)
 
-                plotf(ax, x, y, style, label=label, **self.kwds)
+                newline = plotf(ax, x, y, style, label=label, **self.kwds)[0]
+                lines.append(newline)
+                labels.append(label)
                 ax.grid(self.grid)
+
+            if self.legend and not self.subplots:
+                ax.legend(lines, labels, loc='best', title=self.legend_title)
 
     def _maybe_convert_index(self, data):
         # tsplot converts automatically, but don't want to convert index
@@ -883,21 +919,30 @@ class LinePlot(MPLPlot):
         from pandas.tseries.plotting import tsplot
 
         plotf = self._get_plot_function()
+        lines = []
+        labels = []
 
         if isinstance(data, Series):
             ax = self._get_ax(0) #self.axes[0]
             style = self.style or ''
             label = com._stringify(self.label)
-            tsplot(data, plotf, ax=ax, label=label, style=self.style,
-                   **kwargs)
+            newline = tsplot(data, plotf, ax=ax, label=label, style=self.style,
+                             **kwargs)[0]
             ax.grid(self.grid)
+            lines.append(newline)
+            labels.append(label)
         else:
             for i, col in enumerate(data.columns):
                 ax, style = self._get_ax_and_style(i, col)
                 label = com._stringify(col)
-                tsplot(data[col], plotf, ax=ax, label=label, style=style,
-                       **kwargs)
+                newline = tsplot(data[col], plotf, ax=ax, label=label,
+                                 style=style, **kwargs)[0]
+                lines.append(newline)
+                labels.append(label)
                 ax.grid(self.grid)
+
+        if self.legend and not self.subplots:
+            ax.legend(lines, labels, loc='best', title=self.legend_title)
 
         # self.fig.subplots_adjust(wspace=0, hspace=0)
 
@@ -925,6 +970,7 @@ class LinePlot(MPLPlot):
 
             if index_name is not None:
                 ax.set_xlabel(index_name)
+
 
 class BarPlot(MPLPlot):
     _default_rot = {'bar' : 90, 'barh' : 0}
@@ -1715,6 +1761,8 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
         orig_ax = ax0
         ax0 = ax0.twinx()
         orig_ax.get_yaxis().set_visible(False)
+        orig_ax.right_ax = ax0
+        ax0.left_ax = orig_ax
 
     if sharex:
         subplot_kw['sharex'] = ax0

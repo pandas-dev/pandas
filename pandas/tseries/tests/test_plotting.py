@@ -73,8 +73,7 @@ class TestTSPlot(unittest.TestCase):
 
         ax = plt.gca()
         ts = tm.makeTimeSeries()
-        plot_ax = tsplot(ts, plt.Axes.plot)
-        self.assert_(plot_ax == ax)
+        tsplot(ts, plt.Axes.plot)
 
         f = lambda *args, **kwds: tsplot(s, plt.Axes.plot, *args, **kwds)
         plt.close('all')

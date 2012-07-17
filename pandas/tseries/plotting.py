@@ -1,5 +1,6 @@
 """
-Adapted from scikits.timeseries by Pierre GF Gerard-Marchant & Matt Knox
+Period formatters and locators adapted from scikits.timeseries by
+Pierre GF Gerard-Marchant & Matt Knox
 """
 
 #!!! TODO: Use the fact that axis can have units to simplify the process
@@ -74,18 +75,14 @@ def tsplot(series, plotf, **kwargs):
     if style is not None:
         args.append(style)
 
-    plotf(ax, *args,  **kwargs)
-
-    if (ax.get_legend() is None and kwargs.get('legend', True)
-        and len(ax._plot_data) > 1):
-        ax.legend(loc='best')
+    line = plotf(ax, *args,  **kwargs)
 
     # set date formatter, locators and rescale limits
     format_dateaxis(ax, ax.freq)
     left, right = _get_xlim(ax.get_lines())
     ax.set_xlim(left, right)
 
-    return ax
+    return line
 
 def _maybe_resample(series, ax, freq, plotf, kwargs):
     ax_freq = getattr(ax, 'freq', None)
@@ -102,7 +99,7 @@ def _maybe_resample(series, ax, freq, plotf, kwargs):
             series = series.resample(ax_freq, how=how).dropna()
             freq = ax_freq
         elif _is_sub(freq, ax_freq):
-            _upsample_others(series, ax, freq, ax_freq, plotf, kwargs, True)
+            _upsample_others(ax, freq, ax_freq, plotf, kwargs, True)
             ax_freq = freq
         else:
             raise ValueError('Incompatible frequency conversion')
@@ -116,17 +113,42 @@ def _is_sup(f1, f2):
     return ((f1.startswith('W') and frequencies.is_superperiod('D', f2)) or
             (f2.startswith('W') and frequencies.is_superperiod(f1, 'D')))
 
-def _upsample_others(series, ax, freq, ax_freq, plotf, kwargs,
+def _upsample_others(ax, freq, ax_freq, plotf, kwargs,
                      via_daily=False):
+    legend = ax.get_legend()
+    lines, labels = _replot_ax(ax, freq, ax_freq, plotf, kwargs, via_daily)
+
+    other_ax = None
+    if hasattr(ax, 'left_ax'):
+        other_ax = ax.left_ax
+    if hasattr(ax, 'right_ax'):
+        other_ax = ax.right_ax
+
+    if other_ax is not None:
+        other_leg = other_ax.get_legend()
+        rlines, rlabels = _replot_ax(ax, freq, ax_freq, plotf, kwargs,
+                                     via_daily)
+        lines.extend(rlines)
+        labels.extend(rlabels)
+
+    if legend is not None and kwargs.get('legend', True):
+        ax.legend(lines, labels, loc='best', ax.get_title().get_text())
+
+def _replot_ax(ax, freq, ax_freq, plotf, kwargs, via_daily):
     data = ax._plot_data
     ax._plot_data = []
     ax.clear()
     _decorate_axes(ax, freq, kwargs)
+    lines = []
+    labels = []
     for series, kwds in data:
         series = _upsample(series, freq, via_daily)
         ax._plot_data.append(series)
         args = _maybe_mask(series)
-        plotf(ax, *args, **kwds)
+        lines.append(plotf(ax, *args, **kwds)[0])
+        labels.append(com._stringify(series.name))
+
+    return lines, labels
 
 def _upsample(series, freq, via_daily):
     if not via_daily:
