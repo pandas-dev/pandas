@@ -863,6 +863,8 @@ class LinePlot(MPLPlot):
             data = self._maybe_convert_index(self.data)
             self._make_ts_plot(data)
         else:
+            import matplotlib.pyplot as plt
+            colors = kwargs.pop('colors', str(plt.rcParams['axes.color_cycle']))
             lines = []
             labels = []
             x = self._get_xticks(convert_period=True)
@@ -871,6 +873,8 @@ class LinePlot(MPLPlot):
 
             for i, (label, y) in enumerate(self._iter_data()):
                 ax, style = self._get_ax_and_style(i, label)
+                kwds = kwargs.copy()
+                kwds['color'] = colors[i % len(colors)]
 
                 label = com._stringify(label)
 
@@ -885,6 +889,7 @@ class LinePlot(MPLPlot):
                 ax.grid(self.grid)
 
             if self.legend and not self.subplots:
+                ax = self._get_ax(0)
                 ax.legend(lines, labels, loc='best', title=self.legend_title)
 
     def _maybe_convert_index(self, data):
@@ -917,6 +922,8 @@ class LinePlot(MPLPlot):
 
     def _make_ts_plot(self, data, **kwargs):
         from pandas.tseries.plotting import tsplot
+        import matplotlib.pyplot as plt
+        colors = kwargs.pop('colors', ''.join(plt.rcParams['axes.color_cycle']))
 
         plotf = self._get_plot_function()
         lines = []
@@ -934,9 +941,12 @@ class LinePlot(MPLPlot):
         else:
             for i, col in enumerate(data.columns):
                 ax, style = self._get_ax_and_style(i, col)
+                kwds = kwargs.copy()
+                kwds['color'] = colors[i % len(colors)]
+
                 label = com._stringify(col)
                 newline = tsplot(data[col], plotf, ax=ax, label=label,
-                                 style=style, **kwargs)[0]
+                                 style=style, **kwds)[0]
                 lines.append(newline)
                 labels.append(label)
                 ax.grid(self.grid)

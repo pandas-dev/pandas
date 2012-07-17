@@ -77,8 +77,7 @@ def tsplot(series, plotf, **kwargs):
 
     lines = plotf(ax, *args,  **kwargs)
     label = kwargs.get('label', None)
-    if (ax.get_legend() is not None) and (kwargs.get('legend', True)):
-        _reset_legend(ax, lines[0], label)
+    _reset_legend(ax, lines[0], label, kwargs)
 
     # set date formatter, locators and rescale limits
     format_dateaxis(ax, ax.freq)
@@ -87,16 +86,32 @@ def tsplot(series, plotf, **kwargs):
 
     return lines
 
-def _reset_legend(ax, line, label):
+def _reset_legend(ax, line, label, kwargs):
+    ax, leg = _get_ax_legend(ax)
+    if leg and (kwargs.get('legend', True)):
+        ext_lines = leg.get_lines()
+        ext_labels = [x.get_text() for x in leg.get_texts()]
+        title = leg.get_title().get_text()
+        if title == 'None':
+            title = None
+
+        ext_lines.append(line)
+        ext_labels.append(label)
+        ax.legend(ext_lines, ext_labels, loc='best', title=title)
+
+def _get_ax_legend(ax):
     leg = ax.get_legend()
-    ext_lines = leg.get_lines()
-    ext_labels = [x.get_text() for x in leg.get_texts()]
-    ext_lines.append(line)
-    ext_labels.append(label)
-    title = leg.get_title().get_text()
-    if title == 'None':
-        title = None
-    ax.legend(ext_lines, ext_labels, loc='best', title=title)
+
+    other_ax = getattr(ax, 'right_ax', None) or getattr(ax, 'left_ax', None)
+    other_leg = None
+    if other_ax is not None:
+        other_leg = other_ax.get_legend()
+
+    if leg is None:
+        leg = other_leg
+        ax = other_ax
+
+    return ax, leg
 
 def _maybe_resample(series, ax, freq, plotf, kwargs):
     ax_freq = getattr(ax, 'freq', None)
@@ -140,7 +155,7 @@ def _upsample_others(ax, freq, ax_freq, plotf, kwargs,
 
     if other_ax is not None:
         other_leg = other_ax.get_legend()
-        rlines, rlabels = _replot_ax(ax, freq, ax_freq, plotf, kwargs,
+        rlines, rlabels = _replot_ax(other_ax, freq, ax_freq, plotf, kwargs,
                                      via_daily)
         lines.extend(rlines)
         labels.extend(rlabels)
