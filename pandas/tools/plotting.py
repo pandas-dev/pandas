@@ -2,6 +2,7 @@
 # pylint: disable=E1101
 from itertools import izip
 import datetime
+import re
 
 import numpy as np
 
@@ -623,12 +624,11 @@ class MPLPlot(object):
                 fig = self.plt.figure(figsize=self.figsize)
                 ax = fig.add_subplot(111)
                 ax = self._maybe_right_yaxis(ax)
-                self.ax = ax
             else:
                 fig = self.ax.get_figure()
-                self.ax = self._maybe_right_yaxis(self.ax)
+                ax = self._maybe_right_yaxis(self.ax)
 
-            axes = [self.ax]
+            axes = [ax]
 
         self.fig = fig
         self.axes = axes
@@ -646,10 +646,7 @@ class MPLPlot(object):
         pass
 
     def _adorn_subplots(self):
-        if self.subplots:
-            to_adorn = self.axes
-        else:
-            to_adorn = [self.ax]
+        to_adorn = self.axes
 
         # todo: sharex, sharey handling?
 
@@ -668,14 +665,11 @@ class MPLPlot(object):
 
             ax.grid(self.grid)
 
-        if self.legend and not self.subplots:
-            self.ax.legend(loc='best', title=self.legend_title)
-
         if self.title:
             if self.subplots:
                 self.fig.suptitle(self.title)
             else:
-                self.ax.set_title(self.title)
+                self.axes[0].set_title(self.title)
 
         if self._need_to_set_index:
             labels = [_stringify(key) for key in self.data.index]
@@ -762,7 +756,7 @@ class MPLPlot(object):
         if self.subplots:
             ax = self.axes[i]
         else:
-            ax = self.ax
+            ax = self.axes[0]
             if self.on_right(i):
                 if hasattr(ax, 'right_ax'):
                     ax = ax.right_ax
@@ -861,10 +855,12 @@ class LinePlot(MPLPlot):
         # this is slightly deceptive
         if self.use_index and self._use_dynamic_x():
             data = self._maybe_convert_index(self.data)
-            self._make_ts_plot(data)
+            self._make_ts_plot(data, **self.kwds)
         else:
             import matplotlib.pyplot as plt
-            colors = kwargs.pop('colors', str(plt.rcParams['axes.color_cycle']))
+            cycle = ''.join(plt.rcParams.get('axes.color_cycle',
+                                             list('bgrcmyk')))
+            colors = self.kwds.pop('colors', cycle)
             lines = []
             labels = []
             x = self._get_xticks(convert_period=True)
@@ -873,8 +869,9 @@ class LinePlot(MPLPlot):
 
             for i, (label, y) in enumerate(self._iter_data()):
                 ax, style = self._get_ax_and_style(i, label)
-                kwds = kwargs.copy()
-                kwds['color'] = colors[i % len(colors)]
+                kwds = self.kwds.copy()
+                if re.match('[a-z]+', style) is None:
+                    kwds['color'] = colors[i % len(colors)]
 
                 label = com._stringify(label)
 
@@ -883,14 +880,76 @@ class LinePlot(MPLPlot):
                     y = np.ma.array(y)
                     y = np.ma.masked_where(mask, y)
 
-                newline = plotf(ax, x, y, style, label=label, **self.kwds)[0]
+                newline = plotf(ax, x, y, style, label=label, **kwds)[0]
                 lines.append(newline)
                 labels.append(label)
                 ax.grid(self.grid)
 
-            if self.legend and not self.subplots:
-                ax = self._get_ax(0)
-                ax.legend(lines, labels, loc='best', title=self.legend_title)
+            self._make_legend(lines, labels)
+
+    def _make_ts_plot(self, data, **kwargs):
+        from pandas.tseries.plotting import tsplot
+        import matplotlib.pyplot as plt
+        kwargs = kwargs.copy()
+        cycle = ''.join(plt.rcParams.get('axes.color_cycle', list('bgrcmyk')))
+        colors = kwargs.pop('colors', ''.join(cycle))
+
+        plotf = self._get_plot_function()
+        lines = []
+        labels = []
+
+        if isinstance(data, Series):
+            ax = self._get_ax(0) #self.axes[0]
+            style = self.style or ''
+            label = com._stringify(self.label)
+            if re.match('[a-z]+', style) is None:
+                kwargs['color'] = colors[0]
+            newline = tsplot(data, plotf, ax=ax, label=label, style=self.style,
+                             **kwargs)[0]
+            ax.grid(self.grid)
+            lines.append(newline)
+            labels.append(label)
+        else:
+            for i, col in enumerate(data.columns):
+                ax, style = self._get_ax_and_style(i, col)
+                kwds = kwargs.copy()
+                if re.match('[a-z]+', style) is None:
+                    kwds['color'] = colors[i % len(colors)]
+
+                label = com._stringify(col)
+                newline = tsplot(data[col], plotf, ax=ax, label=label,
+                                 style=style, **kwds)[0]
+                lines.append(newline)
+                labels.append(label)
+                ax.grid(self.grid)
+
+        self._make_legend(lines, labels)
+
+    def _make_legend(self, lines, labels):
+        ax, leg = self._get_ax_legend(self.axes[0])
+        if (self.legend or leg is not None) and not self.subplots:
+            if leg is not None:
+                ext_lines = leg.get_lines()
+                ext_labels = [x.get_text() for x in leg.get_texts()]
+                ext_lines.extend(lines)
+                ext_labels.extend(labels)
+            else:
+                ext_lines = lines
+                ext_labels = labels
+            ax.legend(ext_lines, ext_labels, loc='best',
+                      title=self.legend_title)
+
+    def _get_ax_legend(self, ax):
+        leg = ax.get_legend()
+        other_ax = (getattr(ax, 'right_ax', None) or
+                    getattr(ax, 'left_ax', None))
+        other_leg = None
+        if other_ax is not None:
+            other_leg = other_ax.get_legend()
+        if leg is None and other_leg is not None:
+            leg = other_leg
+            ax = other_ax
+        return ax, leg
 
     def _maybe_convert_index(self, data):
         # tsplot converts automatically, but don't want to convert index
@@ -902,10 +961,8 @@ class LinePlot(MPLPlot):
 
             if freq is None:
                 freq = getattr(data.index, 'inferred_freq', None)
-
             if isinstance(freq, DateOffset):
                 freq = freq.rule_code
-
             freq = get_period_alias(freq)
 
             if freq is None:
@@ -920,52 +977,8 @@ class LinePlot(MPLPlot):
                              columns=data.columns)
         return data
 
-    def _make_ts_plot(self, data, **kwargs):
-        from pandas.tseries.plotting import tsplot
-        import matplotlib.pyplot as plt
-        colors = kwargs.pop('colors', ''.join(plt.rcParams['axes.color_cycle']))
-
-        plotf = self._get_plot_function()
-        lines = []
-        labels = []
-
-        if isinstance(data, Series):
-            ax = self._get_ax(0) #self.axes[0]
-            style = self.style or ''
-            label = com._stringify(self.label)
-            newline = tsplot(data, plotf, ax=ax, label=label, style=self.style,
-                             **kwargs)[0]
-            ax.grid(self.grid)
-            lines.append(newline)
-            labels.append(label)
-        else:
-            for i, col in enumerate(data.columns):
-                ax, style = self._get_ax_and_style(i, col)
-                kwds = kwargs.copy()
-                kwds['color'] = colors[i % len(colors)]
-
-                label = com._stringify(col)
-                newline = tsplot(data[col], plotf, ax=ax, label=label,
-                                 style=style, **kwds)[0]
-                lines.append(newline)
-                labels.append(label)
-                ax.grid(self.grid)
-
-        if self.legend and not self.subplots:
-            ax.legend(lines, labels, loc='best', title=self.legend_title)
-
-        # self.fig.subplots_adjust(wspace=0, hspace=0)
-
-
     def _post_plot_logic(self):
         df = self.data
-
-        if self.legend:
-            if self.subplots:
-                for ax in self.axes:
-                    ax.legend(loc='best')
-            else:
-                self.axes[0].legend(loc='best')
 
         condition = (not self._use_dynamic_x
                      and df.index.is_all_dates
@@ -1051,17 +1064,9 @@ class BarPlot(MPLPlot):
             labels.append(label)
 
         if self.legend and not self.subplots:
-            patches =[r[0] for r in rects]
-
-            # Legend to the right of the plot
-            # ax.legend(patches, labels, bbox_to_anchor=(1.05, 1),
-            #           loc=2, borderaxespad=0.)
-            # self.fig.subplots_adjust(right=0.80)
-
-            ax.legend(patches, labels, loc='best',
-                      title=self.legend_title)
-
-        # self.fig.subplots_adjust(top=0.8, wspace=0, hspace=0)
+                patches =[r[0] for r in rects]
+                self.axes[0].legend(patches, labels, loc='best',
+                               title=self.legend_title)
 
     def _post_plot_logic(self):
         for ax in self.axes:

@@ -450,7 +450,7 @@ class TestTSPlot(unittest.TestCase):
         plt.close('all')
         ser = Series(np.random.randn(10))
         ser2 = Series(np.random.randn(10))
-        ax = ser.plot(secondary_y=True)
+        ax = ser.plot(secondary_y=True).right_ax
         fig = ax.get_figure()
         axes = fig.get_axes()
         l = ax.get_lines()[0]
@@ -464,7 +464,7 @@ class TestTSPlot(unittest.TestCase):
 
         plt.close('all')
         ax = ser2.plot()
-        ax2 = ser.plot(secondary_y=True)
+        ax2 = ser.plot(secondary_y=True).right_ax
         self.assert_(ax.get_yaxis().get_visible())
 
         plt.close('all')
@@ -476,7 +476,7 @@ class TestTSPlot(unittest.TestCase):
         idx = date_range('1/1/2000', periods=10)
         ser = Series(np.random.randn(10), idx)
         ser2 = Series(np.random.randn(10), idx)
-        ax = ser.plot(secondary_y=True)
+        ax = ser.plot(secondary_y=True).right_ax
         fig = ax.get_figure()
         axes = fig.get_axes()
         l = ax.get_lines()[0]
@@ -498,7 +498,7 @@ class TestTSPlot(unittest.TestCase):
         import matplotlib.pyplot as plt
         plt.close('all')
         ser = Series(np.random.randn(10))
-        ax = ser.plot(secondary_y=True, kind='density')
+        ax = ser.plot(secondary_y=True, kind='density').right_ax
         fig = ax.get_figure()
         axes = fig.get_axes()
         self.assert_(axes[1].get_yaxis().get_ticks_position() == 'right')
@@ -696,6 +696,74 @@ class TestTSPlot(unittest.TestCase):
             if len(xp) > 0:
                 rs = time(h, m, s).strftime('%H:%M:%S.%f')
                 self.assert_(xp, rs)
+
+    @slow
+    def test_secondary_upsample(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        idxh = date_range('1/1/1999', periods=365, freq='D')
+        idxl = date_range('1/1/1999', periods=12, freq='M')
+        high = Series(np.random.randn(len(idxh)), idxh)
+        low = Series(np.random.randn(len(idxl)), idxl)
+        low.plot()
+        ax = high.plot(secondary_y=True)
+        for l in ax.get_lines():
+            self.assert_(l.get_xdata().freq == 'D')
+        for l in ax.right_ax.get_lines():
+            self.assert_(l.get_xdata().freq == 'D')
+
+    @slow
+    def test_legend(self):
+        # TS plots
+        # secondary
+        # plot series after left, right
+
+        # Irreg TS plot
+        # secondary
+        # plot series after left, right
+
+        # Non TS
+        # secondary
+        # plot series after left, right
+        pass
+
+    @slow
+    def test_secondary_color(self):
+        import matplotlib.pyplot as plt
+        fig = plt.gcf()
+        plt.clf()
+        ax = fig.add_subplot(211)
+
+        #ts
+        df = tm.makeTimeDataFrame()
+        ax = df.plot(secondary_y=['A', 'B'])
+        leg = ax.get_legend()
+        self.assert_(len(leg.get_lines()) == 4)
+        self.assert_(ax.right_ax.get_legend() is None)
+
+        plt.clf()
+        ax = fig.add_subplot(211)
+        df = tm.makeTimeDataFrame()
+        ax = df.plot(secondary_y=['C', 'D'])
+        leg = ax.get_legend()
+        self.assert_(len(leg.get_lines()) == 4)
+        self.assert_(ax.right_ax.get_legend() is None)
+
+        #non-ts
+        df = tm.makeDataFrame()
+        plt.clf()
+        ax = fig.add_subplot(211)
+        ax = df.plot(secondary_y=['A', 'B'])
+        leg = ax.get_legend()
+        self.assert_(len(leg.get_lines()) == 4)
+        self.assert_(ax.right_ax.get_legend() is None)
+
+        plt.clf()
+        ax = fig.add_subplot(211)
+        ax = df.plot(secondary_y=['C', 'D'])
+        leg = ax.get_legend()
+        self.assert_(len(leg.get_lines()) == 4)
+        self.assert_(ax.right_ax.get_legend() is None)
 
 PNG_PATH = 'tmp.png'
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
