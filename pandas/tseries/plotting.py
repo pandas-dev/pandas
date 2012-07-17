@@ -75,20 +75,34 @@ def tsplot(series, plotf, **kwargs):
     if style is not None:
         args.append(style)
 
-    line = plotf(ax, *args,  **kwargs)
+    lines = plotf(ax, *args,  **kwargs)
+    label = kwargs.get('label', None)
+    if (ax.get_legend() is not None) and (kwargs.get('legend', True)):
+        _reset_legend(ax, lines[0], label)
 
     # set date formatter, locators and rescale limits
     format_dateaxis(ax, ax.freq)
     left, right = _get_xlim(ax.get_lines())
     ax.set_xlim(left, right)
 
-    return line
+    return lines
+
+def _reset_legend(ax, line, label):
+    leg = ax.get_legend()
+    ext_lines = leg.get_lines()
+    ext_labels = [x.get_text() for x in leg.get_texts()]
+    ext_lines.append(line)
+    ext_labels.append(label)
+    title = leg.get_title().get_text()
+    if title == 'None':
+        title = None
+    ax.legend(ext_lines, ext_labels, loc='best', title=title)
 
 def _maybe_resample(series, ax, freq, plotf, kwargs):
     ax_freq = getattr(ax, 'freq', None)
     if (ax_freq is not None) and (freq != ax_freq):
         if frequencies.is_subperiod(freq, ax_freq): # upsample existing
-            _upsample_others(series, ax, freq, ax_freq, plotf, kwargs)
+            _upsample_others(ax, freq, ax_freq, plotf, kwargs)
             ax_freq = freq
         elif frequencies.is_superperiod(freq, ax_freq): # upsample input
             series = series.asfreq(ax_freq).dropna()
@@ -131,8 +145,12 @@ def _upsample_others(ax, freq, ax_freq, plotf, kwargs,
         lines.extend(rlines)
         labels.extend(rlabels)
 
-    if legend is not None and kwargs.get('legend', True):
-        ax.legend(lines, labels, loc='best', ax.get_title().get_text())
+    if (legend is not None and kwargs.get('legend', True) and
+        len(lines) > 0):
+        title = legend.get_title().get_text()
+        if title == 'None':
+            title = None
+        ax.legend(lines, labels, loc='best', title=title)
 
 def _replot_ax(ax, freq, ax_freq, plotf, kwargs, via_daily):
     data = ax._plot_data
