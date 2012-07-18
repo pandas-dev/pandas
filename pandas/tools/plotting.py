@@ -822,6 +822,7 @@ class KdePlot(MPLPlot):
 class LinePlot(MPLPlot):
 
     def __init__(self, data, **kwargs):
+        self.mark_right = kwargs.pop('mark_right', True)
         MPLPlot.__init__(self, data, **kwargs)
 
     def _index_freq(self):
@@ -884,7 +885,10 @@ class LinePlot(MPLPlot):
 
                 newline = plotf(ax, x, y, style, label=label, **kwds)[0]
                 lines.append(newline)
-                labels.append(label)
+                leg_label = label
+                if self.mark_right and self.on_right(i):
+                    leg_label += ' (right)'
+                labels.append(leg_label)
                 ax.grid(self.grid)
 
             self._make_legend(lines, labels)
@@ -900,6 +904,11 @@ class LinePlot(MPLPlot):
         lines = []
         labels = []
 
+        def to_leg_label(label, i):
+            if self.mark_right and self.on_right(i):
+                return label + ' (right)'
+            return label
+
         if isinstance(data, Series):
             ax = self._get_ax(0) #self.axes[0]
             style = self.style or ''
@@ -911,7 +920,8 @@ class LinePlot(MPLPlot):
                              **kwargs)
             ax.grid(self.grid)
             lines.append(newlines[0])
-            labels.append(label)
+            leg_label = to_leg_label(label, 0)
+            labels.append(leg_label)
         else:
             for i, col in enumerate(data.columns):
                 label = com._stringify(col)
@@ -925,7 +935,8 @@ class LinePlot(MPLPlot):
                                   style=style, **kwds)
 
                 lines.append(newlines[0])
-                labels.append(label)
+                leg_label = to_leg_label(label, i)
+                labels.append(leg_label)
                 ax.grid(self.grid)
 
         self._make_legend(lines, labels)
