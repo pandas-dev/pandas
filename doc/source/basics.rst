@@ -369,6 +369,15 @@ index labels with the minimum and maximum corresponding values:
    df1.idxmin(axis=0)
    df1.idxmax(axis=1)
 
+When there are multiple rows (or columns) matching the minimum or maximum 
+value, ``idxmin`` and ``idxmax`` return the first matching index:
+
+.. ipython:: python
+
+   df = DataFrame([2, 1, 1, 3, np.nan], columns=['A'], index=list('edcba'))
+   df
+   df['A'].idxmin()
+
 Value counts (histogramming)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
