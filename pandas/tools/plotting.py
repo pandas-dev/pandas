@@ -581,24 +581,23 @@ class MPLPlot(object):
 
     def _maybe_right_yaxis(self, ax):
         _types = (list, tuple, np.ndarray)
-        need_second = ((isinstance(self.secondary_y, bool) and self.secondary_y)
-                       or (isinstance(self.secondary_y, _types)
-                           and len(self.secondary_y) > 0))
+        sec_true = isinstance(self.secondary_y, bool) and self.secondary_y
+        list_sec = isinstance(self.secondary_y, _types)
+        has_sec = list_sec and len(self.secondary_y) > 0
+        all_sec = list_sec and len(self.secondary_y) == self.nseries
 
-        if need_second and not hasattr(ax, 'right_ax'):
+        if (sec_true or has_sec) and not hasattr(ax, 'right_ax'):
             orig_ax, new_ax = ax, ax.twinx()
             orig_ax.right_ax, new_ax.left_ax = new_ax, orig_ax
+
             if len(orig_ax.get_lines()) == 0: # no data on left y
                 orig_ax.get_yaxis().set_visible(False)
+
             if len(new_ax.get_lines()) == 0:
                 new_ax.get_yaxis().set_visible(False)
 
-            if ((isinstance(self.secondary_y, bool) and self.secondary_y) or
-                (isinstance(self.secondary_y, _types) and
-                 (len(self.secondary_y) == self.nseries))):
+            if sec_true or all_sec:
                 ax = new_ax
-            else:
-                ax = orig_ax
         else:
             ax.get_yaxis().set_visible(True)
 
@@ -753,15 +752,17 @@ class MPLPlot(object):
         return name
 
     def _get_ax(self, i):
+        # get the twinx ax if appropriate
         if self.subplots:
             ax = self.axes[i]
         else:
             ax = self.axes[0]
-            if self.on_right(i):
-                if hasattr(ax, 'right_ax'):
-                    ax = ax.right_ax
-            elif hasattr(ax, 'left_ax'):
-                    ax = ax.left_ax
+
+        if self.on_right(i):
+            if hasattr(ax, 'right_ax'):
+                ax = ax.right_ax
+        elif hasattr(ax, 'left_ax'):
+            ax = ax.left_ax
 
         ax.get_yaxis().set_visible(True)
         return ax
@@ -770,17 +771,15 @@ class MPLPlot(object):
         from pandas.core.frame import DataFrame
         if isinstance(self.secondary_y, bool):
             return self.secondary_y
+
         if (isinstance(self.data, DataFrame) and
             isinstance(self.secondary_y, (tuple, list, np.ndarray))):
             return self.data.columns[i] in self.secondary_y
 
-    def _get_ax_and_style(self, i, col_name):
-        ax = self._get_ax(i)
-
+    def _get_style(self, i, col_name):
+        style = ''
         if self.subplots:
             style = 'k'
-        else:
-            style = ''
 
         if self.style is not None:
             if isinstance(self.style, list):
@@ -790,7 +789,7 @@ class MPLPlot(object):
             else:
                 style = self.style
 
-        return ax, style
+        return style
 
 class KdePlot(MPLPlot):
     def __init__(self, data, **kwargs):
@@ -800,7 +799,8 @@ class KdePlot(MPLPlot):
         from scipy.stats import gaussian_kde
         plotf = self._get_plot_function()
         for i, (label, y) in enumerate(self._iter_data()):
-            ax, style = self._get_ax_and_style(i, label)
+            ax = self._get_ax(i)
+            style = self._get_style(i, label)
 
             label = com._stringify(label)
 
@@ -869,7 +869,8 @@ class LinePlot(MPLPlot):
             plotf = self._get_plot_function()
 
             for i, (label, y) in enumerate(self._iter_data()):
-                ax, style = self._get_ax_and_style(i, label)
+                ax = self._get_ax(i)
+                style = self._get_style(i, label)
                 kwds = self.kwds.copy()
                 if re.match('[a-z]+', style) is None:
                     kwds['color'] = colors[i % len(colors)]
@@ -905,22 +906,25 @@ class LinePlot(MPLPlot):
             label = com._stringify(self.label)
             if re.match('[a-z]+', style) is None:
                 kwargs['color'] = colors[0]
-            newline = tsplot(data, plotf, ax=ax, label=label, style=self.style,
-                             **kwargs)[0]
+
+            newlines = tsplot(data, plotf, ax=ax, label=label, style=self.style,
+                             **kwargs)
             ax.grid(self.grid)
-            lines.append(newline)
+            lines.append(newlines[0])
             labels.append(label)
         else:
             for i, col in enumerate(data.columns):
-                ax, style = self._get_ax_and_style(i, col)
+                label = com._stringify(col)
+                ax = self._get_ax(i)
+                style = self._get_style(i, col)
                 kwds = kwargs.copy()
                 if re.match('[a-z]+', style) is None:
                     kwds['color'] = colors[i % len(colors)]
 
-                label = com._stringify(col)
-                newline = tsplot(data[col], plotf, ax=ax, label=label,
-                                 style=style, **kwds)[0]
-                lines.append(newline)
+                newlines = tsplot(data[col], plotf, ax=ax, label=label,
+                                  style=style, **kwds)
+
+                lines.append(newlines[0])
                 labels.append(label)
                 ax.grid(self.grid)
 
@@ -928,17 +932,17 @@ class LinePlot(MPLPlot):
 
     def _make_legend(self, lines, labels):
         ax, leg = self._get_ax_legend(self.axes[0])
-        if (self.legend or leg is not None) and not self.subplots:
+
+        if not self.subplots:
             if leg is not None:
                 ext_lines = leg.get_lines()
                 ext_labels = [x.get_text() for x in leg.get_texts()]
                 ext_lines.extend(lines)
                 ext_labels.extend(labels)
-            else:
-                ext_lines = lines
-                ext_labels = labels
-            ax.legend(ext_lines, ext_labels, loc='best',
-                      title=self.legend_title)
+                ax.legend(ext_lines, ext_labels, loc='best',
+                          title=self.legend_title)
+            elif self.legend:
+                ax.legend(lines, labels, loc='best', title=self.legend_title)
 
     def _get_ax_legend(self, ax):
         leg = ax.get_legend()
