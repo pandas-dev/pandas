@@ -445,6 +445,26 @@ class TestTSPlot(unittest.TestCase):
         self.assert_(mask[2:5, 1].all())
 
     @slow
+    def test_gap_upsample(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        low = tm.makeTimeSeries()
+        low[5:25] = np.nan
+        ax = low.plot()
+
+        idxh = date_range(low.index[0], low.index[-1], freq='12h')
+        s = Series(np.random.randn(len(idxh)), idxh)
+        s.plot(secondary_y=True)
+        lines = ax.get_lines()
+        self.assert_(len(lines) == 1)
+        self.assert_(len(ax.right_ax.get_lines()) == 1)
+        l = lines[0]
+        data = l.get_xydata()
+        self.assert_(isinstance(data, np.ma.core.MaskedArray))
+        mask = data.mask
+        self.assert_(mask[5:25, 1].all())
+
+    @slow
     def test_secondary_y(self):
         import matplotlib.pyplot as plt
         plt.close('all')
@@ -713,22 +733,7 @@ class TestTSPlot(unittest.TestCase):
             self.assert_(l.get_xdata().freq == 'D')
 
     @slow
-    def test_legend(self):
-        # TS plots
-        # secondary
-        # plot series after left, right
-
-        # Irreg TS plot
-        # secondary
-        # plot series after left, right
-
-        # Non TS
-        # secondary
-        # plot series after left, right
-        pass
-
-    @slow
-    def test_secondary_color(self):
+    def test_secondary_legend(self):
         import matplotlib.pyplot as plt
         fig = plt.gcf()
         plt.clf()
@@ -740,6 +745,10 @@ class TestTSPlot(unittest.TestCase):
         leg = ax.get_legend()
         self.assert_(len(leg.get_lines()) == 4)
         self.assert_(ax.right_ax.get_legend() is None)
+        colors = set()
+        for line in leg.get_lines():
+            colors.add(line.get_color())
+        self.assert_(len(colors) == 4)
 
         plt.clf()
         ax = fig.add_subplot(211)
@@ -748,6 +757,10 @@ class TestTSPlot(unittest.TestCase):
         leg = ax.get_legend()
         self.assert_(len(leg.get_lines()) == 4)
         self.assert_(ax.right_ax.get_legend() is None)
+        colors = set()
+        for line in leg.get_lines():
+            colors.add(line.get_color())
+        self.assert_(len(colors) == 4)
 
         #non-ts
         df = tm.makeDataFrame()
@@ -757,6 +770,10 @@ class TestTSPlot(unittest.TestCase):
         leg = ax.get_legend()
         self.assert_(len(leg.get_lines()) == 4)
         self.assert_(ax.right_ax.get_legend() is None)
+        colors = set()
+        for line in leg.get_lines():
+            colors.add(line.get_color())
+        self.assert_(len(colors) == 4)
 
         plt.clf()
         ax = fig.add_subplot(211)
@@ -764,6 +781,10 @@ class TestTSPlot(unittest.TestCase):
         leg = ax.get_legend()
         self.assert_(len(leg.get_lines()) == 4)
         self.assert_(ax.right_ax.get_legend() is None)
+        colors = set()
+        for line in leg.get_lines():
+            colors.add(line.get_color())
+        self.assert_(len(colors) == 4)
 
 PNG_PATH = 'tmp.png'
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):

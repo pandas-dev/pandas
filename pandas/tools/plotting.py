@@ -816,7 +816,8 @@ class KdePlot(MPLPlot):
         df = self.data
 
         if self.subplots and self.legend:
-            self.axes[0].legend(loc='best')
+            for ax in self.axes:
+                ax.legend(loc='best')
 
 class LinePlot(MPLPlot):
 
@@ -994,6 +995,10 @@ class LinePlot(MPLPlot):
             if index_name is not None:
                 ax.set_xlabel(index_name)
 
+        if self.subplots and self.legend:
+            for ax in self.axes:
+                ax.legend(loc='best')
+
 
 class BarPlot(MPLPlot):
     _default_rot = {'bar' : 90, 'barh' : 0}
@@ -1064,9 +1069,9 @@ class BarPlot(MPLPlot):
             labels.append(label)
 
         if self.legend and not self.subplots:
-                patches =[r[0] for r in rects]
-                self.axes[0].legend(patches, labels, loc='best',
-                               title=self.legend_title)
+            patches =[r[0] for r in rects]
+            self.axes[0].legend(patches, labels, loc='best',
+                                title=self.legend_title)
 
     def _post_plot_logic(self):
         for ax in self.axes:
@@ -1090,6 +1095,9 @@ class BarPlot(MPLPlot):
                 ax.axvline(0, color='k', linestyle='--')
                 if name is not None:
                     ax.set_ylabel(name)
+
+        #if self.subplots and self.legend:
+        #    self.axes[0].legend(loc='best')
 
 class BoxPlot(MPLPlot):
     pass

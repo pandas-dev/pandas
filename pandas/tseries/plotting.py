@@ -52,12 +52,11 @@ def tsplot(series, plotf, **kwargs):
     if freq is None: # pragma: no cover
         raise ValueError('Cannot use dynamic axis without frequency info')
     else:
+        # Convert DatetimeIndex to PeriodIndex
+        if isinstance(series.index, DatetimeIndex):
+            series = series.to_period(freq=freq)
         freq, ax_freq, series = _maybe_resample(series, ax, freq, plotf,
                                                 kwargs)
-
-    # Convert DatetimeIndex to PeriodIndex
-    if isinstance(series.index, DatetimeIndex):
-        series = series.to_period(freq=freq)
 
     # Set ax with freq info
     _decorate_axes(ax, freq, kwargs)
@@ -88,19 +87,17 @@ def tsplot(series, plotf, **kwargs):
 def _maybe_resample(series, ax, freq, plotf, kwargs):
     ax_freq = _get_ax_freq(ax)
     if ax_freq is not None and freq != ax_freq:
-        if frequencies.is_subperiod(freq, ax_freq): # upsample existing
-            _upsample_others(ax, freq, plotf, kwargs)
-            ax_freq = freq
-        elif frequencies.is_superperiod(freq, ax_freq): # upsample input
-            series = series.asfreq(ax_freq).dropna()
+        if frequencies.is_superperiod(freq, ax_freq): # upsample input
+            series = series.copy()
+            series.index = series.index.asfreq(ax_freq)
             freq = ax_freq
         elif _is_sup(freq, ax_freq): # one is weekly
             how = kwargs.pop('how', 'last')
             series = series.resample('D', how=how).dropna()
             series = series.resample(ax_freq, how=how).dropna()
             freq = ax_freq
-        elif _is_sub(freq, ax_freq):
-            _upsample_others(ax, freq, plotf, kwargs, True)
+        elif frequencies.is_subperiod(freq, ax_freq) or _is_sub(freq, ax_freq):
+            _upsample_others(ax, freq, plotf, kwargs)
             ax_freq = freq
         else:
             raise ValueError('Incompatible frequency conversion')
@@ -123,10 +120,9 @@ def _is_sup(f1, f2):
     return ((f1.startswith('W') and frequencies.is_superperiod('D', f2)) or
             (f2.startswith('W') and frequencies.is_superperiod(f1, 'D')))
 
-def _upsample_others(ax, freq, plotf, kwargs,
-                     via_daily=False):
+def _upsample_others(ax, freq, plotf, kwargs):
     legend = ax.get_legend()
-    lines, labels = _replot_ax(ax, freq, plotf, kwargs, via_daily)
+    lines, labels = _replot_ax(ax, freq, plotf, kwargs)
 
     other_ax = None
     if hasattr(ax, 'left_ax'):
@@ -135,8 +131,7 @@ def _upsample_others(ax, freq, plotf, kwargs,
         other_ax = ax.right_ax
 
     if other_ax is not None:
-        rlines, rlabels = _replot_ax(other_ax, freq, plotf, kwargs,
-                                     via_daily)
+        rlines, rlabels = _replot_ax(other_ax, freq, plotf, kwargs)
         lines.extend(rlines)
         labels.extend(rlabels)
 
@@ -147,29 +142,25 @@ def _upsample_others(ax, freq, plotf, kwargs,
             title = None
         ax.legend(lines, labels, loc='best', title=title)
 
-def _replot_ax(ax, freq, plotf, kwargs, via_daily):
+def _replot_ax(ax, freq, plotf, kwargs):
+    data = getattr(ax, '_plot_data', None)
     ax._plot_data = []
     ax.clear()
     _decorate_axes(ax, freq, kwargs)
 
-    data = getattr(ax, '_plot_data', None)
     lines = []
     labels = []
     if data is not None:
         for series, kwds in data:
-            series = _upsample(series, freq, via_daily)
+            series = series.copy()
+            idx = series.index.asfreq(freq)
+            series.index = idx
             ax._plot_data.append(series)
             args = _maybe_mask(series)
             lines.append(plotf(ax, *args, **kwds)[0])
             labels.append(com._stringify(series.name))
 
     return lines, labels
-
-def _upsample(series, freq, via_daily):
-    if not via_daily:
-        return series.resample(freq).dropna()
-    else:
-        return series.resample('D').resample(freq).dropna()
 
 def _decorate_axes(ax, freq, kwargs):
     ax.freq = freq
