@@ -334,7 +334,7 @@ class TestTSPlot(unittest.TestCase):
     @slow
     def test_finder_monthly(self):
         import matplotlib.pyplot as plt
-        xp = Period('1988-1').ordinal
+        xp = Period('Jan 1988').ordinal
         yrs = [1.15, 2.5, 4, 11]
         plt.close('all')
         for n in yrs:
