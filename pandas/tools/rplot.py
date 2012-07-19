@@ -1,12 +1,41 @@
 import numpy as np
 import scipy.stats as stats
 import matplotlib.pyplot as plt
+import random
+import pdb
+
+def random_colour(name):
+	"""Random colour from a string or other hashable value.
+
+	Parameters:
+	-----------
+	name: A string value to use as a seed to the random number generator.
+
+	Returns:
+	--------
+	(r, g, b): Where r, g, b are random numbers in the range (0, 1).
+	"""
+	random.seed(name)
+	return [random.random() for _ in range(3)]
+
+def filter_column(frame, column, filter_column, filter_value):
+	n = len(frame)
+	vcol = frame[column]
+	fcol = frame[filter_column]
+	result = []
+	for v, f in zip(vcol, fcol):
+		if f == filter_value:
+			result.append(v)
+	return np.array(result)
 
 class RPlot:
 	def __init__(self, data, x=None, y=None):
 		self.data = data
 		self.ax = plt.gca()
-		self.aes = {}
+		self.aes = {
+			'x' : None,
+			'y' : None,
+		}
 		if x is not None and y is None:
 			self.aes['x'] = x
 		elif x is not None and y is not None:
@@ -14,13 +43,13 @@ class RPlot:
 			self.aes['y'] = y
 
 	def __add__(self, other):
-		other.plot(self)
+		return other.plot(self)
 
 class GeomPoint:
-	def __init__(self, x=None, y=None, marker='o', colour='grey', size=20, alpha=1.0):
+	def __init__(self, x=None, y=None, shape='o', colour='grey', size=20, alpha=1.0):
 		self.x = x
 		self.y = y
-		self.marker = marker
+		self.shape = shape
 		self.colour = colour
 		self.size = size
 		self.alpha = alpha
@@ -31,7 +60,18 @@ class GeomPoint:
 			aes['x'] = self.x
 		if self.y is not None:
 			aes['y'] = self.y
-		rplot.ax.scatter(rplot.data[aes['x']], rplot.data[aes['y']], c=self.colour, marker=self.marker, s=self.size, alpha=self.alpha)
+		if type(self.colour) is not type(""):
+			colours = list(set(self.colour))
+			for colour in colours:
+				xcol = filter_column(rplot.data, aes['x'], self.colour.name, colour)
+				ycol = filter_column(rplot.data, aes['y'], self.colour.name, colour)
+				rplot.ax.scatter(xcol, ycol, c=random_colour(colour), marker=self.shape, s=self.size, alpha=self.alpha, label=colour)
+		else:
+			rplot.ax.scatter(rplot.data[aes['x']], rplot.data[aes['y']], c=self.colour, marker=self.shape, s=self.size, alpha=self.alpha)
+		rplot.ax.set_xlabel(aes['x'])
+		rplot.ax.set_ylabel(aes['y'])
+		rplot.ax.legend()
+		return rplot
 
 class GeomDensity2d:
 	def __init__(self, x=None, y=None, weight=1.0, colour='grey', size=0.5, linetype=1.0, alpha=1.0):
@@ -62,3 +102,4 @@ class GeomDensity2d:
 		kernel = stats.gaussian_kde(values)
 		Z = np.reshape(kernel(positions).T, X.shape)
 		rplot.ax.contour(Z, alpha=self.alpha, extent=[x_min, x_max, y_min, y_max])
+		return rplot
