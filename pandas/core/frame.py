@@ -1684,12 +1684,11 @@ class DataFrame(NDFrame):
             return self._get_item_cache(key)
 
     def _box_item_values(self, key, values):
+        items = self.columns[self.columns.get_loc(key)]
         if values.ndim == 2:
-            item_cols = self.columns[self.columns.get_loc(key)]
-            return DataFrame(values.T, columns=item_cols,
-                             index=self.index)
+            return DataFrame(values.T, columns=items, index=self.index)
         else:
-            return Series(values, index=self.index, name=key)
+            return Series(values, index=self.index, name=items)
 
     def __getattr__(self, name):
         """After regular attribute access, try looking up the name of a column.
@@ -1893,7 +1892,8 @@ class DataFrame(NDFrame):
 
         if np.isscalar(loc):
             new_values = self._data.fast_2d_xs(loc, copy=copy)
-            return Series(new_values, index=self.columns, name=key)
+            return Series(new_values, index=self.columns,
+                          name=self.index[loc])
         else: # isinstance(loc, slice) or loc.dtype == np.bool_:
             result = self[loc]
             result.index = new_index

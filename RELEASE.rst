@@ -91,6 +91,8 @@ pandas 0.8.1
   - Fix cases where extra keywords weren't being passed on to matplotlib from
     Series.plot (#1636)
   - Fix BusinessMonthBegin logic for dates before 1st bday of month (#1645)
+  - Ensure string alias converted (valid in DatetimeIndex.get_loc) in
+    DataFrame.xs / __getitem__ (#1644)
 
 pandas 0.8.0
 ============

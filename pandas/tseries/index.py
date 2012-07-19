@@ -446,6 +446,12 @@ class DatetimeIndex(Int64Index):
             new_values = self.astype('O') + delta
         return DatetimeIndex(new_values, tz=self.tz, freq='infer')
 
+    def __contains__(self, key):
+        try:
+            return np.isscalar(self.get_loc(key))
+        except (KeyError, TypeError):
+            return False
+
     def groupby(self, f):
         objs = self.asobject
         return _algos.groupby_object(objs, f)
