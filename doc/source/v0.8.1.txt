@@ -1,0 +1,27 @@
+.. _whatsnew_0801:
+
+v.0.8.1 (July 23, 2012)
+---------------------------
+
+This release includes a few new features and addresses over a dozen bugs in
+0.8.0, most notably NA friendly string processing functionality and a series of
+new plot types and options.
+
+New features
+~~~~~~~~~~~~
+
+  - Add string processing methods accesible via Series.str (GH620_)
+  - Add option to disable adjustment in EWMA (GH1584_)
+  - Radviz plot (GH1566_)
+  - Per column styles and secondary y-axis plotting (GH1559_)
+  - New datetime converters millisecond plotting  (GH1599_)
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+  - Improved implementation of rolling min and max
+  - Set logic performance for primitives
+  - Significant datetime parsing performance improvments
+
+.. _GH561: https://github.com/pydata/pandas/issues/561
+.. _GH50: https://github.com/pydata/pandas/issues/50

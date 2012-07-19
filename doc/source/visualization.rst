@@ -120,6 +120,31 @@ To plot data on a secondary y-axis, use the ``secondary_y`` keyword:
    df.B.plot(secondary_y=True, style='g')
 
 
+Selective Plotting on Secondary Y-axis
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To plot some columns in a DataFrame, give the column names to the `secondary_y`
+keyword:
+
+.. ipython:: python
+
+   plt.figure()
+
+   @savefig frame_plot_secondary_y.png width=4.5in
+   df.plot(secondary_y=['A', 'B'])
+
+Note that the columns plotted on the secondary y-axis is automatically marked
+with "(right)" in the legend. To turn off the automatic marking, use the
+`mark_right=False` keyword:
+
+.. ipython:: python
+
+   plt.figure()
+
+   @savefig frame_plot_secondary_y.png width=4.5in
+   df.plot(secondary_y=['A', 'B'], mark_right=False)
+
+
 Targeting different subplots
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
