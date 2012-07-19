@@ -144,12 +144,12 @@ class DatetimeIndex(Int64Index):
             freq = kwds['offset']
             warn = True
 
-        infer_freq = False
+        freq_infer = False
         if not isinstance(freq, DateOffset):
             if freq != 'infer':
                 freq = to_offset(freq)
             else:
-                infer_freq = True
+                freq_infer = True
                 freq = None
 
         if warn:
@@ -232,13 +232,13 @@ class DatetimeIndex(Int64Index):
         subarr.tz = tz
 
         if verify_integrity and len(subarr) > 0:
-            if offset is not None and not infer_freq:
+            if offset is not None and not freq_infer:
                 inferred = subarr.inferred_freq
                 if inferred != offset.freqstr:
                     raise ValueError('Dates do not conform to passed '
                                      'frequency')
 
-        if infer_freq:
+        if freq_infer:
             inferred = subarr.inferred_freq
             if inferred:
                 subarr.offset = to_offset(inferred)

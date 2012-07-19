@@ -1,15 +1,9 @@
 from datetime import datetime, timedelta
 
-import numpy as np
-
-from pandas.core.common import _count_not_none
 from pandas.tseries.tools import to_datetime
-from pandas.util.decorators import cache_readonly
 
 # import after tools, dateutil check
 from dateutil.relativedelta import relativedelta
-
-from pandas.lib import Timestamp
 import pandas.lib as lib
 
 __all__ = ['Day', 'BusinessDay', 'BDay',
@@ -431,9 +425,12 @@ class BusinessMonthBegin(DateOffset, CacheableOffset):
         wkday, _ = lib.monthrange(other.year, other.month)
         first = _get_firstbday(wkday)
 
-        if other.day > first and n<=0:
+        if other.day > first and n <= 0:
             # as if rolled forward already
             n += 1
+        elif other.day < first and n > 0:
+            other = other + timedelta(days=first-other.day)
+            n -= 1
 
         other = other + relativedelta(months=n)
         wkday, _ = lib.monthrange(other.year, other.month)

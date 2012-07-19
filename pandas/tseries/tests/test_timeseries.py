@@ -1840,6 +1840,13 @@ class TestSeriesDatetime64(unittest.TestCase):
         result = rng.intersection(rng2)
         self.assert_(result.equals(rng))
 
+    def test_date_range_bms_bug(self):
+        # #1645
+        rng = date_range('1/1/2000', periods=10, freq='BMS')
+
+        ex_first = Timestamp('2000-01-03')
+        self.assertEquals(rng[0], ex_first)
+
 class TestTimestamp(unittest.TestCase):
 
     def test_basics_nanos(self):
