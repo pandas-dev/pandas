@@ -397,6 +397,20 @@ class TestIndex(unittest.TestCase):
         self.assertRaises(KeyError, idx2.slice_locs, 8, 2)
         self.assertRaises(KeyError, idx2.slice_locs, 7, 3)
 
+    def test_slice_locs_dup(self):
+        idx = Index(['a', 'a', 'b', 'c', 'd', 'd'])
+        rs = idx.slice_locs('a', 'd')
+        self.assert_(rs == (0, 6))
+
+        rs2 = idx.slice_locs(end='d')
+        self.assert_(rs == (0, 6))
+
+        rs = idx.slice_locs('a', 'c')
+        self.assert_(rs == (0, 4))
+
+        rs = idx.slice_locs('b', 'd')
+        self.assert_(rs == (2, 6))
+
     def test_drop(self):
         n = len(self.strIndex)
 

@@ -702,6 +702,20 @@ class CheckIndexing(object):
         xp = df.reindex(['x'], columns=[('a', '1')])
         assert_frame_equal(rs, xp)
 
+    def test_ix_dup(self):
+        idx = Index(['a', 'a', 'b', 'c', 'd', 'd'])
+        df = DataFrame(np.random.randn(len(idx), 3), idx)
+
+        sub = df.ix[:'d']
+        assert_frame_equal(sub, df)
+
+        sub = df.ix['a':'c']
+        assert_frame_equal(sub, df.ix[0:4])
+
+        sub = df.ix['b':'d']
+        assert_frame_equal(sub, df.ix[2:])
+
+
     def test_getitem_fancy_1d(self):
         f = self.frame
         ix = f.ix

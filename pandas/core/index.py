@@ -1053,6 +1053,8 @@ class Index(np.ndarray):
         else:
             try:
                 beg_slice = self.get_loc(start)
+                if isinstance(beg_slice, slice):
+                    beg_slice = beg_slice.start
             except KeyError:
                 if self.is_monotonic:
                     beg_slice = self.searchsorted(start, side='left')
@@ -1063,7 +1065,11 @@ class Index(np.ndarray):
             end_slice = len(self)
         else:
             try:
-                end_slice = self.get_loc(end) + 1
+                end_slice = self.get_loc(end)
+                if isinstance(end_slice, slice):
+                    end_slice = end_slice.stop
+                else:
+                    end_slice += 1
             except KeyError:
                 if self.is_monotonic:
                     end_slice = self.searchsorted(end, side='right')

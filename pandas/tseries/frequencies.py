@@ -921,6 +921,9 @@ def is_subperiod(source, target):
     target = target.upper()
     source = source.upper()
     if _is_annual(target):
+        if _is_quarterly(source):
+            return _quarter_months_conform(_get_rule_month(source),
+                                           _get_rule_month(target))
         return source in ['D', 'B', 'M', 'H', 'T', 'S']
     elif _is_quarterly(target):
         return source in ['D', 'B', 'M', 'H', 'T', 'S']

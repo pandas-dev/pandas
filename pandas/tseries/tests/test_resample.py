@@ -1,3 +1,5 @@
+# pylint: disable=E1101
+
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -80,12 +82,14 @@ class TestResample(unittest.TestCase):
         self.assertEquals(len(r.index), 2593)
 
     def test_resample_basic(self):
-        rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min')
+        rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min',
+                         name='index')
         s = Series(np.random.randn(14), index=rng)
         result = s.resample('5min', how='mean', closed='right', label='right')
         expected = Series([s[0], s[1:6].mean(), s[6:11].mean(), s[11:].mean()],
                           index=date_range('1/1/2000', periods=4, freq='5min'))
         assert_series_equal(result, expected)
+        self.assert_(result.index.name == 'index')
 
         result = s.resample('5min', how='mean', closed='left', label='right')
         expected = Series([s[:5].mean(), s[5:10].mean(), s[10:].mean()],
@@ -101,7 +105,7 @@ class TestResample(unittest.TestCase):
 
         # from daily
         dti = DatetimeIndex(start=datetime(2005,1,1), end=datetime(2005,1,10),
-                            freq='D')
+                            freq='D', name='index')
 
         s = Series(np.random.rand(len(dti)), dti)
 
@@ -151,6 +155,7 @@ class TestResample(unittest.TestCase):
         self.assertEquals(result.irow(0), s['1/3/2005'])
         self.assertEquals(result.irow(1), s['1/4/2005'])
         self.assertEquals(result.irow(5), s['1/10/2005'])
+        self.assert_(result.index.name == 'index')
 
     def test_resample_frame_basic(self):
         df = tm.makeTimeDataFrame()
@@ -206,7 +211,7 @@ class TestResample(unittest.TestCase):
     def test_resample_upsample(self):
         # from daily
         dti = DatetimeIndex(start=datetime(2005,1,1), end=datetime(2005,1,10),
-                            freq='D')
+                            freq='D', name='index')
 
         s = Series(np.random.rand(len(dti)), dti)
 
@@ -215,6 +220,8 @@ class TestResample(unittest.TestCase):
         self.assertEquals(len(result), 12961)
         self.assertEquals(result[0], s[0])
         self.assertEquals(result[-1], s[-1])
+
+        self.assert_(result.index.name == 'index')
 
     def test_upsample_with_limit(self):
         rng = date_range('1/1/2000', periods=3, freq='5t')
@@ -772,6 +779,13 @@ class TestResamplePeriodIndex(unittest.TestCase):
         self.assert_(result.index.equals(ex_index))
         assert_series_equal(result, exp)
 
+    def test_quarterly_resampling(self):
+        rng = period_range('2000Q1', periods=10, freq='Q-DEC')
+        ts = Series(np.arange(10), index=rng)
+
+        result = ts.resample('A')
+        exp = ts.to_timestamp().resample('A').to_period()
+        assert_series_equal(result, exp)
 
 class TestTimeGrouper(unittest.TestCase):
 
@@ -816,4 +830,3 @@ class TestTimeGrouper(unittest.TestCase):
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-

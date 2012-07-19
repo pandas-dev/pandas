@@ -61,7 +61,7 @@ class TimeGrouper(CustomGrouper):
                 obj = obj.sort_index()
 
         if isinstance(axis, DatetimeIndex):
-            return self._resample_timestamps(obj)
+            rs = self._resample_timestamps(obj)
         elif isinstance(axis, PeriodIndex):
             offset = to_offset(self.freq)
             if offset.n > 1:
@@ -71,12 +71,16 @@ class TimeGrouper(CustomGrouper):
                 self.kind = 'timestamp'
 
             if self.kind is None or self.kind == 'period':
-                return self._resample_periods(obj)
+                rs = self._resample_periods(obj)
             else:
                 obj = obj.to_timestamp(how=self.convention)
-                return self._resample_timestamps(obj)
+                rs = self._resample_timestamps(obj)
         else:  # pragma: no cover
             raise TypeError('Only valid with DatetimeIndex or PeriodIndex')
+
+        rs_axis = rs._get_axis(self.axis)
+        rs_axis.name = axis.name
+        return rs
 
     def get_grouper(self, obj):
         # Only return grouper
