@@ -906,7 +906,10 @@ class DatetimeIndex(Int64Index):
                 locs = self.indexer_at_time(key)
                 return series.take(locs)
 
-            stamp = Timestamp(key)
+            if isinstance(key, basestring):
+                stamp = Timestamp(key, tz=self.tz)
+            else:
+                stamp = Timestamp(key)
             try:
                 return self._engine.get_value(series, stamp)
             except KeyError:

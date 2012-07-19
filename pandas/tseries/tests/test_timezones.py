@@ -345,6 +345,12 @@ class TestTimeZoneSupport(unittest.TestCase):
         assert_series_equal(result, expected)
         self.assert_(result.index.tz.zone == 'US/Eastern')
 
+    def test_string_index_alias_tz_aware(self):
+        rng = date_range('1/1/2000', periods=10, tz='US/Eastern')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        result = ts['1/3/2000']
+        self.assertAlmostEqual(result, ts[2])
 
 class TestTimeZones(unittest.TestCase):
 
