@@ -2574,6 +2574,18 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         fmt.reset_printoptions()
 
+    def test_repr_unicode(self):
+        df = DataFrame({'A': ['\xc3\xa4\xc3\xa4\xc3\xa4\xc3\xa4',
+                              '\xc3\xbc\xc3\xbc\xc3\xbc\xc3\xbc']})
+
+        result = repr(df)
+        ex_top = '      A'
+        self.assertEqual(result.split('\n')[0].rstrip(), ex_top)
+
+        df = DataFrame({'A': [u'\xe4\xe4\xe4\xe4', u'\xfc\xfc\xfc\xfc']})
+        result = repr(df)
+        self.assertEqual(result.split('\n')[0].rstrip(), ex_top)
+
     def test_very_wide_info_repr(self):
         df = DataFrame(np.random.randn(10, 20),
                        columns=[tm.rands(10) for _ in xrange(20)])
