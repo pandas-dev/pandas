@@ -2028,6 +2028,23 @@ class TestGroupBy(unittest.TestCase):
         exp = df.groupby(labels).agg(nanops.nanmedian)
         assert_frame_equal(result, exp)
 
+    def test_groupby_categorical_no_compress(self):
+        data = Series(np.random.randn(9))
+
+        labels = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2])
+        cats = Categorical(labels, [0, 1, 2])
+
+        result = data.groupby(cats).mean()
+        exp = data.groupby(labels).mean()
+        assert_series_equal(result, exp)
+
+        labels = np.array([0, 0, 0, 1, 1, 1, 3, 3, 3])
+        cats = Categorical(labels, [0, 1, 2, 3])
+
+        result = data.groupby(cats).mean()
+        exp = data.groupby(labels).mean().reindex(cats.levels)
+        assert_series_equal(result, exp)
+
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     tups = map(tuple, df[keys].values)
     tups = com._asarray_tuplesafe(tups)

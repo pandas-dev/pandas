@@ -496,6 +496,7 @@ class Grouper(object):
         self.groupings = groupings
         self.sort = sort
         self.group_keys = group_keys
+        self.compressed = True
 
     @property
     def shape(self):
@@ -604,9 +605,14 @@ class Grouper(object):
         else:
             if len(all_labels) > 1:
                 group_index = get_group_index(all_labels, self.shape)
+                comp_ids, obs_group_ids = _compress_group_index(group_index)
             else:
-                group_index = all_labels[0]
-            comp_ids, obs_group_ids = _compress_group_index(group_index)
+                ping = self.groupings[0]
+                comp_ids = ping.labels
+                obs_group_ids = np.arange(len(ping.group_index))
+                self.compressed = False
+                self._filter_empty_groups = False
+
             return comp_ids, obs_group_ids
 
     @cache_readonly
@@ -624,6 +630,10 @@ class Grouper(object):
 
     def get_group_levels(self):
         obs_ids = self.group_info[1]
+
+        if not self.compressed and len(self.groupings) == 1:
+            return [self.groupings[0].group_index]
+
         if self._overflow_possible:
             recons_labels = [np.array(x) for x in izip(*obs_ids)]
         else:
@@ -960,6 +970,7 @@ class Grouping(object):
 
         # pre-computed
         self._was_factor = False
+        self._should_compress = True
 
         if level is not None:
             if not isinstance(level, int):
