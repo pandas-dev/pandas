@@ -150,6 +150,12 @@ class TestDataFrameFormatting(unittest.TestCase):
         df = DataFrame({'A' : [u'\u03c3']})
         df.to_html()
 
+    def test_nonunicode_nonascii_alignment(self):
+        df = DataFrame([["aa\xc3\xa4\xc3\xa4", 1], ["bbbb", 2]])
+        rep_str = df.to_string()
+        lines = rep_str.split('\n')
+        self.assert_(len(lines[1]) == len(lines[2]))
+
     def test_unicode_problem_decoding_as_ascii(self):
         dm = DataFrame({u'c/\u03c3': Series({'test':np.NaN})})
         unicode(dm.to_string())
@@ -776,4 +782,3 @@ if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-
