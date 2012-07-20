@@ -705,11 +705,16 @@ def _index_labels_to_array(labels):
 
     return labels
 
-def _stringify(col):
+def _stringify(col, encoding='UTF8'):
     # unicode workaround
     try:
         return unicode(col)
     except UnicodeError:
+        try:
+            if isinstance(col, str):
+                return col.decode(encoding)
+        except UnicodeError:
+            pass
         return console_encode(col)
 
 def _stringify_seq(values):
@@ -930,4 +935,3 @@ def _concat_compat(to_concat):
         return new_values.view(_NS_DTYPE)
     else:
         return np.concatenate(to_concat)
-

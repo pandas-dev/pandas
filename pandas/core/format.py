@@ -1,4 +1,5 @@
 from itertools import izip
+import sys
 
 try:
     from StringIO import StringIO
@@ -480,15 +481,30 @@ class GenericArrayFormatter(object):
         self.justify = justify
 
     def get_result(self):
-        if self._have_unicode():
+        if self._conv_unicode():
             fmt_values = self._format_strings(use_unicode=True)
         else:
             fmt_values = self._format_strings(use_unicode=False)
 
         return _make_fixed_width(fmt_values, self.justify)
 
-    def _have_unicode(self):
-        mask = lib.map_infer(self.values, lambda x: isinstance(x, unicode))
+    def _conv_unicode(self):
+        #check if any needs and can be converted to nonascii encoding
+        def _nonascii(x):
+            if isinstance(x, unicode):
+                return True
+            try:
+                if isinstance(x, str):
+                    x.decode('ascii')
+                    return False
+            except UnicodeError:
+                try:
+                    x.decode(print_config.encoding)
+                    return True
+                except UnicodeError:
+                    return False
+            return False
+        mask = lib.map_infer(self.values, _nonascii)
         return mask.any()
 
     def _format_strings(self, use_unicode=False):
@@ -501,7 +517,9 @@ class GenericArrayFormatter(object):
             float_format = self.float_format
 
         if use_unicode:
-            formatter = _stringify if self.formatter is None else self.formatter
+            def _strify(x):
+                return _stringify(x, print_config.encoding)
+            formatter = _strify if self.formatter is None else self.formatter
         else:
             formatter = str if self.formatter is None else self.formatter
 
@@ -668,7 +686,7 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
                      max_columns=None, colheader_justify=None,
                      max_colwidth=None, notebook_repr_html=None,
                      date_dayfirst=None, date_yearfirst=None,
-                     multi_sparse=None):
+                     multi_sparse=None, encoding=None):
     """
     Alter default behavior of DataFrame.toString
 
@@ -716,6 +734,8 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
         print_config.date_yearfirst = date_yearfirst
     if multi_sparse is not None:
         print_config.multi_sparse = multi_sparse
+    if encoding is not None:
+        print_config.encoding = encoding
 
 def reset_printoptions():
     print_config.reset()
@@ -846,6 +866,9 @@ class _GlobalPrintConfig(object):
         self.date_dayfirst = False
         self.date_yearfirst = False
         self.multi_sparse = True
+        self.encoding = sys.getdefaultencoding()
+        if self.encoding == 'ascii':
+            self.encoding = 'UTF8'
 
     def reset(self):
         self.__init__()
