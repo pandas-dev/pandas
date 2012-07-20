@@ -151,7 +151,12 @@ def _nanmin(values, axis=None, skipna=True):
         else:
             result = __builtin__.min(values)
     else:
-        result = values.min(axis)
+        if ((axis is not None and values.shape[axis] == 0)
+             or values.size == 0):
+            result = values.sum(axis)
+            result.fill(np.nan)
+        else:
+            result = values.min(axis)
 
     return _maybe_null_out(result, axis, mask)
 
@@ -172,7 +177,13 @@ def _nanmax(values, axis=None, skipna=True):
         else:
             result = __builtin__.max(values)
     else:
-        result = values.max(axis)
+        if ((axis is not None and values.shape[axis] == 0)
+             or values.size == 0):
+            result = values.sum(axis)
+            result.fill(np.nan)
+        else:
+            result = values.max(axis)
+
     return _maybe_null_out(result, axis, mask)
 
 def nanargmax(values, axis=None, skipna=True):

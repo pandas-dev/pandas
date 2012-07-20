@@ -210,12 +210,6 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         self.empty = Series([], index=[])
 
-        self.noneSeries = Series([None])
-        self.noneSeries.name = 'None'
-
-        self.nanSeries = Series([np.nan])
-        self.nanSeries.name = 'NaN'
-
     def test_constructor(self):
         # Recognize TimeSeries
         self.assert_(isinstance(self.ts, TimeSeries))
@@ -1256,16 +1250,22 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(rs, xp)
 
     def test_describe_empty(self):
-        assert_series_equal(self.empty.describe(),
-                            Series([0], index=['count']))
+        result = self.empty.describe()
+
+        self.assert_(result['count'] == 0)
+        self.assert_(result.drop('count').isnull().all())
+
+        nanSeries = Series([np.nan])
+        nanSeries.name = 'NaN'
+        result = nanSeries.describe()
+        self.assert_(result['count'] == 0)
+        self.assert_(result.drop('count').isnull().all())
 
     def test_describe_none(self):
-        assert_series_equal(self.noneSeries.describe(),
+        noneSeries = Series([None])
+        noneSeries.name = 'None'
+        assert_series_equal(noneSeries.describe(),
                             Series([0, 0], index=['count', 'unique']))
-
-    def test_describe_nan(self):
-        assert_series_equal(self.nanSeries.describe(), 
-                            Series([0], index=['count']))
 
     def test_append(self):
         appendedSeries = self.series.append(self.objSeries)

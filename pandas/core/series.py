@@ -1378,12 +1378,11 @@ copy : boolean, default False
 
             names = ['count']
             data = [self.count()]
-            if data[0] > 0:
-                names += ['mean', 'std', 'min', pretty_name(lb), '50%',
-                        pretty_name(ub), 'max']
-                data += [self.mean(), self.std(), self.min(),
-                        self.quantile(lb), self.median(), self.quantile(ub),
-                        self.max()]
+            names += ['mean', 'std', 'min', pretty_name(lb), '50%',
+                    pretty_name(ub), 'max']
+            data += [self.mean(), self.std(), self.min(),
+                    self.quantile(lb), self.median(), self.quantile(ub),
+                    self.max()]
 
         return Series(data, index=names)
 
