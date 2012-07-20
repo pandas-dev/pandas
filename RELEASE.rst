@@ -97,6 +97,7 @@ pandas 0.8.1
   - Fix Series.max/min and Series.describe on len-0 series (#1650)
   - Handle None values in dict passed to concat (#1649)
   - Fix Series.interpolate with method='values' and DatetimeIndex (#1646)
+  - Fix IndexError in left merges on a DataFrame with 0-length (#1628)
 
 pandas 0.8.0
 ============

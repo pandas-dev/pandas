@@ -294,6 +294,7 @@ class _MergeOperation(object):
         right_keys = []
         join_names = []
         right_drop = []
+        left_drop = []
         left, right = self.left, self.right
 
         is_lkey = lambda x: isinstance(x, np.ndarray) and len(x) == len(left)
@@ -314,7 +315,11 @@ class _MergeOperation(object):
                     if not is_rkey(rk):
                         right_keys.append(right[rk].values)
                         if lk == rk:
-                            right_drop.append(rk)
+                            # avoid key upcast in corner case (length-0)
+                            if len(left) > 0:
+                                right_drop.append(rk)
+                            else:
+                                left_drop.append(lk)
                     else:
                         right_keys.append(rk)
                     left_keys.append(left[lk].values)
@@ -347,6 +352,9 @@ class _MergeOperation(object):
                                                  self.left.index.labels)]
             else:
                 left_keys = [self.left.index.values]
+
+        if left_drop:
+            self.left = self.left.drop(left_drop, axis=1)
 
         if right_drop:
             self.right = self.right.drop(right_drop, axis=1)
