@@ -95,6 +95,7 @@ pandas 0.8.1
     DataFrame.xs / __getitem__ (#1644)
   - Fix use of string alias timestamps with tz-aware time series (#1647)
   - Fix Series.max/min and Series.describe on len-0 series (#1650)
+  - Handle None values in dict passed to concat (#1649)
 
 pandas 0.8.0
 ============
