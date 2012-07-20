@@ -1026,6 +1026,15 @@ class TestTimeSeries(unittest.TestCase):
         arr[50:100] = -1
         self.assert_((index.asi8[50:100] != -1).all())
 
+    def test_series_interpolate_method_values(self):
+        # #1646
+        ts = _simple_ts('1/1/2000', '1/20/2000')
+        ts[::2] = np.nan
+
+        result = ts.interpolate(method='values')
+        exp = ts.interpolate()
+        assert_series_equal(result, exp)
+
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
     return Series(np.random.randn(len(rng)), index=rng)

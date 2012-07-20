@@ -8,6 +8,7 @@ import unittest
 import pandas.io.data as pd
 import nose
 from pandas.util.testing import network
+import urllib2
 
 class TestYahoo(unittest.TestCase):
 
@@ -18,13 +19,23 @@ class TestYahoo(unittest.TestCase):
         # yahoo
         start = datetime(2010,1,1)
         end = datetime(2012,1,24)
-        self.assertEquals(
-            pd.DataReader("F", 'yahoo', start, end)['Close'][-1],
-            12.82)
 
-        self.assertRaises(
-            Exception,
-            lambda: pd.DataReader("NON EXISTENT TICKER", 'yahoo', start, end))
+        try:
+            self.assertEquals(
+                pd.DataReader("F", 'yahoo', start, end)['Close'][-1],
+                12.82)
+
+            self.assertRaises(
+                Exception,
+                lambda: pd.DataReader("NON EXISTENT TICKER", 'yahoo',
+                                      start, end))
+        except urllib2.URLError:
+            try:
+                urllib2.urlopen('http://www.google.com')
+            except urllib2.URLError:
+                raise nose.SkipTest
+            else:
+                raise
 
 if __name__ == '__main__':
     import nose
