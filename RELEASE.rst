@@ -58,6 +58,8 @@ pandas 0.8.1
   - Accelerate 3-axis multi data selection from homogeneous Panel (#979)
   - Add ``adjust`` option to ewma to disable adjustment factor (#1584)
   - Add new matplotlib converters for high frequency time series plotting (#1599)
+  - Handling of tz-aware datetime.datetime objects in to_datetime; raise
+    Exception unless utc=True given (#1581)
 
 **Bug fixes**
 
