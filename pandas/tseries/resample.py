@@ -45,7 +45,7 @@ class TimeGrouper(CustomGrouper):
         self.kind = kind
 
         self.convention = convention or 'E'
-        self.convention = convention.lower()
+        self.convention = self.convention.lower()
 
         self.axis = axis
         self.loffset = loffset

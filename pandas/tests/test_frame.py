@@ -2575,14 +2575,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         fmt.reset_printoptions()
 
     def test_repr_unicode(self):
-        df = DataFrame({'A': ['\xc3\xa4\xc3\xa4\xc3\xa4\xc3\xa4',
-                              '\xc3\xbc\xc3\xbc\xc3\xbc\xc3\xbc']})
+        uval = u'\u03c3\u03c3\u03c3\u03c3'
+        bval = uval.encode('utf-8')
+        df = DataFrame({'A': [uval, uval]})
 
         result = repr(df)
         ex_top = '      A'
         self.assertEqual(result.split('\n')[0].rstrip(), ex_top)
 
-        df = DataFrame({'A': [u'\xe4\xe4\xe4\xe4', u'\xfc\xfc\xfc\xfc']})
+        df = DataFrame({'A': [uval, uval]})
         result = repr(df)
         self.assertEqual(result.split('\n')[0].rstrip(), ex_top)
 

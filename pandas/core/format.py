@@ -132,15 +132,17 @@ class SeriesFormatter(object):
 
 if py3compat.PY3:  # pragma: no cover
     _encode_diff = lambda x: 0
+
+    _strlen = len
 else:
     def _encode_diff(x):
         return len(x) - len(x.decode('utf-8'))
 
-def _strlen(x):
-    try:
-        return len(x.decode('utf-8'))
-    except UnicodeError:
-        return len(x)
+    def _strlen(x):
+        try:
+            return len(x.decode('utf-8'))
+        except UnicodeError:
+            return len(x)
 
 class DataFrameFormatter(object):
     """
