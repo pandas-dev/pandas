@@ -1345,22 +1345,25 @@ copy : boolean, default False
             from pandas.util.counter import Counter
 
         if self.dtype == object:
-            names = ['count', 'unique', 'top', 'freq']
-
+            names = ['count', 'unique']
             objcounts = Counter(self.dropna().values)
-            top, freq = objcounts.most_common(1)[0]
-            data = [self.count(), len(objcounts), top, freq]
+            data = [self.count(), len(objcounts)]
+            if data[1] > 0:
+                names += ['top', 'freq']
+                top, freq = objcounts.most_common(1)[0]
+                data += [top, freq]
 
         elif issubclass(self.dtype.type, np.datetime64):
-            names = ['count', 'unique', 'first', 'last', 'top', 'freq']
-
+            names = ['count', 'unique']
             asint = self.dropna().view('i8')
             objcounts = Counter(asint)
-            top, freq = objcounts.most_common(1)[0]
-            data = [self.count(), len(objcounts),
-                    lib.Timestamp(asint.min()),
-                    lib.Timestamp(asint.max()),
-                    lib.Timestamp(top), freq]
+            data = [self.count(), len(objcounts)]
+            if data[1] > 0:
+                top, freq = objcounts.most_common(1)[0]
+                names += ['first', 'last', 'top', 'freq']
+                data += [lib.Timestamp(asint.min()),
+                         lib.Timestamp(asint.max()),
+                         lib.Timestamp(top), freq]
         else:
 
             lb = .5 * (1. - percentile_width/100.)
@@ -1373,11 +1376,11 @@ copy : boolean, default False
                 else:
                     return '%.1f%%' % x
 
-            names = ['count', 'mean', 'std', 'min',
-                     pretty_name(lb), '50%', pretty_name(ub),
-                     'max']
-
-            data = [self.count(), self.mean(), self.std(), self.min(),
+            names = ['count']
+            data = [self.count()]
+            names += ['mean', 'std', 'min', pretty_name(lb), '50%',
+                    pretty_name(ub), 'max']
+            data += [self.mean(), self.std(), self.min(),
                     self.quantile(lb), self.median(), self.quantile(ub),
                     self.max()]
 

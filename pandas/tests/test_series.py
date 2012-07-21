@@ -1249,6 +1249,24 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                      'top' : min_date}, index=rs.index)
         assert_series_equal(rs, xp)
 
+    def test_describe_empty(self):
+        result = self.empty.describe()
+
+        self.assert_(result['count'] == 0)
+        self.assert_(result.drop('count').isnull().all())
+
+        nanSeries = Series([np.nan])
+        nanSeries.name = 'NaN'
+        result = nanSeries.describe()
+        self.assert_(result['count'] == 0)
+        self.assert_(result.drop('count').isnull().all())
+
+    def test_describe_none(self):
+        noneSeries = Series([None])
+        noneSeries.name = 'None'
+        assert_series_equal(noneSeries.describe(),
+                            Series([0, 0], index=['count', 'unique']))
+
     def test_append(self):
         appendedSeries = self.series.append(self.objSeries)
         for idx, value in appendedSeries.iteritems():

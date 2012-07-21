@@ -1,5 +1,6 @@
 """
-Adapted from scikits.timeseries by Pierre GF Gerard-Marchant & Matt Knox
+Period formatters and locators adapted from scikits.timeseries by
+Pierre GF Gerard-Marchant & Matt Knox
 """
 
 #!!! TODO: Use the fact that axis can have units to simplify the process
@@ -51,47 +52,126 @@ def tsplot(series, plotf, **kwargs):
     if freq is None: # pragma: no cover
         raise ValueError('Cannot use dynamic axis without frequency info')
     else:
-        ax_freq = getattr(ax, 'freq', None)
-        if (ax_freq is not None) and (freq != ax_freq):
-            if frequencies.is_subperiod(freq, ax_freq): # downsample
-                how = kwargs.pop('how', 'last')
-                series = series.resample(ax_freq, how=how)
-            elif frequencies.is_superperiod(freq, ax_freq):
-                series = series.resample(ax_freq)
-            else: # one freq is weekly
-                how = kwargs.pop('how', 'last')
-                series = series.resample('D', how=how, fill_method='pad')
-                series = series.resample(ax_freq, how=how, fill_method='pad')
-            freq = ax_freq
+        # Convert DatetimeIndex to PeriodIndex
+        if isinstance(series.index, DatetimeIndex):
+            series = series.to_period(freq=freq)
+        freq, ax_freq, series = _maybe_resample(series, ax, freq, plotf,
+                                                kwargs)
 
-    # Convert DatetimeIndex to PeriodIndex
-    if isinstance(series.index, DatetimeIndex):
-        series = series.to_period(freq=freq)
+    # Set ax with freq info
+    _decorate_axes(ax, freq, kwargs)
 
-    style = kwargs.pop('style', None)
-
-    # Specialized ts plotting attributes for Axes
-    ax.freq = freq
-    xaxis = ax.get_xaxis()
-    xaxis.freq = freq
-    ax.legendlabels = [kwargs.get('label', None)]
-    ax.view_interval = None
-    ax.date_axis_info = None
-
-    # format args and lot
+    # mask missing values
     args = _maybe_mask(series)
 
+    # how to make sure ax.clear() flows through?
+    if not hasattr(ax, '_plot_data'):
+        ax._plot_data = []
+    ax._plot_data.append((series, kwargs))
+
+    # styles
+    style = kwargs.pop('style', None)
     if style is not None:
         args.append(style)
 
-    plotf(ax, *args,  **kwargs)
+    lines = plotf(ax, *args,  **kwargs)
+    label = kwargs.get('label', None)
 
+    # set date formatter, locators and rescale limits
     format_dateaxis(ax, ax.freq)
-
     left, right = _get_xlim(ax.get_lines())
     ax.set_xlim(left, right)
 
-    return ax
+    return lines
+
+def _maybe_resample(series, ax, freq, plotf, kwargs):
+    ax_freq = _get_ax_freq(ax)
+    if ax_freq is not None and freq != ax_freq:
+        if frequencies.is_superperiod(freq, ax_freq): # upsample input
+            series = series.copy()
+            series.index = series.index.asfreq(ax_freq)
+            freq = ax_freq
+        elif _is_sup(freq, ax_freq): # one is weekly
+            how = kwargs.pop('how', 'last')
+            series = series.resample('D', how=how).dropna()
+            series = series.resample(ax_freq, how=how).dropna()
+            freq = ax_freq
+        elif frequencies.is_subperiod(freq, ax_freq) or _is_sub(freq, ax_freq):
+            _upsample_others(ax, freq, plotf, kwargs)
+            ax_freq = freq
+        else:
+            raise ValueError('Incompatible frequency conversion')
+    return freq, ax_freq, series
+
+def _get_ax_freq(ax):
+    ax_freq = getattr(ax, 'freq', None)
+    if ax_freq is None:
+        if hasattr(ax, 'left_ax'):
+            ax_freq = getattr(ax.left_ax, 'freq', None)
+        if hasattr(ax, 'right_ax'):
+            ax_freq = getattr(ax.right_ax, 'freq', None)
+    return ax_freq
+
+def _is_sub(f1, f2):
+    return ((f1.startswith('W') and frequencies.is_subperiod('D', f2)) or
+            (f2.startswith('W') and frequencies.is_subperiod(f1, 'D')))
+
+def _is_sup(f1, f2):
+    return ((f1.startswith('W') and frequencies.is_superperiod('D', f2)) or
+            (f2.startswith('W') and frequencies.is_superperiod(f1, 'D')))
+
+def _upsample_others(ax, freq, plotf, kwargs):
+    legend = ax.get_legend()
+    lines, labels = _replot_ax(ax, freq, plotf, kwargs)
+
+    other_ax = None
+    if hasattr(ax, 'left_ax'):
+        other_ax = ax.left_ax
+    if hasattr(ax, 'right_ax'):
+        other_ax = ax.right_ax
+
+    if other_ax is not None:
+        rlines, rlabels = _replot_ax(other_ax, freq, plotf, kwargs)
+        lines.extend(rlines)
+        labels.extend(rlabels)
+
+    if (legend is not None and kwargs.get('legend', True) and
+        len(lines) > 0):
+        title = legend.get_title().get_text()
+        if title == 'None':
+            title = None
+        ax.legend(lines, labels, loc='best', title=title)
+
+def _replot_ax(ax, freq, plotf, kwargs):
+    data = getattr(ax, '_plot_data', None)
+    ax._plot_data = []
+    ax.clear()
+    _decorate_axes(ax, freq, kwargs)
+
+    lines = []
+    labels = []
+    if data is not None:
+        for series, kwds in data:
+            series = series.copy()
+            idx = series.index.asfreq(freq)
+            series.index = idx
+            ax._plot_data.append(series)
+            args = _maybe_mask(series)
+            lines.append(plotf(ax, *args, **kwds)[0])
+            labels.append(com._stringify(series.name))
+
+    return lines, labels
+
+def _decorate_axes(ax, freq, kwargs):
+    ax.freq = freq
+    xaxis = ax.get_xaxis()
+    xaxis.freq = freq
+    if not hasattr(ax, 'legendlabels'):
+        ax.legendlabels = [kwargs.get('label', None)]
+    else:
+        ax.legendlabels.append(kwargs.get('label', None))
+    ax.view_interval = None
+    ax.date_axis_info = None
 
 def _maybe_mask(series):
     mask = isnull(series)
@@ -175,7 +255,3 @@ def format_dateaxis(subplot, freq):
     subplot.xaxis.set_major_formatter(majformatter)
     subplot.xaxis.set_minor_formatter(minformatter)
     pylab.draw_if_interactive()
-
-
-
-

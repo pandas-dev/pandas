@@ -144,12 +144,12 @@ class DatetimeIndex(Int64Index):
             freq = kwds['offset']
             warn = True
 
-        infer_freq = False
+        freq_infer = False
         if not isinstance(freq, DateOffset):
             if freq != 'infer':
                 freq = to_offset(freq)
             else:
-                infer_freq = True
+                freq_infer = True
                 freq = None
 
         if warn:
@@ -232,13 +232,13 @@ class DatetimeIndex(Int64Index):
         subarr.tz = tz
 
         if verify_integrity and len(subarr) > 0:
-            if offset is not None and not infer_freq:
+            if offset is not None and not freq_infer:
                 inferred = subarr.inferred_freq
                 if inferred != offset.freqstr:
                     raise ValueError('Dates do not conform to passed '
                                      'frequency')
 
-        if infer_freq:
+        if freq_infer:
             inferred = subarr.inferred_freq
             if inferred:
                 subarr.offset = to_offset(inferred)
@@ -445,6 +445,12 @@ class DatetimeIndex(Int64Index):
         else:
             new_values = self.astype('O') + delta
         return DatetimeIndex(new_values, tz=self.tz, freq='infer')
+
+    def __contains__(self, key):
+        try:
+            return np.isscalar(self.get_loc(key))
+        except (KeyError, TypeError):
+            return False
 
     def groupby(self, f):
         objs = self.asobject
@@ -900,7 +906,10 @@ class DatetimeIndex(Int64Index):
                 locs = self.indexer_at_time(key)
                 return series.take(locs)
 
-            stamp = Timestamp(key)
+            if isinstance(key, basestring):
+                stamp = Timestamp(key, tz=self.tz)
+            else:
+                stamp = Timestamp(key)
             try:
                 return self._engine.get_value(series, stamp)
             except KeyError:
@@ -1273,7 +1282,7 @@ def _generate_regular_range(start, end, periods, offset):
 
 
 def date_range(start=None, end=None, periods=None, freq='D', tz=None,
-               normalize=False):
+               normalize=False, name=None):
     """
     Return a fixed frequency datetime index, with day (calendar) as the default
     frequency
@@ -1293,6 +1302,8 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
         Asia/Beijing
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range
+    name : str, default None
+        Name of the resulting index
 
     Notes
     -----
@@ -1303,11 +1314,11 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
     rng : DatetimeIndex
     """
     return DatetimeIndex(start=start, end=end, periods=periods,
-                         freq=freq, tz=tz, normalize=normalize)
+                         freq=freq, tz=tz, normalize=normalize, name=name)
 
 
 def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
-                normalize=True):
+                normalize=True, name=None):
     """
     Return a fixed frequency datetime index, with business day as the default
     frequency
@@ -1327,6 +1338,8 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
         Asia/Beijing
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range
+    name : str, default None
+        Name for the resulting index
 
     Notes
     -----
@@ -1338,7 +1351,7 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
     """
 
     return DatetimeIndex(start=start, end=end, periods=periods,
-                         freq=freq, tz=tz, normalize=normalize)
+                         freq=freq, tz=tz, normalize=normalize, name=name)
 
 
 def _to_m8(key):
@@ -1381,5 +1394,3 @@ def _in_range(start, end, rng_start, rng_end):
 def _time_to_micros(time):
     seconds = time.hour * 60 * 60 + 60 * time.minute + time.second
     return 1000000 * seconds + time.microsecond
-
-

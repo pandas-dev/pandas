@@ -1840,6 +1840,24 @@ class TestSeriesDatetime64(unittest.TestCase):
         result = rng.intersection(rng2)
         self.assert_(result.equals(rng))
 
+    def test_date_range_bms_bug(self):
+        # #1645
+        rng = date_range('1/1/2000', periods=10, freq='BMS')
+
+        ex_first = Timestamp('2000-01-03')
+        self.assertEquals(rng[0], ex_first)
+
+    def test_string_index_series_name_converted(self):
+        # #1644
+        df = DataFrame(np.random.randn(10, 4),
+                       index=date_range('1/1/2000', periods=10))
+
+        result = df.ix['1/3/2000']
+        self.assertEquals(result.name, df.index[2])
+
+        result = df.T['1/3/2000']
+        self.assertEquals(result.name, df.index[2])
+
 class TestTimestamp(unittest.TestCase):
 
     def test_basics_nanos(self):
