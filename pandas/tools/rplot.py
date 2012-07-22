@@ -41,6 +41,20 @@ def filter_column(frame, column, filter_column, filter_value):
 			result.append(v)
 	return np.array(result)
 
+def parse_facets(facet):
+	"""Parse facets formula of the form 'lhs ~ rhs'.
+
+	Parameters:
+	-----------
+	facets: facets formula.
+
+	Returns:
+	--------
+	A list with LHS and RHS column names.
+	"""
+	lhs, rhs = [col.strip() for col in facet.split('~')]
+	return (lhs, rhs)
+
 class RPlot:
 	def __init__(self, data, x=None, y=None):
 		seomlf.data = data
@@ -116,3 +130,10 @@ class GeomDensity2d:
 		Z = np.reshape(kernel(positions).T, X.shape)
 		rplot.ax.contour(Z, alpha=self.alpha, extent=[x_min, x_max, y_min, y_max])
 		return rplot
+
+class FacetGrid:
+	def __init__(self, facets):
+		self.facets = facets
+
+	def plot(self, rplot):
+		pass
