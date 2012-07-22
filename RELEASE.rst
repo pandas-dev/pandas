@@ -25,12 +25,13 @@ Where to get it
 pandas 0.8.1
 ============
 
-**Release date:** NOT YET RELEASED
+**Release date:** July 22, 2012
 
 **New features**
 
   - Add vectorized, NA-friendly string methods to Series (#1621, #620)
   - Can pass dict of per-column line styles to DataFrame.plot (#1559)
+  - Selective plotting to secondary y-axis on same subplot (PR #1640)
   - Add new ``bootstrap_plot`` plot function
   - Add new ``parallel_coordinates`` plot function (#1488)
   - Add ``radviz`` plot function (#1566)
@@ -105,6 +106,9 @@ pandas 0.8.1
   - Fix DataFrame column width display with UTF-8 encoded characters (#1620)
   - Handle case in pandas.io.data.get_data_yahoo where Yahoo! returns duplicate
     dates for most recent business day
+  - Avoid downsampling when plotting mixed frequencies on the same subplot (#1619)
+  - Fix read_csv bug when reading a single line (#1553)
+  - Fix bug in C code causing monthly periods prior to December 1969 to be off (#1570)
 
 pandas 0.8.0
 ============
