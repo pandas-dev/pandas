@@ -141,7 +141,7 @@ an axis and broadcasting over the same axis:
    major_mean
    wp.sub(major_mean, axis='major')
 
-And similarly for axis="items" and axis="minor".
+And similarly for ``axis="items"`` and ``axis="minor"``.
 
 .. note::
 
