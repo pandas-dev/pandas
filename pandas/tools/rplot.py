@@ -55,6 +55,36 @@ def parse_facets(facet):
 	lhs, rhs = [col.strip() for col in facet.split('~')]
 	return (lhs, rhs)
 
+def scale_size(column, categorical, min_size=1.0, max_size=50.0):
+	def scaler(data, index):
+		if categorical:
+			pass
+		else:
+			x = data[column].iget(index)
+			a = min(data[column])
+			b = max(data[column])
+			return min_size + ((x - a) / (b - a)) * (max_size - min_size)
+	return scaler
+
+class Layer:
+	"""
+	Layer object representing a single plot layer.
+	"""
+	def __init__(self, geom, geom_params, data, aesthetics):
+		self.geom = geom
+		self.geom_params = geom_params
+		self.data = data
+		self.aesthetics = aesthetics
+
+	def render(self, ax):
+		if self.geom == 'point':
+			for index in range(len(self.data)):
+				row = self.data.irow(index)
+				x = row[self.aesthetics['x']]
+				y = row[self.aesthetics['y']]
+				size_scaler = self.aesthetics['size'](self.data, index)
+				ax.scatter(x, y, size_scaler(self.data, index))
+
 class RPlot:
 	def __init__(self, data, x=None, y=None):
 		seomlf.data = data
@@ -130,10 +160,3 @@ class GeomDensity2d:
 		Z = np.reshape(kernel(positions).T, X.shape)
 		rplot.ax.contour(Z, alpha=self.alpha, extent=[x_min, x_max, y_min, y_max])
 		return rplot
-
-class FacetGrid:
-	def __init__(self, facets):
-		self.facets = facets
-
-	def plot(self, rplot):
-		pass
