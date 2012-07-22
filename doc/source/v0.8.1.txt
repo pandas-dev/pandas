@@ -10,17 +10,17 @@ processing functionality and a series of new plot types and options.
 New features
 ~~~~~~~~~~~~
 
-  - Add `vectorized string processing methods <basics.string_methods>`__
+  - Add :ref:`vectorized string processing methods <basics.string_methods>`
     accessible via Series.str (GH620_)
   - Add option to disable adjustment in EWMA (GH1584_)
-  - `Radviz plot <visualization.radviz>`__ (GH1566_)
-  - `Parallel coordinates plot <visualization.parallel_coordinates>`__
-  - `Bootstrap plot <visualization.bootstrap>`__
+  - :ref:`Radviz plot <visualization.radviz>` (GH1566_)
+  - :ref:`Parallel coordinates plot <visualization.parallel_coordinates>`
+  - :ref:`Bootstrap plot <visualization.bootstrap>`
   - Per column styles and secondary y-axis plotting (GH1559_)
   - New datetime converters millisecond plotting  (GH1599_)
   - Add option to disable "sparse" display of hierarchical indexes (GH1538_)
-  - Series/DataFrame's ``set_index`` method can `append levels
-    <indexing.set_index>`__ to an existing Index/MultiIndex (GH1569_, GH1577_)
+  - Series/DataFrame's ``set_index`` method can :ref:`append levels
+    <indexing.set_index>` to an existing Index/MultiIndex (GH1569_, GH1577_)
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
