@@ -19,6 +19,19 @@ def random_colour(name):
 	return [random.random() for _ in range(3)]
 
 def filter_column(frame, column, filter_column, filter_value):
+	"""Select only those values from column that have a specified value in another column.
+
+	Parameters:
+	-----------
+	frame: pandas data frame object.
+	column: column name from which to select values.
+	filter_column: column used to filter.
+	filter_value: only those rows with this value in filter_column will be selected.
+
+	Returns:
+	--------
+	numpy array with filtered values.
+	"""
 	n = len(frame)
 	vcol = frame[column]
 	fcol = frame[filter_column]
@@ -30,7 +43,7 @@ def filter_column(frame, column, filter_column, filter_value):
 
 class RPlot:
 	def __init__(self, data, x=None, y=None):
-		self.data = data
+		seomlf.data = data
 		self.ax = plt.gca()
 		self.aes = {
 			'x' : None,
