@@ -32,6 +32,13 @@ between labels and data will not be broken unless done so explicitly by you.
 We'll give a brief intro to the data structures, then consider all of the broad
 categories of functionality and methods in separate sections.
 
+When using pandas, we recommend the following import convention:
+
+.. code-block:: python
+
+   import pandas as pd
+
+
 .. _basics.series:
 
 Series

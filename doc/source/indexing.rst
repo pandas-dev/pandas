@@ -9,6 +9,7 @@
    import random
    np.random.seed(123456)
    from pandas import *
+   import pandas as pd
    randn = np.random.randn
    randint = np.random.randint
    np.set_printoptions(precision=4, suppress=True)
@@ -665,6 +666,14 @@ can find yourself working with hierarchically-indexed data without creating a
 ``MultiIndex`` explicitly yourself. However, when loading data from a file, you
 may wish to generate your own ``MultiIndex`` when preparing the data set.
 
+Note that how the index is displayed by be controlled using the
+``multi_sparse`` option in ``pandas.set_printoptions``:
+
+.. ipython:: python
+
+   pd.set_printoptions(multi_sparse=False)
+   df
+   pd.set_printoptions(multi_sparse=True)
 
 Reconstructing the level labels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

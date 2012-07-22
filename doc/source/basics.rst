@@ -835,6 +835,74 @@ For instance,
 
    for r in df2.itertuples(): print r
 
+.. _basics.string_methods:
+
+Vectorized string methods
+-------------------------
+
+Series is equipped (as of pandas 0.8.1) with a set of string processing methods
+that make it easy to operate on each element of the array. Perhaps most
+importantly, these methods exclude missing/NA values automatically. These are
+accessed via the Series's ``str`` attribute and generally have names matching
+the equivalent (scalar) build-in string methods:
+
+.. ipython:: python
+
+   s = Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'])
+   s.str.lower()
+   s.str.upper()
+   s.str.len()
+
+Methods like ``split`` return a Series of lists:
+
+.. ipython:: python
+
+   s2 = Series(['a_b_c', 'c_d_e', np.nan, 'f_g_h'])
+   s2.str.split('_')
+
+Elements in the split lists can be accessed using ``get`` or ``[]`` notation:
+
+.. ipython:: python
+
+   s2.str.split('_').str.get(1)
+   s2.str.split('_').str[1]
+
+Methods like ``replace`` and ``findall`` take regular expressions, too:
+
+.. ipython:: python
+
+   s3 = Series(['A', 'B', 'C', 'Aaba', 'Baca',
+               '', np.nan, 'CABA', 'dog', 'cat'])
+   s3
+   s3.str.replace('^.a|dog', 'XX-XX ', case=False)
+
+.. csv-table::
+    :header: "Method", "Description"
+    :widths: 20, 80
+
+    ``cat``,Concatenate strings
+    ``split``,Split strings on delimiter
+    ``get``,Index into each element (retrieve i-th element)
+    ``join``,Join strings in each element of the Series with passed separator
+    ``contains``,Return boolean array if each string contains pattern/regex
+    ``replace``,Replace occurrences of pattern/regex with some other string
+    ``repeat``,Duplicate values (``s.str.repeat(3)`` equivalent to ``x * 3``)
+    ``pad``,"Add whitespace to left, right, or both sides of strings"
+    ``center``,Equivalent to ``pad(side='both')``
+    ``slice``,Slice each string in the Series
+    ``slice_replace``,Replace slice in each string with passed value
+    ``count``,Count occurrences of pattern
+    ``startswith``,Equivalent to ``str.startswith(pat)`` for each element
+    ``endswidth``,Equivalent to ``str.endswith(pat)`` for each element
+    ``findall``,Compute list of all occurrences of pattern/regex for each string
+    ``match``,"Call ``re.match`` on each element, returning matched groups as list"
+    ``len``,Compute string lengths
+    ``strip``,Equivalent to ``str.strip``
+    ``rstrip``,Equivalent to ``str.rstrip``
+    ``lstrip``,Equivalent to ``str.lstrip``
+    ``lower``,Equivalent to ``str.lower``
+    ``upper``,Equivalent to ``str.upper``
+
 .. _basics.sorting:
 
 Sorting by index and value

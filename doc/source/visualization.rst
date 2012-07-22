@@ -339,6 +339,8 @@ of the same class will usually be closer together and form larger structures.
    @savefig andrews_curves.png width=6in
    andrews_curves(data, 'Name')
 
+.. _visualization.parallel_coordinates:
+
 Parallel Coordinates
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -402,6 +404,8 @@ confidence band.
    @savefig autocorrelation_plot.png width=6in
    autocorrelation_plot(data)
 
+.. _visualization.bootstrap:
+
 Bootstrap Plot
 ~~~~~~~~~~~~~~
 
@@ -419,6 +423,8 @@ are what constitutes the bootstrap plot.
 
    @savefig bootstrap_plot.png width=8in
    bootstrap_plot(data, size=50, samples=500, color='grey')
+
+.. _visualization.radviz:
 
 RadViz
 ~~~~~~
