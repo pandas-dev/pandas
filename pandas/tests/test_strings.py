@@ -626,6 +626,18 @@ class TestStringMethods(unittest.TestCase):
                            'XX-XX BA', 'XX-XX ', 'XX-XX t'])
         assert_series_equal(result, expected)
 
+    def test_string_slice_get_syntax(self):
+        s = Series(['YYY', 'B', 'C', 'YYYYYYbYYY', 'BYYYcYYY', NA,
+                    'CYYYBYYY', 'dog', 'cYYYt'])
+
+        result = s.str[0]
+        expected = s.str.get(0)
+        assert_series_equal(result, expected)
+
+        result = s.str[:3]
+        expected = s.str.slice(stop=3)
+        assert_series_equal(result, expected)
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)

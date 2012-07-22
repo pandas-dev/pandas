@@ -506,7 +506,7 @@ def str_split(arr, pat, n=0):
     return _na_map(f, arr)
 
 
-def str_slice(arr, start=None, stop=None):
+def str_slice(arr, start=None, stop=None, step=1):
     """
     Slice substrings from each element in array
 
@@ -519,7 +519,7 @@ def str_slice(arr, start=None, stop=None):
     -------
     sliced : array
     """
-    obj = slice(start, stop)
+    obj = slice(start, stop, step)
     f = lambda x: x[obj]
     return _na_map(f, arr)
 
@@ -649,6 +649,13 @@ class StringMethods(object):
     def __init__(self, series):
         self.series = series
 
+    def __getitem__(self, key):
+        if isinstance(key, slice):
+            return self.slice(start=key.start, stop=key.stop,
+                              step=key.step)
+        else:
+            return self.get(key)
+
     def _wrap_result(self, result):
         return Series(result, index=self.series.index,
                       name=self.series.name)
@@ -699,7 +706,7 @@ class StringMethods(object):
         return self._wrap_result(result)
 
     @copy(str_slice)
-    def slice(self, start=None, stop=None):
+    def slice(self, start=None, stop=None, step=1):
         result = str_slice(self.series, start, stop)
         return self._wrap_result(result)
 
