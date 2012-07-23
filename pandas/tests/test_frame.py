@@ -2574,6 +2574,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         fmt.reset_printoptions()
 
+    def test_repr_unicode(self):
+        uval = u'\u03c3\u03c3\u03c3\u03c3'
+        bval = uval.encode('utf-8')
+        df = DataFrame({'A': [uval, uval]})
+
+        result = repr(df)
+        ex_top = '      A'
+        self.assertEqual(result.split('\n')[0].rstrip(), ex_top)
+
+        df = DataFrame({'A': [uval, uval]})
+        result = repr(df)
+        self.assertEqual(result.split('\n')[0].rstrip(), ex_top)
+
     def test_very_wide_info_repr(self):
         df = DataFrame(np.random.randn(10, 20),
                        columns=[tm.rands(10) for _ in xrange(20)])

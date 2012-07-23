@@ -3,6 +3,7 @@
 from datetime import datetime, timedelta, date
 import os
 import operator
+import re
 import unittest
 
 import nose
@@ -625,6 +626,37 @@ class TestStringMethods(unittest.TestCase):
         expected = Series(['A',  'B', 'C', 'XX-XX ba', 'XX-XX ca', '', NA,
                            'XX-XX BA', 'XX-XX ', 'XX-XX t'])
         assert_series_equal(result, expected)
+
+    def test_string_slice_get_syntax(self):
+        s = Series(['YYY', 'B', 'C', 'YYYYYYbYYY', 'BYYYcYYY', NA,
+                    'CYYYBYYY', 'dog', 'cYYYt'])
+
+        result = s.str[0]
+        expected = s.str.get(0)
+        assert_series_equal(result, expected)
+
+        result = s.str[:3]
+        expected = s.str.slice(stop=3)
+        assert_series_equal(result, expected)
+
+    def test_match_findall_flags(self):
+        data = {'Dave': 'dave@google.com', 'Steve': 'steve@gmail.com',
+		'Rob': 'rob@gmail.com', 'Wes': np.nan}
+        data = Series(data)
+
+        pat = pattern = r'([A-Z0-9._%+-]+)@([A-Z0-9.-]+)\.([A-Z]{2,4})'
+
+        result = data.str.match(pat, flags=re.IGNORECASE)
+        self.assertEquals(result[0], ('dave', 'google', 'com'))
+
+        result = data.str.findall(pat, flags=re.IGNORECASE)
+        self.assertEquals(result[0][0], ('dave', 'google', 'com'))
+
+        result = data.str.count(pat, flags=re.IGNORECASE)
+        self.assertEquals(result[0], 1)
+
+        result = data.str.contains(pat, flags=re.IGNORECASE)
+        self.assertEquals(result[0], True)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

@@ -640,13 +640,15 @@ cdef inline _string_to_dts(object val, pandas_datetimestruct* dts):
         raise ValueError('Unable to parse %s' % str(val))
 
 def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
-                      format=None):
+                      format=None, utc=None):
     cdef:
         Py_ssize_t i, n = len(values)
         object val
         ndarray[int64_t] iresult
         ndarray[object] oresult
         pandas_datetimestruct dts
+        bint utc_convert = bool(utc)
+        _TSObject _ts
 
     from dateutil.parser import parse
 
@@ -658,8 +660,18 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
             if util._checknull(val):
                 iresult[i] = iNaT
             elif PyDateTime_Check(val):
-                iresult[i] = _pydatetime_to_dts(val, &dts)
-                _check_dts_bounds(iresult[i], &dts)
+                if val.tzinfo is not None:
+                    if utc_convert:
+                        _ts = convert_to_tsobject(val)
+                        iresult[i] = _ts.value
+                        _check_dts_bounds(iresult[i], &_ts.dts)
+                    else:
+                        raise ValueError('Tz-aware datetime.datetime cannot '
+                                         'be converted to datetime64 unless '
+                                         'utc=True')
+                else:
+                    iresult[i] = _pydatetime_to_dts(val, &dts)
+                    _check_dts_bounds(iresult[i], &dts)
             elif PyDate_Check(val):
                 iresult[i] = _date_to_datetime64(val, &dts)
                 _check_dts_bounds(iresult[i], &dts)
@@ -777,6 +789,7 @@ def i8_to_pydt(int64_t i8, object tzinfo = None):
 
 try:
     import pytz
+    UTC = pytz.utc
     have_pytz = True
 except:
     have_pytz = False

@@ -2520,6 +2520,10 @@ copy : boolean, default False
             inds = np.array([d.toordinal() for d in self.index])
         elif method == 'values':
             inds = self.index.values
+            # hack for DatetimeIndex, #1646
+            if issubclass(inds.dtype.type, np.datetime64):
+                inds = inds.view(np.int64)
+
             if inds.dtype == np.object_:
                 inds = lib.maybe_convert_objects(inds)
         else:

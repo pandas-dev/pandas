@@ -1356,14 +1356,25 @@ a,b,c,d
     @slow
     @network
     def test_url(self):
-        # HTTP(S)
-        url = 'https://raw.github.com/pydata/pandas/master/pandas/io/tests/salary.table'
-        url_table = read_table(url)
-        dirpath = curpath()
-        localtable = os.path.join(dirpath, 'salary.table')
-        local_table = read_table(localtable)
-        assert_frame_equal(url_table, local_table)
-        #TODO: ftp testing
+        import urllib2
+        try:
+            # HTTP(S)
+            url = ('https://raw.github.com/pydata/pandas/master/'
+                   'pandas/io/tests/salary.table')
+            url_table = read_table(url)
+            dirpath = curpath()
+            localtable = os.path.join(dirpath, 'salary.table')
+            local_table = read_table(localtable)
+            assert_frame_equal(url_table, local_table)
+            #TODO: ftp testing
+
+        except urllib2.URLError:
+            try:
+                urllib2.urlopen('http://www.google.com')
+            except urllib2.URLError:
+                raise nose.SkipTest
+            else:
+                raise
 
     @slow
     def test_file(self):

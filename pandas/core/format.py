@@ -133,9 +133,17 @@ class SeriesFormatter(object):
 
 if py3compat.PY3:  # pragma: no cover
     _encode_diff = lambda x: 0
+
+    _strlen = len
 else:
     def _encode_diff(x):
         return len(x) - len(x.decode('utf-8'))
+
+    def _strlen(x):
+        try:
+            return len(x.decode('utf-8'))
+        except UnicodeError:
+            return len(x)
 
 class DataFrameFormatter(object):
     """
@@ -205,7 +213,7 @@ class DataFrameFormatter(object):
                 if self.header:
                     fmt_values = self._format_col(i)
                     cheader = str_columns[i]
-                    max_len = max(max(len(x) for x in fmt_values),
+                    max_len = max(max(_strlen(x) for x in fmt_values),
                                   max(len(x) for x in cheader))
                     if self.justify == 'left':
                         cheader = [x.ljust(max_len) for x in cheader]
@@ -624,7 +632,7 @@ def _make_fixed_width(strings, justify='right'):
     if len(strings) == 0:
         return strings
 
-    max_len = max(len(x) for x in strings)
+    max_len = max(_strlen(x) for x in strings)
     conf_max = print_config.max_colwidth
     if conf_max is not None and max_len > conf_max:
         max_len = conf_max
@@ -635,7 +643,12 @@ def _make_fixed_width(strings, justify='right'):
         justfunc = lambda self, x: self.rjust(x)
 
     def just(x):
-        return justfunc(x[:max_len], max_len)
+        try:
+            eff_len = max_len + _encode_diff(x)
+        except UnicodeError:
+            eff_len = max_len
+
+        return justfunc(x[:eff_len], eff_len)
 
     return [just(x) for x in strings]
 

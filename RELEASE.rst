@@ -22,15 +22,25 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
-pandas 0.8.1
+pandas 0.8.2
 ============
 
 **Release date:** NOT YET RELEASED
+
+**Improvements to existing features**
+
+  - Add ``flags`` option for ``re.compile`` in some Series.str methods (#1659)
+
+pandas 0.8.1
+============
+
+**Release date:** July 22, 2012
 
 **New features**
 
   - Add vectorized, NA-friendly string methods to Series (#1621, #620)
   - Can pass dict of per-column line styles to DataFrame.plot (#1559)
+  - Selective plotting to secondary y-axis on same subplot (PR #1640)
   - Add new ``bootstrap_plot`` plot function
   - Add new ``parallel_coordinates`` plot function (#1488)
   - Add ``radviz`` plot function (#1566)
@@ -45,6 +55,8 @@ pandas 0.8.1
   - Add Cython group median method for >15x speedup (#1358)
   - Drastically improve ``to_datetime`` performance on ISO8601 datetime strings
     (with no time zones) (#1571)
+  - Improve single-key groupby performance on large data sets, accelerate use of
+    groupby with a Categorical variable
   - Add ability to append hierarchical index levels with ``set_index`` and to
     drop single levels with ``reset_index`` (#1569, #1577)
   - Always apply passed functions in ``resample``, even if upsampling (#1596)
@@ -56,6 +68,8 @@ pandas 0.8.1
   - Accelerate 3-axis multi data selection from homogeneous Panel (#979)
   - Add ``adjust`` option to ewma to disable adjustment factor (#1584)
   - Add new matplotlib converters for high frequency time series plotting (#1599)
+  - Handling of tz-aware datetime.datetime objects in to_datetime; raise
+    Exception unless utc=True given (#1581)
 
 **Bug fixes**
 
@@ -96,6 +110,14 @@ pandas 0.8.1
   - Fix use of string alias timestamps with tz-aware time series (#1647)
   - Fix Series.max/min and Series.describe on len-0 series (#1650)
   - Handle None values in dict passed to concat (#1649)
+  - Fix Series.interpolate with method='values' and DatetimeIndex (#1646)
+  - Fix IndexError in left merges on a DataFrame with 0-length (#1628)
+  - Fix DataFrame column width display with UTF-8 encoded characters (#1620)
+  - Handle case in pandas.io.data.get_data_yahoo where Yahoo! returns duplicate
+    dates for most recent business day
+  - Avoid downsampling when plotting mixed frequencies on the same subplot (#1619)
+  - Fix read_csv bug when reading a single line (#1553)
+  - Fix bug in C code causing monthly periods prior to December 1969 to be off (#1570)
 
 pandas 0.8.0
 ============

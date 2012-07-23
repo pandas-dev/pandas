@@ -352,6 +352,23 @@ class TestTimeZoneSupport(unittest.TestCase):
         result = ts['1/3/2000']
         self.assertAlmostEqual(result, ts[2])
 
+    def test_convert_tz_aware_datetime_datetime(self):
+        # #1581
+
+        tz = pytz.timezone('US/Eastern')
+
+        dates = [datetime(2000, 1, 1), datetime(2000, 1, 2),
+                 datetime(2000, 1, 3)]
+
+        dates_aware = [tz.localize(x) for x in dates]
+
+        self.assertRaises(Exception, to_datetime, dates_aware)
+
+        converted = to_datetime(dates_aware, utc=True)
+        ex_vals = [Timestamp(x).value for x in dates_aware]
+        self.assert_(np.array_equal(converted.asi8, ex_vals))
+        self.assert_(converted.tz is pytz.utc)
+
 class TestTimeZones(unittest.TestCase):
 
     def setUp(self):

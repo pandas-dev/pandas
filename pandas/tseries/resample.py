@@ -43,7 +43,10 @@ class TimeGrouper(CustomGrouper):
         self.label = label
         self.nperiods = nperiods
         self.kind = kind
+
         self.convention = convention or 'E'
+        self.convention = self.convention.lower()
+
         self.axis = axis
         self.loffset = loffset
         self.how = how

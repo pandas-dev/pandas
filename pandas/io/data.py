@@ -134,16 +134,25 @@ def get_data_yahoo(name=None, start=None, end=None, retry_count=3, pause=0):
       '&f=%s' % end.year + \
       '&g=d' + \
       '&ignore=.csv'
-    for i in range(0, retry_count):
+
+    for _ in range(retry_count):
         resp =  urllib2.urlopen(url)
         if resp.code == 200:
             lines = resp.read()
             rs = read_csv(StringIO(bytes_to_str(lines)), index_col=0,
-                          parse_dates=True)
-            return rs[::-1]
+                          parse_dates=True)[::-1]
+
+            # Yahoo! Finance sometimes does this awesome thing where they
+            # return 2 rows for the most recent business day
+            if len(rs) > 2 and rs.index[-1] == rs.index[-2]:  # pragma: no cover
+                rs = rs[:-1]
+
+            return rs
+
         time.sleep(pause)
-    raise Exception(
-              "after %d tries, Yahoo did not return a 200 for url %s" % (pause, url))
+
+    raise Exception("after %d tries, Yahoo did not "
+                    "return a 200 for url %s" % (pause, url))
 
 
 

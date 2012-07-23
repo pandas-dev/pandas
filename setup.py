@@ -173,7 +173,7 @@ CLASSIFIERS = [
 
 MAJOR = 0
 MINOR = 8
-MICRO = 1
+MICRO = 2
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 QUALIFIER = ''
@@ -233,7 +233,7 @@ class CleanCommand(Command):
                 if f in self._clean_exclude:
                     continue
                 if os.path.splitext(f)[-1] in ('.pyc', '.so', '.o',
-                                               '.pyd', '.c'):
+                                               '.pyd', '.c', '.orig'):
                     self._clean_me.append(pjoin(root, f))
             for d in dirs:
                 if d == '__pycache__':

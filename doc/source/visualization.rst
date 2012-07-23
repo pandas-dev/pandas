@@ -98,11 +98,11 @@ You can plot one column versus another using the `x` and `y` keywords in
 
    plt.figure()
 
-   df = DataFrame(np.random.randn(1000, 2), columns=['B', 'C']).cumsum()
-   df['A'] = Series(range(len(df)))
+   df3 = DataFrame(np.random.randn(1000, 2), columns=['B', 'C']).cumsum()
+   df3['A'] = Series(range(len(df)))
 
    @savefig df_plot_xy.png width=4.5in
-   df.plot(x='A', y='B')
+   df3.plot(x='A', y='B')
 
 
 Plotting on a Secondary Y-axis
@@ -339,6 +339,8 @@ of the same class will usually be closer together and form larger structures.
    @savefig andrews_curves.png width=6in
    andrews_curves(data, 'Name')
 
+.. _visualization.parallel_coordinates:
+
 Parallel Coordinates
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -402,6 +404,8 @@ confidence band.
    @savefig autocorrelation_plot.png width=6in
    autocorrelation_plot(data)
 
+.. _visualization.bootstrap:
+
 Bootstrap Plot
 ~~~~~~~~~~~~~~
 
@@ -419,6 +423,8 @@ are what constitutes the bootstrap plot.
 
    @savefig bootstrap_plot.png width=8in
    bootstrap_plot(data, size=50, samples=500, color='grey')
+
+.. _visualization.radviz:
 
 RadViz
 ~~~~~~

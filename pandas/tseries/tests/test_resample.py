@@ -787,6 +787,19 @@ class TestResamplePeriodIndex(unittest.TestCase):
         exp = ts.to_timestamp().resample('A').to_period()
         assert_series_equal(result, exp)
 
+    # def test_monthly_convention_span(self):
+    #     rng = period_range('2000-01', periods=3, freq='M')
+    #     ts = Series(np.arange(3), index=rng)
+
+    #     # hacky way to get same thing
+    #     exp_index = period_range('2000-01-01', '2000-03-31', freq='D')
+    #     expected = ts.asfreq('D', how='end').reindex(exp_index)
+    #     expected = expected.fillna(method='bfill')
+
+    #     result = ts.resample('D', convention='span')
+
+    #     assert_series_equal(result, expected)
+
 class TestTimeGrouper(unittest.TestCase):
 
     def setUp(self):

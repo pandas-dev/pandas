@@ -61,7 +61,7 @@ def _figure_out_timezone(start, end, tzinfo):
     return start, end, tz
 
 
-def to_datetime(arg, errors='ignore', dayfirst=False, box=True):
+def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True):
     """
     Convert argument to datetime
 
@@ -70,6 +70,9 @@ def to_datetime(arg, errors='ignore', dayfirst=False, box=True):
     arg : string, datetime, array of strings (with possible NAs)
     errors : {'ignore', 'raise'}, default 'ignore'
         Errors are ignored by default (values left untouched)
+    utc : boolean, default None
+        Return UTC DatetimeIndex if True (converting any tz-aware
+        datetime.datetime objects as well)
 
     Returns
     -------
@@ -84,6 +87,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False, box=True):
     elif isinstance(arg, Series):
         values = lib.array_to_datetime(com._ensure_object(arg.values),
                                        raise_=errors == 'raise',
+                                       utc=utc,
                                        dayfirst=dayfirst)
         return Series(values, index=arg.index, name=arg.name)
     elif isinstance(arg, (np.ndarray, list)):
@@ -91,9 +95,10 @@ def to_datetime(arg, errors='ignore', dayfirst=False, box=True):
             arg = np.array(arg, dtype='O')
         result = lib.array_to_datetime(com._ensure_object(arg),
                                        raise_=errors == 'raise',
+                                       utc=utc,
                                        dayfirst=dayfirst)
         if com.is_datetime64_dtype(result) and box:
-            result = DatetimeIndex(result)
+            result = DatetimeIndex(result, tz='utc' if utc else None)
         return result
     try:
         if not arg:
