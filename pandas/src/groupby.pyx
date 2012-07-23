@@ -276,6 +276,7 @@ def group_add(ndarray[float64_t, ndim=2] out,
             else:
                 out[i, j] = sumx[i, j]
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_prod(ndarray[float64_t, ndim=2] out,
@@ -680,6 +681,80 @@ def group_mean(ndarray[float64_t, ndim=2] out,
                 out[i, j] = nan
             else:
                 out[i, j] = sumx[i, j] / count
+
+
+def group_median(ndarray[float64_t, ndim=2] out,
+                 ndarray[int64_t] counts,
+                 ndarray[float64_t, ndim=2] values,
+                 ndarray[int64_t] labels):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, ngroups, size
+        ndarray[int64_t] _counts
+        ndarray data
+        float64_t* ptr
+
+    from pandas._algos import take_2d_axis1_float64
+
+    ngroups = len(counts)
+    N, K = (<object> values).shape
+
+    indexer, _counts = groupsort_indexer(labels, ngroups)
+    counts[:] = _counts[1:]
+
+    data = np.empty((K, N), dtype=np.float64)
+    ptr = <float64_t*> data.data
+
+    take_2d_axis1_float64(values.T, indexer, out=data)
+
+    for i in range(K):
+        # exclude NA group
+        ptr += _counts[0]
+        for j in range(ngroups):
+            size = _counts[j + 1]
+            out[j, i] = _median_linear(ptr, size)
+            ptr += size
+
+
+cdef inline float64_t _median_linear(float64_t* a, int n):
+    cdef int i, j, na_count = 0
+    cdef float64_t result
+    cdef float64_t* tmp
+
+    # count NAs
+    for i in range(n):
+        if a[i] != a[i]:
+            na_count += 1
+
+    if na_count:
+        if na_count == n:
+            return NaN
+
+        tmp = <float64_t*> malloc((n - na_count) * sizeof(float64_t))
+
+        j = 0
+        for i in range(n):
+            if a[i] == a[i]:
+                tmp[j] = a[i]
+                j += 1
+
+        a = tmp
+        n -= na_count
+
+
+    if n % 2:
+        result = kth_smallest_c(a, n / 2, n)
+    else:
+        result = (kth_smallest_c(a, n / 2, n) +
+                  kth_smallest_c(a, n / 2 - 1, n)) / 2
+
+    if na_count:
+        free(a)
+
+    return result
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

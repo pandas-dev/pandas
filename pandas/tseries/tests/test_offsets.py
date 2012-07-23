@@ -576,6 +576,17 @@ class TestMonthEnd(unittest.TestCase):
             for base, expected in cases.iteritems():
                 assertEq(offset, base, expected)
 
+    # def test_day_of_month(self):
+    #     dt = datetime(2007, 1, 1)
+
+    #     offset = MonthEnd(day=20)
+
+    #     result = dt + offset
+    #     self.assertEqual(result, datetime(2007, 1, 20))
+
+    #     result = result + offset
+    #     self.assertEqual(result, datetime(2007, 2, 20))
+
     def test_normalize(self):
         dt = datetime(2007, 1, 1, 3)
 

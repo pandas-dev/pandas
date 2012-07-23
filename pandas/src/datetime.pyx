@@ -632,18 +632,23 @@ cdef inline _string_to_dts(object val, pandas_datetimestruct* dts):
 
     if PyUnicode_Check(val):
         val = PyUnicode_AsASCIIString(val);
-    result = parse_iso_8601_datetime(val, len(val), PANDAS_FR_ns, NPY_UNSAFE_CASTING,
+
+    result = parse_iso_8601_datetime(val, len(val), PANDAS_FR_ns,
+                                     NPY_UNSAFE_CASTING,
                                      dts, &islocal, &out_bestunit, &special)
     if result == -1:
         raise ValueError('Unable to parse %s' % str(val))
 
-def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False):
+def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
+                      format=None, utc=None):
     cdef:
         Py_ssize_t i, n = len(values)
         object val
         ndarray[int64_t] iresult
         ndarray[object] oresult
         pandas_datetimestruct dts
+        bint utc_convert = bool(utc)
+        _TSObject _ts
 
     from dateutil.parser import parse
 
@@ -655,8 +660,18 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False):
             if util._checknull(val):
                 iresult[i] = iNaT
             elif PyDateTime_Check(val):
-                iresult[i] = _pydatetime_to_dts(val, &dts)
-                _check_dts_bounds(iresult[i], &dts)
+                if val.tzinfo is not None:
+                    if utc_convert:
+                        _ts = convert_to_tsobject(val)
+                        iresult[i] = _ts.value
+                        _check_dts_bounds(iresult[i], &_ts.dts)
+                    else:
+                        raise ValueError('Tz-aware datetime.datetime cannot '
+                                         'be converted to datetime64 unless '
+                                         'utc=True')
+                else:
+                    iresult[i] = _pydatetime_to_dts(val, &dts)
+                    _check_dts_bounds(iresult[i], &dts)
             elif PyDate_Check(val):
                 iresult[i] = _date_to_datetime64(val, &dts)
                 _check_dts_bounds(iresult[i], &dts)
@@ -668,12 +683,18 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False):
                 if len(val) == 0:
                     iresult[i] = iNaT
                     continue
+
                 try:
-                    result[i] = parse(val, dayfirst=dayfirst)
-                except Exception:
-                    raise TypeError
-                pandas_datetime_to_datetimestruct(iresult[i], PANDAS_FR_ns,
-                                                  &dts)
+                    _string_to_dts(val, &dts)
+                    iresult[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns,
+                                                                   &dts)
+                except ValueError:
+                    try:
+                        result[i] = parse(val, dayfirst=dayfirst)
+                    except Exception:
+                        raise TypeError
+                    pandas_datetime_to_datetimestruct(iresult[i], PANDAS_FR_ns,
+                                                      &dts)
                 _check_dts_bounds(iresult[i], &dts)
         return result
     except TypeError:
@@ -768,6 +789,7 @@ def i8_to_pydt(int64_t i8, object tzinfo = None):
 
 try:
     import pytz
+    UTC = pytz.utc
     have_pytz = True
 except:
     have_pytz = False

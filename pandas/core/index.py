@@ -38,6 +38,12 @@ class InvalidIndexError(Exception):
 
 _o_dtype = np.dtype(object)
 
+
+def _shouldbe_timestamp(obj):
+    return (lib.is_datetime_array(obj) or lib.is_datetime64_array(obj)
+            or lib.is_timestamp_array(obj))
+
+
 class Index(np.ndarray):
     """
     Immutable ndarray implementing an ordered, sliceable set. The basic object
@@ -100,11 +106,13 @@ class Index(np.ndarray):
             subarr = com._asarray_tuplesafe(data, dtype=object)
 
         if dtype is None:
-            if (lib.is_datetime_array(subarr)
-                or lib.is_datetime64_array(subarr)
-                or lib.is_timestamp_array(subarr)):
+            if _shouldbe_timestamp(subarr):
                 from pandas.tseries.index import DatetimeIndex
                 return DatetimeIndex(subarr, copy=copy, name=name)
+
+            if lib.is_period_array(subarr):
+                from pandas.tseries.period import PeriodIndex
+                return PeriodIndex(subarr, name=name)
 
             if lib.is_integer_array(subarr):
                 return Int64Index(subarr.astype('i8'), name=name)
@@ -149,6 +157,12 @@ class Index(np.ndarray):
 
     def _assert_can_do_setop(self, other):
         return True
+
+    def tolist(self):
+        """
+        Overridden version of ndarray.tolist
+        """
+        return list(self.values)
 
     @property
     def dtype(self):
@@ -1039,6 +1053,8 @@ class Index(np.ndarray):
         else:
             try:
                 beg_slice = self.get_loc(start)
+                if isinstance(beg_slice, slice):
+                    beg_slice = beg_slice.start
             except KeyError:
                 if self.is_monotonic:
                     beg_slice = self.searchsorted(start, side='left')
@@ -1049,7 +1065,11 @@ class Index(np.ndarray):
             end_slice = len(self)
         else:
             try:
-                end_slice = self.get_loc(end) + 1
+                end_slice = self.get_loc(end)
+                if isinstance(end_slice, slice):
+                    end_slice = end_slice.stop
+                else:
+                    end_slice += 1
             except KeyError:
                 if self.is_monotonic:
                     end_slice = self.searchsorted(end, side='right')
@@ -1432,7 +1452,7 @@ class MultiIndex(Index):
         labels = self.labels[num]
         return unique_vals.take(labels)
 
-    def format(self, space=2, sparsify=True, adjoin=True, names=False):
+    def format(self, space=2, sparsify=None, adjoin=True, names=False):
         if len(self) == 0:
             return []
 
@@ -1447,6 +1467,10 @@ class MultiIndex(Index):
 
             level.extend(ndtake(np.array(lev, dtype=object), lab))
             result_levels.append(level)
+
+        if sparsify is None:
+            import pandas.core.format as fmt
+            sparsify = fmt.print_config.multi_sparse
 
         if sparsify:
             # little bit of a kludge job for #1217
@@ -2343,7 +2367,9 @@ def _sparsify(label_list, start=0):
             if p == t:
                 sparse_cur.append('')
             else:
-                sparse_cur.append(t)
+                sparse_cur.extend(cur[i:])
+                result.append(sparse_cur)
+                break
 
         prev = cur
 

@@ -256,6 +256,33 @@ def is_time_array(ndarray[object] values):
             return False
     return True
 
+def is_period_array(ndarray[object] values):
+    cdef int i, n = len(values)
+    from pandas import Period
+
+    if n == 0:
+        return False
+    for i in range(n):
+        if not isinstance(values[i], Period):
+            return False
+    return True
+
+def extract_ordinals(ndarray[object] values, freq):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[int64_t] ordinals = np.empty(n, dtype=np.int64)
+        object p
+
+    for i in range(n):
+        p = values[i]
+        ordinals[i] = p.ordinal
+        if p.freq != freq:
+            raise ValueError("%s is wrong freq" % p)
+
+    return ordinals
+
+
+
 def maybe_convert_numeric(ndarray[object] values, set na_values,
                           convert_empty=True):
     '''

@@ -299,7 +299,7 @@ average as
 
 .. math::
 
-    y_t = (1-\alpha) y_{t-1} + \alpha x_t
+    y_t = \alpha y_{t-1} + (1 - \alpha) x_t
 
 One must have :math:`0 < \alpha \leq 1`, but rather than pass :math:`\alpha`
 directly, it's easier to think about either the **span** or **center of mass

@@ -54,6 +54,33 @@ def kth_smallest(ndarray[double_t] a, Py_ssize_t k):
         if k < i: m = j
     return a[k]
 
+cdef inline kth_smallest_c(float64_t* a, Py_ssize_t k, Py_ssize_t n):
+    cdef:
+        Py_ssize_t i,j,l,m
+        double_t x, t
+
+    l = 0
+    m = n-1
+    while (l<m):
+        x = a[k]
+        i = l
+        j = m
+
+        while 1:
+            while a[i] < x: i += 1
+            while x < a[j]: j -= 1
+            if i <= j:
+                t = a[i]
+                a[i] = a[j]
+                a[j] = t
+                i += 1; j -= 1
+
+            if i > j: break
+
+        if j < k: l = i
+        if k < i: m = j
+    return a[k]
+
 
 def median(ndarray arr):
     '''
@@ -71,6 +98,7 @@ def median(ndarray arr):
     else:
         return (kth_smallest(arr, n / 2) +
                 kth_smallest(arr, n / 2 - 1)) / 2
+
 
 # -------------- Min, Max subsequence
 
@@ -199,7 +227,7 @@ def roll_mean(ndarray[double_t] input,
 #-------------------------------------------------------------------------------
 # Exponentially weighted moving average
 
-def ewma(ndarray[double_t] input, double_t com):
+def ewma(ndarray[double_t] input, double_t com, int adjust):
     '''
     Compute exponentially-weighted moving average using center-of-mass.
 
@@ -238,12 +266,13 @@ def ewma(ndarray[double_t] input, double_t com):
         else:
             output[i] = prev
 
-    for i from 0 <= i < N:
-        cur = input[i]
-        output[i] = output[i] / (1. - adj)
+    if adjust:
+        for i from 0 <= i < N:
+            cur = input[i]
+            output[i] = output[i] / (1. - adj)
 
-        if cur == cur:
-            adj *= oldw
+            if cur == cur:
+                adj *= oldw
 
     return output
 
@@ -613,11 +642,99 @@ cdef double_t _get_median(object sl, int nobs, int minp):
     else:
         return NaN
 
+#----------------------------------------------------------------------
+
+# Moving maximum / minimum code taken from Bottleneck under the terms
+# of its Simplified BSD license
+# https://github.com/kwgoodman/bottleneck
+
+cdef struct pairs:
+    double value
+    int death
+
+from libc cimport stdlib
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def roll_max2(ndarray[float64_t] a, int window, int minp):
+    "Moving max of 1d array of dtype=float64 along axis=0 ignoring NaNs."
+    cdef np.float64_t ai, aold
+    cdef Py_ssize_t count
+    cdef pairs* ring
+    cdef pairs* minpair
+    cdef pairs* end
+    cdef pairs* last
+    cdef Py_ssize_t i0
+    cdef np.npy_intp *dim
+    dim = PyArray_DIMS(a)
+    cdef Py_ssize_t n0 = dim[0]
+    cdef np.npy_intp *dims = [n0]
+    cdef np.ndarray[np.float64_t, ndim=1] y = PyArray_EMPTY(1, dims,
+		NPY_float64, 0)
+
+    minp = _check_minp(minp, n0)
+
+    if (window < 1) or (window > n0):
+        raise ValueError('Invalid window size %d for len %d array'
+                         % (window, n0))
+
+    ring = <pairs*>stdlib.malloc(window * sizeof(pairs))
+    end = ring + window
+    last = ring
+
+    minpair = ring
+    ai = a[0]
+    if ai == ai:
+        minpair.value = ai
+    else:
+        minpair.value = MINfloat64
+    minpair.death = window
+
+    count = 0
+    for i0 in range(n0):
+        ai = a[i0]
+        if ai == ai:
+            count += 1
+        else:
+            ai = MINfloat64
+        if i0 >= window:
+            aold = a[i0 - window]
+            if aold == aold:
+                count -= 1
+        if minpair.death == i0:
+            minpair += 1
+            if minpair >= end:
+                minpair = ring
+        if ai >= minpair.value:
+            minpair.value = ai
+            minpair.death = i0 + window
+            last = minpair
+        else:
+            while last.value <= ai:
+                if last == ring:
+                    last = end
+                last -= 1
+            last += 1
+            if last == end:
+                last = ring
+            last.value = ai
+            last.death = i0 + window
+        if count >= minp:
+            y[i0] = minpair.value
+        else:
+            y[i0] = NaN
+    for i0 in range(window - 1):
+        y[i0] = NaN
+
+    stdlib.free(ring)
+    return y
+
 def roll_max(ndarray input, int win, int minp):
     '''
     O(N log(window)) implementation using skip list
     '''
     return _roll_skiplist_op(input, win, minp, _get_max)
+
 
 cdef double_t _get_max(object skiplist, int nobs, int minp):
     if nobs >= minp:
@@ -630,6 +747,80 @@ def roll_min(ndarray input, int win, int minp):
     O(N log(window)) implementation using skip list
     '''
     return _roll_skiplist_op(input, win, minp, _get_min)
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def roll_min2(np.ndarray[np.float64_t, ndim=1] a, int window, int minp):
+    "Moving min of 1d array of dtype=float64 along axis=0 ignoring NaNs."
+    cdef np.float64_t ai, aold
+    cdef Py_ssize_t count
+    cdef pairs* ring
+    cdef pairs* minpair
+    cdef pairs* end
+    cdef pairs* last
+    cdef Py_ssize_t i0
+    cdef np.npy_intp *dim
+    dim = PyArray_DIMS(a)
+    cdef Py_ssize_t n0 = dim[0]
+    cdef np.npy_intp *dims = [n0]
+    cdef np.ndarray[np.float64_t, ndim=1] y = PyArray_EMPTY(1, dims,
+		NPY_float64, 0)
+    if (window < 1) or (window > n0):
+        raise ValueError('Invalid window size %d for len %d array'
+                         % (window, n0))
+
+    minp = _check_minp(minp, n0)
+
+    ring = <pairs*>stdlib.malloc(window * sizeof(pairs))
+    end = ring + window
+    last = ring
+
+    minpair = ring
+    ai = a[0]
+    if ai == ai:
+        minpair.value = ai
+    else:
+        minpair.value = MAXfloat64
+    minpair.death = window
+
+    count = 0
+    for i0 in range(n0):
+        ai = a[i0]
+        if ai == ai:
+            count += 1
+        else:
+            ai = MAXfloat64
+        if i0 >= window:
+            aold = a[i0 - window]
+            if aold == aold:
+                count -= 1
+        if minpair.death == i0:
+            minpair += 1
+            if minpair >= end:
+                minpair = ring
+        if ai <= minpair.value:
+            minpair.value = ai
+            minpair.death = i0 + window
+            last = minpair
+        else:
+            while last.value >= ai:
+                if last == ring:
+                    last = end
+                last -= 1
+            last += 1
+            if last == end:
+                last = ring
+            last.value = ai
+            last.death = i0 + window
+        if count >= minp:
+            y[i0] = minpair.value
+        else:
+            y[i0] = NaN
+    for i0 in range(window - 1):
+        y[i0] = NaN
+
+    stdlib.free(ring)
+    return y
 
 cdef double_t _get_min(object skiplist, int nobs, int minp):
     if nobs >= minp:

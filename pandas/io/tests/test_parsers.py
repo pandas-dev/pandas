@@ -11,7 +11,7 @@ import nose
 from numpy import nan
 import numpy as np
 
-from pandas import DataFrame, Series, Index, isnull
+from pandas import DataFrame, Series, Index, isnull, MultiIndex
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                ExcelFile, TextParser)
@@ -251,6 +251,10 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
         from datetime import datetime
         d = datetime(1999, 1, 27, 19, 0)
         self.assert_(df.index[0] == d)
+
+    def test_single_line(self):
+        df = read_csv(StringIO('1,2'), names=['a', 'b'], sep=None)
+        assert_frame_equal(DataFrame({'a': [1], 'b': [2]}), df)
 
     def test_multiple_date_cols_with_header(self):
         data = """\
@@ -741,6 +745,42 @@ baz,7,8,9
         df3 = xlsx.parse('Sheet2', skiprows=[1], index_col=0, parse_dates=True)
         assert_frame_equal(df, df2)
         assert_frame_equal(df3, df2)
+
+    def test_parse_cols_int(self):
+        _skip_if_no_openpyxl()
+
+        suffix = ['', 'x']
+
+        for s in suffix:
+            pth = os.path.join(self.dirpath, 'test.xls%s' % s)
+            xls = ExcelFile(pth)
+            df = xls.parse('Sheet1', index_col=0, parse_dates=True,
+                            parse_cols=3)
+            df2 = read_csv(self.csv1, index_col=0, parse_dates=True)
+            df2 = df2.reindex(columns=['A', 'B', 'C'])
+            df3 = xls.parse('Sheet2', skiprows=[1], index_col=0,
+                            parse_dates=True, parse_cols=3)
+            assert_frame_equal(df, df2)
+            assert_frame_equal(df3, df2)
+
+    def test_parse_cols_list(self):
+        _skip_if_no_openpyxl()
+
+        suffix = ['', 'x']
+
+        for s in suffix:
+
+            pth = os.path.join(self.dirpath, 'test.xls%s' % s)
+            xlsx = ExcelFile(pth)
+            df = xlsx.parse('Sheet1', index_col=0, parse_dates=True,
+                            parse_cols=[0, 2, 3])
+            df2 = read_csv(self.csv1, index_col=0, parse_dates=True)
+            df2 = df2.reindex(columns=['B', 'C'])
+            df3 = xlsx.parse('Sheet2', skiprows=[1], index_col=0,
+                             parse_dates=True,
+                             parse_cols=[0, 2, 3])
+            assert_frame_equal(df, df2)
+            assert_frame_equal(df3, df2)
 
     def test_read_table_wrong_num_columns(self):
         data = """A,B,C,D,E,F
@@ -1294,17 +1334,47 @@ bar,foo,foo"""
                               'C': [np.nan, 'foo', np.nan, 'foo']})
         assert_frame_equal(df, expected)
 
+        data = """\
+a,b,c,d
+0,NA,1,5
+"""
+        xp = DataFrame({'b': [np.nan], 'c': [1], 'd': [5]}, index=[0])
+        xp.index.name = 'a'
+        df = read_csv(StringIO(data), na_values={}, index_col=0)
+        assert_frame_equal(df, xp)
+
+        xp = DataFrame({'b': [np.nan], 'd': [5]},
+                       MultiIndex.from_tuples([(0, 1)]))
+        df = read_csv(StringIO(data), na_values={}, index_col=[0, 2])
+        assert_frame_equal(df, xp)
+
+        xp = DataFrame({'b': [np.nan], 'd': [5]},
+                       MultiIndex.from_tuples([(0, 1)]))
+        df = read_csv(StringIO(data), na_values={}, index_col=['a', 'c'])
+        assert_frame_equal(df, xp)
+
     @slow
     @network
     def test_url(self):
-        # HTTP(S)
-        url = 'https://raw.github.com/pydata/pandas/master/pandas/io/tests/salary.table'
-        url_table = read_table(url)
-        dirpath = curpath()
-        localtable = os.path.join(dirpath, 'salary.table')
-        local_table = read_table(localtable)
-        assert_frame_equal(url_table, local_table)
-        #TODO: ftp testing
+        import urllib2
+        try:
+            # HTTP(S)
+            url = ('https://raw.github.com/pydata/pandas/master/'
+                   'pandas/io/tests/salary.table')
+            url_table = read_table(url)
+            dirpath = curpath()
+            localtable = os.path.join(dirpath, 'salary.table')
+            local_table = read_table(localtable)
+            assert_frame_equal(url_table, local_table)
+            #TODO: ftp testing
+
+        except urllib2.URLError:
+            try:
+                urllib2.urlopen('http://www.google.com')
+            except urllib2.URLError:
+                raise nose.SkipTest
+            else:
+                raise
 
     @slow
     def test_file(self):

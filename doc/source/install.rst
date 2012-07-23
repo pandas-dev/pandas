@@ -121,6 +121,11 @@ the source directory unless you build the C extensions in place:
 
   python setup.py build_ext --inplace
 
+The most recent version of MinGW (any installer dated after 2011-08-03)
+has removed the '-mno-cygwin' option but Distutils has not yet been updated to
+reflect that. Thus, you may run into an error like "unrecognized command line
+option '-mno-cygwin'". Until the bug is fixed in Distutils, you may need to
+install a slightly older version of MinGW (2011-08-02 installer).
 
 Running the test suite
 ~~~~~~~~~~~~~~~~~~~~~~

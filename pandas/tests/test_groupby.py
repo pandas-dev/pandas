@@ -20,6 +20,8 @@ import pandas.core.datetools as dt
 import numpy as np
 from numpy.testing import assert_equal
 
+import pandas.core.nanops as nanops
+
 import pandas.util.testing as tm
 
 def commonSetUp(self):
@@ -2015,6 +2017,33 @@ class TestGroupBy(unittest.TestCase):
         result = df.groupby([('to filter', '')]).groups
         self.assertEquals(result, expected)
 
+    def test_cython_median(self):
+        df = DataFrame(np.random.randn(1000))
+        df.values[::2] = np.nan
+
+        labels = np.random.randint(0, 50, size=1000).astype(float)
+        labels[::17] = np.nan
+
+        result = df.groupby(labels).median()
+        exp = df.groupby(labels).agg(nanops.nanmedian)
+        assert_frame_equal(result, exp)
+
+    def test_groupby_categorical_no_compress(self):
+        data = Series(np.random.randn(9))
+
+        labels = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2])
+        cats = Categorical(labels, [0, 1, 2])
+
+        result = data.groupby(cats).mean()
+        exp = data.groupby(labels).mean()
+        assert_series_equal(result, exp)
+
+        labels = np.array([0, 0, 0, 1, 1, 1, 3, 3, 3])
+        cats = Categorical(labels, [0, 1, 2, 3])
+
+        result = data.groupby(cats).mean()
+        exp = data.groupby(labels).mean().reindex(cats.levels)
+        assert_series_equal(result, exp)
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     tups = map(tuple, df[keys].values)

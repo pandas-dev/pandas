@@ -237,6 +237,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(Exception, Series, np.random.randn(3, 3),
                           index=np.arange(3))
 
+        mixed.name = 'Series'
+        rs = Series(mixed).name
+        xp = 'Series'
+        self.assertEqual(rs, xp)
+
     def test_constructor_empty(self):
         empty = Series()
         empty2 = Series([])
@@ -285,6 +290,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_constructor_cast(self):
         self.assertRaises(ValueError, Series, ['a', 'b', 'c'], dtype=float)
+
+    def test_constructor_dtype_nocast(self):
+        # #1572
+        s = Series([1, 2, 3])
+
+        s2 = Series(s, dtype=np.int64)
+
+        s2[1] = 5
+        self.assertEquals(s[1], 5)
 
     def test_constructor_dict(self):
         d = {'a' : 0., 'b' : 1., 'c' : 2.}
@@ -593,6 +607,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s = Series(range(10), index=range(0, 20, 2))
         self.assertRaises(KeyError, s.__getitem__, 1)
         self.assertRaises(KeyError, s.ix.__getitem__, 1)
+
+    def test_getitem_unordered_dup(self):
+        obj = Series(range(5), index=['c', 'a', 'a', 'b', 'b'])
+        self.assert_(np.isscalar(obj['c']))
+        self.assert_(obj['c'] == 0)
 
     def test_setitem_ambiguous_keyerror(self):
         s = Series(range(10), index=range(0, 20, 2))
@@ -956,6 +975,17 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                         name=('foo', 'bar', 'baz'))
         repr(biggie)
 
+        # 0 as name
+        ser = Series(np.random.randn(100), name=0)
+        rep_str = repr(ser)
+        self.assert_("Name: 0" in rep_str)
+
+        # tidy repr
+        ser = Series(np.random.randn(1001), name=0)
+        rep_str = repr(ser)
+        self.assert_("Name: 0" in rep_str)
+
+
     def test_timeseries_repr_object_dtype(self):
         index = Index([datetime(2000, 1, 1) + timedelta(i)
                        for i in range(1000)], dtype=object)
@@ -1218,6 +1248,24 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                      'first' : min_date, 'last' : max_date, 'freq' : 2,
                      'top' : min_date}, index=rs.index)
         assert_series_equal(rs, xp)
+
+    def test_describe_empty(self):
+        result = self.empty.describe()
+
+        self.assert_(result['count'] == 0)
+        self.assert_(result.drop('count').isnull().all())
+
+        nanSeries = Series([np.nan])
+        nanSeries.name = 'NaN'
+        result = nanSeries.describe()
+        self.assert_(result['count'] == 0)
+        self.assert_(result.drop('count').isnull().all())
+
+    def test_describe_none(self):
+        noneSeries = Series([None])
+        noneSeries.name = 'None'
+        assert_series_equal(noneSeries.describe(),
+                            Series([0, 0], index=['count', 'unique']))
 
     def test_append(self):
         appendedSeries = self.series.append(self.objSeries)
@@ -1871,6 +1919,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         exp[mask] = np.nan
 
         assert_almost_equal(ranks, exp)
+
+        iseries = Series(np.arange(5).repeat(2))
+
+        iranks = iseries.rank()
+        exp = iseries.astype(float).rank()
+        assert_series_equal(iranks, exp)
 
     def test_from_csv(self):
         self.ts.to_csv('_foo')
@@ -2975,4 +3029,3 @@ class TestSeriesNonUnique(unittest.TestCase):
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-

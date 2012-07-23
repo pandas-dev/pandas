@@ -1,6 +1,6 @@
 .. _whatsnew_080:
 
-v0.8.0 (TBD June, 2012)
+v0.8.0 (June 29, 2012)
 ------------------------
 
 This is a major release from 0.7.3 and includes extensive work on the time

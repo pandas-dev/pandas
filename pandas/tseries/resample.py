@@ -13,6 +13,9 @@ from pandas.lib import Timestamp
 import pandas.lib as lib
 
 
+_DEFAULT_METHOD = 'mean'
+
+
 class TimeGrouper(CustomGrouper):
     """
     Custom groupby class for time-interval grouping
@@ -35,12 +38,15 @@ class TimeGrouper(CustomGrouper):
                  nperiods=None, axis=0,
                  fill_method=None, limit=None, loffset=None, kind=None,
                  convention=None, base=0):
-        self.freq = freq
+        self.freq = to_offset(freq)
         self.closed = closed
         self.label = label
         self.nperiods = nperiods
         self.kind = kind
+
         self.convention = convention or 'E'
+        self.convention = self.convention.lower()
+
         self.axis = axis
         self.loffset = loffset
         self.how = how
@@ -50,8 +56,15 @@ class TimeGrouper(CustomGrouper):
 
     def resample(self, obj):
         axis = obj._get_axis(self.axis)
+
+        if not axis.is_monotonic:
+            try:
+                obj = obj.sort_index(axis=self.axis)
+            except TypeError:
+                obj = obj.sort_index()
+
         if isinstance(axis, DatetimeIndex):
-            return self._resample_timestamps(obj)
+            rs = self._resample_timestamps(obj)
         elif isinstance(axis, PeriodIndex):
             offset = to_offset(self.freq)
             if offset.n > 1:
@@ -61,12 +74,16 @@ class TimeGrouper(CustomGrouper):
                 self.kind = 'timestamp'
 
             if self.kind is None or self.kind == 'period':
-                return self._resample_periods(obj)
+                rs = self._resample_periods(obj)
             else:
                 obj = obj.to_timestamp(how=self.convention)
-                return self._resample_timestamps(obj)
+                rs = self._resample_timestamps(obj)
         else:  # pragma: no cover
             raise TypeError('Only valid with DatetimeIndex or PeriodIndex')
+
+        rs_axis = rs._get_axis(self.axis)
+        rs_axis.name = axis.name
+        return rs
 
     def get_grouper(self, obj):
         # Only return grouper
@@ -90,8 +107,7 @@ class TimeGrouper(CustomGrouper):
             binner = labels = DatetimeIndex(data=[], freq=self.freq)
             return binner, [], labels
 
-        first, last = _get_range_edges(axis, self.freq, closed=self.closed,
-                                       base=self.base)
+        first, last = _get_range_edges(axis, self.freq, closed=self.closed, base=self.base)
         binner = labels = DatetimeIndex(freq=self.freq, start=first, end=last)
 
         # a little hack
@@ -154,6 +170,10 @@ class TimeGrouper(CustomGrouper):
 
         return binner, bins, labels
 
+    @property
+    def _agg_method(self):
+        return self.how if self.how else _DEFAULT_METHOD
+
     def _resample_timestamps(self, obj):
         axlabels = obj._get_axis(self.axis)
 
@@ -161,9 +181,9 @@ class TimeGrouper(CustomGrouper):
 
         # Determine if we're downsampling
         if axlabels.freq is not None or axlabels.inferred_freq is not None:
-            if len(grouper.binlabels) < len(axlabels):
+            if len(grouper.binlabels) < len(axlabels) or self.how is not None:
                 grouped  = obj.groupby(grouper, axis=self.axis)
-                result = grouped.aggregate(self.how)
+                result = grouped.aggregate(self._agg_method)
             else:
                 # upsampling shortcut
                 assert(self.axis == 0)
@@ -172,7 +192,7 @@ class TimeGrouper(CustomGrouper):
         else:
             # Irregular data, have to use groupby
             grouped  = obj.groupby(grouper, axis=self.axis)
-            result = grouped.aggregate(self.how)
+            result = grouped.aggregate(self._agg_method)
 
             if self.fill_method is not None:
                 result = result.fillna(method=self.fill_method, limit=self.limit)
@@ -203,14 +223,14 @@ class TimeGrouper(CustomGrouper):
         # Start vs. end of period
         memb = axlabels.asfreq(self.freq, how=self.convention)
 
-        if is_subperiod(axlabels.freq, self.freq):
+        if is_subperiod(axlabels.freq, self.freq) or self.how is not None:
             # Downsampling
             rng = np.arange(memb.values[0], memb.values[-1])
             bins = memb.searchsorted(rng, side='right')
             grouper = BinGrouper(bins, new_index)
 
             grouped = obj.groupby(grouper, axis=self.axis)
-            return grouped.aggregate(self.how)
+            return grouped.aggregate(self._agg_method)
         elif is_superperiod(axlabels.freq, self.freq):
             # Get the fill indexer
             indexer = memb.get_indexer(new_index, method=self.fill_method,
@@ -304,7 +324,8 @@ def _adjust_dates_anchored(first, last, offset, closed='right', base=0):
         else:
             lresult = last.value + offset.nanos
 
-    return Timestamp(fresult), Timestamp(lresult)
+    return (Timestamp(fresult, tz=first.tz),
+            Timestamp(lresult, tz=last.tz))
 
 
 def asfreq(obj, freq, method=None, how=None):

@@ -57,4 +57,7 @@ Performance blog
 - Take
 
 git log v0.6.1..master --pretty=format:%aN | sort | uniq -c | sort -rn
-git log a8c2f88..master --pretty=format:%aN | sort | uniq -c | sort -rn
+
+git log 7ddfbd4..master --pretty=format:%aN | sort | uniq -c | sort -rn
+git log a0257f5..master --pretty=format:%aN | sort | uniq -c | sort -rn
+

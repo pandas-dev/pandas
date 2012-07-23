@@ -277,11 +277,12 @@ class HDFStore(object):
         -------
         obj : type of object stored in file
         """
+        exc_type = _tables().NoSuchNodeError
         try:
             group = getattr(self.handle.root, key)
             return self._read_group(group)
-        except AttributeError:
-            raise
+        except (exc_type, AttributeError):
+            raise KeyError('No object named %s in the file' % key)
 
     def select(self, key, where=None):
         """

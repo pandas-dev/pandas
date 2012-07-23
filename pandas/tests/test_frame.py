@@ -702,6 +702,20 @@ class CheckIndexing(object):
         xp = df.reindex(['x'], columns=[('a', '1')])
         assert_frame_equal(rs, xp)
 
+    def test_ix_dup(self):
+        idx = Index(['a', 'a', 'b', 'c', 'd', 'd'])
+        df = DataFrame(np.random.randn(len(idx), 3), idx)
+
+        sub = df.ix[:'d']
+        assert_frame_equal(sub, df)
+
+        sub = df.ix['a':'c']
+        assert_frame_equal(sub, df.ix[0:4])
+
+        sub = df.ix['b':'d']
+        assert_frame_equal(sub, df.ix[2:])
+
+
     def test_getitem_fancy_1d(self):
         f = self.frame
         ix = f.ix
@@ -968,6 +982,23 @@ class CheckIndexing(object):
         result = df.ix['baz']
         expected = df.ix[3]
         assert_series_equal(result, expected)
+
+    def test_getitem_ix_boolean_duplicates_multiple(self):
+        # #1201
+        df = DataFrame(np.random.randn(5, 3),
+                       index=['foo', 'foo', 'bar', 'baz', 'bar'])
+
+        result = df.ix[['bar']]
+        exp = df.ix[[2, 4]]
+        assert_frame_equal(result, exp)
+
+        result = df.ix[df[1] > 0]
+        exp = df[df[1] > 0]
+        assert_frame_equal(result, exp)
+
+        result = df.ix[df[0] > 0]
+        exp = df[df[0] > 0]
+        assert_frame_equal(result, exp)
 
     def test_get_value(self):
         for idx in self.frame.index:
@@ -1386,6 +1417,21 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # corner case
         self.assertRaises(Exception, df.set_index, 'A', verify_integrity=True)
 
+        # append
+        result = df.set_index(['A', 'B'], append=True)
+        xp = df.reset_index().set_index(['index', 'A', 'B'])
+        xp.index.names = [None, 'A', 'B']
+        assert_frame_equal(result, xp)
+
+    def test_set_index_bug(self):
+        #GH1590
+        df = DataFrame({'val' : [0, 1, 2], 'key': ['a', 'b', 'c']})
+        df2 = df.select(lambda indx:indx>=1)
+        rs = df2.set_index('key')
+        xp = DataFrame({'val': [1, 2]},
+                       Index(['b', 'c'], name='key'))
+        assert_frame_equal(rs, xp)
+
     def test_set_index_pass_arrays(self):
         df = DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
                                'foo', 'bar', 'foo', 'foo'],
@@ -1452,6 +1498,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_constructor_cast_failure(self):
         foo = DataFrame({'a': ['a', 'b', 'c']}, dtype=np.float64)
         self.assert_(foo['a'].dtype == object)
+
+    def test_constructor_dtype_nocast_view(self):
+        df = DataFrame([[1, 2]])
+        should_be_view = DataFrame(df, dtype=df[0].dtype)
+        should_be_view[0][0] = 99
+        self.assertEqual(df.values[0, 0], 99)
+
+        should_be_view = DataFrame(df.values, dtype=df[0].dtype)
+        should_be_view[0][0] = 97
+        self.assertEqual(df.values[0, 0], 97)
 
     def test_constructor_rec(self):
         rec = self.frame.to_records(index=False)
@@ -2517,6 +2573,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         repr(self.frame)
 
         fmt.reset_printoptions()
+
+    def test_repr_unicode(self):
+        uval = u'\u03c3\u03c3\u03c3\u03c3'
+        bval = uval.encode('utf-8')
+        df = DataFrame({'A': [uval, uval]})
+
+        result = repr(df)
+        ex_top = '      A'
+        self.assertEqual(result.split('\n')[0].rstrip(), ex_top)
+
+        df = DataFrame({'A': [uval, uval]})
+        result = repr(df)
+        self.assertEqual(result.split('\n')[0].rstrip(), ex_top)
 
     def test_very_wide_info_repr(self):
         df = DataFrame(np.random.randn(10, 20),
@@ -3591,6 +3660,24 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = self.mixed_frame.ix[:, ['A', 'B', 'C', 'D']].corr()
         assert_frame_equal(result, expected)
 
+        # nothing in common
+        for meth in ['pearson', 'kendall', 'spearman']:
+            df = DataFrame({'A': [1, 1.5, 1, np.nan, np.nan, np.nan],
+                            'B': [np.nan, np.nan, np.nan, 1, 1.5, 1]})
+            rs = df.corr(meth)
+            self.assert_(isnull(rs.ix['A', 'B']))
+            self.assert_(isnull(rs.ix['B', 'A']))
+            self.assert_(rs.ix['A', 'A'] == 1)
+            self.assert_(rs.ix['B', 'B'] == 1)
+
+        # constant --> all NA
+
+        for meth in ['pearson', 'spearman']:
+            df = DataFrame({'A': [1, 1, 1, np.nan, np.nan, np.nan],
+                            'B': [np.nan, np.nan, np.nan, 1, 1, 1]})
+            rs = df.corr(meth)
+            self.assert_(isnull(rs.values).all())
+
     def test_cov(self):
         self.frame['A'][:5] = nan
         self.frame['B'][:10] = nan
@@ -4324,6 +4411,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = df.pivot('a', 'b', 'c')
         expected = DataFrame({})
         assert_frame_equal(result, expected)
+
+    def test_pivot_integer_bug(self):
+        df = DataFrame(data=[("A", "1", "A1"), ("B", "2", "B2")])
+
+        result = df.pivot(index=1, columns=0, values=2)
+        repr(result)
+        self.assert_(np.array_equal(result.columns, ['A', 'B']))
 
     def test_reindex(self):
         newFrame = self.frame.reindex(self.ts1.index)
@@ -5853,6 +5947,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_almost_equal(ranks0.values, exp0)
         assert_almost_equal(ranks1.values, exp1)
 
+        # integers
+        df = DataFrame(np.random.randint(0, 5, size=40).reshape((10, 4)))
+
+        result = df.rank()
+        exp = df.astype(float).rank()
+        assert_frame_equal(result, exp)
+
+        result = df.rank(1)
+        exp = df.astype(float).rank(1)
+        assert_frame_equal(result, exp)
+
     def test_rank2(self):
         from datetime import datetime
 
@@ -6152,6 +6257,21 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.frame.columns.name = 'columns'
         resetted = self.frame.reset_index()
         self.assertEqual(resetted.columns.name, 'columns')
+
+        # only remove certain columns
+        frame = self.frame.reset_index().set_index(['index', 'A', 'B'])
+        rs = frame.reset_index(['A', 'B'])
+        assert_frame_equal(rs, self.frame)
+
+        rs = frame.reset_index(['index', 'A', 'B'])
+        assert_frame_equal(rs, self.frame.reset_index())
+
+        rs = frame.reset_index(['index', 'A', 'B'])
+        assert_frame_equal(rs, self.frame.reset_index())
+
+        rs = frame.reset_index('A')
+        xp = self.frame.reset_index().set_index(['index', 'B'])
+        assert_frame_equal(rs, xp)
 
     def test_reset_index_right_dtype(self):
         time = np.arange(0.0, 10, np.sqrt(2)/2)

@@ -19,6 +19,7 @@ from pandas.tseries.tools import to_datetime
 import pandas.tseries.period as pmod
 
 import pandas.core.datetools as datetools
+import pandas as pd
 import numpy as np
 randn = np.random.randn
 
@@ -40,6 +41,10 @@ class TestPeriodProperties(TestCase):
         p = Period(ordinal=-2, freq='Q-DEC')
         self.assertEquals(p.year, 1969)
         self.assertEquals(p.quarter, 3)
+
+        p = Period(ordinal=-2, freq='M')
+        self.assertEquals(p.year, 1969)
+        self.assertEquals(p.month, 11)
 
     def test_period_cons_quarterly(self):
         # bugs in scikits.timeseries
@@ -177,6 +182,8 @@ class TestPeriodProperties(TestCase):
         self.assertEqual(i1, i2)
 
         self.assertRaises(ValueError, Period, ordinal=200701)
+
+        self.assertRaises(KeyError, Period, '2007-1-1', freq='U')
 
     def test_freq_str(self):
         i1 = Period('1982', freq='Min')
@@ -1043,6 +1050,11 @@ class TestPeriodIndex(TestCase):
         exp = period_range('2007-01', periods=3, freq='M')
         self.assert_(idx.equals(exp))
 
+    def test_constructor_U(self):
+        # U was used as undefined period
+        self.assertRaises(KeyError, period_range, '2007-1-1', periods=500,
+                          freq='U')
+
     def test_constructor_arrays_negative_year(self):
         years = np.arange(1960, 2000).repeat(4)
         quarters = np.tile(range(1, 5), 40)
@@ -1111,10 +1123,16 @@ class TestPeriodIndex(TestCase):
         self.assert_(type(result) == PeriodIndex)
 
     def test_getitem_partial(self):
-        rng = period_range('2007-01', periods=50)
+        rng = period_range('2007-01', periods=50, freq='M')
         ts = Series(np.random.randn(len(rng)), rng)
 
         self.assertRaises(KeyError, ts.__getitem__, '2006')
+
+        result = ts['2008']
+        self.assert_((result.index.year == 2008).all())
+
+        result = ts['2008':'2009']
+        self.assertEquals(len(result), 24)
 
     def test_sub(self):
         rng = period_range('2007-01', periods=50)
@@ -1743,6 +1761,13 @@ class TestPeriodIndex(TestCase):
         result = index.map(lambda x: x.ordinal)
         exp = [x.ordinal for x in index]
         self.assert_(np.array_equal(result, exp))
+
+    def test_convert_array_of_periods(self):
+        rng = period_range('1/1/2000', periods=20, freq='D')
+        periods = list(rng)
+
+        result = pd.Index(periods)
+        self.assert_(isinstance(result, PeriodIndex))
 
 def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))

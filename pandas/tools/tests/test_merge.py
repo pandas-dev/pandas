@@ -648,6 +648,17 @@ class TestMerge(unittest.TestCase):
                         index=[dt2, dt2, dt3, dt, dt])
         _check_merge(df1, df2)
 
+    def test_left_merge_empty_dataframe(self):
+        left = DataFrame({'key': [1], 'value': [2]})
+        right = DataFrame({'key': []})
+
+        result = merge(left, right, on='key', how='left')
+        assert_frame_equal(result, left)
+
+        result = merge(right, left, on='key', how='right')
+        assert_frame_equal(result, left)
+
+
 def _check_merge(x, y):
     for how in ['inner', 'left', 'outer']:
         result = x.join(y, how=how)
@@ -1376,6 +1387,20 @@ class TestConcatenate(unittest.TestCase):
 
         result = concat([df, df])
         self.assert_((result[:10]['time'] == rng).all())
+
+    def test_concat_keys_with_none(self):
+        # #1649
+        df0 = DataFrame([[10, 20, 30], [10, 20, 30], [10, 20, 30]])
+
+        result = concat(dict(a=None, b=df0, c=df0[:2], d=df0[:1], e=df0))
+        expected = concat(dict(b=df0, c=df0[:2], d=df0[:1], e=df0))
+        tm.assert_frame_equal(result, expected)
+
+        result = concat([None, df0, df0[:2], df0[:1], df0],
+                        keys=['a', 'b', 'c', 'd', 'e'])
+        expected = concat([df0, df0[:2], df0[:1], df0],
+                          keys=['b', 'c', 'd', 'e'])
+        tm.assert_frame_equal(result, expected)
 
 class TestOrderedMerge(unittest.TestCase):
 

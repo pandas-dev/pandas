@@ -434,8 +434,9 @@ class DataFrame(NDFrame):
         if copy and dtype is None:
             mgr = mgr.copy()
         elif dtype is not None:
-            # no choice but to copy
-            mgr = mgr.astype(dtype)
+            # avoid copy if we can
+            if len(mgr.blocks) > 1 or mgr.blocks[0].values.dtype != dtype:
+                mgr = mgr.astype(dtype)
         return mgr
 
     def _init_dict(self, data, index, columns, dtype=None):
@@ -482,10 +483,11 @@ class DataFrame(NDFrame):
         values = _prep_ndarray(values, copy=copy)
 
         if dtype is not None:
-            try:
-                values = values.astype(dtype)
-            except Exception:
-                raise ValueError('failed to cast to %s' % dtype)
+            if values.dtype != dtype:
+                try:
+                    values = values.astype(dtype)
+                except Exception:
+                    raise ValueError('failed to cast to %s' % dtype)
 
         N, K = values.shape
 
@@ -1197,7 +1199,7 @@ class DataFrame(NDFrame):
     @Appender(fmt.docstring_to_string, indents=1)
     def to_string(self, buf=None, columns=None, col_space=None, colSpace=None,
                   header=True, index=True, na_rep='NaN', formatters=None,
-                  float_format=None, sparsify=True, nanRep=None,
+                  float_format=None, sparsify=None, nanRep=None,
                   index_names=True, justify=None, force_unicode=False):
         """
         Render a DataFrame to a console-friendly tabular output.
@@ -1237,7 +1239,7 @@ class DataFrame(NDFrame):
     @Appender(fmt.docstring_to_string, indents=1)
     def to_html(self, buf=None, columns=None, col_space=None, colSpace=None,
                 header=True, index=True, na_rep='NaN', formatters=None,
-                float_format=None, sparsify=True, index_names=True,
+                float_format=None, sparsify=None, index_names=True,
                 bold_rows=True):
         """
         to_html-specific options
@@ -1682,12 +1684,11 @@ class DataFrame(NDFrame):
             return self._get_item_cache(key)
 
     def _box_item_values(self, key, values):
+        items = self.columns[self.columns.get_loc(key)]
         if values.ndim == 2:
-            item_cols = self.columns[self.columns.get_loc(key)]
-            return DataFrame(values.T, columns=item_cols,
-                             index=self.index)
+            return DataFrame(values.T, columns=items, index=self.index)
         else:
-            return Series(values, index=self.index, name=key)
+            return Series(values, index=self.index, name=items)
 
     def __getattr__(self, name):
         """After regular attribute access, try looking up the name of a column.
@@ -1891,7 +1892,8 @@ class DataFrame(NDFrame):
 
         if np.isscalar(loc):
             new_values = self._data.fast_2d_xs(loc, copy=copy)
-            return Series(new_values, index=self.columns, name=key)
+            return Series(new_values, index=self.columns,
+                          name=self.index[loc])
         else: # isinstance(loc, slice) or loc.dtype == np.bool_:
             result = self[loc]
             result.index = new_index
@@ -2258,7 +2260,7 @@ class DataFrame(NDFrame):
 
     truncate = generic.truncate
 
-    def set_index(self, keys, drop=True, inplace=False,
+    def set_index(self, keys, drop=True, append=False, inplace=False,
                   verify_integrity=False):
         """
         Set the DataFrame index (row labels) using one or more existing
@@ -2269,6 +2271,8 @@ class DataFrame(NDFrame):
         keys : column label or list of column labels / arrays
         drop : boolean, default True
             Delete columns to be used as the new index
+        append : boolean, default False
+            Whether to append columns to existing index
         inplace : boolean, default False
             Modify the DataFrame in place (do not create a new object)
         verify_integrity : boolean, default False
@@ -2296,16 +2300,30 @@ class DataFrame(NDFrame):
             frame = self.copy()
 
         arrays = []
-        for col in keys:
-            if isinstance(col, (list, Series, np.ndarray)):
-                level = col
+        names = []
+        if append:
+            names = [x for x in self.index.names]
+            if isinstance(self.index, MultiIndex):
+                for i in range(self.index.nlevels):
+                    arrays.append(self.index.get_level_values(i))
             else:
-                level = frame[col]
+                arrays.append(np.asarray(self.index))
+
+        for col in keys:
+            if isinstance(col, Series):
+                level = col.values
+                names.append(col.name)
+            elif isinstance(col, (list, np.ndarray)):
+                level = col
+                names.append(None)
+            else:
+                level = frame[col].values
+                names.append(col)
                 if drop:
                     del frame[col]
             arrays.append(level)
 
-        index = MultiIndex.from_arrays(arrays, names=keys)
+        index = MultiIndex.from_arrays(arrays, names=names)
 
         if verify_integrity and not index.is_unique:
             duplicates = index.get_duplicates()
@@ -2317,7 +2335,7 @@ class DataFrame(NDFrame):
         frame.index = index
         return frame
 
-    def reset_index(self, drop=False):
+    def reset_index(self, level=None, drop=False):
         """
         For DataFrame with multi-level index, return new DataFrame with
         labeling information in the columns under the index names, defaulting
@@ -2327,6 +2345,9 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
+        level : int, str, tuple, or list, default None
+            Only remove the given levels from the index. Removes all levels by
+            default
         drop : boolean, default False
             Do not try to insert index into dataframe columns
 
@@ -2341,10 +2362,18 @@ class DataFrame(NDFrame):
                 values = lib.maybe_convert_objects(values)
             return values
 
+        new_index = np.arange(len(new_obj))
         if not drop:
             if isinstance(self.index, MultiIndex):
                 names = self.index.names
                 zipped = zip(self.index.levels, self.index.labels)
+
+                if level is not None:
+                    if not isinstance(level, (tuple, list)):
+                        level = [level]
+
+                    level = [self.index._get_level_number(lev) for lev in level]
+
                 for i, (lev, lab) in reversed(list(enumerate(zipped))):
                     col_name = names[i]
                     if col_name is None:
@@ -2352,13 +2381,17 @@ class DataFrame(NDFrame):
 
                     # to ndarray and maybe infer different dtype
                     level_values = _maybe_cast(lev.values)
-                    new_obj.insert(0, col_name, level_values.take(lab))
+                    if level is None or i in level:
+                        new_obj.insert(0, col_name, level_values.take(lab))
+
+                if level is not None and len(level) < len(self.index.levels):
+                    new_index = self.index.droplevel(level)
             else:
                 name = self.index.name
                 if name is None or name == 'index':
                     name = 'index' if 'index' not in self else 'level_0'
                 new_obj.insert(0, name, _maybe_cast(self.index.values))
-        new_obj.index = np.arange(len(new_obj))
+        new_obj.index = new_index
         return new_obj
 
     delevel = deprecate('delevel', reset_index)
@@ -3841,7 +3874,9 @@ class DataFrame(NDFrame):
             for i, ac in enumerate(mat):
                 for j, bc  in enumerate(mat):
                     valid = mask[i] & mask[j]
-                    if not valid.all():
+                    if not valid.any():
+                        c = np.nan
+                    elif not valid.all():
                         c = corrf(ac[valid], bc[valid])
                     else:
                         c = corrf(ac, bc)

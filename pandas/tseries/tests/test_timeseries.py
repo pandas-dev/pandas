@@ -33,6 +33,8 @@ import pandas.util.py3compat as py3compat
 from pandas.core.datetools import BDay
 import pandas.core.common as com
 
+from numpy.testing.decorators import slow
+
 
 class TestTimeSeriesDuplicates(unittest.TestCase):
 
@@ -573,6 +575,11 @@ class TestTimeSeries(unittest.TestCase):
         assert_series_equal(dresult, expected)
         self.assertEquals(dresult.name, 'foo')
 
+    def test_to_datetime_iso8601(self):
+        result = to_datetime(["2012-01-01 00:00:00"])
+        exp = Timestamp("2012-01-01 00:00:00")
+        self.assert_(result[0] == exp)
+
     def test_nat_vector_field_access(self):
         idx = DatetimeIndex(['1/1/2000', None, None, '1/4/2000'])
 
@@ -995,6 +1002,38 @@ class TestTimeSeries(unittest.TestCase):
 
         assert_series_equal(result, expected)
 
+    def test_datetimeindex_repr_short(self):
+        dr = date_range(start='1/1/2012', periods=1)
+        repr(dr)
+
+        dr = date_range(start='1/1/2012', periods=2)
+        repr(dr)
+
+        dr = date_range(start='1/1/2012', periods=3)
+        repr(dr)
+
+    def test_constructor_int64_nocopy(self):
+        # #1624
+        arr = np.arange(1000, dtype=np.int64)
+        index = DatetimeIndex(arr)
+
+        arr[50:100] = -1
+        self.assert_((index.asi8[50:100] == -1).all())
+
+        arr = np.arange(1000, dtype=np.int64)
+        index = DatetimeIndex(arr, copy=True)
+
+        arr[50:100] = -1
+        self.assert_((index.asi8[50:100] != -1).all())
+
+    def test_series_interpolate_method_values(self):
+        # #1646
+        ts = _simple_ts('1/1/2000', '1/20/2000')
+        ts[::2] = np.nan
+
+        result = ts.interpolate(method='values')
+        exp = ts.interpolate()
+        assert_series_equal(result, exp)
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
@@ -1691,8 +1730,28 @@ class TestDatetime64(unittest.TestCase):
         result = dti.join(empty)
         self.assert_(isinstance(result, DatetimeIndex))
 
-    # TODO: test merge & concat with datetime64 block
+    def test_series_set_value(self):
+        # #1561
 
+        dates = [datetime(2001, 1, 1), datetime(2001, 1, 2)]
+        index = DatetimeIndex(dates)
+
+        s = Series().set_value(dates[0], 1.)
+        s2 = s.set_value(dates[1], np.nan)
+
+        exp = Series([1., np.nan], index=index)
+
+        assert_series_equal(s2, exp)
+
+        # s = Series(index[:1], index[:1])
+        # s2 = s.set_value(dates[1], index[1])
+        # self.assert_(s2.values.dtype == 'M8[ns]')
+
+    @slow
+    def test_slice_locs_indexerror(self):
+        times = [datetime(2000, 1, 1) + timedelta(minutes=i) for i in range(1000000)]
+        s = Series(range(1000000), times)
+        s.ix[datetime(1900,1,1):datetime(2100,1,1)]
 
 class TestSeriesDatetime64(unittest.TestCase):
 
@@ -1780,6 +1839,33 @@ class TestSeriesDatetime64(unittest.TestCase):
         df = DataFrame({'s1' : s1, 's2' : s2})
         self.assert_(df.index.values.dtype == np.dtype('M8[ns]'))
 
+    def test_intersection(self):
+        rng = date_range('6/1/2000', '6/15/2000', freq='D')
+        rng = rng.delete(5)
+
+        rng2 = date_range('5/15/2000', '6/20/2000', freq='D')
+        rng2 = DatetimeIndex(rng2.values)
+
+        result = rng.intersection(rng2)
+        self.assert_(result.equals(rng))
+
+    def test_date_range_bms_bug(self):
+        # #1645
+        rng = date_range('1/1/2000', periods=10, freq='BMS')
+
+        ex_first = Timestamp('2000-01-03')
+        self.assertEquals(rng[0], ex_first)
+
+    def test_string_index_series_name_converted(self):
+        # #1644
+        df = DataFrame(np.random.randn(10, 4),
+                       index=date_range('1/1/2000', periods=10))
+
+        result = df.ix['1/3/2000']
+        self.assertEquals(result.name, df.index[2])
+
+        result = df.T['1/3/2000']
+        self.assertEquals(result.name, df.index[2])
 
 class TestTimestamp(unittest.TestCase):
 

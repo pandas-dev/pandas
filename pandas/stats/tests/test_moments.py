@@ -219,6 +219,11 @@ class TestMoments(unittest.TestCase):
     def test_ewma(self):
         self._check_ew(mom.ewma)
 
+        arr = np.zeros(1000)
+        arr[5] = 1
+        result = mom.ewma(arr, span=100, adjust=False).sum()
+        self.assert_(np.abs(result - 1) < 1e-2)
+
     def test_ewmvar(self):
         self._check_ew(mom.ewmvar)
 

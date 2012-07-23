@@ -1002,6 +1002,13 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
             assert_frame_equal(leftside, rightside)
 
+    def test_stat_op_corner(self):
+        obj = Series([10.0], index=MultiIndex.from_tuples([(2, 3)]))
+
+        result = obj.sum(level=0)
+        expected = Series([10.0], index=[2])
+        assert_series_equal(result, expected)
+
     def test_frame_any_all_group(self):
         df = DataFrame({'data': [False, False, True, False, True, False, True]},
                        index=[['one', 'one', 'two', 'one', 'two', 'two', 'two'],

@@ -490,7 +490,7 @@ class TestPanelOLS(BaseTest):
 
         stack_y = y.stack()
         stack_x = DataFrame(dict((k, v.stack())
-                                  for k, v in x.iteritems()))
+                                  for k, v in x.iterkv()))
 
         weights = x.std('items')
         stack_weights = weights.stack()

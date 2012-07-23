@@ -254,7 +254,7 @@ def take_1d(arr, indexer, out=None, fill_value=np.nan):
 
     return out
 
-def take_2d_multi(arr, row_idx, col_idx, fill_value=np.nan):
+def take_2d_multi(arr, row_idx, col_idx, fill_value=np.nan, out=None):
 
     dtype_str = arr.dtype.name
 
@@ -267,21 +267,26 @@ def take_2d_multi(arr, row_idx, col_idx, fill_value=np.nan):
 
         if needs_masking:
             return take_2d_multi(_maybe_upcast(arr), row_idx, col_idx,
-                                 fill_value=fill_value)
+                                 fill_value=fill_value, out=out)
         else:
-            out = np.empty(out_shape, dtype=arr.dtype)
+            if out is None:
+                out = np.empty(out_shape, dtype=arr.dtype)
             take_f = _get_take2d_function(dtype_str, axis='multi')
             take_f(arr, _ensure_int64(row_idx),
                    _ensure_int64(col_idx), out=out,
                    fill_value=fill_value)
             return out
     elif dtype_str in ('float64', 'object', 'datetime64[ns]'):
-        out = np.empty(out_shape, dtype=arr.dtype)
+        if out is None:
+            out = np.empty(out_shape, dtype=arr.dtype)
         take_f = _get_take2d_function(dtype_str, axis='multi')
         take_f(arr, _ensure_int64(row_idx), _ensure_int64(col_idx), out=out,
                fill_value=fill_value)
         return out
     else:
+        if out is not None:
+            raise ValueError('Cannot pass out in this case')
+
         return take_2d(take_2d(arr, row_idx, axis=0, fill_value=fill_value),
                        col_idx, axis=1, fill_value=fill_value)
 

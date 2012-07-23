@@ -2,8 +2,7 @@ from itertools import izip
 import types
 import numpy as np
 
-from pandas.core.algorithms import unique
-from pandas.core.categorical import Factor
+from pandas.core.categorical import Categorical
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
@@ -297,6 +296,20 @@ class GroupBy(object):
             f = lambda x: x.mean(axis=self.axis)
             return self._python_agg_general(f)
 
+    def median(self):
+        """
+        Compute mean of groups, excluding missing values
+
+        For multiple groupings, the result index will be a MultiIndex
+        """
+        try:
+            return self._cython_agg_general('median')
+        except GroupByError:
+            raise
+        except Exception:  # pragma: no cover
+            f = lambda x: x.median(axis=self.axis)
+            return self._python_agg_general(f)
+
     def std(self, ddof=1):
         """
         Compute standard deviation of groups, excluding missing values
@@ -483,6 +496,7 @@ class Grouper(object):
         self.groupings = groupings
         self.sort = sort
         self.group_keys = group_keys
+        self.compressed = True
 
     @property
     def shape(self):
@@ -591,9 +605,14 @@ class Grouper(object):
         else:
             if len(all_labels) > 1:
                 group_index = get_group_index(all_labels, self.shape)
+                comp_ids, obs_group_ids = _compress_group_index(group_index)
             else:
-                group_index = all_labels[0]
-            comp_ids, obs_group_ids = _compress_group_index(group_index)
+                ping = self.groupings[0]
+                comp_ids = ping.labels
+                obs_group_ids = np.arange(len(ping.group_index))
+                self.compressed = False
+                self._filter_empty_groups = False
+
             return comp_ids, obs_group_ids
 
     @cache_readonly
@@ -611,6 +630,10 @@ class Grouper(object):
 
     def get_group_levels(self):
         obs_ids = self.group_info[1]
+
+        if not self.compressed and len(self.groupings) == 1:
+            return [self.groupings[0].group_index]
+
         if self._overflow_possible:
             recons_labels = [np.array(x) for x in izip(*obs_ids)]
         else:
@@ -632,6 +655,7 @@ class Grouper(object):
         'min' : lib.group_min,
         'max' : lib.group_max,
         'mean' : lib.group_mean,
+        'median' : lib.group_median,
         'var' : lib.group_var,
         'std' : lib.group_var,
         'first': lambda a, b, c, d: lib.group_nth(a, b, c, d, 1),
@@ -946,6 +970,7 @@ class Grouping(object):
 
         # pre-computed
         self._was_factor = False
+        self._should_compress = True
 
         if level is not None:
             if not isinstance(level, int):
@@ -971,7 +996,7 @@ class Grouping(object):
         else:
             if isinstance(self.grouper, (list, tuple)):
                 self.grouper = com._asarray_tuplesafe(self.grouper)
-            elif isinstance(self.grouper, Factor):
+            elif isinstance(self.grouper, Categorical):
                 factor = self.grouper
                 self._was_factor = True
 
@@ -1084,7 +1109,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
 
     if (not any_callable and not all_in_columns
         and not any_arraylike and match_axis_length
-        and not level):
+        and level is None):
         keys = [com._asarray_tuplesafe(keys)]
 
     if isinstance(level, (tuple, list)):

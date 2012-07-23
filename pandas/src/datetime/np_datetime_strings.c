@@ -774,16 +774,21 @@ parse_iso_8601_datetime(char *str, int len,
 
 parse_timezone:
     if (sublen == 0) {
+        // Unlike NumPy, treating no time zone as naive
+        goto finish;
+
+/*
         if (convert_datetimestruct_local_to_utc(out, out) < 0) {
             goto error;
         }
 
-        /* Since neither "Z" nor a time-zone was specified, it's local */
+        // Since neither "Z" nor a time-zone was specified, it's local
         if (out_local != NULL) {
             *out_local = 1;
         }
 
         goto finish;
+*/
     }
 
     /* UTC specifier */

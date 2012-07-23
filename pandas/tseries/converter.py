@@ -1,9 +1,12 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import datetime as pydt
 import numpy as np
 
+from dateutil.relativedelta import relativedelta
+
 import matplotlib.units as units
 import matplotlib.dates as dates
+
 from matplotlib.ticker import Formatter, AutoLocator, Locator
 from matplotlib.transforms import nonsingular
 
@@ -11,6 +14,7 @@ import pandas.lib as lib
 import pandas.core.common as com
 from pandas.core.index import Index
 
+from pandas.tseries.index import date_range
 import pandas.tseries.tools as tools
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import FreqGroup
@@ -24,7 +28,8 @@ def register():
     units.registry[Period] = PeriodConverter()
 
 def _to_ordinalf(tm):
-    tot_sec = tm.hour * 3600 + tm.minute * 60 + tm.second + tm.microsecond
+    tot_sec = (tm.hour * 3600 + tm.minute * 60 + tm.second +
+               float(tm.microsecond / 1e6))
     return tot_sec
 
 def time2num(d):
@@ -73,9 +78,14 @@ class TimeFormatter(Formatter):
     def __call__(self, x, pos=0):
         fmt = '%H:%M:%S'
         s = int(x)
-        us = int((x - s) * 1e6)
+        ms = int((x - s) * 1e3)
+        us = int((x - s) * 1e6 - ms)
         m, s = divmod(s, 60)
         h, m = divmod(m, 60)
+        if us != 0:
+            fmt += '.%6f'
+        elif ms != 0:
+            fmt += '.%3f'
         return pydt.time(h, m, s, us).strftime(fmt)
 
 ### Period Conversion
@@ -108,6 +118,20 @@ def get_datevalue(date, freq):
         return None
     raise ValueError("Unrecognizable date '%s'" % date)
 
+HOURS_PER_DAY = 24.
+MINUTES_PER_DAY  = 60.*HOURS_PER_DAY
+SECONDS_PER_DAY =  60.*MINUTES_PER_DAY
+MUSECONDS_PER_DAY = 1e6*SECONDS_PER_DAY
+
+def _dt_to_float_ordinal(dt):
+    """
+    Convert :mod:`datetime` to the Gregorian date as UTC float days,
+    preserving hours, minutes, seconds and microseconds.  Return value
+    is a :func:`float`.
+    """
+    base = dates.date2num(dt)
+    return base
+
 ### Datetime Conversion
 class DatetimeConverter(dates.DateConverter):
 
@@ -115,12 +139,12 @@ class DatetimeConverter(dates.DateConverter):
     def convert(values, unit, axis):
         def try_parse(values):
             try:
-                return tools.to_datetime(values).toordinal()
+                return _dt_to_float_ordinal(tools.to_datetime(values))
             except Exception:
                 return values
 
         if isinstance(values, (datetime, pydt.date)):
-            return values.toordinal()
+            return _dt_to_float_ordinal(values)
         elif isinstance(values, pydt.time):
             return dates.date2num(values)
         elif (com.is_integer(values) or com.is_float(values)):
@@ -132,6 +156,209 @@ class DatetimeConverter(dates.DateConverter):
         elif isinstance(values, (list, tuple, np.ndarray)):
             return [try_parse(x) for x in values]
         return values
+
+    @staticmethod
+    def axisinfo(unit, axis):
+        """
+        Return the :class:`~matplotlib.units.AxisInfo` for *unit*.
+
+        *unit* is a tzinfo instance or None.
+        The *axis* argument is required but not used.
+        """
+        tz = unit
+
+        majloc = PandasAutoDateLocator(tz=tz)
+        majfmt = PandasAutoDateFormatter(majloc, tz=tz)
+        datemin = pydt.date(2000, 1, 1)
+        datemax = pydt.date(2010, 1, 1)
+
+        return units.AxisInfo( majloc=majloc, majfmt=majfmt, label='',
+                               default_limits=(datemin, datemax))
+
+
+class PandasAutoDateFormatter(dates.AutoDateFormatter):
+
+    def __init__(self, locator, tz=None, defaultfmt='%Y-%m-%d'):
+        dates.AutoDateFormatter.__init__(self, locator, tz, defaultfmt)
+        # matplotlib.dates._UTC has no _utcoffset called by pandas
+        if self._tz is dates.UTC:
+            self._tz._utcoffset = self._tz.utcoffset(None)
+        self.scaled = {
+           365.0  : '%Y',
+           30.    : '%b %Y',
+           1.0    : '%b %d %Y',
+           1. / 24. : '%H:%M:%S',
+           1. / 24. / 3600. / 1000. : '%H:%M:%S.%f'
+           }
+
+    def _get_fmt(self, x):
+
+        scale = float( self._locator._get_unit() )
+
+        fmt = self.defaultfmt
+
+        for k in sorted(self.scaled):
+           if k >= scale:
+              fmt = self.scaled[k]
+              break
+
+        return fmt
+
+    def __call__(self, x, pos=0):
+        fmt = self._get_fmt(x)
+        self._formatter = dates.DateFormatter(fmt, self._tz)
+        return self._formatter(x, pos)
+
+class PandasAutoDateLocator(dates.AutoDateLocator):
+
+    def get_locator(self, dmin, dmax):
+        'Pick the best locator based on a distance.'
+        delta = relativedelta(dmax, dmin)
+
+        num_days = ((delta.years * 12.0) + delta.months * 31.0) + delta.days
+        num_sec = (delta.hours * 60.0 + delta.minutes) * 60.0 + delta.seconds
+        tot_sec = num_days * 86400. + num_sec
+
+        if tot_sec < self.minticks:
+            self._freq = -1
+            locator = MilliSecondLocator(self.tz)
+            locator.set_axis(self.axis)
+
+            locator.set_view_interval(*self.axis.get_view_interval())
+            locator.set_data_interval(*self.axis.get_data_interval())
+            return locator
+
+        return dates.AutoDateLocator.get_locator(self, dmin, dmax)
+
+    def _get_unit(self):
+        return MilliSecondLocator.get_unit_generic(self._freq)
+
+class MilliSecondLocator(dates.DateLocator):
+
+    UNIT = 1. / (24 * 3600 * 1000)
+
+    def __init__(self, tz):
+        dates.DateLocator.__init__(self, tz)
+        self._interval = 1.
+
+    def _get_unit(self):
+        return self.get_unit_generic(-1)
+
+    @staticmethod
+    def get_unit_generic(freq):
+        unit = dates.RRuleLocator.get_unit_generic(freq)
+        if unit < 0:
+            return MilliSecondLocator.UNIT
+        return unit
+
+    def __call__(self):
+        # if no data have been set, this will tank with a ValueError
+        try: dmin, dmax = self.viewlim_to_dt()
+        except ValueError: return []
+
+        if dmin>dmax:
+            dmax, dmin = dmin, dmax
+        delta = relativedelta(dmax, dmin)
+
+        # We need to cap at the endpoints of valid datetime
+        try:
+            start = dmin - delta
+        except ValueError:
+            start = _from_ordinal( 1.0 )
+
+        try:
+            stop = dmax + delta
+        except ValueError:
+            # The magic number!
+            stop = _from_ordinal( 3652059.9999999 )
+
+        nmax, nmin = dates.date2num((dmax, dmin))
+
+        num = (nmax - nmin) * 86400 * 1000
+        max_millis_ticks = 6
+        for interval in [1, 10, 50, 100, 200, 500]:
+            if num <= interval * (max_millis_ticks - 1):
+                self._interval = interval
+                break
+            else:
+                # We went through the whole loop without breaking, default to 1
+                self._interval = 1000.
+
+        estimate = (nmax - nmin) / (self._get_unit() * self._get_interval())
+
+        if estimate > self.MAXTICKS * 2:
+            raise RuntimeError(('MillisecondLocator estimated to generate %d '
+                                'ticks from %s to %s: exceeds Locator.MAXTICKS'
+                                '* 2 (%d) ') %
+                                (estimate, dmin, dmax, self.MAXTICKS * 2))
+
+        freq = '%dL' % self._get_interval()
+        tz = self.tz.tzname(None)
+        st = _from_ordinal(dates.date2num(dmin)) # strip tz
+        ed = _from_ordinal(dates.date2num(dmax))
+        all_dates = date_range(start=st, end=ed, freq=freq, tz=tz).asobject
+
+        try:
+            if len(all_dates) > 0:
+                locs = self.raise_if_exceeds(dates.date2num(all_dates))
+                return locs
+        except Exception, e:
+            pass
+
+        lims = dates.date2num([dmin, dmax])
+        return lims
+
+    def _get_interval(self):
+        return self._interval
+
+    def autoscale(self):
+        """
+        Set the view limits to include the data range.
+        """
+        dmin, dmax = self.datalim_to_dt()
+        if dmin>dmax:
+            dmax, dmin = dmin, dmax
+
+        delta = relativedelta(dmax, dmin)
+
+        # We need to cap at the endpoints of valid datetime
+        try:
+            start = dmin - delta
+        except ValueError:
+            start = _from_ordinal(1.0)
+
+        try:
+            stop = dmax + delta
+        except ValueError:
+            # The magic number!
+            stop = _from_ordinal( 3652059.9999999 )
+
+        dmin, dmax = self.datalim_to_dt()
+
+        vmin = dates.date2num(dmin)
+        vmax = dates.date2num(dmax)
+
+        return self.nonsingular(vmin, vmax)
+
+
+def _from_ordinal(x, tz=None):
+    ix = int(x)
+    dt = datetime.fromordinal(ix)
+    remainder = float(x) - ix
+    hour, remainder = divmod(24*remainder, 1)
+    minute, remainder = divmod(60*remainder, 1)
+    second, remainder = divmod(60*remainder, 1)
+    microsecond = int(1e6*remainder)
+    if microsecond<10: microsecond=0 # compensate for rounding errors
+    dt = datetime(dt.year, dt.month, dt.day, int(hour), int(minute),
+                  int(second), microsecond)
+    if tz is not None:
+        dt = dt.astimezone(tz)
+
+    if microsecond > 999990:  # compensate for rounding errors
+        dt += timedelta(microseconds = 1e6 - microsecond)
+
+    return dt
 
 ### Fixed frequency dynamic tick locators and formatters
 
@@ -214,9 +441,6 @@ def _daily_finder(vmin, vmax, freq):
     elif frequencies.get_freq_group(freq) == FreqGroup.FR_WK:
         periodsperyear = 52
         periodspermonth = 3
-    elif freq == FreqGroup.FR_UND:
-        periodsperyear = 100
-        periodspermonth = 10
     else: # pragma: no cover
         raise ValueError("unexpected frequency")
 
@@ -542,8 +766,7 @@ def get_finder(freq):
         return _quarterly_finder
     elif freq ==FreqGroup.FR_MTH:
         return _monthly_finder
-    elif ((freq >= FreqGroup.FR_BUS) or (freq == FreqGroup.FR_UND) or
-          fgroup == FreqGroup.FR_WK):
+    elif ((freq >= FreqGroup.FR_BUS) or fgroup == FreqGroup.FR_WK):
         return _daily_finder
     else: # pragma: no cover
         errmsg = "Unsupported frequency: %s" % (freq)
@@ -693,5 +916,4 @@ class TimeSeries_DateFormatter(Formatter):
         else:
             fmt = self.formatdict.pop(x, '')
             return Period(ordinal=int(x), freq=self.freq).strftime(fmt)
-
 

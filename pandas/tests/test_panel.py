@@ -514,7 +514,12 @@ class CheckIndexing(object):
         pass
 
     def test_getitem_fancy_ints(self):
-        pass
+        p = self.panel
+
+        # #1603
+        result = p.ix[:, -1, :]
+        expected = p.ix[:, p.major_axis[-1], :]
+        assert_frame_equal(result, expected)
 
     def test_getitem_fancy_xs(self):
         p = self.panel
@@ -966,6 +971,14 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         self.assertEqual(wp['bool'].values.dtype, np.bool_)
         assert_frame_equal(wp['bool'], panel['bool'])
 
+    def test_to_panel_na_handling(self):
+        df = DataFrame(np.random.randint(0, 10, size=20).reshape((10, 2)),
+                       index=[[0, 0, 0, 0, 0, 0, 1, 1, 1, 1],
+                              [0, 1, 2, 3, 4, 5, 2, 3, 4, 5]])
+
+        panel = df.to_panel()
+        self.assert_(isnull(panel[0].ix[1, [0, 1]]).all())
+
     def test_filter(self):
         pass
 
@@ -1094,6 +1107,38 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                 recdf = reader.parse(str(item),index_col=0)
                 assert_frame_equal(df, recdf)
             os.remove(path)
+
+    def test_dropna(self):
+        p = Panel(np.random.randn(4, 5, 6), major_axis=list('abcde'))
+        p.ix[:, ['b', 'd'], 0] = np.nan
+
+        result = p.dropna(axis=1)
+        exp = p.ix[:, ['a', 'c', 'e'], :]
+        assert_panel_equal(result, exp)
+
+        result = p.dropna(axis=1, how='all')
+        assert_panel_equal(result, p)
+
+        p.ix[:, ['b', 'd'], :] = np.nan
+        result = p.dropna(axis=1, how='all')
+        exp = p.ix[:, ['a', 'c', 'e'], :]
+        assert_panel_equal(result, exp)
+
+        p = Panel(np.random.randn(4, 5, 6), items=list('abcd'))
+        p.ix[['b'], :, 0] = np.nan
+
+        result = p.dropna()
+        exp = p.ix[['a', 'c', 'd']]
+        assert_panel_equal(result, exp)
+
+        result = p.dropna(how='all')
+        assert_panel_equal(result, p)
+
+        p.ix['b'] = np.nan
+        result = p.dropna(how='all')
+        exp = p.ix[['a', 'c', 'd']]
+        assert_panel_equal(result, exp)
+
 
 class TestLongPanel(unittest.TestCase):
     """

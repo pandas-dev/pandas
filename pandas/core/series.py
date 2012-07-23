@@ -29,7 +29,7 @@ import pandas.core.format as fmt
 import pandas.core.generic as generic
 import pandas.core.nanops as nanops
 import pandas.lib as lib
-from pandas.util.decorators import Appender, Substitution
+from pandas.util.decorators import Appender, Substitution, cache_readonly
 
 from pandas.compat.scipy import scoreatpercentile as _quantile
 
@@ -304,6 +304,8 @@ class Series(np.ndarray, generic.PandasObject):
         if isinstance(data, Series):
             if index is None:
                 index = data.index
+            if name is None:
+                name = data.name
         elif isinstance(data, dict):
             if index is None:
                 index = Index(sorted(data))
@@ -740,7 +742,11 @@ copy : boolean, default False
             self.index._engine.set_value(self, label, value)
             return self
         except KeyError:
-            new_index = np.concatenate([self.index.values, [label]])
+            if len(self.index) == 0:
+                new_index = Index([label])
+            else:
+                new_index = self.index.insert(len(self), label)
+
             new_values = np.concatenate([self.values, [value]])
             return Series(new_values, index=new_index, name=self.name)
 
@@ -797,7 +803,7 @@ copy : boolean, default False
         return '%s\n%s' % (result, self._repr_footer())
 
     def _repr_footer(self):
-        namestr = "Name: %s, " % str(self.name) if self.name else ""
+        namestr = "Name: %s, " % str(self.name) if self.name is not None else ""
         return '%sLength: %d' % (namestr, len(self))
 
     def to_string(self, buf=None, na_rep='NaN', float_format=None,
@@ -1339,22 +1345,25 @@ copy : boolean, default False
             from pandas.util.counter import Counter
 
         if self.dtype == object:
-            names = ['count', 'unique', 'top', 'freq']
-
+            names = ['count', 'unique']
             objcounts = Counter(self.dropna().values)
-            top, freq = objcounts.most_common(1)[0]
-            data = [self.count(), len(objcounts), top, freq]
+            data = [self.count(), len(objcounts)]
+            if data[1] > 0:
+                names += ['top', 'freq']
+                top, freq = objcounts.most_common(1)[0]
+                data += [top, freq]
 
         elif issubclass(self.dtype.type, np.datetime64):
-            names = ['count', 'unique', 'first', 'last', 'top', 'freq']
-
+            names = ['count', 'unique']
             asint = self.dropna().view('i8')
             objcounts = Counter(asint)
-            top, freq = objcounts.most_common(1)[0]
-            data = [self.count(), len(objcounts),
-                    lib.Timestamp(asint.min()),
-                    lib.Timestamp(asint.max()),
-                    lib.Timestamp(top), freq]
+            data = [self.count(), len(objcounts)]
+            if data[1] > 0:
+                top, freq = objcounts.most_common(1)[0]
+                names += ['first', 'last', 'top', 'freq']
+                data += [lib.Timestamp(asint.min()),
+                         lib.Timestamp(asint.max()),
+                         lib.Timestamp(top), freq]
         else:
 
             lb = .5 * (1. - percentile_width/100.)
@@ -1367,11 +1376,11 @@ copy : boolean, default False
                 else:
                     return '%.1f%%' % x
 
-            names = ['count', 'mean', 'std', 'min',
-                     pretty_name(lb), '50%', pretty_name(ub),
-                     'max']
-
-            data = [self.count(), self.mean(), self.std(), self.min(),
+            names = ['count']
+            data = [self.count()]
+            names += ['mean', 'std', 'min', pretty_name(lb), '50%',
+                    pretty_name(ub), 'max']
+            data += [self.mean(), self.std(), self.min(),
                     self.quantile(lb), self.median(), self.quantile(ub),
                     self.max()]
 
@@ -2511,6 +2520,10 @@ copy : boolean, default False
             inds = np.array([d.toordinal() for d in self.index])
         elif method == 'values':
             inds = self.index.values
+            # hack for DatetimeIndex, #1646
+            if issubclass(inds.dtype.type, np.datetime64):
+                inds = inds.view(np.int64)
+
             if inds.dtype == np.object_:
                 inds = lib.maybe_convert_objects(inds)
         else:
@@ -2620,6 +2633,10 @@ copy : boolean, default False
 
         return Series(new_values, index=new_index, name=self.name)
 
+    @cache_readonly
+    def str(self):
+        from pandas.core.strings import StringMethods
+        return StringMethods(self)
 
 _INDEX_TYPES = ndarray, Index, list, tuple
 
@@ -2781,7 +2798,7 @@ class TimeSeries(Series):
         else:
             freqstr = ''
 
-        namestr = "Name: %s, " % str(self.name) if self.name else ""
+        namestr = "Name: %s, " % str(self.name) if self.name is not None else ""
         return '%s%sLength: %d' % (freqstr, namestr, len(self))
 
     def at_time(self, time, asof=False):

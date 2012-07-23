@@ -10,6 +10,7 @@ import pandas.util.testing as tm
 
 import numpy as np
 
+from numpy.testing import assert_array_equal
 from numpy.testing.decorators import slow
 import pandas.tools.plotting as plotting
 
@@ -119,6 +120,11 @@ class TestSeriesPlots(unittest.TestCase):
         from pandas.tools.plotting import lag_plot
         _check_plot_works(lag_plot, self.ts)
 
+    @slow
+    def test_bootstrap_plot(self):
+        from pandas.tools.plotting import bootstrap_plot
+        _check_plot_works(bootstrap_plot, self.ts, size=10)
+
 class TestDataFramePlots(unittest.TestCase):
 
     @classmethod
@@ -157,6 +163,34 @@ class TestDataFramePlots(unittest.TestCase):
         df = DataFrame(np.random.rand(10, 3),
                        index=MultiIndex.from_tuples(tuples))
         _check_plot_works(df.plot, use_index=True)
+
+    @slow
+    def test_plot_xy(self):
+        df = tm.makeTimeDataFrame()
+        self._check_data(df.plot(x=0, y=1),
+                         df.set_index('A').sort_index()['B'].plot())
+
+        self._check_data(df.plot(x=0), df.set_index('A').sort_index().plot())
+
+        self._check_data(df.plot(y=0), df.B.plot())
+
+        self._check_data(df.plot(x='A', y='B'),
+                         df.set_index('A').sort_index().B.plot())
+
+        self._check_data(df.plot(x='A'), df.set_index('A').sort_index().plot())
+
+        self._check_data(df.plot(y='B'), df.B.plot())
+
+    def _check_data(self, xp, rs):
+        xp_lines = xp.get_lines()
+        rs_lines = rs.get_lines()
+
+        def check_line(xpl, rsl):
+            xpdata = xpl.get_xydata()
+            rsdata = rsl.get_xydata()
+            assert_array_equal(xpdata, rsdata)
+
+        [check_line(xpl, rsl) for xpl, rsl in zip(xp_lines, rs_lines)]
 
     @slow
     def test_subplots(self):
@@ -315,6 +349,22 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(andrews_curves, df, 'Name')
 
     @slow
+    def test_parallel_coordinates(self):
+        from pandas import read_csv
+        from pandas.tools.plotting import parallel_coordinates
+        path = os.path.join(curpath(), 'data/iris.csv')
+        df = read_csv(path)
+        _check_plot_works(parallel_coordinates, df, 'Name')
+
+    @slow
+    def test_radviz(self):
+        from pandas import read_csv
+        from pandas.tools.plotting import radviz
+        path = os.path.join(curpath(), 'data/iris.csv')
+        df = read_csv(path)
+        _check_plot_works(radviz, df, 'Name')
+
+    @slow
     def test_plot_int_columns(self):
         df = DataFrame(np.random.randn(100, 4)).cumsum()
         _check_plot_works(df.plot, legend=True)
@@ -332,6 +382,27 @@ class TestDataFramePlots(unittest.TestCase):
 
     def _check_plot_fails(self, f, *args, **kwargs):
         self.assertRaises(Exception, f, *args, **kwargs)
+
+    @slow
+    def test_style_by_column(self):
+        import matplotlib.pyplot as plt
+        fig = plt.gcf()
+        fig.clf()
+        fig.add_subplot(111)
+
+        df = DataFrame(np.random.randn(100, 3))
+        markers = {0: '^', 1: '+', 2: 'o'}
+        ax = df.plot(style=markers)
+        for i, l in enumerate(ax.get_lines()):
+            self.assertEqual(l.get_marker(), markers[i])
+
+        fig.clf()
+        fig.add_subplot(111)
+        df = DataFrame(np.random.randn(100, 3))
+        markers = ['^', '+', 'o']
+        ax = df.plot(style=markers)
+        for i, l in enumerate(ax.get_lines()):
+            self.assertEqual(l.get_marker(), markers[i])
 
 class TestDataFrameGroupByPlots(unittest.TestCase):
 

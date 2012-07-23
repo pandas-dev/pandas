@@ -21,6 +21,8 @@ import pandas.util.testing as tm
 from pandas.tseries.index import _to_m8
 import pandas.tseries.offsets as offsets
 
+import pandas as pd
+
 class TestIndex(unittest.TestCase):
 
     def setUp(self):
@@ -394,6 +396,20 @@ class TestIndex(unittest.TestCase):
         idx2 = idx[::-1]
         self.assertRaises(KeyError, idx2.slice_locs, 8, 2)
         self.assertRaises(KeyError, idx2.slice_locs, 7, 3)
+
+    def test_slice_locs_dup(self):
+        idx = Index(['a', 'a', 'b', 'c', 'd', 'd'])
+        rs = idx.slice_locs('a', 'd')
+        self.assert_(rs == (0, 6))
+
+        rs2 = idx.slice_locs(end='d')
+        self.assert_(rs == (0, 6))
+
+        rs = idx.slice_locs('a', 'c')
+        self.assert_(rs == (0, 4))
+
+        rs = idx.slice_locs('b', 'd')
+        self.assert_(rs == (2, 6))
 
     def test_drop(self):
         n = len(self.strIndex)
@@ -999,6 +1015,11 @@ class TestMultiIndex(unittest.TestCase):
         assert(result == expected)
         # self.assertRaises(Exception, index.get_loc, 2)
 
+        index = Index(['c', 'a', 'a', 'b', 'b'])
+        rs = index.get_loc('c')
+        xp = 0
+        assert(rs == xp)
+
     def test_get_loc_level(self):
         index = MultiIndex(levels=[Index(range(4)),
                                    Index(range(4)),
@@ -1192,6 +1213,25 @@ class TestMultiIndex(unittest.TestCase):
                            labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
                            names=[0, 1])
         index.format(names=True)
+
+    def test_format_sparse_display(self):
+        index = MultiIndex(levels=[[0, 1], [0, 1], [0, 1], [0]],
+                           labels=[[0, 0, 0, 1, 1, 1],
+                                   [0, 0, 1, 0, 0, 1],
+                                   [0, 1, 0, 0, 1, 0],
+                                   [0, 0, 0, 0, 0, 0]])
+
+        result = index.format()
+        self.assertEqual(result[3], '1  0  0  0')
+
+    def test_format_sparse_config(self):
+        # #1538
+        pd.set_printoptions(multi_sparse=False)
+
+        result = self.index.format()
+        self.assertEqual(result[1], 'foo  two')
+
+        pd.reset_printoptions()
 
     def test_bounds(self):
         self.index._bounds
@@ -1556,6 +1596,10 @@ class TestMultiIndex(unittest.TestCase):
                                    [0, 1, 2, 0, 0, 1, 2]])
         self.assert_(index.has_duplicates)
 
+    def test_tolist(self):
+        result = self.index.tolist()
+        exp = list(self.index.values)
+        self.assertEqual(result, exp)
 
 
 def test_get_combined_index():

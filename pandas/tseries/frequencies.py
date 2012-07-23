@@ -19,7 +19,6 @@ class FreqGroup(object):
     FR_HR = 7000
     FR_MIN = 8000
     FR_SEC = 9000
-    FR_UND = -10000
 
 def get_freq_group(freq):
     if isinstance(freq, basestring):
@@ -117,11 +116,9 @@ _offset_map = {
     'A-OCT' : YearEnd(month=10),
     'A-NOV' : YearEnd(month=11),
     'A-DEC' : YearEnd(month=12),
-    'A'     : YearEnd(month=12),
 
     # Annual - Calendar (start)
     'AS-JAN' : YearBegin(month=1),
-    'AS'     : YearBegin(month=1),
     'AS-FEB' : YearBegin(month=2),
     'AS-MAR' : YearBegin(month=3),
     'AS-APR' : YearBegin(month=4),
@@ -147,11 +144,9 @@ _offset_map = {
     'BA-OCT' : BYearEnd(month=10),
     'BA-NOV' : BYearEnd(month=11),
     'BA-DEC' : BYearEnd(month=12),
-    'BA'     : BYearEnd(month=12),
 
     # Annual - Business (Start)
     'BAS-JAN' : BYearBegin(month=1),
-    'BAS'     : BYearBegin(month=1),
     'BAS-FEB' : BYearBegin(month=2),
     'BAS-MAR' : BYearBegin(month=3),
     'BAS-APR' : BYearBegin(month=4),
@@ -298,6 +293,11 @@ _rule_aliases = {
     'Q@FEB': 'BQ-FEB',
     'Q@MAR': 'BQ-MAR',
     'Q' : 'Q-DEC',
+
+    'A'     : 'A-DEC', # YearEnd(month=12),
+    'AS'     : 'AS-JAN', # YearBegin(month=1),
+    'BA'     : 'BA-DEC', # BYearEnd(month=12),
+    'BAS'     : 'BAS-JAN', # BYearBegin(month=1),
 
     'A@JAN' : 'BA-JAN',
     'A@FEB' : 'BA-FEB',
@@ -554,8 +554,6 @@ _period_code_map = {
     "H"      : 7000,   # Hourly
     "T"      : 8000,   # Minutely
     "S"      : 9000,   # Secondly
-    None     : -10000  # Undefined
-
 }
 
 _reverse_period_code_map = {}
@@ -582,7 +580,6 @@ def _period_alias_dictionary():
     H_aliases = ["H", "HR", "HOUR", "HRLY", "HOURLY"]
     T_aliases = ["T", "MIN", "MINUTE", "MINUTELY"]
     S_aliases = ["S", "SEC", "SECOND", "SECONDLY"]
-    U_aliases = ["U", "UND", "UNDEF", "UNDEFINED"]
 
     for k in M_aliases:
         alias_dict[k] = 'M'
@@ -601,9 +598,6 @@ def _period_alias_dictionary():
 
     for k in S_aliases:
         alias_dict[k] = 'S'
-
-    for k in U_aliases:
-        alias_dict[k] = None
 
     A_prefixes = ["A", "Y", "ANN", "ANNUAL", "ANNUALLY", "YR", "YEAR",
                   "YEARLY"]
@@ -927,6 +921,9 @@ def is_subperiod(source, target):
     target = target.upper()
     source = source.upper()
     if _is_annual(target):
+        if _is_quarterly(source):
+            return _quarter_months_conform(_get_rule_month(source),
+                                           _get_rule_month(target))
         return source in ['D', 'B', 'M', 'H', 'T', 'S']
     elif _is_quarterly(target):
         return source in ['D', 'B', 'M', 'H', 'T', 'S']
