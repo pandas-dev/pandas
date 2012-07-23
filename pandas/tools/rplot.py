@@ -128,9 +128,11 @@ class Layer:
 				y = row[self.aesthetics['y']]
 				size_scaler = self.aesthetics['size']
 				colour_scaler = self.aesthetics['colour']
+				alpha = self.aesthetics['alpha']
 				ax.scatter(x, y, 
 					s=size_scaler(self.data, index),
-					c=colour_scaler(self.data, index))
+					c=colour_scaler(self.data, index),
+					alpha=alpha)
 			ax.set_xlabel(self.aesthetics['x'])
 			ax.set_ylabel(self.aesthetics['y'])
 
