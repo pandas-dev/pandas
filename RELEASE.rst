@@ -22,6 +22,15 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.8.2
+============
+
+**Release date:** NOT YET RELEASED
+
+**Improvements to existing features**
+
+  - Add ``flags`` option for ``re.compile`` in some Series.str methods (#1659)
+
 pandas 0.8.1
 ============
 
