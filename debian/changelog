@@ -1,6 +1,7 @@
 pandas (0.8.1-1) unstable; urgency=low
 
   * Primarily a bugfix upstream release.
+  * up_tag_yahoo_test_requiring_network patch removed.
 
  -- Yaroslav Halchenko <debian@onerussian.com>  Sun, 22 Jul 2012 20:13:16 -0400
 
