@@ -55,13 +55,13 @@ def parse_facets(facet):
 	lhs, rhs = [col.strip() for col in facet.split('~')]
 	return (lhs, rhs)
 
-def scale_size(column, categorical, min_size=1.0, max_size=50.0):
+def scale_size(column, categorical, min_size=1.0, max_size=80.0):
 	"""Creates a function that converts between a data attribute to point size.
 
 	Parameters:
 	-----------
 	column: string, a column name
-	categorical: boolean, wether the column contains categorical data
+	categorical: boolean, true if the column contains categorical data
 	min_size: float, minimum point size
 	max_size: float, maximum point size
 
@@ -77,6 +77,37 @@ def scale_size(column, categorical, min_size=1.0, max_size=50.0):
 			a = min(data[column])
 			b = max(data[column])
 			return min_size + ((x - a) / (b - a)) * (max_size - min_size)
+	return scaler
+
+def scale_gradient(column, categorical, colour1=(0.0, 0.0, 0.0), colour2=(1.0, 0.7, 0.8)):
+	"""Create a function that converts between a data attribute value to a 
+	point in colour space between two specified colours.
+
+	Parameters:
+	-----------
+	column: string, a column name
+	categorical: boolean, true if the column contains categorical data
+	colour1: a tuple with three float values specifying rgb components
+	colour2: a tuple with three float values specifying rgb components
+
+	Returns:
+	--------
+	a function of two arguments that takes a data set and a row number, returns a
+	tuple with three float values with rgb component values.
+	"""
+	def scaler(data, index):
+		if categorical:
+			pass
+		else:
+			x = data[column].iget(index)
+			a = min(data[column])
+			b = max(data[column])
+			r1, g1, b1 = colour1
+			r2, g2, b2 = colour2
+			x_scaled = (x - a) / (b - a)
+			return (r1 + (r2 - r1) * x_scaled,
+					g1 + (g2 - g1) * x_scaled,
+					b1 + (b2 - b1) * x_scaled)
 	return scaler
 
 class Layer:
@@ -95,8 +126,13 @@ class Layer:
 				row = self.data.irow(index)
 				x = row[self.aesthetics['x']]
 				y = row[self.aesthetics['y']]
-				size_scaler = self.aesthetics['size'](self.data, index)
-				ax.scatter(x, y, size_scaler(self.data, index))
+				size_scaler = self.aesthetics['size']
+				colour_scaler = self.aesthetics['colour']
+				ax.scatter(x, y, 
+					s=size_scaler(self.data, index),
+					c=colour_scaler(self.data, index))
+			ax.set_xlabel(self.aesthetics['x'])
+			ax.set_ylabel(self.aesthetics['y'])
 
 class RPlot:
 	def __init__(self, data, x=None, y=None):
