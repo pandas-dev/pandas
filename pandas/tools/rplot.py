@@ -56,6 +56,19 @@ def parse_facets(facet):
 	return (lhs, rhs)
 
 def scale_size(column, categorical, min_size=1.0, max_size=50.0):
+	"""Creates a function that converts between a data attribute to point size.
+
+	Parameters:
+	-----------
+	column: string, a column name
+	categorical: boolean, wether the column contains categorical data
+	min_size: float, minimum point size
+	max_size: float, maximum point size
+
+	Returns:
+	--------
+	a function of two arguments that takes a data set and a row number, returns float
+	"""
 	def scaler(data, index):
 		if categorical:
 			pass
