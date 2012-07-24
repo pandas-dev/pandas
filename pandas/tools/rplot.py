@@ -151,6 +151,24 @@ def scale_gradient2(column, categorical, colour1=(0.0, 0.0, 0.0), colour2=(1.0, 
 						b2 + (b3 - b2) * x_scaled)
 	return scaler
 
+def scale_shape(column):
+	"""Create a function that converts between a categorical value and a scatter plot shape.
+
+	Parameters:
+	-----------
+	column: string, a column name to use
+
+	Returns:
+	--------
+	a function of two arguments
+	"""
+	shapes = ['o', 'D', 'h', 'H', '_', '8', 'p', '+', '.', 's', '*', 'd', '^', '<', '>', 'v', '|', 'x']
+	def scaler(data, index):
+		values = list(set(data[column]))
+		x = data[column].iget(index)
+		return shapes[values.index(x)]
+	return scaler
+
 def scale_constant(constant):
 	"""Create a function that always returns a specified constant value.
 
@@ -194,10 +212,12 @@ class Layer:
 				y = row[self.aesthetics['y']]
 				size_scaler = self.aesthetics['size']
 				colour_scaler = self.aesthetics['colour']
+				shape_scaler = self.aesthetics['shape']
 				alpha = self.aesthetics['alpha']
 				ax.scatter(x, y, 
 					s=size_scaler(self.data, index),
 					c=colour_scaler(self.data, index),
+					marker=shape_scaler(self.data, index),
 					alpha=alpha)
 			ax.set_xlabel(self.aesthetics['x'])
 			ax.set_ylabel(self.aesthetics['y'])
