@@ -3,6 +3,7 @@ import scipy.stats as stats
 import matplotlib.pyplot as plt
 import random
 import pdb
+from copy import deepcopy
 
 def random_colour(name):
 	"""Random colour from a string or other hashable value.
@@ -121,6 +122,16 @@ class Layer:
 		self.aesthetics = aesthetics
 
 	def render(self, ax):
+		"""Render the layer on a matplotlib axis.
+
+		Parameters:
+		-----------
+		ax: matplotlib axis object to draw on
+
+		Returns:
+		--------
+		ax: matplotlib axis object
+		"""
 		if self.geom == 'point':
 			for index in range(len(self.data)):
 				row = self.data.irow(index)
@@ -129,12 +140,14 @@ class Layer:
 				size_scaler = self.aesthetics['size']
 				colour_scaler = self.aesthetics['colour']
 				alpha = self.aesthetics['alpha']
+				print colour_scaler(self.data, index)
 				ax.scatter(x, y, 
 					s=size_scaler(self.data, index),
 					c=colour_scaler(self.data, index),
 					alpha=alpha)
 			ax.set_xlabel(self.aesthetics['x'])
 			ax.set_ylabel(self.aesthetics['y'])
+		return ax
 
 def display_grouped(grouped_data, x, y, fig):
 	"""A test routine to display grouped data.
@@ -166,12 +179,116 @@ def display_grouped(grouped_data, x, y, fig):
 		ax.scatter(group[x], group[y])
 		subplot_nr += 1
 
-class RPlot:
-	def __init__(self):
+class TrellisGrid:
+	def __init__(self, layer, by):
+		"""Initialize TreelisGrid instance.
+
+		Parameters:
+		-----------
+		layer: a Layer object instance
+		by: column names to group by
+		"""
+		self.data = layer.data
+		self.grouped = self.data.groupby(by)
+		self.groups = self.grouped.groups.keys()
+		self.shingle1 = set([g[0] for g in self.groups])
+		self.shingle2 = set([g[1] for g in self.groups])
+		self.rows = len(self.shingle1)
+		self.cols = len(self.shingle2)
+		self.grid = [[None for _ in range(self.cols)] for _ in range(self.rows)]
+		self.group_grid = [[None for _ in range(self.cols)] for _ in range(self.rows)]
+		row = 0
+		col = 0
+		print self.rows, self.cols, len(self.groups), len(self.grouped)
+		for group, data in self.grouped:
+			print row, col
+			new_layer = deepcopy(layer)
+			new_layer.data = data
+			self.grid[row][col] = new_layer
+			col += 1
+			if col >= self.cols:
+				col = 0
+				row += 1
+
+	def get_layer(self, row, col):
+		"""Get a layer associated with the specified row and col.
+
+		Parameters:
+		-----------
+		row: integer row index
+		col: integer column index
+
+		Returns:
+		--------
+		layer object
+		"""
+		return self.grid[row][col]
+
+	def get_group(self, row, col):
+		"""Get a group tuple for the specified row and col.
+
+		Parameters:
+		-----------
+		row: integer row index
+		col: integer column index 
+
+		Returns:
+		--------
+		a tuple
+		"""
+		return self.group_grid[row][col]
+
+	def render(self, fig):
+		"""Render the trellis plot on a figure.
+
+		Parameters:
+		-----------
+		fig: matplotlib figure to draw on
+
+		Returns:
+		--------
+		matplotlib figure
+		"""
+		index = 1
+		for row in self.grid:
+			for layer in row:
+				ax = fig.add_subplot(self.rows, self.cols, index)
+				layer.render(ax)
+		return fig
+
+def facetize(layer, by):
+	"""Create a grouped plot by taking a layer and cloning it with changed data.
+
+	Parameters:
+	-----------
+	layer: an rplot layer object to be used as the basis for facetizing
+	by: column names to group by
+
+	Returns:
+	--------
+	a two dimensional array of layers arranged in a way that they would be displayed
+	"""
+	data = layer.data
+	grouped = data.groupby(by)
+	groups = grouped.groups.keys()
+	shingle1 = set([g[0] for g in groups])
+	shingle2 = set([g[1] for g in groups])
+	rows = len(shingle1)
+	cols = len(shingle2)
+	if cols == 0:
+		cols = 1
+	grid = [[[] for _ in range(cols)] for _ in range(rows)]
+	col = 0
+	row = 0
+	for group, data in grouped:
 		pass
 
+class RPlot:
+	def __init__(self):
+		self.layers = []
+
 	def __add__(self, other):
-		pass
+		self.layers.append(other)
 
 class GeomPoint:
 	def __init__(self, x=None, y=None, shape='o', colour='grey', size=20, alpha=1.0):
