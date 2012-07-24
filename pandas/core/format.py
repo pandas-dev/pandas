@@ -137,11 +137,11 @@ if py3compat.PY3:  # pragma: no cover
     _strlen = len
 else:
     def _encode_diff(x):
-        return len(x) - len(x.decode('utf-8'))
+        return len(x) - len(x.decode(print_config.encoding))
 
     def _strlen(x):
         try:
-            return len(x.decode('utf-8'))
+            return len(x.decode(print_config.encoding))
         except UnicodeError:
             return len(x)
 
@@ -489,30 +489,15 @@ class GenericArrayFormatter(object):
         self.justify = justify
 
     def get_result(self):
-        if self._conv_unicode():
+        if self._have_unicode():
             fmt_values = self._format_strings(use_unicode=True)
         else:
             fmt_values = self._format_strings(use_unicode=False)
 
         return _make_fixed_width(fmt_values, self.justify)
 
-    def _conv_unicode(self):
-        #check if any needs and can be converted to nonascii encoding
-        def _nonascii(x):
-            if isinstance(x, unicode):
-                return True
-            try:
-                if isinstance(x, str):
-                    x.decode('ascii')
-                    return False
-            except UnicodeError:
-                try:
-                    x.decode(print_config.encoding)
-                    return True
-                except UnicodeError:
-                    return False
-            return False
-        mask = lib.map_infer(self.values, _nonascii)
+    def _have_unicode(self):
+        mask = lib.map_infer(self.values, lambda x: isinstance(x, unicode))
         return mask.any()
 
     def _format_strings(self, use_unicode=False):
