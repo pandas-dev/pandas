@@ -69,10 +69,10 @@ class TestSeriesPlots(unittest.TestCase):
         rects = ax.patches
 
         conv = colors.colorConverter
-        for i, rect in enumerate(rects[:5]):
+        for i, rect in enumerate(rects[::5]):
             xp = conv.to_rgba(default_colors[i])
             rs = rect.get_facecolor()
-            self.assert_(xp, rs)
+            self.assert_(xp == rs)
 
         plt.close('all')
 
@@ -81,11 +81,37 @@ class TestSeriesPlots(unittest.TestCase):
         rects = ax.patches
 
         conv = colors.colorConverter
-        for i, rect in enumerate(rects[:5]):
+        for i, rect in enumerate(rects[::5]):
             xp = conv.to_rgba(custom_colors[i])
             rs = rect.get_facecolor()
-            self.assert_(xp, rs)
+            self.assert_(xp == rs)
 
+    @slow
+    def test_bar_linewidth(self):
+        df = DataFrame(np.random.randn(5, 5))
+
+        # regular
+        ax = df.plot(kind='bar', linewidth=2)
+        for r in ax.patches:
+            self.assert_(r.get_linewidth() == 2)
+
+        # stacked
+        ax = df.plot(kind='bar', stacked=True, linewidth=2)
+        for r in ax.patches:
+            self.assert_(r.get_linewidth() == 2)
+
+        # subplots
+        axes = df.plot(kind='bar', linewidth=2, subplots=True)
+        for ax in axes:
+            for r in ax.patches:
+                self.assert_(r.get_linewidth() == 2)
+
+    @slow
+    def test_1rotation(self):
+        df = DataFrame(np.random.randn(5, 5))
+        ax = df.plot(rot=30)
+        for l in ax.get_xticklabels():
+            self.assert_(l.get_rotation() == 30)
 
     @slow
     def test_irregular_datetime(self):

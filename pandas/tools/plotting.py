@@ -996,16 +996,23 @@ class LinePlot(MPLPlot):
     def _post_plot_logic(self):
         df = self.data
 
-        condition = (not self._use_dynamic_x
+        condition = (not self._use_dynamic_x()
                      and df.index.is_all_dates
                      and not self.subplots
                      or (self.subplots and self.sharex))
 
         index_name = self._get_index_name()
 
+        rot = 30
+        if self.rot is not None:
+            rot = self.rot
+
         for ax in self.axes:
             if condition:
-                format_date_labels(ax)
+                format_date_labels(ax, rot=rot)
+            elif self.rot is not None:
+                for l in ax.get_xticklabels():
+                    l.set_rotation(self.rot)
 
             if index_name is not None:
                 ax.set_xlabel(index_name)
@@ -1016,6 +1023,7 @@ class LinePlot(MPLPlot):
 
 
 class BarPlot(MPLPlot):
+
     _default_rot = {'bar' : 90, 'barh' : 0}
 
     def __init__(self, data, **kwargs):
@@ -1026,12 +1034,6 @@ class BarPlot(MPLPlot):
     def _args_adjust(self):
         if self.rot is None:
             self.rot = self._default_rot[self.kind]
-
-        if self.fontsize is None:
-            if len(self.data) < 10:
-                self.fontsize = 12
-            else:
-                self.fontsize = 10
 
     @property
     def bar_f(self):
@@ -1066,15 +1068,13 @@ class BarPlot(MPLPlot):
 
             if self.subplots:
                 ax = self._get_ax(i) #self.axes[i]
-                rect = bar_f(ax, self.ax_pos, y, 0.5, start=pos_prior,
-                             linewidth=1, **kwds)
+                rect = bar_f(ax, self.ax_pos, y, 0.5, start=pos_prior, **kwds)
                 ax.set_title(label)
             elif self.stacked:
                 mask = y > 0
                 start = np.where(mask, pos_prior, neg_prior)
-
                 rect = bar_f(ax, self.ax_pos, y, 0.5, start=start,
-                             label=label, linewidth=1, **kwds)
+                             label=label, **kwds)
                 pos_prior = pos_prior + np.where(mask, y, 0)
                 neg_prior = neg_prior + np.where(mask, 0, y)
             else:
@@ -1385,12 +1385,12 @@ def _stringify(x):
         return str(x)
 
 
-def format_date_labels(ax):
+def format_date_labels(ax, rot):
     # mini version of autofmt_xdate
     try:
         for label in ax.get_xticklabels():
             label.set_ha('right')
-            label.set_rotation(30)
+            label.set_rotation(rot)
         fig = ax.get_figure()
         fig.subplots_adjust(bottom=0.2)
     except Exception: # pragma: no cover
