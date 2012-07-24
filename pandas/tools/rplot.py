@@ -111,6 +111,46 @@ def scale_gradient(column, categorical, colour1=(0.0, 0.0, 0.0), colour2=(1.0, 0
 					b1 + (b2 - b1) * x_scaled)
 	return scaler
 
+def scale_gradient2(column, categorical, colour1=(0.0, 0.0, 0.0), colour2=(1.0, 0.7, 0.8), colour3=(0.2, 1.0, 0.5)):
+	"""Create a function that converts between a data attribute value to a 
+	point in colour space between three specified colours.
+
+	Parameters:
+	-----------
+	column: string, a column name
+	categorical: boolean, true if the column contains categorical data
+	colour1: a tuple with three float values specifying rgb components
+	colour2: a tuple with three float values specifying rgb components
+	colour3: a tuple with three float values specifying rgb components
+
+	Returns:
+	--------
+	a function of two arguments that takes a data set and a row number, returns a
+	tuple with three float values with rgb component values.
+	"""
+	def scaler(data, index):
+		if categorical:
+			pass
+		else:
+			x = data[column].iget(index)
+			a = min(data[column])
+			b = max(data[column])
+			r1, g1, b1 = colour1
+			r2, g2, b2 = colour2
+			r3, g3, b3 = colour3
+			x_scaled = (x - a) / (b - a)
+			if x_scaled < 0.5:
+				x_scaled *= 2.0
+				return (r1 + (r2 - r1) * x_scaled,
+						g1 + (g2 - g1) * x_scaled,
+						b1 + (b2 - b1) * x_scaled)
+			else:
+				x_scaled = (x_scaled - 0.5) * 2.0
+				return (r2 + (r3 - r2) * x_scaled,
+						g2 + (g3 - g2) * x_scaled,
+						b2 + (b3 - b2) * x_scaled)
+	return scaler
+
 def scale_constant(constant):
 	"""Create a function that always returns a specified constant value.
 
@@ -186,7 +226,6 @@ def display_grouped(grouped_data, x, y, fig):
 			shingle1.add(name)
 	rows = len(shingle1)
 	cols = len(shingle2)
-	print rows, cols
 	subplot_nr = 1
 	for name, group, in grouped_data:
 		ax = fig.add_subplot(rows, cols, subplot_nr)
@@ -213,9 +252,7 @@ class TrellisGrid:
 		self.group_grid = [[None for _ in range(self.cols)] for _ in range(self.rows)]
 		row = 0
 		col = 0
-		print self.rows, self.cols, len(self.groups), len(self.grouped)
 		for group, data in self.grouped:
-			print row, col
 			new_layer = deepcopy(layer)
 			new_layer.data = data
 			self.grid[row][col] = new_layer
@@ -268,6 +305,7 @@ class TrellisGrid:
 			for layer in row:
 				ax = fig.add_subplot(self.rows, self.cols, index)
 				layer.render(ax)
+				index += 1
 		return fig
 
 def facetize(layer, by):
