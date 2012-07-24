@@ -200,24 +200,10 @@ def parse_time_string(arg, freq=None):
             except Exception:
                 pass
 
-    # f7u12
-    try:
-        ret = datetime.strptime(arg, '%Y-%m')
-        return ret, ret, 'month'
-    except Exception:
-        pass
-
-    try:
-        ret = datetime.strptime(arg, '%b %Y')
-        return ret, ret, 'month'
-    except Exception:
-        pass
-
-    try:
-        ret = datetime.strptime(arg, '%b-%Y')
-        return ret, ret, 'month'
-    except Exception:
-        pass
+    # montly f7u12
+    mresult = _attempt_monthly(arg)
+    if mresult:
+        return mresult
 
     dayfirst = print_config.date_dayfirst
     yearfirst = print_config.date_yearfirst
@@ -246,6 +232,16 @@ def parse_time_string(arg, freq=None):
             break
     ret = default.replace(**repl)
     return ret, parsed, reso  # datetime, resolution
+
+def _attempt_monthly(val):
+    pats = ['%Y-%m', '%m-%Y', '%b %Y', '%b-%Y']
+    for pat in pats:
+        try:
+            ret = datetime.strptime(val, pat)
+            return ret, ret, 'month'
+        except Exception:
+            pass
+
 
 def _try_parse_monthly(arg):
     base = 2000

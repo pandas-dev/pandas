@@ -1434,6 +1434,8 @@ class TestLegacySupport(unittest.TestCase):
         df = DataFrame(np.random.rand(len(dti), 5), index=dti)
         self.assertEquals(len(df.ix['2005-11']), 30)
 
+        assert_series_equal(s['2005-11'], s['11-2005'])
+
     def test_partial_slice(self):
         rng = DatetimeIndex(freq='D', start=datetime(2005,1,1), periods=500)
         s = Series(np.arange(len(rng)), index=rng)

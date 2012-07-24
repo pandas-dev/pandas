@@ -31,6 +31,10 @@ pandas 0.8.2
 
   - Add ``flags`` option for ``re.compile`` in some Series.str methods (#1659)
 
+**Bug fixes**
+
+  - Fix MM-YYYY time series indexing case (#1672)
+
 pandas 0.8.1
 ============
 
