@@ -641,7 +641,7 @@ class TestStringMethods(unittest.TestCase):
 
     def test_match_findall_flags(self):
         data = {'Dave': 'dave@google.com', 'Steve': 'steve@gmail.com',
-		'Rob': 'rob@gmail.com', 'Wes': np.nan}
+                'Rob': 'rob@gmail.com', 'Wes': np.nan}
         data = Series(data)
 
         pat = pattern = r'([A-Z0-9._%+-]+)@([A-Z0-9.-]+)\.([A-Z]{2,4})'
