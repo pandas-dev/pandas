@@ -144,3 +144,15 @@ strings = [x.strftime('%Y-%m-%d %H:%M:%S') for x in rng]
 timeseries_to_datetime_iso8601 = \
     Benchmark('to_datetime(strings)', setup,
               start_date=datetime(2012, 7, 11))
+
+# ---- infer_freq
+# infer_freq
+
+setup = common_setup + """
+from pandas.tseries.frequencies import infer_freq
+rng = date_range('1/1/1700', freq='D', periods=100000)
+a = rng[:50000].append(rng[50002:])
+"""
+
+timeseries_infer_freq = \
+    Benchmark('infer_freq(a)', setup, start_date=datetime(2012, 7, 1))

@@ -828,8 +828,13 @@ class LinePlot(MPLPlot):
     def _index_freq(self):
         from pandas.core.frame import DataFrame
         if isinstance(self.data, (Series, DataFrame)):
-            freq = (getattr(self.data.index, 'freq', None)
-                    or getattr(self.data.index, 'inferred_freq', None))
+            freq = getattr(self.data.index, 'freq', None)
+            if freq is None:
+                freq = getattr(self.data.index, 'inferred_freq', None)
+                if freq == 'B':
+                    weekdays = np.unique(self.data.index.dayofweek)
+                    if (5 in weekdays) or (6 in weekdays):
+                        freq = None
             return freq
 
     def _is_dynamic_freq(self, freq):

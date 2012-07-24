@@ -137,6 +137,18 @@ class TestTSPlot(unittest.TestCase):
             _check_plot_works(ser.plot)
 
     @slow
+    def test_fake_inferred_business(self):
+        import matplotlib.pyplot as plt
+        fig = plt.gcf()
+        plt.clf()
+        fig.add_subplot(111)
+        rng = date_range('2001-1-1', '2001-1-10')
+        ts = Series(range(len(rng)), rng)
+        ts = ts[:3].append(ts[5:])
+        ax = ts.plot()
+        self.assert_(not hasattr(ax, 'freq'))
+
+    @slow
     def test_plot_offset_freq(self):
         ser = tm.makeTimeSeries()
         _check_plot_works(ser.plot)
