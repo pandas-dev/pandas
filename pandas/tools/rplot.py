@@ -136,22 +136,42 @@ class Layer:
 			ax.set_xlabel(self.aesthetics['x'])
 			ax.set_ylabel(self.aesthetics['y'])
 
+def display_grouped(grouped_data, x, y, fig):
+	"""A test routine to display grouped data.
+
+	Parameters:
+	-----------
+	grouped_data: data frame grouped by df.groupby pandas routine
+	fig: matplotlib figure
+
+	Returns:
+	--------
+	Nothing
+	"""
+	shingle1 = set([])
+	shingle2 = set([])
+	# Fill shingles.
+	for name, group in grouped_data:
+		if type(name) is type(()):
+			shingle1.add(name[0])
+			shingle2.add(name[1])
+		else:
+			shingle1.add(name)
+	rows = len(shingle1)
+	cols = len(shingle2)
+	print rows, cols
+	subplot_nr = 1
+	for name, group, in grouped_data:
+		ax = fig.add_subplot(rows, cols, subplot_nr)
+		ax.scatter(group[x], group[y])
+		subplot_nr += 1
+
 class RPlot:
-	def __init__(self, data, x=None, y=None):
-		seomlf.data = data
-		self.ax = plt.gca()
-		self.aes = {
-			'x' : None,
-			'y' : None,
-		}
-		if x is not None and y is None:
-			self.aes['x'] = x
-		elif x is not None and y is not None:
-			self.aes['x'] = x
-			self.aes['y'] = y
+	def __init__(self):
+		pass
 
 	def __add__(self, other):
-		return other.plot(self)
+		pass
 
 class GeomPoint:
 	def __init__(self, x=None, y=None, shape='o', colour='grey', size=20, alpha=1.0):
