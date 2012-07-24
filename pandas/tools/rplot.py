@@ -111,6 +111,21 @@ def scale_gradient(column, categorical, colour1=(0.0, 0.0, 0.0), colour2=(1.0, 0
 					b1 + (b2 - b1) * x_scaled)
 	return scaler
 
+def scale_constant(constant):
+	"""Create a function that always returns a specified constant value.
+
+	Parameters:
+	-----------
+	constant: a Python object to be returned
+
+	Returns:
+	--------
+	a two argument function
+	"""
+	def scaler(data, index):
+		return constant
+	return scaler
+
 class Layer:
 	"""
 	Layer object representing a single plot layer.
@@ -140,7 +155,6 @@ class Layer:
 				size_scaler = self.aesthetics['size']
 				colour_scaler = self.aesthetics['colour']
 				alpha = self.aesthetics['alpha']
-				print colour_scaler(self.data, index)
 				ax.scatter(x, y, 
 					s=size_scaler(self.data, index),
 					c=colour_scaler(self.data, index),
