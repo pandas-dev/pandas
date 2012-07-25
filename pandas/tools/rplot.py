@@ -200,7 +200,7 @@ class Layer:
 		self.aesthetics = aesthetics
 
 class GeomPoint(Layer):
-	def work(self, ax):
+	def work(self, ax=None, fig=None):
 		"""Render the layer on a matplotlib axis.
 
 		Parameters:
@@ -316,7 +316,7 @@ class TrellisGrid:
 		"""
 		return self.group_grid[row][col]
 
-	def render(self, fig):
+	def work(self, ax=None, fig=None):
 		"""Render the trellis plot on a figure.
 
 		Parameters:
@@ -363,39 +363,16 @@ class TrellisGrid:
 		fig.subplots_adjust(wspace=0.05, hspace=0.2)
 		return fig
 
-def facetize(layer, by):
-	"""Create a grouped plot by taking a layer and cloning it with changed data.
-
-	Parameters:
-	-----------
-	layer: an rplot layer object to be used as the basis for facetizing
-	by: column names to group by
-
-	Returns:
-	--------
-	a two dimensional array of layers arranged in a way that they would be displayed
-	"""
-	data = layer.data
-	grouped = data.groupby(by)
-	groups = grouped.groups.keys()
-	shingle1 = set([g[0] for g in groups])
-	shingle2 = set([g[1] for g in groups])
-	rows = len(shingle1)
-	cols = len(shingle2)
-	if cols == 0:
-		cols = 1
-	grid = [[[] for _ in range(cols)] for _ in range(rows)]
-	col = 0
-	row = 0
-	for group, data in grouped:
-		pass
-
 class RPlot:
 	def __init__(self):
 		self.layers = []
 
 	def __add__(self, other):
 		self.layers.append(other)
+
+	def show(self, fig):
+		for layer in self.layers:
+			pass
 
 class GeomDensity2d:
 	def __init__(self, x=None, y=None, weight=1.0, colour='grey', size=0.5, linetype=1.0, alpha=1.0):
