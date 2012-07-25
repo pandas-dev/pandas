@@ -195,13 +195,12 @@ class Layer:
 	"""
 	Layer object representing a single plot layer.
 	"""
-	def __init__(self, geom, geom_params, data, aesthetics):
-		self.geom = geom
-		self.geom_params = geom_params
+	def __init__(self, data, aesthetics):
 		self.data = data
 		self.aesthetics = aesthetics
 
-	def render(self, ax):
+class GeomPoint(Layer):
+	def work(self, ax):
 		"""Render the layer on a matplotlib axis.
 
 		Parameters:
@@ -212,23 +211,22 @@ class Layer:
 		--------
 		ax: matplotlib axis object
 		"""
-		if self.geom == 'point':
-			for index in range(len(self.data)):
-				row = self.data.irow(index)
-				x = row[self.aesthetics['x']]
-				y = row[self.aesthetics['y']]
-				size_scaler = self.aesthetics['size']
-				colour_scaler = self.aesthetics['colour']
-				shape_scaler = self.aesthetics['shape']
-				alpha = self.aesthetics['alpha']
-				ax.scatter(x, y, 
-					s=size_scaler(self.data, index),
-					c=colour_scaler(self.data, index),
-					marker=shape_scaler(self.data, index),
-					alpha=alpha)
-			ax.set_xlabel(self.aesthetics['x'])
-			ax.set_ylabel(self.aesthetics['y'])
-		return ax
+		for index in range(len(self.data)):
+			row = self.data.irow(index)
+			x = row[self.aesthetics['x']]
+			y = row[self.aesthetics['y']]
+			size_scaler = self.aesthetics['size']
+			colour_scaler = self.aesthetics['colour']
+			shape_scaler = self.aesthetics['shape']
+			alpha = self.aesthetics['alpha']
+			ax.scatter(x, y, 
+				s=size_scaler(self.data, index),
+				c=colour_scaler(self.data, index),
+				marker=shape_scaler(self.data, index),
+				alpha=alpha)
+		ax.set_xlabel(self.aesthetics['x'])
+		ax.set_ylabel(self.aesthetics['y'])
+	return ax
 
 def display_grouped(grouped_data, x, y, fig):
 	"""A test routine to display grouped data.
@@ -398,34 +396,6 @@ class RPlot:
 
 	def __add__(self, other):
 		self.layers.append(other)
-
-class GeomPoint:
-	def __init__(self, x=None, y=None, shape='o', colour='grey', size=20, alpha=1.0):
-		self.x = x
-		self.y = y
-		self.shape = shape
-		self.colour = colour
-		self.size = size
-		self.alpha = alpha
-
-	def plot(self, rplot):
-		aes = rplot.aes
-		if self.x is not None:
-			aes['x'] = self.x
-		if self.y is not None:
-			aes['y'] = self.y
-		if type(self.colour) is not type(""):
-			colours = list(set(self.colour))
-			for colour in colours:
-				xcol = filter_column(rplot.data, aes['x'], self.colour.name, colour)
-				ycol = filter_column(rplot.data, aes['y'], self.colour.name, colour)
-				rplot.ax.scatter(xcol, ycol, c=random_colour(colour), marker=self.shape, s=self.size, alpha=self.alpha, label=colour)
-		else:
-			rplot.ax.scatter(rplot.data[aes['x']], rplot.data[aes['y']], c=self.colour, marker=self.shape, s=self.size, alpha=self.alpha)
-		rplot.ax.set_xlabel(aes['x'])
-		rplot.ax.set_ylabel(aes['y'])
-		rplot.ax.legend()
-		return rplot
 
 class GeomDensity2d:
 	def __init__(self, x=None, y=None, weight=1.0, colour='grey', size=0.5, linetype=1.0, alpha=1.0):
