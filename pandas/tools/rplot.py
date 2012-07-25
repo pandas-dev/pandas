@@ -191,16 +191,28 @@ def scale_constant(constant):
 		return constant
 	return scaler
 
+def aes(x=None, y=None, size=None, colour=None, shape=None, alpha=None):
+	"""Create aesthetics dictionary.
+	"""
+	return {
+		'x' : x,
+		'y' : y,
+		'size' : size,
+		'colour' : colour,
+		'shape' : shape,
+		'alpha' : alpha,
+	}
+
 class Layer:
 	"""
 	Layer object representing a single plot layer.
 	"""
-	def __init__(self, data, aesthetics):
+	def __init__(self, data=None, aes=None):
 		self.data = data
-		self.aesthetics = aesthetics
+		self.aes = aes
 
 class GeomPoint(Layer):
-	def work(self, ax=None, fig=None):
+	def work(self, rplot):
 		"""Render the layer on a matplotlib axis.
 
 		Parameters:
@@ -226,7 +238,7 @@ class GeomPoint(Layer):
 				alpha=alpha)
 		ax.set_xlabel(self.aesthetics['x'])
 		ax.set_ylabel(self.aesthetics['y'])
-	return ax
+	return ax, fig
 
 def display_grouped(grouped_data, x, y, fig):
 	"""A test routine to display grouped data.
@@ -361,18 +373,22 @@ class TrellisGrid:
 			else:
 				axis.table(cellText=[[label1]], loc='top', cellLoc='center', cellColours=[['lightgrey']])
 		fig.subplots_adjust(wspace=0.05, hspace=0.2)
-		return fig
+		return ax, fig
 
 class RPlot:
+	"""
+	The main plot object. Add layers to an instance of this object to create a plot.
+	"""
 	def __init__(self):
 		self.layers = []
 
 	def __add__(self, other):
 		self.layers.append(other)
 
-	def show(self, fig):
-		for layer in self.layers:
-			pass
+	def show(self, fig=None):
+		if fig is None:
+			fig = plt.gcf()
+		pass
 
 class GeomDensity2d:
 	def __init__(self, x=None, y=None, weight=1.0, colour='grey', size=0.5, linetype=1.0, alpha=1.0):
