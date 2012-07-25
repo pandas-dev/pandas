@@ -5,6 +5,13 @@ import random
 import pdb
 from copy import deepcopy
 
+#
+# TODO:
+# * Make sure trellis display works when two or one grouping variable is specified
+# * Enable labelling for legend display
+# * Expand RPlot class
+#
+
 def random_colour(name):
 	"""Random colour from a string or other hashable value.
 
@@ -264,6 +271,7 @@ class TrellisGrid:
 		self.data = layer.data
 		self.grouped = self.data.groupby(by)
 		self.groups = self.grouped.groups.keys()
+		self.by = by
 		self.shingle1 = set([g[0] for g in self.groups])
 		self.shingle2 = set([g[1] for g in self.groups])
 		self.rows = len(self.shingle1)
@@ -276,6 +284,7 @@ class TrellisGrid:
 			new_layer = deepcopy(layer)
 			new_layer.data = data
 			self.grid[row][col] = new_layer
+			self.group_grid[row][col] = group
 			col += 1
 			if col >= self.cols:
 				col = 0
@@ -334,7 +343,26 @@ class TrellisGrid:
 		max_y = max([ax.get_ylim()[1] for ax in axes])
 		[ax.set_xlim(min_x, max_x) for ax in axes]
 		[ax.set_ylim(min_y, max_y) for ax in axes]
-		fig.subplots_adjust(wspace=0.0, hspace=0.0)
+		for index, axis in enumerate(axes):
+			if index % self.cols == 0:
+				pass
+			else:
+				axis.get_yaxis().set_ticks([])
+				axis.set_ylabel('')
+			if index / self.cols == self.rows - 1:
+				pass
+			else:
+				axis.get_xaxis().set_ticks([])
+				axis.set_xlabel('')
+			label1 = "%s = %s" % (self.by[0], self.group_grid[index / self.cols][index % self.cols][0])
+			label2 = "%s = %s" % (self.by[1], self.group_grid[index / self.cols][index % self.cols][1])
+			if self.cols > 1:
+				axis.table(cellText=[[label1], [label2]], 
+					loc='top', cellLoc='center', 
+					cellColours=[['lightgrey'], ['lightgrey']])
+			else:
+				axis.table(cellText=[[label1]], loc='top', cellLoc='center', cellColours=[['lightgrey']])
+		fig.subplots_adjust(wspace=0.05, hspace=0.2)
 		return fig
 
 def facetize(layer, by):
