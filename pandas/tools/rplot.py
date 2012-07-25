@@ -321,11 +321,20 @@ class TrellisGrid:
 		matplotlib figure
 		"""
 		index = 1
+		axes = []
 		for row in self.grid:
 			for layer in row:
 				ax = fig.add_subplot(self.rows, self.cols, index)
 				layer.render(ax)
+				axes.append(ax)
 				index += 1
+		min_x = min([ax.get_xlim()[0] for ax in axes])
+		max_x = max([ax.get_xlim()[1] for ax in axes])
+		min_y = min([ax.get_ylim()[0] for ax in axes])
+		max_y = max([ax.get_ylim()[1] for ax in axes])
+		[ax.set_xlim(min_x, max_x) for ax in axes]
+		[ax.set_ylim(min_y, max_y) for ax in axes]
+		fig.subplots_adjust(wspace=0.0, hspace=0.0)
 		return fig
 
 def facetize(layer, by):
