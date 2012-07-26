@@ -219,6 +219,9 @@ class Layer:
 		"""
 		return False
 
+	def work(self, fig=None, ax=None):
+		pass
+
 class GeomPoint(Layer):
 	def work(self, fig=None, ax=None):
 		"""Render the layer on a matplotlib axis.
@@ -240,12 +243,12 @@ class GeomPoint(Layer):
 				ax = fig.gca()
 		for index in range(len(self.data)):
 			row = self.data.irow(index)
-			x = row[self.aesthetics['x']]
-			y = row[self.aesthetics['y']]
-			size_scaler = self.aesthetics['size']
-			colour_scaler = self.aesthetics['colour']
-			shape_scaler = self.aesthetics['shape']
-			alpha = self.aesthetics['alpha']
+			x = row[self.aes['x']]
+			y = row[self.aes['y']]
+			size_scaler = self.aes['size']
+			colour_scaler = self.aes['colour']
+			shape_scaler = self.aes['shape']
+			alpha = self.aes['alpha']
 			ax.scatter(x, y, 
 				s=size_scaler(self.data, index),
 				c=colour_scaler(self.data, index),
@@ -426,9 +429,9 @@ def merge_aes(layer1, layer2):
 	layer1: Layer object
 	layer2: Layer object
 	"""
-	for key in layer2.keys():
-		if layer2[key] is None:
-			layer2[key] = layer1[key]
+	for key in layer2.aes.keys():
+		if layer2.aes[key] is None:
+			layer2.aes[key] = layer1.aes[key]
 
 def sequence_layers(layers):
 	"""Go through the list of layers and fill in the missing bits of information.
@@ -443,7 +446,8 @@ def sequence_layers(layers):
 	for layer1, layer2 in zip(layers[:-1], layers[1:]):
 		if layer2.data is None:
 			layer2.data = layer1.data
-		layer2.aes = merge_aes(layer1, layer2)
+		merge_aes(layer1, layer2)
+	return layers
 
 class RPlot:
 	"""
@@ -468,7 +472,7 @@ class RPlot:
 			# We have a simple, non-trellised plot
 			new_layers = sequence_layers(self.layers)
 			for layer in new_layers:
-				layer.work(fig.gca())
+				layer.work(fig=fig)
 			# And we're done
 			return fig
 		else:
