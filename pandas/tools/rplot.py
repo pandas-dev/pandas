@@ -209,7 +209,15 @@ class Layer:
 	"""
 	def __init__(self, data=None, aes=None):
 		self.data = data
-		self.aes = aes
+		if aes is None:
+			self.aes = aes()
+		else:
+			self.aes = aes
+
+	def is_trellis(self):
+		"""Return false to indicate this is not a TrellisGrid.
+		"""
+		return False
 
 class GeomPoint(Layer):
 	def work(self, rplot):
@@ -269,66 +277,22 @@ def display_grouped(grouped_data, x, y, fig):
 		ax.scatter(group[x], group[y])
 		subplot_nr += 1
 
-class TrellisGrid:
-	def __init__(self, layer, by):
+class TrellisGrid(Layer):
+	def __init__(self, by):
 		"""Initialize TreelisGrid instance.
 
 		Parameters:
 		-----------
-		layer: a Layer object instance
 		by: column names to group by
 		"""
-		self.data = layer.data
-		self.grouped = self.data.groupby(by)
-		self.groups = self.grouped.groups.keys()
 		self.by = by
-		self.shingle1 = set([g[0] for g in self.groups])
-		self.shingle2 = set([g[1] for g in self.groups])
-		self.rows = len(self.shingle1)
-		self.cols = len(self.shingle2)
-		self.grid = [[None for _ in range(self.cols)] for _ in range(self.rows)]
-		self.group_grid = [[None for _ in range(self.cols)] for _ in range(self.rows)]
-		row = 0
-		col = 0
-		for group, data in self.grouped:
-			new_layer = deepcopy(layer)
-			new_layer.data = data
-			self.grid[row][col] = new_layer
-			self.group_grid[row][col] = group
-			col += 1
-			if col >= self.cols:
-				col = 0
-				row += 1
 
-	def get_layer(self, row, col):
-		"""Get a layer associated with the specified row and col.
-
-		Parameters:
-		-----------
-		row: integer row index
-		col: integer column index
-
-		Returns:
-		--------
-		layer object
+	def is_trellis(self):
+		"""Return true to indicate this is a TrellisGrid.
 		"""
-		return self.grid[row][col]
+		return True
 
-	def get_group(self, row, col):
-		"""Get a group tuple for the specified row and col.
-
-		Parameters:
-		-----------
-		row: integer row index
-		col: integer column index 
-
-		Returns:
-		--------
-		a tuple
-		"""
-		return self.group_grid[row][col]
-
-	def work(self, ax=None, fig=None):
+	def render(self, ax=None, fig=None):
 		"""Render the trellis plot on a figure.
 
 		Parameters:
@@ -375,12 +339,54 @@ class TrellisGrid:
 		fig.subplots_adjust(wspace=0.05, hspace=0.2)
 		return ax, fig
 
+	def preprocess(self, rplot):
+		rplot.trellised = True
+		layers = []
+		for layer in rplot.layers:
+			data = layer.data
+
+
+	def work(self, rplot):
+		# For each layer in the layer list, replace it 
+		# with a two dimentional array of trellised layers.
+		rplot.trellised = True
+		layers = []
+		for layer in rplot.layers:
+			data = layer.data
+			grouped = data.groupby(by)
+			groups = grouped.groups.keys()
+			self.by = by
+			self.shingle1 = set([g[0] for g in self.groups])
+			self.shingle2 = set([g[1] for g in self.groups])
+			self.rows = len(self.shingle1)
+			self.cols = len(self.shingle2)
+			trellised = [[None for _ in range(self.cols)] for _ in range(self.rows)]
+			row = 0
+			col = 0
+			for group, data in self.grouped:
+				new_layer = deepcopy(layer)
+				new_layer.data = data
+				self.grid[row][col] = new_layer
+				self.group_grid[row][col] = group
+				col += 1
+				if col >= self.cols:
+					col = 0
+					row += 1
+			layers.append(trellised)
+		rplot.layers = layers
+
+def sequence_layers(layers):
+	"""Go through the list of layers and fill in the missing bits of information.
+	"""
+	pass
+
 class RPlot:
 	"""
 	The main plot object. Add layers to an instance of this object to create a plot.
 	"""
-	def __init__(self):
-		self.layers = []
+	def __init__(self, data, x=None, y=None):
+		self.layers = [Layer(data, aes(x=x, y=y))]
+		trellised = False
 
 	def __add__(self, other):
 		self.layers.append(other)
@@ -388,7 +394,30 @@ class RPlot:
 	def show(self, fig=None):
 		if fig is None:
 			fig = plt.gcf()
-		pass
+		# Look for the last TrellisGrid instance in the layer list
+		last_trellis = None
+		for layer in self.layers:
+			if layer.is_trellis():
+				last_trellis = layer
+		if last_trellis is None:
+			# We have a simple, non-trellised plot
+			new_layers = sequence_layers(new_layers)
+			for layer in new_layers:
+				layer.work(fig.gca())
+			# And we're done
+			return fig
+		else:
+			# We have a trellised plot.
+			# First let's remove all other TrellisGrid instances from the layer list, 
+			# including this one.
+			new_layers = []
+			for layer in self.layers:
+				if not layer.is_trellis():
+					new_layers.append(layer)
+			new_layers = sequence_layers(new_layers)
+			# Now replace the old layers by their trellised versions
+			new_layers = last_trellis.trellis(new_layers)
+			# Prepare the subplots and draw on them
 
 class GeomDensity2d:
 	def __init__(self, x=None, y=None, weight=1.0, colour='grey', size=0.5, linetype=1.0, alpha=1.0):
