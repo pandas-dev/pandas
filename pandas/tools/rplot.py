@@ -220,17 +220,24 @@ class Layer:
 		return False
 
 class GeomPoint(Layer):
-	def work(self, rplot):
+	def work(self, fig=None, ax=None):
 		"""Render the layer on a matplotlib axis.
+		You can specify either a figure or an axis to draw on.
 
 		Parameters:
 		-----------
+		fig: matplotlib figure object
 		ax: matplotlib axis object to draw on
 
 		Returns:
 		--------
-		ax: matplotlib axis object
+		fig, ax: matplotlib figure and axis objects
 		"""
+		if ax is None:
+			if fig is None:
+				return fig, ax
+			else:
+				ax = fig.gca()
 		for index in range(len(self.data)):
 			row = self.data.irow(index)
 			x = row[self.aesthetics['x']]
@@ -246,7 +253,41 @@ class GeomPoint(Layer):
 				alpha=alpha)
 		ax.set_xlabel(self.aesthetics['x'])
 		ax.set_ylabel(self.aesthetics['y'])
-	return ax, fig
+		return fig, ax
+
+class GeomDensity2D(Layer):
+	def work(self, fig=None, ax=None):
+		"""Render the layer on a matplotlib axis.
+		You can specify either a figure or an axis to draw on.
+
+		Parameters:
+		-----------
+		fig: matplotlib figure object
+		ax: matplotlib axis object to draw on
+
+		Returns:
+		--------
+		fig, ax: matplotlib figure and axis objects
+		"""
+		if ax is None:
+			if fig is None:
+				return fig, ax
+			else:
+				ax = fig.gca()
+		x = self.data[self.aes['x']]
+		y = self.data[self.aes['y']]
+		rvs = np.array([x, y])
+		x_min = x.min()
+		x_max = x.max()
+		y_min = y.min()
+		y_max = y.max()
+		X, Y = np.mgrid[x_min:x_max:200j, y_min:y_max:200j]
+		positions = np.vstack([X.ravel(), Y.ravel()])
+		values = np.vstack([x, y])
+		kernel = stats.gaussian_kde(values)
+		Z = np.reshape(kernel(positions).T, X.shape)
+		ax.contour(Z, extent=[x_min, x_max, y_min, y_max])
+		return rplot
 
 def display_grouped(grouped_data, x, y, fig):
 	"""A test routine to display grouped data.
@@ -447,5 +488,5 @@ class GeomDensity2d:
 		values = np.vstack([x, y])
 		kernel = stats.gaussian_kde(values)
 		Z = np.reshape(kernel(positions).T, X.shape)
-		rplot.ax.contour(Z, alpha=self.alpha, extent=[x_min, x_max, y_min, y_max])
+		rplot.ax.contour(Z, extent=[x_min, x_max, y_min, y_max])
 		return rplot
