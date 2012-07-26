@@ -191,7 +191,7 @@ def scale_constant(constant):
 		return constant
 	return scaler
 
-def default_aes(x, y):
+def default_aes(x=None, y=None):
 	"""Create the default aesthetics dictionary.
 	"""
 	return {
@@ -265,9 +265,9 @@ class GeomPoint(Layer):
 				s=size_scaler(self.data, index),
 				c=colour_scaler(self.data, index),
 				marker=shape_scaler(self.data, index),
-				alpha=alpha)
-		ax.set_xlabel(self.aesthetics['x'])
-		ax.set_ylabel(self.aesthetics['y'])
+				alpha=alpha(self.data, index))
+		ax.set_xlabel(self.aes['x'])
+		ax.set_ylabel(self.aes['y'])
 		return fig, ax
 
 class GeomDensity2D(Layer):
@@ -302,7 +302,7 @@ class GeomDensity2D(Layer):
 		kernel = stats.gaussian_kde(values)
 		Z = np.reshape(kernel(positions).T, X.shape)
 		ax.contour(Z, extent=[x_min, x_max, y_min, y_max])
-		return rplot
+		return fig, ax
 
 def display_grouped(grouped_data, x, y, fig):
 	"""A test routine to display grouped data.
@@ -466,7 +466,7 @@ class RPlot:
 	The main plot object. Add layers to an instance of this object to create a plot.
 	"""
 	def __init__(self, data, x=None, y=None):
-		self.layers = [Layer(data, aes(x=x, y=y))]
+		self.layers = [Layer(data, default_aes(x=x, y=y))]
 		trellised = False
 
 	def __add__(self, other):
