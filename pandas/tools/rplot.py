@@ -466,7 +466,7 @@ class RPlot:
 				last_trellis = layer
 		if last_trellis is None:
 			# We have a simple, non-trellised plot
-			new_layers = sequence_layers(new_layers)
+			new_layers = sequence_layers(self.layers)
 			for layer in new_layers:
 				layer.work(fig.gca())
 			# And we're done
