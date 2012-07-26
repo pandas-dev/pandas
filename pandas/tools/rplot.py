@@ -191,8 +191,20 @@ def scale_constant(constant):
 		return constant
 	return scaler
 
+def default_aes(x, y):
+	"""Create the default aesthetics dictionary.
+	"""
+	return {
+		'x' : x,
+		'y' : y,
+		'size' : scale_constant(40.0),
+		'colour' : scale_constant('grey'),
+		'shape' : scale_constant('o'),
+		'alpha' : scale_constant(1.0),
+	}
+
 def aes(x=None, y=None, size=None, colour=None, shape=None, alpha=None):
-	"""Create aesthetics dictionary.
+	"""Create an empty aesthetics dictionary.
 	"""
 	return {
 		'x' : x,
