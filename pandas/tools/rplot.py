@@ -395,41 +395,42 @@ class TrellisGrid(Layer):
 		fig.subplots_adjust(wspace=0.05, hspace=0.2)
 		return ax, fig
 
-	def preprocess(self, rplot):
-		rplot.trellised = True
-		layers = []
-		for layer in rplot.layers:
-			data = layer.data
+	def trellis(self, layers):
+		"""Create a trellis structure for a list of layers.
+		Each layer will be cloned with different data in to a two dimensional grid.
 
+		Parameters:
+		-----------
+		layers: a list of Layer objects
 
-	def work(self, rplot):
-		# For each layer in the layer list, replace it 
-		# with a two dimentional array of trellised layers.
-		rplot.trellised = True
-		layers = []
-		for layer in rplot.layers:
+		Returns:
+		--------
+		trellised_layers: Clones of each layer in the list arranged in a trellised latice
+		"""
+		trellised_layers = []
+		for layer in layers:
 			data = layer.data
-			grouped = data.groupby(by)
+			grouped = data.groupby(self.by)
 			groups = grouped.groups.keys()
-			self.by = by
-			self.shingle1 = set([g[0] for g in self.groups])
-			self.shingle2 = set([g[1] for g in self.groups])
-			self.rows = len(self.shingle1)
-			self.cols = len(self.shingle2)
-			trellised = [[None for _ in range(self.cols)] for _ in range(self.rows)]
+			shingle1 = set([g[0] for g in groups])
+			shingle2 = set([g[1] for g in groups])
+			rows = len(shingle1)
+			cols = len(shingle2)
+			trellised = [[None for _ in range(cols)] for _ in range(rows)]
+			self.group_grid = [[None for _ in range(cols)] for _ in range(rows)]
 			row = 0
 			col = 0
-			for group, data in self.grouped:
+			for group, data in grouped:
 				new_layer = deepcopy(layer)
 				new_layer.data = data
-				self.grid[row][col] = new_layer
+				trellised[row][col] = new_layer
 				self.group_grid[row][col] = group
 				col += 1
-				if col >= self.cols:
+				if col >= cols:
 					col = 0
 					row += 1
-			layers.append(trellised)
-		rplot.layers = layers
+			trellised_layers.append(trellised)
+		return trellised_layers
 
 def merge_aes(layer1, layer2):
 	"""Merges the aesthetics dictionaries for the two layers. 
@@ -498,4 +499,5 @@ class RPlot:
 			new_layers = sequence_layers(new_layers)
 			# Now replace the old layers by their trellised versions
 			new_layers = last_trellis.trellis(new_layers)
+			print new_layers
 			# Prepare the subplots and draw on them
