@@ -416,10 +416,34 @@ class TrellisGrid(Layer):
 			layers.append(trellised)
 		rplot.layers = layers
 
+def merge_aes(layer1, layer2):
+	"""Merges the aesthetics dictionaries for the two layers. 
+	Look up sequence_layers function. Which layer is first and which
+	one is second is important.
+
+	Parameters:
+	-----------
+	layer1: Layer object
+	layer2: Layer object
+	"""
+	for key in layer2.keys():
+		if layer2[key] is None:
+			layer2[key] = layer1[key]
+
 def sequence_layers(layers):
 	"""Go through the list of layers and fill in the missing bits of information.
+	The basic rules are this:
+	* If the current layer has data set to None, take the data from previous layer.
+	* For each aesthetic mapping, if that mapping is set to None, take it from previous layer.
+
+	Parameters:
+	-----------
+	layers: a list of Layer objects
 	"""
-	pass
+	for layer1, layer2 in zip(layers[:-1], layers[1:]):
+		if layer2.data is None:
+			layer2.data = layer1.data
+		layer2.aes = merge_aes(layer1, layer2)
 
 class RPlot:
 	"""
