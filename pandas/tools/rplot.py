@@ -207,12 +207,12 @@ class Layer:
 	"""
 	Layer object representing a single plot layer.
 	"""
-	def __init__(self, data=None, aes=None):
+	def __init__(self, data=None, aes_=None):
 		self.data = data
-		if aes is None:
+		if aes_ is None:
 			self.aes = aes()
 		else:
-			self.aes = aes
+			self.aes = aes_
 
 	def is_trellis(self):
 		"""Return false to indicate this is not a TrellisGrid.
@@ -483,34 +483,3 @@ class RPlot:
 			# Now replace the old layers by their trellised versions
 			new_layers = last_trellis.trellis(new_layers)
 			# Prepare the subplots and draw on them
-
-class GeomDensity2d:
-	def __init__(self, x=None, y=None, weight=1.0, colour='grey', size=0.5, linetype=1.0, alpha=1.0):
-		self.x = x
-		self.y = y
-		self.weight = weight
-		self.colour = colour
-		self.size = size
-		self.linetype = linetype
-		self.alpha = alpha
-
-	def plot(self, rplot):
-		aes = rplot.aes
-		if self.x is not None:
-			aes['x'] = self.x
-		if self.y is not None:
-			aes['y'] = self.y
-		x = rplot.data[aes['x']]
-		y = rplot.data[aes['y']]
-		rvs = np.array([x, y])
-		x_min = x.min()
-		x_max = x.max()
-		y_min = y.min()
-		y_max = y.max()
-		X, Y = np.mgrid[x_min:x_max:200j, y_min:y_max:200j]
-		positions = np.vstack([X.ravel(), Y.ravel()])
-		values = np.vstack([x, y])
-		kernel = stats.gaussian_kde(values)
-		Z = np.reshape(kernel(positions).T, X.shape)
-		rplot.ax.contour(Z, extent=[x_min, x_max, y_min, y_max])
-		return rplot
