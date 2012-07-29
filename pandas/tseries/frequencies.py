@@ -800,12 +800,15 @@ class _FrequencyInferer(object):
             if business_start:
                 business_start &= d == 1 or (d <= 3 and wd == 0)
 
-            _, daysinmonth = monthrange(y, m)
-            cal = d == daysinmonth
-            if calendar_end:
-                calendar_end &= cal
-            if business_end:
-                business_end &= cal or (daysinmonth - d < 3 and wd == 4)
+            if calendar_end or business_end:
+                _, daysinmonth = monthrange(y, m)
+                cal = d == daysinmonth
+                if calendar_end:
+                    calendar_end &= cal
+                if business_end:
+                    business_end &= cal or (daysinmonth - d < 3 and wd == 4)
+            elif not calendar_start and not business_start:
+                break
 
         if calendar_end:
             return 'ce'
