@@ -132,3 +132,27 @@ ts = Series(np.random.randn(len(rng)), index=rng)
 timeseries_timestamp_downsample_mean = \
     Benchmark("ts.resample('D', how='mean')", setup,
               start_date=datetime(2012, 4, 25))
+
+#----------------------------------------------------------------------
+# to_datetime
+
+setup = common_setup + """
+rng = date_range('1/1/2000', periods=20000, freq='h')
+strings = [x.strftime('%Y-%m-%d %H:%M:%S') for x in rng]
+"""
+
+timeseries_to_datetime_iso8601 = \
+    Benchmark('to_datetime(strings)', setup,
+              start_date=datetime(2012, 7, 11))
+
+# ---- infer_freq
+# infer_freq
+
+setup = common_setup + """
+from pandas.tseries.frequencies import infer_freq
+rng = date_range('1/1/1700', freq='D', periods=100000)
+a = rng[:50000].append(rng[50002:])
+"""
+
+timeseries_infer_freq = \
+    Benchmark('infer_freq(a)', setup, start_date=datetime(2012, 7, 1))

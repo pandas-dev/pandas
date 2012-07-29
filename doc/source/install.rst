@@ -38,7 +38,7 @@ Preliminary builds and installers on the `Pandas download page <http://pandas.py
 Overview
 ___________
 
-   
+
 
 .. csv-table::
     :header: "Platform", "Distribution", "Status", "Download / Repository Link", "Install method"
@@ -65,8 +65,7 @@ ___________
 Dependencies
 ~~~~~~~~~~~~
 
-  * `NumPy <http://www.numpy.org>`__: 1.4.0 or higher. Recommend 1.5.1 or
-    higher
+  * `NumPy <http://www.numpy.org>`__: 1.6.1 or higher
   * `python-dateutil <http://labix.org/python-dateutil>`__ 1.5
 
 Optional dependencies
@@ -122,6 +121,11 @@ the source directory unless you build the C extensions in place:
 
   python setup.py build_ext --inplace
 
+The most recent version of MinGW (any installer dated after 2011-08-03)
+has removed the '-mno-cygwin' option but Distutils has not yet been updated to
+reflect that. Thus, you may run into an error like "unrecognized command line
+option '-mno-cygwin'". Until the bug is fixed in Distutils, you may need to
+install a slightly older version of MinGW (2011-08-02 installer).
 
 Running the test suite
 ~~~~~~~~~~~~~~~~~~~~~~

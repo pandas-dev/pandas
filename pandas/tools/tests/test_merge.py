@@ -352,7 +352,7 @@ class TestMerge(unittest.TestCase):
         df2 = df2.sortlevel(0)
 
         joined = df1.join(df2, how='outer')
-        ex_index = index1.get_tuple_index() + index2.get_tuple_index()
+        ex_index = index1._tuple_index + index2._tuple_index
         expected = df1.reindex(ex_index).join(df2.reindex(ex_index))
         assert_frame_equal(joined, expected)
         self.assertEqual(joined.index.names, index1.names)
@@ -361,7 +361,7 @@ class TestMerge(unittest.TestCase):
         df2 = df2.sortlevel(1)
 
         joined = df1.join(df2, how='outer').sortlevel(0)
-        ex_index = index1.get_tuple_index() + index2.get_tuple_index()
+        ex_index = index1._tuple_index + index2._tuple_index
         expected = df1.reindex(ex_index).join(df2.reindex(ex_index))
 
         assert_frame_equal(joined, expected)
@@ -413,6 +413,41 @@ class TestMerge(unittest.TestCase):
         joined = a.join(b)
         expected = a.join(b.astype('f8'))
         assert_frame_equal(joined, expected)
+
+    def test_join_many_non_unique_index(self):
+        df1 = DataFrame({"a": [1,1], "b": [1,1], "c": [10,20]})
+        df2 = DataFrame({"a": [1,1], "b": [1,2], "d": [100,200]})
+        df3 = DataFrame({"a": [1,1], "b": [1,2], "e": [1000,2000]})
+        idf1 = df1.set_index(["a", "b"])
+        idf2 = df2.set_index(["a", "b"])
+        idf3 = df3.set_index(["a", "b"])
+
+        result = idf1.join([idf2, idf3], how='outer')
+
+        df_partially_merged = merge(df1, df2, on=['a', 'b'], how='outer')
+        expected = merge(df_partially_merged, df3, on=['a', 'b'], how='outer')
+
+        result = result.reset_index()
+
+        result['a'] = result['a'].astype(np.float64)
+        result['b'] = result['b'].astype(np.float64)
+
+        assert_frame_equal(result, expected.ix[:, result.columns])
+
+        df1 = DataFrame({"a": [1, 1, 1], "b": [1,1, 1], "c": [10,20, 30]})
+        df2 = DataFrame({"a": [1, 1, 1], "b": [1,1, 2], "d": [100,200, 300]})
+        df3 = DataFrame({"a": [1, 1, 1], "b": [1,1, 2], "e": [1000,2000, 3000]})
+        idf1 = df1.set_index(["a", "b"])
+        idf2 = df2.set_index(["a", "b"])
+        idf3 = df3.set_index(["a", "b"])
+        result = idf1.join([idf2, idf3], how='inner')
+
+        df_partially_merged = merge(df1, df2, on=['a', 'b'], how='inner')
+        expected = merge(df_partially_merged, df3, on=['a', 'b'], how='inner')
+
+        result = result.reset_index()
+
+        assert_frame_equal(result, expected.ix[:, result.columns])
 
     def test_merge_index_singlekey_right_vs_left(self):
         left = DataFrame({'key': ['a', 'b', 'c', 'd', 'e', 'e', 'a'],
@@ -612,6 +647,17 @@ class TestMerge(unittest.TestCase):
         df2 = DataFrame({'y': ['e', 'f', 'g',' h', 'i']},
                         index=[dt2, dt2, dt3, dt, dt])
         _check_merge(df1, df2)
+
+    def test_left_merge_empty_dataframe(self):
+        left = DataFrame({'key': [1], 'value': [2]})
+        right = DataFrame({'key': []})
+
+        result = merge(left, right, on='key', how='left')
+        assert_frame_equal(result, left)
+
+        result = merge(right, left, on='key', how='right')
+        assert_frame_equal(result, left)
+
 
 def _check_merge(x, y):
     for how in ['inner', 'left', 'outer']:
@@ -1109,6 +1155,34 @@ class TestConcatenate(unittest.TestCase):
         self.assertEqual(result.index.names, ['first', 'second'] + [None])
         self.assert_(np.array_equal(result.index.levels[0], ['baz', 'foo']))
 
+    def test_concat_keys_levels_no_overlap(self):
+        # GH #1406
+        df = DataFrame(np.random.randn(1, 3), index=['a'])
+        df2 = DataFrame(np.random.randn(1, 4), index=['b'])
+
+        self.assertRaises(ValueError, concat, [df, df],
+                          keys=['one', 'two'], levels=[['foo', 'bar', 'baz']])
+
+        self.assertRaises(ValueError, concat, [df, df2],
+                          keys=['one', 'two'], levels=[['foo', 'bar', 'baz']])
+
+    def test_concat_rename_index(self):
+        a = DataFrame(np.random.rand(3,3),
+                      columns=list('ABC'),
+                      index=Index(list('abc'), name='index_a'))
+        b = DataFrame(np.random.rand(3,3),
+                      columns=list('ABC'),
+                      index=Index(list('abc'), name='index_b'))
+
+        result = concat([a, b], keys=['key0', 'key1'],
+                        names=['lvl0', 'lvl1'])
+
+        exp = concat([a, b], keys=['key0', 'key1'], names=['lvl0'])
+        exp.index.names[1] = 'lvl1'
+
+        tm.assert_frame_equal(result, exp)
+        self.assertEqual(result.index.names, exp.index.names)
+
     def test_crossed_dtypes_weird_corner(self):
         columns = ['A', 'B', 'C', 'D']
         df1 = DataFrame({'A' : np.array([1, 2, 3, 4], dtype='f8'),
@@ -1127,6 +1201,11 @@ class TestConcatenate(unittest.TestCase):
         expected = DataFrame(np.concatenate([df1.values, df2.values], axis=0),
                              columns=columns)
         tm.assert_frame_equal(appended, expected)
+
+        df = DataFrame(np.random.randn(1, 3), index=['a'])
+        df2 = DataFrame(np.random.randn(1, 4), index=['b'])
+        result = concat([df, df2], keys=['one', 'two'], names=['first', 'second'])
+        self.assertEqual(result.index.names, ['first', 'second'])
 
     def test_handle_empty_objects(self):
         df = DataFrame(np.random.randn(10, 4), columns=list('abcd'))
@@ -1299,6 +1378,29 @@ class TestConcatenate(unittest.TestCase):
         tm.assert_frame_equal(result, df)
         self.assertRaises(Exception, concat, [None, None])
 
+    def test_concat_datetime64_block(self):
+        from pandas.tseries.index import date_range
+
+        rng = date_range('1/1/2000', periods=10)
+
+        df = DataFrame({'time': rng})
+
+        result = concat([df, df])
+        self.assert_((result[:10]['time'] == rng).all())
+
+    def test_concat_keys_with_none(self):
+        # #1649
+        df0 = DataFrame([[10, 20, 30], [10, 20, 30], [10, 20, 30]])
+
+        result = concat(dict(a=None, b=df0, c=df0[:2], d=df0[:1], e=df0))
+        expected = concat(dict(b=df0, c=df0[:2], d=df0[:1], e=df0))
+        tm.assert_frame_equal(result, expected)
+
+        result = concat([None, df0, df0[:2], df0[:1], df0],
+                        keys=['a', 'b', 'c', 'd', 'e'])
+        expected = concat([df0, df0[:2], df0[:1], df0],
+                          keys=['b', 'c', 'd', 'e'])
+        tm.assert_frame_equal(result, expected)
 
 class TestOrderedMerge(unittest.TestCase):
 

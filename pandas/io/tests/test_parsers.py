@@ -11,7 +11,7 @@ import nose
 from numpy import nan
 import numpy as np
 
-from pandas import DataFrame, Series, Index, isnull
+from pandas import DataFrame, Series, Index, isnull, MultiIndex
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                ExcelFile, TextParser)
@@ -20,11 +20,24 @@ from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
 import pandas.lib as lib
 from pandas.util import py3compat
 from pandas.lib import Timestamp
+from pandas.tseries.index import date_range
 
 from numpy.testing.decorators import slow
 from pandas.io.date_converters import (
     parse_date_time, parse_date_fields, parse_all_fields
 )
+
+def _skip_if_no_xlrd():
+    try:
+        import xlrd
+    except ImportError:
+        raise nose.SkipTest('xlrd not installed, skipping')
+
+def _skip_if_no_openpyxl():
+    try:
+        import openpyxl
+    except ImportError:
+        raise nose.SkipTest('openpyxl not installed, skipping')
 
 
 class TestParsers(unittest.TestCase):
@@ -51,6 +64,32 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         self.csv1 = os.path.join(self.dirpath, 'test1.csv')
         self.csv2 = os.path.join(self.dirpath, 'test2.csv')
         self.xls1 = os.path.join(self.dirpath, 'test.xls')
+
+    def test_empty_string(self):
+        data = """\
+One,Two,Three
+a,1,one
+b,2,two
+,3,three
+d,4,nan
+e,5,five
+nan,6,
+g,7,seven
+"""
+        df = read_csv(StringIO(data))
+        xp = DataFrame({'One' : ['a', 'b', np.nan, 'd', 'e', np.nan, 'g'],
+                        'Two' : [1,2,3,4,5,6,7],
+                        'Three' : ['one', 'two', 'three', np.nan, 'five',
+                                   np.nan, 'seven']})
+        assert_frame_equal(xp.reindex(columns=df.columns), df)
+
+        df = read_csv(StringIO(data), na_values={'One': [], 'Three': []})
+        xp = DataFrame({'One' : ['a', 'b', '', 'd', 'e', 'nan', 'g'],
+                        'Two' : [1,2,3,4,5,6,7],
+                        'Three' : ['one', 'two', 'three', 'nan', 'five',
+                                   '', 'seven']})
+        assert_frame_equal(xp.reindex(columns=df.columns), df)
+
 
     def test_read_csv(self):
         pass
@@ -213,6 +252,10 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
         d = datetime(1999, 1, 27, 19, 0)
         self.assert_(df.index[0] == d)
 
+    def test_single_line(self):
+        df = read_csv(StringIO('1,2'), names=['a', 'b'], sep=None)
+        assert_frame_equal(DataFrame({'a': [1], 'b': [2]}), df)
+
     def test_multiple_date_cols_with_header(self):
         data = """\
 ID,date,NominalTime,ActualTime,TDew,TAir,Windspeed,Precip,WindDir
@@ -307,6 +350,23 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
 
         self.assertRaises(ValueError, read_csv, StringIO(no_header),
                           index_col='ID')
+
+        data = """\
+1,2,3,4,hello
+5,6,7,8,world
+9,10,11,12,foo
+"""
+        names = ['a', 'b', 'c', 'd', 'message']
+        xp = DataFrame({'a' : [1, 5, 9], 'b' : [2, 6, 10], 'c' : [3, 7, 11],
+                        'd' : [4, 8, 12]},
+                       index=Index(['hello', 'world', 'foo'], name='message'))
+        rs = read_csv(StringIO(data), names=names, index_col=['message'])
+        assert_frame_equal(xp, rs)
+        self.assert_(xp.index.name == rs.index.name)
+
+        rs = read_csv(StringIO(data), names=names, index_col='message')
+        assert_frame_equal(xp, rs)
+        self.assert_(xp.index.name == rs.index.name)
 
     def test_multiple_skts_example(self):
         data = "year, month, a, b\n 2001, 01, 0.0, 10.\n 2001, 02, 1.1, 11."
@@ -543,6 +603,21 @@ c,4,5
         self.assert_(isinstance(df.index[0], (datetime, np.datetime64, Timestamp)))
         assert_frame_equal(df, expected)
 
+    def test_parse_dates_string(self):
+        data = """date,A,B,C
+20090101,a,1,2
+20090102,b,3,4
+20090103,c,4,5
+"""
+        rs = read_csv(StringIO(data), index_col='date', parse_dates='date')
+        idx = date_range('1/1/2009', periods=3).asobject
+        idx.name = 'date'
+        xp = DataFrame({'A': ['a', 'b', 'c'],
+                        'B': [1, 3, 4],
+                        'C': [2, 4, 5]}, idx)
+        assert_frame_equal(rs, xp)
+
+
     def test_parse_dates_column_list(self):
         from pandas.core.datetools import to_datetime
 
@@ -619,10 +694,7 @@ baz,7,8,9
         assert_frame_equal(df, df2)
 
     def test_excel_stop_iterator(self):
-        try:
-            import xlrd
-        except ImportError:
-            raise nose.SkipTest('xlrd not installed, skipping')
+        _skip_if_no_xlrd()
 
         excel_data = ExcelFile(os.path.join(self.dirpath, 'test2.xls'))
         parsed = excel_data.parse('Sheet1')
@@ -630,10 +702,7 @@ baz,7,8,9
         assert_frame_equal(parsed, expected)
 
     def test_excel_cell_error_na(self):
-        try:
-            import xlrd
-        except ImportError:
-            raise nose.SkipTest('xlrd not installed, skipping')
+        _skip_if_no_xlrd()
 
         excel_data = ExcelFile(os.path.join(self.dirpath, 'test3.xls'))
         parsed = excel_data.parse('Sheet1')
@@ -641,10 +710,7 @@ baz,7,8,9
         assert_frame_equal(parsed, expected)
 
     def test_excel_table(self):
-        try:
-            import xlrd
-        except ImportError:
-            raise nose.SkipTest('xlrd not installed, skipping')
+        _skip_if_no_xlrd()
 
         pth = os.path.join(self.dirpath, 'test.xls')
         xls = ExcelFile(pth)
@@ -654,11 +720,23 @@ baz,7,8,9
         assert_frame_equal(df, df2)
         assert_frame_equal(df3, df2)
 
+    def test_excel_read_buffer(self):
+        _skip_if_no_xlrd()
+        _skip_if_no_openpyxl()
+
+        pth = os.path.join(self.dirpath, 'test.xls')
+        f = open(pth, 'rb')
+        xls = ExcelFile(f)
+        # it works
+        xls.parse('Sheet1', index_col=0, parse_dates=True)
+
+        pth = os.path.join(self.dirpath, 'test.xlsx')
+        f = open(pth, 'rb')
+        xl = ExcelFile(f)
+        df = xl.parse('Sheet1', index_col=0, parse_dates=True)
+
     def test_xlsx_table(self):
-        try:
-            import openpyxl
-        except ImportError:
-            raise nose.SkipTest('openpyxl not installed, skipping')
+        _skip_if_no_openpyxl()
 
         pth = os.path.join(self.dirpath, 'test.xlsx')
         xlsx = ExcelFile(pth)
@@ -667,6 +745,42 @@ baz,7,8,9
         df3 = xlsx.parse('Sheet2', skiprows=[1], index_col=0, parse_dates=True)
         assert_frame_equal(df, df2)
         assert_frame_equal(df3, df2)
+
+    def test_parse_cols_int(self):
+        _skip_if_no_openpyxl()
+
+        suffix = ['', 'x']
+
+        for s in suffix:
+            pth = os.path.join(self.dirpath, 'test.xls%s' % s)
+            xls = ExcelFile(pth)
+            df = xls.parse('Sheet1', index_col=0, parse_dates=True,
+                            parse_cols=3)
+            df2 = read_csv(self.csv1, index_col=0, parse_dates=True)
+            df2 = df2.reindex(columns=['A', 'B', 'C'])
+            df3 = xls.parse('Sheet2', skiprows=[1], index_col=0,
+                            parse_dates=True, parse_cols=3)
+            assert_frame_equal(df, df2)
+            assert_frame_equal(df3, df2)
+
+    def test_parse_cols_list(self):
+        _skip_if_no_openpyxl()
+
+        suffix = ['', 'x']
+
+        for s in suffix:
+
+            pth = os.path.join(self.dirpath, 'test.xls%s' % s)
+            xlsx = ExcelFile(pth)
+            df = xlsx.parse('Sheet1', index_col=0, parse_dates=True,
+                            parse_cols=[0, 2, 3])
+            df2 = read_csv(self.csv1, index_col=0, parse_dates=True)
+            df2 = df2.reindex(columns=['B', 'C'])
+            df3 = xlsx.parse('Sheet2', skiprows=[1], index_col=0,
+                             parse_dates=True,
+                             parse_cols=[0, 2, 3])
+            assert_frame_equal(df, df2)
+            assert_frame_equal(df3, df2)
 
     def test_read_table_wrong_num_columns(self):
         data = """A,B,C,D,E,F
@@ -1220,17 +1334,47 @@ bar,foo,foo"""
                               'C': [np.nan, 'foo', np.nan, 'foo']})
         assert_frame_equal(df, expected)
 
+        data = """\
+a,b,c,d
+0,NA,1,5
+"""
+        xp = DataFrame({'b': [np.nan], 'c': [1], 'd': [5]}, index=[0])
+        xp.index.name = 'a'
+        df = read_csv(StringIO(data), na_values={}, index_col=0)
+        assert_frame_equal(df, xp)
+
+        xp = DataFrame({'b': [np.nan], 'd': [5]},
+                       MultiIndex.from_tuples([(0, 1)]))
+        df = read_csv(StringIO(data), na_values={}, index_col=[0, 2])
+        assert_frame_equal(df, xp)
+
+        xp = DataFrame({'b': [np.nan], 'd': [5]},
+                       MultiIndex.from_tuples([(0, 1)]))
+        df = read_csv(StringIO(data), na_values={}, index_col=['a', 'c'])
+        assert_frame_equal(df, xp)
+
     @slow
     @network
     def test_url(self):
-        # HTTP(S)
-        url = 'https://raw.github.com/pydata/pandas/master/pandas/io/tests/salary.table'
-        url_table = read_table(url)
-        dirpath = curpath()
-        localtable = os.path.join(dirpath, 'salary.table')
-        local_table = read_table(localtable)
-        assert_frame_equal(url_table, local_table)
-        #TODO: ftp testing
+        import urllib2
+        try:
+            # HTTP(S)
+            url = ('https://raw.github.com/pydata/pandas/master/'
+                   'pandas/io/tests/salary.table')
+            url_table = read_table(url)
+            dirpath = curpath()
+            localtable = os.path.join(dirpath, 'salary.table')
+            local_table = read_table(localtable)
+            assert_frame_equal(url_table, local_table)
+            #TODO: ftp testing
+
+        except urllib2.URLError:
+            try:
+                urllib2.urlopen('http://www.google.com')
+            except urllib2.URLError:
+                raise nose.SkipTest
+            else:
+                raise
 
     @slow
     def test_file(self):

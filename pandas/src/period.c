@@ -206,6 +206,7 @@ int dInfoCalc_SetFromAbsDate(register struct date_info *dinfo,
     } else {
         Py_Error(PyExc_ValueError, "unknown calendar");
     }
+
     if (absdate > 0) year++;
 
     /* Apply corrections to reach the correct year */
@@ -548,9 +549,8 @@ static npy_int64 asfreq_WtoS(npy_int64 ordinal, char relation, asfreq_info *af_i
     { return asfreq_DtoS(asfreq_WtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO); }
 
 //************ FROM MONTHLY ***************
-
 static void MtoD_ym(npy_int64 ordinal, int *y, int *m) {
-    *y = ordinal / 12 + BASE_YEAR;
+    *y = floordiv(ordinal, 12) + BASE_YEAR;
     *m = mod_compat(ordinal, 12) + 1;
 }
 

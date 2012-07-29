@@ -10,7 +10,7 @@ from numpy import NaN
 import numpy as np
 
 from pandas.core.api import DataFrame, Series, notnull
-import pandas.lib as _tseries
+import pandas.lib as lib
 
 from pandas.util.decorators import Substitution, Appender
 
@@ -56,6 +56,10 @@ min_periods : int, default 0
     beginning)
 freq : None or string alias / date offset object, default=None
     Frequency to conform to before computing statistic
+adjust : boolean, default True
+    Divide by decaying adjustment factor in beginning periods to account for
+    imbalance in relative weightings (viewing EWMA as a moving average)
+
 %s
 Notes
 -----
@@ -265,12 +269,13 @@ def _get_center_of_mass(com, span):
 
 @Substitution("Exponentially-weighted moving average", _unary_arg, "")
 @Appender(_ewm_doc)
-def ewma(arg, com=None, span=None, min_periods=0, freq=None, time_rule=None):
+def ewma(arg, com=None, span=None, min_periods=0, freq=None, time_rule=None,
+         adjust=True):
     com = _get_center_of_mass(com, span)
     arg = _conv_timerule(arg, freq, time_rule)
 
     def _ewma(v):
-        result = _tseries.ewma(v, com)
+        result = lib.ewma(v, com, int(adjust))
         first_index = _first_valid_index(v)
         result[first_index : first_index + min_periods] = NaN
         return result
@@ -395,20 +400,20 @@ def _rolling_func(func, desc, check_minp=_use_window):
 
     return f
 
-rolling_max = _rolling_func(_tseries.roll_max, 'Moving maximum')
-rolling_min = _rolling_func(_tseries.roll_min, 'Moving minimum')
-rolling_sum = _rolling_func(_tseries.roll_sum, 'Moving sum')
-rolling_mean = _rolling_func(_tseries.roll_mean, 'Moving mean')
-rolling_median = _rolling_func(_tseries.roll_median_cython, 'Moving median')
+rolling_max = _rolling_func(lib.roll_max2, 'Moving maximum')
+rolling_min = _rolling_func(lib.roll_min2, 'Moving minimum')
+rolling_sum = _rolling_func(lib.roll_sum, 'Moving sum')
+rolling_mean = _rolling_func(lib.roll_mean, 'Moving mean')
+rolling_median = _rolling_func(lib.roll_median_cython, 'Moving median')
 
-_ts_std = lambda *a, **kw: np.sqrt(_tseries.roll_var(*a, **kw))
+_ts_std = lambda *a, **kw: np.sqrt(lib.roll_var(*a, **kw))
 rolling_std = _rolling_func(_ts_std, 'Unbiased moving standard deviation',
                             check_minp=_require_min_periods(2))
-rolling_var = _rolling_func(_tseries.roll_var, 'Unbiased moving variance',
+rolling_var = _rolling_func(lib.roll_var, 'Unbiased moving variance',
                             check_minp=_require_min_periods(2))
-rolling_skew = _rolling_func(_tseries.roll_skew, 'Unbiased moving skewness',
+rolling_skew = _rolling_func(lib.roll_skew, 'Unbiased moving skewness',
                              check_minp=_require_min_periods(3))
-rolling_kurt = _rolling_func(_tseries.roll_kurt, 'Unbiased moving kurtosis',
+rolling_kurt = _rolling_func(lib.roll_kurt, 'Unbiased moving kurtosis',
                              check_minp=_require_min_periods(4))
 
 def rolling_quantile(arg, window, quantile, min_periods=None, freq=None,
@@ -432,7 +437,7 @@ def rolling_quantile(arg, window, quantile, min_periods=None, freq=None,
 
     def call_cython(arg, window, minp):
         minp = _use_window(minp, window)
-        return _tseries.roll_quantile(arg, window, minp, quantile)
+        return lib.roll_quantile(arg, window, minp, quantile)
     return _rolling_moment(arg, window, call_cython, min_periods,
                            freq=freq, time_rule=time_rule)
 
@@ -457,6 +462,6 @@ def rolling_apply(arg, window, func, min_periods=None, freq=None,
     """
     def call_cython(arg, window, minp):
         minp = _use_window(minp, window)
-        return _tseries.roll_generic(arg, window, minp, func)
+        return lib.roll_generic(arg, window, minp, func)
     return _rolling_moment(arg, window, call_cython, min_periods,
                            freq=freq, time_rule=time_rule)

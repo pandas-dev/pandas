@@ -8,9 +8,12 @@ import numpy as np
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 
+from pandas.core.categorical import Categorical
 from pandas.core.common import notnull, _ensure_platform_int
 from pandas.core.groupby import (get_group_index, _compress_group_index,
                                  decons_group_index)
+import pandas.core.common as com
+import pandas.lib as lib
 
 
 from pandas.core.index import MultiIndex
@@ -80,8 +83,20 @@ class _Unstacker(object):
         v = self.level
 
         labs = self.index.labels
-        to_sort = labs[:v] + labs[v+1:] + [labs[v]]
-        indexer = np.lexsort(to_sort[::-1])
+        levs = self.index.levels
+        to_sort =  labs[:v] + labs[v+1:] + [labs[v]]
+        sizes = [len(x) for x in levs[:v] + levs[v+1:] + [levs[v]]]
+
+        group_index = get_group_index(to_sort, sizes)
+        max_groups = np.prod(sizes)
+        if max_groups > 1000000:
+            comp_index, obs_ids = _compress_group_index(group_index)
+            ngroups = len(obs_ids)
+        else:
+            comp_index, ngroups  = group_index, max_groups
+
+        indexer = lib.groupsort_indexer(comp_index, ngroups)[0]
+        indexer = _ensure_platform_int(indexer)
 
         self.sorted_values = self.values.take(indexer, axis=0)
         self.sorted_labels = [l.take(indexer) for l in to_sort]
@@ -90,7 +105,7 @@ class _Unstacker(object):
         new_levels = self.new_index_levels
 
         # make the mask
-        group_index = get_group_index(self.sorted_labels,
+        group_index = get_group_index(self.sorted_labels[:-1],
                                       [len(x) for x in new_levels])
 
         group_index = _ensure_platform_int(group_index)
@@ -270,27 +285,13 @@ def pivot(self, index=None, columns=None, values=None):
     """
     See DataFrame.pivot
     """
-    index_vals = self[index]
-    column_vals = self[columns]
-    mindex = MultiIndex.from_arrays([index_vals, column_vals],
-                                    names=[index, columns])
-
     if values is None:
-        items = self.columns - [index, columns]
-        mat = self.reindex(columns=items).values
+        indexed = self.set_index([index, columns])
+        return indexed.unstack(columns)
     else:
-        items = [values]
-        mat = np.atleast_2d(self[values].values).T
-
-    stacked = DataFrame(mat, index=mindex, columns=items)
-
-    if not mindex.is_lexsorted():
-        stacked = stacked.sortlevel(level=0)
-
-    unstacked = stacked.unstack()
-    if values is not None:
-        unstacked.columns = unstacked.columns.droplevel(0)
-    return unstacked
+        indexed = Series(self[values],
+                         index=[self[index], self[columns]])
+        return indexed.unstack(columns)
 
 def pivot_simple(index, columns, values):
     """
@@ -559,6 +560,72 @@ def melt(frame, id_vars=None, value_vars=None):
     mdata['variable'] = np.asarray(frame.columns).repeat(N)
     return DataFrame(mdata, columns=mcolumns)
 
+
+def lreshape(data, groups, dropna=True, label=None):
+    """
+    Reshape long-format data to wide. Generalized inverse of DataFrame.pivot
+
+    Parameters
+    ----------
+    data : DataFrame
+    groups : dict
+        {new_name : list_of_columns}
+    dropna : boolean, default True
+
+    Examples
+    --------
+    >>> data
+       hr1  hr2     team  year1  year2
+    0  514  545  Red Sox   2007   2008
+    1  573  526  Yankees   2007   2008
+
+    >>> pd.lreshape(data, {'year': ['year1', 'year2'],
+                           'hr': ['hr1', 'hr2']})
+          team   hr  year
+    0  Red Sox  514  2007
+    1  Yankees  573  2007
+    2  Red Sox  545  2008
+    3  Yankees  526  2008
+
+    Returns
+    -------
+    reshaped : DataFrame
+    """
+    if isinstance(groups, dict):
+        keys = groups.keys()
+        values = groups.values()
+    else:
+        keys, values = zip(*groups)
+
+    all_cols = list(set.union(*[set(x) for x in values]))
+    id_cols = list(data.columns.diff(all_cols))
+
+    K = len(values[0])
+
+    for seq in values:
+        if len(seq) != K:
+            raise ValueError('All column lists must be same length')
+
+    mdata = {}
+    pivot_cols = []
+
+    for target, names in zip(keys, values):
+        mdata[target] = com._concat_compat([data[col].values for col in names])
+        pivot_cols.append(target)
+
+    for col in id_cols:
+        mdata[col] = np.tile(data[col].values, K)
+
+    if dropna:
+        mask = np.ones(len(mdata[pivot_cols[0]]), dtype=bool)
+        for c in pivot_cols:
+            mask &= notnull(mdata[c])
+        if not mask.all():
+            mdata = dict((k, v[mask]) for k, v in mdata.iteritems())
+
+    return DataFrame(mdata, columns=id_cols + pivot_cols)
+
+
 def convert_dummies(data, cat_variables, prefix_sep='_'):
     """
     Compute DataFrame with specified columns converted to dummy variables (0 /
@@ -579,23 +646,44 @@ def convert_dummies(data, cat_variables, prefix_sep='_'):
     """
     result = data.drop(cat_variables, axis=1)
     for variable in cat_variables:
-        dummies = make_column_dummies(data, variable, prefix=True,
-                                      prefix_sep=prefix_sep)
+        dummies = get_dummies(data[variable], prefix=variable,
+                              prefix_sep=prefix_sep)
         result = result.join(dummies)
     return result
 
-def make_column_dummies(data, column, prefix=False, prefix_sep='_'):
-    from pandas import Factor
-    factor = Factor.from_array(data[column].values)
-    dummy_mat = np.eye(len(factor.levels)).take(factor.labels, axis=0)
 
-    if prefix:
-        dummy_cols = ['%s%s%s' % (column, prefix_sep, str(v))
-                      for v in factor.levels]
+def get_dummies(data, prefix=None, prefix_sep='_'):
+    """
+    Convert categorical variable into dummy/indicator variables
+
+    Parameters
+    ----------
+    data : array-like or Series
+    prefix : string, default None
+        String to append DataFrame column names
+    prefix_sep : string, default '_'
+        If appending prefix, separator/delimiter to use
+
+    Returns
+    -------
+    dummies : DataFrame
+    """
+    cat = Categorical.from_array(np.asarray(data))
+    dummy_mat = np.eye(len(cat.levels)).take(cat.labels, axis=0)
+
+    if prefix is not None:
+        dummy_cols = ['%s%s%s' % (prefix, prefix_sep, str(v))
+                      for v in cat.levels]
     else:
-        dummy_cols = factor.levels
-    dummies = DataFrame(dummy_mat, index=data.index, columns=dummy_cols)
-    return dummies
+        dummy_cols = cat.levels
+
+    if isinstance(data, Series):
+        index = data.index
+    else:
+        index = None
+
+    return DataFrame(dummy_mat, index=index, columns=dummy_cols)
+
 
 def make_axis_dummies(frame, axis='minor', transform=None):
     """
@@ -616,8 +704,6 @@ def make_axis_dummies(frame, axis='minor', transform=None):
     dummies : DataFrame
         Column names taken from chosen axis
     """
-    from pandas import Factor
-
     numbers = {
         'major' : 0,
         'minor' : 1
@@ -628,9 +714,9 @@ def make_axis_dummies(frame, axis='minor', transform=None):
     labels = frame.index.labels[num]
     if transform is not None:
         mapped_items = items.map(transform)
-        factor = Factor.from_array(mapped_items.take(labels))
-        labels = factor.labels
-        items = factor.levels
+        cat = Categorical.from_array(mapped_items.take(labels))
+        labels = cat.labels
+        items = cat.levels
 
     values = np.eye(len(items), dtype=float)
     values = values.take(labels, axis=0)
@@ -655,7 +741,10 @@ def block2d_to_block3d(values, items, shape, major_labels, minor_labels,
     mask.put(selector, True)
 
     pvalues = np.empty(panel_shape, dtype=values.dtype)
-    if not issubclass(pvalues.dtype.type, np.integer):
+    if not issubclass(pvalues.dtype.type, (np.integer, np.bool_)):
+        pvalues.fill(np.nan)
+    elif not mask.all():
+        pvalues = com._maybe_upcast(pvalues)
         pvalues.fill(np.nan)
 
     values = values

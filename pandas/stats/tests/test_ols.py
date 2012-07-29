@@ -490,14 +490,14 @@ class TestPanelOLS(BaseTest):
 
         stack_y = y.stack()
         stack_x = DataFrame(dict((k, v.stack())
-                                  for k, v in x.iteritems()))
+                                  for k, v in x.iterkv()))
 
         weights = x.std('items')
         stack_weights = weights.stack()
 
-        stack_y.index = stack_y.index.get_tuple_index()
-        stack_x.index = stack_x.index.get_tuple_index()
-        stack_weights.index = stack_weights.index.get_tuple_index()
+        stack_y.index = stack_y.index._tuple_index
+        stack_x.index = stack_x.index._tuple_index
+        stack_weights.index = stack_weights.index._tuple_index
 
         result = ols(y=y, x=x, weights=1/weights)
         expected = ols(y=stack_y, x=stack_x, weights=1/stack_weights)

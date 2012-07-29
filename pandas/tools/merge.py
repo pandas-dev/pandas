@@ -4,7 +4,7 @@ SQL-style merge routines
 
 import numpy as np
 
-from pandas.core.factor import Factor
+from pandas.core.categorical import Factor
 from pandas.core.frame import DataFrame, _merge_doc
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import get_group_index
@@ -13,7 +13,7 @@ from pandas.core.index import (Index, MultiIndex, _get_combined_index,
                                _ensure_index, _get_consensus_names,
                                _all_indexes_same)
 from pandas.core.internals import (IntBlock, BoolBlock, BlockManager,
-                                   make_block, _consolidate)
+                                   DatetimeBlock, make_block, _consolidate)
 from pandas.util.decorators import cache_readonly, Appender, Substitution
 
 from pandas.sparse.frame import SparseDataFrame
@@ -294,6 +294,7 @@ class _MergeOperation(object):
         right_keys = []
         join_names = []
         right_drop = []
+        left_drop = []
         left, right = self.left, self.right
 
         is_lkey = lambda x: isinstance(x, np.ndarray) and len(x) == len(left)
@@ -314,7 +315,11 @@ class _MergeOperation(object):
                     if not is_rkey(rk):
                         right_keys.append(right[rk].values)
                         if lk == rk:
-                            right_drop.append(rk)
+                            # avoid key upcast in corner case (length-0)
+                            if len(left) > 0:
+                                right_drop.append(rk)
+                            else:
+                                left_drop.append(lk)
                     else:
                         right_keys.append(rk)
                     left_keys.append(left[lk].values)
@@ -347,9 +352,9 @@ class _MergeOperation(object):
                                                  self.left.index.labels)]
             else:
                 left_keys = [self.left.index.values]
-        # else:
-        #     left_keys.append(self.left.index)
-        #     right_keys.append(self.right.index)
+
+        if left_drop:
+            self.left = self.left.drop(left_drop, axis=1)
 
         if right_drop:
             self.right = self.right.drop(right_drop, axis=1)
@@ -475,6 +480,7 @@ class _OrderedMerge(_MergeOperation):
         self._maybe_add_join_keys(result, left_indexer, right_indexer)
 
         return result
+
 
 def _get_multiindex_indexer(join_keys, index, sort=False):
     shape = []
@@ -860,8 +866,19 @@ class _Concatenator(object):
                 keys = sorted(objs)
             objs = [objs[k] for k in keys]
 
-        # filter Nones
-        objs = [obj for obj in objs if obj is not None]
+        if keys is None:
+            objs = [obj for obj in objs if obj is not None]
+        else:
+            # #1649
+            clean_keys = []
+            clean_objs = []
+            for k, v in zip(keys, objs):
+                if v is None:
+                    continue
+                clean_keys.append(k)
+                clean_objs.append(v)
+            objs = clean_objs
+            keys = clean_keys
 
         if len(objs) == 0:
             raise Exception('All objects passed were None')
@@ -967,9 +984,15 @@ class _Concatenator(object):
         return reindexed_data
 
     def _concat_blocks(self, blocks):
-        concat_values = np.concatenate([b.values for b in blocks
-                                        if b is not None],
-                                       axis=self.axis)
+        values_list = [b.values for b in blocks if b is not None]
+        if isinstance(blocks[0], DatetimeBlock):
+            # hack around NumPy 1.6 bug
+            concat_values = np.concatenate([x.view(np.int64)
+                                            for x in values_list],
+                                           axis=self.axis)
+            concat_values = concat_values.view(np.dtype('M8[ns]'))
+        else:
+            concat_values = np.concatenate(values_list, axis=self.axis)
 
         if self.axis > 0:
             # Not safe to remove this check, need to profile
@@ -1038,13 +1061,6 @@ class _Concatenator(object):
     def _get_new_axes(self):
         ndim = self._get_result_dim()
         new_axes = [None] * ndim
-
-        # if self.ignore_index:
-        #     concat_axis = None
-        # else:
-        #     concat_axis = self._get_concat_axis()
-
-        # new_axes[self.axis] = concat_axis
 
         if self.join_axes is None:
             for i in range(ndim):
@@ -1140,7 +1156,11 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
         for hlevel, level in zip(zipped, levels):
             to_concat = []
             for key, index in zip(hlevel, indexes):
-                i = level.get_loc(key)
+                try:
+                    i = level.get_loc(key)
+                except KeyError:
+                    raise ValueError('Key %s not in level %s' % (str(key), str(level)))
+
                 to_concat.append(np.repeat(i, len(index)))
             label_list.append(np.concatenate(to_concat))
 
@@ -1155,8 +1175,11 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             levels.append(factor.levels)
             label_list.append(factor.labels)
 
-        # also copies
-        names = names + _get_consensus_names(indexes)
+        if len(names) == len(levels):
+            names = list(names)
+        else:
+            # also copies
+            names = names + _get_consensus_names(indexes)
 
         return MultiIndex(levels=levels, labels=label_list, names=names)
 
@@ -1174,17 +1197,25 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
     # do something a bit more speedy
 
     for hlevel, level in zip(zipped, levels):
+        hlevel = _ensure_index(hlevel)
         mapped = level.get_indexer(hlevel)
+
+        mask = mapped == -1
+        if mask.any():
+            raise ValueError('Values not found in passed level: %s'
+                             % str(hlevel[mask]))
+
         new_labels.append(np.repeat(mapped, n))
 
     if isinstance(new_index, MultiIndex):
         new_levels.extend(new_index.levels)
         new_labels.extend([np.tile(lab, kpieces) for lab in new_index.labels])
-        new_names.extend(new_index.names)
     else:
         new_levels.append(new_index)
-        new_names.append(new_index.name)
         new_labels.append(np.tile(np.arange(n), kpieces))
+
+    if len(new_names) < len(new_levels):
+        new_names.extend(new_index.names)
 
     return MultiIndex(levels=new_levels, labels=new_labels, names=new_names)
 

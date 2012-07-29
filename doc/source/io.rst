@@ -83,8 +83,10 @@ data into a DataFrame object. They can take a number of arguments:
     as the index.
   - ``names``: List of column names to use. If passed, header will be
     implicitly set to None.
-  - ``na_values``: optional list of strings to recognize as NaN (missing values),
-    in addition to a default set.
+  - ``na_values``: optional list of strings to recognize as NaN (missing
+    values), in addition to a default set. If you pass an empty list or an
+    empty list for a particular column, no values (including empty strings)
+    will be considered NA
   - ``parse_dates``: if True then index will be parsed as dates
     (False by default). You can specify more complicated options to parse
     a subset of columns or a combination of columns into a single date column
@@ -269,6 +271,19 @@ You can also use a dict to specify custom name columns:
 
    date_spec = {'nominal': [1, 2], 'actual': [1, 3]}
    df = read_csv('tmp.csv', header=None, parse_dates=date_spec)
+   df
+
+It is important to remember that if multiple text columns are to be parsed into
+a single date column, then a new column is prepended to the data. The `index_col`
+specification is based off of this new set of columns rather than the original
+data columns:
+
+
+.. ipython:: python
+
+   date_spec = {'nominal': [1, 2], 'actual': [1, 3]}
+   df = read_csv('tmp.csv', header=None, parse_dates=date_spec,
+                 index_col=0) #index is the nominal column
    df
 
 Date Parsing Functions
@@ -698,6 +713,24 @@ additional arguments as the parsers above:
 
 To read sheets from an Excel 2007 file, you can pass a filename with a ``.xlsx``
 extension, in which case the ``openpyxl`` module will be used to read the file.
+
+It is often the case that users will insert columns to do temporary computations
+in Excel and you may not want to read in those columns. `ExcelFile.parse` takes
+a `parse_cols` keyword to allow you to specify a subset of columns to parse.
+
+If `parse_cols` is an integer, then it is assumed to indicate the last column
+to be parsed.
+
+.. code-block:: python
+
+   xls.parse('Sheet1', parse_cols=2, index_col=None, na_values=['NA'])
+
+If `parse_cols` is a list of integers, then it is assumed to be the file column
+indices to be parsed.
+
+.. code-block:: python
+
+   xls.parse('Sheet1', parse_cols=[0, 2, 3], index_col=None, na_values=['NA'])
 
 To write a DataFrame object to a sheet of an Excel file, you can use the
 ``to_excel`` instance method.  The arguments are largely the same as ``to_csv``

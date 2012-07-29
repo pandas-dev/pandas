@@ -10,6 +10,7 @@ import pandas.util.testing as tm
 
 import numpy as np
 
+from numpy.testing import assert_array_equal
 from numpy.testing.decorators import slow
 import pandas.tools.plotting as plotting
 
@@ -54,6 +55,65 @@ class TestSeriesPlots(unittest.TestCase):
         Series(np.random.randn(10)).plot(kind='bar',color='black')
 
     @slow
+    def test_bar_colors(self):
+        import matplotlib.pyplot as plt
+        import matplotlib.colors as colors
+
+        default_colors = 'brgyk'
+        custom_colors = 'rgcby'
+
+        plt.close('all')
+        df = DataFrame(np.random.randn(5, 5))
+        ax = df.plot(kind='bar')
+
+        rects = ax.patches
+
+        conv = colors.colorConverter
+        for i, rect in enumerate(rects[::5]):
+            xp = conv.to_rgba(default_colors[i])
+            rs = rect.get_facecolor()
+            self.assert_(xp == rs)
+
+        plt.close('all')
+
+        ax = df.plot(kind='bar', color=custom_colors)
+
+        rects = ax.patches
+
+        conv = colors.colorConverter
+        for i, rect in enumerate(rects[::5]):
+            xp = conv.to_rgba(custom_colors[i])
+            rs = rect.get_facecolor()
+            self.assert_(xp == rs)
+
+    @slow
+    def test_bar_linewidth(self):
+        df = DataFrame(np.random.randn(5, 5))
+
+        # regular
+        ax = df.plot(kind='bar', linewidth=2)
+        for r in ax.patches:
+            self.assert_(r.get_linewidth() == 2)
+
+        # stacked
+        ax = df.plot(kind='bar', stacked=True, linewidth=2)
+        for r in ax.patches:
+            self.assert_(r.get_linewidth() == 2)
+
+        # subplots
+        axes = df.plot(kind='bar', linewidth=2, subplots=True)
+        for ax in axes:
+            for r in ax.patches:
+                self.assert_(r.get_linewidth() == 2)
+
+    @slow
+    def test_1rotation(self):
+        df = DataFrame(np.random.randn(5, 5))
+        ax = df.plot(rot=30)
+        for l in ax.get_xticklabels():
+            self.assert_(l.get_rotation() == 30)
+
+    @slow
     def test_irregular_datetime(self):
         rng = date_range('1/1/2000', '3/1/2000')
         rng = rng[[0,1,2,3,5,9,10,11,12]]
@@ -74,6 +134,22 @@ class TestSeriesPlots(unittest.TestCase):
         _check_plot_works(self.ts.plot, kind='density')
         ax = self.ts.plot(kind='kde', logy=True)
         self.assert_(ax.get_yscale() == 'log')
+
+    @slow
+    def test_autocorrelation_plot(self):
+        from pandas.tools.plotting import autocorrelation_plot
+        _check_plot_works(autocorrelation_plot, self.ts)
+        _check_plot_works(autocorrelation_plot, self.ts.values)
+
+    @slow
+    def test_lag_plot(self):
+        from pandas.tools.plotting import lag_plot
+        _check_plot_works(lag_plot, self.ts)
+
+    @slow
+    def test_bootstrap_plot(self):
+        from pandas.tools.plotting import bootstrap_plot
+        _check_plot_works(bootstrap_plot, self.ts, size=10)
 
 class TestDataFramePlots(unittest.TestCase):
 
@@ -113,6 +189,34 @@ class TestDataFramePlots(unittest.TestCase):
         df = DataFrame(np.random.rand(10, 3),
                        index=MultiIndex.from_tuples(tuples))
         _check_plot_works(df.plot, use_index=True)
+
+    @slow
+    def test_plot_xy(self):
+        df = tm.makeTimeDataFrame()
+        self._check_data(df.plot(x=0, y=1),
+                         df.set_index('A').sort_index()['B'].plot())
+
+        self._check_data(df.plot(x=0), df.set_index('A').sort_index().plot())
+
+        self._check_data(df.plot(y=0), df.B.plot())
+
+        self._check_data(df.plot(x='A', y='B'),
+                         df.set_index('A').sort_index().B.plot())
+
+        self._check_data(df.plot(x='A'), df.set_index('A').sort_index().plot())
+
+        self._check_data(df.plot(y='B'), df.B.plot())
+
+    def _check_data(self, xp, rs):
+        xp_lines = xp.get_lines()
+        rs_lines = rs.get_lines()
+
+        def check_line(xpl, rsl):
+            xpdata = xpl.get_xydata()
+            rsdata = rsl.get_xydata()
+            assert_array_equal(xpdata, rsdata)
+
+        [check_line(xpl, rsl) for xpl, rsl in zip(xp_lines, rs_lines)]
 
     @slow
     def test_subplots(self):
@@ -180,6 +284,13 @@ class TestDataFramePlots(unittest.TestCase):
 
         _check_plot_works(lambda x: plotting.boxplot(x), df['one'])
 
+        _check_plot_works(df.boxplot, notch=1)
+        _check_plot_works(df.boxplot, by='indic', notch=1)
+
+        df = DataFrame(np.random.rand(10,2), columns=['Col1', 'Col2'] )
+        df['X'] = Series(['A','A','A','A','A','B','B','B','B','B'])
+        _check_plot_works(df.boxplot, by='X')
+
     @slow
     def test_kde(self):
         df = DataFrame(np.random.randn(100, 4))
@@ -207,6 +318,9 @@ class TestDataFramePlots(unittest.TestCase):
         #make sure layout is handled
         df = DataFrame(np.random.randn(100, 6))
         _check_plot_works(df.hist)
+
+        #make sure sharex, sharey is handled
+        _check_plot_works(df.hist, sharex=True, sharey=True)
 
         #make sure kwargs are handled
         ser = df[0]
@@ -261,6 +375,22 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(andrews_curves, df, 'Name')
 
     @slow
+    def test_parallel_coordinates(self):
+        from pandas import read_csv
+        from pandas.tools.plotting import parallel_coordinates
+        path = os.path.join(curpath(), 'data/iris.csv')
+        df = read_csv(path)
+        _check_plot_works(parallel_coordinates, df, 'Name')
+
+    @slow
+    def test_radviz(self):
+        from pandas import read_csv
+        from pandas.tools.plotting import radviz
+        path = os.path.join(curpath(), 'data/iris.csv')
+        df = read_csv(path)
+        _check_plot_works(radviz, df, 'Name')
+
+    @slow
     def test_plot_int_columns(self):
         df = DataFrame(np.random.randn(100, 4)).cumsum()
         _check_plot_works(df.plot, legend=True)
@@ -278,6 +408,59 @@ class TestDataFramePlots(unittest.TestCase):
 
     def _check_plot_fails(self, f, *args, **kwargs):
         self.assertRaises(Exception, f, *args, **kwargs)
+
+    @slow
+    def test_style_by_column(self):
+        import matplotlib.pyplot as plt
+        fig = plt.gcf()
+        fig.clf()
+        fig.add_subplot(111)
+
+        df = DataFrame(np.random.randn(100, 3))
+        markers = {0: '^', 1: '+', 2: 'o'}
+        ax = df.plot(style=markers)
+        for i, l in enumerate(ax.get_lines()):
+            self.assertEqual(l.get_marker(), markers[i])
+
+        fig.clf()
+        fig.add_subplot(111)
+        df = DataFrame(np.random.randn(100, 3))
+        markers = ['^', '+', 'o']
+        ax = df.plot(style=markers)
+        for i, l in enumerate(ax.get_lines()):
+            self.assertEqual(l.get_marker(), markers[i])
+
+class TestDataFrameGroupByPlots(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        import sys
+        if 'IPython' in sys.modules:
+            raise nose.SkipTest
+
+        try:
+            import matplotlib as mpl
+            mpl.use('Agg', warn=False)
+        except ImportError:
+            raise nose.SkipTest
+
+    @slow
+    def test_boxplot(self):
+        df = DataFrame(np.random.rand(10,2), columns=['Col1', 'Col2'] )
+        df['X'] = Series(['A','A','A','A','A','B','B','B','B','B'])
+        grouped = df.groupby(by='X')
+        _check_plot_works(grouped.boxplot)
+        _check_plot_works(grouped.boxplot, subplots=False)
+
+        tuples = zip(list(string.ascii_letters[:10]), range(10))
+        df = DataFrame(np.random.rand(10, 3),
+                       index=MultiIndex.from_tuples(tuples))
+        grouped = df.groupby(level=1)
+        _check_plot_works(grouped.boxplot)
+        _check_plot_works(grouped.boxplot, subplots=False)
+        grouped = df.unstack(level=1).groupby(level=0, axis=1)
+        _check_plot_works(grouped.boxplot)
+        _check_plot_works(grouped.boxplot, subplots=False)
 
 PNG_PATH = 'tmp.png'
 

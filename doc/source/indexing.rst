@@ -9,6 +9,7 @@
    import random
    np.random.seed(123456)
    from pandas import *
+   import pandas as pd
    randn = np.random.randn
    randint = np.random.randint
    np.set_printoptions(precision=4, suppress=True)
@@ -475,12 +476,24 @@ numpy array.  For instance,
 
 Advanced indexing with integer labels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 Label-based indexing with integer axis labels is a thorny topic. It has been
 discussed heavily on mailing lists and among various members of the scientific
 Python community. In pandas, our general viewpoint is that labels matter more
-than integer locations. Therefore, advanced indexing with ``.ix`` will always
-attempt label-based indexing, before falling back on integer-based indexing.
+than integer locations. Therefore, with an integer axis index *only*
+label-based indexing is possible with the standard tools like ``.ix``. The
+following code will generate exceptions:
+
+.. code-block:: python
+
+   s = Series(range(5))
+   s[-1]
+   df = DataFrame(np.random.randn(5, 4))
+   df
+   df.ix[-2:]
+
+This deliberate decision was made to prevent ambiguities and subtle bugs (many
+users reported finding bugs when the API change was made to stop "falling back"
+on position-based indexing).
 
 Setting values in mixed-type DataFrame
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -653,6 +666,14 @@ can find yourself working with hierarchically-indexed data without creating a
 ``MultiIndex`` explicitly yourself. However, when loading data from a file, you
 may wish to generate your own ``MultiIndex`` when preparing the data set.
 
+Note that how the index is displayed by be controlled using the
+``multi_sparse`` option in ``pandas.set_printoptions``:
+
+.. ipython:: python
+
+   pd.set_printoptions(multi_sparse=False)
+   df
+   pd.set_printoptions(multi_sparse=True)
 
 Reconstructing the level labels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -923,6 +944,15 @@ indexed DataFrame:
    indexed2 = data.set_index(['a', 'b'])
    indexed2
 
+The ``append`` keyword option allow you to keep the existing index and append the given
+columns to a MultiIndex:
+
+.. ipython:: python
+
+   frame = data.set_index('c', drop=False)
+   frame = frame.set_index(['a', 'b'], append=True)
+   frame
+
 Other options in ``set_index`` allow you not drop the index columns or to add
 the index in-place (without creating a new object):
 
@@ -946,6 +976,14 @@ integer index. This is the inverse operation to ``set_index``
 
 The output is more similar to a SQL table or a record array. The names for the
 columns derived from the index are the ones stored in the ``names`` attribute.
+
+You can use the ``level`` keyword to remove only a portion of the index:
+
+.. ipython:: python
+
+   frame
+   frame.reset_index(level=1)
+
 
 ``reset_index`` takes an optional parameter ``drop`` which if true simply
 discards the index, instead of putting index values in the DataFrame's columns.

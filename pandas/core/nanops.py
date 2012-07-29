@@ -57,6 +57,22 @@ def _has_infs(result):
     else:
         return np.isinf(result) or np.isneginf(result)
 
+def nanany(values, axis=None, skipna=True):
+    mask = isnull(values)
+
+    if skipna:
+        values = values.copy()
+        np.putmask(values, mask, False)
+    return values.any(axis)
+
+def nanall(values, axis=None, skipna=True):
+    mask = isnull(values)
+
+    if skipna:
+        values = values.copy()
+        np.putmask(values, mask, True)
+    return values.all(axis)
+
 def _nansum(values, axis=None, skipna=True):
     mask = isnull(values)
 
@@ -135,7 +151,12 @@ def _nanmin(values, axis=None, skipna=True):
         else:
             result = __builtin__.min(values)
     else:
-        result = values.min(axis)
+        if ((axis is not None and values.shape[axis] == 0)
+             or values.size == 0):
+            result = values.sum(axis)
+            result.fill(np.nan)
+        else:
+            result = values.min(axis)
 
     return _maybe_null_out(result, axis, mask)
 
@@ -156,7 +177,13 @@ def _nanmax(values, axis=None, skipna=True):
         else:
             result = __builtin__.max(values)
     else:
-        result = values.max(axis)
+        if ((axis is not None and values.shape[axis] == 0)
+             or values.size == 0):
+            result = values.sum(axis)
+            result.fill(np.nan)
+        else:
+            result = values.max(axis)
+
     return _maybe_null_out(result, axis, mask)
 
 def nanargmax(values, axis=None, skipna=True):
@@ -331,7 +358,10 @@ def get_corr_func(method):
     def _pearson(a, b):
         return np.corrcoef(a, b)[0, 1]
     def _kendall(a, b):
-        return kendalltau(a, b)[0]
+        rs = kendalltau(a, b)
+        if isinstance(rs, tuple):
+            return rs[0]
+        return rs
     def _spearman(a, b):
         return spearmanr(a, b)[0]
 

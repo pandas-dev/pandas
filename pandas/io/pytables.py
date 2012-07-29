@@ -18,7 +18,7 @@ from pandas.tseries.api import PeriodIndex, DatetimeIndex
 from pandas.core.common import adjoin
 from pandas.core.algorithms import match, unique
 
-from pandas.core.factor import Factor
+from pandas.core.categorical import Factor
 from pandas.core.common import _asarray_tuplesafe
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.reshape import block2d_to_block3d
@@ -277,11 +277,12 @@ class HDFStore(object):
         -------
         obj : type of object stored in file
         """
+        exc_type = _tables().NoSuchNodeError
         try:
             group = getattr(self.handle.root, key)
             return self._read_group(group)
-        except AttributeError:
-            raise
+        except (exc_type, AttributeError):
+            raise KeyError('No object named %s in the file' % key)
 
     def select(self, key, where=None):
         """
@@ -716,7 +717,7 @@ class HDFStore(object):
             vlarr.append(value)
         elif value.dtype.type == np.datetime64:
             self.handle.createArray(group, key, value.view('i8'))
-            group._v_attrs.value_type = 'datetime64'
+            getattr(group, key)._v_attrs.value_type = 'datetime64'
         else:
             self.handle.createArray(group, key, value)
 
@@ -874,7 +875,7 @@ class HDFStore(object):
             lp = DataFrame(values, index=long_index, columns=fields)
 
             # need a better algorithm
-            tuple_index = long_index.get_tuple_index()
+            tuple_index = long_index._tuple_index
 
             unique_tuples = lib.fast_unique(tuple_index)
             unique_tuples = _asarray_tuplesafe(unique_tuples)
@@ -910,11 +911,11 @@ class HDFStore(object):
 
 def _convert_index(index):
     if isinstance(index, DatetimeIndex):
-        converted = np.asarray(index, dtype='i8')
+        converted = index.asi8
         return converted, 'datetime64', _tables().Int64Col()
     elif isinstance(index, (Int64Index, PeriodIndex)):
         atom = _tables().Int64Col()
-        return np.asarray(index, dtype=np.int64), 'integer', atom
+        return index.values, 'integer', atom
 
     inferred_type = lib.infer_dtype(index)
 
@@ -958,14 +959,14 @@ def _read_array(group, key):
     if isinstance(node, tables.VLArray):
         return data[0]
     else:
-        dtype = getattr(group._v_attrs, 'value_type', None)
+        dtype = getattr(node._v_attrs, 'value_type', None)
         if dtype == 'datetime64':
             return np.array(data, dtype='M8[ns]')
         return data
 
 def _unconvert_index(data, kind):
     if kind == 'datetime64':
-        index = np.asarray(data, dtype='M8[ns]')
+        index = DatetimeIndex(data)
     elif kind == 'datetime':
         index = np.array([datetime.fromtimestamp(v) for v in data],
                          dtype=object)

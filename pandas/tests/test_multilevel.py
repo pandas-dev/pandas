@@ -899,7 +899,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         df = self.frame.T
         df['foo', 'four'] = 'foo'
 
-        arrays = [np.array(x) for x in zip(*df.columns.get_tuple_index())]
+        arrays = [np.array(x) for x in zip(*df.columns._tuple_index)]
 
         result = df['foo']
         result2 = df.ix[:, 'foo']
@@ -923,7 +923,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         index = MultiIndex.from_tuples(tuples)
         s = Series(randn(8), index=index)
 
-        arrays = [np.array(x) for x in zip(*index.get_tuple_index())]
+        arrays = [np.array(x) for x in zip(*index._tuple_index)]
 
         result = s['qux']
         result2 = s.ix['qux']
@@ -1001,6 +1001,26 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
             self.assert_(rightside._get_axis(axis).equals(level_index))
 
             assert_frame_equal(leftside, rightside)
+
+    def test_stat_op_corner(self):
+        obj = Series([10.0], index=MultiIndex.from_tuples([(2, 3)]))
+
+        result = obj.sum(level=0)
+        expected = Series([10.0], index=[2])
+        assert_series_equal(result, expected)
+
+    def test_frame_any_all_group(self):
+        df = DataFrame({'data': [False, False, True, False, True, False, True]},
+                       index=[['one', 'one', 'two', 'one', 'two', 'two', 'two'],
+                              [0, 1, 0, 2, 1, 2, 3]])
+
+        result = df.any(level=0)
+        ex = DataFrame({'data': [False, True]}, index=['one', 'two'])
+        assert_frame_equal(result, ex)
+
+        result = df.all(level=0)
+        ex = DataFrame({'data': [False, False]}, index=['one', 'two'])
+        assert_frame_equal(result, ex)
 
     def test_std_var_pass_ddof(self):
         index = MultiIndex.from_arrays([np.arange(5).repeat(10),
@@ -1342,6 +1362,16 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         expected = self.frame.ix[[0, 2, 3, 6, 7, 9]].T
         assert_frame_equal(result, expected)
 
+    def test_drop_preserve_names(self):
+        index = MultiIndex.from_arrays([[0, 0, 0, 1, 1, 1],
+                                        [1, 2, 3, 1, 2, 3]],
+                                       names=['one', 'two'])
+
+        df = DataFrame(np.random.randn(6, 3), index=index)
+
+        result = df.drop([(0, 2)])
+        self.assert_(result.index.names == ['one', 'two'])
+
     def test_unicode_repr_issues(self):
         levels = [Index([u'a/\u03c3', u'b/\u03c3',u'c/\u03c3']),
                   Index([0, 1])]
@@ -1353,6 +1383,33 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         # NumPy bug
         # repr(index.get_level_values(1))
 
+    def test_dataframe_insert_column_all_na(self):
+        # GH #1534
+        mix = MultiIndex.from_tuples([('1a', '2a'), ('1a', '2b'), ('1a', '2c')])
+        df = DataFrame([[1,2],[3,4],[5,6]], index=mix)
+        s = Series({(1,1): 1, (1,2): 2})
+        df['new'] = s
+        self.assert_(df['new'].isnull().all())
+
+    def test_join_segfault(self):
+        # 1532
+        df1 = DataFrame({'a': [1, 1], 'b': [1, 2], 'x': [1, 2]})
+        df2 = DataFrame({'a': [2, 2], 'b': [1, 2], 'y': [1, 2]})
+        df1 = df1.set_index(['a', 'b'])
+        df2 = df2.set_index(['a', 'b'])
+        # it works!
+        for how in ['left', 'right', 'outer']:
+            df1.join(df2, how=how)
+
+    def test_set_column_scalar_with_ix(self):
+        subset = self.frame.index[[1, 4, 5]]
+
+        self.frame.ix[subset] = 99
+        self.assert_((self.frame.ix[subset].values == 99).all())
+
+        col = self.frame['B']
+        col[subset] = 97
+        self.assert_((self.frame.ix[subset, 'B'] == 97).all())
 
 if __name__ == '__main__':
 

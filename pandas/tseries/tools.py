@@ -9,22 +9,18 @@ import pandas.core.common as com
 
 try:
     import dateutil
-    from dateutil.parser import parser
+    from dateutil.parser import parse
     from dateutil.relativedelta import relativedelta
 
     # raise exception if dateutil 2.0 install on 2.x platform
     if (sys.version_info[0] == 2 and
         dateutil.__version__ == '2.0'):  # pragma: no cover
         raise Exception('dateutil 2.0 incompatible with Python 2.x, you must '
-                        'install version 1.5!')
+                        'install version 1.5 or 2.1+!')
 except ImportError: # pragma: no cover
     print 'Please install python-dateutil via easy_install or some method!'
     raise # otherwise a 2nd import won't show the message
 
-def _delta_to_microseconds(delta):
-    return (delta.days * 24 * 60 * 60 * 1000000
-            + delta.seconds * 1000000
-            + delta.microseconds)
 
 def _infer_tzinfo(start, end):
     def _infer(a, b):
@@ -65,7 +61,7 @@ def _figure_out_timezone(start, end, tzinfo):
     return start, end, tz
 
 
-def to_datetime(arg, errors='ignore', dayfirst=False):
+def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True):
     """
     Convert argument to datetime
 
@@ -74,6 +70,9 @@ def to_datetime(arg, errors='ignore', dayfirst=False):
     arg : string, datetime, array of strings (with possible NAs)
     errors : {'ignore', 'raise'}, default 'ignore'
         Errors are ignored by default (values left untouched)
+    utc : boolean, default None
+        Return UTC DatetimeIndex if True (converting any tz-aware
+        datetime.datetime objects as well)
 
     Returns
     -------
@@ -88,6 +87,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False):
     elif isinstance(arg, Series):
         values = lib.array_to_datetime(com._ensure_object(arg.values),
                                        raise_=errors == 'raise',
+                                       utc=utc,
                                        dayfirst=dayfirst)
         return Series(values, index=arg.index, name=arg.name)
     elif isinstance(arg, (np.ndarray, list)):
@@ -95,14 +95,15 @@ def to_datetime(arg, errors='ignore', dayfirst=False):
             arg = np.array(arg, dtype='O')
         result = lib.array_to_datetime(com._ensure_object(arg),
                                        raise_=errors == 'raise',
+                                       utc=utc,
                                        dayfirst=dayfirst)
-        if com.is_datetime64_dtype(result):
-            result = DatetimeIndex(result)
+        if com.is_datetime64_dtype(result) and box:
+            result = DatetimeIndex(result, tz='utc' if utc else None)
         return result
     try:
         if not arg:
             return arg
-        return _dtparser.parse(arg, dayfirst=dayfirst)
+        return parse(arg, dayfirst=dayfirst)
     except Exception:
         if errors == 'raise':
             raise
@@ -113,15 +114,13 @@ class DateParseError(ValueError):
     pass
 
 
-_dtparser = parser()
-
 
 # patterns for quarters like '4Q2005', '05Q1'
 qpat1full = re.compile(r'(\d)Q(\d\d\d\d)')
 qpat2full = re.compile(r'(\d\d\d\d)Q(\d)')
 qpat1 = re.compile(r'(\d)Q(\d\d)')
 qpat2 = re.compile(r'(\d\d)Q(\d)')
-
+ypat = re.compile(r'(\d\d\d\d)$')
 
 def parse_time_string(arg, freq=None):
     """
@@ -147,81 +146,102 @@ def parse_time_string(arg, freq=None):
         return arg
 
     arg = arg.upper()
-    try:
-        default = datetime(1,1,1).replace(hour=0, minute=0,
-                                          second=0, microsecond=0)
 
-        # special handling for possibilities eg, 2Q2005, 2Q05, 2005Q1, 05Q1
-        if len(arg) in [4, 6]:
-            add_century = False
-            if len(arg) == 4:
-                add_century = True
-                qpats = [(qpat1, 1), (qpat2, 0)]
-            else:
-                qpats = [(qpat1full, 1), (qpat2full, 0)]
+    default = datetime(1,1,1).replace(hour=0, minute=0,
+                                      second=0, microsecond=0)
 
-            for pat, yfirst in qpats:
-                qparse = pat.match(arg)
-                if qparse is not None:
-                    if yfirst:
-                        yi, qi = 1, 2
-                    else:
-                        yi, qi = 2, 1
-                    q = int(qparse.group(yi))
-                    y_str = qparse.group(qi)
-                    y = int(y_str)
-                    if add_century:
-                        y += 2000
+    # special handling for possibilities eg, 2Q2005, 2Q05, 2005Q1, 05Q1
+    if len(arg) in [4, 6]:
+        m = ypat.match(arg)
+        if m:
+            ret = default.replace(year=int(m.group(1)))
+            return ret, ret, 'year'
 
-                    if freq is not None:
-                        # hack attack, #1228
-                        mnum = _month_numbers[_get_rule_month(freq)] + 1
-                        month = (mnum + (q - 1) * 3) % 12 + 1
-                        if month > mnum:
-                            y -= 1
-                    else:
-                        month = (q - 1) * 3 + 1
+        add_century = False
+        if len(arg) == 4:
+            add_century = True
+            qpats = [(qpat1, 1), (qpat2, 0)]
+        else:
+            qpats = [(qpat1full, 1), (qpat2full, 0)]
 
-                    ret = default.replace(year=y, month=month)
-                    return ret, ret, 'quarter'
-
-            is_mo_str = freq is not None and freq == 'M'
-            is_mo_off = getattr(freq, 'rule_code', None) == 'M'
-            is_monthly = is_mo_str or is_mo_off
-            if len(arg) == 6 and is_monthly:
-                try:
-                    ret = _try_parse_monthly(arg)
-                    if ret is not None:
-                        return ret, ret, 'month'
-                except Exception:
-                    pass
-
-        dayfirst = print_config.date_dayfirst
-        yearfirst = print_config.date_yearfirst
-
-        parsed = _dtparser._parse(arg, dayfirst=dayfirst, yearfirst=yearfirst)
-        if parsed is None:
-            raise DateParseError("Could not parse %s" % arg)
-
-        repl = {}
-        reso = 'year'
-        stopped = False
-        for attr in ["year", "month", "day", "hour",
-                     "minute", "second", "microsecond"]:
-            can_be_zero = ['hour', 'minute', 'second', 'microsecond']
-            value = getattr(parsed, attr)
-            if value is not None and (value != 0 or attr in can_be_zero):
-                repl[attr] = value
-                if not stopped:
-                    reso = attr
+        for pat, yfirst in qpats:
+            qparse = pat.match(arg)
+            if qparse is not None:
+                if yfirst:
+                    yi, qi = 1, 2
                 else:
-                    raise DateParseError("Missing attribute before %s" % attr)
-            else:
-                stopped = True
-        ret = default.replace(**repl)
-        return ret, parsed, reso  # datetime, resolution
+                    yi, qi = 2, 1
+                q = int(qparse.group(yi))
+                y_str = qparse.group(qi)
+                y = int(y_str)
+                if add_century:
+                    y += 2000
+
+                if freq is not None:
+                    # hack attack, #1228
+                    mnum = _month_numbers[_get_rule_month(freq)] + 1
+                    month = (mnum + (q - 1) * 3) % 12 + 1
+                    if month > mnum:
+                        y -= 1
+                else:
+                    month = (q - 1) * 3 + 1
+
+                ret = default.replace(year=y, month=month)
+                return ret, ret, 'quarter'
+
+        is_mo_str = freq is not None and freq == 'M'
+        is_mo_off = getattr(freq, 'rule_code', None) == 'M'
+        is_monthly = is_mo_str or is_mo_off
+        if len(arg) == 6 and is_monthly:
+            try:
+                ret = _try_parse_monthly(arg)
+                if ret is not None:
+                    return ret, ret, 'month'
+            except Exception:
+                pass
+
+    # montly f7u12
+    mresult = _attempt_monthly(arg)
+    if mresult:
+        return mresult
+
+    dayfirst = print_config.date_dayfirst
+    yearfirst = print_config.date_yearfirst
+
+    try:
+        parsed = parse(arg, dayfirst=dayfirst, yearfirst=yearfirst)
     except Exception, e:
         raise DateParseError(e)
+
+    if parsed is None:
+        raise DateParseError("Could not parse %s" % arg)
+
+    repl = {}
+    reso = 'year'
+    stopped = False
+    for attr in ["year", "month", "day", "hour",
+                 "minute", "second", "microsecond"]:
+        can_be_zero = ['hour', 'minute', 'second', 'microsecond']
+        value = getattr(parsed, attr)
+        if value is not None and value != 0: # or attr in can_be_zero):
+            repl[attr] = value
+            if not stopped:
+                reso = attr
+        else:
+            stopped = True
+            break
+    ret = default.replace(**repl)
+    return ret, parsed, reso  # datetime, resolution
+
+def _attempt_monthly(val):
+    pats = ['%Y-%m', '%m-%Y', '%b %Y', '%b-%Y']
+    for pat in pats:
+        try:
+            ret = datetime.strptime(val, pat)
+            return ret, ret, 'month'
+        except Exception:
+            pass
+
 
 def _try_parse_monthly(arg):
     base = 2000
@@ -242,8 +262,6 @@ def _try_parse_monthly(arg):
     return ret
 
 def normalize_date(dt):
-    if isinstance(dt, np.datetime64):
-        dt = lib.Timestamp(dt)
     return dt.replace(hour=0, minute=0, second=0, microsecond=0)
 
 

@@ -9,6 +9,7 @@ import pandas.core.common as com
 
 from pandas.core.algorithms import quantile
 from pandas.tools.tile import cut, qcut
+import pandas.tools.tile as tmod
 
 from numpy.testing import assert_equal, assert_almost_equal
 
@@ -47,6 +48,24 @@ class TestCut(unittest.TestCase):
     def test_bins_not_monotonic(self):
         data = [.2, 1.4, 2.5, 6.2, 9.7, 2.1]
         self.assertRaises(ValueError, cut, data, [0.1, 1.5, 1, 10])
+
+    def test_wrong_num_labels(self):
+        data = [.2, 1.4, 2.5, 6.2, 9.7, 2.1]
+        self.assertRaises(ValueError, cut, data, [0, 1, 10],
+                          labels=['foo', 'bar', 'baz'])
+
+    def test_cut_corner(self):
+        # h3h
+        self.assertRaises(ValueError, cut, [], 2)
+
+        self.assertRaises(ValueError, cut, [1, 2, 3], 0.5)
+
+    def test_cut_out_of_range_more(self):
+        # #1511
+        s = Series([0, -1, 0, 1, -3])
+        ind = cut(s, [0, 1], labels=False)
+        exp = [np.nan, np.nan, np.nan, 0, np.nan]
+        assert_almost_equal(ind, exp)
 
     def test_labels(self):
         arr = np.tile(np.arange(0, 1.01, 0.1), 4)
@@ -96,10 +115,9 @@ class TestCut(unittest.TestCase):
 
         labels, bins = qcut(arr, 4, retbins=True)
         ex_bins = quantile(arr, [0, .25, .5, .75, 1.])
-        ex_bins[0] -= (arr.max() - arr.min()) * 0.001
         assert_almost_equal(bins, ex_bins)
 
-        ex_levels = cut(arr, ex_bins)
+        ex_levels = cut(arr, ex_bins, include_lowest=True)
         self.assert_(np.array_equal(labels, ex_levels))
 
     def test_qcut_bounds(self):
@@ -108,6 +126,59 @@ class TestCut(unittest.TestCase):
 
         factor = qcut(arr, 10, labels=False)
         self.assert_(len(np.unique(factor)) == 10)
+
+    def test_qcut_specify_quantiles(self):
+        arr = np.random.randn(100)
+
+        factor = qcut(arr, [0, .25, .5, .75, 1.])
+        expected = qcut(arr, 4)
+        self.assert_(factor.equals(expected))
+
+    def test_cut_out_of_bounds(self):
+        np.random.seed(12345)
+
+        arr = np.random.randn(100)
+
+        result = cut(arr, [-1, 0, 1])
+
+        mask = result.labels == -1
+        ex_mask = (arr < -1) | (arr > 1)
+        self.assert_(np.array_equal(mask, ex_mask))
+
+    def test_cut_pass_labels(self):
+        arr = [50, 5, 10, 15, 20, 30, 70]
+        bins = [0, 25, 50, 100]
+        labels = ['Small', 'Medium', 'Large']
+
+        result = cut(arr, bins, labels=labels)
+
+        exp = cut(arr, bins)
+        exp.levels = labels
+
+        self.assert_(result.equals(exp))
+
+    def test_qcut_include_lowest(self):
+        values = np.arange(10)
+
+        cats = qcut(values, 4)
+
+        ex_levels = ['[0, 2.25]', '(2.25, 4.5]', '(4.5, 6.75]', '(6.75, 9]']
+        self.assert_((cats.levels == ex_levels).all())
+
+    def test_qcut_nas(self):
+        arr = np.random.randn(100)
+        arr[:20] = np.nan
+
+        result = qcut(arr, 4)
+        self.assert_(com.isnull(result[:20]).all())
+
+    def test_label_formatting(self):
+        self.assertEquals(tmod._trim_zeros('1.000'), '1')
+
+        # it works
+        result = cut(np.arange(11.), 2)
+
+        result = cut(np.arange(11.) / 1e10, 2)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

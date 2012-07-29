@@ -68,6 +68,10 @@ def infer_dtype(object _values):
         if is_date_array(values):
             return 'date'
 
+    elif is_time(val):
+        if is_time_array(values):
+            return 'time'
+
     elif util.is_float_object(val):
         if is_float_array(values):
             return 'floating'
@@ -102,6 +106,9 @@ cdef inline bint is_datetime(object o):
 
 cdef inline bint is_date(object o):
     return PyDate_Check(o)
+
+cdef inline bint is_time(object o):
+    return PyTime_Check(o)
 
 def is_bool_array(ndarray values):
     cdef:
@@ -240,8 +247,44 @@ def is_date_array(ndarray[object] values):
             return False
     return True
 
+def is_time_array(ndarray[object] values):
+    cdef int i, n = len(values)
+    if n == 0:
+        return False
+    for i in range(n):
+        if not is_time(values[i]):
+            return False
+    return True
 
-def maybe_convert_numeric(ndarray[object] values, set na_values):
+def is_period_array(ndarray[object] values):
+    cdef int i, n = len(values)
+    from pandas import Period
+
+    if n == 0:
+        return False
+    for i in range(n):
+        if not isinstance(values[i], Period):
+            return False
+    return True
+
+def extract_ordinals(ndarray[object] values, freq):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[int64_t] ordinals = np.empty(n, dtype=np.int64)
+        object p
+
+    for i in range(n):
+        p = values[i]
+        ordinals[i] = p.ordinal
+        if p.freq != freq:
+            raise ValueError("%s is wrong freq" % p)
+
+    return ordinals
+
+
+
+def maybe_convert_numeric(ndarray[object] values, set na_values,
+                          convert_empty=True):
     '''
     Type inference function-- convert strings to numeric (potentially) and
     convert to proper dtype array
@@ -275,8 +318,11 @@ def maybe_convert_numeric(ndarray[object] values, set na_values):
             floats[i] = complexes[i] = nan
             seen_float = 1
         elif len(val) == 0:
-            floats[i] = complexes[i] = nan
-            seen_float = 1
+            if convert_empty:
+                floats[i] = complexes[i] = nan
+                seen_float = 1
+            else:
+                raise ValueError('Empty string encountered')
         elif util.is_complex_object(val):
             complexes[i] = val
             seen_complex = 1
@@ -573,7 +619,8 @@ def try_parse_datetime_components(ndarray[object] years, ndarray[object] months,
 
     return result
 
-def sanitize_objects(ndarray[object] values, set na_values):
+def sanitize_objects(ndarray[object] values, set na_values,
+                     convert_empty=True):
     cdef:
         Py_ssize_t i, n
         object val, onan
@@ -585,7 +632,7 @@ def sanitize_objects(ndarray[object] values, set na_values):
 
     for i from 0 <= i < n:
         val = values[i]
-        if val == '' or val in na_values:
+        if (convert_empty and val == '') or (val in na_values):
             values[i] = onan
             na_count += 1
         elif val in memo:
@@ -617,7 +664,7 @@ def maybe_convert_bool(ndarray[object] arr):
     return result.view(np.bool_)
 
 
-def map_infer(ndarray arr, object f):
+def map_infer(ndarray arr, object f, bint convert=1):
     '''
     Substitute for np.vectorize with pandas-friendly dtype inference
 
@@ -647,8 +694,11 @@ def map_infer(ndarray arr, object f):
 
         result[i] = val
 
-    return maybe_convert_objects(result, try_float=0,
-                                 convert_datetime=0)
+    if convert:
+        return maybe_convert_objects(result, try_float=0,
+                                     convert_datetime=0)
+
+    return result
 
 def to_object_array(list rows):
     cdef:

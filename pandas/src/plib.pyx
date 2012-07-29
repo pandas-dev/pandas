@@ -231,8 +231,12 @@ def period_format(int64_t value, int freq, object fmt=None):
             fmt = b'%FQ%q'
         elif freq_group == 3000: # FR_MTH
             fmt = b'%b-%Y'
-        elif (freq_group == 4000 # WK
-              or freq_group == 5000 # BUS
+        elif freq_group == 4000: # WK
+            left = period_asfreq(value, freq, 6000, 0)
+            right = period_asfreq(value, freq, 6000, 1)
+            return '%s/%s' % (period_format(left, 6000),
+                              period_format(right, 6000))
+        elif (freq_group == 5000 # BUS
               or freq_group == 6000): # DAY
             fmt = b'%d-%b-%Y'
         elif freq_group == 7000: # HR

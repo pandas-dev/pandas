@@ -56,28 +56,35 @@ def isnull(obj):
         return lib.checknull(obj)
 
     from pandas.core.generic import PandasObject
-    from pandas import Series
     if isinstance(obj, np.ndarray):
-        if obj.dtype.kind in ('O', 'S'):
-            # Working around NumPy ticket 1542
-            shape = obj.shape
-            result = np.empty(shape, dtype=bool)
-            vec = lib.isnullobj(obj.ravel())
-            result[:] = vec.reshape(shape)
-
-            if isinstance(obj, Series):
-                result = Series(result, index=obj.index, copy=False)
-        elif obj.dtype == np.dtype('M8[ns]'):
-            # this is the NaT pattern
-            result = np.array(obj).view('i8') == lib.iNaT
-        else:
-            result = -np.isfinite(obj)
-        return result
+        return _isnull_ndarraylike(obj)
     elif isinstance(obj, PandasObject):
         # TODO: optimize for DataFrame, etc.
         return obj.apply(isnull)
+    elif hasattr(obj, '__array__'):
+        return _isnull_ndarraylike(obj)
     else:
         return obj is None
+
+def _isnull_ndarraylike(obj):
+    from pandas import Series
+    values = np.asarray(obj)
+
+    if values.dtype.kind in ('O', 'S'):
+        # Working around NumPy ticket 1542
+        shape = values.shape
+        result = np.empty(shape, dtype=bool)
+        vec = lib.isnullobj(values.ravel())
+        result[:] = vec.reshape(shape)
+
+        if isinstance(obj, Series):
+            result = Series(result, index=obj.index, copy=False)
+    elif values.dtype == np.dtype('M8[ns]'):
+        # this is the NaT pattern
+        result = values.view('i8') == lib.iNaT
+    else:
+        result = -np.isfinite(obj)
+    return result
 
 def notnull(obj):
     '''
@@ -247,7 +254,7 @@ def take_1d(arr, indexer, out=None, fill_value=np.nan):
 
     return out
 
-def take_2d_multi(arr, row_idx, col_idx, fill_value=np.nan):
+def take_2d_multi(arr, row_idx, col_idx, fill_value=np.nan, out=None):
 
     dtype_str = arr.dtype.name
 
@@ -260,21 +267,26 @@ def take_2d_multi(arr, row_idx, col_idx, fill_value=np.nan):
 
         if needs_masking:
             return take_2d_multi(_maybe_upcast(arr), row_idx, col_idx,
-                                 fill_value=fill_value)
+                                 fill_value=fill_value, out=out)
         else:
-            out = np.empty(out_shape, dtype=arr.dtype)
+            if out is None:
+                out = np.empty(out_shape, dtype=arr.dtype)
             take_f = _get_take2d_function(dtype_str, axis='multi')
             take_f(arr, _ensure_int64(row_idx),
                    _ensure_int64(col_idx), out=out,
                    fill_value=fill_value)
             return out
     elif dtype_str in ('float64', 'object', 'datetime64[ns]'):
-        out = np.empty(out_shape, dtype=arr.dtype)
+        if out is None:
+            out = np.empty(out_shape, dtype=arr.dtype)
         take_f = _get_take2d_function(dtype_str, axis='multi')
         take_f(arr, _ensure_int64(row_idx), _ensure_int64(col_idx), out=out,
                fill_value=fill_value)
         return out
     else:
+        if out is not None:
+            raise ValueError('Cannot pass out in this case')
+
         return take_2d(take_2d(arr, row_idx, axis=0, fill_value=fill_value),
                        col_idx, axis=1, fill_value=fill_value)
 
@@ -482,6 +494,8 @@ def _possibly_cast_item(obj, item, dtype):
 
 def _is_bool_indexer(key):
     if isinstance(key, np.ndarray) and key.dtype == np.object_:
+        key = np.asarray(key)
+
         if not lib.is_bool_array(key):
             if isnull(key).any():
                 raise ValueError('cannot index with vector containing '
@@ -691,11 +705,16 @@ def _index_labels_to_array(labels):
 
     return labels
 
-def _stringify(col):
+def _stringify(col, encoding='UTF8'):
     # unicode workaround
     try:
         return unicode(col)
     except UnicodeError:
+        try:
+            if isinstance(col, str):
+                return col.decode(encoding)
+        except UnicodeError:
+            pass
         return console_encode(col)
 
 def _stringify_seq(values):
@@ -905,3 +924,14 @@ else:
             self.stream.write(data)
             # empty queue
             self.queue.truncate(0)
+
+
+_NS_DTYPE = np.dtype('M8[ns]')
+
+def _concat_compat(to_concat):
+    if all(x.dtype == _NS_DTYPE for x in to_concat):
+        # work around NumPy 1.6 bug
+        new_values = np.concatenate([x.view(np.int64) for x in to_concat])
+        return new_values.view(_NS_DTYPE)
+    else:
+        return np.concatenate(to_concat)

@@ -1,0 +1,46 @@
+.. _whatsnew_0801:
+
+v0.8.1 (July 22, 2012)
+----------------------
+
+This release includes a few new features, performance enhancements, and over 30
+bug fixes from 0.8.0.  New features include notably NA friendly string
+processing functionality and a series of new plot types and options.
+
+New features
+~~~~~~~~~~~~
+
+  - Add :ref:`vectorized string processing methods <basics.string_methods>`
+    accessible via Series.str (GH620_)
+  - Add option to disable adjustment in EWMA (GH1584_)
+  - :ref:`Radviz plot <visualization.radviz>` (GH1566_)
+  - :ref:`Parallel coordinates plot <visualization.parallel_coordinates>`
+  - :ref:`Bootstrap plot <visualization.bootstrap>`
+  - Per column styles and secondary y-axis plotting (GH1559_)
+  - New datetime converters millisecond plotting  (GH1599_)
+  - Add option to disable "sparse" display of hierarchical indexes (GH1538_)
+  - Series/DataFrame's ``set_index`` method can :ref:`append levels
+    <indexing.set_index>` to an existing Index/MultiIndex (GH1569_, GH1577_)
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+  - Improved implementation of rolling min and max (thanks to `Bottleneck
+    <http://berkeleyanalytics.com/bottleneck/>`__ !)
+  - Add accelerated ``'median'`` GroupBy option (GH1358_)
+  - Significantly improve the performance of parsing ISO8601-format date
+    strings with ``DatetimeIndex`` or ``to_datetime`` (GH1571_)
+  - Improve the performance of GroupBy on single-key aggregations and use with
+    Categorical types
+  - Significant datetime parsing performance improvments
+
+.. _GH620: https://github.com/pydata/pandas/issues/620
+.. _GH1358: https://github.com/pydata/pandas/issues/1358
+.. _GH1538: https://github.com/pydata/pandas/issues/1538
+.. _GH1559: https://github.com/pydata/pandas/issues/1559
+.. _GH1584: https://github.com/pydata/pandas/issues/1584
+.. _GH1566: https://github.com/pydata/pandas/issues/1566
+.. _GH1569: https://github.com/pydata/pandas/issues/1569
+.. _GH1571: https://github.com/pydata/pandas/issues/1571
+.. _GH1577: https://github.com/pydata/pandas/issues/1577
+.. _GH1599: https://github.com/pydata/pandas/issues/1599

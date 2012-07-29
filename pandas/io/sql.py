@@ -77,6 +77,7 @@ def tquery(sql, con=None, cur=None, retry=True):
 
     if con is not None:
         try:
+            cur.close()
             con.commit()
         except Exception, e:
             excName = e.__class__.__name__
@@ -136,9 +137,11 @@ def read_frame(sql, con, index_col=None, coerce_float=True):
     """
     cur = execute(sql, con)
     rows = _safe_fetch(cur)
+    columns = [col_desc[0] for col_desc in cur.description]
+
+    cur.close()
     con.commit()
 
-    columns = [col_desc[0] for col_desc in cur.description]
     result = DataFrame.from_records(rows, columns=columns,
                                     coerce_float=coerce_float)
 
@@ -166,7 +169,7 @@ def write_frame(frame, name=None, con=None, flavor='sqlite'):
     data = [tuple(x) for x in frame.values]
     con.executemany(insert_sql, data)
 
-def get_sqlite_schema(frame, name):
+def get_sqlite_schema(frame, name, dtypes=None):
     template = """
 CREATE TABLE %(name)s (
   %(columns)s
@@ -174,9 +177,9 @@ CREATE TABLE %(name)s (
 
     column_types = []
 
-    dtypes = frame.dtypes
-    for k in dtypes.index:
-        dt = dtypes[k]
+    frame_types = frame.dtypes
+    for k in frame_types.index:
+        dt = frame_types[k]
 
         if issubclass(dt.type, (np.integer, np.bool_)):
             sqltype = 'INTEGER'
@@ -184,6 +187,9 @@ CREATE TABLE %(name)s (
             sqltype = 'REAL'
         else:
             sqltype = 'TEXT'
+
+        if dtypes is not None:
+            sqltype = dtypes.get(k, sqltype)
 
         column_types.append((k, sqltype))
 
@@ -222,5 +228,3 @@ def format_query(sql, *args):
         processed_args.append(formatter(arg))
 
     return sql % tuple(processed_args)
-
-

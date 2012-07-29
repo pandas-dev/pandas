@@ -9,7 +9,7 @@ import numpy as np
 
 from pandas.core.common import (PandasError, _mut_exclusive,
                                 _try_sort, _default_index, _infer_dtype)
-from pandas.core.factor import Factor
+from pandas.core.categorical import Factor
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                _get_combined_index)
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
@@ -682,6 +682,10 @@ class Panel(NDFrame):
         major = _mut_exclusive(major, major_axis)
         minor = _mut_exclusive(minor, minor_axis)
 
+        if (method is None and not self._is_mixed_type and
+            com._count_not_none(items, major, minor) == 3):
+            return self._reindex_multi(items, major, minor)
+
         if major is not None:
             result = result._reindex_axis(major, method, 1, copy)
 
@@ -695,6 +699,32 @@ class Panel(NDFrame):
             raise ValueError('Must specify at least one axis')
 
         return result
+
+    def _reindex_multi(self, items, major, minor):
+        a0, a1, a2 = len(items), len(major), len(minor)
+
+        values = self.values
+        new_values = np.empty((a0, a1, a2), dtype=values.dtype)
+
+        new_items, indexer0 = self.items.reindex(items)
+        new_major, indexer1 = self.major_axis.reindex(major)
+        new_minor, indexer2 = self.minor_axis.reindex(minor)
+
+        if indexer0 is None:
+            indexer0 = range(len(new_items))
+
+        if indexer1 is None:
+            indexer1 = range(len(new_major))
+
+        if indexer2 is None:
+            indexer2 = range(len(new_minor))
+
+        for i, ind in enumerate(indexer0):
+            com.take_2d_multi(values[ind], indexer1, indexer2,
+                              out=new_values[i])
+
+        return Panel(new_values, items=new_items, major_axis=new_major,
+                     minor_axis=new_minor)
 
     def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True):
         """Conform Panel to new index with optional filling logic, placing
@@ -743,6 +773,41 @@ class Panel(NDFrame):
         # todo: object columns
         return self.reindex(major=other.major_axis, items=other.items,
                             minor=other.minor_axis, method=method)
+
+    def dropna(self, axis=0, how='any'):
+        """
+        Drop 2D from panel, holding passed axis constant
+
+        Parameters
+        ----------
+        axis : int, default 0
+            Axis to hold constant. E.g. axis=1 will drop major_axis entries
+            having a certain amount of NA data
+        how : {'all', 'any'}, default 'any'
+            'any': one or more values are NA in the DataFrame along the
+            axis. For 'all' they all must be.
+
+        Returns
+        -------
+        dropped : Panel
+        """
+        axis = self._get_axis_number(axis)
+
+        values = self.values
+        mask = com.notnull(values)
+
+        for ax in reversed(sorted(set(range(3)) - set([axis]))):
+            mask = mask.sum(ax)
+
+        per_slice = np.prod(values.shape[:axis] + values.shape[axis + 1:])
+
+        if how == 'all':
+            cond = mask > 0
+        else:
+            cond = mask == per_slice
+
+        new_ax = self._get_axis(axis)[cond]
+        return self.reindex_axis(new_ax, axis=axis)
 
     def _combine(self, other, func, axis=0):
         if isinstance(other, Panel):
@@ -893,6 +958,12 @@ class Panel(NDFrame):
         axis_number = self._get_axis_number(axis)
         new_data = self._data.xs(key, axis=axis_number, copy=copy)
         return DataFrame(new_data)
+
+    def _ixs(self, i, axis=0):
+        # for compatibility with .ix indexing
+        # Won't work with hierarchical indexing yet
+        key = self._get_axis(axis)[i]
+        return self.xs(key, axis=axis)
 
     def groupby(self, function, axis='major'):
         """

@@ -8,13 +8,15 @@ import numpy as np
 import datetime as dt
 import urllib
 import urllib2
+import time
 
 from zipfile import ZipFile
-from StringIO import StringIO
+from pandas.util.py3compat import StringIO, BytesIO, bytes_to_str
 
 from pandas import DataFrame, read_csv
 
-def DataReader(name, data_source=None, start=None, end=None):
+def DataReader(name, data_source=None, start=None, end=None,
+        retry_count=3, pause=0):
     """
     Imports data from a number of online sources.
 
@@ -50,7 +52,8 @@ def DataReader(name, data_source=None, start=None, end=None):
     start, end = _sanitize_dates(start, end)
 
     if(data_source == "yahoo"):
-        return get_data_yahoo(name=name, start=start, end=end)
+        return get_data_yahoo(name=name, start=start, end=end,
+                   retry_count=retry_count, pause=pause)
     elif(data_source == "fred"):
         return get_data_fred(name=name, start=start, end=end)
     elif(data_source == "famafrench"):
@@ -67,9 +70,9 @@ def _sanitize_dates(start, end):
     return start, end
 
 def get_quote_yahoo(symbols):
-    """ 
+    """
     Get current yahoo quote
-    
+
     Returns a DataFrame
     """
     if not isinstance(symbols,list):
@@ -77,24 +80,25 @@ def get_quote_yahoo(symbols):
     # for codes see: http://www.gummy-stuff.org/Yahoo-data.htm
     codes = {'symbol':'s','last':'l1','change_pct':'p2','PE':'r','time':'t1','short_ratio':'s7'}
     request = str.join('',codes.values()) # code request string
-    header = codes.keys()   
-    
+    header = codes.keys()
+
     data = dict(zip(codes.keys(),[[] for i in range(len(codes))]))
-    
+
     urlStr = 'http://finance.yahoo.com/d/quotes.csv?s=%s&f=%s' % (str.join('+',symbols), request)
-    
+
     try:
         lines = urllib2.urlopen(urlStr).readlines()
     except Exception, e:
         s = "Failed to download:\n{0}".format(e);
         print s
         return None
-        
+
     for line in lines:
         fields = line.strip().split(',')
-        #print fields
         for i,field in enumerate(fields):
-            if field[0] == '"':
+            if field[-2:] == '%"':
+                data[header[i]].append(float(field.strip('"%')))
+            elif field[0] == '"':
                 data[header[i]].append( field.strip('"'))
             else:
                 try:
@@ -103,10 +107,10 @@ def get_quote_yahoo(symbols):
                     data[header[i]].append(np.nan)
 
     idx = data.pop('symbol')
-    
+
     return DataFrame(data,index=idx)
 
-def get_data_yahoo(name=None, start=None, end=None):
+def get_data_yahoo(name=None, start=None, end=None, retry_count=3, pause=0):
     """
     Get historical data for the given name from yahoo.
     Date format is datetime
@@ -131,8 +135,26 @@ def get_data_yahoo(name=None, start=None, end=None):
       '&g=d' + \
       '&ignore=.csv'
 
-    lines = urllib.urlopen(url).read()
-    return read_csv(StringIO(lines), index_col=0, parse_dates=True)[::-1]
+    for _ in range(retry_count):
+        resp =  urllib2.urlopen(url)
+        if resp.code == 200:
+            lines = resp.read()
+            rs = read_csv(StringIO(bytes_to_str(lines)), index_col=0,
+                          parse_dates=True)[::-1]
+
+            # Yahoo! Finance sometimes does this awesome thing where they
+            # return 2 rows for the most recent business day
+            if len(rs) > 2 and rs.index[-1] == rs.index[-2]:  # pragma: no cover
+                rs = rs[:-1]
+
+            return rs
+
+        time.sleep(pause)
+
+    raise Exception("after %d tries, Yahoo did not "
+                    "return a 200 for url %s" % (pause, url))
+
+
 
 def get_data_fred(name=None, start=dt.datetime(2010, 1, 1),
                   end=dt.datetime.today()):
@@ -181,4 +203,3 @@ def get_data_famafrench(name, start=None, end=None):
             datasets[i] = DataFrame(dataset, index, columns=header)
 
     return datasets
-

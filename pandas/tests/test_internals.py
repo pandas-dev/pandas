@@ -4,9 +4,10 @@ import unittest
 
 import numpy as np
 
-from pandas import Index, MultiIndex, DataFrame
+from pandas import Index, MultiIndex, DataFrame, Series
 from pandas.core.internals import *
 import pandas.core.internals as internals
+import pandas.util.testing as tm
 
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal, randn)
 
@@ -384,6 +385,38 @@ class TestBlockManager(unittest.TestCase):
         expected = self.mgr.get_slice(slice(3, 5), axis=1)
 
         assert_frame_equal(DataFrame(result), DataFrame(expected))
+
+    def test_get_numeric_data(self):
+        int_ser = Series(np.array([0, 1, 2]))
+        float_ser = Series(np.array([0., 1., 2.]))
+        complex_ser = Series(np.array([0j, 1j, 2j]))
+        str_ser = Series(np.array(['a', 'b', 'c']))
+        bool_ser = Series(np.array([True, False, True]))
+        obj_ser = Series(np.array([1, 'a', 5]))
+        dt_ser = Series(tm.makeDateIndex(3))
+        #check types
+        df = DataFrame({'int' : int_ser, 'float' : float_ser,
+                        'complex' : complex_ser, 'str' : str_ser,
+                        'bool' : bool_ser, 'obj' : obj_ser,
+                        'dt' : dt_ser})
+        xp = DataFrame({'int' : int_ser, 'float' : float_ser,
+                        'complex' : complex_ser})
+        rs = DataFrame(df._data.get_numeric_data())
+        assert_frame_equal(xp, rs)
+
+        xp = DataFrame({'bool' : bool_ser})
+        rs = DataFrame(df._data.get_numeric_data(type_list=bool))
+        assert_frame_equal(xp, rs)
+
+        rs = DataFrame(df._data.get_numeric_data(type_list=bool))
+        df.ix[0, 'bool'] = not df.ix[0, 'bool']
+
+        self.assertEqual(rs.ix[0, 'bool'], df.ix[0, 'bool'])
+
+        rs = DataFrame(df._data.get_numeric_data(type_list=bool, copy=True))
+        df.ix[0, 'bool'] = not df.ix[0, 'bool']
+
+        self.assertEqual(rs.ix[0, 'bool'], not df.ix[0, 'bool'])
 
 if __name__ == '__main__':
     # unittest.main()

@@ -9,6 +9,9 @@ if PY3:
     def str_to_bytes(s, encoding='ascii'):
         return s.encode(encoding)
 
+    def bytes_to_str(b, encoding='utf-8'):
+        return b.decode(encoding)
+
 else:
     # Python 2
     import re
@@ -18,6 +21,9 @@ else:
 
     def str_to_bytes(s, encoding='ascii'):
         return s
+
+    def bytes_to_str(b, encoding='ascii'):
+        return b
 
 try:
     from cStringIO import StringIO

@@ -590,3 +590,17 @@ If there are any NaN values in the grouping key, these will be automatically
 excluded. So there will never be an "NA group". This was not the case in older
 versions of pandas, but users were generally discarding the NA group anyway
 (and supporting it was an implementation headache).
+
+Grouping with ordered factors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Categorical variables represented as instance of pandas's ``Factor`` class can
+be used as group keys. If so, the order of the levels will be preserved:
+
+.. ipython:: python
+
+   data = Series(np.random.randn(100))
+
+   factor = qcut(data, [0, .25, .5, .75, 1.])
+
+   data.groupby(factor).mean()

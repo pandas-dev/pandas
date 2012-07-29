@@ -1,1 +1,4 @@
-# from pandas.rpy.common import importr, r, load_data
+try:
+    from common import importr, r, load_data
+except ImportError:
+    pass

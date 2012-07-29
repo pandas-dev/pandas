@@ -1,4 +1,5 @@
 from itertools import izip
+import sys
 
 try:
     from StringIO import StringIO
@@ -77,7 +78,7 @@ class SeriesFormatter(object):
             if footer and self.series.name:
                 footer += ', '
             footer += ("Name: %s" % str(self.series.name)
-                       if self.series.name else '')
+                       if self.series.name is not None else '')
 
         if self.length:
             if footer:
@@ -132,9 +133,17 @@ class SeriesFormatter(object):
 
 if py3compat.PY3:  # pragma: no cover
     _encode_diff = lambda x: 0
+
+    _strlen = len
 else:
     def _encode_diff(x):
-        return len(x) - len(x.decode('utf-8'))
+        return len(x) - len(x.decode(print_config.encoding))
+
+    def _strlen(x):
+        try:
+            return len(x.decode(print_config.encoding))
+        except UnicodeError:
+            return len(x)
 
 class DataFrameFormatter(object):
     """
@@ -149,12 +158,17 @@ class DataFrameFormatter(object):
 
     def __init__(self, frame, buf=None, columns=None, col_space=None,
                  header=True, index=True, na_rep='NaN', formatters=None,
-                 justify=None, float_format=None, sparsify=True,
+                 justify=None, float_format=None, sparsify=None,
                  index_names=True, **kwds):
         self.frame = frame
         self.buf = buf if buf is not None else StringIO()
         self.show_index_names = index_names
+
+        if sparsify is None:
+            sparsify = print_config.multi_sparse
+
         self.sparsify = sparsify
+
         self.float_format = float_format
         self.formatters = formatters if formatters is not None else {}
         self.na_rep = na_rep
@@ -199,7 +213,7 @@ class DataFrameFormatter(object):
                 if self.header:
                     fmt_values = self._format_col(i)
                     cheader = str_columns[i]
-                    max_len = max(max(len(x) for x in fmt_values),
+                    max_len = max(max(_strlen(x) for x in fmt_values),
                                   max(len(x) for x in cheader))
                     if self.justify == 'left':
                         cheader = [x.ljust(max_len) for x in cheader]
@@ -496,7 +510,9 @@ class GenericArrayFormatter(object):
             float_format = self.float_format
 
         if use_unicode:
-            formatter = _stringify if self.formatter is None else self.formatter
+            def _strify(x):
+                return _stringify(x, print_config.encoding)
+            formatter = _strify if self.formatter is None else self.formatter
         else:
             formatter = str if self.formatter is None else self.formatter
 
@@ -594,26 +610,14 @@ def _format_datetime64(x, tz=None):
         return 'NaT'
 
     stamp = lib.Timestamp(x, tz=tz)
-    base = stamp.strftime('%Y-%m-%d %H:%M:%S')
-
-    fraction = stamp.microsecond * 1000 + stamp.nanosecond
-    digits = 9
-
-    if fraction == 0:
-        return base
-
-    while (fraction % 10) == 0:
-        fraction /= 10
-        digits -= 1
-
-    return base + ('.%%.%id' % digits) % fraction
+    return stamp._repr_base
 
 
 def _make_fixed_width(strings, justify='right'):
     if len(strings) == 0:
         return strings
 
-    max_len = max(len(x) for x in strings)
+    max_len = max(_strlen(x) for x in strings)
     conf_max = print_config.max_colwidth
     if conf_max is not None and max_len > conf_max:
         max_len = conf_max
@@ -624,7 +628,12 @@ def _make_fixed_width(strings, justify='right'):
         justfunc = lambda self, x: self.rjust(x)
 
     def just(x):
-        return justfunc(x[:max_len], max_len)
+        try:
+            eff_len = max_len + _encode_diff(x)
+        except UnicodeError:
+            eff_len = max_len
+
+        return justfunc(x[:eff_len], eff_len)
 
     return [just(x) for x in strings]
 
@@ -672,9 +681,10 @@ def _has_names(index):
 # Global formatting options
 
 def set_printoptions(precision=None, column_space=None, max_rows=None,
-                     max_columns=None, colheader_justify='right',
-                     max_colwidth=50, notebook_repr_html=None,
-                     date_dayfirst=None, date_yearfirst=None):
+                     max_columns=None, colheader_justify=None,
+                     max_colwidth=None, notebook_repr_html=None,
+                     date_dayfirst=None, date_yearfirst=None,
+                     multi_sparse=None, encoding=None):
     """
     Alter default behavior of DataFrame.toString
 
@@ -698,6 +708,9 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
         When True, prints and parses dates with the day first, eg 20/01/2005
     date_yearfirst : boolean
         When True, prints and parses dates with the year first, eg 2005/01/20
+    multi_sparse : boolean
+        Default True, "sparsify" MultiIndex display (don't display repeated
+        elements in outer levels within groups)
     """
     if precision is not None:
         print_config.precision = precision
@@ -717,6 +730,10 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
         print_config.date_dayfirst = date_dayfirst
     if date_yearfirst is not None:
         print_config.date_yearfirst = date_yearfirst
+    if multi_sparse is not None:
+        print_config.multi_sparse = multi_sparse
+    if encoding is not None:
+        print_config.encoding = encoding
 
 def reset_printoptions():
     print_config.reset()
@@ -846,6 +863,10 @@ class _GlobalPrintConfig(object):
         self.notebook_repr_html = True
         self.date_dayfirst = False
         self.date_yearfirst = False
+        self.multi_sparse = True
+        self.encoding = sys.getdefaultencoding()
+        if self.encoding == 'ascii':
+            self.encoding = 'UTF8'
 
     def reset(self):
         self.__init__()

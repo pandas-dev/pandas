@@ -44,7 +44,7 @@ The ``plot`` method on Series and DataFrame is just a simple wrapper around
    @savefig series_plot_basic.png width=4.5in
    ts.plot()
 
-If the index consists of dates, it calls ``gca().autofmt_xdate()`` to try to
+If the index consists of dates, it calls ``gcf().autofmt_xdate()`` to try to
 format the x-axis nicely as per above. The method takes a number of arguments
 for controlling the look of the plot:
 
@@ -91,6 +91,59 @@ You may pass ``logy`` to get a log-scale Y axis.
    @savefig series_plot_logy.png width=4.5in
    ts.plot(logy=True)
 
+You can plot one column versus another using the `x` and `y` keywords in
+`DataFrame.plot`:
+
+.. ipython:: python
+
+   plt.figure()
+
+   df3 = DataFrame(np.random.randn(1000, 2), columns=['B', 'C']).cumsum()
+   df3['A'] = Series(range(len(df)))
+
+   @savefig df_plot_xy.png width=4.5in
+   df3.plot(x='A', y='B')
+
+
+Plotting on a Secondary Y-axis
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To plot data on a secondary y-axis, use the ``secondary_y`` keyword:
+
+.. ipython:: python
+
+   plt.figure()
+
+   df.A.plot()
+
+   @savefig series_plot_secondary_y.png width=4.5in
+   df.B.plot(secondary_y=True, style='g')
+
+
+Selective Plotting on Secondary Y-axis
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To plot some columns in a DataFrame, give the column names to the `secondary_y`
+keyword:
+
+.. ipython:: python
+
+   plt.figure()
+
+   @savefig frame_plot_secondary_y.png width=4.5in
+   df.plot(secondary_y=['A', 'B'])
+
+Note that the columns plotted on the secondary y-axis is automatically marked
+with "(right)" in the legend. To turn off the automatic marking, use the
+`mark_right=False` keyword:
+
+.. ipython:: python
+
+   plt.figure()
+
+   @savefig frame_plot_secondary_y.png width=4.5in
+   df.plot(secondary_y=['A', 'B'], mark_right=False)
+
 
 Targeting different subplots
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -106,6 +159,8 @@ You can pass an ``ax`` argument to ``Series.plot`` to plot on a particular axis:
 
    @savefig series_plot_multi.png width=4.5in
    df['D'].plot(ax=axes[1,1]); axes[1,1].set_title('D')
+
+.. _visualization.other:
 
 Other plotting features
 -----------------------
@@ -283,3 +338,116 @@ of the same class will usually be closer together and form larger structures.
 
    @savefig andrews_curves.png width=6in
    andrews_curves(data, 'Name')
+
+.. _visualization.parallel_coordinates:
+
+Parallel Coordinates
+~~~~~~~~~~~~~~~~~~~~
+
+Parallel coordinates is a plotting technique for plotting multivariate data.
+It allows one to see clusters in data and to estimate other statistics visually.
+Using parallel coordinates points are represented as connected line segments.
+Each vertical line represents one attribute. One set of connected line segments
+represents one data point. Points that tend to cluster will appear closer together.
+
+.. ipython:: python
+
+   from pandas import read_csv
+   from pandas.tools.plotting import parallel_coordinates
+
+   data = read_csv('data/iris.data')
+
+   plt.figure()
+
+   @savefig parallel_coordinates.png width=6in
+   parallel_coordinates(data, 'Name')
+
+Lag Plot
+~~~~~~~~
+
+Lag plots are used to check if a data set or time series is random. Random
+data should not exhibit any structure in the lag plot. Non-random structure
+implies that the underlying data are not random.
+
+.. ipython:: python
+
+   from pandas.tools.plotting import lag_plot
+
+   plt.figure()
+
+   data = Series(0.1 * np.random.random(1000) +
+      0.9 * np.sin(np.linspace(-99 * np.pi, 99 * np.pi, num=1000)))
+
+   @savefig lag_plot.png width=6in
+   lag_plot(data)
+
+Autocorrelation Plot
+~~~~~~~~~~~~~~~~~~~~
+
+Autocorrelation plots are often used for checking randomness in time series.
+This is done by computing autocorrelations for data values at varying time lags.
+If time series is random, such autocorrelations should be near zero for any and
+all time-lag separations. If time series is non-random then one or more of the
+autocorrelations will be significantly non-zero. The horizontal lines displayed
+in the plot correspond to 95% and 99% confidence bands. The dashed line is 99%
+confidence band.
+
+.. ipython:: python
+
+   from pandas.tools.plotting import autocorrelation_plot
+
+   plt.figure()
+
+   data = Series(0.7 * np.random.random(1000) +
+      0.3 * np.sin(np.linspace(-9 * np.pi, 9 * np.pi, num=1000)))
+
+   @savefig autocorrelation_plot.png width=6in
+   autocorrelation_plot(data)
+
+.. _visualization.bootstrap:
+
+Bootstrap Plot
+~~~~~~~~~~~~~~
+
+Bootstrap plots are used to visually assess the uncertainty of a statistic, such
+as mean, median, midrange, etc. A random subset of a specified size is selected
+from a data set, the statistic in question is computed for this subset and the
+process is repeated a specified number of times. Resulting plots and histograms
+are what constitutes the bootstrap plot.
+
+.. ipython:: python
+
+   from pandas.tools.plotting import bootstrap_plot
+
+   data = Series(np.random.random(1000))
+
+   @savefig bootstrap_plot.png width=8in
+   bootstrap_plot(data, size=50, samples=500, color='grey')
+
+.. _visualization.radviz:
+
+RadViz
+~~~~~~
+
+RadViz is a way of visualizing multi-variate data. It is based on a simple
+spring tension minimization algorithm. Basically you set up a bunch of points in
+a plane. In our case they are equally spaced on a unit circle. Each point
+represents a single attribute. You then pretend that each sample in the data set
+is attached to each of these points by a spring, the stiffness of which is
+proportional to the numerical value of that attribute (they are normalized to
+unit interval). The point in the plane, where our sample settles to (where the
+forces acting on our sample are at an equilibrium) is where a dot representing
+our sample will be drawn. Depending on which class that sample belongs it will
+be colored differently.
+
+.. ipython:: python
+
+   from pandas import read_csv
+   from pandas.tools.plotting import radviz
+
+   data = read_csv('data/iris.data')
+
+   plt.figure()
+
+   @savefig radviz.png width=6in
+   radviz(data, 'Name')
