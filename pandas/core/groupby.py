@@ -1289,7 +1289,8 @@ class SeriesGroupBy(GroupBy):
 
         if isinstance(values[0], dict):
             # # GH #823
-            return DataFrame(values, index=keys).stack()
+            index = _get_index()
+            return DataFrame(values, index=index).stack()
 
         if isinstance(values[0], (Series, dict)):
             return self._concat_objects(keys, values,

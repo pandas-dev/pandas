@@ -1426,6 +1426,17 @@ class TestGroupBy(unittest.TestCase):
         expected = self.tsframe * 2
         assert_frame_equal(result, expected)
 
+    def test_apply_use_categorical_name(self):
+        from pandas import qcut
+        cats = qcut(self.df.C, 4)
+
+        def get_stats(group):
+            return {'min': group.min(), 'max': group.max(),
+                    'count': group.count(), 'mean': group.mean()}
+
+        result = self.df.groupby(cats).D.apply(get_stats)
+        self.assertEquals(result.index.names[0], 'C')
+
     def test_transform_mixed_type(self):
         index = MultiIndex.from_arrays([[0, 0, 0, 1, 1, 1],
                                         [1, 2, 3, 1, 2, 3]])
