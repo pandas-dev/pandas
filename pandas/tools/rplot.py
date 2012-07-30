@@ -226,11 +226,6 @@ class Layer:
 		else:
 			self.aes = aes_
 
-	def is_trellis(self):
-		"""Return false to indicate this is not a TrellisGrid.
-		"""
-		return False
-
 	def work(self, fig=None, ax=None):
 		pass
 
@@ -342,11 +337,6 @@ class TrellisGrid(Layer):
 		by: column names to group by
 		"""
 		self.by = by
-
-	def is_trellis(self):
-		"""Return true to indicate this is a TrellisGrid.
-		"""
-		return True
 
 	def render(self, ax=None, fig=None):
 		"""Render the trellis plot on a figure.
@@ -479,7 +469,7 @@ class RPlot:
 		# Look for the last TrellisGrid instance in the layer list
 		last_trellis = None
 		for layer in self.layers:
-			if layer.is_trellis():
+			if isinstance(layer, TrellisGrid):
 				last_trellis = layer
 		if last_trellis is None:
 			# We have a simple, non-trellised plot
