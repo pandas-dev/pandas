@@ -336,6 +336,8 @@ class TrellisGrid(Layer):
 		-----------
 		by: column names to group by
 		"""
+		if len(by) != 2:
+			raise ValueError("You must give a list of length 2 to group by")
 		self.by = by
 
 	def render(self, ax=None, fig=None):
@@ -464,7 +466,7 @@ def sequence_grids(layer_grids):
 			for layer1, layer2 in zip(row1, row2):
 				if layer2.data is None:
 					layer2.data = layer1.data
-				merge_aes(layer1, layer2):
+				merge_aes(layer1, layer2)
 	return layer_grids
 
 def work_grid(grid, fig):
@@ -525,6 +527,6 @@ class RPlot:
 			new_layers = last_trellis.trellis(new_layers)
 			# Prepare the subplots and draw on them
 			new_layers = sequence_grids(new_layers)
-
+			[work_grid(grid, fig) for grid in new_layers]
 		# And we're done
 		return fig
