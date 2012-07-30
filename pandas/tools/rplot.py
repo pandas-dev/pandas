@@ -467,6 +467,27 @@ def sequence_grids(layer_grids):
 				merge_aes(layer1, layer2):
 	return layer_grids
 
+def work_grid(grid, fig):
+	"""Take a two dimensional grid, add subplots to a figure for each cell and do layer work.
+
+	Parameters:
+	-----------
+	grid: a two dimensional grid of layers
+	fig: matplotlib figure to draw on
+
+	Returns:
+	--------
+	axes: a two dimensional list of matplotlib axes
+	"""
+	nrows = len(grid)
+	ncols = len(grid[0])
+	axes = [[None for _ in range(ncols)] for _ in range(nrows)]
+	for row in range(nrows):
+		for col in range(ncols):
+			axes[row][col] = fig.add_subplot(nrows, ncols, ncols * row + col + 1)
+			grid[row][col].work(ax=axes[row][col])
+	return axes
+
 class RPlot:
 	"""
 	The main plot object. Add layers to an instance of this object to create a plot.
@@ -491,18 +512,19 @@ class RPlot:
 			new_layers = sequence_layers(self.layers)
 			for layer in new_layers:
 				layer.work(fig=fig)
-			# And we're done
-			return fig
 		else:
 			# We have a trellised plot.
 			# First let's remove all other TrellisGrid instances from the layer list, 
 			# including this one.
 			new_layers = []
 			for layer in self.layers:
-				if not layer.is_trellis():
+				if not isinstance(layer, TrellisGrid):
 					new_layers.append(layer)
 			new_layers = sequence_layers(new_layers)
 			# Now replace the old layers by their trellised versions
 			new_layers = last_trellis.trellis(new_layers)
 			# Prepare the subplots and draw on them
 			new_layers = sequence_grids(new_layers)
+
+		# And we're done
+		return fig
