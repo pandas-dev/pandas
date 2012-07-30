@@ -452,6 +452,21 @@ def sequence_layers(layers):
 		merge_aes(layer1, layer2)
 	return layers
 
+def sequence_grids(layer_grids):
+	"""Go through the list of layer girds and perform the same thing as sequence_layers.
+
+	Parameters:
+	-----------
+	layer_grids: a list of two dimensional layer grids
+	"""
+	for grid1, grid2 in zip(layer_grids[:-1], layer_grids[1:]):
+		for row1, row2 in zip(grid1, grid2):
+			for layer1, layer2 in zip(row1, row2):
+				if layer2.data is None:
+					layer2.data = layer1.data
+				merge_aes(layer1, layer2):
+	return layer_grids
+
 class RPlot:
 	"""
 	The main plot object. Add layers to an instance of this object to create a plot.
@@ -489,5 +504,5 @@ class RPlot:
 			new_layers = sequence_layers(new_layers)
 			# Now replace the old layers by their trellised versions
 			new_layers = last_trellis.trellis(new_layers)
-			print new_layers
 			# Prepare the subplots and draw on them
+			new_layers = sequence_grids(new_layers)
