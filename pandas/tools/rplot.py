@@ -12,7 +12,7 @@ from copy import deepcopy
 # * Expand RPlot class
 #
 
-def random_colour(name):
+def scale_random_colour(column):
 	"""Random colour from a string or other hashable value.
 
 	Parameters:
@@ -23,8 +23,10 @@ def random_colour(name):
 	--------
 	(r, g, b): Where r, g, b are random numbers in the range (0, 1).
 	"""
-	random.seed(name)
-	return [random.random() for _ in range(3)]
+	def scaler(data, index):
+		random.seed(data[column].iget(index))
+		return [random.random() for _ in range(3)]
+	return scaler
 
 def filter_column(frame, column, filter_column, filter_value):
 	"""Select only those values from column that have a specified value in another column.
