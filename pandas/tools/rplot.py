@@ -289,6 +289,23 @@ class GeomPolyFit(Layer):
 		ax.plot(x_, y_, lw=self.lw, c=self.colour)
 		return fig, ax
 
+class GeomScatter(Layer):
+	def __init__(self, **kwds):
+		self.kwds = kwds
+		Layer.__init__(self)
+
+	def work(self, fig=None, ax=None):
+		if ax is None:
+			if fig is None:
+				return fig, ax
+			else:
+				ax = fig.gca()
+		x = self.data[self.aes['x']]
+		y = self.data[self.aes['y']]
+		ax.scatter(x, y, **self.kwds)
+		return fig, ax
+
+
 class GeomDensity2D(Layer):
 	def work(self, fig=None, ax=None):
 		"""Render the layer on a matplotlib axis.
