@@ -340,53 +340,6 @@ class TrellisGrid(Layer):
 			raise ValueError("You must give a list of length 2 to group by")
 		self.by = by
 
-	def render(self, ax=None, fig=None):
-		"""Render the trellis plot on a figure.
-
-		Parameters:
-		-----------
-		fig: matplotlib figure to draw on
-
-		Returns:
-		--------
-		matplotlib figure
-		"""
-		index = 1
-		axes = []
-		for row in self.grid:
-			for layer in row:
-				ax = fig.add_subplot(self.rows, self.cols, index)
-				layer.render(ax)
-				axes.append(ax)
-				index += 1
-		min_x = min([ax.get_xlim()[0] for ax in axes])
-		max_x = max([ax.get_xlim()[1] for ax in axes])
-		min_y = min([ax.get_ylim()[0] for ax in axes])
-		max_y = max([ax.get_ylim()[1] for ax in axes])
-		[ax.set_xlim(min_x, max_x) for ax in axes]
-		[ax.set_ylim(min_y, max_y) for ax in axes]
-		for index, axis in enumerate(axes):
-			if index % self.cols == 0:
-				pass
-			else:
-				axis.get_yaxis().set_ticks([])
-				axis.set_ylabel('')
-			if index / self.cols == self.rows - 1:
-				pass
-			else:
-				axis.get_xaxis().set_ticks([])
-				axis.set_xlabel('')
-			label1 = "%s = %s" % (self.by[0], self.group_grid[index / self.cols][index % self.cols][0])
-			label2 = "%s = %s" % (self.by[1], self.group_grid[index / self.cols][index % self.cols][1])
-			if self.cols > 1:
-				axis.table(cellText=[[label1], [label2]], 
-					loc='top', cellLoc='center', 
-					cellColours=[['lightgrey'], ['lightgrey']])
-			else:
-				axis.table(cellText=[[label1]], loc='top', cellLoc='center', cellColours=[['lightgrey']])
-		fig.subplots_adjust(wspace=0.05, hspace=0.2)
-		return ax, fig
-
 	def trellis(self, layers):
 		"""Create a trellis structure for a list of layers.
 		Each layer will be cloned with different data in to a two dimensional grid.
@@ -406,10 +359,10 @@ class TrellisGrid(Layer):
 			groups = grouped.groups.keys()
 			shingle1 = set([g[0] for g in groups])
 			shingle2 = set([g[1] for g in groups])
-			rows = len(shingle1)
-			cols = len(shingle2)
-			trellised = [[None for _ in range(cols)] for _ in range(rows)]
-			self.group_grid = [[None for _ in range(cols)] for _ in range(rows)]
+			self.rows = len(shingle1)
+			self.cols = len(shingle2)
+			trellised = [[None for _ in range(self.cols)] for _ in range(self.rows)]
+			self.group_grid = [[None for _ in range(self.cols)] for _ in range(self.rows)]
 			row = 0
 			col = 0
 			for group, data in grouped:
@@ -418,7 +371,7 @@ class TrellisGrid(Layer):
 				trellised[row][col] = new_layer
 				self.group_grid[row][col] = group
 				col += 1
-				if col >= cols:
+				if col >= self.cols:
 					col = 0
 					row += 1
 			trellised_layers.append(trellised)
@@ -490,6 +443,37 @@ def work_grid(grid, fig):
 			grid[row][col].work(ax=axes[row][col])
 	return axes
 
+def adjust_subplots(fig, axes, trellis):
+	# Flatten the axes grid
+	axes = [ax for row in axes for ax in row]
+	min_x = min([ax.get_xlim()[0] for ax in axes])
+	max_x = max([ax.get_xlim()[1] for ax in axes])
+	min_y = min([ax.get_ylim()[0] for ax in axes])
+	max_y = max([ax.get_ylim()[1] for ax in axes])
+	[ax.set_xlim(min_x, max_x) for ax in axes]
+	[ax.set_ylim(min_y, max_y) for ax in axes]
+	for index, axis in enumerate(axes):
+		if index % trellis.cols == 0:
+			pass
+		else:
+			axis.get_yaxis().set_ticks([])
+			axis.set_ylabel('')
+		if index / trellis.cols == trellis.rows - 1:
+			pass
+		else:
+			axis.get_xaxis().set_ticks([])
+			axis.set_xlabel('')
+		label1 = "%s = %s" % (trellis.by[0], trellis.group_grid[index / trellis.cols][index % trellis.cols][0])
+		label2 = "%s = %s" % (trellis.by[1], trellis.group_grid[index / trellis.cols][index % trellis.cols][1])
+		if trellis.cols > 1:
+			axis.table(cellText=[[label1], [label2]], 
+				loc='top', cellLoc='center', 
+				cellColours=[['lightgrey'], ['lightgrey']])
+		else:
+			axis.table(cellText=[[label1]], loc='top', cellLoc='center', cellColours=[['lightgrey']])
+	fig.subplots_adjust(wspace=0.05, hspace=0.2)
+	return ax, fig
+
 class RPlot:
 	"""
 	The main plot object. Add layers to an instance of this object to create a plot.
@@ -531,5 +515,6 @@ class RPlot:
 			new_layers = sequence_grids(new_layers)
 			axes_grids = [work_grid(grid, fig) for grid in new_layers]
 			axes_grid = axes_grids[-1]
+			adjust_subplots(fig, axes_grid, last_trellis)
 		# And we're done
 		return fig
