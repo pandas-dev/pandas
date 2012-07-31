@@ -321,6 +321,20 @@ class GeomHistogram(Layer):
 		ax.hist(x, self.bins, facecolor=self.colour)
 		return fig, ax
 
+class GeomDensity(Layer):
+	def work(self, fig=None, ax=None):
+		if ax is None:
+			if fig is None:
+				return fig, ax
+			else:
+				ax = fig.gca()
+		from scipy.stats import gaussian_kde
+		x = self.data[self.aes['x']]
+		gkde = gaussian_kde(x)
+		ind = np.linspace(x.min(), x.max(), 200)
+		ax.plot(ind, gkde.evaluate(ind))
+		return fig, ax
+
 class GeomDensity2D(Layer):
 	def work(self, fig=None, ax=None):
 		"""Render the layer on a matplotlib axis.
