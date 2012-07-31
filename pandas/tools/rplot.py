@@ -63,7 +63,7 @@ def parse_facets(facet):
 	lhs, rhs = [col.strip() for col in facet.split('~')]
 	return (lhs, rhs)
 
-def scale_size(column, categorical, min_size=1.0, max_size=80.0):
+def scale_size(column, min_size=1.0, max_size=80.0):
 	"""Creates a function that converts between a data attribute to point size.
 
 	Parameters:
@@ -78,13 +78,10 @@ def scale_size(column, categorical, min_size=1.0, max_size=80.0):
 	a function of two arguments that takes a data set and a row number, returns float
 	"""
 	def scaler(data, index):
-		if categorical:
-			pass
-		else:
-			x = data[column].iget(index)
-			a = min(data[column])
-			b = max(data[column])
-			return min_size + ((x - a) / (b - a)) * (max_size - min_size)
+		x = data[column].iget(index)
+		a = float(min(data[column]))
+		b = float(max(data[column]))
+		return min_size + ((x - a) / (b - a)) * (max_size - min_size)
 	return scaler
 
 def scale_gradient(column, categorical, colour1=(0.0, 0.0, 0.0), colour2=(1.0, 0.7, 0.8)):
@@ -219,12 +216,12 @@ class Layer:
 	"""
 	Layer object representing a single plot layer.
 	"""
-	def __init__(self, data=None, aes_=None):
+	def __init__(self, data=None, aesthetics=None):
 		self.data = data
-		if aes_ is None:
+		if aesthetics is None:
 			self.aes = aes()
 		else:
-			self.aes = aes_
+			self.aes = aesthetics
 
 	def work(self, fig=None, ax=None):
 		pass
