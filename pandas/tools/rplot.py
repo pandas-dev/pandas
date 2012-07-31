@@ -338,6 +338,8 @@ class TrellisGrid(Layer):
 		"""
 		if len(by) != 2:
 			raise ValueError("You must give a list of length 2 to group by")
+		elif by[0] == '.' and by[1] == '.':
+			raise ValueError("At least one of grouping attributes must be not a dot")
 		self.by = by
 
 	def trellis(self, layers):
@@ -355,12 +357,27 @@ class TrellisGrid(Layer):
 		trellised_layers = []
 		for layer in layers:
 			data = layer.data
-			grouped = data.groupby(self.by)
+			if self.by[0] == '.':
+				grouped = data.groupby(self.by[1])
+			elif self.by[1] == '.':
+				grouped = data.groupby(self.by[0])
+			else:
+				grouped = data.groupby(self.by)
 			groups = grouped.groups.keys()
-			shingle1 = set([g[0] for g in groups])
-			shingle2 = set([g[1] for g in groups])
-			self.rows = len(shingle1)
-			self.cols = len(shingle2)
+			if self.by[0] == '.' or self.by[1] == '.':
+				shingle1 = set([g for g in groups])
+			else:
+				shingle1 = set([g[0] for g in groups])
+				shingle2 = set([g[1] for g in groups])
+			if self.by[0] == '.':
+				self.rows = 1
+				self.cols = len(shingle1)
+			elif self.by[1] == '.':
+				self.rows = len(shingle1)
+				self.cols = 1
+			else:
+				self.rows = len(shingle1)
+				self.cols = len(shingle2)
 			trellised = [[None for _ in range(self.cols)] for _ in range(self.rows)]
 			self.group_grid = [[None for _ in range(self.cols)] for _ in range(self.rows)]
 			row = 0
@@ -463,9 +480,16 @@ def adjust_subplots(fig, axes, trellis):
 		else:
 			axis.get_xaxis().set_ticks([])
 			axis.set_xlabel('')
-		label1 = "%s = %s" % (trellis.by[0], trellis.group_grid[index / trellis.cols][index % trellis.cols][0])
-		label2 = "%s = %s" % (trellis.by[1], trellis.group_grid[index / trellis.cols][index % trellis.cols][1])
-		if trellis.cols > 1:
+		if trellis.by[0] == '.':
+			label1 = "%s = %s" % (trellis.by[1], trellis.group_grid[index / trellis.cols][index % trellis.cols])
+			label2 = None
+		elif trellis.by[1] == '.':
+			label1 = "%s = %s" % (trellis.by[0], trellis.group_grid[index / trellis.cols][index % trellis.cols])
+			label2 = None
+		else:
+			label1 = "%s = %s" % (trellis.by[0], trellis.group_grid[index / trellis.cols][index % trellis.cols][0])
+			label2 = "%s = %s" % (trellis.by[1], trellis.group_grid[index / trellis.cols][index % trellis.cols][1])
+		if label2 is not None:
 			axis.table(cellText=[[label1], [label2]], 
 				loc='top', cellLoc='center', 
 				cellColours=[['lightgrey'], ['lightgrey']])
