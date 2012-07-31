@@ -499,6 +499,8 @@ class RPlot:
 		trellised = False
 
 	def __add__(self, other):
+		if not isinstance(other, Layer):
+			raise TypeError("The operand on the right side of + must be a Layer instance")
 		self.layers.append(other)
 
 	def show(self, fig=None):
@@ -527,6 +529,7 @@ class RPlot:
 			new_layers = last_trellis.trellis(new_layers)
 			# Prepare the subplots and draw on them
 			new_layers = sequence_grids(new_layers)
-			[work_grid(grid, fig) for grid in new_layers]
+			axes_grids = [work_grid(grid, fig) for grid in new_layers]
+			axes_grid = axes_grids[-1]
 		# And we're done
 		return fig
