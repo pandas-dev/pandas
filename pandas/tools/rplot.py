@@ -264,6 +264,31 @@ class GeomPoint(Layer):
 		ax.set_ylabel(self.aes['y'])
 		return fig, ax
 
+class GeomPolyFit(Layer):
+	def __init__(self, degree, lw=2.0, colour='grey'):
+		self.degree = degree
+		self.lw = lw
+		self.colour = colour
+		Layer.__init__(self)
+
+	def work(self, fig=None, ax=None):
+		if ax is None:
+			if fig is None:
+				return fig, ax
+			else:
+				ax = fig.gca()
+		from numpy.polynomial.polynomial import polyfit
+		from numpy.polynomial.polynomial import polyval
+		x = self.data[self.aes['x']]
+		y = self.data[self.aes['y']]
+		min_x = min(x)
+		max_x = max(x)
+		c = polyfit(x, y, self.degree)
+		x_ = np.linspace(min_x, max_x, len(x))
+		y_ = polyval(x_, c)
+		ax.plot(x_, y_, lw=self.lw, c=self.colour)
+		return fig, ax
+
 class GeomDensity2D(Layer):
 	def work(self, fig=None, ax=None):
 		"""Render the layer on a matplotlib axis.
