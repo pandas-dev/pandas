@@ -305,6 +305,21 @@ class GeomScatter(Layer):
 		ax.scatter(x, y, **self.kwds)
 		return fig, ax
 
+class GeomHistogram(Layer):
+	def __init__(self, bins=10, colour='grey'):
+		self.bins = bins
+		self.colour = colour
+		Layer.__init__(self)
+
+	def work(self, fig=None, ax=None):
+		if ax is None:
+			if fig is None:
+				return fig, ax
+			else:
+				ax = fig.gca()
+		x = self.data[self.aes['x']]
+		ax.hist(x, self.bins, facecolor=self.colour)
+		return fig, ax
 
 class GeomDensity2D(Layer):
 	def work(self, fig=None, ax=None):
