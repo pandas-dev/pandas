@@ -391,6 +391,7 @@ class GeomHistogram(Layer):
 				ax = fig.gca()
 		x = self.data[self.aes['x']]
 		ax.hist(x, self.bins, facecolor=self.colour)
+		ax.set_xlabel(self.aes['x'])
 		return fig, ax
 
 class GeomDensity(Layer):
