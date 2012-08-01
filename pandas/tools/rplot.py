@@ -7,63 +7,26 @@ from copy import deepcopy
 
 #
 # TODO:
-# * Make sure trellis display works when two or one grouping variable is specified
-# * Enable labelling for legend display
-# * Expand RPlot class
+# * Make sure legends work properly
 #
 
 def scale_random_colour(column):
-	"""Random colour from a string or other hashable value.
+	"""Creates a function that assigns each value in a DataFrame
+	column a random colour from RGB space.
 
 	Parameters:
 	-----------
-	name: A string value to use as a seed to the random number generator.
+	column: string, a column name
 
 	Returns:
 	--------
-	(r, g, b): Where r, g, b are random numbers in the range (0, 1).
+	a function of two arguments that takes a data set and row number, returns
+	a list of three elements, representing an RGB colour
 	"""
 	def scaler(data, index):
 		random.seed(data[column].iget(index))
 		return [random.random() for _ in range(3)]
 	return scaler
-
-def filter_column(frame, column, filter_column, filter_value):
-	"""Select only those values from column that have a specified value in another column.
-
-	Parameters:
-	-----------
-	frame: pandas data frame object.
-	column: column name from which to select values.
-	filter_column: column used to filter.
-	filter_value: only those rows with this value in filter_column will be selected.
-
-	Returns:
-	--------
-	numpy array with filtered values.
-	"""
-	n = len(frame)
-	vcol = frame[column]
-	fcol = frame[filter_column]
-	result = []
-	for v, f in zip(vcol, fcol):
-		if f == filter_value:
-			result.append(v)
-	return np.array(result)
-
-def parse_facets(facet):
-	"""Parse facets formula of the form 'lhs ~ rhs'.
-
-	Parameters:
-	-----------
-	facets: facets formula.
-
-	Returns:
-	--------
-	A list with LHS and RHS column names.
-	"""
-	lhs, rhs = [col.strip() for col in facet.split('~')]
-	return (lhs, rhs)
 
 def scale_size(column, min_size=1.0, max_size=80.0):
 	"""Creates a function that converts between a data attribute to point size.
@@ -166,7 +129,8 @@ def scale_shape(column):
 
 	Returns:
 	--------
-	a function of two arguments
+	a function of two arguments, takes DataFrame and row index, return string with
+	matplotlib marker character
 	"""
 	shapes = ['o', 'D', 'h', 'H', '_', '8', 'p', '+', '.', 's', '*', 'd', '^', '<', '>', 'v', '|', 'x']
 	def scaler(data, index):
@@ -184,7 +148,8 @@ def scale_constant(constant):
 
 	Returns:
 	--------
-	a two argument function
+	a two argument function, takes DataFrame and row index, 
+	returns specified value
 	"""
 	def scaler(data, index):
 		return constant
@@ -192,6 +157,15 @@ def scale_constant(constant):
 
 def default_aes(x=None, y=None):
 	"""Create the default aesthetics dictionary.
+
+	Parameters:
+	-----------
+	x: string, DataFrame column name
+	y: string, DataFrame column name
+
+	Returns:
+	--------
+	a dictionary with aesthetics bindings
 	"""
 	return {
 		'x' : x,
@@ -202,8 +176,21 @@ def default_aes(x=None, y=None):
 		'alpha' : scale_constant(1.0),
 	}
 
-def aes(x=None, y=None, size=None, colour=None, shape=None, alpha=None):
+def make_aes(x=None, y=None, size=None, colour=None, shape=None, alpha=None):
 	"""Create an empty aesthetics dictionary.
+
+	Parameters:
+	-----------
+	x: string, DataFrame column name
+	y: string, DataFrame column name
+	size: function, binding for size attribute of Geoms
+	colour: function, binding for colour attribute of Geoms
+	shape: function, binding for shape attribute of Geoms
+	alpha: function, binding for alpha attribute of Geoms
+
+	Returns:
+	--------
+	a dictionary with aesthetics bindings
 	"""
 	return {
 		'x' : x,
@@ -218,15 +205,33 @@ class Layer:
 	"""
 	Layer object representing a single plot layer.
 	"""
-	def __init__(self, data=None, aesthetics=None):
+	def __init__(self, data=None, aes=None):
+		"""Initialize layer object.
+
+		Parameters:
+		-----------
+		data: pandas DataFrame instance
+		aes: aesthetics dictionary with bindings
+		"""
 		self.data = data
-		if aesthetics is None:
-			self.aes = aes()
+		if aes is None:
+			self.aes = make_aes()
 		else:
-			self.aes = aesthetics
+			self.aes = aes
 
 	def work(self, fig=None, ax=None):
-		pass
+		"""Do the drawing (usually) work.
+
+		Parameters:
+		-----------
+		fig: matplotlib figure
+		ax: matplotlib axis object
+
+		Returns:
+		--------
+		a tuple with the same figure and axis instances
+		"""
+		return fig, ax
 
 class GeomPoint(Layer):
 	def work(self, fig=None, ax=None):
