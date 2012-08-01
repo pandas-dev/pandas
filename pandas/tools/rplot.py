@@ -270,13 +270,35 @@ class GeomPoint(Layer):
 		return fig, ax
 
 class GeomPolyFit(Layer):
+	"""
+	Draw a polynomial fit of specified degree.
+	"""
 	def __init__(self, degree, lw=2.0, colour='grey'):
+		"""Initialize GeomPolyFit object.
+
+		Parameters:
+		-----------
+		degree: an integer, polynomial degree
+		lw: line width
+		colour: matplotlib colour
+		"""
 		self.degree = degree
 		self.lw = lw
 		self.colour = colour
 		Layer.__init__(self)
 
 	def work(self, fig=None, ax=None):
+		"""Draw the polynomial fit on matplotlib figure or axis
+
+		Parameters:
+		-----------
+		fig: matplotlib figure
+		ax: matplotlib axis
+
+		Returns:
+		--------
+		a tuple with figure and axis objects
+		"""
 		if ax is None:
 			if fig is None:
 				return fig, ax
@@ -295,11 +317,35 @@ class GeomPolyFit(Layer):
 		return fig, ax
 
 class GeomScatter(Layer):
-	def __init__(self, **kwds):
-		self.kwds = kwds
+	"""
+	An efficient scatter plot, use this instead of GeomPoint for speed.
+	"""
+	def __init__(self, marker='o', colour='lightblue', alpha=1.0):
+		"""Initialize GeomScatter instance.
+
+		Parameters:
+		-----------
+		marker: matplotlib marker string
+		colour: matplotlib colour
+		alpha: matplotlib alpha
+		"""
+		self.marker = marker
+		self.colour = colour
+		self.alpha = alpha
 		Layer.__init__(self)
 
 	def work(self, fig=None, ax=None):
+		"""Draw a scatter plot on matplotlib figure or axis
+
+		Parameters:
+		-----------
+		fig: matplotlib figure
+		ax: matplotlib axis
+
+		Returns:
+		--------
+		a tuple with figure and axis objects
+		"""
 		if ax is None:
 			if fig is None:
 				return fig, ax
@@ -307,16 +353,37 @@ class GeomScatter(Layer):
 				ax = fig.gca()
 		x = self.data[self.aes['x']]
 		y = self.data[self.aes['y']]
-		ax.scatter(x, y, **self.kwds)
+		ax.scatter(x, y, marker=self.marker, c=self.colour, alpha=self.alpha)
 		return fig, ax
 
 class GeomHistogram(Layer):
-	def __init__(self, bins=10, colour='grey'):
+	"""
+	An efficient histogram, use this instead of GeomBar for speed.
+	"""
+	def __init__(self, bins=10, colour='lightblue'):
+		"""Initialize GeomHistogram instance.
+
+		Parameters:
+		-----------
+		bins: integer, number of histogram bins
+		colour: matplotlib colour
+		"""
 		self.bins = bins
 		self.colour = colour
 		Layer.__init__(self)
 
 	def work(self, fig=None, ax=None):
+		"""Draw a histogram on matplotlib figure or axis
+
+		Parameters:
+		-----------
+		fig: matplotlib figure
+		ax: matplotlib axis
+
+		Returns:
+		--------
+		a tuple with figure and axis objects
+		"""
 		if ax is None:
 			if fig is None:
 				return fig, ax
@@ -327,7 +394,22 @@ class GeomHistogram(Layer):
 		return fig, ax
 
 class GeomDensity(Layer):
+	"""
+	A kernel density estimation plot.
+	"""
 	def work(self, fig=None, ax=None):
+		"""Draw a one dimensional kernel density plot.
+		You can specify either a figure or an axis to draw on.
+
+		Parameters:
+		-----------
+		fig: matplotlib figure object
+		ax: matplotlib axis object to draw on
+
+		Returns:
+		--------
+		fig, ax: matplotlib figure and axis objects
+		"""
 		if ax is None:
 			if fig is None:
 				return fig, ax
@@ -342,7 +424,7 @@ class GeomDensity(Layer):
 
 class GeomDensity2D(Layer):
 	def work(self, fig=None, ax=None):
-		"""Render the layer on a matplotlib axis.
+		"""Draw a two dimensional kernel density plot.
 		You can specify either a figure or an axis to draw on.
 
 		Parameters:
@@ -373,35 +455,6 @@ class GeomDensity2D(Layer):
 		Z = np.reshape(kernel(positions).T, X.shape)
 		ax.contour(Z, extent=[x_min, x_max, y_min, y_max])
 		return fig, ax
-
-def display_grouped(grouped_data, x, y, fig):
-	"""A test routine to display grouped data.
-
-	Parameters:
-	-----------
-	grouped_data: data frame grouped by df.groupby pandas routine
-	fig: matplotlib figure
-
-	Returns:
-	--------
-	Nothing
-	"""
-	shingle1 = set([])
-	shingle2 = set([])
-	# Fill shingles.
-	for name, group in grouped_data:
-		if type(name) is type(()):
-			shingle1.add(name[0])
-			shingle2.add(name[1])
-		else:
-			shingle1.add(name)
-	rows = len(shingle1)
-	cols = len(shingle2)
-	subplot_nr = 1
-	for name, group, in grouped_data:
-		ax = fig.add_subplot(rows, cols, subplot_nr)
-		ax.scatter(group[x], group[y])
-		subplot_nr += 1
 
 class TrellisGrid(Layer):
 	def __init__(self, by):
@@ -536,6 +589,15 @@ def work_grid(grid, fig):
 	return axes
 
 def adjust_subplots(fig, axes, trellis):
+	"""Adjust the subtplots on matplotlib figure with the
+	fact that we have a trellis plot in mind.
+
+	Parameters:
+	-----------
+	fig: matplotlib figure
+	axes: a two dimensional grid of matplotlib axes
+	trellis: TrellisGrid object
+	"""
 	# Flatten the axes grid
 	axes = [ax for row in axes for ax in row]
 	min_x = min([ax.get_xlim()[0] for ax in axes])
@@ -571,7 +633,6 @@ def adjust_subplots(fig, axes, trellis):
 		else:
 			axis.table(cellText=[[label1]], loc='top', cellLoc='center', cellColours=[['lightgrey']])
 	fig.subplots_adjust(wspace=0.05, hspace=0.2)
-	return ax, fig
 
 class RPlot:
 	"""
