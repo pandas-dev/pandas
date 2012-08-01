@@ -640,15 +640,35 @@ class RPlot:
 	The main plot object. Add layers to an instance of this object to create a plot.
 	"""
 	def __init__(self, data, x=None, y=None):
+		"""Initialize RPlot instance.
+
+		Parameters:
+		-----------
+		data: pandas DataFrame instance
+		x: string, DataFrame column name
+		y: string, DataFrame column name
+		"""
 		self.layers = [Layer(data, default_aes(x=x, y=y))]
 		trellised = False
 
 	def __add__(self, other):
+		"""Add a layer to RPlot instance.
+
+		Parameters:
+		-----------
+		other: Layer instance
+		"""
 		if not isinstance(other, Layer):
 			raise TypeError("The operand on the right side of + must be a Layer instance")
 		self.layers.append(other)
 
-	def show(self, fig=None):
+	def render(self, fig=None):
+		"""Render all the layers on a matplotlib figure.
+
+		Parameters:
+		-----------
+		fig: matplotlib figure
+		"""
 		if fig is None:
 			fig = plt.gcf()
 		# Look for the last TrellisGrid instance in the layer list
