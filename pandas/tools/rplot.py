@@ -120,6 +120,19 @@ def scale_gradient2(column, categorical, colour1=(0.0, 0.0, 0.0), colour2=(1.0, 
 						b2 + (b3 - b2) * x_scaled)
 	return scaler
 
+class ScaleShape:
+	def __init__(self, column):
+		self.column = column
+		self.shapes = ['o', 'D', 'h', 'H', '_', '8', 'p', '+', '.', 's', '*', 'd', '^', '<', '>', 'v', '|', 'x']
+		self.legend = set([])
+
+	def __call__(self, data, index):
+		values = list(set(data[self.column]))
+		x = data[self.column].iget(index)
+		legend = "%s = %s" % (self.column, str(x))
+		self.legend.add(legend)
+		return self.shapes[values.index(x)]
+
 def scale_shape(column):
 	"""Create a function that converts between a categorical value and a scatter plot shape.
 
