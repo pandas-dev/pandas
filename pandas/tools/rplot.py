@@ -192,6 +192,14 @@ def make_aes(x=None, y=None, size=None, colour=None, shape=None, alpha=None):
 	--------
 	a dictionary with aesthetics bindings
 	"""
+	if not hasattr(size, '__call__'):
+		size = scale_constant(size)
+	if not hasattr(colour, '__call__'):
+		colour = scale_constant(colour)
+	if not hasattr(shape, '__call__'):
+		shape = scale_constant(shape)
+	if not hasattr(alpha, '__call__'):
+		alpha = scale_constant(alpha)
 	return {
 		'x' : x,
 		'y' : y,
