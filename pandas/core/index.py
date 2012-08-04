@@ -2291,7 +2291,7 @@ class MultiIndex(Index):
         new_index : Index
         """
         if not isinstance(item, tuple) or len(item) != self.nlevels:
-            raise Exception("%s cannot be inserted in this MultIndex"
+            raise Exception("%s cannot be inserted in this MultiIndex"
                             % str(item))
 
         new_levels = []

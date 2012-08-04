@@ -487,7 +487,7 @@ class Panel(NDFrame):
         excel_writer : string or ExcelWriter object
             File path or existing ExcelWriter
         na_rep : string, default ''
-            Missing data rep'n
+            Missing data representation
         """
         from pandas.io.parsers import ExcelWriter
         writer = ExcelWriter(path)
