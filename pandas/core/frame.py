@@ -1161,7 +1161,7 @@ class DataFrame(NDFrame):
         sheet_name : string, default 'sheet1'
             Name of sheet which will contain DataFrame
         na_rep : string, default ''
-            Missing data rep'n
+            Missing data representation
         cols : sequence, optional
             Columns to write
         header : boolean or list of string, default True
@@ -4305,7 +4305,7 @@ class DataFrame(NDFrame):
 
     def idxmin(self, axis=0, skipna=True):
         """
-        Return index of first occurence of minimum over requested axis.
+        Return index of first occurrence of minimum over requested axis.
         NA/null values are excluded.
 
         Parameters
@@ -4327,7 +4327,7 @@ class DataFrame(NDFrame):
 
     def idxmax(self, axis=0, skipna=True):
         """
-        Return index of first occurence of maximum over requested axis.
+        Return index of first occurrence of maximum over requested axis.
         NA/null values are excluded.
 
         Parameters

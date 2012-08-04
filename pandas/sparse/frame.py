@@ -253,7 +253,7 @@ class SparseDataFrame(DataFrame):
         return tot_nonsparse / float(tot)
 
     #----------------------------------------------------------------------
-    # Support different internal rep'n of SparseDataFrame
+    # Support different internal representation of SparseDataFrame
 
     def _set_item(self, key, value):
         sp_maker = lambda x: SparseSeries(x, index=self.index,

@@ -529,7 +529,7 @@ class WeekOfMonth(DateOffset, CacheableOffset):
         0 is 1st week of month, 1 2nd week, etc.
     weekday : {0, 1, ..., 6}
         0: Mondays
-        1: Tuedays
+        1: Tuesdays
         2: Wednesdays
         3: Thursdays
         4: Fridays

@@ -74,7 +74,7 @@ class GroupBy(object):
     -----
     After grouping, see aggregate, apply, and transform functions. Here are
     some other brief notes about usage. When grouping by multiple groups, the
-    result index will be a MultiIndex (hierarhical) by default.
+    result index will be a MultiIndex (hierarchical) by default.
 
     Iteration produces (key, group) tuples, i.e. chunking the data by group. So
     you can write code like:

@@ -703,7 +703,7 @@ def infer_freq(index, warn=True):
     Returns
     -------
     freq : string or None
-        None if no discernable frequency
+        None if no discernible frequency
     """
     from pandas.tseries.index import DatetimeIndex
 

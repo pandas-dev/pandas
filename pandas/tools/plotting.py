@@ -38,7 +38,7 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
     grid : setting this to True will show the grid
     diagonal : pick between 'kde' and 'hist' for
         either Kernel Density Estimation or Histogram
-        plon in the diagonal
+        plot in the diagonal
     kwds : other plotting keyword arguments
         To be passed to scatter function
 
@@ -1334,7 +1334,7 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
 def boxplot(data, column=None, by=None, ax=None, fontsize=None,
             rot=0, grid=True, figsize=None, **kwds):
     """
-    Make a box plot from DataFrame column optionally grouped b ysome columns or
+    Make a box plot from DataFrame column optionally grouped by some columns or
     other inputs
 
     Parameters
@@ -1770,7 +1770,7 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
         - for NxM subplots with N>1 and M>1 are returned as a 2d array.
 
       If False, no squeezing at all is done: the returned axis object is always
-      a 2-d array contaning Axis instances, even if it ends up being 1x1.
+      a 2-d array containing Axis instances, even if it ends up being 1x1.
 
     subplot_kw : dict
       Dict with keywords passed to the add_subplot() call used to create each
@@ -1790,7 +1790,7 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
     fig, ax : tuple
       - fig is the Matplotlib Figure object
       - ax can be either a single axis object or an array of axis objects if
-      more than one supblot was created.  The dimensions of the resulting array
+      more than one subplot was created.  The dimensions of the resulting array
       can be controlled with the squeeze keyword, see above.
 
     **Examples:**

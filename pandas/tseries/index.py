@@ -644,7 +644,7 @@ class DatetimeIndex(Int64Index):
 
     def snap(self, freq='S'):
         """
-        Snap time stamps to nearest occuring frequency
+        Snap time stamps to nearest occurring frequency
 
         """
         # Superdumb, punting on any optimizing

@@ -763,7 +763,7 @@ copy : boolean, default False
 
     def reset_index(self, drop=False, name=None):
         """
-        Analagous to the DataFrame.reset_index function, see docstring there.
+        Analogous to the DataFrame.reset_index function, see docstring there.
 
         Parameters
         ----------
@@ -1151,7 +1151,7 @@ copy : boolean, default False
 
     def idxmin(self, axis=None, out=None, skipna=True):
         """
-        Index of first occurence of minimum of values.
+        Index of first occurrence of minimum of values.
 
         Parameters
         ----------
@@ -1160,7 +1160,7 @@ copy : boolean, default False
 
         Returns
         -------
-        idxmin : Index of mimimum of values
+        idxmin : Index of minimum of values
         """
         i = nanops.nanargmin(self.values, skipna=skipna)
         if i == -1:
@@ -1169,7 +1169,7 @@ copy : boolean, default False
 
     def idxmax(self, axis=None, out=None, skipna=True):
         """
-        Index of first occurence of maximum of values.
+        Index of first occurrence of maximum of values.
 
         Parameters
         ----------
@@ -1178,7 +1178,7 @@ copy : boolean, default False
 
         Returns
         -------
-        idxmax : Index of mimimum of values
+        idxmax : Index of minimum of values
         """
         i = nanops.nanargmax(self.values, skipna=skipna)
         if i == -1:
@@ -1769,7 +1769,7 @@ copy : boolean, default False
             Sort ascending. Passing False sorts descending
         kind : {'mergesort', 'quicksort', 'heapsort'}, default 'mergesort'
             Choice of sorting algorithm. See np.sort for more
-            information. 'mergesort' is the only stable algorith
+            information. 'mergesort' is the only stable algorithm
 
         Returns
         -------
@@ -2364,7 +2364,7 @@ copy : boolean, default False
         ----------
         path : string file path or file handle / StringIO
         na_rep : string, default ''
-            Missing data rep'n
+            Missing data representation
         header : boolean, default False
             Write out series name
         index : boolean, default True
@@ -2496,7 +2496,7 @@ copy : boolean, default False
 
         Parameters
         ----------
-        wehre : date or array of dates
+        where : date or array of dates
 
         Notes
         -----
