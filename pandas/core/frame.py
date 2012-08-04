@@ -2532,8 +2532,6 @@ class DataFrame(NDFrame):
             default use all of the columns
         take_last : boolean, default False
             Take the last observed row in a row. Defaults to the first row
-        skipna : boolean, default True
-            If True then keep NaN
         inplace : boolean, default False
             Whether to drop duplicates in place or to return a copy
 
