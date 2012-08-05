@@ -240,6 +240,7 @@ class Layer:
 			self.aes = make_aes()
 		else:
 			self.aes = aes
+		self.legend = {}
 
 	def work(self, fig=None, ax=None):
 		"""Do the drawing (usually) work.
@@ -274,7 +275,6 @@ class GeomPoint(Layer):
 				return fig, ax
 			else:
 				ax = fig.gca()
-		legend = {}
 		for index in range(len(self.data)):
 			row = self.data.irow(index)
 			x = row[self.aes['x']]
@@ -293,12 +293,12 @@ class GeomPoint(Layer):
 					marker=marker_value,
 					alpha=alpha_value)
 			if colour_scaler.categorical:
-				legend[(colour_value, marker_value)] = patch
+				self.legend[(colour_value, marker_value)] = patch
 			else:
-				legend[(marker_value)] = patch
+				self.legend[(marker_value)] = patch
 		ax.set_xlabel(self.aes['x'])
 		ax.set_ylabel(self.aes['y'])
-		return fig, ax, legend
+		return fig, ax
 
 class GeomPolyFit(Layer):
 	"""
@@ -642,7 +642,7 @@ def work_grid(grid, fig):
 			grid[row][col].work(ax=axes[row][col])
 	return axes
 
-def adjust_subplots(fig, axes, trellis):
+def adjust_subplots(fig, axes, trellis, layers):
 	"""Adjust the subtplots on matplotlib figure with the
 	fact that we have a trellis plot in mind.
 
