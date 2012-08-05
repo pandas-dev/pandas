@@ -255,7 +255,7 @@ class DataFrameFormatter(object):
                             na_rep=self.na_rep,
                             space=self.col_space)
 
-    def to_html(self):
+    def to_html(self, classes=None):
         """
         Render a DataFrame to a html table.
         """
@@ -291,7 +291,13 @@ class DataFrameFormatter(object):
         indent_delta = 2
         frame = self.frame
 
-        write('<table border="1">', indent)
+        _classes = ['dataframe'] # Default class.
+        if classes is not None:
+            if isinstance(classes, str):
+                classes = classes.split()
+            assert isinstance(classes, (list, tuple))
+            _classes.extend(classes)
+        write('<table border="1" class="%s">' % ' '.join(_classes), indent)
 
         def _column_header():
             row = [''] * (frame.index.nlevels - 1)

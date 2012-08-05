@@ -6,6 +6,7 @@ except:
 import os
 import sys
 import unittest
+from textwrap import dedent
 
 from numpy import nan
 from numpy.random import randn
@@ -413,7 +414,7 @@ class TestDataFrameFormatting(unittest.TestCase):
                                                 names=['CL0', 'CL1'])
         df = pandas.DataFrame([list('abcd'), list('efgh')], columns=columns)
         result = df.to_html()
-        expected = ('<table border="1">\n'
+        expected = ('<table border="1" class="dataframe">\n'
                     '  <thead>\n'
                     '    <tr>\n'
                     '      <th><table><tbody><tr><td>CL0</td></tr><tr>'
@@ -451,7 +452,7 @@ class TestDataFrameFormatting(unittest.TestCase):
                                                     np.mod(range(4), 2)))
         df = pandas.DataFrame([list('abcd'), list('efgh')], columns=columns)
         result = df.to_html()
-        expected = ('<table border="1">\n'
+        expected = ('<table border="1" class="dataframe">\n'
                     '  <thead>\n'
                     '    <tr>\n'
                     '      <th></th>\n'
@@ -494,6 +495,27 @@ class TestDataFrameFormatting(unittest.TestCase):
         self.frame._repr_html_()
 
         fmt.reset_printoptions()
+
+    def test_to_html_with_classes(self):
+        df = pandas.DataFrame()
+        result = df.to_html(classes="sortable draggable")
+        expected = dedent("""
+
+            <table border="1" class="dataframe sortable draggable">
+              <tbody>
+                <tr>
+                  <td>Index([], dtype=object)</td>
+                  <td>Empty DataFrame</td>
+                </tr>
+              </tbody>
+            </table>
+
+        """).strip()
+        self.assertEqual(result, expected)
+
+        result = df.to_html(classes=["sortable", "draggable"])
+        self.assertEqual(result, expected)
+
 
 class TestSeriesFormatting(unittest.TestCase):
 

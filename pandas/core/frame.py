@@ -1240,7 +1240,7 @@ class DataFrame(NDFrame):
     def to_html(self, buf=None, columns=None, col_space=None, colSpace=None,
                 header=True, index=True, na_rep='NaN', formatters=None,
                 float_format=None, sparsify=None, index_names=True,
-                bold_rows=True):
+                bold_rows=True, classes=None):
         """
         to_html-specific options
         bold_rows : boolean, default True
@@ -1263,7 +1263,7 @@ class DataFrame(NDFrame):
                                            bold_rows=bold_rows,
                                            sparsify=sparsify,
                                            index_names=index_names)
-        formatter.to_html()
+        formatter.to_html(classes=classes)
 
         if buf is None:
             return formatter.buf.getvalue()
