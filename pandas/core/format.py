@@ -355,12 +355,16 @@ class DataFrameFormatter(object):
                 fmt_values[i] = self._format_col(i)
 
             # write values
+            index_formatter = self.formatters.get('__index__', None)
             for i in range(len(frame)):
                 row = []
+                index_value = frame.index[i]
+                if index_formatter:
+                    index_value = index_formatter(index_value)
                 if isinstance(frame.index, MultiIndex):
-                    row.extend(_maybe_bold_row(frame.index[i]))
+                    row.extend(_maybe_bold_row(index_value))
                 else:
-                    row.append(_maybe_bold_row(frame.index[i]))
+                    row.append(_maybe_bold_row(index_value))
                 for j in range(len(self.columns)):
                     row.append(fmt_values[j][i])
                 write_tr(row, indent, indent_delta)
@@ -415,6 +419,7 @@ class DataFrameFormatter(object):
         return _has_names(self.frame.columns)
 
     def _get_formatted_index(self):
+        # Note: this is only used by to_string(), not by to_html().
         index = self.frame.index
         columns = self.frame.columns
 
