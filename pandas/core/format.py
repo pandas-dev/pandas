@@ -189,63 +189,79 @@ class DataFrameFormatter(object):
         else:
             self.columns = frame.columns
 
+    def _to_str_columns(self, force_unicode=False):
+        """
+        Render a DataFrame to a list of columns (as lists of strings).
+        """
+        frame = self.frame
+
+        # may include levels names also
+        str_index = self._get_formatted_index()
+        str_columns = self._get_formatted_column_labels()
+
+        stringified = []
+
+        for i, c in enumerate(self.columns):
+            if self.header:
+                fmt_values = self._format_col(i)
+                cheader = str_columns[i]
+                max_len = max(max(_strlen(x) for x in fmt_values),
+                              max(len(x) for x in cheader))
+                if self.justify == 'left':
+                    cheader = [x.ljust(max_len) for x in cheader]
+                else:
+                    cheader = [x.rjust(max_len) for x in cheader]
+                fmt_values = cheader + fmt_values
+                stringified.append(_make_fixed_width(fmt_values,
+                                                     self.justify))
+            else:
+                stringified = [_make_fixed_width(self._format_col(i),
+                                                 self.justify)
+                               for i, c in enumerate(self.columns)]
+
+        strcols = stringified
+        if self.index:
+            strcols.insert(0, str_index)
+
+        if not py3compat.PY3:
+            if force_unicode:
+                strcols = map(lambda col: map(unicode, col), strcols)
+            else:
+                # generally everything is plain strings, which has ascii
+                # encoding.  problem is when there is a char with value over 127
+                # - everything then gets converted to unicode.
+                try:
+                    map(lambda col: map(str, col), strcols)
+                except UnicodeError:
+                    strcols = map(lambda col: map(unicode, col), strcols)
+
+        return strcols
+
     def to_string(self, force_unicode=False):
         """
         Render a DataFrame to a console-friendly tabular output.
         """
         frame = self.frame
 
-        to_write = []
-
         if len(frame.columns) == 0 or len(frame.index) == 0:
             info_line = (u'Empty %s\nColumns: %s\nIndex: %s'
                          % (type(self.frame).__name__,
                             frame.columns, frame.index))
-            to_write.append(info_line)
+            text = info_line
         else:
-            # may include levels names also
-            str_index = self._get_formatted_index()
-            str_columns = self._get_formatted_column_labels()
+            strcols = self._to_str_columns(force_unicode)
+            text = adjoin(1, *strcols)
+            
+        self.buf.writelines(text)
 
-            stringified = []
 
-            for i, c in enumerate(self.columns):
-                if self.header:
-                    fmt_values = self._format_col(i)
-                    cheader = str_columns[i]
-                    max_len = max(max(_strlen(x) for x in fmt_values),
-                                  max(len(x) for x in cheader))
-                    if self.justify == 'left':
-                        cheader = [x.ljust(max_len) for x in cheader]
-                    else:
-                        cheader = [x.rjust(max_len) for x in cheader]
-                    fmt_values = cheader + fmt_values
-                    stringified.append(_make_fixed_width(fmt_values,
-                                                         self.justify))
-                else:
-                    stringified = [_make_fixed_width(self._format_col(i),
-                                                     self.justify)
-                                   for i, c in enumerate(self.columns)]
 
-            if self.index:
-                to_write.append(adjoin(1, str_index, *stringified))
-            else:
-                to_write.append(adjoin(1, *stringified))
 
-        if not py3compat.PY3:
-            if force_unicode:
-                to_write = [unicode(s) for s in to_write]
-            else:
-                # generally everything is plain strings, which has ascii
-                # encoding.  problem is when there is a char with value over 127
-                # - everything then gets converted to unicode.
-                try:
-                    for s in to_write:
-                        str(s)
-                except UnicodeError:
-                    to_write = [unicode(s) for s in to_write]
 
-        self.buf.writelines(to_write)
+
+
+
+
 
     def _format_col(self, i):
         col = self.columns[i]
