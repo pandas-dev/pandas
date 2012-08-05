@@ -120,17 +120,18 @@ def scale_gradient2(column, categorical, colour1=(0.0, 0.0, 0.0), colour2=(1.0, 
 						b2 + (b3 - b2) * x_scaled)
 	return scaler
 
-class ScaleShape:
+class Scale:
+	pass
+
+class ScaleShape(Scale):
 	def __init__(self, column):
 		self.column = column
 		self.shapes = ['o', 'D', 'h', 'H', '_', '8', 'p', '+', '.', 's', '*', 'd', '^', '<', '>', 'v', '|', 'x']
-		self.legend = set([])
+		self.legends = set([])
 
 	def __call__(self, data, index):
 		values = list(set(data[self.column]))
 		x = data[self.column].iget(index)
-		legend = "%s = %s" % (self.column, str(x))
-		self.legend.add(legend)
 		return self.shapes[values.index(x)]
 
 def scale_shape(column):
@@ -273,6 +274,7 @@ class GeomPoint(Layer):
 				return fig, ax
 			else:
 				ax = fig.gca()
+		legend = {}
 		for index in range(len(self.data)):
 			row = self.data.irow(index)
 			x = row[self.aes['x']]
@@ -281,14 +283,22 @@ class GeomPoint(Layer):
 			colour_scaler = self.aes['colour']
 			shape_scaler = self.aes['shape']
 			alpha = self.aes['alpha']
-			ax.scatter(x, y, 
-				s=size_scaler(self.data, index),
-				c=colour_scaler(self.data, index),
-				marker=shape_scaler(self.data, index),
-				alpha=alpha(self.data, index))
+			size_value = size_scaler(self.data, index)
+			colour_value = colour_scaler(self.data, index)
+			marker_value = shape_scaler(self.data, index)
+			alpha_value = alpha(self.data, index)
+			patch = ax.scatter(x, y, 
+					s=size_value,
+					c=colour_value,
+					marker=marker_value,
+					alpha=alpha_value)
+			if colour_scaler.categorical:
+				legend[(colour_value, marker_value)] = patch
+			else:
+				legend[(marker_value)] = patch
 		ax.set_xlabel(self.aes['x'])
 		ax.set_ylabel(self.aes['y'])
-		return fig, ax
+		return fig, ax, legend
 
 class GeomPolyFit(Layer):
 	"""
@@ -543,6 +553,28 @@ class TrellisGrid(Layer):
 					row += 1
 			trellised_layers.append(trellised)
 		return trellised_layers
+
+def dictionary_union(dict1, dict2):
+	"""Take two dictionaries, return dictionary union.
+
+	Parameters:
+	-----------
+	dict1: Python dictionary
+	dict2: Python dictionary
+
+	Returns:
+	--------
+	A union of the dictionaries. It assumes that values
+	with the same keys are identical.
+	"""
+	keys1 = dict1.keys()
+	keys2 = dict2.keys()
+	result = {}
+	for key1 in keys1:
+		result[key1] = dict1[key1]
+	for key2 in keys2:
+		result[key2] = dict2[key2]
+	return result
 
 def merge_aes(layer1, layer2):
 	"""Merges the aesthetics dictionaries for the two layers. 
