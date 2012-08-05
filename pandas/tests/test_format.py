@@ -412,20 +412,24 @@ class TestDataFrameFormatting(unittest.TestCase):
                                                     np.mod(range(4), 2)),
                                                 names=['CL0', 'CL1'])
         df = pandas.DataFrame([list('abcd'), list('efgh')], columns=columns)
-        result = df.to_html()
+        result = df.to_html(justify='left')
         expected = ('<table border="1">\n'
                     '  <thead>\n'
                     '    <tr>\n'
                     '      <th><table><tbody><tr><td>CL0</td></tr><tr>'
                     '<td>CL1</td></tr></tbody></table></th>\n'
-                    '      <th><table><tbody><tr><td>0</td></tr><tr>'
-                    '<td>0</td></tr></tbody></table></th>\n'
-                    '      <th><table><tbody><tr><td>1</td></tr><tr>'
-                    '<td>1</td></tr></tbody></table></th>\n'
-                    '      <th><table><tbody><tr><td>2</td></tr><tr>'
-                    '<td>0</td></tr></tbody></table></th>\n'
-                    '      <th><table><tbody><tr><td>3</td></tr><tr>'
-                    '<td>1</td></tr></tbody></table></th>\n'
+                    '      <th><table align="left" style="text-align: left;">'
+                    '<tbody><tr><td>0</td></tr><tr><td>0</td></tr></tbody>'
+                    '</table></th>\n'
+                    '      <th><table align="left" style="text-align: left;">'
+                    '<tbody><tr><td>1</td></tr><tr><td>1</td></tr></tbody>'
+                    '</table></th>\n'
+                    '      <th><table align="left" style="text-align: left;">'
+                    '<tbody><tr><td>2</td></tr><tr><td>0</td></tr></tbody>'
+                    '</table></th>\n'
+                    '      <th><table align="left" style="text-align: left;">'
+                    '<tbody><tr><td>3</td></tr><tr><td>1</td></tr></tbody>'
+                    '</table></th>\n'
                     '    </tr>\n'
                     '  </thead>\n'
                     '  <tbody>\n'
@@ -445,24 +449,29 @@ class TestDataFrameFormatting(unittest.TestCase):
                     '    </tr>\n'
                     '  </tbody>\n'
                     '</table>')
+
         self.assertEqual(result, expected)
 
         columns = pandas.MultiIndex.from_tuples(zip(range(4),
                                                     np.mod(range(4), 2)))
         df = pandas.DataFrame([list('abcd'), list('efgh')], columns=columns)
-        result = df.to_html()
+        result = df.to_html(justify='right')
         expected = ('<table border="1">\n'
                     '  <thead>\n'
                     '    <tr>\n'
                     '      <th></th>\n'
-                    '      <th><table><tbody><tr><td>0</td></tr>'
-                    '<tr><td>0</td></tr></tbody></table></th>\n'
-                    '      <th><table><tbody><tr><td>1</td></tr>'
-                    '<tr><td>1</td></tr></tbody></table></th>\n'
-                    '      <th><table><tbody><tr><td>2</td></tr>'
-                    '<tr><td>0</td></tr></tbody></table></th>\n'
-                    '      <th><table><tbody><tr><td>3</td></tr>'
-                    '<tr><td>1</td></tr></tbody></table></th>\n'
+                    '      <th><table align="right" style="text-align:'
+                    ' right;"><tbody><tr><td>0</td></tr><tr><td>0</td></tr>'
+                    '</tbody></table></th>\n'
+                    '      <th><table align="right" style="text-align:'
+                    ' right;"><tbody><tr><td>1</td></tr><tr><td>1</td></tr>'
+                    '</tbody></table></th>\n'
+                    '      <th><table align="right" style="text-align:'
+                    ' right;"><tbody><tr><td>2</td></tr><tr><td>0</td></tr>'
+                    '</tbody></table></th>\n'
+                    '      <th><table align="right" style="text-align:'
+                    ' right;"><tbody><tr><td>3</td></tr><tr><td>1</td></tr>'
+                    '</tbody></table></th>\n'
                     '    </tr>\n'
                     '  </thead>\n'
                     '  <tbody>\n'
@@ -482,7 +491,97 @@ class TestDataFrameFormatting(unittest.TestCase):
                     '    </tr>\n'
                     '  </tbody>\n'
                     '</table>')
+
         self.assertEqual(result, expected)
+
+    def test_to_html_justify(self):
+        df = pandas.DataFrame({'A': [6, 30000, 2],
+                               'B': [1, 2, 70000],
+                               'C': [223442, 0, 1]},
+                              columns=['A', 'B', 'C'])
+        result = df.to_html(justify='left')
+        expected = ('<table border="1">\n'
+                    '  <thead>\n'
+                    '    <tr style="text-align: left;">\n'
+                    '      <th></th>\n'
+                    '      <th>A</th>\n'
+                    '      <th>B</th>\n'
+                    '      <th>C</th>\n'
+                    '    </tr>\n'
+                    '  </thead>\n'
+                    '  <tbody>\n'
+                    '    <tr>\n'
+                    '      <td><strong>0</strong></td>\n'
+                    '      <td>     6</td>\n'
+                    '      <td>     1</td>\n'
+                    '      <td> 223442</td>\n'
+                    '    </tr>\n'
+                    '    <tr>\n'
+                    '      <td><strong>1</strong></td>\n'
+                    '      <td> 30000</td>\n'
+                    '      <td>     2</td>\n'
+                    '      <td>      0</td>\n'
+                    '    </tr>\n'
+                    '    <tr>\n'
+                    '      <td><strong>2</strong></td>\n'
+                    '      <td>     2</td>\n'
+                    '      <td> 70000</td>\n'
+                    '      <td>      1</td>\n'
+                    '    </tr>\n'
+                    '  </tbody>\n'
+                    '</table>')
+
+        self.assertEqual(result, expected)
+
+        result = df.to_html(justify='right')
+        expected = ('<table border="1">\n'
+                    '  <thead>\n'
+                    '    <tr style="text-align: right;">\n'
+                    '      <th></th>\n'
+                    '      <th>A</th>\n'
+                    '      <th>B</th>\n'
+                    '      <th>C</th>\n'
+                    '    </tr>\n'
+                    '  </thead>\n'
+                    '  <tbody>\n'
+                    '    <tr>\n'
+                    '      <td><strong>0</strong></td>\n'
+                    '      <td>     6</td>\n'
+                    '      <td>     1</td>\n'
+                    '      <td> 223442</td>\n'
+                    '    </tr>\n'
+                    '    <tr>\n'
+                    '      <td><strong>1</strong></td>\n'
+                    '      <td> 30000</td>\n'
+                    '      <td>     2</td>\n'
+                    '      <td>      0</td>\n'
+                    '    </tr>\n'
+                    '    <tr>\n'
+                    '      <td><strong>2</strong></td>\n'
+                    '      <td>     2</td>\n'
+                    '      <td> 70000</td>\n'
+                    '      <td>      1</td>\n'
+                    '    </tr>\n'
+                    '  </tbody>\n'
+                    '</table>')
+        self.assertEqual(result, expected)
+
+    def test_to_html_index(self):
+        index = ['foo', 'bar', 'baz']
+        df = pandas.DataFrame({'A': [1, 2, 3],
+                               'B': [1.2, 3.4, 5.6],
+                               'C': ['one', 'two', np.NaN]},
+                              columns=['A', 'B', 'C'],
+                              index = index)
+        result = df.to_html(index=False)
+        for i in index:
+            self.assert_(i not in result)
+
+        tuples = [('foo', 'car'), ('foo', 'bike'), ('bar' ,'car')]
+        df.index = pandas.MultiIndex.from_tuples(tuples)
+        result = df.to_html(index=False)
+        for i in ['foo', 'bar', 'car', 'bike']:
+            self.assert_(i not in result)
 
     def test_repr_html(self):
         self.frame._repr_html_()

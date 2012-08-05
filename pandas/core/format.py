@@ -43,7 +43,8 @@ docstring_to_string = """
         multiindex key at each row, default True
     justify : {'left', 'right'}, default None
         Left or right-justify the column labels. If None uses the option from
-        the configuration in pandas.core.common, 'left' out of the box
+        the print configuration (controlled by set_printoptions), 'right' out
+        of the box.
     index_names : bool, optional
         Prints the names of the indexes, default True
     force_unicode : bool, default False
@@ -275,8 +276,11 @@ class DataFrameFormatter(object):
         def write_td(s, indent=0):
             write('<td>%s</td>' % _str(s), indent)
 
-        def write_tr(l, indent=0, indent_delta=4, header=False):
-            write('<tr>', indent)
+        def write_tr(l, indent=0, indent_delta=4, header=False, align=None):
+            if align is None:
+                write('<tr>', indent)
+            else:
+                write('<tr style="text-align: %s;">' % align, indent)
             indent += indent_delta
             if header:
                 for s in l:
@@ -294,16 +298,22 @@ class DataFrameFormatter(object):
         write('<table border="1">', indent)
 
         def _column_header():
-            row = [''] * (frame.index.nlevels - 1)
+            if self.index:
+                row = [''] * (frame.index.nlevels - 1)
+            else:
+                row = []
 
             if isinstance(self.columns, MultiIndex):
-                if self.has_column_names:
+                if self.has_column_names and self.index:
                     row.append(single_column_table(self.columns.names))
                 else:
                     row.append('')
-                row.extend([single_column_table(c) for c in self.columns])
+                style = "text-align: %s;" % self.justify
+                row.extend([single_column_table(c, self.justify, style) for
+                    c in self.columns])
             else:
-                row.append(self.columns.name or '')
+                if self.index:
+                    row.append(self.columns.name or '')
                 row.extend(self.columns)
             return row
 
@@ -324,7 +334,12 @@ class DataFrameFormatter(object):
 
                 col_row = _column_header()
                 indent += indent_delta
-                write_tr(col_row, indent, indent_delta, header=True)
+                if isinstance(self.columns, MultiIndex):
+                    align = None
+                else:
+                    align = self.justify
+                write_tr(col_row, indent, indent_delta, header=True,
+                        align=align)
                 if self.has_index_names:
                     row = frame.index.names + [''] * len(self.columns)
                     write_tr(row, indent, indent_delta, header=True)
@@ -351,10 +366,11 @@ class DataFrameFormatter(object):
             # write values
             for i in range(len(frame)):
                 row = []
-                if isinstance(frame.index, MultiIndex):
-                    row.extend(_maybe_bold_row(frame.index[i]))
-                else:
-                    row.append(_maybe_bold_row(frame.index[i]))
+                if self.index:
+                    if isinstance(frame.index, MultiIndex):
+                        row.extend(_maybe_bold_row(frame.index[i]))
+                    else:
+                        row.append(_maybe_bold_row(frame.index[i]))
                 for j in range(len(self.columns)):
                     row.append(fmt_values[j][i])
                 write_tr(row, indent, indent_delta)
@@ -655,8 +671,13 @@ def _trim_zeros(str_floats, na_rep='NaN'):
     return [x[:-1] if x.endswith('.') and x != na_rep else x for x in trimmed]
 
 
-def single_column_table(column):
-    table = '<table><tbody>'
+def single_column_table(column, align=None, style=None):
+    table = '<table'
+    if align is not None:
+        table += (' align="%s"' % align)
+    if style is not None:
+        table += (' style="%s"' % style)
+    table += '><tbody>'
     for i in column:
         table += ('<tr><td>%s</td></tr>' % str(i))
     table += '</tbody></table>'
