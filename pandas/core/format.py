@@ -151,6 +151,7 @@ class DataFrameFormatter(object):
 
     self.to_string() : console-friendly tabular output
     self.to_html()   : html table
+    self.to_latex()   : LaTeX tabular environment table
 
     """
 
@@ -251,17 +252,41 @@ class DataFrameFormatter(object):
         else:
             strcols = self._to_str_columns(force_unicode)
             text = adjoin(1, *strcols)
-            
+
         self.buf.writelines(text)
 
+    def to_latex(self, force_unicode=False, column_format=None):
+        """
+        Render a DataFrame to a LaTeX tabular environment output.
+        """
+        frame = self.frame
 
+        if len(frame.columns) == 0 or len(frame.index) == 0:
+            info_line = (u'Empty %s\nColumns: %s\nIndex: %s'
+                         % (type(self.frame).__name__,
+                            frame.columns, frame.index))
+            strcols = [[info_line]]
+        else:
+            strcols = self._to_str_columns(force_unicode)
 
+        if column_format is None:
+            column_format = '|l|%s|' % '|'.join('c' for _ in strcols)
+        else:
+            assert isinstance(column_format, str)
 
+        self.buf.write('\\begin{tabular}{%s}\n' % column_format)
+        self.buf.write('\\hline\n')
 
+        nlevels = frame.index.nlevels
+        for i, row in enumerate(izip(*strcols)):
+            if i == nlevels:
+                self.buf.write('\\hline\n') # End of header
+            crow = [(x.replace('_', '\\_') if x else '{}') for x in row]
+            self.buf.write(' & '.join(crow))
+            self.buf.write(' \\\\\n')
 
-
-
-
+        self.buf.write('\\hline\n')
+        self.buf.write('\\end{tabular}\n')
 
     def _format_col(self, i):
         col = self.columns[i]
