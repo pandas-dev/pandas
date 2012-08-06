@@ -132,7 +132,7 @@ class ScaleShape(Scale):
 
 	def __call__(self, data, index):
 		values = sorted(list(set(data[self.column])))
-		if len(values) != len(self.shapes):
+		if len(values) > len(self.shapes):
 			raise ValueError("Too many different values of the categorical attribute for ScaleShape")
 		x = data[self.column].iget(index)
 		return self.shapes[values.index(x)]
