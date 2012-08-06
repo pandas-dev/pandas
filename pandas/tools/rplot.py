@@ -126,12 +126,14 @@ class Scale:
 class ScaleShape(Scale):
 	def __init__(self, column):
 		self.column = column
-		self.shapes = ['o', '+', '8', 'p', 'D', '.', 's', '*', 'd', '^', '<', '>', 'v', '|', 'x']
+		self.shapes = ['o', '+', 's', '*', '^', '<', '>', 'v', '|', 'x']
 		self.legends = set([])
 		self.categorical = True
 
 	def __call__(self, data, index):
-		values = list(set(data[self.column]))
+		values = sorted(list(set(data[self.column])))
+		if len(values) != len(self.shapes):
+			raise ValueError("Too many different values of the categorical attribute for ScaleShape")
 		x = data[self.column].iget(index)
 		return self.shapes[values.index(x)]
 
