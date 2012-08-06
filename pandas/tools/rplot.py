@@ -126,8 +126,9 @@ class Scale:
 class ScaleShape(Scale):
 	def __init__(self, column):
 		self.column = column
-		self.shapes = ['o', 'D', 'h', 'H', '_', '8', 'p', '+', '.', 's', '*', 'd', '^', '<', '>', 'v', '|', 'x']
+		self.shapes = ['o', '+', '8', 'p', 'D', '.', 's', '*', 'd', '^', '<', '>', 'v', '|', 'x']
 		self.legends = set([])
+		self.categorical = True
 
 	def __call__(self, data, index):
 		values = list(set(data[self.column]))
@@ -152,6 +153,14 @@ def scale_shape(column):
 		x = data[column].iget(index)
 		return shapes[values.index(x)]
 	return scaler
+
+class ScaleConstant(Scale):
+	def __init__(self, value):
+		self.value = value
+		self.categorical = False
+
+	def __call__(self, data, index):
+		return self.value
 
 def scale_constant(constant):
 	"""Create a function that always returns a specified constant value.
@@ -184,10 +193,10 @@ def default_aes(x=None, y=None):
 	return {
 		'x' : x,
 		'y' : y,
-		'size' : scale_constant(40.0),
-		'colour' : scale_constant('grey'),
-		'shape' : scale_constant('o'),
-		'alpha' : scale_constant(1.0),
+		'size' : ScaleConstant(40.0),
+		'colour' : ScaleConstant('grey'),
+		'shape' : ScaleConstant('o'),
+		'alpha' : ScaleConstant(1.0),
 	}
 
 def make_aes(x=None, y=None, size=None, colour=None, shape=None, alpha=None):
@@ -207,13 +216,13 @@ def make_aes(x=None, y=None, size=None, colour=None, shape=None, alpha=None):
 	a dictionary with aesthetics bindings
 	"""
 	if not hasattr(size, '__call__'):
-		size = scale_constant(size)
+		size = ScaleConstant(size)
 	if not hasattr(colour, '__call__'):
-		colour = scale_constant(colour)
+		colour = ScaleConstant(colour)
 	if not hasattr(shape, '__call__'):
-		shape = scale_constant(shape)
+		shape = ScaleConstant(shape)
 	if not hasattr(alpha, '__call__'):
-		alpha = scale_constant(alpha)
+		alpha = ScaleConstant(alpha)
 	return {
 		'x' : x,
 		'y' : y,
@@ -292,10 +301,12 @@ class GeomPoint(Layer):
 					c=colour_value,
 					marker=marker_value,
 					alpha=alpha_value)
+			label = []
 			if colour_scaler.categorical:
-				self.legend[(colour_scaler.column, colour_value, shape_scaler.column, marker_value)] = patch
-			else:
-				self.legend[(shape_scaler.column, marker_value)] = patch
+				label += [colour_scaler.column, row[contour_scaler.column]]
+			elif shape_scaler.categorical:
+				label += [shape_scaler.column, row[shape_scaler.column]]
+			self.legend[tuple(label)] = patch
 		ax.set_xlabel(self.aes['x'])
 		ax.set_ylabel(self.aes['y'])
 		return fig, ax
@@ -697,15 +708,16 @@ def adjust_subplots(fig, axes, trellis, layers):
 	for key in legend.keys():
 		value = legend[key]
 		patches.append(value)
-		if len(key) == 1:
-			col, val = keys
+		if len(key) == 2:
+			col, val = key
 			labels.append("%s = %s" % (col, str(val)))
-		elif len(key) == 2:
+		elif len(key) == 4:
 			col1, val1, col2, val2 = key
 			labels.append("%s = %s, %s = %s" % (col1, str(val1), col2, str(val2)))
 		else:
 			raise ValueError("Maximum 2 categorical attributes to display a lengend of")
-	fig.legend(patches, labels, loc='upper right')
+	if len(legend):
+		fig.legend(patches, labels, loc='upper right')
 	fig.subplots_adjust(wspace=0.05, hspace=0.2)
 
 class RPlot:
