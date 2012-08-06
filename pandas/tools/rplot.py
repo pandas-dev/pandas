@@ -293,9 +293,9 @@ class GeomPoint(Layer):
 					marker=marker_value,
 					alpha=alpha_value)
 			if colour_scaler.categorical:
-				self.legend[(colour_value, marker_value)] = patch
+				self.legend[(colour_scaler.column, colour_value, shape_scaler.column, marker_value)] = patch
 			else:
-				self.legend[(marker_value)] = patch
+				self.legend[(shape_scaler.column, marker_value)] = patch
 		ax.set_xlabel(self.aes['x'])
 		ax.set_ylabel(self.aes['y'])
 		return fig, ax
@@ -651,6 +651,7 @@ def adjust_subplots(fig, axes, trellis, layers):
 	fig: matplotlib figure
 	axes: a two dimensional grid of matplotlib axes
 	trellis: TrellisGrid object
+	layers: last grid of layers in the plot
 	"""
 	# Flatten the axes grid
 	axes = [ax for row in axes for ax in row]
@@ -686,6 +687,25 @@ def adjust_subplots(fig, axes, trellis, layers):
 				cellColours=[['lightgrey'], ['lightgrey']])
 		else:
 			axis.table(cellText=[[label1]], loc='top', cellLoc='center', cellColours=[['lightgrey']])
+	# Flatten the layer grid
+	layers = [layer for row in layers for layer in row]
+	legend = {}
+	for layer in layers:
+		legend = dictionary_union(legend, layer.legend)
+	patches = []
+	labels = []
+	for key in legend.keys():
+		value = legend[key]
+		patches.append(value)
+		if len(key) == 1:
+			col, val = keys
+			labels.append("%s = %s" % (col, str(val)))
+		elif len(key) == 2:
+			col1, val1, col2, val2 = key
+			labels.append("%s = %s, %s = %s" % (col1, str(val1), col2, str(val2)))
+		else:
+			raise ValueError("Maximum 2 categorical attributes to display a lengend of")
+	fig.legend(patches, labels, loc='upper right')
 	fig.subplots_adjust(wspace=0.05, hspace=0.2)
 
 class RPlot:
@@ -749,6 +769,6 @@ class RPlot:
 			new_layers = sequence_grids(new_layers)
 			axes_grids = [work_grid(grid, fig) for grid in new_layers]
 			axes_grid = axes_grids[-1]
-			adjust_subplots(fig, axes_grid, last_trellis)
+			adjust_subplots(fig, axes_grid, last_trellis, new_layers[-1])
 		# And we're done
 		return fig
