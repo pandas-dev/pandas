@@ -207,7 +207,7 @@ def radviz(frame, class_column, ax=None, **kwds):
         line = ax.scatter(to_plot[class_][0],
                           to_plot[class_][1],
                           color=random_color(class_),
-                          label=str(class_), **kwds)
+                          label=com._stringify(class_), **kwds)
     ax.legend()
 
     ax.add_patch(patches.Circle((0.0, 0.0), radius=1.0, facecolor='none'))
@@ -272,8 +272,8 @@ def andrews_curves(data, class_column, ax=None, samples=200):
         f = function(row)
         y = [f(t) for t in x]
         label = None
-        if str(class_col[i]) not in used_legends:
-            label = str(class_col[i])
+        if com._stringify(class_col[i]) not in used_legends:
+            label = com._stringify(class_col[i])
             used_legends.add(label)
         ax.plot(x, y, color=random_color(class_col[i]), label=label)
     ax.legend(loc='upper right')
@@ -378,8 +378,8 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, **kwds):
         y = row
         label = None
         kls = class_col.iget_value(i)
-        if str(kls) not in used_legends:
-            label = str(kls)
+        if com._stringify(kls) not in used_legends:
+            label = com._stringify(kls)
             used_legends.add(label)
         ax.plot(x, y, color=random_color(kls), label=label, **kwds)
 
@@ -685,10 +685,11 @@ class MPLPlot(object):
             if not isinstance(self.data.columns, MultiIndex):
                 name = self.data.columns.name
                 if name is not None:
-                    name = str(name)
+                    name = com._stringify(name)
                 return name
             else:
-                stringified = map(str, self.data.columns.names)
+                stringified = map(com._stringify,
+                                  self.data.columns.names)
                 return ','.join(stringified)
         else:
             return None
@@ -741,13 +742,13 @@ class MPLPlot(object):
         if isinstance(self.data.index, MultiIndex):
             name = self.data.index.names
             if any(x is not None for x in name):
-                name = ','.join([str(x) for x in name])
+                name = ','.join([com._stringify(x) for x in name])
             else:
                 name = None
         else:
             name = self.data.index.name
             if name is not None:
-                name = str(name)
+                name = com._stringify(name)
 
         return name
 
@@ -881,7 +882,7 @@ class LinePlot(MPLPlot):
                 if re.match('[a-z]+', style) is None:
                     kwds['color'] = colors[i % len(colors)]
 
-                label = com._stringify(label)
+                label = _stringify(label)
 
                 mask = com.isnull(y)
                 if mask.any():
@@ -1385,9 +1386,9 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
 
 def _stringify(x):
     if isinstance(x, tuple):
-        return '|'.join(str(y) for y in x)
+        return '|'.join(com._stringify(y) for y in x)
     else:
-        return str(x)
+        return com._stringify(x)
 
 
 def format_date_labels(ax, rot):
@@ -1426,8 +1427,8 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False):
         else:
             fig = ax.get_figure()
         plot_group(data, ax)
-        ax.set_ylabel(str(y))
-        ax.set_xlabel(str(x))
+        ax.set_ylabel(com._stringify(y))
+        ax.set_xlabel(com._stringify(x))
 
         ax.grid(grid)
 
@@ -1640,7 +1641,7 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
         if numeric_only and isinstance(group, DataFrame):
             group = group._get_numeric_data()
         plotf(group, ax)
-        ax.set_title(str(key))
+        ax.set_title(com._stringify(key))
 
     return fig, axes
 
@@ -1674,7 +1675,7 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
         gp_col = grouped[col]
         plotf(gp_col, ax)
         ax.set_title(col)
-        ax.set_xlabel(str(by))
+        ax.set_xlabel(com._stringify(by))
         ax.grid(grid)
 
     byline = by[0] if len(by) == 1 else by
