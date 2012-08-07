@@ -505,15 +505,30 @@ class GenericArrayFormatter(object):
         self.justify = justify
 
     def get_result(self):
-        if self._have_unicode():
+        if self._conv_unicode():
             fmt_values = self._format_strings(use_unicode=True)
         else:
             fmt_values = self._format_strings(use_unicode=False)
 
         return _make_fixed_width(fmt_values, self.justify)
 
-    def _have_unicode(self):
-        mask = lib.map_infer(self.values, lambda x: isinstance(x, unicode))
+    def _conv_unicode(self):
+        #check if any needs and can be converted to nonascii encoding
+        def _nonascii(x):
+            if isinstance(x, unicode):
+                return True
+            try:
+                if isinstance(x, str):
+                    x.decode('ascii')
+                    return False
+            except UnicodeError:
+                try:
+                    x.decode(print_config.encoding)
+                    return True
+                except UnicodeError:
+                    return False
+            return False
+        mask = lib.map_infer(self.values, _nonascii)
         return mask.any()
 
     def _format_strings(self, use_unicode=False):
