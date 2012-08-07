@@ -6273,6 +6273,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         xp = self.frame.reset_index().set_index(['index', 'B'])
         assert_frame_equal(rs, xp)
 
+        #test resetting in place
+        df = self.frame.copy()
+        resetted = self.frame.reset_index()
+        df.reset_index(inplace=True)
+        assert_frame_equal(df, resetted)
+
     def test_reset_index_right_dtype(self):
         time = np.arange(0.0, 10, np.sqrt(2)/2)
         s1 = Series((9.81 * time ** 2) /2,

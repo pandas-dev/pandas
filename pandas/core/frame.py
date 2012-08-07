@@ -2335,7 +2335,7 @@ class DataFrame(NDFrame):
         frame.index = index
         return frame
 
-    def reset_index(self, level=None, drop=False):
+    def reset_index(self, level=None, drop=False, inplace=False):
         """
         For DataFrame with multi-level index, return new DataFrame with
         labeling information in the columns under the index names, defaulting
@@ -2350,12 +2350,17 @@ class DataFrame(NDFrame):
             default
         drop : boolean, default False
             Do not try to insert index into dataframe columns
+        inplace : boolean, default False
+            Modify the DataFrame in place (do not create a new object)
 
         Returns
         -------
         resetted : DataFrame
         """
-        new_obj = self.copy()
+        if inplace:
+            new_obj  = self
+        else:
+            new_obj = self.copy()
 
         def _maybe_cast(values):
             if values.dtype == np.object_:
