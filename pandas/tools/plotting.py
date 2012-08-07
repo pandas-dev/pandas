@@ -784,9 +784,12 @@ class MPLPlot(object):
 
         if self.style is not None:
             if isinstance(self.style, list):
-                style = self.style[i]
+                try:
+                    style = self.style[i]
+                except IndexError:
+                    pass
             elif isinstance(self.style, dict):
-                style = self.style[col_name]
+                style = self.style.get(col_name, style)
             else:
                 style = self.style
 

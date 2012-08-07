@@ -199,12 +199,12 @@ class TestDataFramePlots(unittest.TestCase):
                                         (u'\u03b3', 5),
                                         (u'\u03b4', 6),
                                         (u'\u03b4', 7)], names=['i0', 'i1'])
-        columns = pandas.MultiIndex.from_tuples([('bar', u'\u0394'),
+        columns = MultiIndex.from_tuples([('bar', u'\u0394'),
             ('bar', u'\u0395')], names=['c0', 'c1'])
-        df = pandas.DataFrame(np.random.randint(0, 10, (8, 2)),
-                              columns=columns,
-                              index=index)
-        df.plot(title=u'\u03A3')
+        df = DataFrame(np.random.randint(0, 10, (8, 2)),
+                       columns=columns,
+                       index=index)
+        _check_plot_works(df.plot, title=u'\u03A3')
 
     @slow
     def test_plot_xy(self):
@@ -429,22 +429,17 @@ class TestDataFramePlots(unittest.TestCase):
     def test_style_by_column(self):
         import matplotlib.pyplot as plt
         fig = plt.gcf()
-        fig.clf()
-        fig.add_subplot(111)
 
         df = DataFrame(np.random.randn(100, 3))
-        markers = {0: '^', 1: '+', 2: 'o'}
-        ax = df.plot(style=markers)
-        for i, l in enumerate(ax.get_lines()):
-            self.assertEqual(l.get_marker(), markers[i])
-
-        fig.clf()
-        fig.add_subplot(111)
-        df = DataFrame(np.random.randn(100, 3))
-        markers = ['^', '+', 'o']
-        ax = df.plot(style=markers)
-        for i, l in enumerate(ax.get_lines()):
-            self.assertEqual(l.get_marker(), markers[i])
+        for markers in [{0: '^', 1: '+', 2: 'o'},
+                        {0: '^', 1: '+'},
+                        ['^', '+', 'o'],
+                        ['^', '+']]:
+            fig.clf()
+            fig.add_subplot(111)
+            ax = df.plot(style=markers)
+            for i, l in enumerate(ax.get_lines()[:len(markers)]):
+                self.assertEqual(l.get_marker(), markers[i])
 
 class TestDataFrameGroupByPlots(unittest.TestCase):
 
