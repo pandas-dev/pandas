@@ -137,6 +137,15 @@ class ScaleShape(Scale):
 		x = data[self.column].iget(index)
 		return self.shapes[values.index(x)]
 
+class ScaleRandomColour(Scale):
+	def __init__(self, column):
+		self.column = column
+		self.categorical = True
+
+	def __call__(self, data, index):
+		random.seed(data[self.column].iget(index))
+		return [random.random() for _ in range(3)]
+
 def scale_shape(column):
 	"""Create a function that converts between a categorical value and a scatter plot shape.
 
@@ -305,8 +314,8 @@ class GeomPoint(Layer):
 					alpha=alpha_value)
 			label = []
 			if colour_scaler.categorical:
-				label += [colour_scaler.column, row[contour_scaler.column]]
-			elif shape_scaler.categorical:
+				label += [colour_scaler.column, row[colour_scaler.column]]
+			if shape_scaler.categorical:
 				label += [shape_scaler.column, row[shape_scaler.column]]
 			self.legend[tuple(label)] = patch
 		ax.set_xlabel(self.aes['x'])
@@ -707,15 +716,15 @@ def adjust_subplots(fig, axes, trellis, layers):
 		legend = dictionary_union(legend, layer.legend)
 	patches = []
 	labels = []
-	for key in legend.keys():
+	for key in sorted(legend.keys(), key=lambda tup: (tup[1], tup[3])):
 		value = legend[key]
 		patches.append(value)
 		if len(key) == 2:
 			col, val = key
-			labels.append("%s = %s" % (col, str(val)))
+			labels.append("%s" % str(val))
 		elif len(key) == 4:
 			col1, val1, col2, val2 = key
-			labels.append("%s = %s, %s = %s" % (col1, str(val1), col2, str(val2)))
+			labels.append("%s, %s" % (str(val1), str(val2)))
 		else:
 			raise ValueError("Maximum 2 categorical attributes to display a lengend of")
 	if len(legend):
