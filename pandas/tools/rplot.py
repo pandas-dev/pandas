@@ -166,28 +166,32 @@ def scale_shape(column):
 	return scaler
 
 class ScaleConstant(Scale):
+	"""
+	Constant returning scale. Usually used automatically.
+	"""
 	def __init__(self, value):
+		"""Initialize ScaleConstant instance.
+
+		Parameters:
+		-----------
+		value: any Python value to be returned when called
+		"""
 		self.value = value
 		self.categorical = False
 
 	def __call__(self, data, index):
+		"""Return the constant value.
+
+		Parameters:
+		-----------
+		data: pandas DataFrame
+		index: pandas DataFrame row index
+
+		Returns:
+		--------
+		A constant value specified during initialisation
+		"""
 		return self.value
-
-def scale_constant(constant):
-	"""Create a function that always returns a specified constant value.
-
-	Parameters:
-	-----------
-	constant: a Python object to be returned
-
-	Returns:
-	--------
-	a two argument function, takes DataFrame and row index, 
-	returns specified value
-	"""
-	def scaler(data, index):
-		return constant
-	return scaler
 
 def default_aes(x=None, y=None):
 	"""Create the default aesthetics dictionary.
