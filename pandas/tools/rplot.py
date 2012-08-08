@@ -10,45 +10,6 @@ from copy import deepcopy
 # * Make sure legends work properly
 #
 
-def scale_random_colour(column):
-	"""Creates a function that assigns each value in a DataFrame
-	column a random colour from RGB space.
-
-	Parameters:
-	-----------
-	column: string, a column name
-
-	Returns:
-	--------
-	a function of two arguments that takes a data set and row number, returns
-	a list of three elements, representing an RGB colour
-	"""
-	def scaler(data, index):
-		random.seed(data[column].iget(index))
-		return [random.random() for _ in range(3)]
-	return scaler
-
-def scale_size(column, min_size=1.0, max_size=80.0):
-	"""Creates a function that converts between a data attribute to point size.
-
-	Parameters:
-	-----------
-	column: string, a column name
-	categorical: boolean, true if the column contains categorical data
-	min_size: float, minimum point size
-	max_size: float, maximum point size
-
-	Returns:
-	--------
-	a function of two arguments that takes a data set and a row number, returns float
-	"""
-	def scaler(data, index):
-		x = data[column].iget(index)
-		a = float(min(data[column]))
-		b = float(max(data[column]))
-		return min_size + ((x - a) / (b - a)) * (max_size - min_size)
-	return scaler
-
 def scale_gradient(column, categorical, colour1=(0.0, 0.0, 0.0), colour2=(1.0, 0.7, 0.8)):
 	"""Create a function that converts between a data attribute value to a 
 	point in colour space between two specified colours.
@@ -123,6 +84,41 @@ def scale_gradient2(column, categorical, colour1=(0.0, 0.0, 0.0), colour2=(1.0, 
 class Scale:
 	pass
 
+class ScaleSize(Scale):
+	"""
+	Provide a mapping between a DataFrame column and matplotlib
+	scatter plot shape size.
+	"""
+	def __init__(self, column, min_size=5.0, max_size=100.0, transform=lambda x: x):
+		"""Initialize ScaleSize instance.
+
+		Parameters:
+		-----------
+		column: string, a column name
+		min_size: float, minimum point size
+		max_size: float, maximum point size
+		transform: a one argument function of form float -> float (e.g. lambda x: log(x))
+		"""
+		self.column = column
+		self.min_size = min_size
+		self.max_size = max_size
+		self.transform = transform
+		self.categorical = False
+
+	def __call__(self, data, index):
+		"""Return matplotlib scatter plot marker shape size.
+
+		Parameters:
+		-----------
+		data: pandas DataFrame
+		index: pandas DataFrame row index
+		"""
+		x = data[column].iget(index)
+		a = float(min(data[column]))
+		b = float(max(data[column]))
+		return self.transform(self.min_size + ((x - a) / (b - a)) * 
+			(self.max_size - self.min_size))
+
 class ScaleShape(Scale):
 	"""
 	Provides a mapping between matplotlib marker shapes 
@@ -159,11 +155,28 @@ class ScaleShape(Scale):
 		return self.shapes[values.index(x)]
 
 class ScaleRandomColour(Scale):
+	"""
+	Maps a random colour to a DataFrame attribute.
+	"""
 	def __init__(self, column):
+		"""Initialize ScaleRandomColour instance.
+
+		Parameters:
+		-----------
+		column: string, pandas DataFrame column name
+		"""
 		self.column = column
 		self.categorical = True
 
 	def __call__(self, data, index):
+		"""Return a tuple of three floats, representing
+		an RGB colour.
+
+		Parameters:
+		-----------
+		data: pandas DataFrame
+		index: pandas DataFrame row index
+		"""
 		random.seed(data[self.column].iget(index))
 		return [random.random() for _ in range(3)]
 
