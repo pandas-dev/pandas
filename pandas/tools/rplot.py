@@ -124,13 +124,34 @@ class Scale:
 	pass
 
 class ScaleShape(Scale):
+	"""
+	Provides a mapping between matplotlib marker shapes 
+	and attribute values.
+	"""
 	def __init__(self, column):
+		"""Initialize ScaleShape instance.
+
+		Parameters:
+		-----------
+		column: string, pandas DataFrame column name
+		"""
 		self.column = column
 		self.shapes = ['o', '+', 's', '*', '^', '<', '>', 'v', '|', 'x']
 		self.legends = set([])
 		self.categorical = True
 
 	def __call__(self, data, index):
+		"""Returns a matplotlib marker identifier.
+
+		Parameters:
+		-----------
+		data: pandas DataFrame
+		index: pandas DataFrame row index
+
+		Returns:
+		--------
+		a matplotlib marker identifier
+		"""
 		values = sorted(list(set(data[self.column])))
 		if len(values) > len(self.shapes):
 			raise ValueError("Too many different values of the categorical attribute for ScaleShape")
@@ -145,25 +166,6 @@ class ScaleRandomColour(Scale):
 	def __call__(self, data, index):
 		random.seed(data[self.column].iget(index))
 		return [random.random() for _ in range(3)]
-
-def scale_shape(column):
-	"""Create a function that converts between a categorical value and a scatter plot shape.
-
-	Parameters:
-	-----------
-	column: string, a column name to use
-
-	Returns:
-	--------
-	a function of two arguments, takes DataFrame and row index, return string with
-	matplotlib marker character
-	"""
-	shapes = ['o', 'D', 'h', 'H', '_', '8', 'p', '+', '.', 's', '*', 'd', '^', '<', '>', 'v', '|', 'x']
-	def scaler(data, index):
-		values = list(set(data[column]))
-		x = data[column].iget(index)
-		return shapes[values.index(x)]
-	return scaler
 
 class ScaleConstant(Scale):
 	"""
