@@ -291,7 +291,7 @@ class Layer:
 	"""
 	Layer object representing a single plot layer.
 	"""
-	def __init__(self, data=None, aes=None):
+	def __init__(self, data=None, **kwds):
 		"""Initialize layer object.
 
 		Parameters:
@@ -300,10 +300,7 @@ class Layer:
 		aes: aesthetics dictionary with bindings
 		"""
 		self.data = data
-		if aes is None:
-			self.aes = make_aes()
-		else:
-			self.aes = aes
+		self.aes = make_aes(**kwds)
 		self.legend = {}
 
 	def work(self, fig=None, ax=None):
