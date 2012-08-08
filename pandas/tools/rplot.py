@@ -10,37 +10,6 @@ from copy import deepcopy
 # * Make sure legends work properly
 #
 
-def scale_gradient(column, categorical, colour1=(0.0, 0.0, 0.0), colour2=(1.0, 0.7, 0.8)):
-	"""Create a function that converts between a data attribute value to a 
-	point in colour space between two specified colours.
-
-	Parameters:
-	-----------
-	column: string, a column name
-	categorical: boolean, true if the column contains categorical data
-	colour1: a tuple with three float values specifying rgb components
-	colour2: a tuple with three float values specifying rgb components
-
-	Returns:
-	--------
-	a function of two arguments that takes a data set and a row number, returns a
-	tuple with three float values with rgb component values.
-	"""
-	def scaler(data, index):
-		if categorical:
-			pass
-		else:
-			x = data[column].iget(index)
-			a = min(data[column])
-			b = max(data[column])
-			r1, g1, b1 = colour1
-			r2, g2, b2 = colour2
-			x_scaled = (x - a) / (b - a)
-			return (r1 + (r2 - r1) * x_scaled,
-					g1 + (g2 - g1) * x_scaled,
-					b1 + (b2 - b1) * x_scaled)
-	return scaler
-
 def scale_gradient2(column, categorical, colour1=(0.0, 0.0, 0.0), colour2=(1.0, 0.7, 0.8), colour3=(0.2, 1.0, 0.5)):
 	"""Create a function that converts between a data attribute value to a 
 	point in colour space between three specified colours.
@@ -82,7 +51,58 @@ def scale_gradient2(column, categorical, colour1=(0.0, 0.0, 0.0), colour2=(1.0, 
 	return scaler
 
 class Scale:
+	"""
+	Base class for mapping between graphical and data attributes.
+	"""
 	pass
+
+class ScaleGradient(Scale):
+	"""
+	A mapping between a data attribute value and a 
+	point in colour space between two specified colours.
+	"""
+	def __init__(self, column, colour1, colour2):
+		"""Initialize ScaleGradient instance.
+
+		Parameters:
+		-----------
+		column: string, pandas DataFrame column name
+		colour1: tuple, 3 element tuple with float values representing an RGB colour
+		colour2: tuple, 3 element tuple with float values representing an RGB colour
+		"""
+		self.column = column
+		self.colour1 = colour1
+		self.colour2 = colour2
+		self.categorical = False
+
+	def __call__(self, data, index):
+		"""Return a colour corresponding to data attribute value.
+
+		Parameters:
+		-----------		
+		data: pandas DataFrame
+		index: pandas DataFrame row index
+
+		Returns:
+		--------
+		A three element tuple representing an RGB somewhere between colour1 and colour2
+		"""
+		x = data[column].iget(index)
+		a = min(data[column])
+		b = max(data[column])
+		r1, g1, b1 = self.colour1
+		r2, g2, b2 = self.colour2
+		x_scaled = (x - a) / (b - a)
+		return (r1 + (r2 - r1) * x_scaled,
+				g1 + (g2 - g1) * x_scaled,
+				b1 + (b2 - b1) * x_scaled)
+
+class ScaleGradient2(Scale):
+	def __init__(self, column, colour1, colour2, colour3):
+		pass
+
+	def __call__(self, data, index):
+		pass
 
 class ScaleSize(Scale):
 	"""
