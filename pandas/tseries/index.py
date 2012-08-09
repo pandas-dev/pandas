@@ -811,7 +811,7 @@ class DatetimeIndex(Int64Index):
     def intersection(self, other):
         """
         Specialized intersection for DatetimeIndex objects. May be much faster
-        than Index.union
+        than Index.intersection
 
         Parameters
         ----------
