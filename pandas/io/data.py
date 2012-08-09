@@ -274,12 +274,6 @@ class Options():
         year: number, int
             The year the options expire.
 
-        excel: bool, optional(default=False)
-            A boolean value indicating whether or not the data should be saved
-            to an excel spreadsheet. If true the name of the file will be
-            "'ticker'_options.xlsx" unless otherwise indicated. Also there will
-            be two sheets created. The first one is named 'calls' and contains
-            the call data and the second is for the puts.
 
         Returns
         -------
@@ -321,19 +315,9 @@ class Options():
         year: number, int
             The year the options expire.
 
-        excel: bool, optional(default=False)
-            A boolean value indicating whether or not the data should be saved
-            to an excel spreadsheet. If true the name of the file will be
-            "'ticker'_options.xlsx" unless otherwise indicated. Also there will
-            be two sheets created. The first one is named 'calls' and contains
-            the call data and the second is for the puts.
-
         Returns
         -------
         call_data: pandas.DataFrame
-            A DataFrame with call options data.
-
-        put_data: pandas.DataFrame
             A DataFrame with call options data.
         """
 
@@ -365,13 +349,6 @@ class Options():
 
         year: number, int
             The year the options expire.
-
-        excel: bool, optional(default=False)
-            A boolean value indicating whether or not the data should be saved
-            to an excel spreadsheet. If true the name of the file will be
-            "'ticker'_options.xlsx" unless otherwise indicated. Also there will
-            be two sheets created. The first one is named 'calls' and contains
-            the call data and the second is for the puts.
 
         Returns
         -------
