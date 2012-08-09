@@ -393,7 +393,7 @@ class Options():
             desired. If there isn't data as far out as the user has asked for
             then
         """
-        price = get_quote_yahoo(['aapl'])['last']
+        price = get_quote_yahoo([self.symbol])['last']
         start_index = np.where(opt_df['Strike'] > price)[0][0]
 
         get_range = range(start_index - above_below,
