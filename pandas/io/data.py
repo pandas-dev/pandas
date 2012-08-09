@@ -269,7 +269,7 @@ class Options():
         Parameters
         ----------
         month: number, int
-            The month of the options expire.
+            The month the options expire.
 
         year: number, int
             The year the options expire.
@@ -310,7 +310,7 @@ class Options():
         Parameters
         ----------
         month: number, int
-            The month of the options expire.
+            The month the options expire.
 
         year: number, int
             The year the options expire.
@@ -345,7 +345,7 @@ class Options():
         Parameters
         ----------
         month: number, int
-            The month of the options expire.
+            The month the options expire.
 
         year: number, int
             The year the options expire.
