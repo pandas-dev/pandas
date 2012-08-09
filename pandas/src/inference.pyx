@@ -385,18 +385,9 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         elif util.is_bool_object(val):
             seen_bool = 1
             bools[i] = val
-        elif util.is_integer_object(val):
-            seen_int = 1
-            floats[i] = <float64_t> val
-            complexes[i] = <double complex> val
-            if not seen_null:
-                ints[i] = val
         elif util.is_float_object(val):
             floats[i] = complexes[i] = val
             seen_float = 1
-        elif util.is_complex_object(val):
-            complexes[i] = val
-            seen_complex = 1
         elif util.is_datetime64_object(val):
             if convert_datetime:
                 idatetimes[i] = convert_to_tsobject(val).value
@@ -404,6 +395,15 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             else:
                 seen_object = 1
                 # objects[i] = val.astype('O')
+        elif util.is_integer_object(val):
+            seen_int = 1
+            floats[i] = <float64_t> val
+            complexes[i] = <double complex> val
+            if not seen_null:
+                ints[i] = val
+        elif util.is_complex_object(val):
+            complexes[i] = val
+            seen_complex = 1
         elif PyDateTime_Check(val):
             if convert_datetime:
                 seen_datetime = 1

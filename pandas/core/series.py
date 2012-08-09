@@ -2725,7 +2725,8 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 dtype = np.object_
 
             if dtype is None:
-                subarr = np.empty(len(index), dtype=type(value))
+                value, dtype = _dtype_from_scalar(value)
+                subarr = np.empty(len(index), dtype=dtype)
             else:
                 subarr = np.empty(len(index), dtype=dtype)
             subarr.fill(value)
@@ -2743,6 +2744,13 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         subarr = np.array(data, dtype=object, copy=copy)
 
     return subarr
+
+def _dtype_from_scalar(val):
+    if isinstance(val, np.datetime64):
+        # ugly hacklet
+        val = lib.Timestamp(val).value
+        return val, np.dtype('M8[ns]')
+    return val, type(val)
 
 def _get_rename_function(mapper):
     if isinstance(mapper, (dict, Series)):

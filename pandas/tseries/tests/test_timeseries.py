@@ -1035,6 +1035,14 @@ class TestTimeSeries(unittest.TestCase):
         exp = ts.interpolate()
         assert_series_equal(result, exp)
 
+    def test_frame_datetime64_handling_groupby(self):
+        # it works!
+        df = DataFrame([(3,np.datetime64('2012-07-03')),
+                        (3,np.datetime64('2012-07-04'))],
+                       columns = ['a', 'date'])
+        result = df.groupby('a').first()
+        self.assertEqual(result['date'][3].year, 2012)
+
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
     return Series(np.random.randn(len(rng)), index=rng)

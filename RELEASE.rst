@@ -43,6 +43,8 @@ pandas 0.8.2
   - Fix case where Categorical group key was not being passed into index in
     GroupBy result (#1701)
   - Handle Ellipsis in Series.__getitem__/__setitem__ (#1721)
+  - Fix some bugs with handling datetime64 scalars of other units in NumPy 1.6
+    and 1.7 (#1717)
 
 pandas 0.8.1
 ============
