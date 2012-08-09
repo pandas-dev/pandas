@@ -270,13 +270,13 @@ def make_aes(x=None, y=None, size=None, colour=None, shape=None, alpha=None):
 	--------
 	a dictionary with aesthetics bindings
 	"""
-	if not hasattr(size, '__call__'):
+	if not hasattr(size, '__call__') and size is not None:
 		size = ScaleConstant(size)
-	if not hasattr(colour, '__call__'):
+	if not hasattr(colour, '__call__') and colour is not None:
 		colour = ScaleConstant(colour)
-	if not hasattr(shape, '__call__'):
+	if not hasattr(shape, '__call__') and shape is not None:
 		shape = ScaleConstant(shape)
-	if not hasattr(alpha, '__call__'):
+	if not hasattr(alpha, '__call__') and alpha is not None:
 		alpha = ScaleConstant(alpha)
 	return {
 		'x' : x,
@@ -785,7 +785,7 @@ class RPlot:
 		x: string, DataFrame column name
 		y: string, DataFrame column name
 		"""
-		self.layers = [Layer(data, default_aes(x=x, y=y))]
+		self.layers = [Layer(data, **default_aes(x=x, y=y))]
 		trellised = False
 
 	def __add__(self, other):
