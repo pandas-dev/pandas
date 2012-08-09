@@ -1456,16 +1456,17 @@ class MultiIndex(Index):
         if len(self) == 0:
             return []
 
-        stringified_levels = [lev.format() for lev in self.levels]
+        stringified_levels = [lev.take(lab).format() for lev, lab in
+                zip(self.levels, self.labels)]
 
         result_levels = []
-        for lab, lev, name in zip(self.labels, stringified_levels, self.names):
+        for lev, name in zip(stringified_levels, self.names):
             level = []
 
             if names:
                 level.append(str(name) if name is not None else '')
 
-            level.extend(ndtake(np.array(lev, dtype=object), lab))
+            level.extend(np.array(lev, dtype=object))
             result_levels.append(level)
 
         if sparsify is None:
