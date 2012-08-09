@@ -1402,6 +1402,17 @@ class TestConcatenate(unittest.TestCase):
                           keys=['b', 'c', 'd', 'e'])
         tm.assert_frame_equal(result, expected)
 
+    def test_concat_bug_1719(self):
+        ts1 = tm.makeTimeSeries()
+        ts2 = tm.makeTimeSeries()[::2]
+
+        ## to join with union
+        ## these two are of different length!
+        left = concat([ts1,ts2], join='outer', axis = 1)
+        right = concat([ts2,ts1], join='outer', axis = 1)
+
+        self.assertEqual(len(left), len(right))
+
 class TestOrderedMerge(unittest.TestCase):
 
     def setUp(self):
