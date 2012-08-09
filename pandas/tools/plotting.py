@@ -202,7 +202,7 @@ def lag_plot(series, ax=None, **kwds):
     ax.scatter(y1, y2, **kwds)
     return ax
 
-def probability_plot(series, ax=None, dist='norm', sparams=(), **kwds):
+def probability_plot(series, ax=None, dist='norm', distargs=(), **kwds):
     """Probability plot for uni-variate data.
 
     Parameters:
@@ -211,26 +211,26 @@ def probability_plot(series, ax=None, dist='norm', sparams=(), **kwds):
     ax: Matplotlib  axis object, optional
     dist: Distribution name, one supported by scipy 
         http://docs.scipy.org/doc/scipy/reference/stats.html#continuous-distributions
-    sparams: Distribution parameters (location, scale).
+    distargs: Distribution specific parameters usually location and scale.
     kwds: Matplotlib scatter method keyword arguments, optional
 
     Returns:
     --------
-    ax: Matplotlib axis object
+    fig: Matplotlib figure object
     """
     import matplotlib.pyplot as plt
     from scipy.stats import probplot
     if ax == None:
         ax = plt.gca()
     data = series.values
-    (x, y), (slope, intercept, _) = probplot(data, dist=dist, sparams=sparams)
+    (x, y), (slope, intercept, _) = probplot(data, dist=dist, sparams=distargs)
     ax.scatter(x, y, **kwds)
     y1, y2 = ax.get_ylim()
     x1, x2 = (y1 - intercept) / slope, (y2 - intercept) / slope
     ax.plot([x1, x2], [y1, y2], color='grey')
     ax.set_xlabel("Theoretical Quantiles")
     ax.set_ylabel("Sample Quantiles")
-    return ax
+    return ax.get_figure()
 
 def autocorrelation_plot(series, ax=None):
     """Autocorrelation plot for time series.
