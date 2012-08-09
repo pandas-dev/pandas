@@ -435,6 +435,8 @@ copy : boolean, default False
             if isinstance(key, tuple) and isinstance(self.index, MultiIndex):
                 # kludge
                 pass
+            elif key is Ellipsis:
+                return self
             else:
                 raise
         except Exception:
@@ -535,6 +537,9 @@ copy : boolean, default False
                 and not self.index.inferred_type == 'integer'):
 
                 values[key] = value
+                return
+            elif key is Ellipsis:
+                self[:] = value
                 return
 
             raise KeyError('%s not in this series!' % str(key))

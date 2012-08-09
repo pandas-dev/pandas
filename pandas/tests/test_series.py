@@ -89,6 +89,17 @@ class CheckNameIntegration(object):
         result = self.ts[5:10]
         self.assertEquals(result.name, self.ts.name)
 
+    def test_getitem_setitem_ellipsis(self):
+        s = Series(np.random.randn(10))
+
+        np.fix(s)
+
+        result = s[...]
+        assert_series_equal(result, s)
+
+        s[...] = 5
+        self.assert_((result == 5).all())
+
     def test_multilevel_name_print(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
