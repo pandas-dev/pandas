@@ -38,6 +38,7 @@ pandas 0.8.2
 
 **Bug fixes**
 
+  - Fix critical DatetimeIndex.union bug (#1730)
   - Fix MM-YYYY time series indexing case (#1672)
   - Fix case where Categorical group key was not being passed into index in
     GroupBy result (#1701)

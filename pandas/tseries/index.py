@@ -750,7 +750,7 @@ class DatetimeIndex(Int64Index):
 
         offset = self.offset
 
-        if offset is None:
+        if offset is None or offset != other.offset:
             return False
 
         if not self.is_monotonic or not other.is_monotonic:

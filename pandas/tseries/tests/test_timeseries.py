@@ -1153,6 +1153,14 @@ class TestDatetimeIndex(unittest.TestCase):
         self.assert_(result.equals(ordered))
         self.assert_(result.freq == ordered.freq)
 
+    def test_union_bug_1730(self):
+        rng_a = date_range('1/1/2012', periods=4, freq='3H')
+        rng_b = date_range('1/1/2012', periods=4, freq='4H')
+
+        result = rng_a.union(rng_b)
+        exp = DatetimeIndex(sorted(set(list(rng_a)) | set(list(rng_b))))
+        self.assert_(result.equals(exp))
+
     # def test_add_timedelta64(self):
     #     rng = date_range('1/1/2000', periods=5)
     #     delta = rng.values[3] - rng.values[1]
