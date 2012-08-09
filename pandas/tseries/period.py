@@ -220,7 +220,7 @@ class Period(object):
     week = weekofyear
     dayofweek = _period_field_accessor('dayofweek', 10)
     weekday = dayofweek
-    dayofyear = day_of_year = _period_field_accessor('dayofyear', 9)
+    dayofyear = _period_field_accessor('dayofyear', 9)
     quarter = _period_field_accessor('quarter', 2)
     qyear = _period_field_accessor('qyear', 1)
 

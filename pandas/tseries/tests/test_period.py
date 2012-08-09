@@ -309,7 +309,7 @@ class TestPeriodProperties(TestCase):
         assert_equal(b_date.month, 1)
         assert_equal(b_date.day, 1)
         assert_equal(b_date.weekday, 0)
-        assert_equal(b_date.day_of_year, 1)
+        assert_equal(b_date.dayofyear, 1)
         #
         d_date = Period(freq='D', year=2007, month=1, day=1)
         #
@@ -318,7 +318,7 @@ class TestPeriodProperties(TestCase):
         assert_equal(d_date.month, 1)
         assert_equal(d_date.day, 1)
         assert_equal(d_date.weekday, 0)
-        assert_equal(d_date.day_of_year, 1)
+        assert_equal(d_date.dayofyear, 1)
 
 
     def test_properties_hourly(self):
@@ -330,7 +330,7 @@ class TestPeriodProperties(TestCase):
         assert_equal(h_date.month, 1)
         assert_equal(h_date.day, 1)
         assert_equal(h_date.weekday, 0)
-        assert_equal(h_date.day_of_year, 1)
+        assert_equal(h_date.dayofyear, 1)
         assert_equal(h_date.hour, 0)
         #
 
@@ -344,7 +344,7 @@ class TestPeriodProperties(TestCase):
         assert_equal(t_date.month, 1)
         assert_equal(t_date.day, 1)
         assert_equal(t_date.weekday, 0)
-        assert_equal(t_date.day_of_year, 1)
+        assert_equal(t_date.dayofyear, 1)
         assert_equal(t_date.hour, 0)
         assert_equal(t_date.minute, 0)
 
@@ -359,7 +359,7 @@ class TestPeriodProperties(TestCase):
         assert_equal(s_date.month, 1)
         assert_equal(s_date.day, 1)
         assert_equal(s_date.weekday, 0)
-        assert_equal(s_date.day_of_year, 1)
+        assert_equal(s_date.dayofyear, 1)
         assert_equal(s_date.hour, 0)
         assert_equal(s_date.minute, 0)
         assert_equal(s_date.second, 0)

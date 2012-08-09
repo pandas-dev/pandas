@@ -31,6 +31,11 @@ pandas 0.8.2
 
   - Add ``flags`` option for ``re.compile`` in some Series.str methods (#1659)
 
+**API Changes**
+
+  - Deprecated ``day_of_year`` API removed from PeriodIndex, use ``dayofyear``
+    (#1723)
+
 **Bug fixes**
 
   - Fix MM-YYYY time series indexing case (#1672)
