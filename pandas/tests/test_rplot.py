@@ -49,6 +49,20 @@ class TestUtilityFunctions(unittest.TestCase):
 		with self.assertRaises(ValueError):
 			rplot.make_aes(alpha=rplot.ScaleShape('test'))
 
+	def test_dictionary_union(self):
+		dict1 = {1 : 1, 2 : 2, 3 : 3}
+		dict2 = {1 : 1, 2 : 2, 4 : 4}
+		union = rplot.dictionary_union(dict1, dict2)
+		self.assertEqual(len(union), 4)
+		keys = union.keys()
+		self.assertTrue(1 in keys)
+		self.assertTrue(2 in keys)
+		self.assertTrue(3 in keys)
+		self.assertTrue(4 in keys)
+		self.assertTrue(rplot.dictionary_union(dict1, {}) == dict1)
+		self.assertTrue(rplot.dictionary_union({}, dict1) == dict1)
+		self.assertTrue(rplot.dictionary_union({}, {}) == {})
+
 class TestScaleGradient(unittest.TestCase):
 	def setUp(self):
 		path = os.path.join(curpath(), 'data/iris.csv')
