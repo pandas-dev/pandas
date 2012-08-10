@@ -538,7 +538,7 @@ class Index(np.ndarray):
 
             if len(indexer) > 0:
                 other_diff = ndtake(other.values, indexer)
-                result = np.concatenate((self.values, other_diff))
+                result = com._concat_compat((self.values, other_diff))
                 try:
                     result.sort()
                 except Exception:

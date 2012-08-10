@@ -1169,6 +1169,16 @@ class TestDatetimeIndex(unittest.TestCase):
         exp = DatetimeIndex(sorted(set(list(rng_a)) | set(list(rng_b))))
         self.assert_(result.equals(exp))
 
+    def test_union_bug_1745(self):
+        left = DatetimeIndex(['2012-05-11 15:19:49.695000'])
+        right = DatetimeIndex(['2012-05-29 13:04:21.322000',
+                               '2012-05-11 15:27:24.873000',
+                               '2012-05-11 15:31:05.350000'])
+
+        result = left.union(right)
+        exp = DatetimeIndex(sorted(set(list(left)) | set(list(right))))
+        self.assert_(result.equals(exp))
+
     # def test_add_timedelta64(self):
     #     rng = date_range('1/1/2000', periods=5)
     #     delta = rng.values[3] - rng.values[1]
