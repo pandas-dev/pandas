@@ -997,8 +997,11 @@ class DatetimeIndex(Int64Index):
     # Especially important for group-by functionality
     def map(self, f):
         try:
-            return f(self)
-        except:
+            result = f(self)
+            if not isinstance(result, np.ndarray):
+                raise TypeError
+            return result
+        except Exception:
             return _algos.arrmap_object(self.asobject, f)
 
     # alias to offset

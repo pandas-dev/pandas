@@ -1229,6 +1229,22 @@ class TestDatetimeIndex(unittest.TestCase):
         result = idx.insert(3, datetime(2000, 4, 30))
         self.assert_(result.freqstr == 'M')
 
+    def test_map_bug_1677(self):
+        index = DatetimeIndex(['2012-04-25 09:30:00.393000'])
+        f = index.asof
+
+        result = index.map(f)
+        expected = np.array([f(index[0])])
+        self.assert_(np.array_equal(result, expected))
+
+    def test_groupby_function_tuple_1677(self):
+        df = DataFrame(np.random.rand(100),
+                       index=date_range("1/1/2000", periods=100))
+        monthly_group = df.groupby(lambda x: (x.year,x.month))
+
+        result = monthly_group.mean()
+        self.assert_(isinstance(result.index[0], tuple))
+
 class TestLegacySupport(unittest.TestCase):
 
     @classmethod

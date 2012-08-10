@@ -45,6 +45,8 @@ pandas 0.8.2
   - Handle Ellipsis in Series.__getitem__/__setitem__ (#1721)
   - Fix some bugs with handling datetime64 scalars of other units in NumPy 1.6
     and 1.7 (#1717)
+  - Fix performance issue in MultiIndex.format (#1746)
+  - Fixed GroupBy bugs interacting with DatetimeIndex asof / map methods (#1677)
 
 pandas 0.8.1
 ============

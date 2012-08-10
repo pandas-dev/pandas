@@ -407,6 +407,9 @@ class Index(np.ndarray):
         For a sorted index, return the most recent label up to and including
         the passed label. Return NaN if not found
         """
+        if isinstance(label, (Index, np.ndarray)):
+            raise TypeError('%s' % type(label))
+
         if label not in self:
             loc = self.searchsorted(label, side='left')
             if loc > 0:
