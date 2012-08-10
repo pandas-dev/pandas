@@ -37,6 +37,17 @@ class TestUtilityFunctions(unittest.TestCase):
 		self.assertTrue(aes['colour'] is None)
 		self.assertTrue(aes['shape'] is None)
 		self.assertTrue(aes['alpha'] is None)
+		self.assertTrue(type(aes) is dict)
+
+	def test_make_aes2(self):
+		with self.assertRaises(ValueError):
+			rplot.make_aes(size=rplot.ScaleShape('test'))
+		with self.assertRaises(ValueError):
+			rplot.make_aes(colour=rplot.ScaleShape('test'))
+		with self.assertRaises(ValueError):
+			rplot.make_aes(shape=rplot.ScaleSize('test'))
+		with self.assertRaises(ValueError):
+			rplot.make_aes(alpha=rplot.ScaleShape('test'))
 
 class TestScaleGradient(unittest.TestCase):
 	def setUp(self):
