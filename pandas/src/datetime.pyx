@@ -38,7 +38,7 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None):
         ndarray[object] result = np.empty(n, dtype=object)
 
     if tz is not None:
-        if tz is pytz.utc:
+        if _is_utc(tz):
             for i in range(n):
                 pandas_datetime_to_datetimestruct(arr[i], PANDAS_FR_ns, &dts)
                 result[i] = datetime(dts.year, dts.month, dts.day, dts.hour,
@@ -529,7 +529,7 @@ cpdef convert_to_tsobject(object ts, object tz=None):
         else:
             obj.value = _pydatetime_to_dts(ts, &obj.dts)
             obj.tzinfo = ts.tzinfo
-            if obj.tzinfo is not None:
+            if obj.tzinfo is not None and not _is_utc(obj.tzinfo):
                 obj.value -= _delta_to_nanoseconds(obj.tzinfo._utcoffset)
         _check_dts_bounds(obj.value, &obj.dts)
         return obj
@@ -543,7 +543,7 @@ cpdef convert_to_tsobject(object ts, object tz=None):
         _check_dts_bounds(obj.value, &obj.dts)
 
     if tz is not None:
-        if tz is pytz.utc:
+        if _is_utc(tz):
             obj.tzinfo = tz
         else:
             # Adjust datetime64 timestamp, recompute datetimestruct
@@ -557,6 +557,9 @@ cpdef convert_to_tsobject(object ts, object tz=None):
             obj.tzinfo = tz._tzinfos[inf]
 
     return obj
+
+cdef inline bint _is_utc(object tz):
+    return tz is UTC or isinstance(tz, _du_utc)
 
 cdef int64_t _NS_LOWER_BOUND = -9223285636854775809LL
 cdef int64_t _NS_UPPER_BOUND = -9223372036854775807LL
@@ -788,6 +791,7 @@ def i8_to_pydt(int64_t i8, object tzinfo = None):
 # time zone conversion helpers
 
 try:
+    from dateutil.tz import tzutc as _du_utc
     import pytz
     UTC = pytz.utc
     have_pytz = True
@@ -937,7 +941,7 @@ def tz_localize_check(ndarray[int64_t] vals, object tz):
     if not have_pytz:
         raise Exception("Could not find pytz module")
 
-    if tz == pytz.utc or tz is None:
+    if tz == UTC or tz is None:
         return
 
     trans = _get_transitions(tz)
@@ -984,7 +988,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz):
     if not have_pytz:
         raise Exception("Could not find pytz module")
 
-    if tz == pytz.utc or tz is None:
+    if tz == UTC or tz is None:
         return vals
 
     trans = _get_transitions(tz)  # transition dates

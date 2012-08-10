@@ -1388,6 +1388,16 @@ a,b,c,d
         url_table = read_table('file://localhost/'+localtable)
         assert_frame_equal(url_table, local_table)
 
+    def test_parse_tz_aware(self):
+        import pytz
+        # #1693
+        data = StringIO("Date,x\n2012-06-13T01:39:00Z,0.5")
+
+        # it works
+        result = read_csv(data, index_col=0, parse_dates=True)
+        stamp = result.index[0]
+        self.assert_(stamp.minute == 39)
+        self.assert_(result.index.tz is pytz.utc)
 
 class TestParseSQL(unittest.TestCase):
 

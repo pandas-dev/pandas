@@ -213,18 +213,27 @@ class DatetimeIndex(Int64Index):
             else:
                 subarr = data.view(_NS_DTYPE)
         else:
-            subarr = tools.to_datetime(data)
+            try:
+                subarr = tools.to_datetime(data)
+            except ValueError:
+                # tz aware
+                subarr = tools.to_datetime(data, utc=True)
+
             if not np.issubdtype(subarr.dtype, np.datetime64):
                 raise TypeError('Unable to convert %s to datetime dtype'
                                 % str(data))
 
-        if tz is not None:
-            tz = tools._maybe_get_tz(tz)
-            # Convert local to UTC
-            ints = subarr.view('i8')
+        if isinstance(subarr, DatetimeIndex):
+            if tz is None:
+                tz = subarr.tz
+        else:
+            if tz is not None:
+                tz = tools._maybe_get_tz(tz)
+                # Convert local to UTC
+                ints = subarr.view('i8')
 
-            subarr = lib.tz_localize_to_utc(ints, tz)
-            subarr = subarr.view(_NS_DTYPE)
+                subarr = lib.tz_localize_to_utc(ints, tz)
+                subarr = subarr.view(_NS_DTYPE)
 
         subarr = subarr.view(cls)
         subarr.name = name

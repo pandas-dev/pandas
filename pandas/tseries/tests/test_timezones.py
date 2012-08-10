@@ -369,6 +369,13 @@ class TestTimeZoneSupport(unittest.TestCase):
         self.assert_(np.array_equal(converted.asi8, ex_vals))
         self.assert_(converted.tz is pytz.utc)
 
+    def test_to_datetime_utc(self):
+        from dateutil.parser import parse
+        arr = np.array([parse('2012-06-13T01:39:00Z')], dtype=object)
+
+        result = to_datetime(arr, utc=True)
+        self.assert_(result.tz is pytz.utc)
+
 class TestTimeZones(unittest.TestCase):
 
     def setUp(self):
