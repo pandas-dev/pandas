@@ -54,6 +54,8 @@ pandas 0.8.2
   - Fix DataFrame repr/info summary with non-unique columns (#1700)
   - Fix Series.iget_value for non-unique indexes (#1694)
   - Don't lose tzinfo when passing DatetimeIndex as DataFrame column (#1682)
+  - Fix tz conversion with time zones that haven't had any DST transitions since
+    first date in the array (#1673)
 
 pandas 0.8.1
 ============

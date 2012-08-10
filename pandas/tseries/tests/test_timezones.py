@@ -382,6 +382,13 @@ class TestTimeZoneSupport(unittest.TestCase):
         e = DataFrame({'A': 'foo', 'B': dr_tz}, index=dr)
         self.assert_(e['B'].dtype == object)
 
+    def test_hongkong_tz_convert(self):
+        # #1673
+        dr = date_range('2012-01-01','2012-01-10',freq = 'D', tz = 'Hongkong')
+
+        # it works!
+        dr.hour
+
 class TestTimeZones(unittest.TestCase):
 
     def setUp(self):

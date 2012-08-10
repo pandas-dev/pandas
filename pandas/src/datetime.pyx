@@ -835,9 +835,14 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
     result = np.empty(n, dtype=np.int64)
     trans = _get_transitions(tz2)
     deltas = _get_deltas(tz2)
-    pos = trans.searchsorted(utc_dates[0]) - 1
-    if pos < 0:
+    pos = trans.searchsorted(utc_dates[0])
+    if pos == 0:
         raise ValueError('First time before start of DST info')
+    elif pos == len(trans):
+        return result + deltas[-1]
+
+    # TODO: this assumed sortedness :/
+    pos -= 1
 
     offset = deltas[pos]
     for i in range(n):
