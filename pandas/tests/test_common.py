@@ -41,6 +41,15 @@ def test_isnull():
     expected = result.apply(isnull)
     tm.assert_frame_equal(result, expected)
 
+def test_isnull_lists():
+    result = isnull([[False]])
+    exp = np.array([[False]])
+    assert(np.array_equal(result, exp))
+
+    result = isnull([[1],[2]])
+    exp = np.array([[False], [False]])
+    assert(np.array_equal(result, exp))
+
 def test_isnull_datetime():
     assert (not isnull(datetime.now()))
     assert notnull(datetime.now())

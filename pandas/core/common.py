@@ -61,7 +61,7 @@ def isnull(obj):
     elif isinstance(obj, PandasObject):
         # TODO: optimize for DataFrame, etc.
         return obj.apply(isnull)
-    elif hasattr(obj, '__array__'):
+    elif isinstance(obj, list) or hasattr(obj, '__array__'):
         return _isnull_ndarraylike(obj)
     else:
         return obj is None

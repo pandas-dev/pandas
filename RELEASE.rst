@@ -57,6 +57,7 @@ pandas 0.8.2
   - Fix tz conversion with time zones that haven't had any DST transitions since
     first date in the array (#1673)
   - Fix field access with  UTC->local conversion on unsorted arrays (#1756)
+  - Fix isnull handling of array-like (list) inputs (#1755)
 
 pandas 0.8.1
 ============
