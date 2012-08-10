@@ -499,6 +499,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = s.reindex(s.index[[0, 2, 3, 4, 5]])
         assert_series_equal(result, expected)
 
+    def test_iget_nonunique(self):
+        s = Series([0, 1, 2], index=[0, 1, 0])
+        self.assertEqual(s.iget(2), 2)
+
     def test_getitem_regression(self):
         s = Series(range(5), index=range(5))
         result = s[range(5)]

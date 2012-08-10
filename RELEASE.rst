@@ -52,6 +52,7 @@ pandas 0.8.2
   - Handle factors with NAs in pandas.rpy (#1615)
   - Fix statsmodels import in pandas.stats.var (#1734)
   - Fix DataFrame repr/info summary with non-unique columns (#1700)
+  - Fix Series.iget_value for non-unique indexes (#1694)
 
 pandas 0.8.1
 ============

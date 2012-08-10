@@ -705,7 +705,7 @@ copy : boolean, default False
             if isinstance(label, Index):
                 return self.reindex(label)
             else:
-                return self[label]
+                return lib.get_value_at(self, i)
 
     iget = iget_value
     irow = iget_value
