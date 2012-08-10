@@ -38,7 +38,7 @@ pandas 0.8.2
 
 **Bug fixes**
 
-  - Fix critical DatetimeIndex.union bugs (#1730, #1719, #1745)
+  - Fix critical DatetimeIndex.union bugs (#1730, #1719, #1745, #1702)
   - Fix MM-YYYY time series indexing case (#1672)
   - Fix case where Categorical group key was not being passed into index in
     GroupBy result (#1701)
@@ -47,6 +47,7 @@ pandas 0.8.2
     and 1.7 (#1717)
   - Fix performance issue in MultiIndex.format (#1746)
   - Fixed GroupBy bugs interacting with DatetimeIndex asof / map methods (#1677)
+  - Handle factors with NAs in pandas.rpy (#1615)
 
 pandas 0.8.1
 ============
