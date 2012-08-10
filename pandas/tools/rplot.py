@@ -47,9 +47,9 @@ class ScaleGradient(Scale):
 		--------
 		A three element tuple representing an RGB somewhere between colour1 and colour2
 		"""
-		x = data[column].iget(index)
-		a = min(data[column])
-		b = max(data[column])
+		x = data[self.column].iget(index)
+		a = min(data[self.column])
+		b = max(data[self.column])
 		r1, g1, b1 = self.colour1
 		r2, g2, b2 = self.colour2
 		x_scaled = (x - a) / (b - a)
