@@ -48,6 +48,7 @@ pandas 0.8.2
   - Fix performance issue in MultiIndex.format (#1746)
   - Fixed GroupBy bugs interacting with DatetimeIndex asof / map methods (#1677)
   - Handle factors with NAs in pandas.rpy (#1615)
+  - Fix statsmodels import in pandas.stats.var (#1734)
 
 pandas 0.8.1
 ============
