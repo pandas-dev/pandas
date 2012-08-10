@@ -389,6 +389,14 @@ class TestTimeZoneSupport(unittest.TestCase):
         # it works!
         dr.hour
 
+    def test_tz_convert_unsorted(self):
+        dr = date_range('2012-03-09', freq='H', periods=100, tz='utc')
+        dr = dr.tz_convert('US/Eastern')
+
+        result = dr[::-1].hour
+        exp = dr.hour[::-1]
+        tm.assert_almost_equal(result, exp)
+
 class TestTimeZones(unittest.TestCase):
 
     def setUp(self):

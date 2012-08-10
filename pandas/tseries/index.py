@@ -32,11 +32,10 @@ def _field_accessor(name, field):
         if self.tz is not None:
             utc = _utc()
             if self.tz is not utc:
-                values = lib.tz_convert(values, utc, self.tz)
+                values = self._local_timestamps()
         return lib.get_date_field(values, field)
     f.__name__ = name
     return property(f)
-
 
 def _join_i8_wrapper(joinf, with_indexers=True):
     @staticmethod
@@ -302,6 +301,21 @@ class DatetimeIndex(Int64Index):
 
         return index
 
+    def _local_timestamps(self):
+        utc = _utc()
+
+        if self.is_monotonic:
+            return lib.tz_convert(self.asi8, utc, self.tz)
+        else:
+            values = self.asi8
+            indexer = values.argsort()
+            result = lib.tz_convert(values.take(indexer), utc, self.tz)
+
+            n = len(indexer)
+            reverse = np.empty(n, dtype=np.int_)
+            reverse.put(indexer, np.arange(n))
+            return result.take(reverse)
+
     @classmethod
     def _simple_new(cls, values, name, freq=None, tz=None):
         result = values.view(cls)
@@ -531,19 +545,11 @@ class DatetimeIndex(Int64Index):
         # do not cache or you'll create a memory leak
         return self.values.view('i8')
 
-    # @property
-    # def asstruct(self):
-    #     utc = _utc()
-    #     values = self.asi8
-    #     if self.tz is not None and self.tz is not utc:
-    #         values = lib.tz_convert(values, utc, self.tz)
-    #     return lib.build_field_sarray(values)
-
     def _get_time_micros(self):
         utc = _utc()
         values = self.asi8
         if self.tz is not None and self.tz is not utc:
-            values = lib.tz_convert(values, utc, self.tz)
+            values = self._local_timestamps()
         return lib.get_time_micros(values)
 
     @property
