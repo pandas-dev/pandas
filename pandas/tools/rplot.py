@@ -91,12 +91,12 @@ class ScaleGradient2(Scale):
 		A three element tuple representing an RGB somewhere along the line 
 		of colour1, colour2 and colour3
 		"""
-		x = data[column].iget(index)
-		a = min(data[column])
-		b = max(data[column])
-		r1, g1, b1 = colour1
-		r2, g2, b2 = colour2
-		r3, g3, b3 = colour3
+		x = data[self.column].iget(index)
+		a = min(data[self.column])
+		b = max(data[self.column])
+		r1, g1, b1 = self.colour1
+		r2, g2, b2 = self.colour2
+		r3, g3, b3 = self.colour3
 		x_scaled = (x - a) / (b - a)
 		if x_scaled < 0.5:
 			x_scaled *= 2.0
