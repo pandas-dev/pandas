@@ -3491,6 +3491,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         frame.info(verbose=False)
         sys.stdout = sys.__stdout__
 
+    def test_info_duplicate_columns(self):
+        io = StringIO()
+
+        # it works!
+        frame = DataFrame(np.random.randn(1500, 4),
+                          columns=['a', 'a', 'b', 'b'])
+        frame.info(buf=io)
+
     def test_dtypes(self):
         self.mixed_frame['bool'] = self.mixed_frame['A'] > 0
         result = self.mixed_frame.dtypes

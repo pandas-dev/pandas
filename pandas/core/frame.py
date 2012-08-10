@@ -1340,7 +1340,8 @@ class DataFrame(NDFrame):
 
     def get_dtype_counts(self):
         counts = {}
-        for _, series in self.iterkv():
+        for i in range(len(self.columns)):
+            series = self.icol(i)
             # endianness can cause dtypes to look different
             dtype_str = str(series.dtype)
             if dtype_str in counts:
