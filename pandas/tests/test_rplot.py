@@ -63,6 +63,17 @@ class TestUtilityFunctions(unittest.TestCase):
 		self.assertTrue(rplot.dictionary_union({}, dict1) == dict1)
 		self.assertTrue(rplot.dictionary_union({}, {}) == {})
 
+	def test_merge_aes(self):
+		layer1 = rplot.Layer(size=rplot.ScaleSize('test'))
+		layer2 = rplot.Layer(shape=rplot.ScaleShape('test'))
+		rplot.merge_aes(layer1, layer2)
+		self.assertTrue(isinstance(layer2.aes['size'], rplot.ScaleSize))
+		self.assertTrue(isinstance(layer2.aes['shape'], rplot.ScaleShape))
+		self.assertTrue(layer2.aes['size'] == layer1.aes['size'])
+		for key in layer2.aes.keys():
+			if key != 'size' and key != 'shape':
+				self.assertTrue(layer2.aes[key] is None)
+
 class TestScaleGradient(unittest.TestCase):
 	def setUp(self):
 		path = os.path.join(curpath(), 'data/iris.csv')
