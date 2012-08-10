@@ -26,7 +26,17 @@ def between(a, b, x):
 		return x <= a and x >= b
 
 class TestUtilityFunctions(unittest.TestCase):
-	pass
+	"""
+	Tests for RPlot utility functions.
+	"""
+	def test_make_aes1(self):
+		aes = rplot.make_aes()
+		self.assertTrue(aes['x'] is None)
+		self.assertTrue(aes['y'] is None)
+		self.assertTrue(aes['size'] is None)
+		self.assertTrue(aes['colour'] is None)
+		self.assertTrue(aes['shape'] is None)
+		self.assertTrue(aes['alpha'] is None)
 
 class TestScaleGradient(unittest.TestCase):
 	def setUp(self):
