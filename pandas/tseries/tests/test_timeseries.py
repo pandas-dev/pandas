@@ -1179,6 +1179,14 @@ class TestDatetimeIndex(unittest.TestCase):
         exp = DatetimeIndex(sorted(set(list(left)) | set(list(right))))
         self.assert_(result.equals(exp))
 
+    def test_intersection_bug_1708(self):
+        from pandas import DateOffset
+        index_1 = date_range('1/1/2012', periods=4, freq='12H')
+        index_2 = index_1 + DateOffset(hours=1)
+
+        result = index_1 & index_2
+        self.assertEqual(len(result), 0)
+
     # def test_add_timedelta64(self):
     #     rng = date_range('1/1/2000', periods=5)
     #     delta = rng.values[3] - rng.values[1]

@@ -834,6 +834,7 @@ class DatetimeIndex(Int64Index):
 
         elif (other.offset is None or self.offset is None or
               other.offset != self.offset or
+              not other.offset.isAnchored() or
               (not self.is_monotonic or not other.is_monotonic)):
             result = Index.intersection(self, other)
             if isinstance(result, DatetimeIndex):
