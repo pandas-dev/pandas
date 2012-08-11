@@ -1253,6 +1253,15 @@ class TestDatetimeIndex(unittest.TestCase):
         result = monthly_group.mean()
         self.assert_(isinstance(result.index[0], tuple))
 
+    def test_append_numpy_bug_1681(self):
+        # another datetime64 bug
+        dr = date_range('2011/1/1', '2012/1/1', freq='W-FRI')
+        a = DataFrame()
+        c = DataFrame({'A': 'foo', 'B': dr}, index=dr)
+
+        result = a.append(c)
+        self.assert_((result['B'] == dr).all())
+
 class TestLegacySupport(unittest.TestCase):
 
     @classmethod

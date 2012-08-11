@@ -59,6 +59,7 @@ pandas 0.8.2
   - Fix field access with  UTC->local conversion on unsorted arrays (#1756)
   - Fix isnull handling of array-like (list) inputs (#1755)
   - Fix regression in handling of Series in Series constructor (#1671)
+  - Fix another NumPy datetime64 concatenate bug in DataFrame.append (#1681)
 
 pandas 0.8.1
 ============
