@@ -281,7 +281,7 @@ class DataFrameFormatter(object):
         for i, row in enumerate(izip(*strcols)):
             if i == nlevels:
                 self.buf.write('\\hline\n') # End of header
-            crow = [(x.replace('_', '\\_') if x else '{}') for x in row]
+            crow = [(x.replace('_', '\\_').replace('%', '\\%').replace('&', '\\&') if x else '{}') for x in row]
             self.buf.write(' & '.join(crow))
             self.buf.write(' \\\\\n')
 
