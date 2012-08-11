@@ -129,7 +129,12 @@ cdef class SeriesBinGrouper:
 
         self.dummy = self._check_dummy(dummy)
         self.passed_dummy = dummy is not None
-        self.ngroups = len(bins) + 1
+
+        # kludge for #1688
+        if len(bins) > 0 and bins[-1] == len(series):
+            self.ngroups = len(bins)
+        else:
+            self.ngroups = len(bins) + 1
 
     def _check_dummy(self, dummy=None):
         if dummy is None:

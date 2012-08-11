@@ -527,6 +527,18 @@ class TestResample(unittest.TestCase):
         exp = ts.sort_index().resample('D', how='sum')
         assert_series_equal(result, exp)
 
+    def test_resample_median_bug_1688(self):
+        df = DataFrame([1, 2], index=[datetime(2012,1,1,0,0,0),
+                                      datetime(2012,1,1,0,5,0)])
+
+        result = df.resample("T", how=lambda x: x.mean())
+        exp = df.asfreq('T')
+        tm.assert_frame_equal(result, exp)
+
+        result = df.resample("T", how="median")
+        exp = df.asfreq('T')
+        tm.assert_frame_equal(result, exp)
+
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
     return Series(np.random.randn(len(rng)), index=rng)

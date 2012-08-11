@@ -395,9 +395,10 @@ class GroupBy(object):
         if len(output) == 0:
             return self._python_apply_general(func, *args, **kwargs)
 
-        mask = counts.ravel() > 0
-        for name, result in output.iteritems():
-            output[name] = result[mask]
+        if self.grouper._filter_empty_groups:
+            mask = counts.ravel() > 0
+            for name, result in output.iteritems():
+                output[name] = result[mask]
 
         return self._wrap_aggregated_output(output)
 
