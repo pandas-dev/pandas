@@ -302,10 +302,13 @@ class Series(np.ndarray, generic.PandasObject):
             index = _ensure_index(index)
 
         if isinstance(data, Series):
-            if index is None:
-                index = data.index
             if name is None:
                 name = data.name
+
+            if index is None:
+                index = data.index
+            else:
+                data = data.reindex(index).values
         elif isinstance(data, dict):
             if index is None:
                 index = Index(sorted(data))
@@ -771,7 +774,8 @@ copy : boolean, default False
         resetted : DataFrame, or Series if drop == True
         """
         if drop:
-            return Series(self, index=np.arange(len(self)), name=self.name)
+            return Series(self.values.copy(),
+                          index=np.arange(len(self)), name=self.name)
         else:
             from pandas.core.frame import DataFrame
             if name is None:
@@ -2414,7 +2418,7 @@ copy : boolean, default False
     #----------------------------------------------------------------------
     # Time series-oriented methods
 
-    def shift(self, periods=1, freq=None, **kwds):
+    def shift(self, periods=1, freq=None, copy=True, **kwds):
         """
         Shift the index of the Series by desired number of periods with an
         optional time offset
@@ -2438,6 +2442,12 @@ copy : boolean, default False
         if isinstance(offset, basestring):
             offset = datetools.to_offset(offset)
 
+        def _get_values():
+            values = self.values
+            if copy:
+                values = values.copy()
+            return values
+
         if offset is None:
             new_values = np.empty(len(self), dtype=self.dtype)
             new_values = _maybe_upcast(new_values)
@@ -2453,12 +2463,14 @@ copy : boolean, default False
         elif isinstance(self.index, PeriodIndex):
             orig_offset = datetools.to_offset(self.index.freq)
             if orig_offset == offset:
-                return Series(self, self.index.shift(periods), name=self.name)
+                return Series(_get_values(), self.index.shift(periods),
+                              name=self.name)
             msg = ('Given freq %s does not match PeriodIndex freq %s' %
                    (offset.rule_code, orig_offset.rule_code))
             raise ValueError(msg)
         else:
-            return Series(self, index=self.index.shift(periods, offset),
+            return Series(_get_values(),
+                          index=self.index.shift(periods, offset),
                           name=self.name)
 
     def asof(self, where):

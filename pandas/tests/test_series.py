@@ -262,6 +262,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         empty2 = Series(np.nan, index=range(10))
         assert_series_equal(empty, empty2)
 
+    def test_constructor_series(self):
+        index1 = ['d', 'b', 'a', 'c']
+        index2 = sorted(index1)
+        s1 = Series([4, 7, -5, 3], index=index1)
+        s2 = Series(s1, index=index2)
+
+        assert_series_equal(s2, s1.sort_index())
+
     def test_constructor_maskedarray(self):
         data = ma.masked_all((3,), dtype=float)
         result = Series(data)

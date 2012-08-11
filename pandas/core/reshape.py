@@ -289,7 +289,7 @@ def pivot(self, index=None, columns=None, values=None):
         indexed = self.set_index([index, columns])
         return indexed.unstack(columns)
     else:
-        indexed = Series(self[values],
+        indexed = Series(self[values].values,
                          index=[self[index], self[columns]])
         return indexed.unstack(columns)
 
