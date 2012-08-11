@@ -723,7 +723,8 @@ def roll_max2(ndarray[float64_t] a, int window, int minp):
             y[i0] = minpair.value
         else:
             y[i0] = NaN
-    for i0 in range(window - 1):
+
+    for i0 in range(minp - 1):
         y[i0] = NaN
 
     stdlib.free(ring)
@@ -816,7 +817,8 @@ def roll_min2(np.ndarray[np.float64_t, ndim=1] a, int window, int minp):
             y[i0] = minpair.value
         else:
             y[i0] = NaN
-    for i0 in range(window - 1):
+
+    for i0 in range(minp - 1):
         y[i0] = NaN
 
     stdlib.free(ring)
