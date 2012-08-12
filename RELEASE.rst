@@ -27,6 +27,10 @@ pandas 0.8.2
 
 **Release date:** NOT YET RELEASED
 
+**New features**
+
+  - Add ``str.decode`` to Series (#1706)
+
 **Improvements to existing features**
 
   - Add ``flags`` option for ``re.compile`` in some Series.str methods (#1659)

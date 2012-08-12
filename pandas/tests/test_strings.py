@@ -658,6 +658,15 @@ class TestStringMethods(unittest.TestCase):
         result = data.str.contains(pat, flags=re.IGNORECASE)
         self.assertEquals(result[0], True)
 
+    def test_decode(self):
+        series = Series(['a', 'b', '\xc3\xa4'])
+
+        f = lambda x: x.decode('utf-8')
+        result = series.str.decode('utf-8')
+        exp = series.map(f)
+
+        tm.assert_series_equal(result, exp)
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
