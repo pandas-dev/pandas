@@ -551,11 +551,11 @@ class MPLPlot(object):
                 columns = df.columns
 
             for col in columns:
-                empty = df[col].count() == 0
-                # is this right?
-                values = df[col].values if not empty else np.zeros(len(df))
+                # # is this right?
+                # empty = df[col].count() == 0
+                # values = df[col].values if not empty else np.zeros(len(df))
 
-
+                values = df[col].values
                 yield col, values
 
     @property

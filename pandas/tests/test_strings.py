@@ -658,8 +658,9 @@ class TestStringMethods(unittest.TestCase):
         result = data.str.contains(pat, flags=re.IGNORECASE)
         self.assertEquals(result[0], True)
 
-    def test_decode(self):
-        series = Series(['a', 'b', '\xc3\xa4'])
+    def test_encode_decode(self):
+        base = Series([u'a', u'b', u'\xe4'])
+        series = base.str.encode('utf-8')
 
         f = lambda x: x.decode('utf-8')
         result = series.str.decode('utf-8')

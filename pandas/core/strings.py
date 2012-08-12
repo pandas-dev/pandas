@@ -606,6 +606,21 @@ def str_decode(arr, encoding):
     f = lambda x: x.decode(encoding)
     return _na_map(f, arr)
 
+def str_encode(arr, encoding):
+    """
+    Encode character string to unicode using indicated encoding
+
+    Parameters
+    ----------
+    encoding : string
+
+    Returns
+    -------
+    encoded : array
+    """
+    f = lambda x: x.encode(encoding)
+    return _na_map(f, arr)
+
 def _noarg_wrapper(f):
     def wrapper(self):
         result = f(self.series)
@@ -726,6 +741,11 @@ class StringMethods(object):
     @copy(str_decode)
     def decode(self, encoding):
         result = str_decode(self.series, encoding)
+        return self._wrap_result(result)
+
+    @copy(str_encode)
+    def encode(self, encoding):
+        result = str_encode(self.series, encoding)
         return self._wrap_result(result)
 
     count = _pat_wrapper(str_count, flags=True)
