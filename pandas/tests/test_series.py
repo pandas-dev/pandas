@@ -1020,6 +1020,17 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         rep_str = repr(ser)
         self.assert_("Name: 0" in rep_str)
 
+    def test_repr_bool_fails(self):
+        s = Series([DataFrame(np.random.randn(2,2)) for i in range(5)])
+
+        import sys
+
+        buf = StringIO()
+        sys.stderr = buf
+        # it works (with no Cython exception barf)!
+        repr(s)
+        sys.stderr = sys.__stderr__
+        self.assertEquals(buf.getvalue(), '')
 
     def test_timeseries_repr_object_dtype(self):
         index = Index([datetime(2000, 1, 1) + timedelta(i)
