@@ -65,6 +65,7 @@ pandas 0.8.2
     caused by SeriesBinGrouper (#1648, #1688)
   - When grouping by level, exclude unobserved levels (#1697)
   - Don't lose tzinfo in DatetimeIndex when shifting by different offset (#1683)
+  - Hack to support storing data with a zero-length axis in HDFStore (#1707)
 
 pandas 0.8.1
 ============

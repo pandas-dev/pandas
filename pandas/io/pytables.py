@@ -556,10 +556,6 @@ class HDFStore(object):
 
     def _write_index(self, group, key, index):
         if isinstance(index, MultiIndex):
-            if len(index) == 0:
-                raise ValueError('Can not write empty structure, '
-                                 'axis length was 0')
-
             setattr(group._v_attrs, '%s_variety' % key, 'multi')
             self._write_multi_index(group, key, index)
         elif isinstance(index, BlockIndex):
@@ -569,10 +565,6 @@ class HDFStore(object):
             setattr(group._v_attrs, '%s_variety' % key, 'sparseint')
             self._write_sparse_intindex(group, key, index)
         else:
-            if len(index) == 0:
-                raise ValueError('Can not write empty structure, '
-                                 'axis length was 0')
-
             setattr(group._v_attrs, '%s_variety' % key, 'regular')
             converted, kind, _ = _convert_index(index)
             self._write_array(group, key, converted)
@@ -658,7 +650,7 @@ class HDFStore(object):
             names.append(name)
 
             label_key = '%s_label%d' % (key, i)
-            lab = getattr(group, label_key)[:]
+            lab = _read_array(group, label_key)
             labels.append(lab)
 
         return MultiIndex(levels=levels, labels=labels, names=names)
@@ -719,7 +711,14 @@ class HDFStore(object):
             self.handle.createArray(group, key, value.view('i8'))
             getattr(group, key)._v_attrs.value_type = 'datetime64'
         else:
-            self.handle.createArray(group, key, value)
+            if any(x == 0 for x in value.shape):
+                # ugly hack for length 0 axes
+                arr = np.empty((1,) * value.ndim)
+                self.handle.createArray(group, key, arr)
+                getattr(group, key)._v_attrs.value_type = str(value.dtype)
+                getattr(group, key)._v_attrs.shape = value.shape
+            else:
+                self.handle.createArray(group, key, value)
 
     def _write_table(self, group, items=None, index=None, columns=None,
                      values=None, append=False, compression=None):
@@ -805,7 +804,11 @@ class HDFStore(object):
 
     def _read_series(self, group, where=None):
         index = self._read_index(group, 'index')
-        values = _read_array(group, 'values')
+        if len(index) > 0:
+            values = _read_array(group, 'values')
+        else:
+            values = []
+
         name = getattr(group._v_attrs, 'name', None)
         return Series(values, index=index, name=name)
 
@@ -959,7 +962,15 @@ def _read_array(group, key):
     if isinstance(node, tables.VLArray):
         return data[0]
     else:
-        dtype = getattr(node._v_attrs, 'value_type', None)
+        attrs = node._v_attrs
+
+        dtype = getattr(attrs, 'value_type', None)
+        shape = getattr(attrs, 'shape', None)
+
+        if shape is not None:
+            # length 0 axis
+            return np.empty(shape, dtype=dtype)
+
         if dtype == 'datetime64':
             return np.array(data, dtype='M8[ns]')
         return data
