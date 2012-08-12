@@ -1211,7 +1211,11 @@ class Int64Index(Index):
         # if not isinstance(other, Int64Index):
         #     return False
 
-        return np.array_equal(self, other)
+        try:
+            return np.array_equal(self, other)
+        except TypeError:
+            # e.g. fails in numpy 1.6 with DatetimeIndex #1681
+            return False
 
     def _wrap_joined_index(self, joined, other):
         name = self.name if self.name == other.name else None

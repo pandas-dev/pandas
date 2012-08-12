@@ -1067,6 +1067,14 @@ class TestTimeSeries(unittest.TestCase):
         DataFrame({'a': 'foo', 'b': s}, index=dr)
         DataFrame({'a': 'foo', 'b': s.values}, index=dr)
 
+    def test_frame_datetime64_mixed_index_ctor_1681(self):
+        dr = date_range('2011/1/1', '2012/1/1', freq='W-FRI')
+        ts = Series(dr)
+
+        # it works!
+        d = DataFrame({'A': 'foo', 'B': ts}, index=dr)
+        self.assert_(d['B'].isnull().all())
+
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
     return Series(np.random.randn(len(rng)), index=rng)
