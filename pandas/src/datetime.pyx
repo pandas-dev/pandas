@@ -550,11 +550,17 @@ cpdef convert_to_tsobject(object ts, object tz=None):
             trans = _get_transitions(tz)
             deltas = _get_deltas(tz)
             pos = trans.searchsorted(obj.value, side='right') - 1
-            inf = tz._transition_info[pos]
 
-            pandas_datetime_to_datetimestruct(obj.value + deltas[pos],
-                                              PANDAS_FR_ns, &obj.dts)
-            obj.tzinfo = tz._tzinfos[inf]
+            # statictzinfo
+            if not hasattr(tz, '_transition_info'):
+                pandas_datetime_to_datetimestruct(obj.value + deltas[0],
+                                                  PANDAS_FR_ns, &obj.dts)
+                obj.tzinfo = tz
+            else:
+                inf = tz._transition_info[pos]
+                pandas_datetime_to_datetimestruct(obj.value + deltas[pos],
+                                                  PANDAS_FR_ns, &obj.dts)
+                obj.tzinfo = tz._tzinfos[inf]
 
     return obj
 
@@ -899,8 +905,12 @@ def _get_transitions(tz):
     Get UTC times of DST transitions
     """
     if tz not in trans_cache:
-        arr = np.array(tz._utc_transition_times, dtype='M8[ns]')
-        trans_cache[tz] = arr.view('i8')
+        if hasattr(tz, '_utc_transition_times'):
+            arr = np.array(tz._utc_transition_times, dtype='M8[ns]')
+            arr = arr.view('i8')
+        else:
+            arr = np.array([NPY_NAT + 1], dtype=np.int64)
+        trans_cache[tz] = arr
     return trans_cache[tz]
 
 def _get_deltas(tz):
@@ -908,7 +918,12 @@ def _get_deltas(tz):
     Get UTC offsets in microseconds corresponding to DST transitions
     """
     if tz not in utc_offset_cache:
-        utc_offset_cache[tz] = _unbox_utcoffsets(tz._transition_info)
+        if hasattr(tz, '_utc_transition_times'):
+            utc_offset_cache[tz] = _unbox_utcoffsets(tz._transition_info)
+        else:
+            # static tzinfo
+            num = int(total_seconds(tz._utcoffset)) * 1000000000
+            utc_offset_cache[tz] = np.array([num], dtype=np.int64)
     return utc_offset_cache[tz]
 
 cdef double total_seconds(object td): # Python 2.6 compat

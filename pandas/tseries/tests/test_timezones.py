@@ -412,6 +412,12 @@ class TestTimeZoneSupport(unittest.TestCase):
         # it works!
         s.asfreq('T')
 
+    def test_static_tzinfo(self):
+        # it works!
+        index = DatetimeIndex([datetime(2012, 1, 1)], tz='EST')
+        index.hour
+        index[0]
+
 class TestTimeZones(unittest.TestCase):
 
     def setUp(self):

@@ -82,6 +82,7 @@ pandas 0.8.2
   - Fix handling of PeriodIndex as argument to create MultiIndex (#1705)
   - Fix re: unicode MultiIndex level names in Series/DataFrame repr (#1736)
   - Handle PeriodIndex in to_datetime instance method (#1703)
+  - Support StaticTzInfo in DatetimeIndex infrastructure (#1692)
 
 pandas 0.8.1
 ============
