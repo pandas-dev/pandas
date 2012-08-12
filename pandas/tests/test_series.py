@@ -2295,6 +2295,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(result.dtype == np.object_)
         self.assert_(isinstance(result[0], Decimal))
 
+    def test_map_na_exclusion(self):
+        s = Series([1.5, np.nan, 3, np.nan, 5])
+
+        result = s.map(lambda x: x * 2, na_action='ignore')
+        exp = s * 2
+        assert_series_equal(result, exp)
+
     def test_apply(self):
         assert_series_equal(self.ts.apply(np.sqrt), np.sqrt(self.ts))
 

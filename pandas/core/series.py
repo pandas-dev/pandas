@@ -1900,7 +1900,7 @@ copy : boolean, default False
     #----------------------------------------------------------------------
     # function application
 
-    def map(self, arg):
+    def map(self, arg, na_action=None):
         """
         Map values of Series using input correspondence (which can be
         a dict, Series, or function)
@@ -1908,6 +1908,8 @@ copy : boolean, default False
         Parameters
         ----------
         arg : function, dict, or Series
+        na_action : {None, 'ignore'}
+            If 'ignore', propagate NA values
 
         Examples
         --------
@@ -1931,15 +1933,24 @@ copy : boolean, default False
         y : Series
             same index as caller
         """
+        values = self.values
+
+        if na_action == 'ignore':
+            mask = isnull(values)
+            def map_f(values, f):
+                return lib.map_infer_mask(values, f, mask.view(np.uint8))
+        else:
+            map_f = lib.map_infer
+
         if isinstance(arg, (dict, Series)):
             if isinstance(arg, dict):
                 arg = Series(arg)
 
-            indexer = arg.index.get_indexer(self.values)
+            indexer = arg.index.get_indexer(values)
             new_values = com.take_1d(arg.values, indexer)
             return Series(new_values, index=self.index, name=self.name)
         else:
-            mapped = lib.map_infer(self.values, arg)
+            mapped = map_f(values, arg)
             return Series(mapped, index=self.index, name=self.name)
 
     def apply(self, func, convert_dtype=True):

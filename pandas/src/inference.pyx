@@ -664,6 +664,45 @@ def maybe_convert_bool(ndarray[object] arr):
     return result.view(np.bool_)
 
 
+def map_infer_mask(ndarray arr, object f, ndarray[uint8_t] mask,
+                   bint convert=1):
+    '''
+    Substitute for np.vectorize with pandas-friendly dtype inference
+
+    Parameters
+    ----------
+    arr : ndarray
+    f : function
+
+    Returns
+    -------
+    mapped : ndarray
+    '''
+    cdef:
+        Py_ssize_t i, n
+        ndarray[object] result
+        object val
+
+    n = len(arr)
+    result = np.empty(n, dtype=object)
+    for i in range(n):
+        if mask[i]:
+            val = util.get_value_at(arr, i)
+        else:
+            val = f(util.get_value_at(arr, i))
+
+            # unbox 0-dim arrays, GH #690
+            if is_array(val) and PyArray_NDIM(val) == 0:
+                # is there a faster way to unbox?
+                val = val.item()
+
+        result[i] = val
+
+    if convert:
+        return maybe_convert_objects(result, try_float=0,
+                                     convert_datetime=0)
+
+    return result
 def map_infer(ndarray arr, object f, bint convert=1):
     '''
     Substitute for np.vectorize with pandas-friendly dtype inference
@@ -699,6 +738,7 @@ def map_infer(ndarray arr, object f, bint convert=1):
                                      convert_datetime=0)
 
     return result
+
 
 def to_object_array(list rows):
     cdef:
