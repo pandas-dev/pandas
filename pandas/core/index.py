@@ -1366,11 +1366,14 @@ class MultiIndex(Index):
             if self._tuples is not None:
                 return self._tuples
 
-            values = [ndtake(lev.values, lab)
-                      for lev, lab in zip(self.levels, self.labels)]
+            values = []
+            for lev, lab in zip(self.levels, self.labels):
+                taken = ndtake(lev.values, lab)
+                # Need to box timestamps, etc.
+                if hasattr(lev, '_box_values'):
+                    taken = lev._box_values(taken)
+                values.append(taken)
 
-            # Need to box timestamps, etc.
-            values = _clean_arrays(values)
             self._tuples = lib.fast_zip(values)
             return self._tuples
 
@@ -2512,15 +2515,6 @@ def _maybe_box_dtindex(idx):
     if isinstance(idx, DatetimeIndex):
         return idx.asobject
     return idx
-
-def _clean_arrays(values):
-    result = []
-    for arr in values:
-        if np.issubdtype(arr.dtype, np.datetime64):
-            result.append(lib.map_infer(arr, lib.Timestamp))
-        else:
-            result.append(arr)
-    return result
 
 
 def _all_indexes_same(indexes):

@@ -79,6 +79,7 @@ pandas 0.8.2
   - Don't plot all-NA DataFrame columns as zeros (#1696)
   - Fix bug in scatter_plot with by option (#1716)
   - Fix performance problem in infer_freq with lots of non-unique stamps (#1686)
+  - Fix handling of PeriodIndex as argument to create MultiIndex (#1705)
 
 pandas 0.8.1
 ============

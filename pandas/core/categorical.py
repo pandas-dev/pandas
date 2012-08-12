@@ -3,6 +3,7 @@
 import numpy as np
 
 from pandas.core.algorithms import factorize
+from pandas.core.index import Index
 import pandas.core.common as com
 
 
@@ -47,10 +48,13 @@ class Categorical(object):
 
     @classmethod
     def from_array(cls, data):
-        try:
-            labels, levels, _ = factorize(data, sort=True)
-        except TypeError:
-            labels, levels, _ = factorize(data, sort=False)
+        if isinstance(data, Index) and hasattr(data, 'factorize'):
+            labels, levels = data.factorize()
+        else:
+            try:
+                labels, levels, _ = factorize(data, sort=True)
+            except TypeError:
+                labels, levels, _ = factorize(data, sort=False)
 
         return Categorical(labels, levels,
                            name=getattr(data, 'name', None))

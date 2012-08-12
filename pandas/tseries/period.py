@@ -624,6 +624,10 @@ class PeriodIndex(Int64Index):
             return False
         return key.ordinal in self._engine
 
+    def _box_values(self, values):
+        f = lambda x: Period(ordinal=x, freq=self.freq)
+        return lib.map_infer(values, f)
+
     def astype(self, dtype):
         dtype = np.dtype(dtype)
         if dtype == np.object_:
@@ -655,6 +659,14 @@ class PeriodIndex(Int64Index):
         values = self.values
         return ((values[1:] - values[:-1]) < 2).all()
 
+    def factorize(self):
+        """
+        Specialized factorize that boxes uniques
+        """
+        from pandas.core.algorithms import factorize
+        labels, uniques, counts = factorize(self.values)
+        uniques = PeriodIndex(ordinal=uniques, freq=self.freq)
+        return labels, uniques
 
     @property
     def freqstr(self):

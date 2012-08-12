@@ -322,6 +322,9 @@ class DatetimeIndex(Int64Index):
 
         return index
 
+    def _box_values(self, values):
+        return lib.map_infer(values, lib.Timestamp)
+
     def _local_timestamps(self):
         utc = _utc()
 
