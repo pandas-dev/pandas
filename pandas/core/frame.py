@@ -127,11 +127,11 @@ left_on : label or list, or array-like
 right_on : label or list, or array-like
     Field names to join on in right DataFrame or vector/list of vectors per
     left_on docs
-left_index : boolean, default True
+left_index : boolean, default False
     Use the index from the left DataFrame as the join key(s). If it is a
     MultiIndex, the number of keys in the other DataFrame (either the index
     or a number of columns) must match the number of levels
-right_index : boolean, default True
+right_index : boolean, default False
     Use the index from the right DataFrame as the join key. Same caveats as
     left_index
 sort : boolean, default True
