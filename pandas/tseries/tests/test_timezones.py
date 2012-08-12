@@ -165,8 +165,8 @@ class TestTimeZoneSupport(unittest.TestCase):
         self.assertEquals(exp.hour, 1)
         self.assertEquals(rng[1], exp)
 
-        self.assertRaises(pytz.NonExistentTimeError, date_range,
-                          '3/11/2012 00:00', periods=10, freq='H', tz='US/Eastern')
+        rng = date_range('3/11/2012 00:00', periods=10, freq='H', tz='US/Eastern')
+        self.assert_(rng[2].hour == 3)
 
     def test_utc_box_timestamp_and_localize(self):
         rng = date_range('3/11/2012', '3/12/2012', freq='H', tz='utc')
@@ -404,6 +404,13 @@ class TestTimeZoneSupport(unittest.TestCase):
         result = dr_tz.shift(1, '10T')
         self.assert_(result.tz == dr_tz.tz)
 
+    def test_tz_aware_asfreq(self):
+        dr = date_range('2011-12-01','2012-07-20',freq = 'D', tz = 'US/Eastern')
+
+        s = Series(np.random.randn(len(dr)), index=dr)
+
+        # it works!
+        s.asfreq('T')
 
 class TestTimeZones(unittest.TestCase):
 

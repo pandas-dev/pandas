@@ -260,6 +260,35 @@ class DatetimeIndex(Int64Index):
 
         if start is not None:
             start = Timestamp(start)
+
+        if end is not None:
+            end = Timestamp(end)
+
+        inferred_tz = tools._infer_tzinfo(start, end)
+
+        if tz is not None and inferred_tz is not None:
+            assert(inferred_tz == tz)
+        elif inferred_tz is not None:
+            tz = inferred_tz
+
+        if inferred_tz is None and tz is not None:
+            # naive dates
+            if start is not None and start.tz is None:
+                start = start.tz_localize(tz)
+
+            if end is not None and end.tz is None:
+                end = end.tz_localize(tz)
+        elif inferred_tz is not None:
+            pass
+
+        if start and end:
+            if start.tz is None and end.tz is not None:
+                start = start.tz_localize(end.tz)
+
+            if end.tz is None and start.tz is not None:
+                end = end.tz_localize(start.tz)
+
+        if start is not None:
             if normalize:
                 start = normalize_date(start)
                 _normalized = True
@@ -267,15 +296,13 @@ class DatetimeIndex(Int64Index):
                 _normalized = _normalized and start.time() == _midnight
 
         if end is not None:
-            end = Timestamp(end)
-
             if normalize:
                 end = normalize_date(end)
                 _normalized = True
             else:
                 _normalized = _normalized and end.time() == _midnight
 
-        start, end, tz = tools._figure_out_timezone(start, end, tz)
+        tz = tools._maybe_get_tz(tz)
 
         if com._count_not_none(start, end, periods) < 2:
             raise ValueError('Must specify two of start, end, or periods')
@@ -287,12 +314,6 @@ class DatetimeIndex(Int64Index):
                                       offset=offset, name=name)
         else:
             index = _generate_regular_range(start, end, periods, offset)
-
-        if tz is not None:
-            # Convert local to UTC
-            ints = index.view('i8', type=np.ndarray)
-            index = lib.tz_localize_to_utc(ints, tz)
-            index = index.view(_NS_DTYPE)
 
         index = index.view(cls)
         index.name = name
@@ -1298,7 +1319,9 @@ def _generate_regular_range(start, end, periods, offset):
         xdr = generate_range(start=start, end=end,
             periods=periods, offset=offset)
 
-        data = np.array(list(xdr), dtype=_NS_DTYPE)
+        dates = list(xdr)
+        utc = len(dates) > 0 and dates[0].tzinfo is not None
+        data = tools.to_datetime(dates, utc=utc)
 
     return data
 
@@ -1408,6 +1431,8 @@ def _naive_in_cache_range(start, end):
     if start is None or end is None:
         return False
     else:
+        if start.tzinfo is not None or end.tzinfo is not None:
+            return False
         return _in_range(start, end, _CACHE_START, _CACHE_END)
 
 def _in_range(start, end, rng_start, rng_end):
@@ -1416,3 +1441,13 @@ def _in_range(start, end, rng_start, rng_end):
 def _time_to_micros(time):
     seconds = time.hour * 60 * 60 + 60 * time.minute + time.second
     return 1000000 * seconds + time.microsecond
+
+def _utc_naive(dt):
+    if dt is None:
+        return dt
+
+    if dt.tz is not None:
+        dt = dt.tz_convert('utc').replace(tzinfo=None)
+
+    return dt
+

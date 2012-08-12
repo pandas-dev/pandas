@@ -26,7 +26,7 @@ def _infer_tzinfo(start, end):
     def _infer(a, b):
         tz = a.tzinfo
         if b and b.tzinfo:
-            assert(tz == b.tzinfo)
+            assert(tz.zone == b.tzinfo.zone)
         return tz
     tz = None
     if start is not None:
@@ -41,24 +41,6 @@ def _maybe_get_tz(tz):
         import pytz
         tz = pytz.timezone(tz)
     return tz
-
-def _figure_out_timezone(start, end, tzinfo):
-    inferred_tz = _infer_tzinfo(start, end)
-    tzinfo = _maybe_get_tz(tzinfo)
-
-    tz = inferred_tz
-    if inferred_tz is None and tzinfo is not None:
-        tz = tzinfo
-    elif tzinfo is not None:
-        assert(inferred_tz == tzinfo)
-        # make tz naive for now
-
-    # tz = _maybe_get_tz(tz)
-
-    start = start if start is None else start.replace(tzinfo=None)
-    end = end if end is None else end.replace(tzinfo=None)
-
-    return start, end, tz
 
 
 def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True):
