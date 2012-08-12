@@ -1463,6 +1463,11 @@ class MultiIndex(Index):
         return unique_vals.take(labels)
 
     def format(self, space=2, sparsify=None, adjoin=True, names=False):
+        from pandas.core.common import _stringify
+        from pandas.core.format import print_config
+        def _strify(x):
+            return _stringify(x, print_config.encoding)
+
         if len(self) == 0:
             return []
 
@@ -1474,7 +1479,7 @@ class MultiIndex(Index):
             level = []
 
             if names:
-                level.append(str(name) if name is not None else '')
+                level.append(_strify(name) if name is not None else '')
 
             level.extend(np.array(lev, dtype=object))
             result_levels.append(level)

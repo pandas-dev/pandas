@@ -1395,6 +1395,15 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         # NumPy bug
         # repr(index.get_level_values(1))
 
+    def test_unicode_repr_level_names(self):
+        index = MultiIndex.from_tuples([(0, 0), (1, 1)],
+                                       names=[u'\u0394', 'i1'])
+
+        s = Series(range(2), index=index)
+        df = DataFrame(np.random.randn(2,4), index=index)
+        repr(s)
+        repr(df)
+
     def test_dataframe_insert_column_all_na(self):
         # GH #1534
         mix = MultiIndex.from_tuples([('1a', '2a'), ('1a', '2b'), ('1a', '2c')])
