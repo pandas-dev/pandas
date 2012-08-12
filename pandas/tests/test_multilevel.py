@@ -788,6 +788,18 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         # should work
         df.groupby(level='three')
 
+    def test_groupby_level_no_obs(self):
+        # #1697
+        midx = MultiIndex.from_tuples([('f1', 's1'),('f1','s2'),
+                                       ('f2', 's1'),('f2', 's2'),
+                                       ('f3', 's1'),('f3','s2')])
+        df = DataFrame([[1,2,3,4,5,6],[7,8,9,10,11,12]], columns= midx)
+        df1 = df.select(lambda u: u[0] in ['f2', 'f3'], axis=1)
+
+        grouped = df1.groupby(axis=1, level=0)
+        result = grouped.sum()
+        self.assert_((result.columns == ['f2', 'f3']).all())
+
     def test_join(self):
         a = self.frame.ix[:5, ['A']]
         b = self.frame.ix[2:, ['B', 'C']]

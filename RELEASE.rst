@@ -63,6 +63,7 @@ pandas 0.8.2
   - Fix min_periods handling in new rolling_max/min at array start (#1695)
   - Fix errors with how='median' and generic NumPy resampling in some cases
     caused by SeriesBinGrouper (#1648, #1688)
+  - When grouping by level, exclude unobserved levels (#1697)
 
 pandas 0.8.1
 ============

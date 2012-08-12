@@ -986,14 +986,21 @@ class Grouping(object):
 
             # XXX complete hack
 
-            level_values = index.levels[level].take(inds)
             if grouper is not None:
+                level_values = index.levels[level].take(inds)
                 self.grouper = level_values.map(self.grouper)
             else:
                 self._was_factor = True
-                self._labels = inds
+
+                # all levels may not be observed
+                labels, uniques, counts = algos.factorize(inds, sort=True)
+
+                if len(uniques) < len(level_index):
+                    level_index = level_index.take(uniques)
+
+                self._labels = labels
                 self._group_index = level_index
-                self.grouper = level_values
+                self.grouper = level_index.take(labels)
         else:
             if isinstance(self.grouper, (list, tuple)):
                 self.grouper = com._asarray_tuplesafe(self.grouper)
