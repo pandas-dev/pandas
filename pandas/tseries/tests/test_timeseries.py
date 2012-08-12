@@ -1059,6 +1059,14 @@ class TestTimeSeries(unittest.TestCase):
 
         self.assert_(np.array_equal(result.values, exp.values))
 
+    def test_frame_dict_constructor_datetime64_1680(self):
+        dr = date_range('1/1/2012', periods=10)
+        s = Series(dr, index=dr)
+
+        # it works!
+        DataFrame({'a': 'foo', 'b': s}, index=dr)
+        DataFrame({'a': 'foo', 'b': s.values}, index=dr)
+
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
     return Series(np.random.randn(len(rng)), index=rng)
