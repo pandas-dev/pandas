@@ -733,12 +733,18 @@ class _FrequencyInferer(object):
         if len(index) < 3:
             raise ValueError('Need at least 3 dates to infer frequency')
 
-        self.deltas = lib.unique_deltas(self.values)
-        self.is_unique = len(self.deltas) == 1
         self.is_monotonic = self.index.is_monotonic
 
+    @cache_readonly
+    def deltas(self):
+        return lib.unique_deltas(self.values)
+
+    @cache_readonly
+    def is_unique(self):
+        return len(self.deltas) == 1
+
     def get_freq(self):
-        if not self.is_monotonic:
+        if not self.is_monotonic or not self.index.is_unique:
             return None
 
         delta = self.deltas[0]
