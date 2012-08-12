@@ -8,6 +8,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 from itertools import izip
 import operator
 from distutils.version import LooseVersion
+import types
 
 from numpy import nan, ndarray
 import numpy as np
@@ -323,6 +324,8 @@ class Series(np.ndarray, generic.PandasObject):
                     data = lib.fast_multiget(data, index.values, default=np.nan)
             except TypeError:
                 data = [data.get(i, nan) for i in index]
+        elif isinstance(data, types.GeneratorType):
+            data = list(data)
 
         if dtype is not None:
             dtype = np.dtype(dtype)

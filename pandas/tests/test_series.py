@@ -270,6 +270,18 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         assert_series_equal(s2, s1.sort_index())
 
+    def test_constructor_generator(self):
+        gen = (i for i in range(10))
+
+        result = Series(gen)
+        exp = Series(range(10))
+        assert_series_equal(result, exp)
+
+        gen = (i for i in range(10))
+        result = Series(gen, index=range(10, 20))
+        exp.index = range(10, 20)
+        assert_series_equal(result, exp)
+
     def test_constructor_maskedarray(self):
         data = ma.masked_all((3,), dtype=float)
         result = Series(data)

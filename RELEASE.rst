@@ -35,6 +35,7 @@ pandas 0.8.2
 
   - Add ``flags`` option for ``re.compile`` in some Series.str methods (#1659)
   - Parsing of UTC date strings in read_* functions (#1693)
+  - Handle generator input to Series (#1679)
 
 **API Changes**
 
