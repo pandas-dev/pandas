@@ -64,6 +64,7 @@ pandas 0.8.2
   - Fix errors with how='median' and generic NumPy resampling in some cases
     caused by SeriesBinGrouper (#1648, #1688)
   - When grouping by level, exclude unobserved levels (#1697)
+  - Don't lose tzinfo in DatetimeIndex when shifting by different offset (#1683)
 
 pandas 0.8.1
 ============

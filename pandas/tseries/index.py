@@ -656,7 +656,10 @@ class DatetimeIndex(Int64Index):
         if freq is not None and freq != self.offset:
             if isinstance(freq, basestring):
                 freq = to_offset(freq)
-            return Index.shift(self, n, freq)
+            result = Index.shift(self, n, freq)
+            result.tz = self.tz
+
+            return result
 
         if n == 0:
             # immutable so OK
@@ -668,7 +671,7 @@ class DatetimeIndex(Int64Index):
         start = self[0] + n * self.offset
         end = self[-1] + n * self.offset
         return DatetimeIndex(start=start, end=end, freq=self.offset,
-                             name=self.name)
+                             name=self.name, tz=self.tz)
 
     def repeat(self, repeats, axis=None):
         """

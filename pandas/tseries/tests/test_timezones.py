@@ -397,6 +397,14 @@ class TestTimeZoneSupport(unittest.TestCase):
         exp = dr.hour[::-1]
         tm.assert_almost_equal(result, exp)
 
+    def test_shift_localized(self):
+        dr = date_range('2011/1/1', '2012/1/1', freq='W-FRI')
+        dr_tz = dr.tz_localize('US/Eastern')
+
+        result = dr_tz.shift(1, '10T')
+        self.assert_(result.tz == dr_tz.tz)
+
+
 class TestTimeZones(unittest.TestCase):
 
     def setUp(self):
