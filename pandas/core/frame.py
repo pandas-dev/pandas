@@ -882,13 +882,15 @@ class DataFrame(NDFrame):
         y : recarray
         """
         if index:
-            arrays = [self.index] + [self[c] for c in self.columns]
+            arrays = [self.index.values] + [self[c].values
+                                            for c in self.columns]
             names = ['index'] + list(map(str, self.columns))
         else:
-            arrays = [self[c] for c in self.columns]
+            arrays = [self[c].values for c in self.columns]
             names = list(map(str, self.columns))
 
-        return np.rec.fromarrays(arrays, names=names)
+        dtype = np.dtype([(x, v.dtype) for x, v in zip(names, arrays)])
+        return np.rec.fromarrays(arrays, dtype=dtype, names=names)
 
     @classmethod
     def from_items(cls, items, columns=None, orient='columns'):

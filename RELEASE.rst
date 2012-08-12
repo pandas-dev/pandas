@@ -84,6 +84,7 @@ pandas 0.8.2
   - Handle PeriodIndex in to_datetime instance method (#1703)
   - Support StaticTzInfo in DatetimeIndex infrastructure (#1692)
   - Allow MultiIndex setops with length-0 other type indexes (#1727)
+  - Fix handling of DatetimeIndex in DataFrame.to_records (#1720)
 
 pandas 0.8.1
 ============
