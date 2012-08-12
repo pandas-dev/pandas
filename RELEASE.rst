@@ -29,7 +29,7 @@ pandas 0.8.2
 
 **New features**
 
-  - Add ``str.decode`` to Series (#1706)
+  - Add ``str.encode`` and ``str.decode`` to Series (#1706)
 
 **Improvements to existing features**
 
@@ -77,6 +77,7 @@ pandas 0.8.2
   - Fix DatetimeIndex tz-aware range generation issue (#1674)
   - Fix method='time' interpolation with intraday data (#1698)
   - Don't plot all-NA DataFrame columns as zeros (#1696)
+  - Fix bug in scatter_plot with by option (#1716)
 
 pandas 0.8.1
 ============
