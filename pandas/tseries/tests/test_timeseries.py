@@ -1043,6 +1043,22 @@ class TestTimeSeries(unittest.TestCase):
         result = df.groupby('a').first()
         self.assertEqual(result['date'][3].year, 2012)
 
+    def test_series_interpolate_intraday(self):
+        # #1698
+        import pandas as pd
+        index = pd.date_range('1/1/2012', periods=4, freq='12D')
+        ts = pd.Series([0, 12, 24, 36], index)
+        new_index = index.append(index + pd.DateOffset(days=1)).order()
+
+        exp = ts.reindex(new_index).interpolate(method='time')
+
+        index = pd.date_range('1/1/2012', periods=4, freq='12H')
+        ts = pd.Series([0, 12, 24, 36], index)
+        new_index = index.append(index + pd.DateOffset(hours=1)).order()
+        result = ts.reindex(new_index).interpolate(method='time')
+
+        self.assert_(np.array_equal(result.values, exp.values))
+
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
     return Series(np.random.randn(len(rng)), index=rng)

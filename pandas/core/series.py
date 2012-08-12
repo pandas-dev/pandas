@@ -2537,8 +2537,10 @@ copy : boolean, default False
             if not isinstance(self, TimeSeries):
                 raise Exception('time-weighted interpolation only works'
                                 'on TimeSeries')
-            inds = np.array([d.toordinal() for d in self.index])
-        elif method == 'values':
+            method = 'values'
+            # inds = np.array([d.toordinal() for d in self.index])
+
+        if method == 'values':
             inds = self.index.values
             # hack for DatetimeIndex, #1646
             if issubclass(inds.dtype.type, np.datetime64):

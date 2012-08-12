@@ -72,6 +72,7 @@ pandas 0.8.2
   - Don't lose tzinfo in DatetimeIndex when shifting by different offset (#1683)
   - Hack to support storing data with a zero-length axis in HDFStore (#1707)
   - Fix DatetimeIndex tz-aware range generation issue (#1674)
+  - Fix method='time' interpolation with intraday data (#1698)
 
 pandas 0.8.1
 ============
