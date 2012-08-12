@@ -1432,6 +1432,18 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         col[subset] = 97
         self.assert_((self.frame.ix[subset, 'B'] == 97).all())
 
+    def test_frame_dict_constructor_empty_series(self):
+        s1 = Series([1,2,3, 4], index=MultiIndex.from_tuples([(1,2),(1,3),
+                                                              (2,2),(2,4)]))
+        s2 = Series([1,2,3,4],
+                    index=MultiIndex.from_tuples([(1,2),(1,3),(3,2),(3,4)]))
+        s3 = Series()
+
+        # it works!
+        df = DataFrame({'foo':s1, 'bar':s2, 'baz':s3})
+        df = DataFrame.from_dict({'foo':s1, 'baz':s3, 'bar':s2})
+
+
 if __name__ == '__main__':
 
     # unittest.main()

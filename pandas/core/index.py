@@ -2285,6 +2285,8 @@ class MultiIndex(Index):
 
     def _assert_can_do_setop(self, other):
         if not isinstance(other, MultiIndex):
+            if len(other) == 0:
+                return True
             raise TypeError('can only call with other hierarchical '
                             'index objects')
 
