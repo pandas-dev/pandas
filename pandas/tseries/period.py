@@ -691,6 +691,9 @@ class PeriodIndex(Int64Index):
         result.freq = freq
         return result
 
+    def to_datetime(self, dayfirst=False):
+        return self.to_timestamp()
+
     year = _field_accessor('year', 0)
     month = _field_accessor('month', 3)
     day = _field_accessor('day', 4)

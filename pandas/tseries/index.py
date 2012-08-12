@@ -499,6 +499,9 @@ class DatetimeIndex(Int64Index):
         except (KeyError, TypeError):
             return False
 
+    def to_datetime(self, dayfirst=False):
+        return self.copy()
+
     def groupby(self, f):
         objs = self.asobject
         return _algos.groupby_object(objs, f)

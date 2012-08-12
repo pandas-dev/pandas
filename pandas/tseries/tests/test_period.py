@@ -12,6 +12,7 @@ import unittest
 
 from numpy.ma.testutils import assert_equal
 
+from pandas import Timestamp
 from pandas.tseries.frequencies import MONTHS, DAYS
 from pandas.tseries.period import Period, PeriodIndex, period_range
 from pandas.tseries.index import DatetimeIndex, date_range
@@ -1779,6 +1780,12 @@ class TestPeriodIndex(TestCase):
         self.assert_(isinstance(s.index.levels[0], PeriodIndex))
 
         self.assert_(isinstance(s.index.values[0][0], Period))
+
+    def test_to_datetime_1703(self):
+        index = period_range('1/1/2012',periods=4,freq='D')
+
+        result = index.to_datetime()
+        self.assertEquals(result[0], Timestamp('1/1/2012'))
 
 def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
