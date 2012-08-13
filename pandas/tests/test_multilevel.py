@@ -1456,6 +1456,17 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         self.assert_(isinstance(result, Series))
         assert_series_equal(result, exp)
 
+    def test_nonunique_assignment_1750(self):
+        df = DataFrame([[1, 1, "x", "X"], [1, 1, "y", "Y"], [1, 2, "z", "Z"]],
+                       columns=list("ABCD"))
+
+        df = df.set_index(['A', 'B'])
+        ix = MultiIndex.from_tuples([(1, 1)])
+
+        df.ix[ix, "C"] = '_'
+
+        self.assert_((df.xs((1, 1))['C'] == '_').all())
+
 if __name__ == '__main__':
 
     # unittest.main()

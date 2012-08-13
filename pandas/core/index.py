@@ -2022,7 +2022,10 @@ class MultiIndex(Index):
         """
         if isinstance(key, tuple):
             if len(key) == self.nlevels:
-                return self._engine.get_loc(key)
+                if self.is_unique:
+                    return self._engine.get_loc(key)
+                else:
+                    return slice(*self.slice_locs(key, key))
             else:
                 # partial selection
                 result = slice(*self.slice_locs(key, key))
@@ -2078,7 +2081,11 @@ class MultiIndex(Index):
 
             if not any(isinstance(k, slice) for k in key):
                 if len(key) == self.nlevels:
-                    return self._engine.get_loc(key), None
+                    if self.is_unique:
+                        return self._engine.get_loc(key), None
+                    else:
+                        indexer = slice(*self.slice_locs(key, key))
+                        return indexer, self[indexer]
                 else:
                     # partial selection
                     indexer = slice(*self.slice_locs(key, key))
