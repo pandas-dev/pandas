@@ -1467,6 +1467,23 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         self.assert_((df.xs((1, 1))['C'] == '_').all())
 
+    def test_indexing_over_hashtable_size_cutoff(self):
+        n = 10000
+
+        import pandas.lib as lib
+        old_cutoff = lib._SIZE_CUTOFF
+        lib._SIZE_CUTOFF = 20000
+
+        s = Series(np.arange(n),
+                   MultiIndex.from_arrays((["a"] * n, np.arange(n))))
+
+        # hai it works!
+        self.assertEquals(s[("a", 5)], 5)
+        self.assertEquals(s[("a", 6)], 6)
+        self.assertEquals(s[("a", 7)], 7)
+
+        lib._SIZE_CUTOFF = old_cutoff
+
 if __name__ == '__main__':
 
     # unittest.main()
