@@ -91,6 +91,18 @@ class TestUtilityFunctions(unittest.TestCase):
 		self.assertTrue(self.data is last.data)
 		self.assertTrue(rplot.sequence_layers([layer1])[0] is layer1)
 
+class TestTrellis(unittest.TestCase):
+	def setUp(self):
+		path = os.path.join(curpath(), 'data/tips.csv')
+		self.data = read_csv(path, sep=',')
+		layer1 = rplot.Layer(self.data)
+		layer2 = rplot.GeomPoint(x='total_bill', y='tip')
+		layer3 = rplot.GeomPolyFit(2)
+		self.layers = [layer1, layer2, layer3]
+		self.trellis1 = rplot.TrellisGrid(['sex', 'smoker'])
+		self.trellis2 = rplot.TrellisGrid(['sex', '.'])
+		self.trellis3 = rplot.TrellisGrid(['.', 'smoker'])
+
 class TestScaleGradient(unittest.TestCase):
 	def setUp(self):
 		path = os.path.join(curpath(), 'data/iris.csv')
