@@ -145,8 +145,6 @@ class TimeGrouper(CustomGrouper):
             day_nanos = _delta_to_nanoseconds(timedelta(1))
             if self.closed == 'right':
                 bin_edges = bin_edges + day_nanos - 1
-            else:
-                bin_edges = bin_edges + day_nanos
 
             # intraday values on last day
             if bin_edges[-2] > ax_values[-1]:

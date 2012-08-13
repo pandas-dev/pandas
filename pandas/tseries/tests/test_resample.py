@@ -455,8 +455,8 @@ class TestResample(unittest.TestCase):
         tm.assert_frame_equal(result, expected)
 
         result = df.resample('M', closed='left')
-        expected = df.resample('M', kind='period', closed='left').to_timestamp()
-        tm.assert_frame_equal(result, expected)
+        exp = df.tshift(1, freq='D').resample('M', kind='period').to_timestamp()
+        tm.assert_frame_equal(result, exp)
 
         rng = date_range('1/1/2012', '4/1/2013', freq='10min')
         df = DataFrame(rng.month, index=rng)
@@ -466,7 +466,9 @@ class TestResample(unittest.TestCase):
         tm.assert_frame_equal(result, expected)
 
         result = df.resample('Q', closed='left')
-        expected = df.resample('Q', kind='period', closed='left').to_timestamp()
+        expected = df.tshift(1, freq='D').resample('Q', kind='period',
+                                                   closed='left')
+        expected = expected.to_timestamp()
         tm.assert_frame_equal(result, expected)
 
         ts = _simple_ts('2012-04-29 23:00', '2012-04-30 5:00', freq='h')
@@ -798,6 +800,17 @@ class TestResamplePeriodIndex(unittest.TestCase):
         result = ts.resample('A')
         exp = ts.to_timestamp().resample('A').to_period()
         assert_series_equal(result, exp)
+
+    def test_resample_weekly_bug_1726(self):
+        # 8/6/12 is a Monday
+        ind = DatetimeIndex(start="8/6/2012", end="8/26/2012", freq="D")
+        n = len(ind)
+        data = [[x] * 5 for x in range(n)]
+        df = DataFrame(data, columns=['open', 'high', 'low', 'close', 'vol'],
+                       index=ind)
+
+        # it works!
+        df.resample('W-MON', how='first', closed='left', label='left')
 
     # def test_monthly_convention_span(self):
     #     rng = period_range('2000-01', periods=3, freq='M')

@@ -47,6 +47,7 @@ pandas 0.8.2
 
   - Fix matplotlib auto-color assignment when no custom spectrum passed. Also
     respect passed color keyword argument (#1711)
+  - Fix resampling logical error with closed='left' (#1726)
   - Fix critical DatetimeIndex.union bugs (#1730, #1719, #1745, #1702)
   - Fix critical DatetimeIndex.intersection bug with unanchored offsets (#1708)
   - Fix MM-YYYY time series indexing case (#1672)
