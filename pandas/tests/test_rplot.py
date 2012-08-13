@@ -29,6 +29,10 @@ class TestUtilityFunctions(unittest.TestCase):
 	"""
 	Tests for RPlot utility functions.
 	"""
+	def setUp(self):
+		path = os.path.join(curpath(), 'data/iris.csv')
+		self.data = read_csv(path, sep=',')
+
 	def test_make_aes1(self):
 		aes = rplot.make_aes()
 		self.assertTrue(aes['x'] is None)
@@ -73,6 +77,19 @@ class TestUtilityFunctions(unittest.TestCase):
 		for key in layer2.aes.keys():
 			if key != 'size' and key != 'shape':
 				self.assertTrue(layer2.aes[key] is None)
+
+	def test_sequence_layers(self):
+		layer1 = rplot.Layer(self.data)
+		layer2 = rplot.GeomPoint(x='SepalLength', y='SepalWidth', size=rplot.ScaleSize('PetalLength'))
+		layer3 = rplot.GeomPolyFit(2)
+		result = rplot.sequence_layers([layer1, layer2, layer3])
+		self.assertEqual(len(result), 3)
+		last = result[-1]
+		self.assertEqual(last.aes['x'], 'SepalLength')
+		self.assertEqual(last.aes['y'], 'SepalWidth')
+		self.assertTrue(isinstance(last.aes['size'], rplot.ScaleSize))
+		self.assertTrue(self.data is last.data)
+		self.assertTrue(rplot.sequence_layers([layer1])[0] is layer1)
 
 class TestScaleGradient(unittest.TestCase):
 	def setUp(self):
