@@ -116,5 +116,23 @@ class TestScaleGradient2(unittest.TestCase):
 				self.assertTrue(between(g2, g3, g))
 				self.assertTrue(between(b2, b3, b))
 
+class TestScaleRandomColour(unittest.TestCase):
+	def setUp(self):
+		path = os.path.join(curpath(), 'data/iris.csv')
+		self.data = read_csv(path, sep=',')
+		self.colour = rplot.ScaleRandomColour('SepalLength')
+
+	def test_random_colour(self):
+		for index in range(len(self.data)):
+			colour = self.colour(self.data, index)
+			self.assertEqual(len(colour), 3)
+			r, g, b = colour
+			self.assertGreaterEqual(r, 0.0)
+			self.assertGreaterEqual(g, 0.0)			
+			self.assertGreaterEqual(b, 0.0)			
+			self.assertLessEqual(r, 1.0)
+			self.assertLessEqual(g, 1.0)
+			self.assertLessEqual(b, 1.0)		
+
 if __name__ == '__main__':
 	unittest.main()
