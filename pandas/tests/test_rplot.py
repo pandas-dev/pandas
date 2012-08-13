@@ -132,7 +132,14 @@ class TestScaleRandomColour(unittest.TestCase):
 			self.assertGreaterEqual(b, 0.0)			
 			self.assertLessEqual(r, 1.0)
 			self.assertLessEqual(g, 1.0)
-			self.assertLessEqual(b, 1.0)		
+			self.assertLessEqual(b, 1.0)
+
+class ScaleConstant(unittest.TestCase):
+	def test_scale_constant(self):
+		scale = rplot.ScaleConstant(1.0)
+		self.assertEqual(scale(None, None), 1.0)
+		scale = rplot.ScaleConstant("test")
+		self.assertEqual(scale(None, None), "test")
 
 if __name__ == '__main__':
 	unittest.main()
