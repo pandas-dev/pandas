@@ -35,6 +35,12 @@ class _NDFrameIndexer(object):
             return self._getitem_axis(key, axis=0)
 
     def _get_label(self, label, axis=0):
+        # ueber-hack
+        if (isinstance(label, tuple) and
+            isinstance(label[axis], slice)):
+
+            raise IndexingError('no slices here')
+
         try:
             return self.obj.xs(label, axis=axis, copy=False)
         except Exception:

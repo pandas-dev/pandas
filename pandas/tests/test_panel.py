@@ -1087,7 +1087,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         midx = MultiIndex.from_tuples(tuples)
         df = DataFrame(np.random.rand(5,4), index=midx)
         p = df.to_panel()
-        assert_frame_equal(p.minor_xs(2), df.ix[:,2].sort_index())
+        assert_frame_equal(p.minor_xs(2), df.xs(2, level=1).sort_index())
 
     def test_to_excel(self):
         try:

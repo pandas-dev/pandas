@@ -87,6 +87,7 @@ pandas 0.8.2
   - Allow MultiIndex setops with length-0 other type indexes (#1727)
   - Fix handling of DatetimeIndex in DataFrame.to_records (#1720)
   - Fix handling of general objects in isnull on which bool(...) fails (#1749)
+  - Fix .ix indexing with MultiIndex ambiguity (#1678)
 
 pandas 0.8.1
 ============

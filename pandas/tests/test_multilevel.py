@@ -1443,6 +1443,18 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         df = DataFrame({'foo':s1, 'bar':s2, 'baz':s3})
         df = DataFrame.from_dict({'foo':s1, 'baz':s3, 'bar':s2})
 
+    def test_indexing_ambiguity_bug_1678(self):
+        columns = MultiIndex.from_tuples([('Ohio', 'Green'), ('Ohio', 'Red'),
+                                          ('Colorado', 'Green')])
+        index = MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1), ('b', 2)])
+
+        frame = DataFrame(np.arange(12).reshape((4, 3)), index=index,
+                          columns=columns)
+
+        result = frame.ix[:, 1]
+        exp = frame.icol(1)
+        self.assert_(isinstance(result, Series))
+        assert_series_equal(result, exp)
 
 if __name__ == '__main__':
 
