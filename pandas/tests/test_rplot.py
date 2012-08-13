@@ -134,12 +134,29 @@ class TestScaleRandomColour(unittest.TestCase):
 			self.assertLessEqual(g, 1.0)
 			self.assertLessEqual(b, 1.0)
 
-class ScaleConstant(unittest.TestCase):
+class TestScaleConstant(unittest.TestCase):
 	def test_scale_constant(self):
 		scale = rplot.ScaleConstant(1.0)
 		self.assertEqual(scale(None, None), 1.0)
 		scale = rplot.ScaleConstant("test")
 		self.assertEqual(scale(None, None), "test")
+
+class TestScaleSize(unittest.TestCase):
+	def setUp(self):
+		path = os.path.join(curpath(), 'data/iris.csv')
+		self.data = read_csv(path, sep=',')
+		self.scale1 = rplot.ScaleShape('Name')
+		self.scale2 = rplot.ScaleShape('PetalLength')
+
+	def test_scale_size(self):
+		for index in range(len(self.data)):
+			marker = self.scale1(self.data, index)
+			self.assertTrue(marker in ['o', '+', 's', '*', '^', '<', '>', 'v', '|', 'x'])
+
+	def test_scale_overflow(self):
+		with self.assertRaises(ValueError):
+			for index in range(len(self.data)):
+				self.scale2(self.data, index)
 
 if __name__ == '__main__':
 	unittest.main()
