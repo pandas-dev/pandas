@@ -3686,6 +3686,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             rs = df.corr(meth)
             self.assert_(isnull(rs.values).all())
 
+        # dtypes other than float64 #1761
+        df3 = DataFrame({"a":[1,2,3,4], "b":[1,2,3,4]})
+
+        # it works!
+        df3.cov()
+        df3.corr()
+
     def test_cov(self):
         self.frame['A'][:5] = nan
         self.frame['B'][:10] = nan

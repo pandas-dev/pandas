@@ -3895,7 +3895,7 @@ class DataFrame(NDFrame):
         mat = numeric_df.values
 
         if method == 'pearson':
-            correl = lib.nancorr(mat)
+            correl = lib.nancorr(com._ensure_float64(mat))
         else:
             mat = mat.T
             corrf = nanops.get_corr_func(method)
@@ -3931,7 +3931,7 @@ class DataFrame(NDFrame):
         if notnull(mat).all():
             baseCov = np.cov(mat.T)
         else:
-            baseCov = lib.nancorr(mat, cov=True)
+            baseCov = lib.nancorr(com._ensure_float64(mat), cov=True)
 
         return self._constructor(baseCov, index=cols, columns=cols)
 
