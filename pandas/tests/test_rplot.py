@@ -223,9 +223,10 @@ class TestScaleSize(unittest.TestCase):
 			for index in range(len(self.data)):
 				self.scale2(self.data, index)
 
-class TestRPlot1(unittest.TestCase):
-	def setUp(self):
+class TestRPlot(unittest.TestCase):
+	def test_rplot1(self):
 		path = os.path.join(curpath(), 'data/tips.csv')
+		plt.figure()
 		self.data = read_csv(path, sep=',')
 		self.plot = rplot.RPlot(self.data, x='tip', y='total_bill')
 		self.plot + rplot.TrellisGrid(['sex', 'smoker'])
@@ -233,12 +234,9 @@ class TestRPlot1(unittest.TestCase):
 		self.fig = plt.gcf()
 		self.plot.render(self.fig)
 
-	def test_subplots(self):
-		pass
-
-class TestRPlot2(unittest.TestCase):
-	def setUp(self):
+	def test_rplot2(self):
 		path = os.path.join(curpath(), 'data/tips.csv')
+		plt.figure()
 		self.data = read_csv(path, sep=',')
 		self.plot = rplot.RPlot(self.data, x='tip', y='total_bill')
 		self.plot + rplot.TrellisGrid(['.', 'smoker'])
@@ -246,21 +244,15 @@ class TestRPlot2(unittest.TestCase):
 		self.fig = plt.gcf()
 		self.plot.render(self.fig)
 
-	def test_subplots(self):
-		pass
-
-class TestRPlot3(unittest.TestCase):
-	def setUp(self):
+	def test_rplot3(self):
 		path = os.path.join(curpath(), 'data/tips.csv')
+		plt.figure()
 		self.data = read_csv(path, sep=',')
 		self.plot = rplot.RPlot(self.data, x='tip', y='total_bill')
 		self.plot + rplot.TrellisGrid(['sex', '.'])
 		self.plot + rplot.GeomPoint(colour=rplot.ScaleRandomColour('day'), shape=rplot.ScaleShape('size'))
 		self.fig = plt.gcf()
 		self.plot.render(self.fig)
-
-	def test_subplots(self):
-		pass
 
 if __name__ == '__main__':
 	unittest.main()
