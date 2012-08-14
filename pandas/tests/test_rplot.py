@@ -129,6 +129,14 @@ class TestTrellis(unittest.TestCase):
 		self.assertEqual(len(self.trellised3[2]), 1)
 		self.assertEqual(len(self.trellised3[2][0]), 2)
 
+	def test_trellis_cols_rows(self):
+		self.assertEqual(self.trellis1.cols, 2)
+		self.assertEqual(self.trellis1.rows, 2)
+		self.assertEqual(self.trellis2.cols, 1)
+		self.assertEqual(self.trellis2.rows, 2)
+		self.assertEqual(self.trellis3.cols, 2)
+		self.assertEqual(self.trellis3.rows, 1)
+
 class TestScaleGradient(unittest.TestCase):
 	def setUp(self):
 		path = os.path.join(curpath(), 'data/iris.csv')
