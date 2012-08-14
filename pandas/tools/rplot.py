@@ -138,9 +138,9 @@ class ScaleSize(Scale):
 		data: pandas DataFrame
 		index: pandas DataFrame row index
 		"""
-		x = data[column].iget(index)
-		a = float(min(data[column]))
-		b = float(max(data[column]))
+		x = data[self.column].iget(index)
+		a = float(min(data[self.column]))
+		b = float(max(data[self.column]))
 		return self.transform(self.min_size + ((x - a) / (b - a)) * 
 			(self.max_size - self.min_size))
 
