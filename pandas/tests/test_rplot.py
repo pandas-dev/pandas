@@ -232,10 +232,35 @@ class TestRPlot1(unittest.TestCase):
 		self.plot + rplot.GeomPoint(colour=rplot.ScaleRandomColour('day'), shape=rplot.ScaleShape('size'))
 		self.fig = plt.gcf()
 		self.plot.render(self.fig)
-		pdb.set_trace()
 
 	def test_subplots(self):
-		self.assertEqual(len(self.fig.axes), 4)
+		pass
+
+class TestRPlot2(unittest.TestCase):
+	def setUp(self):
+		path = os.path.join(curpath(), 'data/tips.csv')
+		self.data = read_csv(path, sep=',')
+		self.plot = rplot.RPlot(self.data, x='tip', y='total_bill')
+		self.plot + rplot.TrellisGrid(['.', 'smoker'])
+		self.plot + rplot.GeomPoint(colour=rplot.ScaleRandomColour('day'), shape=rplot.ScaleShape('size'))
+		self.fig = plt.gcf()
+		self.plot.render(self.fig)
+
+	def test_subplots(self):
+		pass
+
+class TestRPlot3(unittest.TestCase):
+	def setUp(self):
+		path = os.path.join(curpath(), 'data/tips.csv')
+		self.data = read_csv(path, sep=',')
+		self.plot = rplot.RPlot(self.data, x='tip', y='total_bill')
+		self.plot + rplot.TrellisGrid(['sex', '.'])
+		self.plot + rplot.GeomPoint(colour=rplot.ScaleRandomColour('day'), shape=rplot.ScaleShape('size'))
+		self.fig = plt.gcf()
+		self.plot.render(self.fig)
+
+	def test_subplots(self):
+		pass
 
 if __name__ == '__main__':
 	unittest.main()
