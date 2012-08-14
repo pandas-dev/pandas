@@ -773,7 +773,11 @@ def adjust_subplots(fig, axes, trellis, layers):
 		legend = dictionary_union(legend, layer.legend)
 	patches = []
 	labels = []
-	for key in sorted(legend.keys(), key=lambda tup: (tup[1], tup[3])):
+	if len(legend.keys()[0]) == 2:
+		key_function = lambda tup: (tup[1])
+	else:
+		key_function = lambda tup: (tup[1], tup[3])
+	for key in sorted(legend.keys(), key=key_function):
 		value = legend[key]
 		patches.append(value)
 		if len(key) == 2:
@@ -834,6 +838,28 @@ class RPlot:
 			new_layers = sequence_layers(self.layers)
 			for layer in new_layers:
 				layer.work(fig=fig)
+			legend = {}
+			for layer in new_layers:
+				legend = dictionary_union(legend, layer.legend)
+			patches = []
+			labels = []
+			if len(legend.keys()[0]) == 2:
+				key_function = lambda tup: (tup[1])
+			else:
+				key_function = lambda tup: (tup[1], tup[3])
+			for key in sorted(legend.keys(), key=key_function):
+				value = legend[key]
+				patches.append(value)
+				if len(key) == 2:
+					col, val = key
+					labels.append("%s" % str(val))
+				elif len(key) == 4:
+					col1, val1, col2, val2 = key
+					labels.append("%s, %s" % (str(val1), str(val2)))
+				else:
+					raise ValueError("Maximum 2 categorical attributes to display a lengend of")
+			if len(legend):
+				fig.legend(patches, labels, loc='upper right')
 		else:
 			# We have a trellised plot.
 			# First let's remove all other TrellisGrid instances from the layer list, 
