@@ -282,10 +282,10 @@ def make_aes(x=None, y=None, size=None, colour=None, shape=None, alpha=None):
 		pass
 	else:
 		raise ValueError('size mapping should be done through ScaleConstant or ScaleSize')
-	if any([isinstance(colour, scale) for scale in [ScaleConstant, ScaleGradient, ScaleGradient2]]) or colour is None:
+	if any([isinstance(colour, scale) for scale in [ScaleConstant, ScaleGradient, ScaleGradient2, ScaleRandomColour]]) or colour is None:
 		pass
 	else:
-		raise ValueError('colour mapping should be done through ScaleConstant, ScaleGradient or ScaleGradient2')
+		raise ValueError('colour mapping should be done through ScaleConstant, ScaleRandomColour, ScaleGradient or ScaleGradient2')
 	if any([isinstance(shape, scale) for scale in [ScaleConstant, ScaleShape]]) or shape is None:
 		pass
 	else:

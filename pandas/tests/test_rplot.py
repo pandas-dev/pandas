@@ -2,6 +2,8 @@ import unittest
 import pandas.tools.rplot as rplot
 from pandas import read_csv
 import os
+import matplotlib.pyplot as plt
+import pdb
 
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))
@@ -220,6 +222,20 @@ class TestScaleSize(unittest.TestCase):
 		with self.assertRaises(ValueError):
 			for index in range(len(self.data)):
 				self.scale2(self.data, index)
+
+class TestRPlot1(unittest.TestCase):
+	def setUp(self):
+		path = os.path.join(curpath(), 'data/tips.csv')
+		self.data = read_csv(path, sep=',')
+		self.plot = rplot.RPlot(self.data, x='tip', y='total_bill')
+		self.plot + rplot.TrellisGrid(['sex', 'smoker'])
+		self.plot + rplot.GeomPoint(colour=rplot.ScaleRandomColour('day'), shape=rplot.ScaleShape('size'))
+		self.fig = plt.gcf()
+		self.plot.render(self.fig)
+		pdb.set_trace()
+
+	def test_subplots(self):
+		self.assertEqual(len(self.fig.axes), 4)
 
 if __name__ == '__main__':
 	unittest.main()
