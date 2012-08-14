@@ -98,10 +98,36 @@ class TestTrellis(unittest.TestCase):
 		layer1 = rplot.Layer(self.data)
 		layer2 = rplot.GeomPoint(x='total_bill', y='tip')
 		layer3 = rplot.GeomPolyFit(2)
-		self.layers = [layer1, layer2, layer3]
+		self.layers = rplot.sequence_layers([layer1, layer2, layer3])
 		self.trellis1 = rplot.TrellisGrid(['sex', 'smoker'])
 		self.trellis2 = rplot.TrellisGrid(['sex', '.'])
 		self.trellis3 = rplot.TrellisGrid(['.', 'smoker'])
+		self.trellised1 = self.trellis1.trellis(self.layers)
+		self.trellised2 = self.trellis2.trellis(self.layers)
+		self.trellised3 = self.trellis3.trellis(self.layers)
+
+	def test_grid_sizes(self):
+		self.assertEqual(len(self.trellised1), 3)
+		self.assertEqual(len(self.trellised2), 3)
+		self.assertEqual(len(self.trellised3), 3)
+		self.assertEqual(len(self.trellised1[0]), 2)
+		self.assertEqual(len(self.trellised1[0][0]), 2)
+		self.assertEqual(len(self.trellised2[0]), 2)
+		self.assertEqual(len(self.trellised2[0][0]), 1)
+		self.assertEqual(len(self.trellised3[0]), 1)
+		self.assertEqual(len(self.trellised3[0][0]), 2)
+		self.assertEqual(len(self.trellised1[1]), 2)
+		self.assertEqual(len(self.trellised1[1][0]), 2)
+		self.assertEqual(len(self.trellised2[1]), 2)
+		self.assertEqual(len(self.trellised2[1][0]), 1)
+		self.assertEqual(len(self.trellised3[1]), 1)
+		self.assertEqual(len(self.trellised3[1][0]), 2)
+		self.assertEqual(len(self.trellised1[2]), 2)
+		self.assertEqual(len(self.trellised1[2][0]), 2)
+		self.assertEqual(len(self.trellised2[2]), 2)
+		self.assertEqual(len(self.trellised2[2][0]), 1)
+		self.assertEqual(len(self.trellised3[2]), 1)
+		self.assertEqual(len(self.trellised3[2][0]), 2)
 
 class TestScaleGradient(unittest.TestCase):
 	def setUp(self):
