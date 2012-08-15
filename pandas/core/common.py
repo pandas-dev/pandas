@@ -844,7 +844,7 @@ def console_encode(value):
 
     try:
         import sys
-        return value.encode(sys.stdin.encoding, 'replace')
+        return value.encode(sys.stdin.encoding or 'utf-8', 'replace')
     except (AttributeError, TypeError):
         return value.encode('ascii', 'replace')
 

@@ -297,6 +297,13 @@ class TestTake(unittest.TestCase):
         expected[:, [2, 4]] = np.nan
         tm.assert_almost_equal(result, expected)
 
+    def test_console_encode(self):
+
+        # stub test
+        # need to mock-out sys.stdin.encoding=None for real test
+        result = com.console_encode(u"\u05d0")
+        assert not result == '?'
+
 
 if __name__ == '__main__':
     import nose
