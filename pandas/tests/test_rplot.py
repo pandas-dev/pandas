@@ -229,8 +229,8 @@ class TestRPlot(unittest.TestCase):
 		plt.figure()
 		self.data = read_csv(path, sep=',')
 		self.plot = rplot.RPlot(self.data, x='tip', y='total_bill')
-		self.plot + rplot.TrellisGrid(['sex', 'smoker'])
-		self.plot + rplot.GeomPoint(colour=rplot.ScaleRandomColour('day'), shape=rplot.ScaleShape('size'))
+		self.plot.add(rplot.TrellisGrid(['sex', 'smoker']))
+		self.plot.add(rplot.GeomPoint(colour=rplot.ScaleRandomColour('day'), shape=rplot.ScaleShape('size')))
 		self.fig = plt.gcf()
 		self.plot.render(self.fig)
 
@@ -239,8 +239,8 @@ class TestRPlot(unittest.TestCase):
 		plt.figure()
 		self.data = read_csv(path, sep=',')
 		self.plot = rplot.RPlot(self.data, x='tip', y='total_bill')
-		self.plot + rplot.TrellisGrid(['.', 'smoker'])
-		self.plot + rplot.GeomPoint(colour=rplot.ScaleRandomColour('day'), shape=rplot.ScaleShape('size'))
+		self.plot.add(rplot.TrellisGrid(['.', 'smoker']))
+		self.plot.add(rplot.GeomPoint(colour=rplot.ScaleRandomColour('day'), shape=rplot.ScaleShape('size')))
 		self.fig = plt.gcf()
 		self.plot.render(self.fig)
 
@@ -249,8 +249,8 @@ class TestRPlot(unittest.TestCase):
 		plt.figure()
 		self.data = read_csv(path, sep=',')
 		self.plot = rplot.RPlot(self.data, x='tip', y='total_bill')
-		self.plot + rplot.TrellisGrid(['sex', '.'])
-		self.plot + rplot.GeomPoint(colour=rplot.ScaleRandomColour('day'), shape=rplot.ScaleShape('size'))
+		self.plot.add(rplot.TrellisGrid(['sex', '.']))
+		self.plot.add(rplot.GeomPoint(colour=rplot.ScaleRandomColour('day'), shape=rplot.ScaleShape('size')))
 		self.fig = plt.gcf()
 		self.plot.render(self.fig)
 
@@ -259,9 +259,9 @@ class TestRPlot(unittest.TestCase):
 		plt.figure()
 		self.data = read_csv(path, sep=',')
 		plot = rplot.RPlot(self.data, x='SepalLength', y='SepalWidth')
-		plot + rplot.GeomPoint(colour=rplot.ScaleGradient('PetalLength', colour1=(0.0, 1.0, 0.5), colour2=(1.0, 0.0, 0.5)), 
+		plot.add(rplot.GeomPoint(colour=rplot.ScaleGradient('PetalLength', colour1=(0.0, 1.0, 0.5), colour2=(1.0, 0.0, 0.5)), 
 			size=rplot.ScaleSize('PetalWidth', min_size=10.0, max_size=200.0),
-			shape=rplot.ScaleShape('Name'))
+			shape=rplot.ScaleShape('Name')))
 		self.fig = plt.gcf()
 		plot.render(self.fig)
 

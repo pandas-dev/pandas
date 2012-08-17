@@ -808,16 +808,16 @@ class RPlot:
 		self.layers = [Layer(data, **default_aes(x=x, y=y))]
 		trellised = False
 
-	def __add__(self, other):
+	def add(self, layer):
 		"""Add a layer to RPlot instance.
 
 		Parameters:
 		-----------
-		other: Layer instance
+		layer: Layer instance
 		"""
-		if not isinstance(other, Layer):
+		if not isinstance(layer, Layer):
 			raise TypeError("The operand on the right side of + must be a Layer instance")
-		self.layers.append(other)
+		self.layers.append(layer)
 
 	def render(self, fig=None):
 		"""Render all the layers on a matplotlib figure.
