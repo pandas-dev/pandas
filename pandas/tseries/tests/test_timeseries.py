@@ -1304,6 +1304,17 @@ class TestDatetimeIndex(unittest.TestCase):
         result = a.append(c)
         self.assert_((result['B'] == dr).all())
 
+    def test_isin(self):
+        index = tm.makeDateIndex(4)
+        result = index.isin(index)
+        self.assert_(result.all())
+
+        result = index.isin(list(index))
+        self.assert_(result.all())
+
+        assert_almost_equal(index.isin([index[2], 5]),
+                            [False, False, True, False])
+
 class TestLegacySupport(unittest.TestCase):
 
     @classmethod

@@ -93,6 +93,7 @@ pandas 0.8.2
   - Basic indexing now works on MultiIndex with > 1000000 elements, regression
     from earlier version of pandas (#1757)
   - Handle non-float64 dtypes in fast DataFrame.corr/cov code paths (#1761)
+  - Fix DatetimeIndex.isin to function properly (#1763)
 
 pandas 0.8.1
 ============

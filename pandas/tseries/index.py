@@ -499,6 +499,28 @@ class DatetimeIndex(Int64Index):
         except (KeyError, TypeError):
             return False
 
+    def isin(self, values):
+        """
+        Compute boolean array of whether each index value is found in the
+        passed set of values
+
+        Parameters
+        ----------
+        values : set or sequence of values
+
+        Returns
+        -------
+        is_contained : ndarray (boolean dtype)
+        """
+        if not isinstance(values, DatetimeIndex):
+            try:
+                values = DatetimeIndex(values)
+            except ValueError:
+                return self.asobject.isin(values)
+
+        value_set = set(values.asi8)
+        return lib.ismember(self.asi8, value_set)
+
     def to_datetime(self, dayfirst=False):
         return self.copy()
 
