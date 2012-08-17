@@ -773,7 +773,9 @@ def adjust_subplots(fig, axes, trellis, layers):
 		legend = dictionary_union(legend, layer.legend)
 	patches = []
 	labels = []
-	if len(legend.keys()[0]) == 2:
+	if len(legend.keys()) == 0:
+		key_function = lambda tup: tup
+	elif len(legend.keys()[0]) == 2:
 		key_function = lambda tup: (tup[1])
 	else:
 		key_function = lambda tup: (tup[1], tup[3])
@@ -843,7 +845,9 @@ class RPlot:
 				legend = dictionary_union(legend, layer.legend)
 			patches = []
 			labels = []
-			if len(legend.keys()[0]) == 2:
+			if len(legend.keys()) == 0:
+				key_function = lambda tup: tup
+			elif len(legend.keys()[0]) == 2:
 				key_function = lambda tup: (tup[1])
 			else:
 				key_function = lambda tup: (tup[1], tup[3])
