@@ -11,7 +11,6 @@ import urllib2
 import time
 
 from zipfile import ZipFile
-from BeautifulSoup import BeautifulSoup
 from pandas.util.py3compat import StringIO, BytesIO, bytes_to_str
 
 from pandas import DataFrame, read_csv, concat
@@ -225,7 +224,7 @@ def _parse_options_data(table):
     return TextParser(data, names=header).get_chunk()
 
 
-class Options():
+class Options(object):
     """
     This class fetches call/put data for a given stock/exipry month.
 
@@ -283,6 +282,7 @@ class Options():
         put_data: pandas.DataFrame
             A DataFrame with call options data.
         """
+        from BeautifulSoup import BeautifulSoup
 
         mon_in = month if len(str(month)) == 2 else str('0' + str(month))
 
@@ -320,6 +320,7 @@ class Options():
         call_data: pandas.DataFrame
             A DataFrame with call options data.
         """
+        from BeautifulSoup import BeautifulSoup
 
         mon_in = month if len(str(month)) == 2 else str('0' + str(month))
 
@@ -355,6 +356,7 @@ class Options():
         put_data: pandas.DataFrame
             A DataFrame with call options data.
         """
+        from BeautifulSoup import BeautifulSoup
 
         mon_in = month if len(str(month)) == 2 else str('0' + str(month))
 
