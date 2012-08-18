@@ -567,6 +567,12 @@ cpdef convert_to_tsobject(object ts, object tz=None):
 cdef inline bint _is_utc(object tz):
     return tz is UTC or isinstance(tz, _du_utc)
 
+cdef inline object _get_zone(object tz):
+    if _is_utc(tz):
+        return 'UTC'
+    else:
+        return tz.zone
+
 cdef int64_t _NS_LOWER_BOUND = -9223285636854775809LL
 cdef int64_t _NS_UPPER_BOUND = -9223372036854775807LL
 
@@ -647,6 +653,42 @@ cdef inline _string_to_dts(object val, pandas_datetimestruct* dts):
                                      dts, &islocal, &out_bestunit, &special)
     if result == -1:
         raise ValueError('Unable to parse %s' % str(val))
+
+def datetime_to_datetime64(ndarray[object] values):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        object val, inferred_tz = None
+        ndarray[int64_t] iresult
+        pandas_datetimestruct dts
+        _TSObject _ts
+
+    result = np.empty(n, dtype='M8[ns]')
+    iresult = result.view('i8')
+    for i in range(n):
+        val = values[i]
+        if util._checknull(val):
+            iresult[i] = iNaT
+        elif PyDateTime_Check(val):
+            if val.tzinfo is not None:
+                if inferred_tz is not None:
+                    if _get_zone(val.tzinfo) != inferred_tz:
+                        raise ValueError('Array must be all same time zone')
+                else:
+                    inferred_tz = _get_zone(val.tzinfo)
+
+                _ts = convert_to_tsobject(val)
+                iresult[i] = _ts.value
+                _check_dts_bounds(iresult[i], &_ts.dts)
+            else:
+                if inferred_tz is not None:
+                    raise ValueError('Cannot mix tz-aware with tz-naive values')
+                iresult[i] = _pydatetime_to_dts(val, &dts)
+                _check_dts_bounds(iresult[i], &dts)
+        else:
+            raise TypeError('Unrecognized value type: %s' % type(val))
+
+    return result, inferred_tz
+
 
 def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                       format=None, utc=None):

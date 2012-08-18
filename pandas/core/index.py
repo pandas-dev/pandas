@@ -3,13 +3,11 @@
 from datetime import time
 
 from itertools import izip
-import weakref
 
 import numpy as np
 
 from pandas.core.common import ndtake
 from pandas.util.decorators import cache_readonly
-from pandas.util import py3compat
 import pandas.core.common as com
 import pandas.lib as lib
 import pandas._algos as _algos

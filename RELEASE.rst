@@ -94,6 +94,8 @@ pandas 0.8.2
     from earlier version of pandas (#1757)
   - Handle non-float64 dtypes in fast DataFrame.corr/cov code paths (#1761)
   - Fix DatetimeIndex.isin to function properly (#1763)
+  - Fix conversion of array of tz-aware datetime.datetime to DatetimeIndex with
+    right time zone (#1777)
 
 pandas 0.8.1
 ============

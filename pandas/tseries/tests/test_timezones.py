@@ -361,8 +361,8 @@ class TestTimeZoneSupport(unittest.TestCase):
                  datetime(2000, 1, 3)]
 
         dates_aware = [tz.localize(x) for x in dates]
-
-        self.assertRaises(Exception, to_datetime, dates_aware)
+        result = to_datetime(dates_aware)
+        self.assert_(result.tz.zone == 'US/Eastern')
 
         converted = to_datetime(dates_aware, utc=True)
         ex_vals = [Timestamp(x).value for x in dates_aware]
@@ -417,6 +417,12 @@ class TestTimeZoneSupport(unittest.TestCase):
         index = DatetimeIndex([datetime(2012, 1, 1)], tz='EST')
         index.hour
         index[0]
+
+    def test_tzaware_datetime_to_index(self):
+        d = [datetime(2012, 8, 19, tzinfo=pytz.timezone('US/Eastern'))]
+
+        index = DatetimeIndex(d)
+        self.assert_(index.tz.zone == 'US/Eastern')
 
 class TestTimeZones(unittest.TestCase):
 

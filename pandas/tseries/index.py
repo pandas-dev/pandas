@@ -197,7 +197,11 @@ class DatetimeIndex(Int64Index):
             subarr = _str_to_dt_array(data, offset)
         elif issubclass(data.dtype.type, np.datetime64):
             if isinstance(data, DatetimeIndex):
+                if tz is None:
+                    tz = data.tz
+
                 subarr = data.values
+
                 if offset is None:
                     offset = data.offset
                     verify_integrity = False

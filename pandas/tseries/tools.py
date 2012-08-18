@@ -62,25 +62,34 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True):
     """
     from pandas.core.series import Series
     from pandas.tseries.index import DatetimeIndex
+
+    def _convert_f(arg):
+        arg = com._ensure_object(arg)
+
+        try:
+            result = lib.array_to_datetime(arg, raise_=errors == 'raise',
+                                           utc=utc, dayfirst=dayfirst)
+            if com.is_datetime64_dtype(result) and box:
+                result = DatetimeIndex(result, tz='utc' if utc else None)
+            return result
+        except ValueError, e:
+            try:
+                values, tz = lib.datetime_to_datetime64(arg)
+                return DatetimeIndex(values, tz=tz)
+            except (ValueError, TypeError):
+                raise e
+
     if arg is None:
         return arg
     elif isinstance(arg, datetime):
         return arg
     elif isinstance(arg, Series):
-        values = lib.array_to_datetime(com._ensure_object(arg.values),
-                                       raise_=errors == 'raise',
-                                       utc=utc,
-                                       dayfirst=dayfirst)
+        values = _convert_f(arg.values)
         return Series(values, index=arg.index, name=arg.name)
     elif isinstance(arg, (np.ndarray, list)):
         if isinstance(arg, list):
             arg = np.array(arg, dtype='O')
-        result = lib.array_to_datetime(com._ensure_object(arg),
-                                       raise_=errors == 'raise',
-                                       utc=utc,
-                                       dayfirst=dayfirst)
-        if com.is_datetime64_dtype(result) and box:
-            result = DatetimeIndex(result, tz='utc' if utc else None)
+        result = _convert_f(arg)
         return result
     try:
         if not arg:
