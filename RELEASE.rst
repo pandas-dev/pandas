@@ -96,6 +96,7 @@ pandas 0.8.2
   - Fix DatetimeIndex.isin to function properly (#1763)
   - Fix conversion of array of tz-aware datetime.datetime to DatetimeIndex with
     right time zone (#1777)
+  - Fix DST issues with generating anchored date ranges (#1778)
 
 pandas 0.8.1
 ============

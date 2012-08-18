@@ -260,6 +260,9 @@ class DatetimeIndex(Int64Index):
     @classmethod
     def _generate(cls, start, end, periods, name, offset,
                   tz=None, normalize=False):
+        if com._count_not_none(start, end, periods) < 2:
+            raise ValueError('Must specify two of start, end, or periods')
+
         _normalized = True
 
         if start is not None:
@@ -275,22 +278,7 @@ class DatetimeIndex(Int64Index):
         elif inferred_tz is not None:
             tz = inferred_tz
 
-        if inferred_tz is None and tz is not None:
-            # naive dates
-            if start is not None and start.tz is None:
-                start = start.tz_localize(tz)
-
-            if end is not None and end.tz is None:
-                end = end.tz_localize(tz)
-        elif inferred_tz is not None:
-            pass
-
-        if start and end:
-            if start.tz is None and end.tz is not None:
-                start = start.tz_localize(end.tz)
-
-            if end.tz is None and start.tz is not None:
-                end = end.tz_localize(start.tz)
+        tz = tools._maybe_get_tz(tz)
 
         if start is not None:
             if normalize:
@@ -306,18 +294,59 @@ class DatetimeIndex(Int64Index):
             else:
                 _normalized = _normalized and end.time() == _midnight
 
-        tz = tools._maybe_get_tz(tz)
+        if hasattr(offset, 'delta'):
+            if inferred_tz is None and tz is not None:
+                # naive dates
+                if start is not None and start.tz is None:
+                    start = start.tz_localize(tz)
 
-        if com._count_not_none(start, end, periods) < 2:
-            raise ValueError('Must specify two of start, end, or periods')
+                if end is not None and end.tz is None:
+                    end = end.tz_localize(tz)
 
-        if (offset._should_cache() and
-            not (offset._normalize_cache and not _normalized) and
-            _naive_in_cache_range(start, end)):
-            index = cls._cached_range(start, end, periods=periods,
-                                      offset=offset, name=name)
+            if start and end:
+                if start.tz is None and end.tz is not None:
+                    start = start.tz_localize(end.tz)
+
+                if end.tz is None and start.tz is not None:
+                    end = end.tz_localize(start.tz)
+
+
+            if (offset._should_cache() and
+                not (offset._normalize_cache and not _normalized) and
+                _naive_in_cache_range(start, end)):
+                index = cls._cached_range(start, end, periods=periods,
+                                          offset=offset, name=name)
+            else:
+                index = _generate_regular_range(start, end, periods, offset)
+
         else:
-            index = _generate_regular_range(start, end, periods, offset)
+
+            if inferred_tz is None and tz is not None:
+                # naive dates
+                if start is not None and start.tz is not None:
+                    start = start.replace(tzinfo=None)
+
+                if end is not None and end.tz is not None:
+                    end = end.replace(tzinfo=None)
+
+            if start and end:
+                if start.tz is None and end.tz is not None:
+                    end = end.replace(tzinfo=None)
+
+                if end.tz is None and start.tz is not None:
+                    start = start.replace(tzinfo=None)
+
+            if (offset._should_cache() and
+                not (offset._normalize_cache and not _normalized) and
+                _naive_in_cache_range(start, end)):
+                index = cls._cached_range(start, end, periods=periods,
+                                          offset=offset, name=name)
+            else:
+                index = _generate_regular_range(start, end, periods, offset)
+
+            if tz is not None and getattr(index, 'tz', None) is None:
+                index = lib.tz_localize_to_utc(com._ensure_int64(index), tz)
+                index = index.view(_NS_DTYPE)
 
         index = index.view(cls)
         index.name = name
@@ -346,6 +375,9 @@ class DatetimeIndex(Int64Index):
 
     @classmethod
     def _simple_new(cls, values, name, freq=None, tz=None):
+        if values.dtype != _NS_DTYPE:
+            values = com._ensure_int64(values).view(_NS_DTYPE)
+
         result = values.view(cls)
         result.name = name
         result.offset = freq
@@ -1348,12 +1380,18 @@ def _generate_regular_range(start, end, periods, offset):
         data = np.arange(b, e, stride, dtype=np.int64)
         data = data.view(_NS_DTYPE)
     else:
+        if isinstance(start, Timestamp):
+            start = start.to_pydatetime()
+
+        if isinstance(end, Timestamp):
+            end = end.to_pydatetime()
+
         xdr = generate_range(start=start, end=end,
-            periods=periods, offset=offset)
+                             periods=periods, offset=offset)
 
         dates = list(xdr)
-        utc = len(dates) > 0 and dates[0].tzinfo is not None
-        data = tools.to_datetime(dates, utc=utc)
+        # utc = len(dates) > 0 and dates[0].tzinfo is not None
+        data = tools.to_datetime(dates)
 
     return data
 

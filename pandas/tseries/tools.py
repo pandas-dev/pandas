@@ -75,7 +75,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True):
         except ValueError, e:
             try:
                 values, tz = lib.datetime_to_datetime64(arg)
-                return DatetimeIndex(values, tz=tz)
+                return DatetimeIndex._simple_new(values, None, tz=tz)
             except (ValueError, TypeError):
                 raise e
 

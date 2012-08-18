@@ -107,12 +107,15 @@ class TimeGrouper(CustomGrouper):
             binner = labels = DatetimeIndex(data=[], freq=self.freq)
             return binner, [], labels
 
-        first, last = _get_range_edges(axis, self.freq, closed=self.closed, base=self.base)
+        first, last = _get_range_edges(axis, self.freq, closed=self.closed,
+                                       base=self.base)
         binner = labels = DatetimeIndex(freq=self.freq, start=first, end=last)
 
         # a little hack
         trimmed = False
-        if len(binner) > 2 and binner[-2] == axis[-1] and self.closed == 'right':
+        if (len(binner) > 2 and binner[-2] == axis[-1] and
+            self.closed == 'right'):
+
             binner = binner[:-1]
             trimmed = True
 

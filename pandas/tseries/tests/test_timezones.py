@@ -165,7 +165,8 @@ class TestTimeZoneSupport(unittest.TestCase):
         self.assertEquals(exp.hour, 1)
         self.assertEquals(rng[1], exp)
 
-        rng = date_range('3/11/2012 00:00', periods=10, freq='H', tz='US/Eastern')
+        rng = date_range('3/11/2012 00:00', periods=10, freq='H',
+                         tz='US/Eastern')
         self.assert_(rng[2].hour == 3)
 
     def test_utc_box_timestamp_and_localize(self):
@@ -423,6 +424,12 @@ class TestTimeZoneSupport(unittest.TestCase):
 
         index = DatetimeIndex(d)
         self.assert_(index.tz.zone == 'US/Eastern')
+
+    def test_date_range_span_dst_transition(self):
+        dr = date_range('03/06/2012 00:00', periods=200, freq='W-FRI',
+                        tz='US/Eastern')
+
+        self.assert_((dr.hour == 0).all())
 
 class TestTimeZones(unittest.TestCase):
 
