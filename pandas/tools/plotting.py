@@ -869,23 +869,26 @@ class LinePlot(MPLPlot):
 
         return (freq is not None) and self._is_dynamic_freq(freq)
 
+    def _get_colors(self):
+        import matplotlib.pyplot as plt
+        cycle = ''.join(plt.rcParams.get('axes.color_cycle', list('bgrcmyk')))
+        has_colors = 'colors' in self.kwds
+        colors = self.kwds.pop('colors', cycle)
+        return has_colors, colors
+
     def _make_plot(self):
         # this is slightly deceptive
         if self.use_index and self._use_dynamic_x():
             data = self._maybe_convert_index(self.data)
             self._make_ts_plot(data, **self.kwds)
         else:
-            import matplotlib.pyplot as plt
-            cycle = ''.join(plt.rcParams.get('axes.color_cycle',
-                                             list('bgrcmyk')))
-            has_colors = 'colors' in self.kwds
-            colors = self.kwds.pop('colors', cycle)
             lines = []
             labels = []
             x = self._get_xticks(convert_period=True)
 
+            has_colors, colors = self._get_colors()
             def _maybe_add_color(kwargs, style, i):
-                if (has_colors and
+                if (not has_colors and
                     (style is None or re.match('[a-z]+', style) is None)):
                     kwargs['color'] = colors[i % len(colors)]
 
@@ -923,19 +926,15 @@ class LinePlot(MPLPlot):
 
     def _make_ts_plot(self, data, **kwargs):
         from pandas.tseries.plotting import tsplot
-        import matplotlib.pyplot as plt
         kwargs = kwargs.copy()
-        cycle = ''.join(plt.rcParams.get('axes.color_cycle', list('bgrcmyk')))
-
-        has_colors = 'colors' in kwargs
-        colors = kwargs.pop('colors', ''.join(cycle))
+        has_colors, colors = self._get_colors()
 
         plotf = self._get_plot_function()
         lines = []
         labels = []
 
         def _maybe_add_color(kwargs, style, i):
-            if (has_colors and
+            if (not has_colors and
                 (style is None or re.match('[a-z]+', style) is None)):
                 kwargs['color'] = colors[i % len(colors)]
 
@@ -948,11 +947,11 @@ class LinePlot(MPLPlot):
             ax = self._get_ax(0) #self.axes[0]
             style = self.style or ''
             label = com._stringify(self.label)
-
-            _maybe_add_color(kwargs, style, 0)
+            kwds = kwargs.copy()
+            _maybe_add_color(kwds, style, 0)
 
             newlines = tsplot(data, plotf, ax=ax, label=label, style=self.style,
-                             **kwargs)
+                             **kwds)
             ax.grid(self.grid)
             lines.append(newlines[0])
             leg_label = to_leg_label(label, 0)
@@ -964,7 +963,7 @@ class LinePlot(MPLPlot):
                 style = self._get_style(i, col)
                 kwds = kwargs.copy()
 
-                _maybe_add_color(kwargs, style, i)
+                _maybe_add_color(kwds, style, i)
 
                 newlines = tsplot(data[col], plotf, ax=ax, label=label,
                                   style=style, **kwds)
