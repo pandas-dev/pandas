@@ -54,6 +54,9 @@ names : array-like
 na_values : list-like or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values
+keep_default_na : bool, default True
+    If na_values are specified and keep_default_na is False the default NaN
+    values are overridden, otherwise they're appended to
 parse_dates : boolean, list of ints or names, list of lists, or dict
     True -> try parsing all columns
     [1, 2, 3] -> try parsing columns 1, 2, 3 each as a separate date column
@@ -199,6 +202,7 @@ def read_csv(filepath_or_buffer,
              names=None,
              skiprows=None,
              na_values=None,
+             keep_default_na=True,
              thousands=None,
              comment=None,
              parse_dates=False,
@@ -218,7 +222,8 @@ def read_csv(filepath_or_buffer,
                 sep=sep, dialect=dialect,
                 header=header, index_col=index_col,
                 names=names, skiprows=skiprows,
-                na_values=na_values, thousands=thousands,
+                na_values=na_values, keep_default_na=keep_default_na,
+                thousands=thousands,
                 comment=comment, parse_dates=parse_dates,
                 keep_date_col=keep_date_col,
                 dayfirst=dayfirst, date_parser=date_parser,
@@ -244,6 +249,7 @@ def read_table(filepath_or_buffer,
                names=None,
                skiprows=None,
                na_values=None,
+               keep_default_na=True,
                thousands=None,
                comment=None,
                parse_dates=False,
@@ -263,7 +269,8 @@ def read_table(filepath_or_buffer,
                 sep=sep, dialect=dialect,
                 header=header, index_col=index_col,
                 names=names, skiprows=skiprows,
-                na_values=na_values, thousands=thousands,
+                na_values=na_values, keep_default_na=keep_default_na,
+                thousands=thousands,
                 comment=comment, parse_dates=parse_dates,
                 keep_date_col=keep_date_col,
                 dayfirst=dayfirst, date_parser=date_parser,
@@ -292,6 +299,7 @@ def read_fwf(filepath_or_buffer,
              names=None,
              skiprows=None,
              na_values=None,
+             keep_default_na=True,
              thousands=None,
              comment=None,
              parse_dates=False,
@@ -311,7 +319,8 @@ def read_fwf(filepath_or_buffer,
                 colspecs=colspecs, widths=widths,
                 header=header, index_col=index_col,
                 names=names, skiprows=skiprows,
-                na_values=na_values, thousands=thousands,
+                na_values=na_values, keep_default_na=keep_default_na,
+                thousands=thousands,
                 comment=comment, parse_dates=parse_dates,
                 keep_date_col=keep_date_col,
                 dayfirst=dayfirst, date_parser=date_parser,
@@ -407,6 +416,7 @@ class TextParser(object):
         Column or columns to use as the (possibly hierarchical) index
     na_values : iterable, default None
         Custom NA values
+    keep_default_na : bool, default True
     thousands : str, default None
         Thousands separator
     comment : str, default None
@@ -425,7 +435,8 @@ class TextParser(object):
     """
 
     def __init__(self, f, delimiter=None, dialect=None, names=None, header=0,
-                 index_col=None, na_values=None, thousands=None,
+                 index_col=None, na_values=None, keep_default_na=True,
+                 thousands=None,
                  comment=None, parse_dates=False, keep_date_col=False,
                  date_parser=None, dayfirst=False,
                  chunksize=None, skiprows=None, skip_footer=0, converters=None,
@@ -467,12 +478,20 @@ class TextParser(object):
 
         assert(self.skip_footer >= 0)
 
-        if na_values is None:
+        self.keep_default_na = keep_default_na
+        if na_values is None and keep_default_na:
             self.na_values = _NA_VALUES
         elif isinstance(na_values, dict):
+            if keep_default_na:
+                for k, v in na_values.iteritems():
+                    v = set(list(v)) | _NA_VALUES
+                    na_values[k] = v
             self.na_values = na_values
         else:
-            self.na_values = set(list(na_values)) | _NA_VALUES
+            na_values = set(list(na_values))
+            if keep_default_na:
+                na_values = na_values | _NA_VALUES
+            self.na_values = na_values
 
         self.thousands = thousands
         self.comment = comment

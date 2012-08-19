@@ -84,9 +84,9 @@ data into a DataFrame object. They can take a number of arguments:
   - ``names``: List of column names to use. If passed, header will be
     implicitly set to None.
   - ``na_values``: optional list of strings to recognize as NaN (missing
-    values), in addition to a default set. If you pass an empty list or an
-    empty list for a particular column, no values (including empty strings)
-    will be considered NA
+    values), either in addition to or in lieu of the default set.
+  - ``keep_default_na``: whether to include the default set of missing values
+    in addition to the ones specified in ``na_values``
   - ``parse_dates``: if True then index will be parsed as dates
     (False by default). You can specify more complicated options to parse
     a subset of columns or a combination of columns into a single date column

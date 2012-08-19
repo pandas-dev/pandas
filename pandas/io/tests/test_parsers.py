@@ -83,11 +83,26 @@ g,7,seven
                                    np.nan, 'seven']})
         assert_frame_equal(xp.reindex(columns=df.columns), df)
 
-        df = read_csv(StringIO(data), na_values={'One': [], 'Three': []})
+        df = read_csv(StringIO(data), na_values={'One': [], 'Three': []},
+                      keep_default_na=False)
         xp = DataFrame({'One' : ['a', 'b', '', 'd', 'e', 'nan', 'g'],
                         'Two' : [1,2,3,4,5,6,7],
                         'Three' : ['one', 'two', 'three', 'nan', 'five',
                                    '', 'seven']})
+        assert_frame_equal(xp.reindex(columns=df.columns), df)
+
+        df = read_csv(StringIO(data), na_values=['a'], keep_default_na=False)
+        xp = DataFrame({'One' : [np.nan, 'b', '', 'd', 'e', 'nan', 'g'],
+                        'Two' : [1, 2, 3, 4, 5, 6, 7],
+                        'Three' : ['one', 'two', 'three', 'nan', 'five', '',
+                                   'seven']})
+        assert_frame_equal(xp.reindex(columns=df.columns), df)
+
+        df = read_csv(StringIO(data), na_values={'One': [], 'Three': []})
+        xp = DataFrame({'One' : ['a', 'b', np.nan, 'd', 'e', np.nan, 'g'],
+                        'Two' : [1,2,3,4,5,6,7],
+                        'Three' : ['one', 'two', 'three', np.nan, 'five',
+                                   np.nan, 'seven']})
         assert_frame_equal(xp.reindex(columns=df.columns), df)
 
 
