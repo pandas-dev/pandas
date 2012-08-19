@@ -19,7 +19,12 @@ __all__ = ['rolling_count', 'rolling_max', 'rolling_min',
            'rolling_corr', 'rolling_var', 'rolling_skew', 'rolling_kurt',
            'rolling_quantile', 'rolling_median', 'rolling_apply',
            'rolling_corr_pairwise',
-           'ewma', 'ewmvar', 'ewmstd', 'ewmvol', 'ewmcorr', 'ewmcov']
+           'ewma', 'ewmvar', 'ewmstd', 'ewmvol', 'ewmcorr', 'ewmcov',
+           'expanding_count', 'expanding_max', 'expanding_min',
+           'expanding_sum', 'expanding_mean', 'expanding_std',
+           'expanding_cov', 'expanding_corr', 'expanding_var',
+           'expanding_skew', 'expanding_kurt', 'expanding_quantile',
+           'expanding_median', 'expanding_apply', 'expanding_corr_pairwise']
 
 #-------------------------------------------------------------------------------
 # Docs
@@ -78,6 +83,24 @@ Returns
 -------
 y : type of input argument
 """
+
+
+_expanding_doc = """
+%s
+
+Parameters
+----------
+%s
+min_periods : int
+    Minimum number of observations in window required to have a value
+freq : None or string alias / date offset object, default=None
+    Frequency to conform to before computing statistic
+
+Returns
+-------
+%s
+"""
+
 
 _type_of_input = "y : type of input argument"
 
@@ -465,3 +488,131 @@ def rolling_apply(arg, window, func, min_periods=None, freq=None,
         return lib.roll_generic(arg, window, minp, func)
     return _rolling_moment(arg, window, call_cython, min_periods,
                            freq=freq, time_rule=time_rule)
+
+
+def _expanding_func(func, desc, check_minp=_use_window):
+    @Substitution(desc, _unary_arg, _type_of_input)
+    @Appender(_expanding_doc)
+    @wraps(func)
+    def f(arg, min_periods=1, freq=None, time_rule=None, **kwargs):
+        window = len(arg)
+
+        def call_cython(arg, window, minp, **kwds):
+            minp = check_minp(minp, window)
+            return func(arg, window, minp, **kwds)
+        return _rolling_moment(arg, window, call_cython, min_periods,
+                               freq=freq, time_rule=time_rule, **kwargs)
+
+    return f
+
+expanding_max = _expanding_func(lib.roll_max2, 'Expanding maximum')
+expanding_min = _expanding_func(lib.roll_min2, 'Expanding minimum')
+expanding_sum = _expanding_func(lib.roll_sum, 'Expanding sum')
+expanding_mean = _expanding_func(lib.roll_mean, 'Expanding mean')
+expanding_median = _expanding_func(lib.roll_median_cython, 'Expanding median')
+
+expanding_std = _expanding_func(_ts_std,
+                                'Unbiased expanding standard deviation',
+                                check_minp=_require_min_periods(2))
+expanding_var = _expanding_func(lib.roll_var, 'Unbiased expanding variance',
+                            check_minp=_require_min_periods(2))
+expanding_skew = _expanding_func(lib.roll_skew, 'Unbiased expanding skewness',
+                             check_minp=_require_min_periods(3))
+expanding_kurt = _expanding_func(lib.roll_kurt, 'Unbiased expanding kurtosis',
+                             check_minp=_require_min_periods(4))
+
+
+def expanding_count(arg, freq=None, time_rule=None):
+    """
+    Expanding count of number of non-NaN observations.
+
+    Parameters
+    ----------
+    arg :  DataFrame or numpy ndarray-like
+    freq : None or string alias / date offset object, default=None
+        Frequency to conform to before computing statistic
+
+    Returns
+    -------
+    expanding_count : type of caller
+    """
+    return rolling_count(arg, len(arg), freq=freq, time_rule=time_rule)
+
+
+def expanding_quantile(arg, quantile, min_periods=1, freq=None,
+                     time_rule=None):
+    """Expanding quantile
+
+    Parameters
+    ----------
+    arg : Series, DataFrame
+    quantile : 0 <= quantile <= 1
+    min_periods : int
+        Minimum number of observations in window required to have a value
+    freq : None or string alias / date offset object, default=None
+        Frequency to conform to before computing statistic
+
+    Returns
+    -------
+    y : type of input argument
+    """
+    return rolling_quantile(arg, len(arg), quantile, min_periods=min_periods,
+                            freq=freq, time_rule=time_rule)
+
+
+@Substitution("Unbiased expanding covariance", _binary_arg_flex, _flex_retval)
+@Appender(_expanding_doc)
+def expanding_cov(arg1, arg2, min_periods=1, time_rule=None):
+    window = max(len(arg1), len(arg2))
+    return rolling_cov(arg1, arg2, window,
+                       min_periods=min_periods, time_rule=time_rule)
+
+
+@Substitution("Expanding sample correlation", _binary_arg_flex, _flex_retval)
+@Appender(_expanding_doc)
+def expanding_corr(arg1, arg2, min_periods=1, time_rule=None):
+    window = max(len(arg1), len(arg2))
+    return rolling_corr(arg1, arg2, window,
+                        min_periods=min_periods, time_rule=time_rule)
+
+
+def expanding_corr_pairwise(df, min_periods=1):
+    """
+    Computes pairwise expanding correlation matrices as Panel whose items are
+    dates
+
+    Parameters
+    ----------
+    df : DataFrame
+    min_periods : int, default 1
+
+    Returns
+    -------
+    correls : Panel
+    """
+
+    window = len(df)
+
+    return rolling_corr_pairwise(df, window, min_periods=min_periods)
+
+
+def expanding_apply(arg, func, min_periods=1, freq=None, time_rule=None):
+    """Generic expanding function application
+
+    Parameters
+    ----------
+    arg : Series, DataFrame
+    func : function
+        Must produce a single value from an ndarray input
+    min_periods : int
+        Minimum number of observations in window required to have a value
+    freq : None or string alias / date offset object, default=None
+        Frequency to conform to before computing statistic
+
+    Returns
+    -------
+    y : type of input argument
+    """
+    window = len(arg)
+    return rolling_apply(arg, window, func, min_periods=min_periods, freq=freq,
+                         time_rule=time_rule)
