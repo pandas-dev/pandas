@@ -138,6 +138,8 @@ class DatetimeIndex(Int64Index):
                 copy=False, name=None, tz=None,
                 verify_integrity=True, normalize=False, **kwds):
 
+        dayfirst = kwds.pop('dayfirst', None)
+        yearfirst = kwds.pop('yearfirst', None)
         warn = False
         if 'offset' in kwds and kwds['offset']:
             freq = kwds['offset']
@@ -188,13 +190,15 @@ class DatetimeIndex(Int64Index):
 
             # try a few ways to make it datetime64
             if lib.is_string_array(data):
-                data = _str_to_dt_array(data, offset)
+                data = _str_to_dt_array(data, offset, dayfirst=dayfirst,
+                                        yearfirst=yearfirst)
             else:
                 data = tools.to_datetime(data)
                 data.offset = offset
 
         if issubclass(data.dtype.type, basestring):
-            subarr = _str_to_dt_array(data, offset)
+            subarr = _str_to_dt_array(data, offset, dayfirst=dayfirst,
+                                      yearfirst=yearfirst)
         elif issubclass(data.dtype.type, np.datetime64):
             if isinstance(data, DatetimeIndex):
                 if tz is None:
@@ -1481,9 +1485,9 @@ def _to_m8(key):
 
 
 
-def _str_to_dt_array(arr, offset=None):
+def _str_to_dt_array(arr, offset=None, dayfirst=None, yearfirst=None):
     def parser(x):
-        result = parse_time_string(x, offset)
+        result = parse_time_string(x, offset, dayfirst=dayfirst, yearfirst=None)
         return result[0]
 
     arr = np.asarray(arr, dtype=object)
@@ -1520,4 +1524,3 @@ def _utc_naive(dt):
         dt = dt.tz_convert('utc').replace(tzinfo=None)
 
     return dt
-

@@ -113,7 +113,7 @@ qpat1 = re.compile(r'(\d)Q(\d\d)')
 qpat2 = re.compile(r'(\d\d)Q(\d)')
 ypat = re.compile(r'(\d\d\d\d)$')
 
-def parse_time_string(arg, freq=None):
+def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     """
     Try hard to parse datetime string, leveraging dateutil plus some extra
     goodies like quarter recognition.
@@ -123,6 +123,10 @@ def parse_time_string(arg, freq=None):
     arg : basestring
     freq : str or DateOffset, default None
         Helps with interpreting time string if supplied
+    dayfirst : bool, default None
+        If None uses default from print_config
+    yearfirst : bool, default None
+        If None uses default from print_config
 
     Returns
     -------
@@ -196,8 +200,10 @@ def parse_time_string(arg, freq=None):
     if mresult:
         return mresult
 
-    dayfirst = print_config.date_dayfirst
-    yearfirst = print_config.date_yearfirst
+    if dayfirst is None:
+        dayfirst = print_config.date_dayfirst
+    if yearfirst is None:
+        yearfirst = print_config.date_yearfirst
 
     try:
         parsed = parse(arg, dayfirst=dayfirst, yearfirst=yearfirst)
@@ -272,4 +278,3 @@ def ole2datetime(oledt):
         raise Exception("Value is outside of acceptable range: %s " % val)
 
     return OLE_TIME_ZERO + timedelta(days=val)
-

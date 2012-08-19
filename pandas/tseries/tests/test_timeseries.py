@@ -1789,6 +1789,11 @@ class TestDatetime64(unittest.TestCase):
         arr = to_datetime(['1/1/2005', '1/2/2005', 'Jan 3, 2005', '2005-01-04'])
         idx6 = DatetimeIndex(arr)
 
+        idx7 = DatetimeIndex(['12/05/2007', '25/01/2008'], dayfirst=True)
+        idx8 = DatetimeIndex(['2007/05/12', '2008/01/25'], dayfirst=False,
+                             yearfirst=True)
+        self.assert_(idx7.equals(idx8))
+
         for other in [idx2, idx3, idx4, idx5, idx6]:
             self.assert_( (idx1.values == other.values).all() )
 
