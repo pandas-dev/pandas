@@ -616,6 +616,16 @@ class TestTSPlot(unittest.TestCase):
         for l in ax.get_lines():
             self.assert_(l.get_xdata().freq == 'D')
 
+        plt.close('all')
+        idxh = date_range('1/1/1999', periods=240, freq='T')
+        idxl = date_range('1/1/1999', periods=4, freq='H')
+        high = Series(np.random.randn(len(idxh)), idxh)
+        low = Series(np.random.randn(len(idxl)), idxl)
+        low.plot()
+        ax = high.plot()
+        for l in ax.get_lines():
+            self.assert_(l.get_xdata().freq == 'T')
+
     @slow
     def test_mixed_freq_irreg_period(self):
         ts = tm.makeTimeSeries()

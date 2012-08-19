@@ -944,6 +944,12 @@ def is_subperiod(source, target):
         return source in ['B', 'H', 'T', 'S']
     elif target == 'D':
         return source in ['D', 'H', 'T', 'S']
+    elif target == 'H':
+        return source in ['H', 'T', 'S']
+    elif target == 'T':
+        return source in ['T', 'S']
+    elif target == 'S':
+        return source in ['S']
 
 def is_superperiod(source, target):
     """
@@ -988,6 +994,12 @@ def is_superperiod(source, target):
         return target in ['D', 'B', 'H', 'T', 'S']
     elif source == 'D':
         return target in ['D', 'B', 'H', 'T', 'S']
+    elif source == 'H':
+        return target in ['H', 'T', 'S']
+    elif source == 'T':
+        return target in ['T', 'S']
+    elif source == 'S':
+        return target in ['S']
 
 def _get_rule_month(source, default='DEC'):
     source = source.upper()
