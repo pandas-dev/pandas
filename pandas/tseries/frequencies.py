@@ -175,7 +175,7 @@ _offset_map = {
     'Q-DEC' : QuarterEnd(startingMonth=12),
 
     # Quarterly - Calendar (Start)
-    # 'QS'     : QuarterBegin(startingMonth=1),
+    'QS'     : QuarterBegin(startingMonth=1),
     'QS-JAN' : QuarterBegin(startingMonth=1),
     'QS-FEB' : QuarterBegin(startingMonth=2),
     'QS-MAR' : QuarterBegin(startingMonth=3),
@@ -194,7 +194,7 @@ _offset_map = {
     'BQ-FEB' : BQuarterEnd(startingMonth=2),
     'BQ-MAR' : BQuarterEnd(startingMonth=3),
 
-    # 'BQ'     : BQuarterEnd(startingMonth=3),
+    'BQ'     : BQuarterEnd(startingMonth=12),
     'BQ-APR' : BQuarterEnd(startingMonth=4),
     'BQ-MAY' : BQuarterEnd(startingMonth=5),
     'BQ-JUN' : BQuarterEnd(startingMonth=6),
