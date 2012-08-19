@@ -1568,6 +1568,27 @@ class TestPeriodIndex(TestCase):
             result = stamps.to_period(freq)
             self.assert_(rng.equals(result))
 
+    def test_to_period_quarterlyish(self):
+        offsets = ['BQ', 'QS', 'BQS']
+        for off in offsets:
+            rng = date_range('01-Jan-2012', periods=8, freq=off)
+            prng = rng.to_period()
+            self.assert_(prng.freq == 'Q-DEC')
+
+    def test_to_period_annualish(self):
+        offsets = ['BA', 'AS', 'BAS']
+        for off in offsets:
+            rng = date_range('01-Jan-2012', periods=8, freq=off)
+            prng = rng.to_period()
+            self.assert_(prng.freq == 'A-DEC')
+
+    def test_to_period_monthish(self):
+        offsets = ['MS', 'EOM', 'BM']
+        for off in offsets:
+            rng = date_range('01-Jan-2012', periods=8, freq=off)
+            prng = rng.to_period()
+            self.assert_(prng.freq == 'M')
+
     def test_no_multiples(self):
         self.assertRaises(ValueError, period_range, '1989Q3', periods=10,
                           freq='2Q')

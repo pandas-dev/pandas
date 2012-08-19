@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas.core.common import isnull
 from pandas.core.index import Index, Int64Index
-from pandas.tseries.frequencies import infer_freq, to_offset
+from pandas.tseries.frequencies import infer_freq, to_offset, get_period_alias
 from pandas.tseries.offsets import DateOffset, generate_range, Tick
 from pandas.tseries.tools import parse_time_string, normalize_date
 from pandas.util.decorators import cache_readonly
@@ -683,7 +683,7 @@ class DatetimeIndex(Int64Index):
             raise ValueError(msg)
 
         if freq is None:
-            freq = self.freqstr
+            freq = get_period_alias(self.freqstr)
 
         return PeriodIndex(self.values, freq=freq)
 
