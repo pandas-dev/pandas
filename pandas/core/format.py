@@ -156,6 +156,7 @@ class DataFrameFormatter(object):
 
     """
 
+    __doc__ = __doc__ if __doc__ else ''
     __doc__ += docstring_to_string
 
     def __init__(self, frame, buf=None, columns=None, col_space=None,
