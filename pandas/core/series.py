@@ -2355,7 +2355,8 @@ copy : boolean, default False
         result.index.name = result.name = None
         return result
 
-    def to_csv(self, path, index=True, sep=",", na_rep='', header=False,
+    def to_csv(self, path, index=True, sep=",", na_rep='',
+               float_format=None, header=False,
                index_label=None, mode='w', nanRep=None, encoding=None):
         """
         Write Series to a comma-separated values (csv) file
@@ -2365,6 +2366,8 @@ copy : boolean, default False
         path : string file path or file handle / StringIO
         na_rep : string, default ''
             Missing data representation
+        float_format : string, default None
+            Format string for floating point numbers
         header : boolean, default False
             Write out series name
         index : boolean, default True
@@ -2382,7 +2385,8 @@ copy : boolean, default False
         """
         from pandas.core.frame import DataFrame
         df = DataFrame(self)
-        df.to_csv(path, index=index, sep=sep, na_rep=na_rep, header=header,
+        df.to_csv(path, index=index, sep=sep, na_rep=na_rep,
+                  float_format=float_format, header=header,
                   index_label=index_label, mode=mode, nanRep=nanRep,
                   encoding=encoding)
 

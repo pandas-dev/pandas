@@ -1032,7 +1032,8 @@ class DataFrame(NDFrame):
     to_wide = deprecate('to_wide', to_panel)
 
     def _helper_csvexcel(self, writer, na_rep=None, cols=None,
-                         header=True, index=True, index_label=None):
+                         header=True, index=True, index_label=None,
+                         float_format=None):
         if cols is None:
             cols = self.columns
 
@@ -1089,13 +1090,15 @@ class DataFrame(NDFrame):
                 val = series[col][j]
                 if isnull(val):
                     val = na_rep
+                if float_format is not None and com.is_float(val):
+                    val = float_format % val
 
                 row_fields.append(val)
 
             writer.writerow(row_fields)
 
-    def to_csv(self, path_or_buf, sep=",", na_rep='', cols=None,
-               header=True, index=True, index_label=None,
+    def to_csv(self, path_or_buf, sep=",", na_rep='', float_format=None,
+               cols=None, header=True, index=True, index_label=None,
                mode='w', nanRep=None, encoding=None):
         """
         Write DataFrame to a comma-separated values (csv) file
@@ -1106,6 +1109,8 @@ class DataFrame(NDFrame):
             File path
         na_rep : string, default ''
             Missing data representation
+        float_format : string, default None
+            Format string for floating point numbers
         cols : sequence, optional
             Columns to write
         header : boolean or list of string, default True
@@ -1143,7 +1148,8 @@ class DataFrame(NDFrame):
                                            delimiter=sep, encoding=encoding)
             else:
                 csvout = csv.writer(f, lineterminator='\n', delimiter=sep)
-            self._helper_csvexcel(csvout, na_rep=na_rep, cols=cols,
+            self._helper_csvexcel(csvout, na_rep=na_rep,
+                                  float_format=float_format, cols=cols,
                                   header=header, index=index,
                                   index_label=index_label)
 
@@ -1152,7 +1158,8 @@ class DataFrame(NDFrame):
                 f.close()
 
     def to_excel(self, excel_writer, sheet_name='sheet1', na_rep='',
-                 cols=None, header=True, index=True, index_label=None):
+                 float_format=None, cols=None, header=True, index=True,
+                 index_label=None):
         """
         Write DataFrame to a excel sheet
 
@@ -1164,6 +1171,8 @@ class DataFrame(NDFrame):
             Name of sheet which will contain DataFrame
         na_rep : string, default ''
             Missing data representation
+        float_format : string, default None
+            Format string for floating point numbers
         cols : sequence, optional
             Columns to write
         header : boolean or list of string, default True
@@ -1192,7 +1201,8 @@ class DataFrame(NDFrame):
             excel_writer = ExcelWriter(excel_writer)
             need_save = True
         excel_writer.cur_sheet = sheet_name
-        self._helper_csvexcel(excel_writer, na_rep=na_rep, cols=cols,
+        self._helper_csvexcel(excel_writer, na_rep=na_rep,
+                              float_format=float_format, cols=cols,
                               header=header, index=index,
                               index_label=index_label)
         if need_save:

@@ -2018,6 +2018,16 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_to_dict(self):
         self.assert_(np.array_equal(Series(self.ts.to_dict()), self.ts))
 
+    def test_to_csv_float_format(self):
+        filename = '__tmp__.csv'
+        ser = Series([0.123456, 0.234567, 0.567567])
+        ser.to_csv(filename, float_format='%.2f')
+
+        rs = Series.from_csv(filename)
+        xp = Series([0.12, 0.23, 0.57])
+        assert_series_equal(rs, xp)
+        os.remove(filename)
+
     def test_clip(self):
         val = self.ts.median()
 
