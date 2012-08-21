@@ -3493,6 +3493,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             os.remove(path)
 
     def test_to_excel_float_format(self):
+        try:
+            import xlwt
+        except ImportError:
+            raise nose.SkipTest
+
         for ext in ['xls', 'xlsx']:
             filename = '__tmp__.' + ext
             df = DataFrame([[0.123456, 0.234567, 0.567567],
