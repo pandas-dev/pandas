@@ -693,7 +693,7 @@ return the number of frequency units between them:
 
 .. ipython:: python
 
-   Period('2012', freq='A-DEC') - Period(2002', freq='A-DEC')
+   Period('2012', freq='A-DEC') - Period('2002', freq='A-DEC')
 
 PeriodIndex and period_range
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
