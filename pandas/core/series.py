@@ -16,7 +16,7 @@ import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _default_index, _maybe_upcast,
-                                _asarray_tuplesafe)
+                                _asarray_tuplesafe, is_integer_dtype)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index, _handle_legacy_indexes)
 from pandas.core.indexing import _SeriesIndexer
@@ -385,6 +385,10 @@ copy : boolean, default False
     @property
     def _constructor(self):
         return Series
+
+    @property
+    def _can_hold_na(self):
+        return not is_integer_dtype(self.dtype)
 
     def __hash__(self):
         raise TypeError('unhashable type')
@@ -2157,6 +2161,9 @@ copy : boolean, default False
         -------
         filled : Series
         """
+        if not self._can_hold_na:
+            return self.copy() if not inplace else self
+
         if value is not None:
             result = self.copy() if not inplace else self
             mask = isnull(self.values)

@@ -2697,6 +2697,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series([True, False, True, False, False, False, True, True])
         assert_series_equal(result, expected)
 
+    def test_fillna_int(self):
+        s = Series(np.random.randint(-100, 100, 50))
+        self.assert_(s.fillna(inplace=True) is s)
+        assert_series_equal(s.fillna(inplace=False), s)
+
 #-------------------------------------------------------------------------------
 # TimeSeries-specific
 
