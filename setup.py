@@ -403,6 +403,14 @@ extensions = [algos_ext, lib_ext, period_ext, sparse_ext]
 if not ISRELEASED:
     extensions.extend([sandbox_ext])
 
+if suffix == '.pyx' and 'setuptools' in sys.modules:
+    # undo dumb setuptools bug clobbering .pyx sources back to .c
+    for ext in extensions:
+        if ext.sources[0].endswith('.c'):
+            root, _ = os.path.splitext(ext.sources[0])
+            ext.sources[0] = root + suffix
+
+
 # if _have_setuptools:
 #     setuptools_kwargs["test_suite"] = "nose.collector"
 
