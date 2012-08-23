@@ -169,10 +169,10 @@ def write_frame(frame, name=None, con=None, flavor='sqlite'):
     data = [tuple(x) for x in frame.values]
     con.executemany(insert_sql, data)
 
-def get_sqlite_schema(frame, name, dtypes=None):
+def get_sqlite_schema(frame, name, dtypes=None, keys=None):
     template = """
 CREATE TABLE %(name)s (
-  %(columns)s
+  %(columns)s%(keystr)s
 );"""
 
     column_types = []
@@ -195,7 +195,12 @@ CREATE TABLE %(name)s (
 
     columns = ',\n  '.join('%s %s' % x for x in column_types)
 
-    return template % {'name' : name, 'columns' : columns}
+    keystr = ''
+    if keys is not None:
+        if isinstance(keys, basestring):
+            keys = (keys,)
+        keystr = ', PRIMARY KEY (%s)' % ','.join(keys)
+    return template % {'name' : name, 'columns' : columns, 'keystr' : keystr}
 
 
 

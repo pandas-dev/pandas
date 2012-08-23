@@ -60,6 +60,12 @@ class TestSQLite(unittest.TestCase):
             if len(tokens) == 2 and tokens[0] == 'A':
                 self.assert_(tokens[1] == 'DATETIME')
 
+        frame = tm.makeTimeDataFrame()
+        create_sql = sql.get_sqlite_schema(frame, 'test', keys=['A', 'B'])
+        lines = create_sql.splitlines()
+        self.assert_('PRIMARY KEY (A,B)' in create_sql)
+        self.db.execute(create_sql)
+
     def test_execute_fail(self):
         create_sql = """
         CREATE TABLE test
