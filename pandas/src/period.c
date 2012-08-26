@@ -743,28 +743,28 @@ void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info) {
 
     switch(fromGroup)
     {
-        case FR_WK: {
-                        af_info->from_week_end = calc_week_end(fromFreq, fromGroup);
-                    } break;
-        case FR_ANN: {
-                         af_info->from_a_year_end = calc_a_year_end(fromFreq, fromGroup);
-                     } break;
-        case FR_QTR: {
-                         af_info->from_q_year_end = calc_a_year_end(fromFreq, fromGroup);
-                     } break;
+        case FR_WK: 
+            af_info->from_week_end = calc_week_end(fromFreq, fromGroup);
+            break;
+        case FR_ANN: 
+            af_info->from_a_year_end = calc_a_year_end(fromFreq, fromGroup);
+            break;
+        case FR_QTR: 
+            af_info->from_q_year_end = calc_a_year_end(fromFreq, fromGroup);
+            break;
     }
 
     switch(toGroup)
     {
-        case FR_WK: {
-                        af_info->to_week_end = calc_week_end(toFreq, toGroup);
-                    } break;
-        case FR_ANN: {
-                         af_info->to_a_year_end = calc_a_year_end(toFreq, toGroup);
-                     } break;
-        case FR_QTR: {
-                         af_info->to_q_year_end = calc_a_year_end(toFreq, toGroup);
-                     } break;
+        case FR_WK: 
+            af_info->to_week_end = calc_week_end(toFreq, toGroup);
+            break;
+        case FR_ANN: 
+            af_info->to_a_year_end = calc_a_year_end(toFreq, toGroup);
+            break;
+        case FR_QTR: 
+            af_info->to_q_year_end = calc_a_year_end(toFreq, toGroup);
+            break;
     }
 }
 
