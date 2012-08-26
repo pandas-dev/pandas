@@ -7,7 +7,7 @@ from cpython cimport *
 
 # this is our datetime.pxd
 from datetime cimport *
-from util cimport is_integer_object, is_datetime64_object
+from util cimport is_integer_object, is_datetime64_object, is_timedelta64_object
 
 from datetime import timedelta
 from dateutil.parser import parse as parse_date
@@ -408,7 +408,9 @@ cdef class _Timestamp(datetime):
             return self.value >= ots.value
 
     def __add__(self, other):
-        if is_integer_object(other):
+        if is_timedelta64_object(other):
+            return Timestamp(self.value + other)
+        elif is_integer_object(other):
             if self.offset is None:
                 msg = ("Cannot add integral value to Timestamp "
                        "without offset.")
