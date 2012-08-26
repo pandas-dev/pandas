@@ -409,7 +409,7 @@ cdef class _Timestamp(datetime):
 
     def __add__(self, other):
         if is_timedelta64_object(other):
-            return Timestamp(self.value + other)
+            return Timestamp(np.datetime64(self.value, 'ns') + other, tz=self.tzinfo)
         elif is_integer_object(other):
             if self.offset is None:
                 msg = ("Cannot add integral value to Timestamp "
