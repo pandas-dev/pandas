@@ -1855,6 +1855,18 @@ class TestPeriodRepresentation(unittest.TestCase):
 
     def test_secondly(self):
         self._check_freq('S', '1970-01-01')
+        
+    def test_millisecondly(self):
+        self.skipTest()
+        self._check_freq('M', '1970-01-01')
+
+    def test_microsecondly(self):
+        self.skipTest()
+        self._check_freq('U', '1970-01-01')
+        
+    def test_nanosecondly(self):
+        self.skipTest()
+        self._check_freq('N', '1970-01-01')        
 
     def _check_freq(self, freq, base_date):
         rng = PeriodIndex(start=base_date, periods=10, freq=freq)

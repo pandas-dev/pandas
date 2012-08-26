@@ -5,7 +5,7 @@ import numpy as np
 from pandas.core.datetools import (
     bday, BDay, BQuarterEnd, BMonthEnd, BYearEnd, MonthEnd, MonthBegin,
     BYearBegin, QuarterBegin, BQuarterBegin, BMonthBegin,
-    DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second,
+    DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second, Milli, Micro, Nano,
     WeekOfMonth, format, ole2datetime, QuarterEnd, to_datetime, normalize_date,
     get_offset, get_offset_name, inferTimeRule, hasOffsetName,
     get_standard_freq)
@@ -1288,6 +1288,24 @@ def test_Second():
     assert (Second(3) + Second(2)) == Second(5)
     assert (Second(3) - Second(2)) == Second()
 
+def test_Millisecond():
+    assertEq(Milli(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 0, 1000))
+    assertEq(Milli(-1), datetime(2010, 1, 1, 0, 0, 0, 1000), datetime(2010, 1, 1))
+    assertEq(2 * Milli(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 0, 2000))
+    assertEq(-1 * Milli(), datetime(2010, 1, 1, 0, 0, 0, 1000), datetime(2010, 1, 1))
+
+    assert (Milli(3) + Milli(2)) == Milli(5)
+    assert (Milli(3) - Milli(2)) == Milli()
+    
+def test_Microsecond():
+    assertEq(Micro(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 0, 1))
+    assertEq(Micro(-1), datetime(2010, 1, 1, 0, 0, 0, 1), datetime(2010, 1, 1))
+    assertEq(2 * Micro(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 0, 2))
+    assertEq(-1 * Micro(), datetime(2010, 1, 1, 0, 0, 0, 1), datetime(2010, 1, 1))
+
+    assert (Micro(3) + Micro(2)) == Micro(5)
+    assert (Micro(3) - Micro(2)) == Micro()     
+    
 def test_hasOffsetName():
     assert hasOffsetName(BDay())
     assert not hasOffsetName(BDay(2))

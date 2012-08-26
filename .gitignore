@@ -23,3 +23,5 @@ scikits
 pandas.egg-info
 *\#*\#
 .tox
+*.wpr
+*.wpu
