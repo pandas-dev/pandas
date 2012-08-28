@@ -462,6 +462,8 @@ cdef class _NaT(_Timestamp):
 
 
 def _delta_to_nanoseconds(delta):
+    if isinstance(delta, np.timedelta64):
+        return delta
     try:
         delta = delta.delta
     except:

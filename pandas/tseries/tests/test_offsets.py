@@ -1304,7 +1304,17 @@ def test_Microsecond():
     assertEq(-1 * Micro(), datetime(2010, 1, 1, 0, 0, 0, 1), datetime(2010, 1, 1))
 
     assert (Micro(3) + Micro(2)) == Micro(5)
-    assert (Micro(3) - Micro(2)) == Micro()     
+    assert (Micro(3) - Micro(2)) == Micro()
+    
+def test_Nanosecond():
+    timestamp = Timestamp(datetime(2010, 1, 1))
+    assertEq(Nano(), timestamp, timestamp + np.timedelta64(1, 'ns'))
+    assertEq(Nano(-1), timestamp + np.timedelta64(1, 'ns'), timestamp)
+    assertEq(2 * Nano(), timestamp, timestamp + np.timedelta64(2, 'ns'))
+    assertEq(-1 * Nano(), timestamp + np.timedelta64(1, 'ns'), timestamp)
+
+    assert (Nano(3) + Nano(2)) == Nano(5)
+    assert (Nano(3) - Nano(2)) == Nano()    
     
 def test_hasOffsetName():
     assert hasOffsetName(BDay())

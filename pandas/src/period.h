@@ -85,6 +85,9 @@
 #define FR_HR   7000  /* Hourly */
 #define FR_MIN  8000  /* Minutely */
 #define FR_SEC  9000  /* Secondly */
+#define FR_MS 10000  /* Millisecondly */
+#define FR_US 11000  /* Microsecondly */
+#define FR_NS 12000  /* Nanosecondly */
 
 #define FR_UND  -10000 /* Undefined */
 
@@ -121,7 +124,7 @@ typedef struct date_info {
     int calendar;
 } date_info;
 
-typedef npy_int64 (*freq_conv_func)(npy_int64, char, asfreq_info*);
+typedef npy_int64 (*freq_conv_func)(npy_int64, int, int, char, asfreq_info*);
 
 /*
  * new pandas API helper functions here

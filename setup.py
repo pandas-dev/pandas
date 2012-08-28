@@ -226,7 +226,8 @@ class CleanCommand(Command):
         self._clean_trees = []
         self._clean_exclude = ['np_datetime.c',
                                'np_datetime_strings.c',
-                               'period.c']
+                               'period.c',
+                               'test_period.c']
 
         for root, dirs, files in list(os.walk('pandas')):
             for f in files:
