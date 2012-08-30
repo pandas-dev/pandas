@@ -239,10 +239,7 @@ interpolation assumes equally spaced points.
    ts.interpolate().head()
 
    @savefig series_interpolate.png width=6in
-   fig = plt.figure()
    ts.interpolate().plot()
-
-   plt.close('all')
 
 Index aware interpolation is available via the ``method`` keyword:
 
