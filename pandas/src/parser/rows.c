@@ -130,6 +130,7 @@ void del_file_source(void *fs) {
 	// TODO: error codes?
 	// fclose(FS(fs)->fp);
 
+	// fseek(FS(fs)->fp, FS(fs)->initial_file_pos, SEEK_SET);
 	// allocated on the heap
 	free(fs);
 }
@@ -621,7 +622,7 @@ int convert_infer(parser_t *parser, array_t* result,
 
 void set_parser_default_options(parser_t *self) {
     // File buffer preferences
-    self->sourcetype = 'F';
+    // self->sourcetype = 'F';
 
     // parsing, type inference
     self->infer_types = 1;
@@ -659,10 +660,11 @@ parser_t* parser_new() {
 }
 
 int parser_file_source_init(parser_t *self, FILE* fp) {
-	FS(self->source)->fp = fp;
+	self->sourcetype = 'F';
+	self->source = new_file_source(fp);
 
 	// Only allocate this heap memory if we are not memory-mapping the file
-	self->data = (char*) malloc(self->chunksize * sizeof(char));
+	self->data = (char*) malloc((self->chunksize + 1) * sizeof(char));
 
 	if (self->data == NULL) {
 		return PARSER_OUT_OF_MEMORY;
@@ -680,7 +682,9 @@ int parser_gzip_source_init(parser_t *self, FILE* fp) {
 }
 
 int parser_array_source_init(parser_t *self, char *bytes, size_t length) {
+	self->sourcetype = 'A';
 	self->source = new_array_source(bytes, length);
+	return 0;
 }
 
 int parser_init(parser_t *self) {
@@ -959,15 +963,15 @@ int parser_cleanup(parser_t *self) {
 
 int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     size_t bytes;
+	void *src = self->source;
 
 	// This should probably end up as a method table
 
 	switch(self->sourcetype) {
 		case 'F': // basic FILE*
 
-			bytes = fread((void *) self->data,
-						  sizeof(char), nbytes,
-						  FS(self->source)->fp);
+			bytes = fread((void *) self->data, sizeof(char), nbytes,
+						  FS(src)->fp);
 			self->datalen = bytes;
 
 			TRACE(("Read %d bytes\n", (int) bytes));
@@ -980,6 +984,24 @@ int parser_buffer_bytes(parser_t *self, size_t nbytes) {
 			break;
 
 		case 'A': // in-memory bytes (e.g. from StringIO)
+			if (ARS(src)->position == ARS(src)->length) {
+				return REACHED_EOF;
+			}
+
+			self->data = ARS(src)->data + ARS(src)->position;
+
+			if (ARS(src)->position + nbytes > ARS(src)->length) {
+				// fewer than nbytes remaining
+				self->datalen = ARS(src)->length - ARS(src)->position;
+			} else {
+				self->datalen = nbytes;
+			}
+
+			ARS(src)->position += self->datalen;
+
+			TRACE(("datalen: %d\n", self->datalen));
+
+			TRACE(("pos: %d, length: %d", ARS(src)->position, ARS(src)->length));
 
 			break;
 
@@ -1309,6 +1331,8 @@ int _tokenize_helper(parser_t *self, size_t nrows, int all) {
         TRACE(("Trying to process %d bytes\n", self->chunksize));
 
         status = parser_buffer_bytes(self, self->chunksize);
+
+		TRACE(("sourcetype: %c, status: %d\n", self->sourcetype, status));
 
         if (status == REACHED_EOF) {
 			// XXX close last line

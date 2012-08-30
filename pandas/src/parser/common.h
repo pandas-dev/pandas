@@ -178,7 +178,8 @@ typedef struct coliter_t {
     int line;
 } coliter_t;
 
-
+void coliter_setup(coliter_t *self, parser_t *parser, int i);
+coliter_t *coliter_new(parser_t *self, int i);
 
 /* #define COLITER_NEXT(iter) iter->words[iter->line_start[iter->line++] + iter->col] */
 #define COLITER_NEXT(iter) iter.words[iter.line_start[iter.line++] + iter.col]

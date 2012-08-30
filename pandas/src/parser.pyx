@@ -1,6 +1,18 @@
+cimport numpy as cnp
+import numpy as np
+
+cnp.import_array()
+
 cdef extern from "Python.h":
     ctypedef struct FILE
     FILE* PyFile_AsFile(object)
+
+cdef extern from "parser/conversions.h":
+    inline int to_double(char *item, double *p_value,
+                         char sci, char decimal)
+    inline int to_complex(char *item, double *p_real,
+                          double *p_imag, char sci, char decimal)
+    inline int to_longlong(char *item, long long *p_value)
 
 
 cdef extern from "parser/common.h":
@@ -91,6 +103,15 @@ cdef extern from "parser/common.h":
         #  error handling
         char *error_msg
 
+    ctypedef struct coliter_t:
+        char **words
+        int *line_start
+        int col
+        int line
+
+    void coliter_setup(coliter_t *it, parser_t *parser, int i)
+    char* COLITER_NEXT(coliter_t it)
+
     parser_t* parser_new()
 
     int parser_init(parser_t *self)
@@ -107,6 +128,8 @@ cdef extern from "parser/common.h":
     int tokenize_all_rows(parser_t *self)
     int tokenize_nrows(parser_t *self, size_t nrows)
 
+DEFAULT_CHUNKSIZE = 256 * 1024
+
 cdef class TextReader:
     '''
 
@@ -118,21 +141,29 @@ cdef class TextReader:
         parser_t *parser
         object file_handle, should_close
 
+    cdef public:
+        object delimiter, na_values, converters, thousands, delim_whitespace
+
     def __cinit__(self, source, delimiter=',', header=0, memory_map=False,
+                  chunksize=DEFAULT_CHUNKSIZE,
                   delim_whitespace=False,
                   na_values=None,
                   converters=None,
                   thousands=None):
         self.parser = parser_new()
+        self.parser.chunksize = chunksize
 
         self._setup_parser_source(source)
+        set_parser_default_options(self.parser)
+
+        parser_init(self.parser)
 
         if delim_whitespace:
             raise NotImplementedError
         else:
             if len(delimiter) > 1:
                 raise ValueError('only length-1 separators excluded right now')
-            self.parser.delimiter = delimiter
+            self.parser.delimiter = (<char*> delimiter)[0]
 
         # TODO: no header vs. header is not the first row
         self.parser.header = header
@@ -142,7 +173,7 @@ cdef class TextReader:
         self.delimiter = delimiter
         self.delim_whitespace = delim_whitespace
 
-        self.na_values
+        self.na_values = na_values
         self.converters = converters
         self.thousands = thousands
 
@@ -158,12 +189,13 @@ cdef class TextReader:
 
         if isinstance(source, (basestring, file)):
             if isinstance(source, basestring):
-                self.file_handle = open(source, 'rb')
+                source = open(source, 'rb')
                 self.should_close = True
-                source = self.file_handle
 
+            self.file_handle = source
             status = parser_file_source_init(self.parser,
                                              PyFile_AsFile(source))
+
             if status != 0:
                 raise Exception('Initializing from file failed')
 
@@ -189,20 +221,70 @@ cdef class TextReader:
         """
         rows=None --> read all rows
         """
-        cdef int status
+        cdef:
+            int prior_lines
+            int status
 
         if rows is not None:
             raise NotImplementedError
         else:
             status = tokenize_all_rows(self.parser)
 
+        if status < 0:
+            raise_parser_error('Error tokenizing data', self.parser)
+
+        result = self._convert_column_data()
+
+        # debug_print_parser(self.parser)
+        return result
+
+    def _convert_column_data(self):
+        cdef:
+            Py_ssize_t i, ncols
+
+        ncols = self.parser.line_fields[0]
+
+        results = {}
+        for i in range(ncols):
+            col_res = _try_double(self.parser, i, 0, self.parser.lines)
+
+            results[i] = col_res
+
+        return results
 
 class CParserError(Exception):
     pass
 
 
+cdef _try_double(parser_t *parser, int col, int line_start, int line_end):
+    cdef:
+        int error
+        size_t i, lines
+        coliter_t it
+        char *word
+        double *data
+        cnp.ndarray result
+
+    lines = line_end - line_start
+
+    result = np.empty(lines, dtype=np.float64)
+
+    data = <double *> result.data
+
+    coliter_setup(&it, parser, col)
+    for i in range(lines):
+        word = COLITER_NEXT(it)
+        error = to_double(word, data, parser.sci, parser.decimal)
+
+        if error != 1:
+            return None
+
+        data += 1
+
+    return result
+
 cdef raise_parser_error(object base, parser_t *parser):
-    message = '%s. C error: '
+    message = '%s. C error: ' % base
     if parser.error_msg != NULL:
         message += parser.error_msg
     else:
