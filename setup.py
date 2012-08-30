@@ -384,6 +384,15 @@ period_ext = Extension('pandas._period',
                                 'pandas/src/period.c'],
                        include_dirs=[np.get_include()])
 
+parser_ext = Extension('pandas._parser',
+                       depends=['pandas/src/parser/common.h'],
+                       sources=[srcpath('parser', suffix=suffix),
+                                'pandas/src/parser/rows.c',
+                                'pandas/src/parser/conversions.c',
+                                'pandas/src/parser/common.c',
+                                'pandas/src/parser/str_to.c',
+                                ],
+                       include_dirs=[np.get_include()])
 
 sparse_ext = Extension('pandas._sparse',
                        sources=[srcpath('sparse', suffix=suffix)],
@@ -398,7 +407,8 @@ cppsandbox_ext = Extension('pandas._cppsandbox',
                            sources=[srcpath('cppsandbox', suffix=suffix)],
                            include_dirs=[np.get_include()])
 
-extensions = [algos_ext, lib_ext, period_ext, sparse_ext]
+extensions = [algos_ext, lib_ext, period_ext, sparse_ext,
+              parser_ext]
 
 if not ISRELEASED:
     extensions.extend([sandbox_ext])
