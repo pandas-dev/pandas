@@ -55,6 +55,7 @@ cdef extern from "khash.h":
 
     bint kh_exist_str(kh_str_t*, khiter_t)
 
+
     ctypedef struct kh_int64_t:
         khint_t n_buckets, size, n_occupied, upper_bound
         uint32_t *flags
@@ -102,3 +103,22 @@ cdef extern from "khash.h":
     inline void kh_del_int32(kh_int32_t*, khint_t)
 
     bint kh_exist_int32(kh_int32_t*, khiter_t)
+
+    # sweep factorize
+
+    ctypedef struct kh_strbox_t:
+        khint_t n_buckets, size, n_occupied, upper_bound
+        uint32_t *flags
+        kh_cstr_t *keys
+        PyObject **vals
+
+    inline kh_strbox_t* kh_init_strbox()
+    inline void kh_destroy_strbox(kh_strbox_t*)
+    inline void kh_clear_strbox(kh_strbox_t*)
+    inline khint_t kh_get_strbox(kh_strbox_t*, kh_cstr_t)
+    inline void kh_resize_strbox(kh_strbox_t*, khint_t)
+    inline khint_t kh_put_strbox(kh_strbox_t*, kh_cstr_t, int*)
+    inline void kh_del_strbox(kh_strbox_t*, khint_t)
+
+    bint kh_exist_strbox(kh_strbox_t*, khiter_t)
+

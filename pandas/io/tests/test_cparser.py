@@ -54,11 +54,26 @@ class TestCParser(unittest.TestCase):
         finally:
             f.close()
 
-    # def test_StringIO(self):
-    #     text = open(self.csv1, 'rb').read()
+    def test_file_handle_mmap(self):
+        try:
+            f = open(self.csv1, 'rb')
+            reader = parser.TextReader(f, memory_map=True)
+            result = reader.read()
+        finally:
+            f.close()
 
-    #     reader = parser.TextReader(BytesIO(text))
-    #     result = reader.read()
+    def test_StringIO(self):
+        text = open(self.csv1, 'rb').read()
+        reader = parser.TextReader(BytesIO(text))
+        result = reader.read()
+
+    def test_string_factorize(self):
+        # should this be optional?
+        data = 'a\nb\na\nb\na'
+        reader = parser.TextReader(StringIO(data))
+        result = reader.read()
+        self.assert_(len(set(map(id, result[0]))) == 2)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

@@ -3,6 +3,10 @@ import numpy as np
 
 cnp.import_array()
 
+from khash cimport *
+
+from cpython cimport PyString_FromString, Py_INCREF, PyString_AsString
+
 cdef extern from "Python.h":
     ctypedef struct FILE
     FILE* PyFile_AsFile(object)
@@ -143,8 +147,10 @@ cdef class TextReader:
 
     cdef public:
         object delimiter, na_values, converters, thousands, delim_whitespace
+        object memory_map
 
-    def __cinit__(self, source, delimiter=',', header=0, memory_map=False,
+    def __cinit__(self, source, delimiter=',', header=0,
+                  memory_map=False,
                   chunksize=DEFAULT_CHUNKSIZE,
                   delim_whitespace=False,
                   na_values=None,
@@ -173,6 +179,7 @@ cdef class TextReader:
         self.delimiter = delimiter
         self.delim_whitespace = delim_whitespace
 
+        self.memory_map = memory_map
         self.na_values = na_values
         self.converters = converters
         self.thousands = thousands
@@ -185,7 +192,8 @@ cdef class TextReader:
             self.file_handle.close()
 
     cdef _setup_parser_source(self, source):
-        cdef int status
+        cdef:
+            int status
 
         if isinstance(source, (basestring, file)):
             if isinstance(source, basestring):
@@ -193,8 +201,13 @@ cdef class TextReader:
                 self.should_close = True
 
             self.file_handle = source
-            status = parser_file_source_init(self.parser,
-                                             PyFile_AsFile(source))
+
+            if self.memory_map:
+                status = parser_mmap_init(self.parser,
+                                          PyFile_AsFile(source))
+            else:
+                status = parser_file_source_init(self.parser,
+                                                 PyFile_AsFile(source))
 
             if status != 0:
                 raise Exception('Initializing from file failed')
@@ -209,7 +222,8 @@ cdef class TextReader:
                 raise ValueError('Only ascii/bytes supported at the moment')
 
             status = parser_array_source_init(self.parser,
-                                              <char*> bytes, len(bytes))
+                                              PyString_AsString(bytes),
+                                              len(bytes))
             if status != 0:
                 raise Exception('Initializing parser from file-like '
                                 'object failed')
@@ -248,12 +262,64 @@ cdef class TextReader:
         for i in range(ncols):
             col_res = _try_double(self.parser, i, 0, self.parser.lines)
 
+            if col_res is None:
+                col_res = _string_box_factorize(self.parser, i,
+                                                0, self.parser.lines)
+
             results[i] = col_res
 
         return results
 
 class CParserError(Exception):
     pass
+
+
+# ----------------------------------------------------------------------
+# Type conversions / inference support code
+
+cdef _string_box_factorize(parser_t *parser, int col,
+                           int line_start, int line_end):
+    cdef:
+        int error
+        Py_ssize_t i
+        size_t lines
+        coliter_t it
+        char *word
+        cnp.ndarray[object] result
+
+        int ret = 0
+        kh_strbox_t *table
+        kh_iter_t
+
+        object pyval
+
+
+    table = kh_init_strbox()
+
+    lines = line_end - line_start
+    result = np.empty(lines, dtype=np.object_)
+
+    coliter_setup(&it, parser, col)
+    for i in range(lines):
+        word = COLITER_NEXT(it)
+
+        k = kh_get_strbox(table, word)
+
+        # in the hash table
+        if k != table.n_buckets:
+            # this increments the refcount, but need to test
+            pyval = <object> table.vals[k]
+        else:
+            # box it. new ref?
+            pyval = PyString_FromString(word)
+
+            k = kh_put_strbox(table, word, &ret)
+            table.vals[k] = <PyObject*> pyval
+
+        result[i] = pyval
+
+    return result
+
 
 
 cdef _try_double(parser_t *parser, int col, int line_start, int line_end):

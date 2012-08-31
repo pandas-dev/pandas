@@ -26,6 +26,30 @@
 
 
 
+#define REACHED_EOF 1
+
+#define HAVE_MEMMAP
+#define HAVE_GZIP
+
+#define FB_EOF   -1
+#define FB_ERROR -2
+
+/*
+ * restore:
+ *  RESTORE_NOT     (0):
+ *      Free memory, but leave the file position wherever it
+ *      happend to be.
+ *  RESTORE_INITIAL (1):
+ *      Restore the file position to the location at which
+ *      the file_buffer was created.
+ *  RESTORE_FINAL   (2):
+ *      Put the file position at the next byte after the
+ *      data read from the file_buffer.
+ */
+#define RESTORE_NOT     0
+#define RESTORE_INITIAL 1
+#define RESTORE_FINAL   2
+
 
 
 
@@ -153,7 +177,10 @@ typedef struct _array_source {
 void *new_array_source(char *data, size_t length) {
 	array_source *ars = (array_source *) malloc(sizeof(array_source));
 
-	ars->data = data;
+	// to be safe, copy the data from the Python string
+	ars->data = malloc(length + 1);
+	strcpy(ars->data, data);
+
 	ars->position = 0;
 	ars->length = length;
 
@@ -673,7 +700,125 @@ int parser_file_source_init(parser_t *self, FILE* fp) {
 	return 0;
 }
 
+// XXX handle on systems without the capability
+
+#include <sys/stat.h>
+#include <sys/mman.h>
+
+typedef struct _memory_map {
+
+    FILE *file;
+
+    /* Size of the file, in bytes. */
+    off_t size;
+
+    /* file position when the file_buffer was created. */
+    off_t initial_file_pos;
+
+    int line_number;
+
+    int fileno;
+    off_t position;
+    off_t last_pos;
+    char *memmap;
+
+} memory_map;
+
+#define MM(src) ((memory_map*) src)
+
+
+/*
+ *  void *new_file_buffer(FILE *f, int buffer_size)
+ *
+ *  Allocate a new file_buffer.
+ *  Returns NULL if the memory allocation fails or if the call to mmap fails.
+ *
+ *  buffer_size is ignored.
+ */
+
+void *new_mmap(FILE *f)
+{
+    struct stat buf;
+    int fd;
+    memory_map *mm;
+    off_t position;
+    off_t filesize;
+
+    fd = fileno(f);
+    if (fstat(fd, &buf) == -1) {
+        fprintf(stderr, "new_file_buffer: fstat() failed. errno =%d\n", errno);
+        return NULL;
+    }
+    filesize = buf.st_size;  /* XXX This might be 32 bits. */
+
+    mm = (memory_map *) malloc(sizeof(memory_map));
+    if (mm == NULL) {
+        /* XXX Eventually remove this print statement. */
+        fprintf(stderr, "new_file_buffer: malloc() failed.\n");
+        return NULL;
+    }
+    mm->file = f;
+    mm->size = (off_t) filesize;
+    mm->line_number = 0;
+
+    mm->fileno = fd;
+    mm->position = ftell(f);
+    mm->last_pos = (off_t) filesize;
+
+    mm->memmap = mmap(NULL, filesize, PROT_READ, MAP_SHARED, fd, 0);
+    if (mm->memmap == NULL) {
+        /* XXX Eventually remove this print statement. */
+        fprintf(stderr, "new_file_buffer: mmap() failed.\n");
+        free(mm);
+        mm = NULL;
+    }
+
+    return (void*) mm;
+}
+
+
+void del_mmap(void *src)
+{
+    munmap(MM(src)->memmap, MM(src)->size);
+
+    /*
+     *  With a memory mapped file, there is no need to do
+     *  anything if restore == RESTORE_INITIAL.
+     */
+    /* if (restore == RESTORE_FINAL) { */
+    /*     fseek(FB(fb)->file, FB(fb)->current_pos, SEEK_SET); */
+    /* } */
+    free(src);
+}
+
+int _buffer_mmap_bytes(parser_t *self, size_t nbytes) {
+	memory_map *src = MM(self->source);
+
+	if (src->position == src->last_pos) {
+		return REACHED_EOF;
+	}
+
+	self->data = src->memmap + src->position;
+
+	if (src->position + nbytes > src->last_pos) {
+		// fewer than nbytes remaining
+		self->datalen = src->last_pos - src->position;
+	} else {
+		self->datalen = nbytes;
+	}
+
+	src->position += self->datalen;
+	return 0;
+}
+
 int parser_mmap_init(parser_t *self, FILE* fp) {
+	self->sourcetype = 'M';
+	self->source = new_mmap(fp);
+
+	// TODO: better error message
+	if (NULL == self->source)
+		return -1;
+
 	return 0;
 }
 
@@ -752,7 +897,7 @@ int make_stream_space(parser_t *self, size_t nbytes) {
 
     // Can we fit potentially nbytes tokens (+ null terminators) in the stream?
 
-    TRACE(("maybe growing buffers\n"))
+    TRACE(("maybe growing buffers\n"));
 
     /*
       TOKEN STREAM
@@ -796,6 +941,7 @@ int make_stream_space(parser_t *self, size_t nbytes) {
         return PARSER_OUT_OF_MEMORY;
     }
 
+
     // realloc took place
     if (cap != self->words_cap) {
         self->word_starts = (int*) safe_realloc((void *) self->word_starts,
@@ -804,6 +950,7 @@ int make_stream_space(parser_t *self, size_t nbytes) {
             return PARSER_OUT_OF_MEMORY;
         }
     }
+
 
     /*
       LINE VECTORS
@@ -937,35 +1084,14 @@ int parser_cleanup(parser_t *self) {
     return 0;
 }
 
-#define REACHED_EOF 1
-
-#define HAVE_MEMMAP
-#define HAVE_GZIP
-
-#define FB_EOF   -1
-#define FB_ERROR -2
-
-/*
- * restore:
- *  RESTORE_NOT     (0):
- *      Free memory, but leave the file position wherever it
- *      happend to be.
- *  RESTORE_INITIAL (1):
- *      Restore the file position to the location at which
- *      the file_buffer was created.
- *  RESTORE_FINAL   (2):
- *      Put the file position at the next byte after the
- *      data read from the file_buffer.
- */
-#define RESTORE_NOT     0
-#define RESTORE_INITIAL 1
-#define RESTORE_FINAL   2
-
 int parser_buffer_bytes(parser_t *self, size_t nbytes) {
+	int status;
     size_t bytes;
 	void *src = self->source;
 
 	// This should probably end up as a method table
+
+	status = 0;
 
 	switch(self->sourcetype) {
 		case 'F': // basic FILE*
@@ -979,34 +1105,18 @@ int parser_buffer_bytes(parser_t *self, size_t nbytes) {
 			// printf("%s\n", self->data);
 
 			if (bytes == 0) {
-				return REACHED_EOF;
+				status = REACHED_EOF;
 			}
 			break;
 
 		case 'A': // in-memory bytes (e.g. from StringIO)
-			if (ARS(src)->position == ARS(src)->length) {
-				return REACHED_EOF;
-			}
-
-			self->data = ARS(src)->data + ARS(src)->position;
-
-			if (ARS(src)->position + nbytes > ARS(src)->length) {
-				// fewer than nbytes remaining
-				self->datalen = ARS(src)->length - ARS(src)->position;
-			} else {
-				self->datalen = nbytes;
-			}
-
-			ARS(src)->position += self->datalen;
-
-			TRACE(("datalen: %d\n", self->datalen));
-
-			TRACE(("pos: %d, length: %d", ARS(src)->position, ARS(src)->length));
-
+			// ew, side effects
+			status = _buffer_array_bytes(self, nbytes);
 			break;
 
 #ifdef HAVE_MEMMAP
 		case 'M': // memory map
+			status = _buffer_mmap_bytes(self, nbytes);
 
 			break;
 #endif
@@ -1019,8 +1129,33 @@ int parser_buffer_bytes(parser_t *self, size_t nbytes) {
 
 	}
 
-    return 0;
+    return status;
 }
+
+int _buffer_array_bytes(parser_t *self, size_t nbytes) {
+	array_source *src = ARS(self->source);
+
+	if (src->position == src->length) {
+		return REACHED_EOF;
+	}
+
+	self->data = src->data + src->position;
+
+	if (src->position + nbytes > src->length) {
+		// fewer than nbytes remaining
+		self->datalen = src->length - src->position;
+	} else {
+		self->datalen = nbytes;
+	}
+
+	src->position += self->datalen;
+
+	TRACE(("datalen: %d\n", self->datalen));
+
+	TRACE(("pos: %d, length: %d", src->position, src->length));
+	return 0;
+}
+
 
 int parser_cleanup_filebuffers(parser_t *self) {
 	switch(self->sourcetype) {
@@ -1035,7 +1170,7 @@ int parser_cleanup_filebuffers(parser_t *self) {
 
 #ifdef HAVE_MEMMAP
 		case 'M': // memory map
-
+			del_mmap(self->source);
 			break;
 #endif
 
@@ -1094,10 +1229,19 @@ int tokenize_buffered_bytes(parser_t *self)
 	stream = self->stream + self->stream_len;
 	slen = self->stream_len;
 
+	TRACE(("%s\n", buf));
+
     for (i = 0; i < self->datalen; ++i)
     {
         // Next character in file
         c = *buf++;
+
+		/* if (c == '\0') { */
+		/* 	continue; */
+		/* } */
+
+		TRACE(("Iter: %d Char: %c Line %d field_count %d\n",
+			   i, c, self->lines + 1, self->line_fields[self->lines]));
 
         switch(self->state) {
         case START_RECORD:
