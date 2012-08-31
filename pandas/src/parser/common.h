@@ -9,6 +9,13 @@
 #include <time.h>
 #include <errno.h>
 
+
+#if defined(_MSC_VER)
+#include "ms_stdint.h"
+#else
+#include <stdint.h>
+#endif
+
 // #include "Python.h"
 // #include "structmember.h"
 
@@ -213,5 +220,9 @@ int tokenize_all_rows(parser_t *self);
 
  */
 int clear_parsed_lines(parser_t *self, size_t nlines);
+
+int64_t str_to_int64(const char *p_item, int64_t int_min,
+					 int64_t int_max, int *error);
+uint64_t str_to_uint64(const char *p_item, uint64_t uint_max, int *error);
 
 #endif // _PARSER_COMMON_H_

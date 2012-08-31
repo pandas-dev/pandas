@@ -55,14 +55,8 @@
 
 
 
-int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max, int *error);
-uint64_t str_to_uint64(const char *p_item, uint64_t uint_max, int *error);
-
-#if defined(_MSC_VER)
-#include "ms_stdint.h"
-#else
-#include <stdint.h>
-#endif
+/* int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max, int *error); */
+/* uint64_t str_to_uint64(const char *p_item, uint64_t uint_max, int *error); */
 
 
 void free_if_not_null(void *ptr) {

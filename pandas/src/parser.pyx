@@ -1,11 +1,18 @@
-cimport numpy as cnp
+from numpy cimport *
 import numpy as np
 
-cnp.import_array()
+import_array()
 
 from khash cimport *
 
 from cpython cimport PyString_FromString, Py_INCREF, PyString_AsString
+
+cdef extern from "stdint.h":
+    enum: INT64_MAX
+    enum: INT64_MIN
+    enum: INT32_MAX
+    enum: INT32_MIN
+
 
 cdef extern from "Python.h":
     ctypedef struct FILE
@@ -132,6 +139,12 @@ cdef extern from "parser/common.h":
     int tokenize_all_rows(parser_t *self)
     int tokenize_nrows(parser_t *self, size_t nrows)
 
+    int64_t str_to_int64(char *p_item, int64_t int_min,
+                         int64_t int_max, int *error)
+    uint64_t str_to_uint64(char *p_item, uint64_t uint_max, int *error)
+
+
+
 DEFAULT_CHUNKSIZE = 256 * 1024
 
 cdef class TextReader:
@@ -144,6 +157,7 @@ cdef class TextReader:
     cdef:
         parser_t *parser
         object file_handle, should_close
+        bint factorize
 
     cdef public:
         object delimiter, na_values, converters, thousands, delim_whitespace
@@ -155,7 +169,8 @@ cdef class TextReader:
                   delim_whitespace=False,
                   na_values=None,
                   converters=None,
-                  thousands=None):
+                  thousands=None,
+                  factorize=True):
         self.parser = parser_new()
         self.parser.chunksize = chunksize
 
@@ -170,6 +185,8 @@ cdef class TextReader:
             if len(delimiter) > 1:
                 raise ValueError('only length-1 separators excluded right now')
             self.parser.delimiter = (<char*> delimiter)[0]
+
+        self.factorize = factorize
 
         # TODO: no header vs. header is not the first row
         self.parser.header = header
@@ -255,16 +272,27 @@ cdef class TextReader:
     def _convert_column_data(self):
         cdef:
             Py_ssize_t i, ncols
+            cast_func func
 
         ncols = self.parser.line_fields[0]
 
         results = {}
         for i in range(ncols):
-            col_res = _try_double(self.parser, i, 0, self.parser.lines)
+            col_res = None
+            for func in cast_func_order:
+                col_res = func(self.parser, i, 0, self.parser.lines)
+                if col_res is not None:
+                    results[i] = col_res
+                    break
 
             if col_res is None:
-                col_res = _string_box_factorize(self.parser, i,
-                                                0, self.parser.lines)
+                raise Exception('Unable to parse column %d' % i)
+
+            # col_res = _try_double(self.parser, i, 0, self.parser.lines)
+
+            # if col_res is None:
+            #     col_res = _string_box_factorize(self.parser, i,
+            #                                     0, self.parser.lines)
 
             results[i] = col_res
 
@@ -277,6 +305,9 @@ class CParserError(Exception):
 # ----------------------------------------------------------------------
 # Type conversions / inference support code
 
+ctypedef object (*cast_func)(parser_t *parser, int col,
+                             int line_start, int line_end)
+
 cdef _string_box_factorize(parser_t *parser, int col,
                            int line_start, int line_end):
     cdef:
@@ -285,7 +316,7 @@ cdef _string_box_factorize(parser_t *parser, int col,
         size_t lines
         coliter_t it
         char *word
-        cnp.ndarray[object] result
+        ndarray[object] result
 
         int ret = 0
         kh_strbox_t *table
@@ -329,7 +360,7 @@ cdef _try_double(parser_t *parser, int col, int line_start, int line_end):
         coliter_t it
         char *word
         double *data
-        cnp.ndarray result
+        ndarray result
 
     lines = line_end - line_start
 
@@ -348,6 +379,37 @@ cdef _try_double(parser_t *parser, int col, int line_start, int line_end):
         data += 1
 
     return result
+
+cdef _try_int64(parser_t *parser, int col, int line_start, int line_end):
+    cdef:
+        int error
+        size_t i, lines
+        coliter_t it
+        char *word
+        int64_t *data
+        ndarray result
+
+    lines = line_end - line_start
+
+    result = np.empty(lines, dtype=np.int64)
+
+    data = <int64_t *> result.data
+
+    coliter_setup(&it, parser, col)
+    for i in range(lines):
+        word = COLITER_NEXT(it)
+        data[i] = str_to_int64(word, INT64_MIN, INT64_MAX, &error);
+
+        if error != 0:
+            return None
+
+    return result
+
+
+cdef cast_func cast_func_order[3]
+cast_func_order[0] = _try_int64
+cast_func_order[1] = _try_double
+cast_func_order[2] = _string_box_factorize
 
 cdef raise_parser_error(object base, parser_t *parser):
     message = '%s. C error: ' % base
