@@ -301,6 +301,7 @@ cdef class TextReader:
         results = {}
         for i in range(ncols):
             na_mask = _get_na_mask(self.parser, i, start, end, table)
+            na_filter = 1
 
             conv = self._get_converter(i)
 
@@ -311,7 +312,8 @@ cdef class TextReader:
 
             col_res = None
             for func in cast_func_order:
-                col_res = func(self.parser, i, start, end)
+                col_res = func(self.parser, i, start, end,
+                               na_mask, na_filter)
                 if col_res is not None:
                     results[i] = col_res
                     break
@@ -343,10 +345,12 @@ class CParserError(Exception):
 # Type conversions / inference support code
 
 ctypedef object (*cast_func)(parser_t *parser, int col,
-                             int line_start, int line_end)
+                             int line_start, int line_end,
+                             object _na_mask, bint na_filter)
 
 cdef _string_box_factorize(parser_t *parser, int col,
-                           int line_start, int line_end):
+                           int line_start, int line_end,
+                           object _na_mask, bint na_filter):
     cdef:
         int error
         Py_ssize_t i
@@ -354,6 +358,7 @@ cdef _string_box_factorize(parser_t *parser, int col,
         coliter_t it
         char *word
         ndarray[object] result
+        ndarray[uint8_t, cast=True] na_mask
 
         int ret = 0
         kh_strbox_t *table
@@ -361,6 +366,10 @@ cdef _string_box_factorize(parser_t *parser, int col,
 
         object pyval
 
+        object NA = na_values[np.object_]
+
+    if na_filter:
+        na_mask = _na_mask
 
     table = kh_init_strbox()
 
@@ -368,8 +377,13 @@ cdef _string_box_factorize(parser_t *parser, int col,
     result = np.empty(lines, dtype=np.object_)
 
     coliter_setup(&it, parser, col)
+
     for i in range(lines):
         word = COLITER_NEXT(it)
+
+        if na_filter and na_mask[i]:
+            result[i] = NA
+            continue
 
         k = kh_get_strbox(table, word)
 
@@ -392,14 +406,20 @@ cdef _string_box_factorize(parser_t *parser, int col,
 
 
 
-cdef _try_double(parser_t *parser, int col, int line_start, int line_end):
+cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
+                 object _na_mask, bint na_filter):
     cdef:
         int error
         size_t i, lines
         coliter_t it
         char *word
         double *data
+        double NA = na_values[np.float64]
         ndarray result
+        ndarray[uint8_t, cast=True] na_mask
+
+    if na_filter:
+        na_mask = _na_mask
 
     lines = line_end - line_start
 
@@ -408,18 +428,28 @@ cdef _try_double(parser_t *parser, int col, int line_start, int line_end):
     data = <double *> result.data
 
     coliter_setup(&it, parser, col)
-    for i in range(lines):
-        word = COLITER_NEXT(it)
-        error = to_double(word, data, parser.sci, parser.decimal)
-
-        if error != 1:
-            return None
-
-        data += 1
+    if na_filter:
+        for i in range(lines):
+            word = COLITER_NEXT(it)
+            if na_mask[i]:
+                data[0] = NA
+            else:
+                error = to_double(word, data, parser.sci, parser.decimal)
+                if error != 1:
+                    return None
+            data += 1
+    else:
+        for i in range(lines):
+            word = COLITER_NEXT(it)
+            error = to_double(word, data, parser.sci, parser.decimal)
+            if error != 1:
+                return None
+            data += 1
 
     return result
 
-cdef _try_int64(parser_t *parser, int col, int line_start, int line_end):
+cdef _try_int64(parser_t *parser, int col, int line_start, int line_end,
+                object _na_mask, bint na_filter):
     cdef:
         int error
         size_t i, lines
@@ -428,6 +458,12 @@ cdef _try_int64(parser_t *parser, int col, int line_start, int line_end):
         int64_t *data
         ndarray result
 
+        ndarray[uint8_t, cast=True] na_mask
+        int64_t NA = na_values[np.int64]
+
+    if na_filter:
+        na_mask = _na_mask
+
     lines = line_end - line_start
 
     result = np.empty(lines, dtype=np.int64)
@@ -435,12 +471,24 @@ cdef _try_int64(parser_t *parser, int col, int line_start, int line_end):
     data = <int64_t *> result.data
 
     coliter_setup(&it, parser, col)
-    for i in range(lines):
-        word = COLITER_NEXT(it)
-        data[i] = str_to_int64(word, INT64_MIN, INT64_MAX, &error);
 
-        if error != 0:
-            return None
+    if na_filter:
+        for i in range(lines):
+            word = COLITER_NEXT(it)
+
+            if na_mask[i]:
+                data[i] = NA
+                continue
+
+            data[i] = str_to_int64(word, INT64_MIN, INT64_MAX, &error);
+            if error != 0:
+                return None
+    else:
+        for i in range(lines):
+            word = COLITER_NEXT(it)
+            data[i] = str_to_int64(word, INT64_MIN, INT64_MAX, &error);
+            if error != 0:
+                return None
 
     return result
 
@@ -455,7 +503,6 @@ cdef _get_na_mask(parser_t *parser, int col, int line_start, int line_end,
         ndarray[uint8_t, cast=True] result
         khiter_t k
 
-    table = kh_init_str()
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.bool_)
 
@@ -468,9 +515,9 @@ cdef _get_na_mask(parser_t *parser, int col, int line_start, int line_end,
             result[i] = 1
             continue
 
-        k = kh_get_str(table, word)
+        k = kh_get_str(na_table, word)
         # in the hash table
-        if k != table.n_buckets:
+        if k != na_table.n_buckets:
             result[i] = 1
         else:
             result[i] = 0
