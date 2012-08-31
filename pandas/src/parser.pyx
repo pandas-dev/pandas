@@ -1,11 +1,20 @@
+from libc.stdlib cimport free
+
 from numpy cimport *
 import numpy as np
+
+cimport util
+
+import pandas.lib as lib
+
+import time
 
 import_array()
 
 from khash cimport *
 
-from cpython cimport PyString_FromString, Py_INCREF, PyString_AsString
+from cpython cimport (PyString_FromString, Py_INCREF, PyString_AsString,
+                      PyString_Check)
 
 cdef extern from "stdint.h":
     enum: INT64_MAX
@@ -165,14 +174,14 @@ cdef class TextReader:
 
     def __cinit__(self, source, delimiter=',', header=0,
                   memory_map=False,
-                  chunksize=DEFAULT_CHUNKSIZE,
+                  tokenize_chunksize=DEFAULT_CHUNKSIZE,
                   delim_whitespace=False,
                   na_values=None,
                   converters=None,
                   thousands=None,
                   factorize=True):
         self.parser = parser_new()
-        self.parser.chunksize = chunksize
+        self.parser.chunksize = tokenize_chunksize
 
         self._setup_parser_source(source)
         set_parser_default_options(self.parser)
@@ -256,10 +265,15 @@ cdef class TextReader:
             int prior_lines
             int status
 
+        # start = time.clock()
+
         if rows is not None:
             raise NotImplementedError
         else:
             status = tokenize_all_rows(self.parser)
+
+        # end = time.clock()
+        # print 'Tokenization took %.4f sec' % (end - start)
 
         if status < 0:
             raise_parser_error('Error tokenizing data', self.parser)
@@ -273,14 +287,31 @@ cdef class TextReader:
         cdef:
             Py_ssize_t i, ncols
             cast_func func
+            kh_str_t *table
+            int start, end
 
         ncols = self.parser.line_fields[0]
 
+        na_values = ['NA', 'nan', 'NaN']
+        table = kset_from_list(na_values)
+
+        start = 0
+        end = self.parser.lines
+
         results = {}
         for i in range(ncols):
+            na_mask = _get_na_mask(self.parser, i, start, end, table)
+
+            conv = self._get_converter(i)
+
+            if conv:
+                col_res = _apply_converter(conv, self.parser, i, start, end)
+                results[i] = col_res
+                continue
+
             col_res = None
             for func in cast_func_order:
-                col_res = func(self.parser, i, 0, self.parser.lines)
+                col_res = func(self.parser, i, start, end)
                 if col_res is not None:
                     results[i] = col_res
                     break
@@ -288,15 +319,21 @@ cdef class TextReader:
             if col_res is None:
                 raise Exception('Unable to parse column %d' % i)
 
-            # col_res = _try_double(self.parser, i, 0, self.parser.lines)
-
-            # if col_res is None:
-            #     col_res = _string_box_factorize(self.parser, i,
-            #                                     0, self.parser.lines)
-
             results[i] = col_res
 
+        # XXX: needs to be done elsewhere
+        kh_destroy_str(table)
+
         return results
+
+    def _get_converter(self, col):
+        if self.converters is None:
+            return None
+
+        return self.converters.get(col)
+
+    def _get_col_name(self, col):
+        pass
 
 class CParserError(Exception):
     pass
@@ -320,7 +357,7 @@ cdef _string_box_factorize(parser_t *parser, int col,
 
         int ret = 0
         kh_strbox_t *table
-        kh_iter_t
+        khiter_t
 
         object pyval
 
@@ -348,6 +385,8 @@ cdef _string_box_factorize(parser_t *parser, int col,
             table.vals[k] = <PyObject*> pyval
 
         result[i] = pyval
+
+    kh_destroy_strbox(table)
 
     return result
 
@@ -405,6 +444,62 @@ cdef _try_int64(parser_t *parser, int col, int line_start, int line_end):
 
     return result
 
+cdef _get_na_mask(parser_t *parser, int col, int line_start, int line_end,
+                  kh_str_t *na_table):
+    cdef:
+        int error
+        Py_ssize_t i
+        size_t lines
+        coliter_t it
+        char *word
+        ndarray[uint8_t, cast=True] result
+        khiter_t k
+
+    table = kh_init_str()
+    lines = line_end - line_start
+    result = np.empty(lines, dtype=np.bool_)
+
+    coliter_setup(&it, parser, col)
+    for i in range(lines):
+        word = COLITER_NEXT(it)
+
+        # length 0
+        if word[0] == '\x00':
+            result[i] = 1
+            continue
+
+        k = kh_get_str(table, word)
+        # in the hash table
+        if k != table.n_buckets:
+            result[i] = 1
+        else:
+            result[i] = 0
+
+    return result
+
+cdef kh_str_t* kset_from_list(list values):
+    # caller takes responsibility for freeing the hash table
+    cdef:
+        Py_ssize_t i
+        khiter_t k
+        kh_str_t *table
+        int ret = 0
+
+        object val
+
+    table = kh_init_str()
+
+    for i in range(len(values)):
+        val = values[i]
+        if not PyString_Check(val):
+            raise TypeError('must be string, was %s' % type(val))
+
+        k = kh_put_str(table, PyString_AsString(val), &ret)
+
+    return table
+
+
+# if at first you don't succeed...
 
 cdef cast_func cast_func_order[3]
 cast_func_order[0] = _try_int64
@@ -419,3 +514,36 @@ cdef raise_parser_error(object base, parser_t *parser):
         message += 'no error message set'
 
     raise CParserError(message)
+
+#----------------------------------------------------------------------
+# NA values
+
+na_values = {
+    np.float64 : np.nan,
+    np.int64 : INT64_MIN,
+    np.int32 : INT32_MIN,
+    np.object_ : np.nan    # oof
+}
+
+
+cdef _apply_converter(object f, parser_t *parser, int col,
+                       int line_start, int line_end):
+    cdef:
+        int error
+        Py_ssize_t i
+        size_t lines
+        coliter_t it
+        char *word
+        ndarray[object] result
+        object val
+
+    lines = line_end - line_start
+    result = np.empty(lines, dtype=np.object_)
+
+    coliter_setup(&it, parser, col)
+    for i in range(lines):
+        word = COLITER_NEXT(it)
+        val = PyString_FromString(word)
+        result[i] = f(val)
+
+    return lib.maybe_convert_objects(result)

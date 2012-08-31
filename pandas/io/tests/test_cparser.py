@@ -74,6 +74,8 @@ class TestCParser(unittest.TestCase):
         result = reader.read()
         self.assert_(len(set(map(id, result[0]))) == 2)
 
+    def test_na_substitution(self):
+        pass
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

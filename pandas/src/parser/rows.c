@@ -172,7 +172,7 @@ void *new_array_source(char *data, size_t length) {
 	array_source *ars = (array_source *) malloc(sizeof(array_source));
 
 	// to be safe, copy the data from the Python string
-	ars->data = malloc(length + 1);
+	ars->data = malloc(sizeof(char) * (length + 1));
 	strcpy(ars->data, data);
 
 	ars->position = 0;
@@ -182,6 +182,9 @@ void *new_array_source(char *data, size_t length) {
 }
 
 void del_array_source(void *ars) {
+	// I made a copy
+	free(ARS(ars)->data);
+
 	free(ars);
 }
 
