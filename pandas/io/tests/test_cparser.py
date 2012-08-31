@@ -74,6 +74,35 @@ class TestCParser(unittest.TestCase):
         result = reader.read()
         self.assert_(len(set(map(id, result[0]))) == 2)
 
+    def test_skipinitialspace(self):
+        data = ('a,   b\n'
+                'a,   b\n'
+                'a,   b\n'
+                'a,   b')
+
+        reader = parser.TextReader(StringIO(data), skipinitialspace=True)
+        result = reader.read()
+
+        self.assert_(np.array_equal(result[0], ['a', 'a', 'a', 'a']))
+        self.assert_(np.array_equal(result[1], ['b', 'b', 'b', 'b']))
+
+    def test_parse_booleans(self):
+        data = 'True\nFalse\nTrue\nTrue'
+
+        reader = parser.TextReader(StringIO(data))
+        result = reader.read()
+
+        self.assert_(result[0].dtype == np.bool_)
+
+    def test_delimit_whitespace(self):
+        data = 'a  b\na\t\t "b"\n"a"\t \t b'
+
+        reader = parser.TextReader(StringIO(data), delim_whitespace=True)
+        result = reader.read()
+
+        self.assert_(np.array_equal(result[0], ['a', 'a', 'a']))
+        self.assert_(np.array_equal(result[1], ['b', 'b', 'b']))
+
     def test_na_substitution(self):
         pass
 

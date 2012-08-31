@@ -17,6 +17,8 @@ from cpython cimport (PyString_FromString, Py_INCREF, PyString_AsString,
                       PyString_Check)
 
 cdef extern from "stdint.h":
+    enum: UINT8_MAX
+    enum: INT8_MIN
     enum: INT64_MAX
     enum: INT64_MIN
     enum: INT32_MAX
@@ -33,9 +35,10 @@ cdef extern from "parser/conversions.h":
     inline int to_complex(char *item, double *p_real,
                           double *p_imag, char sci, char decimal)
     inline int to_longlong(char *item, long long *p_value)
+    inline int to_boolean(char *item, uint8_t *val)
 
 
-cdef extern from "parser/common.h":
+cdef extern from "parser/parser.h":
 
     ctypedef enum ParserState:
         START_RECORD
@@ -46,6 +49,7 @@ cdef extern from "parser/common.h":
         ESCAPE_IN_QUOTED_FIELD
         QUOTE_IN_QUOTED_FIELD
         EAT_CRNL
+        EAT_WHITESPACE
         FINISHED
 
     ctypedef struct table_chunk:
@@ -83,6 +87,7 @@ cdef extern from "parser/common.h":
         ParserState state
         int doublequote            # is " represented by ""? */
         char delimiter             # field separator */
+        int delim_whitespace       # consume tabs / spaces instead
         char quotechar             # quote character */
         char escapechar            # escape character */
         int skipinitialspace       # ignore spaces following delimiter? */
@@ -137,7 +142,7 @@ cdef extern from "parser/common.h":
     int parser_init(parser_t *self)
     void parser_free(parser_t *self)
 
-    void set_parser_default_options(parser_t *self)
+    void parser_set_default_options(parser_t *self)
 
     int parser_file_source_init(parser_t *self, FILE* fp)
     int parser_mmap_init(parser_t *self, FILE* fp)
@@ -179,26 +184,29 @@ cdef class TextReader:
                   na_values=None,
                   converters=None,
                   thousands=None,
-                  factorize=True):
+                  factorize=True,
+                  skipinitialspace=False):
         self.parser = parser_new()
         self.parser.chunksize = tokenize_chunksize
 
         self._setup_parser_source(source)
-        set_parser_default_options(self.parser)
+        parser_set_default_options(self.parser)
 
         parser_init(self.parser)
 
         if delim_whitespace:
-            raise NotImplementedError
+            self.parser.delim_whitespace = delim_whitespace
         else:
             if len(delimiter) > 1:
                 raise ValueError('only length-1 separators excluded right now')
-            self.parser.delimiter = (<char*> delimiter)[0]
+            self.parser.delimiter = ord(delimiter) # (<char*> delimiter)[0]
 
         self.factorize = factorize
 
         # TODO: no header vs. header is not the first row
         self.parser.header = header
+
+        self.parser.skipinitialspace = skipinitialspace
 
         self.should_close = False
 
@@ -492,6 +500,60 @@ cdef _try_int64(parser_t *parser, int col, int line_start, int line_end,
 
     return result
 
+cdef _try_bool(parser_t *parser, int col, int line_start, int line_end,
+               object _na_mask, bint na_filter):
+    cdef:
+        int error
+        size_t i, lines
+        coliter_t it
+        char *word
+        uint8_t *data
+        ndarray result
+        size_t na_count
+
+        ndarray[uint8_t, cast=True] na_mask
+        uint8_t NA = na_values[np.bool_]
+
+    if na_filter:
+        na_mask = _na_mask
+
+    na_count = 0
+
+    lines = line_end - line_start
+
+    result = np.empty(lines, dtype=np.uint8)
+
+    data = <uint8_t *> result.data
+
+    coliter_setup(&it, parser, col)
+
+    if na_filter:
+        for i in range(lines):
+            word = COLITER_NEXT(it)
+
+            if na_mask[i]:
+                na_count += 1
+                data[i] = NA
+                continue
+
+            error = to_boolean(word, data)
+            if error != 0:
+                return None
+            data += 1
+    else:
+        for i in range(lines):
+            word = COLITER_NEXT(it)
+
+            error = to_boolean(word, data)
+            if error != 0:
+                return None
+            data += 1
+
+    if na_count > 0:
+        return result
+    else:
+        return result.view(np.bool_)
+
 cdef _get_na_mask(parser_t *parser, int col, int line_start, int line_end,
                   kh_str_t *na_table):
     cdef:
@@ -548,10 +610,11 @@ cdef kh_str_t* kset_from_list(list values):
 
 # if at first you don't succeed...
 
-cdef cast_func cast_func_order[3]
+cdef cast_func cast_func_order[4]
 cast_func_order[0] = _try_int64
 cast_func_order[1] = _try_double
-cast_func_order[2] = _string_box_factorize
+cast_func_order[2] = _try_bool
+cast_func_order[3] = _string_box_factorize
 
 cdef raise_parser_error(object base, parser_t *parser):
     message = '%s. C error: ' % base
@@ -569,6 +632,7 @@ na_values = {
     np.float64 : np.nan,
     np.int64 : INT64_MIN,
     np.int32 : INT32_MIN,
+    np.bool_ : UINT8_MAX,
     np.object_ : np.nan    # oof
 }
 

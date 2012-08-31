@@ -87,6 +87,7 @@ typedef enum {
     ESCAPE_IN_QUOTED_FIELD,
     QUOTE_IN_QUOTED_FIELD,
     EAT_CRNL,
+    EAT_WHITESPACE,
     FINISHED
 } ParserState;
 
@@ -133,6 +134,7 @@ typedef struct parser_t {
     ParserState state;
     int doublequote;            /* is " represented by ""? */
     char delimiter;             /* field separator */
+    int delim_whitespace;       /* delimit by consuming space/tabs instead */
     char quotechar;             /* quote character */
     char escapechar;            /* escape character */
     int skipinitialspace;       /* ignore spaces following delimiter? */
@@ -205,7 +207,7 @@ int parser_gzip_source_init(parser_t *self, FILE *fp);
 
 void parser_free(parser_t *self);
 
-void set_parser_default_options(parser_t *self);
+void parser_set_default_options(parser_t *self);
 
 void debug_print_parser(parser_t *self);
 
@@ -222,7 +224,7 @@ int tokenize_all_rows(parser_t *self);
 int clear_parsed_lines(parser_t *self, size_t nlines);
 
 int64_t str_to_int64(const char *p_item, int64_t int_min,
-					 int64_t int_max, int *error);
+                     int64_t int_max, int *error);
 uint64_t str_to_uint64(const char *p_item, uint64_t uint_max, int *error);
 
 #endif // _PARSER_COMMON_H_
