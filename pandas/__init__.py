@@ -8,7 +8,8 @@ import numpy as np
 
 try:
     import pandas.lib as lib
-except Exception:  # pragma: no cover
+except Exception,e :  # pragma: no cover
+    print e
     import sys
     e = sys.exc_info()[1] # Py25 and Py3 current exception syntax conflict
     if 'No module named' in str(e):
