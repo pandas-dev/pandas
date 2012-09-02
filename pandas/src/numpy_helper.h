@@ -143,6 +143,31 @@ PANDAS_INLINE PyObject* floatify(PyObject* str) {
 
 }
 
+PyObject* sarr_from_data(PyArray_Descr *descr, int length, void* data) {
+	npy_intp dims[1] = {length};
+	Py_INCREF(descr);
+	return (PyObject*) PyArray_NewFromDescr(&PyArray_Type, descr, 1, dims,
+											NULL, data, 0, NULL);
+}
+
+void transfer_object_column(char *dst, char *src, size_t stride,
+							size_t length) {
+	int i;
+	size_t sz = sizeof(PyObject*);
+
+	for (i = 0; i < length; ++i)
+	{
+		// uninitialized data
+
+		// Py_XDECREF(*((PyObject**) dst));
+
+		memcpy(dst, src, sz);
+		Py_INCREF(*((PyObject**) dst));
+		src += sz;
+		dst += stride;
+	}
+}
+
 
 // PANDAS_INLINE PyObject*
 // get_base_ndarray(PyObject* ap) {

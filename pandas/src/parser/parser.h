@@ -87,8 +87,7 @@ typedef enum {
     ESCAPE_IN_QUOTED_FIELD,
     QUOTE_IN_QUOTED_FIELD,
     EAT_CRNL,
-    EAT_WHITESPACE,
-    FINISHED
+    EAT_WHITESPACE
 } ParserState;
 
 typedef enum {

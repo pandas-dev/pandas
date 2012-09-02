@@ -1,7 +1,20 @@
-from libc.stdlib cimport free
+from libc.stdlib cimport malloc, free
 
-from numpy cimport *
+from cpython cimport (PyObject, PyString_FromString,
+                      PyString_AsString, PyString_Check)
+
+cdef extern from "stdlib.h":
+    void memcpy(void *dst, void *src, size_t n)
+
+cimport numpy as cnp
+
+from numpy cimport ndarray, uint8_t, uint64_t
+
 import numpy as np
+
+cdef extern from "Python.h":
+    void Py_INCREF(PyObject*)
+    void Py_XDECREF(PyObject*)
 
 cimport util
 
@@ -9,12 +22,9 @@ import pandas.lib as lib
 
 import time
 
-import_array()
+cnp.import_array()
 
 from khash cimport *
-
-from cpython cimport (PyString_FromString, Py_INCREF, PyString_AsString,
-                      PyString_Check)
 
 cdef extern from "stdint.h":
     enum: UINT8_MAX
@@ -50,7 +60,6 @@ cdef extern from "parser/parser.h":
         QUOTE_IN_QUOTED_FIELD
         EAT_CRNL
         EAT_WHITESPACE
-        FINISHED
 
     ctypedef struct table_chunk:
         void **columns
@@ -139,8 +148,8 @@ cdef extern from "parser/parser.h":
 
     parser_t* parser_new()
 
-    int parser_init(parser_t *self)
-    void parser_free(parser_t *self)
+    int parser_init(parser_t *self) nogil
+    void parser_free(parser_t *self) nogil
 
     void parser_set_default_options(parser_t *self)
 
@@ -150,8 +159,8 @@ cdef extern from "parser/parser.h":
 
     void debug_print_parser(parser_t *self)
 
-    int tokenize_all_rows(parser_t *self)
-    int tokenize_nrows(parser_t *self, size_t nrows)
+    int tokenize_all_rows(parser_t *self) nogil
+    int tokenize_nrows(parser_t *self, size_t nrows) nogil
 
     int64_t str_to_int64(char *p_item, int64_t int_min,
                          int64_t int_max, int *error)
@@ -171,11 +180,12 @@ cdef class TextReader:
     cdef:
         parser_t *parser
         object file_handle, should_close
-        bint factorize
+        bint factorize, na_filter
 
     cdef public:
         object delimiter, na_values, converters, thousands, delim_whitespace
         object memory_map
+        object as_recarray
 
     def __cinit__(self, source, delimiter=',', header=0,
                   memory_map=False,
@@ -185,7 +195,9 @@ cdef class TextReader:
                   converters=None,
                   thousands=None,
                   factorize=True,
-                  skipinitialspace=False):
+                  as_recarray=False,
+                  skipinitialspace=False,
+                  na_filter=True):
         self.parser = parser_new()
         self.parser.chunksize = tokenize_chunksize
 
@@ -217,6 +229,9 @@ cdef class TextReader:
         self.na_values = na_values
         self.converters = converters
         self.thousands = thousands
+
+        self.na_filter = na_filter
+        self.as_recarray = as_recarray
 
     def __dealloc__(self):
         parser_free(self.parser)
@@ -278,7 +293,8 @@ cdef class TextReader:
         if rows is not None:
             raise NotImplementedError
         else:
-            status = tokenize_all_rows(self.parser)
+            with nogil:
+                status = tokenize_all_rows(self.parser)
 
         # end = time.clock()
         # print 'Tokenization took %.4f sec' % (end - start)
@@ -286,10 +302,22 @@ cdef class TextReader:
         if status < 0:
             raise_parser_error('Error tokenizing data', self.parser)
 
-        result = self._convert_column_data()
+        # start = time.clock()
+        columns, names = self._convert_column_data()
+        # end = time.clock()
+        # print 'Type conversion took %.4f sec' % (end - start)
 
         # debug_print_parser(self.parser)
-        return result
+
+        if self.as_recarray:
+            # start = time.clock()
+            result = _to_structured_array(columns, names)
+            # end = time.clock()
+            # print 'to_structured_array took %.4f sec' % (end - start)
+
+            return result
+        else:
+            return columns
 
     def _convert_column_data(self):
         cdef:
@@ -306,10 +334,15 @@ cdef class TextReader:
         start = 0
         end = self.parser.lines
 
+        names = []
+
         results = {}
         for i in range(ncols):
-            na_mask = _get_na_mask(self.parser, i, start, end, table)
-            na_filter = 1
+            # XXX
+            if self.na_filter:
+                na_mask = _get_na_mask(self.parser, i, start, end, table)
+            else:
+                na_mask = None
 
             conv = self._get_converter(i)
 
@@ -321,7 +354,7 @@ cdef class TextReader:
             col_res = None
             for func in cast_func_order:
                 col_res = func(self.parser, i, start, end,
-                               na_mask, na_filter)
+                               na_mask, self.na_filter)
                 if col_res is not None:
                     results[i] = col_res
                     break
@@ -329,12 +362,13 @@ cdef class TextReader:
             if col_res is None:
                 raise Exception('Unable to parse column %d' % i)
 
+            names.append(i)
             results[i] = col_res
 
         # XXX: needs to be done elsewhere
         kh_destroy_str(table)
 
-        return results
+        return results, names
 
     def _get_converter(self, col):
         if self.converters is None:
@@ -430,12 +464,10 @@ cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
         na_mask = _na_mask
 
     lines = line_end - line_start
-
     result = np.empty(lines, dtype=np.float64)
-
     data = <double *> result.data
-
     coliter_setup(&it, parser, col)
+
     if na_filter:
         for i in range(lines):
             word = COLITER_NEXT(it)
@@ -518,13 +550,9 @@ cdef _try_bool(parser_t *parser, int col, int line_start, int line_end,
         na_mask = _na_mask
 
     na_count = 0
-
     lines = line_end - line_start
-
     result = np.empty(lines, dtype=np.uint8)
-
     data = <uint8_t *> result.data
-
     coliter_setup(&it, parser, col)
 
     if na_filter:
@@ -658,3 +686,68 @@ cdef _apply_converter(object f, parser_t *parser, int col,
         result[i] = f(val)
 
     return lib.maybe_convert_objects(result)
+
+def _to_structured_array(dict columns, object colnames):
+    cdef:
+        ndarray recs, column
+        cnp.dtype dt
+        dict fields
+
+        object name, fnames, field_type
+        Py_ssize_t i, offset, nfields, length
+        int stride, elsize
+        char *buf
+
+    dt = np.dtype([(str(name), columns[name].dtype) for name in colnames])
+    fnames = dt.names
+    fields = dt.fields
+
+    nfields = len(fields)
+
+    length = len(columns.values()[0])
+    stride = dt.itemsize
+
+    # start = time.clock()
+
+    # we own the data
+    buf = <char*> malloc(length * stride)
+
+    recs = util.sarr_from_data(dt, length, buf)
+
+    # buf = <char*> recs.data
+    # end = time.clock()
+    # print 'took %.4f' % (end - start)
+
+    for i in range(nfields):
+        # start = time.clock()
+        name = colnames[i]
+
+        # XXX
+        field_type = fields[fnames[i]]
+
+        # (dtype, stride) tuple
+        offset = field_type[1]
+        elsize = field_type[0].itemsize
+        column = columns[name]
+
+        _fill_structured_column(buf + offset, <char*> column.data,
+                                elsize, stride, length,
+                                field_type[0] == np.object_)
+
+        # print 'Transfer of %s took %.4f' % (str(field_type),
+        #                                     time.clock() - start)
+
+    return recs
+
+cdef _fill_structured_column(char *dst, char* src, int elsize,
+                             int stride, int length, bint incref):
+    cdef:
+        size_t i
+
+    if incref:
+        util.transfer_object_column(dst, src, stride, length)
+    else:
+        for i in range(length):
+            memcpy(dst, src, elsize)
+            dst += stride
+            src += elsize
