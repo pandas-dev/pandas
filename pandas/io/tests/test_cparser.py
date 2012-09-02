@@ -27,6 +27,7 @@ from pandas.lib import Timestamp
 
 import pandas.util.testing as tm
 
+from pandas._parser import TextReader
 import pandas._parser as parser
 
 
@@ -43,13 +44,13 @@ class TestCParser(unittest.TestCase):
         self.xls1 = os.path.join(self.dirpath, 'test.xls')
 
     def test_string_filename(self):
-        reader = parser.TextReader(self.csv1)
+        reader = TextReader(self.csv1)
         result = reader.read()
 
     def test_file_handle(self):
         try:
             f = open(self.csv1, 'rb')
-            reader = parser.TextReader(f)
+            reader = TextReader(f)
             result = reader.read()
         finally:
             f.close()
@@ -57,20 +58,20 @@ class TestCParser(unittest.TestCase):
     def test_file_handle_mmap(self):
         try:
             f = open(self.csv1, 'rb')
-            reader = parser.TextReader(f, memory_map=True)
+            reader = TextReader(f, memory_map=True)
             result = reader.read()
         finally:
             f.close()
 
     def test_StringIO(self):
         text = open(self.csv1, 'rb').read()
-        reader = parser.TextReader(BytesIO(text))
+        reader = TextReader(BytesIO(text))
         result = reader.read()
 
     def test_string_factorize(self):
         # should this be optional?
         data = 'a\nb\na\nb\na'
-        reader = parser.TextReader(StringIO(data))
+        reader = TextReader(StringIO(data))
         result = reader.read()
         self.assert_(len(set(map(id, result[0]))) == 2)
 
@@ -80,7 +81,7 @@ class TestCParser(unittest.TestCase):
                 'a,   b\n'
                 'a,   b')
 
-        reader = parser.TextReader(StringIO(data), skipinitialspace=True)
+        reader = TextReader(StringIO(data), skipinitialspace=True)
         result = reader.read()
 
         self.assert_(np.array_equal(result[0], ['a', 'a', 'a', 'a']))
@@ -89,7 +90,7 @@ class TestCParser(unittest.TestCase):
     def test_parse_booleans(self):
         data = 'True\nFalse\nTrue\nTrue'
 
-        reader = parser.TextReader(StringIO(data))
+        reader = TextReader(StringIO(data))
         result = reader.read()
 
         self.assert_(result[0].dtype == np.bool_)
@@ -97,7 +98,7 @@ class TestCParser(unittest.TestCase):
     def test_delimit_whitespace(self):
         data = 'a  b\na\t\t "b"\n"a"\t \t b'
 
-        reader = parser.TextReader(StringIO(data), delim_whitespace=True)
+        reader = TextReader(StringIO(data), delim_whitespace=True)
         result = reader.read()
 
         self.assert_(np.array_equal(result[0], ['a', 'a', 'a']))
@@ -106,7 +107,7 @@ class TestCParser(unittest.TestCase):
     def test_embedded_newline(self):
         data = 'a\n"hello\nthere"\nthis'
 
-        reader = parser.TextReader(StringIO(data))
+        reader = TextReader(StringIO(data))
         result = reader.read()
 
         expected = ['a', 'hello\nthere', 'this']
@@ -115,7 +116,7 @@ class TestCParser(unittest.TestCase):
     def test_euro_decimal(self):
         data = '12345,67\n345,678'
 
-        reader = parser.TextReader(StringIO(data), delimiter=':',
+        reader = TextReader(StringIO(data), delimiter=':',
                                    decimal=',')
         result = reader.read()
 
@@ -125,15 +126,42 @@ class TestCParser(unittest.TestCase):
     def test_integer_thousands(self):
         data = '123,456\n12,500'
 
-        reader = parser.TextReader(StringIO(data), delimiter=':',
+        reader = TextReader(StringIO(data), delimiter=':',
                                    thousands=',')
         result = reader.read()
 
         expected = [123456, 12500]
         tm.assert_almost_equal(result[0], expected)
 
+    def test_skip_bad_lines(self):
+        data = ('a:b:c\n'
+                'd:e:f\n'
+                'g:h:i\n'
+                'j:k\n'
+                'l:m:n')
+
+        reader = TextReader(StringIO(data), delimiter=':')
+        self.assertRaises(parser.CParserError, reader.read)
+
+        reader = TextReader(StringIO(data), delimiter=':',
+                            error_bad_lines=False,
+                            warn_bad_lines=False)
+        result = reader.read()
+        expected = {0: ['a', 'd', 'g', 'l'],
+                    1: ['b', 'e', 'h', 'm'],
+                    2: ['c', 'f', 'i', 'n']}
+        assert_array_dicts_equal(result, expected)
+
+    def test_eof_has_eol(self):
+        # handling of new line at EOF
+        pass
+
     def test_na_substitution(self):
         pass
+
+def assert_array_dicts_equal(left, right):
+    for k, v in left.iteritems():
+        assert(np.array_equal(v, right[k]))
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

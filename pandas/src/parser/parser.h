@@ -126,7 +126,8 @@ typedef struct parser_t {
 
     int *line_start;      // position in words for start of line
     int *line_fields;     // Number of fields in each line
-    int lines;            // Number of lines observed
+    int lines;            // Number of (good) lines observed
+    int file_lines;       // Number of file lines observed (including bad or skipped)
     int lines_cap;        // Vector capacity
 
     // Tokenizing stuff
@@ -139,7 +140,7 @@ typedef struct parser_t {
     int skipinitialspace;       /* ignore spaces following delimiter? */
     int quoting;                /* style of quoting to write */
 
-    // hmm =/
+    // krufty, hmm =/
     int numeric_field;
 
     char commentchar;

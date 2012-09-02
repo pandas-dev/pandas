@@ -92,6 +92,7 @@ cdef extern from "parser/parser.h":
         int *line_start      # position in words for start of line
         int *line_fields     # Number of fields in each line
         int lines            # Number of lines observed
+        int file_lines       # Number of file lines observed (with bad/skipped)
         int lines_cap        # Vector capacity
 
         # Tokenizing stuff
@@ -133,8 +134,6 @@ cdef extern from "parser/parser.h":
 
         void **columns
         int ncols
-
-        # PyObject *converters
 
         #  error handling
         char *error_msg
@@ -200,6 +199,8 @@ cdef class TextReader:
                   as_recarray=False,
                   skipinitialspace=False,
                   decimal=b'.',
+                  error_bad_lines=True,
+                  warn_bad_lines=True,
                   na_filter=True):
         self.parser = parser_new()
         self.parser.chunksize = tokenize_chunksize
@@ -230,6 +231,10 @@ cdef class TextReader:
             if len(thousands) != 1:
                 raise ValueError('Only length-1 decimal markers supported')
             self.parser.thousands = ord(thousands)
+
+        # error handling of bad lines
+        self.parser.error_bad_lines = int(error_bad_lines)
+        self.parser.warn_bad_lines = int(warn_bad_lines)
 
         self.should_close = False
 
