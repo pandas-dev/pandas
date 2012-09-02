@@ -24,8 +24,8 @@ from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
 import pandas.lib as lib
 from pandas.util import py3compat
 from pandas.lib import Timestamp
-from pandas.tseries.index import date_range
 
+import pandas.util.testing as tm
 
 import pandas._parser as parser
 
@@ -102,6 +102,35 @@ class TestCParser(unittest.TestCase):
 
         self.assert_(np.array_equal(result[0], ['a', 'a', 'a']))
         self.assert_(np.array_equal(result[1], ['b', 'b', 'b']))
+
+    def test_embedded_newline(self):
+        data = 'a\n"hello\nthere"\nthis'
+
+        reader = parser.TextReader(StringIO(data))
+        result = reader.read()
+
+        expected = ['a', 'hello\nthere', 'this']
+        self.assert_(np.array_equal(result[0], expected))
+
+    def test_euro_decimal(self):
+        data = '12345,67\n345,678'
+
+        reader = parser.TextReader(StringIO(data), delimiter=':',
+                                   decimal=',')
+        result = reader.read()
+
+        expected = [12345.67, 345.678]
+        tm.assert_almost_equal(result[0], expected)
+
+    def test_integer_thousands(self):
+        data = '123,456\n12,500'
+
+        reader = parser.TextReader(StringIO(data), delimiter=':',
+                                   thousands=',')
+        result = reader.read()
+
+        expected = [123456, 12500]
+        tm.assert_almost_equal(result[0], expected)
 
     def test_na_substitution(self):
         pass

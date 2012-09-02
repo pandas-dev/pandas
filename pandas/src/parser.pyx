@@ -12,9 +12,9 @@ from numpy cimport ndarray, uint8_t, uint64_t
 
 import numpy as np
 
-cdef extern from "Python.h":
-    void Py_INCREF(PyObject*)
-    void Py_XDECREF(PyObject*)
+# cdef extern from "Python.h":
+#     void Py_INCREF(PyObject*)
+#     void Py_XDECREF(PyObject*)
 
 cimport util
 
@@ -45,6 +45,8 @@ cdef extern from "parser/conversions.h":
     inline int to_complex(char *item, double *p_real,
                           double *p_imag, char sci, char decimal)
     inline int to_longlong(char *item, long long *p_value)
+    inline int to_longlong_thousands(char *item, long long *p_value,
+                                     char tsep)
     inline int to_boolean(char *item, uint8_t *val)
 
 
@@ -163,7 +165,7 @@ cdef extern from "parser/parser.h":
     int tokenize_nrows(parser_t *self, size_t nrows) nogil
 
     int64_t str_to_int64(char *p_item, int64_t int_min,
-                         int64_t int_max, int *error)
+                         int64_t int_max, int *error, char tsep)
     uint64_t str_to_uint64(char *p_item, uint64_t uint_max, int *error)
 
 
@@ -183,11 +185,11 @@ cdef class TextReader:
         bint factorize, na_filter
 
     cdef public:
-        object delimiter, na_values, converters, thousands, delim_whitespace
+        object delimiter, na_values, converters, delim_whitespace
         object memory_map
         object as_recarray
 
-    def __cinit__(self, source, delimiter=',', header=0,
+    def __cinit__(self, source, delimiter=b',', header=0,
                   memory_map=False,
                   tokenize_chunksize=DEFAULT_CHUNKSIZE,
                   delim_whitespace=False,
@@ -197,6 +199,7 @@ cdef class TextReader:
                   factorize=True,
                   as_recarray=False,
                   skipinitialspace=False,
+                  decimal=b'.',
                   na_filter=True):
         self.parser = parser_new()
         self.parser.chunksize = tokenize_chunksize
@@ -211,14 +214,22 @@ cdef class TextReader:
         else:
             if len(delimiter) > 1:
                 raise ValueError('only length-1 separators excluded right now')
-            self.parser.delimiter = ord(delimiter) # (<char*> delimiter)[0]
+            self.parser.delimiter = ord(delimiter)
 
         self.factorize = factorize
 
         # TODO: no header vs. header is not the first row
         self.parser.header = header
-
         self.parser.skipinitialspace = skipinitialspace
+
+        if len(decimal) != 1:
+            raise ValueError('Only length-1 decimal markers supported')
+        self.parser.decimal = ord(decimal)
+
+        if thousands is not None:
+            if len(thousands) != 1:
+                raise ValueError('Only length-1 decimal markers supported')
+            self.parser.thousands = ord(thousands)
 
         self.should_close = False
 
@@ -228,10 +239,12 @@ cdef class TextReader:
         self.memory_map = memory_map
         self.na_values = na_values
         self.converters = converters
-        self.thousands = thousands
 
         self.na_filter = na_filter
         self.as_recarray = as_recarray
+
+    def __init__(self, *args, **kwards):
+        pass
 
     def __dealloc__(self):
         parser_free(self.parser)
@@ -353,8 +366,8 @@ cdef class TextReader:
 
             col_res = None
             for func in cast_func_order:
-                col_res = func(self.parser, i, start, end,
-                               na_mask, self.na_filter)
+                col_res, na_count = func(self.parser, i, start, end,
+                                         na_mask, self.na_filter)
                 if col_res is not None:
                     results[i] = col_res
                     break
@@ -394,7 +407,7 @@ cdef _string_box_factorize(parser_t *parser, int col,
                            int line_start, int line_end,
                            object _na_mask, bint na_filter):
     cdef:
-        int error
+        int error, na_count = 0
         Py_ssize_t i
         size_t lines
         coliter_t it
@@ -424,6 +437,7 @@ cdef _string_box_factorize(parser_t *parser, int col,
         word = COLITER_NEXT(it)
 
         if na_filter and na_mask[i]:
+            na_count += 1
             result[i] = NA
             continue
 
@@ -444,14 +458,14 @@ cdef _string_box_factorize(parser_t *parser, int col,
 
     kh_destroy_strbox(table)
 
-    return result
+    return result, na_count
 
 
 
 cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
                  object _na_mask, bint na_filter):
     cdef:
-        int error
+        int error, na_count = 0
         size_t i, lines
         coliter_t it
         char *word
@@ -472,26 +486,27 @@ cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
         for i in range(lines):
             word = COLITER_NEXT(it)
             if na_mask[i]:
+                na_count += 1
                 data[0] = NA
             else:
                 error = to_double(word, data, parser.sci, parser.decimal)
                 if error != 1:
-                    return None
+                    return None, None
             data += 1
     else:
         for i in range(lines):
             word = COLITER_NEXT(it)
             error = to_double(word, data, parser.sci, parser.decimal)
             if error != 1:
-                return None
+                return None, None
             data += 1
 
-    return result
+    return result, na_count
 
 cdef _try_int64(parser_t *parser, int col, int line_start, int line_end,
                 object _na_mask, bint na_filter):
     cdef:
-        int error
+        int error, na_count = 0
         size_t i, lines
         coliter_t it
         char *word
@@ -517,31 +532,33 @@ cdef _try_int64(parser_t *parser, int col, int line_start, int line_end,
             word = COLITER_NEXT(it)
 
             if na_mask[i]:
+                na_count += 1
                 data[i] = NA
                 continue
 
-            data[i] = str_to_int64(word, INT64_MIN, INT64_MAX, &error);
+            data[i] = str_to_int64(word, INT64_MIN, INT64_MAX,
+                                   &error, parser.thousands);
             if error != 0:
-                return None
+                return None, None
     else:
         for i in range(lines):
             word = COLITER_NEXT(it)
-            data[i] = str_to_int64(word, INT64_MIN, INT64_MAX, &error);
+            data[i] = str_to_int64(word, INT64_MIN, INT64_MAX,
+                                   &error, parser.thousands);
             if error != 0:
-                return None
+                return None, None
 
-    return result
+    return result, na_count
 
 cdef _try_bool(parser_t *parser, int col, int line_start, int line_end,
                object _na_mask, bint na_filter):
     cdef:
-        int error
+        int error, na_count = 0
         size_t i, lines
         coliter_t it
         char *word
         uint8_t *data
         ndarray result
-        size_t na_count
 
         ndarray[uint8_t, cast=True] na_mask
         uint8_t NA = na_values[np.bool_]
@@ -549,7 +566,6 @@ cdef _try_bool(parser_t *parser, int col, int line_start, int line_end,
     if na_filter:
         na_mask = _na_mask
 
-    na_count = 0
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.uint8)
     data = <uint8_t *> result.data
@@ -566,7 +582,7 @@ cdef _try_bool(parser_t *parser, int col, int line_start, int line_end,
 
             error = to_boolean(word, data)
             if error != 0:
-                return None
+                return None, None
             data += 1
     else:
         for i in range(lines):
@@ -574,13 +590,13 @@ cdef _try_bool(parser_t *parser, int col, int line_start, int line_end,
 
             error = to_boolean(word, data)
             if error != 0:
-                return None
+                return None, None
             data += 1
 
     if na_count > 0:
-        return result
+        return result, na_count
     else:
-        return result.view(np.bool_)
+        return result.view(np.bool_), na_count
 
 cdef _get_na_mask(parser_t *parser, int col, int line_start, int line_end,
                   kh_str_t *na_table):

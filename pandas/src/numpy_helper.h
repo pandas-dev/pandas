@@ -146,7 +146,7 @@ PANDAS_INLINE PyObject* floatify(PyObject* str) {
 PyObject* sarr_from_data(PyArray_Descr *descr, int length, void* data) {
 	PyArrayObject *result;
 	npy_intp dims[1] = {length};
-	Py_INCREF(descr);
+	Py_INCREF(descr); // newfromdescr steals a reference to descr
 	result = (PyArrayObject*) PyArray_NewFromDescr(&PyArray_Type, descr, 1, dims,
 												   NULL, data, 0, NULL);
 
