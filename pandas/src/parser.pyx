@@ -713,6 +713,7 @@ def _to_structured_array(dict columns, object colnames):
     buf = <char*> malloc(length * stride)
 
     recs = util.sarr_from_data(dt, length, buf)
+    assert(recs.flags.owndata)
 
     # buf = <char*> recs.data
     # end = time.clock()

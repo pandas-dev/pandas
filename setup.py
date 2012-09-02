@@ -385,7 +385,8 @@ period_ext = Extension('pandas._period',
                        include_dirs=[np.get_include()])
 
 parser_ext = Extension('pandas._parser',
-                       depends=['pandas/src/parser/parser.h'],
+                       depends=['pandas/src/parser/parser.h',
+                                'pandas/src/numpy_helper.h'],
                        sources=[srcpath('parser', suffix=suffix),
                                 'pandas/src/parser/parser.c',
                                 'pandas/src/parser/conversions.c',

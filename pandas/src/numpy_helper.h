@@ -144,10 +144,16 @@ PANDAS_INLINE PyObject* floatify(PyObject* str) {
 }
 
 PyObject* sarr_from_data(PyArray_Descr *descr, int length, void* data) {
+	PyArrayObject *result;
 	npy_intp dims[1] = {length};
 	Py_INCREF(descr);
-	return (PyObject*) PyArray_NewFromDescr(&PyArray_Type, descr, 1, dims,
-											NULL, data, 0, NULL);
+	result = (PyArrayObject*) PyArray_NewFromDescr(&PyArray_Type, descr, 1, dims,
+												   NULL, data, 0, NULL);
+
+	// Returned array doesn't own data by default
+	result->flags |= NPY_OWNDATA;
+
+	return (PyObject*) result;
 }
 
 void transfer_object_column(char *dst, char *src, size_t stride,
