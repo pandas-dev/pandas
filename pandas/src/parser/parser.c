@@ -61,12 +61,11 @@ void *safe_realloc(void *buffer, size_t size) {
 }
 
 
-void coliter_setup(coliter_t *self, parser_t *parser, int i) {
+void coliter_setup(coliter_t *self, parser_t *parser, int i, int start) {
     // column i, starting at 0
     self->words = parser->words;
     self->col = i;
-    self->line = 0;
-    self->line_start = parser->line_start;
+    self->line_start = parser->line_start + start;
 }
 
 coliter_t *coliter_new(parser_t *self, int i) {
@@ -77,7 +76,7 @@ coliter_t *coliter_new(parser_t *self, int i) {
         return NULL;
     }
 
-    coliter_setup(iter, self, i);
+    coliter_setup(iter, self, i, 0);
     return iter;
 }
 
@@ -124,6 +123,7 @@ coliter_t *coliter_new(parser_t *self, int i) {
 
  #define FS(source) ((file_source *)source)
 
+
  void *new_file_source(FILE *fp) {
      file_source *fs = (file_source *) malloc(sizeof(file_source));
      fs->fp = fp;
@@ -141,6 +141,23 @@ coliter_t *coliter_new(parser_t *self, int i) {
      // allocated on the heap
      free(fs);
  }
+
+
+int parser_file_source_init(parser_t *self, FILE* fp) {
+    self->sourcetype = 'F';
+    self->source = new_file_source(fp);
+
+    // Only allocate this heap memory if we are not memory-mapping the file
+    self->data = (char*) malloc((self->chunksize + 1) * sizeof(char));
+    memset(self->data, 0, self->chunksize + 1);
+    self->data[self->chunksize] = '\0';
+
+    if (self->data == NULL) {
+        return PARSER_OUT_OF_MEMORY;
+    }
+
+    return 0;
+}
 
  /*
 
@@ -626,7 +643,7 @@ void parser_set_default_options(parser_t *self) {
 
     self->doublequote = 0;
     self->quotechar = '"';
-    self->escapechar = '\\';
+    self->escapechar = 0;
     self->skipinitialspace = 0;
     self->quoting = QUOTE_MINIMAL;
     self->allow_embedded_newline = 1;
@@ -648,20 +665,6 @@ int get_parser_memory_footprint(parser_t *self) {
 
 parser_t* parser_new() {
     return (parser_t*) calloc(1, sizeof(parser_t));
-}
-
-int parser_file_source_init(parser_t *self, FILE* fp) {
-    self->sourcetype = 'F';
-    self->source = new_file_source(fp);
-
-    // Only allocate this heap memory if we are not memory-mapping the file
-    self->data = (char*) malloc((self->chunksize + 1) * sizeof(char));
-
-    if (self->data == NULL) {
-        return PARSER_OUT_OF_MEMORY;
-    }
-
-    return 0;
 }
 
 // XXX handle on systems without the capability
@@ -864,7 +867,7 @@ int make_stream_space(parser_t *self, size_t nbytes) {
 
     // Can we fit potentially nbytes tokens (+ null terminators) in the stream?
 
-    TRACE(("maybe growing buffers\n"));
+    /* TRACE(("maybe growing buffers\n")); */
 
     /*
       TOKEN STREAM
@@ -883,7 +886,7 @@ int make_stream_space(parser_t *self, size_t nbytes) {
     // realloc sets errno when moving buffer?
     if (self->stream != orig_ptr) {
         // uff
-        TRACE(("Moving word pointers\n"))
+        /* TRACE(("Moving word pointers\n")) */
 
         self->pword_start = self->stream + self->word_start;
 
@@ -942,7 +945,7 @@ int make_stream_space(parser_t *self, size_t nbytes) {
     }
 
 
-    TRACE(("finished growing buffers\n"));
+    /* TRACE(("finished growing buffers\n")); */
 
     return 0;
 }
@@ -982,71 +985,60 @@ int inline end_field(parser_t *self) {
 }
 
 int inline end_line(parser_t *self) {
-    int fields, ex_fields;
+    int fields;
+    int ex_fields = -1;
 
     fields = self->line_fields[self->lines];
 
-    // TODO: header line handling
-
-    if (self->lines == 0) {
-        // Nothing to check here
-        self->file_lines++;
-        self->lines++;
-        self->line_fields[self->lines] = 0;
-        self->line_start[self->lines] = fields;
-    } else {
+    if (self->lines > 0) {
         ex_fields = self->line_fields[self->lines - 1];
-
-        // TODO: better check here
-        if (fields != ex_fields) {
-            // increment file line count
-            self->file_lines++;
-
-            // skip the tokens from this bad line
-            self->line_start[self->lines] += fields;
-
-            // reset field count
-            self->line_fields[self->lines] = 0;
-
-            // file_lines is now the _actual_ file line number (starting at 1)
-
-            if (self->error_bad_lines) {
-                self->error_msg = (char*) malloc(100);
-                sprintf(self->error_msg, "Expected %d fields in line %d, saw %d\n",
-                        ex_fields, self->file_lines, fields);
-
-                return -1;
-            } else {
-                // simply skip bad lines
-                if (self->warn_bad_lines) {
-                    // print error message
-                    printf("Skipping line %d: expected %d fields, saw %d\n",
-                           self->file_lines, ex_fields, fields);
-                }
-            }
-        } else {
-            // increment both line counts
-            self->lines++;
-            self->file_lines++;
-
-            // good line, set new start point
-            self->line_start[self->lines] = (self->line_start[self->lines - 1]
-                                             + fields);
-
-            // new line start with 0 fields
-            self->line_fields[self->lines] = 0;
-        }
     }
 
+    if (!(self->lines <= self->header + 1) && fields != ex_fields) {
+        // increment file line count
+        self->file_lines++;
+
+        // skip the tokens from this bad line
+        self->line_start[self->lines] += fields;
+
+        // reset field count
+        self->line_fields[self->lines] = 0;
+
+        // file_lines is now the _actual_ file line number (starting at 1)
+
+        if (self->error_bad_lines) {
+            self->error_msg = (char*) malloc(100);
+            sprintf(self->error_msg, "Expected %d fields in line %d, saw %d\n",
+                    ex_fields, self->file_lines, fields);
+
+            return -1;
+        } else {
+            // simply skip bad lines
+            if (self->warn_bad_lines) {
+                // print error message
+                printf("Skipping line %d: expected %d fields, saw %d\n",
+                       self->file_lines, ex_fields, fields);
+            }
+        }
+    } else {
+        // increment both line counts
+        self->lines++;
+        self->file_lines++;
+
+        // good line, set new start point
+        self->line_start[self->lines] = (self->line_start[self->lines - 1] +
+                                         fields);
+
+        // new line start with 0 fields
+        self->line_fields[self->lines] = 0;
+    }
+
+    TRACE(("Finished line, at %d\n", self->lines));
 
     return 0;
 }
 
 int parser_clear_data_buffers(parser_t *self) {
-    if (self->sourcetype == 'F') {
-        free_if_not_null(self->data);
-    }
-
     free_if_not_null(self->stream);
     free_if_not_null(self->words);
     free_if_not_null(self->word_starts);
@@ -1148,7 +1140,7 @@ int _buffer_array_bytes(parser_t *self, size_t nbytes) {
 
     TRACE(("datalen: %d\n", self->datalen));
 
-    TRACE(("pos: %d, length: %d", src->position, src->length));
+    TRACE(("pos: %d, length: %d", (int) src->position, (int) src->length));
     return 0;
 }
 
@@ -1157,6 +1149,7 @@ int parser_cleanup_filebuffers(parser_t *self) {
     switch(self->sourcetype) {
 
         case 'F':
+            free(self->data);
             del_file_source(self->source);
             break;
 
@@ -1239,8 +1232,8 @@ int tokenize_delimited(parser_t *self)
         // Next character in file
         c = *buf++;
 
-        TRACE(("Iter: %d Char: %c Line %d field_count %d\n",
-               i, c, self->file_lines + 1, self->line_fields[self->file_lines]));
+        /* TRACE(("Iter: %d Char: %c Line %d field_count %d\n", */
+        /*        i, c, self->file_lines + 1, self->line_fields[self->file_lines])); */
 
         switch(self->state) {
         case START_RECORD:
@@ -1699,6 +1692,10 @@ int _tokenize_helper(parser_t *self, size_t nrows, int all) {
         tokenize_bytes = tokenize_delimited;
     }
 
+    if (self->state == FINISHED) {
+        return 0;
+    }
+
     while (1) {
         if (!all && self->lines - start_lines >= nrows)
             break;
@@ -1712,6 +1709,7 @@ int _tokenize_helper(parser_t *self, size_t nrows, int all) {
         if (status == REACHED_EOF) {
             // close out last line
             status = parser_handle_eof(self);
+            self->state = FINISHED;
             break;
         }
 
@@ -1752,7 +1750,8 @@ int test_tokenize(char *fname) {
 
     self = parser_new();
     self->chunksize = nbytes;
-    self->source = malloc(sizeof(file_source));
+
+    // self->source = malloc(sizeof(file_source));
 
     FILE* fp = fopen(fname, "rb");
     parser_file_source_init(self, fp);
@@ -1762,6 +1761,8 @@ int test_tokenize(char *fname) {
     if (parser_init(self) < 0) {
         return -1;
     }
+
+    self->header = 0;
 
     status = tokenize_all_rows(self);
 
@@ -1802,7 +1803,7 @@ int test_tokenize(char *fname) {
 
     for (j = 0; j < columns; ++j)
     {
-        coliter_setup(&citer, self, j);
+        coliter_setup(&citer, self, j, 0);
 
         for (i = 0; i < self->lines; ++i)
         {
@@ -1871,6 +1872,8 @@ int test_tokenize(char *fname) {
 
     parser_free(self);
 
+    fclose(fp);
+
     /* if (parser_cleanup(self) < 0) { */
     /*     return -1; */
     /* } */
@@ -1925,7 +1928,7 @@ int main(int argc, char *argv[])
     int i;
     TRACE(("hello: %s\n", "Wes"));
 
-    test_tokenize("/Users/wesm/code/textreader/foo.csv");
+    test_tokenize("/Users/wesm/code/pandas/pandas/io/tests/test1.csv");
 
     // char *msg = (char*) malloc(50);
     // sprintf(msg, "Hello: %s\n", "wes");

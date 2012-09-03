@@ -138,7 +138,7 @@ int inline to_boolean(char *item, uint8_t *val) {
 	char *tstr = "TRUE";
 	char *fstr = "FALSE";
 
-	tmp = malloc(sizeof(char) * sizeof(item));
+	tmp = malloc(sizeof(char) * strlen(item));
 	strcpy(tmp, item);
 	uppercase(tmp);
 

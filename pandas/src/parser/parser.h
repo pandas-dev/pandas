@@ -87,7 +87,8 @@ typedef enum {
     ESCAPE_IN_QUOTED_FIELD,
     QUOTE_IN_QUOTED_FIELD,
     EAT_CRNL,
-    EAT_WHITESPACE
+    EAT_WHITESPACE,
+    FINISHED
 } ParserState;
 
 typedef enum {
@@ -184,14 +185,15 @@ typedef struct coliter_t {
     char **words;
     int *line_start;
     int col;
-    int line;
 } coliter_t;
 
-void coliter_setup(coliter_t *self, parser_t *parser, int i);
+void coliter_setup(coliter_t *self, parser_t *parser, int i, int start);
 coliter_t *coliter_new(parser_t *self, int i);
 
 /* #define COLITER_NEXT(iter) iter->words[iter->line_start[iter->line++] + iter->col] */
-#define COLITER_NEXT(iter) iter.words[iter.line_start[iter.line++] + iter.col]
+// #define COLITER_NEXT(iter) iter.words[iter.line_start[iter.line++] + iter.col]
+
+#define COLITER_NEXT(iter) iter.words[*iter.line_start++ + iter.col]
 
 parser_t* parser_new();
 

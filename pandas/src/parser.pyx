@@ -62,6 +62,7 @@ cdef extern from "parser/parser.h":
         QUOTE_IN_QUOTED_FIELD
         EAT_CRNL
         EAT_WHITESPACE
+        FINISHED
 
     ctypedef struct table_chunk:
         void **columns
@@ -142,9 +143,8 @@ cdef extern from "parser/parser.h":
         char **words
         int *line_start
         int col
-        int line
 
-    void coliter_setup(coliter_t *it, parser_t *parser, int i)
+    void coliter_setup(coliter_t *it, parser_t *parser, int i, int start)
     char* COLITER_NEXT(coliter_t it)
 
     parser_t* parser_new()
@@ -169,7 +169,7 @@ cdef extern from "parser/parser.h":
 
 
 
-DEFAULT_CHUNKSIZE = 256 * 1024
+DEFAULT_CHUNKSIZE = 1024 * 1024
 
 cdef class TextReader:
     '''
@@ -182,13 +182,16 @@ cdef class TextReader:
         parser_t *parser
         object file_handle, should_close
         bint factorize, na_filter
+        int parser_start
 
     cdef public:
         object delimiter, na_values, converters, delim_whitespace
         object memory_map
         object as_recarray
+        object header
 
-    def __cinit__(self, source, delimiter=b',', header=0,
+    def __cinit__(self, source, delimiter=b',',
+                  header=0,
                   memory_map=False,
                   tokenize_chunksize=DEFAULT_CHUNKSIZE,
                   delim_whitespace=False,
@@ -198,6 +201,7 @@ cdef class TextReader:
                   factorize=True,
                   as_recarray=False,
                   skipinitialspace=False,
+                  escapechar=None,
                   decimal=b'.',
                   error_bad_lines=True,
                   warn_bad_lines=True,
@@ -219,8 +223,16 @@ cdef class TextReader:
 
         self.factorize = factorize
 
+        self.header = None
         # TODO: no header vs. header is not the first row
-        self.parser.header = header
+        if header is None:
+            # sentinel value
+            self.parser.header = -1
+            self.parser_start = 0
+        else:
+            self.parser.header = header
+            self.parser_start = header + 1
+
         self.parser.skipinitialspace = skipinitialspace
 
         if len(decimal) != 1:
@@ -231,6 +243,11 @@ cdef class TextReader:
             if len(thousands) != 1:
                 raise ValueError('Only length-1 decimal markers supported')
             self.parser.thousands = ord(thousands)
+
+        if escapechar is not None:
+            if len(escapechar) != 1:
+                raise ValueError('Only length-1 escapes  supported')
+            self.parser.escapechar = ord(escapechar)
 
         # error handling of bad lines
         self.parser.error_bad_lines = int(error_bad_lines)
@@ -247,6 +264,7 @@ cdef class TextReader:
 
         self.na_filter = na_filter
         self.as_recarray = as_recarray
+        self.header = None
 
     def __init__(self, *args, **kwards):
         pass
@@ -295,8 +313,38 @@ cdef class TextReader:
                 raise Exception('Initializing parser from file-like '
                                 'object failed')
 
-    def _parse_table_header(self):
-        pass
+    def get_header(self):
+        if self.parser.header >= 0:
+            self.header = self._parse_table_header()
+
+        return self.header
+
+    cdef _parse_table_header(self):
+        cdef:
+            size_t i, start, fields
+            char *word
+            # ndarray[object] header
+
+        if self.parser.lines < self.parser.header + 1:
+            tokenize_nrows(self.parser, self.parser.header + 1)
+
+        # e.g., if header=3 and file only has 2 lines
+        if self.parser.lines < self.parser.header + 1:
+            raise CParserError('Passed header=%d but only %d lines in file'
+                               % (self.parser.header, self.parser.lines))
+
+        fields = self.parser.line_fields[self.parser.header]
+        start = self.parser.line_start[self.parser.header]
+
+        # TODO: Py3 vs. Py2
+
+        # np.empty(fields, dtype=np.object_)
+        header = []
+        for i in range(fields):
+            word = self.parser.words[start + i]
+            header.append(PyString_FromString(word))
+
+        return header
 
     def read(self, rows=None):
         """
@@ -321,7 +369,13 @@ cdef class TextReader:
             raise_parser_error('Error tokenizing data', self.parser)
 
         # start = time.clock()
+
         columns, names = self._convert_column_data()
+
+        header = self.get_header()
+        if header is not None:
+            names = header
+
         # end = time.clock()
         # print 'Type conversion took %.4f sec' % (end - start)
 
@@ -344,13 +398,13 @@ cdef class TextReader:
             kh_str_t *table
             int start, end
 
-        ncols = self.parser.line_fields[0]
-
         na_values = ['NA', 'nan', 'NaN']
         table = kset_from_list(na_values)
 
-        start = 0
+        start = self.parser_start
         end = self.parser.lines
+
+        ncols = self.parser.line_fields[start]
 
         names = []
 
@@ -436,7 +490,7 @@ cdef _string_box_factorize(parser_t *parser, int col,
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.object_)
 
-    coliter_setup(&it, parser, col)
+    coliter_setup(&it, parser, col, line_start)
 
     for i in range(lines):
         word = COLITER_NEXT(it)
@@ -485,7 +539,7 @@ cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.float64)
     data = <double *> result.data
-    coliter_setup(&it, parser, col)
+    coliter_setup(&it, parser, col, line_start)
 
     if na_filter:
         for i in range(lines):
@@ -530,7 +584,7 @@ cdef _try_int64(parser_t *parser, int col, int line_start, int line_end,
 
     data = <int64_t *> result.data
 
-    coliter_setup(&it, parser, col)
+    coliter_setup(&it, parser, col, line_start)
 
     if na_filter:
         for i in range(lines):
@@ -574,7 +628,7 @@ cdef _try_bool(parser_t *parser, int col, int line_start, int line_end,
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.uint8)
     data = <uint8_t *> result.data
-    coliter_setup(&it, parser, col)
+    coliter_setup(&it, parser, col, line_start)
 
     if na_filter:
         for i in range(lines):
@@ -617,7 +671,7 @@ cdef _get_na_mask(parser_t *parser, int col, int line_start, int line_end,
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.bool_)
 
-    coliter_setup(&it, parser, col)
+    coliter_setup(&it, parser, col, line_start)
     for i in range(lines):
         word = COLITER_NEXT(it)
 
@@ -700,7 +754,7 @@ cdef _apply_converter(object f, parser_t *parser, int col,
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.object_)
 
-    coliter_setup(&it, parser, col)
+    coliter_setup(&it, parser, col, line_start)
     for i in range(lines):
         word = COLITER_NEXT(it)
         val = PyString_FromString(word)
@@ -708,7 +762,7 @@ cdef _apply_converter(object f, parser_t *parser, int col,
 
     return lib.maybe_convert_objects(result)
 
-def _to_structured_array(dict columns, object colnames):
+def _to_structured_array(dict columns, object names):
     cdef:
         ndarray recs, column
         cnp.dtype dt
@@ -719,7 +773,8 @@ def _to_structured_array(dict columns, object colnames):
         int stride, elsize
         char *buf
 
-    dt = np.dtype([(str(name), columns[name].dtype) for name in colnames])
+    dt = np.dtype([(str(name), columns[i].dtype)
+                   for i, name in enumerate(names)])
     fnames = dt.names
     fields = dt.fields
 
@@ -742,7 +797,7 @@ def _to_structured_array(dict columns, object colnames):
 
     for i in range(nfields):
         # start = time.clock()
-        name = colnames[i]
+        # name = names[i]
 
         # XXX
         field_type = fields[fnames[i]]
@@ -750,7 +805,7 @@ def _to_structured_array(dict columns, object colnames):
         # (dtype, stride) tuple
         offset = field_type[1]
         elsize = field_type[0].itemsize
-        column = columns[name]
+        column = columns[i]
 
         _fill_structured_column(buf + offset, <char*> column.data,
                                 elsize, stride, length,
