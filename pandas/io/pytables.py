@@ -686,7 +686,10 @@ class HDFStore(object):
     def _write_array(self, group, key, value):
         if key in group:
             self.handle.removeNode(group, key)
-
+        
+        #Transform needed to interface with pytables row/col notation
+        value = value.T
+        
         if self.filters is not None:
             atom = None
             try:
