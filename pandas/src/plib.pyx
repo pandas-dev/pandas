@@ -50,7 +50,7 @@ cdef extern from "period.h":
         int from_q_year_end
         int to_q_year_end
 
-    ctypedef int64_t (*freq_conv_func)(int64_t, char, asfreq_info*)
+    ctypedef int64_t (*freq_conv_func)(int64_t, int, int, char, asfreq_info*)
 
     int64_t asfreq(int64_t dtordinal, int freq1, int freq2, char relation) except INT32_MIN
     freq_conv_func get_asfreq_func(int fromFreq, int toFreq)
@@ -188,7 +188,7 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
         relation = START
 
     for i in range(n):
-        val = func(arr[i], relation, &finfo)
+        val = func(arr[i], freq1, freq2, relation, &finfo)
         if val == INT32_MIN:
             raise ValueError("Unable to convert to desired frequency.")
         result[i] = val
