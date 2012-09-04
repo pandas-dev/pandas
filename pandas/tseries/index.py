@@ -195,6 +195,10 @@ class DatetimeIndex(Int64Index):
             else:
                 data = tools.to_datetime(data)
                 data.offset = offset
+                if isinstance(data, DatetimeIndex):
+                    if name is not None:
+                        data.name = name
+                    return data
 
         if issubclass(data.dtype.type, basestring):
             subarr = _str_to_dt_array(data, offset, dayfirst=dayfirst,

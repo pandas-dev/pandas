@@ -437,6 +437,13 @@ class TestTimeZoneSupport(unittest.TestCase):
         dr = date_range('2012-11-02', periods=10, tz='US/Eastern')
         self.assert_((dr.hour == 0).all())
 
+    def test_convert_datetime_list(self):
+        dr = date_range('2012-06-02', periods=10, tz='US/Eastern')
+
+        dr2 = DatetimeIndex(list(dr), name='foo')
+        self.assert_(dr.equals(dr2))
+        self.assert_(dr.tz == dr2.tz)
+        self.assert_(dr2.name == 'foo')
 
 class TestTimeZones(unittest.TestCase):
 
