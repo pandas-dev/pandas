@@ -298,7 +298,8 @@ class DatetimeIndex(Int64Index):
             else:
                 _normalized = _normalized and end.time() == _midnight
 
-        if hasattr(offset, 'delta'):
+
+        if hasattr(offset, 'delta') and offset != offsets.Day():
             if inferred_tz is None and tz is not None:
                 # naive dates
                 if start is not None and start.tz is None:

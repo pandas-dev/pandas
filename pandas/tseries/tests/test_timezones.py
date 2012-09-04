@@ -426,10 +426,17 @@ class TestTimeZoneSupport(unittest.TestCase):
         self.assert_(index.tz.zone == 'US/Eastern')
 
     def test_date_range_span_dst_transition(self):
+        # #1778
+
+        # Standard -> Daylight Savings Time
         dr = date_range('03/06/2012 00:00', periods=200, freq='W-FRI',
                         tz='US/Eastern')
 
         self.assert_((dr.hour == 0).all())
+
+        dr = date_range('2012-11-02', periods=10, tz='US/Eastern')
+        self.assert_((dr.hour == 0).all())
+
 
 class TestTimeZones(unittest.TestCase):
 
