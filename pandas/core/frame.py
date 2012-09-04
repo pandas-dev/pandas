@@ -2610,16 +2610,15 @@ class DataFrame(NDFrame):
         -------
         duplicated : Series
         """
-        if cols is not None:
-            if isinstance(cols, list):
-                values = [self[x].values for x in cols]
-                keys = lib.fast_zip_fillna(values)
-            else:
-                keys = lib.fast_zip_fillna([self[cols]])
-        else:
+        if cols is None:
             values = list(self.values.T)
-            keys = lib.fast_zip_fillna(values)
+        else:
+            if np.iterable(cols):
+                values = [self[x].values for x in cols]
+            else:
+                values = [self[cols]]
 
+        keys = lib.fast_zip_fillna(values)
         duplicated = lib.duplicated(keys, take_last=take_last)
         return Series(duplicated, index=self.index)
 

@@ -3885,11 +3885,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(result, expected)
 
         # multi column
-        result = df.drop_duplicates(['A', 'B'])
         expected = df.ix[[0, 1, 2, 3]]
+        result = df.drop_duplicates(np.array(['A', 'B']))
+        assert_frame_equal(result, expected)
+        result = df.drop_duplicates(['A', 'B'])
         assert_frame_equal(result, expected)
 
-        result = df.drop_duplicates(['A', 'B'], take_last=True)
+        result = df.drop_duplicates(('A', 'B'), take_last=True)
         expected = df.ix[[0, 5, 6, 7]]
         assert_frame_equal(result, expected)
 
