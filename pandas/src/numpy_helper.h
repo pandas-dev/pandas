@@ -144,6 +144,11 @@ PANDAS_INLINE PyObject* floatify(PyObject* str) {
 }
 
 
+void set_array_owndata(PyArrayObject *ao) {
+    ao->flags |= NPY_OWNDATA;
+}
+
+
 // PANDAS_INLINE PyObject*
 // get_base_ndarray(PyObject* ap) {
 //   // if (!ap || (NULL == ap)) {

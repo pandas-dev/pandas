@@ -3081,6 +3081,7 @@ class TestSeriesNonUnique(unittest.TestCase):
         self.assert_((ser[:5] == -1).all())
         self.assert_((ser[6:10] == -1).all())
         self.assert_((ser[20:30] == -1).all())
+
     def test_repeat(self):
         s = Series(np.random.randn(3), index=['a', 'b', 'c'])
 
@@ -3093,6 +3094,11 @@ class TestSeriesNonUnique(unittest.TestCase):
         exp = Series(s.values.repeat(to_rep),
                      index=s.index.values.repeat(to_rep))
         assert_series_equal(reps, exp)
+
+    def test_unique_data_ownership(self):
+        # it works! #1807
+        Series(Series(["a","c","b"]).unique()).sort()
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

@@ -47,44 +47,73 @@ cdef extern from "kvec.h":
 cdef class ObjectVector:
 
     cdef:
+        bint owndata
         kv_object_t vec
 
-    def __array__(self):
+    def __cinit__(self):
+        self.owndata = 1
+
+    def to_array(self, xfer_data=True):
         """ Here we use the __array__ method, that is called when numpy
             tries to get an array from the object."""
-        cdef npy_intp shape[1]
+        cdef:
+            npy_intp shape[1]
+            ndarray result
+
         shape[0] = <npy_intp> self.vec.n
 
         # Create a 1D array, of length 'size'
-        return PyArray_SimpleNewFromData(1, shape, np.NPY_OBJECT, self.vec.a)
+        result = PyArray_SimpleNewFromData(1, shape,
+                                           np.NPY_OBJECT, self.vec.a)
+        if xfer_data:
+            self.owndata = 0
+            util.set_array_owndata(result)
+
+        return result
+
 
     cdef inline append(self, object o):
         kv_object_push(&self.vec, <PyObject*> o)
 
     def __dealloc__(self):
-        kv_object_destroy(&self.vec)
+        if self.owndata:
+            kv_object_destroy(&self.vec)
 
 
 cdef class Int64Vector:
 
     cdef:
+        bint owndata
         kv_int64_t vec
 
-    def __array__(self):
+    def __cinit__(self):
+        self.owndata = 1
+
+    def to_array(self, xfer_data=True):
         """ Here we use the __array__ method, that is called when numpy
             tries to get an array from the object."""
-        cdef npy_intp shape[1]
+        cdef:
+            npy_intp shape[1]
+            ndarray result
+
         shape[0] = <npy_intp> self.vec.n
 
         # Create a 1D array, of length 'size'
-        return PyArray_SimpleNewFromData(1, shape, np.NPY_INT64,
-                                         self.vec.a)
+        result = PyArray_SimpleNewFromData(1, shape, np.NPY_INT64,
+                                           self.vec.a)
+
+        if xfer_data:
+            self.owndata = 0
+            util.set_array_owndata(result)
+
+        return result
 
     cdef inline append(self, int64_t x):
         kv_int64_push(&self.vec, x)
 
     def __dealloc__(self):
-        free(self.vec.a)
+        if self.owndata:
+            free(self.vec.a)
 
 
 cdef class HashTable:
@@ -522,9 +551,11 @@ cdef class Int64HashTable(HashTable):
                 uniques.append(val)
                 count += 1
 
-        result = np.array(uniques, copy=False)
-        result.base = <PyObject*> uniques
-        Py_INCREF(uniques)
+        result = uniques.to_array(xfer_data=True)
+
+        # result = np.array(uniques, copy=False)
+        # result.base = <PyObject*> uniques
+        # Py_INCREF(uniques)
 
         return result
 
@@ -797,9 +828,11 @@ cdef class PyObjectHashTable(HashTable):
                 seen_na = 1
                 uniques.append(ONAN)
 
-        result = np.array(uniques, copy=False)
-        result.base = <PyObject*> uniques
-        Py_INCREF(uniques)
+        result = uniques.to_array(xfer_data=True)
+
+        # result = np.array(uniques, copy=False)
+        # result.base = <PyObject*> uniques
+        # Py_INCREF(uniques)
 
         return result
 

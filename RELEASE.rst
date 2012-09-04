@@ -97,6 +97,7 @@ pandas 0.8.2
   - Fix conversion of array of tz-aware datetime.datetime to DatetimeIndex with
     right time zone (#1777)
   - Fix DST issues with generating anchored date ranges (#1778)
+  - Fix issue calling sort on result of Series.unique (#1807)
 
 pandas 0.8.1
 ============
