@@ -47,10 +47,11 @@ void assert_conversion_factors()
 void assert_apply_conversion_factor(npy_int64 ordinal, int from_index, int to_index, npy_int64 expected)
 {
     npy_int64 actual = apply_conversion_factor(ordinal, from_index, to_index);
-    printf("%llu vs %llu\n", actual, expected);
+    //printf("%llu vs %llu\n", actual, expected);
     assert(actual == expected);
 }
 
+void 
 int main(int argc, char** argv)
 {
     assert_conversion_factors();
