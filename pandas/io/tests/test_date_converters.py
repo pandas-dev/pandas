@@ -57,7 +57,7 @@ date, time, a, b
         expected = np.array([datetime(2007, 1, 3), datetime(2008, 2, 4)])
         self.assert_((result == expected).all())
 
-        data = "year, month, day, a\n 2001, 01, 10, 10.\n 2001, 02, 1, 11."
+        data = "year, month, day, a\n 2001 , 01 , 10 , 10.\n 2001 , 02 , 1 , 11."
         datecols = {'ymd': [0, 1, 2]}
         df = read_table(StringIO(data), sep=',', header=0,
                         parse_dates=datecols,

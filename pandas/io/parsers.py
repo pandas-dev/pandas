@@ -807,11 +807,11 @@ class TextParser(object):
                 col = self.columns[col]
             data[col] = lib.map_infer(data[col], f)
 
+        data = _convert_to_ndarrays(data, self.na_values, self.verbose)
+
         columns = list(self.columns)
         if self.parse_dates is not None:
             data, columns = self._process_date_conversion(data)
-
-        data = _convert_to_ndarrays(data, self.na_values, self.verbose)
 
         df = DataFrame(data=data, columns=columns, index=index)
         if self._has_complex_date_col and self.index_col is not None:
@@ -1129,7 +1129,9 @@ def _concat_date_cols(date_cols):
         return date_cols[0]
 
     # stripped = [map(str.strip, x) for x in date_cols]
-    return np.array([' '.join(x) for x in zip(*date_cols)], dtype=object)
+    rs = np.array([' '.join([str(y) for y in x])
+                   for x in zip(*date_cols)], dtype=object)
+    return rs
 
 
 class FixedWidthReader(object):
