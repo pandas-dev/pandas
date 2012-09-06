@@ -233,7 +233,9 @@ latex_documents = [
 
 
 # Example configuration for intersphinx: refer to the Python standard library.
-# intersphinx_mapping = {'http://docs.scipy.org/': None}
+intersphinx_mapping = {
+        'statsmodels' : ('http://statsmodels.sourceforge.net/devel/': None)
+                      }
 import glob
 autosummary_generate = glob.glob("*.rst")
 
@@ -243,6 +245,6 @@ extlinks = {'issue': ('https://github.com/pydata/pandas/issues/%s',
 
 extlinks = {'pull request': ('https://github.com/pydata/pandas/pulls/%s',
                       'pull request ')}
-                      
+
 extlinks = {'wiki': ('https://github.com/pydata/pandas/pulls/%s',
                       'wiki ')}
