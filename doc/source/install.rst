@@ -74,7 +74,7 @@ Optional dependencies
   * `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions
   * `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage
   * `matplotlib <http://matplotlib.sourceforge.net/>`__: for plotting
-  * `scikits.statsmodels <http://statsmodels.sourceforge.net/>`__
+  * `statsmodels <http://statsmodels.sourceforge.net/>`__: 0.4.0 or higher
      * Needed for parts of :mod:`pandas.stats`
   * `pytz <http://pytz.sourceforge.net/>`__
      * Needed for time zone support with ``date_range``
