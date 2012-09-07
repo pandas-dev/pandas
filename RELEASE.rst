@@ -98,6 +98,8 @@ pandas 0.8.2
     right time zone (#1777)
   - Fix DST issues with generating anchored date ranges (#1778)
   - Fix issue calling sort on result of Series.unique (#1807)
+  - Fix numerical issue leading to square root of negative number in
+    rolling_std (#1840)
 
 pandas 0.8.1
 ============

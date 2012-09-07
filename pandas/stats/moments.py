@@ -309,7 +309,7 @@ def ewmstd(arg, com=None, span=None, min_periods=0, bias=False,
            time_rule=None):
     result = ewmvar(arg, com=com, span=span, time_rule=time_rule,
                     min_periods=min_periods, bias=bias)
-    return np.sqrt(result)
+    return _zsqrt(result)
 
 ewmvol = ewmstd
 
@@ -343,7 +343,21 @@ def ewmcorr(arg1, arg2, com=None, span=None, min_periods=0,
     mean = lambda x: ewma(x, com=com, span=span, min_periods=min_periods)
     var = lambda x: ewmvar(x, com=com, span=span, min_periods=min_periods,
                            bias=True)
-    return (mean(X*Y) - mean(X)*mean(Y)) / np.sqrt(var(X) * var(Y))
+    return (mean(X*Y) - mean(X)*mean(Y)) / _zsqrt(var(X) * var(Y))
+
+
+def _zsqrt(x):
+    result = np.sqrt(x)
+    mask = x < 0
+
+    if isinstance(x, DataFrame):
+        if mask.values.any():
+            result[mask] = 0
+    else:
+        if mask.any():
+            result[mask] = 0
+
+    return result
 
 def _prep_binary(arg1, arg2):
     if not isinstance(arg2, type(arg1)):
@@ -406,7 +420,7 @@ rolling_sum = _rolling_func(lib.roll_sum, 'Moving sum')
 rolling_mean = _rolling_func(lib.roll_mean, 'Moving mean')
 rolling_median = _rolling_func(lib.roll_median_cython, 'Moving median')
 
-_ts_std = lambda *a, **kw: np.sqrt(lib.roll_var(*a, **kw))
+_ts_std = lambda *a, **kw: _zsqrt(lib.roll_var(*a, **kw))
 rolling_std = _rolling_func(_ts_std, 'Unbiased moving standard deviation',
                             check_minp=_require_min_periods(2))
 rolling_var = _rolling_func(lib.roll_var, 'Unbiased moving variance',

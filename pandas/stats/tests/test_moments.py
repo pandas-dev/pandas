@@ -89,6 +89,22 @@ class TestMoments(unittest.TestCase):
         self._check_moment_func(functools.partial(mom.rolling_std, ddof=0),
                                 lambda x: np.std(x, ddof=0))
 
+    def test_rolling_std_neg_sqrt(self):
+        # unit test from Bottleneck
+
+        # Test move_nanstd for neg sqrt.
+
+        a = np.array([0.0011448196318903589,
+                      0.00028718669878572767,
+                      0.00028718669878572767,
+                      0.00028718669878572767,
+                      0.00028718669878572767])
+        b = mom.rolling_std(a, window=3)
+        self.assert_(np.isfinite(b[2:]).all())
+
+        b = mom.ewmstd(a, span=3)
+        self.assert_(np.isfinite(b[2:]).all())
+
     def test_rolling_var(self):
         self._check_moment_func(mom.rolling_var,
                                 lambda x: np.var(x, ddof=1))
