@@ -463,6 +463,13 @@ class TestStringMethods(unittest.TestCase):
                       [u'f', u'g', u'h']])
         tm.assert_series_equal(result, exp)
 
+    def test_split_noargs(self):
+        # #1859
+        s = Series(['Wes McKinney', 'Travis  Oliphant'])
+
+        result = s.str.split()
+        self.assertEquals(result[1], ['Travis', 'Oliphant'])
+
     def test_slice(self):
         values = Series(['aafootwo','aabartwo', NA, 'aabazqux'])
 

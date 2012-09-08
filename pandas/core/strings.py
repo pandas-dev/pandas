@@ -474,23 +474,27 @@ def str_center(arr, width):
     return str_pad(arr, width, side='both')
 
 
-def str_split(arr, pat, n=0):
+def str_split(arr, pat=None, n=0):
     """
     Split each string (a la re.split) in array by given pattern, propagating NA
     values
 
     Parameters
     ----------
-    pat : string
-        String or regular expression to split on
+    pat : string, default None
+        String or regular expression to split on. If None, splits on whitespace
     n : int, default 0 (all)
 
     Returns
     -------
     split : array
     """
-    regex = re.compile(pat)
-    f = lambda x: regex.split(x, maxsplit=n)
+    if pat is None:
+        f = lambda x: x.split()
+    else:
+        regex = re.compile(pat)
+        f = lambda x: regex.split(x, maxsplit=n)
+
     return _na_map(f, arr)
 
 
@@ -690,7 +694,7 @@ class StringMethods(object):
         return self._wrap_result(result)
 
     @copy(str_split)
-    def split(self, pat, n=0):
+    def split(self, pat=None, n=0):
         result = str_split(self.series, pat, n=n)
         return self._wrap_result(result)
 
