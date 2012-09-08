@@ -32,6 +32,8 @@ pandas 0.9.0
   - Add ``str.encode`` and ``str.decode`` to Series (#1706)
   - Add `to_latex` method to DataFrame (#1735)
   - Add convenient expanding window equivalents of all rolling_* ops (#1785)
+  - Add Options class to pandas.io.data for fetching options data from Yahoo!
+    Finance (#1748, #1739)
 
 **Improvements to existing features**
 
@@ -111,6 +113,7 @@ pandas 0.9.0
   - Fix pip source installation issues via SSH from GitHub
   - Fix OLS.summary when column is a tuple (#1837)
   - Fix bug in __doc__ patching when -OO passed to interpreter (#1792, #1741)
+  - Fix unicode console encoding issue in IPython notebook (#1782, #1768)
 
 pandas 0.8.1
 ============
