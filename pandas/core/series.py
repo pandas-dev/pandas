@@ -765,7 +765,7 @@ copy : boolean, default False
             new_values = np.concatenate([self.values, [value]])
             return Series(new_values, index=new_index, name=self.name)
 
-    def reset_index(self, drop=False, name=None):
+    def reset_index(self, drop=False, name=None, inplace=False):
         """
         Analogous to the DataFrame.reset_index function, see docstring there.
 
@@ -775,14 +775,21 @@ copy : boolean, default False
             Do not try to insert index into dataframe columns
         name : object, default None
             The name of the column corresponding to the Series values
+        inplace : boolean, default False
+            Modify the Series in place (do not create a new object)
 
         Returns
         ----------
         resetted : DataFrame, or Series if drop == True
         """
         if drop:
-            return Series(self.values.copy(),
-                          index=np.arange(len(self)), name=self.name)
+            if inplace:
+                self.index = np.arange(len(self))
+                # set name if it was passed, otherwise, keep the previous name
+                self.name = name or self.name
+                return self
+            else:
+                return Series(self, index=np.arange(len(self)), name=self.name)
         else:
             from pandas.core.frame import DataFrame
             if name is None:

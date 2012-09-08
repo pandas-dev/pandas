@@ -3038,6 +3038,12 @@ class TestSeriesNonUnique(unittest.TestCase):
         df = ser.reset_index(name='value2')
         self.assert_('value2' in df)
 
+        #check inplace
+        s = ser.reset_index(drop=True)
+        s2 = ser
+        s2.reset_index(drop=True, inplace=True)
+        assert_series_equal(s, s2)
+
     def test_timeseries_coercion(self):
         idx = tm.makeDateIndex(10000)
         ser = Series(np.random.randn(len(idx)), idx.astype(object))
