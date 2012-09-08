@@ -1957,7 +1957,7 @@ copy : boolean, default False
             mapped = map_f(values, arg)
             return Series(mapped, index=self.index, name=self.name)
 
-    def apply(self, func, convert_dtype=True):
+    def apply(self, func, convert_dtype=True, args=(), **kwds):
         """
         Invoke function on values of Series. Can be ufunc or Python function
         expecting only single values
@@ -1977,15 +1977,20 @@ copy : boolean, default False
         -------
         y : Series
         """
+        if kwds or args and not isinstance(func, np.ufunc):
+            f = lambda x: func(x, *args, **kwds)
+        else:
+            f = func
+
         try:
-            result = func(self)
+            result = f(self)
             if isinstance(result, np.ndarray):
                 result = Series(result, index=self.index, name=self.name)
             else:
                 raise ValueError('Must yield array')
             return result
         except Exception:
-            mapped = lib.map_infer(self.values, func, convert=convert_dtype)
+            mapped = lib.map_infer(self.values, f, convert=convert_dtype)
             return Series(mapped, index=self.index, name=self.name)
 
     def align(self, other, join='outer', level=None, copy=True,

@@ -2354,6 +2354,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = s.apply(f, convert_dtype=False)
         self.assert_(result.dtype == object)
 
+    def test_apply_args(self):
+        s = Series(['foo,bar'])
+
+        result = s.apply(str.split, args=(',',))
+        self.assert_(result[0] == ['foo', 'bar'])
+
     def test_align(self):
         def _check_align(a, b, how='left', fill=None):
             aa, ab = a.align(b, join=how, fill_value=fill)

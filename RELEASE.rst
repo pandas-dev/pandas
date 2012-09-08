@@ -38,6 +38,7 @@ pandas 0.8.2
   - Parsing of UTC date strings in read_* functions (#1693)
   - Handle generator input to Series (#1679)
   - Add `na_action='ignore'` to Series.map to quietly propagate NAs (#1661)
+  - Add args/kwds options to Series.apply (#1829)
 
 **API Changes**
 
