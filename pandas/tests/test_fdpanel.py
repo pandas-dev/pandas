@@ -18,27 +18,11 @@ from pandas.util import py3compat
 from pandas.io.parsers import (ExcelFile, ExcelWriter)
 
 from pandas.util.testing import (assert_panel_equal,
+                                 assert_fdpanel_equal,
                                  assert_frame_equal,
                                  assert_series_equal,
                                  assert_almost_equal)
 import pandas.util.testing as tm
-
-def assert_fdpanel_equal(left, right):
-    assert(left.labels.equals(right.labels))
-    assert(left.items.equals(right.items))
-    assert(left.major_axis.equals(right.major_axis))
-    assert(left.minor_axis.equals(right.minor_axis))
-
-    for col, series in left.iterkv():
-        assert(col in right)
-        assert_panel_equal(series, right[col])
-
-    for col in right:
-        assert(col in left)
-
-
-def makeFDPanel():
-    return FDPanel(dict(l1 = tm.makePanel(), l2 = tm.makePanel(), l3 = tm.makePanel()))
 
 def add_nans(fdp):
     for l, label in enumerate(fdp.labels):
@@ -588,7 +572,7 @@ class TestFDPanel(unittest.TestCase, CheckIndexing, SafeForSparse, SafeForLongAn
         assert_fdpanel_equal(x, y)
 
     def setUp(self):
-        self.fdpanel = makeFDPanel()
+        self.fdpanel = tm.makeFDPanel()
         add_nans(self.fdpanel)
 
     def test_constructor(self):
