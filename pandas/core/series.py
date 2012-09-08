@@ -789,7 +789,8 @@ copy : boolean, default False
                 self.name = name or self.name
                 return self
             else:
-                return Series(self, index=np.arange(len(self)), name=self.name)
+                return Series(self.values.copy(), index=np.arange(len(self)),
+                              name=self.name)
         else:
             from pandas.core.frame import DataFrame
             if name is None:
