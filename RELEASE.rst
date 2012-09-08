@@ -22,7 +22,7 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
-pandas 0.8.2
+pandas 0.9.0
 ============
 
 **Release date:** NOT YET RELEASED
@@ -31,6 +31,7 @@ pandas 0.8.2
 
   - Add ``str.encode`` and ``str.decode`` to Series (#1706)
   - Add `to_latex` method to DataFrame (#1735)
+  - Add convenient expanding window equivalents of all rolling_* ops (#1785)
 
 **Improvements to existing features**
 
