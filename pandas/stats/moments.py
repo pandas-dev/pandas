@@ -35,6 +35,7 @@ min_periods : int
     Minimum number of observations in window required to have a value
 freq : None or string alias / date offset object, default=None
     Frequency to conform to before computing statistic
+    time_rule is a legacy alias for freq
 
 Returns
 -------
@@ -56,6 +57,7 @@ min_periods : int, default 0
     beginning)
 freq : None or string alias / date offset object, default=None
     Frequency to conform to before computing statistic
+    time_rule is a legacy alias for freq
 adjust : boolean, default True
     Divide by decaying adjustment factor in beginning periods to account for
     imbalance in relative weightings (viewing EWMA as a moving average)
