@@ -49,12 +49,21 @@ if sys.version_info[0] >= 3:
             "\n$ pip install distribute")
 
 else:
-    setuptools_kwargs = {
-        'install_requires': ['python-dateutil',
-                             'pytz',
-                             'numpy >= 1.6'],
-        'zip_safe' : False,
-    }
+    if sys.version_info[1] == 5:
+        # dateutil >= 2.1 doesn't work on Python 2.5
+        setuptools_kwargs = {
+            'install_requires': ['python-dateutil < 2',
+                                 'pytz',
+                                 'numpy >= 1.6'],
+            'zip_safe' : False,
+        }
+    else:
+        setuptools_kwargs = {
+            'install_requires': ['python-dateutil',
+                                 'pytz',
+                                 'numpy >= 1.6'],
+            'zip_safe' : False,
+        }
     if not _have_setuptools:
         try:
             import numpy
