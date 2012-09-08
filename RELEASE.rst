@@ -102,6 +102,7 @@ pandas 0.8.2
     rolling_std (#1840)
   - Let Series.str.split accept no arguments (like str.split) (#1859)
   - Allow user to have dateutil 2.1 installed on a Python 2 system (#1851)
+  - Catch ImportError less aggressively in pandas/__init__.py (#1845)
 
 pandas 0.8.1
 ============
