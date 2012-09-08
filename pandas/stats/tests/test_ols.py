@@ -431,6 +431,15 @@ class TestOLSMisc(unittest.TestCase):
         self.assertRaises(Exception, ols, y=y, x=x, entity_effects=True,
                           dropped_dummies={'entity' : 'E'})
 
+    def test_columns_tuples_summary(self):
+        # #1837
+        X = DataFrame(np.random.randn(10, 2), columns=[('a', 'b'), ('c', 'd')])
+        Y = Series(np.random.randn(10))
+
+        # it works!
+        model = ols(y=Y, x=X)
+        model.summary()
+
 class TestPanelOLS(BaseTest):
 
     FIELDS = ['beta', 'df', 'df_model', 'df_resid', 'f_stat',
