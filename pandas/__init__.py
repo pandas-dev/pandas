@@ -6,18 +6,7 @@ from datetime import datetime
 
 import numpy as np
 
-try:
-    import pandas.lib as lib
-except Exception:  # pragma: no cover
-    import sys
-    e = sys.exc_info()[1] # Py25 and Py3 current exception syntax conflict
-    if 'No module named' in str(e):
-        raise ImportError('C extensions not built: if you installed already '
-                          'verify that you are not importing from the source '
-                          'directory')
-    else:
-        raise
-
+import pandas.lib as lib
 from pandas.version import version as __version__
 from pandas.info import __doc__
 
