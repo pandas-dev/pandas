@@ -50,7 +50,7 @@ if sys.version_info[0] >= 3:
 
 else:
     setuptools_kwargs = {
-        'install_requires': ['python-dateutil < 2',
+        'install_requires': ['python-dateutil',
                              'pytz',
                              'numpy >= 1.6'],
         'zip_safe' : False,
