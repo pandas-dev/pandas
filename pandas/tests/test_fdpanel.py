@@ -48,14 +48,14 @@ def add_nans(fdp):
 class SafeForLongAndSparse(object):
 
     def test_repr(self):
-        foo = repr(self.panel)
+        foo = repr(self.fdpanel)
 
     def test_iter(self):
-        tm.equalContents(list(self.panel), self.panel.items)
+        tm.equalContents(list(self.fdpanel), self.fdpanel.labels)
 
     def test_count(self):
         f = lambda s: notnull(s).sum()
-        self._check_stat_op('count', f, obj=self.panel, has_skipna=False)
+        self._check_stat_op('count', f, obj=self.fdpanel, has_skipna=False)
 
     def test_sum(self):
         self._check_stat_op('sum', np.sum)
@@ -118,7 +118,7 @@ class SafeForLongAndSparse(object):
 
     def _check_stat_op(self, name, alternative, obj=None, has_skipna=True):
         if obj is None:
-            obj = self.panel
+            obj = self.fdpanel
 
             # # set some NAs
             # obj.ix[5:10] = np.nan
@@ -138,14 +138,14 @@ class SafeForLongAndSparse(object):
 
             for i in range(obj.ndim):
                 result = f(axis=i, skipna=False)
-                assert_frame_equal(result, obj.apply(wrapper, axis=i))
+                assert_panel_equal(result, obj.apply(wrapper, axis=i))
         else:
             skipna_wrapper = alternative
             wrapper = alternative
 
         for i in range(obj.ndim):
             result = f(axis=i)
-            assert_frame_equal(result, obj.apply(skipna_wrapper, axis=i))
+            assert_panel_equal(result, obj.apply(skipna_wrapper, axis=i))
 
         self.assertRaises(Exception, f, axis=obj.ndim)
 
@@ -155,172 +155,148 @@ class SafeForSparse(object):
     def assert_panel_equal(cls, x, y):
         assert_panel_equal(x, y)
 
+    @classmethod
+    def assert_fdpanel_equal(cls, x, y):
+        assert_fdpanel_equal(x, y)
+
     def test_get_axis(self):
-        assert(self.panel._get_axis(0) is self.panel.items)
-        assert(self.panel._get_axis(1) is self.panel.major_axis)
-        assert(self.panel._get_axis(2) is self.panel.minor_axis)
+        assert(self.fdpanel._get_axis(0) is self.fdpanel.labels)
+        assert(self.fdpanel._get_axis(1) is self.fdpanel.items)
+        assert(self.fdpanel._get_axis(2) is self.fdpanel.major_axis)
+        assert(self.fdpanel._get_axis(3) is self.fdpanel.minor_axis)
 
     def test_set_axis(self):
-        new_items = Index(np.arange(len(self.panel.items)))
-        new_major = Index(np.arange(len(self.panel.major_axis)))
-        new_minor = Index(np.arange(len(self.panel.minor_axis)))
+        new_labels = Index(np.arange(len(self.fdpanel.labels)))
+        new_items  = Index(np.arange(len(self.fdpanel.items)))
+        new_major  = Index(np.arange(len(self.fdpanel.major_axis)))
+        new_minor  = Index(np.arange(len(self.fdpanel.minor_axis)))
 
         # ensure propagate to potentially prior-cached items too
-        item = self.panel['ItemA']
-        self.panel.items = new_items
+        label = self.fdpanel['l1']
+        self.fdpanel.labels = new_labels
 
-        if hasattr(self.panel, '_item_cache'):
-            self.assert_('ItemA' not in self.panel._item_cache)
-        self.assert_(self.panel.items is new_items)
+        if hasattr(self.fdpanel, '_item_cache'):
+            self.assert_('l1' not in self.fdpanel._item_cache)
+        self.assert_(self.fdpanel.labels is new_labels)
 
-        item = self.panel[0]
-        self.panel.major_axis = new_major
-        self.assert_(self.panel[0].index is new_major)
-        self.assert_(self.panel.major_axis is new_major)
+        self.fdpanel.major_axis = new_major
+        self.assert_(self.fdpanel[0].major_axis is new_major)
+        self.assert_(self.fdpanel.major_axis is new_major)
 
-        item = self.panel[0]
-        self.panel.minor_axis = new_minor
-        self.assert_(self.panel[0].columns is new_minor)
-        self.assert_(self.panel.minor_axis is new_minor)
+        self.fdpanel.minor_axis = new_minor
+        self.assert_(self.fdpanel[0].minor_axis is new_minor)
+        self.assert_(self.fdpanel.minor_axis is new_minor)
 
     def test_get_axis_number(self):
-        self.assertEqual(self.panel._get_axis_number('items'), 0)
-        self.assertEqual(self.panel._get_axis_number('major'), 1)
-        self.assertEqual(self.panel._get_axis_number('minor'), 2)
+        self.assertEqual(self.fdpanel._get_axis_number('labels'), 0)
+        self.assertEqual(self.fdpanel._get_axis_number('items'), 1)
+        self.assertEqual(self.fdpanel._get_axis_number('major'), 2)
+        self.assertEqual(self.fdpanel._get_axis_number('minor'), 3)
 
     def test_get_axis_name(self):
-        self.assertEqual(self.panel._get_axis_name(0), 'items')
-        self.assertEqual(self.panel._get_axis_name(1), 'major_axis')
-        self.assertEqual(self.panel._get_axis_name(2), 'minor_axis')
+        self.assertEqual(self.fdpanel._get_axis_name(0), 'labels')
+        self.assertEqual(self.fdpanel._get_axis_name(1), 'items')
+        self.assertEqual(self.fdpanel._get_axis_name(2), 'major_axis')
+        self.assertEqual(self.fdpanel._get_axis_name(3), 'minor_axis')
 
-    def test_get_plane_axes(self):
-        # what to do here?
+    #def test_get_plane_axes(self):
+    #    # what to do here?
 
-        index, columns = self.panel._get_plane_axes('items')
-        index, columns = self.panel._get_plane_axes('major_axis')
-        index, columns = self.panel._get_plane_axes('minor_axis')
-        index, columns = self.panel._get_plane_axes(0)
+    #    index, columns = self.panel._get_plane_axes('items')
+    #    index, columns = self.panel._get_plane_axes('major_axis')
+    #    index, columns = self.panel._get_plane_axes('minor_axis')
+    #    index, columns = self.panel._get_plane_axes(0)
 
     def test_truncate(self):
-        dates = self.panel.major_axis
-        start, end = dates[1], dates[5]
+        raise nose.SkipTest
 
-        trunced = self.panel.truncate(start, end, axis='major')
-        expected = self.panel['ItemA'].truncate(start, end)
+        #dates = self.panel.major_axis
+        #start, end = dates[1], dates[5]
 
-        assert_frame_equal(trunced['ItemA'], expected)
+        #trunced = self.panel.truncate(start, end, axis='major')
+        #expected = self.panel['ItemA'].truncate(start, end)
 
-        trunced = self.panel.truncate(before=start, axis='major')
-        expected = self.panel['ItemA'].truncate(before=start)
+        #assert_frame_equal(trunced['ItemA'], expected)
 
-        assert_frame_equal(trunced['ItemA'], expected)
+        #trunced = self.panel.truncate(before=start, axis='major')
+        #expected = self.panel['ItemA'].truncate(before=start)
 
-        trunced = self.panel.truncate(after=end, axis='major')
-        expected = self.panel['ItemA'].truncate(after=end)
+        #assert_frame_equal(trunced['ItemA'], expected)
 
-        assert_frame_equal(trunced['ItemA'], expected)
+        #trunced = self.panel.truncate(after=end, axis='major')
+        #expected = self.panel['ItemA'].truncate(after=end)
+
+        #assert_frame_equal(trunced['ItemA'], expected)
 
         # XXX test other axes
 
     def test_arith(self):
-        self._test_op(self.panel, operator.add)
-        self._test_op(self.panel, operator.sub)
-        self._test_op(self.panel, operator.mul)
-        self._test_op(self.panel, operator.truediv)
-        self._test_op(self.panel, operator.floordiv)
-        self._test_op(self.panel, operator.pow)
+        self._test_op(self.fdpanel, operator.add)
+        self._test_op(self.fdpanel, operator.sub)
+        self._test_op(self.fdpanel, operator.mul)
+        self._test_op(self.fdpanel, operator.truediv)
+        self._test_op(self.fdpanel, operator.floordiv)
+        self._test_op(self.fdpanel, operator.pow)
 
-        self._test_op(self.panel, lambda x, y: y + x)
-        self._test_op(self.panel, lambda x, y: y - x)
-        self._test_op(self.panel, lambda x, y: y * x)
-        self._test_op(self.panel, lambda x, y: y / x)
-        self._test_op(self.panel, lambda x, y: y ** x)
+        self._test_op(self.fdpanel, lambda x, y: y + x)
+        self._test_op(self.fdpanel, lambda x, y: y - x)
+        self._test_op(self.fdpanel, lambda x, y: y * x)
+        self._test_op(self.fdpanel, lambda x, y: y / x)
+        self._test_op(self.fdpanel, lambda x, y: y ** x)
 
-        self.assertRaises(Exception, self.panel.__add__, self.panel['ItemA'])
+        self.assertRaises(Exception, self.fdpanel.__add__, self.fdpanel['l1'])
 
     @staticmethod
-    def _test_op(panel, op):
-        result = op(panel, 1)
-        assert_frame_equal(result['ItemA'], op(panel['ItemA'], 1))
+    def _test_op(fdpanel, op):
+        result = op(fdpanel, 1)
+        assert_panel_equal(result['l1'], op(fdpanel['l1'], 1))
 
     def test_keys(self):
-        tm.equalContents(self.panel.keys(), self.panel.items)
+        tm.equalContents(self.fdpanel.keys(), self.fdpanel.labels)
 
     def test_iteritems(self):
-        """Test panel.iteritems(), aka panel.iterkv()"""
+        """Test fdpanel.iteritems(), aka fdpanel.iterkv()"""
         # just test that it works
-        for k, v in self.panel.iterkv():
+        for k, v in self.fdpanel.iterkv():
             pass
 
-        self.assertEqual(len(list(self.panel.iterkv())),
-                         len(self.panel.items))
+        self.assertEqual(len(list(self.fdpanel.iterkv())),
+                         len(self.fdpanel.labels))
 
-    def test_combineFrame(self):
-        def check_op(op, name):
-            # items
-            df = self.panel['ItemA']
-
-            func = getattr(self.panel, name)
-
-            result = func(df, axis='items')
-
-            assert_frame_equal(result['ItemB'], op(self.panel['ItemB'], df))
-
-            # major
-            xs = self.panel.major_xs(self.panel.major_axis[0])
-            result = func(xs, axis='major')
-
-            idx = self.panel.major_axis[1]
-
-            assert_frame_equal(result.major_xs(idx),
-                               op(self.panel.major_xs(idx), xs))
-
-            # minor
-            xs = self.panel.minor_xs(self.panel.minor_axis[0])
-            result = func(xs, axis='minor')
-
-            idx = self.panel.minor_axis[1]
-
-            assert_frame_equal(result.minor_xs(idx),
-                               op(self.panel.minor_xs(idx), xs))
-
-        check_op(operator.add, 'add')
-        check_op(operator.sub, 'subtract')
-        check_op(operator.mul, 'multiply')
-        if py3compat.PY3:
-            check_op(operator.truediv, 'divide')
-        else:
-            check_op(operator.div, 'divide')
-
-    def test_combinePanel(self):
-        result = self.panel.add(self.panel)
-        self.assert_panel_equal(result, self.panel * 2)
+    def test_combineFDPanel(self):
+        result = self.fdpanel.add(self.fdpanel)
+        self.assert_fdpanel_equal(result, self.fdpanel * 2)
 
     def test_neg(self):
-        self.assert_panel_equal(-self.panel, self.panel * -1)
+        self.assert_fdpanel_equal(-self.fdpanel, self.fdpanel * -1)
 
     def test_select(self):
-        p = self.panel
+        p = self.fdpanel
+
+        # select labels
+        result = p.select(lambda x: x in ('l1', 'l3'), axis='labels')
+        expected = p.reindex(labels=['l1','l3'])
+        self.assert_fdpanel_equal(result, expected)
 
         # select items
         result = p.select(lambda x: x in ('ItemA', 'ItemC'), axis='items')
         expected = p.reindex(items=['ItemA', 'ItemC'])
-        self.assert_panel_equal(result, expected)
+        self.assert_fdpanel_equal(result, expected)
 
         # select major_axis
         result = p.select(lambda x: x >= datetime(2000, 1, 15), axis='major')
         new_major = p.major_axis[p.major_axis >= datetime(2000, 1, 15)]
         expected = p.reindex(major=new_major)
-        self.assert_panel_equal(result, expected)
+        self.assert_fdpanel_equal(result, expected)
 
         # select minor_axis
-        result = p.select(lambda x: x in ('D', 'A'), axis=2)
+        result = p.select(lambda x: x in ('D', 'A'), axis=3)
         expected = p.reindex(minor=['A', 'D'])
-        self.assert_panel_equal(result, expected)
+        self.assert_fdpanel_equal(result, expected)
 
         # corner case, empty thing
         result = p.select(lambda x: x in ('foo',), axis='items')
-        self.assert_panel_equal(result, p.reindex(items=[]))
+        self.assert_fdpanel_equal(result, p.reindex(items=[]))
 
     def test_get_value(self):
         for item in self.panel.items:
@@ -331,19 +307,19 @@ class SafeForSparse(object):
                     assert_almost_equal(result, expected)
 
     def test_abs(self):
-        result = self.panel.abs()
-        expected = np.abs(self.panel)
-        self.assert_panel_equal(result, expected)
+        result = self.fdpanel.abs()
+        expected = np.abs(self.fdpanel)
+        self.assert_fdpanel_equal(result, expected)
 
-        df = self.panel['ItemA']
+        p = self.fdpanel['l1']
+        result = p.abs()
+        expected = np.abs(p)
+        assert_panel_equal(result, expected)
+
+        df = p['ItemA']
         result = df.abs()
         expected = np.abs(df)
         assert_frame_equal(result, expected)
-
-        s = df['A']
-        result = s.abs()
-        expected = np.abs(s)
-        assert_series_equal(result, expected)
 
 class CheckIndexing(object):
 
@@ -605,7 +581,7 @@ class CheckIndexing(object):
         res3 = self.fdpanel.set_value('l4', 'ItemE', 'foobar', 'baz', 5)
         self.assert_(com.is_float_dtype(res3['l4'].values))
 
-class TestFDPanel(unittest.TestCase, CheckIndexing):
+class TestFDPanel(unittest.TestCase, CheckIndexing, SafeForSparse, SafeForLongAndSparse):
 
     @classmethod
     def assert_fdpanel_equal(cls,x, y):

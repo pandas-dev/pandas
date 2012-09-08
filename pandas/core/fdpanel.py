@@ -304,12 +304,12 @@ class FDPanel(Panel):
 
         if axis == 'major_axis':
             items = self.labels
-            major = self.minor_axis
-            minor = self.items
+            major = self.items
+            minor = self.minor_axis
         elif axis == 'minor_axis':
             items = self.labels
-            major = self.major_axis
-            minor = self.items
+            major = self.items
+            minor = self.major_axis
         elif axis == 'items':
             items = self.labels
             major = self.major_axis
@@ -320,6 +320,16 @@ class FDPanel(Panel):
             minor = self.minor_axis
 
         return items, major, minor
+
+    def _reduce(self, op, axis=0, skipna=True):
+        axis_name = self._get_axis_name(axis)
+        axis_number = self._get_axis_number(axis_name)
+        f = lambda x: op(x, axis=axis_number, skipna=skipna)
+
+        result = f(self.values)
+
+        items, major, minor = self._get_plane_axes(axis_name)
+        return Panel(result, items=items, major_axis=major, minor_axis=minor)
 
     def conform(self, panel, axis='labels'):
         """
@@ -446,6 +456,59 @@ class FDPanel(Panel):
         axis_number = self._get_axis_number(axis)
         new_data = self._data.xs(key, axis=axis_number, copy=copy)
         return Panel(new_data)
+
+    def apply(self, func, axis='major'):
+        """
+        Apply
+
+        Parameters
+        ----------
+        func : numpy function
+            Signature should match numpy.{sum, mean, var, std} etc.
+        axis : {'labels', 'major', 'minor', 'items'}
+        fill_value : boolean, default True
+            Replace NaN values with specified first
+
+        Returns
+        -------
+        result : Panel or FDPanel
+        """
+        i = self._get_axis_number(axis)
+        result = np.apply_along_axis(func, i, self.values)
+        return self._wrap_result(result, axis=axis)
+
+    def _combine(self, other, func, axis=0):
+        if isinstance(other, FDPanel):
+            return self._combine_fdpanel(other, func)
+        elif isinstance(other, Panel):
+            raise NotImplementedError
+        elif isinstance(other, DataFrame):
+            raise NotImplementedError
+        elif np.isscalar(other):
+            new_values = func(self.values, other)
+            return self._constructor(new_values, self.labels, self.items, self.major_axis,
+                             self.minor_axis)
+
+    def _combine_fdpanel(self, other, func):
+        labels = self.labels + other.labels
+        items  = self.items + other.items
+        major  = self.major_axis + other.major_axis
+        minor  = self.minor_axis + other.minor_axis
+
+        # could check that everything's the same size, but forget it
+        this = self.reindex(labels=labels, items=items, major=major, minor=minor)
+        other = other.reindex(labels=labels, items=items, major=major, minor=minor)
+
+        result_values = func(this.values, other.values)
+
+        return self._constructor(result_values, labels, items, major, minor)
+
+    def _wrap_result(self, result, axis):
+        axis = self._get_axis_name(axis)
+        items, major, minor = self._get_plane_axes(axis)
+
+        return Panel(result, items=items, major_axis=major, minor_axis=minor)
+
 
     ### remove operations ####
     def major_xs(self, *args, **kwargs):
