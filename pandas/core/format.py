@@ -78,8 +78,15 @@ class SeriesFormatter(object):
 
             if footer and self.series.name:
                 footer += ', '
-            footer += ("Name: %s" % str(self.series.name)
-                       if self.series.name is not None else '')
+
+            if self.series.name and \
+            not isinstance(self.series.name,basestring):
+                series_name=str(self.series.name)
+            else:
+                series_name=self.series.name
+
+            footer += (("Name: %s" % series_name)
+                       if series_name is not None else '')
 
         if self.length:
             if footer:
