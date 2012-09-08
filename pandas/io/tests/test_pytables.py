@@ -8,7 +8,7 @@ import sys
 from datetime import datetime
 import numpy as np
 
-from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
+from pandas import (Series, DataFrame, Panel, FDPanel, MultiIndex, bdate_range,
                     date_range, Index)
 from pandas.io.pytables import HDFStore, get_store
 import pandas.util.testing as tm
@@ -501,6 +501,109 @@ class TestHDFStore(unittest.TestCase):
 
         tm.assert_series_equal(self.store['a'], ts)
 
+    def test_fdpanel_select_from_multiple_panels(self):
+
+        try:
+            store = HDFStore(self.scratchpath)
+
+            p1 = tm.makePanel()
+            p2 = tm.makePanel()
+            store.put('p1', p1)
+            store.put('p2', p2)
+            
+            # individually
+            result = store.select('p1')
+            tm.assert_panel_equal(result, p1)
+            result = store.select('p2')
+            tm.assert_panel_equal(result, p2)
+            
+            # as a fdpanel
+            fdp = FDPanel(dict(p1 = p1, p2 = p2))
+            result = store.select()
+            tm.assert_fdpanel_equal(result, fdp)
+            
+        finally:
+            store.close()
+            os.remove(self.scratchpath)
+
+    def test_fdpanel_put(self):
+
+        try:
+            store = HDFStore(self.scratchpath)
+
+            # fdpanel
+            fdp = FDPanel(dict(p1 = tm.makePanel(), p2 = tm.makePanel()))
+            store.put(fdp)
+            result = store.select()
+            tm.assert_fdpanel_equal(result, fdp)
+            
+            # store dict (retrieve as a FDPanel though)
+            d = dict(p1 = tm.makePanel(), p2 = tm.makePanel())
+            store.put(d)
+            result = store.select()
+            tm.assert_fdpanel_equal(result, FDPanel(d))
+
+            # test value=None (but not a corresponding dict like key)
+            p = tm.makePanel()
+            self.assertRaises(Exception, self.store.put, p)
+
+        finally:
+            store.close()
+            os.remove(self.scratchpath)
+
+    def test_fdpanel_append(self):
+
+        # regular append
+        df = tm.makeTimeDataFrame()
+        expected = FDPanel(dict(l1 = dict(ItemA = df, ItemB = df), l2 = dict(ItemC = df, ItemD = df)))
+        try:
+            store = HDFStore(self.scratchpath)
+            store.append(expected.reindex(major = expected.major_axis[0:10]))
+            store.append(expected.reindex(major = expected.major_axis[10:]))
+            result = store.select()
+            tm.assert_fdpanel_equal(result, expected)
+        finally:
+            store.close()
+            os.remove(self.scratchpath)
+
+        # appending a panel to another panel (in the same tree - fails because items dont' match
+        p1 = tm.makePanel()
+        p2 = p1.rename_axis(dict(ItemA = 'ItemD', ItemB = 'ItemE', ItemC = 'ItemF'))
+        fdp1 = FDPanel(dict(l1 = p1))
+        fdp2 = FDPanel(dict(l1 = p2))
+        try:
+            store = HDFStore(self.scratchpath)
+            store.append(fdp1)
+            self.assertRaises(Exception, store.append, fdp2)
+        finally:
+            store.close()
+            os.remove(self.scratchpath)
+
+    def test_panel_select_from_multiple_frames(self):
+
+        try:
+            store = HDFStore(self.scratchpath)
+
+            df1 = tm.makeTimeDataFrame()
+            df2 = tm.makeTimeDataFrame()
+            store.put('df1', df1)
+            store.put('df2', df2)
+            
+            # individually
+            result = store.select('df1')
+            tm.assert_frame_equal(result, df1)
+            result = store.select('df2')
+            tm.assert_frame_equal(result, df2)
+            
+            # as a panel
+            p = Panel(dict(df1 = df1, df2 = df2))
+            result = store.select()
+            tm.assert_panel_equal(result, p)
+            
+        finally:
+            store.close()
+            os.remove(self.scratchpath)
+
     def test_panel_select(self):
         wp = tm.makePanel()
         self.store.put('wp', wp, table=True)
@@ -520,6 +623,35 @@ class TestHDFStore(unittest.TestCase):
         expected = wp.truncate(before=date).reindex(minor=['A', 'D'])
         tm.assert_panel_equal(result, expected)
 
+    def test_panel_select_infer_key(self):
+        wp = tm.makePanel()
+        self.store.put('wp', wp, table=True)
+        date = wp.major_axis[len(wp.major_axis) // 2]
+
+        crit1 = {
+            'field' : 'index',
+            'op' : '>=',
+            'value' : date
+        }
+        crit2 = {
+            'field' : 'column',
+            'value' : ['A', 'D']
+        }
+        crit3 = {
+            'field' : 'key',
+            'value' : 'wp',
+        }
+
+        result = self.store.select(where = [crit1, crit2, crit3])
+        expected = wp.truncate(before=date).reindex(minor=['A', 'D'])
+        tm.assert_panel_equal(result, expected)
+
+    def test_panel_select_no_key_specified(self):
+        wp = tm.makePanel()
+        self.store.put('wp', wp, table=True)
+        result = self.store.select()
+        tm.assert_panel_equal(result, wp)
+
     def test_frame_select(self):
         df = tm.makeTimeDataFrame()
         self.store.put('frame', df, table=True)
@@ -538,8 +670,12 @@ class TestHDFStore(unittest.TestCase):
             'field' : 'column',
             'value' : 'A'
         }
+        crit4 = {
+            'field' : 'key',
+            'value' : ['frame']
+        }
 
-        result = self.store.select('frame', [crit1, crit2])
+        result = self.store.select(where = [crit1, crit2,crit4])
         expected = df.ix[date:, ['A', 'D']]
         tm.assert_frame_equal(result, expected)
 

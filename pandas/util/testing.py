@@ -17,6 +17,7 @@ import pandas.core.index as index
 import pandas.core.series as series
 import pandas.core.frame as frame
 import pandas.core.panel as panel
+import pandas.core.fdpanel as fdpanel
 
 from pandas import bdate_range
 from pandas.tseries.index import DatetimeIndex
@@ -28,6 +29,7 @@ Index = index.Index
 Series = series.Series
 DataFrame = frame.DataFrame
 Panel = panel.Panel
+FDPanel = fdpanel.FDPanel
 
 N = 30
 K = 4
@@ -173,6 +175,19 @@ def assert_panel_equal(left, right, check_panel_type=False):
     for col in right:
         assert(col in left)
 
+def assert_fdpanel_equal(left, right):
+    assert(left.labels.equals(right.labels))
+    assert(left.items.equals(right.items))
+    assert(left.major_axis.equals(right.major_axis))
+    assert(left.minor_axis.equals(right.minor_axis))
+
+    for col, series in left.iterkv():
+        assert(col in right)
+        assert_panel_equal(series, right[col])
+
+    for col in right:
+        assert(col in left)
+
 def assert_contains_all(iterable, dic):
     for k in iterable:
         assert(k in dic)
@@ -265,6 +280,9 @@ def makePanel():
     cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
     data = dict((c, makeTimeDataFrame()) for c in cols)
     return Panel.fromDict(data)
+
+def makeFDPanel():
+    return FDPanel(dict(l1 = makePanel(), l2 = makePanel(), l3 = makePanel()))
 
 def add_nans(panel):
     I, J, N = panel.shape

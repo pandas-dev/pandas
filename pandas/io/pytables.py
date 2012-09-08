@@ -10,7 +10,7 @@ import time
 
 import numpy as np
 from pandas import (
-    Series, TimeSeries, DataFrame, Panel, Index, MultiIndex, Int64Index
+    Series, TimeSeries, DataFrame, Panel, FDPanel, Index, MultiIndex, Int64Index
 )
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
@@ -160,6 +160,11 @@ class HDFStore(object):
     >>> store['foo'] = bar   # write to HDF5
     >>> bar = store['foo']   # retrieve
     >>> store.close()
+
+    >>> store = HDFStore('test.h5')
+    >>> store.put(fdp)       # write a FDPanel/dict to the store
+    >>> fdp = store.select() # read back a FDPanel (or Panel)
+
     """
     _quiet = False
 
@@ -284,18 +289,22 @@ class HDFStore(object):
         except (exc_type, AttributeError):
             raise KeyError('No object named %s in the file' % key)
 
-    def select(self, key, where=None):
+    def select(self, key=None, where=None):
         """
         Retrieve pandas object stored in file, optionally based on where
         criteria
 
         Parameters
         ----------
-        key : object
+        key : object, optional
         where : list, optional
 
            Must be a list of dict objects of the following forms. Selection can
            be performed on the 'index' or 'column' fields.
+           
+           Object Selection (equivalent to passing a key)
+               {'field' : 'key',
+                'value' : ['v1',v2']}
 
            Comparison op
                {'field' : 'index',
@@ -311,13 +320,41 @@ class HDFStore(object):
                 'value' : [v1, v2, v3]}
 
         """
-        group = getattr(self.handle.root, key, None)
-        if 'table' not in group._v_attrs.pandas_type:
-            raise Exception('can only select on objects written as tables')
-        if group is not None:
-            return self._read_group(group, where)
 
-    def put(self, key, value, table=False, append=False,
+        # see if we have a key in the where, otherwise, try for all keys
+        if key is None:
+            key = Selection(where = where).keys
+            if not len(key):
+                key = self.keys()
+
+        if not isinstance(key,list):
+            key = [ key ]
+
+        def _select(k):
+            group = getattr(self.handle.root, k, None)
+            if group is not None:
+                self._has_selection_criteria(group, where)
+                return self._read_group(group, where)
+
+        d = dict([ (k, _select(k)) for k in key ])
+
+        # nothing retrieved, return None
+        if len(d) == 0:
+            return None
+
+        # if we have only a single key, return that object directly
+        elif len(d) == 1:
+            return d.values()[0]
+
+        # try to return a consolidated object from d (if the nodes are all Frames, return a Panel, if all panels, return a FDPanel, else return a dict)
+        elif all([ isinstance(o,DataFrame) for o in d.values() ]):
+            return Panel(d)
+        elif all([ isinstance(o,Panel) for o in d.values() ]):
+            return FDPanel(d)
+
+        return d
+
+    def put(self, key, value=None, table=False, append=False,
             compression=None):
         """
         Store object in HDFStore
@@ -325,7 +362,7 @@ class HDFStore(object):
         Parameters
         ----------
         key : object
-        value : {Series, DataFrame, Panel}
+        value : {Series, DataFrame, Panel, FDPanel}
         table : boolean, default False
             Write as a PyTables Table structure which may perform worse but
             allow more flexible operations like searching / selecting subsets of
@@ -338,8 +375,23 @@ class HDFStore(object):
             If None, the compression settings specified in the ctor will
             be used.
         """
-        self._write_to_group(key, value, table=table, append=append,
-                             comp=compression)
+
+        # do we have a dict or FDPanel?
+        if value is None:
+            def _put(k, v):
+                self._write_to_group(k, v, table=table, append=append,
+                                     comp=compression)
+            if isinstance(key, dict):
+                for k, v in key.items():
+                    _put(k, v)
+            elif isinstance(key, FDPanel):
+                for k, v in key.iteritems():
+                    _put(k, v)
+            else:
+                raise Exception("value must be passed to store a non-dict like object in put")
+        else:
+            self._write_to_group(key, value, table=table, append=append,
+                                 comp=compression)
 
     def _get_handler(self, op, kind):
         return getattr(self,'_%s_%s' % (op, kind))
@@ -367,7 +419,7 @@ class HDFStore(object):
             if group is not None:
                 self._delete_from_table(group, where)
 
-    def append(self, key, value):
+    def append(self, key, value = None):
         """
         Append to Table in file. Node must already exist and be Table
         format.
@@ -375,14 +427,28 @@ class HDFStore(object):
         Parameters
         ----------
         key : object
-        value : {Series, DataFrame, Panel}
+        value : {Series, DataFrame, Panel, FDPanel}
 
         Notes
         -----
         Does *not* check if data being appended overlaps with existing
         data in the table, so be careful
         """
-        self._write_to_group(key, value, table=True, append=True)
+
+        # do we have a dict or FDPanel?
+        if value is None:
+            def _append(k, v):
+                self._write_to_group(k, v, table=True, append = True)
+            if isinstance(key, dict):
+                for k, v in key.items():
+                    _append(k, v)
+            elif isinstance(key, FDPanel):
+                for k, v in key.iteritems():
+                    _append(k, v)
+            else:
+                raise Exception("value must be passed to store a non-dict like object in append")
+        else:
+            self._write_to_group(key, value, table=True, append=True)
 
     def _write_to_group(self, key, value, table=False, append=False,
                         comp=None):
@@ -796,6 +862,13 @@ class HDFStore(object):
                 pass
             raise
 
+    def _has_selection_criteria(self, group, where):
+        """ only raise an exception if where are not capable of processing it (e.g. a table) """
+        if where is None: return False
+        if 'table' not in group._v_attrs.pandas_type:
+            raise Exception('can only select on objects written as tables')
+        return False
+
     def _read_group(self, group, where=None):
         kind = group._v_attrs.pandas_type
         kind = _LEGACY_MAP.get(kind, kind)
@@ -1051,6 +1124,10 @@ class Selection(object):
     table : tables.Table
     where : list of dicts of the following form
 
+        Object Selection
+           {'field' : 'key',
+            'value' : ['v1',v2']}
+
         Comparison op
            {'field' : 'index',
             'op'    : '>=',
@@ -1064,30 +1141,45 @@ class Selection(object):
            {'field' : 'index',
             'value' : [v1, v2, v3]}
     """
-    def __init__(self, table, where=None, index_kind=None):
-        self.table = table
-        self.where = where
-        self.index_kind = index_kind
+    def __init__(self, table=None, where=None, index_kind=None):
+        self.table         = table
+        self.where         = where
+        self.index_kind    = index_kind
         self.column_filter = None
         self.the_condition = None
-        self.conditions = []
-        self.values = None
+        self.conditions    = []
+        self.values        = None
+        self.keys          = []
         if where:
             self.generate(where)
 
     def generate(self, where):
+
+        if where is None: return
+        if not isinstance(where, list):
+            where = [ where ]
+
         # and condictions
         for c in where:
             op = c.get('op',None)
             value = c['value']
             field = c['field']
 
+            # index selection
             if field == 'index' and self.index_kind == 'datetime64':
                 val = lib.Timestamp(value).value
                 self.conditions.append('(%s %s %s)' % (field,op,val))
             elif field == 'index' and isinstance(value, datetime):
                 value = time.mktime(value.timetuple())
                 self.conditions.append('(%s %s %s)' % (field,op,value))
+
+            # create keys
+            elif field == 'key':
+                if not isinstance(value, list):
+                    value = [ value ]
+                self.keys.extend(value)
+
+            # column selection
             else:
                 self.generate_multiple_conditions(op,value,field)
 
