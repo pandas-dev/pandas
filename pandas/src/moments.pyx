@@ -900,7 +900,7 @@ def roll_generic(ndarray[float64_t, cast=True] input, int win,
     oldbuf = <float64_t*> bufarr.data
 
     n = len(input)
-    for i from 0 <= i < win:
+    for i from 0 <= i < int_min(win, n):
         if counts[i] >= minp:
             output[i] = func(input[int_max(i - win + 1, 0) : i + 1])
         else:

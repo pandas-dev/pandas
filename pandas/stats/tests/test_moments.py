@@ -83,6 +83,17 @@ class TestMoments(unittest.TestCase):
                                          freq=freq)
         self._check_moment_func(roll_mean, np.mean)
 
+    def test_rolling_apply_out_of_bounds(self):
+        # #1850
+        arr = np.arange(4)
+
+        # it works!
+        result = mom.rolling_apply(arr, 10, np.sum)
+        self.assert_(isnull(result).all())
+
+        result = mom.rolling_apply(arr, 10, np.sum, min_periods=1)
+        assert_almost_equal(result, result)
+
     def test_rolling_std(self):
         self._check_moment_func(mom.rolling_std,
                                 lambda x: np.std(x, ddof=1))
