@@ -438,7 +438,7 @@ class TestOLSMisc(unittest.TestCase):
 
         # it works!
         model = ols(y=Y, x=X)
-        model.summary()
+        model.summary
 
 class TestPanelOLS(BaseTest):
 
