@@ -371,6 +371,114 @@ class TestMoments(unittest.TestCase):
 
         self.assertRaises(Exception, func, A, randn(50), 20, min_periods=5)
 
+    def test_expanding_apply(self):
+        ser = Series([])
+        assert_series_equal(ser, mom.expanding_apply(ser, lambda x: x.mean()))
+
+        def expanding_mean(x, min_periods=1, freq=None):
+            return mom.expanding_apply(x,
+                                         lambda x: x.mean(),
+                                         min_periods=min_periods,
+                                         freq=freq)
+        self._check_expanding(expanding_mean, np.mean)
+
+    def test_expanding_corr(self):
+        A = self.series.dropna()
+        B = (A + randn(len(A)))[:-5]
+
+        result = mom.expanding_corr(A, B)
+
+        rolling_result = mom.rolling_corr(A, B, len(A), min_periods=1)
+
+        assert_almost_equal(rolling_result, result)
+
+    def test_expanding_count(self):
+        result = mom.expanding_count(self.series)
+        assert_almost_equal(result, mom.rolling_count(self.series,
+                                                      len(self.series)))
+
+    def test_expanding_quantile(self):
+        result = mom.expanding_quantile(self.series, 0.5)
+
+        rolling_result = mom.rolling_quantile(self.series,
+                                              len(self.series),
+                                              0.5, min_periods=1)
+
+        assert_almost_equal(result, rolling_result)
+
+    def test_expanding_cov(self):
+        A = self.series
+        B = (A + randn(len(A)))[:-5]
+
+        result = mom.expanding_cov(A, B)
+
+        rolling_result = mom.rolling_cov(A, B, len(A), min_periods=1)
+
+        assert_almost_equal(rolling_result, result)
+
+    def test_expanding_max(self):
+        self._check_expanding(mom.expanding_max, np.max, preserve_nan=False)
+
+    def test_expanding_corr_pairwise(self):
+        result = mom.expanding_corr_pairwise(self.frame)
+
+        rolling_result = mom.rolling_corr_pairwise(self.frame,
+                                                   len(self.frame),
+                                                   min_periods=1)
+
+        for i in result.items:
+            assert_almost_equal(result[i], rolling_result[i])
+
+    def _check_expanding_ndarray(self, func, static_comp, has_min_periods=True,
+                                 has_time_rule=True, preserve_nan=True):
+        result = func(self.arr)
+
+        assert_almost_equal(result[10],
+                            static_comp(self.arr[:11]))
+
+        if preserve_nan:
+            assert(np.isnan(result[self._nan_locs]).all())
+
+        arr = randn(50)
+
+        if has_min_periods:
+            result = func(arr, min_periods=30)
+            assert(np.isnan(result[:29]).all())
+            assert_almost_equal(result[-1], static_comp(arr[:50]))
+
+            # min_periods is working correctly
+            result = func(arr, min_periods=15)
+            self.assert_(np.isnan(result[13]))
+            self.assert_(not np.isnan(result[14]))
+
+            arr2 = randn(20)
+            result = func(arr2, min_periods=5)
+            self.assert_(isnull(result[3]))
+            self.assert_(notnull(result[4]))
+
+            # min_periods=0
+            result0 = func(arr, min_periods=0)
+            result1 = func(arr, min_periods=1)
+            assert_almost_equal(result0, result1)
+        else:
+            result = func(arr)
+            assert_almost_equal(result[-1], static_comp(arr[:50]))
+
+    def _check_expanding_structures(self, func):
+        series_result = func(self.series)
+        self.assert_(isinstance(series_result, Series))
+        frame_result = func(self.frame)
+        self.assertEquals(type(frame_result), DataFrame)
+
+    def _check_expanding(self, func, static_comp, has_min_periods=True,
+                         has_time_rule=True,
+                         preserve_nan=True):
+        self._check_expanding_ndarray(func, static_comp,
+                                      has_min_periods=has_min_periods,
+                                      has_time_rule=has_time_rule,
+                                      preserve_nan=preserve_nan)
+        self._check_expanding_structures(func)
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
