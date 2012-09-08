@@ -104,7 +104,9 @@ pandas 0.8.2
   - Allow user to have dateutil 2.1 installed on a Python 2 system (#1851)
   - Catch ImportError less aggressively in pandas/__init__.py (#1845)
   - Fix pip source installation bug when installing from GitHub (#1805)
-  - Fix error when window size > array size in rolling_apply (#1850)  - Fix pip source installation issues via SSH from GitHub
+  - Fix error when window size > array size in rolling_apply (#1850)
+  - Fix pip source installation issues via SSH from GitHub
+  - Fix OLS.summary when column is a tuple (#1837)
 
 pandas 0.8.1
 ============
