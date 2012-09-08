@@ -48,6 +48,7 @@ pandas 0.9.0
 
   - Deprecated ``day_of_year`` API removed from PeriodIndex, use ``dayofyear``
     (#1723)
+  - Don't modify NumPy suppress printoption at import time
 
 **Bug fixes**
 
