@@ -110,6 +110,7 @@ pandas 0.9.0
   - Fix error when window size > array size in rolling_apply (#1850)
   - Fix pip source installation issues via SSH from GitHub
   - Fix OLS.summary when column is a tuple (#1837)
+  - Fix bug in __doc__ patching when -OO passed to interpreter (#1792, #1741)
 
 pandas 0.8.1
 ============
