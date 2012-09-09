@@ -107,20 +107,17 @@ def ismember(ndarray arr, set values):
     '''
     cdef:
         Py_ssize_t i, n
-        flatiter it
         ndarray[uint8_t] result
         object val
 
-    it = <flatiter> PyArray_IterNew(arr)
     n = len(arr)
     result = np.empty(n, dtype=np.uint8)
     for i in range(n):
-        val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
+        val = util.get_value_at(arr, i)
         if val in values:
             result[i] = 1
         else:
             result[i] = 0
-        PyArray_ITER_NEXT(it)
 
     return result.view(np.bool_)
 
