@@ -686,7 +686,10 @@ class HDFStore(object):
     def _write_array(self, group, key, value):
         if key in group:
             self.handle.removeNode(group, key)
-
+        
+        #Transform needed to interface with pytables row/col notation
+        value = value.T
+        
         if self.filters is not None:
             atom = None
             try:
@@ -701,6 +704,7 @@ class HDFStore(object):
                                               value.shape,
                                               filters=self.filters)
                 ca[:] = value
+                getattr(group, key)._v_attrs.transposed = True
                 return
 
         if value.dtype.type == np.object_:
@@ -719,6 +723,8 @@ class HDFStore(object):
                 getattr(group, key)._v_attrs.shape = value.shape
             else:
                 self.handle.createArray(group, key, value)
+                
+        getattr(group, key)._v_attrs.transposed = True
 
     def _write_table(self, group, items=None, index=None, columns=None,
                      values=None, append=False, compression=None):
@@ -958,23 +964,29 @@ def _read_array(group, key):
     import tables
     node = getattr(group, key)
     data = node[:]
+    attrs = node._v_attrs
+
+    transposed = getattr(attrs, 'transposed', False)
 
     if isinstance(node, tables.VLArray):
-        return data[0]
+        ret = data[0]
     else:
-        attrs = node._v_attrs
-
         dtype = getattr(attrs, 'value_type', None)
         shape = getattr(attrs, 'shape', None)
 
         if shape is not None:
             # length 0 axis
-            return np.empty(shape, dtype=dtype)
+            ret = np.empty(shape, dtype=dtype)
 
         if dtype == 'datetime64':
-            return np.array(data, dtype='M8[ns]')
-        return data
-
+            ret = np.array(data, dtype='M8[ns]')
+        ret = data
+    
+    if transposed == True:
+        return ret.T
+    else:
+        return ret
+    
 def _unconvert_index(data, kind):
     if kind == 'datetime64':
         index = DatetimeIndex(data)
