@@ -330,26 +330,29 @@ class HDFStore(object):
         if not isinstance(key,list):
             key = [ key ]
 
-        def _select(k):
+        # construct a dict of the results (of only valid keys)
+        d = dict()
+        for k in key:
             group = getattr(self.handle.root, k, None)
             if group is not None:
                 self._has_selection_criteria(group, where)
-                return self._read_group(group, where)
+                d[k] = self._read_group(group, where)
 
-        d = dict([ (k, _select(k)) for k in key ])
+        values = d.values()
 
         # nothing retrieved, return None
-        if len(d) == 0:
+        if len(values) == 0:
             return None
 
         # if we have only a single key, return that object directly
-        elif len(d) == 1:
-            return d.values()[0]
+        elif len(values) == 1:
+            return values[0]
 
         # try to return a consolidated object from d (if the nodes are all Frames, return a Panel, if all panels, return a FDPanel, else return a dict)
-        elif all([ isinstance(o,DataFrame) for o in d.values() ]):
+        elif all([ isinstance(o,DataFrame) for o in values ]):
             return Panel(d)
-        elif all([ isinstance(o,Panel) for o in d.values() ]):
+
+        elif all([ isinstance(o,Panel) for o in values ]):
             return FDPanel(d)
 
         return d
@@ -376,22 +379,20 @@ class HDFStore(object):
             be used.
         """
 
+        def _put(k, v):
+            self._write_to_group(k, v, table=table, append=append, comp=compression)
+
         # do we have a dict or FDPanel?
         if value is None:
-            def _put(k, v):
-                self._write_to_group(k, v, table=table, append=append,
-                                     comp=compression)
-            if isinstance(key, dict):
-                for k, v in key.items():
-                    _put(k, v)
-            elif isinstance(key, FDPanel):
+            if isinstance(key, (dict, FDPanel)):
                 for k, v in key.iteritems():
                     _put(k, v)
             else:
                 raise Exception("value must be passed to store a non-dict like object in put")
+
+        # group put
         else:
-            self._write_to_group(key, value, table=table, append=append,
-                                 comp=compression)
+            _put(key, value)
 
     def _get_handler(self, op, kind):
         return getattr(self,'_%s_%s' % (op, kind))
@@ -435,20 +436,20 @@ class HDFStore(object):
         data in the table, so be careful
         """
 
+        def _append(k, v):
+            self._write_to_group(k, v, table=True, append = True)
+
         # do we have a dict or FDPanel?
         if value is None:
-            def _append(k, v):
-                self._write_to_group(k, v, table=True, append = True)
-            if isinstance(key, dict):
-                for k, v in key.items():
-                    _append(k, v)
-            elif isinstance(key, FDPanel):
+            if isinstance(key, (dict, FDPanel)):
                 for k, v in key.iteritems():
                     _append(k, v)
             else:
                 raise Exception("value must be passed to store a non-dict like object in append")
+
+        # group append
         else:
-            self._write_to_group(key, value, table=True, append=True)
+            _append(key, value)
 
     def _write_to_group(self, key, value, table=False, append=False,
                         comp=None):
