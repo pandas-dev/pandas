@@ -1,6 +1,7 @@
 from datetime import datetime
 import sys
 
+import nose
 import unittest
 
 from pandas import Series, DataFrame, date_range, DatetimeIndex
@@ -9,6 +10,8 @@ import pandas.core.common as com
 import pandas.util.testing as tm
 
 import numpy as np
+
+from pandas.util import py3compat
 
 def test_notnull():
     assert notnull(1.)
@@ -306,6 +309,9 @@ class TestTake(unittest.TestCase):
         tm.assert_almost_equal(result, expected)
 
     def test_console_encode(self):
+        if py3compat.PY3:
+            raise nose.SkipTest
+
         import sys
 
         # stub test
@@ -322,7 +328,6 @@ class TestTake(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
 
