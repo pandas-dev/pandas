@@ -2663,11 +2663,17 @@ class DataFrame(NDFrame):
         -------
         duplicated : Series
         """
+        # kludge for #1833
+        def _m8_to_i8(x):
+            if issubclass(x.dtype.type, np.datetime64):
+                return x.view(np.int64)
+            return x
+
         if cols is None:
-            values = list(self.values.T)
+            values = list(_m8_to_i8(self.values.T))
         else:
             if np.iterable(cols):
-                values = [self[x].values for x in cols]
+                values = [_m8_to_i8(self[x].values) for x in cols]
             else:
                 values = [self[cols]]
 

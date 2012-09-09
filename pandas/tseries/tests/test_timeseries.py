@@ -1085,6 +1085,17 @@ class TestTimeSeries(unittest.TestCase):
 
         result = df.to_records(index=False)
 
+    def test_frame_datetime64_duplicated(self):
+        dates = date_range('2010-07-01', end='2010-08-05')
+
+        tst = DataFrame({'symbol': 'AAA', 'date': dates})
+        result = tst.duplicated(['date', 'symbol'])
+        self.assert_((-result).all())
+
+        tst = DataFrame({'date': dates})
+        result = tst.duplicated()
+        self.assert_((-result).all())
+
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
     return Series(np.random.randn(len(rng)), index=rng)

@@ -51,6 +51,7 @@ pandas 0.9.0
   - Don't modify NumPy suppress printoption at import time
   - The internal HDF5 data arrangement for DataFrames has been
     transposed. Legacy files will still be readable by HDFStore (#1834, #1824)
+  - Legacy cruft removed: pandas.stats.misc.quantileTS
 
 **Bug fixes**
 
@@ -118,6 +119,7 @@ pandas 0.9.0
   - Fix bug in __doc__ patching when -OO passed to interpreter (#1792, #1741)
   - Fix unicode console encoding issue in IPython notebook (#1782, #1768)
   - Fix unicode formatting issue with Series.name (#1782)
+  - Fix bug in DataFrame.duplicated with datetime64 columns (#1833)
 
 pandas 0.8.1
 ============
