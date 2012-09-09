@@ -1088,7 +1088,7 @@ class DataFrame(NDFrame):
                     row_fields = list(idx)
             for i, col in enumerate(cols):
                 val = series[col][j]
-                if isnull(val):
+                if lib.checknull(val):
                     val = na_rep
                 if float_format is not None and com.is_float(val):
                     val = float_format % val

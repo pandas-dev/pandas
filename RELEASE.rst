@@ -126,6 +126,8 @@ pandas 0.9.0
   - Prevent segfault due to MultiIndex not being supported in HDFStore table
     format (#1848)
   - Fix UnboundLocalError in Panel.__setitem__ and add better error (#1826)
+  - Fix to_csv issues with list of string entries. Isnull works on list of
+    strings now too (#1791)
 
 pandas 0.8.1
 ============

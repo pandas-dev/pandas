@@ -50,6 +50,10 @@ def test_isnull_lists():
     exp = np.array([[False], [False]])
     assert(np.array_equal(result, exp))
 
+    # list of strings
+    result = isnull(['foo', 'bar'])
+    assert(not result.any())
+
 def test_isnull_datetime():
     assert (not isnull(datetime.now()))
     assert notnull(datetime.now())

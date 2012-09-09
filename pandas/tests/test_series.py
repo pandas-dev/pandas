@@ -2028,6 +2028,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(rs, xp)
         os.remove(filename)
 
+    def test_to_csv_list_entries(self):
+        s = Series(['jack and jill','jesse and frank'])
+
+        split = s.str.split(r'\s+and\s+')
+
+        buf = StringIO()
+        split.to_csv(buf)
+
     def test_clip(self):
         val = self.ts.median()
 

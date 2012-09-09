@@ -73,9 +73,13 @@ def _isnull_ndarraylike(obj):
     if values.dtype.kind in ('O', 'S'):
         # Working around NumPy ticket 1542
         shape = values.shape
-        result = np.empty(shape, dtype=bool)
-        vec = lib.isnullobj(values.ravel())
-        result[:] = vec.reshape(shape)
+
+        if values.dtype.kind == 'S':
+            result = np.zeros(values.shape, dtype=bool)
+        else:
+            result = np.empty(shape, dtype=bool)
+            vec = lib.isnullobj(values.ravel())
+            result[:] = vec.reshape(shape)
 
         if isinstance(obj, Series):
             result = Series(result, index=obj.index, copy=False)
