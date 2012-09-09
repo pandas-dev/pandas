@@ -949,6 +949,12 @@ class BlockManager(object):
             if copy:
                 result = self.copy(deep=True)
                 result.axes[axis] = new_axis
+
+                if axis == 0:
+                    # patch ref_items
+                    for blk in result.blocks:
+                        blk.ref_items = new_axis
+
                 return result
             else:
                 return self

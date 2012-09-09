@@ -897,6 +897,13 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         filled = empty.fillna(0)
         assert_panel_equal(filled, empty)
 
+    def test_truncate_fillna_bug(self):
+        # #1823
+        result = self.panel.truncate(before=None, after=None, axis='items')
+
+        # it works!
+        result.fillna(value=0.0)
+
     def test_swapaxes(self):
         result = self.panel.swapaxes('items', 'minor')
         self.assert_(result.items is self.panel.minor_axis)
