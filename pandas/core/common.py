@@ -70,11 +70,11 @@ def _isnull_ndarraylike(obj):
     from pandas import Series
     values = np.asarray(obj)
 
-    if values.dtype.kind in ('O', 'S'):
+    if values.dtype.kind in ('O', 'S', 'U'):
         # Working around NumPy ticket 1542
         shape = values.shape
 
-        if values.dtype.kind == 'S':
+        if values.dtype.kind in ('S', 'U'):
             result = np.zeros(values.shape, dtype=bool)
         else:
             result = np.empty(shape, dtype=bool)

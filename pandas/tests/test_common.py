@@ -50,9 +50,13 @@ def test_isnull_lists():
     exp = np.array([[False], [False]])
     assert(np.array_equal(result, exp))
 
-    # list of strings
+    # list of strings / unicode
     result = isnull(['foo', 'bar'])
     assert(not result.any())
+
+    result = isnull([u'foo', u'bar'])
+    assert(not result.any())
+
 
 def test_isnull_datetime():
     assert (not isnull(datetime.now()))
@@ -307,12 +311,14 @@ class TestTake(unittest.TestCase):
         # stub test
         # need to mock-out sys.stdin.encoding=None for real test
         result = com.console_encode(u"\u05d0")
-        expected = u"\u05d0".encode(sys.stdin.encoding,
-                                    errors='replace')
+        try:
+            expected = u"\u05d0".encode(sys.stdin.encoding)
 
-        # lot of console encodings, ISO-8869-1, cp850, etc. won't encode this
-        # character
-        self.assertEqual(result, expected)
+            # lot of console encodings, ISO-8869-1, cp850, etc. won't encode
+            # this character
+            self.assertEqual(result, expected)
+        except UnicodeEncodeError:
+            pass
 
 
 if __name__ == '__main__':
