@@ -203,6 +203,10 @@ class TestNanops(unittest.TestCase):
         df = DataFrame(np.empty((10, 0)))
         self.assert_((df.sum(1) == 0).all())
 
+    def test_nansum_buglet(self):
+        s = Series([1.0, np.nan], index=[0,1])
+        result = np.nansum(s)
+        assert_almost_equal(result, 1)
 
 class SafeForSparse(object):
     pass

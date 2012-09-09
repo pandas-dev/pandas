@@ -244,7 +244,8 @@ def _unbox(func):
     def f(self, *args, **kwargs):
         result = func(self, *args, **kwargs)
         if isinstance(result, np.ndarray) and result.ndim == 0:
-            return result.item()
+            # return NumPy type
+            return result.dtype.type(result.item())
         else:  # pragma: no cover
             return result
     f.__name__ = func.__name__
