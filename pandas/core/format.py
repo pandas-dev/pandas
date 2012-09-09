@@ -79,9 +79,16 @@ class SeriesFormatter(object):
             if footer and self.series.name:
                 footer += ', '
 
-            if self.series.name and \
-            not isinstance(self.series.name,basestring):
-                series_name=str(self.series.name)
+            if self.series.name:
+                if isinstance(self.series.name,basestring):
+                    series_name=self.series.name
+                elif hasattr(self.series.name, "__getitem__") or \
+                    hasattr(self.series.name, "__iter__"):
+                    series_name="('"
+                    series_name+= "', '".join(map(unicode,self.series.name))
+                    series_name+= "')"
+                else:
+                    series_name=str(self.series.name)
             else:
                 series_name=self.series.name
 
