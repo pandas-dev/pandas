@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 try:
     from StringIO import StringIO
 except:
@@ -109,6 +111,12 @@ class TestDataFrameFormatting(unittest.TestCase):
         dm = DataFrame(['\xc2'])
         buf = StringIO()
         dm.to_string(buf)
+
+    def test_to_string_force_unicode(self):
+        #given string with non-ascii characters
+        df = DataFrame([["aaää", 1], ["bbbb", 2]])
+        result = df.to_string(force_unicode=True)
+        self.assertEqual(result, u'      0  1\n0  aa\xe4\xe4  1\n1  bbbb  2')
 
     def test_to_string_with_formatters(self):
         df = DataFrame({'int': [1, 2, 3],
