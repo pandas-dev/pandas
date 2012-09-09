@@ -801,17 +801,21 @@ class TextParser(object):
         # done with first read, next time raise StopIteration
         self._first_chunk = False
 
+        columns = list(self.orig_columns)
         if len(content) == 0: # pragma: no cover
             if self.index_col is not None:
                 if np.isscalar(self.index_col):
                     index = Index([], name=self.index_name)
+                    columns.pop(self.index_col)
                 else:
                     index = MultiIndex.from_arrays([[]] * len(self.index_col),
                                                    names=self.index_name)
+                    for n in self.index_col:
+                        columns.pop(n)
             else:
                 index = Index([])
 
-            return DataFrame(index=index, columns=self.columns)
+            return DataFrame(index=index, columns=columns)
 
         alldata = self._rows_to_cols(content)
         data = self._exclude_implicit_index(alldata)
@@ -824,7 +828,6 @@ class TextParser(object):
 
         data = _convert_to_ndarrays(data, self.na_values, self.verbose)
 
-        columns = list(self.orig_columns)
         if self.parse_dates is not None:
             data, columns = self._process_date_conversion(data)
 
