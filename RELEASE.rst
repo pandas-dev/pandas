@@ -52,6 +52,7 @@ pandas 0.9.0
   - The internal HDF5 data arrangement for DataFrames has been
     transposed. Legacy files will still be readable by HDFStore (#1834, #1824)
   - Legacy cruft removed: pandas.stats.misc.quantileTS
+  - Use ISO8601 format for Period repr: monthly, daily, and on down (#1776)
 
 **Bug fixes**
 
