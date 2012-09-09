@@ -686,10 +686,14 @@ class HDFStore(object):
     def _write_array(self, group, key, value):
         if key in group:
             self.handle.removeNode(group, key)
-        
-        #Transform needed to interface with pytables row/col notation
-        value = value.T
-        
+
+        # Transform needed to interface with pytables row/col notation
+        empty_array = any(x == 0 for x in value.shape)
+        transposed = False
+        if not empty_array:
+            value = value.T
+            transposed = True
+
         if self.filters is not None:
             atom = None
             try:
@@ -704,8 +708,9 @@ class HDFStore(object):
                                               value.shape,
                                               filters=self.filters)
                 ca[:] = value
-                getattr(group, key)._v_attrs.transposed = True
+                getattr(group, key)._v_attrs.transposed = transposed
                 return
+
 
         if value.dtype.type == np.object_:
             vlarr = self.handle.createVLArray(group, key,
@@ -715,7 +720,7 @@ class HDFStore(object):
             self.handle.createArray(group, key, value.view('i8'))
             getattr(group, key)._v_attrs.value_type = 'datetime64'
         else:
-            if any(x == 0 for x in value.shape):
+            if empty_array:
                 # ugly hack for length 0 axes
                 arr = np.empty((1,) * value.ndim)
                 self.handle.createArray(group, key, arr)
@@ -723,8 +728,8 @@ class HDFStore(object):
                 getattr(group, key)._v_attrs.shape = value.shape
             else:
                 self.handle.createArray(group, key, value)
-                
-        getattr(group, key)._v_attrs.transposed = True
+
+        getattr(group, key)._v_attrs.transposed = transposed
 
     def _write_table(self, group, items=None, index=None, columns=None,
                      values=None, append=False, compression=None):
@@ -977,16 +982,17 @@ def _read_array(group, key):
         if shape is not None:
             # length 0 axis
             ret = np.empty(shape, dtype=dtype)
+        else:
+            ret = data
 
         if dtype == 'datetime64':
-            ret = np.array(data, dtype='M8[ns]')
-        ret = data
-    
-    if transposed == True:
+            ret = np.array(ret, dtype='M8[ns]')
+
+    if transposed:
         return ret.T
     else:
         return ret
-    
+
 def _unconvert_index(data, kind):
     if kind == 'datetime64':
         index = DatetimeIndex(data)
