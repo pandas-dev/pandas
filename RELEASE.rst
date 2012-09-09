@@ -49,6 +49,8 @@ pandas 0.9.0
   - Deprecated ``day_of_year`` API removed from PeriodIndex, use ``dayofyear``
     (#1723)
   - Don't modify NumPy suppress printoption at import time
+  - The internal HDF5 data arrangement for DataFrames has been
+    transposed. Legacy files will still be readable by HDFStore (#1834, #1824)
 
 **Bug fixes**
 
@@ -115,6 +117,7 @@ pandas 0.9.0
   - Fix OLS.summary when column is a tuple (#1837)
   - Fix bug in __doc__ patching when -OO passed to interpreter (#1792, #1741)
   - Fix unicode console encoding issue in IPython notebook (#1782, #1768)
+  - Fix unicode formatting issue with Series.name (#1782)
 
 pandas 0.8.1
 ============
