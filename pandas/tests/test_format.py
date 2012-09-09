@@ -694,6 +694,11 @@ class TestSeriesFormatting(unittest.TestCase):
                     '4       NaN')
         self.assertEqual(result, expected)
 
+    def test_unicode_name_in_footer(self):
+        s=Series([1,2],name=u'\u05e2\u05d1\u05e8\u05d9\u05ea')
+        sf=fmt.SeriesFormatter(s,name=u'\u05e2\u05d1\u05e8\u05d9\u05ea')
+        sf._get_footer() # should not raise exception
+
 class TestEngFormatter(unittest.TestCase):
 
     def test_eng_float_formatter(self):
