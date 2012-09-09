@@ -106,7 +106,7 @@ pandas 0.9.0
   - Fix DatetimeIndex.isin to function properly (#1763)
   - Fix conversion of array of tz-aware datetime.datetime to DatetimeIndex with
     right time zone (#1777)
-  - Fix DST issues with generating anchored date ranges (#1778)
+  - Fix DST issues with generating ancxhored date ranges (#1778)
   - Fix issue calling sort on result of Series.unique (#1807)
   - Fix numerical issue leading to square root of negative number in
     rolling_std (#1840)
@@ -130,6 +130,8 @@ pandas 0.9.0
     strings now too (#1791)
   - Fix Timestamp comparisons with datetime values outside the nanosecond range
     (1677-2262)
+  - Revert to prior behavior of normalize_date with datetime.date objects
+    (return datetime)
 
 pandas 0.8.1
 ============

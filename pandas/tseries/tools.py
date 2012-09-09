@@ -258,8 +258,8 @@ def _try_parse_monthly(arg):
     ret = default.replace(year=y, month=m)
     return ret
 
-def normalize_date(dt):
-    return dt.replace(hour=0, minute=0, second=0, microsecond=0)
+
+normalize_date = lib.normalize_date
 
 
 def format(dt):

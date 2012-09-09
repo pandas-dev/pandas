@@ -1426,3 +1426,19 @@ def monthrange(int64_t year, int64_t month):
 cdef inline int64_t ts_dayofweek(_TSObject ts):
     return dayofweek(ts.dts.year, ts.dts.month, ts.dts.day)
 
+
+cpdef normalize_date(object dt):
+    '''
+    Normalize datetime.datetime value to midnight. Returns datetime.date as a
+    datetime.datetime at midnight
+
+    Returns
+    -------
+    normalized : datetime.datetime or Timestamp
+    '''
+    if PyDateTime_Check(dt):
+        return dt.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif PyDate_Check(dt):
+        return datetime(dt.year, dt.month, dt.day)
+    else:
+        raise TypeError('Unrecognized type: %s' % type(dt))
