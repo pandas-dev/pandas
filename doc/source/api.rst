@@ -81,6 +81,27 @@ Standard moving window functions
    rolling_apply
    rolling_quantile
 
+Standard expanding window functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. currentmodule:: pandas.stats.moments
+
+.. autosummary::
+   :toctree: generated/
+
+   expanding_count
+   expanding_sum
+   expanding_mean
+   expanding_median
+   expanding_var
+   expanding_std
+   expanding_corr
+   expanding_cov
+   expanding_skew
+   expanding_kurt
+   expanding_apply
+   expanding_quantile
+
 Exponentially-weighted moving window functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
