@@ -408,6 +408,9 @@ class CheckIndexing(object):
         self.panel['ItemP'] = self.panel['ItemA'] > 0
         self.assert_(self.panel['ItemP'].values.dtype == np.bool_)
 
+        self.assertRaises(TypeError, self.panel.__setitem__, 'foo',
+                          self.panel.ix[['ItemP']])
+
     def test_setitem_ndarray(self):
         from pandas import date_range, datetools
 
