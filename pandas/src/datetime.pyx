@@ -379,7 +379,10 @@ cdef class _Timestamp(datetime):
         if isinstance(other, _Timestamp):
             ots = other
         elif isinstance(other, datetime):
-            ots = Timestamp(other)
+            try:
+                ots = Timestamp(other)
+            except ValueError:
+                return self._compare_outside_nanorange(other, op)
         else:
             if op == 2:
                 return False
@@ -388,11 +391,7 @@ cdef class _Timestamp(datetime):
             else:
                 raise TypeError('Cannot compare Timestamp with %s' % str(other))
 
-        if self.tzinfo is None:
-            if other.tzinfo is not None:
-                raise Exception('Cannot compare tz-naive and tz-aware timestamps')
-        elif other.tzinfo is None:
-            raise Exception('Cannot compare tz-naive and tz-aware timestamps')
+        self._assert_tzawareness_compat(other)
 
         if op == 2: # ==
             return self.value == ots.value
@@ -406,6 +405,52 @@ cdef class _Timestamp(datetime):
             return self.value > ots.value
         elif op == 5: # >=
             return self.value >= ots.value
+
+    cdef _compare_outside_nanorange(self, object other, int op):
+        dtval = self.to_datetime()
+
+        self._assert_tzawareness_compat(other)
+
+        if self.nanosecond == 0:
+            if op == 2: # ==
+                return dtval == other
+            elif op == 3: # !=
+                return dtval != other
+            elif op == 0: # <
+                return dtval < other
+            elif op == 1: # <=
+                return dtval <= other
+            elif op == 4: # >
+                return dtval > other
+            elif op == 5: # >=
+                return dtval >= other
+        else:
+            if op == 2: # ==
+                return False
+            elif op == 3: # !=
+                return True
+            elif op == 0: # <
+                return dtval < other
+            elif op == 1: # <=
+                return dtval < other
+            elif op == 4: # >
+                return dtval >= other
+            elif op == 5: # >=
+                return dtval >= other
+
+    cdef _assert_tzawareness_compat(self, object other):
+        if self.tzinfo is None:
+            if other.tzinfo is not None:
+                raise Exception('Cannot compare tz-naive and '
+                                'tz-aware timestamps')
+        elif other.tzinfo is None:
+            raise Exception('Cannot compare tz-naive and tz-aware timestamps')
+
+    cpdef to_datetime(self):
+        return datetime(self.year, self.month, self.day,
+                        self.hour, self.minute, self.second,
+                        self.microsecond, tzinfo=self.tzinfo)
+
 
     def __add__(self, other):
         if is_integer_object(other):

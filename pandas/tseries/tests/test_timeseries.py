@@ -1096,6 +1096,21 @@ class TestTimeSeries(unittest.TestCase):
         result = tst.duplicated()
         self.assert_((-result).all())
 
+    def test_timestamp_compare_with_early_datetime(self):
+        # e.g. datetime.min
+        stamp = Timestamp('2012-01-01')
+
+        self.assertFalse(stamp == datetime.min)
+        self.assertFalse(stamp == datetime(1600, 1, 1))
+        self.assertFalse(stamp == datetime(2700, 1, 1))
+        self.assert_(stamp != datetime.min)
+        self.assert_(stamp != datetime(1600, 1, 1))
+        self.assert_(stamp != datetime(2700, 1, 1))
+        self.assert_(stamp > datetime(1600, 1, 1))
+        self.assert_(stamp >= datetime(1600, 1, 1))
+        self.assert_(stamp < datetime(2700, 1, 1))
+        self.assert_(stamp <= datetime(2700, 1, 1))
+
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
     return Series(np.random.randn(len(rng)), index=rng)
