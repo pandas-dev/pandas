@@ -677,6 +677,14 @@ class TestHDFStore(unittest.TestCase):
         df['d'] = ts.index[:3]
         self._check_roundtrip(df, tm.assert_frame_equal)
 
+    def test_cant_write_multiindex_table(self):
+        # for now, #1848
+        df = DataFrame(np.random.randn(10, 4),
+                       index=[np.arange(5).repeat(2),
+                              np.tile(np.arange(2), 5)])
+
+        self.assertRaises(Exception, self.store.put, 'foo', df, table=True)
+
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))
     return pth

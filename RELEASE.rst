@@ -122,6 +122,8 @@ pandas 0.9.0
   - Fix bug in DataFrame.duplicated with datetime64 columns (#1833)
   - Fix bug in Panel internals resulting in error when doing fillna after
     truncate not changing size of panel (#1823)
+  - Prevent segfault due to MultiIndex not being supported in HDFStore table
+    format (#1848)
 
 pandas 0.8.1
 ============

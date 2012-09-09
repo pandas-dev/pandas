@@ -931,6 +931,9 @@ def _convert_index(index):
         atom = _tables().Int64Col()
         return index.values, 'integer', atom
 
+    if isinstance(index, MultiIndex):
+        raise Exception('MultiIndex not supported here!')
+
     inferred_type = lib.infer_dtype(index)
 
     values = np.asarray(index)
