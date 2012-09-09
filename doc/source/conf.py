@@ -234,7 +234,7 @@ latex_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-        'statsmodels' : ('http://statsmodels.sourceforge.net/devel/': None)
+        'statsmodels' : ('http://statsmodels.sourceforge.net/devel/', None)
                       }
 import glob
 autosummary_generate = glob.glob("*.rst")
