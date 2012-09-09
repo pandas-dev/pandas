@@ -3495,6 +3495,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_to_excel_float_format(self):
         try:
             import xlwt
+            import openpyxl
         except ImportError:
             raise nose.SkipTest
 

@@ -302,11 +302,17 @@ class TestTake(unittest.TestCase):
         tm.assert_almost_equal(result, expected)
 
     def test_console_encode(self):
+        import sys
 
         # stub test
         # need to mock-out sys.stdin.encoding=None for real test
         result = com.console_encode(u"\u05d0")
-        assert not result == '?'
+        expected = u"\u05d0".encode(sys.stdin.encoding,
+                                    errors='replace')
+
+        # lot of console encodings, ISO-8869-1, cp850, etc. won't encode this
+        # character
+        self.assertEqual(result, expected)
 
 
 if __name__ == '__main__':
