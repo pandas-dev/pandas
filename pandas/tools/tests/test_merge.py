@@ -414,6 +414,19 @@ class TestMerge(unittest.TestCase):
         expected = a.join(b.astype('f8'))
         assert_frame_equal(joined, expected)
 
+        joined = b.join(a)
+        assert_frame_equal(expected, joined.reindex(columns=['a', 'b', 'c']))
+
+        a = np.random.randint(0, 5, 100)
+        b = np.random.random(100).astype('Float64')
+        c = np.random.random(100).astype('Float32')
+        df = DataFrame({'a': a, 'b' : b, 'c' : c})
+        xpdf = DataFrame({'a': a, 'b' : b, 'c' : c.astype('Float64')})
+        s = DataFrame(np.random.random(5).astype('f'), columns=['md'])
+        rs = df.merge(s, left_on='a', right_index=True)
+        xp = xpdf.merge(s.astype('f8'), left_on='a', right_index=True)
+        assert_frame_equal(rs, xp)
+
     def test_join_many_non_unique_index(self):
         df1 = DataFrame({"a": [1,1], "b": [1,1], "c": [10,20]})
         df2 = DataFrame({"a": [1,1], "b": [1,2], "d": [100,200]})
@@ -1466,5 +1479,3 @@ if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-
-
