@@ -1036,6 +1036,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         sys.stderr = sys.__stderr__
         self.assertEquals(buf.getvalue(), '')
 
+    def test_repr_name_iterable_indexable(self):
+        s = Series([1, 2, 3], name=np.int64(3))
+
+        # it works!
+        repr(s)
+
+        s.name = (u"\u05d0",) * 2
+        repr(s)
+
     def test_timeseries_repr_object_dtype(self):
         index = Index([datetime(2000, 1, 1) + timedelta(i)
                        for i in range(1000)], dtype=object)

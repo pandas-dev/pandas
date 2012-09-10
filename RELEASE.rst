@@ -140,6 +140,8 @@ pandas 0.9.0
   - Only use Q-OCT/NOV/DEC in quarterly frequency inference (#1789)
   - Upcast to dtype=object when unstacking boolean DataFrame (#1820)
   - Fix float64/float32 merging bug (#1849)
+  - Fixes to Period.start_time for non-daily frequencies (#1857)
+  - Fix failure when converter used on index_col in read_csv (#1835)
 
 pandas 0.8.1
 ============

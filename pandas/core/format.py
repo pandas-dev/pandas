@@ -82,16 +82,12 @@ class SeriesFormatter(object):
             if self.series.name:
                 if isinstance(self.series.name, basestring):
                     series_name = self.series.name
-                elif (hasattr(self.series.name, "__getitem__") or
-                      hasattr(self.series.name, "__iter__")):
-                    series_name ="('"
-                    series_name += "', '".join([unicode(x)
-                                                for x in self.series.name])
-                    series_name += "')"
+                elif isinstance(self.series.name, tuple):
+                    series_name = "('%s')" % "', '".join(self.series.name)
                 else:
                     series_name = str(self.series.name)
             else:
-                series_name=self.series.name
+                series_name = self.series.name
 
             footer += (("Name: %s" % series_name)
                        if series_name is not None else '')
