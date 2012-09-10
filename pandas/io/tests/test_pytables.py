@@ -190,10 +190,13 @@ class TestHDFStore(unittest.TestCase):
             'value' : ['A', 'D']
         }
         self.store.remove('wp', where=[crit1])
-        self.store.remove('wp', where=[crit2])
+        n = self.store.remove('wp', where=[crit2])
         result = self.store['wp']
         expected = wp.truncate(after=date).reindex(minor=['B', 'C'])
         tm.assert_panel_equal(result, expected)
+
+        # removed rows
+        self.assert_(n == len(expected.major_axis)*len(expected.minor_axis))
 
     def test_series(self):
         s = tm.makeStringSeries()

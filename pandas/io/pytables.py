@@ -412,13 +412,23 @@ class HDFStore(object):
         Parameters
         ----------
         key : object
+
+        Returns
+        -------
+        number of rows removed
+
         """
-        if where is None:
-            self.handle.removeNode(self.handle.root, key, recursive=True)
-        else:
-            group = getattr(self.handle.root, key, None)
-            if group is not None:
-                self._delete_from_table(group, where)
+        n = None
+        group = getattr(self.handle.root, key, None)
+        if group is not None:
+            if where is None:
+                if self._has_selection_criteria(group,where):
+                    n = group.nrows
+                self.handle.removeNode(self.handle.root, key, recursive=True)
+            else:
+                self._has_selection_criteria(group,where)
+                n = self._delete_from_table(group, where)
+        return n
 
     def append(self, key, value = None):
         """
@@ -985,12 +995,25 @@ class HDFStore(object):
         s.select_coords()
 
         # delete the rows in reverse order
-        l = list(s.values)
-        l.reverse()
-        for c in l:
-            table.removeRows(c)
-        self.handle.flush()
-        return len(s.values)
+        l  = list(s.values)
+        ln = len(l)
+        
+        if ln:
+
+            # if we can do a consecutive removal - do it!
+            if l[0]+ln-1 == l[-1]:
+                table.removeRows(start = l[0], stop = l[-1]+1)
+                
+            # one by one
+            else:
+                l.reverse()
+                for c in l:
+                    table.removeRows(c)
+
+            self.handle.flush()
+
+        return ln
+
 
 def _convert_index(index):
     if isinstance(index, DatetimeIndex):
