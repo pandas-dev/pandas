@@ -62,7 +62,7 @@ class TestPeriodProperties(TestCase):
         for month in MONTHS:
             freq = 'A-%s' % month
             exp = Period('1989', freq=freq)
-            stamp = exp.to_timestamp('D', how='end') + 30
+            stamp = exp.to_timestamp('D', how='end') + timedelta(days=30)
             p = Period(stamp, freq=freq)
             self.assertEquals(p, exp + 1)
 
@@ -258,6 +258,43 @@ class TestPeriodProperties(TestCase):
         self.assertEquals(result, expected)
 
         self.assertRaises(ValueError, p.to_timestamp, '5t')
+
+    def test_start_time(self):
+        freq_lst = ['A', 'Q', 'M', 'D', 'H', 'T', 'S']
+        xp = datetime(2012, 1, 1)
+        for f in freq_lst:
+            p = Period('2012', freq=f)
+            self.assertEquals(p.start_time, xp)
+        self.assertEquals(Period('2012', freq='B').start_time,
+                          datetime(2011, 12, 30))
+        self.assertEquals(Period('2012', freq='W').start_time,
+                          datetime(2011, 12, 26))
+
+    def test_end_time(self):
+        p = Period('2012', freq='A')
+        xp = datetime(2012, 12, 31)
+        self.assertEquals(xp, p.end_time)
+
+        p = Period('2012', freq='Q')
+        xp = datetime(2012, 3, 31)
+        self.assertEquals(xp, p.end_time)
+
+        p = Period('2012', freq='M')
+        xp = datetime(2012, 1, 31)
+        self.assertEquals(xp, p.end_time)
+
+        xp = datetime(2012, 1, 1)
+        freq_lst = ['D', 'H', 'T', 'S']
+        for f in freq_lst:
+            p = Period('2012', freq=f)
+            self.assertEquals(p.end_time, xp)
+
+        self.assertEquals(Period('2012', freq='B').end_time,
+                          datetime(2011, 12, 30))
+
+        self.assertEquals(Period('2012', freq='W').end_time,
+                          datetime(2012, 1, 1))
+
 
     def test_properties_annually(self):
         # Test properties on Periods with annually frequency.

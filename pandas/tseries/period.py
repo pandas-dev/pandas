@@ -19,7 +19,6 @@ import pandas._algos as _algos
 #---------------
 # Period logic
 
-
 def _period_field_accessor(name, alias):
     def f(self):
         base, mult = _gfc(self.freq)
@@ -201,14 +200,19 @@ class Period(object):
         """
         if freq is None:
             base, mult = _gfc(self.freq)
-            new_val = self
+            how = _validate_end_alias(how)
+            if how == 'S':
+                base = _freq_mod.get_to_timestamp_base(base)
+                freq = _freq_mod._get_freq_str(base)
+                new_val = self.asfreq(freq, how)
+            else:
+                new_val = self
         else:
             base, mult = _gfc(freq)
             new_val = self.asfreq(freq, how)
 
         dt64 = plib.period_ordinal_to_dt64(new_val.ordinal, base)
-        ts_freq = _period_rule_to_timestamp_rule(new_val.freq, how=how)
-        return Timestamp(dt64, offset=to_offset(ts_freq))
+        return Timestamp(dt64)
 
     year = _period_field_accessor('year', 0)
     month = _period_field_accessor('month', 3)

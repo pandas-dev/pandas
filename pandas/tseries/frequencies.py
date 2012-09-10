@@ -20,6 +20,13 @@ class FreqGroup(object):
     FR_MIN = 8000
     FR_SEC = 9000
 
+def get_to_timestamp_base(base):
+    if base <= FreqGroup.FR_WK:
+        return FreqGroup.FR_DAY
+    if FreqGroup.FR_HR <= base <= FreqGroup.FR_SEC:
+        return FreqGroup.FR_SEC
+    return base
+
 def get_freq_group(freq):
     if isinstance(freq, basestring):
         base, mult = get_freq_code(freq)
