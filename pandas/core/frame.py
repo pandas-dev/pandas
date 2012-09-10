@@ -2400,6 +2400,7 @@ class DataFrame(NDFrame):
             else:
                 arrays.append(np.asarray(self.index))
 
+        to_remove = []
         for col in keys:
             if isinstance(col, Series):
                 level = col.values
@@ -2411,7 +2412,7 @@ class DataFrame(NDFrame):
                 level = frame[col].values
                 names.append(col)
                 if drop:
-                    del frame[col]
+                    to_remove.append(col)
             arrays.append(level)
 
         index = MultiIndex.from_arrays(arrays, names=names)
@@ -2419,6 +2420,9 @@ class DataFrame(NDFrame):
         if verify_integrity and not index.is_unique:
             duplicates = index.get_duplicates()
             raise Exception('Index has duplicate keys: %s' % duplicates)
+
+        for c in to_remove:
+            del frame[c]
 
         # clear up memory usage
         index._cleanup()

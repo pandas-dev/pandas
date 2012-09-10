@@ -846,7 +846,8 @@ class _FrequencyInferer(object):
         quarterly_rule = self._get_quarterly_rule()
         if quarterly_rule:
             nquarters = self.mdiffs[0] / 3
-            month = _month_aliases[self.rep_stamp.month]
+            mod_dict = {0 : 12, 2 : 11, 1 : 10}
+            month = _month_aliases[mod_dict[self.rep_stamp.month % 3]]
             return _maybe_add_count('%s-%s' % (quarterly_rule, month),
                                     nquarters)
 

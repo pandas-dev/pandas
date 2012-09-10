@@ -1423,6 +1423,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         xp.index.names = [None, 'A', 'B']
         assert_frame_equal(result, xp)
 
+    def test_set_index_nonuniq(self):
+        df = DataFrame({'A' : ['foo', 'foo', 'foo', 'bar', 'bar'],
+                        'B' : ['one', 'two', 'three', 'one', 'two'],
+                        'C' : ['a', 'b', 'c', 'd', 'e'],
+                        'D' : np.random.randn(5),
+                        'E' : np.random.randn(5)})
+        self.assertRaises(Exception, df.set_index, 'A', verify_integrity=True,
+                          inplace=True)
+        self.assert_('A' in df)
+
     def test_set_index_bug(self):
         #GH1590
         df = DataFrame({'val' : [0, 1, 2], 'key': ['a', 'b', 'c']})
