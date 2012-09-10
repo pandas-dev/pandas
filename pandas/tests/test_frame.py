@@ -4930,6 +4930,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         self.assertRaises(ValueError, ps.shift, freq='D')
 
+    def test_shift_bool(self):
+        df = DataFrame({'high':[True, False],
+                        'low':[False, False]})
+        rs = df.shift(1)
+        xp = DataFrame(np.array([[np.nan, np.nan],
+                                 [True, False]], dtype=object),
+                       columns=['high', 'low'])
+        assert_frame_equal(rs, xp)
+
     def test_tshift(self):
         # PeriodIndex
         ps = tm.makePeriodFrame()

@@ -3567,7 +3567,7 @@ class DataFrame(NDFrame):
             new_values = blk.values.take(indexer, axis=1)
             # convert integer to float if necessary. need to do a lot more than
             # that, handle boolean etc also
-            new_values = com.ensure_float(new_values)
+            new_values = com.ensure_nansafe(new_values)
             if periods > 0:
                 new_values[:, :periods] = nan
             else:
