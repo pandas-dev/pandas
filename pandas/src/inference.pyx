@@ -546,7 +546,7 @@ def try_parse_date_and_time(ndarray[object] dates, ndarray[object] times,
     if date_parser is None:
         try:
             from dateutil.parser import parse
-            parse_date = lambda x: parse(str(x), dayfirst=dayfirst)
+            parse_date = lambda x: parse(x, dayfirst=dayfirst)
         except ImportError: # pragma: no cover
             def parse_date(s):
                 try:
@@ -559,7 +559,7 @@ def try_parse_date_and_time(ndarray[object] dates, ndarray[object] times,
     if time_parser is None:
         try:
             from dateutil.parser import parse
-            parse_time = lambda x: parse(str(x))
+            parse_time = lambda x: parse(x)
         except ImportError: # pragma: no cover
             def parse_time(s):
                 try:
