@@ -11,9 +11,9 @@ import nose
 import numpy as np
 randn = np.random.randn
 
-from pandas import (Index, Series, TimeSeries, DataFrame, isnull,
-                    date_range, Timestamp, DatetimeIndex, Int64Index,
-                    to_datetime, bdate_range)
+from pandas import (Index, Series, TimeSeries, DataFrame,
+                    isnull, date_range, Timestamp, DatetimeIndex,
+                    Int64Index, to_datetime, bdate_range)
 
 from pandas.core.daterange import DateRange
 import pandas.core.datetools as datetools
@@ -1340,6 +1340,19 @@ class TestDatetimeIndex(unittest.TestCase):
 
         assert_almost_equal(index.isin([index[2], 5]),
                             [False, False, True, False])
+
+    def test_union(self):
+        i1 = Int64Index(np.arange(0, 20, 2))
+        i2 = Int64Index(np.arange(10, 30, 2))
+        result = i1.union(i2)
+        expected = Int64Index(np.arange(0, 30, 2))
+        self.assert_(np.array_equal(result, expected))
+
+    def test_union_with_DatetimeIndex(self):
+        i1 = Int64Index(np.arange(0, 20, 2))
+        i2 = DatetimeIndex(start='2012-01-03 00:00:00', periods=10, freq='D')
+        i1.union(i2) # Works
+        i2.union(i1) # Fails with "AttributeError: can't set attribute"
 
 class TestLegacySupport(unittest.TestCase):
 

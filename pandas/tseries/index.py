@@ -219,6 +219,8 @@ class DatetimeIndex(Int64Index):
                 else:
                     subarr = data
         elif data.dtype == _INT64_DTYPE:
+            if isinstance(data, Int64Index):
+                raise TypeError('cannot convert Int64Index->DatetimeIndex')
             if copy:
                 subarr = np.asarray(data, dtype=_NS_DTYPE)
             else:

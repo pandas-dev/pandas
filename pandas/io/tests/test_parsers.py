@@ -267,6 +267,21 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
         d = datetime(1999, 1, 27, 19, 0)
         self.assert_(df.index[0] == d)
 
+    def test_multiple_date_cols_int_cast(self):
+        data =  ("KORD,19990127, 19:00:00, 18:56:00, 0.8100\n"
+                 "KORD,19990127, 20:00:00, 19:56:00, 0.0100\n"
+                 "KORD,19990127, 21:00:00, 20:56:00, -0.5900\n"
+                 "KORD,19990127, 21:00:00, 21:18:00, -0.9900\n"
+                 "KORD,19990127, 22:00:00, 21:56:00, -0.5900\n"
+                 "KORD,19990127, 23:00:00, 22:56:00, -0.5900")
+        date_spec = {'nominal': [1, 2], 'actual': [1, 3]}
+        import pandas.io.date_converters as conv
+
+        # it works!
+        df = read_csv(StringIO(data), header=None, parse_dates=date_spec,
+                      date_parser=conv.parse_date_time)
+        self.assert_('nominal' in df)
+
     def test_single_line(self):
         df = read_csv(StringIO('1,2'), names=['a', 'b'], sep=None)
         assert_frame_equal(DataFrame({'a': [1], 'b': [2]}), df)

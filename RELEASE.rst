@@ -132,6 +132,9 @@ pandas 0.9.0
     (1677-2262)
   - Revert to prior behavior of normalize_date with datetime.date objects
     (return datetime)
+  - Fix broken interaction between np.nansum and Series.any/all
+  - Fix bug with multiple column date parsers (#1866)
+  - DatetimeIndex.union(Int64Index) was broken
 
 pandas 0.8.1
 ============
