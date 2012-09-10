@@ -135,6 +135,11 @@ pandas 0.9.0
   - Fix broken interaction between np.nansum and Series.any/all
   - Fix bug with multiple column date parsers (#1866)
   - DatetimeIndex.union(Int64Index) was broken
+  - Make plot x vs y interface consistent with integer indexing (#1842)
+  - set_index inplace modified data even if unique check fails (#1831)
+  - Only use Q-OCT/NOV/DEC in quarterly frequency inference (#1789)
+  - Upcast to dtype=object when unstacking boolean DataFrame (#1820)
+  - Fix float64/float32 merging bug (#1849)
 
 pandas 0.8.1
 ============
