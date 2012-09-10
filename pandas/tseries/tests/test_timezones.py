@@ -445,6 +445,13 @@ class TestTimeZoneSupport(unittest.TestCase):
         self.assert_(dr.tz == dr2.tz)
         self.assert_(dr2.name == 'foo')
 
+    def test_frame_from_records_utc(self):
+        rec = {'datum': 1.5,
+               'begin_time' : datetime(2006, 4, 27, tzinfo=pytz.utc)}
+
+        # it works
+        DataFrame.from_records([rec], index='begin_time')
+
 class TestTimeZones(unittest.TestCase):
 
     def setUp(self):

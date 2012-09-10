@@ -1923,6 +1923,7 @@ class TestDatetime64(unittest.TestCase):
         s = Series(range(1000000), times)
         s.ix[datetime(1900,1,1):datetime(2100,1,1)]
 
+
 class TestSeriesDatetime64(unittest.TestCase):
 
     def setUp(self):
