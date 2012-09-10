@@ -398,6 +398,15 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         assert_frame_equal(xp, rs)
         self.assert_(xp.index.name == rs.index.name)
 
+    def test_converter_index_col_bug(self):
+        #1835
+        data = "A;B\n1;2\n3;4"
+        rs = read_csv(StringIO(data), sep=';', index_col='A',
+                      converters={'A' : lambda x: x})
+        xp = DataFrame({'B' : [2, 4]}, index=Index([1, 3], name='A'))
+        assert_frame_equal(rs, xp)
+        self.assert_(rs.index.name == xp.index.name)
+
     def test_multiple_skts_example(self):
         data = "year, month, a, b\n 2001, 01, 0.0, 10.\n 2001, 02, 1.1, 11."
         pass
@@ -1197,7 +1206,7 @@ eight,1,2,3"""
         try:
             # it works!
             df = read_csv(StringIO(text), verbose=True, index_col=0)
-            self.assert_(buf.getvalue() == 'Found 1 NA values in the index\n')
+            self.assert_(buf.getvalue() == 'Filled 1 NA values in column a\n')
         finally:
             sys.stdout = sys.__stdout__
 
