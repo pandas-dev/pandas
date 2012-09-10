@@ -342,11 +342,23 @@ class Index(np.ndarray):
                 name = None
                 break
 
-        to_concat = _ensure_compat_concat(to_concat)
+        to_concat = self._ensure_compat_concat(to_concat)
         to_concat = [x.values if isinstance(x, Index) else x
                      for x in to_concat]
 
         return Index(np.concatenate(to_concat), name=name)
+
+    @staticmethod
+    def _ensure_compat_concat(indexes):
+        from pandas.tseries.api import DatetimeIndex, PeriodIndex
+        klasses = DatetimeIndex, PeriodIndex
+
+        is_ts = [isinstance(idx, klasses) for idx in indexes]
+
+        if any(is_ts) and not all(is_ts):
+            return [_maybe_box(idx) for idx in indexes]
+
+        return indexes
 
     def take(self, indexer, axis=0):
         """
@@ -2516,16 +2528,11 @@ def _get_consensus_names(indexes):
             break
     return consensus_name
 
-def _ensure_compat_concat(indexes):
-    from pandas.tseries.index import DatetimeIndex
-    is_m8 = [isinstance(idx, DatetimeIndex) for idx in indexes]
-    if any(is_m8) and not all(is_m8):
-        return [_maybe_box_dtindex(idx) for idx in indexes]
-    return indexes
+def _maybe_box(idx):
+    from pandas.tseries.api import DatetimeIndex, PeriodIndex
+    klasses = DatetimeIndex, PeriodIndex
 
-def _maybe_box_dtindex(idx):
-    from pandas.tseries.index import DatetimeIndex
-    if isinstance(idx, DatetimeIndex):
+    if isinstance(idx, klasses):
         return idx.asobject
     return idx
 

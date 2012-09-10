@@ -601,8 +601,6 @@ class DatetimeIndex(Int64Index):
         -------
         appended : Index
         """
-        from pandas.core.index import _ensure_compat_concat
-
         name = self.name
         to_concat = [self]
 
@@ -616,7 +614,7 @@ class DatetimeIndex(Int64Index):
                 name = None
                 break
 
-        to_concat = _ensure_compat_concat(to_concat)
+        to_concat = self._ensure_compat_concat(to_concat)
         to_concat = [x.values if isinstance(x, Index) else x
                      for x in to_concat]
 

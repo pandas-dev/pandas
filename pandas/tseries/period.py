@@ -4,7 +4,7 @@ import numpy as np
 
 from pandas.tseries.frequencies import (get_freq_code as _gfc, to_offset,
                                         _month_numbers, FreqGroup)
-from pandas.tseries.index import DatetimeIndex, Int64Index
+from pandas.tseries.index import DatetimeIndex, Int64Index, Index
 from pandas.tseries.tools import parse_time_string
 import pandas.tseries.frequencies as _freq_mod
 
@@ -632,6 +632,11 @@ class PeriodIndex(Int64Index):
         f = lambda x: Period(ordinal=x, freq=self.freq)
         return lib.map_infer(values, f)
 
+    @property
+    def asobject(self):
+        from pandas.core.index import Index
+        return Index(self._box_values(self.values), dtype=object)
+
     def astype(self, dtype):
         dtype = np.dtype(dtype)
         if dtype == np.object_:
@@ -981,6 +986,45 @@ class PeriodIndex(Int64Index):
         taken.freq = self.freq
         taken.name = self.name
         return taken
+
+    def append(self, other):
+        """
+        Append a collection of Index options together
+
+        Parameters
+        ----------
+        other : Index or list/tuple of indices
+
+        Returns
+        -------
+        appended : Index
+        """
+        name = self.name
+        to_concat = [self]
+
+        if isinstance(other, (list, tuple)):
+            to_concat = to_concat + list(other)
+        else:
+            to_concat.append(other)
+
+        for obj in to_concat:
+            if isinstance(obj, Index) and obj.name != name:
+                name = None
+                break
+
+        to_concat = self._ensure_compat_concat(to_concat)
+
+        if isinstance(to_concat[0], PeriodIndex):
+            if len(set([x.freq for x in to_concat])) > 1:
+                # box
+                to_concat = [x.asobject for x in to_concat]
+            else:
+                cat_values = np.concatenate([x.values for x in to_concat])
+                return PeriodIndex(cat_values, freq=self.freq, name=name)
+
+        to_concat = [x.values if isinstance(x, Index) else x
+                     for x in to_concat]
+        return Index(com._concat_compat(to_concat), name=name)
 
 
 def _get_ordinal_range(start, end, periods, freq):

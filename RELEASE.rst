@@ -142,6 +142,7 @@ pandas 0.9.0
   - Fix float64/float32 merging bug (#1849)
   - Fixes to Period.start_time for non-daily frequencies (#1857)
   - Fix failure when converter used on index_col in read_csv (#1835)
+  - Implement PeriodIndex.append so that pandas.concat works correctly (#1815)
 
 pandas 0.8.1
 ============
