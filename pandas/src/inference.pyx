@@ -571,8 +571,8 @@ def try_parse_date_and_time(ndarray[object] dates, ndarray[object] times,
         parse_time = time_parser
 
     for i from 0 <= i < n:
-        d = parse_date(dates[i])
-        t = parse_time(times[i])
+        d = parse_date(str(dates[i]))
+        t = parse_time(str(times[i]))
         result[i] = datetime(d.year, d.month, d.day,
                              t.hour, t.minute, t.second)
 
@@ -829,4 +829,3 @@ def fast_multiget(dict mapping, ndarray keys, default=np.nan):
             output[i] = default
 
     return maybe_convert_objects(output)
-
