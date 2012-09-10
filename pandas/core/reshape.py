@@ -159,6 +159,8 @@ class _Unstacker(object):
 
         if issubclass(values.dtype.type, np.integer):
             new_values = new_values.astype(float)
+        elif issubclass(values.dtype.type, np.bool_):
+            new_values = new_values.astype(object)
 
         new_values.fill(np.nan)
 
@@ -171,6 +173,7 @@ class _Unstacker(object):
             mask_chunk.flat[self.mask] = True
 
         new_values = new_values.take(self.unique_groups, axis=0)
+
         return new_values, new_mask
 
     def get_new_columns(self):

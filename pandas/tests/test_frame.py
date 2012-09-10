@@ -6253,6 +6253,18 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(unstacked_cols.T, self.frame)
         assert_frame_equal(unstacked_cols_df['bar'].T, self.frame)
 
+    def test_unstack_bool(self):
+        df = DataFrame([False, False],
+                       index=MultiIndex.from_arrays([['a', 'b'], ['c', 'l']]),
+                       columns=['col'])
+        rs = df.unstack()
+        xp = DataFrame(np.array([[False, np.nan], [np.nan, False]],
+                                dtype=object),
+                       index=['a', 'b'],
+                       columns=MultiIndex.from_arrays([['col', 'col'],
+                                                       ['c', 'l']]))
+        assert_frame_equal(rs, xp)
+
     def test_unstack_to_series(self):
         # check reversibility
         data = self.frame.unstack()
