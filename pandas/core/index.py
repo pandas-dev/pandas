@@ -225,6 +225,9 @@ class Index(np.ndarray):
     def is_numeric(self):
         return self.inferred_type in ['integer', 'floating']
 
+    def holds_integer(self):
+        return self.inferred_type in ['integer', 'mixed-integer']
+
     def get_duplicates(self):
         from collections import defaultdict
         counter = defaultdict(lambda: 0)

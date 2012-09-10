@@ -1168,8 +1168,8 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
 
     Parameters
     ----------
-    x : int or str, default None
-    y : int or str, default None
+    x : label or position, default None
+    y : label or position, default None
         Allows plotting of one column versus another
     subplots : boolean, default False
         Make separate subplots for each time series
@@ -1226,15 +1226,14 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     else:
         raise ValueError('Invalid chart type given %s' % kind)
 
-    if isinstance(x, int):
-        x = frame.columns[x]
-    if isinstance(y, int):
-        y = frame.columns[y]
-
     if x is not None:
-        frame = frame.set_index(x).sort_index()
+        if com.is_integer(x) and not frame.columns.holds_integer():
+            x = frame.columns[x]
+        frame = frame.set_index(x)
 
     if y is not None:
+        if com.is_integer(y) and not frame.columns.holds_integer():
+            y = frame.columns[y]
         return plot_series(frame[y], label=y, kind=kind, use_index=True,
                            rot=rot, xticks=xticks, yticks=yticks,
                            xlim=xlim, ylim=ylim, ax=ax, style=style,
