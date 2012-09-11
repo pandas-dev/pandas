@@ -449,7 +449,11 @@ def pad_2d(values, limit=None, mask=None):
         mask = isnull(values)
     mask = mask.view(np.uint8)
 
-    _method(values, mask, limit=limit)
+    if np.all(values.shape):
+        _method(values, mask, limit=limit)
+    else:
+        # for test coverage
+        pass
 
 def backfill_2d(values, limit=None, mask=None):
     if is_float_dtype(values):
@@ -465,7 +469,11 @@ def backfill_2d(values, limit=None, mask=None):
         mask = isnull(values)
     mask = mask.view(np.uint8)
 
-    _method(values, mask, limit=limit)
+    if np.all(values.shape):
+        _method(values, mask, limit=limit)
+    else:
+        # for test coverage
+        pass
 
 def _consensus_name_attr(objs):
     name = objs[0].name
