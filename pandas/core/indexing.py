@@ -300,8 +300,15 @@ class _NDFrameIndexer(object):
                 # asarray can be unsafe, NumPy strings are weird
                 keyarr = _asarray_tuplesafe(key)
 
-            if _is_integer_dtype(keyarr) and not _is_integer_index(labels):
-                return self.obj.take(keyarr, axis=axis)
+            if _is_integer_dtype(keyarr):
+                if labels.inferred_type == 'mixed-integer':
+                    indexer = labels.get_indexer(keyarr)
+                    if (indexer >= 0).all():
+                        self.obj.take(indexer, axis=axis)
+                    else:
+                        return self.obj.take(keyarr, axis=axis)
+                elif not labels.inferred_type == 'integer':
+                    return self.obj.take(keyarr, axis=axis)
 
             # this is not the most robust, but...
             if (isinstance(labels, MultiIndex) and
@@ -368,7 +375,7 @@ class _NDFrameIndexer(object):
                         j = labels.get_loc(stop)
                     position_slice = False
             except KeyError:
-                if ltype == 'mixed-integer':
+                if ltype == 'mixed-integer-float':
                     raise
 
             if null_slice or position_slice:
@@ -471,7 +478,7 @@ class _NDFrameIndexer(object):
                     j = labels.get_loc(stop)
                 position_slice = False
         except KeyError:
-            if labels.inferred_type == 'mixed-integer':
+            if labels.inferred_type == 'mixed-integer-float':
                 raise
 
         if null_slice or position_slice:

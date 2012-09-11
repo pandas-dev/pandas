@@ -163,6 +163,18 @@ class CheckIndexing(object):
 
         assert_almost_equal(df.values, arr)
 
+    def test_getitem_ix_mixed_integer(self):
+        df = DataFrame(np.random.randn(4, 3),
+                       index=[1, 10, 'C', 'E'], columns=[1, 2, 3])
+
+        result = df.ix[:-1]
+        expected = df.ix[df.index[:-1]]
+        assert_frame_equal(result, expected)
+
+        result = df.ix[[1, 10]]
+        expected = df.ix[Index([1, 10], dtype=object)]
+        assert_frame_equal(result, expected)
+
     def test_getattr(self):
         tm.assert_series_equal(self.frame.A, self.frame['A'])
         self.assertRaises(AttributeError, getattr, self.frame,

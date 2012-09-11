@@ -147,6 +147,7 @@ pandas 0.9.0
     backfill_2d
   - Fix resampling error with intraday times and anchored target time (like
     AS-DEC) (#1772)
+  - Fix .ix indexing bugs with mixed-integer indexes (#1799)
 
 pandas 0.8.1
 ============

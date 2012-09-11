@@ -59,6 +59,8 @@ def infer_dtype(object _values):
     elif util.is_integer_object(val):
         if is_integer_array(values):
             return 'integer'
+        elif is_integer_float_array(values):
+            return 'mixed-integer-float'
         return 'mixed-integer'
     elif is_datetime(val):
         if is_datetime_array(values):
@@ -75,6 +77,8 @@ def infer_dtype(object _values):
     elif util.is_float_object(val):
         if is_float_array(values):
             return 'floating'
+        elif is_integer_float_array(values):
+            return 'mixed-integer-float'
 
     elif util.is_bool_object(val):
         if is_bool_array(values):
@@ -150,6 +154,29 @@ def is_integer_array(ndarray values):
 
         for i in range(n):
             if not util.is_integer_object(objbuf[i]):
+                return False
+        return True
+    else:
+        return False
+
+def is_integer_float_array(ndarray values):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[object] objbuf
+        object obj
+
+    if issubclass(values.dtype.type, np.integer):
+        return True
+    elif values.dtype == np.object_:
+        objbuf = values
+
+        if n == 0:
+            return False
+
+        for i in range(n):
+            if not (util.is_integer_object(objbuf[i]) or
+                    util.is_float_object(objbuf[i])):
+
                 return False
         return True
     else:
