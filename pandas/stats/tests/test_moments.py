@@ -50,8 +50,20 @@ class TestMoments(unittest.TestCase):
     def test_rolling_min(self):
         self._check_moment_func(mom.rolling_min, np.min)
 
+        a = np.array([1,2,3,4,5])
+        b = mom.rolling_min(a, window=100, min_periods=1)
+        assert_almost_equal(b, np.ones(len(a)))
+
+        self.assertRaises(ValueError, mom.rolling_min, np.array([1,2,3]), window=3, min_periods=5)
+
     def test_rolling_max(self):
         self._check_moment_func(mom.rolling_max, np.max)
+
+        a = np.array([1,2,3,4,5])
+        b = mom.rolling_max(a, window=100, min_periods=1)
+        assert_almost_equal(a, b)
+
+        self.assertRaises(ValueError, mom.rolling_max, np.array([1,2,3]), window=3, min_periods=5)
 
     def test_rolling_quantile(self):
         qs = [.1, .5, .9]
