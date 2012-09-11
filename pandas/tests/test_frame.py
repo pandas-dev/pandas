@@ -3524,6 +3524,28 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             assert_frame_equal(rs, xp)
             os.remove(filename)
 
+    def test_000to_excel_unicode_filename(self):
+        try:
+            import xlwt
+            import openpyxl
+        except ImportError:
+            raise nose.SkipTest
+
+        for ext in ['xls', 'xlsx']:
+            filename = u'\u0192u.' + ext
+            df = DataFrame([[0.123456, 0.234567, 0.567567],
+                            [12.32112, 123123.2, 321321.2]],
+                           index=['A', 'B'], columns=['X', 'Y', 'Z'])
+            df.to_excel(filename, 'test1', float_format='%.2f')
+
+            reader = ExcelFile(filename)
+            rs = reader.parse('test1', index_col=None)
+            xp = DataFrame([[0.12, 0.23, 0.57],
+                            [12.32, 123123.20, 321321.20]],
+                           index=['A', 'B'], columns=['X', 'Y', 'Z'])
+            assert_frame_equal(rs, xp)
+            os.remove(filename)
+
     def test_info(self):
         io = StringIO()
         self.frame.info(buf=io)

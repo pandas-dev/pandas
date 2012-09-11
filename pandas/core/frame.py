@@ -1197,7 +1197,7 @@ class DataFrame(NDFrame):
         """
         from pandas.io.parsers import ExcelWriter
         need_save = False
-        if isinstance(excel_writer, str):
+        if isinstance(excel_writer, basestring):
             excel_writer = ExcelWriter(excel_writer)
             need_save = True
         excel_writer.cur_sheet = sheet_name
