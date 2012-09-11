@@ -143,6 +143,10 @@ pandas 0.9.0
   - Fixes to Period.start_time for non-daily frequencies (#1857)
   - Fix failure when converter used on index_col in read_csv (#1835)
   - Implement PeriodIndex.append so that pandas.concat works correctly (#1815)
+  - Avoid Cython out-of-bounds access causing segfault sometimes in pad_2d,
+    backfill_2d
+  - Fix resampling error with intraday times and anchored target time (like
+    AS-DEC) (#1772)
 
 pandas 0.8.1
 ============
