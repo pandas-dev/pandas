@@ -157,11 +157,7 @@ class _Unstacker(object):
         new_values = np.empty((length, result_width), dtype=values.dtype)
         new_mask = np.zeros((length, result_width), dtype=bool)
 
-        if issubclass(values.dtype.type, np.integer):
-            new_values = new_values.astype(float)
-        elif issubclass(values.dtype.type, np.bool_):
-            new_values = new_values.astype(object)
-
+        new_values = com._maybe_upcast(new_values)
         new_values.fill(np.nan)
 
         # is there a simpler / faster way of doing this?

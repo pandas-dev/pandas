@@ -534,19 +534,6 @@ def ensure_float(arr):
 
     return arr
 
-def ensure_nansafe(arr):
-    """
-    convert int to float
-    convert bool to object
-    """
-    if issubclass(arr.dtype.type, np.integer):
-        arr = arr.astype(float)
-
-    elif issubclass(arr.dtype.type, np.bool_):
-        arr = arr.astype(object)
-
-    return arr
-
 def _mut_exclusive(arg1, arg2):
     if arg1 is not None and arg2 is not None:
         raise Exception('mutually exclusive arguments')
