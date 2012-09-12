@@ -309,7 +309,7 @@ class TestTake(unittest.TestCase):
         tm.assert_almost_equal(result, expected)
 
     def test_console_encode(self):
-        if py3compat.PY3:
+        if py3compat.PY3 or sys.stdin.encoding is None:
             raise nose.SkipTest
 
         import sys
