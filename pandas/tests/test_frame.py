@@ -3336,6 +3336,23 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(rs, xp)
         os.remove(filename)
 
+    def test_to_csv_quoting(self):
+        import csv
+
+        df = DataFrame({'A': [1, 2, 3], 'B': ['foo', 'bar', 'baz']})
+
+        buf = StringIO()
+        df.to_csv(buf, index=False, quoting=csv.QUOTE_NONNUMERIC)
+
+        result = buf.getvalue()
+        expected = ('"A","B"\n'
+                    '1,"foo"\n'
+                    '2,"bar"\n'
+                    '3,"baz"\n')
+
+        self.assertEqual(result, expected)
+
+
     def test_to_excel_from_excel(self):
         try:
             import xlwt

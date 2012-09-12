@@ -1142,6 +1142,10 @@ class DataFrame(NDFrame):
             f = com._get_handle(path_or_buf, mode, encoding=encoding)
             close = True
 
+
+        if quoting is None:
+            quoting = csv.QUOTE_MINIMAL
+
         try:
             if encoding is not None:
                 csvout = com.UnicodeWriter(f, lineterminator='\n',
