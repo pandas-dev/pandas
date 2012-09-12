@@ -48,7 +48,7 @@ ___________
     Windows, all, stable, :ref:`all-platforms`,  ``pip install pandas``
     Mac, all, stable, :ref:`all-platforms`,  ``pip install pandas``
     Linux, Debian, stable, `official Debian repository <http://packages.debian.org/search?keywords=pandas&searchon=names&suite=all&section=all>`_ , ``sudo apt-get install python-pandas``
-    Linux, Debian, unstable (latest packages), `NeuroDebian <http://neuro.debian.net/index.html#how-to-use-this-repository>`_ , ``sudo apt-get install python-pandas``
+    Linux, Debian & Ubuntu, unstable (latest packages), `NeuroDebian <http://neuro.debian.net/index.html#how-to-use-this-repository>`_ , ``sudo apt-get install python-pandas``
     Linux, Ubuntu, stable, `official Ubuntu repository <http://packages.ubuntu.com/search?keywords=pandas&searchon=names&suite=all&section=all>`_ , ``sudo apt-get install python-pandas``
     Linux, Ubuntu, unstable (daily builds), `PythonXY PPA  <https://code.launchpad.net/~pythonxy/+archive/pythonxy-devel>`_; activate by: ``sudo add-apt-repository ppa:pythonxy/pythonxy-devel && sudo apt-get update``, ``sudo apt-get install python-pandas``
 	Linux, OpenSuse & Fedora, stable, `OpenSuse Repository  <http://software.opensuse.org/package/python-pandas?search_term=pandas>`_ , ``zypper in  python-pandas``
