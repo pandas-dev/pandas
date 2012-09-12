@@ -674,18 +674,25 @@ def maybe_convert_bool(ndarray[object] arr):
         Py_ssize_t i, n
         ndarray[uint8_t] result
         object val
+        set true_vals, false_vals
 
     n = len(arr)
     result = np.empty(n, dtype=np.uint8)
 
+    true_vals = set(('True', 'TRUE', 'true', 'Yes', 'YES', 'yes'))
+    false_vals = set(('False', 'FALSE', 'false', 'No', 'NO', 'no'))
+
     for i from 0 <= i < n:
         val = arr[i]
 
-        true_vals = ('True', 'TRUE', 'true', 'Yes', 'YES', 'yes')
-        false_vals = ('False', 'FALSE', 'false', 'No', 'NO', 'no')
-        if val in true_vals or type(val) == bool and val:
+        if cpython.PyBool_Check(val):
+            if val is True:
+                result[i] = 1
+            else:
+                result[i] = 0
+        elif val in true_vals:
             result[i] = 1
-        elif val in false_vals or type(val) == bool and not val:
+        elif val in false_vals:
             result[i] = 0
         else:
             return arr

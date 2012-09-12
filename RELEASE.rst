@@ -34,6 +34,8 @@ pandas 0.9.0
   - Add convenient expanding window equivalents of all rolling_* ops (#1785)
   - Add Options class to pandas.io.data for fetching options data from Yahoo!
     Finance (#1748, #1739)
+  - Recognize and convert more boolean values in file parsing (Yes, No, TRUE,
+    FALSE, variants thereof) (#1691)
 
 **Improvements to existing features**
 
@@ -149,6 +151,8 @@ pandas 0.9.0
     AS-DEC) (#1772)
   - Fix .ix indexing bugs with mixed-integer indexes (#1799)
   - Respect passed color keyword argument in Series.plot (#1890)
+  - Fix rolling_min/max when the window is larger than the size of the input
+    array. Check other malformed inputs (#1899, #1897)
 
 pandas 0.8.1
 ============

@@ -866,6 +866,24 @@ True,3
         data = read_csv(StringIO(data))
         self.assert_(data['A'].dtype == np.bool_)
 
+        data = """A,B
+YES,1
+no,2
+yes,3
+No,3
+Yes,3
+"""
+        data = read_csv(StringIO(data))
+        self.assert_(data['A'].dtype == np.bool_)
+
+        data = """A,B
+TRUE,1
+FALSE,2
+TRUE,3
+"""
+        data = read_csv(StringIO(data))
+        self.assert_(data['A'].dtype == np.bool_)
+
     def test_int_conversion(self):
         data = """A,B
 1.0,1
