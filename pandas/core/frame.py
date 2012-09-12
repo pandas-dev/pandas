@@ -1099,7 +1099,7 @@ class DataFrame(NDFrame):
 
     def to_csv(self, path_or_buf, sep=",", na_rep='', float_format=None,
                cols=None, header=True, index=True, index_label=None,
-               mode='w', nanRep=None, encoding=None):
+               mode='w', nanRep=None, encoding=None, quoting=None):
         """
         Write DataFrame to a comma-separated values (csv) file
 
@@ -1145,9 +1145,11 @@ class DataFrame(NDFrame):
         try:
             if encoding is not None:
                 csvout = com.UnicodeWriter(f, lineterminator='\n',
-                                           delimiter=sep, encoding=encoding)
+                                           delimiter=sep, encoding=encoding,
+                                           quoting=quoting)
             else:
-                csvout = csv.writer(f, lineterminator='\n', delimiter=sep)
+                csvout = csv.writer(f, lineterminator='\n', delimiter=sep,
+                                    quoting=quoting)
             self._helper_csvexcel(csvout, na_rep=na_rep,
                                   float_format=float_format, cols=cols,
                                   header=header, index=index,
