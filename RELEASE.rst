@@ -148,6 +148,7 @@ pandas 0.9.0
   - Fix resampling error with intraday times and anchored target time (like
     AS-DEC) (#1772)
   - Fix .ix indexing bugs with mixed-integer indexes (#1799)
+  - Respect passed color keyword argument in Series.plot (#1890)
 
 pandas 0.8.1
 ============
