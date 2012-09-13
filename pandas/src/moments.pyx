@@ -11,7 +11,7 @@
 
 def _check_minp(win, minp, N):
     if minp > win:
-        raise ValueError('min_periods %d must be <= window %d'
+        raise ValueError('min_periods (%d) must be <= window (%d)'
                         % (minp, win))
     elif minp > N:
         minp = N + 1
@@ -382,6 +382,11 @@ def roll_var(ndarray[double_t] input, int win, int minp, int ddof=1):
             sum_xx += val * val
 
         if nobs >= minp:
+            # pathological case
+            if nobs == 1:
+                output[i] = 0
+                continue
+
             output[i] = (nobs * sum_xx - sum_x * sum_x) / (nobs * (nobs - ddof))
         else:
             output[i] = NaN

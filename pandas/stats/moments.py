@@ -447,9 +447,9 @@ rolling_median = _rolling_func(lib.roll_median_cython, 'Moving median')
 
 _ts_std = lambda *a, **kw: _zsqrt(lib.roll_var(*a, **kw))
 rolling_std = _rolling_func(_ts_std, 'Unbiased moving standard deviation',
-                            check_minp=_require_min_periods(2))
+                            check_minp=_require_min_periods(1))
 rolling_var = _rolling_func(lib.roll_var, 'Unbiased moving variance',
-                            check_minp=_require_min_periods(2))
+                            check_minp=_require_min_periods(1))
 rolling_skew = _rolling_func(lib.roll_skew, 'Unbiased moving skewness',
                              check_minp=_require_min_periods(3))
 rolling_kurt = _rolling_func(lib.roll_kurt, 'Unbiased moving kurtosis',

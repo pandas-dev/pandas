@@ -154,6 +154,8 @@ pandas 0.9.0
   - Respect passed color keyword argument in Series.plot (#1890)
   - Fix rolling_min/max when the window is larger than the size of the input
     array. Check other malformed inputs (#1899, #1897)
+  - Rolling variance / standard deviation with only a single observation in
+    window (#1884)
 
 pandas 0.8.1
 ============

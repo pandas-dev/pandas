@@ -112,6 +112,17 @@ class TestMoments(unittest.TestCase):
         self._check_moment_func(functools.partial(mom.rolling_std, ddof=0),
                                 lambda x: np.std(x, ddof=0))
 
+    def test_rolling_std_1obs(self):
+        result = mom.rolling_std(np.array([1.,2.,3.,4.,5.]),
+                                 1, min_periods=1)
+        expected = np.zeros(5)
+
+        assert_almost_equal(result, expected)
+
+        result = mom.rolling_std(np.array([np.nan,np.nan,3.,4.,5.]),
+                                 3, min_periods=2)
+        self.assert_(np.isnan(result[2]))
+
     def test_rolling_std_neg_sqrt(self):
         # unit test from Bottleneck
 
