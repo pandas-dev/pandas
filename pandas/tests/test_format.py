@@ -61,6 +61,26 @@ class TestDataFrameFormatting(unittest.TestCase):
         repr(df)
         df.to_string(col_space=10, buf=buf)
 
+    def test_repr_truncation(self):
+        max_len = 20
+        fmt.print_config.max_colwidth = max_len
+        df = DataFrame({'A': np.random.randn(10),
+                 'B': [tm.rands(np.random.randint(max_len - 1,
+                     max_len + 1)) for i in range(10)]})
+        r = repr(df)
+        r = r[r.find('\n') + 1:]
+        for line, value in zip(r.split('\n'), df['B']):
+            if fmt._strlen(value) + 1 > max_len:
+                self.assert_('...' in line)
+            else:
+                self.assert_('...' not in line)
+
+        fmt.print_config.max_colwidth = None
+        self.assert_('...' not in repr(df))
+
+        fmt.print_config.max_colwidth = max_len + 2
+        self.assert_('...' not in repr(df))
+
     def test_to_string_repr_unicode(self):
         buf = StringIO()
 
