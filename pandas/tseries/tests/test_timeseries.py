@@ -1678,6 +1678,20 @@ class TestLegacySupport(unittest.TestCase):
         result = rng[:50].intersection(nofreq)
         self.assert_(result.freq == rng.freq)
 
+    def test_min_max(self):
+        rng = date_range('1/1/2000', '12/31/2000')
+        rng2 = rng.take(np.random.permutation(len(rng)))
+
+        the_min = rng2.min()
+        the_max = rng2.max()
+        self.assert_(isinstance(the_min, Timestamp))
+        self.assert_(isinstance(the_max, Timestamp))
+        self.assertEqual(the_min, rng[0])
+        self.assertEqual(the_max, rng[-1])
+
+        self.assertEqual(rng.min(), rng[0])
+        self.assertEqual(rng.max(), rng[-1])
+
 
 class TestLegacyCompat(unittest.TestCase):
 

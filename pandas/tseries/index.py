@@ -1370,6 +1370,27 @@ class DatetimeIndex(Int64Index):
 
         return mask.nonzero()[0]
 
+    def min(self, axis=None):
+        """
+        Overridden ndarray.min to return a Timestamp
+        """
+        if self.is_monotonic:
+            return self[0]
+        else:
+            min_stamp = self.asi8.min()
+            return Timestamp(min_stamp, tz=self.tz)
+
+    def max(self, axis=None):
+        """
+        Overridden ndarray.max to return a Timestamp
+        """
+        if self.is_monotonic:
+            return self[-1]
+        else:
+            max_stamp = self.asi8.max()
+            return Timestamp(max_stamp, tz=self.tz)
+
+
 def _generate_regular_range(start, end, periods, offset):
     if isinstance(offset, Tick):
         stride = offset.nanos

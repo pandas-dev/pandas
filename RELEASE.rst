@@ -158,6 +158,8 @@ pandas 0.9.0
     array. Check other malformed inputs (#1899, #1897)
   - Rolling variance / standard deviation with only a single observation in
     window (#1884)
+  - Fix unicode sheet name failure in to_excel (#1828)
+  - Override DatetimeIndex.min/max to return Timestamp objects (#1895)
 
 pandas 0.8.1
 ============
