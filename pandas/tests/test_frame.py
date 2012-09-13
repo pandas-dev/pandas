@@ -2710,7 +2710,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_operators_none_as_na(self):
         df = DataFrame({"col1": [2,5.0,123,None],
-                        "col2": [1,2,3,4]})
+                        "col2": [1,2,3,4]}, dtype=object)
 
         ops = [operator.add, operator.sub, operator.mul, operator.truediv]
 
@@ -3553,7 +3553,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             assert_frame_equal(rs, xp)
             os.remove(filename)
 
-    def test_000to_excel_unicode_filename(self):
+    def test_to_excel_unicode_filename(self):
         try:
             import xlwt
             import openpyxl
@@ -4905,6 +4905,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         assert_series_equal(the_diff['A'],
                             self.tsframe['A'] - self.tsframe['A'].shift(1))
+
+    def test_diff_mixed_dtype(self):
+        df = DataFrame(np.random.randn(5, 3))
+        df['A'] = np.array([1, 2, 3, 4, 5], dtype=object)
+
+        result = df.diff()
+        self.assert_(result[0].dtype == np.float64)
 
     def test_pct_change(self):
         rs = self.tsframe.pct_change(fill_method=None)

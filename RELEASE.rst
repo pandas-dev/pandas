@@ -59,6 +59,8 @@ pandas 0.9.0
 
 **Bug fixes**
 
+  - Perform arithmetic column-by-column in mixed-type DataFrame to avoid type
+    upcasting issues. Caused downstream DataFrame.diff bug (#1896)
   - Fix matplotlib auto-color assignment when no custom spectrum passed. Also
     respect passed color keyword argument (#1711)
   - Fix resampling logical error with closed='left' (#1726)

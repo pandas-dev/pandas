@@ -3139,23 +3139,30 @@ class DataFrame(NDFrame):
         this, other = self.align(other, join='outer', level=level, copy=False)
         new_index, new_columns = this.index, this.columns
 
-        this_vals = this.values
-        other_vals = other.values
+        def _arith_op(left, right):
+            if fill_value is not None:
+                left_mask = isnull(left)
+                right_mask = isnull(right)
+                left = left.copy()
+                right = right.copy()
 
-        if fill_value is not None:
-            this_mask = isnull(this_vals)
-            other_mask = isnull(other_vals)
-            this_vals = this_vals.copy()
-            other_vals = other_vals.copy()
+                # one but not both
+                mask = left_mask ^ right_mask
+                left[left_mask & mask] = fill_value
+                right[right_mask & mask] = fill_value
 
-            # one but not both
-            mask = this_mask ^ other_mask
-            this_vals[this_mask & mask] = fill_value
-            other_vals[other_mask & mask] = fill_value
+            return func(left, right)
 
-        result = func(this_vals, other_vals)
-        return self._constructor(result, index=new_index, columns=new_columns,
-                                 copy=False)
+        if this._is_mixed_type or other._is_mixed_type:
+            # XXX no good for duplicate columns
+            result = {}
+            for col in this:
+                result[col] = func(this[col].values, other[col].values)
+        else:
+            result = _arith_op(this.values, other.values)
+
+        return self._constructor(result, index=new_index,
+                                 columns=new_columns, copy=False)
 
     def _indexed_same(self, other):
         same_index = self.index.equals(other.index)
