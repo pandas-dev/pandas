@@ -375,18 +375,6 @@ def to_clipboard(obj): # pragma: no cover
     from pandas.util.clipboard import clipboard_set
     clipboard_set(str(obj))
 
-class BufferedReader(object):
-    """
-    For handling different kinds of files, e.g. zip files where reading out a
-    chunk of lines is faster than reading out one line at a time.
-    """
-
-    def __init__(self, fh, delimiter=','):
-        pass # pragma: no coverage
-
-class BufferedCSVReader(BufferedReader):
-    pass
-
 
 # common NA values
 # no longer excluding inf representations
