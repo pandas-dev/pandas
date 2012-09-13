@@ -733,7 +733,11 @@ def _make_fixed_width(strings, justify='right', minimum=None):
         except UnicodeError:
             eff_len = max_len
 
-        return justfunc(x[:eff_len], eff_len)
+        if conf_max is not None:
+            if (conf_max > 3) & (_strlen(x) > max_len):
+                x = x[:eff_len - 3] + '...'
+
+        return justfunc(x, eff_len)
 
     return [just(x) for x in strings]
 
