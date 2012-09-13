@@ -2614,6 +2614,21 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                        columns=[tm.rands(10) for _ in xrange(20)])
         repr(df)
 
+    def test_repr_column_name_unicode_truncation_bug(self):
+        # #1906
+        df = DataFrame({'Id': [7117434],
+                        'StringCol': ('Is it possible to modify drop plot code'
+                                      ' so that the output graph is displayed '
+                                      'in iphone simulator, Is it possible to '
+                                      'modify drop plot code so that the '
+                                      'output graph is \xe2\x80\xa8displayed '
+                                      'in iphone simulator.Now we are adding '
+                                      'the CSV file externally. I want to Call'
+                                      ' the File through the code..')})
+
+        result = repr(df)
+        self.assert_('StringCol' in result)
+
     def test_head_tail(self):
         assert_frame_equal(self.frame.head(), self.frame[:5])
         assert_frame_equal(self.frame.tail(), self.frame[-5:])

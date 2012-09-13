@@ -160,6 +160,7 @@ pandas 0.9.0
     window (#1884)
   - Fix unicode sheet name failure in to_excel (#1828)
   - Override DatetimeIndex.min/max to return Timestamp objects (#1895)
+  - Fix column name formatting issue in length-truncated column (#1906)
 
 pandas 0.8.1
 ============

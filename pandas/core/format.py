@@ -219,15 +219,20 @@ class DataFrameFormatter(object):
             if self.header:
                 fmt_values = self._format_col(i)
                 cheader = str_columns[i]
+
+                max_colwidth = max(_strlen(x) for x in cheader)
+
+                fmt_values = _make_fixed_width(fmt_values, self.justify,
+                                               minimum=max_colwidth)
+
                 max_len = max(max(_strlen(x) for x in fmt_values),
-                              max(len(x) for x in cheader))
+                              max_colwidth)
                 if self.justify == 'left':
                     cheader = [x.ljust(max_len) for x in cheader]
                 else:
                     cheader = [x.rjust(max_len) for x in cheader]
-                fmt_values = cheader + fmt_values
-                stringified.append(_make_fixed_width(fmt_values,
-                                                     self.justify))
+
+                stringified.append(cheader + fmt_values)
             else:
                 stringified = [_make_fixed_width(self._format_col(i),
                                                  self.justify)
@@ -704,11 +709,15 @@ def _format_datetime64(x, tz=None):
     return stamp._repr_base
 
 
-def _make_fixed_width(strings, justify='right'):
+def _make_fixed_width(strings, justify='right', minimum=None):
     if len(strings) == 0:
         return strings
 
     max_len = max(_strlen(x) for x in strings)
+
+    if minimum is not None:
+        max_len = max(minimum, max_len)
+
     conf_max = print_config.max_colwidth
     if conf_max is not None and max_len > conf_max:
         max_len = conf_max
