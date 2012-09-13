@@ -1435,6 +1435,8 @@ a,b,c,d
 
     @slow
     def test_file(self):
+        import urllib2
+
         # FILE
         if sys.version_info[:2] < (2, 6):
             raise nose.SkipTest("file:// not supported with Python < 2.6")
@@ -1442,7 +1444,12 @@ a,b,c,d
         localtable = os.path.join(dirpath, 'salary.table')
         local_table = read_table(localtable)
 
-        url_table = read_table('file://localhost/'+localtable)
+        try:
+            url_table = read_table('file://localhost/'+localtable)
+        except urllib2.URLError:
+            # fails on some systems
+            raise nose.SkipTest
+
         assert_frame_equal(url_table, local_table)
 
     def test_parse_tz_aware(self):
