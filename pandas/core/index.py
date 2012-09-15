@@ -53,6 +53,8 @@ class Index(np.ndarray):
     dtype : NumPy dtype (default: object)
     copy : bool
         Make a copy of input ndarray
+    name : object
+        Name to be stored in the index
 
     Note
     ----
@@ -120,10 +122,14 @@ class Index(np.ndarray):
         return subarr
 
     def __array_finalize__(self, obj):
+        if not isinstance(obj, type(self)):
+            # Only relevant if array being created from an Index instance
+            return
+
         self.name = getattr(obj, 'name', None)
 
     def _shallow_copy(self):
-        return self.view(type(self))
+        return self.view()
 
     def __repr__(self):
         try:
@@ -1141,19 +1147,6 @@ class Index(np.ndarray):
             raise ValueError('labels %s not contained in axis' % labels[mask])
         return self.delete(indexer)
 
-    def copy(self, order='C'):
-        """
-        Overridden ndarray.copy to copy over attributes
-
-        Returns
-        -------
-        cp : Index
-            Returns view on same base ndarray
-        """
-        cp = self.view(np.ndarray).view(type(self))
-        cp.__dict__.update(self.__dict__)
-        return cp
-
 
 class Int64Index(Index):
 
@@ -1246,6 +1239,11 @@ class MultiIndex(Index):
         The unique labels for each level
     labels : list or tuple of arrays
         Integers for each level designating which label at each location
+    sortorder : optional int
+        Level of sortedness (must be lexicographically sorted by that
+        level)
+    names : optional sequence of objects
+        Names for each of the index levels.
     """
     # shadow property
     names = None
@@ -1288,21 +1286,19 @@ class MultiIndex(Index):
 
         return subarr
 
-    def copy(self, order='C'):
+    def __array_finalize__(self, obj):
         """
-        Overridden ndarray.copy to copy over attributes
+        Update custom MultiIndex attributes when a new array is created by numpy,
+        e.g. when calling ndarray.view()
+        """
+        if not isinstance(obj, type(self)):
+            # Only relevant if this array is being created from an Index instance.
+            return
 
-        Returns
-        -------
-        cp : Index
-            Returns view on same base ndarray
-        """
-        cp = self.view(np.ndarray).view(type(self))
-        cp.levels = list(self.levels)
-        cp.labels = list(self.labels)
-        cp.names = list(self.names)
-        cp.sortorder = self.sortorder
-        return cp
+        self.levels = list(getattr(obj, 'levels', []))
+        self.labels = list(getattr(obj, 'labels', []))
+        self.names = list(getattr(obj, 'names', []))
+        self.sortorder = getattr(obj, 'sortorder', None)
 
     def _array_values(self):
         # hack for various methods

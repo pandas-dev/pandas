@@ -420,8 +420,8 @@ if suffix == '.pyx' and 'setuptools' in sys.modules:
             ext.sources[0] = root + suffix
 
 
-# if _have_setuptools:
-#     setuptools_kwargs["test_suite"] = "nose.collector"
+if _have_setuptools:
+    setuptools_kwargs["test_suite"] = "nose.collector"
 
 write_version_py()
 setup(name=DISTNAME,

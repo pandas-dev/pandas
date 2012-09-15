@@ -161,6 +161,8 @@ pandas 0.9.0
   - Fix unicode sheet name failure in to_excel (#1828)
   - Override DatetimeIndex.min/max to return Timestamp objects (#1895)
   - Fix column name formatting issue in length-truncated column (#1906)
+  - Fix broken handling of copying Index metadata to new instances created by
+    view(...) calls inside the NumPy infrastructure
 
 pandas 0.8.1
 ============
