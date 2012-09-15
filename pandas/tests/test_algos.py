@@ -41,6 +41,10 @@ class TestUnique(unittest.TestCase):
         result = algos.unique(arr)
         self.assert_(isinstance(result, np.ndarray))
 
+    def test_object_refcount_bug(self):
+        lst = ['A', 'B', 'C', 'D', 'E']
+        for i in xrange(1000):
+            len(algos.unique(lst))
 
 def test_quantile():
     s = Series(np.random.randn(100))

@@ -65,12 +65,15 @@ cdef class ObjectVector:
         # Create a 1D array, of length 'size'
         result = PyArray_SimpleNewFromData(1, shape,
                                            np.NPY_OBJECT, self.vec.a)
-        if xfer_data:
-            self.owndata = 0
-            util.set_array_owndata(result)
 
-        return result
+        # urgh, mingw32 barfs because of this
 
+        # if xfer_data:
+        #     self.owndata = 0
+        #     util.set_array_owndata(result)
+        # return result
+
+        return result.copy()
 
     cdef inline append(self, object o):
         kv_object_push(&self.vec, <PyObject*> o)
