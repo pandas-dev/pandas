@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from pandas.tseries.tools import to_datetime
 
@@ -180,17 +180,29 @@ class DateOffset(object):
     def __neg__(self):
         return self.__class__(-self.n, **self.kwds)
 
-    def rollback(self, someDate):
+    def rollback(self, dt):
         """Roll provided date backward to next offset only if not on offset"""
-        if not self.onOffset(someDate):
-            someDate = someDate - self.__class__(1, **self.kwds)
-        return someDate
+        try:
+            if not self.onOffset(dt):
+                dt = dt - self.__class__(1, **self.kwds)
+            return dt
+        except Exception:
+            if isinstance(dt, date):
+                return self.rollback(datetime(dt.year, dt.month, dt.day))
+            else:
+                raise
 
     def rollforward(self, dt):
         """Roll provided date forward to next offset only if not on offset"""
-        if not self.onOffset(dt):
-            dt = dt + self.__class__(1, **self.kwds)
-        return dt
+        try:
+            if not self.onOffset(dt):
+                dt = dt + self.__class__(1, **self.kwds)
+            return dt
+        except Exception:
+            if isinstance(dt, date):
+                return self.rollforward(datetime(dt.year, dt.month, dt.day))
+            else:
+                raise
 
     def onOffset(self, dt):
         if type(self) == DateOffset:

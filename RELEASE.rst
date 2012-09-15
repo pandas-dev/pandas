@@ -164,6 +164,7 @@ pandas 0.9.0
   - Fix column name formatting issue in length-truncated column (#1906)
   - Fix broken handling of copying Index metadata to new instances created by
     view(...) calls inside the NumPy infrastructure
+  - Support datetime.date again in DateOffset.rollback/rollforward
 
 pandas 0.8.1
 ============
