@@ -6629,7 +6629,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = DataFrame(np.dot(a.values, b.values),
                              index=['a', 'b', 'c'],
                              columns=['one', 'two'])
+        #Check alignment
+        b1 = b.reindex(index=reversed(b.index))
+        result = a.dot(b)
         assert_frame_equal(result, expected)
+
+        #Check series argument
+        result = a.dot(b['one'])
+        assert_series_equal(result, expected['one'])
+        result = a.dot(b1['one'])
+        assert_series_equal(result, expected['one'])
 
     def test_idxmin(self):
         frame = self.frame

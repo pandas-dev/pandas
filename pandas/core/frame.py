@@ -710,20 +710,29 @@ class DataFrame(NDFrame):
 
     def dot(self, other):
         """
-        Matrix multiplication with DataFrame objects. Does no data alignment
+        Matrix multiplication with DataFrame or Series objects
 
         Parameters
         ----------
-        other : DataFrame
+        other : DataFrame or Series
 
         Returns
         -------
-        dot_product : DataFrame
+        dot_product : DataFrame or Series
         """
-        lvals = self.values
-        rvals = other.values
-        result = np.dot(lvals, rvals)
-        return DataFrame(result, index=self.index, columns=other.columns)
+        common = self.columns.union(other.index)
+        if len(common) > len(self.columns) or len(common) > len(other.index):
+            raise ValueError('matrices are not aligned')
+        left = self.reindex(columns=common, copy=False)
+        right = other.reindex(index=common, copy=False)
+        lvals = left.values
+        rvals = right.values
+        if isinstance(other, DataFrame):
+            return DataFrame(np.dot(lvals, rvals), index=self.index, columns=other.columns)
+        elif isinstance(other, Series):
+            return Series(np.dot(lvals, rvals), index=left.index)
+        else:
+            raise TypeError('unsupported type: %s' % type(other))
 
     #----------------------------------------------------------------------
     # IO methods (to / from other formats)
