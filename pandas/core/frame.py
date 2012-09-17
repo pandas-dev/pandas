@@ -2682,7 +2682,7 @@ class DataFrame(NDFrame):
         if cols is None:
             values = list(_m8_to_i8(self.values.T))
         else:
-            if np.iterable(cols):
+            if np.iterable(cols) and not isinstance(cols, basestring):
                 values = [_m8_to_i8(self[x].values) for x in cols]
             else:
                 values = [self[cols]]

@@ -3945,7 +3945,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertRaises(ValueError, self.frame.dropna, how=None)
 
     def test_drop_duplicates(self):
-        df = DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+        df = DataFrame({'AAA' : ['foo', 'bar', 'foo', 'bar',
                                'foo', 'bar', 'bar', 'foo'],
                         'B' : ['one', 'one', 'two', 'two',
                                'two', 'two', 'one', 'two'],
@@ -3953,35 +3953,35 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                         'D' : range(8)})
 
         # single column
-        result = df.drop_duplicates('A')
+        result = df.drop_duplicates('AAA')
         expected = df[:2]
         assert_frame_equal(result, expected)
 
-        result = df.drop_duplicates('A', take_last=True)
+        result = df.drop_duplicates('AAA', take_last=True)
         expected = df.ix[[6, 7]]
         assert_frame_equal(result, expected)
 
         # multi column
         expected = df.ix[[0, 1, 2, 3]]
-        result = df.drop_duplicates(np.array(['A', 'B']))
+        result = df.drop_duplicates(np.array(['AAA', 'B']))
         assert_frame_equal(result, expected)
-        result = df.drop_duplicates(['A', 'B'])
+        result = df.drop_duplicates(['AAA', 'B'])
         assert_frame_equal(result, expected)
 
-        result = df.drop_duplicates(('A', 'B'), take_last=True)
+        result = df.drop_duplicates(('AAA', 'B'), take_last=True)
         expected = df.ix[[0, 5, 6, 7]]
         assert_frame_equal(result, expected)
 
         # consider everything
-        df2 = df.ix[:, ['A', 'B', 'C']]
+        df2 = df.ix[:, ['AAA', 'B', 'C']]
 
         result = df2.drop_duplicates()
         # in this case only
-        expected = df2.drop_duplicates(['A', 'B'])
+        expected = df2.drop_duplicates(['AAA', 'B'])
         assert_frame_equal(result, expected)
 
         result = df2.drop_duplicates(take_last=True)
-        expected = df2.drop_duplicates(['A', 'B'], take_last=True)
+        expected = df2.drop_duplicates(['AAA', 'B'], take_last=True)
         assert_frame_equal(result, expected)
 
     def test_drop_duplicates_NA(self):
