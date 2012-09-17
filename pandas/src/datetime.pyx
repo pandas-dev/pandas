@@ -525,6 +525,12 @@ cdef class _TSObject:
         def __get__(self):
             return self.value
 
+cpdef _get_utcoffset(tzinfo):
+    try:
+        return tzinfo._utcoffset
+    except AttributeError:
+        return tzinfo.utcoffset(None)
+
 # helper to extract datetime and int64 from several different possibilities
 cpdef convert_to_tsobject(object ts, object tz=None):
     """
@@ -565,7 +571,7 @@ cpdef convert_to_tsobject(object ts, object tz=None):
             elif tz is not pytz.utc:
                 ts = tz.localize(ts)
                 obj.value = _pydatetime_to_dts(ts, &obj.dts)
-                obj.value -= _delta_to_nanoseconds(ts.tzinfo._utcoffset)
+                obj.value -= _delta_to_nanoseconds(_get_utcoffset(ts.tzinfo))
                 obj.tzinfo = ts.tzinfo
             else:
                 # UTC
@@ -575,7 +581,7 @@ cpdef convert_to_tsobject(object ts, object tz=None):
             obj.value = _pydatetime_to_dts(ts, &obj.dts)
             obj.tzinfo = ts.tzinfo
             if obj.tzinfo is not None and not _is_utc(obj.tzinfo):
-                obj.value -= _delta_to_nanoseconds(obj.tzinfo._utcoffset)
+                obj.value -= _delta_to_nanoseconds(_get_utcoffset(obj.tzinfo))
         _check_dts_bounds(obj.value, &obj.dts)
         return obj
     elif PyDate_Check(ts):
@@ -616,7 +622,10 @@ cdef inline object _get_zone(object tz):
     if _is_utc(tz):
         return 'UTC'
     else:
-        return tz.zone
+        try:
+            return tz.zone
+        except AttributeError:
+            return tz
 
 cdef int64_t _NS_LOWER_BOUND = -9223285636854775809LL
 cdef int64_t _NS_UPPER_BOUND = -9223372036854775807LL
@@ -1009,7 +1018,7 @@ def _get_deltas(tz):
             utc_offset_cache[tz] = _unbox_utcoffsets(tz._transition_info)
         else:
             # static tzinfo
-            num = int(total_seconds(tz._utcoffset)) * 1000000000
+            num = int(total_seconds(_get_utcoffset(tz))) * 1000000000
             utc_offset_cache[tz] = np.array([num], dtype=np.int64)
     return utc_offset_cache[tz]
 

@@ -1,6 +1,6 @@
 # pylint: disable-msg=E1101,W0612
 from __future__ import with_statement # for Python 2.5
-from datetime import datetime, time, timedelta
+from datetime import datetime, time, timedelta, tzinfo
 import sys
 import os
 import unittest
@@ -44,6 +44,23 @@ try:
 except ImportError:
     pass
 
+class FixedOffset(tzinfo):
+    """Fixed offset in minutes east from UTC."""
+
+    def __init__(self, offset, name):
+        self.__offset = timedelta(minutes = offset)
+        self.__name = name
+
+    def utcoffset(self, dt):
+        return self.__offset
+
+    def tzname(self, dt):
+        return self.__name
+
+    def dst(self, dt):
+        return timedelta(0)
+
+fixed_off = FixedOffset(-4200, '-07:00')
 
 class TestTimeZoneSupport(unittest.TestCase):
 
@@ -352,6 +369,13 @@ class TestTimeZoneSupport(unittest.TestCase):
 
         result = ts['1/3/2000']
         self.assertAlmostEqual(result, ts[2])
+
+    def test_fixed_offset(self):
+        dates = [datetime(2000, 1, 1, tzinfo=fixed_off),
+                 datetime(2000, 1, 2, tzinfo=fixed_off),
+                 datetime(2000, 1, 3, tzinfo=fixed_off)]
+        result = to_datetime(dates)
+        self.assert_(result.tz == fixed_off)
 
     def test_convert_tz_aware_datetime_datetime(self):
         # #1581
