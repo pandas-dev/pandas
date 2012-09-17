@@ -47,6 +47,7 @@ pandas 0.9.0
   - Add inplace option to Series/DataFrame.reset_index (#1797)
   - Add quoting option for DataFrame.to_csv (#1902)
   - Indicate long column value truncation in DataFrame output with ... (#1854)
+  - DataFrame.dot will not do data alignment, and also work with Series (#1915)
 
 **API Changes**
 
@@ -165,6 +166,9 @@ pandas 0.9.0
   - Fix broken handling of copying Index metadata to new instances created by
     view(...) calls inside the NumPy infrastructure
   - Support datetime.date again in DateOffset.rollback/rollforward
+  - Raise Exception if set passed to Series constructor (#1913)
+  - Add TypeError when appending HDFStore table w/ wrong index type (#1881)
+  - Don't raise exception on empty inputs in EW functions (e.g. ewma) (#1900)
 
 pandas 0.8.1
 ============

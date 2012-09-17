@@ -258,6 +258,8 @@ def ewma(ndarray[double_t] input, double_t com, int adjust):
 
     cdef ndarray[double_t] output = np.empty(N, dtype=float)
 
+    if N == 0:
+        return output
 
     neww = 1. / (1. + com)
     oldw = 1. - neww

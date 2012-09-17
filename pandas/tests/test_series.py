@@ -365,6 +365,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s = Series(data)
         self.assertEqual(tuple(s), data)
 
+    def test_constructor_set(self):
+        values = set([1, 2, 3, 4, 5])
+
+        self.assertRaises(TypeError, Series, values)
+
     def test_fromDict(self):
         data = {'a' : 0, 'b' : 1, 'c' : 2, 'd' : 3}
 
@@ -2270,6 +2275,50 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # no as of value
         d = self.ts.index[0] - datetools.bday
         self.assert_(np.isnan(self.ts.asof(d)))
+
+    def test_asof_periodindex(self):
+        from pandas import period_range, PeriodIndex
+        # array or list or dates
+        N = 50
+        rng = period_range('1/1/1990', periods=N, freq='H')
+        ts = Series(np.random.randn(N), index=rng)
+        ts[15:30] = np.nan
+        dates = date_range('1/1/1990', periods=N * 3, freq='37min')
+
+        result = ts.asof(dates)
+        self.assert_(notnull(result).all())
+        lb = ts.index[14]
+        ub = ts.index[30]
+
+        result = ts.asof(list(dates))
+        self.assert_(notnull(result).all())
+        lb = ts.index[14]
+        ub = ts.index[30]
+
+        pix = PeriodIndex(result.index.values, freq='H')
+        mask = (pix >= lb) & (pix < ub)
+        rs = result[mask]
+        self.assert_((rs == ts[lb]).all())
+
+        ts[5:10] = np.NaN
+        ts[15:20] = np.NaN
+
+        val1 = ts.asof(ts.index[7])
+        val2 = ts.asof(ts.index[19])
+
+        self.assertEqual(val1, ts[4])
+        self.assertEqual(val2, ts[14])
+
+        # accepts strings
+        val1 = ts.asof(str(ts.index[7]))
+        self.assertEqual(val1, ts[4])
+
+        # in there
+        self.assertEqual(ts.asof(ts.index[3]), ts[3])
+
+        # no as of value
+        d = ts.index[0].to_timestamp() - datetools.bday
+        self.assert_(np.isnan(ts.asof(d)))
 
     def test_asof_more(self):
         from pandas import date_range

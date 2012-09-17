@@ -155,6 +155,15 @@ class TestHDFStore(unittest.TestCase):
         self.assertRaises(Exception, self.store.put, 'panel', wp2,
                           append=True)
 
+    def test_append_incompatible_dtypes(self):
+        df1 = DataFrame({'a': [1, 2, 3]})
+        df2 = DataFrame({'a': [4, 5, 6]},
+                        index=date_range('1/1/2000', periods=3))
+
+        self.store.put('frame', df1, table=True)
+        self.assertRaises(Exception, self.store.put, 'frame', df2,
+                          table=True, append=True)
+
     def test_remove(self):
         ts = tm.makeTimeSeries()
         df = tm.makeDataFrame()

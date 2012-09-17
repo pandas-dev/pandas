@@ -769,6 +769,13 @@ class HDFStore(object):
             # the table must already exist
             table = getattr(group, 'table', None)
 
+        # check for backwards incompatibility
+        if append:
+            existing_kind = table._v_attrs.index_kind
+            if existing_kind != index_kind:
+                raise TypeError("incompatible kind in index [%s - %s]" %
+                                (existing_kind, index_kind))
+
         # add kinds
         table._v_attrs.index_kind = index_kind
         table._v_attrs.columns_kind = cols_kind
