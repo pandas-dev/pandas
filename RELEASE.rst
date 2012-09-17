@@ -167,6 +167,7 @@ pandas 0.9.0
     view(...) calls inside the NumPy infrastructure
   - Support datetime.date again in DateOffset.rollback/rollforward
   - Raise Exception if set passed to Series constructor (#1913)
+  - Add TypeError when appending HDFStore table w/ wrong index type (#1881)
 
 pandas 0.8.1
 ============
