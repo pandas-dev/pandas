@@ -1419,7 +1419,7 @@ def monthrange(int64_t year, int64_t month):
     if month < 1 or month > 12:
         raise ValueError("bad month number 0; must be 1-12")
 
-    days = _days_per_month_table[is_leapyear(year)][month-1]
+    days = days_per_month_table[is_leapyear(year)][month-1]
 
     return (dayofweek(year, month, 1), days)
 

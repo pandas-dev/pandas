@@ -46,7 +46,7 @@ typedef time_t NPY_TIME_T;
 /*// linux complains.*/
 /*static void _suppress_unused_variable_warning(void)*/
 /*{*/
-/*    int x = _days_per_month_table[0][0];*/
+/*    int x = days_per_month_table[0][0];*/
 /*    x = x;*/
 
 /*    int y = _month_offset[0][0];*/
@@ -593,7 +593,7 @@ parse_iso_8601_datetime(char *str, int len,
         out->day = 10 * (substr[0] - '0') + (substr[1] - '0');
 
         if (out->day < 1 ||
-                    out->day > _days_per_month_table[year_leap][out->month-1]) {
+                    out->day > days_per_month_table[year_leap][out->month-1]) {
             PyErr_Format(PyExc_ValueError,
                         "Day out of range in datetime string \"%s\"", str);
             goto error;
