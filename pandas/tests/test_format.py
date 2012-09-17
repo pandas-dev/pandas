@@ -327,6 +327,24 @@ class TestDataFrameFormatting(unittest.TestCase):
                         '1  2.512000e-01')
         assert(df_s == expected)
 
+    def test_to_string_small_float_values(self):
+        df = DataFrame({'a': [1.5, 1e-17, -5.5e-7]})
+
+        result = df.to_string()
+        expected = ('              a\n'
+                    '0  1.500000e+00\n'
+                    '1  1.000000e-17\n'
+                    '2 -5.500000e-07')
+        self.assertEqual(result, expected)
+
+        # but not all exactly zero
+        df = df * 0
+        result = df.to_string()
+        expected = ('   0\n'
+                    '0  0\n'
+                    '1  0\n'
+                    '2 -0')
+
     def test_to_string_float_index(self):
         index = Index([1.5, 2, 3, 4, 5])
         df = DataFrame(range(5), index=index)

@@ -178,6 +178,7 @@ pandas 0.9.0
   - Fix negative integer indexing regression in .ix from 0.7.x (#1888)
   - Fix error while retrieving timezone and utc offset from subclasses of
     datetime.tzinfo without .zone and ._utcoffset attributes (#1922)
+  - Fix DataFrame formatting of small, non-zero FP numbers (#1911)
 
 pandas 0.8.1
 ============
