@@ -157,7 +157,7 @@ DAMAGE.
 numpydoc license
 ----------------
 
-The numpydoc license is in bottleneck/doc/sphinxext/LICENSE.txt
+The numpydoc license is in pandas/doc/sphinxext/LICENSE.txt
 
 Bottleneck license
 ------------------
