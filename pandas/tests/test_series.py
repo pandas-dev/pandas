@@ -365,6 +365,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s = Series(data)
         self.assertEqual(tuple(s), data)
 
+    def test_constructor_set(self):
+        values = set([1, 2, 3, 4, 5])
+
+        self.assertRaises(TypeError, Series, values)
+
     def test_fromDict(self):
         data = {'a' : 0, 'b' : 1, 'c' : 2, 'd' : 3}
 

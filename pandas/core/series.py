@@ -327,6 +327,8 @@ class Series(np.ndarray, generic.PandasObject):
                 data = [data.get(i, nan) for i in index]
         elif isinstance(data, types.GeneratorType):
             data = list(data)
+        elif isinstance(data, set):
+            raise TypeError('Set value is unordered')
 
         if dtype is not None:
             dtype = np.dtype(dtype)
