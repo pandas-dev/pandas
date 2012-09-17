@@ -44,7 +44,7 @@ infer_type(PyObject* obj) {
 }
 
 PANDAS_INLINE npy_int64
-get_nat() {
+get_nat(void) {
   return NPY_MIN_INT64;
 }
 
