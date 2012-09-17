@@ -229,6 +229,7 @@ convert_datetimestruct_utc_to_local(pandas_datetimestruct *out_dts_local,
     return 0;
 }
 
+#if 0
 /*
  * Converts a datetimestruct in local time to a datetimestruct in UTC.
  *
@@ -303,6 +304,7 @@ convert_datetimestruct_local_to_utc(pandas_datetimestruct *out_dts_utc,
 
     return 0;
 }
+#endif
 
 /* int */
 /* parse_python_string(PyObject* obj, pandas_datetimestruct *dts) { */
