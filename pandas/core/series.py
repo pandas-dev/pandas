@@ -21,7 +21,7 @@ from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index, _handle_legacy_indexes)
 from pandas.core.indexing import _SeriesIndexer
 from pandas.tseries.index import DatetimeIndex
-from pandas.tseries.period import PeriodIndex
+from pandas.tseries.period import PeriodIndex, Period
 from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
 import pandas.core.common as com
@@ -2537,11 +2537,18 @@ copy : boolean, default False
             where = datetools.to_datetime(where)
 
         values = self.values
+        time_index = self.index
+        is_periodindex = isinstance(self.index, PeriodIndex)
+        if is_periodindex:
+            time_index = Index(self.index.values)
 
         if not hasattr(where, '__iter__'):
-            if where < self.index[0]:
+            if is_periodindex:
+                where = Period(where, freq=self.index.freq).ordinal
+
+            if where < time_index[0]:
                 return np.nan
-            loc = self.index.searchsorted(where, side='right')
+            loc = time_index.searchsorted(where, side='right')
             if loc > 0:
                 loc -= 1
             while isnull(values[loc]) and loc > 0:
@@ -2551,7 +2558,16 @@ copy : boolean, default False
         if not isinstance(where, Index):
             where = Index(where)
 
-        locs = self.index.asof_locs(where, notnull(values))
+        where_index = where
+        if is_periodindex:
+            if isinstance(where_index, DatetimeIndex):
+                where_index = PeriodIndex(where_index.values,
+                                          freq=self.index.freq)
+
+            if isinstance(where_index, PeriodIndex):
+                where_index = Index(where_index.values)
+
+        locs = time_index.asof_locs(where_index, notnull(values))
         new_values = com.take_1d(values, locs)
         return Series(new_values, index=where, name=self.name)
 

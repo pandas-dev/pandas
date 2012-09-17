@@ -1,4 +1,6 @@
 # pylint: disable=E1101,E1103,W0232
+import operator
+
 from datetime import datetime, date
 import numpy as np
 
@@ -32,6 +34,7 @@ def _field_accessor(name, alias):
         return plib.get_period_field_arr(alias, self.values, base)
     f.__name__ = name
     return property(f)
+
 
 class Period(object):
 
@@ -423,8 +426,6 @@ def dt64arr_to_periodarr(data, freq):
     return plib.dt64arr_to_periodarr(data.view('i8'), base)
 
 # --- Period index sketch
-
-
 def _period_index_cmp(opname):
     """
     Wrap comparison operations to convert datetime-like to datetime64
@@ -444,7 +445,6 @@ def _period_index_cmp(opname):
 
         return result
     return wrapper
-
 
 _INT64_DTYPE = np.dtype(np.int64)
 _NS_DTYPE = np.dtype('M8[ns]')
