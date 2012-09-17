@@ -48,6 +48,8 @@ pandas 0.9.0
   - Add quoting option for DataFrame.to_csv (#1902)
   - Indicate long column value truncation in DataFrame output with ... (#1854)
   - DataFrame.dot will not do data alignment, and also work with Series (#1915)
+  - Add ``na`` option for missing data handling in some vectorized string
+    methods (#1689)
 
 **API Changes**
 
@@ -169,6 +171,11 @@ pandas 0.9.0
   - Raise Exception if set passed to Series constructor (#1913)
   - Add TypeError when appending HDFStore table w/ wrong index type (#1881)
   - Don't raise exception on empty inputs in EW functions (e.g. ewma) (#1900)
+  - Make asof work correctly with PeriodIndex (#1883)
+  - Fix extlinks in doc build
+  - Fill boolean DataFrame with NaN when calling shift (#1814)
+  - Fix setuptools bug causing pip not to Cythonize .pyx files sometimes
+  - Fix negative integer indexing regression in .ix from 0.7.x (#1888)
 
 pandas 0.8.1
 ============

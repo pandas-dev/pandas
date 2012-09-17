@@ -175,6 +175,22 @@ class CheckIndexing(object):
         expected = df.ix[Index([1, 10], dtype=object)]
         assert_frame_equal(result, expected)
 
+    def test_getitem_setitem_ix_negative_integers(self):
+        result = self.frame.ix[:, -1]
+        assert_series_equal(result, self.frame['D'])
+
+        result = self.frame.ix[:, [-1]]
+        assert_frame_equal(result, self.frame[['D']])
+
+        result = self.frame.ix[:, [-1, -2]]
+        assert_frame_equal(result, self.frame[['D', 'C']])
+
+        self.frame.ix[:, [-1]] = 0
+        self.assert_((self.frame['D'] == 0).all())
+
+        df = DataFrame(np.random.randn(8, 4))
+        self.assert_(isnull(df.ix[:, [-1]].values).all())
+
     def test_getattr(self):
         tm.assert_series_equal(self.frame.A, self.frame['A'])
         self.assertRaises(AttributeError, getattr, self.frame,

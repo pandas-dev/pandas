@@ -293,7 +293,8 @@ class _NDFrameIndexer(object):
             inds, = np.asarray(key, dtype=bool).nonzero()
             return self.obj.take(inds, axis=axis)
         else:
-            if isinstance(key, Index):
+            was_index = isinstance(key, Index)
+            if was_index:
                 # want Index objects to pass through untouched
                 keyarr = key
             else:
@@ -301,6 +302,10 @@ class _NDFrameIndexer(object):
                 keyarr = _asarray_tuplesafe(key)
 
             if _is_integer_dtype(keyarr):
+                if labels.inferred_type != 'integer':
+                    keyarr = np.where(keyarr < 0,
+                                      len(labels) + keyarr, keyarr)
+
                 if labels.inferred_type == 'mixed-integer':
                     indexer = labels.get_indexer(keyarr)
                     if (indexer >= 0).all():
@@ -308,6 +313,7 @@ class _NDFrameIndexer(object):
                     else:
                         return self.obj.take(keyarr, axis=axis)
                 elif not labels.inferred_type == 'integer':
+
                     return self.obj.take(keyarr, axis=axis)
 
             # this is not the most robust, but...
@@ -406,6 +412,9 @@ class _NDFrameIndexer(object):
 
                 # If have integer labels, defer to label-based indexing
                 if _is_integer_dtype(objarr) and not is_int_index:
+                    if labels.inferred_type != 'integer':
+                        objarr = np.where(objarr < 0,
+                                          len(labels) + objarr, objarr)
                     return objarr
 
                 # this is not the most robust, but...
