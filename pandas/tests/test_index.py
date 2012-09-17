@@ -80,9 +80,20 @@ class TestIndex(unittest.TestCase):
         # arr = np.array(5.)
         # self.assertRaises(Exception, arr.view, Index)
 
+
     def test_constructor_corner(self):
         # corner case
         self.assertRaises(Exception, Index, 0)
+
+    def test_copy(self):
+        i = Index([], name='Foo')
+        i_copy = i.copy()
+        self.assert_(i_copy.name == 'Foo')
+
+    def test_view(self):
+        i = Index([], name='Foo')
+        i_view = i.view()
+        self.assert_(i_view.name == 'Foo')
 
     def test_astype(self):
         casted = self.intIndex.astype('i8')
@@ -520,6 +531,16 @@ class TestInt64Index(unittest.TestCase):
         arr = np.array([1, '2', 3, '4'], dtype=object)
         self.assertRaises(TypeError, Int64Index, arr)
 
+    def test_copy(self):
+        i = Int64Index([], name='Foo')
+        i_copy = i.copy()
+        self.assert_(i_copy.name == 'Foo')
+
+    def test_view(self):
+        i = Int64Index([], name='Foo')
+        i_view = i.view()
+        self.assert_(i_view.name == 'Foo')
+
     def test_coerce_list(self):
         # coerce things
         arr = Index([1, 2, 3, 4])
@@ -848,6 +869,50 @@ class TestMultiIndex(unittest.TestCase):
 
     def test_constructor_no_levels(self):
         self.assertRaises(Exception, MultiIndex, levels=[], labels=[])
+
+    def test_copy(self):
+        i_copy = self.index.copy()
+
+        # Equal...but not the same object
+        self.assert_(i_copy.levels == self.index.levels)
+        self.assert_(i_copy.levels is not self.index.levels)
+
+        self.assert_(i_copy.labels == self.index.labels)
+        self.assert_(i_copy.labels is not self.index.labels)
+
+        self.assert_(i_copy.names == self.index.names)
+        self.assert_(i_copy.names is not self.index.names)
+
+        self.assert_(i_copy.sortorder == self.index.sortorder)
+
+    def test_shallow_copy(self):
+        i_copy = self.index._shallow_copy()
+
+        # Equal...but not the same object
+        self.assert_(i_copy.levels == self.index.levels)
+        self.assert_(i_copy.levels is not self.index.levels)
+
+        self.assert_(i_copy.labels == self.index.labels)
+        self.assert_(i_copy.labels is not self.index.labels)
+
+        self.assert_(i_copy.names == self.index.names)
+        self.assert_(i_copy.names is not self.index.names)
+
+        self.assert_(i_copy.sortorder == self.index.sortorder)
+
+    def test_view(self):
+        i_view = self.index.view()
+
+        # Equal...but not the same object
+        self.assert_(i_view.levels == self.index.levels)
+        self.assert_(i_view.levels is not self.index.levels)
+
+        self.assert_(i_view.labels == self.index.labels)
+        self.assert_(i_view.labels is not self.index.labels)
+
+        self.assert_(i_view.names == self.index.names)
+        self.assert_(i_view.names is not self.index.names)
+        self.assert_(i_view.sortorder == self.index.sortorder)
 
     def test_duplicate_names(self):
         self.index.names = ['foo', 'foo']

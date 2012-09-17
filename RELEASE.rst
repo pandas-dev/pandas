@@ -46,6 +46,7 @@ pandas 0.9.0
   - Add args/kwds options to Series.apply (#1829)
   - Add inplace option to Series/DataFrame.reset_index (#1797)
   - Add quoting option for DataFrame.to_csv (#1902)
+  - Indicate long column value truncation in DataFrame output with ... (#1854)
 
 **API Changes**
 
@@ -161,6 +162,9 @@ pandas 0.9.0
   - Fix unicode sheet name failure in to_excel (#1828)
   - Override DatetimeIndex.min/max to return Timestamp objects (#1895)
   - Fix column name formatting issue in length-truncated column (#1906)
+  - Fix broken handling of copying Index metadata to new instances created by
+    view(...) calls inside the NumPy infrastructure
+  - Support datetime.date again in DateOffset.rollback/rollforward
 
 pandas 0.8.1
 ============
