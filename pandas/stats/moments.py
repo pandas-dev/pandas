@@ -311,7 +311,7 @@ def ewma(arg, com=None, span=None, min_periods=0, freq=None, time_rule=None,
 
 def _first_valid_index(arr):
     # argmax scans from left
-    return notnull(arr).argmax()
+    return notnull(arr).argmax() if len(arr) else 0
 
 @Substitution("Exponentially-weighted moving variance", _unary_arg, _bias_doc)
 @Appender(_ewm_doc)

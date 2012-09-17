@@ -168,6 +168,7 @@ pandas 0.9.0
   - Support datetime.date again in DateOffset.rollback/rollforward
   - Raise Exception if set passed to Series constructor (#1913)
   - Add TypeError when appending HDFStore table w/ wrong index type (#1881)
+  - Don't raise exception on empty inputs in EW functions (e.g. ewma) (#1900)
 
 pandas 0.8.1
 ============

@@ -293,6 +293,14 @@ class TestMoments(unittest.TestCase):
         self.assertRaises(Exception, mom.ewma, self.arr, com=9.5, span=20)
         self.assertRaises(Exception, mom.ewma, self.arr)
 
+    def test_ew_empty_arrays(self):
+        arr = np.array([], dtype=np.float64)
+
+        funcs = [mom.ewma, mom.ewmvol, mom.ewmvar]
+        for f in funcs:
+            result = f(arr, 3)
+            assert_almost_equal(result, arr)
+
     def _check_ew(self, func):
         self._check_ew_ndarray(func)
         self._check_ew_structures(func)
