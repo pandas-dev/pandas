@@ -5134,6 +5134,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = Series(np.nan, index=self.frame.index)
         assert_series_equal(result, expected)
 
+    def test_apply_standard_nonunique(self):
+        df = DataFrame([[1,2,3], [4,5,6], [7,8,9]], index=['a','a','c'])
+        rs = df.apply(lambda s: s[0], axis=1)
+        xp = Series([1, 4, 7], ['a', 'a', 'c'])
+        assert_series_equal(rs, xp)
+
+        rs = df.T.apply(lambda s: s[0], axis=0)
+        assert_series_equal(rs, xp)
+
     def test_apply_broadcast(self):
         broadcasted = self.frame.apply(np.mean, broadcast=True)
         agged = self.frame.apply(np.mean)

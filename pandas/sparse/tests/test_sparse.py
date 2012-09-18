@@ -1057,6 +1057,19 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
 
         self.assert_(self.empty.apply(np.sqrt) is self.empty)
 
+    def test_apply_nonuq(self):
+        df_orig = DataFrame([[1,2,3], [4,5,6], [7,8,9]], index=['a','a','c'])
+        df = df_orig.to_sparse()
+        rs = df.apply(lambda s: s[0], axis=1)
+        xp = Series([1., 4., 7.], ['a', 'a', 'c'])
+        assert_series_equal(rs, xp)
+
+        #df.T breaks
+        df = df_orig.T.to_sparse()
+        rs = df.apply(lambda s: s[0], axis=0)
+        #no non-unique columns supported in sparse yet
+        #assert_series_equal(rs, xp)
+
     def test_applymap(self):
         # just test that it works
         result = self.frame.applymap(lambda x: x * 2)
