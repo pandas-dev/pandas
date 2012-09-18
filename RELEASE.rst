@@ -50,6 +50,8 @@ pandas 0.9.0
   - DataFrame.dot will not do data alignment, and also work with Series (#1915)
   - Add ``na`` option for missing data handling in some vectorized string
     methods (#1689)
+  - If index_label=False in DataFrame.to_csv, do not print fields/commas in the
+    text output. Results in easier importing into R (#1583)
 
 **API Changes**
 

@@ -3392,6 +3392,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         self.assertEqual(result, expected)
 
+    def test_to_csv_index_no_leading_comma(self):
+        df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]},
+                       index=['one', 'two', 'three'])
+
+        buf = StringIO()
+        df.to_csv(buf, index_label=False)
+        expected = ('A,B\n'
+                    'one,1,4\n'
+                    'two,2,5\n'
+                    'three,3,6\n')
+        self.assertEqual(buf.getvalue(), expected)
 
     def test_to_excel_from_excel(self):
         try:

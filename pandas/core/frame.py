@@ -1041,8 +1041,8 @@ class DataFrame(NDFrame):
     to_wide = deprecate('to_wide', to_panel)
 
     def _helper_csvexcel(self, writer, na_rep=None, cols=None,
-                         header=True, index=True, index_label=None,
-                         float_format=None):
+                         header=True, index=True,
+                         index_label=None, float_format=None):
         if cols is None:
             cols = self.columns
 
@@ -1054,24 +1054,28 @@ class DataFrame(NDFrame):
         if has_aliases or header:
             if index:
                 # should write something for index label
-                if index_label is None:
-                    if isinstance(self.index, MultiIndex):
-                        index_label = []
-                        for i, name in enumerate(self.index.names):
-                            if name is None:
-                                name = ''
-                            index_label.append(name)
-                    else:
-                        index_label = self.index.name
-                        if index_label is None:
-                            index_label = ['']
+                if index_label is not False:
+                    if index_label is None:
+                        if isinstance(self.index, MultiIndex):
+                            index_label = []
+                            for i, name in enumerate(self.index.names):
+                                if name is None:
+                                    name = ''
+                                index_label.append(name)
                         else:
-                            index_label = [index_label]
-                elif not isinstance(index_label, (list, tuple, np.ndarray)):
-                    # given a string for a DF with Index
-                    index_label = [index_label]
+                            index_label = self.index.name
+                            if index_label is None:
+                                index_label = ['']
+                            else:
+                                index_label = [index_label]
+                    elif not isinstance(index_label, (list, tuple, np.ndarray)):
+                        # given a string for a DF with Index
+                        index_label = [index_label]
 
-                encoded_labels = list(index_label)
+                    encoded_labels = list(index_label)
+                else:
+                    encoded_labels = []
+
                 if has_aliases:
                     if len(header) != len(cols):
                         raise ValueError(('Writing %d cols but got %d aliases'
@@ -1127,10 +1131,12 @@ class DataFrame(NDFrame):
             assumed to be aliases for the column names
         index : boolean, default True
             Write row names (index)
-        index_label : string or sequence, default None
+        index_label : string or sequence, or False, default None
             Column label for index column(s) if desired. If None is given, and
             `header` and `index` are True, then the index names are used. A
-            sequence should be given if the DataFrame uses MultiIndex.
+            sequence should be given if the DataFrame uses MultiIndex.  If
+            False do not print fields for index names. Use index_label=False
+            for easier importing in R
         mode : Python write mode, default 'w'
         sep : character, default ","
             Field delimiter for the output file.
