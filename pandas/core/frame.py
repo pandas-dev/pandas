@@ -3752,9 +3752,9 @@ class DataFrame(NDFrame):
             res_index = self.index
             res_columns = self.columns
             values = self.values
-            series_gen = (Series(values[i], index=res_columns,
-                                 name=res_index[i])
-                                 for i in range(len(res_index)))
+            series_gen = (Series.from_array(arr, index=res_columns, name=name)
+                          for i, (arr, name) in
+                          enumerate(izip(values, res_index)))
 
         keys = []
         results = {}

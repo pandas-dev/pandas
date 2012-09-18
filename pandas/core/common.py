@@ -681,8 +681,12 @@ def intersection(*seqs):
     return type(seqs[0])(list(result))
 
 def _asarray_tuplesafe(values, dtype=None):
+    from pandas.core.index import Index
+
     if not isinstance(values, (list, tuple, np.ndarray)):
         values = list(values)
+    elif isinstance(values, Index):
+        return values.values
 
     if isinstance(values, list) and dtype in [np.object_, object]:
         return lib.list_to_object_array(values)

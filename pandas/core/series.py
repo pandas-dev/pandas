@@ -354,6 +354,26 @@ class Series(np.ndarray, generic.PandasObject):
 
         return subarr
 
+    @classmethod
+    def from_array(cls, arr, index=None, name=None, copy=False):
+        """
+        Simplified alternate constructor
+        """
+        if copy:
+            arr = arr.copy()
+
+        klass = Series
+        if index.is_all_dates:
+            if not isinstance(index, (DatetimeIndex, PeriodIndex)):
+                index = DatetimeIndex(index)
+            klass = TimeSeries
+
+        result = arr.view(klass)
+        result.index = index
+        result.name = name
+
+        return result
+
     def __init__(self, data=None, index=None, dtype=None, name=None,
                  copy=False):
         """One-dimensional ndarray with axis labels (including time
