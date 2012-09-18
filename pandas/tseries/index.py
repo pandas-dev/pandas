@@ -242,10 +242,13 @@ class DatetimeIndex(Int64Index):
         else:
             if tz is not None:
                 tz = tools._maybe_get_tz(tz)
-                # Convert local to UTC
-                ints = subarr.view('i8')
 
-                subarr = lib.tz_localize_to_utc(ints, tz)
+                if (not isinstance(data, DatetimeIndex) or
+                    getattr(data, 'tz', None) is None):
+                    # Convert tz-naive to UTC
+                    ints = subarr.view('i8')
+                    subarr = lib.tz_localize_to_utc(ints, tz)
+
                 subarr = subarr.view(_NS_DTYPE)
 
         subarr = subarr.view(cls)
