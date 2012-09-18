@@ -1220,7 +1220,7 @@ class DatetimeIndex(Int64Index):
         if self.tz is not None:
             if other.tz is None:
                 return False
-            same_zone = self.tz.zone == other.tz.zone
+            same_zone = lib.get_timezone(self.tz) == lib.get_timezone(other.tz)
         else:
             if other.tz is not None:
                 return False

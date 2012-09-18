@@ -579,7 +579,10 @@ class HDFStore(object):
                 node._v_attrs.freq = index.freq
 
             if hasattr(index, 'tz') and index.tz is not None:
-                node._v_attrs.tz = index.tz.zone
+                zone = lib.get_timezone(index.tz)
+                if zone is None:
+                    zone = lib.tot_seconds(index.tz.utcoffset())
+                node._v_attrs.tz = zone
 
     def _read_index(self, group, key):
         variety = getattr(group._v_attrs, '%s_variety' % key)
@@ -1159,4 +1162,3 @@ def _get_index_factory(klass):
                                              tz=tz)
         return f
     return klass
-
