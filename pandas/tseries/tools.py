@@ -21,12 +21,11 @@ except ImportError: # pragma: no cover
     print 'Please install python-dateutil via easy_install or some method!'
     raise # otherwise a 2nd import won't show the message
 
-
 def _infer_tzinfo(start, end):
     def _infer(a, b):
         tz = a.tzinfo
         if b and b.tzinfo:
-            assert(tz.zone == b.tzinfo.zone)
+            assert(lib.get_timezone(tz) == lib.get_timezone(b.tzinfo))
         return tz
     tz = None
     if start is not None:

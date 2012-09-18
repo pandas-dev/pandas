@@ -152,6 +152,16 @@ class TestTimeZoneSupport(unittest.TestCase):
         stamp = Timestamp('3/11/2012 05:00').tz_localize('utc')
         self.assertEquals(utc_stamp.hour, 5)
 
+    def test_create_with_fixed_tz(self):
+        off = FixedOffset(4200, '+07:00')
+        start = Timestamp('3/11/2012 05:00', tz=off)
+        end = Timestamp('6/11/2012 05:00', tz=off)
+        rng = date_range(start=start, end=end)
+        self.assertEqual(off, rng.tz)
+
+        rng2 = date_range(start, periods=len(rng), tz=off)
+        self.assert_(rng.equals(rng2))
+
     def test_date_range_localize(self):
         rng = date_range('3/11/2012 03:00', periods=15, freq='H', tz='US/Eastern')
         rng2 = DatetimeIndex(['3/11/2012 03:00', '3/11/2012 04:00'],
