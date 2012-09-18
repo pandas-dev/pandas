@@ -856,6 +856,7 @@ class DataFrame(NDFrame):
             if (isinstance(index, basestring) or
                 not hasattr(index, "__iter__")):
                 result_index = sdict.pop(index)
+                result_index = Index(result_index, name=index)
                 columns.remove(index)
             else:
                 try:
@@ -865,7 +866,7 @@ class DataFrame(NDFrame):
                     for field in index:
                         del sdict[field]
                         columns.remove(field)
-                    result_index = MultiIndex.from_arrays(arrays)
+                    result_index = MultiIndex.from_arrays(arrays, names=index)
                 except Exception:
                     result_index = index
         elif isinstance(data, dict) and len(data) > 0:

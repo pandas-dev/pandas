@@ -2448,6 +2448,22 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertRaises(ValueError, DataFrame.from_records,
                           [(1,2,3), (4,5,6)], columns=['a','b','a'])
 
+    def test_from_records_set_index_name(self):
+        def create_dict(order_id):
+            return {'order_id': order_id, 'quantity': np.random.randint(1, 10),
+                    'price': np.random.randint(1, 10)}
+        documents = [create_dict(i) for i in range(10)]
+        # demo missing data
+        documents.append({'order_id': 10, 'quantity': 5})
+
+        result = DataFrame.from_records(documents, index='order_id')
+        self.assert_(result.index.name == 'order_id')
+
+        # MultiIndex
+        result = DataFrame.from_records(documents,
+                                        index=['order_id', 'quantity'])
+        self.assert_(result.index.names == ['order_id', 'quantity'])
+
     def test_to_records_floats(self):
         df = DataFrame(np.random.rand(10,10))
         df.to_records()

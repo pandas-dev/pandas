@@ -192,6 +192,8 @@ pandas 0.9.0
   - Various fixes by upcasting of date -> datetime (#1395)
   - Raise better exception when passing multiple functions with the same name,
     such as lambdas, to GroupBy.aggregate
+  - Fix DataFrame.apply with axis=1 on a non-unique index (#1878)
+  - Proper handling of Index subclasses in pandas.unique (#1759)
 
 pandas 0.8.1
 ============
