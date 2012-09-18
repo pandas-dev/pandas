@@ -18,6 +18,11 @@ import pandas.lib as lib
 class GroupByError(Exception):
     pass
 
+class DataError(GroupByError):
+    pass
+
+class SpecificationError(GroupByError):
+    pass
 
 def _groupby_function(name, alias, npfunc):
     def f(self):
@@ -290,7 +295,7 @@ class GroupBy(object):
         """
         try:
             return self._cython_agg_general('mean')
-        except GroupByError:
+        except DataError:
             raise
         except Exception:  # pragma: no cover
             f = lambda x: x.mean(axis=self.axis)
@@ -304,7 +309,7 @@ class GroupBy(object):
         """
         try:
             return self._cython_agg_general('median')
-        except GroupByError:
+        except DataError:
             raise
         except Exception:  # pragma: no cover
             f = lambda x: x.median(axis=self.axis)
@@ -375,7 +380,7 @@ class GroupBy(object):
             output[name] = result
 
         if len(output) == 0:
-            raise GroupByError('No numeric types to aggregate')
+            raise DataError('No numeric types to aggregate')
 
         return self._wrap_aggregated_output(output, names)
 
@@ -1270,6 +1275,10 @@ class SeriesGroupBy(GroupBy):
         results = {}
 
         for name, func in arg:
+            if name in results:
+                raise SpecificationError('Function names must be unique, '
+                                         'found multiple named %s' % name)
+
             results[name] = self.aggregate(func)
 
         return DataFrame(results, columns=columns)
@@ -1415,7 +1424,7 @@ class NDFrameGroupBy(GroupBy):
             new_blocks.append(newb)
 
         if len(new_blocks) == 0:
-            raise GroupByError('No numeric types to aggregate')
+            raise DataError('No numeric types to aggregate')
 
         return new_blocks
 
@@ -1542,7 +1551,7 @@ class NDFrameGroupBy(GroupBy):
                                      grouper=self.grouper)
                 results.append(colg.aggregate(arg))
                 keys.append(col)
-            except (TypeError, GroupByError):
+            except (TypeError, DataError):
                 pass
 
         result = concat(results, keys=keys, axis=1)

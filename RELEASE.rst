@@ -64,6 +64,10 @@ pandas 0.9.0
     transposed. Legacy files will still be readable by HDFStore (#1834, #1824)
   - Legacy cruft removed: pandas.stats.misc.quantileTS
   - Use ISO8601 format for Period repr: monthly, daily, and on down (#1776)
+  - Empty DataFrame columns are now created as object dtype. This will prevent
+    a class of TypeErrors that was occurring in code where the dtype of a
+    column would depend on the presence of data or not (e.g. a SQL query having
+    results) (#1783)
 
 **Bug fixes**
 
@@ -184,6 +188,8 @@ pandas 0.9.0
     datetime.tzinfo without .zone and ._utcoffset attributes (#1922)
   - Fix DataFrame formatting of small, non-zero FP numbers (#1911)
   - Various fixes by upcasting of date -> datetime (#1395)
+  - Raise better exception when passing multiple functions with the same name,
+    such as lambdas, to GroupBy.aggregate
 
 pandas 0.8.1
 ============

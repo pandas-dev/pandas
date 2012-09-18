@@ -4994,7 +4994,12 @@ def _homogenize(data, index, columns, dtype=None):
             if dtype is not None and issubclass(dtype.type, np.integer):
                 continue
 
-            v = np.empty(len(index), dtype=dtype)
+            if dtype is None:
+                # #1783
+                v = np.empty(len(index), dtype=object)
+            else:
+                v = np.empty(len(index), dtype=dtype)
+
             v.fill(nan)
         else:
             v = data[k]

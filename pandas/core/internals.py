@@ -951,7 +951,7 @@ class BlockManager(object):
                 result.axes[axis] = new_axis
 
                 if axis == 0:
-                    # patch ref_items
+                    # patch ref_items, #1823
                     for blk in result.blocks:
                         blk.ref_items = new_axis
 
@@ -1290,7 +1290,10 @@ def form_blocks(data, axes):
 
     if len(extra_items):
         shape = (len(extra_items),) + tuple(len(x) for x in axes[1:])
-        block_values = np.empty(shape, dtype=float)
+
+        # empty items -> dtype object
+        block_values = np.empty(shape, dtype=object)
+
         block_values.fill(nan)
 
         na_block = make_block(block_values, extra_items, items,

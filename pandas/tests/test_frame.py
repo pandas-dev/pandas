@@ -1593,12 +1593,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         tm.assert_dict_equal(self.ts2, frame['col2'], compare_keys=False)
 
         frame = DataFrame({'col1' : self.ts1,
-                            'col2' : self.ts2},
+                           'col2' : self.ts2},
                            columns=['col2', 'col3', 'col4'])
 
         self.assertEqual(len(frame), len(self.ts2))
         self.assert_('col1' not in frame)
-        self.assert_(np.isnan(frame['col3']).all())
+        self.assert_(isnull(frame['col3']).all())
 
         # Corner cases
         self.assertEqual(len(DataFrame({})), 0)
@@ -1888,7 +1888,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # does not error but ends up float
         df = DataFrame(index=range(10), columns=['a','b'], dtype=int)
-        self.assert_(df.values.dtype == np.float64)
+        self.assert_(df.values.dtype == np.object_)
+
+        # #1783 empty dtype object
+        df = DataFrame({}, columns=['foo', 'bar'])
+        self.assert_(df.values.dtype == np.object_)
 
     def test_constructor_scalar_inference(self):
         data = {'int' : 1, 'bool' : True,
@@ -3305,7 +3309,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         recons = DataFrame.from_csv(path)
         exp = tsframe[:0]
         exp.index = []
-        assert_frame_equal(recons, exp)
+
+        self.assert_(recons.columns.equals(exp.columns))
+        self.assert_(len(recons) == 0)
 
     def test_to_csv_float32_nanrep(self):
         df = DataFrame(np.random.randn(1, 4).astype(np.float32))
@@ -6632,7 +6638,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_sum_bools(self):
         df = DataFrame(index=range(1), columns=range(10))
-        bools = np.isnan(df)
+        bools = isnull(df)
         self.assert_(bools.sum(axis=1)[0] == 10)
 
     def test_fillna_col_reordering(self):
