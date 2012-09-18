@@ -3745,21 +3745,22 @@ class DataFrame(NDFrame):
             pass
 
         if axis == 0:
-            series_gen = ((c, self[c]) for c in self.columns)
+            series_gen = (self.icol(i) for i in range(len(self.columns)))
             res_index = self.columns
             res_columns = self.index
         elif axis == 1:
             res_index = self.index
             res_columns = self.columns
-            series_gen = ((i, Series(v, self.columns, name=i))
-                          for i, v in izip(self.index, self.values))
+            series_gen = (self.irow(i) for i in range(len(self.index)))
 
+        keys = []
         results = {}
         if ignore_failures:
             successes = []
-            for i, (k, v) in enumerate(series_gen):
+            for i, v in enumerate(series_gen):
                 try:
-                    results[k] = func(v)
+                    results[i] = func(v)
+                    keys.append(v.name)
                     successes.append(i)
                 except Exception:
                     pass
@@ -3768,32 +3769,37 @@ class DataFrame(NDFrame):
                 res_index = res_index.take(successes)
         else:
             try:
-                for k, v in series_gen:
-                    results[k] = func(v)
+                for i, v in enumerate(series_gen):
+                    results[i] = func(v)
+                    keys.append(v.name)
             except Exception, e:
                 try:
                     if hasattr(e, 'args'):
+                        k = res_index[i]
                         e.args = e.args + ('occurred at index %s' % str(k),)
                 except NameError: # pragma: no cover
                     # no k defined yet
                     pass
                 raise
 
-        if len(results) > 0 and _is_sequence(results.values()[0]):
-            if not isinstance(results.values()[0], Series):
+        if len(results) > 0 and _is_sequence(results[0]):
+            if not isinstance(results[0], Series):
                 index = res_columns
             else:
                 index = None
 
-            result = self._constructor(data=results, index=index,
-                                       columns=res_index)
+            result = self._constructor(data=results, index=index)
+            result._set_columns(res_index)
 
             if axis == 1:
                 result = result.T
+            result = result.convert_objects()
 
-            return result.convert_objects()
+            return result
         else:
-            return Series(results, index=res_index)
+            s = Series(results)
+            s.index = res_index
+            return s
 
     def _apply_broadcast(self, func, axis):
         if axis == 0:
