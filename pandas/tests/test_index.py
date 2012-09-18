@@ -22,6 +22,7 @@ from pandas.tseries.index import _to_m8
 import pandas.tseries.offsets as offsets
 
 import pandas as pd
+from pandas.lib import Timestamp
 
 class TestIndex(unittest.TestCase):
 
@@ -129,6 +130,9 @@ class TestIndex(unittest.TestCase):
 
         d = self.dateIndex[-1]
         self.assert_(self.dateIndex.asof(d + timedelta(1)) == d)
+
+        d = self.dateIndex[0].to_datetime()
+        self.assert_(isinstance(self.dateIndex.asof(d), Timestamp))
 
     def test_argsort(self):
         result = self.strIndex.argsort()
@@ -1677,5 +1681,3 @@ if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                          # '--with-coverage', '--cover-package=pandas.core'],
                    exit=False)
-
-

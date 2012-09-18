@@ -11,7 +11,7 @@ from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 import pandas.lib as lib
 import pandas._algos as _algos
-
+from pandas.lib import Timestamp
 
 __all__ = ['Index']
 
@@ -434,6 +434,8 @@ class Index(np.ndarray):
             else:
                 return np.nan
 
+        if not isinstance(label, Timestamp):
+            label = Timestamp(label)
         return label
 
     def asof_locs(self, where, mask):
