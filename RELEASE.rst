@@ -195,6 +195,8 @@ pandas 0.9.0
   - Fix DataFrame.apply with axis=1 on a non-unique index (#1878)
   - Proper handling of Index subclasses in pandas.unique (#1759)
   - Set index names in DataFrame.from_records (#1744)
+  - Fix time series indexing error with duplicates, under and over hash table
+    size cutoff (#1821)
 
 pandas 0.8.1
 ============

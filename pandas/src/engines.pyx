@@ -416,6 +416,7 @@ cdef class DatetimeEngine(Int64Engine):
 
         if self.over_size_threshold and self.is_monotonic:
             if not self.is_unique:
+                val = _to_i8(val)
                 return self._get_loc_duplicates(val)
             values = self._get_index_values()
             conv = _to_i8(val)
