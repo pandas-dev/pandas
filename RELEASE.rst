@@ -194,6 +194,7 @@ pandas 0.9.0
     such as lambdas, to GroupBy.aggregate
   - Fix DataFrame.apply with axis=1 on a non-unique index (#1878)
   - Proper handling of Index subclasses in pandas.unique (#1759)
+  - Set index names in DataFrame.from_records (#1744)
 
 pandas 0.8.1
 ============

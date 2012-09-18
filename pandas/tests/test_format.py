@@ -374,10 +374,17 @@ class TestDataFrameFormatting(unittest.TestCase):
         df = DataFrame({'a': [1.5, 1e-17, -5.5e-7]})
 
         result = df.to_string()
-        expected = ('              a\n'
-                    '0  1.500000e+00\n'
-                    '1  1.000000e-17\n'
-                    '2 -5.500000e-07')
+        # sadness per above
+        if '%.4g' % 1.7e8 == '1.7e+008':
+            expected = ('               a\n'
+                        '0  1.500000e+000\n'
+                        '1  1.000000e-017\n'
+                        '2 -5.500000e-007')
+        else:
+            expected = ('              a\n'
+                        '0  1.500000e+00\n'
+                        '1  1.000000e-17\n'
+                        '2 -5.500000e-07')
         self.assertEqual(result, expected)
 
         # but not all exactly zero
