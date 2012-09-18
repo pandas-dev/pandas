@@ -3751,7 +3751,9 @@ class DataFrame(NDFrame):
         elif axis == 1:
             res_index = self.index
             res_columns = self.columns
-            series_gen = (self.irow(i) for i in range(len(self.index)))
+            series_gen = (Series(self.values[i], index=res_columns,
+                                 name=res_index[i])
+                                 for i in range(len(res_index)))
 
         keys = []
         results = {}
@@ -3789,7 +3791,8 @@ class DataFrame(NDFrame):
                 index = None
 
             result = self._constructor(data=results, index=index)
-            result._set_columns(res_index)
+            result.rename(columns=dict(zip(range(len(res_index)), res_index)),
+                                       inplace=True)
 
             if axis == 1:
                 result = result.T
