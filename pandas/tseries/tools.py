@@ -39,6 +39,9 @@ def _maybe_get_tz(tz):
     if isinstance(tz, (str, unicode)):
         import pytz
         tz = pytz.timezone(tz)
+    if com.is_integer(tz):
+        import pytz
+        tz = pytz.FixedOffset(tz / 60)
     return tz
 
 

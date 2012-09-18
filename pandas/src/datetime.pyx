@@ -1031,6 +1031,9 @@ cdef double total_seconds(object td): # Python 2.6 compat
     return ((td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) //
             10**6)
 
+def tot_seconds(td):
+    return total_seconds(td)
+
 cpdef ndarray _unbox_utcoffsets(object transinfo):
     cdef:
         Py_ssize_t i, sz

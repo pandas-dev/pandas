@@ -380,6 +380,19 @@ class TestHDFStore(unittest.TestCase):
             store.close()
             os.remove(self.scratchpath)
 
+    def test_fixed_offset_tz(self):
+        rng = date_range('1/1/2000 00:00:00-07:00', '1/30/2000 00:00:00-07:00')
+        frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
+        try:
+            store = HDFStore(self.scratchpath)
+            store['frame'] = frame
+            recons = store['frame']
+            self.assert_(recons.index.equals(rng))
+            self.assertEquals(rng.tz, recons.index.tz)
+        finally:
+            store.close()
+            os.remove(self.scratchpath)
+
     def test_store_hierarchical(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
