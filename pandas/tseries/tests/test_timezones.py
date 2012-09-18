@@ -656,6 +656,12 @@ class TestTimeZones(unittest.TestCase):
         self.assert_((utc_range == berlin_range).all())
         self.assert_((berlin_range == eastern_range).all())
 
+    def test_datetimeindex_tz(self):
+        rng = date_range('03/12/2012 00:00', periods=10, freq='W-FRI',
+                         tz='US/Eastern')
+        rng2 = DatetimeIndex(data=rng, tz='US/Eastern')
+        self.assert_(rng.equals(rng2))
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
