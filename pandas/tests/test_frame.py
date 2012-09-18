@@ -2173,7 +2173,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                         'B' : list(self.frame['B'])}, columns=['A', 'B'])
         assert_frame_equal(df, self.frame.ix[:, ['A', 'B']])
 
-        self.assertRaises(Exception, DataFrame,
+        self.assertRaises(ValueError, DataFrame,
                           {'A' : self.frame['A'],
                            'B' : list(self.frame['B'])[:-2]})
 

@@ -4842,7 +4842,10 @@ def extract_index(data):
                                  'ambiguous ordering.')
 
             if have_series:
-                assert(lengths[0] == len(index))
+                if lengths[0] != len(index):
+                    msg = ('array length %d does not match index length %d'
+                          % (lengths[0], len(index)))
+                    raise ValueError(msg)
             else:
                 index = Index(np.arange(lengths[0]))
 
