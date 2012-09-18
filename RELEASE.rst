@@ -54,6 +54,8 @@ pandas 0.9.0
     text output. Results in easier importing into R (#1583)
   - Can pass tuple/list of axes to DataFrame.dropna to simplify repeated calls
     (dropping both columns and rows) (#924)
+  - Improve DataFrame.to_html output for hierarchically-indexed rows (do not
+    repeat levels) (#1929)
 
 **API Changes**
 

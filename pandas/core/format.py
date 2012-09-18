@@ -335,25 +335,38 @@ class DataFrameFormatter(object):
         def write(s, indent=0):
             elements.append(' ' * indent + _str(s))
 
+        def write_th(s, indent=0, tags=None):
+            return _write_cell(s, kind='th', indent=indent, tags=tags)
 
-        def write_th(s, indent=0):
-            write('<th>%s</th>' % _str(s), indent)
+        def write_td(s, indent=0, tags=None):
+            return _write_cell(s, kind='td', indent=indent, tags=tags)
 
-        def write_td(s, indent=0):
-            write('<td>%s</td>' % _str(s), indent)
+        def _write_cell(s, kind='td', indent=0, tags=None):
+            if tags is not None:
+                start_tag = '<%s %s>' % (kind, tags)
+            else:
+                start_tag = '<%s>' % kind
+            write('%s%s</%s>' % (start_tag, _str(s), kind), indent)
 
-        def write_tr(l, indent=0, indent_delta=4, header=False, align=None):
+
+        def write_tr(line, indent=0, indent_delta=4, header=False, align=None,
+                     tags=None):
+            if tags is None:
+                tags = {}
+
             if align is None:
                 write('<tr>', indent)
             else:
                 write('<tr style="text-align: %s;">' % align, indent)
             indent += indent_delta
-            if header:
-                for s in l:
-                    write_th(s, indent)
-            else:
-                for s in l:
-                    write_td(s, indent)
+
+            for i, s in enumerate(line):
+                val_tag = tags.get(i, None)
+                if header:
+                    write_th(s, indent, tags=val_tag)
+                else:
+                    write_td(s, indent, tags=val_tag)
+
             indent -= indent_delta
             write('</tr>', indent)
 
@@ -435,24 +448,54 @@ class DataFrameFormatter(object):
             for i in range(len(self.columns)):
                 fmt_values[i] = self._format_col(i)
 
+            ncols = len(self.columns)
+
             # write values
-            index_formatter = self.formatters.get('__index__', None)
-            for i in range(len(frame)):
-                row = []
+            if self.index:
+                index_values = frame.index.values
+                if '__index__' in self.formatters:
+                    f = self.formatters['__index__']
+                    index_values = index_values.map(f)
 
-                if self.index:
-                    index_value = frame.index[i]
-                    if index_formatter:
-                        index_value = index_formatter(index_value)
+                template = 'rowspan="%d" valign="top"'
+                if isinstance(frame.index, MultiIndex) and self.sparsify:
+                    levels = frame.index.format(sparsify=True, adjoin=False,
+                                                names=False)
+                    level_lengths = _get_level_lengths(levels)
+                    for i in range(len(frame)):
+                        row = []
+                        tags = {}
 
-                    if isinstance(frame.index, MultiIndex):
-                        row.extend(_maybe_bold_row(index_value))
-                    else:
-                        row.append(_maybe_bold_row(index_value))
+                        j = 0
+                        for records, v in zip(level_lengths, index_values[i]):
+                            if i in records:
+                                if records[i] > 1:
+                                    tags[j] = template % records[i]
+                            else:
+                                continue
+                            j += 1
+                            row.append(_maybe_bold_row(v))
 
-                for j in range(len(self.columns)):
-                    row.append(fmt_values[j][i])
-                write_tr(row, indent, indent_delta)
+                        row.extend(fmt_values[j][i] for j in range(ncols))
+                        write_tr(row, indent, indent_delta, tags=tags)
+                elif isinstance(frame.index, MultiIndex):
+                    for i in range(len(frame)):
+                        row = []
+                        row.extend(_maybe_bold_row(x) for x in index_values[i])
+                        row.extend(fmt_values[j][i] for j in range(ncols))
+                        write_tr(row, indent, indent_delta, tags=None)
+                else:
+                    for i in range(len(frame)):
+                        row = []
+                        row.append(_maybe_bold_row(index_values[i]))
+                        row.extend(fmt_values[j][i] for j in range(ncols))
+                        write_tr(row, indent, indent_delta, tags=None)
+            else:
+                for i in range(len(frame)):
+                    row = [fmt_values[j][i] for j in range(ncols)]
+                    write_tr(row, indent, indent_delta, tags=None)
+
+
             indent -= indent_delta
             write('</tbody>', indent)
             indent -= indent_delta
@@ -539,6 +582,31 @@ class DataFrameFormatter(object):
         else:
             names.append('' if columns.name is None else columns.name)
         return names
+
+def _get_level_lengths(levels):
+    from itertools import groupby
+
+    def _make_grouper():
+        record = {'count': 0}
+        def grouper(x):
+            if x != '':
+                record['count'] += 1
+            return record['count']
+        return grouper
+
+    result = []
+    for lev in levels:
+        i = 0
+        f = _make_grouper()
+        recs = {}
+        for key, gpr in groupby(lev, f):
+            values = list(gpr)
+            recs[i] = len(values)
+            i += len(values)
+
+        result.append(recs)
+
+    return result
 
 #----------------------------------------------------------------------
 # Array formatters
