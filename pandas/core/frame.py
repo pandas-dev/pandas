@@ -3751,7 +3751,8 @@ class DataFrame(NDFrame):
         elif axis == 1:
             res_index = self.index
             res_columns = self.columns
-            series_gen = (Series(self.values[i], index=res_columns,
+            values = self.values
+            series_gen = (Series(values[i], index=res_columns,
                                  name=res_index[i])
                                  for i in range(len(res_index)))
 
