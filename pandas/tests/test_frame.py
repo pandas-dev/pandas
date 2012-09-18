@@ -3635,6 +3635,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         for ext in ['xls', 'xlsx']:
             filename = u'\u0192u.' + ext
+
+            try:
+                f = open(filename, 'wb')
+            except UnicodeEncodeError:
+                raise nose.SkipTest('no unicode file names on this system')
+            else:
+                f.close()
+
             df = DataFrame([[0.123456, 0.234567, 0.567567],
                             [12.32112, 123123.2, 321321.2]],
                            index=['A', 'B'], columns=['X', 'Y', 'Z'])
