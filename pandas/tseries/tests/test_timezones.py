@@ -60,7 +60,7 @@ class FixedOffset(tzinfo):
     def dst(self, dt):
         return timedelta(0)
 
-fixed_off = FixedOffset(-4200, '-07:00')
+fixed_off = FixedOffset(-420, '-07:00')
 
 class TestTimeZoneSupport(unittest.TestCase):
 
@@ -151,6 +151,19 @@ class TestTimeZoneSupport(unittest.TestCase):
 
         stamp = Timestamp('3/11/2012 05:00').tz_localize('utc')
         self.assertEquals(utc_stamp.hour, 5)
+
+    def test_create_with_fixed_tz(self):
+        off = FixedOffset(420, '+07:00')
+        start = datetime(2012, 3, 11, 5, 0, 0, tzinfo=off)
+        end = datetime(2012, 6, 11, 5, 0, 0, tzinfo=off)
+        rng = date_range(start=start, end=end)
+        self.assertEqual(off, rng.tz)
+
+        rng2 = date_range(start, periods=len(rng), tz=off)
+        self.assert_(rng.equals(rng2))
+
+        rng3 = date_range('3/11/2012 05:00:00+07:00', '6/11/2012 05:00:00+07:00')
+        self.assert_((rng.values == rng3.values).all())
 
     def test_date_range_localize(self):
         rng = date_range('3/11/2012 03:00', periods=15, freq='H', tz='US/Eastern')

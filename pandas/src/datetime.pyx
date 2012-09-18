@@ -107,12 +107,14 @@ class Timestamp(_Timestamp):
         try:
             result += self.strftime('%z')
             if self.tzinfo:
-                result += self.strftime(' %%Z, tz=%s' % self.tzinfo.zone)
+                zone = _get_zone(self.tzinfo)
+                result += self.strftime(' %%Z, tz=%s' % zone)
         except ValueError:
             year2000 = self.replace(year=2000)
             result += year2000.strftime('%z')
             if self.tzinfo:
-                result += year2000.strftime(' %%Z, tz=%s' % self.tzinfo.zone)
+                zone = _get_zone(self.tzinfo)
+                result += year2000.strftime(' %%Z, tz=%s' % zone)
 
         return '<Timestamp: %s>' % result
 
@@ -615,6 +617,9 @@ cpdef convert_to_tsobject(object ts, object tz=None):
 
     return obj
 
+def get_timezone(tz):
+    return _get_zone(tz)
+
 cdef inline bint _is_utc(object tz):
     return tz is UTC or isinstance(tz, _du_utc)
 
@@ -911,7 +916,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
 
     # Convert to UTC
 
-    if tz1.zone != 'UTC':
+    if _get_zone(tz1) != 'UTC':
         utc_dates = np.empty(n, dtype=np.int64)
         deltas = _get_deltas(tz1)
         trans = _get_transitions(tz1)
@@ -929,7 +934,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
     else:
         utc_dates = vals
 
-    if tz2.zone == 'UTC':
+    if _get_zone(tz2) == 'UTC':
         return utc_dates
 
     # Convert UTC to other timezone
@@ -968,7 +973,7 @@ def tz_convert_single(int64_t val, object tz1, object tz2):
 
     # Convert to UTC
 
-    if tz1.zone != 'UTC':
+    if _get_zone(tz1) != 'UTC':
         deltas = _get_deltas(tz1)
         trans = _get_transitions(tz1)
         pos = trans.searchsorted(val) - 1
@@ -979,7 +984,7 @@ def tz_convert_single(int64_t val, object tz1, object tz2):
     else:
         utc_date = val
 
-    if tz2.zone == 'UTC':
+    if _get_zone(tz2) == 'UTC':
         return utc_date
 
     # Convert UTC to other timezone
@@ -1025,6 +1030,9 @@ def _get_deltas(tz):
 cdef double total_seconds(object td): # Python 2.6 compat
     return ((td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) //
             10**6)
+
+def tot_seconds(td):
+    return total_seconds(td)
 
 cpdef ndarray _unbox_utcoffsets(object transinfo):
     cdef:
