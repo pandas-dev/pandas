@@ -2595,7 +2595,8 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        axis : {0, 1}
+        axis : {0, 1}, or tuple/list thereof
+            Pass tuple or list to drop on multiple axes
         how : {'any', 'all'}
             any : if any NA values are present, drop that label
             all : if all values are NA, drop that label
@@ -2609,6 +2610,13 @@ class DataFrame(NDFrame):
         -------
         dropped : DataFrame
         """
+        if isinstance(axis, (tuple, list)):
+            result = self
+            for ax in axis:
+                result = result.dropna(how=how, thresh=thresh,
+                                       subset=subset, axis=ax)
+            return result
+
         axis_name = self._get_axis_name(axis)
 
         if axis == 0:

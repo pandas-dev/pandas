@@ -52,6 +52,8 @@ pandas 0.9.0
     methods (#1689)
   - If index_label=False in DataFrame.to_csv, do not print fields/commas in the
     text output. Results in easier importing into R (#1583)
+  - Can pass tuple/list of axes to DataFrame.dropna to simplify repeated calls
+    (dropping both columns and rows) (#924)
 
 **API Changes**
 

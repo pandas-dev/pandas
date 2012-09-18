@@ -3980,6 +3980,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertRaises(ValueError, self.frame.dropna, how='foo')
         self.assertRaises(ValueError, self.frame.dropna, how=None)
 
+    def test_dropna_multiple_axes(self):
+        df = DataFrame([[1, np.nan, 2, 3],
+                        [4, np.nan, 5, 6],
+                        [np.nan, np.nan, np.nan, np.nan],
+                        [7, np.nan, 8, 9]])
+
+        result = df.dropna(how='all', axis=[0, 1])
+        result2 = df.dropna(how='all', axis=(0, 1))
+        expected = df.dropna(how='all').dropna(how='all', axis=1)
+
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result2, expected)
+
     def test_drop_duplicates(self):
         df = DataFrame({'AAA' : ['foo', 'bar', 'foo', 'bar',
                                'foo', 'bar', 'bar', 'foo'],
