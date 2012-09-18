@@ -197,6 +197,8 @@ pandas 0.9.0
   - Set index names in DataFrame.from_records (#1744)
   - Fix time series indexing error with duplicates, under and over hash table
     size cutoff (#1821)
+  - Handle list keys in addition to tuples in DataFrame.xs when
+    partial-indexing a hierarchically-indexed DataFrame (#1796)
 
 pandas 0.8.1
 ============

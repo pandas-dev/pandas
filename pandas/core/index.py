@@ -2081,7 +2081,12 @@ class MultiIndex(Index):
 
         level = self._get_level_number(level)
 
+        # kludge for #1796
+        if isinstance(key, list):
+            key = tuple(key)
+
         if isinstance(key, tuple) and level == 0:
+
             try:
                 if key in self.levels[0]:
                     indexer = self._get_level_indexer(key, level=level)
