@@ -632,6 +632,26 @@ class PeriodIndex(Int64Index):
         f = lambda x: Period(ordinal=x, freq=self.freq)
         return lib.map_infer(values, f)
 
+    def asof_locs(self, where, mask):
+        """
+        where : array of timestamps
+        mask : array of booleans where data is not NA
+
+        """
+        where_idx = where
+        if isinstance(where_idx, DatetimeIndex):
+            where_idx = PeriodIndex(where_idx.values, freq=self.freq)
+
+        locs = self.values[mask].searchsorted(where_idx.values, side='right')
+
+        locs = np.where(locs > 0, locs - 1, 0)
+        result = np.arange(len(self))[mask].take(locs)
+
+        first = mask.argmax()
+        result[(locs == 0) & (where_idx.values < self.values[first])] = -1
+
+        return result
+
     @property
     def asobject(self):
         from pandas.core.index import Index
