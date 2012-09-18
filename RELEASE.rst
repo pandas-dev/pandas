@@ -35,7 +35,7 @@ pandas 0.9.0
   - Add Options class to pandas.io.data for fetching options data from Yahoo!
     Finance (#1748, #1739)
   - Recognize and convert more boolean values in file parsing (Yes, No, TRUE,
-    FALSE, variants thereof) (#1691)
+    FALSE, variants thereof) (#1691, #1295)
 
 **Improvements to existing features**
 
@@ -179,6 +179,7 @@ pandas 0.9.0
   - Fix error while retrieving timezone and utc offset from subclasses of
     datetime.tzinfo without .zone and ._utcoffset attributes (#1922)
   - Fix DataFrame formatting of small, non-zero FP numbers (#1911)
+  - Various fixes by upcasting of date -> datetime (#1395)
 
 pandas 0.8.1
 ============

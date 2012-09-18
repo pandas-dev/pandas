@@ -182,30 +182,25 @@ class DateOffset(object):
 
     def rollback(self, dt):
         """Roll provided date backward to next offset only if not on offset"""
-        try:
-            if not self.onOffset(dt):
-                dt = dt - self.__class__(1, **self.kwds)
-            return dt
-        except Exception:
-            if isinstance(dt, date):
-                return self.rollback(datetime(dt.year, dt.month, dt.day))
-            else:
-                raise
+        if type(dt) == date:
+            dt = datetime(dt.year, dt.month, dt.day)
+
+        if not self.onOffset(dt):
+            dt = dt - self.__class__(1, **self.kwds)
+        return dt
 
     def rollforward(self, dt):
         """Roll provided date forward to next offset only if not on offset"""
-        try:
-            if not self.onOffset(dt):
-                dt = dt + self.__class__(1, **self.kwds)
-            return dt
-        except Exception:
-            if isinstance(dt, date):
-                return self.rollforward(datetime(dt.year, dt.month, dt.day))
-            else:
-                raise
+        if type(dt) == date:
+            dt = datetime(dt.year, dt.month, dt.day)
+
+        if not self.onOffset(dt):
+            dt = dt + self.__class__(1, **self.kwds)
+        return dt
 
     def onOffset(self, dt):
-        if type(self) == DateOffset:
+        # XXX, see #1395
+        if type(self) == DateOffset or isinstance(self, Tick):
             return True
 
         # Default (slow) method for determining if some date is a member of the
@@ -1033,10 +1028,15 @@ class Tick(DateOffset):
         return _delta_to_nanoseconds(self.delta)
 
     def apply(self, other):
+        if type(other) == date:
+            other = datetime(other.year, other.month, other.day)
+
         if isinstance(other, (datetime, timedelta)):
             return other + self.delta
         elif isinstance(other, type(self)):
             return type(self)(self.n + other.n)
+        else:  # pragma: no cover
+            raise TypeError('Unhandled type: %s' % type(other))
 
     _rule_base = 'undefined'
     @property

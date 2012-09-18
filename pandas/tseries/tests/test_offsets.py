@@ -184,6 +184,13 @@ class TestBusinessDay(unittest.TestCase):
         result = offset.rollforward(dt)
         self.assertEqual(result, datetime(2012, 9, 17))
 
+        offset = offsets.Day()
+        result = offset.rollback(dt)
+        self.assertEqual(result, datetime(2012, 9, 15))
+
+        result = offset.rollforward(dt)
+        self.assertEqual(result, datetime(2012, 9, 15))
+
     def test_onOffset(self):
         tests = [(BDay(), datetime(2008, 1, 1), True),
                  (BDay(), datetime(2008, 1, 5), False)]
