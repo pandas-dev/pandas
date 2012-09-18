@@ -1491,6 +1491,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         idf = df.set_index('A')
         self.assert_(isinstance(idf.index, DatetimeIndex))
 
+    def test_set_index_multiindexcolumns(self):
+        columns = MultiIndex.from_tuples([('foo', 1), ('foo', 2), ('bar', 1)])
+        df = DataFrame(np.random.randn(3, 3), columns=columns)
+        rs = df.set_index(df.columns[0])
+        xp = df.ix[:, 1:]
+        xp.index = df.ix[:, 0].values
+        xp.index.names = [df.columns[0]]
+        assert_frame_equal(rs, xp)
+
     def test_set_columns(self):
         cols = Index(np.arange(len(self.mixed_frame.columns)))
         self.mixed_frame.columns = cols

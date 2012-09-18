@@ -2396,7 +2396,7 @@ class DataFrame(NDFrame):
         -------
         dataframe : DataFrame
         """
-        if not isinstance(keys, (list, tuple)):
+        if not isinstance(keys, list):
             keys = [keys]
 
         if inplace:
