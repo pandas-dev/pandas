@@ -754,12 +754,8 @@ class Grouper(object):
             raise NotImplementedError
         elif values.ndim > 2:
             for i, chunk in enumerate(values.transpose(2, 0, 1)):
-                if not is_numeric:
-                    print 'getting results for %d' % i
                 agg_func(result[:, :, i], counts, chunk.squeeze(),
                          comp_ids)
-                if not is_numeric:
-                    print 'got results for %d' % i
         else:
             agg_func(result, counts, values, comp_ids)
 
@@ -937,14 +933,22 @@ class BinGrouper(Grouper):
         'last': lib.group_last_bin
     }
 
+    _cython_object_functions = {
+        'first' : lambda a, b, c, d: lib.group_nth_bin_object(a, b, c, d, 1),
+        'last' : lib.group_last_bin_object
+    }
+
     _name_functions = {
         'ohlc' : lambda *args: ['open', 'high', 'low', 'close']
     }
 
     _filter_empty_groups = True
 
-    def _aggregate(self, result, counts, values, how):
-        agg_func = self._cython_functions[how]
+    def _aggregate(self, result, counts, values, how, is_numeric=True):
+        fdict = self._cython_functions
+        if not is_numeric:
+            fdict = self._cython_object_functions
+        agg_func = fdict[how]
         trans_func = self._cython_transforms.get(how, lambda x: x)
 
         if values.ndim > 3:
