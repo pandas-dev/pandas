@@ -376,6 +376,49 @@ def group_nth(ndarray[float64_t, ndim=2] out,
             else:
                 out[i, j] = resx[i, j]
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_nth_object(ndarray[object, ndim=2] out,
+                     ndarray[int64_t] counts,
+                     ndarray[object, ndim=2] values,
+                     ndarray[int64_t] labels,
+                     int64_t rank):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        object val
+        float64_t count
+        ndarray[int64_t, ndim=2] nobs
+        ndarray[object, ndim=2] resx
+
+    nobs = np.zeros((<object> out).shape, dtype=np.int64)
+    resx = np.empty((<object> out).shape, dtype=object)
+
+    N, K = (<object> values).shape
+
+    for i in range(N):
+        lab = labels[i]
+        if lab < 0:
+            continue
+
+        counts[lab] += 1
+        for j in range(K):
+            val = values[i, j]
+
+            # not nan
+            if val == val:
+                nobs[lab, j] += 1
+                if nobs[lab, j] == rank:
+                    resx[lab, j] = val
+
+    for i in range(len(counts)):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = <object> nan
+            else:
+                out[i, j] = resx[i, j]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -440,6 +483,48 @@ def group_last(ndarray[float64_t, ndim=2] out,
 
     nobs = np.zeros((<object> out).shape, dtype=np.int64)
     resx = np.empty_like(out)
+
+    N, K = (<object> values).shape
+
+    for i in range(N):
+        lab = labels[i]
+        if lab < 0:
+            continue
+
+        counts[lab] += 1
+        for j in range(K):
+            val = values[i, j]
+
+            # not nan
+            if val == val:
+                nobs[lab, j] += 1
+                resx[lab, j] = val
+
+    for i in range(len(counts)):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = resx[i, j]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_last_object(ndarray[object, ndim=2] out,
+                      ndarray[int64_t] counts,
+                      ndarray[object, ndim=2] values,
+                      ndarray[int64_t] labels):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        object val
+        float64_t count
+        ndarray[object, ndim=2] resx
+        ndarray[int64_t, ndim=2] nobs
+
+    nobs = np.zeros((<object> out).shape, dtype=np.int64)
+    resx = np.empty((<object> out).shape, dtype=object)
 
     N, K = (<object> values).shape
 
@@ -1321,6 +1406,26 @@ def row_bool_subset(ndarray[float64_t, ndim=2] values,
 
     return out
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def row_bool_subset_object(ndarray[object, ndim=2] values,
+                           ndarray[uint8_t, cast=True] mask):
+    cdef:
+        Py_ssize_t i, j, n, k, pos = 0
+        ndarray[object, ndim=2] out
+
+    n, k = (<object> values).shape
+    assert(n == len(mask))
+
+    out = np.empty((mask.sum(), k), dtype=object)
+
+    for i in range(n):
+        if mask[i]:
+            for j in range(k):
+                out[pos, j] = values[i, j]
+            pos += 1
+
+    return out
 
 
 def group_count(ndarray[int64_t] values, Py_ssize_t size):
