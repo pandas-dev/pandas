@@ -1326,6 +1326,8 @@ class ExcelFile(object):
             If None then parse all columns,
             If int then indicates last column to be parsed
             If list of ints then indicates list of column numbers to be parsed
+            If string then indicates comma separated list of column names and
+                column ranges (e.g. "A:E" or "A,C,E:F")
         na_values : list-like, default None
             List of additional strings to recognize as NA/NaN
 
@@ -1350,8 +1352,34 @@ class ExcelFile(object):
                                      skip_footer=skip_footer)
 
     def _should_parse(self, i, parse_cols):
+        
+        def _range2cols(areas):
+            """
+            Convert comma separated list of column names and column ranges to a
+            list of 0-based column indexes.
+
+            >>> _range2cols('A:E')
+            [0, 1, 2, 3, 4]
+            >>> _range2cols('A,C,Z:AB')
+            [0, 2, 25, 26, 27]
+            """
+            def _excel2num(x): 
+                "Convert Excel column name like 'AB' to 0-based column index"
+                return reduce(lambda s,a: s*26+ord(a)-ord('A')+1, x.upper().strip(), 0)-1
+            
+            cols = []
+            for rng in areas.split(','):
+                if ':' in rng:
+                    rng = rng.split(':')
+                    cols += range(_excel2num(rng[0]), _excel2num(rng[1])+1)
+                else:
+                    cols.append(_excel2num(rng))
+            return cols
+
         if isinstance(parse_cols, int):
             return i <= parse_cols
+        if isinstance(parse_cols, basestring):
+            return i in _range2cols(parse_cols)
         else:
             return i in parse_cols
 
