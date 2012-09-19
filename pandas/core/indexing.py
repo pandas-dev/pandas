@@ -10,6 +10,13 @@ import numpy as np
 # "null slice"
 _NS = slice(None, None)
 
+def _is_sequence(x):
+    try:
+        iter(x)
+        assert(not isinstance(x, basestring))
+        return True
+    except Exception:
+        return False
 
 class IndexingError(Exception):
     pass
@@ -82,7 +89,7 @@ class _NDFrameIndexer(object):
         return tuple(keyidx)
 
     def _setitem_with_indexer(self, indexer, value):
-        from pandas.core.frame import DataFrame
+        from pandas.core.frame import DataFrame, Series
 
         # also has the side effect of consolidating in-place
 
@@ -91,6 +98,9 @@ class _NDFrameIndexer(object):
         if self.obj._is_mixed_type:
             if not isinstance(indexer, tuple):
                 indexer = self._tuplify(indexer)
+
+            if isinstance(value, Series):
+                value = self._align_series(indexer, value)
 
             het_axis = self.obj._het_axis
             het_idx = indexer[het_axis]
@@ -117,12 +127,65 @@ class _NDFrameIndexer(object):
             if isinstance(indexer, tuple):
                 indexer = _maybe_convert_ix(*indexer)
 
+            if isinstance(value, Series):
+                value = self._align_series(indexer, value)
+
             if isinstance(value, DataFrame):
-                value = value.values
-                if not isinstance(self.obj, DataFrame):
-                    value = value.T
+                value = self._align_frame(indexer, value)
 
             self.obj.values[indexer] = value
+
+    def _align_series(self, indexer, ser):
+        # indexer to assign Series can be tuple or scalar
+        if isinstance(indexer, tuple):
+            for i, idx in enumerate(indexer):
+                ax = self.obj.axes[i]
+                if _is_sequence(idx) or isinstance(idx, slice):
+                    new_ix = ax[idx]
+                    if ser.index.equals(new_ix):
+                        return ser.values.copy()
+                    return ser.reindex(new_ix).values
+
+        elif np.isscalar(indexer):
+            if ser.index.equals(self.obj.index):
+                return ser.values.copy()
+            return ser.reindex(self.obj.index).values
+
+        raise ValueError('Incompatible indexer with Series')
+
+    def _align_frame(self, indexer, df):
+        from pandas import DataFrame
+        is_frame = isinstance(self.obj, DataFrame)
+        if not is_frame:
+            df = df.T
+        if isinstance(indexer, tuple):
+            idx, cols = None, None
+            for i, ix in enumerate(indexer):
+                ax = self.obj.axes[i]
+                if _is_sequence(ix) or isinstance(ix, slice):
+                    if idx is None:
+                        idx = ax[ix]
+                    elif cols is None:
+                        cols = ax[ix]
+                    else:
+                        break
+
+            if idx is not None and cols is not None:
+                if df.index.equals(idx) and df.columns.equals(cols):
+                    val = df.copy().values
+                else:
+                    val = df.reindex(idx, columns=cols).values
+                return val
+
+        elif np.isscalar(indexer) and not is_frame:
+            idx = self.obj.axes[1]
+            cols = self.obj.axes[2]
+
+            if idx.equals(df.index) and cols.equals(df.columns):
+                return df.copy().values
+            return df.reindex(idx, columns=cols).values
+
+        raise ValueError('Incompatible indexer with DataFrame')
 
     def _getitem_tuple(self, tup):
         try:
