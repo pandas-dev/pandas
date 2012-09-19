@@ -686,6 +686,40 @@ class CheckIndexing(object):
 
         assert_frame_equal(df, expected)
 
+    def test_ix_align(self):
+        b = Series(randn(10))
+        b.sort()
+        df_orig = DataFrame(randn(10, 4))
+        df = df_orig.copy()
+
+        df.ix[:, 0] = b
+        assert_series_equal(df.ix[:, 0].reindex(b.index), b)
+
+        dft = df_orig.T
+        dft.ix[0, :] = b
+        assert_series_equal(dft.ix[0, :].reindex(b.index), b)
+
+        df = df_orig.copy()
+        df.ix[:5, 0] = b
+        s = df.ix[:5, 0]
+        assert_series_equal(s, b.reindex(s.index))
+
+        dft = df_orig.T
+        dft.ix[0, :5] = b
+        s = dft.ix[0, :5]
+        assert_series_equal(s, b.reindex(s.index))
+
+        df = df_orig.copy()
+        idx = [0, 1, 3, 5]
+        df.ix[idx, 0] = b
+        s = df.ix[idx, 0]
+        assert_series_equal(s, b.reindex(s.index))
+
+        dft = df_orig.T
+        dft.ix[0, idx] = b
+        s = dft.ix[0, idx]
+        assert_series_equal(s, b.reindex(s.index))
+
     def test_getitem_setitem_non_ix_labels(self):
         df = tm.makeTimeDataFrame()
 
@@ -976,7 +1010,7 @@ class CheckIndexing(object):
 
     def test_setitem_frame(self):
         piece = self.frame.ix[:2, ['A', 'B']]
-        self.frame.ix[-2:, ['A', 'B']] = piece
+        self.frame.ix[-2:, ['A', 'B']] = piece.values
         assert_almost_equal(self.frame.ix[-2:, ['A', 'B']].values,
                            piece.values)
 
@@ -984,6 +1018,14 @@ class CheckIndexing(object):
         f = self.mixed_frame.ix.__setitem__
         key = (slice(-2, None), ['A', 'B'])
         self.assertRaises(ValueError, f, key, piece)
+
+    def test_setitem_frame_align(self):
+        piece = self.frame.ix[:2, ['A', 'B']]
+        piece.index = self.frame.index[-2:]
+        piece.columns = ['A', 'B']
+        self.frame.ix[-2:, ['A', 'B']] = piece
+        assert_almost_equal(self.frame.ix[-2:, ['A', 'B']].values,
+                           piece.values)
 
     def test_setitem_fancy_exceptions(self):
         pass
