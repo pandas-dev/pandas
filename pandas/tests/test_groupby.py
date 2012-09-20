@@ -127,12 +127,12 @@ class TestGroupBy(unittest.TestCase):
         # tests for first / last / nth
         grouped = self.df.groupby('A')
         first = grouped.first()
-        expected = self.df.ix[[1, 0], ['C', 'D']]
+        expected = self.df.ix[[1, 0], ['B', 'C', 'D']]
         expected.index = ['bar', 'foo']
         assert_frame_equal(first, expected)
 
         last = grouped.last()
-        expected = self.df.ix[[5, 7], ['C', 'D']]
+        expected = self.df.ix[[5, 7], ['B', 'C', 'D']]
         expected.index = ['bar', 'foo']
         assert_frame_equal(last, expected)
 
