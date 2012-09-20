@@ -824,6 +824,7 @@ baz,7,8,9
 
     def test_parse_cols_str(self):
         _skip_if_no_openpyxl()
+        _skip_if_no_xlrd()
 
         suffix = ['', 'x']
 
