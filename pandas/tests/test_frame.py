@@ -3648,6 +3648,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_to_excel_float_format(self):
         try:
+            import xlrd
             import xlwt
             import openpyxl
         except ImportError:
@@ -3671,6 +3672,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_to_excel_unicode_filename(self):
         try:
             import xlwt
+            import xlrd
             import openpyxl
         except ImportError:
             raise nose.SkipTest
