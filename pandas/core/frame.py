@@ -1707,14 +1707,18 @@ class DataFrame(NDFrame):
             inds, = key.nonzero()
             return self.take(inds)
         else:
-            indexer = self.columns.get_indexer(key)
-            mask = indexer == -1
-            if mask.any():
-                raise KeyError("No column(s) named: %s" % str(key[mask]))
-            result = self.reindex(columns=key)
-            if result.columns.name is None:
-                result.columns.name = self.columns.name
-            return result
+            if self.columns.is_unique:
+                indexer = self.columns.get_indexer(key)
+                mask = indexer == -1
+                if mask.any():
+                    raise KeyError("No column(s) named: %s" % str(key[mask]))
+                result = self.reindex(columns=key)
+                if result.columns.name is None:
+                    result.columns.name = self.columns.name
+                return result
+            else:
+                mask = self.columns.isin(key)
+                return self.take(mask.nonzero()[0], axis=1)
 
     def _slice(self, slobj, axis=0):
         if axis == 0:

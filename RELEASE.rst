@@ -201,6 +201,8 @@ pandas 0.9.0
     size cutoff (#1821)
   - Handle list keys in addition to tuples in DataFrame.xs when
     partial-indexing a hierarchically-indexed DataFrame (#1796)
+  - Support multiple column selection in DataFrame.__getitem__ with duplicate
+    columns (#1943)
 
 pandas 0.8.1
 ============

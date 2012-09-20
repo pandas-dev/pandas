@@ -1076,6 +1076,17 @@ class CheckIndexing(object):
         exp = df[df[0] > 0]
         assert_frame_equal(result, exp)
 
+    def test_getitem_list_duplicates(self):
+        # #1943
+        df = DataFrame(np.random.randn(4,4), columns=list('AABC'))
+        df.columns.name = 'foo'
+
+        result = df[['B', 'C']]
+        self.assert_(result.columns.name == 'foo')
+
+        expected = df.ix[:, 2:]
+        assert_frame_equal(result, expected)
+
     def test_get_value(self):
         for idx in self.frame.index:
             for col in self.frame.columns:
