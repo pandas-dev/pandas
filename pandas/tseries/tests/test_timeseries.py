@@ -111,7 +111,7 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
             # create large list of non periodic datetime
             dates = []
             sec = datetime.timedelta(seconds=1)
-            half_sec = sec / 2
+            half_sec = datetime.timedelta(microseconds=500000)
             d = datetime.datetime(2011, 12, 5, 20, 30)
             n = 1100
             for i in range(n):
