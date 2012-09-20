@@ -787,6 +787,7 @@ baz,7,8,9
 
     def test_parse_cols_int(self):
         _skip_if_no_openpyxl()
+        _skip_if_no_xlrd()
 
         suffix = ['', 'x']
 
@@ -804,11 +805,11 @@ baz,7,8,9
 
     def test_parse_cols_list(self):
         _skip_if_no_openpyxl()
+        _skip_if_no_xlrd()
 
         suffix = ['', 'x']
 
         for s in suffix:
-
             pth = os.path.join(self.dirpath, 'test.xls%s' % s)
             xlsx = ExcelFile(pth)
             df = xlsx.parse('Sheet1', index_col=0, parse_dates=True,

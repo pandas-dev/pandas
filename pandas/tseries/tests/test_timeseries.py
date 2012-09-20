@@ -1080,7 +1080,7 @@ class TestTimeSeries(unittest.TestCase):
                         (3,np.datetime64('2012-07-04'))],
                        columns = ['a', 'date'])
         result = df.groupby('a').first()
-        self.assertEqual(result['date'][3].year, 2012)
+        self.assertEqual(result['date'][3], np.datetime64('2012-07-03'))
 
     def test_series_interpolate_intraday(self):
         # #1698
@@ -2190,4 +2190,3 @@ class TestTimestamp(unittest.TestCase):
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-

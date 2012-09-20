@@ -70,6 +70,8 @@ pandas 0.9.0
     a class of TypeErrors that was occurring in code where the dtype of a
     column would depend on the presence of data or not (e.g. a SQL query having
     results) (#1783)
+  - Setting parts of DataFrame/Panel using ix now aligns input Series/DataFrame
+    (#1630)
 
 **Bug fixes**
 
