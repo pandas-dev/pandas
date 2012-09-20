@@ -191,6 +191,12 @@ class CheckIndexing(object):
         df = DataFrame(np.random.randn(8, 4))
         self.assert_(isnull(df.ix[:, [-1]].values).all())
 
+        # #1942
+        a = DataFrame(randn(20,2), index=[chr(x+65) for x in range(20)])
+        a.ix[-1] = a.ix[-2]
+
+        assert_series_equal(a.ix[-1], a.ix[-2])
+
     def test_getattr(self):
         tm.assert_series_equal(self.frame.A, self.frame['A'])
         self.assertRaises(AttributeError, getattr, self.frame,
