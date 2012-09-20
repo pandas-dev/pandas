@@ -726,6 +726,26 @@ class CheckIndexing(object):
         s = dft.ix[0, idx]
         assert_series_equal(s, b.reindex(s.index))
 
+    def test_ix_frame_align(self):
+        b = DataFrame(np.random.randn(3, 4))
+        df_orig = DataFrame(randn(10, 4))
+        df = df_orig.copy()
+
+        df.ix[:3] = b
+        out = b.ix[:3]
+        assert_frame_equal(out, b)
+
+        b.sort_index(inplace=True)
+        df = df_orig.copy()
+        df.ix[[0, 1, 2]] = b
+        out = df.ix[[0, 1, 2]].reindex(b.index)
+        assert_frame_equal(out, b)
+
+        df = df_orig.copy()
+        df.ix[:3] = b
+        out = df.ix[:3]
+        assert_frame_equal(out, b.reindex(out.index))
+
     def test_getitem_setitem_non_ix_labels(self):
         df = tm.makeTimeDataFrame()
 

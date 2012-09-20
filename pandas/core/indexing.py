@@ -180,6 +180,15 @@ class _NDFrameIndexer(object):
                     val = df.reindex(idx, columns=cols).values
                 return val
 
+        elif ((isinstance(indexer, slice) or com.is_list_like(indexer))
+              and is_frame):
+            ax = self.obj.index[indexer]
+            if df.index.equals(ax):
+                val = df.copy().values
+            else:
+                val = df.reindex(ax).values
+            return val
+
         elif np.isscalar(indexer) and not is_frame:
             idx = self.obj.axes[1]
             cols = self.obj.axes[2]
