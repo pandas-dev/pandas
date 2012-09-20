@@ -532,6 +532,9 @@ ignore,this,row
                          skiprows=[1])
         assert_almost_equal(df2.values, expected)
 
+        df3 = read_table(StringIO(data), sep=',', na_values='baz',
+                         skiprows=[1])
+        assert_almost_equal(df3.values, expected)
 
     def test_skiprows_bug(self):
         # GH #505

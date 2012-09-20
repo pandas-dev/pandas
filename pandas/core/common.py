@@ -775,6 +775,8 @@ def is_float_dtype(arr_or_dtype):
         tipo = arr_or_dtype.dtype.type
     return issubclass(tipo, np.floating)
 
+def is_list_like(arg):
+    return hasattr(arg, '__iter__') and not isinstance(arg, basestring)
 
 _ensure_float64 = _algos.ensure_float64
 _ensure_int64 = _algos.ensure_int64

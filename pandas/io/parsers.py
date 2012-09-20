@@ -490,6 +490,8 @@ class TextParser(object):
                     na_values[k] = v
             self.na_values = na_values
         else:
+            if not com.is_list_like(na_values):
+                na_values = [na_values]
             na_values = set(list(na_values))
             if keep_default_na:
                 na_values = na_values | _NA_VALUES
