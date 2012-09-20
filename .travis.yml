@@ -9,7 +9,7 @@ python:
 
 install:
   - "if [[ $TRAVIS_PYTHON_VERSION == '2.5' ]]; then pip install --use-mirrors simplejson; fi"
-  - pip install --use-mirrors cython numpy nose pytz
+  - pip install --use-mirrors cython numpy nose pytz python-dateutil
 
 script:
   - python setup.py build_ext install
