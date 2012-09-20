@@ -1378,7 +1378,7 @@ class ExcelFile(object):
 
         if isinstance(parse_cols, int):
             return i <= parse_cols
-        if isinstance(parse_cols, basestring):
+        elif isinstance(parse_cols, basestring):
             return i in _range2cols(parse_cols)
         else:
             return i in parse_cols
