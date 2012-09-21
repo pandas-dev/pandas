@@ -147,9 +147,12 @@ class _NDFrameIndexer(object):
                     return ser.reindex(new_ix).values
 
         elif np.isscalar(indexer):
-            if ser.index.equals(self.obj.index):
+            ax = self.obj._get_axis(1)
+
+            if ser.index.equals(ax):
                 return ser.values.copy()
-            return ser.reindex(self.obj.index).values
+
+            return ser.reindex(ax).values
 
         raise ValueError('Incompatible indexer with Series')
 
@@ -176,6 +179,15 @@ class _NDFrameIndexer(object):
                 else:
                     val = df.reindex(idx, columns=cols).values
                 return val
+
+        elif ((isinstance(indexer, slice) or com.is_list_like(indexer))
+              and is_frame):
+            ax = self.obj.index[indexer]
+            if df.index.equals(ax):
+                val = df.copy().values
+            else:
+                val = df.reindex(ax).values
+            return val
 
         elif np.isscalar(indexer) and not is_frame:
             idx = self.obj.axes[1]

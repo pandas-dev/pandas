@@ -91,8 +91,25 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True):
     elif isinstance(arg, (np.ndarray, list)):
         if isinstance(arg, list):
             arg = np.array(arg, dtype='O')
-        result = _convert_f(arg)
-        return result
+
+        if com.is_datetime64_dtype(arg):
+            if box and not isinstance(arg, DatetimeIndex):
+                try:
+                    return DatetimeIndex(arg, tz='utc' if utc else None)
+                except ValueError, e:
+                    try:
+                        values, tz = lib.datetime_to_datetime64(arg)
+                        return DatetimeIndex._simple_new(values, None, tz=tz)
+                    except (ValueError, TypeError):
+                        raise e
+            return arg
+
+        try:
+            return _convert_f(arg)
+        except ValueError:
+            raise
+        return arg
+
     try:
         if not arg:
             return arg

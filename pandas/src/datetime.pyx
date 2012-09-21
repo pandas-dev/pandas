@@ -1005,6 +1005,12 @@ def _get_transitions(tz):
     """
     Get UTC times of DST transitions
     """
+    try:
+        # tzoffset not hashable in Python 3
+        hash(tz)
+    except TypeError:
+        return np.array([NPY_NAT + 1], dtype=np.int64)
+
     if tz not in trans_cache:
         if hasattr(tz, '_utc_transition_times'):
             arr = np.array(tz._utc_transition_times, dtype='M8[ns]')
@@ -1018,6 +1024,13 @@ def _get_deltas(tz):
     """
     Get UTC offsets in microseconds corresponding to DST transitions
     """
+    try:
+        # tzoffset not hashable in Python 3
+        hash(tz)
+    except TypeError:
+        num = int(total_seconds(_get_utcoffset(tz))) * 1000000000
+        return np.array([num], dtype=np.int64)
+
     if tz not in utc_offset_cache:
         if hasattr(tz, '_utc_transition_times'):
             utc_offset_cache[tz] = _unbox_utcoffsets(tz._transition_info)

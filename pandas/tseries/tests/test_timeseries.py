@@ -111,7 +111,7 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
             # create large list of non periodic datetime
             dates = []
             sec = datetime.timedelta(seconds=1)
-            half_sec = sec / 2
+            half_sec = datetime.timedelta(microseconds=500000)
             d = datetime.datetime(2011, 12, 5, 20, 30)
             n = 1100
             for i in range(n):
@@ -1149,6 +1149,14 @@ class TestTimeSeries(unittest.TestCase):
         self.assert_(stamp >= datetime(1600, 1, 1))
         self.assert_(stamp < datetime(2700, 1, 1))
         self.assert_(stamp <= datetime(2700, 1, 1))
+
+    def test_to_html_timestamp(self):
+        rng = date_range('2000-01-01', periods=10)
+        df = DataFrame(np.random.randn(10, 4), index=rng)
+
+        result = df.to_html()
+        self.assert_('2000-01-01' in result)
+
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)

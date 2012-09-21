@@ -191,6 +191,12 @@ class CheckIndexing(object):
         df = DataFrame(np.random.randn(8, 4))
         self.assert_(isnull(df.ix[:, [-1]].values).all())
 
+        # #1942
+        a = DataFrame(randn(20,2), index=[chr(x+65) for x in range(20)])
+        a.ix[-1] = a.ix[-2]
+
+        assert_series_equal(a.ix[-1], a.ix[-2])
+
     def test_getattr(self):
         tm.assert_series_equal(self.frame.A, self.frame['A'])
         self.assertRaises(AttributeError, getattr, self.frame,
@@ -720,6 +726,26 @@ class CheckIndexing(object):
         s = dft.ix[0, idx]
         assert_series_equal(s, b.reindex(s.index))
 
+    def test_ix_frame_align(self):
+        b = DataFrame(np.random.randn(3, 4))
+        df_orig = DataFrame(randn(10, 4))
+        df = df_orig.copy()
+
+        df.ix[:3] = b
+        out = b.ix[:3]
+        assert_frame_equal(out, b)
+
+        b.sort_index(inplace=True)
+        df = df_orig.copy()
+        df.ix[[0, 1, 2]] = b
+        out = df.ix[[0, 1, 2]].reindex(b.index)
+        assert_frame_equal(out, b)
+
+        df = df_orig.copy()
+        df.ix[:3] = b
+        out = df.ix[:3]
+        assert_frame_equal(out, b.reindex(out.index))
+
     def test_getitem_setitem_non_ix_labels(self):
         df = tm.makeTimeDataFrame()
 
@@ -1069,6 +1095,17 @@ class CheckIndexing(object):
         result = df.ix[df[0] > 0]
         exp = df[df[0] > 0]
         assert_frame_equal(result, exp)
+
+    def test_getitem_list_duplicates(self):
+        # #1943
+        df = DataFrame(np.random.randn(4,4), columns=list('AABC'))
+        df.columns.name = 'foo'
+
+        result = df[['B', 'C']]
+        self.assert_(result.columns.name == 'foo')
+
+        expected = df.ix[:, 2:]
+        assert_frame_equal(result, expected)
 
     def test_get_value(self):
         for idx in self.frame.index:

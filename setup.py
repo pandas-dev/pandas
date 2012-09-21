@@ -183,9 +183,9 @@ CLASSIFIERS = [
 MAJOR = 0
 MINOR = 9
 MICRO = 0
-ISRELEASED = False
+ISRELEASED = True
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
-QUALIFIER = ''
+QUALIFIER = 'rc1'
 
 FULLVERSION = VERSION
 if not ISRELEASED:
@@ -375,8 +375,11 @@ algos_ext = Extension('pandas._algos',
                       include_dirs=[np.get_include()],
                       )
 
+lib_depends = tseries_depends + ['pandas/src/numpy_helper.h',
+                                 'pandas/src/datetime/np_datetime.h',
+                                 'pandas/src/datetime/np_datetime_strings.h']
 lib_ext = Extension('pandas.lib',
-                    depends=tseries_depends + ['pandas/src/numpy_helper.h'],
+                    depends=lib_depends,
                     sources=[srcpath('tseries', suffix=suffix),
                              'pandas/src/datetime/np_datetime.c',
                              'pandas/src/datetime/np_datetime_strings.c'],

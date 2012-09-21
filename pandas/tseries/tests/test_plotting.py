@@ -286,6 +286,9 @@ class TestTSPlot(unittest.TestCase):
             self.assertEqual(int(result[0]), expected[0].ordinal)
             self.assertEqual(int(result[1]), expected[1].ordinal)
 
+        import matplotlib.pyplot as plt
+        plt.close('all')
+
         ser = tm.makeTimeSeries()
         ax = ser.plot()
         _test(ax)
@@ -840,6 +843,16 @@ class TestTSPlot(unittest.TestCase):
             if len(l.get_text()) > 0:
                 self.assert_(l.get_rotation() == 30)
 
+    @slow
+    def test_ax_plot(self):
+        x = DatetimeIndex(start='2012-01-02', periods=10,
+                          freq='D')
+        y = range(len(x))
+        import matplotlib.pyplot as plt
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        lines = ax.plot(x, y, label='Y')
+        assert_array_equal(DatetimeIndex(lines[0].get_xdata()), x)
 
 PNG_PATH = 'tmp.png'
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
