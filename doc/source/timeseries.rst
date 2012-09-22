@@ -140,7 +140,7 @@ to create timestamp indexes.
    index = bdate_range('2012-1-1', periods=250)
    index
 
-Convenience functions like ``date_range`` and ``bdate_range`` utilizes a
+Convenience functions like ``date_range`` and ``bdate_range`` utilize a
 variety of frequency aliases. The default frequency for ``date_range`` is a
 **calendar day** while the default for ``bdate_range`` is a **business day**
 
@@ -156,7 +156,7 @@ variety of frequency aliases. The default frequency for ``date_range`` is a
    rng
 
 ``date_range`` and ``bdate_range`` makes it easy to generate a range of dates
-using various combinations of its parameters like ``start``, ``end``,
+using various combinations of parameters like ``start``, ``end``,
 ``periods``, and ``freq``:
 
 .. ipython:: python
@@ -586,7 +586,7 @@ different parameters to control the frequency conversion and resampling
 operation.
 
 The ``how`` parameter can be a function name or numpy array function that takes
-and array and produces an aggregated values:
+an array and produces aggregated values:
 
 .. ipython:: python
 
