@@ -165,6 +165,7 @@ Binary operator functions
    Series.sub
    Series.combine
    Series.combine_first
+   Series.round
 
 Function application, GroupBy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -182,25 +183,36 @@ Computations / Descriptive Stats
 .. autosummary::
    :toctree: generated/
 
+   Series.abs
    Series.autocorr
+   Series.between
    Series.clip
    Series.clip_lower
    Series.clip_upper
    Series.corr
    Series.count
+   Series.cov
+   Series.cummax
+   Series.cummin
    Series.cumprod
    Series.cumsum
    Series.describe
    Series.diff
+   Series.kurt
+   Series.mad
    Series.max
    Series.mean
    Series.median
    Series.min
+   Series.nunique
+   Series.pct_change
    Series.prod
    Series.quantile
+   Series.rank
    Series.skew
    Series.std
    Series.sum
+   Series.unique
    Series.var
    Series.value_counts
 
@@ -211,11 +223,18 @@ Reindexing / Selection / Label manipulation
 
    Series.align
    Series.drop
+   Series.first
+   Series.head
+   Series.idxmax
+   Series.idxmin
+   Series.isin
+   Series.last
    Series.reindex
    Series.reindex_like
    Series.rename
    Series.select
    Series.take
+   Series.tail
    Series.truncate
 
 Missing data handling
@@ -234,9 +253,11 @@ Reshaping, sorting
 
    Series.argsort
    Series.order
+   Series.reorder_levels
    Series.sort
    Series.sort_index
    Series.sortlevel
+   Series.swaplevel
    Series.unstack
 
 Combining / joining / merging
@@ -245,6 +266,8 @@ Combining / joining / merging
    :toctree: generated/
 
    Series.append
+   Series.replace
+   Series.update
 
 Time series-related
 ~~~~~~~~~~~~~~~~~~~
@@ -257,6 +280,9 @@ Time series-related
    Series.first_valid_index
    Series.last_valid_index
    Series.weekday
+   Series.resample
+   Series.tz_convert
+   Series.tz_localize
 
 Plotting
 ~~~~~~~~
@@ -277,6 +303,7 @@ Serialization / IO / Conversion
    Series.to_csv
    Series.to_dict
    Series.to_sparse
+   Series.to_string
 
 .. _api.dataframe:
 
@@ -440,6 +467,7 @@ Time series-related
    DataFrame.shift
    DataFrame.first_valid_index
    DataFrame.last_valid_index
+   DataFrame.resample
 
 Plotting
 ~~~~~~~~
