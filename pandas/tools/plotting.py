@@ -1431,30 +1431,56 @@ def format_date_labels(ax, rot):
         pass
 
 
-def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False):
+def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False,
+                 sharex=True, sharey=True, xlim=None, ylim=None,
+                 **kwds):
     """
+    Draw scatter plot of the DataFrame's series using matplotlib / pylab.
 
-    Returns
-    -------
-    fig : matplotlib.Figure
+    Parameters
+    ----------
+    data : Dataframe
+    x : column name of Dataframe for x axis
+    y : column name of Dataframe for y axis
+    by : column in the DataFrame to group by    
+    ax : matplotlib axes object, default None
+    figsize : 
+    grid : boolean, default True
+        Whether to show axis grid lines
+    xlabelsize : int, default None
+        If specified changes the x-axis label size
+    ylabelsize : int, default None
+        If specified changes the y-axis label size
+    sharex : bool, if True, the X axis will be shared amongst all subplots.
+    sharey : bool, if True, the Y axis will be shared amongst all subplots.
+    xlim : 2-tuple/list
+    ylim : 2-tuple/list    
+    kwds : other plotting keyword arguments
+        To be passed to scatter function
     """
     import matplotlib.pyplot as plt
 
-    def plot_group(group, ax):
+    def plot_group(group, ax, xlim=None, ylim=None,**kwds):
         xvals = group[x].values
         yvals = group[y].values
-        ax.scatter(xvals, yvals)
+        ax.scatter(xvals, yvals, **kwds)
+        if ylim is not None:
+            ax.set_ylim(ylim)
+        if xlim is not None:
+            ax.set_xlim(xlim)
         ax.grid(grid)
 
     if by is not None:
-        fig = _grouped_plot(plot_group, data, by=by, figsize=figsize, ax=ax)
+        fig = _grouped_plot(plot_group, data, by=by, figsize=figsize,
+                            sharex=sharex, sharey=sharey, xlim=xlim, ylim=ylim,
+                            ax=ax, **kwds)           
     else:
         if ax is None:
             fig = plt.figure()
             ax = fig.add_subplot(111)
         else:
             fig = ax.get_figure()
-        plot_group(data, ax)
+        plot_group(data, ax, xlim=xlim, ylim=ylim, **kwds)
         ax.set_ylabel(com._stringify(y))
         ax.set_xlabel(com._stringify(x))
 
@@ -1638,7 +1664,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
 
 def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
                   figsize=None, sharex=True, sharey=True, layout=None,
-                  rot=0, ax=None):
+                  rot=0, grid=False, ax=None, **kwds):
     from pandas.core.frame import DataFrame
     import matplotlib.pyplot as plt
 
@@ -1675,8 +1701,9 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
         ax = ravel_axes[i]
         if numeric_only and isinstance(group, DataFrame):
             group = group._get_numeric_data()
-        plotf(group, ax)
+        plotf(group, ax, **kwds)
         ax.set_title(com._stringify(key))
+        ax.grid(grid)
 
     return fig, axes
 
