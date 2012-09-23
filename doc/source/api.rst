@@ -81,6 +81,27 @@ Standard moving window functions
    rolling_apply
    rolling_quantile
 
+Standard expanding window functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. currentmodule:: pandas.stats.moments
+
+.. autosummary::
+   :toctree: generated/
+
+   expanding_count
+   expanding_sum
+   expanding_mean
+   expanding_median
+   expanding_var
+   expanding_std
+   expanding_corr
+   expanding_cov
+   expanding_skew
+   expanding_kurt
+   expanding_apply
+   expanding_quantile
+
 Exponentially-weighted moving window functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -144,6 +165,7 @@ Binary operator functions
    Series.sub
    Series.combine
    Series.combine_first
+   Series.round
 
 Function application, GroupBy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -161,25 +183,37 @@ Computations / Descriptive Stats
 .. autosummary::
    :toctree: generated/
 
+   Series.abs
+   Series.any
    Series.autocorr
+   Series.between
    Series.clip
    Series.clip_lower
    Series.clip_upper
    Series.corr
    Series.count
+   Series.cov
+   Series.cummax
+   Series.cummin
    Series.cumprod
    Series.cumsum
    Series.describe
    Series.diff
+   Series.kurt
+   Series.mad
    Series.max
    Series.mean
    Series.median
    Series.min
+   Series.nunique
+   Series.pct_change
    Series.prod
    Series.quantile
+   Series.rank
    Series.skew
    Series.std
    Series.sum
+   Series.unique
    Series.var
    Series.value_counts
 
@@ -190,11 +224,19 @@ Reindexing / Selection / Label manipulation
 
    Series.align
    Series.drop
+   Series.first
+   Series.head
+   Series.idxmax
+   Series.idxmin
+   Series.isin
+   Series.last
    Series.reindex
    Series.reindex_like
    Series.rename
+   Series.reset_index
    Series.select
    Series.take
+   Series.tail
    Series.truncate
 
 Missing data handling
@@ -213,9 +255,11 @@ Reshaping, sorting
 
    Series.argsort
    Series.order
+   Series.reorder_levels
    Series.sort
    Series.sort_index
    Series.sortlevel
+   Series.swaplevel
    Series.unstack
 
 Combining / joining / merging
@@ -224,6 +268,8 @@ Combining / joining / merging
    :toctree: generated/
 
    Series.append
+   Series.replace
+   Series.update
 
 Time series-related
 ~~~~~~~~~~~~~~~~~~~
@@ -236,6 +282,9 @@ Time series-related
    Series.first_valid_index
    Series.last_valid_index
    Series.weekday
+   Series.resample
+   Series.tz_convert
+   Series.tz_localize
 
 Plotting
 ~~~~~~~~
@@ -256,6 +305,7 @@ Serialization / IO / Conversion
    Series.to_csv
    Series.to_dict
    Series.to_sparse
+   Series.to_string
 
 .. _api.dataframe:
 
@@ -287,6 +337,7 @@ Conversion / Constructors
 
    DataFrame.__init__
    DataFrame.astype
+   DataFrame.convert_objects
    DataFrame.copy
 
 Indexing, iteration
@@ -294,11 +345,16 @@ Indexing, iteration
 .. autosummary::
    :toctree: generated/
 
+   DataFrame.head
    DataFrame.ix
    DataFrame.insert
    DataFrame.__iter__
    DataFrame.iteritems
+   DataFrame.iterrows
+   DataFrame.itertuples
+   DataFrame.lookup
    DataFrame.pop
+   DataFrame.tail
    DataFrame.xs
 
 Binary operator functions
@@ -335,23 +391,31 @@ Computations / Descriptive Stats
 .. autosummary::
    :toctree: generated/
 
+   DataFrame.abs
+   DataFrame.any
    DataFrame.clip
    DataFrame.clip_lower
    DataFrame.clip_upper
    DataFrame.corr
    DataFrame.corrwith
    DataFrame.count
+   DataFrame.cov
+   DataFrame.cummax
+   DataFrame.cummin
    DataFrame.cumprod
    DataFrame.cumsum
    DataFrame.describe
    DataFrame.diff
+   DataFrame.kurt
    DataFrame.mad
    DataFrame.max
    DataFrame.mean
    DataFrame.median
    DataFrame.min
+   DataFrame.pct_change
    DataFrame.prod
    DataFrame.quantile
+   DataFrame.rank
    DataFrame.skew
    DataFrame.sum
    DataFrame.std
@@ -366,15 +430,24 @@ Reindexing / Selection / Label manipulation
    DataFrame.add_suffix
    DataFrame.align
    DataFrame.drop
+   DataFrame.drop_duplicates
+   DataFrame.duplicated
    DataFrame.filter
+   DataFrame.first
+   DataFrame.head
+   DataFrame.idxmax
+   DataFrame.idxmin
+   DataFrame.last
    DataFrame.reindex
+   DataFrame.reindex_axis
    DataFrame.reindex_like
    DataFrame.rename
+   DataFrame.reset_index
    DataFrame.select
+   DataFrame.set_index
+   DataFrame.tail
    DataFrame.take
    DataFrame.truncate
-   DataFrame.head
-   DataFrame.tail
 
 .. _api.dataframe.missing:
 
@@ -391,14 +464,17 @@ Reshaping, sorting, transposing
 .. autosummary::
    :toctree: generated/
 
-   DataFrame.sort_index
    DataFrame.delevel
    DataFrame.pivot
+   DataFrame.reorder_levels
+   DataFrame.sort
+   DataFrame.sort_index
    DataFrame.sortlevel
    DataFrame.swaplevel
    DataFrame.stack
    DataFrame.unstack
    DataFrame.T
+   DataFrame.to_panel
    DataFrame.transpose
 
 Combining / joining / merging
@@ -406,9 +482,11 @@ Combining / joining / merging
 .. autosummary::
    :toctree: generated/
 
+   DataFrame.append
    DataFrame.join
    DataFrame.merge
-   DataFrame.append
+   DataFrame.replace
+   DataFrame.update
 
 Time series-related
 ~~~~~~~~~~~~~~~~~~~
@@ -419,12 +497,18 @@ Time series-related
    DataFrame.shift
    DataFrame.first_valid_index
    DataFrame.last_valid_index
+   DataFrame.resample
+   DataFrame.to_period
+   DataFrame.to_timestamp
+   DataFrame.tz_convert
+   DataFrame.tz_localize
 
 Plotting
 ~~~~~~~~
 .. autosummary::
    :toctree: generated/
 
+   DataFrame.boxplot
    DataFrame.hist
    DataFrame.plot
 
@@ -434,16 +518,19 @@ Serialization / IO / Conversion
    :toctree: generated/
 
    DataFrame.from_csv
+   DataFrame.from_dict
+   DataFrame.from_items
    DataFrame.from_records
+   DataFrame.info
+   DataFrame.load
+   DataFrame.save
    DataFrame.to_csv
-   DataFrame.to_excel
    DataFrame.to_dict
+   DataFrame.to_excel
+   DataFrame.to_html
    DataFrame.to_records
    DataFrame.to_sparse
    DataFrame.to_string
-   DataFrame.save
-   DataFrame.load
-   DataFrame.info
 
 .. _api.panel:
 

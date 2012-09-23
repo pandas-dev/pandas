@@ -107,12 +107,14 @@ class Timestamp(_Timestamp):
         try:
             result += self.strftime('%z')
             if self.tzinfo:
-                result += self.strftime(' %%Z, tz=%s' % self.tzinfo.zone)
+                zone = _get_zone(self.tzinfo)
+                result += self.strftime(' %%Z, tz=%s' % zone)
         except ValueError:
             year2000 = self.replace(year=2000)
             result += year2000.strftime('%z')
             if self.tzinfo:
-                result += year2000.strftime(' %%Z, tz=%s' % self.tzinfo.zone)
+                zone = _get_zone(self.tzinfo)
+                result += year2000.strftime(' %%Z, tz=%s' % zone)
 
         return '<Timestamp: %s>' % result
 
@@ -379,7 +381,10 @@ cdef class _Timestamp(datetime):
         if isinstance(other, _Timestamp):
             ots = other
         elif isinstance(other, datetime):
-            ots = Timestamp(other)
+            try:
+                ots = Timestamp(other)
+            except ValueError:
+                return self._compare_outside_nanorange(other, op)
         else:
             if op == 2:
                 return False
@@ -388,11 +393,7 @@ cdef class _Timestamp(datetime):
             else:
                 raise TypeError('Cannot compare Timestamp with %s' % str(other))
 
-        if self.tzinfo is None:
-            if other.tzinfo is not None:
-                raise Exception('Cannot compare tz-naive and tz-aware timestamps')
-        elif other.tzinfo is None:
-            raise Exception('Cannot compare tz-naive and tz-aware timestamps')
+        self._assert_tzawareness_compat(other)
 
         if op == 2: # ==
             return self.value == ots.value
@@ -406,6 +407,52 @@ cdef class _Timestamp(datetime):
             return self.value > ots.value
         elif op == 5: # >=
             return self.value >= ots.value
+
+    cdef _compare_outside_nanorange(self, object other, int op):
+        dtval = self.to_datetime()
+
+        self._assert_tzawareness_compat(other)
+
+        if self.nanosecond == 0:
+            if op == 2: # ==
+                return dtval == other
+            elif op == 3: # !=
+                return dtval != other
+            elif op == 0: # <
+                return dtval < other
+            elif op == 1: # <=
+                return dtval <= other
+            elif op == 4: # >
+                return dtval > other
+            elif op == 5: # >=
+                return dtval >= other
+        else:
+            if op == 2: # ==
+                return False
+            elif op == 3: # !=
+                return True
+            elif op == 0: # <
+                return dtval < other
+            elif op == 1: # <=
+                return dtval < other
+            elif op == 4: # >
+                return dtval >= other
+            elif op == 5: # >=
+                return dtval >= other
+
+    cdef _assert_tzawareness_compat(self, object other):
+        if self.tzinfo is None:
+            if other.tzinfo is not None:
+                raise Exception('Cannot compare tz-naive and '
+                                'tz-aware timestamps')
+        elif other.tzinfo is None:
+            raise Exception('Cannot compare tz-naive and tz-aware timestamps')
+
+    cpdef to_datetime(self):
+        return datetime(self.year, self.month, self.day,
+                        self.hour, self.minute, self.second,
+                        self.microsecond, tzinfo=self.tzinfo)
+
 
     def __add__(self, other):
         if is_integer_object(other):
@@ -480,6 +527,12 @@ cdef class _TSObject:
         def __get__(self):
             return self.value
 
+cpdef _get_utcoffset(tzinfo, obj):
+    try:
+        return tzinfo._utcoffset
+    except AttributeError:
+        return tzinfo.utcoffset(obj)
+
 # helper to extract datetime and int64 from several different possibilities
 cpdef convert_to_tsobject(object ts, object tz=None):
     """
@@ -517,20 +570,22 @@ cpdef convert_to_tsobject(object ts, object tz=None):
                 ts = tz.normalize(ts)
                 obj.value = _pydatetime_to_dts(ts, &obj.dts)
                 obj.tzinfo = ts.tzinfo
-            elif tz is not pytz.utc:
+            elif not _is_utc(tz):
                 ts = tz.localize(ts)
                 obj.value = _pydatetime_to_dts(ts, &obj.dts)
-                obj.value -= _delta_to_nanoseconds(ts.tzinfo._utcoffset)
+                offset = _get_utcoffset(ts.tzinfo, ts)
+                obj.value -= _delta_to_nanoseconds(offset)
                 obj.tzinfo = ts.tzinfo
             else:
                 # UTC
                 obj.value = _pydatetime_to_dts(ts, &obj.dts)
-                obj.tzinfo = tz
+                obj.tzinfo = pytz.utc
         else:
             obj.value = _pydatetime_to_dts(ts, &obj.dts)
             obj.tzinfo = ts.tzinfo
             if obj.tzinfo is not None and not _is_utc(obj.tzinfo):
-                obj.value -= _delta_to_nanoseconds(obj.tzinfo._utcoffset)
+                offset = _get_utcoffset(obj.tzinfo, ts)
+                obj.value -= _delta_to_nanoseconds(offset)
         _check_dts_bounds(obj.value, &obj.dts)
         return obj
     elif PyDate_Check(ts):
@@ -564,6 +619,9 @@ cpdef convert_to_tsobject(object ts, object tz=None):
 
     return obj
 
+def get_timezone(tz):
+    return _get_zone(tz)
+
 cdef inline bint _is_utc(object tz):
     return tz is UTC or isinstance(tz, _du_utc)
 
@@ -571,7 +629,10 @@ cdef inline object _get_zone(object tz):
     if _is_utc(tz):
         return 'UTC'
     else:
-        return tz.zone
+        try:
+            return tz.zone
+        except AttributeError:
+            return tz
 
 cdef int64_t _NS_LOWER_BOUND = -9223285636854775809LL
 cdef int64_t _NS_UPPER_BOUND = -9223372036854775807LL
@@ -842,7 +903,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
 
     # Convert to UTC
 
-    if tz1.zone != 'UTC':
+    if _get_zone(tz1) != 'UTC':
         utc_dates = np.empty(n, dtype=np.int64)
         deltas = _get_deltas(tz1)
         trans = _get_transitions(tz1)
@@ -860,7 +921,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
     else:
         utc_dates = vals
 
-    if tz2.zone == 'UTC':
+    if _get_zone(tz2) == 'UTC':
         return utc_dates
 
     # Convert UTC to other timezone
@@ -872,7 +933,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
     if pos == 0:
         raise ValueError('First time before start of DST info')
     elif pos == len(trans):
-        return result + deltas[-1]
+        return utc_dates + deltas[-1]
 
     # TODO: this assumed sortedness :/
     pos -= 1
@@ -899,7 +960,7 @@ def tz_convert_single(int64_t val, object tz1, object tz2):
 
     # Convert to UTC
 
-    if tz1.zone != 'UTC':
+    if _get_zone(tz1) != 'UTC':
         deltas = _get_deltas(tz1)
         trans = _get_transitions(tz1)
         pos = trans.searchsorted(val) - 1
@@ -910,7 +971,7 @@ def tz_convert_single(int64_t val, object tz1, object tz2):
     else:
         utc_date = val
 
-    if tz2.zone == 'UTC':
+    if _get_zone(tz2) == 'UTC':
         return utc_date
 
     # Convert UTC to other timezone
@@ -931,10 +992,21 @@ def _get_transitions(tz):
     """
     Get UTC times of DST transitions
     """
+    try:
+        # tzoffset not hashable in Python 3
+        hash(tz)
+    except TypeError:
+        return np.array([NPY_NAT + 1], dtype=np.int64)
+
     if tz not in trans_cache:
         if hasattr(tz, '_utc_transition_times'):
             arr = np.array(tz._utc_transition_times, dtype='M8[ns]')
             arr = arr.view('i8')
+            try:
+                if tz._utc_transition_times[0].year == 1:
+                    arr[0] = NPY_NAT + 1
+            except Exception:
+                pass
         else:
             arr = np.array([NPY_NAT + 1], dtype=np.int64)
         trans_cache[tz] = arr
@@ -944,18 +1016,28 @@ def _get_deltas(tz):
     """
     Get UTC offsets in microseconds corresponding to DST transitions
     """
+    try:
+        # tzoffset not hashable in Python 3
+        hash(tz)
+    except TypeError:
+        num = int(total_seconds(_get_utcoffset(tz, None))) * 1000000000
+        return np.array([num], dtype=np.int64)
+
     if tz not in utc_offset_cache:
         if hasattr(tz, '_utc_transition_times'):
             utc_offset_cache[tz] = _unbox_utcoffsets(tz._transition_info)
         else:
             # static tzinfo
-            num = int(total_seconds(tz._utcoffset)) * 1000000000
+            num = int(total_seconds(_get_utcoffset(tz, None))) * 1000000000
             utc_offset_cache[tz] = np.array([num], dtype=np.int64)
     return utc_offset_cache[tz]
 
 cdef double total_seconds(object td): # Python 2.6 compat
     return ((td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) //
             10**6)
+
+def tot_seconds(td):
+    return total_seconds(td)
 
 cpdef ndarray _unbox_utcoffsets(object transinfo):
     cdef:
@@ -1359,10 +1441,26 @@ def monthrange(int64_t year, int64_t month):
     if month < 1 or month > 12:
         raise ValueError("bad month number 0; must be 1-12")
 
-    days = _days_per_month_table[is_leapyear(year)][month-1]
+    days = days_per_month_table[is_leapyear(year)][month-1]
 
     return (dayofweek(year, month, 1), days)
 
 cdef inline int64_t ts_dayofweek(_TSObject ts):
     return dayofweek(ts.dts.year, ts.dts.month, ts.dts.day)
 
+
+cpdef normalize_date(object dt):
+    '''
+    Normalize datetime.datetime value to midnight. Returns datetime.date as a
+    datetime.datetime at midnight
+
+    Returns
+    -------
+    normalized : datetime.datetime or Timestamp
+    '''
+    if PyDateTime_Check(dt):
+        return dt.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif PyDate_Check(dt):
+        return datetime(dt.year, dt.month, dt.day)
+    else:
+        raise TypeError('Unrecognized type: %s' % type(dt))

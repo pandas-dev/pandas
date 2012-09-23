@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 try:
     from StringIO import StringIO
 except:
@@ -16,6 +18,7 @@ from pandas import DataFrame, Series, Index
 import pandas.core.format as fmt
 import pandas.util.testing as tm
 import pandas
+import pandas as pd
 
 _frame = DataFrame(tm.getSeriesData())
 
@@ -58,6 +61,26 @@ class TestDataFrameFormatting(unittest.TestCase):
         df = DataFrame({'tups' : zip(range(10), range(10))})
         repr(df)
         df.to_string(col_space=10, buf=buf)
+
+    def test_repr_truncation(self):
+        max_len = 20
+        fmt.print_config.max_colwidth = max_len
+        df = DataFrame({'A': np.random.randn(10),
+                 'B': [tm.rands(np.random.randint(max_len - 1,
+                     max_len + 1)) for i in range(10)]})
+        r = repr(df)
+        r = r[r.find('\n') + 1:]
+        for line, value in zip(r.split('\n'), df['B']):
+            if fmt._strlen(value) + 1 > max_len:
+                self.assert_('...' in line)
+            else:
+                self.assert_('...' not in line)
+
+        fmt.print_config.max_colwidth = None
+        self.assert_('...' not in repr(df))
+
+        fmt.print_config.max_colwidth = max_len + 2
+        self.assert_('...' not in repr(df))
 
     def test_to_string_repr_unicode(self):
         buf = StringIO()
@@ -110,6 +133,12 @@ class TestDataFrameFormatting(unittest.TestCase):
         buf = StringIO()
         dm.to_string(buf)
 
+    def test_to_string_force_unicode(self):
+        #given string with non-ascii characters
+        df = DataFrame([["aaää", 1], ["bbbb", 2]])
+        result = df.to_string(force_unicode=True)
+        self.assertEqual(result, u'      0  1\n0  aa\xe4\xe4  1\n1  bbbb  2')
+
     def test_to_string_with_formatters(self):
         df = DataFrame({'int': [1, 2, 3],
                         'float': [1.0, 2.0, 3.0],
@@ -150,6 +179,48 @@ class TestDataFrameFormatting(unittest.TestCase):
         df.to_html()
         df = DataFrame({'A' : [u'\u03c3']})
         df.to_html()
+
+    def test_to_html_multiindex_sparsify(self):
+        index = pd.MultiIndex.from_arrays([[0, 0, 1, 1], [0, 1, 0, 1]])
+
+        df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]], index=index)
+
+        result = df.to_html()
+        expected = """<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th></th>
+      <th>0</th>
+      <th>1</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td rowspan="2" valign="top"><strong>0</strong></td>
+      <td><strong>0</strong></td>
+      <td> 0</td>
+      <td> 1</td>
+    </tr>
+    <tr>
+      <td><strong>1</strong></td>
+      <td> 2</td>
+      <td> 3</td>
+    </tr>
+    <tr>
+      <td rowspan="2" valign="top"><strong>1</strong></td>
+      <td><strong>0</strong></td>
+      <td> 4</td>
+      <td> 5</td>
+    </tr>
+    <tr>
+      <td><strong>1</strong></td>
+      <td> 6</td>
+      <td> 7</td>
+    </tr>
+  </tbody>
+</table>"""
+        self.assertEquals(result, expected)
 
     def test_nonunicode_nonascii_alignment(self):
         df = DataFrame([["aa\xc3\xa4\xc3\xa4", 1], ["bbbb", 2]])
@@ -298,6 +369,31 @@ class TestDataFrameFormatting(unittest.TestCase):
                         '0  1.000000e+09\n'
                         '1  2.512000e-01')
         assert(df_s == expected)
+
+    def test_to_string_small_float_values(self):
+        df = DataFrame({'a': [1.5, 1e-17, -5.5e-7]})
+
+        result = df.to_string()
+        # sadness per above
+        if '%.4g' % 1.7e8 == '1.7e+008':
+            expected = ('               a\n'
+                        '0  1.500000e+000\n'
+                        '1  1.000000e-017\n'
+                        '2 -5.500000e-007')
+        else:
+            expected = ('              a\n'
+                        '0  1.500000e+00\n'
+                        '1  1.000000e-17\n'
+                        '2 -5.500000e-07')
+        self.assertEqual(result, expected)
+
+        # but not all exactly zero
+        df = df * 0
+        result = df.to_string()
+        expected = ('   0\n'
+                    '0  0\n'
+                    '1  0\n'
+                    '2 -0')
 
     def test_to_string_float_index(self):
         index = Index([1.5, 2, 3, 4, 5])
@@ -693,6 +789,11 @@ class TestSeriesFormatting(unittest.TestCase):
                     '3   -3.0000\n'
                     '4       NaN')
         self.assertEqual(result, expected)
+
+    def test_unicode_name_in_footer(self):
+        s=Series([1,2],name=u'\u05e2\u05d1\u05e8\u05d9\u05ea')
+        sf=fmt.SeriesFormatter(s,name=u'\u05e2\u05d1\u05e8\u05d9\u05ea')
+        sf._get_footer() # should not raise exception
 
 class TestEngFormatter(unittest.TestCase):
 

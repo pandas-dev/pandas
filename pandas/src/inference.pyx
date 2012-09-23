@@ -59,6 +59,8 @@ def infer_dtype(object _values):
     elif util.is_integer_object(val):
         if is_integer_array(values):
             return 'integer'
+        elif is_integer_float_array(values):
+            return 'mixed-integer-float'
         return 'mixed-integer'
     elif is_datetime(val):
         if is_datetime_array(values):
@@ -75,6 +77,8 @@ def infer_dtype(object _values):
     elif util.is_float_object(val):
         if is_float_array(values):
             return 'floating'
+        elif is_integer_float_array(values):
+            return 'mixed-integer-float'
 
     elif util.is_bool_object(val):
         if is_bool_array(values):
@@ -150,6 +154,29 @@ def is_integer_array(ndarray values):
 
         for i in range(n):
             if not util.is_integer_object(objbuf[i]):
+                return False
+        return True
+    else:
+        return False
+
+def is_integer_float_array(ndarray values):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[object] objbuf
+        object obj
+
+    if issubclass(values.dtype.type, np.integer):
+        return True
+    elif values.dtype == np.object_:
+        objbuf = values
+
+        if n == 0:
+            return False
+
+        for i in range(n):
+            if not (util.is_integer_object(objbuf[i]) or
+                    util.is_float_object(objbuf[i])):
+
                 return False
         return True
     else:
@@ -571,8 +598,8 @@ def try_parse_date_and_time(ndarray[object] dates, ndarray[object] times,
         parse_time = time_parser
 
     for i from 0 <= i < n:
-        d = parse_date(dates[i])
-        t = parse_time(times[i])
+        d = parse_date(str(dates[i]))
+        t = parse_time(str(times[i]))
         result[i] = datetime(d.year, d.month, d.day,
                              t.hour, t.minute, t.second)
 
@@ -647,16 +674,25 @@ def maybe_convert_bool(ndarray[object] arr):
         Py_ssize_t i, n
         ndarray[uint8_t] result
         object val
+        set true_vals, false_vals
 
     n = len(arr)
     result = np.empty(n, dtype=np.uint8)
 
+    true_vals = set(('True', 'TRUE', 'true', 'Yes', 'YES', 'yes'))
+    false_vals = set(('False', 'FALSE', 'false', 'No', 'NO', 'no'))
+
     for i from 0 <= i < n:
         val = arr[i]
 
-        if val == 'True' or type(val) == bool and val:
+        if cpython.PyBool_Check(val):
+            if val is True:
+                result[i] = 1
+            else:
+                result[i] = 0
+        elif val in true_vals:
             result[i] = 1
-        elif val == 'False' or type(val) == bool and not val:
+        elif val in false_vals:
             result[i] = 0
         else:
             return arr
@@ -829,4 +865,3 @@ def fast_multiget(dict mapping, ndarray keys, default=np.nan):
             output[i] = default
 
     return maybe_convert_objects(output)
-

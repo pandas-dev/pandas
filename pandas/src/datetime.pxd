@@ -95,7 +95,7 @@ cdef extern from "datetime/np_datetime.h":
     void pandas_datetime_to_datetimestruct(npy_datetime val,
                                            PANDAS_DATETIMEUNIT fr,
                                            pandas_datetimestruct *result)
-    int _days_per_month_table[2][12]
+    int days_per_month_table[2][12]
 
     int dayofweek(int y, int m, int d)
     int is_leapyear(int64_t year)

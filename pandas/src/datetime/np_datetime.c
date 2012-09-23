@@ -36,6 +36,11 @@
   #define PyInt_AsUnsignedLongLongMask PyLong_AsUnsignedLongLongMask
 #endif
 
+const int days_per_month_table[2][12] = {
+    { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
+    { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
+};
+
 /*
  * Returns 1 if the given year is a leap year, 0 otherwise.
  */
@@ -52,7 +57,7 @@ int is_leapyear(npy_int64 year)
 int dayofweek(int y, int m, int d)
 {
     int day;
-    static int t[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
+    static const int t[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
     y -= m < 3;
     day = (y + y/4 - y/100 + y/400 + t[m-1] + d) % 7;
     // convert to python day
@@ -97,12 +102,12 @@ add_minutes_to_datetimestruct(pandas_datetimestruct *dts, int minutes)
             dts->month = 12;
         }
         isleap = is_leapyear(dts->year);
-        dts->day += _days_per_month_table[isleap][dts->month-1];
+        dts->day += days_per_month_table[isleap][dts->month-1];
     }
     else if (dts->day > 28) {
         isleap = is_leapyear(dts->year);
-        if (dts->day > _days_per_month_table[isleap][dts->month-1]) {
-            dts->day -= _days_per_month_table[isleap][dts->month-1];
+        if (dts->day > days_per_month_table[isleap][dts->month-1]) {
+            dts->day -= days_per_month_table[isleap][dts->month-1];
             dts->month++;
             if (dts->month > 12) {
                 dts->year++;
@@ -120,7 +125,7 @@ get_datetimestruct_days(const pandas_datetimestruct *dts)
 {
     int i, month;
     npy_int64 year, days = 0;
-    int *month_lengths;
+    const int *month_lengths;
 
     year = dts->year - 1970;
     days = year * 365;
@@ -160,7 +165,7 @@ get_datetimestruct_days(const pandas_datetimestruct *dts)
         days += year / 400;
     }
 
-    month_lengths = _days_per_month_table[is_leapyear(dts->year)];
+    month_lengths = days_per_month_table[is_leapyear(dts->year)];
     month = dts->month - 1;
 
     /* Add the months */
@@ -250,10 +255,11 @@ add_seconds_to_datetimestruct(pandas_datetimestruct *dts, int seconds)
 static void
 set_datetimestruct_days(npy_int64 days, pandas_datetimestruct *dts)
 {
-    int *month_lengths, i;
+    const int *month_lengths;
+    int i;
 
     dts->year = days_to_yearsdays(&days);
-    month_lengths = _days_per_month_table[is_leapyear(dts->year)];
+    month_lengths = days_per_month_table[is_leapyear(dts->year)];
 
     for (i = 0; i < 12; ++i) {
         if (days < month_lengths[i]) {
@@ -348,7 +354,7 @@ convert_pydatetime_to_datetimestruct(PyObject *obj, pandas_datetimestruct *out,
     }
     isleap = is_leapyear(out->year);
     if (out->day < 1 ||
-                out->day > _days_per_month_table[isleap][out->month-1]) {
+                out->day > days_per_month_table[isleap][out->month-1]) {
         goto invalid_date;
     }
 

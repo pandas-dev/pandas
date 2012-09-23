@@ -57,10 +57,7 @@ void pandas_datetime_to_datetimestruct(npy_datetime val, PANDAS_DATETIMEUNIT fr,
 
 int dayofweek(int y, int m, int d);
 
-static int _days_per_month_table[2][12] = {
-    { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
-    { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
-};
+extern const int days_per_month_table[2][12];
 
 // stuff numpy-derived code needs in header
 // ----------------------------------------------------------------------------

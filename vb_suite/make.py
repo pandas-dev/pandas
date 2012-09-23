@@ -98,7 +98,7 @@ def sendmail(err_msg=None):
     finally:
         server.close()
 
-def _get_dir():
+def _get_dir(subdir=None):
     import getpass
     USERNAME = getpass.getuser()
     if sys.platform == 'darwin':
@@ -106,8 +106,10 @@ def _get_dir():
     else:
         HOME = '/home/%s' % USERNAME
 
-    tmp_dir = '%s/tmp' % HOME
-    return tmp_dir
+    if subdir is None:
+        subdir = '/code/scripts'
+    conf_dir = '%s%s' % (HOME, subdir)
+    return conf_dir
 
 def _get_credentials():
     tmp_dir = _get_dir()
@@ -125,7 +127,7 @@ def _get_credentials():
 
 def _get_config():
     tmp_dir = _get_dir()
-    with open('%s/config' % tmp_dir, 'r') as fh:
+    with open('%s/addresses' % tmp_dir, 'r') as fh:
         from_name, to_name = fh.read().split(',')
     return from_name, to_name
 

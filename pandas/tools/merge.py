@@ -628,8 +628,10 @@ class _BlockJoinOperation(object):
 
         for unit in self.units:
             join_blocks = unit.get_upcasted_blocks()
-            type_map = dict((type(blk), blk) for blk in join_blocks)
-            blockmaps.append(type_map)
+            type_map = {}
+            for blk in join_blocks:
+                type_map.setdefault(type(blk), []).append(blk)
+            blockmaps.append((unit, type_map))
 
         return blockmaps
 
@@ -640,26 +642,22 @@ class _BlockJoinOperation(object):
         merged : BlockManager
         """
         blockmaps = self._prepare_blocks()
-        kinds = _get_all_block_kinds(blockmaps)
+        kinds = _get_merge_block_kinds(blockmaps)
 
         result_blocks = []
 
         # maybe want to enable flexible copying <-- what did I mean?
         for klass in kinds:
-            klass_blocks = [mapping.get(klass) for mapping in blockmaps]
+            klass_blocks = []
+            for unit, mapping in blockmaps:
+                if klass in mapping:
+                    klass_blocks.extend((unit, b) for b in mapping[klass])
             res_blk = self._get_merged_block(klass_blocks)
             result_blocks.append(res_blk)
 
         return BlockManager(result_blocks, self.result_axes)
 
-    def _get_merged_block(self, blocks):
-
-        to_merge = []
-
-        for unit, block in zip(self.units, blocks):
-            if block is not None:
-                to_merge.append((unit, block))
-
+    def _get_merged_block(self, to_merge):
         if len(to_merge) > 1:
             return self._merge_blocks(to_merge)
         else:
@@ -682,7 +680,8 @@ class _BlockJoinOperation(object):
         out_shape[self.axis] = n
 
         # Should use Fortran order??
-        out = np.empty(out_shape, dtype=fblock.values.dtype)
+        block_dtype = _get_block_dtype([x[1] for x in merge_chunks])
+        out = np.empty(out_shape, dtype=block_dtype)
 
         sofar = 0
         for unit, blk in merge_chunks:
@@ -786,6 +785,25 @@ def _get_all_block_kinds(blockmaps):
     for mapping in blockmaps:
         kinds |= set(mapping)
     return kinds
+
+def _get_merge_block_kinds(blockmaps):
+    kinds = set()
+    for _, mapping in blockmaps:
+        kinds |= set(mapping)
+    return kinds
+
+def _get_block_dtype(blocks):
+    if len(blocks) == 0:
+        return object
+    blk1 = blocks[0]
+    dtype = blk1.dtype
+
+    if issubclass(dtype.type, np.floating):
+        for blk in blocks:
+            if blk.dtype.type == np.float64:
+                return blk.dtype
+
+    return dtype
 
 #----------------------------------------------------------------------
 # Concatenate DataFrame objects
@@ -928,16 +946,20 @@ class _Concatenator(object):
     def _get_fresh_axis(self):
         return Index(np.arange(len(self._get_concat_axis())))
 
+    def _prepare_blocks(self):
+        reindexed_data = self._get_reindexed_data()
+
+        blockmaps = []
+        for data in reindexed_data:
+            data = data.consolidate()
+            type_map = dict((type(blk), blk) for blk in data.blocks)
+            blockmaps.append(type_map)
+        return blockmaps
+
     def _get_concatenated_data(self):
         try:
             # need to conform to same other (joined) axes for block join
-            reindexed_data = self._get_reindexed_data()
-
-            blockmaps = []
-            for data in reindexed_data:
-                data = data.consolidate()
-                type_map = dict((type(blk), blk) for blk in data.blocks)
-                blockmaps.append(type_map)
+            blockmaps = self._prepare_blocks()
             kinds = _get_all_block_kinds(blockmaps)
 
             new_blocks = []

@@ -3,6 +3,7 @@ import unittest
 import numpy as np
 
 from pandas.core.api import Series
+import pandas as pd
 
 import pandas.core.algorithms as algos
 import pandas.util.testing as tm
@@ -41,6 +42,22 @@ class TestUnique(unittest.TestCase):
         result = algos.unique(arr)
         self.assert_(isinstance(result, np.ndarray))
 
+    def test_object_refcount_bug(self):
+        lst = ['A', 'B', 'C', 'D', 'E']
+        for i in xrange(1000): len(algos.unique(lst))
+
+    def test_on_index_object(self):
+        mindex = pd.MultiIndex.from_arrays([np.arange(5).repeat(5),
+                                            np.tile(np.arange(5), 5)])
+        mindex = mindex.repeat(2)
+
+        result = pd.unique(mindex)
+        result.sort()
+
+        expected = mindex.values
+        expected.sort()
+
+        tm.assert_almost_equal(result, expected)
 
 def test_quantile():
     s = Series(np.random.randn(100))

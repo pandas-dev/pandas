@@ -218,7 +218,7 @@ cdef class MonthOffset(_Offset):
                 self.m -= 12
                 self.y += 1
                 self.ly = is_leapyear(self.y)
-            days += _days_per_month_table[self.ly][self.m]
+            days += days_per_month_table[self.ly][self.m]
             self.m += 1
 
         self.t += days * us_in_day
@@ -238,7 +238,7 @@ cdef class MonthOffset(_Offset):
                 self.m += 12
                 self.y -= 1
                 self.ly = is_leapyear(self.y)
-            days += _days_per_month_table[self.ly][self.m]
+            days += days_per_month_table[self.ly][self.m]
 
         self.t -= days * us_in_day
 
@@ -286,7 +286,7 @@ cdef class DayOfMonthOffset(_Offset):
         cdef:
             int64_t tmp, days
 
-        days = _days_per_month_table[self.ly][self.m]
+        days = days_per_month_table[self.ly][self.m]
         self.t += days * us_in_day
         self.dow = (self.dow + days) % 7
 
@@ -300,7 +300,7 @@ cdef class DayOfMonthOffset(_Offset):
         cdef:
             int64_t tmp, days
 
-        days = _days_per_month_table[self.ly][(self.m - 1) % 12]
+        days = days_per_month_table[self.ly][(self.m - 1) % 12]
         self.t -= days * us_in_day
         self.dow = (self.dow - days) % 7
 

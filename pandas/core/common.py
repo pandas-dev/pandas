@@ -29,7 +29,7 @@ from pandas.util.py3compat import StringIO, BytesIO
 # XXX: HACK for NumPy 1.5.1 to suppress warnings
 try:
     np.seterr(all='ignore')
-    np.set_printoptions(suppress=True)
+    # np.set_printoptions(suppress=True)
 except Exception: # pragma: no cover
     pass
 
@@ -70,12 +70,16 @@ def _isnull_ndarraylike(obj):
     from pandas import Series
     values = np.asarray(obj)
 
-    if values.dtype.kind in ('O', 'S'):
+    if values.dtype.kind in ('O', 'S', 'U'):
         # Working around NumPy ticket 1542
         shape = values.shape
-        result = np.empty(shape, dtype=bool)
-        vec = lib.isnullobj(values.ravel())
-        result[:] = vec.reshape(shape)
+
+        if values.dtype.kind in ('S', 'U'):
+            result = np.zeros(values.shape, dtype=bool)
+        else:
+            result = np.empty(shape, dtype=bool)
+            vec = lib.isnullobj(values.ravel())
+            result[:] = vec.reshape(shape)
 
         if isinstance(obj, Series):
             result = Series(result, index=obj.index, copy=False)
@@ -445,7 +449,11 @@ def pad_2d(values, limit=None, mask=None):
         mask = isnull(values)
     mask = mask.view(np.uint8)
 
-    _method(values, mask, limit=limit)
+    if np.all(values.shape):
+        _method(values, mask, limit=limit)
+    else:
+        # for test coverage
+        pass
 
 def backfill_2d(values, limit=None, mask=None):
     if is_float_dtype(values):
@@ -461,7 +469,11 @@ def backfill_2d(values, limit=None, mask=None):
         mask = isnull(values)
     mask = mask.view(np.uint8)
 
-    _method(values, mask, limit=limit)
+    if np.all(values.shape):
+        _method(values, mask, limit=limit)
+    else:
+        # for test coverage
+        pass
 
 def _consensus_name_attr(objs):
     name = objs[0].name
@@ -669,8 +681,12 @@ def intersection(*seqs):
     return type(seqs[0])(list(result))
 
 def _asarray_tuplesafe(values, dtype=None):
+    from pandas.core.index import Index
+
     if not isinstance(values, (list, tuple, np.ndarray)):
         values = list(values)
+    elif isinstance(values, Index):
+        return values.values
 
     if isinstance(values, list) and dtype in [np.object_, object]:
         return lib.list_to_object_array(values)
@@ -759,6 +775,8 @@ def is_float_dtype(arr_or_dtype):
         tipo = arr_or_dtype.dtype.type
     return issubclass(tipo, np.floating)
 
+def is_list_like(arg):
+    return hasattr(arg, '__iter__') and not isinstance(arg, basestring)
 
 _ensure_float64 = _algos.ensure_float64
 _ensure_int64 = _algos.ensure_int64
@@ -844,7 +862,7 @@ def console_encode(value):
 
     try:
         import sys
-        return value.encode(sys.stdin.encoding, 'replace')
+        return value.encode(sys.stdin.encoding or 'utf-8', 'replace')
     except (AttributeError, TypeError):
         return value.encode('ascii', 'replace')
 

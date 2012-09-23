@@ -579,7 +579,10 @@ class HDFStore(object):
                 node._v_attrs.freq = index.freq
 
             if hasattr(index, 'tz') and index.tz is not None:
-                node._v_attrs.tz = index.tz.zone
+                zone = lib.get_timezone(index.tz)
+                if zone is None:
+                    zone = lib.tot_seconds(index.tz.utcoffset())
+                node._v_attrs.tz = zone
 
     def _read_index(self, group, key):
         variety = getattr(group._v_attrs, '%s_variety' % key)
@@ -687,6 +690,13 @@ class HDFStore(object):
         if key in group:
             self.handle.removeNode(group, key)
 
+        # Transform needed to interface with pytables row/col notation
+        empty_array = any(x == 0 for x in value.shape)
+        transposed = False
+        if not empty_array:
+            value = value.T
+            transposed = True
+
         if self.filters is not None:
             atom = None
             try:
@@ -701,7 +711,9 @@ class HDFStore(object):
                                               value.shape,
                                               filters=self.filters)
                 ca[:] = value
+                getattr(group, key)._v_attrs.transposed = transposed
                 return
+
 
         if value.dtype.type == np.object_:
             vlarr = self.handle.createVLArray(group, key,
@@ -711,7 +723,7 @@ class HDFStore(object):
             self.handle.createArray(group, key, value.view('i8'))
             getattr(group, key)._v_attrs.value_type = 'datetime64'
         else:
-            if any(x == 0 for x in value.shape):
+            if empty_array:
                 # ugly hack for length 0 axes
                 arr = np.empty((1,) * value.ndim)
                 self.handle.createArray(group, key, arr)
@@ -719,6 +731,8 @@ class HDFStore(object):
                 getattr(group, key)._v_attrs.shape = value.shape
             else:
                 self.handle.createArray(group, key, value)
+
+        getattr(group, key)._v_attrs.transposed = transposed
 
     def _write_table(self, group, items=None, index=None, columns=None,
                      values=None, append=False, compression=None):
@@ -757,6 +771,13 @@ class HDFStore(object):
         else:
             # the table must already exist
             table = getattr(group, 'table', None)
+
+        # check for backwards incompatibility
+        if append:
+            existing_kind = table._v_attrs.index_kind
+            if existing_kind != index_kind:
+                raise TypeError("incompatible kind in index [%s - %s]" %
+                                (existing_kind, index_kind))
 
         # add kinds
         table._v_attrs.index_kind = index_kind
@@ -920,6 +941,9 @@ def _convert_index(index):
         atom = _tables().Int64Col()
         return index.values, 'integer', atom
 
+    if isinstance(index, MultiIndex):
+        raise Exception('MultiIndex not supported here!')
+
     inferred_type = lib.infer_dtype(index)
 
     values = np.asarray(index)
@@ -958,22 +982,29 @@ def _read_array(group, key):
     import tables
     node = getattr(group, key)
     data = node[:]
+    attrs = node._v_attrs
+
+    transposed = getattr(attrs, 'transposed', False)
 
     if isinstance(node, tables.VLArray):
-        return data[0]
+        ret = data[0]
     else:
-        attrs = node._v_attrs
-
         dtype = getattr(attrs, 'value_type', None)
         shape = getattr(attrs, 'shape', None)
 
         if shape is not None:
             # length 0 axis
-            return np.empty(shape, dtype=dtype)
+            ret = np.empty(shape, dtype=dtype)
+        else:
+            ret = data
 
         if dtype == 'datetime64':
-            return np.array(data, dtype='M8[ns]')
-        return data
+            ret = np.array(ret, dtype='M8[ns]')
+
+    if transposed:
+        return ret.T
+    else:
+        return ret
 
 def _unconvert_index(data, kind):
     if kind == 'datetime64':
@@ -1131,4 +1162,3 @@ def _get_index_factory(klass):
                                              tz=tz)
         return f
     return klass
-

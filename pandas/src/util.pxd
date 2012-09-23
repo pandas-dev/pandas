@@ -2,6 +2,8 @@ from numpy cimport ndarray
 cimport numpy as cnp
 
 cdef extern from "numpy_helper.h":
+    inline void set_array_owndata(ndarray ao)
+
     inline int is_integer_object(object)
     inline int is_float_object(object)
     inline int is_complex_object(object)

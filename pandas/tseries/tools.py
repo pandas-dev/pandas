@@ -21,12 +21,11 @@ except ImportError: # pragma: no cover
     print 'Please install python-dateutil via easy_install or some method!'
     raise # otherwise a 2nd import won't show the message
 
-
 def _infer_tzinfo(start, end):
     def _infer(a, b):
         tz = a.tzinfo
         if b and b.tzinfo:
-            assert(tz.zone == b.tzinfo.zone)
+            assert(lib.get_timezone(tz) == lib.get_timezone(b.tzinfo))
         return tz
     tz = None
     if start is not None:
@@ -40,6 +39,9 @@ def _maybe_get_tz(tz):
     if isinstance(tz, (str, unicode)):
         import pytz
         tz = pytz.timezone(tz)
+    if com.is_integer(tz):
+        import pytz
+        tz = pytz.FixedOffset(tz / 60)
     return tz
 
 
@@ -89,8 +91,25 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True):
     elif isinstance(arg, (np.ndarray, list)):
         if isinstance(arg, list):
             arg = np.array(arg, dtype='O')
-        result = _convert_f(arg)
-        return result
+
+        if com.is_datetime64_dtype(arg):
+            if box and not isinstance(arg, DatetimeIndex):
+                try:
+                    return DatetimeIndex(arg, tz='utc' if utc else None)
+                except ValueError, e:
+                    try:
+                        values, tz = lib.datetime_to_datetime64(arg)
+                        return DatetimeIndex._simple_new(values, None, tz=tz)
+                    except (ValueError, TypeError):
+                        raise e
+            return arg
+
+        try:
+            return _convert_f(arg)
+        except ValueError:
+            raise
+        return arg
+
     try:
         if not arg:
             return arg
@@ -258,8 +277,8 @@ def _try_parse_monthly(arg):
     ret = default.replace(year=y, month=m)
     return ret
 
-def normalize_date(dt):
-    return dt.replace(hour=0, minute=0, second=0, microsecond=0)
+
+normalize_date = lib.normalize_date
 
 
 def format(dt):

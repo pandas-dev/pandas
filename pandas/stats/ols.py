@@ -538,7 +538,7 @@ Degrees of Freedom: model %(df_model)d, resid %(df_resid)d
 
         f_stat = results['f_stat']
 
-        bracketed = ['<%s>' % c for c in results['beta'].index]
+        bracketed = ['<%s>' %str(c) for c in results['beta'].index]
 
         formula = StringIO()
         formula.write(bracketed[0])

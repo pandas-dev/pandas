@@ -20,6 +20,13 @@ class FreqGroup(object):
     FR_MIN = 8000
     FR_SEC = 9000
 
+def get_to_timestamp_base(base):
+    if base <= FreqGroup.FR_WK:
+        return FreqGroup.FR_DAY
+    if FreqGroup.FR_HR <= base <= FreqGroup.FR_SEC:
+        return FreqGroup.FR_SEC
+    return base
+
 def get_freq_group(freq):
     if isinstance(freq, basestring):
         base, mult = get_freq_code(freq)
@@ -846,7 +853,8 @@ class _FrequencyInferer(object):
         quarterly_rule = self._get_quarterly_rule()
         if quarterly_rule:
             nquarters = self.mdiffs[0] / 3
-            month = _month_aliases[self.rep_stamp.month]
+            mod_dict = {0 : 12, 2 : 11, 1 : 10}
+            month = _month_aliases[mod_dict[self.rep_stamp.month % 3]]
             return _maybe_add_count('%s-%s' % (quarterly_rule, month),
                                     nquarters)
 

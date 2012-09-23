@@ -44,7 +44,7 @@ infer_type(PyObject* obj) {
 }
 
 PANDAS_INLINE npy_int64
-get_nat() {
+get_nat(void) {
   return NPY_MIN_INT64;
 }
 
@@ -172,6 +172,11 @@ void transfer_object_column(char *dst, char *src, size_t stride,
 		src += sz;
 		dst += stride;
 	}
+}
+
+
+void set_array_owndata(PyArrayObject *ao) {
+    ao->flags |= NPY_OWNDATA;
 }
 
 

@@ -312,6 +312,22 @@ class TestMultiLevel(unittest.TestCase):
         assert_frame_equal(result, expected)
         assert_frame_equal(result, result2)
 
+        result = self.ymd.xs((2000, 4))
+        expected = self.ymd.ix[2000, 4]
+        assert_frame_equal(result, expected)
+
+        # ex from #1796
+        index = MultiIndex(levels=[['foo', 'bar'], ['one', 'two'], [-1, 1]],
+                           labels=[[0, 0, 0, 0, 1, 1, 1, 1],
+                                   [0, 0, 1, 1, 0, 0, 1, 1],
+                                   [0, 1, 0, 1, 0, 1, 0, 1]])
+        df = DataFrame(np.random.randn(8, 4), index=index,
+                       columns=list('abcd'))
+
+        result = df.xs(['foo', 'one'])
+        expected = df.ix['foo', 'one']
+        assert_frame_equal(result, expected)
+
     def test_xs_level(self):
         result = self.frame.xs('two', level='second')
         expected = self.frame[self.frame.index.get_level_values(1) == 'two']

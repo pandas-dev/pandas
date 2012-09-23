@@ -137,6 +137,7 @@ class DatetimeConverter(dates.DateConverter):
 
     @staticmethod
     def convert(values, unit, axis):
+        from pandas.tseries.index import DatetimeIndex
         def try_parse(values):
             try:
                 return _dt_to_float_ordinal(tools.to_datetime(values))
@@ -151,10 +152,19 @@ class DatetimeConverter(dates.DateConverter):
             return values
         elif isinstance(values, str):
             return try_parse(values)
-        elif isinstance(values, Index):
-            return values.map(try_parse)
         elif isinstance(values, (list, tuple, np.ndarray)):
-            return [try_parse(x) for x in values]
+            if not isinstance(values, np.ndarray):
+                values = np.array(values, dtype='O')
+
+            try:
+                values = tools.to_datetime(values)
+                if isinstance(values, Index):
+                    values = values.map(_dt_to_float_ordinal)
+                else:
+                    values = [_dt_to_float_ordinal(x) for x in values]
+            except Exception:
+                pass
+
         return values
 
     @staticmethod

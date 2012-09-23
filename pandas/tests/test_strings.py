@@ -115,6 +115,10 @@ class TestStringMethods(unittest.TestCase):
         expected = [False, np.nan, True, True]
         tm.assert_almost_equal(result, expected)
 
+        result = strings.str_contains(values, pat, na=False)
+        expected = [False, False, True, True]
+        tm.assert_almost_equal(result, expected)
+
         values = ['foo', 'xyz', 'fooommm__foo', 'mmm_']
         result = strings.str_contains(values, pat)
         expected = [False, False, True, True]
@@ -146,6 +150,9 @@ class TestStringMethods(unittest.TestCase):
         exp = Series([False, NA, True, False, False, NA, True])
         tm.assert_series_equal(result, exp)
 
+        result = values.str.startswith('foo', na=True)
+        tm.assert_series_equal(result, exp.fillna(True).astype(bool))
+
     def test_endswith(self):
         values = Series(['om', NA, 'foo_nom', 'nom', 'bar_foo', NA, 'foo'])
 
@@ -170,6 +177,9 @@ class TestStringMethods(unittest.TestCase):
         result = values.str.endswith('foo')
         exp = Series([False, NA, False, False, True, NA, True])
         tm.assert_series_equal(result, exp)
+
+        result = values.str.endswith('foo', na=False)
+        tm.assert_series_equal(result, exp.fillna(False).astype(bool))
 
     def test_lower_upper(self):
         values = Series(['om', NA, 'nom', 'nom'])
@@ -462,6 +472,13 @@ class TestStringMethods(unittest.TestCase):
         exp = Series([[u'a', u'b', u'c'], [u'c', u'd', u'e'], NA,
                       [u'f', u'g', u'h']])
         tm.assert_series_equal(result, exp)
+
+    def test_split_noargs(self):
+        # #1859
+        s = Series(['Wes McKinney', 'Travis  Oliphant'])
+
+        result = s.str.split()
+        self.assertEquals(result[1], ['Travis', 'Oliphant'])
 
     def test_slice(self):
         values = Series(['aafootwo','aabartwo', NA, 'aabazqux'])

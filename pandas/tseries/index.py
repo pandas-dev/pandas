@@ -195,6 +195,10 @@ class DatetimeIndex(Int64Index):
             else:
                 data = tools.to_datetime(data)
                 data.offset = offset
+                if isinstance(data, DatetimeIndex):
+                    if name is not None:
+                        data.name = name
+                    return data
 
         if issubclass(data.dtype.type, basestring):
             subarr = _str_to_dt_array(data, offset, dayfirst=dayfirst,
@@ -215,6 +219,8 @@ class DatetimeIndex(Int64Index):
                 else:
                     subarr = data
         elif data.dtype == _INT64_DTYPE:
+            if isinstance(data, Int64Index):
+                raise TypeError('cannot convert Int64Index->DatetimeIndex')
             if copy:
                 subarr = np.asarray(data, dtype=_NS_DTYPE)
             else:
@@ -236,10 +242,13 @@ class DatetimeIndex(Int64Index):
         else:
             if tz is not None:
                 tz = tools._maybe_get_tz(tz)
-                # Convert local to UTC
-                ints = subarr.view('i8')
 
-                subarr = lib.tz_localize_to_utc(ints, tz)
+                if (not isinstance(data, DatetimeIndex) or
+                    getattr(data, 'tz', None) is None):
+                    # Convert tz-naive to UTC
+                    ints = subarr.view('i8')
+                    subarr = lib.tz_localize_to_utc(ints, tz)
+
                 subarr = subarr.view(_NS_DTYPE)
 
         subarr = subarr.view(cls)
@@ -298,7 +307,8 @@ class DatetimeIndex(Int64Index):
             else:
                 _normalized = _normalized and end.time() == _midnight
 
-        if hasattr(offset, 'delta'):
+
+        if hasattr(offset, 'delta') and offset != offsets.Day():
             if inferred_tz is None and tz is not None:
                 # naive dates
                 if start is not None and start.tz is None:
@@ -594,8 +604,6 @@ class DatetimeIndex(Int64Index):
         -------
         appended : Index
         """
-        from pandas.core.index import _ensure_compat_concat
-
         name = self.name
         to_concat = [self]
 
@@ -609,7 +617,7 @@ class DatetimeIndex(Int64Index):
                 name = None
                 break
 
-        to_concat = _ensure_compat_concat(to_concat)
+        to_concat = self._ensure_compat_concat(to_concat)
         to_concat = [x.values if isinstance(x, Index) else x
                      for x in to_concat]
 
@@ -1215,7 +1223,7 @@ class DatetimeIndex(Int64Index):
         if self.tz is not None:
             if other.tz is None:
                 return False
-            same_zone = self.tz.zone == other.tz.zone
+            same_zone = lib.get_timezone(self.tz) == lib.get_timezone(other.tz)
         else:
             if other.tz is not None:
                 return False
@@ -1364,6 +1372,27 @@ class DatetimeIndex(Int64Index):
                     (time_micros < end_micros))
 
         return mask.nonzero()[0]
+
+    def min(self, axis=None):
+        """
+        Overridden ndarray.min to return a Timestamp
+        """
+        if self.is_monotonic:
+            return self[0]
+        else:
+            min_stamp = self.asi8.min()
+            return Timestamp(min_stamp, tz=self.tz)
+
+    def max(self, axis=None):
+        """
+        Overridden ndarray.max to return a Timestamp
+        """
+        if self.is_monotonic:
+            return self[-1]
+        else:
+            max_stamp = self.asi8.max()
+            return Timestamp(max_stamp, tz=self.tz)
+
 
 def _generate_regular_range(start, end, periods, offset):
     if isinstance(offset, Tick):

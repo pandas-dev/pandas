@@ -6,6 +6,9 @@ import numpy as np
 from pandas import Series, date_range
 import pandas.util.testing as tm
 
+from datetime import datetime, date
+
+from pandas.tseries.tools import normalize_date
 from pandas.tseries.util import pivot_annual, isleapyear
 
 class TestPivotAnnual(unittest.TestCase):
@@ -57,6 +60,18 @@ class TestPivotAnnual(unittest.TestCase):
 
     def test_period_weekly(self):
         pass
+
+
+def test_normalize_date():
+    value = date(2012, 9, 7)
+
+    result = normalize_date(value)
+    assert(result == datetime(2012, 9, 7))
+
+    value = datetime(2012, 9, 7, 12)
+
+    result = normalize_date(value)
+    assert(result == datetime(2012, 9, 7))
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

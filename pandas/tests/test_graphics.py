@@ -208,20 +208,26 @@ class TestDataFramePlots(unittest.TestCase):
 
     @slow
     def test_plot_xy(self):
+        # columns.inferred_type == 'string'
         df = tm.makeTimeDataFrame()
         self._check_data(df.plot(x=0, y=1),
-                         df.set_index('A').sort_index()['B'].plot())
-
-        self._check_data(df.plot(x=0), df.set_index('A').sort_index().plot())
-
+                         df.set_index('A')['B'].plot())
+        self._check_data(df.plot(x=0), df.set_index('A').plot())
         self._check_data(df.plot(y=0), df.B.plot())
-
         self._check_data(df.plot(x='A', y='B'),
-                         df.set_index('A').sort_index().B.plot())
-
-        self._check_data(df.plot(x='A'), df.set_index('A').sort_index().plot())
-
+                         df.set_index('A').B.plot())
+        self._check_data(df.plot(x='A'), df.set_index('A').plot())
         self._check_data(df.plot(y='B'), df.B.plot())
+
+        # columns.inferred_type == 'integer'
+        df.columns = range(1, len(df.columns) + 1)
+        self._check_data(df.plot(x=1, y=2),
+                         df.set_index(1)[2].plot())
+        self._check_data(df.plot(x=1), df.set_index(1).plot())
+        self._check_data(df.plot(y=1), df[1].plot())
+
+        # columns.inferred_type == 'mixed'
+        # TODO add MultiIndex test
 
     def _check_data(self, xp, rs):
         xp_lines = xp.get_lines()
@@ -472,6 +478,16 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
         grouped = df.unstack(level=1).groupby(level=0, axis=1)
         _check_plot_works(grouped.boxplot)
         _check_plot_works(grouped.boxplot, subplots=False)
+
+    @slow
+    def test_series_plot_color_kwargs(self):
+        # #1890
+        import matplotlib.pyplot as plt
+
+        plt.close('all')
+        ax = Series(np.arange(12) + 1).plot(color='green')
+        line = ax.get_lines()[0]
+        self.assert_(line.get_color() == 'green')
 
 PNG_PATH = 'tmp.png'
 

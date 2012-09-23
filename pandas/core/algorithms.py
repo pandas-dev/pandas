@@ -29,7 +29,7 @@ def match(to_match, values, na_sentinel=-1):
     -------
     match : ndarray of integers
     """
-    values = np.asarray(values)
+    values = com._asarray_tuplesafe(values)
     if issubclass(values.dtype.type, basestring):
         values = np.array(values, dtype='O')
 

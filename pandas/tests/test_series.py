@@ -203,6 +203,10 @@ class TestNanops(unittest.TestCase):
         df = DataFrame(np.empty((10, 0)))
         self.assert_((df.sum(1) == 0).all())
 
+    def test_nansum_buglet(self):
+        s = Series([1.0, np.nan], index=[0,1])
+        result = np.nansum(s)
+        assert_almost_equal(result, 1)
 
 class SafeForSparse(object):
     pass
@@ -360,6 +364,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         data = ((1, 1), (2, 2), (2, 3))
         s = Series(data)
         self.assertEqual(tuple(s), data)
+
+    def test_constructor_set(self):
+        values = set([1, 2, 3, 4, 5])
+
+        self.assertRaises(TypeError, Series, values)
 
     def test_fromDict(self):
         data = {'a' : 0, 'b' : 1, 'c' : 2, 'd' : 3}
@@ -1031,6 +1040,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         repr(s)
         sys.stderr = sys.__stderr__
         self.assertEquals(buf.getvalue(), '')
+
+    def test_repr_name_iterable_indexable(self):
+        s = Series([1, 2, 3], name=np.int64(3))
+
+        # it works!
+        repr(s)
+
+        s.name = (u"\u05d0",) * 2
+        repr(s)
 
     def test_timeseries_repr_object_dtype(self):
         index = Index([datetime(2000, 1, 1) + timedelta(i)
@@ -2028,6 +2046,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(rs, xp)
         os.remove(filename)
 
+    def test_to_csv_list_entries(self):
+        s = Series(['jack and jill','jesse and frank'])
+
+        split = s.str.split(r'\s+and\s+')
+
+        buf = StringIO()
+        split.to_csv(buf)
+
     def test_clip(self):
         val = self.ts.median()
 
@@ -2250,6 +2276,50 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         d = self.ts.index[0] - datetools.bday
         self.assert_(np.isnan(self.ts.asof(d)))
 
+    def test_asof_periodindex(self):
+        from pandas import period_range, PeriodIndex
+        # array or list or dates
+        N = 50
+        rng = period_range('1/1/1990', periods=N, freq='H')
+        ts = Series(np.random.randn(N), index=rng)
+        ts[15:30] = np.nan
+        dates = date_range('1/1/1990', periods=N * 3, freq='37min')
+
+        result = ts.asof(dates)
+        self.assert_(notnull(result).all())
+        lb = ts.index[14]
+        ub = ts.index[30]
+
+        result = ts.asof(list(dates))
+        self.assert_(notnull(result).all())
+        lb = ts.index[14]
+        ub = ts.index[30]
+
+        pix = PeriodIndex(result.index.values, freq='H')
+        mask = (pix >= lb) & (pix < ub)
+        rs = result[mask]
+        self.assert_((rs == ts[lb]).all())
+
+        ts[5:10] = np.NaN
+        ts[15:20] = np.NaN
+
+        val1 = ts.asof(ts.index[7])
+        val2 = ts.asof(ts.index[19])
+
+        self.assertEqual(val1, ts[4])
+        self.assertEqual(val2, ts[14])
+
+        # accepts strings
+        val1 = ts.asof(str(ts.index[7]))
+        self.assertEqual(val1, ts[4])
+
+        # in there
+        self.assertEqual(ts.asof(ts.index[3]), ts[3])
+
+        # no as of value
+        d = ts.index[0].to_timestamp() - datetools.bday
+        self.assert_(np.isnan(ts.asof(d)))
+
     def test_asof_more(self):
         from pandas import date_range
         s = Series([nan, nan, 1, 2, nan, nan, 3, 4, 5],
@@ -2353,6 +2423,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         f = lambda x: x if x > 0 else np.nan
         result = s.apply(f, convert_dtype=False)
         self.assert_(result.dtype == object)
+
+    def test_apply_args(self):
+        s = Series(['foo,bar'])
+
+        result = s.apply(str.split, args=(',',))
+        self.assert_(result[0] == ['foo', 'bar'])
 
     def test_align(self):
         def _check_align(a, b, how='left', fill=None):
@@ -3032,6 +3108,12 @@ class TestSeriesNonUnique(unittest.TestCase):
         df = ser.reset_index(name='value2')
         self.assert_('value2' in df)
 
+        #check inplace
+        s = ser.reset_index(drop=True)
+        s2 = ser
+        s2.reset_index(drop=True, inplace=True)
+        assert_series_equal(s, s2)
+
     def test_timeseries_coercion(self):
         idx = tm.makeDateIndex(10000)
         ser = Series(np.random.randn(len(idx)), idx.astype(object))
@@ -3081,6 +3163,7 @@ class TestSeriesNonUnique(unittest.TestCase):
         self.assert_((ser[:5] == -1).all())
         self.assert_((ser[6:10] == -1).all())
         self.assert_((ser[20:30] == -1).all())
+
     def test_repeat(self):
         s = Series(np.random.randn(3), index=['a', 'b', 'c'])
 
@@ -3093,6 +3176,11 @@ class TestSeriesNonUnique(unittest.TestCase):
         exp = Series(s.values.repeat(to_rep),
                      index=s.index.values.repeat(to_rep))
         assert_series_equal(reps, exp)
+
+    def test_unique_data_ownership(self):
+        # it works! #1807
+        Series(Series(["a","c","b"]).unique()).sort()
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],

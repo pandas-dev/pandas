@@ -1,10 +1,12 @@
 # pylint: disable=E1101,E1103,W0232
+import operator
+
 from datetime import datetime, date
 import numpy as np
 
 from pandas.tseries.frequencies import (get_freq_code as _gfc, to_offset,
                                         _month_numbers, FreqGroup)
-from pandas.tseries.index import DatetimeIndex, Int64Index
+from pandas.tseries.index import DatetimeIndex, Int64Index, Index
 from pandas.tseries.tools import parse_time_string
 import pandas.tseries.frequencies as _freq_mod
 
@@ -19,7 +21,6 @@ import pandas._algos as _algos
 #---------------
 # Period logic
 
-
 def _period_field_accessor(name, alias):
     def f(self):
         base, mult = _gfc(self.freq)
@@ -33,6 +34,7 @@ def _field_accessor(name, alias):
         return plib.get_period_field_arr(alias, self.values, base)
     f.__name__ = name
     return property(f)
+
 
 class Period(object):
 
@@ -201,14 +203,19 @@ class Period(object):
         """
         if freq is None:
             base, mult = _gfc(self.freq)
-            new_val = self
+            how = _validate_end_alias(how)
+            if how == 'S':
+                base = _freq_mod.get_to_timestamp_base(base)
+                freq = _freq_mod._get_freq_str(base)
+                new_val = self.asfreq(freq, how)
+            else:
+                new_val = self
         else:
             base, mult = _gfc(freq)
             new_val = self.asfreq(freq, how)
 
         dt64 = plib.period_ordinal_to_dt64(new_val.ordinal, base)
-        ts_freq = _period_rule_to_timestamp_rule(new_val.freq, how=how)
-        return Timestamp(dt64, offset=to_offset(ts_freq))
+        return Timestamp(dt64)
 
     year = _period_field_accessor('year', 0)
     month = _period_field_accessor('month', 3)
@@ -419,8 +426,6 @@ def dt64arr_to_periodarr(data, freq):
     return plib.dt64arr_to_periodarr(data.view('i8'), base)
 
 # --- Period index sketch
-
-
 def _period_index_cmp(opname):
     """
     Wrap comparison operations to convert datetime-like to datetime64
@@ -440,7 +445,6 @@ def _period_index_cmp(opname):
 
         return result
     return wrapper
-
 
 _INT64_DTYPE = np.dtype(np.int64)
 _NS_DTYPE = np.dtype('M8[ns]')
@@ -627,6 +631,31 @@ class PeriodIndex(Int64Index):
     def _box_values(self, values):
         f = lambda x: Period(ordinal=x, freq=self.freq)
         return lib.map_infer(values, f)
+
+    def asof_locs(self, where, mask):
+        """
+        where : array of timestamps
+        mask : array of booleans where data is not NA
+
+        """
+        where_idx = where
+        if isinstance(where_idx, DatetimeIndex):
+            where_idx = PeriodIndex(where_idx.values, freq=self.freq)
+
+        locs = self.values[mask].searchsorted(where_idx.values, side='right')
+
+        locs = np.where(locs > 0, locs - 1, 0)
+        result = np.arange(len(self))[mask].take(locs)
+
+        first = mask.argmax()
+        result[(locs == 0) & (where_idx.values < self.values[first])] = -1
+
+        return result
+
+    @property
+    def asobject(self):
+        from pandas.core.index import Index
+        return Index(self._box_values(self.values), dtype=object)
 
     def astype(self, dtype):
         dtype = np.dtype(dtype)
@@ -977,6 +1006,45 @@ class PeriodIndex(Int64Index):
         taken.freq = self.freq
         taken.name = self.name
         return taken
+
+    def append(self, other):
+        """
+        Append a collection of Index options together
+
+        Parameters
+        ----------
+        other : Index or list/tuple of indices
+
+        Returns
+        -------
+        appended : Index
+        """
+        name = self.name
+        to_concat = [self]
+
+        if isinstance(other, (list, tuple)):
+            to_concat = to_concat + list(other)
+        else:
+            to_concat.append(other)
+
+        for obj in to_concat:
+            if isinstance(obj, Index) and obj.name != name:
+                name = None
+                break
+
+        to_concat = self._ensure_compat_concat(to_concat)
+
+        if isinstance(to_concat[0], PeriodIndex):
+            if len(set([x.freq for x in to_concat])) > 1:
+                # box
+                to_concat = [x.asobject for x in to_concat]
+            else:
+                cat_values = np.concatenate([x.values for x in to_concat])
+                return PeriodIndex(cat_values, freq=self.freq, name=name)
+
+        to_concat = [x.values if isinstance(x, Index) else x
+                     for x in to_concat]
+        return Index(com._concat_compat(to_concat), name=name)
 
 
 def _get_ordinal_range(start, end, periods, freq):

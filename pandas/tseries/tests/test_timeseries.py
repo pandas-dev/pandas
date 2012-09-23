@@ -11,9 +11,9 @@ import nose
 import numpy as np
 randn = np.random.randn
 
-from pandas import (Index, Series, TimeSeries, DataFrame, isnull,
-                    date_range, Timestamp, DatetimeIndex, Int64Index,
-                    to_datetime, bdate_range)
+from pandas import (Index, Series, TimeSeries, DataFrame,
+                    isnull, date_range, Timestamp, DatetimeIndex,
+                    Int64Index, to_datetime, bdate_range)
 
 from pandas.core.daterange import DateRange
 import pandas.core.datetools as datetools
@@ -100,6 +100,45 @@ class TestTimeSeriesDuplicates(unittest.TestCase):
         expected = self.dups.groupby(self.dups.index).mean()
         assert_series_equal(result, expected)
 
+    def test_indexing_over_size_cutoff(self):
+        import datetime
+        # #1821
+
+        old_cutoff = lib._SIZE_CUTOFF
+        try:
+            lib._SIZE_CUTOFF = 1000
+
+            # create large list of non periodic datetime
+            dates = []
+            sec = datetime.timedelta(seconds=1)
+            half_sec = datetime.timedelta(microseconds=500000)
+            d = datetime.datetime(2011, 12, 5, 20, 30)
+            n = 1100
+            for i in range(n):
+                dates.append(d)
+                dates.append(d + sec)
+                dates.append(d + sec + half_sec)
+                dates.append(d + sec + sec + half_sec)
+                d += 3 * sec
+
+            # duplicate some values in the list
+            duplicate_positions = np.random.randint(0, len(dates) - 1, 20)
+            for p in duplicate_positions:
+                dates[p + 1] = dates[p]
+
+            df = DataFrame(np.random.randn(len(dates), 4),
+                           index=dates,
+                           columns=list('ABCD'))
+
+            pos = n * 3
+            timestamp = df.index[pos]
+            self.assert_(timestamp in df.index)
+
+            # it works!
+            df.ix[timestamp]
+            self.assert_(len(df.ix[[timestamp]]) > 0)
+        finally:
+            lib._SIZE_CUTOFF = old_cutoff
 
 def assert_range_equal(left, right):
     assert(left.equals(right))
@@ -1041,7 +1080,7 @@ class TestTimeSeries(unittest.TestCase):
                         (3,np.datetime64('2012-07-04'))],
                        columns = ['a', 'date'])
         result = df.groupby('a').first()
-        self.assertEqual(result['date'][3].year, 2012)
+        self.assertEqual(result['date'][3], np.datetime64('2012-07-03'))
 
     def test_series_interpolate_intraday(self):
         # #1698
@@ -1084,6 +1123,40 @@ class TestTimeSeries(unittest.TestCase):
         result['index'].dtype == 'M8[ns]'
 
         result = df.to_records(index=False)
+
+    def test_frame_datetime64_duplicated(self):
+        dates = date_range('2010-07-01', end='2010-08-05')
+
+        tst = DataFrame({'symbol': 'AAA', 'date': dates})
+        result = tst.duplicated(['date', 'symbol'])
+        self.assert_((-result).all())
+
+        tst = DataFrame({'date': dates})
+        result = tst.duplicated()
+        self.assert_((-result).all())
+
+    def test_timestamp_compare_with_early_datetime(self):
+        # e.g. datetime.min
+        stamp = Timestamp('2012-01-01')
+
+        self.assertFalse(stamp == datetime.min)
+        self.assertFalse(stamp == datetime(1600, 1, 1))
+        self.assertFalse(stamp == datetime(2700, 1, 1))
+        self.assert_(stamp != datetime.min)
+        self.assert_(stamp != datetime(1600, 1, 1))
+        self.assert_(stamp != datetime(2700, 1, 1))
+        self.assert_(stamp > datetime(1600, 1, 1))
+        self.assert_(stamp >= datetime(1600, 1, 1))
+        self.assert_(stamp < datetime(2700, 1, 1))
+        self.assert_(stamp <= datetime(2700, 1, 1))
+
+    def test_to_html_timestamp(self):
+        rng = date_range('2000-01-01', periods=10)
+        df = DataFrame(np.random.randn(10, 4), index=rng)
+
+        result = df.to_html()
+        self.assert_('2000-01-01' in result)
+
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
@@ -1314,6 +1387,19 @@ class TestDatetimeIndex(unittest.TestCase):
 
         assert_almost_equal(index.isin([index[2], 5]),
                             [False, False, True, False])
+
+    def test_union(self):
+        i1 = Int64Index(np.arange(0, 20, 2))
+        i2 = Int64Index(np.arange(10, 30, 2))
+        result = i1.union(i2)
+        expected = Int64Index(np.arange(0, 30, 2))
+        self.assert_(np.array_equal(result, expected))
+
+    def test_union_with_DatetimeIndex(self):
+        i1 = Int64Index(np.arange(0, 20, 2))
+        i2 = DatetimeIndex(start='2012-01-03 00:00:00', periods=10, freq='D')
+        i1.union(i2) # Works
+        i2.union(i1) # Fails with "AttributeError: can't set attribute"
 
 class TestLegacySupport(unittest.TestCase):
 
@@ -1639,6 +1725,20 @@ class TestLegacySupport(unittest.TestCase):
         result = rng[:50].intersection(nofreq)
         self.assert_(result.freq == rng.freq)
 
+    def test_min_max(self):
+        rng = date_range('1/1/2000', '12/31/2000')
+        rng2 = rng.take(np.random.permutation(len(rng)))
+
+        the_min = rng2.min()
+        the_max = rng2.max()
+        self.assert_(isinstance(the_min, Timestamp))
+        self.assert_(isinstance(the_max, Timestamp))
+        self.assertEqual(the_min, rng[0])
+        self.assertEqual(the_max, rng[-1])
+
+        self.assertEqual(rng.min(), rng[0])
+        self.assertEqual(rng.max(), rng[-1])
+
 
 class TestLegacyCompat(unittest.TestCase):
 
@@ -1883,6 +1983,7 @@ class TestDatetime64(unittest.TestCase):
         times = [datetime(2000, 1, 1) + timedelta(minutes=i) for i in range(1000000)]
         s = Series(range(1000000), times)
         s.ix[datetime(1900,1,1):datetime(2100,1,1)]
+
 
 class TestSeriesDatetime64(unittest.TestCase):
 
