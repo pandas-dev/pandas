@@ -584,8 +584,8 @@ cpdef convert_to_tsobject(object ts, object tz=None):
             obj.value = _pydatetime_to_dts(ts, &obj.dts)
             obj.tzinfo = ts.tzinfo
             if obj.tzinfo is not None and not _is_utc(obj.tzinfo):
-                offset = _get_utcoffset(obj.tzinfo, obj)
-                obj.value -= _delta_to_nanoseconds()
+                offset = _get_utcoffset(obj.tzinfo, ts)
+                obj.value -= _delta_to_nanoseconds(offset)
         _check_dts_bounds(obj.value, &obj.dts)
         return obj
     elif PyDate_Check(ts):
