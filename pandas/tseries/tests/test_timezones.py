@@ -240,6 +240,13 @@ class TestTimeZoneSupport(unittest.TestCase):
         rng = DatetimeIndex(strdates, tz='US/Eastern')
         self.assert_((rng.hour == 0).all())
 
+        # a more unusual time zone, #1946
+        dr = date_range('2011-10-02 00:00', freq='h', periods=10,
+                        tz='America/Atikokan')
+
+        expected = np.arange(10)
+        self.assert_(np.array_equal(dr.hour, expected))
+
     def test_with_tz(self):
         tz = pytz.timezone('US/Central')
 

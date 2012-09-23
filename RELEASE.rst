@@ -203,6 +203,8 @@ pandas 0.9.0
     partial-indexing a hierarchically-indexed DataFrame (#1796)
   - Support multiple column selection in DataFrame.__getitem__ with duplicate
     columns (#1943)
+  - Fix time zone localization bug causing improper fields (e.g. hours) in time
+    zones that have not had a UTC transition in a long time (#1946)
 
 pandas 0.8.1
 ============

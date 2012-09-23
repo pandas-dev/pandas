@@ -948,7 +948,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
     if pos == 0:
         raise ValueError('First time before start of DST info')
     elif pos == len(trans):
-        return result + deltas[-1]
+        return utc_dates + deltas[-1]
 
     # TODO: this assumed sortedness :/
     pos -= 1
@@ -1017,6 +1017,11 @@ def _get_transitions(tz):
         if hasattr(tz, '_utc_transition_times'):
             arr = np.array(tz._utc_transition_times, dtype='M8[ns]')
             arr = arr.view('i8')
+            try:
+                if tz._utc_transition_times[0].year == 1:
+                    arr[0] = NPY_NAT + 1
+            except Exception:
+                pass
         else:
             arr = np.array([NPY_NAT + 1], dtype=np.int64)
         trans_cache[tz] = arr
