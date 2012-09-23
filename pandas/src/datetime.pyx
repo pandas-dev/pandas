@@ -527,11 +527,11 @@ cdef class _TSObject:
         def __get__(self):
             return self.value
 
-cpdef _get_utcoffset(tzinfo):
+cpdef _get_utcoffset(tzinfo, obj):
     try:
         return tzinfo._utcoffset
     except AttributeError:
-        return tzinfo.utcoffset(None)
+        return tzinfo.utcoffset(obj)
 
 # helper to extract datetime and int64 from several different possibilities
 cpdef convert_to_tsobject(object ts, object tz=None):
@@ -570,20 +570,22 @@ cpdef convert_to_tsobject(object ts, object tz=None):
                 ts = tz.normalize(ts)
                 obj.value = _pydatetime_to_dts(ts, &obj.dts)
                 obj.tzinfo = ts.tzinfo
-            elif tz is not pytz.utc:
+            elif not _is_utc(tz):
                 ts = tz.localize(ts)
                 obj.value = _pydatetime_to_dts(ts, &obj.dts)
-                obj.value -= _delta_to_nanoseconds(_get_utcoffset(ts.tzinfo))
+                offset = _get_utcoffset(ts.tzinfo, ts)
+                obj.value -= _delta_to_nanoseconds(offset)
                 obj.tzinfo = ts.tzinfo
             else:
                 # UTC
                 obj.value = _pydatetime_to_dts(ts, &obj.dts)
-                obj.tzinfo = tz
+                obj.tzinfo = pytz.utc
         else:
             obj.value = _pydatetime_to_dts(ts, &obj.dts)
             obj.tzinfo = ts.tzinfo
             if obj.tzinfo is not None and not _is_utc(obj.tzinfo):
-                obj.value -= _delta_to_nanoseconds(_get_utcoffset(obj.tzinfo))
+                offset = _get_utcoffset(obj.tzinfo, obj)
+                obj.value -= _delta_to_nanoseconds()
         _check_dts_bounds(obj.value, &obj.dts)
         return obj
     elif PyDate_Check(ts):
@@ -1028,7 +1030,7 @@ def _get_deltas(tz):
         # tzoffset not hashable in Python 3
         hash(tz)
     except TypeError:
-        num = int(total_seconds(_get_utcoffset(tz))) * 1000000000
+        num = int(total_seconds(_get_utcoffset(tz, None))) * 1000000000
         return np.array([num], dtype=np.int64)
 
     if tz not in utc_offset_cache:
@@ -1036,7 +1038,7 @@ def _get_deltas(tz):
             utc_offset_cache[tz] = _unbox_utcoffsets(tz._transition_info)
         else:
             # static tzinfo
-            num = int(total_seconds(_get_utcoffset(tz))) * 1000000000
+            num = int(total_seconds(_get_utcoffset(tz, None))) * 1000000000
             utc_offset_cache[tz] = np.array([num], dtype=np.int64)
     return utc_offset_cache[tz]
 
