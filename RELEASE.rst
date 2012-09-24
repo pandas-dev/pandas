@@ -56,6 +56,7 @@ pandas 0.9.0
     (dropping both columns and rows) (#924)
   - Improve DataFrame.to_html output for hierarchically-indexed rows (do not
     repeat levels) (#1929)
+  - TimeSeries.between_time can now select times across midnight (#1871)
 
 **API Changes**
 

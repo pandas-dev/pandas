@@ -879,6 +879,34 @@ class TestTimeSeries(unittest.TestCase):
         expected = ts.between_time(stime, etime)
         assert_series_equal(result, expected)
 
+        #across midnight
+        rng = date_range('1/1/2000', '1/5/2000', freq='5min')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+        stime = time(22, 0)
+        etime = time(9, 0)
+
+        close_open = itertools.product([True, False], [True, False])
+        for inc_start, inc_end in close_open:
+            filtered = ts.between_time(stime, etime, inc_start, inc_end)
+            exp_len = (12 * 11 + 1) * 4 + 1
+            if not inc_start:
+                exp_len -= 4
+            if not inc_end:
+                exp_len -= 4
+
+            self.assert_(len(filtered) == exp_len)
+            for rs in filtered.index:
+                t = rs.time()
+                if inc_start:
+                    self.assert_((t >= stime) or (t <= etime))
+                else:
+                    self.assert_((t > stime) or (t <= etime))
+
+                if inc_end:
+                    self.assert_((t <= etime) or (t >= stime))
+                else:
+                    self.assert_((t < etime) or (t >= stime))
+
     def test_dti_constructor_preserve_dti_freq(self):
         rng = date_range('1/1/2000', '1/2/2000', freq='5min')
 
