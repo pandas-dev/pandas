@@ -1151,7 +1151,10 @@ copy : boolean, default False
 
     @Substitution(name='standard deviation', shortname='stdev',
                   na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc)
+    @Appender(_stat_doc + 
+        """
+        Normalized by N-1 (unbiased estimator).
+        """)
     def std(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
             level=None):
         if level is not None:
@@ -1161,7 +1164,10 @@ copy : boolean, default False
 
     @Substitution(name='variance', shortname='var',
                   na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc)
+    @Appender(_stat_doc + 
+        """
+        Normalized by N-1 (unbiased estimator).
+        """)
     def var(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
             level=None):
         if level is not None:
@@ -1474,6 +1480,8 @@ copy : boolean, default False
         Returns
         -------
         covariance : float
+
+        Normalized by N-1 (unbiased estimator).
         """
         this, other = self.align(other, join='inner')
         if len(this) == 0:

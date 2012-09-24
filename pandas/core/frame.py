@@ -4052,6 +4052,9 @@ class DataFrame(NDFrame):
         Returns
         -------
         y : DataFrame
+
+        y contains the covariance matrix of the DataFrame's time series.
+        The covariance is normalized by N-1 (unbiased estimator).
         """
         numeric_df = self._get_numeric_data()
         cols = numeric_df.columns
@@ -4368,7 +4371,10 @@ class DataFrame(NDFrame):
 
     @Substitution(name='variance', shortname='var',
                   na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc)
+    @Appender(_stat_doc +
+        """
+        Normalized by N-1 (unbiased estimator).
+        """)
     def var(self, axis=0, skipna=True, level=None, ddof=1):
         if level is not None:
             return self._agg_by_level('var', axis=axis, level=level,
@@ -4378,7 +4384,10 @@ class DataFrame(NDFrame):
 
     @Substitution(name='standard deviation', shortname='std',
                   na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc)
+    @Appender(_stat_doc + 
+        """
+        Normalized by N-1 (unbiased estimator).
+        """)
     def std(self, axis=0, skipna=True, level=None, ddof=1):
         if level is not None:
             return self._agg_by_level('std', axis=axis, level=level,
