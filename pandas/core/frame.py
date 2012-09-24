@@ -2489,16 +2489,17 @@ class DataFrame(NDFrame):
             return values
 
         new_index = np.arange(len(new_obj))
-        if not drop:
-            if isinstance(self.index, MultiIndex):
+        if isinstance(self.index, MultiIndex):
+            if level is not None:
+                if not isinstance(level, (tuple, list)):
+                    level = [level]
+                level = [self.index._get_level_number(lev) for lev in level]
+                if len(level) < len(self.index.levels):
+                    new_index = self.index.droplevel(level)
+
+            if not drop:
                 names = self.index.names
                 zipped = zip(self.index.levels, self.index.labels)
-
-                if level is not None:
-                    if not isinstance(level, (tuple, list)):
-                        level = [level]
-
-                    level = [self.index._get_level_number(lev) for lev in level]
 
                 for i, (lev, lab) in reversed(list(enumerate(zipped))):
                     col_name = names[i]
@@ -2510,13 +2511,12 @@ class DataFrame(NDFrame):
                     if level is None or i in level:
                         new_obj.insert(0, col_name, level_values.take(lab))
 
-                if level is not None and len(level) < len(self.index.levels):
-                    new_index = self.index.droplevel(level)
-            else:
-                name = self.index.name
-                if name is None or name == 'index':
-                    name = 'index' if 'index' not in self else 'level_0'
-                new_obj.insert(0, name, _maybe_cast(self.index.values))
+        elif not drop:
+            name = self.index.name
+            if name is None or name == 'index':
+                name = 'index' if 'index' not in self else 'level_0'
+            new_obj.insert(0, name, _maybe_cast(self.index.values))
+
         new_obj.index = new_index
         return new_obj
 

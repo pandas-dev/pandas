@@ -788,7 +788,7 @@ copy : boolean, default False
             new_values = np.concatenate([self.values, [value]])
             return Series(new_values, index=new_index, name=self.name)
 
-    def reset_index(self, drop=False, name=None, inplace=False):
+    def reset_index(self, level=None, drop=False, name=None, inplace=False):
         """
         Analogous to the DataFrame.reset_index function, see docstring there.
 
