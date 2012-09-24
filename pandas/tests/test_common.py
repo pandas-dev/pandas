@@ -309,22 +309,17 @@ class TestTake(unittest.TestCase):
         tm.assert_almost_equal(result, expected)
 
     def test_console_encode(self):
-        import sys
-
-        if py3compat.PY3 or sys.stdin.encoding is None:
+        """
+        On Python 2, if sys.stdin.encoding is None (IPython with zmq frontend)
+        common.console_encode should encode things as utf-8.
+        """
+        if py3compat.PY3:
             raise nose.SkipTest
 
-        # stub test
-        # need to mock-out sys.stdin.encoding=None for real test
-        result = com.console_encode(u"\u05d0")
-        try:
-            expected = u"\u05d0".encode(sys.stdin.encoding)
-
-            # lot of console encodings, ISO-8869-1, cp850, etc. won't encode
-            # this character
+        with tm.stdin_encoding(encoding=None):
+            result = com.console_encode(u"\u05d0")
+            expected = u"\u05d0".encode('utf-8')
             self.assertEqual(result, expected)
-        except UnicodeEncodeError:
-            pass
 
 
 if __name__ == '__main__':
