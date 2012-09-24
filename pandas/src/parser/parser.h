@@ -171,8 +171,6 @@ typedef struct parser_t {
     void **columns;
     int ncols;
 
-    // PyObject *converters;
-
     // error handling
     char *error_msg;
 } parser_t;
@@ -206,6 +204,8 @@ int parser_mmap_init(parser_t *self, FILE *fp);
 int parser_array_source_init(parser_t *self, char *bytes, size_t length);
 
 int parser_gzip_source_init(parser_t *self, FILE *fp);
+
+int parser_consume_rows(parser_t *self, size_t nrows);
 
 void parser_free(parser_t *self);
 

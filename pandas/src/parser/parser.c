@@ -1652,6 +1652,48 @@ int parser_handle_eof(parser_t *self) {
     }
 }
 
+#define MV(dst, src, n) memmove((void*) dst, (void*) src, n)
+
+int parser_consume_rows(parser_t *self, size_t nrows) {
+    int word_deletions, char_count;
+
+    if (nrows > self->lines) {
+        nrows = self->lines;
+    }
+
+    /* do nothing */
+    if (nrows == 0)
+        return 0;
+
+    /* cannot guarantee that nrows + 1 has been observed */
+    word_deletions = self->line_start[nrows - 1] + self->line_fields[nrows - 1];
+    char_count = self->word_starts[word_deletions];
+
+    /* move stream */
+    MV(self->stream, self->stream + char_count, self->stream_len - char_count);
+
+    /* move token metadata */
+    MV(self->words, self->words + word_deletions,
+       self->words_cap - word_deletions);
+
+    MV(self->word_starts, self->word_starts + word_deletions,
+       self->words_cap - word_deletions);
+
+    MV(self->line_start, self->line_start + nrows, self->lines - nrows);
+    MV(self->line_fields, self->line_fields + nrows, self->lines - nrows);
+
+    /* buffer counts */
+    self->stream_len -= char_count;
+    self->words_len -= word_deletions;
+    self->lines -= nrows;
+
+    /* move current word pointer to stream */
+    self->pword_start -= char_count;
+    self->word_start -= char_count;
+
+    return 0;
+}
+
 void debug_print_parser(parser_t *self) {
     int i, j, line;
     char *token;

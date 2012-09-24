@@ -419,7 +419,10 @@ cppsandbox_ext = Extension('pandas._cppsandbox',
                            sources=[srcpath('cppsandbox', suffix=suffix)],
                            include_dirs=[np.get_include()])
 
-extensions = [algos_ext, lib_ext, period_ext, sparse_ext,
+extensions = [algos_ext,
+              # lib_ext,
+              period_ext,
+              sparse_ext,
               parser_ext]
 
 if not ISRELEASED:

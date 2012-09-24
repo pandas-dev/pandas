@@ -47,32 +47,32 @@ class TestCParser(unittest.TestCase):
         try:
             f = open(self.csv1, 'rb')
             reader = TextReader(f)
-            result = reader.read()
+            names, result = reader.read()
         finally:
             f.close()
 
     def test_string_filename(self):
         reader = TextReader(self.csv1, header=None)
-        result = reader.read()
+        names, result = reader.read()
 
     def test_file_handle_mmap(self):
         try:
             f = open(self.csv1, 'rb')
             reader = TextReader(f, memory_map=True, header=None)
-            result = reader.read()
+            names, result = reader.read()
         finally:
             f.close()
 
     def test_StringIO(self):
         text = open(self.csv1, 'rb').read()
         reader = TextReader(BytesIO(text), header=None)
-        result = reader.read()
+        names, result = reader.read()
 
     def test_string_factorize(self):
         # should this be optional?
         data = 'a\nb\na\nb\na'
         reader = TextReader(StringIO(data), header=None)
-        result = reader.read()
+        names, result = reader.read()
         self.assert_(len(set(map(id, result[0]))) == 2)
 
     def test_skipinitialspace(self):
@@ -83,7 +83,7 @@ class TestCParser(unittest.TestCase):
 
         reader = TextReader(StringIO(data), skipinitialspace=True,
                             header=None)
-        result = reader.read()
+        names, result = reader.read()
 
         self.assert_(np.array_equal(result[0], ['a', 'a', 'a', 'a']))
         self.assert_(np.array_equal(result[1], ['b', 'b', 'b', 'b']))
@@ -92,7 +92,7 @@ class TestCParser(unittest.TestCase):
         data = 'True\nFalse\nTrue\nTrue'
 
         reader = TextReader(StringIO(data), header=None)
-        result = reader.read()
+        names, result = reader.read()
 
         self.assert_(result[0].dtype == np.bool_)
 
@@ -101,7 +101,7 @@ class TestCParser(unittest.TestCase):
 
         reader = TextReader(StringIO(data), delim_whitespace=True,
                             header=None)
-        result = reader.read()
+        names, result = reader.read()
 
         self.assert_(np.array_equal(result[0], ['a', 'a', 'a']))
         self.assert_(np.array_equal(result[1], ['b', 'b', 'b']))
@@ -110,7 +110,7 @@ class TestCParser(unittest.TestCase):
         data = 'a\n"hello\nthere"\nthis'
 
         reader = TextReader(StringIO(data), header=None)
-        result = reader.read()
+        names, result = reader.read()
 
         expected = ['a', 'hello\nthere', 'this']
         self.assert_(np.array_equal(result[0], expected))
@@ -120,7 +120,7 @@ class TestCParser(unittest.TestCase):
 
         reader = TextReader(StringIO(data), delimiter=':',
                             decimal=',', header=None)
-        result = reader.read()
+        names, result = reader.read()
 
         expected = [12345.67, 345.678]
         tm.assert_almost_equal(result[0], expected)
@@ -130,7 +130,7 @@ class TestCParser(unittest.TestCase):
 
         reader = TextReader(StringIO(data), delimiter=':',
                             thousands=',', header=None)
-        result = reader.read()
+        names, result = reader.read()
 
         expected = [123456, 12500]
         tm.assert_almost_equal(result[0], expected)
@@ -150,7 +150,7 @@ class TestCParser(unittest.TestCase):
                             header=None,
                             error_bad_lines=False,
                             warn_bad_lines=False)
-        result = reader.read()
+        names, result = reader.read()
         expected = {0: ['a', 'd', 'g', 'l'],
                     1: ['b', 'e', 'h', 'm'],
                     2: ['c', 'f', 'i', 'n']}
@@ -185,7 +185,7 @@ class TestCParser(unittest.TestCase):
 
         reader = TextReader(StringIO(data), delimiter=',', header=None,
                             escapechar='\\')
-        result = reader.read()
+        names, result = reader.read()
         expected = {0: ['"hello world"'] * 3}
         assert_array_dicts_equal(result, expected)
 

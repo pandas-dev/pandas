@@ -158,6 +158,8 @@ cdef extern from "parser/parser.h":
     int parser_mmap_init(parser_t *self, FILE* fp)
     int parser_array_source_init(parser_t *self, char *bytes, size_t length)
 
+    int parser_consume_rows(parser_t *self, size_t nrows)
+
     void debug_print_parser(parser_t *self)
 
     int tokenize_all_rows(parser_t *self) nogil
@@ -189,6 +191,7 @@ cdef class TextReader:
         object memory_map
         object as_recarray
         object header
+        object low_memory
 
     def __cinit__(self, source, delimiter=b',',
                   header=0,
@@ -205,7 +208,8 @@ cdef class TextReader:
                   decimal=b'.',
                   error_bad_lines=True,
                   warn_bad_lines=True,
-                  na_filter=True):
+                  na_filter=True,
+                  low_memory=False):
         self.parser = parser_new()
         self.parser.chunksize = tokenize_chunksize
 
@@ -265,6 +269,8 @@ cdef class TextReader:
         self.na_filter = na_filter
         self.as_recarray = as_recarray
         self.header = None
+
+        self.low_memory = low_memory
 
     def __init__(self, *args, **kwards):
         pass
@@ -351,9 +357,29 @@ cdef class TextReader:
         rows=None --> read all rows
         """
         cdef:
-            int prior_lines
             int status
 
+        if self.low_memory:
+            # Conserve intermediate space
+            names, columns = self._read_low_memory(rows)
+        else:
+            # Don't care about memory usage
+            names, columns = self._read_high_memory(rows)
+
+        if self.as_recarray:
+            # start = time.clock()
+            result = _to_structured_array(columns, names)
+            # end = time.clock()
+            # print 'to_structured_array took %.4f sec' % (end - start)
+
+            return result
+        else:
+            return names, columns
+
+    cdef _read_low_memory(self, rows):
+        pass
+
+    cdef _read_high_memory(self, rows):
         # start = time.clock()
 
         if rows is not None:
@@ -378,18 +404,9 @@ cdef class TextReader:
 
         # end = time.clock()
         # print 'Type conversion took %.4f sec' % (end - start)
-
         # debug_print_parser(self.parser)
 
-        if self.as_recarray:
-            # start = time.clock()
-            result = _to_structured_array(columns, names)
-            # end = time.clock()
-            # print 'to_structured_array took %.4f sec' % (end - start)
-
-            return result
-        else:
-            return columns
+        return names, columns
 
     def _convert_column_data(self):
         cdef:
