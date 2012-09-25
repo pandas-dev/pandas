@@ -177,9 +177,9 @@ DEFAULT_CHUNKSIZE = 1024 * 1024
 # common NA values
 # no longer excluding inf representations
 # '1.#INF','-1.#INF', '1.#INF000000',
-_NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
-                 '#N/A N/A', 'NA', '#NA', 'NULL', 'NaN',
-                 'nan', ''])
+_NA_VALUES = ['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
+              '#N/A N/A', 'NA', '#NA', 'NULL', 'NaN',
+              'nan', '']
 
 
 cdef class TextReader:
@@ -585,7 +585,10 @@ cdef class TextReader:
                 if values is not None and not isinstance(values, list):
                     values = list(values)
             else:
-                values = self.na_values.get(i)
+                if i in self.na_values:
+                    return self.na_values[i]
+                else:
+                    return _NA_VALUES
 
             return values
         else:

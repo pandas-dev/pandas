@@ -177,9 +177,9 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
             return lib.try_parse_dates(parsers._concat_date_cols(date_cols))
 
         df = self.read_csv(StringIO(data), header=None,
-                      date_parser=func,
-                      parse_dates={'nominal' : [1, 2],
-                                   'actual' : [1,3]})
+                           date_parser=func,
+                           parse_dates={'nominal' : [1, 2],
+                                        'actual' : [1,3]})
         self.assert_('nominal' in df)
         self.assert_('actual' in df)
         self.assert_('X.2' not in df)
@@ -189,10 +189,10 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         self.assert_(df.ix[0, 'nominal'] == d)
 
         df = self.read_csv(StringIO(data), header=None,
-                      date_parser=func,
-                      parse_dates={'nominal' : [1, 2],
-                                     'actual' : [1,3]},
-                      keep_date_col=True)
+                           date_parser=func,
+                           parse_dates={'nominal' : [1, 2],
+                                        'actual' : [1,3]},
+                           keep_date_col=True)
         self.assert_('nominal' in df)
         self.assert_('actual' in df)
         self.assert_('X.2' in df)
@@ -208,7 +208,8 @@ KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
 """
         df = self.read_csv(StringIO(data), header=None,
-                      parse_dates=[[1, 2], [1,3]])
+                           parse_dates=[[1, 2], [1,3]])
+
         self.assert_('X.2_X.3' in df)
         self.assert_('X.2_X.4' in df)
         self.assert_('X.2' not in df)
@@ -218,7 +219,7 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         self.assert_(df.ix[0, 'X.2_X.3'] == d)
 
         df = self.read_csv(StringIO(data), header=None,
-                      parse_dates=[[1, 2], [1,3]], keep_date_col=True)
+                           parse_dates=[[1, 2], [1,3]], keep_date_col=True)
         self.assert_('X.2_X.3' in df)
         self.assert_('X.2_X.4' in df)
         self.assert_('X.2' in df)
@@ -233,7 +234,7 @@ KORD,19990127 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
 KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 '''
         df = self.read_csv(StringIO(data), sep=',', header=None,
-                      parse_dates=[1], index_col=1)
+                           parse_dates=[1], index_col=1)
         d = datetime(1999, 1, 27, 19, 0)
         self.assert_(df.index[0] == d)
 
@@ -249,7 +250,7 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 
         # it works!
         df = self.read_csv(StringIO(data), header=None, parse_dates=date_spec,
-                      date_parser=conv.parse_date_time)
+                           date_parser=conv.parse_date_time)
         self.assert_('nominal' in df)
 
     def test_single_line(self):
@@ -270,45 +271,6 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         df = self.read_csv(StringIO(data), parse_dates={'nominal': [1, 2]})
         self.assert_(not isinstance(df.nominal[0], basestring))
 
-    def test_multiple_date_cols_index(self):
-        data = """\
-ID,date,NominalTime,ActualTime,TDew,TAir,Windspeed,Precip,WindDir
-KORD1,19990127, 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
-KORD2,19990127, 20:00:00, 19:56:00, 0.0100, 2.2100, 7.2000, 0.0000, 260.0000
-KORD3,19990127, 21:00:00, 20:56:00, -0.5900, 2.2100, 5.7000, 0.0000, 280.0000
-KORD4,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
-KORD5,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
-KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
-
-        xp = self.read_csv(StringIO(data), parse_dates={'nominal': [1, 2]})
-        df = self.read_csv(StringIO(data), parse_dates={'nominal': [1, 2]},
-                      index_col='nominal')
-        assert_frame_equal(xp.set_index('nominal'), df)
-        df2 = self.read_csv(StringIO(data), parse_dates={'nominal': [1, 2]},
-                      index_col=0)
-        assert_frame_equal(df2, df)
-
-        df3 = self.read_csv(StringIO(data), parse_dates=[[1, 2]], index_col=0)
-        assert_frame_equal(df3, df)
-
-    def test_multiple_date_cols_chunked(self):
-        df = self.read_csv(StringIO(self.ts_data), parse_dates={'nominal': [1,2]},
-                      index_col='nominal')
-        reader = self.read_csv(StringIO(self.ts_data), parse_dates={'nominal': [1,2]},
-                          index_col='nominal', chunksize=2)
-
-        chunks = list(reader)
-
-        assert_frame_equal(chunks[0], df[:2])
-        assert_frame_equal(chunks[1], df[2:4])
-        assert_frame_equal(chunks[2], df[4:])
-
-    def test_multiple_date_col_multiple_index(self):
-        df = self.read_csv(StringIO(self.ts_data), parse_dates={'nominal' : [1, 2]},
-                      index_col=['nominal', 'ID'])
-        xp = self.read_csv(StringIO(self.ts_data), parse_dates={'nominal' : [1, 2]})
-        assert_frame_equal(xp.set_index(['nominal', 'ID']), df)
-
     def test_multiple_date_col_name_collision(self):
         self.assertRaises(ValueError, self.read_csv, StringIO(self.ts_data),
                           parse_dates={'ID' : [1, 2]})
@@ -324,14 +286,6 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
 
         self.assertRaises(ValueError, self.read_csv, StringIO(data),
                           parse_dates=[[1, 2]])
-
-    def test_multiple_date_col_named_components(self):
-        xp = self.read_csv(StringIO(self.ts_data), parse_dates={'nominal': [1,2]},
-                      index_col='nominal')
-        colspec = {'nominal' : ['date', 'nominalTime']}
-        df = self.read_csv(StringIO(self.ts_data), parse_dates=colspec,
-                      index_col='nominal')
-        assert_frame_equal(df, xp)
 
     def test_index_col_named(self):
         no_header = """\
@@ -372,8 +326,10 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
     def test_converter_index_col_bug(self):
         #1835
         data = "A;B\n1;2\n3;4"
+
         rs = self.read_csv(StringIO(data), sep=';', index_col='A',
-                      converters={'A' : lambda x: x})
+                           converters={'A' : lambda x: x})
+
         xp = DataFrame({'B' : [2, 4]}, index=Index([1, 3], name='A'))
         assert_frame_equal(rs, xp)
         self.assert_(rs.index.name == xp.index.name)
@@ -520,10 +476,10 @@ ignore,this,row
 1/3/2000,7,8,9
 """
         data = self.read_csv(StringIO(text), skiprows=range(6), header=None,
-                        index_col=0, parse_dates=True)
+                             index_col=0, parse_dates=True)
 
         data2 = self.read_csv(StringIO(text), skiprows=6, header=None,
-                         index_col=0, parse_dates=True)
+                              index_col=0, parse_dates=True)
 
         expected = DataFrame(np.arange(1., 10.).reshape((3,3)),
                              columns=['X.2', 'X.3', 'X.4'],
@@ -600,8 +556,8 @@ c,4,5
 20090102,b,3,4
 20090103,c,4,5
 """
-        df = self.read_csv(StringIO(data),
-                      date_parser=lambda x: datetime.strptime(x, '%Y%m%d'))
+        f = lambda x: datetime.strptime(x, '%Y%m%d')
+        df = self.read_csv(StringIO(data), date_parser=f)
         expected = self.read_csv(StringIO(data), parse_dates=True)
         assert_frame_equal(df, expected)
 
@@ -650,11 +606,11 @@ c,4,5
         self.assert_(isinstance(expected['aux_date'][0], datetime))
 
         df = self.read_csv(StringIO(data), sep=";", index_col = range(4),
-                      parse_dates=[0, 5], dayfirst=True)
+                           parse_dates=[0, 5], dayfirst=True)
         assert_frame_equal(df, expected)
 
         df = self.read_csv(StringIO(data), sep=";", index_col = range(4),
-                      parse_dates=['date', 'aux_date'], dayfirst=True)
+                           parse_dates=['date', 'aux_date'], dayfirst=True)
         assert_frame_equal(df, expected)
 
     def test_no_header(self):
@@ -844,7 +800,8 @@ foo|1|2|3
 bar|4|5|6
 baz|7|8|9
 """
-        data3 = self.read_csv(StringIO(text), index_col=0, sep=None, skiprows=2)
+        data3 = self.read_csv(StringIO(text), index_col=0,
+                              sep=None, skiprows=2)
         assert_frame_equal(data, data3)
 
         # can't get this to work on Python 3
@@ -1306,6 +1263,61 @@ class TestPythonParser(ParserTests, unittest.TestCase):
         kwds = kwds.copy()
         kwds['engine'] = 'python'
         return read_table(*args, **kwds)
+
+    def test_multiple_date_cols_index(self):
+        data = """\
+ID,date,NominalTime,ActualTime,TDew,TAir,Windspeed,Precip,WindDir
+KORD1,19990127, 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
+KORD2,19990127, 20:00:00, 19:56:00, 0.0100, 2.2100, 7.2000, 0.0000, 260.0000
+KORD3,19990127, 21:00:00, 20:56:00, -0.5900, 2.2100, 5.7000, 0.0000, 280.0000
+KORD4,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
+KORD5,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
+KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
+
+        xp = self.read_csv(StringIO(data), parse_dates={'nominal': [1, 2]})
+        df = self.read_csv(StringIO(data), parse_dates={'nominal': [1, 2]},
+                           index_col='nominal')
+        assert_frame_equal(xp.set_index('nominal'), df)
+        df2 = self.read_csv(StringIO(data), parse_dates={'nominal': [1, 2]},
+                            index_col=0)
+        assert_frame_equal(df2, df)
+
+        df3 = self.read_csv(StringIO(data), parse_dates=[[1, 2]], index_col=0)
+        assert_frame_equal(df3, df)
+
+    def test_multiple_date_cols_chunked(self):
+        df = self.read_csv(StringIO(self.ts_data),
+                           parse_dates={'nominal': [1,2]},
+                           index_col='nominal')
+        reader = self.read_csv(StringIO(self.ts_data),
+                               parse_dates={'nominal': [1,2]},
+                               index_col='nominal', chunksize=2)
+
+        chunks = list(reader)
+
+        assert_frame_equal(chunks[0], df[:2])
+        assert_frame_equal(chunks[1], df[2:4])
+        assert_frame_equal(chunks[2], df[4:])
+
+    def test_multiple_date_col_named_components(self):
+        xp = self.read_csv(StringIO(self.ts_data),
+                           parse_dates={'nominal': [1,2]},
+                           index_col='nominal')
+        colspec = {'nominal' : ['date', 'nominalTime']}
+        df = self.read_csv(StringIO(self.ts_data), parse_dates=colspec,
+                           index_col='nominal')
+        assert_frame_equal(df, xp)
+
+    def test_multiple_date_col_multiple_index(self):
+        df = self.read_csv(StringIO(self.ts_data),
+                           parse_dates={'nominal' : [1, 2]},
+                           index_col=['nominal', 'ID'])
+
+        xp = self.read_csv(StringIO(self.ts_data),
+                           parse_dates={'nominal' : [1, 2]})
+
+        assert_frame_equal(xp.set_index(['nominal', 'ID']), df)
+
 
     def test_comment(self):
         data = """A,B,C

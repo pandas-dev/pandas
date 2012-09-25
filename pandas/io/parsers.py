@@ -624,10 +624,20 @@ class CParserWrapper(object):
 
         self._reader = _parser.TextReader(src, **kwds)
 
-        self.names, self.index_names = self._get_index_names()
+        self.index_names = None
 
-    def _get_names(self):
-        pass
+        if self._reader.header is None:
+            self.names = None
+        else:
+            self.names = list(self._reader.header)
+
+        if self.names is None:
+            self.names = ['X.%d' % (i + 1)
+                          for i in range(self._reader.table_width)]
+
+        if self._reader.leading_cols == 0 and self.index_col is not None:
+            (self.index_names, self.names,
+             self.index_col) = _clean_index_names(self.names, self.index_col)
 
     def read(self, nrows=None):
         if self.as_recarray:
@@ -636,12 +646,13 @@ class CParserWrapper(object):
         data = self._reader.read(nrows)
         names = self.names
 
-        names, data = self._do_date_conversions(names, data)
         index, names, data = self._make_index(names, data)
 
         # rename dict keys
         data = sorted(data.items())
         data = dict((k, v) for k, (i, v) in zip(names, data))
+
+        names, data = self._do_date_conversions(names, data)
 
         return index, names, data
 
@@ -698,7 +709,7 @@ class CParserWrapper(object):
 
                 values = data.pop(col)
 
-                values = _maybe_parse_dates(values, col)
+                values = _maybe_parse_dates(values, i)
 
                 arrays.append(values)
 
@@ -1391,6 +1402,26 @@ def _process_date_conversion(data_dict, converter, parse_spec,
     return data_dict, new_cols
 
 
+def _try_convert_dates(parser, colspec, data_dict, columns):
+    colset = set(columns)
+    colnames = []
+
+    for c in colspec:
+        if c in colset:
+            colnames.append(str(c))
+        elif isinstance(c, int):
+            colnames.append(str(columns[c]))
+
+    new_name = '_'.join(colnames)
+    to_parse = [data_dict[c] for c in colnames if c in data_dict]
+
+    try:
+        new_col = parser(*to_parse)
+    except DateConversionError:
+        new_col = parser(_concat_date_cols(to_parse))
+    return new_name, new_col, colnames
+
+
 def _clean_index_names(columns, index_col):
     if index_col is None:
         return None, columns, index_col
@@ -1478,26 +1509,6 @@ def _convert_types(values, na_values):
 
     return result, na_count
 
-def _get_col_names(colspec, columns):
-    colset = set(columns)
-    colnames = []
-    for c in colspec:
-        if c in colset:
-            colnames.append(str(c))
-        elif isinstance(c, int):
-            colnames.append(str(columns[c]))
-    return colnames
-
-def _try_convert_dates(parser, colspec, data_dict, columns):
-    colspec = _get_col_names(colspec, columns)
-    new_name = '_'.join(colspec)
-
-    to_parse = [data_dict[c] for c in colspec if c in data_dict]
-    try:
-        new_col = parser(*to_parse)
-    except DateConversionError:
-        new_col = parser(_concat_date_cols(to_parse))
-    return new_name, new_col, colspec
 
 def _concat_date_cols(date_cols):
     if len(date_cols) == 1:

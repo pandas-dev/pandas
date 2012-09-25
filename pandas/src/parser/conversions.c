@@ -134,22 +134,34 @@ int inline to_longlong_thousands(char *item, long long *p_value, char tsep)
 
 int inline to_boolean(char *item, uint8_t *val) {
 	char *tmp;
-	int status = 0;
-	char *tstr = "TRUE";
-	char *fstr = "FALSE";
+	int i, status = 0;
+
+    static const char *tstrs[2] = {"TRUE", "YES"};
+    static const char *fstrs[2] = {"FALSE", "NO"};
 
 	tmp = malloc(sizeof(char) * strlen(item));
 	strcpy(tmp, item);
 	uppercase(tmp);
 
-	if (strcmp(tmp, tstr) == 0) {
-		*val = 1;
-	} else if (strcmp(tmp, fstr) == 0) {
-		*val = 0;
-	} else {
-		status = -1;
-	}
+    for (i = 0; i < 2; ++i)
+    {
+        if (strcmp(tmp, tstrs[i]) == 0) {
+            *val = 1;
+            goto done;
+        }
+    }
 
+    for (i = 0; i < 2; ++i)
+    {
+        if (strcmp(tmp, fstrs[i]) == 0) {
+            *val = 0;
+            goto done;
+        }
+    }
+
+    status = -1;
+
+done:
 	free(tmp);
 	return status;
 }
