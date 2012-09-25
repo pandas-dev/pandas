@@ -437,7 +437,7 @@ footer
 
         try:
             df = read_table(StringIO(data), sep=',', header=1, comment='#',
-                            skip_footer=-1)
+                            skip_footer=1)
             self.assert_(False)
         except ValueError, inst:
             self.assert_('Expecting 3 columns, got 5 in row 3' in str(inst))
@@ -1114,15 +1114,15 @@ bar,two,12,13,14,15
 7,8,9
 want to skip this
 also also skip this
-and this
 """
-        result = read_csv(StringIO(data), skip_footer=-3)
-        no_footer = '\n'.join(data.split('\n')[:-4])
+        result = read_csv(StringIO(data), skip_footer=2)
+        no_footer = '\n'.join(data.split('\n')[:-3])
         expected = read_csv(StringIO(no_footer))
 
         assert_frame_equal(result, expected)
 
-        result = read_csv(StringIO(data), skip_footer=3)
+        # equivalent to nrows
+        result = read_csv(StringIO(data), nrows=3)
         assert_frame_equal(result, expected)
 
     def test_no_unnamed_index(self):

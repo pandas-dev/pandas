@@ -76,9 +76,6 @@ data into a DataFrame object. They can take a number of arguments:
     Defaults to 0 (first row); specify None if there is no header row.
   - ``skiprows``: A collection of numbers for rows in the file to skip. Can
     also be an integer to skip the first ``n`` rows
-  - ``skip_footer``: Lines at bottom of file to skip. If >0 then indicates the
-    row to start skipping. If <0 then skips the specified number of rows from
-    the end.
   - ``index_col``: column number, column name, or list of column numbers/names,
     to use as the ``index`` (row labels) of the resulting DataFrame. By default,
     it will number the rows without using any column, unless there is one more
@@ -119,6 +116,7 @@ data into a DataFrame object. They can take a number of arguments:
   - ``chunksize``: An number of rows to be used to "chunk" a file into
     pieces. Will cause an ``TextParser`` object to be returned. More on this
     below in the section on :ref:`iterating and chunking <io.chunking>`
+  - ``skip_footer``: number of lines to skip at bottom of file (default 0)
   - ``converters``: a dictionary of functions for converting values in certain
     columns, where keys are either integers or column labels
   - ``encoding``: a string representing the encoding to use if the contents are

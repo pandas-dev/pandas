@@ -47,9 +47,6 @@ header : int, default 0
 skiprows : list-like or integer
     Row numbers to skip (0-indexed) or number of rows to skip (int)
     at the start of the file
-skip_footer : int, default 0
-    Lines at bottom of file to skip. If >0 then indicates the row to start
-    skipping. If <0 then skips the specified number of rows from the end.
 index_col : int or sequence, default None
     Column to use as the row labels of the DataFrame. If a sequence is
     given, a MultiIndex is used.
@@ -85,6 +82,8 @@ iterator : boolean, default False
     Return TextParser object
 chunksize : int, default None
     Return TextParser object for iteration
+skip_footer : int, default 0
+    Number of line at bottom of file to skip
 converters : dict. optional
     Dict of functions for converting values in certain columns. Keys can either
     be integers or column labels
@@ -478,7 +477,7 @@ class TextParser(object):
         else:
             self.converters = {}
 
-        #assert(self.skip_footer >= 0)
+        assert(self.skip_footer >= 0)
 
         self.keep_default_na = keep_default_na
         if na_values is None and keep_default_na:
@@ -783,10 +782,8 @@ class TextParser(object):
             footers = 0
             if self.skip_footer:
                 footers = self.skip_footer
-                if footers > 0:
-                    footers = footers - self.pos
-            row_num = self.pos - (len(content) - i - footers)
 
+            row_num = self.pos - (len(content) - i + footers)
             msg = ('Expecting %d columns, got %d in row %d' %
                    (col_len, zip_len, row_num))
             raise ValueError(msg)
@@ -1108,7 +1105,7 @@ class TextParser(object):
         self.buf = []
 
         if self.skip_footer:
-            lines = lines[:self.skip_footer]
+            lines = lines[:-self.skip_footer]
 
         lines = self._check_comments(lines)
         return self._check_thousands(lines)
