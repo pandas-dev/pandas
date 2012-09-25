@@ -1454,6 +1454,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(self.frame._get_axis(0) is self.frame.index)
         self.assert_(self.frame._get_axis(1) is self.frame.columns)
 
+    def test_default_index(self):
+        frame = DataFrame([[1,2,3],[1,3,4],[2,5,6],[8,9,10]],
+                        columns=['A','B','C'])
+        frame.drop_duplicates('A', inplace=True)
+        frame.default_index(inplace=True)
+        self.assert_(np.array_equal(frame.index, range(3)))
+
     def test_set_index(self):
         idx = Index(np.arange(len(self.mixed_frame)))
 

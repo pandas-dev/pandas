@@ -2456,6 +2456,29 @@ class DataFrame(NDFrame):
         frame.index = index
         return frame
 
+    def default_index(self, inplace=False):
+        """
+        Resets index to default of consecutive integers.
+
+        Parameters
+        ----------
+        inplace : bool
+            Modify the DataFrame in place (do not create a new object)
+
+        Returns
+        -------
+        df : DataFrame
+            DataFrame with new index
+        """
+        if inplace:
+            new_obj = self
+        else:
+            new_obj = self.copy()
+        N, _ = new_obj.shape
+        new_obj.index = _default_index(N)
+        return new_obj
+
+
     def reset_index(self, level=None, drop=False, inplace=False):
         """
         For DataFrame with multi-level index, return new DataFrame with
