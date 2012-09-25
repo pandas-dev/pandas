@@ -209,7 +209,10 @@ cdef class TextReader:
                   error_bad_lines=True,
                   warn_bad_lines=True,
                   na_filter=True,
-                  low_memory=False):
+                  low_memory=False,
+                  skiprows=None,
+                  skip_footer=0,
+                  verbose=False):
         self.parser = parser_new()
         self.parser.chunksize = tokenize_chunksize
 

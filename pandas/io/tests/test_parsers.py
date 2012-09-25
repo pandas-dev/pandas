@@ -14,7 +14,7 @@ import numpy as np
 from pandas import DataFrame, Series, Index, isnull, MultiIndex
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
-                               ExcelFile, TextParser)
+                               ExcelFile, TextFileReader, TextParser)
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
                                  assert_series_equal, network)
 import pandas.lib as lib
@@ -283,6 +283,7 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
         self.assert_('nominal' in df)
 
     def test_single_line(self):
+        # sniff separator
         df = read_csv(StringIO('1,2'), names=['a', 'b'], sep=None)
         assert_frame_equal(DataFrame({'a': [1], 'b': [2]}), df)
 
@@ -1010,7 +1011,7 @@ baz|7|8|9
 
         treader = read_table(StringIO(self.data1), sep=',', index_col=0,
                              iterator=True)
-        self.assert_(isinstance(treader, TextParser))
+        self.assert_(isinstance(treader, TextFileReader))
 
     def test_header_not_first_line(self):
         data = """got,to,ignore,this,line
