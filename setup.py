@@ -235,7 +235,10 @@ class CleanCommand(Command):
         self._clean_trees = []
         self._clean_exclude = ['np_datetime.c',
                                'np_datetime_strings.c',
-                               'period.c']
+                               'period.c',
+                               'parser.c',
+                               'conversions.c',
+                               'str_to.c']
 
         for root, dirs, files in list(os.walk('pandas')):
             for f in files:
@@ -383,7 +386,8 @@ lib_ext = Extension('pandas.lib',
                     sources=[srcpath('tseries', suffix=suffix),
                              'pandas/src/datetime/np_datetime.c',
                              'pandas/src/datetime/np_datetime_strings.c'],
-                    include_dirs=[np.get_include()],
+                    include_dirs=[np.get_include(),
+                                  'pandas/src/klib'],
                     # pyrex_gdb=True,
                     # extra_compile_args=['-Wconversion']
                     )
@@ -404,7 +408,8 @@ parser_ext = Extension('pandas._parser',
                                 'pandas/src/parser/conversions.c',
                                 'pandas/src/parser/str_to.c',
                                 ],
-                       include_dirs=[np.get_include()])
+                       include_dirs=[np.get_include(),
+                                     'pandas/src/klib'])
 
 sparse_ext = Extension('pandas._sparse',
                        sources=[srcpath('sparse', suffix=suffix)],
@@ -412,7 +417,8 @@ sparse_ext = Extension('pandas._sparse',
 
 sandbox_ext = Extension('pandas._sandbox',
                         sources=[srcpath('sandbox', suffix=suffix)],
-                        include_dirs=[np.get_include()])
+                        include_dirs=[np.get_include(),
+                                      'pandas/src/klib'])
 
 cppsandbox_ext = Extension('pandas._cppsandbox',
                            language='c++',
@@ -420,7 +426,7 @@ cppsandbox_ext = Extension('pandas._cppsandbox',
                            include_dirs=[np.get_include()])
 
 extensions = [algos_ext,
-              # lib_ext,
+              lib_ext,
               period_ext,
               sparse_ext,
               parser_ext]

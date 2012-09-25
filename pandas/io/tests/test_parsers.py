@@ -426,7 +426,7 @@ skip
             it = self.read_table(StringIO(data), sep=',',
                             header=1, comment='#', iterator=True, chunksize=1,
                             skiprows=[2])
-            df = it.get_chunk(5)
+            df = it.read(5)
             self.assert_(False)
         except ValueError, inst:
             self.assert_('Expecting 3 columns, got 5 in row 5' in str(inst))
@@ -445,8 +445,8 @@ skip
             it = self.read_table(StringIO(data), sep=',',
                             header=1, comment='#', iterator=True, chunksize=1,
                             skiprows=[2])
-            df = it.get_chunk(1)
-            it.get_chunk(2)
+            df = it.read(1)
+            it.read(2)
             self.assert_(False)
         except ValueError, inst:
             self.assert_('Expecting 3 columns, got 5 in row 5' in str(inst))
@@ -465,8 +465,8 @@ skip
             it = self.read_table(StringIO(data), sep=',',
                             header=1, comment='#', iterator=True, chunksize=1,
                             skiprows=[2])
-            df = it.get_chunk(1)
-            it.get_chunk()
+            df = it.read(1)
+            it.read()
             self.assert_(False)
         except ValueError, inst:
             self.assert_('Expecting 3 columns, got 5 in row 5' in str(inst))
@@ -706,59 +706,6 @@ baz,7,8,9
         self.assert_(df.ix[:, ['A', 'B', 'C', 'D']].values.dtype == np.float64)
         assert_frame_equal(df, df2)
 
-    def test_excel_stop_iterator(self):
-        _skip_if_no_xlrd()
-
-        excel_data = ExcelFile(os.path.join(self.dirpath, 'test2.xls'))
-        parsed = excel_data.parse('Sheet1')
-        expected = DataFrame([['aaaa','bbbbb']], columns=['Test', 'Test1'])
-        assert_frame_equal(parsed, expected)
-
-    def test_excel_cell_error_na(self):
-        _skip_if_no_xlrd()
-
-        excel_data = ExcelFile(os.path.join(self.dirpath, 'test3.xls'))
-        parsed = excel_data.parse('Sheet1')
-        expected = DataFrame([[np.nan]], columns=['Test'])
-        assert_frame_equal(parsed, expected)
-
-    def test_excel_table(self):
-        _skip_if_no_xlrd()
-
-        pth = os.path.join(self.dirpath, 'test.xls')
-        xls = ExcelFile(pth)
-        df = xls.parse('Sheet1', index_col=0, parse_dates=True)
-        df2 = self.read_csv(self.csv1, index_col=0, parse_dates=True)
-        df3 = xls.parse('Sheet2', skiprows=[1], index_col=0, parse_dates=True)
-        assert_frame_equal(df, df2)
-        assert_frame_equal(df3, df2)
-
-    def test_excel_read_buffer(self):
-        _skip_if_no_xlrd()
-        _skip_if_no_openpyxl()
-
-        pth = os.path.join(self.dirpath, 'test.xls')
-        f = open(pth, 'rb')
-        xls = ExcelFile(f)
-        # it works
-        xls.parse('Sheet1', index_col=0, parse_dates=True)
-
-        pth = os.path.join(self.dirpath, 'test.xlsx')
-        f = open(pth, 'rb')
-        xl = ExcelFile(f)
-        df = xl.parse('Sheet1', index_col=0, parse_dates=True)
-
-    def test_xlsx_table(self):
-        _skip_if_no_openpyxl()
-
-        pth = os.path.join(self.dirpath, 'test.xlsx')
-        xlsx = ExcelFile(pth)
-        df = xlsx.parse('Sheet1', index_col=0, parse_dates=True)
-        df2 = self.read_csv(self.csv1, index_col=0, parse_dates=True)
-        df3 = xlsx.parse('Sheet2', skiprows=[1], index_col=0, parse_dates=True)
-        assert_frame_equal(df, df2)
-        assert_frame_equal(df3, df2)
-
     def test_parse_cols_int(self):
         _skip_if_no_openpyxl()
         _skip_if_no_xlrd()
@@ -944,18 +891,19 @@ baz|7|8|9
         df = self.read_csv(StringIO(data), index_col=0)
 
         parser = TextParser(as_list, index_col=0, chunksize=2)
-        chunk  = parser.get_chunk(None)
+        chunk  = parser.read(None)
 
         assert_frame_equal(chunk, df)
 
     def test_iterator(self):
-        reader = self.read_csv(StringIO(self.data1), index_col=0, iterator=True)
+        reader = self.read_csv(StringIO(self.data1), index_col=0,
+                               iterator=True)
         df = self.read_csv(StringIO(self.data1), index_col=0)
 
-        chunk = reader.get_chunk(3)
+        chunk = reader.read(3)
         assert_frame_equal(chunk, df[:3])
 
-        last_chunk = reader.get_chunk(5)
+        last_chunk = reader.read(5)
         assert_frame_equal(last_chunk, df[3:])
 
         # pass list
@@ -975,9 +923,9 @@ baz|7|8|9
         assert_frame_equal(chunks[0], df[1:3])
 
         # test bad parameter (skip_footer)
-        reader = self.read_csv(StringIO(self.data1), index_col=0, iterator=True,
-                          skip_footer=True)
-        self.assertRaises(ValueError, reader.get_chunk, 3)
+        reader = self.read_csv(StringIO(self.data1), index_col=0,
+                               iterator=True, skip_footer=True)
+        self.assertRaises(ValueError, reader.read, 3)
 
         treader = self.read_table(StringIO(self.data1), sep=',', index_col=0,
                              iterator=True)
@@ -1049,6 +997,7 @@ bar,two,12,13,14,15
         lines = data.split('\n')
         no_header = '\n'.join(lines[1:])
         names = ['A', 'B', 'C', 'D']
+
         df = self.read_csv(StringIO(no_header), index_col=[0, 1], names=names)
         expected = self.read_csv(StringIO(data), index_col=[0, 1])
         assert_frame_equal(df, expected)
@@ -1056,6 +1005,11 @@ bar,two,12,13,14,15
         # 2 implicit first cols
         df2 = self.read_csv(StringIO(data2))
         assert_frame_equal(df2, df)
+
+        # reverse order of index
+        df = self.read_csv(StringIO(no_header), index_col=[1, 0], names=names)
+        expected = self.read_csv(StringIO(data), index_col=[1, 0])
+        assert_frame_equal(df, expected)
 
     def test_multi_index_parse_dates(self):
         data = """index1,index2,A,B,C
@@ -1148,7 +1102,7 @@ c,4,5,01/03/2009
 1;1521,1541;187101,9543;ABC;poi;4,738797819
 2;121,12;14897,76;DEF;uyt;0,377320872
 3;878,158;108013,434;GHI;rez;2,735694704"""
-        f = lambda x : x.replace(",", ".")
+        f = lambda x : float(x.replace(",", "."))
         converter = {'Number1':f,'Number2':f, 'Number3':f}
         df2 = self.read_csv(StringIO(data), sep=';',converters=converter)
         self.assert_(df2['Number1'].dtype == float)
@@ -1253,59 +1207,6 @@ bar"""
                           names=['time', 'Q', 'NTU'], index_col=0,
                           parse_dates=True, date_parser=parser,
                           na_values=['NA'])
-
-    def test_converters_corner_with_nas(self):
-        import StringIO
-        csv = """id,score,days
-1,2,12
-2,2-5,
-3,,14+
-4,6-12,2"""
-
-        def convert_days(x):
-           x = x.strip()
-           if not x: return np.nan
-
-           is_plus = x.endswith('+')
-           if is_plus:
-               x = int(x[:-1]) + 1
-           else:
-               x = int(x)
-           return x
-
-        def convert_days_sentinel(x):
-           x = x.strip()
-           if not x: return -1
-
-           is_plus = x.endswith('+')
-           if is_plus:
-               x = int(x[:-1]) + 1
-           else:
-               x = int(x)
-           return x
-
-        def convert_score(x):
-           x = x.strip()
-           if not x: return np.nan
-           if x.find('-')>0:
-               valmin, valmax = map(int, x.split('-'))
-               val = 0.5*(valmin + valmax)
-           else:
-               val = float(x)
-
-           return val
-
-        fh = StringIO.StringIO(csv)
-        result = self.read_csv(fh, converters={'score':convert_score,
-                                                 'days':convert_days},
-                                 na_values=[-1,'',None])
-        self.assert_(isnull(result['days'][1]))
-
-        fh = StringIO.StringIO(csv)
-        result2 = self.read_csv(fh, converters={'score':convert_score,
-                                                  'days':convert_days_sentinel},
-                                  na_values=[-1,'',None])
-        assert_frame_equal(result, result2)
 
     def test_na_value_dict(self):
         data = """A,B,C
@@ -1487,6 +1388,113 @@ class TestPythonParser(ParserTests, unittest.TestCase):
 
         self.assertRaises(ValueError, read_fwf, StringIO(data3),
                           colspecs=colspecs, widths=[6, 10, 10, 7])
+
+
+    def test_converters_corner_with_nas(self):
+        import StringIO
+        csv = """id,score,days
+1,2,12
+2,2-5,
+3,,14+
+4,6-12,2"""
+
+        def convert_days(x):
+           x = x.strip()
+           if not x: return np.nan
+
+           is_plus = x.endswith('+')
+           if is_plus:
+               x = int(x[:-1]) + 1
+           else:
+               x = int(x)
+           return x
+
+        def convert_days_sentinel(x):
+           x = x.strip()
+           if not x: return -1
+
+           is_plus = x.endswith('+')
+           if is_plus:
+               x = int(x[:-1]) + 1
+           else:
+               x = int(x)
+           return x
+
+        def convert_score(x):
+           x = x.strip()
+           if not x: return np.nan
+           if x.find('-')>0:
+               valmin, valmax = map(int, x.split('-'))
+               val = 0.5*(valmin + valmax)
+           else:
+               val = float(x)
+
+           return val
+
+        fh = StringIO.StringIO(csv)
+        result = self.read_csv(fh, converters={'score':convert_score,
+                                                 'days':convert_days},
+                                 na_values=[-1,'',None])
+        self.assert_(isnull(result['days'][1]))
+
+        fh = StringIO.StringIO(csv)
+        result2 = self.read_csv(fh, converters={'score':convert_score,
+                                                  'days':convert_days_sentinel},
+                                  na_values=[-1,'',None])
+        assert_frame_equal(result, result2)
+
+    def test_excel_stop_iterator(self):
+        _skip_if_no_xlrd()
+
+        excel_data = ExcelFile(os.path.join(self.dirpath, 'test2.xls'))
+        parsed = excel_data.parse('Sheet1')
+        expected = DataFrame([['aaaa','bbbbb']], columns=['Test', 'Test1'])
+        assert_frame_equal(parsed, expected)
+
+    def test_excel_cell_error_na(self):
+        _skip_if_no_xlrd()
+
+        excel_data = ExcelFile(os.path.join(self.dirpath, 'test3.xls'))
+        parsed = excel_data.parse('Sheet1')
+        expected = DataFrame([[np.nan]], columns=['Test'])
+        assert_frame_equal(parsed, expected)
+
+    def test_excel_table(self):
+        _skip_if_no_xlrd()
+
+        pth = os.path.join(self.dirpath, 'test.xls')
+        xls = ExcelFile(pth)
+        df = xls.parse('Sheet1', index_col=0, parse_dates=True)
+        df2 = self.read_csv(self.csv1, index_col=0, parse_dates=True)
+        df3 = xls.parse('Sheet2', skiprows=[1], index_col=0, parse_dates=True)
+        assert_frame_equal(df, df2)
+        assert_frame_equal(df3, df2)
+
+    def test_excel_read_buffer(self):
+        _skip_if_no_xlrd()
+        _skip_if_no_openpyxl()
+
+        pth = os.path.join(self.dirpath, 'test.xls')
+        f = open(pth, 'rb')
+        xls = ExcelFile(f)
+        # it works
+        xls.parse('Sheet1', index_col=0, parse_dates=True)
+
+        pth = os.path.join(self.dirpath, 'test.xlsx')
+        f = open(pth, 'rb')
+        xl = ExcelFile(f)
+        df = xl.parse('Sheet1', index_col=0, parse_dates=True)
+
+    def test_xlsx_table(self):
+        _skip_if_no_openpyxl()
+
+        pth = os.path.join(self.dirpath, 'test.xlsx')
+        xlsx = ExcelFile(pth)
+        df = xlsx.parse('Sheet1', index_col=0, parse_dates=True)
+        df2 = self.read_csv(self.csv1, index_col=0, parse_dates=True)
+        df3 = xlsx.parse('Sheet2', skiprows=[1], index_col=0, parse_dates=True)
+        assert_frame_equal(df, df2)
+        assert_frame_equal(df3, df2)
 
 
 class TestCParser(ParserTests, unittest.TestCase):

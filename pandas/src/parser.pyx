@@ -127,7 +127,7 @@ cdef extern from "parser/parser.h":
 
         int header # Boolean: 1: has header, 0: no header
 
-        int skiprows
+        void *skipset
         int skip_footer
 
         table_chunk *chunks
@@ -151,6 +151,7 @@ cdef extern from "parser/parser.h":
 
     int parser_init(parser_t *self) nogil
     void parser_free(parser_t *self) nogil
+    int parser_add_skiprow(parser_t *self, int64_t row)
 
     void parser_set_default_options(parser_t *self)
 
@@ -173,6 +174,14 @@ cdef extern from "parser/parser.h":
 
 DEFAULT_CHUNKSIZE = 1024 * 1024
 
+# common NA values
+# no longer excluding inf representations
+# '1.#INF','-1.#INF', '1.#INF000000',
+_NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
+                 '#N/A N/A', 'NA', '#NA', 'NULL', 'NaN',
+                 'nan', ''])
+
+
 cdef class TextReader:
     '''
 
@@ -185,22 +194,29 @@ cdef class TextReader:
         object file_handle, should_close
         bint factorize, na_filter, verbose
         int parser_start
-        float64_t clk
+        list clocks
 
     cdef public:
+        int leading_cols, table_width
         object delimiter, na_values, converters, delim_whitespace
         object memory_map
         object as_recarray
-        object header
+        object header, names
         object low_memory
+        object skiprows
 
     def __cinit__(self, source,
                   delimiter=b',',
+
                   header=0,
+                  names=None,
+
                   memory_map=False,
                   tokenize_chunksize=DEFAULT_CHUNKSIZE,
                   delim_whitespace=False,
+
                   converters=None,
+
                   factorize=True,
                   as_recarray=False,
 
@@ -228,6 +244,9 @@ cdef class TextReader:
         self.parser = parser_new()
         self.parser.chunksize = tokenize_chunksize
 
+        # For timekeeping
+        self.clocks = []
+
         self._setup_parser_source(source)
         parser_set_default_options(self.parser)
 
@@ -242,15 +261,8 @@ cdef class TextReader:
 
         self.factorize = factorize
 
-        self.header = None
-        # TODO: no header vs. header is not the first row
-        if header is None:
-            # sentinel value
-            self.parser.header = -1
-            self.parser_start = 0
-        else:
-            self.parser.header = header
-            self.parser_start = header + 1
+        #----------------------------------------
+        # parser options
 
         self.parser.skipinitialspace = skipinitialspace
 
@@ -268,9 +280,16 @@ cdef class TextReader:
                 raise ValueError('Only length-1 escapes  supported')
             self.parser.escapechar = ord(escapechar)
 
+        self.parser.quotechar = ord(quotechar)
+        self.parser.quoting = quoting
+
         # error handling of bad lines
         self.parser.error_bad_lines = int(error_bad_lines)
         self.parser.warn_bad_lines = int(warn_bad_lines)
+
+        self.skiprows = skiprows
+        if skiprows is not None:
+            self._make_skiprow_set()
 
         self.should_close = False
 
@@ -283,10 +302,30 @@ cdef class TextReader:
 
         self.na_filter = na_filter
         self.as_recarray = as_recarray
-        self.header = None
 
         self.verbose = verbose
         self.low_memory = low_memory
+
+        #----------------------------------------
+        # header stuff
+
+        self.names = names
+        self.leading_cols = 0
+        if names is not None:
+            header = None
+
+        # TODO: no header vs. header is not the first row
+        if header is None:
+            # sentinel value
+            self.parser.header = -1
+            self.parser_start = 0
+        else:
+            self.parser.header = header
+            self.parser_start = header + 1
+
+        self.header, self.table_width = self._get_header()
+
+        # print 'Header: %s, width: %d' % (str(self.header), self.table_width)
 
     def __init__(self, *args, **kwards):
         pass
@@ -297,6 +336,13 @@ cdef class TextReader:
     def __del__(self):
         if self.should_close:
             self.file_handle.close()
+
+    cdef _make_skiprow_set(self):
+        if isinstance(self.skiprows, (int, np.integer)):
+            self.skiprows = range(self.skiprows)
+
+        for i in self.skiprows:
+            parser_add_skiprow(self.parser, i)
 
     cdef _setup_parser_source(self, source):
         cdef:
@@ -335,38 +381,66 @@ cdef class TextReader:
                 raise Exception('Initializing parser from file-like '
                                 'object failed')
 
-    def get_header(self):
-        if self.parser.header >= 0:
-            self.header = self._parse_table_header()
-
-        return self.header
-
-    cdef _parse_table_header(self):
+    cdef _get_header(self):
         cdef:
-            size_t i, start, fields
+            size_t i, start, data_line, field_count, passed_count
             char *word
-            # ndarray[object] header
 
-        if self.parser.lines < self.parser.header + 1:
-            tokenize_nrows(self.parser, self.parser.header + 1)
+        if self.parser.header >= 0:
+            # Header is in the file
 
-        # e.g., if header=3 and file only has 2 lines
-        if self.parser.lines < self.parser.header + 1:
-            raise CParserError('Passed header=%d but only %d lines in file'
-                               % (self.parser.header, self.parser.lines))
+            if self.parser.lines < self.parser.header + 1:
+                # print 'tokenizing %d rows' % (self.parser.header + 2)
 
-        fields = self.parser.line_fields[self.parser.header]
-        start = self.parser.line_start[self.parser.header]
+                tokenize_nrows(self.parser, self.parser.header + 2)
 
-        # TODO: Py3 vs. Py2
+            # e.g., if header=3 and file only has 2 lines
+            if self.parser.lines < self.parser.header + 1:
+                raise CParserError('Passed header=%d but only %d lines in file'
+                                   % (self.parser.header, self.parser.lines))
 
-        # np.empty(fields, dtype=np.object_)
-        header = []
-        for i in range(fields):
-            word = self.parser.words[start + i]
-            header.append(PyString_FromString(word))
+            field_count = self.parser.line_fields[self.parser.header]
+            start = self.parser.line_start[self.parser.header]
 
-        return header
+            # TODO: Py3 vs. Py2
+            header = []
+            for i in range(field_count):
+                word = self.parser.words[start + i]
+                header.append(PyString_FromString(word))
+
+            data_line = 1
+
+        elif self.names is not None:
+            # Names passed
+            if self.parser.lines < 1:
+                tokenize_nrows(self.parser, 1)
+
+            header = self.names
+            data_line = 0
+        else:
+            # No header passed nor to be found in the file
+            if self.parser.lines < 1:
+                tokenize_nrows(self.parser, 1)
+
+            return None, self.parser.line_fields[0]
+
+        # Corner case, not enough lines in the file
+        if self.parser.lines < data_line + 1:
+            return None, len(header)
+        else:
+            field_count = self.parser.line_fields[data_line]
+            passed_count = len(header)
+
+            if passed_count > field_count:
+                raise CParserError('Column names have %d fields, data has %d'
+                                   ' fields' % (passed_count, field_count))
+
+            self.leading_cols = field_count - passed_count
+
+        return header, field_count
+
+    cdef _implicit_index_count(self):
+        pass
 
     def read(self, rows=None):
         """
@@ -377,87 +451,97 @@ cdef class TextReader:
 
         if self.low_memory:
             # Conserve intermediate space
-            names, columns = self._read_low_memory(rows)
+            columns = self._read_low_memory(rows)
         else:
             # Don't care about memory usage
-            names, columns = self._read_high_memory(rows)
+            columns = self._read_high_memory(rows)
 
         if self.as_recarray:
-            # start = time.clock()
-            result = _to_structured_array(columns, names)
-            # end = time.clock()
-            # print 'to_structured_array took %.4f sec' % (end - start)
+            self._start_clock()
+            result = _to_structured_array(columns, self.names)
+            self._end_clock('Conversion to structured array')
 
             return result
         else:
-            return names, columns
+            return columns
 
     cdef _read_low_memory(self, rows):
         pass
 
     cdef _read_high_memory(self, rows):
-        # start = time.clock()
+        cdef int irows
 
         self._start_clock()
+
         if rows is not None:
-            raise NotImplementedError
+            irows = rows
+            with nogil:
+                status = tokenize_nrows(self.parser, irows)
         else:
             with nogil:
                 status = tokenize_all_rows(self.parser)
+
+        if self.parser_start == self.parser.lines:
+            raise StopIteration
+
         self._end_clock('Tokenization')
 
         if status < 0:
             raise_parser_error('Error tokenizing data', self.parser)
 
         self._start_clock()
-        columns, names = self._convert_column_data()
-        self._end_clock('Type conversion')
 
-        header = self.get_header()
-        if header is not None:
-            names = header
+        columns = self._convert_column_data(rows=rows,
+                                            upcast_na=not self.as_recarray)
+
+        self._end_clock('Type conversion')
 
         # debug_print_parser(self.parser)
 
-        return names, columns
+        return columns
 
     cdef _start_clock(self):
-        self.clk = time.clock()
+        self.clocks.append(time.time())
 
     cdef _end_clock(self, what):
         if self.verbose:
-            print '%s took: %.4fms' % (time.clock() - self.clk) * 1000
+            elapsed = time.time() - self.clocks.pop(-1)
+            print '%s took: %.2f ms' % (what, elapsed * 1000)
 
-    def _convert_column_data(self):
+    def _convert_column_data(self, rows=None, upcast_na=False):
         cdef:
             Py_ssize_t i, ncols
             cast_func func
-            kh_str_t *table
+            kh_str_t *na_hashset
             int start, end
 
-        na_values = ['NA', 'nan', 'NaN']
-        table = kset_from_list(na_values)
-
         start = self.parser_start
-        end = self.parser.lines
 
-        ncols = self.parser.line_fields[start]
-
-        names = []
+        if rows is None:
+            end = self.parser.lines
+        else:
+            end = min(start + rows, self.parser.lines)
 
         results = {}
-        for i in range(ncols):
+        for i in range(self.table_width):
+            name = self._get_column_name(i)
+            conv = self._get_converter(i, name)
+
             # XXX
             if self.na_filter:
-                na_mask = _get_na_mask(self.parser, i, start, end, table)
+                na_list = self._get_na_list(i, name)
+                if na_list is None:
+                    na_mask = None # np.zeros(end - start, dtype=np.uint8)
+                else:
+                    na_hashset = kset_from_list(na_list)
+                    na_mask = _get_na_mask(self.parser, i, start,
+                                           end, na_hashset)
+                    self._free_na_set(na_hashset)
             else:
                 na_mask = None
 
-            conv = self._get_converter(i)
-
             if conv:
-                col_res = _apply_converter(conv, self.parser, i, start, end)
-                results[i] = lib.maybe_convert_numeric(col_res)
+                results[i] = _apply_converter(conv, self.parser, i, start, end)
                 continue
 
             col_res = None
@@ -468,22 +552,56 @@ cdef class TextReader:
                     results[i] = col_res
                     break
 
+            if upcast_na and na_count > 0:
+                col_res = _maybe_upcast(col_res, na_mask)
+
             if col_res is None:
                 raise Exception('Unable to parse column %d' % i)
 
-            names.append(i)
             results[i] = col_res
 
-        # XXX: needs to be done elsewhere
-        kh_destroy_str(table)
+        self.parser_start += end - start
 
-        return results, names
+        return results
 
-    def _get_converter(self, col):
+    def _get_converter(self, i, name):
         if self.converters is None:
             return None
 
-        return self.converters.get(col)
+        if name is not None and name in self.converters:
+            return self.converters[name]
+
+        # Converter for position, if any
+        return self.converters.get(i)
+
+    cdef _get_na_list(self, i, name):
+        if self.na_values is None:
+            return None
+
+        if isinstance(self.na_values, dict):
+            values = None
+            if name is not None and name in self.na_values:
+                values = self.na_values[name]
+                if values is not None and not isinstance(values, list):
+                    values = list(values)
+            else:
+                values = self.na_values.get(i)
+
+            return values
+        else:
+            if not isinstance(self.na_values, list):
+                self.na_values = list(self.na_values)
+
+            return self.na_values
+
+    cdef _free_na_set(self, kh_str_t *table):
+        kh_destroy_str(table)
+
+    cdef _get_column_name(self, i):
+        if self.header is not None:
+            return self.header[i - self.leading_cols]
+        else:
+            return None
 
     def _get_col_name(self, col):
         pass
@@ -491,6 +609,17 @@ cdef class TextReader:
 class CParserError(Exception):
     pass
 
+
+def _maybe_upcast(arr, mask_is_na):
+    """
+
+    """
+    mask_is_na = mask_is_na.view(np.bool_)
+    if issubclass(arr.dtype.type, np.integer):
+        arr = arr.astype(float)
+        np.putmask(arr, mask_is_na, np.nan)
+
+    return arr
 
 # ----------------------------------------------------------------------
 # Type conversions / inference support code
@@ -520,7 +649,10 @@ cdef _string_box_factorize(parser_t *parser, int col,
         object NA = na_values[np.object_]
 
     if na_filter:
-        na_mask = _na_mask
+        if _na_mask is None:
+            na_filter = 0
+        else:
+            na_mask = _na_mask
 
     table = kh_init_strbox()
 
@@ -571,7 +703,10 @@ cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
         ndarray[uint8_t, cast=True] na_mask
 
     if na_filter:
-        na_mask = _na_mask
+        if _na_mask is None:
+            na_filter = 0
+        else:
+            na_mask = _na_mask
 
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.float64)
@@ -613,7 +748,10 @@ cdef _try_int64(parser_t *parser, int col, int line_start, int line_end,
         int64_t NA = na_values[np.int64]
 
     if na_filter:
-        na_mask = _na_mask
+        if _na_mask is None:
+            na_filter = 0
+        else:
+            na_mask = _na_mask
 
     lines = line_end - line_start
 
@@ -660,7 +798,10 @@ cdef _try_bool(parser_t *parser, int col, int line_start, int line_end,
         uint8_t NA = na_values[np.bool_]
 
     if na_filter:
-        na_mask = _na_mask
+        if _na_mask is None:
+            na_filter = 0
+        else:
+            na_mask = _na_mask
 
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.uint8)
@@ -695,7 +836,7 @@ cdef _try_bool(parser_t *parser, int col, int line_start, int line_end,
         return result.view(np.bool_), na_count
 
 cdef _get_na_mask(parser_t *parser, int col, int line_start, int line_end,
-                  kh_str_t *na_table):
+                  kh_str_t *na_hashset):
     cdef:
         int error
         Py_ssize_t i
@@ -713,20 +854,20 @@ cdef _get_na_mask(parser_t *parser, int col, int line_start, int line_end,
         word = COLITER_NEXT(it)
 
         # length 0
-        if word[0] == '\x00':
-            result[i] = 1
-            continue
+        # if word[0] == '\x00':
+        #     result[i] = 1
+        #     continue
 
-        k = kh_get_str(na_table, word)
+        k = kh_get_str(na_hashset, word)
         # in the hash table
-        if k != na_table.n_buckets:
+        if k != na_hashset.n_buckets:
             result[i] = 1
         else:
             result[i] = 0
 
     return result
 
-cdef kh_str_t* kset_from_list(list values):
+cdef kh_str_t* kset_from_list(list values) except NULL:
     # caller takes responsibility for freeing the hash table
     cdef:
         Py_ssize_t i
@@ -740,6 +881,8 @@ cdef kh_str_t* kset_from_list(list values):
 
     for i in range(len(values)):
         val = values[i]
+
+        # None creeps in sometimes, which isn't possible here
         if not PyString_Check(val):
             raise TypeError('must be string, was %s' % type(val))
 
@@ -797,7 +940,18 @@ cdef _apply_converter(object f, parser_t *parser, int col,
         val = PyString_FromString(word)
         result[i] = f(val)
 
-    return lib.maybe_convert_objects(result)
+    values = lib.maybe_convert_objects(result)
+
+    if issubclass(values.dtype.type, (np.number, np.bool_)):
+        return values
+
+    # XXX
+    na_values = set([''])
+    try:
+        return lib.maybe_convert_numeric(values, na_values, False)
+    except Exception:
+        na_count = lib.sanitize_objects(values, na_values, False)
+        return result
 
 def _to_structured_array(dict columns, object names):
     cdef:
@@ -820,7 +974,7 @@ def _to_structured_array(dict columns, object names):
     length = len(columns.values()[0])
     stride = dt.itemsize
 
-    # start = time.clock()
+    # start = time.time()
 
     # we own the data
     buf = <char*> malloc(length * stride)
@@ -829,7 +983,7 @@ def _to_structured_array(dict columns, object names):
     assert(recs.flags.owndata)
 
     # buf = <char*> recs.data
-    # end = time.clock()
+    # end = time.time()
     # print 'took %.4f' % (end - start)
 
     for i in range(nfields):
@@ -865,3 +1019,4 @@ cdef _fill_structured_column(char *dst, char* src, int elsize,
             memcpy(dst, src, elsize)
             dst += stride
             src += elsize
+

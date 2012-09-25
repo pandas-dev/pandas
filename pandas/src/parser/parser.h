@@ -9,15 +9,13 @@
 #include <time.h>
 #include <errno.h>
 
-
 #if defined(_MSC_VER)
 #include "ms_stdint.h"
 #else
 #include <stdint.h>
 #endif
 
-// #include "Python.h"
-// #include "structmember.h"
+#include "khash.h"
 
 #define CHUNKSIZE 1024*256
 #define KB 1024
@@ -34,10 +32,11 @@
 #define FALSE 0
 #define TRUE  1
 
-// Maximum number of columns in a file.
+/* Maximum number of columns in a file. */
 #define MAX_NUM_COLUMNS    2000
 
-// Maximum number of characters in single field.
+/* Maximum number of characters in single field. */
+
 #define FIELD_BUFFER_SIZE  2000
 
 
@@ -54,7 +53,7 @@
 #define ERROR_NO_DATA                  23
 
 
-// #define VERBOSE
+/* #define VERBOSE */
 
 #if defined(VERBOSE)
 #define TRACE(X) printf X;
@@ -162,7 +161,7 @@ typedef struct parser_t {
 
     int header; // Boolean: 1: has header, 0: no header
 
-    int skiprows;
+    void *skipset;
     int skip_footer;
 
     table_chunk *chunks;
@@ -206,6 +205,8 @@ int parser_array_source_init(parser_t *self, char *bytes, size_t length);
 int parser_gzip_source_init(parser_t *self, FILE *fp);
 
 int parser_consume_rows(parser_t *self, size_t nrows);
+
+int parser_add_skiprow(parser_t *self, int64_t row);
 
 void parser_free(parser_t *self);
 

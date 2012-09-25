@@ -655,7 +655,7 @@ void parser_set_default_options(parser_t *self) {
     self->commentchar = '#';
     self->thousands = '\0';
 
-    self->skiprows = 0;
+    self->skipset = NULL;
     self->skip_footer = 0;
 }
 
@@ -986,12 +986,30 @@ int inline end_field(parser_t *self) {
 
 int inline end_line(parser_t *self) {
     int fields;
+    khiter_t k;  /* for hash set detection */
     int ex_fields = -1;
 
     fields = self->line_fields[self->lines];
 
     if (self->lines > 0) {
         ex_fields = self->line_fields[self->lines - 1];
+    }
+
+    if (self->skipset != NULL) {
+        k = kh_get_int64((kh_int64_t*) self->skipset, self->file_lines);
+
+        if (k != ((kh_int64_t*)self->skipset)->n_buckets) {
+            TRACE(("Skipping row %d\n", self->file_lines));
+            // increment file line count
+            self->file_lines++;
+
+            // skip the tokens from this bad line
+            self->line_start[self->lines] += fields;
+
+            // reset field count
+            self->line_fields[self->lines] = 0;
+            return 0;
+        }
     }
 
     if (!(self->lines <= self->header + 1) && fields != ex_fields) {
@@ -1022,8 +1040,9 @@ int inline end_line(parser_t *self) {
         }
     } else {
         // increment both line counts
-        self->lines++;
         self->file_lines++;
+
+        self->lines++;
 
         // good line, set new start point
         self->line_start[self->lines] = (self->line_start[self->lines - 1] +
@@ -1067,6 +1086,26 @@ int parser_cleanup(parser_t *self) {
 
     // XXX where to put this
     free_if_not_null(self->error_msg);
+
+    if (self->skipset != NULL)
+        kh_destroy_int64((kh_int64_t*) self->skipset);
+
+    return 0;
+}
+
+int parser_add_skiprow(parser_t *self, int64_t row) {
+    khiter_t k;
+    kh_int64_t *set;
+    int ret = 0;
+
+    if (self->skipset == NULL) {
+        self->skipset = (void*) kh_init_int64();
+    }
+
+    set = (kh_int64_t*) self->skipset;
+
+    k = kh_put_int64(set, row, &ret);
+    set->keys[k] = row;
 
     return 0;
 }
