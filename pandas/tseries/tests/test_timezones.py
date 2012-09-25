@@ -434,6 +434,9 @@ class TestTimeZoneSupport(unittest.TestCase):
 
         rng = date_range('2012-11-03 03:00', '2012-11-05 03:00', tz=tzlocal())
         rs1 = rng.to_pydatetime()
+        result = to_datetime(np.array(result.asobject), utc=True)
+        self.assert_(result.tz is pytz.utc)
+
 
     def test_frame_no_datetime64_dtype(self):
         dr = date_range('2011/1/1', '2012/1/1', freq='W-FRI')
