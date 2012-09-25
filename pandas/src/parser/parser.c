@@ -8,11 +8,11 @@
   */
 
 
- #include "parser.h"
- #include "conversions.h"
-
  #include "Python.h"
  #include "structmember.h"
+
+ #include "parser.h"
+ #include "conversions.h"
 
  #define READ_ERROR_OUT_OF_MEMORY   1
 

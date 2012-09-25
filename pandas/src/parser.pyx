@@ -193,26 +193,37 @@ cdef class TextReader:
         object header
         object low_memory
 
-    def __cinit__(self, source, delimiter=b',',
+    def __cinit__(self, source,
+                  delimiter=b',',
                   header=0,
                   memory_map=False,
                   tokenize_chunksize=DEFAULT_CHUNKSIZE,
                   delim_whitespace=False,
-                  na_values=None,
                   converters=None,
-                  thousands=None,
                   factorize=True,
                   as_recarray=False,
+
                   skipinitialspace=False,
                   escapechar=None,
+                  doublequote=None,
+                  quotechar=b'"',
+                  quoting=None,
+
+                  comment=None,
                   decimal=b'.',
+                  thousands=None,
+
                   error_bad_lines=True,
                   warn_bad_lines=True,
+
                   na_filter=True,
+                  na_values=None,
+
                   low_memory=False,
                   skiprows=None,
                   skip_footer=0,
                   verbose=False):
+
         self.parser = parser_new()
         self.parser.chunksize = tokenize_chunksize
 

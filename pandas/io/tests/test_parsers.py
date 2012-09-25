@@ -1,3 +1,5 @@
+# pylint: disable=E1101
+
 from pandas.util.py3compat import StringIO, BytesIO
 from datetime import datetime
 import csv
@@ -149,17 +151,6 @@ index2,b,d,f
         df = self.read_table(StringIO(data), sep='|', thousands=',')
         assert_almost_equal(df.values, expected)
 
-    def test_1000_fwf(self):
-        data = """
- 1 2,334.0    5
-10   13     10.
-"""
-        expected = [[1, 2334., 5],
-                    [10, 13, 10]]
-        df = read_fwf(StringIO(data), colspecs=[(0,3),(3,11),(12,16)],
-                      thousands=',')
-        assert_almost_equal(df.values, expected)
-
     def test_comment(self):
         data = """A,B,C
 1,2.,4.#hello world
@@ -171,17 +162,6 @@ index2,b,d,f
         assert_almost_equal(df.values, expected)
 
         df = self.read_table(StringIO(data), sep=',', comment='#', na_values=['NaN'])
-        assert_almost_equal(df.values, expected)
-
-    def test_comment_fwf(self):
-        data = """
-  1   2.   4  #hello world
-  5  NaN  10.0
-"""
-        expected = [[1, 2., 4],
-                    [5, np.nan, 10.]]
-        df = read_fwf(StringIO(data), colspecs=[(0,3),(4,9),(9,25)],
-                      comment='#')
         assert_almost_equal(df.values, expected)
 
     def test_squeeze(self):
@@ -218,7 +198,6 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         self.assert_('X.2' not in df)
         self.assert_('X.3' not in df)
         self.assert_('X.4' not in df)
-        from datetime import datetime
         d = datetime(1999, 1, 27, 19, 0)
         self.assert_(df.ix[0, 'nominal'] == d)
 
@@ -248,7 +227,6 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         self.assert_('X.2' not in df)
         self.assert_('X.3' not in df)
         self.assert_('X.4' not in df)
-        from datetime import datetime
         d = datetime(1999, 1, 27, 19, 0)
         self.assert_(df.ix[0, 'X.2_X.3'] == d)
 
@@ -269,7 +247,6 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 '''
         df = self.read_csv(StringIO(data), sep=',', header=None,
                       parse_dates=[1], index_col=1)
-        from datetime import datetime
         d = datetime(1999, 1, 27, 19, 0)
         self.assert_(df.index[0] == d)
 
@@ -1292,8 +1269,6 @@ bar"""
 
     def test_converters_corner_with_nas(self):
         import StringIO
-        import numpy as np
-        import pandas
         csv = """id,score,days
 1,2,12
 2,2-5,
@@ -1345,52 +1320,6 @@ bar"""
                                   na_values=[-1,'',None])
         assert_frame_equal(result, result2)
 
-    def test_fwf(self):
-        data_expected = """\
-2011,58,360.242940,149.910199,11950.7
-2011,59,444.953632,166.985655,11788.4
-2011,60,364.136849,183.628767,11806.2
-2011,61,413.836124,184.375703,11916.8
-2011,62,502.953953,173.237159,12468.3
-"""
-        expected = self.read_csv(StringIO(data_expected), header=None)
-
-        data1 = """\
-201158    360.242940   149.910199   11950.7
-201159    444.953632   166.985655   11788.4
-201160    364.136849   183.628767   11806.2
-201161    413.836124   184.375703   11916.8
-201162    502.953953   173.237159   12468.3
-"""
-        colspecs = [(0, 4), (4, 8), (8, 20), (21, 33), (34, 43)]
-        df = read_fwf(StringIO(data1), colspecs=colspecs, header=None)
-        assert_frame_equal(df, expected)
-
-        data2 = """\
-2011 58   360.242940   149.910199   11950.7
-2011 59   444.953632   166.985655   11788.4
-2011 60   364.136849   183.628767   11806.2
-2011 61   413.836124   184.375703   11916.8
-2011 62   502.953953   173.237159   12468.3
-"""
-        df = read_fwf(StringIO(data2), widths=[5, 5, 13, 13, 7], header=None)
-        assert_frame_equal(df, expected)
-
-        # From Thomas Kluyver: apparently some non-space filler characters can
-        # be seen, this is supported by specifying the 'delimiter' character:
-        # http://publib.boulder.ibm.com/infocenter/dmndhelp/v6r1mx/index.jsp?topic=/com.ibm.wbit.612.help.config.doc/topics/rfixwidth.html
-        data3 = """\
-201158~~~~360.242940~~~149.910199~~~11950.7
-201159~~~~444.953632~~~166.985655~~~11788.4
-201160~~~~364.136849~~~183.628767~~~11806.2
-201161~~~~413.836124~~~184.375703~~~11916.8
-201162~~~~502.953953~~~173.237159~~~12468.3
-"""
-        df = read_fwf(StringIO(data3), colspecs=colspecs, delimiter='~', header=None)
-        assert_frame_equal(df, expected)
-
-        self.assertRaises(ValueError, read_fwf, StringIO(data3),
-                          colspecs=colspecs, widths=[6, 10, 10, 7])
     def test_na_value_dict(self):
         data = """A,B,C
 foo,bar,NA
@@ -1489,6 +1418,88 @@ class TestPythonParser(ParserTests, unittest.TestCase):
         kwds = kwds.copy()
         kwds['engine'] = 'python'
         return read_table(*args, **kwds)
+
+    def test_1000_fwf(self):
+        data = """
+ 1 2,334.0    5
+10   13     10.
+"""
+        expected = [[1, 2334., 5],
+                    [10, 13, 10]]
+        df = read_fwf(StringIO(data), colspecs=[(0,3),(3,11),(12,16)],
+                      thousands=',')
+        assert_almost_equal(df.values, expected)
+
+    def test_comment_fwf(self):
+        data = """
+  1   2.   4  #hello world
+  5  NaN  10.0
+"""
+        expected = [[1, 2., 4],
+                    [5, np.nan, 10.]]
+        df = read_fwf(StringIO(data), colspecs=[(0,3),(4,9),(9,25)],
+                      comment='#')
+        assert_almost_equal(df.values, expected)
+
+    def test_fwf(self):
+        data_expected = """\
+2011,58,360.242940,149.910199,11950.7
+2011,59,444.953632,166.985655,11788.4
+2011,60,364.136849,183.628767,11806.2
+2011,61,413.836124,184.375703,11916.8
+2011,62,502.953953,173.237159,12468.3
+"""
+        expected = self.read_csv(StringIO(data_expected), header=None)
+
+        data1 = """\
+201158    360.242940   149.910199   11950.7
+201159    444.953632   166.985655   11788.4
+201160    364.136849   183.628767   11806.2
+201161    413.836124   184.375703   11916.8
+201162    502.953953   173.237159   12468.3
+"""
+        colspecs = [(0, 4), (4, 8), (8, 20), (21, 33), (34, 43)]
+        df = read_fwf(StringIO(data1), colspecs=colspecs, header=None)
+        assert_frame_equal(df, expected)
+
+        data2 = """\
+2011 58   360.242940   149.910199   11950.7
+2011 59   444.953632   166.985655   11788.4
+2011 60   364.136849   183.628767   11806.2
+2011 61   413.836124   184.375703   11916.8
+2011 62   502.953953   173.237159   12468.3
+"""
+        df = read_fwf(StringIO(data2), widths=[5, 5, 13, 13, 7], header=None)
+        assert_frame_equal(df, expected)
+
+        # From Thomas Kluyver: apparently some non-space filler characters can
+        # be seen, this is supported by specifying the 'delimiter' character:
+        # http://publib.boulder.ibm.com/infocenter/dmndhelp/v6r1mx/index.jsp?topic=/com.ibm.wbit.612.help.config.doc/topics/rfixwidth.html
+        data3 = """\
+201158~~~~360.242940~~~149.910199~~~11950.7
+201159~~~~444.953632~~~166.985655~~~11788.4
+201160~~~~364.136849~~~183.628767~~~11806.2
+201161~~~~413.836124~~~184.375703~~~11916.8
+201162~~~~502.953953~~~173.237159~~~12468.3
+"""
+        df = read_fwf(StringIO(data3), colspecs=colspecs, delimiter='~', header=None)
+        assert_frame_equal(df, expected)
+
+        self.assertRaises(ValueError, read_fwf, StringIO(data3),
+                          colspecs=colspecs, widths=[6, 10, 10, 7])
+
+
+# class TestCParser(ParserTests, unittest.TestCase):
+
+#     def read_csv(self, *args, **kwds):
+#         kwds = kwds.copy()
+#         kwds['engine'] = 'c'
+#         return read_csv(*args, **kwds)
+
+#     def read_table(self, *args, **kwds):
+#         kwds = kwds.copy()
+#         kwds['engine'] = 'c'
+#         return read_table(*args, **kwds)
 
 
 class TestParseSQL(unittest.TestCase):

@@ -417,7 +417,9 @@ class TextFileReader(object):
                  quotechar='"',
                  quoting=csv.QUOTE_MINIMAL,
                  skipinitialspace=False,
-                 squeeze=False, **kwds):
+                 squeeze=False,
+                 as_recarray=False,
+                 **kwds):
 
         # Tokenization options
         self.delimiter = delimiter
@@ -433,7 +435,12 @@ class TextFileReader(object):
 
         # header / index-related
         self.header = header
+
+        if index_col is not None:
+            if not isinstance(index_col, (list, tuple, np.ndarray)):
+                index_col = [index_col]
         self.index_col = index_col
+
         self.names = list(names) if names is not None else names
 
         # type conversion-related
@@ -474,6 +481,8 @@ class TextFileReader(object):
         self.kwds = kwds
 
         self.squeeze = squeeze    # return single-column DataFrame as Series
+
+        self.as_recarray = as_recarray # C parser return structured array
 
         # file options
         self.f = f
@@ -520,6 +529,7 @@ class TextFileReader(object):
     def _make_engine(self, kind='c'):
         params = dict(delimiter=self.delimiter,
                       names=self.names,
+                      index_col=self.index_col,
                       header=self.header,
                       skiprows=self.skiprows,
                       skip_footer=self.skip_footer,
@@ -538,11 +548,11 @@ class TextFileReader(object):
 
         if kind == 'c':
             params.update(warn_bad_lines=self.warn_bad_lines,
-                          error_bad_lines=self.error_bad_lines)
+                          error_bad_lines=self.error_bad_lines,
+                          as_recarray=self.as_recarray)
             self._engine = CParserWrapper(self.f, **params)
         else:
-            params.update(index_col=self.index_col,
-                          encoding=self.encoding,
+            params.update(encoding=self.encoding,
                           parse_dates=self.parse_dates,
                           date_parser=self.date_parser,
                           keep_date_col=self.keep_date_col,
@@ -585,17 +595,51 @@ class TextFileReader(object):
 
 
 class CParserWrapper(object):
+    """
 
+    """
 
     def __init__(self, src, **kwds):
-        from pandas._parser import TextReader
+        kwds = kwds.copy()
+
+        self.names = kwds.pop('names', None)
+        self.index_col = kwds.pop('index_col', None)
+
+        if self.names is not None:
+            kwds['header'] = None
 
         self.kwds = kwds
+
+        from pandas._parser import TextReader
         self._reader = TextReader(src, **kwds)
 
     def read(self, nrows=None):
-        return self._reader.read(nrows)
+        if self.as_recarray:
+            return self._reader.read(nrows)
 
+        names, data = self._reader.read(nrows)
+        index, names, data = self._get_index(names, data)
+        return index, names, data
+
+    def _get_index(self, names, data):
+        if names is None:
+            names = self.names
+
+        if names is None: # still None
+            names = range(len(data))
+
+        if self.index_col is not None:
+            pass
+
+        elif len(data) > len(names):
+            # possible implicit index
+            pass
+        elif len(data) < len(names):
+            raise ValueError('Fewer data columns than header names')
+        else:
+            index = None
+
+        return index, names, data
 
 def TextParser(*args, **kwds):
     """
@@ -641,7 +685,8 @@ def TextParser(*args, **kwds):
 class PythonParser(object):
 
     def __init__(self, f, delimiter=None, dialect=None, names=None, header=0,
-                 index_col=None, na_values=None, keep_default_na=True,
+                 index_col=None,
+                 na_values=None,
                  thousands=None,
                  quotechar='"',
                  escapechar=None,
@@ -718,7 +763,7 @@ class PythonParser(object):
         if sep is None or len(sep) == 1:
             if self.dialect is not None:
                 if isinstance(self.dialect, basestring):
-                    dialect = csv.get_dialect(dialect)
+                    dialect = csv.get_dialect(self.dialect)
                 dia = dialect
             else:
                 class MyDialect(csv.Dialect):
@@ -966,10 +1011,7 @@ class PythonParser(object):
         if implicit_first_cols > 0:
             self._implicit_index = True
             if self.index_col is None:
-                if implicit_first_cols == 1:
-                    self.index_col = 0
-                else:
-                    self.index_col = range(implicit_first_cols)
+                self.index_col = range(implicit_first_cols)
             index_name = None
 
         else:
@@ -978,39 +1020,59 @@ class PythonParser(object):
         return index_name, orig_columns, columns
 
     def _explicit_index_names(self, columns):
-        index_name = None
-        if np.isscalar(self.index_col):
-            if isinstance(self.index_col, basestring):
+        # index_name = None
+        # if np.isscalar(self.index_col):
+        #     if isinstance(self.index_col, basestring):
 
-                index_name = self.index_col
-                for i, c in enumerate(list(columns)):
-                    if c == self.index_col:
-                        self.index_col = i
-                        columns.pop(i)
+        #         index_name = self.index_col
+        #         for i, c in enumerate(list(columns)):
+        #             if c == self.index_col:
+        #                 self.index_col = i
+        #                 columns.pop(i)
+        #                 break
+        #     else:
+        #         index_name = columns[self.index_col]
+
+        #     if index_name is not None and 'Unnamed' in index_name:
+        #         index_name = None
+
+        # elif self.index_col is not None:
+        #     cp_cols = list(columns)
+        #     index_name = []
+        #     index_col = list(self.index_col)
+        #     for i, c in enumerate(index_col):
+        #         if isinstance(c, basestring):
+        #             index_name.append(c)
+        #             for j, name in enumerate(cp_cols):
+        #                 if name == c:
+        #                     index_col[i] = j
+        #                     columns.remove(name)
+        #                     break
+        #         else:
+        #             name = cp_cols[c]
+        #             columns.remove(name)
+        #             index_name.append(name)
+        #     self.index_col = index_col
+
+        if self.index_col is None:
+            return None
+
+        cp_cols = list(columns)
+        index_name = []
+        index_col = list(self.index_col)
+        for i, c in enumerate(index_col):
+            if isinstance(c, basestring):
+                index_name.append(c)
+                for j, name in enumerate(cp_cols):
+                    if name == c:
+                        index_col[i] = j
+                        columns.remove(name)
                         break
             else:
-                index_name = columns[self.index_col]
-
-            if index_name is not None and 'Unnamed' in index_name:
-                index_name = None
-
-        elif self.index_col is not None:
-            cp_cols = list(columns)
-            index_name = []
-            index_col = list(self.index_col)
-            for i, c in enumerate(index_col):
-                if isinstance(c, basestring):
-                    index_name.append(c)
-                    for j, name in enumerate(cp_cols):
-                        if name == c:
-                            index_col[i] = j
-                            columns.remove(name)
-                            break
-                else:
-                    name = cp_cols[c]
-                    columns.remove(name)
-                    index_name.append(name)
-            self.index_col = index_col
+                name = cp_cols[c]
+                columns.remove(name)
+                index_name.append(name)
+        self.index_col = index_col
         return index_name
 
     def _rows_to_cols(self, content):
@@ -1020,10 +1082,12 @@ class PythonParser(object):
         zip_len = len(zipped_content)
 
         if self._implicit_index:
-            if np.isscalar(self.index_col):
-                col_len += 1
-            else:
-                col_len += len(self.index_col)
+            col_len += len(self.index_col)
+
+            # if np.isscalar(self.index_col):
+            #     col_len += 1
+            # else:
+            #     col_len += len(self.index_col)
 
         if col_len != zip_len:
             row_num = -1
@@ -1048,10 +1112,13 @@ class PythonParser(object):
     def _exclude_implicit_index(self, alldata):
 
         if self._implicit_index:
-            if np.isscalar(self.index_col):
-                excl_indices = [self.index_col]
-            else:
-                excl_indices = self.index_col
+            excl_indices = self.index_col
+
+            # if np.isscalar(self.index_col):
+            #     excl_indices = [self.index_col]
+            # else:
+            #     excl_indices = self.index_col
+
             data = {}
             offset = 0
             for i, col in enumerate(self.orig_columns):
@@ -1076,25 +1143,27 @@ class PythonParser(object):
                 return col
             raise ValueError('Index %s invalid' % col)
         index = None
-        if np.isscalar(self.index_col):
-            i = ix(self.index_col)
-            index = data.pop(i)
+
+        # if np.isscalar(self.index_col):
+        #     i = ix(self.index_col)
+        #     index = data.pop(i)
+        #     if not self._implicit_index:
+        #         columns.pop(i)
+        # else: # given a list of index
+
+        to_remove = []
+        index = []
+        for idx in self.index_col:
+            i = ix(idx)
+            to_remove.append(i)
+            index.append(data[i])
+
+        # remove index items from content and columns, don't pop in
+        # loop
+        for i in reversed(sorted(to_remove)):
+            data.pop(i)
             if not self._implicit_index:
                 columns.pop(i)
-        else: # given a list of index
-            to_remove = []
-            index = []
-            for idx in self.index_col:
-                i = ix(idx)
-                to_remove.append(i)
-                index.append(data[i])
-
-            # remove index items from content and columns, don't pop in
-            # loop
-            for i in reversed(sorted(to_remove)):
-                data.pop(i)
-                if not self._implicit_index:
-                    columns.pop(i)
 
         return index
 
@@ -1112,67 +1181,69 @@ class PythonParser(object):
                     return c
 
         index = None
-        if np.isscalar(self.index_col):
-            name = _get_name(self.index_col)
-            index = data.pop(name)
-            col_names.remove(name)
-        else: # given a list of index
-            to_remove = []
-            index = []
-            for idx in self.index_col:
-                name = _get_name(idx)
-                to_remove.append(name)
-                index.append(data[name])
 
-            # remove index items from content and columns, don't pop in
-            # loop
-            for c in reversed(sorted(to_remove)):
-                data.pop(c)
-                col_names.remove(c)
+        # if np.isscalar(self.index_col):
+        #     name = _get_name(self.index_col)
+        #     index = data.pop(name)
+        #     col_names.remove(name)
+        # else: # given a list of index
+
+        to_remove = []
+        index = []
+        for idx in self.index_col:
+            name = _get_name(idx)
+            to_remove.append(name)
+            index.append(data[name])
+
+        # remove index items from content and columns, don't pop in
+        # loop
+        for c in reversed(sorted(to_remove)):
+            data.pop(c)
+            col_names.remove(c)
 
         return index
 
     def _agg_index(self, index, try_parse_dates=True):
-        if np.isscalar(self.index_col):
-            if try_parse_dates and self._should_parse_dates(self.index_col):
-                index = self._conv_date(index)
-            na_values = self.na_values
-            if isinstance(na_values, dict):
-                na_values = _get_na_values(self.index_name, na_values)
-            index, na_count = _convert_types(index, na_values)
-            index = Index(index, name=self.index_name)
-            if self.verbose and na_count:
-                print 'Found %d NA values in the index' % na_count
-        else:
-            arrays = []
-            for i, arr in enumerate(index):
-                if (try_parse_dates and
-                    self._should_parse_dates(self.index_col[i])):
-                    arr = self._conv_date(arr)
-                col_na_values = self.na_values
-                if isinstance(self.na_values, dict):
-                    col_name = self.index_name[i]
-                    if col_name is not None:
-                        col_na_values = _get_na_values(col_name,
-                                                       self.na_values)
-                arr, _ = _convert_types(arr, col_na_values)
-                arrays.append(arr)
-            index = MultiIndex.from_arrays(arrays, names=self.index_name)
+
+        # if np.isscalar(self.index_col):
+        #     if try_parse_dates and self._should_parse_dates(self.index_col):
+        #         index = self._conv_date(index)
+        #     na_values = self.na_values
+        #     if isinstance(na_values, dict):
+        #         na_values = _get_na_values(self.index_name, na_values)
+        #     index, na_count = _convert_types(index, na_values)
+        #     index = Index(index, name=self.index_name)
+        #     if self.verbose and na_count:
+        #         print 'Found %d NA values in the index' % na_count
+        # else:
+
+        arrays = []
+        for i, arr in enumerate(index):
+            if (try_parse_dates and self._should_parse_dates(i)):
+                arr = self._conv_date(arr)
+            col_na_values = self.na_values
+            if isinstance(self.na_values, dict):
+                col_name = self.index_name[i]
+                if col_name is not None:
+                    col_na_values = _get_na_values(col_name,
+                                                   self.na_values)
+            arr, _ = _convert_types(arr, col_na_values)
+            arrays.append(arr)
+        index = MultiIndex.from_arrays(arrays, names=self.index_name)
+
         return index
 
     def _should_parse_dates(self, i):
         if isinstance(self.parse_dates, bool):
             return self.parse_dates
         else:
-            if np.isscalar(self.index_col):
-                name = self.index_name
-            else:
-                name = self.index_name[i]
+            name = self.index_name[i]
+            j = self.index_col[i]
 
             if np.isscalar(self.parse_dates):
-                return (i == self.parse_dates) or (name == self.parse_dates)
+                return (j == self.parse_dates) or (name == self.parse_dates)
             else:
-                return (i in self.parse_dates) or (name in self.parse_dates)
+                return (j in self.parse_dates) or (name in self.parse_dates)
 
     def _conv_date(self, *date_cols):
         if self.date_parser is None:
