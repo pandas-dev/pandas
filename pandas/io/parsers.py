@@ -247,6 +247,7 @@ def read_csv(filepath_or_buffer,
 @Appender(_read_table_doc)
 def read_table(filepath_or_buffer,
                sep='\t',
+               engine='python',
                dialect=None,
                header=0,
                index_col=None,
@@ -538,9 +539,7 @@ class TextFileReader(object):
         if kind == 'c':
             params.update(warn_bad_lines=self.warn_bad_lines,
                           error_bad_lines=self.error_bad_lines)
-
-            from pandas._parser import TextReader
-            self._engine = TextReader(self.f, **params)
+            self._engine = CParserWrapper(self.f, **params)
         else:
             params.update(index_col=self.index_col,
                           encoding=self.encoding,
@@ -587,9 +586,15 @@ class TextFileReader(object):
 
 class CParserWrapper(object):
 
-    def __init__(self, src, **kwds):
-        pass
 
+    def __init__(self, src, **kwds):
+        from pandas._parser import TextReader
+
+        self.kwds = kwds
+        self._reader = TextReader(src, **kwds)
+
+    def read(self, nrows=None):
+        return self._reader.read(nrows)
 
 
 def TextParser(*args, **kwds):
