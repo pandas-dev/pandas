@@ -1020,39 +1020,6 @@ class PythonParser(object):
         return index_name, orig_columns, columns
 
     def _explicit_index_names(self, columns):
-        # index_name = None
-        # if np.isscalar(self.index_col):
-        #     if isinstance(self.index_col, basestring):
-
-        #         index_name = self.index_col
-        #         for i, c in enumerate(list(columns)):
-        #             if c == self.index_col:
-        #                 self.index_col = i
-        #                 columns.pop(i)
-        #                 break
-        #     else:
-        #         index_name = columns[self.index_col]
-
-        #     if index_name is not None and 'Unnamed' in index_name:
-        #         index_name = None
-
-        # elif self.index_col is not None:
-        #     cp_cols = list(columns)
-        #     index_name = []
-        #     index_col = list(self.index_col)
-        #     for i, c in enumerate(index_col):
-        #         if isinstance(c, basestring):
-        #             index_name.append(c)
-        #             for j, name in enumerate(cp_cols):
-        #                 if name == c:
-        #                     index_col[i] = j
-        #                     columns.remove(name)
-        #                     break
-        #         else:
-        #             name = cp_cols[c]
-        #             columns.remove(name)
-        #             index_name.append(name)
-        #     self.index_col = index_col
 
         if self.index_col is None:
             return None
@@ -1073,6 +1040,11 @@ class PythonParser(object):
                 columns.remove(name)
                 index_name.append(name)
         self.index_col = index_col
+
+        # hack
+        if index_name[0] is not None and 'Unnamed' in index_name[0]:
+            index_name[0] = None
+
         return index_name
 
     def _rows_to_cols(self, content):
@@ -1083,11 +1055,6 @@ class PythonParser(object):
 
         if self._implicit_index:
             col_len += len(self.index_col)
-
-            # if np.isscalar(self.index_col):
-            #     col_len += 1
-            # else:
-            #     col_len += len(self.index_col)
 
         if col_len != zip_len:
             row_num = -1
@@ -1114,11 +1081,6 @@ class PythonParser(object):
         if self._implicit_index:
             excl_indices = self.index_col
 
-            # if np.isscalar(self.index_col):
-            #     excl_indices = [self.index_col]
-            # else:
-            #     excl_indices = self.index_col
-
             data = {}
             offset = 0
             for i, col in enumerate(self.orig_columns):
@@ -1143,13 +1105,6 @@ class PythonParser(object):
                 return col
             raise ValueError('Index %s invalid' % col)
         index = None
-
-        # if np.isscalar(self.index_col):
-        #     i = ix(self.index_col)
-        #     index = data.pop(i)
-        #     if not self._implicit_index:
-        #         columns.pop(i)
-        # else: # given a list of index
 
         to_remove = []
         index = []
@@ -1182,12 +1137,6 @@ class PythonParser(object):
 
         index = None
 
-        # if np.isscalar(self.index_col):
-        #     name = _get_name(self.index_col)
-        #     index = data.pop(name)
-        #     col_names.remove(name)
-        # else: # given a list of index
-
         to_remove = []
         index = []
         for idx in self.index_col:
@@ -1204,18 +1153,6 @@ class PythonParser(object):
         return index
 
     def _agg_index(self, index, try_parse_dates=True):
-
-        # if np.isscalar(self.index_col):
-        #     if try_parse_dates and self._should_parse_dates(self.index_col):
-        #         index = self._conv_date(index)
-        #     na_values = self.na_values
-        #     if isinstance(na_values, dict):
-        #         na_values = _get_na_values(self.index_name, na_values)
-        #     index, na_count = _convert_types(index, na_values)
-        #     index = Index(index, name=self.index_name)
-        #     if self.verbose and na_count:
-        #         print 'Found %d NA values in the index' % na_count
-        # else:
 
         arrays = []
         for i, arr in enumerate(index):
@@ -1376,10 +1313,6 @@ def _get_empty_meta(columns, index_col, index_name):
     columns = list(columns)
 
     if index_col is not None:
-        if np.isscalar(index_col):
-            index_col = [index_col]
-            index_name = [index_name]
-
         index = MultiIndex.from_arrays([[]] * len(index_col),
                                        names=index_name)
         for n in index_col:
