@@ -139,7 +139,7 @@ index2,b,d,f
 
     def test_1000_sep(self):
         data = """A|B|C
-1|2,334.0|5
+1|2,334|5
 10|13|10.
 """
         expected = [[1, 2334., 5],
@@ -149,19 +149,6 @@ index2,b,d,f
         assert_almost_equal(df.values, expected)
 
         df = self.read_table(StringIO(data), sep='|', thousands=',')
-        assert_almost_equal(df.values, expected)
-
-    def test_comment(self):
-        data = """A,B,C
-1,2.,4.#hello world
-5.,NaN,10.0
-"""
-        expected = [[1., 2., 4.],
-                    [5., np.nan, 10.]]
-        df = self.read_csv(StringIO(data), comment='#')
-        assert_almost_equal(df.values, expected)
-
-        df = self.read_table(StringIO(data), sep=',', comment='#', na_values=['NaN'])
         assert_almost_equal(df.values, expected)
 
     def test_squeeze(self):
@@ -1419,6 +1406,19 @@ class TestPythonParser(ParserTests, unittest.TestCase):
         kwds['engine'] = 'python'
         return read_table(*args, **kwds)
 
+    def test_comment(self):
+        data = """A,B,C
+1,2.,4.#hello world
+5.,NaN,10.0
+"""
+        expected = [[1., 2., 4.],
+                    [5., np.nan, 10.]]
+        df = self.read_csv(StringIO(data), comment='#')
+        assert_almost_equal(df.values, expected)
+
+        df = self.read_table(StringIO(data), sep=',', comment='#', na_values=['NaN'])
+        assert_almost_equal(df.values, expected)
+
     def test_1000_fwf(self):
         data = """
  1 2,334.0    5
@@ -1489,17 +1489,17 @@ class TestPythonParser(ParserTests, unittest.TestCase):
                           colspecs=colspecs, widths=[6, 10, 10, 7])
 
 
-# class TestCParser(ParserTests, unittest.TestCase):
+class TestCParser(ParserTests, unittest.TestCase):
 
-#     def read_csv(self, *args, **kwds):
-#         kwds = kwds.copy()
-#         kwds['engine'] = 'c'
-#         return read_csv(*args, **kwds)
+    def read_csv(self, *args, **kwds):
+        kwds = kwds.copy()
+        kwds['engine'] = 'c'
+        return read_csv(*args, **kwds)
 
-#     def read_table(self, *args, **kwds):
-#         kwds = kwds.copy()
-#         kwds['engine'] = 'c'
-#         return read_table(*args, **kwds)
+    def read_table(self, *args, **kwds):
+        kwds = kwds.copy()
+        kwds['engine'] = 'c'
+        return read_table(*args, **kwds)
 
 
 class TestParseSQL(unittest.TestCase):

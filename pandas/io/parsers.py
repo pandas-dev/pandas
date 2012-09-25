@@ -605,6 +605,8 @@ class CParserWrapper(object):
         self.names = kwds.pop('names', None)
         self.index_col = kwds.pop('index_col', None)
 
+        self.as_recarray = kwds.get('as_recarray', False)
+
         if self.names is not None:
             kwds['header'] = None
 
@@ -619,6 +621,11 @@ class CParserWrapper(object):
 
         names, data = self._reader.read(nrows)
         index, names, data = self._get_index(names, data)
+
+        # rename dict keys
+        data = sorted(data.items())
+        data = dict((k, v) for k, (i, v) in zip(names, data))
+
         return index, names, data
 
     def _get_index(self, names, data):
@@ -629,8 +636,13 @@ class CParserWrapper(object):
             names = range(len(data))
 
         if self.index_col is not None:
-            pass
+            (idx_names, names,
+             self.index_col) = _clean_index_names(names, self.index_col)
 
+            arrays = []
+            for i in self.index_col:
+                arrays.append(data.pop(i))
+            index = MultiIndex.from_arrays(arrays, names=idx_names)
         elif len(data) > len(names):
             # possible implicit index
             pass
@@ -640,6 +652,8 @@ class CParserWrapper(object):
             index = None
 
         return index, names, data
+
+
 
 def TextParser(*args, **kwds):
     """
@@ -850,7 +864,9 @@ class PythonParser(object):
 
         elif self._has_complex_date_col:
             if not self._name_processed:
-                self.index_name = self._explicit_index_names(list(columns))
+                (self.index_name, _,
+                 self.index_col) = _clean_index_names(list(columns),
+                                                      self.index_col)
                 self._name_processed = True
             index = self._get_complex_date_index(data, columns)
             index = self._agg_index(index, False)
@@ -1002,10 +1018,13 @@ class PythonParser(object):
                 if len(next_line) == len(line) + len(columns):
                     # column and index names on diff rows
                     implicit_first_cols = 0
+
                     self.index_col = range(len(line))
                     self.buf = self.buf[1:]
+
                     for c in reversed(line):
                         columns.insert(0, c)
+
                     return line, columns, orig_columns
 
         if implicit_first_cols > 0:
@@ -1015,37 +1034,10 @@ class PythonParser(object):
             index_name = None
 
         else:
-            index_name = self._explicit_index_names(columns)
+            (index_name, columns,
+             self.index_col) = _clean_index_names(columns, self.index_col)
 
         return index_name, orig_columns, columns
-
-    def _explicit_index_names(self, columns):
-
-        if self.index_col is None:
-            return None
-
-        cp_cols = list(columns)
-        index_name = []
-        index_col = list(self.index_col)
-        for i, c in enumerate(index_col):
-            if isinstance(c, basestring):
-                index_name.append(c)
-                for j, name in enumerate(cp_cols):
-                    if name == c:
-                        index_col[i] = j
-                        columns.remove(name)
-                        break
-            else:
-                name = cp_cols[c]
-                columns.remove(name)
-                index_name.append(name)
-        self.index_col = index_col
-
-        # hack
-        if index_name[0] is not None and 'Unnamed' in index_name[0]:
-            index_name[0] = None
-
-        return index_name
 
     def _rows_to_cols(self, content):
         zipped_content = list(lib.to_object_array(content).T)
@@ -1153,19 +1145,23 @@ class PythonParser(object):
         return index
 
     def _agg_index(self, index, try_parse_dates=True):
-
         arrays = []
         for i, arr in enumerate(index):
+
             if (try_parse_dates and self._should_parse_dates(i)):
                 arr = self._conv_date(arr)
+
             col_na_values = self.na_values
+
             if isinstance(self.na_values, dict):
                 col_name = self.index_name[i]
                 if col_name is not None:
                     col_na_values = _get_na_values(col_name,
                                                    self.na_values)
+
             arr, _ = _convert_types(arr, col_na_values)
             arrays.append(arr)
+
         index = MultiIndex.from_arrays(arrays, names=self.index_name)
 
         return index
@@ -1307,6 +1303,37 @@ class PythonParser(object):
         lines = self._check_comments(lines)
         return self._check_thousands(lines)
 
+
+def _clean_index_names(columns, index_col):
+    if index_col is None:
+        return None, columns, index_col
+
+    columns = list(columns)
+
+    cp_cols = list(columns)
+    index_name = []
+
+    # don't mutate
+    index_col = list(index_col)
+
+    for i, c in enumerate(index_col):
+        if isinstance(c, basestring):
+            index_name.append(c)
+            for j, name in enumerate(cp_cols):
+                if name == c:
+                    index_col[i] = j
+                    columns.remove(name)
+                    break
+        else:
+            name = cp_cols[c]
+            columns.remove(name)
+            index_name.append(name)
+
+    # hack
+    if index_name[0] is not None and 'Unnamed' in index_name[0]:
+        index_name[0] = None
+
+    return index_name, columns, index_col
 
 
 def _get_empty_meta(columns, index_col, index_name):

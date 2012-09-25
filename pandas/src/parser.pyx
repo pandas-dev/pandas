@@ -183,8 +183,9 @@ cdef class TextReader:
     cdef:
         parser_t *parser
         object file_handle, should_close
-        bint factorize, na_filter
+        bint factorize, na_filter, verbose
         int parser_start
+        float64_t clk
 
     cdef public:
         object delimiter, na_values, converters, delim_whitespace
@@ -284,6 +285,7 @@ cdef class TextReader:
         self.as_recarray = as_recarray
         self.header = None
 
+        self.verbose = verbose
         self.low_memory = low_memory
 
     def __init__(self, *args, **kwards):
@@ -396,31 +398,35 @@ cdef class TextReader:
     cdef _read_high_memory(self, rows):
         # start = time.clock()
 
+        self._start_clock()
         if rows is not None:
             raise NotImplementedError
         else:
             with nogil:
                 status = tokenize_all_rows(self.parser)
-
-        # end = time.clock()
-        # print 'Tokenization took %.4f sec' % (end - start)
+        self._end_clock('Tokenization')
 
         if status < 0:
             raise_parser_error('Error tokenizing data', self.parser)
 
-        # start = time.clock()
-
+        self._start_clock()
         columns, names = self._convert_column_data()
+        self._end_clock('Type conversion')
 
         header = self.get_header()
         if header is not None:
             names = header
 
-        # end = time.clock()
-        # print 'Type conversion took %.4f sec' % (end - start)
         # debug_print_parser(self.parser)
 
         return names, columns
+
+    cdef _start_clock(self):
+        self.clk = time.clock()
+
+    cdef _end_clock(self, what):
+        if self.verbose:
+            print '%s took: %.4fms' % (time.clock() - self.clk) * 1000
 
     def _convert_column_data(self):
         cdef:
@@ -451,7 +457,7 @@ cdef class TextReader:
 
             if conv:
                 col_res = _apply_converter(conv, self.parser, i, start, end)
-                results[i] = col_res
+                results[i] = lib.maybe_convert_numeric(col_res)
                 continue
 
             col_res = None
