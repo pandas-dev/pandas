@@ -889,6 +889,15 @@ class PeriodIndex(Int64Index):
             except KeyError:
                 pass
 
+        if isinstance(start, datetime) and isinstance(end, datetime):
+            ordinals = self.values
+            t1 = Period(start, freq=self.freq)
+            t2 = Period(end, freq=self.freq)
+
+            left = ordinals.searchsorted(t1.ordinal, side='left')
+            right = ordinals.searchsorted(t2.ordinal, side='right')
+            return left, right
+
         return Int64Index.slice_locs(self, start, end)
 
     def _get_string_slice(self, key):
