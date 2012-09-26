@@ -3760,6 +3760,8 @@ class DataFrame(NDFrame):
             series_gen = (Series.from_array(arr, index=res_columns, name=name)
                           for i, (arr, name) in
                           enumerate(izip(values, res_index)))
+        else:
+            raise ValueError('Axis must be 0 or 1, got %s' % str(axis))
 
         keys = []
         results = {}
@@ -3815,6 +3817,8 @@ class DataFrame(NDFrame):
             target = self
         elif axis == 1:
             target = self.T
+        else:
+            raise ValueError('Axis must be 0 or 1, got %s' % str(axis))
 
         result_values = np.empty_like(target.values)
         columns = target.columns

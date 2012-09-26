@@ -5239,6 +5239,10 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = Series(np.nan, index=self.frame.index)
         assert_series_equal(result, expected)
 
+        #invalid axis
+        df = DataFrame([[1,2,3], [4,5,6], [7,8,9]], index=['a','a','c'])
+        self.assertRaises(ValueError, df.apply, lambda x: x, 2)
+
     def test_apply_standard_nonunique(self):
         df = DataFrame([[1,2,3], [4,5,6], [7,8,9]], index=['a','a','c'])
         rs = df.apply(lambda s: s[0], axis=1)
