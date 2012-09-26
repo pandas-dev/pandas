@@ -1312,8 +1312,11 @@ bar"""
                           na_values=['NA'])
 
     def test_converters_corner_with_nas(self):
+        # skip aberration observed on Win64 Python 3.2.2
+        if hash(np.int64(-1)) != -2:
+            raise nose.SkipTest
+
         import StringIO
-        import numpy as np
         import pandas
         csv = """id,score,days
 1,2,12
