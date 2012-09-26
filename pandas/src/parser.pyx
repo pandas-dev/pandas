@@ -197,7 +197,7 @@ cdef class TextReader:
         list clocks
 
     cdef public:
-        int leading_cols, table_width
+        int leading_cols, table_width, skip_footer
         object delimiter, na_values, converters, delim_whitespace
         object memory_map
         object as_recarray
@@ -224,7 +224,7 @@ cdef class TextReader:
                   escapechar=None,
                   doublequote=None,
                   quotechar=b'"',
-                  quoting=None,
+                  quoting=0,
 
                   comment=None,
                   decimal=b'.',
@@ -290,6 +290,13 @@ cdef class TextReader:
         self.skiprows = skiprows
         if skiprows is not None:
             self._make_skiprow_set()
+
+        self.skip_footer = skip_footer
+
+        # KLUDGE
+        if skip_footer > 0:
+            self.parser.error_bad_lines = 0
+            self.parser.warn_bad_lines = 0
 
         self.should_close = False
 
@@ -408,7 +415,7 @@ cdef class TextReader:
                 word = self.parser.words[start + i]
                 header.append(PyString_FromString(word))
 
-            data_line = 1
+            data_line = self.parser.header + 1
 
         elif self.names is not None:
             # Names passed
@@ -458,7 +465,7 @@ cdef class TextReader:
 
         if self.as_recarray:
             self._start_clock()
-            result = _to_structured_array(columns, self.names)
+            result = _to_structured_array(columns, self.header)
             self._end_clock('Conversion to structured array')
 
             return result
@@ -469,17 +476,27 @@ cdef class TextReader:
         pass
 
     cdef _read_high_memory(self, rows):
-        cdef int irows
+        cdef:
+            int buffered_lines
+            int irows, footer = 0
 
         self._start_clock()
 
         if rows is not None:
             irows = rows
-            with nogil:
-                status = tokenize_nrows(self.parser, irows)
+            buffered_lines = self.parser.lines - self.parser_start
+
+            if buffered_lines < irows:
+                with nogil:
+                    status = tokenize_nrows(self.parser,
+                                            irows - buffered_lines)
+            if self.skip_footer > 0:
+                raise ValueError('skip_footer can only be used to read '
+                                 'the whole file')
         else:
             with nogil:
                 status = tokenize_all_rows(self.parser)
+            footer = self.skip_footer
 
         if self.parser_start == self.parser.lines:
             raise StopIteration
@@ -492,13 +509,16 @@ cdef class TextReader:
         self._start_clock()
 
         columns = self._convert_column_data(rows=rows,
+                                            footer=footer,
                                             upcast_na=not self.as_recarray)
 
         self._end_clock('Type conversion')
 
-        # debug_print_parser(self.parser)
 
         return columns
+
+    def debug_print(self):
+        debug_print_parser(self.parser)
 
     cdef _start_clock(self):
         self.clocks.append(time.time())
@@ -508,7 +528,7 @@ cdef class TextReader:
             elapsed = time.time() - self.clocks.pop(-1)
             print '%s took: %.2f ms' % (what, elapsed * 1000)
 
-    def _convert_column_data(self, rows=None, upcast_na=False):
+    def _convert_column_data(self, rows=None, upcast_na=False, footer=0):
         cdef:
             Py_ssize_t i, ncols
             cast_func func
@@ -521,6 +541,10 @@ cdef class TextReader:
             end = self.parser.lines
         else:
             end = min(start + rows, self.parser.lines)
+
+        # # skip footer
+        # if footer > 0:
+        #     end -= footer
 
         results = {}
         for i in range(self.table_width):

@@ -246,8 +246,17 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 
     def test_single_line(self):
         # sniff separator
-        df = self.read_csv(StringIO('1,2'), names=['a', 'b'], sep=None)
-        assert_frame_equal(DataFrame({'a': [1], 'b': [2]}), df)
+        buf = StringIO()
+        sys.stdout = buf
+
+        # printing warning message when engine == 'c' for now
+
+        try:
+            # it works!
+            df = self.read_csv(StringIO('1,2'), names=['a', 'b'], sep=None)
+            assert_frame_equal(DataFrame({'a': [1], 'b': [2]}), df)
+        finally:
+            sys.stdout = sys.__stdout__
 
     def test_multiple_date_cols_with_header(self):
         data = """\
@@ -364,7 +373,7 @@ footer
 
         try:
             df = self.read_table(StringIO(data), sep=',', header=1, comment='#',
-                            skip_footer=-1)
+                            skip_footer=1)
             self.assert_(False)
         except ValueError, inst:
             self.assert_('Expecting 3 columns, got 5 in row 3' in str(inst))
@@ -781,42 +790,6 @@ baz,7,8,9
         data = self.read_csv(StringIO(data))
         self.assert_(data.index.equals(Index(['foo', 'bar', 'baz'])))
 
-    def test_sniff_delimiter(self):
-        text = """index|A|B|C
-foo|1|2|3
-bar|4|5|6
-baz|7|8|9
-"""
-        data = self.read_csv(StringIO(text), index_col=0, sep=None)
-        self.assert_(data.index.equals(Index(['foo', 'bar', 'baz'])))
-
-        data2 = self.read_csv(StringIO(text), index_col=0, delimiter='|')
-        assert_frame_equal(data, data2)
-
-        text = """ignore this
-ignore this too
-index|A|B|C
-foo|1|2|3
-bar|4|5|6
-baz|7|8|9
-"""
-        data3 = self.read_csv(StringIO(text), index_col=0,
-                              sep=None, skiprows=2)
-        assert_frame_equal(data, data3)
-
-        # can't get this to work on Python 3
-        if not py3compat.PY3:
-            text = u"""ignore this
-ignore this too
-index|A|B|C
-foo|1|2|3
-bar|4|5|6
-baz|7|8|9
-""".encode('utf-8')
-            data4 = self.read_csv(BytesIO(text), index_col=0, sep=None, skiprows=2,
-                             encoding='utf-8')
-            assert_frame_equal(data, data4)
-
     def test_read_nrows(self):
         df = self.read_csv(StringIO(self.data1), nrows=3)
         expected = self.read_csv(StringIO(self.data1))[:3]
@@ -998,13 +971,13 @@ want to skip this
 also also skip this
 and this
 """
-        result = self.read_csv(StringIO(data), skip_footer=-3)
+        result = self.read_csv(StringIO(data), skip_footer=3)
         no_footer = '\n'.join(data.split('\n')[:-4])
         expected = self.read_csv(StringIO(no_footer))
 
         assert_frame_equal(result, expected)
 
-        result = self.read_csv(StringIO(data), skip_footer=3)
+        result = self.read_csv(StringIO(data), nrows=3)
         assert_frame_equal(result, expected)
 
     def test_no_unnamed_index(self):
@@ -1262,6 +1235,42 @@ class TestPythonParser(ParserTests, unittest.TestCase):
         kwds = kwds.copy()
         kwds['engine'] = 'python'
         return read_table(*args, **kwds)
+
+    def test_sniff_delimiter(self):
+        text = """index|A|B|C
+foo|1|2|3
+bar|4|5|6
+baz|7|8|9
+"""
+        data = self.read_csv(StringIO(text), index_col=0, sep=None)
+        self.assert_(data.index.equals(Index(['foo', 'bar', 'baz'])))
+
+        data2 = self.read_csv(StringIO(text), index_col=0, delimiter='|')
+        assert_frame_equal(data, data2)
+
+        text = """ignore this
+ignore this too
+index|A|B|C
+foo|1|2|3
+bar|4|5|6
+baz|7|8|9
+"""
+        data3 = self.read_csv(StringIO(text), index_col=0,
+                              sep=None, skiprows=2)
+        assert_frame_equal(data, data3)
+
+        # can't get this to work on Python 3
+        if not py3compat.PY3:
+            text = u"""ignore this
+ignore this too
+index|A|B|C
+foo|1|2|3
+bar|4|5|6
+baz|7|8|9
+""".encode('utf-8')
+            data4 = self.read_csv(BytesIO(text), index_col=0, sep=None, skiprows=2,
+                             encoding='utf-8')
+            assert_frame_equal(data, data4)
 
     def test_regex_separator(self):
         data = """   A   B   C   D

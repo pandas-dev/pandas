@@ -410,7 +410,10 @@ class TextFileReader(object):
     """
 
     def __init__(self, f,
-                 engine='python', delimiter=None, dialect=None,
+                 engine='python',
+                 delimiter=None,
+                 delim_whitespace=False,
+                 dialect=None,
                  names=None, header=0, index_col=None,
                  thousands=None,
                  comment=None,
@@ -435,6 +438,12 @@ class TextFileReader(object):
 
         # Tokenization options
         self.delimiter = delimiter
+        self.delim_whitespace = delim_whitespace
+
+        if delimiter is None and not delim_whitespace:
+            if engine == 'c':
+                print 'Using Python parser to sniff delimiter'
+                engine = 'python'
 
         self.doublequote = doublequote
         self.escapechar = escapechar
@@ -476,6 +485,10 @@ class TextFileReader(object):
         # skip rows, skip footer
 
         self.skip_footer = skip_footer
+
+        # C engine not supported yet
+        if skip_footer > 0 and engine == 'c':
+            engine = 'python'
 
         if com.is_integer(skiprows):
             skiprows = range(skiprows)
@@ -1270,6 +1283,8 @@ class PythonParser(ParserBase):
         if self._implicit_index:
             col_len += len(self.index_col)
 
+        assert(self.skip_footer >= 0)
+
         if col_len != zip_len:
             row_num = -1
             i = 0
@@ -1280,9 +1295,8 @@ class PythonParser(ParserBase):
             footers = 0
             if self.skip_footer:
                 footers = self.skip_footer
-                if footers > 0:
-                    footers = footers - self.pos
-            row_num = self.pos - (len(content) - i - footers)
+
+            row_num = self.pos - (len(content) - i + footers)
 
             msg = ('Expecting %d columns, got %d in row %d' %
                    (col_len, zip_len, row_num))
@@ -1336,7 +1350,7 @@ class PythonParser(ParserBase):
         self.buf = []
 
         if self.skip_footer:
-            lines = lines[:self.skip_footer]
+            lines = lines[:-self.skip_footer]
 
         lines = self._check_comments(lines)
         return self._check_thousands(lines)
