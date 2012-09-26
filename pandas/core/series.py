@@ -794,6 +794,9 @@ copy : boolean, default False
 
         Parameters
         ----------
+        level : int, str, tuple, or list, default None
+            Only remove the given levels from the index. Removes all levels by
+            default
         drop : boolean, default False
             Do not try to insert index into dataframe columns
         name : object, default None
@@ -806,13 +809,21 @@ copy : boolean, default False
         resetted : DataFrame, or Series if drop == True
         """
         if drop:
+            new_index = np.arange(len(self))
+            if level is not None and isinstance(self.index, MultiIndex):
+                if not isinstance(level, (tuple, list)):
+                    level = [level]
+                level = [self.index._get_level_number(lev) for lev in level]
+                if len(level) < len(self.index.levels):
+                    new_index = self.index.droplevel(level)
+
             if inplace:
-                self.index = np.arange(len(self))
+                self.index = new_index
                 # set name if it was passed, otherwise, keep the previous name
                 self.name = name or self.name
                 return self
             else:
-                return Series(self.values.copy(), index=np.arange(len(self)),
+                return Series(self.values.copy(), index=new_index,
                               name=self.name)
         else:
             from pandas.core.frame import DataFrame
@@ -821,7 +832,7 @@ copy : boolean, default False
             else:
                 df = DataFrame({name : self})
 
-            return df.reset_index(drop=drop)
+            return df.reset_index(level=level, drop=drop)
 
     def __repr__(self):
         """Clean string representation of a Series"""

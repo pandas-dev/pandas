@@ -3114,6 +3114,19 @@ class TestSeriesNonUnique(unittest.TestCase):
         s2.reset_index(drop=True, inplace=True)
         assert_series_equal(s, s2)
 
+        #level
+        index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
+                           labels=[[0, 0, 0, 0, 0, 0],
+                                   [0, 1, 2, 0, 1, 2],
+                                   [0, 1, 0, 1, 0, 1]])
+        s = Series(np.random.randn(6), index=index)
+        rs = s.reset_index(level=1)
+        self.assert_(len(rs.columns) == 2)
+
+        rs = s.reset_index(level=[0, 2], drop=True)
+        self.assert_(rs.index.equals(Index(index.get_level_values(1))))
+        self.assert_(isinstance(rs, Series))
+
     def test_timeseries_coercion(self):
         idx = tm.makeDateIndex(10000)
         ser = Series(np.random.randn(len(idx)), idx.astype(object))
