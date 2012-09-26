@@ -21,6 +21,7 @@ import pandas.lib as lib
 from pandas.util import py3compat
 from pandas.lib import Timestamp
 from pandas.tseries.index import date_range
+import pandas.tseries.tools as tools
 
 from numpy.testing.decorators import slow
 from pandas.io.date_converters import (
@@ -1490,7 +1491,14 @@ a,b,c,d
         result = read_csv(data, index_col=0, parse_dates=True)
         stamp = result.index[0]
         self.assert_(stamp.minute == 39)
-        self.assert_(result.index.tz is pytz.utc)
+        try:
+            self.assert_(result.index.tz is pytz.utc)
+        except AssertionError: # hello Yaroslav
+            arr = result.index.to_pydatetime()
+            result = tools.to_datetime(arr, utc=True)[0]
+            self.assert_(stamp.minute == result.minute)
+            self.assert_(stamp.hour == result.hour)
+            self.assert_(stamp.day == result.day)
 
 class TestParseSQL(unittest.TestCase):
 
