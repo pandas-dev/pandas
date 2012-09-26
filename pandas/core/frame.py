@@ -119,7 +119,9 @@ how : {'left', 'right', 'outer', 'inner'}, default 'inner'
     * outer: use union of keys from both frames (SQL: full outer join)
     * inner: use intersection of keys from both frames (SQL: inner join)
 on : label or list
-    Field names to join on. Must be found in both DataFrames.
+    Field names to join on. Must be found in both DataFrames. If on is
+    None and not merging on indexes, then it merges on the intersection of
+    the columns by default.
 left_on : label or list, or array-like
     Field names to join on in left DataFrame. Can be a vector or list of
     vectors of the length of the DataFrame to use a particular vector as
