@@ -378,13 +378,17 @@ algos_ext = Extension('pandas._algos',
 lib_depends = tseries_depends + ['pandas/src/numpy_helper.h',
                                  'pandas/src/datetime/np_datetime.h',
                                  'pandas/src/datetime/np_datetime_strings.h']
+
+# some linux distros require it
+libraries = ['m'] if 'win' not in sys.platform else []
+
 lib_ext = Extension('pandas.lib',
                     depends=lib_depends,
                     sources=[srcpath('tseries', suffix=suffix),
                              'pandas/src/datetime/np_datetime.c',
                              'pandas/src/datetime/np_datetime_strings.c'],
                     include_dirs=[np.get_include()],
-                    libraries=['m'],  # some linux distros require it
+                    libraries=libraries,
                     # pyrex_gdb=True,
                     # extra_compile_args=['-Wconversion']
                     )
