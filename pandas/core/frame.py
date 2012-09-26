@@ -2472,7 +2472,8 @@ class DataFrame(NDFrame):
             Only remove the given levels from the index. Removes all levels by
             default
         drop : boolean, default False
-            Do not try to insert index into dataframe columns
+            Do not try to insert index into dataframe columns. This resets
+            the index to the default integer index.
         inplace : boolean, default False
             Modify the DataFrame in place (do not create a new object)
 
