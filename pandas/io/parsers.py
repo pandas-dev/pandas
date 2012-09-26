@@ -200,7 +200,7 @@ def _read(filepath_or_buffer, kwds):
 @Appender(_read_csv_doc)
 def read_csv(filepath_or_buffer,
              sep=',',
-             engine='python',
+             engine='c',
              dialect=None,
              header=0,
              index_col=None,
@@ -252,7 +252,7 @@ def read_csv(filepath_or_buffer,
 @Appender(_read_table_doc)
 def read_table(filepath_or_buffer,
                sep='\t',
-               engine='python',
+               engine='c',
                dialect=None,
                header=0,
                index_col=None,
@@ -504,14 +504,17 @@ class TextFileReader(object):
 
         # miscellanea
         self.kwds = kwds
-
         self.squeeze = squeeze    # return single-column DataFrame as Series
-
         self.as_recarray = as_recarray # C parser return structured array
 
         # file options
         self.f = f
         self.encoding = encoding
+
+        # can't handle it
+        if encoding is not None and engine == 'c':
+            engine = 'python'
+
         self.engine_kind = engine
 
         self.factorize = factorize
@@ -1379,7 +1382,10 @@ def _process_date_conversion(data_dict, converter, parse_spec,
                              index_col, index_names, columns,
                              keep_date_col=False):
     def _isindex(colspec):
-        return colspec in index_col or colspec in index_names
+        return ((isinstance(index_col, list) and
+                 colspec in index_col)
+                or (isinstance(index_names, list) and
+                    colspec in index_names))
 
     new_cols = []
     new_data = {}

@@ -373,9 +373,11 @@ else:
     tseries_depends = []
     plib_depends = []
 
+common_include = [np.get_include(), 'pandas/src/klib']
+
 algos_ext = Extension('pandas._algos',
                       sources=[srcpath('generated', suffix=suffix)],
-                      include_dirs=[np.get_include()],
+                      include_dirs=common_include,
                       )
 
 lib_depends = tseries_depends + ['pandas/src/numpy_helper.h',
@@ -386,8 +388,7 @@ lib_ext = Extension('pandas.lib',
                     sources=[srcpath('tseries', suffix=suffix),
                              'pandas/src/datetime/np_datetime.c',
                              'pandas/src/datetime/np_datetime_strings.c'],
-                    include_dirs=[np.get_include(),
-                                  'pandas/src/klib'],
+                    include_dirs=common_include,
                     # pyrex_gdb=True,
                     # extra_compile_args=['-Wconversion']
                     )
@@ -408,8 +409,7 @@ parser_ext = Extension('pandas._parser',
                                 'pandas/src/parser/conversions.c',
                                 'pandas/src/parser/str_to.c',
                                 ],
-                       include_dirs=[np.get_include(),
-                                     'pandas/src/klib'])
+                       include_dirs=common_include)
 
 sparse_ext = Extension('pandas._sparse',
                        sources=[srcpath('sparse', suffix=suffix)],
@@ -417,8 +417,7 @@ sparse_ext = Extension('pandas._sparse',
 
 sandbox_ext = Extension('pandas._sandbox',
                         sources=[srcpath('sandbox', suffix=suffix)],
-                        include_dirs=[np.get_include(),
-                                      'pandas/src/klib'])
+                        include_dirs=common_include)
 
 cppsandbox_ext = Extension('pandas._cppsandbox',
                            language='c++',
