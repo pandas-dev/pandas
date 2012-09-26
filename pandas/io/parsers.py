@@ -295,9 +295,6 @@ def read_table(filepath_or_buffer,
     if kdict.get('delimiter', None) is None:
         kdict['delimiter'] = sep
 
-    # Override as default encoding.
-    kdict['encoding'] = None
-
     return _read(TextParser, filepath_or_buffer, kdict)
 
 @Appender(_read_fwf_doc)

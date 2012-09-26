@@ -840,6 +840,11 @@ baz,7,8,9
             assert_frame_equal(df, df2)
             assert_frame_equal(df3, df2)
 
+    def test_read_table_unicode(self):
+        fin = StringIO('\u0141aski, Jan;1')
+        df1 = read_table(fin, sep=";", encoding="utf-8", header=None)
+        self.assert_(isinstance(df1['X.1'].values[0], unicode))
+
     def test_read_table_wrong_num_columns(self):
         data = """A,B,C,D,E,F
 1,2,3,4,5
