@@ -384,6 +384,7 @@ lib_ext = Extension('pandas.lib',
                              'pandas/src/datetime/np_datetime.c',
                              'pandas/src/datetime/np_datetime_strings.c'],
                     include_dirs=[np.get_include()],
+                    libraries=['m'],  # some linux distros require it
                     # pyrex_gdb=True,
                     # extra_compile_args=['-Wconversion']
                     )
