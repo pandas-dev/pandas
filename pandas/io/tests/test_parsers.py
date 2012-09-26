@@ -54,15 +54,6 @@ qux,12,13,14,15
 foo2,12,13,14,15
 bar2,12,13,14,15
 """
-    ts_data = """\
-ID,date,nominalTime,actualTime,A,B,C,D,E
-KORD,19990127, 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
-KORD,19990127, 20:00:00, 19:56:00, 0.0100, 2.2100, 7.2000, 0.0000, 260.0000
-KORD,19990127, 21:00:00, 20:56:00, -0.5900, 2.2100, 5.7000, 0.0000, 280.0000
-KORD,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
-KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
-KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
-"""
 
     def read_csv(self, *args, **kwargs):
         raise NotImplementedError
@@ -271,6 +262,16 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         df = self.read_csv(StringIO(data), parse_dates={'nominal': [1, 2]})
         self.assert_(not isinstance(df.nominal[0], basestring))
 
+    ts_data = """\
+ID,date,nominalTime,actualTime,A,B,C,D,E
+KORD,19990127, 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
+KORD,19990127, 20:00:00, 19:56:00, 0.0100, 2.2100, 7.2000, 0.0000, 260.0000
+KORD,19990127, 21:00:00, 20:56:00, -0.5900, 2.2100, 5.7000, 0.0000, 280.0000
+KORD,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
+KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
+KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
+"""
+
     def test_multiple_date_col_name_collision(self):
         self.assertRaises(ValueError, self.read_csv, StringIO(self.ts_data),
                           parse_dates={'ID' : [1, 2]})
@@ -327,8 +328,7 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         #1835
         data = "A;B\n1;2\n3;4"
 
-        rs = self.read_csv(StringIO(data), sep=';', index_col='A',
-                           converters={'A' : lambda x: x})
+        rs = self.read_csv(StringIO(data), sep=';', index_col='A', converters={'A' : lambda x: x})
 
         xp = DataFrame({'B' : [2, 4]}, index=Index([1, 3], name='A'))
         assert_frame_equal(rs, xp)
@@ -1064,59 +1064,6 @@ c,4,5,01/03/2009
         df2 = self.read_csv(StringIO(data), sep=';',converters=converter)
         self.assert_(df2['Number1'].dtype == float)
 
-    def test_regex_separator(self):
-        data = """   A   B   C   D
-a   1   2   3   4
-b   1   2   3   4
-c   1   2   3   4
-"""
-        df = self.read_table(StringIO(data), sep='\s+')
-        expected = self.read_csv(StringIO(re.sub('[ ]+', ',', data)),
-                            index_col=0)
-        self.assert_(expected.index.name is None)
-        assert_frame_equal(df, expected)
-
-    def test_verbose_import(self):
-        text = """a,b,c,d
-one,1,2,3
-one,1,2,3
-,1,2,3
-one,1,2,3
-,1,2,3
-,1,2,3
-one,1,2,3
-two,1,2,3"""
-
-        buf = StringIO()
-        sys.stdout = buf
-
-        try:
-            # it works!
-            df = self.read_csv(StringIO(text), verbose=True)
-            self.assert_(buf.getvalue() == 'Filled 3 NA values in column a\n')
-        finally:
-            sys.stdout = sys.__stdout__
-
-        buf = StringIO()
-        sys.stdout = buf
-
-        text = """a,b,c,d
-one,1,2,3
-two,1,2,3
-three,1,2,3
-four,1,2,3
-five,1,2,3
-,1,2,3
-seven,1,2,3
-eight,1,2,3"""
-
-        try:
-            # it works!
-            df = self.read_csv(StringIO(text), verbose=True, index_col=0)
-            self.assert_(buf.getvalue() == 'Filled 1 NA values in column a\n')
-        finally:
-            sys.stdout = sys.__stdout__
-
     def test_read_table_buglet_4x_multiindex(self):
         text = """                      A       B       C       D        E
 one two three   four
@@ -1251,19 +1198,6 @@ a,b,c,d
         self.assert_(stamp.minute == 39)
         self.assert_(result.index.tz is pytz.utc)
 
-
-class TestPythonParser(ParserTests, unittest.TestCase):
-
-    def read_csv(self, *args, **kwds):
-        kwds = kwds.copy()
-        kwds['engine'] = 'python'
-        return read_csv(*args, **kwds)
-
-    def read_table(self, *args, **kwds):
-        kwds = kwds.copy()
-        kwds['engine'] = 'python'
-        return read_table(*args, **kwds)
-
     def test_multiple_date_cols_index(self):
         data = """\
 ID,date,NominalTime,ActualTime,TDew,TAir,Windspeed,Precip,WindDir
@@ -1286,14 +1220,12 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         assert_frame_equal(df3, df)
 
     def test_multiple_date_cols_chunked(self):
-        df = self.read_csv(StringIO(self.ts_data),
-                           parse_dates={'nominal': [1,2]},
-                           index_col='nominal')
-        reader = self.read_csv(StringIO(self.ts_data),
-                               parse_dates={'nominal': [1,2]},
-                               index_col='nominal', chunksize=2)
+        df = self.read_csv(StringIO(self.ts_data), parse_dates={'nominal': [1,2]}, index_col='nominal')
+        reader = self.read_csv(StringIO(self.ts_data), parse_dates={'nominal': [1,2]}, index_col='nominal', chunksize=2)
 
         chunks = list(reader)
+
+        self.assert_('nominalTime' not in df)
 
         assert_frame_equal(chunks[0], df[:2])
         assert_frame_equal(chunks[1], df[2:4])
@@ -1318,6 +1250,30 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
 
         assert_frame_equal(xp.set_index(['nominal', 'ID']), df)
 
+
+class TestPythonParser(ParserTests, unittest.TestCase):
+
+    def read_csv(self, *args, **kwds):
+        kwds = kwds.copy()
+        kwds['engine'] = 'python'
+        return read_csv(*args, **kwds)
+
+    def read_table(self, *args, **kwds):
+        kwds = kwds.copy()
+        kwds['engine'] = 'python'
+        return read_table(*args, **kwds)
+
+    def test_regex_separator(self):
+        data = """   A   B   C   D
+a   1   2   3   4
+b   1   2   3   4
+c   1   2   3   4
+"""
+        df = self.read_table(StringIO(data), sep='\s+')
+        expected = self.read_csv(StringIO(re.sub('[ ]+', ',', data)),
+                            index_col=0)
+        self.assert_(expected.index.name is None)
+        assert_frame_equal(df, expected)
 
     def test_comment(self):
         data = """A,B,C
@@ -1401,6 +1357,47 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         self.assertRaises(ValueError, read_fwf, StringIO(data3),
                           colspecs=colspecs, widths=[6, 10, 10, 7])
 
+
+    def test_verbose_import(self):
+        text = """a,b,c,d
+one,1,2,3
+one,1,2,3
+,1,2,3
+one,1,2,3
+,1,2,3
+,1,2,3
+one,1,2,3
+two,1,2,3"""
+
+        buf = StringIO()
+        sys.stdout = buf
+
+        try:
+            # it works!
+            df = self.read_csv(StringIO(text), verbose=True)
+            self.assert_(buf.getvalue() == 'Filled 3 NA values in column a\n')
+        finally:
+            sys.stdout = sys.__stdout__
+
+        buf = StringIO()
+        sys.stdout = buf
+
+        text = """a,b,c,d
+one,1,2,3
+two,1,2,3
+three,1,2,3
+four,1,2,3
+five,1,2,3
+,1,2,3
+seven,1,2,3
+eight,1,2,3"""
+
+        try:
+            # it works!
+            df = self.read_csv(StringIO(text), verbose=True, index_col=0)
+            self.assert_(buf.getvalue() == 'Filled 1 NA values in column a\n')
+        finally:
+            sys.stdout = sys.__stdout__
 
     def test_converters_corner_with_nas(self):
         import StringIO

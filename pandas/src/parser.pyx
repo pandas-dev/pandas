@@ -856,11 +856,6 @@ cdef _get_na_mask(parser_t *parser, int col, int line_start, int line_end,
     for i in range(lines):
         word = COLITER_NEXT(it)
 
-        # length 0
-        # if word[0] == '\x00':
-        #     result[i] = 1
-        #     continue
-
         k = kh_get_str(na_hashset, word)
         # in the hash table
         if k != na_hashset.n_buckets:
