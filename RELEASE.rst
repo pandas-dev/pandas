@@ -45,6 +45,7 @@ pandas 0.9.0
   - Add `na_action='ignore'` to Series.map to quietly propagate NAs (#1661)
   - Add args/kwds options to Series.apply (#1829)
   - Add inplace option to Series/DataFrame.reset_index (#1797)
+  - Add ``level`` parameter to ``Series.reset_index``
   - Add quoting option for DataFrame.to_csv (#1902)
   - Indicate long column value truncation in DataFrame output with ... (#1854)
   - DataFrame.dot will not do data alignment, and also work with Series (#1915)

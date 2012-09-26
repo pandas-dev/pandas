@@ -20,6 +20,7 @@ New features
     Finance (GH1748_, GH1739_)
   - More flexible parsing of boolean values (Yes, No, TRUE, FALSE, etc)
     (GH1691_, GH1295_)
+  - Add ``level`` parameter to ``Series.reset_index``
 
 API changes
 ~~~~~~~~~~~
