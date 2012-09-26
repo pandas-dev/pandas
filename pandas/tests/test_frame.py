@@ -1264,6 +1264,18 @@ class CheckIndexing(object):
         assert_almost_equal(result.values, df.values[0])
         assert_series_equal(result, result2)
 
+        #multiindex
+        df = DataFrame(np.random.randn(3, 3), columns=[['i', 'i', 'j'],
+                                                       ['A', 'A', 'B']],
+                       index = [['i', 'i', 'j'], ['X', 'X', 'Y']])
+        rs = df.irow(0)
+        xp = df.ix[0]
+        assert_series_equal(rs, xp)
+
+        rs = df.icol(0)
+        xp = df.T.ix[0]
+        assert_series_equal(rs, xp)
+
     def test_iget_value(self):
         for i, row in enumerate(self.frame.index):
             for j, col in enumerate(self.frame.columns):
