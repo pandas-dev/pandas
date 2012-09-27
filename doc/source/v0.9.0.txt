@@ -30,9 +30,14 @@ New features
 API changes
 ~~~~~~~~~~~
 
+  - Creating a Series from another Series, passing an index, will cause
+    reindexing to happen inside rather than treating the Series like an
+    ndarray. Technically improper usages like Series(df[col1], index=df[col2])
+    that worked before "by accident" (this was never intended) will lead to all
+    NA Series in some cases.
   - Deprecated ``day_of_year`` API removed from PeriodIndex, use ``dayofyear``
     (GH1723_)
-  - Don't modify NumPy suppress printoption at import time
+  - Don't modify NumPy suppress printoption to True at import time
   - The internal HDF5 data arrangement for DataFrames has been transposed.
     Legacy files will still be readable by HDFStore (GH1834_, GH1824_)
   - Legacy cruft removed: pandas.stats.misc.quantileTS
