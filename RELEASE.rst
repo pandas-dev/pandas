@@ -235,6 +235,11 @@ pandas 0.9.0
     as input argument (#1773)
   - Fix resample bug when passed list of lambdas as `how` argument (#1808)
   - Repr fix for MultiIndex level with all NAs (#1971)
+  - Fix PeriodIndex slicing bug when slice start/end are out-of-bounds (#1977)
+  - Fix read_table bug when parsing unicode (#1975)
+  - Fix BlockManager.iget bug when dealing with non-unique MultiIndex as columns
+    (#1970)
+  - Fix reset_index bug if both drop and level are specified (#1957)
 
 
 pandas 0.8.1
