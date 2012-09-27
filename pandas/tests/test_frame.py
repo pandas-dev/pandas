@@ -1591,6 +1591,19 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         xp.index.names = [df.columns[0]]
         assert_frame_equal(rs, xp)
 
+    def test_set_index_empty_column(self):
+        # #1971
+        df = DataFrame([
+                dict(a=1, p=0),
+                dict(a=2, m=10),
+                dict(a=3, m=11, p=20),
+                dict(a=4, m=12, p=21)
+                ], columns=('a', 'm', 'p', 'x'))
+
+        # it works!
+        result = df.set_index(['a', 'x'])
+        repr(result)
+
     def test_set_columns(self):
         cols = Index(np.arange(len(self.mixed_frame.columns)))
         self.mixed_frame.columns = cols

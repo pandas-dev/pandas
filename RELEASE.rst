@@ -234,6 +234,7 @@ pandas 0.9.0
   - Fix bug in DataFrame.duplicated to enable iterables other than list-types
     as input argument (#1773)
   - Fix resample bug when passed list of lambdas as `how` argument (#1808)
+  - Repr fix for MultiIndex level with all NAs (#1971)
 
 
 pandas 0.8.1

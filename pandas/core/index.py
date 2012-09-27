@@ -1471,7 +1471,8 @@ class MultiIndex(Index):
         labels = self.labels[num]
         return unique_vals.take(labels)
 
-    def format(self, space=2, sparsify=None, adjoin=True, names=False):
+    def format(self, space=2, sparsify=None, adjoin=True, names=False,
+               na_rep='NaN'):
         from pandas.core.common import _stringify
         from pandas.core.format import print_config
         def _strify(x):
@@ -1480,8 +1481,15 @@ class MultiIndex(Index):
         if len(self) == 0:
             return []
 
-        stringified_levels = [lev.take(lab).format() for lev, lab in
-                zip(self.levels, self.labels)]
+
+        stringified_levels = []
+        for lev, lab in zip(self.levels, self.labels):
+            if len(lev) > 0:
+                formatted = lev.take(lab).format()
+            else:
+                # weird all NA case
+                formatted = [str(x) for x in com.take_1d(lev.values, lab)]
+            stringified_levels.append(formatted)
 
         result_levels = []
         for lev, name in zip(stringified_levels, self.names):
