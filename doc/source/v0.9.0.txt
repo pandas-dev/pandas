@@ -51,9 +51,9 @@ API changes
   - ``first`` and ``last`` methods in ``GroupBy`` no longer drop non-numeric
     columns (GH1809_)
   - Resolved inconsistencies in specifying custom NA values in text parser.
-    `na_values` of type dict no longer override default NAs unless
-    `keep_default_na` is set to false explicitly (GH1657_)
-  - DataFrame.dot will not do data alignment, and also work with Series
+    ``na_values`` of type dict no longer override default NAs unless
+    ``keep_default_na`` is set to false explicitly (GH1657_)
+  - ``DataFrame.dot`` will not do data alignment, and also work with Series
     (GH1915_)
 
 
