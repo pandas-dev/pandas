@@ -59,7 +59,6 @@ pandas 0.9.0
     repeat levels) (#1929)
   - TimeSeries.between_time can now select times across midnight (#1871)
   - Enable `skip_footer` parameter in `ExcelFile.parse` (#1843)
-  - Enable `skipfooter` parameter in text parsers as an alias for `skip_footer`
 
 **API Changes**
 
@@ -81,6 +80,7 @@ pandas 0.9.0
   - Resolved inconsistencies in specifying custom NA values in text parser.
     `na_values` of type dict no longer override default NAs unless
     `keep_default_na` is set to false explicitly (#1657)
+  - Enable `skipfooter` parameter in text parsers as an alias for `skip_footer`
 
 **Bug fixes**
 
