@@ -380,7 +380,7 @@ lib_depends = tseries_depends + ['pandas/src/numpy_helper.h',
                                  'pandas/src/datetime/np_datetime_strings.h']
 
 # some linux distros require it
-libraries = ['m'] if 'win' not in sys.platform else []
+libraries = ['m'] if 'win32' not in sys.platform else []
 
 lib_ext = Extension('pandas.lib',
                     depends=lib_depends,
@@ -393,6 +393,11 @@ lib_ext = Extension('pandas.lib',
                     # extra_compile_args=['-Wconversion']
                     )
 
+sparse_ext = Extension('pandas._sparse',
+                       sources=[srcpath('sparse', suffix=suffix)],
+                       include_dirs=[np.get_include()],
+                       libraries=libraries)
+
 period_ext = Extension('pandas._period',
                        depends=plib_depends + ['pandas/src/numpy_helper.h',
                                                'pandas/src/period.h'],
@@ -401,10 +406,6 @@ period_ext = Extension('pandas._period',
                                 'pandas/src/period.c'],
                        include_dirs=[np.get_include()])
 
-
-sparse_ext = Extension('pandas._sparse',
-                       sources=[srcpath('sparse', suffix=suffix)],
-                       include_dirs=[np.get_include()])
 
 sandbox_ext = Extension('pandas._sandbox',
                         sources=[srcpath('sandbox', suffix=suffix)],
