@@ -51,13 +51,19 @@ void assert_apply_conversion_factor(npy_int64 ordinal, int from_index, int to_in
     assert(actual == expected);
 }
 
-void 
 int main(int argc, char** argv)
 {
+    printf("running tests\n");
+
+    initialize();
+
+    printf("%lu\n", asfreq(37, FR_ANN, FR_HR, 'e'));
+
     assert_conversion_factors();
 
     assert_apply_conversion_factor(24, FR_HR, FR_DAY, 1);
     assert_apply_conversion_factor(1, FR_DAY, FR_HR, 24);
     assert_apply_conversion_factor(6, FR_DAY, FR_DAY, 6);
+
 
 }

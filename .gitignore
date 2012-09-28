@@ -25,3 +25,4 @@ pandas.egg-info
 .tox
 *.wpr
 *.wpu
+.idea

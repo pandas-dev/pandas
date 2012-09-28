@@ -105,6 +105,9 @@ typedef struct asfreq_info {
 
     int from_q_year_end; // month the year ends on in the "from" frequency
     int to_q_year_end;   // month the year ends on in the "to" frequency
+
+    int sourceFreq;
+    int targetFreq; 
 } asfreq_info;
 
 
@@ -124,7 +127,7 @@ typedef struct date_info {
     int calendar;
 } date_info;
 
-typedef npy_int64 (*freq_conv_func)(npy_int64, int, int, char, asfreq_info*);
+typedef npy_int64 (*freq_conv_func)(npy_int64, char, asfreq_info*);
 
 /*
  * new pandas API helper functions here
@@ -158,5 +161,7 @@ int psecond(npy_int64 ordinal, int freq);
 double getAbsTime(int freq, npy_int64 dailyDate, npy_int64 originalDate);
 char *c_strftime(struct date_info *dinfo, char *fmt);
 int get_yq(npy_int64 ordinal, int freq, int *quarter, int *year);
+
+void initialize();
 
 #endif

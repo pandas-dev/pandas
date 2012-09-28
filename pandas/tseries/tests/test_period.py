@@ -6,7 +6,6 @@ Parts derived from scikits.timeseries code, original authors:
 
 """
 
-from unittest import TestCase
 from datetime import datetime, date, timedelta
 import unittest
 
@@ -28,11 +27,11 @@ from pandas import Series, TimeSeries, DataFrame
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
 
-class TestPeriodProperties(TestCase):
+class TestPeriodProperties(unittest.TestCase):
     "Test properties such as year, month, weekday, etc...."
     #
     def __init__(self, *args, **kwds):
-        TestCase.__init__(self, *args, **kwds)
+        unittest.TestCase.__init__(self, *args, **kwds)
 
     def test_quarterly_negative_ordinals(self):
         p = Period(ordinal=-1, freq='Q-DEC')
@@ -412,11 +411,11 @@ class TestPeriodProperties(TestCase):
 def noWrap(item):
     return item
 
-class TestFreqConversion(TestCase):
+class TestFreqConversion(unittest.TestCase):
     "Test frequency conversion of date objects"
 
     def __init__(self, *args, **kwds):
-        TestCase.__init__(self, *args, **kwds)
+        unittest.TestCase.__init__(self, *args, **kwds)
 
     def test_asfreq_corner(self):
         val = Period(freq='A', year=2007)
@@ -995,9 +994,9 @@ class TestFreqConversion(TestCase):
 
         assert_equal(ival_S.asfreq('S'), ival_S)
 
-class TestPeriodIndex(TestCase):
+class TestPeriodIndex(unittest.TestCase):
     def __init__(self, *args, **kwds):
-        TestCase.__init__(self, *args, **kwds)
+        unittest.TestCase.__init__(self, *args, **kwds)
 
     def setUp(self):
         pass
@@ -1812,11 +1811,11 @@ def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
 
 
-class TestMethods(TestCase):
+class TestMethods(unittest.TestCase):
     "Base test class for MaskedArrays."
 
     def __init__(self, *args, **kwds):
-        TestCase.__init__(self, *args, **kwds)
+        unittest.TestCase.__init__(self, *args, **kwds)
 
     def test_add(self):
         dt1 = Period(freq='D', year=2008, month=1, day=1)
@@ -1860,11 +1859,9 @@ class TestPeriodRepresentation(unittest.TestCase):
         self._check_freq('L', '1970-01-01')
 
     def test_microsecondly(self):
-        self.skipTest("not yet implemented")
         self._check_freq('U', '1970-01-01')
         
     def test_nanosecondly(self):
-        self.skipTest("not yet implemented")
         self._check_freq('N', '1970-01-01')        
 
     def _check_freq(self, freq, base_date):
