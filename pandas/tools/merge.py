@@ -142,7 +142,6 @@ def ordered_merge(left, right, on=None, left_by=None, right_by=None,
 
 
 
-# TODO: NA group handling
 # TODO: transformations??
 # TODO: only copy DataFrames when modification necessary
 
@@ -572,7 +571,16 @@ def _factorize_keys(lk, rk, sort=True):
     if sort:
         llab, rlab = _sort_labels(rizer.uniques, llab, rlab)
 
-        # TODO: na handling
+    # NA group
+    lmask = llab == -1; lany = lmask.any()
+    rmask = rlab == -1; rany = rmask.any()
+
+    if lany or rany:
+        if lany:
+            np.putmask(llab, lmask, count)
+        if rany:
+            np.putmask(rlab, rmask, count)
+        count += 1
 
     return llab, rlab, count
 

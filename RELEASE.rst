@@ -39,6 +39,7 @@ pandas 0.9.0
 
 **Improvements to existing features**
 
+  - Proper handling of NA values in merge operations (#1990)
   - Add ``flags`` option for ``re.compile`` in some Series.str methods (#1659)
   - Parsing of UTC date strings in read_* functions (#1693)
   - Handle generator input to Series (#1679)

@@ -372,8 +372,7 @@ else:
 
 algos_ext = Extension('pandas._algos',
                       sources=[srcpath('generated', suffix=suffix)],
-                      include_dirs=[np.get_include()],
-                      )
+                      include_dirs=[np.get_include()])
 
 lib_depends = tseries_depends + ['pandas/src/numpy_helper.h',
                                  'pandas/src/datetime/np_datetime.h',
