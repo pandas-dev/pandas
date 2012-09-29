@@ -1530,9 +1530,7 @@ copy : boolean, default False
         """
         n = len(self)
 
-        if abs(j) >= n:
-            raise Exception('lag parameter must be within the bounds of n')
-        if n == 0:
+        if abs(j) >= n or n == 0
             return np.nan
 
         this = self - self.mean()
