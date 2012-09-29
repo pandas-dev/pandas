@@ -1530,7 +1530,7 @@ copy : boolean, default False
         """
         n = len(self)
 
-        if abs(j) >= n or n == 0
+        if abs(j) >= n or n == 0:
             return np.nan
 
         this = self - self.mean()
@@ -1541,7 +1541,8 @@ copy : boolean, default False
         else:
             d = n
 
-        return float(np.correlate(self[:n - j], shifted[:n - j]) / d)
+        return float(np.correlate(this[:n - j].values,
+                                  shifted[:n - j].values)) / d
 
     def clip(self, lower=None, upper=None, out=None):
         """

@@ -1843,14 +1843,16 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_autocov(self):
 
-        ts = Series([1, 2, 3] * 1000)
+        ts = Series([1, 2, 3] * 2)
 
         #too big of lag
         self.assert_(np.isnan(ts.autocov(j=len(ts) + 1)))
 
         lag = 1
         n = len(ts)
-        self.assertAlmostEqual(ts.var(), ts.autocov() / ts.autocorr())
+        self.assertAlmostEqual(ts.autocov(j=0), 2.0/3)
+        self.assertAlmostEqual(ts.autocov(j=1), -1.0/6)
+        self.assertAlmostEqual(ts.autocov(j=2), -1.0/3)
 
 
     def test_copy(self):
