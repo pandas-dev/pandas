@@ -1848,8 +1848,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         #too big of lag
         self.assert_(np.isnan(ts.autocov(j=len(ts) + 1)))
 
-        lag = 1
-        n = len(ts)
+        #test calculations
         self.assertAlmostEqual(ts.autocov(j=0), 2.0/3)
         self.assertAlmostEqual(ts.autocov(j=1), -1.0/6)
         self.assertAlmostEqual(ts.autocov(j=2), -1.0/3)
