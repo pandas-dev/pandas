@@ -2341,6 +2341,17 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         df = Series([1.0, 2.0, 3.0, np.nan])
         self.assertRaises(ValueError, df.astype, np.int64)
 
+    def test_astype_cast_object_int(self):
+        arr = Series(["car", "house", "tree","1"])
+
+        self.assertRaises(ValueError, arr.astype, int)
+        self.assertRaises(ValueError, arr.astype, np.int64)
+        self.assertRaises(ValueError, arr.astype, np.int8)
+
+        arr = Series(['1', '2', '3', '4'], dtype=object)
+        result = arr.astype(int)
+        self.assert_(np.array_equal(result, np.arange(1, 5)))
+
     def test_map(self):
         index, data = tm.getMixedTypeDict()
 

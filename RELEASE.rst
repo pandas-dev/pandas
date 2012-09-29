@@ -241,6 +241,7 @@ pandas 0.9.0
   - Fix BlockManager.iget bug when dealing with non-unique MultiIndex as columns
     (#1970)
   - Fix reset_index bug if both drop and level are specified (#1957)
+  - Work around unsafe NumPy object->int casting with Cython function (#1987)
 
 
 pandas 0.8.1
