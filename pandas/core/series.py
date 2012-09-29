@@ -1524,6 +1524,11 @@ copy : boolean, default False
         unbiased : boolean, default False
             If true return an unbiased estimator of the autocovariance
 
+        See Also
+        --------
+        statsmodels.tsa.statstools.acovf for autocovariance function, which
+        returns an array of lagged autocovariances
+
         Returns
         -------
         autocov : float
