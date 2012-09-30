@@ -1302,7 +1302,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                     [1.5, np.nan, 3.]]])
 
         np.testing.assert_raises(Exception, pan.update, *(pan,),
-            **{'raises_conflick': True})
+            **{'raise_conflict': True})
 
 class TestLongPanel(unittest.TestCase):
     """
