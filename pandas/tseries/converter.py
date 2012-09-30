@@ -150,7 +150,7 @@ class DatetimeConverter(dates.DateConverter):
             return dates.date2num(values)
         elif (com.is_integer(values) or com.is_float(values)):
             return values
-        elif isinstance(values, str):
+        elif isinstance(values, basestring):
             return try_parse(values)
         elif isinstance(values, (list, tuple, np.ndarray)):
             if not isinstance(values, np.ndarray):
