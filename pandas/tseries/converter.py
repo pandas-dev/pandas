@@ -33,7 +33,7 @@ def _to_ordinalf(tm):
     return tot_sec
 
 def time2num(d):
-    if isinstance(d, str):
+    if isinstance(d, basestring):
         parsed = tools.to_datetime(d)
         if not isinstance(parsed, datetime):
             raise ValueError('Could not parse time %s' % d)
