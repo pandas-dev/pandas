@@ -1318,6 +1318,36 @@ class Panel(NDFrame):
             return concat([self] + list(other), axis=0, join=how,
                           join_axes=join_axes, verify_integrity=True)
 
+    def update(self, other, join='left', overwrite=True, filter_func=None,
+                     raise_conflict=False):
+        """
+        Modify Panel in place using non-NA values from passed
+        Panel, or object coercible to Panel. Aligns on items
+
+        Parameters
+        ----------
+        other : Panel, or object coercible to Panel
+        join : How to join individual DataFrames
+            {'left', 'right', 'outer', 'inner'}, default 'left'
+        overwrite : boolean, default True
+            If True then overwrite values for common keys in the calling panel
+        filter_func : callable(1d-array) -> 1d-array<boolean>, default None
+            Can choose to replace values other than NA. Return True for values
+            that should be updated
+        raise_conflict : bool
+            If True, will raise an error if a DataFrame and other both
+            contain data in the same place.
+        """
+
+        if not isinstance(other, Panel):
+            other = Panel(other)
+
+        other = other.reindex(items=self.items)
+
+        for frame in self.items:
+            self[frame].update(other[frame], join, overwrite, filter_func,
+                               raise_conflict)
+
     def _get_join_index(self, other, how):
         if how == 'left':
             join_major, join_minor = self.major_axis, self.minor_axis
