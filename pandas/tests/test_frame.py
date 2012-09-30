@@ -5784,6 +5784,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                               [1.5, nan, 7.]])
         assert_frame_equal(df, expected)
 
+
+
+
+
+
     def test_update_nooverwrite(self):
         df = DataFrame([[1.5, nan, 3.],
                         [1.5, nan, 3.],
@@ -5829,6 +5834,27 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         np.testing.assert_raises(Exception, df.update, *(other,),
                 **{'raise_conflict' : True})
+
+    def test_update_from_non_df(self):
+        d = {'a': Series([1, 2, 3, 4]), 'b': Series([5, 6, 7, 8])}
+        df = DataFrame(d)
+
+        d['a'] = Series([5, 6, 7, 8])
+        df.update(d)
+
+        expected = DataFrame(d)
+
+        assert_frame_equal(df, expected)
+
+        d = {'a': [1, 2, 3, 4], 'b': [5, 6, 7, 8]}
+        df = DataFrame(d)
+
+        d['a'] = [5, 6, 7, 8]
+        df.update(d)
+
+        expected = DataFrame(d)
+
+        assert_frame_equal(df, expected)
 
     def test_combineAdd(self):
         # trivial

@@ -3395,7 +3395,7 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        other : DataFrame
+        other : DataFrame, or object coercible into a DataFrame
         join : {'left', 'right', 'outer', 'inner'}, default 'left'
         overwrite : boolean, default True
             If True then overwrite values for common keys in the calling frame
@@ -3409,7 +3409,11 @@ class DataFrame(NDFrame):
         if join != 'left':
             raise NotImplementedError
 
+        if not isinstance(other, DataFrame):
+            other = DataFrame(other)
+
         other = other.reindex_like(self)
+
         for col in self.columns:
             this = self[col].values
             that = other[col].values
