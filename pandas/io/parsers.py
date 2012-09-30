@@ -156,7 +156,7 @@ def _read(cls, filepath_or_buffer, kwds):
     if skipfooter is not None:
         kwds['skip_footer'] = skipfooter
 
-    if isinstance(filepath_or_buffer, str) and _is_url(filepath_or_buffer):
+    if isinstance(filepath_or_buffer, basestring) and _is_url(filepath_or_buffer):
         from urllib2 import urlopen
         filepath_or_buffer = urlopen(filepath_or_buffer)
         if py3compat.PY3:  # pragma: no cover
