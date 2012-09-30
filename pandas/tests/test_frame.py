@@ -4169,6 +4169,28 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = df2.drop_duplicates(['AAA', 'B'], take_last=True)
         assert_frame_equal(result, expected)
 
+    def test_drop_duplicates_tuple(self):
+        df = DataFrame({('AA', 'AB') : ['foo', 'bar', 'foo', 'bar',
+                               'foo', 'bar', 'bar', 'foo'],
+                        'B' : ['one', 'one', 'two', 'two',
+                               'two', 'two', 'one', 'two'],
+                        'C' : [1, 1, 2, 2, 2, 2, 1, 2],
+                        'D' : range(8)})
+
+        # single column
+        result = df.drop_duplicates(('AA', 'AB'))
+        expected = df[:2]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates(('AA', 'AB'), take_last=True)
+        expected = df.ix[[6, 7]]
+        assert_frame_equal(result, expected)
+
+        # multi column
+        expected = df.ix[[0, 1, 2, 3]]
+        result = df.drop_duplicates((('AA', 'AB'), 'B'))
+        assert_frame_equal(result, expected)
+
     def test_drop_duplicates_NA(self):
         # none
         df = DataFrame({'A' : [None, None, 'foo', 'bar',

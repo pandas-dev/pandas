@@ -786,7 +786,7 @@ _ensure_object = _algos.ensure_object
 
 
 def _astype_nansafe(arr, dtype):
-    if isinstance(dtype, basestring):
+    if not isinstance(dtype, np.dtype):
         dtype = np.dtype(dtype)
 
     if issubclass(arr.dtype.type, np.datetime64):
@@ -797,6 +797,9 @@ def _astype_nansafe(arr, dtype):
 
         if np.isnan(arr).any():
             raise ValueError('Cannot convert NA to integer')
+    elif arr.dtype == np.object_ and np.issubdtype(dtype.type, np.integer):
+        # work around NumPy brokenness, #1987
+        return lib.astype_intsafe(arr.ravel(), dtype).reshape(arr.shape)
 
     return arr.astype(dtype)
 

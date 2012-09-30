@@ -2714,7 +2714,13 @@ class DataFrame(NDFrame):
             values = list(_m8_to_i8(self.values.T))
         else:
             if np.iterable(cols) and not isinstance(cols, basestring):
-                values = [_m8_to_i8(self[x].values) for x in cols]
+                if isinstance(cols, tuple):
+                    if cols in self.columns:
+                        values = [self[cols]]
+                    else:
+                        values = [_m8_to_i8(self[x].values) for x in cols]
+                else:
+                    values = [_m8_to_i8(self[x].values) for x in cols]
             else:
                 values = [self[cols]]
 

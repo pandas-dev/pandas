@@ -39,6 +39,7 @@ pandas 0.9.0
 
 **Improvements to existing features**
 
+  - Proper handling of NA values in merge operations (#1990)
   - Add ``flags`` option for ``re.compile`` in some Series.str methods (#1659)
   - Parsing of UTC date strings in read_* functions (#1693)
   - Handle generator input to Series (#1679)
@@ -240,6 +241,7 @@ pandas 0.9.0
   - Fix BlockManager.iget bug when dealing with non-unique MultiIndex as columns
     (#1970)
   - Fix reset_index bug if both drop and level are specified (#1957)
+  - Work around unsafe NumPy object->int casting with Cython function (#1987)
 
 
 pandas 0.8.1
