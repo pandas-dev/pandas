@@ -532,8 +532,9 @@ cdef class TextReader:
         cdef:
             Py_ssize_t i, ncols
             cast_func func
-            kh_str_t *na_hashset
+            kh_str_t *na_hashset = NULL
             int start, end
+            bint na_filter = 0
 
         start = self.parser_start
 
@@ -555,14 +556,12 @@ cdef class TextReader:
             if self.na_filter:
                 na_list = self._get_na_list(i, name)
                 if na_list is None:
-                    na_mask = None # np.zeros(end - start, dtype=np.uint8)
+                    na_filter = 0
                 else:
+                    na_filter = 1
                     na_hashset = kset_from_list(na_list)
-                    na_mask = _get_na_mask(self.parser, i, start,
-                                           end, na_hashset)
-                    self._free_na_set(na_hashset)
             else:
-                na_mask = None
+                na_filter = 0
 
             if conv:
                 results[i] = _apply_converter(conv, self.parser, i, start, end)
@@ -571,13 +570,16 @@ cdef class TextReader:
             col_res = None
             for func in cast_func_order:
                 col_res, na_count = func(self.parser, i, start, end,
-                                         na_mask, self.na_filter)
+                                         na_filter, na_hashset)
                 if col_res is not None:
                     results[i] = col_res
                     break
 
+            if na_filter:
+                self._free_na_set(na_hashset)
+
             if upcast_na and na_count > 0:
-                col_res = _maybe_upcast(col_res, na_mask)
+                col_res = _maybe_upcast(col_res)
 
             if col_res is None:
                 raise Exception('Unable to parse column %d' % i)
@@ -637,14 +639,14 @@ class CParserError(Exception):
     pass
 
 
-def _maybe_upcast(arr, mask_is_na):
+def _maybe_upcast(arr):
     """
 
     """
-    mask_is_na = mask_is_na.view(np.bool_)
     if issubclass(arr.dtype.type, np.integer):
+        na_value = na_values[arr.dtype]
         arr = arr.astype(float)
-        np.putmask(arr, mask_is_na, np.nan)
+        np.putmask(arr, arr == na_value, np.nan)
 
     return arr
 
@@ -653,11 +655,11 @@ def _maybe_upcast(arr, mask_is_na):
 
 ctypedef object (*cast_func)(parser_t *parser, int col,
                              int line_start, int line_end,
-                             object _na_mask, bint na_filter)
+                             bint na_filter, kh_str_t *na_hashset)
 
 cdef _string_box_factorize(parser_t *parser, int col,
                            int line_start, int line_end,
-                           object _na_mask, bint na_filter):
+                           bint na_filter, kh_str_t *na_hashset):
     cdef:
         int error, na_count = 0
         Py_ssize_t i
@@ -665,36 +667,30 @@ cdef _string_box_factorize(parser_t *parser, int col,
         coliter_t it
         char *word
         ndarray[object] result
-        ndarray[uint8_t, cast=True] na_mask
 
         int ret = 0
         kh_strbox_t *table
-        khiter_t
 
         object pyval
 
         object NA = na_values[np.object_]
-
-    if na_filter:
-        if _na_mask is None:
-            na_filter = 0
-        else:
-            na_mask = _na_mask
+        khiter_t k
 
     table = kh_init_strbox()
-
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.object_)
-
     coliter_setup(&it, parser, col, line_start)
 
     for i in range(lines):
         word = COLITER_NEXT(it)
 
-        if na_filter and na_mask[i]:
-            na_count += 1
-            result[i] = NA
-            continue
+        if na_filter:
+            k = kh_get_str(na_hashset, word)
+            # in the hash table
+            if k != na_hashset.n_buckets:
+                na_count += 1
+                result[i] = NA
+                continue
 
         k = kh_get_strbox(table, word)
 
@@ -718,7 +714,7 @@ cdef _string_box_factorize(parser_t *parser, int col,
 
 
 cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
-                 object _na_mask, bint na_filter):
+                 bint na_filter, kh_str_t *na_hashset):
     cdef:
         int error, na_count = 0
         size_t i, lines
@@ -727,13 +723,7 @@ cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
         double *data
         double NA = na_values[np.float64]
         ndarray result
-        ndarray[uint8_t, cast=True] na_mask
-
-    if na_filter:
-        if _na_mask is None:
-            na_filter = 0
-        else:
-            na_mask = _na_mask
+        khiter_t k
 
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.float64)
@@ -743,7 +733,10 @@ cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
     if na_filter:
         for i in range(lines):
             word = COLITER_NEXT(it)
-            if na_mask[i]:
+
+            k = kh_get_str(na_hashset, word)
+            # in the hash table
+            if k != na_hashset.n_buckets:
                 na_count += 1
                 data[0] = NA
             else:
@@ -762,7 +755,7 @@ cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
     return result, na_count
 
 cdef _try_int64(parser_t *parser, int col, int line_start, int line_end,
-                object _na_mask, bint na_filter):
+                bint na_filter, kh_str_t *na_hashset):
     cdef:
         int error, na_count = 0
         size_t i, lines
@@ -771,28 +764,21 @@ cdef _try_int64(parser_t *parser, int col, int line_start, int line_end,
         int64_t *data
         ndarray result
 
-        ndarray[uint8_t, cast=True] na_mask
         int64_t NA = na_values[np.int64]
-
-    if na_filter:
-        if _na_mask is None:
-            na_filter = 0
-        else:
-            na_mask = _na_mask
+        khiter_t k
 
     lines = line_end - line_start
-
     result = np.empty(lines, dtype=np.int64)
-
     data = <int64_t *> result.data
-
     coliter_setup(&it, parser, col, line_start)
 
     if na_filter:
         for i in range(lines):
             word = COLITER_NEXT(it)
 
-            if na_mask[i]:
+            k = kh_get_str(na_hashset, word)
+            # in the hash table
+            if k != na_hashset.n_buckets:
                 na_count += 1
                 data[i] = NA
                 continue
@@ -812,7 +798,7 @@ cdef _try_int64(parser_t *parser, int col, int line_start, int line_end,
     return result, na_count
 
 cdef _try_bool(parser_t *parser, int col, int line_start, int line_end,
-               object _na_mask, bint na_filter):
+               bint na_filter, kh_str_t *na_hashset):
     cdef:
         int error, na_count = 0
         size_t i, lines
@@ -821,14 +807,8 @@ cdef _try_bool(parser_t *parser, int col, int line_start, int line_end,
         uint8_t *data
         ndarray result
 
-        ndarray[uint8_t, cast=True] na_mask
         uint8_t NA = na_values[np.bool_]
-
-    if na_filter:
-        if _na_mask is None:
-            na_filter = 0
-        else:
-            na_mask = _na_mask
+        khiter_t k
 
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.uint8)
@@ -839,7 +819,9 @@ cdef _try_bool(parser_t *parser, int col, int line_start, int line_end,
         for i in range(lines):
             word = COLITER_NEXT(it)
 
-            if na_mask[i]:
+            k = kh_get_str(na_hashset, word)
+            # in the hash table
+            if k != na_hashset.n_buckets:
                 na_count += 1
                 data[i] = NA
                 continue
@@ -940,6 +922,9 @@ na_values = {
     np.bool_ : UINT8_MAX,
     np.object_ : np.nan    # oof
 }
+
+for k in list(na_values):
+    na_values[np.dtype(k)] = na_values[k]
 
 
 cdef _apply_converter(object f, parser_t *parser, int col,

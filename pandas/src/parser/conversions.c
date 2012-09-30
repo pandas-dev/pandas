@@ -139,7 +139,7 @@ int inline to_boolean(char *item, uint8_t *val) {
     static const char *tstrs[2] = {"TRUE", "YES"};
     static const char *fstrs[2] = {"FALSE", "NO"};
 
-	tmp = malloc(sizeof(char) * strlen(item));
+	tmp = malloc(sizeof(char) * (strlen(item) + 1));
 	strcpy(tmp, item);
 	uppercase(tmp);
 
