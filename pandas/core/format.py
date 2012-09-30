@@ -298,7 +298,7 @@ class DataFrameFormatter(object):
         if column_format is None:
             column_format = '|l|%s|' % '|'.join('c' for _ in strcols)
         else:
-            assert isinstance(column_format, str)
+            assert isinstance(column_format, basestring)
 
         self.buf.write('\\begin{tabular}{%s}\n' % column_format)
         self.buf.write('\\hline\n')
