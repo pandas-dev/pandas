@@ -33,7 +33,7 @@ def _to_ordinalf(tm):
     return tot_sec
 
 def time2num(d):
-    if isinstance(d, str):
+    if isinstance(d, basestring):
         parsed = tools.to_datetime(d)
         if not isinstance(parsed, datetime):
             raise ValueError('Could not parse time %s' % d)
@@ -150,7 +150,7 @@ class DatetimeConverter(dates.DateConverter):
             return dates.date2num(values)
         elif (com.is_integer(values) or com.is_float(values)):
             return values
-        elif isinstance(values, str):
+        elif isinstance(values, basestring):
             return try_parse(values)
         elif isinstance(values, (list, tuple, np.ndarray)):
             if not isinstance(values, np.ndarray):

@@ -36,7 +36,7 @@ def _infer_tzinfo(start, end):
 
 
 def _maybe_get_tz(tz):
-    if isinstance(tz, (str, unicode)):
+    if isinstance(tz, basestring):
         import pytz
         tz = pytz.timezone(tz)
     if com.is_integer(tz):
