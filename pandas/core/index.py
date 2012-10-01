@@ -382,7 +382,7 @@ class Index(np.ndarray):
 
         header = []
         if name:
-            header.append(str(self.name) if self.name is not None else '')
+            header.append(unicode(self.name) if self.name is not None else '')
 
         if self.is_all_dates:
             zero_time = time(0, 0)
