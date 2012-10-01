@@ -195,6 +195,7 @@ class TestCParser(unittest.TestCase):
     def test_na_substitution(self):
         pass
 
+
 def assert_array_dicts_equal(left, right):
     for k, v in left.iteritems():
         assert(np.array_equal(v, right[k]))

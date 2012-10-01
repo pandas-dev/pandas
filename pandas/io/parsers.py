@@ -201,6 +201,7 @@ def _read(filepath_or_buffer, kwds):
 def read_csv(filepath_or_buffer,
              sep=',',
              engine='c',
+             as_recarray=False,
              dialect=None,
              header=0,
              index_col=None,
@@ -208,6 +209,8 @@ def read_csv(filepath_or_buffer,
              skiprows=None,
              na_values=None,
              na_filter=True,
+             compact_ints=False,
+             use_unsigned=False,
              keep_default_na=True,
              thousands=None,
              comment=None,
@@ -230,6 +233,7 @@ def read_csv(filepath_or_buffer,
                 names=names, skiprows=skiprows,
                 na_values=na_values,
                 na_filter=na_filter,
+                compact_ints=compact_ints, use_unsigned=use_unsigned,
                 keep_default_na=keep_default_na,
                 thousands=thousands,
                 comment=comment, parse_dates=parse_dates,
@@ -240,7 +244,7 @@ def read_csv(filepath_or_buffer,
                 converters=converters, verbose=verbose,
                 delimiter=delimiter, encoding=encoding,
                 squeeze=squeeze,
-                engine=engine)
+                engine=engine, as_recarray=as_recarray)
 
     # Alias sep -> delimiter.
     sep = kwds.pop('sep')
@@ -433,6 +437,8 @@ class TextFileReader(object):
                  skipinitialspace=False,
                  squeeze=False,
                  as_recarray=False,
+                 compact_ints=False,
+                 use_unsigned=False,
                  factorize=True,
                  **kwds):
 
@@ -501,6 +507,8 @@ class TextFileReader(object):
         self.verbose = verbose
         self.warn_bad_lines = warn_bad_lines
         self.error_bad_lines = error_bad_lines
+        self.compact_ints = compact_ints
+        self.use_unsigned = use_unsigned
 
         # miscellanea
         self.kwds = kwds
@@ -584,6 +592,8 @@ class TextFileReader(object):
         if kind == 'c':
             params.update(warn_bad_lines=self.warn_bad_lines,
                           error_bad_lines=self.error_bad_lines,
+                          use_unsigned=self.use_unsigned,
+                          compact_ints=self.compact_ints,
                           as_recarray=self.as_recarray,
                           factorize=self.factorize)
 
@@ -609,6 +619,10 @@ class TextFileReader(object):
         # index = None
 
         ret = self._engine.read(nrows)
+
+        if self.as_recarray:
+            return ret
+
         index, columns, col_dict = ret
 
         # May alter columns / col_dict

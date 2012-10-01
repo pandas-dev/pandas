@@ -1527,6 +1527,22 @@ class TestCParser(ParserTests, unittest.TestCase):
         kwds['engine'] = 'c'
         return read_table(*args, **kwds)
 
+    def test_compact_ints(self):
+        data = ('0,1,0,0\n'
+                '1,1,0,0\n'
+                '0,1,0,1')
+
+        result = read_csv(StringIO(data), delimiter=',', header=None,
+                          compact_ints=True, as_recarray=True)
+        ex_dtype = np.dtype([(str(i), 'i1') for i in range(4)])
+        self.assertEqual(result.dtype, ex_dtype)
+
+        result = read_csv(StringIO(data), delimiter=',', header=None,
+                          as_recarray=True, compact_ints=True,
+                          use_unsigned=True)
+        ex_dtype = np.dtype([(str(i), 'u1') for i in range(4)])
+        self.assertEqual(result.dtype, ex_dtype)
+
 
 class TestParseSQL(unittest.TestCase):
 
