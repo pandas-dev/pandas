@@ -63,6 +63,8 @@ pandas 0.9.0
 
 **API Changes**
 
+  - Change default header names in read_* functions to more Pythonic X0, X1,
+    etc. instead of X.1, X.2. (#2000)
   - Deprecated ``day_of_year`` API removed from PeriodIndex, use ``dayofyear``
     (#1723)
   - Don't modify NumPy suppress printoption at import time

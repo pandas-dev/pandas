@@ -613,7 +613,7 @@ class TextParser(object):
 
             ncols = len(line)
             if not names:
-                columns = ['X.%d' % (i + 1) for i in range(ncols)]
+                columns = ['X%d' % i for i in range(ncols)]
             else:
                 columns = names
 
@@ -747,7 +747,7 @@ class TextParser(object):
             else:
                 index_name = columns[self.index_col]
 
-            if index_name is not None and 'Unnamed' in index_name:
+            if index_name is not None and 'Unnamed' in str(index_name):
                 index_name = None
 
         elif self.index_col is not None:
@@ -1160,19 +1160,9 @@ def _convert_types(values, na_values):
 
     return result, na_count
 
-def _get_col_names(colspec, columns):
-    colset = set(columns)
-    colnames = []
-    for c in colspec:
-        if c in colset:
-            colnames.append(str(c))
-        elif isinstance(c, int):
-            colnames.append(str(columns[c]))
-    return colnames
-
 def _try_convert_dates(parser, colspec, data_dict, columns):
     colspec = _get_col_names(colspec, columns)
-    new_name = '_'.join(colspec)
+    new_name = '_'.join([str(x) for x in colspec])
 
     to_parse = [data_dict[c] for c in colspec if c in data_dict]
     try:
@@ -1180,6 +1170,17 @@ def _try_convert_dates(parser, colspec, data_dict, columns):
     except DateConversionError:
         new_col = parser(_concat_date_cols(to_parse))
     return new_name, new_col, colspec
+
+def _get_col_names(colspec, columns):
+    colset = set(columns)
+    colnames = []
+    for c in colspec:
+        if c in colset:
+            colnames.append(c)
+        elif isinstance(c, int):
+            colnames.append(columns[c])
+    return colnames
+
 
 def _concat_date_cols(date_cols):
     if len(date_cols) == 1:
