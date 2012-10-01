@@ -242,6 +242,7 @@ pandas 0.9.0
     (#1970)
   - Fix reset_index bug if both drop and level are specified (#1957)
   - Work around unsafe NumPy object->int casting with Cython function (#1987)
+  - Fix datetime64 formatting bug in DataFrame.to_csv (#1993)
 
 
 pandas 0.8.1

@@ -23,6 +23,8 @@ import pandas.tseries.frequencies as fmod
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
 
+from pandas.util.py3compat import StringIO
+
 from pandas.lib import NaT, iNaT
 import pandas.lib as lib
 import cPickle as pickle
@@ -1185,6 +1187,14 @@ class TestTimeSeries(unittest.TestCase):
         result = df.to_html()
         self.assert_('2000-01-01' in result)
 
+    def test_to_csv_numpy_16_bug(self):
+        frame = DataFrame({'a': date_range('1/1/2000', periods=10)})
+
+        buf = StringIO()
+        frame.to_csv(buf)
+
+        result = buf.getvalue()
+        self.assert_('2000-01-01' in result)
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)

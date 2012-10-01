@@ -1106,8 +1106,11 @@ class DataFrame(NDFrame):
                 val = series[col][j]
                 if lib.checknull(val):
                     val = na_rep
+
                 if float_format is not None and com.is_float(val):
                     val = float_format % val
+                elif isinstance(val, np.datetime64):
+                    val = lib.Timestamp(val)._repr_base
 
                 row_fields.append(val)
 
@@ -4391,7 +4394,7 @@ class DataFrame(NDFrame):
 
     @Substitution(name='standard deviation', shortname='std',
                   na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc + 
+    @Appender(_stat_doc +
         """
         Normalized by N-1 (unbiased estimator).
         """)
