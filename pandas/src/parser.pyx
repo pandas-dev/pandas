@@ -26,6 +26,10 @@ cnp.import_array()
 
 from khash cimport *
 
+import sys
+
+cdef bint PY3 = (sys.version_info[0] >= 3)
+
 cdef extern from "stdint.h":
     enum: UINT8_MAX
     enum: UINT16_MAX
@@ -369,7 +373,7 @@ cdef class TextReader:
         cdef:
             int status
 
-        if isinstance(source, (basestring, file)):
+        if _is_file_like(source):
             if isinstance(source, basestring):
                 source = open(source, 'rb')
                 self.should_close = True
@@ -653,6 +657,20 @@ cdef class TextReader:
 
 class CParserError(Exception):
     pass
+
+def _is_file_like(obj):
+    if PY3:
+        import io
+        if isinstance(obj, io.TextIOWrapper):
+            raise CParserError('Cannot handle open unicode files (yet)')
+
+        # BufferedReader is a byte reader for Python 3
+        file = io.BufferedReader
+    else:
+        import __builtin__
+        file = __builtin__.file
+
+    return isinstance(obj, (basestring, file))
 
 
 def _maybe_upcast(arr):
