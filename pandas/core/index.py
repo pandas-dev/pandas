@@ -196,7 +196,7 @@ class Index(np.ndarray):
 
     def summary(self, name=None):
         if len(self) > 0:
-            index_summary = ', %s to %s' % (str(self[0]), str(self[-1]))
+            index_summary = ', %s to %s' % (unicode(self[0]), unicode(self[-1]))
         else:
             index_summary = ''
 

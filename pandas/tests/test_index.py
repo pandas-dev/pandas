@@ -27,6 +27,7 @@ from pandas.lib import Timestamp
 class TestIndex(unittest.TestCase):
 
     def setUp(self):
+        self.unicodeIndex = tm.makeUnicodeIndex(100)
         self.strIndex = tm.makeStringIndex(100)
         self.dateIndex = tm.makeDateIndex(100)
         self.intIndex = tm.makeIntIndex(100)
@@ -374,6 +375,7 @@ class TestIndex(unittest.TestCase):
     def _check_method_works(self, method):
         method(self.empty)
         method(self.dateIndex)
+        method(self.unicodeIndex)
         method(self.strIndex)
         method(self.intIndex)
         method(self.tuples)
