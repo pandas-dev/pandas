@@ -7,7 +7,10 @@ import nose
 
 import numpy as np
 
-import pandas.tseries.converter as converter
+try:
+    import pandas.tseries.converter as converter
+except ImportError:
+    raise nose.SkipTest
 
 def test_timtetonum_accepts_unicode():
     assert(converter.time2num("00:01")==converter.time2num(u"00:01"))
