@@ -1369,7 +1369,7 @@ class DataFrame(NDFrame):
             counts = self.count()
             assert(len(cols) == len(counts))
             for col, count in counts.iteritems():
-                if not isinstance(col, (unicode, str)):
+                if not isinstance(col, basestring):
                     col = str(col)
                 lines.append(_put_str(col, space) +
                              '%d  non-null values' % count)
