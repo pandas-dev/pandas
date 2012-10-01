@@ -174,6 +174,8 @@ cdef extern from "parser/parser.h":
 
     int parser_consume_rows(parser_t *self, size_t nrows)
 
+    int parser_trim_buffers(parser_t *self)
+
     void debug_print_parser(parser_t *self)
 
     int tokenize_all_rows(parser_t *self) nogil
@@ -500,10 +502,10 @@ cdef class TextReader:
 
         self._start_clock()
 
+
         if rows is not None:
             irows = rows
             buffered_lines = self.parser.lines - self.parser_start
-
             if buffered_lines < irows:
                 with nogil:
                     status = tokenize_nrows(self.parser,
@@ -529,10 +531,21 @@ cdef class TextReader:
         columns = self._convert_column_data(rows=rows,
                                             footer=footer,
                                             upcast_na=not self.as_recarray)
-
         self._end_clock('Type conversion')
 
+        self._start_clock()
+        if len(columns) > 0:
+            # trim
+            self._free_rows(len(columns.values()[0]), True)
+        self._end_clock('Parser memory cleanup')
+
         return columns
+
+    cdef _free_rows(self, size_t nrows, bint trim):
+        parser_consume_rows(self.parser, nrows)
+        if trim:
+            parser_trim_buffers(self.parser)
+        self.parser_start -= nrows
 
     def debug_print(self):
         debug_print_parser(self.parser)

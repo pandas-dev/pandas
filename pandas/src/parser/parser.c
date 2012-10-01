@@ -1691,10 +1691,8 @@ int parser_handle_eof(parser_t *self) {
     }
 }
 
-#define MV(dst, src, n) memmove((void*) dst, (void*) src, n)
-
 int parser_consume_rows(parser_t *self, size_t nrows) {
-    int word_deletions, char_count;
+    int i, offset, word_deletions, char_count;
 
     if (nrows > self->lines) {
         nrows = self->lines;
@@ -1706,29 +1704,82 @@ int parser_consume_rows(parser_t *self, size_t nrows) {
 
     /* cannot guarantee that nrows + 1 has been observed */
     word_deletions = self->line_start[nrows - 1] + self->line_fields[nrows - 1];
-    char_count = self->word_starts[word_deletions];
+    char_count = (self->word_starts[word_deletions - 1] +
+                  strlen(self->words[word_deletions - 1]) + 1);
 
-    /* move stream */
-    MV(self->stream, self->stream + char_count, self->stream_len - char_count);
+    TRACE(("Deleting %d words, %d chars\n", word_deletions, char_count));
 
-    /* move token metadata */
-    MV(self->words, self->words + word_deletions,
-       self->words_cap - word_deletions);
-
-    MV(self->word_starts, self->word_starts + word_deletions,
-       self->words_cap - word_deletions);
-
-    MV(self->line_start, self->line_start + nrows, self->lines - nrows);
-    MV(self->line_fields, self->line_fields + nrows, self->lines - nrows);
-
+    /* move stream, only if something to move */
+    if (char_count < self->stream_len) {
+        memmove((void*) self->stream, (void*) (self->stream + char_count),
+                self->stream_len - char_count);
+    }
     /* buffer counts */
     self->stream_len -= char_count;
+
+    /* move token metadata */
+    for (i = 0; i < self->words_len - word_deletions; ++i) {
+        offset = i + word_deletions;
+
+        self->words[i] = self->words[offset] - char_count;
+        self->word_starts[i] = self->word_starts[offset] - char_count;
+    }
     self->words_len -= word_deletions;
-    self->lines -= nrows;
 
     /* move current word pointer to stream */
     self->pword_start -= char_count;
     self->word_start -= char_count;
+
+    /* move line metadata */
+    for (i = 0; i < nrows; ++i)
+    {
+        offset = i + nrows;
+        self->line_start[i] = self->line_start[offset] - word_deletions;
+        self->line_fields[i] = self->line_fields[offset];
+    }
+    self->lines -= nrows;
+
+    return 0;
+}
+
+static size_t _next_pow2(size_t sz) {
+    size_t result = 1;
+    while (result < sz) result *= 2;
+    return result;
+}
+
+int parser_trim_buffers(parser_t *self) {
+    /*
+      Free memory
+     */
+    size_t new_cap;
+
+    /* trim stream */
+    new_cap = _next_pow2(self->stream_len);
+    if (new_cap < self->stream_cap) {
+        self->stream = safe_realloc((void*) self->stream, new_cap);
+        self->stream_cap = new_cap;
+    }
+
+    /* trim words, word_starts */
+    new_cap = _next_pow2(self->words_len);
+    if (new_cap < self->words_cap) {
+        self->words = (char**) safe_realloc((void*) self->words,
+                                            new_cap * sizeof(char*));
+        self->word_starts = (int*) safe_realloc((void*) self->word_starts,
+                                                new_cap * sizeof(int));
+        self->words_cap = new_cap;
+    }
+
+    /* trim line_start, line_fields */
+    new_cap = _next_pow2(self->lines);
+    if (new_cap < self->lines_cap) {
+        self->line_start = (int*) safe_realloc((void*) self->line_start,
+                                               new_cap * sizeof(int));
+        self->line_fields = (int*) safe_realloc((void*) self->line_fields,
+                                                new_cap * sizeof(int));
+        self->lines_cap = new_cap;
+    }
 
     return 0;
 }

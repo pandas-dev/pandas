@@ -206,6 +206,8 @@ int parser_gzip_source_init(parser_t *self, FILE *fp);
 
 int parser_consume_rows(parser_t *self, size_t nrows);
 
+int parser_trim_buffers(parser_t *self);
+
 int parser_add_skiprow(parser_t *self, int64_t row);
 
 void parser_free(parser_t *self);
