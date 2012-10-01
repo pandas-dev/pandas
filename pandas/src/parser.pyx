@@ -212,7 +212,7 @@ cdef class TextReader:
         list clocks
 
     cdef public:
-        int leading_cols, table_width, skip_footer
+        int leading_cols, table_width, skip_footer, buffer_lines
         object delimiter, na_values, converters, delim_whitespace
         object memory_map
         object as_recarray
@@ -254,6 +254,7 @@ cdef class TextReader:
                   compact_ints=False,
                   use_unsigned=False,
                   low_memory=False,
+                  buffer_lines=2**14,
                   skiprows=None,
                   skip_footer=0,
                   verbose=False):
@@ -332,6 +333,7 @@ cdef class TextReader:
 
         self.verbose = verbose
         self.low_memory = low_memory
+        self.buffer_lines = buffer_lines
 
         #----------------------------------------
         # header stuff
@@ -481,7 +483,7 @@ cdef class TextReader:
             columns = self._read_low_memory(rows)
         else:
             # Don't care about memory usage
-            columns = self._read_high_memory(rows)
+            columns = self._read_high_memory(rows, 1)
 
         if self.as_recarray:
             self._start_clock()
@@ -493,15 +495,43 @@ cdef class TextReader:
             return columns
 
     cdef _read_low_memory(self, rows):
-        pass
+        cdef:
+            size_t rows_read = 0
+            list chunks = []
 
-    cdef _read_high_memory(self, rows):
+        if rows is None:
+            while True:
+                try:
+                    chunk = self._read_high_memory(self.buffer_lines, 0)
+                    if len(chunk) == 0:
+                        break
+
+                    chunks.append(chunk)
+                except StopIteration:
+                    break
+        else:
+            while rows_read < rows:
+                try:
+                    chunk = self._read_high_memory(self.buffer_lines, 0)
+                    if len(chunk) == 0:
+                        break
+
+                    rows_read += len(chunk.values()[0])
+                    chunks.append(chunk)
+                except StopIteration:
+                    break
+
+        # destructive to chunks
+        result = _concatenate_chunks(chunks)
+
+        return result
+
+    cdef _read_high_memory(self, rows, bint trim):
         cdef:
             int buffered_lines
             int irows, footer = 0
 
         self._start_clock()
-
 
         if rows is not None:
             irows = rows
@@ -535,17 +565,16 @@ cdef class TextReader:
 
         self._start_clock()
         if len(columns) > 0:
+            rows_read = len(columns.values()[0])
             # trim
-            self._free_rows(len(columns.values()[0]), True)
+            parser_consume_rows(self.parser, rows_read)
+            if trim:
+                parser_trim_buffers(self.parser)
+            self.parser_start -= rows_read
+
         self._end_clock('Parser memory cleanup')
 
         return columns
-
-    cdef _free_rows(self, size_t nrows, bint trim):
-        parser_consume_rows(self.parser, nrows)
-        if trim:
-            parser_trim_buffers(self.parser)
-        self.parser_start -= nrows
 
     def debug_print(self):
         debug_print_parser(self.parser)
@@ -664,9 +693,6 @@ cdef class TextReader:
             return self.header[i - self.leading_cols]
         else:
             return None
-
-    def _get_col_name(self, col):
-        pass
 
 class CParserError(Exception):
     pass
@@ -1027,6 +1053,10 @@ def downcast_int64(ndarray[int64_t] arr, bint use_unsigned=0):
             return result
 
     return arr
+
+
+def _concatenate_chunks(list chunks):
+    pass
 
 #----------------------------------------------------------------------
 
