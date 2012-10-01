@@ -876,6 +876,14 @@ Methods like ``replace`` and ``findall`` take regular expressions, too:
    s3
    s3.str.replace('^.a|dog', 'XX-XX ', case=False)
 
+Methods like ``contains``, ``startswith``, and ``endswith`` takes an extra
+``na`` arguement so missing values can be considered True or False:
+
+.. ipython:: python
+
+   s4 = Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'])
+   s4.str.contains('A', na=False)
+
 .. csv-table::
     :header: "Method", "Description"
     :widths: 20, 80

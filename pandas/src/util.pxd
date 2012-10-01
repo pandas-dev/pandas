@@ -2,6 +2,8 @@ from numpy cimport ndarray
 cimport numpy as cnp
 
 cdef extern from "numpy_helper.h":
+    inline void set_array_owndata(ndarray ao)
+
     inline int is_integer_object(object)
     inline int is_float_object(object)
     inline int is_complex_object(object)
@@ -58,7 +60,10 @@ cdef inline is_array(object o):
 
 
 cdef inline bint _checknull(object val):
-    return not cnp.PyArray_Check(val) and (val is None or val != val)
+    try:
+        return bool(val is None or val != val)
+    except ValueError:
+        return False
 
 cdef inline bint _checknan(object val):
     return not cnp.PyArray_Check(val) and val != val

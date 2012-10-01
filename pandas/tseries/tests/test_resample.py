@@ -455,8 +455,8 @@ class TestResample(unittest.TestCase):
         tm.assert_frame_equal(result, expected)
 
         result = df.resample('M', closed='left')
-        expected = df.resample('M', kind='period', closed='left').to_timestamp()
-        tm.assert_frame_equal(result, expected)
+        exp = df.tshift(1, freq='D').resample('M', kind='period').to_timestamp()
+        tm.assert_frame_equal(result, exp)
 
         rng = date_range('1/1/2012', '4/1/2013', freq='10min')
         df = DataFrame(rng.month, index=rng)
@@ -466,7 +466,9 @@ class TestResample(unittest.TestCase):
         tm.assert_frame_equal(result, expected)
 
         result = df.resample('Q', closed='left')
-        expected = df.resample('Q', kind='period', closed='left').to_timestamp()
+        expected = df.tshift(1, freq='D').resample('Q', kind='period',
+                                                   closed='left')
+        expected = expected.to_timestamp()
         tm.assert_frame_equal(result, expected)
 
         ts = _simple_ts('2012-04-29 23:00', '2012-04-30 5:00', freq='h')
@@ -526,6 +528,48 @@ class TestResample(unittest.TestCase):
         result = ts.resample('D', how='sum')
         exp = ts.sort_index().resample('D', how='sum')
         assert_series_equal(result, exp)
+
+    def test_resample_median_bug_1688(self):
+        df = DataFrame([1, 2], index=[datetime(2012,1,1,0,0,0),
+                                      datetime(2012,1,1,0,5,0)])
+
+        result = df.resample("T", how=lambda x: x.mean())
+        exp = df.asfreq('T')
+        tm.assert_frame_equal(result, exp)
+
+        result = df.resample("T", how="median")
+        exp = df.asfreq('T')
+        tm.assert_frame_equal(result, exp)
+
+    def test_how_lambda_functions(self):
+        ts = _simple_ts('1/1/2000', '4/1/2000')
+
+        result = ts.resample('M', how=lambda x: x.mean())
+        exp = ts.resample('M', how='mean')
+        tm.assert_series_equal(result, exp)
+
+        self.assertRaises(Exception, ts.resample, 'M',
+                          how=[lambda x: x.mean(), lambda x: x.std()])
+
+        result = ts.resample('M', how={'foo': lambda x: x.mean(),
+                                       'bar': lambda x: x.std()})
+        foo_exp = ts.resample('M', how='mean')
+        bar_exp = ts.resample('M', how='std')
+
+        tm.assert_series_equal(result['foo'], foo_exp)
+        tm.assert_series_equal(result['bar'], bar_exp)
+
+    def test_resample_unequal_times(self):
+        # #1772
+        start = datetime(1999, 3, 1, 5)
+        # end hour is less than start
+        end = datetime(2012, 7, 31, 4)
+        bad_ind = date_range(start, end, freq="30min")
+        df = DataFrame({'close':1}, index=bad_ind)
+
+        # it works!
+        df.resample('AS', 'sum')
+
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
@@ -786,6 +830,17 @@ class TestResamplePeriodIndex(unittest.TestCase):
         result = ts.resample('A')
         exp = ts.to_timestamp().resample('A').to_period()
         assert_series_equal(result, exp)
+
+    def test_resample_weekly_bug_1726(self):
+        # 8/6/12 is a Monday
+        ind = DatetimeIndex(start="8/6/2012", end="8/26/2012", freq="D")
+        n = len(ind)
+        data = [[x] * 5 for x in range(n)]
+        df = DataFrame(data, columns=['open', 'high', 'low', 'close', 'vol'],
+                       index=ind)
+
+        # it works!
+        df.resample('W-MON', how='first', closed='left', label='left')
 
     # def test_monthly_convention_span(self):
     #     rng = period_range('2000-01', periods=3, freq='M')

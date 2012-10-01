@@ -7,7 +7,7 @@ import nose
 
 import numpy as np
 
-from pandas import Index, DatetimeIndex, date_range
+from pandas import Index, DatetimeIndex, date_range, period_range
 
 from pandas.tseries.frequencies import to_offset, infer_freq
 from pandas.tseries.tools import to_datetime
@@ -176,11 +176,49 @@ class TestFrequencyInference(unittest.TestCase):
 
         gen = date_range(start, periods=7, freq=freq)
         index = _dti(gen.values)
-        self.assert_(infer_freq(index) == gen.freqstr)
+        if not freq.startswith('Q-'):
+            self.assert_(infer_freq(index) == gen.freqstr)
+        else:
+            inf_freq = infer_freq(index)
+            self.assert_((inf_freq == 'Q-DEC' and
+                          gen.freqstr in ('Q', 'Q-DEC', 'Q-SEP', 'Q-JUN',
+                                          'Q-MAR'))
+                         or
+                         (inf_freq == 'Q-NOV' and
+                          gen.freqstr in ('Q-NOV', 'Q-AUG', 'Q-MAY', 'Q-FEB'))
+                         or
+                         (inf_freq == 'Q-OCT' and
+                          gen.freqstr in ('Q-OCT', 'Q-JUL', 'Q-APR', 'Q-JAN')))
+
 
         gen = date_range(start, periods=5, freq=freq)
         index = _dti(gen.values)
-        self.assert_(infer_freq(index) == gen.freqstr)
+        if not freq.startswith('Q-'):
+            self.assert_(infer_freq(index) == gen.freqstr)
+        else:
+            inf_freq = infer_freq(index)
+            self.assert_((inf_freq == 'Q-DEC' and
+                          gen.freqstr in ('Q', 'Q-DEC', 'Q-SEP', 'Q-JUN',
+                                          'Q-MAR'))
+                         or
+                         (inf_freq == 'Q-NOV' and
+                          gen.freqstr in ('Q-NOV', 'Q-AUG', 'Q-MAY', 'Q-FEB'))
+                         or
+                         (inf_freq == 'Q-OCT' and
+                          gen.freqstr in ('Q-OCT', 'Q-JUL', 'Q-APR', 'Q-JAN')))
+
+    def test_infer_freq(self):
+        rng = period_range('1959Q2', '2009Q3', freq='Q')
+        rng = Index(rng.to_timestamp('D', how='e').asobject)
+        self.assert_(rng.inferred_freq == 'Q-DEC')
+
+        rng = period_range('1959Q2', '2009Q3', freq='Q-NOV')
+        rng = Index(rng.to_timestamp('D', how='e').asobject)
+        self.assert_(rng.inferred_freq == 'Q-NOV')
+
+        rng = period_range('1959Q2', '2009Q3', freq='Q-OCT')
+        rng = Index(rng.to_timestamp('D', how='e').asobject)
+        self.assert_(rng.inferred_freq == 'Q-OCT')
 
     def test_not_monotonic(self):
         rng = _dti(['1/31/2000', '1/31/2001', '1/31/2002'])
@@ -202,8 +240,10 @@ def test_is_superperiod_subperiod():
     assert(fmod.is_superperiod(offsets.YearEnd(), offsets.MonthEnd()))
     assert(fmod.is_subperiod(offsets.MonthEnd(), offsets.YearEnd()))
 
+    assert(fmod.is_superperiod(offsets.Hour(), offsets.Minute()))
+    assert(fmod.is_subperiod(offsets.Minute(), offsets.Hour()))
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-

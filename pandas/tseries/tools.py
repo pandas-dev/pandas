@@ -21,12 +21,11 @@ except ImportError: # pragma: no cover
     print 'Please install python-dateutil via easy_install or some method!'
     raise # otherwise a 2nd import won't show the message
 
-
 def _infer_tzinfo(start, end):
     def _infer(a, b):
         tz = a.tzinfo
         if b and b.tzinfo:
-            assert(tz == b.tzinfo)
+            assert(lib.get_timezone(tz) == lib.get_timezone(b.tzinfo))
         return tz
     tz = None
     if start is not None:
@@ -37,28 +36,13 @@ def _infer_tzinfo(start, end):
 
 
 def _maybe_get_tz(tz):
-    if isinstance(tz, (str, unicode)):
+    if isinstance(tz, basestring):
         import pytz
         tz = pytz.timezone(tz)
+    if com.is_integer(tz):
+        import pytz
+        tz = pytz.FixedOffset(tz / 60)
     return tz
-
-def _figure_out_timezone(start, end, tzinfo):
-    inferred_tz = _infer_tzinfo(start, end)
-    tzinfo = _maybe_get_tz(tzinfo)
-
-    tz = inferred_tz
-    if inferred_tz is None and tzinfo is not None:
-        tz = tzinfo
-    elif tzinfo is not None:
-        assert(inferred_tz == tzinfo)
-        # make tz naive for now
-
-    # tz = _maybe_get_tz(tz)
-
-    start = start if start is None else start.replace(tzinfo=None)
-    end = end if end is None else end.replace(tzinfo=None)
-
-    return start, end, tz
 
 
 def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True):
@@ -80,26 +64,52 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True):
     """
     from pandas.core.series import Series
     from pandas.tseries.index import DatetimeIndex
+
+    def _convert_f(arg):
+        arg = com._ensure_object(arg)
+
+        try:
+            result = lib.array_to_datetime(arg, raise_=errors == 'raise',
+                                           utc=utc, dayfirst=dayfirst)
+            if com.is_datetime64_dtype(result) and box:
+                result = DatetimeIndex(result, tz='utc' if utc else None)
+            return result
+        except ValueError, e:
+            try:
+                values, tz = lib.datetime_to_datetime64(arg)
+                return DatetimeIndex._simple_new(values, None, tz=tz)
+            except (ValueError, TypeError):
+                raise e
+
     if arg is None:
         return arg
     elif isinstance(arg, datetime):
         return arg
     elif isinstance(arg, Series):
-        values = lib.array_to_datetime(com._ensure_object(arg.values),
-                                       raise_=errors == 'raise',
-                                       utc=utc,
-                                       dayfirst=dayfirst)
+        values = _convert_f(arg.values)
         return Series(values, index=arg.index, name=arg.name)
     elif isinstance(arg, (np.ndarray, list)):
         if isinstance(arg, list):
             arg = np.array(arg, dtype='O')
-        result = lib.array_to_datetime(com._ensure_object(arg),
-                                       raise_=errors == 'raise',
-                                       utc=utc,
-                                       dayfirst=dayfirst)
-        if com.is_datetime64_dtype(result) and box:
-            result = DatetimeIndex(result, tz='utc' if utc else None)
-        return result
+
+        if com.is_datetime64_dtype(arg):
+            if box and not isinstance(arg, DatetimeIndex):
+                try:
+                    return DatetimeIndex(arg, tz='utc' if utc else None)
+                except ValueError, e:
+                    try:
+                        values, tz = lib.datetime_to_datetime64(arg)
+                        return DatetimeIndex._simple_new(values, None, tz=tz)
+                    except (ValueError, TypeError):
+                        raise e
+            return arg
+
+        try:
+            return _convert_f(arg)
+        except ValueError:
+            raise
+        return arg
+
     try:
         if not arg:
             return arg
@@ -122,7 +132,7 @@ qpat1 = re.compile(r'(\d)Q(\d\d)')
 qpat2 = re.compile(r'(\d\d)Q(\d)')
 ypat = re.compile(r'(\d\d\d\d)$')
 
-def parse_time_string(arg, freq=None):
+def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     """
     Try hard to parse datetime string, leveraging dateutil plus some extra
     goodies like quarter recognition.
@@ -132,6 +142,10 @@ def parse_time_string(arg, freq=None):
     arg : basestring
     freq : str or DateOffset, default None
         Helps with interpreting time string if supplied
+    dayfirst : bool, default None
+        If None uses default from print_config
+    yearfirst : bool, default None
+        If None uses default from print_config
 
     Returns
     -------
@@ -205,8 +219,10 @@ def parse_time_string(arg, freq=None):
     if mresult:
         return mresult
 
-    dayfirst = print_config.date_dayfirst
-    yearfirst = print_config.date_yearfirst
+    if dayfirst is None:
+        dayfirst = print_config.date_dayfirst
+    if yearfirst is None:
+        yearfirst = print_config.date_yearfirst
 
     try:
         parsed = parse(arg, dayfirst=dayfirst, yearfirst=yearfirst)
@@ -261,8 +277,8 @@ def _try_parse_monthly(arg):
     ret = default.replace(year=y, month=m)
     return ret
 
-def normalize_date(dt):
-    return dt.replace(hour=0, minute=0, second=0, microsecond=0)
+
+normalize_date = lib.normalize_date
 
 
 def format(dt):
@@ -281,4 +297,3 @@ def ole2datetime(oledt):
         raise Exception("Value is outside of acceptable range: %s " % val)
 
     return OLE_TIME_ZERO + timedelta(days=val)
-

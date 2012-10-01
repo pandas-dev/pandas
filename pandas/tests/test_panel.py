@@ -408,6 +408,9 @@ class CheckIndexing(object):
         self.panel['ItemP'] = self.panel['ItemA'] > 0
         self.assert_(self.panel['ItemP'].values.dtype == np.bool_)
 
+        self.assertRaises(TypeError, self.panel.__setitem__, 'foo',
+                          self.panel.ix[['ItemP']])
+
     def test_setitem_ndarray(self):
         from pandas import date_range, datetools
 
@@ -580,6 +583,44 @@ class CheckIndexing(object):
 
         assert_frame_equal(a.ix[:, 22, [111, 333]], b)
 
+    def test_ix_align(self):
+        from pandas import Series
+        b = Series(np.random.randn(10))
+        b.sort()
+        df_orig = Panel(np.random.randn(3, 10, 2))
+        df = df_orig.copy()
+
+        df.ix[0, :, 0] = b
+        assert_series_equal(df.ix[0, :, 0].reindex(b.index), b)
+
+        df = df_orig.swapaxes(0, 1)
+        df.ix[:, 0, 0] = b
+        assert_series_equal(df.ix[:, 0, 0].reindex(b.index), b)
+
+        df = df_orig.swapaxes(1, 2)
+        df.ix[0, 0, :] = b
+        assert_series_equal(df.ix[0, 0, :].reindex(b.index), b)
+
+    def test_ix_frame_align(self):
+        from pandas import DataFrame
+        df = DataFrame(np.random.randn(2, 10))
+        df.sort_index(inplace=True)
+        p_orig = Panel(np.random.randn(3, 10, 2))
+
+        p = p_orig.copy()
+        p.ix[0, :, :] = df
+        out = p.ix[0, :, :].T.reindex(df.index, columns=df.columns)
+        assert_frame_equal(out, df)
+
+        p = p_orig.copy()
+        p.ix[0] = df
+        out = p.ix[0].T.reindex(df.index, columns=df.columns)
+        assert_frame_equal(out, df)
+
+        p = p_orig.copy()
+        p.ix[0, [0, 1, 3, 5], -2:] = df
+        out = p.ix[0, [0, 1, 3, 5], -2:]
+        assert_frame_equal(out, df.T.reindex([0, 1, 3, 5], p.minor_axis[-2:]))
 
     def _check_view(self, indexer, comp):
         cp = self.panel.copy()
@@ -897,6 +938,13 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         filled = empty.fillna(0)
         assert_panel_equal(filled, empty)
 
+    def test_truncate_fillna_bug(self):
+        # #1823
+        result = self.panel.truncate(before=None, after=None, axis='items')
+
+        # it works!
+        result.fillna(value=0.0)
+
     def test_swapaxes(self):
         result = self.panel.swapaxes('items', 'minor')
         self.assert_(result.items is self.panel.minor_axis)
@@ -1087,7 +1135,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         midx = MultiIndex.from_tuples(tuples)
         df = DataFrame(np.random.rand(5,4), index=midx)
         p = df.to_panel()
-        assert_frame_equal(p.minor_xs(2), df.ix[:,2].sort_index())
+        assert_frame_equal(p.minor_xs(2), df.xs(2, level=1).sort_index())
 
     def test_to_excel(self):
         try:

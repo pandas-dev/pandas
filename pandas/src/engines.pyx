@@ -46,7 +46,7 @@ def set_value_at(ndarray arr, object loc, object val):
 
 
 # Don't populate hash tables in monotonic indexes larger than this
-cdef int _SIZE_CUTOFF = 1000000
+_SIZE_CUTOFF = 1000000
 
 
 cdef class IndexEngine:
@@ -116,7 +116,7 @@ cdef class IndexEngine:
             if not self.is_unique:
                 return self._get_loc_duplicates(val)
             values = self._get_index_values()
-            loc = values.searchsorted(val, side='left')
+            loc = _bin_search(values, val) # .searchsorted(val, side='left')
             if util.get_value_at(values, loc) != val:
                 raise KeyError(val)
             return loc
@@ -331,6 +331,32 @@ cdef class Float64Engine(IndexEngine):
         return _algos.backfill_float64(self._get_index_values(), other,
                                          limit=limit)
 
+
+cdef Py_ssize_t _bin_search(ndarray values, object val):
+    cdef:
+        Py_ssize_t mid, lo = 0, hi = len(values) - 1
+        object pval
+
+    if hi >= 0 and val > util.get_value_at(values, hi):
+        return len(values)
+
+    while lo < hi:
+        mid = (lo + hi) // 2
+        pval = util.get_value_at(values, mid)
+        if val < pval:
+            hi = mid
+        elif val > pval:
+            lo = mid + 1
+        else:
+            while mid > 0 and val == util.get_value_at(values, mid - 1):
+                mid -= 1
+            return mid
+
+    if val <= util.get_value_at(values, mid):
+        return mid
+    else:
+        return mid + 1
+
 _pad_functions = {
     'object' : _algos.pad_object,
     'int64' : _algos.pad_int64,
@@ -390,6 +416,7 @@ cdef class DatetimeEngine(Int64Engine):
 
         if self.over_size_threshold and self.is_monotonic:
             if not self.is_unique:
+                val = _to_i8(val)
                 return self._get_loc_duplicates(val)
             values = self._get_index_values()
             conv = _to_i8(val)

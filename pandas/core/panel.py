@@ -487,7 +487,7 @@ class Panel(NDFrame):
         excel_writer : string or ExcelWriter object
             File path or existing ExcelWriter
         na_rep : string, default ''
-            Missing data rep'n
+            Missing data representation
         """
         from pandas.io.parsers import ExcelWriter
         writer = ExcelWriter(path)
@@ -588,6 +588,8 @@ class Panel(NDFrame):
             dtype = _infer_dtype(value)
             mat = np.empty((N, K), dtype=dtype)
             mat.fill(value)
+        else:
+            raise TypeError('Cannot set item of type: %s' % str(type(value)))
 
         mat = mat.reshape((1, N, K))
         NDFrame._set_item(self, key, mat)

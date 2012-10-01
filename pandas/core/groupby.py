@@ -18,11 +18,16 @@ import pandas.lib as lib
 class GroupByError(Exception):
     pass
 
+class DataError(GroupByError):
+    pass
 
-def _groupby_function(name, alias, npfunc):
+class SpecificationError(GroupByError):
+    pass
+
+def _groupby_function(name, alias, npfunc, numeric_only=True):
     def f(self):
         try:
-            return self._cython_agg_general(alias)
+            return self._cython_agg_general(alias, numeric_only=numeric_only)
         except Exception:
             return self.aggregate(lambda x: npfunc(x, axis=self.axis))
 
@@ -74,7 +79,7 @@ class GroupBy(object):
     -----
     After grouping, see aggregate, apply, and transform functions. Here are
     some other brief notes about usage. When grouping by multiple groups, the
-    result index will be a MultiIndex (hierarhical) by default.
+    result index will be a MultiIndex (hierarchical) by default.
 
     Iteration produces (key, group) tuples, i.e. chunking the data by group. So
     you can write code like:
@@ -290,7 +295,7 @@ class GroupBy(object):
         """
         try:
             return self._cython_agg_general('mean')
-        except GroupByError:
+        except DataError:
             raise
         except Exception:  # pragma: no cover
             f = lambda x: x.mean(axis=self.axis)
@@ -304,7 +309,7 @@ class GroupBy(object):
         """
         try:
             return self._cython_agg_general('median')
-        except GroupByError:
+        except DataError:
             raise
         except Exception:  # pragma: no cover
             f = lambda x: x.median(axis=self.axis)
@@ -345,8 +350,9 @@ class GroupBy(object):
     prod = _groupby_function('prod', 'prod', np.prod)
     min = _groupby_function('min', 'min', np.min)
     max = _groupby_function('max', 'max', np.max)
-    first = _groupby_function('first', 'first', _first_compat)
-    last = _groupby_function('last', 'last', _last_compat)
+    first = _groupby_function('first', 'first', _first_compat,
+                              numeric_only=False)
+    last = _groupby_function('last', 'last', _last_compat, numeric_only=False)
 
     def ohlc(self):
         """
@@ -365,17 +371,18 @@ class GroupBy(object):
                 return np.nan
         return self.agg(picker)
 
-    def _cython_agg_general(self, how):
+    def _cython_agg_general(self, how, numeric_only=True):
         output = {}
         for name, obj in self._iterate_slices():
-            if not issubclass(obj.dtype.type, (np.number, np.bool_)):
+            is_numeric = issubclass(obj.dtype.type, (np.number, np.bool_))
+            if numeric_only and not is_numeric:
                 continue
 
             result, names = self.grouper.aggregate(obj.values, how)
             output[name] = result
 
         if len(output) == 0:
-            raise GroupByError('No numeric types to aggregate')
+            raise DataError('No numeric types to aggregate')
 
         return self._wrap_aggregated_output(output, names)
 
@@ -395,9 +402,10 @@ class GroupBy(object):
         if len(output) == 0:
             return self._python_apply_general(func, *args, **kwargs)
 
-        mask = counts.ravel() > 0
-        for name, result in output.iteritems():
-            output[name] = result[mask]
+        if self.grouper._filter_empty_groups:
+            mask = counts.ravel() > 0
+            for name, result in output.iteritems():
+                output[name] = result[mask]
 
         return self._wrap_aggregated_output(output)
 
@@ -662,6 +670,11 @@ class Grouper(object):
         'last': lib.group_last
     }
 
+    _cython_object_functions = {
+        'first' : lambda a, b, c, d: lib.group_nth_object(a, b, c, d, 1),
+        'last' : lib.group_last_object
+    }
+
     _cython_transforms = {
         'std' : np.sqrt
     }
@@ -675,7 +688,13 @@ class Grouper(object):
     _filter_empty_groups = True
 
     def aggregate(self, values, how, axis=0):
-        values = com._ensure_float64(values)
+        values = com.ensure_float(values)
+        is_numeric = True
+
+        if not issubclass(values.dtype.type, (np.number, np.bool_)):
+            values = values.astype(object)
+            is_numeric = False
+
         arity = self._cython_arity.get(how, 1)
 
         vdim = values.ndim
@@ -692,15 +711,19 @@ class Grouper(object):
             out_shape = (self.ngroups,) + values.shape[1:]
 
         # will be filled in Cython function
-        result = np.empty(out_shape, dtype=np.float64)
+        result = np.empty(out_shape, dtype=values.dtype)
         counts = np.zeros(self.ngroups, dtype=np.int64)
 
-        result = self._aggregate(result, counts, values, how)
+        result = self._aggregate(result, counts, values, how, is_numeric)
 
         if self._filter_empty_groups:
             if result.ndim == 2:
-                result = lib.row_bool_subset(result,
-                                             (counts > 0).view(np.uint8))
+                if is_numeric:
+                    result = lib.row_bool_subset(result,
+                                                 (counts > 0).view(np.uint8))
+                else:
+                    result = lib.row_bool_subset_object(result,
+                                 (counts > 0).view(np.uint8))
             else:
                 result = result[counts > 0]
 
@@ -718,8 +741,11 @@ class Grouper(object):
 
         return result, names
 
-    def _aggregate(self, result, counts, values, how):
-        agg_func = self._cython_functions[how]
+    def _aggregate(self, result, counts, values, how, is_numeric):
+        fdict = self._cython_functions
+        if not is_numeric:
+            fdict = self._cython_object_functions
+        agg_func = fdict[how]
         trans_func = self._cython_transforms.get(how, lambda x: x)
 
         comp_ids, _, ngroups = self.group_info
@@ -907,14 +933,22 @@ class BinGrouper(Grouper):
         'last': lib.group_last_bin
     }
 
+    _cython_object_functions = {
+        'first' : lambda a, b, c, d: lib.group_nth_bin_object(a, b, c, d, 1),
+        'last' : lib.group_last_bin_object
+    }
+
     _name_functions = {
         'ohlc' : lambda *args: ['open', 'high', 'low', 'close']
     }
 
     _filter_empty_groups = True
 
-    def _aggregate(self, result, counts, values, how):
-        agg_func = self._cython_functions[how]
+    def _aggregate(self, result, counts, values, how, is_numeric=True):
+        fdict = self._cython_functions
+        if not is_numeric:
+            fdict = self._cython_object_functions
+        agg_func = fdict[how]
         trans_func = self._cython_transforms.get(how, lambda x: x)
 
         if values.ndim > 3:
@@ -985,14 +1019,21 @@ class Grouping(object):
 
             # XXX complete hack
 
-            level_values = index.levels[level].take(inds)
             if grouper is not None:
+                level_values = index.levels[level].take(inds)
                 self.grouper = level_values.map(self.grouper)
             else:
                 self._was_factor = True
-                self._labels = inds
+
+                # all levels may not be observed
+                labels, uniques, counts = algos.factorize(inds, sort=True)
+
+                if len(uniques) < len(level_index):
+                    level_index = level_index.take(uniques)
+
+                self._labels = labels
                 self._group_index = level_index
-                self.grouper = level_values
+                self.grouper = level_index.take(labels)
         else:
             if isinstance(self.grouper, (list, tuple)):
                 self.grouper = com._asarray_tuplesafe(self.grouper)
@@ -1262,6 +1303,10 @@ class SeriesGroupBy(GroupBy):
         results = {}
 
         for name, func in arg:
+            if name in results:
+                raise SpecificationError('Function names must be unique, '
+                                         'found multiple named %s' % name)
+
             results[name] = self.aggregate(func)
 
         return DataFrame(results, columns=columns)
@@ -1289,7 +1334,8 @@ class SeriesGroupBy(GroupBy):
 
         if isinstance(values[0], dict):
             # # GH #823
-            return DataFrame(values, index=keys).stack()
+            index = _get_index()
+            return DataFrame(values, index=index).stack()
 
         if isinstance(values[0], (Series, dict)):
             return self._concat_objects(keys, values,
@@ -1367,8 +1413,8 @@ class NDFrameGroupBy(GroupBy):
 
             yield val, slicer(val)
 
-    def _cython_agg_general(self, how):
-        new_blocks = self._cython_agg_blocks(how)
+    def _cython_agg_general(self, how, numeric_only=True):
+        new_blocks = self._cython_agg_blocks(how, numeric_only=numeric_only)
         return self._wrap_agged_blocks(new_blocks)
 
     def _wrap_agged_blocks(self, blocks):
@@ -1390,23 +1436,25 @@ class NDFrameGroupBy(GroupBy):
 
     _block_agg_axis = 0
 
-    def _cython_agg_blocks(self, how):
+    def _cython_agg_blocks(self, how, numeric_only=True):
         data, agg_axis = self._get_data_to_aggregate()
 
         new_blocks = []
 
         for block in data.blocks:
             values = block.values
-            if not issubclass(values.dtype.type, (np.number, np.bool_)):
+            is_numeric = issubclass(values.dtype.type, (np.number, np.bool_))
+            if numeric_only and not is_numeric:
                 continue
 
-            values = com._ensure_float64(values)
-            result, names = self.grouper.aggregate(values, how, axis=agg_axis)
+            if is_numeric:
+                values = com.ensure_float(values)
+            result, _ = self.grouper.aggregate(values, how, axis=agg_axis)
             newb = make_block(result, block.items, block.ref_items)
             new_blocks.append(newb)
 
         if len(new_blocks) == 0:
-            raise GroupByError('No numeric types to aggregate')
+            raise DataError('No numeric types to aggregate')
 
         return new_blocks
 
@@ -1533,7 +1581,7 @@ class NDFrameGroupBy(GroupBy):
                                      grouper=self.grouper)
                 results.append(colg.aggregate(arg))
                 keys.append(col)
-            except (TypeError, GroupByError):
+            except (TypeError, DataError):
                 pass
 
         result = concat(results, keys=keys, axis=1)
@@ -2192,5 +2240,3 @@ if "IPython" in sys.modules:  # pragma: no cover
         install_ipython_completers()
     except Exception:
         pass
-
-

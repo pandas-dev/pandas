@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import unittest
 import numpy as np
 
@@ -172,6 +172,24 @@ class TestBusinessDay(unittest.TestCase):
 
     def testRollforward2(self):
         self.assertEqual(BDay(10).rollforward(datetime(2008, 1, 5)), datetime(2008, 1, 7))
+
+    def test_roll_date_object(self):
+        offset = BDay()
+
+        dt = date(2012, 9, 15)
+
+        result = offset.rollback(dt)
+        self.assertEqual(result, datetime(2012, 9, 14))
+
+        result = offset.rollforward(dt)
+        self.assertEqual(result, datetime(2012, 9, 17))
+
+        offset = offsets.Day()
+        result = offset.rollback(dt)
+        self.assertEqual(result, datetime(2012, 9, 15))
+
+        result = offset.rollforward(dt)
+        self.assertEqual(result, datetime(2012, 9, 15))
 
     def test_onOffset(self):
         tests = [(BDay(), datetime(2008, 1, 1), True),

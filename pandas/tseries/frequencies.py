@@ -20,6 +20,13 @@ class FreqGroup(object):
     FR_MIN = 8000
     FR_SEC = 9000
 
+def get_to_timestamp_base(base):
+    if base <= FreqGroup.FR_WK:
+        return FreqGroup.FR_DAY
+    if FreqGroup.FR_HR <= base <= FreqGroup.FR_SEC:
+        return FreqGroup.FR_SEC
+    return base
+
 def get_freq_group(freq):
     if isinstance(freq, basestring):
         base, mult = get_freq_code(freq)
@@ -175,7 +182,7 @@ _offset_map = {
     'Q-DEC' : QuarterEnd(startingMonth=12),
 
     # Quarterly - Calendar (Start)
-    # 'QS'     : QuarterBegin(startingMonth=1),
+    'QS'     : QuarterBegin(startingMonth=1),
     'QS-JAN' : QuarterBegin(startingMonth=1),
     'QS-FEB' : QuarterBegin(startingMonth=2),
     'QS-MAR' : QuarterBegin(startingMonth=3),
@@ -194,7 +201,7 @@ _offset_map = {
     'BQ-FEB' : BQuarterEnd(startingMonth=2),
     'BQ-MAR' : BQuarterEnd(startingMonth=3),
 
-    # 'BQ'     : BQuarterEnd(startingMonth=3),
+    'BQ'     : BQuarterEnd(startingMonth=12),
     'BQ-APR' : BQuarterEnd(startingMonth=4),
     'BQ-MAY' : BQuarterEnd(startingMonth=5),
     'BQ-JUN' : BQuarterEnd(startingMonth=6),
@@ -703,7 +710,7 @@ def infer_freq(index, warn=True):
     Returns
     -------
     freq : string or None
-        None if no discernable frequency
+        None if no discernible frequency
     """
     from pandas.tseries.index import DatetimeIndex
 
@@ -733,12 +740,18 @@ class _FrequencyInferer(object):
         if len(index) < 3:
             raise ValueError('Need at least 3 dates to infer frequency')
 
-        self.deltas = lib.unique_deltas(self.values)
-        self.is_unique = len(self.deltas) == 1
         self.is_monotonic = self.index.is_monotonic
 
+    @cache_readonly
+    def deltas(self):
+        return lib.unique_deltas(self.values)
+
+    @cache_readonly
+    def is_unique(self):
+        return len(self.deltas) == 1
+
     def get_freq(self):
-        if not self.is_monotonic:
+        if not self.is_monotonic or not self.index.is_unique:
             return None
 
         delta = self.deltas[0]
@@ -800,12 +813,15 @@ class _FrequencyInferer(object):
             if business_start:
                 business_start &= d == 1 or (d <= 3 and wd == 0)
 
-            _, daysinmonth = monthrange(y, m)
-            cal = d == daysinmonth
-            if calendar_end:
-                calendar_end &= cal
-            if business_end:
-                business_end &= cal or (daysinmonth - d < 3 and wd == 4)
+            if calendar_end or business_end:
+                _, daysinmonth = monthrange(y, m)
+                cal = d == daysinmonth
+                if calendar_end:
+                    calendar_end &= cal
+                if business_end:
+                    business_end &= cal or (daysinmonth - d < 3 and wd == 4)
+            elif not calendar_start and not business_start:
+                break
 
         if calendar_end:
             return 'ce'
@@ -837,7 +853,8 @@ class _FrequencyInferer(object):
         quarterly_rule = self._get_quarterly_rule()
         if quarterly_rule:
             nquarters = self.mdiffs[0] / 3
-            month = _month_aliases[self.rep_stamp.month]
+            mod_dict = {0 : 12, 2 : 11, 1 : 10}
+            month = _month_aliases[mod_dict[self.rep_stamp.month % 3]]
             return _maybe_add_count('%s-%s' % (quarterly_rule, month),
                                     nquarters)
 
@@ -935,6 +952,12 @@ def is_subperiod(source, target):
         return source in ['B', 'H', 'T', 'S']
     elif target == 'D':
         return source in ['D', 'H', 'T', 'S']
+    elif target == 'H':
+        return source in ['H', 'T', 'S']
+    elif target == 'T':
+        return source in ['T', 'S']
+    elif target == 'S':
+        return source in ['S']
 
 def is_superperiod(source, target):
     """
@@ -979,6 +1002,12 @@ def is_superperiod(source, target):
         return target in ['D', 'B', 'H', 'T', 'S']
     elif source == 'D':
         return target in ['D', 'B', 'H', 'T', 'S']
+    elif source == 'H':
+        return target in ['H', 'T', 'S']
+    elif source == 'T':
+        return target in ['T', 'S']
+    elif source == 'S':
+        return target in ['S']
 
 def _get_rule_month(source, default='DEC'):
     source = source.upper()

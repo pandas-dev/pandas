@@ -22,7 +22,7 @@ New features
    from pandas.tools.plotting import scatter_matrix
    scatter_matrix(df, alpha=0.2)
 
-.. image:: _static/scatter_matrix_ex.png
+.. image:: _static/scatter_matrix_kde.png
    :width: 5in
 
 - Add ``stacked`` argument to Series and DataFrame's ``plot`` method for

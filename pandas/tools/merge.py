@@ -13,7 +13,7 @@ from pandas.core.index import (Index, MultiIndex, _get_combined_index,
                                _ensure_index, _get_consensus_names,
                                _all_indexes_same)
 from pandas.core.internals import (IntBlock, BoolBlock, BlockManager,
-                                   DatetimeBlock, make_block, _consolidate)
+                                   make_block, _consolidate)
 from pandas.util.decorators import cache_readonly, Appender, Substitution
 
 from pandas.sparse.frame import SparseDataFrame
@@ -142,7 +142,6 @@ def ordered_merge(left, right, on=None, left_by=None, right_by=None,
 
 
 
-# TODO: NA group handling
 # TODO: transformations??
 # TODO: only copy DataFrames when modification necessary
 
@@ -572,7 +571,16 @@ def _factorize_keys(lk, rk, sort=True):
     if sort:
         llab, rlab = _sort_labels(rizer.uniques, llab, rlab)
 
-        # TODO: na handling
+    # NA group
+    lmask = llab == -1; lany = lmask.any()
+    rmask = rlab == -1; rany = rmask.any()
+
+    if lany or rany:
+        if lany:
+            np.putmask(llab, lmask, count)
+        if rany:
+            np.putmask(rlab, rmask, count)
+        count += 1
 
     return llab, rlab, count
 
@@ -628,8 +636,10 @@ class _BlockJoinOperation(object):
 
         for unit in self.units:
             join_blocks = unit.get_upcasted_blocks()
-            type_map = dict((type(blk), blk) for blk in join_blocks)
-            blockmaps.append(type_map)
+            type_map = {}
+            for blk in join_blocks:
+                type_map.setdefault(type(blk), []).append(blk)
+            blockmaps.append((unit, type_map))
 
         return blockmaps
 
@@ -640,26 +650,22 @@ class _BlockJoinOperation(object):
         merged : BlockManager
         """
         blockmaps = self._prepare_blocks()
-        kinds = _get_all_block_kinds(blockmaps)
+        kinds = _get_merge_block_kinds(blockmaps)
 
         result_blocks = []
 
         # maybe want to enable flexible copying <-- what did I mean?
         for klass in kinds:
-            klass_blocks = [mapping.get(klass) for mapping in blockmaps]
+            klass_blocks = []
+            for unit, mapping in blockmaps:
+                if klass in mapping:
+                    klass_blocks.extend((unit, b) for b in mapping[klass])
             res_blk = self._get_merged_block(klass_blocks)
             result_blocks.append(res_blk)
 
         return BlockManager(result_blocks, self.result_axes)
 
-    def _get_merged_block(self, blocks):
-
-        to_merge = []
-
-        for unit, block in zip(self.units, blocks):
-            if block is not None:
-                to_merge.append((unit, block))
-
+    def _get_merged_block(self, to_merge):
         if len(to_merge) > 1:
             return self._merge_blocks(to_merge)
         else:
@@ -682,7 +688,8 @@ class _BlockJoinOperation(object):
         out_shape[self.axis] = n
 
         # Should use Fortran order??
-        out = np.empty(out_shape, dtype=fblock.values.dtype)
+        block_dtype = _get_block_dtype([x[1] for x in merge_chunks])
+        out = np.empty(out_shape, dtype=block_dtype)
 
         sofar = 0
         for unit, blk in merge_chunks:
@@ -786,6 +793,25 @@ def _get_all_block_kinds(blockmaps):
     for mapping in blockmaps:
         kinds |= set(mapping)
     return kinds
+
+def _get_merge_block_kinds(blockmaps):
+    kinds = set()
+    for _, mapping in blockmaps:
+        kinds |= set(mapping)
+    return kinds
+
+def _get_block_dtype(blocks):
+    if len(blocks) == 0:
+        return object
+    blk1 = blocks[0]
+    dtype = blk1.dtype
+
+    if issubclass(dtype.type, np.floating):
+        for blk in blocks:
+            if blk.dtype.type == np.float64:
+                return blk.dtype
+
+    return dtype
 
 #----------------------------------------------------------------------
 # Concatenate DataFrame objects
@@ -914,7 +940,7 @@ class _Concatenator(object):
 
     def get_result(self):
         if self._is_series and self.axis == 0:
-            new_data = np.concatenate([x.values for x in self.objs])
+            new_data = com._concat_compat([x.values for x in self.objs])
             name = com._consensus_name_attr(self.objs)
             return Series(new_data, index=self.new_axes[0], name=name)
         elif self._is_series:
@@ -928,16 +954,20 @@ class _Concatenator(object):
     def _get_fresh_axis(self):
         return Index(np.arange(len(self._get_concat_axis())))
 
+    def _prepare_blocks(self):
+        reindexed_data = self._get_reindexed_data()
+
+        blockmaps = []
+        for data in reindexed_data:
+            data = data.consolidate()
+            type_map = dict((type(blk), blk) for blk in data.blocks)
+            blockmaps.append(type_map)
+        return blockmaps
+
     def _get_concatenated_data(self):
         try:
             # need to conform to same other (joined) axes for block join
-            reindexed_data = self._get_reindexed_data()
-
-            blockmaps = []
-            for data in reindexed_data:
-                data = data.consolidate()
-                type_map = dict((type(blk), blk) for blk in data.blocks)
-                blockmaps.append(type_map)
+            blockmaps = self._prepare_blocks()
             kinds = _get_all_block_kinds(blockmaps)
 
             new_blocks = []
@@ -985,14 +1015,7 @@ class _Concatenator(object):
 
     def _concat_blocks(self, blocks):
         values_list = [b.values for b in blocks if b is not None]
-        if isinstance(blocks[0], DatetimeBlock):
-            # hack around NumPy 1.6 bug
-            concat_values = np.concatenate([x.view(np.int64)
-                                            for x in values_list],
-                                           axis=self.axis)
-            concat_values = concat_values.view(np.dtype('M8[ns]'))
-        else:
-            concat_values = np.concatenate(values_list, axis=self.axis)
+        concat_values = com._concat_compat(values_list)
 
         if self.axis > 0:
             # Not safe to remove this check, need to profile
@@ -1004,8 +1027,8 @@ class _Concatenator(object):
             offsets = np.r_[0, np.cumsum([len(x._data.axes[0]) for
                                             x in self.objs])]
             indexer = np.concatenate([offsets[i] + b.ref_locs
-                                        for i, b in enumerate(blocks)
-                                        if b is not None])
+                                      for i, b in enumerate(blocks)
+                                      if b is not None])
             if self.ignore_index:
                 concat_items = indexer
             else:
@@ -1050,7 +1073,7 @@ class _Concatenator(object):
 
         # this method only gets called with axis >= 1
         assert(self.axis >= 1)
-        return np.concatenate(to_concat, axis=self.axis - 1)
+        return com._concat_compat(to_concat, axis=self.axis - 1)
 
     def _get_result_dim(self):
         if self._is_series and self.axis == 1:
@@ -1159,7 +1182,8 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
                 try:
                     i = level.get_loc(key)
                 except KeyError:
-                    raise ValueError('Key %s not in level %s' % (str(key), str(level)))
+                    raise ValueError('Key %s not in level %s'
+                                     % (str(key), str(level)))
 
                 to_concat.append(np.repeat(i, len(index)))
             label_list.append(np.concatenate(to_concat))

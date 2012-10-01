@@ -302,3 +302,13 @@ of the new set of columns rather than the original ones:
    :suppress:
 
    os.remove('tmp.csv')
+
+
+Differences with NumPy 
+----------------------
+For Series and DataFrame objects, ``var`` normalizes by ``N-1`` to produce
+unbiased estimates of the sample variance, while NumPy's ``var`` normalizes
+by N, which measures the variance of the sample. Note that ``cov``
+normalizes by ``N-1`` in both pandas and NumPy.
+
+

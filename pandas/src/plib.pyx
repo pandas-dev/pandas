@@ -230,7 +230,7 @@ def period_format(int64_t value, int freq, object fmt=None):
         elif freq_group == 2000: # FR_QTR
             fmt = b'%FQ%q'
         elif freq_group == 3000: # FR_MTH
-            fmt = b'%b-%Y'
+            fmt = b'%Y-%m'
         elif freq_group == 4000: # WK
             left = period_asfreq(value, freq, 6000, 0)
             right = period_asfreq(value, freq, 6000, 1)
@@ -238,13 +238,13 @@ def period_format(int64_t value, int freq, object fmt=None):
                               period_format(right, 6000))
         elif (freq_group == 5000 # BUS
               or freq_group == 6000): # DAY
-            fmt = b'%d-%b-%Y'
+            fmt = b'%Y-%m-%d'
         elif freq_group == 7000: # HR
-            fmt = b'%d-%b-%Y %H:00'
+            fmt = b'%Y-%m-%d %H:00'
         elif freq_group == 8000: # MIN
-            fmt = b'%d-%b-%Y %H:%M'
+            fmt = b'%Y-%m-%d %H:%M'
         elif freq_group == 9000: # SEC
-            fmt = b'%d-%b-%Y %H:%M:%S'
+            fmt = b'%Y-%m-%d %H:%M:%S'
         else:
             raise ValueError('Unknown freq: %d' % freq)
 

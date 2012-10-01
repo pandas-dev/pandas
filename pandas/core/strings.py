@@ -210,7 +210,7 @@ def str_count(arr, pat, flags=0):
     return _na_map(f, arr)
 
 
-def str_contains(arr, pat, case=True, flags=0):
+def str_contains(arr, pat, case=True, flags=0, na=np.nan):
     """
     Check whether given pattern is contained in each string in the array
 
@@ -222,6 +222,7 @@ def str_contains(arr, pat, case=True, flags=0):
         If True, case sensitive
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
+    na : bool, default NaN
 
     Returns
     -------
@@ -233,10 +234,10 @@ def str_contains(arr, pat, case=True, flags=0):
     regex = re.compile(pat, flags=flags)
 
     f = lambda x: bool(regex.search(x))
-    return _na_map(f, arr)
+    return _na_map(f, arr, na)
 
 
-def str_startswith(arr, pat):
+def str_startswith(arr, pat, na=np.nan):
     """
     Return boolean array indicating whether each string starts with passed
     pattern
@@ -245,16 +246,17 @@ def str_startswith(arr, pat):
     ----------
     pat : string
         Character sequence
+    na : bool, default NaN
 
     Returns
     -------
     startswith : array (boolean)
     """
     f = lambda x: x.startswith(pat)
-    return _na_map(f, arr)
+    return _na_map(f, arr, na)
 
 
-def str_endswith(arr, pat):
+def str_endswith(arr, pat, na=np.nan):
     """
     Return boolean array indicating whether each string ends with passed
     pattern
@@ -263,13 +265,14 @@ def str_endswith(arr, pat):
     ----------
     pat : string
         Character sequence
+    na : bool, default NaN
 
     Returns
     -------
     endswith : array (boolean)
     """
     f = lambda x: x.endswith(pat)
-    return _na_map(f, arr)
+    return _na_map(f, arr, na)
 
 
 def str_lower(arr):
@@ -417,7 +420,7 @@ def str_findall(arr, pat, flags=0):
     Parameters
     ----------
     pat : string
-        Pattern or regular expressino
+        Pattern or regular expression
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
 
@@ -474,23 +477,27 @@ def str_center(arr, width):
     return str_pad(arr, width, side='both')
 
 
-def str_split(arr, pat, n=0):
+def str_split(arr, pat=None, n=0):
     """
     Split each string (a la re.split) in array by given pattern, propagating NA
     values
 
     Parameters
     ----------
-    pat : string
-        String or regular expression to split on
+    pat : string, default None
+        String or regular expression to split on. If None, splits on whitespace
     n : int, default 0 (all)
 
     Returns
     -------
     split : array
     """
-    regex = re.compile(pat)
-    f = lambda x: regex.split(x, maxsplit=n)
+    if pat is None:
+        f = lambda x: x.split()
+    else:
+        regex = re.compile(pat)
+        f = lambda x: regex.split(x, maxsplit=n)
+
     return _na_map(f, arr)
 
 
@@ -591,6 +598,36 @@ def str_get(arr, i):
     f = lambda x: x[i]
     return _na_map(f, arr)
 
+def str_decode(arr, encoding):
+    """
+    Decode character string to unicode using indicated encoding
+
+    Parameters
+    ----------
+    encoding : string
+
+    Returns
+    -------
+    decoded : array
+    """
+    f = lambda x: x.decode(encoding)
+    return _na_map(f, arr)
+
+def str_encode(arr, encoding):
+    """
+    Encode character string to unicode using indicated encoding
+
+    Parameters
+    ----------
+    encoding : string
+
+    Returns
+    -------
+    encoded : array
+    """
+    f = lambda x: x.encode(encoding)
+    return _na_map(f, arr)
+
 def _noarg_wrapper(f):
     def wrapper(self):
         result = f(self.series)
@@ -603,7 +640,7 @@ def _noarg_wrapper(f):
     return wrapper
 
 
-def _pat_wrapper(f, flags=False):
+def _pat_wrapper(f, flags=False, na=False):
     def wrapper1(self, pat):
         result = f(self.series, pat)
         return self._wrap_result(result)
@@ -612,7 +649,11 @@ def _pat_wrapper(f, flags=False):
         result = f(self.series, pat, flags=flags)
         return self._wrap_result(result)
 
-    wrapper = wrapper2 if flags else wrapper1
+    def wrapper3(self, pat, na=np.nan):
+        result = f(self.series, pat, na=na)
+        return self._wrap_result(result)
+
+    wrapper = wrapper3 if na else wrapper2 if flags else wrapper1
 
     wrapper.__name__ = f.__name__
     if f.__doc__:
@@ -660,7 +701,7 @@ class StringMethods(object):
         return self._wrap_result(result)
 
     @copy(str_split)
-    def split(self, pat, n=0):
+    def split(self, pat=None, n=0):
         result = str_split(self.series, pat, n=n)
         return self._wrap_result(result)
 
@@ -675,8 +716,9 @@ class StringMethods(object):
         return self._wrap_result(result)
 
     @copy(str_contains)
-    def contains(self, pat, case=True, flags=0):
-        result = str_contains(self.series, pat, case=case, flags=flags)
+    def contains(self, pat, case=True, flags=0, na=np.nan):
+        result = str_contains(self.series, pat, case=case, flags=flags,
+                              na=np.nan)
         return self._wrap_result(result)
 
     @copy(str_replace)
@@ -708,9 +750,19 @@ class StringMethods(object):
     def slice_replace(self, i=None, j=None):
         raise NotImplementedError
 
+    @copy(str_decode)
+    def decode(self, encoding):
+        result = str_decode(self.series, encoding)
+        return self._wrap_result(result)
+
+    @copy(str_encode)
+    def encode(self, encoding):
+        result = str_encode(self.series, encoding)
+        return self._wrap_result(result)
+
     count = _pat_wrapper(str_count, flags=True)
-    startswith = _pat_wrapper(str_startswith)
-    endswith = _pat_wrapper(str_endswith)
+    startswith = _pat_wrapper(str_startswith, na=True)
+    endswith = _pat_wrapper(str_endswith, na=True)
     findall = _pat_wrapper(str_findall, flags=True)
     match = _pat_wrapper(str_match, flags=True)
 

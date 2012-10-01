@@ -36,6 +36,10 @@ def rands(n):
     choices = string.ascii_letters + string.digits
     return ''.join([random.choice(choices) for _ in xrange(n)])
 
+def randu(n):
+    choices = u"".join(map(unichr,range(1488,1488+26))) + string.digits
+    return ''.join([random.choice(choices) for _ in xrange(n)])
+
 #-------------------------------------------------------------------------------
 # Console debugging tools
 
@@ -182,6 +186,9 @@ def getCols(k):
 
 def makeStringIndex(k):
     return Index([rands(10) for _ in xrange(k)])
+
+def makeUnicodeIndex(k):
+    return Index([randu(10) for _ in xrange(k)])
 
 def makeIntIndex(k):
     return Index(range(k))

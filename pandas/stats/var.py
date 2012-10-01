@@ -24,7 +24,7 @@ class VAR(object):
 
     def __init__(self, data, p=1, intercept=True):
         try:
-            import statsmodels.tsa.var as sm_var
+            import statsmodels.tsa.vector_ar.api as sm_var
         except ImportError:
             import scikits.statsmodels.tsa.var as sm_var
 

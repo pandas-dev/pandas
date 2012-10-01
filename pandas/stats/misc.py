@@ -4,7 +4,6 @@ import numpy as np
 from pandas.core.api import Series, DataFrame, isnull, notnull
 from pandas.core.series import remove_na
 
-from pandas.tools.tile import quantileTS
 
 def zscore(series):
     return (series - series.mean()) / np.std(series, ddof = 0)
@@ -141,7 +140,7 @@ def bucketcat(series, cats):
     ----------
     series : Series
     cat : Series or same-length array
-        bucket by category; mutually exxlusive with 'by'
+        bucket by category; mutually exclusive with 'by'
 
     Returns
     -------
@@ -175,7 +174,7 @@ def bucketpanel(series, bins=None, by=None, cat=None):
     by : tuple of Series
         bucket by value
     cat : tuple of Series
-        bucket by category; mutually exxlusive with 'by'
+        bucket by category; mutually exclusive with 'by'
 
     Returns
     -------

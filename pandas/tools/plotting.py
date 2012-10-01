@@ -38,7 +38,7 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
     grid : setting this to True will show the grid
     diagonal : pick between 'kde' and 'hist' for
         either Kernel Density Estimation or Histogram
-        plon in the diagonal
+        plot in the diagonal
     kwds : other plotting keyword arguments
         To be passed to scatter function
 
@@ -207,7 +207,7 @@ def radviz(frame, class_column, ax=None, **kwds):
         line = ax.scatter(to_plot[class_][0],
                           to_plot[class_][1],
                           color=random_color(class_),
-                          label=str(class_), **kwds)
+                          label=com._stringify(class_), **kwds)
     ax.legend()
 
     ax.add_patch(patches.Circle((0.0, 0.0), radius=1.0, facecolor='none'))
@@ -272,8 +272,8 @@ def andrews_curves(data, class_column, ax=None, samples=200):
         f = function(row)
         y = [f(t) for t in x]
         label = None
-        if str(class_col[i]) not in used_legends:
-            label = str(class_col[i])
+        if com._stringify(class_col[i]) not in used_legends:
+            label = com._stringify(class_col[i])
             used_legends.add(label)
         ax.plot(x, y, color=random_color(class_col[i]), label=label)
     ax.legend(loc='upper right')
@@ -378,8 +378,8 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, **kwds):
         y = row
         label = None
         kls = class_col.iget_value(i)
-        if str(kls) not in used_legends:
-            label = str(kls)
+        if com._stringify(kls) not in used_legends:
+            label = com._stringify(kls)
             used_legends.add(label)
         ax.plot(x, y, color=random_color(kls), label=label, **kwds)
 
@@ -551,11 +551,11 @@ class MPLPlot(object):
                 columns = df.columns
 
             for col in columns:
-                empty = df[col].count() == 0
-                # is this right?
-                values = df[col].values if not empty else np.zeros(len(df))
+                # # is this right?
+                # empty = df[col].count() == 0
+                # values = df[col].values if not empty else np.zeros(len(df))
 
-
+                values = df[col].values
                 yield col, values
 
     @property
@@ -685,10 +685,11 @@ class MPLPlot(object):
             if not isinstance(self.data.columns, MultiIndex):
                 name = self.data.columns.name
                 if name is not None:
-                    name = str(name)
+                    name = com._stringify(name)
                 return name
             else:
-                stringified = map(str, self.data.columns.names)
+                stringified = map(com._stringify,
+                                  self.data.columns.names)
                 return ','.join(stringified)
         else:
             return None
@@ -741,13 +742,13 @@ class MPLPlot(object):
         if isinstance(self.data.index, MultiIndex):
             name = self.data.index.names
             if any(x is not None for x in name):
-                name = ','.join([str(x) for x in name])
+                name = ','.join([com._stringify(x) for x in name])
             else:
                 name = None
         else:
             name = self.data.index.name
             if name is not None:
-                name = str(name)
+                name = com._stringify(name)
 
         return name
 
@@ -783,13 +784,16 @@ class MPLPlot(object):
 
         if self.style is not None:
             if isinstance(self.style, list):
-                style = self.style[i]
+                try:
+                    style = self.style[i]
+                except IndexError:
+                    pass
             elif isinstance(self.style, dict):
-                style = self.style[col_name]
+                style = self.style.get(col_name, style)
             else:
                 style = self.style
 
-        return style
+        return style or None
 
 class KdePlot(MPLPlot):
     def __init__(self, data, **kwargs):
@@ -809,12 +813,19 @@ class KdePlot(MPLPlot):
             ind = np.linspace(min(y) - 0.5 * sample_range,
                 max(y) + 0.5 * sample_range, 1000)
             ax.set_ylabel("Density")
-            plotf(ax, ind, gkde.evaluate(ind), style, label=label, **self.kwds)
+
+            y = gkde.evaluate(ind)
+            kwds = self.kwds.copy()
+            kwds['label'] = label
+            if style is None:
+                args = (ax, ind, y)
+            else:
+                args = (ax, ind, y, style)
+
+            plotf(*args, **kwds)
             ax.grid(self.grid)
 
     def _post_plot_logic(self):
-        df = self.data
-
         if self.subplots and self.legend:
             for ax in self.axes:
                 ax.legend(loc='best')
@@ -858,19 +869,29 @@ class LinePlot(MPLPlot):
 
         return (freq is not None) and self._is_dynamic_freq(freq)
 
+    def _get_colors(self):
+        import matplotlib.pyplot as plt
+        cycle = ''.join(plt.rcParams.get('axes.color_cycle', list('bgrcmyk')))
+        has_colors = 'colors' in self.kwds
+        colors = self.kwds.pop('colors', cycle)
+        return has_colors, colors
+
     def _make_plot(self):
         # this is slightly deceptive
         if self.use_index and self._use_dynamic_x():
             data = self._maybe_convert_index(self.data)
             self._make_ts_plot(data, **self.kwds)
         else:
-            import matplotlib.pyplot as plt
-            cycle = ''.join(plt.rcParams.get('axes.color_cycle',
-                                             list('bgrcmyk')))
-            colors = self.kwds.pop('colors', cycle)
             lines = []
             labels = []
             x = self._get_xticks(convert_period=True)
+
+            has_colors, colors = self._get_colors()
+            def _maybe_add_color(kwargs, style, i):
+                if (not has_colors and
+                    (style is None or re.match('[a-z]+', style) is None)
+                    and 'color' not in kwargs):
+                    kwargs['color'] = colors[i % len(colors)]
 
             plotf = self._get_plot_function()
 
@@ -878,17 +899,23 @@ class LinePlot(MPLPlot):
                 ax = self._get_ax(i)
                 style = self._get_style(i, label)
                 kwds = self.kwds.copy()
-                if re.match('[a-z]+', style) is None:
-                    kwds['color'] = colors[i % len(colors)]
 
-                label = com._stringify(label)
+                _maybe_add_color(kwds, style, i)
+
+                label = _stringify(label)
 
                 mask = com.isnull(y)
                 if mask.any():
                     y = np.ma.array(y)
                     y = np.ma.masked_where(mask, y)
 
-                newline = plotf(ax, x, y, style, label=label, **kwds)[0]
+                kwds['label'] = label
+                if style is None:
+                    args = (ax, x, y)
+                else:
+                    args = (ax, x, y, style)
+
+                newline = plotf(*args, **kwds)[0]
                 lines.append(newline)
                 leg_label = label
                 if self.mark_right and self.on_right(i):
@@ -900,14 +927,17 @@ class LinePlot(MPLPlot):
 
     def _make_ts_plot(self, data, **kwargs):
         from pandas.tseries.plotting import tsplot
-        import matplotlib.pyplot as plt
         kwargs = kwargs.copy()
-        cycle = ''.join(plt.rcParams.get('axes.color_cycle', list('bgrcmyk')))
-        colors = kwargs.pop('colors', ''.join(cycle))
+        has_colors, colors = self._get_colors()
 
         plotf = self._get_plot_function()
         lines = []
         labels = []
+
+        def _maybe_add_color(kwargs, style, i):
+            if (not has_colors and
+                (style is None or re.match('[a-z]+', style) is None)):
+                kwargs['color'] = colors[i % len(colors)]
 
         def to_leg_label(label, i):
             if self.mark_right and self.on_right(i):
@@ -918,11 +948,11 @@ class LinePlot(MPLPlot):
             ax = self._get_ax(0) #self.axes[0]
             style = self.style or ''
             label = com._stringify(self.label)
-            if re.match('[a-z]+', style) is None:
-                kwargs['color'] = colors[0]
+            kwds = kwargs.copy()
+            _maybe_add_color(kwds, style, 0)
 
             newlines = tsplot(data, plotf, ax=ax, label=label, style=self.style,
-                             **kwargs)
+                             **kwds)
             ax.grid(self.grid)
             lines.append(newlines[0])
             leg_label = to_leg_label(label, 0)
@@ -933,8 +963,8 @@ class LinePlot(MPLPlot):
                 ax = self._get_ax(i)
                 style = self._get_style(i, col)
                 kwds = kwargs.copy()
-                if re.match('[a-z]+', style) is None:
-                    kwds['color'] = colors[i % len(colors)]
+
+                _maybe_add_color(kwds, style, i)
 
                 newlines = tsplot(data[col], plotf, ax=ax, label=label,
                                   style=style, **kwds)
@@ -1139,8 +1169,8 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
 
     Parameters
     ----------
-    x : int or str, default None
-    y : int or str, default None
+    x : label or position, default None
+    y : label or position, default None
         Allows plotting of one column versus another
     subplots : boolean, default False
         Make separate subplots for each time series
@@ -1197,15 +1227,14 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
     else:
         raise ValueError('Invalid chart type given %s' % kind)
 
-    if isinstance(x, int):
-        x = frame.columns[x]
-    if isinstance(y, int):
-        y = frame.columns[y]
-
     if x is not None:
-        frame = frame.set_index(x).sort_index()
+        if com.is_integer(x) and not frame.columns.holds_integer():
+            x = frame.columns[x]
+        frame = frame.set_index(x)
 
     if y is not None:
+        if com.is_integer(y) and not frame.columns.holds_integer():
+            y = frame.columns[y]
         return plot_series(frame[y], label=y, kind=kind, use_index=True,
                            rot=rot, xticks=xticks, yticks=yticks,
                            xlim=xlim, ylim=ylim, ax=ax, style=style,
@@ -1304,7 +1333,7 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
 def boxplot(data, column=None, by=None, ax=None, fontsize=None,
             rot=0, grid=True, figsize=None, **kwds):
     """
-    Make a box plot from DataFrame column optionally grouped b ysome columns or
+    Make a box plot from DataFrame column optionally grouped by some columns or
     other inputs
 
     Parameters
@@ -1385,9 +1414,9 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
 
 def _stringify(x):
     if isinstance(x, tuple):
-        return '|'.join(str(y) for y in x)
+        return '|'.join(com._stringify(y) for y in x)
     else:
-        return str(x)
+        return com._stringify(x)
 
 
 def format_date_labels(ax, rot):
@@ -1426,8 +1455,8 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False):
         else:
             fig = ax.get_figure()
         plot_group(data, ax)
-        ax.set_ylabel(str(y))
-        ax.set_xlabel(str(x))
+        ax.set_ylabel(com._stringify(y))
+        ax.set_xlabel(com._stringify(x))
 
         ax.grid(grid)
 
@@ -1611,6 +1640,7 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
                   figsize=None, sharex=True, sharey=True, layout=None,
                   rot=0, ax=None):
     from pandas.core.frame import DataFrame
+    import matplotlib.pyplot as plt
 
     # allow to specify mpl default with 'default'
     if figsize is None or figsize == 'default':
@@ -1631,16 +1661,22 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
     fig, axes = _subplots(nrows=nrows, ncols=ncols, figsize=figsize,
                           sharex=sharex, sharey=sharey, ax=ax)
 
-    ravel_axes = []
-    for row in axes:
-        ravel_axes.extend(row)
+    if isinstance(axes, plt.Axes):
+        ravel_axes = [axes]
+    else:
+        ravel_axes = []
+        for row in axes:
+            if isinstance(row, plt.Axes):
+                ravel_axes.append(row)
+            else:
+                ravel_axes.extend(row)
 
     for i, (key, group) in enumerate(grouped):
         ax = ravel_axes[i]
         if numeric_only and isinstance(group, DataFrame):
             group = group._get_numeric_data()
         plotf(group, ax)
-        ax.set_title(str(key))
+        ax.set_title(com._stringify(key))
 
     return fig, axes
 
@@ -1674,7 +1710,7 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
         gp_col = grouped[col]
         plotf(gp_col, ax)
         ax.set_title(col)
-        ax.set_xlabel(str(by))
+        ax.set_xlabel(com._stringify(by))
         ax.grid(grid)
 
     byline = by[0] if len(by) == 1 else by
@@ -1733,7 +1769,7 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
         - for NxM subplots with N>1 and M>1 are returned as a 2d array.
 
       If False, no squeezing at all is done: the returned axis object is always
-      a 2-d array contaning Axis instances, even if it ends up being 1x1.
+      a 2-d array containing Axis instances, even if it ends up being 1x1.
 
     subplot_kw : dict
       Dict with keywords passed to the add_subplot() call used to create each
@@ -1753,7 +1789,7 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
     fig, ax : tuple
       - fig is the Matplotlib Figure object
       - ax can be either a single axis object or an array of axis objects if
-      more than one supblot was created.  The dimensions of the resulting array
+      more than one subplot was created.  The dimensions of the resulting array
       can be controlled with the squeeze keyword, see above.
 
     **Examples:**

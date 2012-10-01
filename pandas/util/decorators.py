@@ -93,7 +93,9 @@ class Appender(object):
         self.join = join
 
     def __call__(self, func):
-        docitems = [func.__doc__ if func.__doc__ else '', self.addendum]
+        func.__doc__ = func.__doc__ if func.__doc__ else ''
+        self.addendum = self.addendum if self.addendum else ''
+        docitems = [func.__doc__, self.addendum]
         func.__doc__ = ''.join(docitems)
         return func
 

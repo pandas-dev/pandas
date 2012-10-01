@@ -8,6 +8,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 from itertools import izip
 import operator
 from distutils.version import LooseVersion
+import types
 
 from numpy import nan, ndarray
 import numpy as np
@@ -15,12 +16,12 @@ import numpy.ma as ma
 
 from pandas.core.common import (isnull, notnull, _is_bool_indexer,
                                 _default_index, _maybe_upcast,
-                                _asarray_tuplesafe)
+                                _asarray_tuplesafe, is_integer_dtype)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                _ensure_index, _handle_legacy_indexes)
 from pandas.core.indexing import _SeriesIndexer
 from pandas.tseries.index import DatetimeIndex
-from pandas.tseries.period import PeriodIndex
+from pandas.tseries.period import PeriodIndex, Period
 from pandas.util import py3compat
 from pandas.util.terminal import get_terminal_size
 import pandas.core.common as com
@@ -243,7 +244,8 @@ def _unbox(func):
     def f(self, *args, **kwargs):
         result = func(self, *args, **kwargs)
         if isinstance(result, np.ndarray) and result.ndim == 0:
-            return result.item()
+            # return NumPy type
+            return result.dtype.type(result.item())
         else:  # pragma: no cover
             return result
     f.__name__ = func.__name__
@@ -302,10 +304,13 @@ class Series(np.ndarray, generic.PandasObject):
             index = _ensure_index(index)
 
         if isinstance(data, Series):
-            if index is None:
-                index = data.index
             if name is None:
                 name = data.name
+
+            if index is None:
+                index = data.index
+            else:
+                data = data.reindex(index).values
         elif isinstance(data, dict):
             if index is None:
                 index = Index(sorted(data))
@@ -320,6 +325,10 @@ class Series(np.ndarray, generic.PandasObject):
                     data = lib.fast_multiget(data, index.values, default=np.nan)
             except TypeError:
                 data = [data.get(i, nan) for i in index]
+        elif isinstance(data, types.GeneratorType):
+            data = list(data)
+        elif isinstance(data, set):
+            raise TypeError('Set value is unordered')
 
         if dtype is not None:
             dtype = np.dtype(dtype)
@@ -344,6 +353,26 @@ class Series(np.ndarray, generic.PandasObject):
         subarr.name = name
 
         return subarr
+
+    @classmethod
+    def from_array(cls, arr, index=None, name=None, copy=False):
+        """
+        Simplified alternate constructor
+        """
+        if copy:
+            arr = arr.copy()
+
+        klass = Series
+        if index.is_all_dates:
+            if not isinstance(index, (DatetimeIndex, PeriodIndex)):
+                index = DatetimeIndex(index)
+            klass = TimeSeries
+
+        result = arr.view(klass)
+        result.index = index
+        result.name = name
+
+        return result
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
                  copy=False):
@@ -379,6 +408,10 @@ copy : boolean, default False
     @property
     def _constructor(self):
         return Series
+
+    @property
+    def _can_hold_na(self):
+        return not is_integer_dtype(self.dtype)
 
     def __hash__(self):
         raise TypeError('unhashable type')
@@ -435,6 +468,8 @@ copy : boolean, default False
             if isinstance(key, tuple) and isinstance(self.index, MultiIndex):
                 # kludge
                 pass
+            elif key is Ellipsis:
+                return self
             else:
                 raise
         except Exception:
@@ -535,6 +570,9 @@ copy : boolean, default False
                 and not self.index.inferred_type == 'integer'):
 
                 values[key] = value
+                return
+            elif key is Ellipsis:
+                self[:] = value
                 return
 
             raise KeyError('%s not in this series!' % str(key))
@@ -700,7 +738,7 @@ copy : boolean, default False
             if isinstance(label, Index):
                 return self.reindex(label)
             else:
-                return self[label]
+                return lib.get_value_at(self, i)
 
     iget = iget_value
     irow = iget_value
@@ -750,23 +788,43 @@ copy : boolean, default False
             new_values = np.concatenate([self.values, [value]])
             return Series(new_values, index=new_index, name=self.name)
 
-    def reset_index(self, drop=False, name=None):
+    def reset_index(self, level=None, drop=False, name=None, inplace=False):
         """
-        Analagous to the DataFrame.reset_index function, see docstring there.
+        Analogous to the DataFrame.reset_index function, see docstring there.
 
         Parameters
         ----------
+        level : int, str, tuple, or list, default None
+            Only remove the given levels from the index. Removes all levels by
+            default
         drop : boolean, default False
             Do not try to insert index into dataframe columns
         name : object, default None
             The name of the column corresponding to the Series values
+        inplace : boolean, default False
+            Modify the Series in place (do not create a new object)
 
         Returns
         ----------
         resetted : DataFrame, or Series if drop == True
         """
         if drop:
-            return Series(self, index=np.arange(len(self)), name=self.name)
+            new_index = np.arange(len(self))
+            if level is not None and isinstance(self.index, MultiIndex):
+                if not isinstance(level, (tuple, list)):
+                    level = [level]
+                level = [self.index._get_level_number(lev) for lev in level]
+                if len(level) < len(self.index.levels):
+                    new_index = self.index.droplevel(level)
+
+            if inplace:
+                self.index = new_index
+                # set name if it was passed, otherwise, keep the previous name
+                self.name = name or self.name
+                return self
+            else:
+                return Series(self.values.copy(), index=new_index,
+                              name=self.name)
         else:
             from pandas.core.frame import DataFrame
             if name is None:
@@ -774,7 +832,7 @@ copy : boolean, default False
             else:
                 df = DataFrame({name : self})
 
-            return df.reset_index(drop=drop)
+            return df.reset_index(level=level, drop=drop)
 
     def __repr__(self):
         """Clean string representation of a Series"""
@@ -1093,7 +1151,10 @@ copy : boolean, default False
 
     @Substitution(name='standard deviation', shortname='stdev',
                   na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc)
+    @Appender(_stat_doc + 
+        """
+        Normalized by N-1 (unbiased estimator).
+        """)
     def std(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
             level=None):
         if level is not None:
@@ -1103,7 +1164,10 @@ copy : boolean, default False
 
     @Substitution(name='variance', shortname='var',
                   na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc)
+    @Appender(_stat_doc + 
+        """
+        Normalized by N-1 (unbiased estimator).
+        """)
     def var(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
             level=None):
         if level is not None:
@@ -1139,7 +1203,7 @@ copy : boolean, default False
 
     def idxmin(self, axis=None, out=None, skipna=True):
         """
-        Index of first occurence of minimum of values.
+        Index of first occurrence of minimum of values.
 
         Parameters
         ----------
@@ -1148,7 +1212,7 @@ copy : boolean, default False
 
         Returns
         -------
-        idxmin : Index of mimimum of values
+        idxmin : Index of minimum of values
         """
         i = nanops.nanargmin(self.values, skipna=skipna)
         if i == -1:
@@ -1157,7 +1221,7 @@ copy : boolean, default False
 
     def idxmax(self, axis=None, out=None, skipna=True):
         """
-        Index of first occurence of maximum of values.
+        Index of first occurrence of maximum of values.
 
         Parameters
         ----------
@@ -1166,7 +1230,7 @@ copy : boolean, default False
 
         Returns
         -------
-        idxmax : Index of mimimum of values
+        idxmax : Index of minimum of values
         """
         i = nanops.nanargmax(self.values, skipna=skipna)
         if i == -1:
@@ -1416,6 +1480,8 @@ copy : boolean, default False
         Returns
         -------
         covariance : float
+
+        Normalized by N-1 (unbiased estimator).
         """
         this, other = self.align(other, join='inner')
         if len(this) == 0:
@@ -1757,7 +1823,7 @@ copy : boolean, default False
             Sort ascending. Passing False sorts descending
         kind : {'mergesort', 'quicksort', 'heapsort'}, default 'mergesort'
             Choice of sorting algorithm. See np.sort for more
-            information. 'mergesort' is the only stable algorith
+            information. 'mergesort' is the only stable algorithm
 
         Returns
         -------
@@ -1888,7 +1954,7 @@ copy : boolean, default False
     #----------------------------------------------------------------------
     # function application
 
-    def map(self, arg):
+    def map(self, arg, na_action=None):
         """
         Map values of Series using input correspondence (which can be
         a dict, Series, or function)
@@ -1896,6 +1962,8 @@ copy : boolean, default False
         Parameters
         ----------
         arg : function, dict, or Series
+        na_action : {None, 'ignore'}
+            If 'ignore', propagate NA values
 
         Examples
         --------
@@ -1919,18 +1987,27 @@ copy : boolean, default False
         y : Series
             same index as caller
         """
+        values = self.values
+
+        if na_action == 'ignore':
+            mask = isnull(values)
+            def map_f(values, f):
+                return lib.map_infer_mask(values, f, mask.view(np.uint8))
+        else:
+            map_f = lib.map_infer
+
         if isinstance(arg, (dict, Series)):
             if isinstance(arg, dict):
                 arg = Series(arg)
 
-            indexer = arg.index.get_indexer(self.values)
+            indexer = arg.index.get_indexer(values)
             new_values = com.take_1d(arg.values, indexer)
             return Series(new_values, index=self.index, name=self.name)
         else:
-            mapped = lib.map_infer(self.values, arg)
+            mapped = map_f(values, arg)
             return Series(mapped, index=self.index, name=self.name)
 
-    def apply(self, func, convert_dtype=True):
+    def apply(self, func, convert_dtype=True, args=(), **kwds):
         """
         Invoke function on values of Series. Can be ufunc or Python function
         expecting only single values
@@ -1950,15 +2027,20 @@ copy : boolean, default False
         -------
         y : Series
         """
+        if kwds or args and not isinstance(func, np.ufunc):
+            f = lambda x: func(x, *args, **kwds)
+        else:
+            f = func
+
         try:
-            result = func(self)
+            result = f(self)
             if isinstance(result, np.ndarray):
                 result = Series(result, index=self.index, name=self.name)
             else:
                 raise ValueError('Must yield array')
             return result
         except Exception:
-            mapped = lib.map_infer(self.values, func, convert=convert_dtype)
+            mapped = lib.map_infer(self.values, f, convert=convert_dtype)
             return Series(mapped, index=self.index, name=self.name)
 
     def align(self, other, join='outer', level=None, copy=True,
@@ -2134,6 +2216,9 @@ copy : boolean, default False
         -------
         filled : Series
         """
+        if not self._can_hold_na:
+            return self.copy() if not inplace else self
+
         if value is not None:
             result = self.copy() if not inplace else self
             mask = isnull(self.values)
@@ -2332,7 +2417,8 @@ copy : boolean, default False
         result.index.name = result.name = None
         return result
 
-    def to_csv(self, path, index=True, sep=",", na_rep='', header=False,
+    def to_csv(self, path, index=True, sep=",", na_rep='',
+               float_format=None, header=False,
                index_label=None, mode='w', nanRep=None, encoding=None):
         """
         Write Series to a comma-separated values (csv) file
@@ -2341,7 +2427,9 @@ copy : boolean, default False
         ----------
         path : string file path or file handle / StringIO
         na_rep : string, default ''
-            Missing data rep'n
+            Missing data representation
+        float_format : string, default None
+            Format string for floating point numbers
         header : boolean, default False
             Write out series name
         index : boolean, default True
@@ -2359,7 +2447,8 @@ copy : boolean, default False
         """
         from pandas.core.frame import DataFrame
         df = DataFrame(self)
-        df.to_csv(path, index=index, sep=sep, na_rep=na_rep, header=header,
+        df.to_csv(path, index=index, sep=sep, na_rep=na_rep,
+                  float_format=float_format, header=header,
                   index_label=index_label, mode=mode, nanRep=nanRep,
                   encoding=encoding)
 
@@ -2409,7 +2498,7 @@ copy : boolean, default False
     #----------------------------------------------------------------------
     # Time series-oriented methods
 
-    def shift(self, periods=1, freq=None, **kwds):
+    def shift(self, periods=1, freq=None, copy=True, **kwds):
         """
         Shift the index of the Series by desired number of periods with an
         optional time offset
@@ -2433,6 +2522,12 @@ copy : boolean, default False
         if isinstance(offset, basestring):
             offset = datetools.to_offset(offset)
 
+        def _get_values():
+            values = self.values
+            if copy:
+                values = values.copy()
+            return values
+
         if offset is None:
             new_values = np.empty(len(self), dtype=self.dtype)
             new_values = _maybe_upcast(new_values)
@@ -2448,12 +2543,14 @@ copy : boolean, default False
         elif isinstance(self.index, PeriodIndex):
             orig_offset = datetools.to_offset(self.index.freq)
             if orig_offset == offset:
-                return Series(self, self.index.shift(periods), name=self.name)
+                return Series(_get_values(), self.index.shift(periods),
+                              name=self.name)
             msg = ('Given freq %s does not match PeriodIndex freq %s' %
                    (offset.rule_code, orig_offset.rule_code))
             raise ValueError(msg)
         else:
-            return Series(self, index=self.index.shift(periods, offset),
+            return Series(_get_values(),
+                          index=self.index.shift(periods, offset),
                           name=self.name)
 
     def asof(self, where):
@@ -2465,7 +2562,7 @@ copy : boolean, default False
 
         Parameters
         ----------
-        wehre : date or array of dates
+        where : date or array of dates
 
         Notes
         -----
@@ -2481,7 +2578,12 @@ copy : boolean, default False
         values = self.values
 
         if not hasattr(where, '__iter__'):
-            if where < self.index[0]:
+            start = self.index[0]
+            if isinstance(self.index, PeriodIndex):
+                where = Period(where, freq=self.index.freq).ordinal
+                start = start.ordinal
+
+            if where < start:
                 return np.nan
             loc = self.index.searchsorted(where, side='right')
             if loc > 0:
@@ -2517,8 +2619,10 @@ copy : boolean, default False
             if not isinstance(self, TimeSeries):
                 raise Exception('time-weighted interpolation only works'
                                 'on TimeSeries')
-            inds = np.array([d.toordinal() for d in self.index])
-        elif method == 'values':
+            method = 'values'
+            # inds = np.array([d.toordinal() for d in self.index])
+
+        if method == 'values':
             inds = self.index.values
             # hack for DatetimeIndex, #1646
             if issubclass(inds.dtype.type, np.datetime64):
@@ -2720,7 +2824,8 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 dtype = np.object_
 
             if dtype is None:
-                subarr = np.empty(len(index), dtype=type(value))
+                value, dtype = _dtype_from_scalar(value)
+                subarr = np.empty(len(index), dtype=dtype)
             else:
                 subarr = np.empty(len(index), dtype=dtype)
             subarr.fill(value)
@@ -2738,6 +2843,13 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         subarr = np.array(data, dtype=object, copy=copy)
 
     return subarr
+
+def _dtype_from_scalar(val):
+    if isinstance(val, np.datetime64):
+        # ugly hacklet
+        val = lib.Timestamp(val).value
+        return val, np.dtype('M8[ns]')
+    return val, type(val)
 
 def _get_rename_function(mapper):
     if isinstance(mapper, (dict, Series)):

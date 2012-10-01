@@ -1,4 +1,5 @@
 # pylint: disable=E1101
+import operator
 
 from datetime import time, datetime
 from datetime import timedelta
@@ -7,7 +8,7 @@ import numpy as np
 
 from pandas.core.common import isnull
 from pandas.core.index import Index, Int64Index
-from pandas.tseries.frequencies import infer_freq, to_offset
+from pandas.tseries.frequencies import infer_freq, to_offset, get_period_alias
 from pandas.tseries.offsets import DateOffset, generate_range, Tick
 from pandas.tseries.tools import parse_time_string, normalize_date
 from pandas.util.decorators import cache_readonly
@@ -32,11 +33,10 @@ def _field_accessor(name, field):
         if self.tz is not None:
             utc = _utc()
             if self.tz is not utc:
-                values = lib.tz_convert(values, utc, self.tz)
+                values = self._local_timestamps()
         return lib.get_date_field(values, field)
     f.__name__ = name
     return property(f)
-
 
 def _join_i8_wrapper(joinf, with_indexers=True):
     @staticmethod
@@ -139,6 +139,8 @@ class DatetimeIndex(Int64Index):
                 copy=False, name=None, tz=None,
                 verify_integrity=True, normalize=False, **kwds):
 
+        dayfirst = kwds.pop('dayfirst', None)
+        yearfirst = kwds.pop('yearfirst', None)
         warn = False
         if 'offset' in kwds and kwds['offset']:
             freq = kwds['offset']
@@ -189,16 +191,26 @@ class DatetimeIndex(Int64Index):
 
             # try a few ways to make it datetime64
             if lib.is_string_array(data):
-                data = _str_to_dt_array(data, offset)
+                data = _str_to_dt_array(data, offset, dayfirst=dayfirst,
+                                        yearfirst=yearfirst)
             else:
                 data = tools.to_datetime(data)
                 data.offset = offset
+                if isinstance(data, DatetimeIndex):
+                    if name is not None:
+                        data.name = name
+                    return data
 
         if issubclass(data.dtype.type, basestring):
-            subarr = _str_to_dt_array(data, offset)
+            subarr = _str_to_dt_array(data, offset, dayfirst=dayfirst,
+                                      yearfirst=yearfirst)
         elif issubclass(data.dtype.type, np.datetime64):
             if isinstance(data, DatetimeIndex):
+                if tz is None:
+                    tz = data.tz
+
                 subarr = data.values
+
                 if offset is None:
                     offset = data.offset
                     verify_integrity = False
@@ -208,23 +220,37 @@ class DatetimeIndex(Int64Index):
                 else:
                     subarr = data
         elif data.dtype == _INT64_DTYPE:
+            if isinstance(data, Int64Index):
+                raise TypeError('cannot convert Int64Index->DatetimeIndex')
             if copy:
                 subarr = np.asarray(data, dtype=_NS_DTYPE)
             else:
                 subarr = data.view(_NS_DTYPE)
         else:
-            subarr = tools.to_datetime(data)
+            try:
+                subarr = tools.to_datetime(data)
+            except ValueError:
+                # tz aware
+                subarr = tools.to_datetime(data, utc=True)
+
             if not np.issubdtype(subarr.dtype, np.datetime64):
                 raise TypeError('Unable to convert %s to datetime dtype'
                                 % str(data))
 
-        if tz is not None:
-            tz = tools._maybe_get_tz(tz)
-            # Convert local to UTC
-            ints = subarr.view('i8')
+        if isinstance(subarr, DatetimeIndex):
+            if tz is None:
+                tz = subarr.tz
+        else:
+            if tz is not None:
+                tz = tools._maybe_get_tz(tz)
 
-            subarr = lib.tz_localize_to_utc(ints, tz)
-            subarr = subarr.view(_NS_DTYPE)
+                if (not isinstance(data, DatetimeIndex) or
+                    getattr(data, 'tz', None) is None):
+                    # Convert tz-naive to UTC
+                    ints = subarr.view('i8')
+                    subarr = lib.tz_localize_to_utc(ints, tz)
+
+                subarr = subarr.view(_NS_DTYPE)
 
         subarr = subarr.view(cls)
         subarr.name = name
@@ -248,10 +274,27 @@ class DatetimeIndex(Int64Index):
     @classmethod
     def _generate(cls, start, end, periods, name, offset,
                   tz=None, normalize=False):
+        if com._count_not_none(start, end, periods) < 2:
+            raise ValueError('Must specify two of start, end, or periods')
+
         _normalized = True
 
         if start is not None:
             start = Timestamp(start)
+
+        if end is not None:
+            end = Timestamp(end)
+
+        inferred_tz = tools._infer_tzinfo(start, end)
+
+        if tz is not None and inferred_tz is not None:
+            assert(inferred_tz == tz)
+        elif inferred_tz is not None:
+            tz = inferred_tz
+
+        tz = tools._maybe_get_tz(tz)
+
+        if start is not None:
             if normalize:
                 start = normalize_date(start)
                 _normalized = True
@@ -259,32 +302,66 @@ class DatetimeIndex(Int64Index):
                 _normalized = _normalized and start.time() == _midnight
 
         if end is not None:
-            end = Timestamp(end)
-
             if normalize:
                 end = normalize_date(end)
                 _normalized = True
             else:
                 _normalized = _normalized and end.time() == _midnight
 
-        start, end, tz = tools._figure_out_timezone(start, end, tz)
 
-        if com._count_not_none(start, end, periods) < 2:
-            raise ValueError('Must specify two of start, end, or periods')
+        if hasattr(offset, 'delta') and offset != offsets.Day():
+            if inferred_tz is None and tz is not None:
+                # naive dates
+                if start is not None and start.tz is None:
+                    start = start.tz_localize(tz)
 
-        if (offset._should_cache() and
-            not (offset._normalize_cache and not _normalized) and
-            _naive_in_cache_range(start, end)):
-            index = cls._cached_range(start, end, periods=periods,
-                                      offset=offset, name=name)
+                if end is not None and end.tz is None:
+                    end = end.tz_localize(tz)
+
+            if start and end:
+                if start.tz is None and end.tz is not None:
+                    start = start.tz_localize(end.tz)
+
+                if end.tz is None and start.tz is not None:
+                    end = end.tz_localize(start.tz)
+
+
+            if (offset._should_cache() and
+                not (offset._normalize_cache and not _normalized) and
+                _naive_in_cache_range(start, end)):
+                index = cls._cached_range(start, end, periods=periods,
+                                          offset=offset, name=name)
+            else:
+                index = _generate_regular_range(start, end, periods, offset)
+
         else:
-            index = _generate_regular_range(start, end, periods, offset)
 
-        if tz is not None:
-            # Convert local to UTC
-            ints = index.view('i8', type=np.ndarray)
-            index = lib.tz_localize_to_utc(ints, tz)
-            index = index.view(_NS_DTYPE)
+            if inferred_tz is None and tz is not None:
+                # naive dates
+                if start is not None and start.tz is not None:
+                    start = start.replace(tzinfo=None)
+
+                if end is not None and end.tz is not None:
+                    end = end.replace(tzinfo=None)
+
+            if start and end:
+                if start.tz is None and end.tz is not None:
+                    end = end.replace(tzinfo=None)
+
+                if end.tz is None and start.tz is not None:
+                    start = start.replace(tzinfo=None)
+
+            if (offset._should_cache() and
+                not (offset._normalize_cache and not _normalized) and
+                _naive_in_cache_range(start, end)):
+                index = cls._cached_range(start, end, periods=periods,
+                                          offset=offset, name=name)
+            else:
+                index = _generate_regular_range(start, end, periods, offset)
+
+            if tz is not None and getattr(index, 'tz', None) is None:
+                index = lib.tz_localize_to_utc(com._ensure_int64(index), tz)
+                index = index.view(_NS_DTYPE)
 
         index = index.view(cls)
         index.name = name
@@ -293,8 +370,29 @@ class DatetimeIndex(Int64Index):
 
         return index
 
+    def _box_values(self, values):
+        return lib.map_infer(values, lib.Timestamp)
+
+    def _local_timestamps(self):
+        utc = _utc()
+
+        if self.is_monotonic:
+            return lib.tz_convert(self.asi8, utc, self.tz)
+        else:
+            values = self.asi8
+            indexer = values.argsort()
+            result = lib.tz_convert(values.take(indexer), utc, self.tz)
+
+            n = len(indexer)
+            reverse = np.empty(n, dtype=np.int_)
+            reverse.put(indexer, np.arange(n))
+            return result.take(reverse)
+
     @classmethod
     def _simple_new(cls, values, name, freq=None, tz=None):
+        if values.dtype != _NS_DTYPE:
+            values = com._ensure_int64(values).view(_NS_DTYPE)
+
         result = values.view(cls)
         result.name = name
         result.offset = freq
@@ -452,6 +550,31 @@ class DatetimeIndex(Int64Index):
         except (KeyError, TypeError):
             return False
 
+    def isin(self, values):
+        """
+        Compute boolean array of whether each index value is found in the
+        passed set of values
+
+        Parameters
+        ----------
+        values : set or sequence of values
+
+        Returns
+        -------
+        is_contained : ndarray (boolean dtype)
+        """
+        if not isinstance(values, DatetimeIndex):
+            try:
+                values = DatetimeIndex(values)
+            except ValueError:
+                return self.asobject.isin(values)
+
+        value_set = set(values.asi8)
+        return lib.ismember(self.asi8, value_set)
+
+    def to_datetime(self, dayfirst=False):
+        return self.copy()
+
     def groupby(self, f):
         objs = self.asobject
         return _algos.groupby_object(objs, f)
@@ -482,8 +605,6 @@ class DatetimeIndex(Int64Index):
         -------
         appended : Index
         """
-        from pandas.core.index import _ensure_compat_concat
-
         name = self.name
         to_concat = [self]
 
@@ -497,7 +618,7 @@ class DatetimeIndex(Int64Index):
                 name = None
                 break
 
-        to_concat = _ensure_compat_concat(to_concat)
+        to_concat = self._ensure_compat_concat(to_concat)
         to_concat = [x.values if isinstance(x, Index) else x
                      for x in to_concat]
 
@@ -522,19 +643,11 @@ class DatetimeIndex(Int64Index):
         # do not cache or you'll create a memory leak
         return self.values.view('i8')
 
-    # @property
-    # def asstruct(self):
-    #     utc = _utc()
-    #     values = self.asi8
-    #     if self.tz is not None and self.tz is not utc:
-    #         values = lib.tz_convert(values, utc, self.tz)
-    #     return lib.build_field_sarray(values)
-
     def _get_time_micros(self):
         utc = _utc()
         values = self.asi8
         if self.tz is not None and self.tz is not utc:
-            values = lib.tz_convert(values, utc, self.tz)
+            values = self._local_timestamps()
         return lib.get_time_micros(values)
 
     @property
@@ -579,7 +692,7 @@ class DatetimeIndex(Int64Index):
             raise ValueError(msg)
 
         if freq is None:
-            freq = self.freqstr
+            freq = get_period_alias(self.freqstr)
 
         return PeriodIndex(self.values, freq=freq)
 
@@ -602,7 +715,7 @@ class DatetimeIndex(Int64Index):
 
     def snap(self, freq='S'):
         """
-        Snap time stamps to nearest occuring frequency
+        Snap time stamps to nearest occurring frequency
 
         """
         # Superdumb, punting on any optimizing
@@ -641,7 +754,10 @@ class DatetimeIndex(Int64Index):
         if freq is not None and freq != self.offset:
             if isinstance(freq, basestring):
                 freq = to_offset(freq)
-            return Index.shift(self, n, freq)
+            result = Index.shift(self, n, freq)
+            result.tz = self.tz
+
+            return result
 
         if n == 0:
             # immutable so OK
@@ -653,7 +769,7 @@ class DatetimeIndex(Int64Index):
         start = self[0] + n * self.offset
         end = self[-1] + n * self.offset
         return DatetimeIndex(start=start, end=end, freq=self.offset,
-                             name=self.name)
+                             name=self.name, tz=self.tz)
 
     def repeat(self, repeats, axis=None):
         """
@@ -750,7 +866,7 @@ class DatetimeIndex(Int64Index):
 
         offset = self.offset
 
-        if offset is None:
+        if offset is None or offset != other.offset:
             return False
 
         if not self.is_monotonic or not other.is_monotonic:
@@ -811,7 +927,7 @@ class DatetimeIndex(Int64Index):
     def intersection(self, other):
         """
         Specialized intersection for DatetimeIndex objects. May be much faster
-        than Index.union
+        than Index.intersection
 
         Parameters
         ----------
@@ -834,6 +950,7 @@ class DatetimeIndex(Int64Index):
 
         elif (other.offset is None or self.offset is None or
               other.offset != self.offset or
+              not other.offset.isAnchored() or
               (not self.is_monotonic or not other.is_monotonic)):
             result = Index.intersection(self, other)
             if isinstance(result, DatetimeIndex):
@@ -997,8 +1114,11 @@ class DatetimeIndex(Int64Index):
     # Especially important for group-by functionality
     def map(self, f):
         try:
-            return f(self)
-        except:
+            result = f(self)
+            if not isinstance(result, np.ndarray):
+                raise TypeError
+            return result
+        except Exception:
             return _algos.arrmap_object(self.asobject, f)
 
     # alias to offset
@@ -1104,7 +1224,7 @@ class DatetimeIndex(Int64Index):
         if self.tz is not None:
             if other.tz is None:
                 return False
-            same_zone = self.tz.zone == other.tz.zone
+            same_zone = lib.get_timezone(self.tz) == lib.get_timezone(other.tz)
         else:
             if other.tz is not None:
                 return False
@@ -1239,20 +1359,48 @@ class DatetimeIndex(Int64Index):
         start_micros = _time_to_micros(start_time)
         end_micros = _time_to_micros(end_time)
 
+
         if include_start and include_end:
-            mask = ((start_micros <= time_micros) &
-                    (time_micros <= end_micros))
+            lop = rop = operator.le
         elif include_start:
-            mask = ((start_micros <= time_micros) &
-                    (time_micros < end_micros))
+            lop = operator.le
+            rop = operator.lt
         elif include_end:
-            mask = ((start_micros < time_micros) &
-                    (time_micros <= end_micros))
+            lop = operator.lt
+            rop = operator.le
         else:
-            mask = ((start_micros < time_micros) &
-                    (time_micros < end_micros))
+            lop = rop = operator.lt
+
+        if start_time <= end_time:
+            join_op = operator.and_
+        else:
+            join_op = operator.or_
+
+        mask = join_op(lop(start_micros, time_micros),
+                       rop(time_micros, end_micros))
 
         return mask.nonzero()[0]
+
+    def min(self, axis=None):
+        """
+        Overridden ndarray.min to return a Timestamp
+        """
+        if self.is_monotonic:
+            return self[0]
+        else:
+            min_stamp = self.asi8.min()
+            return Timestamp(min_stamp, tz=self.tz)
+
+    def max(self, axis=None):
+        """
+        Overridden ndarray.max to return a Timestamp
+        """
+        if self.is_monotonic:
+            return self[-1]
+        else:
+            max_stamp = self.asi8.max()
+            return Timestamp(max_stamp, tz=self.tz)
+
 
 def _generate_regular_range(start, end, periods, offset):
     if isinstance(offset, Tick):
@@ -1273,10 +1421,18 @@ def _generate_regular_range(start, end, periods, offset):
         data = np.arange(b, e, stride, dtype=np.int64)
         data = data.view(_NS_DTYPE)
     else:
-        xdr = generate_range(start=start, end=end,
-            periods=periods, offset=offset)
+        if isinstance(start, Timestamp):
+            start = start.to_pydatetime()
 
-        data = np.array(list(xdr), dtype=_NS_DTYPE)
+        if isinstance(end, Timestamp):
+            end = end.to_pydatetime()
+
+        xdr = generate_range(start=start, end=end,
+                             periods=periods, offset=offset)
+
+        dates = list(xdr)
+        # utc = len(dates) > 0 and dates[0].tzinfo is not None
+        data = tools.to_datetime(dates)
 
     return data
 
@@ -1366,9 +1522,9 @@ def _to_m8(key):
 
 
 
-def _str_to_dt_array(arr, offset=None):
+def _str_to_dt_array(arr, offset=None, dayfirst=None, yearfirst=None):
     def parser(x):
-        result = parse_time_string(x, offset)
+        result = parse_time_string(x, offset, dayfirst=dayfirst, yearfirst=None)
         return result[0]
 
     arr = np.asarray(arr, dtype=object)
@@ -1386,6 +1542,8 @@ def _naive_in_cache_range(start, end):
     if start is None or end is None:
         return False
     else:
+        if start.tzinfo is not None or end.tzinfo is not None:
+            return False
         return _in_range(start, end, _CACHE_START, _CACHE_END)
 
 def _in_range(start, end, rng_start, rng_end):
@@ -1394,3 +1552,12 @@ def _in_range(start, end, rng_start, rng_end):
 def _time_to_micros(time):
     seconds = time.hour * 60 * 60 + 60 * time.minute + time.second
     return 1000000 * seconds + time.microsecond
+
+def _utc_naive(dt):
+    if dt is None:
+        return dt
+
+    if dt.tz is not None:
+        dt = dt.tz_convert('utc').replace(tzinfo=None)
+
+    return dt

@@ -26,8 +26,8 @@ with the ``la`` package.
   - It has a collection of moving window statistics implemented in
     `Bottleneck <http://pypi.python.org/pypi/Bottleneck>`__
 
-scikits.statsmodels
--------------------
+statsmodels
+-----------
 
 The main `statistics and econometrics library
 <http://statsmodels.sourceforge.net>`__ for Python. pandas has become a

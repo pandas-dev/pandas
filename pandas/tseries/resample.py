@@ -7,6 +7,7 @@ from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
 from pandas.tseries.index import DatetimeIndex, date_range
 from pandas.tseries.offsets import DateOffset, Tick, _delta_to_nanoseconds
 from pandas.tseries.period import PeriodIndex, period_range
+import pandas.tseries.tools as tools
 import pandas.core.common as com
 
 from pandas.lib import Timestamp
@@ -107,12 +108,15 @@ class TimeGrouper(CustomGrouper):
             binner = labels = DatetimeIndex(data=[], freq=self.freq)
             return binner, [], labels
 
-        first, last = _get_range_edges(axis, self.freq, closed=self.closed, base=self.base)
+        first, last = _get_range_edges(axis, self.freq, closed=self.closed,
+                                       base=self.base)
         binner = labels = DatetimeIndex(freq=self.freq, start=first, end=last)
 
         # a little hack
         trimmed = False
-        if len(binner) > 2 and binner[-2] == axis[-1] and self.closed == 'right':
+        if (len(binner) > 2 and binner[-2] == axis[-1] and
+            self.closed == 'right'):
+
             binner = binner[:-1]
             trimmed = True
 
@@ -145,8 +149,6 @@ class TimeGrouper(CustomGrouper):
             day_nanos = _delta_to_nanoseconds(timedelta(1))
             if self.closed == 'right':
                 bin_edges = bin_edges + day_nanos - 1
-            else:
-                bin_edges = bin_edges + day_nanos
 
             # intraday values on last day
             if bin_edges[-2] > ax_values[-1]:
@@ -275,12 +277,18 @@ def _get_range_edges(axis, offset, closed='left', base=0):
             return _adjust_dates_anchored(axis[0], axis[-1], offset,
                                           closed=closed, base=base)
 
-    if closed == 'left':
-        first = Timestamp(offset.rollback(axis[0]))
-    else:
-        first = Timestamp(axis[0] - offset)
+    first, last = axis[0], axis[-1]
+    if not isinstance(offset, Tick):# and first.time() != last.time():
+        # hack!
+        first = tools.normalize_date(first)
+        last = tools.normalize_date(last)
 
-    last = Timestamp(axis[-1] + offset)
+    if closed == 'left':
+        first = Timestamp(offset.rollback(first))
+    else:
+        first = Timestamp(first - offset)
+
+    last = Timestamp(last + offset)
 
     return first, last
 

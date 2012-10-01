@@ -129,7 +129,12 @@ cdef class SeriesBinGrouper:
 
         self.dummy = self._check_dummy(dummy)
         self.passed_dummy = dummy is not None
-        self.ngroups = len(bins) + 1
+
+        # kludge for #1688
+        if len(bins) > 0 and bins[-1] == len(series):
+            self.ngroups = len(bins)
+        else:
+            self.ngroups = len(bins) + 1
 
     def _check_dummy(self, dummy=None):
         if dummy is None:
@@ -329,7 +334,7 @@ cdef class Slider:
     '''
     cdef:
         ndarray values, buf
-        Py_ssize_t stride, orig_len
+        Py_ssize_t stride, orig_len, orig_stride
         char *orig_data
 
     def __init__(self, object values, object buf):
@@ -340,12 +345,14 @@ cdef class Slider:
         assert(values.dtype == buf.dtype)
         self.values = values
         self.buf = buf
-        self.stride = values.dtype.itemsize
+        self.stride = values.strides[0]
 
         self.orig_data = self.buf.data
         self.orig_len = self.buf.shape[0]
+        self.orig_stride = self.buf.strides[0]
 
         self.buf.data = self.values.data
+        self.buf.strides[0] = self.stride
 
     cpdef advance(self, Py_ssize_t k):
         self.buf.data = <char*> self.buf.data + self.stride * k
@@ -356,6 +363,7 @@ cdef class Slider:
     cpdef cleanup(self):
         self.buf.shape[0] = self.orig_len
         self.buf.data = self.orig_data
+        self.buf.strides[0] = self.orig_stride
 
 def reduce(arr, f, axis=0, dummy=None, labels=None):
     if labels._has_complex_internals:

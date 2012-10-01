@@ -414,6 +414,19 @@ class TestMerge(unittest.TestCase):
         expected = a.join(b.astype('f8'))
         assert_frame_equal(joined, expected)
 
+        joined = b.join(a)
+        assert_frame_equal(expected, joined.reindex(columns=['a', 'b', 'c']))
+
+        a = np.random.randint(0, 5, 100)
+        b = np.random.random(100).astype('Float64')
+        c = np.random.random(100).astype('Float32')
+        df = DataFrame({'a': a, 'b' : b, 'c' : c})
+        xpdf = DataFrame({'a': a, 'b' : b, 'c' : c.astype('Float64')})
+        s = DataFrame(np.random.random(5).astype('f'), columns=['md'])
+        rs = df.merge(s, left_on='a', right_index=True)
+        xp = xpdf.merge(s.astype('f8'), left_on='a', right_index=True)
+        assert_frame_equal(rs, xp)
+
     def test_join_many_non_unique_index(self):
         df1 = DataFrame({"a": [1,1], "b": [1,1], "c": [10,20]})
         df2 = DataFrame({"a": [1,1], "b": [1,2], "d": [100,200]})
@@ -763,6 +776,34 @@ class TestMergeMulti(unittest.TestCase):
         rdf = right.drop(['id'], axis=1)
         expected = left.join(rdf)
         tm.assert_frame_equal(merged, expected)
+
+    def test_merge_na_keys(self):
+        data = [[1950, "A", 1.5],
+                [1950, "B", 1.5],
+                [1955, "B", 1.5],
+                [1960, "B", np.nan],
+                [1970, "B", 4.],
+                [1950, "C", 4.],
+                [1960, "C", np.nan],
+                [1965, "C", 3.],
+                [1970, "C", 4.]]
+
+        frame = DataFrame(data, columns=["year", "panel", "data"])
+
+        other_data = [[1960, 'A', np.nan],
+                      [1970, 'A', np.nan],
+                      [1955, 'A', np.nan],
+                      [1965, 'A', np.nan],
+                      [1965, 'B', np.nan],
+                      [1955, 'C', np.nan]]
+        other = DataFrame(other_data, columns=['year', 'panel', 'data'])
+
+        result = frame.merge(other, how='outer')
+
+        expected = frame.fillna(-999).merge(other.fillna(-999), how='outer')
+        expected = expected.replace(-999, np.nan)
+
+        tm.assert_frame_equal(result, expected)
 
 
 def _check_join(left, right, result, join_col, how='left',
@@ -1402,6 +1443,17 @@ class TestConcatenate(unittest.TestCase):
                           keys=['b', 'c', 'd', 'e'])
         tm.assert_frame_equal(result, expected)
 
+    def test_concat_bug_1719(self):
+        ts1 = tm.makeTimeSeries()
+        ts2 = tm.makeTimeSeries()[::2]
+
+        ## to join with union
+        ## these two are of different length!
+        left = concat([ts1,ts2], join='outer', axis = 1)
+        right = concat([ts2,ts1], join='outer', axis = 1)
+
+        self.assertEqual(len(left), len(right))
+
 class TestOrderedMerge(unittest.TestCase):
 
     def setUp(self):
@@ -1455,5 +1507,3 @@ if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-
-

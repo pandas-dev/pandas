@@ -44,7 +44,7 @@ infer_type(PyObject* obj) {
 }
 
 PANDAS_INLINE npy_int64
-get_nat() {
+get_nat(void) {
   return NPY_MIN_INT64;
 }
 
@@ -141,6 +141,11 @@ PANDAS_INLINE PyObject* floatify(PyObject* str) {
   return PyFloat_FromString(str, NULL);
 #endif
 
+}
+
+
+void set_array_owndata(PyArrayObject *ao) {
+    ao->flags |= NPY_OWNDATA;
 }
 
 

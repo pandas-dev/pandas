@@ -1,6 +1,7 @@
 from datetime import datetime
 import sys
 
+import nose
 import unittest
 
 from pandas import Series, DataFrame, date_range, DatetimeIndex
@@ -9,6 +10,8 @@ import pandas.core.common as com
 import pandas.util.testing as tm
 
 import numpy as np
+
+from pandas.util import py3compat
 
 def test_notnull():
     assert notnull(1.)
@@ -40,6 +43,23 @@ def test_isnull():
     result = isnull(df)
     expected = result.apply(isnull)
     tm.assert_frame_equal(result, expected)
+
+def test_isnull_lists():
+    result = isnull([[False]])
+    exp = np.array([[False]])
+    assert(np.array_equal(result, exp))
+
+    result = isnull([[1],[2]])
+    exp = np.array([[False], [False]])
+    assert(np.array_equal(result, exp))
+
+    # list of strings / unicode
+    result = isnull(['foo', 'bar'])
+    assert(not result.any())
+
+    result = isnull([u'foo', u'bar'])
+    assert(not result.any())
+
 
 def test_isnull_datetime():
     assert (not isnull(datetime.now()))
@@ -288,9 +308,26 @@ class TestTake(unittest.TestCase):
         expected[:, [2, 4]] = np.nan
         tm.assert_almost_equal(result, expected)
 
+    def test_console_encode(self):
+        import sys
+
+        if py3compat.PY3 or sys.stdin.encoding is None:
+            raise nose.SkipTest
+
+        # stub test
+        # need to mock-out sys.stdin.encoding=None for real test
+        result = com.console_encode(u"\u05d0")
+        try:
+            expected = u"\u05d0".encode(sys.stdin.encoding)
+
+            # lot of console encodings, ISO-8869-1, cp850, etc. won't encode
+            # this character
+            self.assertEqual(result, expected)
+        except UnicodeEncodeError:
+            pass
+
 
 if __name__ == '__main__':
-    import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
 

@@ -32,10 +32,6 @@ ctypedef unsigned char UChar
 cimport util
 from util cimport is_array, _checknull, _checknan
 
-cdef extern from "math.h":
-    double sqrt(double x)
-    double fabs(double)
-
 # import datetime C API
 PyDateTime_IMPORT
 

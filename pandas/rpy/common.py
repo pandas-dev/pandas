@@ -5,7 +5,8 @@ developer-friendly.
 
 import numpy as np
 
-import pandas as pn
+import pandas as pd
+import pandas.core.common as com
 import pandas.util.testing as _test
 
 from rpy2.robjects.packages import importr
@@ -17,7 +18,7 @@ __all__ = ['convert_robj', 'load_data', 'convert_to_r_dataframe',
 
 def load_data(name, package=None, convert=True):
     if package:
-        pack = importr(package)
+        importr(package)
 
     r.data(name)
 
@@ -62,9 +63,9 @@ def _convert_array(obj):
     if obj.names is not None:
         name_list = [list(x) for x in obj.names]
         if len(dim) == 2:
-            return pn.DataFrame(arr, index=name_list[0], columns=name_list[1])
+            return pd.DataFrame(arr, index=name_list[0], columns=name_list[1])
         elif len(dim) == 3:
-            return pn.Panel(arr, items=name_list[2],
+            return pd.Panel(arr, items=name_list[2],
                             major_axis=name_list[0],
                             minor_axis=name_list[1])
         else:
@@ -107,11 +108,22 @@ def _convert_DataFrame(rdf):
         values = _convert_vector(vec)
 
         if isinstance(vec, robj.FactorVector):
-            values = np.asarray(vec.levels).take(values - 1)
+            levels = np.asarray(vec.levels)
+            if com.is_float_dtype(values):
+                mask = np.isnan(values)
+                notmask = -mask
+                result = np.empty(len(values), dtype=object)
+                result[mask] = np.nan
+
+                locs = (values[notmask] - 1).astype(np.int_)
+                result[notmask] = levels.take(locs)
+                values = result
+            else:
+                values = np.asarray(vec.levels).take(values - 1)
 
         data[col] = values
 
-    return pn.DataFrame(data, index=_check_int(rows), columns=columns)
+    return pd.DataFrame(data, index=_check_int(rows), columns=columns)
 
 def _convert_Matrix(mat):
     columns = mat.colnames
@@ -120,7 +132,7 @@ def _convert_Matrix(mat):
     columns = None if _is_null(columns) else list(columns)
     index = None if _is_null(rows) else list(rows)
 
-    return pn.DataFrame(np.array(mat), index=_check_int(index),
+    return pd.DataFrame(np.array(mat), index=_check_int(index),
                         columns=columns)
 
 def _check_int(vec):
@@ -218,7 +230,7 @@ def convert_to_r_dataframe(df, strings_as_factors=False):
     for column in df:
         value = df[column]
         value_type = value.dtype.type
-        value = [item if pn.notnull(item) else NA_TYPES[value_type]
+        value = [item if pd.notnull(item) else NA_TYPES[value_type]
                  for item in value]
 
         value = VECTOR_TYPES[value_type](value)
@@ -311,7 +323,7 @@ def test_convert_r_dataframe():
     is_na = robj.baseenv.get("is.na")
 
     seriesd = _test.getSeriesData()
-    frame = pn.DataFrame(seriesd, columns=['D', 'C', 'B', 'A'])
+    frame = pd.DataFrame(seriesd, columns=['D', 'C', 'B', 'A'])
 
     #Null data
     frame["E"] = [np.nan for item in frame["A"]]
@@ -333,7 +345,7 @@ def test_convert_r_dataframe():
         for original, converted in zip(frame[column],
                                        r_dataframe.rx2(column)):
 
-            if pn.isnull(original):
+            if pd.isnull(original):
                 assert is_na(converted)
             else:
                 assert original == converted
@@ -343,7 +355,7 @@ def test_convert_r_matrix():
     is_na = robj.baseenv.get("is.na")
 
     seriesd = _test.getSeriesData()
-    frame = pn.DataFrame(seriesd, columns=['D', 'C', 'B', 'A'])
+    frame = pd.DataFrame(seriesd, columns=['D', 'C', 'B', 'A'])
     #Null data
     frame["E"] = [np.nan for item in frame["A"]]
 

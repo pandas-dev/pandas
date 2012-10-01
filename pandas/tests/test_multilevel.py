@@ -312,6 +312,22 @@ class TestMultiLevel(unittest.TestCase):
         assert_frame_equal(result, expected)
         assert_frame_equal(result, result2)
 
+        result = self.ymd.xs((2000, 4))
+        expected = self.ymd.ix[2000, 4]
+        assert_frame_equal(result, expected)
+
+        # ex from #1796
+        index = MultiIndex(levels=[['foo', 'bar'], ['one', 'two'], [-1, 1]],
+                           labels=[[0, 0, 0, 0, 1, 1, 1, 1],
+                                   [0, 0, 1, 1, 0, 0, 1, 1],
+                                   [0, 1, 0, 1, 0, 1, 0, 1]])
+        df = DataFrame(np.random.randn(8, 4), index=index,
+                       columns=list('abcd'))
+
+        result = df.xs(['foo', 'one'])
+        expected = df.ix['foo', 'one']
+        assert_frame_equal(result, expected)
+
     def test_xs_level(self):
         result = self.frame.xs('two', level='second')
         expected = self.frame[self.frame.index.get_level_values(1) == 'two']
@@ -787,6 +803,18 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                        index=midx)
         # should work
         df.groupby(level='three')
+
+    def test_groupby_level_no_obs(self):
+        # #1697
+        midx = MultiIndex.from_tuples([('f1', 's1'),('f1','s2'),
+                                       ('f2', 's1'),('f2', 's2'),
+                                       ('f3', 's1'),('f3','s2')])
+        df = DataFrame([[1,2,3,4,5,6],[7,8,9,10,11,12]], columns= midx)
+        df1 = df.select(lambda u: u[0] in ['f2', 'f3'], axis=1)
+
+        grouped = df1.groupby(axis=1, level=0)
+        result = grouped.sum()
+        self.assert_((result.columns == ['f2', 'f3']).all())
 
     def test_join(self):
         a = self.frame.ix[:5, ['A']]
@@ -1383,6 +1411,15 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         # NumPy bug
         # repr(index.get_level_values(1))
 
+    def test_unicode_repr_level_names(self):
+        index = MultiIndex.from_tuples([(0, 0), (1, 1)],
+                                       names=[u'\u0394', 'i1'])
+
+        s = Series(range(2), index=index)
+        df = DataFrame(np.random.randn(2,4), index=index)
+        repr(s)
+        repr(df)
+
     def test_dataframe_insert_column_all_na(self):
         # GH #1534
         mix = MultiIndex.from_tuples([('1a', '2a'), ('1a', '2b'), ('1a', '2c')])
@@ -1410,6 +1447,58 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         col = self.frame['B']
         col[subset] = 97
         self.assert_((self.frame.ix[subset, 'B'] == 97).all())
+
+    def test_frame_dict_constructor_empty_series(self):
+        s1 = Series([1,2,3, 4], index=MultiIndex.from_tuples([(1,2),(1,3),
+                                                              (2,2),(2,4)]))
+        s2 = Series([1,2,3,4],
+                    index=MultiIndex.from_tuples([(1,2),(1,3),(3,2),(3,4)]))
+        s3 = Series()
+
+        # it works!
+        df = DataFrame({'foo':s1, 'bar':s2, 'baz':s3})
+        df = DataFrame.from_dict({'foo':s1, 'baz':s3, 'bar':s2})
+
+    def test_indexing_ambiguity_bug_1678(self):
+        columns = MultiIndex.from_tuples([('Ohio', 'Green'), ('Ohio', 'Red'),
+                                          ('Colorado', 'Green')])
+        index = MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1), ('b', 2)])
+
+        frame = DataFrame(np.arange(12).reshape((4, 3)), index=index,
+                          columns=columns)
+
+        result = frame.ix[:, 1]
+        exp = frame.icol(1)
+        self.assert_(isinstance(result, Series))
+        assert_series_equal(result, exp)
+
+    def test_nonunique_assignment_1750(self):
+        df = DataFrame([[1, 1, "x", "X"], [1, 1, "y", "Y"], [1, 2, "z", "Z"]],
+                       columns=list("ABCD"))
+
+        df = df.set_index(['A', 'B'])
+        ix = MultiIndex.from_tuples([(1, 1)])
+
+        df.ix[ix, "C"] = '_'
+
+        self.assert_((df.xs((1, 1))['C'] == '_').all())
+
+    def test_indexing_over_hashtable_size_cutoff(self):
+        n = 10000
+
+        import pandas.lib as lib
+        old_cutoff = lib._SIZE_CUTOFF
+        lib._SIZE_CUTOFF = 20000
+
+        s = Series(np.arange(n),
+                   MultiIndex.from_arrays((["a"] * n, np.arange(n))))
+
+        # hai it works!
+        self.assertEquals(s[("a", 5)], 5)
+        self.assertEquals(s[("a", 6)], 6)
+        self.assertEquals(s[("a", 7)], 7)
+
+        lib._SIZE_CUTOFF = old_cutoff
 
 if __name__ == '__main__':
 

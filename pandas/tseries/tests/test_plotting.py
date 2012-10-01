@@ -286,6 +286,9 @@ class TestTSPlot(unittest.TestCase):
             self.assertEqual(int(result[0]), expected[0].ordinal)
             self.assertEqual(int(result[1]), expected[1].ordinal)
 
+        import matplotlib.pyplot as plt
+        plt.close('all')
+
         ser = tm.makeTimeSeries()
         ax = ser.plot()
         _test(ax)
@@ -616,6 +619,16 @@ class TestTSPlot(unittest.TestCase):
         for l in ax.get_lines():
             self.assert_(l.get_xdata().freq == 'D')
 
+        plt.close('all')
+        idxh = date_range('1/1/1999', periods=240, freq='T')
+        idxl = date_range('1/1/1999', periods=4, freq='H')
+        high = Series(np.random.randn(len(idxh)), idxh)
+        low = Series(np.random.randn(len(idxl)), idxl)
+        low.plot()
+        ax = high.plot()
+        for l in ax.get_lines():
+            self.assert_(l.get_xdata().freq == 'T')
+
     @slow
     def test_mixed_freq_irreg_period(self):
         ts = tm.makeTimeSeries()
@@ -764,6 +777,8 @@ class TestTSPlot(unittest.TestCase):
         colors = set()
         for line in leg.get_lines():
             colors.add(line.get_color())
+
+        # TODO: color cycle problems
         self.assert_(len(colors) == 4)
 
         plt.clf()
@@ -786,6 +801,8 @@ class TestTSPlot(unittest.TestCase):
         colors = set()
         for line in leg.get_lines():
             colors.add(line.get_color())
+
+        # TODO: color cycle problems
         self.assert_(len(colors) == 4)
 
         #non-ts
@@ -799,6 +816,8 @@ class TestTSPlot(unittest.TestCase):
         colors = set()
         for line in leg.get_lines():
             colors.add(line.get_color())
+
+        # TODO: color cycle problems
         self.assert_(len(colors) == 4)
 
         plt.clf()
@@ -810,6 +829,8 @@ class TestTSPlot(unittest.TestCase):
         colors = set()
         for line in leg.get_lines():
             colors.add(line.get_color())
+
+        # TODO: color cycle problems
         self.assert_(len(colors) == 4)
 
     @slow
@@ -822,6 +843,16 @@ class TestTSPlot(unittest.TestCase):
             if len(l.get_text()) > 0:
                 self.assert_(l.get_rotation() == 30)
 
+    @slow
+    def test_ax_plot(self):
+        x = DatetimeIndex(start='2012-01-02', periods=10,
+                          freq='D')
+        y = range(len(x))
+        import matplotlib.pyplot as plt
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        lines = ax.plot(x, y, label='Y')
+        assert_array_equal(DatetimeIndex(lines[0].get_xdata()), x)
 
 PNG_PATH = 'tmp.png'
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):

@@ -140,15 +140,20 @@ label:
     'e' in s
     'f' in s
 
-If a label is not contained, an exception
+If a label is not contained, an exception is raised:
 
 .. code-block:: python
 
     >>> s['f']
     KeyError: 'f'
 
-    >>> s.get('f')
-    nan
+Using the ``get`` method, a missing label will return None or specified default:
+
+.. ipython:: python
+
+   s.get('f')
+
+   s.get('f', np.nan)
 
 Vectorized operations and label alignment with Series
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -833,11 +833,17 @@ class BlockManager(object):
             return self.get(item)
         else:
             # ugh
-            inds, = (self.items == item).nonzero()
+            try:
+                inds, = (self.items == item).nonzero()
+            except AttributeError: #MultiIndex
+                inds, = self.items.map(lambda x: x == item).nonzero()
 
             _, block = self._find_block(item)
 
-            binds, = (block.items == item).nonzero()
+            try:
+                binds, = (block.items == item).nonzero()
+            except AttributeError: #MultiIndex
+                binds, = block.items.map(lambda x: x == item).nonzero()
 
             for j, (k, b) in enumerate(zip(inds, binds)):
                 if i == k:
@@ -949,6 +955,12 @@ class BlockManager(object):
             if copy:
                 result = self.copy(deep=True)
                 result.axes[axis] = new_axis
+
+                if axis == 0:
+                    # patch ref_items, #1823
+                    for blk in result.blocks:
+                        blk.ref_items = new_axis
+
                 return result
             else:
                 return self
@@ -1263,6 +1275,12 @@ def form_blocks(data, axes):
         int_block = _simple_blockify(int_dict, items, np.int64)
         blocks.append(int_block)
 
+    for k, v in list(datetime_dict.items()):
+        # hackeroo
+        if hasattr(v, 'tz') and v.tz is not None:
+            del datetime_dict[k]
+            object_dict[k] = v.asobject
+
     if len(datetime_dict):
         datetime_block = _simple_blockify(datetime_dict, items,
                                           np.dtype('M8[ns]'))
@@ -1278,7 +1296,10 @@ def form_blocks(data, axes):
 
     if len(extra_items):
         shape = (len(extra_items),) + tuple(len(x) for x in axes[1:])
-        block_values = np.empty(shape, dtype=float)
+
+        # empty items -> dtype object
+        block_values = np.empty(shape, dtype=object)
+
         block_values.fill(nan)
 
         na_block = make_block(block_values, extra_items, items,

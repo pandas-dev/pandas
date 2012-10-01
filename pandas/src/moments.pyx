@@ -9,6 +9,18 @@
 #
 # -
 
+def _check_minp(win, minp, N):
+    if minp > win:
+        raise ValueError('min_periods (%d) must be <= window (%d)'
+                        % (minp, win))
+    elif minp > N:
+        minp = N + 1
+    elif minp == 0:
+        minp = 1
+    elif minp < 0:
+        raise ValueError('min_periods must be >= 0')
+    return minp
+
 # original C implementation by N. Devillard.
 # This code in public domain.
 # Function :   kth_smallest()
@@ -23,7 +35,6 @@
 #            Publisher: Englewood Cliffs: Prentice-Hall, 1976
 # Physical description: 366 p.
 #               Series: Prentice-Hall Series in Automatic Computation
-
 
 def kth_smallest(ndarray[double_t] a, Py_ssize_t k):
     cdef:
@@ -149,7 +160,7 @@ def roll_sum(ndarray[double_t] input, int win, int minp):
 
     cdef ndarray[double_t] output = np.empty(N, dtype=float)
 
-    minp = _check_minp(minp, N)
+    minp = _check_minp(win, minp, N)
 
     for i from 0 <= i < minp - 1:
         val = input[i]
@@ -192,7 +203,7 @@ def roll_mean(ndarray[double_t] input,
 
     cdef ndarray[double_t] output = np.empty(N, dtype=float)
 
-    minp = _check_minp(minp, N)
+    minp = _check_minp(win, minp, N)
 
     for i from 0 <= i < minp - 1:
         val = input[i]
@@ -247,6 +258,8 @@ def ewma(ndarray[double_t] input, double_t com, int adjust):
 
     cdef ndarray[double_t] output = np.empty(N, dtype=float)
 
+    if N == 0:
+        return output
 
     neww = 1. / (1. + com)
     oldw = 1. - neww
@@ -335,15 +348,6 @@ def nancorr(ndarray[float64_t, ndim=2] mat, cov=False):
 #----------------------------------------------------------------------
 # Rolling variance
 
-def _check_minp(minp, N):
-    if minp > N:
-        minp = N + 1
-    elif minp == 0:
-        minp = 1
-    elif minp < 0:
-        raise ValueError('min_periods must be >= 0')
-    return minp
-
 def roll_var(ndarray[double_t] input, int win, int minp, int ddof=1):
     cdef double val, prev, sum_x = 0, sum_xx = 0, nobs = 0
     cdef Py_ssize_t i
@@ -351,7 +355,7 @@ def roll_var(ndarray[double_t] input, int win, int minp, int ddof=1):
 
     cdef ndarray[double_t] output = np.empty(N, dtype=float)
 
-    minp = _check_minp(minp, N)
+    minp = _check_minp(win, minp, N)
 
     for i from 0 <= i < minp - 1:
         val = input[i]
@@ -380,6 +384,11 @@ def roll_var(ndarray[double_t] input, int win, int minp, int ddof=1):
             sum_xx += val * val
 
         if nobs >= minp:
+            # pathological case
+            if nobs == 1:
+                output[i] = 0
+                continue
+
             output[i] = (nobs * sum_xx - sum_x * sum_x) / (nobs * (nobs - ddof))
         else:
             output[i] = NaN
@@ -400,7 +409,7 @@ def roll_skew(ndarray[double_t] input, int win, int minp):
     # 3 components of the skewness equation
     cdef double A, B, C, R
 
-    minp = _check_minp(minp, N)
+    minp = _check_minp(win, minp, N)
 
     for i from 0 <= i < minp - 1:
         val = input[i]
@@ -462,7 +471,7 @@ def roll_kurt(ndarray[double_t] input,
     # 5 components of the kurtosis equation
     cdef double A, B, C, D, R, K
 
-    minp = _check_minp(minp, N)
+    minp = _check_minp(win, minp, N)
 
     for i from 0 <= i < minp - 1:
         val = input[i]
@@ -533,7 +542,7 @@ cdef _roll_skiplist_op(ndarray arg, int win, int minp, skiplist_f op):
 
     skiplist = IndexableSkiplist(win)
 
-    minp = _check_minp(minp, N)
+    minp = _check_minp(win, minp, N)
 
     for i from 0 <= i < minp - 1:
         val = input[i]
@@ -578,7 +587,7 @@ def roll_median_c(ndarray[float64_t] arg, int win, int minp):
 
     sl = skiplist_init(win)
 
-    minp = _check_minp(minp, N)
+    minp = _check_minp(win, minp, N)
 
     for i from 0 <= i < minp - 1:
         val = arg[i]
@@ -672,11 +681,17 @@ def roll_max2(ndarray[float64_t] a, int window, int minp):
     cdef np.ndarray[np.float64_t, ndim=1] y = PyArray_EMPTY(1, dims,
 		NPY_float64, 0)
 
-    minp = _check_minp(minp, n0)
+    if window < 1:
+        raise ValueError('Invalid window size %d'
+                         % (window))
 
-    if (window < 1) or (window > n0):
-        raise ValueError('Invalid window size %d for len %d array'
-                         % (window, n0))
+    if minp > window:
+        raise ValueError('Invalid min_periods size %d greater than window %d'
+                        % (minp, window))
+
+    minp = _check_minp(window, minp, n0)
+
+    window = min(window, n0)
 
     ring = <pairs*>stdlib.malloc(window * sizeof(pairs))
     end = ring + window
@@ -723,7 +738,8 @@ def roll_max2(ndarray[float64_t] a, int window, int minp):
             y[i0] = minpair.value
         else:
             y[i0] = NaN
-    for i0 in range(window - 1):
+
+    for i0 in range(minp - 1):
         y[i0] = NaN
 
     stdlib.free(ring)
@@ -765,11 +781,18 @@ def roll_min2(np.ndarray[np.float64_t, ndim=1] a, int window, int minp):
     cdef np.npy_intp *dims = [n0]
     cdef np.ndarray[np.float64_t, ndim=1] y = PyArray_EMPTY(1, dims,
 		NPY_float64, 0)
-    if (window < 1) or (window > n0):
-        raise ValueError('Invalid window size %d for len %d array'
-                         % (window, n0))
 
-    minp = _check_minp(minp, n0)
+    if window < 1:
+        raise ValueError('Invalid window size %d'
+                         % (window))
+
+    if minp > window:
+        raise ValueError('Invalid min_periods size %d greater than window %d'
+                        % (minp, window))
+
+    window = min(window, n0)
+
+    minp = _check_minp(window, minp, n0)
 
     ring = <pairs*>stdlib.malloc(window * sizeof(pairs))
     end = ring + window
@@ -816,7 +839,8 @@ def roll_min2(np.ndarray[np.float64_t, ndim=1] a, int window, int minp):
             y[i0] = minpair.value
         else:
             y[i0] = NaN
-    for i0 in range(window - 1):
+
+    for i0 in range(minp - 1):
         y[i0] = NaN
 
     stdlib.free(ring)
@@ -841,7 +865,7 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int win,
 
     skiplist = IndexableSkiplist(win)
 
-    minp = _check_minp(minp, N)
+    minp = _check_minp(win, minp, N)
 
     for i from 0 <= i < minp - 1:
         val = input[i]
@@ -890,7 +914,7 @@ def roll_generic(ndarray[float64_t, cast=True] input, int win,
     if n == 0:
         return input
 
-    minp = _check_minp(minp, n)
+    minp = _check_minp(win, minp, n)
     output = np.empty(n, dtype=float)
     counts = roll_sum(np.isfinite(input).astype(float), win, minp)
 
@@ -898,7 +922,7 @@ def roll_generic(ndarray[float64_t, cast=True] input, int win,
     oldbuf = <float64_t*> bufarr.data
 
     n = len(input)
-    for i from 0 <= i < win:
+    for i from 0 <= i < int_min(win, n):
         if counts[i] >= minp:
             output[i] = func(input[int_max(i - win + 1, 0) : i + 1])
         else:

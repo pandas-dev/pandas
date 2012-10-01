@@ -70,7 +70,7 @@ data into a DataFrame object. They can take a number of arguments:
     cases by "sniffing." The separator may be specified as a regular
     expression; for instance you may use '\s*' to indicate arbitrary
     whitespace.
-  - ``dialect``: string or csv.Dialect instance to expose more ways to specify
+  - ``dialect``: string or :class:`python:csv.Dialect` instance to expose more ways to specify
     the file format
   - ``header``: row number to use as the column names, and the start of the data.
     Defaults to 0 (first row); specify None if there is no header row.
@@ -84,9 +84,9 @@ data into a DataFrame object. They can take a number of arguments:
   - ``names``: List of column names to use. If passed, header will be
     implicitly set to None.
   - ``na_values``: optional list of strings to recognize as NaN (missing
-    values), in addition to a default set. If you pass an empty list or an
-    empty list for a particular column, no values (including empty strings)
-    will be considered NA
+    values), either in addition to or in lieu of the default set.
+  - ``keep_default_na``: whether to include the default set of missing values
+    in addition to the ones specified in ``na_values``
   - ``parse_dates``: if True then index will be parsed as dates
     (False by default). You can specify more complicated options to parse
     a subset of columns or a combination of columns into a single date column
@@ -164,7 +164,7 @@ You can also use a list of columns to create a hierarchical index:
 
 The ``dialect`` keyword gives greater flexibility in specifying the file format.
 By default it uses the Excel dialect but you can specify either the dialect name
-or a `csv.Dialect <docs.python.org/library/csv.html#csv.Dialect>`_ instance.
+or a :class:``python:csv.Dialect`` instance.
 
 .. ipython:: python
    :suppress:
@@ -573,8 +573,8 @@ Automatically "sniffing" the delimiter
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``read_csv`` is capable of inferring delimited (not necessarily
-comma-separated) files. YMMV, as pandas uses the Sniffer_ class of the csv
-module.
+comma-separated) files. YMMV, as pandas uses the :class:`python:csv.Sniffer`
+class of the csv module.
 
 .. ipython:: python
    :suppress:
@@ -587,8 +587,6 @@ module.
 
     print open('tmp2.sv').read()
     read_csv('tmp2.sv')
-
-.. _Sniffer: http://docs.python.org/library/csv.html#csv.Sniffer
 
 .. _io.chunking:
 

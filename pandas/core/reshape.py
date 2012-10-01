@@ -157,9 +157,7 @@ class _Unstacker(object):
         new_values = np.empty((length, result_width), dtype=values.dtype)
         new_mask = np.zeros((length, result_width), dtype=bool)
 
-        if issubclass(values.dtype.type, np.integer):
-            new_values = new_values.astype(float)
-
+        new_values = com._maybe_upcast(new_values)
         new_values.fill(np.nan)
 
         # is there a simpler / faster way of doing this?
@@ -171,6 +169,7 @@ class _Unstacker(object):
             mask_chunk.flat[self.mask] = True
 
         new_values = new_values.take(self.unique_groups, axis=0)
+
         return new_values, new_mask
 
     def get_new_columns(self):
@@ -289,7 +288,7 @@ def pivot(self, index=None, columns=None, values=None):
         indexed = self.set_index([index, columns])
         return indexed.unstack(columns)
     else:
-        indexed = Series(self[values],
+        indexed = Series(self[values].values,
                          index=[self[index], self[columns]])
         return indexed.unstack(columns)
 

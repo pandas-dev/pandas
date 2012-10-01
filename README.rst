@@ -63,7 +63,7 @@ Dependencies
 ============
 
   * `NumPy <http://www.numpy.org>`__: 1.6.1 or higher
-  * `python-dateutil <http://labix.org/python-dateutil>`__ 1.5
+  * `python-dateutil <http://labix.org/python-dateutil>`__ 1.5 or higher
 
 Optional dependencies
 ~~~~~~~~~~~~~~~~~~~~~

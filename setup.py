@@ -49,12 +49,21 @@ if sys.version_info[0] >= 3:
             "\n$ pip install distribute")
 
 else:
-    setuptools_kwargs = {
-        'install_requires': ['python-dateutil < 2',
-                             'pytz',
-                             'numpy >= 1.6'],
-        'zip_safe' : False,
-    }
+    if sys.version_info[1] == 5:
+        # dateutil >= 2.1 doesn't work on Python 2.5
+        setuptools_kwargs = {
+            'install_requires': ['python-dateutil < 2',
+                                 'pytz',
+                                 'numpy >= 1.6'],
+            'zip_safe' : False,
+        }
+    else:
+        setuptools_kwargs = {
+            'install_requires': ['python-dateutil',
+                                 'pytz',
+                                 'numpy >= 1.6'],
+            'zip_safe' : False,
+        }
     if not _have_setuptools:
         try:
             import numpy
@@ -172,11 +181,11 @@ CLASSIFIERS = [
 ]
 
 MAJOR = 0
-MINOR = 8
-MICRO = 2
-ISRELEASED = False
+MINOR = 9
+MICRO = 0
+ISRELEASED = True
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
-QUALIFIER = ''
+QUALIFIER = 'rc2'
 
 FULLVERSION = VERSION
 if not ISRELEASED:
@@ -363,18 +372,30 @@ else:
 
 algos_ext = Extension('pandas._algos',
                       sources=[srcpath('generated', suffix=suffix)],
-                      include_dirs=[np.get_include()],
-                      )
+                      include_dirs=[np.get_include()])
+
+lib_depends = tseries_depends + ['pandas/src/numpy_helper.h',
+                                 'pandas/src/datetime/np_datetime.h',
+                                 'pandas/src/datetime/np_datetime_strings.h']
+
+# some linux distros require it
+libraries = ['m'] if 'win32' not in sys.platform else []
 
 lib_ext = Extension('pandas.lib',
-                    depends=tseries_depends + ['pandas/src/numpy_helper.h'],
+                    depends=lib_depends,
                     sources=[srcpath('tseries', suffix=suffix),
                              'pandas/src/datetime/np_datetime.c',
                              'pandas/src/datetime/np_datetime_strings.c'],
                     include_dirs=[np.get_include()],
+                    libraries=libraries,
                     # pyrex_gdb=True,
                     # extra_compile_args=['-Wconversion']
                     )
+
+sparse_ext = Extension('pandas._sparse',
+                       sources=[srcpath('sparse', suffix=suffix)],
+                       include_dirs=[np.get_include()],
+                       libraries=libraries)
 
 period_ext = Extension('pandas._period',
                        depends=plib_depends + ['pandas/src/numpy_helper.h',
@@ -384,10 +405,6 @@ period_ext = Extension('pandas._period',
                                 'pandas/src/period.c'],
                        include_dirs=[np.get_include()])
 
-
-sparse_ext = Extension('pandas._sparse',
-                       sources=[srcpath('sparse', suffix=suffix)],
-                       include_dirs=[np.get_include()])
 
 sandbox_ext = Extension('pandas._sandbox',
                         sources=[srcpath('sandbox', suffix=suffix)],
@@ -403,8 +420,16 @@ extensions = [algos_ext, lib_ext, period_ext, sparse_ext]
 if not ISRELEASED:
     extensions.extend([sandbox_ext])
 
-# if _have_setuptools:
-#     setuptools_kwargs["test_suite"] = "nose.collector"
+if suffix == '.pyx' and 'setuptools' in sys.modules:
+    # undo dumb setuptools bug clobbering .pyx sources back to .c
+    for ext in extensions:
+        if ext.sources[0].endswith('.c'):
+            root, _ = os.path.splitext(ext.sources[0])
+            ext.sources[0] = root + suffix
+
+
+if _have_setuptools:
+    setuptools_kwargs["test_suite"] = "nose.collector"
 
 write_version_py()
 setup(name=DISTNAME,
