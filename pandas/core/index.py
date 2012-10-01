@@ -196,7 +196,8 @@ class Index(np.ndarray):
 
     def summary(self, name=None):
         if len(self) > 0:
-            index_summary = ', %s to %s' % (unicode(self[0]), unicode(self[-1]))
+            index_summary = ', %s to %s' % (com.pprint_thing(self[0]),
+                                            com.pprint_thing(self[-1]))
         else:
             index_summary = ''
 
@@ -382,7 +383,7 @@ class Index(np.ndarray):
 
         header = []
         if name:
-            header.append(unicode(self.name) if self.name is not None else '')
+            header.append(com.pprint_thing(self.name) if self.name is not None else '')
 
         if self.is_all_dates:
             zero_time = time(0, 0)
