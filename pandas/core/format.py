@@ -134,7 +134,7 @@ class SeriesFormatter(object):
         if footer:
             result.append(footer)
 
-        return '\n'.join(result)
+        return com.console_encode(u'\n'.join(result))
 
 if py3compat.PY3:  # pragma: no cover
     _encode_diff = lambda x: 0
