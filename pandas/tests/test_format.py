@@ -246,7 +246,7 @@ class TestDataFrameFormatting(unittest.TestCase):
 
     def test_frame_info_encoding(self):
         index = ['\'Til There Was You (1997)',
-                 '\xc1 k\xf6ldum klaka (Cold Fever) (1994)']
+                 'ldum klaka (Cold Fever) (1994)']
         fmt.set_printoptions(max_rows=1)
         df = DataFrame(columns=['a', 'b', 'c'], index=index)
         repr(df)
