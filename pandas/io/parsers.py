@@ -749,7 +749,7 @@ class TextParser(object):
             else:
                 index_name = columns[self.index_col]
 
-            if index_name is not None and 'Unnamed' in str(index_name):
+            if index_name is not None and 'Unnamed' in unicode(index_name):
                 index_name = None
 
         elif self.index_col is not None:
