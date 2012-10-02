@@ -3481,6 +3481,18 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         os.remove(path)
 
+    def test_to_csv_unicode_index_col(self):
+        buf=StringIO('')
+        df=DataFrame([[u"\u05d0","d2","d3","d4"],["a1","a2","a3","a4"]],
+                            columns=[u"\u05d0",u"\u05d1",u"\u05d2",u"\u05d3"],
+                            index=[u"\u05d0",u"\u05d1"])
+
+        df.to_csv(buf, encoding='UTF-8')
+        buf.seek(0)
+
+        df2 = pan.read_csv(buf, index_col=0, encoding='UTF-8')
+        assert_frame_equal(df, df2)
+
     def test_to_csv_stringio(self):
         buf = StringIO()
         self.frame.to_csv(buf)
