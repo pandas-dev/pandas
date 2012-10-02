@@ -733,11 +733,6 @@ def _stringify(col, encoding='UTF8'):
             pass
         return console_encode(col)
 
-def _stringify_seq(values):
-    if any(isinstance(x, unicode) for x in values):
-        return [_stringify(x) for x in values]
-    return [str(x) for x in values]
-
 def _maybe_make_list(obj):
     if obj is not None and not isinstance(obj, (tuple, list)):
         return [obj]
