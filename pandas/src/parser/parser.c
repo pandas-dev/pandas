@@ -969,7 +969,7 @@ int inline end_field(parser_t *self) {
     // set pointer and metadata
     self->words[self->words_len] = self->pword_start;
 
-    TRACE(("Saw word at: %d\n", self->word_start))
+    TRACE(("Saw word %s at: %d\n", self->pword_start, self->word_start))
 
     self->word_starts[self->words_len] = self->word_start;
     self->words_len++;
@@ -1028,6 +1028,8 @@ int inline end_line(parser_t *self) {
             self->error_msg = (char*) malloc(100);
             sprintf(self->error_msg, "Expected %d fields in line %d, saw %d\n",
                     ex_fields, self->file_lines, fields);
+
+            TRACE(("Error at line %d, %d fields\n", self->file_lines, fields));
 
             return -1;
         } else {
@@ -1828,6 +1830,8 @@ int _tokenize_helper(parser_t *self, size_t nrows, int all) {
         return 0;
     }
 
+    TRACE(("Asked to tokenize %d rows\n", (int) nrows));
+
     while (1) {
         if (!all && self->lines - start_lines >= nrows)
             break;
@@ -1849,11 +1853,13 @@ int _tokenize_helper(parser_t *self, size_t nrows, int all) {
 
         if (status < 0) {
             // XXX
+            TRACE(("Status %d returned from tokenize_bytes, breaking\n",
+                   status));
             status = -1;
             break;
         }
     }
-
+    TRACE(("leaving tokenize_helper\n"));
     return status;
 }
 

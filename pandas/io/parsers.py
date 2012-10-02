@@ -182,9 +182,8 @@ def _read(filepath_or_buffer, kwds):
             kwds['parse_dates'] = True
 
     # Extract some of the arguments (pass chunksize on).
-    kwds.pop('filepath_or_buffer')
-    iterator = kwds.pop('iterator')
-    nrows = kwds.pop('nrows')
+    iterator = kwds.pop('iterator', False)
+    nrows = kwds.pop('nrows', None)
     chunksize = kwds.get('chunksize', None)
 
     # Create the parser.
@@ -197,162 +196,147 @@ def _read(filepath_or_buffer, kwds):
 
     return parser.read()
 
-@Appender(_read_csv_doc)
-def read_csv(filepath_or_buffer,
-             sep=',',
-             engine='c',
-             as_recarray=False,
-             dialect=None,
-             header=0,
-             index_col=None,
-             names=None,
-             skiprows=None,
-             na_values=None,
-             na_filter=True,
-             compact_ints=False,
-             use_unsigned=False,
-             keep_default_na=True,
-             thousands=None,
-             comment=None,
-             parse_dates=False,
-             keep_date_col=False,
-             dayfirst=False,
-             date_parser=None,
-             nrows=None,
-             iterator=False,
-             chunksize=None,
-             skip_footer=0,
-             converters=None,
-             verbose=False,
-             delimiter=None,
-             encoding=None,
-             squeeze=False):
-    kwds = dict(filepath_or_buffer=filepath_or_buffer,
-                sep=sep, dialect=dialect,
-                header=header, index_col=index_col,
-                names=names, skiprows=skiprows,
-                na_values=na_values,
-                na_filter=na_filter,
-                compact_ints=compact_ints, use_unsigned=use_unsigned,
-                keep_default_na=keep_default_na,
-                thousands=thousands,
-                comment=comment, parse_dates=parse_dates,
-                keep_date_col=keep_date_col,
-                dayfirst=dayfirst, date_parser=date_parser,
-                nrows=nrows, iterator=iterator,
-                chunksize=chunksize, skip_footer=skip_footer,
-                converters=converters, verbose=verbose,
-                delimiter=delimiter, encoding=encoding,
-                squeeze=squeeze,
-                engine=engine, as_recarray=as_recarray)
+_parser_defaults = {
+    'engine': 'c',
+    'sep': ',',
+    'dialect': None,
+    'header': 0,
+    'index_col': None,
+    'names': None,
+    'skiprows': None,
+    'na_values': None,
+    'delimiter': None,
+    'skip_footer': 0,
+    'converters': None,
 
-    # Alias sep -> delimiter.
-    sep = kwds.pop('sep')
-    if kwds.get('delimiter', None) is None:
-        kwds['delimiter'] = sep
+    'keep_default_na': True,
+    'thousands': None,
+    'comment': None,
 
-    return _read(filepath_or_buffer, kwds)
+    'parse_dates': False,
+    'keep_date_col': False,
+    'dayfirst': False,
+    'date_parser': None,
 
-@Appender(_read_table_doc)
-def read_table(filepath_or_buffer,
-               sep='\t',
-               engine='c',
-               dialect=None,
-               header=0,
-               index_col=None,
-               names=None,
-               skiprows=None,
-               na_values=None,
-               na_filter=True,
-               keep_default_na=True,
-               thousands=None,
-               comment=None,
-               parse_dates=False,
-               keep_date_col=False,
-               dayfirst=False,
-               date_parser=None,
-               nrows=None,
-               iterator=False,
-               chunksize=None,
-               skip_footer=0,
-               converters=None,
-               verbose=False,
-               delimiter=None,
-               encoding=None,
-               squeeze=False):
-    kwds = dict(filepath_or_buffer=filepath_or_buffer,
-                sep=sep, dialect=dialect,
-                header=header, index_col=index_col,
-                names=names, skiprows=skiprows,
-                na_values=na_values,
-                na_filter=na_filter,
-                keep_default_na=keep_default_na,
-                thousands=thousands,
-                comment=comment, parse_dates=parse_dates,
-                keep_date_col=keep_date_col,
-                dayfirst=dayfirst, date_parser=date_parser,
-                nrows=nrows, iterator=iterator,
-                chunksize=chunksize, skip_footer=skip_footer,
-                converters=converters, verbose=verbose,
-                delimiter=delimiter, encoding=encoding,
-                squeeze=squeeze)
+    'nrows': None,
+    'iterator': False,
+    'chunksize': None,
+    'verbose': False,
+    'encoding': None,
+    'squeeze': False
+}
 
-    # Alias sep -> delimiter.
-    sep = kwds.pop('sep')
-    if kwds.get('delimiter', None) is None:
-        kwds['delimiter'] = sep
+_c_parser_defaults = {
+    'delim_whitespace': False,
+    'as_recarray': False,
+    'na_filter': True,
+    'compact_ints': False,
+    'use_unsigned': False,
+    'low_memory': True,
+    'buffer_lines': 2**14,
+    'error_bad_lines': True,
+    'warn_bad_lines': True
+}
 
-    # Override as default encoding.
-    kwds['encoding'] = None
+_c_unsupported = set(['comment', 'skip_footer', 'encoding'])
 
-    return _read(filepath_or_buffer, kwds)
+def _make_parser_function(name, sep=','):
+
+    def parser_f(filepath_or_buffer,
+                 sep=sep,
+                 dialect=None,
+                 header=0,
+                 index_col=None,
+                 names=None,
+                 skiprows=None,
+                 na_values=None,
+                 delimiter=None,
+                 skip_footer=0,
+                 converters=None,
+
+                 engine='c',
+                 delim_whitespace=False,
+                 as_recarray=False,
+                 na_filter=True,
+                 compact_ints=False,
+                 use_unsigned=False,
+                 low_memory=False,
+                 buffer_lines=2**14,
+                 warn_bad_lines=True,
+                 error_bad_lines=True,
+
+                 keep_default_na=True,
+                 thousands=None,
+                 comment=None,
+
+                 parse_dates=False,
+                 keep_date_col=False,
+                 dayfirst=False,
+                 date_parser=None,
+
+                 nrows=None,
+                 iterator=False,
+                 chunksize=None,
+
+                 verbose=False,
+                 encoding=None,
+                 squeeze=False):
+        kwds = dict(sep=sep,
+                    delimiter=delimiter,
+                    engine=engine,
+                    dialect=dialect,
+                    header=header,
+                    index_col=index_col,
+                    names=names,
+                    skiprows=skiprows,
+                    na_values=na_values,
+                    keep_default_na=keep_default_na,
+                    thousands=thousands,
+                    comment=comment,
+
+                    parse_dates=parse_dates,
+                    keep_date_col=keep_date_col,
+                    dayfirst=dayfirst,
+                    date_parser=date_parser,
+
+                    nrows=nrows,
+                    iterator=iterator,
+                    chunksize=chunksize,
+                    skip_footer=skip_footer,
+                    converters=converters,
+                    verbose=verbose,
+                    encoding=encoding,
+                    squeeze=squeeze,
+
+                    na_filter=na_filter,
+                    compact_ints=compact_ints,
+                    use_unsigned=use_unsigned,
+                    delim_whitespace=delim_whitespace,
+                    as_recarray=as_recarray,
+                    warn_bad_lines=warn_bad_lines,
+                    error_bad_lines=error_bad_lines)
+
+        # Alias sep -> delimiter.
+        sep = kwds.pop('sep')
+        if kwds.get('delimiter', None) is None:
+            kwds['delimiter'] = sep
+
+        return _read(filepath_or_buffer, kwds)
+
+    parser_f.__name__ = name
+
+    return parser_f
+
+read_csv = _make_parser_function('read_csv', sep=',')
+read_csv = Appender(_read_csv_doc)(read_csv)
+
+read_table = _make_parser_function('read_table', sep='\t')
+read_table = Appender(_read_table_doc)(read_table)
+
 
 @Appender(_read_fwf_doc)
-def read_fwf(filepath_or_buffer,
-             colspecs=None,
-             widths=None,
-             header=0,
-             index_col=None,
-             names=None,
-             skiprows=None,
-             na_values=None,
-             na_filter=True,
-             keep_default_na=True,
-             thousands=None,
-             comment=None,
-             parse_dates=False,
-             keep_date_col=False,
-             dayfirst=False,
-             date_parser=None,
-             nrows=None,
-             iterator=False,
-             chunksize=None,
-             skip_footer=0,
-             converters=None,
-             delimiter=None,
-             verbose=False,
-             encoding=None,
-             squeeze=False):
-    kwds = dict(filepath_or_buffer=filepath_or_buffer,
-                colspecs=colspecs, widths=widths,
-                header=header, index_col=index_col,
-                names=names, skiprows=skiprows,
-                na_values=na_values,
-                na_filter=na_filter,
-                keep_default_na=keep_default_na,
-                thousands=thousands,
-                comment=comment, parse_dates=parse_dates,
-                keep_date_col=keep_date_col,
-                dayfirst=dayfirst, date_parser=date_parser,
-                nrows=nrows, iterator=iterator,
-                chunksize=chunksize, skip_footer=skip_footer,
-                converters=converters, verbose=verbose,
-                delimiter=delimiter, encoding=encoding,
-                squeeze=squeeze)
-
+def read_fwf(filepath_or_buffer, colspecs=None, widths=None, **kwds):
     # Check input arguments.
-    colspecs = kwds.get('colspecs', None)
-    widths = kwds.pop('widths', None)
     if bool(colspecs is None) == bool(widths is None):
         raise ValueError("You must specify only one of 'widths' and "
                          "'colspecs'")
@@ -363,12 +347,11 @@ def read_fwf(filepath_or_buffer,
         for w in widths:
             colspecs.append( (col, col+w) )
             col += w
-        kwds['colspecs'] = colspecs
 
-    kwds['thousands'] = thousands
+    kwds['colspecs'] = colspecs
     kwds['engine'] = 'python-fwf'
-
     return _read(filepath_or_buffer, kwds)
+
 
 def read_clipboard(**kwargs):  # pragma: no cover
     """
@@ -416,40 +399,49 @@ class TextFileReader(object):
     def __init__(self, f,
                  engine='python',
                  delimiter=None,
-                 delim_whitespace=False,
                  dialect=None,
-                 names=None, header=0, index_col=None,
+                 names=None,
+                 header=0,
+                 index_col=None,
                  thousands=None,
                  comment=None,
-                 parse_dates=False, keep_date_col=False,
-                 date_parser=None, dayfirst=False,
+
                  chunksize=None,
-                 skiprows=None, skip_footer=0,
+                 skiprows=None,
+                 skip_footer=0,
                  converters=None,
                  verbose=False,
                  encoding=None,
-                 na_filter=True, na_values=None, keep_default_na=True,
-                 warn_bad_lines=True, error_bad_lines=True,
+                 na_values=None,
+                 keep_default_na=True,
+
+                 parse_dates=False,
+                 keep_date_col=False,
+                 date_parser=None,
+                 dayfirst=False,
+
                  doublequote=True,
                  escapechar=None,
                  quotechar='"',
                  quoting=csv.QUOTE_MINIMAL,
                  skipinitialspace=False,
+
                  squeeze=False,
+
+                 delim_whitespace=False,
+                 na_filter=True,
+                 warn_bad_lines=True,
+                 error_bad_lines=True,
                  as_recarray=False,
                  compact_ints=False,
                  use_unsigned=False,
                  factorize=True,
+
                  **kwds):
 
         # Tokenization options
         self.delimiter = delimiter
         self.delim_whitespace = delim_whitespace
-
-        if delimiter is None and not delim_whitespace:
-            if engine == 'c':
-                print 'Using Python parser to sniff delimiter'
-                engine = 'python'
 
         self.doublequote = doublequote
         self.escapechar = escapechar
@@ -467,7 +459,6 @@ class TextFileReader(object):
             if not isinstance(index_col, (list, tuple, np.ndarray)):
                 index_col = [index_col]
         self.index_col = index_col
-
         self.names = list(names) if names is not None else names
 
         # type conversion-related
@@ -476,7 +467,6 @@ class TextFileReader(object):
             self.converters = converters
         else:
             self.converters = {}
-
         self.thousands = thousands
 
         self.parse_dates = parse_dates
@@ -491,10 +481,6 @@ class TextFileReader(object):
         # skip rows, skip footer
 
         self.skip_footer = skip_footer
-
-        # C engine not supported yet
-        if skip_footer > 0 and engine == 'c':
-            engine = 'python'
 
         if com.is_integer(skiprows):
             skiprows = range(skiprows)
@@ -518,15 +504,8 @@ class TextFileReader(object):
         # file options
         self.f = f
         self.encoding = encoding
-
-        # can't handle it
-        if encoding is not None and engine == 'c':
-            engine = 'python'
-
         self.engine_kind = engine
-
         self.factorize = factorize
-
         self.chunksize = chunksize
 
         self._engine = None
@@ -565,6 +544,23 @@ class TextFileReader(object):
         return na_values
 
     def _make_engine(self, kind='c'):
+
+        if self.delimiter is None and not self.delim_whitespace:
+            if kind == 'c':
+                print 'Using Python parser to sniff delimiter'
+                kind = 'python'
+        elif len(self.delimiter) > 1:
+            # wait until regex engine integrated
+            kind = 'python'
+
+        # can't handle it
+        if self.encoding is not None and kind == 'c':
+            kind = 'python'
+
+        # C engine not supported yet
+        if self.skip_footer > 0 and kind == 'c':
+            kind = 'python'
+
         params = dict(delimiter=self.delimiter,
                       names=self.names,
                       index_col=self.index_col,
@@ -1315,8 +1311,8 @@ class PythonParser(ParserBase):
 
             row_num = self.pos - (len(content) - i + footers)
 
-            msg = ('Expecting %d columns, got %d in row %d' %
-                   (col_len, zip_len, row_num))
+            msg = ('Expected %d fields in line %d, saw %d' %
+                   (col_len, row_num + 1, zip_len))
             raise ValueError(msg)
 
         return zipped_content

@@ -359,8 +359,8 @@ A,B,C
         try:
             df = self.read_table(StringIO(data), sep=',', header=1, comment='#')
             self.assert_(False)
-        except ValueError, inst:
-            self.assert_('Expecting 3 columns, got 5 in row 3' in str(inst))
+        except Exception, inst:
+            self.assert_('Expected 3 fields in line 4, saw 5' in str(inst))
 
         #skip_footer
         data = """ignore
@@ -376,7 +376,7 @@ footer
                             skip_footer=1)
             self.assert_(False)
         except ValueError, inst:
-            self.assert_('Expecting 3 columns, got 5 in row 3' in str(inst))
+            self.assert_('Expected 3 fields in line 4, saw 5' in str(inst))
 
         # first chunk
         data = """ignore
@@ -393,8 +393,8 @@ skip
                             skiprows=[2])
             df = it.read(5)
             self.assert_(False)
-        except ValueError, inst:
-            self.assert_('Expecting 3 columns, got 5 in row 5' in str(inst))
+        except Exception, inst:
+            self.assert_('Expected 3 fields in line 6, saw 5' in str(inst))
 
 
         # middle chunk
@@ -414,7 +414,7 @@ skip
             it.read(2)
             self.assert_(False)
         except ValueError, inst:
-            self.assert_('Expecting 3 columns, got 5 in row 5' in str(inst))
+            self.assert_('Expected 3 fields in line 6, saw 5' in str(inst))
 
 
         # last chunk
@@ -434,7 +434,7 @@ skip
             it.read()
             self.assert_(False)
         except ValueError, inst:
-            self.assert_('Expecting 3 columns, got 5 in row 5' in str(inst))
+            self.assert_('Expected 3 fields in line 6, saw 5' in str(inst))
 
     def test_quoting(self):
         bad_line_small = """printer\tresult\tvariant_name

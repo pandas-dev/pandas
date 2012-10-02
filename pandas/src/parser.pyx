@@ -414,14 +414,14 @@ cdef class TextReader:
         cdef:
             size_t i, start, data_line, field_count, passed_count
             char *word
+            object name
+            int status
 
         if self.parser.header >= 0:
             # Header is in the file
 
             if self.parser.lines < self.parser.header + 1:
-                # print 'tokenizing %d rows' % (self.parser.header + 2)
-
-                tokenize_nrows(self.parser, self.parser.header + 2)
+                self._tokenize_rows(self.parser.header + 2)
 
             # e.g., if header=3 and file only has 2 lines
             if self.parser.lines < self.parser.header + 1:
@@ -433,23 +433,34 @@ cdef class TextReader:
 
             # TODO: Py3 vs. Py2
             header = []
+            counts = {}
             for i in range(field_count):
                 word = self.parser.words[start + i]
-                header.append(PyString_FromString(word))
+                name = PyString_FromString(word)
+
+                if name == '':
+                    name = 'Unnamed: %d' % i
+
+                count = counts.get(name, 0)
+                if count > 0:
+                    header.append('%s.%d' % (name, count))
+                else:
+                    header.append(name)
+                counts[name] = count + 1
 
             data_line = self.parser.header + 1
 
         elif self.names is not None:
             # Names passed
             if self.parser.lines < 1:
-                tokenize_nrows(self.parser, 1)
+                self._tokenize_rows(1)
 
             header = self.names
             data_line = 0
         else:
             # No header passed nor to be found in the file
             if self.parser.lines < 1:
-                tokenize_nrows(self.parser, 1)
+                self._tokenize_rows(1)
 
             return None, self.parser.line_fields[0]
 
@@ -522,9 +533,14 @@ cdef class TextReader:
                     break
 
         # destructive to chunks
-        result = _concatenate_chunks(chunks)
+        return _concatenate_chunks(chunks)
 
-        return result
+    cdef _tokenize_rows(self, size_t nrows):
+        cdef int status
+        with nogil:
+            status = tokenize_nrows(self.parser, nrows)
+        if status < 0:
+            raise_parser_error('Error tokenizing data', self.parser)
 
     cdef _read_high_memory(self, rows, bint trim):
         cdef:
@@ -537,27 +553,24 @@ cdef class TextReader:
             irows = rows
             buffered_lines = self.parser.lines - self.parser_start
             if buffered_lines < irows:
-                with nogil:
-                    status = tokenize_nrows(self.parser,
-                                            irows - buffered_lines)
+                self._tokenize_rows(irows - buffered_lines)
+
             if self.skip_footer > 0:
                 raise ValueError('skip_footer can only be used to read '
                                  'the whole file')
         else:
             with nogil:
                 status = tokenize_all_rows(self.parser)
+            if status < 0:
+                raise_parser_error('Error tokenizing data', self.parser)
             footer = self.skip_footer
 
         if self.parser_start == self.parser.lines:
             raise StopIteration
-
         self._end_clock('Tokenization')
 
-        if status < 0:
-            raise_parser_error('Error tokenizing data', self.parser)
 
         self._start_clock()
-
         columns = self._convert_column_data(rows=rows,
                                             footer=footer,
                                             upcast_na=not self.as_recarray)
@@ -1056,7 +1069,14 @@ def downcast_int64(ndarray[int64_t] arr, bint use_unsigned=0):
 
 
 def _concatenate_chunks(list chunks):
-    pass
+    cdef:
+        Py_ssize_t i, j, ncols = len(chunks[0])
+
+    result = {}
+    for i in range(ncols):
+        arrs = [chunk.pop(i) for chunk in chunks]
+        result[i] = np.concatenate(arrs)
+    return result
 
 #----------------------------------------------------------------------
 
