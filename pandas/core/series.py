@@ -1151,7 +1151,7 @@ copy : boolean, default False
 
     @Substitution(name='standard deviation', shortname='stdev',
                   na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc + 
+    @Appender(_stat_doc +
         """
         Normalized by N-1 (unbiased estimator).
         """)
@@ -1164,7 +1164,7 @@ copy : boolean, default False
 
     @Substitution(name='variance', shortname='var',
                   na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc + 
+    @Appender(_stat_doc +
         """
         Normalized by N-1 (unbiased estimator).
         """)
@@ -2419,7 +2419,7 @@ copy : boolean, default False
 
     def to_csv(self, path, index=True, sep=",", na_rep='',
                float_format=None, header=False,
-               index_label=None, mode='w', nanRep=None, encoding=None):
+               index_label=None, mode='w', nanRep=None, encoding='utf-8'):
         """
         Write Series to a comma-separated values (csv) file
 
