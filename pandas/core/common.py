@@ -932,7 +932,7 @@ else:
             self.encoder = codecs.getincrementalencoder(encoding)()
 
         def writerow(self, row):
-            row = [x if isinstance(x, basestring) else str(x) for x in row]
+            row = [x if isinstance(x, basestring) else pprint_thing(x) for x in row]
             self.writer.writerow([s.encode("utf-8") for s in row])
             # Fetch UTF-8 output from the queue ...
             data = self.queue.getvalue()
