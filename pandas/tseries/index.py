@@ -581,13 +581,15 @@ class DatetimeIndex(Int64Index):
 
     def summary(self, name=None):
         if len(self) > 0:
-            index_summary = ', %s to %s' % (str(self[0]), str(self[-1]))
+            index_summary = ', %s to %s' % (com.pprint_thing(self[0]),
+                                            com.pprint_thing(self[-1]))
         else:
             index_summary = ''
 
         if name is None:
             name = type(self).__name__
-        result = '%s: %s entries%s' % (name, len(self), index_summary)
+        result = '%s: %s entries%s' % (com.pprint_thing(name),
+                                       len(self), index_summary)
         if self.freq:
             result += '\nFreq: %s' % self.freqstr
 
