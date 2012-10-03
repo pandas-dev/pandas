@@ -238,8 +238,8 @@ _c_parser_defaults = {
     'na_filter': True,
     'compact_ints': False,
     'use_unsigned': False,
-    'low_memory': False,
-    'buffer_lines': 2**14,
+    'low_memory': True,
+    'buffer_lines': 2**16,
     'error_bad_lines': True,
     'warn_bad_lines': True,
     'factorize': True
@@ -282,7 +282,7 @@ def _make_parser_function(name, sep=','):
                  compact_ints=False,
                  use_unsigned=False,
                  low_memory=_c_parser_defaults['low_memory'],
-                 buffer_lines=2**14,
+                 buffer_lines=2**16,
                  warn_bad_lines=True,
                  error_bad_lines=True,
 
@@ -494,13 +494,11 @@ class TextFileReader(object):
             # wait until regex engine integrated
             engine = 'python'
 
-        # can't handle it
-        if options['encoding'] is not None and engine == 'c':
-            engine = 'python'
-
         # C engine not supported yet
-        if options['skip_footer'] > 0 and engine == 'c':
-            engine = 'python'
+        if engine == 'c':
+            if (options['comment'] or options['skip_footer'] > 0
+                or options['encoding'] is not None):
+                engine = 'python'
 
         if engine == 'c':
             for arg in _c_unsupported:

@@ -55,6 +55,8 @@ void *safe_realloc(void *buffer, size_t size) {
         // errno gets set to 12 on my OS Xmachine in some cases even when the
         // realloc succeeds. annoying
         errno = 0;
+    } else {
+        return buffer;
     }
 
     return result;
@@ -1054,6 +1056,8 @@ int inline end_line(parser_t *self) {
         self->line_start[self->lines] = (self->line_start[self->lines - 1] +
                                          fields);
 
+        TRACE(("new line start: %d\n", self->line_start[self->lines]));
+
         // new line start with 0 fields
         self->line_fields[self->lines] = 0;
     }
@@ -1775,15 +1779,31 @@ int parser_consume_rows(parser_t *self, size_t nrows) {
     self->pword_start -= char_count;
     self->word_start -= char_count;
 
+    /* printf("Line_start: "); */
+    /* for (i = 0; i < self->lines; ++i) { */
+    /*     printf("%d ", self->line_start[i]); */
+    /* } */
+    /* printf("\n"); */
+
     /* move line metadata */
-    for (i = 0; i < self->lines - nrows; ++i)
+    for (i = 0; i < self->lines - nrows + 1; ++i)
     {
         offset = i + nrows;
         self->line_start[i] = self->line_start[offset] - word_deletions;
+
+        /* TRACE(("First word in line %d is now %s\n", i, */
+        /*        self->words[self->line_start[i]])); */
+
         self->line_fields[i] = self->line_fields[offset];
     }
     self->lines -= nrows;
-    self->line_fields[self->lines] = 0;
+    /* self->line_fields[self->lines] = 0; */
+
+    /* printf("Line_start: "); */
+    /* for (i = 0; i < self->lines; ++i) { */
+    /*     printf("%d ", self->line_start[i]); */
+    /* } */
+    /* printf("\n"); */
 
     return 0;
 }

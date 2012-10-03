@@ -1221,6 +1221,20 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
 
         assert_frame_equal(xp.set_index(['nominal', 'ID']), df)
 
+    def test_comment(self):
+        data = """A,B,C
+1,2.,4.#hello world
+5.,NaN,10.0
+"""
+        expected = [[1., 2., 4.],
+                    [5., np.nan, 10.]]
+        df = self.read_csv(StringIO(data), comment='#')
+        assert_almost_equal(df.values, expected)
+
+        df = self.read_table(StringIO(data), sep=',', comment='#',
+                             na_values=['NaN'])
+        assert_almost_equal(df.values, expected)
+
 
 class TestPythonParser(ParserTests, unittest.TestCase):
 
@@ -1281,19 +1295,6 @@ c   1   2   3   4
                             index_col=0)
         self.assert_(expected.index.name is None)
         assert_frame_equal(df, expected)
-
-    def test_comment(self):
-        data = """A,B,C
-1,2.,4.#hello world
-5.,NaN,10.0
-"""
-        expected = [[1., 2., 4.],
-                    [5., np.nan, 10.]]
-        df = self.read_csv(StringIO(data), comment='#')
-        assert_almost_equal(df.values, expected)
-
-        df = self.read_table(StringIO(data), sep=',', comment='#', na_values=['NaN'])
-        assert_almost_equal(df.values, expected)
 
     def test_1000_fwf(self):
         data = """
@@ -1513,16 +1514,50 @@ eight,1,2,3"""
         assert_frame_equal(df3, df2)
 
 
-class TestCParser(ParserTests, unittest.TestCase):
+class TestCParserHighMemory(ParserTests, unittest.TestCase):
 
     def read_csv(self, *args, **kwds):
         kwds = kwds.copy()
         kwds['engine'] = 'c'
+        kwds['low_memory'] = False
         return read_csv(*args, **kwds)
 
     def read_table(self, *args, **kwds):
         kwds = kwds.copy()
         kwds['engine'] = 'c'
+        kwds['low_memory'] = False
+        return read_table(*args, **kwds)
+
+    def test_compact_ints(self):
+        data = ('0,1,0,0\n'
+                '1,1,0,0\n'
+                '0,1,0,1')
+
+        result = read_csv(StringIO(data), delimiter=',', header=None,
+                          compact_ints=True, as_recarray=True)
+        ex_dtype = np.dtype([(str(i), 'i1') for i in range(4)])
+        self.assertEqual(result.dtype, ex_dtype)
+
+        result = read_csv(StringIO(data), delimiter=',', header=None,
+                          as_recarray=True, compact_ints=True,
+                          use_unsigned=True)
+        ex_dtype = np.dtype([(str(i), 'u1') for i in range(4)])
+        self.assertEqual(result.dtype, ex_dtype)
+
+class TestCParserLowMemory(ParserTests, unittest.TestCase):
+
+    def read_csv(self, *args, **kwds):
+        kwds = kwds.copy()
+        kwds['engine'] = 'c'
+        kwds['low_memory'] = True
+        kwds['buffer_lines'] = 2
+        return read_csv(*args, **kwds)
+
+    def read_table(self, *args, **kwds):
+        kwds = kwds.copy()
+        kwds['engine'] = 'c'
+        kwds['low_memory'] = True
+        kwds['buffer_lines'] = 2
         return read_table(*args, **kwds)
 
     def test_compact_ints(self):

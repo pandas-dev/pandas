@@ -88,6 +88,7 @@ cdef extern from "parser/parser.h":
         int chunksize  # Number of bytes to prepare for each chunk
         char *data     # pointer to data to be processed
         int datalen    # amount of data available
+        int datapos
 
         # where to write out tokenized data
         char *stream
@@ -254,7 +255,7 @@ cdef class TextReader:
                   compact_ints=False,
                   use_unsigned=False,
                   low_memory=False,
-                  buffer_lines=2**14,
+                  buffer_lines=2**16,
                   skiprows=None,
                   skip_footer=0,
                   verbose=False):
@@ -513,7 +514,7 @@ cdef class TextReader:
     cdef _read_low_memory(self, rows):
         cdef:
             size_t rows_read = 0
-            list chunks = []
+            chunks = []
 
         if rows is None:
             while True:
@@ -521,21 +522,29 @@ cdef class TextReader:
                     chunk = self._read_high_memory(self.buffer_lines, 0)
                     if len(chunk) == 0:
                         break
-
-                    chunks.append(chunk)
                 except StopIteration:
                     break
+                else:
+                    chunks.append(chunk)
         else:
             while rows_read < rows:
                 try:
-                    chunk = self._read_high_memory(self.buffer_lines, 0)
+                    crows = min(self.buffer_lines, rows - rows_read)
+
+                    chunk = self._read_high_memory(crows, 0)
                     if len(chunk) == 0:
                         break
 
                     rows_read += len(chunk.values()[0])
-                    chunks.append(chunk)
                 except StopIteration:
                     break
+                else:
+                    chunks.append(chunk)
+
+        parser_trim_buffers(self.parser)
+
+        if len(chunks) == 0:
+            raise StopIteration
 
         # destructive to chunks
         return _concatenate_chunks(chunks)

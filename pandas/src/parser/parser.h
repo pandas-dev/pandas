@@ -53,7 +53,7 @@
 #define ERROR_NO_DATA                  23
 
 
-/* #define VERBOSE */
+// #define VERBOSE
 
 #if defined(VERBOSE)
 #define TRACE(X) printf X;
