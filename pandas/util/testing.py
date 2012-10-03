@@ -405,7 +405,9 @@ class SimpleMock(object):
     def __init__(self, obj, *args, **kwds):
         assert(len(args) % 2 == 0)
         attrs = kwds.get("attrs", {})
-        attrs.update({k:v for k, v in zip(args[::2], args[1::2])})
+        for k, v in zip(args[::2], args[1::2]):
+            # dict comprehensions break 2.6
+            attrs[k]=v
         self.attrs = attrs
         self.obj = obj
 
