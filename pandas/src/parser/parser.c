@@ -647,7 +647,7 @@ void parser_set_default_options(parser_t *self) {
     self->skipinitialspace = 0;
     self->quoting = QUOTE_MINIMAL;
     self->allow_embedded_newline = 1;
-    self->strict = 1;
+    self->strict = 0;
 
     self->error_bad_lines = 0;
     self->warn_bad_lines = 0;
@@ -846,6 +846,10 @@ int parser_init(parser_t *self) {
 
         return PARSER_OUT_OF_MEMORY;
     }
+
+    /* amount of bytes buffered */
+    self->datalen = 0;
+    self->datapos = 0;
 
     self->line_start[0] = 0;
     self->line_fields[0] = 0;
@@ -1121,6 +1125,8 @@ int parser_buffer_bytes(parser_t *self, size_t nbytes) {
 
     status = 0;
 
+    self->datapos = 0;
+
     switch(self->sourcetype) {
         case 'F': // basic FILE*
 
@@ -1238,27 +1244,40 @@ int parser_cleanup_filebuffers(parser_t *self) {
     stream = self->stream + self->stream_len;  \
     slen = self->stream_len;
 
-#define END_LINE()                             \
-    self->stream_len = slen;                   \
-    if (end_line(self) < 0) {                  \
-        goto parsingerror;                     \
-    }                                          \
-    stream = self->stream + self->stream_len;  \
+#define END_LINE()                                                      \
+    self->stream_len = slen;                                            \
+    if (end_line(self) < 0) {                                           \
+        goto parsingerror;                                              \
+    }                                                                   \
+    self->state = START_RECORD;                                         \
+    if (line_limit > 0 && self->lines == start_lines + line_limit) {    \
+        goto linelimit;                                                 \
+                                                                        \
+    }                                                                   \
+    stream = self->stream + self->stream_len;                           \
     slen = self->stream_len;
 
 #define IS_WHITESPACE(c) ((c == ' ' || c == '\t'))
 
-typedef int (*parser_op)(parser_t *self);
+typedef int (*parser_op)(parser_t *self, size_t line_limit);
+
+#define _TOKEN_CLEANUP()                                                \
+    self->stream_len = slen;                                            \
+    self->datapos = i;                                                  \
+    TRACE(("datapos: %d, datalen: %d\n", self->datapos, self->datalen));
 
 
-int tokenize_delimited(parser_t *self)
+
+int tokenize_delimited(parser_t *self, size_t line_limit)
 {
-    int i, slen;
+    int i, slen, start_lines;
     char c;
     char *stream;
-    char *buf = self->data;
+    char *buf = self->data + self->datapos;
 
-    if (make_stream_space(self, self->datalen) < 0) {
+    start_lines = self->lines;
+
+    if (make_stream_space(self, self->datalen - self->datapos) < 0) {
         self->error_msg = "out of memory";
         return -1;
     }
@@ -1268,13 +1287,14 @@ int tokenize_delimited(parser_t *self)
 
     TRACE(("%s\n", buf));
 
-    for (i = 0; i < self->datalen; ++i)
+    for (i = self->datapos; i < self->datalen; ++i)
     {
         // Next character in file
         c = *buf++;
 
-        /* TRACE(("Iter: %d Char: %c Line %d field_count %d\n", */
-        /*        i, c, self->file_lines + 1, self->line_fields[self->file_lines])); */
+        TRACE(("Iter: %d Char: %c Line %d field_count %d, state %d\n",
+               i, c, self->file_lines + 1, self->line_fields[self->lines],
+               self->state));
 
         switch(self->state) {
         case START_RECORD:
@@ -1297,7 +1317,7 @@ int tokenize_delimited(parser_t *self)
             if (c == '\n') {
                 END_FIELD();
                 END_LINE();
-                self->state = START_RECORD;
+                /* self->state = START_RECORD; */
             } else if (c == '\r') {
                 END_FIELD();
                 self->state = EAT_CRNL;
@@ -1342,7 +1362,7 @@ int tokenize_delimited(parser_t *self)
             if (c == '\n') {
                 END_FIELD();
                 END_LINE();
-                self->state = START_RECORD;
+                /* self->state = START_RECORD; */
             } else if (c == '\r') {
                 END_FIELD();
                 self->state = EAT_CRNL;
@@ -1410,7 +1430,7 @@ int tokenize_delimited(parser_t *self)
             else if (c == '\n') {
                 END_FIELD();
                 END_LINE();
-                self->state = START_RECORD;
+                /* self->state = START_RECORD; */
             }
             else if (c == '\r') {
                 END_FIELD();
@@ -1431,7 +1451,7 @@ int tokenize_delimited(parser_t *self)
         case EAT_CRNL:
             if (c == '\n') {
                 END_LINE();
-                self->state = START_RECORD;
+                /* self->state = START_RECORD; */
             } else {
                 /* self->error_msg = ("new-line character seen in" */
                 /*                 " unquoted field - do you need" */
@@ -1445,27 +1465,35 @@ int tokenize_delimited(parser_t *self)
 
     }
 
-    self->stream_len = slen;
+    _TOKEN_CLEANUP();
 
     TRACE(("Finished tokenizing input\n"))
 
     return 0;
 
 parsingerror:
-
-    self->stream_len = slen;
+    i++;
+    _TOKEN_CLEANUP();
 
     return -1;
+
+linelimit:
+    i++;
+    _TOKEN_CLEANUP();
+
+    return 0;
 }
 
-int tokenize_whitespace(parser_t *self)
+int tokenize_whitespace(parser_t *self, size_t line_limit)
 {
-    int i, slen;
+    int i, slen, start_lines;
     char c;
     char *stream;
-    char *buf = self->data;
+    char *buf = self->data + self->datapos;
 
-    if (make_stream_space(self, self->datalen) < 0) {
+    start_lines = self->lines;
+
+    if (make_stream_space(self, self->datalen - self->datapos) < 0) {
         self->error_msg = "out of memory";
         return -1;
     }
@@ -1475,13 +1503,13 @@ int tokenize_whitespace(parser_t *self)
 
     TRACE(("%s\n", buf));
 
-    for (i = 0; i < self->datalen; ++i)
+    for (i = self->datapos; i < self->datalen; ++i)
     {
         // Next character in file
         c = *buf++;
 
         TRACE(("Iter: %d Char: %c Line %d field_count %d\n",
-               i, c, self->file_lines + 1, self->line_fields[self->file_lines]));
+               i, c, self->file_lines + 1, self->line_fields[self->lines]));
 
         switch(self->state) {
 
@@ -1514,7 +1542,7 @@ int tokenize_whitespace(parser_t *self)
             if (c == '\n') {
                 END_FIELD();
                 END_LINE();
-                self->state = START_RECORD;
+                /* self->state = START_RECORD; */
             } else if (c == '\r') {
                 END_FIELD();
                 self->state = EAT_CRNL;
@@ -1558,7 +1586,7 @@ int tokenize_whitespace(parser_t *self)
             if (c == '\n') {
                 END_FIELD();
                 END_LINE();
-                self->state = START_RECORD;
+                /* self->state = START_RECORD; */
             } else if (c == '\r') {
                 END_FIELD();
                 self->state = EAT_CRNL;
@@ -1617,16 +1645,16 @@ int tokenize_whitespace(parser_t *self)
                 PUSH_CHAR(c);
                 self->state = IN_QUOTED_FIELD;
             }
-            else if (c == self->delimiter) {
+            else if (IS_WHITESPACE(c)) {
                 // End of field. End of line not reached yet
 
                 END_FIELD();
-                self->state = START_FIELD;
+                self->state = EAT_WHITESPACE;
             }
             else if (c == '\n') {
                 END_FIELD();
                 END_LINE();
-                self->state = START_RECORD;
+                /* self->state = START_RECORD; */
             }
             else if (c == '\r') {
                 END_FIELD();
@@ -1647,7 +1675,7 @@ int tokenize_whitespace(parser_t *self)
         case EAT_CRNL:
             if (c == '\n') {
                 END_LINE();
-                self->state = START_RECORD;
+                /* self->state = START_RECORD; */
             } else {
                 /* self->error_msg = ("new-line character seen in" */
                 /*                 " unquoted field - do you need" */
@@ -1661,17 +1689,23 @@ int tokenize_whitespace(parser_t *self)
 
     }
 
-    self->stream_len = slen;
+    _TOKEN_CLEANUP();
 
     TRACE(("Finished tokenizing input\n"))
 
     return 0;
 
 parsingerror:
-
-    self->stream_len = slen;
+    i++;
+    _TOKEN_CLEANUP();
 
     return -1;
+
+linelimit:
+    i++;
+    _TOKEN_CLEANUP();
+
+    return 0;
 }
 
 
@@ -1681,9 +1715,18 @@ int parser_handle_eof(parser_t *self) {
         // test cases needed here
         // TODO: empty field at end of line
         TRACE(("handling eof\n"));
+
         if (self->state == IN_FIELD) {
             if (end_field(self) < 0)
                 return -1;
+        } else if (self->state == QUOTE_IN_QUOTED_FIELD) {
+            if (end_field(self) < 0)
+                return -1;
+        } else if (self->state == IN_QUOTED_FIELD) {
+            self->error_msg = (char*) malloc(100);
+            sprintf(self->error_msg, "EOF inside string starting at line %d",
+                    self->file_lines);
+            return -1;
         }
 
         if (end_line(self) < 0)
@@ -1733,13 +1776,14 @@ int parser_consume_rows(parser_t *self, size_t nrows) {
     self->word_start -= char_count;
 
     /* move line metadata */
-    for (i = 0; i < nrows; ++i)
+    for (i = 0; i < self->lines - nrows; ++i)
     {
         offset = i + nrows;
         self->line_start[i] = self->line_start[offset] - word_deletions;
         self->line_fields[i] = self->line_fields[offset];
     }
     self->lines -= nrows;
+    self->line_fields[self->lines] = 0;
 
     return 0;
 }
@@ -1836,20 +1880,21 @@ int _tokenize_helper(parser_t *self, size_t nrows, int all) {
         if (!all && self->lines - start_lines >= nrows)
             break;
 
-        TRACE(("Trying to process %d bytes\n", self->chunksize));
+        if (self->datapos == self->datalen) {
+            status = parser_buffer_bytes(self, self->chunksize);
 
-        status = parser_buffer_bytes(self, self->chunksize);
-
-        TRACE(("sourcetype: %c, status: %d\n", self->sourcetype, status));
-
-        if (status == REACHED_EOF) {
-            // close out last line
-            status = parser_handle_eof(self);
-            self->state = FINISHED;
-            break;
+            if (status == REACHED_EOF) {
+                // close out last line
+                status = parser_handle_eof(self);
+                self->state = FINISHED;
+                break;
+            }
         }
 
-        status = tokenize_bytes(self);
+        TRACE(("Trying to process %d bytes\n", self->datalen - self->datapos));
+        TRACE(("sourcetype: %c, status: %d\n", self->sourcetype, status));
+
+        status = tokenize_bytes(self, nrows);
 
         if (status < 0) {
             // XXX

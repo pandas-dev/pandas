@@ -238,7 +238,7 @@ cdef class TextReader:
 
                   skipinitialspace=False,
                   escapechar=None,
-                  doublequote=None,
+                  doublequote=True,
                   quotechar=b'"',
                   quoting=0,
 
@@ -282,6 +282,7 @@ cdef class TextReader:
         #----------------------------------------
         # parser options
 
+        self.parser.doublequote = doublequote
         self.parser.skipinitialspace = skipinitialspace
 
         if len(decimal) != 1:
@@ -366,6 +367,9 @@ cdef class TextReader:
         if self.should_close:
             self.file_handle.close()
 
+    def set_error_bad_lines(self, int status):
+        self.parser.error_bad_lines = status
+
     cdef _make_skiprow_set(self):
         if isinstance(self.skiprows, (int, np.integer)):
             self.skiprows = range(self.skiprows)
@@ -417,6 +421,8 @@ cdef class TextReader:
             object name
             int status
 
+        header = []
+
         if self.parser.header >= 0:
             # Header is in the file
 
@@ -432,7 +438,6 @@ cdef class TextReader:
             start = self.parser.line_start[self.parser.header]
 
             # TODO: Py3 vs. Py2
-            header = []
             counts = {}
             for i in range(field_count):
                 word = self.parser.words[start + i]
@@ -466,7 +471,7 @@ cdef class TextReader:
 
         # Corner case, not enough lines in the file
         if self.parser.lines < data_line + 1:
-            return None, len(header)
+            field_count = len(header)
         else:
             field_count = self.parser.line_fields[data_line]
             passed_count = len(header)

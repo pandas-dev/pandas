@@ -281,7 +281,7 @@ def _make_parser_function(name, sep=','):
                  na_filter=True,
                  compact_ints=False,
                  use_unsigned=False,
-                 low_memory=False,
+                 low_memory=_c_parser_defaults['low_memory'],
                  buffer_lines=2**14,
                  warn_bad_lines=True,
                  error_bad_lines=True,
@@ -569,12 +569,22 @@ class TextFileReader(object):
         raise NotImplementedError
 
     def read(self, nrows=None):
-        if nrows is not None and self.options.get('skip_footer'):
-            raise ValueError('skip_footer not supported for iteration')
+        suppressed_warnings = False
+        if nrows is not None:
+            if self.options.get('skip_footer'):
+                raise ValueError('skip_footer not supported for iteration')
+
+            # # XXX hack
+            # if isinstance(self._engine, CParserWrapper):
+            #     suppressed_warnings = True
+            #     self._engine.set_error_bad_lines(False)
 
         # index = None
 
         ret = self._engine.read(nrows)
+
+        # if suppressed_warnings:
+        #     self._engine.set_error_bad_lines(True)
 
         if self.options.get('as_recarray'):
             return ret
@@ -794,12 +804,22 @@ class CParserWrapper(ParserBase):
 
         self._implicit_index = self._reader.leading_cols > 0
 
+    def set_error_bad_lines(self, status):
+        self._reader.set_error_bad_lines(int(status))
+
     def read(self, nrows=None):
         if self.as_recarray:
             # what to do if there are leading columns?
             return self._reader.read(nrows)
 
-        data = self._reader.read(nrows)
+        try:
+            data = self._reader.read(nrows)
+        except StopIteration:
+            if nrows is None:
+                return None, self.names, {}
+            else:
+                raise
+
         names = self.names
 
         if self._reader.leading_cols:

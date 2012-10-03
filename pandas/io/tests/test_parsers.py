@@ -407,9 +407,7 @@ skip
 2,3,4
 """
         try:
-            it = self.read_table(StringIO(data), sep=',',
-                            header=1, comment='#', iterator=True, chunksize=1,
-                            skiprows=[2])
+            it = self.read_table(StringIO(data), sep=',', header=1, comment='#', iterator=True, chunksize=1, skiprows=[2])
             df = it.read(1)
             it.read(2)
             self.assert_(False)

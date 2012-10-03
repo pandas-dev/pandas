@@ -109,6 +109,7 @@ typedef struct parser_t {
     int chunksize;  // Number of bytes to prepare for each chunk
     char *data;     // pointer to data to be processed
     int datalen;    // amount of data available
+    int datapos;
 
     // where to write out tokenized data
     char *stream;
