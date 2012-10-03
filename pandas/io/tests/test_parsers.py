@@ -375,7 +375,7 @@ footer
             df = self.read_table(StringIO(data), sep=',', header=1, comment='#',
                             skip_footer=1)
             self.assert_(False)
-        except ValueError, inst:
+        except Exception, inst:
             self.assert_('Expected 3 fields in line 4, saw 5' in str(inst))
 
         # first chunk
@@ -413,7 +413,7 @@ skip
             df = it.read(1)
             it.read(2)
             self.assert_(False)
-        except ValueError, inst:
+        except Exception, inst:
             self.assert_('Expected 3 fields in line 6, saw 5' in str(inst))
 
 
@@ -433,7 +433,7 @@ skip
             df = it.read(1)
             it.read()
             self.assert_(False)
-        except ValueError, inst:
+        except Exception, inst:
             self.assert_('Expected 3 fields in line 6, saw 5' in str(inst))
 
     def test_quoting(self):

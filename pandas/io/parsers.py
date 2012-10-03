@@ -197,15 +197,19 @@ def _read(filepath_or_buffer, kwds):
     return parser.read()
 
 _parser_defaults = {
-    'engine': 'c',
-    'sep': ',',
-    'dialect': None,
+    'delimiter': None,
+
+    'doublequote': True,
+    'escapechar': None,
+    'quotechar': '"',
+    'quoting': csv.QUOTE_MINIMAL,
+    'skipinitialspace': False,
+
     'header': 0,
     'index_col': None,
     'names': None,
     'skiprows': None,
     'na_values': None,
-    'delimiter': None,
     'skip_footer': 0,
     'converters': None,
 
@@ -213,18 +217,20 @@ _parser_defaults = {
     'thousands': None,
     'comment': None,
 
+    # 'engine': 'c',
     'parse_dates': False,
     'keep_date_col': False,
     'dayfirst': False,
     'date_parser': None,
 
-    'nrows': None,
-    'iterator': False,
+    # 'nrows': None,
+    # 'iterator': False,
     'chunksize': None,
     'verbose': False,
     'encoding': None,
     'squeeze': False
 }
+
 
 _c_parser_defaults = {
     'delim_whitespace': False,
@@ -232,19 +238,34 @@ _c_parser_defaults = {
     'na_filter': True,
     'compact_ints': False,
     'use_unsigned': False,
-    'low_memory': True,
+    'low_memory': False,
     'buffer_lines': 2**14,
     'error_bad_lines': True,
-    'warn_bad_lines': True
+    'warn_bad_lines': True,
+    'factorize': True
+}
+
+_fwf_defaults = {
+    'colspecs': None,
+    'widths': None
 }
 
 _c_unsupported = set(['comment', 'skip_footer', 'encoding'])
+_python_unsupported = set(_c_parser_defaults.keys())
+
 
 def _make_parser_function(name, sep=','):
 
     def parser_f(filepath_or_buffer,
                  sep=sep,
                  dialect=None,
+
+                 doublequote=True,
+                 escapechar=None,
+                 quotechar='"',
+                 quoting=csv.QUOTE_MINIMAL,
+                 skipinitialspace=False,
+
                  header=0,
                  index_col=None,
                  names=None,
@@ -281,10 +302,21 @@ def _make_parser_function(name, sep=','):
                  verbose=False,
                  encoding=None,
                  squeeze=False):
-        kwds = dict(sep=sep,
-                    delimiter=delimiter,
+
+        # Alias sep -> delimiter.
+        if delimiter is None:
+            delimiter = sep
+
+        kwds = dict(delimiter=delimiter,
                     engine=engine,
                     dialect=dialect,
+
+                    doublequote=doublequote,
+                    escapechar=escapechar,
+                    quotechar=quotechar,
+                    quoting=quoting,
+                    skipinitialspace=skipinitialspace,
+
                     header=header,
                     index_col=index_col,
                     names=names,
@@ -314,12 +346,9 @@ def _make_parser_function(name, sep=','):
                     delim_whitespace=delim_whitespace,
                     as_recarray=as_recarray,
                     warn_bad_lines=warn_bad_lines,
-                    error_bad_lines=error_bad_lines)
-
-        # Alias sep -> delimiter.
-        sep = kwds.pop('sep')
-        if kwds.get('delimiter', None) is None:
-            kwds['delimiter'] = sep
+                    error_bad_lines=error_bad_lines,
+                    low_memory=low_memory,
+                    buffer_lines=buffer_lines)
 
         return _read(filepath_or_buffer, kwds)
 
@@ -396,128 +425,128 @@ class TextFileReader(object):
 
     """
 
-    def __init__(self, f,
-                 engine='python',
-                 delimiter=None,
-                 dialect=None,
-                 names=None,
-                 header=0,
-                 index_col=None,
-                 thousands=None,
-                 comment=None,
+    def __init__(self, f, engine='python', **kwds):
 
-                 chunksize=None,
-                 skiprows=None,
-                 skip_footer=0,
-                 converters=None,
-                 verbose=False,
-                 encoding=None,
-                 na_values=None,
-                 keep_default_na=True,
+        self.f = f
 
-                 parse_dates=False,
-                 keep_date_col=False,
-                 date_parser=None,
-                 dayfirst=False,
+        if kwds.get('dialect') is not None:
+            dialect = kwds['dialect']
+            kwds['delimiter'] = dialect.delimiter
+            kwds['doublequote'] = dialect.doublequote
+            kwds['escapechar'] = dialect.escapechar
+            kwds['skipinitialspace'] = dialect.skipinitialspace
+            kwds['quotechar'] = dialect.quotechar
+            kwds['quoting'] = dialect.quoting
 
-                 doublequote=True,
-                 escapechar=None,
-                 quotechar='"',
-                 quoting=csv.QUOTE_MINIMAL,
-                 skipinitialspace=False,
+        self.orig_options = kwds
 
-                 squeeze=False,
+        # miscellanea
+        self.engine = engine
+        self._engine = None
 
-                 delim_whitespace=False,
-                 na_filter=True,
-                 warn_bad_lines=True,
-                 error_bad_lines=True,
-                 as_recarray=False,
-                 compact_ints=False,
-                 use_unsigned=False,
-                 factorize=True,
+        options = self._get_options_with_defaults(engine)
 
-                 **kwds):
+        self.chunksize = options.pop('chunksize', None)
+        self.squeeze = options.pop('squeeze', False)
 
-        # Tokenization options
-        self.delimiter = delimiter
-        self.delim_whitespace = delim_whitespace
+        # might mutate self.engine
+        self.options, self.engine = self._clean_options(options, engine)
 
-        self.doublequote = doublequote
-        self.escapechar = escapechar
-        self.skipinitialspace = skipinitialspace
-        self.quotechar = quotechar
-        self.quoting = quoting
+        self._make_engine(self.engine)
 
-        if dialect is not None:
-            self._process_dialect(dialect)
+    def _get_options_with_defaults(self, engine):
+        kwds = self.orig_options
 
-        # header / index-related
-        self.header = header
+        options = {}
+        for argname, default in _parser_defaults.iteritems():
+            if argname in kwds:
+                value = kwds[argname]
+            else:
+                value = default
+
+            options[argname] = value
+
+        for argname, default in _c_parser_defaults.iteritems():
+            if argname in kwds:
+                value = kwds[argname]
+                if engine != 'c' and value != default:
+                    raise ValueError('%s is not supported with %s parser' %
+                                     (argname, engine))
+            options[argname] = value
+
+        if engine == 'python-fwf':
+            for argname, default in _fwf_defaults.iteritems():
+                if argname in kwds:
+                    value = kwds[argname]
+                options[argname] = value
+
+        return options
+
+    def _clean_options(self, options, engine):
+        result = options.copy()
+
+        sep = options['delimiter']
+        if (sep is None and not options['delim_whitespace']):
+            if engine == 'c':
+                print 'Using Python parser to sniff delimiter'
+                engine = 'python'
+        elif sep is not None and len(sep) > 1:
+            # wait until regex engine integrated
+            engine = 'python'
+
+        # can't handle it
+        if options['encoding'] is not None and engine == 'c':
+            engine = 'python'
+
+        # C engine not supported yet
+        if options['skip_footer'] > 0 and engine == 'c':
+            engine = 'python'
+
+        if engine == 'c':
+            for arg in _c_unsupported:
+                del result[arg]
+
+        if 'python' in engine:
+            for arg in _python_unsupported:
+                del result[arg]
+
+        index_col = options['index_col']
+        names = options['names']
+        converters = options['converters']
+        na_values = options['na_values']
+        skiprows = options['skiprows']
+
+        # really delete this one
+        keep_default_na = result.pop('keep_default_na')
 
         if index_col is not None:
             if not isinstance(index_col, (list, tuple, np.ndarray)):
                 index_col = [index_col]
-        self.index_col = index_col
-        self.names = list(names) if names is not None else names
+        result['index_col'] = index_col
+
+        names = list(names) if names is not None else names
 
         # type conversion-related
         if converters is not None:
             assert(isinstance(converters, dict))
-            self.converters = converters
         else:
-            self.converters = {}
-        self.thousands = thousands
-
-        self.parse_dates = parse_dates
-        self.keep_date_col = keep_date_col
-        self.date_parser = date_parser
-        self.dayfirst = dayfirst
+            converters = {}
 
         # Converting values to NA
-        self.na_filter = na_filter
-        self.na_values = self._get_na_values(na_values, keep_default_na)
-
-        # skip rows, skip footer
-
-        self.skip_footer = skip_footer
+        na_values = _clean_na_values(na_values, keep_default_na)
 
         if com.is_integer(skiprows):
             skiprows = range(skiprows)
-        self.skiprows = set() if skiprows is None else set(skiprows)
+        skiprows = set() if skiprows is None else set(skiprows)
 
-        self.comment = comment
+        # put stuff back
+        result['index_col'] = index_col
+        result['names'] = names
+        result['converters'] = converters
+        result['na_values'] = na_values
+        result['skiprows'] = skiprows
 
-        # verbosity and error handling
-
-        self.verbose = verbose
-        self.warn_bad_lines = warn_bad_lines
-        self.error_bad_lines = error_bad_lines
-        self.compact_ints = compact_ints
-        self.use_unsigned = use_unsigned
-
-        # miscellanea
-        self.kwds = kwds
-        self.squeeze = squeeze    # return single-column DataFrame as Series
-        self.as_recarray = as_recarray # C parser return structured array
-
-        # file options
-        self.f = f
-        self.encoding = encoding
-        self.engine_kind = engine
-        self.factorize = factorize
-        self.chunksize = chunksize
-
-        self._engine = None
-        self._make_engine(self.engine_kind)
-
-    def _process_dialect(self, dialect):
-        self.delimiter = dialect.delimiter
-        self.doublequote = dialect.doublequote
-        self.escapechar = dialect.escapechar
-        self.skipinitialspace = dialect.skipinitialspace
-        self.quotechar = dialect.quotechar
-        self.quoting = dialect.quoting
+        return result, engine
 
     def __iter__(self):
         try:
@@ -526,97 +555,28 @@ class TextFileReader(object):
         except StopIteration:
             pass
 
-    def _get_na_values(self, na_values, keep_default_na=True):
-        if na_values is None and keep_default_na:
-            na_values = _NA_VALUES
-        elif isinstance(na_values, dict):
-            if keep_default_na:
-                for k, v in na_values.iteritems():
-                    v = set(list(v)) | _NA_VALUES
-                    na_values[k] = v
+    def _make_engine(self, engine='c'):
+        if engine == 'c':
+            self._engine = CParserWrapper(self.f, **self.options)
         else:
-            if not com.is_list_like(na_values):
-                na_values = [na_values]
-            na_values = set(list(na_values))
-            if keep_default_na:
-                na_values = na_values | _NA_VALUES
-
-        return na_values
-
-    def _make_engine(self, kind='c'):
-
-        if self.delimiter is None and not self.delim_whitespace:
-            if kind == 'c':
-                print 'Using Python parser to sniff delimiter'
-                kind = 'python'
-        elif len(self.delimiter) > 1:
-            # wait until regex engine integrated
-            kind = 'python'
-
-        # can't handle it
-        if self.encoding is not None and kind == 'c':
-            kind = 'python'
-
-        # C engine not supported yet
-        if self.skip_footer > 0 and kind == 'c':
-            kind = 'python'
-
-        params = dict(delimiter=self.delimiter,
-                      names=self.names,
-                      index_col=self.index_col,
-                      header=self.header,
-                      skiprows=self.skiprows,
-                      skip_footer=self.skip_footer,
-                      thousands=self.thousands,
-                      comment=self.comment,
-                      doublequote=self.doublequote,
-                      escapechar=self.escapechar,
-                      skipinitialspace=self.skipinitialspace,
-                      quotechar=self.quotechar,
-                      quoting=self.quoting,
-                      converters=self.converters,
-                      parse_dates=self.parse_dates,
-                      date_parser=self.date_parser,
-                      keep_date_col=self.keep_date_col,
-                      dayfirst=self.dayfirst,
-                      na_values=self.na_values,
-                      na_filter=self.na_filter,
-                      verbose=self.verbose)
-
-        params.update(self.kwds)
-
-        if kind == 'c':
-            params.update(warn_bad_lines=self.warn_bad_lines,
-                          error_bad_lines=self.error_bad_lines,
-                          use_unsigned=self.use_unsigned,
-                          compact_ints=self.compact_ints,
-                          as_recarray=self.as_recarray,
-                          factorize=self.factorize)
-
-            self._engine = CParserWrapper(self.f, **params)
-        else:
-            params.update(encoding=self.encoding)
-
-            if kind == 'python':
+            if engine == 'python':
                 klass = PythonParser
-            elif kind == 'python-fwf':
-
+            elif engine == 'python-fwf':
                 klass = FixedWidthFieldParser
-
-            self._engine = klass(self.f, **params)
+            self._engine = klass(self.f, **self.options)
 
     def _failover_to_python(self):
         raise NotImplementedError
 
     def read(self, nrows=None):
-        if nrows is not None and self.skip_footer:
+        if nrows is not None and self.options.get('skip_footer'):
             raise ValueError('skip_footer not supported for iteration')
 
         # index = None
 
         ret = self._engine.read(nrows)
 
-        if self.as_recarray:
+        if self.options.get('as_recarray'):
             return ret
 
         index, columns, col_dict = ret
@@ -942,69 +902,54 @@ def TextParser(*args, **kwds):
     kwds['engine'] = 'python'
     return TextFileReader(*args, **kwds)
 
+# delimiter=None, dialect=None, names=None, header=0,
+# index_col=None,
+# na_values=None,
+# na_filter=True,
+# thousands=None,
+# quotechar='"',
+# escapechar=None,
+# doublequote=True,
+# skipinitialspace=False,
+# quoting=csv.QUOTE_MINIMAL,
+# comment=None, parse_dates=False, keep_date_col=False,
+# date_parser=None, dayfirst=False,
+# chunksize=None, skiprows=None, skip_footer=0, converters=None,
+# verbose=False, encoding=None, squeeze=False):
+
 
 class PythonParser(ParserBase):
 
-    def __init__(self, f, delimiter=None, dialect=None, names=None, header=0,
-                 index_col=None,
-                 na_values=None,
-                 na_filter=True,
-                 thousands=None,
-                 quotechar='"',
-                 escapechar=None,
-                 doublequote=True,
-                 skipinitialspace=False,
-                 quoting=csv.QUOTE_MINIMAL,
-                 comment=None, parse_dates=False, keep_date_col=False,
-                 date_parser=None, dayfirst=False,
-                 chunksize=None, skiprows=None, skip_footer=0, converters=None,
-                 verbose=False, encoding=None, squeeze=False):
+    def __init__(self, f, **kwds):
         """
         Workhorse function for processing nested list into DataFrame
 
         Should be replaced by np.genfromtxt eventually?
         """
+        ParserBase.__init__(self, kwds)
+
         self.data = None
         self.buf = []
         self.pos = 0
-        self.names = names
-        self.header = header
-        self.index_col = index_col
-        self.chunksize = chunksize
-        self.encoding = encoding
 
-        self.parse_dates = parse_dates
-        self.date_parser = date_parser
-        self.dayfirst = dayfirst
-        self._date_conv = _make_date_converter(date_parser=date_parser,
-                                               dayfirst=dayfirst)
-        self.keep_date_col = keep_date_col
+        self.header = kwds['header']
+        self.encoding = kwds['encoding']
+        self.skiprows = kwds['skiprows']
 
-        self.skiprows = skiprows
+        self.skip_footer = kwds['skip_footer']
+        self.delimiter = kwds['delimiter']
 
-        self.skip_footer = skip_footer
-        self.delimiter = delimiter
+        self.quotechar = kwds['quotechar']
+        self.escapechar = kwds['escapechar']
+        self.doublequote = kwds['doublequote']
+        self.skipinitialspace = kwds['skipinitialspace']
+        self.quoting = kwds['quoting']
 
-        self.quotechar = quotechar
-        self.escapechar = escapechar
-        self.doublequote = doublequote
-        self.skipinitialspace = skipinitialspace
-        self.quoting = quoting
-        self.dialect = dialect
+        self.verbose = kwds['verbose']
+        self.converters = kwds['converters']
 
-        self.verbose = verbose
-        self.converters = converters
-
-        self.na_values = na_values
-        self.na_filter = na_filter
-
-        if not na_filter:
-            raise NotImplementedError
-
-        self.squeeze = squeeze
-
-        self.thousands = thousands
-        self.comment = comment
+        self.thousands = kwds['thousands']
+        self.comment = kwds['comment']
         self._comment_lines = []
 
         if hasattr(f, 'readline'):
@@ -1019,8 +964,6 @@ class PythonParser(ParserBase):
         # needs to be cleaned/refactored
         # multiple date column thing turning into a real spaghetti factory
 
-        self.index_names = None
-        self._name_processed = False
         if not self._has_complex_date_col:
             (self.index_names,
              self.orig_names, _) = self._get_index_name(self.columns)
@@ -1031,21 +974,16 @@ class PythonParser(ParserBase):
         sep = self.delimiter
 
         if sep is None or len(sep) == 1:
-            if self.dialect is not None:
-                if isinstance(self.dialect, basestring):
-                    dialect = csv.get_dialect(self.dialect)
-                dia = dialect
-            else:
-                class MyDialect(csv.Dialect):
-                    delimiter = self.delimiter
-                    quotechar = self.quotechar
-                    escapechar = self.escapechar
-                    doublequote = self.doublequote
-                    skipinitialspace = self.skipinitialspace
-                    quoting = self.quoting
-                    lineterminator = '\n'
+            class MyDialect(csv.Dialect):
+                delimiter = self.delimiter
+                quotechar = self.quotechar
+                escapechar = self.escapechar
+                doublequote = self.doublequote
+                skipinitialspace = self.skipinitialspace
+                quoting = self.quoting
+                lineterminator = '\n'
 
-                dia = MyDialect
+            dia = MyDialect
 
             sniff_sep = True
 
@@ -1472,6 +1410,24 @@ def _try_convert_dates(parser, colspec, data_dict, columns):
     return new_name, new_col, colnames
 
 
+def _clean_na_values(na_values, keep_default_na=True):
+    if na_values is None and keep_default_na:
+        na_values = _NA_VALUES
+    elif isinstance(na_values, dict):
+        if keep_default_na:
+            for k, v in na_values.iteritems():
+                v = set(list(v)) | _NA_VALUES
+                na_values[k] = v
+    else:
+        if not com.is_list_like(na_values):
+            na_values = [na_values]
+        na_values = set(list(na_values))
+        if keep_default_na:
+            na_values = na_values | _NA_VALUES
+
+    return na_values
+
+
 def _clean_index_names(columns, index_col):
     if index_col is None:
         return None, columns, index_col
@@ -1745,7 +1701,6 @@ class ExcelFile(object):
     def _parse_xls(self, sheetname, header=0, skiprows=None, index_col=None,
                    parse_cols=None, parse_dates=False, date_parser=None,
                    na_values=None, thousands=None, chunksize=None):
-        from datetime import MINYEAR, time, datetime
         from xlrd import xldate_as_tuple, XL_CELL_DATE, XL_CELL_ERROR
 
         datemode = self.book.datemode
@@ -1764,10 +1719,10 @@ class ExcelFile(object):
                     if typ == XL_CELL_DATE:
                         dt = xldate_as_tuple(value, datemode)
                         # how to produce this first case?
-                        if dt[0] < MINYEAR: # pragma: no cover
-                            value = time(*dt[3:])
+                        if dt[0] < datetime.MINYEAR: # pragma: no cover
+                            value = datetime.time(*dt[3:])
                         else:
-                            value = datetime(*dt)
+                            value = datetime.datetime(*dt)
                     if typ == XL_CELL_ERROR:
                         value = np.nan
                     row.append(value)
