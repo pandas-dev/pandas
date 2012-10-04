@@ -14,6 +14,14 @@ import numpy as np
 
 from pandas.util import py3compat
 
+def test_is_sequence():
+    is_seq=com._is_sequence
+    assert(is_seq((1,2)))
+    assert(is_seq([1,2]))
+    assert(not is_seq("abcd"))
+    assert(not is_seq(u"abcd"))
+    assert(not is_seq(np.int64))
+
 def test_notnull():
     assert notnull(1.)
     assert not notnull(None)
