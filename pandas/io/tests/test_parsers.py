@@ -11,7 +11,7 @@ import nose
 from numpy import nan
 import numpy as np
 
-from pandas import DataFrame, Series, Index, isnull, MultiIndex
+from pandas import DataFrame, Series, Index, isnull, MultiIndex, DatetimeIndex
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                ExcelFile, TextParser)
@@ -667,6 +667,20 @@ c,4,5
                         'C': [2, 4, 5]}, idx)
         assert_frame_equal(rs, xp)
 
+    def test_yy_format(self):
+        data = """date,time,B,C
+090131,0010,1,2
+090228,1020,3,4
+090331,0830,5,6
+"""
+        rs = read_csv(StringIO(data), index_col=0,
+                      parse_dates=[['date', 'time']])
+        idx = DatetimeIndex([datetime(2009,1,31,0,10,0),
+                             datetime(2009,2,28,10,20,0),
+                             datetime(2009,3,31,8,30,0)]).asobject
+        idx.name = 'date'
+        xp = DataFrame({'B': [1, 3, 5], 'C': [2, 4, 6]}, idx)
+        assert_frame_equal(rs, xp)
 
     def test_parse_dates_column_list(self):
         from pandas.core.datetools import to_datetime

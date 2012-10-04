@@ -833,6 +833,9 @@ class TextParser(object):
         alldata = self._rows_to_cols(content)
         data = self._exclude_implicit_index(alldata)
 
+        if self.parse_dates is not None:
+            data, columns = self._process_date_conversion(data)
+
         # apply converters
         for col, f in self.converters.iteritems():
             if isinstance(col, int) and col not in self.orig_columns:
@@ -840,9 +843,6 @@ class TextParser(object):
             data[col] = lib.map_infer(data[col], f)
 
         data = _convert_to_ndarrays(data, self.na_values, self.verbose)
-
-        if self.parse_dates is not None:
-            data, columns = self._process_date_conversion(data)
 
         if self.index_col is None:
             numrows = len(content)
