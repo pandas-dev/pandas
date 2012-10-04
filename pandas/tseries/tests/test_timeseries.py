@@ -969,16 +969,16 @@ class TestTimeSeries(unittest.TestCase):
     def test_timestamp_fields(self):
         # extra fields from DatetimeIndex like quarter and week
         from pandas.lib import Timestamp
-        idx = tm.makeDateIndex(10)
+        idx = tm.makeDateIndex(100)
 
         fields = ['dayofweek', 'dayofyear', 'week', 'weekofyear', 'quarter']
         for f in fields:
-            expected = getattr(idx, f)[0]
-            result = getattr(Timestamp(idx[0]), f)
+            expected = getattr(idx, f)[-1]
+            result = getattr(Timestamp(idx[-1]), f)
             self.assertEqual(result, expected)
 
-        self.assertEqual(idx.freq, Timestamp(idx[0], idx.freq).freq)
-        self.assertEqual(idx.freqstr, Timestamp(idx[0], idx.freq).freqstr)
+        self.assertEqual(idx.freq, Timestamp(idx[-1], idx.freq).freq)
+        self.assertEqual(idx.freqstr, Timestamp(idx[-1], idx.freq).freqstr)
 
     def test_timestamp_date_out_of_range(self):
         self.assertRaises(ValueError, Timestamp, '1676-01-01')
