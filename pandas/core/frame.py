@@ -2461,7 +2461,8 @@ class DataFrame(NDFrame):
         frame.index = index
         return frame
 
-    def reset_index(self, level=None, drop=False, inplace=False):
+    def reset_index(self, level=None, drop=False, inplace=False, col_level=0,
+                    col_fill=''):
         """
         For DataFrame with multi-level index, return new DataFrame with
         labeling information in the columns under the index names, defaulting
@@ -2479,6 +2480,13 @@ class DataFrame(NDFrame):
             the index to the default integer index.
         inplace : boolean, default False
             Modify the DataFrame in place (do not create a new object)
+        col_level : int or str, default 0
+            If the columns have multiple levels, determines which level the
+            labels are inserted into. By default it is inserted into the first
+            level.
+        col_fill : object, default ''
+            If the columns have multiple levels, determines how the other levels
+            are named. If None then the index name is repeated.
 
         Returns
         -------
@@ -2507,10 +2515,21 @@ class DataFrame(NDFrame):
                 names = self.index.names
                 zipped = zip(self.index.levels, self.index.labels)
 
+                multi_col = isinstance(self.columns, MultiIndex)
                 for i, (lev, lab) in reversed(list(enumerate(zipped))):
                     col_name = names[i]
                     if col_name is None:
                         col_name = 'level_%d' % i
+
+                    if multi_col:
+                        if col_fill is None:
+                            col_name = tuple([col_name] *
+                                             self.columns.nlevels)
+                        else:
+                            name_lst = [col_fill] * self.columns.nlevels
+                            lev_num = self.columns._get_level_number(col_level)
+                            name_lst[lev_num] = col_name
+                            col_name = tuple(name_lst)
 
                     # to ndarray and maybe infer different dtype
                     level_values = _maybe_cast(lev.values)
@@ -2521,6 +2540,14 @@ class DataFrame(NDFrame):
             name = self.index.name
             if name is None or name == 'index':
                 name = 'index' if 'index' not in self else 'level_0'
+            if isinstance(self.columns, MultiIndex):
+                if col_fill is None:
+                    name = tuple([name] * self.columns.nlevels)
+                else:
+                    name_lst = [col_fill] * self.columns.nlevels
+                    lev_num = self.columns._get_level_number(col_level)
+                    name_lst[lev_num] = name
+                    name = tuple(name_lst)
             new_obj.insert(0, name, _maybe_cast(self.index.values))
 
         new_obj.index = new_index
