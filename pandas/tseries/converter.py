@@ -154,7 +154,10 @@ class DatetimeConverter(dates.DateConverter):
             return try_parse(values)
         elif isinstance(values, (list, tuple, np.ndarray)):
             if not isinstance(values, np.ndarray):
-                values = np.array(values, dtype='O')
+                values = np._asarray_tuplesafe(values)
+
+            if com.is_integer_dtype(values) or com.is_float_dtype(values):
+                return values
 
             try:
                 values = tools.to_datetime(values)
