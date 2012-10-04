@@ -1099,9 +1099,31 @@ class _GlobalPrintConfig(object):
         self.date_dayfirst = False
         self.date_yearfirst = False
         self.multi_sparse = True
-        self.encoding = sys.getdefaultencoding()
-        if self.encoding == 'ascii':
-            self.encoding = 'UTF8'
+        self.encoding = self.detect_encoding()
+
+    def detect_encoding(self):
+        """
+        Try to find the most capable encoding supported by the console.
+        slighly modified from the way IPython handles the same issue.
+        """
+        import locale
+
+        encoding = None
+        try:
+            encoding=sys.stdin.encoding
+        except AttributeError:
+            pass
+
+        if not encoding or encoding =='ascii': # try again for something better
+            try:
+                encoding = locale.getpreferredencoding()
+            except Exception:
+                pass
+
+        if not encoding: # when all else fails. this will usually be "ascii"
+                encoding = sys.getdefaultencoding()
+
+        return encoding
 
     def reset(self):
         self.__init__()
