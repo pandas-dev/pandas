@@ -8,7 +8,7 @@ try:
 except:
     from io import StringIO
 
-from pandas.core.common import adjoin, isnull, notnull, _stringify
+from pandas.core.common import adjoin, isnull, notnull
 from pandas.core.index import MultiIndex, _ensure_index
 from pandas.util import py3compat
 
@@ -717,12 +717,7 @@ class GenericArrayFormatter(object):
         else:
             float_format = self.float_format
 
-        if use_unicode:
-            def _strify(x):
-                return _stringify(x, print_config.encoding)
-            formatter = _strify if self.formatter is None else self.formatter
-        else:
-            formatter = str if self.formatter is None else self.formatter
+        formatter = com.pprint_thing if self.formatter is None else self.formatter
 
         def _format(x):
             if self.na_rep is not None and lib.checknull(x):

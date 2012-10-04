@@ -24,8 +24,8 @@ from numpy import nan
 import numpy as np
 import numpy.ma as ma
 
-from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
-                                _default_index,_stringify,_is_sequence)
+from pandas.core.common import (isnull, notnull, PandasError, _try_sort,\
+                                _default_index,_is_sequence)
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
@@ -1368,7 +1368,7 @@ class DataFrame(NDFrame):
         # hack
         if verbose and len(self.columns) < 100:
             lines.append('Data columns:')
-            space = max([len(_stringify(k)) for k in self.columns]) + 4
+            space = max([len(com.pprint_thing(k)) for k in self.columns]) + 4
             counts = self.count()
             assert(len(cols) == len(counts))
             for col, count in counts.iteritems():
