@@ -584,6 +584,9 @@ class DataFrame(NDFrame):
         else:
             self.to_string(buf=buf)
         value = buf.getvalue()
+
+        if py3compat.PY3:
+            return unicode(value)
         return com.console_encode(value)
 
     def _repr_html_(self):

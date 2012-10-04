@@ -848,6 +848,8 @@ copy : boolean, default False
         else:
             result = '%s' % ndarray.__repr__(self)
 
+        if py3compat.PY3:
+            return unicode(result)
         return com.console_encode(result)
 
     def _tidy_repr(self, max_vals=20):
