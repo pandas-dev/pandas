@@ -43,7 +43,8 @@ dialect : string or csv.Dialect instance, default None
     If None defaults to Excel dialect. Ignored if sep longer than 1 char
     See csv.Dialect documentation for more details
 header : int, default 0
-    Row to use for the column labels of the parsed DataFrame
+    Row to use for the column labels of the parsed DataFrame. Specify None if
+    there is no header row.
 skiprows : list-like or integer
     Row numbers to skip (0-indexed) or number of rows to skip (int)
     at the start of the file
@@ -51,7 +52,8 @@ index_col : int or sequence, default None
     Column to use as the row labels of the DataFrame. If a sequence is
     given, a MultiIndex is used.
 names : array-like
-    List of column names
+    List of column names to use. If passed, header will be implicitly set to
+    None.
 na_values : list-like or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values
