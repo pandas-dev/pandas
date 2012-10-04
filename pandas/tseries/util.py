@@ -65,7 +65,7 @@ def pivot_annual(series, freq=None):
     if not np.issubdtype(series.dtype, np.integer):
         values.fill(np.nan)
     else:
-        raise Exception('need to upcast')
+        raise Exception('need to upcast: convert dtype to -- which is necessary for the leap year adjustment.')
 
     values.put(flat_index, series.values)
 
