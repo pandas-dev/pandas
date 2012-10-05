@@ -67,7 +67,7 @@ def _sanitize_dates(start, end):
     start = to_datetime(start)
     end = to_datetime(end)
     if start is None:
-        start = dt.datetime.today() - dt.timedelta(365)
+        start = dt.datetime(2010, 1, 1)
     if end is None:
         end = dt.datetime.today()
     return start, end
