@@ -1187,6 +1187,122 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         exp = p.ix[['a', 'c', 'd']]
         assert_panel_equal(result, exp)
 
+    def test_update(self):
+        pan = Panel([[[1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.]],
+                   [[1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.]]])
+
+        other = Panel([[[3.6, 2., np.nan],
+                           [np.nan, np.nan, 7]]], items=[1])
+
+        pan.update(other)
+
+        expected = Panel([[[1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.]],
+                             [[3.6, 2., 3],
+                              [1.5, np.nan, 7],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.]]])
+
+        assert_panel_equal(pan, expected)
+
+    def test_update_from_dict(self):
+        pan = Panel({'one': DataFrame([[1.5, np.nan, 3],
+                              [1.5, np.nan, 3],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.]]),
+                      'two': DataFrame([[1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.]])})
+
+        other = {'two': DataFrame([[3.6, 2., np.nan],
+                               [np.nan, np.nan, 7]])}
+
+        pan.update(other)
+
+        expected = Panel({'two': DataFrame([[3.6, 2., 3],
+                              [1.5, np.nan, 7],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.]]),
+                          'one': DataFrame([[1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.]])})
+
+        assert_panel_equal(pan, expected)
+
+    def test_update_nooverwrite(self):
+        pan = Panel([[[1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.]],
+                   [[1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.]]]) 
+
+        other = Panel([[[3.6, 2., np.nan],
+                        [np.nan, np.nan, 7]]], items=[1])
+
+        pan.update(other, overwrite=False)
+
+        expected = Panel([[[1.5, np.nan, 3],
+                              [1.5, np.nan, 3],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.]],
+                             [[1.5, 2., 3.],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.]]])
+
+        assert_panel_equal(pan, expected)
+
+    def test_update_filtered(self):
+        pan = Panel([[[1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.]],
+                   [[1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.]]])
+
+        other = Panel([[[3.6, 2., np.nan],
+                           [np.nan, np.nan, 7]]], items=[1])
+
+        pan.update(other, filter_func=lambda x: x > 2)
+
+        expected = Panel([[[1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.]],
+                             [[1.5, np.nan, 3],
+                              [1.5, np.nan, 7],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.]]])
+
+        assert_panel_equal(pan, expected)
+
+    def test_update_raise(self):
+        pan = Panel([[[1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.]],
+                   [[1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.]]])
+
+        np.testing.assert_raises(Exception, pan.update, *(pan,),
+            **{'raise_conflict': True})
 
 class TestLongPanel(unittest.TestCase):
     """
