@@ -1744,6 +1744,11 @@ int parser_handle_eof(parser_t *self) {
 
         return 0;
     }
+    else if (self->datalen == 0 && (self->state == START_RECORD)) {
+        return 0;
+    }
+
+    return -1;
 }
 
 int parser_consume_rows(parser_t *self, size_t nrows) {
