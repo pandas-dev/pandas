@@ -55,6 +55,10 @@ def debug(f, *args, **kwargs):
     pdb = Pdb(**kw)
     return pdb.runcall(f, *args, **kwargs)
 
+def pudebug(f, *args, **kwargs):
+    import pudb
+    return pudb.runcall(f, *args, **kwargs)
+
 def set_trace():
     from IPython.core.debugger import Pdb
     try:

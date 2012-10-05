@@ -109,7 +109,7 @@ g,7,seven
 
     def test_read_csv(self):
         if not py3compat.PY3:
-            fname=u"file://"+unicode(self.csv1)
+            fname=u"file:///"+unicode(self.csv1)
             try:
                 df1 = read_csv(fname, index_col=0, parse_dates=True)
             except IOError:
