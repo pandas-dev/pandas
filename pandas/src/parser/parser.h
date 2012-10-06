@@ -1,3 +1,12 @@
+/*
+
+Copyright (c) 2012, Lambda Foundry, Inc.
+All rights reserved.
+
+Released subject to the terms of the GNU Lesser Public License
+
+*/
+
 #ifndef _PARSER_COMMON_H_
 #define _PARSER_COMMON_H_
 

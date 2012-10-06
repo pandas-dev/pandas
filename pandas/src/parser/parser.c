@@ -1,9 +1,16 @@
+/*
+
+Copyright (c) 2012, Lambda Foundry, Inc.
+All rights reserved.
+
+Released subject to the terms of the GNU Lesser Public License
+
+*/
+
  /*
    Low-level ascii-file processing for pandas. Combines some elements from
    Python's built-in csv module and Warren Weckesser's textreader project on
-   GitHub
-
-   See Python Software Foundation License and BSD licenses
+   GitHub. See Python Software Foundation License and BSD licenses for these.
 
   */
 
