@@ -1,3 +1,9 @@
+# Copyright (c) 2012, Lambda Foundry, Inc.
+# All rights reserved.
+
+# Released subject to the terms of the GNU Lesser Public License
+
+
 from libc.stdlib cimport malloc, free
 
 from cpython cimport (PyObject, PyString_FromString,
