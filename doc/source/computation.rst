@@ -397,8 +397,8 @@ available:
     :widths: 20, 80
 
     ``ewma``, EW moving average
-    ``ewvar``, EW moving variance
-    ``ewstd``, EW moving standard deviation
+    ``ewmvar``, EW moving variance
+    ``ewmstd``, EW moving standard deviation
     ``ewmcorr``, EW moving correlation
     ``ewmcov``, EW moving covariance
 

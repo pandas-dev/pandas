@@ -43,7 +43,8 @@ dialect : string or csv.Dialect instance, default None
     If None defaults to Excel dialect. Ignored if sep longer than 1 char
     See csv.Dialect documentation for more details
 header : int, default 0
-    Row to use for the column labels of the parsed DataFrame
+    Row to use for the column labels of the parsed DataFrame. Specify None if
+    there is no header row.
 skiprows : list-like or integer
     Row numbers to skip (0-indexed) or number of rows to skip (int)
     at the start of the file
@@ -51,7 +52,8 @@ index_col : int or sequence, default None
     Column to use as the row labels of the DataFrame. If a sequence is
     given, a MultiIndex is used.
 names : array-like
-    List of column names
+    List of column names to use. If passed, header will be implicitly set to
+    None.
 na_values : list-like or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values
@@ -613,7 +615,7 @@ class TextParser(object):
 
             ncols = len(line)
             if not names:
-                columns = ['X.%d' % (i + 1) for i in range(ncols)]
+                columns = ['X%d' % i for i in range(ncols)]
             else:
                 columns = names
 
@@ -747,7 +749,7 @@ class TextParser(object):
             else:
                 index_name = columns[self.index_col]
 
-            if index_name is not None and 'Unnamed' in index_name:
+            if index_name is not None and 'Unnamed' in str(index_name):
                 index_name = None
 
         elif self.index_col is not None:
@@ -833,6 +835,9 @@ class TextParser(object):
         alldata = self._rows_to_cols(content)
         data = self._exclude_implicit_index(alldata)
 
+        if self.parse_dates is not None:
+            data, columns = self._process_date_conversion(data)
+
         # apply converters
         for col, f in self.converters.iteritems():
             if isinstance(col, int) and col not in self.orig_columns:
@@ -840,9 +845,6 @@ class TextParser(object):
             data[col] = lib.map_infer(data[col], f)
 
         data = _convert_to_ndarrays(data, self.na_values, self.verbose)
-
-        if self.parse_dates is not None:
-            data, columns = self._process_date_conversion(data)
 
         if self.index_col is None:
             numrows = len(content)
@@ -1160,19 +1162,9 @@ def _convert_types(values, na_values):
 
     return result, na_count
 
-def _get_col_names(colspec, columns):
-    colset = set(columns)
-    colnames = []
-    for c in colspec:
-        if c in colset:
-            colnames.append(str(c))
-        elif isinstance(c, int):
-            colnames.append(str(columns[c]))
-    return colnames
-
 def _try_convert_dates(parser, colspec, data_dict, columns):
     colspec = _get_col_names(colspec, columns)
-    new_name = '_'.join(colspec)
+    new_name = '_'.join([str(x) for x in colspec])
 
     to_parse = [data_dict[c] for c in colspec if c in data_dict]
     try:
@@ -1180,6 +1172,17 @@ def _try_convert_dates(parser, colspec, data_dict, columns):
     except DateConversionError:
         new_col = parser(_concat_date_cols(to_parse))
     return new_name, new_col, colspec
+
+def _get_col_names(colspec, columns):
+    colset = set(columns)
+    colnames = []
+    for c in colspec:
+        if c in colset:
+            colnames.append(c)
+        elif isinstance(c, int):
+            colnames.append(columns[c])
+    return colnames
+
 
 def _concat_date_cols(date_cols):
     if len(date_cols) == 1:

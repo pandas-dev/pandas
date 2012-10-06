@@ -303,7 +303,7 @@ class GroupBy(object):
 
     def median(self):
         """
-        Compute mean of groups, excluding missing values
+        Compute median of groups, excluding missing values
 
         For multiple groupings, the result index will be a MultiIndex
         """

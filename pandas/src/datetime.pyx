@@ -178,7 +178,7 @@ class Timestamp(_Timestamp):
 
     @property
     def dayofyear(self):
-        return self.day
+        return self._get_field('doy')
 
     @property
     def week(self):
