@@ -3382,6 +3382,23 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         os.remove(path)
 
+    def test_to_csv_from_csv_w_infs(self):
+        path = '__tmp__'
+
+        # test roundtrip with inf, -inf, nan, as full columns and mix
+        self.frame['E'] = np.inf
+        self.frame['F'] = -np.inf
+        self.frame['G'] = np.nan
+        self.frame['H'] = self.frame.index.map(lambda x: [np.inf, np.nan][np.random.rand() < .5])
+
+        self.frame.to_csv(path)
+        recons = DataFrame.from_csv(path)
+
+        assert_frame_equal(self.frame, recons)
+        assert_frame_equal(np.isinf(self.frame), np.isinf(recons))
+
+        os.remove(path)
+
     def test_to_csv_multiindex(self):
         path = '__tmp__'
 
