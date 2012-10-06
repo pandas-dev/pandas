@@ -1105,7 +1105,9 @@ class DataFrame(NDFrame):
             for i, col in enumerate(cols):
                 val = series[col][j]
                 if lib.checknull(val):
-                    val = na_rep
+                    # HACK: special-case option for including nan, inf, -inf in csv
+                    if na_rep != 'nans_and_infs':
+                        val = na_rep
 
                 if float_format is not None and com.is_float(val):
                     val = float_format % val
