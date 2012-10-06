@@ -193,6 +193,21 @@ def test_console_encode():
         expected = u"\u05d0".encode('utf-8')
         assert (result == expected)
 
+def test_pprint_thing():
+    if py3compat.PY3:
+        raise nose.SkipTest
+
+    pp_t=com.pprint_thing
+
+    assert(pp_t('a')==u'a')
+    assert(pp_t(u'a')==u'a')
+    assert(pp_t(None)=='')
+    assert(pp_t(u'\u05d0')==u'\u05d0')
+    assert(pp_t((u'\u05d0',u'\u05d1'))==u'(\u05d0, \u05d1)')
+    assert(pp_t((u'\u05d0',(u'\u05d1',u'\u05d2')))==
+           u'(\u05d0, (\u05d1, \u05d2))')
+    assert(pp_t(('foo',u'\u05d0',(u'\u05d0',u'\u05d0')))==
+           u'(foo, \u05d0, (\u05d0, \u05d0))')
 
 class TestTake(unittest.TestCase):
 
