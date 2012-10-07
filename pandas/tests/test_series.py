@@ -1057,6 +1057,20 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s.name = (u"\u05d0",) * 2
         repr(s)
 
+    def test_repr_should_return_str (self):
+        """
+        http://docs.python.org/py3k/reference/datamodel.html#object.__repr__
+        http://docs.python.org/reference/datamodel.html#object.__repr__
+        "...The return value must be a string object."
+
+        (str on py2.x, str (unicode) on py3)
+
+        """
+        data=[8,5,3,5]
+        index1=[u"\u03c3",u"\u03c4",u"\u03c5",u"\u03c6"]
+        df=Series(data,index=index1)
+        self.assertTrue(type(df.__repr__() == str)) # both py2 / 3
+
     def test_timeseries_repr_object_dtype(self):
         index = Index([datetime(2000, 1, 1) + timedelta(i)
                        for i in range(1000)], dtype=object)
