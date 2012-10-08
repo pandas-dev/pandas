@@ -899,8 +899,6 @@ class LinePlot(MPLPlot):
                 ax = self._get_ax(i)
                 style = self._get_style(i, label)
                 kwds = self.kwds.copy()
-
-# not sure if I need to return kwargs & set to kwds or is it pass by reference?
                 self._maybe_add_color(kwds, style, i)
 
                 label = _stringify(label)
