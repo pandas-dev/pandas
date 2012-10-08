@@ -387,6 +387,16 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(scat2, 0, 1)
         grouper = Series(np.repeat([1, 2, 3, 4, 5], 20), df.index)
         _check_plot_works(scat2, 0, 1, by=grouper)
+        _check_plot_works(scat2, 0, 1, by=grouper, sharex=False,
+                          sharey=True, xlim=(1, 3), ylim=(3, 5), color='red')
+
+        xrot, yrot = 30, 30
+        fig = scat2(0, 1, xlabelsize=xf, ylabelsize=yf
+        for ax in fig.axes
+            ytick = ax.get_yticklabels()[0]
+            xtick = ax.get_xticklabels()[0]
+            self.assertAlmostEqual(ytick.get_fontsize(), yf)
+            self.assertAlmostEqual(xtick.get_fontsize(), xf)
 
     @slow
     def test_andrews_curves(self):
