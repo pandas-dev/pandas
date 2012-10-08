@@ -621,6 +621,10 @@ class TestTimeSeries(unittest.TestCase):
         exp = Timestamp("2012-01-01 00:00:00")
         self.assert_(result[0] == exp)
 
+        result = to_datetime(['20121001']) # bad iso 8601
+        exp = Timestamp('2012-10-01')
+        self.assert_(result[0] == exp)
+
     def test_nat_vector_field_access(self):
         idx = DatetimeIndex(['1/1/2000', None, None, '1/4/2000'])
 

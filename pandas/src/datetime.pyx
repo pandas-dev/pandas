@@ -817,6 +817,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                     _string_to_dts(val, &dts)
                     iresult[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns,
                                                                    &dts)
+                    _check_dts_bounds(iresult[i], &dts)
                 except ValueError:
                     try:
                         result[i] = parse(val, dayfirst=dayfirst)
@@ -824,7 +825,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                         raise TypeError
                     pandas_datetime_to_datetimestruct(iresult[i], PANDAS_FR_ns,
                                                       &dts)
-                _check_dts_bounds(iresult[i], &dts)
+                    _check_dts_bounds(iresult[i], &dts)
         return result
     except TypeError:
         oresult = np.empty(n, dtype=object)
