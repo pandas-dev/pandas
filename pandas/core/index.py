@@ -12,6 +12,7 @@ import pandas.core.common as com
 import pandas.lib as lib
 import pandas._algos as _algos
 from pandas.lib import Timestamp
+from pandas.util import py3compat
 
 __all__ = ['Index']
 
@@ -132,12 +133,11 @@ class Index(np.ndarray):
         return self.view()
 
     def __repr__(self):
-        try:
-            result = np.ndarray.__repr__(self)
-        except UnicodeEncodeError:
-            result = 'Index([%s])' % (', '.join([repr(x) for x in self]))
-
-        return result
+        if py3compat.PY3:
+            prepr = com.pprint_thing(self)
+        else:
+            prepr = com.pprint_thing_encoded(self)
+        return  'Index(%s, dtype=%s)' % (prepr,self.dtype)
 
     def astype(self, dtype):
         return Index(self.values.astype(dtype), name=self.name,
