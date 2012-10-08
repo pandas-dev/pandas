@@ -854,6 +854,28 @@ class TestTSPlot(unittest.TestCase):
         lines = ax.plot(x, y, label='Y')
         assert_array_equal(DatetimeIndex(lines[0].get_xdata()), x)
 
+    @slow
+    def test_mpl_nopandas(self):
+        import matplotlib.pyplot as plt
+
+        dates = [date(2008, 12, 31), date(2009, 1, 31)]
+        values1 = np.arange(10.0, 11.0, 0.5)
+        values2 = np.arange(11.0, 12.0, 0.5)
+
+        kw = dict(fmt='-', lw=4)
+
+        plt.close('all')
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot_date([x.toordinal() for x in dates], values1, **kw)
+        ax.plot_date([x.toordinal() for x in dates], values2, **kw)
+
+        line1, line2 = ax.get_lines()
+        assert_array_equal(np.array([x.toordinal() for x in dates]),
+                           line1.get_xydata()[:, 0])
+        assert_array_equal(np.array([x.toordinal() for x in dates]),
+                           line2.get_xydata()[:, 0])
+
 PNG_PATH = 'tmp.png'
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     import matplotlib.pyplot as plt

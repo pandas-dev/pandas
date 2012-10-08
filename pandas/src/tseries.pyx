@@ -692,6 +692,17 @@ def value_count_int64(ndarray[int64_t] values):
 
     return result_keys, result_counts
 
+def astype_intsafe(ndarray[object] arr, new_dtype):
+    cdef:
+        Py_ssize_t i, n = len(arr)
+        ndarray result
+
+    result = np.empty(n, dtype=new_dtype)
+    for i in range(n):
+        util.set_value_at(result, i, arr[i])
+
+    return result
+
 include "hashtable.pyx"
 include "datetime.pyx"
 include "skiplist.pyx"

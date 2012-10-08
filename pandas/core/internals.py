@@ -833,11 +833,17 @@ class BlockManager(object):
             return self.get(item)
         else:
             # ugh
-            inds, = (self.items == item).nonzero()
+            try:
+                inds, = (self.items == item).nonzero()
+            except AttributeError: #MultiIndex
+                inds, = self.items.map(lambda x: x == item).nonzero()
 
             _, block = self._find_block(item)
 
-            binds, = (block.items == item).nonzero()
+            try:
+                binds, = (block.items == item).nonzero()
+            except AttributeError: #MultiIndex
+                binds, = block.items.map(lambda x: x == item).nonzero()
 
             for j, (k, b) in enumerate(zip(inds, binds)):
                 if i == k:

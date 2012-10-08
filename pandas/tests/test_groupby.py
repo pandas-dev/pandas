@@ -1503,6 +1503,19 @@ class TestGroupBy(unittest.TestCase):
         result = obj.groupby(inds).agg(Series.median)
         self.assert_(result.isnull().all())
 
+    def test_series_grouper_noncontig_index(self):
+        index = Index([tm.rands(10) for _ in xrange(100)])
+
+        values = Series(np.random.randn(50), index=index[::2])
+        labels = np.random.randint(0, 5, 50)
+
+        # it works!
+        grouped = values.groupby(labels)
+
+        # accessing the index elements causes segfault
+        f = lambda x: len(set(map(id, x.index)))
+        grouped.agg(f)
+
     def test_convert_objects_leave_decimal_alone(self):
         from decimal import Decimal
 
@@ -2060,6 +2073,9 @@ class TestGroupBy(unittest.TestCase):
         result = data.groupby(cats).mean()
         exp = data.groupby(labels).mean().reindex(cats.levels)
         assert_series_equal(result, exp)
+
+
+
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     tups = map(tuple, df[keys].values)

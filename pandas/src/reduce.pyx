@@ -334,7 +334,7 @@ cdef class Slider:
     '''
     cdef:
         ndarray values, buf
-        Py_ssize_t stride, orig_len
+        Py_ssize_t stride, orig_len, orig_stride
         char *orig_data
 
     def __init__(self, object values, object buf):
@@ -345,12 +345,14 @@ cdef class Slider:
         assert(values.dtype == buf.dtype)
         self.values = values
         self.buf = buf
-        self.stride = values.dtype.itemsize
+        self.stride = values.strides[0]
 
         self.orig_data = self.buf.data
         self.orig_len = self.buf.shape[0]
+        self.orig_stride = self.buf.strides[0]
 
         self.buf.data = self.values.data
+        self.buf.strides[0] = self.stride
 
     cpdef advance(self, Py_ssize_t k):
         self.buf.data = <char*> self.buf.data + self.stride * k
@@ -361,6 +363,7 @@ cdef class Slider:
     cpdef cleanup(self):
         self.buf.shape[0] = self.orig_len
         self.buf.data = self.orig_data
+        self.buf.strides[0] = self.orig_stride
 
 def reduce(arr, f, axis=0, dummy=None, labels=None):
     if labels._has_complex_internals:
