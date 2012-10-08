@@ -1,4 +1,5 @@
 # pylint: disable=E1101
+import operator
 
 from datetime import time, datetime
 from datetime import timedelta
@@ -1358,18 +1359,25 @@ class DatetimeIndex(Int64Index):
         start_micros = _time_to_micros(start_time)
         end_micros = _time_to_micros(end_time)
 
+
         if include_start and include_end:
-            mask = ((start_micros <= time_micros) &
-                    (time_micros <= end_micros))
+            lop = rop = operator.le
         elif include_start:
-            mask = ((start_micros <= time_micros) &
-                    (time_micros < end_micros))
+            lop = operator.le
+            rop = operator.lt
         elif include_end:
-            mask = ((start_micros < time_micros) &
-                    (time_micros <= end_micros))
+            lop = operator.lt
+            rop = operator.le
         else:
-            mask = ((start_micros < time_micros) &
-                    (time_micros < end_micros))
+            lop = rop = operator.lt
+
+        if start_time <= end_time:
+            join_op = operator.and_
+        else:
+            join_op = operator.or_
+
+        mask = join_op(lop(start_micros, time_micros),
+                       rop(time_micros, end_micros))
 
         return mask.nonzero()[0]
 

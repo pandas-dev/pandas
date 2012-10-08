@@ -240,6 +240,13 @@ class TestTimeZoneSupport(unittest.TestCase):
         rng = DatetimeIndex(strdates, tz='US/Eastern')
         self.assert_((rng.hour == 0).all())
 
+        # a more unusual time zone, #1946
+        dr = date_range('2011-10-02 00:00', freq='h', periods=10,
+                        tz='America/Atikokan')
+
+        expected = np.arange(10)
+        self.assert_(np.array_equal(dr.hour, expected))
+
     def test_with_tz(self):
         tz = pytz.timezone('US/Central')
 
@@ -411,6 +418,22 @@ class TestTimeZoneSupport(unittest.TestCase):
         from dateutil.parser import parse
         arr = np.array([parse('2012-06-13T01:39:00Z')], dtype=object)
 
+        result = to_datetime(arr, utc=True)
+        self.assert_(result.tz is pytz.utc)
+
+    def test_to_datetime_tzlocal(self):
+        from dateutil.parser import parse
+        from dateutil.tz import tzlocal
+        dt = parse('2012-06-13T01:39:00Z')
+        dt = dt.replace(tzinfo = tzlocal())
+
+        arr = np.array([dt], dtype=object)
+
+        result = to_datetime(arr, utc=True)
+        self.assert_(result.tz is pytz.utc)
+
+        rng = date_range('2012-11-03 03:00', '2012-11-05 03:00', tz=tzlocal())
+        arr = rng.to_pydatetime()
         result = to_datetime(arr, utc=True)
         self.assert_(result.tz is pytz.utc)
 

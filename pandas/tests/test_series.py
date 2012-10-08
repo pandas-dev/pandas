@@ -2341,6 +2341,17 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         df = Series([1.0, 2.0, 3.0, np.nan])
         self.assertRaises(ValueError, df.astype, np.int64)
 
+    def test_astype_cast_object_int(self):
+        arr = Series(["car", "house", "tree","1"])
+
+        self.assertRaises(ValueError, arr.astype, int)
+        self.assertRaises(ValueError, arr.astype, np.int64)
+        self.assertRaises(ValueError, arr.astype, np.int8)
+
+        arr = Series(['1', '2', '3', '4'], dtype=object)
+        result = arr.astype(int)
+        self.assert_(np.array_equal(result, np.arange(1, 5)))
+
     def test_map(self):
         index, data = tm.getMixedTypeDict()
 
@@ -3113,6 +3124,19 @@ class TestSeriesNonUnique(unittest.TestCase):
         s2 = ser
         s2.reset_index(drop=True, inplace=True)
         assert_series_equal(s, s2)
+
+        #level
+        index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
+                           labels=[[0, 0, 0, 0, 0, 0],
+                                   [0, 1, 2, 0, 1, 2],
+                                   [0, 1, 0, 1, 0, 1]])
+        s = Series(np.random.randn(6), index=index)
+        rs = s.reset_index(level=1)
+        self.assert_(len(rs.columns) == 2)
+
+        rs = s.reset_index(level=[0, 2], drop=True)
+        self.assert_(rs.index.equals(Index(index.get_level_values(1))))
+        self.assert_(isinstance(rs, Series))
 
     def test_timeseries_coercion(self):
         idx = tm.makeDateIndex(10000)
