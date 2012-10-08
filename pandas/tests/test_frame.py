@@ -3389,7 +3389,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.frame['G'] = np.nan
         self.frame['H'] = self.frame.index.map(lambda x: [np.inf, np.nan][np.random.rand() < .5])
 
-        self.frame.to_csv(path, na_rep='nans_and_infs')
+        self.frame.to_csv(path)
         recons = DataFrame.from_csv(path)
 
         assert_frame_equal(self.frame, recons)
@@ -3404,7 +3404,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.frame['E'] = np.inf
         self.frame['F'] = -np.inf
 
-        self.frame.to_csv(path, na_rep='nans_and_infs')
+        self.frame.to_csv(path)
         recons = DataFrame.from_csv(path)
 
         assert_frame_equal(self.frame, recons)
