@@ -778,6 +778,14 @@ def is_float_dtype(arr_or_dtype):
 def is_list_like(arg):
     return hasattr(arg, '__iter__') and not isinstance(arg, basestring)
 
+def _is_sequence(x):
+    try:
+        iter(x)
+        assert(not isinstance(x, basestring))
+        return True
+    except Exception:
+        return False
+
 _ensure_float64 = _algos.ensure_float64
 _ensure_int64 = _algos.ensure_int64
 _ensure_int32 = _algos.ensure_int32
