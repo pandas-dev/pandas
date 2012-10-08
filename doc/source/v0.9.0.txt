@@ -1,6 +1,6 @@
 .. _whatsnew_0900:
 
-v0.9.0 (October 2, 2012)
+v0.9.0 (October 7, 2012)
 ------------------------
 
 This is a major release from 0.8.1 and includes several new features and
