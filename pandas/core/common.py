@@ -753,6 +753,9 @@ def is_iterator(obj):
     # python 3 generators have __next__ instead of next
     return hasattr(obj, 'next') or hasattr(obj, '__next__')
 
+def is_number(obj):
+    return isinstance(obj, (np.number, int, long, float))
+
 def is_integer_dtype(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):
         tipo = arr_or_dtype.type
