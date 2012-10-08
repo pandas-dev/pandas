@@ -380,13 +380,21 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(scat, diagonal='kde')
         _check_plot_works(scat, diagonal='density')
         _check_plot_works(scat, diagonal='hist')
-
-        def scat2(x, y, by=None, ax=None, figsize=None):
-            return plt.scatter_plot(df, x, y, by, ax, figsize=None)
-
+        def scat2(x, y, by=None, ax=None, figsize=None, **kwds):
+            return plt.scatter_plot(df, x, y, by, ax, figsize=None, **kwds)
         _check_plot_works(scat2, 0, 1)
         grouper = Series(np.repeat([1, 2, 3, 4, 5], 20), df.index)
         _check_plot_works(scat2, 0, 1, by=grouper)
+        _check_plot_works(scat2, 0, 1, color='red', xlim=(1,5), ylim=(1,5))
+        _check_plot_works(scat2, 0, 1, by=grouper, sharex=True, sharey=True)
+
+        xf, yf = 20, 30
+        fig = scat2(0, 1, xlabelsize=xf, ylabelsize=yf)
+        for ax in fig.axes:
+            ytick = ax.get_yticklabels()[0]
+            xtick = ax.get_xticklabels()[0]
+            self.assertAlmostEqual(ytick.get_fontsize(), yf)
+            self.assertAlmostEqual(xtick.get_fontsize(), xf)
 
     @slow
     def test_andrews_curves(self):
