@@ -933,10 +933,17 @@ else:
             self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
             self.stream = f
             self.encoder = codecs.getincrementalencoder(encoding)()
+            self.quoting=kwds.get("quoting",None)
 
         def writerow(self, row):
-            row = [x if isinstance(x, basestring) else pprint_thing(x) for x in row]
-            self.writer.writerow([s.encode("utf-8") for s in row])
+            def _check_as_is(x):
+                return (self.quoting == csv.QUOTE_NONNUMERIC and \
+                        is_number(x)) or isinstance(x, str)
+
+            row = [x if _check_as_is(x)
+                   else pprint_thing(x).encode('utf-8') for x in row]
+
+            self.writer.writerow([s for s in row])
             # Fetch UTF-8 output from the queue ...
             data = self.queue.getvalue()
             data = data.decode("utf-8")
