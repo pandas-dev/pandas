@@ -60,8 +60,11 @@ cdef inline is_array(object o):
 
 
 cdef inline bint _checknull(object val):
+    import numpy as np
+    cdef double INF = <double> np.inf
+    cdef double NEGINF = -INF
     try:
-        return bool(val is None or val != val)
+        return bool(val is None or (val != val and val != INF and val != NEGINF))
     except ValueError:
         return False
 

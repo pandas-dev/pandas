@@ -18,8 +18,8 @@ def test_notnull():
     assert notnull(1.)
     assert not notnull(None)
     assert not notnull(np.NaN)
-    assert not notnull(np.inf)
-    assert not notnull(-np.inf)
+    assert notnull(np.inf)
+    assert notnull(-np.inf)
 
     float_series = Series(np.random.randn(5))
     obj_series = Series(np.random.randn(5), dtype=object)
@@ -30,8 +30,8 @@ def test_isnull():
     assert not isnull(1.)
     assert isnull(None)
     assert isnull(np.NaN)
-    assert isnull(np.inf)
-    assert isnull(-np.inf)
+    assert not isnull(np.inf)
+    assert not isnull(-np.inf)
 
     float_series = Series(np.random.randn(5))
     obj_series = Series(np.random.randn(5), dtype=object)

@@ -179,7 +179,7 @@ cdef double NEGINF = -INF
 
 cpdef checknull(object val):
     if util.is_float_object(val) or util.is_complex_object(val):
-        return val != val or val == INF or val == NEGINF
+        return val != val and val != INF and val != NEGINF
     elif util.is_datetime64_object(val):
         return get_datetime64_value(val) == NPY_NAT
     elif isinstance(val, _NaT):
@@ -188,6 +188,7 @@ cpdef checknull(object val):
         return False
     else:
         return util._checknull(val)
+
 
 def isscalar(object val):
     return np.isscalar(val) or val is None or isinstance(val, _Timestamp)
