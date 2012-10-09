@@ -359,6 +359,8 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
             if not seen_float:
                 if '.' in val:
                     seen_float = 1
+                elif 'inf' in val:  # special case to handle +/-inf
+                    seen_float = 1
                 else:
                     ints[i] = <int64_t> fval
 

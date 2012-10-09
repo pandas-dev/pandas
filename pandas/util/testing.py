@@ -103,8 +103,10 @@ def assert_almost_equal(a, b):
         return
 
     if isinstance(a, (bool, float, int)):
+        if np.isinf(a):
+            assert np.isinf(b), err_msg(a,b)
         # case for zero
-        if abs(a) < 1e-5:
+        elif abs(a) < 1e-5:
             np.testing.assert_almost_equal(
                 a, b, decimal=5, err_msg=err_msg(a, b), verbose=False)
         else:

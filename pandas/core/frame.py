@@ -1126,6 +1126,8 @@ class DataFrame(NDFrame):
         ----------
         path_or_buf : string or file handle / StringIO
             File path
+        sep : character, default ","
+            Field delimiter for the output file.
         na_rep : string, default ''
             Missing data representation
         float_format : string, default None
@@ -1143,12 +1145,13 @@ class DataFrame(NDFrame):
             sequence should be given if the DataFrame uses MultiIndex.  If
             False do not print fields for index names. Use index_label=False
             for easier importing in R
+        nanRep : deprecated, use na_rep
         mode : Python write mode, default 'w'
-        sep : character, default ","
-            Field delimiter for the output file.
         encoding : string, optional
             a string representing the encoding to use if the contents are
             non-ascii, for python versions prior to 3
+        quoting : optional constant from csv module
+            defaults to csv.QUOTE_MINIMAL
         """
         if nanRep is not None:  # pragma: no cover
             import warnings
