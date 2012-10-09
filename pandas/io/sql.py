@@ -198,8 +198,7 @@ CREATE TABLE %(name)s (
             sqltype = dtypes.get(k, sqltype)
 
         column_types.append((k, sqltype))
-
-    columns = ',\n  '.join('%s %s' % x for x in column_types)
+    columns = ',\n  '.join('[%s] %s' % x for x in column_types)
 
     keystr = ''
     if keys is not None:
