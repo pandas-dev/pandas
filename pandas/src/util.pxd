@@ -68,5 +68,11 @@ cdef inline bint _checknull(object val):
     except ValueError:
         return False
 
+cdef inline bint _checknull_old(object val):
+    try:
+        return bool(val is None or val != val)
+    except ValueError:
+        return False
+
 cdef inline bint _checknan(object val):
     return not cnp.PyArray_Check(val) and val != val
