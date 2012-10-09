@@ -1151,29 +1151,31 @@ copy : boolean, default False
 
     @Substitution(name='standard deviation', shortname='stdev',
                   na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc + 
+    @Appender(_stat_doc +
         """
         Normalized by N-1 (unbiased estimator).
         """)
     def std(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
-            level=None):
+            level=None, center=True):
         if level is not None:
             return self._agg_by_level('std', level=level, skipna=skipna,
-                                      ddof=ddof)
-        return np.sqrt(nanops.nanvar(self.values, skipna=skipna, ddof=ddof))
+                                      ddof=ddof, center=center)
+        return np.sqrt(nanops.nanvar(self.values, skipna=skipna, ddof=ddof,
+                                     center=center))
 
     @Substitution(name='variance', shortname='var',
                   na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc + 
+    @Appender(_stat_doc +
         """
         Normalized by N-1 (unbiased estimator).
         """)
     def var(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
-            level=None):
+            level=None, center=True):
         if level is not None:
             return self._agg_by_level('var', level=level, skipna=skipna,
-                                      ddof=ddof)
-        return nanops.nanvar(self.values, skipna=skipna, ddof=ddof)
+                                      ddof=ddof, center=center)
+        return nanops.nanvar(self.values, skipna=skipna, ddof=ddof,
+                             center=center)
 
     @Substitution(name='unbiased skewness', shortname='skew',
                   na_action=_doc_exclude_na, extras='')
@@ -1450,7 +1452,7 @@ copy : boolean, default False
 
         return Series(data, index=names)
 
-    def corr(self, other, method='pearson'):
+    def corr(self, other, method='pearson', center=True):
         """
         Compute correlation two Series, excluding missing values
 
@@ -1461,21 +1463,26 @@ copy : boolean, default False
             pearson : standard correlation coefficient
             kendall : Kendall Tau correlation coefficient
             spearman : Spearman rank correlation
+        center : boolean, default True
+            Whether to subtract the mean before computing cov and corr
 
         Returns
         -------
         correlation : float
         """
         this, other = self.align(other, join='inner', copy=False)
-        return nanops.nancorr(this.values, other.values, method=method)
+        return nanops.nancorr(this.values, other.values, method=method,
+                              center=center)
 
-    def cov(self, other):
+    def cov(self, other, center=True):
         """
         Compute covariance with Series, excluding missing values
 
         Parameters
         ----------
         other : Series
+        center : boolean, default True
+            Whether to subtract the mean before computing the cov
 
         Returns
         -------
@@ -1486,7 +1493,7 @@ copy : boolean, default False
         this, other = self.align(other, join='inner')
         if len(this) == 0:
             return np.nan
-        return nanops.nancov(this.values, other.values)
+        return nanops.nancov(this.values, other.values, center=center)
 
     def diff(self, periods=1):
         """
@@ -1503,15 +1510,20 @@ copy : boolean, default False
         """
         return (self - self.shift(periods))
 
-    def autocorr(self):
+    def autocorr(self, center=True):
         """
         Lag-1 autocorrelation
+
+        Parameters
+        ----------
+        center : boolean, default True
+            Whether to subtract the mean before computing autocorr
 
         Returns
         -------
         autocorr : float
         """
-        return self.corr(self.shift(1))
+        return self.corr(self.shift(1), center=center)
 
     def clip(self, lower=None, upper=None, out=None):
         """
