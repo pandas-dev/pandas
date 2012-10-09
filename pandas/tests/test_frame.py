@@ -3952,7 +3952,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_almost_equal(correls.ix['C', 'A'], xp)
 
         demeaned = self.frame - self.frame.mean()
-        assert_almost_equal(demeaned.corr(), demeaned.corr(center=False))
+        assert_frame_equal(demeaned.corr(), demeaned.corr(center=False))
 
         # exclude non-numeric types
         result = self.mixed_frame.corr()

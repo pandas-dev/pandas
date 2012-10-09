@@ -132,7 +132,7 @@ def _nanvar(values, axis=None, skipna=True, ddof=1, center=True):
     if axis is not None:
         count = (values.shape[axis] - mask.sum(axis)).astype(float)
     else:
-        count = float(values.size - mask.sum())
+        count = np.float64(values.size - mask.sum())
 
     if skipna:
         values = values.copy()
