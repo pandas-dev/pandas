@@ -294,7 +294,7 @@ def ewma(ndarray[double_t] input, double_t com, int adjust):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def nancorr(ndarray[float64_t, ndim=2] mat, cov=False):
+def nancorr(ndarray[float64_t, ndim=2] mat, cov=False, center=True):
     cdef:
         Py_ssize_t i, j, xi, yi, N, K
         ndarray[float64_t, ndim=2] result
@@ -329,8 +329,11 @@ def nancorr(ndarray[float64_t, ndim=2] mat, cov=False):
 
                 for i in range(N):
                     if mask[i, xi] and mask[i, yi]:
-                        vx = mat[i, xi] - meanx
-                        vy = mat[i, yi] - meany
+                        vx = mat[i, xi]
+                        vy = mat[i, yi]
+                        if center:
+                            vx -= meanx
+                            vy -= meany
 
                         sumx += vx * vy
                         sumxx += vx * vx
@@ -348,7 +351,8 @@ def nancorr(ndarray[float64_t, ndim=2] mat, cov=False):
 #----------------------------------------------------------------------
 # Rolling variance
 
-def roll_var(ndarray[double_t] input, int win, int minp, int ddof=1):
+def roll_var(ndarray[double_t] input, int win, int minp, int ddof=1, bint
+             center=1):
     cdef double val, prev, sum_x = 0, sum_xx = 0, nobs = 0
     cdef Py_ssize_t i
     cdef Py_ssize_t N = len(input)
@@ -389,7 +393,11 @@ def roll_var(ndarray[double_t] input, int win, int minp, int ddof=1):
                 output[i] = 0
                 continue
 
-            output[i] = (nobs * sum_xx - sum_x * sum_x) / (nobs * (nobs - ddof))
+            if center != 1:
+                output[i] = sum_xx / (nobs - ddof)
+            else:
+                output[i] = ((nobs * sum_xx - sum_x * sum_x) /
+                             (nobs * (nobs - ddof)))
         else:
             output[i] = NaN
 

@@ -3935,6 +3935,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_corr(self):
         _skip_if_no_scipy()
+        frame = self.frame.copy()
         self.frame['A'][:5] = nan
         self.frame['B'][:10] = nan
 
@@ -3946,6 +3947,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         _check_method('pearson')
         _check_method('kendall')
         _check_method('spearman')
+
+        correls = self.frame.corr(center=False)
+        xp = self.frame.A.corr(self.frame.C, center=False)
+        assert_almost_equal(correls.ix['C', 'A'], xp)
+
+        demeaned = frame - frame.mean()
+        assert_frame_equal(demeaned.corr(), demeaned.corr(center=False))
 
         # exclude non-numeric types
         result = self.mixed_frame.corr()
@@ -3984,6 +3992,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         assert_almost_equal(cov['A']['C'],
                             self.frame['A'].cov(self.frame['C']))
+
+        raw_cov = self.frame.cov(center=False)
+        assert_almost_equal(raw_cov.ix['C', 'A'],
+                            self.frame.A.cov(self.frame.C, center=False))
+
+        demeaned = self.frame - self.frame.mean()
+        assert_frame_equal(demeaned.cov(), demeaned.cov(center=False))
 
         # exclude non-numeric types
         result = self.mixed_frame.cov()
@@ -6091,13 +6106,31 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         alt = lambda x: np.std(x, ddof=1)
         self._check_stat_op('std', alt)
 
+        alt = lambda x: (x**2).sum() / (len(x) - 1)
+        self._check_stat_op('var', alt, center=False)
+
+        df = self.tsframe - self.tsframe.mean()
+        assert_almost_equal(df.var(), df.var(center=False))
+        assert_almost_equal(df.std(), df.std(center=False))
+
+        alt = lambda x: np.sqrt((x**2).sum() / (len(x) - 1))
+        self._check_stat_op('std', alt, center=False)
+
         result = self.tsframe.std(ddof=4)
         expected = self.tsframe.apply(lambda x: x.std(ddof=4))
         assert_almost_equal(result, expected)
 
+        rs = self.tsframe.std(ddof=4, center=False)
+        xp = self.tsframe.apply(lambda x: x.std(ddof=4, center=False))
+        assert_almost_equal(rs, xp)
+
         result = self.tsframe.var(ddof=4)
         expected = self.tsframe.apply(lambda x: x.var(ddof=4))
         assert_almost_equal(result, expected)
+
+        rs = self.tsframe.var(ddof=4, center=False)
+        xp = self.tsframe.apply(lambda x: x.var(ddof=4, center=False))
+        assert_almost_equal(rs, xp)
 
         arr = np.repeat(np.random.random((1, 1000)), 1000, 0)
         result = nanops.nanvar(arr, axis=0)
@@ -6107,6 +6140,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             result = nanops.nanvar(arr, axis=0)
             self.assertFalse((result < 0).any())
             nanops._USE_BOTTLENECK = True
+
+        rs = nanops.nanvar(arr, axis=0, center=False)
+        self.assertFalse((result < 0).any())
 
     def test_skew(self):
         _skip_if_no_scipy()
@@ -6139,7 +6175,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_series_equal(df.kurt(), df.kurt(level=0).xs('bar'))
 
     def _check_stat_op(self, name, alternative, frame=None, has_skipna=True,
-                       has_numeric_only=False):
+                       has_numeric_only=False, **kwargs):
         if frame is None:
             frame = self.frame
             # set some NAs
@@ -6158,8 +6194,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             def wrapper(x):
                 return alternative(x.values)
 
-            result0 = f(axis=0, skipna=False)
-            result1 = f(axis=1, skipna=False)
+            result0 = f(axis=0, skipna=False, **kwargs)
+            result1 = f(axis=1, skipna=False, **kwargs)
             assert_series_equal(result0, frame.apply(wrapper))
             assert_series_equal(result1, frame.apply(wrapper, axis=1),
                                 check_dtype=False) # HACK: win32
@@ -6167,8 +6203,8 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
             skipna_wrapper = alternative
             wrapper = alternative
 
-        result0 = f(axis=0)
-        result1 = f(axis=1)
+        result0 = f(axis=0, **kwargs)
+        result1 = f(axis=1, **kwargs)
         assert_series_equal(result0, frame.apply(skipna_wrapper))
         assert_series_equal(result1, frame.apply(skipna_wrapper, axis=1),
                             check_dtype=False)
@@ -6184,16 +6220,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         getattr(self.mixed_frame, name)(axis=1)
 
         if has_numeric_only:
-            getattr(self.mixed_frame, name)(axis=0, numeric_only=True)
-            getattr(self.mixed_frame, name)(axis=1, numeric_only=True)
-            getattr(self.frame, name)(axis=0, numeric_only=False)
-            getattr(self.frame, name)(axis=1, numeric_only=False)
+            getattr(self.mixed_frame, name)(axis=0, numeric_only=True, **kwargs)
+            getattr(self.mixed_frame, name)(axis=1, numeric_only=True, **kwargs)
+            getattr(self.frame, name)(axis=0, numeric_only=False, **kwargs)
+            getattr(self.frame, name)(axis=1, numeric_only=False, **kwargs)
 
         # all NA case
         if has_skipna:
             all_na = self.frame * np.NaN
-            r0 = getattr(all_na, name)(axis=0)
-            r1 = getattr(all_na, name)(axis=1)
+            r0 = getattr(all_na, name)(axis=0, **kwargs)
+            r1 = getattr(all_na, name)(axis=1, **kwargs)
             self.assert_(np.isnan(r0).all())
             self.assert_(np.isnan(r1).all())
 

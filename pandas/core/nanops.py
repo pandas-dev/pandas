@@ -13,15 +13,22 @@ except ImportError:  # pragma: no cover
     _USE_BOTTLENECK = False
 
 def _bottleneck_switch(bn_name, alt, zero_value=None, **kwargs):
-    try:
-        bn_func = getattr(bn, bn_name)
-    except (AttributeError, NameError):  # pragma: no cover
-        bn_func = None
+    center = kwargs.pop('center', True)
+    bn_func = None
+    if not center:
+        try:
+            bn_func = getattr(bn, bn_name)
+        except (AttributeError, NameError):  # pragma: no cover
+            pass
+
     def f(values, axis=None, skipna=True, **kwds):
         if len(kwargs) > 0:
             for k, v in kwargs.iteritems():
                 if k not in kwds:
                     kwds[k] = v
+        if not center:
+            kwds['center'] = center
+
         try:
             if zero_value is not None and values.size == 0:
                 if values.ndim == 1:
@@ -119,13 +126,13 @@ def _nanmedian(values, axis=None, skipna=True):
     else:
         return get_median(values)
 
-def _nanvar(values, axis=None, skipna=True, ddof=1):
+def _nanvar(values, axis=None, skipna=True, ddof=1, center=True):
     mask = isnull(values)
 
     if axis is not None:
         count = (values.shape[axis] - mask.sum(axis)).astype(float)
     else:
-        count = float(values.size - mask.sum())
+        count = np.float64(values.size - mask.sum())
 
     if skipna:
         values = values.copy()
@@ -133,7 +140,9 @@ def _nanvar(values, axis=None, skipna=True, ddof=1):
 
     X = _ensure_numeric(values.sum(axis))
     XX = _ensure_numeric((values ** 2).sum(axis))
-    return np.fabs((XX - X ** 2 / count) / (count - ddof))
+    if center:
+        return np.fabs((XX - X ** 2 / count) / (count - ddof))
+    return np.fabs(XX / (count - ddof)) * (count / count)
 
 def _nanmin(values, axis=None, skipna=True):
     mask = isnull(values)
@@ -334,7 +343,7 @@ def _zero_out_fperr(arg):
     else:
         return 0 if np.abs(arg) < 1e-14 else arg
 
-def nancorr(a, b, method='pearson'):
+def nancorr(a, b, method='pearson', center=True):
     """
     a, b: ndarrays
     """
@@ -349,20 +358,26 @@ def nancorr(a, b, method='pearson'):
         return np.nan
 
     f = get_corr_func(method)
-    return f(a, b)
+    return f(a, b, center)
 
 def get_corr_func(method):
     if method in ['kendall', 'spearman']:
         from scipy.stats import kendalltau, spearmanr
 
-    def _pearson(a, b):
+    def _pearson(a, b, center):
+        if not center:
+            return (a*b).sum() / np.sqrt((a**2).sum() * (b**2).sum())
         return np.corrcoef(a, b)[0, 1]
-    def _kendall(a, b):
+    def _kendall(a, b, center):
+        if not center:
+            raise NotImplementedError()
         rs = kendalltau(a, b)
         if isinstance(rs, tuple):
             return rs[0]
         return rs
-    def _spearman(a, b):
+    def _spearman(a, b, center):
+        if not center:
+            raise NotImplementedError()
         return spearmanr(a, b)[0]
 
     _cor_methods = {
@@ -372,7 +387,7 @@ def get_corr_func(method):
     }
     return _cor_methods[method]
 
-def nancov(a, b):
+def nancov(a, b, center=True):
     assert(len(a) == len(b))
 
     valid = notnull(a) & notnull(b)
@@ -383,7 +398,9 @@ def nancov(a, b):
     if len(a) == 0:
         return np.nan
 
-    return np.cov(a, b)[0, 1]
+    if center:
+        return np.cov(a, b)[0, 1]
+    return (a*b).sum() / (len(a) - 1)
 
 def _ensure_numeric(x):
     if isinstance(x, np.ndarray):

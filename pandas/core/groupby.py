@@ -315,29 +315,29 @@ class GroupBy(object):
             f = lambda x: x.median(axis=self.axis)
             return self._python_agg_general(f)
 
-    def std(self, ddof=1):
+    def std(self, ddof=1, center=True):
         """
         Compute standard deviation of groups, excluding missing values
 
         For multiple groupings, the result index will be a MultiIndex
         """
         # todo, implement at cython level?
-        if ddof == 1:
+        if ddof == 1 and center:
             return self._cython_agg_general('std')
         else:
-            f = lambda x: x.std(ddof=ddof)
+            f = lambda x: x.std(ddof=ddof, center=center)
             return self._python_agg_general(f)
 
-    def var(self, ddof=1):
+    def var(self, ddof=1, center=True):
         """
         Compute variance of groups, excluding missing values
 
         For multiple groupings, the result index will be a MultiIndex
         """
-        if ddof == 1:
+        if ddof == 1 and center:
             return self._cython_agg_general('var')
         else:
-            f = lambda x: x.var(ddof=ddof)
+            f = lambda x: x.var(ddof=ddof, center=center)
             return self._python_agg_general(f)
 
     def size(self):

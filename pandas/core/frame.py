@@ -4045,7 +4045,7 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Statistical methods, etc.
 
-    def corr(self, method='pearson'):
+    def corr(self, method='pearson', center=True):
         """
         Compute pairwise correlation of columns, excluding NA/null values
 
@@ -4055,6 +4055,8 @@ class DataFrame(NDFrame):
             pearson : standard correlation coefficient
             kendall : Kendall Tau correlation coefficient
             spearman : Spearman rank correlation
+        center : bool, default True
+            Whether to center the data before computing the correlation
 
         Returns
         -------
@@ -4065,7 +4067,7 @@ class DataFrame(NDFrame):
         mat = numeric_df.values
 
         if method == 'pearson':
-            correl = lib.nancorr(com._ensure_float64(mat))
+            correl = lib.nancorr(com._ensure_float64(mat), center=center)
         else:
             mat = mat.T
             corrf = nanops.get_corr_func(method)
@@ -4078,15 +4080,15 @@ class DataFrame(NDFrame):
                     if not valid.any():
                         c = np.nan
                     elif not valid.all():
-                        c = corrf(ac[valid], bc[valid])
+                        c = corrf(ac[valid], bc[valid], center=center)
                     else:
-                        c = corrf(ac, bc)
+                        c = corrf(ac, bc, center=center)
                     correl[i, j] = c
                     correl[j, i] = c
 
         return self._constructor(correl, index=cols, columns=cols)
 
-    def cov(self):
+    def cov(self, center=True):
         """
         Compute pairwise covariance of columns, excluding NA/null values
 
@@ -4102,13 +4104,17 @@ class DataFrame(NDFrame):
         mat = numeric_df.values
 
         if notnull(mat).all():
-            baseCov = np.cov(mat.T)
+            if center:
+                baseCov = np.cov(mat.T)
+            else:
+                baseCov = np.dot(mat, mat.T) / mat.shape[0]
         else:
-            baseCov = lib.nancorr(com._ensure_float64(mat), cov=True)
+            baseCov = lib.nancorr(com._ensure_float64(mat), cov=True,
+                                  center=center)
 
         return self._constructor(baseCov, index=cols, columns=cols)
 
-    def corrwith(self, other, axis=0, drop=False):
+    def corrwith(self, other, axis=0, drop=False, center=True):
         """
         Compute pairwise correlation between rows or columns of two DataFrame
         objects.
@@ -4120,6 +4126,8 @@ class DataFrame(NDFrame):
             0 to compute column-wise, 1 for row-wise
         drop : boolean, default False
             Drop missing indices from result, default returns union of all
+        center : boolean, default True
+            Whether to center the data before computing the correlation
 
         Returns
         -------
@@ -4142,11 +4150,13 @@ class DataFrame(NDFrame):
             right = right.T
 
         # demeaned data
-        ldem = left - left.mean()
-        rdem = right - right.mean()
+        ldem, rdem = left, right
+        if center:
+            ldem -= left.mean()
+            rdem -= right.mean()
 
         num = (ldem * rdem).sum()
-        dom = (left.count() - 1) * left.std() * right.std()
+        dom = np.sqrt((ldem**2).sum() * (rdem**2).sum())
 
         correl = num / dom
 
@@ -4416,12 +4426,12 @@ class DataFrame(NDFrame):
         """
         Normalized by N-1 (unbiased estimator).
         """)
-    def var(self, axis=0, skipna=True, level=None, ddof=1):
+    def var(self, axis=0, skipna=True, level=None, ddof=1, center=True):
         if level is not None:
             return self._agg_by_level('var', axis=axis, level=level,
-                                      skipna=skipna, ddof=ddof)
+                                      skipna=skipna, ddof=ddof, center=center)
         return self._reduce(nanops.nanvar, axis=axis, skipna=skipna,
-                            numeric_only=None, ddof=ddof)
+                            numeric_only=None, ddof=ddof, center=center)
 
     @Substitution(name='standard deviation', shortname='std',
                   na_action=_doc_exclude_na, extras='')
@@ -4429,11 +4439,12 @@ class DataFrame(NDFrame):
         """
         Normalized by N-1 (unbiased estimator).
         """)
-    def std(self, axis=0, skipna=True, level=None, ddof=1):
+    def std(self, axis=0, skipna=True, level=None, ddof=1, center=True):
         if level is not None:
             return self._agg_by_level('std', axis=axis, level=level,
-                                      skipna=skipna, ddof=ddof)
-        return np.sqrt(self.var(axis=axis, skipna=skipna, ddof=ddof))
+                                      skipna=skipna, ddof=ddof, center=center)
+        return np.sqrt(self.var(axis=axis, skipna=skipna, ddof=ddof,
+                                center=center))
 
     @Substitution(name='unbiased skewness', shortname='skew',
                   na_action=_doc_exclude_na, extras='')

@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, date
 import os
 import operator
 import unittest
+import functools
 
 import nose
 
@@ -1136,6 +1137,25 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = np.var(self.ts.values, ddof=4)
         assert_almost_equal(result, expected)
 
+        #uncentered
+        alt = lambda x: np.sqrt((x**2).sum() / (len(x) - 1))
+        self._check_stat_op('std', alt, center=False)
+
+        alt = lambda x: (x**2).sum() / (len(x) - 1)
+        self._check_stat_op('var', alt, center=False)
+
+        rs = self.ts.std(ddof=4, center=False)
+        xp = np.sqrt((self.ts**2).sum() / (self.ts.count() - 4))
+        assert_almost_equal(rs, xp)
+
+        rs = self.ts.var(ddof=4, center=False)
+        xp = (self.ts**2).sum() / (self.ts.count() - 4)
+        assert_almost_equal(rs, xp)
+
+        demeaned = self.ts - self.ts.mean()
+        assert_almost_equal(demeaned.std(), demeaned.std(center=False))
+        assert_almost_equal(demeaned.var(), demeaned.var(center=False))
+
     def test_skew(self):
         _skip_if_no_scipy()
 
@@ -1205,11 +1225,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         r = np.diff(s)
         assert_series_equal(Series([nan, 0, 0, 0, nan]), r)
 
-    def _check_stat_op(self, name, alternate, check_objects=False):
+    def _check_stat_op(self, name, alternate, check_objects=False, **kwargs):
         import pandas.core.nanops as nanops
 
         def testit():
-            f = getattr(Series, name)
+            f = functools.partial(getattr(Series, name), **kwargs)
 
             # add some NaNs
             self.series[5:15] = np.NaN
@@ -1792,6 +1812,18 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected, _ = stats.pearsonr(A, B)
         self.assertAlmostEqual(result, expected)
 
+        #uncentered
+        self.assertAlmostEqual(self.ts.corr(self.ts, center=False), 1)
+        self.assertAlmostEqual(self.ts[:15].corr(self.ts[5:], center=False), 1)
+        self.assert_(np.isnan(self.ts[::2].corr(self.ts[1::2], center=False)))
+        self.assert_(isnull(cp.corr(cp)))
+
+        s1 = Series(np.random.randn(10))
+        s2 = Series(np.random.randn(10))
+        s1 -= s1.mean()
+        s2 -= s2.mean()
+        self.assertAlmostEqual(s1.corr(s2), s1.corr(s2, center=False))
+
     def test_corr_rank(self):
         _skip_if_no_scipy()
 
@@ -1831,7 +1863,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertAlmostEqual(self.ts.cov(self.ts), self.ts.std()**2)
 
         # partial overlap
-        self.assertAlmostEqual(self.ts[:15].cov(self.ts[5:]), self.ts[5:15].std()**2)
+        self.assertAlmostEqual(self.ts[:15].cov(self.ts[5:]),
+                               self.ts[5:15].std()**2)
 
         # No overlap
         self.assert_(np.isnan(self.ts[::2].cov(self.ts[1::2])))
@@ -1840,6 +1873,20 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         cp = self.ts[:10].copy()
         cp[:] = np.nan
         self.assert_(isnull(cp.cov(cp)))
+
+        #uncentered
+        self.assertAlmostEqual(self.ts.cov(self.ts, center=False),
+                               self.ts.std(center=False)**2)
+
+        part1 = self.ts[:15]
+        part2 = self.ts[5:]
+        mid = self.ts[5:15]
+        self.assertAlmostEqual(part1.cov(part2, center=False),
+                               mid.std(center=False)**2)
+
+        demeaned = self.ts - self.ts.mean()
+        assert_almost_equal(demeaned.cov(demeaned, center=False),
+                            demeaned.cov(demeaned))
 
     def test_copy(self):
         ts = self.ts.copy()

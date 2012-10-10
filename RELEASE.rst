@@ -22,6 +22,16 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.10.0
+=============
+
+***Release date:**
+
+**New features**
+
+ - Add `center` parameter to many Series, DataFrame, and rolling moments
+
+
 pandas 0.9.0
 ============
 

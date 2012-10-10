@@ -153,21 +153,25 @@ def rolling_count(arg, window, freq=None, time_rule=None):
 
 @Substitution("Unbiased moving covariance", _binary_arg_flex, _flex_retval)
 @Appender(_doc_template)
-def rolling_cov(arg1, arg2, window, min_periods=None, time_rule=None):
+def rolling_cov(arg1, arg2, window, min_periods=None, time_rule=None,
+                center=True):
     def _get_cov(X, Y):
         mean = lambda x: rolling_mean(x, window, min_periods, time_rule)
         count = rolling_count(X + Y, window, time_rule)
         bias_adj = count / (count - 1)
+        if not center:
+            return mean(X * Y) * bias_adj
         return (mean(X * Y) - mean(X) * mean(Y)) * bias_adj
     return _flex_binary_moment(arg1, arg2, _get_cov)
 
 @Substitution("Moving sample correlation", _binary_arg_flex, _flex_retval)
 @Appender(_doc_template)
-def rolling_corr(arg1, arg2, window, min_periods=None, time_rule=None):
+def rolling_corr(arg1, arg2, window, min_periods=None, time_rule=None,
+                 center=True):
     def _get_corr(a, b):
-        num = rolling_cov(a, b, window, min_periods, time_rule)
-        den  = (rolling_std(a, window, min_periods, time_rule) *
-                rolling_std(b, window, min_periods, time_rule))
+        num = rolling_cov(a, b, window, min_periods, time_rule, center=center)
+        den  = (rolling_std(a, window, min_periods, time_rule, center=center) *
+                rolling_std(b, window, min_periods, time_rule, center=center))
         return num / den
     return _flex_binary_moment(arg1, arg2, _get_corr)
 
@@ -197,7 +201,8 @@ def _flex_binary_moment(arg1, arg2, f):
     else:
         return _flex_binary_moment(arg2, arg1, f)
 
-def rolling_corr_pairwise(df, window, min_periods=None):
+def rolling_corr_pairwise(df, window, min_periods=None, time_rule=None,
+                          center=True):
     """
     Computes pairwise rolling correlation matrices as Panel whose items are
     dates
@@ -220,7 +225,8 @@ def rolling_corr_pairwise(df, window, min_periods=None):
     for i, k1 in enumerate(df.columns):
         for k2 in df.columns[i:]:
             corr = rolling_corr(df[k1], df[k2], window,
-                                min_periods=min_periods)
+                                min_periods=min_periods, time_rule=time_rule,
+                                center=center)
             all_results[k1][k2] = corr
             all_results[k2][k1] = corr
 
@@ -481,7 +487,7 @@ def rolling_quantile(arg, window, quantile, min_periods=None, freq=None,
                            freq=freq, time_rule=time_rule)
 
 def rolling_apply(arg, window, func, min_periods=None, freq=None,
-                  time_rule=None):
+                  time_rule=None, **kwargs):
     """Generic moving function application
 
     Parameters
@@ -501,9 +507,10 @@ def rolling_apply(arg, window, func, min_periods=None, freq=None,
     """
     def call_cython(arg, window, minp):
         minp = _use_window(minp, window)
-        return lib.roll_generic(arg, window, minp, func)
+        f = lambda x: func(x, **kwargs)
+        return lib.roll_generic(arg, window, minp, f)
     return _rolling_moment(arg, window, call_cython, min_periods,
-                           freq=freq, time_rule=time_rule)
+                           freq=freq, time_rule=time_rule, **kwargs)
 
 
 def _expanding_func(func, desc, check_minp=_use_window):

@@ -54,7 +54,8 @@ class TestMoments(unittest.TestCase):
         b = mom.rolling_min(a, window=100, min_periods=1)
         assert_almost_equal(b, np.ones(len(a)))
 
-        self.assertRaises(ValueError, mom.rolling_min, np.array([1,2,3]), window=3, min_periods=5)
+        self.assertRaises(ValueError, mom.rolling_min, np.array([1,2,3]),
+                          window=3, min_periods=5)
 
     def test_rolling_max(self):
         self._check_moment_func(mom.rolling_max, np.max)
@@ -63,7 +64,7 @@ class TestMoments(unittest.TestCase):
         b = mom.rolling_max(a, window=100, min_periods=1)
         assert_almost_equal(a, b)
 
-        self.assertRaises(ValueError, mom.rolling_max, np.array([1,2,3]), window=3, min_periods=5)
+        self.assertRaises(ValueError, mom.rolling_max, np.array([1,2,3]), window=3,                          min_periods=5)
 
     def test_rolling_quantile(self):
         qs = [.1, .5, .9]
@@ -111,6 +112,9 @@ class TestMoments(unittest.TestCase):
                                 lambda x: np.std(x, ddof=1))
         self._check_moment_func(functools.partial(mom.rolling_std, ddof=0),
                                 lambda x: np.std(x, ddof=0))
+        self._check_moment_func(functools.partial(mom.rolling_std,
+                                                  center=False),
+                                lambda x: np.sqrt((x**2).sum() / (len(x) - 1)))
 
     def test_rolling_std_1obs(self):
         result = mom.rolling_std(np.array([1.,2.,3.,4.,5.]),
@@ -144,6 +148,9 @@ class TestMoments(unittest.TestCase):
                                 lambda x: np.var(x, ddof=1))
         self._check_moment_func(functools.partial(mom.rolling_var, ddof=0),
                                 lambda x: np.var(x, ddof=0))
+        self._check_moment_func(functools.partial(mom.rolling_var,
+                                                  center=False),
+                                lambda x: (x**2).sum() / (len(x)-1))
 
     def test_rolling_skew(self):
         try:
@@ -335,6 +342,9 @@ class TestMoments(unittest.TestCase):
         result = mom.rolling_cov(A, B, 50, min_periods=25)
         assert_almost_equal(result[-1], np.cov(A[-50:], B[-50:])[0, 1])
 
+        result = mom.rolling_cov(A, B, 50, min_periods=25, center=False)
+        assert_almost_equal(result[-1], (A[-50:] * B[-50:]).sum() / 49)
+
     def test_rolling_corr(self):
         A = self.series
         B = A + randn(len(A))
@@ -351,6 +361,10 @@ class TestMoments(unittest.TestCase):
         result = mom.rolling_corr(a, b, len(a), min_periods=1)
         assert_almost_equal(result[-1], a.corr(b))
 
+        result = mom.rolling_corr(A, B, 50, min_periods=25, center=False)
+        assert_almost_equal(result[-1], (A[-50:] * B[-50:]).sum() /
+                            np.sqrt(((A[-50:]**2).sum() * (B[-50:]**2).sum())))
+
     def test_rolling_corr_pairwise(self):
         panel = mom.rolling_corr_pairwise(self.frame, 10, min_periods=5)
 
@@ -358,6 +372,15 @@ class TestMoments(unittest.TestCase):
         exp = mom.rolling_corr(self.frame[1], self.frame[5],
                                10, min_periods=5)
         tm.assert_series_equal(correl, exp)
+
+        panel = mom.rolling_corr_pairwise(self.frame, 10, min_periods=5,
+                                          center=False)
+
+        correl = panel.ix[:, 1, 5]
+        exp = mom.rolling_corr(self.frame[1], self.frame[5],
+                               10, min_periods=5, center=False)
+        tm.assert_series_equal(correl, exp)
+
 
     def test_flex_binary_frame(self):
         def _check(method):
