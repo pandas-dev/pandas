@@ -1150,6 +1150,7 @@ class DatetimeIndex(Int64Index):
     dayofweek = _field_accessor('dayofweek', 'dow')
     weekday = dayofweek
     dayofyear = _field_accessor('dayofyear', 'doy')
+    hourofyear = _field_accessor('hourofyear', 'hoy')
     quarter = _field_accessor('quarter', 'q')
 
     def normalize(self):
