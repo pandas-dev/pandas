@@ -1812,6 +1812,18 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected, _ = stats.pearsonr(A, B)
         self.assertAlmostEqual(result, expected)
 
+        #uncentered
+        self.assertAlmostEqual(self.ts.corr(self.ts, center=False), 1)
+        self.assertAlmostEqual(self.ts[:15].corr(self.ts[5:], center=False), 1)
+        self.assert_(np.isnan(self.ts[::2].corr(self.ts[1::2], center=False)))
+        self.assert_(isnull(cp.corr(cp)))
+
+        s1 = Series(np.random.randn(10))
+        s2 = Series(np.random.randn(10))
+        s1 -= s1.mean()
+        s2 -= s2.mean()
+        self.assertAlmostEqual(s1.corr(s2), s1.corr(s2, center=False))
+
     def test_corr_rank(self):
         _skip_if_no_scipy()
 

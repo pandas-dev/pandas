@@ -3935,6 +3935,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
     def test_corr(self):
         _skip_if_no_scipy()
+        frame = self.frame.copy()
         self.frame['A'][:5] = nan
         self.frame['B'][:10] = nan
 
@@ -3951,7 +3952,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         xp = self.frame.A.corr(self.frame.C, center=False)
         assert_almost_equal(correls.ix['C', 'A'], xp)
 
-        demeaned = self.frame - self.frame.mean()
+        demeaned = frame - frame.mean()
         assert_frame_equal(demeaned.corr(), demeaned.corr(center=False))
 
         # exclude non-numeric types
@@ -3997,7 +3998,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                             self.frame.A.cov(self.frame.C, center=False))
 
         demeaned = self.frame - self.frame.mean()
-        assert_almost_equal(demeaned.cov(), demeaned.cov(center=False))
+        assert_frame_equal(demeaned.cov(), demeaned.cov(center=False))
 
         # exclude non-numeric types
         result = self.mixed_frame.cov()
