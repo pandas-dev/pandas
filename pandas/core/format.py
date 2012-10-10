@@ -1098,6 +1098,7 @@ class _GlobalPrintConfig(object):
         self.notebook_repr_html = True
         self.date_dayfirst = False
         self.date_yearfirst = False
+        self.pprint_nest_depth = 3
         self.multi_sparse = True
         self.encoding = self.detect_encoding()
 
