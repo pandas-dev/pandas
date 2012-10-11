@@ -8,7 +8,8 @@ try:
 except:
     from io import StringIO
 
-from pandas.core.common import adjoin, isnull, notnull, _stringify
+from pandas.core.common import (adjoin, isnull, notnull, _stringify,
+                                _stringify_seq)
 from pandas.core.index import MultiIndex, _ensure_index
 from pandas.util import py3compat
 
@@ -85,7 +86,8 @@ class SeriesFormatter(object):
                 if isinstance(self.series.name, basestring):
                     series_name = self.series.name
                 elif isinstance(self.series.name, tuple):
-                    series_name = "('%s')" % "', '".join(self.series.name)
+                    series_name = "('%s')" % "', '".join(
+                            _stringify_seq(self.series.name))
                 else:
                     series_name = str(self.series.name)
             else:
