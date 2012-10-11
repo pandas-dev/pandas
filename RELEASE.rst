@@ -22,6 +22,20 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.10.0
+=============
+
+**Release date:** not yet released
+
+**New features**
+
+**Improvements to existing features**
+
+**Bug fixes**
+
+  - fix Series repr when name is tuple holding non string-type (#2051)
+
+
 pandas 0.9.0
 ============
 
