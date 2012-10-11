@@ -1011,9 +1011,16 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         ots[::2] = None
         repr(ots)
 
-        # tuple name, e.g. from hierarchical index
-        self.series.name = ('foo', 'bar', 'baz')
-        repr(self.series)
+        # various names
+        for name in ['', 1, 1.2, 'foo', u'\u03B1\u03B2\u03B3',
+                     'loooooooooooooooooooooooooooooooooooooooooooooooooooong',
+                     ('foo', 'bar', 'baz'),
+                     (1, 2),
+                     ('foo', 1, 2.3),
+                     (u'\u03B1', u'\u03B2', u'\u03B3'),
+                     (u'\u03B1', 'bar')]:
+            self.series.name = name
+            repr(self.series)
 
         biggie = Series(tm.randn(1000), index=np.arange(1000),
                         name=('foo', 'bar', 'baz'))
