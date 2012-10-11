@@ -72,7 +72,7 @@ class SeriesFormatter(object):
         self.float_format = float_format
 
     def _get_footer(self):
-        footer = ''
+        footer = u''
 
         if self.name:
             if getattr(self.series.index, 'freq', None):
@@ -81,24 +81,15 @@ class SeriesFormatter(object):
             if footer and self.series.name:
                 footer += ', '
 
-            if self.series.name:
-                if isinstance(self.series.name, basestring):
-                    series_name = self.series.name
-                elif isinstance(self.series.name, tuple):
-                    series_name = "('%s')" % "', '".join(self.series.name)
-                else:
-                    series_name = str(self.series.name)
-            else:
-                series_name = self.series.name
-
-            footer += (("Name: %s" % series_name)
-                       if series_name is not None else '')
+            series_name = com.pprint_thing(self.series.name)
+            footer += ("Name: %s" % series_name) if self.series.name is not None else ""
 
         if self.length:
             if footer:
                 footer += ', '
             footer += 'Length: %d' % len(self.series)
-        return footer
+
+        return unicode(footer)
 
     def _get_formatted_index(self):
         index = self.series.index
