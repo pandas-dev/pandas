@@ -24,8 +24,8 @@ from numpy import nan
 import numpy as np
 import numpy.ma as ma
 
-from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
-                                _default_index, _stringify)
+from pandas.core.common import (isnull, notnull, PandasError, _try_sort,\
+                                _default_index,_is_sequence)
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
@@ -584,6 +584,9 @@ class DataFrame(NDFrame):
         else:
             self.to_string(buf=buf)
         value = buf.getvalue()
+
+        if py3compat.PY3:
+            return unicode(value)
         return com.console_encode(value)
 
     def _repr_html_(self):
@@ -1365,7 +1368,7 @@ class DataFrame(NDFrame):
         # hack
         if verbose and len(self.columns) < 100:
             lines.append('Data columns:')
-            space = max([len(_stringify(k)) for k in self.columns]) + 4
+            space = max([len(com.pprint_thing(k)) for k in self.columns]) + 4
             counts = self.count()
             assert(len(cols) == len(counts))
             for col, count in counts.iteritems():
@@ -5105,14 +5108,6 @@ def _homogenize(data, index, columns, dtype=None):
 
 def _put_str(s, space):
     return ('%s' % s)[:space].ljust(space)
-
-def _is_sequence(x):
-    try:
-        iter(x)
-        assert(not isinstance(x, basestring))
-        return True
-    except Exception:
-        return False
 
 def install_ipython_completers():  # pragma: no cover
     """Register the DataFrame type with IPython's tab completion machinery, so

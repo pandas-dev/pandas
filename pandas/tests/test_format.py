@@ -82,6 +82,21 @@ class TestDataFrameFormatting(unittest.TestCase):
         fmt.print_config.max_colwidth = max_len + 2
         self.assert_('...' not in repr(df))
 
+    def test_repr_should_return_str (self):
+        """
+        http://docs.python.org/py3k/reference/datamodel.html#object.__repr__
+        http://docs.python.org/reference/datamodel.html#object.__repr__
+        "...The return value must be a string object."
+
+        (str on py2.x, str (unicode) on py3)
+
+        """
+        data=[8,5,3,5]
+        index1=[u"\u03c3",u"\u03c4",u"\u03c5",u"\u03c6"]
+        cols=[u"\u03c8"]
+        df=DataFrame(data,columns=cols,index=index1)
+        self.assertTrue(type(df.__repr__() == str)) # both py2 / 3
+
     def test_to_string_repr_unicode(self):
         buf = StringIO()
 
@@ -132,12 +147,6 @@ class TestDataFrameFormatting(unittest.TestCase):
         dm = DataFrame(['\xc2'])
         buf = StringIO()
         dm.to_string(buf)
-
-    def test_to_string_force_unicode(self):
-        #given string with non-ascii characters
-        df = DataFrame([["aaää", 1], ["bbbb", 2]])
-        result = df.to_string(force_unicode=True)
-        self.assertEqual(result, u'      0  1\n0  aa\xe4\xe4  1\n1  bbbb  2')
 
     def test_to_string_with_formatters(self):
         df = DataFrame({'int': [1, 2, 3],
@@ -235,7 +244,7 @@ class TestDataFrameFormatting(unittest.TestCase):
     def test_string_repr_encoding(self):
         pth = curpath()
         filepath = os.path.join(pth, 'data', 'unicode_series.csv')
-        df = pandas.read_csv(filepath, header=None)
+        df = pandas.read_csv(filepath, header=None,encoding='latin1')
         repr(df)
         repr(df['X1'])
 

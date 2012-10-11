@@ -848,6 +848,8 @@ copy : boolean, default False
         else:
             result = '%s' % ndarray.__repr__(self)
 
+        if py3compat.PY3:
+            return unicode(result)
         return com.console_encode(result)
 
     def _tidy_repr(self, max_vals=20):
@@ -861,7 +863,7 @@ copy : boolean, default False
         return '%s\n%s' % (result, self._repr_footer())
 
     def _repr_footer(self):
-        namestr = "Name: %s, " % str(self.name) if self.name is not None else ""
+        namestr = "Name: %s, " % com.pprint_thing(self.name) if self.name is not None else ""
         return '%sLength: %d' % (namestr, len(self))
 
     def to_string(self, buf=None, na_rep='NaN', float_format=None,

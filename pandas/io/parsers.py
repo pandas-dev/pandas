@@ -749,7 +749,7 @@ class TextParser(object):
             else:
                 index_name = columns[self.index_col]
 
-            if index_name is not None and 'Unnamed' in str(index_name):
+            if index_name is not None and 'Unnamed' in unicode(index_name):
                 index_name = None
 
         elif self.index_col is not None:
@@ -1186,10 +1186,10 @@ def _get_col_names(colspec, columns):
 
 def _concat_date_cols(date_cols):
     if len(date_cols) == 1:
-        return np.array([str(x) for x in date_cols[0]], dtype=object)
+        return np.array([unicode(x) for x in date_cols[0]], dtype=object)
 
     # stripped = [map(str.strip, x) for x in date_cols]
-    rs = np.array([' '.join([str(y) for y in x])
+    rs = np.array([' '.join([unicode(y) for y in x])
                    for x in zip(*date_cols)], dtype=object)
     return rs
 

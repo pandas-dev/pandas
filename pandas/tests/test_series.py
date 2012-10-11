@@ -1011,9 +1011,16 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         ots[::2] = None
         repr(ots)
 
-        # tuple name, e.g. from hierarchical index
-        self.series.name = ('foo', 'bar', 'baz')
-        repr(self.series)
+        # various names
+        for name in ['', 1, 1.2, 'foo', u'\u03B1\u03B2\u03B3',
+                     'loooooooooooooooooooooooooooooooooooooooooooooooooooong',
+                     ('foo', 'bar', 'baz'),
+                     (1, 2),
+                     ('foo', 1, 2.3),
+                     (u'\u03B1', u'\u03B2', u'\u03B3'),
+                     (u'\u03B1', 'bar')]:
+            self.series.name = name
+            repr(self.series)
 
         biggie = Series(tm.randn(1000), index=np.arange(1000),
                         name=('foo', 'bar', 'baz'))
@@ -1049,6 +1056,20 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         s.name = (u"\u05d0",) * 2
         repr(s)
+
+    def test_repr_should_return_str (self):
+        """
+        http://docs.python.org/py3k/reference/datamodel.html#object.__repr__
+        http://docs.python.org/reference/datamodel.html#object.__repr__
+        "...The return value must be a string object."
+
+        (str on py2.x, str (unicode) on py3)
+
+        """
+        data=[8,5,3,5]
+        index1=[u"\u03c3",u"\u03c4",u"\u03c5",u"\u03c6"]
+        df=Series(data,index=index1)
+        self.assertTrue(type(df.__repr__() == str)) # both py2 / 3
 
     def test_timeseries_repr_object_dtype(self):
         index = Index([datetime(2000, 1, 1) + timedelta(i)
@@ -2026,12 +2047,16 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         os.remove('_foo')
 
-    def test_to_csv_stringio(self):
-        buf = StringIO()
-        self.ts.to_csv(buf, index=False)
+    def test_to_csv_unicode_index(self):
+        buf=StringIO()
+        s=Series([u"\u05d0","d2"], index=[u"\u05d0",u"\u05d1"])
+
+        s.to_csv(buf, encoding='UTF-8')
         buf.seek(0)
-        arr = np.loadtxt(buf)
-        assert_almost_equal(arr, self.ts.values)
+
+        s2 = Series.from_csv(buf, index_col=0, encoding='UTF-8')
+
+        assert_series_equal(s, s2)
 
     def test_to_dict(self):
         self.assert_(np.array_equal(Series(self.ts.to_dict()), self.ts))

@@ -158,7 +158,7 @@ def _replot_ax(ax, freq, plotf, kwargs):
             ax._plot_data.append(series)
             args = _maybe_mask(series)
             lines.append(plotf(ax, *args, **kwds)[0])
-            labels.append(com._stringify(series.name))
+            labels.append(com.pprint_thing(series.name))
 
     return lines, labels
 

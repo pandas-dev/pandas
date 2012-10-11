@@ -12,6 +12,7 @@ import pandas.core.common as com
 import pandas.lib as lib
 import pandas._algos as _algos
 from pandas.lib import Timestamp
+from pandas.util import py3compat
 
 __all__ = ['Index']
 
@@ -132,12 +133,11 @@ class Index(np.ndarray):
         return self.view()
 
     def __repr__(self):
-        try:
-            result = np.ndarray.__repr__(self)
-        except UnicodeEncodeError:
-            result = 'Index([%s])' % (', '.join([repr(x) for x in self]))
-
-        return result
+        if py3compat.PY3:
+            prepr = com.pprint_thing(self)
+        else:
+            prepr = com.pprint_thing_encoded(self)
+        return  'Index(%s, dtype=%s)' % (prepr,self.dtype)
 
     def astype(self, dtype):
         return Index(self.values.astype(dtype), name=self.name,
@@ -196,7 +196,8 @@ class Index(np.ndarray):
 
     def summary(self, name=None):
         if len(self) > 0:
-            index_summary = ', %s to %s' % (unicode(self[0]), unicode(self[-1]))
+            index_summary = ', %s to %s' % (com.pprint_thing(self[0]),
+                                            com.pprint_thing(self[-1]))
         else:
             index_summary = ''
 
@@ -382,7 +383,7 @@ class Index(np.ndarray):
 
         header = []
         if name:
-            header.append(str(self.name) if self.name is not None else '')
+            header.append(com.pprint_thing(self.name) if self.name is not None else '')
 
         if self.is_all_dates:
             zero_time = time(0, 0)
@@ -399,7 +400,7 @@ class Index(np.ndarray):
             values = lib.maybe_convert_objects(values, safe=1)
 
         if values.dtype == np.object_:
-            result = com._stringify_seq(values)
+            result = [com.pprint_thing(x) for x in values]
         else:
             result = _trim_front(format_array(values, None, justify='left'))
         return header + result
@@ -1473,14 +1474,8 @@ class MultiIndex(Index):
 
     def format(self, space=2, sparsify=None, adjoin=True, names=False,
                na_rep='NaN'):
-        from pandas.core.common import _stringify
-        from pandas.core.format import print_config
-        def _strify(x):
-            return _stringify(x, print_config.encoding)
-
         if len(self) == 0:
             return []
-
 
         stringified_levels = []
         for lev, lab in zip(self.levels, self.labels):
@@ -1496,7 +1491,7 @@ class MultiIndex(Index):
             level = []
 
             if names:
-                level.append(_strify(name) if name is not None else '')
+                level.append(com.pprint_thing(name) if name is not None else '')
 
             level.extend(np.array(lev, dtype=object))
             result_levels.append(level)
