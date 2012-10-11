@@ -26,7 +26,7 @@ objects. To get started, import numpy and load pandas into your namespace:
    randn = np.random.randn
    from pandas import *
 
-Here is a basic tenet to keep in mind: **data alignment is intrinsic**. Link
+Here is a basic tenet to keep in mind: **data alignment is intrinsic**. The link
 between labels and data will not be broken unless done so explicitly by you.
 
 We'll give a brief intro to the data structures, then consider all of the broad
