@@ -24,8 +24,8 @@ from numpy import nan
 import numpy as np
 import numpy.ma as ma
 
-from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
-                                _default_index, _stringify)
+from pandas.core.common import (isnull, notnull, PandasError, _try_sort,\
+                                _default_index,_is_sequence)
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
@@ -119,7 +119,9 @@ how : {'left', 'right', 'outer', 'inner'}, default 'inner'
     * outer: use union of keys from both frames (SQL: full outer join)
     * inner: use intersection of keys from both frames (SQL: inner join)
 on : label or list
-    Field names to join on. Must be found in both DataFrames.
+    Field names to join on. Must be found in both DataFrames. If on is
+    None and not merging on indexes, then it merges on the intersection of
+    the columns by default.
 left_on : label or list, or array-like
     Field names to join on in left DataFrame. Can be a vector or list of
     vectors of the length of the DataFrame to use a particular vector as
@@ -582,6 +584,9 @@ class DataFrame(NDFrame):
         else:
             self.to_string(buf=buf)
         value = buf.getvalue()
+
+        if py3compat.PY3:
+            return unicode(value)
         return com.console_encode(value)
 
     def _repr_html_(self):
@@ -1104,8 +1109,11 @@ class DataFrame(NDFrame):
                 val = series[col][j]
                 if lib.checknull(val):
                     val = na_rep
+
                 if float_format is not None and com.is_float(val):
                     val = float_format % val
+                elif isinstance(val, np.datetime64):
+                    val = lib.Timestamp(val)._repr_base
 
                 row_fields.append(val)
 
@@ -1360,11 +1368,11 @@ class DataFrame(NDFrame):
         # hack
         if verbose and len(self.columns) < 100:
             lines.append('Data columns:')
-            space = max([len(_stringify(k)) for k in self.columns]) + 4
+            space = max([len(com.pprint_thing(k)) for k in self.columns]) + 4
             counts = self.count()
             assert(len(cols) == len(counts))
             for col, count in counts.iteritems():
-                if not isinstance(col, (unicode, str)):
+                if not isinstance(col, basestring):
                     col = str(col)
                 lines.append(_put_str(col, space) +
                              '%d  non-null values' % count)
@@ -2456,7 +2464,8 @@ class DataFrame(NDFrame):
         frame.index = index
         return frame
 
-    def reset_index(self, level=None, drop=False, inplace=False):
+    def reset_index(self, level=None, drop=False, inplace=False, col_level=0,
+                    col_fill=''):
         """
         For DataFrame with multi-level index, return new DataFrame with
         labeling information in the columns under the index names, defaulting
@@ -2470,9 +2479,17 @@ class DataFrame(NDFrame):
             Only remove the given levels from the index. Removes all levels by
             default
         drop : boolean, default False
-            Do not try to insert index into dataframe columns
+            Do not try to insert index into dataframe columns. This resets
+            the index to the default integer index.
         inplace : boolean, default False
             Modify the DataFrame in place (do not create a new object)
+        col_level : int or str, default 0
+            If the columns have multiple levels, determines which level the
+            labels are inserted into. By default it is inserted into the first
+            level.
+        col_fill : object, default ''
+            If the columns have multiple levels, determines how the other levels
+            are named. If None then the index name is repeated.
 
         Returns
         -------
@@ -2489,34 +2506,53 @@ class DataFrame(NDFrame):
             return values
 
         new_index = np.arange(len(new_obj))
-        if not drop:
-            if isinstance(self.index, MultiIndex):
+        if isinstance(self.index, MultiIndex):
+            if level is not None:
+                if not isinstance(level, (tuple, list)):
+                    level = [level]
+                level = [self.index._get_level_number(lev) for lev in level]
+                if len(level) < len(self.index.levels):
+                    new_index = self.index.droplevel(level)
+
+            if not drop:
                 names = self.index.names
                 zipped = zip(self.index.levels, self.index.labels)
 
-                if level is not None:
-                    if not isinstance(level, (tuple, list)):
-                        level = [level]
-
-                    level = [self.index._get_level_number(lev) for lev in level]
-
+                multi_col = isinstance(self.columns, MultiIndex)
                 for i, (lev, lab) in reversed(list(enumerate(zipped))):
                     col_name = names[i]
                     if col_name is None:
                         col_name = 'level_%d' % i
+
+                    if multi_col:
+                        if col_fill is None:
+                            col_name = tuple([col_name] *
+                                             self.columns.nlevels)
+                        else:
+                            name_lst = [col_fill] * self.columns.nlevels
+                            lev_num = self.columns._get_level_number(col_level)
+                            name_lst[lev_num] = col_name
+                            col_name = tuple(name_lst)
 
                     # to ndarray and maybe infer different dtype
                     level_values = _maybe_cast(lev.values)
                     if level is None or i in level:
                         new_obj.insert(0, col_name, level_values.take(lab))
 
-                if level is not None and len(level) < len(self.index.levels):
-                    new_index = self.index.droplevel(level)
-            else:
-                name = self.index.name
-                if name is None or name == 'index':
-                    name = 'index' if 'index' not in self else 'level_0'
-                new_obj.insert(0, name, _maybe_cast(self.index.values))
+        elif not drop:
+            name = self.index.name
+            if name is None or name == 'index':
+                name = 'index' if 'index' not in self else 'level_0'
+            if isinstance(self.columns, MultiIndex):
+                if col_fill is None:
+                    name = tuple([name] * self.columns.nlevels)
+                else:
+                    name_lst = [col_fill] * self.columns.nlevels
+                    lev_num = self.columns._get_level_number(col_level)
+                    name_lst[lev_num] = name
+                    name = tuple(name_lst)
+            new_obj.insert(0, name, _maybe_cast(self.index.values))
+
         new_obj.index = new_index
         return new_obj
 
@@ -2711,7 +2747,13 @@ class DataFrame(NDFrame):
             values = list(_m8_to_i8(self.values.T))
         else:
             if np.iterable(cols) and not isinstance(cols, basestring):
-                values = [_m8_to_i8(self[x].values) for x in cols]
+                if isinstance(cols, tuple):
+                    if cols in self.columns:
+                        values = [self[cols]]
+                    else:
+                        values = [_m8_to_i8(self[x].values) for x in cols]
+                else:
+                    values = [_m8_to_i8(self[x].values) for x in cols]
             else:
                 values = [self[cols]]
 
@@ -3356,7 +3398,7 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        other : DataFrame
+        other : DataFrame, or object coercible into a DataFrame
         join : {'left', 'right', 'outer', 'inner'}, default 'left'
         overwrite : boolean, default True
             If True then overwrite values for common keys in the calling frame
@@ -3370,7 +3412,11 @@ class DataFrame(NDFrame):
         if join != 'left':
             raise NotImplementedError
 
+        if not isinstance(other, DataFrame):
+            other = DataFrame(other)
+
         other = other.reindex_like(self)
+
         for col in self.columns:
             this = self[col].values
             that = other[col].values
@@ -3760,6 +3806,8 @@ class DataFrame(NDFrame):
             series_gen = (Series.from_array(arr, index=res_columns, name=name)
                           for i, (arr, name) in
                           enumerate(izip(values, res_index)))
+        else:
+            raise ValueError('Axis must be 0 or 1, got %s' % str(axis))
 
         keys = []
         results = {}
@@ -3815,6 +3863,8 @@ class DataFrame(NDFrame):
             target = self
         elif axis == 1:
             target = self.T
+        else:
+            raise ValueError('Axis must be 0 or 1, got %s' % str(axis))
 
         result_values = np.empty_like(target.values)
         columns = target.columns
@@ -4046,6 +4096,9 @@ class DataFrame(NDFrame):
         Returns
         -------
         y : DataFrame
+
+        y contains the covariance matrix of the DataFrame's time series.
+        The covariance is normalized by N-1 (unbiased estimator).
         """
         numeric_df = self._get_numeric_data()
         cols = numeric_df.columns
@@ -4362,7 +4415,10 @@ class DataFrame(NDFrame):
 
     @Substitution(name='variance', shortname='var',
                   na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc)
+    @Appender(_stat_doc +
+        """
+        Normalized by N-1 (unbiased estimator).
+        """)
     def var(self, axis=0, skipna=True, level=None, ddof=1):
         if level is not None:
             return self._agg_by_level('var', axis=axis, level=level,
@@ -4372,7 +4428,10 @@ class DataFrame(NDFrame):
 
     @Substitution(name='standard deviation', shortname='std',
                   na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc)
+    @Appender(_stat_doc +
+        """
+        Normalized by N-1 (unbiased estimator).
+        """)
     def std(self, axis=0, skipna=True, level=None, ddof=1):
         if level is not None:
             return self._agg_by_level('std', axis=axis, level=level,
@@ -5049,14 +5108,6 @@ def _homogenize(data, index, columns, dtype=None):
 
 def _put_str(s, space):
     return ('%s' % s)[:space].ljust(space)
-
-def _is_sequence(x):
-    try:
-        iter(x)
-        assert(not isinstance(x, basestring))
-        return True
-    except Exception:
-        return False
 
 def install_ipython_completers():  # pragma: no cover
     """Register the DataFrame type with IPython's tab completion machinery, so

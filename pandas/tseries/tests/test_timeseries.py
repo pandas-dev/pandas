@@ -23,6 +23,8 @@ import pandas.tseries.frequencies as fmod
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
 
+from pandas.util.py3compat import StringIO
+
 from pandas.lib import NaT, iNaT
 import pandas.lib as lib
 import cPickle as pickle
@@ -619,6 +621,10 @@ class TestTimeSeries(unittest.TestCase):
         exp = Timestamp("2012-01-01 00:00:00")
         self.assert_(result[0] == exp)
 
+        result = to_datetime(['20121001']) # bad iso 8601
+        exp = Timestamp('2012-10-01')
+        self.assert_(result[0] == exp)
+
     def test_nat_vector_field_access(self):
         idx = DatetimeIndex(['1/1/2000', None, None, '1/4/2000'])
 
@@ -879,6 +885,34 @@ class TestTimeSeries(unittest.TestCase):
         expected = ts.between_time(stime, etime)
         assert_series_equal(result, expected)
 
+        #across midnight
+        rng = date_range('1/1/2000', '1/5/2000', freq='5min')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+        stime = time(22, 0)
+        etime = time(9, 0)
+
+        close_open = itertools.product([True, False], [True, False])
+        for inc_start, inc_end in close_open:
+            filtered = ts.between_time(stime, etime, inc_start, inc_end)
+            exp_len = (12 * 11 + 1) * 4 + 1
+            if not inc_start:
+                exp_len -= 4
+            if not inc_end:
+                exp_len -= 4
+
+            self.assert_(len(filtered) == exp_len)
+            for rs in filtered.index:
+                t = rs.time()
+                if inc_start:
+                    self.assert_((t >= stime) or (t <= etime))
+                else:
+                    self.assert_((t > stime) or (t <= etime))
+
+                if inc_end:
+                    self.assert_((t <= etime) or (t >= stime))
+                else:
+                    self.assert_((t < etime) or (t >= stime))
+
     def test_dti_constructor_preserve_dti_freq(self):
         rng = date_range('1/1/2000', '1/2/2000', freq='5min')
 
@@ -939,16 +973,16 @@ class TestTimeSeries(unittest.TestCase):
     def test_timestamp_fields(self):
         # extra fields from DatetimeIndex like quarter and week
         from pandas.lib import Timestamp
-        idx = tm.makeDateIndex(10)
+        idx = tm.makeDateIndex(100)
 
         fields = ['dayofweek', 'dayofyear', 'week', 'weekofyear', 'quarter']
         for f in fields:
-            expected = getattr(idx, f)[0]
-            result = getattr(Timestamp(idx[0]), f)
+            expected = getattr(idx, f)[-1]
+            result = getattr(Timestamp(idx[-1]), f)
             self.assertEqual(result, expected)
 
-        self.assertEqual(idx.freq, Timestamp(idx[0], idx.freq).freq)
-        self.assertEqual(idx.freqstr, Timestamp(idx[0], idx.freq).freqstr)
+        self.assertEqual(idx.freq, Timestamp(idx[-1], idx.freq).freq)
+        self.assertEqual(idx.freqstr, Timestamp(idx[-1], idx.freq).freqstr)
 
     def test_timestamp_date_out_of_range(self):
         self.assertRaises(ValueError, Timestamp, '1676-01-01')
@@ -1157,6 +1191,14 @@ class TestTimeSeries(unittest.TestCase):
         result = df.to_html()
         self.assert_('2000-01-01' in result)
 
+    def test_to_csv_numpy_16_bug(self):
+        frame = DataFrame({'a': date_range('1/1/2000', periods=10)})
+
+        buf = StringIO()
+        frame.to_csv(buf)
+
+        result = buf.getvalue()
+        self.assert_('2000-01-01' in result)
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)

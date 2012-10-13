@@ -207,7 +207,7 @@ def radviz(frame, class_column, ax=None, **kwds):
         line = ax.scatter(to_plot[class_][0],
                           to_plot[class_][1],
                           color=random_color(class_),
-                          label=com._stringify(class_), **kwds)
+                          label=com.pprint_thing(class_), **kwds)
     ax.legend()
 
     ax.add_patch(patches.Circle((0.0, 0.0), radius=1.0, facecolor='none'))
@@ -272,8 +272,8 @@ def andrews_curves(data, class_column, ax=None, samples=200):
         f = function(row)
         y = [f(t) for t in x]
         label = None
-        if com._stringify(class_col[i]) not in used_legends:
-            label = com._stringify(class_col[i])
+        if com.pprint_thing(class_col[i]) not in used_legends:
+            label = com.pprint_thing(class_col[i])
             used_legends.add(label)
         ax.plot(x, y, color=random_color(class_col[i]), label=label)
     ax.legend(loc='upper right')
@@ -378,8 +378,8 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, **kwds):
         y = row
         label = None
         kls = class_col.iget_value(i)
-        if com._stringify(kls) not in used_legends:
-            label = com._stringify(kls)
+        if com.pprint_thing(kls) not in used_legends:
+            label = com.pprint_thing(kls)
             used_legends.add(label)
         ax.plot(x, y, color=random_color(kls), label=label, **kwds)
 
@@ -671,7 +671,7 @@ class MPLPlot(object):
                 self.axes[0].set_title(self.title)
 
         if self._need_to_set_index:
-            labels = [_stringify(key) for key in self.data.index]
+            labels = [com.pprint_thing(key) for key in self.data.index]
             labels = dict(zip(range(len(self.data.index)), labels))
 
             for ax_ in self.axes:
@@ -685,10 +685,10 @@ class MPLPlot(object):
             if not isinstance(self.data.columns, MultiIndex):
                 name = self.data.columns.name
                 if name is not None:
-                    name = com._stringify(name)
+                    name = com.pprint_thing(name)
                 return name
             else:
-                stringified = map(com._stringify,
+                stringified = map(com.pprint_thing,
                                   self.data.columns.names)
                 return ','.join(stringified)
         else:
@@ -742,13 +742,13 @@ class MPLPlot(object):
         if isinstance(self.data.index, MultiIndex):
             name = self.data.index.names
             if any(x is not None for x in name):
-                name = ','.join([com._stringify(x) for x in name])
+                name = ','.join([com.pprint_thing(x) for x in name])
             else:
                 name = None
         else:
             name = self.data.index.name
             if name is not None:
-                name = com._stringify(name)
+                name = com.pprint_thing(name)
 
         return name
 
@@ -806,7 +806,7 @@ class KdePlot(MPLPlot):
             ax = self._get_ax(i)
             style = self._get_style(i, label)
 
-            label = com._stringify(label)
+            label = com.pprint_thing(label)
 
             gkde = gaussian_kde(y)
             sample_range = max(y) - min(y)
@@ -902,7 +902,7 @@ class LinePlot(MPLPlot):
 
                 _maybe_add_color(kwds, style, i)
 
-                label = _stringify(label)
+                label = com.pprint_thing(label).encode('utf-8')
 
                 mask = com.isnull(y)
                 if mask.any():
@@ -947,7 +947,7 @@ class LinePlot(MPLPlot):
         if isinstance(data, Series):
             ax = self._get_ax(0) #self.axes[0]
             style = self.style or ''
-            label = com._stringify(self.label)
+            label = com.pprint_thing(self.label)
             kwds = kwargs.copy()
             _maybe_add_color(kwds, style, 0)
 
@@ -959,7 +959,7 @@ class LinePlot(MPLPlot):
             labels.append(leg_label)
         else:
             for i, col in enumerate(data.columns):
-                label = com._stringify(col)
+                label = com.pprint_thing(col)
                 ax = self._get_ax(i)
                 style = self._get_style(i, col)
                 kwds = kwargs.copy()
@@ -1097,7 +1097,7 @@ class BarPlot(MPLPlot):
         K = self.nseries
 
         for i, (label, y) in enumerate(self._iter_data()):
-            label = com._stringify(label)
+            label = com.pprint_thing(label)
             kwds = self.kwds.copy()
             kwds['color'] = colors[i % len(colors)]
 
@@ -1125,7 +1125,7 @@ class BarPlot(MPLPlot):
 
     def _post_plot_logic(self):
         for ax in self.axes:
-            str_index = [_stringify(key) for key in self.data.index]
+            str_index = [com.pprint_thing(key) for key in self.data.index]
 
             name = self._get_index_name()
             if self.kind == 'bar':
@@ -1359,7 +1359,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
 
     def plot_group(grouped, ax):
         keys, values = zip(*grouped)
-        keys = [_stringify(x) for x in keys]
+        keys = [com.pprint_thing(x) for x in keys]
         values = [remove_na(v) for v in values]
         ax.boxplot(values, **kwds)
         if kwds.get('vert', 1):
@@ -1394,7 +1394,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
             cols = columns
         else:
             cols = data.columns
-        keys = [_stringify(x) for x in cols]
+        keys = [com.pprint_thing(x) for x in cols]
 
         # Return boxplot dict in single plot case
 
@@ -1410,14 +1410,6 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
 
     fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
     return ret
-
-
-def _stringify(x):
-    if isinstance(x, tuple):
-        return '|'.join(com._stringify(y) for y in x)
-    else:
-        return com._stringify(x)
-
 
 def format_date_labels(ax, rot):
     # mini version of autofmt_xdate
@@ -1455,8 +1447,8 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False):
         else:
             fig = ax.get_figure()
         plot_group(data, ax)
-        ax.set_ylabel(com._stringify(y))
-        ax.set_xlabel(com._stringify(x))
+        ax.set_ylabel(com.pprint_thing(y))
+        ax.set_xlabel(com.pprint_thing(x))
 
         ax.grid(grid)
 
@@ -1620,7 +1612,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
         for (key, group), ax in zip(grouped, axes):
             d = group.boxplot(ax=ax, column=column, fontsize=fontsize,
                               rot=rot, grid=grid, figsize=figsize, **kwds)
-            ax.set_title(_stringify(key))
+            ax.set_title(com.pprint_thing(key))
             ret[key] = d
     else:
         from pandas.tools.merge import concat
@@ -1676,7 +1668,7 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
         if numeric_only and isinstance(group, DataFrame):
             group = group._get_numeric_data()
         plotf(group, ax)
-        ax.set_title(com._stringify(key))
+        ax.set_title(com.pprint_thing(key))
 
     return fig, axes
 
@@ -1710,7 +1702,7 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
         gp_col = grouped[col]
         plotf(gp_col, ax)
         ax.set_title(col)
-        ax.set_xlabel(com._stringify(by))
+        ax.set_xlabel(com.pprint_thing(by))
         ax.grid(grid)
 
     byline = by[0] if len(by) == 1 else by

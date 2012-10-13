@@ -8,7 +8,7 @@ try:
 except:
     from io import StringIO
 
-from pandas.core.common import adjoin, isnull, notnull, _stringify
+from pandas.core.common import adjoin, isnull, notnull
 from pandas.core.index import MultiIndex, _ensure_index
 from pandas.util import py3compat
 
@@ -18,10 +18,10 @@ import pandas.lib as lib
 import numpy as np
 
 docstring_to_string = """
-    Parameters
-    ----------
-    frame : DataFrame
-        object to render
+     Parameters
+     ----------
+     frame : DataFrame
+         object to render
     buf : StringIO-like, optional
         buffer to write to
     columns : sequence, optional
@@ -72,7 +72,7 @@ class SeriesFormatter(object):
         self.float_format = float_format
 
     def _get_footer(self):
-        footer = ''
+        footer = u''
 
         if self.name:
             if getattr(self.series.index, 'freq', None):
@@ -81,24 +81,15 @@ class SeriesFormatter(object):
             if footer and self.series.name:
                 footer += ', '
 
-            if self.series.name:
-                if isinstance(self.series.name, basestring):
-                    series_name = self.series.name
-                elif isinstance(self.series.name, tuple):
-                    series_name = "('%s')" % "', '".join(self.series.name)
-                else:
-                    series_name = str(self.series.name)
-            else:
-                series_name = self.series.name
-
-            footer += (("Name: %s" % series_name)
-                       if series_name is not None else '')
+            series_name = com.pprint_thing(self.series.name)
+            footer += ("Name: %s" % series_name) if self.series.name is not None else ""
 
         if self.length:
             if footer:
                 footer += ', '
             footer += 'Length: %d' % len(self.series)
-        return footer
+
+        return unicode(footer)
 
     def _get_formatted_index(self):
         index = self.series.index
@@ -143,7 +134,9 @@ class SeriesFormatter(object):
         if footer:
             result.append(footer)
 
-        return '\n'.join(result)
+        if py3compat.PY3:
+            return unicode(u'\n'.join(result))
+        return com.console_encode(u'\n'.join(result))
 
 if py3compat.PY3:  # pragma: no cover
     _encode_diff = lambda x: 0
@@ -298,7 +291,7 @@ class DataFrameFormatter(object):
         if column_format is None:
             column_format = '|l|%s|' % '|'.join('c' for _ in strcols)
         else:
-            assert isinstance(column_format, str)
+            assert isinstance(column_format, basestring)
 
         self.buf.write('\\begin{tabular}{%s}\n' % column_format)
         self.buf.write('\\hline\n')
@@ -535,16 +528,43 @@ class HTMLFormatter(object):
         self.write('<thead>', indent)
         row = []
 
-        col_row = _column_header()
         indent += self.indent_delta
+
         if isinstance(self.columns, MultiIndex):
-            align = None
+            template = 'colspan="%d" halign="left"'
+
+            levels = self.columns.format(sparsify=True, adjoin=False,
+                                         names=False)
+            col_values = self.columns.values
+            level_lengths = _get_level_lengths(levels)
+
+            for lnum, (records, values) in enumerate(zip(level_lengths, levels)):
+                name = self.columns.names[lnum]
+                row = ['' if name is None else str(name)]
+
+                tags = {}
+                j = 1
+                for i, v in enumerate(values):
+                    if i in records:
+                        if records[i] > 1:
+                            tags[j] = template % records[i]
+                    else:
+                        continue
+                    j += 1
+                    row.append(v)
+
+                self.write_tr(row, indent, self.indent_delta, tags=tags,
+                              header=True)
         else:
+            col_row = _column_header()
             align = self.fmt.justify
-        self.write_tr(col_row, indent, self.indent_delta, header=True,
-                align=align)
+
+            self.write_tr(col_row, indent, self.indent_delta, header=True,
+                    align=align)
+
         if self.fmt.has_index_names:
-            row = self.frame.index.names + [''] * len(self.columns)
+            row = [x if x is not None else ''
+                   for x in self.frame.index.names] + [''] * len(self.columns)
             self.write_tr(row, indent, self.indent_delta, header=True)
 
         indent -= self.indent_delta
@@ -724,12 +744,7 @@ class GenericArrayFormatter(object):
         else:
             float_format = self.float_format
 
-        if use_unicode:
-            def _strify(x):
-                return _stringify(x, print_config.encoding)
-            formatter = _strify if self.formatter is None else self.formatter
-        else:
-            formatter = str if self.formatter is None else self.formatter
+        formatter = com.pprint_thing if self.formatter is None else self.formatter
 
         def _format(x):
             if self.na_rep is not None and lib.checknull(x):
@@ -1098,10 +1113,33 @@ class _GlobalPrintConfig(object):
         self.notebook_repr_html = True
         self.date_dayfirst = False
         self.date_yearfirst = False
+        self.pprint_nest_depth = 3
         self.multi_sparse = True
-        self.encoding = sys.getdefaultencoding()
-        if self.encoding == 'ascii':
-            self.encoding = 'UTF8'
+        self.encoding = self.detect_encoding()
+
+    def detect_encoding(self):
+        """
+        Try to find the most capable encoding supported by the console.
+        slighly modified from the way IPython handles the same issue.
+        """
+        import locale
+
+        encoding = None
+        try:
+            encoding=sys.stdin.encoding
+        except AttributeError:
+            pass
+
+        if not encoding or encoding =='ascii': # try again for something better
+            try:
+                encoding = locale.getpreferredencoding()
+            except Exception:
+                pass
+
+        if not encoding: # when all else fails. this will usually be "ascii"
+                encoding = sys.getdefaultencoding()
+
+        return encoding
 
     def reset(self):
         self.__init__()

@@ -1,4 +1,5 @@
 # pylint: disable=E1101
+import operator
 
 from datetime import time, datetime
 from datetime import timedelta
@@ -580,13 +581,15 @@ class DatetimeIndex(Int64Index):
 
     def summary(self, name=None):
         if len(self) > 0:
-            index_summary = ', %s to %s' % (str(self[0]), str(self[-1]))
+            index_summary = ', %s to %s' % (com.pprint_thing(self[0]),
+                                            com.pprint_thing(self[-1]))
         else:
             index_summary = ''
 
         if name is None:
             name = type(self).__name__
-        result = '%s: %s entries%s' % (name, len(self), index_summary)
+        result = '%s: %s entries%s' % (com.pprint_thing(name),
+                                       len(self), index_summary)
         if self.freq:
             result += '\nFreq: %s' % self.freqstr
 
@@ -1358,18 +1361,25 @@ class DatetimeIndex(Int64Index):
         start_micros = _time_to_micros(start_time)
         end_micros = _time_to_micros(end_time)
 
+
         if include_start and include_end:
-            mask = ((start_micros <= time_micros) &
-                    (time_micros <= end_micros))
+            lop = rop = operator.le
         elif include_start:
-            mask = ((start_micros <= time_micros) &
-                    (time_micros < end_micros))
+            lop = operator.le
+            rop = operator.lt
         elif include_end:
-            mask = ((start_micros < time_micros) &
-                    (time_micros <= end_micros))
+            lop = operator.lt
+            rop = operator.le
         else:
-            mask = ((start_micros < time_micros) &
-                    (time_micros < end_micros))
+            lop = rop = operator.lt
+
+        if start_time <= end_time:
+            join_op = operator.and_
+        else:
+            join_op = operator.or_
+
+        mask = join_op(lop(start_micros, time_micros),
+                       rop(time_micros, end_micros))
 
         return mask.nonzero()[0]
 

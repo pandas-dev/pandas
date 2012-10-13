@@ -33,7 +33,7 @@ def _to_ordinalf(tm):
     return tot_sec
 
 def time2num(d):
-    if isinstance(d, str):
+    if isinstance(d, basestring):
         parsed = tools.to_datetime(d)
         if not isinstance(parsed, datetime):
             raise ValueError('Could not parse time %s' % d)
@@ -137,7 +137,6 @@ class DatetimeConverter(dates.DateConverter):
 
     @staticmethod
     def convert(values, unit, axis):
-        from pandas.tseries.index import DatetimeIndex
         def try_parse(values):
             try:
                 return _dt_to_float_ordinal(tools.to_datetime(values))
@@ -150,11 +149,14 @@ class DatetimeConverter(dates.DateConverter):
             return dates.date2num(values)
         elif (com.is_integer(values) or com.is_float(values)):
             return values
-        elif isinstance(values, str):
+        elif isinstance(values, basestring):
             return try_parse(values)
         elif isinstance(values, (list, tuple, np.ndarray)):
             if not isinstance(values, np.ndarray):
-                values = np.array(values, dtype='O')
+                values = com._asarray_tuplesafe(values)
+
+            if com.is_integer_dtype(values) or com.is_float_dtype(values):
+                return values
 
             try:
                 values = tools.to_datetime(values)

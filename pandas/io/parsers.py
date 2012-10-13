@@ -45,18 +45,17 @@ dialect : string or csv.Dialect instance, default None
     If None defaults to Excel dialect. Ignored if sep longer than 1 char
     See csv.Dialect documentation for more details
 header : int, default 0
-    Row to use for the column labels of the parsed DataFrame
+    Row to use for the column labels of the parsed DataFrame. Specify None if
+    there is no header row.
 skiprows : list-like or integer
     Row numbers to skip (0-indexed) or number of rows to skip (int)
     at the start of the file
-skip_footer : int, default 0
-    Lines at bottom of file to skip. If >0 then indicates the row to start
-    skipping. If <0 then skips the specified number of rows from the end.
 index_col : int or sequence, default None
     Column to use as the row labels of the DataFrame. If a sequence is
     given, a MultiIndex is used.
 names : array-like
-    List of column names
+    List of column names to use. If passed, header will be implicitly set to
+    None.
 na_values : list-like or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values
@@ -87,6 +86,8 @@ iterator : boolean, default False
     Return TextParser object
 chunksize : int, default None
     Return TextParser object for iteration
+skip_footer : int, default 0
+    Number of line at bottom of file to skip
 converters : dict. optional
     Dict of functions for converting values in certain columns. Keys can either
     be integers or column labels
@@ -155,8 +156,11 @@ def _is_url(url):
 def _read(filepath_or_buffer, kwds):
     "Generic reader of line files."
     encoding = kwds.get('encoding', None)
+    skipfooter = kwds.pop('skipfooter', None)
+    if skipfooter is not None:
+        kwds['skip_footer'] = skipfooter
 
-    if isinstance(filepath_or_buffer, str) and _is_url(filepath_or_buffer):
+    if isinstance(filepath_or_buffer, basestring) and _is_url(filepath_or_buffer):
         from urllib2 import urlopen
         filepath_or_buffer = urlopen(filepath_or_buffer)
         if py3compat.PY3:  # pragma: no cover
@@ -788,7 +792,7 @@ class CParserWrapper(ParserBase):
             self.names = list(self._reader.header)
 
         if self.names is None:
-            self.names = ['X.%d' % (i + 1)
+            self.names = ['X%d' % (i + 1)
                           for i in range(self._reader.table_width)]
 
         self.orig_names = self.names
@@ -1060,8 +1064,10 @@ class PythonParser(ParserBase):
 
         alldata = self._rows_to_cols(content)
         data = self._exclude_implicit_index(alldata)
-        data = self._convert_data(data)
+
         columns, data = self._do_date_conversions(self.columns, data)
+
+        data = self._convert_data(data)
         index = self._make_index(data, alldata, columns)
 
         return index, columns, data
@@ -1128,7 +1134,7 @@ class PythonParser(ParserBase):
 
             ncols = len(line)
             if not names:
-                columns = ['X.%d' % (i + 1) for i in range(ncols)]
+                columns = ['X%d' % i for i in range(ncols)]
             else:
                 columns = names
 
@@ -1534,12 +1540,23 @@ def _convert_types(values, na_values):
     return result, na_count
 
 
+def _get_col_names(colspec, columns):
+    colset = set(columns)
+    colnames = []
+    for c in colspec:
+        if c in colset:
+            colnames.append(c)
+        elif isinstance(c, int):
+            colnames.append(columns[c])
+    return colnames
+
+
 def _concat_date_cols(date_cols):
     if len(date_cols) == 1:
-        return np.array([str(x) for x in date_cols[0]], dtype=object)
+        return np.array([unicode(x) for x in date_cols[0]], dtype=object)
 
     # stripped = [map(str.strip, x) for x in date_cols]
-    rs = np.array([' '.join([str(y) for y in x])
+    rs = np.array([' '.join([unicode(y) for y in x])
                    for x in zip(*date_cols)], dtype=object)
     return rs
 
@@ -1638,9 +1655,10 @@ class ExcelFile(object):
     def __repr__(self):
         return object.__repr__(self)
 
-    def parse(self, sheetname, header=0, skiprows=None, index_col=None,
-              parse_cols=None, parse_dates=False, date_parser=None,
-              na_values=None, thousands=None, chunksize=None):
+    def parse(self, sheetname, header=0, skiprows=None, skip_footer=0,
+              index_col=None, parse_cols=None, parse_dates=False,
+              date_parser=None, na_values=None, thousands=None, chunksize=None,
+              **kwds):
         """
         Read Excel table into DataFrame
 
@@ -1651,7 +1669,9 @@ class ExcelFile(object):
         header : int, default 0
             Row to use for the column labels of the parsed DataFrame
         skiprows : list-like
-            Row numbers to skip (0-indexed)
+            Rows to skip at the beginning (0-indexed)
+        skip_footer : int, default 0
+            Rows at the end to skip (0-indexed)
         index_col : int, default None
             Column to use as the row labels of the DataFrame. Pass None if
             there is no such column
@@ -1666,6 +1686,10 @@ class ExcelFile(object):
         -------
         parsed : DataFrame
         """
+        skipfooter = kwds.pop('skipfooter', None)
+        if skipfooter is not None:
+            skip_footer = skipfooter
+
         choose = {True:self._parse_xlsx,
                   False:self._parse_xls}
         return choose[self.use_xlsx](sheetname, header=header,
@@ -1675,7 +1699,8 @@ class ExcelFile(object):
                                      date_parser=date_parser,
                                      na_values=na_values,
                                      thousands=thousands,
-                                     chunksize=chunksize)
+                                     chunksize=chunksize,
+                                     skip_footer=skip_footer)
 
     def _should_parse(self, i, parse_cols):
         if isinstance(parse_cols, int):
@@ -1683,7 +1708,8 @@ class ExcelFile(object):
         else:
             return i in parse_cols
 
-    def _parse_xlsx(self, sheetname, header=0, skiprows=None, index_col=None,
+    def _parse_xlsx(self, sheetname, header=0, skiprows=None,
+                    skip_footer=0, index_col=None,
                     parse_cols=None, parse_dates=False, date_parser=None,
                     na_values=None, thousands=None, chunksize=None):
         sheet = self.book.get_sheet_by_name(name=sheetname)
@@ -1712,11 +1738,13 @@ class ExcelFile(object):
                             parse_dates=parse_dates,
                             date_parser=date_parser,
                             skiprows=skiprows,
+                            skip_footer=skip_footer,
                             chunksize=chunksize)
 
         return parser.read()
 
-    def _parse_xls(self, sheetname, header=0, skiprows=None, index_col=None,
+    def _parse_xls(self, sheetname, header=0, skiprows=None,
+                   skip_footer=0, index_col=None,
                    parse_cols=None, parse_dates=False, date_parser=None,
                    na_values=None, thousands=None, chunksize=None):
         from xlrd import xldate_as_tuple, XL_CELL_DATE, XL_CELL_ERROR
@@ -1755,6 +1783,7 @@ class ExcelFile(object):
                             parse_dates=parse_dates,
                             date_parser=date_parser,
                             skiprows=skiprows,
+                            skip_footer=skip_footer,
                             chunksize=chunksize)
 
         return parser.read()

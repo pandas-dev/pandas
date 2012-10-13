@@ -25,6 +25,7 @@ class Block(object):
         assert(values.ndim == ndim)
         assert(len(items) == len(values))
 
+        self._ref_locs = None
         self.values = values
         self.ndim = ndim
         self.items = _ensure_index(items)
@@ -39,7 +40,6 @@ class Block(object):
         # monotonicity
         return (self.ref_locs[1:] > self.ref_locs[:-1]).all()
 
-    _ref_locs = None
     @property
     def ref_locs(self):
         if self._ref_locs is None:
@@ -479,7 +479,7 @@ class BlockManager(object):
     -----
     This is *not* a public API class
     """
-    __slots__ = ['axes', 'blocks', 'ndim']
+    __slots__ = ['axes', 'blocks']
 
     def __init__(self, blocks, axes, do_integrity_check=True):
         self.axes = [_ensure_index(ax) for ax in axes]
@@ -833,11 +833,17 @@ class BlockManager(object):
             return self.get(item)
         else:
             # ugh
-            inds, = (self.items == item).nonzero()
+            try:
+                inds, = (self.items == item).nonzero()
+            except AttributeError: #MultiIndex
+                inds, = self.items.map(lambda x: x == item).nonzero()
 
             _, block = self._find_block(item)
 
-            binds, = (block.items == item).nonzero()
+            try:
+                binds, = (block.items == item).nonzero()
+            except AttributeError: #MultiIndex
+                binds, = block.items.map(lambda x: x == item).nonzero()
 
             for j, (k, b) in enumerate(zip(inds, binds)):
                 if i == k:

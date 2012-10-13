@@ -788,12 +788,15 @@ copy : boolean, default False
             new_values = np.concatenate([self.values, [value]])
             return Series(new_values, index=new_index, name=self.name)
 
-    def reset_index(self, drop=False, name=None, inplace=False):
+    def reset_index(self, level=None, drop=False, name=None, inplace=False):
         """
         Analogous to the DataFrame.reset_index function, see docstring there.
 
         Parameters
         ----------
+        level : int, str, tuple, or list, default None
+            Only remove the given levels from the index. Removes all levels by
+            default
         drop : boolean, default False
             Do not try to insert index into dataframe columns
         name : object, default None
@@ -806,13 +809,21 @@ copy : boolean, default False
         resetted : DataFrame, or Series if drop == True
         """
         if drop:
+            new_index = np.arange(len(self))
+            if level is not None and isinstance(self.index, MultiIndex):
+                if not isinstance(level, (tuple, list)):
+                    level = [level]
+                level = [self.index._get_level_number(lev) for lev in level]
+                if len(level) < len(self.index.levels):
+                    new_index = self.index.droplevel(level)
+
             if inplace:
-                self.index = np.arange(len(self))
+                self.index = new_index
                 # set name if it was passed, otherwise, keep the previous name
                 self.name = name or self.name
                 return self
             else:
-                return Series(self.values.copy(), index=np.arange(len(self)),
+                return Series(self.values.copy(), index=new_index,
                               name=self.name)
         else:
             from pandas.core.frame import DataFrame
@@ -821,7 +832,7 @@ copy : boolean, default False
             else:
                 df = DataFrame({name : self})
 
-            return df.reset_index(drop=drop)
+            return df.reset_index(level=level, drop=drop)
 
     def __repr__(self):
         """Clean string representation of a Series"""
@@ -837,6 +848,8 @@ copy : boolean, default False
         else:
             result = '%s' % ndarray.__repr__(self)
 
+        if py3compat.PY3:
+            return unicode(result)
         return com.console_encode(result)
 
     def _tidy_repr(self, max_vals=20):
@@ -850,7 +863,7 @@ copy : boolean, default False
         return '%s\n%s' % (result, self._repr_footer())
 
     def _repr_footer(self):
-        namestr = "Name: %s, " % str(self.name) if self.name is not None else ""
+        namestr = "Name: %s, " % com.pprint_thing(self.name) if self.name is not None else ""
         return '%sLength: %d' % (namestr, len(self))
 
     def to_string(self, buf=None, na_rep='NaN', float_format=None,
@@ -1140,7 +1153,10 @@ copy : boolean, default False
 
     @Substitution(name='standard deviation', shortname='stdev',
                   na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc)
+    @Appender(_stat_doc + 
+        """
+        Normalized by N-1 (unbiased estimator).
+        """)
     def std(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
             level=None):
         if level is not None:
@@ -1150,7 +1166,10 @@ copy : boolean, default False
 
     @Substitution(name='variance', shortname='var',
                   na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc)
+    @Appender(_stat_doc + 
+        """
+        Normalized by N-1 (unbiased estimator).
+        """)
     def var(self, axis=None, dtype=None, out=None, ddof=1, skipna=True,
             level=None):
         if level is not None:
@@ -1463,6 +1482,8 @@ copy : boolean, default False
         Returns
         -------
         covariance : float
+
+        Normalized by N-1 (unbiased estimator).
         """
         this, other = self.align(other, join='inner')
         if len(this) == 0:

@@ -721,23 +721,6 @@ def _index_labels_to_array(labels):
 
     return labels
 
-def _stringify(col, encoding='UTF8'):
-    # unicode workaround
-    try:
-        return unicode(col)
-    except UnicodeError:
-        try:
-            if isinstance(col, str):
-                return col.decode(encoding)
-        except UnicodeError:
-            pass
-        return console_encode(col)
-
-def _stringify_seq(values):
-    if any(isinstance(x, unicode) for x in values):
-        return [_stringify(x) for x in values]
-    return [str(x) for x in values]
-
 def _maybe_make_list(obj):
     if obj is not None and not isinstance(obj, (tuple, list)):
         return [obj]
@@ -752,6 +735,9 @@ def is_float(obj):
 def is_iterator(obj):
     # python 3 generators have __next__ instead of next
     return hasattr(obj, 'next') or hasattr(obj, '__next__')
+
+def is_number(obj):
+    return isinstance(obj, (np.number, int, long, float))
 
 def is_integer_dtype(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):
@@ -778,6 +764,14 @@ def is_float_dtype(arr_or_dtype):
 def is_list_like(arg):
     return hasattr(arg, '__iter__') and not isinstance(arg, basestring)
 
+def _is_sequence(x):
+    try:
+        iter(x)
+        assert(not isinstance(x, basestring))
+        return True
+    except Exception:
+        return False
+
 _ensure_float64 = _algos.ensure_float64
 _ensure_int64 = _algos.ensure_int64
 _ensure_int32 = _algos.ensure_int32
@@ -786,7 +780,7 @@ _ensure_object = _algos.ensure_object
 
 
 def _astype_nansafe(arr, dtype):
-    if isinstance(dtype, basestring):
+    if not isinstance(dtype, np.dtype):
         dtype = np.dtype(dtype)
 
     if issubclass(arr.dtype.type, np.datetime64):
@@ -797,6 +791,9 @@ def _astype_nansafe(arr, dtype):
 
         if np.isnan(arr).any():
             raise ValueError('Cannot convert NA to integer')
+    elif arr.dtype == np.object_ and np.issubdtype(dtype.type, np.integer):
+        # work around NumPy brokenness, #1987
+        return lib.astype_intsafe(arr.ravel(), dtype).reshape(arr.shape)
 
     return arr.astype(dtype)
 
@@ -855,16 +852,6 @@ def load(path):
         return pickle.load(f)
     finally:
         f.close()
-
-def console_encode(value):
-    if py3compat.PY3 or not isinstance(value, unicode):
-        return value
-
-    try:
-        import sys
-        return value.encode(sys.stdin.encoding or 'utf-8', 'replace')
-    except (AttributeError, TypeError):
-        return value.encode('ascii', 'replace')
 
 class UTF8Recoder:
     """
@@ -929,10 +916,17 @@ else:
             self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
             self.stream = f
             self.encoder = codecs.getincrementalencoder(encoding)()
+            self.quoting=kwds.get("quoting",None)
 
         def writerow(self, row):
-            row = [x if isinstance(x, basestring) else str(x) for x in row]
-            self.writer.writerow([s.encode("utf-8") for s in row])
+            def _check_as_is(x):
+                return (self.quoting == csv.QUOTE_NONNUMERIC and \
+                        is_number(x)) or isinstance(x, str)
+
+            row = [x if _check_as_is(x)
+                   else pprint_thing(x).encode('utf-8') for x in row]
+
+            self.writer.writerow([s for s in row])
             # Fetch UTF-8 output from the queue ...
             data = self.queue.getvalue()
             data = data.decode("utf-8")
@@ -957,3 +951,94 @@ def _concat_compat(to_concat, axis=0):
         return new_values.view(_NS_DTYPE)
     else:
         return np.concatenate(to_concat, axis=axis)
+
+# Unicode consolidation
+# ---------------------
+#
+# pprinting utility functions for generating Unicode text or bytes(3.x)/str(2.x)
+# representations of objects.
+# Try to use these as much as possible rather then rolling your own.
+#
+# When to use
+# -----------
+#
+# 1) If you're writing code internal to pandas (no I/O directly involved),
+#    use pprint_thing().
+#
+#    It will always return unicode text which can handled by other
+#    parts of the package without breakage.
+#
+# 2) If you need to send something to the console, use console_encode().
+#
+#    console_encode() should (hopefully) choose the right encoding for you
+#    based on the encoding set in fmt.print_config.encoding.
+#
+# 3) if you need to write something out to file, use pprint_thing_encoded(encoding).
+#
+#    If no encoding is specified, it defaults to utf-8. SInce encoding pure ascii with
+#    utf-8 is a no-op you can safely use the default utf-8 if you're working with
+#    straight ascii.
+
+def _pprint_seq(seq,_nest_lvl=0):
+    """
+    internal. pprinter for iterables. you should probably use pprint_thing()
+    rather then calling this directly.
+    """
+    fmt=u"[%s]" if hasattr(seq,'__setitem__') else u"(%s)"
+    return fmt % ", ".join(pprint_thing(e,_nest_lvl+1) for e in seq)
+
+def pprint_thing(thing,_nest_lvl=0):
+    """
+    This function is the sanctioned way of converting objects
+    to a unicode representation.
+
+    properly handles nested sequences containing unicode strings
+    (unicode(object) does not)
+
+    Parameters
+    ----------
+    thing : anything to be formatted
+    _nest_lvl : internal use only. pprint_thing() is mutually-recursive
+       with pprint_sequence, this argument is used to keep track of the
+       current nesting level, and limit it.
+
+    Returns
+    -------
+    result - unicode object on py2, str on py3. Always Unicode.
+
+    """
+    from pandas.core.format import print_config
+    if thing is None:
+        result = ''
+    elif _is_sequence(thing) and _nest_lvl < print_config.pprint_nest_depth:
+        result = _pprint_seq(thing,_nest_lvl)
+    else:
+        # when used internally in the package, everything
+        # passed in should be a unicode object or have a unicode
+        # __str__. However as an aid to transition, we also accept
+        # utf8 encoded strings, if that's not it, we have no way
+        # to know, and the user should deal with it himself.
+        # so we resort to utf-8 with replacing errors
+
+        try:
+            result = unicode(thing) # we should try this first
+        except UnicodeDecodeError:
+            # either utf-8 or we replace errors
+            result = str(thing).decode('utf-8',"replace")
+
+    return unicode(result) # always unicode
+
+def pprint_thing_encoded(object,encoding='utf-8',errors='replace'):
+    value=pprint_thing(object) # get unicode representation of object
+    return value.encode(encoding, errors)
+
+def console_encode(object):
+    from pandas.core.format import print_config
+    """
+    this is the sanctioned way to prepare something for
+    sending *to the console*, it delegates to pprint_thing() to get
+    a unicode representation of the object relies on the global encoding
+    set in print_config.encoding. Use this everywhere
+    where you output to the console.
+    """
+    return pprint_thing_encoded(object,print_config.encoding)

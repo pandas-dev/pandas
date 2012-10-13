@@ -1,3 +1,4 @@
+from __future__ import with_statement
 from datetime import datetime
 import sys
 
@@ -12,6 +13,14 @@ import pandas.util.testing as tm
 import numpy as np
 
 from pandas.util import py3compat
+
+def test_is_sequence():
+    is_seq=com._is_sequence
+    assert(is_seq((1,2)))
+    assert(is_seq([1,2]))
+    assert(not is_seq("abcd"))
+    assert(not is_seq(u"abcd"))
+    assert(not is_seq(np.int64))
 
 def test_notnull():
     assert notnull(1.)
@@ -171,6 +180,35 @@ def test_ensure_int32():
     result = com._ensure_int32(values)
     assert(result.dtype == np.int32)
 
+def test_console_encode():
+    """
+    On Python 2, if sys.stdin.encoding is None (IPython with zmq frontend)
+    common.console_encode should encode things as utf-8.
+    """
+    if py3compat.PY3:
+        raise nose.SkipTest
+
+    with tm.stdin_encoding(encoding=None):
+        result = com.console_encode(u"\u05d0")
+        expected = u"\u05d0".encode('utf-8')
+        assert (result == expected)
+
+def test_pprint_thing():
+    if py3compat.PY3:
+        raise nose.SkipTest
+
+    pp_t=com.pprint_thing
+
+    assert(pp_t('a')==u'a')
+    assert(pp_t(u'a')==u'a')
+    assert(pp_t(None)=='')
+    assert(pp_t(u'\u05d0')==u'\u05d0')
+    assert(pp_t((u'\u05d0',u'\u05d1'))==u'(\u05d0, \u05d1)')
+    assert(pp_t((u'\u05d0',(u'\u05d1',u'\u05d2')))==
+           u'(\u05d0, (\u05d1, \u05d2))')
+    assert(pp_t(('foo',u'\u05d0',(u'\u05d0',u'\u05d0')))==
+           u'(foo, \u05d0, (\u05d0, \u05d0))')
+
 class TestTake(unittest.TestCase):
 
     def test_1d_with_out(self):
@@ -308,26 +346,6 @@ class TestTake(unittest.TestCase):
         expected[:, [2, 4]] = np.nan
         tm.assert_almost_equal(result, expected)
 
-    def test_console_encode(self):
-        import sys
-
-        if py3compat.PY3 or sys.stdin.encoding is None:
-            raise nose.SkipTest
-
-        # stub test
-        # need to mock-out sys.stdin.encoding=None for real test
-        result = com.console_encode(u"\u05d0")
-        try:
-            expected = u"\u05d0".encode(sys.stdin.encoding)
-
-            # lot of console encodings, ISO-8869-1, cp850, etc. won't encode
-            # this character
-            self.assertEqual(result, expected)
-        except UnicodeEncodeError:
-            pass
-
-
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-

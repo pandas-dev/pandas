@@ -82,6 +82,21 @@ class TestDataFrameFormatting(unittest.TestCase):
         fmt.print_config.max_colwidth = max_len + 2
         self.assert_('...' not in repr(df))
 
+    def test_repr_should_return_str (self):
+        """
+        http://docs.python.org/py3k/reference/datamodel.html#object.__repr__
+        http://docs.python.org/reference/datamodel.html#object.__repr__
+        "...The return value must be a string object."
+
+        (str on py2.x, str (unicode) on py3)
+
+        """
+        data=[8,5,3,5]
+        index1=[u"\u03c3",u"\u03c4",u"\u03c5",u"\u03c6"]
+        cols=[u"\u03c8"]
+        df=DataFrame(data,columns=cols,index=index1)
+        self.assertTrue(type(df.__repr__() == str)) # both py2 / 3
+
     def test_to_string_repr_unicode(self):
         buf = StringIO()
 
@@ -133,12 +148,6 @@ class TestDataFrameFormatting(unittest.TestCase):
         buf = StringIO()
         dm.to_string(buf)
 
-    def test_to_string_force_unicode(self):
-        #given string with non-ascii characters
-        df = DataFrame([["aaää", 1], ["bbbb", 2]])
-        result = df.to_string(force_unicode=True)
-        self.assertEqual(result, u'      0  1\n0  aa\xe4\xe4  1\n1  bbbb  2')
-
     def test_to_string_with_formatters(self):
         df = DataFrame({'int': [1, 2, 3],
                         'float': [1.0, 2.0, 3.0],
@@ -181,7 +190,8 @@ class TestDataFrameFormatting(unittest.TestCase):
         df.to_html()
 
     def test_to_html_multiindex_sparsify(self):
-        index = pd.MultiIndex.from_arrays([[0, 0, 1, 1], [0, 1, 0, 1]])
+        index = pd.MultiIndex.from_arrays([[0, 0, 1, 1], [0, 1, 0, 1]],
+                                          names=['foo', None])
 
         df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]], index=index)
 
@@ -193,6 +203,12 @@ class TestDataFrameFormatting(unittest.TestCase):
       <th></th>
       <th>0</th>
       <th>1</th>
+    </tr>
+    <tr>
+      <th>foo</th>
+      <th></th>
+      <th></th>
+      <th></th>
     </tr>
   </thead>
   <tbody>
@@ -235,9 +251,9 @@ class TestDataFrameFormatting(unittest.TestCase):
     def test_string_repr_encoding(self):
         pth = curpath()
         filepath = os.path.join(pth, 'data', 'unicode_series.csv')
-        df = pandas.read_csv(filepath, header=None)
+        df = pandas.read_csv(filepath, header=None,encoding='latin1')
         repr(df)
-        repr(df['X.2'])
+        repr(df['X1'])
 
     def test_repr_corner(self):
         # representing infs poses no problems
@@ -246,7 +262,7 @@ class TestDataFrameFormatting(unittest.TestCase):
 
     def test_frame_info_encoding(self):
         index = ['\'Til There Was You (1997)',
-                 '\xc1 k\xf6ldum klaka (Cold Fever) (1994)']
+                 'ldum klaka (Cold Fever) (1994)']
         fmt.set_printoptions(max_rows=1)
         df = DataFrame(columns=['a', 'b', 'c'], index=index)
         repr(df)
@@ -505,7 +521,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         self.assert_('<th>B</th>' not in result)
 
     def test_to_html_multiindex(self):
-        columns = pandas.MultiIndex.from_tuples(zip(range(4),
+        columns = pandas.MultiIndex.from_tuples(zip(np.arange(2).repeat(2),
                                                     np.mod(range(4), 2)),
                                                 names=['CL0', 'CL1'])
         df = pandas.DataFrame([list('abcd'), list('efgh')], columns=columns)
@@ -513,20 +529,16 @@ class TestDataFrameFormatting(unittest.TestCase):
         expected = ('<table border="1" class="dataframe">\n'
                     '  <thead>\n'
                     '    <tr>\n'
-                    '      <th><table><tbody><tr><td>CL0</td></tr><tr>'
-                    '<td>CL1</td></tr></tbody></table></th>\n'
-                    '      <th><table align="left" style="text-align: left;">'
-                    '<tbody><tr><td>0</td></tr><tr><td>0</td></tr></tbody>'
-                    '</table></th>\n'
-                    '      <th><table align="left" style="text-align: left;">'
-                    '<tbody><tr><td>1</td></tr><tr><td>1</td></tr></tbody>'
-                    '</table></th>\n'
-                    '      <th><table align="left" style="text-align: left;">'
-                    '<tbody><tr><td>2</td></tr><tr><td>0</td></tr></tbody>'
-                    '</table></th>\n'
-                    '      <th><table align="left" style="text-align: left;">'
-                    '<tbody><tr><td>3</td></tr><tr><td>1</td></tr></tbody>'
-                    '</table></th>\n'
+                    '      <th>CL0</th>\n'
+                    '      <th colspan="2" halign="left">0</th>\n'
+                    '      <th colspan="2" halign="left">1</th>\n'
+                    '    </tr>\n'
+                    '    <tr>\n'
+                    '      <th>CL1</th>\n'
+                    '      <th>0</th>\n'
+                    '      <th>1</th>\n'
+                    '      <th>0</th>\n'
+                    '      <th>1</th>\n'
                     '    </tr>\n'
                     '  </thead>\n'
                     '  <tbody>\n'
@@ -558,18 +570,17 @@ class TestDataFrameFormatting(unittest.TestCase):
                     '  <thead>\n'
                     '    <tr>\n'
                     '      <th></th>\n'
-                    '      <th><table align="right" style="text-align:'
-                    ' right;"><tbody><tr><td>0</td></tr><tr><td>0</td></tr>'
-                    '</tbody></table></th>\n'
-                    '      <th><table align="right" style="text-align:'
-                    ' right;"><tbody><tr><td>1</td></tr><tr><td>1</td></tr>'
-                    '</tbody></table></th>\n'
-                    '      <th><table align="right" style="text-align:'
-                    ' right;"><tbody><tr><td>2</td></tr><tr><td>0</td></tr>'
-                    '</tbody></table></th>\n'
-                    '      <th><table align="right" style="text-align:'
-                    ' right;"><tbody><tr><td>3</td></tr><tr><td>1</td></tr>'
-                    '</tbody></table></th>\n'
+                    '      <th>0</th>\n'
+                    '      <th>1</th>\n'
+                    '      <th>2</th>\n'
+                    '      <th>3</th>\n'
+                    '    </tr>\n'
+                    '    <tr>\n'
+                    '      <th></th>\n'
+                    '      <th>0</th>\n'
+                    '      <th>1</th>\n'
+                    '      <th>0</th>\n'
+                    '      <th>1</th>\n'
                     '    </tr>\n'
                     '  </thead>\n'
                     '  <tbody>\n'
