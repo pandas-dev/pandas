@@ -612,8 +612,17 @@ c,4,5
 090228,1020,3,4
 090331,0830,5,6
 """
-        rs = read_csv(StringIO(data), index_col=0,
-                      parse_dates=[['date', 'time']])
+        rs = self.read_csv(StringIO(data), index_col=0,
+                           parse_dates=[['date', 'time']])
+        idx = DatetimeIndex([datetime(2009,1,31,0,10,0),
+                             datetime(2009,2,28,10,20,0),
+                             datetime(2009,3,31,8,30,0)]).asobject
+        idx.name = 'date'
+        xp = DataFrame({'B': [1, 3, 5], 'C': [2, 4, 6]}, idx)
+        assert_frame_equal(rs, xp)
+
+        rs = self.read_csv(StringIO(data), index_col=0,
+                           parse_dates=[[0, 1]])
         idx = DatetimeIndex([datetime(2009,1,31,0,10,0),
                              datetime(2009,2,28,10,20,0),
                              datetime(2009,3,31,8,30,0)]).asobject

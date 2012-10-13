@@ -86,7 +86,7 @@ iterator : boolean, default False
     Return TextParser object
 chunksize : int, default None
     Return TextParser object for iteration
-skip_footer : int, default 0
+skipfooter : int, default 0
     Number of line at bottom of file to skip
 converters : dict. optional
     Dict of functions for converting values in certain columns. Keys can either
@@ -274,9 +274,10 @@ def _make_parser_function(name, sep=','):
                  index_col=None,
                  names=None,
                  skiprows=None,
+                 skipfooter=None,
+                 skip_footer=0,
                  na_values=None,
                  delimiter=None,
-                 skip_footer=0,
                  converters=None,
 
                  engine='c',
@@ -338,7 +339,7 @@ def _make_parser_function(name, sep=','):
                     nrows=nrows,
                     iterator=iterator,
                     chunksize=chunksize,
-                    skip_footer=skip_footer,
+                    skipfooter=skipfooter or skip_footer,
                     converters=converters,
                     verbose=verbose,
                     encoding=encoding,
@@ -792,8 +793,11 @@ class CParserWrapper(ParserBase):
             self.names = list(self._reader.header)
 
         if self.names is None:
-            self.names = ['X%d' % (i + 1)
+            self.names = ['X%d' % i
                           for i in range(self._reader.table_width)]
+
+        # XXX
+        self._set_noconvert_columns()
 
         self.orig_names = self.names
 
@@ -805,6 +809,23 @@ class CParserWrapper(ParserBase):
                                                       self.index_col)
 
         self._implicit_index = self._reader.leading_cols > 0
+
+    def _set_noconvert_columns(self):
+        names = self.names
+
+        def _set(x):
+            if com.is_integer(x):
+                self._reader.set_noconvert(x)
+            else:
+                self._reader.set_noconvert(names.index(x))
+
+        if isinstance(self.parse_dates, list):
+            for val in self.parse_dates:
+                if isinstance(val, list):
+                    for k in val:
+                        _set(k)
+                else:
+                    _set(val)
 
     def set_error_bad_lines(self, status):
         self._reader.set_error_bad_lines(int(status))

@@ -224,6 +224,7 @@ cdef class TextReader:
         object low_memory
         object skiprows
         object compact_ints, use_unsigned
+        set noconvert
 
     def __cinit__(self, source,
                   delimiter=b',',
@@ -339,6 +340,9 @@ cdef class TextReader:
         self.verbose = verbose
         self.low_memory = low_memory
         self.buffer_lines = buffer_lines
+
+        # XXX
+        self.noconvert = set()
 
         #----------------------------------------
         # header stuff
@@ -617,6 +621,12 @@ cdef class TextReader:
             elapsed = time.time() - self.clocks.pop(-1)
             print '%s took: %.2f ms' % (what, elapsed * 1000)
 
+    def set_noconvert(self, i):
+        self.noconvert.add(i)
+
+    def remove_noconvert(self, i):
+        self.noconvert.remove(i)
+
     def _convert_column_data(self, rows=None, upcast_na=False, footer=0):
         cdef:
             Py_ssize_t i, ncols
@@ -656,13 +666,19 @@ cdef class TextReader:
                 results[i] = _apply_converter(conv, self.parser, i, start, end)
                 continue
 
-            col_res = None
-            for func in cast_func_order:
+            if i in self.noconvert:
+                func = _string_box_factorize
                 col_res, na_count = func(self.parser, i, start, end,
                                          na_filter, na_hashset)
-                if col_res is not None:
-                    results[i] = col_res
-                    break
+                results[i] = col_res
+            else:
+                col_res = None
+                for func in cast_func_order:
+                    col_res, na_count = func(self.parser, i, start, end,
+                                             na_filter, na_hashset)
+                    if col_res is not None:
+                        results[i] = col_res
+                        break
 
             if na_filter:
                 self._free_na_set(na_hashset)
