@@ -1147,11 +1147,12 @@ def pprint_thing(thing, _nest_lvl=0):
         result = _pprint_seq(thing, _nest_lvl)
     else:
         # when used internally in the package, everything
-        # passed in should be a unicode object or have a unicode
-        # __str__. However as an aid to transition, we also accept
-        # utf8 encoded strings, if that's not it, we have no way
-        # to know, and the user should deal with it himself.
-        # so we resort to utf-8 with replacing errors
+        # should be unicode text. However as an aid to transition
+        # we also accept utf8 encoded strings,
+        # if that's not it either, we have no way of knowing,
+        # and the user should deal with it himself.
+        # we resort to utf-8 with replacing errors, rather then throwing
+        # an exception.
 
         try:
             result = unicode(thing)  # we should try this first
