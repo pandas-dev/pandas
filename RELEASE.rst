@@ -22,6 +22,15 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.9.1
+============
+
+**Release date:** NOT YET RELEASED
+
+**Improvements to existing features**
+
+  - Improve HTML display of DataFrame objects with hierarchical columns
+
 pandas 0.9.0
 ============
 

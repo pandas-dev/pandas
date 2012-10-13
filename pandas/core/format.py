@@ -18,10 +18,10 @@ import pandas.lib as lib
 import numpy as np
 
 docstring_to_string = """
-    Parameters
-    ----------
-    frame : DataFrame
-        object to render
+     Parameters
+     ----------
+     frame : DataFrame
+         object to render
     buf : StringIO-like, optional
         buffer to write to
     columns : sequence, optional
@@ -528,16 +528,43 @@ class HTMLFormatter(object):
         self.write('<thead>', indent)
         row = []
 
-        col_row = _column_header()
         indent += self.indent_delta
+
         if isinstance(self.columns, MultiIndex):
-            align = None
+            template = 'colspan="%d" halign="left"'
+
+            levels = self.columns.format(sparsify=True, adjoin=False,
+                                         names=False)
+            col_values = self.columns.values
+            level_lengths = _get_level_lengths(levels)
+
+            for lnum, (records, values) in enumerate(zip(level_lengths, levels)):
+                name = self.columns.names[lnum]
+                row = ['' if name is None else str(name)]
+
+                tags = {}
+                j = 1
+                for i, v in enumerate(values):
+                    if i in records:
+                        if records[i] > 1:
+                            tags[j] = template % records[i]
+                    else:
+                        continue
+                    j += 1
+                    row.append(v)
+
+                self.write_tr(row, indent, self.indent_delta, tags=tags,
+                              header=True)
         else:
+            col_row = _column_header()
             align = self.fmt.justify
-        self.write_tr(col_row, indent, self.indent_delta, header=True,
-                align=align)
+
+            self.write_tr(col_row, indent, self.indent_delta, header=True,
+                    align=align)
+
         if self.fmt.has_index_names:
-            row = self.frame.index.names + [''] * len(self.columns)
+            row = [x if x is not None else ''
+                   for x in self.frame.index.names] + [''] * len(self.columns)
             self.write_tr(row, indent, self.indent_delta, header=True)
 
         indent -= self.indent_delta
