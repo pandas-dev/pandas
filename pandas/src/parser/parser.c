@@ -524,7 +524,7 @@ int parser_file_source_init(parser_t *self, FILE* fp) {
 
 
 int merge_chunks(parser_t *parser) {
-    int i, j, ncols;
+    int i, j, ncols = 0;
 
     // Get a consensus on number of columns and check types
     for (i = 0; i < parser->nchunks; ++i)
@@ -716,7 +716,7 @@ void *new_mmap(FILE *f)
     struct stat buf;
     int fd;
     memory_map *mm;
-    off_t position;
+    /* off_t position; */
     off_t filesize;
 
     fd = fileno(f);
@@ -808,6 +808,67 @@ int parser_array_source_init(parser_t *self, char *bytes, size_t length) {
     return 0;
 }
 
+int parser_cleanup_filebuffers(parser_t *self) {
+    switch(self->sourcetype) {
+
+        case 'F':
+            free(self->data);
+            del_file_source(self->source);
+            break;
+
+        case 'A': // in-memory bytes (e.g. from StringIO)
+            del_array_source(self->source);
+            break;
+
+#ifdef HAVE_MEMMAP
+        case 'M': // memory map
+            del_mmap(self->source);
+            break;
+#endif
+
+
+#ifdef HAVE_GZIP
+        case 'G': // gzip'd file
+
+            break;
+#endif
+
+    }
+
+    return 0;
+}
+
+
+int parser_clear_data_buffers(parser_t *self) {
+    free_if_not_null(self->stream);
+    free_if_not_null(self->words);
+    free_if_not_null(self->word_starts);
+    free_if_not_null(self->line_start);
+    free_if_not_null(self->line_fields);
+
+    return 0;
+}
+
+int parser_cleanup(parser_t *self) {
+    if (parser_cleanup_filebuffers(self) < 0) {
+        return -1;
+    }
+
+    if (parser_clear_data_buffers(self) < 0) {
+        return -1;
+    }
+
+    // XXX where to put this
+    free_if_not_null(self->error_msg);
+
+    if (self->skipset != NULL)
+        kh_destroy_int64((kh_int64_t*) self->skipset);
+
+    return 0;
+}
+
+
+
 int parser_init(parser_t *self) {
     int sz;
 
@@ -872,6 +933,12 @@ int parser_init(parser_t *self) {
     return 0;
 }
 
+
+void parser_free(parser_t *self) {
+    // opposite of parser_init
+    parser_cleanup(self);
+    free(self);
+}
 
 int make_stream_space(parser_t *self, size_t nbytes) {
     int i, status, cap;
@@ -970,8 +1037,6 @@ int inline push_char(parser_t *self, char c) {
 }
 
 int inline end_field(parser_t *self) {
-    int pos;
-
     // XXX cruft
     self->numeric_field = 0;
 
@@ -1073,41 +1138,7 @@ int inline end_line(parser_t *self) {
     return 0;
 }
 
-int parser_clear_data_buffers(parser_t *self) {
-    free_if_not_null(self->stream);
-    free_if_not_null(self->words);
-    free_if_not_null(self->word_starts);
-    free_if_not_null(self->line_start);
-    free_if_not_null(self->line_fields);
 
-    return 0;
-}
-
-void parser_free(parser_t *self) {
-    // opposite of parser_init
-    parser_cleanup(self);
-    free(self);
-}
-
-
-
-int parser_cleanup(parser_t *self) {
-    if (parser_cleanup_filebuffers(self) < 0) {
-        return -1;
-    }
-
-    if (parser_clear_data_buffers(self) < 0) {
-        return -1;
-    }
-
-    // XXX where to put this
-    free_if_not_null(self->error_msg);
-
-    if (self->skipset != NULL)
-        kh_destroy_int64((kh_int64_t*) self->skipset);
-
-    return 0;
-}
 
 int parser_add_skiprow(parser_t *self, int64_t row) {
     khiter_t k;
@@ -1123,6 +1154,31 @@ int parser_add_skiprow(parser_t *self, int64_t row) {
     k = kh_put_int64(set, row, &ret);
     set->keys[k] = row;
 
+    return 0;
+}
+
+int _buffer_array_bytes(parser_t *self, size_t nbytes) {
+    array_source *src = ARS(self->source);
+
+    if (src->position == src->length) {
+        self->datalen = 0;
+        return REACHED_EOF;
+    }
+
+    self->data = src->data + src->position;
+
+    if (src->position + nbytes > src->length) {
+        // fewer than nbytes remaining
+        self->datalen = src->length - src->position;
+    } else {
+        self->datalen = nbytes;
+    }
+
+    src->position += self->datalen;
+
+    TRACE(("datalen: %d\n", self->datalen));
+
+    TRACE(("pos: %d, length: %d", (int) src->position, (int) src->length));
     return 0;
 }
 
@@ -1176,61 +1232,6 @@ int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     return status;
 }
 
-int _buffer_array_bytes(parser_t *self, size_t nbytes) {
-    array_source *src = ARS(self->source);
-
-    if (src->position == src->length) {
-        self->datalen = 0;
-        return REACHED_EOF;
-    }
-
-    self->data = src->data + src->position;
-
-    if (src->position + nbytes > src->length) {
-        // fewer than nbytes remaining
-        self->datalen = src->length - src->position;
-    } else {
-        self->datalen = nbytes;
-    }
-
-    src->position += self->datalen;
-
-    TRACE(("datalen: %d\n", self->datalen));
-
-    TRACE(("pos: %d, length: %d", (int) src->position, (int) src->length));
-    return 0;
-}
-
-
-int parser_cleanup_filebuffers(parser_t *self) {
-    switch(self->sourcetype) {
-
-        case 'F':
-            free(self->data);
-            del_file_source(self->source);
-            break;
-
-        case 'A': // in-memory bytes (e.g. from StringIO)
-            del_array_source(self->source);
-            break;
-
-#ifdef HAVE_MEMMAP
-        case 'M': // memory map
-            del_mmap(self->source);
-            break;
-#endif
-
-
-#ifdef HAVE_GZIP
-        case 'G': // gzip'd file
-
-            break;
-#endif
-
-    }
-
-    return 0;
-}
 
 /*
 
@@ -1238,7 +1239,7 @@ int parser_cleanup_filebuffers(parser_t *self) {
 
 */
 
-//    printf("pushing %c\n", c);                \
+//    printf("pushing %c\n", c);
 
 #define PUSH_CHAR(c)                           \
     *stream++ = c;                             \
@@ -1470,9 +1471,10 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
                 goto parsingerror;
             }
             break;
+        default:
+            break;
 
         }
-
     }
 
     _TOKEN_CLEANUP();
@@ -1694,6 +1696,9 @@ int tokenize_whitespace(parser_t *self, size_t line_limit)
                 goto parsingerror;
             }
             break;
+        default:
+            break;
+
 
         }
 
@@ -1862,7 +1867,7 @@ int parser_trim_buffers(parser_t *self) {
 }
 
 void debug_print_parser(parser_t *self) {
-    int i, j, line;
+    int j, line;
     char *token;
 
     for (line = 0; line < self->lines; ++line)
@@ -1956,7 +1961,6 @@ int tokenize_all_rows(parser_t *self) {
 int test_tokenize(char *fname) {
     parser_t *self;
     coliter_t citer;
-    char *error_msg;
     int status = 0;
     int nbytes = CHUNKSIZE;
 
@@ -2139,7 +2143,6 @@ int main(int argc, char *argv[])
 {
     // import_array();
 
-    int i;
     TRACE(("hello: %s\n", "Wes"));
 
     test_tokenize("/Users/wesm/code/pandas/pandas/io/tests/test1.csv");
@@ -2148,6 +2151,7 @@ int main(int argc, char *argv[])
     // sprintf(msg, "Hello: %s\n", "wes");
     // printf("%s", msg);
 
+    /* int i; */
     /* for (i = 0; i < 10; ++i) */
     /* { */
     /*  test_count_lines("../foo.csv"); */
