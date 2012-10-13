@@ -1,9 +1,8 @@
 /*
 
 Copyright (c) 2012, Lambda Foundry, Inc.
-All rights reserved.
 
-Released subject to the terms of the GNU Lesser Public License
+See LICENSE for the license
 
 */
 
