@@ -1763,7 +1763,7 @@ class DataFrame(NDFrame):
         if values.ndim == 2:
             return DataFrame(values.T, columns=items, index=self.index)
         else:
-            return Series(values, index=self.index, name=items)
+            return Series.from_array(values, index=self.index, name=items)
 
     def __getattr__(self, name):
         """After regular attribute access, try looking up the name of a column.
