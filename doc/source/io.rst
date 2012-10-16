@@ -164,7 +164,7 @@ You can also use a list of columns to create a hierarchical index:
 
 The ``dialect`` keyword gives greater flexibility in specifying the file format.
 By default it uses the Excel dialect but you can specify either the dialect name
-or a :class:``python:csv.Dialect`` instance.
+or a :class:`python:csv.Dialect` instance.
 
 .. ipython:: python
    :suppress:
