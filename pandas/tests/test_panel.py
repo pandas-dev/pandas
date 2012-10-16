@@ -730,8 +730,9 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 
         d = {'A' : itema, 'B' : itemb[5:]}
         d2 = {'A' : itema._series, 'B' : itemb[5:]._series}
-        d3 = {'A' : DataFrame(itema._series),
-              'B' : DataFrame(itemb[5:]._series)}
+        d3 = {'A' : None,
+              'B' : DataFrame(itemb[5:]._series),
+              'C' : DataFrame(itema._series)}
 
         wp = Panel.from_dict(d)
         wp2 = Panel.from_dict(d2) # nested Dict
@@ -747,6 +748,11 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         assert_panel_equal(Panel(d), Panel.from_dict(d))
         assert_panel_equal(Panel(d2), Panel.from_dict(d2))
         assert_panel_equal(Panel(d3), Panel.from_dict(d3))
+
+        # a pathological case
+        d4 = { 'A' : None, 'B' : None }
+        wp4 = Panel.from_dict(d4)
+        assert_panel_equal(Panel(d4), Panel(items = ['A','B']))
 
         # cast
         dcasted = dict((k, v.reindex(wp.major_axis).fillna(0))

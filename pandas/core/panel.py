@@ -1409,8 +1409,11 @@ def _homogenize_dict(frames, intersect=True, dtype=None):
     columns = _extract_axis(adj_frames, axis=1, intersect=intersect)
 
     for key, frame in adj_frames.iteritems():
-        result[key] = frame.reindex(index=index, columns=columns,
-                                    copy=False)
+        if frame is not None:
+            result[key] = frame.reindex(index=index, columns=columns,
+                                        copy=False)
+        else:
+            result[key] = None
 
     return result, index, columns
 
@@ -1421,7 +1424,7 @@ def _extract_axis(data, axis=0, intersect=False):
     elif len(data) > 0:
         raw_lengths = []
         indexes = []
-
+        index = None
         have_raw_arrays = False
         have_frames = False
 
@@ -1429,7 +1432,7 @@ def _extract_axis(data, axis=0, intersect=False):
             if isinstance(v, DataFrame):
                 have_frames = True
                 indexes.append(v._get_axis(axis))
-            else:
+            elif v is not None:
                 have_raw_arrays = True
                 raw_lengths.append(v.shape[axis])
 
@@ -1445,6 +1448,9 @@ def _extract_axis(data, axis=0, intersect=False):
                 assert(lengths[0] == len(index))
             else:
                 index = Index(np.arange(lengths[0]))
+
+        if index is None:
+            index = Index([])
 
     return _ensure_index(index)
 
