@@ -1121,6 +1121,8 @@ print_config = _GlobalPrintConfig()
 
 
 def _put_lines(buf, lines):
+    # handles #891 where ascii and unicode fields are mixed
+    # but will fail if encoded bytesting +unicode fields are mixed
     if any(isinstance(x, unicode) for x in lines):
         lines = [unicode(x) for x in lines]
     buf.write('\n'.join(lines))
