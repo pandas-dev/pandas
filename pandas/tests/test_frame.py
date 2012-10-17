@@ -1,4 +1,5 @@
 # pylint: disable-msg=W0612,E1101
+from __future__ import with_statement
 from copy import deepcopy
 from datetime import datetime, timedelta
 from StringIO import StringIO
@@ -1106,6 +1107,9 @@ class CheckIndexing(object):
 
         expected = df.ix[:, 2:]
         assert_frame_equal(result, expected)
+
+    def test_dupes_in_col_list (self):
+        DataFrame([[8,5]],columns=["a","a"])
 
     def test_get_value(self):
         for idx in self.frame.index:
