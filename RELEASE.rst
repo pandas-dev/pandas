@@ -31,6 +31,10 @@ pandas 0.9.1
 
   - Improve HTML display of DataFrame objects with hierarchical columns
 
+**Bug fixes**
+
+  - Make WLS r-squared match statsmodels 0.5.0 fixed value
+
 pandas 0.9.0
 ============
 

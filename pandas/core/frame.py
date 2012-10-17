@@ -1647,7 +1647,7 @@ class DataFrame(NDFrame):
                 return self.reindex(columns=label)
 
             values = self._data.iget(i)
-            return Series(values, index=self.index, name=label)
+            return Series.from_array(values, index=self.index, name=label)
 
     def _ixs(self, i, axis=0):
         if axis == 0:

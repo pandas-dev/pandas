@@ -970,8 +970,10 @@ class MovingOLS(OLS):
         sst = []
         sse = []
 
+        Yreg = self._y
         Y = self._y_trans
         X = self._x_trans
+        weights = self._weights
 
         dates = self._index
         window = self._window
@@ -989,8 +991,16 @@ class MovingOLS(OLS):
 
             resid = Y_slice - np.dot(X_slice, beta)
 
+            if weights is not None:
+                Y_slice = _y_converter(Yreg.truncate(before=prior_date,
+                                                     after=date))
+                weights_slice = weights.truncate(prior_date, date)
+                demeaned = Y_slice - np.average(Y_slice, weights=weights_slice)
+                SS_total = (weights_slice*demeaned**2).sum()
+            else:
+                SS_total = ((Y_slice - Y_slice.mean()) ** 2).sum()
+
             SS_err = (resid ** 2).sum()
-            SS_total = ((Y_slice - Y_slice.mean()) ** 2).sum()
             SST_uncentered = (Y_slice ** 2).sum()
 
             sse.append(SS_err)

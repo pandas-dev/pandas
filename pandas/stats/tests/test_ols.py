@@ -81,6 +81,10 @@ class TestOLS(BaseTest):
         # self.checkDataSet(datasets.ccard.load(), 39, 49) # one col in X all 0s
 
     def testWLS(self):
+        # WLS centered SS changed (fixed) in 0.5.0
+        if sm.version.version < '0.5.0':
+            raise nose.SkipTest
+
         X = DataFrame(np.random.randn(30, 4), columns=['A', 'B', 'C', 'D'])
         Y = Series(np.random.randn(30))
         weights = X.std(1)
