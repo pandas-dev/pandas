@@ -676,7 +676,7 @@ class TestStringMethods(unittest.TestCase):
         self.assertEquals(result[0], True)
 
     def test_encode_decode(self):
-        base = Series([u'a', u'b', u'\xe4'])
+        base = Series([u'a', u'b'])
         series = base.str.encode('utf-8')
 
         f = lambda x: x.decode('utf-8')
