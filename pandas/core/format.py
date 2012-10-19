@@ -237,23 +237,12 @@ class DataFrameFormatter(object):
 
         if not py3compat.PY3:
             if force_unicode:
-                def make_unicode(x):
-                    if isinstance(x, unicode):
-                        return x
-                    return x.decode('utf-8')
-                strcols = map(lambda col: map(make_unicode, col), strcols)
+                strcols = map(lambda col: map(unicode, col), strcols)
             else:
-                # generally everything is plain strings, which has ascii
-                # encoding.  problem is when there is a char with value over 127
-                # - everything then gets converted to unicode.
                 try:
                     map(lambda col: map(str, col), strcols)
                 except UnicodeError:
-                    def make_unicode(x):
-                        if isinstance(x, unicode):
-                            return x
-                        return x.decode('utf-8')
-                    strcols = map(lambda col: map(make_unicode, col), strcols)
+                    strcols = map(lambda col: map(unicode, col), strcols)
 
         return strcols
 
