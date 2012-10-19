@@ -66,7 +66,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     if not np.iterable(bins):
         if np.isscalar(bins) and bins < 1:
             raise ValueError("`bins` should be a positive integer.")
-        try: # for array-like
+        try:  # for array-like
             sz = x.size
         except AttributeError:
             x = np.asarray(x)
@@ -79,13 +79,13 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
             rng = (nanops.nanmin(x), nanops.nanmax(x))
         mn, mx = [mi + 0.0 for mi in rng]
 
-        if mn == mx: # adjust end points before binning
+        if mn == mx:  # adjust end points before binning
             mn -= .001 * mn
             mx += .001 * mx
-            bins = np.linspace(mn, mx, bins+1, endpoint=True)
-        else: # adjust end points after binning
-            bins = np.linspace(mn, mx, bins+1, endpoint=True)
-            adj = (mx - mn) * 0.001 # 0.1% of the range
+            bins = np.linspace(mn, mx, bins + 1, endpoint=True)
+        else:  # adjust end points after binning
+            bins = np.linspace(mn, mx, bins + 1, endpoint=True)
+            adj = (mx - mn) * 0.001  # 0.1% of the range
             if right:
                 bins[0] -= adj
             else:
@@ -99,7 +99,6 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     return _bins_to_cuts(x, bins, right=right, labels=labels,
                          retbins=retbins, precision=precision,
                          include_lowest=include_lowest)
-
 
 
 def qcut(x, q, labels=None, retbins=False, precision=3):
@@ -209,6 +208,7 @@ def _format_label(x, precision=3):
             return sgn + '%d' % whole
     else:
         return str(x)
+
 
 def _trim_zeros(x):
     while len(x) > 1 and x[-1] == '0':

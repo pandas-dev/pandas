@@ -1,6 +1,6 @@
 """
-Data structures for sparse float data. Life is made simpler by dealing only with
-float64 data
+Data structures for sparse float data. Life is made simpler by dealing only
+with float64 data
 """
 
 # pylint: disable=E1101,E1103,W0231,E0202
@@ -41,6 +41,7 @@ class _SparseMockBlockManager(object):
     @property
     def axes(self):
         return [self.sp_frame.columns, self.sp_frame.index]
+
 
 class SparseDataFrame(DataFrame):
     """
@@ -291,10 +292,11 @@ class SparseDataFrame(DataFrame):
             new_columns = self.columns[:loc]
         else:
             new_columns = Index(np.concatenate((self.columns[:loc],
-                                               self.columns[loc+1:])))
+                                               self.columns[loc + 1:])))
         self.columns = new_columns
 
     _index = None
+
     def _set_index(self, index):
         self._index = _ensure_index(index)
         for v in self._series.values():
@@ -337,7 +339,7 @@ class SparseDataFrame(DataFrame):
                 if com._is_bool_indexer(key):
                     key = np.asarray(key, dtype=bool)
                 return self._getitem_array(key)
-            else: # pragma: no cover
+            else:  # pragma: no cover
                 raise
 
     @Appender(DataFrame.get_value.__doc__, indents=0)
@@ -575,7 +577,7 @@ class SparseDataFrame(DataFrame):
 
         for col in self.columns:
             new_col = mapper(col)
-            if new_col in new_series: # pragma: no cover
+            if new_col in new_series:  # pragma: no cover
                 raise Exception('Non-unique mapping!')
             new_series[new_col] = self[col]
             new_columns.append(new_col)
@@ -626,7 +628,7 @@ class SparseDataFrame(DataFrame):
     def _join_index(self, other, how, lsuffix, rsuffix):
         if isinstance(other, Series):
             assert(other.name is not None)
-            other = SparseDataFrame({other.name : other},
+            other = SparseDataFrame({other.name: other},
                                     default_fill_value=self.default_fill_value)
 
         join_index = self.index.join(other.index, how=how)
@@ -785,6 +787,7 @@ class SparseDataFrame(DataFrame):
         else:
             return self._constructor(new_series, index=self.index,
                                      columns=self.columns)
+
 
 def stack_sparse_frame(frame):
     """

@@ -21,6 +21,7 @@ import pandas.stats.moments as moments
 
 _FP_ERR = 1e-8
 
+
 class OLS(object):
     """
     Runs a full sample ordinary least squares regression.
@@ -221,7 +222,7 @@ class OLS(object):
             eqs = hypothesis.split(',')
         elif isinstance(hypothesis, list):
             eqs = hypothesis
-        else: # pragma: no cover
+        else:  # pragma: no cover
             raise Exception('hypothesis must be either string or list')
         for equation in eqs:
             row = np.zeros(len(x_names))
@@ -438,7 +439,7 @@ class OLS(object):
             else:
                 x = x.fillna(value=fill_value, method=fill_method, axis=axis)
             if isinstance(x, Series):
-                x = DataFrame({'x' : x})
+                x = DataFrame({'x': x})
             if self._intercept:
                 x['intercept'] = 1.
 
@@ -500,10 +501,10 @@ class OLS(object):
         """Returns the formatted results of the OLS as a DataFrame."""
         results = self._results
         beta = results['beta']
-        data = {'beta' : results['beta'],
-                't-stat' : results['t_stat'],
-                'p-value' : results['p_value'],
-                'std err' : results['std_err']}
+        data = {'beta': results['beta'],
+                't-stat': results['t_stat'],
+                'p-value': results['p_value'],
+                'std err': results['std_err']}
         return DataFrame(data, beta.index).T
 
     @cache_readonly
@@ -538,7 +539,7 @@ Degrees of Freedom: model %(df_model)d, resid %(df_resid)d
 
         f_stat = results['f_stat']
 
-        bracketed = ['<%s>' %str(c) for c in results['beta'].index]
+        bracketed = ['<%s>' % str(c) for c in results['beta'].index]
 
         formula = StringIO()
         formula.write(bracketed[0])
@@ -554,28 +555,27 @@ Degrees of Freedom: model %(df_model)d, resid %(df_resid)d
             formula.write(' + ' + coef)
 
         params = {
-            'bannerTop' : scom.banner('Summary of Regression Analysis'),
-            'bannerCoef' : scom.banner('Summary of Estimated Coefficients'),
-            'bannerEnd' : scom.banner('End of Summary'),
-            'formula' : formula.getvalue(),
-            'r2' : results['r2'],
-            'r2_adj' : results['r2_adj'],
-            'nobs' : results['nobs'],
-            'df'  : results['df'],
-            'df_model'  : results['df_model'],
-            'df_resid'  : results['df_resid'],
-            'coef_table' : coef_table,
-            'rmse' : results['rmse'],
-            'f_stat' : f_stat['f-stat'],
-            'f_stat_shape' : '(%d, %d)' % (f_stat['DF X'], f_stat['DF Resid']),
-            'f_stat_p_value' : f_stat['p-value'],
+            'bannerTop': scom.banner('Summary of Regression Analysis'),
+            'bannerCoef': scom.banner('Summary of Estimated Coefficients'),
+            'bannerEnd': scom.banner('End of Summary'),
+            'formula': formula.getvalue(),
+            'r2': results['r2'],
+            'r2_adj': results['r2_adj'],
+            'nobs': results['nobs'],
+            'df': results['df'],
+            'df_model': results['df_model'],
+            'df_resid': results['df_resid'],
+            'coef_table': coef_table,
+            'rmse': results['rmse'],
+            'f_stat': f_stat['f-stat'],
+            'f_stat_shape': '(%d, %d)' % (f_stat['DF X'], f_stat['DF Resid']),
+            'f_stat_p_value': f_stat['p-value'],
         }
 
         return template % params
 
     def __repr__(self):
         return self.summary
-
 
     @cache_readonly
     def _time_obs_count(self):
@@ -630,7 +630,7 @@ class MovingOLS(OLS):
         self._window = int(window)
         self._min_periods = min_periods
 
-#-------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # "Public" results
 
     @cache_readonly
@@ -745,7 +745,7 @@ class MovingOLS(OLS):
         return Series(self._y_predict_raw[self._valid_obs_labels],
                       index=self._result_index)
 
-#-------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # "raw" attributes, calculations
 
     @property
@@ -833,9 +833,10 @@ class MovingOLS(OLS):
         slicer = lambda df, dt: df.truncate(dt, dt).values
         if not self._panel_model:
             _get_index = x.index.get_loc
+
             def slicer(df, dt):
                 i = _get_index(dt)
-                return df.values[i:i+1, :]
+                return df.values[i:i + 1, :]
 
         last = np.zeros((K, K))
 
@@ -858,9 +859,10 @@ class MovingOLS(OLS):
         x_slicer = lambda df, dt: df.truncate(dt, dt).values
         if not self._panel_model:
             _get_index = x.index.get_loc
+
             def x_slicer(df, dt):
                 i = _get_index(dt)
-                return df.values[i:i+1]
+                return df.values[i:i + 1]
 
         _y_get_index = y.index.get_loc
         _values = y.values
@@ -871,7 +873,7 @@ class MovingOLS(OLS):
         else:
             def y_slicer(df, dt):
                 i = _y_get_index(dt)
-                return _values[i:i+1]
+                return _values[i:i + 1]
 
         last = np.zeros(len(x.columns))
         for i, date in enumerate(dates):
@@ -996,7 +998,7 @@ class MovingOLS(OLS):
                                                      after=date))
                 weights_slice = weights.truncate(prior_date, date)
                 demeaned = Y_slice - np.average(Y_slice, weights=weights_slice)
-                SS_total = (weights_slice*demeaned**2).sum()
+                SS_total = (weights_slice * demeaned ** 2).sum()
             else:
                 SS_total = ((Y_slice - Y_slice.mean()) ** 2).sum()
 
@@ -1008,9 +1010,9 @@ class MovingOLS(OLS):
             uncentered_sst.append(SST_uncentered)
 
         return {
-            'sse' : np.array(sse),
-            'centered_tss' : np.array(sst),
-            'uncentered_tss' : np.array(uncentered_sst),
+            'sse': np.array(sse),
+            'centered_tss': np.array(sst),
+            'uncentered_tss': np.array(uncentered_sst),
         }
 
     @cache_readonly
@@ -1166,7 +1168,7 @@ class MovingOLS(OLS):
                 value = value[self.beta.index[-1]]
             elif isinstance(value, DataFrame):
                 value = value.xs(self.beta.index[-1])
-            else: # pragma: no cover
+            else:  # pragma: no cover
                 raise Exception('Problem retrieving %s' % result)
             results[result] = value
 
@@ -1226,6 +1228,7 @@ class MovingOLS(OLS):
         return self._nobs_raw >= max(self._min_periods,
                                      len(self._x.columns) + 1)
 
+
 def _safe_update(d, other):
     """
     Combine dictionaries with non-overlapping keys
@@ -1235,6 +1238,7 @@ def _safe_update(d, other):
             raise Exception('Duplicate regressor: %s' % k)
 
         d[k] = v
+
 
 def _filter_data(lhs, rhs, weights=None):
     """
@@ -1257,7 +1261,7 @@ def _filter_data(lhs, rhs, weights=None):
         lhs = Series(lhs, index=rhs.index)
 
     rhs = _combine_rhs(rhs)
-    lhs = DataFrame({'__y__' : lhs}, dtype=float)
+    lhs = DataFrame({'__y__': lhs}, dtype=float)
     pre_filt_rhs = rhs.dropna(how='any')
 
     combined = rhs.join(lhs, how='outer')
@@ -1294,12 +1298,12 @@ def _combine_rhs(rhs):
     elif isinstance(rhs, dict):
         for name, value in rhs.iteritems():
             if isinstance(value, Series):
-                _safe_update(series, {name : value})
+                _safe_update(series, {name: value})
             elif isinstance(value, (dict, DataFrame)):
                 _safe_update(series, value)
-            else: # pragma: no cover
+            else:  # pragma: no cover
                 raise Exception('Invalid RHS data type: %s' % type(value))
-    else: # pragma: no cover
+    else:  # pragma: no cover
         raise Exception('Invalid RHS type: %s' % type(rhs))
 
     if not isinstance(series, DataFrame):
@@ -1311,7 +1315,7 @@ def _combine_rhs(rhs):
 # MovingOLS and MovingPanelOLS
 def _y_converter(y):
     y = y.values.squeeze()
-    if y.ndim == 0: # pragma: no cover
+    if y.ndim == 0:  # pragma: no cover
         return np.array([y])
     else:
         return y
@@ -1327,4 +1331,3 @@ def f_stat_to_dict(result):
     result['p-value'] = p_value
 
     return result
-

@@ -2,6 +2,7 @@ import numpy as np
 
 from pandas.core.index import Index
 
+
 class Interval(object):
     """
     Represents an interval of time defined by two timestamps
@@ -10,6 +11,7 @@ class Interval(object):
     def __init__(self, start, end):
         self.start = start
         self.end = end
+
 
 class PeriodInterval(object):
     """

@@ -8,6 +8,7 @@ from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.offsets import DateOffset
 import pandas.core.common as com
 
+
 class PandasError(Exception):
     pass
 
@@ -15,8 +16,8 @@ class PandasError(Exception):
 class PandasObject(object):
 
     _AXIS_NUMBERS = {
-        'index' : 0,
-        'columns' : 1
+        'index': 0,
+        'columns': 1
     }
 
     _AXIS_ALIASES = {}
@@ -274,7 +275,7 @@ class PandasObject(object):
         else:
             new_axis = axis
 
-        return self.reindex(**{axis_name : new_axis})
+        return self.reindex(**{axis_name: new_axis})
 
     def drop(self, labels, axis=0, level=None):
         """
@@ -300,7 +301,7 @@ class PandasObject(object):
         else:
             new_axis = axis.drop(labels)
 
-        return self.reindex(**{axis_name : new_axis})
+        return self.reindex(**{axis_name: new_axis})
 
     def sort_index(self, axis=0, ascending=True):
         """
@@ -326,7 +327,7 @@ class PandasObject(object):
             sort_index = sort_index[::-1]
 
         new_axis = labels.take(sort_index)
-        return self.reindex(**{axis_name : new_axis})
+        return self.reindex(**{axis_name: new_axis})
 
     @property
     def ix(self):
@@ -483,13 +484,13 @@ class NDFrame(PandasObject):
         self._item_cache.clear()
 
     def _set_item(self, key, value):
-        if hasattr(self,'columns') and isinstance(self.columns, MultiIndex):
+        if hasattr(self, 'columns') and isinstance(self.columns, MultiIndex):
             # Pad the key with empty strings if lower levels of the key
             # aren't specified:
             if not isinstance(key, tuple):
                 key = (key,)
             if len(key) != self.columns.nlevels:
-                key += ('',)*(self.columns.nlevels - len(key))
+                key += ('',) * (self.columns.nlevels - len(key))
         self._data.set(key, value)
 
         try:
@@ -504,7 +505,7 @@ class NDFrame(PandasObject):
         deleted = False
 
         maybe_shortcut = False
-        if hasattr(self,'columns') and isinstance(self.columns, MultiIndex):
+        if hasattr(self, 'columns') and isinstance(self.columns, MultiIndex):
             try:
                 maybe_shortcut = key not in self.columns._engine
             except TypeError:
@@ -513,10 +514,10 @@ class NDFrame(PandasObject):
         if maybe_shortcut:
             # Allow shorthand to delete all columns whose first len(key)
             # elements match key:
-            if not isinstance(key,tuple):
+            if not isinstance(key, tuple):
                 key = (key,)
             for col in self.columns:
-                if isinstance(col,tuple) and col[:len(key)] == key:
+                if isinstance(col, tuple) and col[:len(key)] == key:
                     del self[col]
                     deleted = True
         if not deleted:
@@ -702,7 +703,7 @@ class NDFrame(PandasObject):
             if skipna:
                 np.putmask(result, mask, np.nan)
         else:
-            result = np.maximum.accumulate(y,axis)
+            result = np.maximum.accumulate(y, axis)
         return self._wrap_array(result, self.axes, copy=False)
 
     def cummin(self, axis=None, skipna=True):
@@ -738,7 +739,7 @@ class NDFrame(PandasObject):
             if skipna:
                 np.putmask(result, mask, np.nan)
         else:
-            result = np.minimum.accumulate(y,axis)
+            result = np.minimum.accumulate(y, axis)
         return self._wrap_array(result, self.axes, copy=False)
 
     def copy(self, deep=True):
@@ -934,6 +935,7 @@ class NDFrame(PandasObject):
 
 # Good for either Series or DataFrame
 
+
 def truncate(self, before=None, after=None, copy=True):
     """Function truncate a sorted DataFrame / Series before and/or after
     some particular dates.
@@ -965,4 +967,3 @@ def truncate(self, before=None, after=None, copy=True):
         result = result.copy()
 
     return result
-

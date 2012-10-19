@@ -24,6 +24,7 @@ def _cat_compare_op(op):
 
     return f
 
+
 class Categorical(object):
     """
     Represents a categorical variable in classic R / S-plus fashion
@@ -60,6 +61,7 @@ class Categorical(object):
                            name=getattr(data, 'name', None))
 
     _levels = None
+
     def _set_levels(self, levels):
         from pandas.core.index import _ensure_index
 
@@ -95,7 +97,8 @@ class Categorical(object):
 
         indent = ' ' * (levstring.find('[') + len(levheader) + 1)
         lines = levstring.split('\n')
-        levstring = '\n'.join([lines[0]] + [indent + x.lstrip() for x in lines[1:]])
+        levstring = '\n'.join([lines[0]] +
+                              [indent + x.lstrip() for x in lines[1:]])
 
         return temp % ('' if self.name is None else self.name,
                        repr(values), levheader + levstring)
