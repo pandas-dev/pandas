@@ -24,8 +24,8 @@ from numpy import nan
 import numpy as np
 import numpy.ma as ma
 
-from pandas.core.common import (isnull, notnull, PandasError, _try_sort,\
-                                _default_index,_is_sequence)
+from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
+                                _default_index, _is_sequence)
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
@@ -170,10 +170,13 @@ merged : DataFrame
 
 # Custom error class for update
 
-class DataConflictError(Exception): pass
+
+class DataConflictError(Exception):
+    pass
 
 #----------------------------------------------------------------------
 # Factory helper methods
+
 
 def _arith_method(op, name, default_axis='columns'):
     def na_op(x, y):
@@ -227,6 +230,7 @@ def _arith_method(op, name, default_axis='columns'):
     f.__name__ = name
 
     return f
+
 
 def _flex_comp_method(op, name, default_axis='columns'):
 
@@ -733,7 +737,9 @@ class DataFrame(NDFrame):
         lvals = left.values
         rvals = right.values
         if isinstance(other, DataFrame):
-            return DataFrame(np.dot(lvals, rvals), index=self.index, columns=other.columns)
+            return DataFrame(np.dot(lvals, rvals),
+                             index=self.index,
+                             columns=other.columns)
         elif isinstance(other, Series):
             return Series(np.dot(lvals, rvals), index=left.index)
         else:
@@ -798,8 +804,8 @@ class DataFrame(NDFrame):
         elif outtype.lower().startswith('l'):
             return dict((k, v.tolist()) for k, v in self.iteritems())
         elif outtype.lower().startswith('s'):
-            return dict((k, v) for k,v in self.iteritems())
-        else: # pragma: no cover
+            return dict((k, v) for k, v in self.iteritems())
+        else:  # pragma: no cover
             raise ValueError("outtype %s not understood" % outtype)
 
     @classmethod
@@ -833,7 +839,8 @@ class DataFrame(NDFrame):
             columns = list(columns)
 
             if len(algos.unique(columns)) < len(columns):
-                raise ValueError('Non-unique columns not yet supported in from_records')
+                raise ValueError('Non-unique columns not yet supported in '
+                                 'from_records')
 
         if names is not None:  # pragma: no cover
             columns = names
@@ -1165,7 +1172,6 @@ class DataFrame(NDFrame):
         else:
             f = com._get_handle(path_or_buf, mode, encoding=encoding)
             close = True
-
 
         if quoting is None:
             quoting = csv.QUOTE_MINIMAL
@@ -2019,7 +2025,7 @@ class DataFrame(NDFrame):
             new_values = self._data.fast_2d_xs(loc, copy=copy)
             return Series(new_values, index=self.columns,
                           name=self.index[loc])
-        else: # isinstance(loc, slice) or loc.dtype == np.bool_:
+        else:  # isinstance(loc, slice) or loc.dtype == np.bool_:
             result = self[loc]
             result.index = new_index
             return result
@@ -2488,15 +2494,15 @@ class DataFrame(NDFrame):
             labels are inserted into. By default it is inserted into the first
             level.
         col_fill : object, default ''
-            If the columns have multiple levels, determines how the other levels
-            are named. If None then the index name is repeated.
+            If the columns have multiple levels, determines how the other
+            levels are named. If None then the index name is repeated.
 
         Returns
         -------
         resetted : DataFrame
         """
         if inplace:
-            new_obj  = self
+            new_obj = self
         else:
             new_obj = self.copy()
 
@@ -2786,7 +2792,7 @@ class DataFrame(NDFrame):
         -------
         sorted : DataFrame
         """
-        if column is not None: # pragma: no cover
+        if column is not None:  # pragma: no cover
             import warnings
             warnings.warn("column is deprecated, use columns", FutureWarning)
             columns = column
@@ -3048,7 +3054,7 @@ class DataFrame(NDFrame):
                 return self
 
             if isinstance(to_replace, dict):
-                if isinstance(value, dict): # {'A' : np.nan} -> {'A' : 0}
+                if isinstance(value, dict):  # {'A' : np.nan} -> {'A' : 0}
                     return self._replace_both_dict(to_replace, value, inplace)
 
                 elif not isinstance(value, (list, np.ndarray)):
@@ -3067,7 +3073,7 @@ class DataFrame(NDFrame):
                     new_data = self._data if inplace else self.copy()._data
                     new_data._replace_list(to_replace, value)
 
-                else: # [np.nan, ''] -> 0
+                else:  # [np.nan, ''] -> 0
                     new_data = self._data.replace(to_replace, value,
                                                   inplace=inplace)
 
@@ -3077,9 +3083,9 @@ class DataFrame(NDFrame):
                 else:
                     return self._constructor(new_data)
             else:
-                if isinstance(value, dict): # np.nan -> {'A' : 0, 'B' : -1}
+                if isinstance(value, dict):  # np.nan -> {'A' : 0, 'B' : -1}
                     return self._replace_dest_dict(to_replace, value, inplace)
-                elif not isinstance(value, (list, np.ndarray)): # np.nan -> 0
+                elif not isinstance(value, (list, np.ndarray)):  # np.nan -> 0
                     new_data = self._data.replace(to_replace, value,
                                                   inplace=inplace)
                     if inplace:
@@ -3089,7 +3095,7 @@ class DataFrame(NDFrame):
                         return self._constructor(new_data)
 
             raise ValueError('Invalid to_replace type: %s' %
-                             type(to_replace)) # pragma: no cover
+                             type(to_replace))  # pragma: no cover
 
     def _interpolate(self, to_replace, method, axis, inplace, limit):
         if self._is_mixed_type and axis == 1:
@@ -3833,7 +3839,7 @@ class DataFrame(NDFrame):
                     if hasattr(e, 'args'):
                         k = res_index[i]
                         e.args = e.args + ('occurred at index %s' % str(k),)
-                except NameError: # pragma: no cover
+                except NameError:  # pragma: no cover
                     # no k defined yet
                     pass
                 raise
@@ -4076,7 +4082,7 @@ class DataFrame(NDFrame):
             correl = np.empty((K, K), dtype=float)
             mask = np.isfinite(mat)
             for i, ac in enumerate(mat):
-                for j, bc  in enumerate(mat):
+                for j, bc in enumerate(mat):
                     valid = mask[i] & mask[j]
                     if not valid.any():
                         c = np.nan
@@ -4183,7 +4189,7 @@ class DataFrame(NDFrame):
                                   for k, v in self.iteritems()),
                                   columns=self.columns)
 
-        lb = .5 * (1. - percentile_width/100.)
+        lb = .5 * (1. - percentile_width / 100.)
         ub = 1. - lb
 
         def pretty_name(x):
@@ -4447,7 +4453,6 @@ class DataFrame(NDFrame):
                                       skipna=skipna)
         return self._reduce(nanops.nanskew, axis=axis, skipna=skipna,
                             numeric_only=None)
-
 
     @Substitution(name='unbiased kurtosis', shortname='kurt',
                   na_action=_doc_exclude_na, extras='')
@@ -4971,6 +4976,7 @@ def _to_sdict(data, columns, coerce_float=False):
         data = map(tuple, data)
         return _list_to_sdict(data, columns, coerce_float=coerce_float)
 
+
 def _list_to_sdict(data, columns, coerce_float=False):
     if len(data) > 0 and isinstance(data[0], tuple):
         content = list(lib.to_object_array_tuples(data).T)
@@ -4983,6 +4989,7 @@ def _list_to_sdict(data, columns, coerce_float=False):
         return {}, columns
     return _convert_object_array(content, columns,
                                  coerce_float=coerce_float)
+
 
 def _list_of_series_to_sdict(data, columns, coerce_float=False):
     from pandas.core.index import _get_combined_index
@@ -5038,6 +5045,7 @@ def _convert_object_array(content, columns, coerce_float=False):
                  for c, vals in zip(columns, content))
     return sdict, columns
 
+
 def _get_names_from_index(data):
     index = range(len(data))
     has_some_name = any([s.name is not None for s in data])
@@ -5054,6 +5062,7 @@ def _get_names_from_index(data):
             count += 1
 
     return index
+
 
 def _homogenize(data, index, columns, dtype=None):
     from pandas.core.series import _sanitize_array
@@ -5109,6 +5118,7 @@ def _homogenize(data, index, columns, dtype=None):
 def _put_str(s, space):
     return ('%s' % s)[:space].ljust(space)
 
+
 def install_ipython_completers():  # pragma: no cover
     """Register the DataFrame type with IPython's tab completion machinery, so
     that it knows about accessing column names as attributes."""
@@ -5135,6 +5145,7 @@ import pandas.tools.plotting as gfx
 
 DataFrame.plot = gfx.plot_frame
 DataFrame.hist = gfx.hist_frame
+
 
 def boxplot(self, column=None, by=None, ax=None, fontsize=None,
             rot=0, grid=True, **kwds):

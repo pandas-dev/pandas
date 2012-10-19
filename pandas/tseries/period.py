@@ -28,6 +28,7 @@ def _period_field_accessor(name, alias):
     f.__name__ = name
     return property(f)
 
+
 def _field_accessor(name, alias):
     def f(self):
         base, mult = _gfc(self.freq)
@@ -386,6 +387,7 @@ class Period(object):
         base, mult = _gfc(self.freq)
         return plib.period_format(self.ordinal, base, fmt)
 
+
 def _get_date_and_freq(value, freq):
     value = value.upper()
     dt, _, reso = parse_time_string(value, freq)
@@ -417,6 +419,7 @@ def _get_ordinals(data, freq):
         return lib.extract_ordinals(data, freq)
     else:
         return lib.map_infer(data, f)
+
 
 def dt64arr_to_periodarr(data, freq):
     if data.dtype != np.dtype('M8[ns]'):
@@ -828,7 +831,7 @@ class PeriodIndex(Int64Index):
 
                 # if our data is higher resolution than requested key, slice
                 if grp < freqn:
-                    iv = Period(asdt, freq=(grp,1))
+                    iv = Period(asdt, freq=(grp, 1))
                     ord1 = iv.asfreq(self.freq, how='S').ordinal
                     ord2 = iv.asfreq(self.freq, how='E').ordinal
 
@@ -836,7 +839,7 @@ class PeriodIndex(Int64Index):
                         raise KeyError(key)
 
                     pos = np.searchsorted(self.values, [ord1, ord2])
-                    key = slice(pos[0], pos[1]+1)
+                    key = slice(pos[0], pos[1] + 1)
                     return series[key]
                 else:
                     key = Period(asdt, freq=self.freq)
@@ -993,7 +996,7 @@ class PeriodIndex(Int64Index):
         return header + ['%s' % Period(x, freq=self.freq) for x in self]
 
     def __array_finalize__(self, obj):
-        if self.ndim == 0: # pragma: no cover
+        if self.ndim == 0:  # pragma: no cover
             return self.item()
 
         self.freq = getattr(obj, 'freq', None)
@@ -1088,9 +1091,10 @@ def _get_ordinal_range(start, end, periods, freq):
             data = np.arange(start.ordinal, start.ordinal + periods,
                              dtype=np.int64)
     else:
-        data = np.arange(start.ordinal, end.ordinal+1, dtype=np.int64)
+        data = np.arange(start.ordinal, end.ordinal + 1, dtype=np.int64)
 
     return data, freq
+
 
 def _range_from_fields(year=None, month=None, quarter=None, day=None,
                        hour=None, minute=None, second=None, freq=None):
@@ -1131,6 +1135,7 @@ def _range_from_fields(year=None, month=None, quarter=None, day=None,
 
     return np.array(ordinals, dtype=np.int64), freq
 
+
 def _make_field_arrays(*fields):
     length = None
     for x in fields:
@@ -1157,6 +1162,7 @@ def _ordinal_from_fields(year, month, quarter, day, hour, minute,
 
     return plib.period_ordinal(year, month, day, hour, minute, second, base)
 
+
 def _quarter_to_myear(year, quarter, freq):
     if quarter is not None:
         if quarter <= 0 or quarter > 4:
@@ -1179,8 +1185,10 @@ def _validate_end_alias(how):
         raise ValueError('How must be one of S or E')
     return how
 
+
 def pnow(freq=None):
     return Period(datetime.now(), freq=freq)
+
 
 def period_range(start=None, end=None, periods=None, freq='D', name=None):
     """
@@ -1205,6 +1213,7 @@ def period_range(start=None, end=None, periods=None, freq='D', name=None):
     """
     return PeriodIndex(start=start, end=end, periods=periods,
                        freq=freq, name=name)
+
 
 def _period_rule_to_timestamp_rule(freq, how='end'):
     how = how.lower()

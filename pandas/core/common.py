@@ -30,14 +30,17 @@ from pandas.util.py3compat import StringIO, BytesIO
 try:
     np.seterr(all='ignore')
     # np.set_printoptions(suppress=True)
-except Exception: # pragma: no cover
+except Exception:  # pragma: no cover
     pass
+
 
 class PandasError(Exception):
     pass
 
+
 class AmbiguousIndexError(PandasError, KeyError):
     pass
+
 
 def isnull(obj):
     '''
@@ -66,6 +69,7 @@ def isnull(obj):
     else:
         return obj is None
 
+
 def _isnull_ndarraylike(obj):
     from pandas import Series
     values = np.asarray(obj)
@@ -90,6 +94,7 @@ def _isnull_ndarraylike(obj):
         result = -np.isfinite(obj)
     return result
 
+
 def notnull(obj):
     '''
     Replacement for numpy.isfinite / -numpy.isnan which is suitable
@@ -107,6 +112,7 @@ def notnull(obj):
     if np.isscalar(res):
         return not res
     return -res
+
 
 def mask_missing(arr, values_to_mask):
     """
@@ -139,6 +145,7 @@ def mask_missing(arr, values_to_mask):
 
     return mask
 
+
 def _pickle_array(arr):
     arr = arr.view(np.ndarray)
 
@@ -147,9 +154,11 @@ def _pickle_array(arr):
 
     return buf.getvalue()
 
+
 def _unpickle_array(bytes):
     arr = read_array(BytesIO(bytes))
     return arr
+
 
 def _view_wrapper(f, wrap_dtype, na_override=None):
     def wrapper(arr, indexer, out, fill_value=np.nan):
@@ -162,44 +171,45 @@ def _view_wrapper(f, wrap_dtype, na_override=None):
 
 
 _take1d_dict = {
-    'float64' : _algos.take_1d_float64,
-    'int32' : _algos.take_1d_int32,
-    'int64' : _algos.take_1d_int64,
-    'object' : _algos.take_1d_object,
-    'bool' : _view_wrapper(_algos.take_1d_bool, np.uint8),
-    'datetime64[ns]' : _view_wrapper(_algos.take_1d_int64, np.int64,
-                                     na_override=lib.iNaT),
+    'float64': _algos.take_1d_float64,
+    'int32': _algos.take_1d_int32,
+    'int64': _algos.take_1d_int64,
+    'object': _algos.take_1d_object,
+    'bool': _view_wrapper(_algos.take_1d_bool, np.uint8),
+    'datetime64[ns]': _view_wrapper(_algos.take_1d_int64, np.int64,
+                                    na_override=lib.iNaT),
 }
 
 _take2d_axis0_dict = {
-    'float64' : _algos.take_2d_axis0_float64,
-    'int32' : _algos.take_2d_axis0_int32,
-    'int64' : _algos.take_2d_axis0_int64,
-    'object' : _algos.take_2d_axis0_object,
-    'bool' : _view_wrapper(_algos.take_2d_axis0_bool, np.uint8),
-    'datetime64[ns]' : _view_wrapper(_algos.take_2d_axis0_int64, np.int64,
-                                     na_override=lib.iNaT),
+    'float64': _algos.take_2d_axis0_float64,
+    'int32': _algos.take_2d_axis0_int32,
+    'int64': _algos.take_2d_axis0_int64,
+    'object': _algos.take_2d_axis0_object,
+    'bool': _view_wrapper(_algos.take_2d_axis0_bool, np.uint8),
+    'datetime64[ns]': _view_wrapper(_algos.take_2d_axis0_int64, np.int64,
+                                    na_override=lib.iNaT),
 }
 
 _take2d_axis1_dict = {
-    'float64' : _algos.take_2d_axis1_float64,
-    'int32' : _algos.take_2d_axis1_int32,
-    'int64' : _algos.take_2d_axis1_int64,
-    'object' : _algos.take_2d_axis1_object,
-    'bool' : _view_wrapper(_algos.take_2d_axis1_bool, np.uint8),
-    'datetime64[ns]' : _view_wrapper(_algos.take_2d_axis1_int64, np.int64,
+    'float64': _algos.take_2d_axis1_float64,
+    'int32': _algos.take_2d_axis1_int32,
+    'int64': _algos.take_2d_axis1_int64,
+    'object': _algos.take_2d_axis1_object,
+    'bool': _view_wrapper(_algos.take_2d_axis1_bool, np.uint8),
+    'datetime64[ns]': _view_wrapper(_algos.take_2d_axis1_int64, np.int64,
                                      na_override=lib.iNaT),
 }
 
 _take2d_multi_dict = {
-    'float64' : _algos.take_2d_multi_float64,
-    'int32' : _algos.take_2d_multi_int32,
-    'int64' : _algos.take_2d_multi_int64,
-    'object' : _algos.take_2d_multi_object,
-    'bool' : _view_wrapper(_algos.take_2d_multi_bool, np.uint8),
-    'datetime64[ns]' : _view_wrapper(_algos.take_2d_multi_int64, np.int64,
-                                     na_override=lib.iNaT),
+    'float64': _algos.take_2d_multi_float64,
+    'int32': _algos.take_2d_multi_int32,
+    'int64': _algos.take_2d_multi_int64,
+    'object': _algos.take_2d_multi_object,
+    'bool': _view_wrapper(_algos.take_2d_multi_bool, np.uint8),
+    'datetime64[ns]': _view_wrapper(_algos.take_2d_multi_int64, np.int64,
+                                    na_override=lib.iNaT),
 }
+
 
 def _get_take2d_function(dtype_str, axis=0):
     if axis == 0:
@@ -208,8 +218,9 @@ def _get_take2d_function(dtype_str, axis=0):
         return _take2d_axis1_dict[dtype_str]
     elif axis == 'multi':
         return _take2d_multi_dict[dtype_str]
-    else: # pragma: no cover
+    else:  # pragma: no cover
         raise ValueError('bad axis: %s' % axis)
+
 
 def take_1d(arr, indexer, out=None, fill_value=np.nan):
     """
@@ -258,6 +269,7 @@ def take_1d(arr, indexer, out=None, fill_value=np.nan):
 
     return out
 
+
 def take_2d_multi(arr, row_idx, col_idx, fill_value=np.nan, out=None):
 
     dtype_str = arr.dtype.name
@@ -266,7 +278,7 @@ def take_2d_multi(arr, row_idx, col_idx, fill_value=np.nan, out=None):
 
     if dtype_str in ('int32', 'int64', 'bool'):
         row_mask = row_idx == -1
-        col_mask=  col_idx == -1
+        col_mask = col_idx == -1
         needs_masking = row_mask.any() or col_mask.any()
 
         if needs_masking:
@@ -348,14 +360,17 @@ def take_2d(arr, indexer, out=None, mask=None, needs_masking=None, axis=0,
                              fill_value=fill_value)
         return result
 
+
 def ndtake(arr, indexer, axis=0, out=None):
     return arr.take(_ensure_platform_int(indexer), axis=axis, out=out)
+
 
 def mask_out_axis(arr, mask, axis, fill_value=np.nan):
     indexer = [slice(None)] * arr.ndim
     indexer[axis] = mask
 
     arr[tuple(indexer)] = fill_value
+
 
 def take_fast(arr, indexer, mask, needs_masking, axis=0, out=None,
               fill_value=np.nan):
@@ -369,6 +384,7 @@ def take_fast(arr, indexer, mask, needs_masking, axis=0, out=None,
                          out_passed=out is not None, fill_value=fill_value)
     return result
 
+
 def _maybe_mask(result, mask, needs_masking, axis=0, out_passed=False,
                 fill_value=np.nan):
     if needs_masking:
@@ -380,6 +396,7 @@ def _maybe_mask(result, mask, needs_masking, axis=0, out_passed=False,
             mask_out_axis(result, mask, axis, fill_value)
     return result
 
+
 def _maybe_upcast(values):
     if issubclass(values.dtype.type, np.integer):
         values = values.astype(float)
@@ -388,10 +405,12 @@ def _maybe_upcast(values):
 
     return values
 
+
 def _need_upcast(values):
     if issubclass(values.dtype.type, (np.integer, np.bool_)):
         return True
     return False
+
 
 def _interp_wrapper(f, wrap_dtype, na_override=None):
     def wrapper(arr, mask, limit=None):
@@ -401,8 +420,11 @@ def _interp_wrapper(f, wrap_dtype, na_override=None):
 
 _pad_1d_datetime = _interp_wrapper(_algos.pad_inplace_int64, np.int64)
 _pad_2d_datetime = _interp_wrapper(_algos.pad_2d_inplace_int64, np.int64)
-_backfill_1d_datetime = _interp_wrapper(_algos.backfill_inplace_int64, np.int64)
-_backfill_2d_datetime = _interp_wrapper(_algos.backfill_2d_inplace_int64, np.int64)
+_backfill_1d_datetime = _interp_wrapper(_algos.backfill_inplace_int64,
+                                        np.int64)
+_backfill_2d_datetime = _interp_wrapper(_algos.backfill_2d_inplace_int64,
+                                        np.int64)
+
 
 def pad_1d(values, limit=None, mask=None):
     if is_float_dtype(values):
@@ -411,13 +433,14 @@ def pad_1d(values, limit=None, mask=None):
         _method = _pad_1d_datetime
     elif values.dtype == np.object_:
         _method = _algos.pad_inplace_object
-    else: # pragma: no cover
+    else:  # pragma: no cover
         raise ValueError('Invalid dtype for padding')
 
     if mask is None:
         mask = isnull(values)
     mask = mask.view(np.uint8)
     _method(values, mask, limit=limit)
+
 
 def backfill_1d(values, limit=None, mask=None):
     if is_float_dtype(values):
@@ -426,7 +449,7 @@ def backfill_1d(values, limit=None, mask=None):
         _method = _backfill_1d_datetime
     elif values.dtype == np.object_:
         _method = _algos.backfill_inplace_object
-    else: # pragma: no cover
+    else:  # pragma: no cover
         raise ValueError('Invalid dtype for padding')
 
     if mask is None:
@@ -435,6 +458,7 @@ def backfill_1d(values, limit=None, mask=None):
 
     _method(values, mask, limit=limit)
 
+
 def pad_2d(values, limit=None, mask=None):
     if is_float_dtype(values):
         _method = _algos.pad_2d_inplace_float64
@@ -442,7 +466,7 @@ def pad_2d(values, limit=None, mask=None):
         _method = _pad_2d_datetime
     elif values.dtype == np.object_:
         _method = _algos.pad_2d_inplace_object
-    else: # pragma: no cover
+    else:  # pragma: no cover
         raise ValueError('Invalid dtype for padding')
 
     if mask is None:
@@ -454,6 +478,7 @@ def pad_2d(values, limit=None, mask=None):
     else:
         # for test coverage
         pass
+
 
 def backfill_2d(values, limit=None, mask=None):
     if is_float_dtype(values):
@@ -462,7 +487,7 @@ def backfill_2d(values, limit=None, mask=None):
         _method = _backfill_2d_datetime
     elif values.dtype == np.object_:
         _method = _algos.backfill_2d_inplace_object
-    else: # pragma: no cover
+    else:  # pragma: no cover
         raise ValueError('Invalid dtype for padding')
 
     if mask is None:
@@ -474,6 +499,7 @@ def backfill_2d(values, limit=None, mask=None):
     else:
         # for test coverage
         pass
+
 
 def _consensus_name_attr(objs):
     name = objs[0].name
@@ -485,6 +511,7 @@ def _consensus_name_attr(objs):
 #----------------------------------------------------------------------
 # Lots of little utilities
 
+
 def _infer_dtype(value):
     if isinstance(value, (float, np.floating)):
         return np.float_
@@ -495,14 +522,16 @@ def _infer_dtype(value):
     else:
         return np.object_
 
+
 def _possibly_cast_item(obj, item, dtype):
     chunk = obj[item]
 
     if chunk.values.dtype != dtype:
         if dtype in (np.object_, np.bool_):
             obj[item] = chunk.astype(np.object_)
-        elif not issubclass(dtype, (np.integer, np.bool_)): # pragma: no cover
+        elif not issubclass(dtype, (np.integer, np.bool_)):  # pragma: no cover
             raise ValueError("Unexpected dtype encountered: %s" % dtype)
+
 
 def _is_bool_indexer(key):
     if isinstance(key, np.ndarray) and key.dtype == np.object_:
@@ -519,20 +548,23 @@ def _is_bool_indexer(key):
     elif isinstance(key, list):
         try:
             return np.asarray(key).dtype == np.bool_
-        except TypeError: # pragma: no cover
+        except TypeError:  # pragma: no cover
             return False
 
     return False
 
+
 def _default_index(n):
     from pandas.core.index import Index
     return Index(np.arange(n))
+
 
 def ensure_float(arr):
     if issubclass(arr.dtype.type, np.integer):
         arr = arr.astype(float)
 
     return arr
+
 
 def _mut_exclusive(arg1, arg2):
     if arg1 is not None and arg2 is not None:
@@ -542,17 +574,20 @@ def _mut_exclusive(arg1, arg2):
     else:
         return arg2
 
+
 def _any_none(*args):
     for arg in args:
         if arg is None:
             return True
     return False
 
+
 def _all_not_none(*args):
     for arg in args:
         if arg is None:
             return False
     return True
+
 
 def _try_sort(iterable):
     listed = list(iterable)
@@ -561,17 +596,20 @@ def _try_sort(iterable):
     except Exception:
         return listed
 
+
 def _count_not_none(*args):
     return sum(x is not None for x in args)
 
 #------------------------------------------------------------------------------
 # miscellaneous python tools
 
+
 def rands(n):
     """Generates a random alphanumeric string of length *n*"""
     from random import Random
     import string
-    return ''.join(Random().sample(string.ascii_letters+string.digits, n))
+    return ''.join(Random().sample(string.ascii_letters + string.digits, n))
+
 
 def adjoin(space, *lists):
     """
@@ -595,6 +633,7 @@ def adjoin(space, *lists):
         out_lines.append(_join_unicode(lines))
     return _join_unicode(out_lines, sep='\n')
 
+
 def _join_unicode(lines, sep=''):
     try:
         return sep.join(lines)
@@ -602,6 +641,7 @@ def _join_unicode(lines, sep=''):
         sep = unicode(sep)
         return sep.join([x.decode('utf-8') if isinstance(x, str) else x
                          for x in lines])
+
 
 def iterpairs(seq):
     """
@@ -625,9 +665,11 @@ def iterpairs(seq):
 
     return itertools.izip(seq_it, seq_it_next)
 
+
 def indent(string, spaces=4):
     dent = ' ' * spaces
     return '\n'.join([dent + x for x in string.split('\n')])
+
 
 def banner(message):
     """
@@ -636,6 +678,7 @@ def banner(message):
     bar = '=' * 80
     return '%s\n%s\n%s' % (bar, message, bar)
 
+
 class groupby(dict):
     """
     A simple groupby different from the one in itertools.
@@ -643,7 +686,7 @@ class groupby(dict):
     Does not require the sequence elements to be sorted by keys,
     however it is slower.
     """
-    def __init__(self, seq, key=lambda x:x):
+    def __init__(self, seq, key=lambda x: x):
         for value in seq:
             k = key(value)
             self.setdefault(k, []).append(value)
@@ -654,12 +697,14 @@ class groupby(dict):
         def __iter__(self):
             return iter(dict.items(self))
 
+
 def map_indices_py(arr):
     """
     Returns a dictionary with (element, index) pairs for each element in the
     given array/list
     """
     return dict([(x, i) for i, x in enumerate(arr)])
+
 
 def union(*seqs):
     result = set([])
@@ -669,8 +714,10 @@ def union(*seqs):
         result |= seq
     return type(seqs[0])(list(result))
 
+
 def difference(a, b):
     return type(a)(list(set(a) - set(b)))
+
 
 def intersection(*seqs):
     result = set(seqs[0])
@@ -679,6 +726,7 @@ def intersection(*seqs):
             seq = set(seq)
         result &= seq
     return type(seqs[0])(list(result))
+
 
 def _asarray_tuplesafe(values, dtype=None):
     from pandas.core.index import Index
@@ -707,6 +755,7 @@ def _asarray_tuplesafe(values, dtype=None):
 
     return result
 
+
 def _index_labels_to_array(labels):
     if isinstance(labels, (basestring, tuple)):
         labels = [labels]
@@ -714,30 +763,36 @@ def _index_labels_to_array(labels):
     if not isinstance(labels, (list, np.ndarray)):
         try:
             labels = list(labels)
-        except TypeError: # non-iterable
+        except TypeError:  # non-iterable
             labels = [labels]
 
     labels = _asarray_tuplesafe(labels)
 
     return labels
 
+
 def _maybe_make_list(obj):
     if obj is not None and not isinstance(obj, (tuple, list)):
         return [obj]
     return obj
 
+
 def is_integer(obj):
     return isinstance(obj, (int, long, np.integer))
 
+
 def is_float(obj):
     return isinstance(obj, (float, np.floating))
+
 
 def is_iterator(obj):
     # python 3 generators have __next__ instead of next
     return hasattr(obj, 'next') or hasattr(obj, '__next__')
 
+
 def is_number(obj):
     return isinstance(obj, (np.number, int, long, float))
+
 
 def is_integer_dtype(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):
@@ -747,12 +802,14 @@ def is_integer_dtype(arr_or_dtype):
     return (issubclass(tipo, np.integer) and not
             issubclass(tipo, np.datetime64))
 
+
 def is_datetime64_dtype(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):
         tipo = arr_or_dtype.type
     else:
         tipo = arr_or_dtype.dtype.type
     return issubclass(tipo, np.datetime64)
+
 
 def is_float_dtype(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):
@@ -761,8 +818,10 @@ def is_float_dtype(arr_or_dtype):
         tipo = arr_or_dtype.dtype.type
     return issubclass(tipo, np.floating)
 
+
 def is_list_like(arg):
     return hasattr(arg, '__iter__') and not isinstance(arg, basestring)
+
 
 def _is_sequence(x):
     try:
@@ -797,6 +856,7 @@ def _astype_nansafe(arr, dtype):
 
     return arr.astype(dtype)
 
+
 def _clean_fill_method(method):
     method = method.lower()
     if method == 'ffill':
@@ -804,10 +864,11 @@ def _clean_fill_method(method):
     if method == 'bfill':
         method = 'backfill'
     if method not in ['pad', 'backfill']:
-        msg = ('Invalid fill method. Expecting pad (ffill) or backfill (bfill).'
-               ' Got %s' % method)
+        msg = ('Invalid fill method. Expecting pad (ffill) or backfill '
+               '(bfill). Got %s' % method)
         raise ValueError(msg)
     return method
+
 
 def _all_none(*args):
     for arg in args:
@@ -853,6 +914,7 @@ def load(path):
     finally:
         f.close()
 
+
 class UTF8Recoder:
     """
     Iterator that reads an encoded stream and reencodes the input to UTF-8
@@ -865,6 +927,7 @@ class UTF8Recoder:
 
     def next(self):
         return self.reader.next().encode("utf-8")
+
 
 def _get_handle(path, mode, encoding=None):
     if py3compat.PY3:  # pragma: no cover
@@ -916,11 +979,11 @@ else:
             self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
             self.stream = f
             self.encoder = codecs.getincrementalencoder(encoding)()
-            self.quoting=kwds.get("quoting",None)
+            self.quoting = kwds.get("quoting", None)
 
         def writerow(self, row):
             def _check_as_is(x):
-                return (self.quoting == csv.QUOTE_NONNUMERIC and \
+                return (self.quoting == csv.QUOTE_NONNUMERIC and
                         is_number(x)) or isinstance(x, str)
 
             row = [x if _check_as_is(x)
@@ -940,6 +1003,7 @@ else:
 
 _NS_DTYPE = np.dtype('M8[ns]')
 
+
 def _concat_compat(to_concat, axis=0):
     # filter empty arrays
     to_concat = [x for x in to_concat if x.shape[axis] > 0]
@@ -955,8 +1019,8 @@ def _concat_compat(to_concat, axis=0):
 # Unicode consolidation
 # ---------------------
 #
-# pprinting utility functions for generating Unicode text or bytes(3.x)/str(2.x)
-# representations of objects.
+# pprinting utility functions for generating Unicode text or
+# bytes(3.x)/str(2.x) representations of objects.
 # Try to use these as much as possible rather then rolling your own.
 #
 # When to use
@@ -973,21 +1037,24 @@ def _concat_compat(to_concat, axis=0):
 #    console_encode() should (hopefully) choose the right encoding for you
 #    based on the encoding set in fmt.print_config.encoding.
 #
-# 3) if you need to write something out to file, use pprint_thing_encoded(encoding).
+# 3) if you need to write something out to file, use
+#    pprint_thing_encoded(encoding).
 #
-#    If no encoding is specified, it defaults to utf-8. SInce encoding pure ascii with
-#    utf-8 is a no-op you can safely use the default utf-8 if you're working with
-#    straight ascii.
+#    If no encoding is specified, it defaults to utf-8. Since encoding pure
+#    ascii with utf-8 is a no-op you can safely use the default utf-8 if you're
+#    working with straight ascii.
 
-def _pprint_seq(seq,_nest_lvl=0):
+
+def _pprint_seq(seq, _nest_lvl=0):
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
     rather then calling this directly.
     """
-    fmt=u"[%s]" if hasattr(seq,'__setitem__') else u"(%s)"
-    return fmt % ", ".join(pprint_thing(e,_nest_lvl+1) for e in seq)
+    fmt = u"[%s]" if hasattr(seq, '__setitem__') else u"(%s)"
+    return fmt % ", ".join(pprint_thing(e, _nest_lvl + 1) for e in seq)
 
-def pprint_thing(thing,_nest_lvl=0):
+
+def pprint_thing(thing, _nest_lvl=0):
     """
     This function is the sanctioned way of converting objects
     to a unicode representation.
@@ -1011,7 +1078,7 @@ def pprint_thing(thing,_nest_lvl=0):
     if thing is None:
         result = ''
     elif _is_sequence(thing) and _nest_lvl < print_config.pprint_nest_depth:
-        result = _pprint_seq(thing,_nest_lvl)
+        result = _pprint_seq(thing, _nest_lvl)
     else:
         # when used internally in the package, everything
         # passed in should be a unicode object or have a unicode
@@ -1021,16 +1088,18 @@ def pprint_thing(thing,_nest_lvl=0):
         # so we resort to utf-8 with replacing errors
 
         try:
-            result = unicode(thing) # we should try this first
+            result = unicode(thing)  # we should try this first
         except UnicodeDecodeError:
             # either utf-8 or we replace errors
-            result = str(thing).decode('utf-8',"replace")
+            result = str(thing).decode('utf-8', "replace")
 
-    return unicode(result) # always unicode
+    return unicode(result)  # always unicode
 
-def pprint_thing_encoded(object,encoding='utf-8',errors='replace'):
-    value=pprint_thing(object) # get unicode representation of object
+
+def pprint_thing_encoded(object, encoding='utf-8', errors='replace'):
+    value = pprint_thing(object)  # get unicode representation of object
     return value.encode(encoding, errors)
+
 
 def console_encode(object):
     from pandas.core.format import print_config
@@ -1041,4 +1110,4 @@ def console_encode(object):
     set in print_config.encoding. Use this everywhere
     where you output to the console.
     """
-    return pprint_thing_encoded(object,print_config.encoding)
+    return pprint_thing_encoded(object, print_config.encoding)

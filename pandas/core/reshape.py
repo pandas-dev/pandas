@@ -74,7 +74,7 @@ class _Unstacker(object):
 
         v = self.level
         lshape = self.index.levshape
-        self.full_shape = np.prod(lshape[:v] + lshape[v+1:]), lshape[v]
+        self.full_shape = np.prod(lshape[:v] + lshape[v + 1:]), lshape[v]
 
         self._make_sorted_values_labels()
         self._make_selectors()
@@ -84,8 +84,8 @@ class _Unstacker(object):
 
         labs = self.index.labels
         levs = self.index.levels
-        to_sort =  labs[:v] + labs[v+1:] + [labs[v]]
-        sizes = [len(x) for x in levs[:v] + levs[v+1:] + [levs[v]]]
+        to_sort = labs[:v] + labs[v + 1:] + [labs[v]]
+        sizes = [len(x) for x in levs[:v] + levs[v + 1:] + [levs[v]]]
 
         group_index = get_group_index(to_sort, sizes)
         max_groups = np.prod(sizes)
@@ -93,7 +93,7 @@ class _Unstacker(object):
             comp_index, obs_ids = _compress_group_index(group_index)
             ngroups = len(obs_ids)
         else:
-            comp_index, ngroups  = group_index, max_groups
+            comp_index, ngroups = group_index, max_groups
 
         indexer = lib.groupsort_indexer(comp_index, ngroups)[0]
         indexer = _ensure_platform_int(indexer)
@@ -280,6 +280,7 @@ def _unstack_multiple(data, clocs):
 
     return unstacked
 
+
 def pivot(self, index=None, columns=None, values=None):
     """
     See DataFrame.pivot
@@ -291,6 +292,7 @@ def pivot(self, index=None, columns=None, values=None):
         indexed = Series(self[values].values,
                          index=[self[index], self[columns]])
         return indexed.unstack(columns)
+
 
 def pivot_simple(index, columns, values):
     """
@@ -324,6 +326,7 @@ def pivot_simple(index, columns, values):
     series = series.sortlevel(0)
     return series.unstack()
 
+
 def _slow_pivot(index, columns, values):
     """
     Produce 'pivot' table based on 3 columns of this DataFrame.
@@ -349,6 +352,7 @@ def _slow_pivot(index, columns, values):
 
     return DataFrame(tree)
 
+
 def unstack(obj, level):
     if isinstance(level, (tuple, list)):
         return _unstack_multiple(obj, level)
@@ -362,11 +366,12 @@ def unstack(obj, level):
         unstacker = _Unstacker(obj.values, obj.index, level=level)
         return unstacker.get_result()
 
+
 def _unstack_frame(obj, level):
     from pandas.core.internals import BlockManager, make_block
 
     if obj._is_mixed_type:
-        unstacker = _Unstacker(np.empty(obj.shape, dtype=bool), # dummy
+        unstacker = _Unstacker(np.empty(obj.shape, dtype=bool),  # dummy
                                obj.index, level=level,
                                value_columns=obj.columns)
         new_columns = unstacker.get_new_columns()
@@ -394,6 +399,7 @@ def _unstack_frame(obj, level):
         unstacker = _Unstacker(obj.values, obj.index, level=level,
                                value_columns=obj.columns)
         return unstacker.get_result()
+
 
 def stack(frame, level=-1, dropna=True):
     """
@@ -436,6 +442,7 @@ def stack(frame, level=-1, dropna=True):
         new_values = new_values[mask]
         new_index = new_index[mask]
     return Series(new_values, index=new_index)
+
 
 def _stack_multi_columns(frame, level=-1, dropna=True):
     this = frame.copy()
@@ -491,7 +498,7 @@ def _stack_multi_columns(frame, level=-1, dropna=True):
     else:
         new_levels = [this.index]
         new_labels = [np.arange(N).repeat(levsize)]
-        new_names = [this.index.name] # something better?
+        new_names = [this.index.name]  # something better?
 
     new_levels.append(frame.columns.levels[level])
     new_labels.append(np.tile(np.arange(levsize), N))
@@ -704,8 +711,8 @@ def make_axis_dummies(frame, axis='minor', transform=None):
         Column names taken from chosen axis
     """
     numbers = {
-        'major' : 0,
-        'minor' : 1
+        'major': 0,
+        'minor': 1
     }
     num = numbers.get(axis, axis)
 
@@ -721,6 +728,7 @@ def make_axis_dummies(frame, axis='minor', transform=None):
     values = values.take(labels, axis=0)
 
     return DataFrame(values, columns=items, index=frame.index)
+
 
 def block2d_to_block3d(values, items, shape, major_labels, minor_labels,
                        ref_items=None):
