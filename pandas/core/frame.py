@@ -955,7 +955,7 @@ class DataFrame(NDFrame):
 
     @classmethod
     def from_csv(cls, path, header=0, sep=',', index_col=0,
-                 parse_dates=True, encoding=None):
+                 parse_dates=True, encoding='utf-8'):
         """
         Read delimited file into DataFrame
 
