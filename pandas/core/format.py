@@ -941,7 +941,7 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
                      max_columns=None, colheader_justify=None,
                      max_colwidth=None, notebook_repr_html=None,
                      date_dayfirst=None, date_yearfirst=None,
-                     multi_sparse=None, encoding=None):
+                     pprint_nest_depth=None,multi_sparse=None, encoding=None):
     """
     Alter default behavior of DataFrame.toString
 
@@ -965,6 +965,10 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
         When True, prints and parses dates with the day first, eg 20/01/2005
     date_yearfirst : boolean
         When True, prints and parses dates with the year first, eg 2005/01/20
+    pprint_nest_depth : int
+        Defaults to 3.
+        Controls the number of nested levels to process when pretty-printing
+        nested sequences.
     multi_sparse : boolean
         Default True, "sparsify" MultiIndex display (don't display repeated
         elements in outer levels within groups)
@@ -987,6 +991,8 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
         print_config.date_dayfirst = date_dayfirst
     if date_yearfirst is not None:
         print_config.date_yearfirst = date_yearfirst
+    if pprint_nest_depth is not None:
+        print_config.pprint_nest_depth = pprint_nest_depth
     if multi_sparse is not None:
         print_config.multi_sparse = multi_sparse
     if encoding is not None:
