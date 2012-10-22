@@ -116,6 +116,13 @@ class TestBusinessDay(unittest.TestCase):
         self.offset = BDay()
         self.offset2 = BDay(2)
 
+    def test_different_normalize_equals(self):
+        # equivalent in this special case
+        offset = BDay()
+        offset2 = BDay()
+        offset2.normalize = True
+        self.assertEqual(offset, offset2)
+
     def test_repr(self):
         assert repr(self.offset) == '<1 BusinessDay>'
         assert repr(self.offset2) == '<2 BusinessDays>'

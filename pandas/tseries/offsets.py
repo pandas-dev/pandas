@@ -99,7 +99,7 @@ class DateOffset(object):
 
     def _params(self):
         attrs = [(k, v) for k, v in vars(self).iteritems()
-                 if k not in ['kwds', '_offset', 'name']]
+                 if k not in ['kwds', '_offset', 'name', 'normalize']]
         attrs.extend(self.kwds.items())
         attrs = sorted(set(attrs))
 
