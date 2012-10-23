@@ -238,6 +238,60 @@ class TestDataFrameFormatting(unittest.TestCase):
 </table>"""
         self.assertEquals(result, expected)
 
+        df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]],
+                       columns=index[::2], index=index)
+
+        result = df.to_html()
+        expected = """\
+<table border="1" class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>foo</th>
+      <th>0</th>
+      <th>1</th>
+    </tr>
+    <tr>
+      <th></th>
+      <th></th>
+      <th>0</th>
+      <th>0</th>
+    </tr>
+    <tr>
+      <th>foo</th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td rowspan="2" valign="top"><strong>0</strong></td>
+      <td><strong>0</strong></td>
+      <td> 0</td>
+      <td> 1</td>
+    </tr>
+    <tr>
+      <td><strong>1</strong></td>
+      <td> 2</td>
+      <td> 3</td>
+    </tr>
+    <tr>
+      <td rowspan="2" valign="top"><strong>1</strong></td>
+      <td><strong>0</strong></td>
+      <td> 4</td>
+      <td> 5</td>
+    </tr>
+    <tr>
+      <td><strong>1</strong></td>
+      <td> 6</td>
+      <td> 7</td>
+    </tr>
+  </tbody>
+</table>"""
+        self.assertEquals(result, expected)
+
+
     def test_nonunicode_nonascii_alignment(self):
         df = DataFrame([["aa\xc3\xa4\xc3\xa4", 1], ["bbbb", 2]])
         rep_str = df.to_string()

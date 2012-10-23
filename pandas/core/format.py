@@ -538,12 +538,15 @@ class HTMLFormatter(object):
             col_values = self.columns.values
             level_lengths = _get_level_lengths(levels)
 
+            row_levels = self.frame.index.nlevels
+
             for lnum, (records, values) in enumerate(zip(level_lengths, levels)):
                 name = self.columns.names[lnum]
-                row = ['' if name is None else str(name)]
+                row = [''] * (row_levels - 1) + ['' if name is None
+                                                 else str(name)]
 
                 tags = {}
-                j = 1
+                j = len(row)
                 for i, v in enumerate(values):
                     if i in records:
                         if records[i] > 1:
