@@ -29,6 +29,8 @@ pandas 0.9.1
 
 **Improvements to existing features**
 
+  - Improve performance of datetime + business day offset with large number of
+    offset periods
   - Improve HTML display of DataFrame objects with hierarchical columns
 
 **Bug fixes**

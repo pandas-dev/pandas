@@ -250,6 +250,15 @@ class TestBusinessDay(unittest.TestCase):
             for base, expected in cases.iteritems():
                 assertEq(offset, base, expected)
 
+    def test_apply_large_n(self):
+        dt = datetime(2012, 10, 23)
+
+        result = dt + BDay(10)
+        self.assertEqual(result, datetime(2012, 11, 6))
+
+        result = dt + BDay(100) - BDay(100)
+        self.assertEqual(result, dt)
+
     def test_apply_corner(self):
         self.assertRaises(Exception, BDay().apply, BMonthEnd())
 

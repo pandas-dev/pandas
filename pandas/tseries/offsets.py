@@ -323,6 +323,12 @@ class BusinessDay(CacheableOffset, DateOffset):
 
             result = other
 
+            # avoid slowness below
+            if abs(n) > 5:
+                k = n // 5
+                result = result + timedelta(7 * k)
+                n -= 5 * k
+
             while n != 0:
                 k = n // abs(n)
                 result = result + timedelta(k)
