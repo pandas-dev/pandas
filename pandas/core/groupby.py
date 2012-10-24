@@ -127,7 +127,7 @@ class GroupBy(object):
             obj._consolidate_inplace()
 
         self.obj = obj
-        self.axis = axis
+        self.axis = obj._get_axis_number(axis)
         self.level = level
 
         if not as_index:
