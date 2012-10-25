@@ -902,7 +902,7 @@ class LinePlot(MPLPlot):
 
                 _maybe_add_color(kwds, style, i)
 
-                label = com.pprint_thing(label).encode('utf-8')
+                label = com.pprint_thing(label)
 
                 mask = com.isnull(y)
                 if mask.any():
