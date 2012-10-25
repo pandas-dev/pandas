@@ -23,7 +23,7 @@ class TimeGrouper(CustomGrouper):
 
     Parameters
     ----------
-    rule : pandas offset string or object for identifying bin edges
+    freq : pandas date offset or offset alias for identifying bin edges
     closed : closed end of interval; left (default) or right
     label : interval boundary to use for labeling; left (default) or right
     nperiods : optional, integer
