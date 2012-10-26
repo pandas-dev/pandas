@@ -777,6 +777,14 @@ class TestDataFrameFormatting(unittest.TestCase):
         result = df.to_html(classes=["sortable", "draggable"])
         self.assertEqual(result, expected)
 
+    def test_float_trim_zeros(self):
+        vals = [2.08430917305e+10, 3.52205017305e+10, 2.30674817305e+10,
+                2.03954217305e+10, 5.59897817305e+10]
+        skip = True
+        for line in repr(DataFrame({'A': vals})).split('\n'):
+            self.assert_(('+10' in line) or skip)
+            skip = False
+
 
 class TestSeriesFormatting(unittest.TestCase):
 
@@ -859,6 +867,13 @@ class TestSeriesFormatting(unittest.TestCase):
         s=Series([1,2],name=u'\u05e2\u05d1\u05e8\u05d9\u05ea')
         sf=fmt.SeriesFormatter(s,name=u'\u05e2\u05d1\u05e8\u05d9\u05ea')
         sf._get_footer() # should not raise exception
+
+    def test_float_trim_zeros(self):
+        vals = [2.08430917305e+10, 3.52205017305e+10, 2.30674817305e+10,
+                2.03954217305e+10, 5.59897817305e+10]
+        for line in repr(Series(vals)).split('\n'):
+            self.assert_('+10' in line)
+
 
 class TestEngFormatter(unittest.TestCase):
 
