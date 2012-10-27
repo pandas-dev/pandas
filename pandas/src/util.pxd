@@ -1,5 +1,6 @@
 from numpy cimport ndarray
 cimport numpy as cnp
+cimport cpython
 
 cdef extern from "numpy_helper.h":
     inline void set_array_owndata(ndarray ao)
@@ -61,7 +62,7 @@ cdef inline is_array(object o):
 
 cdef inline bint _checknull(object val):
     try:
-        return bool(val is None or val != val)
+        return val is None or (cpython.PyFloat_Check(val) and val != val)
     except ValueError:
         return False
 
