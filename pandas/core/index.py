@@ -5,8 +5,8 @@ from datetime import time
 from itertools import izip
 
 import numpy as np
-
-from pandas.core.common import ndtake
+import pandas.core.encoding as en
+from pandas.core.common import ndtake,_is_sequence
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 import pandas.lib as lib
@@ -80,6 +80,8 @@ class Index(np.ndarray):
     _engine_type = lib.ObjectEngine
 
     def __new__(cls, data, dtype=None, copy=False, name=None):
+        data= en.decode_catch_errors(data)
+
         if isinstance(data, np.ndarray):
             if issubclass(data.dtype.type, np.datetime64):
                 from pandas.tseries.index import DatetimeIndex
@@ -305,12 +307,15 @@ class Index(np.ndarray):
     def __hash__(self):
         return hash(self.view(np.ndarray))
 
-    def __setitem__(self, key, value):
-        """Disable the setting of values."""
-        raise Exception(str(self.__class__) + ' object is immutable')
+    def __getattribute__(self,name):
+        if name=="__setitem__": # emulate an Immutable ndarray
+            raise AttributeError(str(self.__class__) + ' object is immutable')
+        else:
+            return object.__getattribute__(self,name)
 
     def __getitem__(self, key):
         """Override numpy.ndarray's __getitem__ method to work as desired"""
+        key=en.decode_catch_errors(key)
         arr_idx = self.view(np.ndarray)
         if np.isscalar(key):
             return arr_idx[key]
@@ -1163,6 +1168,8 @@ class Int64Index(Index):
     _engine_type = lib.Int64Engine
 
     def __new__(cls, data, dtype=None, copy=False, name=None):
+        data= en.decode_catch_errors(data)
+
         if not isinstance(data, np.ndarray):
             if np.isscalar(data):
                 raise ValueError('Index(...) must be called with a collection '
@@ -1252,6 +1259,10 @@ class MultiIndex(Index):
     names = None
 
     def __new__(cls, levels=None, labels=None, sortorder=None, names=None):
+        levels= en.decode_catch_errors(levels)
+        labels= en.decode_catch_errors(labels)
+        names= en.decode_catch_errors(names)
+
         assert(len(levels) == len(labels))
         if len(levels) == 0:
             raise Exception('Must pass non-zero number of levels/labels')
@@ -1634,6 +1645,7 @@ class MultiIndex(Index):
         self.sortorder = sortorder
 
     def __getitem__(self, key):
+        key=en.decode_catch_errors(key)
         if np.isscalar(key):
             return tuple(lev[lab[key]]
                          for lev, lab in zip(self.levels, self.labels))

@@ -21,7 +21,7 @@ from pandas.util.decorators import deprecate, Appender, Substitution
 import pandas.core.common as com
 import pandas.core.nanops as nanops
 import pandas.lib as lib
-
+import pandas.core.encoding as en
 
 def _ensure_like_indices(time, panels):
     """
@@ -76,6 +76,10 @@ def panel_index(time, panels, names=['time', 'panel']):
                 (1961, 'B'), (1961, 'C'), (1962, 'A'), (1962, 'B'),
                 (1962, 'C')], dtype=object)
     """
+
+    panels= en.decode_catch_errors(panels)
+    names= en.decode_catch_errors(names)
+
     time, panels = _ensure_like_indices(time, panels)
     time_factor = Factor.from_array(time)
     panel_factor = Factor.from_array(panels)
@@ -207,6 +211,9 @@ class Panel(NDFrame):
         """
         if data is None:
             data = {}
+
+        data = en.decode_catch_errors(data)
+        items = en.decode_catch_errors(items)
 
         passed_axes = [items, major_axis, minor_axis]
         axes = None
@@ -566,6 +573,9 @@ class Panel(NDFrame):
     def __getattr__(self, name):
         """After regular attribute access, try looking up the name of an item.
         This allows simpler access to items for interactive use."""
+
+        name = en.decode_catch_errors(name)
+
         if name in self.items:
             return self[name]
         raise AttributeError("'%s' object has no attribute '%s'" %
@@ -577,6 +587,11 @@ class Panel(NDFrame):
 
     def __setitem__(self, key, value):
         _, N, K = self.shape
+
+
+        key = en.decode_catch_errors(key)
+        value = en.decode_catch_errors(value)
+
         if isinstance(value, DataFrame):
             value = value.reindex(index=self.major_axis,
                                   columns=self.minor_axis)
@@ -1463,4 +1478,3 @@ if "IPython" in sys.modules:  # pragma: no cover
         install_ipython_completers()
     except Exception:
         pass
-

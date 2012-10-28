@@ -37,6 +37,7 @@ from pandas.util.terminal import get_terminal_size
 from pandas.util.decorators import deprecate, Appender, Substitution
 
 from pandas.tseries.period import PeriodIndex
+import pandas.core.encoding as en
 
 import pandas.core.algorithms as algos
 import pandas.core.datetools as datetools
@@ -365,6 +366,10 @@ class DataFrame(NDFrame):
         """
         if data is None:
             data = {}
+
+        columns= en.decode_catch_errors(columns)
+        index= en.decode_catch_errors(index)
+        data= en.decode_catch_errors(data)
 
         if isinstance(data, DataFrame):
             data = data._data
@@ -950,7 +955,7 @@ class DataFrame(NDFrame):
 
     @classmethod
     def from_csv(cls, path, header=0, sep=',', index_col=0,
-                 parse_dates=True, encoding=None):
+                 parse_dates=True, encoding='utf-8'):
         """
         Read delimited file into DataFrame
 
@@ -1675,6 +1680,8 @@ class DataFrame(NDFrame):
 
     def __getitem__(self, key):
         # slice rows
+        key=en.decode_catch_errors(key)
+
         if isinstance(key, slice):
             from pandas.core.indexing import _is_index_slice
             idx_type = self.index.inferred_type
@@ -1793,6 +1800,9 @@ class DataFrame(NDFrame):
     def __setitem__(self, key, value):
         # support boolean setting with DataFrame input, e.g.
         # df[df > df2] = 0
+        value=en.decode_catch_errors(value)
+        key=en.decode_catch_errors(key)
+
         if isinstance(key, DataFrame):
             if not (key.index.equals(self.index) and
                     key.columns.equals(self.columns)):
@@ -1972,6 +1982,9 @@ class DataFrame(NDFrame):
         -------
         xs : Series or DataFrame
         """
+
+        key=en.decode_catch_errors(key)
+
         labels = self._get_axis(axis)
         if level is not None:
             loc, new_ax = labels.get_loc_level(key, level=level)

@@ -34,6 +34,8 @@ from pandas.util.decorators import Appender, Substitution, cache_readonly
 
 from pandas.compat.scipy import scoreatpercentile as _quantile
 
+import pandas.core.encoding as en
+
 __all__ = ['Series', 'TimeSeries']
 
 _np_version = np.version.short_version
@@ -300,6 +302,10 @@ class Series(np.ndarray, generic.PandasObject):
         if data is None:
             data = {}
 
+        index= en.decode_catch_errors(index)
+        data= en.decode_catch_errors(data)
+        name= en.decode_catch_errors(name)
+
         if index is not None:
             index = _ensure_index(index)
 
@@ -460,6 +466,7 @@ copy : boolean, default False
         return self._ix
 
     def __getitem__(self, key):
+        key=en.decode_catch_errors(key)
         try:
             return self.index.get_value(self, key)
         except InvalidIndexError:
@@ -557,6 +564,9 @@ copy : boolean, default False
             return self.values[indexer]
 
     def __setitem__(self, key, value):
+        value=en.decode_catch_errors(value)
+        key=en.decode_catch_errors(key)
+
         try:
             try:
                 self.index._engine.set_value(self, key, value)
@@ -1153,7 +1163,7 @@ copy : boolean, default False
 
     @Substitution(name='standard deviation', shortname='stdev',
                   na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc + 
+    @Appender(_stat_doc +
         """
         Normalized by N-1 (unbiased estimator).
         """)
@@ -1166,7 +1176,7 @@ copy : boolean, default False
 
     @Substitution(name='variance', shortname='var',
                   na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc + 
+    @Appender(_stat_doc +
         """
         Normalized by N-1 (unbiased estimator).
         """)

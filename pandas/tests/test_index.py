@@ -57,8 +57,7 @@ class TestIndex(unittest.TestCase):
         self.assertRaises(Exception, self.strIndex.sort)
 
     def test_mutability(self):
-        self.assertRaises(Exception, self.strIndex.__setitem__, 5, 0)
-        self.assertRaises(Exception, self.strIndex.__setitem__, slice(1,5), 0)
+        self.assertFalse(hasattr(self.strIndex,"__setitem__"))
 
     def test_constructor(self):
         # regular instance creation

@@ -143,11 +143,6 @@ class TestDataFrameFormatting(unittest.TestCase):
         buf = StringIO()
         dm.to_string(buf)
 
-    def test_to_string_unicode_three(self):
-        dm = DataFrame(['\xc2'])
-        buf = StringIO()
-        dm.to_string(buf)
-
     def test_to_string_with_formatters(self):
         df = DataFrame({'int': [1, 2, 3],
                         'float': [1.0, 2.0, 3.0],
@@ -765,7 +760,7 @@ class TestDataFrameFormatting(unittest.TestCase):
             <table border="1" class="dataframe sortable draggable">
               <tbody>
                 <tr>
-                  <td>Index([], dtype=object)</td>
+                  <td>Index((), dtype=object)</td>
                   <td>Empty DataFrame</td>
                 </tr>
               </tbody>
