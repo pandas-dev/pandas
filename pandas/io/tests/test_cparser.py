@@ -195,6 +195,57 @@ class TestCParser(unittest.TestCase):
     def test_na_substitution(self):
         pass
 
+    def test_numpy_string_dtype(self):
+        data = """\
+a,1
+aa,2
+aaa,3
+aaaa,4
+aaaaa,5"""
+
+        def _make_reader(**kwds):
+            return TextReader(StringIO(data), delimiter=',', header=None,
+                                **kwds)
+
+        reader = _make_reader(dtype='S5,i4')
+        result = reader.read()
+
+        self.assert_(result[0].dtype == 'S5')
+
+        ex_values = np.array(['a', 'aa', 'aaa', 'aaaa', 'aaaaa'], dtype='S5')
+        self.assert_((result[0] == ex_values).all())
+        self.assert_(result[1].dtype == 'i4')
+
+        reader = _make_reader(dtype='S4')
+        result = reader.read()
+        self.assert_(result[0].dtype == 'S4')
+        ex_values = np.array(['a', 'aa', 'aaa', 'aaaa', 'aaaa'], dtype='S4')
+        self.assert_((result[0] == ex_values).all())
+        self.assert_(result[1].dtype == 'S4')
+
+        reader = _make_reader(dtype='S4', as_recarray=True)
+        result = reader.read()
+        self.assert_(result['0'].dtype == 'S4')
+        ex_values = np.array(['a', 'aa', 'aaa', 'aaaa', 'aaaa'], dtype='S4')
+        self.assert_((result['0'] == ex_values).all())
+        self.assert_(result['1'].dtype == 'S4')
+
+    def test_pass_dtype(self):
+        data = """\
+one,two
+1,a
+2,b
+3,c
+4,d"""
+        def _make_reader(**kwds):
+            return TextReader(StringIO(data), delimiter=',', **kwds)
+
+        reader = _make_reader(dtype={'one': 'u1', 1: 'S1'})
+        result = reader.read()
+
+        self.assert_(result[0].dtype == 'u1')
+        self.assert_(result[1].dtype == 'S1')
+
 
 def assert_array_dicts_equal(left, right):
     for k, v in left.iteritems():

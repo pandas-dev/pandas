@@ -2,6 +2,7 @@
 # See LICENSE for the license
 
 from libc.stdlib cimport malloc, free
+from libc.string cimport strncpy
 
 from cpython cimport (PyObject, PyString_FromString,
                       PyString_AsString, PyString_Check)
@@ -224,6 +225,7 @@ cdef class TextReader:
         object low_memory
         object skiprows
         object compact_ints, use_unsigned
+        object dtype
         set noconvert
 
     def __cinit__(self, source,
@@ -250,6 +252,8 @@ cdef class TextReader:
                   comment=None,
                   decimal=b'.',
                   thousands=None,
+
+                  dtype=None,
 
                   error_bad_lines=True,
                   warn_bad_lines=True,
@@ -340,6 +344,19 @@ cdef class TextReader:
         self.verbose = verbose
         self.low_memory = low_memory
         self.buffer_lines = buffer_lines
+
+        if isinstance(dtype, dict):
+            conv = {}
+            for k in dtype:
+                v = dtype[k]
+                if isinstance(v, basestring):
+                    v = np.dtype(v)
+                conv[k] = v
+            dtype = conv
+        elif dtype is not None:
+            dtype = np.dtype(dtype)
+
+        self.dtype = dtype
 
         # XXX
         self.noconvert = set()
@@ -507,7 +524,7 @@ cdef class TextReader:
             columns = self._read_low_memory(rows)
         else:
             # Don't care about memory usage
-            columns = self._read_high_memory(rows, 1)
+            columns = self._read_rows(rows, 1)
 
         if self.as_recarray:
             self._start_clock()
@@ -526,7 +543,7 @@ cdef class TextReader:
         if rows is None:
             while True:
                 try:
-                    chunk = self._read_high_memory(self.buffer_lines, 0)
+                    chunk = self._read_rows(self.buffer_lines, 0)
                     if len(chunk) == 0:
                         break
                 except StopIteration:
@@ -538,7 +555,7 @@ cdef class TextReader:
                 try:
                     crows = min(self.buffer_lines, rows - rows_read)
 
-                    chunk = self._read_high_memory(crows, 0)
+                    chunk = self._read_rows(crows, 0)
                     if len(chunk) == 0:
                         break
 
@@ -563,7 +580,7 @@ cdef class TextReader:
         if status < 0:
             raise_parser_error('Error tokenizing data', self.parser)
 
-    cdef _read_high_memory(self, rows, bint trim):
+    cdef _read_rows(self, rows, bint trim):
         cdef:
             int buffered_lines
             int irows, footer = 0
@@ -633,6 +650,7 @@ cdef class TextReader:
             cast_func func
             kh_str_t *na_hashset = NULL
             int start, end
+            object name
             bint na_filter = 0
 
         start = self.parser_start
@@ -666,19 +684,9 @@ cdef class TextReader:
                 results[i] = _apply_converter(conv, self.parser, i, start, end)
                 continue
 
-            if i in self.noconvert:
-                func = _string_box_factorize
-                col_res, na_count = func(self.parser, i, start, end,
-                                         na_filter, na_hashset)
-                results[i] = col_res
-            else:
-                col_res = None
-                for func in cast_func_order:
-                    col_res, na_count = func(self.parser, i, start, end,
-                                             na_filter, na_hashset)
-                    if col_res is not None:
-                        results[i] = col_res
-                        break
+            # Should return as the desired dtype (inferred or specified)
+            col_res, na_count = self._convert_tokens(i, start, end, name,
+                                                     na_filter, na_hashset)
 
             if na_filter:
                 self._free_na_set(na_hashset)
@@ -697,6 +705,83 @@ cdef class TextReader:
         self.parser_start += end - start
 
         return results
+
+    cdef inline _convert_tokens(self, Py_ssize_t i, int start, int end,
+                                object name, bint na_filter,
+                                kh_str_t *na_hashset):
+        cdef:
+            cast_func func
+            object col_dtype = None
+
+        if self.dtype is not None:
+            if isinstance(self.dtype, dict):
+                if name in self.dtype:
+                    col_dtype = self.dtype[name]
+                elif i in self.dtype:
+                    col_dtype = self.dtype[i]
+            else:
+                if self.dtype.names:
+                    col_dtype = self.dtype.descr[i][1]
+                else:
+                    col_dtype = self.dtype
+
+            if col_dtype is not None:
+                if isinstance(col_dtype, np.dtype):
+                    col_dtype = col_dtype.str
+                return self._convert_with_dtype(col_dtype, i, start, end,
+                                                na_filter, na_hashset)
+
+        if i in self.noconvert:
+            func = _string_box_factorize
+            return func(self.parser, i, start, end, na_filter, na_hashset)
+        else:
+            col_res = None
+            for func in cast_func_order:
+                col_res, na_count = func(self.parser, i, start, end,
+                                         na_filter, na_hashset)
+                if col_res is not None:
+                    break
+
+        return col_res, na_count
+
+    cdef _convert_with_dtype(self, object dtype, Py_ssize_t i,
+                             int start, int end,
+                             bint na_filter, kh_str_t *na_hashset):
+
+        if dtype[1] == 'i' or dtype[1] == 'u':
+            result, na_count = _try_int64(self.parser, i, start, end,
+                                          na_filter, na_hashset)
+            if na_count > 0:
+                raise Exception('Integer column has NA values')
+
+            if dtype[1:] != 'i8':
+                result = result.astype(dtype)
+
+            return result, na_count
+
+        elif dtype[1] == 'f':
+            result, na_count = _try_double(self.parser, i, start, end,
+                                           na_filter, na_hashset)
+
+            if dtype[1:] != 'f8':
+                result = result.astype(dtype)
+            return result, na_count
+
+        elif dtype[1] == 'c':
+            raise NotImplementedError
+
+        elif dtype[1] == 'S':
+            # TODO: na handling
+            width = int(dtype[2:])
+            result = _to_fw_string(self.parser, i, start, end, width)
+            return result, 0
+        elif dtype[1] == 'U':
+            width = int(dtype[2:])
+            raise NotImplementedError
+
+        elif dtype[1] == 'O':
+            return _string_box_factorize(self.parser, i, start, end,
+                                         na_filter, na_hashset)
 
     def _get_converter(self, i, name):
         if self.converters is None:
@@ -776,6 +861,7 @@ ctypedef object (*cast_func)(parser_t *parser, int col,
                              int line_start, int line_end,
                              bint na_filter, kh_str_t *na_hashset)
 
+
 cdef _string_box_factorize(parser_t *parser, int col,
                            int line_start, int line_end,
                            bint na_filter, kh_str_t *na_hashset):
@@ -830,6 +916,27 @@ cdef _string_box_factorize(parser_t *parser, int col,
 
     return result, na_count
 
+
+cdef _to_fw_string(parser_t *parser, int col, int line_start,
+                   int line_end, size_t width):
+    cdef:
+        int error
+        Py_ssize_t i, j
+        coliter_t it
+        char *word, *data
+        ndarray result
+
+    result = np.empty(line_end - line_start, dtype='|S%d' % width)
+    data = <char*> result.data
+
+    coliter_setup(&it, parser, col, line_start)
+
+    for i in range(line_end - line_start):
+        word = COLITER_NEXT(it)
+        strncpy(data, word, width)
+        data += width
+
+    return result
 
 
 cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
