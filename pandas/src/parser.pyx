@@ -2,10 +2,17 @@
 # See LICENSE for the license
 
 from libc.stdlib cimport malloc, free
-from libc.string cimport strncpy
+from libc.string cimport strncpy, strlen
 
 from cpython cimport (PyObject, PyString_FromString,
                       PyString_AsString, PyString_Check)
+
+cdef extern from "Python.h":
+    object PyUnicode_FromString(char *v)
+
+    object PyUnicode_Decode(char *v, Py_ssize_t size, char *encoding,
+                            char *errors)
+
 
 cdef extern from "stdlib.h":
     void memcpy(void *dst, void *src, size_t n)
@@ -215,6 +222,7 @@ cdef class TextReader:
         bint factorize, na_filter, verbose, has_usecols
         int parser_start
         list clocks
+        char *c_encoding
 
     cdef public:
         int leading_cols, table_width, skip_footer, buffer_lines
@@ -226,6 +234,7 @@ cdef class TextReader:
         object skiprows
         object compact_ints, use_unsigned
         object dtype
+        object encoding
         set noconvert, usecols
 
     def __cinit__(self, source,
@@ -248,6 +257,7 @@ cdef class TextReader:
                   doublequote=True,
                   quotechar=b'"',
                   quoting=0,
+                  encoding=None,
 
                   comment=None,
                   decimal=b'.',
@@ -350,6 +360,17 @@ cdef class TextReader:
         self.low_memory = low_memory
         self.buffer_lines = buffer_lines
 
+        # encoding
+        if encoding is not None:
+            if not isinstance(encoding, bytes):
+                encoding = encoding.decode('utf-8')
+            encoding = encoding.lower()
+            self.c_encoding = <char*> encoding
+        else:
+            self.c_encoding = NULL
+
+        self.encoding = encoding
+
         if isinstance(dtype, dict):
             conv = {}
             for k in dtype:
@@ -450,6 +471,8 @@ cdef class TextReader:
             char *word
             object name
             int status
+            Py_ssize_t size
+            char *errors = "strict"
 
         header = []
 
@@ -471,7 +494,15 @@ cdef class TextReader:
             counts = {}
             for i in range(field_count):
                 word = self.parser.words[start + i]
-                name = PyString_FromString(word)
+
+                if self.c_encoding == NULL:
+                    name = PyString_FromString(word)
+                else:
+                    if self.c_encoding == b'utf-8':
+                        name = PyUnicode_FromString(word)
+                    else:
+                        name = PyUnicode_Decode(word, strlen(word),
+                                                self.c_encoding, errors)
 
                 if name == '':
                     name = 'Unnamed: %d' % i
@@ -742,13 +773,13 @@ cdef class TextReader:
                                                 na_filter, na_hashset)
 
         if i in self.noconvert:
-            func = _string_box_factorize
-            return func(self.parser, i, start, end, na_filter, na_hashset)
+            return self._string_convert(i, start, end, na_filter, na_hashset)
         else:
             col_res = None
-            for func in cast_func_order:
-                col_res, na_count = func(self.parser, i, start, end,
-                                         na_filter, na_hashset)
+            for dt in dtype_cast_order:
+                col_res, na_count = self._convert_with_dtype(dt, i, start,
+                                                             end, na_filter,
+                                                             na_hashset)
                 if col_res is not None:
                     break
 
@@ -761,8 +792,8 @@ cdef class TextReader:
         if dtype[1] == 'i' or dtype[1] == 'u':
             result, na_count = _try_int64(self.parser, i, start, end,
                                           na_filter, na_hashset)
-            if na_count > 0:
-                raise Exception('Integer column has NA values')
+            # if na_count > 0:
+            #     raise Exception('Integer column has NA values')
 
             if dtype[1:] != 'i8':
                 result = result.astype(dtype)
@@ -777,6 +808,10 @@ cdef class TextReader:
                 result = result.astype(dtype)
             return result, na_count
 
+        elif dtype[1] == 'b':
+            result, na_count = _try_bool(self.parser, i, start, end,
+                                         na_filter, na_hashset)
+            return result, na_count
         elif dtype[1] == 'c':
             raise NotImplementedError
 
@@ -790,6 +825,20 @@ cdef class TextReader:
             raise NotImplementedError
 
         elif dtype[1] == 'O':
+            return self._string_convert(i, start, end, na_filter,
+                                        na_hashset)
+
+    cdef _string_convert(self, Py_ssize_t i, int start, int end,
+                         bint na_filter, kh_str_t *na_hashset):
+        if self.c_encoding != NULL:
+            if self.c_encoding == b"utf-8":
+                return _string_box_utf8(self.parser, i, start, end,
+                                        na_filter, na_hashset)
+            else:
+                return _string_box_decode(self.parser, i, start, end,
+                                          na_filter, na_hashset,
+                                          self.c_encoding)
+        else:
             return _string_box_factorize(self.parser, i, start, end,
                                          na_filter, na_hashset)
 
@@ -916,6 +965,118 @@ cdef _string_box_factorize(parser_t *parser, int col,
         else:
             # box it. new ref?
             pyval = PyString_FromString(word)
+
+            k = kh_put_strbox(table, word, &ret)
+            table.vals[k] = <PyObject*> pyval
+
+        result[i] = pyval
+
+    kh_destroy_strbox(table)
+
+    return result, na_count
+
+cdef _string_box_utf8(parser_t *parser, int col,
+                      int line_start, int line_end,
+                      bint na_filter, kh_str_t *na_hashset):
+    cdef:
+        int error, na_count = 0
+        Py_ssize_t i
+        size_t lines
+        coliter_t it
+        char *word
+        ndarray[object] result
+
+        int ret = 0
+        kh_strbox_t *table
+
+        object pyval
+
+        object NA = na_values[np.object_]
+        khiter_t k
+
+    table = kh_init_strbox()
+    lines = line_end - line_start
+    result = np.empty(lines, dtype=np.object_)
+    coliter_setup(&it, parser, col, line_start)
+
+    for i in range(lines):
+        word = COLITER_NEXT(it)
+
+        if na_filter:
+            k = kh_get_str(na_hashset, word)
+            # in the hash table
+            if k != na_hashset.n_buckets:
+                na_count += 1
+                result[i] = NA
+                continue
+
+        k = kh_get_strbox(table, word)
+
+        # in the hash table
+        if k != table.n_buckets:
+            # this increments the refcount, but need to test
+            pyval = <object> table.vals[k]
+        else:
+            # box it. new ref?
+            pyval = PyUnicode_FromString(word)
+
+            k = kh_put_strbox(table, word, &ret)
+            table.vals[k] = <PyObject*> pyval
+
+        result[i] = pyval
+
+    kh_destroy_strbox(table)
+
+    return result, na_count
+
+cdef _string_box_decode(parser_t *parser, int col,
+                        int line_start, int line_end,
+                        bint na_filter, kh_str_t *na_hashset,
+                        char *encoding):
+    cdef:
+        int error, na_count = 0
+        Py_ssize_t i, size
+        size_t lines
+        coliter_t it
+        char *word
+        ndarray[object] result
+
+        int ret = 0
+        kh_strbox_t *table
+
+        char *errors = "strict"
+
+        object pyval
+
+        object NA = na_values[np.object_]
+        khiter_t k
+
+    table = kh_init_strbox()
+    lines = line_end - line_start
+    result = np.empty(lines, dtype=np.object_)
+    coliter_setup(&it, parser, col, line_start)
+
+    for i in range(lines):
+        word = COLITER_NEXT(it)
+
+        if na_filter:
+            k = kh_get_str(na_hashset, word)
+            # in the hash table
+            if k != na_hashset.n_buckets:
+                na_count += 1
+                result[i] = NA
+                continue
+
+        k = kh_get_strbox(table, word)
+
+        # in the hash table
+        if k != table.n_buckets:
+            # this increments the refcount, but need to test
+            pyval = <object> table.vals[k]
+        else:
+            # box it. new ref?
+            size = strlen(word)
+            pyval = PyUnicode_Decode(word, size, encoding, errors)
 
             k = kh_put_strbox(table, word, &ret)
             table.vals[k] = <PyObject*> pyval
@@ -1132,6 +1293,9 @@ cdef kh_str_t* kset_from_list(list values) except NULL:
 
 
 # if at first you don't succeed...
+
+# TODO: endianness just a placeholder?
+cdef list dtype_cast_order = ['<i8', '<f8', '|b1', '|O8']
 
 cdef cast_func cast_func_order[4]
 cast_func_order[0] = _try_int64

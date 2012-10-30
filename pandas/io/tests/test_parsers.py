@@ -2,6 +2,7 @@
 
 from pandas.util.py3compat import StringIO, BytesIO
 from datetime import datetime
+from os.path import split as psplit
 import csv
 import os
 import sys
@@ -745,7 +746,7 @@ baz,7,8,9
             tm.assert_frame_equal(df3, df2)
 
     def test_read_table_unicode(self):
-        fin = StringIO('\u0141aski, Jan;1')
+        fin = StringIO(u'\u0141aski, Jan;1'.encode('utf-8'))
         df1 = read_table(fin, sep=";", encoding="utf-8", header=None)
         self.assert_(isinstance(df1['X0'].values[0], unicode))
 
@@ -1588,6 +1589,17 @@ eight,1,2,3"""
         tm.assert_frame_equal(df4, df.ix[:-1])
         tm.assert_frame_equal(df4, df5)
 
+    def test_unicode_encoding(self):
+        pth = psplit(psplit(curpath())[0])[0]
+        pth = os.path.join(pth, 'tests/data/unicode_series.csv')
+
+        result = self.read_csv(pth, header=None, encoding='latin-1')
+        result = result.set_index('X0')
+
+        got = result['X1'][1632]
+        expected = u'\xc1 k\xf6ldum klaka (Cold Fever) (1994)'
+
+        self.assertEquals(got, expected)
 
 class TestCParserHighMemory(ParserTests, unittest.TestCase):
 
@@ -1682,6 +1694,12 @@ a,b,c
 
         tm.assert_frame_equal(result, result2)
 
+    def test_pure_python_failover(self):
+        data = "a,b,c\n1,2,3#ignore this!\n4,5,6#ignorethistoo"
+
+        result = self.read_csv(StringIO(data), comment='#')
+        expected = DataFrame({'a': [1, 4], 'b': [2, 5], 'c': [3, 6]})
+        tm.assert_frame_equal(result, expected)
 
 class TestParseSQL(unittest.TestCase):
 

@@ -256,7 +256,7 @@ _fwf_defaults = {
     'widths': None
 }
 
-_c_unsupported = set(['comment', 'skip_footer', 'encoding'])
+_c_unsupported = set(['comment', 'skip_footer'])
 _python_unsupported = set(_c_parser_defaults.keys())
 
 
@@ -507,8 +507,7 @@ class TextFileReader(object):
 
         # C engine not supported yet
         if engine == 'c':
-            if (options['comment'] or options['skip_footer'] > 0
-                or options['encoding'] is not None):
+            if (options['comment'] or options['skip_footer'] > 0):
                 engine = 'python'
 
         if engine == 'c':
