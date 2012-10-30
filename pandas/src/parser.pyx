@@ -212,7 +212,7 @@ cdef class TextReader:
     cdef:
         parser_t *parser
         object file_handle, should_close
-        bint factorize, na_filter, verbose
+        bint factorize, na_filter, verbose, has_usecols
         int parser_start
         list clocks
 
@@ -226,7 +226,7 @@ cdef class TextReader:
         object skiprows
         object compact_ints, use_unsigned
         object dtype
-        set noconvert
+        set noconvert, usecols
 
     def __cinit__(self, source,
                   delimiter=b',',
@@ -254,7 +254,7 @@ cdef class TextReader:
                   thousands=None,
 
                   dtype=None,
-
+                  usecols=None,
                   error_bad_lines=True,
                   warn_bad_lines=True,
 
@@ -321,7 +321,12 @@ cdef class TextReader:
 
         self.skip_footer = skip_footer
 
-        # KLUDGE
+        # suboptimal
+        if usecols is not None:
+            self.has_usecols = 1
+            self.usecols = set(usecols)
+
+        # XXX
         if skip_footer > 0:
             self.parser.error_bad_lines = 0
             self.parser.warn_bad_lines = 0
@@ -667,6 +672,11 @@ cdef class TextReader:
         results = {}
         for i in range(self.table_width):
             name = self._get_column_name(i)
+
+            if self.has_usecols and not (i in self.usecols or
+                                         name in self.usecols):
+                continue
+
             conv = self._get_converter(i, name)
 
             # XXX
@@ -1210,12 +1220,13 @@ def downcast_int64(ndarray[int64_t] arr, bint use_unsigned=0):
 
 def _concatenate_chunks(list chunks):
     cdef:
-        Py_ssize_t i, j, ncols = len(chunks[0])
+        list names = list(chunks[0].keys())
+        object name
 
     result = {}
-    for i in range(ncols):
-        arrs = [chunk.pop(i) for chunk in chunks]
-        result[i] = np.concatenate(arrs)
+    for name in names:
+        arrs = [chunk.pop(name) for chunk in chunks]
+        result[name] = np.concatenate(arrs)
     return result
 
 #----------------------------------------------------------------------

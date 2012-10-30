@@ -246,7 +246,9 @@ _c_parser_defaults = {
     'buffer_lines': 2**16,
     'error_bad_lines': True,
     'warn_bad_lines': True,
-    'factorize': True
+    'factorize': True,
+    'dtype': None,
+    'usecols': None,
 }
 
 _fwf_defaults = {
@@ -279,6 +281,8 @@ def _make_parser_function(name, sep=','):
                  na_values=None,
                  delimiter=None,
                  converters=None,
+                 dtype=None,
+                 usecols=None,
 
                  engine='c',
                  delim_whitespace=False,
@@ -341,6 +345,8 @@ def _make_parser_function(name, sep=','):
                     chunksize=chunksize,
                     skipfooter=skipfooter or skip_footer,
                     converters=converters,
+                    dtype=dtype,
+                    usecols=usecols,
                     verbose=verbose,
                     encoding=encoding,
                     squeeze=squeeze,
@@ -787,6 +793,9 @@ class CParserWrapper(ParserBase):
 
         self._reader = _parser.TextReader(src, **kwds)
 
+        # XXX
+        self.usecols = self._reader.usecols
+
         if self._reader.header is None:
             self.names = None
         else:
@@ -868,6 +877,8 @@ class CParserWrapper(ParserBase):
             data = sorted(data.items())
             data = dict((k, v) for k, (i, v) in zip(names, data))
 
+            names = self._filter_usecols(names)
+
             names, data = self._do_date_conversions(names, data)
 
         else:
@@ -876,17 +887,23 @@ class CParserWrapper(ParserBase):
 
             # ugh, mutation
             names = list(self.orig_names)
+            names = self._filter_usecols(names)
 
             # columns as list
             alldata = [x[1] for x in data]
 
-            data = dict((k, v) for k, (i, v) in zip(self.orig_names, data))
+            data = dict((k, v) for k, (i, v) in zip(names, data))
 
             names, data = self._do_date_conversions(names, data)
             index = self._make_index(data, alldata, names)
 
-
         return index, names, data
+
+    def _filter_usecols(self, names):
+        if self.usecols is not None:
+            names = [name for i, name in enumerate(names)
+                     if i in self.usecols or name in self.usecols]
+        return names
 
     def _get_index_names(self):
         names = list(self._reader.header)

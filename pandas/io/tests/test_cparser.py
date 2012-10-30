@@ -246,6 +246,24 @@ one,two
         self.assert_(result[0].dtype == 'u1')
         self.assert_(result[1].dtype == 'S1')
 
+    def test_usecols(self):
+        data = """\
+a,b,c
+1,2,3
+4,5,6
+7,8,9
+10,11,12"""
+        def _make_reader(**kwds):
+            return TextReader(StringIO(data), delimiter=',', **kwds)
+
+        reader = _make_reader(usecols=(1, 2))
+        result = reader.read()
+
+        exp = _make_reader().read()
+        self.assertEquals(len(result), 2)
+        self.assertTrue((result[1] == exp[1]).all())
+        self.assertTrue((result[2] == exp[2]).all())
+
 
 def assert_array_dicts_equal(left, right):
     for k, v in left.iteritems():

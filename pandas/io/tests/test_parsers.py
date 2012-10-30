@@ -17,8 +17,10 @@ from pandas import DataFrame, Series, Index, isnull, MultiIndex, DatetimeIndex
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                ExcelFile, TextFileReader, TextParser)
-from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
+from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal, network)
+import pandas.util.testing as tm
+
 import pandas.lib as lib
 from pandas.util import py3compat
 from pandas.lib import Timestamp
@@ -84,7 +86,7 @@ g,7,seven
                         'Two' : [1,2,3,4,5,6,7],
                         'Three' : ['one', 'two', 'three', np.nan, 'five',
                                    np.nan, 'seven']})
-        assert_frame_equal(xp.reindex(columns=df.columns), df)
+        tm.assert_frame_equal(xp.reindex(columns=df.columns), df)
 
         df = self.read_csv(StringIO(data), na_values={'One': [], 'Three': []},
                       keep_default_na=False)
@@ -92,21 +94,21 @@ g,7,seven
                         'Two' : [1,2,3,4,5,6,7],
                         'Three' : ['one', 'two', 'three', 'nan', 'five',
                                    '', 'seven']})
-        assert_frame_equal(xp.reindex(columns=df.columns), df)
+        tm.assert_frame_equal(xp.reindex(columns=df.columns), df)
 
         df = self.read_csv(StringIO(data), na_values=['a'], keep_default_na=False)
         xp = DataFrame({'One' : [np.nan, 'b', '', 'd', 'e', 'nan', 'g'],
                         'Two' : [1, 2, 3, 4, 5, 6, 7],
                         'Three' : ['one', 'two', 'three', 'nan', 'five', '',
                                    'seven']})
-        assert_frame_equal(xp.reindex(columns=df.columns), df)
+        tm.assert_frame_equal(xp.reindex(columns=df.columns), df)
 
         df = self.read_csv(StringIO(data), na_values={'One': [], 'Three': []})
         xp = DataFrame({'One' : ['a', 'b', np.nan, 'd', 'e', np.nan, 'g'],
                         'Two' : [1,2,3,4,5,6,7],
                         'Three' : ['one', 'two', 'three', np.nan, 'five',
                                    np.nan, 'seven']})
-        assert_frame_equal(xp.reindex(columns=df.columns), df)
+        tm.assert_frame_equal(xp.reindex(columns=df.columns), df)
 
 
     def test_read_csv(self):
@@ -135,7 +137,7 @@ index2,b,d,f
 '''
         exp = self.read_csv(StringIO(data))
         exp.replace('a', '"a', inplace=True)
-        assert_frame_equal(df, exp)
+        tm.assert_frame_equal(df, exp)
 
     def test_1000_sep(self):
         data = """A|B|C
@@ -267,7 +269,7 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
         try:
             # it works!
             df = self.read_csv(StringIO('1,2'), names=['a', 'b'], sep=None)
-            assert_frame_equal(DataFrame({'a': [1], 'b': [2]}), df)
+            tm.assert_frame_equal(DataFrame({'a': [1], 'b': [2]}), df)
         finally:
             sys.stdout = sys.__stdout__
 
@@ -324,7 +326,7 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         #import pdb; pdb.set_trace()
         rs = self.read_csv(StringIO(data), index_col='ID')
         xp = self.read_csv(StringIO(data), header=0).set_index('ID')
-        assert_frame_equal(rs, xp)
+        tm.assert_frame_equal(rs, xp)
 
         self.assertRaises(ValueError, self.read_csv, StringIO(no_header),
                           index_col='ID')
@@ -339,11 +341,11 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
                         'd' : [4, 8, 12]},
                        index=Index(['hello', 'world', 'foo'], name='message'))
         rs = self.read_csv(StringIO(data), names=names, index_col=['message'])
-        assert_frame_equal(xp, rs)
+        tm.assert_frame_equal(xp, rs)
         self.assert_(xp.index.name == rs.index.name)
 
         rs = self.read_csv(StringIO(data), names=names, index_col='message')
-        assert_frame_equal(xp, rs)
+        tm.assert_frame_equal(xp, rs)
         self.assert_(xp.index.name == rs.index.name)
 
     def test_converter_index_col_bug(self):
@@ -353,7 +355,7 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         rs = self.read_csv(StringIO(data), sep=';', index_col='A', converters={'A' : lambda x: x})
 
         xp = DataFrame({'B' : [2, 4]}, index=Index([1, 3], name='A'))
-        assert_frame_equal(rs, xp)
+        tm.assert_frame_equal(rs, xp)
         self.assert_(rs.index.name == xp.index.name)
 
     def test_multiple_skts_example(self):
@@ -505,8 +507,8 @@ ignore,this,row
                              columns=['X1', 'X2', 'X3'],
                              index=[datetime(2000, 1, 1), datetime(2000, 1, 2),
                                     datetime(2000, 1, 3)])
-        assert_frame_equal(data, expected)
-        assert_frame_equal(data, data2)
+        tm.assert_frame_equal(data, expected)
+        tm.assert_frame_equal(data, data2)
 
 
     def test_detect_string_na(self):
@@ -549,7 +551,7 @@ d,,f
                               [np.nan, 'g', 'h']],
                              columns=['A', 'B', 'C'])
 
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_duplicate_columns(self):
         data = """A,A,B,B,B
@@ -579,7 +581,7 @@ c,4,5
         f = lambda x: datetime.strptime(x, '%Y%m%d')
         df = self.read_csv(StringIO(data), date_parser=f)
         expected = self.read_csv(StringIO(data), parse_dates=True)
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
     def test_parse_dates_implicit_first_col(self):
         data = """A,B,C
@@ -590,7 +592,7 @@ c,4,5
         df = self.read_csv(StringIO(data), parse_dates=True)
         expected = self.read_csv(StringIO(data), index_col=0, parse_dates=True)
         self.assert_(isinstance(df.index[0], (datetime, np.datetime64, Timestamp)))
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
     def test_parse_dates_string(self):
         data = """date,A,B,C
@@ -604,7 +606,7 @@ c,4,5
         xp = DataFrame({'A': ['a', 'b', 'c'],
                         'B': [1, 3, 4],
                         'C': [2, 4, 5]}, idx)
-        assert_frame_equal(rs, xp)
+        tm.assert_frame_equal(rs, xp)
 
     def test_yy_format(self):
         data = """date,time,B,C
@@ -619,7 +621,7 @@ c,4,5
                              datetime(2009,3,31,8,30,0)]).asobject
         idx.name = 'date'
         xp = DataFrame({'B': [1, 3, 5], 'C': [2, 4, 6]}, idx)
-        assert_frame_equal(rs, xp)
+        tm.assert_frame_equal(rs, xp)
 
         rs = self.read_csv(StringIO(data), index_col=0,
                            parse_dates=[[0, 1]])
@@ -628,7 +630,7 @@ c,4,5
                              datetime(2009,3,31,8,30,0)]).asobject
         idx.name = 'date'
         xp = DataFrame({'B': [1, 3, 5], 'C': [2, 4, 6]}, idx)
-        assert_frame_equal(rs, xp)
+        tm.assert_frame_equal(rs, xp)
 
     def test_parse_dates_column_list(self):
         from pandas.core.datetools import to_datetime
@@ -650,11 +652,11 @@ c,4,5
 
         df = self.read_csv(StringIO(data), sep=";", index_col = range(4),
                            parse_dates=[0, 5], dayfirst=True)
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
         df = self.read_csv(StringIO(data), sep=";", index_col = range(4),
                            parse_dates=['date', 'aux_date'], dayfirst=True)
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
     def test_no_header(self):
         data = """1,2,3,4,5
@@ -686,7 +688,7 @@ baz,7,8,9
         values = [[1,2,3],[4,5,6],[7,8,9]]
         expected = DataFrame(values, index=['foo','bar','baz'],
                              columns=['A','B','C'])
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
     def test_read_csv_dataframe(self):
         df = self.read_csv(self.csv1, index_col=0, parse_dates=True)
@@ -695,7 +697,7 @@ baz,7,8,9
         self.assert_(df.index.name == 'index')
         self.assert_(isinstance(df.index[0], (datetime, np.datetime64, Timestamp)))
         self.assert_(df.values.dtype == np.float64)
-        assert_frame_equal(df, df2)
+        tm.assert_frame_equal(df, df2)
 
     def test_read_csv_no_index_name(self):
         df = self.read_csv(self.csv2, index_col=0, parse_dates=True)
@@ -703,7 +705,7 @@ baz,7,8,9
         self.assert_(np.array_equal(df.columns, ['A', 'B', 'C', 'D', 'E']))
         self.assert_(isinstance(df.index[0], (datetime, np.datetime64, Timestamp)))
         self.assert_(df.ix[:, ['A', 'B', 'C', 'D']].values.dtype == np.float64)
-        assert_frame_equal(df, df2)
+        tm.assert_frame_equal(df, df2)
 
     def test_parse_cols_int(self):
         _skip_if_no_openpyxl()
@@ -720,8 +722,8 @@ baz,7,8,9
             df2 = df2.reindex(columns=['A', 'B', 'C'])
             df3 = xls.parse('Sheet2', skiprows=[1], index_col=0,
                             parse_dates=True, parse_cols=3)
-            assert_frame_equal(df, df2)
-            assert_frame_equal(df3, df2)
+            tm.assert_frame_equal(df, df2)
+            tm.assert_frame_equal(df3, df2)
 
     def test_parse_cols_list(self):
         _skip_if_no_openpyxl()
@@ -739,8 +741,8 @@ baz,7,8,9
             df3 = xlsx.parse('Sheet2', skiprows=[1], index_col=0,
                              parse_dates=True,
                              parse_cols=[0, 2, 3])
-            assert_frame_equal(df, df2)
-            assert_frame_equal(df3, df2)
+            tm.assert_frame_equal(df, df2)
+            tm.assert_frame_equal(df3, df2)
 
     def test_read_table_unicode(self):
         fin = StringIO('\u0141aski, Jan;1')
@@ -768,7 +770,7 @@ bar,12,13,14,15
         result = self.read_csv(StringIO(data), index_col=0)
         expected = self.read_csv(StringIO(data)).set_index('index',
                                                       verify_integrity=False)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_read_table_duplicate_index_implicit(self):
         data = """A,B,C,D
@@ -832,7 +834,7 @@ baz,7,8,9
     def test_read_nrows(self):
         df = self.read_csv(StringIO(self.data1), nrows=3)
         expected = self.read_csv(StringIO(self.data1))[:3]
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
     def test_read_chunksize(self):
         reader = self.read_csv(StringIO(self.data1), index_col=0, chunksize=2)
@@ -840,9 +842,9 @@ baz,7,8,9
 
         chunks = list(reader)
 
-        assert_frame_equal(chunks[0], df[:2])
-        assert_frame_equal(chunks[1], df[2:4])
-        assert_frame_equal(chunks[2], df[4:])
+        tm.assert_frame_equal(chunks[0], df[:2])
+        tm.assert_frame_equal(chunks[1], df[2:4])
+        tm.assert_frame_equal(chunks[2], df[4:])
 
     def test_read_chunksize_named(self):
         reader = self.read_csv(StringIO(self.data1), index_col='index', chunksize=2)
@@ -850,9 +852,9 @@ baz,7,8,9
 
         chunks = list(reader)
 
-        assert_frame_equal(chunks[0], df[:2])
-        assert_frame_equal(chunks[1], df[2:4])
-        assert_frame_equal(chunks[2], df[4:])
+        tm.assert_frame_equal(chunks[0], df[:2])
+        tm.assert_frame_equal(chunks[1], df[2:4])
+        tm.assert_frame_equal(chunks[2], df[4:])
 
     def test_read_text_list(self):
         data = """A,B,C\nfoo,1,2,3\nbar,4,5,6"""
@@ -862,7 +864,7 @@ baz,7,8,9
         parser = TextParser(as_list, index_col=0, chunksize=2)
         chunk  = parser.read(None)
 
-        assert_frame_equal(chunk, df)
+        tm.assert_frame_equal(chunk, df)
 
     def test_iterator(self):
         reader = self.read_csv(StringIO(self.data1), index_col=0,
@@ -870,10 +872,10 @@ baz,7,8,9
         df = self.read_csv(StringIO(self.data1), index_col=0)
 
         chunk = reader.read(3)
-        assert_frame_equal(chunk, df[:3])
+        tm.assert_frame_equal(chunk, df[:3])
 
         last_chunk = reader.read(5)
-        assert_frame_equal(last_chunk, df[3:])
+        tm.assert_frame_equal(last_chunk, df[3:])
 
         # pass list
         lines = list(csv.reader(StringIO(self.data1)))
@@ -882,14 +884,14 @@ baz,7,8,9
         df = self.read_csv(StringIO(self.data1), index_col=0)
 
         chunks = list(parser)
-        assert_frame_equal(chunks[0], df[:2])
-        assert_frame_equal(chunks[1], df[2:4])
-        assert_frame_equal(chunks[2], df[4:])
+        tm.assert_frame_equal(chunks[0], df[:2])
+        tm.assert_frame_equal(chunks[1], df[2:4])
+        tm.assert_frame_equal(chunks[2], df[4:])
 
         # pass skiprows
         parser = TextParser(lines, index_col=0, chunksize=2, skiprows=[1])
         chunks = list(parser)
-        assert_frame_equal(chunks[0], df[1:3])
+        tm.assert_frame_equal(chunks[0], df[1:3])
 
         # test bad parameter (skip_footer)
         reader = self.read_csv(StringIO(self.data1), index_col=0,
@@ -916,7 +918,7 @@ baz,12,13,14,15
 
         df = self.read_csv(StringIO(data), header=2, index_col=0)
         expected = self.read_csv(StringIO(data2), header=0, index_col=0)
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
     def test_pass_names_with_index(self):
         lines = self.data1.split('\n')
@@ -926,7 +928,7 @@ baz,12,13,14,15
         names = ['index', 'A', 'B', 'C', 'D']
         df = self.read_csv(StringIO(no_header), index_col=0, names=names)
         expected = self.read_csv(StringIO(self.data1), index_col=0)
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
         # multi index
         data = """index1,index2,A,B,C,D
@@ -941,10 +943,10 @@ bar,two,12,13,14,15
         names = ['index1', 'index2', 'A', 'B', 'C', 'D']
         df = self.read_csv(StringIO(no_header), index_col=[0, 1], names=names)
         expected = self.read_csv(StringIO(data), index_col=[0, 1])
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
         df = self.read_csv(StringIO(data), index_col=['index1', 'index2'])
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
     def test_multi_index_no_level_names(self):
         data = """index1,index2,A,B,C,D
@@ -969,16 +971,16 @@ bar,two,12,13,14,15
 
         df = self.read_csv(StringIO(no_header), index_col=[0, 1], names=names)
         expected = self.read_csv(StringIO(data), index_col=[0, 1])
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
         # 2 implicit first cols
         df2 = self.read_csv(StringIO(data2))
-        assert_frame_equal(df2, df)
+        tm.assert_frame_equal(df2, df)
 
         # reverse order of index
         df = self.read_csv(StringIO(no_header), index_col=[1, 0], names=names)
         expected = self.read_csv(StringIO(data), index_col=[1, 0])
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
     def test_multi_index_parse_dates(self):
         data = """index1,index2,A,B,C
@@ -1013,17 +1015,17 @@ also also skip this
         no_footer = '\n'.join(data.split('\n')[:-3])
         expected = self.read_csv(StringIO(no_footer))
 
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         result = self.read_csv(StringIO(data), nrows=3)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # skipfooter alias
         result = read_csv(StringIO(data), skipfooter=2)
         no_footer = '\n'.join(data.split('\n')[:-3])
         expected = read_csv(StringIO(no_footer))
 
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
 
     def test_no_unnamed_index(self):
@@ -1050,15 +1052,15 @@ c,4,5,01/03/2009
         expected['D'] = expected['D'].map(parser.parse)
 
         self.assert_(isinstance(result['D'][0], (datetime, Timestamp)))
-        assert_frame_equal(result, expected)
-        assert_frame_equal(result2, expected)
+        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result2, expected)
 
         # produce integer
         converter = lambda x: int(x.split('/')[2])
         result = self.read_csv(StringIO(data), converters={'D' : converter})
         expected = self.read_csv(StringIO(data))
         expected['D'] = expected['D'].map(converter)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_converters_euro_decimal_format(self):
         data = """Id;Number1;Number2;Text1;Text2;Number3
@@ -1103,7 +1105,7 @@ bar"""
         df = read_csv(StringIO(text), header=None)
         expected = DataFrame({'X0' : ['foo', 'bar baz', 'qux foo',
                                       'foo', 'bar']})
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
     def test_parse_dates_custom_euroformat(self):
         from dateutil.parser import parse
@@ -1122,7 +1124,7 @@ bar"""
                            datetime(2010, 2, 2)], name='time')
         expected = DataFrame({'Q' : [1, 1, 1], 'NTU' : [2, np.nan, 2]},
                              index=exp_index, columns=['Q', 'NTU'])
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
         parser = lambda d: parse(d, day_first=True)
         self.assertRaises(Exception, self.read_csv,
@@ -1143,7 +1145,7 @@ bar,foo,foo"""
         expected = DataFrame({'A': [np.nan, 'bar', np.nan, 'bar'],
                               'B': [np.nan, 'foo', np.nan, 'foo'],
                               'C': [np.nan, 'foo', np.nan, 'foo']})
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
         data = """\
 a,b,c,d
@@ -1152,17 +1154,17 @@ a,b,c,d
         xp = DataFrame({'b': [np.nan], 'c': [1], 'd': [5]}, index=[0])
         xp.index.name = 'a'
         df = self.read_csv(StringIO(data), na_values={}, index_col=0)
-        assert_frame_equal(df, xp)
+        tm.assert_frame_equal(df, xp)
 
         xp = DataFrame({'b': [np.nan], 'd': [5]},
                        MultiIndex.from_tuples([(0, 1)]))
         df = self.read_csv(StringIO(data), na_values={}, index_col=[0, 2])
-        assert_frame_equal(df, xp)
+        tm.assert_frame_equal(df, xp)
 
         xp = DataFrame({'b': [np.nan], 'd': [5]},
                        MultiIndex.from_tuples([(0, 1)]))
         df = self.read_csv(StringIO(data), na_values={}, index_col=['a', 'c'])
-        assert_frame_equal(df, xp)
+        tm.assert_frame_equal(df, xp)
 
     @slow
     @network
@@ -1176,7 +1178,7 @@ a,b,c,d
             dirpath = curpath()
             localtable = os.path.join(dirpath, 'salary.table')
             local_table = self.read_table(localtable)
-            assert_frame_equal(url_table, local_table)
+            tm.assert_frame_equal(url_table, local_table)
             #TODO: ftp testing
 
         except urllib2.URLError:
@@ -1204,7 +1206,7 @@ a,b,c,d
             # fails on some systems
             raise nose.SkipTest
 
-        assert_frame_equal(url_table, local_table)
+        tm.assert_frame_equal(url_table, local_table)
 
     def test_parse_tz_aware(self):
         import pytz
@@ -1237,13 +1239,13 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         xp = self.read_csv(StringIO(data), parse_dates={'nominal': [1, 2]})
         df = self.read_csv(StringIO(data), parse_dates={'nominal': [1, 2]},
                            index_col='nominal')
-        assert_frame_equal(xp.set_index('nominal'), df)
+        tm.assert_frame_equal(xp.set_index('nominal'), df)
         df2 = self.read_csv(StringIO(data), parse_dates={'nominal': [1, 2]},
                             index_col=0)
-        assert_frame_equal(df2, df)
+        tm.assert_frame_equal(df2, df)
 
         df3 = self.read_csv(StringIO(data), parse_dates=[[1, 2]], index_col=0)
-        assert_frame_equal(df3, df)
+        tm.assert_frame_equal(df3, df)
 
     def test_multiple_date_cols_chunked(self):
         df = self.read_csv(StringIO(self.ts_data), parse_dates={'nominal': [1,2]}, index_col='nominal')
@@ -1253,9 +1255,9 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
 
         self.assert_('nominalTime' not in df)
 
-        assert_frame_equal(chunks[0], df[:2])
-        assert_frame_equal(chunks[1], df[2:4])
-        assert_frame_equal(chunks[2], df[4:])
+        tm.assert_frame_equal(chunks[0], df[:2])
+        tm.assert_frame_equal(chunks[1], df[2:4])
+        tm.assert_frame_equal(chunks[2], df[4:])
 
     def test_multiple_date_col_named_components(self):
         xp = self.read_csv(StringIO(self.ts_data),
@@ -1264,7 +1266,7 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         colspec = {'nominal' : ['date', 'nominalTime']}
         df = self.read_csv(StringIO(self.ts_data), parse_dates=colspec,
                            index_col='nominal')
-        assert_frame_equal(df, xp)
+        tm.assert_frame_equal(df, xp)
 
     def test_multiple_date_col_multiple_index(self):
         df = self.read_csv(StringIO(self.ts_data),
@@ -1274,7 +1276,7 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         xp = self.read_csv(StringIO(self.ts_data),
                            parse_dates={'nominal' : [1, 2]})
 
-        assert_frame_equal(xp.set_index(['nominal', 'ID']), df)
+        tm.assert_frame_equal(xp.set_index(['nominal', 'ID']), df)
 
     def test_comment(self):
         data = """A,B,C
@@ -1313,7 +1315,7 @@ baz|7|8|9
         self.assert_(data.index.equals(Index(['foo', 'bar', 'baz'])))
 
         data2 = self.read_csv(StringIO(text), index_col=0, delimiter='|')
-        assert_frame_equal(data, data2)
+        tm.assert_frame_equal(data, data2)
 
         text = """ignore this
 ignore this too
@@ -1324,7 +1326,7 @@ baz|7|8|9
 """
         data3 = self.read_csv(StringIO(text), index_col=0,
                               sep=None, skiprows=2)
-        assert_frame_equal(data, data3)
+        tm.assert_frame_equal(data, data3)
 
         # can't get this to work on Python 3
         if not py3compat.PY3:
@@ -1337,7 +1339,7 @@ baz|7|8|9
 """.encode('utf-8')
             data4 = self.read_csv(BytesIO(text), index_col=0, sep=None, skiprows=2,
                              encoding='utf-8')
-            assert_frame_equal(data, data4)
+            tm.assert_frame_equal(data, data4)
 
     def test_regex_separator(self):
         data = """   A   B   C   D
@@ -1349,7 +1351,7 @@ c   1   2   3   4
         expected = self.read_csv(StringIO(re.sub('[ ]+', ',', data)),
                             index_col=0)
         self.assert_(expected.index.name is None)
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
     def test_1000_fwf(self):
         data = """
@@ -1392,7 +1394,7 @@ c   1   2   3   4
 """
         colspecs = [(0, 4), (4, 8), (8, 20), (21, 33), (34, 43)]
         df = read_fwf(StringIO(data1), colspecs=colspecs, header=None)
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
         data2 = """\
 2011 58   360.242940   149.910199   11950.7
@@ -1402,7 +1404,7 @@ c   1   2   3   4
 2011 62   502.953953   173.237159   12468.3
 """
         df = read_fwf(StringIO(data2), widths=[5, 5, 13, 13, 7], header=None)
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
         # From Thomas Kluyver: apparently some non-space filler characters can
         # be seen, this is supported by specifying the 'delimiter' character:
@@ -1415,7 +1417,7 @@ c   1   2   3   4
 201162~~~~502.953953~~~173.237159~~~12468.3
 """
         df = read_fwf(StringIO(data3), colspecs=colspecs, delimiter='~', header=None)
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
         self.assertRaises(ValueError, read_fwf, StringIO(data3),
                           colspecs=colspecs, widths=[6, 10, 10, 7])
@@ -1517,7 +1519,7 @@ eight,1,2,3"""
         result2 = self.read_csv(fh, converters={'score':convert_score,
                                                   'days':convert_days_sentinel},
                                   na_values=[-1,'',None])
-        assert_frame_equal(result, result2)
+        tm.assert_frame_equal(result, result2)
 
     def test_excel_stop_iterator(self):
         _skip_if_no_xlrd()
@@ -1525,7 +1527,7 @@ eight,1,2,3"""
         excel_data = ExcelFile(os.path.join(self.dirpath, 'test2.xls'))
         parsed = excel_data.parse('Sheet1')
         expected = DataFrame([['aaaa','bbbbb']], columns=['Test', 'Test1'])
-        assert_frame_equal(parsed, expected)
+        tm.assert_frame_equal(parsed, expected)
 
     def test_excel_cell_error_na(self):
         _skip_if_no_xlrd()
@@ -1533,7 +1535,7 @@ eight,1,2,3"""
         excel_data = ExcelFile(os.path.join(self.dirpath, 'test3.xls'))
         parsed = excel_data.parse('Sheet1')
         expected = DataFrame([[np.nan]], columns=['Test'])
-        assert_frame_equal(parsed, expected)
+        tm.assert_frame_equal(parsed, expected)
 
     def test_excel_table(self):
         _skip_if_no_xlrd()
@@ -1543,15 +1545,15 @@ eight,1,2,3"""
         df = xls.parse('Sheet1', index_col=0, parse_dates=True)
         df2 = self.read_csv(self.csv1, index_col=0, parse_dates=True)
         df3 = xls.parse('Sheet2', skiprows=[1], index_col=0, parse_dates=True)
-        assert_frame_equal(df, df2)
-        assert_frame_equal(df3, df2)
+        tm.assert_frame_equal(df, df2)
+        tm.assert_frame_equal(df3, df2)
 
         df4 = xls.parse('Sheet1', index_col=0, parse_dates=True,
                         skipfooter=1)
         df5 = xls.parse('Sheet1', index_col=0, parse_dates=True,
                         skip_footer=1)
-        assert_frame_equal(df4, df.ix[:-1])
-        assert_frame_equal(df4, df5)
+        tm.assert_frame_equal(df4, df.ix[:-1])
+        tm.assert_frame_equal(df4, df5)
 
     def test_excel_read_buffer(self):
         _skip_if_no_xlrd()
@@ -1576,15 +1578,15 @@ eight,1,2,3"""
         df = xlsx.parse('Sheet1', index_col=0, parse_dates=True)
         df2 = self.read_csv(self.csv1, index_col=0, parse_dates=True)
         df3 = xlsx.parse('Sheet2', skiprows=[1], index_col=0, parse_dates=True)
-        assert_frame_equal(df, df2)
-        assert_frame_equal(df3, df2)
+        tm.assert_frame_equal(df, df2)
+        tm.assert_frame_equal(df3, df2)
 
         df4 = xlsx.parse('Sheet1', index_col=0, parse_dates=True,
                          skipfooter=1)
         df5 = xlsx.parse('Sheet1', index_col=0, parse_dates=True,
                          skip_footer=1)
-        assert_frame_equal(df4, df.ix[:-1])
-        assert_frame_equal(df4, df5)
+        tm.assert_frame_equal(df4, df.ix[:-1])
+        tm.assert_frame_equal(df4, df5)
 
 
 class TestCParserHighMemory(ParserTests, unittest.TestCase):
@@ -1648,6 +1650,37 @@ class TestCParserLowMemory(ParserTests, unittest.TestCase):
                           use_unsigned=True)
         ex_dtype = np.dtype([(str(i), 'u1') for i in range(4)])
         self.assertEqual(result.dtype, ex_dtype)
+
+    def test_pass_dtype(self):
+        data = """\
+one,two
+1,2.5
+2,3.5
+3,4.5
+4,5.5"""
+
+        result = self.read_csv(StringIO(data), dtype={'one': 'u1', 1: 'S1'},
+                               as_recarray=True)
+        self.assert_(result['one'].dtype == 'u1')
+        self.assert_(result['two'].dtype == 'S1')
+
+    def test_usecols(self):
+        data = """\
+a,b,c
+1,2,3
+4,5,6
+7,8,9
+10,11,12"""
+
+        result = self.read_csv(StringIO(data), usecols=(1, 2))
+        result2 = self.read_csv(StringIO(data), usecols=('b', 'c'))
+        exp = self.read_csv(StringIO(data))
+
+        self.assertEquals(len(result.columns), 2)
+        self.assertTrue((result['b'] == exp['b']).all())
+        self.assertTrue((result['c'] == exp['c']).all())
+
+        tm.assert_frame_equal(result, result2)
 
 
 class TestParseSQL(unittest.TestCase):
