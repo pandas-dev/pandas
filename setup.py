@@ -632,8 +632,8 @@ extensions = [algos_ext,
               sparse_ext,
               parser_ext]
 
-if not ISRELEASED:
-    extensions.extend([sandbox_ext])
+# if not ISRELEASED:
+#     extensions.extend([sandbox_ext])
 
 if suffix == '.pyx' and 'setuptools' in sys.modules:
     # undo dumb setuptools bug clobbering .pyx sources back to .c

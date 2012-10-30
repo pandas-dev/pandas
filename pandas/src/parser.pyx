@@ -4,8 +4,9 @@
 from libc.stdlib cimport malloc, free
 from libc.string cimport strncpy, strlen
 
-from cpython cimport (PyObject, PyString_FromString,
-                      PyString_AsString, PyString_Check)
+from cpython cimport (PyObject, PyBytes_FromString,
+                      PyBytes_AsString, PyBytes_Check,
+                      PyUnicode_Check)
 
 cdef extern from "Python.h":
     object PyUnicode_FromString(char *v)
@@ -459,7 +460,7 @@ cdef class TextReader:
                 raise ValueError('Only ascii/bytes supported at the moment')
 
             status = parser_array_source_init(self.parser,
-                                              PyString_AsString(bytes),
+                                              PyBytes_AsString(bytes),
                                               len(bytes))
             if status != 0:
                 raise Exception('Initializing parser from file-like '
@@ -495,8 +496,8 @@ cdef class TextReader:
             for i in range(field_count):
                 word = self.parser.words[start + i]
 
-                if self.c_encoding == NULL:
-                    name = PyString_FromString(word)
+                if self.c_encoding == NULL and not PY3:
+                    name = PyBytes_FromString(word)
                 else:
                     if self.c_encoding == b'utf-8':
                         name = PyUnicode_FromString(word)
@@ -964,7 +965,7 @@ cdef _string_box_factorize(parser_t *parser, int col,
             pyval = <object> table.vals[k]
         else:
             # box it. new ref?
-            pyval = PyString_FromString(word)
+            pyval = PyBytes_FromString(word)
 
             k = kh_put_strbox(table, word, &ret)
             table.vals[k] = <PyObject*> pyval
@@ -1284,10 +1285,10 @@ cdef kh_str_t* kset_from_list(list values) except NULL:
         val = values[i]
 
         # None creeps in sometimes, which isn't possible here
-        if not PyString_Check(val):
+        if not PyBytes_Check(val):
             raise TypeError('must be string, was %s' % type(val))
 
-        k = kh_put_str(table, PyString_AsString(val), &ret)
+        k = kh_put_str(table, PyBytes_AsString(val), &ret)
 
     return table
 
@@ -1426,7 +1427,7 @@ cdef _apply_converter(object f, parser_t *parser, int col,
     coliter_setup(&it, parser, col, line_start)
     for i in range(lines):
         word = COLITER_NEXT(it)
-        val = PyString_FromString(word)
+        val = PyBytes_FromString(word)
         result[i] = f(val)
 
     values = lib.maybe_convert_objects(result)
