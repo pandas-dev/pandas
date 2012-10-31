@@ -489,6 +489,16 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
         line = ax.get_lines()[0]
         self.assert_(line.get_color() == 'green')
 
+    @slow
+    def test_time_series_plot_color_kwargs(self):
+        # #1890
+        import matplotlib.pyplot as plt
+
+        plt.close('all')
+        ax = Series(np.arange(12) + 1, index=date_range('1/1/2000', periods=12)).plot(color='green')
+        line = ax.get_lines()[0]
+        self.assert_(line.get_color() == 'green')
+
 PNG_PATH = 'tmp.png'
 
 def _check_plot_works(f, *args, **kwargs):

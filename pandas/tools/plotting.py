@@ -876,6 +876,12 @@ class LinePlot(MPLPlot):
         colors = self.kwds.pop('colors', cycle)
         return has_colors, colors
 
+    def _maybe_add_color(self, has_colors, colors, kwds, style, i):
+        if (not has_colors and
+           (style is None or re.match('[a-z]+', style) is None)
+            and 'color' not in kwds):
+            kwds['color'] = colors[i % len(colors)]
+
     def _make_plot(self):
         # this is slightly deceptive
         if self.use_index and self._use_dynamic_x():
@@ -886,21 +892,14 @@ class LinePlot(MPLPlot):
             labels = []
             x = self._get_xticks(convert_period=True)
 
-            has_colors, colors = self._get_colors()
-            def _maybe_add_color(kwargs, style, i):
-                if (not has_colors and
-                    (style is None or re.match('[a-z]+', style) is None)
-                    and 'color' not in kwargs):
-                    kwargs['color'] = colors[i % len(colors)]
-
             plotf = self._get_plot_function()
+            has_colors, colors = self._get_colors()
 
             for i, (label, y) in enumerate(self._iter_data()):
                 ax = self._get_ax(i)
                 style = self._get_style(i, label)
                 kwds = self.kwds.copy()
-
-                _maybe_add_color(kwds, style, i)
+                self._maybe_add_color(has_colors, colors, kwds, style, i)
 
                 label = com.pprint_thing(label).encode('utf-8')
 
@@ -934,11 +933,6 @@ class LinePlot(MPLPlot):
         lines = []
         labels = []
 
-        def _maybe_add_color(kwargs, style, i):
-            if (not has_colors and
-                (style is None or re.match('[a-z]+', style) is None)):
-                kwargs['color'] = colors[i % len(colors)]
-
         def to_leg_label(label, i):
             if self.mark_right and self.on_right(i):
                 return label + ' (right)'
@@ -949,7 +943,7 @@ class LinePlot(MPLPlot):
             style = self.style or ''
             label = com.pprint_thing(self.label)
             kwds = kwargs.copy()
-            _maybe_add_color(kwds, style, 0)
+            self._maybe_add_color(has_colors, colors, kwds, style, 0)
 
             newlines = tsplot(data, plotf, ax=ax, label=label, style=self.style,
                              **kwds)
@@ -964,7 +958,7 @@ class LinePlot(MPLPlot):
                 style = self._get_style(i, col)
                 kwds = kwargs.copy()
 
-                _maybe_add_color(kwds, style, i)
+                self._maybe_add_color(has_colors, colors, kwds, style, i)
 
                 newlines = tsplot(data[col], plotf, ax=ax, label=label,
                                   style=style, **kwds)
