@@ -729,19 +729,34 @@ class DataFrame(NDFrame):
         -------
         dot_product : DataFrame or Series
         """
-        common = self.columns.union(other.index)
-        if len(common) > len(self.columns) or len(common) > len(other.index):
-            raise ValueError('matrices are not aligned')
-        left = self.reindex(columns=common, copy=False)
-        right = other.reindex(index=common, copy=False)
-        lvals = left.values
-        rvals = right.values
+        if isinstance(other, (Series, DataFrame)):
+            common = self.columns.union(other.index)
+            if len(common) > len(self.columns) or len(common) > len(other.index):
+                raise ValueError('matrices are not aligned')
+            left = self.reindex(columns=common, copy=False)
+            right = other.reindex(index=common, copy=False)
+            lvals = left.values
+            rvals = right.values
+        else:
+            left = self
+            lvals = self.values
+            rvals = np.asarray(other)
+            if lvals.shape[1] != rvals.shape[0]:
+                raise Exception('Dot product shape mismatch, %s vs %s' %
+                                (lvals.shape, rvals.shape))
+
         if isinstance(other, DataFrame):
             return DataFrame(np.dot(lvals, rvals),
-                             index=self.index,
+                             index=left.index,
                              columns=other.columns)
         elif isinstance(other, Series):
             return Series(np.dot(lvals, rvals), index=left.index)
+        elif isinstance(rvals, np.ndarray):
+            result = np.dot(lvals, rvals)
+            if result.ndim == 2:
+                return DataFrame(result, index=left.index)
+            else:
+                return Series(result, index=left.index)
         else:
             raise TypeError('unsupported type: %s' % type(other))
 

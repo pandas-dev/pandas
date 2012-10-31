@@ -33,6 +33,7 @@ pandas 0.9.1
     offset periods
   - Improve HTML display of DataFrame objects with hierarchical columns
   - Enable referencing of Excel columns by their column names (#1936)
+  - DataFrame.dot can accept ndarrays (#2042)
 
 **Bug fixes**
 

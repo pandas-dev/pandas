@@ -6961,6 +6961,23 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = a.dot(b1['one'])
         assert_series_equal(result, expected['one'])
 
+        # can pass correct-length arrays
+        row = a.ix[0].values
+
+        result = a.dot(row)
+        exp = a.dot(a.ix[0])
+        assert_series_equal(result, exp)
+
+        self.assertRaises(Exception, a.dot, row[:-1])
+
+        a = np.random.rand(1,5)
+        b = np.random.rand(5,1)
+        A = DataFrame(a)
+        B = DataFrame(b)
+
+        # it works
+        result = A.dot(b)
+
     def test_idxmin(self):
         frame = self.frame
         frame.ix[5:10] = np.nan
