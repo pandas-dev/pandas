@@ -3854,7 +3854,7 @@ class DataFrame(NDFrame):
                     if hasattr(e, 'args'):
                         k = res_index[i]
                         e.args = e.args + ('occurred at index %s' % str(k),)
-                except NameError:  # pragma: no cover
+                except (NameError, UnboundLocalError):  # pragma: no cover
                     # no k defined yet
                     pass
                 raise
