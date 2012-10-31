@@ -259,7 +259,6 @@ class CleanCommand(Command):
                                'np_datetime_strings.c',
                                'period.c',
                                'parser.c',
-                               'conversions.c',
                                'str_to.c']
 
         for root, dirs, files in list(os.walk('pandas')):
@@ -612,7 +611,6 @@ parser_ext = Extension('pandas._parser',
                                 'pandas/src/numpy_helper.h'],
                        sources=[srcpath('parser', suffix=suffix),
                                 'pandas/src/parser/parser.c',
-                                'pandas/src/parser/conversions.c',
                                 'pandas/src/parser/str_to.c',
                                 ],
                        include_dirs=common_include)

@@ -65,7 +65,8 @@ class TestCParser(unittest.TestCase):
 
     def test_StringIO(self):
         text = open(self.csv1, 'rb').read()
-        reader = TextReader(BytesIO(text), header=None)
+        src = BytesIO(text)
+        reader = TextReader(src, header=None)
         result = reader.read()
 
     def test_string_factorize(self):

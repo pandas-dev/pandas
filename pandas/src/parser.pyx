@@ -1,6 +1,7 @@
 # Copyright (c) 2012, Lambda Foundry, Inc.
 # See LICENSE for the license
 
+from libc.stdio cimport fopen, fclose
 from libc.stdlib cimport malloc, free
 from libc.string cimport strncpy, strlen
 
@@ -8,12 +9,14 @@ from cpython cimport (PyObject, PyBytes_FromString,
                       PyBytes_AsString, PyBytes_Check,
                       PyUnicode_Check)
 
+
 cdef extern from "Python.h":
+    ctypedef struct FILE
+
     object PyUnicode_FromString(char *v)
 
     object PyUnicode_Decode(char *v, Py_ssize_t size, char *encoding,
                             char *errors)
-
 
 cdef extern from "stdlib.h":
     void memcpy(void *dst, void *src, size_t n)
@@ -60,21 +63,6 @@ try:
 except NameError:
     basestring = str
 
-cdef extern from "Python.h":
-    ctypedef struct FILE
-    FILE* PyFile_AsFile(object)
-
-cdef extern from "parser/conversions.h":
-    inline int to_double(char *item, double *p_value,
-                         char sci, char decimal)
-    inline int to_complex(char *item, double *p_real,
-                          double *p_imag, char sci, char decimal)
-    inline int to_longlong(char *item, long long *p_value)
-    inline int to_longlong_thousands(char *item, long long *p_value,
-                                     char tsep)
-    inline int to_boolean(char *item, uint8_t *val)
-
-
 cdef extern from "parser/parser.h":
 
     ctypedef enum ParserState:
@@ -88,10 +76,6 @@ cdef extern from "parser/parser.h":
         EAT_CRNL
         EAT_WHITESPACE
         FINISHED
-
-    ctypedef struct table_chunk:
-        void **columns
-        int ncols
 
     ctypedef struct parser_t:
         void *source
@@ -156,12 +140,6 @@ cdef extern from "parser/parser.h":
         void *skipset
         int skip_footer
 
-        table_chunk *chunks
-        int nchunks
-
-        void **columns
-        int ncols
-
         #  error handling
         char *error_msg
 
@@ -183,7 +161,7 @@ cdef extern from "parser/parser.h":
 
     int parser_file_source_init(parser_t *self, FILE* fp)
     int parser_mmap_init(parser_t *self, FILE* fp)
-    int parser_array_source_init(parser_t *self, char *bytes, size_t length)
+    int parser_rd_source_init(parser_t *self, object source)
 
     int parser_consume_rows(parser_t *self, size_t nrows)
 
@@ -198,6 +176,14 @@ cdef extern from "parser/parser.h":
                          int64_t int_max, int *error, char tsep)
     uint64_t str_to_uint64(char *p_item, uint64_t uint_max, int *error)
 
+    inline int to_double(char *item, double *p_value,
+                         char sci, char decimal)
+    inline int to_complex(char *item, double *p_real,
+                          double *p_imag, char sci, char decimal)
+    inline int to_longlong(char *item, long long *p_value)
+    inline int to_longlong_thousands(char *item, long long *p_value,
+                                     char tsep)
+    inline int to_boolean(char *item, uint8_t *val)
 
 
 DEFAULT_CHUNKSIZE = 1024 * 1024
@@ -224,6 +210,7 @@ cdef class TextReader:
         int parser_start
         list clocks
         char *c_encoding
+        FILE *fp
 
     cdef public:
         int leading_cols, table_width, skip_footer, buffer_lines
@@ -417,7 +404,7 @@ cdef class TextReader:
 
     def __del__(self):
         if self.should_close:
-            self.file_handle.close()
+            fclose(self.fp)
 
     def set_error_bad_lines(self, int status):
         self.parser.error_bad_lines = status
@@ -433,38 +420,32 @@ cdef class TextReader:
         cdef:
             int status
 
-        if _is_file_like(source):
-            if isinstance(source, basestring):
-                source = open(source, 'rb')
-                self.should_close = True
+        self.fp = NULL
 
-            self.file_handle = source
+        if isinstance(source, basestring):
+            if not isinstance(source, bytes):
+                source = source.encode('utf-8')
+
+            self.should_close = True
+            self.fp = fopen(source, b'rb')
 
             if self.memory_map:
-                status = parser_mmap_init(self.parser,
-                                          PyFile_AsFile(source))
+                status = parser_mmap_init(self.parser, self.fp)
             else:
-                status = parser_file_source_init(self.parser,
-                                                 PyFile_AsFile(source))
+                status = parser_file_source_init(self.parser, self.fp)
 
             if status != 0:
                 raise Exception('Initializing from file failed')
-
         elif hasattr(source, 'read'):
             # e.g., StringIO
 
-            bytes = source.read()
-
-            # TODO: unicode
-            if isinstance(bytes, unicode):
-                raise ValueError('Only ascii/bytes supported at the moment')
-
-            status = parser_array_source_init(self.parser,
-                                              PyBytes_AsString(bytes),
-                                              len(bytes))
+            status = parser_rd_source_init(self.parser, source)
             if status != 0:
                 raise Exception('Initializing parser from file-like '
                                 'object failed')
+        else:
+            raise Exception('Expected file path name or file-like object,'
+                            ' got %s type' % type(source))
 
     cdef _get_header(self):
         cdef:

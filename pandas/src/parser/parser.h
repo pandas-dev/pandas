@@ -9,6 +9,8 @@ See LICENSE for the license
 #ifndef _PARSER_COMMON_H_
 #define _PARSER_COMMON_H_
 
+#include "Python.h"
+/* #include "structmember.h" */
 
 #include <stdio.h>
 #include <string.h>
@@ -102,13 +104,6 @@ typedef enum {
     QUOTE_MINIMAL, QUOTE_ALL, QUOTE_NONNUMERIC, QUOTE_NONE
 } QuoteStyle;
 
-typedef struct _table_chunk {
-    void **columns;
-    int ncols;
-} table_chunk;
-
-
-
 
 typedef struct parser_t {
     void *source;
@@ -173,12 +168,6 @@ typedef struct parser_t {
     void *skipset;
     int skip_footer;
 
-    table_chunk *chunks;
-    int nchunks;
-
-    void **columns;
-    int ncols;
-
     // error handling
     char *error_msg;
 } parser_t;
@@ -209,7 +198,7 @@ int parser_file_source_init(parser_t *self, FILE *fp);
 
 int parser_mmap_init(parser_t *self, FILE *fp);
 
-int parser_array_source_init(parser_t *self, char *bytes, size_t length);
+int parser_rd_source_init(parser_t *self, PyObject *source);
 
 int parser_gzip_source_init(parser_t *self, FILE *fp);
 
@@ -240,5 +229,11 @@ int clear_parsed_lines(parser_t *self, size_t nlines);
 int64_t str_to_int64(const char *p_item, int64_t int_min,
                      int64_t int_max, int *error, char tsep);
 uint64_t str_to_uint64(const char *p_item, uint64_t uint_max, int *error);
+
+int inline to_double(char *item, double *p_value, char sci, char decimal);
+int inline to_complex(char *item, double *p_real, double *p_imag, char sci, char decimal);
+int inline to_longlong(char *item, long long *p_value);
+int inline to_longlong_thousands(char *item, long long *p_value, char tsep);
+int inline to_boolean(char *item, uint8_t *val);
 
 #endif // _PARSER_COMMON_H_
