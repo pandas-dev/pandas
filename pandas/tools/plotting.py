@@ -901,7 +901,7 @@ class LinePlot(MPLPlot):
                 kwds = self.kwds.copy()
                 self._maybe_add_color(has_colors, colors, kwds, style, i)
 
-                label = com.pprint_thing(label).encode('utf-8')
+                label = com.pprint_thing(label) # .encode('utf-8')
 
                 mask = com.isnull(y)
                 if mask.any():
