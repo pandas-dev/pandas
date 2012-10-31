@@ -4,6 +4,7 @@
 from libc.stdio cimport fopen, fclose
 from libc.stdlib cimport malloc, free
 from libc.string cimport strncpy, strlen
+cimport libc.stdio as stdio
 
 from cpython cimport (PyObject, PyBytes_FromString,
                       PyBytes_AsString, PyBytes_Check,
@@ -428,6 +429,7 @@ cdef class TextReader:
 
             self.should_close = True
             self.fp = fopen(source, b'rb')
+            stdio.setbuf(self.fp, NULL)
 
             if self.memory_map:
                 status = parser_mmap_init(self.parser, self.fp)
