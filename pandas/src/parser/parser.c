@@ -754,46 +754,53 @@ int parser_add_skiprow(parser_t *self, int64_t row) {
 
 int _buffer_rd_bytes(parser_t *self, size_t nbytes) {
     PyGILState_STATE state;
-    PyObject *result, *func, *args, *i;
+    PyObject *result, *func, *args, *tmp;
     size_t length;
+    int status;
     rd_source *src = RDS(self->source);
 
     /* delete old object */
     Py_XDECREF(src->buffer);
     args = Py_BuildValue("(i)", nbytes);
-    /* printf("%s\n", PyBytes_AsString(PyObject_Repr(args))); */
 
-    func = PyObject_GetAttrString(src->obj, "read");
 
     state = PyGILState_Ensure();
+    func = PyObject_GetAttrString(src->obj, "read");
+    /* printf("%s\n", PyBytes_AsString(PyObject_Repr(func))); */
+
     result = PyObject_CallObject(func, args);
-    PyGILState_Release(state);
+    /* PyObject_Print(PyObject_Type(result), stdout, 0); */
+
+    if (!PyBytes_Check(result)) {
+        tmp = PyUnicode_AsUTF8String(result);
+        Py_XDECREF(result);
+
+        result = tmp;
+        /* self->error_msg = (char*) malloc(100); */
+        /* sprintf(self->error_msg, ("File-like object must be in binary " */
+        /*                           "(bytes) mode")); */
+    }
+
+    length = PySequence_Length(result);
+
+    if (length == 0) status = REACHED_EOF;
+    else status = 0;
+
+    self->data = PyBytes_AsString(result);
 
     Py_XDECREF(args);
     Py_XDECREF(func);
 
+    PyGILState_Release(state);
+
     /* TODO: more error handling */
-    length = PySequence_Length(result);
     self->datalen = length;
-    self->data = PyBytes_AsString(result);
     src->buffer = result;
-
     src->position += self->datalen;
-
-    if (!PyBytes_Check(result)) {
-        self->error_msg = (char*) malloc(100);
-        sprintf(self->error_msg, ("File-like object must be in binary "
-                                  "(bytes) mode"));
-        return -1;
-    }
-
-    if (length == 0) {
-        return REACHED_EOF;
-    }
 
     TRACE(("datalen: %d\n", self->datalen));
     TRACE(("pos: %d, length: %d", (int) src->position, (int) src->length));
-    return 0;
+    return status;
 }
 
 int parser_buffer_bytes(parser_t *self, size_t nbytes) {

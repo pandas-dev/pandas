@@ -10,6 +10,7 @@ See LICENSE for the license
 #define _PARSER_COMMON_H_
 
 #include "Python.h"
+
 /* #include "structmember.h" */
 
 #include <stdio.h>

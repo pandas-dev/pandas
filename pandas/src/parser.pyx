@@ -8,7 +8,7 @@ cimport libc.stdio as stdio
 
 from cpython cimport (PyObject, PyBytes_FromString,
                       PyBytes_AsString, PyBytes_Check,
-                      PyUnicode_Check)
+                      PyUnicode_Check, PyUnicode_AsUTF8String)
 
 
 cdef extern from "Python.h":
@@ -192,9 +192,9 @@ DEFAULT_CHUNKSIZE = 1024 * 1024
 # common NA values
 # no longer excluding inf representations
 # '1.#INF','-1.#INF', '1.#INF000000',
-_NA_VALUES = ['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
-              '#N/A N/A', 'NA', '#NA', 'NULL', 'NaN',
-              'nan', '']
+_NA_VALUES = [b'-1.#IND', b'1.#QNAN', b'1.#IND', b'-1.#QNAN',
+              b'#N/A N/A', b'NA', b'#NA', b'NULL', b'NaN',
+              b'nan', b'']
 
 
 cdef class TextReader:
@@ -262,7 +262,7 @@ cdef class TextReader:
                   compact_ints=False,
                   use_unsigned=False,
                   low_memory=False,
-                  buffer_lines=2**16,
+                  buffer_lines=None,
                   skiprows=None,
                   skip_footer=0,
                   verbose=False):
@@ -347,12 +347,11 @@ cdef class TextReader:
 
         self.verbose = verbose
         self.low_memory = low_memory
-        self.buffer_lines = buffer_lines
 
         # encoding
         if encoding is not None:
             if not isinstance(encoding, bytes):
-                encoding = encoding.decode('utf-8')
+                encoding = encoding.encode('utf-8')
             encoding = encoding.lower()
             self.c_encoding = <char*> encoding
         else:
@@ -395,7 +394,11 @@ cdef class TextReader:
 
         self.header, self.table_width = self._get_header()
 
-        # print 'Header: %s, width: %d' % (str(self.header), self.table_width)
+        # compute buffer_lines as function of table width
+        heuristic = 2**18 // self.table_width
+        self.buffer_lines = 1
+        while self.buffer_lines * 2< heuristic:
+            self.buffer_lines *= 2
 
     def __init__(self, *args, **kwards):
         pass
@@ -482,7 +485,7 @@ cdef class TextReader:
                 if self.c_encoding == NULL and not PY3:
                     name = PyBytes_FromString(word)
                 else:
-                    if self.c_encoding == b'utf-8':
+                    if self.c_encoding == NULL or self.c_encoding == b'utf-8':
                         name = PyUnicode_FromString(word)
                     else:
                         name = PyUnicode_Decode(word, strlen(word),
@@ -579,7 +582,7 @@ cdef class TextReader:
                     if len(chunk) == 0:
                         break
 
-                    rows_read += len(chunk.values()[0])
+                    rows_read += len(list(chunk.values())[0])
                 except StopIteration:
                     break
                 else:
@@ -636,7 +639,7 @@ cdef class TextReader:
 
         self._start_clock()
         if len(columns) > 0:
-            rows_read = len(columns.values()[0])
+            rows_read = len(list(columns.values())[0])
             # trim
             parser_consume_rows(self.parser, rows_read)
             if trim:
@@ -667,7 +670,6 @@ cdef class TextReader:
     def _convert_column_data(self, rows=None, upcast_na=False, footer=0):
         cdef:
             Py_ssize_t i, ncols
-            cast_func func
             kh_str_t *na_hashset = NULL
             int start, end
             object name
@@ -706,7 +708,8 @@ cdef class TextReader:
                 na_filter = 0
 
             if conv:
-                results[i] = _apply_converter(conv, self.parser, i, start, end)
+                results[i] = _apply_converter(conv, self.parser, i, start, end,
+                                              self.c_encoding)
                 continue
 
             # Should return as the desired dtype (inferred or specified)
@@ -735,7 +738,6 @@ cdef class TextReader:
                                 object name, bint na_filter,
                                 kh_str_t *na_hashset):
         cdef:
-            cast_func func
             object col_dtype = None
 
         if self.dtype is not None:
@@ -814,17 +816,30 @@ cdef class TextReader:
 
     cdef _string_convert(self, Py_ssize_t i, int start, int end,
                          bint na_filter, kh_str_t *na_hashset):
-        if self.c_encoding != NULL:
-            if self.c_encoding == b"utf-8":
+        if PY3:
+            if self.c_encoding != NULL:
+                if self.c_encoding == b"utf-8":
+                    return _string_box_utf8(self.parser, i, start, end,
+                                            na_filter, na_hashset)
+                else:
+                    return _string_box_decode(self.parser, i, start, end,
+                                              na_filter, na_hashset,
+                                              self.c_encoding)
+            else:
                 return _string_box_utf8(self.parser, i, start, end,
                                         na_filter, na_hashset)
-            else:
-                return _string_box_decode(self.parser, i, start, end,
-                                          na_filter, na_hashset,
-                                          self.c_encoding)
         else:
-            return _string_box_factorize(self.parser, i, start, end,
-                                         na_filter, na_hashset)
+            if self.c_encoding != NULL:
+                if self.c_encoding == b"utf-8":
+                    return _string_box_utf8(self.parser, i, start, end,
+                                            na_filter, na_hashset)
+                else:
+                    return _string_box_decode(self.parser, i, start, end,
+                                              na_filter, na_hashset,
+                                              self.c_encoding)
+            else:
+                return _string_box_factorize(self.parser, i, start, end,
+                                             na_filter, na_hashset)
 
     def _get_converter(self, i, name):
         if self.converters is None:
@@ -852,12 +867,12 @@ cdef class TextReader:
                 else:
                     return _NA_VALUES
 
-            return values
+            return _ensure_encoded(values)
         else:
             if not isinstance(self.na_values, list):
                 self.na_values = list(self.na_values)
 
-            return self.na_values
+            return _ensure_encoded(self.na_values)
 
     cdef _free_na_set(self, kh_str_t *table):
         kh_destroy_str(table)
@@ -870,6 +885,14 @@ cdef class TextReader:
 
 class CParserError(Exception):
     pass
+
+def _ensure_encoded(list lst):
+    cdef list result = []
+    for x in lst:
+        if not PyBytes_Check(x):
+            x = PyUnicode_AsUTF8String(x)
+        result.append(x)
+    return result
 
 def _is_file_like(obj):
     if PY3:
@@ -900,9 +923,6 @@ def _maybe_upcast(arr):
 # ----------------------------------------------------------------------
 # Type conversions / inference support code
 
-ctypedef object (*cast_func)(parser_t *parser, int col,
-                             int line_start, int line_end,
-                             bint na_filter, kh_str_t *na_hashset)
 
 
 cdef _string_box_factorize(parser_t *parser, int col,
@@ -1269,7 +1289,7 @@ cdef kh_str_t* kset_from_list(list values) except NULL:
 
         # None creeps in sometimes, which isn't possible here
         if not PyBytes_Check(val):
-            raise TypeError('must be string, was %s' % type(val))
+            raise Exception('Must be all encoded bytes')
 
         k = kh_put_str(table, PyBytes_AsString(val), &ret)
 
@@ -1281,20 +1301,19 @@ cdef kh_str_t* kset_from_list(list values) except NULL:
 # TODO: endianness just a placeholder?
 cdef list dtype_cast_order = ['<i8', '<f8', '|b1', '|O8']
 
-cdef cast_func cast_func_order[4]
-cast_func_order[0] = _try_int64
-cast_func_order[1] = _try_double
-cast_func_order[2] = _try_bool
-cast_func_order[3] = _string_box_factorize
 
 cdef raise_parser_error(object base, parser_t *parser):
     message = '%s. C error: ' % base
     if parser.error_msg != NULL:
-        message += parser.error_msg
+        if PY3:
+            message += parser.error_msg.decode('utf-8')
+        else:
+            message += parser.error_msg
     else:
         message += 'no error message set'
 
     raise CParserError(message)
+
 
 def downcast_int64(ndarray[int64_t] arr, bint use_unsigned=0):
     cdef:
@@ -1394,13 +1413,15 @@ for k in list(na_values):
 
 
 cdef _apply_converter(object f, parser_t *parser, int col,
-                       int line_start, int line_end):
+                      int line_start, int line_end,
+                      char* c_encoding):
     cdef:
         int error
         Py_ssize_t i
         size_t lines
         coliter_t it
         char *word
+        char *errors = "strict"
         ndarray[object] result
         object val
 
@@ -1408,10 +1429,23 @@ cdef _apply_converter(object f, parser_t *parser, int col,
     result = np.empty(lines, dtype=np.object_)
 
     coliter_setup(&it, parser, col, line_start)
-    for i in range(lines):
-        word = COLITER_NEXT(it)
-        val = PyBytes_FromString(word)
-        result[i] = f(val)
+
+    if not PY3 and c_encoding == NULL:
+        for i in range(lines):
+            word = COLITER_NEXT(it)
+            val = PyBytes_FromString(word)
+            result[i] = f(val)
+    elif ((PY3 and c_encoding == NULL) or c_encoding == b'utf-8'):
+        for i in range(lines):
+            word = COLITER_NEXT(it)
+            val = PyUnicode_FromString(word)
+            result[i] = f(val)
+    else:
+        for i in range(lines):
+            word = COLITER_NEXT(it)
+            val = PyUnicode_Decode(word, strlen(word),
+                                   c_encoding, errors)
+            result[i] = f(val)
 
     values = lib.maybe_convert_objects(result)
 
@@ -1447,7 +1481,11 @@ def _to_structured_array(dict columns, object names):
 
     nfields = len(fields)
 
-    length = len(columns.values()[0])
+    if PY3:
+        length = len(list(columns.values())[0])
+    else:
+        length = len(columns.values()[0])
+
     stride = dt.itemsize
 
     # start = time.time()

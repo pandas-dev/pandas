@@ -243,7 +243,7 @@ _c_parser_defaults = {
     'compact_ints': False,
     'use_unsigned': False,
     'low_memory': True,
-    'buffer_lines': 2**16,
+    'buffer_lines': None,
     'error_bad_lines': True,
     'warn_bad_lines': True,
     'factorize': True,
@@ -291,7 +291,7 @@ def _make_parser_function(name, sep=','):
                  compact_ints=False,
                  use_unsigned=False,
                  low_memory=_c_parser_defaults['low_memory'],
-                 buffer_lines=2**16,
+                 buffer_lines=None,
                  warn_bad_lines=True,
                  error_bad_lines=True,
 

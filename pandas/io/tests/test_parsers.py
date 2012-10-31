@@ -353,7 +353,8 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         #1835
         data = "A;B\n1;2\n3;4"
 
-        rs = self.read_csv(StringIO(data), sep=';', index_col='A', converters={'A' : lambda x: x})
+        rs = self.read_csv(StringIO(data), sep=';', index_col='A',
+                           converters={'A' : lambda x: x})
 
         xp = DataFrame({'B' : [2, 4]}, index=Index([1, 3], name='A'))
         tm.assert_frame_equal(rs, xp)
@@ -746,7 +747,7 @@ baz,7,8,9
             tm.assert_frame_equal(df3, df2)
 
     def test_read_table_unicode(self):
-        fin = StringIO(u'\u0141aski, Jan;1'.encode('utf-8'))
+        fin = BytesIO(u'\u0141aski, Jan;1'.encode('utf-8'))
         df1 = read_table(fin, sep=";", encoding="utf-8", header=None)
         self.assert_(isinstance(df1['X0'].values[0], unicode))
 
