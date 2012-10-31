@@ -866,6 +866,47 @@ baz,7,8,9
         df1 = read_table(fin, sep=";", encoding="utf-8", header=None)
         self.assert_(isinstance(df1['X0'].values[0], unicode))
 
+    def test_parse_cols_str(self):
+        _skip_if_no_openpyxl()
+
+        suffix = ['', 'x']
+
+        for s in suffix:
+
+            pth = os.path.join(self.dirpath, 'test.xls%s' % s)
+            xls = ExcelFile(pth)
+
+            df = xls.parse('Sheet1', index_col=0, parse_dates=True,
+                            parse_cols='A:D')
+            df2 = read_csv(self.csv1, index_col=0, parse_dates=True)
+            df2 = df2.reindex(columns=['A', 'B', 'C'])
+            df3 = xls.parse('Sheet2', skiprows=[1], index_col=0,
+                            parse_dates=True, parse_cols='A:D')
+            assert_frame_equal(df, df2)
+            assert_frame_equal(df3, df2)
+            del df, df2, df3
+
+            df = xls.parse('Sheet1', index_col=0, parse_dates=True,
+                            parse_cols='A,C,D')
+            df2 = read_csv(self.csv1, index_col=0, parse_dates=True)
+            df2 = df2.reindex(columns=['B', 'C'])
+            df3 = xls.parse('Sheet2', skiprows=[1], index_col=0,
+                             parse_dates=True,
+                             parse_cols='A,C,D')
+            assert_frame_equal(df, df2)
+            assert_frame_equal(df3, df2)
+            del df, df2, df3
+
+            df = xls.parse('Sheet1', index_col=0, parse_dates=True,
+                            parse_cols='A,C:D')
+            df2 = read_csv(self.csv1, index_col=0, parse_dates=True)
+            df2 = df2.reindex(columns=['B', 'C'])
+            df3 = xls.parse('Sheet2', skiprows=[1], index_col=0,
+                             parse_dates=True,
+                             parse_cols='A,C:D')
+            assert_frame_equal(df, df2)
+            assert_frame_equal(df3, df2)
+
     def test_read_table_wrong_num_columns(self):
         data = """A,B,C,D,E,F
 1,2,3,4,5
