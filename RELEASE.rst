@@ -32,10 +32,13 @@ pandas 0.9.1
   - Improve performance of datetime + business day offset with large number of
     offset periods
   - Improve HTML display of DataFrame objects with hierarchical columns
+  - Enable referencing of Excel columns by their column names (#1936)
 
 **Bug fixes**
 
+  - Fix matplotlib unicode interaction bug
   - Make WLS r-squared match statsmodels 0.5.0 fixed value
+  - Fix zero-trimming DataFrame formatting bug
 
 pandas 0.9.0
 ============
