@@ -13,14 +13,14 @@ def _get_cluster_type(cluster_type):
         raise Exception('Unrecognized cluster type: %s' % cluster_type)
 
 _CLUSTER_TYPES = {
-    0 : 'time',
-    1 : 'entity'
+    0: 'time',
+    1: 'entity'
 }
 
 _WINDOW_TYPES = {
-    0 : 'full_sample',
-    1 : 'rolling',
-    2 : 'expanding'
+    0: 'full_sample',
+    1: 'rolling',
+    2: 'expanding'
 }
 
 
@@ -36,6 +36,7 @@ def _get_window_type(window_type):
         return 'expanding'
     else:  # pragma: no cover
         raise Exception('Unrecognized window type: %s' % window_type)
+
 
 def banner(text, width=80):
     """

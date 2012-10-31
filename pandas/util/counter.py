@@ -8,8 +8,9 @@ from operator import itemgetter as _itemgetter
 try:
     from collections import Mapping
 except:
-    # ABCs were only introduced in Python 2.6, so this is a hack for Python 2.5:
+    # ABCs were only introduced in Python 2.6, so this is a hack for Python 2.5
     Mapping = dict
+
 
 class Counter(dict):
     '''Dict subclass for counting hashable items.  Sometimes called a bag
@@ -50,8 +51,8 @@ class Counter(dict):
     in the counter until the entry is deleted or the counter is cleared:
 
     >>> c = Counter('aaabbc')
-    >>> c['b'] -= 2                     # reduce the count of 'b' by two
-    >>> c.most_common()                 # 'b' is still in, but its count is zero
+    >>> c['b'] -= 2                    # reduce the count of 'b' by two
+    >>> c.most_common()                # 'b' is still in, but its count is zero
     [('a', 3), ('c', 1), ('b', 0)]
 
     '''
@@ -67,10 +68,10 @@ class Counter(dict):
         from an input iterable.  Or, initialize the count from another mapping
         of elements to their counts.
 
-        >>> c = Counter()                           # a new, empty counter
-        >>> c = Counter('gallahad')                 # a new counter from an iterable
-        >>> c = Counter({'a': 4, 'b': 2})           # a new counter from a mapping
-        >>> c = Counter(a=4, b=2)                   # a new counter from keyword args
+        >>> c = Counter()                     # a new, empty counter
+        >>> c = Counter('gallahad')           # a new counter from an iterable
+        >>> c = Counter({'a': 4, 'b': 2})     # a new counter from a mapping
+        >>> c = Counter(a=4, b=2)             # a new counter from keyword args
 
         '''
         super(Counter, self).__init__()
@@ -152,7 +153,8 @@ class Counter(dict):
                     for elem, count in iterable.iteritems():
                         self[elem] = self_get(elem, 0) + count
                 else:
-                    super(Counter, self).update(iterable) # fast path when counter is empty
+                    # fast path when counter is empty
+                    super(Counter, self).update(iterable)
             else:
                 self_get = self.get
                 for elem in iterable:
@@ -195,7 +197,9 @@ class Counter(dict):
         return self.__class__, (dict(self),)
 
     def __delitem__(self, elem):
-        'Like dict.__delitem__() but does not raise KeyError for missing values.'
+        """
+        Like dict.__delitem__() but does not raise KeyError for missing values.
+        """
         if elem in self:
             super(Counter, self).__delitem__(elem)
 

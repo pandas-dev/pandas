@@ -29,13 +29,14 @@ def _ensure_like_indices(time, panels):
     """
     n_time = len(time)
     n_panel = len(panels)
-    u_panels = np.unique(panels) # this sorts!
+    u_panels = np.unique(panels)  # this sorts!
     u_time = np.unique(time)
     if len(u_time) == n_time:
         time = np.tile(u_time, len(u_panels))
     if len(u_panels) == n_panel:
         panels = np.repeat(u_panels, len(u_time))
     return time, panels
+
 
 def panel_index(time, panels, names=['time', 'panel']):
     """
@@ -84,8 +85,10 @@ def panel_index(time, panels, names=['time', 'panel']):
     levels = [time_factor.levels, panel_factor.levels]
     return MultiIndex(levels, labels, sortorder=None, names=names)
 
+
 class PanelError(Exception):
     pass
+
 
 def _arith_method(func, name):
     # work only for scalars
@@ -98,6 +101,7 @@ def _arith_method(func, name):
         return self._combine(other, func)
     f.__name__ = name
     return f
+
 
 def _panel_arith_method(op, name):
     @Substitution(op)
@@ -144,20 +148,20 @@ If all values are NA, result will be NA"""
 
 class Panel(NDFrame):
     _AXIS_NUMBERS = {
-        'items' : 0,
-        'major_axis' : 1,
-        'minor_axis' : 2
+        'items': 0,
+        'major_axis': 1,
+        'minor_axis': 2
     }
 
     _AXIS_ALIASES = {
-        'major' : 'major_axis',
-        'minor' : 'minor_axis'
+        'major': 'major_axis',
+        'minor': 'minor_axis'
     }
 
     _AXIS_NAMES = {
-        0 : 'items',
-        1 : 'major_axis',
-        2 : 'minor_axis'
+        0: 'items',
+        1: 'major_axis',
+        2: 'minor_axis'
     }
 
     # major
@@ -223,7 +227,7 @@ class Panel(NDFrame):
             mgr = self._init_matrix(data, passed_axes, dtype=dtype, copy=copy)
             copy = False
             dtype = None
-        else: # pragma: no cover
+        else:  # pragma: no cover
             raise PandasError('Panel constructor not properly called!')
 
         NDFrame.__init__(self, mgr, axes=axes, copy=copy, dtype=dtype)
@@ -259,7 +263,7 @@ class Panel(NDFrame):
             minor = _extract_axis(data, axis=1)
 
         axes = [items, major, minor]
-        reshaped_data = data.copy() # shallow
+        reshaped_data = data.copy()  # shallow
 
         item_shape = len(major), len(minor)
         for item in items:
@@ -363,7 +367,6 @@ class Panel(NDFrame):
         items = fixed_axes[0]
         block = make_block(values, items, items)
         return BlockManager([block], fixed_axes)
-
 
     #----------------------------------------------------------------------
     # Array interface
@@ -561,7 +564,8 @@ class Panel(NDFrame):
             return result.set_value(item, major, minor, value)
 
     def _box_item_values(self, key, values):
-        return DataFrame(values, index=self.major_axis, columns=self.minor_axis)
+        return DataFrame(values, index=self.major_axis,
+                         columns=self.minor_axis)
 
     def __getattr__(self, name):
         """After regular attribute access, try looking up the name of an item.
@@ -617,13 +621,13 @@ class Panel(NDFrame):
         # old Panel pickle
         if isinstance(state, BlockManager):
             self._data = state
-        elif len(state) == 4: # pragma: no cover
+        elif len(state) == 4:  # pragma: no cover
             self._unpickle_panel_compat(state)
-        else: # pragma: no cover
+        else:  # pragma: no cover
             raise ValueError('unrecognized pickle')
         self._item_cache = {}
 
-    def _unpickle_panel_compat(self, state): # pragma: no cover
+    def _unpickle_panel_compat(self, state):  # pragma: no cover
         "Unpickle the panel"
         _unpickle = com._unpickle_array
         vals, items, major, minor = state
@@ -999,7 +1003,7 @@ class Panel(NDFrame):
         if i == j:
             raise ValueError('Cannot specify the same axis')
 
-        mapping = {i : j, j : i}
+        mapping = {i: j, j: i}
 
         new_axes = (self._get_axis(mapping.get(k, k))
                     for k in range(3))
@@ -1267,7 +1271,7 @@ class Panel(NDFrame):
         beg_slice, end_slice = index.slice_locs(before, after)
         new_index = index[beg_slice:end_slice]
 
-        return self.reindex(**{axis : new_index})
+        return self.reindex(**{axis: new_index})
 
     def join(self, other, how='left', lsuffix='', rsuffix=''):
         """
@@ -1303,8 +1307,8 @@ class Panel(NDFrame):
             return self._constructor(merged_data)
         else:
             if lsuffix or rsuffix:
-                raise ValueError('Suffixes not supported when passing multiple '
-                                 'panels')
+                raise ValueError('Suffixes not supported when passing '
+                                 'multiple panels')
 
             if how == 'left':
                 how = 'outer'
@@ -1364,6 +1368,7 @@ class Panel(NDFrame):
 WidePanel = Panel
 LongPanel = DataFrame
 
+
 def _prep_ndarray(values, copy=True):
     if not isinstance(values, np.ndarray):
         values = np.asarray(values)
@@ -1375,6 +1380,7 @@ def _prep_ndarray(values, copy=True):
             values = values.copy()
     assert(values.ndim == 3)
     return values
+
 
 def _homogenize_dict(frames, intersect=True, dtype=None):
     """
@@ -1446,6 +1452,7 @@ def _extract_axis(data, axis=0, intersect=False):
 def _monotonic(arr):
     return not (arr[1:] < arr[:-1]).any()
 
+
 def install_ipython_completers():  # pragma: no cover
     """Register the Panel type with IPython's tab completion machinery, so
     that it knows about accessing column names as attributes."""
@@ -1463,4 +1470,3 @@ if "IPython" in sys.modules:  # pragma: no cover
         install_ipython_completers()
     except Exception:
         pass
-

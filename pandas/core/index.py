@@ -27,7 +27,7 @@ def _indexOp(opname):
         result = func(other)
         try:
             return result.view(np.ndarray)
-        except: # pragma: no cover
+        except:  # pragma: no cover
             return result
     return wrapper
 
@@ -137,7 +137,7 @@ class Index(np.ndarray):
             prepr = com.pprint_thing(self)
         else:
             prepr = com.pprint_thing_encoded(self)
-        return  'Index(%s, dtype=%s)' % (prepr,self.dtype)
+        return 'Index(%s, dtype=%s)' % (prepr, self.dtype)
 
     def astype(self, dtype):
         return Index(self.values.astype(dtype), name=self.name,
@@ -572,7 +572,7 @@ class Index(np.ndarray):
                 # contained in
                 try:
                     result = np.sort(self.values)
-                except TypeError: # pragma: no cover
+                except TypeError:  # pragma: no cover
                     result = self.values
 
         # for subclasses
@@ -1029,7 +1029,7 @@ class Index(np.ndarray):
                 lidx = self._left_indexer_unique(ov, sv)
                 ridx = None
             elif how == 'inner':
-                join_index, lidx, ridx = self._inner_indexer(sv,ov)
+                join_index, lidx, ridx = self._inner_indexer(sv, ov)
                 join_index = self._wrap_joined_index(join_index, other)
             elif how == 'outer':
                 join_index, lidx, ridx = self._outer_indexer(sv, ov)
@@ -1231,8 +1231,6 @@ class Int64Index(Index):
         return Int64Index(joined, name=name)
 
 
-
-
 class MultiIndex(Index):
     """
     Implements multi-level, a.k.a. hierarchical, index object for pandas
@@ -1293,11 +1291,12 @@ class MultiIndex(Index):
 
     def __array_finalize__(self, obj):
         """
-        Update custom MultiIndex attributes when a new array is created by numpy,
-        e.g. when calling ndarray.view()
+        Update custom MultiIndex attributes when a new array is created by
+        numpy, e.g. when calling ndarray.view()
         """
         if not isinstance(obj, type(self)):
-            # Only relevant if this array is being created from an Index instance.
+            # Only relevant if this array is being created from an Index
+            # instance.
             return
 
         self.levels = list(getattr(obj, 'levels', []))
@@ -1347,7 +1346,7 @@ class MultiIndex(Index):
         index = values.view(MultiIndex)
         index.levels = levels
         index.labels = labels
-        index.names  = names
+        index.names = names
         index.sortorder = sortorder
         return index
 
@@ -1414,7 +1413,7 @@ class MultiIndex(Index):
         shape = [len(lev) for lev in self.levels]
         group_index = np.zeros(len(self), dtype='i8')
         for i in xrange(len(shape)):
-            stride = np.prod([x for x in shape[i+1:]], dtype='i8')
+            stride = np.prod([x for x in shape[i + 1:]], dtype='i8')
             group_index += self.labels[i] * stride
 
         if len(np.unique(group_index)) < len(group_index):
@@ -1589,7 +1588,7 @@ class MultiIndex(Index):
 
         if isinstance(tuples, np.ndarray):
             if isinstance(tuples, Index):
-               tuples = tuples.values
+                tuples = tuples.values
 
             arrays = list(lib.tuples_to_object_array(tuples).T)
         elif isinstance(tuples, list):
@@ -2432,9 +2431,11 @@ def _ensure_index(index_like):
 
     return Index(index_like)
 
+
 def _validate_join_method(method):
     if method not in ['left', 'right', 'inner', 'outer']:
         raise Exception('do not recognize join method %s' % method)
+
 
 # TODO: handle index names!
 def _get_combined_index(indexes, intersect=False):
@@ -2509,6 +2510,7 @@ def _sanitize_and_check(indexes):
     else:
         return indexes, 'array'
 
+
 def _handle_legacy_indexes(indexes):
     from pandas.core.daterange import DateRange
     from pandas.tseries.index import DatetimeIndex
@@ -2528,6 +2530,7 @@ def _handle_legacy_indexes(indexes):
 
     return converted
 
+
 def _get_consensus_names(indexes):
     consensus_name = indexes[0].names
     for index in indexes[1:]:
@@ -2535,6 +2538,7 @@ def _get_consensus_names(indexes):
             consensus_name = [None] * index.nlevels
             break
     return consensus_name
+
 
 def _maybe_box(idx):
     from pandas.tseries.api import DatetimeIndex, PeriodIndex

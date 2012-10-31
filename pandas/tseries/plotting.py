@@ -26,6 +26,7 @@ units.registry[Period] = PeriodConverter()
 #----------------------------------------------------------------------
 # Plotting functions and monkey patches
 
+
 def tsplot(series, plotf, **kwargs):
     """
     Plots a Series on the given Matplotlib axes or the current axes
@@ -49,7 +50,7 @@ def tsplot(series, plotf, **kwargs):
 
     freq = _get_freq(ax, series)
     # resample against axes freq if necessary
-    if freq is None: # pragma: no cover
+    if freq is None:  # pragma: no cover
         raise ValueError('Cannot use dynamic axis without frequency info')
     else:
         # Convert DatetimeIndex to PeriodIndex
@@ -74,7 +75,7 @@ def tsplot(series, plotf, **kwargs):
     if style is not None:
         args.append(style)
 
-    lines = plotf(ax, *args,  **kwargs)
+    lines = plotf(ax, *args, **kwargs)
     label = kwargs.get('label', None)
 
     # set date formatter, locators and rescale limits
@@ -84,14 +85,15 @@ def tsplot(series, plotf, **kwargs):
 
     return lines
 
+
 def _maybe_resample(series, ax, freq, plotf, kwargs):
     ax_freq = _get_ax_freq(ax)
     if ax_freq is not None and freq != ax_freq:
-        if frequencies.is_superperiod(freq, ax_freq): # upsample input
+        if frequencies.is_superperiod(freq, ax_freq):  # upsample input
             series = series.copy()
             series.index = series.index.asfreq(ax_freq)
             freq = ax_freq
-        elif _is_sup(freq, ax_freq): # one is weekly
+        elif _is_sup(freq, ax_freq):  # one is weekly
             how = kwargs.pop('how', 'last')
             series = series.resample('D', how=how).dropna()
             series = series.resample(ax_freq, how=how).dropna()
@@ -103,6 +105,7 @@ def _maybe_resample(series, ax, freq, plotf, kwargs):
             raise ValueError('Incompatible frequency conversion')
     return freq, ax_freq, series
 
+
 def _get_ax_freq(ax):
     ax_freq = getattr(ax, 'freq', None)
     if ax_freq is None:
@@ -112,13 +115,16 @@ def _get_ax_freq(ax):
             ax_freq = getattr(ax.right_ax, 'freq', None)
     return ax_freq
 
+
 def _is_sub(f1, f2):
     return ((f1.startswith('W') and frequencies.is_subperiod('D', f2)) or
             (f2.startswith('W') and frequencies.is_subperiod(f1, 'D')))
 
+
 def _is_sup(f1, f2):
     return ((f1.startswith('W') and frequencies.is_superperiod('D', f2)) or
             (f2.startswith('W') and frequencies.is_superperiod(f1, 'D')))
+
 
 def _upsample_others(ax, freq, plotf, kwargs):
     legend = ax.get_legend()
@@ -142,6 +148,7 @@ def _upsample_others(ax, freq, plotf, kwargs):
             title = None
         ax.legend(lines, labels, loc='best', title=title)
 
+
 def _replot_ax(ax, freq, plotf, kwargs):
     data = getattr(ax, '_plot_data', None)
     ax._plot_data = []
@@ -162,6 +169,7 @@ def _replot_ax(ax, freq, plotf, kwargs):
 
     return lines, labels
 
+
 def _decorate_axes(ax, freq, kwargs):
     ax.freq = freq
     xaxis = ax.get_xaxis()
@@ -173,6 +181,7 @@ def _decorate_axes(ax, freq, kwargs):
     ax.view_interval = None
     ax.date_axis_info = None
 
+
 def _maybe_mask(series):
     mask = isnull(series)
     if mask.any():
@@ -182,6 +191,7 @@ def _maybe_mask(series):
     else:
         args = [series.index, series]
     return args
+
 
 def _get_freq(ax, series):
     # get frequency from data
@@ -205,6 +215,7 @@ def _get_freq(ax, series):
 
     return freq
 
+
 def _get_xlim(lines):
     left, right = np.inf, -np.inf
     for l in lines:
@@ -212,6 +223,7 @@ def _get_xlim(lines):
         left = min(x[0].ordinal, left)
         right = max(x[-1].ordinal, right)
     return left, right
+
 
 def get_datevalue(date, freq):
     if isinstance(date, Period):
@@ -227,6 +239,7 @@ def get_datevalue(date, freq):
 
 # Patch methods for subplot. Only format_dateaxis is currently used.
 # Do we need the rest for convenience?
+
 
 def format_dateaxis(subplot, freq):
     """

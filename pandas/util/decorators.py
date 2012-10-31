@@ -3,8 +3,10 @@ from pandas.lib import cache_readonly
 import sys
 import warnings
 
+
 def deprecate(name, alternative):
     alt_name = alternative.func_name
+
     def wrapper(*args, **kwargs):
         warnings.warn("%s is deprecated. Use %s instead" % (name, alt_name),
                       FutureWarning)
@@ -13,6 +15,7 @@ def deprecate(name, alternative):
 
 # Substitution and Appender are derived from matplotlib.docstring (1.1.0)
 # module http://matplotlib.sourceforge.net/users/license.html
+
 
 class Substitution(object):
     """
@@ -66,6 +69,7 @@ class Substitution(object):
         result.params = params
         return result
 
+
 class Appender(object):
     """
     A function decorator that will append an addendum to the docstring
@@ -99,11 +103,13 @@ class Appender(object):
         func.__doc__ = ''.join(docitems)
         return func
 
+
 def indent(text, indents=1):
     if not text or type(text) != str:
         return ''
     jointext = ''.join(['\n'] + ['    '] * indents)
     return jointext.join(text.split('\n'))
+
 
 def suppress_stdout(f):
     def wrapped(*args, **kwargs):
@@ -119,6 +125,7 @@ def suppress_stdout(f):
 class KnownFailureTest(Exception):
     '''Raise this exception to mark a test as a known failing test.'''
     pass
+
 
 def knownfailureif(fail_condition, msg=None):
     """
@@ -163,6 +170,7 @@ def knownfailureif(fail_condition, msg=None):
         # Local import to avoid a hard nose dependency and only incur the
         # import time overhead at actual test-time.
         import nose
+
         def knownfailer(*args, **kwargs):
             if fail_val():
                 raise KnownFailureTest, msg

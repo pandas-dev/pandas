@@ -184,7 +184,7 @@ class TimeGrouper(CustomGrouper):
         # Determine if we're downsampling
         if axlabels.freq is not None or axlabels.inferred_freq is not None:
             if len(grouper.binlabels) < len(axlabels) or self.how is not None:
-                grouped  = obj.groupby(grouper, axis=self.axis)
+                grouped = obj.groupby(grouper, axis=self.axis)
                 result = grouped.aggregate(self._agg_method)
             else:
                 # upsampling shortcut
@@ -193,7 +193,7 @@ class TimeGrouper(CustomGrouper):
                                      limit=self.limit)
         else:
             # Irregular data, have to use groupby
-            grouped  = obj.groupby(grouper, axis=self.axis)
+            grouped = obj.groupby(grouper, axis=self.axis)
             result = grouped.aggregate(self._agg_method)
 
             if self.fill_method is not None:
@@ -265,7 +265,6 @@ def _take_new_index(obj, indexer, new_index, axis=0):
         raise NotImplementedError
 
 
-
 def _get_range_edges(axis, offset, closed='left', base=0):
     if isinstance(offset, basestring):
         offset = to_offset(offset)
@@ -278,7 +277,7 @@ def _get_range_edges(axis, offset, closed='left', base=0):
                                           closed=closed, base=base)
 
     first, last = axis[0], axis[-1]
-    if not isinstance(offset, Tick):# and first.time() != last.time():
+    if not isinstance(offset, Tick):  # and first.time() != last.time():
         # hack!
         first = tools.normalize_date(first)
         last = tools.normalize_date(last)

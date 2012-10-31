@@ -44,6 +44,7 @@ _SHOW_WARNINGS = True
 #----------------------------------------------------------------------
 # Wrapper function for Series arithmetic methods
 
+
 def _arith_method(op, name):
     """
     Wrapper function for Series arithmetic operations, to avoid
@@ -124,7 +125,7 @@ def _comp_method(op, name):
             name = _maybe_match_name(self, other)
             return Series(na_op(self.values, other.values),
                           index=self.index, name=name)
-        elif isinstance(other, DataFrame): # pragma: no cover
+        elif isinstance(other, DataFrame):  # pragma: no cover
             return NotImplemented
         elif isinstance(other, np.ndarray):
             return Series(na_op(self.values, np.asarray(other)),
@@ -160,8 +161,8 @@ def _bool_method(op, name):
 
             if isinstance(y, np.ndarray):
                 if (x.dtype == np.bool_ and
-                    y.dtype == np.bool_): # pragma: no cover
-                    result = op(x, y) # when would this be hit?
+                    y.dtype == np.bool_):  # pragma: no cover
+                    result = op(x, y)  # when would this be hit?
                 else:
                     x = com._ensure_object(x)
                     y = com._ensure_object(y)
@@ -187,7 +188,6 @@ def _bool_method(op, name):
     return wrapper
 
 
-
 def _radd_compat(left, right):
     radd = lambda x, y: y + x
     # GH #353, NumPy 1.5.1 workaround
@@ -196,7 +196,7 @@ def _radd_compat(left, right):
     except TypeError:
         cond = (_np_version_under1p6 and
                 left.dtype == np.object_)
-        if cond: # pragma: no cover
+        if cond:  # pragma: no cover
             output = np.empty_like(left)
             output.flat[:] = [radd(x, right) for x in left.flat]
         else:
@@ -238,6 +238,7 @@ def _flex_method(op, name):
 
     f.__name__ = name
     return f
+
 
 def _unbox(func):
     @Appender(func.__doc__)
@@ -288,9 +289,10 @@ def _make_stat_func(nanop, name, shortname, na_action=_doc_exclude_na,
 #----------------------------------------------------------------------
 # Series class
 
+
 class Series(np.ndarray, generic.PandasObject):
     _AXIS_NUMBERS = {
-        'index' : 0
+        'index': 0
     }
 
     _AXIS_NAMES = dict((v, k) for k, v in _AXIS_NUMBERS.iteritems())
@@ -322,7 +324,8 @@ class Series(np.ndarray, generic.PandasObject):
                 elif isinstance(index, PeriodIndex):
                     data = [data.get(i, nan) for i in index]
                 else:
-                    data = lib.fast_multiget(data, index.values, default=np.nan)
+                    data = lib.fast_multiget(data, index.values,
+                                             default=np.nan)
             except TypeError:
                 data = [data.get(i, nan) for i in index]
         elif isinstance(data, types.GeneratorType):
@@ -830,7 +833,7 @@ copy : boolean, default False
             if name is None:
                 df = DataFrame(self)
             else:
-                df = DataFrame({name : self})
+                df = DataFrame({name: self})
 
             return df.reset_index(level=level, drop=drop)
 
@@ -1153,7 +1156,7 @@ copy : boolean, default False
 
     @Substitution(name='standard deviation', shortname='stdev',
                   na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc + 
+    @Appender(_stat_doc +
         """
         Normalized by N-1 (unbiased estimator).
         """)
@@ -1166,7 +1169,7 @@ copy : boolean, default False
 
     @Substitution(name='variance', shortname='var',
                   na_action=_doc_exclude_na, extras='')
-    @Appender(_stat_doc + 
+    @Appender(_stat_doc +
         """
         Normalized by N-1 (unbiased estimator).
         """)
@@ -1432,7 +1435,7 @@ copy : boolean, default False
                          lib.Timestamp(top), freq]
         else:
 
-            lb = .5 * (1. - percentile_width/100.)
+            lb = .5 * (1. - percentile_width / 100.)
             ub = 1. - lb
 
             def pretty_name(x):
@@ -1567,7 +1570,7 @@ copy : boolean, default False
         """
         return np.where(self < threshold, threshold, self)
 
-#-------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Combination
 
     def append(self, to_append, verify_integrity=False):
@@ -1993,6 +1996,7 @@ copy : boolean, default False
 
         if na_action == 'ignore':
             mask = isnull(values)
+
             def map_f(values, f):
                 return lib.map_infer_mask(values, f, mask.view(np.uint8))
         else:
@@ -2245,7 +2249,6 @@ copy : boolean, default False
 
         return result
 
-
     def replace(self, to_replace, value=None, method='pad', inplace=False,
                 limit=None):
         """
@@ -2282,15 +2285,15 @@ copy : boolean, default False
         """
         result = self.copy() if not inplace else self
 
-        def _rep_one(s, to_rep, v): # replace single value
+        def _rep_one(s, to_rep, v):  # replace single value
             mask = com.mask_missing(s.values, to_rep)
             np.putmask(s.values, mask, v)
             return s
 
-        def _rep_dict(rs, to_rep): # replace {[src] -> dest}
+        def _rep_dict(rs, to_rep):  # replace {[src] -> dest}
 
             all_src = set()
-            dd = {} # group by unique destination value
+            dd = {}  # group by unique destination value
             for s, d in to_rep.iteritems():
                 dd.setdefault(d, []).append(s)
                 all_src.add(s)
@@ -2298,12 +2301,12 @@ copy : boolean, default False
             if any(d in all_src for d in dd.keys()):
                 # don't clobber each other at the cost of temporaries
                 masks = {}
-                for d, sset in dd.iteritems(): # now replace by each dest
+                for d, sset in dd.iteritems():  # now replace by each dest
                     masks[d] = com.mask_missing(rs.values, sset)
 
                 for d, m in masks.iteritems():
                     np.putmask(rs.values, m, d)
-            else: # if no risk of clobbering then simple
+            else:  # if no risk of clobbering then simple
                 for d, sset in dd.iteritems():
                     _rep_one(rs, sset, d)
             return rs
@@ -2316,17 +2319,17 @@ copy : boolean, default False
 
         if isinstance(to_replace, (list, np.ndarray)):
 
-            if isinstance(value, (list, np.ndarray)): # check same length
+            if isinstance(value, (list, np.ndarray)):  # check same length
                 vl, rl = len(value), len(to_replace)
                 if vl == rl:
                     return _rep_dict(result, dict(zip(to_replace, value)))
                 raise ValueError('Got %d to replace but %d values' % (rl, vl))
 
-            elif value is not None: # otherwise all replaced with same value
+            elif value is not None:  # otherwise all replaced with same value
 
                 return _rep_one(result, to_replace, value)
 
-            else: # method
+            else:  # method
                 if method is None:  # pragma: no cover
                     raise ValueError('must specify a fill method')
                 fill_f = _get_fill_func(method)
@@ -2338,7 +2341,6 @@ copy : boolean, default False
                     result = Series(result.values, index=self.index,
                                     name=self.name)
                 return result
-
 
         raise ValueError('Unrecognized to_replace type %s' %
                          type(to_replace))
@@ -2746,8 +2748,9 @@ copy : boolean, default False
 
 _INDEX_TYPES = ndarray, Index, list, tuple
 
-#-------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Supplementary functions
+
 
 def remove_na(arr):
     """
@@ -2769,7 +2772,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         except (ValueError, TypeError):
             if dtype is not None and raise_cast_failure:
                 raise
-            else: # pragma: no cover
+            else:  # pragma: no cover
                 subarr = np.array(data, dtype=object, copy=copy)
         return subarr
 
@@ -2801,7 +2804,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             try:
                 subarr = _try_cast(data)
             except Exception:
-                if raise_cast_failure: # pragma: no cover
+                if raise_cast_failure:  # pragma: no cover
                     raise
                 subarr = np.array(data, dtype=object, copy=copy)
                 subarr = lib.maybe_convert_objects(subarr)
@@ -2846,12 +2849,14 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
     return subarr
 
+
 def _dtype_from_scalar(val):
     if isinstance(val, np.datetime64):
         # ugly hacklet
         val = lib.Timestamp(val).value
         return val, np.dtype('M8[ns]')
     return val, type(val)
+
 
 def _get_rename_function(mapper):
     if isinstance(mapper, (dict, Series)):
@@ -2865,9 +2870,8 @@ def _get_rename_function(mapper):
 
     return f
 
-def _resolve_offset(freq, kwds):
-    from pandas.core.datetools import getOffset
 
+def _resolve_offset(freq, kwds):
     if 'timeRule' in kwds or 'offset' in kwds:
         offset = kwds.get('offset', None)
         offset = kwds.get('timeRule', offset)
@@ -2886,6 +2890,7 @@ def _resolve_offset(freq, kwds):
 
     return offset
 
+
 def _get_fill_func(method):
     method = com._clean_fill_method(method)
     if method == 'pad':
@@ -2903,6 +2908,7 @@ Series.plot = _gfx.plot_series
 Series.hist = _gfx.hist_series
 
 # Put here, otherwise monkey-patching in methods fails
+
 
 class TimeSeries(Series):
 

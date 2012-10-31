@@ -16,6 +16,7 @@ import rpy2.robjects as robj
 __all__ = ['convert_robj', 'load_data', 'convert_to_r_dataframe',
            'convert_to_r_matrix']
 
+
 def load_data(name, package=None, convert=True):
     if package:
         importr(package)
@@ -29,14 +30,17 @@ def load_data(name, package=None, convert=True):
     else:
         return robj
 
+
 def _rclass(obj):
     """
     Return R class name for input object
     """
     return r['class'](obj)[0]
 
+
 def _is_null(obj):
     return _rclass(obj) == 'NULL'
+
 
 def _convert_list(obj):
     """
@@ -44,6 +48,7 @@ def _convert_list(obj):
     """
     values = [convert_robj(x) for x in obj]
     return dict(zip(obj.names, values))
+
 
 def _convert_array(obj):
     """
@@ -59,7 +64,6 @@ def _convert_array(obj):
     if len(dim) == 3:
         arr = values.reshape(dim[-1:] + dim[:-1]).swapaxes(1, 2)
 
-
     if obj.names is not None:
         name_list = [list(x) for x in obj.names]
         if len(dim) == 2:
@@ -73,6 +77,7 @@ def _convert_array(obj):
     else:
         return arr
 
+
 def _convert_vector(obj):
     if isinstance(obj, robj.IntVector):
         return _convert_int_vector(obj)
@@ -83,6 +88,7 @@ def _convert_vector(obj):
 
 NA_INTEGER = -2147483648
 
+
 def _convert_int_vector(obj):
     arr = np.asarray(obj)
     mask = arr == NA_INTEGER
@@ -91,12 +97,14 @@ def _convert_int_vector(obj):
         arr[mask] = np.nan
     return arr
 
+
 def _convert_str_vector(obj):
     arr = np.asarray(obj, dtype=object)
     mask = arr == robj.NA_Character
     if mask.any():
         arr[mask] = np.nan
     return arr
+
 
 def _convert_DataFrame(rdf):
     columns = list(rdf.colnames)
@@ -125,6 +133,7 @@ def _convert_DataFrame(rdf):
 
     return pd.DataFrame(data, index=_check_int(rows), columns=columns)
 
+
 def _convert_Matrix(mat):
     columns = mat.colnames
     rows = mat.rownames
@@ -134,6 +143,7 @@ def _convert_Matrix(mat):
 
     return pd.DataFrame(np.array(mat), index=_check_int(index),
                         columns=columns)
+
 
 def _check_int(vec):
     try:
@@ -145,8 +155,8 @@ def _check_int(vec):
     return vec
 
 _pandas_converters = [
-    (robj.DataFrame , _convert_DataFrame),
-    (robj.Matrix , _convert_Matrix),
+    (robj.DataFrame, _convert_DataFrame),
+    (robj.Matrix, _convert_Matrix),
     (robj.StrVector, _convert_vector),
     (robj.FloatVector, _convert_vector),
     (robj.Array, _convert_array),
@@ -154,14 +164,15 @@ _pandas_converters = [
 ]
 
 _converters = [
-    (robj.DataFrame , lambda x: _convert_DataFrame(x).toRecords(index=False)),
-    (robj.Matrix , lambda x: _convert_Matrix(x).toRecords(index=False)),
+    (robj.DataFrame, lambda x: _convert_DataFrame(x).toRecords(index=False)),
+    (robj.Matrix, lambda x: _convert_Matrix(x).toRecords(index=False)),
     (robj.IntVector, _convert_vector),
     (robj.StrVector, _convert_vector),
     (robj.FloatVector, _convert_vector),
     (robj.Array, _convert_array),
     (robj.Vector, _convert_list),
 ]
+
 
 def convert_robj(obj, use_pandas=True):
     """
@@ -205,6 +216,7 @@ NA_TYPES = {np.float64: robj.NA_Real,
             np.object_: robj.NA_Character,
             np.str: robj.NA_Character,
             np.bool: robj.NA_Logical}
+
 
 def convert_to_r_dataframe(df, strings_as_factors=False):
     """
@@ -270,7 +282,6 @@ def convert_to_r_matrix(df, strings_as_factors=False):
         raise TypeError("Conversion to matrix only possible with non-mixed "
                         "type DataFrames")
 
-
     r_dataframe = convert_to_r_dataframe(df, strings_as_factors)
     as_matrix = robj.baseenv.get("as.matrix")
     r_matrix = as_matrix(r_dataframe)
@@ -282,17 +293,19 @@ def test_convert_list():
     obj = r('list(a=1, b=2, c=3)')
 
     converted = convert_robj(obj)
-    expected = {'a' : [1], 'b' : [2], 'c' : [3]}
+    expected = {'a': [1], 'b': [2], 'c': [3]}
 
     _test.assert_dict_equal(converted, expected)
+
 
 def test_convert_nested_list():
     obj = r('list(a=list(foo=1, bar=2))')
 
     converted = convert_robj(obj)
-    expected = {'a' : {'foo' : [1], 'bar' : [2]}}
+    expected = {'a': {'foo': [1], 'bar': [2]}}
 
     _test.assert_dict_equal(converted, expected)
+
 
 def test_convert_frame():
     # built-in dataset
@@ -303,12 +316,14 @@ def test_convert_frame():
     assert np.array_equal(converted.columns, ['eruptions', 'waiting'])
     assert np.array_equal(converted.index, np.arange(1, 273))
 
+
 def _test_matrix():
     r('mat <- matrix(rnorm(9), ncol=3)')
     r('colnames(mat) <- c("one", "two", "three")')
     r('rownames(mat) <- c("a", "b", "c")')
 
     return r['mat']
+
 
 def test_convert_matrix():
     mat = _test_matrix()
@@ -317,6 +332,7 @@ def test_convert_matrix():
 
     assert np.array_equal(converted.index, ['a', 'b', 'c'])
     assert np.array_equal(converted.columns, ['one', 'two', 'three'])
+
 
 def test_convert_r_dataframe():
 
@@ -349,6 +365,7 @@ def test_convert_r_dataframe():
                 assert is_na(converted)
             else:
                 assert original == converted
+
 
 def test_convert_r_matrix():
 

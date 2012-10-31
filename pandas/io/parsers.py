@@ -26,6 +26,7 @@ from pandas.io.date_converters import generic_parser
 
 from pandas.util.decorators import Appender
 
+
 class DateConversionError(Exception):
     pass
 
@@ -146,10 +147,11 @@ def _is_url(url):
     Very naive check to see if url is an http(s), ftp, or file location.
     """
     parsed_url = urlparse(url)
-    if parsed_url.scheme in ['http','file', 'ftp', 'https']:
+    if parsed_url.scheme in ['http', 'file', 'ftp', 'https']:
         return True
     else:
         return False
+
 
 def _read(cls, filepath_or_buffer, kwds):
     "Generic reader of line files."
@@ -176,7 +178,7 @@ def _read(cls, filepath_or_buffer, kwds):
         try:
             # universal newline mode
             f = com._get_handle(filepath_or_buffer, 'U', encoding=encoding)
-        except Exception: # pragma: no cover
+        except Exception:  # pragma: no cover
             f = com._get_handle(filepath_or_buffer, 'r', encoding=encoding)
 
     if kwds.get('date_parser', None) is not None:
@@ -198,6 +200,7 @@ def _read(cls, filepath_or_buffer, kwds):
         return parser
 
     return parser.get_chunk()
+
 
 @Appender(_read_csv_doc)
 def read_csv(filepath_or_buffer,
@@ -249,6 +252,7 @@ def read_csv(filepath_or_buffer,
 
     return _read(TextParser, filepath_or_buffer, kdict)
 
+
 @Appender(_read_table_doc)
 def read_table(filepath_or_buffer,
                sep='\t',
@@ -298,6 +302,7 @@ def read_table(filepath_or_buffer,
         kdict['delimiter'] = sep
 
     return _read(TextParser, filepath_or_buffer, kdict)
+
 
 @Appender(_read_fwf_doc)
 def read_fwf(filepath_or_buffer,
@@ -353,12 +358,13 @@ def read_fwf(filepath_or_buffer,
     if widths is not None:
         colspecs, col = [], 0
         for w in widths:
-            colspecs.append( (col, col+w) )
+            colspecs.append((col, col+w))
             col += w
         kdict['colspecs'] = colspecs
 
     kdict['thousands'] = thousands
     return _read(FixedWidthFieldParser, filepath_or_buffer, kdict)
+
 
 def read_clipboard(**kwargs):  # pragma: no cover
     """
@@ -373,7 +379,8 @@ def read_clipboard(**kwargs):  # pragma: no cover
     text = clipboard_get()
     return read_table(StringIO(text), **kwargs)
 
-def to_clipboard(obj): # pragma: no cover
+
+def to_clipboard(obj):  # pragma: no cover
     """
     Attempt to write text representation of object to the system clipboard
 
@@ -387,6 +394,7 @@ def to_clipboard(obj): # pragma: no cover
     from pandas.util.clipboard import clipboard_set
     clipboard_set(str(obj))
 
+
 class BufferedReader(object):
     """
     For handling different kinds of files, e.g. zip files where reading out a
@@ -394,7 +402,8 @@ class BufferedReader(object):
     """
 
     def __init__(self, fh, delimiter=','):
-        pass # pragma: no coverage
+        pass  # pragma: no coverage
+
 
 class BufferedCSVReader(BufferedReader):
     pass
@@ -817,7 +826,7 @@ class TextParser(object):
         self._first_chunk = False
 
         columns = list(self.orig_columns)
-        if len(content) == 0: # pragma: no cover
+        if len(content) == 0:  # pragma: no cover
             if self.index_col is not None:
                 if np.isscalar(self.index_col):
                     index = Index([], name=self.index_name)
@@ -903,7 +912,7 @@ class TextParser(object):
             index = data.pop(i)
             if not self._implicit_index:
                 columns.pop(i)
-        else: # given a list of index
+        else:  # given a list of index
             to_remove = []
             index = []
             for idx in self.index_col:
@@ -938,7 +947,7 @@ class TextParser(object):
             name = _get_name(self.index_col)
             index = data.pop(name)
             col_names.remove(name)
-        else: # given a list of index
+        else:  # given a list of index
             to_remove = []
             index = []
             for idx in self.index_col:
@@ -1085,7 +1094,7 @@ class TextParser(object):
                 lines.extend(source[self.pos:])
                 self.pos = len(source)
             else:
-                lines.extend(source[self.pos:self.pos+rows])
+                lines.extend(source[self.pos:self.pos + rows])
                 self.pos += rows
         else:
             new_rows = []
@@ -1121,6 +1130,7 @@ class TextParser(object):
         lines = self._check_comments(lines)
         return self._check_thousands(lines)
 
+
 def _get_na_values(col, na_values):
     if isinstance(na_values, dict):
         if col in na_values:
@@ -1129,6 +1139,7 @@ def _get_na_values(col, na_values):
             return _NA_VALUES
     else:
         return na_values
+
 
 def _convert_to_ndarrays(dct, na_values, verbose=False):
     result = {}
@@ -1139,6 +1150,7 @@ def _convert_to_ndarrays(dct, na_values, verbose=False):
         if verbose and na_count:
             print 'Filled %d NA values in column %s' % (na_count, str(c))
     return result
+
 
 def _convert_types(values, na_values):
     na_count = 0
@@ -1162,6 +1174,7 @@ def _convert_types(values, na_values):
 
     return result, na_count
 
+
 def _try_convert_dates(parser, colspec, data_dict, columns):
     colspec = _get_col_names(colspec, columns)
     new_name = '_'.join([str(x) for x in colspec])
@@ -1172,6 +1185,7 @@ def _try_convert_dates(parser, colspec, data_dict, columns):
     except DateConversionError:
         new_col = parser(_concat_date_cols(to_parse))
     return new_name, new_col, colspec
+
 
 def _get_col_names(colspec, columns):
     colset = set(columns)
@@ -1201,7 +1215,7 @@ class FixedWidthReader(object):
     def __init__(self, f, colspecs, filler, thousands=None):
         self.f = f
         self.colspecs = colspecs
-        self.filler = filler # Empty characters between fields.
+        self.filler = filler  # Empty characters between fields.
         self.thousands = thousands
 
         assert isinstance(colspecs, (tuple, list))
@@ -1323,8 +1337,8 @@ class ExcelFile(object):
         if skipfooter is not None:
             skip_footer = skipfooter
 
-        choose = {True:self._parse_xlsx,
-                  False:self._parse_xls}
+        choose = {True: self._parse_xlsx,
+                  False: self._parse_xls}
         return choose[self.use_xlsx](sheetname, header=header,
                                      skiprows=skiprows, index_col=index_col,
                                      parse_cols=parse_cols,
@@ -1399,7 +1413,7 @@ class ExcelFile(object):
                     if typ == XL_CELL_DATE:
                         dt = xldate_as_tuple(value, datemode)
                         # how to produce this first case?
-                        if dt[0] < MINYEAR: # pragma: no cover
+                        if dt[0] < MINYEAR:  # pragma: no cover
                             value = time(*dt[3:])
                         else:
                             value = datetime(*dt)
@@ -1436,6 +1450,7 @@ def _trim_excel_header(row):
         row = row[1:]
     return row
 
+
 class ExcelWriter(object):
     """
     Class for writing DataFrame objects into excel sheets, uses xlwt for xls,
@@ -1456,7 +1471,7 @@ class ExcelWriter(object):
             self.fm_date = xlwt.easyxf(num_format_str='YYYY-MM-DD')
         else:
             from openpyxl.workbook import Workbook
-            self.book = Workbook(optimized_write = True)
+            self.book = Workbook(optimized_write=True)
         self.path = path
         self.sheets = {}
         self.cur_sheet = None
@@ -1498,15 +1513,15 @@ class ExcelWriter(object):
         for i, val in enumerate(row):
             if isinstance(val, (datetime.datetime, datetime.date)):
                 if isinstance(val, datetime.datetime):
-                    sheetrow.write(i,val, self.fm_datetime)
+                    sheetrow.write(i, val, self.fm_datetime)
                 else:
-                    sheetrow.write(i,val, self.fm_date)
+                    sheetrow.write(i, val, self.fm_date)
             elif isinstance(val, np.int64):
-                sheetrow.write(i,int(val))
+                sheetrow.write(i, int(val))
             elif isinstance(val, np.bool8):
-                sheetrow.write(i,bool(val))
+                sheetrow.write(i, bool(val))
             else:
-                sheetrow.write(i,val)
+                sheetrow.write(i, val)
         row_idx += 1
         if row_idx == 1000:
             sheet.flush_row_data()
