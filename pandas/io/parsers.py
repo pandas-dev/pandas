@@ -41,6 +41,8 @@ filepath_or_buffer : string or file handle / StringIO. The string could be
     is expected. For instance, a local file could be
     file ://localhost/path/to/table.csv
 %s
+compression : {'gzip', 'bz2', None}, default None
+    For on-the-fly decompression of on-disk data
 dialect : string or csv.Dialect instance, default None
     If None defaults to Excel dialect. Ignored if sep longer than 1 char
     See csv.Dialect documentation for more details
@@ -172,15 +174,6 @@ def _read(filepath_or_buffer, kwds):
             bytes = filepath_or_buffer.read()
             filepath_or_buffer = StringIO(bytes.decode(encoding, errors))
 
-    if hasattr(filepath_or_buffer, 'read'):
-        f = filepath_or_buffer
-    else:
-        try:
-            # universal newline mode
-            f = com._get_handle(filepath_or_buffer, 'U', encoding=encoding)
-        except Exception: # pragma: no cover
-            f = com._get_handle(filepath_or_buffer, 'r', encoding=encoding)
-
     if kwds.get('date_parser', None) is not None:
         if isinstance(kwds['parse_dates'], bool):
             kwds['parse_dates'] = True
@@ -191,7 +184,7 @@ def _read(filepath_or_buffer, kwds):
     chunksize = kwds.get('chunksize', None)
 
     # Create the parser.
-    parser = TextFileReader(f, **kwds)
+    parser = TextFileReader(filepath_or_buffer, **kwds)
 
     if nrows is not None:
         return parser.read(nrows)
@@ -243,12 +236,14 @@ _c_parser_defaults = {
     'compact_ints': False,
     'use_unsigned': False,
     'low_memory': True,
+    'memory_map': False,
     'buffer_lines': None,
     'error_bad_lines': True,
     'warn_bad_lines': True,
     'factorize': True,
     'dtype': None,
     'usecols': None,
+    'compression': None
 }
 
 _fwf_defaults = {
@@ -265,6 +260,7 @@ def _make_parser_function(name, sep=','):
     def parser_f(filepath_or_buffer,
                  sep=sep,
                  dialect=None,
+                 compression=None,
 
                  doublequote=True,
                  escapechar=None,
@@ -304,6 +300,7 @@ def _make_parser_function(name, sep=','):
                  dayfirst=False,
                  date_parser=None,
 
+                 memory_map=False,
                  nrows=None,
                  iterator=False,
                  chunksize=None,
@@ -319,6 +316,7 @@ def _make_parser_function(name, sep=','):
         kwds = dict(delimiter=delimiter,
                     engine=engine,
                     dialect=dialect,
+                    compression=compression,
 
                     doublequote=doublequote,
                     escapechar=escapechar,
@@ -350,6 +348,7 @@ def _make_parser_function(name, sep=','):
                     verbose=verbose,
                     encoding=encoding,
                     squeeze=squeeze,
+                    memory_map=memory_map,
 
                     na_filter=na_filter,
                     compact_ints=compact_ints,
@@ -1010,6 +1009,14 @@ class PythonParser(ParserBase):
         self.thousands = kwds['thousands']
         self.comment = kwds['comment']
         self._comment_lines = []
+
+
+        if isinstance(f, basestring):
+            try:
+                # universal newline mode
+                f = com._get_handle(f, 'U', encoding=self.encoding)
+            except Exception: # pragma: no cover
+                f = com._get_handle(f, 'r', encoding=self.encoding)
 
         if hasattr(f, 'readline'):
             self._make_reader(f)

@@ -241,6 +241,7 @@ cdef class TextReader:
         object compact_ints, use_unsigned
         object dtype
         object encoding
+        object compression
         set noconvert, usecols
 
     def __cinit__(self, source,
@@ -252,6 +253,8 @@ cdef class TextReader:
                   memory_map=False,
                   tokenize_chunksize=DEFAULT_CHUNKSIZE,
                   delim_whitespace=False,
+
+                  compression=None,
 
                   converters=None,
 
@@ -290,6 +293,7 @@ cdef class TextReader:
         # For timekeeping
         self.clocks = []
 
+        self.compression = compression
         self._setup_parser_source(source)
         parser_set_default_options(self.parser)
 
@@ -410,7 +414,7 @@ cdef class TextReader:
         self.header, self.table_width = self._get_header()
 
         # compute buffer_lines as function of table width
-        heuristic = 2**18 // self.table_width
+        heuristic = 2**20 // self.table_width
         self.buffer_lines = 1
         while self.buffer_lines * 2< heuristic:
             self.buffer_lines *= 2
@@ -435,6 +439,17 @@ cdef class TextReader:
         cdef:
             int status
             void *ptr
+
+        if isinstance(source, basestring) and self.compression:
+            if self.compression == 'gzip':
+                import gzip
+                source = gzip.GzipFile(source, 'rb')
+            elif self.compression == 'bz2':
+                import bz2
+                source = bz2.BZ2File(source, 'rb')
+            else:
+                raise ValueError('Unrecognized compression type: %s' %
+                                 self.compression)
 
         if isinstance(source, basestring):
             if not isinstance(source, bytes):

@@ -1702,6 +1702,41 @@ a,b,c
         expected = DataFrame({'a': [1, 4], 'b': [2, 5], 'c': [3, 6]})
         tm.assert_frame_equal(result, expected)
 
+    def test_decompression(self):
+        data = open(self.csv1, 'rb').read()
+
+        expected = self.read_csv(self.csv1)
+
+        import gzip, bz2
+
+        try:
+            tmp = gzip.GzipFile('__tmp__', mode='wb')
+            tmp.write(data)
+            tmp.close()
+
+            result = self.read_csv('__tmp__', compression='gzip')
+            tm.assert_frame_equal(result, expected)
+        finally:
+            # try:
+            #     os.remove('__tmp__')
+            # except:
+            #     pass
+            pass
+
+        try:
+            tmp = bz2.BZ2File('__tmp__', mode='wb')
+            tmp.write(data)
+            tmp.close()
+
+            result = self.read_csv('__tmp__', compression='bz2')
+            tm.assert_frame_equal(result, expected)
+        finally:
+            try:
+                os.remove('__tmp__')
+            except:
+                pass
+
+
 class TestParseSQL(unittest.TestCase):
 
     def test_convert_sql_column_floats(self):
