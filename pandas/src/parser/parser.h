@@ -9,14 +9,9 @@ See LICENSE for the license
 #ifndef _PARSER_COMMON_H_
 #define _PARSER_COMMON_H_
 
-#include "Python.h"
-
-/* #include "structmember.h" */
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <time.h>
 #include <errno.h>
 
@@ -32,6 +27,8 @@ See LICENSE for the license
 #define KB 1024
 #define MB 1024 * KB
 #define STREAM_INIT_SIZE 32
+
+#define REACHED_EOF 1
 
 
 /*
@@ -106,9 +103,14 @@ typedef enum {
 } QuoteStyle;
 
 
+typedef void* (*io_callback)(void *src, size_t nbytes, size_t *bytes_read,
+                            int *status);
+typedef int (*io_cleanup)(void *src);
+
 typedef struct parser_t {
     void *source;
-    char sourcetype;   // 'M' for mmap, 'F' for FILE, 'A' for array
+    io_callback cb_io;
+    io_cleanup cb_cleanup;
 
     int chunksize;  // Number of bytes to prepare for each chunk
     char *data;     // pointer to data to be processed
@@ -131,7 +133,7 @@ typedef struct parser_t {
 
     int *line_start;      // position in words for start of line
     int *line_fields;     // Number of fields in each line
-    int lines;            // Number of (good) lines observed
+    int lines;            // Number of (good) lines observedb
     int file_lines;       // Number of file lines observed (including bad or skipped)
     int lines_cap;        // Vector capacity
 
@@ -155,8 +157,6 @@ typedef struct parser_t {
     int error_bad_lines;
     int warn_bad_lines;
 
-    int infer_types;
-
     // floating point options
     char decimal;
     char sci;
@@ -172,6 +172,7 @@ typedef struct parser_t {
     // error handling
     char *error_msg;
 } parser_t;
+
 
 
 void *safe_realloc(void *buffer, size_t size);
@@ -194,14 +195,6 @@ coliter_t *coliter_new(parser_t *self, int i);
 parser_t* parser_new();
 
 int parser_init(parser_t *self);
-
-int parser_file_source_init(parser_t *self, FILE *fp);
-
-int parser_mmap_init(parser_t *self, FILE *fp);
-
-int parser_rd_source_init(parser_t *self, PyObject *source);
-
-int parser_gzip_source_init(parser_t *self, FILE *fp);
 
 int parser_consume_rows(parser_t *self, size_t nrows);
 

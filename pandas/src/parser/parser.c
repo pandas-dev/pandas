@@ -23,13 +23,9 @@ n   Low-level ascii-file processing for pandas. Combines some elements from
 
 #define READ_ERROR_OUT_OF_MEMORY   1
 
-#define REACHED_EOF 1
 
 #define HAVE_MEMMAP
 #define HAVE_GZIP
-
-#define FB_EOF   -1
-#define FB_ERROR -2
 
 /*
 * restore:
@@ -100,80 +96,6 @@ coliter_t *coliter_new(parser_t *self, int i) {
  }
 
 
- /*
-
-   On-disk FILE, uncompressed
-
-  */
-
- typedef struct _file_source {
-     /* The file being read. */
-     FILE *fp;
-
-     /* Size of the file, in bytes. */
-     /* off_t size; */
-
-     /* file position when the file_buffer was created. */
-     off_t initial_file_pos;
-
-     /* Offset in the file of the data currently in the buffer. */
-     off_t buffer_file_pos;
-
-     /* Actual number of bytes in the current buffer. (Can be less than buffer_size.) */
-     off_t last_pos;
-
-     /* Size (in bytes) of the buffer. */
-     // off_t buffer_size;
-
-     /* Pointer to the buffer. */
-     // char *buffer;
-
- } file_source;
-
- #define FS(source) ((file_source *)source)
-
-
- void *new_file_source(FILE *fp) {
-     file_source *fs = (file_source *) malloc(sizeof(file_source));
-     fs->fp = fp;
-
-     fs->initial_file_pos = ftell(fp);
-
-     return (void *) fs;
- }
-
- void del_file_source(void *fs) {
-     // TODO: error codes?
-     // fclose(FS(fs)->fp);
-
-     // fseek(FS(fs)->fp, FS(fs)->initial_file_pos, SEEK_SET);
-     // allocated on the heap
-     free(fs);
- }
-
-
-int parser_file_source_init(parser_t *self, FILE* fp) {
-    self->sourcetype = 'F';
-    self->source = new_file_source(fp);
-
-    // Only allocate this heap memory if we are not memory-mapping the file
-    self->data = (char*) malloc((self->chunksize + 1) * sizeof(char));
-    memset(self->data, 0, self->chunksize + 1);
-    self->data[self->chunksize] = '\0';
-
-    if (self->data == NULL) {
-        return PARSER_OUT_OF_MEMORY;
-    }
-
-    return 0;
-}
-
- /*
-
-   In-memory bytes
-
-  */
-
 
  /*
 
@@ -206,8 +128,6 @@ int parser_file_source_init(parser_t *self, FILE* fp) {
 
 
 void parser_set_default_options(parser_t *self) {
-    // parsing, type inference
-    self->infer_types = 1;
     self->decimal = '.';
     self->sci = 'E';
 
@@ -243,195 +163,6 @@ parser_t* parser_new() {
     return (parser_t*) calloc(1, sizeof(parser_t));
 }
 
-// XXX handle on systems without the capability
-
-#include <sys/stat.h>
-#include <sys/mman.h>
-
-typedef struct _memory_map {
-
-    FILE *file;
-
-    /* Size of the file, in bytes. */
-    off_t size;
-
-    /* file position when the file_buffer was created. */
-    off_t initial_file_pos;
-
-    int line_number;
-
-    int fileno;
-    off_t position;
-    off_t last_pos;
-    char *memmap;
-
-} memory_map;
-
-#define MM(src) ((memory_map*) src)
-
-
-/*
- *  void *new_file_buffer(FILE *f, int buffer_size)
- *
- *  Allocate a new file_buffer.
- *  Returns NULL if the memory allocation fails or if the call to mmap fails.
- *
- *  buffer_size is ignored.
- */
-
-void *new_mmap(FILE *f)
-{
-    struct stat buf;
-    int fd;
-    memory_map *mm;
-    /* off_t position; */
-    off_t filesize;
-
-    fd = fileno(f);
-    if (fstat(fd, &buf) == -1) {
-        fprintf(stderr, "new_file_buffer: fstat() failed. errno =%d\n", errno);
-        return NULL;
-    }
-    filesize = buf.st_size;  /* XXX This might be 32 bits. */
-
-    mm = (memory_map *) malloc(sizeof(memory_map));
-    if (mm == NULL) {
-        /* XXX Eventually remove this print statement. */
-        fprintf(stderr, "new_file_buffer: malloc() failed.\n");
-        return NULL;
-    }
-    mm->file = f;
-    mm->size = (off_t) filesize;
-    mm->line_number = 0;
-
-    mm->fileno = fd;
-    mm->position = ftell(f);
-    mm->last_pos = (off_t) filesize;
-
-    mm->memmap = mmap(NULL, filesize, PROT_READ, MAP_SHARED, fd, 0);
-    if (mm->memmap == NULL) {
-        /* XXX Eventually remove this print statement. */
-        fprintf(stderr, "new_file_buffer: mmap() failed.\n");
-        free(mm);
-        mm = NULL;
-    }
-
-    return (void*) mm;
-}
-
-
-void del_mmap(void *src)
-{
-    munmap(MM(src)->memmap, MM(src)->size);
-
-    /*
-     *  With a memory mapped file, there is no need to do
-     *  anything if restore == RESTORE_INITIAL.
-     */
-    /* if (restore == RESTORE_FINAL) { */
-    /*     fseek(FB(fb)->file, FB(fb)->current_pos, SEEK_SET); */
-    /* } */
-    free(src);
-}
-
-int _buffer_mmap_bytes(parser_t *self, size_t nbytes) {
-    memory_map *src = MM(self->source);
-
-    if (src->position == src->last_pos) {
-        self->datalen = 0;
-        return REACHED_EOF;
-    }
-
-    self->data = src->memmap + src->position;
-
-    if (src->position + nbytes > src->last_pos) {
-        // fewer than nbytes remaining
-        self->datalen = src->last_pos - src->position;
-    } else {
-        self->datalen = nbytes;
-    }
-
-    src->position += self->datalen;
-    return 0;
-}
-
-int parser_mmap_init(parser_t *self, FILE* fp) {
-    self->sourcetype = 'M';
-    self->source = new_mmap(fp);
-
-    // TODO: better error message
-    if (NULL == self->source)
-        return -1;
-
-    return 0;
-}
-
-int parser_gzip_source_init(parser_t *self, FILE* fp) {
-    return 0;
-}
-
-
-typedef struct _rd_source {
-    PyObject* obj;
-    PyObject* buffer;
-    size_t position;
-} rd_source;
-
-#define RDS(source) ((rd_source *)source)
-
-rd_source* new_rd_source(PyObject *obj) {
-    rd_source *rds = (rd_source *) malloc(sizeof(rd_source));
-
-    /* hold on to this object */
-    Py_INCREF(obj);
-    rds->obj = obj;
-    rds->buffer = NULL;
-    rds->position = 0;
-
-    return rds;
-}
-
-void del_rd_source(void *rds) {
-    Py_XDECREF(RDS(rds)->obj);
-    Py_XDECREF(RDS(rds)->buffer);
-    free(rds);
-}
-
-int parser_rd_source_init(parser_t *self, PyObject *source) {
-    self->sourcetype = 'R';
-    self->source = new_rd_source(source);
-    return 0;
-}
-
-int parser_cleanup_filebuffers(parser_t *self) {
-    switch(self->sourcetype) {
-
-        case 'F':
-            free(self->data);
-            del_file_source(self->source);
-            break;
-
-        case 'R': // Readable PyObject*
-            del_rd_source(self->source);
-            break;
-
-#ifdef HAVE_MEMMAP
-        case 'M': // memory map
-            del_mmap(self->source);
-            break;
-#endif
-
-
-#ifdef HAVE_GZIP
-        case 'G': // gzip'd file
-
-            break;
-#endif
-
-    }
-
-    return 0;
-}
 
 
 int parser_clear_data_buffers(parser_t *self) {
@@ -445,7 +176,7 @@ int parser_clear_data_buffers(parser_t *self) {
 }
 
 int parser_cleanup(parser_t *self) {
-    if (parser_cleanup_filebuffers(self) < 0) {
+    if (self->cb_cleanup(self->source) < 0) {
         return -1;
     }
 
@@ -752,103 +483,18 @@ int parser_add_skiprow(parser_t *self, int64_t row) {
     return 0;
 }
 
-int _buffer_rd_bytes(parser_t *self, size_t nbytes) {
-    PyGILState_STATE state;
-    PyObject *result, *func, *args, *tmp;
-    size_t length;
+int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     int status;
-    rd_source *src = RDS(self->source);
+    size_t bytes_read;
+    void *src = self->source;
 
-    /* delete old object */
-    Py_XDECREF(src->buffer);
-    args = Py_BuildValue("(i)", nbytes);
-
-
-    state = PyGILState_Ensure();
-    func = PyObject_GetAttrString(src->obj, "read");
-    /* printf("%s\n", PyBytes_AsString(PyObject_Repr(func))); */
-
-    result = PyObject_CallObject(func, args);
-    /* PyObject_Print(PyObject_Type(result), stdout, 0); */
-
-    if (!PyBytes_Check(result)) {
-        tmp = PyUnicode_AsUTF8String(result);
-        Py_XDECREF(result);
-
-        result = tmp;
-        /* self->error_msg = (char*) malloc(100); */
-        /* sprintf(self->error_msg, ("File-like object must be in binary " */
-        /*                           "(bytes) mode")); */
-    }
-
-    length = PySequence_Length(result);
-
-    if (length == 0) status = REACHED_EOF;
-    else status = 0;
-
-    self->data = PyBytes_AsString(result);
-
-    Py_XDECREF(args);
-    Py_XDECREF(func);
-
-    PyGILState_Release(state);
-
-    /* TODO: more error handling */
-    self->datalen = length;
-    src->buffer = result;
-    src->position += self->datalen;
+    status = 0;
+    self->datapos = 0;
+    self->data = self->cb_io(self->source, nbytes, &bytes_read, &status);
+    self->datalen = bytes_read;
 
     TRACE(("datalen: %d\n", self->datalen));
     TRACE(("pos: %d, length: %d", (int) src->position, (int) src->length));
-    return status;
-}
-
-int parser_buffer_bytes(parser_t *self, size_t nbytes) {
-    int status;
-    size_t bytes;
-    void *src = self->source;
-
-    // This should probably end up as a method table
-
-    status = 0;
-
-    self->datapos = 0;
-
-    switch(self->sourcetype) {
-        case 'F': // basic FILE*
-
-            bytes = fread((void *) self->data, sizeof(char), nbytes,
-                          FS(src)->fp);
-            self->datalen = bytes;
-
-            TRACE(("Read %d bytes\n", (int) bytes));
-
-            // printf("%s\n", self->data);
-
-            if (bytes == 0) {
-                status = REACHED_EOF;
-            }
-            break;
-
-        case 'R': // in-memory bytes (e.g. from StringIO)
-            // ew, side effects
-            status = _buffer_rd_bytes(self, nbytes);
-            break;
-
-#ifdef HAVE_MEMMAP
-        case 'M': // memory map
-            status = _buffer_mmap_bytes(self, nbytes);
-
-            break;
-#endif
-
-#ifdef HAVE_GZIP
-        case 'G': // gzip'd file
-
-            break;
-#endif
-
-    }
 
     return status;
 }
@@ -1515,6 +1161,7 @@ int clear_parsed_lines(parser_t *self, size_t nlines) {
   nrows : number of rows to tokenize (or until reach EOF)
   all : tokenize all the data vs. certain number of rows
  */
+
 int _tokenize_helper(parser_t *self, size_t nrows, int all) {
     parser_op tokenize_bytes;
 
@@ -1581,148 +1228,148 @@ int tokenize_all_rows(parser_t *self) {
   Iteration through ragged matrix structure
 */
 
-int test_tokenize(char *fname) {
-    parser_t *self;
-    coliter_t citer;
-    int status = 0;
-    int nbytes = CHUNKSIZE;
+/* int test_tokenize(char *fname) { */
+/*     parser_t *self; */
+/*     coliter_t citer; */
+/*     int status = 0; */
+/*     int nbytes = CHUNKSIZE; */
 
-    clock_t start = clock();
+/*     clock_t start = clock(); */
 
-    self = parser_new();
-    self->chunksize = nbytes;
+/*     self = parser_new(); */
+/*     self->chunksize = nbytes; */
 
-    // self->source = malloc(sizeof(file_source));
+/*     // self->source = malloc(sizeof(file_source)); */
 
-    FILE* fp = fopen(fname, "rb");
-    parser_file_source_init(self, fp);
+/*     FILE* fp = fopen(fname, "rb"); */
+/*     parser_file_source_init(self, fp); */
 
-    parser_set_default_options(self);
+/*     parser_set_default_options(self); */
 
-    if (parser_init(self) < 0) {
-        return -1;
-    }
+/*     if (parser_init(self) < 0) { */
+/*         return -1; */
+/*     } */
 
-    self->header = 0;
+/*     self->header = 0; */
 
-    status = tokenize_all_rows(self);
+/*     status = tokenize_all_rows(self); */
 
-    if (status != 0) {
-        if (self->error_msg == NULL) {
-            printf("PARSE_ERROR: no message\n");
-        }
-        else {
-            printf("PARSE_ERROR: %s", self->error_msg);
-        }
-    }
-
-
-    // debug_print_parser(parser);
-
-    // return 0;
-    /* if (status < 0) { */
-    /*  return status; */
-    /* } */
-
-    /* int i, words = 0; */
-    /* for (i = 0; i < parser.stream_len; ++i) */
-    /* { */
-    /*     if (parser.stream[i] == '\0') words++; */
-    /* } */
-
-    printf("Time elapsed: %f\n", ((double)clock() - start) / CLOCKS_PER_SEC);
-    /* return 0; */
-
-    int i, j, error, columns;
-    char *word;
-    double data;
-
-    columns = self->line_fields[0];
-
-    printf("columns: %d\n", columns);
-    printf("errno is %d\n", errno);
-
-    for (j = 0; j < columns; ++j)
-    {
-        coliter_setup(&citer, self, j, 0);
-
-        for (i = 0; i < self->lines; ++i)
-        {
-            if (j >= self->line_fields[i]) continue;
-
-            word = COLITER_NEXT(citer);
-            error = to_double(word, &data, self->sci, self->decimal);
-            if (error != 1) {
-                printf("error at %d, errno: %d\n", i, errno);
-                printf("failed: %s %d\n", word, (int) strlen(word));
-                break;
-            }
-        }
-    }
-
-    /* for (j = 0; j < columns; ++j) */
-    /* { */
-    /*  // citer = coliter_new(&parser, j); */
-    /*  for (i = 0; i < parser->lines; ++i) */
-    /*  { */
-    /*      if (j >= parser->line_fields[i]) continue; */
-    /*      word = parser->words[parser->line_start[i] + j]; */
-    /*      error = to_double(word, &data, parser->sci, parser->decimal); */
-    /*      if (error != 1) { */
-    /*          printf("error at %d, errno: %d\n", i, errno); */
-    /*          printf("failed: %s %d\n", word, (int) strlen(word)); */
-    /*          break; */
-    /*      } */
-    /*  } */
-    /*  // free(citer); */
-    /* } */
-
-    printf("Time elapsed: %f\n", ((double)clock() - start) / CLOCKS_PER_SEC);
-
-    /* for (i = 0; i < parser.words_len; ++i) */
-    /* { */
-    /*     error = to_double(parser.words[i], &data, parser.sci, parser.decimal); */
-    /*  if (error != 1) { */
-    /*      ; */
-    /*      printf("failed: %s %d\n", parser.words[i], */
-    /*             (int) strlen(parser.words[i])); */
-    /*  } else { */
-    /*      ; */
-    /*      /\* printf("success: %.4f\n", data); *\/ */
-    /*  } */
-    /* } */
+/*     if (status != 0) { */
+/*         if (self->error_msg == NULL) { */
+/*             printf("PARSE_ERROR: no message\n"); */
+/*         } */
+/*         else { */
+/*             printf("PARSE_ERROR: %s", self->error_msg); */
+/*         } */
+/*     } */
 
 
-    /* for (i = 0; i < parser.words_len; ++i) */
-    /* { */
-    /*     error = to_double(parser.words[i], &data, parser.sci, parser.decimal); */
-    /*  if (error != 1) { */
-    /*      ; */
-            /* printf("failed: %s %d\n", parser.words[i], */
-            /*     (int) strlen(parser.words[i])); */
-    /*  } else { */
-    /*      ; */
-    /*      /\* printf("success: %.4f\n", data); *\/ */
-    /*  } */
-    /* } */
+/*     // debug_print_parser(parser); */
+
+/*     // return 0; */
+/*     /\* if (status < 0) { *\/ */
+/*     /\*  return status; *\/ */
+/*     /\* } *\/ */
+
+/*     /\* int i, words = 0; *\/ */
+/*     /\* for (i = 0; i < parser.stream_len; ++i) *\/ */
+/*     /\* { *\/ */
+/*     /\*     if (parser.stream[i] == '\0') words++; *\/ */
+/*     /\* } *\/ */
+
+/*     printf("Time elapsed: %f\n", ((double)clock() - start) / CLOCKS_PER_SEC); */
+/*     /\* return 0; *\/ */
+
+/*     int i, j, error, columns; */
+/*     char *word; */
+/*     double data; */
+
+/*     columns = self->line_fields[0]; */
+
+/*     printf("columns: %d\n", columns); */
+/*     printf("errno is %d\n", errno); */
+
+/*     for (j = 0; j < columns; ++j) */
+/*     { */
+/*         coliter_setup(&citer, self, j, 0); */
+
+/*         for (i = 0; i < self->lines; ++i) */
+/*         { */
+/*             if (j >= self->line_fields[i]) continue; */
+
+/*             word = COLITER_NEXT(citer); */
+/*             error = to_double(word, &data, self->sci, self->decimal); */
+/*             if (error != 1) { */
+/*                 printf("error at %d, errno: %d\n", i, errno); */
+/*                 printf("failed: %s %d\n", word, (int) strlen(word)); */
+/*                 break; */
+/*             } */
+/*         } */
+/*     } */
+
+/*     /\* for (j = 0; j < columns; ++j) *\/ */
+/*     /\* { *\/ */
+/*     /\*  // citer = coliter_new(&parser, j); *\/ */
+/*     /\*  for (i = 0; i < parser->lines; ++i) *\/ */
+/*     /\*  { *\/ */
+/*     /\*      if (j >= parser->line_fields[i]) continue; *\/ */
+/*     /\*      word = parser->words[parser->line_start[i] + j]; *\/ */
+/*     /\*      error = to_double(word, &data, parser->sci, parser->decimal); *\/ */
+/*     /\*      if (error != 1) { *\/ */
+/*     /\*          printf("error at %d, errno: %d\n", i, errno); *\/ */
+/*     /\*          printf("failed: %s %d\n", word, (int) strlen(word)); *\/ */
+/*     /\*          break; *\/ */
+/*     /\*      } *\/ */
+/*     /\*  } *\/ */
+/*     /\*  // free(citer); *\/ */
+/*     /\* } *\/ */
+
+/*     printf("Time elapsed: %f\n", ((double)clock() - start) / CLOCKS_PER_SEC); */
+
+/*     /\* for (i = 0; i < parser.words_len; ++i) *\/ */
+/*     /\* { *\/ */
+/*     /\*     error = to_double(parser.words[i], &data, parser.sci, parser.decimal); *\/ */
+/*     /\*  if (error != 1) { *\/ */
+/*     /\*      ; *\/ */
+/*     /\*      printf("failed: %s %d\n", parser.words[i], *\/ */
+/*     /\*             (int) strlen(parser.words[i])); *\/ */
+/*     /\*  } else { *\/ */
+/*     /\*      ; *\/ */
+/*     /\*      /\\* printf("success: %.4f\n", data); *\\/ *\/ */
+/*     /\*  } *\/ */
+/*     /\* } *\/ */
 
 
-    /* printf("saw %d words\n", words); */
+/*     /\* for (i = 0; i < parser.words_len; ++i) *\/ */
+/*     /\* { *\/ */
+/*     /\*     error = to_double(parser.words[i], &data, parser.sci, parser.decimal); *\/ */
+/*     /\*  if (error != 1) { *\/ */
+/*     /\*      ; *\/ */
+/*             /\* printf("failed: %s %d\n", parser.words[i], *\/ */
+/*             /\*     (int) strlen(parser.words[i])); *\/ */
+/*     /\*  } else { *\/ */
+/*     /\*      ; *\/ */
+/*     /\*      /\\* printf("success: %.4f\n", data); *\\/ *\/ */
+/*     /\*  } *\/ */
+/*     /\* } *\/ */
 
-    // debug_print_parser(&parser);
 
-    parser_free(self);
+/*     /\* printf("saw %d words\n", words); *\/ */
 
-    fclose(fp);
+/*     // debug_print_parser(&parser); */
 
-    /* if (parser_cleanup(self) < 0) { */
-    /*     return -1; */
-    /* } */
+/*     parser_free(self); */
 
-    /* free(parser); */
+/*     fclose(fp); */
 
-    return status;
-}
+/*     /\* if (parser_cleanup(self) < 0) { *\/ */
+/*     /\*     return -1; *\/ */
+/*     /\* } *\/ */
+
+/*     /\* free(parser); *\/ */
+
+/*     return status; */
+/* } */
 
 
 void test_count_lines(char *fname) {
@@ -1762,26 +1409,26 @@ void test_count_lines(char *fname) {
 }
 
 
-int main(int argc, char *argv[])
-{
-    // import_array();
+/* int main(int argc, char *argv[]) */
+/* { */
+/*     // import_array(); */
 
-    TRACE(("hello: %s\n", "Wes"));
+/*     TRACE(("hello: %s\n", "Wes")); */
 
-    test_tokenize("/Users/wesm/code/pandas/pandas/io/tests/test1.csv");
+/*     test_tokenize("/Users/wesm/code/pandas/pandas/io/tests/test1.csv"); */
 
-    // char *msg = (char*) malloc(50);
-    // sprintf(msg, "Hello: %s\n", "wes");
-    // printf("%s", msg);
+/*     // char *msg = (char*) malloc(50); */
+/*     // sprintf(msg, "Hello: %s\n", "wes"); */
+/*     // printf("%s", msg); */
 
-    /* int i; */
-    /* for (i = 0; i < 10; ++i) */
-    /* { */
-    /*  test_count_lines("../foo.csv"); */
-    /* } */
+/*     /\* int i; *\/ */
+/*     /\* for (i = 0; i < 10; ++i) *\/ */
+/*     /\* { *\/ */
+/*     /\*  test_count_lines("../foo.csv"); *\/ */
+/*     /\* } *\/ */
 
-    return 0;
-}
+/*     return 0; */
+/* } */
 
 
 // forward declaration

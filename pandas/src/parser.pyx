@@ -12,8 +12,6 @@ from cpython cimport (PyObject, PyBytes_FromString,
 
 
 cdef extern from "Python.h":
-    ctypedef struct FILE
-
     object PyUnicode_FromString(char *v)
 
     object PyUnicode_Decode(char *v, Py_ssize_t size, char *encoding,
@@ -78,9 +76,14 @@ cdef extern from "parser/parser.h":
         EAT_WHITESPACE
         FINISHED
 
+    ctypedef void* (*io_callback)(void *src, size_t nbytes, size_t *bytes_read,
+                                 int *status)
+    ctypedef int (*io_cleanup)(void *src)
+
     ctypedef struct parser_t:
         void *source
-        char sourcetype   # 'M' for mmap, 'F' for FILE, 'A' for array
+        io_callback cb_io
+        io_cleanup cb_cleanup
 
         int chunksize  # Number of bytes to prepare for each chunk
         char *data     # pointer to data to be processed
@@ -127,8 +130,6 @@ cdef extern from "parser/parser.h":
         int error_bad_lines
         int warn_bad_lines
 
-        int infer_types
-
         # floating point options
         char decimal
         char sci
@@ -160,10 +161,6 @@ cdef extern from "parser/parser.h":
 
     void parser_set_default_options(parser_t *self)
 
-    int parser_file_source_init(parser_t *self, FILE* fp)
-    int parser_mmap_init(parser_t *self, FILE* fp)
-    int parser_rd_source_init(parser_t *self, object source)
-
     int parser_consume_rows(parser_t *self, size_t nrows)
 
     int parser_trim_buffers(parser_t *self)
@@ -187,7 +184,28 @@ cdef extern from "parser/parser.h":
     inline int to_boolean(char *item, uint8_t *val)
 
 
-DEFAULT_CHUNKSIZE = 1024 * 1024
+cdef extern from "parser/io.h":
+    void *new_mmap(char *fname)
+
+    void *new_file_source(char *fname, size_t buffer_size)
+
+    void *new_rd_source(object obj)
+
+    int del_file_source(void *src)
+    int del_mmap(void *src)
+    int del_rd_source(void *src)
+
+    void* buffer_file_bytes(void *source, size_t nbytes,
+                            size_t *bytes_read, int *status)
+
+    void* buffer_rd_bytes(void *source, size_t nbytes,
+                          size_t *bytes_read, int *status)
+
+    void* buffer_mmap_bytes(void *source, size_t nbytes,
+                            size_t *bytes_read, int *status)
+
+
+DEFAULT_CHUNKSIZE = 256 * 1024
 
 # common NA values
 # no longer excluding inf representations
@@ -206,12 +224,11 @@ cdef class TextReader:
 
     cdef:
         parser_t *parser
-        object file_handle, should_close
+        object file_handle
         bint factorize, na_filter, verbose, has_usecols
         int parser_start
         list clocks
         char *c_encoding
-        FILE *fp
 
     cdef public:
         int leading_cols, table_width, skip_footer, buffer_lines
@@ -330,8 +347,6 @@ cdef class TextReader:
             self.parser.error_bad_lines = 0
             self.parser.warn_bad_lines = 0
 
-        self.should_close = False
-
         self.delimiter = delimiter
         self.delim_whitespace = delim_whitespace
 
@@ -406,10 +421,6 @@ cdef class TextReader:
     def __dealloc__(self):
         parser_free(self.parser)
 
-    def __del__(self):
-        if self.should_close:
-            fclose(self.fp)
-
     def set_error_bad_lines(self, int status):
         self.parser.error_bad_lines = status
 
@@ -423,31 +434,37 @@ cdef class TextReader:
     cdef _setup_parser_source(self, source):
         cdef:
             int status
-
-        self.fp = NULL
+            void *ptr
 
         if isinstance(source, basestring):
             if not isinstance(source, bytes):
                 source = source.encode('utf-8')
 
-            self.should_close = True
-            self.fp = fopen(source, b'rb')
-            stdio.setbuf(self.fp, NULL)
-
             if self.memory_map:
-                status = parser_mmap_init(self.parser, self.fp)
+                ptr = new_mmap(source)
+                self.parser.cb_io = &buffer_mmap_bytes
+                self.parser.cb_cleanup = &del_mmap
             else:
-                status = parser_file_source_init(self.parser, self.fp)
+                ptr = new_file_source(source, self.parser.chunksize)
+                self.parser.cb_io = &buffer_file_bytes
+                self.parser.cb_cleanup = &del_file_source
 
-            if status != 0:
+            if ptr == NULL:
                 raise Exception('Initializing from file failed')
+
+            self.parser.source = ptr
+
         elif hasattr(source, 'read'):
             # e.g., StringIO
 
-            status = parser_rd_source_init(self.parser, source)
-            if status != 0:
+            ptr = new_rd_source(source)
+            if ptr == NULL:
                 raise Exception('Initializing parser from file-like '
                                 'object failed')
+
+            self.parser.source = ptr
+            self.parser.cb_io = &buffer_rd_bytes
+            self.parser.cb_cleanup = &del_rd_source
         else:
             raise Exception('Expected file path name or file-like object,'
                             ' got %s type' % type(source))
@@ -1185,14 +1202,14 @@ cdef _try_int64(parser_t *parser, int col, int line_start, int line_end,
                 continue
 
             data[i] = str_to_int64(word, INT64_MIN, INT64_MAX,
-                                   &error, parser.thousands);
+                                   &error, parser.thousands)
             if error != 0:
                 return None, None
     else:
         for i in range(lines):
             word = COLITER_NEXT(it)
             data[i] = str_to_int64(word, INT64_MIN, INT64_MAX,
-                                   &error, parser.thousands);
+                                   &error, parser.thousands)
             if error != 0:
                 return None, None
 

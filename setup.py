@@ -608,11 +608,14 @@ period_ext = Extension('pandas._period',
 
 parser_ext = Extension('pandas._parser',
                        depends=['pandas/src/parser/parser.h',
+                                'pandas/src/parser/io.h',
                                 'pandas/src/numpy_helper.h'],
                        sources=[srcpath('parser', suffix=suffix),
                                 'pandas/src/parser/parser.c',
+                                'pandas/src/parser/io.c',
                                 'pandas/src/parser/str_to.c',
                                 ],
+                       extra_compile_args=['-O3'],
                        include_dirs=common_include)
 
 sandbox_ext = Extension('pandas._sandbox',
