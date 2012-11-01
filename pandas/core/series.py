@@ -1749,15 +1749,28 @@ copy : boolean, default False
 
         Parameters
         ----------
-        ascending : boolean, default True
-            Sort ascending vs. descending
+        ascending : boolean or list, default True
+            Sort ascending vs. descending. Specify list for multiple sort
+            orders
+
+        Examples
+        --------
+        >>> result1 = s.sort_index(ascending=False)
+        >>> result2 = s.sort_index(ascending=[1, 0])
 
         Returns
         -------
         sorted_obj : Series
         """
-        new_labels, indexer = self.index.order(return_indexer=True,
-                                               ascending=ascending)
+        index = self.index
+        if isinstance(index, MultiIndex):
+            from pandas.core.groupby import _lexsort_indexer
+            indexer = _lexsort_indexer(index.labels, orders=ascending)
+            new_labels = index.take(indexer)
+        else:
+            new_labels, indexer = index.order(return_indexer=True,
+                                              ascending=ascending)
+
         new_values = self.values.take(indexer)
         return Series(new_values, new_labels, name=self.name)
 

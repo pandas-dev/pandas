@@ -2796,12 +2796,17 @@ class DataFrame(NDFrame):
         columns : object
             Column name(s) in frame. Accepts a column name or a list or tuple
             for a nested sort.
-        ascending : boolean, default True
-            Sort ascending vs. descending
+        ascending : boolean or list, default True
+            Sort ascending vs. descending. Specify list for multiple sort
+            orders
         axis : {0, 1}
             Sort index/rows versus columns
         inplace : boolean, default False
             Sort the DataFrame without creating a new instance
+
+        Examples
+        --------
+        >>> result = df.sort(['A', 'B'], ascending=[1, 0])
 
         Returns
         -------
@@ -2826,10 +2831,15 @@ class DataFrame(NDFrame):
         by : object
             Column name(s) in frame. Accepts a column name or a list or tuple
             for a nested sort.
-        ascending : boolean, default True
-            Sort ascending vs. descending
+        ascending : boolean or list, default True
+            Sort ascending vs. descending. Specify list for multiple sort
+            orders
         inplace : boolean, default False
             Sort the DataFrame without creating a new instance
+
+        Examples
+        --------
+        >>> result = df.sort_index(by=['A', 'B'], ascending=[1, 0])
 
         Returns
         -------
@@ -2846,14 +2856,17 @@ class DataFrame(NDFrame):
             assert(axis == 0)
             if isinstance(by, (tuple, list)):
                 keys = [self[x].values for x in by]
-                indexer = _lexsort_indexer(keys)
+                indexer = _lexsort_indexer(keys, orders=ascending)
             else:
                 indexer = self[by].values.argsort()
+                if not ascending:
+                    indexer = indexer[::-1]
+        elif isinstance(labels, MultiIndex):
+            indexer = _lexsort_indexer(labels.labels, orders=ascending)
         else:
             indexer = labels.argsort()
-
-        if not ascending:
-            indexer = indexer[::-1]
+            if not ascending:
+                indexer = indexer[::-1]
 
         if inplace:
             if axis == 1:

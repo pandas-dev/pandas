@@ -5657,7 +5657,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(result, expected)
 
         result = frame.sort_index(by=['A', 'B'], ascending=False)
-        expected = frame.take(indexer[::-1])
+        indexer = np.lexsort((frame['B'].rank(ascending=False),
+                              frame['A'].rank(ascending=False)))
+        expected = frame.take(indexer)
         assert_frame_equal(result, expected)
 
         result = frame.sort_index(by=['B', 'A'])
@@ -5694,6 +5696,35 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df.sort_index(axis=1, ascending=False, inplace=True)
         expected = frame.ix[:, ::-1]
         assert_frame_equal(df, expected)
+
+    def test_sort_index_different_sortorder(self):
+        import random
+        A = np.arange(20).repeat(5)
+        B = np.tile(np.arange(5), 20)
+
+        indexer = np.random.permutation(100)
+        A = A.take(indexer)
+        B = B.take(indexer)
+
+        df = DataFrame({'A' : A, 'B' : B,
+                        'C' : np.random.randn(100)})
+
+        result = df.sort_index(by=['A', 'B'], ascending=[1, 0])
+
+        ex_indexer = np.lexsort((df.B.max() - df.B, df.A))
+        expected = df.take(ex_indexer)
+        assert_frame_equal(result, expected)
+
+        # test with multiindex, too
+        idf = df.set_index(['A', 'B'])
+
+        result = idf.sort_index(ascending=[1, 0])
+        expected = idf.take(ex_indexer)
+        assert_frame_equal(result, expected)
+
+        # also, Series!
+        result = idf['C'].sort_index(ascending=[1, 0])
+        assert_series_equal(result, expected['C'])
 
     def test_sort_inplace(self):
         frame = DataFrame(np.random.randn(4, 4), index=[1, 2, 3, 4],

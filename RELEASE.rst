@@ -27,6 +27,10 @@ pandas 0.9.1
 
 **Release date:** NOT YET RELEASED
 
+**New features**
+
+  - Can specify multiple sort orders in DataFrame/Series.sort/sort_index (#928)
+
 **Improvements to existing features**
 
   - Improve performance of datetime + business day offset with large number of

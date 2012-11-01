@@ -2103,18 +2103,31 @@ def _indexer_from_factorized(labels, shape, compress=True):
     return indexer
 
 
-def _lexsort_indexer(keys):
+def _lexsort_indexer(keys, orders=None):
     labels = []
     shape = []
-    for key in keys:
+
+    if isinstance(orders, bool):
+        orders = [orders] * len(keys)
+    elif orders is None:
+        orders = [True] * len(keys)
+
+    for key, order in zip(keys, orders):
         rizer = lib.Factorizer(len(key))
 
         if not key.dtype == np.object_:
             key = key.astype('O')
 
         ids, _ = rizer.factorize(key, sort=True)
+
+        n = len(rizer.uniques)
+        shape.append(n)
+        if not order:
+            mask = ids == -1
+            ids = np.where(mask, -1, n - ids)
+
         labels.append(ids)
-        shape.append(len(rizer.uniques))
+
     return _indexer_from_factorized(labels, shape)
 
 
