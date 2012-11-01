@@ -299,7 +299,7 @@ def str_upper(arr):
     return _na_map(lambda x: x.upper(), arr)
 
 
-def str_replace(arr, pat, repl, n=0, case=True, flags=0):
+def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
     """
     Replace
 
@@ -309,7 +309,7 @@ def str_replace(arr, pat, repl, n=0, case=True, flags=0):
         Character sequence or regular expression
     repl : string
         Replacement sequence
-    n : int, default 0 (all)
+    n : int, default -1 (all)
         Number of replacements to make from start
     case : boolean, default True
         If True, case sensitive
@@ -320,13 +320,17 @@ def str_replace(arr, pat, repl, n=0, case=True, flags=0):
     -------
     replaced : array
     """
-    if not case:
-        flags |= re.IGNORECASE
+    use_re = not case or len(pat) > 1 or flags
 
-    regex = re.compile(pat, flags=flags)
-
-    def f(x):
-        return regex.sub(repl, x, count=n)
+    if use_re:
+        if not case:
+            flags |= re.IGNORECASE
+        regex = re.compile(pat, flags=flags)
+        n = n if n >= 0 else 0
+        def f(x):
+            return regex.sub(repl, x, count=n)
+    else:
+        f = lambda x: x.replace(pat, repl, n)
 
     return _na_map(f, arr)
 
@@ -480,7 +484,7 @@ def str_center(arr, width):
     return str_pad(arr, width, side='both')
 
 
-def str_split(arr, pat=None, n=0):
+def str_split(arr, pat=None, n=-1):
     """
     Split each string (a la re.split) in array by given pattern, propagating NA
     values
@@ -489,7 +493,7 @@ def str_split(arr, pat=None, n=0):
     ----------
     pat : string, default None
         String or regular expression to split on. If None, splits on whitespace
-    n : int, default 0 (all)
+    n : int, default -1 (all)
 
     Returns
     -------
@@ -498,8 +502,11 @@ def str_split(arr, pat=None, n=0):
     if pat is None:
         f = lambda x: x.split()
     else:
-        regex = re.compile(pat)
-        f = lambda x: regex.split(x, maxsplit=n)
+        if len(pat) == 1:
+            f = lambda x: x.split(pat, n)
+        else:
+            regex = re.compile(pat)
+            f = lambda x: regex.split(x, maxsplit=n)
 
     return _na_map(f, arr)
 
@@ -709,7 +716,7 @@ class StringMethods(object):
         return self._wrap_result(result)
 
     @copy(str_split)
-    def split(self, pat=None, n=0):
+    def split(self, pat=None, n=-1):
         result = str_split(self.series, pat, n=n)
         return self._wrap_result(result)
 
@@ -730,7 +737,7 @@ class StringMethods(object):
         return self._wrap_result(result)
 
     @copy(str_replace)
-    def replace(self, pat, repl, n=0, case=True):
+    def replace(self, pat, repl, n=-1, case=True):
         result = str_replace(self.series, pat, repl, n=n, case=case)
         return self._wrap_result(result)
 

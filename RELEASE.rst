@@ -42,6 +42,7 @@ pandas 0.9.1
   - Fix zero-trimming DataFrame formatting bug
   - Correctly compute/box datetime64 min/max values from Series.min/max (#2083)
   - Fix unstacking edge case with unrepresented groups (#2100)
+  - Fix Series.str failures when using pipe pattern '|' (#2119)
 
 pandas 0.9.0
 ============
