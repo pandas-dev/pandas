@@ -4835,6 +4835,49 @@ class DataFrame(NDFrame):
         """
         return self.mul(other, fill_value=1.)
 
+    def where(self, cond, other):
+        """
+        Return a DataFrame with the same shape as self and whose corresponding
+        entries are from self where cond is True and otherwise are from other.
+
+
+        Parameters
+        ----------
+        cond: boolean DataFrame or array
+        other: scalar or DataFrame
+
+        Returns
+        -------
+        wh: DataFrame
+        """
+        if isinstance(cond, np.ndarray):
+            if cond.shape != self.shape:
+                raise ValueError('Array onditional must be same shape as self')
+            cond = self._constructor(cond, index=self.index, columns=self.columns)
+        if cond.shape != self.shape:
+            cond = cond.reindex(self.index, columns=self.columns)
+            cond = cond.fillna(False)
+
+        if isinstance(other, DataFrame):
+            _, other = self.align(other, join='left', fill_value=np.nan)
+
+        rs = np.where(cond, self, other)
+        return self._constructor(rs, self.index, self.columns)
+
+    def mask(self, cond):
+        """
+        Returns copy of self whose values are replaced with nan if the
+        corresponding entry in cond is False
+
+        Parameters
+        ----------
+        cond: boolean DataFrame or array
+
+        Returns
+        -------
+        wh: DataFrame
+        """
+        return self.where(cond, np.nan)
 
 _EMPTY_SERIES = Series([])
 

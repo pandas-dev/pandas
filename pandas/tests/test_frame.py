@@ -5078,6 +5078,34 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = df2 - df2.mean()
         assert_frame_equal(result, expected)
 
+    def test_where(self):
+        df = DataFrame(np.random.randn(5, 3))
+        cond = df > 0
+
+        other1 = df + 1
+        rs = df.where(cond, other1)
+        for k, v in rs.iteritems():
+            assert_series_equal(v, np.where(cond[k], df[k], other1[k]))
+
+        other2 = (df + 1).values
+        rs = df.where(cond, other2)
+        for k, v in rs.iteritems():
+            assert_series_equal(v, np.where(cond[k], df[k], other2[:, k]))
+
+        other5 = np.nan
+        rs = df.where(cond, other5)
+        for k, v in rs.iteritems():
+            assert_series_equal(v, np.where(cond[k], df[k], other5))
+
+        assert_frame_equal(rs, df.mask(cond))
+
+        err1 = (df + 1).values[0:2, :]
+        self.assertRaises(ValueError, df.where, cond, err1)
+
+        err2 = cond.ix[:2, :].values
+        self.assertRaises(ValueError, df.where, err2, other1)
+
+
     #----------------------------------------------------------------------
     # Transposing
 
