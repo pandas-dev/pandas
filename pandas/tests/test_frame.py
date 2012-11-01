@@ -2966,6 +2966,9 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # what to do?
         assert_frame_equal(-self.frame, -1 * self.frame)
 
+    def test_invert(self):
+        assert_frame_equal(-(self.frame < 0), ~(self.frame <0))
+
     def test_first_last_valid(self):
         N = len(self.frame.index)
         mat = randn(N)
