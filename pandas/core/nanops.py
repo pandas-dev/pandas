@@ -34,7 +34,7 @@ def _bottleneck_switch(bn_name, alt, zero_value=None, **kwargs):
                     result.fill(0)
                     return result
 
-            if _USE_BOTTLENECK and skipna and values.dtype != np.object_:
+            if _USE_BOTTLENECK and skipna and _bn_ok_dtype(values.dtype):
                 result = bn_func(values, axis=axis, **kwds)
                 # prefer to treat inf/-inf as NA
                 if _has_infs(result):
@@ -47,6 +47,10 @@ def _bottleneck_switch(bn_name, alt, zero_value=None, **kwargs):
         return result
 
     return f
+
+def _bn_ok_dtype(dt):
+    # Bottleneck chokes on datetime64
+    return dt != np.object_ and not issubclass(dt.type, np.datetime64)
 
 
 def _has_infs(result):
@@ -147,10 +151,17 @@ def _nanvar(values, axis=None, skipna=True, ddof=1):
 
 def _nanmin(values, axis=None, skipna=True):
     mask = isnull(values)
-    if skipna and not issubclass(values.dtype.type,
+
+    dtype = values.dtype
+
+    if skipna and not issubclass(dtype.type,
                                  (np.integer, np.datetime64)):
         values = values.copy()
         np.putmask(values, mask, np.inf)
+
+    if issubclass(dtype.type, np.datetime64):
+        values = values.view(np.int64)
+
     # numpy 1.6.1 workaround in Python 3.x
     if (values.dtype == np.object_
         and sys.version_info[0] >= 3):  # pragma: no cover
@@ -168,15 +179,27 @@ def _nanmin(values, axis=None, skipna=True):
         else:
             result = values.min(axis)
 
+    if issubclass(dtype.type, np.datetime64):
+        if not isinstance(result, np.ndarray):
+            result = lib.Timestamp(result)
+        else:
+            result = result.view(dtype)
+
     return _maybe_null_out(result, axis, mask)
 
 
 def _nanmax(values, axis=None, skipna=True):
     mask = isnull(values)
-    if skipna and not issubclass(values.dtype.type,
-                                 (np.integer, np.datetime64)):
+
+    dtype = values.dtype
+
+    if skipna and not issubclass(dtype.type, (np.integer, np.datetime64)):
         values = values.copy()
         np.putmask(values, mask, -np.inf)
+
+    if issubclass(dtype.type, np.datetime64):
+        values = values.view(np.int64)
+
     # numpy 1.6.1 workaround in Python 3.x
     if (values.dtype == np.object_
         and sys.version_info[0] >= 3):  # pragma: no cover
@@ -194,6 +217,12 @@ def _nanmax(values, axis=None, skipna=True):
             result.fill(np.nan)
         else:
             result = values.max(axis)
+
+    if issubclass(dtype.type, np.datetime64):
+        if not isinstance(result, np.ndarray):
+            result = lib.Timestamp(result)
+        else:
+            result = result.view(dtype)
 
     return _maybe_null_out(result, axis, mask)
 

@@ -40,6 +40,7 @@ pandas 0.9.1
   - Fix matplotlib unicode interaction bug
   - Make WLS r-squared match statsmodels 0.5.0 fixed value
   - Fix zero-trimming DataFrame formatting bug
+  - Correctly compute/box datetime64 min/max values from Series.min/max (#2083)
 
 pandas 0.9.0
 ============

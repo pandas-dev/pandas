@@ -1781,6 +1781,21 @@ class TestLegacySupport(unittest.TestCase):
         self.assertEqual(rng.min(), rng[0])
         self.assertEqual(rng.max(), rng[-1])
 
+    def test_min_max_series(self):
+        rng = date_range('1/1/2000', periods=10, freq='4h')
+        lvls = ['A','A','A','B','B','B','C','C','C','C']
+        df = DataFrame({'TS': rng, 'V' : np.random.randn(len(rng)),
+                        'L' : lvls})
+
+        result = df.TS.max()
+        exp = Timestamp(df.TS.iget(-1))
+        self.assertTrue(isinstance(result, Timestamp))
+        self.assertEqual(result, exp)
+
+        result = df.TS.min()
+        exp = Timestamp(df.TS.iget(0))
+        self.assertTrue(isinstance(result, Timestamp))
+        self.assertEqual(result, exp)
 
 class TestLegacyCompat(unittest.TestCase):
 
