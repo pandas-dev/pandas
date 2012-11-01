@@ -2155,6 +2155,14 @@ class TestSeriesDatetime64(unittest.TestCase):
         result = rng.intersection(rng2)
         self.assert_(result.equals(rng))
 
+        #empty same freq GH2129
+        rng = date_range('6/1/2000', '6/15/2000', freq='T')
+        result = rng[0:0].intersection(rng)
+        self.assert_(len(result) == 0)
+
+        result = rng.intersection(rng[0:0])
+        self.assert_(len(result) == 0)
+
     def test_date_range_bms_bug(self):
         # #1645
         rng = date_range('1/1/2000', periods=10, freq='BMS')

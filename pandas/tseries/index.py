@@ -964,6 +964,10 @@ class DatetimeIndex(Int64Index):
                     result.offset = to_offset(result.inferred_freq)
             return result
 
+        if len(self) == 0:
+            return self
+        if len(other) == 0:
+            return other
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
             left, right = self, other
