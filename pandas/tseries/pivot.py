@@ -139,7 +139,7 @@ def last_col2front(df, col_no=1):
     
 
 def extended_info(df, time_cols=True, aggreg=True, aggreg_func=None,
-                  datetime_index=False):
+                  ):
     """add extended information to a timeseries pivot
     """
 
@@ -156,18 +156,19 @@ def extended_info(df, time_cols=True, aggreg=True, aggreg_func=None,
         df_extended['sum'] = df_extended[cols].sum(1)
         df_extended['min'] = df_extended[cols].min(1)
         df_extended['max'] = df_extended[cols].max(1)
-        df_extended['max'] = df_extended[cols].std(1)
+        df_extended['std'] = df_extended[cols].std(1)
+    #TODO: how to add more functions in flexible way? check other pandas functions
+    if aggreg_func:
+        df_extended['aggregated'] = df_extended[cols].aggreg_func(1)
 
     #add some metadata
     #TODO: add function to make index a datetime with the argument above using the rng below    
     #TODO: convert the range to lower frequencies and reuse the function.
     rng = default_rng()
     df_extended['doy'] = rng.dayofyear
-#    df_extended = last_col2front(df_extended)
     df_extended['month'] = rng.month
-#    df_extended = last_col2front(df_extended)
     df_extended['day'] = rng.day
-#    df_extended = last_col2front(df_extended)
+    #add 1 to have hours formatted in "natural" and not programming counting     
     df_extended['hour'] = rng.hour + 1
     df_extended = last_col2front(df_extended, col_no=4)
     
