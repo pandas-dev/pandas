@@ -785,6 +785,11 @@ class TestDataFrameFormatting(unittest.TestCase):
             self.assert_(('+10' in line) or skip)
             skip = False
 
+    def test_dict_entries(self):
+        df = DataFrame({'A': [{'a':1, 'b':2}]})
+
+        val = df.to_string()
+        self.assertTrue("{'a': 1, 'b': 2}" in val)
 
 class TestSeriesFormatting(unittest.TestCase):
 

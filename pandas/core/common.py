@@ -1053,6 +1053,19 @@ def _pprint_seq(seq, _nest_lvl=0):
     fmt = u"[%s]" if hasattr(seq, '__setitem__') else u"(%s)"
     return fmt % ", ".join(pprint_thing(e, _nest_lvl + 1) for e in seq)
 
+def _pprint_dict(seq, _nest_lvl=0):
+    """
+    internal. pprinter for iterables. you should probably use pprint_thing()
+    rather then calling this directly.
+    """
+    fmt = u"{%s}"
+    pairs = []
+
+    pfmt = u"%s: %s"
+    for k, v in seq.items():
+        pairs.append(pfmt % (repr(k), repr(v)))
+    return fmt % ", ".join(pairs)
+
 
 def pprint_thing(thing, _nest_lvl=0):
     """
@@ -1077,6 +1090,9 @@ def pprint_thing(thing, _nest_lvl=0):
     from pandas.core.format import print_config
     if thing is None:
         result = ''
+    elif (isinstance(thing, dict) and
+          _nest_lvl < print_config.pprint_nest_depth):
+        result = _pprint_dict(thing, _nest_lvl)
     elif _is_sequence(thing) and _nest_lvl < print_config.pprint_nest_depth:
         result = _pprint_seq(thing, _nest_lvl)
     else:
