@@ -2935,42 +2935,6 @@ class TimeSeries(Series):
         namestr = "Name: %s, " % str(self.name) if self.name is not None else ""
         return '%s%sLength: %d' % (freqstr, namestr, len(self))
 
-    def at_time(self, time, asof=False):
-        """
-        Select values at particular time of day (e.g. 9:30AM)
-
-        Parameters
-        ----------
-        time : datetime.time or string
-
-        Returns
-        -------
-        values_at_time : TimeSeries
-        """
-        indexer = self.index.indexer_at_time(time, asof=asof)
-        return self.take(indexer)
-
-    def between_time(self, start_time, end_time, include_start=True,
-                     include_end=True):
-        """
-        Select values between particular times of the day (e.g., 9:00-9:30 AM)
-
-        Parameters
-        ----------
-        start_time : datetime.time or string
-        end_time : datetime.time or string
-        include_start : boolean, default True
-        include_end : boolean, default True
-
-        Returns
-        -------
-        values_between_time : TimeSeries
-        """
-        indexer = self.index.indexer_between_time(
-            start_time, end_time, include_start=include_start,
-            include_end=include_end)
-        return self.take(indexer)
-
     def to_timestamp(self, freq=None, how='start', copy=True):
         """
         Cast to datetimeindex of timestamps, at *beginning* of period
