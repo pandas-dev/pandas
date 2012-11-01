@@ -654,7 +654,7 @@ function takes a number of arguments. Only the first is required.
     (default), and `header` and `index` are True, then the index names are
     used. (A sequence should be given if the DataFrame uses MultiIndex).
   - ``mode`` : Python write mode, default 'w'
-  - ``sep`` : Field delimiter for the output file (default "'")
+  - ``sep`` : Field delimiter for the output file (default ",")
   - ``encoding``: a string representing the encoding to use if the contents are
     non-ascii, for python versions prior to 3
 
