@@ -37,6 +37,7 @@ pandas 0.9.1
 
 **Bug fixes**
 
+  - Handle inf/-inf correctly in read_* parser functions (#2041)
   - Fix matplotlib unicode interaction bug
   - Make WLS r-squared match statsmodels 0.5.0 fixed value
   - Fix zero-trimming DataFrame formatting bug

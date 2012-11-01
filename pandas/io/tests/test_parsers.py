@@ -196,6 +196,15 @@ c,3
         self.assert_(isinstance(result, Series))
         assert_series_equal(result, expected)
 
+
+    def test_inf_parsing(self):
+        data = """\
+,A
+a,inf
+b,-inf"""
+        df = read_csv(StringIO(data), index_col=0)
+        self.assertTrue(np.isinf(np.abs(df['A'])).all())
+
     def test_multiple_date_col(self):
         # Can use multiple date parsers
         data = """\
