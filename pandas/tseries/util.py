@@ -2,6 +2,7 @@ import numpy as np
 
 from pandas.core.frame import DataFrame
 import pandas.core.nanops as nanops
+from pandas.tseries.util import isleapyear
 
 def pivot_annual(series, freq=None):
     """
