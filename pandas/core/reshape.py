@@ -169,6 +169,7 @@ class _Unstacker(object):
             mask_chunk.flat[self.mask] = True
 
         new_values = new_values.take(self.unique_groups, axis=0)
+        new_mask = new_mask.take(self.unique_groups, axis=0)
 
         return new_values, new_mask
 

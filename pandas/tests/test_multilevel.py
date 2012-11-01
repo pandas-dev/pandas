@@ -15,6 +15,7 @@ from pandas.util.testing import (assert_almost_equal,
 import pandas.core.common as com
 import pandas.util.testing as tm
 from pandas.util.compat import product as cart_product
+import pandas as pd
 
 class TestMultiLevel(unittest.TestCase):
 
@@ -710,6 +711,28 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         # stack with negative number
         result = self.ymd.unstack(0).stack(-2)
         expected = self.ymd.unstack(0).stack(0)
+
+    def test_unstack_odd_failure(self):
+        data = """day,time,smoker,sum,len
+Fri,Dinner,No,8.25,3.
+Fri,Dinner,Yes,27.03,9
+Fri,Lunch,No,3.0,1
+Fri,Lunch,Yes,13.68,6
+Sat,Dinner,No,139.63,45
+Sat,Dinner,Yes,120.77,42
+Sun,Dinner,No,180.57,57
+Sun,Dinner,Yes,66.82,19
+Thur,Dinner,No,3.0,1
+Thur,Lunch,No,117.32,44
+Thur,Lunch,Yes,51.51,17"""
+
+        df = pd.read_csv(StringIO(data)).set_index(['day', 'time', 'smoker'])
+
+        # it works, #2100
+        result = df.unstack(2)
+
+        recons = result.stack()
+        assert_frame_equal(recons, df)
 
     def test_stack_mixed_dtype(self):
         df = self.frame.T
