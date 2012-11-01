@@ -238,6 +238,8 @@ class Timestamp(_Timestamp):
             # Same UTC timestamp, different time zone
             return Timestamp(self.value, tz=tz)
 
+    astimezone = tz_convert
+
     def replace(self, **kwds):
         return Timestamp(datetime.replace(self, **kwds),
                          offset=self.offset)
