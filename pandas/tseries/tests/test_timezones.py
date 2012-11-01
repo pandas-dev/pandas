@@ -137,6 +137,13 @@ class TestTimeZoneSupport(unittest.TestCase):
                             freq='L')
         self.assertRaises(pytz.NonExistentTimeError, dti.tz_localize, 'US/Eastern')
 
+    def test_astimezone(self):
+        utc = Timestamp('3/11/2012 22:00', tz='UTC')
+        expected = utc.tz_convert('US/Eastern')
+        result = utc.astimezone('US/Eastern')
+        self.assertEquals(expected, result)
+        self.assert_(isinstance(result, Timestamp))
+
     def test_create_with_tz(self):
         stamp = Timestamp('3/11/2012 05:00', tz='US/Eastern')
         self.assertEquals(stamp.hour, 5)
