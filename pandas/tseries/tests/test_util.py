@@ -61,9 +61,21 @@ class TestPivotAnnual(unittest.TestCase):
         df94_noleap = df94[(df94.index.month == 2) & (df94.index.day == 29)]
         np.testing.assert_equal(df94_noleap.values, nan_arr)
         ### extended functionaliy
+        ext = pivot.extended_info(annual)        
+        ## descriptive statistics
+        #mean        
+        tm.assert_frame_equal(annual.mean(1), ext['mean'])
+        tm.assert_frame_equal(annual.sum(1), ext['sum'])
+        tm.assert_frame_equal(annual.min(1), ext['min'])
+        tm.assert_frame_equal(annual.min(1), ext['max'])
+        tm.assert_frame_equal(annual.std(1), ext['std'])
         
+        ## additional time columns for easier filtering
+        np.testing.assert_equal(ext['doy'].values, annual.index.dayofyear)
+        np.testing.assert_equal(ext['day'].values, annual.index.day)
+        #the hour is incremented by 1
+        np.testing.assert_equal(ext['hour'].values, (annual.index.hour +1))
 
-   
     
     def test_daily(self):
         rng = date_range('1/1/2000', '12/31/2004', freq='D')
