@@ -1797,6 +1797,23 @@ class TestLegacySupport(unittest.TestCase):
         self.assertTrue(isinstance(result, Timestamp))
         self.assertEqual(result, exp)
 
+    def test_from_M8_structured(self):
+        dates = [ (datetime(2012, 9, 9, 0, 0),
+                   datetime(2012, 9, 8, 15, 10))]
+        arr = np.array(dates,
+                       dtype=[('Date', '<M8[us]'), ('Forecasting', '<M8[us]')])
+        df = DataFrame(arr)
+
+        self.assertEqual(df['Date'][0], dates[0][0])
+        self.assertEqual(df['Forecasting'][0], dates[0][1])
+
+        s = Series(arr['Date'])
+        self.assertTrue(s[0], Timestamp)
+        self.assertEqual(s[0], dates[0][0])
+
+        s = Series.from_array(arr['Date'], Index([0]))
+        self.assertEqual(s[0], dates[0][0])
+
 class TestLegacyCompat(unittest.TestCase):
 
     def setUp(self):

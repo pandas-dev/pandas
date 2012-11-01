@@ -44,6 +44,7 @@ pandas 0.9.1
   - Fix unstacking edge case with unrepresented groups (#2100)
   - Fix Series.str failures when using pipe pattern '|' (#2119)
   - Fix pretty-printing of dict entries in Series, DataFrame (#2144)
+  - Cast other datetime64 values to nanoseconds in DataFrame ctor (#2095)
 
 pandas 0.9.0
 ============

@@ -1254,6 +1254,8 @@ def form_blocks(data, axes):
         elif issubclass(v.dtype.type, np.complexfloating):
             complex_dict[k] = v
         elif issubclass(v.dtype.type, np.datetime64):
+            if v.dtype != _NS_DTYPE:
+                v = lib.cast_to_nanoseconds(v)
             datetime_dict[k] = v
         elif issubclass(v.dtype.type, np.integer):
             int_dict[k] = v
