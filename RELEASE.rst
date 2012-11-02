@@ -54,6 +54,8 @@ pandas 0.9.1
   - Fix pretty-printing of dict entries in Series, DataFrame (#2144)
   - Cast other datetime64 values to nanoseconds in DataFrame ctor (#2095)
   - Alias Timestamp.astimezone to tz_convert, so will yield Timestamp (#2060)
+  - Fix timedelta64 formatting from Series (#2165, #2146)
+  - Handle None values gracefully in dict passed to Panel constructor (#2075)
 
 pandas 0.9.0
 ============
