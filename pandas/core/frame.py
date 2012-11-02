@@ -4704,8 +4704,10 @@ class DataFrame(NDFrame):
             min: lowest rank in group
             max: highest rank in group
             first: ranks assigned in order they appear in the array
-        na_option : {'keep'}
+        na_option : {'keep', 'top', 'bottom'}
             keep: leave NA values where they are
+            top: smallest rank if ascending
+            bottom: smallest rank if descending
         ascending : boolean, default True
             False for ranks by high (1) to low (N)
 
@@ -4716,7 +4718,7 @@ class DataFrame(NDFrame):
         if numeric_only is None:
             try:
                 ranks = algos.rank(self.values, axis=axis, method=method,
-                                   ascending=ascending)
+                                   ascending=ascending, na_option=na_option)
                 return DataFrame(ranks, index=self.index, columns=self.columns)
             except TypeError:
                 numeric_only = True
@@ -4726,7 +4728,7 @@ class DataFrame(NDFrame):
         else:
             data = self
         ranks = algos.rank(data.values, axis=axis, method=method,
-                           ascending=ascending)
+                           ascending=ascending, na_option=na_option)
         return DataFrame(ranks, index=data.index, columns=data.columns)
 
     def to_timestamp(self, freq=None, how='start', axis=0, copy=True):

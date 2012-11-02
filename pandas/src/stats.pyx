@@ -70,7 +70,8 @@ cdef _take_2d_object(ndarray[object, ndim=2] values,
     return result
 
 
-def rank_1d_float64(object in_arr, ties_method='average', ascending=True):
+def rank_1d_float64(object in_arr, ties_method='average', ascending=True,
+                    na_option='keep'):
     """
     Fast NaN-friendly version of scipy.stats.rankdata
     """
@@ -86,7 +87,7 @@ def rank_1d_float64(object in_arr, ties_method='average', ascending=True):
 
     values = np.asarray(in_arr).copy()
 
-    if ascending:
+    if ascending ^ (na_option == 'top'):
         nan_value = np.inf
     else:
         nan_value = -np.inf
@@ -115,7 +116,7 @@ def rank_1d_float64(object in_arr, ties_method='average', ascending=True):
         sum_ranks += i + 1
         dups += 1
         val = sorted_data[i]
-        if val == nan_value:
+        if (val == nan_value) and (na_option == 'keep'):
             ranks[argsorted[i]] = nan
             continue
         if i == n - 1 or fabs(sorted_data[i + 1] - val) > FP_ERR:
@@ -138,7 +139,8 @@ def rank_1d_float64(object in_arr, ties_method='average', ascending=True):
     return ranks
 
 
-def rank_1d_int64(object in_arr, ties_method='average', ascending=True):
+def rank_1d_int64(object in_arr, ties_method='average', ascending=True,
+                  na_option='keep'):
     """
     Fast NaN-friendly version of scipy.stats.rankdata
     """
@@ -198,7 +200,7 @@ def rank_1d_int64(object in_arr, ties_method='average', ascending=True):
 
 
 def rank_2d_float64(object in_arr, axis=0, ties_method='average',
-                    ascending=True):
+                    ascending=True, na_option='keep'):
     """
     Fast NaN-friendly version of scipy.stats.rankdata
     """
@@ -219,7 +221,7 @@ def rank_2d_float64(object in_arr, axis=0, ties_method='average',
     else:
         values = in_arr.copy()
 
-    if ascending:
+    if ascending ^ (na_option == 'top'):
         nan_value = np.inf
     else:
         nan_value = -np.inf
@@ -249,7 +251,7 @@ def rank_2d_float64(object in_arr, axis=0, ties_method='average',
             sum_ranks += j + 1
             dups += 1
             val = values[i, j]
-            if val == nan_value:
+            if val == nan_value and na_option == 'keep':
                 ranks[i, argsorted[i, j]] = nan
                 continue
             if j == k - 1 or fabs(values[i, j + 1] - val) > FP_ERR:
@@ -277,7 +279,7 @@ def rank_2d_float64(object in_arr, axis=0, ties_method='average',
 
 
 def rank_2d_int64(object in_arr, axis=0, ties_method='average',
-                    ascending=True):
+                    ascending=True, na_option='keep'):
     """
     Fast NaN-friendly version of scipy.stats.rankdata
     """
@@ -345,7 +347,7 @@ def rank_2d_int64(object in_arr, axis=0, ties_method='average',
 
 
 def rank_1d_generic(object in_arr, bint retry=1, ties_method='average',
-                    ascending=True):
+                    ascending=True, na_option='keep'):
     """
     Fast NaN-friendly version of scipy.stats.rankdata
     """
@@ -365,7 +367,7 @@ def rank_1d_generic(object in_arr, bint retry=1, ties_method='average',
     if values.dtype != np.object_:
         values = values.astype('O')
 
-    if ascending:
+    if ascending ^ (na_option == 'top'):
         # always greater than everything
         nan_value = Infinity()
     else:
@@ -401,7 +403,7 @@ def rank_1d_generic(object in_arr, bint retry=1, ties_method='average',
         sum_ranks += i + 1
         dups += 1
         val = util.get_value_at(sorted_data, i)
-        if val is nan_value:
+        if val is nan_value and na_option=='keep':
             ranks[argsorted[i]] = nan
             continue
         if (i == n - 1 or
@@ -450,7 +452,7 @@ class NegInfinity(object):
     __cmp__ = _return_true
 
 def rank_2d_generic(object in_arr, axis=0, ties_method='average',
-                    ascending=True):
+                    ascending=True, na_option='keep'):
     """
     Fast NaN-friendly version of scipy.stats.rankdata
     """
@@ -475,7 +477,7 @@ def rank_2d_generic(object in_arr, axis=0, ties_method='average',
     if values.dtype != np.object_:
         values = values.astype('O')
 
-    if ascending:
+    if ascending ^ (na_option == 'top'):
         # always greater than everything
         nan_value = Infinity()
     else:
@@ -510,7 +512,7 @@ def rank_2d_generic(object in_arr, axis=0, ties_method='average',
         dups = sum_ranks = infs = 0
         for j in range(k):
             val = values[i, j]
-            if val is nan_value:
+            if val is nan_value and na_option == 'keep':
                 ranks[i, argsorted[i, j]] = nan
                 infs += 1
                 continue
