@@ -879,6 +879,11 @@ class TestSeriesFormatting(unittest.TestCase):
         for line in repr(Series(vals)).split('\n'):
             self.assert_('+10' in line)
 
+    def test_timedelta64(self):
+        Series(np.array([1100, 20], dtype='timedelta64[s]')).to_string()
+        #check this works
+        #GH2146
+
 
 class TestEngFormatter(unittest.TestCase):
 

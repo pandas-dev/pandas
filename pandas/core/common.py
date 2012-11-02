@@ -90,6 +90,8 @@ def _isnull_ndarraylike(obj):
     elif values.dtype == np.dtype('M8[ns]'):
         # this is the NaT pattern
         result = values.view('i8') == lib.iNaT
+    elif issubclass(values.dtype.type, np.timedelta64):
+        result = -np.isfinite(values.view('i8'))
     else:
         result = -np.isfinite(obj)
     return result
@@ -800,7 +802,8 @@ def is_integer_dtype(arr_or_dtype):
     else:
         tipo = arr_or_dtype.dtype.type
     return (issubclass(tipo, np.integer) and not
-            issubclass(tipo, np.datetime64))
+            (issubclass(tipo, np.datetime64) or
+             issubclass(tipo, np.timedelta64)))
 
 
 def is_datetime64_dtype(arr_or_dtype):
