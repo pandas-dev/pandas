@@ -2709,9 +2709,7 @@ class DataFrame(NDFrame):
             else:
                 raise ValueError('must specify how or thresh')
 
-        labels = self._get_axis(axis)
-        new_labels = labels[mask]
-        return self.reindex(**{axis_name: new_labels})
+        return self.take(mask.nonzero()[0], axis=axis)
 
     def drop_duplicates(self, cols=None, take_last=False, inplace=False):
         """

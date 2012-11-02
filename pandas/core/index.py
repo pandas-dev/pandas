@@ -305,11 +305,8 @@ class Index(np.ndarray):
     def __hash__(self):
         return hash(self.view(np.ndarray))
 
-    def __getattribute__(self,name):
-        if name=="__setitem__": # emulate an Immutable ndarray
-            raise AttributeError(str(self.__class__) + ' object is immutable')
-        else:
-            return object.__getattribute__(self,name)
+    def __setitem__(self, key, value):
+        raise Exception(str(self.__class__) + ' object is immutable')
 
     def __getitem__(self, key):
         """Override numpy.ndarray's __getitem__ method to work as desired"""
