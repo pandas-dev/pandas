@@ -1025,6 +1025,7 @@ class LinePlot(MPLPlot):
                 freq = getattr(data.index, 'inferred_freq', None)
             if isinstance(freq, DateOffset):
                 freq = freq.rule_code
+            freq = get_base_alias(freq)
             freq = get_period_alias(freq)
 
             if freq is None:
