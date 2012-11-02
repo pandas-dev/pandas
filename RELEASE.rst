@@ -44,6 +44,7 @@ pandas 0.9.1
 
 **Bug fixes**
 
+  - Implement comparisons on date offsets with fixed delta (#2078)
   - Handle inf/-inf correctly in read_* parser functions (#2041)
   - Fix matplotlib unicode interaction bug
   - Make WLS r-squared match statsmodels 0.5.0 fixed value
@@ -57,6 +58,8 @@ pandas 0.9.1
   - Fix timedelta64 formatting from Series (#2165, #2146)
   - Handle None values gracefully in dict passed to Panel constructor (#2075)
   - Box datetime64 values as Timestamp objects in Series/DataFrame.iget (#2148)
+  - Fix Timestamp indexing bug in DatetimeIndex.insert (#2155)
+  - Use index name(s) (if any) in DataFrame.to_records (#2161)
 
 pandas 0.9.0
 ============

@@ -1335,6 +1335,22 @@ def test_tick_offset():
     assert not Micro().isAnchored()
     assert not Nano().isAnchored()
 
+
+def test_compare_ticks():
+    offsets = [Hour, Minute, Second, Milli, Micro]
+
+    for kls in offsets:
+        three = kls(3)
+        four = kls(4)
+
+        for _ in xrange(10):
+            assert(three < kls(4))
+            assert(kls(3) < four)
+            assert(four > kls(3))
+            assert(kls(4) > three)
+            assert(kls(3) == kls(3))
+            assert(kls(3) != kls(4))
+
 def test_hasOffsetName():
     assert hasOffsetName(BDay())
     assert not hasOffsetName(BDay(2))

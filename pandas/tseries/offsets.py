@@ -992,8 +992,24 @@ class YearBegin(DateOffset, CacheableOffset):
 #----------------------------------------------------------------------
 # Ticks
 
+import operator
+
+
+def _tick_comp(op):
+    def f(self, other):
+        return op(self.delta, other.delta)
+    return f
+
+
 class Tick(DateOffset):
     _inc = timedelta(microseconds=1000)
+
+    __gt__ = _tick_comp(operator.gt)
+    __ge__ = _tick_comp(operator.ge)
+    __lt__ = _tick_comp(operator.lt)
+    __le__ = _tick_comp(operator.le)
+    __eq__ = _tick_comp(operator.eq)
+    __ne__ = _tick_comp(operator.ne)
 
     def __add__(self, other):
         if isinstance(other, Tick):
