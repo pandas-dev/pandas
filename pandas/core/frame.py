@@ -1895,7 +1895,8 @@ class DataFrame(NDFrame):
                 else:
                     value = value.reindex(self.index).values
             else:
-                assert(len(value) == len(self.index))
+                msg = 'Length of values does not match length of index'
+                assert len(value) == len(self.index), msg
 
                 if not isinstance(value, np.ndarray):
                     value = com._asarray_tuplesafe(value)
