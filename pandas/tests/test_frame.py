@@ -5621,17 +5621,31 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertEqual(len(filtered.columns), 2)
         self.assert_('AA' in filtered)
 
-        # regex
-        filtered = fcopy.filter(regex='[A]+')
-        self.assertEqual(len(filtered.columns), 2)
-        self.assert_('AA' in filtered)
-
         # pass in None
         self.assertRaises(Exception, self.frame.filter, items=None)
 
         # objects
         filtered = self.mixed_frame.filter(like='foo')
         self.assert_('foo' in filtered)
+
+    def test_filter_regex_search(self):
+        fcopy = self.frame.copy()
+        fcopy['AA'] = 1
+
+        # regex
+        filtered = fcopy.filter(regex='[A]+')
+        self.assertEqual(len(filtered.columns), 2)
+        self.assert_('AA' in filtered)
+
+        # doesn't have to be at beginning
+        df = DataFrame({'aBBa': [1, 2],
+                        'BBaBB': [1, 2],
+                        'aCCa': [1, 2],
+                        'aCCaBB': [1, 2]})
+
+        result = df.filter(regex='BB')
+        exp = df[[x for x in df.columns if 'BB' in x]]
+        assert_frame_equal(result, exp)
 
     def test_filter_corner(self):
         empty = DataFrame()

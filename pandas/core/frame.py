@@ -2667,7 +2667,7 @@ class DataFrame(NDFrame):
             return self.select(lambda x: like in x, axis=1)
         elif regex:
             matcher = re.compile(regex)
-            return self.select(lambda x: matcher.match(x) is not None, axis=1)
+            return self.select(lambda x: matcher.search(x) is not None, axis=1)
         else:
             raise ValueError('items was None!')
 
