@@ -62,6 +62,7 @@ pandas 0.9.1
   - Fix Timestamp indexing bug in DatetimeIndex.insert (#2155)
   - Use index name(s) (if any) in DataFrame.to_records (#2161)
   - Don't lose index names in Panel.to_frame/DataFrame.to_panel (#2163)
+  - Work around length-0 boolean indexing NumPy bug (#2096)
 
 pandas 0.9.0
 ============

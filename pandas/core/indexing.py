@@ -120,11 +120,15 @@ class _NDFrameIndexer(object):
             try:
                 for item in item_labels[het_idx]:
                     data = self.obj[item]
-                    data.values[plane_indexer] = value
+                    values = data.values
+                    if np.prod(values.shape):
+                        values[plane_indexer] = value
             except ValueError:
                 for item, v in zip(item_labels[het_idx], value):
                     data = self.obj[item]
-                    data.values[plane_indexer] = v
+                    values = data.values
+                    if np.prod(values.shape):
+                        values[plane_indexer] = v
         else:
             if isinstance(indexer, tuple):
                 indexer = _maybe_convert_ix(*indexer)
@@ -135,7 +139,10 @@ class _NDFrameIndexer(object):
             if isinstance(value, DataFrame):
                 value = self._align_frame(indexer, value)
 
-            self.obj.values[indexer] = value
+            # 2096
+            values = self.obj.values
+            if np.prod(values.shape):
+                values[indexer] = value
 
     def _align_series(self, indexer, ser):
         # indexer to assign Series can be tuple or scalar

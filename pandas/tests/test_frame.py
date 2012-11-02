@@ -163,6 +163,18 @@ class CheckIndexing(object):
 
         assert_almost_equal(df.values, arr)
 
+    def test_boolean_index_empty_corner(self):
+        # #2096
+        from pandas import DatetimeIndex
+        blah = DataFrame(np.empty([0, 1]), columns=['A'],
+                         index=DatetimeIndex([]))
+
+        # both of these should succeed trivially
+        k = np.array([], bool)
+
+        blah[k]
+        blah[k] = 0
+
     def test_getitem_ix_mixed_integer(self):
         df = DataFrame(np.random.randn(4, 3),
                        index=[1, 10, 'C', 'E'], columns=[1, 2, 3])
