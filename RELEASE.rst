@@ -31,6 +31,8 @@ pandas 0.9.1
 
   - Can specify multiple sort orders in DataFrame/Series.sort/sort_index (#928)
   - New `top` and `bottom` options for handling NAs in rank (#1508, #2159)
+  - Add `where` and `mask` functions to DataFrame (#2109, #2151)
+  - Add `at_time` and `between_time` functions to DataFrame (#2149)
 
 **Improvements to existing features**
 
