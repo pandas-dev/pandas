@@ -83,9 +83,12 @@ def rank_1d_float64(object in_arr, ties_method='average', ascending=True,
         float64_t val, nan_value
         float64_t sum_ranks = 0
         int tiebreak = 0
+        bint keep_na = 0
     tiebreak = tiebreakers[ties_method]
 
     values = np.asarray(in_arr).copy()
+
+    keep_na = na_option == 'keep'
 
     if ascending ^ (na_option == 'top'):
         nan_value = np.inf
@@ -116,7 +119,7 @@ def rank_1d_float64(object in_arr, ties_method='average', ascending=True,
         sum_ranks += i + 1
         dups += 1
         val = sorted_data[i]
-        if (val == nan_value) and (na_option == 'keep'):
+        if (val == nan_value) and keep_na:
             ranks[argsorted[i]] = nan
             continue
         if i == n - 1 or fabs(sorted_data[i + 1] - val) > FP_ERR:
@@ -212,7 +215,11 @@ def rank_2d_float64(object in_arr, axis=0, ties_method='average',
         float64_t val, nan_value
         float64_t sum_ranks = 0
         int tiebreak = 0
+        bint keep_na = 0
+
     tiebreak = tiebreakers[ties_method]
+
+    keep_na = na_option == 'keep'
 
     in_arr = np.asarray(in_arr)
 
@@ -251,7 +258,7 @@ def rank_2d_float64(object in_arr, axis=0, ties_method='average',
             sum_ranks += j + 1
             dups += 1
             val = values[i, j]
-            if val == nan_value and na_option == 'keep':
+            if val == nan_value and keep_na:
                 ranks[i, argsorted[i, j]] = nan
                 continue
             if j == k - 1 or fabs(values[i, j + 1] - val) > FP_ERR:
@@ -360,7 +367,11 @@ def rank_1d_generic(object in_arr, bint retry=1, ties_method='average',
         object val, nan_value
         float64_t sum_ranks = 0
         int tiebreak = 0
+        bint keep_na = 0
+
     tiebreak = tiebreakers[ties_method]
+
+    keep_na = na_option == 'keep'
 
     values = np.array(in_arr, copy=True)
 
@@ -403,7 +414,7 @@ def rank_1d_generic(object in_arr, bint retry=1, ties_method='average',
         sum_ranks += i + 1
         dups += 1
         val = util.get_value_at(sorted_data, i)
-        if val is nan_value and na_option=='keep':
+        if val is nan_value and keep_na:
             ranks[argsorted[i]] = nan
             continue
         if (i == n - 1 or
@@ -465,7 +476,11 @@ def rank_2d_generic(object in_arr, axis=0, ties_method='average',
         object val, nan_value
         float64_t sum_ranks = 0
         int tiebreak = 0
+        bint keep_na = 0
+
     tiebreak = tiebreakers[ties_method]
+
+    keep_na = na_option == 'keep'
 
     in_arr = np.asarray(in_arr)
 
@@ -512,7 +527,7 @@ def rank_2d_generic(object in_arr, axis=0, ties_method='average',
         dups = sum_ranks = infs = 0
         for j in range(k):
             val = values[i, j]
-            if val is nan_value and na_option == 'keep':
+            if val is nan_value and keep_na:
                 ranks[i, argsorted[i, j]] = nan
                 infs += 1
                 continue

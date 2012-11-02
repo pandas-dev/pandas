@@ -30,6 +30,7 @@ pandas 0.9.1
 **New features**
 
   - Can specify multiple sort orders in DataFrame/Series.sort/sort_index (#928)
+  - New `top` and `bottom` options for handling NAs in rank (#1508, #2159)
 
 **Improvements to existing features**
 
@@ -50,6 +51,7 @@ pandas 0.9.1
   - Fix Series.str failures when using pipe pattern '|' (#2119)
   - Fix pretty-printing of dict entries in Series, DataFrame (#2144)
   - Cast other datetime64 values to nanoseconds in DataFrame ctor (#2095)
+  - Alias Timestamp.astimezone to tz_convert, so will yield Timestamp (#2060)
 
 pandas 0.9.0
 ============
