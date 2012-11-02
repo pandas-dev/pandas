@@ -1061,6 +1061,7 @@ class DataFrame(NDFrame):
             selfsorted = self
 
         major_axis, minor_axis = selfsorted.index.levels
+
         major_labels, minor_labels = selfsorted.index.labels
 
         shape = len(major_axis), len(minor_axis)
@@ -1071,6 +1072,13 @@ class DataFrame(NDFrame):
                                       major_labels, minor_labels,
                                       ref_items=selfsorted.columns)
             new_blocks.append(newb)
+
+        # preserve names, if any
+        major_axis = major_axis.copy()
+        major_axis.name = self.index.names[0]
+
+        minor_axis = minor_axis.copy()
+        minor_axis.name = self.index.names[1]
 
         new_axes = [selfsorted.columns, major_axis, minor_axis]
         new_mgr = BlockManager(new_blocks, new_axes)

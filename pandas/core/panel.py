@@ -1082,9 +1082,12 @@ class Panel(NDFrame):
         minor_labels = np.arange(K).reshape(1, K)[np.zeros(N, dtype=int)]
         minor_labels = minor_labels.ravel()[selector]
 
+        maj_name = self.major_axis.name or 'major'
+        min_name = self.minor_axis.name or 'minor'
+
         index = MultiIndex(levels=[self.major_axis, self.minor_axis],
                            labels=[major_labels, minor_labels],
-                           names=['major', 'minor'])
+                           names=[maj_name, min_name])
 
         return DataFrame(data, index=index, columns=self.items)
 

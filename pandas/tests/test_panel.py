@@ -1015,6 +1015,18 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         # names
         self.assertEqual(unfiltered.index.names, ['major', 'minor'])
 
+        # preserve original index names
+        df = DataFrame(np.random.randn(6, 2),
+                       index=[['a', 'a', 'b', 'b', 'c', 'c'],
+                              [0, 1, 0, 1, 0, 1]],
+                       columns=['one', 'two'])
+        df.index.names = ['foo', 'bar']
+        df.columns.name = 'baz'
+
+        rdf = df.to_panel().to_frame()
+        self.assertEqual(rdf.index.names, df.index.names)
+        self.assertEqual(rdf.columns.names, df.columns.names)
+
     def test_to_frame_mixed(self):
         panel = self.panel.fillna(0)
         panel['str'] = 'foo'
@@ -1253,7 +1265,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                    [[1.5, np.nan, 3.],
                     [1.5, np.nan, 3.],
                     [1.5, np.nan, 3.],
-                    [1.5, np.nan, 3.]]]) 
+                    [1.5, np.nan, 3.]]])
 
         other = Panel([[[3.6, 2., np.nan],
                         [np.nan, np.nan, 7]]], items=[1])
