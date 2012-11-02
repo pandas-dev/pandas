@@ -56,6 +56,7 @@ pandas 0.9.1
   - Alias Timestamp.astimezone to tz_convert, so will yield Timestamp (#2060)
   - Fix timedelta64 formatting from Series (#2165, #2146)
   - Handle None values gracefully in dict passed to Panel constructor (#2075)
+  - Box datetime64 values as Timestamp objects in Series/DataFrame.iget (#2148)
 
 pandas 0.9.0
 ============

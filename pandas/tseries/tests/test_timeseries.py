@@ -216,6 +216,8 @@ class TestTimeSeries(unittest.TestCase):
         s = Series(rng, index=rng)
         self.assert_(isinstance(s[5], Timestamp))
 
+        self.assert_(isinstance(s.iget_value(5), Timestamp))
+
     def test_timestamp_to_datetime(self):
         _skip_if_no_pytz()
         rng = date_range('20090415', '20090519',

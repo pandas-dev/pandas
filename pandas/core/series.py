@@ -734,14 +734,19 @@ copy : boolean, default False
         -------
         value : scalar (int) or Series (slice, sequence)
         """
-        if isinstance(i, slice):
-            return self[i]
-        else:
-            label = self.index[i]
-            if isinstance(label, Index):
-                return self.reindex(label)
+        try:
+            return lib.get_value_at(self, i)
+        except IndexError:
+            raise
+        except:
+            if isinstance(i, slice):
+                return self[i]
             else:
-                return lib.get_value_at(self, i)
+                label = self.index[i]
+                if isinstance(label, Index):
+                    return self.reindex(label)
+                else:
+                    return lib.get_value_at(self, i)
 
     iget = iget_value
     irow = iget_value
