@@ -1255,7 +1255,7 @@ class DatetimeIndex(Int64Index):
         -------
         new_index : Index
         """
-        if type(item) == datetime:
+        if isinstance(item, datetime):
             item = _to_m8(item)
 
         new_index = np.concatenate((self[:loc].asi8,

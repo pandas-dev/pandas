@@ -320,6 +320,16 @@ class TestTimeSeries(unittest.TestCase):
         expected.values[:3] = np.nan
         tm.assert_frame_equal(result, expected)
 
+    def test_frame_setitem_timestamp(self):
+        #2155
+        columns = DatetimeIndex(start='1/1/2012', end='2/1/2012',
+                                freq=datetools.bday)
+        index = range(10)
+        data = DataFrame(columns=columns, index=index)
+        t = datetime(2012, 11, 1)
+        ts = Timestamp(t)
+        data[ts] = np.nan #works
+
     def test_sparse_series_fillna_limit(self):
         index = np.arange(10)
         s = Series(np.random.randn(10), index=index)
