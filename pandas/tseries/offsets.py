@@ -1053,6 +1053,8 @@ class Tick(DateOffset):
     def rule_code(self):
         return self._rule_base
 
+    def isAnchored(self):
+        return False
 
 def _delta_to_tick(delta):
     if delta.microseconds == 0:
@@ -1088,34 +1090,24 @@ class Day(Tick, CacheableOffset):
     _inc = timedelta(1)
     _rule_base = 'D'
 
-    def isAnchored(self):
-
-        return False
-
-
 class Hour(Tick):
     _inc = timedelta(0, 3600)
     _rule_base = 'H'
-
 
 class Minute(Tick):
     _inc = timedelta(0, 60)
     _rule_base = 'T'
 
-
 class Second(Tick):
     _inc = timedelta(0, 1)
     _rule_base = 'S'
 
-
 class Milli(Tick):
     _rule_base = 'L'
-
 
 class Micro(Tick):
     _inc = timedelta(microseconds=1)
     _rule_base = 'U'
-
 
 class Nano(Tick):
     _inc = 1
