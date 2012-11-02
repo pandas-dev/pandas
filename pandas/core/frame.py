@@ -2859,12 +2859,14 @@ class DataFrame(NDFrame):
             if isinstance(by, (tuple, list)):
                 keys = [self[x].values for x in by]
                 indexer = _lexsort_indexer(keys, orders=ascending)
+                indexer = com._ensure_platform_int(indexer)
             else:
                 indexer = self[by].values.argsort()
                 if not ascending:
                     indexer = indexer[::-1]
         elif isinstance(labels, MultiIndex):
             indexer = _lexsort_indexer(labels.labels, orders=ascending)
+            indexer = com._ensure_platform_int(indexer)
         else:
             indexer = labels.argsort()
             if not ascending:

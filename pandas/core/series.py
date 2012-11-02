@@ -1766,6 +1766,7 @@ copy : boolean, default False
         if isinstance(index, MultiIndex):
             from pandas.core.groupby import _lexsort_indexer
             indexer = _lexsort_indexer(index.labels, orders=ascending)
+            indexer = com._ensure_platform_int(indexer)
             new_labels = index.take(indexer)
         else:
             new_labels, indexer = index.order(return_indexer=True,
