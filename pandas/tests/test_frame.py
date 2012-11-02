@@ -2572,6 +2572,21 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame(np.random.rand(10,10))
         df.to_records()
 
+    def test_to_recods_index_name(self):
+        df = DataFrame(np.random.randn(3, 3))
+        df.index.name = 'X'
+        rs = df.to_records()
+        self.assert_('X' in rs.dtype.fields)
+
+        df = DataFrame(np.random.randn(3, 3))
+        rs = df.to_records()
+        self.assert_('index' in rs.dtype.fields)
+
+        df.index = MultiIndex.from_tuples([('a', 'x'), ('a', 'y'), ('b', 'z')])
+        df.index.names = ['A', None]
+        rs = df.to_records()
+        self.assert_('level_0' in rs.dtype.fields)
+
     def test_join_str_datetime(self):
         str_dates = ['20120209' , '20120222']
         dt_dates = [datetime(2012,2,9), datetime(2012,2,22)]

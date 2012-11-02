@@ -923,7 +923,16 @@ class DataFrame(NDFrame):
         if index:
             arrays = [self.index.values] + [self[c].values
                                             for c in self.columns]
-            names = ['index'] + list(map(str, self.columns))
+            count = 0
+            index_names = self.index.names
+            if isinstance(self.index, MultiIndex):
+                for i, n in enumerate(index_names):
+                    if n is None:
+                        index_names[i] = 'level_%d' % count
+                        count += 1
+            elif index_names[0] is None:
+                index_names = ['index']
+            names = index_names + list(map(str, self.columns))
         else:
             arrays = [self[c].values for c in self.columns]
             names = list(map(str, self.columns))
