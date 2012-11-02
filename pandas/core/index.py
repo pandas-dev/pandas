@@ -1894,6 +1894,10 @@ class MultiIndex(Index):
         if target_index.dtype != object:
             return np.ones(len(target_index)) * -1
 
+        if not self.is_unique:
+            raise Exception('Reindexing only valid with uniquely valued Index '
+                            'objects')
+
         self_index = self._tuple_index
 
         if method == 'pad':
