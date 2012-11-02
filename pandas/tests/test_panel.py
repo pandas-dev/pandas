@@ -1078,6 +1078,12 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 
         self.assertRaises(Exception, self.panel.shift, 1, axis='items')
 
+        # negative numbers, #2164
+        result = self.panel.shift(-1)
+        expected = Panel(dict((i, f.shift(-1)[:-1])
+                              for i, f in self.panel.iteritems()))
+        assert_panel_equal(result, expected)
+
     def test_multiindex_get(self):
         ind = MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1), ('b',2)],
                                      names=['first', 'second'])

@@ -1223,12 +1223,12 @@ class Panel(NDFrame):
 
     def shift(self, lags, axis='major'):
         """
-        Shift major or minor axis by specified number of lags. Drops periods
+        Shift major or minor axis by specified number of leads/lags. Drops
+        periods right now compared with DataFrame.shift
 
         Parameters
         ----------
         lags : int
-            Needs to be a positive number currently
         axis : {'major', 'minor'}
 
         Returns
@@ -1240,17 +1240,26 @@ class Panel(NDFrame):
         major_axis = self.major_axis
         minor_axis = self.minor_axis
 
+        if lags > 0:
+            vslicer = slice(None, -lags)
+            islicer = slice(lags, None)
+        elif lags == 0:
+            vslicer = islicer =slice(None)
+        else:
+            vslicer = slice(-lags, None)
+            islicer = slice(None, lags)
+
         if axis == 'major':
-            values = values[:, :-lags, :]
-            major_axis = major_axis[lags:]
+            values = values[:, vslicer, :]
+            major_axis = major_axis[islicer]
         elif axis == 'minor':
-            values = values[:, :, :-lags]
-            minor_axis = minor_axis[lags:]
+            values = values[:, :, vslicer]
+            minor_axis = minor_axis[islicer]
         else:
             raise ValueError('Invalid axis')
 
         return self._constructor(values, items=items, major_axis=major_axis,
-                         minor_axis=minor_axis)
+                                 minor_axis=minor_axis)
 
     def truncate(self, before=None, after=None, axis='major'):
         """Function truncates a sorted Panel before and/or after some

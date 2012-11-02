@@ -3717,7 +3717,7 @@ class DataFrame(NDFrame):
             return make_block(new_values, blk.items, blk.ref_items)
 
         if offset is None:
-            indexer = self._shift_indexer(periods)
+            indexer = com._shift_indexer(len(self), periods)
             new_blocks = [_shift_block(b, indexer) for b in self._data.blocks]
             new_data = BlockManager(new_blocks, [self.columns, self.index])
         elif isinstance(self.index, PeriodIndex):
@@ -3734,18 +3734,6 @@ class DataFrame(NDFrame):
             new_data.axes[1] = self.index.shift(periods, offset)
 
         return self._constructor(new_data)
-
-    def _shift_indexer(self, periods):
-        # small reusable utility
-        N = len(self)
-        indexer = np.zeros(N, dtype=int)
-
-        if periods > 0:
-            indexer[periods:] = np.arange(N - periods)
-        else:
-            indexer[:periods] = np.arange(-periods, N)
-
-        return indexer
 
     #----------------------------------------------------------------------
     # Function application

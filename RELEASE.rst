@@ -41,6 +41,7 @@ pandas 0.9.1
   - Improve HTML display of DataFrame objects with hierarchical columns
   - Enable referencing of Excel columns by their column names (#1936)
   - DataFrame.dot can accept ndarrays (#2042)
+  - Support negative periods in Panel.shift (#2164)
 
 **Bug fixes**
 
