@@ -1326,6 +1326,27 @@ Thur,Lunch,Yes,51.51,17"""
                             ('routine2', 'result1', '')], axis=1)
         assert_frame_equal(expected, result)
 
+    def test_drop_nonunique(self):
+        df = DataFrame([["x-a", "x", "a", 1.5],["x-a", "x", "a", 1.2],
+                        ["z-c", "z", "c", 3.1], ["x-a", "x", "a", 4.1],
+                        ["x-b", "x", "b", 5.1],["x-b", "x", "b", 4.1],
+                        ["x-b", "x", "b", 2.2],
+                        ["y-a", "y", "a", 1.2],["z-b", "z", "b", 2.1]],
+                       columns=["var1", "var2", "var3", "var4"])
+
+        grp_size = df.groupby("var1").size()
+        drop_idx = grp_size.ix[grp_size == 1]
+
+        idf = df.set_index(["var1", "var2", "var3"])
+
+        # it works! #2101
+        result = idf.drop(drop_idx.index, level=0).reset_index()
+        expected = df[-df.var1.isin(drop_idx.index)]
+
+        result.index = expected.index
+
+        assert_frame_equal(result, expected)
+
     def test_mixed_depth_pop(self):
         arrays = [[  'a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
                   [   '',  'OD',  'OD', 'result1',   'result2',  'result1'],

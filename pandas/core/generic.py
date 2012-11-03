@@ -7,6 +7,7 @@ from pandas.core.index import MultiIndex
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.offsets import DateOffset
 import pandas.core.common as com
+import pandas.lib as lib
 
 
 class PandasError(Exception):
@@ -337,13 +338,26 @@ class PandasObject(object):
         axis_name = self._get_axis_name(axis)
         axis = self._get_axis(axis)
 
-        if level is not None:
-            assert(isinstance(axis, MultiIndex))
-            new_axis = axis.drop(labels, level=level)
-        else:
-            new_axis = axis.drop(labels)
+        if axis.is_unique:
+            if level is not None:
+                assert(isinstance(axis, MultiIndex))
+                new_axis = axis.drop(labels, level=level)
+            else:
+                new_axis = axis.drop(labels)
 
-        return self.reindex(**{axis_name: new_axis})
+            return self.reindex(**{axis_name: new_axis})
+        else:
+            if level is not None:
+                assert(isinstance(axis, MultiIndex))
+                indexer = -lib.ismember(axis.get_level_values(level),
+                                        set(labels))
+            else:
+                indexer = -axis.isin(labels)
+
+            slicer = [slice(None)] * self.ndim
+            slicer[self._get_axis_number(axis_name)] = indexer
+
+            return self.ix[tuple(slicer)]
 
     def sort_index(self, axis=0, ascending=True):
         """

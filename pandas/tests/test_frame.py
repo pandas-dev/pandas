@@ -4366,21 +4366,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         del df[('a','','')]
         assert(isinstance(df.columns, MultiIndex))
 
-    def test_drop_nonuq_multiindex(self):
-        df = DataFrame([["x-a", "x", "a", 1.5],["x-a", "x", "a", 1.2],
-                        ["z-c", "z", "c", 3.1], ["x-a", "x", "a", 4.1],
-                        ["x-b", "x", "b", 5.1],["x-b", "x", "b", 4.1],
-                        ["x-b", "x", "b", 2.2],
-                        ["y-a", "y", "a", 1.2],["z-b", "z", "b", 2.1]],
-                       columns=["var1", "var2", "var3", "var4"])
-
-        grp_size = df.groupby("var1").size()
-        drop_idx = grp_size.ix[grp_size == 1]
-
-        df = df.set_index(["var1", "var2", "var3"])
-
-        self.assertRaises(Exception, df.drop, drop_idx.index, level=0)
-
     def test_fillna(self):
         self.tsframe['A'][:5] = nan
         self.tsframe['A'][-5:] = nan
