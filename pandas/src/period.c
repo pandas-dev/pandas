@@ -1013,9 +1013,9 @@ npy_int64 asfreq(npy_int64 period_ordinal, int freq1, int freq2, char relation)
     val = (*func)(period_ordinal, relation, &finfo);
 
     if (val == INT_ERR_CODE) {
-        // Py_Error(PyExc_ValueError, "Unable to convert to desired frequency.");
 		goto onError;
 	}
+
     return val;
 onError:
     return INT_ERR_CODE;
