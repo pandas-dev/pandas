@@ -85,7 +85,7 @@
 #define FR_HR   7000  /* Hourly */
 #define FR_MIN  8000  /* Minutely */
 #define FR_SEC  9000  /* Secondly */
-#define FR_USEC 11000
+#define FR_USEC 11000 /* Microsecondly */
 
 #define FR_UND  -10000 /* Undefined */
 
@@ -110,6 +110,7 @@ typedef struct date_info {
     npy_int64 absdate;
     double abstime;
 
+    int microsecond;
     double second;
     int minute;
     int hour;
@@ -153,7 +154,6 @@ int phour(npy_int64 ordinal, int freq);
 int pminute(npy_int64 ordinal, int freq);
 int psecond(npy_int64 ordinal, int freq);
 
-double getAbsTime(int freq, npy_int64 dailyDate, npy_int64 originalDate);
 char *c_strftime(struct date_info *dinfo, char *fmt);
 int get_yq(npy_int64 ordinal, int freq, int *quarter, int *year);
 
