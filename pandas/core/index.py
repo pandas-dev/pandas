@@ -13,6 +13,7 @@ import pandas.lib as lib
 import pandas._algos as _algos
 from pandas.lib import Timestamp
 from pandas.util import py3compat
+from pandas.core.config import get_option
 
 __all__ = ['Index']
 
@@ -1514,8 +1515,7 @@ class MultiIndex(Index):
             result_levels.append(level)
 
         if sparsify is None:
-            import pandas.core.format as fmt
-            sparsify = fmt.print_config.multi_sparse
+            sparsify = get_option("print_config.multi_sparse")
 
         if sparsify:
             # little bit of a kludge job for #1217

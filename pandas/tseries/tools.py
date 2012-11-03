@@ -152,7 +152,7 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     -------
     datetime, datetime/dateutil.parser._result, str
     """
-    from pandas.core.format import print_config
+    from pandas.core.config import get_option
     from pandas.tseries.offsets import DateOffset
     from pandas.tseries.frequencies import (_get_rule_month, _month_numbers,
                                             _get_freq_str)
@@ -221,9 +221,9 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
         return mresult
 
     if dayfirst is None:
-        dayfirst = print_config.date_dayfirst
+        dayfirst = get_option("print_config.date_dayfirst")
     if yearfirst is None:
-        yearfirst = print_config.date_yearfirst
+        yearfirst = get_option("print_config.date_yearfirst")
 
     try:
         parsed = parse(arg, dayfirst=dayfirst, yearfirst=yearfirst)

@@ -33,6 +33,7 @@ import pandas.lib as lib
 from pandas.util.decorators import Appender, Substitution, cache_readonly
 
 from pandas.compat.scipy import scoreatpercentile as _quantile
+from pandas.core.config import get_option
 
 __all__ = ['Series', 'TimeSeries']
 
@@ -914,8 +915,8 @@ copy : boolean, default False
     def __repr__(self):
         """Clean string representation of a Series"""
         width, height = get_terminal_size()
-        max_rows = (height if fmt.print_config.max_rows == 0
-                    else fmt.print_config.max_rows)
+        max_rows = (height if get_option("print_config.max_rows") == 0
+                    else get_option("print_config.max_rows"))
         if len(self.index) > (max_rows or 1000):
             result = self._tidy_repr(min(30, max_rows - 4))
         elif len(self.index) > 0:
