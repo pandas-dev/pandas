@@ -132,8 +132,8 @@ typedef npy_int64 (*freq_conv_func)(npy_int64, char, asfreq_info*);
 npy_int64 asfreq(npy_int64 period_ordinal, int freq1, int freq2, char relation);
 
 npy_int64 get_period_ordinal(int year, int month, int day,
-                      int hour, int minute, int second,
-                      int freq);
+                             int hour, int minute, int second, int microsecond,
+                             int freq);
 
 npy_int64 get_python_ordinal(npy_int64 period_ordinal, int freq);
 
@@ -153,6 +153,7 @@ int pweek(npy_int64 ordinal, int freq);
 int phour(npy_int64 ordinal, int freq);
 int pminute(npy_int64 ordinal, int freq);
 int psecond(npy_int64 ordinal, int freq);
+int pmicrosecond(npy_int64 ordinal, int freq);
 
 char *c_strftime(struct date_info *dinfo, char *fmt);
 int get_yq(npy_int64 ordinal, int freq, int *quarter, int *year);

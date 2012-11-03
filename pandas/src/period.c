@@ -1024,8 +1024,8 @@ onError:
 
 /* generate an ordinal in period space */
 npy_int64 get_period_ordinal(int year, int month, int day,
-                      int hour, int minute, int second,
-                      int freq)
+                             int hour, int minute, int second, int microsecond,
+                             int freq)
 {
     npy_int64 absdays, delta;
     npy_int64 weeks, days;

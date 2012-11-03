@@ -40,7 +40,7 @@ cdef extern from "period.h":
     void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info)
 
     int64_t get_period_ordinal(int year, int month, int day,
-                          int hour, int minute, int second,
+                          int hour, int minute, int second, int microsecond,
                           int freq) except INT32_MIN
 
     int64_t get_python_ordinal(int64_t period_ordinal,
@@ -104,7 +104,7 @@ def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int freq):
     for i in range(l):
         pandas_datetime_to_datetimestruct(dtarr[i], PANDAS_FR_ns, &dts)
         out[i] = get_period_ordinal(dts.year, dts.month, dts.day,
-                                    dts.hour, dts.min, dts.sec, freq)
+                                    dts.hour, dts.min, dts.sec, dts.us, freq)
     return out
 
 def periodarr_to_dt64arr(ndarray[int64_t] periodarr, int freq):
@@ -180,8 +180,8 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
     return result
 
 cpdef int64_t period_ordinal(int y, int m, int d, int h, int min, int s,
-                             int freq):
-    cdef int64_t ordinal = get_period_ordinal(y, m, d, h, min, s, freq)
+                             int us, int freq):
+    cdef int64_t ordinal = get_period_ordinal(y, m, d, h, min, s, us, freq)
     return ordinal
 
 
@@ -198,7 +198,8 @@ cpdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq):
     dts.hour = dinfo.hour
     dts.min = dinfo.minute
     dts.sec = int(dinfo.second)
-    dts.us = dts.ps = 0
+    dts.us = dinfo.microsecond
+    dts.ps = 0
 
     return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
 
