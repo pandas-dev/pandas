@@ -1033,6 +1033,13 @@ npy_int64 get_period_ordinal(int year, int month, int day,
     int freq_group, fmonth, mdiff;
     freq_group = get_freq_group(freq);
 
+    if (freq == FR_USEC) {
+        absdays = absdate_from_ymd(year, month, day);
+        delta = (absdays - ORD_OFFSET);
+        return (npy_int64)(delta*86400000000L + hour*3600000000 +
+                           minute*60000000 + second*1000000 + microsecond);
+    }
+
     if (freq == FR_SEC) {
         absdays = absdate_from_ymd(year, month, day);
         delta = (absdays - ORD_OFFSET);
