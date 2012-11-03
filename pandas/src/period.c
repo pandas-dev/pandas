@@ -769,6 +769,84 @@ void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info) {
 }
 
 
+static npy_int64 asfreq_UtoS(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+    return ordinal / 1000000;
+}
+
+static npy_int64 asfreq_UtoA(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_StoA(asfreq_UtoS(ordinal, relation, NULL), relation, af_info);
+}
+
+static npy_int64 asfreq_UtoQ(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_StoQ(asfreq_UtoS(ordinal, relation, NULL), relation, af_info);
+}
+
+static npy_int64 asfreq_UtoM(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_StoM(asfreq_UtoS(ordinal, relation, NULL), relation, af_info);
+}
+
+static npy_int64 asfreq_UtoW(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_StoW(asfreq_UtoS(ordinal, relation, NULL), relation, af_info);
+}
+
+static npy_int64 asfreq_UtoB(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_StoB(asfreq_UtoS(ordinal, relation, NULL), relation, af_info);
+}
+
+static npy_int64 asfreq_UtoD(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_StoD(asfreq_UtoS(ordinal, relation, NULL), relation, af_info);
+}
+
+static npy_int64 asfreq_UtoH(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_StoH(asfreq_UtoS(ordinal, relation, NULL), relation, af_info);
+}
+
+static npy_int64 asfreq_UtoT(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_StoT(asfreq_UtoS(ordinal, relation, NULL), relation, af_info);
+}
+
+
+
+static npy_int64 asfreq_StoU(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+    return ordinal * 1000000;
+}
+
+static npy_int64 asfreq_AtoU(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_StoU(asfreq_AtoS(ordinal, relation, af_info), relation, NULL);
+}
+
+static npy_int64 asfreq_QtoU(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_StoU(asfreq_QtoS(ordinal, relation, af_info), relation, NULL);
+}
+
+static npy_int64 asfreq_MtoU(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_StoU(asfreq_MtoS(ordinal, relation, af_info), relation, NULL);
+}
+
+static npy_int64 asfreq_WtoU(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_StoU(asfreq_WtoS(ordinal, relation, af_info), relation, NULL);
+}
+
+static npy_int64 asfreq_BtoU(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_StoU(asfreq_BtoS(ordinal, relation, af_info), relation, NULL);
+}
+
+static npy_int64 asfreq_DtoU(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_StoU(asfreq_DtoS(ordinal, relation, af_info), relation, NULL);
+}
+
+static npy_int64 asfreq_HtoU(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_StoU(asfreq_HtoS(ordinal, relation, af_info), relation, NULL);
+}
+
+static npy_int64 asfreq_TtoU(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_StoU(asfreq_TtoS(ordinal, relation, af_info), relation, NULL);
+}
+
+
+
+
+
 freq_conv_func get_asfreq_func(int fromFreq, int toFreq)
 {
     int fromGroup = get_freq_group(fromFreq);
@@ -790,6 +868,7 @@ freq_conv_func get_asfreq_func(int fromFreq, int toFreq)
         case FR_HR: return &asfreq_AtoH;
         case FR_MIN: return &asfreq_AtoT;
         case FR_SEC: return &asfreq_AtoS;
+        case FR_USEC: return &asfreq_AtoU;
         default: return &nofunc;
         }
 
@@ -805,6 +884,7 @@ freq_conv_func get_asfreq_func(int fromFreq, int toFreq)
         case FR_HR: return &asfreq_QtoH;
         case FR_MIN: return &asfreq_QtoT;
         case FR_SEC: return &asfreq_QtoS;
+        case FR_USEC: return &asfreq_QtoU;
         default: return &nofunc;
         }
 
@@ -820,6 +900,7 @@ freq_conv_func get_asfreq_func(int fromFreq, int toFreq)
         case FR_HR: return &asfreq_MtoH;
         case FR_MIN: return &asfreq_MtoT;
         case FR_SEC: return &asfreq_MtoS;
+        case FR_USEC: return &asfreq_MtoU;
         default: return &nofunc;
         }
 
@@ -835,6 +916,7 @@ freq_conv_func get_asfreq_func(int fromFreq, int toFreq)
         case FR_HR: return &asfreq_WtoH;
         case FR_MIN: return &asfreq_WtoT;
         case FR_SEC: return &asfreq_WtoS;
+        case FR_USEC: return &asfreq_WtoU;
         default: return &nofunc;
         }
 
@@ -850,6 +932,7 @@ freq_conv_func get_asfreq_func(int fromFreq, int toFreq)
         case FR_HR: return &asfreq_BtoH;
         case FR_MIN: return &asfreq_BtoT;
         case FR_SEC: return &asfreq_BtoS;
+        case FR_USEC: return &asfreq_BtoU;
         default: return &nofunc;
         }
 
@@ -865,6 +948,7 @@ freq_conv_func get_asfreq_func(int fromFreq, int toFreq)
         case FR_HR: return &asfreq_DtoH;
         case FR_MIN: return &asfreq_DtoT;
         case FR_SEC: return &asfreq_DtoS;
+        case FR_USEC: return &asfreq_DtoU;
         default: return &nofunc;
         }
 
@@ -880,6 +964,7 @@ freq_conv_func get_asfreq_func(int fromFreq, int toFreq)
         case FR_HR: return &no_op;
         case FR_MIN: return &asfreq_HtoT;
         case FR_SEC: return &asfreq_HtoS;
+        case FR_USEC: return &asfreq_HtoU;
         default: return &nofunc;
         }
 
@@ -895,6 +980,7 @@ freq_conv_func get_asfreq_func(int fromFreq, int toFreq)
         case FR_HR: return &asfreq_TtoH;
         case FR_MIN: return &no_op;
         case FR_SEC: return &asfreq_TtoS;
+        case FR_USEC: return &asfreq_TtoU;
         default: return &nofunc;
         }
 
@@ -910,15 +996,31 @@ freq_conv_func get_asfreq_func(int fromFreq, int toFreq)
         case FR_HR: return &asfreq_StoH;
         case FR_MIN: return &asfreq_StoT;
         case FR_SEC: return &no_op;
+        case FR_USEC: return &asfreq_StoU;
         default: return &nofunc;
         }
 
     case FR_USEC:
+        switch(toGroup)
+        {
+        case FR_ANN: return &asfreq_UtoA;
+        case FR_QTR: return &asfreq_UtoQ;
+        case FR_MTH: return &asfreq_UtoM;
+        case FR_WK: return &asfreq_UtoW;
+        case FR_BUS: return &asfreq_UtoB;
+        case FR_DAY: return &asfreq_UtoD;
+        case FR_HR: return &asfreq_UtoH;
+        case FR_MIN: return &asfreq_UtoT;
+        case FR_SEC: return &asfreq_UtoS;
+        case FR_USEC: return &no_op;
+        default: return &nofunc;
+        }
 
     default: return &nofunc;
     }
 }
 
+// new microsecond function
 static double get_abs_time(int freq, npy_int64 daily_ord, npy_int64 ordinal) {
 
     npy_int64 start_ord, per_day, unit;
