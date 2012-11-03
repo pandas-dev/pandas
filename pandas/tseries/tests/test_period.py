@@ -272,28 +272,30 @@ class TestPeriodProperties(TestCase):
 
     def test_end_time(self):
         p = Period('2012', freq='A')
-        xp = datetime(2012, 12, 31)
+        xp = datetime(2012, 12, 31, 23, 59, 59)
         self.assertEquals(xp, p.end_time)
 
         p = Period('2012', freq='Q')
-        xp = datetime(2012, 3, 31)
+        xp = datetime(2012, 3, 31, 23, 59, 59)
         self.assertEquals(xp, p.end_time)
 
         p = Period('2012', freq='M')
-        xp = datetime(2012, 1, 31)
+        xp = datetime(2012, 1, 31, 23, 59, 59)
         self.assertEquals(xp, p.end_time)
 
-        xp = datetime(2012, 1, 1)
-        freq_lst = ['D', 'H', 'T', 'S']
-        for f in freq_lst:
-            p = Period('2012', freq=f)
-            self.assertEquals(p.end_time, xp)
+        xp = datetime(2012, 1, 1, 23, 59, 59)
+        p = Period('2012', freq='D')
+        self.assertEquals(p.end_time, xp)
+
+        xp = datetime(2012, 1, 1, 0, 59, 59)
+        p = Period('2012', freq='H')
+        self.assertEquals(p.end_time, xp)
 
         self.assertEquals(Period('2012', freq='B').end_time,
-                          datetime(2011, 12, 30))
+                          datetime(2011, 12, 30, 23, 59, 59))
 
         self.assertEquals(Period('2012', freq='W').end_time,
-                          datetime(2012, 1, 1))
+                          datetime(2012, 1, 1, 23, 59, 59))
 
 
     def test_properties_annually(self):
