@@ -48,7 +48,6 @@ cdef extern from "period.h":
 
     int get_date_info(int64_t ordinal, int freq,
                       date_info *dinfo) except INT32_MIN
-    double getAbsTime(int, int64_t, int64_t)
 
     int pyear(int64_t ordinal, int freq) except INT32_MIN
     int pqyear(int64_t ordinal, int freq) except INT32_MIN
