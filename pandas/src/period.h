@@ -85,6 +85,7 @@
 #define FR_HR   7000  /* Hourly */
 #define FR_MIN  8000  /* Minutely */
 #define FR_SEC  9000  /* Secondly */
+#define FR_USEC 11000
 
 #define FR_UND  -10000 /* Undefined */
 
