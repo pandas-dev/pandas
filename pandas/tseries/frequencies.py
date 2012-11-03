@@ -21,6 +21,7 @@ class FreqGroup(object):
     FR_HR = 7000
     FR_MIN = 8000
     FR_SEC = 9000
+    FR_USEC = 11000
 
 
 def get_to_timestamp_base(base):
@@ -573,7 +574,7 @@ _period_code_map = {
     "H": 7000,        # Hourly
     "T": 8000,        # Minutely
     "S": 9000,        # Secondly
-    "U": 10000,       # Microsecondly
+    "U": 11000,       # Microsecondly
 }
 
 _reverse_period_code_map = {}
