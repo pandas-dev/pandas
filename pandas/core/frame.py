@@ -2018,6 +2018,9 @@ class DataFrame(NDFrame):
         if level is not None:
             loc, new_ax = labels.get_loc_level(key, level=level)
 
+            if not copy and not isinstance(loc, slice):
+                raise ValueError('Cannot retrieve view (copy=False)')
+
             # level = 0
             if not isinstance(loc, slice):
                 indexer = [slice(None, None)] * 2

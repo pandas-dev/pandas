@@ -68,6 +68,7 @@ pandas 0.9.1
   - Work around length-0 boolean indexing NumPy bug (#2096)
   - Fix partial integer indexing bug in DataFrame.xs (#2107)
   - Fix variety of cut/qcut string-bin formatting bugs (#1978, #1979)
+  - Raise Exception when xs view not possible of MultiIndex'd DataFrame (#2117)
 
 pandas 0.9.0
 ============

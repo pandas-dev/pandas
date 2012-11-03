@@ -1555,6 +1555,14 @@ Thur,Lunch,Yes,51.51,17"""
 
         lib._SIZE_CUTOFF = old_cutoff
 
+    def test_xs_mixed_no_copy(self):
+        index = MultiIndex.from_arrays([['a','a', 'b', 'b'], [1,2,1,2]],
+                                       names=['first', 'second'])
+        data = DataFrame(np.random.rand(len(index)), index=index,
+                         columns=['A'])
+
+        self.assertRaises(Exception, data.xs, 2, level=1, copy=False)
+
 if __name__ == '__main__':
 
     # unittest.main()
