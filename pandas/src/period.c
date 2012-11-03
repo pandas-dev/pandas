@@ -916,7 +916,7 @@ freq_conv_func get_asfreq_func(int fromFreq, int toFreq)
     }
 }
 
-double get_abs_time(int freq, npy_int64 daily_ord, npy_int64 ordinal) {
+static double get_abs_time(int freq, npy_int64 daily_ord, npy_int64 ordinal) {
 
     npy_int64 start_ord, per_day, unit;
     switch(freq)
