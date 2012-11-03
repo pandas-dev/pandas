@@ -22,11 +22,12 @@ import pandas.tseries.period as pmod
 import pandas.core.datetools as datetools
 import pandas as pd
 import numpy as np
-randn = np.random.randn
+from numpy.random import randn
 
 from pandas import Series, TimeSeries, DataFrame
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
+
 
 class TestPeriodProperties(TestCase):
     "Test properties such as year, month, weekday, etc...."
@@ -182,9 +183,32 @@ class TestPeriodProperties(TestCase):
         i2 = Period(datetime(2007, 1, 1), freq='M')
         self.assertEqual(i1, i2)
 
+        # microsecond periods
+        expected = Period('2007-01', freq='U')
+        i1 = Period('200701', freq='U')
+        self.assertEqual(i1, expected)
+
+        i1 = Period('200701', freq='U')
+        self.assertEqual(i1, expected)
+
+        i1 = Period(200701, freq='U')
+        self.assertEqual(i1, expected)
+
+        i1 = Period(ordinal=200701, freq='U')
+        self.assertEqual(i1.year, 18695)
+
+        i1 = Period(datetime(2007, 1, 1), freq='U')
+        i2 = Period('200701', freq='U')
+        self.assertEqual(i1, i2)
+
+        i1 = Period(date(2007, 1, 1), freq='U')
+        i2 = Period(datetime(2007, 1, 1), freq='U')
+        self.assertEqual(i1, i2)
+
+        # errors
         self.assertRaises(ValueError, Period, ordinal=200701)
 
-        self.assertRaises(KeyError, Period, '2007-1-1', freq='U')
+        self.assertRaises(KeyError, Period, '2007-1-1', freq='L')
 
     def test_freq_str(self):
         i1 = Period('1982', freq='Min')
@@ -199,8 +223,12 @@ class TestPeriodProperties(TestCase):
 
     def test_strftime(self):
         p = Period('2000-1-1 12:34:12', freq='S')
-        self.assert_(p.strftime('%Y-%m-%d %H:%M:%S') ==
-                     '2000-01-01 12:34:12')
+        s = p.strftime('%Y-%m-%d %H:%M:%S')
+        self.assertEqual(s, '2000-01-01 12:34:12')
+
+        p = Period('2001-1-1 12:34:12', freq='U')
+        s = p.strftime('%Y-%m-%d %H:%M:%S.%u')
+        self.assertEqual(s, '2000-01-01 12:34:12.000000')
 
     def test_sub_delta(self):
         left, right = Period('2011', freq='A'), Period('2007', freq='A')
@@ -222,9 +250,9 @@ class TestPeriodProperties(TestCase):
         for a in aliases:
             self.assertEquals(end_ts, p.to_timestamp(how=a))
 
-        from_lst = ['A', 'Q', 'M', 'W', 'B',
-                    'D', 'H', 'Min', 'S']
-        for i, fcode in enumerate(from_lst):
+        from_lst = ['A', 'Q', 'M', 'W', 'B', 'D', 'H', 'Min', 'S', 'U']
+
+        for fcode in from_lst:
             p = Period('1982', freq=fcode)
             result = p.to_timestamp().to_period(fcode)
             self.assertEquals(result, p)
@@ -249,22 +277,26 @@ class TestPeriodProperties(TestCase):
         expected = datetime(1985, 12, 31, 23, 59, 59)
         self.assertEquals(result, expected)
 
+        result = p.to_timestamp('U', how='end')
+        expected = datetime(1985, 12, 31, 23, 59, 59, 999999)
+        self.assertEquals(result, expected)
+
         expected = datetime(1985, 1, 1)
-        result = p.to_timestamp('H', how='start')
-        self.assertEquals(result, expected)
-        result = p.to_timestamp('T', how='start')
-        self.assertEquals(result, expected)
-        result = p.to_timestamp('S', how='start')
-        self.assertEquals(result, expected)
+
+        for freq in ('H', 'T', 'S', 'U'):
+            result = p.to_timestamp(freq, how='start')
+            self.assertEquals(result, expected)
 
         self.assertRaises(ValueError, p.to_timestamp, '5t')
 
     def test_start_time(self):
-        freq_lst = ['A', 'Q', 'M', 'D', 'H', 'T', 'S']
+        freq_lst = ['A', 'Q', 'M', 'D', 'H', 'T', 'S', 'U']
         xp = datetime(2012, 1, 1)
+
         for f in freq_lst:
             p = Period('2012', freq=f)
             self.assertEquals(p.start_time, xp)
+
         self.assertEquals(Period('2012', freq='B').start_time,
                           datetime(2011, 12, 30))
         self.assertEquals(Period('2012', freq='W').start_time,
@@ -284,7 +316,9 @@ class TestPeriodProperties(TestCase):
         self.assertEquals(xp, p.end_time)
 
         xp = datetime(2012, 1, 1)
-        freq_lst = ['D', 'H', 'T', 'S']
+
+        freq_lst = ['D', 'H', 'T', 'S', 'U']
+
         for f in freq_lst:
             p = Period('2012', freq=f)
             self.assertEquals(p.end_time, xp)
@@ -294,7 +328,6 @@ class TestPeriodProperties(TestCase):
 
         self.assertEquals(Period('2012', freq='W').end_time,
                           datetime(2012, 1, 1))
-
 
     def test_properties_annually(self):
         # Test properties on Periods with annually frequency.
@@ -312,7 +345,6 @@ class TestPeriodProperties(TestCase):
                 assert_equal((qd + x).qyear, 2007)
                 assert_equal((qd + x).quarter, x + 1)
 
-
     def test_properties_monthly(self):
         # Test properties on Periods with daily frequency.
         m_date = Period(freq='M', year=2007, month=1)
@@ -327,8 +359,7 @@ class TestPeriodProperties(TestCase):
                 assert_equal(m_ival_x.quarter, 3)
             elif 10 <= x + 1 <= 12:
                 assert_equal(m_ival_x.quarter, 4)
-            assert_equal(m_ival_x.month, x + 1)
-
+                assert_equal(m_ival_x.month, x + 1)
 
     def test_properties_weekly(self):
         # Test properties on Periods with daily frequency.
@@ -339,7 +370,6 @@ class TestPeriodProperties(TestCase):
         assert_equal(w_date.month, 1)
         assert_equal(w_date.week, 1)
         assert_equal((w_date - 1).week, 52)
-
 
     def test_properties_daily(self):
         # Test properties on Periods with daily frequency.
@@ -361,7 +391,6 @@ class TestPeriodProperties(TestCase):
         assert_equal(d_date.weekday, 0)
         assert_equal(d_date.dayofyear, 1)
 
-
     def test_properties_hourly(self):
         # Test properties on Periods with hourly frequency.
         h_date = Period(freq='H', year=2007, month=1, day=1, hour=0)
@@ -375,11 +404,10 @@ class TestPeriodProperties(TestCase):
         assert_equal(h_date.hour, 0)
         #
 
-
     def test_properties_minutely(self):
         # Test properties on Periods with minutely frequency.
         t_date = Period(freq='Min', year=2007, month=1, day=1, hour=0,
-                          minute=0)
+                        minute=0)
         #
         assert_equal(t_date.quarter, 1)
         assert_equal(t_date.month, 1)
@@ -389,11 +417,10 @@ class TestPeriodProperties(TestCase):
         assert_equal(t_date.hour, 0)
         assert_equal(t_date.minute, 0)
 
-
     def test_properties_secondly(self):
         # Test properties on Periods with secondly frequency.
         s_date = Period(freq='Min', year=2007, month=1, day=1,
-                                       hour=0, minute=0, second=0)
+                        hour=0, minute=0, second=0)
         #
         assert_equal(s_date.year, 2007)
         assert_equal(s_date.quarter, 1)
@@ -404,6 +431,21 @@ class TestPeriodProperties(TestCase):
         assert_equal(s_date.hour, 0)
         assert_equal(s_date.minute, 0)
         assert_equal(s_date.second, 0)
+
+    def test_properties_microsecondly(self):
+        u_date = Period(freq='U', year=2007, month=1, day=1, hour=0, minute=0,
+                        second=0, microsecond=10)
+        #
+        assert_equal(u_date.year, 2007)
+        assert_equal(u_date.quarter, 1)
+        assert_equal(u_date.month, 1)
+        assert_equal(u_date.day, 1)
+        assert_equal(u_date.weekday, 0)
+        assert_equal(u_date.dayofyear, 1)
+        assert_equal(u_date.hour, 0)
+        assert_equal(u_date.minute, 0)
+        assert_equal(u_date.second, 0)
+        assert_equal(u_date.microsecond, 10)
 
     def test_pnow(self):
         dt = datetime.now()
@@ -431,26 +473,29 @@ class TestPeriodProperties(TestCase):
 
     def test_constructor_infer_freq(self):
         p = Period('2007-01-01')
-        self.assert_(p.freq == 'D')
+        self.assertEqual(p.freq, 'D')
 
         p = Period('2007-01-01 07')
-        self.assert_(p.freq == 'H')
+        self.assertEqual(p.freq, 'H')
 
         p = Period('2007-01-01 07:10')
-        self.assert_(p.freq == 'T')
+        self.assertEqual(p.freq, 'T')
 
         p = Period('2007-01-01 07:10:15')
-        self.assert_(p.freq == 'S')
+        self.assertEqual(p.freq, 'S')
 
-        self.assertRaises(ValueError, Period, '2007-01-01 07:10:15.123456')
+        p = Period('2007-01-01 07:10:15.123456')
+        self.assertEqual(p.freq, 'U')
 
     def test_comparisons(self):
         p = Period('2007-01-01')
         self.assertEquals(p, p)
-        self.assert_(not p == 1)
+        self.assertNotEqual(p, 1)
+
 
 def noWrap(item):
     return item
+
 
 class TestFreqConversion(TestCase):
     "Test frequency conversion of date objects"
@@ -482,17 +527,21 @@ class TestFreqConversion(TestCase):
         ival_A_to_D_start = Period(freq='D', year=2007, month=1, day=1)
         ival_A_to_D_end = Period(freq='D', year=2007, month=12, day=31)
         ival_A_to_H_start = Period(freq='H', year=2007, month=1, day=1,
-                                    hour=0)
+                                   hour=0)
         ival_A_to_H_end = Period(freq='H', year=2007, month=12, day=31,
-                                    hour=23)
+                                 hour=23)
         ival_A_to_T_start = Period(freq='Min', year=2007, month=1, day=1,
-                                    hour=0, minute=0)
+                                   hour=0, minute=0)
         ival_A_to_T_end = Period(freq='Min', year=2007, month=12, day=31,
-                                    hour=23, minute=59)
+                                 hour=23, minute=59)
         ival_A_to_S_start = Period(freq='S', year=2007, month=1, day=1,
-                                    hour=0, minute=0, second=0)
+                                   hour=0, minute=0, second=0)
         ival_A_to_S_end = Period(freq='S', year=2007, month=12, day=31,
-                                    hour=23, minute=59, second=59)
+                                 hour=23, minute=59, second=59)
+        ival_A_to_U_start = Period(freq='U', year=2007, month=1, day=1,
+                                   hour=0, minute=0, second=0, microsecond=0)
+        ival_A_to_U_end = Period(freq='U', year=2007, month=12, day=31,
+                                 hour=23, minute=59, second=59, microsecond=999999)
 
         ival_AJAN_to_D_end = Period(freq='D', year=2007, month=1, day=31)
         ival_AJAN_to_D_start = Period(freq='D', year=2006, month=2, day=1)
@@ -519,6 +568,8 @@ class TestFreqConversion(TestCase):
         assert_equal(ival_A.asfreq('T', 'E'), ival_A_to_T_end)
         assert_equal(ival_A.asfreq('S', 'S'), ival_A_to_S_start)
         assert_equal(ival_A.asfreq('S', 'E'), ival_A_to_S_end)
+        assert_equal(ival_A.asfreq('U', 'S'), ival_A_to_U_start)
+        assert_equal(ival_A.asfreq('U', 'E'), ival_A_to_U_end)
 
         assert_equal(ival_AJAN.asfreq('D', 'S'), ival_AJAN_to_D_start)
         assert_equal(ival_AJAN.asfreq('D', 'E'), ival_AJAN_to_D_end)
@@ -530,7 +581,6 @@ class TestFreqConversion(TestCase):
         assert_equal(ival_ANOV.asfreq('D', 'E'), ival_ANOV_to_D_end)
 
         assert_equal(ival_A.asfreq('A'), ival_A)
-
 
     def test_conv_quarterly(self):
         # frequency conversion tests: from Quarterly Frequency
@@ -551,17 +601,22 @@ class TestFreqConversion(TestCase):
         ival_Q_to_D_start = Period(freq='D', year=2007, month=1, day=1)
         ival_Q_to_D_end = Period(freq='D', year=2007, month=3, day=31)
         ival_Q_to_H_start = Period(freq='H', year=2007, month=1, day=1,
-                                    hour=0)
+                                   hour=0)
         ival_Q_to_H_end = Period(freq='H', year=2007, month=3, day=31,
-                                    hour=23)
+                                 hour=23)
         ival_Q_to_T_start = Period(freq='Min', year=2007, month=1, day=1,
-                                    hour=0, minute=0)
+                                   hour=0, minute=0)
         ival_Q_to_T_end = Period(freq='Min', year=2007, month=3, day=31,
-                                    hour=23, minute=59)
+                                 hour=23, minute=59)
         ival_Q_to_S_start = Period(freq='S', year=2007, month=1, day=1,
-                                    hour=0, minute=0, second=0)
+                                   hour=0, minute=0, second=0)
         ival_Q_to_S_end = Period(freq='S', year=2007, month=3, day=31,
-                                    hour=23, minute=59, second=59)
+                                 hour=23, minute=59, second=59)
+        ival_Q_to_U_start = Period(freq='U', year=2007, month=1, day=1,
+                                   hour=0, minute=0, second=0, microsecond=0)
+        ival_Q_to_U_end = Period(freq='U', year=2007, month=3, day=31,
+                                 hour=23, minute=59, second=59,
+                                 microsecond=999999)
 
         ival_QEJAN_to_D_start = Period(freq='D', year=2006, month=2, day=1)
         ival_QEJAN_to_D_end = Period(freq='D', year=2006, month=4, day=30)
@@ -586,6 +641,8 @@ class TestFreqConversion(TestCase):
         assert_equal(ival_Q.asfreq('Min', 'E'), ival_Q_to_T_end)
         assert_equal(ival_Q.asfreq('S', 'S'), ival_Q_to_S_start)
         assert_equal(ival_Q.asfreq('S', 'E'), ival_Q_to_S_end)
+        assert_equal(ival_Q.asfreq('U', 'S'), ival_Q_to_U_start)
+        assert_equal(ival_Q.asfreq('U', 'E'), ival_Q_to_U_end)
 
         assert_equal(ival_QEJAN.asfreq('D', 'S'), ival_QEJAN_to_D_start)
         assert_equal(ival_QEJAN.asfreq('D', 'E'), ival_QEJAN_to_D_end)
@@ -609,17 +666,22 @@ class TestFreqConversion(TestCase):
         ival_M_to_D_start = Period(freq='D', year=2007, month=1, day=1)
         ival_M_to_D_end = Period(freq='D', year=2007, month=1, day=31)
         ival_M_to_H_start = Period(freq='H', year=2007, month=1, day=1,
-                                    hour=0)
+                                   hour=0)
         ival_M_to_H_end = Period(freq='H', year=2007, month=1, day=31,
-                                    hour=23)
+                                 hour=23)
         ival_M_to_T_start = Period(freq='Min', year=2007, month=1, day=1,
-                                    hour=0, minute=0)
+                                   hour=0, minute=0)
         ival_M_to_T_end = Period(freq='Min', year=2007, month=1, day=31,
-                                    hour=23, minute=59)
+                                 hour=23, minute=59)
         ival_M_to_S_start = Period(freq='S', year=2007, month=1, day=1,
-                                    hour=0, minute=0, second=0)
+                                   hour=0, minute=0, second=0)
         ival_M_to_S_end = Period(freq='S', year=2007, month=1, day=31,
-                                    hour=23, minute=59, second=59)
+                                 hour=23, minute=59, second=59)
+        ival_M_to_U_start = Period(freq='U', year=2007, month=1, day=1,
+                                   hour=0, minute=0, second=0, microsecond=0)
+        ival_M_to_U_end = Period(freq='U', year=2007, month=1, day=31,
+                                 hour=23, minute=59, second=59,
+                                 microsecond=999999)
 
         assert_equal(ival_M.asfreq('A'), ival_M_to_A)
         assert_equal(ival_M_end_of_year.asfreq('A'), ival_M_to_A)
@@ -638,9 +700,10 @@ class TestFreqConversion(TestCase):
         assert_equal(ival_M.asfreq('Min', 'E'), ival_M_to_T_end)
         assert_equal(ival_M.asfreq('S', 'S'), ival_M_to_S_start)
         assert_equal(ival_M.asfreq('S', 'E'), ival_M_to_S_end)
+        assert_equal(ival_M.asfreq('U', 'S'), ival_M_to_U_start)
+        assert_equal(ival_M.asfreq('U', 'E'), ival_M_to_U_end)
 
         assert_equal(ival_M.asfreq('M'), ival_M)
-
 
     def test_conv_weekly(self):
         # frequency conversion tests: from Weekly Frequency
@@ -684,10 +747,10 @@ class TestFreqConversion(TestCase):
 
         if Period(freq='D', year=2007, month=3, day=31).weekday == 6:
             ival_W_to_Q_end_of_quarter = Period(freq='Q', year=2007,
-                                                  quarter=1)
+                                                quarter=1)
         else:
             ival_W_to_Q_end_of_quarter = Period(freq='Q', year=2007,
-                                                  quarter=2)
+                                                quarter=2)
 
         if Period(freq='D', year=2007, month=1, day=31).weekday == 6:
             ival_W_to_M_end_of_month = Period(freq='M', year=2007, month=1)
@@ -699,17 +762,22 @@ class TestFreqConversion(TestCase):
         ival_W_to_D_start = Period(freq='D', year=2007, month=1, day=1)
         ival_W_to_D_end = Period(freq='D', year=2007, month=1, day=7)
         ival_W_to_H_start = Period(freq='H', year=2007, month=1, day=1,
-                                    hour=0)
+                                   hour=0)
         ival_W_to_H_end = Period(freq='H', year=2007, month=1, day=7,
-                                    hour=23)
+                                 hour=23)
         ival_W_to_T_start = Period(freq='Min', year=2007, month=1, day=1,
-                                    hour=0, minute=0)
+                                   hour=0, minute=0)
         ival_W_to_T_end = Period(freq='Min', year=2007, month=1, day=7,
-                                    hour=23, minute=59)
+                                 hour=23, minute=59)
         ival_W_to_S_start = Period(freq='S', year=2007, month=1, day=1,
-                                    hour=0, minute=0, second=0)
+                                   hour=0, minute=0, second=0)
         ival_W_to_S_end = Period(freq='S', year=2007, month=1, day=7,
-                                    hour=23, minute=59, second=59)
+                                 hour=23, minute=59, second=59)
+        ival_W_to_U_start = Period(freq='U', year=2007, month=1, day=1,
+                                   hour=0, minute=0, second=0, microsecond=0)
+        ival_W_to_U_end = Period(freq='U', year=2007, month=1, day=7,
+                                 hour=23, minute=59, second=59,
+                                 microsecond=999999)
 
         assert_equal(ival_W.asfreq('A'), ival_W_to_A)
         assert_equal(ival_W_end_of_year.asfreq('A'),
@@ -748,9 +816,10 @@ class TestFreqConversion(TestCase):
         assert_equal(ival_W.asfreq('Min', 'E'), ival_W_to_T_end)
         assert_equal(ival_W.asfreq('S', 'S'), ival_W_to_S_start)
         assert_equal(ival_W.asfreq('S', 'E'), ival_W_to_S_end)
+        assert_equal(ival_W.asfreq('U', 'S'), ival_W_to_U_start)
+        assert_equal(ival_W.asfreq('U', 'E'), ival_W_to_U_end)
 
         assert_equal(ival_W.asfreq('WK'), ival_W)
-
 
     def test_conv_business(self):
         # frequency conversion tests: from Business Frequency"
@@ -767,17 +836,22 @@ class TestFreqConversion(TestCase):
         ival_B_to_W = Period(freq='WK', year=2007, month=1, day=7)
         ival_B_to_D = Period(freq='D', year=2007, month=1, day=1)
         ival_B_to_H_start = Period(freq='H', year=2007, month=1, day=1,
-                                    hour=0)
+                                   hour=0)
         ival_B_to_H_end = Period(freq='H', year=2007, month=1, day=1,
-                                    hour=23)
+                                 hour=23)
         ival_B_to_T_start = Period(freq='Min', year=2007, month=1, day=1,
-                                    hour=0, minute=0)
+                                   hour=0, minute=0)
         ival_B_to_T_end = Period(freq='Min', year=2007, month=1, day=1,
-                                    hour=23, minute=59)
+                                 hour=23, minute=59)
         ival_B_to_S_start = Period(freq='S', year=2007, month=1, day=1,
-                                    hour=0, minute=0, second=0)
+                                   hour=0, minute=0, second=0)
         ival_B_to_S_end = Period(freq='S', year=2007, month=1, day=1,
-                                    hour=23, minute=59, second=59)
+                                 hour=23, minute=59, second=59)
+        ival_B_to_U_start = Period(freq='U', year=2007, month=1, day=1,
+                                   hour=0, minute=0, second=0, microsecond=0)
+        ival_B_to_U_end = Period(freq='U', year=2007, month=1, day=1,
+                                 hour=23, minute=59, second=59,
+                                 microsecond=999999)
 
         assert_equal(ival_B.asfreq('A'), ival_B_to_A)
         assert_equal(ival_B_end_of_year.asfreq('A'), ival_B_to_A)
@@ -796,9 +870,10 @@ class TestFreqConversion(TestCase):
         assert_equal(ival_B.asfreq('Min', 'E'), ival_B_to_T_end)
         assert_equal(ival_B.asfreq('S', 'S'), ival_B_to_S_start)
         assert_equal(ival_B.asfreq('S', 'E'), ival_B_to_S_end)
+        assert_equal(ival_B.asfreq('U', 'S'), ival_B_to_U_start)
+        assert_equal(ival_B.asfreq('U', 'E'), ival_B_to_U_end)
 
         assert_equal(ival_B.asfreq('B'), ival_B)
-
 
     def test_conv_daily(self):
         # frequency conversion tests: from Business Frequency"
@@ -831,17 +906,22 @@ class TestFreqConversion(TestCase):
         ival_D_to_W = Period(freq='WK', year=2007, month=1, day=7)
 
         ival_D_to_H_start = Period(freq='H', year=2007, month=1, day=1,
-                                    hour=0)
+                                   hour=0)
         ival_D_to_H_end = Period(freq='H', year=2007, month=1, day=1,
-                                    hour=23)
+                                 hour=23)
         ival_D_to_T_start = Period(freq='Min', year=2007, month=1, day=1,
-                                    hour=0, minute=0)
+                                   hour=0, minute=0)
         ival_D_to_T_end = Period(freq='Min', year=2007, month=1, day=1,
-                                    hour=23, minute=59)
+                                 hour=23, minute=59)
         ival_D_to_S_start = Period(freq='S', year=2007, month=1, day=1,
-                                    hour=0, minute=0, second=0)
+                                   hour=0, minute=0, second=0)
         ival_D_to_S_end = Period(freq='S', year=2007, month=1, day=1,
-                                    hour=23, minute=59, second=59)
+                                 hour=23, minute=59, second=59)
+        ival_D_to_U_start = Period(freq='U', year=2007, month=1, day=1,
+                                   hour=0, minute=0, second=0, microsecond=0)
+        ival_D_to_U_end = Period(freq='U', year=2007, month=1, day=1,
+                                 hour=23, minute=59, second=59,
+                                 microsecond=999999)
 
         assert_equal(ival_D.asfreq('A'), ival_D_to_A)
 
@@ -874,6 +954,8 @@ class TestFreqConversion(TestCase):
         assert_equal(ival_D.asfreq('Min', 'E'), ival_D_to_T_end)
         assert_equal(ival_D.asfreq('S', 'S'), ival_D_to_S_start)
         assert_equal(ival_D.asfreq('S', 'E'), ival_D_to_S_end)
+        assert_equal(ival_D.asfreq('U', 'S'), ival_D_to_U_start)
+        assert_equal(ival_D.asfreq('U', 'E'), ival_D_to_U_end)
 
         assert_equal(ival_D.asfreq('D'), ival_D)
 
@@ -884,15 +966,15 @@ class TestFreqConversion(TestCase):
         ival_H_end_of_year = Period(freq='H', year=2007, month=12, day=31,
                                     hour=23)
         ival_H_end_of_quarter = Period(freq='H', year=2007, month=3, day=31,
-                                        hour=23)
+                                       hour=23)
         ival_H_end_of_month = Period(freq='H', year=2007, month=1, day=31,
-                                    hour=23)
+                                     hour=23)
         ival_H_end_of_week = Period(freq='H', year=2007, month=1, day=7,
                                     hour=23)
         ival_H_end_of_day = Period(freq='H', year=2007, month=1, day=1,
-                                    hour=23)
+                                   hour=23)
         ival_H_end_of_bus = Period(freq='H', year=2007, month=1, day=1,
-                                    hour=23)
+                                   hour=23)
 
         ival_H_to_A = Period(freq='A', year=2007)
         ival_H_to_Q = Period(freq='Q', year=2007, quarter=1)
@@ -902,13 +984,18 @@ class TestFreqConversion(TestCase):
         ival_H_to_B = Period(freq='B', year=2007, month=1, day=1)
 
         ival_H_to_T_start = Period(freq='Min', year=2007, month=1, day=1,
-                                    hour=0, minute=0)
+                                   hour=0, minute=0)
         ival_H_to_T_end = Period(freq='Min', year=2007, month=1, day=1,
-                                    hour=0, minute=59)
+                                 hour=0, minute=59)
         ival_H_to_S_start = Period(freq='S', year=2007, month=1, day=1,
-                                    hour=0, minute=0, second=0)
+                                   hour=0, minute=0, second=0)
         ival_H_to_S_end = Period(freq='S', year=2007, month=1, day=1,
-                                    hour=0, minute=59, second=59)
+                                 hour=0, minute=59, second=59)
+        ival_H_to_U_start = Period(freq='U', year=2007, month=1, day=1,
+                                   hour=0, minute=0, second=0, microsecond=0)
+        ival_H_to_U_end = Period(freq='U', year=2007, month=1, day=1,
+                                 hour=0, minute=59, second=59,
+                                 microsecond=999999)
 
         assert_equal(ival_H.asfreq('A'), ival_H_to_A)
         assert_equal(ival_H_end_of_year.asfreq('A'), ival_H_to_A)
@@ -927,6 +1014,8 @@ class TestFreqConversion(TestCase):
         assert_equal(ival_H.asfreq('Min', 'E'), ival_H_to_T_end)
         assert_equal(ival_H.asfreq('S', 'S'), ival_H_to_S_start)
         assert_equal(ival_H.asfreq('S', 'E'), ival_H_to_S_end)
+        assert_equal(ival_H.asfreq('U', 'S'), ival_H_to_U_start)
+        assert_equal(ival_H.asfreq('U', 'E'), ival_H_to_U_end)
 
         assert_equal(ival_H.asfreq('H'), ival_H)
 
@@ -938,15 +1027,15 @@ class TestFreqConversion(TestCase):
         ival_T_end_of_year = Period(freq='Min', year=2007, month=12, day=31,
                                     hour=23, minute=59)
         ival_T_end_of_quarter = Period(freq='Min', year=2007, month=3, day=31,
-                                        hour=23, minute=59)
+                                       hour=23, minute=59)
         ival_T_end_of_month = Period(freq='Min', year=2007, month=1, day=31,
-                                    hour=23, minute=59)
+                                     hour=23, minute=59)
         ival_T_end_of_week = Period(freq='Min', year=2007, month=1, day=7,
                                     hour=23, minute=59)
         ival_T_end_of_day = Period(freq='Min', year=2007, month=1, day=1,
-                                    hour=23, minute=59)
+                                   hour=23, minute=59)
         ival_T_end_of_bus = Period(freq='Min', year=2007, month=1, day=1,
-                                    hour=23, minute=59)
+                                   hour=23, minute=59)
         ival_T_end_of_hour = Period(freq='Min', year=2007, month=1, day=1,
                                     hour=0, minute=59)
 
@@ -959,9 +1048,14 @@ class TestFreqConversion(TestCase):
         ival_T_to_H = Period(freq='H', year=2007, month=1, day=1, hour=0)
 
         ival_T_to_S_start = Period(freq='S', year=2007, month=1, day=1,
-                                    hour=0, minute=0, second=0)
+                                   hour=0, minute=0, second=0)
         ival_T_to_S_end = Period(freq='S', year=2007, month=1, day=1,
-                                    hour=0, minute=0, second=59)
+                                 hour=0, minute=0, second=59)
+        ival_T_to_U_start = Period(freq='U', year=2007, month=1, day=1,
+                                   hour=0, minute=0, second=0, microsecond=0)
+        ival_T_to_U_end = Period(freq='U', year=2007, month=1, day=1,
+                                 hour=0, minute=0, second=59,
+                                 microsecond=999999)
 
         assert_equal(ival_T.asfreq('A'), ival_T_to_A)
         assert_equal(ival_T_end_of_year.asfreq('A'), ival_T_to_A)
@@ -981,6 +1075,9 @@ class TestFreqConversion(TestCase):
         assert_equal(ival_T.asfreq('S', 'S'), ival_T_to_S_start)
         assert_equal(ival_T.asfreq('S', 'E'), ival_T_to_S_end)
 
+        assert_equal(ival_T.asfreq('U', 'S'), ival_T_to_U_start)
+        assert_equal(ival_T.asfreq('U', 'E'), ival_T_to_U_end)
+
         assert_equal(ival_T.asfreq('Min'), ival_T)
 
     def test_conv_secondly(self):
@@ -991,19 +1088,19 @@ class TestFreqConversion(TestCase):
         ival_S_end_of_year = Period(freq='S', year=2007, month=12, day=31,
                                     hour=23, minute=59, second=59)
         ival_S_end_of_quarter = Period(freq='S', year=2007, month=3, day=31,
-                                        hour=23, minute=59, second=59)
+                                       hour=23, minute=59, second=59)
         ival_S_end_of_month = Period(freq='S', year=2007, month=1, day=31,
-                                    hour=23, minute=59, second=59)
+                                     hour=23, minute=59, second=59)
         ival_S_end_of_week = Period(freq='S', year=2007, month=1, day=7,
                                     hour=23, minute=59, second=59)
         ival_S_end_of_day = Period(freq='S', year=2007, month=1, day=1,
-                                    hour=23, minute=59, second=59)
+                                   hour=23, minute=59, second=59)
         ival_S_end_of_bus = Period(freq='S', year=2007, month=1, day=1,
-                                    hour=23, minute=59, second=59)
+                                   hour=23, minute=59, second=59)
         ival_S_end_of_hour = Period(freq='S', year=2007, month=1, day=1,
                                     hour=0, minute=59, second=59)
         ival_S_end_of_minute = Period(freq='S', year=2007, month=1, day=1,
-                                    hour=0, minute=0, second=59)
+                                      hour=0, minute=0, second=59)
 
         ival_S_to_A = Period(freq='A', year=2007)
         ival_S_to_Q = Period(freq='Q', year=2007, quarter=1)
@@ -1012,9 +1109,9 @@ class TestFreqConversion(TestCase):
         ival_S_to_D = Period(freq='D', year=2007, month=1, day=1)
         ival_S_to_B = Period(freq='B', year=2007, month=1, day=1)
         ival_S_to_H = Period(freq='H', year=2007, month=1, day=1,
-                            hour=0)
+                             hour=0)
         ival_S_to_T = Period(freq='Min', year=2007, month=1, day=1,
-                            hour=0, minute=0)
+                             hour=0, minute=0)
 
         assert_equal(ival_S.asfreq('A'), ival_S_to_A)
         assert_equal(ival_S_end_of_year.asfreq('A'), ival_S_to_A)
@@ -1034,6 +1131,79 @@ class TestFreqConversion(TestCase):
         assert_equal(ival_S_end_of_minute.asfreq('Min'), ival_S_to_T)
 
         assert_equal(ival_S.asfreq('S'), ival_S)
+
+    def test_conv_microsecondly(self):
+        ival_U = Period(freq='S', year=2007, month=1, day=1,
+                        hour=0, minute=0, second=0)
+        ival_U_end_of_year = Period(freq='U', year=2007, month=12, day=31,
+                                    hour=23, minute=59, second=59,
+                                    microsecond=999999)
+        ival_U_end_of_quarter = Period(freq='U', year=2007, month=3, day=31,
+                                       hour=23, minute=59, second=59,
+                                       microsecond=999999)
+        ival_U_end_of_month = Period(freq='U', year=2007, month=1, day=31,
+                                     hour=23, minute=59, second=59,
+                                     microsecond=999999)
+        ival_U_end_of_week = Period(freq='U', year=2007, month=1, day=7,
+                                    hour=23, minute=59, second=59,
+                                    microsecond=999999)
+        ival_U_end_of_day = Period(freq='U', year=2007, month=1, day=1,
+                                   hour=23, minute=59, second=59,
+                                   microsecond=999999)
+        ival_U_end_of_bus = Period(freq='U', year=2007, month=1, day=1,
+                                   hour=23, minute=59, second=59,
+                                   microsecond=999999)
+        ival_U_end_of_hour = Period(freq='U', year=2007, month=1, day=1,
+                                    hour=0, minute=59, second=59,
+                                    microsecond=999999)
+        ival_U_end_of_minute = Period(freq='U', year=2007, month=1, day=1,
+                                      hour=0, minute=0, second=59,
+                                      microsecond=999999)
+        ival_U_end_of_second = Period(freq='U', year=2007, month=1, day=1,
+                                      hour=0, minute=0, second=0,
+                                      microsecond=999999)
+
+        ival_U_to_A = Period(freq='A', year=2007)
+        ival_U_to_Q = Period(freq='Q', year=2007, quarter=1)
+        ival_U_to_M = Period(freq='M', year=2007, month=1)
+        ival_U_to_W = Period(freq='WK', year=2007, month=1, day=7)
+        ival_U_to_D = Period(freq='D', year=2007, month=1, day=1)
+        ival_U_to_B = Period(freq='B', year=2007, month=1, day=1)
+        ival_U_to_H = Period(freq='H', year=2007, month=1, day=1,
+                             hour=0)
+        ival_U_to_T = Period(freq='Min', year=2007, month=1, day=1,
+                             hour=0, minute=0)
+        ival_U_to_S = Period(freq='S', year=2007, month=1, day=1,
+                             hour=0, minute=0)
+
+        assert_equal(ival_U.asfreq('A'), ival_U_to_A)
+        assert_equal(ival_U_end_of_year.asfreq('A'), ival_U_to_A)
+
+        assert_equal(ival_U.asfreq('Q'), ival_U_to_Q)
+        assert_equal(ival_U_end_of_quarter.asfreq('Q'), ival_U_to_Q)
+
+        assert_equal(ival_U.asfreq('M'), ival_U_to_M)
+        assert_equal(ival_U_end_of_month.asfreq('M'), ival_U_to_M)
+
+        assert_equal(ival_U.asfreq('WK'), ival_U_to_W)
+        assert_equal(ival_U_end_of_week.asfreq('WK'), ival_U_to_W)
+
+        assert_equal(ival_U.asfreq('D'), ival_U_to_D)
+        assert_equal(ival_U_end_of_day.asfreq('D'), ival_U_to_D)
+
+        assert_equal(ival_U.asfreq('B'), ival_U_to_B)
+        assert_equal(ival_U_end_of_bus.asfreq('B'), ival_U_to_B)
+
+        assert_equal(ival_U.asfreq('H'), ival_U_to_H)
+        assert_equal(ival_U_end_of_hour.asfreq('H'), ival_U_to_H)
+        assert_equal(ival_U.asfreq('Min'), ival_U_to_T)
+        assert_equal(ival_U_end_of_minute.asfreq('Min'), ival_U_to_T)
+
+        assert_equal(ival_U.asfreq('S'), ival_U_to_S)
+        assert_equal(ival_U_end_of_second.asfreq('S'), ival_U_to_S)
+
+        assert_equal(ival_U.asfreq('U'), ival_U)
+
 
 class TestPeriodIndex(TestCase):
     def __init__(self, *args, **kwds):
@@ -1070,8 +1240,8 @@ class TestPeriodIndex(TestCase):
         expected = period_range('1990Q3', '2009Q2', freq='Q-DEC')
         self.assert_(index.equals(expected))
 
-        self.assertRaises(ValueError, PeriodIndex, year=years, quarter=quarters,
-                          freq='2Q-DEC')
+        self.assertRaises(ValueError, PeriodIndex, year=years,
+                          quarter=quarters, freq='2Q-DEC')
 
         index = PeriodIndex(year=years, quarter=quarters)
         self.assert_(index.equals(expected))
@@ -1092,9 +1262,10 @@ class TestPeriodIndex(TestCase):
         self.assert_(idx.equals(exp))
 
     def test_constructor_U(self):
-        # U was used as undefined period
-        self.assertRaises(KeyError, period_range, '2007-1-1', periods=500,
-                          freq='U')
+        pass
+    #     # U was used as undefined period
+    #     self.assertRaises(KeyError, period_range, '2007-1-1', periods=500,
+    #                       freq='U')
 
     def test_constructor_arrays_negative_year(self):
         years = np.arange(1960, 2000).repeat(4)
@@ -1193,7 +1364,8 @@ class TestPeriodIndex(TestCase):
         self.assert_(result.equals(exp))
 
     def test_periods_number_check(self):
-        self.assertRaises(ValueError, period_range, '2011-1-1', '2012-1-1', 'B')
+        self.assertRaises(ValueError, period_range, '2011-1-1', '2012-1-1',
+                          'B')
 
     def test_to_timestamp(self):
         index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
@@ -1207,7 +1379,6 @@ class TestPeriodIndex(TestCase):
         exp_index = date_range('1/1/2001', end='1/1/2009', freq='AS-DEC')
         result = series.to_timestamp('D', 'start')
         self.assert_(result.index.equals(exp_index))
-
 
         def _get_with_delta(delta, freq='A-DEC'):
             return date_range(to_datetime('1/1/2001') + delta,
@@ -1225,6 +1396,11 @@ class TestPeriodIndex(TestCase):
 
         result = series.to_timestamp('S', 'end')
         delta = timedelta(hours=23, minutes=59, seconds=59)
+        exp_index = _get_with_delta(delta)
+        self.assert_(result.index.equals(exp_index))
+
+        result = series.to_timestamp('U', 'end')
+        delta = timedelta(hours=23, minutes=59, seconds=59, microseconds=999999)
         exp_index = _get_with_delta(delta)
         self.assert_(result.index.equals(exp_index))
 
@@ -1315,6 +1491,11 @@ class TestPeriodIndex(TestCase):
         exp_index = _get_with_delta(delta)
         self.assert_(result.index.equals(exp_index))
 
+        result = df.to_timestamp('U', 'end')
+        delta = timedelta(hours=23, minutes=59, seconds=59, microseconds=999999)
+        exp_index = _get_with_delta(delta)
+        self.assert_(result.index.equals(exp_index))
+
         # columns
         df = df.T
 
@@ -1339,6 +1520,11 @@ class TestPeriodIndex(TestCase):
 
         result = df.to_timestamp('S', 'end', axis=1)
         delta = timedelta(hours=23, minutes=59, seconds=59)
+        exp_index = _get_with_delta(delta)
+        self.assert_(result.columns.equals(exp_index))
+
+        result = df.to_timestamp('U', 'end', axis=1)
+        delta = timedelta(hours=23, minutes=59, seconds=59, microseconds=999999)
         exp_index = _get_with_delta(delta)
         self.assert_(result.columns.equals(exp_index))
 
@@ -1389,6 +1575,10 @@ class TestPeriodIndex(TestCase):
         pi = PeriodIndex(freq='S', start='1/1/2001', end='1/1/2001 23:59:59')
         assert_equal(len(pi), 24 * 60 * 60)
 
+        pi = PeriodIndex(freq='U', start='1/1/2001',
+                        end='1/1/2001 23:59:59.999999')
+        assert_equal(len(pi), 24 * 60 * 60 * 1000000)
+
         start = Period('02-Apr-2005', 'B')
         i1 = PeriodIndex(start=start, periods=20)
         assert_equal(len(i1), 20)
@@ -1424,7 +1614,8 @@ class TestPeriodIndex(TestCase):
 
         try:
             PeriodIndex(start=start)
-            raise AssertionError('Must specify periods if missing start or end')
+            msg = 'Must specify periods if missing start or end'
+            raise AssertionError(msg)
         except ValueError:
             pass
 
@@ -1477,6 +1668,11 @@ class TestPeriodIndex(TestCase):
         assert_equal(len(pi1), len(pi2))
         assert_equal(pi1.shift(-1).values, pi2.values)
 
+        pi1 = PeriodIndex(freq='U', start='1/1/2001', end='12/1/2009')
+        pi2 = PeriodIndex(freq='U', start='12/31/2000', end='11/30/2009')
+        assert_equal(len(pi1), len(pi2))
+        assert_equal(pi1.shift(-1).values, pi2.values)
+
     def test_asfreq(self):
         pi1 = PeriodIndex(freq='A', start='1/1/2001', end='1/1/2001')
         pi2 = PeriodIndex(freq='Q', start='1/1/2001', end='1/1/2001')
@@ -1485,6 +1681,8 @@ class TestPeriodIndex(TestCase):
         pi5 = PeriodIndex(freq='H', start='1/1/2001', end='1/1/2001 00:00')
         pi6 = PeriodIndex(freq='Min', start='1/1/2001', end='1/1/2001 00:00')
         pi7 = PeriodIndex(freq='S', start='1/1/2001', end='1/1/2001 00:00:00')
+        pi8 = PeriodIndex(freq='U', start='1/1/2001',
+                          end='1/1/2001 00:00:00.000000')
 
         self.assertEquals(pi1.asfreq('Q', 'S'), pi2)
         self.assertEquals(pi1.asfreq('Q', 's'), pi2)
@@ -1493,6 +1691,7 @@ class TestPeriodIndex(TestCase):
         self.assertEquals(pi1.asfreq('H', 'beGIN'), pi5)
         self.assertEquals(pi1.asfreq('Min', 'S'), pi6)
         self.assertEquals(pi1.asfreq('S', 'S'), pi7)
+        self.assertEquals(pi1.asfreq('U', 'S'), pi8)
 
         self.assertEquals(pi2.asfreq('A', 'S'), pi1)
         self.assertEquals(pi2.asfreq('M', 'S'), pi3)
@@ -1500,6 +1699,7 @@ class TestPeriodIndex(TestCase):
         self.assertEquals(pi2.asfreq('H', 'S'), pi5)
         self.assertEquals(pi2.asfreq('Min', 'S'), pi6)
         self.assertEquals(pi2.asfreq('S', 'S'), pi7)
+        self.assertEquals(pi2.asfreq('U', 'S'), pi8)
 
         self.assertEquals(pi3.asfreq('A', 'S'), pi1)
         self.assertEquals(pi3.asfreq('Q', 'S'), pi2)
@@ -1507,6 +1707,7 @@ class TestPeriodIndex(TestCase):
         self.assertEquals(pi3.asfreq('H', 'S'), pi5)
         self.assertEquals(pi3.asfreq('Min', 'S'), pi6)
         self.assertEquals(pi3.asfreq('S', 'S'), pi7)
+        self.assertEquals(pi3.asfreq('U', 'S'), pi8)
 
         self.assertEquals(pi4.asfreq('A', 'S'), pi1)
         self.assertEquals(pi4.asfreq('Q', 'S'), pi2)
@@ -1514,6 +1715,7 @@ class TestPeriodIndex(TestCase):
         self.assertEquals(pi4.asfreq('H', 'S'), pi5)
         self.assertEquals(pi4.asfreq('Min', 'S'), pi6)
         self.assertEquals(pi4.asfreq('S', 'S'), pi7)
+        self.assertEquals(pi4.asfreq('U', 'S'), pi8)
 
         self.assertEquals(pi5.asfreq('A', 'S'), pi1)
         self.assertEquals(pi5.asfreq('Q', 'S'), pi2)
@@ -1521,6 +1723,7 @@ class TestPeriodIndex(TestCase):
         self.assertEquals(pi5.asfreq('D', 'S'), pi4)
         self.assertEquals(pi5.asfreq('Min', 'S'), pi6)
         self.assertEquals(pi5.asfreq('S', 'S'), pi7)
+        self.assertEquals(pi5.asfreq('U', 'S'), pi8)
 
         self.assertEquals(pi6.asfreq('A', 'S'), pi1)
         self.assertEquals(pi6.asfreq('Q', 'S'), pi2)
@@ -1528,6 +1731,7 @@ class TestPeriodIndex(TestCase):
         self.assertEquals(pi6.asfreq('D', 'S'), pi4)
         self.assertEquals(pi6.asfreq('H', 'S'), pi5)
         self.assertEquals(pi6.asfreq('S', 'S'), pi7)
+        self.assertEquals(pi6.asfreq('U', 'S'), pi8)
 
         self.assertEquals(pi7.asfreq('A', 'S'), pi1)
         self.assertEquals(pi7.asfreq('Q', 'S'), pi2)
@@ -1535,6 +1739,15 @@ class TestPeriodIndex(TestCase):
         self.assertEquals(pi7.asfreq('D', 'S'), pi4)
         self.assertEquals(pi7.asfreq('H', 'S'), pi5)
         self.assertEquals(pi7.asfreq('Min', 'S'), pi6)
+        self.assertEquals(pi7.asfreq('U', 'S'), pi8)
+
+        self.assertEquals(pi8.asfreq('A', 'S'), pi1)
+        self.assertEquals(pi8.asfreq('Q', 'S'), pi2)
+        self.assertEquals(pi8.asfreq('M', 'S'), pi3)
+        self.assertEquals(pi8.asfreq('D', 'S'), pi4)
+        self.assertEquals(pi8.asfreq('H', 'S'), pi5)
+        self.assertEquals(pi8.asfreq('Min', 'S'), pi6)
+        self.assertEquals(pi8.asfreq('S', 'S'), pi7)
 
         self.assertRaises(ValueError, pi7.asfreq, 'T', 'foo')
         self.assertRaises(ValueError, pi1.asfreq, '5t')
@@ -1693,7 +1906,7 @@ class TestPeriodIndex(TestCase):
             joined = index.join(index[:-5], how=kind)
 
             self.assert_(isinstance(joined, PeriodIndex))
-            self.assert_(joined.freq == index.freq)
+            self.assertEqual(joined.freq, index.freq)
 
     def test_align_series(self):
         rng = period_range('1/1/2000', '1/1/2010', freq='A')
@@ -1786,7 +1999,11 @@ class TestPeriodIndex(TestCase):
         self._check_all_fields(pi)
 
         pi = PeriodIndex(freq='S', start='12/31/2001 00:00:00',
-                         end='12/31/2001 00:05:00')
+                        end='12/31/2001 00:05:00')
+        self._check_all_fields(pi)
+
+        pi = PeriodIndex(freq='U', start='12/31/2001 00:00:00.000000',
+                        end='12/31/2001 00:05:00.000000')
         self._check_all_fields(pi)
 
         end_intv = Period('2006-12-31', 'W')
@@ -1796,7 +2013,7 @@ class TestPeriodIndex(TestCase):
     def _check_all_fields(self, periodindex):
         fields = ['year', 'month', 'day', 'hour', 'minute',
                   'second', 'weekofyear', 'week', 'dayofweek',
-                  'weekday', 'dayofyear', 'quarter', 'qyear']
+                  'weekday', 'dayofyear', 'quarter', 'qyear', 'microsecond']
 
         periods = list(periodindex)
 
@@ -1843,7 +2060,7 @@ class TestPeriodIndex(TestCase):
 
     def test_with_multi_index(self):
         # #1705
-        index = date_range('1/1/2012',periods=4,freq='12H')
+        index = date_range('1/1/2012', periods=4, freq='12H')
         index_as_arrays = [index.to_period(freq='D'), index.hour]
 
         s = Series([0, 1, 2, 3], index_as_arrays)
@@ -1853,7 +2070,7 @@ class TestPeriodIndex(TestCase):
         self.assert_(isinstance(s.index.values[0][0], Period))
 
     def test_to_datetime_1703(self):
-        index = period_range('1/1/2012',periods=4,freq='D')
+        index = period_range('1/1/2012', periods=4, freq='D')
 
         result = index.to_datetime()
         self.assertEquals(result[0], Timestamp('1/1/2012'))
@@ -1870,9 +2087,10 @@ class TestPeriodIndex(TestCase):
         s2 = s2.to_period()
 
         # drops index
-        result = pd.concat([s1,s2])
+        result = pd.concat([s1, s2])
         self.assert_(isinstance(result.index, PeriodIndex))
         self.assertEquals(result.index[0], s1.index[0])
+
 
 def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
@@ -1922,13 +2140,16 @@ class TestPeriodRepresentation(unittest.TestCase):
     def test_secondly(self):
         self._check_freq('S', '1970-01-01')
 
+    def test_microsecondly(self):
+        self._check_freq('U', '1970-01-01')
+
     def _check_freq(self, freq, base_date):
         rng = PeriodIndex(start=base_date, periods=10, freq=freq)
         exp = np.arange(10, dtype=np.int64)
         self.assert_(np.array_equal(rng.values, exp))
 
     def test_negone_ordinals(self):
-        freqs = ['A', 'M', 'Q', 'D','H', 'T', 'S']
+        freqs = ['A', 'M', 'Q', 'D', 'H', 'T', 'S', 'U']
 
         period = Period(ordinal=-1, freq='D')
         for freq in freqs:
@@ -1947,5 +2168,5 @@ class TestPeriodRepresentation(unittest.TestCase):
 
 if __name__ == '__main__':
     import nose
-    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
