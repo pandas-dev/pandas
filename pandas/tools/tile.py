@@ -157,15 +157,18 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
 
     if labels is not False:
         if labels is None:
-            fmt = lambda v: _format_label(v, precision=precision)
-            if right:
-                levels = ['(%s, %s]' % (fmt(a), fmt(b))
-                           for a, b in zip(bins, bins[1:])]
-                if include_lowest:
-                    levels[0] = '[' + levels[0][1:]
-            else:
-                levels = ['[%s, %s)' % (fmt(a), fmt(b))
-                           for a, b in zip(bins, bins[1:])]
+            increases = 0
+            while True:
+                try:
+                    levels = _format_levels(bins, precision, right=right,
+                                            include_lowest=include_lowest)
+                except ValueError:
+                    increases += 1
+                    precision += 1
+                    if increases >= 20:
+                        raise
+                else:
+                    break
 
         else:
             if len(labels) != len(bins) - 1:
@@ -187,6 +190,29 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
 
     return fac, bins
 
+def _format_levels(bins, prec, right=True,
+                   include_lowest=False):
+    fmt = lambda v: _format_label(v, precision=prec)
+    if right:
+        levels = []
+        for a, b in zip(bins, bins[1:]):
+            fa, fb = fmt(a), fmt(b)
+
+            if a != b and fa == fb:
+                raise ValueError('precision too low')
+
+            formatted = '(%s, %s]' % (fa, fb)
+
+            levels.append(formatted)
+
+        if include_lowest:
+            levels[0] = '[' + levels[0][1:]
+    else:
+        levels = ['[%s, %s)' % (fmt(a), fmt(b))
+                   for a, b in zip(bins, bins[1:])]
+
+    return levels
+
 
 def _format_label(x, precision=3):
     fmt_str = '%%.%dg' % precision
@@ -196,6 +222,14 @@ def _format_label(x, precision=3):
         whole = abs(whole)
         if frac != 0.0:
             val = fmt_str % frac
+
+            # rounded up or down
+            if '.' not in val:
+                if x < 0:
+                    return '%d' % (-whole - 1)
+                else:
+                    return '%d' % (whole + 1)
+
             if 'e' in val:
                 return _trim_zeros(fmt_str % x)
             else:

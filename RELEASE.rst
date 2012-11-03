@@ -47,6 +47,7 @@ pandas 0.9.1
 
 **Bug fixes**
 
+  - Fix bar plot color cycle issues (#2082)
   - Implement comparisons on date offsets with fixed delta (#2078)
   - Handle inf/-inf correctly in read_* parser functions (#2041)
   - Fix matplotlib unicode interaction bug
@@ -66,6 +67,7 @@ pandas 0.9.1
   - Don't lose index names in Panel.to_frame/DataFrame.to_panel (#2163)
   - Work around length-0 boolean indexing NumPy bug (#2096)
   - Fix partial integer indexing bug in DataFrame.xs (#2107)
+  - Fix variety of cut/qcut string-bin formatting bugs (#1978, #1979)
 
 pandas 0.9.0
 ============
