@@ -43,7 +43,7 @@ class Period(object):
 
     def __init__(self, value=None, freq=None, ordinal=None,
                  year=None, month=1, quarter=None, day=1,
-                 hour=0, minute=0, second=0):
+                 hour=0, minute=0, second=0, microsecond=0):
         """
         Represents an period of time
 
@@ -60,6 +60,7 @@ class Period(object):
         hour : int, default 0
         minute : int, default 0
         second : int, default 0
+        microsecon : int, default 0
         """
         # freq points to a tuple (base, mult);  base is one of the defined
         # periods such as A, Q, etc. Every five minutes would be, e.g.,
@@ -85,7 +86,8 @@ class Period(object):
                 raise ValueError("If value is None, freq cannot be None")
 
             self.ordinal = _ordinal_from_fields(year, month, quarter, day,
-                                                hour, minute, second, freq)
+                                                hour, minute, second,
+                                                microsecond, freq)
 
         elif isinstance(value, Period):
             other = value
@@ -121,6 +123,7 @@ class Period(object):
         if self.ordinal is None:
             self.ordinal = plib.period_ordinal(dt.year, dt.month, dt.day,
                                                dt.hour, dt.minute, dt.second,
+                                               dt.microsecond,
                                                base)
 
         self.freq = _freq_mod._get_freq_str(base)
@@ -224,6 +227,7 @@ class Period(object):
     hour = _period_field_accessor('hour', 5)
     minute = _period_field_accessor('minute', 6)
     second = _period_field_accessor('second', 7)
+    microsecond = _period_field_accessor('microsecond', 11)
     weekofyear = _period_field_accessor('week', 8)
     week = weekofyear
     dayofweek = _period_field_accessor('dayofweek', 10)
@@ -407,6 +411,8 @@ def _get_date_and_freq(value, freq):
             freq = 'T'
         elif reso == 'second':
             freq = 'S'
+        elif reso == 'microsecond':
+            freq = 'U'
         else:
             raise ValueError("Invalid frequency or could not infer: %s" % reso)
 
@@ -494,6 +500,7 @@ class PeriodIndex(Int64Index):
     hour : int or array, default None
     minute : int or array, default None
     second : int or array, default None
+    microsecond : int or array, default None
 
     Examples
     --------
@@ -514,7 +521,7 @@ class PeriodIndex(Int64Index):
                 freq=None, start=None, end=None, periods=None,
                 copy=False, name=None,
                 year=None, month=None, quarter=None, day=None,
-                hour=None, minute=None, second=None):
+                hour=None, minute=None, second=None, microsecond=None):
 
         freq = _freq_mod.get_standard_freq(freq)
 
@@ -529,9 +536,10 @@ class PeriodIndex(Int64Index):
             if ordinal is not None:
                 data = np.asarray(ordinal, dtype=np.int64)
             else:
-                fields = [year, month, quarter, day, hour, minute, second]
+                fields = [year, month, quarter, day, hour, minute, second,
+                          microsecond]
                 data, freq = cls._generate_range(start, end, periods,
-                                                    freq, fields)
+                                                 freq, fields)
         else:
             ordinal, freq = cls._from_arraylike(data, freq)
             data = np.array(ordinal, dtype=np.int64, copy=False)
@@ -551,10 +559,11 @@ class PeriodIndex(Int64Index):
                                  'or endpoints, but not both')
             subarr, freq = _get_ordinal_range(start, end, periods, freq)
         elif field_count > 0:
-            y, mth, q, d, h, minute, s = fields
+            y, mth, q, d, h, minute, s, us = fields
             subarr, freq = _range_from_fields(year=y, month=mth, quarter=q,
                                               day=d, hour=h, minute=minute,
-                                              second=s, freq=freq)
+                                              second=s, microsecond=us,
+                                              freq=freq)
         else:
             raise ValueError('Not enough parameters to construct '
                              'Period range')
@@ -732,6 +741,7 @@ class PeriodIndex(Int64Index):
     hour = _field_accessor('hour', 5)
     minute = _field_accessor('minute', 6)
     second = _field_accessor('second', 7)
+    microsecond = _field_accessor('microsecond', 11)
     weekofyear = _field_accessor('week', 8)
     week = weekofyear
     dayofweek = _field_accessor('dayofweek', 10)
@@ -1097,13 +1107,16 @@ def _get_ordinal_range(start, end, periods, freq):
 
 
 def _range_from_fields(year=None, month=None, quarter=None, day=None,
-                       hour=None, minute=None, second=None, freq=None):
+                       hour=None, minute=None, second=None, microsecond=None,
+                       freq=None):
     if hour is None:
         hour = 0
     if minute is None:
         minute = 0
     if second is None:
         second = 0
+    if microsecond is None:
+        microsecond = 0
     if day is None:
         day = 1
 
@@ -1129,9 +1142,10 @@ def _range_from_fields(year=None, month=None, quarter=None, day=None,
         if mult != 1:
             raise ValueError('Only mult == 1 supported')
 
-        arrays = _make_field_arrays(year, month, day, hour, minute, second)
-        for y, mth, d, h, mn, s in zip(*arrays):
-            ordinals.append(plib.period_ordinal(y, mth, d, h, mn, s, base))
+        arrays = _make_field_arrays(year, month, day, hour, minute, second,
+                                    microsecond)
+        for y, mth, d, h, mn, s, us in zip(*arrays):
+            ordinals.append(plib.period_ordinal(y, mth, d, h, mn, s, us, base))
 
     return np.array(ordinals, dtype=np.int64), freq
 
@@ -1152,7 +1166,7 @@ def _make_field_arrays(*fields):
 
 
 def _ordinal_from_fields(year, month, quarter, day, hour, minute,
-                         second, freq):
+                         second, microsecond, freq):
     base, mult = _gfc(freq)
     if mult != 1:
         raise ValueError('Only mult == 1 supported')
@@ -1160,7 +1174,8 @@ def _ordinal_from_fields(year, month, quarter, day, hour, minute,
     if quarter is not None:
         year, month = _quarter_to_myear(year, quarter, freq)
 
-    return plib.period_ordinal(year, month, day, hour, minute, second, base)
+    return plib.period_ordinal(year, month, day, hour, minute, second,
+                               microsecond, base)
 
 
 def _quarter_to_myear(year, quarter, freq):
