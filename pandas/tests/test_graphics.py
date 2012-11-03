@@ -107,7 +107,7 @@ class TestSeriesPlots(unittest.TestCase):
                 self.assert_(r.get_linewidth() == 2)
 
     @slow
-    def test_1rotation(self):
+    def test_rotation(self):
         df = DataFrame(np.random.randn(5, 5))
         ax = df.plot(rot=30)
         for l in ax.get_xticklabels():
@@ -446,6 +446,24 @@ class TestDataFramePlots(unittest.TestCase):
             ax = df.plot(style=markers)
             for i, l in enumerate(ax.get_lines()[:len(markers)]):
                 self.assertEqual(l.get_marker(), markers[i])
+
+    @slow
+    def test_line_colors(self):
+        import matplotlib.pyplot as plt
+
+        custom_colors = 'rgcby'
+
+        plt.close('all')
+        df = DataFrame(np.random.randn(5, 5))
+
+        ax = df.plot(color=custom_colors)
+
+        lines = ax.get_lines()
+        for i, l in enumerate(lines):
+            xp = custom_colors[i]
+            rs = l.get_color()
+            self.assert_(xp == rs)
+
 
 class TestDataFrameGroupByPlots(unittest.TestCase):
 

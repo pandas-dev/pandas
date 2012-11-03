@@ -2,6 +2,7 @@
 # pylint: disable=E1101
 from itertools import izip
 import datetime
+import warnings
 import re
 
 import numpy as np
@@ -852,6 +853,14 @@ class LinePlot(MPLPlot):
     def __init__(self, data, **kwargs):
         self.mark_right = kwargs.pop('mark_right', True)
         MPLPlot.__init__(self, data, **kwargs)
+        if 'color' not in self.kwds and 'colors' in self.kwds:
+            warnings.warn(("'colors' is being deprecated. Please use 'color'"
+                           "instead of 'colors'"))
+            colors = self.kwds.pop('colors')
+            self.kwds['color'] = colors
+        if 'color' in self.kwds and isinstance(self.data, Series):
+            #support series.plot(color='green')
+            self.kwds['color'] = [self.kwds['color']]
 
     def _index_freq(self):
         from pandas.core.frame import DataFrame
@@ -889,14 +898,12 @@ class LinePlot(MPLPlot):
     def _get_colors(self):
         import matplotlib.pyplot as plt
         cycle = ''.join(plt.rcParams.get('axes.color_cycle', list('bgrcmyk')))
-        has_colors = 'colors' in self.kwds
-        colors = self.kwds.pop('colors', cycle)
-        return has_colors, colors
+        has_colors = 'color' in self.kwds
+        colors = self.kwds.get('color', cycle)
+        return colors
 
-    def _maybe_add_color(self, has_colors, colors, kwds, style, i):
-        if (not has_colors and
-           (style is None or re.match('[a-z]+', style) is None)
-            and 'color' not in kwds):
+    def _maybe_add_color(self, colors, kwds, style, i):
+        if style is None or re.match('[a-z]+', style) is None:
             kwds['color'] = colors[i % len(colors)]
 
     def _make_plot(self):
@@ -910,13 +917,13 @@ class LinePlot(MPLPlot):
             x = self._get_xticks(convert_period=True)
 
             plotf = self._get_plot_function()
-            has_colors, colors = self._get_colors()
+            colors = self._get_colors()
 
             for i, (label, y) in enumerate(self._iter_data()):
                 ax = self._get_ax(i)
                 style = self._get_style(i, label)
                 kwds = self.kwds.copy()
-                self._maybe_add_color(has_colors, colors, kwds, style, i)
+                self._maybe_add_color(colors, kwds, style, i)
 
                 label = com.pprint_thing(label) # .encode('utf-8')
 
@@ -944,7 +951,7 @@ class LinePlot(MPLPlot):
     def _make_ts_plot(self, data, **kwargs):
         from pandas.tseries.plotting import tsplot
         kwargs = kwargs.copy()
-        has_colors, colors = self._get_colors()
+        colors = self._get_colors()
 
         plotf = self._get_plot_function()
         lines = []
@@ -960,7 +967,7 @@ class LinePlot(MPLPlot):
             style = self.style or ''
             label = com.pprint_thing(self.label)
             kwds = kwargs.copy()
-            self._maybe_add_color(has_colors, colors, kwds, style, 0)
+            self._maybe_add_color(colors, kwds, style, 0)
 
             newlines = tsplot(data, plotf, ax=ax, label=label,
                               style=self.style, **kwds)
@@ -975,7 +982,7 @@ class LinePlot(MPLPlot):
                 style = self._get_style(i, col)
                 kwds = kwargs.copy()
 
-                self._maybe_add_color(has_colors, colors, kwds, style, i)
+                self._maybe_add_color(colors, kwds, style, i)
 
                 newlines = tsplot(data[col], plotf, ax=ax, label=label,
                                   style=style, **kwds)
@@ -1096,7 +1103,7 @@ class BarPlot(MPLPlot):
         return f
 
     def _make_plot(self):
-        colors = self.kwds.get('color', 'brgyk')
+        colors = self.kwds.pop('color', 'brgyk')
         rects = []
         labels = []
 
