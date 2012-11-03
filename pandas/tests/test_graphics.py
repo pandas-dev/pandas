@@ -448,7 +448,7 @@ class TestDataFramePlots(unittest.TestCase):
                 self.assertEqual(l.get_marker(), markers[i])
 
     @slow
-    def test_0line_colors(self):
+    def test_line_colors(self):
         import matplotlib.pyplot as plt
 
         custom_colors = 'rgcby'
