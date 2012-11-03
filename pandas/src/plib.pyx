@@ -27,10 +27,30 @@ PyDateTime_IMPORT
 
 cdef extern from "period.h":
     ctypedef struct date_info:
-        pass
+        npy_int64 absdate
+        double abstime
+
+        int microsecond
+        double second
+        int minute
+        int hour
+        int day
+        int month
+        int quarter
+        int year
+        int day_of_week
+        int day_of_year
+        int calendar
 
     ctypedef struct asfreq_info:
-        pass
+        int from_week_end
+        int to_week_end
+
+        int from_a_year_end
+        int to_a_year_end
+
+        int from_q_year_end
+        int to_q_year_end
 
     ctypedef int64_t (*freq_conv_func)(int64_t, char, asfreq_info*)
 
@@ -114,20 +134,18 @@ def periodarr_to_dt64arr(ndarray[int64_t] periodarr, int freq):
     periods per period convention.
     """
     cdef:
-        ndarray[int64_t] out
-        Py_ssize_t i, l
-
-    l = len(periodarr)
-
-    out = np.empty(l, dtype='i8')
+        Py_ssize_t i, l = len(periodarr)
+        ndarray[int64_t] out = np.empty(l, dtype='i8')
 
     for i in range(l):
         out[i] = period_ordinal_to_dt64(periodarr[i], freq)
 
     return out
 
+
 cdef char START = 'S'
 cdef char END = 'E'
+
 
 cpdef int64_t period_asfreq(int64_t period_ordinal, int freq1, int freq2,
                             bint end):
@@ -136,12 +154,8 @@ cpdef int64_t period_asfreq(int64_t period_ordinal, int freq1, int freq2,
     choose to use start ('S') or end ('E') of period.
     """
     cdef:
-        int64_t retval
-
-    if end:
-        retval = asfreq(period_ordinal, freq1, freq2, END)
-    else:
-        retval = asfreq(period_ordinal, freq1, freq2, START)
+        char how = END if end else START
+        int64_t retval = asfreq(period_ordinal, freq1, freq2, how)
 
     if retval == INT32_MIN:
         raise ValueError('Frequency conversion failed')
