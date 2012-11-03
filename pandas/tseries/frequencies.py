@@ -573,6 +573,7 @@ _period_code_map = {
     "H": 7000,        # Hourly
     "T": 8000,        # Minutely
     "S": 9000,        # Secondly
+    "U": 10000,       # Microsecondly
 }
 
 _reverse_period_code_map = {}
@@ -600,6 +601,7 @@ def _period_alias_dictionary():
     H_aliases = ["H", "HR", "HOUR", "HRLY", "HOURLY"]
     T_aliases = ["T", "MIN", "MINUTE", "MINUTELY"]
     S_aliases = ["S", "SEC", "SECOND", "SECONDLY"]
+    U_aliases = ["U", "USEC", "MICROSECOND", "MICROSECONDLY"]
 
     for k in M_aliases:
         alias_dict[k] = 'M'
@@ -618,6 +620,9 @@ def _period_alias_dictionary():
 
     for k in S_aliases:
         alias_dict[k] = 'S'
+
+    for k in U_aliases:
+        alias_dict[k] = 'U'
 
     A_prefixes = ["A", "Y", "ANN", "ANNUAL", "ANNUALLY", "YR", "YEAR",
                   "YEARLY"]
@@ -686,6 +691,7 @@ _reso_period_map = {
     "hour": "H",
     "minute": "T",
     "second": "S",
+    "microsecond" : "U",
 }
 
 
