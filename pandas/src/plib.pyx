@@ -61,6 +61,7 @@ cdef extern from "period.h":
     int phour(int64_t ordinal, int freq) except INT32_MIN
     int pminute(int64_t ordinal, int freq) except INT32_MIN
     int psecond(int64_t ordinal, int freq) except INT32_MIN
+    int pmicrosecond(int64_t ordinal, int freq) except INT32_MIN
     char *c_strftime(date_info *dinfo, char *fmt)
     int get_yq(int64_t ordinal, int freq, int *quarter, int *year)
 
@@ -337,5 +338,7 @@ cdef accessor _get_accessor_func(int code):
         return &pday_of_year
     elif code == 10:
         return &pweekday
+    elif code == 11:
+        return &pmicrosecond
     else:
         raise ValueError('Unrecognized code: %s' % code)

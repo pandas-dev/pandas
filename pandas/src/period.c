@@ -1369,3 +1369,10 @@ int psecond(npy_int64 ordinal, int freq) {
         return INT_ERR_CODE;
     return (int)dinfo.second;
 }
+
+int pmicrosecond(npy_int64 ordinal, int freq) {
+    struct date_info dinfo;
+    if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
+        return INT_ERR_CODE;
+    return dinfo.microsecond;
+}
