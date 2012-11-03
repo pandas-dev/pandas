@@ -3,6 +3,7 @@ import re
 
 import numpy as np
 
+from pandas.core.algorithms import unique
 from pandas.tseries.offsets import DateOffset
 from pandas.util.decorators import cache_readonly
 import pandas.tseries.offsets as offsets
@@ -890,6 +891,10 @@ class _FrequencyInferer(object):
         if self.day_deltas == [1, 3]:
             return 'B'
 
+        wom_rule = self._get_wom_rule()
+        if wom_rule:
+            return wom_rule
+
     def _get_annual_rule(self):
         if len(self.ydiffs) > 1:
             return None
@@ -919,6 +924,20 @@ class _FrequencyInferer(object):
         return {'cs': 'MS', 'bs': 'BMS',
                 'ce': 'M', 'be': 'BM'}.get(pos_check)
 
+    def _get_wom_rule(self):
+        wdiffs = unique(np.diff(self.index.week))
+        if not lib.ismember(wdiffs, set([4, 5])).all():
+            return None
+
+        weekdays = unique(self.index.weekday)
+        if len(weekdays) > 1:
+            return None
+
+        # get which week
+        week = (self.index[0].day - 1) // 7 + 1
+        wd = _weekday_rule_aliases[weekdays[0]]
+
+        return 'WOM-%d%s' % (week, wd)
 
 import pandas.core.algorithms as algos
 

@@ -36,6 +36,7 @@ pandas 0.9.1
 
 **Improvements to existing features**
 
+  - Time rule inference for week-of-month (e.g. WOM-2FRI) rules (#2140)
   - Improve performance of datetime + business day offset with large number of
     offset periods
   - Improve HTML display of DataFrame objects with hierarchical columns
