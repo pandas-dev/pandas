@@ -2025,6 +2025,11 @@ class DataFrame(NDFrame):
                 indexer = tuple(indexer)
             else:
                 indexer = loc
+                lev_num = labels._get_level_number(level)
+                lev = labels.levels[lev_num]
+                is_int_type = com.is_integer_dtype(lev)
+                if is_int_type:
+                    indexer = self.index[loc]
 
             result = self.ix[indexer]
             setattr(result, result._get_axis_name(axis), new_ax)

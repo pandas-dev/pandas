@@ -359,6 +359,18 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         expected = df.xs('a').xs(4, level='four')
         assert_frame_equal(result, expected)
 
+        #GH2107
+        import itertools
+        from string import letters
+        dates = range(20111201, 20111205)
+        ids = letters[:5]
+        idx = MultiIndex.from_tuples([x for x in itertools.product(dates, ids)])
+        idx.names = ['date', 'secid']
+        df = DataFrame(np.random.randn(len(idx), 3), idx, ['X', 'Y', 'Z'])
+        rs = df.xs(20111201, level='date')
+        xp = df.ix[20111201, :]
+        assert_frame_equal(rs, xp)
+
     def test_xs_level0(self):
         from pandas import read_table
         from StringIO import StringIO
