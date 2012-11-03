@@ -2026,9 +2026,7 @@ class DataFrame(NDFrame):
             else:
                 indexer = loc
                 lev_num = labels._get_level_number(level)
-                lev = labels.levels[lev_num]
-                is_int_type = com.is_integer_dtype(lev)
-                if is_int_type:
+                if labels.levels[lev_num].inferred_type == 'integer':
                     indexer = self.index[loc]
 
             result = self.ix[indexer]
