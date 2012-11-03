@@ -27,28 +27,10 @@ PyDateTime_IMPORT
 
 cdef extern from "period.h":
     ctypedef struct date_info:
-        int64_t absdate
-        double abstime
-        double second
-        int minute
-        int hour
-        int day
-        int month
-        int quarter
-        int year
-        int day_of_week
-        int day_of_year
-        int calendar
+        pass
 
     ctypedef struct asfreq_info:
-        int from_week_end
-        int to_week_end
-
-        int from_a_year_end
-        int to_a_year_end
-
-        int from_q_year_end
-        int to_q_year_end
+        pass
 
     ctypedef int64_t (*freq_conv_func)(int64_t, char, asfreq_info*)
 
