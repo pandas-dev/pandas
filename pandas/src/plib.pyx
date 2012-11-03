@@ -34,7 +34,8 @@ cdef extern from "period.h":
 
     ctypedef int64_t (*freq_conv_func)(int64_t, char, asfreq_info*)
 
-    int64_t asfreq(int64_t dtordinal, int freq1, int freq2, char relation) except INT32_MIN
+    int64_t asfreq(int64_t dtordinal, int freq1, int freq2,
+                   char relation) except INT32_MIN
     freq_conv_func get_asfreq_func(int fromFreq, int toFreq)
     void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info)
 
@@ -42,9 +43,11 @@ cdef extern from "period.h":
                           int hour, int minute, int second,
                           int freq) except INT32_MIN
 
-    int64_t get_python_ordinal(int64_t period_ordinal, int freq) except INT32_MIN
+    int64_t get_python_ordinal(int64_t period_ordinal,
+                               int freq) except INT32_MIN
 
-    int get_date_info(int64_t ordinal, int freq, date_info *dinfo) except INT32_MIN
+    int get_date_info(int64_t ordinal, int freq,
+                      date_info *dinfo) except INT32_MIN
     double getAbsTime(int, int64_t, int64_t)
 
     int pyear(int64_t ordinal, int freq) except INT32_MIN
@@ -177,11 +180,10 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
 
     return result
 
-def period_ordinal(int y, int m, int d, int h, int min, int s, int freq):
-    cdef:
-        int64_t ordinal
-
-    return get_period_ordinal(y, m, d, h, min, s, freq)
+cpdef int64_t period_ordinal(int y, int m, int d, int h, int min, int s,
+                             int freq):
+    cdef int64_t ordinal = get_period_ordinal(y, m, d, h, min, s, freq)
+    return ordinal
 
 
 cpdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq):
