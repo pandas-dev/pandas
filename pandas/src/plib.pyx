@@ -245,6 +245,8 @@ def period_format(int64_t value, int freq, object fmt=None):
             fmt = b'%Y-%m-%d %H:%M'
         elif freq_group == 9000: # SEC
             fmt = b'%Y-%m-%d %H:%M:%S'
+        elif freq_group == 10000:
+            fmt = b'%Y-%m-%d %H:%M:%S.%%06u'
         else:
             raise ValueError('Unknown freq: %d' % freq)
 
@@ -353,4 +355,3 @@ cdef accessor _get_accessor_func(int code):
         return &pweekday
     else:
         raise ValueError('Unrecognized code: %s' % code)
-
