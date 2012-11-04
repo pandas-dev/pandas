@@ -31,7 +31,7 @@ cdef extern from "period.h":
         double abstime
 
         int microsecond
-        double second
+        int second
         int minute
         int hour
         int day
@@ -307,13 +307,16 @@ cdef _period_strftime(int64_t value, int freq, object fmt):
 
 ctypedef int (*accessor)(int64_t ordinal, int freq) except INT32_MIN
 
+
 def get_period_field(int code, int64_t value, int freq):
     cdef accessor f = _get_accessor_func(code)
     return f(value, freq)
 
+
 def get_period_field_arr(int code, ndarray[int64_t] arr, int freq):
     cdef:
         Py_ssize_t i, sz
+        np.int64_t v
         ndarray[int64_t] out
         accessor f
 
@@ -323,10 +326,14 @@ def get_period_field_arr(int code, ndarray[int64_t] arr, int freq):
     out = np.empty(sz, dtype=np.int64)
 
     for i in range(sz):
-        out[i] = f(arr[i], freq)
+        v = f(arr[i], freq)
+
+        if v == INT32_MIN:
+            raise ValueError('Cannot get freq %i' % freq)
+
+        out[i] = v
 
     return out
-
 
 
 cdef accessor _get_accessor_func(int code):
