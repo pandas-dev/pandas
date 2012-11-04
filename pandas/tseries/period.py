@@ -1135,7 +1135,7 @@ def _range_from_fields(year=None, month=None, quarter=None, day=None,
         year, quarter = _make_field_arrays(year, quarter)
         for y, q in zip(year, quarter):
             y, m = _quarter_to_myear(y, q, freq)
-            val = plib.period_ordinal(y, m, 1, 1, 1, 1, base)
+            val = plib.period_ordinal(y, m, 1, 1, 1, 1, 1, base)
             ordinals.append(val)
     else:
         base, mult = _gfc(freq)
