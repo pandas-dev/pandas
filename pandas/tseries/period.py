@@ -187,14 +187,15 @@ class Period(object):
     def end_time(self):
         return self.to_timestamp('s', how='E')
 
-    def to_timestamp(self, freq='s', how='start'):
+    def to_timestamp(self, freq=None, how='start'):
         """
         Return the Timestamp representation of the Period at the target
-        frequency
+        frequency at the specified end (how) of the Period
 
         Parameters
         ----------
-        freq : string or DateOffset, default is second
+        freq : string or DateOffset, default is 'D' if self.freq is week or
+               longer and 'S' otherwise
             Target frequency
         how: str, default 'S' (start)
             'S', 'E'. Can be aliased as case insensitive
@@ -208,10 +209,10 @@ class Period(object):
 
         if freq is None:
             base, mult = _gfc(self.freq)
-            val = self
-        else:
-            base, mult = _gfc(freq)
-            val = self.asfreq(freq, how)
+            freq = _freq_mod.get_to_timestamp_base(base)
+
+        base, mult = _gfc(freq)
+        val = self.asfreq(freq, how)
 
         dt64 = plib.period_ordinal_to_dt64(val.ordinal, base)
         return Timestamp(dt64)
@@ -757,13 +758,14 @@ class PeriodIndex(Int64Index):
         # how to represent ourselves to matplotlib
         return self._get_object_array()
 
-    def to_timestamp(self, freq='s', how='start'):
+    def to_timestamp(self, freq=None, how='start'):
         """
         Cast to DatetimeIndex
 
         Parameters
         ----------
-        freq : string or DateOffset, default 's'
+        freq : string or DateOffset, default 'D' for week or longer, 'S'
+               otherwise
             Target frequency
         how : {'s', 'e', 'start', 'end'}
 

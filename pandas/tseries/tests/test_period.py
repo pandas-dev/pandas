@@ -215,12 +215,12 @@ class TestPeriodProperties(TestCase):
         start_ts = p.to_timestamp(how='S')
         aliases = ['s', 'StarT', 'BEGIn']
         for a in aliases:
-            self.assertEquals(start_ts, p.to_timestamp(how=a))
+            self.assertEquals(start_ts, p.to_timestamp('D', how=a))
 
         end_ts = p.to_timestamp(how='E')
         aliases = ['e', 'end', 'FINIsH']
         for a in aliases:
-            self.assertEquals(end_ts, p.to_timestamp(how=a))
+            self.assertEquals(end_ts, p.to_timestamp('D', how=a))
 
         from_lst = ['A', 'Q', 'M', 'W', 'B',
                     'D', 'H', 'Min', 'S']
@@ -231,7 +231,7 @@ class TestPeriodProperties(TestCase):
 
             self.assertEquals(p.start_time, p.to_timestamp(how='S'))
 
-            self.assertEquals(p.end_time, p.to_timestamp(how='E'))
+            self.assertEquals(p.end_time, p.to_timestamp('s', how='E'))
 
         # Frequency other than daily
 
@@ -245,8 +245,8 @@ class TestPeriodProperties(TestCase):
         expected = datetime(1985, 12, 31, 23, 59)
         self.assertEquals(result, expected)
 
-        result = p.to_timestamp('S', how='end')
-        expected = datetime(1985, 12, 31, 23, 59, 59)
+        result = p.to_timestamp(how='end')
+        expected = datetime(1985, 12, 31)
         self.assertEquals(result, expected)
 
         expected = datetime(1985, 1, 1)
