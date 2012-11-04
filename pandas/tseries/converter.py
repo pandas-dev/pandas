@@ -22,12 +22,8 @@ from pandas.tseries.period import Period, PeriodIndex
 
 
 def register():
-    units.registry[pydt.time] = TimeConverter()
     units.registry[lib.Timestamp] = DatetimeConverter()
-    units.registry[pydt.date] = DatetimeConverter()
-    units.registry[pydt.datetime] = DatetimeConverter()
     units.registry[Period] = PeriodConverter()
-
 
 def _to_ordinalf(tm):
     tot_sec = (tm.hour * 3600 + tm.minute * 60 + tm.second +
