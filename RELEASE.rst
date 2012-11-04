@@ -77,6 +77,7 @@ pandas 0.9.1
   - Fix variety of cut/qcut string-bin formatting bugs (#1978, #1979)
   - Raise Exception when xs view not possible of MultiIndex'd DataFrame (#2117)
   - Fix groupby(...).first() issue with datetime64 (#2133)
+  - Better floating point error robustness in some rolling_* functions (#2114)
 
 pandas 0.9.0
 ============

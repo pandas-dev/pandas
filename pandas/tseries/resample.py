@@ -197,7 +197,8 @@ class TimeGrouper(CustomGrouper):
             result = grouped.aggregate(self._agg_method)
 
             if self.fill_method is not None:
-                result = result.fillna(method=self.fill_method, limit=self.limit)
+                result = result.fillna(method=self.fill_method,
+                                       limit=self.limit)
 
         loffset = self.loffset
         if isinstance(loffset, basestring):
