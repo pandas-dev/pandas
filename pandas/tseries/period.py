@@ -4,7 +4,8 @@ import operator
 from datetime import datetime, date
 import numpy as np
 
-from pandas.tseries.frequencies import (get_freq_code as _gfc, to_offset,
+import pandas.tseries.offsets as offsets
+from pandas.tseries.frequencies import (get_freq_code as _gfc,
                                         _month_numbers, FreqGroup)
 from pandas.tseries.index import DatetimeIndex, Int64Index, Index
 from pandas.tseries.tools import parse_time_string
@@ -180,19 +181,21 @@ class Period(object):
 
     @property
     def start_time(self):
-        return self.to_timestamp(how='S')
+        return self.to_timestamp('s', how='S')
 
     @property
     def end_time(self):
-        return self.to_timestamp(how='E')
+        return self.to_timestamp('s', how='E')
 
-    def to_timestamp(self, freq=None, how='S'):
+    def to_timestamp(self, freq=None, how='start'):
         """
-        Return the Timestamp at the start/end of the period
+        Return the Timestamp representation of the Period at the target
+        frequency at the specified end (how) of the Period
 
         Parameters
         ----------
-        freq : string or DateOffset, default frequency of PeriodIndex
+        freq : string or DateOffset, default is 'D' if self.freq is week or
+               longer and 'S' otherwise
             Target frequency
         how: str, default 'S' (start)
             'S', 'E'. Can be aliased as case insensitive
@@ -202,20 +205,16 @@ class Period(object):
         -------
         Timestamp
         """
+        how = _validate_end_alias(how)
+
         if freq is None:
             base, mult = _gfc(self.freq)
-            how = _validate_end_alias(how)
-            if how == 'S':
-                base = _freq_mod.get_to_timestamp_base(base)
-                freq = _freq_mod._get_freq_str(base)
-                new_val = self.asfreq(freq, how)
-            else:
-                new_val = self
-        else:
-            base, mult = _gfc(freq)
-            new_val = self.asfreq(freq, how)
+            freq = _freq_mod.get_to_timestamp_base(base)
 
-        dt64 = plib.period_ordinal_to_dt64(new_val.ordinal, base)
+        base, mult = _gfc(freq)
+        val = self.asfreq(freq, how)
+
+        dt64 = plib.period_ordinal_to_dt64(val.ordinal, base)
         return Timestamp(dt64)
 
     year = _period_field_accessor('year', 0)
@@ -765,7 +764,8 @@ class PeriodIndex(Int64Index):
 
         Parameters
         ----------
-        freq : string or DateOffset, default 'D'
+        freq : string or DateOffset, default 'D' for week or longer, 'S'
+               otherwise
             Target frequency
         how : {'s', 'e', 'start', 'end'}
 
@@ -773,12 +773,14 @@ class PeriodIndex(Int64Index):
         -------
         DatetimeIndex
         """
+        how = _validate_end_alias(how)
+
         if freq is None:
             base, mult = _gfc(self.freq)
-            new_data = self
-        else:
-            base, mult = _gfc(freq)
-            new_data = self.asfreq(freq, how)
+            freq = _freq_mod.get_to_timestamp_base(base)
+
+        base, mult = _gfc(freq)
+        new_data = self.asfreq(freq, how)
 
         new_data = plib.periodarr_to_dt64arr(new_data.values, base)
         return DatetimeIndex(new_data, freq='infer', name=self.name)
