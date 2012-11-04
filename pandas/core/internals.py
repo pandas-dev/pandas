@@ -359,7 +359,7 @@ class IntBlock(Block):
             return element
 
     def should_store(self, value):
-        return issubclass(value.dtype.type, np.integer)
+        return com.is_integer_dtype(value)
 
 class BoolBlock(Block):
     _can_hold_na = False

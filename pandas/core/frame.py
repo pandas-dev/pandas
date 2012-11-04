@@ -1437,11 +1437,12 @@ class DataFrame(NDFrame):
         converted : DataFrame
         """
         new_data = {}
+        convert_f = lambda x: lib.maybe_convert_objects(x, convert_datetime=1)
 
         # TODO: could be more efficient taking advantage of the block
         for col, s in self.iteritems():
             if s.dtype == np.object_:
-                new_data[col] = lib.maybe_convert_objects(s)
+                new_data[col] = convert_f(s)
             else:
                 new_data[col] = s
 
