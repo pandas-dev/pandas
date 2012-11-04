@@ -373,6 +373,35 @@ def mask_out_axis(arr, mask, axis, fill_value=np.nan):
 
     arr[tuple(indexer)] = fill_value
 
+def diff(arr, n, indexer, axis=0):
+    out_arr = arr - arr.take(indexer, axis=axis)
+    out_arr = _maybe_upcast(out_arr)
+
+    if axis == 0:
+        if n > 0:
+            out_arr[:n] = np.nan
+        elif n < 0:
+            out_arr[n:] = np.nan
+        else:
+            out_arr[:] = np.nan
+    elif axis == 1:
+        if n > 0:
+            out_arr[:, :n] = np.nan
+        elif n < 0:
+            out_arr[:, n:] = np.nan
+        else:
+            out_arr[:, :] = np.nan
+    elif axis == 2:
+        if n > 0:
+            out_arr[:, :, :n] = np.nan
+        elif n < 0:
+            out_arr[:, :, n:] = np.nan
+        else:
+            out_arr[:, :, :] = np.nan
+    else:
+        raise NotImplementedError()
+    return out_arr
+
 
 def take_fast(arr, indexer, mask, needs_masking, axis=0, out=None,
               fill_value=np.nan):
