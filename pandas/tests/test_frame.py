@@ -5215,6 +5215,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_series_equal(the_diff['A'],
                             self.tsframe['A'] - self.tsframe['A'].shift(1))
 
+        # int dtype
+        a = 10000000000000000
+        b = a + 1
+        s = Series([a, b])
+
+        rs = DataFrame({'s': s}).diff()
+        self.assertEqual(rs.s[1], 1)
+
     def test_diff_mixed_dtype(self):
         df = DataFrame(np.random.randn(5, 3))
         df['A'] = np.array([1, 2, 3, 4, 5], dtype=object)

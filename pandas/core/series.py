@@ -1511,7 +1511,9 @@ copy : boolean, default False
         -------
         diffed : Series
         """
-        return (self - self.shift(periods))
+        indexer = com._shift_indexer(len(self), periods)
+        val = com.diff(self.values, periods, indexer)
+        return Series(val, self.index, name=self.name)
 
     def autocorr(self):
         """
