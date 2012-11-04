@@ -78,6 +78,7 @@ pandas 0.9.1
   - Raise Exception when xs view not possible of MultiIndex'd DataFrame (#2117)
   - Fix groupby(...).first() issue with datetime64 (#2133)
   - Better floating point error robustness in some rolling_* functions (#2114)
+  - Fix ewma NA handling in the middle of Series (#2128)
 
 pandas 0.9.0
 ============

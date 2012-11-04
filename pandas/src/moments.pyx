@@ -265,7 +265,10 @@ def ewma(ndarray[double_t] input, double_t com, int adjust):
     oldw = 1. - neww
     adj = oldw
 
-    output[0] = neww * input[0]
+    if adjust:
+        output[0] = neww * input[0]
+    else:
+        output[0] = input[0]
 
     for i from 1 <= i < N:
         cur = input[i]
@@ -282,10 +285,13 @@ def ewma(ndarray[double_t] input, double_t com, int adjust):
     if adjust:
         for i from 0 <= i < N:
             cur = input[i]
-            output[i] = output[i] / (1. - adj)
 
             if cur == cur:
+                output[i] = output[i] / (1. - adj)
                 adj *= oldw
+            else:
+                if i >= 1:
+                    output[i] = output[i - 1]
 
     return output
 

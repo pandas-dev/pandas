@@ -299,6 +299,12 @@ class TestMoments(unittest.TestCase):
         result = mom.ewma(arr, span=100, adjust=False).sum()
         self.assert_(np.abs(result - 1) < 1e-2)
 
+    def test_ewma_nan_handling(self):
+        s = Series([1.] + [np.nan] * 5 + [1.])
+
+        result = mom.ewma(s, com=5)
+        assert_almost_equal(result, [1] * len(s))
+
     def test_ewmvar(self):
         self._check_ew(mom.ewmvar)
 
