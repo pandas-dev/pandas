@@ -773,12 +773,14 @@ class PeriodIndex(Int64Index):
         -------
         DatetimeIndex
         """
+        how = _validate_end_alias(how)
+
         if freq is None:
             base, mult = _gfc(self.freq)
-            new_data = self
-        else:
-            base, mult = _gfc(freq)
-            new_data = self.asfreq(freq, how)
+            freq = _freq_mod.get_to_timestamp_base(base)
+
+        base, mult = _gfc(freq)
+        new_data = self.asfreq(freq, how)
 
         new_data = plib.periodarr_to_dt64arr(new_data.values, base)
         return DatetimeIndex(new_data, freq='infer', name=self.name)

@@ -1202,12 +1202,12 @@ class TestPeriodIndex(TestCase):
         series = Series(1, index=index, name='foo')
 
         exp_index = date_range('1/1/2001', end='12/31/2009', freq='A-DEC')
-        result = series.to_timestamp('D', 'end')
+        result = series.to_timestamp(how='end')
         self.assert_(result.index.equals(exp_index))
         self.assertEquals(result.name, 'foo')
 
         exp_index = date_range('1/1/2001', end='1/1/2009', freq='AS-DEC')
-        result = series.to_timestamp('D', 'start')
+        result = series.to_timestamp(how='start')
         self.assert_(result.index.equals(exp_index))
 
 
@@ -1231,6 +1231,15 @@ class TestPeriodIndex(TestCase):
         self.assert_(result.index.equals(exp_index))
 
         self.assertRaises(ValueError, index.to_timestamp, '5t')
+
+        index = PeriodIndex(freq='H', start='1/1/2001', end='1/2/2001')
+        series = Series(1, index=index, name='foo')
+
+        exp_index = date_range('1/1/2001 00:59:59', end='1/2/2001 00:59:59',
+                               freq='H')
+        result = series.to_timestamp(how='end')
+        self.assert_(result.index.equals(exp_index))
+        self.assertEquals(result.name, 'foo')
 
     def test_to_timestamp_quarterly_bug(self):
         years = np.arange(1960, 2000).repeat(4)
