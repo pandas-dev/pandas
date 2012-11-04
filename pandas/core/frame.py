@@ -29,7 +29,8 @@ from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import _NDFrameIndexer, _maybe_droplevels
-from pandas.core.internals import BlockManager, make_block, form_blocks
+from pandas.core.internals import (BlockManager, make_block, form_blocks,
+                                   IntBlock)
 from pandas.core.series import Series, _radd_compat
 from pandas.compat.scipy import scoreatpercentile as _quantile
 from pandas.util import py3compat
@@ -3679,7 +3680,10 @@ class DataFrame(NDFrame):
         -------
         diffed : DataFrame
         """
-        return self - self.shift(periods)
+        indexer = com._shift_indexer(len(self), periods)
+        new_blocks = [b.diff(periods, indexer) for b in self._data.blocks]
+        new_data = BlockManager(new_blocks, [self.columns, self.index])
+        return self._constructor(new_data)
 
     def shift(self, periods=1, freq=None, **kwds):
         """
