@@ -3680,8 +3680,7 @@ class DataFrame(NDFrame):
         -------
         diffed : DataFrame
         """
-        indexer = com._shift_indexer(len(self), periods)
-        new_blocks = [b.diff(periods, indexer) for b in self._data.blocks]
+        new_blocks = [b.diff(periods) for b in self._data.blocks]
         new_data = BlockManager(new_blocks, [self.columns, self.index])
         return self._constructor(new_data)
 

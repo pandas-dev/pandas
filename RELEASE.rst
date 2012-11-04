@@ -51,6 +51,7 @@ pandas 0.9.1
   - DataFrame.dot can accept ndarrays (#2042)
   - Support negative periods in Panel.shift (#2164)
   - Make .drop(...) work with non-unique indexes (#2101)
+  - Improve performance of Series/DataFrame.diff (re: #2087)
 
 **Bug fixes**
 

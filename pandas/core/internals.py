@@ -294,10 +294,8 @@ class Block(object):
     def get_values(self, dtype):
         return self.values
 
-    def diff(self, n, indexer=None):
-        if indexer is None:
-            indexer = com._shift_indexer(self.shape[1], n)
-        new_values = com.diff(self.values, n, indexer, axis=1)
+    def diff(self, n):
+        new_values = com.diff(self.values, n, axis=1)
         return make_block(new_values, self.items, self.ref_items)
 
 

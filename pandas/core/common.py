@@ -373,16 +373,38 @@ def mask_out_axis(arr, mask, axis, fill_value=np.nan):
 
     arr[tuple(indexer)] = fill_value
 
-def diff(arr, n, indexer, axis=0):
-    out_arr = arr - arr.take(indexer, axis=axis)
-    out_arr = _maybe_upcast(out_arr)
+_diff_special = {
+    'float64': lib.diff_2d_float64,
+    'int64': lib.diff_2d_int64,
+    'int32': lib.diff_2d_int32
+}
 
-    indexer = [slice(None)] * arr.ndim
-    if n > 0:
-        indexer[axis] = slice(None, n)
-    elif n < 0:
-        indexer[axis] = slice(None, n)
-    out_arr[tuple(indexer)] = np.nan
+def diff(arr, n, axis=0):
+    dtype = arr.dtype
+    if issubclass(dtype.type, np.integer):
+        dtype = np.float64
+    elif issubclass(dtype.type, np.bool_):
+        dtype = np.object_
+
+    out_arr = np.empty(arr.shape, dtype=dtype)
+
+    na_indexer = [slice(None)] * arr.ndim
+    na_indexer[axis] = slice(None, n)
+    out_arr[tuple(na_indexer)] = np.nan
+
+    if arr.ndim == 2 and arr.dtype.name in _diff_special:
+        f = _diff_special[arr.dtype.name]
+        f(arr, out_arr, n, axis)
+    else:
+        res_indexer = [slice(None)] * arr.ndim
+        res_indexer[axis] = slice(n, None)
+        res_indexer = tuple(res_indexer)
+
+        lag_indexer = [slice(None)] * arr.ndim
+        lag_indexer[axis] = slice(None, -n)
+        lag_indexer = tuple(lag_indexer)
+
+        out_arr[res_indexer] = arr[res_indexer] - arr[lag_indexer]
 
     return out_arr
 
