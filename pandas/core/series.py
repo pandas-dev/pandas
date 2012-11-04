@@ -1511,7 +1511,22 @@ copy : boolean, default False
         -------
         diffed : Series
         """
-        return (self - self.shift(periods))
+        if com.is_integer_dtype(self):
+            new_values = np.empty(len(self), dtype=self.dtype)
+            new_values = _maybe_upcast(new_values)
+
+            if periods > 0:
+                new_values[periods:] = (self.values[periods:] -
+                                        self.values[:-periods])
+                new_values[:periods] = nan
+            elif periods < 0:
+                new_values[:periods] = (self.values[:periods] -
+                                        self.values[-periods:])
+                new_values[periods:] = nan
+
+            return Series(new_values, index=self.index, name=self.name)
+        else:
+            return self - self.shift(periods)
 
     def autocorr(self):
         """

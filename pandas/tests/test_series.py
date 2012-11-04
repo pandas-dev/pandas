@@ -2998,6 +2998,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         # Just run the function
         self.ts.diff()
 
+        # int dtype
+        a = 10000000000000000
+        b = a + 1
+        s = Series([a, b])
+
+        rs = s.diff()
+        self.assertEqual(rs[1], 1)
+
     def test_pct_change(self):
         rs = self.ts.pct_change(fill_method=None)
         assert_series_equal(rs, self.ts / self.ts.shift(1) - 1)
