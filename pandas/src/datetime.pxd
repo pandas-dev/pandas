@@ -1,4 +1,4 @@
-from numpy cimport int64_t, int32_t, npy_int64, npy_int32
+from numpy cimport int64_t as i8
 from cpython cimport PyObject
 
 
@@ -43,8 +43,8 @@ cdef extern from "datetime_helper.h":
 
 cdef extern from "numpy/ndarrayobject.h":
 
-    ctypedef int64_t npy_timedelta
-    ctypedef int64_t npy_datetime
+    ctypedef i8 npy_timedelta
+    ctypedef i8 npy_datetime
 
     ctypedef enum NPY_CASTING:
             NPY_NO_CASTING
@@ -80,8 +80,7 @@ cdef extern from "datetime/np_datetime.h":
         PANDAS_FR_as
 
     ctypedef struct pandas_datetimestruct:
-        npy_int64 year
-        npy_int32 month, day, hour, min, sec, us, ps, as
+        i8 year, month, day, hour, min, sec, us, ps, as
 
     int convert_pydatetime_to_datetimestruct(PyObject *obj,
                                              pandas_datetimestruct *out,
@@ -96,7 +95,7 @@ cdef extern from "datetime/np_datetime.h":
     int days_per_month_table[2][12]
 
     int dayofweek(int y, int m, int d)
-    int is_leapyear(int64_t year)
+    int is_leapyear(i8 year)
     PANDAS_DATETIMEUNIT get_datetime64_unit(object o)
 
 cdef extern from "datetime/np_datetime_strings.h":
