@@ -377,29 +377,13 @@ def diff(arr, n, indexer, axis=0):
     out_arr = arr - arr.take(indexer, axis=axis)
     out_arr = _maybe_upcast(out_arr)
 
-    if axis == 0:
-        if n > 0:
-            out_arr[:n] = np.nan
-        elif n < 0:
-            out_arr[n:] = np.nan
-        else:
-            out_arr[:] = np.nan
-    elif axis == 1:
-        if n > 0:
-            out_arr[:, :n] = np.nan
-        elif n < 0:
-            out_arr[:, n:] = np.nan
-        else:
-            out_arr[:, :] = np.nan
-    elif axis == 2:
-        if n > 0:
-            out_arr[:, :, :n] = np.nan
-        elif n < 0:
-            out_arr[:, :, n:] = np.nan
-        else:
-            out_arr[:, :, :] = np.nan
-    else:
-        raise NotImplementedError()
+    indexer = [slice(None)] * arr.ndim
+    if n > 0:
+        indexer[axis] = slice(None, n)
+    elif n < 0:
+        indexer[axis] = slice(None, n)
+    out_arr[tuple(indexer)] = np.nan
+
     return out_arr
 
 

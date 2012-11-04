@@ -79,6 +79,7 @@ pandas 0.9.1
   - Fix groupby(...).first() issue with datetime64 (#2133)
   - Better floating point error robustness in some rolling_* functions (#2114)
   - Fix ewma NA handling in the middle of Series (#2128)
+  - Fix numerical precision issues in diff with integer data (#2087)
 
 pandas 0.9.0
 ============
