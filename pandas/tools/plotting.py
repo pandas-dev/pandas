@@ -1083,6 +1083,10 @@ class BarPlot(MPLPlot):
     def __init__(self, data, **kwargs):
         self.stacked = kwargs.pop('stacked', False)
         self.ax_pos = np.arange(len(data)) + 0.25
+        if self.stacked:
+            self.tickoffset = 0.25
+        else:
+            self.tickoffset = 0.375
         MPLPlot.__init__(self, data, **kwargs)
 
     def _args_adjust(self):
@@ -1149,7 +1153,7 @@ class BarPlot(MPLPlot):
             name = self._get_index_name()
             if self.kind == 'bar':
                 ax.set_xlim([self.ax_pos[0] - 0.25, self.ax_pos[-1] + 1])
-                ax.set_xticks(self.ax_pos + 0.375)
+                ax.set_xticks(self.ax_pos + self.tickoffset)
                 ax.set_xticklabels(str_index, rotation=self.rot,
                                    fontsize=self.fontsize)
                 ax.axhline(0, color='k', linestyle='--')
@@ -1158,7 +1162,7 @@ class BarPlot(MPLPlot):
             else:
                 # horizontal bars
                 ax.set_ylim([self.ax_pos[0] - 0.25, self.ax_pos[-1] + 1])
-                ax.set_yticks(self.ax_pos + 0.375)
+                ax.set_yticks(self.ax_pos + self.tickoffset)
                 ax.set_yticklabels(str_index, rotation=self.rot,
                                    fontsize=self.fontsize)
                 ax.axvline(0, color='k', linestyle='--')
