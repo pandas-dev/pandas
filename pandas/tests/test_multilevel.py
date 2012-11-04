@@ -360,9 +360,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         assert_frame_equal(result, expected)
 
         #GH2107
-        from string import letters
         dates = range(20111201, 20111205)
-        ids = letters[:5]
+        ids = 'abcde'
         idx = MultiIndex.from_tuples([x for x in cart_product(dates, ids)])
         idx.names = ['date', 'secid']
         df = DataFrame(np.random.randn(len(idx), 3), idx, ['X', 'Y', 'Z'])
