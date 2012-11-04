@@ -224,6 +224,10 @@ class TestPeriodProperties(TestCase):
 
         from_lst = ['A', 'Q', 'M', 'W', 'B',
                     'D', 'H', 'Min', 'S']
+
+        def _ex(p):
+            return Timestamp((p + 1).start_time.value - 1)
+
         for i, fcode in enumerate(from_lst):
             p = Period('1982', freq=fcode)
             result = p.to_timestamp().to_period(fcode)
@@ -231,7 +235,7 @@ class TestPeriodProperties(TestCase):
 
             self.assertEquals(p.start_time, p.to_timestamp(how='S'))
 
-            self.assertEquals(p.end_time, p.to_timestamp('s', how='E'))
+            self.assertEquals(p.end_time, _ex(p))
 
         # Frequency other than daily
 
@@ -272,30 +276,34 @@ class TestPeriodProperties(TestCase):
 
     def test_end_time(self):
         p = Period('2012', freq='A')
-        xp = datetime(2012, 12, 31, 23, 59, 59)
+
+        def _ex(*args):
+            return Timestamp(Timestamp(datetime(*args)).value - 1)
+
+        xp = _ex(2013, 1, 1)
         self.assertEquals(xp, p.end_time)
 
         p = Period('2012', freq='Q')
-        xp = datetime(2012, 3, 31, 23, 59, 59)
+        xp = _ex(2012, 4, 1)
         self.assertEquals(xp, p.end_time)
 
         p = Period('2012', freq='M')
-        xp = datetime(2012, 1, 31, 23, 59, 59)
+        xp = _ex(2012, 2, 1)
         self.assertEquals(xp, p.end_time)
 
-        xp = datetime(2012, 1, 1, 23, 59, 59)
+        xp = _ex(2012, 1, 2)
         p = Period('2012', freq='D')
         self.assertEquals(p.end_time, xp)
 
-        xp = datetime(2012, 1, 1, 0, 59, 59)
+        xp = _ex(2012, 1, 1, 1)
         p = Period('2012', freq='H')
         self.assertEquals(p.end_time, xp)
 
-        self.assertEquals(Period('2012', freq='B').end_time,
-                          datetime(2011, 12, 30, 23, 59, 59))
+        xp = _ex(2012, 1, 2)
+        self.assertEquals(Period('2012', freq='B').end_time, xp)
 
-        self.assertEquals(Period('2012', freq='W').end_time,
-                          datetime(2012, 1, 1, 23, 59, 59))
+        xp = _ex(2012, 1, 2)
+        self.assertEquals(Period('2012', freq='W').end_time, xp)
 
 
     def test_properties_annually(self):

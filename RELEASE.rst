@@ -34,6 +34,13 @@ pandas 0.9.1
   - Add `where` and `mask` functions to DataFrame (#2109, #2151)
   - Add `at_time` and `between_time` functions to DataFrame (#2149)
 
+**API Changes**
+
+  - Upsampling period index "spans" intervals. Example: annual periods
+    upsampled to monthly will span all months in each year
+  - Period.end_time will yield timestamp at last nanosecond in the interval
+    (#2124, #2125, #1764)
+
 **Improvements to existing features**
 
   - Time rule inference for week-of-month (e.g. WOM-2FRI) rules (#2140)

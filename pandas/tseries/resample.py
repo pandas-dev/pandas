@@ -219,7 +219,8 @@ class TimeGrouper(CustomGrouper):
             return obj.reindex(new_index)
         else:
             start = axlabels[0].asfreq(self.freq, how=self.convention)
-            end = axlabels[-1].asfreq(self.freq, how=self.convention)
+            end = axlabels[-1].asfreq(self.freq, how='end')
+
             new_index = period_range(start, end, freq=self.freq)
 
         # Start vs. end of period

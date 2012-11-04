@@ -181,11 +181,12 @@ class Period(object):
 
     @property
     def start_time(self):
-        return self.to_timestamp('s', how='S')
+        return self.to_timestamp(how='S')
 
     @property
     def end_time(self):
-        return self.to_timestamp('s', how='E')
+        ordinal = (self + 1).start_time.value - 1
+        return Timestamp(ordinal)
 
     def to_timestamp(self, freq=None, how='start'):
         """
