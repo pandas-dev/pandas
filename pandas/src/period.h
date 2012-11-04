@@ -89,6 +89,12 @@
 
 #define FR_UND  -10000 /* Undefined */
 
+#define US_PER_SECOND 1000000
+#define US_PER_MINUTE 60 * US_PER_SECOND
+#define US_PER_HOUR 60 * US_PER_MINUTE
+#define US_PER_DAY 24L * US_PER_HOUR
+#define US_PER_WEEK 7L * US_PER_DAY
+
 #define INT_ERR_CODE INT32_MIN
 
 #define MEM_CHECK(item) if (item == NULL) { return PyErr_NoMemory(); }
@@ -111,7 +117,7 @@ typedef struct date_info {
     double abstime;
 
     int microsecond;
-    double second;
+    int second;
     int minute;
     int hour;
     int day;
