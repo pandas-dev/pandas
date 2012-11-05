@@ -859,21 +859,16 @@ baz,7,8,9
 
         for s in suffix:
             pth = os.path.join(self.dirpath, 'test.xls%s' % s)
-            xlsx = ExcelFile(pth)
-            df = xlsx.parse('Sheet1', index_col=0, parse_dates=True,
+            xls = ExcelFile(pth)
+            df = xls.parse('Sheet1', index_col=0, parse_dates=True,
                             parse_cols=[0, 2, 3])
             df2 = read_csv(self.csv1, index_col=0, parse_dates=True)
             df2 = df2.reindex(columns=['B', 'C'])
-            df3 = xlsx.parse('Sheet2', skiprows=[1], index_col=0,
+            df3 = xls.parse('Sheet2', skiprows=[1], index_col=0,
                              parse_dates=True,
                              parse_cols=[0, 2, 3])
             assert_frame_equal(df, df2)
             assert_frame_equal(df3, df2)
-
-    def test_read_table_unicode(self):
-        fin = StringIO('\u0141aski, Jan;1')
-        df1 = read_table(fin, sep=";", encoding="utf-8", header=None)
-        self.assert_(isinstance(df1['X0'].values[0], unicode))
 
     def test_parse_cols_str(self):
         _skip_if_no_openpyxl()
@@ -916,6 +911,11 @@ baz,7,8,9
                              parse_cols='A,C:D')
             assert_frame_equal(df, df2)
             assert_frame_equal(df3, df2)
+
+    def test_read_table_unicode(self):
+        fin = StringIO('\u0141aski, Jan;1')
+        df1 = read_table(fin, sep=";", encoding="utf-8", header=None)
+        self.assert_(isinstance(df1['X0'].values[0], unicode))
 
     def test_read_table_wrong_num_columns(self):
         data = """A,B,C,D,E,F
