@@ -16,13 +16,11 @@ from pandas.tseries.period import PeriodIndex
 from pandas.tseries.frequencies import get_period_alias, get_base_alias
 from pandas.tseries.offsets import DateOffset
 
-"""
 try:  # mpl optional
     import pandas.tseries.converter as conv
-    conv.register()
+    conv.register() # needs to override so set_xlim works with str/number
 except ImportError:
     pass
-"""
 
 def _get_standard_kind(kind):
     return {'density': 'kde'}.get(kind, kind)
@@ -913,20 +911,6 @@ class LinePlot(MPLPlot):
         if style is None or re.match('[a-z]+', style) is None:
             kwds['color'] = colors[i % len(colors)]
 
-    def _make_formatter_locator(self):
-        import pandas.tseries.converter as conv
-        index = self.data.index
-        if (isinstance(index, DatetimeIndex) or
-            index.inferred_type in ('datetime', 'datetime64', 'date')):
-            tz = getattr(index, 'tz', None)
-            loc = conv.PandasAutoDateLocator(tz=tz)
-            fmt = conv.PandasAutoDateFormatter(loc, tz=tz)
-            return fmt, loc
-        if index.inferred_type == 'time':
-            loc = conv.AutoLocator()
-            fmt = conv.TimeFormatter(loc)
-            return fmt, loc
-
     def _make_plot(self):
         import pandas.tseries.plotting as tsplot
         # this is slightly deceptive
@@ -969,9 +953,7 @@ class LinePlot(MPLPlot):
                 ax.grid(self.grid)
 
                 if self._is_datetype():
-                    _maybe_format_dateaxis(ax, *self._make_formatter_locator())
                     left, right = _get_xlim(lines)
-                    print 'xlim: ', left, right
                     ax.set_xlim(left, right)
 
             self._make_legend(lines, labels)
@@ -1937,22 +1919,22 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
 
     return fig, axes
 
-def _maybe_format_dateaxis(ax, formatter, locator):
-    from matplotlib import pylab
-    ax.xaxis.set_major_locator(locator)
-    ax.xaxis.set_major_formatter(formatter)
-    pylab.draw_if_interactive()
-
-
 def _get_xlim(lines):
     import pandas.tseries.converter as conv
     left, right = np.inf, -np.inf
     for l in lines:
         x = l.get_xdata()
-        left = min(conv._dt_to_float_ordinal(x[0]), left)
-        right = max(conv._dt_to_float_ordinal(x[-1]), right)
+        left = min(_maybe_convert_date(x[0]), left)
+        right = max(_maybe_convert_date(x[-1]), right)
     return left, right
 
+def _maybe_convert_date(x):
+    if not com.is_integer(x):
+        conv_func = conv._dt_to_float_ordinal
+        if isinstance(x, datetime.time):
+            conv_func = conv._to_ordinalf
+        x = conv_func(x)
+    return x
 
 if __name__ == '__main__':
     # import pandas.rpy.common as com
