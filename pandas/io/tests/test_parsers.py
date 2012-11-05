@@ -859,12 +859,12 @@ baz,7,8,9
 
         for s in suffix:
             pth = os.path.join(self.dirpath, 'test.xls%s' % s)
-            xlsx = ExcelFile(pth)
-            df = xlsx.parse('Sheet1', index_col=0, parse_dates=True,
+            xls = ExcelFile(pth)
+            df = xls.parse('Sheet1', index_col=0, parse_dates=True,
                             parse_cols=[0, 2, 3])
             df2 = read_csv(self.csv1, index_col=0, parse_dates=True)
             df2 = df2.reindex(columns=['B', 'C'])
-            df3 = xlsx.parse('Sheet2', skiprows=[1], index_col=0,
+            df3 = xls.parse('Sheet2', skiprows=[1], index_col=0,
                              parse_dates=True,
                              parse_cols=[0, 2, 3])
             assert_frame_equal(df, df2)
