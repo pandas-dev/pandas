@@ -263,10 +263,10 @@ class Panel(NDFrame):
             minor = _extract_axis(data, axis=1)
 
         axes = [items, major, minor]
-        reshaped_data = data.copy()  # shallow
+        arrays = []
 
         item_shape = len(major), len(minor)
-        for item in items:
+        for item  in items:
             v = values = data.get(item)
             if v is None:
                 values = np.empty(item_shape, dtype=dtype)
@@ -276,10 +276,14 @@ class Panel(NDFrame):
                 if dtype is not None:
                     v = v.astype(dtype)
                 values = v.values
-            reshaped_data[item] = values
 
+            arrays.append(values)
+
+        return self._init_arrays(arrays, items,  axes)
+
+    def _init_arrays(self, arrays, arr_names, axes):
         # segregates dtypes and forms blocks matching to columns
-        blocks = form_blocks(reshaped_data, axes)
+        blocks = form_blocks(arrays, arr_names, axes)
         mgr = BlockManager(blocks, axes).consolidate()
         return mgr
 

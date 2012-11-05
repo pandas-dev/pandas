@@ -401,15 +401,14 @@ class DataFrame(NDFrame):
                     index = _get_names_from_index(data)
 
                 if isinstance(data[0], (list, tuple, dict, Series)):
-                    conv_data, columns = _to_sdict(data, columns)
-                    if isinstance(conv_data, dict):
-                        if len(conv_data) == 0 and index is None:
-                            index = np.arange(len(data))
-                        mgr = self._init_dict(conv_data, index, columns,
-                                              dtype=dtype)
-                    else:
-                        mgr = self._init_ndarray(conv_data, index, columns,
-                                                 dtype=dtype, copy=copy)
+                    arrays, columns = _to_arrays(data, columns)
+
+                    columns = _ensure_index(columns)
+
+                    if index is None:
+                        index = _default_index(len(data))
+                    mgr = self._init_arrays(arrays, columns, index, columns,
+                                            dtype=dtype)
                 else:
                     mgr = self._init_ndarray(data, index, columns, dtype=dtype,
                                              copy=copy)
@@ -463,13 +462,20 @@ class DataFrame(NDFrame):
             index = _ensure_index(index)
 
         # don't force copy because getting jammed in an ndarray anyway
-        homogenized = _homogenize(data, index, columns, dtype)
+        hom_arrays, arr_names = _homogenize(data, index, columns, dtype)
 
+        return self._init_arrays(hom_arrays, arr_names, index, columns)
+
+    def _init_arrays(self, arrays, arr_names, index, columns, dtype=None):
+        """
+        Segregate Series based on type and coerce into matrices.
+        Needs to handle a lot of exceptional cases.
+        """
         # from BlockManager perspective
         axes = [columns, index]
 
         # segregates dtypes and forms blocks matching to columns
-        blocks = form_blocks(homogenized, axes)
+        blocks = form_blocks(arrays, arr_names, axes)
 
         # consolidate for now
         mgr = BlockManager(blocks, axes)
@@ -870,8 +876,9 @@ class DataFrame(NDFrame):
         if isinstance(data, (np.ndarray, DataFrame, dict)):
             columns, sdict = _rec_to_dict(data)
         else:
-            sdict, columns = _to_sdict(data, columns,
-                                       coerce_float=coerce_float)
+            arrays, columns = _to_arrays(data, columns,
+                                         coerce_float=coerce_float)
+            sdict = dict(zip(columns, arrays))
 
         if exclude is None:
             exclude = set()
@@ -5053,9 +5060,13 @@ def _rec_to_dict(arr):
     return columns, sdict
 
 
-def _to_sdict(data, columns, coerce_float=False):
+def _to_arrays(data, columns, coerce_float=False):
+    """
+    Return list of arrays, columns
+    """
+
     if len(data) == 0:
-        return {}, columns
+        return [], columns if columns is not None else []
     if isinstance(data[0], (list, tuple)):
         return _list_to_sdict(data, columns, coerce_float=coerce_float)
     elif isinstance(data[0], dict):
@@ -5100,6 +5111,7 @@ def _list_of_series_to_sdict(data, columns, coerce_float=False):
             indexer = indexer_cache[id(index)] = index.get_indexer(columns)
         aligned_values.append(com.take_1d(s.values, indexer))
 
+    # TODO: waste
     values = np.vstack(aligned_values)
 
     if values.dtype == np.object_:
@@ -5107,7 +5119,7 @@ def _list_of_series_to_sdict(data, columns, coerce_float=False):
         return _convert_object_array(content, columns,
                                      coerce_float=coerce_float)
     else:
-        return values, columns
+        return values.T, columns
 
 
 def _list_of_dict_to_sdict(data, columns, coerce_float=False):
@@ -5133,9 +5145,10 @@ def _convert_object_array(content, columns, coerce_float=False):
             raise AssertionError('%d columns passed, passed data had %s '
                                  'columns' % (len(columns), len(content)))
 
-    sdict = dict((c, lib.maybe_convert_objects(vals, try_float=coerce_float))
-                 for c, vals in zip(columns, content))
-    return sdict, columns
+    arrays = [lib.maybe_convert_objects(arr, try_float=coerce_float)
+              for arr in content]
+
+    return arrays, columns
 
 
 def _get_names_from_index(data):
@@ -5159,12 +5172,13 @@ def _get_names_from_index(data):
 def _homogenize(data, index, columns, dtype=None):
     from pandas.core.series import _sanitize_array
 
-    homogenized = {}
-
     if dtype is not None:
         dtype = np.dtype(dtype)
 
     oindex = None
+
+    homogenized = []
+    names = []
 
     for k in columns:
         if k not in data:
@@ -5202,9 +5216,10 @@ def _homogenize(data, index, columns, dtype=None):
             v = _sanitize_array(v, index, dtype=dtype, copy=False,
                                 raise_cast_failure=False)
 
-        homogenized[k] = v
+        names.append(k)
+        homogenized.append(v)
 
-    return homogenized
+    return homogenized, names
 
 
 def _put_str(s, space):

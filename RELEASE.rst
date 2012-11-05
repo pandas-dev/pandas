@@ -55,6 +55,7 @@ pandas 0.9.1
 
 **Bug fixes**
 
+  - Fix some duplicate-column DataFrame constructor issues (#2079)
   - Fix bar plot color cycle issues (#2082)
   - Implement comparisons on date offsets with fixed delta (#2078)
   - Handle inf/-inf correctly in read_* parser functions (#2041)

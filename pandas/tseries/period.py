@@ -660,6 +660,9 @@ class PeriodIndex(Int64Index):
         from pandas.core.index import Index
         return Index(self._box_values(self.values), dtype=object)
 
+    def _array_values(self):
+        return self.asobject
+
     def astype(self, dtype):
         dtype = np.dtype(dtype)
         if dtype == np.object_:
