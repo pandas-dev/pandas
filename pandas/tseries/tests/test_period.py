@@ -256,7 +256,7 @@ class TestPeriodProperties(TestCase):
         def _ex(p):
             return Timestamp((p + 1).start_time.value - 1)
 
-        for i, fcode in enumerate(from_lst):
+        for fcode in from_lst:
             p = Period('1982', freq=fcode)
             result = p.to_timestamp().to_period(fcode)
             self.assertEquals(result, p)
@@ -824,18 +824,6 @@ class TestFreqConversion(TestCase):
         assert_equal(ival_W.asfreq('Min', 'E'), ival_W_to_T_end)
         assert_equal(ival_W.asfreq('S', 'S'), ival_W_to_S_start)
         assert_equal(ival_W.asfreq('S', 'E'), ival_W_to_S_end)
-
-        # print 'w to u freq start', ival_W.asfreq('U', 'S').ordinal
-        # print 'w to u start', ival_W_to_U_start.ordinal
-        # print 'ordinals equal', ival_W.asfreq('U', 'S').ordinal == ival_W_to_U_start.ordinal
-
-        print 'w to u freq end', ival_W.asfreq('U', 'E').ordinal
-        print 'w to u end', ival_W_to_U_end.ordinal
-        print 'ordinals equal', ival_W.asfreq('U', 'E').ordinal == ival_W_to_U_end.ordinal
-        print 'ordinals diff', ival_W_to_U_end.ordinal - ival_W.asfreq('U', 'E').ordinal
-        print 'ordinals us equal', ival_W.asfreq('U', 'E').microsecond == ival_W_to_U_end.microsecond
-        print 'w to u us', ival_W_to_U_end.microsecond
-        print 'w to u freq us', ival_W.asfreq('U', 'E').microsecond
 
         assert_equal(ival_W.asfreq('U', 'S'), ival_W_to_U_start)
         assert_equal(ival_W.asfreq('U', 'E'), ival_W_to_U_end)
