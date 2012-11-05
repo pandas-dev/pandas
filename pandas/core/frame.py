@@ -849,14 +849,18 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        data : ndarray (structured dtype), list of tuples, or DataFrame
+        data : ndarray (structured dtype), list of tuples, dict, or DataFrame
         index : string, list of fields, array-like
             Field of array to use as the index, alternately a specific set of
             input labels to use
         exclude: sequence, default None
             Columns or fields to exclude
         columns : sequence, default None
-            Column names to use, replacing any found in passed data
+            Column names to use. If the passed data do not have named
+            associated with them, this argument provides names for the
+            columns. Otherwise this argument indicates the order of the columns
+            in the result (any names not found in the data will become all-NA
+            columns)
         coerce_float : boolean, default False
             Attempt to convert values to non-string, non-numeric objects (like
             decimal.Decimal) to floating point, useful for SQL result sets
@@ -865,8 +869,6 @@ class DataFrame(NDFrame):
         -------
         df : DataFrame
         """
-        import warnings
-
         # Make a copy of the input columns so we can modify it
         if columns is not None:
             columns = list(columns)
@@ -876,7 +878,12 @@ class DataFrame(NDFrame):
                                  'from_records')
 
         if isinstance(data, (np.ndarray, DataFrame, dict)):
-            columns, sdict = _rec_to_dict(data)
+            keys, sdict = _rec_to_dict(data)
+            if columns is None:
+                columns = keys
+            else:
+                sdict = dict((k, v) for k, v in sdict.iteritems()
+                             if k in columns)
         else:
             arrays, columns = _to_arrays(data, columns,
                                          coerce_float=coerce_float)
@@ -891,6 +898,7 @@ class DataFrame(NDFrame):
             del sdict[col]
             columns.remove(col)
 
+        result_index = None
         if index is not None:
             if (isinstance(index, basestring) or
                 not hasattr(index, "__iter__")):
@@ -908,11 +916,6 @@ class DataFrame(NDFrame):
                     result_index = MultiIndex.from_arrays(arrays, names=index)
                 except Exception:
                     result_index = index
-        elif isinstance(data, dict) and len(data) > 0:
-            # utilize first element of sdict to get length
-            result_index = np.arange(len(data.values()[0]))
-        else:
-            result_index = np.arange(len(data))
 
         return cls(sdict, index=result_index, columns=columns)
 

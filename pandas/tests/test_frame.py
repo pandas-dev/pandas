@@ -2295,8 +2295,7 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         assert_frame_equal(df, edf)
 
-        idf = DataFrame.from_items([('a',[8]),('a',[5])],
-                                   columns=['a','a'])
+        idf = DataFrame.from_items([('a',[8]),('a',[5])], columns=['a','a'])
         assert_frame_equal(idf, edf)
 
         self.assertRaises(ValueError, DataFrame.from_items,
@@ -2584,6 +2583,23 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = DataFrame.from_records(documents,
                                         index=['order_id', 'quantity'])
         self.assert_(result.index.names == ['order_id', 'quantity'])
+
+    def test_from_records_misc_brokenness(self):
+        # #2179
+
+        data = {1: ['foo'], 2: ['bar']}
+
+        result = DataFrame.from_records(data, columns=['a', 'b'])
+        exp = DataFrame(data, columns=['a', 'b'])
+        assert_frame_equal(result, exp)
+
+        # overlap in index/index_names
+
+        data = {'a': [1, 2, 3], 'b': [4, 5, 6]}
+
+        result = DataFrame.from_records(data, index=['a', 'b', 'c'])
+        exp = DataFrame(data, index=['a', 'b', 'c'])
+        assert_frame_equal(result, exp)
 
     def test_to_records_floats(self):
         df = DataFrame(np.random.rand(10,10))
