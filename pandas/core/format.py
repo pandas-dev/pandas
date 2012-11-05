@@ -1150,7 +1150,7 @@ class _GlobalPrintConfig(object):
                 pass
 
         if not encoding:  # when all else fails. this will usually be "ascii"
-                encoding = sys.getdefaultencoding()
+            encoding = sys.getdefaultencoding()
 
         return encoding
 
