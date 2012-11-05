@@ -5006,7 +5006,7 @@ def _arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
     arrays = _homogenize(arrays, index, dtype)
 
     # from BlockManager perspective
-    axes = [columns, index]
+    axes = [_ensure_index(columns), _ensure_index(index)]
 
     # segregates dtypes and forms blocks matching to columns
     blocks = form_blocks(arrays, arr_names, axes)

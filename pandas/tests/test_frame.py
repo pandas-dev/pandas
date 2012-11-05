@@ -2273,6 +2273,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(recons, self.mixed_frame)
         self.assert_(isinstance(recons['foo'][0], tuple))
 
+        rs = DataFrame.from_items([('A', [1, 2, 3]), ('B', [4, 5, 6])],
+                                   orient='index', columns=['one', 'two', 'three'])
+        xp = DataFrame([[1, 2, 3], [4, 5, 6]], index=['A', 'B'],
+                       columns=['one', 'two', 'three'])
+        assert_frame_equal(rs, xp)
+
+
     def test_constructor_mix_series_nonseries(self):
         df = DataFrame({'A' : self.frame['A'],
                         'B' : list(self.frame['B'])}, columns=['A', 'B'])
