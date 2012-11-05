@@ -22,7 +22,7 @@ import pandas._algos as _algos
 
 def _period_field_accessor(name, alias):
     def f(self):
-        base, mult = _gfc(self.freq)
+        base, _ = _gfc(self.freq)
         return plib.get_period_field(alias, self.ordinal, base)
     f.__name__ = name
     return property(f)
@@ -30,7 +30,7 @@ def _period_field_accessor(name, alias):
 
 def _field_accessor(name, alias):
     def f(self):
-        base, mult = _gfc(self.freq)
+        base, _ = _gfc(self.freq)
         return plib.get_period_field_arr(alias, self.values, base)
     f.__name__ = name
     return property(f)
@@ -168,7 +168,7 @@ class Period(object):
         resampled : Period
         """
         how = _validate_end_alias(how)
-        base1, mult1 = _gfc(self.freq)
+        base1, _ = _gfc(self.freq)
         base2, mult2 = _gfc(freq)
 
         if mult2 != 1:
@@ -209,10 +209,10 @@ class Period(object):
         how = _validate_end_alias(how)
 
         if freq is None:
-            base, mult = _gfc(self.freq)
+            base, _ = _gfc(self.freq)
             freq = _freq_mod.get_to_timestamp_base(base)
 
-        base, mult = _gfc(freq)
+        base, _ = _gfc(freq)
         val = self.asfreq(freq, how)
 
         dt64 = plib.period_ordinal_to_dt64(val.ordinal, base)
@@ -238,13 +238,13 @@ class Period(object):
         return Period(datetime.now(), freq=freq)
 
     def __repr__(self):
-        base, mult = _gfc(self.freq)
+        base, _ = _gfc(self.freq)
         formatted = plib.period_format(self.ordinal, base)
         freqstr = _freq_mod._reverse_period_code_map[base]
         return "Period('%s', '%s')" % (formatted, freqstr)
 
     def __str__(self):
-        base, mult = _gfc(self.freq)
+        base, _ = _gfc(self.freq)
         formatted = plib.period_format(self.ordinal, base)
         return ("%s" % formatted)
 
@@ -388,7 +388,7 @@ class Period(object):
             >>> a.strftime('%b. %d, %Y was a %A')
             'Jan. 01, 2001 was a Monday'
         """
-        base, mult = _gfc(self.freq)
+        base, _ = _gfc(self.freq)
         return plib.period_format(self.ordinal, base, fmt)
 
 
@@ -431,7 +431,7 @@ def dt64arr_to_periodarr(data, freq):
     if data.dtype != np.dtype('M8[ns]'):
         raise ValueError('Wrong dtype: %s' % data.dtype)
 
-    base, mult = _gfc(freq)
+    base, _ = _gfc(freq)
     return plib.dt64arr_to_periodarr(data.view('i8'), base)
 
 # --- Period index sketch
@@ -713,7 +713,7 @@ class PeriodIndex(Int64Index):
         Specialized factorize that boxes uniques
         """
         from pandas.core.algorithms import factorize
-        labels, uniques, counts = factorize(self.values)
+        labels, uniques, _ = factorize(self.values)
         uniques = PeriodIndex(ordinal=uniques, freq=self.freq)
         return labels, uniques
 
@@ -726,7 +726,7 @@ class PeriodIndex(Int64Index):
 
         freq = _freq_mod.get_standard_freq(freq)
 
-        base1, mult1 = _gfc(self.freq)
+        base1, _ = _gfc(self.freq)
         base2, mult2 = _gfc(freq)
 
         if mult2 != 1:
@@ -795,10 +795,10 @@ class PeriodIndex(Int64Index):
         how = _validate_end_alias(how)
 
         if freq is None:
-            base, mult = _gfc(self.freq)
+            base, _ = _gfc(self.freq)
             freq = _freq_mod.get_to_timestamp_base(base)
 
-        base, mult = _gfc(freq)
+        base, _ = _gfc(freq)
         new_data = self.asfreq(freq, how)
 
         new_data = plib.periodarr_to_dt64arr(new_data.values, base)
@@ -844,7 +844,7 @@ class PeriodIndex(Int64Index):
             return super(PeriodIndex, self).get_value(series, key)
         except (KeyError, IndexError):
             try:
-                asdt, parsed, reso = parse_time_string(key, self.freq)
+                asdt, _, reso = parse_time_string(key, self.freq)
                 grp = _freq_mod._infer_period_group(reso)
                 freqn = _freq_mod._period_group(self.freq)
 
@@ -885,7 +885,7 @@ class PeriodIndex(Int64Index):
             return self._engine.get_loc(key)
         except KeyError:
             try:
-                asdt, parsed, reso = parse_time_string(key, self.freq)
+                asdt, _, _ = parse_time_string(key, self.freq)
                 key = asdt
             except TypeError:
                 pass
