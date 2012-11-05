@@ -431,7 +431,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         elif util.is_complex_object(val):
             complexes[i] = val
             seen_complex = 1
-        elif PyDateTime_Check(val):
+        elif PyDateTime_Check(val) or util.is_datetime64_object(val):
             if convert_datetime:
                 seen_datetime = 1
                 idatetimes[i] = convert_to_tsobject(val).value

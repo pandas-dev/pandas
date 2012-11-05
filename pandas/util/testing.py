@@ -163,13 +163,16 @@ def assert_frame_equal(left, right, check_index_type=False,
         assert(type(left) == type(right))
     assert(isinstance(left, DataFrame))
     assert(isinstance(right, DataFrame))
-    for col, series in left.iterkv():
-        assert(col in right)
-        assert_series_equal(series, right[col])
-    for col in right:
-        assert(col in left)
-    assert(left.index.equals(right.index))
+
     assert(left.columns.equals(right.columns))
+    assert(left.index.equals(right.index))
+
+    for i, col in enumerate(left.columns):
+        assert(col in right)
+        lcol = left.icol(i)
+        rcol = right.icol(i)
+        assert_series_equal(lcol, rcol)
+
     if check_index_type:
         assert(type(left.index) == type(right.index))
         assert(left.index.dtype == right.index.dtype)

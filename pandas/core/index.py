@@ -1633,8 +1633,14 @@ class MultiIndex(Index):
 
     def __getitem__(self, key):
         if np.isscalar(key):
-            return tuple(lev[lab[key]]
-                         for lev, lab in zip(self.levels, self.labels))
+            retval = []
+            for lev, lab in zip(self.levels, self.labels):
+                if lab[key] == -1:
+                    retval.append(np.nan)
+                else:
+                    retval.append(lev[lab[key]])
+
+            return tuple(retval)
         else:
             if com._is_bool_indexer(key):
                 key = np.asarray(key)

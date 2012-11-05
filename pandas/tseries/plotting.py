@@ -22,10 +22,8 @@ import pandas.core.common as com
 from pandas.tseries.converter import (PeriodConverter, TimeSeries_DateLocator,
                                       TimeSeries_DateFormatter)
 
-units.registry[Period] = PeriodConverter()
 #----------------------------------------------------------------------
 # Plotting functions and monkey patches
-
 
 def tsplot(series, plotf, **kwargs):
     """

@@ -621,6 +621,15 @@ class TestTimeZones(unittest.TestCase):
         self.assertRaises(Exception, ts.__add__, ts_utc)
         self.assertRaises(Exception, ts_utc.__add__, ts)
 
+    def test_align_aware(self):
+        idx1 = date_range('2001', periods=5, freq='H', tz='US/Eastern')
+        idx2 = date_range('2001', periods=5, freq='2H', tz='US/Eastern')
+        df1 = DataFrame(np.random.randn(len(idx1), 3), idx1)
+        df2 = DataFrame(np.random.randn(len(idx2), 3), idx2)
+        new1, new2 = df1.align(df2)
+        self.assertEqual(df1.index.tz, new1.index.tz)
+        self.assertEqual(df2.index.tz, new2.index.tz)
+
     def test_equal_join_ensure_utc(self):
         rng = date_range('1/1/2011', periods=10, freq='H', tz='US/Eastern')
         ts = Series(np.random.randn(len(rng)), index=rng)

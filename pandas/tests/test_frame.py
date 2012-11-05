@@ -2298,6 +2298,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = DataFrame([[np.nan, 1], [1, 0]])
         assert_frame_equal(df, expected)
 
+    def test_constructor_column_duplicates(self):
+        # it works! #2079
+        df = DataFrame([[8, 5]], columns=['a', 'a'])
+        edf = DataFrame([[8, 5]])
+        edf.columns = ['a', 'a']
+
+        assert_frame_equal(df, edf)
+
     def test_new_empty_index(self):
         df1 = DataFrame(randn(0, 3))
         df2 = DataFrame(randn(0, 3))
@@ -5214,6 +5222,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         assert_series_equal(the_diff['A'],
                             self.tsframe['A'] - self.tsframe['A'].shift(1))
+
+        # int dtype
+        a = 10000000000000000
+        b = a + 1
+        s = Series([a, b])
+
+        rs = DataFrame({'s': s}).diff()
+        self.assertEqual(rs.s[1], 1)
 
     def test_diff_mixed_dtype(self):
         df = DataFrame(np.random.randn(5, 3))

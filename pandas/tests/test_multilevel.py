@@ -360,9 +360,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         assert_frame_equal(result, expected)
 
         #GH2107
-        from string import letters
         dates = range(20111201, 20111205)
-        ids = letters[:5]
+        ids = 'abcde'
         idx = MultiIndex.from_tuples([x for x in cart_product(dates, ids)])
         idx.names = ['date', 'secid']
         df = DataFrame(np.random.randn(len(idx), 3), idx, ['X', 'Y', 'Z'])
@@ -1554,6 +1553,30 @@ Thur,Lunch,Yes,51.51,17"""
         self.assertEquals(s[("a", 7)], 7)
 
         lib._SIZE_CUTOFF = old_cutoff
+
+    def test_xs_mixed_no_copy(self):
+        index = MultiIndex.from_arrays([['a','a', 'b', 'b'], [1,2,1,2]],
+                                       names=['first', 'second'])
+        data = DataFrame(np.random.rand(len(index)), index=index,
+                         columns=['A'])
+
+        self.assertRaises(Exception, data.xs, 2, level=1, copy=False)
+
+    def test_multiindex_na_repr(self):
+        # only an issue with long columns
+
+        from numpy import nan
+        df3 = DataFrame({
+            'A' * 30: {('A', 'A0006000', 'nuit'): 'A0006000'},
+            'B' * 30: {('A', 'A0006000', 'nuit'): nan},
+            'C' * 30: {('A', 'A0006000', 'nuit'): nan},
+            'D' * 30: {('A', 'A0006000', 'nuit'): nan},
+            'E' * 30: {('A', 'A0006000', 'nuit'): 'A'},
+            'F' * 30: {('A', 'A0006000', 'nuit'): nan},
+        })
+
+        idf = df3.set_index(['A' * 30, 'C' * 30])
+        repr(idf)
 
 if __name__ == '__main__':
 

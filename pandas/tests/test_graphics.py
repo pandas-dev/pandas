@@ -289,6 +289,21 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(df.plot, kind='bar')
 
     @slow
+    def test_bar_stacked_center(self):
+        #GH2157
+        df = DataFrame({'A' : [3] * 5, 'B' : range(5)}, index = range(5))
+        ax = df.plot(kind='bar', stacked='True', grid=True)
+        self.assertEqual(ax.xaxis.get_ticklocs()[0],
+                         ax.patches[0].get_x() + ax.patches[0].get_width() / 2)
+
+    @slow
+    def test_bar_center(self):
+        df = DataFrame({'A' : [3] * 5, 'B' : range(5)}, index = range(5))
+        ax = df.plot(kind='bar', grid=True)
+        self.assertEqual(ax.xaxis.get_ticklocs()[0],
+                         ax.patches[0].get_x() + ax.patches[0].get_width())
+
+    @slow
     def test_boxplot(self):
         df = DataFrame(np.random.randn(6, 4),
                        index=list(string.ascii_letters[:6]),

@@ -864,7 +864,8 @@ class DatetimeIndex(Int64Index):
             joined.name = name
             return joined
         else:
-            return DatetimeIndex(joined, name=name)
+            tz = getattr(other, 'tz', None)
+            return DatetimeIndex(joined, name=name, tz=tz)
 
     def _can_fast_union(self, other):
         if not isinstance(other, DatetimeIndex):

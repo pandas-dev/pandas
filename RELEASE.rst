@@ -34,6 +34,13 @@ pandas 0.9.1
   - Add `where` and `mask` functions to DataFrame (#2109, #2151)
   - Add `at_time` and `between_time` functions to DataFrame (#2149)
 
+**API Changes**
+
+  - Upsampling period index "spans" intervals. Example: annual periods
+    upsampled to monthly will span all months in each year
+  - Period.end_time will yield timestamp at last nanosecond in the interval
+    (#2124, #2125, #1764)
+
 **Improvements to existing features**
 
   - Time rule inference for week-of-month (e.g. WOM-2FRI) rules (#2140)
@@ -44,9 +51,11 @@ pandas 0.9.1
   - DataFrame.dot can accept ndarrays (#2042)
   - Support negative periods in Panel.shift (#2164)
   - Make .drop(...) work with non-unique indexes (#2101)
+  - Improve performance of Series/DataFrame.diff (re: #2087)
 
 **Bug fixes**
 
+  - Fix some duplicate-column DataFrame constructor issues (#2079)
   - Fix bar plot color cycle issues (#2082)
   - Implement comparisons on date offsets with fixed delta (#2078)
   - Handle inf/-inf correctly in read_* parser functions (#2041)
@@ -68,6 +77,13 @@ pandas 0.9.1
   - Work around length-0 boolean indexing NumPy bug (#2096)
   - Fix partial integer indexing bug in DataFrame.xs (#2107)
   - Fix variety of cut/qcut string-bin formatting bugs (#1978, #1979)
+  - Raise Exception when xs view not possible of MultiIndex'd DataFrame (#2117)
+  - Fix groupby(...).first() issue with datetime64 (#2133)
+  - Better floating point error robustness in some rolling_* functions (#2114)
+  - Fix ewma NA handling in the middle of Series (#2128)
+  - Fix numerical precision issues in diff with integer data (#2087)
+  - Fix bug in MultiIndex.__getitem__ with NA values (#2008)
+  - Do not override matplotlib unit conversion fro datetime/time/date (#2173)
 
 pandas 0.9.0
 ============

@@ -537,7 +537,7 @@ class TestPanelOLS(BaseTest):
 
         assert_almost_equal(result._y.values.flat, [1, 4, 5])
 
-        exp_x = DataFrame([[0, 6, 14, 1], [0, 9, 17, 1], [1, 30, 48, 1]],
+        exp_x = DataFrame([[0., 6., 14., 1.], [0, 9, 17, 1], [1, 30, 48, 1]],
                           index=result._x.index, columns=['FE_B', 'x1', 'x2',
                                                           'intercept'],
                           dtype=float)
@@ -549,7 +549,7 @@ class TestPanelOLS(BaseTest):
                      dropped_dummies={'entity' : 'B'})
 
         assert_almost_equal(result._y.values.flat, [1, 4, 5])
-        exp_x = DataFrame([[1, 6, 14, 1], [1, 9, 17, 1], [0, 30, 48, 1]],
+        exp_x = DataFrame([[1., 6., 14., 1.], [1, 9, 17, 1], [0, 30, 48, 1]],
                           index=result._x.index, columns=['FE_A', 'x1', 'x2',
                                                           'intercept'],
                           dtype=float)
@@ -562,7 +562,7 @@ class TestPanelOLS(BaseTest):
         assert_almost_equal(result._y.values.flat, [1, 4, 5])
 
         res = result._x
-        exp_x = DataFrame([[0, 0, 14, 1], [0, 1, 17, 1], [1, 0, 48, 1]],
+        exp_x = DataFrame([[0., 0., 14., 1.], [0, 1, 17, 1], [1, 0, 48, 1]],
                           columns=['x1_30', 'x1_9', 'x2', 'intercept'],
                           index=res.index, dtype=float)
         assert_frame_equal(res, exp_x.reindex(columns=res.columns))
@@ -573,7 +573,7 @@ class TestPanelOLS(BaseTest):
 
         res = result._x
         assert_almost_equal(result._y.values.flat, [1, 4, 5])
-        exp_x = DataFrame([[1, 0, 14, 1], [0, 1, 17, 1], [0, 0, 48, 1]],
+        exp_x = DataFrame([[1., 0., 14., 1.], [0, 1, 17, 1], [0, 0, 48, 1]],
                           columns=['x1_6', 'x1_9', 'x2', 'intercept'],
                           index=res.index, dtype=float)
 

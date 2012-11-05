@@ -200,7 +200,7 @@ class PandasObject(object):
             raise TypeError('Index must be DatetimeIndex')
 
     def resample(self, rule, how=None, axis=0, fill_method=None,
-                 closed='right', label='right', convention=None,
+                 closed='right', label='right', convention='start',
                  kind=None, loffset=None, limit=None, base=0):
         """
         Convenience method for frequency conversion and resampling of regular

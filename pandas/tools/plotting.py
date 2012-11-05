@@ -16,12 +16,13 @@ from pandas.tseries.period import PeriodIndex
 from pandas.tseries.frequencies import get_period_alias, get_base_alias
 from pandas.tseries.offsets import DateOffset
 
+"""
 try:  # mpl optional
     import pandas.tseries.converter as conv
     conv.register()
 except ImportError:
     pass
-
+"""
 
 def _get_standard_kind(kind):
     return {'density': 'kde'}.get(kind, kind)
@@ -742,6 +743,12 @@ class MPLPlot(object):
 
         return x
 
+    def _is_datetype(self):
+        index = self.data.index
+        return (isinstance(index, (PeriodIndex, DatetimeIndex)) or
+                index.inferred_type in ('datetime', 'date', 'datetime64',
+                                        'time'))
+
     def _get_plot_function(self):
         if self.logy:
             plotf = self.plt.Axes.semilogy
@@ -906,7 +913,22 @@ class LinePlot(MPLPlot):
         if style is None or re.match('[a-z]+', style) is None:
             kwds['color'] = colors[i % len(colors)]
 
+    def _make_formatter_locator(self):
+        import pandas.tseries.converter as conv
+        index = self.data.index
+        if (isinstance(index, DatetimeIndex) or
+            index.inferred_type in ('datetime', 'datetime64', 'date')):
+            tz = getattr(index, 'tz', None)
+            loc = conv.PandasAutoDateLocator(tz=tz)
+            fmt = conv.PandasAutoDateFormatter(loc, tz=tz)
+            return fmt, loc
+        if index.inferred_type == 'time':
+            loc = conv.AutoLocator()
+            fmt = conv.TimeFormatter(loc)
+            return fmt, loc
+
     def _make_plot(self):
+        import pandas.tseries.plotting as tsplot
         # this is slightly deceptive
         if self.use_index and self._use_dynamic_x():
             data = self._maybe_convert_index(self.data)
@@ -945,6 +967,12 @@ class LinePlot(MPLPlot):
                     leg_label += ' (right)'
                 labels.append(leg_label)
                 ax.grid(self.grid)
+
+                if self._is_datetype():
+                    _maybe_format_dateaxis(ax, *self._make_formatter_locator())
+                    left, right = _get_xlim(lines)
+                    print 'xlim: ', left, right
+                    ax.set_xlim(left, right)
 
             self._make_legend(lines, labels)
 
@@ -1083,6 +1111,10 @@ class BarPlot(MPLPlot):
     def __init__(self, data, **kwargs):
         self.stacked = kwargs.pop('stacked', False)
         self.ax_pos = np.arange(len(data)) + 0.25
+        if self.stacked:
+            self.tickoffset = 0.25
+        else:
+            self.tickoffset = 0.375
         MPLPlot.__init__(self, data, **kwargs)
 
     def _args_adjust(self):
@@ -1149,7 +1181,7 @@ class BarPlot(MPLPlot):
             name = self._get_index_name()
             if self.kind == 'bar':
                 ax.set_xlim([self.ax_pos[0] - 0.25, self.ax_pos[-1] + 1])
-                ax.set_xticks(self.ax_pos + 0.375)
+                ax.set_xticks(self.ax_pos + self.tickoffset)
                 ax.set_xticklabels(str_index, rotation=self.rot,
                                    fontsize=self.fontsize)
                 ax.axhline(0, color='k', linestyle='--')
@@ -1158,7 +1190,7 @@ class BarPlot(MPLPlot):
             else:
                 # horizontal bars
                 ax.set_ylim([self.ax_pos[0] - 0.25, self.ax_pos[-1] + 1])
-                ax.set_yticks(self.ax_pos + 0.375)
+                ax.set_yticks(self.ax_pos + self.tickoffset)
                 ax.set_yticklabels(str_index, rotation=self.rot,
                                    fontsize=self.fontsize)
                 ax.axvline(0, color='k', linestyle='--')
@@ -1904,6 +1936,23 @@ def _subplots(nrows=1, ncols=1, sharex=False, sharey=False, squeeze=True,
         axes = axarr.reshape(nrows, ncols)
 
     return fig, axes
+
+def _maybe_format_dateaxis(ax, formatter, locator):
+    from matplotlib import pylab
+    ax.xaxis.set_major_locator(locator)
+    ax.xaxis.set_major_formatter(formatter)
+    pylab.draw_if_interactive()
+
+
+def _get_xlim(lines):
+    import pandas.tseries.converter as conv
+    left, right = np.inf, -np.inf
+    for l in lines:
+        x = l.get_xdata()
+        left = min(conv._dt_to_float_ordinal(x[0]), left)
+        right = max(conv._dt_to_float_ordinal(x[-1]), right)
+    return left, right
+
 
 if __name__ == '__main__':
     # import pandas.rpy.common as com

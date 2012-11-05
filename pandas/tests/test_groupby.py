@@ -2083,7 +2083,15 @@ class TestGroupBy(unittest.TestCase):
         exp = data.groupby(labels).mean().reindex(cats.levels)
         assert_series_equal(result, exp)
 
+    def test_groupby_first_datetime64(self):
+        df = DataFrame([(1, 1351036800000000000), (2, 1351036800000000000)])
+        df[1] = df[1].view('M8[ns]')
 
+        self.assert_(issubclass(df[1].dtype.type, np.datetime64))
+
+        result = df.groupby(level=0).first()
+        got_dt = result[1].dtype
+        self.assert_(issubclass(got_dt.type, np.datetime64))
 
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
