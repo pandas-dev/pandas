@@ -52,11 +52,14 @@ pandas 0.9.1
   - Support negative periods in Panel.shift (#2164)
   - Make .drop(...) work with non-unique indexes (#2101)
   - Improve performance of Series/DataFrame.diff (re: #2087)
+  - Support unary ~ (__invert__) in DataFrame (#2110)
 
 **Bug fixes**
 
   - Fix some duplicate-column DataFrame constructor issues (#2079)
   - Fix bar plot color cycle issues (#2082)
+  - Fix off-center grid for stacked bar plots (#2157)
+  - Fix plotting bug if inferred frequency is offset with N > 1 (#2126)
   - Implement comparisons on date offsets with fixed delta (#2078)
   - Handle inf/-inf correctly in read_* parser functions (#2041)
   - Fix matplotlib unicode interaction bug
@@ -85,6 +88,10 @@ pandas 0.9.1
   - Fix bug in MultiIndex.__getitem__ with NA values (#2008)
   - Do not override matplotlib unit conversion fro datetime/time/date (#2173)
   - Fix DataFrame.from_records dict-arg bug when passing columns (#2179)
+  - Fix Series and DataFrame.diff for integer dtypes (#2087, #2174)
+  - Fix bug when taking intersection of DatetimeIndex with empty index (#2129)
+  - Pass through timezone information when calling DataFrame.align (#2127)
+
 
 pandas 0.9.0
 ============
