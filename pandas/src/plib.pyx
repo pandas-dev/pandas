@@ -3,7 +3,7 @@
 cimport numpy as np
 import numpy as np
 
-from numpy cimport int32_t, int64_t, import_array, ndarray
+from numpy cimport int64_t as i8, import_array, ndarray
 from cpython cimport *
 
 from libc.stdlib cimport free
@@ -27,68 +27,66 @@ PyDateTime_IMPORT
 
 cdef extern from "period.h":
     ctypedef struct date_info:
-        npy_int64 absdate
-        double abstime
+        i8 absdate
+        i8 abstime
 
-        int microsecond
-        int second
-        int minute
-        int hour
-        int day
-        int month
-        int quarter
-        int year
-        int day_of_week
-        int day_of_year
-        int calendar
+        i8 nanosecond
+        i8 microsecond
+        i8 second
+        i8 minute
+        i8 hour
+        i8 day
+        i8 month
+        i8 quarter
+        i8 year
+        i8 day_of_week
+        i8 day_of_year
+        i8 calendar
 
     ctypedef struct asfreq_info:
-        int from_week_end
-        int to_week_end
+        i8 from_week_end
+        i8 to_week_end
 
-        int from_a_year_end
-        int to_a_year_end
+        i8 from_a_year_end
+        i8 to_a_year_end
 
-        int from_q_year_end
-        int to_q_year_end
+        i8 from_q_year_end
+        i8 to_q_year_end
 
-    ctypedef int64_t (*freq_conv_func)(int64_t, char, asfreq_info*)
+    ctypedef i8 (*freq_conv_func)(i8 ordinal, char relation,
+                                  asfreq_info* af_info)
 
-    int64_t asfreq(int64_t dtordinal, int freq1, int freq2,
-                   char relation) except INT32_MIN
-    freq_conv_func get_asfreq_func(int fromFreq, int toFreq)
-    void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info)
+    i8 asfreq(i8 dtordinal, i8 freq1, i8 freq2, char relation) except INT64_MIN
+    freq_conv_func get_asfreq_func(i8 fromFreq, i8 toFreq)
+    void get_asfreq_info(i8 fromFreq, i8 toFreq, asfreq_info *af_info)
 
-    int64_t get_period_ordinal(int year, int month, int day,
-                          int hour, int minute, int second, int microsecond,
-                          int freq) except INT32_MIN
+    i8 get_period_ordinal(i8 year, i8 month, i8 day, i8 hour, i8 minute,
+                          i8 second, i8 microsecond, i8 freq) except INT64_MIN
 
-    int64_t get_python_ordinal(int64_t period_ordinal,
-                               int freq) except INT32_MIN
+    i8 get_python_ordinal(i8 period_ordinal, i8 freq) except INT64_MIN
 
-    int get_date_info(int64_t ordinal, int freq,
-                      date_info *dinfo) except INT32_MIN
+    i8 get_date_info(i8 ordinal, i8 freq, date_info *dinfo) except INT64_MIN
 
-    int pyear(int64_t ordinal, int freq) except INT32_MIN
-    int pqyear(int64_t ordinal, int freq) except INT32_MIN
-    int pquarter(int64_t ordinal, int freq) except INT32_MIN
-    int pmonth(int64_t ordinal, int freq) except INT32_MIN
-    int pday(int64_t ordinal, int freq) except INT32_MIN
-    int pweekday(int64_t ordinal, int freq) except INT32_MIN
-    int pday_of_week(int64_t ordinal, int freq) except INT32_MIN
-    int pday_of_year(int64_t ordinal, int freq) except INT32_MIN
-    int pweek(int64_t ordinal, int freq) except INT32_MIN
-    int phour(int64_t ordinal, int freq) except INT32_MIN
-    int pminute(int64_t ordinal, int freq) except INT32_MIN
-    int psecond(int64_t ordinal, int freq) except INT32_MIN
-    int pmicrosecond(int64_t ordinal, int freq) except INT32_MIN
-    char *c_strftime(date_info *dinfo, char *fmt)
-    int get_yq(int64_t ordinal, int freq, int *quarter, int *year)
+    i8 pyear(i8 ordinal, i8 freq) except INT64_MIN
+    i8 pqyear(i8 ordinal, i8 freq) except INT64_MIN
+    i8 pquarter(i8 ordinal, i8 freq) except INT64_MIN
+    i8 pmonth(i8 ordinal, i8 freq) except INT64_MIN
+    i8 pday(i8 ordinal, i8 freq) except INT64_MIN
+    i8 pweekday(i8 ordinal, i8 freq) except INT64_MIN
+    i8 pday_of_week(i8 ordinal, i8 freq) except INT64_MIN
+    i8 pday_of_year(i8 ordinal, i8 freq) except INT64_MIN
+    i8 pweek(i8 ordinal, i8 freq) except INT64_MIN
+    i8 phour(i8 ordinal, i8 freq) except INT64_MIN
+    i8 pminute(i8 ordinal, i8 freq) except INT64_MIN
+    i8 psecond(i8 ordinal, i8 freq) except INT64_MIN
+    i8 pmicrosecond(i8 ordinal, i8 freq) except INT64_MIN
+    char *c_strftime(date_info *dinfo, char *fmt) except NULL
+    i8 get_yq(i8 ordinal, i8 freq, i8 *quarter, i8 *year) except -1
+
 
 # Period logic
 #----------------------------------------------------------------------
-
-cdef inline int64_t apply_mult(int64_t period_ord, int64_t mult):
+cdef inline i8 apply_mult(i8 period_ord, i8 mult):
     """
     Get freq+multiple ordinal value from corresponding freq-only ordinal value.
     For example, 5min ordinal will be 1/5th the 1min ordinal (rounding down to
@@ -99,7 +97,8 @@ cdef inline int64_t apply_mult(int64_t period_ord, int64_t mult):
 
     return (period_ord - 1) // mult
 
-cdef inline int64_t remove_mult(int64_t period_ord_w_mult, int64_t mult):
+
+cdef inline i8 remove_mult(i8 period_ord_w_mult, i8 mult):
     """
     Get freq-only ordinal value from corresponding freq+multiple ordinal.
     """
@@ -108,34 +107,32 @@ cdef inline int64_t remove_mult(int64_t period_ord_w_mult, int64_t mult):
 
     return period_ord_w_mult * mult + 1;
 
-def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int freq):
+
+cpdef ndarray[i8] dt64arr_to_periodarr(i8[:] dtarr, i8 freq):
     """
     Convert array of datetime64 values (passed in as 'i8' dtype) to a set of
     periods corresponding to desired frequency, per period convention.
     """
     cdef:
-        ndarray[int64_t] out
-        Py_ssize_t i, l
+        Py_ssize_t i, l = len(dtarr)
+        ndarray[i8] out = np.empty(l, dtype='i8')
         pandas_datetimestruct dts
-
-    l = len(dtarr)
-
-    out = np.empty(l, dtype='i8')
 
     for i in range(l):
         pandas_datetime_to_datetimestruct(dtarr[i], PANDAS_FR_ns, &dts)
-        out[i] = get_period_ordinal(dts.year, dts.month, dts.day,
-                                    dts.hour, dts.min, dts.sec, dts.us, freq)
+        out[i] = get_period_ordinal(dts.year, dts.month, dts.day, dts.hour,
+                                    dts.min, dts.sec, dts.us, freq)
     return out
 
-def periodarr_to_dt64arr(ndarray[int64_t] periodarr, int freq):
+
+cpdef ndarray[i8] periodarr_to_dt64arr(i8[:] periodarr, i8 freq):
     """
     Convert array to datetime64 values from a set of ordinals corresponding to
     periods per period convention.
     """
     cdef:
         Py_ssize_t i, l = len(periodarr)
-        ndarray[int64_t] out = np.empty(l, dtype='i8')
+        ndarray[i8] out = np.empty(l, dtype='i8')
 
     for i in range(l):
         out[i] = period_ordinal_to_dt64(periodarr[i], freq)
@@ -147,60 +144,59 @@ cdef char START = 'S'
 cdef char END = 'E'
 
 
-cpdef int64_t period_asfreq(int64_t period_ordinal, int freq1, int freq2,
-                            bint end):
+cpdef i8 period_asfreq(i8 period_ordinal, i8 freq1, i8 freq2,
+                       i8 end) except INT64_MIN:
     """
     Convert period ordinal from one frequency to another, and if upsampling,
     choose to use start ('S') or end ('E') of period.
     """
     cdef:
         char how = END if end else START
-        int64_t retval = asfreq(period_ordinal, freq1, freq2, how)
+        i8 retval = asfreq(period_ordinal, freq1, freq2, how)
 
-    if retval == INT32_MIN:
+    if retval == INT64_MIN:
         raise ValueError('Frequency conversion failed')
 
     return retval
 
-def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
+cpdef ndarray[i8] period_asfreq_arr(i8[:] arr, i8 freq1, i8 freq2, i8 end):
     """
     Convert int64-array of period ordinals from one frequency to another, and
     if upsampling, choose to use start ('S') or end ('E') of period.
     """
     cdef:
-        ndarray[int64_t] result
-        Py_ssize_t i, n
-        freq_conv_func func
+        Py_ssize_t i, n = len(arr)
+        ndarray[i8] result = np.empty(n, dtype=np.int64)
+        freq_conv_func func = get_asfreq_func(freq1, freq2)
         asfreq_info finfo
-        int64_t val, ordinal
-        char relation
+        i8 val, ordinal
+        char relation = END if end else START
 
-    n = len(arr)
-    result = np.empty(n, dtype=np.int64)
-
-    func = get_asfreq_func(freq1, freq2)
     get_asfreq_info(freq1, freq2, &finfo)
 
-    if end:
-        relation = END
-    else:
-        relation = START
 
     for i in range(n):
         val = func(arr[i], relation, &finfo)
-        if val == INT32_MIN:
+
+        if val == INT64_MIN:
             raise ValueError("Unable to convert to desired frequency.")
+
         result[i] = val
 
     return result
 
-cpdef int64_t period_ordinal(int y, int m, int d, int h, int min, int s,
-                             int us, int freq):
-    cdef int64_t ordinal = get_period_ordinal(y, m, d, h, min, s, us, freq)
+
+cpdef i8 period_ordinal(i8 y, i8 m, i8 d, i8 h, i8 min, i8 s, i8 us,
+                        i8 freq) except INT64_MIN:
+    cdef i8 ordinal = get_period_ordinal(y, m, d, h, min, s, us, freq)
+
+    if ordinal == INT64_MIN:
+        raise ValueError('Unable to retrieve ordinal')
+
     return ordinal
 
 
-cpdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq):
+cpdef i8 period_ordinal_to_dt64(i8 ordinal, i8 freq) except INT64_MIN:
     cdef:
         pandas_datetimestruct dts
         date_info dinfo
@@ -212,18 +208,19 @@ cpdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq):
     dts.day = dinfo.day
     dts.hour = dinfo.hour
     dts.min = dinfo.minute
-    dts.sec = int(dinfo.second)
+    dts.sec = dinfo.second
     dts.us = dinfo.microsecond
     dts.ps = 0
 
     return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
 
-def period_format(int64_t value, int freq, object fmt=None):
-    cdef:
-        int freq_group
+
+cpdef str period_format(i8 value, i8 freq, bytes fmt=None):
+    cdef i8 freq_group
 
     if fmt is None:
         freq_group = (freq // 1000) * 1000
+
         if freq_group == 1000: # FR_ANN
             fmt = b'%Y'
         elif freq_group == 2000: # FR_QTR
@@ -258,14 +255,15 @@ cdef list extra_fmts = [(b"%q", b"^`AB`^"),
 
 cdef list str_extra_fmts = ["^`AB`^", "^`CD`^", "^`EF`^"]
 
-cdef _period_strftime(int64_t value, int freq, object fmt):
+
+cdef str _period_strftime(i8 value, i8 freq, bytes fmt):
     cdef:
         Py_ssize_t i
         date_info dinfo
         char *formatted
         object pat, repl, result
         list found_pat = [False] * len(extra_fmts)
-        int year, quarter
+        i8 year, quarter
 
     if PyUnicode_Check(fmt):
         fmt = fmt.encode('utf-8')
@@ -274,6 +272,7 @@ cdef _period_strftime(int64_t value, int freq, object fmt):
     for i in range(len(extra_fmts)):
         pat = extra_fmts[i][0]
         repl = extra_fmts[i][1]
+
         if pat in fmt:
             fmt = fmt.replace(pat, repl)
             found_pat[i] = True
@@ -284,7 +283,9 @@ cdef _period_strftime(int64_t value, int freq, object fmt):
     free(formatted)
 
     for i in range(len(extra_fmts)):
+
         if found_pat[i]:
+
             if get_yq(value, freq, &quarter, &year) < 0:
                 raise ValueError('Unable to get quarter and year')
 
@@ -304,20 +305,29 @@ cdef _period_strftime(int64_t value, int freq, object fmt):
     return result
 
 # period accessors
-
-ctypedef int (*accessor)(int64_t ordinal, int freq) except INT32_MIN
-
-
-def get_period_field(int code, int64_t value, int freq):
-    cdef accessor f = _get_accessor_func(code)
-    return f(value, freq)
+ctypedef i8 (*accessor)(i8 ordinal, i8 freq) except INT64_MIN
 
 
-def get_period_field_arr(int code, ndarray[int64_t] arr, int freq):
+cpdef i8 get_period_field(i8 code, i8 value, i8 freq) except INT64_MIN:
+    cdef:
+        accessor f = _get_accessor_func(code)
+        i8 r = f(value, freq)
+
+    if code == 11:
+        print 'ordinal:', value
+        print 'us:     ', r
+
+    if r == INT64_MIN:
+        raise ValueError('Unable to retrieve property')
+
+    return r
+
+
+cpdef ndarray[i8] get_period_field_arr(i8 code, i8[:] arr, i8 freq):
     cdef:
         Py_ssize_t i, sz
-        np.int64_t v
-        ndarray[int64_t] out
+        i8 v
+        ndarray[i8] out
         accessor f
 
     f = _get_accessor_func(code)
@@ -328,7 +338,7 @@ def get_period_field_arr(int code, ndarray[int64_t] arr, int freq):
     for i in range(sz):
         v = f(arr[i], freq)
 
-        if v == INT32_MIN:
+        if v == INT64_MIN:
             raise ValueError('Cannot get freq %i' % freq)
 
         out[i] = v
@@ -336,7 +346,7 @@ def get_period_field_arr(int code, ndarray[int64_t] arr, int freq):
     return out
 
 
-cdef accessor _get_accessor_func(int code):
+cdef accessor _get_accessor_func(i8 code):
     if code == 0:
         return &pyear
     elif code == 1:
