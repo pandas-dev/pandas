@@ -164,10 +164,10 @@ static i8 dInfoCalc_SetFromDateAndTime(struct date_info *dinfo, i8 year,
                          "minute out of range (0-59): %li",
                          minute);
         Py_AssertWithArg(second >= 0 &&
-                         (second < 60 || (hour == 23 && minute == 59 &&
+                         (second < 60L || (hour == 23 && minute == 59 &&
                                           second < 61)),
                          PyExc_ValueError,
-                         "second out of range (0 - <60; <61 for 23:59): %li",
+                         "second out of range (0 - <60L; <61 for 23:59): %li",
                          second);
         Py_AssertWithArg(microsecond >= 0 && (microsecond < 1000000 ||
                                               (hour == 23 && minute == 59 &&
@@ -396,19 +396,19 @@ static i8 asfreq_DtoD(i8 ordinal, char relation, asfreq_info *af_info) {
 }
 
 static i8 asfreq_DtoHIGHFREQ(i8 ordinal, char relation, i8 per_day) {
-	return relation == 'S' ? ordinal * per_day : (ordinal + 1) * per_day - 1;
+	return relation == 'S' ? ordinal * per_day : (ordinal + 1L) * per_day - 1L;
 }
 
 static i8 asfreq_DtoH(i8 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_DtoHIGHFREQ(ordinal, relation, 24);
+    return asfreq_DtoHIGHFREQ(ordinal, relation, 24L);
 }
 
 static i8 asfreq_DtoT(i8 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_DtoHIGHFREQ(ordinal, relation, 24 * 60);
+    return asfreq_DtoHIGHFREQ(ordinal, relation, 24 * 60L);
 }
 
 static i8 asfreq_DtoS(i8 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_DtoHIGHFREQ(ordinal, relation, 24 * 60 * 60);
+    return asfreq_DtoHIGHFREQ(ordinal, relation, 24 * 60L * 60L);
 }
 
 static i8 asfreq_DtoU(i8 ordinal, char relation, asfreq_info *af_info) {
@@ -418,7 +418,7 @@ static i8 asfreq_DtoU(i8 ordinal, char relation, asfreq_info *af_info) {
 //************ FROM SECONDLY ***************
 
 static i8 asfreq_StoD(i8 ordinal, char relation, asfreq_info *af_info) {
-    return ordinal / (60 * 60 * 24);
+    return ordinal / (60L * 60L * 24L);
 }
 
 static i8 asfreq_StoA(i8 ordinal, char relation, asfreq_info *af_info) {
@@ -442,17 +442,17 @@ static i8 asfreq_StoB(i8 ordinal, char relation, asfreq_info *af_info)
 
 
 static i8 asfreq_StoT(i8 ordinal, char relation, asfreq_info *af_info) {
-	return ordinal / 60;
+	return ordinal / 60L;
 }
 
 static i8 asfreq_StoH(i8 ordinal, char relation, asfreq_info *af_info) {
-	return ordinal / (60 * 60);
+	return ordinal / (60L * 60L);
 }
 
 //************ FROM MINUTELY ***************
 
 static i8 asfreq_TtoD(i8 ordinal, char relation, asfreq_info *af_info)
-{ return ordinal / (60 * 24); }
+{ return ordinal / (60L * 24L); }
 
 static i8 asfreq_TtoA(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoA(asfreq_TtoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
@@ -899,11 +899,13 @@ static i8 asfreq_BtoU(i8 ordinal, char relation, asfreq_info *af_info) {
 }
 
 static i8 asfreq_HtoU(i8 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_DtoU(asfreq_HtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO);
+    return asfreq_DtoU(asfreq_HtoD(ordinal, relation, af_info), relation,
+                       &NULL_AF_INFO);
 }
 
 static i8 asfreq_TtoU(i8 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_DtoU(asfreq_TtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO);
+    return asfreq_DtoU(asfreq_TtoD(ordinal, relation, &NULL_AF_INFO), relation,
+                       &NULL_AF_INFO);
 }
 
 
