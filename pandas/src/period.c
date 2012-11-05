@@ -396,7 +396,10 @@ static i8 asfreq_DtoD(i8 ordinal, char relation, asfreq_info *af_info) {
 }
 
 static i8 asfreq_DtoHIGHFREQ(i8 ordinal, char relation, i8 per_day) {
-	return relation == 'S' ? ordinal * per_day : (ordinal + 1L) * per_day - 1L;
+    if (relation == 'S')
+        return ordinal * per_day;
+    else
+        return (ordinal + 1L) * per_day - 1L;
 }
 
 static i8 asfreq_DtoH(i8 ordinal, char relation, asfreq_info *af_info) {
@@ -432,13 +435,16 @@ static i8 asfreq_StoQ(i8 ordinal, char relation, asfreq_info *af_info) {
 }
 
 static i8 asfreq_StoM(i8 ordinal, char relation, asfreq_info *af_info)
-{ return asfreq_DtoM(asfreq_StoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
+{ return asfreq_DtoM(asfreq_StoD(ordinal, relation, &NULL_AF_INFO), relation,
+                     &NULL_AF_INFO); }
 
 static i8 asfreq_StoW(i8 ordinal, char relation, asfreq_info *af_info)
-{ return asfreq_DtoW(asfreq_StoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
+{ return asfreq_DtoW(asfreq_StoD(ordinal, relation, &NULL_AF_INFO), relation,
+                     af_info); }
 
 static i8 asfreq_StoB(i8 ordinal, char relation, asfreq_info *af_info)
-{ return asfreq_DtoB(asfreq_StoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
+{ return asfreq_DtoB(asfreq_StoD(ordinal, relation, &NULL_AF_INFO), relation,
+                     &NULL_AF_INFO); }
 
 
 static i8 asfreq_StoT(i8 ordinal, char relation, asfreq_info *af_info) {
@@ -466,11 +472,11 @@ static i8 asfreq_TtoB(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoB(asfreq_TtoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
 
 static i8 asfreq_TtoH(i8 ordinal, char relation, asfreq_info *af_info) {
-	return ordinal / 60;
+	return ordinal / 60L;
 }
 
 static i8 asfreq_TtoS(i8 ordinal, char relation, asfreq_info *af_info) {
-    i8 out = ordinal * 60;
+    i8 out = ordinal * 60L;
 
     if (relation != 'S')
         out += 59;
@@ -652,7 +658,7 @@ static void QtoD_ym(i8 ordinal, i8 *y, i8 *m, asfreq_info *af_info) {
         if (*m > 12)
             *m -= 12;
         else
-            --*y; // == *y -= 1;
+            *y -= 1;
     }
 }
 
@@ -862,20 +868,20 @@ static i8 asfreq_UtoB(i8 ordinal, char relation, asfreq_info *af_info) {
                        af_info);
 }
 
-
 static i8 asfreq_UtoH(i8 ordinal, char relation, asfreq_info *af_info) {
-    i8 t1 = asfreq_DtoH(asfreq_UtoD(ordinal, relation, &NULL_AF_INFO), relation,
-                       &NULL_AF_INFO);
-    return t1;
+    return asfreq_DtoH(asfreq_UtoD(ordinal, relation, &NULL_AF_INFO),
+                       relation, &NULL_AF_INFO);
+
 }
 
 static i8 asfreq_UtoT(i8 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_DtoT(asfreq_UtoD(ordinal, relation, &NULL_AF_INFO), relation, af_info);
+    return asfreq_DtoT(asfreq_UtoD(ordinal, relation, &NULL_AF_INFO), relation,
+                       &NULL_AF_INFO);
 }
 
 
 static i8 asfreq_StoU(i8 ordinal, char relation, asfreq_info *af_info) {
-    return ordinal * US_PER_SECOND;
+    return asfreq_DtoU(asfreq_StoD(ordinal, relation, af_info), relation, &NULL_AF_INFO);
 }
 
 static i8 asfreq_AtoU(i8 ordinal, char relation, asfreq_info *af_info) {
@@ -1174,14 +1180,12 @@ onError:
 
 i8 asfreq(i8 period_ordinal, i8 freq1, i8 freq2, char relation)
 {
-    i8 val;
-    freq_conv_func func;
-    asfreq_info finfo;
+	freq_conv_func func = get_asfreq_func(freq1, freq2);
 
-	func = get_asfreq_func(freq1, freq2);
+    asfreq_info finfo;
     get_asfreq_info(freq1, freq2, &finfo);
 
-    val = (*func)(period_ordinal, relation, &finfo);
+    i8 val = func(period_ordinal, relation, &finfo);
 
     if (val == INT_ERR_CODE) {
 		goto onError;
