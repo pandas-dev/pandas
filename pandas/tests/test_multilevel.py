@@ -1562,6 +1562,22 @@ Thur,Lunch,Yes,51.51,17"""
 
         self.assertRaises(Exception, data.xs, 2, level=1, copy=False)
 
+    def test_multiindex_na_repr(self):
+        # only an issue with long columns
+
+        from numpy import nan
+        df3 = DataFrame({
+            'A' * 30: {('A', 'A0006000', 'nuit'): 'A0006000'},
+            'B' * 30: {('A', 'A0006000', 'nuit'): nan},
+            'C' * 30: {('A', 'A0006000', 'nuit'): nan},
+            'D' * 30: {('A', 'A0006000', 'nuit'): nan},
+            'E' * 30: {('A', 'A0006000', 'nuit'): 'A'},
+            'F' * 30: {('A', 'A0006000', 'nuit'): nan},
+        })
+
+        idf = df3.set_index(['A' * 30, 'C' * 30])
+        repr(idf)
+
 if __name__ == '__main__':
 
     # unittest.main()

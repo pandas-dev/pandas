@@ -81,6 +81,7 @@ pandas 0.9.1
   - Better floating point error robustness in some rolling_* functions (#2114)
   - Fix ewma NA handling in the middle of Series (#2128)
   - Fix numerical precision issues in diff with integer data (#2087)
+  - Fix bug in MultiIndex.__getitem__ with NA values (#2008)
 
 pandas 0.9.0
 ============

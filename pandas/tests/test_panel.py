@@ -1081,7 +1081,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         # negative numbers, #2164
         result = self.panel.shift(-1)
         expected = Panel(dict((i, f.shift(-1)[:-1])
-                              for i, f in self.panel.iteritems()))
+                              for i, f in self.panel.iterkv()))
         assert_panel_equal(result, expected)
 
     def test_multiindex_get(self):
@@ -1175,7 +1175,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
             path = '__tmp__.' + ext
             self.panel.to_excel(path)
             reader = ExcelFile(path)
-            for item, df in self.panel.iteritems():
+            for item, df in self.panel.iterkv():
                 recdf = reader.parse(str(item),index_col=0)
                 assert_frame_equal(df, recdf)
             os.remove(path)
