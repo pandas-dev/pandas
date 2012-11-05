@@ -215,7 +215,7 @@ cpdef i8 period_ordinal_to_dt64(i8 ordinal, i8 freq) except INT64_MIN:
     return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
 
 
-cpdef str period_format(i8 value, i8 freq, bytes fmt=None):
+cpdef object period_format(i8 value, i8 freq, object fmt=None):
     cdef i8 freq_group
 
     if fmt is None:
@@ -251,12 +251,13 @@ cpdef str period_format(i8 value, i8 freq, bytes fmt=None):
 
 cdef list extra_fmts = [(b"%q", b"^`AB`^"),
                         (b"%f", b"^`CD`^"),
-                        (b"%F", b"^`EF`^")]
+                        (b"%F", b"^`EF`^"),
+                        (b"%u", b"%%06u"),]
 
-cdef list str_extra_fmts = ["^`AB`^", "^`CD`^", "^`EF`^"]
+cdef list str_extra_fmts = ["^`AB`^", "^`CD`^", "^`EF`^", "%%06u"]
 
 
-cdef str _period_strftime(i8 value, i8 freq, bytes fmt):
+cdef object _period_strftime(i8 value, i8 freq, object fmt):
     cdef:
         Py_ssize_t i
         date_info dinfo
