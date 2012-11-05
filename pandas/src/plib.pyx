@@ -145,21 +145,20 @@ cdef char END = 'E'
 
 
 cpdef i8 period_asfreq(i8 period_ordinal, i8 freq1, i8 freq2,
-                       i8 end) except INT64_MIN:
+                       char* how) except INT64_MIN:
     """
     Convert period ordinal from one frequency to another, and if upsampling,
     choose to use start ('S') or end ('E') of period.
     """
-    cdef:
-        char how = END if end else START
-        i8 retval = asfreq(period_ordinal, freq1, freq2, how)
+    cdef i8 retval = asfreq(period_ordinal, freq1, freq2, how[0])
 
     if retval == INT64_MIN:
         raise ValueError('Frequency conversion failed')
 
     return retval
 
-cpdef ndarray[i8] period_asfreq_arr(i8[:] arr, i8 freq1, i8 freq2, i8 end):
+cpdef ndarray[i8] period_asfreq_arr(i8[:] arr, i8 freq1, i8 freq2,
+                                    char* relation):
     """
     Convert int64-array of period ordinals from one frequency to another, and
     if upsampling, choose to use start ('S') or end ('E') of period.
@@ -170,13 +169,12 @@ cpdef ndarray[i8] period_asfreq_arr(i8[:] arr, i8 freq1, i8 freq2, i8 end):
         freq_conv_func func = get_asfreq_func(freq1, freq2)
         asfreq_info finfo
         i8 val, ordinal
-        char relation = END if end else START
 
     get_asfreq_info(freq1, freq2, &finfo)
 
 
     for i in range(n):
-        val = func(arr[i], relation, &finfo)
+        val = func(arr[i], relation[0], &finfo)
 
         if val == INT64_MIN:
             raise ValueError("Unable to convert to desired frequency.")
@@ -228,8 +226,8 @@ cpdef object period_format(i8 value, i8 freq, object fmt=None):
         elif freq_group == 3000: # FR_MTH
             fmt = b'%Y-%m'
         elif freq_group == 4000: # WK
-            left = period_asfreq(value, freq, 6000, 0)
-            right = period_asfreq(value, freq, 6000, 1)
+            left = period_asfreq(value, freq, 6000, 'S')
+            right = period_asfreq(value, freq, 6000, 'E')
             return '%s/%s' % (period_format(left, 6000),
                               period_format(right, 6000))
         elif (freq_group == 5000 # BUS
@@ -261,7 +259,7 @@ cdef object _period_strftime(i8 value, i8 freq, object fmt):
     cdef:
         Py_ssize_t i
         date_info dinfo
-        char *formatted
+        char *formatted = NULL
         object pat, repl, result
         list found_pat = [False] * len(extra_fmts)
         i8 year, quarter
