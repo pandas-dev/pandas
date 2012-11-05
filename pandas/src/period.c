@@ -14,13 +14,16 @@
  * ------------------------------------------------------------------*/
 
 
-static int mod_compat(int x, int m) {
-    int result = x % m;
-    if (result < 0) return result + m;
+static i8 mod_compat(i8 x, i8 m) {
+    i8 result = x % m;
+
+    if (result < 0)
+        return result + m;
+
     return result;
 }
 
-static int floordiv(int x, int divisor) {
+static i8 floordiv(i8 x, i8 divisor) {
     if (x < 0) {
         if (mod_compat(x, divisor)) {
             return x / divisor - 1;
@@ -34,21 +37,21 @@ static int floordiv(int x, int divisor) {
 static asfreq_info NULL_AF_INFO;
 
 /* Table with day offsets for each month (0-based, without and with leap) */
-static int month_offset[2][13] = {
+static i8 month_offset[2][13] = {
     { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 },
     { 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 }
 };
 
 /* Table of number of days in a month (0-based, without and with leap) */
-static int days_in_month[2][12] = {
+static i8 days_in_month[2][12] = {
     { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
     { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
 };
 
 /* Return 1/0 iff year points to a leap year in calendar. */
-static int dInfoCalc_Leapyear(npy_int64 year, int calendar)
+static i8 dInfoCalc_Leapyear(i8 year, i8 calendar)
 {
-    if (calendar == GREGORIAN_CALENDAR) {
+    if (calendar == GREGORIAN) {
         return (year % 4 == 0) && ((year % 100 != 0) || (year % 400 == 0));
     } else {
         return (year % 4 == 0);
@@ -56,19 +59,19 @@ static int dInfoCalc_Leapyear(npy_int64 year, int calendar)
 }
 
 /* Return the day of the week for the given absolute date. */
-static int dInfoCalc_DayOfWeek(npy_int64 absdate)
+static i8 dInfoCalc_DayOfWeek(i8 absdate)
 {
-    int day_of_week;
+    i8 day_of_week;
 
-    if (absdate >= 1) {
+    if (absdate >= 1)
         day_of_week = (absdate - 1) % 7;
-    } else {
-        day_of_week = 6 - ((-absdate) % 7);
-    }
+    else
+        day_of_week = 6 - (-absdate % 7);
+
     return day_of_week;
 }
 
-static int monthToQuarter(int month) { return ((month-1)/3)+1; }
+static i8 monthToQuarter(i8 month) { return (month - 1) / 3 + 1; }
 
 /* Return the year offset, that is the absolute date of the day
    31.12.(year-1) in the given calendar.
@@ -78,66 +81,70 @@ static int monthToQuarter(int month) { return ((month-1)/3)+1; }
    using the Gregorian Epoch) value by two days because the Epoch
    (0001-01-01) in the Julian calendar lies 2 days before the Epoch in
    the Gregorian calendar. */
-static int dInfoCalc_YearOffset(npy_int64 year, int calendar)
+static i8 dInfoCalc_YearOffset(i8 year, i8 calendar)
 {
-    year--;
-    if (calendar == GREGORIAN_CALENDAR) {
-        if (year >= 0 || -1/4 == -1)
-            return year*365 + year/4 - year/100 + year/400;
+    --year;
+
+    if (calendar == GREGORIAN)
+        if (year >= 0 || -1 / 4 == -1)
+            return year * 365 + year / 4 - year / 100 + year / 400;
         else
-            return year*365 + (year-3)/4 - (year-99)/100 + (year-399)/400;
-    }
-    else if (calendar == JULIAN_CALENDAR) {
-        if (year >= 0 || -1/4 == -1)
-            return year*365 + year/4 - 2;
+            return year * 365 + (year - 3) / 4 - (year - 99) / 100 + (year - 399) / 400;
+    else if (calendar == JULIAN)
+        if (year >= 0 || -1 / 4 == -1)
+            return year * 365 + year / 4 - 2;
         else
-            return year*365 + (year-3)/4 - 2;
-    }
-    Py_Error(PyExc_ValueError, "unknown calendar");
+            return year * 365 + (year - 3) / 4 - 2;
+    else
+        Py_Error(PyExc_ValueError, "unknown calendar");
 onError:
     return INT_ERR_CODE;
 }
 
 /* Set the instance's value using the given date and time. calendar may be set
- * to the flags: GREGORIAN_CALENDAR, JULIAN_CALENDAR to indicate the calendar
+ * to the flags: GREGORIAN, JULIAN to indicate the calendar
  * to be used. */
 
-static int dInfoCalc_SetFromDateAndTime(struct date_info *dinfo,
-                                        int year, int month, int day, int hour, int minute, double second,
-                                        int calendar)
+static i8 dInfoCalc_SetFromDateAndTime(struct date_info *dinfo, i8 year,
+                                       i8 month, i8 day, i8 hour, i8 minute,
+                                       i8 second, i8 microsecond, i8 calendar)
 {
 
     /* Calculate the absolute date */
     {
-        int leap;
-		npy_int64 absdate;
-        int yearoffset;
+        i8 leap, absdate, yearoffset;
 
         /* Range check */
         Py_AssertWithArg(year > -(INT_MAX / 366) && year < (INT_MAX / 366),
                          PyExc_ValueError,
-                         "year out of range: %i",
+                         "year out of range: %li",
                          year);
 
         /* Is it a leap year ? */
         leap = dInfoCalc_Leapyear(year, calendar);
 
         /* Negative month values indicate months relative to the years end */
-        if (month < 0) month += 13;
+        if (month < 0)
+            month += 13;
+
         Py_AssertWithArg(month >= 1 && month <= 12,
                          PyExc_ValueError,
-                         "month out of range (1-12): %i",
+                         "month out of range (1-12): %li",
                          month);
 
         /* Negative values indicate days relative to the months end */
-        if (day < 0) day += days_in_month[leap][month - 1] + 1;
+        if (day < 0)
+            day += days_in_month[leap][month - 1] + 1;
+
         Py_AssertWithArg(day >= 1 && day <= days_in_month[leap][month - 1],
                          PyExc_ValueError,
-                         "day out of range: %i",
+                         "day out of range: %li",
                          day);
 
         yearoffset = dInfoCalc_YearOffset(year, calendar);
-        if (PyErr_Occurred()) goto onError;
+
+        if (PyErr_Occurred())
+            goto onError;
 
         absdate = day + month_offset[leap][month - 1] + yearoffset;
 
@@ -145,11 +152,11 @@ static int dInfoCalc_SetFromDateAndTime(struct date_info *dinfo,
 
         dinfo->year = year;
         dinfo->month = month;
-        dinfo->quarter = ((month-1)/3)+1;
+        dinfo->quarter = (month - 1) / 3 + 1;
         dinfo->day = day;
 
         dinfo->day_of_week = dInfoCalc_DayOfWeek(absdate);
-        dinfo->day_of_year = (short)(absdate - yearoffset);
+        dinfo->day_of_year = absdate - yearoffset;
 
         dinfo->calendar = calendar;
     }
@@ -158,26 +165,29 @@ static int dInfoCalc_SetFromDateAndTime(struct date_info *dinfo,
     {
         Py_AssertWithArg(hour >= 0 && hour <= 23,
                          PyExc_ValueError,
-                         "hour out of range (0-23): %i",
+                         "hour out of range (0-23): %li",
                          hour);
         Py_AssertWithArg(minute >= 0 && minute <= 59,
                          PyExc_ValueError,
-                         "minute out of range (0-59): %i",
+                         "minute out of range (0-59): %li",
                          minute);
-        Py_AssertWithArg(second >= (double)0.0 &&
-                         (second < (double)60.0 ||
+        Py_AssertWithArg(second >= 0 &&
+                         (second < 60 ||
                           (hour == 23 && minute == 59 &&
-                           second < (double)61.0)),
+                           second < 61)),
                          PyExc_ValueError,
-                         "second out of range (0.0 - <60.0; <61.0 for 23:59): %f",
+                         "second out of range (0 - <60; <61 for 23:59): %li",
                          second);
 
-        dinfo->abstime = (double)(hour*3600 + minute*60) + second;
+        dinfo->abstime = hour * US_PER_HOUR + minute * US_PER_MINUTE +
+            second * US_PER_SECOND + microsecond;
 
         dinfo->hour = hour;
         dinfo->minute = minute;
         dinfo->second = second;
+        dinfo->microsecond = microsecond;
     }
+
     return 0;
 
 onError:
@@ -187,30 +197,35 @@ onError:
 /* Sets the date part of the date_info struct using the indicated
    calendar.
 
-   XXX This could also be done using some integer arithmetics rather
+   XXX This could also be done using some i8eger arithmetics rather
    than with this iterative approach... */
 static
-int dInfoCalc_SetFromAbsDate(register struct date_info *dinfo,
-							 npy_int64 absdate, int calendar)
+i8 dInfoCalc_SetFromAbsDate(register struct date_info *dinfo,
+                            i8 absdate, i8 calendar)
 {
-    register npy_int64 year;
-    npy_int64 yearoffset;
-    int leap,dayoffset;
-    int *monthoffset;
+    register i8 year;
+    i8 yearoffset, leap, dayoffset;
+    i8 *monthoffset = NULL;
 
     /* Approximate year */
-    if (calendar == GREGORIAN_CALENDAR) {
-        year = (npy_int64)(((double)absdate) / 365.2425);
-    } else if (calendar == JULIAN_CALENDAR) {
-        year = (npy_int64)(((double)absdate) / 365.25);
-    } else {
+    switch (calendar) {
+    case GREGORIAN:
+        year = absdate / 365.2425;
+        break;
+    case JULIAN:
+        year = absdate / 365.25;
+        break;
+    default:
         Py_Error(PyExc_ValueError, "unknown calendar");
+        break;
     }
 
-    if (absdate > 0) year++;
+    if (absdate > 0)
+        ++year;
 
     /* Apply corrections to reach the correct year */
     while (1) {
+
         /* Calculate the year offset */
         yearoffset = dInfoCalc_YearOffset(year, calendar);
         if (PyErr_Occurred())
@@ -219,7 +234,7 @@ int dInfoCalc_SetFromAbsDate(register struct date_info *dinfo,
         /* Backward correction: absdate must be greater than the
            yearoffset */
         if (yearoffset >= absdate) {
-            year--;
+            --year;
             continue;
         }
 
@@ -228,9 +243,10 @@ int dInfoCalc_SetFromAbsDate(register struct date_info *dinfo,
 
         /* Forward correction: non leap years only have 365 days */
         if (dayoffset > 365 && !leap) {
-            year++;
+            ++year;
             continue;
         }
+
         break;
     }
 
@@ -240,12 +256,11 @@ int dInfoCalc_SetFromAbsDate(register struct date_info *dinfo,
     /* Now iterate to find the month */
     monthoffset = month_offset[leap];
     {
-        register int month;
+        register i8 month;
 
-        for (month = 1; month < 13; month++) {
+        for (month = 1; month < 13; ++month)
             if (monthoffset[month] >= dayoffset)
                 break;
-        }
 
         dinfo->month = month;
         dinfo->quarter = monthToQuarter(month);
@@ -266,64 +281,71 @@ onError:
 ///////////////////////////////////////////////
 
 // frequency specifc conversion routines
-// each function must take an integer fromDate and
+// each function must take an i8eger fromDate and
 // a char relation ('S' or 'E' for 'START' or 'END')
 ///////////////////////////////////////////////////////////////////////
 
 // helpers for frequency conversion routines //
 
-static npy_int64 DtoB_weekday(npy_int64 absdate) {
-    return (((absdate) / 7) * 5) + (absdate) % 7 - BDAY_OFFSET;
+static i8 DtoB_weekday(i8 absdate) {
+    return (absdate / 7) * 5 + absdate % 7 - BDAY_OFFSET;
 }
 
-static npy_int64 DtoB_WeekendToMonday(npy_int64 absdate, int day_of_week) {
+static i8 DtoB_WeekendToMonday(i8 absdate, i8 day_of_week) {
     if (day_of_week > 4) {
         //change to Monday after weekend
-        absdate += (7 - day_of_week);
+        absdate += 7 - day_of_week;
     }
     return DtoB_weekday(absdate);
 }
 
-static npy_int64 DtoB_WeekendToFriday(npy_int64 absdate, int day_of_week) {
+static i8 DtoB_WeekendToFriday(i8 absdate, i8 day_of_week) {
     if (day_of_week > 4) {
         //change to friday before weekend
-        absdate -= (day_of_week - 4);
+        absdate -= day_of_week - 4;
     }
     return DtoB_weekday(absdate);
 }
 
-static npy_int64 absdate_from_ymd(int y, int m, int d) {
-    struct date_info tempDate;
-    if (dInfoCalc_SetFromDateAndTime(&tempDate, y, m, d, 0, 0, 0, GREGORIAN_CALENDAR)) {
+static i8 absdate_from_ymd(i8 y, i8 m, i8 d) {
+    struct date_info td;
+
+    if (dInfoCalc_SetFromDateAndTime(&td, y, m, d, 0, 0, 0, 0, GREGORIAN)) {
         return INT_ERR_CODE;
     }
-    return tempDate.absdate;
+
+    return td.absdate;
 }
 
 //************ FROM DAILY ***************
 
-static npy_int64 asfreq_DtoA(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_DtoA(i8 ordinal, char relation, asfreq_info *af_info) {
 
     struct date_info dinfo;
-    if (dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET,
-								 GREGORIAN_CALENDAR)) return INT_ERR_CODE;
-    if (dinfo.month > af_info->to_a_year_end) {
-        return (npy_int64)(dinfo.year + 1 - BASE_YEAR);
-	}
-    else {
-        return (npy_int64)(dinfo.year - BASE_YEAR);
-	}
+
+    if (dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET, GREGORIAN))
+        return INT_ERR_CODE;
+
+    if (dinfo.month > af_info->to_a_year_end)
+        return dinfo.year + 1 - BASE_YEAR;
+	else
+        return dinfo.year - BASE_YEAR;
 }
 
-static npy_int64 DtoQ_yq(npy_int64 ordinal, asfreq_info *af_info,
-                         int *year, int *quarter) {
+static i8 DtoQ_yq(i8 ordinal, asfreq_info *af_info, i8 *year, i8 *quarter) {
     struct date_info dinfo;
-    if (dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET,
-								 GREGORIAN_CALENDAR)) return INT_ERR_CODE;
+
+    if (dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET, GREGORIAN))
+        return INT_ERR_CODE;
+
     if (af_info->to_q_year_end != 12) {
         dinfo.month -= af_info->to_q_year_end;
-        if (dinfo.month <= 0) { dinfo.month += 12; }
-        else { dinfo.year += 1; }
+
+        if (dinfo.month <= 0)
+            dinfo.month += 12;
+        else
+            ++dinfo.year;
+
         dinfo.quarter = monthToQuarter(dinfo.month);
     }
 
@@ -334,231 +356,242 @@ static npy_int64 DtoQ_yq(npy_int64 ordinal, asfreq_info *af_info,
 }
 
 
-static npy_int64 asfreq_DtoQ(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_DtoQ(i8 ordinal, char relation, asfreq_info *af_info) {
 
-    int year, quarter;
+    i8 year, quarter;
 
-    if (DtoQ_yq(ordinal, af_info, &year, &quarter) == INT_ERR_CODE) {
+    if (DtoQ_yq(ordinal, af_info, &year, &quarter) == INT_ERR_CODE)
         return INT_ERR_CODE;
-    }
 
-    return (npy_int64)((year - BASE_YEAR) * 4 + quarter - 1);
+    return (year - BASE_YEAR) * 4 + quarter - 1;
 }
 
-static npy_int64 asfreq_DtoM(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_DtoM(i8 ordinal, char relation, asfreq_info *af_info) {
 
     struct date_info dinfo;
-    if (dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET, GREGORIAN_CALENDAR))
+
+    if (dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET, GREGORIAN))
         return INT_ERR_CODE;
-    return (npy_int64)((dinfo.year - BASE_YEAR) * 12 + dinfo.month - 1);
+
+    return (dinfo.year - BASE_YEAR) * 12 + dinfo.month - 1;
 }
 
-static npy_int64 asfreq_DtoW(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-    return (ordinal + ORD_OFFSET - (1 + af_info->to_week_end))/7 + 1 - WEEK_OFFSET;
+static i8 asfreq_DtoW(i8 ordinal, char relation, asfreq_info *af_info) {
+    return (ordinal + ORD_OFFSET - (1 + af_info->to_week_end)) / 7
+        + 1 - WEEK_OFFSET;
 }
 
-static npy_int64 asfreq_DtoB(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-
+static i8 asfreq_DtoB(i8 ordinal, char relation, asfreq_info *af_info) {
     struct date_info dinfo;
-    if (dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET,
-								 GREGORIAN_CALENDAR)) return INT_ERR_CODE;
 
-    if (relation == 'S') {
+    if (dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET, GREGORIAN))
+        return INT_ERR_CODE;
+
+    if (relation == 'S')
         return DtoB_WeekendToFriday(dinfo.absdate, dinfo.day_of_week);
-    } else {
+    else
         return DtoB_WeekendToMonday(dinfo.absdate, dinfo.day_of_week);
-    }
 }
 
 // needed for getDateInfo function
-static npy_int64 asfreq_DtoD(npy_int64 ordinal, char relation, asfreq_info *af_info) { return ordinal; }
-
-static npy_int64 asfreq_DtoHIGHFREQ(npy_int64 ordinal, char relation, npy_int64 per_day) {
-	if (relation == 'S') {
-        return ordinal * per_day;
-	}
-	else {
-        return (ordinal+ 1) * per_day - 1;
-	}
+static i8 asfreq_DtoD(i8 ordinal, char relation, asfreq_info *af_info) {
+    return ordinal;
 }
 
-static npy_int64 asfreq_DtoH(npy_int64 ordinal, char relation, asfreq_info *af_info)
-{ return asfreq_DtoHIGHFREQ(ordinal, relation, 24); }
-static npy_int64 asfreq_DtoT(npy_int64 ordinal, char relation, asfreq_info *af_info)
-{ return asfreq_DtoHIGHFREQ(ordinal, relation, 24*60); }
-static npy_int64 asfreq_DtoS(npy_int64 ordinal, char relation, asfreq_info *af_info)
-{ return asfreq_DtoHIGHFREQ(ordinal, relation, 24*60*60); }
+static i8 asfreq_DtoHIGHFREQ(i8 ordinal, char relation, i8 per_day) {
+	return relation == 'S' ? ordinal * per_day : (ordinal + 1) * per_day - 1;
+}
+
+static i8 asfreq_DtoH(i8 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_DtoHIGHFREQ(ordinal, relation, 24);
+}
+
+static i8 asfreq_DtoT(i8 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_DtoHIGHFREQ(ordinal, relation, 24 * 60);
+}
+
+static i8 asfreq_DtoS(i8 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_DtoHIGHFREQ(ordinal, relation, 24 * 60 * 60);
+}
 
 //************ FROM SECONDLY ***************
 
-static npy_int64 asfreq_StoD(npy_int64 ordinal, char relation, asfreq_info *af_info)
-{ return (ordinal)/(60*60*24); }
+static i8 asfreq_StoD(i8 ordinal, char relation, asfreq_info *af_info) {
+    return ordinal / (60 * 60 * 24);
+}
 
-static npy_int64 asfreq_StoA(npy_int64 ordinal, char relation, asfreq_info *af_info)
-{ return asfreq_DtoA(asfreq_StoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
+static i8 asfreq_StoA(i8 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_DtoA(asfreq_StoD(ordinal, relation, &NULL_AF_INFO), relation,
+                       af_info);
+}
 
-static npy_int64 asfreq_StoQ(npy_int64 ordinal, char relation, asfreq_info *af_info)
-{ return asfreq_DtoQ(asfreq_StoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
+static i8 asfreq_StoQ(i8 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_DtoQ(asfreq_StoD(ordinal, relation, &NULL_AF_INFO), relation,
+                       af_info);
+}
 
-static npy_int64 asfreq_StoM(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_StoM(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoM(asfreq_StoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
 
-static npy_int64 asfreq_StoW(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_StoW(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoW(asfreq_StoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
 
-static npy_int64 asfreq_StoB(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_StoB(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoB(asfreq_StoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
 
 
-static npy_int64 asfreq_StoT(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_StoT(i8 ordinal, char relation, asfreq_info *af_info) {
 	return ordinal / 60;
 }
 
-static npy_int64 asfreq_StoH(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-	return ordinal / (60*60);
+static i8 asfreq_StoH(i8 ordinal, char relation, asfreq_info *af_info) {
+	return ordinal / (60 * 60);
 }
 
 //************ FROM MINUTELY ***************
 
-static npy_int64 asfreq_TtoD(npy_int64 ordinal, char relation, asfreq_info *af_info)
-{ return (ordinal)/(60*24); }
+static i8 asfreq_TtoD(i8 ordinal, char relation, asfreq_info *af_info)
+{ return ordinal / (60 * 24); }
 
-static npy_int64 asfreq_TtoA(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_TtoA(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoA(asfreq_TtoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
-static npy_int64 asfreq_TtoQ(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_TtoQ(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoQ(asfreq_TtoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
-static npy_int64 asfreq_TtoM(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_TtoM(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoM(asfreq_TtoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
-static npy_int64 asfreq_TtoW(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_TtoW(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoW(asfreq_TtoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
-static npy_int64 asfreq_TtoB(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_TtoB(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoB(asfreq_TtoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
 
-static npy_int64 asfreq_TtoH(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_TtoH(i8 ordinal, char relation, asfreq_info *af_info) {
 	return ordinal / 60;
 }
 
-static npy_int64 asfreq_TtoS(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-    if (relation == 'S') {
-		return ordinal*60; }
-    else                 {
-		return ordinal*60 + 59;
-	}
+static i8 asfreq_TtoS(i8 ordinal, char relation, asfreq_info *af_info) {
+    i8 out = ordinal * 60;
+
+    if (relation != 'S')
+        out += 59;
+
+    return out;
 }
 
 //************ FROM HOURLY ***************
 
-static npy_int64 asfreq_HtoD(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_HtoD(i8 ordinal, char relation, asfreq_info *af_info)
 { return ordinal / 24; }
-static npy_int64 asfreq_HtoA(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_HtoA(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoA(asfreq_HtoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
-static npy_int64 asfreq_HtoQ(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_HtoQ(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoQ(asfreq_HtoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
-static npy_int64 asfreq_HtoM(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_HtoM(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoM(asfreq_HtoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
-static npy_int64 asfreq_HtoW(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_HtoW(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoW(asfreq_HtoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
-static npy_int64 asfreq_HtoB(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_HtoB(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoB(asfreq_HtoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
 
 // calculation works out the same as TtoS, so we just call that function for HtoT
-static npy_int64 asfreq_HtoT(npy_int64 ordinal, char relation, asfreq_info *af_info)
-{ return asfreq_TtoS(ordinal, relation, &NULL_AF_INFO); }
+static i8 asfreq_HtoT(i8 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_TtoS(ordinal, relation, &NULL_AF_INFO);
+}
 
-static npy_int64 asfreq_HtoS(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-    if (relation == 'S') {
-		return ordinal*60*60;
-	}
-    else {
-		return (ordinal + 1)*60*60 - 1;
-	}
+static i8 asfreq_HtoS(i8 ordinal, char relation, asfreq_info *af_info) {
+    i8 is_S = relation == 'S';
+    return is_S ? ordinal * 60 * 60 : (ordinal + 1) * 60 * 60 - 1;
 }
 
 //************ FROM BUSINESS ***************
 
-static npy_int64 asfreq_BtoD(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_BtoD(i8 ordinal, char relation, asfreq_info *af_info)
 {
-    ordinal += BDAY_OFFSET;
-    return (((ordinal - 1) / 5) * 7 +
-            mod_compat(ordinal - 1, 5) + 1 - ORD_OFFSET);
+    i8 ord = ordinal;
+    ord += BDAY_OFFSET;
+    return (ord - 1) / 5 * 7 + mod_compat(ord - 1, 5) + 1 - ORD_OFFSET;
 }
 
-static npy_int64 asfreq_BtoA(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_BtoA(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoA(asfreq_BtoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
 
-static npy_int64 asfreq_BtoQ(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_BtoQ(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoQ(asfreq_BtoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
 
-static npy_int64 asfreq_BtoM(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_BtoM(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoM(asfreq_BtoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
 
-static npy_int64 asfreq_BtoW(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_BtoW(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoW(asfreq_BtoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
 
-static npy_int64 asfreq_BtoH(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_BtoH(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoH(asfreq_BtoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
 
-static npy_int64 asfreq_BtoT(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_BtoT(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoT(asfreq_BtoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
 
-static npy_int64 asfreq_BtoS(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_BtoS(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoS(asfreq_BtoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
 
 //************ FROM WEEKLY ***************
 
-static npy_int64 asfreq_WtoD(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-	ordinal += WEEK_OFFSET;
-    if (relation == 'S') {
-        return ordinal * 7 - 6 + af_info->from_week_end - ORD_OFFSET;
-	}
-    else {
-        return ordinal * 7 + af_info->from_week_end - ORD_OFFSET;
-	}
+static i8 asfreq_WtoD(i8 ordinal, char relation, asfreq_info *af_info) {
+    i8 k = 0, ord = ordinal;
+	ord += WEEK_OFFSET;
+    ord *= 7;
+
+    if (relation == 'S')
+        k = -6;
+
+    return ord + k + af_info->from_week_end - ORD_OFFSET;
 }
 
-static npy_int64 asfreq_WtoA(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_DtoA(asfreq_WtoD(ordinal, 'E', af_info), relation, af_info); }
-static npy_int64 asfreq_WtoQ(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_DtoQ(asfreq_WtoD(ordinal, 'E', af_info), relation, af_info); }
-static npy_int64 asfreq_WtoM(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_DtoM(asfreq_WtoD(ordinal, 'E', af_info), relation, &NULL_AF_INFO); }
+static i8 asfreq_WtoA(i8 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_DtoA(asfreq_WtoD(ordinal, 'E', af_info), relation, af_info);
+}
 
-static npy_int64 asfreq_WtoW(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_WtoQ(i8 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_DtoQ(asfreq_WtoD(ordinal, 'E', af_info), relation, af_info);
+}
+
+static i8 asfreq_WtoM(i8 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_DtoM(asfreq_WtoD(ordinal, 'E', af_info), relation,
+                       &NULL_AF_INFO);
+}
+
+static i8 asfreq_WtoW(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoW(asfreq_WtoD(ordinal, relation, af_info), relation, af_info); }
 
-static npy_int64 asfreq_WtoB(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_WtoB(i8 ordinal, char relation, asfreq_info *af_info) {
 
     struct date_info dinfo;
-    if (dInfoCalc_SetFromAbsDate(&dinfo,
-								 asfreq_WtoD(ordinal, relation, af_info) + ORD_OFFSET,
-                                 GREGORIAN_CALENDAR)) return INT_ERR_CODE;
+    i8 wtod = asfreq_WtoD(ordinal, relation, af_info) + ORD_OFFSET;
+    if (dInfoCalc_SetFromAbsDate(&dinfo, wtod, GREGORIAN))
+        return INT_ERR_CODE;
 
-    if (relation == 'S') {
+    if (relation == 'S')
 		return DtoB_WeekendToMonday(dinfo.absdate, dinfo.day_of_week);
-	}
-    else {
+    else
 		return DtoB_WeekendToFriday(dinfo.absdate, dinfo.day_of_week);
-	}
 }
 
-static npy_int64 asfreq_WtoH(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_WtoH(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoH(asfreq_WtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO); }
-static npy_int64 asfreq_WtoT(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_WtoT(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoT(asfreq_WtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO); }
-static npy_int64 asfreq_WtoS(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_WtoS(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoS(asfreq_WtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO); }
 
 //************ FROM MONTHLY ***************
-static void MtoD_ym(npy_int64 ordinal, int *y, int *m) {
+static void MtoD_ym(i8 ordinal, i8 *y, i8 *m) {
     *y = floordiv(ordinal, 12) + BASE_YEAR;
     *m = mod_compat(ordinal, 12) + 1;
 }
 
 
-static npy_int64 asfreq_MtoD(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_MtoD(i8 ordinal, char relation, asfreq_info *af_info) {
 
-    npy_int64 absdate;
-    int y, m;
+    i8 absdate;
+    i8 y, m;
 
     if (relation == 'S') {
         MtoD_ym(ordinal, &y, &m);
@@ -571,36 +604,39 @@ static npy_int64 asfreq_MtoD(npy_int64 ordinal, char relation, asfreq_info *af_i
     }
 }
 
-static npy_int64 asfreq_MtoA(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_MtoA(i8 ordinal, char relation, asfreq_info *af_info) {
     return asfreq_DtoA(asfreq_MtoD(ordinal, 'E', &NULL_AF_INFO), relation, af_info); }
 
-static npy_int64 asfreq_MtoQ(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_MtoQ(i8 ordinal, char relation, asfreq_info *af_info) {
     return asfreq_DtoQ(asfreq_MtoD(ordinal, 'E', &NULL_AF_INFO), relation, af_info); }
 
-static npy_int64 asfreq_MtoW(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_MtoW(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoW(asfreq_MtoD(ordinal, relation, &NULL_AF_INFO), relation, af_info); }
 
-static npy_int64 asfreq_MtoB(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_MtoB(i8 ordinal, char relation, asfreq_info *af_info) {
 
     struct date_info dinfo;
-    if (dInfoCalc_SetFromAbsDate(&dinfo,
-								 asfreq_MtoD(ordinal, relation, &NULL_AF_INFO) + ORD_OFFSET,
-								 GREGORIAN_CALENDAR)) return INT_ERR_CODE;
+    i8 mtod = asfreq_MtoD(ordinal, relation, &NULL_AF_INFO) + ORD_OFFSET;
 
-    if (relation == 'S') { return DtoB_WeekendToMonday(dinfo.absdate, dinfo.day_of_week); }
-    else                 { return DtoB_WeekendToFriday(dinfo.absdate, dinfo.day_of_week); }
+    if (dInfoCalc_SetFromAbsDate(&dinfo, mtod, GREGORIAN))
+        return INT_ERR_CODE;
+
+    i8 (*f)(i8 absdate, i8 day_of_week);
+    f = relation == 'S' ? DtoB_WeekendToMonday : DtoB_WeekendToFriday;
+
+    return f(dinfo.absdate, dinfo.day_of_week);
 }
 
-static npy_int64 asfreq_MtoH(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_MtoH(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoH(asfreq_MtoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
-static npy_int64 asfreq_MtoT(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_MtoT(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoT(asfreq_MtoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
-static npy_int64 asfreq_MtoS(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_MtoS(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoS(asfreq_MtoD(ordinal, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO); }
 
 //************ FROM QUARTERLY ***************
 
-static void QtoD_ym(npy_int64 ordinal, int *y, int *m, asfreq_info *af_info) {
+static void QtoD_ym(i8 ordinal, i8 *y, i8 *m, asfreq_info *af_info) {
     *y = floordiv(ordinal, 4) + BASE_YEAR;
     *m = mod_compat(ordinal, 4) * 3 + 1;
 
@@ -611,76 +647,72 @@ static void QtoD_ym(npy_int64 ordinal, int *y, int *m, asfreq_info *af_info) {
     }
 }
 
-static npy_int64 asfreq_QtoD(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_QtoD(i8 ordinal, char relation, asfreq_info *af_info) {
 
-    npy_int64 absdate;
-    int y, m;
+    i8 absdate, y, m;
 
     if (relation == 'S') {
         QtoD_ym(ordinal, &y, &m, af_info);
-		// printf("ordinal: %d, year: %d, month: %d\n", (int) ordinal, y, m);
         if ((absdate = absdate_from_ymd(y, m, 1)) == INT_ERR_CODE) return INT_ERR_CODE;
         return absdate - ORD_OFFSET;
     } else {
         QtoD_ym(ordinal+1, &y, &m, af_info);
-		/* printf("ordinal: %d, year: %d, month: %d\n", (int) ordinal, y, m); */
         if ((absdate = absdate_from_ymd(y, m, 1)) == INT_ERR_CODE) return INT_ERR_CODE;
         return absdate - 1 - ORD_OFFSET;
     }
 }
 
-static npy_int64 asfreq_QtoQ(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_QtoQ(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoQ(asfreq_QtoD(ordinal, relation, af_info), relation, af_info); }
 
-static npy_int64 asfreq_QtoA(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_QtoA(i8 ordinal, char relation, asfreq_info *af_info) {
     return asfreq_DtoA(asfreq_QtoD(ordinal, relation, af_info), relation, af_info); }
 
-static npy_int64 asfreq_QtoM(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_QtoM(i8 ordinal, char relation, asfreq_info *af_info) {
     return asfreq_DtoM(asfreq_QtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO); }
 
-static npy_int64 asfreq_QtoW(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_QtoW(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoW(asfreq_QtoD(ordinal, relation, af_info), relation, af_info); }
 
-static npy_int64 asfreq_QtoB(npy_int64 ordinal, char relation, asfreq_info *af_info) {
+static i8 asfreq_QtoB(i8 ordinal, char relation, asfreq_info *af_info) {
 
     struct date_info dinfo;
     if (dInfoCalc_SetFromAbsDate(&dinfo,
 								 asfreq_QtoD(ordinal, relation, af_info) + ORD_OFFSET,
-								 GREGORIAN_CALENDAR)) return INT_ERR_CODE;
+								 GREGORIAN)) return INT_ERR_CODE;
 
     if (relation == 'S') { return DtoB_WeekendToMonday(dinfo.absdate, dinfo.day_of_week); }
     else                 { return DtoB_WeekendToFriday(dinfo.absdate, dinfo.day_of_week); }
 }
 
 
-static npy_int64 asfreq_QtoH(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_QtoH(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoH(asfreq_QtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO); }
-static npy_int64 asfreq_QtoT(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_QtoT(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoT(asfreq_QtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO); }
-static npy_int64 asfreq_QtoS(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_QtoS(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoS(asfreq_QtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO); }
 
 
 //************ FROM ANNUAL ***************
 
-static npy_int64 asfreq_AtoD(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-    npy_int64 absdate, final_adj;
-	int year;
-    int month = (af_info->from_a_year_end) % 12;
+static i8 asfreq_AtoD(i8 ordinal, char relation, asfreq_info *af_info) {
+    i8 absdate, final_adj, year;
+    i8 month = (af_info->from_a_year_end) % 12, ord = ordinal;
 
 	// start from 1970
-	ordinal += BASE_YEAR;
+	ord += BASE_YEAR;
 
     if (month == 0) { month = 1; }
     else { month += 1; }
 
     if (relation == 'S') {
-        if (af_info->from_a_year_end == 12) {year = ordinal;}
-        else {year = ordinal - 1;}
+        if (af_info->from_a_year_end == 12) {year = ord;}
+        else {year = ord - 1;}
         final_adj = 0;
     } else {
-        if (af_info->from_a_year_end == 12) {year = ordinal+1;}
-        else {year = ordinal;}
+        if (af_info->from_a_year_end == 12) {year = ord+1;}
+        else {year = ord;}
         final_adj = -1;
     }
     absdate = absdate_from_ymd(year, month, 1);
@@ -690,56 +722,58 @@ static npy_int64 asfreq_AtoD(npy_int64 ordinal, char relation, asfreq_info *af_i
     return absdate + final_adj - ORD_OFFSET;
 }
 
-static npy_int64 asfreq_AtoA(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_AtoA(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoA(asfreq_AtoD(ordinal, relation, af_info), relation, af_info); }
 
-static npy_int64 asfreq_AtoQ(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_AtoQ(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoQ(asfreq_AtoD(ordinal, relation, af_info), relation, af_info); }
 
-static npy_int64 asfreq_AtoM(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_AtoM(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoM(asfreq_AtoD(ordinal, relation, af_info), relation, af_info); }
 
-static npy_int64 asfreq_AtoW(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_AtoW(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoW(asfreq_AtoD(ordinal, relation, af_info), relation, af_info); }
 
-static npy_int64 asfreq_AtoB(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-
+static i8 asfreq_AtoB(i8 ordinal, char relation, asfreq_info *af_info) {
     struct date_info dinfo;
-    if (dInfoCalc_SetFromAbsDate(&dinfo,
-								 asfreq_AtoD(ordinal, relation, af_info) + ORD_OFFSET,
-                                 GREGORIAN_CALENDAR)) return INT_ERR_CODE;
 
-    if (relation == 'S') { return DtoB_WeekendToMonday(dinfo.absdate, dinfo.day_of_week); }
-    else                 { return DtoB_WeekendToFriday(dinfo.absdate, dinfo.day_of_week); }
+    i8 atob = asfreq_AtoD(ordinal, relation, af_info) + ORD_OFFSET;
+
+    if (dInfoCalc_SetFromAbsDate(&dinfo, atob, GREGORIAN))
+        return INT_ERR_CODE;
+
+    i8 (*f)(i8 date, i8 day_of_week) = NULL;
+    f = relation == 'S' ? DtoB_WeekendToMonday : DtoB_WeekendToFriday;
+
+    return f(dinfo.absdate, dinfo.day_of_week);
 }
 
-static npy_int64 asfreq_AtoH(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_AtoH(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoH(asfreq_AtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO); }
-static npy_int64 asfreq_AtoT(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_AtoT(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoT(asfreq_AtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO); }
-static npy_int64 asfreq_AtoS(npy_int64 ordinal, char relation, asfreq_info *af_info)
+static i8 asfreq_AtoS(i8 ordinal, char relation, asfreq_info *af_info)
 { return asfreq_DtoS(asfreq_AtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO); }
 
-static npy_int64 nofunc(npy_int64 ordinal, char relation, asfreq_info *af_info) { return INT_ERR_CODE; }
-static npy_int64 no_op(npy_int64 ordinal, char relation, asfreq_info *af_info) { return ordinal; }
+static i8 nofunc(i8 ordinal, char relation, asfreq_info *af_info) { return INT_ERR_CODE; }
+static i8 no_op(i8 ordinal, char relation, asfreq_info *af_info) { return ordinal; }
 
 // end of frequency specific conversion routines
 
-static int get_freq_group(int freq) { return (freq/1000)*1000; }
+static i8 get_freq_group(i8 freq) { return (freq / 1000) * 1000; }
 
-static int calc_a_year_end(int freq, int group) {
-    int result = (freq - group) % 12;
-    if (result == 0) {return 12;}
-    else {return result;}
+static i8 calc_a_year_end(i8 freq, i8 group) {
+    i8 result = (freq - group) % 12;
+    return !result ? 12 : result;
 }
 
-static int calc_week_end(int freq, int group) {
+static i8 calc_week_end(i8 freq, i8 group) {
     return freq - group;
 }
 
-void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info) {
-    int fromGroup = get_freq_group(fromFreq);
-    int toGroup = get_freq_group(toFreq);
+void get_asfreq_info(i8 fromFreq, i8 toFreq, asfreq_info *af_info) {
+    i8 fromGroup = get_freq_group(fromFreq);
+    i8 toGroup = get_freq_group(toFreq);
 
     switch(fromGroup)
     {
@@ -769,88 +803,98 @@ void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info) {
 }
 
 
-static npy_int64 asfreq_UtoS(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-    return ordinal / 1000000;
+static i8 asfreq_UtoS(i8 ordinal, char relation, asfreq_info *af_info) {
+    return ordinal / US_PER_SECOND;
 }
 
-static npy_int64 asfreq_UtoA(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_StoA(asfreq_UtoS(ordinal, relation, NULL), relation, af_info);
+static i8 asfreq_UtoD(i8 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_StoD(asfreq_UtoS(ordinal, relation, &NULL_AF_INFO), relation,
+                       &NULL_AF_INFO);
 }
 
-static npy_int64 asfreq_UtoQ(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_StoQ(asfreq_UtoS(ordinal, relation, NULL), relation, af_info);
+static i8 asfreq_UtoA(i8 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_DtoA(asfreq_UtoD(ordinal, relation, &NULL_AF_INFO), relation,
+                       af_info);
 }
 
-static npy_int64 asfreq_UtoM(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_StoM(asfreq_UtoS(ordinal, relation, NULL), relation, af_info);
+static i8 asfreq_UtoQ(i8 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_DtoQ(asfreq_UtoD(ordinal, relation, &NULL_AF_INFO), relation,
+                       af_info);
 }
 
-static npy_int64 asfreq_UtoW(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_StoW(asfreq_UtoS(ordinal, relation, NULL), relation, af_info);
+static i8 asfreq_UtoM(i8 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_DtoM(asfreq_UtoD(ordinal, relation, &NULL_AF_INFO), relation,
+                       af_info);
 }
 
-static npy_int64 asfreq_UtoB(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_StoB(asfreq_UtoS(ordinal, relation, NULL), relation, af_info);
+static i8 asfreq_UtoW(i8 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_DtoW(asfreq_UtoD(ordinal, relation, &NULL_AF_INFO), relation,
+                       af_info);
 }
 
-static npy_int64 asfreq_UtoD(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_StoD(asfreq_UtoS(ordinal, relation, NULL), relation, af_info);
-}
-
-static npy_int64 asfreq_UtoH(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_StoH(asfreq_UtoS(ordinal, relation, NULL), relation, af_info);
-}
-
-static npy_int64 asfreq_UtoT(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_StoT(asfreq_UtoS(ordinal, relation, NULL), relation, af_info);
-}
-
-
-
-static npy_int64 asfreq_StoU(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-    return ordinal * 1000000;
-}
-
-static npy_int64 asfreq_AtoU(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_StoU(asfreq_AtoS(ordinal, relation, af_info), relation, NULL);
-}
-
-static npy_int64 asfreq_QtoU(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_StoU(asfreq_QtoS(ordinal, relation, af_info), relation, NULL);
-}
-
-static npy_int64 asfreq_MtoU(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_StoU(asfreq_MtoS(ordinal, relation, af_info), relation, NULL);
-}
-
-static npy_int64 asfreq_WtoU(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_StoU(asfreq_WtoS(ordinal, relation, af_info), relation, NULL);
-}
-
-static npy_int64 asfreq_BtoU(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_StoU(asfreq_BtoS(ordinal, relation, af_info), relation, NULL);
-}
-
-static npy_int64 asfreq_DtoU(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_StoU(asfreq_DtoS(ordinal, relation, af_info), relation, NULL);
-}
-
-static npy_int64 asfreq_HtoU(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_StoU(asfreq_HtoS(ordinal, relation, af_info), relation, NULL);
-}
-
-static npy_int64 asfreq_TtoU(npy_int64 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_StoU(asfreq_TtoS(ordinal, relation, af_info), relation, NULL);
+static i8 asfreq_UtoB(i8 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_DtoB(asfreq_UtoD(ordinal, relation, &NULL_AF_INFO), relation,
+                       af_info);
 }
 
 
+static i8 asfreq_UtoH(i8 ordinal, char relation, asfreq_info *af_info) {
+    i8 t1 = asfreq_DtoH(asfreq_UtoD(ordinal, relation, &NULL_AF_INFO), relation,
+                       &NULL_AF_INFO);
+
+    if (t1 != ordinal / US_PER_HOUR) {
+        printf("asdlfkjasdlfkjsdlfkjsdlfkj, %li != %li\n", t1,
+               ordinal / US_PER_HOUR);
+    }
+    return t1;
+}
+
+static i8 asfreq_UtoT(i8 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_DtoT(asfreq_UtoD(ordinal, relation, &NULL_AF_INFO), relation, af_info);
+}
 
 
+static i8 asfreq_StoU(i8 ordinal, char relation, asfreq_info *af_info) {
+    return ordinal * US_PER_SECOND;
+}
 
-freq_conv_func get_asfreq_func(int fromFreq, int toFreq)
+static i8 asfreq_DtoU(i8 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_StoU(asfreq_DtoS(ordinal, relation, af_info), relation, &NULL_AF_INFO);
+}
+
+static i8 asfreq_AtoU(i8 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_DtoU(asfreq_AtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO);
+}
+
+static i8 asfreq_QtoU(i8 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_DtoU(asfreq_QtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO);
+}
+
+static i8 asfreq_MtoU(i8 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_DtoU(asfreq_MtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO);
+}
+
+static i8 asfreq_WtoU(i8 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_DtoU(asfreq_WtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO);
+}
+
+static i8 asfreq_BtoU(i8 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_DtoU(asfreq_BtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO);
+}
+
+static i8 asfreq_HtoU(i8 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_DtoU(asfreq_HtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO);
+}
+
+static i8 asfreq_TtoU(i8 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_DtoU(asfreq_TtoD(ordinal, relation, af_info), relation, &NULL_AF_INFO);
+}
+
+
+freq_conv_func get_asfreq_func(i8 fromFreq, i8 toFreq)
 {
-    int fromGroup = get_freq_group(fromFreq);
-    int toGroup = get_freq_group(toFreq);
+    i8 fromGroup = get_freq_group(fromFreq);
+    i8 toGroup = get_freq_group(toFreq);
 
     if (fromGroup == FR_UND) { fromGroup = FR_DAY; }
 
@@ -1020,54 +1064,60 @@ freq_conv_func get_asfreq_func(int fromFreq, int toFreq)
     }
 }
 
-// new microsecond function
-static double get_abs_time(int freq, npy_int64 daily_ord, npy_int64 ordinal) {
 
-    npy_int64 start_ord, per_day, unit;
-    switch(freq)
+static i8 get_abs_time(i8 freq, i8 daily_ord, i8 ordinal) {
+
+    i8 start_ord, per_day, unit;
+
+    switch (freq)
     {
     case FR_HR:
-        per_day = 24;
-        unit = 60 * 60;
+        per_day = 24L;
+        unit = US_PER_HOUR;
         break;
+
     case FR_MIN:
-        per_day = 24*60;
-        unit = 60;
+        per_day = 24L * 60L;
+        unit = US_PER_MINUTE;
         break;
+
     case FR_SEC:
-        per_day = 24*60*60;
-        unit = 1;
+        per_day = 24L * 60L * 60L;
+        unit = US_PER_SECOND;
         break;
+
+    case FR_USEC:
+        per_day = US_PER_DAY;
+        unit = 1L;
+        break;
+
     default:
-        return 0; // 24*60*60 - 1;
+        return 0L; // 24*60*60 - 1;
     }
 
     start_ord = asfreq_DtoHIGHFREQ(daily_ord, 'S', per_day);
 	/* printf("start_ord: %d\n", start_ord); */
-	return (double) ( unit * (ordinal - start_ord));
+	return unit * (ordinal - start_ord);
 	/* if (ordinal >= 0) { */
 	/* } */
 	/* else { */
-	/* 	return (double) (unit * mod_compat(ordinal - start_ord, per_day)); */
+	/* 	return (i8) (unit * mod_compat(ordinal - start_ord, per_day)); */
 	/* } */
 }
 
 /* Sets the time part of the DateTime object. */
 static
-int dInfoCalc_SetFromAbsTime(struct date_info *dinfo, double abstime)
+i8 dInfoCalc_SetFromAbsTime(struct date_info *dinfo, i8 abstime)
 {
-    int inttime;
-    int hour,minute;
-    double second;
-
-    inttime = (int)abstime;
-    hour = inttime / 3600;
-    minute = (inttime % 3600) / 60;
-    second = abstime - (double)(hour*3600 + minute*60);
+    i8 hour = abstime / US_PER_HOUR;
+    i8 minute = (abstime % US_PER_HOUR) / 60.0;
+    i8 second = abstime - (hour * US_PER_HOUR + minute * US_PER_MINUTE);
+    i8 microsecond = abstime - (hour * US_PER_HOUR + minute * US_PER_MINUTE + second * US_PER_SECOND);
 
     dinfo->hour = hour;
     dinfo->minute = minute;
     dinfo->second = second;
+    dinfo->microsecond = microsecond;
 
     dinfo->abstime = abstime;
 
@@ -1075,19 +1125,17 @@ int dInfoCalc_SetFromAbsTime(struct date_info *dinfo, double abstime)
 }
 
 /* Set the instance's value using the given date and time. calendar
-   may be set to the flags: GREGORIAN_CALENDAR, JULIAN_CALENDAR to
+   may be set to the flags: GREGORIAN, JULIAN to
    indicate the calendar to be used. */
 static
-int dInfoCalc_SetFromAbsDateTime(struct date_info *dinfo,
-                                 npy_int64 absdate,
-                                 double abstime,
-                                 int calendar)
+i8 dInfoCalc_SetFromAbsDateTime(struct date_info *dinfo, i8 absdate,
+                                i8 abstime, i8 calendar)
 {
 
     /* Bounds check */
-    Py_AssertWithArg(abstime >= 0.0 && abstime <= SECONDS_PER_DAY,
+    Py_AssertWithArg(abstime >= 0 && abstime <= US_PER_DAY,
                      PyExc_ValueError,
-                     "abstime out of range (0.0 - 86400.0): %f",
+                     "abstime out of range (0, 86400000000): %li",
                      abstime);
 
     /* Calculate the date */
@@ -1095,6 +1143,7 @@ int dInfoCalc_SetFromAbsDateTime(struct date_info *dinfo,
 
     /* Calculate the time */
     if (dInfoCalc_SetFromAbsTime(dinfo, abstime)) goto onError;
+
 
     return 0;
 onError:
@@ -1105,9 +1154,9 @@ onError:
  * New pandas API-helper code, to expose to cython
  * ------------------------------------------------------------------*/
 
-npy_int64 asfreq(npy_int64 period_ordinal, int freq1, int freq2, char relation)
+i8 asfreq(i8 period_ordinal, i8 freq1, i8 freq2, char relation)
 {
-    npy_int64 val;
+    i8 val;
     freq_conv_func func;
     asfreq_info finfo;
 
@@ -1127,33 +1176,29 @@ onError:
 
 
 /* generate an ordinal in period space */
-npy_int64 get_period_ordinal(int year, int month, int day,
-                             int hour, int minute, int second, int microsecond,
-                             int freq)
+i8 get_period_ordinal(i8 year, i8 month, i8 day, i8 hour, i8 minute, i8 second,
+                      i8 microsecond, i8 freq)
 {
-    npy_int64 absdays, delta;
-    npy_int64 weeks, days;
-    npy_int64 ordinal, day_adj;
-    int freq_group, fmonth, mdiff;
-    freq_group = get_freq_group(freq);
+    i8 absdays, delta, weeks, days, ordinal, day_adj, fmonth, mdiff;
+    i8 freq_group = get_freq_group(freq);
 
     if (freq == FR_USEC) {
         absdays = absdate_from_ymd(year, month, day);
-        delta = (absdays - ORD_OFFSET);
-        return (npy_int64)(delta*86400000000L + hour*3600000000 +
-                           minute*60000000 + second*1000000 + microsecond);
+        delta = absdays - ORD_OFFSET;
+        return delta * US_PER_DAY + hour * US_PER_HOUR +
+            minute * US_PER_MINUTE + second * US_PER_SECOND + microsecond;
     }
 
     if (freq == FR_SEC) {
         absdays = absdate_from_ymd(year, month, day);
         delta = (absdays - ORD_OFFSET);
-        return (npy_int64)(delta*86400 + hour*3600 + minute*60 + second);
+        return delta*86400 + hour*3600 + minute*60 + second;
     }
 
     if (freq == FR_MIN) {
         absdays = absdate_from_ymd(year, month, day);
         delta = (absdays - ORD_OFFSET);
-        return (npy_int64)(delta*1440 + hour*60 + minute);
+        return delta*1440 + hour*60 + minute;
     }
 
     if (freq == FR_HR) {
@@ -1162,32 +1207,32 @@ npy_int64 get_period_ordinal(int year, int month, int day,
             goto onError;
         }
         delta = (absdays - ORD_OFFSET);
-        return (npy_int64)(delta*24 + hour);
+        return delta*24 + hour;
     }
 
     if (freq == FR_DAY)
     {
-        return (npy_int64) (absdate_from_ymd(year, month, day) - ORD_OFFSET);
+        return absdate_from_ymd(year, month, day) - ORD_OFFSET;
     }
 
     if (freq == FR_UND)
     {
-        return (npy_int64) (absdate_from_ymd(year, month, day) - ORD_OFFSET);
+        return absdate_from_ymd(year, month, day) - ORD_OFFSET;
     }
 
     if (freq == FR_BUS)
     {
-        if((days = absdate_from_ymd(year, month, day)) == INT_ERR_CODE)
+        if ((days = absdate_from_ymd(year, month, day)) == INT_ERR_CODE)
         {
             goto onError;
         }
         weeks = days / 7;
-        return (npy_int64)(days - weeks * 2) - BDAY_OFFSET;
+        return (days - weeks * 2) - BDAY_OFFSET;
     }
 
     if (freq_group == FR_WK)
     {
-        if((ordinal = (npy_int64)absdate_from_ymd(year, month, day)) == INT_ERR_CODE)
+        if ((ordinal = absdate_from_ymd(year, month, day)) == INT_ERR_CODE)
         {
             goto onError;
         }
@@ -1231,16 +1276,16 @@ onError:
 }
 
 /*
-  Returns the proleptic Gregorian ordinal of the date, as an integer.
+  Returns the proleptic Gregorian ordinal of the date, as an i8eger.
   This corresponds to the number of days since Jan., 1st, 1AD.
   When the instance has a frequency less than daily, the proleptic date
   is calculated for the last day of the period.
 */
 
-npy_int64 get_python_ordinal(npy_int64 period_ordinal, int freq)
+i8 get_python_ordinal(i8 period_ordinal, i8 freq)
 {
     asfreq_info af_info;
-    npy_int64 (*toDaily)(npy_int64, char, asfreq_info*);
+    i8 (*toDaily)(i8, char, asfreq_info*) = NULL;
 
     if (freq == FR_DAY)
         return period_ordinal + ORD_OFFSET;
@@ -1252,7 +1297,7 @@ npy_int64 get_python_ordinal(npy_int64 period_ordinal, int freq)
 
 char *str_replace(const char *s, const char *old, const char *new) {
     char *ret;
-    int i, count = 0;
+    i8 i, count = 0;
     size_t newlen = strlen(new);
     size_t oldlen = strlen(old);
 
@@ -1286,56 +1331,64 @@ char *str_replace(const char *s, const char *old, const char *new) {
 
 char* c_strftime(struct date_info *tmp, char *fmt) {
     struct tm c_date;
-    char* result;
     struct date_info dinfo = *tmp;
-    int result_len = strlen(fmt) + 50;
 
-    c_date.tm_sec = (int)dinfo.second;
+    size_t result_len = strlen(fmt) + 50L;
+
+    c_date.tm_sec = dinfo.second;
     c_date.tm_min = dinfo.minute;
     c_date.tm_hour = dinfo.hour;
     c_date.tm_mday = dinfo.day;
-    c_date.tm_mon = dinfo.month - 1;
-    c_date.tm_year = dinfo.year - 1900;
-    c_date.tm_wday = (dinfo.day_of_week + 1) % 7;
-    c_date.tm_yday = dinfo.day_of_year - 1;
-    c_date.tm_isdst = -1;
+    c_date.tm_mon = dinfo.month - 1L;
+    c_date.tm_year = dinfo.year - 1900L;
+    c_date.tm_wday = (dinfo.day_of_week + 1L) % 7L;
+    c_date.tm_yday = dinfo.day_of_year - 1L;
+    c_date.tm_isdst = -1L;
 
-    result = malloc(result_len * sizeof(char));
+    // this will be freed in cython
+    char* result = (char*) malloc(result_len * sizeof(char));
 
     strftime(result, result_len, fmt, &c_date);
+
+    // check to see if the format is sub second
+    i8 is_subsec = strstr(fmt, ".") != NULL;
+
+    // workaround the fact that strftime doesn't do sub second printing
+    char* result2 = NULL;
+    if (is_subsec) {
+        result2 = (char*) malloc(result_len * sizeof(char));
+        snprintf(result2, result_len, result, dinfo.microsecond);
+        free(result);
+        result = result2;
+    }
 
     return result;
 }
 
-int get_yq(npy_int64 ordinal, int freq, int *quarter, int *year) {
-    asfreq_info af_info;
-    int qtr_freq;
-    npy_int64 daily_ord;
-    npy_int64 (*toDaily)(npy_int64, char, asfreq_info*) = NULL;
 
-    toDaily = get_asfreq_func(freq, FR_DAY);
+i8 get_yq(i8 ordinal, i8 freq, i8 *quarter, i8 *year) {
+    asfreq_info af_info;
+    i8 qtr_freq, daily_ord;
+    i8 (*toDaily)(i8, char, asfreq_info*) = get_asfreq_func(freq, FR_DAY);
+
     get_asfreq_info(freq, FR_DAY, &af_info);
 
     daily_ord = toDaily(ordinal, 'E', &af_info);
 
-    if (get_freq_group(freq) == FR_QTR) {
-        qtr_freq = freq;
-    } else { qtr_freq = FR_QTR; }
+    qtr_freq = get_freq_group(freq) == FR_QTR ? freq : FR_QTR;
+
     get_asfreq_info(FR_DAY, qtr_freq, &af_info);
 
-    if(DtoQ_yq(daily_ord, &af_info, year, quarter) == INT_ERR_CODE)
+    if (DtoQ_yq(daily_ord, &af_info, year, quarter) == INT_ERR_CODE)
         return -1;
 
     return 0;
 }
 
 
-
-
-
-static int _quarter_year(npy_int64 ordinal, int freq, int *year, int *quarter) {
+static i8 _quarter_year(i8 ordinal, i8 freq, i8 *year, i8 *quarter) {
     asfreq_info af_info;
-    int qtr_freq;
+    i8 qtr_freq;
 
     ordinal = get_python_ordinal(ordinal, freq) - ORD_OFFSET;
 
@@ -1355,9 +1408,9 @@ static int _quarter_year(npy_int64 ordinal, int freq, int *year, int *quarter) {
     return 0;
 }
 
-static int _ISOWeek(struct date_info *dinfo)
+static i8 _ISOWeek(struct date_info *dinfo)
 {
-    int week;
+    i8 week;
 
     /* Estimate */
     week = (dinfo->day_of_year-1) - dinfo->day_of_week + 3;
@@ -1373,7 +1426,7 @@ static int _ISOWeek(struct date_info *dinfo)
             week = 52;
     } else if (week == 53) {
         /* Check if the week belongs to year or year+1 */
-        if (31-dinfo->day + dinfo->day_of_week < 3) {
+        if (31 - dinfo->day + dinfo->day_of_week < 3) {
             week = 1;
         }
     }
@@ -1381,109 +1434,118 @@ static int _ISOWeek(struct date_info *dinfo)
     return week;
 }
 
-int get_date_info(npy_int64 ordinal, int freq, struct date_info *dinfo)
+i8 get_date_info(i8 ordinal, i8 freq, struct date_info *dinfo)
 {
-    npy_int64 absdate = get_python_ordinal(ordinal, freq);
-	/* printf("freq: %d, absdate: %d\n", freq, (int) absdate); */
-    double abstime = get_abs_time(freq, absdate - ORD_OFFSET, ordinal);
+    i8 absdate = get_python_ordinal(ordinal, freq);
+    i8 abstime = get_abs_time(freq, absdate - ORD_OFFSET, ordinal);
+
 	if (abstime < 0) {
-		abstime += 86400;
+        // add a day's worth of us to time
+		abstime += US_PER_DAY;
+
+        // subtract a day from the date
 		absdate -= 1;
 	}
 
-    if(dInfoCalc_SetFromAbsDateTime(dinfo, absdate,
-									abstime, GREGORIAN_CALENDAR))
+    if (dInfoCalc_SetFromAbsDateTime(dinfo, absdate, abstime, GREGORIAN))
         return INT_ERR_CODE;
 
     return 0;
 }
 
-int pyear(npy_int64 ordinal, int freq) {
+i8 pyear(i8 ordinal, i8 freq) {
     struct date_info dinfo;
     get_date_info(ordinal, freq, &dinfo);
     return dinfo.year;
 }
 
-int pqyear(npy_int64 ordinal, int freq) {
-    int year, quarter;
-    if( _quarter_year(ordinal, freq, &year, &quarter) == INT_ERR_CODE)
+i8 pqyear(i8 ordinal, i8 freq) {
+    i8 year, quarter;
+    if (_quarter_year(ordinal, freq, &year, &quarter) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return year;
 }
 
-int pquarter(npy_int64 ordinal, int freq) {
-    int year, quarter;
-    if(_quarter_year(ordinal, freq, &year, &quarter) == INT_ERR_CODE)
+i8 pquarter(i8 ordinal, i8 freq) {
+    i8 year, quarter;
+    if (_quarter_year(ordinal, freq, &year, &quarter) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return quarter;
 }
 
-int pmonth(npy_int64 ordinal, int freq) {
+i8 pmonth(i8 ordinal, i8 freq) {
     struct date_info dinfo;
-    if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
+    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.month;
 }
 
-int pday(npy_int64 ordinal, int freq) {
+i8 pday(i8 ordinal, i8 freq) {
     struct date_info dinfo;
-    if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
+    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.day;
 }
 
-int pweekday(npy_int64 ordinal, int freq) {
+i8 pweekday(i8 ordinal, i8 freq) {
     struct date_info dinfo;
-    if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
+    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.day_of_week;
 }
 
-int pday_of_week(npy_int64 ordinal, int freq) {
+i8 pday_of_week(i8 ordinal, i8 freq) {
     struct date_info dinfo;
-    if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
+    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.day_of_week;
 }
 
-int pday_of_year(npy_int64 ordinal, int freq) {
+i8 pday_of_year(i8 ordinal, i8 freq) {
     struct date_info dinfo;
-    if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
+    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.day_of_year;
 }
 
-int pweek(npy_int64 ordinal, int freq) {
+i8 pweek(i8 ordinal, i8 freq) {
     struct date_info dinfo;
-    if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
+    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return _ISOWeek(&dinfo);
 }
 
-int phour(npy_int64 ordinal, int freq) {
+i8 phour(i8 ordinal, i8 freq) {
     struct date_info dinfo;
-    if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
+    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.hour;
 }
 
-int pminute(npy_int64 ordinal, int freq) {
+i8 pminute(i8 ordinal, i8 freq) {
     struct date_info dinfo;
-    if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
+    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.minute;
 }
 
-int psecond(npy_int64 ordinal, int freq) {
+i8 psecond(i8 ordinal, i8 freq) {
     struct date_info dinfo;
-    if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
+    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
-    return (int)dinfo.second;
+    return dinfo.second;
 }
 
-int pmicrosecond(npy_int64 ordinal, int freq) {
+i8 pmicrosecond(i8 ordinal, i8 freq) {
     struct date_info dinfo;
-    if(get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
+    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.microsecond;
+}
+
+i8 pnanosecond(i8 ordinal, i8 freq) {
+    struct date_info dinfo;
+    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
+        return INT_ERR_CODE;
+    return dinfo.nanosecond;
 }
