@@ -83,6 +83,7 @@ pandas 0.9.1
   - Fix ewma NA handling in the middle of Series (#2128)
   - Fix numerical precision issues in diff with integer data (#2087)
   - Fix bug in MultiIndex.__getitem__ with NA values (#2008)
+  - Do not override matplotlib unit conversion fro datetime/time/date (#2173)
 
 pandas 0.9.0
 ============
