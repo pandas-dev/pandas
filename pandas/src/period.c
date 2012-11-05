@@ -411,6 +411,10 @@ static i8 asfreq_DtoS(i8 ordinal, char relation, asfreq_info *af_info) {
     return asfreq_DtoHIGHFREQ(ordinal, relation, 24 * 60 * 60);
 }
 
+static i8 asfreq_DtoU(i8 ordinal, char relation, asfreq_info *af_info) {
+    return asfreq_DtoHIGHFREQ(ordinal, relation, 24L * 60L * 60L * 1000000L);
+}
+
 //************ FROM SECONDLY ***************
 
 static i8 asfreq_StoD(i8 ordinal, char relation, asfreq_info *af_info) {
@@ -872,10 +876,6 @@ static i8 asfreq_UtoT(i8 ordinal, char relation, asfreq_info *af_info) {
 
 static i8 asfreq_StoU(i8 ordinal, char relation, asfreq_info *af_info) {
     return ordinal * US_PER_SECOND;
-}
-
-static i8 asfreq_DtoU(i8 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_StoU(asfreq_DtoS(ordinal, relation, af_info), relation, &NULL_AF_INFO);
 }
 
 static i8 asfreq_AtoU(i8 ordinal, char relation, asfreq_info *af_info) {
