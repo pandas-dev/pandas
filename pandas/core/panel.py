@@ -1339,7 +1339,7 @@ class Panel(NDFrame):
                           join_axes=join_axes, verify_integrity=True)
 
     def update(self, other, join='left', overwrite=True, filter_func=None,
-                     raise_conflict=False):
+               raise_conflict=False):
         """
         Modify Panel in place using non-NA values from passed
         Panel, or object coercible to Panel. Aligns on items

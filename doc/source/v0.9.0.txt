@@ -45,7 +45,7 @@ API changes
 
 - Creating a Series from another Series, passing an index, will cause reindexing
   to happen inside rather than treating the Series like an ndarray. Technically
-  improper usages like ``Series(df[col1], index=df[col2])11 that worked before
+  improper usages like ``Series(df[col1], index=df[col2])`` that worked before
   "by accident" (this was never intended) will lead to all NA Series in some
   cases. To be perfectly clear:
 
