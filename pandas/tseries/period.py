@@ -1110,19 +1110,8 @@ def _get_ordinal_range(start, end, periods, freq):
     return data, freq
 
 
-def _range_from_fields(year=None, month=None, quarter=None, day=None,
-                       hour=None, minute=None, second=None, microsecond=None,
-                       freq=None):
-    if hour is None:
-        hour = 0
-    if minute is None:
-        minute = 0
-    if second is None:
-        second = 0
-    if microsecond is None:
-        microsecond = 0
-    if day is None:
-        day = 1
+def _range_from_fields(year=None, month=None, quarter=None, day=1, hour=0,
+                       minute=0, second=0, microsecond=0, freq=None):
 
     ordinals = []
 
