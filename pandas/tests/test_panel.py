@@ -1015,6 +1015,13 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         # names
         self.assertEqual(unfiltered.index.names, ['major', 'minor'])
 
+        # unsorted, round trip
+        df = self.panel.to_frame(filter_observations=False)
+        unsorted = df.take(np.random.permutation(len(df)))
+        foo
+        pan = unsorted.to_panel()
+        assert_panel_equal(pan, self.panel)
+
         # preserve original index names
         df = DataFrame(np.random.randn(6, 2),
                        index=[['a', 'a', 'b', 'b', 'c', 'c'],

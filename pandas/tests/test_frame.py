@@ -1554,6 +1554,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         xp.index.names = [None, 'A', 'B']
         assert_frame_equal(result, xp)
 
+        # append to existing multiindex
+        rdf = df.set_index(['A'], append=True)
+        rdf = rdf.set_index(['B', 'C'], append=True)
+        expected = df.set_index(['A', 'B', 'C'], append=True)
+        assert_frame_equal(rdf, expected)
+
+        # Series
+        result = df.set_index(df.C)
+        self.assertEqual(result.index.name, 'C')
+
     def test_set_index_nonuniq(self):
         df = DataFrame({'A' : ['foo', 'foo', 'foo', 'bar', 'bar'],
                         'B' : ['one', 'two', 'three', 'one', 'two'],
@@ -3058,6 +3068,16 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         result = self.frame[:0].add(self.frame)
         assert_frame_equal(result, self.frame * np.nan)
+
+    def test_arith_mixed(self):
+
+        left = DataFrame({'A': ['a', 'b', 'c'],
+                          'B': [1, 2, 3]})
+
+        result = left + left
+        expected = DataFrame({'A': ['aa', 'bb', 'cc'],
+                              'B': [2, 4, 6]})
+        assert_frame_equal(result, expected)
 
     def test_bool_flex_frame(self):
         data = np.random.randn(5, 3)
@@ -4790,6 +4810,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = df.xs('a')
         expected = Series([])
         assert_series_equal(result, expected)
+
+    def test_xs_duplicates(self):
+        df = DataFrame(randn(5, 2), index=['b', 'b', 'c', 'b', 'a'])
+
+        cross = df.xs('c')
+        exp = df.irow(2)
+        assert_series_equal(cross, exp)
 
     def test_pivot(self):
         data = {
@@ -7183,6 +7210,12 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         # it works
         result = A.dot(b)
+
+        # unaligned
+        df = DataFrame(randn(3, 4), index=[1, 2, 3], columns=range(4))
+        df2 = DataFrame(randn(5, 3), index=range(5), columns=[1, 2, 3])
+
+        self.assertRaises(ValueError, df.dot, df2)
 
     def test_idxmin(self):
         frame = self.frame

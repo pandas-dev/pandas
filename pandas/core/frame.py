@@ -749,8 +749,10 @@ class DataFrame(NDFrame):
         """
         if isinstance(other, (Series, DataFrame)):
             common = self.columns.union(other.index)
-            if len(common) > len(self.columns) or len(common) > len(other.index):
+            if (len(common) > len(self.columns) or
+                len(common) > len(other.index)):
                 raise ValueError('matrices are not aligned')
+
             left = self.reindex(columns=common, copy=False)
             right = other.reindex(index=common, copy=False)
             lvals = left.values
@@ -775,7 +777,7 @@ class DataFrame(NDFrame):
                 return DataFrame(result, index=left.index)
             else:
                 return Series(result, index=left.index)
-        else:
+        else:  # pragma: no cover
             raise TypeError('unsupported type: %s' % type(other))
 
     #----------------------------------------------------------------------
@@ -2086,10 +2088,7 @@ class DataFrame(NDFrame):
             if isinstance(loc, np.ndarray):
                 if loc.dtype == np.bool_:
                     inds, = loc.nonzero()
-                    if len(inds) == 1:
-                        loc = inds[0]
-                    else:
-                        return self.take(inds, axis=axis)
+                    return self.take(inds, axis=axis)
                 else:
                     return self.take(loc, axis=axis)
 
@@ -3946,8 +3945,8 @@ class DataFrame(NDFrame):
             target = self
         elif axis == 1:
             target = self.T
-        else:
-            raise ValueError('Axis must be 0 or 1, got %s' % str(axis))
+        else:  # pragma: no cover
+            raise ValueError('Axis must be 0 or 1, got %s' % axis)
 
         result_values = np.empty_like(target.values)
         columns = target.columns
@@ -4563,8 +4562,7 @@ class DataFrame(NDFrame):
                 elif filter_type == 'bool':
                     data = self._get_bool_data()
                 else:
-                    raise ValueError('Invalid filter_type %s ' %
-                                     str(filter_type))
+                    raise NotImplementedError
                 result = f(data.values)
                 labels = data._get_agg_axis(axis)
         else:
@@ -4574,8 +4572,7 @@ class DataFrame(NDFrame):
                 elif filter_type == 'bool':
                     data = self._get_bool_data()
                 else:
-                    raise ValueError('Invalid filter_type %s ' %
-                                     str(filter_type))
+                    raise NotImplementedError
                 values = data.values
                 labels = data._get_agg_axis(axis)
             else:
@@ -4589,7 +4586,7 @@ class DataFrame(NDFrame):
                 elif filter_type == 'bool' and notnull(result).all():
                     result = result.astype(np.bool_)
                 else:
-                    raise ValueError('Invalid dtype %s ' % str(filter_type))
+                    raise NotImplementedError
 
             except (ValueError, TypeError):
                 pass
@@ -4950,8 +4947,7 @@ def group_agg(values, bounds, f):
         result = np.empty((len(bounds), K), dtype=float)
 
     testagg = f(values[:min(1, len(values))])
-    if isinstance(testagg, np.ndarray) and testagg.ndim == 2:
-        raise Exception('Passed function does not aggregate!')
+    assert(not (isinstance(testagg, np.ndarray) and testagg.ndim == 2))
 
     for i, left_bound in enumerate(bounds):
         if i == len(bounds) - 1:
@@ -5132,13 +5128,9 @@ def _to_arrays(data, columns, coerce_float=False):
 def _list_to_arrays(data, columns, coerce_float=False):
     if len(data) > 0 and isinstance(data[0], tuple):
         content = list(lib.to_object_array_tuples(data).T)
-    elif len(data) > 0:
+    else:
         # list of lists
         content = list(lib.to_object_array(data).T)
-    else:
-        if columns is None:
-            columns = []
-        return {}, columns
     return _convert_object_array(content, columns,
                                  coerce_float=coerce_float)
 
