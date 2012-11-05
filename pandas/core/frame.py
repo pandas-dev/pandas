@@ -834,7 +834,7 @@ class DataFrame(NDFrame):
 
     @classmethod
     def from_records(cls, data, index=None, exclude=None, columns=None,
-                     names=None, coerce_float=False):
+                     coerce_float=False):
         """
         Convert structured or record ndarray to DataFrame
 
@@ -865,13 +865,6 @@ class DataFrame(NDFrame):
             if len(algos.unique(columns)) < len(columns):
                 raise ValueError('Non-unique columns not yet supported in '
                                  'from_records')
-
-        if names is not None:  # pragma: no cover
-            columns = names
-            warnings.warn("'names' parameter to DataFrame.from_records is "
-                          "being renamed to 'columns', 'names' will be "
-                          "removed in 0.8.0",
-                          FutureWarning)
 
         if isinstance(data, (np.ndarray, DataFrame, dict)):
             columns, sdict = _rec_to_dict(data)
