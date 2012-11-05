@@ -306,6 +306,9 @@ class Period(object):
         +-----------+--------------------------------+-------+
         | ``%S``    | Second as a decimal number     | \(4)  |
         |           | [00,61].                       |       |
+        +-----------|--------------------------------|-------+
+        | ``%u``    | Microsecond as a decimal       |       |
+        |           | number                         |       |
         +-----------+--------------------------------+-------+
         | ``%U``    | Week number of the year        | \(5)  |
         |           | (Sunday as the first day of    |       |
