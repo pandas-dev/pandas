@@ -12,9 +12,10 @@ from pandas.tseries.tools import normalize_date
 from pandas.tseries.util import pivot_annual, isleapyear
 from pandas.tseries import pivot
 
-class TestPivotAnnual(unittest.TestCase):
+
+class TestPivotAnnualHourly(unittest.TestCase):
     """
-    New pandas of scikits.timeseries pivot_annual
+    New pandas of scikits.timeseries pivot_annual for hourly with a new shape
     """
     def test_hourly(self):
         rng_hourly = date_range('1/1/1994', periods=(18* 8760 + 4*24), freq='H')
@@ -36,15 +37,14 @@ class TestPivotAnnual(unittest.TestCase):
             
         assert get_mdh(ts_hourly.index, 1) == get_mdh(annual.index, 1)
         #are the last dates of ts identical with the dates last row in the last column?
-        assert get_mdh(ts_hourly.index[-1]) == get_mdh(annual.index, 
-                                                        (annual.index.size -1))
-        #first values of the ts identical with the first col and last row of the df?        
-        assert ts_hourly[0] == annual.ix[1].values[0]
+        assert get_mdh(ts_hourly.index, -1) == get_mdh(annual.index, (annual.index.size -1))
+        #first values of the ts identical with the first col?        
+        assert ts_hourly[0] == annual.ix[0].values[0]
         #last values of the ts identical with the last col and last row of the df?        
-        assert ts_hourly[-1] == annual.ix[annual.index.size].values[-1]     
-        ### index
+        assert ts_hourly[-1] == annual.ix[-1].values[-1]     
+        #### index
         ##test if index has the right length
-        assert annual.index[-1] == 8784
+        assert annual.index.size == 8784
         ##test last column: if first value and data are the same as first value of timeseries
         ### leap
         ##test leap offset
@@ -56,7 +56,7 @@ class TestPivotAnnual(unittest.TestCase):
                           
         df96 = annual[1996]
         df96_leap = df96[(df96.index.month == 2) & (df96.index.day == 29)]
-        tm.assert_series_equal(ser96_leap, df96_leap)
+        np.testing.assert_equal(ser96_leap.values, df96_leap.values)
         #non-leap year: 1994 - are all values NaN for day 29.02?
         nan_arr = np.empty(24)
         nan_arr.fill(np.nan)                  
@@ -67,19 +67,23 @@ class TestPivotAnnual(unittest.TestCase):
         ext = pivot.extended_info(annual)        
         ## descriptive statistics
         #mean        
-        tm.assert_frame_equal(annual.mean(1), ext['mean'])
-        tm.assert_frame_equal(annual.sum(1), ext['sum'])
-        tm.assert_frame_equal(annual.min(1), ext['min'])
-        tm.assert_frame_equal(annual.min(1), ext['max'])
-        tm.assert_frame_equal(annual.std(1), ext['std'])
+        np.testing.assert_equal(annual.mean(1).values, ext['mean'].values)
+        np.testing.assert_equal(annual.sum(1).values, ext['sum'].values)
+        np.testing.assert_equal(annual.min(1).values, ext['min'].values)
+        np.testing.assert_equal(annual.max(1).values, ext['max'].values)
+        np.testing.assert_equal(annual.std(1).values, ext['std'].values)
         
         ## additional time columns for easier filtering
         np.testing.assert_equal(ext['doy'].values, annual.index.dayofyear)
         np.testing.assert_equal(ext['day'].values, annual.index.day)
         #the hour is incremented by 1
         np.testing.assert_equal(ext['hour'].values, (annual.index.hour +1))
-
     
+
+class TestPivotAnnual(unittest.TestCase):
+    """
+    New pandas of scikits.timeseries pivot_annual
+    """
     def test_daily(self):
         rng = date_range('1/1/2000', '12/31/2004', freq='D')
         ts = Series(np.random.randn(len(rng)), index=rng)

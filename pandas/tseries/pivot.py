@@ -156,7 +156,7 @@ def extended_info(df, time_cols=True, aggreg=True, aggreg_func=None,
         df_extended['sum'] = df_extended[cols].sum(1)
         df_extended['min'] = df_extended[cols].min(1)
         df_extended['max'] = df_extended[cols].max(1)
-        df_extended['max'] = df_extended[cols].std(1)
+        df_extended['std'] = df_extended[cols].std(1)
 
     #add some metadata
     #TODO: add function to make index a datetime with the argument above using the rng below    
