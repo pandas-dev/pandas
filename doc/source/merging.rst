@@ -414,11 +414,6 @@ either the left or right tables, the values in the joined table will be
     ``outer``, ``FULL OUTER JOIN``, Use union of keys from both frames
     ``inner``, ``INNER JOIN``, Use intersection of keys from both frames
 
-Note that if using the index from either the left or right DataFrame (or both)
-using the ``left_index`` / ``right_index`` options, the join operation is no
-longer a many-to-many join by construction, as the index values are necessarily
-unique. There will be some examples of this below.
-
 .. _merging.join.index:
 
 Joining on index
@@ -537,6 +532,32 @@ columns:
 ``DataFrame.join`` has ``lsuffix`` and ``rsuffix`` arguments which behave
 similarly.
 
+.. _merging.ordered_merge:
+
+Merging Ordered Data
+~~~~~~~~~~~~~~~~~~~~
+
+New in v0.8.0 is the ordered_merge function for combining time series and other
+ordered data. In particular it has an optional ``fill_method`` keyword to
+fill/interpolate missing data:
+
+.. ipython:: python
+   :suppress:
+
+   A = DataFrame({'key' : ['a', 'c', 'e'] * 2,
+                  'lvalue' : [1, 2, 3] * 2,
+                  'group' : ['a', 'a', 'a', 'b', 'b', 'b']})
+   B = DataFrame({'key' : ['b', 'c', 'd'],
+                  'rvalue' : [1, 2, 3]})
+
+.. ipython:: python
+
+   A
+
+   B
+
+   ordered_merge(A, B, fill_method='ffill', left_by='group')
+
 .. _merging.multiple_join:
 
 Joining multiple DataFrame or Panel objects
@@ -554,6 +575,8 @@ them together on their indexes. The same is true for ``Panel.join``.
    df1.join([df2, df3])
 
 .. _merging.combine_first:
+
+.. _merging.combine_first.update:
 
 Merging together values within Series or DataFrame columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

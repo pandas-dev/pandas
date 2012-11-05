@@ -51,7 +51,20 @@ class TestSQLite(unittest.TestCase):
         result.index = frame.index[:1]
         tm.assert_frame_equal(result, frame[:1])
 
+    def test_schema(self):
+        frame = tm.makeTimeDataFrame()
+        create_sql = sql.get_sqlite_schema(frame, 'test', {'A': 'DATETIME'})
+        lines = create_sql.splitlines()
+        for l in lines:
+            tokens = l.split(' ')
+            if len(tokens) == 2 and tokens[0] == 'A':
+                self.assert_(tokens[1] == 'DATETIME')
 
+        frame = tm.makeTimeDataFrame()
+        create_sql = sql.get_sqlite_schema(frame, 'test', keys=['A', 'B'])
+        lines = create_sql.splitlines()
+        self.assert_('PRIMARY KEY (A,B)' in create_sql)
+        self.db.execute(create_sql)
 
     def test_execute_fail(self):
         create_sql = """
@@ -166,4 +179,3 @@ if __name__ == '__main__':
     #                exit=False)
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-

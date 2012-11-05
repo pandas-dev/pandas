@@ -4,13 +4,15 @@ import unittest
 
 import numpy as np
 
-import pandas.core.datetools as datetools
-from pandas.tseries.offsets import generate_range
 from pandas.core.index import Index
 from pandas.tseries.index import DatetimeIndex
 
+from pandas import Timestamp
+from pandas.tseries.offsets import generate_range
 from pandas.tseries.index import bdate_range, date_range
 import pandas.tseries.tools as tools
+
+import pandas.core.datetools as datetools
 
 def eq_gen_range(kwargs, expected):
     rng = generate_range(**kwargs)
@@ -49,6 +51,8 @@ class TestDateRange(unittest.TestCase):
         rng = bdate_range(START, END, freq=datetools.bday)
         rng = bdate_range(START, periods=20, freq=datetools.bday)
         rng = bdate_range(end=START, periods=20, freq=datetools.bday)
+        self.assertRaises(ValueError, date_range, '2011-1-1', '2012-1-1', 'B')
+        self.assertRaises(ValueError, bdate_range, '2011-1-1', '2012-1-1', 'B')
 
     def test_cached_range(self):
         rng = DatetimeIndex._cached_range(START, END,
@@ -256,6 +260,9 @@ class TestDateRange(unittest.TestCase):
 
     def test_date_parse_failure(self):
         badly_formed_date = '2007/100/1'
+
+        self.assertRaises(ValueError, Timestamp, badly_formed_date)
+
         self.assertRaises(ValueError, bdate_range, start=badly_formed_date,
                           periods=10)
         self.assertRaises(ValueError, bdate_range, end=badly_formed_date,
@@ -287,6 +294,7 @@ class TestDateRange(unittest.TestCase):
         start = datetime(2011, 1, 1)
         exp_values = [start + i * offset for i in range(5)]
         self.assert_(np.array_equal(result, DatetimeIndex(exp_values)))
+
 
 
 

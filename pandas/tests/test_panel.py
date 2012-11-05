@@ -71,7 +71,10 @@ class SafeForLongAndSparse(object):
         self._check_stat_op('max', np.max)
 
     def test_skew(self):
-        from scipy.stats import skew
+        try:
+            from scipy.stats import skew
+        except ImportError:
+            raise nose.SkipTest
         def this_skew(x):
             if len(x) < 3:
                 return np.nan
@@ -405,6 +408,9 @@ class CheckIndexing(object):
         self.panel['ItemP'] = self.panel['ItemA'] > 0
         self.assert_(self.panel['ItemP'].values.dtype == np.bool_)
 
+        self.assertRaises(TypeError, self.panel.__setitem__, 'foo',
+                          self.panel.ix[['ItemP']])
+
     def test_setitem_ndarray(self):
         from pandas import date_range, datetools
 
@@ -511,11 +517,17 @@ class CheckIndexing(object):
         pass
 
     def test_getitem_fancy_ints(self):
-        pass
+        p = self.panel
+
+        # #1603
+        result = p.ix[:, -1, :]
+        expected = p.ix[:, p.major_axis[-1], :]
+        assert_frame_equal(result, expected)
 
     def test_getitem_fancy_xs(self):
         p = self.panel
         item = 'ItemB'
+
         date = p.major_axis[5]
         col = 'C'
 
@@ -561,6 +573,54 @@ class CheckIndexing(object):
         self._check_view((item, date, NS), comp)
         self._check_view((item, NS, 'C'), comp)
         self._check_view((NS, date, 'C'), comp)
+
+    def test_ix_setitem_slice_dataframe(self):
+        a = Panel(items=[1,2,3],major_axis=[11,22,33],minor_axis=[111,222,333])
+        b = DataFrame(np.random.randn(2,3), index=[111,333],
+                      columns=[1,2,3])
+
+        a.ix[:, 22, [111, 333]] = b
+
+        assert_frame_equal(a.ix[:, 22, [111, 333]], b)
+
+    def test_ix_align(self):
+        from pandas import Series
+        b = Series(np.random.randn(10))
+        b.sort()
+        df_orig = Panel(np.random.randn(3, 10, 2))
+        df = df_orig.copy()
+
+        df.ix[0, :, 0] = b
+        assert_series_equal(df.ix[0, :, 0].reindex(b.index), b)
+
+        df = df_orig.swapaxes(0, 1)
+        df.ix[:, 0, 0] = b
+        assert_series_equal(df.ix[:, 0, 0].reindex(b.index), b)
+
+        df = df_orig.swapaxes(1, 2)
+        df.ix[0, 0, :] = b
+        assert_series_equal(df.ix[0, 0, :].reindex(b.index), b)
+
+    def test_ix_frame_align(self):
+        from pandas import DataFrame
+        df = DataFrame(np.random.randn(2, 10))
+        df.sort_index(inplace=True)
+        p_orig = Panel(np.random.randn(3, 10, 2))
+
+        p = p_orig.copy()
+        p.ix[0, :, :] = df
+        out = p.ix[0, :, :].T.reindex(df.index, columns=df.columns)
+        assert_frame_equal(out, df)
+
+        p = p_orig.copy()
+        p.ix[0] = df
+        out = p.ix[0].T.reindex(df.index, columns=df.columns)
+        assert_frame_equal(out, df)
+
+        p = p_orig.copy()
+        p.ix[0, [0, 1, 3, 5], -2:] = df
+        out = p.ix[0, [0, 1, 3, 5], -2:]
+        assert_frame_equal(out, df.T.reindex([0, 1, 3, 5], p.minor_axis[-2:]))
 
     def _check_view(self, indexer, comp):
         cp = self.panel.copy()
@@ -670,8 +730,9 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 
         d = {'A' : itema, 'B' : itemb[5:]}
         d2 = {'A' : itema._series, 'B' : itemb[5:]._series}
-        d3 = {'A' : DataFrame(itema._series),
-              'B' : DataFrame(itemb[5:]._series)}
+        d3 = {'A' : None,
+              'B' : DataFrame(itemb[5:]._series),
+              'C' : DataFrame(itema._series)}
 
         wp = Panel.from_dict(d)
         wp2 = Panel.from_dict(d2) # nested Dict
@@ -687,6 +748,11 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         assert_panel_equal(Panel(d), Panel.from_dict(d))
         assert_panel_equal(Panel(d2), Panel.from_dict(d2))
         assert_panel_equal(Panel(d3), Panel.from_dict(d3))
+
+        # a pathological case
+        d4 = { 'A' : None, 'B' : None }
+        wp4 = Panel.from_dict(d4)
+        assert_panel_equal(Panel(d4), Panel(items = ['A','B']))
 
         # cast
         dcasted = dict((k, v.reindex(wp.major_axis).fillna(0))
@@ -878,6 +944,13 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         filled = empty.fillna(0)
         assert_panel_equal(filled, empty)
 
+    def test_truncate_fillna_bug(self):
+        # #1823
+        result = self.panel.truncate(before=None, after=None, axis='items')
+
+        # it works!
+        result.fillna(value=0.0)
+
     def test_swapaxes(self):
         result = self.panel.swapaxes('items', 'minor')
         self.assert_(result.items is self.panel.minor_axis)
@@ -942,6 +1015,18 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         # names
         self.assertEqual(unfiltered.index.names, ['major', 'minor'])
 
+        # preserve original index names
+        df = DataFrame(np.random.randn(6, 2),
+                       index=[['a', 'a', 'b', 'b', 'c', 'c'],
+                              [0, 1, 0, 1, 0, 1]],
+                       columns=['one', 'two'])
+        df.index.names = ['foo', 'bar']
+        df.columns.name = 'baz'
+
+        rdf = df.to_panel().to_frame()
+        self.assertEqual(rdf.index.names, df.index.names)
+        self.assertEqual(rdf.columns.names, df.columns.names)
+
     def test_to_frame_mixed(self):
         panel = self.panel.fillna(0)
         panel['str'] = 'foo'
@@ -951,6 +1036,14 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         wp = lp.to_panel()
         self.assertEqual(wp['bool'].values.dtype, np.bool_)
         assert_frame_equal(wp['bool'], panel['bool'])
+
+    def test_to_panel_na_handling(self):
+        df = DataFrame(np.random.randint(0, 10, size=20).reshape((10, 2)),
+                       index=[[0, 0, 0, 0, 0, 0, 1, 1, 1, 1],
+                              [0, 1, 2, 3, 4, 5, 2, 3, 4, 5]])
+
+        panel = df.to_panel()
+        self.assert_(isnull(panel[0].ix[1, [0, 1]]).all())
 
     def test_filter(self):
         pass
@@ -984,6 +1077,12 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                            shifted.minor_xs(idx_lag))
 
         self.assertRaises(Exception, self.panel.shift, 1, axis='items')
+
+        # negative numbers, #2164
+        result = self.panel.shift(-1)
+        expected = Panel(dict((i, f.shift(-1)[:-1])
+                              for i, f in self.panel.iterkv()))
+        assert_panel_equal(result, expected)
 
     def test_multiindex_get(self):
         ind = MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1), ('b',2)],
@@ -1060,7 +1159,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         midx = MultiIndex.from_tuples(tuples)
         df = DataFrame(np.random.rand(5,4), index=midx)
         p = df.to_panel()
-        assert_frame_equal(p.minor_xs(2), df.ix[:,2].sort_index())
+        assert_frame_equal(p.minor_xs(2), df.xs(2, level=1).sort_index())
 
     def test_to_excel(self):
         try:
@@ -1076,10 +1175,158 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
             path = '__tmp__.' + ext
             self.panel.to_excel(path)
             reader = ExcelFile(path)
-            for item, df in self.panel.iteritems():
+            for item, df in self.panel.iterkv():
                 recdf = reader.parse(str(item),index_col=0)
                 assert_frame_equal(df, recdf)
             os.remove(path)
+
+    def test_dropna(self):
+        p = Panel(np.random.randn(4, 5, 6), major_axis=list('abcde'))
+        p.ix[:, ['b', 'd'], 0] = np.nan
+
+        result = p.dropna(axis=1)
+        exp = p.ix[:, ['a', 'c', 'e'], :]
+        assert_panel_equal(result, exp)
+
+        result = p.dropna(axis=1, how='all')
+        assert_panel_equal(result, p)
+
+        p.ix[:, ['b', 'd'], :] = np.nan
+        result = p.dropna(axis=1, how='all')
+        exp = p.ix[:, ['a', 'c', 'e'], :]
+        assert_panel_equal(result, exp)
+
+        p = Panel(np.random.randn(4, 5, 6), items=list('abcd'))
+        p.ix[['b'], :, 0] = np.nan
+
+        result = p.dropna()
+        exp = p.ix[['a', 'c', 'd']]
+        assert_panel_equal(result, exp)
+
+        result = p.dropna(how='all')
+        assert_panel_equal(result, p)
+
+        p.ix['b'] = np.nan
+        result = p.dropna(how='all')
+        exp = p.ix[['a', 'c', 'd']]
+        assert_panel_equal(result, exp)
+
+    def test_update(self):
+        pan = Panel([[[1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.]],
+                   [[1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.]]])
+
+        other = Panel([[[3.6, 2., np.nan],
+                           [np.nan, np.nan, 7]]], items=[1])
+
+        pan.update(other)
+
+        expected = Panel([[[1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.]],
+                             [[3.6, 2., 3],
+                              [1.5, np.nan, 7],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.]]])
+
+        assert_panel_equal(pan, expected)
+
+    def test_update_from_dict(self):
+        pan = Panel({'one': DataFrame([[1.5, np.nan, 3],
+                              [1.5, np.nan, 3],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.]]),
+                      'two': DataFrame([[1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.]])})
+
+        other = {'two': DataFrame([[3.6, 2., np.nan],
+                               [np.nan, np.nan, 7]])}
+
+        pan.update(other)
+
+        expected = Panel({'two': DataFrame([[3.6, 2., 3],
+                              [1.5, np.nan, 7],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.]]),
+                          'one': DataFrame([[1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.]])})
+
+        assert_panel_equal(pan, expected)
+
+    def test_update_nooverwrite(self):
+        pan = Panel([[[1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.]],
+                   [[1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.]]])
+
+        other = Panel([[[3.6, 2., np.nan],
+                        [np.nan, np.nan, 7]]], items=[1])
+
+        pan.update(other, overwrite=False)
+
+        expected = Panel([[[1.5, np.nan, 3],
+                              [1.5, np.nan, 3],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.]],
+                             [[1.5, 2., 3.],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.]]])
+
+        assert_panel_equal(pan, expected)
+
+    def test_update_filtered(self):
+        pan = Panel([[[1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.]],
+                   [[1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.]]])
+
+        other = Panel([[[3.6, 2., np.nan],
+                           [np.nan, np.nan, 7]]], items=[1])
+
+        pan.update(other, filter_func=lambda x: x > 2)
+
+        expected = Panel([[[1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.]],
+                             [[1.5, np.nan, 3],
+                              [1.5, np.nan, 7],
+                              [1.5, np.nan, 3.],
+                              [1.5, np.nan, 3.]]])
+
+        assert_panel_equal(pan, expected)
+
+    def test_update_raise(self):
+        pan = Panel([[[1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.]],
+                   [[1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.],
+                    [1.5, np.nan, 3.]]])
+
+        np.testing.assert_raises(Exception, pan.update, *(pan,),
+            **{'raise_conflict': True})
 
 class TestLongPanel(unittest.TestCase):
     """
@@ -1223,11 +1470,11 @@ class TestLongPanel(unittest.TestCase):
         # TODO: test correctness
 
     def test_get_dummies(self):
-        from pandas.core.reshape import make_column_dummies, make_axis_dummies
+        from pandas.core.reshape import get_dummies, make_axis_dummies
 
         self.panel['Label'] = self.panel.index.labels[1]
         minor_dummies = make_axis_dummies(self.panel, 'minor')
-        dummies = make_column_dummies(self.panel, 'Label')
+        dummies = get_dummies(self.panel['Label'])
         self.assert_(np.array_equal(dummies.values, minor_dummies.values))
 
     def test_apply(self):

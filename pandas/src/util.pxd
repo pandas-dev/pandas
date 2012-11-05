@@ -1,7 +1,10 @@
 from numpy cimport ndarray
 cimport numpy as cnp
+cimport cpython
 
 cdef extern from "numpy_helper.h":
+    inline void set_array_owndata(ndarray ao)
+
     inline int is_integer_object(object)
     inline int is_float_object(object)
     inline int is_complex_object(object)
@@ -13,6 +16,7 @@ cdef extern from "numpy_helper.h":
     inline object get_value_1d(ndarray, Py_ssize_t)
     inline char *get_c_string(object)
     inline object floatify(object)
+    inline object char_to_string(char*)
 
 cdef inline object get_value_at(ndarray arr, object loc):
     cdef:
@@ -57,7 +61,10 @@ cdef inline is_array(object o):
 
 
 cdef inline bint _checknull(object val):
-    return not cnp.PyArray_Check(val) and (val is None or val != val)
+    try:
+        return val is None or (cpython.PyFloat_Check(val) and val != val)
+    except ValueError:
+        return False
 
 cdef inline bint _checknan(object val):
     return not cnp.PyArray_Check(val) and val != val

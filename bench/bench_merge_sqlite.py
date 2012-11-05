@@ -74,8 +74,8 @@ for sort in [False]:
         conn.commit()
 
         sql_results[sort][join_method] = elapsed
-sql_results.columns = ['sqlite3'] # ['dont_sort', 'sort']
-sql_results.index = ['inner', 'outer', 'left']
+        sql_results.columns = ['sqlite3'] # ['dont_sort', 'sort']
+        sql_results.index = ['inner', 'outer', 'left']
 
         sql = """select *
         from left

@@ -1,11 +1,12 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import unittest
 import numpy as np
 
 from pandas.core.datetools import (
     bday, BDay, BQuarterEnd, BMonthEnd, BYearEnd, MonthEnd, MonthBegin,
     BYearBegin, QuarterBegin, BQuarterBegin, BMonthBegin,
-    DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second,
+    DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second, Day, Micro,
+    Milli, Nano,
     WeekOfMonth, format, ole2datetime, QuarterEnd, to_datetime, normalize_date,
     get_offset, get_offset_name, inferTimeRule, hasOffsetName,
     get_standard_freq)
@@ -13,6 +14,7 @@ from pandas.core.datetools import (
 from pandas.tseries.frequencies import _offset_map
 from pandas.tseries.index import _to_m8
 from pandas.tseries.tools import parse_time_string
+import pandas.tseries.offsets as offsets
 
 from nose.tools import assert_raises
 
@@ -115,6 +117,13 @@ class TestBusinessDay(unittest.TestCase):
         self.offset = BDay()
         self.offset2 = BDay(2)
 
+    def test_different_normalize_equals(self):
+        # equivalent in this special case
+        offset = BDay()
+        offset2 = BDay()
+        offset2.normalize = True
+        self.assertEqual(offset, offset2)
+
     def test_repr(self):
         assert repr(self.offset) == '<1 BusinessDay>'
         assert repr(self.offset2) == '<2 BusinessDays>'
@@ -172,6 +181,24 @@ class TestBusinessDay(unittest.TestCase):
     def testRollforward2(self):
         self.assertEqual(BDay(10).rollforward(datetime(2008, 1, 5)), datetime(2008, 1, 7))
 
+    def test_roll_date_object(self):
+        offset = BDay()
+
+        dt = date(2012, 9, 15)
+
+        result = offset.rollback(dt)
+        self.assertEqual(result, datetime(2012, 9, 14))
+
+        result = offset.rollforward(dt)
+        self.assertEqual(result, datetime(2012, 9, 17))
+
+        offset = offsets.Day()
+        result = offset.rollback(dt)
+        self.assertEqual(result, datetime(2012, 9, 15))
+
+        result = offset.rollforward(dt)
+        self.assertEqual(result, datetime(2012, 9, 15))
+
     def test_onOffset(self):
         tests = [(BDay(), datetime(2008, 1, 1), True),
                  (BDay(), datetime(2008, 1, 5), False)]
@@ -223,6 +250,15 @@ class TestBusinessDay(unittest.TestCase):
         for offset, cases in tests:
             for base, expected in cases.iteritems():
                 assertEq(offset, base, expected)
+
+    def test_apply_large_n(self):
+        dt = datetime(2012, 10, 23)
+
+        result = dt + BDay(10)
+        self.assertEqual(result, datetime(2012, 11, 6))
+
+        result = dt + BDay(100) - BDay(100)
+        self.assertEqual(result, dt)
 
     def test_apply_corner(self):
         self.assertRaises(Exception, BDay().apply, BMonthEnd())
@@ -422,6 +458,7 @@ class TestBMonthBegin(unittest.TestCase):
 
         tests = [(BMonthBegin(), datetime(2007, 12, 31), False),
                  (BMonthBegin(), datetime(2008, 1, 1), True),
+                 (BMonthBegin(), datetime(2001, 4, 2), True),
                  (BMonthBegin(), datetime(2008, 3, 3), True)]
 
         for offset, date, expected in tests:
@@ -473,6 +510,13 @@ class TestBMonthEnd(unittest.TestCase):
         for offset, cases in tests:
             for base, expected in cases.iteritems():
                 assertEq(offset, base, expected)
+
+    def test_normalize(self):
+        dt = datetime(2007, 1, 1, 3)
+
+        result = dt + BMonthEnd()
+        expected = dt.replace(hour=0) + BMonthEnd()
+        self.assertEqual(result, expected)
 
     def test_onOffset(self):
 
@@ -566,6 +610,24 @@ class TestMonthEnd(unittest.TestCase):
         for offset, cases in tests:
             for base, expected in cases.iteritems():
                 assertEq(offset, base, expected)
+
+    # def test_day_of_month(self):
+    #     dt = datetime(2007, 1, 1)
+
+    #     offset = MonthEnd(day=20)
+
+    #     result = dt + offset
+    #     self.assertEqual(result, datetime(2007, 1, 20))
+
+    #     result = result + offset
+    #     self.assertEqual(result, datetime(2007, 2, 20))
+
+    def test_normalize(self):
+        dt = datetime(2007, 1, 1, 3)
+
+        result = dt + MonthEnd()
+        expected = dt.replace(hour=0) + MonthEnd()
+        self.assertEqual(result, expected)
 
     def test_onOffset(self):
 
@@ -938,6 +1000,11 @@ class TestQuarterEnd(unittest.TestCase):
             assertOnOffset(offset, date, expected)
 
 class TestBYearBegin(unittest.TestCase):
+
+    def test_misspecified(self):
+        self.assertRaises(ValueError, BYearBegin, month=13)
+        self.assertRaises(ValueError, BYearEnd, month=13)
+
     def test_offset(self):
         tests = []
 
@@ -980,6 +1047,9 @@ class TestBYearBegin(unittest.TestCase):
 
 
 class TestYearBegin(unittest.TestCase):
+
+    def test_misspecified(self):
+        self.assertRaises(ValueError, YearBegin, month=13)
 
     def test_offset(self):
         tests = []
@@ -1118,6 +1188,9 @@ class TestBYearEnd(unittest.TestCase):
 
 class TestYearEnd(unittest.TestCase):
 
+    def test_misspecified(self):
+        self.assertRaises(ValueError, YearEnd, month=13)
+
     def test_offset(self):
         tests = []
 
@@ -1173,7 +1246,8 @@ class TestYearEndDiffMonth(unittest.TestCase):
                        datetime(2008, 2, 15): datetime(2008, 3, 31),
                        datetime(2008, 3, 31): datetime(2009, 3, 31),
                        datetime(2008, 3, 30): datetime(2008, 3, 31),
-                       datetime(2005, 3, 31): datetime(2006, 3, 31),}))
+                       datetime(2005, 3, 31): datetime(2006, 3, 31),
+                       datetime(2006, 7, 30): datetime(2007, 3, 31)}))
 
         tests.append((YearEnd(0, month=3),
                       {datetime(2008, 1, 1): datetime(2008, 3, 31),
@@ -1230,6 +1304,8 @@ def test_Hour():
 
     assert(Hour(4) != Hour(1))
 
+    assert not Hour().isAnchored()
+
 def test_Minute():
     assertEq(Minute(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 1))
     assertEq(Minute(-1), datetime(2010, 1, 1, 0, 1), datetime(2010, 1, 1))
@@ -1240,6 +1316,8 @@ def test_Minute():
     assert (Minute(3) - Minute(2)) == Minute()
     assert(Minute(5) != Minute())
 
+    assert not Minute().isAnchored()
+
 def test_Second():
     assertEq(Second(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 1))
     assertEq(Second(-1), datetime(2010, 1, 1, 0, 0, 1), datetime(2010, 1, 1))
@@ -1248,6 +1326,30 @@ def test_Second():
 
     assert (Second(3) + Second(2)) == Second(5)
     assert (Second(3) - Second(2)) == Second()
+
+    assert not Second().isAnchored()
+
+def test_tick_offset():
+    assert not Day().isAnchored()
+    assert not Milli().isAnchored()
+    assert not Micro().isAnchored()
+    assert not Nano().isAnchored()
+
+
+def test_compare_ticks():
+    offsets = [Hour, Minute, Second, Milli, Micro]
+
+    for kls in offsets:
+        three = kls(3)
+        four = kls(4)
+
+        for _ in xrange(10):
+            assert(three < kls(4))
+            assert(kls(3) < four)
+            assert(four > kls(3))
+            assert(kls(4) > three)
+            assert(kls(3) == kls(3))
+            assert(kls(3) != kls(4))
 
 def test_hasOffsetName():
     assert hasOffsetName(BDay())
@@ -1343,8 +1445,30 @@ class TestOffsetAliases(unittest.TestCase):
                 assert alias == _offset_map[alias].rule_code
                 assert alias == (_offset_map[alias] * 5).rule_code
 
+def test_apply_ticks():
+    result = offsets.Hour(3).apply(offsets.Hour(4))
+    exp = offsets.Hour(7)
+    assert(result == exp)
 
+def test_delta_to_tick():
+    delta = timedelta(3)
 
+    tick = offsets._delta_to_tick(delta)
+    assert(tick == offsets.Day(3))
+
+def test_dateoffset_misc():
+    oset = offsets.DateOffset(months=2, days=4)
+    # it works
+    result = oset.freqstr
+
+    assert(not offsets.DateOffset(months=2) == 2)
+
+def test_freq_offsets():
+    off = BDay(1, offset=timedelta(0, 1800))
+    assert(off.freqstr == 'B+30Min')
+
+    off = BDay(1, offset=timedelta(0, -1800))
+    assert(off.freqstr == 'B-30Min')
 
 if __name__ == '__main__':
     import nose

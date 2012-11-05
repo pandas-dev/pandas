@@ -35,10 +35,6 @@ ctypedef unsigned char UChar
 cimport util
 from util cimport is_array, _checknull, _checknan
 
-cdef extern from "math.h":
-    double sqrt(double x)
-    double fabs(double)
-
 # import datetime C API
 PyDateTime_IMPORT
 
@@ -59,8 +55,8 @@ cpdef ensure_platform_int(object arr):
 
 """
 
+
 take_1d_template = """@cython.wraparound(False)
-@cython.boundscheck(False)
 def take_1d_%(name)s(ndarray[%(c_type)s] values,
                      ndarray[int64_t] indexer,
                      out=None, fill_value=np.nan):

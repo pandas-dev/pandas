@@ -6,6 +6,7 @@ from __future__ import division
 import numpy as np
 import numpy.linalg as linalg
 
+
 def rank(X, cond=1.0e-12):
     """
     Return the rank of a matrix X based on its generalized inverse,
@@ -20,12 +21,14 @@ def rank(X, cond=1.0e-12):
     else:
         return int(not np.alltrue(np.equal(X, 0.)))
 
+
 def solve(a, b):
     """Returns the solution of A X = B."""
     try:
         return linalg.solve(a, b)
     except linalg.LinAlgError:
         return np.dot(linalg.pinv(a), b)
+
 
 def inv(a):
     """Returns the inverse of A."""
@@ -34,9 +37,11 @@ def inv(a):
     except linalg.LinAlgError:
         return np.linalg.pinv(a)
 
+
 def is_psd(m):
     eigvals = linalg.eigvals(m)
     return np.isreal(eigvals).all() and (eigvals >= 0).all()
+
 
 def newey_west(m, max_lags, nobs, df, nw_overlap=False):
     """
@@ -84,6 +89,7 @@ def newey_west(m, max_lags, nobs, df, nw_overlap=False):
 
     return Xeps
 
+
 def calc_F(R, r, beta, var_beta, nobs, df):
     """
     Computes the standard F-test statistic for linear restriction
@@ -120,4 +126,3 @@ def calc_F(R, r, beta, var_beta, nobs, df):
     p_value = 1 - f.cdf(F, q, nobs - df)
 
     return F, (q, nobs - df), p_value
-

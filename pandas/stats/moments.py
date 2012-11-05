@@ -10,7 +10,7 @@ from numpy import NaN
 import numpy as np
 
 from pandas.core.api import DataFrame, Series, notnull
-import pandas.lib as _tseries
+import pandas.lib as lib
 
 from pandas.util.decorators import Substitution, Appender
 
@@ -19,9 +19,14 @@ __all__ = ['rolling_count', 'rolling_max', 'rolling_min',
            'rolling_corr', 'rolling_var', 'rolling_skew', 'rolling_kurt',
            'rolling_quantile', 'rolling_median', 'rolling_apply',
            'rolling_corr_pairwise',
-           'ewma', 'ewmvar', 'ewmstd', 'ewmvol', 'ewmcorr', 'ewmcov']
+           'ewma', 'ewmvar', 'ewmstd', 'ewmvol', 'ewmcorr', 'ewmcov',
+           'expanding_count', 'expanding_max', 'expanding_min',
+           'expanding_sum', 'expanding_mean', 'expanding_std',
+           'expanding_cov', 'expanding_corr', 'expanding_var',
+           'expanding_skew', 'expanding_kurt', 'expanding_quantile',
+           'expanding_median', 'expanding_apply', 'expanding_corr_pairwise']
 
-#-------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Docs
 
 _doc_template = """
@@ -35,6 +40,7 @@ min_periods : int
     Minimum number of observations in window required to have a value
 freq : None or string alias / date offset object, default=None
     Frequency to conform to before computing statistic
+    time_rule is a legacy alias for freq
 
 Returns
 -------
@@ -56,14 +62,19 @@ min_periods : int, default 0
     beginning)
 freq : None or string alias / date offset object, default=None
     Frequency to conform to before computing statistic
+    time_rule is a legacy alias for freq
+adjust : boolean, default True
+    Divide by decaying adjustment factor in beginning periods to account for
+    imbalance in relative weightings (viewing EWMA as a moving average)
+
 %s
 Notes
 -----
 Either center of mass or span must be specified
 
 EWMA is sometimes specified using a "span" parameter s, we have have that the
-decay parameter \alpha is related to the span as :math:`\alpha = 1 - 2 / (s + 1)
-= c / (1 + c)`
+decay parameter \alpha is related to the span as
+:math:`\alpha = 1 - 2 / (s + 1) = c / (1 + c)`
 
 where c is the center of mass. Given a span, the associated center of mass is
 :math:`c = (s - 1) / 2`
@@ -74,6 +85,24 @@ Returns
 -------
 y : type of input argument
 """
+
+
+_expanding_doc = """
+%s
+
+Parameters
+----------
+%s
+min_periods : int
+    Minimum number of observations in window required to have a value
+freq : None or string alias / date offset object, default=None
+    Frequency to conform to before computing statistic
+
+Returns
+-------
+%s
+"""
+
 
 _type_of_input = "y : type of input argument"
 
@@ -93,6 +122,8 @@ arg2 : Series, DataFrame, or ndarray"""
 _bias_doc = r"""bias : boolean, default False
     Use a standard estimation bias correction
 """
+
+
 def rolling_count(arg, window, freq=None, time_rule=None):
     """
     Rolling count of number of non-NaN observations inside provided window.
@@ -122,6 +153,7 @@ def rolling_count(arg, window, freq=None, time_rule=None):
 
     return return_hook(result)
 
+
 @Substitution("Unbiased moving covariance", _binary_arg_flex, _flex_retval)
 @Appender(_doc_template)
 def rolling_cov(arg1, arg2, window, min_periods=None, time_rule=None):
@@ -132,15 +164,17 @@ def rolling_cov(arg1, arg2, window, min_periods=None, time_rule=None):
         return (mean(X * Y) - mean(X) * mean(Y)) * bias_adj
     return _flex_binary_moment(arg1, arg2, _get_cov)
 
+
 @Substitution("Moving sample correlation", _binary_arg_flex, _flex_retval)
 @Appender(_doc_template)
 def rolling_corr(arg1, arg2, window, min_periods=None, time_rule=None):
     def _get_corr(a, b):
         num = rolling_cov(a, b, window, min_periods, time_rule)
-        den  = (rolling_std(a, window, min_periods, time_rule) *
+        den = (rolling_std(a, window, min_periods, time_rule) *
                 rolling_std(b, window, min_periods, time_rule))
         return num / den
     return _flex_binary_moment(arg1, arg2, _get_corr)
+
 
 def _flex_binary_moment(arg1, arg2, f):
     if isinstance(arg1, np.ndarray) and isinstance(arg2, np.ndarray):
@@ -167,6 +201,7 @@ def _flex_binary_moment(arg1, arg2, f):
         return DataFrame(results, index=X.index, columns=res_columns)
     else:
         return _flex_binary_moment(arg2, arg1, f)
+
 
 def rolling_corr_pairwise(df, window, min_periods=None):
     """
@@ -197,8 +232,9 @@ def rolling_corr_pairwise(df, window, min_periods=None):
 
     return Panel.from_dict(all_results).swapaxes('items', 'major')
 
+
 def _rolling_moment(arg, window, func, minp, axis=0, freq=None,
-                    time_rule=None):
+                    time_rule=None, **kwargs):
     """
     Rolling statistical measure using supplied function. Designed to be
     used with passed-in Cython array-based functions.
@@ -219,12 +255,13 @@ def _rolling_moment(arg, window, func, minp, axis=0, freq=None,
     y : type of input
     """
     arg = _conv_timerule(arg, freq, time_rule)
-    calc = lambda x: func(x, window, minp=minp)
+    calc = lambda x: func(x, window, minp=minp, **kwargs)
     return_hook, values = _process_data_structure(arg)
     # actually calculate the moment. Faster way to do this?
     result = np.apply_along_axis(calc, axis, values)
 
     return return_hook(result)
+
 
 def _process_data_structure(arg, kill_inf=True):
     if isinstance(arg, DataFrame):
@@ -247,8 +284,9 @@ def _process_data_structure(arg, kill_inf=True):
 
     return return_hook, values
 
-#-------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Exponential moving moments
+
 
 def _get_center_of_mass(com, span):
     if span is not None:
@@ -263,14 +301,16 @@ def _get_center_of_mass(com, span):
 
     return float(com)
 
+
 @Substitution("Exponentially-weighted moving average", _unary_arg, "")
 @Appender(_ewm_doc)
-def ewma(arg, com=None, span=None, min_periods=0, freq=None, time_rule=None):
+def ewma(arg, com=None, span=None, min_periods=0, freq=None, time_rule=None,
+         adjust=True):
     com = _get_center_of_mass(com, span)
     arg = _conv_timerule(arg, freq, time_rule)
 
     def _ewma(v):
-        result = _tseries.ewma(v, com)
+        result = lib.ewma(v, com, int(adjust))
         first_index = _first_valid_index(v)
         result[first_index : first_index + min_periods] = NaN
         return result
@@ -279,9 +319,11 @@ def ewma(arg, com=None, span=None, min_periods=0, freq=None, time_rule=None):
     output = np.apply_along_axis(_ewma, 0, values)
     return return_hook(output)
 
+
 def _first_valid_index(arr):
     # argmax scans from left
-    return notnull(arr).argmax()
+    return notnull(arr).argmax() if len(arr) else 0
+
 
 @Substitution("Exponentially-weighted moving variance", _unary_arg, _bias_doc)
 @Appender(_ewm_doc)
@@ -298,15 +340,17 @@ def ewmvar(arg, com=None, span=None, min_periods=0, bias=False,
 
     return result
 
+
 @Substitution("Exponentially-weighted moving std", _unary_arg, _bias_doc)
 @Appender(_ewm_doc)
 def ewmstd(arg, com=None, span=None, min_periods=0, bias=False,
            time_rule=None):
     result = ewmvar(arg, com=com, span=span, time_rule=time_rule,
                     min_periods=min_periods, bias=bias)
-    return np.sqrt(result)
+    return _zsqrt(result)
 
 ewmvol = ewmstd
+
 
 @Substitution("Exponentially-weighted moving covariance", _binary_arg, "")
 @Appender(_ewm_doc)
@@ -319,12 +363,13 @@ def ewmcov(arg1, arg2, com=None, span=None, min_periods=0, bias=False,
 
     mean = lambda x: ewma(x, com=com, span=span, min_periods=min_periods)
 
-    result = (mean(X*Y) - mean(X) * mean(Y))
+    result = (mean(X * Y) - mean(X) * mean(Y))
     com = _get_center_of_mass(com, span)
     if not bias:
         result *= (1.0 + 2.0 * com) / (2.0 * com)
 
     return result
+
 
 @Substitution("Exponentially-weighted moving " "correlation", _binary_arg, "")
 @Appender(_ewm_doc)
@@ -338,7 +383,22 @@ def ewmcorr(arg1, arg2, com=None, span=None, min_periods=0,
     mean = lambda x: ewma(x, com=com, span=span, min_periods=min_periods)
     var = lambda x: ewmvar(x, com=com, span=span, min_periods=min_periods,
                            bias=True)
-    return (mean(X*Y) - mean(X)*mean(Y)) / np.sqrt(var(X) * var(Y))
+    return (mean(X * Y) - mean(X) * mean(Y)) / _zsqrt(var(X) * var(Y))
+
+
+def _zsqrt(x):
+    result = np.sqrt(x)
+    mask = x < 0
+
+    if isinstance(x, DataFrame):
+        if mask.values.any():
+            result[mask] = 0
+    else:
+        if mask.any():
+            result[mask] = 0
+
+    return result
+
 
 def _prep_binary(arg1, arg2):
     if not isinstance(arg2, type(arg1)):
@@ -352,6 +412,7 @@ def _prep_binary(arg1, arg2):
 
 #----------------------------------------------------------------------
 # Python interface to Cython functions
+
 
 def _conv_timerule(arg, freq, time_rule):
     if time_rule is not None:
@@ -368,6 +429,7 @@ def _conv_timerule(arg, freq, time_rule):
 
     return arg
 
+
 def _require_min_periods(p):
     def _check_func(minp, window):
         if minp is None:
@@ -376,40 +438,43 @@ def _require_min_periods(p):
             return max(p, minp)
     return _check_func
 
+
 def _use_window(minp, window):
     if minp is None:
         return window
     else:
         return minp
 
+
 def _rolling_func(func, desc, check_minp=_use_window):
     @Substitution(desc, _unary_arg, _type_of_input)
     @Appender(_doc_template)
     @wraps(func)
-    def f(arg, window, min_periods=None, freq=None, time_rule=None):
-        def call_cython(arg, window, minp):
+    def f(arg, window, min_periods=None, freq=None, time_rule=None, **kwargs):
+        def call_cython(arg, window, minp, **kwds):
             minp = check_minp(minp, window)
-            return func(arg, window, minp)
+            return func(arg, window, minp, **kwds)
         return _rolling_moment(arg, window, call_cython, min_periods,
-                               freq=freq, time_rule=time_rule)
+                               freq=freq, time_rule=time_rule, **kwargs)
 
     return f
 
-rolling_max = _rolling_func(_tseries.roll_max, 'Moving maximum')
-rolling_min = _rolling_func(_tseries.roll_min, 'Moving minimum')
-rolling_sum = _rolling_func(_tseries.roll_sum, 'Moving sum')
-rolling_mean = _rolling_func(_tseries.roll_mean, 'Moving mean')
-rolling_median = _rolling_func(_tseries.roll_median_cython, 'Moving median')
+rolling_max = _rolling_func(lib.roll_max2, 'Moving maximum')
+rolling_min = _rolling_func(lib.roll_min2, 'Moving minimum')
+rolling_sum = _rolling_func(lib.roll_sum, 'Moving sum')
+rolling_mean = _rolling_func(lib.roll_mean, 'Moving mean')
+rolling_median = _rolling_func(lib.roll_median_cython, 'Moving median')
 
-_ts_std = lambda *a, **kw: np.sqrt(_tseries.roll_var(*a, **kw))
+_ts_std = lambda *a, **kw: _zsqrt(lib.roll_var(*a, **kw))
 rolling_std = _rolling_func(_ts_std, 'Unbiased moving standard deviation',
-                            check_minp=_require_min_periods(2))
-rolling_var = _rolling_func(_tseries.roll_var, 'Unbiased moving variance',
-                            check_minp=_require_min_periods(2))
-rolling_skew = _rolling_func(_tseries.roll_skew, 'Unbiased moving skewness',
+                            check_minp=_require_min_periods(1))
+rolling_var = _rolling_func(lib.roll_var, 'Unbiased moving variance',
+                            check_minp=_require_min_periods(1))
+rolling_skew = _rolling_func(lib.roll_skew, 'Unbiased moving skewness',
                              check_minp=_require_min_periods(3))
-rolling_kurt = _rolling_func(_tseries.roll_kurt, 'Unbiased moving kurtosis',
+rolling_kurt = _rolling_func(lib.roll_kurt, 'Unbiased moving kurtosis',
                              check_minp=_require_min_periods(4))
+
 
 def rolling_quantile(arg, window, quantile, min_periods=None, freq=None,
                      time_rule=None):
@@ -432,9 +497,10 @@ def rolling_quantile(arg, window, quantile, min_periods=None, freq=None,
 
     def call_cython(arg, window, minp):
         minp = _use_window(minp, window)
-        return _tseries.roll_quantile(arg, window, minp, quantile)
+        return lib.roll_quantile(arg, window, minp, quantile)
     return _rolling_moment(arg, window, call_cython, min_periods,
                            freq=freq, time_rule=time_rule)
+
 
 def rolling_apply(arg, window, func, min_periods=None, freq=None,
                   time_rule=None):
@@ -457,6 +523,134 @@ def rolling_apply(arg, window, func, min_periods=None, freq=None,
     """
     def call_cython(arg, window, minp):
         minp = _use_window(minp, window)
-        return _tseries.roll_generic(arg, window, minp, func)
+        return lib.roll_generic(arg, window, minp, func)
     return _rolling_moment(arg, window, call_cython, min_periods,
                            freq=freq, time_rule=time_rule)
+
+
+def _expanding_func(func, desc, check_minp=_use_window):
+    @Substitution(desc, _unary_arg, _type_of_input)
+    @Appender(_expanding_doc)
+    @wraps(func)
+    def f(arg, min_periods=1, freq=None, time_rule=None, **kwargs):
+        window = len(arg)
+
+        def call_cython(arg, window, minp, **kwds):
+            minp = check_minp(minp, window)
+            return func(arg, window, minp, **kwds)
+        return _rolling_moment(arg, window, call_cython, min_periods,
+                               freq=freq, time_rule=time_rule, **kwargs)
+
+    return f
+
+expanding_max = _expanding_func(lib.roll_max2, 'Expanding maximum')
+expanding_min = _expanding_func(lib.roll_min2, 'Expanding minimum')
+expanding_sum = _expanding_func(lib.roll_sum, 'Expanding sum')
+expanding_mean = _expanding_func(lib.roll_mean, 'Expanding mean')
+expanding_median = _expanding_func(lib.roll_median_cython, 'Expanding median')
+
+expanding_std = _expanding_func(_ts_std,
+                                'Unbiased expanding standard deviation',
+                                check_minp=_require_min_periods(2))
+expanding_var = _expanding_func(lib.roll_var, 'Unbiased expanding variance',
+                            check_minp=_require_min_periods(2))
+expanding_skew = _expanding_func(lib.roll_skew, 'Unbiased expanding skewness',
+                             check_minp=_require_min_periods(3))
+expanding_kurt = _expanding_func(lib.roll_kurt, 'Unbiased expanding kurtosis',
+                             check_minp=_require_min_periods(4))
+
+
+def expanding_count(arg, freq=None, time_rule=None):
+    """
+    Expanding count of number of non-NaN observations.
+
+    Parameters
+    ----------
+    arg :  DataFrame or numpy ndarray-like
+    freq : None or string alias / date offset object, default=None
+        Frequency to conform to before computing statistic
+
+    Returns
+    -------
+    expanding_count : type of caller
+    """
+    return rolling_count(arg, len(arg), freq=freq, time_rule=time_rule)
+
+
+def expanding_quantile(arg, quantile, min_periods=1, freq=None,
+                     time_rule=None):
+    """Expanding quantile
+
+    Parameters
+    ----------
+    arg : Series, DataFrame
+    quantile : 0 <= quantile <= 1
+    min_periods : int
+        Minimum number of observations in window required to have a value
+    freq : None or string alias / date offset object, default=None
+        Frequency to conform to before computing statistic
+
+    Returns
+    -------
+    y : type of input argument
+    """
+    return rolling_quantile(arg, len(arg), quantile, min_periods=min_periods,
+                            freq=freq, time_rule=time_rule)
+
+
+@Substitution("Unbiased expanding covariance", _binary_arg_flex, _flex_retval)
+@Appender(_expanding_doc)
+def expanding_cov(arg1, arg2, min_periods=1, time_rule=None):
+    window = max(len(arg1), len(arg2))
+    return rolling_cov(arg1, arg2, window,
+                       min_periods=min_periods, time_rule=time_rule)
+
+
+@Substitution("Expanding sample correlation", _binary_arg_flex, _flex_retval)
+@Appender(_expanding_doc)
+def expanding_corr(arg1, arg2, min_periods=1, time_rule=None):
+    window = max(len(arg1), len(arg2))
+    return rolling_corr(arg1, arg2, window,
+                        min_periods=min_periods, time_rule=time_rule)
+
+
+def expanding_corr_pairwise(df, min_periods=1):
+    """
+    Computes pairwise expanding correlation matrices as Panel whose items are
+    dates
+
+    Parameters
+    ----------
+    df : DataFrame
+    min_periods : int, default 1
+
+    Returns
+    -------
+    correls : Panel
+    """
+
+    window = len(df)
+
+    return rolling_corr_pairwise(df, window, min_periods=min_periods)
+
+
+def expanding_apply(arg, func, min_periods=1, freq=None, time_rule=None):
+    """Generic expanding function application
+
+    Parameters
+    ----------
+    arg : Series, DataFrame
+    func : function
+        Must produce a single value from an ndarray input
+    min_periods : int
+        Minimum number of observations in window required to have a value
+    freq : None or string alias / date offset object, default=None
+        Frequency to conform to before computing statistic
+
+    Returns
+    -------
+    y : type of input argument
+    """
+    window = len(arg)
+    return rolling_apply(arg, window, func, min_periods=min_periods, freq=freq,
+                         time_rule=time_rule)

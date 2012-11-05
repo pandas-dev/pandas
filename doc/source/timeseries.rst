@@ -140,7 +140,7 @@ to create timestamp indexes.
    index = bdate_range('2012-1-1', periods=250)
    index
 
-Convenience functions like ``date_range`` and ``bdate_range`` utilizes a
+Convenience functions like ``date_range`` and ``bdate_range`` utilize a
 variety of frequency aliases. The default frequency for ``date_range`` is a
 **calendar day** while the default for ``bdate_range`` is a **business day**
 
@@ -156,7 +156,7 @@ variety of frequency aliases. The default frequency for ``date_range`` is a
    rng
 
 ``date_range`` and ``bdate_range`` makes it easy to generate a range of dates
-using various combinations of its parameters like ``start``, ``end``,
+using various combinations of parameters like ``start``, ``end``,
 ``periods``, and ``freq``:
 
 .. ipython:: python
@@ -297,7 +297,7 @@ We could have done the same thing with ``DateOffset``:
 
 .. ipython:: python
 
-   from pandas.core.datetools import *
+   from pandas.tseries.offsets import *
    d + DateOffset(months=4, days=5)
 
 The key features of a ``DateOffset`` object are:
@@ -586,7 +586,7 @@ different parameters to control the frequency conversion and resampling
 operation.
 
 The ``how`` parameter can be a function name or numpy array function that takes
-and array and produces an aggregated values:
+an array and produces aggregated values:
 
 .. ipython:: python
 
@@ -693,7 +693,7 @@ return the number of frequency units between them:
 
 .. ipython:: python
 
-   Period('2012', freq='A-DEC') - Period(2002', freq='A-DEC')
+   Period('2012', freq='A-DEC') - Period('2002', freq='A-DEC')
 
 PeriodIndex and period_range
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -725,7 +725,7 @@ method. Let's start with the fiscal year 2011, ending in December:
 
 .. ipython:: python
 
-   p = Period('2011' freq='A-DEC')
+   p = Period('2011', freq='A-DEC')
    p
 
 We can convert it to a monthly frequency. Using the ``how`` parameter, we can
@@ -841,7 +841,7 @@ different time zones. By default, pandas objects are time zone unaware:
 
 .. ipython:: python
 
-   rng = date_range('1/1/2012 00:00', periods=10, freq='D')
+   rng = date_range('3/6/2012 00:00', periods=15, freq='D')
    print(rng.tz)
 
 To supply the time zone, you can use the ``tz`` keyword to ``date_range`` and
@@ -849,20 +849,65 @@ other functions:
 
 .. ipython:: python
 
-   rng_utc = date_range('1/1/2012 00:00', periods=10, freq='D', tz='UTC')
+   rng_utc = date_range('3/6/2012 00:00', periods=10, freq='D', tz='UTC')
    print(rng_utc.tz)
 
-You can use the ``tz_convert`` method to convert pandas objects to a particular
-time zone:
+Timestamps, like Python's ``datetime.datetime`` object can be either time zone
+naive or time zone aware. Naive time series and DatetimeIndex objects can be
+*localized* using ``tz_localize``:
 
 .. ipython:: python
 
    ts = Series(randn(len(rng)), rng)
 
-   ts_utc = ts.tz_convert('UTC')
+   ts_utc = ts.tz_localize('UTC')
    ts_utc
+
+You can use the ``tz_convert`` method to convert pandas objects to convert
+tz-aware data to another time zone:
+
+.. ipython:: python
 
    ts_utc.tz_convert('US/Eastern')
 
-Under the hood, pandas stores everything in UTC value to make zone and DST
-conversions simpler to implement.
+Under the hood, all timestamps are stored in UTC. Scalar values from a
+``DatetimeIndex`` with a time zone will have their fields (day, hour, minute)
+localized to the time zone. However, timestamps with the same UTC value are
+still considered to be equal even if they are in different time zones:
+
+.. ipython:: python
+
+   rng_eastern = rng_utc.tz_convert('US/Eastern')
+   rng_berlin = rng_utc.tz_convert('Europe/Berlin')
+
+   rng_eastern[5]
+   rng_berlin[5]
+   rng_eastern[5] == rng_berlin[5]
+
+Like Series, DataFrame, and DatetimeIndex, Timestamps can be converted to other
+time zones using ``tz_convert``:
+
+.. ipython:: python
+
+   rng_eastern[5]
+   rng_berlin[5]
+   rng_eastern[5].tz_convert('Europe/Berlin')
+
+Localization of Timestamps functions just like DatetimeIndex and TimeSeries:
+
+.. ipython:: python
+
+   rng[5]
+   rng[5].tz_localize('Asia/Shanghai')
+
+
+Operations between TimeSeries in difficult time zones will yield UTC
+TimeSeries, aligning the data on the UTC timestamps:
+
+.. ipython:: python
+
+   eastern = ts_utc.tz_convert('US/Eastern')
+   berlin = ts_utc.tz_convert('Europe/Berlin')
+   result = eastern + berlin
+   result
+   result.index

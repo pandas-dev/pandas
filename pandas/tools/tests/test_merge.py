@@ -352,7 +352,7 @@ class TestMerge(unittest.TestCase):
         df2 = df2.sortlevel(0)
 
         joined = df1.join(df2, how='outer')
-        ex_index = index1.get_tuple_index() + index2.get_tuple_index()
+        ex_index = index1._tuple_index + index2._tuple_index
         expected = df1.reindex(ex_index).join(df2.reindex(ex_index))
         assert_frame_equal(joined, expected)
         self.assertEqual(joined.index.names, index1.names)
@@ -361,7 +361,7 @@ class TestMerge(unittest.TestCase):
         df2 = df2.sortlevel(1)
 
         joined = df1.join(df2, how='outer').sortlevel(0)
-        ex_index = index1.get_tuple_index() + index2.get_tuple_index()
+        ex_index = index1._tuple_index + index2._tuple_index
         expected = df1.reindex(ex_index).join(df2.reindex(ex_index))
 
         assert_frame_equal(joined, expected)
@@ -413,6 +413,54 @@ class TestMerge(unittest.TestCase):
         joined = a.join(b)
         expected = a.join(b.astype('f8'))
         assert_frame_equal(joined, expected)
+
+        joined = b.join(a)
+        assert_frame_equal(expected, joined.reindex(columns=['a', 'b', 'c']))
+
+        a = np.random.randint(0, 5, 100)
+        b = np.random.random(100).astype('Float64')
+        c = np.random.random(100).astype('Float32')
+        df = DataFrame({'a': a, 'b' : b, 'c' : c})
+        xpdf = DataFrame({'a': a, 'b' : b, 'c' : c.astype('Float64')})
+        s = DataFrame(np.random.random(5).astype('f'), columns=['md'])
+        rs = df.merge(s, left_on='a', right_index=True)
+        xp = xpdf.merge(s.astype('f8'), left_on='a', right_index=True)
+        assert_frame_equal(rs, xp)
+
+    def test_join_many_non_unique_index(self):
+        df1 = DataFrame({"a": [1,1], "b": [1,1], "c": [10,20]})
+        df2 = DataFrame({"a": [1,1], "b": [1,2], "d": [100,200]})
+        df3 = DataFrame({"a": [1,1], "b": [1,2], "e": [1000,2000]})
+        idf1 = df1.set_index(["a", "b"])
+        idf2 = df2.set_index(["a", "b"])
+        idf3 = df3.set_index(["a", "b"])
+
+        result = idf1.join([idf2, idf3], how='outer')
+
+        df_partially_merged = merge(df1, df2, on=['a', 'b'], how='outer')
+        expected = merge(df_partially_merged, df3, on=['a', 'b'], how='outer')
+
+        result = result.reset_index()
+
+        result['a'] = result['a'].astype(np.float64)
+        result['b'] = result['b'].astype(np.float64)
+
+        assert_frame_equal(result, expected.ix[:, result.columns])
+
+        df1 = DataFrame({"a": [1, 1, 1], "b": [1,1, 1], "c": [10,20, 30]})
+        df2 = DataFrame({"a": [1, 1, 1], "b": [1,1, 2], "d": [100,200, 300]})
+        df3 = DataFrame({"a": [1, 1, 1], "b": [1,1, 2], "e": [1000,2000, 3000]})
+        idf1 = df1.set_index(["a", "b"])
+        idf2 = df2.set_index(["a", "b"])
+        idf3 = df3.set_index(["a", "b"])
+        result = idf1.join([idf2, idf3], how='inner')
+
+        df_partially_merged = merge(df1, df2, on=['a', 'b'], how='inner')
+        expected = merge(df_partially_merged, df3, on=['a', 'b'], how='inner')
+
+        result = result.reset_index()
+
+        assert_frame_equal(result, expected.ix[:, result.columns])
 
     def test_merge_index_singlekey_right_vs_left(self):
         left = DataFrame({'key': ['a', 'b', 'c', 'd', 'e', 'e', 'a'],
@@ -613,6 +661,40 @@ class TestMerge(unittest.TestCase):
                         index=[dt2, dt2, dt3, dt, dt])
         _check_merge(df1, df2)
 
+    def test_left_merge_empty_dataframe(self):
+        left = DataFrame({'key': [1], 'value': [2]})
+        right = DataFrame({'key': []})
+
+        result = merge(left, right, on='key', how='left')
+        assert_frame_equal(result, left)
+
+        result = merge(right, left, on='key', how='right')
+        assert_frame_equal(result, left)
+
+    def test_merge_nosort(self):
+        # #2098, anything to do?
+
+        from datetime import datetime
+
+        d = {"var1" : np.random.randint(0, 10, size=10),
+             "var2" : np.random.randint(0, 10, size=10),
+             "var3" : [datetime(2012, 1, 12), datetime(2011, 2, 4),
+                       datetime(2010, 2, 3), datetime(2012, 1, 12),
+                       datetime(2011, 2, 4), datetime(2012, 4, 3),
+                       datetime(2012, 3, 4), datetime(2008, 5, 1),
+                       datetime(2010, 2, 3), datetime(2012, 2, 3)]}
+        df = DataFrame.from_dict(d)
+        var3 = df.var3.unique()
+        var3.sort()
+        new = DataFrame.from_dict({"var3" : var3,
+                                   "var8" : np.random.random(7)})
+
+        result = df.merge(new, on="var3", sort=False)
+        exp = merge(df, new, on='var3', sort=False)
+        assert_frame_equal(result, exp)
+
+        self.assert_((df.var3.unique() == result.var3.unique()).all())
+
 def _check_merge(x, y):
     for how in ['inner', 'left', 'outer']:
         result = x.join(y, how=how)
@@ -717,6 +799,34 @@ class TestMergeMulti(unittest.TestCase):
         rdf = right.drop(['id'], axis=1)
         expected = left.join(rdf)
         tm.assert_frame_equal(merged, expected)
+
+    def test_merge_na_keys(self):
+        data = [[1950, "A", 1.5],
+                [1950, "B", 1.5],
+                [1955, "B", 1.5],
+                [1960, "B", np.nan],
+                [1970, "B", 4.],
+                [1950, "C", 4.],
+                [1960, "C", np.nan],
+                [1965, "C", 3.],
+                [1970, "C", 4.]]
+
+        frame = DataFrame(data, columns=["year", "panel", "data"])
+
+        other_data = [[1960, 'A', np.nan],
+                      [1970, 'A', np.nan],
+                      [1955, 'A', np.nan],
+                      [1965, 'A', np.nan],
+                      [1965, 'B', np.nan],
+                      [1955, 'C', np.nan]]
+        other = DataFrame(other_data, columns=['year', 'panel', 'data'])
+
+        result = frame.merge(other, how='outer')
+
+        expected = frame.fillna(-999).merge(other.fillna(-999), how='outer')
+        expected = expected.replace(-999, np.nan)
+
+        tm.assert_frame_equal(result, expected)
 
 
 def _check_join(left, right, result, join_col, how='left',
@@ -848,7 +958,8 @@ class TestConcatenate(unittest.TestCase):
         self.assert_(appended is not self.frame)
 
         # overlap
-        self.assertRaises(Exception, self.frame.append, self.frame)
+        self.assertRaises(Exception, self.frame.append, self.frame,
+                          verify_integrity=True)
 
     def test_append_length0_frame(self):
         df = DataFrame(columns=['A', 'B', 'C'])
@@ -1108,6 +1219,34 @@ class TestConcatenate(unittest.TestCase):
         self.assertEqual(result.index.names, ['first', 'second'] + [None])
         self.assert_(np.array_equal(result.index.levels[0], ['baz', 'foo']))
 
+    def test_concat_keys_levels_no_overlap(self):
+        # GH #1406
+        df = DataFrame(np.random.randn(1, 3), index=['a'])
+        df2 = DataFrame(np.random.randn(1, 4), index=['b'])
+
+        self.assertRaises(ValueError, concat, [df, df],
+                          keys=['one', 'two'], levels=[['foo', 'bar', 'baz']])
+
+        self.assertRaises(ValueError, concat, [df, df2],
+                          keys=['one', 'two'], levels=[['foo', 'bar', 'baz']])
+
+    def test_concat_rename_index(self):
+        a = DataFrame(np.random.rand(3,3),
+                      columns=list('ABC'),
+                      index=Index(list('abc'), name='index_a'))
+        b = DataFrame(np.random.rand(3,3),
+                      columns=list('ABC'),
+                      index=Index(list('abc'), name='index_b'))
+
+        result = concat([a, b], keys=['key0', 'key1'],
+                        names=['lvl0', 'lvl1'])
+
+        exp = concat([a, b], keys=['key0', 'key1'], names=['lvl0'])
+        exp.index.names[1] = 'lvl1'
+
+        tm.assert_frame_equal(result, exp)
+        self.assertEqual(result.index.names, exp.index.names)
+
     def test_crossed_dtypes_weird_corner(self):
         columns = ['A', 'B', 'C', 'D']
         df1 = DataFrame({'A' : np.array([1, 2, 3, 4], dtype='f8'),
@@ -1126,6 +1265,11 @@ class TestConcatenate(unittest.TestCase):
         expected = DataFrame(np.concatenate([df1.values, df2.values], axis=0),
                              columns=columns)
         tm.assert_frame_equal(appended, expected)
+
+        df = DataFrame(np.random.randn(1, 3), index=['a'])
+        df2 = DataFrame(np.random.randn(1, 4), index=['b'])
+        result = concat([df, df2], keys=['one', 'two'], names=['first', 'second'])
+        self.assertEqual(result.index.names, ['first', 'second'])
 
     def test_handle_empty_objects(self):
         df = DataFrame(np.random.randn(10, 4), columns=list('abcd'))
@@ -1298,6 +1442,40 @@ class TestConcatenate(unittest.TestCase):
         tm.assert_frame_equal(result, df)
         self.assertRaises(Exception, concat, [None, None])
 
+    def test_concat_datetime64_block(self):
+        from pandas.tseries.index import date_range
+
+        rng = date_range('1/1/2000', periods=10)
+
+        df = DataFrame({'time': rng})
+
+        result = concat([df, df])
+        self.assert_((result[:10]['time'] == rng).all())
+
+    def test_concat_keys_with_none(self):
+        # #1649
+        df0 = DataFrame([[10, 20, 30], [10, 20, 30], [10, 20, 30]])
+
+        result = concat(dict(a=None, b=df0, c=df0[:2], d=df0[:1], e=df0))
+        expected = concat(dict(b=df0, c=df0[:2], d=df0[:1], e=df0))
+        tm.assert_frame_equal(result, expected)
+
+        result = concat([None, df0, df0[:2], df0[:1], df0],
+                        keys=['a', 'b', 'c', 'd', 'e'])
+        expected = concat([df0, df0[:2], df0[:1], df0],
+                          keys=['b', 'c', 'd', 'e'])
+        tm.assert_frame_equal(result, expected)
+
+    def test_concat_bug_1719(self):
+        ts1 = tm.makeTimeSeries()
+        ts2 = tm.makeTimeSeries()[::2]
+
+        ## to join with union
+        ## these two are of different length!
+        left = concat([ts1,ts2], join='outer', axis = 1)
+        right = concat([ts2,ts1], join='outer', axis = 1)
+
+        self.assertEqual(len(left), len(right))
 
 class TestOrderedMerge(unittest.TestCase):
 
@@ -1352,5 +1530,3 @@ if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-
-

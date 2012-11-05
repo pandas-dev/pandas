@@ -47,9 +47,9 @@ right2 = right.append(right, ignore_index=True)
 
 
 join_methods = ['inner', 'outer', 'left', 'right']
-results = DataFrame(index=join_methods, columns=[False])
+results = DataFrame(index=join_methods, columns=[False, True])
 niter = 10
-for sort in [False]:
+for sort in [False, True]:
     for join_method in join_methods:
         f = lambda: merge(left, right, how=join_method, sort=sort)
         gc.disable()
@@ -59,8 +59,8 @@ for sort in [False]:
         elapsed = (time.time() - start) / niter
         gc.enable()
         results[sort][join_method] = elapsed
-results.columns = ['pandas']
-# results.columns = ['dont_sort', 'sort']
+# results.columns = ['pandas']
+results.columns = ['dont_sort', 'sort']
 
 
 # R results
@@ -73,20 +73,21 @@ left       0.2998 0.1188     0.0572
 right      0.3102 0.0536     0.0376
 """), sep='\s+')
 
-all_results = results.join(r_results)
+presults = results[['dont_sort']].rename(columns={'dont_sort': 'pandas'})
+all_results = presults.join(r_results)
 
 all_results = all_results.div(all_results['pandas'], axis=0)
 
 all_results = all_results.ix[:, ['pandas', 'data.table', 'plyr', 'base::merge']]
 
 sort_results = DataFrame.from_items([('pandas', results['sort']),
-                                     ('R', r_results['sort'])])
+                                     ('R', r_results['base::merge'])])
 sort_results['Ratio'] = sort_results['R'] / sort_results['pandas']
 
 
 nosort_results = DataFrame.from_items([('pandas', results['dont_sort']),
-                                       ('R', r_results['dont_sort'])])
-nosort_results['Ratio'] = sort_results['R'] / sort_results['pandas']
+                                       ('R', r_results['base::merge'])])
+nosort_results['Ratio'] = nosort_results['R'] / nosort_results['pandas']
 
 # many to many
 
@@ -99,6 +100,6 @@ left       0.6559 0.1257     0.0678
 right      0.6425 0.0522     0.0428
 """), sep='\s+')
 
-all_results = results.join(r_results)
+all_results = presults.join(r_results)
 all_results = all_results.div(all_results['pandas'], axis=0)
 all_results = all_results.ix[:, ['pandas', 'data.table', 'plyr', 'base::merge']]

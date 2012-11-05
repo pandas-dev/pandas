@@ -44,7 +44,7 @@ infer_type(PyObject* obj) {
 }
 
 PANDAS_INLINE npy_int64
-get_nat() {
+get_nat(void) {
   return NPY_MIN_INT64;
 }
 
@@ -116,6 +116,15 @@ get_c_string(PyObject* obj) {
 #endif
 }
 
+PANDAS_INLINE PyObject*
+char_to_string(char* data) {
+#if PY_VERSION_HEX >= 0x03000000
+    return PyUnicode_FromString(data);
+#else
+    return PyString_FromString(data);
+#endif
+}
+
 // PANDAS_INLINE int
 // is_string(PyObject* obj) {
 // #if PY_VERSION_HEX >= 0x03000000
@@ -132,6 +141,11 @@ PANDAS_INLINE PyObject* floatify(PyObject* str) {
   return PyFloat_FromString(str, NULL);
 #endif
 
+}
+
+
+void set_array_owndata(PyArrayObject *ao) {
+    ao->flags |= NPY_OWNDATA;
 }
 
 

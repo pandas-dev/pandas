@@ -26,6 +26,13 @@ from pandas.util import py3compat
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
 
+def _skip_if_no_scipy():
+    try:
+        import scipy.stats
+    except ImportError:
+        raise nose.SkipTest
+
+
 #-------------------------------------------------------------------------------
 # Series test cases
 
@@ -81,6 +88,17 @@ class CheckNameIntegration(object):
 
         result = self.ts[5:10]
         self.assertEquals(result.name, self.ts.name)
+
+    def test_getitem_setitem_ellipsis(self):
+        s = Series(np.random.randn(10))
+
+        np.fix(s)
+
+        result = s[...]
+        assert_series_equal(result, s)
+
+        s[...] = 5
+        self.assert_((result == 5).all())
 
     def test_multilevel_name_print(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
@@ -185,6 +203,10 @@ class TestNanops(unittest.TestCase):
         df = DataFrame(np.empty((10, 0)))
         self.assert_((df.sum(1) == 0).all())
 
+    def test_nansum_buglet(self):
+        s = Series([1.0, np.nan], index=[0,1])
+        result = np.nansum(s)
+        assert_almost_equal(result, 1)
 
 class SafeForSparse(object):
     pass
@@ -230,6 +252,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(Exception, Series, np.random.randn(3, 3),
                           index=np.arange(3))
 
+        mixed.name = 'Series'
+        rs = Series(mixed).name
+        xp = 'Series'
+        self.assertEqual(rs, xp)
+
     def test_constructor_empty(self):
         empty = Series()
         empty2 = Series([])
@@ -238,6 +265,26 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         empty = Series(index=range(10))
         empty2 = Series(np.nan, index=range(10))
         assert_series_equal(empty, empty2)
+
+    def test_constructor_series(self):
+        index1 = ['d', 'b', 'a', 'c']
+        index2 = sorted(index1)
+        s1 = Series([4, 7, -5, 3], index=index1)
+        s2 = Series(s1, index=index2)
+
+        assert_series_equal(s2, s1.sort_index())
+
+    def test_constructor_generator(self):
+        gen = (i for i in range(10))
+
+        result = Series(gen)
+        exp = Series(range(10))
+        assert_series_equal(result, exp)
+
+        gen = (i for i in range(10))
+        result = Series(gen, index=range(10, 20))
+        exp.index = range(10, 20)
+        assert_series_equal(result, exp)
 
     def test_constructor_maskedarray(self):
         data = ma.masked_all((3,), dtype=float)
@@ -279,6 +326,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_constructor_cast(self):
         self.assertRaises(ValueError, Series, ['a', 'b', 'c'], dtype=float)
 
+    def test_constructor_dtype_nocast(self):
+        # #1572
+        s = Series([1, 2, 3])
+
+        s2 = Series(s, dtype=np.int64)
+
+        s2[1] = 5
+        self.assertEquals(s[1], 5)
+
     def test_constructor_dict(self):
         d = {'a' : 0., 'b' : 1., 'c' : 2.}
         result = Series(d, index=['b', 'c', 'd', 'a'])
@@ -309,6 +365,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s = Series(data)
         self.assertEqual(tuple(s), data)
 
+    def test_constructor_set(self):
+        values = set([1, 2, 3, 4, 5])
+
+        self.assertRaises(TypeError, Series, values)
+
     def test_fromDict(self):
         data = {'a' : 0, 'b' : 1, 'c' : 2, 'd' : 3}
 
@@ -328,6 +389,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(series.dtype == np.float64)
 
     def test_from_json_to_json(self):
+        raise nose.SkipTest
 
         def _check_orient(series, orient, dtype=None, numpy=True):
             series = series.sort_index()
@@ -377,6 +439,7 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         _check_all_orients(Series(s, dtype=np.int), dtype=np.int)
 
     def test_to_json_except(self):
+        raise nose.SkipTest
         s = Series([1, 2, 3])
         self.assertRaises(ValueError, s.to_json, orient="garbage")
 
@@ -465,12 +528,16 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = s.reindex(s.index[[0, 2, 3, 4, 5]])
         assert_series_equal(result, expected)
 
+    def test_iget_nonunique(self):
+        s = Series([0, 1, 2], index=[0, 1, 0])
+        self.assertEqual(s.iget(2), 2)
+
     def test_getitem_regression(self):
         s = Series(range(5), index=range(5))
         result = s[range(5)]
         assert_series_equal(result, s)
 
-    def test_getitem_slice_bug(self):
+    def test_getitem_setitem_slice_bug(self):
         s = Series(range(10), range(10))
         result = s[-12:]
         assert_series_equal(result, s)
@@ -480,6 +547,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         result = s[:-12]
         assert_series_equal(result, s[:0])
+
+        s = Series(range(10), range(10))
+        s[-12:] = 0
+        self.assert_((s == 0).all())
+
+        s[:-12] = 5
+        self.assert_((s == 0).all())
 
     def test_getitem_int64(self):
         idx = np.int64(5)
@@ -561,6 +635,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s = Series([])
         self.assertRaises(IndexError, s.__getitem__, -1)
 
+    def test_getitem_setitem_integers(self):
+        # caused bug without test
+        s = Series([1,2,3], ['a','b','c'])
+
+        self.assertEqual(s.ix[0], s['a'])
+        s.ix[0] = 5
+        self.assertAlmostEqual(s['a'], 5)
+
     def test_getitem_box_float64(self):
         value = self.ts[5]
         self.assert_(isinstance(value, np.float64))
@@ -569,6 +651,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         s = Series(range(10), index=range(0, 20, 2))
         self.assertRaises(KeyError, s.__getitem__, 1)
         self.assertRaises(KeyError, s.ix.__getitem__, 1)
+
+    def test_getitem_unordered_dup(self):
+        obj = Series(range(5), index=['c', 'a', 'a', 'b', 'b'])
+        self.assert_(np.isscalar(obj['c']))
+        self.assert_(obj['c'] == 0)
 
     def test_setitem_ambiguous_keyerror(self):
         s = Series(range(10), index=range(0, 20, 2))
@@ -924,13 +1011,65 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         ots[::2] = None
         repr(ots)
 
-        # tuple name, e.g. from hierarchical index
-        self.series.name = ('foo', 'bar', 'baz')
-        repr(self.series)
+        # various names
+        for name in ['', 1, 1.2, 'foo', u'\u03B1\u03B2\u03B3',
+                     'loooooooooooooooooooooooooooooooooooooooooooooooooooong',
+                     ('foo', 'bar', 'baz'),
+                     (1, 2),
+                     ('foo', 1, 2.3),
+                     (u'\u03B1', u'\u03B2', u'\u03B3'),
+                     (u'\u03B1', 'bar')]:
+            self.series.name = name
+            repr(self.series)
 
         biggie = Series(tm.randn(1000), index=np.arange(1000),
                         name=('foo', 'bar', 'baz'))
         repr(biggie)
+
+        # 0 as name
+        ser = Series(np.random.randn(100), name=0)
+        rep_str = repr(ser)
+        self.assert_("Name: 0" in rep_str)
+
+        # tidy repr
+        ser = Series(np.random.randn(1001), name=0)
+        rep_str = repr(ser)
+        self.assert_("Name: 0" in rep_str)
+
+    def test_repr_bool_fails(self):
+        s = Series([DataFrame(np.random.randn(2,2)) for i in range(5)])
+
+        import sys
+
+        buf = StringIO()
+        sys.stderr = buf
+        # it works (with no Cython exception barf)!
+        repr(s)
+        sys.stderr = sys.__stderr__
+        self.assertEquals(buf.getvalue(), '')
+
+    def test_repr_name_iterable_indexable(self):
+        s = Series([1, 2, 3], name=np.int64(3))
+
+        # it works!
+        repr(s)
+
+        s.name = (u"\u05d0",) * 2
+        repr(s)
+
+    def test_repr_should_return_str (self):
+        """
+        http://docs.python.org/py3k/reference/datamodel.html#object.__repr__
+        http://docs.python.org/reference/datamodel.html#object.__repr__
+        "...The return value must be a string object."
+
+        (str on py2.x, str (unicode) on py3)
+
+        """
+        data=[8,5,3,5]
+        index1=[u"\u03c3",u"\u03c4",u"\u03c5",u"\u03c6"]
+        df=Series(data,index=index1)
+        self.assertTrue(type(df.__repr__() == str)) # both py2 / 3
 
     def test_timeseries_repr_object_dtype(self):
         index = Index([datetime(2000, 1, 1) + timedelta(i)
@@ -1019,11 +1158,15 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_almost_equal(result, expected)
 
     def test_skew(self):
+        _skip_if_no_scipy()
+
         from scipy.stats import skew
         alt =lambda x: skew(x, bias=False)
         self._check_stat_op('skew', alt)
 
     def test_kurt(self):
+        _skip_if_no_scipy()
+
         from scipy.stats import kurtosis
         alt = lambda x: kurtosis(x, bias=False)
         self._check_stat_op('kurt', alt)
@@ -1191,6 +1334,24 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
                      'top' : min_date}, index=rs.index)
         assert_series_equal(rs, xp)
 
+    def test_describe_empty(self):
+        result = self.empty.describe()
+
+        self.assert_(result['count'] == 0)
+        self.assert_(result.drop('count').isnull().all())
+
+        nanSeries = Series([np.nan])
+        nanSeries.name = 'NaN'
+        result = nanSeries.describe()
+        self.assert_(result['count'] == 0)
+        self.assert_(result.drop('count').isnull().all())
+
+    def test_describe_none(self):
+        noneSeries = Series([None])
+        noneSeries.name = 'None'
+        assert_series_equal(noneSeries.describe(),
+                            Series([0, 0], index=['count', 'unique']))
+
     def test_append(self):
         appendedSeries = self.series.append(self.objSeries)
         for idx, value in appendedSeries.iteritems():
@@ -1201,7 +1362,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             else:
                 self.fail("orphaned index!")
 
-        self.assertRaises(Exception, self.ts.append, self.ts)
+        self.assertRaises(Exception, self.ts.append, self.ts,
+                          verify_integrity=True)
 
     def test_append_many(self):
         pieces = [self.ts[:5], self.ts[5:10], self.ts[10:]]
@@ -1627,6 +1789,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         assert_series_equal(s, expected)
 
     def test_corr(self):
+        _skip_if_no_scipy()
+
         import scipy.stats as stats
 
         # full overlap
@@ -1650,6 +1814,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertAlmostEqual(result, expected)
 
     def test_corr_rank(self):
+        _skip_if_no_scipy()
+
         import scipy
         import scipy.stats as stats
 
@@ -1839,6 +2005,12 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         assert_almost_equal(ranks, exp)
 
+        iseries = Series(np.arange(5).repeat(2))
+
+        iranks = iseries.rank()
+        exp = iseries.astype(float).rank()
+        assert_series_equal(iranks, exp)
+
     def test_from_csv(self):
         self.ts.to_csv('_foo')
         ts = Series.from_csv('_foo')
@@ -1846,6 +2018,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         self.series.to_csv('_foo')
         series = Series.from_csv('_foo')
+        self.assert_(series.name is None)
+        self.assert_(series.index.name is None)
         assert_series_equal(self.series, series)
 
         outfile = open('_foo', 'w')
@@ -1873,15 +2047,37 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
         os.remove('_foo')
 
-    def test_to_csv_stringio(self):
-        buf = StringIO()
-        self.ts.to_csv(buf, index=False)
+    def test_to_csv_unicode_index(self):
+        buf=StringIO()
+        s=Series([u"\u05d0","d2"], index=[u"\u05d0",u"\u05d1"])
+
+        s.to_csv(buf, encoding='UTF-8')
         buf.seek(0)
-        arr = np.loadtxt(buf)
-        assert_almost_equal(arr, self.ts.values)
+
+        s2 = Series.from_csv(buf, index_col=0, encoding='UTF-8')
+
+        assert_series_equal(s, s2)
 
     def test_to_dict(self):
         self.assert_(np.array_equal(Series(self.ts.to_dict()), self.ts))
+
+    def test_to_csv_float_format(self):
+        filename = '__tmp__.csv'
+        ser = Series([0.123456, 0.234567, 0.567567])
+        ser.to_csv(filename, float_format='%.2f')
+
+        rs = Series.from_csv(filename)
+        xp = Series([0.12, 0.23, 0.57])
+        assert_series_equal(rs, xp)
+        os.remove(filename)
+
+    def test_to_csv_list_entries(self):
+        s = Series(['jack and jill','jesse and frank'])
+
+        split = s.str.split(r'\s+and\s+')
+
+        buf = StringIO()
+        split.to_csv(buf)
 
     def test_clip(self):
         val = self.ts.median()
@@ -2105,6 +2301,50 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         d = self.ts.index[0] - datetools.bday
         self.assert_(np.isnan(self.ts.asof(d)))
 
+    def test_asof_periodindex(self):
+        from pandas import period_range, PeriodIndex
+        # array or list or dates
+        N = 50
+        rng = period_range('1/1/1990', periods=N, freq='H')
+        ts = Series(np.random.randn(N), index=rng)
+        ts[15:30] = np.nan
+        dates = date_range('1/1/1990', periods=N * 3, freq='37min')
+
+        result = ts.asof(dates)
+        self.assert_(notnull(result).all())
+        lb = ts.index[14]
+        ub = ts.index[30]
+
+        result = ts.asof(list(dates))
+        self.assert_(notnull(result).all())
+        lb = ts.index[14]
+        ub = ts.index[30]
+
+        pix = PeriodIndex(result.index.values, freq='H')
+        mask = (pix >= lb) & (pix < ub)
+        rs = result[mask]
+        self.assert_((rs == ts[lb]).all())
+
+        ts[5:10] = np.NaN
+        ts[15:20] = np.NaN
+
+        val1 = ts.asof(ts.index[7])
+        val2 = ts.asof(ts.index[19])
+
+        self.assertEqual(val1, ts[4])
+        self.assertEqual(val2, ts[14])
+
+        # accepts strings
+        val1 = ts.asof(str(ts.index[7]))
+        self.assertEqual(val1, ts[4])
+
+        # in there
+        self.assertEqual(ts.asof(ts.index[3]), ts[3])
+
+        # no as of value
+        d = ts.index[0].to_timestamp() - datetools.bday
+        self.assert_(np.isnan(ts.asof(d)))
+
     def test_asof_more(self):
         from pandas import date_range
         s = Series([nan, nan, 1, 2, nan, nan, 3, 4, 5],
@@ -2125,6 +2365,17 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_astype_cast_nan_int(self):
         df = Series([1.0, 2.0, 3.0, np.nan])
         self.assertRaises(ValueError, df.astype, np.int64)
+
+    def test_astype_cast_object_int(self):
+        arr = Series(["car", "house", "tree","1"])
+
+        self.assertRaises(ValueError, arr.astype, int)
+        self.assertRaises(ValueError, arr.astype, np.int64)
+        self.assertRaises(ValueError, arr.astype, np.int8)
+
+        arr = Series(['1', '2', '3', '4'], dtype=object)
+        result = arr.astype(int)
+        self.assert_(np.array_equal(result, np.arange(1, 5)))
 
     def test_map(self):
         index, data = tm.getMixedTypeDict()
@@ -2171,6 +2422,13 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assert_(result.dtype == np.object_)
         self.assert_(isinstance(result[0], Decimal))
 
+    def test_map_na_exclusion(self):
+        s = Series([1.5, np.nan, 3, np.nan, 5])
+
+        result = s.map(lambda x: x * 2, na_action='ignore')
+        exp = s * 2
+        assert_series_equal(result, exp)
+
     def test_apply(self):
         assert_series_equal(self.ts.apply(np.sqrt), np.sqrt(self.ts))
 
@@ -2194,6 +2452,19 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         result = s.apply(f)
         expected = s.map(f)
         assert_series_equal(result, expected)
+
+    def test_apply_dont_convert_dtype(self):
+        s = Series(np.random.randn(10))
+
+        f = lambda x: x if x > 0 else np.nan
+        result = s.apply(f, convert_dtype=False)
+        self.assert_(result.dtype == object)
+
+    def test_apply_args(self):
+        s = Series(['foo,bar'])
+
+        result = s.apply(str.split, args=(',',))
+        self.assert_(result[0] == ['foo', 'bar'])
 
     def test_align(self):
         def _check_align(a, b, how='left', fill=None):
@@ -2538,6 +2809,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         expected = Series([True, False, True, False, False, False, True, True])
         assert_series_equal(result, expected)
 
+    def test_fillna_int(self):
+        s = Series(np.random.randint(-100, 100, 50))
+        self.assert_(s.fillna(inplace=True) is s)
+        assert_series_equal(s.fillna(inplace=False), s)
+
 #-------------------------------------------------------------------------------
 # TimeSeries-specific
 
@@ -2653,6 +2929,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         self.assertRaises(ValueError, ser.replace, [1,2,3], [np.nan, 0])
         self.assertRaises(ValueError, ser.replace, xrange(1,3), [np.nan, 0])
 
+        ser = Series([0, 1, 2, 3, 4])
+        result = ser.replace([0, 1, 2, 3, 4], [4, 3, 2, 1, 0])
+        assert_series_equal(result, Series([4, 3, 2, 1, 0]))
+
     def test_asfreq(self):
         ts = Series([0., 1., 2.], index=[datetime(2009, 10, 30),
                                          datetime(2009, 11, 30),
@@ -2669,6 +2949,10 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         daily_ts = ts.asfreq(datetools.bday)
         monthly_ts = daily_ts.asfreq(datetools.bmonthEnd)
         self.assert_(np.array_equal(monthly_ts, ts))
+
+        result = ts[:0].asfreq('M')
+        self.assert_(len(result) == 0)
+        self.assert_(result is not ts)
 
     def test_interpolate(self):
         ts = Series(np.arange(len(self.ts), dtype=float), self.ts.index)
@@ -2713,6 +2997,14 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_diff(self):
         # Just run the function
         self.ts.diff()
+
+        # int dtype
+        a = 10000000000000000
+        b = a + 1
+        s = Series([a, b])
+
+        rs = s.diff()
+        self.assertEqual(rs[1], 1)
 
     def test_pct_change(self):
         rs = self.ts.pct_change(fill_method=None)
@@ -2860,6 +3152,25 @@ class TestSeriesNonUnique(unittest.TestCase):
         df = ser.reset_index(name='value2')
         self.assert_('value2' in df)
 
+        #check inplace
+        s = ser.reset_index(drop=True)
+        s2 = ser
+        s2.reset_index(drop=True, inplace=True)
+        assert_series_equal(s, s2)
+
+        #level
+        index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
+                           labels=[[0, 0, 0, 0, 0, 0],
+                                   [0, 1, 2, 0, 1, 2],
+                                   [0, 1, 0, 1, 0, 1]])
+        s = Series(np.random.randn(6), index=index)
+        rs = s.reset_index(level=1)
+        self.assert_(len(rs.columns) == 2)
+
+        rs = s.reset_index(level=[0, 2], drop=True)
+        self.assert_(rs.index.equals(Index(index.get_level_values(1))))
+        self.assert_(isinstance(rs, Series))
+
     def test_timeseries_coercion(self):
         idx = tm.makeDateIndex(10000)
         ser = Series(np.random.randn(len(idx)), idx.astype(object))
@@ -2909,6 +3220,7 @@ class TestSeriesNonUnique(unittest.TestCase):
         self.assert_((ser[:5] == -1).all())
         self.assert_((ser[6:10] == -1).all())
         self.assert_((ser[20:30] == -1).all())
+
     def test_repeat(self):
         s = Series(np.random.randn(3), index=['a', 'b', 'c'])
 
@@ -2922,7 +3234,11 @@ class TestSeriesNonUnique(unittest.TestCase):
                      index=s.index.values.repeat(to_rep))
         assert_series_equal(reps, exp)
 
+    def test_unique_data_ownership(self):
+        # it works! #1807
+        Series(Series(["a","c","b"]).unique()).sort()
+
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-

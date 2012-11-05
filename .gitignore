@@ -16,8 +16,10 @@ doc/source/generated
 doc/source/_static
 doc/source/vbench
 doc/source/vbench.rst
+doc/build/html/index.html
 *flymake*
 scikits
 .coverage
 pandas.egg-info
 *\#*\#
+.tox

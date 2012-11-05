@@ -49,7 +49,20 @@ int main() {
 #define AC_KVEC_H
 
 #include <stdlib.h>
-#include <ktypes.h>
+#include <Python.h>
+#include <numpy/ndarraytypes.h>
+
+#ifndef PANDAS_INLINE
+  #if defined(__GNUC__)
+    #define PANDAS_INLINE __inline__
+  #elif defined(_MSC_VER)
+    #define PANDAS_INLINE __inline
+  #elif defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+    #define PANDAS_INLINE inline
+  #else
+    #define PANDAS_INLINE
+  #endif
+#endif
 
 #define kv_roundup32(x) (--(x), (x)|=(x)>>1, (x)|=(x)>>2, (x)|=(x)>>4, (x)|=(x)>>8, (x)|=(x)>>16, ++(x))
 
@@ -70,11 +83,11 @@ int main() {
 	} while (0)												\
 
 #define kv_push(type, v, x) do {									\
-		if ((v).n == (v).m) {										\
-			(v).m = (v).m? (v).m<<1 : 2;							\
-			(v).a = (type*)realloc((v).a, sizeof(type) * (v).m);	\
+		if ((v)->n == (v)->m) {										\
+			(v)->m = (v)->m? (v)->m<<1 : 2;							\
+			(v)->a = (type*)realloc((v)->a, sizeof(type) * (v)->m);	\
 		}															\
-		(v).a[(v).n++] = (x);										\
+		(v)->a[(v)->n++] = (x);										\
 	} while (0)
 
 #define kv_pushp(type, v) (((v).n == (v).m)?							\
@@ -88,11 +101,42 @@ int main() {
 						  : (v).n <= (size_t)(i)? (v).n = (i)			\
 						  : 0), (v).a[(i)]
 
-#define kv_int64_push(v, x) (kv_push(int64_t, (v), (x)))
+// #define kv_int64_push(v, x) (kv_push(int64_t, (v), (x)))
 
 typedef struct {
   size_t n, m;
-  int64_t *a;
+  int64_t* a;
 } kv_int64_t;
+
+typedef struct {
+  size_t n, m;
+  PyObject** a;
+} kv_object_t;
+
+void PANDAS_INLINE kv_object_push(kv_object_t *v, PyObject *x) {
+  do {
+		if (v->n == v->m) {
+			v->m = v->m? v->m<<1 : 2;
+			v->a = (PyObject**)realloc(v->a, sizeof(PyObject*) * v->m);
+		}
+		v->a[v->n++] = x;
+	} while (0);
+  // kv_push(PyObject*, v, x);
+  Py_INCREF(x);
+}
+
+void PANDAS_INLINE kv_int64_push(kv_int64_t *v, int64_t x) {
+  kv_push(int64_t, v, x);
+}
+
+void PANDAS_INLINE kv_object_destroy(kv_object_t *v) {
+  int i;
+  for (i = 0; i < v->n; ++i)
+  {
+    Py_XDECREF(v->a[i]);
+  }
+  free(v->a);
+}
+
 
 #endif

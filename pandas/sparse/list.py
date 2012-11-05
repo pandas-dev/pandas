@@ -3,6 +3,7 @@ import numpy as np
 from pandas.sparse.array import SparseArray
 import pandas._sparse as splib
 
+
 class SparseList(object):
     """
     Data structure for accumulating data to be converted into a

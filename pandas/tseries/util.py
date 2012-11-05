@@ -4,6 +4,7 @@ from pandas.core.frame import DataFrame
 import pandas.core.nanops as nanops
 from pandas.tseries.util import isleapyear
 
+
 def pivot_annual(series, freq=None):
     """
     Group a series by years, taking leap years into account.
@@ -71,6 +72,7 @@ def pivot_annual(series, freq=None):
     values.put(flat_index, series.values)
 
     return DataFrame(values, index=years, columns=columns)
+
 
 def isleapyear(year):
     """

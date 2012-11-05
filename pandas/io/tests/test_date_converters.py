@@ -52,12 +52,23 @@ date, time, a, b
         self.assert_('date_time' in df)
         self.assert_(df.date_time.ix[0] == datetime(2001, 1, 5, 10, 0, 0))
 
+        data =  ("KORD,19990127, 19:00:00, 18:56:00, 0.8100\n"
+                 "KORD,19990127, 20:00:00, 19:56:00, 0.0100\n"
+                 "KORD,19990127, 21:00:00, 20:56:00, -0.5900\n"
+                 "KORD,19990127, 21:00:00, 21:18:00, -0.9900\n"
+                 "KORD,19990127, 22:00:00, 21:56:00, -0.5900\n"
+                 "KORD,19990127, 23:00:00, 22:56:00, -0.5900")
+
+        date_spec = {'nominal': [1, 2], 'actual': [1, 3]}
+        df = read_csv(StringIO(data), header=None, parse_dates=date_spec,
+                 date_parser=conv.parse_date_time)
+
     def test_parse_date_fields(self):
         result = conv.parse_date_fields(self.years, self.months, self.days)
         expected = np.array([datetime(2007, 1, 3), datetime(2008, 2, 4)])
         self.assert_((result == expected).all())
 
-        data = "year, month, day, a\n 2001, 01, 10, 10.\n 2001, 02, 1, 11."
+        data = "year, month, day, a\n 2001 , 01 , 10 , 10.\n 2001 , 02 , 1 , 11."
         datecols = {'ymd': [0, 1, 2]}
         df = read_table(StringIO(data), sep=',', header=0,
                         parse_dates=datecols,

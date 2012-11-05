@@ -5,23 +5,29 @@ import operator
 import pickle
 import unittest
 import nose
+import os
 
 import numpy as np
 from numpy.testing import assert_array_equal
 
-from pandas.core.factor import Factor
+from pandas.core.categorical import Factor
 from pandas.core.index import Index, Int64Index, MultiIndex
 from pandas.util.testing import assert_almost_equal
 from pandas.util import py3compat
+import pandas.core.common as com
 
 import pandas.util.testing as tm
 
 from pandas.tseries.index import _to_m8
 import pandas.tseries.offsets as offsets
 
+import pandas as pd
+from pandas.lib import Timestamp
+
 class TestIndex(unittest.TestCase):
 
     def setUp(self):
+        self.unicodeIndex = tm.makeUnicodeIndex(100)
         self.strIndex = tm.makeStringIndex(100)
         self.dateIndex = tm.makeDateIndex(100)
         self.intIndex = tm.makeIntIndex(100)
@@ -51,8 +57,7 @@ class TestIndex(unittest.TestCase):
         self.assertRaises(Exception, self.strIndex.sort)
 
     def test_mutability(self):
-        self.assertRaises(Exception, self.strIndex.__setitem__, 5, 0)
-        self.assertRaises(Exception, self.strIndex.__setitem__, slice(1,5), 0)
+        self.assertRaises(Exception, self.strIndex.__setitem__, 0, 'foo')
 
     def test_constructor(self):
         # regular instance creation
@@ -76,9 +81,20 @@ class TestIndex(unittest.TestCase):
         # arr = np.array(5.)
         # self.assertRaises(Exception, arr.view, Index)
 
+
     def test_constructor_corner(self):
         # corner case
         self.assertRaises(Exception, Index, 0)
+
+    def test_copy(self):
+        i = Index([], name='Foo')
+        i_copy = i.copy()
+        self.assert_(i_copy.name == 'Foo')
+
+    def test_view(self):
+        i = Index([], name='Foo')
+        i_view = i.view()
+        self.assert_(i_view.name == 'Foo')
 
     def test_astype(self):
         casted = self.intIndex.astype('i8')
@@ -114,6 +130,9 @@ class TestIndex(unittest.TestCase):
 
         d = self.dateIndex[-1]
         self.assert_(self.dateIndex.asof(d + timedelta(1)) == d)
+
+        d = self.dateIndex[0].to_datetime()
+        self.assert_(isinstance(self.dateIndex.asof(d), Timestamp))
 
     def test_argsort(self):
         result = self.strIndex.argsort()
@@ -355,6 +374,7 @@ class TestIndex(unittest.TestCase):
     def _check_method_works(self, method):
         method(self.empty)
         method(self.dateIndex)
+        method(self.unicodeIndex)
         method(self.strIndex)
         method(self.intIndex)
         method(self.tuples)
@@ -392,6 +412,20 @@ class TestIndex(unittest.TestCase):
         idx2 = idx[::-1]
         self.assertRaises(KeyError, idx2.slice_locs, 8, 2)
         self.assertRaises(KeyError, idx2.slice_locs, 7, 3)
+
+    def test_slice_locs_dup(self):
+        idx = Index(['a', 'a', 'b', 'c', 'd', 'd'])
+        rs = idx.slice_locs('a', 'd')
+        self.assert_(rs == (0, 6))
+
+        rs2 = idx.slice_locs(end='d')
+        self.assert_(rs == (0, 6))
+
+        rs = idx.slice_locs('a', 'c')
+        self.assert_(rs == (0, 4))
+
+        rs = idx.slice_locs('b', 'd')
+        self.assert_(rs == (2, 6))
 
     def test_drop(self):
         n = len(self.strIndex)
@@ -501,6 +535,16 @@ class TestInt64Index(unittest.TestCase):
         # preventing casting
         arr = np.array([1, '2', 3, '4'], dtype=object)
         self.assertRaises(TypeError, Int64Index, arr)
+
+    def test_copy(self):
+        i = Int64Index([], name='Foo')
+        i_copy = i.copy()
+        self.assert_(i_copy.name == 'Foo')
+
+    def test_view(self):
+        i = Int64Index([], name='Foo')
+        i_view = i.view()
+        self.assert_(i_view.name == 'Foo')
 
     def test_coerce_list(self):
         # coerce things
@@ -831,6 +875,50 @@ class TestMultiIndex(unittest.TestCase):
     def test_constructor_no_levels(self):
         self.assertRaises(Exception, MultiIndex, levels=[], labels=[])
 
+    def test_copy(self):
+        i_copy = self.index.copy()
+
+        # Equal...but not the same object
+        self.assert_(i_copy.levels == self.index.levels)
+        self.assert_(i_copy.levels is not self.index.levels)
+
+        self.assert_(i_copy.labels == self.index.labels)
+        self.assert_(i_copy.labels is not self.index.labels)
+
+        self.assert_(i_copy.names == self.index.names)
+        self.assert_(i_copy.names is not self.index.names)
+
+        self.assert_(i_copy.sortorder == self.index.sortorder)
+
+    def test_shallow_copy(self):
+        i_copy = self.index._shallow_copy()
+
+        # Equal...but not the same object
+        self.assert_(i_copy.levels == self.index.levels)
+        self.assert_(i_copy.levels is not self.index.levels)
+
+        self.assert_(i_copy.labels == self.index.labels)
+        self.assert_(i_copy.labels is not self.index.labels)
+
+        self.assert_(i_copy.names == self.index.names)
+        self.assert_(i_copy.names is not self.index.names)
+
+        self.assert_(i_copy.sortorder == self.index.sortorder)
+
+    def test_view(self):
+        i_view = self.index.view()
+
+        # Equal...but not the same object
+        self.assert_(i_view.levels == self.index.levels)
+        self.assert_(i_view.levels is not self.index.levels)
+
+        self.assert_(i_view.labels == self.index.labels)
+        self.assert_(i_view.labels is not self.index.labels)
+
+        self.assert_(i_view.names == self.index.names)
+        self.assert_(i_view.names is not self.index.names)
+        self.assert_(i_view.sortorder == self.index.sortorder)
+
     def test_duplicate_names(self):
         self.index.names = ['foo', 'foo']
         self.assertRaises(Exception, self.index._get_level_number, 'foo')
@@ -895,7 +983,6 @@ class TestMultiIndex(unittest.TestCase):
         if py3compat.PY3:
             raise nose.SkipTest
 
-        import os
         def curpath():
             pth, _ = os.path.split(os.path.abspath(__file__))
             return pth
@@ -903,7 +990,7 @@ class TestMultiIndex(unittest.TestCase):
         ppath = os.path.join(curpath(), 'data/multiindex_v1.pickle')
         obj = pickle.load(open(ppath, 'r'))
 
-        self.assert_(obj._is_legacy_format)
+        self.assert_(obj._is_v1)
 
         obj2 = MultiIndex.from_tuples(obj.values)
         self.assert_(obj.equals(obj2))
@@ -917,6 +1004,30 @@ class TestMultiIndex(unittest.TestCase):
         exp2 = obj2.get_indexer(obj2[::-1])
         assert_almost_equal(res, exp)
         assert_almost_equal(exp, exp2)
+
+    def test_legacy_v2_unpickle(self):
+        # 0.7.3 -> 0.8.0 format manage
+        pth, _ = os.path.split(os.path.abspath(__file__))
+        filepath = os.path.join(pth, 'data', 'mindex_073.pickle')
+
+        obj = com.load(filepath)
+
+        obj2 = MultiIndex.from_tuples(obj.values)
+        self.assert_(obj.equals(obj2))
+
+        res = obj.get_indexer(obj)
+        exp = np.arange(len(obj))
+        assert_almost_equal(res, exp)
+
+        res = obj.get_indexer(obj2[::-1])
+        exp = obj.get_indexer(obj[::-1])
+        exp2 = obj2.get_indexer(obj2[::-1])
+        assert_almost_equal(res, exp)
+        assert_almost_equal(exp, exp2)
+
+    def test_from_tuples_index_values(self):
+        result = MultiIndex.from_tuples(self.index)
+        self.assert_((result.values == self.index.values).all())
 
     def test_contains(self):
         self.assert_(('foo', 'two') in self.index)
@@ -973,6 +1084,11 @@ class TestMultiIndex(unittest.TestCase):
         expected = slice(0, 4)
         assert(result == expected)
         # self.assertRaises(Exception, index.get_loc, 2)
+
+        index = Index(['c', 'a', 'a', 'b', 'b'])
+        rs = index.get_loc('c')
+        xp = 0
+        assert(rs == xp)
 
     def test_get_loc_level(self):
         index = MultiIndex(levels=[Index(range(4)),
@@ -1148,7 +1264,7 @@ class TestMultiIndex(unittest.TestCase):
         assert_almost_equal(r1, rbfill1)
 
         # pass non-MultiIndex
-        r1 = idx1.get_indexer(idx2.get_tuple_index())
+        r1 = idx1.get_indexer(idx2._tuple_index)
         rexp1 = idx1.get_indexer(idx2)
         assert_almost_equal(r1, rexp1)
 
@@ -1156,7 +1272,7 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_( (r1 == [-1, -1, -1]).all() )
 
         # self.assertRaises(Exception, idx1.get_indexer,
-        #                   list(list(zip(*idx2.get_tuple_index()))[0]))
+        #                   list(list(zip(*idx2._tuple_index))[0]))
 
     def test_format(self):
         self.index.format()
@@ -1168,6 +1284,25 @@ class TestMultiIndex(unittest.TestCase):
                            names=[0, 1])
         index.format(names=True)
 
+    def test_format_sparse_display(self):
+        index = MultiIndex(levels=[[0, 1], [0, 1], [0, 1], [0]],
+                           labels=[[0, 0, 0, 1, 1, 1],
+                                   [0, 0, 1, 0, 0, 1],
+                                   [0, 1, 0, 0, 1, 0],
+                                   [0, 0, 0, 0, 0, 0]])
+
+        result = index.format()
+        self.assertEqual(result[3], '1  0  0  0')
+
+    def test_format_sparse_config(self):
+        # #1538
+        pd.set_printoptions(multi_sparse=False)
+
+        result = self.index.format()
+        self.assertEqual(result[1], 'foo  two')
+
+        pd.reset_printoptions()
+
     def test_bounds(self):
         self.index._bounds
 
@@ -1177,7 +1312,7 @@ class TestMultiIndex(unittest.TestCase):
 
         self.assert_(not self.index.equals(self.index[:-1]))
 
-        self.assert_(self.index.equals(self.index.get_tuple_index()))
+        self.assert_(self.index.equals(self.index._tuple_index))
 
         # different number of levels
         index = MultiIndex(levels=[Index(range(4)),
@@ -1221,7 +1356,7 @@ class TestMultiIndex(unittest.TestCase):
 
         the_union = piece1 | piece2
 
-        tups = sorted(self.index.get_tuple_index())
+        tups = sorted(self.index._tuple_index)
         expected = MultiIndex.from_tuples(tups)
 
         self.assert_(the_union.equals(expected))
@@ -1234,7 +1369,7 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(the_union is self.index)
 
         # won't work in python 3
-        # tuples = self.index.get_tuple_index()
+        # tuples = self.index._tuple_index
         # result = self.index[:4] | tuples[4:]
         # self.assert_(result.equals(tuples))
 
@@ -1254,7 +1389,7 @@ class TestMultiIndex(unittest.TestCase):
         piece2 = self.index[3:]
 
         the_int = piece1 & piece2
-        tups = sorted(self.index[3:5].get_tuple_index())
+        tups = sorted(self.index[3:5]._tuple_index)
         expected = MultiIndex.from_tuples(tups)
         self.assert_(the_int.equals(expected))
 
@@ -1268,7 +1403,7 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(empty.equals(expected))
 
         # can't do in python 3
-        # tuples = self.index.get_tuple_index()
+        # tuples = self.index._tuple_index
         # result = self.index & tuples
         # self.assert_(result.equals(tuples))
 
@@ -1312,7 +1447,7 @@ class TestMultiIndex(unittest.TestCase):
         self.assert_(len(result) == 0)
 
         # raise Exception called with non-MultiIndex
-        self.assertRaises(Exception, first.diff, first.get_tuple_index())
+        self.assertRaises(Exception, first.diff, first._tuple_index)
 
     def test_from_tuples(self):
         self.assertRaises(Exception, MultiIndex.from_tuples, [])
@@ -1322,7 +1457,7 @@ class TestMultiIndex(unittest.TestCase):
 
     def test_argsort(self):
         result = self.index.argsort()
-        expected = self.index.get_tuple_index().argsort()
+        expected = self.index._tuple_index.argsort()
         self.assert_(np.array_equal(result, expected))
 
     def test_sortlevel(self):
@@ -1531,37 +1666,10 @@ class TestMultiIndex(unittest.TestCase):
                                    [0, 1, 2, 0, 0, 1, 2]])
         self.assert_(index.has_duplicates)
 
-class TestFactor(unittest.TestCase):
-
-    def setUp(self):
-        self.factor = Factor(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c'])
-
-    def test_getitem(self):
-        self.assertEqual(self.factor[0], 'a')
-        self.assertEqual(self.factor[-1], 'c')
-
-        subf = self.factor[[0, 1, 2]]
-        tm.assert_almost_equal(subf.labels, [0, 1, 1])
-
-        subf = self.factor[self.factor.asarray() == 'c']
-        tm.assert_almost_equal(subf.labels, [2, 2, 2])
-
-    def test_constructor_unsortable(self):
-        arr = np.array([1, 2, 3, datetime.now()], dtype='O')
-
-        # it works!
-        factor = Factor(arr)
-
-    def test_factor_agg(self):
-        import pandas.core.frame as frame
-
-        arr = np.arange(len(self.factor))
-
-        f = np.sum
-        agged = frame.factor_agg(self.factor, arr, f)
-        labels = self.factor.labels
-        for i, idx in enumerate(self.factor.levels):
-            self.assertEqual(f(arr[labels == i]), agged[i])
+    def test_tolist(self):
+        result = self.index.tolist()
+        exp = list(self.index.values)
+        self.assertEqual(result, exp)
 
 
 def test_get_combined_index():
@@ -1574,5 +1682,3 @@ if __name__ == '__main__':
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                          # '--with-coverage', '--cover-package=pandas.core'],
                    exit=False)
-
-

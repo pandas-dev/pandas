@@ -129,7 +129,12 @@ cdef class SeriesBinGrouper:
 
         self.dummy = self._check_dummy(dummy)
         self.passed_dummy = dummy is not None
-        self.ngroups = len(bins) + 1
+
+        # kludge for #1688
+        if len(bins) > 0 and bins[-1] == len(series):
+            self.ngroups = len(bins)
+        else:
+            self.ngroups = len(bins) + 1
 
     def _check_dummy(self, dummy=None):
         if dummy is None:
@@ -150,10 +155,11 @@ cdef class SeriesBinGrouper:
             object res, chunk
             bint initialized = 0
             Slider vslider, islider
+            IndexEngine gin
 
         counts = np.zeros(self.ngroups, dtype=np.int64)
 
-        if self.ngroups > 0:
+        if self.ngroups > 1:
             counts[0] = self.bins[0]
             for i in range(1, self.ngroups):
                 if i == self.ngroups - 1:
@@ -167,6 +173,8 @@ cdef class SeriesBinGrouper:
 
         vslider = Slider(self.arr, self.dummy)
         islider = Slider(self.index, self.dummy.index)
+
+        gin = <IndexEngine> self.dummy.index._engine
 
         try:
             for i in range(self.ngroups):
@@ -185,6 +193,8 @@ cdef class SeriesBinGrouper:
 
                 islider.advance(group_size)
                 vslider.advance(group_size)
+
+                gin.clear_mapping()
         except:
             raise
         finally:
@@ -253,6 +263,7 @@ cdef class SeriesGrouper:
             object res, chunk
             bint initialized = 0
             Slider vslider, islider
+            IndexEngine gin
 
         labels = self.labels
         counts = np.zeros(self.ngroups, dtype=np.int64)
@@ -263,6 +274,7 @@ cdef class SeriesGrouper:
         vslider = Slider(self.arr, self.dummy)
         islider = Slider(self.index, self.dummy.index)
 
+        gin = <IndexEngine> self.dummy.index._engine
         try:
             for i in range(n):
                 group_size += 1
@@ -291,6 +303,9 @@ cdef class SeriesGrouper:
                     vslider.advance(group_size)
 
                     group_size = 0
+
+                    gin.clear_mapping()
+
         except:
             raise
         finally:
@@ -319,7 +334,7 @@ cdef class Slider:
     '''
     cdef:
         ndarray values, buf
-        Py_ssize_t stride, orig_len
+        Py_ssize_t stride, orig_len, orig_stride
         char *orig_data
 
     def __init__(self, object values, object buf):
@@ -330,12 +345,14 @@ cdef class Slider:
         assert(values.dtype == buf.dtype)
         self.values = values
         self.buf = buf
-        self.stride = values.dtype.itemsize
+        self.stride = values.strides[0]
 
         self.orig_data = self.buf.data
         self.orig_len = self.buf.shape[0]
+        self.orig_stride = self.buf.strides[0]
 
         self.buf.data = self.values.data
+        self.buf.strides[0] = self.stride
 
     cpdef advance(self, Py_ssize_t k):
         self.buf.data = <char*> self.buf.data + self.stride * k
@@ -346,7 +363,11 @@ cdef class Slider:
     cpdef cleanup(self):
         self.buf.shape[0] = self.orig_len
         self.buf.data = self.orig_data
+        self.buf.strides[0] = self.orig_stride
 
 def reduce(arr, f, axis=0, dummy=None, labels=None):
+    if labels._has_complex_internals:
+        raise Exception('Cannot use shortcut')
+
     reducer = Reducer(arr, f, axis=axis, dummy=dummy, labels=labels)
     return reducer.get_result()

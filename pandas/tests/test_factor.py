@@ -1,0 +1,119 @@
+# pylint: disable=E1101,E1103,W0232
+
+from datetime import datetime
+import unittest
+import nose
+
+import numpy as np
+
+from pandas.core.api import value_counts
+from pandas.core.categorical import Categorical
+from pandas.core.index import Index, Int64Index, MultiIndex
+from pandas.util.testing import assert_almost_equal
+import pandas.core.common as com
+
+import pandas.util.testing as tm
+
+
+class TestCategorical(unittest.TestCase):
+
+    def setUp(self):
+        self.factor = Categorical.from_array(['a', 'b', 'b', 'a',
+                                         'a', 'c', 'c', 'c'])
+
+    def test_getitem(self):
+        self.assertEqual(self.factor[0], 'a')
+        self.assertEqual(self.factor[-1], 'c')
+
+        subf = self.factor[[0, 1, 2]]
+        tm.assert_almost_equal(subf.labels, [0, 1, 1])
+
+        subf = self.factor[np.asarray(self.factor) == 'c']
+        tm.assert_almost_equal(subf.labels, [2, 2, 2])
+
+    def test_constructor_unsortable(self):
+        raise nose.SkipTest
+
+        arr = np.array([1, 2, 3, datetime.now()], dtype='O')
+
+        # it works!
+        factor = Categorical.from_array(arr)
+
+    def test_factor_agg(self):
+        import pandas.core.frame as frame
+
+        arr = np.arange(len(self.factor))
+
+        f = np.sum
+        agged = frame.factor_agg(self.factor, arr, f)
+        labels = self.factor.labels
+        for i, idx in enumerate(self.factor.levels):
+            self.assertEqual(f(arr[labels == i]), agged[i])
+
+    def test_comparisons(self):
+        result = self.factor[self.factor == 'a']
+        expected = self.factor[np.asarray(self.factor) == 'a']
+        self.assert_(result.equals(expected))
+
+        result = self.factor[self.factor != 'a']
+        expected = self.factor[np.asarray(self.factor) != 'a']
+        self.assert_(result.equals(expected))
+
+        result = self.factor[self.factor < 'c']
+        expected = self.factor[np.asarray(self.factor) < 'c']
+        self.assert_(result.equals(expected))
+
+        result = self.factor[self.factor > 'a']
+        expected = self.factor[np.asarray(self.factor) > 'a']
+        self.assert_(result.equals(expected))
+
+        result = self.factor[self.factor >= 'b']
+        expected = self.factor[np.asarray(self.factor) >= 'b']
+        self.assert_(result.equals(expected))
+
+        result = self.factor[self.factor <= 'b']
+        expected = self.factor[np.asarray(self.factor) <= 'b']
+        self.assert_(result.equals(expected))
+
+        n = len(self.factor)
+
+        other = self.factor[np.random.permutation(n)]
+        result = self.factor == other
+        expected = np.asarray(self.factor) == np.asarray(other)
+        self.assert_(np.array_equal(result, expected))
+
+        result = self.factor == 'd'
+        expected = np.repeat(False, len(self.factor))
+        self.assert_(np.array_equal(result, expected))
+
+    def test_value_counts(self):
+        from pandas.tools.tile import cut
+
+        arr = np.random.randn(4)
+        factor = cut(arr, 4)
+
+        self.assert_(isinstance(factor, Categorical))
+
+        result = value_counts(factor)
+        expected = value_counts(np.asarray(factor))
+        tm.assert_series_equal(result, expected)
+
+    def test_na_flags_int_levels(self):
+        # #1457
+
+        levels = range(10)
+        labels = np.random.randint(0, 10, 20)
+        labels[::5] = -1
+
+        cat = Categorical(labels, levels)
+        repr(cat)
+
+        self.assert_(np.array_equal(com.isnull(cat), labels == -1))
+
+if __name__ == '__main__':
+    import nose
+    nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
+                         # '--with-coverage', '--cover-package=pandas.core'],
+                   exit=False)
+
+

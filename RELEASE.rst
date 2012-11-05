@@ -22,10 +22,396 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
-pandas 0.8.0
+pandas 0.9.1
 ============
 
 **Release date:** NOT YET RELEASED
+
+**New features**
+
+  - Can specify multiple sort orders in DataFrame/Series.sort/sort_index (#928)
+  - New `top` and `bottom` options for handling NAs in rank (#1508, #2159)
+  - Add `where` and `mask` functions to DataFrame (#2109, #2151)
+  - Add `at_time` and `between_time` functions to DataFrame (#2149)
+
+**API Changes**
+
+  - Upsampling period index "spans" intervals. Example: annual periods
+    upsampled to monthly will span all months in each year
+  - Period.end_time will yield timestamp at last nanosecond in the interval
+    (#2124, #2125, #1764)
+
+**Improvements to existing features**
+
+  - Time rule inference for week-of-month (e.g. WOM-2FRI) rules (#2140)
+  - Improve performance of datetime + business day offset with large number of
+    offset periods
+  - Improve HTML display of DataFrame objects with hierarchical columns
+  - Enable referencing of Excel columns by their column names (#1936)
+  - DataFrame.dot can accept ndarrays (#2042)
+  - Support negative periods in Panel.shift (#2164)
+  - Make .drop(...) work with non-unique indexes (#2101)
+  - Improve performance of Series/DataFrame.diff (re: #2087)
+  - Support unary ~ (__invert__) in DataFrame (#2110)
+
+**Bug fixes**
+
+  - Fix some duplicate-column DataFrame constructor issues (#2079)
+  - Fix bar plot color cycle issues (#2082)
+  - Fix off-center grid for stacked bar plots (#2157)
+  - Fix plotting bug if inferred frequency is offset with N > 1 (#2126)
+  - Implement comparisons on date offsets with fixed delta (#2078)
+  - Handle inf/-inf correctly in read_* parser functions (#2041)
+  - Fix matplotlib unicode interaction bug
+  - Make WLS r-squared match statsmodels 0.5.0 fixed value
+  - Fix zero-trimming DataFrame formatting bug
+  - Correctly compute/box datetime64 min/max values from Series.min/max (#2083)
+  - Fix unstacking edge case with unrepresented groups (#2100)
+  - Fix Series.str failures when using pipe pattern '|' (#2119)
+  - Fix pretty-printing of dict entries in Series, DataFrame (#2144)
+  - Cast other datetime64 values to nanoseconds in DataFrame ctor (#2095)
+  - Alias Timestamp.astimezone to tz_convert, so will yield Timestamp (#2060)
+  - Fix timedelta64 formatting from Series (#2165, #2146)
+  - Handle None values gracefully in dict passed to Panel constructor (#2075)
+  - Box datetime64 values as Timestamp objects in Series/DataFrame.iget (#2148)
+  - Fix Timestamp indexing bug in DatetimeIndex.insert (#2155)
+  - Use index name(s) (if any) in DataFrame.to_records (#2161)
+  - Don't lose index names in Panel.to_frame/DataFrame.to_panel (#2163)
+  - Work around length-0 boolean indexing NumPy bug (#2096)
+  - Fix partial integer indexing bug in DataFrame.xs (#2107)
+  - Fix variety of cut/qcut string-bin formatting bugs (#1978, #1979)
+  - Raise Exception when xs view not possible of MultiIndex'd DataFrame (#2117)
+  - Fix groupby(...).first() issue with datetime64 (#2133)
+  - Better floating point error robustness in some rolling_* functions (#2114)
+  - Fix ewma NA handling in the middle of Series (#2128)
+  - Fix numerical precision issues in diff with integer data (#2087)
+  - Fix bug in MultiIndex.__getitem__ with NA values (#2008)
+  - Do not override matplotlib unit conversion fro datetime/time/date (#2173)
+  - Fix DataFrame.from_records dict-arg bug when passing columns (#2179)
+  - Fix Series and DataFrame.diff for integer dtypes (#2087, #2174)
+  - Fix bug when taking intersection of DatetimeIndex with empty index (#2129)
+  - Pass through timezone information when calling DataFrame.align (#2127)
+
+
+pandas 0.9.0
+============
+
+**Release date:** 10/7/2012
+
+**New features**
+
+  - Add ``str.encode`` and ``str.decode`` to Series (#1706)
+  - Add `to_latex` method to DataFrame (#1735)
+  - Add convenient expanding window equivalents of all rolling_* ops (#1785)
+  - Add Options class to pandas.io.data for fetching options data from Yahoo!
+    Finance (#1748, #1739)
+  - Recognize and convert more boolean values in file parsing (Yes, No, TRUE,
+    FALSE, variants thereof) (#1691, #1295)
+  - Add Panel.update method, analogous to DataFrame.update (#1999, #1988)
+
+**Improvements to existing features**
+
+  - Proper handling of NA values in merge operations (#1990)
+  - Add ``flags`` option for ``re.compile`` in some Series.str methods (#1659)
+  - Parsing of UTC date strings in read_* functions (#1693)
+  - Handle generator input to Series (#1679)
+  - Add `na_action='ignore'` to Series.map to quietly propagate NAs (#1661)
+  - Add args/kwds options to Series.apply (#1829)
+  - Add inplace option to Series/DataFrame.reset_index (#1797)
+  - Add ``level`` parameter to ``Series.reset_index``
+  - Add quoting option for DataFrame.to_csv (#1902)
+  - Indicate long column value truncation in DataFrame output with ... (#1854)
+  - DataFrame.dot will not do data alignment, and also work with Series (#1915)
+  - Add ``na`` option for missing data handling in some vectorized string
+    methods (#1689)
+  - If index_label=False in DataFrame.to_csv, do not print fields/commas in the
+    text output. Results in easier importing into R (#1583)
+  - Can pass tuple/list of axes to DataFrame.dropna to simplify repeated calls
+    (dropping both columns and rows) (#924)
+  - Improve DataFrame.to_html output for hierarchically-indexed rows (do not
+    repeat levels) (#1929)
+  - TimeSeries.between_time can now select times across midnight (#1871)
+  - Enable `skip_footer` parameter in `ExcelFile.parse` (#1843)
+
+**API Changes**
+
+  - Change default header names in read_* functions to more Pythonic X0, X1,
+    etc. instead of X.1, X.2. (#2000)
+  - Deprecated ``day_of_year`` API removed from PeriodIndex, use ``dayofyear``
+    (#1723)
+  - Don't modify NumPy suppress printoption at import time
+  - The internal HDF5 data arrangement for DataFrames has been
+    transposed. Legacy files will still be readable by HDFStore (#1834, #1824)
+  - Legacy cruft removed: pandas.stats.misc.quantileTS
+  - Use ISO8601 format for Period repr: monthly, daily, and on down (#1776)
+  - Empty DataFrame columns are now created as object dtype. This will prevent
+    a class of TypeErrors that was occurring in code where the dtype of a
+    column would depend on the presence of data or not (e.g. a SQL query having
+    results) (#1783)
+  - Setting parts of DataFrame/Panel using ix now aligns input Series/DataFrame
+    (#1630)
+  - `first` and `last` methods in `GroupBy` no longer drop non-numeric columns
+    (#1809)
+  - Resolved inconsistencies in specifying custom NA values in text parser.
+    `na_values` of type dict no longer override default NAs unless
+    `keep_default_na` is set to false explicitly (#1657)
+  - Enable `skipfooter` parameter in text parsers as an alias for `skip_footer`
+
+**Bug fixes**
+
+  - Perform arithmetic column-by-column in mixed-type DataFrame to avoid type
+    upcasting issues. Caused downstream DataFrame.diff bug (#1896)
+  - Fix matplotlib auto-color assignment when no custom spectrum passed. Also
+    respect passed color keyword argument (#1711)
+  - Fix resampling logical error with closed='left' (#1726)
+  - Fix critical DatetimeIndex.union bugs (#1730, #1719, #1745, #1702, #1753)
+  - Fix critical DatetimeIndex.intersection bug with unanchored offsets (#1708)
+  - Fix MM-YYYY time series indexing case (#1672)
+  - Fix case where Categorical group key was not being passed into index in
+    GroupBy result (#1701)
+  - Handle Ellipsis in Series.__getitem__/__setitem__ (#1721)
+  - Fix some bugs with handling datetime64 scalars of other units in NumPy 1.6
+    and 1.7 (#1717)
+  - Fix performance issue in MultiIndex.format (#1746)
+  - Fixed GroupBy bugs interacting with DatetimeIndex asof / map methods (#1677)
+  - Handle factors with NAs in pandas.rpy (#1615)
+  - Fix statsmodels import in pandas.stats.var (#1734)
+  - Fix DataFrame repr/info summary with non-unique columns (#1700)
+  - Fix Series.iget_value for non-unique indexes (#1694)
+  - Don't lose tzinfo when passing DatetimeIndex as DataFrame column (#1682)
+  - Fix tz conversion with time zones that haven't had any DST transitions since
+    first date in the array (#1673)
+  - Fix field access with  UTC->local conversion on unsorted arrays (#1756)
+  - Fix isnull handling of array-like (list) inputs (#1755)
+  - Fix regression in handling of Series in Series constructor (#1671)
+  - Fix comparison of Int64Index with DatetimeIndex (#1681)
+  - Fix min_periods handling in new rolling_max/min at array start (#1695)
+  - Fix errors with how='median' and generic NumPy resampling in some cases
+    caused by SeriesBinGrouper (#1648, #1688)
+  - When grouping by level, exclude unobserved levels (#1697)
+  - Don't lose tzinfo in DatetimeIndex when shifting by different offset (#1683)
+  - Hack to support storing data with a zero-length axis in HDFStore (#1707)
+  - Fix DatetimeIndex tz-aware range generation issue (#1674)
+  - Fix method='time' interpolation with intraday data (#1698)
+  - Don't plot all-NA DataFrame columns as zeros (#1696)
+  - Fix bug in scatter_plot with by option (#1716)
+  - Fix performance problem in infer_freq with lots of non-unique stamps (#1686)
+  - Fix handling of PeriodIndex as argument to create MultiIndex (#1705)
+  - Fix re: unicode MultiIndex level names in Series/DataFrame repr (#1736)
+  - Handle PeriodIndex in to_datetime instance method (#1703)
+  - Support StaticTzInfo in DatetimeIndex infrastructure (#1692)
+  - Allow MultiIndex setops with length-0 other type indexes (#1727)
+  - Fix handling of DatetimeIndex in DataFrame.to_records (#1720)
+  - Fix handling of general objects in isnull on which bool(...) fails (#1749)
+  - Fix .ix indexing with MultiIndex ambiguity (#1678)
+  - Fix .ix setting logic error with non-unique MultiIndex (#1750)
+  - Basic indexing now works on MultiIndex with > 1000000 elements, regression
+    from earlier version of pandas (#1757)
+  - Handle non-float64 dtypes in fast DataFrame.corr/cov code paths (#1761)
+  - Fix DatetimeIndex.isin to function properly (#1763)
+  - Fix conversion of array of tz-aware datetime.datetime to DatetimeIndex with
+    right time zone (#1777)
+  - Fix DST issues with generating ancxhored date ranges (#1778)
+  - Fix issue calling sort on result of Series.unique (#1807)
+  - Fix numerical issue leading to square root of negative number in
+    rolling_std (#1840)
+  - Let Series.str.split accept no arguments (like str.split) (#1859)
+  - Allow user to have dateutil 2.1 installed on a Python 2 system (#1851)
+  - Catch ImportError less aggressively in pandas/__init__.py (#1845)
+  - Fix pip source installation bug when installing from GitHub (#1805)
+  - Fix error when window size > array size in rolling_apply (#1850)
+  - Fix pip source installation issues via SSH from GitHub
+  - Fix OLS.summary when column is a tuple (#1837)
+  - Fix bug in __doc__ patching when -OO passed to interpreter
+    (#1792 #1741 #1774)
+  - Fix unicode console encoding issue in IPython notebook (#1782, #1768)
+  - Fix unicode formatting issue with Series.name (#1782)
+  - Fix bug in DataFrame.duplicated with datetime64 columns (#1833)
+  - Fix bug in Panel internals resulting in error when doing fillna after
+    truncate not changing size of panel (#1823)
+  - Prevent segfault due to MultiIndex not being supported in HDFStore table
+    format (#1848)
+  - Fix UnboundLocalError in Panel.__setitem__ and add better error (#1826)
+  - Fix to_csv issues with list of string entries. Isnull works on list of
+    strings now too (#1791)
+  - Fix Timestamp comparisons with datetime values outside the nanosecond range
+    (1677-2262)
+  - Revert to prior behavior of normalize_date with datetime.date objects
+    (return datetime)
+  - Fix broken interaction between np.nansum and Series.any/all
+  - Fix bug with multiple column date parsers (#1866)
+  - DatetimeIndex.union(Int64Index) was broken
+  - Make plot x vs y interface consistent with integer indexing (#1842)
+  - set_index inplace modified data even if unique check fails (#1831)
+  - Only use Q-OCT/NOV/DEC in quarterly frequency inference (#1789)
+  - Upcast to dtype=object when unstacking boolean DataFrame (#1820)
+  - Fix float64/float32 merging bug (#1849)
+  - Fixes to Period.start_time for non-daily frequencies (#1857)
+  - Fix failure when converter used on index_col in read_csv (#1835)
+  - Implement PeriodIndex.append so that pandas.concat works correctly (#1815)
+  - Avoid Cython out-of-bounds access causing segfault sometimes in pad_2d,
+    backfill_2d
+  - Fix resampling error with intraday times and anchored target time (like
+    AS-DEC) (#1772)
+  - Fix .ix indexing bugs with mixed-integer indexes (#1799)
+  - Respect passed color keyword argument in Series.plot (#1890)
+  - Fix rolling_min/max when the window is larger than the size of the input
+    array. Check other malformed inputs (#1899, #1897)
+  - Rolling variance / standard deviation with only a single observation in
+    window (#1884)
+  - Fix unicode sheet name failure in to_excel (#1828)
+  - Override DatetimeIndex.min/max to return Timestamp objects (#1895)
+  - Fix column name formatting issue in length-truncated column (#1906)
+  - Fix broken handling of copying Index metadata to new instances created by
+    view(...) calls inside the NumPy infrastructure
+  - Support datetime.date again in DateOffset.rollback/rollforward
+  - Raise Exception if set passed to Series constructor (#1913)
+  - Add TypeError when appending HDFStore table w/ wrong index type (#1881)
+  - Don't raise exception on empty inputs in EW functions (e.g. ewma) (#1900)
+  - Make asof work correctly with PeriodIndex (#1883)
+  - Fix extlinks in doc build
+  - Fill boolean DataFrame with NaN when calling shift (#1814)
+  - Fix setuptools bug causing pip not to Cythonize .pyx files sometimes
+  - Fix negative integer indexing regression in .ix from 0.7.x (#1888)
+  - Fix error while retrieving timezone and utc offset from subclasses of
+    datetime.tzinfo without .zone and ._utcoffset attributes (#1922)
+  - Fix DataFrame formatting of small, non-zero FP numbers (#1911)
+  - Various fixes by upcasting of date -> datetime (#1395)
+  - Raise better exception when passing multiple functions with the same name,
+    such as lambdas, to GroupBy.aggregate
+  - Fix DataFrame.apply with axis=1 on a non-unique index (#1878)
+  - Proper handling of Index subclasses in pandas.unique (#1759)
+  - Set index names in DataFrame.from_records (#1744)
+  - Fix time series indexing error with duplicates, under and over hash table
+    size cutoff (#1821)
+  - Handle list keys in addition to tuples in DataFrame.xs when
+    partial-indexing a hierarchically-indexed DataFrame (#1796)
+  - Support multiple column selection in DataFrame.__getitem__ with duplicate
+    columns (#1943)
+  - Fix time zone localization bug causing improper fields (e.g. hours) in time
+    zones that have not had a UTC transition in a long time (#1946)
+  - Fix errors when parsing and working with with fixed offset timezones
+    (#1922, #1928)
+  - Fix text parser bug when handling UTC datetime objects generated by
+    dateutil (#1693)
+  - Fix plotting bug when 'B' is the inferred frequency but index actually
+    contains weekends (#1668, #1669)
+  - Fix plot styling bugs (#1666, #1665, #1658)
+  - Fix plotting bug with index/columns with unicode (#1685)
+  - Fix DataFrame constructor bug when passed Series with datetime64 dtype
+    in a dict (#1680)
+  - Fixed regression in generating DatetimeIndex using timezone aware
+    datetime.datetime (#1676)
+  - Fix DataFrame bug when printing concatenated DataFrames with duplicated
+    columns (#1675)
+  - Fixed bug when plotting time series with multiple intraday frequencies
+    (#1732)
+  - Fix bug in DataFrame.duplicated to enable iterables other than list-types
+    as input argument (#1773)
+  - Fix resample bug when passed list of lambdas as `how` argument (#1808)
+  - Repr fix for MultiIndex level with all NAs (#1971)
+  - Fix PeriodIndex slicing bug when slice start/end are out-of-bounds (#1977)
+  - Fix read_table bug when parsing unicode (#1975)
+  - Fix BlockManager.iget bug when dealing with non-unique MultiIndex as columns
+    (#1970)
+  - Fix reset_index bug if both drop and level are specified (#1957)
+  - Work around unsafe NumPy object->int casting with Cython function (#1987)
+  - Fix datetime64 formatting bug in DataFrame.to_csv (#1993)
+  - Default start date in pandas.io.data to 1/1/2000 as the docs say (#2011)
+
+
+pandas 0.8.1
+============
+
+**Release date:** July 22, 2012
+
+**New features**
+
+  - Add vectorized, NA-friendly string methods to Series (#1621, #620)
+  - Can pass dict of per-column line styles to DataFrame.plot (#1559)
+  - Selective plotting to secondary y-axis on same subplot (PR #1640)
+  - Add new ``bootstrap_plot`` plot function
+  - Add new ``parallel_coordinates`` plot function (#1488)
+  - Add ``radviz`` plot function (#1566)
+  - Add ``multi_sparse`` option to ``set_printoptions`` to modify display of
+    hierarchical indexes (#1538)
+  - Add ``dropna`` method to Panel (#171)
+
+**Improvements to existing features**
+
+  - Use moving min/max algorithms from Bottleneck in rolling_min/rolling_max
+    for > 100x speedup. (#1504, #50)
+  - Add Cython group median method for >15x speedup (#1358)
+  - Drastically improve ``to_datetime`` performance on ISO8601 datetime strings
+    (with no time zones) (#1571)
+  - Improve single-key groupby performance on large data sets, accelerate use of
+    groupby with a Categorical variable
+  - Add ability to append hierarchical index levels with ``set_index`` and to
+    drop single levels with ``reset_index`` (#1569, #1577)
+  - Always apply passed functions in ``resample``, even if upsampling (#1596)
+  - Avoid unnecessary copies in DataFrame constructor with explicit dtype (#1572)
+  - Cleaner DatetimeIndex string representation with 1 or 2 elements (#1611)
+  - Improve performance of array-of-Period to PeriodIndex, convert such arrays
+    to PeriodIndex inside Index (#1215)
+  - More informative string representation for weekly Period objects (#1503)
+  - Accelerate 3-axis multi data selection from homogeneous Panel (#979)
+  - Add ``adjust`` option to ewma to disable adjustment factor (#1584)
+  - Add new matplotlib converters for high frequency time series plotting (#1599)
+  - Handling of tz-aware datetime.datetime objects in to_datetime; raise
+    Exception unless utc=True given (#1581)
+
+**Bug fixes**
+
+  - Fix NA handling in DataFrame.to_panel (#1582)
+  - Handle TypeError issues inside PyObject_RichCompareBool calls in khash
+    (#1318)
+  - Fix resampling bug to lower case daily frequency (#1588)
+  - Fix kendall/spearman DataFrame.corr bug with no overlap (#1595)
+  - Fix bug in DataFrame.set_index (#1592)
+  - Don't ignore axes in boxplot if by specified (#1565)
+  - Fix Panel .ix indexing with integers bug (#1603)
+  - Fix Partial indexing bugs (years, months, ...) with PeriodIndex (#1601)
+  - Fix MultiIndex console formatting issue (#1606)
+  - Unordered index with duplicates doesn't yield scalar location for single
+    entry (#1586)
+  - Fix resampling of tz-aware time series with "anchored" freq (#1591)
+  - Fix DataFrame.rank error on integer data (#1589)
+  - Selection of multiple SparseDataFrame columns by list in __getitem__ (#1585)
+  - Override Index.tolist for compatibility with MultiIndex (#1576)
+  - Fix hierarchical summing bug with MultiIndex of length 1 (#1568)
+  - Work around numpy.concatenate use/bug in Series.set_value (#1561)
+  - Ensure Series/DataFrame are sorted before resampling (#1580)
+  - Fix unhandled IndexError when indexing very large time series (#1562)
+  - Fix DatetimeIndex intersection logic error with irregular indexes (#1551)
+  - Fix unit test errors on Python 3 (#1550)
+  - Fix .ix indexing bugs in duplicate DataFrame index (#1201)
+  - Better handle errors with non-existing objects in HDFStore (#1254)
+  - Don't copy int64 array data in DatetimeIndex when copy=False (#1624)
+  - Fix resampling of conforming periods quarterly to annual (#1622)
+  - Don't lose index name on resampling (#1631)
+  - Support python-dateutil version 2.1 (#1637)
+  - Fix broken scatter_matrix axis labeling, esp. with time series (#1625)
+  - Fix cases where extra keywords weren't being passed on to matplotlib from
+    Series.plot (#1636)
+  - Fix BusinessMonthBegin logic for dates before 1st bday of month (#1645)
+  - Ensure string alias converted (valid in DatetimeIndex.get_loc) in
+    DataFrame.xs / __getitem__ (#1644)
+  - Fix use of string alias timestamps with tz-aware time series (#1647)
+  - Fix Series.max/min and Series.describe on len-0 series (#1650)
+  - Handle None values in dict passed to concat (#1649)
+  - Fix Series.interpolate with method='values' and DatetimeIndex (#1646)
+  - Fix IndexError in left merges on a DataFrame with 0-length (#1628)
+  - Fix DataFrame column width display with UTF-8 encoded characters (#1620)
+  - Handle case in pandas.io.data.get_data_yahoo where Yahoo! returns duplicate
+    dates for most recent business day
+  - Avoid downsampling when plotting mixed frequencies on the same subplot (#1619)
+  - Fix read_csv bug when reading a single line (#1553)
+  - Fix bug in C code causing monthly periods prior to December 1969 to be off (#1570)
+
+pandas 0.8.0
+============
+
+**Release date:** 6/29/2012
 
 **New features**
 
@@ -43,7 +429,7 @@ pandas 0.8.0
     conversion method (#1018)
   - Implement robust frequency inference function and `inferred_freq` attribute
     on DatetimeIndex (#391)
-  - New ``tz_convert`` methods in Series / DataFrame
+  - New ``tz_convert`` and ``tz_localize`` methods in Series / DataFrame
   - Convert DatetimeIndexes to UTC if time zones are different in join/setops
     (#864)
   - Add limit argument for forward/backward filling to reindex, fillna,
@@ -78,6 +464,18 @@ pandas 0.8.0
   - Add ``method`` argument to ``align`` method for forward/backward fillin
     (#216)
   - Add Panel.transpose method for rearranging axes (#695)
+  - Add new ``cut`` function (patterned after R) for discretizing data into
+    equal range-length bins or arbitrary breaks of your choosing (#415)
+  - Add new ``qcut`` for cutting with quantiles (#1378)
+  - Add ``value_counts`` top level array method (#1392)
+  - Added Andrews curves plot tupe (#1325)
+  - Add lag plot (#1440)
+  - Add autocorrelation_plot (#1425)
+  - Add support for tox and Travis CI (#1382)
+  - Add support for Categorical use in GroupBy (#292)
+  - Add ``any`` and ``all`` methods to DataFrame (#1416)
+  - Add ``secondary_y`` option to Series.plot
+  - Add experimental ``lreshape`` function for reshaping wide to long
 
 **Improvements to existing features**
 
@@ -108,11 +506,29 @@ pandas 0.8.0
   - Store time zones in HDFStore (#1232)
   - Enable storage of sparse data structures in HDFStore (#85)
   - Enable Series.asof to work with arrays of timestamp inputs
-  - Cython implementation of DataFrame.corr speeds up by > 100x (#1349)
-
+  - Cython implementation of DataFrame.corr speeds up by > 100x (#1349, #1354)
+  - Exclude "nuisance" columns automatically in GroupBy.transform (#1364)
+  - Support functions-as-strings in GroupBy.transform (#1362)
+  - Use index name as xlabel/ylabel in plots (#1415)
+  - Add ``convert_dtype`` option to Series.apply to be able to leave data as
+    dtype=object (#1414)
+  - Can specify all index level names in concat (#1419)
+  - Add ``dialect`` keyword to parsers for quoting conventions (#1363)
+  - Enable DataFrame[bool_DataFrame] += value (#1366)
+  - Add ``retries`` argument to ``get_data_yahoo`` to try to prevent Yahoo! API
+    404s (#826)
+  - Improve performance of reshaping by using O(N) categorical sorting
+  - Series names will be used for index of DataFrame if no index passed (#1494)
+  - Header argument in DataFrame.to_csv can accept a list of column names to
+    use instead of the object's columns (#921)
+  - Add ``raise_conflict`` argument to DataFrame.update (#1526)
+  - Support file-like objects in ExcelFile (#1529)
 
 **API Changes**
 
+  - Rename `pandas._tseries` to `pandas.lib`
+  - Rename Factor to Categorical and add improvements. Numerous Categorical bug
+    fixes
   - Frequency name overhaul, WEEKDAY/EOM and rules with @
     deprecated. get_legacy_offset_name backwards compatibility function added
   - Raise ValueError in DataFrame.__nonzero__, so "if df" no longer works
@@ -122,6 +538,12 @@ pandas 0.8.0
   - Default merge suffixes for overlap now have underscores instead of periods
     to facilitate tab completion, etc. (#1239)
   - Deprecation of offset, time_rule timeRule parameters throughout codebase
+  - Series.append and DataFrame.append no longer check for duplicate indexes
+    by default, add verify_integrity parameter (#1394)
+  - Refactor Factor class, old constructor moved to Factor.from_array
+  - Modified internals of MultiIndex to use less memory (no longer represented
+    as array of tuples) internally, speed up construction time and many methods
+    which construct intermediate hierarchical indexes (#1467)
 
 **Bug fixes**
 
@@ -163,6 +585,20 @@ pandas 0.8.0
     error (#1090)
   - Consistently set name on groupby pieces (#184)
   - Treat dict return values as Series in GroupBy.apply (#823)
+  - Respect column selection for DataFrame in in GroupBy.transform (#1365)
+  - Fix MultiIndex partial indexing bug (#1352)
+  - Enable assignment of rows in mixed-type DataFrame via .ix (#1432)
+  - Reset index mapping when grouping Series in Cython (#1423)
+  - Fix outer/inner DataFrame.join with non-unique indexes (#1421)
+  - Fix MultiIndex groupby bugs with empty lower levels (#1401)
+  - Calling fillna with a Series will have same behavior as with dict (#1486)
+  - SparseSeries reduction bug (#1375)
+  - Fix unicode serialization issue in HDFStore (#1361)
+  - Pass keywords to pyplot.boxplot in DataFrame.boxplot (#1493)
+  - Bug fixes in MonthBegin (#1483)
+  - Preserve MultiIndex names in drop (#1513)
+  - Fix Panel DataFrame slice-assignment bug (#1533)
+  - Don't use locals() in read_* functions (#1547)
 
 pandas 0.7.3
 ============
@@ -1612,12 +2048,6 @@ Thanks
 pandas 0.3.0
 ============
 
-This major release of pandas represents approximately 1 year of continuous
-development work and brings with it many new features, bug fixes, speed
-enhancements, and general quality-of-life improvements. The most significant
-change from the 0.2 release has been the completion of a rigorous unit test
-suite covering all of the core functionality.
-
 Release notes
 -------------
 
@@ -1625,79 +2055,51 @@ Release notes
 
 **New features / modules**
 
-* DataFrame / DataMatrix classes
-
- * `corrwith` function to compute column- or row-wise correlations between two
-   objects
- * Can boolean-index DataFrame objects, e.g. df[df > 2] = 2, px[px > last_px] = 0
- * Added comparison magic methods (__lt__, __gt__, etc.)
- * Flexible explicit arithmetic methods (add, mul, sub, div, etc.)
- * Added `reindex_like` method
-
-* WidePanel
-
- * Added `reindex_like` method
-
-* `pandas.io`: IO utilities
-
-  * `pandas.io.sql` module
-
-    * Convenience functions for accessing SQL-like databases
-
-  * `pandas.io.pytables` module
-
-   * Added (still experimental) HDFStore class for storing pandas data
-     structures using HDF5 / PyTables
-
-* `pandas.core.datetools`
-
-  * Added WeekOfMonth date offset
-
-* `pandas.rpy` (experimental) module created, provide some interfacing /
-  conversion between rpy2 and pandas
+  - `corrwith` function to compute column- or row-wise correlations between two
+	DataFrame objects
+  - Can boolean-index DataFrame objects, e.g. df[df > 2] = 2, px[px > last_px] = 0
+  - Added comparison magic methods (__lt__, __gt__, etc.)
+  - Flexible explicit arithmetic methods (add, mul, sub, div, etc.)
+  - Added `reindex_like` method
+  - Added `reindex_like` method to WidePanel
+  - Convenience functions for accessing SQL-like databases in `pandas.io.sql`
+	module
+  - Added (still experimental) HDFStore class for storing pandas data
+	structures using HDF5 / PyTables in `pandas.io.pytables` module
+  - Added WeekOfMonth date offset
+  - `pandas.rpy` (experimental) module created, provide some interfacing /
+   conversion between rpy2 and pandas
 
 **Improvements**
 
-* Unit test coverage: 100% line coverage of core data structures
-
-* Speed enhancement to rolling_{median, max, min}
-
-* Column ordering between DataFrame and DataMatrix is now consistent: before
-  DataFrame would not respect column order
-
-* Improved {Series, DataFrame}.plot methods to be more flexible (can pass
-  matplotlib Axis arguments, plot DataFrame columns in multiple subplots, etc.)
+  - Unit test coverage: 100% line coverage of core data structures
+  - Speed enhancement to rolling_{median, max, min}
+  - Column ordering between DataFrame and DataMatrix is now consistent: before
+	DataFrame would not respect column order
+  - Improved {Series, DataFrame}.plot methods to be more flexible (can pass
+	matplotlib Axis arguments, plot DataFrame columns in multiple subplots,
+	etc.)
 
 **API Changes**
 
-* Exponentially-weighted moment functions in `pandas.stats.moments`
-  have a more consistent API and accept a min_periods argument like
-  their regular moving counterparts.
-
-* **fillMethod** argument in Series, DataFrame changed to **method**,
-  `FutureWarning` added.
-
-* **fill** method in Series, DataFrame/DataMatrix, WidePanel renamed to
-  **fillna**, `FutureWarning` added to **fill**
-
-* Renamed **DataFrame.getXS** to **xs**, `FutureWarning` added
-
-* Removed **cap** and **floor** functions from DataFrame, renamed to
-  **clip_upper** and **clip_lower** for consistency with NumPy
+  - Exponentially-weighted moment functions in `pandas.stats.moments` have a
+	more consistent API and accept a min_periods argument like their regular
+	moving counterparts.
+  - **fillMethod** argument in Series, DataFrame changed to **method**,
+	`FutureWarning` added.
+  - **fill** method in Series, DataFrame/DataMatrix, WidePanel renamed to
+	**fillna**, `FutureWarning` added to **fill**
+  - Renamed **DataFrame.getXS** to **xs**, `FutureWarning` added
+  - Removed **cap** and **floor** functions from DataFrame, renamed to
+	**clip_upper** and **clip_lower** for consistency with NumPy
 
 **Bug fixes**
 
-* Fixed bug in IndexableSkiplist Cython code that was breaking
-  rolling_max function
-
-* Numerous numpy.int64-related indexing fixes
-
-* Several NumPy 1.4.0 NaN-handling fixes
-
-* Bug fixes to pandas.io.parsers.parseCSV
-
-* Fixed `DateRange` caching issue with unusual date offsets
-
-* Fixed bug in `DateRange.union`
-
-* Fixed corner case in `IndexableSkiplist` implementation
+  - Fixed bug in IndexableSkiplist Cython code that was breaking
+	rolling_max function
+  - Numerous numpy.int64-related indexing fixes
+  - Several NumPy 1.4.0 NaN-handling fixes
+  - Bug fixes to pandas.io.parsers.parseCSV
+  - Fixed `DateRange` caching issue with unusual date offsets
+  - Fixed bug in `DateRange.union`
+  - Fixed corner case in `IndexableSkiplist` implementation

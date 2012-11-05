@@ -1,6 +1,6 @@
 """
-Data structures for sparse float data. Life is made simpler by dealing only with
-float64 data
+Data structures for sparse float data. Life is made simpler by dealing only
+with float64 data
 """
 
 # pylint: disable=E1101,E1103,W0231
@@ -25,8 +25,9 @@ import pandas._sparse as splib
 
 from pandas.util.decorators import Appender
 
-#-------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Wrapper function for Series arithmetic methods
+
 
 def _sparse_op_wrap(op, name):
     """
@@ -49,11 +50,12 @@ def _sparse_op_wrap(op, name):
                                 sparse_index=self.sp_index,
                                 fill_value=new_fill_value,
                                 name=self.name)
-        else: # pragma: no cover
+        else:  # pragma: no cover
             raise TypeError('operation with %s not supported' % type(other))
 
     wrapper.__name__ = name
     return wrapper
+
 
 def _sparse_series_op(left, right, op, name):
     left, right = left.align(right, join='outer', copy=False)
@@ -66,6 +68,7 @@ def _sparse_series_op(left, right, op, name):
     result.name = new_name
 
     return result
+
 
 class SparseSeries(SparseArray, Series):
     __array_priority__ = 15
@@ -98,7 +101,7 @@ class SparseSeries(SparseArray, Series):
             data = Series(data)
             values, sparse_index = make_sparse(data, kind=kind,
                                                fill_value=fill_value)
-        elif np.isscalar(data): # pragma: no cover
+        elif np.isscalar(data):  # pragma: no cover
             if index is None:
                 raise Exception('must pass index!')
 
@@ -199,7 +202,6 @@ to sparse
         """Necessary for making this object picklable"""
         nd_state, own_state = state
         ndarray.__setstate__(self, nd_state)
-
 
         index, fill_value, sp_index = own_state[:3]
         name = None
@@ -539,6 +541,7 @@ to sparse
 
         dense_combined = self.to_dense().combine_first(other)
         return dense_combined.to_sparse(fill_value=self.fill_value)
+
 
 class SparseTimeSeries(SparseSeries, TimeSeries):
     pass
