@@ -313,10 +313,6 @@ cpdef i8 get_period_field(i8 code, i8 value, i8 freq) except INT64_MIN:
         accessor f = _get_accessor_func(code)
         i8 r = f(value, freq)
 
-    if code == 11:
-        print 'ordinal:', value
-        print 'us:     ', r
-
     if r == INT64_MIN:
         raise ValueError('Unable to retrieve property')
 
