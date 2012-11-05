@@ -1,11 +1,10 @@
 # pylint: disable=E1101,E1103,W0232
-import operator
 
 from datetime import datetime, date
 import numpy as np
 
-from pandas.tseries.frequencies import (get_freq_code as _gfc, to_offset,
-                                        _month_numbers, FreqGroup)
+from pandas.tseries.frequencies import (get_freq_code as _gfc, _month_numbers,
+                                        FreqGroup)
 from pandas.tseries.index import DatetimeIndex, Int64Index, Index
 from pandas.tseries.tools import parse_time_string
 import pandas.tseries.frequencies as _freq_mod
@@ -60,7 +59,7 @@ class Period(object):
         hour : int, default 0
         minute : int, default 0
         second : int, default 0
-        microsecon : int, default 0
+        microsecond : int, default 0
         """
         # freq points to a tuple (base, mult);  base is one of the defined
         # periods such as A, Q, etc. Every five minutes would be, e.g.,
@@ -123,8 +122,7 @@ class Period(object):
         if self.ordinal is None:
             self.ordinal = plib.period_ordinal(dt.year, dt.month, dt.day,
                                                dt.hour, dt.minute, dt.second,
-                                               dt.microsecond,
-                                               base)
+                                               dt.microsecond, base)
 
         self.freq = _freq_mod._get_freq_str(base)
 
