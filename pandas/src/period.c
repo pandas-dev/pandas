@@ -308,9 +308,8 @@ static i8 DtoB_WeekendToFriday(i8 absdate, i8 day_of_week) {
 static i8 absdate_from_ymd(i8 y, i8 m, i8 d) {
     struct date_info td;
 
-    if (dInfoCalc_SetFromDateAndTime(&td, y, m, d, 0, 0, 0, 0, GREGORIAN)) {
+    if (dInfoCalc_SetFromDateAndTime(&td, y, m, d, 0, 0, 0, 0, GREGORIAN))
         return INT_ERR_CODE;
-    }
 
     return td.absdate;
 }
@@ -563,13 +562,13 @@ static i8 asfreq_WtoB(i8 ordinal, char relation, asfreq_info *af_info) {
 
     struct date_info dinfo;
     i8 wtod = asfreq_WtoD(ordinal, relation, af_info) + ORD_OFFSET;
+
     if (dInfoCalc_SetFromAbsDate(&dinfo, wtod, GREGORIAN))
         return INT_ERR_CODE;
 
-    if (relation == 'S')
-		return DtoB_WeekendToMonday(dinfo.absdate, dinfo.day_of_week);
-    else
-		return DtoB_WeekendToFriday(dinfo.absdate, dinfo.day_of_week);
+    i8 (*f)(i8 absdate, i8 day_of_week) = NULL;
+    f = relation == 'S' ? DtoB_WeekendToMonday : DtoB_WeekendToFriday;
+    return f(dinfo.absdate, dinfo.day_of_week);
 }
 
 static i8 asfreq_WtoH(i8 ordinal, char relation, asfreq_info *af_info)
@@ -588,16 +587,21 @@ static void MtoD_ym(i8 ordinal, i8 *y, i8 *m) {
 
 static i8 asfreq_MtoD(i8 ordinal, char relation, asfreq_info *af_info) {
 
-    i8 absdate;
-    i8 y, m;
+    i8 absdate, y, m;
 
     if (relation == 'S') {
         MtoD_ym(ordinal, &y, &m);
-        if ((absdate = absdate_from_ymd(y, m, 1)) == INT_ERR_CODE) return INT_ERR_CODE;
+
+        if ((absdate = absdate_from_ymd(y, m, 1)) == INT_ERR_CODE)
+            return INT_ERR_CODE;
+
         return absdate - ORD_OFFSET;
     } else {
         MtoD_ym(ordinal + 1, &y, &m);
-        if ((absdate = absdate_from_ymd(y, m, 1)) == INT_ERR_CODE) return INT_ERR_CODE;
+
+        if ((absdate = absdate_from_ymd(y, m, 1)) == INT_ERR_CODE)
+            return INT_ERR_CODE;
+
         return absdate - 1 - ORD_OFFSET;
     }
 }
@@ -640,8 +644,11 @@ static void QtoD_ym(i8 ordinal, i8 *y, i8 *m, asfreq_info *af_info) {
 
     if (af_info->from_q_year_end != 12) {
         *m += af_info->from_q_year_end;
-        if (*m > 12) { *m -= 12; }
-        else { *y -= 1; }
+
+        if (*m > 12)
+            *m -= 12;
+        else
+            --*y; // == *y -= 1;
     }
 }
 
@@ -651,11 +658,17 @@ static i8 asfreq_QtoD(i8 ordinal, char relation, asfreq_info *af_info) {
 
     if (relation == 'S') {
         QtoD_ym(ordinal, &y, &m, af_info);
-        if ((absdate = absdate_from_ymd(y, m, 1)) == INT_ERR_CODE) return INT_ERR_CODE;
+
+        if ((absdate = absdate_from_ymd(y, m, 1)) == INT_ERR_CODE)
+            return INT_ERR_CODE;
+
         return absdate - ORD_OFFSET;
     } else {
-        QtoD_ym(ordinal+1, &y, &m, af_info);
-        if ((absdate = absdate_from_ymd(y, m, 1)) == INT_ERR_CODE) return INT_ERR_CODE;
+        QtoD_ym(ordinal + 1, &y, &m, af_info);
+
+        if ((absdate = absdate_from_ymd(y, m, 1)) == INT_ERR_CODE)
+            return INT_ERR_CODE;
+
         return absdate - 1 - ORD_OFFSET;
     }
 }
@@ -675,12 +688,15 @@ static i8 asfreq_QtoW(i8 ordinal, char relation, asfreq_info *af_info)
 static i8 asfreq_QtoB(i8 ordinal, char relation, asfreq_info *af_info) {
 
     struct date_info dinfo;
-    if (dInfoCalc_SetFromAbsDate(&dinfo,
-								 asfreq_QtoD(ordinal, relation, af_info) + ORD_OFFSET,
-								 GREGORIAN)) return INT_ERR_CODE;
+    i8 qtod = asfreq_QtoD(ordinal, relation, af_info) + ORD_OFFSET;
 
-    if (relation == 'S') { return DtoB_WeekendToMonday(dinfo.absdate, dinfo.day_of_week); }
-    else                 { return DtoB_WeekendToFriday(dinfo.absdate, dinfo.day_of_week); }
+    if (dInfoCalc_SetFromAbsDate(&dinfo, qtod, GREGORIAN))
+        return INT_ERR_CODE;
+
+    i8 (*f)(i8 abdate, i8 day_of_week) = NULL;
+    f = relation == 'S' ? DtoB_WeekendToMonday : DtoB_WeekendToFriday;
+
+    return f(dinfo.absdate, dinfo.day_of_week);
 }
 
 
@@ -696,27 +712,34 @@ static i8 asfreq_QtoS(i8 ordinal, char relation, asfreq_info *af_info)
 
 static i8 asfreq_AtoD(i8 ordinal, char relation, asfreq_info *af_info) {
     i8 absdate, final_adj, year;
-    i8 month = (af_info->from_a_year_end) % 12, ord = ordinal;
+    i8 month = af_info->from_a_year_end % 12, ord = ordinal;
 
 	// start from 1970
 	ord += BASE_YEAR;
 
-    if (month == 0) { month = 1; }
-    else { month += 1; }
+    if (month == 0)
+        month = 1;
+    else
+        ++month;
+
 
     if (relation == 'S') {
-        if (af_info->from_a_year_end == 12) {year = ord;}
-        else {year = ord - 1;}
+        year = af_info->from_a_year_end == 12 ? ord : ord - 1;
         final_adj = 0;
     } else {
-        if (af_info->from_a_year_end == 12) {year = ord+1;}
-        else {year = ord;}
+        if (af_info->from_a_year_end == 12)
+            year = ord + 1;
+        else
+            year = ord;
+
         final_adj = -1;
     }
+
     absdate = absdate_from_ymd(year, month, 1);
-    if (absdate  == INT_ERR_CODE) {
+
+    if (absdate == INT_ERR_CODE)
         return INT_ERR_CODE;
-	}
+
     return absdate + final_adj - ORD_OFFSET;
 }
 
@@ -775,28 +798,28 @@ void get_asfreq_info(i8 fromFreq, i8 toFreq, asfreq_info *af_info) {
 
     switch(fromGroup)
     {
-    case FR_WK: {
+    case FR_WK:
         af_info->from_week_end = calc_week_end(fromFreq, fromGroup);
-    } break;
-    case FR_ANN: {
+        break;
+    case FR_ANN:
         af_info->from_a_year_end = calc_a_year_end(fromFreq, fromGroup);
-    } break;
-    case FR_QTR: {
+        break;
+    case FR_QTR:
         af_info->from_q_year_end = calc_a_year_end(fromFreq, fromGroup);
-    } break;
+        break;
     }
 
     switch(toGroup)
     {
-    case FR_WK: {
+    case FR_WK:
         af_info->to_week_end = calc_week_end(toFreq, toGroup);
-    } break;
-    case FR_ANN: {
+        break;
+    case FR_ANN:
         af_info->to_a_year_end = calc_a_year_end(toFreq, toGroup);
-    } break;
-    case FR_QTR: {
+        break;
+    case FR_QTR:
         af_info->to_q_year_end = calc_a_year_end(toFreq, toGroup);
-    } break;
+        break;
     }
 }
 
@@ -839,11 +862,6 @@ static i8 asfreq_UtoB(i8 ordinal, char relation, asfreq_info *af_info) {
 static i8 asfreq_UtoH(i8 ordinal, char relation, asfreq_info *af_info) {
     i8 t1 = asfreq_DtoH(asfreq_UtoD(ordinal, relation, &NULL_AF_INFO), relation,
                        &NULL_AF_INFO);
-
-    if (t1 != ordinal / US_PER_HOUR) {
-        printf("asdlfkjasdlfkjsdlfkjsdlfkj, %li != %li\n", t1,
-               ordinal / US_PER_HOUR);
-    }
     return t1;
 }
 
@@ -1108,8 +1126,8 @@ static
 i8 dInfoCalc_SetFromAbsTime(struct date_info *dinfo, i8 abstime)
 {
     i8 hour = abstime / US_PER_HOUR;
-    i8 minute = (abstime % US_PER_HOUR) / 60.0;
-    i8 second = abstime - (hour * US_PER_HOUR + minute * US_PER_MINUTE);
+    i8 minute = (abstime % US_PER_HOUR) / US_PER_MINUTE;
+    i8 second = (abstime - (hour * US_PER_HOUR + minute * US_PER_MINUTE)) / US_PER_SECOND;
     i8 microsecond = abstime - (hour * US_PER_HOUR + minute * US_PER_MINUTE + second * US_PER_SECOND);
 
     dinfo->hour = hour;
@@ -1442,7 +1460,7 @@ i8 get_date_info(i8 ordinal, i8 freq, struct date_info *dinfo)
 		abstime += US_PER_DAY;
 
         // subtract a day from the date
-		absdate -= 1;
+		--absdate;
 	}
 
     if (dInfoCalc_SetFromAbsDateTime(dinfo, absdate, abstime, GREGORIAN))
