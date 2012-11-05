@@ -174,8 +174,9 @@ class Period(object):
         if mult2 != 1:
             raise ValueError('Only mult == 1 supported')
 
-        end = how == 'E'
-        new_ordinal = plib.period_asfreq(self.ordinal, base1, base2, end)
+        new_ordinal = plib.period_asfreq(self.ordinal, base1, base2, how)
+        print 'new_ordinal:  ', new_ordinal
+        print 'self.ordinal: ', self.ordinal
 
         return Period(ordinal=new_ordinal, freq=base2)
 
@@ -607,7 +608,8 @@ class PeriodIndex(Int64Index):
                 else:
                     base1, _ = _gfc(data.freq)
                     base2, _ = _gfc(freq)
-                    data = plib.period_asfreq_arr(data.values, base1, base2, 1)
+                    data = plib.period_asfreq_arr(data.values, base1, base2,
+                                                  'E')
             else:
                 if freq is None and len(data) > 0:
                     freq = getattr(data[0], 'freq', None)
@@ -732,8 +734,7 @@ class PeriodIndex(Int64Index):
         if mult2 != 1:
             raise ValueError('Only mult == 1 supported')
 
-        end = how == 'E'
-        new_data = plib.period_asfreq_arr(self.values, base1, base2, end)
+        new_data = plib.period_asfreq_arr(self.values, base1, base2, how)
 
         result = new_data.view(PeriodIndex)
         result.name = self.name
