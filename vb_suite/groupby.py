@@ -192,3 +192,31 @@ ts = Series(np.random.randn(len(rng)), index=rng)
 
 groupby_indices = Benchmark('len(ts.groupby([year, month, day]))',
                             setup, start_date=datetime(2012, 1, 1))
+
+#----------------------------------------------------------------------
+# median
+
+#----------------------------------------------------------------------
+# single key, long, integer key
+
+setup = common_setup + """
+data = np.random.randn(100000, 2)
+labels = np.random.randint(0, 1000, size=100000)
+df = DataFrame(data)
+"""
+
+groupby_frame_median = \
+    Benchmark('df.groupby(labels).median()', setup,
+              start_date=datetime(2011, 8, 1), logy=True)
+
+
+setup = common_setup + """
+data = np.random.randn(1000000, 2)
+labels = np.random.randint(0, 1000, size=1000000)
+df = DataFrame(data)
+"""
+
+groupby_simple_compress_timing = \
+    Benchmark('df.groupby(labels).mean()', setup,
+              start_date=datetime(2011, 8, 1))
+

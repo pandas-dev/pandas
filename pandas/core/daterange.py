@@ -37,7 +37,7 @@ class DateRange(Index):
         # for backwards compatibility
         if len(aug_state) > 2:
             tzinfo = aug_state[2]
-        else: # pragma: no cover
+        else:  # pragma: no cover
             tzinfo = None
 
         self.offset = offset

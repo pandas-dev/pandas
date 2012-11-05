@@ -59,6 +59,8 @@ def infer_dtype(object _values):
     elif util.is_integer_object(val):
         if is_integer_array(values):
             return 'integer'
+        elif is_integer_float_array(values):
+            return 'mixed-integer-float'
         return 'mixed-integer'
     elif is_datetime(val):
         if is_datetime_array(values):
@@ -68,17 +70,27 @@ def infer_dtype(object _values):
         if is_date_array(values):
             return 'date'
 
+    elif is_time(val):
+        if is_time_array(values):
+            return 'time'
+
     elif util.is_float_object(val):
         if is_float_array(values):
             return 'floating'
+        elif is_integer_float_array(values):
+            return 'mixed-integer-float'
 
     elif util.is_bool_object(val):
         if is_bool_array(values):
             return 'boolean'
 
-    elif util.is_string_object(val):
+    elif PyString_Check(val):
         if is_string_array(values):
             return 'string'
+
+    elif PyUnicode_Check(val):
+        if is_unicode_array(values):
+            return 'unicode'
 
     for i in range(n):
         val = util.get_value_1d(values, i)
@@ -98,6 +110,9 @@ cdef inline bint is_datetime(object o):
 
 cdef inline bint is_date(object o):
     return PyDate_Check(o)
+
+cdef inline bint is_time(object o):
+    return PyTime_Check(o)
 
 def is_bool_array(ndarray values):
     cdef:
@@ -144,6 +159,29 @@ def is_integer_array(ndarray values):
     else:
         return False
 
+def is_integer_float_array(ndarray values):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[object] objbuf
+        object obj
+
+    if issubclass(values.dtype.type, np.integer):
+        return True
+    elif values.dtype == np.object_:
+        objbuf = values
+
+        if n == 0:
+            return False
+
+        for i in range(n):
+            if not (util.is_integer_object(objbuf[i]) or
+                    util.is_float_object(objbuf[i])):
+
+                return False
+        return True
+    else:
+        return False
+
 def is_float_array(ndarray values):
     cdef:
         Py_ssize_t i, n = len(values)
@@ -180,11 +218,33 @@ def is_string_array(ndarray values):
             return False
 
         for i in range(n):
-            if not util.is_string_object(objbuf[i]):
+            if not PyString_Check(objbuf[i]):
                 return False
         return True
     else:
         return False
+
+def is_unicode_array(ndarray values):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[object] objbuf
+        object obj
+
+    if issubclass(values.dtype.type, np.unicode_):
+        return True
+    elif values.dtype == np.object_:
+        objbuf = values
+
+        if n == 0:
+            return False
+
+        for i in range(n):
+            if not PyUnicode_Check(objbuf[i]):
+                return False
+        return True
+    else:
+        return False
+
 
 def is_datetime_array(ndarray[object] values):
     cdef int i, n = len(values)
@@ -214,8 +274,44 @@ def is_date_array(ndarray[object] values):
             return False
     return True
 
+def is_time_array(ndarray[object] values):
+    cdef int i, n = len(values)
+    if n == 0:
+        return False
+    for i in range(n):
+        if not is_time(values[i]):
+            return False
+    return True
 
-def maybe_convert_numeric(ndarray[object] values, set na_values):
+def is_period_array(ndarray[object] values):
+    cdef int i, n = len(values)
+    from pandas import Period
+
+    if n == 0:
+        return False
+    for i in range(n):
+        if not isinstance(values[i], Period):
+            return False
+    return True
+
+def extract_ordinals(ndarray[object] values, freq):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[int64_t] ordinals = np.empty(n, dtype=np.int64)
+        object p
+
+    for i in range(n):
+        p = values[i]
+        ordinals[i] = p.ordinal
+        if p.freq != freq:
+            raise ValueError("%s is wrong freq" % p)
+
+    return ordinals
+
+
+
+def maybe_convert_numeric(ndarray[object] values, set na_values,
+                          convert_empty=True):
     '''
     Type inference function-- convert strings to numeric (potentially) and
     convert to proper dtype array
@@ -249,8 +345,11 @@ def maybe_convert_numeric(ndarray[object] values, set na_values):
             floats[i] = complexes[i] = nan
             seen_float = 1
         elif len(val) == 0:
-            floats[i] = complexes[i] = nan
-            seen_float = 1
+            if convert_empty:
+                floats[i] = complexes[i] = nan
+                seen_float = 1
+            else:
+                raise ValueError('Empty string encountered')
         elif util.is_complex_object(val):
             complexes[i] = val
             seen_complex = 1
@@ -258,7 +357,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values):
             fval = util.floatify(val)
             floats[i] = fval
             if not seen_float:
-                if '.' in val:
+                if '.' in val or fval == INF or fval == NEGINF:
                     seen_float = 1
                 else:
                     ints[i] = <int64_t> fval
@@ -313,18 +412,9 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         elif util.is_bool_object(val):
             seen_bool = 1
             bools[i] = val
-        elif util.is_integer_object(val):
-            seen_int = 1
-            floats[i] = <float64_t> val
-            complexes[i] = <double complex> val
-            if not seen_null:
-                ints[i] = val
         elif util.is_float_object(val):
             floats[i] = complexes[i] = val
             seen_float = 1
-        elif util.is_complex_object(val):
-            complexes[i] = val
-            seen_complex = 1
         elif util.is_datetime64_object(val):
             if convert_datetime:
                 idatetimes[i] = convert_to_tsobject(val).value
@@ -332,7 +422,16 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             else:
                 seen_object = 1
                 # objects[i] = val.astype('O')
-        elif PyDateTime_Check(val):
+        elif util.is_integer_object(val):
+            seen_int = 1
+            floats[i] = <float64_t> val
+            complexes[i] = <double complex> val
+            if not seen_null:
+                ints[i] = val
+        elif util.is_complex_object(val):
+            complexes[i] = val
+            seen_complex = 1
+        elif PyDateTime_Check(val) or util.is_datetime64_object(val):
             if convert_datetime:
                 seen_datetime = 1
                 idatetimes[i] = convert_to_tsobject(val).value
@@ -499,8 +598,8 @@ def try_parse_date_and_time(ndarray[object] dates, ndarray[object] times,
         parse_time = time_parser
 
     for i from 0 <= i < n:
-        d = parse_date(dates[i])
-        t = parse_time(times[i])
+        d = parse_date(str(dates[i]))
+        t = parse_time(str(times[i]))
         result[i] = datetime(d.year, d.month, d.day,
                              t.hour, t.minute, t.second)
 
@@ -547,7 +646,8 @@ def try_parse_datetime_components(ndarray[object] years, ndarray[object] months,
 
     return result
 
-def sanitize_objects(ndarray[object] values, set na_values):
+def sanitize_objects(ndarray[object] values, set na_values,
+                     convert_empty=True):
     cdef:
         Py_ssize_t i, n
         object val, onan
@@ -559,7 +659,7 @@ def sanitize_objects(ndarray[object] values, set na_values):
 
     for i from 0 <= i < n:
         val = values[i]
-        if val == '' or val in na_values:
+        if (convert_empty and val == '') or (val in na_values):
             values[i] = onan
             na_count += 1
         elif val in memo:
@@ -574,16 +674,25 @@ def maybe_convert_bool(ndarray[object] arr):
         Py_ssize_t i, n
         ndarray[uint8_t] result
         object val
+        set true_vals, false_vals
 
     n = len(arr)
     result = np.empty(n, dtype=np.uint8)
 
+    true_vals = set(('True', 'TRUE', 'true', 'Yes', 'YES', 'yes'))
+    false_vals = set(('False', 'FALSE', 'false', 'No', 'NO', 'no'))
+
     for i from 0 <= i < n:
         val = arr[i]
 
-        if val == 'True' or type(val) == bool and val:
+        if cpython.PyBool_Check(val):
+            if val is True:
+                result[i] = 1
+            else:
+                result[i] = 0
+        elif val in true_vals:
             result[i] = 1
-        elif val == 'False' or type(val) == bool and not val:
+        elif val in false_vals:
             result[i] = 0
         else:
             return arr
@@ -591,7 +700,46 @@ def maybe_convert_bool(ndarray[object] arr):
     return result.view(np.bool_)
 
 
-def map_infer(ndarray arr, object f):
+def map_infer_mask(ndarray arr, object f, ndarray[uint8_t] mask,
+                   bint convert=1):
+    '''
+    Substitute for np.vectorize with pandas-friendly dtype inference
+
+    Parameters
+    ----------
+    arr : ndarray
+    f : function
+
+    Returns
+    -------
+    mapped : ndarray
+    '''
+    cdef:
+        Py_ssize_t i, n
+        ndarray[object] result
+        object val
+
+    n = len(arr)
+    result = np.empty(n, dtype=object)
+    for i in range(n):
+        if mask[i]:
+            val = util.get_value_at(arr, i)
+        else:
+            val = f(util.get_value_at(arr, i))
+
+            # unbox 0-dim arrays, GH #690
+            if is_array(val) and PyArray_NDIM(val) == 0:
+                # is there a faster way to unbox?
+                val = val.item()
+
+        result[i] = val
+
+    if convert:
+        return maybe_convert_objects(result, try_float=0,
+                                     convert_datetime=0)
+
+    return result
+def map_infer(ndarray arr, object f, bint convert=1):
     '''
     Substitute for np.vectorize with pandas-friendly dtype inference
 
@@ -621,8 +769,12 @@ def map_infer(ndarray arr, object f):
 
         result[i] = val
 
-    return maybe_convert_objects(result, try_float=0,
-                                 convert_datetime=0)
+    if convert:
+        return maybe_convert_objects(result, try_float=0,
+                                     convert_datetime=0)
+
+    return result
+
 
 def to_object_array(list rows):
     cdef:
@@ -713,4 +865,3 @@ def fast_multiget(dict mapping, ndarray keys, default=np.nan):
             output[i] = default
 
     return maybe_convert_objects(output)
-

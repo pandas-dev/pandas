@@ -1,6 +1,8 @@
+from __future__ import with_statement
 from datetime import datetime
 import sys
 
+import nose
 import unittest
 
 from pandas import Series, DataFrame, date_range, DatetimeIndex
@@ -9,6 +11,16 @@ import pandas.core.common as com
 import pandas.util.testing as tm
 
 import numpy as np
+
+from pandas.util import py3compat
+
+def test_is_sequence():
+    is_seq=com._is_sequence
+    assert(is_seq((1,2)))
+    assert(is_seq([1,2]))
+    assert(not is_seq("abcd"))
+    assert(not is_seq(u"abcd"))
+    assert(not is_seq(np.int64))
 
 def test_notnull():
     assert notnull(1.)
@@ -40,6 +52,23 @@ def test_isnull():
     result = isnull(df)
     expected = result.apply(isnull)
     tm.assert_frame_equal(result, expected)
+
+def test_isnull_lists():
+    result = isnull([[False]])
+    exp = np.array([[False]])
+    assert(np.array_equal(result, exp))
+
+    result = isnull([[1],[2]])
+    exp = np.array([[False], [False]])
+    assert(np.array_equal(result, exp))
+
+    # list of strings / unicode
+    result = isnull(['foo', 'bar'])
+    assert(not result.any())
+
+    result = isnull([u'foo', u'bar'])
+    assert(not result.any())
+
 
 def test_isnull_datetime():
     assert (not isnull(datetime.now()))
@@ -150,6 +179,37 @@ def test_ensure_int32():
     values = np.arange(10, dtype=np.int64)
     result = com._ensure_int32(values)
     assert(result.dtype == np.int32)
+
+# TODO: fix this broken test
+
+# def test_console_encode():
+#     """
+#     On Python 2, if sys.stdin.encoding is None (IPython with zmq frontend)
+#     common.console_encode should encode things as utf-8.
+#     """
+#     if py3compat.PY3:
+#         raise nose.SkipTest
+
+#     with tm.stdin_encoding(encoding=None):
+#         result = com.console_encode(u"\u05d0")
+#         expected = u"\u05d0".encode('utf-8')
+#         assert (result == expected)
+
+def test_pprint_thing():
+    if py3compat.PY3:
+        raise nose.SkipTest
+
+    pp_t=com.pprint_thing
+
+    assert(pp_t('a')==u'a')
+    assert(pp_t(u'a')==u'a')
+    assert(pp_t(None)=='')
+    assert(pp_t(u'\u05d0')==u'\u05d0')
+    assert(pp_t((u'\u05d0',u'\u05d1'))==u'(\u05d0, \u05d1)')
+    assert(pp_t((u'\u05d0',(u'\u05d1',u'\u05d2')))==
+           u'(\u05d0, (\u05d1, \u05d2))')
+    assert(pp_t(('foo',u'\u05d0',(u'\u05d0',u'\u05d0')))==
+           u'(foo, \u05d0, (\u05d0, \u05d0))')
 
 class TestTake(unittest.TestCase):
 
@@ -288,9 +348,6 @@ class TestTake(unittest.TestCase):
         expected[:, [2, 4]] = np.nan
         tm.assert_almost_equal(result, expected)
 
-
 if __name__ == '__main__':
-    import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-

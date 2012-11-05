@@ -70,7 +70,8 @@ cdef _take_2d_object(ndarray[object, ndim=2] values,
     return result
 
 
-def rank_1d_float64(object in_arr, ties_method='average', ascending=True):
+def rank_1d_float64(object in_arr, ties_method='average', ascending=True,
+                    na_option='keep'):
     """
     Fast NaN-friendly version of scipy.stats.rankdata
     """
@@ -82,11 +83,14 @@ def rank_1d_float64(object in_arr, ties_method='average', ascending=True):
         float64_t val, nan_value
         float64_t sum_ranks = 0
         int tiebreak = 0
+        bint keep_na = 0
     tiebreak = tiebreakers[ties_method]
 
     values = np.asarray(in_arr).copy()
 
-    if ascending:
+    keep_na = na_option == 'keep'
+
+    if ascending ^ (na_option == 'top'):
         nan_value = np.inf
     else:
         nan_value = -np.inf
@@ -115,7 +119,7 @@ def rank_1d_float64(object in_arr, ties_method='average', ascending=True):
         sum_ranks += i + 1
         dups += 1
         val = sorted_data[i]
-        if val == nan_value:
+        if (val == nan_value) and keep_na:
             ranks[argsorted[i]] = nan
             continue
         if i == n - 1 or fabs(sorted_data[i + 1] - val) > FP_ERR:
@@ -138,7 +142,8 @@ def rank_1d_float64(object in_arr, ties_method='average', ascending=True):
     return ranks
 
 
-def rank_1d_int64(object in_arr, ties_method='average', ascending=True):
+def rank_1d_int64(object in_arr, ties_method='average', ascending=True,
+                  na_option='keep'):
     """
     Fast NaN-friendly version of scipy.stats.rankdata
     """
@@ -198,7 +203,7 @@ def rank_1d_int64(object in_arr, ties_method='average', ascending=True):
 
 
 def rank_2d_float64(object in_arr, axis=0, ties_method='average',
-                    ascending=True):
+                    ascending=True, na_option='keep'):
     """
     Fast NaN-friendly version of scipy.stats.rankdata
     """
@@ -210,7 +215,11 @@ def rank_2d_float64(object in_arr, axis=0, ties_method='average',
         float64_t val, nan_value
         float64_t sum_ranks = 0
         int tiebreak = 0
+        bint keep_na = 0
+
     tiebreak = tiebreakers[ties_method]
+
+    keep_na = na_option == 'keep'
 
     in_arr = np.asarray(in_arr)
 
@@ -219,7 +228,7 @@ def rank_2d_float64(object in_arr, axis=0, ties_method='average',
     else:
         values = in_arr.copy()
 
-    if ascending:
+    if ascending ^ (na_option == 'top'):
         nan_value = np.inf
     else:
         nan_value = -np.inf
@@ -249,7 +258,7 @@ def rank_2d_float64(object in_arr, axis=0, ties_method='average',
             sum_ranks += j + 1
             dups += 1
             val = values[i, j]
-            if val == nan_value:
+            if val == nan_value and keep_na:
                 ranks[i, argsorted[i, j]] = nan
                 continue
             if j == k - 1 or fabs(values[i, j + 1] - val) > FP_ERR:
@@ -277,7 +286,7 @@ def rank_2d_float64(object in_arr, axis=0, ties_method='average',
 
 
 def rank_2d_int64(object in_arr, axis=0, ties_method='average',
-                    ascending=True):
+                    ascending=True, na_option='keep'):
     """
     Fast NaN-friendly version of scipy.stats.rankdata
     """
@@ -345,7 +354,7 @@ def rank_2d_int64(object in_arr, axis=0, ties_method='average',
 
 
 def rank_1d_generic(object in_arr, bint retry=1, ties_method='average',
-                    ascending=True):
+                    ascending=True, na_option='keep'):
     """
     Fast NaN-friendly version of scipy.stats.rankdata
     """
@@ -358,14 +367,18 @@ def rank_1d_generic(object in_arr, bint retry=1, ties_method='average',
         object val, nan_value
         float64_t sum_ranks = 0
         int tiebreak = 0
+        bint keep_na = 0
+
     tiebreak = tiebreakers[ties_method]
+
+    keep_na = na_option == 'keep'
 
     values = np.array(in_arr, copy=True)
 
     if values.dtype != np.object_:
         values = values.astype('O')
 
-    if ascending:
+    if ascending ^ (na_option == 'top'):
         # always greater than everything
         nan_value = Infinity()
     else:
@@ -401,7 +414,7 @@ def rank_1d_generic(object in_arr, bint retry=1, ties_method='average',
         sum_ranks += i + 1
         dups += 1
         val = util.get_value_at(sorted_data, i)
-        if val is nan_value:
+        if val is nan_value and keep_na:
             ranks[argsorted[i]] = nan
             continue
         if (i == n - 1 or
@@ -450,7 +463,7 @@ class NegInfinity(object):
     __cmp__ = _return_true
 
 def rank_2d_generic(object in_arr, axis=0, ties_method='average',
-                    ascending=True):
+                    ascending=True, na_option='keep'):
     """
     Fast NaN-friendly version of scipy.stats.rankdata
     """
@@ -463,7 +476,11 @@ def rank_2d_generic(object in_arr, axis=0, ties_method='average',
         object val, nan_value
         float64_t sum_ranks = 0
         int tiebreak = 0
+        bint keep_na = 0
+
     tiebreak = tiebreakers[ties_method]
+
+    keep_na = na_option == 'keep'
 
     in_arr = np.asarray(in_arr)
 
@@ -475,7 +492,7 @@ def rank_2d_generic(object in_arr, axis=0, ties_method='average',
     if values.dtype != np.object_:
         values = values.astype('O')
 
-    if ascending:
+    if ascending ^ (na_option == 'top'):
         # always greater than everything
         nan_value = Infinity()
     else:
@@ -510,7 +527,7 @@ def rank_2d_generic(object in_arr, axis=0, ties_method='average',
         dups = sum_ranks = infs = 0
         for j in range(k):
             val = values[i, j]
-            if val is nan_value:
+            if val is nan_value and keep_na:
                 ranks[i, argsorted[i, j]] = nan
                 infs += 1
                 continue
@@ -548,3 +565,89 @@ def rank_2d_generic(object in_arr, axis=0, ties_method='average',
 #         for j in range(K):
 #             result[i, j] = values[i, indexer[i, j]]
 #     return result
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def diff_2d_float64(ndarray[float64_t, ndim=2] arr,
+                    ndarray[float64_t, ndim=2] out,
+                    Py_ssize_t periods, int axis):
+    cdef:
+        Py_ssize_t i, j, sx, sy
+
+    sx, sy = (<object> arr).shape
+    if arr.flags.f_contiguous:
+        if axis == 0:
+            for j in range(sy):
+                for i in range(periods, sx):
+                    out[i, j] = arr[i, j] - arr[i - periods, j]
+        else:
+            for j in range(periods, sy):
+                for i in range(sx):
+                    out[i, j] = arr[i, j] - arr[i, j - periods]
+    else:
+        if axis == 0:
+            for i in range(periods, sx):
+                for j in range(sy):
+                    out[i, j] = arr[i, j] - arr[i - periods, j]
+        else:
+            for i in range(sx):
+                for j in range(periods, sy):
+                    out[i, j] = arr[i, j] - arr[i, j - periods]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def diff_2d_int64(ndarray[int64_t, ndim=2] arr,
+                  ndarray[float64_t, ndim=2] out,
+                  Py_ssize_t periods, int axis):
+    cdef:
+        Py_ssize_t i, j, sx, sy
+
+    sx, sy = (<object> arr).shape
+    if arr.flags.f_contiguous:
+        if axis == 0:
+            for j in range(sy):
+                for i in range(periods, sx):
+                    out[i, j] = arr[i, j] - arr[i - periods, j]
+        else:
+            for j in range(periods, sy):
+                for i in range(sx):
+                    out[i, j] = arr[i, j] - arr[i, j - periods]
+    else:
+        if axis == 0:
+            for i in range(periods, sx):
+                for j in range(sy):
+                    out[i, j] = arr[i, j] - arr[i - periods, j]
+        else:
+            for i in range(sx):
+                for j in range(periods, sy):
+                    out[i, j] = arr[i, j] - arr[i, j - periods]
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def diff_2d_int32(ndarray[int64_t, ndim=2] arr,
+                  ndarray[float64_t, ndim=2] out,
+                  Py_ssize_t periods, int axis):
+    cdef:
+        Py_ssize_t i, j, sx, sy
+
+    sx, sy = (<object> arr).shape
+    if arr.flags.f_contiguous:
+        if axis == 0:
+            for j in range(sy):
+                for i in range(periods, sx):
+                    out[i, j] = arr[i, j] - arr[i - periods, j]
+        else:
+            for j in range(periods, sy):
+                for i in range(sx):
+                    out[i, j] = arr[i, j] - arr[i, j - periods]
+    else:
+        if axis == 0:
+            for i in range(periods, sx):
+                for j in range(sy):
+                    out[i, j] = arr[i, j] - arr[i - periods, j]
+        else:
+            for i in range(sx):
+                for j in range(periods, sy):
+                    out[i, j] = arr[i, j] - arr[i, j - periods]
+

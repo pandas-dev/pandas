@@ -1,5 +1,6 @@
 import pandas.rpy.util as util
 
+
 class lm(object):
     """
     Examples
@@ -9,5 +10,4 @@ class lm(object):
     """
     def __init__(self, formula, data):
         pass
-
 

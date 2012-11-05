@@ -119,9 +119,9 @@ columns:
     In [5]: grouped = df.groupby(get_letter_type, axis=1)
 
 Starting with 0.8, pandas Index objects now supports duplicate values. If a
-non-unique index is used as the group key in a groupby operation, all values for
-the same index value will be considered to be in one group and thus the output
-of aggregation functions will only contain unique index values:
+non-unique index is used as the group key in a groupby operation, all values
+for the same index value will be considered to be in one group and thus the
+output of aggregation functions will only contain unique index values:
 
 .. ipython:: python
 
@@ -590,3 +590,17 @@ If there are any NaN values in the grouping key, these will be automatically
 excluded. So there will never be an "NA group". This was not the case in older
 versions of pandas, but users were generally discarding the NA group anyway
 (and supporting it was an implementation headache).
+
+Grouping with ordered factors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Categorical variables represented as instance of pandas's ``Factor`` class can
+be used as group keys. If so, the order of the levels will be preserved:
+
+.. ipython:: python
+
+   data = Series(np.random.randn(100))
+
+   factor = qcut(data, [0, .25, .5, .75, 1.])
+
+   data.groupby(factor).mean()

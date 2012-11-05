@@ -21,6 +21,6 @@ ts1 = Series(np.random.randn(sz), idx1)
 ts2 = Series(np.random.randn(sz), idx2)
 """
 stmt = "ts1 + ts2"
-series_align_int64_index = Benchmark(stmt, setup,
-                                     start_date=datetime(2010, 6, 1),
-                                     logy=True)
+series_align_int64_index_binop = Benchmark(stmt, setup,
+                                           start_date=datetime(2010, 6, 1),
+                                           logy=True)

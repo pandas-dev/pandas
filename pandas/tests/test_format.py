@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 try:
     from StringIO import StringIO
 except:
@@ -6,6 +8,7 @@ except:
 import os
 import sys
 import unittest
+from textwrap import dedent
 
 from numpy import nan
 from numpy.random import randn
@@ -15,6 +18,7 @@ from pandas import DataFrame, Series, Index
 import pandas.core.format as fmt
 import pandas.util.testing as tm
 import pandas
+import pandas as pd
 
 _frame = DataFrame(tm.getSeriesData())
 
@@ -57,6 +61,41 @@ class TestDataFrameFormatting(unittest.TestCase):
         df = DataFrame({'tups' : zip(range(10), range(10))})
         repr(df)
         df.to_string(col_space=10, buf=buf)
+
+    def test_repr_truncation(self):
+        max_len = 20
+        fmt.print_config.max_colwidth = max_len
+        df = DataFrame({'A': np.random.randn(10),
+                 'B': [tm.rands(np.random.randint(max_len - 1,
+                     max_len + 1)) for i in range(10)]})
+        r = repr(df)
+        r = r[r.find('\n') + 1:]
+        for line, value in zip(r.split('\n'), df['B']):
+            if fmt._strlen(value) + 1 > max_len:
+                self.assert_('...' in line)
+            else:
+                self.assert_('...' not in line)
+
+        fmt.print_config.max_colwidth = None
+        self.assert_('...' not in repr(df))
+
+        fmt.print_config.max_colwidth = max_len + 2
+        self.assert_('...' not in repr(df))
+
+    def test_repr_should_return_str (self):
+        """
+        http://docs.python.org/py3k/reference/datamodel.html#object.__repr__
+        http://docs.python.org/reference/datamodel.html#object.__repr__
+        "...The return value must be a string object."
+
+        (str on py2.x, str (unicode) on py3)
+
+        """
+        data=[8,5,3,5]
+        index1=[u"\u03c3",u"\u03c4",u"\u03c5",u"\u03c6"]
+        cols=[u"\u03c8"]
+        df=DataFrame(data,columns=cols,index=index1)
+        self.assertTrue(type(df.__repr__() == str)) # both py2 / 3
 
     def test_to_string_repr_unicode(self):
         buf = StringIO()
@@ -150,6 +189,115 @@ class TestDataFrameFormatting(unittest.TestCase):
         df = DataFrame({'A' : [u'\u03c3']})
         df.to_html()
 
+    def test_to_html_multiindex_sparsify(self):
+        index = pd.MultiIndex.from_arrays([[0, 0, 1, 1], [0, 1, 0, 1]],
+                                          names=['foo', None])
+
+        df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]], index=index)
+
+        result = df.to_html()
+        expected = """<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th></th>
+      <th>0</th>
+      <th>1</th>
+    </tr>
+    <tr>
+      <th>foo</th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td rowspan="2" valign="top"><strong>0</strong></td>
+      <td><strong>0</strong></td>
+      <td> 0</td>
+      <td> 1</td>
+    </tr>
+    <tr>
+      <td><strong>1</strong></td>
+      <td> 2</td>
+      <td> 3</td>
+    </tr>
+    <tr>
+      <td rowspan="2" valign="top"><strong>1</strong></td>
+      <td><strong>0</strong></td>
+      <td> 4</td>
+      <td> 5</td>
+    </tr>
+    <tr>
+      <td><strong>1</strong></td>
+      <td> 6</td>
+      <td> 7</td>
+    </tr>
+  </tbody>
+</table>"""
+        self.assertEquals(result, expected)
+
+        df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]],
+                       columns=index[::2], index=index)
+
+        result = df.to_html()
+        expected = """\
+<table border="1" class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>foo</th>
+      <th>0</th>
+      <th>1</th>
+    </tr>
+    <tr>
+      <th></th>
+      <th></th>
+      <th>0</th>
+      <th>0</th>
+    </tr>
+    <tr>
+      <th>foo</th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td rowspan="2" valign="top"><strong>0</strong></td>
+      <td><strong>0</strong></td>
+      <td> 0</td>
+      <td> 1</td>
+    </tr>
+    <tr>
+      <td><strong>1</strong></td>
+      <td> 2</td>
+      <td> 3</td>
+    </tr>
+    <tr>
+      <td rowspan="2" valign="top"><strong>1</strong></td>
+      <td><strong>0</strong></td>
+      <td> 4</td>
+      <td> 5</td>
+    </tr>
+    <tr>
+      <td><strong>1</strong></td>
+      <td> 6</td>
+      <td> 7</td>
+    </tr>
+  </tbody>
+</table>"""
+        self.assertEquals(result, expected)
+
+
+    def test_nonunicode_nonascii_alignment(self):
+        df = DataFrame([["aa\xc3\xa4\xc3\xa4", 1], ["bbbb", 2]])
+        rep_str = df.to_string()
+        lines = rep_str.split('\n')
+        self.assert_(len(lines[1]) == len(lines[2]))
+
     def test_unicode_problem_decoding_as_ascii(self):
         dm = DataFrame({u'c/\u03c3': Series({'test':np.NaN})})
         unicode(dm.to_string())
@@ -157,9 +305,9 @@ class TestDataFrameFormatting(unittest.TestCase):
     def test_string_repr_encoding(self):
         pth = curpath()
         filepath = os.path.join(pth, 'data', 'unicode_series.csv')
-        df = pandas.read_csv(filepath, header=None)
+        df = pandas.read_csv(filepath, header=None,encoding='latin1')
         repr(df)
-        repr(df['X.2'])
+        repr(df['X1'])
 
     def test_repr_corner(self):
         # representing infs poses no problems
@@ -168,7 +316,7 @@ class TestDataFrameFormatting(unittest.TestCase):
 
     def test_frame_info_encoding(self):
         index = ['\'Til There Was You (1997)',
-                 '\xc1 k\xf6ldum klaka (Cold Fever) (1994)']
+                 'ldum klaka (Cold Fever) (1994)']
         fmt.set_printoptions(max_rows=1)
         df = DataFrame(columns=['a', 'b', 'c'], index=index)
         repr(df)
@@ -292,6 +440,31 @@ class TestDataFrameFormatting(unittest.TestCase):
                         '1  2.512000e-01')
         assert(df_s == expected)
 
+    def test_to_string_small_float_values(self):
+        df = DataFrame({'a': [1.5, 1e-17, -5.5e-7]})
+
+        result = df.to_string()
+        # sadness per above
+        if '%.4g' % 1.7e8 == '1.7e+008':
+            expected = ('               a\n'
+                        '0  1.500000e+000\n'
+                        '1  1.000000e-017\n'
+                        '2 -5.500000e-007')
+        else:
+            expected = ('              a\n'
+                        '0  1.500000e+00\n'
+                        '1  1.000000e-17\n'
+                        '2 -5.500000e-07')
+        self.assertEqual(result, expected)
+
+        # but not all exactly zero
+        df = df * 0
+        result = df.to_string()
+        expected = ('   0\n'
+                    '0  0\n'
+                    '1  0\n'
+                    '2 -0')
+
     def test_to_string_float_index(self):
         index = Index([1.5, 2, 3, 4, 5])
         df = DataFrame(range(5), index=index)
@@ -402,24 +575,24 @@ class TestDataFrameFormatting(unittest.TestCase):
         self.assert_('<th>B</th>' not in result)
 
     def test_to_html_multiindex(self):
-        columns = pandas.MultiIndex.from_tuples(zip(range(4),
+        columns = pandas.MultiIndex.from_tuples(zip(np.arange(2).repeat(2),
                                                     np.mod(range(4), 2)),
                                                 names=['CL0', 'CL1'])
         df = pandas.DataFrame([list('abcd'), list('efgh')], columns=columns)
-        result = df.to_html()
-        expected = ('<table border="1">\n'
+        result = df.to_html(justify='left')
+        expected = ('<table border="1" class="dataframe">\n'
                     '  <thead>\n'
                     '    <tr>\n'
-                    '      <th><table><tbody><tr><td>CL0</td></tr><tr>'
-                    '<td>CL1</td></tr></tbody></table></th>\n'
-                    '      <th><table><tbody><tr><td>0</td></tr><tr>'
-                    '<td>0</td></tr></tbody></table></th>\n'
-                    '      <th><table><tbody><tr><td>1</td></tr><tr>'
-                    '<td>1</td></tr></tbody></table></th>\n'
-                    '      <th><table><tbody><tr><td>2</td></tr><tr>'
-                    '<td>0</td></tr></tbody></table></th>\n'
-                    '      <th><table><tbody><tr><td>3</td></tr><tr>'
-                    '<td>1</td></tr></tbody></table></th>\n'
+                    '      <th>CL0</th>\n'
+                    '      <th colspan="2" halign="left">0</th>\n'
+                    '      <th colspan="2" halign="left">1</th>\n'
+                    '    </tr>\n'
+                    '    <tr>\n'
+                    '      <th>CL1</th>\n'
+                    '      <th>0</th>\n'
+                    '      <th>1</th>\n'
+                    '      <th>0</th>\n'
+                    '      <th>1</th>\n'
                     '    </tr>\n'
                     '  </thead>\n'
                     '  <tbody>\n'
@@ -439,24 +612,29 @@ class TestDataFrameFormatting(unittest.TestCase):
                     '    </tr>\n'
                     '  </tbody>\n'
                     '</table>')
+
         self.assertEqual(result, expected)
 
         columns = pandas.MultiIndex.from_tuples(zip(range(4),
                                                     np.mod(range(4), 2)))
         df = pandas.DataFrame([list('abcd'), list('efgh')], columns=columns)
-        result = df.to_html()
-        expected = ('<table border="1">\n'
+
+        result = df.to_html(justify='right')
+        expected = ('<table border="1" class="dataframe">\n'
                     '  <thead>\n'
                     '    <tr>\n'
                     '      <th></th>\n'
-                    '      <th><table><tbody><tr><td>0</td></tr>'
-                    '<tr><td>0</td></tr></tbody></table></th>\n'
-                    '      <th><table><tbody><tr><td>1</td></tr>'
-                    '<tr><td>1</td></tr></tbody></table></th>\n'
-                    '      <th><table><tbody><tr><td>2</td></tr>'
-                    '<tr><td>0</td></tr></tbody></table></th>\n'
-                    '      <th><table><tbody><tr><td>3</td></tr>'
-                    '<tr><td>1</td></tr></tbody></table></th>\n'
+                    '      <th>0</th>\n'
+                    '      <th>1</th>\n'
+                    '      <th>2</th>\n'
+                    '      <th>3</th>\n'
+                    '    </tr>\n'
+                    '    <tr>\n'
+                    '      <th></th>\n'
+                    '      <th>0</th>\n'
+                    '      <th>1</th>\n'
+                    '      <th>0</th>\n'
+                    '      <th>1</th>\n'
                     '    </tr>\n'
                     '  </thead>\n'
                     '  <tbody>\n'
@@ -476,7 +654,97 @@ class TestDataFrameFormatting(unittest.TestCase):
                     '    </tr>\n'
                     '  </tbody>\n'
                     '</table>')
+
         self.assertEqual(result, expected)
+
+    def test_to_html_justify(self):
+        df = pandas.DataFrame({'A': [6, 30000, 2],
+                               'B': [1, 2, 70000],
+                               'C': [223442, 0, 1]},
+                              columns=['A', 'B', 'C'])
+        result = df.to_html(justify='left')
+        expected = ('<table border="1" class="dataframe">\n'
+                    '  <thead>\n'
+                    '    <tr style="text-align: left;">\n'
+                    '      <th></th>\n'
+                    '      <th>A</th>\n'
+                    '      <th>B</th>\n'
+                    '      <th>C</th>\n'
+                    '    </tr>\n'
+                    '  </thead>\n'
+                    '  <tbody>\n'
+                    '    <tr>\n'
+                    '      <td><strong>0</strong></td>\n'
+                    '      <td>     6</td>\n'
+                    '      <td>     1</td>\n'
+                    '      <td> 223442</td>\n'
+                    '    </tr>\n'
+                    '    <tr>\n'
+                    '      <td><strong>1</strong></td>\n'
+                    '      <td> 30000</td>\n'
+                    '      <td>     2</td>\n'
+                    '      <td>      0</td>\n'
+                    '    </tr>\n'
+                    '    <tr>\n'
+                    '      <td><strong>2</strong></td>\n'
+                    '      <td>     2</td>\n'
+                    '      <td> 70000</td>\n'
+                    '      <td>      1</td>\n'
+                    '    </tr>\n'
+                    '  </tbody>\n'
+                    '</table>')
+
+        self.assertEqual(result, expected)
+
+        result = df.to_html(justify='right')
+        expected = ('<table border="1" class="dataframe">\n'
+                    '  <thead>\n'
+                    '    <tr style="text-align: right;">\n'
+                    '      <th></th>\n'
+                    '      <th>A</th>\n'
+                    '      <th>B</th>\n'
+                    '      <th>C</th>\n'
+                    '    </tr>\n'
+                    '  </thead>\n'
+                    '  <tbody>\n'
+                    '    <tr>\n'
+                    '      <td><strong>0</strong></td>\n'
+                    '      <td>     6</td>\n'
+                    '      <td>     1</td>\n'
+                    '      <td> 223442</td>\n'
+                    '    </tr>\n'
+                    '    <tr>\n'
+                    '      <td><strong>1</strong></td>\n'
+                    '      <td> 30000</td>\n'
+                    '      <td>     2</td>\n'
+                    '      <td>      0</td>\n'
+                    '    </tr>\n'
+                    '    <tr>\n'
+                    '      <td><strong>2</strong></td>\n'
+                    '      <td>     2</td>\n'
+                    '      <td> 70000</td>\n'
+                    '      <td>      1</td>\n'
+                    '    </tr>\n'
+                    '  </tbody>\n'
+                    '</table>')
+        self.assertEqual(result, expected)
+
+    def test_to_html_index(self):
+        index = ['foo', 'bar', 'baz']
+        df = pandas.DataFrame({'A': [1, 2, 3],
+                               'B': [1.2, 3.4, 5.6],
+                               'C': ['one', 'two', np.NaN]},
+                              columns=['A', 'B', 'C'],
+                              index = index)
+        result = df.to_html(index=False)
+        for i in index:
+            self.assert_(i not in result)
+
+        tuples = [('foo', 'car'), ('foo', 'bike'), ('bar' ,'car')]
+        df.index = pandas.MultiIndex.from_tuples(tuples)
+        result = df.to_html(index=False)
+        for i in ['foo', 'bar', 'car', 'bike']:
+            self.assert_(i not in result)
 
     def test_repr_html(self):
         self.frame._repr_html_()
@@ -488,6 +756,44 @@ class TestDataFrameFormatting(unittest.TestCase):
         self.frame._repr_html_()
 
         fmt.reset_printoptions()
+
+    def test_to_html_with_classes(self):
+        df = pandas.DataFrame()
+        result = df.to_html(classes="sortable draggable")
+        expected = dedent("""
+
+            <table border="1" class="dataframe sortable draggable">
+              <tbody>
+                <tr>
+                  <td>Index([], dtype=object)</td>
+                  <td>Empty DataFrame</td>
+                </tr>
+              </tbody>
+            </table>
+
+        """).strip()
+        self.assertEqual(result, expected)
+
+        result = df.to_html(classes=["sortable", "draggable"])
+        self.assertEqual(result, expected)
+
+    def test_float_trim_zeros(self):
+        vals = [2.08430917305e+10, 3.52205017305e+10, 2.30674817305e+10,
+                2.03954217305e+10, 5.59897817305e+10]
+        skip = True
+        for line in repr(DataFrame({'A': vals})).split('\n'):
+            self.assert_(('+10' in line) or skip)
+            skip = False
+
+    def test_dict_entries(self):
+        df = DataFrame({'A': [{'a':1, 'b':2}]})
+
+        val = df.to_string()
+        self.assertTrue("{'a': 1, 'b': 2}" in val)
+
+    def test_to_latex(self):
+        # it works!
+        self.frame.to_latex()
 
 class TestSeriesFormatting(unittest.TestCase):
 
@@ -565,6 +871,23 @@ class TestSeriesFormatting(unittest.TestCase):
                     '3   -3.0000\n'
                     '4       NaN')
         self.assertEqual(result, expected)
+
+    def test_unicode_name_in_footer(self):
+        s=Series([1,2],name=u'\u05e2\u05d1\u05e8\u05d9\u05ea')
+        sf=fmt.SeriesFormatter(s,name=u'\u05e2\u05d1\u05e8\u05d9\u05ea')
+        sf._get_footer() # should not raise exception
+
+    def test_float_trim_zeros(self):
+        vals = [2.08430917305e+10, 3.52205017305e+10, 2.30674817305e+10,
+                2.03954217305e+10, 5.59897817305e+10]
+        for line in repr(Series(vals)).split('\n'):
+            self.assert_('+10' in line)
+
+    def test_timedelta64(self):
+        Series(np.array([1100, 20], dtype='timedelta64[s]')).to_string()
+        #check this works
+        #GH2146
+
 
 class TestEngFormatter(unittest.TestCase):
 
@@ -776,4 +1099,3 @@ if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__,'-vvs','-x','--pdb', '--pdb-failure'],
                    exit=False)
-

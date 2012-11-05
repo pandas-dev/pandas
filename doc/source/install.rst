@@ -26,13 +26,46 @@ compatibility.
 Binary installers
 ~~~~~~~~~~~~~~~~~
 
-Available on `PyPI <http://pypi.python.org/pypi/pandas>`__
+.. _all-platforms:
+
+All platforms
+_____________
+
+Stable installers available on `PyPI <http://pypi.python.org/pypi/pandas>`__
+
+Preliminary builds and installers on the `Pandas download page <http://pandas.pydata.org/getpandas.html>`__ .
+
+Overview
+___________
+
+
+
+.. csv-table::
+    :header: "Platform", "Distribution", "Status", "Download / Repository Link", "Install method"
+    :widths: 10, 10, 10, 20, 50
+
+
+    Windows, all, stable, :ref:`all-platforms`,  ``pip install pandas``
+    Mac, all, stable, :ref:`all-platforms`,  ``pip install pandas``
+    Linux, Debian, stable, `official Debian repository <http://packages.debian.org/search?keywords=pandas&searchon=names&suite=all&section=all>`_ , ``sudo apt-get install python-pandas``
+    Linux, Debian & Ubuntu, unstable (latest packages), `NeuroDebian <http://neuro.debian.net/index.html#how-to-use-this-repository>`_ , ``sudo apt-get install python-pandas``
+    Linux, Ubuntu, stable, `official Ubuntu repository <http://packages.ubuntu.com/search?keywords=pandas&searchon=names&suite=all&section=all>`_ , ``sudo apt-get install python-pandas``
+    Linux, Ubuntu, unstable (daily builds), `PythonXY PPA  <https://code.launchpad.net/~pythonxy/+archive/pythonxy-devel>`_; activate by: ``sudo add-apt-repository ppa:pythonxy/pythonxy-devel && sudo apt-get update``, ``sudo apt-get install python-pandas``
+	Linux, OpenSuse & Fedora, stable, `OpenSuse Repository  <http://software.opensuse.org/package/python-pandas?search_term=pandas>`_ , ``zypper in  python-pandas``
+
+
+
+
+
+
+
+
+
 
 Dependencies
 ~~~~~~~~~~~~
 
-  * `NumPy <http://www.numpy.org>`__: 1.4.0 or higher. Recommend 1.5.1 or
-    higher
+  * `NumPy <http://www.numpy.org>`__: 1.6.1 or higher
   * `python-dateutil <http://labix.org/python-dateutil>`__ 1.5
 
 Optional dependencies
@@ -41,7 +74,7 @@ Optional dependencies
   * `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions
   * `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage
   * `matplotlib <http://matplotlib.sourceforge.net/>`__: for plotting
-  * `scikits.statsmodels <http://statsmodels.sourceforge.net/>`__
+  * `statsmodels <http://statsmodels.sourceforge.net/>`__: 0.4.0 or higher
      * Needed for parts of :mod:`pandas.stats`
   * `pytz <http://pytz.sourceforge.net/>`__
      * Needed for time zone support with ``date_range``
@@ -88,6 +121,11 @@ the source directory unless you build the C extensions in place:
 
   python setup.py build_ext --inplace
 
+The most recent version of MinGW (any installer dated after 2011-08-03)
+has removed the '-mno-cygwin' option but Distutils has not yet been updated to
+reflect that. Thus, you may run into an error like "unrecognized command line
+option '-mno-cygwin'". Until the bug is fixed in Distutils, you may need to
+install a slightly older version of MinGW (2011-08-02 installer).
 
 Running the test suite
 ~~~~~~~~~~~~~~~~~~~~~~

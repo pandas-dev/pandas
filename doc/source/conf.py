@@ -34,6 +34,8 @@ sys.path.extend([
 
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.doctest',
+              'sphinx.ext.extlinks',
+              'sphinx.ext.todo',
               'numpydoc',
               'ipython_directive',
               'ipython_console_highlighting',
@@ -231,6 +233,17 @@ latex_documents = [
 
 
 # Example configuration for intersphinx: refer to the Python standard library.
-# intersphinx_mapping = {'http://docs.scipy.org/': None}
+intersphinx_mapping = {
+        'statsmodels' : ('http://statsmodels.sourceforge.net/devel/', None),
+        'python': ('http://docs.python.org/', None)
+                      }
 import glob
 autosummary_generate = glob.glob("*.rst")
+
+# extlinks alias
+extlinks = {'issue': ('https://github.com/pydata/pandas/issues/%s',
+                      'issue '),
+            'pull request': ('https://github.com/pydata/pandas/pulls/%s',
+                      'pull request '),
+            'wiki': ('https://github.com/pydata/pandas/pulls/%s',
+                      'wiki ')}

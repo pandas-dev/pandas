@@ -3,11 +3,21 @@
 from pandas.core.common import _asarray_tuplesafe
 from pandas.core.index import Index, MultiIndex
 import pandas.core.common as com
+import pandas.lib as lib
 
 import numpy as np
 
 # "null slice"
 _NS = slice(None, None)
+
+
+def _is_sequence(x):
+    try:
+        iter(x)
+        assert(not isinstance(x, basestring))
+        return True
+    except Exception:
+        return False
 
 
 class IndexingError(Exception):
@@ -35,10 +45,19 @@ class _NDFrameIndexer(object):
             return self._getitem_axis(key, axis=0)
 
     def _get_label(self, label, axis=0):
+        # ueber-hack
+        if (isinstance(label, tuple) and
+            isinstance(label[axis], slice)):
+
+            raise IndexingError('no slices here')
+
         try:
             return self.obj.xs(label, axis=axis, copy=False)
         except Exception:
             return self.obj.xs(label, axis=axis, copy=True)
+
+    def _get_loc(self, key, axis=0):
+        return self.obj._ixs(key, axis=axis)
 
     def _slice(self, obj, axis=0):
         return self.obj._slice(obj, axis=axis)
@@ -72,10 +91,18 @@ class _NDFrameIndexer(object):
         return tuple(keyidx)
 
     def _setitem_with_indexer(self, indexer, value):
+        from pandas.core.frame import DataFrame, Series
+
         # also has the side effect of consolidating in-place
+
+        # mmm, spaghetti
+
         if self.obj._is_mixed_type:
             if not isinstance(indexer, tuple):
                 indexer = self._tuplify(indexer)
+
+            if isinstance(value, Series):
+                value = self._align_series(indexer, value)
 
             het_axis = self.obj._het_axis
             het_idx = indexer[het_axis]
@@ -85,13 +112,101 @@ class _NDFrameIndexer(object):
 
             plane_indexer = indexer[:het_axis] + indexer[het_axis + 1:]
             item_labels = self.obj._get_axis(het_axis)
-            for item in item_labels[het_idx]:
-                data = self.obj[item]
-                data.values[plane_indexer] = value
+
+            if isinstance(value, (np.ndarray, DataFrame)) and value.ndim > 1:
+                raise ValueError('Setting mixed-type DataFrames with '
+                                 'array/DataFrame pieces not yet supported')
+
+            try:
+                for item in item_labels[het_idx]:
+                    data = self.obj[item]
+                    values = data.values
+                    if np.prod(values.shape):
+                        values[plane_indexer] = value
+            except ValueError:
+                for item, v in zip(item_labels[het_idx], value):
+                    data = self.obj[item]
+                    values = data.values
+                    if np.prod(values.shape):
+                        values[plane_indexer] = v
         else:
             if isinstance(indexer, tuple):
                 indexer = _maybe_convert_ix(*indexer)
-            self.obj.values[indexer] = value
+
+            if isinstance(value, Series):
+                value = self._align_series(indexer, value)
+
+            if isinstance(value, DataFrame):
+                value = self._align_frame(indexer, value)
+
+            # 2096
+            values = self.obj.values
+            if np.prod(values.shape):
+                values[indexer] = value
+
+    def _align_series(self, indexer, ser):
+        # indexer to assign Series can be tuple or scalar
+        if isinstance(indexer, tuple):
+            for i, idx in enumerate(indexer):
+                ax = self.obj.axes[i]
+                if _is_sequence(idx) or isinstance(idx, slice):
+                    new_ix = ax[idx]
+                    if ser.index.equals(new_ix):
+                        return ser.values.copy()
+                    return ser.reindex(new_ix).values
+
+        elif np.isscalar(indexer):
+            ax = self.obj._get_axis(1)
+
+            if ser.index.equals(ax):
+                return ser.values.copy()
+
+            return ser.reindex(ax).values
+
+        raise ValueError('Incompatible indexer with Series')
+
+    def _align_frame(self, indexer, df):
+        from pandas import DataFrame
+        is_frame = isinstance(self.obj, DataFrame)
+        if not is_frame:
+            df = df.T
+        if isinstance(indexer, tuple):
+            idx, cols = None, None
+            for i, ix in enumerate(indexer):
+                ax = self.obj.axes[i]
+                if _is_sequence(ix) or isinstance(ix, slice):
+                    if idx is None:
+                        idx = ax[ix]
+                    elif cols is None:
+                        cols = ax[ix]
+                    else:
+                        break
+
+            if idx is not None and cols is not None:
+                if df.index.equals(idx) and df.columns.equals(cols):
+                    val = df.copy().values
+                else:
+                    val = df.reindex(idx, columns=cols).values
+                return val
+
+        elif ((isinstance(indexer, slice) or com.is_list_like(indexer))
+              and is_frame):
+            ax = self.obj.index[indexer]
+            if df.index.equals(ax):
+                val = df.copy().values
+            else:
+                val = df.reindex(ax).values
+            return val
+
+        elif np.isscalar(indexer) and not is_frame:
+            idx = self.obj.axes[1]
+            cols = self.obj.axes[2]
+
+            if idx.equals(df.index) and cols.equals(df.columns):
+                return df.copy().values
+            return df.reindex(idx, columns=cols).values
+
+        raise ValueError('Incompatible indexer with DataFrame')
 
     def _getitem_tuple(self, tup):
         try:
@@ -117,26 +232,34 @@ class _NDFrameIndexer(object):
         return retval
 
     def _multi_take_opportunity(self, tup):
-        from pandas.core.frame import DataFrame
+        from pandas.core.generic import NDFrame
 
         # ugly hack for GH #836
-        if not isinstance(self.obj, DataFrame):
+        if not isinstance(self.obj, NDFrame):
             return False
 
         if not all(_is_list_like(x) for x in tup):
             return False
 
         # just too complicated
-        if (isinstance(self.obj.index, MultiIndex) or
-            isinstance(self.obj.columns, MultiIndex)):
-            return False
+        for ax in self.obj._data.axes:
+            if isinstance(ax, MultiIndex):
+                return False
 
         return True
 
     def _multi_take(self, tup):
-        index = self._convert_for_reindex(tup[0], axis=0)
-        columns = self._convert_for_reindex(tup[1], axis=1)
-        return self.obj.reindex(index=index, columns=columns)
+        from pandas.core.frame import DataFrame
+        from pandas.core.panel import Panel
+
+        if isinstance(self.obj, DataFrame):
+            index = self._convert_for_reindex(tup[0], axis=0)
+            columns = self._convert_for_reindex(tup[1], axis=1)
+            return self.obj.reindex(index=index, columns=columns)
+        elif isinstance(self.obj, Panel):
+            conv = [self._convert_for_reindex(x, axis=i)
+                    for i, x in enumerate(tup)]
+            return self.obj.reindex(items=tup[0], major=tup[1], minor=tup[2])
 
     def _convert_for_reindex(self, key, axis=0):
         labels = self.obj._get_axis(axis)
@@ -168,11 +291,13 @@ class _NDFrameIndexer(object):
             except TypeError:
                 # slices are unhashable
                 pass
-            except Exception:
+            except Exception, e1:
                 if isinstance(tup[0], slice):
                     raise IndexingError
-                if tup[0] not in ax0: # and tup[0] not in ax0.levels[0]:
-                    raise
+                try:
+                    loc = ax0.get_loc(tup[0])
+                except KeyError:
+                    raise e1
 
         # to avoid wasted computation
         # df.ix[d1:d2, 0] -> columns first (True)
@@ -226,14 +351,14 @@ class _NDFrameIndexer(object):
                             raise
 
                 if not is_int_index:
-                    idx = labels[key]
+                    return self._get_loc(key, axis=0)
 
             return self._get_label(idx, axis=0)
         else:
             labels = self.obj._get_axis(axis)
             lab = key
             if com.is_integer(key) and not _is_integer_index(labels):
-                lab = labels[key]
+                return self._get_loc(key, axis=axis)
             return self._get_label(lab, axis=axis)
 
     def _getitem_iterable(self, key, axis=0):
@@ -249,17 +374,31 @@ class _NDFrameIndexer(object):
 
         if com._is_bool_indexer(key):
             key = _check_bool_indexer(labels, key)
-            return _reindex(labels[np.asarray(key)])
+            inds, = np.asarray(key, dtype=bool).nonzero()
+            return self.obj.take(inds, axis=axis)
         else:
-            if isinstance(key, Index):
+            was_index = isinstance(key, Index)
+            if was_index:
                 # want Index objects to pass through untouched
                 keyarr = key
             else:
                 # asarray can be unsafe, NumPy strings are weird
                 keyarr = _asarray_tuplesafe(key)
 
-            if _is_integer_dtype(keyarr) and not _is_integer_index(labels):
-                return self.obj.take(keyarr, axis=axis)
+            if _is_integer_dtype(keyarr):
+                if labels.inferred_type != 'integer':
+                    keyarr = np.where(keyarr < 0,
+                                      len(labels) + keyarr, keyarr)
+
+                if labels.inferred_type == 'mixed-integer':
+                    indexer = labels.get_indexer(keyarr)
+                    if (indexer >= 0).all():
+                        self.obj.take(indexer, axis=axis)
+                    else:
+                        return self.obj.take(keyarr, axis=axis)
+                elif not labels.inferred_type == 'integer':
+
+                    return self.obj.take(keyarr, axis=axis)
 
             # this is not the most robust, but...
             if (isinstance(labels, MultiIndex) and
@@ -268,7 +407,11 @@ class _NDFrameIndexer(object):
             else:
                 level = None
 
-            return _reindex(keyarr, level=level)
+            if labels.is_unique:
+                return _reindex(keyarr, level=level)
+            else:
+                mask = labels.isin(keyarr)
+                return self.obj.take(mask.nonzero()[0], axis=axis)
 
     def _convert_to_indexer(self, obj, axis=0):
         """
@@ -322,7 +465,7 @@ class _NDFrameIndexer(object):
                         j = labels.get_loc(stop)
                     position_slice = False
             except KeyError:
-                if ltype == 'mixed-integer':
+                if ltype == 'mixed-integer-float':
                     raise
 
             if null_slice or position_slice:
@@ -346,10 +489,16 @@ class _NDFrameIndexer(object):
                 objarr = _check_bool_indexer(labels, obj)
                 return objarr
             else:
-                objarr = _asarray_tuplesafe(obj)
+                if isinstance(obj, Index):
+                    objarr = obj.values
+                else:
+                    objarr = _asarray_tuplesafe(obj)
 
                 # If have integer labels, defer to label-based indexing
                 if _is_integer_dtype(objarr) and not is_int_index:
+                    if labels.inferred_type != 'integer':
+                        objarr = np.where(objarr < 0,
+                                          len(labels) + objarr, objarr)
                     return objarr
 
                 # this is not the most robust, but...
@@ -361,7 +510,20 @@ class _NDFrameIndexer(object):
                     check = labels.levels[0].get_indexer(objarr)
                 else:
                     level = None
-                    indexer = check = labels.get_indexer(objarr)
+                    # XXX
+                    if labels.is_unique:
+                        indexer = check = labels.get_indexer(objarr)
+                    else:
+                        mask = np.zeros(len(labels), dtype=bool)
+                        lvalues = labels.values
+                        for x in objarr:
+                            # ugh
+                            to_or = lib.map_infer(lvalues, x.__eq__)
+                            if not to_or.any():
+                                raise KeyError('%s not in index' % str(x))
+                            mask |= to_or
+
+                        indexer = check = mask.nonzero()[0]
 
                 mask = check == -1
                 if mask.any():
@@ -409,7 +571,7 @@ class _NDFrameIndexer(object):
                     j = labels.get_loc(stop)
                 position_slice = False
         except KeyError:
-            if labels.inferred_type == 'mixed-integer':
+            if labels.inferred_type == 'mixed-integer-float':
                 raise
 
         if null_slice or position_slice:
@@ -434,6 +596,7 @@ class _NDFrameIndexer(object):
 # 32-bit floating point machine epsilon
 _eps = np.finfo('f4').eps
 
+
 def _is_index_slice(obj):
     def _is_valid_index(x):
         return (com.is_integer(x) or com.is_float(x)
@@ -446,6 +609,7 @@ def _is_index_slice(obj):
 
     return not both_none and (_crit(obj.start) and _crit(obj.stop))
 
+
 def _is_int_slice(obj):
     def _is_valid_index(x):
         return com.is_integer(x)
@@ -456,6 +620,7 @@ def _is_int_slice(obj):
     both_none = obj.start is None and obj.stop is None
 
     return not both_none and (_crit(obj.start) and _crit(obj.stop))
+
 
 def _is_float_slice(obj):
     def _is_valid_index(x):
@@ -490,6 +655,9 @@ class _SeriesIndexer(_NDFrameIndexer):
 
     def _get_label(self, key, axis=0):
         return self.obj[key]
+
+    def _get_loc(self, key, axis=0):
+        return self.obj.values[key]
 
     def _slice(self, indexer, axis=0):
         return self.obj._get_values(indexer)

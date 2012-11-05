@@ -752,6 +752,8 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         # assert level parameter breaks reindex
         self.assertRaises(Exception, self.frame.reindex, idx, level=0)
 
+        repr(self.frame)
+
     def test_constructor_ndarray(self):
         # no index or columns
         sp = SparseDataFrame(self.frame.values)
@@ -890,7 +892,14 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         pass
 
     def test_getitem(self):
-        pass
+        # #1585 select multiple columns
+        sdf = SparseDataFrame(index=[0, 1, 2], columns=['a', 'b','c'])
+
+        result = sdf[['a', 'b']]
+        exp = sdf.reindex(columns=['a', 'b'])
+        assert_sp_frame_equal(result, exp)
+
+        self.assertRaises(Exception, sdf.__getitem__, ['a', 'd'])
 
     def test_set_value(self):
         res = self.frame.set_value('foobar', 'B', 1.5)
@@ -1047,6 +1056,19 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
                            self.frame.to_dense().apply(np.sum, broadcast=True))
 
         self.assert_(self.empty.apply(np.sqrt) is self.empty)
+
+    def test_apply_nonuq(self):
+        df_orig = DataFrame([[1,2,3], [4,5,6], [7,8,9]], index=['a','a','c'])
+        df = df_orig.to_sparse()
+        rs = df.apply(lambda s: s[0], axis=1)
+        xp = Series([1., 4., 7.], ['a', 'a', 'c'])
+        assert_series_equal(rs, xp)
+
+        #df.T breaks
+        df = df_orig.T.to_sparse()
+        rs = df.apply(lambda s: s[0], axis=0)
+        #no non-unique columns supported in sparse yet
+        #assert_series_equal(rs, xp)
 
     def test_applymap(self):
         # just test that it works
@@ -1269,6 +1291,11 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         expected = df.add(df2, fill_value=0).to_sparse()
         assert_sp_frame_equal(result, expected)
 
+    def test_isin(self):
+        sparse_df = DataFrame({'flag': [1., 0., 1.]}).to_sparse(fill_value=0.)
+        xp = sparse_df[sparse_df.flag == 1.]
+        rs = sparse_df[sparse_df.flag.isin([1.])]
+        assert_frame_equal(xp, rs)
 
 def _dense_series_compare(s, f):
     result = f(s)

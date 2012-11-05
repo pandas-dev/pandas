@@ -26,11 +26,18 @@ objects. To get started, import numpy and load pandas into your namespace:
    randn = np.random.randn
    from pandas import *
 
-Here is a basic tenet to keep in mind: **data alignment is intrinsic**. Link
+Here is a basic tenet to keep in mind: **data alignment is intrinsic**. The link
 between labels and data will not be broken unless done so explicitly by you.
 
 We'll give a brief intro to the data structures, then consider all of the broad
 categories of functionality and methods in separate sections.
+
+When using pandas, we recommend the following import convention:
+
+.. code-block:: python
+
+   import pandas as pd
+
 
 .. _basics.series:
 
@@ -133,15 +140,20 @@ label:
     'e' in s
     'f' in s
 
-If a label is not contained, an exception
+If a label is not contained, an exception is raised:
 
 .. code-block:: python
 
     >>> s['f']
     KeyError: 'f'
 
-    >>> s.get('f')
-    nan
+Using the ``get`` method, a missing label will return None or specified default:
+
+.. ipython:: python
+
+   s.get('f')
+
+   s.get('f', np.nan)
 
 Vectorized operations and label alignment with Series
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

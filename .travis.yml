@@ -1,0 +1,16 @@
+language: python
+
+python:
+  - 2.5
+  - 2.6
+  - 2.7
+  - 3.1
+  - 3.2
+
+install:
+  - "if [[ $TRAVIS_PYTHON_VERSION == '2.5' ]]; then pip install --use-mirrors simplejson; fi"
+  - pip install --use-mirrors cython numpy nose pytz python-dateutil
+
+script:
+  - python setup.py build_ext install
+  - nosetests --exe -w /tmp pandas.tests

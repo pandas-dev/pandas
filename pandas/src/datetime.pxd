@@ -34,6 +34,7 @@ cdef extern from "datetime.h":
     int PyDateTime_TIME_GET_MICROSECOND(object o)
     bint PyDateTime_Check(object o)
     bint PyDate_Check(object o)
+    bint PyTime_Check(object o)
     object PyDateTime_FromDateAndTime(int year, int month, int day, int hour,
                                       int minute, int second, int us)
 
@@ -92,7 +93,7 @@ cdef extern from "datetime/np_datetime.h":
     void pandas_datetime_to_datetimestruct(npy_datetime val,
                                            PANDAS_DATETIMEUNIT fr,
                                            pandas_datetimestruct *result)
-    int _days_per_month_table[2][12]
+    int days_per_month_table[2][12]
 
     int dayofweek(int y, int m, int d)
     int is_leapyear(int64_t year)
@@ -112,60 +113,3 @@ cdef extern from "datetime/np_datetime_strings.h":
     int get_datetime_iso_8601_strlen(int local, PANDAS_DATETIMEUNIT base)
 
     # int parse_python_string(object obj, pandas_datetimestruct *out) except -1
-
-cdef extern from "period.h":
-    ctypedef struct date_info:
-        int64_t absdate
-        double abstime
-        double second
-        int minute
-        int hour
-        int day
-        int month
-        int quarter
-        int year
-        int day_of_week
-        int day_of_year
-        int calendar
-
-    ctypedef struct asfreq_info:
-        int from_week_end
-        int to_week_end
-
-        int from_a_year_end
-        int to_a_year_end
-
-        int from_q_year_end
-        int to_q_year_end
-
-    ctypedef int64_t (*freq_conv_func)(int64_t, char, asfreq_info*)
-
-    int64_t asfreq(int64_t dtordinal, int freq1, int freq2, char relation) except INT32_MIN
-    freq_conv_func get_asfreq_func(int fromFreq, int toFreq)
-    void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info)
-
-    int64_t get_period_ordinal(int year, int month, int day,
-                          int hour, int minute, int second,
-                          int freq) except INT32_MIN
-
-    int64_t get_python_ordinal(int64_t period_ordinal, int freq) except INT32_MIN
-
-    char *skts_strftime(int64_t value, int freq, PyObject *args)
-    char *period_to_string(int64_t value, int freq)
-    char *period_to_string2(int64_t value, int freq, char *fmt)
-
-    int get_date_info(int64_t ordinal, int freq, date_info *dinfo) except INT32_MIN
-    double getAbsTime(int, int64_t, int64_t)
-
-    int pyear(int64_t ordinal, int freq) except INT32_MIN
-    int pqyear(int64_t ordinal, int freq) except INT32_MIN
-    int pquarter(int64_t ordinal, int freq) except INT32_MIN
-    int pmonth(int64_t ordinal, int freq) except INT32_MIN
-    int pday(int64_t ordinal, int freq) except INT32_MIN
-    int pweekday(int64_t ordinal, int freq) except INT32_MIN
-    int pday_of_week(int64_t ordinal, int freq) except INT32_MIN
-    int pday_of_year(int64_t ordinal, int freq) except INT32_MIN
-    int pweek(int64_t ordinal, int freq) except INT32_MIN
-    int phour(int64_t ordinal, int freq) except INT32_MIN
-    int pminute(int64_t ordinal, int freq) except INT32_MIN
-    int psecond(int64_t ordinal, int freq) except INT32_MIN

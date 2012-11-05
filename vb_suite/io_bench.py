@@ -38,3 +38,9 @@ df = DataFrame({'float1' : randn(10000),
 write_csv_standard = Benchmark("df.to_csv('__test__.csv')", setup2,
                                start_date=datetime(2011, 9, 15))
 
+#----------------------------------
+setup = common_setup + """
+df = DataFrame(np.random.randn(3000, 30))
+"""
+frame_to_csv = Benchmark("df.to_csv('__test__.csv')", setup,
+                         start_date=datetime(2011, 1, 1))

@@ -186,8 +186,14 @@ def full_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
 def _get_result_indexer(sorter, indexer):
     if indexer.dtype != np.int_:
         indexer = indexer.astype(np.int_)
-    res = sorter.take(indexer)
-    np.putmask(res, indexer == -1, -1)
+    if len(sorter) > 0:
+        res = sorter.take(indexer)
+        np.putmask(res, indexer == -1, -1)
+    else:
+        # length-0 case
+        res = np.empty(len(indexer), dtype=np.int64)
+        res.fill(-1)
+
     return res
 
 

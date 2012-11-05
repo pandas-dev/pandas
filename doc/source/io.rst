@@ -70,7 +70,7 @@ data into a DataFrame object. They can take a number of arguments:
     cases by "sniffing." The separator may be specified as a regular
     expression; for instance you may use '\s*' to indicate arbitrary
     whitespace.
-  - ``dialect``: string or csv.Dialect instance to expose more ways to specify
+  - ``dialect``: string or :class:`python:csv.Dialect` instance to expose more ways to specify
     the file format
   - ``header``: row number to use as the column names, and the start of the data.
     Defaults to 0 (first row); specify None if there is no header row.
@@ -83,8 +83,10 @@ data into a DataFrame object. They can take a number of arguments:
     as the index.
   - ``names``: List of column names to use. If passed, header will be
     implicitly set to None.
-  - ``na_values``: optional list of strings to recognize as NaN (missing values),
-    in addition to a default set.
+  - ``na_values``: optional list of strings to recognize as NaN (missing
+    values), either in addition to or in lieu of the default set.
+  - ``keep_default_na``: whether to include the default set of missing values
+    in addition to the ones specified in ``na_values``
   - ``parse_dates``: if True then index will be parsed as dates
     (False by default). You can specify more complicated options to parse
     a subset of columns or a combination of columns into a single date column
@@ -158,9 +160,11 @@ You can also use a list of columns to create a hierarchical index:
 
    read_csv('foo.csv', index_col=[0, 'A'])
 
+.. _io.dialect:
+
 The ``dialect`` keyword gives greater flexibility in specifying the file format.
 By default it uses the Excel dialect but you can specify either the dialect name
-or a `csv.Dialect <docs.python.org/library/csv.html#csv.Dialect>`_ instance.
+or a :class:`python:csv.Dialect` instance.
 
 .. ipython:: python
    :suppress:
@@ -269,6 +273,26 @@ You can also use a dict to specify custom name columns:
    df = read_csv('tmp.csv', header=None, parse_dates=date_spec)
    df
 
+It is important to remember that if multiple text columns are to be parsed into
+a single date column, then a new column is prepended to the data. The `index_col`
+specification is based off of this new set of columns rather than the original
+data columns:
+
+
+.. ipython:: python
+
+   date_spec = {'nominal': [1, 2], 'actual': [1, 3]}
+   df = read_csv('tmp.csv', header=None, parse_dates=date_spec,
+                 index_col=0) #index is the nominal column
+   df
+
+**Note**: When passing a dict as the `parse_dates` argument, the order of
+the columns prepended is not guaranteed, because `dict` objects do not impose
+an ordering on their keys. On Python 2.7+ you may use `collections.OrderedDict`
+instead of a regular `dict` if this matters to you. Because of this, when using a
+dict for 'parse_dates' in conjunction with the `index_col` argument, it's best to
+specify `index_col` as a column label rather then as an index on the resulting frame.
+
 Date Parsing Functions
 ~~~~~~~~~~~~~~~~~~~~~~
 Finally, the parser allows you can specify a custom ``date_parser`` function to
@@ -294,7 +318,29 @@ a single date rather than the entire array.
 
    os.remove('tmp.csv')
 
-.. _io.convenience:
+.. _io.dayfirst:
+
+International Date Formats
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+While US date formats tend to be MM/DD/YYYY, many international formats use
+DD/MM/YYYY instead. For convenience, a ``dayfirst`` keyword is provided:
+
+.. ipython:: python
+   :suppress:
+
+   data = "date,value,cat\n1/6/2000,5,a\n2/6/2000,10,b\n3/6/2000,15,c"
+   with open('tmp.csv', 'w') as fh:
+        fh.write(data)
+
+.. ipython:: python
+
+   print open('tmp.csv').read()
+
+   read_csv('tmp.csv', parse_dates=[0])
+
+   read_csv('tmp.csv', dayfirst=True, parse_dates=[0])
+
+.. _io.thousands:
 
 Thousand Separators
 ~~~~~~~~~~~~~~~~~~~
@@ -337,6 +383,8 @@ The ``thousands`` keyword allows integers to be parsed correctly
    :suppress:
 
    os.remove('tmp.csv')
+
+.. _io.comments:
 
 Comments
 ~~~~~~~~
@@ -532,8 +580,8 @@ Automatically "sniffing" the delimiter
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``read_csv`` is capable of inferring delimited (not necessarily
-comma-separated) files. YMMV, as pandas uses the Sniffer_ class of the csv
-module.
+comma-separated) files. YMMV, as pandas uses the :class:`python:csv.Sniffer`
+class of the csv module.
 
 .. ipython:: python
    :suppress:
@@ -546,8 +594,6 @@ module.
 
     print open('tmp2.sv').read()
     read_csv('tmp2.sv')
-
-.. _Sniffer: http://docs.python.org/library/csv.html#csv.Sniffer
 
 .. _io.chunking:
 
@@ -608,7 +654,7 @@ function takes a number of arguments. Only the first is required.
     (default), and `header` and `index` are True, then the index names are
     used. (A sequence should be given if the DataFrame uses MultiIndex).
   - ``mode`` : Python write mode, default 'w'
-  - ``sep`` : Field delimiter for the output file (default "'")
+  - ``sep`` : Field delimiter for the output file (default ",")
   - ``encoding``: a string representing the encoding to use if the contents are
     non-ascii, for python versions prior to 3
 
@@ -672,6 +718,24 @@ additional arguments as the parsers above:
 
 To read sheets from an Excel 2007 file, you can pass a filename with a ``.xlsx``
 extension, in which case the ``openpyxl`` module will be used to read the file.
+
+It is often the case that users will insert columns to do temporary computations
+in Excel and you may not want to read in those columns. `ExcelFile.parse` takes
+a `parse_cols` keyword to allow you to specify a subset of columns to parse.
+
+If `parse_cols` is an integer, then it is assumed to indicate the last column
+to be parsed.
+
+.. code-block:: python
+
+   xls.parse('Sheet1', parse_cols=2, index_col=None, na_values=['NA'])
+
+If `parse_cols` is a list of integers, then it is assumed to be the file column
+indices to be parsed.
+
+.. code-block:: python
+
+   xls.parse('Sheet1', parse_cols=[0, 2, 3], index_col=None, na_values=['NA'])
 
 To write a DataFrame object to a sheet of an Excel file, you can use the
 ``to_excel`` instance method.  The arguments are largely the same as ``to_csv``

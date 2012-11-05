@@ -1,6 +1,6 @@
 """
-Data structures for sparse float data. Life is made simpler by dealing only with
-float64 data
+Data structures for sparse float data. Life is made simpler by dealing only
+with float64 data
 """
 
 # pylint: disable=E1101,E1103,W0231
@@ -14,6 +14,7 @@ from pandas.sparse.frame import SparseDataFrame
 from pandas.util.decorators import deprecate
 
 import pandas.core.common as com
+
 
 class SparsePanelAxis(object):
 
@@ -97,7 +98,7 @@ class SparsePanel(Panel):
         self.major_axis = major_axis
         self.minor_axis = minor_axis
 
-    def _consolidate_inplace(self): # pragma: no cover
+    def _consolidate_inplace(self):  # pragma: no cover
         # do nothing when DataFrame calls this method
         pass
 
@@ -135,6 +136,7 @@ class SparsePanel(Panel):
     # need a special property for items to make the field assignable
 
     _items = None
+
     def _get_items(self):
         return self._items
 
@@ -262,7 +264,7 @@ class SparsePanel(Panel):
 
             # values are stacked column-major
             indexer = minor * N + major
-            counts.put(indexer, counts.take(indexer) + 1) # cuteness
+            counts.put(indexer, counts.take(indexer) + 1)  # cuteness
 
             d_values[item] = values
             d_indexer[item] = indexer
@@ -444,6 +446,7 @@ class SparsePanel(Panel):
                                default_kind=self.default_kind)
 
 SparseWidePanel = SparsePanel
+
 
 def _convert_frames(frames, index, columns, fill_value=np.nan, kind='block'):
     from pandas.core.panel import _get_combined_index
