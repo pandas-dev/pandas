@@ -1018,7 +1018,6 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         # unsorted, round trip
         df = self.panel.to_frame(filter_observations=False)
         unsorted = df.take(np.random.permutation(len(df)))
-        foo
         pan = unsorted.to_panel()
         assert_panel_equal(pan, self.panel)
 
