@@ -18,20 +18,18 @@ static i8 mod_compat(i8 x, i8 m) {
     i8 result = x % m;
 
     if (result < 0)
-        return result + m;
+        result += m;
 
     return result;
 }
 
 static i8 floordiv(i8 x, i8 divisor) {
-    if (x < 0) {
-        if (mod_compat(x, divisor)) {
-            return x / divisor - 1;
-        }
-        else return x / divisor;
-    } else {
-        return x / divisor;
-    }
+    i8 x_div_d = x / divisor;
+
+    if (x < 0 && mod_compat(x, divisor))
+        --x_div_d;
+
+    return x_div_d;
 }
 
 static asfreq_info NULL_AF_INFO;
@@ -51,24 +49,18 @@ static i8 days_in_month[2][12] = {
 /* Return 1/0 iff year points to a leap year in calendar. */
 static i8 dInfoCalc_Leapyear(i8 year, i8 calendar)
 {
-    if (calendar == GREGORIAN) {
-        return (year % 4 == 0) && ((year % 100 != 0) || (year % 400 == 0));
-    } else {
-        return (year % 4 == 0);
-    }
+    i8 ymod4_is0 = year % 4 == 0;
+
+    if (calendar == GREGORIAN)
+        return ymod4_is0 && (year % 100 != 0 || year % 400 == 0);
+
+    return ymod4_is0;
 }
 
 /* Return the day of the week for the given absolute date. */
 static i8 dInfoCalc_DayOfWeek(i8 absdate)
 {
-    i8 day_of_week;
-
-    if (absdate >= 1)
-        day_of_week = (absdate - 1) % 7;
-    else
-        day_of_week = 6 - (-absdate % 7);
-
-    return day_of_week;
+    return absdate >= 1 ? (absdate - 1) % 7 : 6 - (-absdate % 7);
 }
 
 static i8 monthToQuarter(i8 month) { return (month - 1) / 3 + 1; }
@@ -172,12 +164,18 @@ static i8 dInfoCalc_SetFromDateAndTime(struct date_info *dinfo, i8 year,
                          "minute out of range (0-59): %li",
                          minute);
         Py_AssertWithArg(second >= 0 &&
-                         (second < 60 ||
-                          (hour == 23 && minute == 59 &&
-                           second < 61)),
+                         (second < 60 || (hour == 23 && minute == 59 &&
+                                          second < 61)),
                          PyExc_ValueError,
                          "second out of range (0 - <60; <61 for 23:59): %li",
                          second);
+        Py_AssertWithArg(microsecond >= 0 && (microsecond < 1000000 ||
+                                              (hour == 23 && minute == 59 &&
+                                               second < 61 &&
+                                               microsecond < 1000001)),
+                         PyExc_ValueError,
+                         "microsecond out of range (0 - <100000; <100001 for 23:59:59): %li",
+                         microsecond);
 
         dinfo->abstime = hour * US_PER_HOUR + minute * US_PER_MINUTE +
             second * US_PER_SECOND + microsecond;
