@@ -1639,17 +1639,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         df = DataFrame(data={})
         self.assert_(len(df.index) == 0)
 
-    def test_list_to_sdict(self):
-        from pandas.core.frame import _list_to_sdict
-
-        d, c = _list_to_sdict([], None)
-        self.assertEquals(d, {})
-        self.assertEquals(c, [])
-
-        d, c = _list_to_sdict([], [])
-        self.assertEquals(d, {})
-        self.assertEquals(c, [])
-
     def test_constructor_mixed(self):
         index, data = tm.getMixedTypeDict()
 
@@ -2305,6 +2294,14 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         edf.columns = ['a', 'a']
 
         assert_frame_equal(df, edf)
+
+        idf = DataFrame.from_items([('a',[8]),('a',[5])],
+                                   columns=['a','a'])
+        assert_frame_equal(idf, edf)
+
+        self.assertRaises(ValueError, DataFrame.from_items,
+                          [('a',[8]),('a',[5]), ('b', [6])],
+                          columns=['b', 'a','a'])
 
     def test_new_empty_index(self):
         df1 = DataFrame(randn(0, 3))

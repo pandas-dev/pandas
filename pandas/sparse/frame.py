@@ -130,7 +130,7 @@ class SparseDataFrame(DataFrame):
             columns = Index(_try_sort(data.keys()))
 
         if index is None:
-            index = extract_index(data)
+            index = extract_index(data.values())
 
         sp_maker = lambda x: SparseSeries(x, index=index,
                                           kind=self.default_kind,
