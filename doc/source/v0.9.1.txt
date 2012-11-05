@@ -13,8 +13,40 @@ New features
 ~~~~~~~~~~~~
 
   - Can specify multiple sort orders in DataFrame/Series.sort/sort_index (GH928_)
+
+    .. ipython:: python
+
+        df = DataFrame(np.random.randint(0, 2, (6, 3)), columns=['A', 'B', 'C'])
+
+        df.sort(['A', 'B'], ascending=[1, 0])
+
+
   - New `top` and `bottom` options for handling NAs in rank (GH1508_, GH2159_)
+
+    .. ipython:: python
+
+        df = DataFrame(np.random.randn(6, 3), columns=['A', 'B', 'C'])
+
+        df.ix[2:4] = np.nan
+
+        df.rank()
+
+        df.rank(na_option='top')
+
+        df.rank(na_option='bottom')
+
+
   - Add `where` and `mask` functions to DataFrame (GH2109_, GH2151_)
+
+    .. ipython:: python
+
+        df = DataFrame(np.random.randn(5, 3))
+
+        df.where(df > 0, -df)
+
+        df.mask(df < 0)
+
+
   - Add `at_time` and `between_time` functions to DataFrame (GH2149_)
   - Enable referencing of Excel columns by their column names (GH1936_)
   - DataFrame.dot can accept ndarrays (GH2042_)
@@ -28,8 +60,24 @@ API changes
   - Upsampling period index "spans" intervals. Example: annual periods
     upsampled to monthly will span all months in each year
 
+    .. ipython:: python
+
+        prng = period_range('2012Q1', periods=2, freq='Q')
+
+        s = Series(np.random.randn(len(prng)), prng)
+
+        s.resample('M')
+
+
   - Period.end_time will yield timestamp at last nanosecond in the interval
     (GH2124_, GH2125_, GH1764_)
+
+    .. ipython:: python
+
+        p = Period('2012')
+
+        p.end_time
+
 
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
