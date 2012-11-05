@@ -6,7 +6,7 @@ from pandas.core.series import remove_na
 
 
 def zscore(series):
-    return (series - series.mean()) / np.std(series, ddof = 0)
+    return (series - series.mean()) / np.std(series, ddof=0)
 
 
 def correl_ts(frame1, frame2):
@@ -35,6 +35,7 @@ def correl_ts(frame1, frame2):
             results[col] = (seriesStand * otherStand).mean()
 
     return Series(results)
+
 
 def correl_xs(frame1, frame2):
     return correl_ts(frame1.T, frame2.T)
@@ -124,6 +125,7 @@ def bucket(series, k, by=None):
 
     return DataFrame(mat, index=series.index, columns=np.arange(k) + 1)
 
+
 def _split_quantile(arr, k):
     arr = np.asarray(arr)
     mask = np.isfinite(arr)
@@ -131,6 +133,7 @@ def _split_quantile(arr, k):
     n = len(arr)
 
     return np.array_split(np.arange(n)[mask].take(order), k)
+
 
 def bucketcat(series, cats):
     """
@@ -161,6 +164,7 @@ def bucketcat(series, cats):
         data[label] = series[cats == label]
 
     return DataFrame(data, columns=unique_labels)
+
 
 def bucketpanel(series, bins=None, by=None, cat=None):
     """
@@ -198,7 +202,9 @@ def bucketpanel(series, bins=None, by=None, cat=None):
         xcat, ycat = cat
         return _bucketpanel_cat(series, xcat, ycat)
     else:
-        raise Exception('must specify either values or categories to bucket by')
+        raise Exception('must specify either values or categories '
+                        'to bucket by')
+
 
 def _bucketpanel_by(series, xby, yby, xbins, ybins):
     xby = xby.reindex(series.index)
@@ -229,6 +235,7 @@ def _bucketpanel_by(series, xby, yby, xbins, ybins):
 
     return bucketed.rename(columns=relabel)
 
+
 def _bucketpanel_cat(series, xcat, ycat):
     xlabels, xmapping = _intern(xcat)
     ylabels, ymapping = _intern(ycat)
@@ -256,6 +263,7 @@ def _bucketpanel_cat(series, xcat, ycat):
 
     return result
 
+
 def _intern(values):
     # assumed no NaN values
     values = np.asarray(values)
@@ -272,6 +280,7 @@ def _uniquify(xlabels, ylabels, xbins, ybins):
     _ypiece = ylabels
 
     return _xpiece + _ypiece
+
 
 def _bucket_labels(series, k):
     arr = np.asarray(series)

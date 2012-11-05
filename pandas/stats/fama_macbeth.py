@@ -6,6 +6,7 @@ from pandas.core.api import Series, DataFrame
 import pandas.stats.common as common
 from pandas.util.decorators import cache_readonly
 
+
 def fama_macbeth(**kwargs):
     """Runs Fama-MacBeth regression.
 
@@ -23,6 +24,7 @@ def fama_macbeth(**kwargs):
         klass = MovingFamaMacBeth
 
     return klass(**kwargs)
+
 
 class FamaMacBeth(object):
     def __init__(self, y, x, intercept=True, nw_lags=None,
@@ -79,16 +81,16 @@ class FamaMacBeth(object):
     @cache_readonly
     def _results(self):
         return {
-            'mean_beta' : self._mean_beta_raw,
-            'std_beta' : self._std_beta_raw,
-            't_stat' : self._t_stat_raw,
+            'mean_beta': self._mean_beta_raw,
+            'std_beta': self._std_beta_raw,
+            't_stat': self._t_stat_raw,
         }
 
     @cache_readonly
     def _coef_table(self):
         buffer = StringIO()
         buffer.write('%13s %13s %13s %13s %13s %13s\n' %
-            ('Variable','Beta', 'Std Err','t-stat','CI 2.5%','CI 97.5%'))
+            ('Variable', 'Beta', 'Std Err', 't-stat', 'CI 2.5%', 'CI 97.5%'))
         template = '%13s %13.4f %13.4f %13.2f %13.4f %13.4f\n'
 
         for i, name in enumerate(self._cols):
@@ -128,12 +130,13 @@ Formula: Y ~ %(formulaRHS)s
 --------------------------------End of Summary---------------------------------
 """
         params = {
-            'formulaRHS' : ' + '.join(self._cols),
-            'nu' : len(self._beta_raw),
-            'coefTable' : self._coef_table,
+            'formulaRHS': ' + '.join(self._cols),
+            'nu': len(self._beta_raw),
+            'coefTable': self._coef_table,
         }
 
         return template % params
+
 
 class MovingFamaMacBeth(FamaMacBeth):
     def __init__(self, y, x, window_type='rolling', window=10,
@@ -197,10 +200,11 @@ class MovingFamaMacBeth(FamaMacBeth):
     @cache_readonly
     def _results(self):
         return {
-            'mean_beta' : self._mean_beta_raw[-1],
-            'std_beta' : self._std_beta_raw[-1],
-            't_stat' : self._t_stat_raw[-1],
+            'mean_beta': self._mean_beta_raw[-1],
+            'std_beta': self._std_beta_raw[-1],
+            't_stat': self._t_stat_raw[-1],
         }
+
 
 def _calc_t_stat(beta, nw_lags_beta):
     N = len(beta)

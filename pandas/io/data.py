@@ -82,13 +82,14 @@ def get_quote_yahoo(symbols):
     if not isinstance(symbols, list):
         raise TypeError, "symbols must be a list"
     # for codes see: http://www.gummy-stuff.org/Yahoo-data.htm
-    codes = {'symbol':'s','last':'l1','change_pct':'p2','PE':'r','time':'t1','short_ratio':'s7'}
-    request = str.join('',codes.values()) # code request string
+    codes = {'symbol': 's', 'last': 'l1', 'change_pct': 'p2', 'PE': 'r',
+             'time': 't1', 'short_ratio': 's7'}
+    request = str.join('',codes.values())  # code request string
     header = codes.keys()
 
     data = dict(zip(codes.keys(), [[] for i in range(len(codes))]))
 
-    urlStr = 'http://finance.yahoo.com/d/quotes.csv?s=%s&f=%s' % (str.join('+',symbols), request)
+    urlStr = 'http://finance.yahoo.com/d/quotes.csv?s=%s&f=%s' % (str.join('+', symbols), request)
 
     try:
         lines = urllib2.urlopen(urlStr).readlines()
@@ -178,8 +179,8 @@ def get_data_fred(name=None, start=dt.datetime(2010, 1, 1),
 
     url = fred_URL + '%s' % name + \
       '/downloaddata/%s' % name + '.csv'
-    data = read_csv(urllib.urlopen(url), index_col=0, parse_dates=True, header=None,
-                    skiprows=1, names=["DATE", name])
+    data = read_csv(urllib.urlopen(url), index_col=0, parse_dates=True,
+                    header=None, skiprows=1, names=["DATE", name])
     return data.truncate(start, end)
 
 
@@ -197,10 +198,10 @@ def get_data_famafrench(name, start=None, end=None):
 
     datasets = {}
     for i in range(len(file_edges) - 1):
-        dataset = [d.split() for d in data[(file_edges[i] + 1):file_edges[i+1]]]
+        dataset = [d.split() for d in data[(file_edges[i] + 1):file_edges[i + 1]]]
         if(len(dataset) > 10):
             ncol = np.median(np.array([len(d) for d in dataset]))
-            header_index = np.where(np.array([len(d) for d in dataset]) == (ncol-1))[0][-1]
+            header_index = np.where(np.array([len(d) for d in dataset]) == (ncol - 1))[0][-1]
             header = dataset[header_index]
             # to ensure the header is unique
             header = [str(j + 1) + " " + header[j] for j in range(len(header))]

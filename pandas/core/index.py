@@ -12,6 +12,7 @@ import pandas.core.common as com
 import pandas.lib as lib
 import pandas._algos as _algos
 from pandas.lib import Timestamp
+from pandas.util import py3compat
 
 __all__ = ['Index']
 
@@ -26,7 +27,7 @@ def _indexOp(opname):
         result = func(other)
         try:
             return result.view(np.ndarray)
-        except: # pragma: no cover
+        except:  # pragma: no cover
             return result
     return wrapper
 
@@ -132,12 +133,11 @@ class Index(np.ndarray):
         return self.view()
 
     def __repr__(self):
-        try:
-            result = np.ndarray.__repr__(self)
-        except UnicodeEncodeError:
-            result = 'Index([%s])' % (', '.join([repr(x) for x in self]))
-
-        return result
+        if py3compat.PY3:
+            prepr = com.pprint_thing(self)
+        else:
+            prepr = com.pprint_thing_encoded(self)
+        return 'Index(%s, dtype=%s)' % (prepr, self.dtype)
 
     def astype(self, dtype):
         return Index(self.values.astype(dtype), name=self.name,
@@ -196,7 +196,8 @@ class Index(np.ndarray):
 
     def summary(self, name=None):
         if len(self) > 0:
-            index_summary = ', %s to %s' % (unicode(self[0]), unicode(self[-1]))
+            index_summary = ', %s to %s' % (com.pprint_thing(self[0]),
+                                            com.pprint_thing(self[-1]))
         else:
             index_summary = ''
 
@@ -305,7 +306,6 @@ class Index(np.ndarray):
         return hash(self.view(np.ndarray))
 
     def __setitem__(self, key, value):
-        """Disable the setting of values."""
         raise Exception(str(self.__class__) + ' object is immutable')
 
     def __getitem__(self, key):
@@ -382,7 +382,7 @@ class Index(np.ndarray):
 
         header = []
         if name:
-            header.append(str(self.name) if self.name is not None else '')
+            header.append(com.pprint_thing(self.name) if self.name is not None else '')
 
         if self.is_all_dates:
             zero_time = time(0, 0)
@@ -399,7 +399,7 @@ class Index(np.ndarray):
             values = lib.maybe_convert_objects(values, safe=1)
 
         if values.dtype == np.object_:
-            result = com._stringify_seq(values)
+            result = [com.pprint_thing(x) for x in values]
         else:
             result = _trim_front(format_array(values, None, justify='left'))
         return header + result
@@ -569,7 +569,7 @@ class Index(np.ndarray):
                 # contained in
                 try:
                     result = np.sort(self.values)
-                except TypeError: # pragma: no cover
+                except TypeError:  # pragma: no cover
                     result = self.values
 
         # for subclasses
@@ -1026,7 +1026,7 @@ class Index(np.ndarray):
                 lidx = self._left_indexer_unique(ov, sv)
                 ridx = None
             elif how == 'inner':
-                join_index, lidx, ridx = self._inner_indexer(sv,ov)
+                join_index, lidx, ridx = self._inner_indexer(sv, ov)
                 join_index = self._wrap_joined_index(join_index, other)
             elif how == 'outer':
                 join_index, lidx, ridx = self._outer_indexer(sv, ov)
@@ -1228,8 +1228,6 @@ class Int64Index(Index):
         return Int64Index(joined, name=name)
 
 
-
-
 class MultiIndex(Index):
     """
     Implements multi-level, a.k.a. hierarchical, index object for pandas
@@ -1290,11 +1288,12 @@ class MultiIndex(Index):
 
     def __array_finalize__(self, obj):
         """
-        Update custom MultiIndex attributes when a new array is created by numpy,
-        e.g. when calling ndarray.view()
+        Update custom MultiIndex attributes when a new array is created by
+        numpy, e.g. when calling ndarray.view()
         """
         if not isinstance(obj, type(self)):
-            # Only relevant if this array is being created from an Index instance.
+            # Only relevant if this array is being created from an Index
+            # instance.
             return
 
         self.levels = list(getattr(obj, 'levels', []))
@@ -1344,7 +1343,7 @@ class MultiIndex(Index):
         index = values.view(MultiIndex)
         index.levels = levels
         index.labels = labels
-        index.names  = names
+        index.names = names
         index.sortorder = sortorder
         return index
 
@@ -1411,7 +1410,7 @@ class MultiIndex(Index):
         shape = [len(lev) for lev in self.levels]
         group_index = np.zeros(len(self), dtype='i8')
         for i in xrange(len(shape)):
-            stride = np.prod([x for x in shape[i+1:]], dtype='i8')
+            stride = np.prod([x for x in shape[i + 1:]], dtype='i8')
             group_index += self.labels[i] * stride
 
         if len(np.unique(group_index)) < len(group_index):
@@ -1473,14 +1472,8 @@ class MultiIndex(Index):
 
     def format(self, space=2, sparsify=None, adjoin=True, names=False,
                na_rep='NaN'):
-        from pandas.core.common import _stringify
-        from pandas.core.format import print_config
-        def _strify(x):
-            return _stringify(x, print_config.encoding)
-
         if len(self) == 0:
             return []
-
 
         stringified_levels = []
         for lev, lab in zip(self.levels, self.labels):
@@ -1496,7 +1489,7 @@ class MultiIndex(Index):
             level = []
 
             if names:
-                level.append(_strify(name) if name is not None else '')
+                level.append(com.pprint_thing(name) if name is not None else '')
 
             level.extend(np.array(lev, dtype=object))
             result_levels.append(level)
@@ -1592,7 +1585,7 @@ class MultiIndex(Index):
 
         if isinstance(tuples, np.ndarray):
             if isinstance(tuples, Index):
-               tuples = tuples.values
+                tuples = tuples.values
 
             arrays = list(lib.tuples_to_object_array(tuples).T)
         elif isinstance(tuples, list):
@@ -1640,8 +1633,14 @@ class MultiIndex(Index):
 
     def __getitem__(self, key):
         if np.isscalar(key):
-            return tuple(lev[lab[key]]
-                         for lev, lab in zip(self.levels, self.labels))
+            retval = []
+            for lev, lab in zip(self.levels, self.labels):
+                if lab[key] == -1:
+                    retval.append(np.nan)
+                else:
+                    retval.append(lev[lab[key]])
+
+            return tuple(retval)
         else:
             if com._is_bool_indexer(key):
                 key = np.asarray(key)
@@ -1900,6 +1899,10 @@ class MultiIndex(Index):
 
         if target_index.dtype != object:
             return np.ones(len(target_index)) * -1
+
+        if not self.is_unique:
+            raise Exception('Reindexing only valid with uniquely valued Index '
+                            'objects')
 
         self_index = self._tuple_index
 
@@ -2435,9 +2438,11 @@ def _ensure_index(index_like):
 
     return Index(index_like)
 
+
 def _validate_join_method(method):
     if method not in ['left', 'right', 'inner', 'outer']:
         raise Exception('do not recognize join method %s' % method)
+
 
 # TODO: handle index names!
 def _get_combined_index(indexes, intersect=False):
@@ -2512,6 +2517,7 @@ def _sanitize_and_check(indexes):
     else:
         return indexes, 'array'
 
+
 def _handle_legacy_indexes(indexes):
     from pandas.core.daterange import DateRange
     from pandas.tseries.index import DatetimeIndex
@@ -2531,6 +2537,7 @@ def _handle_legacy_indexes(indexes):
 
     return converted
 
+
 def _get_consensus_names(indexes):
     consensus_name = indexes[0].names
     for index in indexes[1:]:
@@ -2538,6 +2545,7 @@ def _get_consensus_names(indexes):
             consensus_name = [None] * index.nlevels
             break
     return consensus_name
+
 
 def _maybe_box(idx):
     from pandas.tseries.api import DatetimeIndex, PeriodIndex

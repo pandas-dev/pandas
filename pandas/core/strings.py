@@ -9,12 +9,14 @@ import pandas.lib as lib
 import pandas.core.common as com
 import operator
 
+
 class repeat(object):
     def __init__(self, obj):
         self.obj = obj
 
     def __getitem__(self, i):
         return self.obj
+
 
 class azip(object):
     def __init__(self, *args):
@@ -297,7 +299,7 @@ def str_upper(arr):
     return _na_map(lambda x: x.upper(), arr)
 
 
-def str_replace(arr, pat, repl, n=0, case=True, flags=0):
+def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
     """
     Replace
 
@@ -307,7 +309,7 @@ def str_replace(arr, pat, repl, n=0, case=True, flags=0):
         Character sequence or regular expression
     repl : string
         Replacement sequence
-    n : int, default 0 (all)
+    n : int, default -1 (all)
         Number of replacements to make from start
     case : boolean, default True
         If True, case sensitive
@@ -318,15 +320,20 @@ def str_replace(arr, pat, repl, n=0, case=True, flags=0):
     -------
     replaced : array
     """
-    if not case:
-        flags |= re.IGNORECASE
+    use_re = not case or len(pat) > 1 or flags
 
-    regex = re.compile(pat, flags=flags)
-
-    def f(x):
-        return regex.sub(repl, x, count=n)
+    if use_re:
+        if not case:
+            flags |= re.IGNORECASE
+        regex = re.compile(pat, flags=flags)
+        n = n if n >= 0 else 0
+        def f(x):
+            return regex.sub(repl, x, count=n)
+    else:
+        f = lambda x: x.replace(pat, repl, n)
 
     return _na_map(f, arr)
+
 
 def str_repeat(arr, repeats):
     """
@@ -358,6 +365,7 @@ def str_repeat(arr, repeats):
         result = lib.vec_binop(arr, repeats, rep)
         return result
 
+
 def str_match(arr, pat, flags=0):
     """
     Find groups in each string (from beginning) using passed regular expression
@@ -374,6 +382,7 @@ def str_match(arr, pat, flags=0):
     matches : array
     """
     regex = re.compile(pat, flags=flags)
+
     def f(x):
         m = regex.match(x)
         if m:
@@ -382,7 +391,6 @@ def str_match(arr, pat, flags=0):
             return []
 
     return _na_map(f, arr)
-
 
 
 def str_join(arr, sep):
@@ -410,7 +418,6 @@ def str_len(arr):
     lengths : array
     """
     return _na_map(len, arr)
-
 
 
 def str_findall(arr, pat, flags=0):
@@ -477,7 +484,7 @@ def str_center(arr, width):
     return str_pad(arr, width, side='both')
 
 
-def str_split(arr, pat=None, n=0):
+def str_split(arr, pat=None, n=-1):
     """
     Split each string (a la re.split) in array by given pattern, propagating NA
     values
@@ -486,7 +493,7 @@ def str_split(arr, pat=None, n=0):
     ----------
     pat : string, default None
         String or regular expression to split on. If None, splits on whitespace
-    n : int, default 0 (all)
+    n : int, default -1 (all)
 
     Returns
     -------
@@ -495,8 +502,11 @@ def str_split(arr, pat=None, n=0):
     if pat is None:
         f = lambda x: x.split()
     else:
-        regex = re.compile(pat)
-        f = lambda x: regex.split(x, maxsplit=n)
+        if len(pat) == 1:
+            f = lambda x: x.split(pat, n)
+        else:
+            regex = re.compile(pat)
+            f = lambda x: regex.split(x, maxsplit=n)
 
     return _na_map(f, arr)
 
@@ -582,6 +592,7 @@ def str_wrap(arr, width=80):
     """
     raise NotImplementedError
 
+
 def str_get(arr, i):
     """
     Extract element from lists, tuples, or strings in each element in the array
@@ -598,6 +609,7 @@ def str_get(arr, i):
     f = lambda x: x[i]
     return _na_map(f, arr)
 
+
 def str_decode(arr, encoding):
     """
     Decode character string to unicode using indicated encoding
@@ -613,6 +625,7 @@ def str_decode(arr, encoding):
     f = lambda x: x.decode(encoding)
     return _na_map(f, arr)
 
+
 def str_encode(arr, encoding):
     """
     Encode character string to unicode using indicated encoding
@@ -627,6 +640,7 @@ def str_encode(arr, encoding):
     """
     f = lambda x: x.encode(encoding)
     return _na_map(f, arr)
+
 
 def _noarg_wrapper(f):
     def wrapper(self):
@@ -660,6 +674,7 @@ def _pat_wrapper(f, flags=False, na=False):
         wrapper.__doc__ = f.__doc__
 
     return wrapper
+
 
 def copy(source):
     "Copy a docstring from another source function (if present)"
@@ -701,7 +716,7 @@ class StringMethods(object):
         return self._wrap_result(result)
 
     @copy(str_split)
-    def split(self, pat=None, n=0):
+    def split(self, pat=None, n=-1):
         result = str_split(self.series, pat, n=n)
         return self._wrap_result(result)
 
@@ -722,7 +737,7 @@ class StringMethods(object):
         return self._wrap_result(result)
 
     @copy(str_replace)
-    def replace(self, pat, repl, n=0, case=True):
+    def replace(self, pat, repl, n=-1, case=True):
         result = str_replace(self.series, pat, repl, n=n, case=case)
         return self._wrap_result(result)
 

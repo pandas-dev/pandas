@@ -5,7 +5,8 @@ import numpy as np
 from pandas.core.datetools import (
     bday, BDay, BQuarterEnd, BMonthEnd, BYearEnd, MonthEnd, MonthBegin,
     BYearBegin, QuarterBegin, BQuarterBegin, BMonthBegin,
-    DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second,
+    DateOffset, Week, YearBegin, YearEnd, Hour, Minute, Second, Day, Micro,
+    Milli, Nano,
     WeekOfMonth, format, ole2datetime, QuarterEnd, to_datetime, normalize_date,
     get_offset, get_offset_name, inferTimeRule, hasOffsetName,
     get_standard_freq)
@@ -115,6 +116,13 @@ class TestBusinessDay(unittest.TestCase):
 
         self.offset = BDay()
         self.offset2 = BDay(2)
+
+    def test_different_normalize_equals(self):
+        # equivalent in this special case
+        offset = BDay()
+        offset2 = BDay()
+        offset2.normalize = True
+        self.assertEqual(offset, offset2)
 
     def test_repr(self):
         assert repr(self.offset) == '<1 BusinessDay>'
@@ -242,6 +250,15 @@ class TestBusinessDay(unittest.TestCase):
         for offset, cases in tests:
             for base, expected in cases.iteritems():
                 assertEq(offset, base, expected)
+
+    def test_apply_large_n(self):
+        dt = datetime(2012, 10, 23)
+
+        result = dt + BDay(10)
+        self.assertEqual(result, datetime(2012, 11, 6))
+
+        result = dt + BDay(100) - BDay(100)
+        self.assertEqual(result, dt)
 
     def test_apply_corner(self):
         self.assertRaises(Exception, BDay().apply, BMonthEnd())
@@ -1287,6 +1304,8 @@ def test_Hour():
 
     assert(Hour(4) != Hour(1))
 
+    assert not Hour().isAnchored()
+
 def test_Minute():
     assertEq(Minute(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 1))
     assertEq(Minute(-1), datetime(2010, 1, 1, 0, 1), datetime(2010, 1, 1))
@@ -1297,6 +1316,8 @@ def test_Minute():
     assert (Minute(3) - Minute(2)) == Minute()
     assert(Minute(5) != Minute())
 
+    assert not Minute().isAnchored()
+
 def test_Second():
     assertEq(Second(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 1))
     assertEq(Second(-1), datetime(2010, 1, 1, 0, 0, 1), datetime(2010, 1, 1))
@@ -1305,6 +1326,30 @@ def test_Second():
 
     assert (Second(3) + Second(2)) == Second(5)
     assert (Second(3) - Second(2)) == Second()
+
+    assert not Second().isAnchored()
+
+def test_tick_offset():
+    assert not Day().isAnchored()
+    assert not Milli().isAnchored()
+    assert not Micro().isAnchored()
+    assert not Nano().isAnchored()
+
+
+def test_compare_ticks():
+    offsets = [Hour, Minute, Second, Milli, Micro]
+
+    for kls in offsets:
+        three = kls(3)
+        four = kls(4)
+
+        for _ in xrange(10):
+            assert(three < kls(4))
+            assert(kls(3) < four)
+            assert(four > kls(3))
+            assert(kls(4) > three)
+            assert(kls(3) == kls(3))
+            assert(kls(3) != kls(4))
 
 def test_hasOffsetName():
     assert hasOffsetName(BDay())

@@ -107,7 +107,7 @@ class TestSeriesPlots(unittest.TestCase):
                 self.assert_(r.get_linewidth() == 2)
 
     @slow
-    def test_1rotation(self):
+    def test_rotation(self):
         df = DataFrame(np.random.randn(5, 5))
         ax = df.plot(rot=30)
         for l in ax.get_xticklabels():
@@ -289,6 +289,21 @@ class TestDataFramePlots(unittest.TestCase):
         _check_plot_works(df.plot, kind='bar')
 
     @slow
+    def test_bar_stacked_center(self):
+        #GH2157
+        df = DataFrame({'A' : [3] * 5, 'B' : range(5)}, index = range(5))
+        ax = df.plot(kind='bar', stacked='True', grid=True)
+        self.assertEqual(ax.xaxis.get_ticklocs()[0],
+                         ax.patches[0].get_x() + ax.patches[0].get_width() / 2)
+
+    @slow
+    def test_bar_center(self):
+        df = DataFrame({'A' : [3] * 5, 'B' : range(5)}, index = range(5))
+        ax = df.plot(kind='bar', grid=True)
+        self.assertEqual(ax.xaxis.get_ticklocs()[0],
+                         ax.patches[0].get_x() + ax.patches[0].get_width())
+
+    @slow
     def test_boxplot(self):
         df = DataFrame(np.random.randn(6, 4),
                        index=list(string.ascii_letters[:6]),
@@ -447,6 +462,24 @@ class TestDataFramePlots(unittest.TestCase):
             for i, l in enumerate(ax.get_lines()[:len(markers)]):
                 self.assertEqual(l.get_marker(), markers[i])
 
+    @slow
+    def test_line_colors(self):
+        import matplotlib.pyplot as plt
+
+        custom_colors = 'rgcby'
+
+        plt.close('all')
+        df = DataFrame(np.random.randn(5, 5))
+
+        ax = df.plot(color=custom_colors)
+
+        lines = ax.get_lines()
+        for i, l in enumerate(lines):
+            xp = custom_colors[i]
+            rs = l.get_color()
+            self.assert_(xp == rs)
+
+
 class TestDataFrameGroupByPlots(unittest.TestCase):
 
     @classmethod
@@ -486,6 +519,16 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
 
         plt.close('all')
         ax = Series(np.arange(12) + 1).plot(color='green')
+        line = ax.get_lines()[0]
+        self.assert_(line.get_color() == 'green')
+
+    @slow
+    def test_time_series_plot_color_kwargs(self):
+        # #1890
+        import matplotlib.pyplot as plt
+
+        plt.close('all')
+        ax = Series(np.arange(12) + 1, index=date_range('1/1/2000', periods=12)).plot(color='green')
         line = ax.get_lines()[0]
         self.assert_(line.get_color() == 'green')
 

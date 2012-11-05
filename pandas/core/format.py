@@ -8,7 +8,7 @@ try:
 except:
     from io import StringIO
 
-from pandas.core.common import adjoin, isnull, notnull, _stringify
+from pandas.core.common import adjoin, isnull, notnull
 from pandas.core.index import MultiIndex, _ensure_index
 from pandas.util import py3compat
 
@@ -18,10 +18,10 @@ import pandas.lib as lib
 import numpy as np
 
 docstring_to_string = """
-    Parameters
-    ----------
-    frame : DataFrame
-        object to render
+     Parameters
+     ----------
+     frame : DataFrame
+         object to render
     buf : StringIO-like, optional
         buffer to write to
     columns : sequence, optional
@@ -56,6 +56,7 @@ docstring_to_string = """
     -------
     formatted : string (or unicode, depending on data and options)"""
 
+
 class SeriesFormatter(object):
 
     def __init__(self, series, buf=None, header=True, length=True,
@@ -72,7 +73,7 @@ class SeriesFormatter(object):
         self.float_format = float_format
 
     def _get_footer(self):
-        footer = ''
+        footer = u''
 
         if self.name:
             if getattr(self.series.index, 'freq', None):
@@ -81,24 +82,15 @@ class SeriesFormatter(object):
             if footer and self.series.name:
                 footer += ', '
 
-            if self.series.name:
-                if isinstance(self.series.name, basestring):
-                    series_name = self.series.name
-                elif isinstance(self.series.name, tuple):
-                    series_name = "('%s')" % "', '".join(self.series.name)
-                else:
-                    series_name = str(self.series.name)
-            else:
-                series_name = self.series.name
-
-            footer += (("Name: %s" % series_name)
-                       if series_name is not None else '')
+            series_name = com.pprint_thing(self.series.name)
+            footer += ("Name: %s" % series_name) if self.series.name is not None else ""
 
         if self.length:
             if footer:
                 footer += ', '
             footer += 'Length: %d' % len(self.series)
-        return footer
+
+        return unicode(footer)
 
     def _get_formatted_index(self):
         index = self.series.index
@@ -143,7 +135,9 @@ class SeriesFormatter(object):
         if footer:
             result.append(footer)
 
-        return '\n'.join(result)
+        if py3compat.PY3:
+            return unicode(u'\n'.join(result))
+        return com.console_encode(u'\n'.join(result))
 
 if py3compat.PY3:  # pragma: no cover
     _encode_diff = lambda x: 0
@@ -158,6 +152,7 @@ else:
             return len(x.decode(print_config.encoding))
         except UnicodeError:
             return len(x)
+
 
 class DataFrameFormatter(object):
     """
@@ -250,9 +245,9 @@ class DataFrameFormatter(object):
                     return x.decode('utf-8')
                 strcols = map(lambda col: map(make_unicode, col), strcols)
             else:
-                # generally everything is plain strings, which has ascii
-                # encoding.  problem is when there is a char with value over 127
-                # - everything then gets converted to unicode.
+                # Generally everything is plain strings, which has ascii
+                # encoding.  Problem is when there is a char with value over
+                # 127. Everything then gets converted to unicode.
                 try:
                     map(lambda col: map(str, col), strcols)
                 except UnicodeError:
@@ -306,7 +301,7 @@ class DataFrameFormatter(object):
         nlevels = frame.index.nlevels
         for i, row in enumerate(izip(*strcols)):
             if i == nlevels:
-                self.buf.write('\\hline\n') # End of header
+                self.buf.write('\\hline\n')  # End of header
             crow = [(x.replace('_', '\\_')
                      .replace('%', '\\%')
                      .replace('&', '\\&') if x else '{}') for x in row]
@@ -431,6 +426,7 @@ class HTMLFormatter(object):
 
         _bold_row = self.fmt.kwds.get('bold_rows', False)
         _temp = '<strong>%s</strong>'
+
         def _maybe_bold_row(x):
             if _bold_row:
                 return ([_temp % y for y in x] if isinstance(x, tuple)
@@ -438,7 +434,6 @@ class HTMLFormatter(object):
             else:
                 return x
         self._maybe_bold_row = _maybe_bold_row
-
 
     def write(self, s, indent=0):
         self.elements.append(' ' * indent + _str(s))
@@ -481,7 +476,7 @@ class HTMLFormatter(object):
         indent = 0
         frame = self.frame
 
-        _classes = ['dataframe'] # Default class.
+        _classes = ['dataframe']  # Default class.
         if self.classes is not None:
             if isinstance(self.classes, str):
                 self.classes = self.classes.split()
@@ -492,12 +487,12 @@ class HTMLFormatter(object):
                    indent)
 
         if len(frame.columns) == 0 or len(frame.index) == 0:
-            self.write('<tbody>', indent  + self.indent_delta)
+            self.write('<tbody>', indent + self.indent_delta)
             self.write_tr([repr(frame.index),
                            'Empty %s' % type(frame).__name__],
                           indent + (2 * self.indent_delta),
                           self.indent_delta)
-            self.write('</tbody>', indent  + self.indent_delta)
+            self.write('</tbody>', indent + self.indent_delta)
         else:
             indent += self.indent_delta
             indent = self._write_header(indent)
@@ -535,16 +530,45 @@ class HTMLFormatter(object):
         self.write('<thead>', indent)
         row = []
 
-        col_row = _column_header()
         indent += self.indent_delta
+
         if isinstance(self.columns, MultiIndex):
-            align = None
+            template = 'colspan="%d" halign="left"'
+
+            levels = self.columns.format(sparsify=True, adjoin=False,
+                                         names=False)
+            level_lengths = _get_level_lengths(levels)
+
+            row_levels = self.frame.index.nlevels
+
+            for lnum, (records, values) in enumerate(zip(level_lengths, levels)):
+                name = self.columns.names[lnum]
+                row = [''] * (row_levels - 1) + ['' if name is None
+                                                 else str(name)]
+
+                tags = {}
+                j = len(row)
+                for i, v in enumerate(values):
+                    if i in records:
+                        if records[i] > 1:
+                            tags[j] = template % records[i]
+                    else:
+                        continue
+                    j += 1
+                    row.append(v)
+
+                self.write_tr(row, indent, self.indent_delta, tags=tags,
+                              header=True)
         else:
+            col_row = _column_header()
             align = self.fmt.justify
-        self.write_tr(col_row, indent, self.indent_delta, header=True,
-                align=align)
+
+            self.write_tr(col_row, indent, self.indent_delta, header=True,
+                    align=align)
+
         if self.fmt.has_index_names:
-            row = self.frame.index.names + [''] * len(self.columns)
+            row = [x if x is not None else ''
+                   for x in self.frame.index.names] + [''] * len(self.columns)
             self.write_tr(row, indent, self.indent_delta, header=True)
 
         indent -= self.indent_delta
@@ -639,6 +663,7 @@ def _get_level_lengths(levels):
 
     def _make_grouper():
         record = {'count': 0}
+
         def grouper(x):
             if x != '':
                 record['count'] += 1
@@ -724,12 +749,7 @@ class GenericArrayFormatter(object):
         else:
             float_format = self.float_format
 
-        if use_unicode:
-            def _strify(x):
-                return _stringify(x, print_config.encoding)
-            formatter = _strify if self.formatter is None else self.formatter
-        else:
-            formatter = str if self.formatter is None else self.formatter
+        formatter = com.pprint_thing if self.formatter is None else self.formatter
 
         def _format(x):
             if self.na_rep is not None and lib.checknull(x):
@@ -755,6 +775,7 @@ class GenericArrayFormatter(object):
                 fmt_values.append(' %s' % _format(v))
 
         return fmt_values
+
 
 class FloatArrayFormatter(GenericArrayFormatter):
     """
@@ -782,7 +803,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
             if len(fmt_values) > 0:
                 maxlen = max(len(x) for x in fmt_values)
             else:
-                maxlen =0
+                maxlen = 0
 
             too_long = maxlen > self.digits + 5
 
@@ -790,7 +811,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
             # this is pretty arbitrary for now
             has_large_values = (abs_vals > 1e8).any()
-            has_small_values = ((abs_vals < 10**(-self.digits)) &
+            has_small_values = ((abs_vals < 10 ** (-self.digits)) &
                                 (abs_vals > 0)).any()
 
             if too_long and has_large_values:
@@ -826,6 +847,7 @@ class Datetime64Formatter(GenericArrayFormatter):
 
         fmt_values = [formatter(x) for x in self.values]
         return _make_fixed_width(fmt_values, self.justify)
+
 
 def _format_datetime64(x, tz=None):
     if isnull(x):
@@ -867,16 +889,17 @@ def _make_fixed_width(strings, justify='right', minimum=None):
 
     return [just(x) for x in strings]
 
+
 def _trim_zeros(str_floats, na_rep='NaN'):
     """
-    Trims zeros and decimal points
+    Trims zeros and decimal points.
     """
-    # TODO: what if exponential?
     trimmed = str_floats
 
     def _cond(values):
         non_na = [x for x in values if x != na_rep]
-        return len(non_na) > 0 and all([x.endswith('0') for x in non_na])
+        return (len(non_na) > 0 and all([x.endswith('0') for x in non_na]) and
+               not(any([('e' in x) or ('E' in x) for x in non_na])))
 
     while _cond(trimmed):
         trimmed = [x[:-1] if x != na_rep else x for x in trimmed]
@@ -897,12 +920,14 @@ def single_column_table(column, align=None, style=None):
     table += '</tbody></table>'
     return table
 
+
 def single_row_table(row):  # pragma: no cover
     table = '<table><tbody><tr>'
     for i in row:
         table += ('<td>%s</td>' % str(i))
     table += '</tr></tbody></table>'
     return table
+
 
 def _has_names(index):
     if isinstance(index, MultiIndex):
@@ -911,9 +936,9 @@ def _has_names(index):
         return index.name is not None
 
 
-
-#-------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Global formatting options
+
 
 def set_printoptions(precision=None, column_space=None, max_rows=None,
                      max_columns=None, colheader_justify=None,
@@ -970,8 +995,10 @@ def set_printoptions(precision=None, column_space=None, max_rows=None,
     if encoding is not None:
         print_config.encoding = encoding
 
+
 def reset_printoptions():
     print_config.reset()
+
 
 class EngFormatter(object):
     """
@@ -1037,7 +1064,7 @@ class EngFormatter(object):
             dnum = -dnum
 
         if dnum != 0:
-            pow10 = decimal.Decimal(int(math.floor(dnum.log10()/3)*3))
+            pow10 = decimal.Decimal(int(math.floor(dnum.log10() / 3) * 3))
         else:
             pow10 = decimal.Decimal(0)
 
@@ -1053,16 +1080,17 @@ class EngFormatter(object):
             else:
                 prefix = 'E+%02d' % int_pow10
 
-        mant = sign*dnum/(10**pow10)
+        mant = sign * dnum / (10 ** pow10)
 
         if self.accuracy is None:  # pragma: no cover
             format_str = u"% g%s"
         else:
-            format_str = (u"%% .%if%%s" % self.accuracy )
+            format_str = (u"%% .%if%%s" % self.accuracy)
 
         formatted = format_str % (mant, prefix)
 
-        return formatted #.strip()
+        return formatted  #.strip()
+
 
 def set_eng_float_format(precision=None, accuracy=3, use_eng_prefix=False):
     """
@@ -1072,10 +1100,10 @@ def set_eng_float_format(precision=None, accuracy=3, use_eng_prefix=False):
 
     See also EngFormatter.
     """
-    if precision is not None: # pragma: no cover
+    if precision is not None:  # pragma: no cover
         import warnings
         warnings.warn("'precision' parameter in set_eng_float_format is "
-                      "being renamed to 'accuracy'" , FutureWarning)
+                      "being renamed to 'accuracy'", FutureWarning)
         accuracy = precision
 
     print_config.float_format = EngFormatter(accuracy, use_eng_prefix)
@@ -1098,10 +1126,33 @@ class _GlobalPrintConfig(object):
         self.notebook_repr_html = True
         self.date_dayfirst = False
         self.date_yearfirst = False
+        self.pprint_nest_depth = 3
         self.multi_sparse = True
-        self.encoding = sys.getdefaultencoding()
-        if self.encoding == 'ascii':
-            self.encoding = 'UTF8'
+        self.encoding = self.detect_encoding()
+
+    def detect_encoding(self):
+        """
+        Try to find the most capable encoding supported by the console.
+        slighly modified from the way IPython handles the same issue.
+        """
+        import locale
+
+        encoding = None
+        try:
+            encoding = sys.stdin.encoding
+        except AttributeError:
+            pass
+
+        if not encoding or encoding == 'ascii':  # try again for better
+            try:
+                encoding = locale.getpreferredencoding()
+            except Exception:
+                pass
+
+        if not encoding:  # when all else fails. this will usually be "ascii"
+                encoding = sys.getdefaultencoding()
+
+        return encoding
 
     def reset(self):
         self.__init__()
@@ -1124,7 +1175,7 @@ if __name__ == '__main__':
                       599502.4276,   620921.8593,   620898.5294,   552427.1093,
                       555221.2193,   519639.7059,   388175.7   ,   379199.5854,
                       614898.25  ,   504833.3333,   560600.    ,   941214.2857,
-                      1134250.    ,  1219550.    ,   855736.85  ,  1042615.4286,
+                      1134250.    ,  1219550.    ,   855736.85 ,  1042615.4286,
                       722621.3043,   698167.1818,   803750.    ])
     fmt = FloatArrayFormatter(arr, digits=7)
     print fmt.get_result()

@@ -17,9 +17,10 @@ try:
         dateutil.__version__ == '2.0'):  # pragma: no cover
         raise Exception('dateutil 2.0 incompatible with Python 2.x, you must '
                         'install version 1.5 or 2.1+!')
-except ImportError: # pragma: no cover
+except ImportError:  # pragma: no cover
     print 'Please install python-dateutil via easy_install or some method!'
-    raise # otherwise a 2nd import won't show the message
+    raise  # otherwise a 2nd import won't show the message
+
 
 def _infer_tzinfo(start, end):
     def _infer(a, b):
@@ -124,13 +125,13 @@ class DateParseError(ValueError):
     pass
 
 
-
 # patterns for quarters like '4Q2005', '05Q1'
 qpat1full = re.compile(r'(\d)Q(\d\d\d\d)')
 qpat2full = re.compile(r'(\d\d\d\d)Q(\d)')
 qpat1 = re.compile(r'(\d)Q(\d\d)')
 qpat2 = re.compile(r'(\d\d)Q(\d)')
 ypat = re.compile(r'(\d\d\d\d)$')
+
 
 def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     """
@@ -161,7 +162,7 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
 
     arg = arg.upper()
 
-    default = datetime(1,1,1).replace(hour=0, minute=0,
+    default = datetime(1, 1, 1).replace(hour=0, minute=0,
                                       second=0, microsecond=0)
 
     # special handling for possibilities eg, 2Q2005, 2Q05, 2005Q1, 05Q1
@@ -239,7 +240,7 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
                  "minute", "second", "microsecond"]:
         can_be_zero = ['hour', 'minute', 'second', 'microsecond']
         value = getattr(parsed, attr)
-        if value is not None and value != 0: # or attr in can_be_zero):
+        if value is not None and value != 0:  # or attr in can_be_zero):
             repl[attr] = value
             if not stopped:
                 reso = attr
@@ -248,6 +249,7 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
             break
     ret = default.replace(**repl)
     return ret, parsed, reso  # datetime, resolution
+
 
 def _attempt_monthly(val):
     pats = ['%Y-%m', '%m-%Y', '%b %Y', '%b-%Y']
@@ -269,7 +271,7 @@ def _try_parse_monthly(arg):
         add_base = True
         y = int(arg[:2])
         m = int(arg[2:4])
-    elif len(arg) >= 6: # 201201
+    elif len(arg) >= 6:  # 201201
         y = int(arg[:4])
         m = int(arg[4:6])
     if add_base:
@@ -286,6 +288,7 @@ def format(dt):
     return dt.strftime('%Y%m%d')
 
 OLE_TIME_ZERO = datetime(1899, 12, 30, 0, 0, 0)
+
 
 def ole2datetime(oledt):
     """function for converting excel date to normal date format"""

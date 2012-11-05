@@ -1,5 +1,6 @@
 import pandas.rpy.util as util
 
+
 class VAR(object):
     """
 
@@ -17,4 +18,3 @@ class VAR(object):
     def __init__(y, p=1, type="none", season=None, exogen=None,
                  lag_max=None, ic=None):
         pass
-

@@ -7,6 +7,8 @@ from pandas.core.index import MultiIndex
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.offsets import DateOffset
 import pandas.core.common as com
+import pandas.lib as lib
+
 
 class PandasError(Exception):
     pass
@@ -15,8 +17,8 @@ class PandasError(Exception):
 class PandasObject(object):
 
     _AXIS_NUMBERS = {
-        'index' : 0,
-        'columns' : 1
+        'index': 0,
+        'columns': 1
     }
 
     _AXIS_ALIASES = {}
@@ -155,8 +157,50 @@ class PandasObject(object):
         from pandas.tseries.resample import asfreq
         return asfreq(self, freq, method=method, how=how)
 
+    def at_time(self, time, asof=False):
+        """
+        Select values at particular time of day (e.g. 9:30AM)
+
+        Parameters
+        ----------
+        time : datetime.time or string
+
+        Returns
+        -------
+        values_at_time : type of caller
+        """
+        try:
+            indexer = self.index.indexer_at_time(time, asof=asof)
+            return self.take(indexer)
+        except AttributeError:
+            raise TypeError('Index must be DatetimeIndex')
+
+    def between_time(self, start_time, end_time, include_start=True,
+                     include_end=True):
+        """
+        Select values between particular times of the day (e.g., 9:00-9:30 AM)
+
+        Parameters
+        ----------
+        start_time : datetime.time or string
+        end_time : datetime.time or string
+        include_start : boolean, default True
+        include_end : boolean, default True
+
+        Returns
+        -------
+        values_between_time : type of caller
+        """
+        try:
+            indexer = self.index.indexer_between_time(
+                start_time, end_time, include_start=include_start,
+                include_end=include_end)
+            return self.take(indexer)
+        except AttributeError:
+            raise TypeError('Index must be DatetimeIndex')
+
     def resample(self, rule, how=None, axis=0, fill_method=None,
-                 closed='right', label='right', convention=None,
+                 closed='right', label='right', convention='start',
                  kind=None, loffset=None, limit=None, base=0):
         """
         Convenience method for frequency conversion and resampling of regular
@@ -274,7 +318,7 @@ class PandasObject(object):
         else:
             new_axis = axis
 
-        return self.reindex(**{axis_name : new_axis})
+        return self.reindex(**{axis_name: new_axis})
 
     def drop(self, labels, axis=0, level=None):
         """
@@ -294,13 +338,26 @@ class PandasObject(object):
         axis_name = self._get_axis_name(axis)
         axis = self._get_axis(axis)
 
-        if level is not None:
-            assert(isinstance(axis, MultiIndex))
-            new_axis = axis.drop(labels, level=level)
-        else:
-            new_axis = axis.drop(labels)
+        if axis.is_unique:
+            if level is not None:
+                assert(isinstance(axis, MultiIndex))
+                new_axis = axis.drop(labels, level=level)
+            else:
+                new_axis = axis.drop(labels)
 
-        return self.reindex(**{axis_name : new_axis})
+            return self.reindex(**{axis_name: new_axis})
+        else:
+            if level is not None:
+                assert(isinstance(axis, MultiIndex))
+                indexer = -lib.ismember(axis.get_level_values(level),
+                                        set(labels))
+            else:
+                indexer = -axis.isin(labels)
+
+            slicer = [slice(None)] * self.ndim
+            slicer[self._get_axis_number(axis_name)] = indexer
+
+            return self.ix[tuple(slicer)]
 
     def sort_index(self, axis=0, ascending=True):
         """
@@ -326,7 +383,7 @@ class PandasObject(object):
             sort_index = sort_index[::-1]
 
         new_axis = labels.take(sort_index)
-        return self.reindex(**{axis_name : new_axis})
+        return self.reindex(**{axis_name: new_axis})
 
     @property
     def ix(self):
@@ -483,13 +540,13 @@ class NDFrame(PandasObject):
         self._item_cache.clear()
 
     def _set_item(self, key, value):
-        if hasattr(self,'columns') and isinstance(self.columns, MultiIndex):
+        if hasattr(self, 'columns') and isinstance(self.columns, MultiIndex):
             # Pad the key with empty strings if lower levels of the key
             # aren't specified:
             if not isinstance(key, tuple):
                 key = (key,)
             if len(key) != self.columns.nlevels:
-                key += ('',)*(self.columns.nlevels - len(key))
+                key += ('',) * (self.columns.nlevels - len(key))
         self._data.set(key, value)
 
         try:
@@ -504,7 +561,7 @@ class NDFrame(PandasObject):
         deleted = False
 
         maybe_shortcut = False
-        if hasattr(self,'columns') and isinstance(self.columns, MultiIndex):
+        if hasattr(self, 'columns') and isinstance(self.columns, MultiIndex):
             try:
                 maybe_shortcut = key not in self.columns._engine
             except TypeError:
@@ -513,10 +570,10 @@ class NDFrame(PandasObject):
         if maybe_shortcut:
             # Allow shorthand to delete all columns whose first len(key)
             # elements match key:
-            if not isinstance(key,tuple):
+            if not isinstance(key, tuple):
                 key = (key,)
             for col in self.columns:
-                if isinstance(col,tuple) and col[:len(key)] == key:
+                if isinstance(col, tuple) and col[:len(key)] == key:
                     del self[col]
                     deleted = True
         if not deleted:
@@ -702,7 +759,7 @@ class NDFrame(PandasObject):
             if skipna:
                 np.putmask(result, mask, np.nan)
         else:
-            result = np.maximum.accumulate(y,axis)
+            result = np.maximum.accumulate(y, axis)
         return self._wrap_array(result, self.axes, copy=False)
 
     def cummin(self, axis=None, skipna=True):
@@ -738,7 +795,7 @@ class NDFrame(PandasObject):
             if skipna:
                 np.putmask(result, mask, np.nan)
         else:
-            result = np.minimum.accumulate(y,axis)
+            result = np.minimum.accumulate(y, axis)
         return self._wrap_array(result, self.axes, copy=False)
 
     def copy(self, deep=True):
@@ -934,6 +991,7 @@ class NDFrame(PandasObject):
 
 # Good for either Series or DataFrame
 
+
 def truncate(self, before=None, after=None, copy=True):
     """Function truncate a sorted DataFrame / Series before and/or after
     some particular dates.
@@ -965,4 +1023,3 @@ def truncate(self, before=None, after=None, copy=True):
         result = result.copy()
 
     return result
-

@@ -33,16 +33,19 @@ Panel = panel.Panel
 N = 30
 K = 4
 
+
 def rands(n):
     choices = string.ascii_letters + string.digits
     return ''.join([random.choice(choices) for _ in xrange(n)])
 
+
 def randu(n):
-    choices = u"".join(map(unichr,range(1488,1488+26))) + string.digits
+    choices = u"".join(map(unichr, range(1488, 1488 + 26))) + string.digits
     return ''.join([random.choice(choices) for _ in xrange(n)])
 
-#-------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Console debugging tools
+
 
 def debug(f, *args, **kwargs):
     from pdb import Pdb as OldPdb
@@ -55,9 +58,11 @@ def debug(f, *args, **kwargs):
     pdb = Pdb(**kw)
     return pdb.runcall(f, *args, **kwargs)
 
+
 def pudebug(f, *args, **kwargs):
     import pudb
     return pudb.runcall(f, *args, **kwargs)
+
 
 def set_trace():
     from IPython.core.debugger import Pdb
@@ -67,16 +72,19 @@ def set_trace():
         from pdb import Pdb as OldPdb
         OldPdb().set_trace(sys._getframe().f_back)
 
-#-------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Comparators
+
 
 def equalContents(arr1, arr2):
     """Checks if the set of unique elements of arr1 and arr2 are equivalent.
     """
     return frozenset(arr1) == frozenset(arr2)
 
+
 def isiterable(obj):
     return hasattr(obj, '__iter__')
+
 
 def assert_almost_equal(a, b):
     if isinstance(a, dict) or isinstance(b, dict):
@@ -109,12 +117,14 @@ def assert_almost_equal(a, b):
                 a, b, decimal=5, err_msg=err_msg(a, b), verbose=False)
         else:
             np.testing.assert_almost_equal(
-                1, a/b, decimal=5, err_msg=err_msg(a, b), verbose=False)
+                1, a / b, decimal=5, err_msg=err_msg(a, b), verbose=False)
     else:
         assert(a == b)
 
+
 def is_sorted(seq):
     return assert_almost_equal(seq, np.sort(np.array(seq)))
+
 
 def assert_dict_equal(a, b, compare_keys=True):
     a_keys = frozenset(a.keys())
@@ -125,6 +135,7 @@ def assert_dict_equal(a, b, compare_keys=True):
 
     for k in a_keys:
         assert_almost_equal(a[k], b[k])
+
 
 def assert_series_equal(left, right, check_dtype=True,
                         check_index_type=False,
@@ -144,6 +155,7 @@ def assert_series_equal(left, right, check_dtype=True,
         assert(getattr(left, 'freqstr', None) ==
                getattr(right, 'freqstr', None))
 
+
 def assert_frame_equal(left, right, check_index_type=False,
                        check_column_type=False,
                        check_frame_type=False):
@@ -151,13 +163,16 @@ def assert_frame_equal(left, right, check_index_type=False,
         assert(type(left) == type(right))
     assert(isinstance(left, DataFrame))
     assert(isinstance(right, DataFrame))
-    for col, series in left.iterkv():
-        assert(col in right)
-        assert_series_equal(series, right[col])
-    for col in right:
-        assert(col in left)
-    assert(left.index.equals(right.index))
+
     assert(left.columns.equals(right.columns))
+    assert(left.index.equals(right.index))
+
+    for i, col in enumerate(left.columns):
+        assert(col in right)
+        lcol = left.icol(i)
+        rcol = right.icol(i)
+        assert_series_equal(lcol, rcol)
+
     if check_index_type:
         assert(type(left.index) == type(right.index))
         assert(left.index.dtype == right.index.dtype)
@@ -166,6 +181,7 @@ def assert_frame_equal(left, right, check_index_type=False,
         assert(type(left.columns) == type(right.columns))
         assert(left.columns.dtype == right.columns.dtype)
         assert(left.columns.inferred_type == right.columns.inferred_type)
+
 
 def assert_panel_equal(left, right, check_panel_type=False):
     if check_panel_type:
@@ -182,33 +198,42 @@ def assert_panel_equal(left, right, check_panel_type=False):
     for col in right:
         assert(col in left)
 
+
 def assert_contains_all(iterable, dic):
     for k in iterable:
         assert(k in dic)
 
+
 def getCols(k):
     return string.ascii_uppercase[:k]
+
 
 def makeStringIndex(k):
     return Index([rands(10) for _ in xrange(k)])
 
+
 def makeUnicodeIndex(k):
     return Index([randu(10) for _ in xrange(k)])
 
+
 def makeIntIndex(k):
     return Index(range(k))
+
 
 def makeFloatIndex(k):
     values = sorted(np.random.random_sample(k)) - np.random.random_sample(1)
     return Index(values * (10 ** np.random.randint(0, 9)))
 
+
 def makeFloatSeries():
     index = makeStringIndex(N)
     return Series(randn(N), index=index)
 
+
 def makeStringSeries():
     index = makeStringIndex(N)
     return Series(randn(N), index=index)
+
 
 def makeObjectSeries():
     dateIndex = makeDateIndex(N)
@@ -216,67 +241,81 @@ def makeObjectSeries():
     index = makeStringIndex(N)
     return Series(dateIndex, index=index)
 
+
 def getSeriesData():
     index = makeStringIndex(N)
     return dict((c, Series(randn(N), index=index)) for c in getCols(K))
+
 
 def makeDataFrame():
     data = getSeriesData()
     return DataFrame(data)
 
+
 def getArangeMat():
     return np.arange(N * K).reshape((N, K))
+
 
 def getMixedTypeDict():
     index = Index(['a', 'b', 'c', 'd', 'e'])
 
     data = {
-        'A' : [0., 1., 2., 3., 4.],
-        'B' : [0., 1., 0., 1., 0.],
-        'C' : ['foo1', 'foo2', 'foo3', 'foo4', 'foo5'],
-        'D' : bdate_range('1/1/2009', periods=5)
+        'A': [0., 1., 2., 3., 4.],
+        'B': [0., 1., 0., 1., 0.],
+        'C': ['foo1', 'foo2', 'foo3', 'foo4', 'foo5'],
+        'D': bdate_range('1/1/2009', periods=5)
     }
 
     return index, data
 
+
 def makeDateIndex(k):
-    dt = datetime(2000,1,1)
+    dt = datetime(2000, 1, 1)
     dr = bdate_range(dt, periods=k)
     return DatetimeIndex(dr)
 
+
 def makePeriodIndex(k):
-    dt = datetime(2000,1,1)
+    dt = datetime(2000, 1, 1)
     dr = PeriodIndex(start=dt, periods=k, freq='B')
     return dr
+
 
 def makeTimeSeries(nper=None):
     if nper is None:
         nper = N
     return Series(randn(nper), index=makeDateIndex(nper))
 
+
 def makePeriodSeries(nper=None):
     if nper is None:
         nper = N
     return Series(randn(nper), index=makePeriodIndex(nper))
 
+
 def getTimeSeriesData():
     return dict((c, makeTimeSeries()) for c in getCols(K))
+
 
 def makeTimeDataFrame():
     data = getTimeSeriesData()
     return DataFrame(data)
 
+
 def getPeriodData():
     return dict((c, makePeriodSeries()) for c in getCols(K))
+
 
 def makePeriodFrame():
     data = getPeriodData()
     return DataFrame(data)
 
+
 def makePanel():
     cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
     data = dict((c, makeTimeDataFrame()) for c in cols)
     return Panel.fromDict(data)
+
 
 def add_nans(panel):
     I, J, N = panel.shape
@@ -284,6 +323,7 @@ def add_nans(panel):
         dm = panel[item]
         for j, col in enumerate(dm.columns):
             dm[col][:i + j] = np.NaN
+
 
 class TestSubDict(dict):
     def __init__(self, *args, **kwargs):
@@ -327,7 +367,7 @@ def package_check(pkg_name, version=None, app='pandas', checker=LooseVersion,
     else:
         msg = 'module requires %s' % pkg_name
     if version:
-      msg += ' with version >= %s' % (version,)
+        msg += ' with version >= %s' % (version,)
     try:
         mod = __import__(pkg_name)
     except ImportError:
@@ -340,6 +380,7 @@ def package_check(pkg_name, version=None, app='pandas', checker=LooseVersion,
         raise exc_failed_check('Cannot find version for %s' % pkg_name)
     if checker(have_version) < checker(version):
         raise exc_failed_check(msg)
+
 
 def skip_if_no_package(*args, **kwargs):
     """Raise SkipTest if package_check fails
@@ -357,6 +398,8 @@ def skip_if_no_package(*args, **kwargs):
 #
 # Additional tags decorators for nose
 #
+
+
 def network(t):
     """
     Label a test as requiring network connection.
@@ -411,14 +454,15 @@ class SimpleMock(object):
         attrs = kwds.get("attrs", {})
         for k, v in zip(args[::2], args[1::2]):
             # dict comprehensions break 2.6
-            attrs[k]=v
+            attrs[k] = v
         self.attrs = attrs
         self.obj = obj
 
-    def __getattribute__(self,name):
+    def __getattribute__(self, name):
         attrs = object.__getattribute__(self, "attrs")
         obj = object.__getattribute__(self, "obj")
-        return attrs.get(name, type(obj).__getattribute__(obj,name))
+        return attrs.get(name, type(obj).__getattribute__(obj, name))
+
 
 @contextmanager
 def stdin_encoding(encoding=None):

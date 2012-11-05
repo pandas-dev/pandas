@@ -1,4 +1,4 @@
-from datetime import datetime, time, timedelta
+from datetime import datetime, time, timedelta, date
 import sys
 import os
 import unittest
@@ -24,6 +24,25 @@ class TestDateTimeConverter(unittest.TestCase):
         r1 = self.dtc.convert("12:22",None,None)
         r2 = self.dtc.convert(u"12:22",None,None)
         assert(r1==r2), "DatetimeConverter.convert should accept unicode"
+
+    def test_conversion(self):
+        rs = self.dtc.convert(['2012-1-1'], None, None)[0]
+        xp = datetime(2012, 1, 1).toordinal()
+        self.assertEqual(rs, xp)
+
+        rs = self.dtc.convert('2012-1-1', None, None)
+        self.assertEqual(rs, xp)
+
+        rs = self.dtc.convert(date(2012, 1, 1), None, None)
+        self.assertEqual(rs, xp)
+
+        rs = self.dtc.convert(datetime(2012, 1, 1).toordinal(), None, None)
+        self.assertEqual(rs, xp)
+
+        rs = self.dtc.convert('2012-1-1', None, None)
+        self.assertEqual(rs, xp)
+
+
 
 if __name__ == '__main__':
     import nose

@@ -480,6 +480,20 @@ class TestStringMethods(unittest.TestCase):
         result = s.str.split()
         self.assertEquals(result[1], ['Travis', 'Oliphant'])
 
+    def test_pipe_failures(self):
+        # #2119
+        s = Series(['A|B|C'])
+
+        result = s.str.split('|')
+        exp = Series([['A', 'B', 'C']])
+
+        tm.assert_series_equal(result, exp)
+
+        result = s.str.replace('|', ' ')
+        exp = Series(['A B C'])
+
+        tm.assert_series_equal(result, exp)
+
     def test_slice(self):
         values = Series(['aafootwo','aabartwo', NA, 'aabazqux'])
 
