@@ -646,9 +646,14 @@ class PeriodIndex(Int64Index):
 
     def asof_locs(self, where, mask):
         """
+        Parameters
+        ----------
         where : array of timestamps
         mask : array of booleans where data is not NA
 
+        Returns
+        -------
+        result : array_like
         """
         where_idx = where
         if isinstance(where_idx, DatetimeIndex):
