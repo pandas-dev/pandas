@@ -86,7 +86,6 @@ pandas 0.9.1
   - Fix ewma NA handling in the middle of Series (#2128)
   - Fix numerical precision issues in diff with integer data (#2087)
   - Fix bug in MultiIndex.__getitem__ with NA values (#2008)
-  - Do not override matplotlib unit conversion fro datetime/time/date (#2173)
   - Fix DataFrame.from_records dict-arg bug when passing columns (#2179)
   - Fix Series and DataFrame.diff for integer dtypes (#2087, #2174)
   - Fix bug when taking intersection of DatetimeIndex with empty index (#2129)
