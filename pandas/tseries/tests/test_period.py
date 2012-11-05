@@ -441,7 +441,7 @@ class TestPeriodProperties(TestCase):
         assert_equal(s_date.second, 0)
 
     def test_properties_microsecondly(self):
-        u_date = Period(freq='U', year=2007, month=1, day=1, hour=0, minute=0,
+        u_date = Period(freq='U', year=2007, month=1, day=1, hour=0, minute=40,
                         second=5, microsecond=10)
         #
         assert_equal(u_date.year, 2007)
@@ -451,7 +451,7 @@ class TestPeriodProperties(TestCase):
         assert_equal(u_date.weekday, 0)
         assert_equal(u_date.dayofyear, 1)
         assert_equal(u_date.hour, 0)
-        assert_equal(u_date.minute, 0)
+        assert_equal(u_date.minute, 40)
         assert_equal(u_date.second, 5)
         assert_equal(u_date.microsecond, 10)
 
