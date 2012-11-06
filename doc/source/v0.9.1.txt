@@ -12,7 +12,8 @@ DataFrame.
 New features
 ~~~~~~~~~~~~
 
-  - Can specify multiple sort orders in DataFrame/Series.sort/sort_index (GH928_)
+  - `Series.sort`, `DataFrame.sort`, and `DataFrame.sort_index` can now be
+    specified in a per-column manner to support multiple sort orders (GH928_)
 
     .. ipython:: python
 
@@ -21,7 +22,9 @@ New features
         df.sort(['A', 'B'], ascending=[1, 0])
 
 
-  - New `top` and `bottom` options for handling NAs in rank (GH1508_, GH2159_)
+  - `DataFrame.rank` now supports additional argument values for the
+    `na_option` parameter so missing values can be assigned either the largest
+    or the smallest rank (GH1508_, GH2159_)
 
     .. ipython:: python
 
@@ -36,7 +39,8 @@ New features
         df.rank(na_option='bottom')
 
 
-  - Add `where` and `mask` functions to DataFrame (GH2109_, GH2151_)
+  - DataFrame has new `where` and `mask` methods to select values according to a
+    given boolean mask (GH2109_, GH2151_)
 
     .. ipython:: python
 
@@ -47,18 +51,27 @@ New features
         df.mask(df < 0)
 
 
-  - Add `at_time` and `between_time` functions to DataFrame (GH2149_)
   - Enable referencing of Excel columns by their column names (GH1936_)
-  - DataFrame.dot can accept ndarrays (GH2042_)
-  - Make .drop(...) work with non-unique indexes (GH2101_)
-  - Support negative periods in Panel.shift (GH2164_)
-  - Support unary ~ in DataFrame (GH2110_)
+
+    .. ipython:: python
+
+        xl = ExcelFile('data/test.xls')
+        xl.parse('Sheet1', index_col=0, parse_dates=True,
+                 parse_cols='A:D')
+
+
+  - Existing TimeSeries methods `at_time` and `between_time` were added to
+    DataFrame (GH2149_)
+  - DataFrame.dot can now accept ndarrays (GH2042_)
+  - DataFrame.drop now supports non-unique indexes (GH2101_)
+  - Panel.shift now supports negative periods (GH2164_)
+  - DataFrame now support unary ~ operator (GH2110_)
 
 API changes
 ~~~~~~~~~~~
 
-  - Upsampling period index "spans" intervals. Example: annual periods
-    upsampled to monthly will span all months in each year
+  - Upsampling data with a PeriodIndex will result in a higher frequency
+    TimeSeries that spans the original time window
 
     .. ipython:: python
 
@@ -69,7 +82,7 @@ API changes
         s.resample('M')
 
 
-  - Period.end_time will yield timestamp at last nanosecond in the interval
+  - Period.end_time now returns the last nanosecond in the time interval
     (GH2124_, GH2125_, GH1764_)
 
     .. ipython:: python
@@ -77,6 +90,7 @@ API changes
         p = Period('2012')
 
         p.end_time
+
 
   - File parsers no longer coerce to float or bool for columns that have custom
     converters specified (GH2184_)
@@ -90,7 +104,7 @@ API changes
         """
 
         from cStringIO import StringIO
-        
+
         read_csv(StringIO(data), converters={'A' : lambda x: x.strip()})
 
 
