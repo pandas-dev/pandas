@@ -156,9 +156,9 @@ class TestDataFramePlots(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        import sys
-        if 'IPython' in sys.modules:
-            raise nose.SkipTest
+        #import sys
+        #if 'IPython' in sys.modules:
+        #    raise nose.SkipTest
 
         try:
             import matplotlib as mpl
@@ -485,9 +485,9 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        import sys
-        if 'IPython' in sys.modules:
-            raise nose.SkipTest
+        #import sys
+        #if 'IPython' in sys.modules:
+        #    raise nose.SkipTest
 
         try:
             import matplotlib as mpl

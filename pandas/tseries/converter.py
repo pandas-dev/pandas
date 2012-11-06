@@ -326,7 +326,7 @@ class MilliSecondLocator(dates.DateLocator):
             if len(all_dates) > 0:
                 locs = self.raise_if_exceeds(dates.date2num(all_dates))
                 return locs
-        except Exception, e:
+        except Exception, e: #pragma: no cover
             pass
 
         lims = dates.date2num([dmin, dmax])

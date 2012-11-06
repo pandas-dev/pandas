@@ -1566,11 +1566,3 @@ def _time_to_micros(time):
     return 1000000 * seconds + time.microsecond
 
 
-def _utc_naive(dt):
-    if dt is None:
-        return dt
-
-    if dt.tz is not None:
-        dt = dt.tz_convert('utc').replace(tzinfo=None)
-
-    return dt

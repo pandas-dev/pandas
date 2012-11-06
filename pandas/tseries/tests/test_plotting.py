@@ -8,16 +8,14 @@ import numpy as np
 from numpy.testing.decorators import slow
 from numpy.testing import assert_array_equal
 
-from pandas import Index, Series, DataFrame, isnull, notnull
+from pandas import Index, Series, DataFrame
 
 from pandas.tseries.index import date_range, bdate_range
-from pandas.tseries.offsets import Minute, DateOffset
-from pandas.tseries.period import period_range, Period
-from pandas.tseries.resample import DatetimeIndex, TimeGrouper
-import pandas.tseries.offsets as offsets
-import pandas.tseries.frequencies as frequencies
+from pandas.tseries.offsets import DateOffset
+from pandas.tseries.period import period_range, Period, PeriodIndex
+from pandas.tseries.resample import DatetimeIndex
 
-from pandas.util.testing import assert_series_equal, assert_almost_equal
+from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
 
 class TestTSPlot(unittest.TestCase):
@@ -100,7 +98,7 @@ class TestTSPlot(unittest.TestCase):
             _check_plot_works(ser.plot)
 
     def test_get_datevalue(self):
-        from pandas.tseries.plotting import get_datevalue
+        from pandas.tseries.converter import get_datevalue
         self.assert_(get_datevalue(None, 'D') is None)
         self.assert_(get_datevalue(1987, 'A') == 1987)
         self.assert_(get_datevalue(Period(1987, 'A'), 'M') ==
@@ -238,7 +236,7 @@ class TestTSPlot(unittest.TestCase):
         self.assert_(ax.get_lines()[0].get_xydata()[0, 0],
                      bts.index[0].ordinal)
         idx = ax.get_lines()[0].get_xdata()
-        self.assert_(idx.freqstr == 'B')
+        self.assert_(PeriodIndex(data=idx).freqstr == 'B')
 
     @slow
     def test_business_freq_convert(self):
@@ -252,7 +250,7 @@ class TestTSPlot(unittest.TestCase):
         ax = bts.plot()
         self.assert_(ax.get_lines()[0].get_xydata()[0, 0], ts.index[0].ordinal)
         idx = ax.get_lines()[0].get_xdata()
-        self.assert_(idx.freqstr == 'M')
+        self.assert_(PeriodIndex(data=idx).freqstr == 'M')
 
     @slow
     def test_dataframe(self):
@@ -606,7 +604,7 @@ class TestTSPlot(unittest.TestCase):
         high.plot()
         ax = low.plot()
         for l in ax.get_lines():
-            self.assert_(l.get_xdata().freq == 'D')
+            self.assert_(PeriodIndex(data=l.get_xdata()).freq == 'D')
 
     @slow
     def test_mixed_freq_lf_first(self):
@@ -616,10 +614,12 @@ class TestTSPlot(unittest.TestCase):
         idxl = date_range('1/1/1999', periods=12, freq='M')
         high = Series(np.random.randn(len(idxh)), idxh)
         low = Series(np.random.randn(len(idxl)), idxl)
-        low.plot()
-        ax = high.plot()
+        low.plot(legend=True)
+        ax = high.plot(legend=True)
         for l in ax.get_lines():
-            self.assert_(l.get_xdata().freq == 'D')
+            self.assert_(PeriodIndex(data=l.get_xdata()).freq == 'D')
+        leg = ax.get_legend()
+        self.assert_(len(leg.texts) == 2)
 
         plt.close('all')
         idxh = date_range('1/1/1999', periods=240, freq='T')
@@ -629,7 +629,7 @@ class TestTSPlot(unittest.TestCase):
         low.plot()
         ax = high.plot()
         for l in ax.get_lines():
-            self.assert_(l.get_xdata().freq == 'T')
+            self.assert_(PeriodIndex(data=l.get_xdata()).freq == 'T')
 
     @slow
     def test_mixed_freq_irreg_period(self):
@@ -651,7 +651,7 @@ class TestTSPlot(unittest.TestCase):
         high.plot()
         ax = low.plot()
         for l in ax.get_lines():
-            self.assert_(l.get_xdata().freq.startswith('W'))
+            self.assert_(PeriodIndex(data=l.get_xdata()).freq.startswith('W'))
 
     @slow
     def test_from_weekly_resampling(self):
@@ -664,11 +664,10 @@ class TestTSPlot(unittest.TestCase):
         low.plot()
         ax = high.plot()
         for l in ax.get_lines():
-            self.assert_(l.get_xdata().freq.startswith('W'))
+            self.assert_(PeriodIndex(data=l.get_xdata()).freq.startswith('W'))
 
     @slow
     def test_irreg_dtypes(self):
-        import matplotlib.pyplot as plt
         #date
         idx = [date(2000, 1, 1), date(2000, 1, 5), date(2000, 1, 20)]
         df = DataFrame(np.random.randn(len(idx), 3), Index(idx, dtype=object))

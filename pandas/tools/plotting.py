@@ -1293,8 +1293,8 @@ def plot_frame(frame=None, x=None, y=None, subplots=False, sharex=True,
 
 def plot_series(series, label=None, kind='line', use_index=True, rot=None,
                 xticks=None, yticks=None, xlim=None, ylim=None,
-                ax=None, style=None, grid=None, logy=False, secondary_y=False,
-                **kwds):
+                ax=None, style=None, grid=None, legend=False, logy=False,
+                secondary_y=False, **kwds):
     """
     Plot the input series with the index on the x-axis using matplotlib
 
@@ -1358,7 +1358,7 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     plot_obj = klass(series, kind=kind, rot=rot, logy=logy,
                      ax=ax, use_index=use_index, style=style,
                      xticks=xticks, yticks=yticks, xlim=xlim, ylim=ylim,
-                     legend=False, grid=grid, label=label,
+                     legend=legend, grid=grid, label=label,
                      secondary_y=secondary_y, **kwds)
 
     plot_obj.generate()
