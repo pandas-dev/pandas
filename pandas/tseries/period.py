@@ -920,9 +920,9 @@ class PeriodIndex(Int64Index):
         if reso == 'year':
             t1 = Period(year=parsed.year, freq='A')
         elif reso == 'month':
-            t1 = Period(year=parsed.year, motnh=parsed.month, freq='M')
+            t1 = Period(year=parsed.year, month=parsed.month, freq='M')
         elif reso == 'quarter':
-            q = (parsed.month - 1) // 4 + 1
+            q = (parsed.month - 1) // 3 + 1
             t1 = Period(year=parsed.year, quarter=q, freq='Q-DEC')
         else:
             raise KeyError(key)
@@ -1220,13 +1220,3 @@ def period_range(start=None, end=None, periods=None, freq='D', name=None):
     return PeriodIndex(start=start, end=end, periods=periods,
                        freq=freq, name=name)
 
-
-def _period_rule_to_timestamp_rule(freq, how='end'):
-    how = how.lower()
-    if how in ('end', 'e'):
-        return freq
-    else:
-        if freq.startswith('A-') or freq.startswith('BA-'):
-            base, color = freq.split('-')
-            return '%sS-%s' % (base, color)
-        return freq

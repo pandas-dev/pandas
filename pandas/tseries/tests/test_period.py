@@ -1185,6 +1185,12 @@ class TestPeriodIndex(TestCase):
         result = ts['2008':'2009']
         self.assertEquals(len(result), 24)
 
+        result = ts['2008-1':'2009-12']
+        self.assertEquals(len(result), 24)
+
+        result = ts['2008Q1':'2009Q4']
+        self.assertEquals(len(result), 24)
+
     def test_getitem_datetime(self):
         rng = period_range(start='2012-01-01', periods=10, freq='W-MON')
         ts = Series(range(len(rng)), index=rng)
