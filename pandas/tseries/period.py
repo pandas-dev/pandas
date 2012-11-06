@@ -175,8 +175,6 @@ class Period(object):
             raise ValueError('Only mult == 1 supported')
 
         new_ordinal = plib.period_asfreq(self.ordinal, base1, base2, how)
-        print 'new_ordinal:  ', new_ordinal
-        print 'self.ordinal: ', self.ordinal
 
         return Period(ordinal=new_ordinal, freq=base2)
 

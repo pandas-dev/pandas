@@ -415,7 +415,7 @@ static i8 asfreq_DtoS(i8 ordinal, char relation, asfreq_info *af_info) {
 }
 
 static i8 asfreq_DtoU(i8 ordinal, char relation, asfreq_info *af_info) {
-    return asfreq_DtoHIGHFREQ(ordinal, relation, 24L * 60L * 60L * 1000000L);
+    return asfreq_DtoHIGHFREQ(ordinal, relation, US_PER_DAY);
 }
 
 //************ FROM SECONDLY ***************
@@ -905,8 +905,9 @@ static i8 asfreq_BtoU(i8 ordinal, char relation, asfreq_info *af_info) {
 }
 
 static i8 asfreq_HtoU(i8 ordinal, char relation, asfreq_info *af_info) {
+    /* return ordinal * US_PER_HOUR; */
     return asfreq_DtoU(asfreq_HtoD(ordinal, relation, af_info), relation,
-                       &NULL_AF_INFO);
+                       af_info);
 }
 
 static i8 asfreq_TtoU(i8 ordinal, char relation, asfreq_info *af_info) {
