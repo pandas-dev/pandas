@@ -39,6 +39,8 @@ cdef inline is_definitely_invalid_key(object val):
             or PyList_Check(val))
 
 def get_value_at(ndarray arr, object loc):
+    if arr.descr.type_num == NPY_DATETIME:
+        return Timestamp(util.get_value_at(arr, loc))
     return util.get_value_at(arr, loc)
 
 def set_value_at(ndarray arr, object loc, object val):

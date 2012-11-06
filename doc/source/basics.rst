@@ -110,15 +110,11 @@ Series input is of primary interest. Using these functions, you can use to
 either match on the *index* or *columns* via the **axis** keyword:
 
 .. ipython:: python
-   :suppress:
 
    d = {'one' : Series(randn(3), index=['a', 'b', 'c']),
         'two' : Series(randn(4), index=['a', 'b', 'c', 'd']),
         'three' : Series(randn(3), index=['b', 'c', 'd'])}
    df = DataFrame(d)
-
-.. ipython:: python
-
    df
    row = df.ix[1]
    column = df['two']

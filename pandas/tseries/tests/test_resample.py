@@ -451,24 +451,26 @@ class TestResample(unittest.TestCase):
         df = DataFrame(rng.month, index=rng)
 
         result = df.resample('M')
-        expected = df.resample('M', kind='period').to_timestamp()
+        expected = df.resample('M', kind='period').to_timestamp(how='end')
         tm.assert_frame_equal(result, expected)
 
         result = df.resample('M', closed='left')
-        exp = df.tshift(1, freq='D').resample('M', kind='period').to_timestamp()
+        exp = df.tshift(1, freq='D').resample('M', kind='period')
+        exp = exp.to_timestamp(how='end')
+
         tm.assert_frame_equal(result, exp)
 
         rng = date_range('1/1/2012', '4/1/2013', freq='10min')
         df = DataFrame(rng.month, index=rng)
 
         result = df.resample('Q')
-        expected = df.resample('Q', kind='period').to_timestamp()
+        expected = df.resample('Q', kind='period').to_timestamp(how='end')
         tm.assert_frame_equal(result, expected)
 
         result = df.resample('Q', closed='left')
         expected = df.tshift(1, freq='D').resample('Q', kind='period',
                                                    closed='left')
-        expected = expected.to_timestamp()
+        expected = expected.to_timestamp(how='end')
         tm.assert_frame_equal(result, expected)
 
         ts = _simple_ts('2012-04-29 23:00', '2012-04-30 5:00', freq='h')
@@ -622,7 +624,8 @@ class TestResamplePeriodIndex(unittest.TestCase):
         rng = period_range('1/1/2000', periods=5, freq='A')
         ts = Series(np.random.randn(len(rng)), rng)
 
-        result = ts.resample('M', fill_method='ffill', limit=2)
+        result = ts.resample('M', fill_method='ffill', limit=2,
+                             convention='end')
         expected = ts.asfreq('M').reindex(result.index, method='ffill',
                                           limit=2)
         assert_series_equal(result, expected)
@@ -645,6 +648,17 @@ class TestResamplePeriodIndex(unittest.TestCase):
         rdf = df.resample('D', fill_method='ffill')
         exp = df['a'].resample('D', fill_method='ffill')
         assert_series_equal(rdf['a'], exp)
+
+
+        rng = period_range('2000', '2003', freq='A-DEC')
+        ts = Series([1, 2, 3, 4], index=rng)
+
+        result = ts.resample('M', fill_method='ffill')
+        ex_index = period_range('2000-01', '2003-12', freq='M')
+
+        expected = ts.asfreq('M', how='start').reindex(ex_index,
+                                                       method='ffill')
+        assert_series_equal(result, expected)
 
     def test_quarterly_upsample(self):
         targets = ['D', 'B', 'M']
@@ -696,8 +710,9 @@ class TestResamplePeriodIndex(unittest.TestCase):
             ts = _simple_pts('1990', '1992', freq='A-%s' % month)
             quar_ts = ts.resample('Q-%s' % month, fill_method='ffill')
 
-            stamps = ts.to_timestamp('D', how='end')
-            qdates = period_range(stamps.index[0], stamps.index[-1],
+            stamps = ts.to_timestamp('D', how='start')
+            qdates = period_range(ts.index[0].asfreq('D', 'start'),
+                                  ts.index[-1].asfreq('D', 'end'),
                                   freq='Q-%s' % month)
 
             expected = stamps.reindex(qdates.to_timestamp('D', 'e'),
@@ -711,9 +726,13 @@ class TestResamplePeriodIndex(unittest.TestCase):
 
         for how in ['start', 'end']:
             result = ts.resample('Q-MAR', convention=how, fill_method='ffill')
-            expected = ts.asfreq('Q-MAR', how=how).to_timestamp('D')
-            expected = expected.resample('Q-MAR', fill_method='ffill')
-            assert_series_equal(result, expected.to_period('Q-MAR'))
+            expected = ts.asfreq('Q-MAR', how=how)
+            expected = expected.reindex(result.index, method='ffill')
+
+            # .to_timestamp('D')
+            # expected = expected.resample('Q-MAR', fill_method='ffill')
+
+            assert_series_equal(result, expected)
 
     def test_resample_fill_missing(self):
         rng = PeriodIndex([2000, 2005, 2007, 2009], freq='A')
@@ -752,7 +771,7 @@ class TestResamplePeriodIndex(unittest.TestCase):
 
         ts = _simple_pts('1/1/2000', '2/1/2000')
         result = ts.resample('H', convention='s')
-        exp_rng = period_range('1/1/2000', '2/1/2000', freq='H')
+        exp_rng = period_range('1/1/2000', '2/1/2000 23:00', freq='H')
         expected = ts.asfreq('H', how='s').reindex(exp_rng)
         assert_series_equal(result, expected)
 

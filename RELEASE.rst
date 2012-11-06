@@ -27,9 +27,72 @@ pandas 0.9.1
 
 **Release date:** NOT YET RELEASED
 
+**New features**
+
+  - Can specify multiple sort orders in DataFrame/Series.sort/sort_index (#928)
+  - New `top` and `bottom` options for handling NAs in rank (#1508, #2159)
+  - Add `where` and `mask` functions to DataFrame (#2109, #2151)
+  - Add `at_time` and `between_time` functions to DataFrame (#2149)
+
+**API Changes**
+
+  - Upsampling period index "spans" intervals. Example: annual periods
+    upsampled to monthly will span all months in each year
+  - Period.end_time will yield timestamp at last nanosecond in the interval
+    (#2124, #2125, #1764)
+  - File parsers no longer coerce to float or bool for columns that have custom
+    converters specified (#2184)
+
 **Improvements to existing features**
 
+  - Time rule inference for week-of-month (e.g. WOM-2FRI) rules (#2140)
+  - Improve performance of datetime + business day offset with large number of
+    offset periods
   - Improve HTML display of DataFrame objects with hierarchical columns
+  - Enable referencing of Excel columns by their column names (#1936)
+  - DataFrame.dot can accept ndarrays (#2042)
+  - Support negative periods in Panel.shift (#2164)
+  - Make .drop(...) work with non-unique indexes (#2101)
+  - Improve performance of Series/DataFrame.diff (re: #2087)
+  - Support unary ~ (__invert__) in DataFrame (#2110)
+
+**Bug fixes**
+
+  - Fix some duplicate-column DataFrame constructor issues (#2079)
+  - Fix bar plot color cycle issues (#2082)
+  - Fix off-center grid for stacked bar plots (#2157)
+  - Fix plotting bug if inferred frequency is offset with N > 1 (#2126)
+  - Implement comparisons on date offsets with fixed delta (#2078)
+  - Handle inf/-inf correctly in read_* parser functions (#2041)
+  - Fix matplotlib unicode interaction bug
+  - Make WLS r-squared match statsmodels 0.5.0 fixed value
+  - Fix zero-trimming DataFrame formatting bug
+  - Correctly compute/box datetime64 min/max values from Series.min/max (#2083)
+  - Fix unstacking edge case with unrepresented groups (#2100)
+  - Fix Series.str failures when using pipe pattern '|' (#2119)
+  - Fix pretty-printing of dict entries in Series, DataFrame (#2144)
+  - Cast other datetime64 values to nanoseconds in DataFrame ctor (#2095)
+  - Alias Timestamp.astimezone to tz_convert, so will yield Timestamp (#2060)
+  - Fix timedelta64 formatting from Series (#2165, #2146)
+  - Handle None values gracefully in dict passed to Panel constructor (#2075)
+  - Box datetime64 values as Timestamp objects in Series/DataFrame.iget (#2148)
+  - Fix Timestamp indexing bug in DatetimeIndex.insert (#2155)
+  - Use index name(s) (if any) in DataFrame.to_records (#2161)
+  - Don't lose index names in Panel.to_frame/DataFrame.to_panel (#2163)
+  - Work around length-0 boolean indexing NumPy bug (#2096)
+  - Fix partial integer indexing bug in DataFrame.xs (#2107)
+  - Fix variety of cut/qcut string-bin formatting bugs (#1978, #1979)
+  - Raise Exception when xs view not possible of MultiIndex'd DataFrame (#2117)
+  - Fix groupby(...).first() issue with datetime64 (#2133)
+  - Better floating point error robustness in some rolling_* functions (#2114)
+  - Fix ewma NA handling in the middle of Series (#2128)
+  - Fix numerical precision issues in diff with integer data (#2087)
+  - Fix bug in MultiIndex.__getitem__ with NA values (#2008)
+  - Fix DataFrame.from_records dict-arg bug when passing columns (#2179)
+  - Fix Series and DataFrame.diff for integer dtypes (#2087, #2174)
+  - Fix bug when taking intersection of DatetimeIndex with empty index (#2129)
+  - Pass through timezone information when calling DataFrame.align (#2127)
+
 
 pandas 0.9.0
 ============

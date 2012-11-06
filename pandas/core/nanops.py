@@ -12,11 +12,13 @@ try:
 except ImportError:  # pragma: no cover
     _USE_BOTTLENECK = False
 
+
 def _bottleneck_switch(bn_name, alt, zero_value=None, **kwargs):
     try:
         bn_func = getattr(bn, bn_name)
     except (AttributeError, NameError):  # pragma: no cover
         bn_func = None
+
     def f(values, axis=None, skipna=True, **kwds):
         if len(kwargs) > 0:
             for k, v in kwargs.iteritems():
@@ -32,7 +34,7 @@ def _bottleneck_switch(bn_name, alt, zero_value=None, **kwargs):
                     result.fill(0)
                     return result
 
-            if _USE_BOTTLENECK and skipna and values.dtype != np.object_:
+            if _USE_BOTTLENECK and skipna and _bn_ok_dtype(values.dtype):
                 result = bn_func(values, axis=axis, **kwds)
                 # prefer to treat inf/-inf as NA
                 if _has_infs(result):
@@ -46,6 +48,11 @@ def _bottleneck_switch(bn_name, alt, zero_value=None, **kwargs):
 
     return f
 
+def _bn_ok_dtype(dt):
+    # Bottleneck chokes on datetime64
+    return dt != np.object_ and not issubclass(dt.type, np.datetime64)
+
+
 def _has_infs(result):
     if isinstance(result, np.ndarray):
         if result.dtype == 'f8':
@@ -57,6 +64,7 @@ def _has_infs(result):
     else:
         return np.isinf(result) or np.isneginf(result)
 
+
 def nanany(values, axis=None, skipna=True):
     mask = isnull(values)
 
@@ -65,6 +73,7 @@ def nanany(values, axis=None, skipna=True):
         np.putmask(values, mask, False)
     return values.any(axis)
 
+
 def nanall(values, axis=None, skipna=True):
     mask = isnull(values)
 
@@ -72,6 +81,7 @@ def nanall(values, axis=None, skipna=True):
         values = values.copy()
         np.putmask(values, mask, True)
     return values.all(axis)
+
 
 def _nansum(values, axis=None, skipna=True):
     mask = isnull(values)
@@ -84,6 +94,7 @@ def _nansum(values, axis=None, skipna=True):
     the_sum = _maybe_null_out(the_sum, axis, mask)
 
     return the_sum
+
 
 def _nanmean(values, axis=None, skipna=True):
     mask = isnull(values)
@@ -104,6 +115,7 @@ def _nanmean(values, axis=None, skipna=True):
         the_mean = the_sum / count if count > 0 else np.nan
     return the_mean
 
+
 def _nanmedian(values, axis=None, skipna=True):
     def get_median(x):
         mask = notnull(x)
@@ -118,6 +130,7 @@ def _nanmedian(values, axis=None, skipna=True):
         return np.apply_along_axis(get_median, axis, values)
     else:
         return get_median(values)
+
 
 def _nanvar(values, axis=None, skipna=True, ddof=1):
     mask = isnull(values)
@@ -135,12 +148,20 @@ def _nanvar(values, axis=None, skipna=True, ddof=1):
     XX = _ensure_numeric((values ** 2).sum(axis))
     return np.fabs((XX - X ** 2 / count) / (count - ddof))
 
+
 def _nanmin(values, axis=None, skipna=True):
     mask = isnull(values)
-    if skipna and not issubclass(values.dtype.type,
+
+    dtype = values.dtype
+
+    if skipna and not issubclass(dtype.type,
                                  (np.integer, np.datetime64)):
         values = values.copy()
         np.putmask(values, mask, np.inf)
+
+    if issubclass(dtype.type, np.datetime64):
+        values = values.view(np.int64)
+
     # numpy 1.6.1 workaround in Python 3.x
     if (values.dtype == np.object_
         and sys.version_info[0] >= 3):  # pragma: no cover
@@ -158,14 +179,27 @@ def _nanmin(values, axis=None, skipna=True):
         else:
             result = values.min(axis)
 
+    if issubclass(dtype.type, np.datetime64):
+        if not isinstance(result, np.ndarray):
+            result = lib.Timestamp(result)
+        else:
+            result = result.view(dtype)
+
     return _maybe_null_out(result, axis, mask)
+
 
 def _nanmax(values, axis=None, skipna=True):
     mask = isnull(values)
-    if skipna and not issubclass(values.dtype.type,
-                                 (np.integer, np.datetime64)):
+
+    dtype = values.dtype
+
+    if skipna and not issubclass(dtype.type, (np.integer, np.datetime64)):
         values = values.copy()
         np.putmask(values, mask, -np.inf)
+
+    if issubclass(dtype.type, np.datetime64):
+        values = values.view(np.int64)
+
     # numpy 1.6.1 workaround in Python 3.x
     if (values.dtype == np.object_
         and sys.version_info[0] >= 3):  # pragma: no cover
@@ -184,7 +218,14 @@ def _nanmax(values, axis=None, skipna=True):
         else:
             result = values.max(axis)
 
+    if issubclass(dtype.type, np.datetime64):
+        if not isinstance(result, np.ndarray):
+            result = lib.Timestamp(result)
+        else:
+            result = result.view(dtype)
+
     return _maybe_null_out(result, axis, mask)
+
 
 def nanargmax(values, axis=None, skipna=True):
     """
@@ -197,6 +238,7 @@ def nanargmax(values, axis=None, skipna=True):
     result = values.argmax(axis)
     result = _maybe_arg_null_out(result, axis, mask, skipna)
     return result
+
 
 def nanargmin(values, axis=None, skipna=True):
     """
@@ -216,6 +258,7 @@ nanmedian = _bottleneck_switch('nanmedian', _nanmedian)
 nanvar = _bottleneck_switch('nanvar', _nanvar, ddof=1)
 nanmin = _bottleneck_switch('nanmin', _nanmin)
 nanmax = _bottleneck_switch('nanmax', _nanmax)
+
 
 def nanskew(values, axis=None, skipna=True):
     if not isinstance(values.dtype.type, np.floating):
@@ -249,6 +292,7 @@ def nanskew(values, axis=None, skipna=True):
             return np.nan
         return result
 
+
 def nankurt(values, axis=None, skipna=True):
     if not isinstance(values.dtype.type, np.floating):
         values = values.astype('f8')
@@ -269,8 +313,8 @@ def nankurt(values, axis=None, skipna=True):
     C = _zero_out_fperr(C)
     D = _zero_out_fperr(D)
 
-    result = (((count*count - 1.)*D / (B*B) - 3*((count-1.)**2)) /
-              ((count - 2.)*(count-3.)))
+    result = (((count * count - 1.) * D / (B * B) - 3 * ((count - 1.) ** 2)) /
+              ((count - 2.) * (count - 3.)))
     if isinstance(result, np.ndarray):
         result = np.where(B == 0, 0, result)
         result[count < 4] = np.nan
@@ -281,6 +325,7 @@ def nankurt(values, axis=None, skipna=True):
             return np.nan
         return result
 
+
 def nanprod(values, axis=None, skipna=True):
     mask = isnull(values)
     if skipna and not issubclass(values.dtype.type, np.integer):
@@ -288,6 +333,7 @@ def nanprod(values, axis=None, skipna=True):
         values[mask] = 1
     result = values.prod(axis)
     return _maybe_null_out(result, axis, mask)
+
 
 def _maybe_arg_null_out(result, axis, mask, skipna):
     # helper function for nanargmin/nanargmax
@@ -307,6 +353,7 @@ def _maybe_arg_null_out(result, axis, mask, skipna):
             result[na_mask] = -1
     return result
 
+
 def _get_counts(mask, axis):
     if axis is not None:
         count = (mask.shape[axis] - mask.sum(axis)).astype(float)
@@ -314,6 +361,7 @@ def _get_counts(mask, axis):
         count = float(mask.size - mask.sum())
 
     return count
+
 
 def _maybe_null_out(result, axis, mask):
     if axis is not None:
@@ -328,11 +376,13 @@ def _maybe_null_out(result, axis, mask):
 
     return result
 
+
 def _zero_out_fperr(arg):
     if isinstance(arg, np.ndarray):
         return np.where(np.abs(arg) < 1e-14, 0, arg)
     else:
         return 0 if np.abs(arg) < 1e-14 else arg
+
 
 def nancorr(a, b, method='pearson'):
     """
@@ -351,26 +401,30 @@ def nancorr(a, b, method='pearson'):
     f = get_corr_func(method)
     return f(a, b)
 
+
 def get_corr_func(method):
     if method in ['kendall', 'spearman']:
         from scipy.stats import kendalltau, spearmanr
 
     def _pearson(a, b):
         return np.corrcoef(a, b)[0, 1]
+
     def _kendall(a, b):
         rs = kendalltau(a, b)
         if isinstance(rs, tuple):
             return rs[0]
         return rs
+
     def _spearman(a, b):
         return spearmanr(a, b)[0]
 
     _cor_methods = {
-        'pearson' : _pearson,
-        'kendall' : _kendall,
-        'spearman' : _spearman
+        'pearson': _pearson,
+        'kendall': _kendall,
+        'spearman': _spearman
     }
     return _cor_methods[method]
+
 
 def nancov(a, b):
     assert(len(a) == len(b))
@@ -384,6 +438,7 @@ def nancov(a, b):
         return np.nan
 
     return np.cov(a, b)[0, 1]
+
 
 def _ensure_numeric(x):
     if isinstance(x, np.ndarray):
@@ -400,6 +455,7 @@ def _ensure_numeric(x):
 # NA-friendly array comparisons
 
 import operator
+
 
 def make_nancomp(op):
     def f(x, y):
@@ -423,6 +479,7 @@ nanlt = make_nancomp(operator.lt)
 nanle = make_nancomp(operator.le)
 naneq = make_nancomp(operator.eq)
 nanne = make_nancomp(operator.ne)
+
 
 def unique1d(values):
     """

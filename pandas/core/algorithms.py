@@ -9,6 +9,7 @@ import pandas.core.common as com
 import pandas.lib as lib
 import pandas._algos as _algos
 
+
 def match(to_match, values, na_sentinel=-1):
     """
     Compute locations of to_match into values
@@ -36,6 +37,7 @@ def match(to_match, values, na_sentinel=-1):
     f = lambda htype, caster: _match_generic(to_match, values, htype, caster)
     return _hashtable_algo(f, values.dtype)
 
+
 def unique(values):
     """
     Compute unique values (not necessarily sorted) efficiently from input array
@@ -62,6 +64,7 @@ def count(values, uniques=None):
     else:
         return _hashtable_algo(f, values.dtype)
 
+
 def _hashtable_algo(f, dtype):
     """
     f(HashTable, type_caster) -> result
@@ -83,12 +86,14 @@ def _count_generic(values, table_type, type_caster):
 
     return Series(counts, index=uniques)
 
+
 def _match_generic(values, index, table_type, type_caster):
     values = type_caster(values)
     index = type_caster(index)
     table = table_type(min(len(index), 1000000))
     table.map_locations(index)
     return table.lookup(values)
+
 
 def _unique_generic(values, table_type, type_caster):
     values = type_caster(values)
@@ -138,6 +143,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1):
 
     return labels, uniques, counts
 
+
 def value_counts(values, sort=True, ascending=False):
     """
     Compute a histogram of the counts of non-null values
@@ -185,12 +191,14 @@ def rank(values, axis=0, method='average', na_option='keep',
     """
     if values.ndim == 1:
         f, values = _get_data_algo(values, _rank1d_functions)
-        ranks = f(values, ties_method=method, ascending=ascending)
+        ranks = f(values, ties_method=method, ascending=ascending,
+                  na_option=na_option)
     elif values.ndim == 2:
         f, values = _get_data_algo(values, _rank2d_functions)
         ranks = f(values, axis=axis, ties_method=method,
-                  ascending=ascending)
+                  ascending=ascending, na_option=na_option)
     return ranks
+
 
 def quantile(x, q, interpolation_method='fraction'):
     """
@@ -254,8 +262,8 @@ def quantile(x, q, interpolation_method='fraction'):
             elif interpolation_method == 'higher':
                 score = values[np.ceil(idx)]
             else:
-                raise ValueError("interpolation_method can only be 'fraction', " \
-                                 "'lower' or 'higher'")
+                raise ValueError("interpolation_method can only be 'fraction' "
+                                 ", 'lower' or 'higher'")
 
         return score
 
@@ -265,11 +273,12 @@ def quantile(x, q, interpolation_method='fraction'):
         q = np.asarray(q, np.float64)
         return _algos.arrmap_float64(q, _get_score)
 
+
 def _interpolate(a, b, fraction):
     """Returns the point at the given fraction between a and b, where
     'fraction' must be between 0 and 1.
     """
-    return a + (b - a)*fraction
+    return a + (b - a) * fraction
 
 
 def _get_data_algo(values, func_map):
@@ -287,6 +296,7 @@ def _get_data_algo(values, func_map):
         values = com._ensure_object(values)
     return f, values
 
+
 def group_position(*args):
     """
     Get group position
@@ -303,19 +313,19 @@ def group_position(*args):
 
 
 _rank1d_functions = {
-    'float64' : lib.rank_1d_float64,
-    'int64' : lib.rank_1d_int64,
-    'generic' : lib.rank_1d_generic
+    'float64': lib.rank_1d_float64,
+    'int64': lib.rank_1d_int64,
+    'generic': lib.rank_1d_generic
 }
 
 _rank2d_functions = {
-    'float64' : lib.rank_2d_float64,
-    'int64' : lib.rank_2d_int64,
-    'generic' : lib.rank_2d_generic
+    'float64': lib.rank_2d_float64,
+    'int64': lib.rank_2d_int64,
+    'generic': lib.rank_2d_generic
 }
 
 _hashtables = {
-    'float64' : lib.Float64HashTable,
-    'int64' : lib.Int64HashTable,
-    'generic' : lib.PyObjectHashTable
+    'float64': lib.Float64HashTable,
+    'int64': lib.Int64HashTable,
+    'generic': lib.PyObjectHashTable
 }

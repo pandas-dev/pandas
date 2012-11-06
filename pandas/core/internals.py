@@ -17,8 +17,7 @@ class Block(object):
     """
     __slots__ = ['items', 'ref_items', '_ref_locs', 'values', 'ndim']
 
-    def __init__(self, values, items, ref_items, ndim=2,
-                 do_integrity_check=False):
+    def __init__(self, values, items, ref_items, ndim=2):
         if issubclass(values.dtype.type, basestring):
             values = np.array(values, dtype=object)
 
@@ -30,15 +29,6 @@ class Block(object):
         self.ndim = ndim
         self.items = _ensure_index(items)
         self.ref_items = _ensure_index(ref_items)
-
-        if do_integrity_check:
-            self._check_integrity()
-
-    def _check_integrity(self):
-        if len(self.items) < 2:
-            return
-        # monotonicity
-        return (self.ref_locs[1:] > self.ref_locs[:-1]).all()
 
     @property
     def ref_locs(self):
@@ -294,6 +284,11 @@ class Block(object):
     def get_values(self, dtype):
         return self.values
 
+    def diff(self, n):
+        new_values = com.diff(self.values, n, axis=1)
+        return make_block(new_values, self.items, self.ref_items)
+
+
 def _mask_missing(array, missing_values):
     if not isinstance(missing_values, (list, np.ndarray)):
         missing_values = [missing_values]
@@ -359,7 +354,7 @@ class IntBlock(Block):
             return element
 
     def should_store(self, value):
-        return issubclass(value.dtype.type, np.integer)
+        return com.is_integer_dtype(value)
 
 class BoolBlock(Block):
     _can_hold_na = False
@@ -395,13 +390,11 @@ _NS_DTYPE = np.dtype('M8[ns]')
 class DatetimeBlock(Block):
     _can_hold_na = True
 
-    def __init__(self, values, items, ref_items, ndim=2,
-                 do_integrity_check=False):
+    def __init__(self, values, items, ref_items, ndim=2):
         if values.dtype != _NS_DTYPE:
             values = lib.cast_to_nanoseconds(values)
 
-        Block.__init__(self, values, items, ref_items, ndim=ndim,
-                       do_integrity_check=do_integrity_check)
+        Block.__init__(self, values, items, ref_items, ndim=ndim)
 
     def _can_hold_element(self, element):
         return com.is_integer(element) or isinstance(element, datetime)
@@ -438,7 +431,7 @@ class DatetimeBlock(Block):
         return self.values
 
 
-def make_block(values, items, ref_items, do_integrity_check=False):
+def make_block(values, items, ref_items):
     dtype = values.dtype
     vtype = dtype.type
 
@@ -457,8 +450,7 @@ def make_block(values, items, ref_items, do_integrity_check=False):
     else:
         klass = ObjectBlock
 
-    return klass(values, items, ref_items, ndim=values.ndim,
-                 do_integrity_check=do_integrity_check)
+    return klass(values, items, ref_items, ndim=values.ndim)
 
 # TODO: flexible with index=None and/or items=None
 
@@ -543,8 +535,7 @@ class BlockManager(object):
 
         blocks = []
         for values, items in zip(bvalues, bitems):
-            blk = make_block(values, items, self.axes[0],
-                             do_integrity_check=True)
+            blk = make_block(values, items, self.axes[0])
             blocks.append(blk)
         self.blocks = blocks
 
@@ -1074,8 +1065,7 @@ class BlockManager(object):
         dtype = com._infer_dtype(fill_value)
         block_values = np.empty(block_shape, dtype=dtype)
         block_values.fill(fill_value)
-        na_block = make_block(block_values, items, ref_items,
-                              do_integrity_check=True)
+        na_block = make_block(block_values, items, ref_items)
         return na_block
 
     def take(self, indexer, axis=1):
@@ -1231,67 +1221,66 @@ class BlockManager(object):
         assert(mask.all())
         return result
 
-def form_blocks(data, axes):
+def form_blocks(arrays, names, axes):
     # pre-filter out items if we passed it
     items = axes[0]
 
-    if len(data) < len(items):
-        extra_items = items - Index(data.keys())
+    if len(arrays) < len(items):
+        extra_items = items - Index(names)
     else:
         extra_items = []
 
     # put "leftover" items in float bucket, where else?
     # generalize?
-    float_dict = {}
-    complex_dict = {}
-    int_dict = {}
-    bool_dict = {}
-    object_dict = {}
-    datetime_dict = {}
-    for k, v in data.iteritems():
+    float_items = []
+    complex_items = []
+    int_items = []
+    bool_items = []
+    object_items = []
+    datetime_items = []
+    for k, v in zip(names, arrays):
         if issubclass(v.dtype.type, np.floating):
-            float_dict[k] = v
+            float_items.append((k, v))
         elif issubclass(v.dtype.type, np.complexfloating):
-            complex_dict[k] = v
+            complex_items.append((k, v))
         elif issubclass(v.dtype.type, np.datetime64):
-            datetime_dict[k] = v
+            if v.dtype != _NS_DTYPE:
+                v = lib.cast_to_nanoseconds(v)
+
+            if hasattr(v, 'tz') and v.tz is not None:
+                object_items.append((k, v))
+            else:
+                datetime_items.append((k, v))
         elif issubclass(v.dtype.type, np.integer):
-            int_dict[k] = v
+            int_items.append((k, v))
         elif v.dtype == np.bool_:
-            bool_dict[k] = v
+            bool_items.append((k, v))
         else:
-            object_dict[k] = v
+            object_items.append((k, v))
 
     blocks = []
-    if len(float_dict):
-        float_block = _simple_blockify(float_dict, items, np.float64)
+    if len(float_items):
+        float_block = _simple_blockify(float_items, items, np.float64)
         blocks.append(float_block)
 
-    if len(complex_dict):
-        complex_block = _simple_blockify(complex_dict, items, np.complex128)
+    if len(complex_items):
+        complex_block = _simple_blockify(complex_items, items, np.complex128)
         blocks.append(complex_block)
 
-    if len(int_dict):
-        int_block = _simple_blockify(int_dict, items, np.int64)
+    if len(int_items):
+        int_block = _simple_blockify(int_items, items, np.int64)
         blocks.append(int_block)
 
-    for k, v in list(datetime_dict.items()):
-        # hackeroo
-        if hasattr(v, 'tz') and v.tz is not None:
-            del datetime_dict[k]
-            object_dict[k] = v.asobject
-
-    if len(datetime_dict):
-        datetime_block = _simple_blockify(datetime_dict, items,
-                                          np.dtype('M8[ns]'))
+    if len(datetime_items):
+        datetime_block = _simple_blockify(datetime_items, items, _NS_DTYPE)
         blocks.append(datetime_block)
 
-    if len(bool_dict):
-        bool_block = _simple_blockify(bool_dict, items, np.bool_)
+    if len(bool_items):
+        bool_block = _simple_blockify(bool_items, items, np.bool_)
         blocks.append(bool_block)
 
-    if len(object_dict) > 0:
-        object_block = _simple_blockify(object_dict, items, np.object_)
+    if len(object_items) > 0:
+        object_block = _simple_blockify(object_items, items, np.object_)
         blocks.append(object_block)
 
     if len(extra_items):
@@ -1302,22 +1291,21 @@ def form_blocks(data, axes):
 
         block_values.fill(nan)
 
-        na_block = make_block(block_values, extra_items, items,
-                              do_integrity_check=True)
+        na_block = make_block(block_values, extra_items, items)
         blocks.append(na_block)
         blocks = _consolidate(blocks, items)
 
     return blocks
 
-def _simple_blockify(dct, ref_items, dtype):
-    block_items, values = _stack_dict(dct, ref_items, dtype)
+def _simple_blockify(tuples, ref_items, dtype):
+    block_items, values = _stack_arrays(tuples, ref_items, dtype)
     # CHECK DTYPE?
     if values.dtype != dtype: # pragma: no cover
         values = values.astype(dtype)
 
-    return make_block(values, block_items, ref_items, do_integrity_check=True)
+    return make_block(values, block_items, ref_items)
 
-def _stack_dict(dct, ref_items, dtype):
+def _stack_arrays(tuples, ref_items, dtype):
     from pandas.core.series import Series
 
     # fml
@@ -1335,17 +1323,18 @@ def _stack_dict(dct, ref_items, dtype):
         else:
             return x.shape
 
-    # index may box values
-    items = ref_items[[x in dct for x in ref_items]]
+    names, arrays = zip(*tuples)
 
-    first = dct[items[0]]
-    shape = (len(dct),) + _shape_compat(first)
+    # index may box values
+    items = ref_items[ref_items.isin(names)]
+
+    first = arrays[0]
+    shape = (len(arrays),) + _shape_compat(first)
 
     stacked = np.empty(shape, dtype=dtype)
-    for i, item in enumerate(items):
-        stacked[i] = _asarray_compat(dct[item])
+    for i, arr in enumerate(arrays):
+        stacked[i] = _asarray_compat(arr)
 
-    # stacked = np.vstack([_asarray_compat(dct[k]) for k in items])
     return items, stacked
 
 def _blocks_to_series_dict(blocks, index=None):
@@ -1412,8 +1401,7 @@ def _merge_blocks(blocks, items):
         return blocks[0]
     new_values = _vstack([b.values for b in blocks])
     new_items = blocks[0].items.append([b.items for b in blocks[1:]])
-    new_block = make_block(new_values, new_items, items,
-                           do_integrity_check=True)
+    new_block = make_block(new_values, new_items, items)
     return new_block.reindex_items_from(items)
 
 def _union_block_items(blocks):

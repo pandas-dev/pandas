@@ -142,6 +142,13 @@ class TestFrequencyInference(unittest.TestCase):
         for day in days:
             self._check_generated_range('1/1/2000', 'W-%s' % day)
 
+    def test_week_of_month(self):
+        days = ['MON', 'TUE', 'WED', 'THU', 'FRI']
+
+        for day in days:
+            for i in range(1, 5):
+                self._check_generated_range('1/1/2000', 'WOM-%d%s' % (i, day))
+
     def test_monthly(self):
         self._check_generated_range('1/1/2000', 'M')
 

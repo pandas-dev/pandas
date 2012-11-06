@@ -21,6 +21,7 @@ import pandas.core.common as com
 
 import pandas.lib as lib
 
+
 @Substitution('\nleft : DataFrame')
 @Appender(_merge_doc, indents=0)
 def merge(left, right, how='inner', on=None, left_on=None, right_on=None,
@@ -145,6 +146,7 @@ def ordered_merge(left, right, on=None, left_by=None, right_by=None,
 # TODO: transformations??
 # TODO: only copy DataFrames when modification necessary
 
+
 class _MergeOperation(object):
     """
     Perform a database (SQL) merge operation between two DataFrame objects
@@ -182,7 +184,8 @@ class _MergeOperation(object):
         # this is a bit kludgy
         ldata, rdata = self._get_merge_data()
 
-        # TODO: more efficiently handle group keys to avoid extra consolidation!
+        # TODO: more efficiently handle group keys to avoid extra
+        #       consolidation!
         join_op = _BlockJoinOperation([ldata, rdata], join_index,
                                       [left_indexer, right_indexer], axis=1,
                                       copy=self.copy)
@@ -427,7 +430,7 @@ def _get_join_indexers(left_keys, right_keys, sort=False, how='inner'):
     for x in group_sizes:
         max_groups *= long(x)
 
-    if max_groups > 2**63:  # pragma: no cover
+    if max_groups > 2 ** 63:  # pragma: no cover
         raise MergeError('Combinatorial explosion! (boom)')
 
     left_group_key, right_group_key, max_groups = \
@@ -435,7 +438,6 @@ def _get_join_indexers(left_keys, right_keys, sort=False, how='inner'):
 
     join_func = _join_functions[how]
     return join_func(left_group_key, right_group_key, max_groups)
-
 
 
 class _OrderedMerge(_MergeOperation):
@@ -452,9 +454,8 @@ class _OrderedMerge(_MergeOperation):
                                  left_index=left_index,
                                  right_index=right_index,
                                  how='outer', suffixes=suffixes,
-                                 sort=True # sorts when factorizing
+                                 sort=True  # sorts when factorizing
                                  )
-
 
     def get_result(self):
         join_index, left_indexer, right_indexer = self._get_join_info()
@@ -503,6 +504,7 @@ def _get_multiindex_indexer(join_keys, index, sort=False):
 
     return left_indexer, right_indexer
 
+
 def _get_single_indexer(join_key, index, sort=False):
     left_key, right_key, count = _factorize_keys(join_key, index, sort=sort)
 
@@ -512,6 +514,7 @@ def _get_single_indexer(join_key, index, sort=False):
                             count, sort=sort)
 
     return left_indexer, right_indexer
+
 
 def _left_join_on_index(left_ax, right_ax, join_keys, sort=False):
     join_index = left_ax
@@ -544,10 +547,10 @@ def _right_outer_join(x, y, max_groups):
     return left_indexer, right_indexer
 
 _join_functions = {
-    'inner' : lib.inner_join,
-    'left' : lib.left_outer_join,
-    'right' : _right_outer_join,
-    'outer' : lib.full_outer_join,
+    'inner': lib.inner_join,
+    'left': lib.left_outer_join,
+    'right': _right_outer_join,
+    'outer': lib.full_outer_join,
 }
 
 
@@ -584,6 +587,7 @@ def _factorize_keys(lk, rk, sort=True):
 
     return llab, rlab, count
 
+
 def _sort_labels(uniques, left, right):
     if not isinstance(uniques, np.ndarray):
         # tuplesafe
@@ -601,6 +605,7 @@ def _sort_labels(uniques, left, right):
     np.putmask(new_right, right == -1, -1)
 
     return new_left, new_right
+
 
 class _BlockJoinOperation(object):
     """
@@ -713,7 +718,6 @@ class _BlockJoinOperation(object):
         return make_block(out, new_block_items, self.result_items)
 
 
-
 class _JoinUnit(object):
     """
     Blocks plus indexer
@@ -762,6 +766,7 @@ class _JoinUnit(object):
         result.ref_items = ref_items
         return result
 
+
 def _may_need_upcasting(blocks):
     for block in blocks:
         if isinstance(block, (IntBlock, BoolBlock)):
@@ -788,17 +793,20 @@ def _upcast_blocks(blocks):
     # use any ref_items
     return _consolidate(new_blocks, newb.ref_items)
 
+
 def _get_all_block_kinds(blockmaps):
     kinds = set()
     for mapping in blockmaps:
         kinds |= set(mapping)
     return kinds
 
+
 def _get_merge_block_kinds(blockmaps):
     kinds = set()
     for _, mapping in blockmaps:
         kinds |= set(mapping)
     return kinds
+
 
 def _get_block_dtype(blocks):
     if len(blocks) == 0:
@@ -815,6 +823,7 @@ def _get_block_dtype(blocks):
 
 #----------------------------------------------------------------------
 # Concatenate DataFrame objects
+
 
 def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
            keys=None, levels=None, names=None, verify_integrity=False):
@@ -884,8 +893,8 @@ class _Concatenator(object):
         elif join == 'inner':
             self.intersect = True
         else:  # pragma: no cover
-            raise ValueError('Only can inner (intersect) or outer (union) join '
-                             'the other axis')
+            raise ValueError('Only can inner (intersect) or outer (union) '
+                             'join the other axis')
 
         if isinstance(objs, dict):
             if keys is None:
@@ -1149,6 +1158,7 @@ class _Concatenator(object):
 def _concat_indexes(indexes):
     return indexes[0].append(indexes[1:])
 
+
 def _make_concat_multiindex(indexes, keys, levels=None, names=None):
     if ((levels is None and isinstance(keys[0], tuple)) or
         (levels is not None and len(levels) > 1)):
@@ -1248,7 +1258,6 @@ def _should_fill(lname, rname):
     if not isinstance(lname, basestring) or not isinstance(rname, basestring):
         return True
     return lname == rname
-
 
 
 def _any(x):

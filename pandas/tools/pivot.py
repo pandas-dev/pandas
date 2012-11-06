@@ -126,6 +126,7 @@ def pivot_table(data, values=None, rows=None, cols=None, aggfunc='mean',
 
 DataFrame.pivot_table = pivot_table
 
+
 def _add_margins(table, data, values, rows=None, cols=None, aggfunc=np.mean):
     grand_margin = {}
     for k, v in data[values].iteritems():
@@ -141,7 +142,6 @@ def _add_margins(table, data, values, rows=None, cols=None, aggfunc=np.mean):
         # need to "interleave" the margins
         table_pieces = []
         margin_keys = []
-
 
         def _all_key(key):
             return (key, 'All') + ('',) * (len(cols) - 1)
@@ -199,6 +199,7 @@ def _add_margins(table, data, values, rows=None, cols=None, aggfunc=np.mean):
 
     return result
 
+
 def _convert_by(by):
     if by is None:
         by = []
@@ -208,6 +209,7 @@ def _convert_by(by):
     else:
         by = list(by)
     return by
+
 
 def crosstab(rows, cols, values=None, rownames=None, colnames=None,
              aggfunc=None, margins=False):
@@ -283,6 +285,7 @@ def crosstab(rows, cols, values=None, rownames=None, colnames=None,
         table = df.pivot_table('__dummy__', rows=rownames, cols=colnames,
                                aggfunc=aggfunc, margins=margins)
         return table
+
 
 def _get_names(arrs, names, prefix='row'):
     if names is None:

@@ -20,6 +20,7 @@ from pandas.lib import Timestamp
 import pandas.lib as lib
 import pandas._algos as _algos
 
+
 def _utc():
     import pytz
     return pytz.utc
@@ -37,6 +38,7 @@ def _field_accessor(name, field):
         return lib.get_date_field(values, field)
     f.__name__ = name
     return property(f)
+
 
 def _join_i8_wrapper(joinf, with_indexers=True):
     @staticmethod
@@ -73,6 +75,7 @@ def _dt_index_cmp(opname):
 
     return wrapper
 
+
 def _ensure_datetime64(other):
     if isinstance(other, np.datetime64):
         return other
@@ -86,6 +89,7 @@ class TimeSeriesError(Exception):
 _midnight = time(0, 0)
 _NS_DTYPE = np.dtype('M8[ns]')
 _INT64_DTYPE = np.dtype(np.int64)
+
 
 class DatetimeIndex(Int64Index):
     """
@@ -115,8 +119,8 @@ class DatetimeIndex(Int64Index):
 
     _inner_indexer = _join_i8_wrapper(_algos.inner_join_indexer_int64)
     _outer_indexer = _join_i8_wrapper(_algos.outer_join_indexer_int64)
-    _left_indexer  = _join_i8_wrapper(_algos.left_join_indexer_int64)
-    _left_indexer_unique  = _join_i8_wrapper(
+    _left_indexer = _join_i8_wrapper(_algos.left_join_indexer_int64)
+    _left_indexer_unique = _join_i8_wrapper(
         _algos.left_join_indexer_unique_int64, with_indexers=False)
     _arrmap = None
 
@@ -308,7 +312,6 @@ class DatetimeIndex(Int64Index):
             else:
                 _normalized = _normalized and end.time() == _midnight
 
-
         if hasattr(offset, 'delta') and offset != offsets.Day():
             if inferred_tz is None and tz is not None:
                 # naive dates
@@ -324,7 +327,6 @@ class DatetimeIndex(Int64Index):
 
                 if end.tz is None and start.tz is not None:
                     end = end.tz_localize(start.tz)
-
 
             if (offset._should_cache() and
                 not (offset._normalize_cache and not _normalized) and
@@ -842,9 +844,11 @@ class DatetimeIndex(Int64Index):
         if isinstance(other, DatetimeIndex):
             if self.tz is not None:
                 if other.tz is None:
-                    raise Exception('Cannot join tz-naive with tz-aware DatetimeIndex')
+                    raise Exception('Cannot join tz-naive with tz-aware '
+                                    'DatetimeIndex')
             elif other.tz is not None:
-                raise Exception('Cannot join tz-naive with tz-aware DatetimeIndex')
+                raise Exception('Cannot join tz-naive with tz-aware '
+                                'DatetimeIndex')
 
             if self.tz != other.tz:
                 this = self.tz_convert('UTC')
@@ -860,7 +864,8 @@ class DatetimeIndex(Int64Index):
             joined.name = name
             return joined
         else:
-            return DatetimeIndex(joined, name=name)
+            tz = getattr(other, 'tz', None)
+            return DatetimeIndex(joined, name=name, tz=tz)
 
     def _can_fast_union(self, other):
         if not isinstance(other, DatetimeIndex):
@@ -920,7 +925,7 @@ class DatetimeIndex(Int64Index):
                               freq=left.offset)
 
     def __array_finalize__(self, obj):
-        if self.ndim == 0: # pragma: no cover
+        if self.ndim == 0:  # pragma: no cover
             return self.item()
 
         self.offset = getattr(obj, 'offset', None)
@@ -960,6 +965,10 @@ class DatetimeIndex(Int64Index):
                     result.offset = to_offset(result.inferred_freq)
             return result
 
+        if len(self) == 0:
+            return self
+        if len(other) == 0:
+            return other
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
             left, right = self, other
@@ -978,8 +987,8 @@ class DatetimeIndex(Int64Index):
 
     def _partial_date_slice(self, reso, parsed):
         if not self.is_monotonic:
-            raise TimeSeriesError('Partial indexing only valid for ordered time'
-                                  ' series')
+            raise TimeSeriesError('Partial indexing only valid for ordered '
+                                  'time series.')
 
         if reso == 'year':
             t1 = Timestamp(datetime(parsed.year, 1, 1))
@@ -989,7 +998,7 @@ class DatetimeIndex(Int64Index):
             t1 = Timestamp(datetime(parsed.year, parsed.month, 1))
             t2 = Timestamp(datetime(parsed.year, parsed.month, d))
         elif reso == 'quarter':
-            qe = (((parsed.month - 1) + 2) % 12) + 1 # two months ahead
+            qe = (((parsed.month - 1) + 2) % 12) + 1  # two months ahead
             d = lib.monthrange(parsed.year, qe)[1]   # at end of month
             t1 = Timestamp(datetime(parsed.year, parsed.month, 1))
             t2 = Timestamp(datetime(parsed.year, qe, d))
@@ -1247,7 +1256,7 @@ class DatetimeIndex(Int64Index):
         -------
         new_index : Index
         """
-        if type(item) == datetime:
+        if isinstance(item, datetime):
             item = _to_m8(item)
 
         new_index = np.concatenate((self[:loc].asi8,
@@ -1360,7 +1369,6 @@ class DatetimeIndex(Int64Index):
         time_micros = self._get_time_micros()
         start_micros = _time_to_micros(start_time)
         end_micros = _time_to_micros(end_time)
-
 
         if include_start and include_end:
             lop = rop = operator.le
@@ -1523,10 +1531,10 @@ def _to_m8(key):
     return np.int64(lib.pydt_to_i8(key)).view(_NS_DTYPE)
 
 
-
 def _str_to_dt_array(arr, offset=None, dayfirst=None, yearfirst=None):
     def parser(x):
-        result = parse_time_string(x, offset, dayfirst=dayfirst, yearfirst=None)
+        result = parse_time_string(x, offset, dayfirst=dayfirst,
+                                   yearfirst=None)
         return result[0]
 
     arr = np.asarray(arr, dtype=object)
@@ -1535,7 +1543,7 @@ def _str_to_dt_array(arr, offset=None, dayfirst=None, yearfirst=None):
 
 
 _CACHE_START = Timestamp(datetime(1950, 1, 1))
-_CACHE_END   = Timestamp(datetime(2030, 1, 1))
+_CACHE_END = Timestamp(datetime(2030, 1, 1))
 
 _daterange_cache = {}
 
@@ -1548,18 +1556,13 @@ def _naive_in_cache_range(start, end):
             return False
         return _in_range(start, end, _CACHE_START, _CACHE_END)
 
+
 def _in_range(start, end, rng_start, rng_end):
     return start > rng_start and end < rng_end
+
 
 def _time_to_micros(time):
     seconds = time.hour * 60 * 60 + 60 * time.minute + time.second
     return 1000000 * seconds + time.microsecond
 
-def _utc_naive(dt):
-    if dt is None:
-        return dt
 
-    if dt.tz is not None:
-        dt = dt.tz_convert('utc').replace(tzinfo=None)
-
-    return dt

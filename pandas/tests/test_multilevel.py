@@ -15,6 +15,7 @@ from pandas.util.testing import (assert_almost_equal,
 import pandas.core.common as com
 import pandas.util.testing as tm
 from pandas.util.compat import product as cart_product
+import pandas as pd
 
 class TestMultiLevel(unittest.TestCase):
 
@@ -357,6 +358,16 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         result = df.xs(('a', 4), level=['one', 'four'])
         expected = df.xs('a').xs(4, level='four')
         assert_frame_equal(result, expected)
+
+        #GH2107
+        dates = range(20111201, 20111205)
+        ids = 'abcde'
+        idx = MultiIndex.from_tuples([x for x in cart_product(dates, ids)])
+        idx.names = ['date', 'secid']
+        df = DataFrame(np.random.randn(len(idx), 3), idx, ['X', 'Y', 'Z'])
+        rs = df.xs(20111201, level='date')
+        xp = df.ix[20111201, :]
+        assert_frame_equal(rs, xp)
 
     def test_xs_level0(self):
         from pandas import read_table
@@ -710,6 +721,28 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         # stack with negative number
         result = self.ymd.unstack(0).stack(-2)
         expected = self.ymd.unstack(0).stack(0)
+
+    def test_unstack_odd_failure(self):
+        data = """day,time,smoker,sum,len
+Fri,Dinner,No,8.25,3.
+Fri,Dinner,Yes,27.03,9
+Fri,Lunch,No,3.0,1
+Fri,Lunch,Yes,13.68,6
+Sat,Dinner,No,139.63,45
+Sat,Dinner,Yes,120.77,42
+Sun,Dinner,No,180.57,57
+Sun,Dinner,Yes,66.82,19
+Thur,Dinner,No,3.0,1
+Thur,Lunch,No,117.32,44
+Thur,Lunch,Yes,51.51,17"""
+
+        df = pd.read_csv(StringIO(data)).set_index(['day', 'time', 'smoker'])
+
+        # it works, #2100
+        result = df.unstack(2)
+
+        recons = result.stack()
+        assert_frame_equal(recons, df)
 
     def test_stack_mixed_dtype(self):
         df = self.frame.T
@@ -1303,6 +1336,27 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                             ('routine2', 'result1', '')], axis=1)
         assert_frame_equal(expected, result)
 
+    def test_drop_nonunique(self):
+        df = DataFrame([["x-a", "x", "a", 1.5],["x-a", "x", "a", 1.2],
+                        ["z-c", "z", "c", 3.1], ["x-a", "x", "a", 4.1],
+                        ["x-b", "x", "b", 5.1],["x-b", "x", "b", 4.1],
+                        ["x-b", "x", "b", 2.2],
+                        ["y-a", "y", "a", 1.2],["z-b", "z", "b", 2.1]],
+                       columns=["var1", "var2", "var3", "var4"])
+
+        grp_size = df.groupby("var1").size()
+        drop_idx = grp_size.ix[grp_size == 1]
+
+        idf = df.set_index(["var1", "var2", "var3"])
+
+        # it works! #2101
+        result = idf.drop(drop_idx.index, level=0).reset_index()
+        expected = df[-df.var1.isin(drop_idx.index)]
+
+        result.index = expected.index
+
+        assert_frame_equal(result, expected)
+
     def test_mixed_depth_pop(self):
         arrays = [[  'a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
                   [   '',  'OD',  'OD', 'result1',   'result2',  'result1'],
@@ -1499,6 +1553,30 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         self.assertEquals(s[("a", 7)], 7)
 
         lib._SIZE_CUTOFF = old_cutoff
+
+    def test_xs_mixed_no_copy(self):
+        index = MultiIndex.from_arrays([['a','a', 'b', 'b'], [1,2,1,2]],
+                                       names=['first', 'second'])
+        data = DataFrame(np.random.rand(len(index)), index=index,
+                         columns=['A'])
+
+        self.assertRaises(Exception, data.xs, 2, level=1, copy=False)
+
+    def test_multiindex_na_repr(self):
+        # only an issue with long columns
+
+        from numpy import nan
+        df3 = DataFrame({
+            'A' * 30: {('A', 'A0006000', 'nuit'): 'A0006000'},
+            'B' * 30: {('A', 'A0006000', 'nuit'): nan},
+            'C' * 30: {('A', 'A0006000', 'nuit'): nan},
+            'D' * 30: {('A', 'A0006000', 'nuit'): nan},
+            'E' * 30: {('A', 'A0006000', 'nuit'): 'A'},
+            'F' * 30: {('A', 'A0006000', 'nuit'): nan},
+        })
+
+        idf = df3.set_index(['A' * 30, 'C' * 30])
+        repr(idf)
 
 if __name__ == '__main__':
 

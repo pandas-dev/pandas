@@ -730,8 +730,9 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
 
         d = {'A' : itema, 'B' : itemb[5:]}
         d2 = {'A' : itema._series, 'B' : itemb[5:]._series}
-        d3 = {'A' : DataFrame(itema._series),
-              'B' : DataFrame(itemb[5:]._series)}
+        d3 = {'A' : None,
+              'B' : DataFrame(itemb[5:]._series),
+              'C' : DataFrame(itema._series)}
 
         wp = Panel.from_dict(d)
         wp2 = Panel.from_dict(d2) # nested Dict
@@ -747,6 +748,11 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         assert_panel_equal(Panel(d), Panel.from_dict(d))
         assert_panel_equal(Panel(d2), Panel.from_dict(d2))
         assert_panel_equal(Panel(d3), Panel.from_dict(d3))
+
+        # a pathological case
+        d4 = { 'A' : None, 'B' : None }
+        wp4 = Panel.from_dict(d4)
+        assert_panel_equal(Panel(d4), Panel(items = ['A','B']))
 
         # cast
         dcasted = dict((k, v.reindex(wp.major_axis).fillna(0))
@@ -1009,6 +1015,24 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         # names
         self.assertEqual(unfiltered.index.names, ['major', 'minor'])
 
+        # unsorted, round trip
+        df = self.panel.to_frame(filter_observations=False)
+        unsorted = df.take(np.random.permutation(len(df)))
+        pan = unsorted.to_panel()
+        assert_panel_equal(pan, self.panel)
+
+        # preserve original index names
+        df = DataFrame(np.random.randn(6, 2),
+                       index=[['a', 'a', 'b', 'b', 'c', 'c'],
+                              [0, 1, 0, 1, 0, 1]],
+                       columns=['one', 'two'])
+        df.index.names = ['foo', 'bar']
+        df.columns.name = 'baz'
+
+        rdf = df.to_panel().to_frame()
+        self.assertEqual(rdf.index.names, df.index.names)
+        self.assertEqual(rdf.columns.names, df.columns.names)
+
     def test_to_frame_mixed(self):
         panel = self.panel.fillna(0)
         panel['str'] = 'foo'
@@ -1059,6 +1083,12 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                            shifted.minor_xs(idx_lag))
 
         self.assertRaises(Exception, self.panel.shift, 1, axis='items')
+
+        # negative numbers, #2164
+        result = self.panel.shift(-1)
+        expected = Panel(dict((i, f.shift(-1)[:-1])
+                              for i, f in self.panel.iterkv()))
+        assert_panel_equal(result, expected)
 
     def test_multiindex_get(self):
         ind = MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1), ('b',2)],
@@ -1151,7 +1181,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
             path = '__tmp__.' + ext
             self.panel.to_excel(path)
             reader = ExcelFile(path)
-            for item, df in self.panel.iteritems():
+            for item, df in self.panel.iterkv():
                 recdf = reader.parse(str(item),index_col=0)
                 assert_frame_equal(df, recdf)
             os.remove(path)
@@ -1247,7 +1277,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
                    [[1.5, np.nan, 3.],
                     [1.5, np.nan, 3.],
                     [1.5, np.nan, 3.],
-                    [1.5, np.nan, 3.]]]) 
+                    [1.5, np.nan, 3.]]])
 
         other = Panel([[[3.6, 2., np.nan],
                         [np.nan, np.nan, 7]]], items=[1])

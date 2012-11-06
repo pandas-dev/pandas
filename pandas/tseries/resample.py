@@ -23,7 +23,7 @@ class TimeGrouper(CustomGrouper):
 
     Parameters
     ----------
-    rule : pandas offset string or object for identifying bin edges
+    freq : pandas date offset or offset alias for identifying bin edges
     closed : closed end of interval; left (default) or right
     label : interval boundary to use for labeling; left (default) or right
     nperiods : optional, integer
@@ -184,7 +184,7 @@ class TimeGrouper(CustomGrouper):
         # Determine if we're downsampling
         if axlabels.freq is not None or axlabels.inferred_freq is not None:
             if len(grouper.binlabels) < len(axlabels) or self.how is not None:
-                grouped  = obj.groupby(grouper, axis=self.axis)
+                grouped = obj.groupby(grouper, axis=self.axis)
                 result = grouped.aggregate(self._agg_method)
             else:
                 # upsampling shortcut
@@ -193,11 +193,12 @@ class TimeGrouper(CustomGrouper):
                                      limit=self.limit)
         else:
             # Irregular data, have to use groupby
-            grouped  = obj.groupby(grouper, axis=self.axis)
+            grouped = obj.groupby(grouper, axis=self.axis)
             result = grouped.aggregate(self._agg_method)
 
             if self.fill_method is not None:
-                result = result.fillna(method=self.fill_method, limit=self.limit)
+                result = result.fillna(method=self.fill_method,
+                                       limit=self.limit)
 
         loffset = self.loffset
         if isinstance(loffset, basestring):
@@ -219,7 +220,8 @@ class TimeGrouper(CustomGrouper):
             return obj.reindex(new_index)
         else:
             start = axlabels[0].asfreq(self.freq, how=self.convention)
-            end = axlabels[-1].asfreq(self.freq, how=self.convention)
+            end = axlabels[-1].asfreq(self.freq, how='end')
+
             new_index = period_range(start, end, freq=self.freq)
 
         # Start vs. end of period
@@ -265,7 +267,6 @@ def _take_new_index(obj, indexer, new_index, axis=0):
         raise NotImplementedError
 
 
-
 def _get_range_edges(axis, offset, closed='left', base=0):
     if isinstance(offset, basestring):
         offset = to_offset(offset)
@@ -278,7 +279,7 @@ def _get_range_edges(axis, offset, closed='left', base=0):
                                           closed=closed, base=base)
 
     first, last = axis[0], axis[-1]
-    if not isinstance(offset, Tick):# and first.time() != last.time():
+    if not isinstance(offset, Tick):  # and first.time() != last.time():
         # hack!
         first = tools.normalize_date(first)
         last = tools.normalize_date(last)

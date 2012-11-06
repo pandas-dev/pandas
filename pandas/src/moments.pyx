@@ -175,15 +175,15 @@ def roll_sum(ndarray[double_t] input, int win, int minp):
     for i from minp - 1 <= i < N:
         val = input[i]
 
+        if val == val:
+            nobs += 1
+            sum_x += val
+
         if i > win - 1:
             prev = input[i - win]
             if prev == prev:
                 sum_x -= prev
                 nobs -= 1
-
-        if val == val:
-            nobs += 1
-            sum_x += val
 
         if nobs >= minp:
             output[i] = sum_x
@@ -218,15 +218,15 @@ def roll_mean(ndarray[double_t] input,
     for i from minp - 1 <= i < N:
         val = input[i]
 
+        if val == val:
+            nobs += 1
+            sum_x += val
+
         if i > win - 1:
             prev = input[i - win]
             if prev == prev:
                 sum_x -= prev
                 nobs -= 1
-
-        if val == val:
-            nobs += 1
-            sum_x += val
 
         if nobs >= minp:
             output[i] = sum_x / nobs
@@ -265,7 +265,10 @@ def ewma(ndarray[double_t] input, double_t com, int adjust):
     oldw = 1. - neww
     adj = oldw
 
-    output[0] = neww * input[0]
+    if adjust:
+        output[0] = neww * input[0]
+    else:
+        output[0] = input[0]
 
     for i from 1 <= i < N:
         cur = input[i]
@@ -282,10 +285,13 @@ def ewma(ndarray[double_t] input, double_t com, int adjust):
     if adjust:
         for i from 0 <= i < N:
             cur = input[i]
-            output[i] = output[i] / (1. - adj)
 
             if cur == cur:
+                output[i] = output[i] / (1. - adj)
                 adj *= oldw
+            else:
+                if i >= 1:
+                    output[i] = output[i - 1]
 
     return output
 
@@ -371,6 +377,11 @@ def roll_var(ndarray[double_t] input, int win, int minp, int ddof=1):
     for i from minp - 1 <= i < N:
         val = input[i]
 
+        if val == val:
+            nobs += 1
+            sum_x += val
+            sum_xx += val * val
+
         if i > win - 1:
             prev = input[i - win]
             if prev == prev:
@@ -378,18 +389,17 @@ def roll_var(ndarray[double_t] input, int win, int minp, int ddof=1):
                 sum_xx -= prev * prev
                 nobs -= 1
 
-        if val == val:
-            nobs += 1
-            sum_x += val
-            sum_xx += val * val
-
         if nobs >= minp:
             # pathological case
             if nobs == 1:
                 output[i] = 0
                 continue
 
-            output[i] = (nobs * sum_xx - sum_x * sum_x) / (nobs * (nobs - ddof))
+            val = (nobs * sum_xx - sum_x * sum_x) / (nobs * (nobs - ddof))
+            if val < 0:
+                val = 0
+
+            output[i] = val
         else:
             output[i] = NaN
 
@@ -426,6 +436,12 @@ def roll_skew(ndarray[double_t] input, int win, int minp):
     for i from minp - 1 <= i < N:
         val = input[i]
 
+        if val == val:
+            nobs += 1
+            x += val
+            xx += val * val
+            xxx += val * val * val
+
         if i > win - 1:
             prev = input[i - win]
             if prev == prev:
@@ -434,12 +450,6 @@ def roll_skew(ndarray[double_t] input, int win, int minp):
                 xxx -= prev * prev * prev
 
                 nobs -= 1
-
-        if val == val:
-            nobs += 1
-            x += val
-            xx += val * val
-            xxx += val * val * val
 
         if nobs >= minp:
             A = x / nobs
@@ -491,6 +501,13 @@ def roll_kurt(ndarray[double_t] input,
     for i from minp - 1 <= i < N:
         val = input[i]
 
+        if val == val:
+            nobs += 1
+            x += val
+            xx += val * val
+            xxx += val * val * val
+            xxxx += val * val * val * val
+
         if i > win - 1:
             prev = input[i - win]
             if prev == prev:
@@ -500,13 +517,6 @@ def roll_kurt(ndarray[double_t] input,
                 xxxx -= prev * prev * prev * prev
 
                 nobs -= 1
-
-        if val == val:
-            nobs += 1
-            x += val
-            xx += val * val
-            xxx += val * val * val
-            xxxx += val * val * val * val
 
         if nobs >= minp:
             A = x / nobs

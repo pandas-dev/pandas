@@ -91,7 +91,7 @@ the data structures:
 
 There is an analogous ``set_value`` method which has the additional capability
 of enlarging an object. This method *always* returns a reference to the object
-it modified, which in the fast of enlargement, will be a **new object**:
+it modified, which in the case of enlargement, will be a **new object**:
 
 .. ipython:: python
 

@@ -238,6 +238,8 @@ class Timestamp(_Timestamp):
             # Same UTC timestamp, different time zone
             return Timestamp(self.value, tz=tz)
 
+    astimezone = tz_convert
+
     def replace(self, **kwds):
         return Timestamp(datetime.replace(self, **kwds),
                          offset=self.offset)
@@ -389,7 +391,11 @@ cdef class _Timestamp(datetime):
 
         if isinstance(other, _Timestamp):
             ots = other
-        elif isinstance(other, datetime):
+        elif type(other) is datetime:
+            if self.nanosecond == 0:
+                val = self.to_datetime()
+                return PyObject_RichCompareBool(val, other, op)
+
             try:
                 ots = Timestamp(other)
             except ValueError:
@@ -458,10 +464,14 @@ cdef class _Timestamp(datetime):
             raise Exception('Cannot compare tz-naive and tz-aware timestamps')
 
     cpdef to_datetime(self):
-        return datetime(self.year, self.month, self.day,
-                        self.hour, self.minute, self.second,
-                        self.microsecond, tzinfo=self.tzinfo)
-
+        cdef:
+            pandas_datetimestruct dts
+            _TSObject ts
+        ts = convert_to_tsobject(self, self.tzinfo)
+        dts = ts.dts
+        return datetime(dts.year, dts.month, dts.day,
+                        dts.hour, dts.min, dts.sec,
+                        dts.us, ts.tzinfo)
 
     def __add__(self, other):
         if is_integer_object(other):
@@ -771,7 +781,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
         iresult = result.view('i8')
         for i in range(n):
             val = values[i]
-            if util._checknull(val):
+            if util._checknull(val) or val is NaT:
                 iresult[i] = iNaT
             elif PyDateTime_Check(val):
                 if val.tzinfo is not None:

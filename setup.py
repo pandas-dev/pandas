@@ -344,7 +344,7 @@ class CompilationCacheMixin(object):
         cache_dir=kwds.pop("cache_dir",BUILD_CACHE_DIR)
         self.cache_dir=cache_dir
         if not os.path.isdir(cache_dir):
-            raise Exception("Error: path to Cache directory [%s] is not a dir");
+            raise Exception("Error: path to Cache directory (%s) is not a dir" % cache_dir);
 
     def _copy_from_cache(self,hash,target):
         src=os.path.join(self.cache_dir,hash)
@@ -675,6 +675,7 @@ setup(name=DISTNAME,
                                    'tests/*.xls',
                                    'tests/*.xlsx',
                                    'tests/*.table'],
+                    'pandas.tools': ['tests/*.csv'],
                     'pandas.tests' : ['data/*.pickle',
                                       'data/*.csv'],
                     'pandas.tseries.tests' : ['data/*.pickle',

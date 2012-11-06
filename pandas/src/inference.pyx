@@ -317,6 +317,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
     convert to proper dtype array
     '''
     cdef:
+        int status
         Py_ssize_t i, n
         ndarray[float64_t] floats
         ndarray[complex128_t] complexes
@@ -354,10 +355,10 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
             complexes[i] = val
             seen_complex = 1
         else:
-            fval = util.floatify(val)
+            status = util.floatify(val, &fval)
             floats[i] = fval
             if not seen_float:
-                if '.' in val:
+                if '.' in val or fval == INF or fval == NEGINF:
                     seen_float = 1
                 else:
                     ints[i] = <int64_t> fval
@@ -431,7 +432,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         elif util.is_complex_object(val):
             complexes[i] = val
             seen_complex = 1
-        elif PyDateTime_Check(val):
+        elif PyDateTime_Check(val) or util.is_datetime64_object(val):
             if convert_datetime:
                 seen_datetime = 1
                 idatetimes[i] = convert_to_tsobject(val).value

@@ -1083,6 +1083,15 @@ class TestGroupBy(unittest.TestCase):
                            'b': ['foo', 'bar'] * 25})
         self.assertRaises(DataError, frame[['b']].groupby(frame['a']).mean)
 
+    def test_cython_agg_frame_columns(self):
+        # #2113
+        df = DataFrame({'x': [1,2,3], 'y': [3,4,5]})
+
+        result = df.groupby(level=0, axis='columns').mean()
+        result = df.groupby(level=0, axis='columns').mean()
+        result = df.groupby(level=0, axis='columns').mean()
+        _ = df.groupby(level=0, axis='columns').mean()
+
     def test_wrap_aggregated_output_multindex(self):
         df = self.mframe.T
         df['baz', 'two'] = 'peekaboo'
@@ -2074,7 +2083,15 @@ class TestGroupBy(unittest.TestCase):
         exp = data.groupby(labels).mean().reindex(cats.levels)
         assert_series_equal(result, exp)
 
+    def test_groupby_first_datetime64(self):
+        df = DataFrame([(1, 1351036800000000000), (2, 1351036800000000000)])
+        df[1] = df[1].view('M8[ns]')
 
+        self.assert_(issubclass(df[1].dtype.type, np.datetime64))
+
+        result = df.groupby(level=0).first()
+        got_dt = result[1].dtype
+        self.assert_(issubclass(got_dt.type, np.datetime64))
 
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):

@@ -164,7 +164,7 @@ You can also use a list of columns to create a hierarchical index:
 
 The ``dialect`` keyword gives greater flexibility in specifying the file format.
 By default it uses the Excel dialect but you can specify either the dialect name
-or a :class:``python:csv.Dialect`` instance.
+or a :class:`python:csv.Dialect` instance.
 
 .. ipython:: python
    :suppress:
@@ -285,6 +285,13 @@ data columns:
    df = read_csv('tmp.csv', header=None, parse_dates=date_spec,
                  index_col=0) #index is the nominal column
    df
+
+**Note**: When passing a dict as the `parse_dates` argument, the order of
+the columns prepended is not guaranteed, because `dict` objects do not impose
+an ordering on their keys. On Python 2.7+ you may use `collections.OrderedDict`
+instead of a regular `dict` if this matters to you. Because of this, when using a
+dict for 'parse_dates' in conjunction with the `index_col` argument, it's best to
+specify `index_col` as a column label rather then as an index on the resulting frame.
 
 Date Parsing Functions
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -647,7 +654,7 @@ function takes a number of arguments. Only the first is required.
     (default), and `header` and `index` are True, then the index names are
     used. (A sequence should be given if the DataFrame uses MultiIndex).
   - ``mode`` : Python write mode, default 'w'
-  - ``sep`` : Field delimiter for the output file (default "'")
+  - ``sep`` : Field delimiter for the output file (default ",")
   - ``encoding``: a string representing the encoding to use if the contents are
     non-ascii, for python versions prior to 3
 

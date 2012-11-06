@@ -238,6 +238,60 @@ class TestDataFrameFormatting(unittest.TestCase):
 </table>"""
         self.assertEquals(result, expected)
 
+        df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]],
+                       columns=index[::2], index=index)
+
+        result = df.to_html()
+        expected = """\
+<table border="1" class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th>foo</th>
+      <th>0</th>
+      <th>1</th>
+    </tr>
+    <tr>
+      <th></th>
+      <th></th>
+      <th>0</th>
+      <th>0</th>
+    </tr>
+    <tr>
+      <th>foo</th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td rowspan="2" valign="top"><strong>0</strong></td>
+      <td><strong>0</strong></td>
+      <td> 0</td>
+      <td> 1</td>
+    </tr>
+    <tr>
+      <td><strong>1</strong></td>
+      <td> 2</td>
+      <td> 3</td>
+    </tr>
+    <tr>
+      <td rowspan="2" valign="top"><strong>1</strong></td>
+      <td><strong>0</strong></td>
+      <td> 4</td>
+      <td> 5</td>
+    </tr>
+    <tr>
+      <td><strong>1</strong></td>
+      <td> 6</td>
+      <td> 7</td>
+    </tr>
+  </tbody>
+</table>"""
+        self.assertEquals(result, expected)
+
+
     def test_nonunicode_nonascii_alignment(self):
         df = DataFrame([["aa\xc3\xa4\xc3\xa4", 1], ["bbbb", 2]])
         rep_str = df.to_string()
@@ -349,7 +403,7 @@ class TestDataFrameFormatting(unittest.TestCase):
 
         # Python 2.5 just wants me to be sad. And debian 32-bit
         #sys.version_info[0] == 2 and sys.version_info[1] < 6:
-        if '%.4g' % 1.7e8 == '1.7e+008':
+        if _three_digit_exp():
             expected = ('              x\n0  0.00000e+000\n1  2.50000e-001\n'
                         '2  3.45600e+003\n3  1.20000e+046\n4  1.64000e+006\n'
                         '5  1.70000e+008\n6  1.25346e+000\n7  3.14159e+000\n'
@@ -376,7 +430,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         df_s = df.to_string()
         # Python 2.5 just wants me to be sad. And debian 32-bit
         #sys.version_info[0] == 2 and sys.version_info[1] < 6:
-        if '%.4g' % 1.7e8 == '1.7e+008':
+        if _three_digit_exp():
             expected = ('               x\n'
                         '0  1.000000e+009\n'
                         '1  2.512000e-001')
@@ -723,6 +777,26 @@ class TestDataFrameFormatting(unittest.TestCase):
         result = df.to_html(classes=["sortable", "draggable"])
         self.assertEqual(result, expected)
 
+    def test_float_trim_zeros(self):
+        vals = [2.08430917305e+10, 3.52205017305e+10, 2.30674817305e+10,
+                2.03954217305e+10, 5.59897817305e+10]
+        skip = True
+        for line in repr(DataFrame({'A': vals})).split('\n'):
+            if _three_digit_exp():
+                self.assert_(('+010' in line) or skip)
+            else:
+                self.assert_(('+10' in line) or skip)
+            skip = False
+
+    def test_dict_entries(self):
+        df = DataFrame({'A': [{'a':1, 'b':2}]})
+
+        val = df.to_string()
+        self.assertTrue("{'a': 1, 'b': 2}" in val)
+
+    def test_to_latex(self):
+        # it works!
+        self.frame.to_latex()
 
 class TestSeriesFormatting(unittest.TestCase):
 
@@ -805,6 +879,21 @@ class TestSeriesFormatting(unittest.TestCase):
         s=Series([1,2],name=u'\u05e2\u05d1\u05e8\u05d9\u05ea')
         sf=fmt.SeriesFormatter(s,name=u'\u05e2\u05d1\u05e8\u05d9\u05ea')
         sf._get_footer() # should not raise exception
+
+    def test_float_trim_zeros(self):
+        vals = [2.08430917305e+10, 3.52205017305e+10, 2.30674817305e+10,
+                2.03954217305e+10, 5.59897817305e+10]
+        for line in repr(Series(vals)).split('\n'):
+            if _three_digit_exp():
+                self.assert_('+010' in line)
+            else:
+                self.assert_('+10' in line)
+
+    def test_timedelta64(self):
+        Series(np.array([1100, 20], dtype='timedelta64[s]')).to_string()
+        #check this works
+        #GH2146
+
 
 class TestEngFormatter(unittest.TestCase):
 
@@ -1005,6 +1094,8 @@ class TestEngFormatter(unittest.TestCase):
         result = formatter(0)
         self.assertEqual(result, u' 0.000')
 
+def _three_digit_exp():
+    return '%.4g' % 1.7e8 == '1.7e+008'
 
 class TestFloatArrayFormatter(unittest.TestCase):
 

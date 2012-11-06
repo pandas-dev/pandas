@@ -6,87 +6,6 @@ from pandas.core.common import isnull
 from pandas.core.series import Series
 import re
 import pandas.lib as lib
-import pandas.core.common as com
-import operator
-
-class repeat(object):
-    def __init__(self, obj):
-        self.obj = obj
-
-    def __getitem__(self, i):
-        return self.obj
-
-class azip(object):
-    def __init__(self, *args):
-        self.cols = []
-        for a in args:
-            if np.isscalar(a):
-                self.cols.append(repeat(a))
-            else:
-                self.cols.append(a)
-
-    def __getitem__(self, i):
-        return [col[i] for col in self.cols]
-
-
-def map_iter_args(arr, f, otherargs, n_otherargs, required, n_results):
-    '''
-    Substitute for np.vectorize with pandas-friendly dtype inference
-
-    Parameters
-    ----------
-    arr : ndarray
-    f : function
-
-    Returns
-    -------
-    mapped : ndarray
-    '''
-    notnull = com.notnull
-
-    n = len(arr)
-    result = np.empty((n, n_results), dtype=object)
-    for i, val in enumerate(arr):
-        args = otherargs[i]
-        if notnull(val) and all(notnull(args[r]) for r in required):
-            result[i] = f(val, *args)
-        else:
-            result[i] = [np.nan] * n_results
-
-    return [lib.maybe_convert_objects(col, try_float=0) for col in result.T]
-
-
-def auto_map(arr, f, otherargs, n_results=1, required='all'):
-    from pandas.core.series import Series
-
-    if all(np.isscalar(a) for a in otherargs):
-        res = lib.map_infer(arr, lambda v: f(v, *otherargs))
-        return Series(res, index=arr.index, copy=False)
-
-    n_otherargs = len(otherargs)
-    if required == 'all':
-        required = list(range(n_otherargs))
-    res = map_iter_args(arr, f, azip(*otherargs), n_otherargs,
-                        required, n_results)
-    res = [Series(col, index=arr.index, copy=False) for col in res]
-    if n_results == 1:
-        return res[0]
-    return res
-
-
-def mapwrap(f, n_results_default=1, required='all'):
-    # @wraps(f)
-
-    def wrapped(arr, n_results=None, *otherargs):
-        n_results = n_results or n_results_default
-        return auto_map(arr, f, otherargs, n_results, required)
-
-    return wrapped
-
-startswith = mapwrap(lambda x, p: x.startswith(p))
-contains = mapwrap(lambda x, p: x.__contains__(p))
-upper = mapwrap(lambda x: x.upper())
-lower = mapwrap(lambda x: x.lower())
 
 
 def _get_array_list(arr, others):
@@ -297,7 +216,7 @@ def str_upper(arr):
     return _na_map(lambda x: x.upper(), arr)
 
 
-def str_replace(arr, pat, repl, n=0, case=True, flags=0):
+def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
     """
     Replace
 
@@ -307,7 +226,7 @@ def str_replace(arr, pat, repl, n=0, case=True, flags=0):
         Character sequence or regular expression
     repl : string
         Replacement sequence
-    n : int, default 0 (all)
+    n : int, default -1 (all)
         Number of replacements to make from start
     case : boolean, default True
         If True, case sensitive
@@ -318,15 +237,20 @@ def str_replace(arr, pat, repl, n=0, case=True, flags=0):
     -------
     replaced : array
     """
-    if not case:
-        flags |= re.IGNORECASE
+    use_re = not case or len(pat) > 1 or flags
 
-    regex = re.compile(pat, flags=flags)
-
-    def f(x):
-        return regex.sub(repl, x, count=n)
+    if use_re:
+        if not case:
+            flags |= re.IGNORECASE
+        regex = re.compile(pat, flags=flags)
+        n = n if n >= 0 else 0
+        def f(x):
+            return regex.sub(repl, x, count=n)
+    else:
+        f = lambda x: x.replace(pat, repl, n)
 
     return _na_map(f, arr)
+
 
 def str_repeat(arr, repeats):
     """
@@ -358,6 +282,7 @@ def str_repeat(arr, repeats):
         result = lib.vec_binop(arr, repeats, rep)
         return result
 
+
 def str_match(arr, pat, flags=0):
     """
     Find groups in each string (from beginning) using passed regular expression
@@ -374,6 +299,7 @@ def str_match(arr, pat, flags=0):
     matches : array
     """
     regex = re.compile(pat, flags=flags)
+
     def f(x):
         m = regex.match(x)
         if m:
@@ -382,7 +308,6 @@ def str_match(arr, pat, flags=0):
             return []
 
     return _na_map(f, arr)
-
 
 
 def str_join(arr, sep):
@@ -410,7 +335,6 @@ def str_len(arr):
     lengths : array
     """
     return _na_map(len, arr)
-
 
 
 def str_findall(arr, pat, flags=0):
@@ -477,7 +401,7 @@ def str_center(arr, width):
     return str_pad(arr, width, side='both')
 
 
-def str_split(arr, pat=None, n=0):
+def str_split(arr, pat=None, n=-1):
     """
     Split each string (a la re.split) in array by given pattern, propagating NA
     values
@@ -486,7 +410,7 @@ def str_split(arr, pat=None, n=0):
     ----------
     pat : string, default None
         String or regular expression to split on. If None, splits on whitespace
-    n : int, default 0 (all)
+    n : int, default -1 (all)
 
     Returns
     -------
@@ -495,8 +419,11 @@ def str_split(arr, pat=None, n=0):
     if pat is None:
         f = lambda x: x.split()
     else:
-        regex = re.compile(pat)
-        f = lambda x: regex.split(x, maxsplit=n)
+        if len(pat) == 1:
+            f = lambda x: x.split(pat, n)
+        else:
+            regex = re.compile(pat)
+            f = lambda x: regex.split(x, maxsplit=n)
 
     return _na_map(f, arr)
 
@@ -582,6 +509,7 @@ def str_wrap(arr, width=80):
     """
     raise NotImplementedError
 
+
 def str_get(arr, i):
     """
     Extract element from lists, tuples, or strings in each element in the array
@@ -598,6 +526,7 @@ def str_get(arr, i):
     f = lambda x: x[i]
     return _na_map(f, arr)
 
+
 def str_decode(arr, encoding):
     """
     Decode character string to unicode using indicated encoding
@@ -613,6 +542,7 @@ def str_decode(arr, encoding):
     f = lambda x: x.decode(encoding)
     return _na_map(f, arr)
 
+
 def str_encode(arr, encoding):
     """
     Encode character string to unicode using indicated encoding
@@ -627,6 +557,7 @@ def str_encode(arr, encoding):
     """
     f = lambda x: x.encode(encoding)
     return _na_map(f, arr)
+
 
 def _noarg_wrapper(f):
     def wrapper(self):
@@ -660,6 +591,7 @@ def _pat_wrapper(f, flags=False, na=False):
         wrapper.__doc__ = f.__doc__
 
     return wrapper
+
 
 def copy(source):
     "Copy a docstring from another source function (if present)"
@@ -701,7 +633,7 @@ class StringMethods(object):
         return self._wrap_result(result)
 
     @copy(str_split)
-    def split(self, pat=None, n=0):
+    def split(self, pat=None, n=-1):
         result = str_split(self.series, pat, n=n)
         return self._wrap_result(result)
 
@@ -722,7 +654,7 @@ class StringMethods(object):
         return self._wrap_result(result)
 
     @copy(str_replace)
-    def replace(self, pat, repl, n=0, case=True):
+    def replace(self, pat, repl, n=-1, case=True):
         result = str_replace(self.series, pat, repl, n=n, case=case)
         return self._wrap_result(result)
 

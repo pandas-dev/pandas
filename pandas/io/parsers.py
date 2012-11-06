@@ -150,7 +150,7 @@ def _is_url(url):
     Very naive check to see if url is an http(s), ftp, or file location.
     """
     parsed_url = urlparse(url)
-    if parsed_url.scheme in ['http','file', 'ftp', 'https']:
+    if parsed_url.scheme in ['http', 'file', 'ftp', 'https']:
         return True
     else:
         return False
@@ -384,12 +384,13 @@ def read_fwf(filepath_or_buffer, colspecs=None, widths=None, **kwds):
     if widths is not None:
         colspecs, col = [], 0
         for w in widths:
-            colspecs.append( (col, col+w) )
+            colspecs.append((col, col+w))
             col += w
 
     kwds['colspecs'] = colspecs
     kwds['engine'] = 'python-fwf'
     return _read(filepath_or_buffer, kwds)
+
 
 
 def read_clipboard(**kwargs):  # pragma: no cover
@@ -405,7 +406,8 @@ def read_clipboard(**kwargs):  # pragma: no cover
     text = clipboard_get()
     return read_table(StringIO(text), **kwargs)
 
-def to_clipboard(obj): # pragma: no cover
+
+def to_clipboard(obj):  # pragma: no cover
     """
     Attempt to write text representation of object to the system clipboard
 
@@ -1338,7 +1340,7 @@ class PythonParser(ParserBase):
                 lines.extend(source[self.pos:])
                 self.pos = len(source)
             else:
-                lines.extend(source[self.pos:self.pos+rows])
+                lines.extend(source[self.pos:self.pos + rows])
                 self.pos += rows
         else:
             new_rows = []
@@ -1551,17 +1553,24 @@ def _get_na_values(col, na_values):
     else:
         return na_values
 
-def _convert_to_ndarrays(dct, na_values, verbose=False):
+
+def _convert_to_ndarrays(dct, na_values, verbose=False, converters=None):
     result = {}
     for c, values in dct.iteritems():
+        conv_f = None if converters is None else converters.get(c, None)
         col_na_values = _get_na_values(c, na_values)
-        cvals, na_count = _convert_types(values, col_na_values)
+        coerce_type = True
+        if conv_f is not None:
+            values = lib.map_infer(values, conv_f)
+            coerce_type = False
+        cvals, na_count = _convert_types(values, col_na_values, coerce_type)
         result[c] = cvals
         if verbose and na_count:
             print 'Filled %d NA values in column %s' % (na_count, str(c))
     return result
 
-def _convert_types(values, na_values):
+
+def _convert_types(values, na_values, try_num_bool=True):
     na_count = 0
     if issubclass(values.dtype.type, (np.number, np.bool_)):
         mask = lib.ismember(values, na_values)
@@ -1572,16 +1581,21 @@ def _convert_types(values, na_values):
             np.putmask(values, mask, np.nan)
         return values, na_count
 
-    try:
-        result = lib.maybe_convert_numeric(values, na_values, False)
-    except Exception:
+    if try_num_bool:
+        try:
+            result = lib.maybe_convert_numeric(values, na_values, False)
+        except Exception:
+            na_count = lib.sanitize_objects(values, na_values, False)
+            result = values
+    else:
         na_count = lib.sanitize_objects(values, na_values, False)
         result = values
 
-    if result.dtype == np.object_:
+    if result.dtype == np.object_ and try_num_bool:
         result = lib.maybe_convert_bool(values)
 
     return result, na_count
+
 
 
 def _get_col_names(colspec, columns):
@@ -1612,7 +1626,7 @@ class FixedWidthReader(object):
     def __init__(self, f, colspecs, filler, thousands=None):
         self.f = f
         self.colspecs = colspecs
-        self.filler = filler # Empty characters between fields.
+        self.filler = filler  # Empty characters between fields.
         self.thousands = thousands
 
         assert isinstance(colspecs, (tuple, list))
@@ -1723,6 +1737,8 @@ class ExcelFile(object):
             If None then parse all columns,
             If int then indicates last column to be parsed
             If list of ints then indicates list of column numbers to be parsed
+            If string then indicates comma separated list of column names and
+                column ranges (e.g. "A:E" or "A,C,E:F")
         na_values : list-like, default None
             List of additional strings to recognize as NA/NaN
 
@@ -1734,8 +1750,8 @@ class ExcelFile(object):
         if skipfooter is not None:
             skip_footer = skipfooter
 
-        choose = {True:self._parse_xlsx,
-                  False:self._parse_xls}
+        choose = {True: self._parse_xlsx,
+                  False: self._parse_xls}
         return choose[self.use_xlsx](sheetname, header=header,
                                      skiprows=skiprows, index_col=index_col,
                                      parse_cols=parse_cols,
@@ -1747,8 +1763,34 @@ class ExcelFile(object):
                                      skip_footer=skip_footer)
 
     def _should_parse(self, i, parse_cols):
+
+        def _range2cols(areas):
+            """
+            Convert comma separated list of column names and column ranges to a
+            list of 0-based column indexes.
+
+            >>> _range2cols('A:E')
+            [0, 1, 2, 3, 4]
+            >>> _range2cols('A,C,Z:AB')
+            [0, 2, 25, 26, 27]
+            """
+            def _excel2num(x):
+                "Convert Excel column name like 'AB' to 0-based column index"
+                return reduce(lambda s,a: s*26+ord(a)-ord('A')+1, x.upper().strip(), 0)-1
+
+            cols = []
+            for rng in areas.split(','):
+                if ':' in rng:
+                    rng = rng.split(':')
+                    cols += range(_excel2num(rng[0]), _excel2num(rng[1])+1)
+                else:
+                    cols.append(_excel2num(rng))
+            return cols
+
         if isinstance(parse_cols, int):
             return i <= parse_cols
+        elif isinstance(parse_cols, basestring):
+            return i in _range2cols(parse_cols)
         else:
             return i in parse_cols
 
@@ -1846,6 +1888,7 @@ def _trim_excel_header(row):
         row = row[1:]
     return row
 
+
 class ExcelWriter(object):
     """
     Class for writing DataFrame objects into excel sheets, uses xlwt for xls,
@@ -1866,7 +1909,7 @@ class ExcelWriter(object):
             self.fm_date = xlwt.easyxf(num_format_str='YYYY-MM-DD')
         else:
             from openpyxl.workbook import Workbook
-            self.book = Workbook(optimized_write = True)
+            self.book = Workbook(optimized_write=True)
         self.path = path
         self.sheets = {}
         self.cur_sheet = None
@@ -1908,15 +1951,15 @@ class ExcelWriter(object):
         for i, val in enumerate(row):
             if isinstance(val, (datetime.datetime, datetime.date)):
                 if isinstance(val, datetime.datetime):
-                    sheetrow.write(i,val, self.fm_datetime)
+                    sheetrow.write(i, val, self.fm_datetime)
                 else:
-                    sheetrow.write(i,val, self.fm_date)
+                    sheetrow.write(i, val, self.fm_date)
             elif isinstance(val, np.int64):
-                sheetrow.write(i,int(val))
+                sheetrow.write(i, int(val))
             elif isinstance(val, np.bool8):
-                sheetrow.write(i,bool(val))
+                sheetrow.write(i, bool(val))
             else:
-                sheetrow.write(i,val)
+                sheetrow.write(i, val)
         row_idx += 1
         if row_idx == 1000:
             sheet.flush_row_data()

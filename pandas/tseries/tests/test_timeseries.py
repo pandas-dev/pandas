@@ -216,6 +216,8 @@ class TestTimeSeries(unittest.TestCase):
         s = Series(rng, index=rng)
         self.assert_(isinstance(s[5], Timestamp))
 
+        self.assert_(isinstance(s.iget_value(5), Timestamp))
+
     def test_timestamp_to_datetime(self):
         _skip_if_no_pytz()
         rng = date_range('20090415', '20090519',
@@ -319,6 +321,16 @@ class TestTimeSeries(unittest.TestCase):
         expected = df[-2:].reindex(index).fillna(method='backfill')
         expected.values[:3] = np.nan
         tm.assert_frame_equal(result, expected)
+
+    def test_frame_setitem_timestamp(self):
+        #2155
+        columns = DatetimeIndex(start='1/1/2012', end='2/1/2012',
+                                freq=datetools.bday)
+        index = range(10)
+        data = DataFrame(columns=columns, index=index)
+        t = datetime(2012, 11, 1)
+        ts = Timestamp(t)
+        data[ts] = np.nan #works
 
     def test_sparse_series_fillna_limit(self):
         index = np.arange(10)
@@ -853,6 +865,36 @@ class TestTimeSeries(unittest.TestCase):
         rs = ts.at_time('16:00')
         self.assert_(len(rs) == 0)
 
+    def test_at_time_frame(self):
+        rng = date_range('1/1/2000', '1/5/2000', freq='5min')
+        ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
+        rs = ts.at_time(rng[1])
+        self.assert_((rs.index.hour == rng[1].hour).all())
+        self.assert_((rs.index.minute == rng[1].minute).all())
+        self.assert_((rs.index.second == rng[1].second).all())
+
+        result = ts.at_time('9:30')
+        expected = ts.at_time(time(9, 30))
+        assert_frame_equal(result, expected)
+
+        result = ts.ix[time(9, 30)]
+        expected = ts.ix[(rng.hour == 9) & (rng.minute == 30)]
+
+        assert_frame_equal(result, expected)
+
+        # midnight, everything
+        rng = date_range('1/1/2000', '1/31/2000')
+        ts = DataFrame(np.random.randn(len(rng), 3), index=rng)
+
+        result = ts.at_time(time(0, 0))
+        assert_frame_equal(result, ts)
+
+        # time doesn't exist
+        rng = date_range('1/1/2012', freq='23Min', periods=384)
+        ts = DataFrame(np.random.randn(len(rng), 2), rng)
+        rs = ts.at_time('16:00')
+        self.assert_(len(rs) == 0)
+
     def test_between_time(self):
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
         ts = Series(np.random.randn(len(rng)), index=rng)
@@ -888,6 +930,66 @@ class TestTimeSeries(unittest.TestCase):
         #across midnight
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
         ts = Series(np.random.randn(len(rng)), index=rng)
+        stime = time(22, 0)
+        etime = time(9, 0)
+
+        close_open = itertools.product([True, False], [True, False])
+        for inc_start, inc_end in close_open:
+            filtered = ts.between_time(stime, etime, inc_start, inc_end)
+            exp_len = (12 * 11 + 1) * 4 + 1
+            if not inc_start:
+                exp_len -= 4
+            if not inc_end:
+                exp_len -= 4
+
+            self.assert_(len(filtered) == exp_len)
+            for rs in filtered.index:
+                t = rs.time()
+                if inc_start:
+                    self.assert_((t >= stime) or (t <= etime))
+                else:
+                    self.assert_((t > stime) or (t <= etime))
+
+                if inc_end:
+                    self.assert_((t <= etime) or (t >= stime))
+                else:
+                    self.assert_((t < etime) or (t >= stime))
+
+    def test_between_time_frame(self):
+        rng = date_range('1/1/2000', '1/5/2000', freq='5min')
+        ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
+        stime = time(0, 0)
+        etime = time(1, 0)
+
+        close_open = itertools.product([True, False], [True, False])
+        for inc_start, inc_end in close_open:
+            filtered = ts.between_time(stime, etime, inc_start, inc_end)
+            exp_len = 13 * 4 + 1
+            if not inc_start:
+                exp_len -= 5
+            if not inc_end:
+                exp_len -= 4
+
+            self.assert_(len(filtered) == exp_len)
+            for rs in filtered.index:
+                t = rs.time()
+                if inc_start:
+                    self.assert_(t >= stime)
+                else:
+                    self.assert_(t > stime)
+
+                if inc_end:
+                    self.assert_(t <= etime)
+                else:
+                    self.assert_(t < etime)
+
+        result = ts.between_time('00:00', '01:00')
+        expected = ts.between_time(stime, etime)
+        assert_frame_equal(result, expected)
+
+        #across midnight
+        rng = date_range('1/1/2000', '1/5/2000', freq='5min')
+        ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
         stime = time(22, 0)
         etime = time(9, 0)
 
@@ -1781,6 +1883,38 @@ class TestLegacySupport(unittest.TestCase):
         self.assertEqual(rng.min(), rng[0])
         self.assertEqual(rng.max(), rng[-1])
 
+    def test_min_max_series(self):
+        rng = date_range('1/1/2000', periods=10, freq='4h')
+        lvls = ['A','A','A','B','B','B','C','C','C','C']
+        df = DataFrame({'TS': rng, 'V' : np.random.randn(len(rng)),
+                        'L' : lvls})
+
+        result = df.TS.max()
+        exp = Timestamp(df.TS.iget(-1))
+        self.assertTrue(isinstance(result, Timestamp))
+        self.assertEqual(result, exp)
+
+        result = df.TS.min()
+        exp = Timestamp(df.TS.iget(0))
+        self.assertTrue(isinstance(result, Timestamp))
+        self.assertEqual(result, exp)
+
+    def test_from_M8_structured(self):
+        dates = [ (datetime(2012, 9, 9, 0, 0),
+                   datetime(2012, 9, 8, 15, 10))]
+        arr = np.array(dates,
+                       dtype=[('Date', '<M8[us]'), ('Forecasting', '<M8[us]')])
+        df = DataFrame(arr)
+
+        self.assertEqual(df['Date'][0], dates[0][0])
+        self.assertEqual(df['Forecasting'][0], dates[0][1])
+
+        s = Series(arr['Date'])
+        self.assertTrue(s[0], Timestamp)
+        self.assertEqual(s[0], dates[0][0])
+
+        s = Series.from_array(arr['Date'], Index([0]))
+        self.assertEqual(s[0], dates[0][0])
 
 class TestLegacyCompat(unittest.TestCase):
 
@@ -2122,6 +2256,14 @@ class TestSeriesDatetime64(unittest.TestCase):
 
         result = rng.intersection(rng2)
         self.assert_(result.equals(rng))
+
+        #empty same freq GH2129
+        rng = date_range('6/1/2000', '6/15/2000', freq='T')
+        result = rng[0:0].intersection(rng)
+        self.assert_(len(result) == 0)
+
+        result = rng.intersection(rng[0:0])
+        self.assert_(len(result) == 0)
 
     def test_date_range_bms_bug(self):
         # #1645

@@ -1,5 +1,6 @@
 from numpy cimport ndarray
 cimport numpy as cnp
+cimport cpython
 
 cdef extern from "numpy_helper.h":
     inline void set_array_owndata(ndarray ao)
@@ -14,7 +15,7 @@ cdef extern from "numpy_helper.h":
     inline cnp.int64_t get_nat()
     inline object get_value_1d(ndarray, Py_ssize_t)
     inline char *get_c_string(object)
-    inline object floatify(object)
+    inline int floatify(object, double *result) except -1
     inline object char_to_string(char*)
     inline void transfer_object_column(char *dst, char *src, size_t stride,
                                        size_t length)
@@ -64,7 +65,7 @@ cdef inline is_array(object o):
 
 cdef inline bint _checknull(object val):
     try:
-        return bool(val is None or val != val)
+        return val is None or (cpython.PyFloat_Check(val) and val != val)
     except ValueError:
         return False
 

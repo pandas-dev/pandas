@@ -20,6 +20,7 @@ import pandas.stats.common as com
 import pandas.stats.math as math
 from pandas.util.decorators import cache_readonly
 
+
 class PanelOLS(OLS):
     """Implements panel OLS.
 
@@ -54,7 +55,7 @@ class PanelOLS(OLS):
         self._T = len(self._index)
 
     def log(self, msg):
-        if self._verbose: # pragma: no cover
+        if self._verbose:  # pragma: no cover
             print msg
 
     def _prepare_data(self):
@@ -268,7 +269,7 @@ class PanelOLS(OLS):
                 else:
                     to_exclude = mapped_name = dummies.columns[0]
 
-                if mapped_name not in dummies.columns: # pragma: no cover
+                if mapped_name not in dummies.columns:  # pragma: no cover
                     raise Exception('%s not in %s' % (to_exclude,
                                                       dummies.columns))
 
@@ -337,7 +338,7 @@ class PanelOLS(OLS):
         if self._use_centered_tss:
             SST = ((Y - np.mean(Y)) ** 2).sum()
         else:
-            SST = (Y**2).sum()
+            SST = (Y ** 2).sum()
 
         return 1 - SSE / SST
 
@@ -427,6 +428,7 @@ class PanelOLS(OLS):
     def _nobs(self):
         return len(self._y)
 
+
 def _convertDummies(dummies, mapping):
     # cleans up the names of the generated dummies
     new_items = []
@@ -446,12 +448,14 @@ def _convertDummies(dummies, mapping):
 
     return dummies
 
+
 def _is_numeric(df):
     for col in df:
         if df[col].dtype.name == 'object':
             return False
 
     return True
+
 
 def add_intercept(panel, name='intercept'):
     """
@@ -470,6 +474,7 @@ def add_intercept(panel, name='intercept'):
     panel[name] = 1.
 
     return panel.consolidate()
+
 
 class MovingPanelOLS(MovingOLS, PanelOLS):
     """Implements rolling/expanding panel OLS.
@@ -648,12 +653,13 @@ class MovingPanelOLS(MovingOLS, PanelOLS):
         # TODO: write unit tests for this
 
         rank_threshold = len(self._x.columns) + 1
-        if self._min_obs < rank_threshold: # pragma: no cover
+        if self._min_obs < rank_threshold:  # pragma: no cover
             warnings.warn('min_obs is smaller than rank of X matrix')
 
         enough_observations = self._nobs_raw >= self._min_obs
         enough_time_periods = self._window_time_obs >= self._min_periods
         return enough_time_periods & enough_observations
+
 
 def create_ols_dict(attr):
     def attr_getter(self):
@@ -666,8 +672,10 @@ def create_ols_dict(attr):
 
     return attr_getter
 
+
 def create_ols_attr(attr):
     return property(create_ols_dict(attr))
+
 
 class NonPooledPanelOLS(object):
     """Implements non-pooled panel OLS.
@@ -774,6 +782,7 @@ def _var_beta_panel(y, x, beta, xx, rmse, cluster_axis,
 
         return np.dot(xx_inv, np.dot(xox, xx_inv))
 
+
 def _xx_time_effects(x, y):
     """
     Returns X'X - (X'T) (T'T)^-1 (T'X)
@@ -790,5 +799,3 @@ def _xx_time_effects(x, y):
     count = count[selector]
 
     return xx - np.dot(xt.T / count, xt)
-
-

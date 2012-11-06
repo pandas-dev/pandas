@@ -10,6 +10,7 @@ import numpy as np
 # "null slice"
 _NS = slice(None, None)
 
+
 def _is_sequence(x):
     try:
         iter(x)
@@ -17,6 +18,7 @@ def _is_sequence(x):
         return True
     except Exception:
         return False
+
 
 class IndexingError(Exception):
     pass
@@ -118,11 +120,15 @@ class _NDFrameIndexer(object):
             try:
                 for item in item_labels[het_idx]:
                     data = self.obj[item]
-                    data.values[plane_indexer] = value
+                    values = data.values
+                    if np.prod(values.shape):
+                        values[plane_indexer] = value
             except ValueError:
                 for item, v in zip(item_labels[het_idx], value):
                     data = self.obj[item]
-                    data.values[plane_indexer] = v
+                    values = data.values
+                    if np.prod(values.shape):
+                        values[plane_indexer] = v
         else:
             if isinstance(indexer, tuple):
                 indexer = _maybe_convert_ix(*indexer)
@@ -133,7 +139,10 @@ class _NDFrameIndexer(object):
             if isinstance(value, DataFrame):
                 value = self._align_frame(indexer, value)
 
-            self.obj.values[indexer] = value
+            # 2096
+            values = self.obj.values
+            if np.prod(values.shape):
+                values[indexer] = value
 
     def _align_series(self, indexer, ser):
         # indexer to assign Series can be tuple or scalar
@@ -587,6 +596,7 @@ class _NDFrameIndexer(object):
 # 32-bit floating point machine epsilon
 _eps = np.finfo('f4').eps
 
+
 def _is_index_slice(obj):
     def _is_valid_index(x):
         return (com.is_integer(x) or com.is_float(x)
@@ -599,6 +609,7 @@ def _is_index_slice(obj):
 
     return not both_none and (_crit(obj.start) and _crit(obj.stop))
 
+
 def _is_int_slice(obj):
     def _is_valid_index(x):
         return com.is_integer(x)
@@ -609,6 +620,7 @@ def _is_int_slice(obj):
     both_none = obj.start is None and obj.stop is None
 
     return not both_none and (_crit(obj.start) and _crit(obj.stop))
+
 
 def _is_float_slice(obj):
     def _is_valid_index(x):

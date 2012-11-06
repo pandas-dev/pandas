@@ -10,8 +10,9 @@ import traceback
 from pandas.core.datetools import format as date_format
 from pandas.core.api import DataFrame, isnull
 
-#-------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Helper execution function
+
 
 def execute(sql, con, retry=True, cur=None, params=None):
     """
@@ -44,16 +45,18 @@ def execute(sql, con, retry=True, cur=None, params=None):
         print 'Error on sql %s' % sql
         raise
 
+
 def _safe_fetch(cur):
     try:
         result = cur.fetchall()
         if not isinstance(result, list):
             result = list(result)
         return result
-    except Exception, e: # pragma: no cover
+    except Exception, e:  # pragma: no cover
         excName = e.__class__.__name__
         if excName == 'OperationalError':
             return []
+
 
 def tquery(sql, con=None, cur=None, retry=True):
     """
@@ -98,6 +101,7 @@ def tquery(sql, con=None, cur=None, retry=True):
 
     return result
 
+
 def uquery(sql, con=None, cur=None, retry=True, params=()):
     """
     Does the same thing as tquery, but instead of returning results, it
@@ -118,6 +122,7 @@ def uquery(sql, con=None, cur=None, retry=True, params=()):
             print 'Looks like your connection failed, reconnecting...'
             return uquery(sql, con, retry=False)
     return result
+
 
 def read_frame(sql, con, index_col=None, coerce_float=True):
     """
@@ -152,6 +157,7 @@ def read_frame(sql, con, index_col=None, coerce_float=True):
 
 frame_query = read_frame
 
+
 def write_frame(frame, name=None, con=None, flavor='sqlite', append=False):
     """
     Write records stored in a DataFrame to SQLite. The index will currently be
@@ -170,10 +176,12 @@ def write_frame(frame, name=None, con=None, flavor='sqlite', append=False):
     data = [tuple(x) for x in frame.values]
     con.executemany(insert_sql, data)
 
+
 def has_table(name, con):
     sqlstr = "SELECT name FROM sqlite_master WHERE type='table' AND name='%s'" % name
     rs = tquery(sqlstr, con)
     return len(rs) > 0
+
 
 def get_sqlite_schema(frame, name, dtypes=None, keys=None):
     template = """
@@ -206,25 +214,24 @@ CREATE TABLE %(name)s (
         if isinstance(keys, basestring):
             keys = (keys,)
         keystr = ', PRIMARY KEY (%s)' % ','.join(keys)
-    return template % {'name' : name, 'columns' : columns, 'keystr' : keystr}
+    return template % {'name': name, 'columns': columns, 'keystr': keystr}
 
 
-
-
-#-------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Query formatting
 
 _formatters = {
-    datetime : lambda dt: "'%s'" % date_format(dt),
-    str : lambda x: "'%s'" % x,
-    np.str_ : lambda x: "'%s'" % x,
-    unicode : lambda x: "'%s'" % x,
-    float : lambda x: "%.8f" % x,
-    int : lambda x: "%s" % x,
-    type(None) : lambda x: "NULL",
-    np.float64 : lambda x: "%.10f" % x,
-    bool : lambda x: "'%s'" % x,
+    datetime: lambda dt: "'%s'" % date_format(dt),
+    str: lambda x: "'%s'" % x,
+    np.str_: lambda x: "'%s'" % x,
+    unicode: lambda x: "'%s'" % x,
+    float: lambda x: "%.8f" % x,
+    int: lambda x: "%s" % x,
+    type(None): lambda x: "NULL",
+    np.float64: lambda x: "%.10f" % x,
+    bool: lambda x: "'%s'" % x,
 }
+
 
 def format_query(sql, *args):
     """

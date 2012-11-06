@@ -99,7 +99,7 @@ class DateOffset(object):
 
     def _params(self):
         attrs = [(k, v) for k, v in vars(self).iteritems()
-                 if k not in ['kwds', '_offset', 'name']]
+                 if k not in ['kwds', '_offset', 'name', 'normalize']]
         attrs.extend(self.kwds.items())
         attrs = sorted(set(attrs))
 
@@ -164,7 +164,7 @@ class DateOffset(object):
             raise TypeError('Cannot subtract datetime from offset!')
         elif type(other) == type(self):
             return self.__class__(self.n - other.n, **self.kwds)
-        else: # pragma: no cover
+        else:  # pragma: no cover
             raise TypeError('Cannot subtract %s from %s'
                             % (type(other), type(self)))
 
@@ -227,6 +227,7 @@ class DateOffset(object):
             fstr = code
 
         return fstr
+
 
 class BusinessDay(CacheableOffset, DateOffset):
     """
@@ -323,6 +324,12 @@ class BusinessDay(CacheableOffset, DateOffset):
 
             result = other
 
+            # avoid slowness below
+            if abs(n) > 5:
+                k = n // 5
+                result = result + timedelta(7 * k)
+                n -= 5 * k
+
             while n != 0:
                 k = n // abs(n)
                 result = result + timedelta(k)
@@ -343,6 +350,7 @@ class BusinessDay(CacheableOffset, DateOffset):
         else:
             raise Exception('Only know how to combine business day with '
                             'datetime or timedelta!')
+
     @classmethod
     def onOffset(cls, dt):
         return dt.weekday() < 5
@@ -379,7 +387,7 @@ class MonthBegin(DateOffset, CacheableOffset):
     def apply(self, other):
         n = self.n
 
-        if other.day > 1 and n <= 0: #then roll forward if n<=0
+        if other.day > 1 and n <= 0:  # then roll forward if n<=0
             n += 1
 
         other = other + relativedelta(months=n, day=1)
@@ -436,7 +444,7 @@ class BusinessMonthBegin(DateOffset, CacheableOffset):
             # as if rolled forward already
             n += 1
         elif other.day < first and n > 0:
-            other = other + timedelta(days=first-other.day)
+            other = other + timedelta(days=first - other.day)
             n -= 1
 
         other = other + relativedelta(months=n)
@@ -524,6 +532,7 @@ _weekday_dict = {
     5: 'SAT',
     6: 'SUN'
 }
+
 
 class WeekOfMonth(DateOffset, CacheableOffset):
     """
@@ -631,7 +640,7 @@ class BQuarterEnd(DateOffset, CacheableOffset):
         elif n <= 0 and other.day > lastBDay and monthsToGo == 0:
             n = n + 1
 
-        other = other + relativedelta(months=monthsToGo + 3*n, day=31)
+        other = other + relativedelta(months=monthsToGo + 3 * n, day=31)
 
         if other.weekday() > 4:
             other = other - BDay()
@@ -686,7 +695,7 @@ class BQuarterBegin(DateOffset, CacheableOffset):
 
         monthsSince = (other.month - self.startingMonth) % 3
 
-        if n <= 0 and monthsSince != 0: # make sure to roll forward so negate
+        if n <= 0 and monthsSince != 0:  # make sure to roll forward so negate
             monthsSince = monthsSince - 3
 
         # roll forward if on same month later than first bday
@@ -697,7 +706,7 @@ class BQuarterBegin(DateOffset, CacheableOffset):
             n = n - 1
 
         # get the first bday for result
-        other = other + relativedelta(months=3*n - monthsSince)
+        other = other + relativedelta(months=3 * n - monthsSince)
         wkday, _ = lib.monthrange(other.year, other.month)
         first = _get_firstbday(wkday)
         result = datetime(other.year, other.month, first,
@@ -741,7 +750,7 @@ class QuarterEnd(DateOffset, CacheableOffset):
         if n > 0 and not (other.day >= days_in_month and monthsToGo == 0):
             n = n - 1
 
-        other = other + relativedelta(months=monthsToGo + 3*n, day=31)
+        other = other + relativedelta(months=monthsToGo + 3 * n, day=31)
 
         return other
 
@@ -783,7 +792,7 @@ class QuarterBegin(DateOffset, CacheableOffset):
             # after start, so come back an extra period as if rolled forward
             n = n + 1
 
-        other = other + relativedelta(months=3*n - monthsSince, day=1)
+        other = other + relativedelta(months=3 * n - monthsSince, day=1)
         return other
 
     @property
@@ -860,18 +869,17 @@ class BYearBegin(DateOffset, CacheableOffset):
 
         years = n
 
-
-        if n > 0: # roll back first for positive n
+        if n > 0:  # roll back first for positive n
             if (other.month < self.month or
                 (other.month == self.month and other.day < first)):
                 years -= 1
-        elif n <= 0: # roll forward
+        elif n <= 0:  # roll forward
             if (other.month > self.month or
                 (other.month == self.month and other.day > first)):
                 years += 1
 
         # set first bday for result
-        other = other + relativedelta(years = years)
+        other = other + relativedelta(years=years)
         wkday, days_in_month = lib.monthrange(other.year, self.month)
         first = _get_firstbday(wkday)
         return datetime(other.year, self.month, first)
@@ -909,6 +917,7 @@ class YearEnd(DateOffset, CacheableOffset):
             return datetime(year, self.month, days_in_month,
                             date.hour, date.minute, date.second,
                             date.microsecond)
+
         def _decrement(date):
             year = date.year if date.month > self.month else date.year - 1
             _, days_in_month = lib.monthrange(year, self.month)
@@ -967,7 +976,7 @@ class YearBegin(DateOffset, CacheableOffset):
                              other.microsecond)
             if n <= 0:
                 n = n + 1
-        other = other + relativedelta(years = n, day=1)
+        other = other + relativedelta(years=n, day=1)
         return other
 
     @classmethod
@@ -983,8 +992,24 @@ class YearBegin(DateOffset, CacheableOffset):
 #----------------------------------------------------------------------
 # Ticks
 
+import operator
+
+
+def _tick_comp(op):
+    def f(self, other):
+        return op(self.delta, other.delta)
+    return f
+
+
 class Tick(DateOffset):
     _inc = timedelta(microseconds=1000)
+
+    __gt__ = _tick_comp(operator.gt)
+    __ge__ = _tick_comp(operator.ge)
+    __lt__ = _tick_comp(operator.lt)
+    __le__ = _tick_comp(operator.le)
+    __eq__ = _tick_comp(operator.eq)
+    __ne__ = _tick_comp(operator.ne)
 
     def __add__(self, other):
         if isinstance(other, Tick):
@@ -1039,9 +1064,13 @@ class Tick(DateOffset):
             raise TypeError('Unhandled type: %s' % type(other))
 
     _rule_base = 'undefined'
+
     @property
     def rule_code(self):
         return self._rule_base
+
+    def isAnchored(self):
+        return False
 
 def _delta_to_tick(delta):
     if delta.microseconds == 0:
@@ -1064,6 +1093,7 @@ def _delta_to_tick(delta):
         else:  # pragma: no cover
             return Nano(nanos)
 
+
 def _delta_to_nanoseconds(delta):
     if isinstance(delta, Tick):
         delta = delta.delta
@@ -1071,13 +1101,10 @@ def _delta_to_nanoseconds(delta):
             + delta.seconds * 1000000
             + delta.microseconds) * 1000
 
+
 class Day(Tick, CacheableOffset):
     _inc = timedelta(1)
     _rule_base = 'D'
-
-    def isAnchored(self):
-
-        return False
 
 class Hour(Tick):
     _inc = timedelta(0, 3600)
@@ -1114,9 +1141,9 @@ def _get_firstbday(wkday):
     If it's a saturday or sunday, increment first business day to reflect this
     """
     first = 1
-    if wkday == 5: # on Saturday
+    if wkday == 5:  # on Saturday
         first = 3
-    elif wkday == 6: # on Sunday
+    elif wkday == 6:  # on Sunday
         first = 2
     return first
 
