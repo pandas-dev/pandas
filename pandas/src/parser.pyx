@@ -3,7 +3,7 @@
 
 from libc.stdio cimport fopen, fclose
 from libc.stdlib cimport malloc, free
-from libc.string cimport strncpy, strlen
+from libc.string cimport strncpy, strlen, strcmp
 cimport libc.stdio as stdio
 
 from cpython cimport (PyObject, PyBytes_FromString,
@@ -43,6 +43,9 @@ from khash cimport *
 import sys
 
 cdef bint PY3 = (sys.version_info[0] >= 3)
+
+cdef double INF = <double> np.inf
+cdef double NEGINF = -INF
 
 cdef extern from "stdint.h":
     enum: UINT8_MAX
@@ -458,7 +461,7 @@ cdef class TextReader:
 
             if self.memory_map:
                 ptr = new_mmap(source)
-                if ptr == NULL:         
+                if ptr == NULL:
                     # fall back
                     ptr = new_file_source(source, self.parser.chunksize)
                     self.parser.cb_io = &buffer_file_bytes
@@ -1152,6 +1155,8 @@ cdef _to_fw_string(parser_t *parser, int col, int line_start,
 
     return result
 
+cdef char* cinf = b'inf'
+cdef char* cneginf = b'-inf'
 
 cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
                  bint na_filter, kh_str_t *na_hashset):
@@ -1182,14 +1187,24 @@ cdef _try_double(parser_t *parser, int col, int line_start, int line_end,
             else:
                 error = to_double(word, data, parser.sci, parser.decimal)
                 if error != 1:
-                    return None, None
+                    if strcmp(word, cinf) == 0:
+                        data[0] = INF
+                    elif strcmp(word, cneginf) == 0:
+                        data[0] = NEGINF
+                    else:
+                        return None, None
             data += 1
     else:
         for i in range(lines):
             word = COLITER_NEXT(it)
             error = to_double(word, data, parser.sci, parser.decimal)
             if error != 1:
-                return None, None
+                if strcmp(word, cinf) == 0:
+                    data[0] = INF
+                elif strcmp(word, cneginf) == 0:
+                    data[0] = NEGINF
+                else:
+                    return None, None
             data += 1
 
     return result, na_count
@@ -1492,18 +1507,18 @@ cdef _apply_converter(object f, parser_t *parser, int col,
                                    c_encoding, errors)
             result[i] = f(val)
 
-    values = lib.maybe_convert_objects(result)
+    return lib.maybe_convert_objects(result)
 
-    if issubclass(values.dtype.type, (np.number, np.bool_)):
-        return values
+    # if issubclass(values.dtype.type, (np.number, np.bool_)):
+    #     return values
 
-    # XXX
-    na_values = set([''])
-    try:
-        return lib.maybe_convert_numeric(values, na_values, False)
-    except Exception:
-        na_count = lib.sanitize_objects(values, na_values, False)
-        return result
+    # # XXX
+    # na_values = set([''])
+    # try:
+    #     return lib.maybe_convert_numeric(values, na_values, False)
+    # except Exception:
+    #     na_count = lib.sanitize_objects(values, na_values, False)
+    #     return result
 
 def _to_structured_array(dict columns, object names):
     cdef:

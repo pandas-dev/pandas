@@ -1123,26 +1123,15 @@ class PythonParser(ParserBase):
 
     def _convert_data(self, data):
         # apply converters
-        converted = set()
+        clean_conv = {}
+
         for col, f in self.converters.iteritems():
             if isinstance(col, int) and col not in self.orig_names:
                 col = self.orig_names[col]
-            data[col] = lib.map_infer(data[col], f)
-            converted.add(col)
+            clean_conv[col] = f
 
-        # do type conversions
-        result = {}
-        for c, values in data.iteritems():
-            if c in converted:
-                result[c] = values
-
-            col_na_values = _get_na_values(c, self.na_values)
-            cvals, na_count = _convert_types(values, col_na_values)
-            result[c] = cvals
-            if self.verbose and na_count:
-                print 'Filled %d NA values in column %s' % (na_count, str(c))
-
-        return result
+        return _convert_to_ndarrays(data, self.na_values, self.verbose,
+                                    clean_conv)
 
     def _infer_columns(self):
         names = self.names

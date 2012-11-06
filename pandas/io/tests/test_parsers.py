@@ -1120,7 +1120,7 @@ c,4,5,01/03/2009
         data = """000102,1.2,A\n001245,2,B"""
         f = lambda x: x.strip()
         converter = {0: f}
-        df = read_csv(StringIO(data), header=None, converters=converter)
+        df = self.read_csv(StringIO(data), header=None, converters=converter)
         self.assert_(df.X0.dtype == object)
 
     def test_converters_euro_decimal_format(self):
