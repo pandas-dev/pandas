@@ -19,8 +19,9 @@ class TestSeriesPlots(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         import sys
-        if 'IPython' in sys.modules:
-            raise nose.SkipTest
+
+        # if 'IPython' in sys.modules:
+        #     raise nose.SkipTest
 
         try:
             import matplotlib as mpl
