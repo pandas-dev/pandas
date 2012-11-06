@@ -48,6 +48,7 @@ cdef extern from "stdint.h":
     enum: UINT8_MAX
     enum: UINT16_MAX
     enum: UINT32_MAX
+    enum: UINT64_MAX
     enum: INT8_MIN
     enum: INT8_MAX
     enum: INT16_MIN
@@ -186,13 +187,15 @@ cdef extern from "parser/parser.h":
 
 cdef extern from "parser/io.h":
     void *new_mmap(char *fname)
+    int del_mmap(void *src)
+    void* buffer_mmap_bytes(void *source, size_t nbytes,
+                            size_t *bytes_read, int *status)
 
     void *new_file_source(char *fname, size_t buffer_size)
 
     void *new_rd_source(object obj)
 
     int del_file_source(void *src)
-    int del_mmap(void *src)
     int del_rd_source(void *src)
 
     void* buffer_file_bytes(void *source, size_t nbytes,
@@ -200,9 +203,6 @@ cdef extern from "parser/io.h":
 
     void* buffer_rd_bytes(void *source, size_t nbytes,
                           size_t *bytes_read, int *status)
-
-    void* buffer_mmap_bytes(void *source, size_t nbytes,
-                            size_t *bytes_read, int *status)
 
 
 DEFAULT_CHUNKSIZE = 256 * 1024
@@ -294,6 +294,8 @@ cdef class TextReader:
         self.clocks = []
 
         self.compression = compression
+        self.memory_map = memory_map
+
         self._setup_parser_source(source)
         parser_set_default_options(self.parser)
 
@@ -354,7 +356,6 @@ cdef class TextReader:
         self.delimiter = delimiter
         self.delim_whitespace = delim_whitespace
 
-        self.memory_map = memory_map
         self.na_values = na_values
         self.converters = converters
 
@@ -457,8 +458,14 @@ cdef class TextReader:
 
             if self.memory_map:
                 ptr = new_mmap(source)
-                self.parser.cb_io = &buffer_mmap_bytes
-                self.parser.cb_cleanup = &del_mmap
+                if ptr == NULL:         
+                    # fall back
+                    ptr = new_file_source(source, self.parser.chunksize)
+                    self.parser.cb_io = &buffer_file_bytes
+                    self.parser.cb_cleanup = &del_file_source
+                else:
+                    self.parser.cb_io = &buffer_mmap_bytes
+                    self.parser.cb_cleanup = &del_mmap
             else:
                 ptr = new_file_source(source, self.parser.chunksize)
                 self.parser.cb_io = &buffer_file_bytes
@@ -1436,6 +1443,12 @@ na_values = {
     np.float64 : np.nan,
     np.int64 : INT64_MIN,
     np.int32 : INT32_MIN,
+    np.int16 : INT16_MIN,
+    np.int8  : INT8_MIN,
+    np.uint64 : UINT64_MAX,
+    np.uint32 : UINT32_MAX,
+    np.uint16 : UINT16_MAX,
+    np.uint8 : UINT8_MAX,
     np.bool_ : UINT8_MAX,
     np.object_ : np.nan    # oof
 }

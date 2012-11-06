@@ -1735,6 +1735,10 @@ a,b,c
                 os.remove('__tmp__')
             except:
                 pass
+    
+    def test_memory_map(self):
+        # it works!
+        result = self.read_csv(self.csv1, memory_map=True)
 
 
 class TestParseSQL(unittest.TestCase):

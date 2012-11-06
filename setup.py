@@ -259,6 +259,7 @@ class CleanCommand(Command):
                                'np_datetime_strings.c',
                                'period.c',
                                'parser.c',
+                               'io.c',
                                'str_to.c']
 
         for root, dirs, files in list(os.walk('pandas')):

@@ -38,49 +38,6 @@ void *new_file_source(char *fname, size_t buffer_size) {
  *  buffer_size is ignored.
  */
 
-void *new_mmap(char *fname)
-{
-    struct stat buf;
-    int fd;
-    memory_map *mm;
-    /* off_t position; */
-    off_t filesize;
-
-    mm = (memory_map *) malloc(sizeof(memory_map));
-    mm->fp = fopen(fname, "rb");
-
-    fd = fileno(mm->fp);
-    if (fstat(fd, &buf) == -1) {
-        fprintf(stderr, "new_file_buffer: fstat() failed. errno =%d\n", errno);
-        return NULL;
-    }
-    filesize = buf.st_size;  /* XXX This might be 32 bits. */
-
-
-    if (mm == NULL) {
-        /* XXX Eventually remove this print statement. */
-        fprintf(stderr, "new_file_buffer: malloc() failed.\n");
-        return NULL;
-    }
-    mm->size = (off_t) filesize;
-    mm->line_number = 0;
-
-    mm->fileno = fd;
-    mm->position = ftell(mm->fp);
-    mm->last_pos = (off_t) filesize;
-
-    mm->memmap = mmap(NULL, filesize, PROT_READ, MAP_SHARED, fd, 0);
-    if (mm->memmap == NULL) {
-        /* XXX Eventually remove this print statement. */
-        fprintf(stderr, "new_file_buffer: mmap() failed.\n");
-        free(mm);
-        mm = NULL;
-    }
-
-    return (void*) mm;
-}
-
-
 
 void* new_rd_source(PyObject *obj) {
     rd_source *rds = (rd_source *) malloc(sizeof(rd_source));
@@ -119,58 +76,12 @@ int del_rd_source(void *rds) {
     return 0;
 }
 
-int del_mmap(void *src)
-{
-    munmap(MM(src)->memmap, MM(src)->size);
-
-    fclose(MM(src)->fp);
-
-    /*
-     *  With a memory mapped file, there is no need to do
-     *  anything if restore == RESTORE_INITIAL.
-     */
-    /* if (restore == RESTORE_FINAL) { */
-    /*     fseek(FB(fb)->file, FB(fb)->current_pos, SEEK_SET); */
-    /* } */
-    free(src);
-
-    return 0;
-}
-
 /*
 
   IO callbacks
 
  */
 
-
-void* buffer_mmap_bytes(void *source, size_t nbytes,
-                        size_t *bytes_read, int *status) {
-    void *retval;
-    memory_map *src = MM(source);
-
-    if (src->position == src->last_pos) {
-        *bytes_read = 0;
-        *status = REACHED_EOF;
-        return NULL;
-    }
-
-    retval = src->memmap + src->position;
-
-    if (src->position + nbytes > src->last_pos) {
-        // fewer than nbytes remaining
-        *bytes_read = src->last_pos - src->position;
-    } else {
-        *bytes_read = nbytes;
-    }
-
-    *status = 0;
-
-    /* advance position in mmap data structure */
-    src->position += *bytes_read;
-
-    return retval;
-}
 
 void* buffer_file_bytes(void *source, size_t nbytes,
                         size_t *bytes_read, int *status) {
@@ -241,3 +152,119 @@ void* buffer_rd_bytes(void *source, size_t nbytes,
 
     return retval;
 }
+
+
+#ifdef HAVE_MMAP
+
+#include <sys/stat.h>
+#include <sys/mman.h>
+
+void *new_mmap(char *fname)
+{
+    struct stat buf;
+    int fd;
+    memory_map *mm;
+    /* off_t position; */
+    off_t filesize;
+
+    mm = (memory_map *) malloc(sizeof(memory_map));
+    mm->fp = fopen(fname, "rb");
+
+    fd = fileno(mm->fp);
+    if (fstat(fd, &buf) == -1) {
+        fprintf(stderr, "new_file_buffer: fstat() failed. errno =%d\n", errno);
+        return NULL;
+    }
+    filesize = buf.st_size;  /* XXX This might be 32 bits. */
+
+
+    if (mm == NULL) {
+        /* XXX Eventually remove this print statement. */
+        fprintf(stderr, "new_file_buffer: malloc() failed.\n");
+        return NULL;
+    }
+    mm->size = (off_t) filesize;
+    mm->line_number = 0;
+
+    mm->fileno = fd;
+    mm->position = ftell(mm->fp);
+    mm->last_pos = (off_t) filesize;
+
+    mm->memmap = mmap(NULL, filesize, PROT_READ, MAP_SHARED, fd, 0);
+    if (mm->memmap == NULL) {
+        /* XXX Eventually remove this print statement. */
+        fprintf(stderr, "new_file_buffer: mmap() failed.\n");
+        free(mm);
+        mm = NULL;
+    }
+
+    return (void*) mm;
+}
+
+
+int del_mmap(void *src)
+{
+    munmap(MM(src)->memmap, MM(src)->size);
+
+    fclose(MM(src)->fp);
+
+    /*
+     *  With a memory mapped file, there is no need to do
+     *  anything if restore == RESTORE_INITIAL.
+     */
+    /* if (restore == RESTORE_FINAL) { */
+    /*     fseek(FB(fb)->file, FB(fb)->current_pos, SEEK_SET); */
+    /* } */
+    free(src);
+
+    return 0;
+}
+
+void* buffer_mmap_bytes(void *source, size_t nbytes,
+                        size_t *bytes_read, int *status) {
+    void *retval;
+    memory_map *src = MM(source);
+
+    if (src->position == src->last_pos) {
+        *bytes_read = 0;
+        *status = REACHED_EOF;
+        return NULL;
+    }
+
+    retval = src->memmap + src->position;
+
+    if (src->position + nbytes > src->last_pos) {
+        // fewer than nbytes remaining
+        *bytes_read = src->last_pos - src->position;
+    } else {
+        *bytes_read = nbytes;
+    }
+
+    *status = 0;
+
+    /* advance position in mmap data structure */
+    src->position += *bytes_read;
+
+    return retval;
+}
+
+#else
+
+/* kludgy */
+
+void *new_mmap(char *fname) {
+  return NULL;
+}
+
+int del_mmap(void *src) {
+  return 0;
+}
+
+/* don't use this! */
+
+void* buffer_mmap_bytes(void *source, size_t nbytes,
+                        size_t *bytes_read, int *status) {
+  return NULL;
+}
+
+#endif 

@@ -29,9 +29,9 @@ typedef struct _file_source {
 
 #define FS(source) ((file_source *)source)
 
-
-#include <sys/stat.h>
-#include <sys/mman.h>
+#if !defined(_WIN32)
+#define HAVE_MMAP
+#endif
 
 typedef struct _memory_map {
 
@@ -54,6 +54,13 @@ typedef struct _memory_map {
 
 #define MM(src) ((memory_map*) src)
 
+void *new_mmap(char *fname);
+
+int del_mmap(void *src);
+
+void* buffer_mmap_bytes(void *source, size_t nbytes,
+                        size_t *bytes_read, int *status);
+
 
 typedef struct _rd_source {
     PyObject* obj;
@@ -63,14 +70,11 @@ typedef struct _rd_source {
 
 #define RDS(source) ((rd_source *)source)
 
-void *new_mmap(char *fname);
-
 void *new_file_source(char *fname, size_t buffer_size);
 
 void *new_rd_source(PyObject *obj);
 
 int del_file_source(void *src);
-int del_mmap(void *src);
 int del_rd_source(void *src);
 
 void* buffer_file_bytes(void *source, size_t nbytes,
@@ -78,7 +82,4 @@ void* buffer_file_bytes(void *source, size_t nbytes,
 
 void* buffer_rd_bytes(void *source, size_t nbytes,
                       size_t *bytes_read, int *status);
-
-void* buffer_mmap_bytes(void *source, size_t nbytes,
-                        size_t *bytes_read, int *status);
 
