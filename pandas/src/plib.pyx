@@ -150,7 +150,9 @@ cpdef i8 period_asfreq(i8 period_ordinal, i8 freq1, i8 freq2,
     Convert period ordinal from one frequency to another, and if upsampling,
     choose to use start ('S') or end ('E') of period.
     """
-    cdef i8 retval = asfreq(period_ordinal, freq1, freq2, how[0])
+    cdef:
+        char relation = how[0]
+        i8 retval = asfreq(period_ordinal, freq1, freq2, relation)
 
     if retval == INT64_MIN:
         raise ValueError('Frequency conversion failed')
@@ -158,7 +160,7 @@ cpdef i8 period_asfreq(i8 period_ordinal, i8 freq1, i8 freq2,
     return retval
 
 cpdef ndarray[i8] period_asfreq_arr(i8[:] arr, i8 freq1, i8 freq2,
-                                    char* relation):
+                                    char* how):
     """
     Convert int64-array of period ordinals from one frequency to another, and
     if upsampling, choose to use start ('S') or end ('E') of period.
@@ -167,14 +169,14 @@ cpdef ndarray[i8] period_asfreq_arr(i8[:] arr, i8 freq1, i8 freq2,
         Py_ssize_t i, n = len(arr)
         ndarray[i8] result = np.empty(n, dtype=np.int64)
         freq_conv_func func = get_asfreq_func(freq1, freq2)
+        char relation = how[0]
         asfreq_info finfo
         i8 val, ordinal
 
     get_asfreq_info(freq1, freq2, &finfo)
 
-
     for i in range(n):
-        val = func(arr[i], relation[0], &finfo)
+        val = func(arr[i], relation, &finfo)
 
         if val == INT64_MIN:
             raise ValueError("Unable to convert to desired frequency.")

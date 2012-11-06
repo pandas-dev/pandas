@@ -1003,9 +1003,6 @@ class TestFreqConversion(TestCase):
         assert_equal(ival_H.asfreq('S', 'E'), ival_H_to_S_end)
 
         assert_equal(ival_H.asfreq('U', 'S'), ival_H_to_U_start)
-        x = ival_H.asfreq('U', 'E')
-        print x.day
-        print x.hour
         assert_equal(ival_H.asfreq('U', 'E'), ival_H_to_U_end)
 
         assert_equal(ival_H.asfreq('H'), ival_H)

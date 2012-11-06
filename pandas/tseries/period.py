@@ -1242,4 +1242,3 @@ def period_range(start=None, end=None, periods=None, freq='D', name=None):
     """
     return PeriodIndex(start=start, end=end, periods=periods,
                        freq=freq, name=name)
-
