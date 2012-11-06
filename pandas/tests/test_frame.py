@@ -5151,8 +5151,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
 
         other1 = df + 1
         rs = df.where(cond, other1)
+        rs2 = df.where(cond.values, other1)
         for k, v in rs.iteritems():
             assert_series_equal(v, np.where(cond[k], df[k], other1[k]))
+        assert_frame_equal(rs, rs2)
+
+        # it works!
+        rs = df.where(cond[1:], other1)
 
         other2 = (df + 1).values
         rs = df.where(cond, other2)
@@ -7273,6 +7278,33 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_any_all(self):
         self._check_bool_op('any', np.any, has_skipna=True, has_bool_only=True)
         self._check_bool_op('all', np.all, has_skipna=True, has_bool_only=True)
+
+
+        df = DataFrame(randn(10, 4)) > 0
+        df.any(1)
+        df.all(1)
+        df.any(1, bool_only=True)
+        df.all(1, bool_only=True)
+
+        # skip pathological failure cases
+        # class CantNonzero(object):
+
+        #     def __nonzero__(self):
+        #         raise ValueError
+
+        # df[4] = CantNonzero()
+
+        # it works!
+        # df.any(1)
+        # df.all(1)
+        # df.any(1, bool_only=True)
+        # df.all(1, bool_only=True)
+
+        # df[4][4] = np.nan
+        # df.any(1)
+        # df.all(1)
+        # df.any(1, bool_only=True)
+        # df.all(1, bool_only=True)
 
     def test_consolidate_datetime64(self):
         # numpy vstack bug
