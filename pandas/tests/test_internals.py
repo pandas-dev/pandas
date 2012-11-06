@@ -236,16 +236,6 @@ class TestBlockManager(unittest.TestCase):
                     'bool', 'int64', 'complex128']
         self.assert_(np.array_equal(result, expected))
 
-    def test_union_block_items(self):
-        blocks = [get_float_ex(['a', 'b', 'c']),
-                  get_float_ex(['c', 'd', 'e'])]
-        self.assertRaises(Exception, internals._union_block_items, blocks)
-
-        blocks = [get_float_ex(['a', 'b', 'c']),
-                  get_float_ex(['f', 'e', 'd'])]
-        self.assert_(np.array_equal(internals._union_block_items(blocks),
-                                    ['a', 'b', 'c', 'd', 'e', 'f']))
-
     def test_duplicate_item_failure(self):
         items = Index(['a', 'a'])
         blocks = [get_bool_ex(['a']), get_float_ex(['a'])]

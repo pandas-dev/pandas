@@ -51,16 +51,8 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
 
             notmask = -na_mask
 
-            if sep is None:
-                for x in arrays:
-                    x = x[notmask]
-                    if cats is None:
-                        cats = x
-                    else:
-                        cats = cats + x[notmask]
-            else:
-                tuples = izip(*[x[notmask] for x in arrays])
-                cats = [sep.join(tup) for tup in tuples]
+            tuples = izip(*[x[notmask] for x in arrays])
+            cats = [sep.join(tup) for tup in tuples]
 
             result[notmask] = cats
         else:

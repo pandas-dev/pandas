@@ -487,7 +487,7 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, log=False,
                               figsize=figsize, layout=layout, rot=rot)
     fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9,
                         hspace=0.3, wspace=0.2)
-    return fig
+    return axes
 
 class MPLPlot(object):
     """

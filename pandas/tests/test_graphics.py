@@ -466,6 +466,8 @@ class TestDataFramePlots(unittest.TestCase):
     @slow
     def test_line_colors(self):
         import matplotlib.pyplot as plt
+        import sys
+        from StringIO import StringIO
 
         custom_colors = 'rgcby'
 
@@ -480,6 +482,16 @@ class TestDataFramePlots(unittest.TestCase):
             rs = l.get_color()
             self.assert_(xp == rs)
 
+        tmp = sys.stderr
+        sys.stderr = StringIO()
+        try:
+            plt.close('all')
+            ax2 = df.plot(colors=custom_colors)
+            lines2 = ax2.get_lines()
+            for l1, l2 in zip(lines, lines2):
+                self.assert_(l1.get_color(), l2.get_color())
+        finally:
+            sys.stderr = tmp
 
 class TestDataFrameGroupByPlots(unittest.TestCase):
 
@@ -513,6 +525,8 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
         _check_plot_works(grouped.boxplot)
         _check_plot_works(grouped.boxplot, subplots=False)
 
+
+
     @slow
     def test_series_plot_color_kwargs(self):
         # #1890
@@ -532,6 +546,13 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
         ax = Series(np.arange(12) + 1, index=date_range('1/1/2000', periods=12)).plot(color='green')
         line = ax.get_lines()[0]
         self.assert_(line.get_color() == 'green')
+
+    @slow
+    def test_grouped_hist(self):
+        df = DataFrame(np.random.randn(50, 2), columns=['A', 'B'])
+        df['C'] = np.random.randint(0, 3, 50)
+        axes = plotting.grouped_hist(df.A, by=df.C)
+        self.assert_(len(axes.ravel()) == 4)
 
 PNG_PATH = 'tmp.png'
 
