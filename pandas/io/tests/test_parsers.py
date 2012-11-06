@@ -772,8 +772,8 @@ baz,7,8,9
             df2 = df2.reindex(columns=['A', 'B', 'C'])
             df3 = xls.parse('Sheet2', skiprows=[1], index_col=0,
                             parse_dates=True, parse_cols='A:D')
-            assert_frame_equal(df, df2)
-            assert_frame_equal(df3, df2)
+            tm.assert_frame_equal(df, df2)
+            tm.assert_frame_equal(df3, df2)
             del df, df2, df3
 
             df = xls.parse('Sheet1', index_col=0, parse_dates=True,
@@ -783,8 +783,8 @@ baz,7,8,9
             df3 = xls.parse('Sheet2', skiprows=[1], index_col=0,
                              parse_dates=True,
                              parse_cols='A,C,D')
-            assert_frame_equal(df, df2)
-            assert_frame_equal(df3, df2)
+            tm.assert_frame_equal(df, df2)
+            tm.assert_frame_equal(df3, df2)
             del df, df2, df3
 
             df = xls.parse('Sheet1', index_col=0, parse_dates=True,
@@ -794,8 +794,8 @@ baz,7,8,9
             df3 = xls.parse('Sheet2', skiprows=[1], index_col=0,
                              parse_dates=True,
                              parse_cols='A,C:D')
-            assert_frame_equal(df, df2)
-            assert_frame_equal(df3, df2)
+            tm.assert_frame_equal(df, df2)
+            tm.assert_frame_equal(df3, df2)
 
     def test_read_table_unicode(self):
         fin = BytesIO(u'\u0141aski, Jan;1'.encode('utf-8'))
@@ -1794,7 +1794,7 @@ a,b,c
                 os.remove('__tmp__')
             except:
                 pass
-    
+
     def test_memory_map(self):
         # it works!
         result = self.read_csv(self.csv1, memory_map=True)

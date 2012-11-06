@@ -15,7 +15,6 @@ cdef extern from "numpy_helper.h":
     inline cnp.int64_t get_nat()
     inline object get_value_1d(ndarray, Py_ssize_t)
     inline char *get_c_string(object)
-    inline int floatify(object, double *result) except -1
     inline object char_to_string(char*)
     inline void transfer_object_column(char *dst, char *src, size_t stride,
                                        size_t length)
