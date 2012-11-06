@@ -1,6 +1,6 @@
 .. _whatsnew_0901:
 
-v0.9.1 (November 6, 2012)
+v0.9.1 (November 8, 2012)
 -------------------------
 
 This is a bugfix release from 0.9.0 and includes several new features and
@@ -78,6 +78,21 @@ API changes
 
         p.end_time
 
+  - File parsers no longer coerce to float or bool for columns that have custom
+    converters specified (GH2184_)
+
+    .. ipython:: python
+
+        data = """\
+        A,B,C
+        00001,001,5
+        00002,002,6
+        """
+
+        from cStringIO import StringIO
+        
+        read_csv(StringIO(data), converters={'A' : lambda x: x.strip()})
+
 
 See the `full release notes
 <https://github.com/pydata/pandas/blob/master/RELEASE.rst>`__ or issue tracker
@@ -97,6 +112,7 @@ on GitHub for a complete list.
 .. _GH2125: https://github.com/pydata/pandas/issues/2125
 .. _GH2124: https://github.com/pydata/pandas/issues/2124
 .. _GH2110: https://github.com/pydata/pandas/issues/2110
+.. _GH2184: https://github.com/pydata/pandas/issues/2184
 
 .. _GH2181: https://github.com/pydata/pandas/issues/2181
 .. _GH2180: https://github.com/pydata/pandas/issues/2180
