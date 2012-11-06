@@ -99,7 +99,7 @@ def _maybe_resample(series, ax, freq, plotf, kwargs):
         elif frequencies.is_subperiod(freq, ax_freq) or _is_sub(freq, ax_freq):
             _upsample_others(ax, freq, plotf, kwargs)
             ax_freq = freq
-        else:
+        else: #pragma: no cover
             raise ValueError('Incompatible frequency conversion')
     return freq, ax_freq, series
 
@@ -146,7 +146,6 @@ def _upsample_others(ax, freq, plotf, kwargs):
             title = None
         ax.legend(lines, labels, loc='best', title=title)
 
-
 def _replot_ax(ax, freq, plotf, kwargs):
     data = getattr(ax, '_plot_data', None)
     ax._plot_data = []
@@ -187,7 +186,7 @@ def _maybe_mask(series):
         masked_array = np.ma.masked_where(mask, masked_array)
         args = [series.index, masked_array]
     else:
-        args = [series.index, series]
+        args = [series.index, series.values]
     return args
 
 
@@ -221,19 +220,6 @@ def _get_xlim(lines):
         left = min(x[0].ordinal, left)
         right = max(x[-1].ordinal, right)
     return left, right
-
-
-def get_datevalue(date, freq):
-    if isinstance(date, Period):
-        return date.asfreq(freq).ordinal
-    elif isinstance(date, (str, datetime, pydt.date, pydt.time)):
-        return Period(date, freq).ordinal
-    elif (com.is_integer(date) or com.is_float(date) or
-          (isinstance(date, np.ndarray) and (date.size == 1))):
-        return date
-    elif date is None:
-        return None
-    raise ValueError("Unrecognizable date '%s'" % date)
 
 # Patch methods for subplot. Only format_dateaxis is currently used.
 # Do we need the rest for convenience?

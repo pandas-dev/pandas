@@ -847,13 +847,15 @@ class TextParser(object):
         if self.parse_dates is not None:
             data, columns = self._process_date_conversion(data)
 
-        # apply converters
+        #converters to column names
+        clean_conv = {}
         for col, f in self.converters.iteritems():
             if isinstance(col, int) and col not in self.orig_columns:
                 col = self.orig_columns[col]
-            data[col] = lib.map_infer(data[col], f)
+            clean_conv[col] = f
 
-        data = _convert_to_ndarrays(data, self.na_values, self.verbose)
+        data = _convert_to_ndarrays(data, self.na_values, self.verbose,
+                                    clean_conv)
 
         if self.index_col is None:
             numrows = len(content)
@@ -1141,18 +1143,23 @@ def _get_na_values(col, na_values):
         return na_values
 
 
-def _convert_to_ndarrays(dct, na_values, verbose=False):
+def _convert_to_ndarrays(dct, na_values, verbose=False, converters=None):
     result = {}
     for c, values in dct.iteritems():
+        conv_f = None if converters is None else converters.get(c, None)
         col_na_values = _get_na_values(c, na_values)
-        cvals, na_count = _convert_types(values, col_na_values)
+        coerce_type = True
+        if conv_f is not None:
+            values = lib.map_infer(values, conv_f)
+            coerce_type = False
+        cvals, na_count = _convert_types(values, col_na_values, coerce_type)
         result[c] = cvals
         if verbose and na_count:
             print 'Filled %d NA values in column %s' % (na_count, str(c))
     return result
 
 
-def _convert_types(values, na_values):
+def _convert_types(values, na_values, try_num_bool=True):
     na_count = 0
     if issubclass(values.dtype.type, (np.number, np.bool_)):
         mask = lib.ismember(values, na_values)
@@ -1163,13 +1170,17 @@ def _convert_types(values, na_values):
             np.putmask(values, mask, np.nan)
         return values, na_count
 
-    try:
-        result = lib.maybe_convert_numeric(values, na_values, False)
-    except Exception:
+    if try_num_bool:
+        try:
+            result = lib.maybe_convert_numeric(values, na_values, False)
+        except Exception:
+            na_count = lib.sanitize_objects(values, na_values, False)
+            result = values
+    else:
         na_count = lib.sanitize_objects(values, na_values, False)
         result = values
 
-    if result.dtype == np.object_:
+    if result.dtype == np.object_ and try_num_bool:
         result = lib.maybe_convert_bool(values)
 
     return result, na_count
@@ -1352,7 +1363,7 @@ class ExcelFile(object):
                                      skip_footer=skip_footer)
 
     def _should_parse(self, i, parse_cols):
-        
+
         def _range2cols(areas):
             """
             Convert comma separated list of column names and column ranges to a
@@ -1363,10 +1374,10 @@ class ExcelFile(object):
             >>> _range2cols('A,C,Z:AB')
             [0, 2, 25, 26, 27]
             """
-            def _excel2num(x): 
+            def _excel2num(x):
                 "Convert Excel column name like 'AB' to 0-based column index"
                 return reduce(lambda s,a: s*26+ord(a)-ord('A')+1, x.upper().strip(), 0)-1
-            
+
             cols = []
             for rng in areas.split(','):
                 if ':' in rng:

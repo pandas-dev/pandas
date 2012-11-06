@@ -559,7 +559,6 @@ class BlockManager(object):
         return tuple(len(ax) for ax in self.axes)
 
     def _verify_integrity(self):
-        # _union_block_items(self.blocks)
         mgr_shape = self.shape
         for block in self.blocks:
             assert(block.ref_items is self.items)
@@ -1403,34 +1402,6 @@ def _merge_blocks(blocks, items):
     new_items = blocks[0].items.append([b.items for b in blocks[1:]])
     new_block = make_block(new_values, new_items, items)
     return new_block.reindex_items_from(items)
-
-def _union_block_items(blocks):
-    tot_len = 0
-    all_items = []
-    slow = False
-    for b in blocks:
-        tot_len += len(b.items)
-        if type(b.items) != Index:
-            slow = True
-        all_items.append(b.items)
-
-    if slow:
-        the_union = _union_items_slow(all_items)
-    else:
-        the_union = Index(lib.fast_unique_multiple(all_items))
-
-    if tot_len > len(the_union):
-        raise Exception('item names overlap')
-    return the_union
-
-def _union_items_slow(all_items):
-    seen = None
-    for items in all_items:
-        if seen is None:
-            seen = items
-        else:
-            seen = seen.union(items)
-    return seen
 
 def _vstack(to_stack):
     if all(x.dtype == _NS_DTYPE for x in to_stack):

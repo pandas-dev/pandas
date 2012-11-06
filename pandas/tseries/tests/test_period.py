@@ -444,6 +444,7 @@ class TestPeriodProperties(TestCase):
                           freq='2M')
 
         self.assertRaises(ValueError, Period, datetime.now())
+        self.assertRaises(ValueError, Period, datetime.now().date())
         self.assertRaises(ValueError, Period, 1.6, freq='D')
         self.assertRaises(ValueError, Period, ordinal=1.6, freq='D')
         self.assertRaises(ValueError, Period, ordinal=2, value=1, freq='D')
@@ -1334,6 +1335,25 @@ class TestPeriodIndex(TestCase):
 
         result = ts['2008':'2009']
         self.assertEquals(len(result), 24)
+
+        result = ts['2008-1':'2009-12']
+        self.assertEquals(len(result), 24)
+
+        result = ts['2008Q1':'2009Q4']
+        self.assertEquals(len(result), 24)
+
+        result = ts[:'2009']
+        self.assertEquals(len(result), 36)
+
+        result = ts['2009':]
+        self.assertEquals(len(result), 50 - 24)
+
+        exp = result
+        result = ts[24:]
+        assert_series_equal(exp, result)
+
+        ts = ts[10:].append(ts[10:])
+        self.assertRaises(ValueError, ts.__getitem__, slice('2008', '2009'))
 
     def test_getitem_datetime(self):
         rng = period_range(start='2012-01-01', periods=10, freq='W-MON')

@@ -40,6 +40,8 @@ pandas 0.9.1
     upsampled to monthly will span all months in each year
   - Period.end_time will yield timestamp at last nanosecond in the interval
     (#2124, #2125, #1764)
+  - File parsers no longer coerce to float or bool for columns that have custom
+    converters specified (#2184)
 
 **Improvements to existing features**
 

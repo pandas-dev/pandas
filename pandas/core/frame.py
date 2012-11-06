@@ -4660,7 +4660,7 @@ class DataFrame(NDFrame):
         if self._is_mixed_type:
             bool_data = self._data.get_bool_data()
             return DataFrame(bool_data, copy=False)
-        else:
+        else:  # pragma: no cover
             if self.values.dtype == np.bool_:
                 return self
             else:
@@ -4896,7 +4896,8 @@ class DataFrame(NDFrame):
         if isinstance(cond, np.ndarray):
             if cond.shape != self.shape:
                 raise ValueError('Array onditional must be same shape as self')
-            cond = self._constructor(cond, index=self.index, columns=self.columns)
+            cond = self._constructor(cond, index=self.index,
+                                     columns=self.columns)
         if cond.shape != self.shape:
             cond = cond.reindex(self.index, columns=self.columns)
             cond = cond.fillna(False)

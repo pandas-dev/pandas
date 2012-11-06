@@ -317,6 +317,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
     convert to proper dtype array
     '''
     cdef:
+        int status
         Py_ssize_t i, n
         ndarray[float64_t] floats
         ndarray[complex128_t] complexes
@@ -354,7 +355,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
             complexes[i] = val
             seen_complex = 1
         else:
-            fval = util.floatify(val)
+            status = util.floatify(val, &fval)
             floats[i] = fval
             if not seen_float:
                 if '.' in val or fval == INF or fval == NEGINF:

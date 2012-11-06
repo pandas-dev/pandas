@@ -1259,6 +1259,14 @@ c,4,5,01/03/2009
         expected['D'] = expected['D'].map(converter)
         assert_frame_equal(result, expected)
 
+    def test_converters_no_implicit_conv(self):
+        #GH2184
+        data = """000102,1.2,A\n001245,2,B"""
+        f = lambda x: x.strip()
+        converter = {0: f}
+        df = read_csv(StringIO(data), header=None, converters=converter)
+        self.assert_(df.X0.dtype == object)
+
     def test_converters_euro_decimal_format(self):
         data = """Id;Number1;Number2;Text1;Text2;Number3
 1;1521,1541;187101,9543;ABC;poi;4,738797819
@@ -1277,7 +1285,7 @@ c,4,5,01/03/2009
 1;1521,1541;187101,9543;ABC;poi;4,738797819
 2;121,12;14897,76;DEF;uyt;0,377320872
 3;878,158;108013,434;GHI;rez;2,735694704"""
-        f = lambda x : x.replace(",", ".")
+        f = lambda x : float(x.replace(",", "."))
         converter = {'Number1':f,'Number2':f, 'Number3':f}
         df2 = read_csv(StringIO(data), sep=';',converters=converter)
         self.assert_(df2['Number1'].dtype == float)
