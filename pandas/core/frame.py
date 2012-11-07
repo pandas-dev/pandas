@@ -4585,9 +4585,7 @@ class DataFrame(NDFrame):
                     result = result.astype(np.float64)
                 elif filter_type == 'bool' and notnull(result).all():
                     result = result.astype(np.bool_)
-                else:
-                    raise NotImplementedError
-
+                # otherwise, accept it
             except (ValueError, TypeError):
                 pass
 
