@@ -59,10 +59,10 @@ def pivot_annual_h(series, freq=None, dt_index=False):
         hoy_leap_list = range(1, (total_hoy_leap + 1 ))
         
         
-        
+        #create a array template
         values = np.empty((total_hoy_leap, len(years)), dtype=series.dtype)
         values.fill(np.nan)
-        
+        #create a df to receive the resulting data
         dummy_df = DataFrame(values, index=hoy_leap_list, 
                         columns=years)
                         
@@ -100,7 +100,7 @@ def pivot_annual_h(series, freq=None, dt_index=False):
                 
         res_df = dummy_df
         
-        #assign a datetime index, CAUTION: the year is definatly wrong!
+        #assign a pseudo datetime index , CAUTION: the year is definitely wrong!
         if dt_index:
             rng = default_rng(freq='H', leap=True)            
             res_df = DataFrame(res_df.values, index=rng, 
