@@ -3320,7 +3320,7 @@ class DataFrame(NDFrame):
             # XXX no good for duplicate columns
             result = {}
             for col in this:
-                result[col] = func(this[col].values, other[col].values)
+                result[col] = _arith_op(this[col].values, other[col].values)
         else:
             result = _arith_op(this.values, other.values)
 
