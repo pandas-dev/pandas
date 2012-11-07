@@ -1325,7 +1325,8 @@ def _stack_arrays(tuples, ref_items, dtype):
     names, arrays = zip(*tuples)
 
     # index may box values
-    items = ref_items[ref_items.isin(names)]
+    names = Index(names)
+    items = names[names.isin(ref_items)]
 
     first = arrays[0]
     shape = (len(arrays),) + _shape_compat(first)

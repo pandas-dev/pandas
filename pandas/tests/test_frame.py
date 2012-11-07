@@ -2319,6 +2319,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                           [('a',[8]),('a',[5]), ('b', [6])],
                           columns=['b', 'a','a'])
 
+        #additional test for #2079
+        vals = [[1, -1, 2.], [2, -2, 3.]]
+        rs = DataFrame(vals, columns=['A', 'A', 'B'])
+        xp = DataFrame(vals)
+        xp.columns = ['A', 'A', 'B']
+        assert_frame_equal(rs, xp)
+
     def test_new_empty_index(self):
         df1 = DataFrame(randn(0, 3))
         df2 = DataFrame(randn(0, 3))

@@ -3318,6 +3318,7 @@ class DataFrame(NDFrame):
 
         if this._is_mixed_type or other._is_mixed_type:
             # XXX no good for duplicate columns
+            # but cannot outer join in align if dups anyways?
             result = {}
             for col in this:
                 result[col] = _arith_op(this[col].values, other[col].values)
