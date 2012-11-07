@@ -136,7 +136,8 @@ char_to_string(char* data) {
 #include <errno.h>
 #include <float.h>
 
-double PANDAS_INLINE xstrtod(const char *p, char **q, char decimal, char sci, int skip_trailing);
+PANDAS_INLINE double
+xstrtod(const char *p, char **q, char decimal, char sci, int skip_trailing);
 
 int to_double(char *item, double *p_value, char sci, char decimal)
 {
@@ -250,7 +251,7 @@ PANDAS_INLINE void uppercase(char *p) {
 }
 
 
-double PANDAS_INLINE xstrtod(const char *str, char **endptr, char decimal,
+PANDAS_INLINE double xstrtod(const char *str, char **endptr, char decimal,
                              char sci, int skip_trailing)
 {
   double number;
