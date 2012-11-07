@@ -538,14 +538,12 @@ if cython:
     cmdclass['build_ext'] = build_ext
     if BUILD_CACHE_DIR: # use the cache
         cmdclass['build_ext'] = CachingBuildExt
+    cmdclass['cython'] = CythonCommand
+    cmdclass['sdist'] =  CheckSDist
 else:
-
     suffix = '.c'
     cmdclass['build_src'] = DummyBuildSrc
-
-    cmdclass['cython'] = CythonCommand
     cmdclass['build_ext'] =  build_ext
-    cmdclass['sdist'] =  CheckSDist
 
 tseries_depends = ['reindex', 'groupby', 'skiplist', 'moments',
                    'reduce', 'stats', 'datetime',
