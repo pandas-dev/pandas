@@ -66,44 +66,43 @@ def pivot_annual_h(series, freq=None, dt_index=False):
         dummy_df = DataFrame(values, index=hoy_leap_list, 
                         columns=years)
                         
-        ##get offset for leap hours
-        
+        ##prepare the index for inserting the values into the result dataframe
+        #get offset for leap hours
         #see:
         #http://stackoverflow.com/questions/2004364/increment-numpy-array-with-repeated-indices
         #1994-02-28 23:00:00 -> index 1415
-        ind_z = np.array(range(0, 8760))
-        ind_i = np.array(range(1416,8760 ))
+        index_nonleap = np.array(range(0, 8760))
+        index_leapshift = np.array(range(1416,8760 ))
         
-        ind_t = ind_z.copy()
-        ind_t[ind_i]+=24
+        index_incl_leap = index_nonleap.copy()
+        #shift index by 24 (hours) for leap
+        index_incl_leap[index_leapshift]+=24
         
-        #TODO: beautify variable names
+        # select data for the respective year
         for year in years:
             
-            # select data for the respective year
-            ser_sel = series[ series.index.year == year]
-            info = (ser_sel).values
-            
-            
+            #select the data for the respective year
+            series_year = series[ series.index.year == year]
+            #create a array with the values for the respecive year
+            values = (series_year).values
             
             if isleapyear(year):
-                dummy_df[year] = info
+                dummy_df[year] = values
             else:
-                data = np.empty((total_hoy_leap), dtype=series.dtype)
-                data.fill(np.nan)
+                #dummy array to be filled with non-leap values
+                dummy_array = np.empty((total_hoy_leap), dtype=series.dtype)
+                dummy_array.fill(np.nan)
                 
-                ser_sel = series[ series.index.year == year]
-                info = (ser_sel).values
+                #fill dummy array with values leaving the leap day
+                dummy_array.put(index_incl_leap, values)
                 
-                data.put(ind_t, (series[ series.index.year == year]).values)
-                
-                dummy_df[year] = data
+                dummy_df[year] = dummy_array
                 
         res_df = dummy_df
         
         #assign a datetime index, CAUTION: the year is definatly wrong!
         if dt_index:
-            rng = default_rng()            
+            rng = default_rng(freq='H', leap=True)            
             res_df = DataFrame(res_df.values, index=rng, 
                                columns=res_df.columns)
         
