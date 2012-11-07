@@ -97,14 +97,9 @@ API changes
 
     .. ipython:: python
 
-        data = """\
-        A,B,C
-        00001,001,5
-        00002,002,6
-        """
+        data = 'A,B,C\n00001,001,5\n00002,002,6'
 
         from cStringIO import StringIO
-
         read_csv(StringIO(data), converters={'A' : lambda x: x.strip()})
 
 
