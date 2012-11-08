@@ -1301,7 +1301,9 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
     Parameters
     ----------
     label : label argument to provide to plot
-    kind : {'line', 'bar'}
+    kind : {'line', 'bar', 'barh'}
+        bar : vertical bar plot
+        barh : horizontal bar plot
     rot : int, default 30
         Rotation for tick labels
     use_index : boolean, default True
@@ -1312,9 +1314,6 @@ def plot_series(series, label=None, kind='line', use_index=True, rot=None,
         matplotlib line style to use
     ax : matplotlib axis object
         If not passed, uses gca()
-    kind : {'line', 'bar', 'barh'}
-        bar : vertical bar plot
-        barh : horizontal bar plot
     logy : boolean, default False
         For line plots, use log scaling on y axis
     xticks : sequence
