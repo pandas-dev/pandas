@@ -268,7 +268,8 @@ class DataFrameFormatter(object):
         if len(frame.columns) == 0 or len(frame.index) == 0:
             info_line = (u'Empty %s\nColumns: %s\nIndex: %s'
                          % (type(self.frame).__name__,
-                            frame.columns, frame.index))
+                            com.pprint_thing(frame.columns),
+                            com.pprint_thing(frame.index)))
             text = info_line
         else:
             strcols = self._to_str_columns(force_unicode)

@@ -209,9 +209,10 @@ class Index(np.ndarray):
         try:
             return np.array_repr(self.values)
         except UnicodeError:
-            converted = u','.join(unicode(x) for x in self.values)
-            return u'%s([%s], dtype=''%s'')' % (type(self).__name__, converted,
+            converted = u','.join(com.pprint_thing(x) for x in self.values)
+            result = u'%s([%s], dtype=''%s'')' % (type(self).__name__, converted,
                                               str(self.values.dtype))
+            return com.console_encode(result)
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
