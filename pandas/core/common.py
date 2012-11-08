@@ -852,6 +852,13 @@ def is_integer_dtype(arr_or_dtype):
             (issubclass(tipo, np.datetime64) or
              issubclass(tipo, np.timedelta64)))
 
+def _is_int_or_datetime_dtype(arr_or_dtype):
+    # also timedelta64
+    if isinstance(arr_or_dtype, np.dtype):
+        tipo = arr_or_dtype.type
+    else:
+        tipo = arr_or_dtype.dtype.type
+    return issubclass(tipo, np.integer)
 
 def is_datetime64_dtype(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):
