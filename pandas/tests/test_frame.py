@@ -1295,6 +1295,21 @@ class CheckIndexing(object):
                 expected = self.frame.get_value(row, col)
                 assert_almost_equal(result, expected)
 
+    def test_nested_exception(self):
+        # Ignore the strange way of triggering the problem
+        # (which may get fixed), it's just a way to trigger
+        # the issue or reraising an outer exception without
+        # a named argument
+        df=DataFrame({"a":[1,2,3],"b":[4,5,6],"c":[7,8,9]}).set_index(["a","b"])
+        l=list(df.index)
+        l[0]=["a","b"]
+        df.index=l
+
+        try:
+            print df
+        except Exception,e:
+            self.assertNotEqual(type(e),UnboundLocalError)
+
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
 
