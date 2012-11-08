@@ -1321,11 +1321,15 @@ class MultiIndex(Index):
                                      self[-50:].values])
         else:
             values = self.values
-        summary = np.array2string(values, max_line_width=70)
+
+        summary = com.pprint_thing(values)
 
         np.set_printoptions(threshold=options['threshold'])
 
-        return output % summary
+        if py3compat.PY3:
+            return output % summary
+        else:
+            return com.console_encode(output % summary)
 
     def __len__(self):
         return len(self.labels[0])
