@@ -49,6 +49,33 @@ def upload_stable_pdf():
                  ':/usr/share/nginx/pandas/pandas-docs/stable/'):
         raise SystemExit('PDF upload to stable failed')
 
+def upload_prev(ver, doc_root='./'):
+    'push a copy of older release to appropriate version directory'
+    local_dir = doc_root + 'build/html'
+    remote_dir = '/usr/share/nginx/pandas/pandas-docs/version/%s/' % ver
+    cmd = 'cd %s; rsync -avz . pandas@pandas.pydata.org:%s -essh'
+    cmd = cmd % (local_dir, remote_dir)
+    print cmd
+    if os.system(cmd):
+        raise SystemExit('Upload to %s from %s failed' % (remote_dir, local_dir))
+
+    local_dir = doc_root + 'build/latex'
+    pdf_cmd = 'cd %s; scp pandas.pdf pandas@pandas.pydata.org:%s'
+    pdf_cmd = pdf_cmd % (local_dir, remote_dir)
+    if os.system(pdf_cmd):
+        raise SystemExit('Upload PDF to %s from %s failed' % (ver, doc_root))
+
+def build_prev(ver):
+    if os.system('git checkout v%s' % ver) != 1:
+        os.chdir('..')
+        os.system('python setup.py clean')
+        os.system('python setup.py build_ext --inplace')
+        os.chdir('doc')
+        os.system('python make.py clean')
+        os.system('python make.py html')
+        os.system('python make.py latex')
+        os.system('git checkout master')
+
 def clean():
     if os.path.exists('build'):
         shutil.rmtree('build')
@@ -201,7 +228,15 @@ small_docs = False
 # current_dir = os.getcwd()
 # os.chdir(os.path.dirname(os.path.join(current_dir, __file__)))
 
-if len(sys.argv)>1:
+if len(sys.argv) > 2:
+    ftype = sys.argv[1]
+    ver = sys.argv[2]
+
+    if ftype == 'build_previous':
+        build_prev(ver)
+    if ftype == 'upload_previous':
+        upload_prev(ver)
+elif len(sys.argv) > 1:
     for arg in sys.argv[1:]:
         func = funcd.get(arg)
         if func is None:
