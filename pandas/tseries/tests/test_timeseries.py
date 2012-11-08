@@ -1645,6 +1645,14 @@ class TestLegacySupport(unittest.TestCase):
         _check_join(index[:15], obj_index[5:], how='right')
         _check_join(index[:15], obj_index[5:], how='left')
 
+    def test_join_nonunique(self):
+        idx1 = to_datetime(['2012-11-06 16:00:11.477563',
+                            '2012-11-06 16:00:11.477563'])
+        idx2 = to_datetime(['2012-11-06 15:11:09.006507',
+                            '2012-11-06 15:11:09.006507'])
+        rs = idx1.join(idx2, how='outer')
+        self.assert_(rs.is_monotonic)
+
     def test_unpickle_daterange(self):
         pth, _ = os.path.split(os.path.abspath(__file__))
         filepath = os.path.join(pth, 'data', 'daterange_073.pickle')
