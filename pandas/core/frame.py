@@ -3919,7 +3919,7 @@ class DataFrame(NDFrame):
                 except (NameError, UnboundLocalError):  # pragma: no cover
                     # no k defined yet
                     pass
-                raise
+                raise e
 
         if len(results) > 0 and _is_sequence(results[0]):
             if not isinstance(results[0], Series):
