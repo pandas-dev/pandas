@@ -6086,6 +6086,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         comb = df1.combineAdd(df2)
         assert_frame_equal(comb, df3)
 
+        # mixed type GH2191
+        df1 = DataFrame({'A' : [1, 2], 'B' : [3, 4]})
+        df2 = DataFrame({'A' : [1, 2], 'C' : [5, 6]})
+        rs = df1.combineAdd(df2)
+        xp = DataFrame({'A' : [2, 4], 'B' : [3, 4.], 'C' : [5, 6.]})
+        assert_frame_equal(xp, rs)
+
         # TODO: test integer fill corner?
 
     def test_combineMult(self):
