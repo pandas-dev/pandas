@@ -87,6 +87,9 @@ class TestSeriesPlots(unittest.TestCase):
             rs = rect.get_facecolor()
             self.assert_(xp == rs)
 
+        plt.close('all')
+        df.ix[:, [0]].plot(kind='bar', color='DodgerBlue')
+
     @slow
     def test_bar_linewidth(self):
         df = DataFrame(np.random.randn(5, 5))
@@ -492,6 +495,12 @@ class TestDataFramePlots(unittest.TestCase):
                 self.assert_(l1.get_color(), l2.get_color())
         finally:
             sys.stderr = tmp
+
+        # make color a list if plotting one column frame
+        # handles cases like df.plot(color='DodgerBlue')
+        plt.close('all')
+        df.ix[:, [0]].plot(color='DodgerBlue')
+
 
 class TestDataFrameGroupByPlots(unittest.TestCase):
 
