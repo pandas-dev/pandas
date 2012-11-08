@@ -935,7 +935,7 @@ class BlockManager(object):
 
     def _check_have(self, item):
         if item not in self.items:
-            raise KeyError('no item named %s' % str(item))
+            raise KeyError('no item named %s' % com.pprint_thing(item))
 
     def reindex_axis(self, new_axis, method=None, axis=0, copy=True):
         new_axis = _ensure_index(new_axis)
