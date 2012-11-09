@@ -123,7 +123,7 @@ To plot data on a secondary y-axis, use the ``secondary_y`` keyword:
 Selective Plotting on Secondary Y-axis
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To plot some columns in a DataFrame, give the column names to the `secondary_y`
+To plot some columns in a DataFrame, give the column names to the ``secondary_y``
 keyword:
 
 .. ipython:: python
@@ -135,7 +135,7 @@ keyword:
 
 Note that the columns plotted on the secondary y-axis is automatically marked
 with "(right)" in the legend. To turn off the automatic marking, use the
-`mark_right=False` keyword:
+``mark_right=False`` keyword:
 
 .. ipython:: python
 
@@ -143,6 +143,50 @@ with "(right)" in the legend. To turn off the automatic marking, use the
 
    @savefig frame_plot_secondary_y.png width=4.5in
    df.plot(secondary_y=['A', 'B'], mark_right=False)
+
+
+Suppressing tick resolution adjustment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Pandas includes automatically tick resolution adjustment for regular frequency
+time-series data. For limited cases where pandas cannot infer the frequency
+information (e.g., in an externally created ``twinx``), you can choose to
+suppress this behavior for alignment purposes.
+
+Here is the default behavior, notice how the x-axis tick labelling is performed:
+
+.. ipython:: python
+
+   plt.figure()
+
+   @savefig ser_plot_suppress.png width=4.5in
+   df.A.plot()
+
+
+Using the ``x_compat`` parameter, you can suppress this bevahior:
+
+.. ipython:: python
+
+   plt.figure()
+
+   @savefig ser_plot_suppress_parm.png width=4.5in
+   df.A.plot(x_compat=True)
+
+
+If you have more than one plot that needs to be suppressed, the ``use`` method
+in ``pandas.plot_params`` can be used in a `with statement`:
+
+.. ipython:: python
+
+   import pandas as pd
+
+   plt.figure()
+
+   @savefig ser_plot_suppress_context.png width=4.5in
+   with pd.plot_params.use('x_compat', True):
+       df.A.plot(color='r')
+       df.B.plot(color='g')
+       df.C.plot(color='b')
 
 
 Targeting different subplots
