@@ -136,8 +136,7 @@ char_to_string(char* data) {
 #include <errno.h>
 #include <float.h>
 
-PANDAS_INLINE double
-xstrtod(const char *p, char **q, char decimal, char sci, int skip_trailing);
+double xstrtod(const char *p, char **q, char decimal, char sci, int skip_trailing);
 
 int to_double(char *item, double *p_value, char sci, char decimal)
 {
@@ -153,7 +152,7 @@ int to_double(char *item, double *p_value, char sci, char decimal)
   #define PyBytes_AS_STRING            PyString_AS_STRING
 #endif
 
-PANDAS_INLINE int floatify(PyObject* str, double *result) {
+int floatify(PyObject* str, double *result) {
     int status;
     char *data;
     PyObject* tmp = NULL;
@@ -242,17 +241,11 @@ PANDAS_INLINE int floatify(PyObject* str, double *result) {
 // * Commented out the other functions.
 //
 
-PANDAS_INLINE void lowercase(char *p) {
-    for ( ; *p; ++p) *p = tolower(*p);
-}
-
-PANDAS_INLINE void uppercase(char *p) {
-    for ( ; *p; ++p) *p = toupper(*p);
-}
 
 
-PANDAS_INLINE double xstrtod(const char *str, char **endptr, char decimal,
-                             char sci, int skip_trailing)
+double
+xstrtod(const char *str, char **endptr, char decimal,
+               char sci, int skip_trailing)
 {
   double number;
   int exponent;
@@ -401,4 +394,3 @@ void set_array_owndata(PyArrayObject *ao) {
 //   }
 //   return ap;
 // }
-
