@@ -233,6 +233,28 @@ class TestDataFramePlots(unittest.TestCase):
         # columns.inferred_type == 'mixed'
         # TODO add MultiIndex test
 
+    @slow
+    def test_xcompat(self):
+        import pandas as pd
+        import matplotlib.pyplot as plt
+
+        df = tm.makeTimeDataFrame()
+        ax = df.plot(x_compat=True)
+        lines = ax.get_lines()
+        self.assert_(not isinstance(lines[0].get_xdata(), PeriodIndex))
+
+        plt.close('all')
+        pd.plot_params['xaxis.compat'] = True
+        ax = df.plot()
+        lines = ax.get_lines()
+        self.assert_(not isinstance(lines[0].get_xdata(), PeriodIndex))
+
+        plt.close('all')
+        pd.plot_params['x_compat'] = False
+        ax = df.plot()
+        lines = ax.get_lines()
+        self.assert_(isinstance(lines[0].get_xdata(), PeriodIndex))
+
     def _check_data(self, xp, rs):
         xp_lines = xp.get_lines()
         rs_lines = rs.get_lines()
