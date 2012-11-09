@@ -3913,11 +3913,12 @@ class DataFrame(NDFrame):
                 try:
                     if hasattr(e, 'args'):
                         k = res_index[i]
-                        e.args = e.args + ('occurred at index %s' % str(k),)
+                        e.args = e.args + ('occurred at index %s' %
+                                           com.pprint_thing(k),)
                 except (NameError, UnboundLocalError):  # pragma: no cover
                     # no k defined yet
                     pass
-                raise
+                raise e
 
         if len(results) > 0 and _is_sequence(results[0]):
             if not isinstance(results[0], Series):

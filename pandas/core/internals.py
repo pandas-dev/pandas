@@ -49,9 +49,10 @@ class Block(object):
         self.ref_items = ref_items
 
     def __repr__(self):
-        shape = ' x '.join([str(s) for s in self.shape])
+        shape = ' x '.join([com.pprint_thing(s) for s in self.shape])
         name = type(self).__name__
-        return '%s: %s, %s, dtype %s' % (name, self.items, shape, self.dtype)
+        result = '%s: %s, %s, dtype %s' % (name, self.items, shape, self.dtype)
+        return com.console_encode(result) # repr must return byte-string
 
     def __contains__(self, item):
         return item in self.items
@@ -935,7 +936,7 @@ class BlockManager(object):
 
     def _check_have(self, item):
         if item not in self.items:
-            raise KeyError('no item named %s' % str(item))
+            raise KeyError('no item named %s' % com.pprint_thing(item))
 
     def reindex_axis(self, new_axis, method=None, axis=0, copy=True):
         new_axis = _ensure_index(new_axis)

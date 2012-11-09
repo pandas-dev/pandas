@@ -847,6 +847,10 @@ class TestInt64Index(unittest.TestCase):
         repr(s)
         repr(df)
 
+    def test_print_unicode_columns(self):
+        df=pd.DataFrame({u"\u05d0":[1,2,3],"\u05d1":[4,5,6],"c":[7,8,9]})
+        print(df.columns) # should not raise UnicodeDecodeError
+
 class TestMultiIndex(unittest.TestCase):
 
     def setUp(self):
@@ -1671,6 +1675,10 @@ class TestMultiIndex(unittest.TestCase):
         exp = list(self.index.values)
         self.assertEqual(result, exp)
 
+    def test_repr_with_unicode_data(self):
+        d={"a":[u"\u05d0",2,3],"b":[4,5,6],"c":[7,8,9]}
+        index=pd.DataFrame(d).set_index(["a","b"]).index
+        self.assertFalse("\\u" in repr(index)) # we don't want unicode-escaped
 
 def test_get_combined_index():
     from pandas.core.index import _get_combined_index

@@ -1147,6 +1147,9 @@ def pprint_thing(thing, _nest_lvl=0):
     from pandas.core.format import print_config
     if thing is None:
         result = ''
+    elif (py3compat.PY3 and hasattr(thing,'__next__')) or \
+         hasattr(thing,'next'):
+        return unicode(thing)
     elif (isinstance(thing, dict) and
           _nest_lvl < print_config.pprint_nest_depth):
         result = _pprint_dict(thing, _nest_lvl)
