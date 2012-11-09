@@ -4,6 +4,7 @@ from itertools import izip
 import datetime
 import warnings
 import re
+from contextlib import contextmanager
 
 import numpy as np
 
@@ -25,6 +26,70 @@ except ImportError:
 def _get_standard_kind(kind):
     return {'density': 'kde'}.get(kind, kind)
 
+
+class _Options(dict):
+    """
+    Stores pandas plotting options.
+    Allows for parameter aliasing so you can just use parameter names that are
+    the same as the plot function parameters, but is stored in a canonical
+    format that makes it easy to breakdown into groups later
+    """
+
+    #alias so the names are same as plotting method parameter names
+    _ALIASES = {'x_compat' : 'xaxis.compat'}
+    _DEFAULT_KEYS = ['xaxis.compat']
+
+    def __init__(self):
+        self['xaxis.compat'] = False
+
+    def __getitem__(self, key):
+        key = self._get_canonical_key(key)
+        if key not in self:
+            raise ValueError('%s is not a valid pandas plotting option' % key)
+        return super(_Options, self).__getitem__(key)
+
+    def __setitem__(self, key, value):
+        key = self._get_canonical_key(key)
+        return super(_Options, self).__setitem__(key, value)
+
+    def __delitem__(self, key):
+        key = self._get_canonical_key(key)
+        if key in self._DEFAULT_KEYS:
+            raise ValueError('Cannot remove default parameter %s' % key)
+        return super(_Options, self).__delitem__(key)
+
+    def __contains__(self, key):
+        key = self._get_canonical_key(key)
+        return super(_Options, self).__contains__(key)
+
+    def reset(self):
+        """
+        Reset the option store to its initial state
+
+        Returns
+        -------
+        None
+        """
+        self.__init__()
+
+    def _get_canonical_key(self, key):
+        return self._ALIASES.get(key, key)
+
+    @contextmanager
+    def use(self, key, value):
+        """
+        Temporarily set a parameter value using the with statement.
+        Aliasing allowed.
+        """
+        old_value = self[key]
+        try:
+            self[key] = value
+            yield self
+        finally:
+            self[key] = old_value
+
+
+plot_params = _Options()
 
 def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
                    diagonal='hist', marker='.', **kwds):
@@ -875,6 +940,9 @@ class LinePlot(MPLPlot):
     def __init__(self, data, **kwargs):
         self.mark_right = kwargs.pop('mark_right', True)
         MPLPlot.__init__(self, data, **kwargs)
+        self.x_compat = plot_params['x_compat']
+        if 'x_compat' in self.kwds:
+           self.x_compat = bool(self.kwds.pop('x_compat'))
 
     def _index_freq(self):
         from pandas.core.frame import DataFrame
@@ -923,7 +991,7 @@ class LinePlot(MPLPlot):
     def _make_plot(self):
         import pandas.tseries.plotting as tsplot
         # this is slightly deceptive
-        if self.use_index and self._use_dynamic_x():
+        if not self.x_compat and self.use_index and self._use_dynamic_x():
             data = self._maybe_convert_index(self.data)
             self._make_ts_plot(data, **self.kwds)
         else:

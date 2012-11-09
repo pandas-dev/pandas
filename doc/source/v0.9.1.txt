@@ -60,6 +60,9 @@ New features
                  parse_cols='A:D')
 
 
+  - Added option to disable pandas-style tick locators and formatters
+    using `series.plot(x_compat=True)` or `pandas.plot_params['x_compat'] =
+    True` (GH2205_)
   - Existing TimeSeries methods `at_time` and `between_time` were added to
     DataFrame (GH2149_)
   - DataFrame.dot can now accept ndarrays (GH2042_)
@@ -122,6 +125,7 @@ on GitHub for a complete list.
 .. _GH2124: https://github.com/pydata/pandas/issues/2124
 .. _GH2110: https://github.com/pydata/pandas/issues/2110
 .. _GH2184: https://github.com/pydata/pandas/issues/2184
+.. _GH2205: https://github.com/pydata/pandas/issues/2205
 
 .. _GH2181: https://github.com/pydata/pandas/issues/2181
 .. _GH2180: https://github.com/pydata/pandas/issues/2180
@@ -197,4 +201,3 @@ on GitHub for a complete list.
 .. _GH1959: https://github.com/pydata/pandas/issues/1959
 .. _GH1890: https://github.com/pydata/pandas/issues/1890
 .. _GH1555: https://github.com/pydata/pandas/issues/1555
-

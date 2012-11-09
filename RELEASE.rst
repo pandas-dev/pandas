@@ -56,6 +56,7 @@ pandas 0.9.1
   - Make .drop(...) work with non-unique indexes (#2101)
   - Improve performance of Series/DataFrame.diff (re: #2087)
   - Support unary ~ (__invert__) in DataFrame (#2110)
+  - Turn off pandas-style tick locators and formatters (#2205)
 
 **Bug fixes**
 
