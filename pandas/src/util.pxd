@@ -14,8 +14,8 @@ cdef extern from "numpy_helper.h":
     inline int assign_value_1d(ndarray, Py_ssize_t, object) except -1
     inline cnp.int64_t get_nat()
     inline object get_value_1d(ndarray, Py_ssize_t)
+    inline int floatify(object, double*) except -1
     inline char *get_c_string(object)
-    inline int floatify(object, double *result) except -1
     inline object char_to_string(char*)
 
 cdef inline object get_value_at(ndarray arr, object loc):

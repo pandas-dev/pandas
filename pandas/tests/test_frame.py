@@ -1108,6 +1108,16 @@ class CheckIndexing(object):
         exp = df[df[0] > 0]
         assert_frame_equal(result, exp)
 
+    def test_getitem_setitem_ix_bool_keyerror(self):
+        # #2199
+        df = DataFrame({'a': [1, 2, 3]})
+
+        self.assertRaises(KeyError, df.ix.__getitem__, False)
+        self.assertRaises(KeyError, df.ix.__getitem__, True)
+
+        self.assertRaises(KeyError, df.ix.__setitem__, False, 0)
+        self.assertRaises(KeyError, df.ix.__setitem__, True, 0)
+
     def test_getitem_list_duplicates(self):
         # #1943
         df = DataFrame(np.random.randn(4,4), columns=list('AABC'))
@@ -1294,6 +1304,21 @@ class CheckIndexing(object):
                 result = self.frame.iget_value(i, j)
                 expected = self.frame.get_value(row, col)
                 assert_almost_equal(result, expected)
+
+    def test_nested_exception(self):
+        # Ignore the strange way of triggering the problem
+        # (which may get fixed), it's just a way to trigger
+        # the issue or reraising an outer exception without
+        # a named argument
+        df=DataFrame({"a":[1,2,3],"b":[4,5,6],"c":[7,8,9]}).set_index(["a","b"])
+        l=list(df.index)
+        l[0]=["a","b"]
+        df.index=l
+
+        try:
+            repr(df)
+        except Exception,e:
+            self.assertNotEqual(type(e),UnboundLocalError)
 
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
@@ -3049,15 +3074,25 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(index == frame.index[-6])
 
     def test_arith_flex_frame(self):
-        res_add = self.frame.add(self.frame)
-        res_sub = self.frame.sub(self.frame)
-        res_mul = self.frame.mul(self.frame)
-        res_div = self.frame.div(2 * self.frame)
+        ops = ['add', 'sub', 'mul', 'div', 'pow']
+        aliases = {'div': 'truediv'}
 
-        assert_frame_equal(res_add, self.frame + self.frame)
-        assert_frame_equal(res_sub, self.frame - self.frame)
-        assert_frame_equal(res_mul, self.frame * self.frame)
-        assert_frame_equal(res_div, self.frame / (2 * self.frame))
+        for op in ops:
+            alias = aliases.get(op, op)
+            f = getattr(operator, alias)
+            result = getattr(self.frame, op)(2 * self.frame)
+            exp = f(self.frame, 2 * self.frame)
+            assert_frame_equal(result, exp)
+
+        # res_add = self.frame.add(self.frame)
+        # res_sub = self.frame.sub(self.frame)
+        # res_mul = self.frame.mul(self.frame)
+        # res_div = self.frame.div(2 * self.frame)
+
+        # assert_frame_equal(res_add, self.frame + self.frame)
+        # assert_frame_equal(res_sub, self.frame - self.frame)
+        # assert_frame_equal(res_mul, self.frame * self.frame)
+        # assert_frame_equal(res_div, self.frame / (2 * self.frame))
 
         const_add = self.frame.add(1)
         assert_frame_equal(const_add, self.frame + 1)

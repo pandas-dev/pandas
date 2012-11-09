@@ -555,7 +555,7 @@ _join_functions = {
 
 
 def _factorize_keys(lk, rk, sort=True):
-    if com.is_integer_dtype(lk) and com.is_integer_dtype(rk):
+    if com._is_int_or_datetime_dtype(lk) and com._is_int_or_datetime_dtype(rk):
         klass = lib.Int64Factorizer
         lk = com._ensure_int64(lk)
         rk = com._ensure_int64(rk)

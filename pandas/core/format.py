@@ -268,7 +268,8 @@ class DataFrameFormatter(object):
         if len(frame.columns) == 0 or len(frame.index) == 0:
             info_line = (u'Empty %s\nColumns: %s\nIndex: %s'
                          % (type(self.frame).__name__,
-                            frame.columns, frame.index))
+                            com.pprint_thing(frame.columns),
+                            com.pprint_thing(frame.index)))
             text = info_line
         else:
             strcols = self._to_str_columns(force_unicode)
@@ -405,13 +406,6 @@ class DataFrameFormatter(object):
             names.append('' if columns.name is None else columns.name)
         return names
 
-
-def _str(x):
-    if not isinstance(x, basestring):
-        return str(x)
-    return x
-
-
 class HTMLFormatter(object):
 
     indent_delta = 2
@@ -436,7 +430,7 @@ class HTMLFormatter(object):
         self._maybe_bold_row = _maybe_bold_row
 
     def write(self, s, indent=0):
-        self.elements.append(' ' * indent + _str(s))
+        self.elements.append(' ' * indent + com.pprint_thing(s))
 
     def write_th(self, s, indent=0, tags=None):
         return self._write_cell(s, kind='th', indent=indent, tags=tags)
@@ -449,7 +443,7 @@ class HTMLFormatter(object):
             start_tag = '<%s %s>' % (kind, tags)
         else:
             start_tag = '<%s>' % kind
-        self.write('%s%s</%s>' % (start_tag, _str(s), kind), indent)
+        self.write('%s%s</%s>' % (start_tag, com.pprint_thing(s), kind), indent)
 
     def write_tr(self, line, indent=0, indent_delta=4, header=False,
                  align=None, tags=None):

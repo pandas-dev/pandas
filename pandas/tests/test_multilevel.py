@@ -1578,6 +1578,22 @@ Thur,Lunch,Yes,51.51,17"""
         idf = df3.set_index(['A' * 30, 'C' * 30])
         repr(idf)
 
+    def test_assign_index_sequences(self):
+        # #2200
+        df = DataFrame({"a":[1,2,3],
+                        "b":[4,5,6],
+                        "c":[7,8,9]}).set_index(["a","b"])
+        l = list(df.index)
+        l[0]=("faz","boo")
+        df.index = l
+        repr(df)
+
+        # this travels an improper code path
+        l[0] = ["faz","boo"]
+        df.index = l
+        repr(df)
+
+
 if __name__ == '__main__':
 
     # unittest.main()

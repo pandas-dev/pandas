@@ -127,10 +127,11 @@ cdef class IndexEngine:
         if not self.unique:
             return self._get_loc_duplicates(val)
 
+        self._check_type(val)
+
         try:
             return self.mapping.get_item(val)
         except TypeError:
-            self._check_type(val)
             raise KeyError(val)
 
     cdef inline _get_loc_duplicates(self, object val):
@@ -222,7 +223,7 @@ cdef class IndexEngine:
     cdef _make_hash_table(self, n):
         raise NotImplementedError
 
-    cdef inline _check_type(self, object val):
+    cdef _check_type(self, object val):
         hash(val)
 
     cdef inline _ensure_mapping_populated(self):
@@ -279,6 +280,11 @@ cdef class Int64Engine(IndexEngine):
     def get_backfill_indexer(self, other, limit=None):
         return _algos.backfill_int64(self._get_index_values(), other,
                                        limit=limit)
+
+    cdef _check_type(self, object val):
+        hash(val)
+        if util.is_bool_object(val):
+            raise KeyError(val)
 
     cdef _maybe_get_bool_indexer(self, object val):
         cdef:

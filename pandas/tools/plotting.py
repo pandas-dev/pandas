@@ -553,6 +553,23 @@ class MPLPlot(object):
 
         self.kwds = kwds
 
+        self._validate_color_args()
+
+    def _validate_color_args(self):
+        from pandas import DataFrame
+        if 'color' not in self.kwds and 'colors' in self.kwds:
+            warnings.warn(("'colors' is being deprecated. Please use 'color'"
+                           "instead of 'colors'"))
+            colors = self.kwds.pop('colors')
+            self.kwds['color'] = colors
+
+        if ('color' in self.kwds and
+            (isinstance(self.data, Series) or
+             isinstance(self.data, DataFrame) and len(self.data.columns) ==1 )):
+            #support series.plot(color='green')
+            self.kwds['color'] = [self.kwds['color']]
+
+
     def _iter_data(self):
         from pandas.core.frame import DataFrame
         if isinstance(self.data, (Series, np.ndarray)):
@@ -858,14 +875,6 @@ class LinePlot(MPLPlot):
     def __init__(self, data, **kwargs):
         self.mark_right = kwargs.pop('mark_right', True)
         MPLPlot.__init__(self, data, **kwargs)
-        if 'color' not in self.kwds and 'colors' in self.kwds:
-            warnings.warn(("'colors' is being deprecated. Please use 'color'"
-                           "instead of 'colors'"))
-            colors = self.kwds.pop('colors')
-            self.kwds['color'] = colors
-        if 'color' in self.kwds and isinstance(self.data, Series):
-            #support series.plot(color='green')
-            self.kwds['color'] = [self.kwds['color']]
 
     def _index_freq(self):
         from pandas.core.frame import DataFrame

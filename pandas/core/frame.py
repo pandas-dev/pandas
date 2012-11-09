@@ -676,11 +676,13 @@ class DataFrame(NDFrame):
     mul = _arith_method(operator.mul, 'multiply')
     sub = _arith_method(operator.sub, 'subtract')
     div = divide = _arith_method(lambda x, y: x / y, 'divide')
+    pow = _arith_method(operator.pow, 'pow')
 
     radd = _arith_method(_radd_compat, 'radd')
     rmul = _arith_method(operator.mul, 'rmultiply')
     rsub = _arith_method(lambda x, y: y - x, 'rsubtract')
     rdiv = _arith_method(lambda x, y: y / x, 'rdivide')
+    rpow = _arith_method(lambda x, y: y ** x, 'rpow')
 
     __add__ = _arith_method(operator.add, '__add__', default_axis=None)
     __sub__ = _arith_method(operator.sub, '__sub__', default_axis=None)
@@ -2099,12 +2101,10 @@ class DataFrame(NDFrame):
             new_values = self._data.fast_2d_xs(loc, copy=copy)
             return Series(new_values, index=self.columns,
                           name=self.index[loc])
-        else:  # isinstance(loc, slice) or loc.dtype == np.bool_:
+        else:
             result = self[loc]
             result.index = new_index
             return result
-        # else:
-        #     return self.take(loc)
 
     def lookup(self, row_labels, col_labels):
         """
@@ -3915,11 +3915,12 @@ class DataFrame(NDFrame):
                 try:
                     if hasattr(e, 'args'):
                         k = res_index[i]
-                        e.args = e.args + ('occurred at index %s' % str(k),)
+                        e.args = e.args + ('occurred at index %s' %
+                                           com.pprint_thing(k),)
                 except (NameError, UnboundLocalError):  # pragma: no cover
                     # no k defined yet
                     pass
-                raise
+                raise e
 
         if len(results) > 0 and _is_sequence(results[0]):
             if not isinstance(results[0], Series):

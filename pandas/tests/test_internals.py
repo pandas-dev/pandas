@@ -408,6 +408,13 @@ class TestBlockManager(unittest.TestCase):
 
         self.assertEqual(rs.ix[0, 'bool'], not df.ix[0, 'bool'])
 
+    def test_missing_unicode_key(self):
+        df=DataFrame({"a":[1]})
+        try:
+            df.ix[:,u"\u05d0"] # should not raise UnicodeEncodeError
+        except KeyError:
+            pass # this is the expected exception
+
 if __name__ == '__main__':
     # unittest.main()
     import nose

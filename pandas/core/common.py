@@ -852,6 +852,13 @@ def is_integer_dtype(arr_or_dtype):
             (issubclass(tipo, np.datetime64) or
              issubclass(tipo, np.timedelta64)))
 
+def _is_int_or_datetime_dtype(arr_or_dtype):
+    # also timedelta64
+    if isinstance(arr_or_dtype, np.dtype):
+        tipo = arr_or_dtype.type
+    else:
+        tipo = arr_or_dtype.dtype.type
+    return issubclass(tipo, np.integer)
 
 def is_datetime64_dtype(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):
@@ -1140,6 +1147,9 @@ def pprint_thing(thing, _nest_lvl=0):
     from pandas.core.format import print_config
     if thing is None:
         result = ''
+    elif (py3compat.PY3 and hasattr(thing,'__next__')) or \
+         hasattr(thing,'next'):
+        return unicode(thing)
     elif (isinstance(thing, dict) and
           _nest_lvl < print_config.pprint_nest_depth):
         result = _pprint_dict(thing, _nest_lvl)

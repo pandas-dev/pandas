@@ -209,9 +209,10 @@ class Index(np.ndarray):
         try:
             return np.array_repr(self.values)
         except UnicodeError:
-            converted = u','.join(unicode(x) for x in self.values)
-            return u'%s([%s], dtype=''%s'')' % (type(self).__name__, converted,
+            converted = u','.join(com.pprint_thing(x) for x in self.values)
+            result = u'%s([%s], dtype=''%s'')' % (type(self).__name__, converted,
                                               str(self.values.dtype))
+            return com.console_encode(result)
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
@@ -1320,11 +1321,15 @@ class MultiIndex(Index):
                                      self[-50:].values])
         else:
             values = self.values
-        summary = np.array2string(values, max_line_width=70)
+
+        summary = com.pprint_thing(values)
 
         np.set_printoptions(threshold=options['threshold'])
 
-        return output % summary
+        if py3compat.PY3:
+            return output % summary
+        else:
+            return com.console_encode(output % summary)
 
     def __len__(self):
         return len(self.labels[0])
@@ -2433,8 +2438,15 @@ def _ensure_index(index_like):
         return Index(index_like, name=index_like.name)
 
     if isinstance(index_like, list):
-        if len(index_like) and isinstance(index_like[0], (list, np.ndarray)):
+        klasses = (list, np.ndarray)
+        all_arrays = all(isinstance(x, klasses) for x in index_like)
+
+        if len(index_like) > 0 and all_arrays:
             return MultiIndex.from_arrays(index_like)
+        else:
+            # #2200 ?
+            index_like = [tuple(x) if isinstance(x, klasses) else x
+                          for x in index_like]
 
     return Index(index_like)
 

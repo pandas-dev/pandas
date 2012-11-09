@@ -21,6 +21,7 @@ Frequently Asked Questions (FAQ)
    import matplotlib.pyplot as plt
    plt.close('all')
 
+.. _ref-scikits-migration:
 
 Migrating from scikits.timeseries to pandas >= 0.8.0
 ----------------------------------------------------
