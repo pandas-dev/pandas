@@ -110,7 +110,10 @@ def _comp_method(op, name):
                 y = lib.list_to_object_array(y)
 
             if isinstance(y, np.ndarray):
-                result = lib.vec_compare(x, y, op)
+                if y.dtype != np.object_:
+                    result = lib.vec_compare(x, y.astype(np.object_), op)
+                else:
+                    result = lib.vec_compare(x, y, op)
             else:
                 result = lib.scalar_compare(x, y, op)
         else:
