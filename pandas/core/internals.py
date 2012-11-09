@@ -506,10 +506,12 @@ class BlockManager(object):
 
     def set_axis(self, axis, value):
         cur_axis = self.axes[axis]
+        value = _ensure_index(value)
+
         if len(value) != len(cur_axis):
             raise Exception('Length mismatch (%d vs %d)'
                             % (len(value), len(cur_axis)))
-        self.axes[axis] = _ensure_index(value)
+        self.axes[axis] = value
 
         if axis == 0:
             for block in self.blocks:

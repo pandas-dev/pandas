@@ -2438,8 +2438,15 @@ def _ensure_index(index_like):
         return Index(index_like, name=index_like.name)
 
     if isinstance(index_like, list):
-        if len(index_like) and isinstance(index_like[0], (list, np.ndarray)):
+        klasses = (list, np.ndarray)
+        all_arrays = all(isinstance(x, klasses) for x in index_like)
+
+        if len(index_like) > 0 and all_arrays:
             return MultiIndex.from_arrays(index_like)
+        else:
+            # #2200 ?
+            index_like = [tuple(x) if isinstance(x, klasses) else x
+                          for x in index_like]
 
     return Index(index_like)
 

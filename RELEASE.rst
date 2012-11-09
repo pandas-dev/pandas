@@ -94,6 +94,9 @@ pandas 0.9.1
   - Pass through timezone information when calling DataFrame.align (#2127)
   - Properly sort when joining on datetime64 values (#2196)
   - Fix indexing bug in which False/True were being coerced to 0/1 (#2199)
+  - Many unicode formatting fixes (#2201)
+  - Fix improper MultiIndex conversion issue when assigning
+    e.g. DataFrame.index (#2200)
 
 pandas 0.9.0
 ============
