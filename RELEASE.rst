@@ -92,7 +92,8 @@ pandas 0.9.1
   - Fix Series and DataFrame.diff for integer dtypes (#2087, #2174)
   - Fix bug when taking intersection of DatetimeIndex with empty index (#2129)
   - Pass through timezone information when calling DataFrame.align (#2127)
-
+  - Properly sort when joining on datetime64 values (#2196)
+  - Fix indexing bug in which False/True were being coerced to 0/1 (#2199)
 
 pandas 0.9.0
 ============

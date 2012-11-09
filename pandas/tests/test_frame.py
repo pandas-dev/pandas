@@ -1108,6 +1108,16 @@ class CheckIndexing(object):
         exp = df[df[0] > 0]
         assert_frame_equal(result, exp)
 
+    def test_getitem_setitem_ix_bool_keyerror(self):
+        # #2199
+        df = DataFrame({'a': [1, 2, 3]})
+
+        self.assertRaises(KeyError, df.ix.__getitem__, False)
+        self.assertRaises(KeyError, df.ix.__getitem__, True)
+
+        self.assertRaises(KeyError, df.ix.__setitem__, False, 0)
+        self.assertRaises(KeyError, df.ix.__setitem__, True, 0)
+
     def test_getitem_list_duplicates(self):
         # #1943
         df = DataFrame(np.random.randn(4,4), columns=list('AABC'))

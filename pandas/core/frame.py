@@ -2099,12 +2099,10 @@ class DataFrame(NDFrame):
             new_values = self._data.fast_2d_xs(loc, copy=copy)
             return Series(new_values, index=self.columns,
                           name=self.index[loc])
-        else:  # isinstance(loc, slice) or loc.dtype == np.bool_:
+        else:
             result = self[loc]
             result.index = new_index
             return result
-        # else:
-        #     return self.take(loc)
 
     def lookup(self, row_labels, col_labels):
         """
