@@ -33,6 +33,7 @@ pandas 0.9.1
   - New `top` and `bottom` options for handling NAs in rank (#1508, #2159)
   - Add `where` and `mask` functions to DataFrame (#2109, #2151)
   - Add `at_time` and `between_time` functions to DataFrame (#2149)
+  - Add flexible `pow` and `rpow` methods to DataFrame (#2190)
 
 **API Changes**
 

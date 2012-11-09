@@ -1316,7 +1316,7 @@ class CheckIndexing(object):
         df.index=l
 
         try:
-            print df
+            repr(df)
         except Exception,e:
             self.assertNotEqual(type(e),UnboundLocalError)
 
@@ -3074,15 +3074,25 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assert_(index == frame.index[-6])
 
     def test_arith_flex_frame(self):
-        res_add = self.frame.add(self.frame)
-        res_sub = self.frame.sub(self.frame)
-        res_mul = self.frame.mul(self.frame)
-        res_div = self.frame.div(2 * self.frame)
+        ops = ['add', 'sub', 'mul', 'div', 'pow']
+        aliases = {'div': 'truediv'}
 
-        assert_frame_equal(res_add, self.frame + self.frame)
-        assert_frame_equal(res_sub, self.frame - self.frame)
-        assert_frame_equal(res_mul, self.frame * self.frame)
-        assert_frame_equal(res_div, self.frame / (2 * self.frame))
+        for op in ops:
+            alias = aliases.get(op, op)
+            f = getattr(operator, alias)
+            result = getattr(self.frame, op)(2 * self.frame)
+            exp = f(self.frame, 2 * self.frame)
+            assert_frame_equal(result, exp)
+
+        # res_add = self.frame.add(self.frame)
+        # res_sub = self.frame.sub(self.frame)
+        # res_mul = self.frame.mul(self.frame)
+        # res_div = self.frame.div(2 * self.frame)
+
+        # assert_frame_equal(res_add, self.frame + self.frame)
+        # assert_frame_equal(res_sub, self.frame - self.frame)
+        # assert_frame_equal(res_mul, self.frame * self.frame)
+        # assert_frame_equal(res_div, self.frame / (2 * self.frame))
 
         const_add = self.frame.add(1)
         assert_frame_equal(const_add, self.frame + 1)
