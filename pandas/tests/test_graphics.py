@@ -255,6 +255,18 @@ class TestDataFramePlots(unittest.TestCase):
         lines = ax.get_lines()
         self.assert_(isinstance(lines[0].get_xdata(), PeriodIndex))
 
+        plt.close('all')
+        #useful if you're plotting a bunch together
+        with pd.plot_params.use('x_compat', True):
+            ax = df.plot()
+            lines = ax.get_lines()
+            self.assert_(not isinstance(lines[0].get_xdata(), PeriodIndex))
+
+        plt.close('all')
+        ax = df.plot()
+        lines = ax.get_lines()
+        self.assert_(isinstance(lines[0].get_xdata(), PeriodIndex))
+
     def _check_data(self, xp, rs):
         xp_lines = xp.get_lines()
         rs_lines = rs.get_lines()

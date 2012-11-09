@@ -4,6 +4,7 @@ from itertools import izip
 import datetime
 import warnings
 import re
+from contextlib import contextmanager
 
 import numpy as np
 
@@ -27,6 +28,12 @@ def _get_standard_kind(kind):
 
 
 class _Options(dict):
+    """
+    Stores pandas plotting options.
+    Allows for parameter aliasing so you can just use parameter names that are
+    the same as the plot function parameters, but is stored in a canonical
+    format that makes it easy to breakdown into groups later
+    """
 
     #alias so the names are same as plotting method parameter names
     _ALIASES = {'x_compat' : 'xaxis.compat'}
@@ -56,10 +63,31 @@ class _Options(dict):
         return super(_Options, self).__contains__(key)
 
     def reset(self):
+        """
+        Reset the option store to its initial state
+
+        Returns
+        -------
+        None
+        """
         self.__init__()
 
     def _get_canonical_key(self, key):
         return self._ALIASES.get(key, key)
+
+    @contextmanager
+    def use(self, key, value):
+        """
+        Temporarily set a parameter value using the with statement.
+        Aliasing allowed.
+        """
+        old_value = self[key]
+        try:
+            self[key] = value
+            yield self
+        finally:
+            self[key] = old_value
+
 
 plot_params = _Options()
 
