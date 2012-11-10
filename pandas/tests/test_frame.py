@@ -1145,6 +1145,11 @@ class CheckIndexing(object):
                 expected = self.frame[col][idx]
                 assert_almost_equal(result, expected)
 
+    def test_iteritems(self):
+        df=DataFrame([[1,2,3],[4,5,6]],columns=['a','a','b'])
+        for k,v in df.iteritems():
+            self.assertEqual(type(v),Series)
+
     def test_lookup(self):
         def alt(df, rows, cols):
             result = []
@@ -7457,6 +7462,7 @@ starting,ending,measure
             else:
                 self.assert_(r0.all())
                 self.assert_(r1.all())
+
 
 if __name__ == '__main__':
     # unittest.main()
