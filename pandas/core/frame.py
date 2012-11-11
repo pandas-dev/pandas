@@ -1775,9 +1775,8 @@ class DataFrame(NDFrame):
         elif isinstance(self.columns, MultiIndex):
             return self._getitem_multilevel(key)
         elif isinstance(key, DataFrame):
-            values = key.values
-            if values.dtype == bool:
-                return self.values[values]
+            if key.values.dtype == bool:
+                return self.mask(key)
             else:
                 raise ValueError('Cannot index using non-boolean DataFrame')
         else:
@@ -1891,11 +1890,7 @@ class DataFrame(NDFrame):
         if self._is_mixed_type:
             raise ValueError('Cannot do boolean setting on mixed-type frame')
 
-        if isinstance(value, DataFrame):
-            assert(value._indexed_same(self))
-            np.putmask(self.values, mask, value.values)
-        else:
-            self.values[mask] = value
+        self.where(key, value, inplace=True)
 
     def _set_item_multiple(self, keys, value):
         if isinstance(value, DataFrame):
@@ -4878,7 +4873,7 @@ class DataFrame(NDFrame):
         """
         return self.mul(other, fill_value=1.)
 
-    def where(self, cond, other):
+    def where(self, cond, other, inplace=False):
         """
         Return a DataFrame with the same shape as self and whose corresponding
         entries are from self where cond is True and otherwise are from other.
@@ -4905,9 +4900,13 @@ class DataFrame(NDFrame):
         if isinstance(other, DataFrame):
             _, other = self.align(other, join='left', fill_value=NA)
 
+        if inplace:
+            np.putmask(self.values, cond, other)
+            return self
+
         rs = np.where(cond, self, other)
         return self._constructor(rs, self.index, self.columns)
-
+        
     def mask(self, cond):
         """
         Returns copy of self whose values are replaced with nan if the

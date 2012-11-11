@@ -141,6 +141,12 @@ class CheckIndexing(object):
 
         self.assertRaises(ValueError, self.tsframe.__getitem__, self.tsframe)
 
+        # test df[df >0] works
+        bif = self.tsframe[self.tsframe > 0]
+        bifw = DataFrame(np.where(self.tsframe>0,self.tsframe,np.nan),index=self.tsframe.index,columns=self.tsframe.columns)
+        self.assert_(isinstance(bif,DataFrame))
+        self.assert_(bif.shape == self.tsframe.shape)
+        assert_frame_equal(bif,bifw)
 
     def test_getitem_boolean_list(self):
         df = DataFrame(np.arange(12).reshape(3,4))
