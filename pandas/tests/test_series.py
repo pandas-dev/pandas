@@ -1043,6 +1043,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         rep_str = repr(ser)
         self.assert_("Name: 0" in rep_str)
 
+    def test_tidy_repr(self):
+        a=Series([u"\u05d0"]*1000)
+        a.name= 'title1'
+        repr(a)         # should not raise exception
+
     def test_repr_bool_fails(self):
         s = Series([DataFrame(np.random.randn(2,2)) for i in range(5)])
 
