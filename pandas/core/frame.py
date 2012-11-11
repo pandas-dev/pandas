@@ -1878,8 +1878,7 @@ class DataFrame(NDFrame):
             self._set_item(key, value)
 
     def _boolean_set(self, key, value):
-        mask = key.values
-        if mask.dtype != np.bool_:
+        if key.values.dtype != np.bool_:
             raise ValueError('Must pass DataFrame with boolean values only')
 
         if self._is_mixed_type:

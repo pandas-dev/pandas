@@ -142,6 +142,7 @@ class CheckIndexing(object):
         self.assertRaises(ValueError, self.tsframe.__getitem__, self.tsframe)
 
         # test df[df >0] works
+
         bif = self.tsframe[self.tsframe > 0]
         bifw = DataFrame(np.where(self.tsframe>0,self.tsframe,np.nan),index=self.tsframe.index,columns=self.tsframe.columns)
         self.assert_(isinstance(bif,DataFrame))
