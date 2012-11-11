@@ -837,6 +837,10 @@ class DataFrame(NDFrame):
         -------
         result : dict like {column -> {index -> value}}
         """
+        import warnings
+        if not self.columns.is_unique:
+            warnings.warn("DataFrame columns are not unique, some "
+                          "columns will be omitted.",UserWarning)
         if outtype.lower().startswith('d'):
             return dict((k, v.to_dict()) for k, v in self.iteritems())
         elif outtype.lower().startswith('l'):
