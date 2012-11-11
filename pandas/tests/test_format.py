@@ -135,7 +135,7 @@ class TestDataFrameFormatting(unittest.TestCase):
         df.info(buf=buf)
         buf.getvalue()
 
-        result = self.frame.to_string(force_unicode=True)
+        result = self.frame.to_string()
         self.assert_(isinstance(result, unicode))
 
     def test_to_string_unicode_two(self):
@@ -495,7 +495,6 @@ class TestDataFrameFormatting(unittest.TestCase):
         self.assert_(issubclass(df['x'].dtype.type, np.integer))
 
         output = df.to_string()
-        self.assert_(isinstance(output, str))
         expected = ('    x\n'
                     '0 -15\n'
                     '1  20\n'

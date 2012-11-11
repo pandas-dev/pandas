@@ -1379,19 +1379,21 @@ class DataFrame(NDFrame):
     def to_string(self, buf=None, columns=None, col_space=None, colSpace=None,
                   header=True, index=True, na_rep='NaN', formatters=None,
                   float_format=None, sparsify=None, nanRep=None,
-                  index_names=True, justify=None, force_unicode=False):
+                  index_names=True, justify=None, force_unicode=None):
         """
         Render a DataFrame to a console-friendly tabular output.
         """
+        import warnings
+        if force_unicode is not None:  # pragma: no cover
+            warnings.warn("force_unicode is deprecated, it will have no effect",
+                          FutureWarning)
 
         if nanRep is not None:  # pragma: no cover
-            import warnings
             warnings.warn("nanRep is deprecated, use na_rep",
                           FutureWarning)
             na_rep = nanRep
 
         if colSpace is not None:  # pragma: no cover
-            import warnings
             warnings.warn("colSpace is deprecated, use col_space",
                           FutureWarning)
             col_space = colSpace
@@ -1404,15 +1406,10 @@ class DataFrame(NDFrame):
                                            justify=justify,
                                            index_names=index_names,
                                            header=header, index=index)
-        formatter.to_string(force_unicode=force_unicode)
+        formatter.to_string()
 
         if buf is None:
             result = formatter.buf.getvalue()
-            if not force_unicode:
-                try:
-                    result = str(result)
-                except ValueError:
-                    pass
             return result
 
     @Appender(fmt.docstring_to_string, indents=1)

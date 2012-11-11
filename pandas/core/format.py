@@ -135,9 +135,7 @@ class SeriesFormatter(object):
         if footer:
             result.append(footer)
 
-        if py3compat.PY3:
-            return unicode(u'\n'.join(result))
-        return com.console_encode(u'\n'.join(result))
+        return unicode(u'\n'.join(result))
 
 if py3compat.PY3:  # pragma: no cover
     _encode_diff = lambda x: 0
@@ -200,10 +198,15 @@ class DataFrameFormatter(object):
         else:
             self.columns = frame.columns
 
-    def _to_str_columns(self, force_unicode=False):
+    def _to_str_columns(self, force_unicode=None):
         """
         Render a DataFrame to a list of columns (as lists of strings).
         """
+        import warnings
+        if force_unicode is not None:  # pragma: no cover
+            warnings.warn("force_unicode is deprecated, it will have no effect",
+                          FutureWarning)
+
         # may include levels names also
         str_index = self._get_formatted_index()
         str_columns = self._get_formatted_column_labels()
@@ -237,32 +240,17 @@ class DataFrameFormatter(object):
         if self.index:
             strcols.insert(0, str_index)
 
-        if not py3compat.PY3:
-            if force_unicode:
-                def make_unicode(x):
-                    if isinstance(x, unicode):
-                        return x
-                    return x.decode('utf-8')
-                strcols = map(lambda col: map(make_unicode, col), strcols)
-            else:
-                # Generally everything is plain strings, which has ascii
-                # encoding.  Problem is when there is a char with value over
-                # 127. Everything then gets converted to unicode.
-                try:
-                    map(lambda col: map(str, col), strcols)
-                except UnicodeError:
-                    def make_unicode(x):
-                        if isinstance(x, unicode):
-                            return x
-                        return x.decode('utf-8')
-                    strcols = map(lambda col: map(make_unicode, col), strcols)
-
         return strcols
 
-    def to_string(self, force_unicode=False):
+    def to_string(self, force_unicode=None):
         """
         Render a DataFrame to a console-friendly tabular output.
         """
+        import warnings
+        if force_unicode is not None:  # pragma: no cover
+            warnings.warn("force_unicode is deprecated, it will have no effect",
+                          FutureWarning)
+
         frame = self.frame
 
         if len(frame.columns) == 0 or len(frame.index) == 0:
@@ -272,15 +260,20 @@ class DataFrameFormatter(object):
                             com.pprint_thing(frame.index)))
             text = info_line
         else:
-            strcols = self._to_str_columns(force_unicode)
+            strcols = self._to_str_columns()
             text = adjoin(1, *strcols)
 
         self.buf.writelines(text)
 
-    def to_latex(self, force_unicode=False, column_format=None):
+    def to_latex(self, force_unicode=None, column_format=None):
         """
         Render a DataFrame to a LaTeX tabular environment output.
         """
+        import warnings
+        if force_unicode is not None:  # pragma: no cover
+            warnings.warn("force_unicode is deprecated, it will have no effect",
+                          FutureWarning)
+
         frame = self.frame
 
         if len(frame.columns) == 0 or len(frame.index) == 0:
@@ -289,7 +282,7 @@ class DataFrameFormatter(object):
                             frame.columns, frame.index))
             strcols = [[info_line]]
         else:
-            strcols = self._to_str_columns(force_unicode)
+            strcols = self._to_str_columns()
 
         if column_format is None:
             column_format = '|l|%s|' % '|'.join('c' for _ in strcols)
