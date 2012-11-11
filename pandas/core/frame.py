@@ -1796,13 +1796,18 @@ class DataFrame(NDFrame):
                 indexer = self.columns.get_indexer(key)
                 mask = indexer == -1
                 if mask.any():
-                    raise KeyError("No column(s) named: %s" % str(key[mask]))
+                    raise KeyError("No column(s) named: %s" %
+                                   com.pprint_thing(key[mask]))
                 result = self.reindex(columns=key)
                 if result.columns.name is None:
                     result.columns.name = self.columns.name
                 return result
             else:
                 mask = self.columns.isin(key)
+                for k in key:
+                    if k not in self.columns:
+                        raise KeyError("No column(s) named: %s" %
+                                       com.pprint_thing(k))
                 return self.take(mask.nonzero()[0], axis=1)
 
     def _slice(self, slobj, axis=0):
