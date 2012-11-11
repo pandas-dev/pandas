@@ -884,7 +884,11 @@ copy : boolean, default False
                                                   length=False,
                                                   name=False)
         result = head + '\n...\n' + tail
-        return '%s\n%s' % (result, self._repr_footer())
+        result = '%s\n%s' % (result, self._repr_footer())
+
+        if py3compat.PY3:
+            return unicode(result)
+        return com.console_encode(result)
 
     def _repr_footer(self):
         namestr = "Name: %s, " % com.pprint_thing(self.name) if self.name is not None else ""
