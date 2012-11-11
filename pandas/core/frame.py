@@ -1870,11 +1870,6 @@ class DataFrame(NDFrame):
         # support boolean setting with DataFrame input, e.g.
         # df[df > df2] = 0
         if isinstance(key, DataFrame):
-            if not (key.index.equals(self.index) and
-                    key.columns.equals(self.columns)):
-                raise PandasError('Can only index with like-indexed '
-                                  'DataFrame objects')
-
             self._boolean_set(key, value)
         elif isinstance(key, (np.ndarray, list)):
             return self._set_item_multiple(key, value)

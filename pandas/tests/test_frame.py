@@ -284,7 +284,11 @@ class CheckIndexing(object):
         values[values == 5] = 0
         assert_almost_equal(df.values, values)
 
-        self.assertRaises(Exception, df.__setitem__, df[:-1] > 0, 2)
+        # a df that needs alignment first
+        df[df[:-1]<0] = 2
+        np.putmask(values[:-1],values[:-1]<0,2)
+        assert_almost_equal(df.values, values)
+
         self.assertRaises(Exception, df.__setitem__, df * 0, 2)
 
         # index with DataFrame
