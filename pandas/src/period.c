@@ -165,7 +165,7 @@ static i8 dInfoCalc_SetFromDateAndTime(struct date_info *dinfo, i8 year,
                          minute);
         Py_AssertWithArg(second >= 0 &&
                          (second < 60L || (hour == 23 && minute == 59 &&
-                                          second < 61)),
+                                           second < 61)),
                          PyExc_ValueError,
                          "second out of range (0 - <60L; <61 for 23:59): %li",
                          second);
@@ -1121,13 +1121,7 @@ static i8 get_abs_time(i8 freq, i8 daily_ord, i8 ordinal) {
     }
 
     start_ord = asfreq_DtoHIGHFREQ(daily_ord, 'S', per_day);
-	/* printf("start_ord: %d\n", start_ord); */
 	return unit * (ordinal - start_ord);
-	/* if (ordinal >= 0) { */
-	/* } */
-	/* else { */
-	/* 	return (i8) (unit * mod_compat(ordinal - start_ord, per_day)); */
-	/* } */
 }
 
 /* Sets the time part of the DateTime object. */
@@ -1136,8 +1130,10 @@ i8 dInfoCalc_SetFromAbsTime(struct date_info *dinfo, i8 abstime)
 {
     i8 hour = abstime / US_PER_HOUR;
     i8 minute = (abstime % US_PER_HOUR) / US_PER_MINUTE;
-    i8 second = (abstime - (hour * US_PER_HOUR + minute * US_PER_MINUTE)) / US_PER_SECOND;
-    i8 microsecond = abstime - (hour * US_PER_HOUR + minute * US_PER_MINUTE + second * US_PER_SECOND);
+    i8 second = (abstime - (hour * US_PER_HOUR + minute * US_PER_MINUTE)) /
+        US_PER_SECOND;
+    i8 microsecond = abstime - (hour * US_PER_HOUR + minute * US_PER_MINUTE +
+                                second * US_PER_SECOND);
 
     dinfo->hour = hour;
     dinfo->minute = minute;
@@ -1164,13 +1160,15 @@ i8 dInfoCalc_SetFromAbsDateTime(struct date_info *dinfo, i8 absdate,
                      abstime);
 
     /* Calculate the date */
-    if (dInfoCalc_SetFromAbsDate(dinfo, absdate, calendar)) goto onError;
+    if (dInfoCalc_SetFromAbsDate(dinfo, absdate, calendar))
+        goto onError;
 
     /* Calculate the time */
-    if (dInfoCalc_SetFromAbsTime(dinfo, abstime)) goto onError;
-
+    if (dInfoCalc_SetFromAbsTime(dinfo, abstime))
+        goto onError;
 
     return 0;
+
 onError:
     return INT_ERR_CODE;
 }
@@ -1193,6 +1191,7 @@ i8 asfreq(i8 period_ordinal, i8 freq1, i8 freq2, char relation)
 	}
 
     return val;
+
 onError:
     return INT_ERR_CODE;
 }
@@ -1307,32 +1306,35 @@ onError:
 
 i8 get_python_ordinal(i8 period_ordinal, i8 freq)
 {
-    asfreq_info af_info;
-    i8 (*toDaily)(i8, char, asfreq_info*) = NULL;
-
     if (freq == FR_DAY)
         return period_ordinal + ORD_OFFSET;
 
-    toDaily = get_asfreq_func(freq, FR_DAY);
+    i8 (*toDaily)(i8, char, asfreq_info*) = get_asfreq_func(freq, FR_DAY);
+    asfreq_info af_info;
+
     get_asfreq_info(freq, FR_DAY, &af_info);
+
     return toDaily(period_ordinal, 'E', &af_info) + ORD_OFFSET;
 }
 
-char *str_replace(const char *s, const char *old, const char *new) {
-    char *ret;
+char *str_replace(const char *s, const char *old, const char *new)
+{
+    char *ret = NULL;
     i8 i, count = 0;
     size_t newlen = strlen(new);
     size_t oldlen = strlen(old);
 
     for (i = 0; s[i] != '\0'; i++) {
         if (strstr(&s[i], old) == &s[i]) {
-            count++;
+            ++count;
             i += oldlen - 1;
         }
     }
 
     ret = PyArray_malloc(i + 1 + count * (newlen - oldlen));
-    if (ret == NULL) {return (char *)PyErr_NoMemory();}
+    if (ret == NULL)
+        return (char*) PyErr_NoMemory();
+
 
     i = 0;
     while (*s) {
@@ -1344,6 +1346,7 @@ char *str_replace(const char *s, const char *old, const char *new) {
             ret[i++] = *s++;
         }
     }
+
     ret[i] = '\0';
 
     return ret;
@@ -1352,7 +1355,8 @@ char *str_replace(const char *s, const char *old, const char *new) {
 // function to generate a nice string representation of the period
 // object, originally from DateObject_strftime
 
-char* c_strftime(struct date_info *tmp, char *fmt) {
+char* c_strftime(struct date_info *tmp, char *fmt)
+{
     struct tm c_date;
     struct date_info dinfo = *tmp;
 
@@ -1378,6 +1382,7 @@ char* c_strftime(struct date_info *tmp, char *fmt) {
 
     // workaround the fact that strftime doesn't do sub second printing
     char* result2 = NULL;
+
     if (is_subsec) {
         result2 = (char*) malloc(result_len * sizeof(char));
         snprintf(result2, result_len, result, dinfo.microsecond);
@@ -1389,7 +1394,8 @@ char* c_strftime(struct date_info *tmp, char *fmt) {
 }
 
 
-i8 get_yq(i8 ordinal, i8 freq, i8 *quarter, i8 *year) {
+i8 get_yq(i8 ordinal, i8 freq, i8 *quarter, i8 *year)
+{
     asfreq_info af_info;
     i8 qtr_freq, daily_ord;
     i8 (*toDaily)(i8, char, asfreq_info*) = get_asfreq_func(freq, FR_DAY);
@@ -1409,35 +1415,37 @@ i8 get_yq(i8 ordinal, i8 freq, i8 *quarter, i8 *year) {
 }
 
 
-static i8 _quarter_year(i8 ordinal, i8 freq, i8 *year, i8 *quarter) {
+static i8 _quarter_year(i8 ordinal, i8 freq, i8 *year, i8 *quarter)
+{
     asfreq_info af_info;
-    i8 qtr_freq;
 
-    ordinal = get_python_ordinal(ordinal, freq) - ORD_OFFSET;
-
-    if (get_freq_group(freq) == FR_QTR)
-        qtr_freq = freq;
-    else
-        qtr_freq = FR_QTR;
+    i8 ord = get_python_ordinal(ordinal, freq) - ORD_OFFSET;
+    i8 qtr_freq = get_freq_group(freq) == FR_QTR ? freq : FR_QTR;
 
     get_asfreq_info(FR_DAY, qtr_freq, &af_info);
 
-    if (DtoQ_yq(ordinal, &af_info, year, quarter) == INT_ERR_CODE)
+    if (DtoQ_yq(ord, &af_info, year, quarter) == INT_ERR_CODE)
         return INT_ERR_CODE;
 
-    if ((qtr_freq % 1000) > 12)
+    if (qtr_freq % 1000 > 12)
         *year -= 1;
 
     return 0;
 }
+
 
 static i8 _ISOWeek(struct date_info *dinfo)
 {
     i8 week;
 
     /* Estimate */
-    week = (dinfo->day_of_year-1) - dinfo->day_of_week + 3;
-    if (week >= 0) week = week / 7 + 1;
+    week = (dinfo->day_of_year - 1) - dinfo->day_of_week + 3;
+
+    if (week >= 0) {
+        week /= 7;
+        ++week;
+    }
+
 
     /* Verify */
     if (week < 0) {
@@ -1456,6 +1464,7 @@ static i8 _ISOWeek(struct date_info *dinfo)
 
     return week;
 }
+
 
 i8 get_date_info(i8 ordinal, i8 freq, struct date_info *dinfo)
 {
@@ -1476,97 +1485,111 @@ i8 get_date_info(i8 ordinal, i8 freq, struct date_info *dinfo)
     return 0;
 }
 
-i8 pyear(i8 ordinal, i8 freq) {
+i8 pyear(i8 ordinal, i8 freq)
+{
     struct date_info dinfo;
     get_date_info(ordinal, freq, &dinfo);
     return dinfo.year;
 }
 
-i8 pqyear(i8 ordinal, i8 freq) {
+i8 pqyear(i8 ordinal, i8 freq)
+{
     i8 year, quarter;
     if (_quarter_year(ordinal, freq, &year, &quarter) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return year;
 }
 
-i8 pquarter(i8 ordinal, i8 freq) {
+i8 pquarter(i8 ordinal, i8 freq)
+{
     i8 year, quarter;
     if (_quarter_year(ordinal, freq, &year, &quarter) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return quarter;
 }
 
-i8 pmonth(i8 ordinal, i8 freq) {
+i8 pmonth(i8 ordinal, i8 freq)
+{
     struct date_info dinfo;
     if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.month;
 }
 
-i8 pday(i8 ordinal, i8 freq) {
+i8 pday(i8 ordinal, i8 freq)
+{
     struct date_info dinfo;
     if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.day;
 }
 
-i8 pweekday(i8 ordinal, i8 freq) {
+i8 pweekday(i8 ordinal, i8 freq)
+{
     struct date_info dinfo;
     if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.day_of_week;
 }
 
-i8 pday_of_week(i8 ordinal, i8 freq) {
+i8 pday_of_week(i8 ordinal, i8 freq)
+{
     struct date_info dinfo;
     if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.day_of_week;
 }
 
-i8 pday_of_year(i8 ordinal, i8 freq) {
+i8 pday_of_year(i8 ordinal, i8 freq)
+{
     struct date_info dinfo;
     if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.day_of_year;
 }
 
-i8 pweek(i8 ordinal, i8 freq) {
+i8 pweek(i8 ordinal, i8 freq)
+{
     struct date_info dinfo;
     if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return _ISOWeek(&dinfo);
 }
 
-i8 phour(i8 ordinal, i8 freq) {
+i8 phour(i8 ordinal, i8 freq)
+{
     struct date_info dinfo;
     if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.hour;
 }
 
-i8 pminute(i8 ordinal, i8 freq) {
+i8 pminute(i8 ordinal, i8 freq)
+{
     struct date_info dinfo;
     if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.minute;
 }
 
-i8 psecond(i8 ordinal, i8 freq) {
+i8 psecond(i8 ordinal, i8 freq)
+{
     struct date_info dinfo;
     if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.second;
 }
 
-i8 pmicrosecond(i8 ordinal, i8 freq) {
+i8 pmicrosecond(i8 ordinal, i8 freq)
+{
     struct date_info dinfo;
     if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
     return dinfo.microsecond;
 }
 
-i8 pnanosecond(i8 ordinal, i8 freq) {
+i8 pnanosecond(i8 ordinal, i8 freq)
+{
     struct date_info dinfo;
     if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
