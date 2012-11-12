@@ -1524,6 +1524,42 @@ copy : boolean, default False
         """
         return self.corr(self.shift(1))
 
+    def autocov(self, j=1, unbiased=False):
+        """
+        j-lag autocovariance
+
+        Parameters
+        ----------
+        j: int, default 1
+            Periods to lag the covariance calculation by
+        unbiased : boolean, default False
+            If true return an unbiased estimator of the autocovariance
+
+        See Also
+        --------
+        statsmodels.tsa.statstools.acovf for autocovariance function, which
+        returns an array of lagged autocovariances
+
+        Returns
+        -------
+        autocov : float
+        """
+        n = len(self)
+
+        if abs(j) >= n or n == 0:
+            return np.nan
+
+        this = self - self.mean()
+        shifted = this.shift(-j)
+
+        if unbiased:
+            d = n - j
+        else:
+            d = n
+
+        return float(np.correlate(this[:n - j].values,
+                                  shifted[:n - j].values)) / d
+
     def clip(self, lower=None, upper=None, out=None):
         """
         Trim values at input threshold(s)

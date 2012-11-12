@@ -1862,6 +1862,19 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         cp[:] = np.nan
         self.assert_(isnull(cp.cov(cp)))
 
+    def test_autocov(self):
+
+        ts = Series([1, 2, 3] * 2)
+
+        #too big of lag
+        self.assert_(np.isnan(ts.autocov(j=len(ts) + 1)))
+
+        #test calculations
+        self.assertAlmostEqual(ts.autocov(j=0), 2.0/3)
+        self.assertAlmostEqual(ts.autocov(j=1), -1.0/6)
+        self.assertAlmostEqual(ts.autocov(j=2), -1.0/3)
+
+
     def test_copy(self):
         ts = self.ts.copy()
 
