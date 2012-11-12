@@ -1364,9 +1364,10 @@ class MultiIndex(Index):
                 raise Exception('Level %s not found' % str(level))
             elif level < 0:
                 level += self.nlevels
+            # Note: levels are zero-based
             elif level >= self.nlevels:
                 raise ValueError('Index has only %d levels, not %d'
-                                 % (self.nlevels, level))
+                                 % (self.nlevels, level + 1))
         return level
 
     _tuples = None
