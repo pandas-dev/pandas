@@ -10,19 +10,8 @@ import numpy as np
 # "null slice"
 _NS = slice(None, None)
 
-
-def _is_sequence(x):
-    try:
-        iter(x)
-        assert(not isinstance(x, basestring))
-        return True
-    except Exception:
-        return False
-
-
 class IndexingError(Exception):
     pass
-
 
 class _NDFrameIndexer(object):
 
@@ -149,7 +138,7 @@ class _NDFrameIndexer(object):
         if isinstance(indexer, tuple):
             for i, idx in enumerate(indexer):
                 ax = self.obj.axes[i]
-                if _is_sequence(idx) or isinstance(idx, slice):
+                if com._is_sequence(idx) or isinstance(idx, slice):
                     new_ix = ax[idx]
                     if ser.index.equals(new_ix):
                         return ser.values.copy()
@@ -174,7 +163,7 @@ class _NDFrameIndexer(object):
             idx, cols = None, None
             for i, ix in enumerate(indexer):
                 ax = self.obj.axes[i]
-                if _is_sequence(ix) or isinstance(ix, slice):
+                if com._is_sequence(ix) or isinstance(ix, slice):
                     if idx is None:
                         idx = ax[ix]
                     elif cols is None:
