@@ -1776,7 +1776,7 @@ class DataFrame(NDFrame):
             return self._getitem_multilevel(key)
         elif isinstance(key, DataFrame):
             if key.values.dtype == bool:
-                return self.mask(key)
+                return self.where(key)
             else:
                 raise ValueError('Cannot index using non-boolean DataFrame')
         else:
@@ -4867,7 +4867,7 @@ class DataFrame(NDFrame):
         """
         return self.mul(other, fill_value=1.)
 
-    def where(self, cond, other, inplace=False):
+    def where(self, cond, other=NA, inplace=False):
         """
         Return a DataFrame with the same shape as self and whose corresponding
         entries are from self where cond is True and otherwise are from other.
@@ -4901,21 +4901,6 @@ class DataFrame(NDFrame):
         rs = np.where(cond, self, other)
         return self._constructor(rs, self.index, self.columns)
         
-    def mask(self, cond):
-        """
-        Returns copy of self whose values are replaced with nan if the
-        corresponding entry in cond is False
-
-        Parameters
-        ----------
-        cond: boolean DataFrame or array
-
-        Returns
-        -------
-        wh: DataFrame
-        """
-        return self.where(cond, NA)
-
 _EMPTY_SERIES = Series([])
 
 

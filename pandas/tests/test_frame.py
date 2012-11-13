@@ -142,7 +142,6 @@ class CheckIndexing(object):
         self.assertRaises(ValueError, self.tsframe.__getitem__, self.tsframe)
 
         # test df[df >0] works
-
         bif = self.tsframe[self.tsframe > 0]
         bifw = DataFrame(np.where(self.tsframe>0,self.tsframe,np.nan),index=self.tsframe.index,columns=self.tsframe.columns)
         self.assert_(isinstance(bif,DataFrame))
@@ -5214,8 +5213,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         rs = df.where(cond, other5)
         for k, v in rs.iteritems():
             assert_series_equal(v, np.where(cond[k], df[k], other5))
-
-        assert_frame_equal(rs, df.mask(cond))
 
         err1 = (df + 1).values[0:2, :]
         self.assertRaises(ValueError, df.where, cond, err1)
