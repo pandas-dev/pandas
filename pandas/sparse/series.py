@@ -42,8 +42,11 @@ def _sparse_op_wrap(op, name):
         elif isinstance(other, DataFrame):
             return NotImplemented
         elif np.isscalar(other):
-            new_fill_value = op(np.float64(self.fill_value),
-                                np.float64(other))
+            if isnull(other) or isnull(self.fill_value):
+                new_fill_value = np.nan
+            else:
+                new_fill_value = op(np.float64(self.fill_value),
+                                    np.float64(other))
 
             return SparseSeries(op(self.sp_values, other),
                                 index=self.index,

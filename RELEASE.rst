@@ -102,6 +102,7 @@ pandas 0.9.1
     e.g. DataFrame.index (#2200)
   - Fix conversion of mixed-type DataFrame to ndarray with dup columns (#2236)
   - Fix duplicate columns issue (#2218, #2219)
+  - Fix SparseSeries.__pow__ issue with NA input (#2220)
 
 pandas 0.9.0
 ============
