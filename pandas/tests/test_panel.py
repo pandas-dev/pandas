@@ -229,6 +229,12 @@ class SafeForSparse(object):
         self._test_op(self.panel, lambda x, y: y / x)
         self._test_op(self.panel, lambda x, y: y ** x)
 
+        self._test_op(self.panel, lambda x, y: x + y)  # panel + 1
+        self._test_op(self.panel, lambda x, y: x - y)  # panel - 1
+        self._test_op(self.panel, lambda x, y: x * y)  # panel * 1
+        self._test_op(self.panel, lambda x, y: x / y)  # panel / 1
+        self._test_op(self.panel, lambda x, y: x ** y) # panel ** 1
+
         self.assertRaises(Exception, self.panel.__add__, self.panel['ItemA'])
 
     @staticmethod

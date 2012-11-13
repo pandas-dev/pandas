@@ -3114,6 +3114,39 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
                               'B': [2, 4, 6]})
         assert_frame_equal(result, expected)
 
+
+    def test_arith_getitem_commute(self):
+        df = DataFrame({'A' : [1.1,3.3],'B' : [2.5,-3.9]})
+
+        self._test_op(df, operator.add)
+        self._test_op(df, operator.sub)
+        self._test_op(df, operator.mul)
+        self._test_op(df, operator.truediv)
+        self._test_op(df, operator.floordiv)
+        self._test_op(df, operator.pow)
+
+        self._test_op(df, lambda x, y: y + x)
+        self._test_op(df, lambda x, y: y - x)
+        self._test_op(df, lambda x, y: y * x)
+        self._test_op(df, lambda x, y: y / x)
+        self._test_op(df, lambda x, y: y ** x)
+
+        self._test_op(df, lambda x, y: x + y)
+        self._test_op(df, lambda x, y: x - y)
+        self._test_op(df, lambda x, y: x * y)
+        self._test_op(df, lambda x, y: x / y)
+        self._test_op(df, lambda x, y: x ** y)
+
+    @staticmethod
+    def _test_op(df, op):
+        result = op(df, 1)
+
+        if not df.columns.is_unique:
+            raise ValueError("Only unique columns supported by this test")
+
+        for col in result.columns:
+            assert_series_equal(result[col], op(df[col], 1))
+
     def test_bool_flex_frame(self):
         data = np.random.randn(5, 3)
         other_data = np.random.randn(5, 3)
