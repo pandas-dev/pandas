@@ -633,7 +633,8 @@ class DataFrame(NDFrame):
 
     def iteritems(self):
         """Iterator over (column, series) pairs"""
-        return ((k, self[k]) for k in self.columns)
+        for i, k in enumerate(self.columns):
+            yield (k,self.take([i],axis=1)[k])
 
     def iterrows(self):
         """
@@ -836,6 +837,10 @@ class DataFrame(NDFrame):
         -------
         result : dict like {column -> {index -> value}}
         """
+        import warnings
+        if not self.columns.is_unique:
+            warnings.warn("DataFrame columns are not unique, some "
+                          "columns will be omitted.",UserWarning)
         if outtype.lower().startswith('d'):
             return dict((k, v.to_dict()) for k, v in self.iteritems())
         elif outtype.lower().startswith('l'):
@@ -1795,13 +1800,18 @@ class DataFrame(NDFrame):
                 indexer = self.columns.get_indexer(key)
                 mask = indexer == -1
                 if mask.any():
-                    raise KeyError("No column(s) named: %s" % str(key[mask]))
+                    raise KeyError("No column(s) named: %s" %
+                                   com.pprint_thing(key[mask]))
                 result = self.reindex(columns=key)
                 if result.columns.name is None:
                     result.columns.name = self.columns.name
                 return result
             else:
                 mask = self.columns.isin(key)
+                for k in key:
+                    if k not in self.columns:
+                        raise KeyError("No column(s) named: %s" %
+                                       com.pprint_thing(k))
                 return self.take(mask.nonzero()[0], axis=1)
 
     def _slice(self, slobj, axis=0):
