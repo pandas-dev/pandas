@@ -143,7 +143,8 @@ class CheckIndexing(object):
 
         # test df[df >0] works
         bif = self.tsframe[self.tsframe > 0]
-        bifw = DataFrame(np.where(self.tsframe>0,self.tsframe,np.nan),index=self.tsframe.index,columns=self.tsframe.columns)
+        bifw = DataFrame(np.where(self.tsframe > 0, self.tsframe, np.nan),
+                         index=self.tsframe.index,columns=self.tsframe.columns)
         self.assert_(isinstance(bif,DataFrame))
         self.assert_(bif.shape == self.tsframe.shape)
         assert_frame_equal(bif,bifw)
@@ -285,8 +286,8 @@ class CheckIndexing(object):
         assert_almost_equal(df.values, values)
 
         # a df that needs alignment first
-        df[df[:-1]<0] = 2
-        np.putmask(values[:-1],values[:-1]<0,2)
+        df[df[:-1] < 0] = 2
+        np.putmask(values[:-1], values[:-1] < 0, 2)
         assert_almost_equal(df.values, values)
 
         self.assertRaises(Exception, df.__setitem__, df * 0, 2)
@@ -5268,6 +5269,13 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         self.assertRaises(ValueError, df.mask, True)
         self.assertRaises(ValueError, df.mask, 0)
 
+        # where inplace
+        df = DataFrame(np.random.randn(5, 3))
+
+        expected = df.mask(df < 0)
+        df.where(df >= 0, np.nan, inplace=True)
+        assert_frame_equal(df, expected)
+
     def test_mask(self):
         df = DataFrame(np.random.randn(5, 3))
         cond = df > 0
@@ -7232,13 +7240,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_boolean_indexing(self):
         idx = range(3)
         cols = range(3)
-        df1 = DataFrame(index=idx, columns=cols, \
-                           data=np.array([[0.0, 0.5, 1.0],
-                                          [1.5, 2.0, 2.5],
-                                          [3.0, 3.5, 4.0]], dtype=float))
-        df2 = DataFrame(index=idx, columns=cols, data=np.ones((len(idx), len(cols))))
+        df1 = DataFrame(index=idx, columns=cols,
+                        data=np.array([[0.0, 0.5, 1.0],
+                                       [1.5, 2.0, 2.5],
+                                       [3.0, 3.5, 4.0]],
+                                      dtype=float))
+        df2 = DataFrame(index=idx, columns=cols,
+                        data=np.ones((len(idx), len(cols))))
 
-        expected = DataFrame(index=idx, columns=cols, \
+        expected = DataFrame(index=idx, columns=cols,
                            data=np.array([[0.0, 0.5, 1.0],
                                           [1.5, 2.0, -1],
                                           [-1,  -1,  -1]], dtype=float))

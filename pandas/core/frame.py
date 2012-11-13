@@ -1884,7 +1884,7 @@ class DataFrame(NDFrame):
         if self._is_mixed_type:
             raise ValueError('Cannot do boolean setting on mixed-type frame')
 
-        self.where(key, value, inplace=True)
+        self.where(-key, value, inplace=True)
 
     def _set_item_multiple(self, keys, value):
         if isinstance(value, DataFrame):
@@ -4872,7 +4872,6 @@ class DataFrame(NDFrame):
         Return a DataFrame with the same shape as self and whose corresponding
         entries are from self where cond is True and otherwise are from other.
 
-
         Parameters
         ----------
         cond: boolean DataFrame or array
@@ -4882,17 +4881,25 @@ class DataFrame(NDFrame):
         -------
         wh: DataFrame
         """
-        if not hasattr(cond,'shape'):
-            raise ValueError('where requires an ndarray like object for its condition')
+        if not hasattr(cond, 'shape'):
+            raise ValueError('where requires an ndarray like object for its '
+                             'condition')
 
         if isinstance(cond, np.ndarray):
             if cond.shape != self.shape:
                 raise ValueError('Array onditional must be same shape as self')
             cond = self._constructor(cond, index=self.index,
                                      columns=self.columns)
+
         if cond.shape != self.shape:
             cond = cond.reindex(self.index, columns=self.columns)
-            cond = cond.fillna(False)
+
+            if inplace:
+                cond = -(cond.fillna(True).astype(bool))
+            else:
+                cond = cond.fillna(False).astype(bool)
+        elif inplace:
+            cond = -cond
 
         if isinstance(other, DataFrame):
             _, other = self.align(other, join='left', fill_value=NA)
@@ -4903,7 +4910,7 @@ class DataFrame(NDFrame):
 
         rs = np.where(cond, self, other)
         return self._constructor(rs, self.index, self.columns)
-        
+
     def mask(self, cond):
         """
         Returns copy of self whose values are replaced with nan if the
