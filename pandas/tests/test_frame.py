@@ -62,6 +62,15 @@ class CheckIndexing(object):
         self.assert_('random' not in self.frame)
         self.assertRaises(Exception, self.frame.__getitem__, 'random')
 
+    def test_getitem_dupe_cols(self):
+        df=DataFrame([[1,2,3],[4,5,6]],columns=['a','a','b'])
+        try:
+            df[['baf']]
+        except KeyError:
+            pass
+        else:
+            self.fail("Dataframe failed to raise KeyError")
+
     def test_get(self):
         b = self.frame.get('B')
         assert_series_equal(b, self.frame['B'])
@@ -1146,6 +1155,11 @@ class CheckIndexing(object):
                 result = self.frame.get_value(idx, col)
                 expected = self.frame[col][idx]
                 assert_almost_equal(result, expected)
+
+    def test_iteritems(self):
+        df=DataFrame([[1,2,3],[4,5,6]],columns=['a','a','b'])
+        for k,v in df.iteritems():
+            self.assertEqual(type(v),Series)
 
     def test_lookup(self):
         def alt(df, rows, cols):
@@ -7522,6 +7536,7 @@ starting,ending,measure
             else:
                 self.assert_(r0.all())
                 self.assert_(r1.all())
+
 
 if __name__ == '__main__':
     # unittest.main()
