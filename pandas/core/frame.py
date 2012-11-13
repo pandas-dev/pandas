@@ -4882,6 +4882,9 @@ class DataFrame(NDFrame):
         -------
         wh: DataFrame
         """
+        if not hasattr(cond,'shape'):
+            raise ValueError('where requires an ndarray like object for its condition')
+
         if isinstance(cond, np.ndarray):
             if cond.shape != self.shape:
                 raise ValueError('Array onditional must be same shape as self')
@@ -4901,6 +4904,21 @@ class DataFrame(NDFrame):
         rs = np.where(cond, self, other)
         return self._constructor(rs, self.index, self.columns)
         
+    def mask(self, cond):
+        """
+        Returns copy of self whose values are replaced with nan if the
+        inverted condition is True
+
+        Parameters
+        ----------
+        cond: boolean DataFrame or array
+
+        Returns
+        -------
+        wh: DataFrame
+        """
+        return self.where(~cond, NA)
+
 _EMPTY_SERIES = Series([])
 
 

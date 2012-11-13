@@ -5220,6 +5220,18 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         err2 = cond.ix[:2, :].values
         self.assertRaises(ValueError, df.where, err2, other1)
 
+        # invalid conditions
+        self.assertRaises(ValueError, df.mask, True)
+        self.assertRaises(ValueError, df.mask, 0)
+
+    def test_mask(self):
+        df = DataFrame(np.random.randn(5, 3))
+        cond = df > 0
+
+        rs = df.where(cond, np.nan)
+        assert_frame_equal(rs, df.mask(df <= 0))
+        assert_frame_equal(rs, df.mask(~cond))
+
 
     #----------------------------------------------------------------------
     # Transposing
