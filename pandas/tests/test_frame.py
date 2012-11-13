@@ -141,6 +141,12 @@ class CheckIndexing(object):
 
         self.assertRaises(ValueError, self.tsframe.__getitem__, self.tsframe)
 
+        # test df[df >0] works
+        bif = self.tsframe[self.tsframe > 0]
+        bifw = DataFrame(np.where(self.tsframe>0,self.tsframe,np.nan),index=self.tsframe.index,columns=self.tsframe.columns)
+        self.assert_(isinstance(bif,DataFrame))
+        self.assert_(bif.shape == self.tsframe.shape)
+        assert_frame_equal(bif,bifw)
 
     def test_getitem_boolean_list(self):
         df = DataFrame(np.arange(12).reshape(3,4))
@@ -278,7 +284,11 @@ class CheckIndexing(object):
         values[values == 5] = 0
         assert_almost_equal(df.values, values)
 
-        self.assertRaises(Exception, df.__setitem__, df[:-1] > 0, 2)
+        # a df that needs alignment first
+        df[df[:-1]<0] = 2
+        np.putmask(values[:-1],values[:-1]<0,2)
+        assert_almost_equal(df.values, values)
+
         self.assertRaises(Exception, df.__setitem__, df * 0, 2)
 
         # index with DataFrame
@@ -5248,13 +5258,23 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         for k, v in rs.iteritems():
             assert_series_equal(v, np.where(cond[k], df[k], other5))
 
-        assert_frame_equal(rs, df.mask(cond))
-
         err1 = (df + 1).values[0:2, :]
         self.assertRaises(ValueError, df.where, cond, err1)
 
         err2 = cond.ix[:2, :].values
         self.assertRaises(ValueError, df.where, err2, other1)
+
+        # invalid conditions
+        self.assertRaises(ValueError, df.mask, True)
+        self.assertRaises(ValueError, df.mask, 0)
+
+    def test_mask(self):
+        df = DataFrame(np.random.randn(5, 3))
+        cond = df > 0
+
+        rs = df.where(cond, np.nan)
+        assert_frame_equal(rs, df.mask(df <= 0))
+        assert_frame_equal(rs, df.mask(~cond))
 
 
     #----------------------------------------------------------------------
