@@ -99,6 +99,7 @@ pandas 0.9.1
   - Many unicode formatting fixes (#2201)
   - Fix improper MultiIndex conversion issue when assigning
     e.g. DataFrame.index (#2200)
+  - Fix conversion of mixed-type DataFrame to ndarray with dup columns (#2236)
 
 pandas 0.9.0
 ============

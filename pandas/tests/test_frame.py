@@ -4078,6 +4078,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = self.frame.reindex(columns=['A', 'B']).values
         assert_almost_equal(mat, expected)
 
+    def test_as_matrix_duplicates(self):
+        df = DataFrame([[1, 2, 'a', 'b'],
+                        [1, 2, 'a', 'b']],
+                       columns=['one', 'one', 'two', 'two'])
+
+        result = df.values
+        expected = np.array([[1, 2, 'a', 'b'], [1, 2, 'a', 'b']],
+                            dtype=object)
+
+        self.assertTrue(np.array_equal(result, expected))
+
     def test_values(self):
         self.frame.values[:, 0] = 5.
         self.assert_((self.frame.values[:, 0] == 5).all())

@@ -732,12 +732,22 @@ class BlockManager(object):
 
         # By construction, all of the item should be covered by one of the
         # blocks
-        for block in self.blocks:
-            indexer = items.get_indexer(block.items)
-            assert((indexer != -1).all())
-            result[indexer] = block.get_values(dtype)
-            itemmask[indexer] = 1
+        if items.is_unique:
+            for block in self.blocks:
+                indexer = items.get_indexer(block.items)
+                assert((indexer != -1).all())
+                result[indexer] = block.get_values(dtype)
+                itemmask[indexer] = 1
+        else:
+            for block in self.blocks:
+                mask = items.isin(block.items)
+                indexer = mask.nonzero()[0]
+                assert(len(indexer) == len(block.items))
+                result[indexer] = block.get_values(dtype)
+                itemmask[indexer] = 1
+
         assert(itemmask.all())
+
         return result
 
     def xs(self, key, axis=1, copy=True):
