@@ -36,7 +36,7 @@ docstring_to_string = """
         string representation of NAN to use, default 'NaN'
     formatters : list or dict of one-parameter functions, optional
         formatter functions to apply to columns' elements by position or name,
-        default None
+        default None, if the result is a string , it must be a unicode string.
     float_format : one-parameter function, optional
         formatter function to apply to columns' elements if they are floats
         default None
