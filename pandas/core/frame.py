@@ -5091,6 +5091,9 @@ def extract_index(data):
 
 def _prep_ndarray(values, copy=True):
     if not isinstance(values, np.ndarray):
+        if len(values) == 0:
+            return np.empty((0, 0), dtype=object)
+
         arr = np.asarray(values)
         # NumPy strings are a pain, convert to object
         if issubclass(arr.dtype.type, basestring):
@@ -5103,11 +5106,7 @@ def _prep_ndarray(values, copy=True):
             values = values.copy()
 
     if values.ndim == 1:
-        N = values.shape[0]
-        if N == 0:
-            values = values.reshape((values.shape[0], 0))
-        else:
-            values = values.reshape((values.shape[0], 1))
+        values = values.reshape((values.shape[0], 1))
     elif values.ndim != 2:
         raise Exception('Must pass 2-d input')
 

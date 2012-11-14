@@ -106,6 +106,8 @@ pandas 0.9.1
   - Fix icol with integer sequence failure (#2228)
   - Fixed resampling tz-aware time series issue (#2245)
   - SparseDataFrame.icol was not returning SparseSeries (#2227, #2229)
+  - Enable ExcelWriter to handle PeriodIndex (#2240)
+  - Fix issue constructing DataFrame from empty Series with name (#2234)
 
 pandas 0.9.0
 ============

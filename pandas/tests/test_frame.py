@@ -2269,10 +2269,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(recons, expected)
 
     def test_constructor_Series_named(self):
-        a = Series([1,2,3], index=['a','b','c'], name='x')
+        a = Series([1, 2, 3], index=['a', 'b', 'c'], name='x')
         df = DataFrame(a)
         self.assert_(df.columns[0] == 'x')
         self.assert_(df.index.equals(a.index))
+
+        # #2234
+        a = Series([], name='x')
+        df = DataFrame(a)
+        self.assert_(df.columns[0] == 'x')
 
     def test_constructor_Series_differently_indexed(self):
         # name
