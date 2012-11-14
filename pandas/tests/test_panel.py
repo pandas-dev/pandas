@@ -981,6 +981,7 @@ class TestPanel(unittest.TestCase, PanelTests, CheckIndexing,
         self.assertRaises(Exception, self.panel.swapaxes, 'items', 'items')
 
     def test_transpose(self):
+
         result = self.panel.transpose('minor', 'major', 'items')
         expected = self.panel.swapaxes('items', 'minor')
         assert_panel_equal(result, expected)
