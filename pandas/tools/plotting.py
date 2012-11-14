@@ -979,7 +979,9 @@ class LinePlot(MPLPlot):
 
     def _get_colors(self):
         import matplotlib.pyplot as plt
-        cycle = ''.join(plt.rcParams.get('axes.color_cycle', list('bgrcmyk')))
+        cycle = plt.rcParams.get('axes.color_cycle', list('bgrcmyk'))
+        if isinstance(cycle, basestring):
+            cycle = list(cycle)
         has_colors = 'color' in self.kwds
         colors = self.kwds.get('color', cycle)
         return colors

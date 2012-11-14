@@ -537,6 +537,21 @@ class TestDataFramePlots(unittest.TestCase):
         plt.close('all')
         df.ix[:, [0]].plot(color='DodgerBlue')
 
+    @slow
+    def test_default_color_cycle(self):
+        import matplotlib.pyplot as plt
+        plt.rcParams['axes.color_cycle'] = list('rgbk')
+
+        plt.close('all')
+        df = DataFrame(np.random.randn(5, 3))
+        ax = df.plot()
+
+        lines = ax.get_lines()
+        for i, l in enumerate(lines):
+            xp = plt.rcParams['axes.color_cycle'][i]
+            rs = l.get_color()
+            self.assert_(xp == rs)
+
 
 class TestDataFrameGroupByPlots(unittest.TestCase):
 
