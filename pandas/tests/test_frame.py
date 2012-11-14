@@ -3842,6 +3842,24 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(frame, recons)
         os.remove(path)
 
+    def test_to_excel_periodindex(self):
+        try:
+            import xlwt
+            import xlrd
+            import openpyxl
+        except ImportError:
+            raise nose.SkipTest
+
+        for ext in ['xls', 'xlsx']:
+            path = '__tmp__.' + ext
+            frame = self.tsframe
+            xp = frame.resample('M', kind='period')
+            xp.to_excel(path, 'sht1')
+
+            reader = ExcelFile(path)
+            rs = reader.parse('sht1', index_col=0, parse_dates=True)
+            assert_frame_equal(xp, rs.to_period('M'))
+            os.remove(path)
 
     def test_to_excel_multiindex(self):
         try:

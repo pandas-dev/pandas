@@ -1180,8 +1180,12 @@ class DataFrame(NDFrame):
                 encoded_cols = list(cols)
                 writer.writerow(encoded_cols)
 
-        nlevels = getattr(self.index, 'nlevels', 1)
-        for j, idx in enumerate(self.index):
+        data_index = self.index
+        if isinstance(self.index, PeriodIndex):
+            data_index = self.index.to_timestamp()
+
+        nlevels = getattr(data_index, 'nlevels', 1)
+        for j, idx in enumerate(data_index):
             row_fields = []
             if index:
                 if nlevels == 1:
