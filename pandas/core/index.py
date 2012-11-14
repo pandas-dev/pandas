@@ -394,8 +394,8 @@ class Index(np.ndarray):
             result = []
             for dt in self:
                 if dt.time() != zero_time or dt.tzinfo is not None:
-                    return header + ['%s' % x for x in self]
-                result.append('%d-%.2d-%.2d' % (dt.year, dt.month, dt.day))
+                    return header + [u'%s' % x for x in self]
+                result.append(u'%d-%.2d-%.2d' % (dt.year, dt.month, dt.day))
             return header + result
 
         values = self.values
@@ -1496,7 +1496,7 @@ class MultiIndex(Index):
                 formatted = lev.take(lab).format()
             else:
                 # weird all NA case
-                formatted = [str(x) for x in com.take_1d(lev.values, lab)]
+                formatted = [com.pprint_thing(x) for x in com.take_1d(lev.values, lab)]
             stringified_levels.append(formatted)
 
         result_levels = []

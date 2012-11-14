@@ -840,16 +840,16 @@ class TestSeriesFormatting(unittest.TestCase):
     def test_to_string_mixed(self):
         s = Series(['foo', np.nan, -1.23, 4.56])
         result = s.to_string()
-        expected = ('0     foo\n'
-                    '1     NaN\n'
-                    '2   -1.23\n'
-                    '3    4.56')
+        expected = (u'0     foo\n'
+                    u'1     NaN\n'
+                    u'2   -1.23\n'
+                    u'3    4.56')
         self.assertEqual(result, expected)
 
         # but don't count NAs as floats
         s = Series(['foo', np.nan, 'bar', 'baz'])
         result = s.to_string()
-        expected = ('0    foo\n'
+        expected = (u'0    foo\n'
                     '1    NaN\n'
                     '2    bar\n'
                     '3    baz')
@@ -857,7 +857,7 @@ class TestSeriesFormatting(unittest.TestCase):
 
         s = Series(['foo', 5, 'bar', 'baz'])
         result = s.to_string()
-        expected = ('0    foo\n'
+        expected = (u'0    foo\n'
                     '1      5\n'
                     '2    bar\n'
                     '3    baz')
@@ -868,7 +868,7 @@ class TestSeriesFormatting(unittest.TestCase):
         s[::2] = np.nan
 
         result = s.to_string()
-        expected = ('0       NaN\n'
+        expected = (u'0       NaN\n'
                     '1    1.5678\n'
                     '2       NaN\n'
                     '3   -3.0000\n'

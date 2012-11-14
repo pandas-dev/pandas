@@ -62,7 +62,7 @@ class SeriesFormatter(object):
     def __init__(self, series, buf=None, header=True, length=True,
                  na_rep='NaN', name=False, float_format=None):
         self.series = series
-        self.buf = buf if buf is not None else StringIO()
+        self.buf = buf if buf is not None else StringIO(u"")
         self.name = name
         self.na_rep = na_rep
         self.length = length
@@ -112,7 +112,7 @@ class SeriesFormatter(object):
         series = self.series
 
         if len(series) == 0:
-            return ''
+            return u''
 
         fmt_index, have_header = self._get_formatted_index()
         fmt_values = self._get_formatted_values()
@@ -719,18 +719,10 @@ class GenericArrayFormatter(object):
         self.justify = justify
 
     def get_result(self):
-        if self._have_unicode():
-            fmt_values = self._format_strings(use_unicode=True)
-        else:
-            fmt_values = self._format_strings(use_unicode=False)
-
+        fmt_values = self._format_strings()
         return _make_fixed_width(fmt_values, self.justify)
 
-    def _have_unicode(self):
-        mask = lib.map_infer(self.values, lambda x: isinstance(x, unicode))
-        return mask.any()
-
-    def _format_strings(self, use_unicode=False):
+    def _format_strings(self):
         if self.float_format is None:
             float_format = print_config.float_format
             if float_format is None:
