@@ -1073,6 +1073,14 @@ def _concat_compat(to_concat, axis=0):
     else:
         return np.concatenate(to_concat, axis=axis)
 
+def in_interactive_session():
+    """ check if we're running in an interactive shell
+
+    returns True if running under python/ipython interactive shell
+    """
+    import __main__ as main
+    return not hasattr(main, '__file__')
+
 # Unicode consolidation
 # ---------------------
 #

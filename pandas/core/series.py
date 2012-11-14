@@ -2756,7 +2756,15 @@ copy : boolean, default False
         -------
         localized : TimeSeries
         """
-        new_index = self.index.tz_localize(tz)
+        from pandas.tseries.index import DatetimeIndex
+
+        if not isinstance(self.index, DatetimeIndex):
+            if len(self.index) > 0:
+                raise Exception('Cannot tz-localize non-time series')
+
+            new_index = DatetimeIndex([], tz=tz)
+        else:
+            new_index = self.index.tz_localize(tz)
 
         new_values = self.values
         if copy:

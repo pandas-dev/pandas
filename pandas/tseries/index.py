@@ -203,6 +203,10 @@ class DatetimeIndex(Int64Index):
                 if isinstance(data, DatetimeIndex):
                     if name is not None:
                         data.name = name
+
+                    if tz is not None:
+                        return data.tz_localize(tz)
+
                     return data
 
         if issubclass(data.dtype.type, basestring):

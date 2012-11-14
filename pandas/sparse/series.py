@@ -146,6 +146,13 @@ class SparseSeries(SparseArray, Series):
         output.name = name
         return output
 
+    @classmethod
+    def from_array(cls, arr, index=None, name=None, copy=False):
+        """
+        Simplified alternate constructor
+        """
+        return SparseSeries(arr, index=index, name=name, copy=copy)
+
     def __init__(self, data, index=None, sparse_index=None, kind='block',
                  fill_value=None, name=None, copy=False):
         """Data structure for labeled, sparse floating point data

@@ -64,6 +64,7 @@ class SparseDataFrame(DataFrame):
     _columns = None
     _series = None
     _is_mixed_type = False
+    _col_klass = SparseSeries
     ndim = 2
 
     def __init__(self, data=None, index=None, columns=None,
