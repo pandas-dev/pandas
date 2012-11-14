@@ -6,7 +6,6 @@ Contains data structures designed for manipulating panel (3-dimensional) data
 import operator
 import sys
 import numpy as np
-
 from pandas.core.common import (PandasError, _mut_exclusive,
                                 _try_sort, _default_index, _infer_dtype)
 from pandas.core.categorical import Factor

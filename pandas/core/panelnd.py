@@ -1,7 +1,5 @@
 """ Factory methods to create N-D panels """
 
-import sys
-sys.path.insert(0,'/home/jreback/pandas')
 import pandas
 from pandas.core.panel import Panel
 import pandas.lib as lib

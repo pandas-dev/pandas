@@ -4,7 +4,6 @@
 import numpy as np
 
 from pandas.core.algorithms import factorize, match, unique, value_counts
-
 from pandas.core.common import isnull, notnull, save, load
 from pandas.core.categorical import Categorical, Factor
 from pandas.core.format import (set_printoptions, reset_printoptions,

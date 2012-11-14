@@ -798,6 +798,7 @@ class TestPanel4d(unittest.TestCase, CheckIndexing, SafeForSparse, SafeForLongAn
 
     def test_take(self):
         raise nose.SkipTest
+
     #    # axis == 0
     #    result = self.panel.take([2, 0, 1], axis=0)
     #    expected = self.panel.reindex(items=['ItemC', 'ItemA', 'ItemB'])

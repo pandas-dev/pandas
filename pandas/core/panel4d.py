@@ -3,6 +3,7 @@
 from pandas.core.panel import Panel
 import pandas.lib as lib
 
+
 class Panel4D(Panel):
     _AXIS_ORDERS  = ['labels','items','major_axis','minor_axis']
     _AXIS_NUMBERS = dict([ (a,i) for i, a in enumerate(_AXIS_ORDERS) ])
