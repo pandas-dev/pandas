@@ -30,6 +30,7 @@ from pandas.tseries.api import *
 from pandas.io.parsers import (read_csv, read_table, read_clipboard,
                                read_fwf, to_clipboard, ExcelFile,
                                ExcelWriter)
+from pandas.io.data import DataReader, Options
 from pandas.io.pytables import HDFStore
 from pandas.util.testing import debug
 
