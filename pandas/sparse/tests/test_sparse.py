@@ -1297,6 +1297,22 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         rs = sparse_df[sparse_df.flag.isin([1.])]
         assert_frame_equal(xp, rs)
 
+    def test_sparse_pow_issue(self):
+        # #2220
+        df = SparseDataFrame({'A' : [1.1,3.3],'B' : [2.5,-3.9]})
+
+        # note : no error without nan
+        df = SparseDataFrame({'A' : [nan, 0, 1]    })
+
+        # note that 2 ** df works fine, also df ** 1
+        result = 1 ** df
+
+        r1 = result.take([0],1)['A']
+        r2 = result['A']
+
+        self.assertEqual(len(r2.sp_values), len(r1.sp_values))
+
+
 def _dense_series_compare(s, f):
     result = f(s)
     assert(isinstance(result, SparseSeries))

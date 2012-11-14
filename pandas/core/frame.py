@@ -633,7 +633,8 @@ class DataFrame(NDFrame):
 
     def iteritems(self):
         """Iterator over (column, series) pairs"""
-        return ((k, self[k]) for k in self.columns)
+        for i, k in enumerate(self.columns):
+            yield (k,self.take([i],axis=1)[k])
 
     def iterrows(self):
         """
@@ -836,6 +837,10 @@ class DataFrame(NDFrame):
         -------
         result : dict like {column -> {index -> value}}
         """
+        import warnings
+        if not self.columns.is_unique:
+            warnings.warn("DataFrame columns are not unique, some "
+                          "columns will be omitted.",UserWarning)
         if outtype.lower().startswith('d'):
             return dict((k, v.to_dict()) for k, v in self.iteritems())
         elif outtype.lower().startswith('l'):
@@ -1721,7 +1726,11 @@ class DataFrame(NDFrame):
         else:
             label = self.columns[i]
             if isinstance(label, Index):
-                return self.reindex(columns=label)
+                if self.columns.inferred_type == 'integer':
+                    # XXX re: #2228
+                    return self.reindex(columns=label)
+                else:
+                    return self.ix[:, i]
 
             values = self._data.iget(i)
             return Series.from_array(values, index=self.index, name=label)
@@ -1775,9 +1784,8 @@ class DataFrame(NDFrame):
         elif isinstance(self.columns, MultiIndex):
             return self._getitem_multilevel(key)
         elif isinstance(key, DataFrame):
-            values = key.values
-            if values.dtype == bool:
-                return self.values[values]
+            if key.values.dtype == bool:
+                return self.where(key)
             else:
                 raise ValueError('Cannot index using non-boolean DataFrame')
         else:
@@ -1796,13 +1804,18 @@ class DataFrame(NDFrame):
                 indexer = self.columns.get_indexer(key)
                 mask = indexer == -1
                 if mask.any():
-                    raise KeyError("No column(s) named: %s" % str(key[mask]))
+                    raise KeyError("No column(s) named: %s" %
+                                   com.pprint_thing(key[mask]))
                 result = self.reindex(columns=key)
                 if result.columns.name is None:
                     result.columns.name = self.columns.name
                 return result
             else:
                 mask = self.columns.isin(key)
+                for k in key:
+                    if k not in self.columns:
+                        raise KeyError("No column(s) named: %s" %
+                                       com.pprint_thing(k))
                 return self.take(mask.nonzero()[0], axis=1)
 
     def _slice(self, slobj, axis=0):
@@ -1871,11 +1884,6 @@ class DataFrame(NDFrame):
         # support boolean setting with DataFrame input, e.g.
         # df[df > df2] = 0
         if isinstance(key, DataFrame):
-            if not (key.index.equals(self.index) and
-                    key.columns.equals(self.columns)):
-                raise PandasError('Can only index with like-indexed '
-                                  'DataFrame objects')
-
             self._boolean_set(key, value)
         elif isinstance(key, (np.ndarray, list)):
             return self._set_item_multiple(key, value)
@@ -1884,18 +1892,13 @@ class DataFrame(NDFrame):
             self._set_item(key, value)
 
     def _boolean_set(self, key, value):
-        mask = key.values
-        if mask.dtype != np.bool_:
+        if key.values.dtype != np.bool_:
             raise ValueError('Must pass DataFrame with boolean values only')
 
         if self._is_mixed_type:
             raise ValueError('Cannot do boolean setting on mixed-type frame')
 
-        if isinstance(value, DataFrame):
-            assert(value._indexed_same(self))
-            np.putmask(self.values, mask, value.values)
-        else:
-            self.values[mask] = value
+        self.where(-key, value, inplace=True)
 
     def _set_item_multiple(self, keys, value):
         if isinstance(value, DataFrame):
@@ -4878,11 +4881,10 @@ class DataFrame(NDFrame):
         """
         return self.mul(other, fill_value=1.)
 
-    def where(self, cond, other):
+    def where(self, cond, other=NA, inplace=False):
         """
         Return a DataFrame with the same shape as self and whose corresponding
         entries are from self where cond is True and otherwise are from other.
-
 
         Parameters
         ----------
@@ -4893,17 +4895,32 @@ class DataFrame(NDFrame):
         -------
         wh: DataFrame
         """
+        if not hasattr(cond, 'shape'):
+            raise ValueError('where requires an ndarray like object for its '
+                             'condition')
+
         if isinstance(cond, np.ndarray):
             if cond.shape != self.shape:
                 raise ValueError('Array onditional must be same shape as self')
             cond = self._constructor(cond, index=self.index,
                                      columns=self.columns)
+
         if cond.shape != self.shape:
             cond = cond.reindex(self.index, columns=self.columns)
-            cond = cond.fillna(False)
+
+            if inplace:
+                cond = -(cond.fillna(True).astype(bool))
+            else:
+                cond = cond.fillna(False).astype(bool)
+        elif inplace:
+            cond = -cond
 
         if isinstance(other, DataFrame):
             _, other = self.align(other, join='left', fill_value=NA)
+
+        if inplace:
+            np.putmask(self.values, cond, other)
+            return self
 
         rs = np.where(cond, self, other)
         return self._constructor(rs, self.index, self.columns)
@@ -4911,7 +4928,7 @@ class DataFrame(NDFrame):
     def mask(self, cond):
         """
         Returns copy of self whose values are replaced with nan if the
-        corresponding entry in cond is False
+        inverted condition is True
 
         Parameters
         ----------
@@ -4921,7 +4938,7 @@ class DataFrame(NDFrame):
         -------
         wh: DataFrame
         """
-        return self.where(cond, NA)
+        return self.where(~cond, NA)
 
 _EMPTY_SERIES = Series([])
 

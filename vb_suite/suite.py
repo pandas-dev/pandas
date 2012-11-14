@@ -56,9 +56,9 @@ try:
     DB_PATH = config.get('setup', 'db_path')
     TMP_DIR = config.get('setup', 'tmp_dir')
 except:
-    REPO_PATH = os.path.join(HOME, 'code/pandas')
+    REPO_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__),"../"))
     REPO_URL = 'git@github.com:pydata/pandas.git'
-    DB_PATH = os.path.join(HOME, 'code/pandas/vb_suite/benchmarks.db')
+    DB_PATH = os.path.join(REPO_PATH, 'vb_suite/benchmarks.db')
     TMP_DIR = os.path.join(HOME, 'tmp/vb_pandas')
 
 PREPARE = """

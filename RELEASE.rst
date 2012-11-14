@@ -57,6 +57,7 @@ pandas 0.9.1
   - Improve performance of Series/DataFrame.diff (re: #2087)
   - Support unary ~ (__invert__) in DataFrame (#2110)
   - Turn off pandas-style tick locators and formatters (#2205)
+  - DataFrame[DataFrame] uses DataFrame.where to compute masked frame (#2230)
 
 **Bug fixes**
 
@@ -99,6 +100,9 @@ pandas 0.9.1
   - Many unicode formatting fixes (#2201)
   - Fix improper MultiIndex conversion issue when assigning
     e.g. DataFrame.index (#2200)
+  - Fix conversion of mixed-type DataFrame to ndarray with dup columns (#2236)
+  - Fix duplicate columns issue (#2218, #2219)
+  - Fix SparseSeries.__pow__ issue with NA input (#2220)
 
 pandas 0.9.0
 ============

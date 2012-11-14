@@ -62,6 +62,15 @@ class CheckIndexing(object):
         self.assert_('random' not in self.frame)
         self.assertRaises(Exception, self.frame.__getitem__, 'random')
 
+    def test_getitem_dupe_cols(self):
+        df=DataFrame([[1,2,3],[4,5,6]],columns=['a','a','b'])
+        try:
+            df[['baf']]
+        except KeyError:
+            pass
+        else:
+            self.fail("Dataframe failed to raise KeyError")
+
     def test_get(self):
         b = self.frame.get('B')
         assert_series_equal(b, self.frame['B'])
@@ -141,6 +150,13 @@ class CheckIndexing(object):
 
         self.assertRaises(ValueError, self.tsframe.__getitem__, self.tsframe)
 
+        # test df[df >0] works
+        bif = self.tsframe[self.tsframe > 0]
+        bifw = DataFrame(np.where(self.tsframe > 0, self.tsframe, np.nan),
+                         index=self.tsframe.index,columns=self.tsframe.columns)
+        self.assert_(isinstance(bif,DataFrame))
+        self.assert_(bif.shape == self.tsframe.shape)
+        assert_frame_equal(bif,bifw)
 
     def test_getitem_boolean_list(self):
         df = DataFrame(np.arange(12).reshape(3,4))
@@ -278,7 +294,11 @@ class CheckIndexing(object):
         values[values == 5] = 0
         assert_almost_equal(df.values, values)
 
-        self.assertRaises(Exception, df.__setitem__, df[:-1] > 0, 2)
+        # a df that needs alignment first
+        df[df[:-1] < 0] = 2
+        np.putmask(values[:-1], values[:-1] < 0, 2)
+        assert_almost_equal(df.values, values)
+
         self.assertRaises(Exception, df.__setitem__, df * 0, 2)
 
         # index with DataFrame
@@ -1136,6 +1156,11 @@ class CheckIndexing(object):
                 expected = self.frame[col][idx]
                 assert_almost_equal(result, expected)
 
+    def test_iteritems(self):
+        df=DataFrame([[1,2,3],[4,5,6]],columns=['a','a','b'])
+        for k,v in df.iteritems():
+            self.assertEqual(type(v),Series)
+
     def test_lookup(self):
         def alt(df, rows, cols):
             result = []
@@ -1297,6 +1322,10 @@ class CheckIndexing(object):
         rs = df.icol(0)
         xp = df.T.ix[0]
         assert_series_equal(rs, xp)
+
+        rs = df.icol([0])
+        xp = df.ix[:, [0]]
+        assert_frame_equal(rs, xp)
 
     def test_iget_value(self):
         for i, row in enumerate(self.frame.index):
@@ -4078,6 +4107,17 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         expected = self.frame.reindex(columns=['A', 'B']).values
         assert_almost_equal(mat, expected)
 
+    def test_as_matrix_duplicates(self):
+        df = DataFrame([[1, 2, 'a', 'b'],
+                        [1, 2, 'a', 'b']],
+                       columns=['one', 'one', 'two', 'two'])
+
+        result = df.values
+        expected = np.array([[1, 2, 'a', 'b'], [1, 2, 'a', 'b']],
+                            dtype=object)
+
+        self.assertTrue(np.array_equal(result, expected))
+
     def test_values(self):
         self.frame.values[:, 0] = 5.
         self.assert_((self.frame.values[:, 0] == 5).all())
@@ -5237,13 +5277,30 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         for k, v in rs.iteritems():
             assert_series_equal(v, np.where(cond[k], df[k], other5))
 
-        assert_frame_equal(rs, df.mask(cond))
-
         err1 = (df + 1).values[0:2, :]
         self.assertRaises(ValueError, df.where, cond, err1)
 
         err2 = cond.ix[:2, :].values
         self.assertRaises(ValueError, df.where, err2, other1)
+
+        # invalid conditions
+        self.assertRaises(ValueError, df.mask, True)
+        self.assertRaises(ValueError, df.mask, 0)
+
+        # where inplace
+        df = DataFrame(np.random.randn(5, 3))
+
+        expected = df.mask(df < 0)
+        df.where(df >= 0, np.nan, inplace=True)
+        assert_frame_equal(df, expected)
+
+    def test_mask(self):
+        df = DataFrame(np.random.randn(5, 3))
+        cond = df > 0
+
+        rs = df.where(cond, np.nan)
+        assert_frame_equal(rs, df.mask(df <= 0))
+        assert_frame_equal(rs, df.mask(~cond))
 
 
     #----------------------------------------------------------------------
@@ -7201,13 +7258,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
     def test_boolean_indexing(self):
         idx = range(3)
         cols = range(3)
-        df1 = DataFrame(index=idx, columns=cols, \
-                           data=np.array([[0.0, 0.5, 1.0],
-                                          [1.5, 2.0, 2.5],
-                                          [3.0, 3.5, 4.0]], dtype=float))
-        df2 = DataFrame(index=idx, columns=cols, data=np.ones((len(idx), len(cols))))
+        df1 = DataFrame(index=idx, columns=cols,
+                        data=np.array([[0.0, 0.5, 1.0],
+                                       [1.5, 2.0, 2.5],
+                                       [3.0, 3.5, 4.0]],
+                                      dtype=float))
+        df2 = DataFrame(index=idx, columns=cols,
+                        data=np.ones((len(idx), len(cols))))
 
-        expected = DataFrame(index=idx, columns=cols, \
+        expected = DataFrame(index=idx, columns=cols,
                            data=np.array([[0.0, 0.5, 1.0],
                                           [1.5, 2.0, -1],
                                           [-1,  -1,  -1]], dtype=float))
@@ -7481,6 +7540,7 @@ starting,ending,measure
             else:
                 self.assert_(r0.all())
                 self.assert_(r1.all())
+
 
 if __name__ == '__main__':
     # unittest.main()
