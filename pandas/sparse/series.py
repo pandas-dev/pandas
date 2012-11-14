@@ -147,11 +147,11 @@ class SparseSeries(SparseArray, Series):
         return output
 
     @classmethod
-    def from_array(cls, arr, index=None, name=None, copy=False):
+    def from_array(cls, arr, index=None, name=None, copy=False,fill_value=None):
         """
         Simplified alternate constructor
         """
-        return SparseSeries(arr, index=index, name=name, copy=copy)
+        return SparseSeries(arr, index=index, name=name, copy=copy,fill_value=fill_value)
 
     def __init__(self, data, index=None, sparse_index=None, kind='block',
                  fill_value=None, name=None, copy=False):
