@@ -110,7 +110,10 @@ class TimeGrouper(CustomGrouper):
 
         first, last = _get_range_edges(axis, self.freq, closed=self.closed,
                                        base=self.base)
-        binner = labels = DatetimeIndex(freq=self.freq, start=first, end=last)
+        tz = axis.tz
+        binner = labels = DatetimeIndex(freq=self.freq,
+                                        start=first.replace(tzinfo=None),
+                                        end=last.replace(tzinfo=None), tz=tz)
 
         # a little hack
         trimmed = False

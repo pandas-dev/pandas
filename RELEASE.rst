@@ -103,6 +103,8 @@ pandas 0.9.1
   - Fix conversion of mixed-type DataFrame to ndarray with dup columns (#2236)
   - Fix duplicate columns issue (#2218, #2219)
   - Fix SparseSeries.__pow__ issue with NA input (#2220)
+  - Fix icol with integer sequence failure (#2228)
+  - Fixed resampling tz-aware time series issue (#2245)
 
 pandas 0.9.0
 ============

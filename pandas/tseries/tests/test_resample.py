@@ -823,6 +823,24 @@ class TestResamplePeriodIndex(unittest.TestCase):
         # it works
         result = ts_local.resample('D')
 
+        # #2245
+        idx = date_range('2001-09-20 15:59','2001-09-20 16:00', freq='T',
+                         tz='Australia/Sydney')
+        s = Series([1,2], index=idx)
+
+        result = s.resample('D')
+        ex_index = date_range('2001-09-21', periods=1, freq='D',
+                              tz='Australia/Sydney')
+        expected = Series([1.5], index=ex_index)
+
+        assert_series_equal(result, expected)
+
+        # for good measure
+        result = s.resample('D', kind='period')
+        ex_index = period_range('2001-09-20', periods=1, freq='D')
+        expected = Series([1.5], index=ex_index)
+        assert_series_equal(result, expected)
+
     def test_closed_left_corner(self):
         # #1465
         s = Series(np.random.randn(21),
