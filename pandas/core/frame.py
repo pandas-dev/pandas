@@ -899,6 +899,7 @@ class DataFrame(NDFrame):
         else:
             arrays, columns = _to_arrays(data, columns,
                                          coerce_float=coerce_float)
+            columns=list(columns) # _to_arrays returns index, but we might mutate
             sdict = dict(zip(columns, arrays))
 
         if exclude is None:
@@ -5211,7 +5212,7 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False):
 
 def _convert_object_array(content, columns, coerce_float=False):
     if columns is None:
-        columns = range(len(content))
+        columns = _default_index(len(content))
     else:
         if len(columns) != len(content):
             raise AssertionError('%d columns passed, passed data had %s '
