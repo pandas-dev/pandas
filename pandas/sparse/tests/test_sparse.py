@@ -901,6 +901,12 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
 
         self.assertRaises(Exception, sdf.__getitem__, ['a', 'd'])
 
+    def test_icol(self):
+        # #2227
+        result = self.frame.icol(0)
+        self.assertTrue(isinstance(result, SparseSeries))
+        assert_sp_series_equal(result, self.frame['A'])
+
     def test_set_value(self):
         res = self.frame.set_value('foobar', 'B', 1.5)
         self.assert_(res is not self.frame)

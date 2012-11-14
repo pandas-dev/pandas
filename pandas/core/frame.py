@@ -321,6 +321,7 @@ class DataFrame(NDFrame):
     _auto_consolidate = True
     _verbose_info = True
     _het_axis = 1
+    _col_klass = Series
 
     _AXIS_NUMBERS = {
         'index': 0,
@@ -1733,7 +1734,8 @@ class DataFrame(NDFrame):
                     return self.ix[:, i]
 
             values = self._data.iget(i)
-            return Series.from_array(values, index=self.index, name=label)
+            return self._col_klass.from_array(values, index=self.index,
+                                              name=label)
 
     def _ixs(self, i, axis=0):
         if axis == 0:

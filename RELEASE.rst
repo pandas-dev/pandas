@@ -105,6 +105,7 @@ pandas 0.9.1
   - Fix SparseSeries.__pow__ issue with NA input (#2220)
   - Fix icol with integer sequence failure (#2228)
   - Fixed resampling tz-aware time series issue (#2245)
+  - SparseDataFrame.icol was not returning SparseSeries (#2227, #2229)
 
 pandas 0.9.0
 ============
