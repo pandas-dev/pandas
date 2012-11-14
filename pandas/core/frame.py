@@ -612,20 +612,51 @@ class DataFrame(NDFrame):
                 else:
                     return False
 
-    def __repr__(self):
+    def __str__(self):
         """
         Return a string representation for a particular DataFrame
+
+        Invoked by str(df) in both py2/py3.
+        Yields Bytestring in Py2, Unicode String in py3.
         """
-        buf = StringIO()
+
+        if py3compat.PY3:
+            return self.__unicode__()
+        return self.__bytes__()
+
+    def __bytes__(self):
+        """
+        Return a string representation for a particular DataFrame
+
+        Invoked by bytes(df) in py3 only.
+        Yields a bytestring in both py2/py3.
+        """
+        return com.console_encode(self.__unicode__())
+
+    def __unicode__(self):
+        """
+        Return a string representation for a particular DataFrame
+
+        Invoked by unicode(df) in py2 only. Yields a Unicode String in both py2/py3.
+        """
+        buf = StringIO(u"")
         if self._need_info_repr_():
             self.info(buf=buf, verbose=self._verbose_info)
         else:
             self.to_string(buf=buf)
-        value = buf.getvalue()
 
-        if py3compat.PY3:
-            return unicode(value)
-        return com.console_encode(value)
+        value = buf.getvalue()
+        assert type(value) == unicode
+
+        return value
+
+    def __repr__(self):
+        """
+        Return a string representation for a particular DataFrame
+
+        Yields Bytestring in Py2, Unicode String in py3.
+        """
+        return str(self)
 
     def _repr_html_(self):
         """
