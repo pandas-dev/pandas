@@ -1083,6 +1083,22 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         df=Series(data,index=index1)
         self.assertTrue(type(df.__repr__() == str)) # both py2 / 3
 
+
+    def test_unicode_string_with_unicode(self):
+        df = Series([u"\u05d0"],name=u"\u05d1")
+        if py3compat.PY3:
+            str(df)
+        else:
+            unicode(df)
+
+    def test_bytestring_with_unicode(self):
+        df = Series([u"\u05d0"],name=u"\u05d1")
+        if py3compat.PY3:
+            bytes(df)
+        else:
+            str(df)
+
+
     def test_timeseries_repr_object_dtype(self):
         index = Index([datetime(2000, 1, 1) + timedelta(i)
                        for i in range(1000)], dtype=object)
