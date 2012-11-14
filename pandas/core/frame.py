@@ -1726,7 +1726,11 @@ class DataFrame(NDFrame):
         else:
             label = self.columns[i]
             if isinstance(label, Index):
-                return self.reindex(columns=label)
+                if self.columns.inferred_type == 'integer':
+                    # XXX re: #2228
+                    return self.reindex(columns=label)
+                else:
+                    return self.ix[:, i]
 
             values = self._data.iget(i)
             return Series.from_array(values, index=self.index, name=label)
