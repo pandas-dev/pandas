@@ -582,13 +582,15 @@ class DataFrame(NDFrame):
         else:
             # save us
             if (len(self.index) > max_rows or
-                len(self.columns) > terminal_width // 2):
+                (com.in_interactive_session() and
+                len(self.columns) > terminal_width // 2)):
                 return True
             else:
                 buf = StringIO()
                 self.to_string(buf=buf)
                 value = buf.getvalue()
-                if max([len(l) for l in value.split('\n')]) > terminal_width:
+                if (max([len(l) for l in value.split('\n')]) > terminal_width and
+                    com.in_interactive_session()):
                     return True
                 else:
                     return False
