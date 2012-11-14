@@ -108,6 +108,8 @@ pandas 0.9.1
   - SparseDataFrame.icol was not returning SparseSeries (#2227, #2229)
   - Enable ExcelWriter to handle PeriodIndex (#2240)
   - Fix issue constructing DataFrame from empty Series with name (#2234)
+  - Use console-width detection in interactive sessions only (#1610)
+  - Fix parallel_coordinates legend bug with mpl 1.2.0 (#2237)
 
 pandas 0.9.0
 ============

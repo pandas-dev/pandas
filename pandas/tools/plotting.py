@@ -452,12 +452,14 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, **kwds):
     for i in range(n):
         row = df.irow(i).values
         y = row
-        label = None
         kls = class_col.iget_value(i)
         if com.pprint_thing(kls) not in used_legends:
             label = com.pprint_thing(kls)
             used_legends.add(label)
-        ax.plot(x, y, color=random_color(kls), label=label, **kwds)
+            ax.plot(x, y, color=random_color(kls),
+                    label=label, **kwds)
+        else:
+            ax.plot(x, y, color=random_color(kls), **kwds)
 
     for i in range(ncols):
         ax.axvline(i, linewidth=1, color='black')
