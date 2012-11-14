@@ -110,6 +110,7 @@ pandas 0.9.1
   - Fix issue constructing DataFrame from empty Series with name (#2234)
   - Use console-width detection in interactive sessions only (#1610)
   - Fix parallel_coordinates legend bug with mpl 1.2.0 (#2237)
+  - Make tz_localize work in corner case of empty Series (#2248)
 
 pandas 0.9.0
 ============
