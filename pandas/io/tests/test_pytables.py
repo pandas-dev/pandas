@@ -10,7 +10,7 @@ import numpy as np
 
 from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
                     date_range, Index)
-from pandas.io.pytables import HDFStore, get_store
+from pandas.io.pytables import HDFStore, get_store, Term
 import pandas.util.testing as tm
 from pandas.tests.test_series import assert_series_equal
 from pandas.tests.test_frame import assert_frame_equal
@@ -177,11 +177,7 @@ class TestHDFStore(unittest.TestCase):
         self.assertEquals(len(self.store), 0)
 
     def test_remove_where_not_exist(self):
-        crit1 = {
-            'field' : 'index',
-            'op' : '>',
-            'value' : 'foo'
-        }
+        crit1 = Term('index','>','foo')
         self.store.remove('a', where=[crit1])
 
     def test_remove_crit(self):
@@ -189,21 +185,55 @@ class TestHDFStore(unittest.TestCase):
         self.store.put('wp', wp, table=True)
         date = wp.major_axis[len(wp.major_axis) // 2]
 
-        crit1 = {
-            'field' : 'index',
-            'op' : '>',
-            'value' : date
-        }
-        crit2 = {
-            'field' : 'column',
-            'value' : ['A', 'D']
-        }
+        crit1 = Term('index','>',date)
+        crit2 = Term('column',['A', 'D'])
         self.store.remove('wp', where=[crit1])
         self.store.remove('wp', where=[crit2])
         result = self.store['wp']
         expected = wp.truncate(after=date).reindex(minor=['B', 'C'])
         tm.assert_panel_equal(result, expected)
 
+        # test non-consecutive row removal
+        wp = tm.makePanel()
+        self.store.put('wp2', wp, table=True)
+
+        date1 = wp.major_axis[1:3]
+        date2 = wp.major_axis[5]
+        date3 = [wp.major_axis[7],wp.major_axis[9]]
+
+        crit1 = Term('index',date1)
+        crit2 = Term('index',date2)
+        crit3 = Term('index',date3)
+
+        self.store.remove('wp2', where=[crit1])
+        self.store.remove('wp2', where=[crit2])
+        self.store.remove('wp2', where=[crit3])
+        result = self.store['wp2']
+
+        ma = list(wp.major_axis)
+        for d in date1:
+            ma.remove(d)
+        ma.remove(date2)
+        for d in date3:
+            ma.remove(d)
+        expected = wp.reindex(major = ma)
+        tm.assert_panel_equal(result, expected)
+
+    def test_terms(self):
+
+        Term(dict(field = 'index', op = '>', value = '20121114'))
+        Term('index', '20121114')
+        Term('index', '>', '20121114')
+        Term('index', ['20121114','20121114'])
+        Term('index', datetime(2012,11,14))
+        Term('index>20121114')
+
+        self.assertRaises(Exception, Term.__init__)
+        self.assertRaises(Exception, Term.__init__, 'blah')
+        self.assertRaises(Exception, Term.__init__, 'index')
+        self.assertRaises(Exception, Term.__init__, 'index', '==')
+        self.assertRaises(Exception, Term.__init__, 'index', '>', 5)
+ 
     def test_series(self):
         s = tm.makeStringSeries()
         self._check_roundtrip(s, tm.assert_series_equal)
@@ -528,15 +558,8 @@ class TestHDFStore(unittest.TestCase):
         self.store.put('wp', wp, table=True)
         date = wp.major_axis[len(wp.major_axis) // 2]
 
-        crit1 = {
-            'field' : 'index',
-            'op' : '>=',
-            'value' : date
-        }
-        crit2 = {
-            'field' : 'column',
-            'value' : ['A', 'D']
-        }
+        crit1 = ('index','>=',date)
+        crit2 = ('column', ['A', 'D'])
 
         result = self.store.select('wp', [crit1, crit2])
         expected = wp.truncate(before=date).reindex(minor=['A', 'D'])
@@ -547,19 +570,9 @@ class TestHDFStore(unittest.TestCase):
         self.store.put('frame', df, table=True)
         date = df.index[len(df) // 2]
 
-        crit1 = {
-            'field' : 'index',
-            'op' : '>=',
-            'value' : date
-        }
-        crit2 = {
-            'field' : 'column',
-            'value' : ['A', 'D']
-        }
-        crit3 = {
-            'field' : 'column',
-            'value' : 'A'
-        }
+        crit1 = ('index','>=',date)
+        crit2 = ('column',['A', 'D'])
+        crit3 = ('column','A')
 
         result = self.store.select('frame', [crit1, crit2])
         expected = df.ix[date:, ['A', 'D']]
@@ -580,10 +593,7 @@ class TestHDFStore(unittest.TestCase):
         df.columns = ['%.3d' % c for c in df.columns]
         self.store.put('frame', df, table=True)
 
-        crit = {
-            'field' : 'column',
-            'value' : df.columns[:75]
-        }
+        crit = Term('column', df.columns[:75])
         result = self.store.select('frame', [crit])
         tm.assert_frame_equal(result, df.ix[:, df.columns[:75]])
 

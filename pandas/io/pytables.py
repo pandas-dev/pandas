@@ -7,6 +7,7 @@ to disk
 
 from datetime import datetime, date
 import time
+import re
 
 import numpy as np
 from pandas import (
@@ -916,27 +917,40 @@ class HDFStore(object):
             lp = DataFrame(new_values, index=new_index, columns=lp.columns)
             wp = lp.to_panel()
 
-        if sel.column_filter:
-            new_minor = sorted(set(wp.minor_axis) & sel.column_filter)
+        if sel.filter:
+            new_minor = sorted(set(wp.minor_axis) & sel.filter)
             wp = wp.reindex(minor=new_minor)
         return wp
 
 
-    def _delete_from_table(self, group, where = None):
+    def _delete_from_table(self, group, where):
+        """ delete rows from a group where condition is True """
         table = getattr(group, 'table')
 
         # create the selection
-        s = Selection(table, where, table._v_attrs.index_kind)
+        s = Selection(table,where,table._v_attrs.index_kind)
         s.select_coords()
 
         # delete the rows in reverse order
-        l = list(s.values)
-        l.reverse()
-        for c in l:
-            table.removeRows(c)
-        self.handle.flush()
-        return len(s.values)
+        l  = list(s.values)
+        ln = len(l)
 
+        if ln:
+
+            # if we can do a consecutive removal - do it!
+            if l[0]+ln-1 == l[-1]:
+                table.removeRows(start = l[0], stop = l[-1]+1)
+
+            # one by one
+            else:
+                l.reverse()
+                for c in l:
+                    table.removeRows(c)
+                    
+                    self.handle.flush()
+
+        # return the number of rows removed
+        return ln
 
 def _convert_index(index):
     if isinstance(index, DatetimeIndex):
@@ -1088,6 +1102,151 @@ def _alias_to_class(alias):
     return _reverse_index_map.get(alias, Index)
 
 
+class Term(object):
+    """ create a term object that holds a field, op, and value 
+
+        Parameters
+        ----------
+        field : dict, string term expression, or the field to operate (must be a valid index/column type of DataFrame/Panel)
+        op    : a valid op (defaults to '=') (optional)
+                >, >=, <, <=, =, != (not equal) are allowed
+        value : a value or list of values (required)
+
+        Returns
+        -------
+        a Term object
+
+        Examples
+        --------
+        Term(dict(field = 'index', op = '>', value = '20121114'))
+        Term('index', '20121114')
+        Term('index', '>', '20121114')
+        Term('index', ['20121114','20121114'])
+        Term('index', datetime(2012,11,14))
+        Term('index>20121114')
+        
+    """
+
+    _ops     = ['<','<=','>','>=','=','!=']
+    _search  = re.compile("^(?P<field>\w+)(?P<op>%s)(?P<value>.+)$" % '|'.join(_ops))
+    _index   = ['index','major_axis']
+    _column  = ['column','minor_axis','items']
+
+    def __init__(self, field, op = None, value = None, index_kind = None):
+        self.field = None
+        self.op    = None
+        self.value = None
+        self.typ   = None
+        self.index_kind = index_kind
+        self.filter     = None
+        self.condition  = None
+
+        # unpack lists/tuples in field
+        if isinstance(field,(tuple,list)):
+            f = field
+            field = f[0]
+            if len(f) > 1:
+                op = f[1]
+            if len(f) > 2:
+                value = f[2]
+                
+        # backwards compatible
+        if isinstance(field, dict):
+            self.field = field.get('field')
+            self.op    = field.get('op') or '='
+            self.value = field.get('value')
+
+        # passed a term
+        elif isinstance(field,Term):
+            self.field = field.field
+            self.op    = field.op
+            self.value = field.value
+
+        # a string expression (or just the field)
+        elif isinstance(field,basestring):
+
+            # is a term is passed
+            s = self._search.match(field)
+            if s is not None:
+                self.field = s.group('field')
+                self.op    = s.group('op')
+                self.value = s.group('value')
+
+            else:
+                self.field = field
+
+                # is an op passed?
+                if isinstance(op, basestring) and op in self._ops:
+                    self.op    = op
+                    self.value = value
+                else:
+                    self.op    = '='
+                    self.value = op
+
+        else:
+            raise Exception("Term does not understand the supplied field [%s]" % field)
+        
+        # we have valid fields
+        if self.field is None or self.op is None or self.value is None:
+            raise Exception("Could not create this term [%s]" % str(self))
+
+        # valid field name
+        if self.field in self._index:
+            self.typ = 'index'
+        elif self.field in self._column:
+            self.typ = 'column'
+        else:
+            raise Exception("field is not a valid index/column for this term [%s]" % str(self))
+
+        # we have valid conditions
+        if self.op in ['>','>=','<','<=']:
+            if hasattr(self.value,'__iter__') and len(self.value) > 1:
+                raise Exception("an inequality condition cannot have multiple values [%s]" % str(self))
+
+        if not hasattr(self.value,'__iter__'):
+            self.value = [ self.value ]
+
+        self.eval()
+
+    def __str__(self):
+        return "typ->%s,field->%s,op->%s,value->%s" % (self.typ,self.field,self.op,self.value)
+
+    __repr__ = __str__
+
+    def eval(self):
+        """ set the numexpr expression for this term """
+        
+        # convert values
+        values = [ self.convert_value(v) for v in self.value ]
+
+        # equality conditions
+        if self.op in ['=','!=']:
+        
+            # too many values to create the expression?
+            if len(values) <= 61:
+                self.condition = "(%s)" % ' | '.join([ "(%s == %s)" % (self.field,v[0]) for v in values])
+
+            # use a filter after reading
+            else:
+                self.filter = set([ v[1] for v in values ])
+
+        else:
+
+            self.condition = '(%s %s %s)' % (self.field, self.op, values[0][0])
+      
+    def convert_value(self, v):
+
+        if self.typ == 'index':
+            if self.index_kind == 'datetime64' :
+                return [lib.Timestamp(v).value, None]
+            elif isinstance(v, datetime):
+                return [time.mktime(v.timetuple()), None]
+        elif not isinstance(v, basestring):
+            return [str(v), None]
+
+        # string quoting
+        return ["'" + v + "'", v]
+
 class Selection(object):
     """
     Carries out a selection operation on a tables.Table object.
@@ -1095,72 +1254,43 @@ class Selection(object):
     Parameters
     ----------
     table : tables.Table
-    where : list of dicts of the following form
+    where : list of Terms (or convertable to)
 
-        Comparison op
-           {'field' : 'index',
-            'op'    : '>=',
-            'value' : value}
-
-        Match single value
-           {'field' : 'index',
-            'value' : v1}
-
-        Match a set of values
-           {'field' : 'index',
-            'value' : [v1, v2, v3]}
     """
     def __init__(self, table, where=None, index_kind=None):
-        self.table = table
-        self.where = where
+        self.table      = table
+        self.where      = where
         self.index_kind = index_kind
-        self.column_filter = None
-        self.the_condition = None
-        self.conditions = []
-        self.values = None
-        if where:
-            self.generate(where)
+        self.values     = None
+        self.condition  = None
+        self.filter     = None
+        self.terms      = self.generate(where)
+
+        # create the numexpr & the filter
+        if self.terms:
+            conds = [ t.condition for t in self.terms if t.condition is not None ]
+            if len(conds):
+                self.condition = "(%s)" % ' & '.join(conds)
+            self.filter    = set()
+            for t in self.terms:
+                if t.filter is not None:
+                    self.filter |= t.filter
 
     def generate(self, where):
-        # and condictions
-        for c in where:
-            op = c.get('op', None)
-            value = c['value']
-            field = c['field']
+        """ generate and return the terms """
+        if where is None: return None
 
-            if field == 'index' and self.index_kind == 'datetime64':
-                val = lib.Timestamp(value).value
-                self.conditions.append('(%s %s %s)' % (field, op, val))
-            elif field == 'index' and isinstance(value, datetime):
-                value = time.mktime(value.timetuple())
-                self.conditions.append('(%s %s %s)' % (field, op, value))
-            else:
-                self.generate_multiple_conditions(op, value, field)
+        if not isinstance(where, (list,tuple)):
+            where = [ where ]
 
-        if len(self.conditions):
-            self.the_condition = '(' + ' & '.join(self.conditions) + ')'
-
-    def generate_multiple_conditions(self, op, value, field):
-
-        if op and op == 'in' or isinstance(value, (list, np.ndarray)):
-            if len(value) <= 61:
-                l = '(' + ' | '.join([ "(%s == '%s')" % (field, v)
-                                       for v in value]) + ')'
-                self.conditions.append(l)
-            else:
-                self.column_filter = set(value)
-        else:
-            if op is None:
-                op = '=='
-            self.conditions.append('(%s %s "%s")' % (field, op, value))
+        return [ Term(c, index_kind = self.index_kind) for c in where ]
 
     def select(self):
         """
         generate the selection
         """
-        if self.the_condition:
-            self.values = self.table.readWhere(self.the_condition)
-
+        if self.condition is not None:
+            self.values = self.table.readWhere(self.condition)
         else:
             self.values = self.table.read()
 
@@ -1168,7 +1298,7 @@ class Selection(object):
         """
         generate the selection
         """
-        self.values = self.table.getWhereList(self.the_condition)
+        self.values = self.table.getWhereList(self.condition)
 
 
 def _get_index_factory(klass):
