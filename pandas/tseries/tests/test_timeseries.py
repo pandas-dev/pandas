@@ -1333,6 +1333,14 @@ class TestDatetimeIndex(unittest.TestCase):
                             freq='infer')
         idx.to_period()
 
+    def test_000constructor_resolution(self):
+        #2252
+        t1 = Timestamp((1352934390*1000000000)+1000000+1000+1)
+        idx = DatetimeIndex([t1])
+
+        self.assert_(idx.nanosecond[0] == t1.nanosecond)
+
+
     def test_constructor_coverage(self):
         rng = date_range('1/1/2000', periods=10.5)
         exp = date_range('1/1/2000', periods=10)
