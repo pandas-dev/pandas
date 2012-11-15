@@ -725,13 +725,12 @@ class Index(np.ndarray):
 
         Examples
         --------
-        >>> indexer, mask = index.get_indexer(new_index)
+        >>> indexer = index.get_indexer(new_index)
         >>> new_values = cur_values.take(indexer)
-        >>> new_values[-mask] = np.nan
 
         Returns
         -------
-        (indexer, mask) : (ndarray, ndarray)
+        indexer : ndarray
         """
         method = self._get_method(method)
         target = _ensure_index(target)
