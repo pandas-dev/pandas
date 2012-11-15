@@ -5443,6 +5443,11 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         result = df.diff()
         self.assert_(result[0].dtype == np.float64)
 
+    def test_diff_neg_n(self):
+        rs = self.tsframe.diff(-1)
+        xp = self.tsframe - self.tsframe.shift(-1)
+        assert_frame_equal(rs, xp)
+
     def test_pct_change(self):
         rs = self.tsframe.pct_change(fill_method=None)
         assert_frame_equal(rs, self.tsframe / self.tsframe.shift(1) - 1)

@@ -22,6 +22,21 @@ Where to get it
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.9.2
+============
+
+**Release date:** Not yet released
+
+**New features**
+
+**API Changes**
+
+**Improvements to existing features**
+
+**Bug fixes**
+
+  - Fixes bug when negative period passed to Series/DataFrame.diff (#2266)
+
 pandas 0.9.1
 ============
 
