@@ -1323,6 +1323,15 @@ class CheckIndexing(object):
         xp = df.T.ix[0]
         assert_series_equal(rs, xp)
 
+        rs = df.icol([0])
+        xp = df.ix[:, [0]]
+        assert_frame_equal(rs, xp)
+
+    def test_icol_sparse_propegate_fill_value(self):
+        from pandas.sparse.api import SparseDataFrame
+        df=SparseDataFrame({'A' : [999,1]},default_fill_value=999)
+        self.assertTrue( len(df['A'].sp_values) == len(df.icol(0).sp_values))
+
     def test_iget_value(self):
         for i, row in enumerate(self.frame.index):
             for j, col in enumerate(self.frame.columns):
@@ -2265,10 +2274,15 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(recons, expected)
 
     def test_constructor_Series_named(self):
-        a = Series([1,2,3], index=['a','b','c'], name='x')
+        a = Series([1, 2, 3], index=['a', 'b', 'c'], name='x')
         df = DataFrame(a)
         self.assert_(df.columns[0] == 'x')
         self.assert_(df.index.equals(a.index))
+
+        # #2234
+        a = Series([], name='x')
+        df = DataFrame(a)
+        self.assert_(df.columns[0] == 'x')
 
     def test_constructor_Series_differently_indexed(self):
         # name
@@ -3838,6 +3852,24 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         assert_frame_equal(frame, recons)
         os.remove(path)
 
+    def test_to_excel_periodindex(self):
+        try:
+            import xlwt
+            import xlrd
+            import openpyxl
+        except ImportError:
+            raise nose.SkipTest
+
+        for ext in ['xls', 'xlsx']:
+            path = '__tmp__.' + ext
+            frame = self.tsframe
+            xp = frame.resample('M', kind='period')
+            xp.to_excel(path, 'sht1')
+
+            reader = ExcelFile(path)
+            rs = reader.parse('sht1', index_col=0, parse_dates=True)
+            assert_frame_equal(xp, rs.to_period('M'))
+            os.remove(path)
 
     def test_to_excel_multiindex(self):
         try:

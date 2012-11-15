@@ -184,6 +184,13 @@ class TestNanops(unittest.TestCase):
 
         assert_almost_equal(result, expected)
 
+        s = Series(['a', 'b', 'c'])
+        s2 = Series([False, True, False])
+
+        # it works!
+        s == s2
+        s2 == s
+
     def test_none_comparison(self):
         # bug brought up by #1079
         s = Series(np.random.randn(10), index=range(0, 20, 2))

@@ -901,6 +901,18 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
 
         self.assertRaises(Exception, sdf.__getitem__, ['a', 'd'])
 
+    def test_icol(self):
+        # #2227
+        result = self.frame.icol(0)
+        self.assertTrue(isinstance(result, SparseSeries))
+        assert_sp_series_equal(result, self.frame['A'])
+
+        # preserve sparse index type. #2251
+        data = {'A' : [0,1 ]}
+        iframe = SparseDataFrame(data, default_kind='integer')
+        self.assertEquals(type(iframe['A'].sp_index),
+                          type(iframe.icol(0).sp_index))
+
     def test_set_value(self):
         res = self.frame.set_value('foobar', 'B', 1.5)
         self.assert_(res is not self.frame)
@@ -1296,6 +1308,22 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         xp = sparse_df[sparse_df.flag == 1.]
         rs = sparse_df[sparse_df.flag.isin([1.])]
         assert_frame_equal(xp, rs)
+
+    def test_sparse_pow_issue(self):
+        # #2220
+        df = SparseDataFrame({'A' : [1.1,3.3],'B' : [2.5,-3.9]})
+
+        # note : no error without nan
+        df = SparseDataFrame({'A' : [nan, 0, 1]    })
+
+        # note that 2 ** df works fine, also df ** 1
+        result = 1 ** df
+
+        r1 = result.take([0],1)['A']
+        r2 = result['A']
+
+        self.assertEqual(len(r2.sp_values), len(r1.sp_values))
+
 
 def _dense_series_compare(s, f):
     result = f(s)

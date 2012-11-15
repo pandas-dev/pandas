@@ -42,8 +42,11 @@ def _sparse_op_wrap(op, name):
         elif isinstance(other, DataFrame):
             return NotImplemented
         elif np.isscalar(other):
-            new_fill_value = op(np.float64(self.fill_value),
-                                np.float64(other))
+            if isnull(other) or isnull(self.fill_value):
+                new_fill_value = np.nan
+            else:
+                new_fill_value = op(np.float64(self.fill_value),
+                                    np.float64(other))
 
             return SparseSeries(op(self.sp_values, other),
                                 index=self.index,
@@ -142,6 +145,13 @@ class SparseSeries(SparseArray, Series):
         output.index = index
         output.name = name
         return output
+
+    @classmethod
+    def from_array(cls, arr, index=None, name=None, copy=False,fill_value=None):
+        """
+        Simplified alternate constructor
+        """
+        return SparseSeries(arr, index=index, name=name, copy=copy,fill_value=fill_value)
 
     def __init__(self, data, index=None, sparse_index=None, kind='block',
                  fill_value=None, name=None, copy=False):

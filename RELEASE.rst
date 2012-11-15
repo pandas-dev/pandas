@@ -25,7 +25,7 @@ Where to get it
 pandas 0.9.1
 ============
 
-**Release date:** NOT YET RELEASED
+**Release date:** 2012-11-14
 
 **New features**
 
@@ -102,6 +102,15 @@ pandas 0.9.1
     e.g. DataFrame.index (#2200)
   - Fix conversion of mixed-type DataFrame to ndarray with dup columns (#2236)
   - Fix duplicate columns issue (#2218, #2219)
+  - Fix SparseSeries.__pow__ issue with NA input (#2220)
+  - Fix icol with integer sequence failure (#2228)
+  - Fixed resampling tz-aware time series issue (#2245)
+  - SparseDataFrame.icol was not returning SparseSeries (#2227, #2229)
+  - Enable ExcelWriter to handle PeriodIndex (#2240)
+  - Fix issue constructing DataFrame from empty Series with name (#2234)
+  - Use console-width detection in interactive sessions only (#1610)
+  - Fix parallel_coordinates legend bug with mpl 1.2.0 (#2237)
+  - Make tz_localize work in corner case of empty Series (#2248)
 
 pandas 0.9.0
 ============

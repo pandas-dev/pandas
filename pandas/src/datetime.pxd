@@ -1,6 +1,8 @@
 from numpy cimport int64_t, int32_t, npy_int64, npy_int32
 from cpython cimport PyObject
 
+from cpython cimport PyUnicode_Check, PyUnicode_AsASCIIString
+
 
 cdef extern from "stdint.h":
     enum: INT64_MIN
@@ -113,3 +115,28 @@ cdef extern from "datetime/np_datetime_strings.h":
     int get_datetime_iso_8601_strlen(int local, PANDAS_DATETIMEUNIT base)
 
     # int parse_python_string(object obj, pandas_datetimestruct *out) except -1
+
+cdef inline _string_to_dts(object val, pandas_datetimestruct* dts):
+    cdef int result
+    cdef char *tmp
+
+    if PyUnicode_Check(val):
+        val = PyUnicode_AsASCIIString(val);
+
+    tmp = val
+    result = _cstring_to_dts(tmp, len(val), dts)
+
+    if result == -1:
+        raise ValueError('Unable to parse %s' % str(val))
+
+cdef inline int _cstring_to_dts(char *val, int length,
+                                pandas_datetimestruct* dts):
+    cdef:
+        npy_bool islocal, special
+        PANDAS_DATETIMEUNIT out_bestunit
+        int result
+
+    result = parse_iso_8601_datetime(val, length, PANDAS_FR_ns,
+                                     NPY_UNSAFE_CASTING,
+                                     dts, &islocal, &out_bestunit, &special)
+    return result

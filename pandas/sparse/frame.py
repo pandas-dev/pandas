@@ -64,6 +64,7 @@ class SparseDataFrame(DataFrame):
     _columns = None
     _series = None
     _is_mixed_type = False
+    _col_klass = SparseSeries
     ndim = 2
 
     def __init__(self, data=None, index=None, columns=None,
@@ -341,6 +342,37 @@ class SparseDataFrame(DataFrame):
                 return self._getitem_array(key)
             else:  # pragma: no cover
                 raise
+
+    def icol(self, i):
+        """
+        Retrieve the i-th column or columns of the DataFrame by location
+
+        Parameters
+        ----------
+        i : int, slice, or sequence of integers
+
+        Notes
+        -----
+        If slice passed, the resulting data will be a view
+
+        Returns
+        -------
+        column : Series (int) or DataFrame (slice, sequence)
+        """
+        if isinstance(i, slice):
+            # need to return view
+            lab_slice = slice(label[0], label[-1])
+            return self.ix[:, lab_slice]
+        else:
+            label = self.columns[i]
+            if isinstance(label, Index):
+                if self.columns.inferred_type == 'integer':
+                    # XXX re: #2228
+                    return self.reindex(columns=label)
+                else:
+                    return self.ix[:, i]
+
+            return self[label]
 
     @Appender(DataFrame.get_value.__doc__, indents=0)
     def get_value(self, index, col):

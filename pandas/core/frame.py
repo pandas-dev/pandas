@@ -321,6 +321,7 @@ class DataFrame(NDFrame):
     _auto_consolidate = True
     _verbose_info = True
     _het_axis = 1
+    _col_klass = Series
 
     _AXIS_NUMBERS = {
         'index': 0,
@@ -581,13 +582,15 @@ class DataFrame(NDFrame):
         else:
             # save us
             if (len(self.index) > max_rows or
-                len(self.columns) > terminal_width // 2):
+                (com.in_interactive_session() and
+                len(self.columns) > terminal_width // 2)):
                 return True
             else:
                 buf = StringIO()
                 self.to_string(buf=buf)
                 value = buf.getvalue()
-                if max([len(l) for l in value.split('\n')]) > terminal_width:
+                if (max([len(l) for l in value.split('\n')]) > terminal_width and
+                    com.in_interactive_session()):
                     return True
                 else:
                     return False
@@ -1179,8 +1182,12 @@ class DataFrame(NDFrame):
                 encoded_cols = list(cols)
                 writer.writerow(encoded_cols)
 
-        nlevels = getattr(self.index, 'nlevels', 1)
-        for j, idx in enumerate(self.index):
+        data_index = self.index
+        if isinstance(self.index, PeriodIndex):
+            data_index = self.index.to_timestamp()
+
+        nlevels = getattr(data_index, 'nlevels', 1)
+        for j, idx in enumerate(data_index):
             row_fields = []
             if index:
                 if nlevels == 1:
@@ -1726,10 +1733,22 @@ class DataFrame(NDFrame):
         else:
             label = self.columns[i]
             if isinstance(label, Index):
-                return self.reindex(columns=label)
+                if self.columns.inferred_type == 'integer':
+                    # XXX re: #2228
+                    return self.reindex(columns=label)
+                else:
+                    return self.ix[:, i]
 
             values = self._data.iget(i)
-            return Series.from_array(values, index=self.index, name=label)
+            if hasattr(self,'default_fill_value'):
+                s = self._col_klass.from_array(values, index=self.index,
+                                               name=label,
+                                               fill_value= self.default_fill_value)
+            else:
+                s = self._col_klass.from_array(values, index=self.index,
+                                               name=label)
+
+            return s
 
     def _ixs(self, i, axis=0):
         if axis == 0:
@@ -5079,6 +5098,9 @@ def extract_index(data):
 
 def _prep_ndarray(values, copy=True):
     if not isinstance(values, np.ndarray):
+        if len(values) == 0:
+            return np.empty((0, 0), dtype=object)
+
         arr = np.asarray(values)
         # NumPy strings are a pain, convert to object
         if issubclass(arr.dtype.type, basestring):
@@ -5091,11 +5113,7 @@ def _prep_ndarray(values, copy=True):
             values = values.copy()
 
     if values.ndim == 1:
-        N = values.shape[0]
-        if N == 0:
-            values = values.reshape((values.shape[0], 0))
-        else:
-            values = values.reshape((values.shape[0], 1))
+        values = values.reshape((values.shape[0], 1))
     elif values.ndim != 2:
         raise Exception('Must pass 2-d input')
 
