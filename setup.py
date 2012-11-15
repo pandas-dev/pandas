@@ -257,7 +257,10 @@ class CleanCommand(Command):
         self._clean_trees = []
         self._clean_exclude = ['np_datetime.c',
                                'np_datetime_strings.c',
-                               'period.c']
+                               'period.c',
+                               'parser.c',
+                               'io.c',
+                               'str_to.c']
 
         for root, dirs, files in list(os.walk('pandas')):
             for f in files:
@@ -565,9 +568,12 @@ else:
     tseries_depends = []
     plib_depends = []
 
+common_include = [np.get_include(), 'pandas/src/klib']
+
 algos_ext = Extension('pandas._algos',
                       sources=[srcpath('generated', suffix=suffix)],
-                      include_dirs=[np.get_include()])
+                      include_dirs=common_include,
+                      )
 
 lib_depends = tseries_depends + ['pandas/src/numpy_helper.h',
                                  'pandas/src/datetime/np_datetime.h',
@@ -581,8 +587,7 @@ lib_ext = Extension('pandas.lib',
                     sources=[srcpath('tseries', suffix=suffix),
                              'pandas/src/datetime/np_datetime.c',
                              'pandas/src/datetime/np_datetime_strings.c'],
-                    include_dirs=[np.get_include()],
-                    libraries=libraries,
+                    include_dirs=common_include,
                     # pyrex_gdb=True,
                     # extra_compile_args=['-Wconversion']
                     )
@@ -600,20 +605,35 @@ period_ext = Extension('pandas._period',
                                 'pandas/src/period.c'],
                        include_dirs=[np.get_include()])
 
+parser_ext = Extension('pandas._parser',
+                       depends=['pandas/src/parser/parser.h',
+                                'pandas/src/parser/io.h',
+                                'pandas/src/numpy_helper.h'],
+                       sources=[srcpath('parser', suffix=suffix),
+                                'pandas/src/parser/parser.c',
+                                'pandas/src/parser/io.c',
+                                'pandas/src/parser/str_to.c',
+                                ],
+                       extra_compile_args=['-O3'],
+                       include_dirs=common_include)
 
 sandbox_ext = Extension('pandas._sandbox',
                         sources=[srcpath('sandbox', suffix=suffix)],
-                        include_dirs=[np.get_include()])
+                        include_dirs=common_include)
 
 cppsandbox_ext = Extension('pandas._cppsandbox',
                            language='c++',
                            sources=[srcpath('cppsandbox', suffix=suffix)],
                            include_dirs=[np.get_include()])
 
-extensions = [algos_ext, lib_ext, period_ext, sparse_ext]
+extensions = [algos_ext,
+              lib_ext,
+              period_ext,
+              sparse_ext,
+              parser_ext]
 
-if not ISRELEASED:
-    extensions.extend([sandbox_ext])
+# if not ISRELEASED:
+#     extensions.extend([sandbox_ext])
 
 if suffix == '.pyx' and 'setuptools' in sys.modules:
     # undo dumb setuptools bug clobbering .pyx sources back to .c

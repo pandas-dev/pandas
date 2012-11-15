@@ -17,6 +17,9 @@ cdef extern from "numpy_helper.h":
     inline int floatify(object, double*) except -1
     inline char *get_c_string(object)
     inline object char_to_string(char*)
+    inline void transfer_object_column(char *dst, char *src, size_t stride,
+                                       size_t length)
+    object sarr_from_data(cnp.dtype, int length, void* data)
 
 cdef inline object get_value_at(ndarray arr, object loc):
     cdef:
