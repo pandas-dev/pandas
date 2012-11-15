@@ -1740,8 +1740,15 @@ class DataFrame(NDFrame):
                     return self.ix[:, i]
 
             values = self._data.iget(i)
-            return self._col_klass.from_array(values, index=self.index,
-                                              name=label)
+            if hasattr(self,'default_fill_value'):
+                s = self._col_klass.from_array(values, index=self.index,
+                                               name=label,
+                                               fill_value= self.default_fill_value)
+            else:
+                s = self._col_klass.from_array(values, index=self.index,
+                                               name=label)
+
+            return s
 
     def _ixs(self, i, axis=0):
         if axis == 0:

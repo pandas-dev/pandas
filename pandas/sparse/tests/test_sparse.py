@@ -907,6 +907,12 @@ class TestSparseDataFrame(TestCase, test_frame.SafeForSparse):
         self.assertTrue(isinstance(result, SparseSeries))
         assert_sp_series_equal(result, self.frame['A'])
 
+        # preserve sparse index type. #2251
+        data = {'A' : [0,1 ]}
+        iframe = SparseDataFrame(data, default_kind='integer')
+        self.assertEquals(type(iframe['A'].sp_index),
+                          type(iframe.icol(0).sp_index))
+
     def test_set_value(self):
         res = self.frame.set_value('foobar', 'B', 1.5)
         self.assert_(res is not self.frame)

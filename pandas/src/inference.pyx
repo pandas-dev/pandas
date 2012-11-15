@@ -309,6 +309,9 @@ def extract_ordinals(ndarray[object] values, freq):
     return ordinals
 
 
+cdef extern from "parse_helper.h":
+    inline int floatify(object, double *result) except -1
+
 
 def maybe_convert_numeric(ndarray[object] values, set na_values,
                           convert_empty=True):
@@ -355,7 +358,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
             complexes[i] = val
             seen_complex = 1
         else:
-            status = util.floatify(val, &fval)
+            status = floatify(val, &fval)
             floats[i] = fval
             if not seen_float:
                 if '.' in val or fval == INF or fval == NEGINF:

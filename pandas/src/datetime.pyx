@@ -727,21 +727,6 @@ cdef inline int64_t _date_to_datetime64(object val,
     return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, dts)
 
 
-cdef inline _string_to_dts(object val, pandas_datetimestruct* dts):
-    cdef:
-        npy_bool islocal, special
-        PANDAS_DATETIMEUNIT out_bestunit
-        int result
-
-    if PyUnicode_Check(val):
-        val = PyUnicode_AsASCIIString(val);
-
-    result = parse_iso_8601_datetime(val, len(val), PANDAS_FR_ns,
-                                     NPY_UNSAFE_CASTING,
-                                     dts, &islocal, &out_bestunit, &special)
-    if result == -1:
-        raise ValueError('Unable to parse %s' % str(val))
-
 def datetime_to_datetime64(ndarray[object] values):
     cdef:
         Py_ssize_t i, n = len(values)

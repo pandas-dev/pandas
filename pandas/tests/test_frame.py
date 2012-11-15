@@ -1327,6 +1327,11 @@ class CheckIndexing(object):
         xp = df.ix[:, [0]]
         assert_frame_equal(rs, xp)
 
+    def test_icol_sparse_propegate_fill_value(self):
+        from pandas.sparse.api import SparseDataFrame
+        df=SparseDataFrame({'A' : [999,1]},default_fill_value=999)
+        self.assertTrue( len(df['A'].sp_values) == len(df.icol(0).sp_values))
+
     def test_iget_value(self):
         for i, row in enumerate(self.frame.index):
             for j, col in enumerate(self.frame.columns):
