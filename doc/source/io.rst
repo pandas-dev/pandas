@@ -818,7 +818,8 @@ Storing in Table format
 
 ```HDFStore``` supports another *PyTables* format on disk, the *table* format. Conceptually a *table* is shaped
 very much like a DataFrame, with rows and columns. A *table* may be appended to in the same or other sessions.
-In addition, delete and query type operations are supported.
+In addition, delete, query type operations are supported. You can create an index with ```create_table_index```
+after data is already in the table (this may become automatic in the future or an option on appending/putting a *table*).
 
 .. ipython:: python
    :suppress:
@@ -836,6 +837,9 @@ In addition, delete and query type operations are supported.
 
    store.select('df')
 
+   store.create_table_index('df')
+   store.handle.root.df.table
+
 .. ipython:: python
    :suppress:
 
@@ -848,7 +852,7 @@ Querying objects stored in Table format
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 `select` and `delete` operations have an optional criteria that can be specified to select/delete only
-a subset of the data. This allows one to have very large on-table disks and retrieve only a portion of the data.
+a subset of the data. This allows one to have a very large on-disk table and retrieve only a portion of the data.
 
 A query is specified using the `Term` class under the hood. 
 
@@ -900,6 +904,8 @@ Notes & Caveats
 ~~~~~~~~~~~~~~~
 
    - Selection by items (the top level panel dimension) is not possible; you always get all of the items in the returned Panel
+   - Currently the sizes of the *column* items are governed by the first table creation
+      (this should be specified at creation time or use the largest available) - otherwise subsequent appends can truncate the column names
    - Mixed-Type Panels/DataFrames are not currently supported - coming soon!
    - Once a *table* is created its items (Panel) / columns (DataFrame) are fixed; only exactly the same columns can be appended
    - To delete a lot of data, it is sometimes better to erase the table and rewrite it (after say an indexing operation)
