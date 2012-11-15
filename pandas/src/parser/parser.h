@@ -29,6 +29,7 @@ See LICENSE for the license
 #define STREAM_INIT_SIZE 32
 
 #define REACHED_EOF 1
+#define CALLING_READ_FAILED 2
 
 
 /*
@@ -61,7 +62,7 @@ See LICENSE for the license
 #define ERROR_NO_DATA                  23
 
 
-// #define VERBOSE
+/* #define VERBOSE */
 
 #if defined(VERBOSE)
 #define TRACE(X) printf X;

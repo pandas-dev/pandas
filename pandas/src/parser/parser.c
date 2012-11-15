@@ -493,8 +493,19 @@ int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     self->data = self->cb_io(self->source, nbytes, &bytes_read, &status);
     self->datalen = bytes_read;
 
+    if (status != REACHED_EOF && self->data == NULL) {
+        self->error_msg = (char*) malloc(200);
+
+        if (status == CALLING_READ_FAILED) {
+            sprintf(self->error_msg, ("Calling read(nbytes) on source failed. "
+                                      "Try engine='python'."));
+        } else {
+            sprintf(self->error_msg, "Unknown error in IO callback");
+        }
+        return -1;
+    }
+
     TRACE(("datalen: %d\n", self->datalen));
-    TRACE(("pos: %d, length: %d", (int) src->position, (int) src->length));
 
     return status;
 }

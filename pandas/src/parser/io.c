@@ -115,17 +115,23 @@ void* buffer_rd_bytes(void *source, size_t nbytes,
     Py_XDECREF(src->buffer);
     args = Py_BuildValue("(i)", nbytes);
 
-
     state = PyGILState_Ensure();
     func = PyObject_GetAttrString(src->obj, "read");
     /* printf("%s\n", PyBytes_AsString(PyObject_Repr(func))); */
 
     /* TODO: does this release the GIL? */
     result = PyObject_CallObject(func, args);
+    Py_XDECREF(args);
+    Py_XDECREF(func);
 
     /* PyObject_Print(PyObject_Type(result), stdout, 0); */
-
-    if (!PyBytes_Check(result)) {
+    if (result == NULL) {
+        PyGILState_Release(state);
+        *bytes_read = 0;
+        *status = CALLING_READ_FAILED;
+        return NULL;
+    }
+    else if (!PyBytes_Check(result)) {
         tmp = PyUnicode_AsUTF8String(result);
         Py_XDECREF(result);
         result = tmp;
@@ -142,8 +148,6 @@ void* buffer_rd_bytes(void *source, size_t nbytes,
     src->buffer = result;
     retval = (void*) PyBytes_AsString(result);
 
-    Py_XDECREF(args);
-    Py_XDECREF(func);
 
     PyGILState_Release(state);
 
@@ -267,4 +271,4 @@ void* buffer_mmap_bytes(void *source, size_t nbytes,
   return NULL;
 }
 
-#endif 
+#endif
