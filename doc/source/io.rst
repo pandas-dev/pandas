@@ -831,7 +831,7 @@ In addition, delete and query type operations are supported.
    store = HDFStore('store.h5')
    df1 = df[0:4]
    df2 = df[4:]
-   store.put('df', df1, table=True)
+   store.append('df', df1)
    store.append('df', df2)
 
    store.select('df')
@@ -878,7 +878,7 @@ This is roughly translated to: index must be greater than the date 20121114 and 
 .. ipython:: python
 
    store = HDFStore('store.h5')
-   store.put('wp',wp,table=True)
+   store.append('wp',wp)
    store.select('wp',[ 'index>20000102', ('column', ['A','B']) ])
 
 Delete objects stored in Table format

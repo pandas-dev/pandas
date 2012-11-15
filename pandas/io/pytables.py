@@ -388,6 +388,55 @@ class HDFStore(object):
         """
         self._write_to_group(key, value, table=True, append=True)
 
+    def create_table_index(self, key, columns = None, optlevel = None, kind = None):
+        """
+        Create a pytables index on the specified columns
+          note: cannot index Time64Col() currently; PyTables must be >= 2.3.1
+          
+
+        Paramaters
+        ----------
+        key : object (the node to index)
+        columns : None or list_like (the columns to index - currently supports index/column)
+        optlevel: optimization level (defaults to 6)
+        kind    : kind of index (defaults to 'medium')
+
+        Exceptions
+        ----------
+        raises if the node is not a table
+
+        """
+
+        # version requirements
+        major, minor, subv = _tables().__version__.split('.')
+        if major < 2 and minor < 3 and subv < 1:
+            raise("PyTables >= 2.3.1 is required for table indexing")
+
+        group = getattr(self.handle.root, key, None)
+        if group is None: return
+
+        if not _is_table_type(group):
+            raise Exception("cannot create table index on a non-table")
+
+        table = getattr(group, 'table', None)        
+        if table is None: return
+
+        if columns is None:
+            columns = ['index']
+        if not isinstance(columns, (tuple,list)):
+            columns = [ columns ]
+
+        kw = dict()
+        if optlevel is not None:
+            kw['optlevel'] = optlevel
+        if kind is not None:
+            kw['kind']     = kind
+
+        for c in columns:
+            v = getattr(table.cols,c,None)
+            if v is not None and not v.is_indexed:
+                v.createIndex(**kw)
+
     def _write_to_group(self, key, value, table=False, append=False,
                         comp=None):
         root = self.handle.root

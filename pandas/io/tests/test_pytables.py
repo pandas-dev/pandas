@@ -150,6 +150,26 @@ class TestHDFStore(unittest.TestCase):
         self.store.append('d', df[10:])
         tm.assert_frame_equal(self.store['d'], df)
 
+    def test_create_table_index(self):
+        wp = tm.makePanel()
+        self.store.append('p5', wp)
+        self.store.create_table_index('p5')
+
+        assert(self.store.handle.root.p5.table.cols.index.is_indexed == True)
+        assert(self.store.handle.root.p5.table.cols.column.is_indexed == False)
+
+        df = tm.makeTimeDataFrame()
+        self.store.append('f', df[:10])
+        self.store.append('f', df[10:])
+        self.store.create_table_index('f')
+
+        # create twice
+        self.store.create_table_index('f')
+
+        # try to index a non-table
+        self.store.put('f2', df)
+        self.assertRaises(Exception, self.store.create_table_index, 'f2')
+
     def test_append_diff_item_order(self):
         wp = tm.makePanel()
         wp1 = wp.ix[:, :10, :]
