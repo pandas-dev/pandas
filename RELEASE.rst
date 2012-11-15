@@ -25,7 +25,7 @@ Where to get it
 pandas 0.9.1
 ============
 
-**Release date:** NOT YET RELEASED
+**Release date:** 2012-11-14
 
 **New features**
 
