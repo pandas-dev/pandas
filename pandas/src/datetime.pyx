@@ -606,7 +606,7 @@ cpdef convert_to_tsobject(object ts, object tz=None):
                 offset = _get_utcoffset(obj.tzinfo, ts)
                 obj.value -= _delta_to_nanoseconds(offset)
 
-        if isinstance(ts, _Timestamp):
+        if is_timestamp(ts):
             obj.value += ts.nanosecond
         _check_dts_bounds(obj.value, &obj.dts)
         return obj
@@ -798,7 +798,7 @@ def array_to_datetime(ndarray[object] values, raise_=False, dayfirst=False,
                                          'utc=True')
                 else:
                     iresult[i] = _pydatetime_to_dts(val, &dts)
-                    if isinstance(val, _Timestamp):
+                    if is_timestamp(val):
                         iresult[i] += val.nanosecond
                     _check_dts_bounds(iresult[i], &dts)
             elif PyDate_Check(val):
