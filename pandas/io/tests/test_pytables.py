@@ -142,9 +142,13 @@ class TestHDFStore(unittest.TestCase):
 
     def test_append(self):
         df = tm.makeTimeDataFrame()
-        self.store.put('c', df[:10], table=True)
+        self.store.append('c', df[:10])
         self.store.append('c', df[10:])
         tm.assert_frame_equal(self.store['c'], df)
+
+        self.store.put('d', df[:10], table=True)
+        self.store.append('d', df[10:])
+        tm.assert_frame_equal(self.store['d'], df)
 
     def test_append_diff_item_order(self):
         wp = tm.makePanel()

@@ -778,8 +778,8 @@ class HDFStore(object):
 
         # check for backwards incompatibility
         if append:
-            existing_kind = table._v_attrs.index_kind
-            if existing_kind != index_kind:
+            existing_kind = getattr(table._v_attrs,'index_kind',None)
+            if existing_kind is not None and existing_kind != index_kind:
                 raise TypeError("incompatible kind in index [%s - %s]" %
                                 (existing_kind, index_kind))
 
