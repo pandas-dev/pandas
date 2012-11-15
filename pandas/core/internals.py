@@ -8,6 +8,8 @@ from pandas.core.index import Index, _ensure_index, _handle_legacy_indexes
 import pandas.core.common as com
 import pandas.lib as lib
 
+from pandas.util import py3compat
+
 class Block(object):
     """
     Canonical n-dimensional unit of homogeneous dtype contained in a pandas data
@@ -51,8 +53,11 @@ class Block(object):
     def __repr__(self):
         shape = ' x '.join([com.pprint_thing(s) for s in self.shape])
         name = type(self).__name__
-        result = '%s: %s, %s, dtype %s' % (name, self.items, shape, self.dtype)
-        return com.console_encode(result) # repr must return byte-string
+        result = '%s: %s, %s, dtype %s' % (name, com.pprint_thing(self.items)
+                                           , shape, self.dtype)
+        if py3compat.PY3:
+            return unicode(result)
+        return com.console_encode(result)
 
     def __contains__(self, item):
         return item in self.items
