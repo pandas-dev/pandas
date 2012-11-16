@@ -329,16 +329,25 @@ int make_stream_space(parser_t *self, size_t nbytes) {
     /*
       LINE VECTORS
     */
+    /*
+    printf("Line_start: "); 
+    
+    for (j = 0; j < self->lines + 1; ++j) { 
+         printf("%d ", self->line_fields[j]);
+     }
+    printf("\n");
 
+    printf("lines_cap: %d\n", self->lines_cap);
+    */
     cap = self->lines_cap;
     self->line_start = (int*) grow_buffer((void *) self->line_start,
-                                          self->lines,
+                                          self->lines + 1,
                                           &self->lines_cap, nbytes,
                                           sizeof(int), &status);
     if (status != 0) {
         return PARSER_OUT_OF_MEMORY;
     }
-
+    
     // realloc took place
     if (cap != self->lines_cap) {
         self->line_fields = (int*) safe_realloc((void *) self->line_fields,
@@ -349,20 +358,19 @@ int make_stream_space(parser_t *self, size_t nbytes) {
         }
     }
 
-
     /* TRACE(("finished growing buffers\n")); */
 
     return 0;
 }
 
 
-int inline push_char(parser_t *self, char c) {
+int P_INLINE push_char(parser_t *self, char c) {
     /* TRACE(("pushing %c \n", c)) */
     self->stream[self->stream_len++] = c;
     return 0;
 }
 
-int inline end_field(parser_t *self) {
+int P_INLINE end_field(parser_t *self) {
     // XXX cruft
     self->numeric_field = 0;
 
@@ -387,7 +395,7 @@ int inline end_field(parser_t *self) {
     return 0;
 }
 
-int inline end_line(parser_t *self) {
+int P_INLINE end_line(parser_t *self) {
     int fields;
     khiter_t k;  /* for hash set detection */
     int ex_fields = -1;
@@ -564,6 +572,7 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
     char *stream;
     char *buf = self->data + self->datapos;
 
+    
     start_lines = self->lines;
 
     if (make_stream_space(self, self->datalen - self->datapos) < 0) {
@@ -1072,13 +1081,13 @@ int parser_consume_rows(parser_t *self, size_t nrows) {
     /* move current word pointer to stream */
     self->pword_start -= char_count;
     self->word_start -= char_count;
-
-    /* printf("Line_start: "); */
-    /* for (i = 0; i < self->lines; ++i) { */
-    /*     printf("%d ", self->line_start[i]); */
-    /* } */
-    /* printf("\n"); */
-
+    /*
+    printf("Line_start: "); 
+    for (i = 0; i < self->lines + 1; ++i) { 
+         printf("%d ", self->line_fields[i]);
+     }
+    printf("\n");
+    */
     /* move line metadata */
     for (i = 0; i < self->lines - nrows + 1; ++i)
     {
@@ -1092,12 +1101,6 @@ int parser_consume_rows(parser_t *self, size_t nrows) {
     }
     self->lines -= nrows;
     /* self->line_fields[self->lines] = 0; */
-
-    /* printf("Line_start: "); */
-    /* for (i = 0; i < self->lines; ++i) { */
-    /*     printf("%d ", self->line_start[i]); */
-    /* } */
-    /* printf("\n"); */
 
     return 0;
 }
@@ -1115,14 +1118,14 @@ int parser_trim_buffers(parser_t *self) {
     size_t new_cap;
 
     /* trim stream */
-    new_cap = _next_pow2(self->stream_len);
+    new_cap = _next_pow2(self->stream_len) + 1;
     if (new_cap < self->stream_cap) {
         self->stream = safe_realloc((void*) self->stream, new_cap);
         self->stream_cap = new_cap;
     }
 
     /* trim words, word_starts */
-    new_cap = _next_pow2(self->words_len);
+    new_cap = _next_pow2(self->words_len) + 1;
     if (new_cap < self->words_cap) {
         self->words = (char**) safe_realloc((void*) self->words,
                                             new_cap * sizeof(char*));
@@ -1132,7 +1135,7 @@ int parser_trim_buffers(parser_t *self) {
     }
 
     /* trim line_start, line_fields */
-    new_cap = _next_pow2(self->lines);
+    new_cap = _next_pow2(self->lines) + 1;
     if (new_cap < self->lines_cap) {
         self->line_start = (int*) safe_realloc((void*) self->line_start,
                                                new_cap * sizeof(int));
@@ -1209,8 +1212,8 @@ int _tokenize_helper(parser_t *self, size_t nrows, int all) {
         }
 
         TRACE(("Trying to process %d bytes\n", self->datalen - self->datapos));
-        TRACE(("sourcetype: %c, status: %d\n", self->sourcetype, status));
-
+        /* TRACE(("sourcetype: %c, status: %d\n", self->sourcetype, status)); */   
+        
         status = tokenize_bytes(self, nrows);
 
         if (status < 0) {
@@ -1443,14 +1446,14 @@ void test_count_lines(char *fname) {
 
 
 // forward declaration
-double inline xstrtod(const char *p, char **q, char decimal, char sci, int skip_trailing);
+double P_INLINE xstrtod(const char *p, char **q, char decimal, char sci, int skip_trailing);
 
 
-inline void lowercase(char *p) {
+P_INLINE void lowercase(char *p) {
     for ( ; *p; ++p) *p = tolower(*p);
 }
 
-inline void uppercase(char *p) {
+P_INLINE void uppercase(char *p) {
     for ( ; *p; ++p) *p = toupper(*p);
 }
 
@@ -1471,7 +1474,7 @@ inline void uppercase(char *p) {
  *
  */
 
-int inline to_double(char *item, double *p_value, char sci, char decimal)
+int to_double(char *item, double *p_value, char sci, char decimal)
 {
     char *p_end;
 
@@ -1481,7 +1484,7 @@ int inline to_double(char *item, double *p_value, char sci, char decimal)
 }
 
 
-int inline to_complex(char *item, double *p_real, double *p_imag, char sci, char decimal)
+int P_INLINE to_complex(char *item, double *p_real, double *p_imag, char sci, char decimal)
 {
     char *p_end;
 
@@ -1512,7 +1515,7 @@ int inline to_complex(char *item, double *p_real, double *p_imag, char sci, char
 }
 
 
-int inline to_longlong(char *item, long long *p_value)
+int P_INLINE to_longlong(char *item, long long *p_value)
 {
     char *p_end;
 
@@ -1528,7 +1531,7 @@ int inline to_longlong(char *item, long long *p_value)
     return (errno == 0) && (!*p_end);
 }
 
-int inline to_longlong_thousands(char *item, long long *p_value, char tsep)
+int P_INLINE to_longlong_thousands(char *item, long long *p_value, char tsep)
 {
 	int i, pos, status, n = strlen(item), count = 0;
 	char *tmp;
@@ -1565,7 +1568,7 @@ int inline to_longlong_thousands(char *item, long long *p_value, char tsep)
 	return status;
 }
 
-int inline to_boolean(char *item, uint8_t *val) {
+int to_boolean(char *item, uint8_t *val) {
 	char *tmp;
 	int i, status = 0;
 
@@ -1668,7 +1671,7 @@ int main(int argc, char *argv[])
 // * Commented out the other functions.
 //
 
-double inline xstrtod(const char *str, char **endptr, char decimal,
+double P_INLINE xstrtod(const char *str, char **endptr, char decimal,
 					  char sci, int skip_trailing)
 {
   double number;
@@ -1817,3 +1820,198 @@ double atof(const char *str)
 
 // End of xstrtod code
 // ---------------------------------------------------------------------------
+
+int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
+					 int *error, char tsep)
+{
+    const char *p = (const char *) p_item;
+    int isneg = 0;
+    int64_t number = 0;
+    int d;
+
+    // Skip leading spaces.
+    while (isspace(*p)) {
+        ++p;
+    }
+
+    // Handle sign.
+    if (*p == '-') {
+        isneg = 1;
+        ++p;
+    }
+    else if (*p == '+') {
+        p++;
+    }
+
+    // Check that there is a first digit.
+    if (!isdigit(*p)) {
+        // Error...
+        *error = ERROR_NO_DIGITS;
+        return 0;
+    }
+
+    if (isneg) {
+        // If number is greater than pre_min, at least one more digit
+        // can be processed without overflowing.
+        int dig_pre_min = -(int_min % 10);
+        int64_t pre_min = int_min / 10;
+
+        // Process the digits.
+        d = *p;
+		if (tsep != '\0') {
+			while (1) {
+				if (d == tsep) {
+					d = *++p;
+					continue;
+				} else if (!isdigit(d)) {
+					break;
+				}
+				if ((number > pre_min) ||
+					((number == pre_min) && (d - '0' <= dig_pre_min))) {
+
+					number = number * 10 - (d - '0');
+					d = *++p;
+				}
+				else {
+					*error = ERROR_OVERFLOW;
+					return 0;
+				}
+			}
+		} else {
+			while (isdigit(d)) {
+				if ((number > pre_min) ||
+					((number == pre_min) && (d - '0' <= dig_pre_min))) {
+
+					number = number * 10 - (d - '0');
+					d = *++p;
+				}
+				else {
+					*error = ERROR_OVERFLOW;
+					return 0;
+				}
+			}
+		}
+    }
+    else {
+        // If number is less than pre_max, at least one more digit
+        // can be processed without overflowing.
+        int64_t pre_max = int_max / 10;
+        int dig_pre_max = int_max % 10;
+
+        //printf("pre_max = %lld  dig_pre_max = %d\n", pre_max, dig_pre_max);
+
+        // Process the digits.
+        d = *p;
+		if (tsep != '\0') {
+			while (1) {
+				if (d == tsep) {
+					d = *++p;
+					continue;
+				} else if (!isdigit(d)) {
+					break;
+				}
+				if ((number < pre_max) ||
+					((number == pre_max) && (d - '0' <= dig_pre_max))) {
+
+					number = number * 10 + (d - '0');
+					d = *++p;
+
+				}
+				else {
+					*error = ERROR_OVERFLOW;
+					return 0;
+				}
+			}
+		} else {
+			while (isdigit(d)) {
+				if ((number < pre_max) ||
+					((number == pre_max) && (d - '0' <= dig_pre_max))) {
+
+					number = number * 10 + (d - '0');
+					d = *++p;
+
+				}
+				else {
+					*error = ERROR_OVERFLOW;
+					return 0;
+				}
+			}
+		}
+    }
+
+    // Skip trailing spaces.
+    while (isspace(*p)) {
+        ++p;
+    }
+
+    // Did we use up all the characters?
+    if (*p) {
+        *error = ERROR_INVALID_CHARS;
+        return 0;
+    }
+
+    *error = 0;
+    return number;
+}
+
+
+uint64_t str_to_uint64(const char *p_item, uint64_t uint_max, int *error)
+{
+    int d, dig_pre_max;
+    uint64_t pre_max;
+    const char *p = (const char *) p_item;
+    uint64_t number = 0;
+
+    // Skip leading spaces.
+    while (isspace(*p)) {
+        ++p;
+    }
+
+    // Handle sign.
+    if (*p == '-') {
+        *error = ERROR_MINUS_SIGN;
+        return 0;
+    }
+    if (*p == '+') {
+        p++;
+    }
+
+    // Check that there is a first digit.
+    if (!isdigit(*p)) {
+        // Error...
+        *error = ERROR_NO_DIGITS;
+        return 0;
+    }
+
+    // If number is less than pre_max, at least one more digit
+    // can be processed without overflowing.
+    pre_max = uint_max / 10;
+    dig_pre_max = uint_max % 10;
+
+    // Process the digits.
+    d = *p;
+    while (isdigit(d)) {
+        if ((number < pre_max) || ((number == pre_max) && (d - '0' <= dig_pre_max))) {
+            number = number * 10 + (d - '0');
+            d = *++p;
+        }
+        else {
+            *error = ERROR_OVERFLOW;
+            return 0;
+        }
+    }
+
+    // Skip trailing spaces.
+    while (isspace(*p)) {
+        ++p;
+    }
+
+    // Did we use up all the characters?
+    if (*p) {
+        *error = ERROR_INVALID_CHARS;
+        return 0;
+    }
+
+    *error = 0;
+    return number;
+}

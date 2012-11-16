@@ -15,8 +15,16 @@ See LICENSE for the license
 #include <time.h>
 #include <errno.h>
 
+#include <ctype.h>
+
+#define ERROR_OK             0
+#define ERROR_NO_DIGITS      1
+#define ERROR_OVERFLOW       2
+#define ERROR_INVALID_CHARS  3
+#define ERROR_MINUS_SIGN     4
+
 #if defined(_MSC_VER)
-#include "ms_stdint.h"
+#include "../ms_stdint.h"
 #else
 #include <stdint.h>
 #endif
@@ -31,6 +39,21 @@ See LICENSE for the license
 #define REACHED_EOF 1
 #define CALLING_READ_FAILED 2
 
+#ifndef P_INLINE
+  #if defined(__GNUC__)
+    #define P_INLINE __inline__
+  #elif defined(_MSC_VER)
+    #define P_INLINE 
+  #elif defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+    #define P_INLINE inline
+  #else
+    #define P_INLINE
+  #endif
+#endif
+
+#if defined(_MSC_VER)
+#define strtoll _strtoi64
+#endif
 
 /*
 
@@ -225,10 +248,10 @@ int64_t str_to_int64(const char *p_item, int64_t int_min,
                      int64_t int_max, int *error, char tsep);
 uint64_t str_to_uint64(const char *p_item, uint64_t uint_max, int *error);
 
-int inline to_double(char *item, double *p_value, char sci, char decimal);
-int inline to_complex(char *item, double *p_real, double *p_imag, char sci, char decimal);
-int inline to_longlong(char *item, long long *p_value);
-int inline to_longlong_thousands(char *item, long long *p_value, char tsep);
-int inline to_boolean(char *item, uint8_t *val);
+int P_INLINE to_double(char *item, double *p_value, char sci, char decimal);
+int P_INLINE to_complex(char *item, double *p_real, double *p_imag, char sci, char decimal);
+int P_INLINE to_longlong(char *item, long long *p_value);
+int P_INLINE to_longlong_thousands(char *item, long long *p_value, char tsep);
+int P_INLINE to_boolean(char *item, uint8_t *val);
 
 #endif // _PARSER_COMMON_H_
