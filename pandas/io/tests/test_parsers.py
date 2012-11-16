@@ -1,6 +1,6 @@
 # pylint: disable=E1101
 
-from pandas.util.py3compat import StringIO, BytesIO
+from pandas.util.py3compat import StringIO, BytesIO, PY3
 from datetime import datetime
 from os.path import split as psplit
 import csv
@@ -1663,8 +1663,11 @@ eight,1,2,3"""
     def test_iteration_open_handle(self):
         import itertools
 
+        if PY3:
+            raise nose.SkipTest
+
         with open('__foo__.txt', 'wb') as f:
-            f.write(b'AAA\nBBB\nCCC\nDDD\nEEE\nFFF\nGGG')
+            f.write('AAA\nBBB\nCCC\nDDD\nEEE\nFFF\nGGG')
 
         with open('__foo__.txt', 'rb') as f:
             for line in f:
