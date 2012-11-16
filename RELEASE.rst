@@ -33,6 +33,8 @@ pandas 0.9.2
 
 **Improvements to existing features**
 
+  - Grouped histogram via `by` keyword in Series/DataFrame.hist (#2186)
+
 **Bug fixes**
 
   - Fixes bug when negative period passed to Series/DataFrame.diff (#2266)
