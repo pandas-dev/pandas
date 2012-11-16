@@ -642,6 +642,7 @@ cdef class TextReader:
         cdef int status
         with nogil:
             status = tokenize_nrows(self.parser, nrows)
+
         if status < 0:
             raise_parser_error('Error tokenizing data', self.parser)
 

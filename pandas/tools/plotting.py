@@ -536,24 +536,36 @@ def autocorrelation_plot(series, ax=None):
 
 def grouped_hist(data, column=None, by=None, ax=None, bins=50, log=False,
                  figsize=None, layout=None, sharex=False, sharey=False,
-                 rot=90):
+                 rot=90, **kwargs):
     """
+    Grouped histogram
+
+    Parameters
+    ----------
+    data: Series/DataFrame
+    column: object, optional
+    by: object, optional
+    ax: axes, optional
+    bins: int, default 50
+    log: boolean, default False
+    figsize: tuple, optional
+    layout: optional
+    sharex: boolean, default False
+    sharey: boolean, default False
+    rot: int, default 90
 
     Returns
     -------
-    fig : matplotlib.Figure
+    axes: collection of Matplotlib Axes
     """
-    # if isinstance(data, DataFrame):
-    #     data = data[column]
-
     def plot_group(group, ax):
-        ax.hist(group.dropna(), bins=bins)
+        ax.hist(group.dropna().values, bins=bins)
 
     fig, axes = _grouped_plot(plot_group, data, column=column,
                               by=by, sharex=sharex, sharey=sharey,
                               figsize=figsize, layout=layout, rot=rot)
     fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9,
-                        hspace=0.3, wspace=0.2)
+                        hspace=0.5, wspace=0.3)
     return axes
 
 class MPLPlot(object):
@@ -1573,7 +1585,7 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False):
     return fig
 
 
-def hist_frame(data, grid=True, xlabelsize=None, xrot=None,
+def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None, xrot=None,
                ylabelsize=None, yrot=None, ax=None,
                sharex=False, sharey=False, **kwds):
     """
@@ -1597,6 +1609,27 @@ def hist_frame(data, grid=True, xlabelsize=None, xrot=None,
     kwds : other plotting keyword arguments
         To be passed to hist function
     """
+    if column is not None:
+        if not isinstance(column, (list, np.ndarray)):
+            column = [column]
+        data = data.ix[:, column]
+
+    if by is not None:
+
+        axes = grouped_hist(data, by=by, ax=ax, grid=grid, **kwds)
+
+        for ax in axes.ravel():
+            if xlabelsize is not None:
+                plt.setp(ax.get_xticklabels(), fontsize=xlabelsize)
+            if xrot is not None:
+                plt.setp(ax.get_xticklabels(), rotation=xrot)
+            if ylabelsize is not None:
+                plt.setp(ax.get_yticklabels(), fontsize=ylabelsize)
+            if yrot is not None:
+                plt.setp(ax.get_yticklabels(), rotation=yrot)
+
+        return axes
+
     import matplotlib.pyplot as plt
     n = len(data.columns)
     rows, cols = 1, 1
@@ -1633,14 +1666,15 @@ def hist_frame(data, grid=True, xlabelsize=None, xrot=None,
 
     return axes
 
-
-def hist_series(self, ax=None, grid=True, xlabelsize=None, xrot=None,
-                ylabelsize=None, yrot=None, **kwds):
+def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
+                xrot=None, ylabelsize=None, yrot=None, **kwds):
     """
     Draw histogram of the input series using matplotlib
 
     Parameters
     ----------
+    by : object, optional
+        If passed, then used to form histograms for separate groups
     ax : matplotlib axis object
         If not passed, uses gca()
     grid : boolean, default True
@@ -1663,24 +1697,30 @@ def hist_series(self, ax=None, grid=True, xlabelsize=None, xrot=None,
     """
     import matplotlib.pyplot as plt
 
-    if ax is None:
-        ax = plt.gca()
+    if by is None:
+        if ax is None:
+            ax = plt.gca()
+        values = self.dropna().values
 
-    values = self.dropna().values
+        ax.hist(values, **kwds)
+        ax.grid(grid)
+        axes = np.array([ax])
+    else:
+        axes = grouped_hist(self, by=by, ax=ax, grid=grid, **kwds)
 
-    ax.hist(values, **kwds)
-    ax.grid(grid)
+    for ax in axes.ravel():
+        if xlabelsize is not None:
+            plt.setp(ax.get_xticklabels(), fontsize=xlabelsize)
+        if xrot is not None:
+            plt.setp(ax.get_xticklabels(), rotation=xrot)
+        if ylabelsize is not None:
+            plt.setp(ax.get_yticklabels(), fontsize=ylabelsize)
+        if yrot is not None:
+            plt.setp(ax.get_yticklabels(), rotation=yrot)
 
-    if xlabelsize is not None:
-        plt.setp(ax.get_xticklabels(), fontsize=xlabelsize)
-    if xrot is not None:
-        plt.setp(ax.get_xticklabels(), rotation=xrot)
-    if ylabelsize is not None:
-        plt.setp(ax.get_yticklabels(), fontsize=ylabelsize)
-    if yrot is not None:
-        plt.setp(ax.get_yticklabels(), rotation=yrot)
-
-    return ax
+    if axes.ndim == 1 and len(axes) == 1:
+        return axes[0]
+    return axes
 
 
 def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
@@ -1751,7 +1791,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
 
 def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
                   figsize=None, sharex=True, sharey=True, layout=None,
-                  rot=0, ax=None):
+                  rot=0, ax=None, **kwargs):
     from pandas.core.frame import DataFrame
     import matplotlib.pyplot as plt
 
@@ -1788,7 +1828,7 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
         ax = ravel_axes[i]
         if numeric_only and isinstance(group, DataFrame):
             group = group._get_numeric_data()
-        plotf(group, ax)
+        plotf(group, ax, **kwargs)
         ax.set_title(com.pprint_thing(key))
 
     return fig, axes
@@ -1796,7 +1836,7 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
 
 def _grouped_plot_by_column(plotf, data, columns=None, by=None,
                             numeric_only=True, grid=False,
-                            figsize=None, ax=None):
+                            figsize=None, ax=None, **kwargs):
     import matplotlib.pyplot as plt
 
     grouped = data.groupby(by)
@@ -1822,7 +1862,7 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
     for i, col in enumerate(columns):
         ax = ravel_axes[i]
         gp_col = grouped[col]
-        plotf(gp_col, ax)
+        plotf(gp_col, ax, **kwargs)
         ax.set_title(col)
         ax.set_xlabel(com.pprint_thing(by))
         ax.grid(grid)

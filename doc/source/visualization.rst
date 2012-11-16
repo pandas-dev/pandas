@@ -271,6 +271,7 @@ Histograms
    @savefig hist_plot_ex.png width=4.5in
    df['A'].diff().hist()
 
+
 For a DataFrame, ``hist`` plots the histograms of the columns on multiple
 subplots:
 
@@ -280,6 +281,22 @@ subplots:
 
    @savefig frame_hist_ex.png width=4.5in
    df.diff().hist(color='k', alpha=0.5, bins=50)
+
+
+New since 0.9.2, the ``by`` keyword can be specified to plot grouped histograms:
+
+.. ipython:: python
+   :suppress:
+
+   plt.figure();
+
+.. ipython:: python
+
+   data = Series(np.random.randn(1000))
+
+   @savefig grouped_hist.png width=4.5in
+   data.hist(by=np.random.randint(0, 4, 1000))
+
 
 .. _visualization.box:
 

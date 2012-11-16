@@ -1514,8 +1514,8 @@ copy : boolean, default False
         -------
         diffed : Series
         """
-        result = com.diff(self.values[:, np.newaxis], periods)
-        return Series(result.squeeze(), self.index, name=self.name)
+        result = com.diff(self.values, periods)
+        return Series(result, self.index, name=self.name)
 
     def autocorr(self):
         """

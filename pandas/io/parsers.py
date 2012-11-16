@@ -588,12 +588,7 @@ class TextFileReader(object):
             #     suppressed_warnings = True
             #     self._engine.set_error_bad_lines(False)
 
-        # index = None
-
         ret = self._engine.read(nrows)
-
-        # if suppressed_warnings:
-        #     self._engine.set_error_bad_lines(True)
 
         if self.options.get('as_recarray'):
             return ret

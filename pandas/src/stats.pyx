@@ -566,6 +566,8 @@ def rank_2d_generic(object in_arr, axis=0, ties_method='average',
 #             result[i, j] = values[i, indexer[i, j]]
 #     return result
 
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def diff_2d_float64(ndarray[float64_t, ndim=2] arr,
@@ -577,21 +579,37 @@ def diff_2d_float64(ndarray[float64_t, ndim=2] arr,
     sx, sy = (<object> arr).shape
     if arr.flags.f_contiguous:
         if axis == 0:
+            if periods >= 0:
+                start, stop = periods, sx
+            else:
+                start, stop = 0, sx + periods
             for j in range(sy):
-                for i in range(periods, sx):
+                for i in range(start, stop):
                     out[i, j] = arr[i, j] - arr[i - periods, j]
         else:
-            for j in range(periods, sy):
+            if periods >= 0:
+                start, stop = periods, sy
+            else:
+                start, stop = 0, sy + periods
+            for j in range(start, stop):
                 for i in range(sx):
                     out[i, j] = arr[i, j] - arr[i, j - periods]
     else:
         if axis == 0:
-            for i in range(periods, sx):
+            if periods >= 0:
+                start, stop = periods, sx
+            else:
+                start, stop = 0, sx + periods
+            for i in range(start, stop):
                 for j in range(sy):
                     out[i, j] = arr[i, j] - arr[i - periods, j]
         else:
+            if periods >= 0:
+                start, stop = periods, sy
+            else:
+                start, stop = 0, sy + periods
             for i in range(sx):
-                for j in range(periods, sy):
+                for j in range(start, stop):
                     out[i, j] = arr[i, j] - arr[i, j - periods]
 
 @cython.wraparound(False)
@@ -605,21 +623,37 @@ def diff_2d_int64(ndarray[int64_t, ndim=2] arr,
     sx, sy = (<object> arr).shape
     if arr.flags.f_contiguous:
         if axis == 0:
+            if periods >= 0:
+                start, stop = periods, sx
+            else:
+                start, stop = 0, sx + periods
             for j in range(sy):
-                for i in range(periods, sx):
+                for i in range(start, stop):
                     out[i, j] = arr[i, j] - arr[i - periods, j]
         else:
-            for j in range(periods, sy):
+            if periods >= 0:
+                start, stop = periods, sy
+            else:
+                start, stop = 0, sy + periods
+            for j in range(start, stop):
                 for i in range(sx):
                     out[i, j] = arr[i, j] - arr[i, j - periods]
     else:
         if axis == 0:
-            for i in range(periods, sx):
+            if periods >= 0:
+                start, stop = periods, sx
+            else:
+                start, stop = 0, sx + periods
+            for i in range(start, stop):
                 for j in range(sy):
                     out[i, j] = arr[i, j] - arr[i - periods, j]
         else:
+            if periods >= 0:
+                start, stop = periods, sy
+            else:
+                start, stop = 0, sy + periods
             for i in range(sx):
-                for j in range(periods, sy):
+                for j in range(start, stop):
                     out[i, j] = arr[i, j] - arr[i, j - periods]
 
 
@@ -634,20 +668,35 @@ def diff_2d_int32(ndarray[int64_t, ndim=2] arr,
     sx, sy = (<object> arr).shape
     if arr.flags.f_contiguous:
         if axis == 0:
+            if periods >= 0:
+                start, stop = periods, sx
+            else:
+                start, stop = 0, sx + periods
             for j in range(sy):
-                for i in range(periods, sx):
+                for i in range(start, stop):
                     out[i, j] = arr[i, j] - arr[i - periods, j]
         else:
-            for j in range(periods, sy):
+            if periods >= 0:
+                start, stop = periods, sy
+            else:
+                start, stop = 0, sy + periods
+            for j in range(start, stop):
                 for i in range(sx):
                     out[i, j] = arr[i, j] - arr[i, j - periods]
     else:
         if axis == 0:
-            for i in range(periods, sx):
+            if periods >= 0:
+                start, stop = periods, sx
+            else:
+                start, stop = 0, sx + periods
+            for i in range(start, stop):
                 for j in range(sy):
                     out[i, j] = arr[i, j] - arr[i - periods, j]
         else:
+            if periods >= 0:
+                start, stop = periods, sy
+            else:
+                start, stop = 0, sy + periods
             for i in range(sx):
-                for j in range(periods, sy):
+                for j in range(start, stop):
                     out[i, j] = arr[i, j] - arr[i, j - periods]
-

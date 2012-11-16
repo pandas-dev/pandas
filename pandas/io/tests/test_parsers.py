@@ -1,6 +1,6 @@
 # pylint: disable=E1101
 
-from pandas.util.py3compat import StringIO, BytesIO
+from pandas.util.py3compat import StringIO, BytesIO, PY3
 from datetime import datetime
 from os.path import split as psplit
 import csv
@@ -1353,7 +1353,6 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
                              na_values=['NaN'])
         assert_almost_equal(df.values, expected)
 
-
 class TestPythonParser(ParserTests, unittest.TestCase):
 
     def read_csv(self, *args, **kwds):
@@ -1660,6 +1659,38 @@ eight,1,2,3"""
         expected = u'\xc1 k\xf6ldum klaka (Cold Fever) (1994)'
 
         self.assertEquals(got, expected)
+
+    def test_iteration_open_handle(self):
+        import itertools
+
+        if PY3:
+            raise nose.SkipTest
+
+        with open('__foo__.txt', 'wb') as f:
+            f.write('AAA\nBBB\nCCC\nDDD\nEEE\nFFF\nGGG')
+
+        with open('__foo__.txt', 'rb') as f:
+            for line in f:
+                if 'CCC' in line:
+                    break
+
+            try:
+                read_table(f, squeeze=True, header=None, engine='c')
+            except Exception:
+                pass
+            else:
+                raise ValueError('this should not happen')
+
+            result = read_table(f, squeeze=True, header=None,
+                                engine='python')
+
+            expected = Series(['DDD', 'EEE', 'FFF', 'GGG'])
+            tm.assert_series_equal(result, expected)
+
+        try:
+            os.remove('__foo__.txt')
+        except os.error:
+            pass
 
 class TestCParserHighMemory(ParserTests, unittest.TestCase):
 

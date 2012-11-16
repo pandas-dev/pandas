@@ -388,8 +388,10 @@ def diff(arr, n, axis=0):
 
     out_arr = np.empty(arr.shape, dtype=dtype)
 
+    get_slice = lambda x: slice(None, x) if n >= 0 else slice(x, None)
+
     na_indexer = [slice(None)] * arr.ndim
-    na_indexer[axis] = slice(None, n)
+    na_indexer[axis] = slice(None, n) if n >= 0 else slice(n, None)
     out_arr[tuple(na_indexer)] = np.nan
 
     if arr.ndim == 2 and arr.dtype.name in _diff_special:
@@ -397,11 +399,11 @@ def diff(arr, n, axis=0):
         f(arr, out_arr, n, axis)
     else:
         res_indexer = [slice(None)] * arr.ndim
-        res_indexer[axis] = slice(n, None)
+        res_indexer[axis] = slice(n, None) if n >= 0 else slice(None, n)
         res_indexer = tuple(res_indexer)
 
         lag_indexer = [slice(None)] * arr.ndim
-        lag_indexer[axis] = slice(None, -n)
+        lag_indexer[axis] = slice(None, -n) if n >= 0 else slice(-n, None)
         lag_indexer = tuple(lag_indexer)
 
         out_arr[res_indexer] = arr[res_indexer] - arr[lag_indexer]

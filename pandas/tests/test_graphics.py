@@ -134,6 +134,8 @@ class TestSeriesPlots(unittest.TestCase):
         _check_plot_works(self.ts.hist)
         _check_plot_works(self.ts.hist, grid=False)
 
+        _check_plot_works(self.ts.hist, by=self.ts.index.month)
+
     @slow
     def test_kde(self):
         _check_plot_works(self.ts.plot, kind='kde')
@@ -609,10 +611,19 @@ class TestDataFrameGroupByPlots(unittest.TestCase):
 
     @slow
     def test_grouped_hist(self):
-        df = DataFrame(np.random.randn(50, 2), columns=['A', 'B'])
-        df['C'] = np.random.randint(0, 3, 50)
+        import matplotlib.pyplot as plt
+        df = DataFrame(np.random.randn(500, 2), columns=['A', 'B'])
+        df['C'] = np.random.randint(0, 4, 500)
         axes = plotting.grouped_hist(df.A, by=df.C)
         self.assert_(len(axes.ravel()) == 4)
+
+        plt.close('all')
+        axes = df.hist(by=df.C)
+        self.assert_(axes.ndim == 2)
+        self.assert_(len(axes.ravel()) == 4)
+
+        for ax in axes.ravel():
+            self.assert_(len(ax.patches) > 0)
 
 PNG_PATH = 'tmp.png'
 

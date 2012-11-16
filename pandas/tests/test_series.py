@@ -3013,6 +3013,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
         rs = s.diff()
         self.assertEqual(rs[1], 1)
 
+        #neg n
+        rs = self.ts.diff(-1)
+        xp = self.ts - self.ts.shift(-1)
+        assert_series_equal(rs, xp)
+
     def test_pct_change(self):
         rs = self.ts.pct_change(fill_method=None)
         assert_series_equal(rs, self.ts / self.ts.shift(1) - 1)

@@ -259,8 +259,7 @@ class CleanCommand(Command):
                                'np_datetime_strings.c',
                                'period.c',
                                'parser.c',
-                               'io.c',
-                               'str_to.c']
+                               'io.c']
 
         for root, dirs, files in list(os.walk('pandas')):
             for f in files:
@@ -612,9 +611,8 @@ parser_ext = Extension('pandas._parser',
                        sources=[srcpath('parser', suffix=suffix),
                                 'pandas/src/parser/parser.c',
                                 'pandas/src/parser/io.c',
-                                'pandas/src/parser/str_to.c',
                                 ],
-                       extra_compile_args=['-O3'],
+                       #extra_compile_args=['-O3'],
                        include_dirs=common_include)
 
 sandbox_ext = Extension('pandas._sandbox',
