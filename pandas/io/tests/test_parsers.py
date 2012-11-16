@@ -1664,7 +1664,7 @@ eight,1,2,3"""
         import itertools
 
         with open('__foo__.txt', 'wb') as f:
-            f.write('AAA\nBBB\nCCC\nDDD\nEEE\nFFF\nGGG')
+            f.write(b'AAA\nBBB\nCCC\nDDD\nEEE\nFFF\nGGG')
 
         with open('__foo__.txt', 'rb') as f:
             for line in f:
