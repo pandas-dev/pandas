@@ -519,35 +519,37 @@ def str_get(arr, i):
     return _na_map(f, arr)
 
 
-def str_decode(arr, encoding):
+def str_decode(arr, encoding, errors="strict"):
     """
     Decode character string to unicode using indicated encoding
 
     Parameters
     ----------
     encoding : string
+    errors : string
 
     Returns
     -------
     decoded : array
     """
-    f = lambda x: x.decode(encoding)
+    f = lambda x: x.decode(encoding, errors)
     return _na_map(f, arr)
 
 
-def str_encode(arr, encoding):
+def str_encode(arr, encoding, errors="strict"):
     """
-    Encode character string to unicode using indicated encoding
+    Encode character string to some other encoding using indicated encoding
 
     Parameters
     ----------
     encoding : string
+    errors : string
 
     Returns
     -------
     encoded : array
     """
-    f = lambda x: x.encode(encoding)
+    f = lambda x: x.encode(encoding, errors)
     return _na_map(f, arr)
 
 
@@ -675,13 +677,13 @@ class StringMethods(object):
         raise NotImplementedError
 
     @copy(str_decode)
-    def decode(self, encoding):
-        result = str_decode(self.series, encoding)
+    def decode(self, encoding, errors="strict"):
+        result = str_decode(self.series, encoding, errors)
         return self._wrap_result(result)
 
     @copy(str_encode)
-    def encode(self, encoding):
-        result = str_encode(self.series, encoding)
+    def encode(self, encoding, errors="strict"):
+        result = str_encode(self.series, encoding, errors)
         return self._wrap_result(result)
 
     count = _pat_wrapper(str_count, flags=True)
