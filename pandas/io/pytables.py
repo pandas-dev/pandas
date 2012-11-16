@@ -68,12 +68,20 @@ _LEGACY_MAP = {
 
 # oh the troubles to reduce import time
 _table_mod = None
+_table_supports_index = True
 
 def _tables():
     global _table_mod
+    global _table_supports_index
     if _table_mod is None:
         import tables
         _table_mod = tables
+
+        # version requirements
+        major, minor, subv = tables.__version__.split('.')
+        if major >= 2 and minor >= 3:
+            _table_supports_index = True
+
     return _table_mod
 
 
@@ -322,7 +330,7 @@ class HDFStore(object):
             return self._read_group(group, where)
 
     def put(self, key, value, table=False, append=False,
-            compression=None):
+            compression=None, **kwargs):
         """
         Store object in HDFStore
 
@@ -343,7 +351,7 @@ class HDFStore(object):
             be used.
         """
         self._write_to_group(key, value, table=table, append=append,
-                             comp=compression)
+                             comp=compression, **kwargs)
 
     def _get_handler(self, op, kind):
         return getattr(self, '_%s_%s' % (op, kind))
@@ -371,7 +379,7 @@ class HDFStore(object):
             if group is not None:
                 self._delete_from_table(group, where)
 
-    def append(self, key, value):
+    def append(self, key, value, **kwargs):
         """
         Append to Table in file. Node must already exist and be Table
         format.
@@ -386,7 +394,7 @@ class HDFStore(object):
         Does *not* check if data being appended overlaps with existing
         data in the table, so be careful
         """
-        self._write_to_group(key, value, table=True, append=True)
+        self._write_to_group(key, value, table=True, append=True, **kwargs)
 
     def create_table_index(self, key, columns = None, optlevel = None, kind = None):
         """
@@ -408,9 +416,8 @@ class HDFStore(object):
         """
 
         # version requirements
-        major, minor, subv = _tables().__version__.split('.')
-        if major < 2 and minor < 3 and subv < 1:
-            raise("PyTables >= 2.3.1 is required for table indexing")
+        if not _table_supports_index:
+            raise("PyTables >= 2.3 is required for table indexing")
 
         group = getattr(self.handle.root, key, None)
         if group is None: return
@@ -438,7 +445,7 @@ class HDFStore(object):
                 v.createIndex(**kw)
 
     def _write_to_group(self, key, value, table=False, append=False,
-                        comp=None):
+                        comp=None, **kwargs):
         root = self.handle.root
         if key not in root._v_children:
             group = self.handle.createGroup(root, key)
@@ -450,7 +457,7 @@ class HDFStore(object):
             kind = '%s_table' % kind
             handler = self._get_handler(op='write', kind=kind)
             wrapper = lambda value: handler(group, value, append=append,
-                                            comp=comp)
+                                            comp=comp, **kwargs)
         else:
             if append:
                 raise ValueError('Can only append to Tables')
@@ -580,7 +587,7 @@ class HDFStore(object):
 
         return BlockManager(blocks, axes)
 
-    def _write_frame_table(self, group, df, append=False, comp=None):
+    def _write_frame_table(self, group, df, append=False, comp=None, **kwargs):
         mat = df.values
         values = mat.reshape((1,) + mat.shape)
 
@@ -590,7 +597,7 @@ class HDFStore(object):
 
         self._write_table(group, items=['value'],
                           index=df.index, columns=df.columns,
-                          values=values, append=append, compression=comp)
+                          values=values, append=append, compression=comp, **kwargs)
 
     def _write_wide(self, group, panel):
         panel._consolidate_inplace()
@@ -599,10 +606,10 @@ class HDFStore(object):
     def _read_wide(self, group, where=None):
         return Panel(self._read_block_manager(group))
 
-    def _write_wide_table(self, group, panel, append=False, comp=None):
+    def _write_wide_table(self, group, panel, append=False, comp=None, **kwargs):
         self._write_table(group, items=panel.items, index=panel.major_axis,
                           columns=panel.minor_axis, values=panel.values,
-                          append=append, compression=comp)
+                          append=append, compression=comp, **kwargs)
 
     def _read_wide_table(self, group, where=None):
         return self._read_panel_table(group, where)
@@ -619,10 +626,10 @@ class HDFStore(object):
             self._write_sparse_intindex(group, key, index)
         else:
             setattr(group._v_attrs, '%s_variety' % key, 'regular')
-            converted, kind, _ = _convert_index(index)
-            self._write_array(group, key, converted)
+            converted = _convert_index(index).set_name('index')
+            self._write_array(group, key, converted.values)
             node = getattr(group, key)
-            node._v_attrs.kind = kind
+            node._v_attrs.kind = converted.kind
             node._v_attrs.name = index.name
 
             if isinstance(index, (DatetimeIndex, PeriodIndex)):
@@ -679,11 +686,11 @@ class HDFStore(object):
                                                  index.labels,
                                                  index.names)):
             # write the level
-            conv_level, kind, _ = _convert_index(lev)
             level_key = '%s_level%d' % (key, i)
-            self._write_array(group, level_key, conv_level)
+            conv_level = _convert_index(lev).set_name(level_key)
+            self._write_array(group, level_key, conv_level.values)
             node = getattr(group, level_key)
-            node._v_attrs.kind = kind
+            node._v_attrs.kind = conv_level.kind
             node._v_attrs.name = name
 
             # write the name
@@ -788,22 +795,28 @@ class HDFStore(object):
         getattr(group, key)._v_attrs.transposed = transposed
 
     def _write_table(self, group, items=None, index=None, columns=None,
-                     values=None, append=False, compression=None):
+                     values=None, append=False, compression=None, 
+                     min_itemsize = None, **kwargs):
         """ need to check for conform to the existing table:
             e.g. columns should match """
-        # create dict of types
-        index_converted, index_kind, index_t = _convert_index(index)
-        columns_converted, cols_kind, col_t = _convert_index(columns)
+
+        # create Col types
+        index_converted   = _convert_index(index).set_name('index')
+        columns_converted = _convert_index(columns).set_name('column')
 
         # create the table if it doesn't exist (or get it if it does)
         if not append:
             if 'table' in group:
                 self.handle.removeNode(group, 'table')
+        else:
+            # check that we are not truncating on our indicies
+            index_converted.maybe_set(min_itemsize = min_itemsize)
+            columns_converted.maybe_set(min_itemsize = min_itemsize)
 
         if 'table' not in group:
             # create the table
-            desc = {'index': index_t,
-                    'column': col_t,
+            desc = {'index' : index_converted.typ,
+                    'column': columns_converted.typ,
                     'values': _tables().FloatCol(shape=(len(values)))}
 
             options = {'name': 'table',
@@ -825,16 +838,20 @@ class HDFStore(object):
             # the table must already exist
             table = getattr(group, 'table', None)
 
+            # check that we are not truncating on our indicies
+            index_converted.validate(table)
+            columns_converted.validate(table)
+
         # check for backwards incompatibility
         if append:
             existing_kind = getattr(table._v_attrs,'index_kind',None)
-            if existing_kind is not None and existing_kind != index_kind:
+            if existing_kind is not None and existing_kind != index_converted.kind:
                 raise TypeError("incompatible kind in index [%s - %s]" %
-                                (existing_kind, index_kind))
+                                (existing_kind, index_converted.kind))
 
         # add kinds
-        table._v_attrs.index_kind = index_kind
-        table._v_attrs.columns_kind = cols_kind
+        table._v_attrs.index_kind   = index_converted.kind
+        table._v_attrs.columns_kind = columns_converted.kind
         if append:
             existing_fields = getattr(table._v_attrs, 'fields', None)
             if (existing_fields is not None and
@@ -1001,13 +1018,55 @@ class HDFStore(object):
         # return the number of rows removed
         return ln
 
+class Col(object):
+    """ a column description class 
+
+        Parameters
+        ----------
+
+        values : the ndarray like converted values
+        kind   : a string description of this type
+        typ    : the pytables type
+        
+        """
+
+    def __init__(self, values, kind, typ, itemsize = None, **kwargs):
+        self.values = values
+        self.kind   = kind
+        self.typ    = typ
+        self.itemsize = itemsize
+        self.name   = None
+
+    def set_name(self, n):
+        self.name = n
+        return self
+
+    def __iter__(self):
+        return iter(self.values)
+
+    def maybe_set(self, min_itemsize = None, **kwargs):
+        """ maybe set a string col itemsize """
+        if self.kind == 'string' and min_itemsize is not None:
+            if self.typ.itemsize < min_itemsize:
+                self.typ = _tables().StringCol(itemsize = min_itemsize, pos = getattr(self.typ,'pos',None))
+
+    def validate(self, table, **kwargs):
+        """ validate this column for string truncation (or reset to the max size) """
+        if self.kind == 'string':
+            
+            # the current column name
+            t = getattr(table.description,self.name,None)
+            if t is not None:
+                if t.itemsize < self.itemsize:
+                    raise Exception("[%s] column has a min_itemsize of [%s] but itemsize [%s] is required!" % (self.name,self.itemsize,t.itemsize))
+
 def _convert_index(index):
     if isinstance(index, DatetimeIndex):
         converted = index.asi8
-        return converted, 'datetime64', _tables().Int64Col()
+        return Col(converted, 'datetime64', _tables().Int64Col())
     elif isinstance(index, (Int64Index, PeriodIndex)):
         atom = _tables().Int64Col()
-        return index.values, 'integer', atom
+        return Col(index.values, 'integer', atom)
 
     if isinstance(index, MultiIndex):
         raise Exception('MultiIndex not supported here!')
@@ -1018,33 +1077,33 @@ def _convert_index(index):
 
     if inferred_type == 'datetime64':
         converted = values.view('i8')
-        return converted, 'datetime64', _tables().Int64Col()
+        return Col(converted, 'datetime64', _tables().Int64Col())
     elif inferred_type == 'datetime':
         converted = np.array([(time.mktime(v.timetuple()) +
                             v.microsecond / 1E6) for v in values],
                             dtype=np.float64)
-        return converted, 'datetime', _tables().Time64Col()
+        return Col(converted, 'datetime', _tables().Time64Col())
     elif inferred_type == 'date':
         converted = np.array([time.mktime(v.timetuple()) for v in values],
                             dtype=np.int32)
-        return converted, 'date', _tables().Time32Col()
+        return Col(converted, 'date', _tables().Time32Col())
     elif inferred_type == 'string':
         converted = np.array(list(values), dtype=np.str_)
         itemsize = converted.dtype.itemsize
-        return converted, 'string', _tables().StringCol(itemsize)
+        return Col(converted, 'string', _tables().StringCol(itemsize), itemsize = itemsize)
     elif inferred_type == 'unicode':
         atom = _tables().ObjectAtom()
-        return np.asarray(values, dtype='O'), 'object', atom
+        return Col(np.asarray(values, dtype='O'), 'object', atom)
     elif inferred_type == 'integer':
         # take a guess for now, hope the values fit
         atom = _tables().Int64Col()
-        return np.asarray(values, dtype=np.int64), 'integer', atom
+        return Col(np.asarray(values, dtype=np.int64), 'integer', atom)
     elif inferred_type == 'floating':
         atom = _tables().Float64Col()
-        return np.asarray(values, dtype=np.float64), 'float', atom
+        return Col(np.asarray(values, dtype=np.float64), 'float', atom)
     else:  # pragma: no cover
         atom = _tables().ObjectAtom()
-        return np.asarray(values, dtype='O'), 'object', atom
+        return Col(np.asarray(values, dtype='O'), 'object', atom)
 
 
 def _read_array(group, key):
@@ -1172,20 +1231,20 @@ class Term(object):
         Term('index', '>', '20121114')
         Term('index', ['20121114','20121114'])
         Term('index', datetime(2012,11,14))
-        Term('index>20121114')
+        Term('major>20121114')
+        Term('minor', ['A','B'])
         
     """
 
     _ops     = ['<','<=','>','>=','=','!=']
     _search  = re.compile("^(?P<field>\w+)(?P<op>%s)(?P<value>.+)$" % '|'.join(_ops))
-    _index   = ['index','major_axis']
-    _column  = ['column','minor_axis','items']
+    _index   = ['index','major_axis','major']
+    _column  = ['column','minor_axis','minor']
 
     def __init__(self, field, op = None, value = None, index_kind = None):
         self.field = None
         self.op    = None
         self.value = None
-        self.typ   = None
         self.index_kind = index_kind
         self.filter     = None
         self.condition  = None
@@ -1241,9 +1300,9 @@ class Term(object):
 
         # valid field name
         if self.field in self._index:
-            self.typ = 'index'
+            self.field = 'index'
         elif self.field in self._column:
-            self.typ = 'column'
+            self.field = 'column'
         else:
             raise Exception("field is not a valid index/column for this term [%s]" % str(self))
 
@@ -1258,7 +1317,7 @@ class Term(object):
         self.eval()
 
     def __str__(self):
-        return "typ->%s,field->%s,op->%s,value->%s" % (self.typ,self.field,self.op,self.value)
+        return "field->%s,op->%s,value->%s" % (self.field,self.op,self.value)
 
     __repr__ = __str__
 
@@ -1285,7 +1344,7 @@ class Term(object):
       
     def convert_value(self, v):
 
-        if self.typ == 'index':
+        if self.field == 'index':
             if self.index_kind == 'datetime64' :
                 return [lib.Timestamp(v).value, None]
             elif isinstance(v, datetime):

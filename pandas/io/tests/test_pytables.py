@@ -14,6 +14,7 @@ from pandas.io.pytables import HDFStore, get_store, Term
 import pandas.util.testing as tm
 from pandas.tests.test_series import assert_series_equal
 from pandas.tests.test_frame import assert_frame_equal
+from pandas import concat
 
 try:
     import tables
@@ -150,6 +151,20 @@ class TestHDFStore(unittest.TestCase):
         self.store.append('d', df[10:])
         tm.assert_frame_equal(self.store['d'], df)
 
+    def test_append_with_strings(self):
+        wp = tm.makePanel()
+        wp2 = wp.rename_axis(dict([ (x,"%s_extra" % x) for x in wp.minor_axis ]), axis = 2)
+
+        self.store.append('s1', wp, min_itemsize = 20)
+        self.store.append('s1', wp2)
+        expected = concat([ wp, wp2], axis = 2)
+        expected = expected.reindex(minor_axis = sorted(expected.minor_axis))
+        tm.assert_panel_equal(self.store['s1'], expected)
+
+        # test truncation of bigger strings
+        self.store.append('s2', wp)
+        self.assertRaises(Exception, self.store.append, 's2', wp2)
+
     def test_create_table_index(self):
         wp = tm.makePanel()
         self.store.append('p5', wp)
@@ -251,6 +266,11 @@ class TestHDFStore(unittest.TestCase):
         Term('index', ['20121114','20121114'])
         Term('index', datetime(2012,11,14))
         Term('index>20121114')
+        Term('major>20121114')
+        Term('major_axis>20121114')
+        Term('minor', ['A','B'])
+        Term('minor_axis', ['A','B'])
+        Term('column', ['A','B'])
 
         self.assertRaises(Exception, Term.__init__)
         self.assertRaises(Exception, Term.__init__, 'blah')
