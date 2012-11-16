@@ -411,7 +411,8 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     return fig
 
 
-def parallel_coordinates(data, class_column, cols=None, ax=None, **kwds):
+def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None, 
+                         **kwds):
     """Parallel coordinates plotting.
 
     Parameters:
@@ -420,6 +421,7 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, **kwds):
     class_column: Column name containing class names
     cols: A list of column names to use, optional
     ax: matplotlib axis object, optional
+    colors: Colors to use for the different classes, optional
     kwds: A list of keywords for matplotlib plot method
 
     Returns:
@@ -449,6 +451,14 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, **kwds):
     if ax == None:
         ax = plt.gca()
 
+    # if user has not specified colors to use, choose at random
+    if colors is None:
+        colors = dict((kls, random_color(kls)) for kls in classes)
+    else:
+        if len(colors) != len(classes):
+            raise ValueError('Number of colors must match number of classes')
+        colors = dict((kls, colors.pop()) for kls in classes)
+
     for i in range(n):
         row = df.irow(i).values
         y = row
@@ -456,10 +466,10 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, **kwds):
         if com.pprint_thing(kls) not in used_legends:
             label = com.pprint_thing(kls)
             used_legends.add(label)
-            ax.plot(x, y, color=random_color(kls),
+            ax.plot(x, y, color=colors[kls],
                     label=label, **kwds)
         else:
-            ax.plot(x, y, color=random_color(kls), **kwds)
+            ax.plot(x, y, color=colors[kls], **kwds)
 
     for i in range(ncols):
         ax.axvline(i, linewidth=1, color='black')
