@@ -1299,9 +1299,39 @@ copy : boolean, default False
         return Series(duplicated, index=self.index, name=self.name)
 
     sum = _make_stat_func(nanops.nansum, 'sum', 'sum')
-    mean = _make_stat_func(nanops.nanmean, 'mean', 'mean')
     median = _make_stat_func(nanops.nanmedian, 'median', 'median', extras='')
     prod = _make_stat_func(nanops.nanprod, 'product', 'prod', extras='')
+
+    @Substitution(name='mean (optionally weighted)', shortname='mean',
+                  na_action=_doc_exclude_na, extras='')
+    @Appender(_stat_doc)
+    def mean(self, axis=None, dtype=None, out=None, weights=None, skipna=True,
+             level=None):
+        if level is not None:
+            if weights is None:
+                return self._agg_by_level('mean', level=level, skipna=skipna)
+            elif weights.index.nlevels < self.index.nlevels:
+                weights = weights.reindex(self.index)
+                return grouped.aggregate(lambda x: x.mean(skipna=skipna,
+                                                          weights=weights))
+            else:
+                weights = weights.reindex(self.index)
+                grouped = self.groupby(level=level)
+                return grouped.aggregate(
+                    lambda x: x.mean(
+                        skipna=skipna,
+                        weights=grouped.get_group(x.name, weights)
+                    )
+                )
+
+        if weights is None:
+            return nanops.nanmean(self.values, skipna=skipna)
+        if weights.ndim > 1:
+            raise ValueError('Weights must be 1-dimensional')
+        weights = weights.reindex(self.index)
+
+        return nanops.weighted_nanmean(self.values, weights.values, axis=axis,
+                                       skipna=skipna)
 
     @Substitution(name='mean absolute deviation', shortname='mad',
                   na_action=_doc_exclude_na, extras='')

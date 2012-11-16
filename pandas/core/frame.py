@@ -3710,7 +3710,7 @@ class DataFrame(NDFrame):
         return self.combine(other, combiner)
 
     def update(self, other, join='left', overwrite=True, filter_func=None,
-                     raise_conflict=False):
+               raise_conflict=False):
         """
         Modify DataFrame in place using non-NA values from passed
         DataFrame. Aligns on indices
@@ -4679,15 +4679,26 @@ class DataFrame(NDFrame):
         return self._reduce(nanops.nansum, axis=axis, skipna=skipna,
                             numeric_only=numeric_only)
 
-    @Substitution(name='mean', shortname='mean', na_action=_doc_exclude_na,
+    @Substitution(name='mean (optionally weighted)', shortname='mean',
+                  na_action=_doc_exclude_na,
                   extras='')
     @Appender(_stat_doc)
-    def mean(self, axis=0, skipna=True, level=None):
+    def mean(self, axis=0, skipna=True, level=None, weights=None):
         if level is not None:
+            if weights is not None:
+                raise NotImplementedError()
             return self._agg_by_level('mean', axis=axis, level=level,
                                       skipna=skipna)
-        return self._reduce(nanops.nanmean, axis=axis, skipna=skipna,
-                            numeric_only=None)
+
+        def helper(values, axis, skipna, **kwargs):
+            weights = kwargs.get('weights', None)
+            if weights is None:
+                return nanops.nanmean(values, axis=axis, skipna=skipna)
+            return nanops.weighted_nanmean(values, weights, axis=axis,
+                                           skipna=skipna)
+
+        return self._reduce(helper, axis=axis, skipna=skipna,
+                            numeric_only=None, weights=weights)
 
     @Substitution(name='minimum', shortname='min', na_action=_doc_exclude_na,
                   extras='')

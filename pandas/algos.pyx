@@ -613,7 +613,233 @@ def rank_2d_generic(object in_arr, axis=0, ties_method='average',
 #             result[i, j] = values[i, indexer[i, j]]
 #     return result
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def weighted_nanmean_1d(ndarray[numeric_t] arr,
+                        ndarray[weight_t] weight,
+                        uint8_t skipna=True):
+    cdef:
+        Py_ssize_t i
+        numeric_t val
+        float64_t numer=0
+        weight_t wgt, denom=0
 
+    if len(arr) != len(weight):
+        raise ValueError('Data and weights must be same size')
+
+    if skipna:
+        for i in range(len(arr)):
+            val = arr[i]
+            wgt = weight[i]
+
+            if val == val and wgt == wgt):
+                numer += val * wgt
+                denom += wgt
+    else:
+        for i in range(len(arr)):
+            wgt = weight[i]
+            numer += arr[i] * wgt
+            denom += wgt
+
+    if denom == 0:
+        return np.nan
+
+    return numer / denom
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def weighted_nanmean_2d_1d_weights(ndarray[numeric_t, ndim=2] arr,
+                                   ndarray[weight_t] weight, axis=0,
+                                   uint8_t skipna=True):
+
+    cdef:
+        Py_ssize_t i, len_x, len_y
+        numeric_t val
+        weight_t wgt
+        ndarray[float64_t] numer
+        ndarray[weight_t] denom
+
+    len_x, len_y = (<object>arr).shape
+    if len(weight) != (len_x, len_y)[axis]:
+        raise ValueError('Weights must be same size as data along broadcast '
+                         'dimension')
+
+    numer = np.empty(axis_len, dtype=float64_t)
+    denom = np.empty(axis_len, dtype=weight_t)
+
+    if arr.flags.f_continguous: #outer loop columns
+        if axis == 0:
+            if skipna:
+                for j in range(len_y):
+                    for i in range(len_x):
+                        val = arr[i, j]
+                        wgt = weight[i]
+
+                        if val == val and wgt == wgt:
+                            numer[j] += val * wgt
+                            denom[j] += wgt
+            else:
+                for j in range(len_y):
+                    for i in range(len_x):
+                        wgt = weight[i]
+
+                        numer[j] += arr[i, j] * wgt
+                        denom[j] += wgt
+
+        else:
+            if skipna:
+                for j in range(len_y):
+                    for i in range(len_x):
+                        val = arr[i, j]
+                        wgt = weight[j]
+
+                        if val == val and wgt == wgt:
+                            numer[i] += val * wgt
+                            denom[i] += wgt
+            else:
+                for j in range(len_y):
+                    for i in range(len_x):
+                        wgt = weight[j]
+
+                        numer[i] += arr[i, j] * wgt
+                        denom[i] += wgt
+
+    else:
+        if axis == 0:
+            if skipna:
+                for i in range(len_x):
+                    for j in range(len_y):
+                        val = arr[i, j]
+                        wgt = weight[i]
+
+                        if val == val and wgt == wgt:
+                            numer[j] += val * wgt
+                            denom[j] += wgt
+            else:
+                for i in range(len_x):
+                    for j in range(len_y):
+                        wgt = weight[i]
+                        numer[j] += arr[i, j] * wgt
+                        denom[j] += wgt
+        else:
+            if skipna:
+                for i in range(len_x):
+                    for j in range(len_y):
+                        val = arr[i, j]
+                        wgt = weight[j]
+
+                        if val == val and wgt == wgt:
+                            numer[i] += val * wgt
+                            denom[i] += wgt
+
+            else:
+                for i in range(len_x):
+                    for j in range(len_y):
+                        wgt = weight[j]
+                        numer[i] += arr[i, j] + wgt
+                        denom[i] += wgt
+
+
+    for k in range(axis_len):
+        numer[k] /= denom[k]
+
+    return numer
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def weighted_nanmean_2d_2d_weights(ndarray[numeric_t, ndim=2] arr,
+                                   ndarray[weight_t, ndim=2] weight, axis=0,
+                                   uint8_t skipna=True):
+    cdef:
+        Py_ssize_t i, len_x, len_y
+        numeric_t val
+        weight_t wgt
+        ndarray[float64_t] numer
+        ndarray[weight_t] denom
+
+    len_x, len_y = (<object>arr).shape
+    if (<object>arr).shape != (<object>weight).shape:
+        raise ValueError('Weights must have same shape as data')
+
+    numer = np.empty(axis_len, dtype=float64_t)
+    denom = np.empty(axis_len, dtype=weight_t)
+
+    if arr.flags.f_continguous: #outer loop columns
+        if axis == 0:
+            if skipna:
+                for j in range(len_y):
+                    for i in range(len_x):
+                        val = arr[i, j]
+                        wgt = weight[i, j]
+
+                        if val == val and wgt == wgt:
+                            numer[j] += val * wgt
+                            denom[j] += wgt
+            else:
+                for j in range(len_y):
+                    for i in range(len_x):
+                        wgt = weight[i, j]
+
+                        numer[j] += arr[i, j] * wgt
+                        denom[j] += wgt
+
+        else:
+            if skipna:
+                for j in range(len_y):
+                    for i in range(len_x):
+                        val = arr[i, j]
+                        wgt = weight[i, j]
+
+                        if val == val and wgt == wgt:
+                            numer[i] += val * wgt
+                            denom[i] += wgt
+            else:
+                for j in range(len_y):
+                    for i in range(len_x):
+                        wgt = weight[i, j]
+
+                        numer[i] += arr[i, j] * wgt
+                        denom[i] += wgt
+
+    else:
+        if axis == 0:
+            if skipna:
+                for i in range(len_x):
+                    for j in range(len_y):
+                        val = arr[i, j]
+                        wgt = weight[i, j]
+
+                        if val == val and wgt == wgt:
+                            numer[j] += val * wgt
+                            denom[j] += wgt
+            else:
+                for i in range(len_x):
+                    for j in range(len_y):
+                        wgt = weight[i, j]
+                        numer[j] += arr[i, j] * wgt
+                        denom[j] += wgt
+        else:
+            if skipna:
+                for i in range(len_x):
+                    for j in range(len_y):
+                        val = arr[i, j]
+                        wgt = weight[i, j]
+
+                        if val == val and wgt == wgt:
+                            numer[i] += val * wgt
+                            denom[i] += wgt
+
+            else:
+                for i in range(len_x):
+                    for j in range(len_y):
+                        wgt = weight[i, j]
+                        numer[i] += arr[i, j] + wgt
+                        denom[i] += wgt
+
+    for k in range(axis_len):
+        numer[k] /= denom[k]
+
+    return numer
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
