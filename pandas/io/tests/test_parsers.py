@@ -1707,7 +1707,6 @@ eight,1,2,3"""
                                skipinitialspace=True)
         self.assertTrue(pd.isnull(result.ix[0, 29]))
 
-
 class TestCParserHighMemory(ParserTests, unittest.TestCase):
 
     def read_csv(self, *args, **kwds):
@@ -1845,6 +1844,21 @@ a,b,c
     def test_memory_map(self):
         # it works!
         result = self.read_csv(self.csv1, memory_map=True)
+
+    def test_disable_bool_parsing(self):
+        # #2090
+
+        data = """A,B,C
+Yes,No,Yes
+No,Yes,Yes
+Yes,,Yes
+No,No,No"""
+
+        result = read_csv(StringIO(data), dtype=object)
+        self.assertTrue((result.dtypes == object).all())
+
+        result = read_csv(StringIO(data), dtype=object, na_filter=False)
+        self.assertEquals(result['B'][2], '')
 
 
 class TestParseSQL(unittest.TestCase):
