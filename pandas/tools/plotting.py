@@ -421,7 +421,7 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
     class_column: Column name containing class names
     cols: A list of column names to use, optional
     ax: matplotlib axis object, optional
-    colors: Colors to use for the different classes, optional
+    colors: A list of colors to use for the different classes, optional
     kwds: A list of keywords for matplotlib plot method
 
     Returns:
