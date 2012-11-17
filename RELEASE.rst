@@ -37,6 +37,7 @@ pandas 0.9.2
 
 **Bug fixes**
 
+  - Fix performance regression in SparseDataFrame arithmetic and pickling
   - Fixes bug when negative period passed to Series/DataFrame.diff (#2266)
 
 pandas 0.9.1

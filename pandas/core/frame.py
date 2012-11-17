@@ -637,7 +637,7 @@ class DataFrame(NDFrame):
     def iteritems(self):
         """Iterator over (column, series) pairs"""
         for i, k in enumerate(self.columns):
-            yield (k,self.take([i],axis=1)[k])
+            yield k, self.icol(i)
 
     def iterrows(self):
         """
