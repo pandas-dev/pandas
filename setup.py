@@ -258,7 +258,7 @@ class CleanCommand(Command):
         self._clean_exclude = ['np_datetime.c',
                                'np_datetime_strings.c',
                                'period.c',
-                               'parser.c',
+                               'tokenizer.c',
                                'io.c']
 
         for root, dirs, files in list(os.walk('pandas')):
@@ -605,11 +605,11 @@ period_ext = Extension('pandas._period',
                        include_dirs=[np.get_include()])
 
 parser_ext = Extension('pandas._parser',
-                       depends=['pandas/src/parser/parser.h',
+                       depends=['pandas/src/parser/tokenizer.h',
                                 'pandas/src/parser/io.h',
                                 'pandas/src/numpy_helper.h'],
                        sources=[srcpath('parser', suffix=suffix),
-                                'pandas/src/parser/parser.c',
+                                'pandas/src/parser/tokenizer.c',
                                 'pandas/src/parser/io.c',
                                 ],
                        #extra_compile_args=['-O3'],

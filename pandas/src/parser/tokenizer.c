@@ -14,7 +14,7 @@ n   Low-level ascii-file processing for pandas. Combines some elements from
   */
 
 
-#include "parser.h"
+#include "tokenizer.h"
 
 #include <ctype.h>
 #include <math.h>
@@ -330,9 +330,9 @@ int make_stream_space(parser_t *self, size_t nbytes) {
       LINE VECTORS
     */
     /*
-    printf("Line_start: "); 
-    
-    for (j = 0; j < self->lines + 1; ++j) { 
+    printf("Line_start: ");
+
+    for (j = 0; j < self->lines + 1; ++j) {
          printf("%d ", self->line_fields[j]);
      }
     printf("\n");
@@ -347,7 +347,7 @@ int make_stream_space(parser_t *self, size_t nbytes) {
     if (status != 0) {
         return PARSER_OUT_OF_MEMORY;
     }
-    
+
     // realloc took place
     if (cap != self->lines_cap) {
         self->line_fields = (int*) safe_realloc((void *) self->line_fields,
@@ -572,7 +572,7 @@ int tokenize_delimited(parser_t *self, size_t line_limit)
     char *stream;
     char *buf = self->data + self->datapos;
 
-    
+
     start_lines = self->lines;
 
     if (make_stream_space(self, self->datalen - self->datapos) < 0) {
@@ -1082,8 +1082,8 @@ int parser_consume_rows(parser_t *self, size_t nrows) {
     self->pword_start -= char_count;
     self->word_start -= char_count;
     /*
-    printf("Line_start: "); 
-    for (i = 0; i < self->lines + 1; ++i) { 
+    printf("Line_start: ");
+    for (i = 0; i < self->lines + 1; ++i) {
          printf("%d ", self->line_fields[i]);
      }
     printf("\n");
@@ -1212,8 +1212,8 @@ int _tokenize_helper(parser_t *self, size_t nrows, int all) {
         }
 
         TRACE(("Trying to process %d bytes\n", self->datalen - self->datapos));
-        /* TRACE(("sourcetype: %c, status: %d\n", self->sourcetype, status)); */   
-        
+        /* TRACE(("sourcetype: %c, status: %d\n", self->sourcetype, status)); */
+
         status = tokenize_bytes(self, nrows);
 
         if (status < 0) {

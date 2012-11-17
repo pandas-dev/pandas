@@ -66,7 +66,7 @@ try:
 except NameError:
     basestring = str
 
-cdef extern from "parser/parser.h":
+cdef extern from "parser/tokenizer.h":
 
     ctypedef enum ParserState:
         START_RECORD
