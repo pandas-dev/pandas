@@ -29,6 +29,8 @@ pandas 0.9.2
 
 **New features**
 
+  - Add error handling to Series.str.encode/decode (#2276)
+
 **API Changes**
 
 **Improvements to existing features**
@@ -37,8 +39,9 @@ pandas 0.9.2
 
 **Bug fixes**
 
-  - Fix performance regression in SparseDataFrame arithmetic and pickling
+  - Fix major performance regression in DataFrame.iteritems (#
   - Fixes bug when negative period passed to Series/DataFrame.diff (#2266)
+  - Escape tabs in console output to avoid alignment issues (#2038)
 
 pandas 0.9.1
 ============

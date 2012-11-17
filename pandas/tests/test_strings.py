@@ -690,12 +690,31 @@ class TestStringMethods(unittest.TestCase):
         self.assertEquals(result[0], True)
 
     def test_encode_decode(self):
-        base = Series([u'a', u'b', u'\xe4'])
+        base = Series([u'a', u'b', u'a\xe4'])
         series = base.str.encode('utf-8')
 
         f = lambda x: x.decode('utf-8')
         result = series.str.decode('utf-8')
         exp = series.map(f)
+
+        tm.assert_series_equal(result, exp)
+
+    def test_encode_decode_errors(self):
+        encodeBase = Series([u'a', u'b', u'a\x9d'])
+        with self.assertRaises(UnicodeEncodeError):
+            encodeBase.str.encode('cp1252')
+
+        f = lambda x: x.encode('cp1252', 'ignore')
+        result = encodeBase.str.encode('cp1252', 'ignore')
+        exp = encodeBase.map(f)
+        tm.assert_series_equal(result, exp)
+
+        decodeBase = Series(['a', 'b', 'a\x9d'])
+        with self.assertRaises(UnicodeDecodeError):
+            decodeBase.str.encode('cp1252')
+        f = lambda x: x.decode('cp1252', 'ignore')
+        result = decodeBase.str.decode('cp1252', 'ignore')
+        exp = decodeBase.map(f)
 
         tm.assert_series_equal(result, exp)
 

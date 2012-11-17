@@ -211,6 +211,11 @@ def test_pprint_thing():
     assert(pp_t(('foo',u'\u05d0',(u'\u05d0',u'\u05d0')))==
            u'(foo, \u05d0, (\u05d0, \u05d0))')
 
+
+    # escape embedded tabs in string
+    # GH #2038
+    assert not "\t" in pp_t("a\tb")
+
 class TestTake(unittest.TestCase):
 
     def test_1d_with_out(self):
