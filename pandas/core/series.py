@@ -2381,7 +2381,7 @@ copy : boolean, default False
 
     truncate = generic.truncate
 
-    def fillna(self, value=None, method='pad', inplace=False,
+    def fillna(self, value=None, method=None, inplace=False,
                limit=None):
         """
         Fill NA/NaN values using the specified method
@@ -2413,6 +2413,8 @@ copy : boolean, default False
             return self.copy() if not inplace else self
 
         if value is not None:
+            if method is not None:
+                raise ValueError('Cannot specify both a fill value and method')
             result = self.copy() if not inplace else self
             mask = isnull(self.values)
             np.putmask(result, mask, value)

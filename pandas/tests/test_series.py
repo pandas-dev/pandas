@@ -2929,8 +2929,8 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
 
     def test_fillna_int(self):
         s = Series(np.random.randint(-100, 100, 50))
-        self.assert_(s.fillna(inplace=True) is s)
-        assert_series_equal(s.fillna(inplace=False), s)
+        self.assert_(s.fillna(method='ffill', inplace=True) is s)
+        assert_series_equal(s.fillna(method='ffill', inplace=False), s)
 
 #-------------------------------------------------------------------------------
 # TimeSeries-specific
@@ -2938,11 +2938,11 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
     def test_fillna(self):
         ts = Series([0., 1., 2., 3., 4.], index=tm.makeDateIndex(5))
 
-        self.assert_(np.array_equal(ts, ts.fillna()))
+        self.assert_(np.array_equal(ts, ts.fillna(method='ffill')))
 
         ts[2] = np.NaN
 
-        self.assert_(np.array_equal(ts.fillna(), [0., 1., 1., 3., 4.]))
+        self.assert_(np.array_equal(ts.fillna(method='ffill'), [0., 1., 1., 3., 4.]))
         self.assert_(np.array_equal(ts.fillna(method='backfill'),
                                     [0., 1., 3., 3., 4.]))
 
@@ -2973,6 +2973,9 @@ class TestSeries(unittest.TestCase, CheckNameIntegration):
             self.ts.fillna(method='ffil')
         except ValueError, inst:
             self.assert_('ffil' in str(inst))
+
+    def test_fillna_toomany_params(self):
+        self.assertRaises(ValueError, self.ts.fillna, value=0, method='ffill')
 
     def test_replace(self):
         N = 100
