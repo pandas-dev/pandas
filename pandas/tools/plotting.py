@@ -421,7 +421,7 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
     class_column: Column name containing class names
     cols: A list of column names to use, optional
     ax: matplotlib axis object, optional
-    colors: A list of colors to use for the different classes, optional
+    colors: A list or tuple of colors to use for the different classes, optional
     kwds: A list of keywords for matplotlib plot method
 
     Returns:
@@ -457,7 +457,7 @@ def parallel_coordinates(data, class_column, cols=None, ax=None, colors=None,
     else:
         if len(colors) != len(classes):
             raise ValueError('Number of colors must match number of classes')
-        colors = dict((kls, colors.pop()) for kls in classes)
+        colors = dict((kls, colors[i]) for i, kls in enumerate(classes))
 
     for i in range(n):
         row = df.irow(i).values
