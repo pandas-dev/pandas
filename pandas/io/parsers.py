@@ -56,8 +56,8 @@ index_col : int or sequence, default None
     Column to use as the row labels of the DataFrame. If a sequence is
     given, a MultiIndex is used.
 names : array-like
-    List of column names to use. If passed, header will be implicitly set to
-    None.
+    List of column names to use. If header=True, replace existing header,
+    otherwise this ignores the header=0 default
 na_values : list-like or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values
@@ -872,7 +872,8 @@ class CParserWrapper(ParserBase):
             data = sorted(data.items())
             data = dict((k, v) for k, (i, v) in zip(names, data))
 
-            names = self._filter_usecols(names)
+            if self._reader.names is None:
+                names = self._filter_usecols(names)
 
             names, data = self._do_date_conversions(names, data)
 
@@ -882,7 +883,9 @@ class CParserWrapper(ParserBase):
 
             # ugh, mutation
             names = list(self.orig_names)
-            names = self._filter_usecols(names)
+
+            if self._reader.names is None:
+                names = self._filter_usecols(names)
 
             # columns as list
             alldata = [x[1] for x in data]
@@ -1130,8 +1133,6 @@ class PythonParser(ParserBase):
 
     def _infer_columns(self):
         names = self.names
-        if names is not None:
-            self.header = None
 
         if self.header is not None:
             if len(self.buf) > 0:
@@ -1155,7 +1156,14 @@ class PythonParser(ParserBase):
                 if cur_count > 0:
                     columns[i] = '%s.%d' % (col, cur_count)
                 counts[col] = cur_count + 1
+
             self._clear_buffer()
+
+            if names is not None:
+                if len(names) != len(columns):
+                    raise Exception('Number of passed names did not match '
+                                    'number of header fields in the file')
+                columns = names
         else:
             if len(self.buf) > 0:
                 line = self.buf[0]
