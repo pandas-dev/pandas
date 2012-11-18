@@ -32,6 +32,9 @@ class Block(object):
         self.items = _ensure_index(items)
         self.ref_items = _ensure_index(ref_items)
 
+    def _gi(self, arg):
+        return self.values[arg]
+
     @property
     def ref_locs(self):
         if self._ref_locs is None:
@@ -229,20 +232,20 @@ class Block(object):
         if not isinstance(to_replace, (list, np.ndarray)):
             if self._can_hold_element(to_replace):
                 to_replace = self._try_cast(to_replace)
-                np.putmask(new_values, com.mask_missing(new_values, to_replace),
-                           value)
+                msk = com.mask_missing(new_values, to_replace)
+                np.putmask(new_values, msk, value)
         else:
             try:
                 to_replace = np.array(to_replace, dtype=self.dtype)
-                np.putmask(new_values, com.mask_missing(new_values, to_replace),
-                           value)
-            except:
+                msk = com.mask_missing(new_values, to_replace)
+                np.putmask(new_values, msk, value)
+            except Exception:
                 to_replace = np.array(to_replace, dtype=object)
                 for r in to_replace:
                     if self._can_hold_element(r):
                         r = self._try_cast(r)
-                np.putmask(new_values, com.mask_missing(new_values, to_replace),
-                           value)
+                msk = com.mask_missing(new_values, to_replace)
+                np.putmask(new_values, msk, value)
 
         if inplace:
             return self
@@ -312,8 +315,6 @@ def _mask_missing(array, missing_values):
             mask |= array == missing_values
     return mask
 
-#-------------------------------------------------------------------------------
-# Is this even possible?
 
 class FloatBlock(Block):
     _can_hold_na = True
@@ -332,6 +333,7 @@ class FloatBlock(Block):
         # unnecessarily
         return issubclass(value.dtype.type, np.floating)
 
+
 class ComplexBlock(Block):
     _can_hold_na = True
 
@@ -346,6 +348,7 @@ class ComplexBlock(Block):
 
     def should_store(self, value):
         return issubclass(value.dtype.type, np.complexfloating)
+
 
 class IntBlock(Block):
     _can_hold_na = False
@@ -362,6 +365,7 @@ class IntBlock(Block):
     def should_store(self, value):
         return com.is_integer_dtype(value)
 
+
 class BoolBlock(Block):
     _can_hold_na = False
 
@@ -376,6 +380,7 @@ class BoolBlock(Block):
 
     def should_store(self, value):
         return issubclass(value.dtype.type, np.bool_)
+
 
 class ObjectBlock(Block):
     _can_hold_na = True
@@ -401,6 +406,9 @@ class DatetimeBlock(Block):
             values = lib.cast_to_nanoseconds(values)
 
         Block.__init__(self, values, items, ref_items, ndim=ndim)
+
+    def _gi(self, arg):
+        return lib.Timestamp(self.values[arg])
 
     def _can_hold_element(self, element):
         return com.is_integer(element) or isinstance(element, datetime)
@@ -807,10 +815,9 @@ class BlockManager(object):
         n = len(items)
         result = np.empty(n, dtype=dtype)
         for blk in self.blocks:
-            values = blk.values
             for j, item in enumerate(blk.items):
                 i = items.get_loc(item)
-                result[i] = values[j, loc]
+                result[i] = blk._gi((j, loc))
 
         return result
 

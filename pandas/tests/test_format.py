@@ -895,6 +895,13 @@ class TestSeriesFormatting(unittest.TestCase):
         #check this works
         #GH2146
 
+    def test_mixed_datetime64(self):
+        df = DataFrame({'A': [1, 2],
+                        'B': ['2012-01-01', '2012-01-02']})
+        df['B'] = pd.to_datetime(df.B)
+
+        result = repr(df.ix[0])
+        self.assertTrue('2012-01-01' in result)
 
 class TestEngFormatter(unittest.TestCase):
 
