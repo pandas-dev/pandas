@@ -349,7 +349,8 @@ class TestDataFrameFormatting(unittest.TestCase):
         lines = result.split('\n')
         header = lines[0].strip().split()
         joined = '\n'.join([re.sub('\s+', ' ', x).strip() for x in lines[1:]])
-        recons = read_table(StringIO(joined), names=header, sep=' ')
+        recons = read_table(StringIO(joined), names=header,
+                            header=None, sep=' ')
         tm.assert_series_equal(recons['B'], biggie['B'])
         self.assertEqual(recons['A'].count(), biggie['A'].count())
         self.assert_((np.abs(recons['A'].dropna() -
