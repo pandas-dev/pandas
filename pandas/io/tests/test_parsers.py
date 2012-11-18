@@ -14,13 +14,14 @@ import nose
 from numpy import nan
 import numpy as np
 
-from pandas import DataFrame, Series, Index, isnull, MultiIndex, DatetimeIndex
+from pandas import DataFrame, Series, Index, MultiIndex, DatetimeIndex
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                ExcelFile, TextFileReader, TextParser)
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal, network)
 import pandas.util.testing as tm
+import pandas as pd
 
 import pandas.lib as lib
 from pandas.util import py3compat
@@ -1573,7 +1574,7 @@ eight,1,2,3"""
         result = self.read_csv(fh, converters={'score':convert_score,
                                                  'days':convert_days},
                                  na_values=[-1,'',None])
-        self.assert_(isnull(result['days'][1]))
+        self.assert_(pd.isnull(result['days'][1]))
 
         fh = StringIO.StringIO(csv)
         result2 = self.read_csv(fh, converters={'score':convert_score,
@@ -1691,6 +1692,20 @@ eight,1,2,3"""
             os.remove('__foo__.txt')
         except os.error:
             pass
+
+    def test_skipinitialspace(self):
+        s = ('"09-Apr-2012", "01:10:18.300", 2456026.548822908, 12849, '
+             '1.00361,  1.12551, 330.65659, 0355626618.16711,  73.48821, '
+             '314.11625,  1917.09447,   179.71425,  80.000, 240.000, -350,  '
+             '70.06056, 344.98370, 1,   1, -0.689265, -0.692787,  '
+             '0.212036,    14.7674,   41.605,   -9999.0,   -9999.0,   '
+             '-9999.0,   -9999.0,   -9999.0,  -9999.0, 000, 012, 128')
+
+        sfile = StringIO(s)
+        # it's 33 columns
+        result = self.read_csv(sfile, names=range(33), na_values=['-9999.0'],
+                               skipinitialspace=True)
+        self.assertTrue(pd.isnull(result.ix[0, 29]))
 
 class TestCParserHighMemory(ParserTests, unittest.TestCase):
 
@@ -1829,6 +1844,21 @@ a,b,c
     def test_memory_map(self):
         # it works!
         result = self.read_csv(self.csv1, memory_map=True)
+
+    def test_disable_bool_parsing(self):
+        # #2090
+
+        data = """A,B,C
+Yes,No,Yes
+No,Yes,Yes
+Yes,,Yes
+No,No,No"""
+
+        result = read_csv(StringIO(data), dtype=object)
+        self.assertTrue((result.dtypes == object).all())
+
+        result = read_csv(StringIO(data), dtype=object, na_filter=False)
+        self.assertEquals(result['B'][2], '')
 
 
 class TestParseSQL(unittest.TestCase):
